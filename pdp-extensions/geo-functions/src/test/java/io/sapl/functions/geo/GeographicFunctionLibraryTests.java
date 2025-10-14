@@ -17,68 +17,22 @@
  */
 package io.sapl.functions.geo;
 
-import static io.sapl.assertj.SaplAssertions.assertThatVal;
-import static io.sapl.functions.geo.GeographicFunctionLibrary.NOT_A_GEOMETRY_COLLECTION_ERROR;
-import static io.sapl.functions.geo.GeographicFunctionLibrary.area;
-import static io.sapl.functions.geo.GeographicFunctionLibrary.atLeastOneMemberOf;
-import static io.sapl.functions.geo.GeographicFunctionLibrary.bagSize;
-import static io.sapl.functions.geo.GeographicFunctionLibrary.boundary;
-import static io.sapl.functions.geo.GeographicFunctionLibrary.buffer;
-import static io.sapl.functions.geo.GeographicFunctionLibrary.centroid;
-import static io.sapl.functions.geo.GeographicFunctionLibrary.contains;
-import static io.sapl.functions.geo.GeographicFunctionLibrary.convexHull;
-import static io.sapl.functions.geo.GeographicFunctionLibrary.crosses;
-import static io.sapl.functions.geo.GeographicFunctionLibrary.degreeToMeter;
-import static io.sapl.functions.geo.GeographicFunctionLibrary.difference;
-import static io.sapl.functions.geo.GeographicFunctionLibrary.disjoint;
-import static io.sapl.functions.geo.GeographicFunctionLibrary.distance;
-import static io.sapl.functions.geo.GeographicFunctionLibrary.equalsExact;
-import static io.sapl.functions.geo.GeographicFunctionLibrary.flattenGeometryBag;
-import static io.sapl.functions.geo.GeographicFunctionLibrary.geoDistance;
-import static io.sapl.functions.geo.GeographicFunctionLibrary.geodesicDistance;
-import static io.sapl.functions.geo.GeographicFunctionLibrary.geometryBag;
-import static io.sapl.functions.geo.GeographicFunctionLibrary.geometryIsIn;
-import static io.sapl.functions.geo.GeographicFunctionLibrary.gml3ToGeoJSON;
-import static io.sapl.functions.geo.GeographicFunctionLibrary.intersection;
-import static io.sapl.functions.geo.GeographicFunctionLibrary.intersects;
-import static io.sapl.functions.geo.GeographicFunctionLibrary.isClosed;
-import static io.sapl.functions.geo.GeographicFunctionLibrary.isSimple;
-import static io.sapl.functions.geo.GeographicFunctionLibrary.isValid;
-import static io.sapl.functions.geo.GeographicFunctionLibrary.isWithinDistance;
-import static io.sapl.functions.geo.GeographicFunctionLibrary.isWithinGeodesicDistance;
-import static io.sapl.functions.geo.GeographicFunctionLibrary.kmlToGeoJSON;
-import static io.sapl.functions.geo.GeographicFunctionLibrary.length;
-import static io.sapl.functions.geo.GeographicFunctionLibrary.milesToMeter;
-import static io.sapl.functions.geo.GeographicFunctionLibrary.oneAndOnly;
-import static io.sapl.functions.geo.GeographicFunctionLibrary.overlaps;
-import static io.sapl.functions.geo.GeographicFunctionLibrary.subset;
-import static io.sapl.functions.geo.GeographicFunctionLibrary.symDifference;
-import static io.sapl.functions.geo.GeographicFunctionLibrary.touches;
-import static io.sapl.functions.geo.GeographicFunctionLibrary.union;
-import static io.sapl.functions.geo.GeographicFunctionLibrary.within;
-import static io.sapl.functions.geo.GeographicFunctionLibrary.wktToGeoJSON;
-import static io.sapl.functions.geo.GeographicFunctionLibrary.yardToMeter;
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatCode;
-
-import org.geotools.api.referencing.FactoryException;
-import org.geotools.referencing.CRS;
-import org.junit.jupiter.api.Test;
-import org.locationtech.jts.geom.Coordinate;
-import org.locationtech.jts.geom.Geometry;
-import org.locationtech.jts.geom.GeometryCollection;
-import org.locationtech.jts.geom.GeometryFactory;
-import org.locationtech.jts.geom.Point;
-import org.locationtech.jts.geom.PrecisionModel;
-import org.locationtech.jts.io.geojson.GeoJsonWriter;
-import org.locationtech.spatial4j.distance.DistanceUtils;
-
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-
 import io.sapl.api.interpreter.Val;
 import io.sapl.interpreter.functions.AnnotationFunctionContext;
 import lombok.SneakyThrows;
+import org.geotools.api.referencing.FactoryException;
+import org.geotools.referencing.CRS;
+import org.junit.jupiter.api.Test;
+import org.locationtech.jts.geom.*;
+import org.locationtech.jts.io.geojson.GeoJsonWriter;
+import org.locationtech.spatial4j.distance.DistanceUtils;
+
+import static io.sapl.assertj.SaplAssertions.assertThatVal;
+import static io.sapl.functions.geo.GeographicFunctionLibrary.*;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 
 class GeographicFunctionLibraryTests {
 

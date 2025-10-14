@@ -17,14 +17,13 @@
  */
 package io.sapl.functions;
 
-import java.io.IOException;
-import java.math.BigDecimal;
-
-import org.junit.jupiter.api.Test;
-
 import io.sapl.testutil.MockUtil;
 import io.sapl.testutil.ParserUtil;
+import org.junit.jupiter.api.Test;
 import reactor.test.StepVerifier;
+
+import java.io.IOException;
+import java.math.BigDecimal;
 
 class ArithmeticExpressionsTests {
 

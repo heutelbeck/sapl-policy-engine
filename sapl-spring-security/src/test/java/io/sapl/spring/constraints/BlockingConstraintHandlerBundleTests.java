@@ -17,14 +17,7 @@
  */
 package io.sapl.spring.constraints;
 
-import static com.spotify.hamcrest.optional.OptionalMatchers.emptyOptional;
-import static com.spotify.hamcrest.optional.OptionalMatchers.optionalWithValue;
-import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.CoreMatchers.nullValue;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.arrayContaining;
-import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.Matchers.containsInAnyOrder;
+import org.junit.jupiter.api.Test;
 
 import java.util.List;
 import java.util.Optional;
@@ -32,7 +25,12 @@ import java.util.Set;
 import java.util.function.Predicate;
 import java.util.function.UnaryOperator;
 
-import org.junit.jupiter.api.Test;
+import static com.spotify.hamcrest.optional.OptionalMatchers.emptyOptional;
+import static com.spotify.hamcrest.optional.OptionalMatchers.optionalWithValue;
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.nullValue;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.*;
 
 @SuppressWarnings("unchecked")
 class BlockingConstraintHandlerBundleTests {

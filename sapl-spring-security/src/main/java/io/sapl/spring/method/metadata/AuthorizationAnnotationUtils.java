@@ -17,16 +17,11 @@
  */
 package io.sapl.spring.method.metadata;
 
+import lombok.experimental.UtilityClass;
+import org.springframework.core.annotation.*;
+
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
-
-import org.springframework.core.annotation.AnnotationConfigurationException;
-import org.springframework.core.annotation.AnnotationUtils;
-import org.springframework.core.annotation.MergedAnnotation;
-import org.springframework.core.annotation.MergedAnnotations;
-import org.springframework.core.annotation.RepeatableContainers;
-
-import lombok.experimental.UtilityClass;
 
 /**
  * A wrapper around {@link AnnotationUtils} that checks for, and errors on,

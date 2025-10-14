@@ -17,17 +17,6 @@
  */
 package io.sapl.springdatamongoreactive.enforcement;
 
-import static io.sapl.springdatacommon.utils.AnnotationUtilities.hasAnnotationQueryEnforce;
-import static io.sapl.springdatacommon.utils.AnnotationUtilities.hasAnnotationQueryReactiveMongo;
-import static io.sapl.springdatacommon.utils.Utilities.convertReturnTypeIfNecessary;
-
-import java.util.Objects;
-
-import org.aopalliance.intercept.MethodInterceptor;
-import org.aopalliance.intercept.MethodInvocation;
-import org.springframework.beans.factory.ObjectProvider;
-import org.springframework.core.annotation.AnnotationUtils;
-
 import io.sapl.spring.method.metadata.QueryEnforce;
 import io.sapl.springdatacommon.services.QueryEnforceAuthorizationSubscriptionService;
 import io.sapl.springdatacommon.services.RepositoryInformationCollectorService;
@@ -36,6 +25,16 @@ import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
+import org.aopalliance.intercept.MethodInterceptor;
+import org.aopalliance.intercept.MethodInvocation;
+import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.core.annotation.AnnotationUtils;
+
+import java.util.Objects;
+
+import static io.sapl.springdatacommon.utils.AnnotationUtilities.hasAnnotationQueryEnforce;
+import static io.sapl.springdatacommon.utils.AnnotationUtilities.hasAnnotationQueryReactiveMongo;
+import static io.sapl.springdatacommon.utils.Utilities.convertReturnTypeIfNecessary;
 
 /**
  * This service is the gathering point of all SaplEnforcementPoints for the

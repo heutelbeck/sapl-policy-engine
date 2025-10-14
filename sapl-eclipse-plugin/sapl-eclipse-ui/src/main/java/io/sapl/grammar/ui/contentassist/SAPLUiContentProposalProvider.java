@@ -18,7 +18,6 @@
 package io.sapl.grammar.ui.contentassist;
 
 import com.google.inject.Inject;
-
 import io.sapl.grammar.ide.contentassist.SAPLContentProposalProvider;
 import io.sapl.pdp.config.PDPConfigurationProvider;
 

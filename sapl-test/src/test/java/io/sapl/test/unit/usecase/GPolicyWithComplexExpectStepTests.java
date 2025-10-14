@@ -17,18 +17,8 @@
  */
 package io.sapl.test.unit.usecase;
 
-import static io.sapl.hamcrest.Matchers.hasObligationContainingKeyValue;
-import static io.sapl.hamcrest.Matchers.hasObligationMatching;
-import static io.sapl.hamcrest.Matchers.hasResourceMatching;
-import static io.sapl.hamcrest.Matchers.isPermit;
-import static org.hamcrest.CoreMatchers.allOf;
-
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.Decision;
@@ -37,6 +27,11 @@ import io.sapl.interpreter.InitializationException;
 import io.sapl.test.SaplTestFixture;
 import io.sapl.test.unit.SaplUnitTestFixture;
 import lombok.Data;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+
+import static io.sapl.hamcrest.Matchers.*;
+import static org.hamcrest.CoreMatchers.allOf;
 
 class GPolicyWithComplexExpectStepTests {
 

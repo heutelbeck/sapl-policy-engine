@@ -17,15 +17,6 @@
  */
 package io.sapl.springdatar2dbc.config;
 
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-
-import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.BeanFactory;
-import org.springframework.beans.factory.ObjectProvider;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
-
 import io.sapl.api.pdp.PolicyDecisionPoint;
 import io.sapl.spring.constraints.ConstraintEnforcementService;
 import io.sapl.springdatacommon.services.ConstraintQueryEnforcementService;
@@ -38,6 +29,14 @@ import io.sapl.springdatar2dbc.enforcement.R2dbcPolicyEnforcementPoint;
 import io.sapl.springdatar2dbc.proxy.R2dbcBeanPostProcessor;
 import io.sapl.springdatar2dbc.proxy.R2dbcRepositoryFactoryCustomizer;
 import io.sapl.springdatar2dbc.proxy.R2dbcRepositoryProxyPostProcessor;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.BeanFactory;
+import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 @SpringBootTest(classes = SaplR2dbcAutoConfiguration.class)
 class SaplR2dbcAutoConfigurationTests {

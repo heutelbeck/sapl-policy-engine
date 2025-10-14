@@ -17,16 +17,15 @@
  */
 package io.sapl.prp.index.canonical;
 
+import io.sapl.api.interpreter.Val;
+import org.junit.jupiter.api.Test;
+import reactor.core.publisher.Mono;
+
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
-
-import org.junit.jupiter.api.Test;
-
-import io.sapl.api.interpreter.Val;
-import reactor.core.publisher.Mono;
 
 class PredicateTests {
 

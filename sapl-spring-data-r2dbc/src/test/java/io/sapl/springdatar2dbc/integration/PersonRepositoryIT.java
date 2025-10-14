@@ -17,8 +17,7 @@
  */
 package io.sapl.springdatar2dbc.integration;
 
-import java.util.List;
-
+import io.sapl.springdatar2dbc.database.Person;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -26,10 +25,10 @@ import org.springframework.context.annotation.Import;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.security.access.AccessDeniedException;
-
-import io.sapl.springdatar2dbc.database.Person;
 import reactor.core.publisher.Flux;
 import reactor.test.StepVerifier;
+
+import java.util.List;
 
 @Import(TestConfig.class)
 @SpringBootTest(classes = { TestApplication.class })

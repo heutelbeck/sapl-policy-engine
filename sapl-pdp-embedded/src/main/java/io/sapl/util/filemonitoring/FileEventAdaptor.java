@@ -17,12 +17,11 @@
  */
 package io.sapl.util.filemonitoring;
 
-import java.io.File;
-
-import org.apache.commons.io.monitor.FileAlterationListenerAdaptor;
-
 import lombok.RequiredArgsConstructor;
+import org.apache.commons.io.monitor.FileAlterationListenerAdaptor;
 import reactor.core.publisher.FluxSink;
+
+import java.io.File;
 
 @RequiredArgsConstructor
 public class FileEventAdaptor extends FileAlterationListenerAdaptor {

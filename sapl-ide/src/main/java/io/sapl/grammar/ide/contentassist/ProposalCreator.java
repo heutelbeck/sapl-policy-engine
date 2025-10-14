@@ -17,12 +17,11 @@
  */
 package io.sapl.grammar.ide.contentassist;
 
-import java.util.Optional;
-
+import lombok.experimental.UtilityClass;
 import org.eclipse.xtext.ide.editor.contentassist.ContentAssistContext;
 import org.eclipse.xtext.ide.editor.contentassist.ContentAssistEntry;
 
-import lombok.experimental.UtilityClass;
+import java.util.Optional;
 
 @UtilityClass
 public class ProposalCreator {

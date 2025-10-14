@@ -17,12 +17,7 @@
  */
 package io.sapl.springdatar2dbc.proxy;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-
+import io.sapl.springdatar2dbc.database.PersonR2dbcRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
@@ -30,7 +25,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.data.r2dbc.repository.support.R2dbcRepositoryFactoryBean;
 
-import io.sapl.springdatar2dbc.database.PersonR2dbcRepository;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class R2dbcBeanPostProcessorTests {

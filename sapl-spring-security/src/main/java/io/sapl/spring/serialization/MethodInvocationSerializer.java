@@ -17,21 +17,15 @@
  */
 package io.sapl.spring.serialization;
 
-import static java.lang.reflect.Modifier.isFinal;
-import static java.lang.reflect.Modifier.isPrivate;
-import static java.lang.reflect.Modifier.isProtected;
-import static java.lang.reflect.Modifier.isPublic;
-import static java.lang.reflect.Modifier.isStatic;
-import static java.lang.reflect.Modifier.isSynchronized;
-
-import java.io.IOException;
-
-import org.aopalliance.intercept.MethodInvocation;
-import org.springframework.boot.jackson.JsonComponent;
-
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.JsonSerializer;
 import com.fasterxml.jackson.databind.SerializerProvider;
+import org.aopalliance.intercept.MethodInvocation;
+import org.springframework.boot.jackson.JsonComponent;
+
+import java.io.IOException;
+
+import static java.lang.reflect.Modifier.*;
 
 @JsonComponent
 public class MethodInvocationSerializer extends JsonSerializer<MethodInvocation> {

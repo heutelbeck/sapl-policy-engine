@@ -17,11 +17,6 @@
  */
 package io.sapl.test.mocking.attribute;
 
-import java.time.Duration;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.regex.Pattern;
-
 import io.sapl.api.interpreter.Val;
 import io.sapl.attributes.broker.api.AttributeFinderInvocation;
 import io.sapl.attributes.broker.api.AttributeStreamBroker;
@@ -30,6 +25,11 @@ import io.sapl.test.SaplTestException;
 import io.sapl.test.mocking.attribute.models.AttributeEntityValueMatcher;
 import io.sapl.test.mocking.attribute.models.AttributeParameters;
 import reactor.core.publisher.Flux;
+
+import java.time.Duration;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.regex.Pattern;
 
 public class MockingAttributeStreamBroker implements AttributeStreamBroker {
 

@@ -17,20 +17,18 @@
  */
 package io.sapl.spring.pdp.embedded;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.mock;
-
+import com.fasterxml.jackson.databind.ObjectMapper;
+import io.sapl.api.functions.FunctionLibrarySupplier;
+import io.sapl.extension.jwt.JWTFunctionLibrary;
+import io.sapl.extension.jwt.JWTKeyProvider;
+import io.sapl.extension.jwt.JWTPolicyInformationPoint;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import org.springframework.web.reactive.function.client.WebClient;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-
-import io.sapl.api.functions.FunctionLibrarySupplier;
-import io.sapl.extension.jwt.JWTFunctionLibrary;
-import io.sapl.extension.jwt.JWTKeyProvider;
-import io.sapl.extension.jwt.JWTPolicyInformationPoint;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.mock;
 
 class JwtExtensionAutoConfigurationTests {
 

@@ -17,15 +17,14 @@
  */
 package io.sapl.spring.pdp.embedded;
 
+import io.sapl.attributes.documentation.api.PolicyInformationPointDocumentationProvider;
+import io.sapl.interpreter.functions.FunctionContext;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.config.BeanDefinition;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.AutoConfigureAfter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Role;
-
-import io.sapl.attributes.documentation.api.PolicyInformationPointDocumentationProvider;
-import io.sapl.interpreter.functions.FunctionContext;
-import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @AutoConfiguration

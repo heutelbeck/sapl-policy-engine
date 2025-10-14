@@ -17,13 +17,13 @@
  */
 package io.sapl.interpreter.functions;
 
-import java.util.HashMap;
-import java.util.Map;
-
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
+
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * A library documentation contains documentation information extracted from the

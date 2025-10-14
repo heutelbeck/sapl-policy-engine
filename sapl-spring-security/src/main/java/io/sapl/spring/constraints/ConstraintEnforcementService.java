@@ -17,23 +17,6 @@
  */
 package io.sapl.spring.constraints;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Optional;
-import java.util.function.Consumer;
-import java.util.function.LongConsumer;
-import java.util.function.Predicate;
-import java.util.function.UnaryOperator;
-
-import org.aopalliance.intercept.MethodInvocation;
-import org.reactivestreams.Subscription;
-import org.springframework.aop.framework.ReflectiveMethodInvocation;
-import org.springframework.security.access.AccessDeniedException;
-import org.springframework.stereotype.Service;
-
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -41,23 +24,25 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
-
 import io.sapl.api.pdp.AuthorizationDecision;
-import io.sapl.spring.constraints.api.ConsumerConstraintHandlerProvider;
-import io.sapl.spring.constraints.api.ErrorHandlerProvider;
-import io.sapl.spring.constraints.api.ErrorMappingConstraintHandlerProvider;
-import io.sapl.spring.constraints.api.FilterPredicateConstraintHandlerProvider;
-import io.sapl.spring.constraints.api.MappingConstraintHandlerProvider;
-import io.sapl.spring.constraints.api.MethodInvocationConstraintHandlerProvider;
-import io.sapl.spring.constraints.api.RequestHandlerProvider;
-import io.sapl.spring.constraints.api.RunnableConstraintHandlerProvider;
+import io.sapl.spring.constraints.api.*;
 import io.sapl.spring.constraints.api.RunnableConstraintHandlerProvider.Signal;
-import io.sapl.spring.constraints.api.SubscriptionHandlerProvider;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
+import org.aopalliance.intercept.MethodInvocation;
+import org.reactivestreams.Subscription;
+import org.springframework.aop.framework.ReflectiveMethodInvocation;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.stereotype.Service;
 import reactor.core.Exceptions;
 import reactor.core.publisher.Flux;
+
+import java.util.*;
+import java.util.function.Consumer;
+import java.util.function.LongConsumer;
+import java.util.function.Predicate;
+import java.util.function.UnaryOperator;
 
 /**
  *

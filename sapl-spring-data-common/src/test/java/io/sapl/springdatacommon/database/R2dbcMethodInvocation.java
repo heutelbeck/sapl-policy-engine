@@ -17,14 +17,13 @@
  */
 package io.sapl.springdatacommon.database;
 
+import lombok.AllArgsConstructor;
+import lombok.NonNull;
+import org.aopalliance.intercept.MethodInvocation;
+
 import java.lang.reflect.AccessibleObject;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
-
-import org.aopalliance.intercept.MethodInvocation;
-
-import lombok.AllArgsConstructor;
-import lombok.NonNull;
 
 @AllArgsConstructor
 public class R2dbcMethodInvocation implements MethodInvocation {

@@ -17,14 +17,12 @@
  */
 package io.sapl.springdatar2dbc.queries;
 
-import org.aopalliance.intercept.MethodInvocation;
-import org.springframework.data.domain.Sort;
-
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
-
 import io.sapl.springdatacommon.queries.QueryAnnotationParameterResolver;
 import lombok.experimental.UtilityClass;
+import org.aopalliance.intercept.MethodInvocation;
+import org.springframework.data.domain.Sort;
 
 @UtilityClass
 public class QueryCreation {

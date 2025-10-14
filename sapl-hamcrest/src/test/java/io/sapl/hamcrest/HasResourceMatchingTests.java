@@ -17,24 +17,22 @@
  */
 package io.sapl.hamcrest;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import io.sapl.api.pdp.AuthorizationDecision;
+import io.sapl.api.pdp.Decision;
+import org.hamcrest.StringDescription;
+import org.junit.jupiter.api.Test;
+
+import java.util.Optional;
+import java.util.function.Predicate;
+
 import static io.sapl.hamcrest.Matchers.hasResourceMatching;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-
-import java.util.Optional;
-import java.util.function.Predicate;
-
-import org.hamcrest.StringDescription;
-import org.junit.jupiter.api.Test;
-
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
-
-import io.sapl.api.pdp.AuthorizationDecision;
-import io.sapl.api.pdp.Decision;
 
 class HasResourceMatchingTests {
 

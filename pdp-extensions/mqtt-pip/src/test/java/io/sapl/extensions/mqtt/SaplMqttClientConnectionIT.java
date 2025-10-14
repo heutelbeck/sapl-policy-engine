@@ -17,33 +17,25 @@
  */
 package io.sapl.extensions.mqtt;
 
-import static io.sapl.extensions.mqtt.MqttTestUtility.buildAndStartBroker;
-import static io.sapl.extensions.mqtt.MqttTestUtility.buildBroker;
-import static io.sapl.extensions.mqtt.MqttTestUtility.buildMqttPublishMessage;
-import static io.sapl.extensions.mqtt.MqttTestUtility.buildVariables;
-import static io.sapl.extensions.mqtt.MqttTestUtility.startBroker;
-import static io.sapl.extensions.mqtt.MqttTestUtility.startClient;
-import static io.sapl.extensions.mqtt.MqttTestUtility.stopBroker;
-
-import java.nio.file.Path;
-import java.time.Duration;
-import java.util.Map;
-
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.hivemq.client.mqtt.mqtt5.message.publish.Mqtt5Publish;
+import com.hivemq.embedded.EmbeddedHiveMQ;
+import io.sapl.api.interpreter.Val;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 import org.junit.jupiter.api.io.TempDir;
-
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.hivemq.client.mqtt.mqtt5.message.publish.Mqtt5Publish;
-import com.hivemq.embedded.EmbeddedHiveMQ;
-
-import io.sapl.api.interpreter.Val;
 import reactor.core.publisher.Flux;
 import reactor.test.StepVerifier;
 import reactor.test.publisher.TestPublisher;
+
+import java.nio.file.Path;
+import java.time.Duration;
+import java.util.Map;
+
+import static io.sapl.extensions.mqtt.MqttTestUtility.*;
 
 class SaplMqttClientConnectionIT {
 

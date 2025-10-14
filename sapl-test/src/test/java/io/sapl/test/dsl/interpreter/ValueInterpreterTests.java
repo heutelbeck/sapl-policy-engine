@@ -17,21 +17,16 @@
  */
 package io.sapl.test.dsl.interpreter;
 
-import static io.sapl.test.dsl.ParserUtil.buildStringLiteral;
-import static io.sapl.test.dsl.ParserUtil.buildValue;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.mockStatic;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-
-import java.math.BigDecimal;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import io.sapl.api.interpreter.Val;
+import io.sapl.test.SaplTestException;
+import io.sapl.test.TestHelper;
+import io.sapl.test.dsl.ParserUtil;
+import io.sapl.test.grammar.sapltest.*;
+import io.sapl.test.grammar.services.SAPLTestGrammarAccess;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -42,25 +37,16 @@ import org.mockito.Mock;
 import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
+import java.math.BigDecimal;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
 
-import io.sapl.api.interpreter.Val;
-import io.sapl.test.SaplTestException;
-import io.sapl.test.TestHelper;
-import io.sapl.test.dsl.ParserUtil;
-import io.sapl.test.grammar.sapltest.Array;
-import io.sapl.test.grammar.sapltest.ErrorValue;
-import io.sapl.test.grammar.sapltest.FalseLiteral;
-import io.sapl.test.grammar.sapltest.NullLiteral;
-import io.sapl.test.grammar.sapltest.NumberLiteral;
-import io.sapl.test.grammar.sapltest.StringLiteral;
-import io.sapl.test.grammar.sapltest.TrueLiteral;
-import io.sapl.test.grammar.sapltest.UndefinedLiteral;
-import io.sapl.test.grammar.sapltest.Value;
-import io.sapl.test.grammar.services.SAPLTestGrammarAccess;
+import static io.sapl.test.dsl.ParserUtil.buildStringLiteral;
+import static io.sapl.test.dsl.ParserUtil.buildValue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class ValueInterpreterTests {

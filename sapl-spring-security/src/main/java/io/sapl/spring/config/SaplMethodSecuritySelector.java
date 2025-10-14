@@ -17,9 +17,7 @@
  */
 package io.sapl.spring.config;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.AdviceMode;
 import org.springframework.context.annotation.AdviceModeImportSelector;
 import org.springframework.context.annotation.AutoProxyRegistrar;
@@ -27,7 +25,8 @@ import org.springframework.context.annotation.ImportSelector;
 import org.springframework.core.type.AnnotationMetadata;
 import org.springframework.lang.NonNull;
 
-import lombok.extern.slf4j.Slf4j;
+import java.util.ArrayList;
+import java.util.Arrays;
 
 /**
  * Dynamically determines which imports to include using the

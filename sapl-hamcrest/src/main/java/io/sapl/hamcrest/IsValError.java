@@ -17,13 +17,12 @@
  */
 package io.sapl.hamcrest;
 
-import java.util.Objects;
-
+import io.sapl.api.interpreter.Val;
 import org.hamcrest.Description;
 import org.hamcrest.Matcher;
 import org.hamcrest.TypeSafeDiagnosingMatcher;
 
-import io.sapl.api.interpreter.Val;
+import java.util.Objects;
 
 /**
  * Val Matcher to check for error Val values.

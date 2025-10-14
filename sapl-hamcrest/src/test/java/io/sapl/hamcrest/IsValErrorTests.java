@@ -17,17 +17,16 @@
  */
 package io.sapl.hamcrest;
 
+import io.sapl.api.interpreter.Val;
+import io.sapl.api.pdp.SaplError;
+import org.hamcrest.StringDescription;
+import org.junit.jupiter.api.Test;
+
 import static io.sapl.hamcrest.Matchers.valError;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalToIgnoringCase;
-
-import org.hamcrest.StringDescription;
-import org.junit.jupiter.api.Test;
-
-import io.sapl.api.interpreter.Val;
-import io.sapl.api.pdp.SaplError;
 
 class IsValErrorTests {
 

@@ -17,17 +17,16 @@
  */
 package io.sapl.spring.pdp.remote;
 
-import javax.net.ssl.SSLException;
-
+import io.sapl.api.pdp.PolicyDecisionPoint;
+import io.sapl.pdp.remote.RemotePolicyDecisionPoint;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
-import io.sapl.api.pdp.PolicyDecisionPoint;
-import io.sapl.pdp.remote.RemotePolicyDecisionPoint;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import javax.net.ssl.SSLException;
 
 @Slf4j
 @Configuration

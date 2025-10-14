@@ -17,31 +17,24 @@
  */
 package io.sapl.interpreter.validation;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import io.sapl.api.interpreter.Val;
+import io.sapl.api.validation.*;
+import io.sapl.api.validation.Long;
+import io.sapl.api.validation.Number;
+import io.sapl.functions.SchemaValidationLibrary;
+import io.sapl.grammar.sapl.impl.util.ErrorFactory;
+import lombok.experimental.UtilityClass;
+import org.eclipse.emf.ecore.EObject;
+import reactor.core.publisher.Flux;
+
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Parameter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Set;
 import java.util.function.Function;
-
-import org.eclipse.emf.ecore.EObject;
-
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonNode;
-
-import io.sapl.api.interpreter.Val;
-import io.sapl.api.validation.Array;
-import io.sapl.api.validation.Bool;
-import io.sapl.api.validation.Int;
-import io.sapl.api.validation.JsonObject;
-import io.sapl.api.validation.Long;
-import io.sapl.api.validation.Number;
-import io.sapl.api.validation.Schema;
-import io.sapl.api.validation.Text;
-import io.sapl.functions.SchemaValidationLibrary;
-import io.sapl.grammar.sapl.impl.util.ErrorFactory;
-import lombok.experimental.UtilityClass;
-import reactor.core.publisher.Flux;
 
 @UtilityClass
 public class ParameterTypeValidator {

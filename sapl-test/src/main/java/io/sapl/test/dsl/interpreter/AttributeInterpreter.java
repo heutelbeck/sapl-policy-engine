@@ -17,19 +17,15 @@
  */
 package io.sapl.test.dsl.interpreter;
 
-import static io.sapl.test.Imports.arguments;
-import static io.sapl.test.Imports.entityValue;
-import static io.sapl.test.Imports.whenAttributeParams;
-import static io.sapl.test.Imports.whenEntityValue;
-
-import org.hamcrest.Matcher;
-
 import io.sapl.api.interpreter.Val;
 import io.sapl.test.SaplTestException;
 import io.sapl.test.grammar.sapltest.Attribute;
 import io.sapl.test.grammar.sapltest.AttributeWithParameters;
 import io.sapl.test.steps.GivenOrWhenStep;
 import lombok.RequiredArgsConstructor;
+import org.hamcrest.Matcher;
+
+import static io.sapl.test.Imports.*;
 
 @RequiredArgsConstructor
 class AttributeInterpreter {

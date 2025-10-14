@@ -17,26 +17,18 @@
  */
 package io.sapl.test.dsl.setup;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Map;
-
 import io.sapl.test.SaplTestException;
 import io.sapl.test.dsl.interfaces.StepConstructor;
 import io.sapl.test.dsl.interfaces.TestNode;
-import io.sapl.test.grammar.sapltest.Document;
-import io.sapl.test.grammar.sapltest.Environment;
-import io.sapl.test.grammar.sapltest.Given;
-import io.sapl.test.grammar.sapltest.GivenStep;
-import io.sapl.test.grammar.sapltest.ImportType;
-import io.sapl.test.grammar.sapltest.MockDefinition;
-import io.sapl.test.grammar.sapltest.PdpCombiningAlgorithm;
-import io.sapl.test.grammar.sapltest.PdpVariables;
-import io.sapl.test.grammar.sapltest.Requirement;
-import io.sapl.test.grammar.sapltest.Scenario;
+import io.sapl.test.grammar.sapltest.*;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
+
+import java.lang.Object;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Map;
 
 @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
 public final class TestCase implements TestNode, Runnable {

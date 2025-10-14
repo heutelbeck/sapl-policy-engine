@@ -17,23 +17,14 @@
  */
 package io.sapl.springdatar2dbc.enforcement;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
-import static org.mockito.Mockito.lenient;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.mockStatic;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-
-import java.lang.reflect.Method;
-import java.util.ArrayList;
-import java.util.List;
-
+import io.sapl.api.pdp.AuthorizationSubscription;
+import io.sapl.spring.method.metadata.QueryEnforce;
+import io.sapl.springdatacommon.services.QueryEnforceAuthorizationSubscriptionService;
+import io.sapl.springdatacommon.services.RepositoryInformationCollectorService;
+import io.sapl.springdatacommon.utils.AnnotationUtilities;
+import io.sapl.springdatacommon.utils.Utilities;
+import io.sapl.springdatar2dbc.database.MethodInvocationForTesting;
+import io.sapl.springdatar2dbc.database.Person;
 import org.aopalliance.intercept.MethodInvocation;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -44,17 +35,17 @@ import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.data.repository.core.RepositoryInformation;
-
-import io.sapl.api.pdp.AuthorizationSubscription;
-import io.sapl.spring.method.metadata.QueryEnforce;
-import io.sapl.springdatacommon.services.QueryEnforceAuthorizationSubscriptionService;
-import io.sapl.springdatacommon.services.RepositoryInformationCollectorService;
-import io.sapl.springdatacommon.utils.AnnotationUtilities;
-import io.sapl.springdatacommon.utils.Utilities;
-import io.sapl.springdatar2dbc.database.MethodInvocationForTesting;
-import io.sapl.springdatar2dbc.database.Person;
 import reactor.core.publisher.Flux;
 import reactor.test.StepVerifier;
+
+import java.lang.reflect.Method;
+import java.util.ArrayList;
+import java.util.List;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.*;
 
 @SuppressWarnings("unchecked")
 @ExtendWith(MockitoExtension.class)

@@ -17,17 +17,15 @@
  */
 package io.sapl.test.dsl.interpreter;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-
-import java.util.Collections;
-import java.util.List;
-import java.util.stream.Stream;
-
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import io.sapl.api.interpreter.Val;
+import io.sapl.api.pdp.AuthorizationDecision;
+import io.sapl.api.pdp.Decision;
+import io.sapl.test.SaplTestException;
+import io.sapl.test.dsl.ParserUtil;
+import io.sapl.test.grammar.sapltest.AuthorizationDecisionType;
+import io.sapl.test.grammar.sapltest.NumberLiteral;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -39,16 +37,13 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ArrayNode;
+import java.util.Collections;
+import java.util.List;
+import java.util.stream.Stream;
 
-import io.sapl.api.interpreter.Val;
-import io.sapl.api.pdp.AuthorizationDecision;
-import io.sapl.api.pdp.Decision;
-import io.sapl.test.SaplTestException;
-import io.sapl.test.dsl.ParserUtil;
-import io.sapl.test.grammar.sapltest.AuthorizationDecisionType;
-import io.sapl.test.grammar.sapltest.NumberLiteral;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class AuthorizationDecisionInterpreterTests {

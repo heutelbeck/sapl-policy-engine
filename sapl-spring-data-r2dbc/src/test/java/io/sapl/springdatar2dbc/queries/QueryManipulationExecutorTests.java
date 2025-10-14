@@ -17,23 +17,18 @@
  */
 package io.sapl.springdatar2dbc.queries;
 
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.lenient;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-
+import io.sapl.springdatar2dbc.database.Person;
+import io.sapl.springdatar2dbc.database.PersonWithoutAnnotation;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.beans.factory.ObjectProvider;
-
-import io.sapl.springdatar2dbc.database.Person;
-import io.sapl.springdatar2dbc.database.PersonWithoutAnnotation;
 import reactor.core.publisher.Flux;
+
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class QueryManipulationExecutorTests {

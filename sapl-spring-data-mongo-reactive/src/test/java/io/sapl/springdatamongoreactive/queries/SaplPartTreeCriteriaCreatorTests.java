@@ -17,16 +17,15 @@
  */
 package io.sapl.springdatamongoreactive.queries;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-
-import java.util.List;
-
+import io.sapl.springdatamongoreactive.sapl.database.TestUser;
 import org.junit.jupiter.api.Test;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.repository.query.parser.PartTree;
 
-import io.sapl.springdatamongoreactive.sapl.database.TestUser;
+import java.util.List;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 class SaplPartTreeCriteriaCreatorTests {
 

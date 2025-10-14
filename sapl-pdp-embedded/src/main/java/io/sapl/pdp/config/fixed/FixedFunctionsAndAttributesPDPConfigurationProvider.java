@@ -17,13 +17,6 @@
  */
 package io.sapl.pdp.config.fixed;
 
-import java.util.Collection;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.function.UnaryOperator;
-
 import io.sapl.api.interpreter.Val;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.AuthorizationSubscriptionInterceptor;
@@ -38,6 +31,9 @@ import io.sapl.pdp.config.VariablesAndCombinatorSource;
 import io.sapl.prp.PolicyRetrievalPoint;
 import io.sapl.prp.PolicyRetrievalPointSource;
 import reactor.core.publisher.Flux;
+
+import java.util.*;
+import java.util.function.UnaryOperator;
 
 public class FixedFunctionsAndAttributesPDPConfigurationProvider implements PDPConfigurationProvider {
 

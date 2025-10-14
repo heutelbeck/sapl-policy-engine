@@ -17,11 +17,11 @@
  */
 package io.sapl.grammar.ide.contentassist;
 
-import java.util.List;
-
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ContextConfiguration;
+
+import java.util.List;
 
 /**
  * Tests regarding the auto-completion of variables

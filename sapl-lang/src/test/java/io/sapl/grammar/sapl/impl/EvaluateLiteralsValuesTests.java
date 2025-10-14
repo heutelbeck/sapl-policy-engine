@@ -17,9 +17,9 @@
  */
 package io.sapl.grammar.sapl.impl;
 
-import static io.sapl.testutil.TestUtil.assertExpressionEvaluatesTo;
-
 import org.junit.jupiter.api.Test;
+
+import static io.sapl.testutil.TestUtil.assertExpressionEvaluatesTo;
 
 class EvaluateLiteralsValuesTests {
 

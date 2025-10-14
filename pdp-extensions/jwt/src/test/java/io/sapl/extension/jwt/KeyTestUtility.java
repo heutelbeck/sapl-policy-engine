@@ -17,6 +17,10 @@
  */
 package io.sapl.extension.jwt;
 
+import io.sapl.api.SaplVersion;
+import lombok.experimental.UtilityClass;
+import okhttp3.mockwebserver.MockWebServer;
+
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.math.BigInteger;
@@ -29,10 +33,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Predicate;
-
-import io.sapl.api.SaplVersion;
-import lombok.experimental.UtilityClass;
-import okhttp3.mockwebserver.MockWebServer;
 
 @UtilityClass
 class KeyTestUtility {

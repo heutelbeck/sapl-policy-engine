@@ -17,11 +17,6 @@
  */
 package io.sapl.test.integration;
 
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
-
 import io.sapl.interpreter.SAPLInterpreter;
 import io.sapl.prp.Document;
 import io.sapl.prp.DocumentMatch;
@@ -31,6 +26,11 @@ import io.sapl.test.SaplTestException;
 import io.sapl.test.utils.DocumentHelper;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
 
 public final class InputStringPolicyRetrievalPoint implements PolicyRetrievalPoint {
 

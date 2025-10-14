@@ -17,15 +17,14 @@
  */
 package io.sapl.extensions.mqtt.util;
 
-import static io.sapl.extensions.mqtt.util.ConfigUtility.getConfigValueOrDefault;
-import static io.sapl.extensions.mqtt.util.ConfigUtility.getMqttBrokerConfig;
-
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-
 import io.sapl.api.interpreter.Val;
 import lombok.experimental.UtilityClass;
 import lombok.extern.slf4j.Slf4j;
+
+import static io.sapl.extensions.mqtt.util.ConfigUtility.getConfigValueOrDefault;
+import static io.sapl.extensions.mqtt.util.ConfigUtility.getMqttBrokerConfig;
 
 /**
  * This utility class provides functions to build the

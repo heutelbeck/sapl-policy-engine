@@ -17,11 +17,10 @@
  */
 package io.sapl.api.pdp;
 
-import static net.javacrumbs.jsonunit.assertj.JsonAssertions.assertThatJson;
-
+import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import org.junit.jupiter.api.Test;
 
-import com.fasterxml.jackson.databind.node.JsonNodeFactory;
+import static net.javacrumbs.jsonunit.assertj.JsonAssertions.assertThatJson;
 
 class AuthorizationSubscriptionTests {
 

@@ -17,14 +17,13 @@
  */
 package io.sapl.hamcrest;
 
-import java.util.Objects;
-import java.util.Optional;
-
+import io.sapl.api.pdp.AuthorizationDecision;
+import io.sapl.api.pdp.Decision;
 import org.hamcrest.Description;
 import org.hamcrest.TypeSafeDiagnosingMatcher;
 
-import io.sapl.api.pdp.AuthorizationDecision;
-import io.sapl.api.pdp.Decision;
+import java.util.Objects;
+import java.util.Optional;
 
 /**
  * A Matcher for AuthorizationDecision objects.

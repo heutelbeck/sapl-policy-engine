@@ -17,23 +17,21 @@
  */
 package io.sapl.hamcrest;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import io.sapl.api.pdp.AuthorizationDecision;
+import org.hamcrest.Matcher;
+import org.hamcrest.StringDescription;
+import org.junit.jupiter.api.Test;
+
 import static com.spotify.hamcrest.jackson.JsonMatchers.jsonText;
 import static io.sapl.hamcrest.Matchers.hasAdviceContainingKeyValue;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-
-import org.hamcrest.Matcher;
-import org.hamcrest.StringDescription;
-import org.junit.jupiter.api.Test;
-
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ArrayNode;
-
-import io.sapl.api.pdp.AuthorizationDecision;
 
 class HasAdviceContainingKeyValueTests {
     private static final ObjectMapper MAPPER = new ObjectMapper();

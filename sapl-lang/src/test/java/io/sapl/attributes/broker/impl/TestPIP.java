@@ -17,16 +17,14 @@
  */
 package io.sapl.attributes.broker.impl;
 
-import java.util.Map;
-
-import org.apache.commons.lang3.StringUtils;
-
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
-
 import io.sapl.api.interpreter.Val;
 import io.sapl.api.pip.Attribute;
 import io.sapl.api.pip.PolicyInformationPoint;
+import org.apache.commons.lang3.StringUtils;
 import reactor.core.publisher.Flux;
+
+import java.util.Map;
 
 @PolicyInformationPoint(name = TestPIP.NAME, description = TestPIP.DESCRIPTION)
 public class TestPIP {

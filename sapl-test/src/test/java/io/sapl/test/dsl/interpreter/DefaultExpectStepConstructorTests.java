@@ -17,12 +17,11 @@
  */
 package io.sapl.test.dsl.interpreter;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.mockStatic;
-import static org.mockito.Mockito.when;
-
+import io.sapl.test.SaplTestException;
+import io.sapl.test.grammar.sapltest.AuthorizationSubscription;
+import io.sapl.test.grammar.sapltest.Scenario;
+import io.sapl.test.steps.ExpectStep;
+import io.sapl.test.steps.WhenStep;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -31,11 +30,9 @@ import org.mockito.Mock;
 import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import io.sapl.test.SaplTestException;
-import io.sapl.test.grammar.sapltest.AuthorizationSubscription;
-import io.sapl.test.grammar.sapltest.Scenario;
-import io.sapl.test.steps.ExpectStep;
-import io.sapl.test.steps.WhenStep;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class DefaultExpectStepConstructorTests {

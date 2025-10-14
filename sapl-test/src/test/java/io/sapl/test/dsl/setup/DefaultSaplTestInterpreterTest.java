@@ -17,22 +17,11 @@
  */
 package io.sapl.test.dsl.setup;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.mockStatic;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-
-import java.io.IOException;
-import java.io.InputStream;
-import java.nio.charset.StandardCharsets;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-
+import com.google.inject.Injector;
+import io.sapl.test.SaplTestException;
+import io.sapl.test.TestHelper;
+import io.sapl.test.grammar.SAPLTestStandaloneSetup;
+import io.sapl.test.grammar.sapltest.SAPLTest;
 import org.apache.commons.io.IOUtils;
 import org.eclipse.emf.common.util.URI;
 import org.eclipse.emf.common.util.WrappedException;
@@ -46,12 +35,16 @@ import org.mockito.Mock;
 import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import com.google.inject.Injector;
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
 
-import io.sapl.test.SaplTestException;
-import io.sapl.test.TestHelper;
-import io.sapl.test.grammar.SAPLTestStandaloneSetup;
-import io.sapl.test.grammar.sapltest.SAPLTest;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class DefaultSaplTestInterpreterTests {

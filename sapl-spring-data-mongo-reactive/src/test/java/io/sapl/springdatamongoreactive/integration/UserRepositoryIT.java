@@ -17,9 +17,9 @@
  */
 package io.sapl.springdatamongoreactive.integration;
 
-import java.io.IOException;
-import java.util.List;
-
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.type.CollectionType;
+import io.sapl.springdatamongoreactive.sapl.database.TestUser;
 import org.bson.types.ObjectId;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -32,13 +32,11 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.mongodb.repository.config.EnableReactiveMongoRepositories;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.test.annotation.DirtiesContext;
-
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.type.CollectionType;
-
-import io.sapl.springdatamongoreactive.sapl.database.TestUser;
 import reactor.core.publisher.Flux;
 import reactor.test.StepVerifier;
+
+import java.io.IOException;
+import java.util.List;
 
 @AutoConfigureDataMongo
 @SpringBootTest(properties = "de.flapdoodle.mongodb.embedded.version=8.0.5")

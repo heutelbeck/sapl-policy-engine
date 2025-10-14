@@ -17,16 +17,15 @@
  */
 package io.sapl.assertj;
 
-import java.util.Objects;
-
-import org.assertj.core.api.AbstractAssert;
-
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.Decision;
 import jakarta.validation.constraints.NotNull;
 import net.javacrumbs.jsonunit.assertj.JsonAssert.ConfigurableJsonAssert;
 import net.javacrumbs.jsonunit.assertj.JsonAssertions;
 import net.javacrumbs.jsonunit.assertj.JsonListAssert;
+import org.assertj.core.api.AbstractAssert;
+
+import java.util.Objects;
 
 /**
  * Assertions for SAPL AuthorizationDecision.

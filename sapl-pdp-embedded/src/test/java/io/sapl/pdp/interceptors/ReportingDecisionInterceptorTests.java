@@ -17,14 +17,7 @@
  */
 package io.sapl.pdp.interceptors;
 
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-
-import org.junit.jupiter.api.Test;
-
 import com.fasterxml.jackson.databind.ObjectMapper;
-
 import io.sapl.api.interpreter.Val;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.Decision;
@@ -47,9 +40,14 @@ import io.sapl.prp.PolicyRetrievalResult;
 import io.sapl.validation.ValidatorFactory;
 import lombok.SneakyThrows;
 import lombok.experimental.UtilityClass;
+import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
+
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
 
 class ReportingDecisionInterceptorTests {
 

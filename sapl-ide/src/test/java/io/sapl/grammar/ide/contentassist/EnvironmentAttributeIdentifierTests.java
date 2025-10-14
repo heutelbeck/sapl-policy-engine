@@ -17,11 +17,10 @@
  */
 package io.sapl.grammar.ide.contentassist;
 
-import java.util.List;
-
+import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Test;
 
-import lombok.extern.slf4j.Slf4j;
+import java.util.List;
 
 @Slf4j
 class EnvironmentAttributeIdentifierTests extends CompletionTests {

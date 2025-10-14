@@ -17,10 +17,10 @@
  */
 package io.sapl.attributes.pips.http;
 
-import java.time.Duration;
-import java.util.HashMap;
-import java.util.Map;
-
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import io.sapl.api.interpreter.Val;
+import io.sapl.attributes.pips.http.ReactiveWebClientWebSocketTests.WebSocketConfig;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -34,15 +34,13 @@ import org.springframework.web.reactive.handler.SimpleUrlHandlerMapping;
 import org.springframework.web.reactive.socket.WebSocketHandler;
 import org.springframework.web.reactive.socket.WebSocketMessage;
 import org.springframework.web.reactive.socket.WebSocketSession;
-
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-
-import io.sapl.api.interpreter.Val;
-import io.sapl.attributes.pips.http.ReactiveWebClientWebSocketTests.WebSocketConfig;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
+
+import java.time.Duration;
+import java.util.HashMap;
+import java.util.Map;
 
 @Import(WebSocketConfig.class)
 @EnableAutoConfiguration

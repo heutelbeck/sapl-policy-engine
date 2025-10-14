@@ -17,24 +17,19 @@
  */
 package io.sapl.hamcrest;
 
-import static com.spotify.hamcrest.jackson.JsonMatchers.jsonBoolean;
-import static com.spotify.hamcrest.jackson.JsonMatchers.jsonText;
-import static io.sapl.hamcrest.Matchers.anyVal;
-import static io.sapl.hamcrest.Matchers.val;
-import static io.sapl.hamcrest.Matchers.valFalse;
-import static io.sapl.hamcrest.Matchers.valNull;
-import static io.sapl.hamcrest.Matchers.valTrue;
-import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.CoreMatchers.not;
-import static org.hamcrest.MatcherAssert.assertThat;
+import io.sapl.api.interpreter.Val;
+import org.hamcrest.StringDescription;
+import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
 
-import org.hamcrest.StringDescription;
-import org.junit.jupiter.api.Test;
-
-import io.sapl.api.interpreter.Val;
+import static com.spotify.hamcrest.jackson.JsonMatchers.jsonBoolean;
+import static com.spotify.hamcrest.jackson.JsonMatchers.jsonText;
+import static io.sapl.hamcrest.Matchers.*;
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.not;
+import static org.hamcrest.MatcherAssert.assertThat;
 
 class IsValTests {
 

@@ -17,10 +17,9 @@
  */
 package io.sapl.grammar.ide.contentassist;
 
-import org.eclipse.emf.ecore.EObject;
-
 import lombok.NonNull;
 import lombok.experimental.UtilityClass;
+import org.eclipse.emf.ecore.EObject;
 
 /**
  * Helper class that contains methods to navigate the ecore model.

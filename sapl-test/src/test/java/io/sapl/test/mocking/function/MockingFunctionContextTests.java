@@ -17,6 +17,17 @@
  */
 package io.sapl.test.mocking.function;
 
+import io.sapl.api.interpreter.Val;
+import io.sapl.interpreter.functions.AnnotationFunctionContext;
+import io.sapl.interpreter.functions.FunctionContext;
+import io.sapl.interpreter.functions.LibraryDocumentation;
+import io.sapl.test.SaplTestException;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
+
+import java.util.List;
+
 import static io.sapl.test.Imports.times;
 import static io.sapl.test.Imports.whenFunctionParams;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -24,18 +35,6 @@ import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.hamcrest.CoreMatchers.is;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
-
-import java.util.List;
-
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.mockito.Mockito;
-
-import io.sapl.api.interpreter.Val;
-import io.sapl.interpreter.functions.AnnotationFunctionContext;
-import io.sapl.interpreter.functions.FunctionContext;
-import io.sapl.interpreter.functions.LibraryDocumentation;
-import io.sapl.test.SaplTestException;
 
 class MockingFunctionContextTests {
 

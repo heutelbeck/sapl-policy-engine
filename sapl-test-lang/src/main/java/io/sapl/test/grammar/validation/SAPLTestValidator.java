@@ -20,24 +20,12 @@
  */
 package io.sapl.test.grammar.validation;
 
+import io.sapl.test.grammar.sapltest.*;
+import org.eclipse.xtext.validation.Check;
+
 import java.time.format.DateTimeParseException;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
-
-import org.eclipse.xtext.validation.Check;
-
-import io.sapl.test.grammar.sapltest.AdjustBlock;
-import io.sapl.test.grammar.sapltest.Duration;
-import io.sapl.test.grammar.sapltest.ExpectOrAdjustBlock;
-import io.sapl.test.grammar.sapltest.Given;
-import io.sapl.test.grammar.sapltest.Multiple;
-import io.sapl.test.grammar.sapltest.RepeatedExpect;
-import io.sapl.test.grammar.sapltest.Requirement;
-import io.sapl.test.grammar.sapltest.SAPLTest;
-import io.sapl.test.grammar.sapltest.Scenario;
-import io.sapl.test.grammar.sapltest.StringMatchesRegex;
-import io.sapl.test.grammar.sapltest.StringWithLength;
-import io.sapl.test.grammar.sapltest.VirtualTime;
 
 /**
  * This class contains custom validation rules.

@@ -17,18 +17,9 @@
  */
 package io.sapl.pip.geo.traccar;
 
-import java.nio.charset.StandardCharsets;
-import java.util.Base64;
-import java.util.Map;
-
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpMethod;
-import org.springframework.http.MediaType;
-
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.TextNode;
-
 import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.api.interpreter.Val;
 import io.sapl.api.pip.Attribute;
@@ -40,7 +31,14 @@ import io.sapl.attributes.pips.http.ReactiveWebClient;
 import io.sapl.functions.geo.GeoJSONSchemata;
 import io.sapl.functions.geo.traccar.TraccarFunctionLibrary;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.MediaType;
 import reactor.core.publisher.Flux;
+
+import java.nio.charset.StandardCharsets;
+import java.util.Base64;
+import java.util.Map;
 
 @RequiredArgsConstructor
 @PolicyInformationPoint(name = TraccarPolicyInformationPoint.NAME, description = TraccarPolicyInformationPoint.DESCRIPTION, pipDocumentation = TraccarPolicyInformationPoint.DOCUMENTATION)

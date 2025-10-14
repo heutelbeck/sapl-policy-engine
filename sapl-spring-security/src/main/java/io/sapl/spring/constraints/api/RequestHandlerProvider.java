@@ -17,9 +17,9 @@
  */
 package io.sapl.spring.constraints.api;
 
-import java.util.function.LongConsumer;
-
 import com.fasterxml.jackson.databind.JsonNode;
+
+import java.util.function.LongConsumer;
 
 public interface RequestHandlerProvider extends Responsible {
 

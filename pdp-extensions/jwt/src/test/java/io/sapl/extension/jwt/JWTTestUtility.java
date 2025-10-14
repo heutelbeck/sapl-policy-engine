@@ -17,12 +17,6 @@
  */
 package io.sapl.extension.jwt;
 
-import java.security.KeyPair;
-import java.security.interfaces.ECPrivateKey;
-import java.time.Duration;
-import java.time.Instant;
-import java.util.Date;
-
 import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jose.JWSHeader;
 import com.nimbusds.jose.JWSSigner;
@@ -30,8 +24,13 @@ import com.nimbusds.jose.crypto.ECDSASigner;
 import com.nimbusds.jose.crypto.RSASSASigner;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
-
 import io.sapl.api.interpreter.Val;
+
+import java.security.KeyPair;
+import java.security.interfaces.ECPrivateKey;
+import java.time.Duration;
+import java.time.Instant;
+import java.util.Date;
 
 class JWTTestUtility {
 

@@ -17,14 +17,13 @@
  */
 package io.sapl.springdatar2dbc.queries;
 
-import java.util.List;
-import java.util.function.Consumer;
-import java.util.stream.Collectors;
-
+import lombok.experimental.UtilityClass;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 
-import lombok.experimental.UtilityClass;
+import java.util.List;
+import java.util.function.Consumer;
+import java.util.stream.Collectors;
 
 @UtilityClass
 public class ConvertToSQL {

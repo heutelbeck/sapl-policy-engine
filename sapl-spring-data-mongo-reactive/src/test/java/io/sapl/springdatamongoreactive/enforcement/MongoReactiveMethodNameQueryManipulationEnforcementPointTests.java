@@ -17,18 +17,21 @@
  */
 package io.sapl.springdatamongoreactive.enforcement;
 
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
-import static org.mockito.Mockito.doNothing;
-import static org.mockito.Mockito.lenient;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.mockStatic;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import io.sapl.api.pdp.AuthorizationDecision;
+import io.sapl.api.pdp.AuthorizationSubscription;
+import io.sapl.api.pdp.PolicyDecisionPoint;
+import io.sapl.interpreter.InitializationException;
+import io.sapl.pdp.EmbeddedPolicyDecisionPoint;
+import io.sapl.pdp.PolicyDecisionPointFactory;
+import io.sapl.spring.constraints.ConstraintEnforcementService;
+import io.sapl.spring.constraints.ReactiveConstraintHandlerBundle;
+import io.sapl.springdatacommon.services.ConstraintQueryEnforcementService;
+import io.sapl.springdatacommon.services.QueryManipulationConstraintHandlerService;
+import io.sapl.springdatamongoreactive.queries.QueryCreation;
+import io.sapl.springdatamongoreactive.sapl.database.TestUser;
 import org.aopalliance.intercept.MethodInvocation;
 import org.bson.types.ObjectId;
 import org.junit.jupiter.api.AfterEach;
@@ -43,25 +46,11 @@ import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.data.mongodb.core.ReactiveMongoTemplate;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.security.access.AccessDeniedException;
-
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ArrayNode;
-
-import io.sapl.api.pdp.AuthorizationDecision;
-import io.sapl.api.pdp.AuthorizationSubscription;
-import io.sapl.api.pdp.PolicyDecisionPoint;
-import io.sapl.interpreter.InitializationException;
-import io.sapl.pdp.EmbeddedPolicyDecisionPoint;
-import io.sapl.pdp.PolicyDecisionPointFactory;
-import io.sapl.spring.constraints.ConstraintEnforcementService;
-import io.sapl.spring.constraints.ReactiveConstraintHandlerBundle;
-import io.sapl.springdatacommon.services.ConstraintQueryEnforcementService;
-import io.sapl.springdatacommon.services.QueryManipulationConstraintHandlerService;
-import io.sapl.springdatamongoreactive.queries.QueryCreation;
-import io.sapl.springdatamongoreactive.sapl.database.TestUser;
 import reactor.core.publisher.Flux;
 import reactor.test.StepVerifier;
+
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class MongoReactiveMethodNameQueryManipulationEnforcementPointTests {

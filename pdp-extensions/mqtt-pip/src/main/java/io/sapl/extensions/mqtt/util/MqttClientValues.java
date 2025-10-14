@@ -17,17 +17,16 @@
  */
 package io.sapl.extensions.mqtt.util;
 
-import java.util.HashMap;
-import java.util.Map;
-
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.hivemq.client.mqtt.mqtt5.message.connect.connack.Mqtt5ConnAck;
 import com.hivemq.client.mqtt.mqtt5.reactor.Mqtt5ReactorClient;
-
 import lombok.AccessLevel;
 import lombok.Data;
 import lombok.Getter;
 import reactor.core.publisher.Mono;
+
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * These data objects are used to store client specific data.

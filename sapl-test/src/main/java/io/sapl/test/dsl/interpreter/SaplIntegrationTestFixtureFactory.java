@@ -17,10 +17,10 @@
  */
 package io.sapl.test.dsl.interpreter;
 
-import java.util.Collection;
-
 import io.sapl.test.integration.SaplIntegrationTestFixture;
 import lombok.experimental.UtilityClass;
+
+import java.util.Collection;
 
 @UtilityClass
 class SaplIntegrationTestFixtureFactory {

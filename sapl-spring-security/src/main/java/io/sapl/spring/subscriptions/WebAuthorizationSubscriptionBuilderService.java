@@ -17,8 +17,14 @@
  */
 package io.sapl.spring.subscriptions;
 
-import java.util.Optional;
-
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.JsonNodeFactory;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import io.sapl.api.pdp.AuthorizationSubscription;
+import io.sapl.spring.method.metadata.SaplAttribute;
+import jakarta.servlet.http.HttpServletRequest;
+import lombok.RequiredArgsConstructor;
 import org.aopalliance.intercept.MethodInvocation;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.context.ApplicationContext;
@@ -32,15 +38,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.JsonNodeFactory;
-import com.fasterxml.jackson.databind.node.ObjectNode;
-
-import io.sapl.api.pdp.AuthorizationSubscription;
-import io.sapl.spring.method.metadata.SaplAttribute;
-import jakarta.servlet.http.HttpServletRequest;
-import lombok.RequiredArgsConstructor;
+import java.util.Optional;
 
 /**
  * This class contains the logic for SpEL expression evaluation and retrieving

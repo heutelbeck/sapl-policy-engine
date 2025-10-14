@@ -17,17 +17,16 @@
  */
 package io.sapl.api.pdp;
 
-import static com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL;
-
-import java.io.Serializable;
-
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
-
 import io.sapl.api.SaplVersion;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+
+import java.io.Serializable;
+
+import static com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL;
 
 /**
  * Holds a {@link AuthorizationDecision SAPL authorization decision} together

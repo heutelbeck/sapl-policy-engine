@@ -17,12 +17,11 @@
  */
 package io.sapl.functions;
 
-import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.MatcherAssert.assertThat;
-
+import io.sapl.api.interpreter.Val;
 import org.junit.jupiter.api.Test;
 
-import io.sapl.api.interpreter.Val;
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.MatcherAssert.assertThat;
 
 class LoggingFunctionLibraryTests {
 

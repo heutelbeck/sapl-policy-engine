@@ -17,15 +17,14 @@
  */
 package io.sapl.functions.sanitization;
 
-import static io.sapl.assertj.SaplAssertions.assertThatVal;
-
-import java.util.stream.Stream;
-
+import io.sapl.api.interpreter.Val;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
-import io.sapl.api.interpreter.Val;
+import java.util.stream.Stream;
+
+import static io.sapl.assertj.SaplAssertions.assertThatVal;
 
 class SanitizationFunctionLibraryTests {
 

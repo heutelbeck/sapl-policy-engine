@@ -17,8 +17,11 @@
  */
 package io.sapl.spring.pdp.embedded;
 
-import java.util.List;
-
+import com.fasterxml.jackson.databind.ObjectMapper;
+import io.sapl.api.functions.FunctionLibrarySupplier;
+import io.sapl.extension.jwt.JWTFunctionLibrary;
+import io.sapl.extension.jwt.JWTKeyProvider;
+import io.sapl.extension.jwt.JWTPolicyInformationPoint;
 import org.springframework.beans.factory.config.BeanDefinition;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
@@ -26,12 +29,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Role;
 import org.springframework.web.reactive.function.client.WebClient;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-
-import io.sapl.api.functions.FunctionLibrarySupplier;
-import io.sapl.extension.jwt.JWTFunctionLibrary;
-import io.sapl.extension.jwt.JWTKeyProvider;
-import io.sapl.extension.jwt.JWTPolicyInformationPoint;
+import java.util.List;
 
 @AutoConfiguration
 @ConditionalOnClass(name = "io.sapl.extension.jwt.JWTFunctionLibrary")

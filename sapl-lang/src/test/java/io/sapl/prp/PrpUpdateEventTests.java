@@ -17,18 +17,17 @@
  */
 package io.sapl.prp;
 
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.notNullValue;
-import static org.hamcrest.core.Is.is;
-
-import java.util.List;
-
-import org.junit.jupiter.api.Test;
-
 import io.sapl.interpreter.DefaultSAPLInterpreter;
 import io.sapl.interpreter.SAPLInterpreter;
 import io.sapl.prp.PrpUpdateEvent.Type;
 import io.sapl.prp.PrpUpdateEvent.Update;
+import org.junit.jupiter.api.Test;
+
+import java.util.List;
+
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.notNullValue;
+import static org.hamcrest.core.Is.is;
 
 class PrpUpdateEventTests {
     private static final SAPLInterpreter INTERPRETER = new DefaultSAPLInterpreter();

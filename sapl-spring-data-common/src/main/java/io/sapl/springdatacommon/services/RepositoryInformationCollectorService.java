@@ -17,10 +17,10 @@
  */
 package io.sapl.springdatacommon.services;
 
+import org.springframework.data.repository.core.RepositoryInformation;
+
 import java.util.HashSet;
 import java.util.Set;
-
-import org.springframework.data.repository.core.RepositoryInformation;
 
 public class RepositoryInformationCollectorService {
 

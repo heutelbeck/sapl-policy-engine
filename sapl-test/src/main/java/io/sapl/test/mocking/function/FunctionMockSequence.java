@@ -17,15 +17,15 @@
  */
 package io.sapl.test.mocking.function;
 
-import static io.sapl.test.Imports.times;
-
-import java.util.ArrayList;
-import java.util.LinkedList;
-
 import io.sapl.api.interpreter.Val;
 import io.sapl.test.SaplTestException;
 import io.sapl.test.mocking.MockCall;
 import io.sapl.test.verification.MockRunInformation;
+
+import java.util.ArrayList;
+import java.util.LinkedList;
+
+import static io.sapl.test.Imports.times;
 
 public class FunctionMockSequence implements FunctionMock {
 

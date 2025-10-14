@@ -17,18 +17,17 @@
  */
 package io.sapl.grammar.sapl.impl;
 
+import io.sapl.api.interpreter.Val;
+import io.sapl.grammar.sapl.Expression;
+import io.sapl.testutil.MockUtil;
+import org.junit.jupiter.api.Test;
+import reactor.core.publisher.Flux;
+import reactor.test.StepVerifier;
+
 import static io.sapl.testutil.TestUtil.assertExpressionEvaluatesTo;
 import static io.sapl.testutil.TestUtil.assertExpressionReturnsErrors;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
-
-import org.junit.jupiter.api.Test;
-
-import io.sapl.api.interpreter.Val;
-import io.sapl.grammar.sapl.Expression;
-import io.sapl.testutil.MockUtil;
-import reactor.core.publisher.Flux;
-import reactor.test.StepVerifier;
 
 class LazyBooleanOperatorsTests {
 

@@ -17,12 +17,11 @@
  */
 package io.sapl.interpreter.context;
 
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-
-import org.junit.jupiter.api.Test;
-
 import io.sapl.api.interpreter.Val;
+import org.junit.jupiter.api.Test;
 import reactor.util.context.Context;
+
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class AuthorizationContextTests {
 

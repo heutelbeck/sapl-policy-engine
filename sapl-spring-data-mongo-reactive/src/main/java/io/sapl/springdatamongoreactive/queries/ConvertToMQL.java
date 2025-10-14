@@ -17,14 +17,13 @@
  */
 package io.sapl.springdatamongoreactive.queries;
 
+import lombok.experimental.UtilityClass;
 import org.aopalliance.intercept.MethodInvocation;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.mongodb.core.query.BasicQuery;
 import org.springframework.data.mongodb.core.query.Query;
-
-import lombok.experimental.UtilityClass;
 
 @UtilityClass
 public class ConvertToMQL {

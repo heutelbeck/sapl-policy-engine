@@ -17,21 +17,19 @@
  */
 package io.sapl.spring.manager;
 
-import java.util.function.Supplier;
-
+import com.fasterxml.jackson.databind.ObjectMapper;
+import io.sapl.api.pdp.AuthorizationSubscription;
+import io.sapl.api.pdp.Decision;
+import io.sapl.api.pdp.PolicyDecisionPoint;
+import io.sapl.spring.constraints.ConstraintEnforcementService;
+import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authorization.AuthorizationDecision;
 import org.springframework.security.authorization.AuthorizationManager;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.web.access.intercept.RequestAuthorizationContext;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-
-import io.sapl.api.pdp.AuthorizationSubscription;
-import io.sapl.api.pdp.Decision;
-import io.sapl.api.pdp.PolicyDecisionPoint;
-import io.sapl.spring.constraints.ConstraintEnforcementService;
-import lombok.RequiredArgsConstructor;
+import java.util.function.Supplier;
 
 /**
  * {@link AuthorizationManager} for the HTTP filter chain.

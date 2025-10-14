@@ -17,22 +17,17 @@
  */
 package io.sapl.interpreter.combinators;
 
-import static io.sapl.interpreter.combinators.CombinatorTestUtil.validateAdvice;
-import static io.sapl.interpreter.combinators.CombinatorTestUtil.validateDecision;
-import static io.sapl.interpreter.combinators.CombinatorTestUtil.validateObligations;
-import static io.sapl.interpreter.combinators.CombinatorTestUtil.validateResource;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.JsonNodeFactory;
+import io.sapl.api.pdp.AuthorizationSubscription;
+import io.sapl.api.pdp.Decision;
+import org.junit.jupiter.api.Test;
+import reactor.test.StepVerifier;
 
 import java.util.List;
 import java.util.Optional;
 
-import org.junit.jupiter.api.Test;
-
-import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.databind.node.JsonNodeFactory;
-
-import io.sapl.api.pdp.AuthorizationSubscription;
-import io.sapl.api.pdp.Decision;
-import reactor.test.StepVerifier;
+import static io.sapl.interpreter.combinators.CombinatorTestUtil.*;
 
 class DenyOverridesTests {
 

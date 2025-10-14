@@ -17,13 +17,13 @@
  */
 package io.sapl.spring.config;
 
+import org.junit.jupiter.api.Test;
+import org.springframework.context.annotation.AdviceMode;
+
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.arrayContainingInAnyOrder;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-
-import org.junit.jupiter.api.Test;
-import org.springframework.context.annotation.AdviceMode;
 
 class ReactiveSaplMethodSecuritySelectorTests {
 

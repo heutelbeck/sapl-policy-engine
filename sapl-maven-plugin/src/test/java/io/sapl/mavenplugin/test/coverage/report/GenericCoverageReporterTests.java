@@ -17,27 +17,6 @@
  */
 package io.sapl.mavenplugin.test.coverage.report;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.mockStatic;
-import static org.mockito.Mockito.when;
-
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.Collection;
-import java.util.List;
-
-import org.eclipse.emf.ecore.EClass;
-import org.eclipse.xtext.nodemodel.util.NodeModelUtils;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.mockito.MockedConstruction;
-import org.mockito.MockedStatic;
-import org.mockito.Mockito;
-
 import io.sapl.grammar.sapl.PolicyElement;
 import io.sapl.grammar.sapl.SAPL;
 import io.sapl.grammar.sapl.SaplPackage;
@@ -52,6 +31,24 @@ import io.sapl.mavenplugin.test.coverage.report.model.SaplDocumentLineCoverageIn
 import io.sapl.test.coverage.api.model.PolicyConditionHit;
 import io.sapl.test.coverage.api.model.PolicyHit;
 import io.sapl.test.coverage.api.model.PolicySetHit;
+import org.eclipse.emf.ecore.EClass;
+import org.eclipse.xtext.nodemodel.util.NodeModelUtils;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.mockito.MockedConstruction;
+import org.mockito.MockedStatic;
+import org.mockito.Mockito;
+
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.Collection;
+import java.util.List;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.Mockito.*;
 
 class GenericCoverageReporterTests {
 

@@ -17,9 +17,6 @@
  */
 package io.sapl.interpreter;
 
-import java.io.InputStream;
-import java.util.Map;
-
 import io.sapl.api.interpreter.Val;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.AuthorizationSubscription;
@@ -28,6 +25,9 @@ import io.sapl.grammar.sapl.SAPL;
 import io.sapl.interpreter.functions.FunctionContext;
 import io.sapl.prp.Document;
 import reactor.core.publisher.Flux;
+
+import java.io.InputStream;
+import java.util.Map;
 
 public interface SAPLInterpreter {
 

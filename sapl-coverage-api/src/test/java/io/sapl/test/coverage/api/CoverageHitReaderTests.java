@@ -17,8 +17,11 @@
  */
 package io.sapl.test.coverage.api;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import io.sapl.test.coverage.api.model.PolicyConditionHit;
+import io.sapl.test.coverage.api.model.PolicyHit;
+import io.sapl.test.coverage.api.model.PolicySetHit;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -27,12 +30,8 @@ import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.util.List;
 
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.io.TempDir;
-
-import io.sapl.test.coverage.api.model.PolicyConditionHit;
-import io.sapl.test.coverage.api.model.PolicyHit;
-import io.sapl.test.coverage.api.model.PolicySetHit;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class CoverageHitReaderTests {
 

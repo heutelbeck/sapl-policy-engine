@@ -17,26 +17,24 @@
  */
 package io.sapl.spring.method.reactive;
 
-import static java.util.function.Predicate.not;
-
-import java.util.Optional;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicReference;
-
-import org.reactivestreams.Subscription;
-import org.springframework.security.access.AccessDeniedException;
-
 import com.fasterxml.jackson.core.JsonProcessingException;
-
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.Decision;
 import io.sapl.spring.constraints.ConstraintEnforcementService;
 import io.sapl.spring.constraints.ReactiveConstraintHandlerBundle;
 import lombok.extern.slf4j.Slf4j;
+import org.reactivestreams.Subscription;
+import org.springframework.security.access.AccessDeniedException;
 import reactor.core.CoreSubscriber;
 import reactor.core.Disposable;
 import reactor.core.publisher.Flux;
 import reactor.util.context.ContextView;
+
+import java.util.Optional;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
+
+import static java.util.function.Predicate.not;
 
 /**
  * The EnforceDropWhileDeniedPolicyEnforcementPoint implements continuous policy

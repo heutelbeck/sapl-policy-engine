@@ -17,14 +17,13 @@
  */
 package io.sapl.mavenplugin.test.coverage;
 
+import lombok.experimental.UtilityClass;
+import org.apache.maven.plugin.logging.Log;
+
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-
-import org.apache.maven.plugin.logging.Log;
-
-import lombok.experimental.UtilityClass;
 
 /**
  * Utility Class for file operations

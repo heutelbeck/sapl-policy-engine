@@ -17,13 +17,12 @@
  */
 package io.sapl.spring.pdp.embedded;
 
-import static org.assertj.core.api.Assertions.assertThat;
-
+import io.sapl.api.functions.StaticFunctionLibrarySupplier;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 
-import io.sapl.api.functions.StaticFunctionLibrarySupplier;
+import static org.assertj.core.api.Assertions.assertThat;
 
 class FunctionLibrariesAutoConfigurationTests {
 

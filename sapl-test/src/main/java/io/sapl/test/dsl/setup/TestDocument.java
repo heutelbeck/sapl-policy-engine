@@ -17,10 +17,9 @@
  */
 package io.sapl.test.dsl.setup;
 
+import io.sapl.test.grammar.sapltest.SAPLTest;
 import org.eclipse.emf.common.util.Diagnostic;
 import org.eclipse.xtext.nodemodel.util.NodeModelUtils;
-
-import io.sapl.test.grammar.sapltest.SAPLTest;
 
 public record TestDocument(SAPLTest sapl, Diagnostic diagnostic, String errorMessage) {
     public boolean isInvalid() {

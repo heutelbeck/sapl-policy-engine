@@ -17,10 +17,6 @@
  */
 package io.sapl.springdatamongoreactive.queries;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
-
 import org.aopalliance.intercept.MethodInvocation;
 import org.bson.Document;
 import org.junit.jupiter.api.Test;
@@ -28,6 +24,10 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.mongodb.core.query.BasicQuery;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 class ConvertToMQLTests {
 

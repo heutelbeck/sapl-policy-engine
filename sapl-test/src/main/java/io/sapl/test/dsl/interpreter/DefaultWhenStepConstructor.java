@@ -17,25 +17,15 @@
  */
 package io.sapl.test.dsl.interpreter;
 
-import java.util.Collection;
-import java.util.Objects;
-import java.util.stream.Stream;
-
 import io.sapl.test.SaplTestException;
-import io.sapl.test.grammar.sapltest.AdjustBlock;
-import io.sapl.test.grammar.sapltest.Attribute;
-import io.sapl.test.grammar.sapltest.AttributeAdjustment;
-import io.sapl.test.grammar.sapltest.AttributeWithParameters;
-import io.sapl.test.grammar.sapltest.Expectation;
-import io.sapl.test.grammar.sapltest.Function;
-import io.sapl.test.grammar.sapltest.FunctionInvokedOnce;
-import io.sapl.test.grammar.sapltest.GivenStep;
-import io.sapl.test.grammar.sapltest.MockDefinition;
-import io.sapl.test.grammar.sapltest.RepeatedExpect;
-import io.sapl.test.grammar.sapltest.VirtualTime;
+import io.sapl.test.grammar.sapltest.*;
 import io.sapl.test.steps.GivenOrWhenStep;
 import io.sapl.test.steps.WhenStep;
 import lombok.RequiredArgsConstructor;
+
+import java.util.Collection;
+import java.util.Objects;
+import java.util.stream.Stream;
 
 @RequiredArgsConstructor
 class DefaultWhenStepConstructor {

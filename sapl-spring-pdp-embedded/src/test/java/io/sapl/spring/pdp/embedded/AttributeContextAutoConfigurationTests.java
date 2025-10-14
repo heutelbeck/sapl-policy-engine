@@ -17,22 +17,20 @@
  */
 package io.sapl.spring.pdp.embedded;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.mock;
-
-import java.util.List;
-
-import org.junit.jupiter.api.Test;
-import org.springframework.boot.autoconfigure.AutoConfigurations;
-import org.springframework.boot.test.context.runner.ApplicationContextRunner;
-
 import com.fasterxml.jackson.databind.ObjectMapper;
-
 import io.sapl.api.pip.Attribute;
 import io.sapl.api.pip.PolicyInformationPoint;
 import io.sapl.api.pip.PolicyInformationPointSupplier;
 import io.sapl.attributes.broker.api.AttributeStreamBroker;
 import io.sapl.attributes.documentation.api.PolicyInformationPointDocumentationProvider;
+import org.junit.jupiter.api.Test;
+import org.springframework.boot.autoconfigure.AutoConfigurations;
+import org.springframework.boot.test.context.runner.ApplicationContextRunner;
+
+import java.util.List;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.mock;
 
 class AttributeContextAutoConfigurationTests {
 

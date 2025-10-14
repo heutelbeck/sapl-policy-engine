@@ -17,13 +17,6 @@
  */
 package io.sapl.spring.pdp.embedded;
 
-import org.springframework.beans.factory.config.BeanDefinition;
-import org.springframework.boot.autoconfigure.AutoConfiguration;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
-import org.springframework.boot.context.properties.EnableConfigurationProperties;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Role;
-
 import io.sapl.interpreter.InitializationException;
 import io.sapl.pdp.config.VariablesAndCombinatorSource;
 import io.sapl.pdp.config.filesystem.FileSystemVariablesAndCombinatorSource;
@@ -31,6 +24,12 @@ import io.sapl.pdp.config.resources.ResourcesVariablesAndCombinatorSource;
 import io.sapl.spring.pdp.embedded.EmbeddedPDPProperties.PDPDataSource;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.config.BeanDefinition;
+import org.springframework.boot.autoconfigure.AutoConfiguration;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Role;
 
 @Slf4j
 @AutoConfiguration

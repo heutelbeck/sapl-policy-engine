@@ -17,12 +17,11 @@
  */
 package io.sapl.springdatar2dbc.queries;
 
-import java.util.Collections;
-import java.util.List;
-
+import lombok.Getter;
 import org.apache.commons.lang3.NotImplementedException;
 
-import lombok.Getter;
+import java.util.Collections;
+import java.util.List;
 
 @Getter
 public enum OperatorR2dbc {

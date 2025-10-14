@@ -17,13 +17,11 @@
  */
 package io.sapl.grammar.ide;
 
-import org.eclipse.xtext.util.Modules2;
-
 import com.google.inject.Guice;
 import com.google.inject.Injector;
-
 import io.sapl.grammar.SAPLRuntimeModule;
 import io.sapl.grammar.SAPLStandaloneSetup;
+import org.eclipse.xtext.util.Modules2;
 
 /**
  * Initialization support for running XText languages as language servers.

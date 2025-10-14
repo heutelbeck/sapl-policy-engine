@@ -17,15 +17,7 @@
  */
 package io.sapl.interpreter.combinators;
 
-import static io.sapl.api.pdp.Decision.DENY;
-import static io.sapl.api.pdp.Decision.PERMIT;
-
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Optional;
-
 import com.fasterxml.jackson.databind.JsonNode;
-
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.grammar.sapl.CombiningAlgorithm;
 import io.sapl.grammar.sapl.PolicySet;
@@ -34,6 +26,13 @@ import io.sapl.interpreter.DocumentEvaluationResult;
 import io.sapl.prp.DocumentMatch;
 import lombok.experimental.UtilityClass;
 import reactor.core.publisher.Flux;
+
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Optional;
+
+import static io.sapl.api.pdp.Decision.DENY;
+import static io.sapl.api.pdp.Decision.PERMIT;
 
 /**
  * This strict algorithm is used if the decision should be a DENY except for

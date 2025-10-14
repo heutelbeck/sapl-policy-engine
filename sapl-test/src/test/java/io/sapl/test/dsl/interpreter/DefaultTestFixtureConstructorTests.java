@@ -17,19 +17,15 @@
  */
 package io.sapl.test.dsl.interpreter;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoInteractions;
-import static org.mockito.Mockito.when;
-
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-
+import io.sapl.attributes.pips.time.TimePolicyInformationPoint;
+import io.sapl.functions.FilterFunctionLibrary;
+import io.sapl.interpreter.InitializationException;
+import io.sapl.test.SaplTestException;
+import io.sapl.test.SaplTestFixture;
+import io.sapl.test.dsl.ParserUtil;
+import io.sapl.test.grammar.sapltest.*;
+import io.sapl.test.grammar.services.SAPLTestGrammarAccess;
+import io.sapl.test.integration.SaplIntegrationTestFixture;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -41,22 +37,15 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import io.sapl.attributes.pips.time.TimePolicyInformationPoint;
-import io.sapl.functions.FilterFunctionLibrary;
-import io.sapl.interpreter.InitializationException;
-import io.sapl.test.SaplTestException;
-import io.sapl.test.SaplTestFixture;
-import io.sapl.test.dsl.ParserUtil;
-import io.sapl.test.grammar.sapltest.Attribute;
-import io.sapl.test.grammar.sapltest.Document;
-import io.sapl.test.grammar.sapltest.Function;
-import io.sapl.test.grammar.sapltest.GivenStep;
-import io.sapl.test.grammar.sapltest.Import;
-import io.sapl.test.grammar.sapltest.ImportType;
-import io.sapl.test.grammar.sapltest.PdpCombiningAlgorithm;
-import io.sapl.test.grammar.sapltest.PdpVariables;
-import io.sapl.test.grammar.services.SAPLTestGrammarAccess;
-import io.sapl.test.integration.SaplIntegrationTestFixture;
+import java.lang.Object;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class DefaultTestFixtureConstructorTests {

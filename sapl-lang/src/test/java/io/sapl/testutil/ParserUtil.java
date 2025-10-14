@@ -17,23 +17,21 @@
  */
 package io.sapl.testutil;
 
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.nio.charset.StandardCharsets;
-
-import org.eclipse.emf.common.util.URI;
-import org.eclipse.xtext.resource.XtextResource;
-import org.eclipse.xtext.resource.XtextResourceSet;
-
 import com.google.inject.Injector;
-
 import io.sapl.grammar.SAPLStandaloneSetup;
 import io.sapl.grammar.sapl.Entitlement;
 import io.sapl.grammar.sapl.Expression;
 import io.sapl.grammar.sapl.FilterComponent;
 import io.sapl.grammar.sapl.Statement;
 import io.sapl.grammar.services.SAPLGrammarAccess;
+import org.eclipse.emf.common.util.URI;
+import org.eclipse.xtext.resource.XtextResource;
+import org.eclipse.xtext.resource.XtextResourceSet;
+
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 
 public class ParserUtil {
 

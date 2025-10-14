@@ -17,9 +17,8 @@
  */
 package io.sapl.spring.method.blocking;
 
-import org.springframework.security.authorization.method.AuthorizationInterceptorsOrder;
-
 import lombok.Getter;
+import org.springframework.security.authorization.method.AuthorizationInterceptorsOrder;
 
 @Getter
 public enum SaplAuthorizationInterceptorsOrder {

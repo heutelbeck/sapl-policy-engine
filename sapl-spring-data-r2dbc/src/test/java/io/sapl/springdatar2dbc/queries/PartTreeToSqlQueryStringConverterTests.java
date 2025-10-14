@@ -17,23 +17,8 @@
  */
 package io.sapl.springdatar2dbc.queries;
 
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.params.provider.Arguments.arguments;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.mockStatic;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.when;
-
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Modifier;
-import java.util.List;
-import java.util.NoSuchElementException;
-import java.util.stream.Stream;
-
+import io.sapl.springdatacommon.utils.Utilities;
+import io.sapl.springdatar2dbc.database.Person;
 import org.aopalliance.intercept.MethodInvocation;
 import org.apache.commons.lang3.tuple.Pair;
 import org.junit.jupiter.api.AfterEach;
@@ -48,8 +33,17 @@ import org.mockito.Answers;
 import org.mockito.MockedStatic;
 import org.springframework.data.domain.Sort;
 
-import io.sapl.springdatacommon.utils.Utilities;
-import io.sapl.springdatar2dbc.database.Person;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Modifier;
+import java.util.List;
+import java.util.NoSuchElementException;
+import java.util.stream.Stream;
+
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.params.provider.Arguments.arguments;
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.*;
 
 class PartTreeToSqlQueryStringConverterTests {
 

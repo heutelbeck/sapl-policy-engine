@@ -17,43 +17,14 @@
  */
 package io.sapl.test.dsl.interpreter;
 
-import static org.hamcrest.Matchers.blankOrNullString;
-import static org.hamcrest.Matchers.blankString;
-import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.containsStringIgnoringCase;
-import static org.hamcrest.Matchers.emptyOrNullString;
-import static org.hamcrest.Matchers.emptyString;
-import static org.hamcrest.Matchers.endsWith;
-import static org.hamcrest.Matchers.endsWithIgnoringCase;
-import static org.hamcrest.Matchers.equalToCompressingWhiteSpace;
-import static org.hamcrest.Matchers.equalToIgnoringCase;
-import static org.hamcrest.Matchers.hasLength;
-import static org.hamcrest.Matchers.matchesRegex;
-import static org.hamcrest.Matchers.nullValue;
-import static org.hamcrest.Matchers.startsWith;
-import static org.hamcrest.Matchers.startsWithIgnoringCase;
-import static org.hamcrest.Matchers.stringContainsInOrder;
+import io.sapl.test.SaplTestException;
+import io.sapl.test.grammar.sapltest.*;
+import org.hamcrest.Matcher;
 
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 
-import org.hamcrest.Matcher;
-
-import io.sapl.test.SaplTestException;
-import io.sapl.test.grammar.sapltest.StringContains;
-import io.sapl.test.grammar.sapltest.StringContainsInOrder;
-import io.sapl.test.grammar.sapltest.StringEndsWith;
-import io.sapl.test.grammar.sapltest.StringIsBlank;
-import io.sapl.test.grammar.sapltest.StringIsEmpty;
-import io.sapl.test.grammar.sapltest.StringIsEqualIgnoringCase;
-import io.sapl.test.grammar.sapltest.StringIsEqualWithCompressedWhiteSpace;
-import io.sapl.test.grammar.sapltest.StringIsNull;
-import io.sapl.test.grammar.sapltest.StringIsNullOrBlank;
-import io.sapl.test.grammar.sapltest.StringIsNullOrEmpty;
-import io.sapl.test.grammar.sapltest.StringMatcher;
-import io.sapl.test.grammar.sapltest.StringMatchesRegex;
-import io.sapl.test.grammar.sapltest.StringStartsWith;
-import io.sapl.test.grammar.sapltest.StringWithLength;
+import static org.hamcrest.Matchers.*;
 
 class StringMatcherInterpreter {
     Matcher<? super String> getHamcrestStringMatcher(final StringMatcher stringMatcher) {

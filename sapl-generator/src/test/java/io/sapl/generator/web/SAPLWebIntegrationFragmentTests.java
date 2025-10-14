@@ -17,20 +17,16 @@
  */
 package io.sapl.generator.web;
 
-import static org.junit.jupiter.api.Assertions.fail;
-
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-
 import org.eclipse.xtext.xtext.generator.IXtextGeneratorLanguage;
 import org.eclipse.xtext.xtext.generator.XtextGeneratorLanguage;
 import org.eclipse.xtext.xtext.generator.model.project.IXtextProjectConfig;
 import org.eclipse.xtext.xtext.generator.model.project.WebProjectConfig;
 import org.eclipse.xtext.xtext.generator.model.project.XtextProjectConfig;
 import org.junit.jupiter.api.Test;
+
+import java.util.*;
+
+import static org.junit.jupiter.api.Assertions.fail;
 
 class SAPLWebIntegrationFragmentTests {
 

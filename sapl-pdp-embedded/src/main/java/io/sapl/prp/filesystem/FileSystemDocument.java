@@ -17,14 +17,14 @@
  */
 package io.sapl.prp.filesystem;
 
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-
 import io.sapl.interpreter.SAPLInterpreter;
 import io.sapl.prp.Document;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
+
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 
 @Data
 @Slf4j

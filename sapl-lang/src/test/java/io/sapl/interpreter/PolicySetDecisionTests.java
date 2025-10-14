@@ -17,15 +17,14 @@
  */
 package io.sapl.interpreter;
 
-import static org.assertj.core.api.Assertions.assertThat;
-
-import org.junit.jupiter.api.Test;
-
 import io.sapl.api.interpreter.Trace;
 import io.sapl.api.interpreter.Val;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.grammar.sapl.CombiningAlgorithm;
 import io.sapl.grammar.sapl.impl.util.ErrorFactory;
+import org.junit.jupiter.api.Test;
+
+import static org.assertj.core.api.Assertions.assertThat;
 
 class PolicySetDecisionTests {
 

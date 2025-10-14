@@ -17,13 +17,12 @@
  */
 package io.sapl.spring.constraints.providers;
 
-import java.util.function.UnaryOperator;
-
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-
 import io.sapl.spring.constraints.api.MappingConstraintHandlerProvider;
 import lombok.RequiredArgsConstructor;
+
+import java.util.function.UnaryOperator;
 
 @RequiredArgsConstructor
 public class ContentFilteringProvider implements MappingConstraintHandlerProvider<Object> {

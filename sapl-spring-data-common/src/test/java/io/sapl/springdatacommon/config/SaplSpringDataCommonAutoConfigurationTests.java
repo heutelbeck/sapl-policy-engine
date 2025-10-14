@@ -17,8 +17,7 @@
  */
 package io.sapl.springdatacommon.config;
 
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-
+import io.sapl.springdatacommon.services.*;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.BeanFactory;
 import org.springframework.beans.factory.ObjectProvider;
@@ -27,11 +26,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.security.access.expression.method.MethodSecurityExpressionHandler;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
-import io.sapl.springdatacommon.services.ConstraintQueryEnforcementService;
-import io.sapl.springdatacommon.services.MethodSecurityExpressionEvaluator;
-import io.sapl.springdatacommon.services.QueryEnforceAuthorizationSubscriptionService;
-import io.sapl.springdatacommon.services.RepositoryInformationCollectorService;
-import io.sapl.springdatacommon.services.SecurityExpressionService;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 @SpringBootTest(classes = SaplSpringDataCommonAutoConfiguration.class)
 class SaplSpringDataCommonAutoConfigurationTests {

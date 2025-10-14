@@ -17,17 +17,16 @@
  */
 package io.sapl.attributes.broker.impl;
 
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import io.sapl.api.interpreter.Val;
+import io.sapl.attributes.broker.api.AttributeFinderInvocation;
+import org.junit.jupiter.api.Test;
 
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 
-import org.junit.jupiter.api.Test;
-
-import io.sapl.api.interpreter.Val;
-import io.sapl.attributes.broker.api.AttributeFinderInvocation;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 
 class AttributeFinderInvocationTests {
 

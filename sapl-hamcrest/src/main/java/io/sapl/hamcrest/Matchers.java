@@ -17,32 +17,25 @@
  */
 package io.sapl.hamcrest;
 
-import static com.spotify.hamcrest.jackson.IsJsonBoolean.jsonBoolean;
-import static com.spotify.hamcrest.jackson.IsJsonNull.jsonNull;
-import static com.spotify.hamcrest.jackson.IsJsonNumber.jsonBigDecimal;
-import static com.spotify.hamcrest.jackson.IsJsonNumber.jsonBigInteger;
-import static com.spotify.hamcrest.jackson.IsJsonNumber.jsonDouble;
-import static com.spotify.hamcrest.jackson.IsJsonNumber.jsonFloat;
-import static com.spotify.hamcrest.jackson.IsJsonNumber.jsonInt;
-import static com.spotify.hamcrest.jackson.IsJsonNumber.jsonLong;
-import static com.spotify.hamcrest.jackson.IsJsonText.jsonText;
-import static com.spotify.hamcrest.jackson.JsonMatchers.jsonObject;
-import static org.hamcrest.core.Is.is;
-import static org.hamcrest.core.IsAnything.anything;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import io.sapl.api.interpreter.Val;
+import io.sapl.api.pdp.AuthorizationDecision;
+import io.sapl.api.pdp.Decision;
+import lombok.experimental.UtilityClass;
+import org.hamcrest.Matcher;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.function.Predicate;
 
-import org.hamcrest.Matcher;
-
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
-
-import io.sapl.api.interpreter.Val;
-import io.sapl.api.pdp.AuthorizationDecision;
-import io.sapl.api.pdp.Decision;
-import lombok.experimental.UtilityClass;
+import static com.spotify.hamcrest.jackson.IsJsonBoolean.jsonBoolean;
+import static com.spotify.hamcrest.jackson.IsJsonNull.jsonNull;
+import static com.spotify.hamcrest.jackson.IsJsonNumber.*;
+import static com.spotify.hamcrest.jackson.IsJsonText.jsonText;
+import static com.spotify.hamcrest.jackson.JsonMatchers.jsonObject;
+import static org.hamcrest.core.Is.is;
+import static org.hamcrest.core.IsAnything.anything;
 
 /**
  * Utility class exposing static access to the various SAPL matchers.

@@ -17,21 +17,16 @@
  */
 package io.sapl.attributes.broker.impl;
 
-import java.util.Map;
-
 import io.sapl.api.interpreter.Val;
 import io.sapl.api.pip.Attribute;
 import io.sapl.api.pip.PolicyInformationPoint;
-import io.sapl.api.validation.Array;
-import io.sapl.api.validation.Bool;
-import io.sapl.api.validation.Int;
-import io.sapl.api.validation.JsonObject;
+import io.sapl.api.validation.*;
 import io.sapl.api.validation.Long;
 import io.sapl.api.validation.Number;
-import io.sapl.api.validation.Schema;
-import io.sapl.api.validation.Text;
 import lombok.experimental.UtilityClass;
 import reactor.core.publisher.Mono;
+
+import java.util.Map;
 
 @UtilityClass
 @PolicyInformationPoint(name = "test")

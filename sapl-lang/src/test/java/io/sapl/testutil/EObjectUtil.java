@@ -17,11 +17,10 @@
  */
 package io.sapl.testutil;
 
+import lombok.extern.slf4j.Slf4j;
 import org.eclipse.emf.common.util.EList;
 import org.eclipse.emf.ecore.EObject;
 import org.eclipse.emf.ecore.EStructuralFeature;
-
-import lombok.extern.slf4j.Slf4j;
 
 /**
  * Utility to log eObjects to the console.

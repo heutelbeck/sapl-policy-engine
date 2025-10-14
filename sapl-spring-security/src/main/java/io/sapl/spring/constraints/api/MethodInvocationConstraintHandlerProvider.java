@@ -17,11 +17,10 @@
  */
 package io.sapl.spring.constraints.api;
 
-import java.util.function.Consumer;
-
+import com.fasterxml.jackson.databind.JsonNode;
 import org.springframework.aop.framework.ReflectiveMethodInvocation;
 
-import com.fasterxml.jackson.databind.JsonNode;
+import java.util.function.Consumer;
 
 public interface MethodInvocationConstraintHandlerProvider extends Responsible {
 

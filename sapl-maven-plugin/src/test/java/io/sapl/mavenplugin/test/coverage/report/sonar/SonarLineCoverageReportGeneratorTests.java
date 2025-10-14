@@ -17,9 +17,18 @@
  */
 package io.sapl.mavenplugin.test.coverage.report.sonar;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.ArgumentMatchers.any;
+import io.sapl.mavenplugin.test.coverage.PathHelper;
+import io.sapl.mavenplugin.test.coverage.report.SampleCoverageInformation;
+import io.sapl.mavenplugin.test.coverage.report.sonar.model.Coverage;
+import io.sapl.mavenplugin.test.coverage.report.sonar.model.ObjectFactory;
+import jakarta.xml.bind.JAXBContext;
+import jakarta.xml.bind.JAXBException;
+import org.apache.maven.plugin.MojoExecutionException;
+import org.apache.maven.plugin.testing.SilentLog;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
+import org.mockito.MockedStatic;
+import org.mockito.Mockito;
 
 import java.io.File;
 import java.io.IOException;
@@ -28,19 +37,9 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
 
-import org.apache.maven.plugin.MojoExecutionException;
-import org.apache.maven.plugin.testing.SilentLog;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.io.TempDir;
-import org.mockito.MockedStatic;
-import org.mockito.Mockito;
-
-import io.sapl.mavenplugin.test.coverage.PathHelper;
-import io.sapl.mavenplugin.test.coverage.report.SampleCoverageInformation;
-import io.sapl.mavenplugin.test.coverage.report.sonar.model.Coverage;
-import io.sapl.mavenplugin.test.coverage.report.sonar.model.ObjectFactory;
-import jakarta.xml.bind.JAXBContext;
-import jakarta.xml.bind.JAXBException;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
 
 class SonarLineCoverageReportGeneratorTests {
 

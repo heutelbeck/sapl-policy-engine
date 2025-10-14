@@ -17,8 +17,6 @@
  */
 package io.sapl.test.lang;
 
-import org.eclipse.emf.ecore.EObject;
-
 import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.sapl.PolicySet;
 import io.sapl.grammar.sapl.SaplPackage;
@@ -26,6 +24,7 @@ import io.sapl.grammar.sapl.impl.PolicyImplCustom;
 import io.sapl.test.coverage.api.CoverageHitRecorder;
 import io.sapl.test.coverage.api.model.PolicyHit;
 import lombok.extern.slf4j.Slf4j;
+import org.eclipse.emf.ecore.EObject;
 import reactor.core.publisher.Mono;
 
 @Slf4j

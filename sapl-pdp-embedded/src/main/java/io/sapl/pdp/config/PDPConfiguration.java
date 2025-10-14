@@ -17,9 +17,6 @@
  */
 package io.sapl.pdp.config;
 
-import java.util.Map;
-import java.util.function.UnaryOperator;
-
 import io.sapl.api.interpreter.Val;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.TracedDecision;
@@ -28,6 +25,9 @@ import io.sapl.interpreter.combinators.PolicyDocumentCombiningAlgorithm;
 import io.sapl.interpreter.functions.FunctionContext;
 import io.sapl.prp.PolicyRetrievalPoint;
 import lombok.NonNull;
+
+import java.util.Map;
+import java.util.function.UnaryOperator;
 
 public record PDPConfiguration(
         @NonNull String configurationId,

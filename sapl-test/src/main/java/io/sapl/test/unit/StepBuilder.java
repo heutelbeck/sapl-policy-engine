@@ -17,10 +17,6 @@
  */
 package io.sapl.test.unit;
 
-import java.util.LinkedList;
-import java.util.Map;
-import java.util.function.Function;
-
 import io.sapl.api.interpreter.Val;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.AuthorizationSubscription;
@@ -39,6 +35,10 @@ import lombok.experimental.UtilityClass;
 import reactor.core.publisher.Flux;
 import reactor.test.StepVerifier;
 import reactor.util.context.Context;
+
+import java.util.LinkedList;
+import java.util.Map;
+import java.util.function.Function;
 
 /**
  * Implementing a Step Builder Pattern to construct test cases.

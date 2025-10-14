@@ -17,9 +17,6 @@
  */
 package io.sapl.test.dsl.setup;
 
-import java.util.List;
-import java.util.Map;
-
 import io.sapl.test.SaplTestException;
 import io.sapl.test.dsl.interfaces.StepConstructor;
 import io.sapl.test.grammar.sapltest.ImportType;
@@ -28,6 +25,9 @@ import io.sapl.test.grammar.sapltest.SAPLTest;
 import io.sapl.test.grammar.sapltest.Scenario;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
+
+import java.util.List;
+import java.util.Map;
 
 @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
 public final class TestProvider {

@@ -17,20 +17,6 @@
  */
 package io.sapl.mavenplugin.test.coverage.helper;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-
-import java.nio.file.Path;
-import java.util.Collection;
-import java.util.List;
-
-import org.apache.maven.plugin.MojoExecutionException;
-import org.apache.maven.plugin.testing.SilentLog;
-import org.apache.maven.plugin.testing.stubs.MavenProjectStub;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.mockito.Mockito;
-
 import io.sapl.grammar.sapl.PolicyElement;
 import io.sapl.grammar.sapl.SAPL;
 import io.sapl.grammar.sapl.SaplPackage;
@@ -40,6 +26,19 @@ import io.sapl.mavenplugin.test.coverage.model.SaplDocument;
 import io.sapl.test.coverage.api.model.PolicyConditionHit;
 import io.sapl.test.coverage.api.model.PolicyHit;
 import io.sapl.test.coverage.api.model.PolicySetHit;
+import org.apache.maven.plugin.MojoExecutionException;
+import org.apache.maven.plugin.testing.SilentLog;
+import org.apache.maven.plugin.testing.stubs.MavenProjectStub;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
+
+import java.nio.file.Path;
+import java.util.Collection;
+import java.util.List;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 class CoverageTargetHelperTests {
 

@@ -17,11 +17,6 @@
  */
 package io.sapl.springdatamongoreactive.config;
 
-import org.springframework.beans.factory.BeanFactory;
-import org.springframework.beans.factory.ObjectProvider;
-import org.springframework.boot.autoconfigure.AutoConfiguration;
-import org.springframework.context.annotation.Bean;
-
 import io.sapl.api.pdp.PolicyDecisionPoint;
 import io.sapl.spring.constraints.ConstraintEnforcementService;
 import io.sapl.springdatacommon.services.ConstraintQueryEnforcementService;
@@ -34,6 +29,10 @@ import io.sapl.springdatamongoreactive.proxy.MongoReactiveBeanPostProcessor;
 import io.sapl.springdatamongoreactive.proxy.MongoReactiveRepositoryFactoryCustomizer;
 import io.sapl.springdatamongoreactive.proxy.MongoReactiveRepositoryProxyPostProcessor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.BeanFactory;
+import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.boot.autoconfigure.AutoConfiguration;
+import org.springframework.context.annotation.Bean;
 
 @Slf4j
 @AutoConfiguration

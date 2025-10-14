@@ -17,16 +17,14 @@
  */
 package io.sapl.attributes.broker.impl;
 
-import static org.assertj.core.api.Assertions.assertThatCode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import io.sapl.attributes.pips.time.TimePolicyInformationPoint;
+import io.sapl.validation.ValidatorFactory;
+import org.junit.jupiter.api.Test;
 
 import java.time.Clock;
 
-import org.junit.jupiter.api.Test;
-
-import com.fasterxml.jackson.databind.ObjectMapper;
-
-import io.sapl.attributes.pips.time.TimePolicyInformationPoint;
-import io.sapl.validation.ValidatorFactory;
+import static org.assertj.core.api.Assertions.assertThatCode;
 
 class AnnotationPolicyInformationPointLoaderTests {
 

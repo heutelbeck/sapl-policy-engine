@@ -20,17 +20,16 @@ package io.sapl.grammar.ui;
 import io.sapl.functions.*;
 import io.sapl.grammar.ui.contentassist.SAPLUiContentProposalProvider;
 import io.sapl.interpreter.InitializationException;
+import io.sapl.interpreter.combinators.PolicyDocumentCombiningAlgorithm;
 import io.sapl.pdp.config.PDPConfiguration;
 import org.eclipse.xtext.ui.editor.contentassist.UiToIdeContentProposalProvider;
 import org.junit.jupiter.api.Test;
-import io.sapl.grammar.sapl.CombiningAlgorithm;
 
 import java.util.Map;
 import java.util.function.UnaryOperator;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
-import io.sapl.interpreter.combinators.PolicyDocumentCombiningAlgorithm;
 
 class SAPLUiModuleTest {
 

@@ -20,24 +20,12 @@
  */
 package io.sapl.grammar.ui;
 
-import java.time.Clock;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-import java.util.function.UnaryOperator;
-
-import io.sapl.functions.*;
-import org.eclipse.ui.plugin.AbstractUIPlugin;
-import org.eclipse.xtext.ide.editor.contentassist.IdeContentProposalProvider;
-import org.eclipse.xtext.ui.editor.contentassist.IContentProposalProvider;
-import org.eclipse.xtext.ui.editor.contentassist.UiToIdeContentProposalProvider;
-
 import com.fasterxml.jackson.databind.ObjectMapper;
-
 import io.sapl.attributes.broker.impl.AnnotationPolicyInformationPointLoader;
 import io.sapl.attributes.broker.impl.CachingAttributeStreamBroker;
 import io.sapl.attributes.broker.impl.InMemoryPolicyInformationPointDocumentationProvider;
 import io.sapl.attributes.pips.time.TimePolicyInformationPoint;
+import io.sapl.functions.DefaultLibraries;
 import io.sapl.grammar.ui.contentassist.SAPLUiContentProposalProvider;
 import io.sapl.interpreter.InitializationException;
 import io.sapl.interpreter.combinators.PolicyDocumentCombiningAlgorithm;
@@ -48,8 +36,18 @@ import io.sapl.prp.Document;
 import io.sapl.prp.PolicyRetrievalPoint;
 import io.sapl.prp.PolicyRetrievalResult;
 import io.sapl.validation.ValidatorFactory;
+import org.eclipse.ui.plugin.AbstractUIPlugin;
+import org.eclipse.xtext.ide.editor.contentassist.IdeContentProposalProvider;
+import org.eclipse.xtext.ui.editor.contentassist.IContentProposalProvider;
+import org.eclipse.xtext.ui.editor.contentassist.UiToIdeContentProposalProvider;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+
+import java.time.Clock;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+import java.util.function.UnaryOperator;
 
 /**
  * Use this class to register components to be used within the Eclipse IDE.

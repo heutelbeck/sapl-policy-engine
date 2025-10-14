@@ -17,17 +17,16 @@
  */
 package io.sapl.extensions.mqtt.util;
 
-import static io.sapl.extensions.mqtt.util.ConfigUtility.getQos;
+import com.hivemq.client.mqtt.mqtt5.message.subscribe.Mqtt5Subscribe;
+import com.hivemq.client.mqtt.mqtt5.message.subscribe.Mqtt5Subscription;
+import com.hivemq.client.mqtt.mqtt5.message.subscribe.suback.Mqtt5SubAck;
+import io.sapl.api.interpreter.Val;
+import lombok.experimental.UtilityClass;
 
 import java.util.LinkedList;
 import java.util.List;
 
-import com.hivemq.client.mqtt.mqtt5.message.subscribe.Mqtt5Subscribe;
-import com.hivemq.client.mqtt.mqtt5.message.subscribe.Mqtt5Subscription;
-import com.hivemq.client.mqtt.mqtt5.message.subscribe.suback.Mqtt5SubAck;
-
-import io.sapl.api.interpreter.Val;
-import lombok.experimental.UtilityClass;
+import static io.sapl.extensions.mqtt.util.ConfigUtility.getQos;
 
 /**
  * This utility class provides functions to build mqtt subscriptions.

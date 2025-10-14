@@ -17,9 +17,9 @@
  */
 package io.sapl.api.pdp;
 
-import java.io.Serializable;
-
 import lombok.NonNull;
+
+import java.io.Serializable;
 
 /**
  * Holds an {@link AuthorizationSubscription SAPL authorization subscription}

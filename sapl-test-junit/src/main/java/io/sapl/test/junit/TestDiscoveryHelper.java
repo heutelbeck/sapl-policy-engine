@@ -17,10 +17,10 @@
  */
 package io.sapl.test.junit;
 
-import java.util.List;
-
 import org.apache.commons.io.FileUtils;
 import org.assertj.core.util.Arrays;
+
+import java.util.List;
 
 class TestDiscoveryHelper {
 

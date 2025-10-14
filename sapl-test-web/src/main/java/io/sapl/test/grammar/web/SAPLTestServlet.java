@@ -17,15 +17,13 @@
  */
 package io.sapl.test.grammar.web;
 
-import java.io.Serial;
-
+import com.google.inject.Injector;
+import jakarta.servlet.annotation.WebServlet;
+import lombok.SneakyThrows;
 import org.eclipse.xtext.util.DisposableRegistry;
 import org.eclipse.xtext.web.servlet.XtextServlet;
 
-import com.google.inject.Injector;
-
-import jakarta.servlet.annotation.WebServlet;
-import lombok.SneakyThrows;
+import java.io.Serial;
 
 /**
  * Deploy this class into a servlet container to enable DSL-specific services.

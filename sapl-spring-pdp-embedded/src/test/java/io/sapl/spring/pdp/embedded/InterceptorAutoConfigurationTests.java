@@ -17,15 +17,13 @@
  */
 package io.sapl.spring.pdp.embedded;
 
-import static org.assertj.core.api.Assertions.assertThat;
-
+import com.fasterxml.jackson.databind.ObjectMapper;
+import io.sapl.pdp.interceptors.ReportingDecisionInterceptor;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-
-import io.sapl.pdp.interceptors.ReportingDecisionInterceptor;
+import static org.assertj.core.api.Assertions.assertThat;
 
 class InterceptorAutoConfigurationTests {
 

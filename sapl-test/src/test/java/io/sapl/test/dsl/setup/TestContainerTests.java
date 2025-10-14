@@ -17,13 +17,12 @@
  */
 package io.sapl.test.dsl.setup;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import io.sapl.test.dsl.interfaces.TestNode;
+import org.junit.jupiter.api.Test;
 
 import java.util.Collections;
 
-import org.junit.jupiter.api.Test;
-
-import io.sapl.test.dsl.interfaces.TestNode;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class TestContainerTests {
 

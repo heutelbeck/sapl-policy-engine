@@ -17,10 +17,10 @@
  */
 package io.sapl.test.dsl.interpreter;
 
+import io.sapl.test.SaplTestException;
+
 import java.time.DateTimeException;
 import java.time.Duration;
-
-import io.sapl.test.SaplTestException;
 
 class DurationInterpreter {
     Duration getJavaDurationFromDuration(final io.sapl.test.grammar.sapltest.Duration duration) {

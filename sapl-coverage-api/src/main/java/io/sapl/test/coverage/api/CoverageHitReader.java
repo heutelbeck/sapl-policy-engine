@@ -17,12 +17,12 @@
  */
 package io.sapl.test.coverage.api;
 
-import java.io.IOException;
-import java.util.List;
-
 import io.sapl.test.coverage.api.model.PolicyConditionHit;
 import io.sapl.test.coverage.api.model.PolicyHit;
 import io.sapl.test.coverage.api.model.PolicySetHit;
+
+import java.io.IOException;
+import java.util.List;
 
 /**
  * Interface for reading policy hits.

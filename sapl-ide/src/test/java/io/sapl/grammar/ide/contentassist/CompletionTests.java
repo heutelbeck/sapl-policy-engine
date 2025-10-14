@@ -17,17 +17,16 @@
  */
 package io.sapl.grammar.ide.contentassist;
 
-import static org.assertj.core.api.Assertions.assertThat;
-
-import java.util.Collection;
-import java.util.List;
-
+import io.sapl.grammar.ide.AbstractSaplLanguageServerTests;
 import org.eclipse.lsp4j.CompletionList;
 import org.eclipse.xtext.testing.TestCompletionConfiguration;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ContextConfiguration;
 
-import io.sapl.grammar.ide.AbstractSaplLanguageServerTests;
+import java.util.Collection;
+import java.util.List;
+
+import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * This class uses the xtext test classes to test auto-completion results.

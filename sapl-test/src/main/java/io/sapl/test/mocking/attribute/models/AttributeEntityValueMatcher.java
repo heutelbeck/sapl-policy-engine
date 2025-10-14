@@ -17,11 +17,10 @@
  */
 package io.sapl.test.mocking.attribute.models;
 
-import org.hamcrest.Matcher;
-
 import io.sapl.api.interpreter.Val;
 import lombok.AllArgsConstructor;
 import lombok.Data;
+import org.hamcrest.Matcher;
 
 @Data
 @AllArgsConstructor

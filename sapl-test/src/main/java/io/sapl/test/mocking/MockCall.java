@@ -17,10 +17,10 @@
  */
 package io.sapl.test.mocking;
 
-import java.util.Arrays;
-
 import io.sapl.api.interpreter.Val;
 import io.sapl.test.SaplTestException;
+
+import java.util.Arrays;
 
 public class MockCall {
 

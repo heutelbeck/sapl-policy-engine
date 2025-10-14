@@ -17,11 +17,10 @@
  */
 package io.sapl.springdatar2dbc.queries;
 
+import lombok.AllArgsConstructor;
 import org.springframework.beans.factory.BeanFactory;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.data.r2dbc.core.R2dbcEntityTemplate;
-
-import lombok.AllArgsConstructor;
 import reactor.core.publisher.Flux;
 
 @AllArgsConstructor

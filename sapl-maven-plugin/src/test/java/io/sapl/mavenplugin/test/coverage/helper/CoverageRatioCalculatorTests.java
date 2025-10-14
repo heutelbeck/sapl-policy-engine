@@ -17,13 +17,12 @@
  */
 package io.sapl.mavenplugin.test.coverage.helper;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import io.sapl.test.coverage.api.model.PolicySetHit;
+import org.junit.jupiter.api.Test;
 
 import java.util.List;
 
-import org.junit.jupiter.api.Test;
-
-import io.sapl.test.coverage.api.model.PolicySetHit;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class CoverageRatioCalculatorTests {
 

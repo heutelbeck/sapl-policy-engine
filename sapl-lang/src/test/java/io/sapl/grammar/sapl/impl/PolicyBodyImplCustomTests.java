@@ -17,21 +17,18 @@
  */
 package io.sapl.grammar.sapl.impl;
 
-import static io.sapl.api.pdp.AuthorizationDecision.INDETERMINATE;
-import static io.sapl.api.pdp.AuthorizationDecision.NOT_APPLICABLE;
-import static io.sapl.api.pdp.AuthorizationDecision.PERMIT;
-import static io.sapl.testutil.TestUtil.hasDecision;
-
-import java.util.stream.Stream;
-
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.Arguments;
-import org.junit.jupiter.params.provider.MethodSource;
-
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.interpreter.DefaultSAPLInterpreter;
 import io.sapl.testutil.MockUtil;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import reactor.test.StepVerifier;
+
+import java.util.stream.Stream;
+
+import static io.sapl.api.pdp.AuthorizationDecision.*;
+import static io.sapl.testutil.TestUtil.hasDecision;
 
 class PolicyBodyImplCustomTests {
 

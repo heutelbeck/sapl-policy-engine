@@ -17,10 +17,10 @@
  */
 package io.sapl.grammar.ide.contentassist;
 
-import static org.junit.jupiter.api.Assertions.assertThrows;
-
 import org.junit.jupiter.api.Test;
 import org.springframework.context.ApplicationContext;
+
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 class SpringContextTests {
 

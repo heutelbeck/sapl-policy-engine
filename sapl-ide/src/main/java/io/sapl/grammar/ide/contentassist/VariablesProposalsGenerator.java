@@ -17,31 +17,25 @@
  */
 package io.sapl.grammar.ide.contentassist;
 
-import static io.sapl.grammar.ide.contentassist.ExpressionSchemaResolver.offsetOf;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.google.common.base.Strings;
+import io.sapl.api.interpreter.Val;
+import io.sapl.attributes.documentation.api.PolicyInformationPointDocumentationProvider;
+import io.sapl.grammar.ide.contentassist.ContextAnalyzer.ContextAnalysisResult;
+import io.sapl.grammar.ide.contentassist.ProposalCreator.Proposal;
+import io.sapl.grammar.sapl.*;
+import io.sapl.pdp.config.PDPConfiguration;
+import lombok.experimental.UtilityClass;
+import org.eclipse.xtext.ide.editor.contentassist.ContentAssistContext;
 
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 
-import org.eclipse.xtext.ide.editor.contentassist.ContentAssistContext;
-
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.google.common.base.Strings;
-
-import io.sapl.api.interpreter.Val;
-import io.sapl.attributes.documentation.api.PolicyInformationPointDocumentationProvider;
-import io.sapl.grammar.ide.contentassist.ContextAnalyzer.ContextAnalysisResult;
-import io.sapl.grammar.ide.contentassist.ProposalCreator.Proposal;
-import io.sapl.grammar.sapl.PolicyBody;
-import io.sapl.grammar.sapl.PolicySet;
-import io.sapl.grammar.sapl.SAPL;
-import io.sapl.grammar.sapl.Schema;
-import io.sapl.grammar.sapl.ValueDefinition;
-import io.sapl.pdp.config.PDPConfiguration;
-import lombok.experimental.UtilityClass;
+import static io.sapl.grammar.ide.contentassist.ExpressionSchemaResolver.offsetOf;
 
 @UtilityClass
 public class VariablesProposalsGenerator {

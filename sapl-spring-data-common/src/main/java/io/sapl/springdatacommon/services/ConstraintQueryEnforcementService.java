@@ -17,20 +17,18 @@
  */
 package io.sapl.springdatacommon.services;
 
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-
-import org.springframework.security.access.AccessDeniedException;
-
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.Sets;
 import com.networknt.schema.JsonSchemaFactory;
 import com.networknt.schema.SpecVersion;
-
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.spring.constraints.providers.ConstraintResponsibility;
+import org.springframework.security.access.AccessDeniedException;
+
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
 
 public class ConstraintQueryEnforcementService {
 

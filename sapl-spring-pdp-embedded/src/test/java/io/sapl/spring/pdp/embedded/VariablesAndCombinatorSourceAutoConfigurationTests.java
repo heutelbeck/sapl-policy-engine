@@ -17,18 +17,17 @@
  */
 package io.sapl.spring.pdp.embedded;
 
-import static org.assertj.core.api.Assertions.assertThat;
-
-import java.io.File;
-
+import io.sapl.pdp.config.VariablesAndCombinatorSource;
+import io.sapl.pdp.config.filesystem.FileSystemVariablesAndCombinatorSource;
+import io.sapl.pdp.config.resources.ResourcesVariablesAndCombinatorSource;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 
-import io.sapl.pdp.config.VariablesAndCombinatorSource;
-import io.sapl.pdp.config.filesystem.FileSystemVariablesAndCombinatorSource;
-import io.sapl.pdp.config.resources.ResourcesVariablesAndCombinatorSource;
+import java.io.File;
+
+import static org.assertj.core.api.Assertions.assertThat;
 
 class VariablesAndCombinatorSourceAutoConfigurationTests {
 

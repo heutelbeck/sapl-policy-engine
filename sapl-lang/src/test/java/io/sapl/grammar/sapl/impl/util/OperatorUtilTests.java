@@ -17,11 +17,10 @@
  */
 package io.sapl.grammar.sapl.impl.util;
 
-import org.assertj.core.api.SoftAssertions;
-import org.junit.jupiter.api.Test;
-
 import io.sapl.api.interpreter.Val;
 import io.sapl.api.pdp.SaplError;
+import org.assertj.core.api.SoftAssertions;
+import org.junit.jupiter.api.Test;
 
 class OperatorUtilTests {
 

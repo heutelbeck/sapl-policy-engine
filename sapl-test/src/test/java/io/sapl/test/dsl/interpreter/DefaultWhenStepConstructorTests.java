@@ -17,19 +17,12 @@
  */
 package io.sapl.test.dsl.interpreter;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoInteractions;
-import static org.mockito.Mockito.verifyNoMoreInteractions;
-import static org.mockito.Mockito.when;
-
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-
+import io.sapl.test.SaplTestException;
+import io.sapl.test.TestHelper;
+import io.sapl.test.dsl.ParserUtil;
+import io.sapl.test.grammar.sapltest.*;
+import io.sapl.test.grammar.services.SAPLTestGrammarAccess;
+import io.sapl.test.steps.GivenOrWhenStep;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -38,27 +31,13 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import io.sapl.test.SaplTestException;
-import io.sapl.test.TestHelper;
-import io.sapl.test.dsl.ParserUtil;
-import io.sapl.test.grammar.sapltest.AdjustBlock;
-import io.sapl.test.grammar.sapltest.AdjustStep;
-import io.sapl.test.grammar.sapltest.Attribute;
-import io.sapl.test.grammar.sapltest.AttributeAdjustment;
-import io.sapl.test.grammar.sapltest.AttributeWithParameters;
-import io.sapl.test.grammar.sapltest.Await;
-import io.sapl.test.grammar.sapltest.ExpectBlock;
-import io.sapl.test.grammar.sapltest.Expectation;
-import io.sapl.test.grammar.sapltest.Function;
-import io.sapl.test.grammar.sapltest.FunctionInvokedOnce;
-import io.sapl.test.grammar.sapltest.GivenStep;
-import io.sapl.test.grammar.sapltest.Import;
-import io.sapl.test.grammar.sapltest.MockDefinition;
-import io.sapl.test.grammar.sapltest.RepeatedExpect;
-import io.sapl.test.grammar.sapltest.SingleExpect;
-import io.sapl.test.grammar.sapltest.VirtualTime;
-import io.sapl.test.grammar.services.SAPLTestGrammarAccess;
-import io.sapl.test.steps.GivenOrWhenStep;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class DefaultWhenStepConstructorTests {

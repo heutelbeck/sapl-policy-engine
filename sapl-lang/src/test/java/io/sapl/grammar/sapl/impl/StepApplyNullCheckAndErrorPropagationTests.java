@@ -17,8 +17,17 @@
  */
 package io.sapl.grammar.sapl.impl;
 
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.Mockito.mock;
+import io.sapl.api.interpreter.Val;
+import io.sapl.grammar.sapl.ConditionStep;
+import io.sapl.grammar.sapl.FilterStatement;
+import io.sapl.grammar.sapl.RecursiveIndexStep;
+import io.sapl.grammar.sapl.Step;
+import io.sapl.grammar.sapl.impl.util.ErrorFactory;
+import io.sapl.testutil.ParserUtil;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
+import org.reflections.Reflections;
+import reactor.test.StepVerifier;
 
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
@@ -27,18 +36,8 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.MethodSource;
-import org.reflections.Reflections;
-
-import io.sapl.api.interpreter.Val;
-import io.sapl.grammar.sapl.ConditionStep;
-import io.sapl.grammar.sapl.FilterStatement;
-import io.sapl.grammar.sapl.RecursiveIndexStep;
-import io.sapl.grammar.sapl.Step;
-import io.sapl.grammar.sapl.impl.util.ErrorFactory;
-import io.sapl.testutil.ParserUtil;
-import reactor.test.StepVerifier;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.Mockito.mock;
 
 class StepApplyNullCheckAndErrorPropagationTests {
 

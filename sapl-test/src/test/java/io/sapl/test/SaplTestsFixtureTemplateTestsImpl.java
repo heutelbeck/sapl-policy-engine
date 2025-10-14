@@ -17,11 +17,11 @@
  */
 package io.sapl.test;
 
-import java.util.Map;
-
 import io.sapl.api.interpreter.Val;
 import io.sapl.test.steps.GivenStep;
 import io.sapl.test.steps.WhenStep;
+
+import java.util.Map;
 
 public class SaplTestsFixtureTemplateTestsImpl extends SaplTestFixtureTemplate {
 

@@ -17,16 +17,13 @@
  */
 package io.sapl.test;
 
-import static io.sapl.test.Imports.anyTimes;
-import static io.sapl.test.Imports.never;
-import static io.sapl.test.Imports.times;
-import static org.assertj.core.api.Assertions.assertThat;
-
-import org.junit.jupiter.api.Test;
-
 import io.sapl.api.interpreter.Val;
 import io.sapl.test.mocking.MockCall;
 import io.sapl.test.verification.MockRunInformation;
+import org.junit.jupiter.api.Test;
+
+import static io.sapl.test.Imports.*;
+import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * Times Verification Convenience Test Cases for additional test cases see

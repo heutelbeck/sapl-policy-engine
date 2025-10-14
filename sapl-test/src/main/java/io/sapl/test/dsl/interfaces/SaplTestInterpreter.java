@@ -17,10 +17,10 @@
  */
 package io.sapl.test.dsl.interfaces;
 
-import java.io.InputStream;
-
 import io.sapl.test.dsl.setup.TestDocument;
 import io.sapl.test.grammar.sapltest.SAPLTest;
+
+import java.io.InputStream;
 
 /**
  * Allows to define a custom Interpreter to create a {@link SAPLTest} instance

@@ -17,18 +17,10 @@
  */
 package io.sapl.test.dsl.interpreter;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertInstanceOf;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.mockStatic;
-import static org.mockito.Mockito.when;
-
-import java.math.BigDecimal;
-import java.util.List;
-import java.util.regex.Pattern;
-import java.util.regex.PatternSyntaxException;
-
+import io.sapl.test.SaplTestException;
+import io.sapl.test.dsl.ParserUtil;
+import io.sapl.test.grammar.sapltest.*;
+import io.sapl.test.grammar.services.SAPLTestGrammarAccess;
 import org.hamcrest.Matcher;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.AfterEach;
@@ -42,23 +34,13 @@ import org.mockito.Mock;
 import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import io.sapl.test.SaplTestException;
-import io.sapl.test.dsl.ParserUtil;
-import io.sapl.test.grammar.sapltest.StringContains;
-import io.sapl.test.grammar.sapltest.StringContainsInOrder;
-import io.sapl.test.grammar.sapltest.StringEndsWith;
-import io.sapl.test.grammar.sapltest.StringIsBlank;
-import io.sapl.test.grammar.sapltest.StringIsEmpty;
-import io.sapl.test.grammar.sapltest.StringIsEqualIgnoringCase;
-import io.sapl.test.grammar.sapltest.StringIsEqualWithCompressedWhiteSpace;
-import io.sapl.test.grammar.sapltest.StringIsNull;
-import io.sapl.test.grammar.sapltest.StringIsNullOrBlank;
-import io.sapl.test.grammar.sapltest.StringIsNullOrEmpty;
-import io.sapl.test.grammar.sapltest.StringMatcher;
-import io.sapl.test.grammar.sapltest.StringMatchesRegex;
-import io.sapl.test.grammar.sapltest.StringStartsWith;
-import io.sapl.test.grammar.sapltest.StringWithLength;
-import io.sapl.test.grammar.services.SAPLTestGrammarAccess;
+import java.math.BigDecimal;
+import java.util.List;
+import java.util.regex.Pattern;
+import java.util.regex.PatternSyntaxException;
+
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class StringMatcherInterpreterTests {

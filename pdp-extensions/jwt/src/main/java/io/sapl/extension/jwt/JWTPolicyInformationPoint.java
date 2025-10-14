@@ -17,19 +17,11 @@
  */
 package io.sapl.extension.jwt;
 
-import java.security.interfaces.RSAPublicKey;
-import java.text.ParseException;
-import java.time.Duration;
-import java.util.Date;
-import java.util.Map;
-import java.util.function.Function;
-
 import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jose.JWSHeader;
 import com.nimbusds.jose.crypto.RSASSAVerifier;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
-
 import io.sapl.api.interpreter.Val;
 import io.sapl.api.pip.Attribute;
 import io.sapl.api.pip.PolicyInformationPoint;
@@ -38,6 +30,13 @@ import io.sapl.extension.jwt.JWTKeyProvider.CachingException;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+
+import java.security.interfaces.RSAPublicKey;
+import java.text.ParseException;
+import java.time.Duration;
+import java.util.Date;
+import java.util.Map;
+import java.util.function.Function;
 
 /**
  * Attributes obtained from JSON Web Tokens (JWT)

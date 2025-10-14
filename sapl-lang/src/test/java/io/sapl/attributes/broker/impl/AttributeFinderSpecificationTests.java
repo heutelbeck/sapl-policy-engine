@@ -17,15 +17,14 @@
  */
 package io.sapl.attributes.broker.impl;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import io.sapl.attributes.broker.api.AttributeFinderSpecification;
+import io.sapl.validation.Validator;
+import org.junit.jupiter.api.Test;
 
 import java.util.List;
 
-import org.junit.jupiter.api.Test;
-
-import io.sapl.attributes.broker.api.AttributeFinderSpecification;
-import io.sapl.validation.Validator;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class AttributeFinderSpecificationTests {
 

@@ -17,6 +17,10 @@
  */
 package io.sapl.spring.constraints;
 
+import lombok.AccessLevel;
+import lombok.RequiredArgsConstructor;
+import org.aopalliance.intercept.MethodInvocation;
+
 import java.lang.reflect.Array;
 import java.util.Arrays;
 import java.util.List;
@@ -26,11 +30,6 @@ import java.util.function.Consumer;
 import java.util.function.Predicate;
 import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
-
-import org.aopalliance.intercept.MethodInvocation;
-
-import lombok.AccessLevel;
-import lombok.RequiredArgsConstructor;
 
 /**
  *

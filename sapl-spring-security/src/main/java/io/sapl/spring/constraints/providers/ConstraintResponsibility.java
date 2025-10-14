@@ -17,11 +17,10 @@
  */
 package io.sapl.spring.constraints.providers;
 
-import java.util.Objects;
-
 import com.fasterxml.jackson.databind.JsonNode;
-
 import lombok.experimental.UtilityClass;
+
+import java.util.Objects;
 
 @UtilityClass
 public class ConstraintResponsibility {

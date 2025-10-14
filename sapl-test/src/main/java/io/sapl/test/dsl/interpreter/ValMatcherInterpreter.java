@@ -17,12 +17,6 @@
  */
 package io.sapl.test.dsl.interpreter;
 
-import static io.sapl.hamcrest.Matchers.anyVal;
-import static io.sapl.hamcrest.Matchers.val;
-import static org.hamcrest.CoreMatchers.is;
-
-import org.hamcrest.Matcher;
-
 import io.sapl.api.interpreter.Val;
 import io.sapl.test.SaplTestException;
 import io.sapl.test.grammar.sapltest.AnyVal;
@@ -30,6 +24,11 @@ import io.sapl.test.grammar.sapltest.ValMatcher;
 import io.sapl.test.grammar.sapltest.ValWithMatcher;
 import io.sapl.test.grammar.sapltest.ValWithValue;
 import lombok.RequiredArgsConstructor;
+import org.hamcrest.Matcher;
+
+import static io.sapl.hamcrest.Matchers.anyVal;
+import static io.sapl.hamcrest.Matchers.val;
+import static org.hamcrest.CoreMatchers.is;
 
 @RequiredArgsConstructor
 class ValMatcherInterpreter {

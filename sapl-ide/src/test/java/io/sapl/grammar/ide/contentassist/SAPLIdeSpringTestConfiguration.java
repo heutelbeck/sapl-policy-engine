@@ -17,23 +17,10 @@
  */
 package io.sapl.grammar.ide.contentassist;
 
-import static org.mockito.Mockito.mock;
-
-import java.io.IOException;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.function.UnaryOperator;
-
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.ComponentScan;
-import org.springframework.context.annotation.Configuration;
-
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
-
 import io.sapl.api.functions.Function;
 import io.sapl.api.functions.FunctionLibrary;
 import io.sapl.api.interpreter.Val;
@@ -52,7 +39,18 @@ import io.sapl.pdp.config.PDPConfigurationProvider;
 import io.sapl.prp.PolicyRetrievalPoint;
 import io.sapl.validation.ValidatorFactory;
 import lombok.experimental.UtilityClass;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.ComponentScan;
+import org.springframework.context.annotation.Configuration;
 import reactor.core.publisher.Flux;
+
+import java.io.IOException;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.function.UnaryOperator;
+
+import static org.mockito.Mockito.mock;
 
 @ComponentScan
 @Configuration

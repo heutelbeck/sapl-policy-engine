@@ -17,17 +17,16 @@
  */
 package io.sapl.prp;
 
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.empty;
-import static org.hamcrest.Matchers.is;
-
-import java.util.ArrayList;
-
-import org.junit.jupiter.api.Test;
-
 import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.sapl.impl.util.ErrorFactory;
 import io.sapl.interpreter.DefaultSAPLInterpreter;
+import org.junit.jupiter.api.Test;
+
+import java.util.ArrayList;
+
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.empty;
+import static org.hamcrest.Matchers.is;
 
 class PolicyRetrievalResultTests {
     private static final DefaultSAPLInterpreter INTERPRETER = new DefaultSAPLInterpreter();

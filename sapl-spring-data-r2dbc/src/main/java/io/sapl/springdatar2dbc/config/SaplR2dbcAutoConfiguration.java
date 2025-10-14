@@ -17,11 +17,6 @@
  */
 package io.sapl.springdatar2dbc.config;
 
-import org.springframework.beans.factory.BeanFactory;
-import org.springframework.beans.factory.ObjectProvider;
-import org.springframework.boot.autoconfigure.AutoConfiguration;
-import org.springframework.context.annotation.Bean;
-
 import io.sapl.api.pdp.PolicyDecisionPoint;
 import io.sapl.spring.constraints.ConstraintEnforcementService;
 import io.sapl.springdatacommon.services.ConstraintQueryEnforcementService;
@@ -36,6 +31,10 @@ import io.sapl.springdatar2dbc.proxy.R2dbcRepositoryProxyPostProcessor;
 import io.sapl.springdatar2dbc.queries.QueryManipulationExecutor;
 import io.sapl.springdatar2dbc.queries.SqlQueryExecutor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.BeanFactory;
+import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.boot.autoconfigure.AutoConfiguration;
+import org.springframework.context.annotation.Bean;
 
 @Slf4j
 @AutoConfiguration

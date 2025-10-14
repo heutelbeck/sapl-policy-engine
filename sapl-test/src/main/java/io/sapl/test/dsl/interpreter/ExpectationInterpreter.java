@@ -17,32 +17,17 @@
  */
 package io.sapl.test.dsl.interpreter;
 
-import static org.hamcrest.Matchers.allOf;
-
-import java.util.Collection;
-
-import org.hamcrest.Matcher;
-
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.test.SaplTestException;
-import io.sapl.test.grammar.sapltest.AdjustBlock;
-import io.sapl.test.grammar.sapltest.AttributeAdjustment;
-import io.sapl.test.grammar.sapltest.AuthorizationDecisionMatcher;
-import io.sapl.test.grammar.sapltest.Await;
-import io.sapl.test.grammar.sapltest.ExpectBlock;
-import io.sapl.test.grammar.sapltest.ExpectOrAdjustBlock;
-import io.sapl.test.grammar.sapltest.Multiple;
-import io.sapl.test.grammar.sapltest.Next;
-import io.sapl.test.grammar.sapltest.NextWithDecision;
-import io.sapl.test.grammar.sapltest.NextWithMatcher;
-import io.sapl.test.grammar.sapltest.NoEvent;
-import io.sapl.test.grammar.sapltest.Once;
-import io.sapl.test.grammar.sapltest.RepeatedExpect;
-import io.sapl.test.grammar.sapltest.SingleExpect;
-import io.sapl.test.grammar.sapltest.SingleExpectWithMatcher;
+import io.sapl.test.grammar.sapltest.*;
 import io.sapl.test.steps.ExpectStep;
 import io.sapl.test.steps.VerifyStep;
 import lombok.RequiredArgsConstructor;
+import org.hamcrest.Matcher;
+
+import java.util.Collection;
+
+import static org.hamcrest.Matchers.allOf;
 
 @RequiredArgsConstructor
 class ExpectationInterpreter {

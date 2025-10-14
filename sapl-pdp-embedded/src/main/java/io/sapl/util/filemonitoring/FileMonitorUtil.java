@@ -17,6 +17,12 @@
  */
 package io.sapl.util.filemonitoring;
 
+import io.sapl.api.interpreter.PolicyEvaluationException;
+import lombok.experimental.UtilityClass;
+import org.apache.commons.io.monitor.FileAlterationMonitor;
+import org.apache.commons.io.monitor.FileAlterationObserver;
+import reactor.core.publisher.Flux;
+
 import java.io.File;
 import java.io.FileFilter;
 import java.io.IOException;
@@ -25,13 +31,6 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
 import java.util.stream.Stream;
-
-import org.apache.commons.io.monitor.FileAlterationMonitor;
-import org.apache.commons.io.monitor.FileAlterationObserver;
-
-import io.sapl.api.interpreter.PolicyEvaluationException;
-import lombok.experimental.UtilityClass;
-import reactor.core.publisher.Flux;
 
 @UtilityClass
 public class FileMonitorUtil {

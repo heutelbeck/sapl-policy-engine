@@ -17,12 +17,11 @@
  */
 package io.sapl.springdatar2dbc.proxy;
 
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.config.BeanPostProcessor;
 import org.springframework.data.r2dbc.repository.support.R2dbcRepositoryFactoryBean;
-
-import lombok.RequiredArgsConstructor;
 
 @RequiredArgsConstructor
 public class R2dbcBeanPostProcessor implements BeanPostProcessor {

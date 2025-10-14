@@ -17,6 +17,15 @@
  */
 package io.sapl.interpreter.variables;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import io.sapl.api.interpreter.PolicyEvaluationException;
+import io.sapl.api.interpreter.Val;
+import io.sapl.api.pdp.AuthorizationSubscription;
+import org.junit.jupiter.api.Test;
+
+import java.util.HashMap;
+import java.util.Map;
+
 import static io.sapl.hamcrest.Matchers.val;
 import static io.sapl.hamcrest.Matchers.valUndefined;
 import static org.hamcrest.CoreMatchers.is;
@@ -25,17 +34,6 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
-
-import java.util.HashMap;
-import java.util.Map;
-
-import org.junit.jupiter.api.Test;
-
-import com.fasterxml.jackson.databind.JsonNode;
-
-import io.sapl.api.interpreter.PolicyEvaluationException;
-import io.sapl.api.interpreter.Val;
-import io.sapl.api.pdp.AuthorizationSubscription;
 
 class VariableContextTests {
 

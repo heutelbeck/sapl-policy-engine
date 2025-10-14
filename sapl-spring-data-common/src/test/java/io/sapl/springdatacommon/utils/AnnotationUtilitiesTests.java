@@ -17,16 +17,15 @@
  */
 package io.sapl.springdatacommon.utils;
 
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import io.sapl.springdatacommon.database.MongoReactiveMethodInvocation;
+import io.sapl.springdatacommon.database.R2dbcMethodInvocation;
+import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
 import java.util.List;
 
-import org.junit.jupiter.api.Test;
-
-import io.sapl.springdatacommon.database.MongoReactiveMethodInvocation;
-import io.sapl.springdatacommon.database.R2dbcMethodInvocation;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class AnnotationUtilitiesTests {
 

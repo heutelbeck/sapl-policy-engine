@@ -17,22 +17,16 @@
  */
 package io.sapl.functions.geo.traccar;
 
-import org.locationtech.jts.geom.Coordinate;
-import org.locationtech.jts.geom.CoordinateFilter;
-import org.locationtech.jts.geom.Geometry;
-import org.locationtech.jts.geom.GeometryFactory;
-import org.locationtech.jts.geom.PrecisionModel;
-import org.locationtech.jts.io.ParseException;
-import org.locationtech.jts.io.WKTReader;
-import org.locationtech.jts.io.geojson.GeoJsonWriter;
-
 import com.fasterxml.jackson.core.JsonProcessingException;
-
 import io.sapl.api.functions.Function;
 import io.sapl.api.functions.FunctionLibrary;
 import io.sapl.api.interpreter.Val;
 import io.sapl.pip.geo.traccar.TraccarSchemata;
 import lombok.experimental.UtilityClass;
+import org.locationtech.jts.geom.*;
+import org.locationtech.jts.io.ParseException;
+import org.locationtech.jts.io.WKTReader;
+import org.locationtech.jts.io.geojson.GeoJsonWriter;
 
 @UtilityClass
 @FunctionLibrary(name = "traccar", description = TraccarFunctionLibrary.DESCRIPTION)

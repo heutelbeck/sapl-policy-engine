@@ -17,6 +17,7 @@
  */
 package io.sapl.springdatacommon.services;
 
+import lombok.AllArgsConstructor;
 import org.aopalliance.intercept.MethodInvocation;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.expression.EvaluationException;
@@ -26,8 +27,6 @@ import org.springframework.expression.spel.standard.SpelExpressionParser;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.access.expression.method.MethodSecurityExpressionHandler;
 import org.springframework.security.core.context.SecurityContextHolder;
-
-import lombok.AllArgsConstructor;
 
 @AllArgsConstructor
 public class MethodSecurityExpressionEvaluator {

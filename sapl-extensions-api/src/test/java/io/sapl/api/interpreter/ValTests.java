@@ -17,9 +17,13 @@
  */
 package io.sapl.api.interpreter;
 
-import static net.javacrumbs.jsonunit.assertj.JsonAssertions.assertThatJson;
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.JsonNodeFactory;
+import io.sapl.api.pdp.SaplError;
+import org.assertj.core.api.SoftAssertions;
+import org.junit.jupiter.api.Test;
+import reactor.test.StepVerifier;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
@@ -27,15 +31,9 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.NoSuchElementException;
 
-import org.assertj.core.api.SoftAssertions;
-import org.junit.jupiter.api.Test;
-
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.node.JsonNodeFactory;
-
-import io.sapl.api.pdp.SaplError;
-import reactor.test.StepVerifier;
+import static net.javacrumbs.jsonunit.assertj.JsonAssertions.assertThatJson;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class ValTests {
 

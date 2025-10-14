@@ -17,23 +17,20 @@
  */
 package io.sapl.prp.index.canonical;
 
+import io.sapl.interpreter.DefaultSAPLInterpreter;
+import org.eclipse.emf.common.util.EList;
+import org.junit.jupiter.api.Test;
+
+import java.io.IOException;
+import java.util.Iterator;
+
 import static io.sapl.testutil.ParserUtil.entitlement;
 import static io.sapl.testutil.ParserUtil.expression;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
-
-import java.io.IOException;
-import java.util.Iterator;
-
-import org.eclipse.emf.common.util.EList;
-import org.junit.jupiter.api.Test;
-
-import io.sapl.interpreter.DefaultSAPLInterpreter;
+import static org.mockito.Mockito.*;
 
 class EquivalenceAndHashUtilTests {
     private static final DefaultSAPLInterpreter INTERPRETER = new DefaultSAPLInterpreter();

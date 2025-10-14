@@ -17,14 +17,6 @@
  */
 package io.sapl.spring.pdp.embedded;
 
-import java.util.List;
-
-import org.springframework.beans.factory.config.BeanDefinition;
-import org.springframework.boot.autoconfigure.AutoConfiguration;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Role;
-
 import io.sapl.api.pdp.AuthorizationSubscriptionInterceptor;
 import io.sapl.api.pdp.TracedDecisionInterceptor;
 import io.sapl.attributes.broker.api.AttributeStreamBroker;
@@ -35,6 +27,13 @@ import io.sapl.pdp.config.fixed.FixedFunctionsAndAttributesPDPConfigurationProvi
 import io.sapl.prp.PolicyRetrievalPointSource;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.config.BeanDefinition;
+import org.springframework.boot.autoconfigure.AutoConfiguration;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Role;
+
+import java.util.List;
 
 @Slf4j
 @AutoConfiguration

@@ -17,18 +17,12 @@
  */
 package io.sapl.mavenplugin.test.coverage.report.html;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.mockStatic;
-import static org.mockito.Mockito.when;
-
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.List;
-
+import io.sapl.mavenplugin.test.coverage.SaplTestException;
+import io.sapl.mavenplugin.test.coverage.report.SampleCoverageInformation;
+import io.sapl.mavenplugin.test.coverage.report.html.WebDependencyFactory.WebDependency;
+import io.sapl.mavenplugin.test.coverage.report.model.LineCoveredValue;
+import io.sapl.mavenplugin.test.coverage.report.model.SaplDocumentCoverageInformation;
+import io.sapl.mavenplugin.test.coverage.report.model.SaplDocumentLineCoverageInformation;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -36,12 +30,15 @@ import org.mockito.MockedConstruction;
 import org.mockito.MockedStatic;
 import org.mockito.Mockito;
 
-import io.sapl.mavenplugin.test.coverage.SaplTestException;
-import io.sapl.mavenplugin.test.coverage.report.SampleCoverageInformation;
-import io.sapl.mavenplugin.test.coverage.report.html.WebDependencyFactory.WebDependency;
-import io.sapl.mavenplugin.test.coverage.report.model.LineCoveredValue;
-import io.sapl.mavenplugin.test.coverage.report.model.SaplDocumentCoverageInformation;
-import io.sapl.mavenplugin.test.coverage.report.model.SaplDocumentLineCoverageInformation;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.List;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.Mockito.*;
 
 class HtmlLineCoverageReportGeneratorTests {
 

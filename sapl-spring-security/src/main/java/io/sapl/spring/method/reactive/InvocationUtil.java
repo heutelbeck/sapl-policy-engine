@@ -17,11 +17,10 @@
  */
 package io.sapl.spring.method.reactive;
 
-import org.aopalliance.intercept.MethodInvocation;
-import org.reactivestreams.Publisher;
-
 import lombok.SneakyThrows;
 import lombok.experimental.UtilityClass;
+import org.aopalliance.intercept.MethodInvocation;
+import org.reactivestreams.Publisher;
 
 @UtilityClass
 public class InvocationUtil {

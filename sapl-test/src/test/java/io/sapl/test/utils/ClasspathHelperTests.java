@@ -17,17 +17,16 @@
  */
 package io.sapl.test.utils;
 
+import io.sapl.test.SaplTestException;
+import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
+
+import java.net.*;
+
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.assertj.core.api.Assertions.assertThatNullPointerException;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
-
-import java.net.*;
-
-import org.junit.jupiter.api.Test;
-import org.mockito.Mockito;
-
-import io.sapl.test.SaplTestException;
 
 class ClasspathHelperTests {
 

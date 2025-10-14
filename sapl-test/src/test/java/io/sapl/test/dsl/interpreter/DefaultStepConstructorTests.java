@@ -17,34 +17,26 @@
  */
 package io.sapl.test.dsl.interpreter;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
-
-import java.util.Collections;
-import java.util.EnumMap;
-import java.util.Map;
-
+import io.sapl.test.SaplTestFixture;
+import io.sapl.test.grammar.sapltest.*;
+import io.sapl.test.grammar.sapltest.GivenStep;
+import io.sapl.test.steps.*;
+import io.sapl.test.steps.ExpectStep;
+import io.sapl.test.steps.WhenStep;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import io.sapl.test.SaplTestFixture;
-import io.sapl.test.grammar.sapltest.Document;
-import io.sapl.test.grammar.sapltest.Environment;
-import io.sapl.test.grammar.sapltest.Expectation;
-import io.sapl.test.grammar.sapltest.GivenStep;
-import io.sapl.test.grammar.sapltest.ImportType;
-import io.sapl.test.grammar.sapltest.PdpCombiningAlgorithm;
-import io.sapl.test.grammar.sapltest.PdpVariables;
-import io.sapl.test.grammar.sapltest.Scenario;
-import io.sapl.test.steps.ExpectOrVerifyStep;
-import io.sapl.test.steps.ExpectStep;
-import io.sapl.test.steps.GivenOrWhenStep;
-import io.sapl.test.steps.VerifyStep;
-import io.sapl.test.steps.WhenStep;
+import java.lang.Object;
+import java.util.Collections;
+import java.util.EnumMap;
+import java.util.Map;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class DefaultStepConstructorTests {

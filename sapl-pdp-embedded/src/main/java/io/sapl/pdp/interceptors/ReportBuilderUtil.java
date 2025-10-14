@@ -17,16 +17,15 @@
  */
 package io.sapl.pdp.interceptors;
 
-import java.util.HashSet;
-
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.TextNode;
-
 import io.sapl.api.interpreter.Trace;
 import io.sapl.attributes.broker.api.AttributeStreamBroker;
 import lombok.experimental.UtilityClass;
+
+import java.util.HashSet;
 
 @UtilityClass
 public class ReportBuilderUtil {

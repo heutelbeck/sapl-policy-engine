@@ -17,6 +17,17 @@
  */
 package io.sapl.mavenplugin.test.coverage.report.html;
 
+import io.sapl.mavenplugin.test.coverage.PathHelper;
+import io.sapl.mavenplugin.test.coverage.SaplTestException;
+import io.sapl.mavenplugin.test.coverage.report.html.WebDependencyFactory.WebDependency;
+import io.sapl.mavenplugin.test.coverage.report.model.LineCoveredValue;
+import io.sapl.mavenplugin.test.coverage.report.model.SaplDocumentCoverageInformation;
+import lombok.Data;
+import org.apache.maven.plugin.MojoExecutionException;
+import org.thymeleaf.context.Context;
+import org.thymeleaf.spring6.SpringTemplateEngine;
+import org.thymeleaf.templateresolver.ClassLoaderTemplateResolver;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
@@ -25,18 +36,6 @@ import java.nio.file.StandardCopyOption;
 import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
-
-import org.apache.maven.plugin.MojoExecutionException;
-import org.thymeleaf.context.Context;
-import org.thymeleaf.spring6.SpringTemplateEngine;
-import org.thymeleaf.templateresolver.ClassLoaderTemplateResolver;
-
-import io.sapl.mavenplugin.test.coverage.PathHelper;
-import io.sapl.mavenplugin.test.coverage.SaplTestException;
-import io.sapl.mavenplugin.test.coverage.report.html.WebDependencyFactory.WebDependency;
-import io.sapl.mavenplugin.test.coverage.report.model.LineCoveredValue;
-import io.sapl.mavenplugin.test.coverage.report.model.SaplDocumentCoverageInformation;
-import lombok.Data;
 
 public class HtmlLineCoverageReportGenerator {
 

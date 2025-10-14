@@ -17,14 +17,14 @@
  */
 package io.sapl.pdp.config;
 
-import java.util.HashMap;
-import java.util.Map;
-
 import io.sapl.api.interpreter.Val;
 import io.sapl.interpreter.combinators.PolicyDocumentCombiningAlgorithm;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * Data structure holding the configured algorithm to be used to combine SAPL

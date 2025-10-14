@@ -17,20 +17,19 @@
  */
 package io.sapl.test.dsl.interpreter;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-
-import java.util.stream.Stream;
-
+import io.sapl.interpreter.combinators.PolicyDocumentCombiningAlgorithm;
+import io.sapl.test.SaplTestException;
+import io.sapl.test.grammar.sapltest.CombiningAlgorithmEnum;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
-import io.sapl.interpreter.combinators.PolicyDocumentCombiningAlgorithm;
-import io.sapl.test.SaplTestException;
-import io.sapl.test.grammar.sapltest.CombiningAlgorithmEnum;
+import java.util.stream.Stream;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 class CombiningAlgorithmInterpreterTests {
     protected CombiningAlgorithmInterpreter combiningAlgorithmInterpreter;

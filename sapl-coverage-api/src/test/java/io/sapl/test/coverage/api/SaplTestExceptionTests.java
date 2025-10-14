@@ -17,11 +17,11 @@
  */
 package io.sapl.test.coverage.api;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 
-import org.junit.jupiter.api.Test;
+import static org.assertj.core.api.Assertions.assertThat;
 
 class SaplTestExceptionTests {
 

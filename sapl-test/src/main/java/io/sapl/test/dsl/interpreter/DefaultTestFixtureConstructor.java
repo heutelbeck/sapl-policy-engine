@@ -17,25 +17,21 @@
  */
 package io.sapl.test.dsl.interpreter;
 
-import java.lang.annotation.Annotation;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-
 import io.sapl.api.functions.FunctionLibrary;
 import io.sapl.api.pip.PolicyInformationPoint;
 import io.sapl.interpreter.InitializationException;
 import io.sapl.test.SaplTestException;
 import io.sapl.test.SaplTestFixture;
-import io.sapl.test.grammar.sapltest.Document;
-import io.sapl.test.grammar.sapltest.GivenStep;
-import io.sapl.test.grammar.sapltest.Import;
-import io.sapl.test.grammar.sapltest.ImportType;
-import io.sapl.test.grammar.sapltest.PdpCombiningAlgorithm;
-import io.sapl.test.grammar.sapltest.PdpVariables;
+import io.sapl.test.grammar.sapltest.*;
 import io.sapl.test.integration.SaplIntegrationTestFixture;
 import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
+
+import java.lang.Object;
+import java.lang.annotation.Annotation;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 
 @RequiredArgsConstructor
 class DefaultTestFixtureConstructor {

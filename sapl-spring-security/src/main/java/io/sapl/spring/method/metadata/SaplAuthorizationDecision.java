@@ -17,10 +17,9 @@
  */
 package io.sapl.spring.method.metadata;
 
-import org.springframework.security.authorization.AuthorizationDecision;
-
 import io.sapl.api.SaplVersion;
 import lombok.Getter;
+import org.springframework.security.authorization.AuthorizationDecision;
 
 @Getter
 public class SaplAuthorizationDecision extends AuthorizationDecision {

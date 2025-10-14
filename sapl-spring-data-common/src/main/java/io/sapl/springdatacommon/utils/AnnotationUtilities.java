@@ -17,12 +17,11 @@
  */
 package io.sapl.springdatacommon.utils;
 
-import java.lang.reflect.Method;
-
-import org.springframework.data.r2dbc.repository.Query;
-
 import io.sapl.spring.method.metadata.QueryEnforce;
 import lombok.experimental.UtilityClass;
+import org.springframework.data.r2dbc.repository.Query;
+
+import java.lang.reflect.Method;
 
 @UtilityClass
 public class AnnotationUtilities {

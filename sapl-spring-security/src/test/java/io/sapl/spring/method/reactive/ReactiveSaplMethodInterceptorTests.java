@@ -17,16 +17,18 @@
  */
 package io.sapl.spring.method.reactive;
 
-import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.CoreMatchers.nullValue;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.module.SimpleModule;
+import io.sapl.api.pdp.AuthorizationDecision;
+import io.sapl.api.pdp.AuthorizationSubscription;
+import io.sapl.api.pdp.PolicyDecisionPoint;
+import io.sapl.spring.constraints.ConstraintEnforcementService;
+import io.sapl.spring.method.metadata.*;
+import io.sapl.spring.serialization.HttpServletRequestSerializer;
+import io.sapl.spring.serialization.MethodInvocationSerializer;
+import io.sapl.spring.serialization.ServerHttpRequestSerializer;
+import io.sapl.spring.subscriptions.WebfluxAuthorizationSubscriptionBuilderService;
+import jakarta.servlet.http.HttpServletRequest;
 import org.aopalliance.intercept.MethodInterceptor;
 import org.aopalliance.intercept.MethodInvocation;
 import org.junit.jupiter.api.BeforeEach;
@@ -40,28 +42,16 @@ import org.springframework.security.access.prepost.PostFilter;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.access.prepost.PreFilter;
 import org.springframework.security.util.MethodInvocationUtils;
-
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.module.SimpleModule;
-
-import io.sapl.api.pdp.AuthorizationDecision;
-import io.sapl.api.pdp.AuthorizationSubscription;
-import io.sapl.api.pdp.PolicyDecisionPoint;
-import io.sapl.spring.constraints.ConstraintEnforcementService;
-import io.sapl.spring.method.metadata.EnforceDropWhileDenied;
-import io.sapl.spring.method.metadata.EnforceRecoverableIfDenied;
-import io.sapl.spring.method.metadata.EnforceTillDenied;
-import io.sapl.spring.method.metadata.PostEnforce;
-import io.sapl.spring.method.metadata.PreEnforce;
-import io.sapl.spring.method.metadata.SaplAttributeRegistry;
-import io.sapl.spring.serialization.HttpServletRequestSerializer;
-import io.sapl.spring.serialization.MethodInvocationSerializer;
-import io.sapl.spring.serialization.ServerHttpRequestSerializer;
-import io.sapl.spring.subscriptions.WebfluxAuthorizationSubscriptionBuilderService;
-import jakarta.servlet.http.HttpServletRequest;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
+
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.nullValue;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.*;
 
 class ReactiveSaplMethodInterceptorTests {
 

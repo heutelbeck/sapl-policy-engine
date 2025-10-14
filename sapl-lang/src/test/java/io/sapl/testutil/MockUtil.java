@@ -17,15 +17,7 @@
  */
 package io.sapl.testutil;
 
-import static org.junit.jupiter.api.Assertions.fail;
-
-import java.util.HashMap;
-import java.util.Map;
-
-import org.eclipse.emf.common.util.EList;
-
 import com.fasterxml.jackson.databind.ObjectMapper;
-
 import io.sapl.api.functions.Function;
 import io.sapl.api.functions.FunctionLibrary;
 import io.sapl.api.interpreter.Val;
@@ -48,8 +40,14 @@ import io.sapl.interpreter.context.AuthorizationContext;
 import io.sapl.interpreter.functions.AnnotationFunctionContext;
 import io.sapl.validation.ValidatorFactory;
 import lombok.experimental.UtilityClass;
+import org.eclipse.emf.common.util.EList;
 import reactor.core.publisher.Flux;
 import reactor.util.context.Context;
+
+import java.util.HashMap;
+import java.util.Map;
+
+import static org.junit.jupiter.api.Assertions.fail;
 
 public class MockUtil {
 

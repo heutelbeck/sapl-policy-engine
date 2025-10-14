@@ -17,31 +17,29 @@
  */
 package io.sapl.spring.constraints.providers;
 
-import static com.spotify.hamcrest.jackson.IsJsonMissing.jsonMissing;
-import static com.spotify.hamcrest.jackson.IsJsonObject.jsonObject;
-import static com.spotify.hamcrest.jackson.IsJsonText.jsonText;
-import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import org.junit.jupiter.api.Test;
+import org.reactivestreams.Publisher;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
+import reactor.test.StepVerifier;
 
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
-import org.junit.jupiter.api.Test;
-import org.reactivestreams.Publisher;
-
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
-import reactor.test.StepVerifier;
+import static com.spotify.hamcrest.jackson.IsJsonMissing.jsonMissing;
+import static com.spotify.hamcrest.jackson.IsJsonObject.jsonObject;
+import static com.spotify.hamcrest.jackson.IsJsonText.jsonText;
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 class ContentFilteringProviderTests {
     private static final ObjectMapper MAPPER = new ObjectMapper();

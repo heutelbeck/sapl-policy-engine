@@ -17,6 +17,15 @@
  */
 package io.sapl.functions;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.networknt.schema.JsonSchemaException;
+import io.sapl.api.interpreter.Val;
+import io.sapl.grammar.sapl.impl.util.ErrorFactory;
+import lombok.SneakyThrows;
+import org.junit.jupiter.api.Test;
+
 import static io.sapl.functions.SchemaValidationLibrary.isCompliant;
 import static io.sapl.functions.SchemaValidationLibrary.isCompliantWithExternalSchemas;
 import static io.sapl.hamcrest.Matchers.val;
@@ -25,17 +34,6 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.when;
-
-import org.junit.jupiter.api.Test;
-
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.networknt.schema.JsonSchemaException;
-
-import io.sapl.api.interpreter.Val;
-import io.sapl.grammar.sapl.impl.util.ErrorFactory;
-import lombok.SneakyThrows;
 
 class SchemaValidationLibraryTests {
 

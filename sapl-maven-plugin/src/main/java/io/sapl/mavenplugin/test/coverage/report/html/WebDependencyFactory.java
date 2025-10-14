@@ -17,11 +17,11 @@
  */
 package io.sapl.mavenplugin.test.coverage.report.html;
 
-import java.util.ArrayList;
-import java.util.List;
-
 import lombok.NonNull;
 import lombok.experimental.UtilityClass;
+
+import java.util.ArrayList;
+import java.util.List;
 
 @UtilityClass
 public class WebDependencyFactory {

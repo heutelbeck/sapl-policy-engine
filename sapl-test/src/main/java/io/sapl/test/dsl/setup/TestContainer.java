@@ -17,12 +17,12 @@
  */
 package io.sapl.test.dsl.setup;
 
-import java.util.List;
-
 import io.sapl.test.dsl.interfaces.TestNode;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
+
+import java.util.List;
 
 @Getter
 @RequiredArgsConstructor(access = AccessLevel.PRIVATE)

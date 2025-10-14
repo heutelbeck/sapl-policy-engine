@@ -17,29 +17,23 @@
  */
 package io.sapl.validation;
 
-import java.lang.annotation.Annotation;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.function.Predicate;
-
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.networknt.schema.JsonMetaSchema;
 import com.networknt.schema.JsonSchemaFactory;
-
 import io.sapl.api.interpreter.Val;
-import io.sapl.api.validation.Array;
-import io.sapl.api.validation.Bool;
-import io.sapl.api.validation.Int;
-import io.sapl.api.validation.JsonObject;
+import io.sapl.api.validation.*;
 import io.sapl.api.validation.Long;
 import io.sapl.api.validation.Number;
-import io.sapl.api.validation.Schema;
-import io.sapl.api.validation.Text;
 import io.sapl.attributes.broker.api.AttributeBrokerException;
 import io.sapl.attributes.documentation.api.TypeOption;
 import lombok.RequiredArgsConstructor;
+
+import java.lang.annotation.Annotation;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.function.Predicate;
 
 @RequiredArgsConstructor
 public class ValidatorFactory {

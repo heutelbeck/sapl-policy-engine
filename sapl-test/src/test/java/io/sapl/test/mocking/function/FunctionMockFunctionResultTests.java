@@ -17,16 +17,13 @@
  */
 package io.sapl.test.mocking.function;
 
-import static io.sapl.test.Imports.times;
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
-import static org.assertj.core.api.Assertions.assertThatNoException;
+import io.sapl.api.interpreter.Val;
+import org.junit.jupiter.api.Test;
 
 import java.util.function.Function;
 
-import org.junit.jupiter.api.Test;
-
-import io.sapl.api.interpreter.Val;
+import static io.sapl.test.Imports.times;
+import static org.assertj.core.api.Assertions.*;
 
 class FunctionMockFunctionResultTests {
 

@@ -17,10 +17,9 @@
  */
 package io.sapl.hamcrest;
 
+import io.sapl.api.interpreter.Val;
 import org.hamcrest.Description;
 import org.hamcrest.TypeSafeDiagnosingMatcher;
-
-import io.sapl.api.interpreter.Val;
 
 /**
  * Val Matcher to check for undefined Val values.

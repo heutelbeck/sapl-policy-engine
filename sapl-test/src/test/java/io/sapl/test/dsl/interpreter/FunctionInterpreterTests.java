@@ -17,19 +17,15 @@
  */
 package io.sapl.test.dsl.interpreter;
 
-import static io.sapl.test.dsl.ParserUtil.compareArgumentToStringLiteral;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.mockStatic;
-import static org.mockito.Mockito.when;
-
-import java.math.BigDecimal;
-import java.util.Collections;
-import java.util.List;
-
+import io.sapl.api.interpreter.Val;
+import io.sapl.test.Imports;
+import io.sapl.test.SaplTestException;
+import io.sapl.test.TestHelper;
+import io.sapl.test.dsl.ParserUtil;
+import io.sapl.test.grammar.sapltest.*;
+import io.sapl.test.grammar.services.SAPLTestGrammarAccess;
+import io.sapl.test.steps.GivenOrWhenStep;
+import io.sapl.test.verification.TimesCalledVerification;
 import org.hamcrest.Matcher;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
@@ -42,24 +38,16 @@ import org.mockito.Mock;
 import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import io.sapl.api.interpreter.Val;
-import io.sapl.test.Imports;
-import io.sapl.test.SaplTestException;
-import io.sapl.test.TestHelper;
-import io.sapl.test.dsl.ParserUtil;
-import io.sapl.test.grammar.sapltest.AnyVal;
-import io.sapl.test.grammar.sapltest.Function;
-import io.sapl.test.grammar.sapltest.FunctionInvokedOnce;
-import io.sapl.test.grammar.sapltest.FunctionParameterMatchers;
-import io.sapl.test.grammar.sapltest.GivenStep;
-import io.sapl.test.grammar.sapltest.Multiple;
-import io.sapl.test.grammar.sapltest.NumberLiteral;
-import io.sapl.test.grammar.sapltest.Once;
-import io.sapl.test.grammar.sapltest.StringLiteral;
-import io.sapl.test.grammar.sapltest.ValWithValue;
-import io.sapl.test.grammar.services.SAPLTestGrammarAccess;
-import io.sapl.test.steps.GivenOrWhenStep;
-import io.sapl.test.verification.TimesCalledVerification;
+import java.math.BigDecimal;
+import java.util.Collections;
+import java.util.List;
+
+import static io.sapl.test.dsl.ParserUtil.compareArgumentToStringLiteral;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class FunctionInterpreterTests {

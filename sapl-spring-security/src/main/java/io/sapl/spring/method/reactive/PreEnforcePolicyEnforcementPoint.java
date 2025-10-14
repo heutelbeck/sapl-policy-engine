@@ -17,17 +17,16 @@
  */
 package io.sapl.spring.method.reactive;
 
-import java.util.function.Function;
-
-import org.aopalliance.intercept.MethodInvocation;
-import org.reactivestreams.Publisher;
-import org.springframework.security.access.AccessDeniedException;
-
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.Decision;
 import io.sapl.spring.constraints.ConstraintEnforcementService;
 import lombok.RequiredArgsConstructor;
+import org.aopalliance.intercept.MethodInvocation;
+import org.reactivestreams.Publisher;
+import org.springframework.security.access.AccessDeniedException;
 import reactor.core.publisher.Flux;
+
+import java.util.function.Function;
 
 @RequiredArgsConstructor
 public class PreEnforcePolicyEnforcementPoint {

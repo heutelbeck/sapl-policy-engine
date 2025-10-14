@@ -17,20 +17,19 @@
  */
 package io.sapl.extension.jwt;
 
-import java.time.Instant;
-
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.nimbusds.jwt.SignedJWT;
-
 import io.sapl.api.functions.Function;
 import io.sapl.api.functions.FunctionLibrary;
 import io.sapl.api.interpreter.Val;
 import io.sapl.api.validation.Text;
 import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
+
+import java.time.Instant;
 
 /**
  * Library of functions for evaluating JSON Web Tokens (JWT)

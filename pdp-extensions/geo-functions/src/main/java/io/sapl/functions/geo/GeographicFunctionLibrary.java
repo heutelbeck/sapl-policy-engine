@@ -17,14 +17,14 @@
  */
 package io.sapl.functions.geo;
 
-import java.io.StringReader;
-import java.util.ArrayList;
-import java.util.BitSet;
-import java.util.List;
-import java.util.function.BiPredicate;
-import java.util.function.BinaryOperator;
-import java.util.function.UnaryOperator;
-
+import com.fasterxml.jackson.core.JsonProcessingException;
+import io.sapl.api.functions.Function;
+import io.sapl.api.functions.FunctionLibrary;
+import io.sapl.api.interpreter.Val;
+import io.sapl.api.validation.*;
+import io.sapl.api.validation.Number;
+import lombok.SneakyThrows;
+import lombok.experimental.UtilityClass;
 import org.geotools.api.feature.Feature;
 import org.geotools.api.feature.Property;
 import org.geotools.feature.FeatureCollection;
@@ -33,12 +33,7 @@ import org.geotools.kml.v22.KMLConfiguration;
 import org.geotools.referencing.CRS;
 import org.geotools.referencing.GeodeticCalculator;
 import org.geotools.xsd.Parser;
-import org.locationtech.jts.geom.Geometry;
-import org.locationtech.jts.geom.GeometryCollection;
-import org.locationtech.jts.geom.GeometryFactory;
-import org.locationtech.jts.geom.LineString;
-import org.locationtech.jts.geom.MultiLineString;
-import org.locationtech.jts.geom.PrecisionModel;
+import org.locationtech.jts.geom.*;
 import org.locationtech.jts.io.ParseException;
 import org.locationtech.jts.io.WKTReader;
 import org.locationtech.jts.io.geojson.GeoJsonReader;
@@ -46,18 +41,13 @@ import org.locationtech.jts.io.geojson.GeoJsonWriter;
 import org.locationtech.jts.operation.distance.DistanceOp;
 import org.locationtech.spatial4j.distance.DistanceUtils;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-
-import io.sapl.api.functions.Function;
-import io.sapl.api.functions.FunctionLibrary;
-import io.sapl.api.interpreter.Val;
-import io.sapl.api.validation.Array;
-import io.sapl.api.validation.JsonObject;
-import io.sapl.api.validation.Number;
-import io.sapl.api.validation.Schema;
-import io.sapl.api.validation.Text;
-import lombok.SneakyThrows;
-import lombok.experimental.UtilityClass;
+import java.io.StringReader;
+import java.util.ArrayList;
+import java.util.BitSet;
+import java.util.List;
+import java.util.function.BiPredicate;
+import java.util.function.BinaryOperator;
+import java.util.function.UnaryOperator;
 
 @UtilityClass
 @FunctionLibrary(name = "geo", description = GeographicFunctionLibrary.DESCRIPTION, libraryDocumentation = GeographicFunctionLibrary.DOCUMENTATION)

@@ -17,14 +17,14 @@
  */
 package io.sapl.test;
 
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.Objects;
-
 import io.sapl.api.interpreter.Val;
 import io.sapl.interpreter.InitializationException;
 import io.sapl.test.steps.GivenStep;
 import io.sapl.test.steps.WhenStep;
+
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.Objects;
 
 public interface SaplTestFixture {
 

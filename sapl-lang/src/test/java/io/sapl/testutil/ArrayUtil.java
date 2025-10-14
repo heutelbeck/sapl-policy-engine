@@ -17,15 +17,14 @@
  */
 package io.sapl.testutil;
 
-import java.io.Serializable;
-import java.util.Comparator;
-
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.NumericNode;
-
 import io.sapl.api.SaplVersion;
 import io.sapl.api.interpreter.Val;
+
+import java.io.Serializable;
+import java.util.Comparator;
 
 /**
  * Test Utility class with methods to manage number arrays.

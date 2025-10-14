@@ -17,24 +17,16 @@
  */
 package io.sapl.springdatamongoreactive.proxy;
 
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-
+import io.sapl.springdatacommon.services.RepositoryInformationCollectorService;
+import io.sapl.springdatamongoreactive.enforcement.MongoReactivePolicyEnforcementPoint;
+import io.sapl.springdatamongoreactive.sapl.database.*;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.springframework.aop.framework.ProxyFactory;
 import org.springframework.data.repository.core.RepositoryInformation;
 
-import io.sapl.springdatacommon.services.RepositoryInformationCollectorService;
-import io.sapl.springdatamongoreactive.enforcement.MongoReactivePolicyEnforcementPoint;
-import io.sapl.springdatamongoreactive.sapl.database.MethodInvocationForTesting;
-import io.sapl.springdatamongoreactive.sapl.database.TestUser;
-import io.sapl.springdatamongoreactive.sapl.database.UserReactiveCrudRepository;
-import io.sapl.springdatamongoreactive.sapl.database.UserReactiveMongoRepository;
-import io.sapl.springdatamongoreactive.sapl.database.UserReactiveSortingRepository;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.*;
 
 class MongoReactiveRepositoryProxyPostProcessorTests {
 

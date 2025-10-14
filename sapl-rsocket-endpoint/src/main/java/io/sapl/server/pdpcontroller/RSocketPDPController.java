@@ -17,16 +17,10 @@
  */
 package io.sapl.server.pdpcontroller;
 
+import io.sapl.api.pdp.*;
+import lombok.RequiredArgsConstructor;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.stereotype.Controller;
-
-import io.sapl.api.pdp.AuthorizationDecision;
-import io.sapl.api.pdp.AuthorizationSubscription;
-import io.sapl.api.pdp.IdentifiableAuthorizationDecision;
-import io.sapl.api.pdp.MultiAuthorizationDecision;
-import io.sapl.api.pdp.MultiAuthorizationSubscription;
-import io.sapl.api.pdp.PolicyDecisionPoint;
-import lombok.RequiredArgsConstructor;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 

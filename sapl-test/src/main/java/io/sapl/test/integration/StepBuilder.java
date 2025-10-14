@@ -17,10 +17,6 @@
  */
 package io.sapl.test.integration;
 
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-
 import io.sapl.api.interpreter.Val;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.attributes.broker.api.AttributeStreamBroker;
@@ -38,6 +34,10 @@ import io.sapl.test.steps.StepsDefaultImpl;
 import io.sapl.test.steps.WhenStep;
 import reactor.core.publisher.Flux;
 import reactor.test.StepVerifier;
+
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
 
 public class StepBuilder {
 

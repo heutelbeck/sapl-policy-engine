@@ -17,17 +17,16 @@
  */
 package io.sapl.interpreter;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.mock;
-
-import java.util.List;
-
-import org.junit.jupiter.api.Test;
-
 import io.sapl.api.interpreter.Trace;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.Decision;
 import io.sapl.grammar.sapl.CombiningAlgorithm;
+import org.junit.jupiter.api.Test;
+
+import java.util.List;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.mock;
 
 class CombinedDecisionTests {
 

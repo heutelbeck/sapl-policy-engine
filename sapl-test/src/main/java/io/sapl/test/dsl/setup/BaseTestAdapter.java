@@ -17,10 +17,6 @@
  */
 package io.sapl.test.dsl.setup;
 
-import java.lang.annotation.Annotation;
-import java.util.Map;
-import java.util.function.Consumer;
-
 import io.sapl.api.functions.FunctionLibrary;
 import io.sapl.api.pip.PolicyInformationPoint;
 import io.sapl.test.SaplTestException;
@@ -30,6 +26,10 @@ import io.sapl.test.dsl.interfaces.StepConstructor;
 import io.sapl.test.dsl.interfaces.UnitTestPolicyResolver;
 import io.sapl.test.grammar.sapltest.ImportType;
 import io.sapl.test.utils.DocumentHelper;
+
+import java.lang.annotation.Annotation;
+import java.util.Map;
+import java.util.function.Consumer;
 
 /**
  * The primary entry point to run tests using the

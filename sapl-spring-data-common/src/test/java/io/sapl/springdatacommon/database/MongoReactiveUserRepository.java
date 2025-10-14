@@ -17,12 +17,11 @@
  */
 package io.sapl.springdatacommon.database;
 
+import io.sapl.spring.method.metadata.QueryEnforce;
 import org.bson.types.ObjectId;
 import org.springframework.data.mongodb.repository.Query;
 import org.springframework.data.mongodb.repository.ReactiveMongoRepository;
 import org.springframework.stereotype.Repository;
-
-import io.sapl.spring.method.metadata.QueryEnforce;
 import reactor.core.publisher.Flux;
 
 @Repository

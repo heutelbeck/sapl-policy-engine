@@ -17,27 +17,23 @@
  */
 package io.sapl.spring.serialization;
 
-import static com.spotify.hamcrest.jackson.JsonMatchers.jsonArray;
-import static com.spotify.hamcrest.jackson.JsonMatchers.jsonInt;
-import static com.spotify.hamcrest.jackson.JsonMatchers.jsonObject;
-import static com.spotify.hamcrest.jackson.JsonMatchers.jsonText;
-import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.Matchers.containsInAnyOrder;
-
-import java.io.IOException;
-import java.net.InetSocketAddress;
-
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializerProvider;
+import com.fasterxml.jackson.databind.util.TokenBuffer;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpCookie;
 import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.springframework.mock.http.server.reactive.MockServerHttpRequest;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializerProvider;
-import com.fasterxml.jackson.databind.util.TokenBuffer;
+import java.io.IOException;
+import java.net.InetSocketAddress;
+
+import static com.spotify.hamcrest.jackson.JsonMatchers.*;
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.containsInAnyOrder;
 
 class ServerHttpRequestSerializerTests {
 

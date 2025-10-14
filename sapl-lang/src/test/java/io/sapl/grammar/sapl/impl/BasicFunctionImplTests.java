@@ -17,10 +17,10 @@
  */
 package io.sapl.grammar.sapl.impl;
 
+import org.junit.jupiter.api.Test;
+
 import static io.sapl.testutil.TestUtil.assertExpressionEvaluatesTo;
 import static io.sapl.testutil.TestUtil.assertExpressionReturnsErrors;
-
-import org.junit.jupiter.api.Test;
 
 class BasicFunctionImplTests {
 

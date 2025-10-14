@@ -17,17 +17,16 @@
  */
 package io.sapl.spring.pdp.embedded;
 
-import java.time.Clock;
-import java.util.List;
-
+import io.sapl.api.pip.PolicyInformationPointSupplier;
+import io.sapl.attributes.pips.time.TimePolicyInformationPoint;
 import org.springframework.beans.factory.config.BeanDefinition;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Role;
 
-import io.sapl.api.pip.PolicyInformationPointSupplier;
-import io.sapl.attributes.pips.time.TimePolicyInformationPoint;
+import java.time.Clock;
+import java.util.List;
 
 @AutoConfiguration
 public class PolicyInformationPointsAutoConfiguration {

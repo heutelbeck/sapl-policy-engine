@@ -17,18 +17,17 @@
  */
 package io.sapl.test.junit;
 
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.mockStatic;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import io.sapl.test.SaplTestException;
+import io.sapl.test.dsl.interfaces.SaplTestInterpreter;
+import io.sapl.test.dsl.interfaces.TestNode;
+import io.sapl.test.dsl.setup.*;
+import io.sapl.test.grammar.sapltest.SAPLTest;
+import io.sapl.test.utils.DocumentHelper;
+import org.junit.jupiter.api.*;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.api.function.Executable;
+import org.mockito.*;
+import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.net.URI;
 import java.nio.file.Path;
@@ -37,31 +36,10 @@ import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.stream.Stream;
 
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DynamicContainer;
-import org.junit.jupiter.api.DynamicNode;
-import org.junit.jupiter.api.DynamicTest;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.junit.jupiter.api.function.Executable;
-import org.mockito.ArgumentCaptor;
-import org.mockito.ArgumentMatchers;
-import org.mockito.Mock;
-import org.mockito.MockedStatic;
-import org.mockito.Mockito;
-import org.mockito.junit.jupiter.MockitoExtension;
-
-import io.sapl.test.SaplTestException;
-import io.sapl.test.dsl.interfaces.SaplTestInterpreter;
-import io.sapl.test.dsl.interfaces.TestNode;
-import io.sapl.test.dsl.setup.SaplTestInterpreterFactory;
-import io.sapl.test.dsl.setup.TestCase;
-import io.sapl.test.dsl.setup.TestContainer;
-import io.sapl.test.dsl.setup.TestProvider;
-import io.sapl.test.dsl.setup.TestProviderFactory;
-import io.sapl.test.grammar.sapltest.SAPLTest;
-import io.sapl.test.utils.DocumentHelper;
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class JUnitTestAdapterTests {

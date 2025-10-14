@@ -17,21 +17,16 @@
  */
 package io.sapl.test.dsl.interpreter;
 
-import static io.sapl.test.dsl.ParserUtil.compareArgumentToStringLiteral;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.mockStatic;
-import static org.mockito.Mockito.when;
-
-import java.time.Duration;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-
+import io.sapl.api.interpreter.Val;
+import io.sapl.api.pdp.AuthorizationDecision;
+import io.sapl.hamcrest.Matchers;
+import io.sapl.test.SaplTestException;
+import io.sapl.test.TestHelper;
+import io.sapl.test.dsl.ParserUtil;
+import io.sapl.test.grammar.sapltest.*;
+import io.sapl.test.grammar.services.SAPLTestGrammarAccess;
+import io.sapl.test.steps.ExpectOrVerifyStep;
+import io.sapl.test.steps.VerifyStep;
 import org.hamcrest.Matcher;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
@@ -44,35 +39,16 @@ import org.mockito.Mock;
 import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import io.sapl.api.interpreter.Val;
-import io.sapl.api.pdp.AuthorizationDecision;
-import io.sapl.hamcrest.Matchers;
-import io.sapl.test.SaplTestException;
-import io.sapl.test.TestHelper;
-import io.sapl.test.dsl.ParserUtil;
-import io.sapl.test.grammar.sapltest.AdjustBlock;
-import io.sapl.test.grammar.sapltest.AdjustStep;
-import io.sapl.test.grammar.sapltest.AnyDecision;
-import io.sapl.test.grammar.sapltest.AuthorizationDecisionMatcherType;
-import io.sapl.test.grammar.sapltest.AuthorizationDecisionType;
-import io.sapl.test.grammar.sapltest.ExpectBlock;
-import io.sapl.test.grammar.sapltest.ExpectOrAdjustBlock;
-import io.sapl.test.grammar.sapltest.ExpectStep;
-import io.sapl.test.grammar.sapltest.Expectation;
-import io.sapl.test.grammar.sapltest.HasObligationOrAdvice;
-import io.sapl.test.grammar.sapltest.IsDecision;
-import io.sapl.test.grammar.sapltest.Multiple;
-import io.sapl.test.grammar.sapltest.Next;
-import io.sapl.test.grammar.sapltest.NextWithDecision;
-import io.sapl.test.grammar.sapltest.NextWithMatcher;
-import io.sapl.test.grammar.sapltest.NumericAmount;
-import io.sapl.test.grammar.sapltest.RepeatedExpect;
-import io.sapl.test.grammar.sapltest.SingleExpect;
-import io.sapl.test.grammar.sapltest.SingleExpectWithMatcher;
-import io.sapl.test.grammar.sapltest.StringLiteral;
-import io.sapl.test.grammar.services.SAPLTestGrammarAccess;
-import io.sapl.test.steps.ExpectOrVerifyStep;
-import io.sapl.test.steps.VerifyStep;
+import java.time.Duration;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+
+import static io.sapl.test.dsl.ParserUtil.compareArgumentToStringLiteral;
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class ExpectationInterpreterTests {

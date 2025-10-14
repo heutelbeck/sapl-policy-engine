@@ -17,16 +17,6 @@
  */
 package io.sapl.spring.pdp.embedded;
 
-import java.util.Collection;
-
-import org.springframework.beans.factory.config.BeanDefinition;
-import org.springframework.boot.autoconfigure.AutoConfiguration;
-import org.springframework.boot.autoconfigure.AutoConfigureAfter;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
-import org.springframework.context.ConfigurableApplicationContext;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Role;
-
 import io.sapl.api.functions.FunctionLibrary;
 import io.sapl.api.functions.FunctionLibrarySupplier;
 import io.sapl.api.functions.StaticFunctionLibrarySupplier;
@@ -35,6 +25,15 @@ import io.sapl.interpreter.functions.AnnotationFunctionContext;
 import io.sapl.interpreter.functions.FunctionContext;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.config.BeanDefinition;
+import org.springframework.boot.autoconfigure.AutoConfiguration;
+import org.springframework.boot.autoconfigure.AutoConfigureAfter;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
+import org.springframework.context.ConfigurableApplicationContext;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Role;
+
+import java.util.Collection;
 
 @Slf4j
 @AutoConfiguration

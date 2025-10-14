@@ -17,24 +17,18 @@
  */
 package io.sapl.interpreter;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Optional;
-
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
-
 import io.sapl.api.interpreter.Trace;
 import io.sapl.api.interpreter.Val;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.Decision;
 import lombok.Getter;
 import lombok.ToString;
+
+import java.util.*;
 
 @Getter
 @ToString

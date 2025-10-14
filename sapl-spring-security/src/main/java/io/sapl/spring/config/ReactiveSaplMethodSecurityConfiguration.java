@@ -17,6 +17,18 @@
  */
 package io.sapl.spring.config;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import io.sapl.api.pdp.PolicyDecisionPoint;
+import io.sapl.spring.constraints.ConstraintEnforcementService;
+import io.sapl.spring.method.blocking.PolicyEnforcementPointAroundMethodInterceptor;
+import io.sapl.spring.method.metadata.SaplAttributeRegistry;
+import io.sapl.spring.method.reactive.PostEnforcePolicyEnforcementPoint;
+import io.sapl.spring.method.reactive.PreEnforcePolicyEnforcementPoint;
+import io.sapl.spring.method.reactive.ReactiveSaplMethodInterceptor;
+import io.sapl.spring.subscriptions.WebfluxAuthorizationSubscriptionBuilderService;
+import lombok.NonNull;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.aop.Advisor;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -29,20 +41,6 @@ import org.springframework.context.annotation.Role;
 import org.springframework.security.access.expression.method.DefaultMethodSecurityExpressionHandler;
 import org.springframework.security.access.expression.method.MethodSecurityExpressionHandler;
 import org.springframework.security.config.core.GrantedAuthorityDefaults;
-
-import com.fasterxml.jackson.databind.ObjectMapper;
-
-import io.sapl.api.pdp.PolicyDecisionPoint;
-import io.sapl.spring.constraints.ConstraintEnforcementService;
-import io.sapl.spring.method.blocking.PolicyEnforcementPointAroundMethodInterceptor;
-import io.sapl.spring.method.metadata.SaplAttributeRegistry;
-import io.sapl.spring.method.reactive.PostEnforcePolicyEnforcementPoint;
-import io.sapl.spring.method.reactive.PreEnforcePolicyEnforcementPoint;
-import io.sapl.spring.method.reactive.ReactiveSaplMethodInterceptor;
-import io.sapl.spring.subscriptions.WebfluxAuthorizationSubscriptionBuilderService;
-import lombok.NonNull;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 
 /**
  * Sets up automatic PEP generation for Methods with reactive return types. Bean

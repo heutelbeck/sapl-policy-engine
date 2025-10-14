@@ -17,9 +17,8 @@
  */
 package io.sapl.grammar.ide;
 
-import org.eclipse.xtext.ide.editor.contentassist.IdeContentProposalProvider;
-
 import io.sapl.grammar.ide.contentassist.SAPLContentProposalProvider;
+import org.eclipse.xtext.ide.editor.contentassist.IdeContentProposalProvider;
 
 /**
  * Use this class to register IDE components.

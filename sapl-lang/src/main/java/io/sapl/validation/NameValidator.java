@@ -17,10 +17,10 @@
  */
 package io.sapl.validation;
 
+import lombok.experimental.UtilityClass;
+
 import java.util.function.Predicate;
 import java.util.regex.Pattern;
-
-import lombok.experimental.UtilityClass;
 
 /**
  * Provides a pattern for checking syntactic correctness of names for policy

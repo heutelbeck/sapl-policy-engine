@@ -1,7 +1,7 @@
 // D3.js-based JSON visualization with hierarchical tree layout
 
-import { html, LitElement, css } from 'lit';
-import { customElement, property, query } from 'lit/decorators.js';
+import {css, html, LitElement} from 'lit';
+import {customElement, property, query} from 'lit/decorators.js';
 import * as d3 from 'd3';
 
 interface TreeNode extends d3.HierarchyPointNode<any> {

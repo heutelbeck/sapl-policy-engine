@@ -1,16 +1,16 @@
-import { LitElement, html, css } from 'lit';
+import {css, html, LitElement} from 'lit';
 import {
-    CodeMirrorStyles,
-    CodeMirrorLintStyles,
-    CodeMirrorHintStyles,
-    XTextAnnotationsStyles,
     AutocompleteWidgetStyle,
-    ReadOnlyStyle,
+    CodeMirrorHintStyles,
+    CodeMirrorLintStyles,
+    CodeMirrorStyles,
+    DarkStyle,
     HeightFix,
-    DarkStyle
+    ReadOnlyStyle,
+    XTextAnnotationsStyles
 } from './shared-styles.js';
 import './sapl-mode';
-import { exports as xtext } from './xtext-codemirror-patched.js';
+import {exports as xtext} from './xtext-codemirror-patched.js';
 
 import CodeMirror from 'codemirror';
 import 'codemirror/mode/javascript/javascript';

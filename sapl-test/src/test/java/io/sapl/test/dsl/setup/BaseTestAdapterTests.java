@@ -17,23 +17,16 @@
  */
 package io.sapl.test.dsl.setup;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.mockStatic;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-
-import java.util.Collections;
-import java.util.EnumMap;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.Callable;
-import java.util.stream.Stream;
-
+import io.sapl.attributes.pips.http.HttpPolicyInformationPoint;
+import io.sapl.functions.FilterFunctionLibrary;
+import io.sapl.test.SaplTestException;
+import io.sapl.test.dsl.interfaces.IntegrationTestPolicyResolver;
+import io.sapl.test.dsl.interfaces.SaplTestInterpreter;
+import io.sapl.test.dsl.interfaces.StepConstructor;
+import io.sapl.test.dsl.interfaces.UnitTestPolicyResolver;
+import io.sapl.test.grammar.sapltest.ImportType;
+import io.sapl.test.grammar.sapltest.SAPLTest;
+import io.sapl.test.utils.DocumentHelper;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -46,16 +39,18 @@ import org.mockito.Mock;
 import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import io.sapl.attributes.pips.http.HttpPolicyInformationPoint;
-import io.sapl.functions.FilterFunctionLibrary;
-import io.sapl.test.SaplTestException;
-import io.sapl.test.dsl.interfaces.IntegrationTestPolicyResolver;
-import io.sapl.test.dsl.interfaces.SaplTestInterpreter;
-import io.sapl.test.dsl.interfaces.StepConstructor;
-import io.sapl.test.dsl.interfaces.UnitTestPolicyResolver;
-import io.sapl.test.grammar.sapltest.ImportType;
-import io.sapl.test.grammar.sapltest.SAPLTest;
-import io.sapl.test.utils.DocumentHelper;
+import java.util.Collections;
+import java.util.EnumMap;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.Callable;
+import java.util.stream.Stream;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class BaseTestAdapterTests {

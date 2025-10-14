@@ -17,11 +17,6 @@
  */
 package io.sapl.test.unit;
 
-import java.util.HashMap;
-
-import org.junit.jupiter.api.Test;
-import org.mockito.Mockito;
-
 import io.sapl.api.interpreter.Val;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.attributes.broker.impl.CachingAttributeStreamBroker;
@@ -29,7 +24,11 @@ import io.sapl.grammar.sapl.SAPL;
 import io.sapl.interpreter.DefaultSAPLInterpreter;
 import io.sapl.interpreter.functions.AnnotationFunctionContext;
 import io.sapl.prp.Document;
+import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
 import reactor.core.publisher.Mono;
+
+import java.util.HashMap;
 
 class StepBuilderTests {
 

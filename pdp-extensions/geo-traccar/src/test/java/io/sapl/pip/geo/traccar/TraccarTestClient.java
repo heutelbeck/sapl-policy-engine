@@ -17,15 +17,14 @@
  */
 package io.sapl.pip.geo.traccar;
 
-import java.util.Base64;
-import java.util.Map;
-
+import com.fasterxml.jackson.databind.JsonNode;
+import com.github.dockerjava.zerodep.shaded.org.apache.commons.codec.Charsets;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.web.reactive.function.client.WebClient;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.github.dockerjava.zerodep.shaded.org.apache.commons.codec.Charsets;
+import java.util.Base64;
+import java.util.Map;
 
 public class TraccarTestClient {
 

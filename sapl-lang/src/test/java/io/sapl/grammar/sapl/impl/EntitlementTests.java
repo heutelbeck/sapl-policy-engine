@@ -17,14 +17,13 @@
  */
 package io.sapl.grammar.sapl.impl;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import io.sapl.api.pdp.Decision;
+import io.sapl.testutil.ParserUtil;
+import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 
-import org.junit.jupiter.api.Test;
-
-import io.sapl.api.pdp.Decision;
-import io.sapl.testutil.ParserUtil;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class EntitlementTests {
 

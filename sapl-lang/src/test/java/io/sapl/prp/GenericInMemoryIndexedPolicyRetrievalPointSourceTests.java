@@ -17,23 +17,19 @@
  */
 package io.sapl.prp;
 
+import io.sapl.api.interpreter.Val;
+import io.sapl.interpreter.DefaultSAPLInterpreter;
+import io.sapl.prp.index.UpdateEventDrivenPolicyRetrievalPoint;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
+
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-
-import io.sapl.api.interpreter.Val;
-import io.sapl.interpreter.DefaultSAPLInterpreter;
-import io.sapl.prp.index.UpdateEventDrivenPolicyRetrievalPoint;
-import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
+import static org.mockito.Mockito.*;
 
 class GenericInMemoryIndexedPolicyRetrievalPointSourceTests {
     private static final DefaultSAPLInterpreter INTERPRETER = new DefaultSAPLInterpreter();

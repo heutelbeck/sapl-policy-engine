@@ -17,18 +17,6 @@
  */
 package io.sapl.spring.method.blocking;
 
-import java.util.Optional;
-import java.util.function.Supplier;
-
-import org.aopalliance.intercept.MethodInterceptor;
-import org.aopalliance.intercept.MethodInvocation;
-import org.springframework.beans.factory.ObjectProvider;
-import org.springframework.security.access.AccessDeniedException;
-import org.springframework.security.authentication.AuthenticationCredentialsNotFoundException;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.core.context.SecurityContextHolderStrategy;
-
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.Decision;
 import io.sapl.api.pdp.PolicyDecisionPoint;
@@ -39,7 +27,18 @@ import io.sapl.spring.method.metadata.SaplAttributeRegistry;
 import io.sapl.spring.subscriptions.WebAuthorizationSubscriptionBuilderService;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
+import org.aopalliance.intercept.MethodInterceptor;
+import org.aopalliance.intercept.MethodInvocation;
+import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.authentication.AuthenticationCredentialsNotFoundException;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.context.SecurityContextHolderStrategy;
 import reactor.core.Exceptions;
+
+import java.util.Optional;
+import java.util.function.Supplier;
 
 /**
  * An {@link org.springframework.security.authorization.AuthorizationManager}

@@ -17,11 +17,10 @@
  */
 package io.sapl.springdatacommon.database;
 
-import org.bson.types.ObjectId;
-
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.bson.types.ObjectId;
 
 @Getter
 @NoArgsConstructor

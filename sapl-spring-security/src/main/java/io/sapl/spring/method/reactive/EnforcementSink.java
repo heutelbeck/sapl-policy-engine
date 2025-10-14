@@ -17,9 +17,9 @@
  */
 package io.sapl.spring.method.reactive;
 
-import java.util.function.Consumer;
-
 import reactor.core.publisher.FluxSink;
+
+import java.util.function.Consumer;
 
 public class EnforcementSink<T> implements Consumer<FluxSink<T>> {
 

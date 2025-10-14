@@ -17,12 +17,7 @@
  */
 package io.sapl.springdatacommon.services;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.mockito.Mockito.mock;
-
-import java.lang.reflect.Method;
-import java.util.Set;
-
+import io.sapl.springdatacommon.database.Person;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.springframework.core.ResolvableType;
@@ -32,7 +27,11 @@ import org.springframework.data.repository.core.support.RepositoryFragment;
 import org.springframework.data.util.Streamable;
 import org.springframework.data.util.TypeInformation;
 
-import io.sapl.springdatacommon.database.Person;
+import java.lang.reflect.Method;
+import java.util.Set;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.Mockito.mock;
 
 class RepositoryInformationCollectorServiceTests {
 

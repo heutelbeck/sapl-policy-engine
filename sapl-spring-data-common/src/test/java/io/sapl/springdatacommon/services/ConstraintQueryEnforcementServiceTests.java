@@ -17,16 +17,13 @@
  */
 package io.sapl.springdatacommon.services;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.mockStatic;
-import static org.mockito.Mockito.when;
-
-import java.util.List;
-import java.util.Optional;
-
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import io.sapl.api.pdp.AuthorizationDecision;
+import io.sapl.spring.constraints.providers.ConstraintResponsibility;
+import io.sapl.springdatacommon.utils.TestUtils;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -35,14 +32,15 @@ import org.mockito.MockedStatic;
 import org.mockito.Mockito;
 import org.springframework.security.access.AccessDeniedException;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ArrayNode;
+import java.util.List;
+import java.util.Optional;
 
-import io.sapl.api.pdp.AuthorizationDecision;
-import io.sapl.spring.constraints.providers.ConstraintResponsibility;
-import io.sapl.springdatacommon.utils.TestUtils;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.when;
 
 class ConstraintQueryEnforcementServiceTests {
 

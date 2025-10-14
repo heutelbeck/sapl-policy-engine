@@ -17,11 +17,12 @@
  */
 package io.sapl.test.dsl.setup;
 
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.nio.charset.StandardCharsets;
-
+import io.sapl.interpreter.InputStreamHelper;
+import io.sapl.test.SaplTestException;
+import io.sapl.test.dsl.interfaces.SaplTestInterpreter;
+import io.sapl.test.grammar.SAPLTestStandaloneSetup;
+import io.sapl.test.grammar.sapltest.SAPLTest;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.IOUtils;
 import org.eclipse.emf.common.util.Diagnostic;
 import org.eclipse.emf.common.util.URI;
@@ -31,12 +32,10 @@ import org.eclipse.emf.ecore.util.Diagnostician;
 import org.eclipse.xtext.nodemodel.util.NodeModelUtils;
 import org.eclipse.xtext.resource.XtextResourceSet;
 
-import io.sapl.interpreter.InputStreamHelper;
-import io.sapl.test.SaplTestException;
-import io.sapl.test.dsl.interfaces.SaplTestInterpreter;
-import io.sapl.test.grammar.SAPLTestStandaloneSetup;
-import io.sapl.test.grammar.sapltest.SAPLTest;
-import lombok.extern.slf4j.Slf4j;
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 
 @Slf4j
 public class DefaultSaplTestInterpreter implements SaplTestInterpreter {

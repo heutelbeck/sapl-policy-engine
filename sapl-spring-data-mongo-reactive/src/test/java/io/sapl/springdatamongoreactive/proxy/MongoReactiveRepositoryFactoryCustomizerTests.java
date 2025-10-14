@@ -17,12 +17,10 @@
  */
 package io.sapl.springdatamongoreactive.proxy;
 
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-
 import org.junit.jupiter.api.Test;
 import org.springframework.data.repository.core.support.RepositoryFactorySupport;
+
+import static org.mockito.Mockito.*;
 
 class MongoReactiveRepositoryFactoryCustomizerTests {
 

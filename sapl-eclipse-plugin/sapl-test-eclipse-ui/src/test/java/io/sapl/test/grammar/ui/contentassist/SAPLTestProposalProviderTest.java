@@ -19,7 +19,7 @@ package io.sapl.test.grammar.ui.contentassist;
 
 import org.junit.jupiter.api.Test;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 
 class SAPLTestProposalProviderTest {
 

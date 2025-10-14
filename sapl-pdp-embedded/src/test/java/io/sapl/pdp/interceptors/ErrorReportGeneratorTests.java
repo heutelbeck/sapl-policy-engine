@@ -17,22 +17,7 @@
  */
 package io.sapl.pdp.interceptors;
 
-import static io.sapl.assertj.SaplAssertions.assertThatVal;
-import static org.assertj.core.api.Assertions.assertThat;
-
-import java.io.ByteArrayInputStream;
-import java.io.InputStream;
-import java.nio.charset.StandardCharsets;
-import java.util.List;
-import java.util.Map;
-
-import org.eclipse.emf.common.util.URI;
-import org.eclipse.xtext.resource.XtextResource;
-import org.eclipse.xtext.resource.XtextResourceSet;
-import org.junit.jupiter.api.Test;
-
 import com.google.inject.Injector;
-
 import io.sapl.api.interpreter.Val;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.grammar.SAPLStandaloneSetup;
@@ -43,6 +28,19 @@ import io.sapl.interpreter.combinators.PolicyDocumentCombiningAlgorithm;
 import io.sapl.pdp.PolicyDecisionPointFactory;
 import io.sapl.pdp.interceptors.ErrorReportGenerator.OutputFormat;
 import lombok.SneakyThrows;
+import org.eclipse.emf.common.util.URI;
+import org.eclipse.xtext.resource.XtextResource;
+import org.eclipse.xtext.resource.XtextResourceSet;
+import org.junit.jupiter.api.Test;
+
+import java.io.ByteArrayInputStream;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
+import java.util.List;
+import java.util.Map;
+
+import static io.sapl.assertj.SaplAssertions.assertThatVal;
+import static org.assertj.core.api.Assertions.assertThat;
 
 class ErrorReportGeneratorTests {
     private static final Injector INJECTOR = new SAPLStandaloneSetup().createInjectorAndDoEMFRegistration();

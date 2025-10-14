@@ -17,27 +17,23 @@
  */
 package io.sapl.test.verification;
 
-import static io.sapl.hamcrest.Matchers.anyVal;
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
-import static org.assertj.core.api.Assertions.assertThatNoException;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.number.OrderingComparison.comparesEqualTo;
-
-import java.util.LinkedList;
-import java.util.List;
-import java.util.stream.Stream;
-
+import io.sapl.api.interpreter.Val;
+import io.sapl.test.SaplTestException;
+import io.sapl.test.mocking.MockCall;
 import org.hamcrest.Matcher;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
-import io.sapl.api.interpreter.Val;
-import io.sapl.test.SaplTestException;
-import io.sapl.test.mocking.MockCall;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.stream.Stream;
+
+import static io.sapl.hamcrest.Matchers.anyVal;
+import static org.assertj.core.api.Assertions.*;
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.number.OrderingComparison.comparesEqualTo;
 
 class TimesParameterCalledVerificationTests {
 

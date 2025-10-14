@@ -17,17 +17,16 @@
  */
 package io.sapl.spring.pdp.embedded;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.mock;
-
-import org.junit.jupiter.api.Test;
-import org.springframework.boot.autoconfigure.AutoConfigurations;
-import org.springframework.boot.test.context.runner.ApplicationContextRunner;
-
 import io.sapl.api.pdp.PolicyDecisionPoint;
 import io.sapl.pdp.EmbeddedPolicyDecisionPoint;
 import io.sapl.pdp.config.PDPConfigurationProvider;
 import io.sapl.prp.PolicyRetrievalPoint;
+import org.junit.jupiter.api.Test;
+import org.springframework.boot.autoconfigure.AutoConfigurations;
+import org.springframework.boot.test.context.runner.ApplicationContextRunner;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.mock;
 
 class PDPAutoConfigurationTests {
 

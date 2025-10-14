@@ -17,17 +17,16 @@
  */
 package io.sapl.test.coverage.api;
 
+import io.sapl.test.coverage.api.model.PolicySetHit;
+import org.assertj.core.api.Assertions;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
+
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.util.List;
-
-import org.assertj.core.api.Assertions;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.io.TempDir;
-
-import io.sapl.test.coverage.api.model.PolicySetHit;
 
 class CoverageCustomConfigTests {
 

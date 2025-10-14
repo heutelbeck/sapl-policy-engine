@@ -17,18 +17,13 @@
  */
 package io.sapl.api.interpreter;
 
-import java.io.Serializable;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
-
 import io.sapl.api.SaplVersion;
 import lombok.Value;
+
+import java.io.Serializable;
+import java.util.*;
 
 /**
  * A policy evaluation trace.

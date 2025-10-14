@@ -17,14 +17,12 @@
  */
 package io.sapl.test.dsl.interpreter;
 
-import static io.sapl.test.dsl.ParserUtil.compareArgumentToStringLiteral;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.mockStatic;
-import static org.mockito.Mockito.when;
-
+import com.fasterxml.jackson.databind.JsonNode;
+import io.sapl.api.interpreter.Val;
+import io.sapl.test.SaplTestException;
+import io.sapl.test.dsl.ParserUtil;
+import io.sapl.test.grammar.sapltest.*;
+import io.sapl.test.grammar.services.SAPLTestGrammarAccess;
 import org.hamcrest.CoreMatchers;
 import org.hamcrest.Matcher;
 import org.hamcrest.Matchers;
@@ -36,17 +34,11 @@ import org.mockito.Mock;
 import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import com.fasterxml.jackson.databind.JsonNode;
-
-import io.sapl.api.interpreter.Val;
-import io.sapl.test.SaplTestException;
-import io.sapl.test.dsl.ParserUtil;
-import io.sapl.test.grammar.sapltest.AnyVal;
-import io.sapl.test.grammar.sapltest.IsJsonNull;
-import io.sapl.test.grammar.sapltest.ValMatcher;
-import io.sapl.test.grammar.sapltest.ValWithMatcher;
-import io.sapl.test.grammar.sapltest.ValWithValue;
-import io.sapl.test.grammar.services.SAPLTestGrammarAccess;
+import static io.sapl.test.dsl.ParserUtil.compareArgumentToStringLiteral;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class ValMatcherInterpreterTests {

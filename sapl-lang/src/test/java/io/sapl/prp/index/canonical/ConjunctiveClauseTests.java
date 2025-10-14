@@ -17,21 +17,18 @@
  */
 package io.sapl.prp.index.canonical;
 
+import org.junit.jupiter.api.Test;
+import org.mockito.MockedStatic;
+
+import java.util.Collection;
+import java.util.Collections;
+
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.anyList;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.mockStatic;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.when;
-
-import java.util.Collection;
-import java.util.Collections;
-
-import org.junit.jupiter.api.Test;
-import org.mockito.MockedStatic;
+import static org.mockito.Mockito.*;
 
 class ConjunctiveClauseTests {
 

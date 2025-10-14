@@ -17,13 +17,6 @@
  */
 package io.sapl.test.mocking.attribute;
 
-import static io.sapl.test.Imports.times;
-
-import java.time.Duration;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-
 import io.sapl.api.interpreter.Val;
 import io.sapl.attributes.broker.api.AttributeFinderInvocation;
 import io.sapl.test.SaplTestException;
@@ -31,6 +24,13 @@ import io.sapl.test.mocking.MockCall;
 import io.sapl.test.verification.MockRunInformation;
 import io.sapl.test.verification.MockingVerification;
 import reactor.core.publisher.Flux;
+
+import java.time.Duration;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+
+import static io.sapl.test.Imports.times;
 
 public class AttributeMockTiming implements AttributeMock {
 

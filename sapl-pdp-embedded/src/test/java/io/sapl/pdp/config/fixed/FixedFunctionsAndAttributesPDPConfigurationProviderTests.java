@@ -17,14 +17,6 @@
  */
 package io.sapl.pdp.config.fixed;
 
-import static org.hamcrest.CoreMatchers.notNullValue;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.is;
-
-import java.util.List;
-
-import org.junit.jupiter.api.Test;
-
 import io.sapl.attributes.broker.impl.CachingAttributeStreamBroker;
 import io.sapl.interpreter.DefaultSAPLInterpreter;
 import io.sapl.interpreter.combinators.PolicyDocumentCombiningAlgorithm;
@@ -35,6 +27,13 @@ import io.sapl.prp.PolicyRetrievalPointSource;
 import io.sapl.prp.filesystem.FileSystemPrpUpdateEventSource;
 import io.sapl.prp.index.UpdateEventDrivenPolicyRetrievalPoint;
 import io.sapl.prp.index.naive.NaiveImmutableParsedDocumentIndex;
+import org.junit.jupiter.api.Test;
+
+import java.util.List;
+
+import static org.hamcrest.CoreMatchers.notNullValue;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 
 class FixedFunctionsAndAttributesPDPConfigurationProviderTests {
 

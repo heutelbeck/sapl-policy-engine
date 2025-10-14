@@ -17,6 +17,12 @@
  */
 package io.sapl.test.coverage.api;
 
+import io.sapl.test.coverage.api.model.PolicyConditionHit;
+import io.sapl.test.coverage.api.model.PolicyHit;
+import io.sapl.test.coverage.api.model.PolicySetHit;
+import lombok.NonNull;
+import lombok.extern.slf4j.Slf4j;
+
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -24,12 +30,6 @@ import java.nio.file.StandardOpenOption;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Stream;
-
-import io.sapl.test.coverage.api.model.PolicyConditionHit;
-import io.sapl.test.coverage.api.model.PolicyHit;
-import io.sapl.test.coverage.api.model.PolicySetHit;
-import lombok.NonNull;
-import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 class CoverageHitAPIFile implements CoverageHitRecorder, CoverageHitReader {

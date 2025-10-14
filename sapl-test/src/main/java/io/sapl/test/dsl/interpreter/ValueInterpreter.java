@@ -17,26 +17,16 @@
  */
 package io.sapl.test.dsl.interpreter;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import io.sapl.api.interpreter.Val;
+import io.sapl.test.SaplTestException;
+import io.sapl.test.grammar.sapltest.*;
+import lombok.RequiredArgsConstructor;
+
 import java.util.Collections;
 import java.util.Map;
 import java.util.stream.Collectors;
-
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-
-import io.sapl.api.interpreter.Val;
-import io.sapl.test.SaplTestException;
-import io.sapl.test.grammar.sapltest.Array;
-import io.sapl.test.grammar.sapltest.ErrorValue;
-import io.sapl.test.grammar.sapltest.FalseLiteral;
-import io.sapl.test.grammar.sapltest.NullLiteral;
-import io.sapl.test.grammar.sapltest.NumberLiteral;
-import io.sapl.test.grammar.sapltest.Pair;
-import io.sapl.test.grammar.sapltest.StringLiteral;
-import io.sapl.test.grammar.sapltest.TrueLiteral;
-import io.sapl.test.grammar.sapltest.UndefinedLiteral;
-import io.sapl.test.grammar.sapltest.Value;
-import lombok.RequiredArgsConstructor;
 
 @RequiredArgsConstructor
 class ValueInterpreter {

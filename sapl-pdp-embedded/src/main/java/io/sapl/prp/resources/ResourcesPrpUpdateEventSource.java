@@ -17,11 +17,6 @@
  */
 package io.sapl.prp.resources;
 
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.List;
-
 import io.github.classgraph.ClassGraph;
 import io.github.classgraph.Resource;
 import io.github.classgraph.ScanResult;
@@ -33,6 +28,11 @@ import io.sapl.prp.PrpUpdateEventSource;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
+
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.List;
 
 @Slf4j
 public class ResourcesPrpUpdateEventSource implements PrpUpdateEventSource {

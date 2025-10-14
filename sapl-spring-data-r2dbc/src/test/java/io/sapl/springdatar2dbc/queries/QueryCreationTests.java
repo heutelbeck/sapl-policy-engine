@@ -17,17 +17,12 @@
  */
 package io.sapl.springdatar2dbc.queries;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.mockStatic;
-import static org.mockito.Mockito.times;
-
-import java.lang.reflect.Method;
-import java.util.ArrayList;
-import java.util.List;
-
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import io.sapl.springdatacommon.queries.QueryAnnotationParameterResolver;
+import io.sapl.springdatar2dbc.database.MethodInvocationForTesting;
+import io.sapl.springdatar2dbc.database.Person;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -35,13 +30,14 @@ import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
 import org.springframework.data.domain.Sort;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ArrayNode;
+import java.lang.reflect.Method;
+import java.util.ArrayList;
+import java.util.List;
 
-import io.sapl.springdatacommon.queries.QueryAnnotationParameterResolver;
-import io.sapl.springdatar2dbc.database.MethodInvocationForTesting;
-import io.sapl.springdatar2dbc.database.Person;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.times;
 
 class QueryCreationTests {
 

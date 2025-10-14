@@ -17,14 +17,11 @@
  */
 package io.sapl.grammar.ide.contentassist;
 
-import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertSame;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-
+import io.sapl.grammar.sapl.impl.SAPLImpl;
 import org.eclipse.emf.ecore.impl.MinimalEObjectImpl;
 import org.junit.jupiter.api.Test;
 
-import io.sapl.grammar.sapl.impl.SAPLImpl;
+import static org.junit.jupiter.api.Assertions.*;
 
 class TreeNavigatorHelperTests {
 

@@ -17,20 +17,18 @@
  */
 package io.sapl.spring.config;
 
-import org.springframework.beans.factory.config.BeanDefinition;
-import org.springframework.boot.autoconfigure.AutoConfiguration;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Role;
-
 import com.fasterxml.jackson.databind.ObjectMapper;
-
 import io.sapl.api.pdp.PolicyDecisionPoint;
 import io.sapl.spring.constraints.ConstraintEnforcementService;
 import io.sapl.spring.manager.ReactiveSaplAuthorizationManager;
 import io.sapl.spring.manager.SaplAuthorizationManager;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.config.BeanDefinition;
+import org.springframework.boot.autoconfigure.AutoConfiguration;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Role;
 
 /**
  * Deploys an AuthorizationManager for setting up the HTTP filter chain.

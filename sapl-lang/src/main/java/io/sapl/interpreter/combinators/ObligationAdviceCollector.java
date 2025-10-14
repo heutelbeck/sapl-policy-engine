@@ -17,15 +17,14 @@
  */
 package io.sapl.interpreter.combinators;
 
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.JsonNodeFactory;
+import io.sapl.api.pdp.AuthorizationDecision;
+import io.sapl.api.pdp.Decision;
+
 import java.util.EnumMap;
 import java.util.Map;
 import java.util.Optional;
-
-import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.databind.node.JsonNodeFactory;
-
-import io.sapl.api.pdp.AuthorizationDecision;
-import io.sapl.api.pdp.Decision;
 
 public class ObligationAdviceCollector {
 

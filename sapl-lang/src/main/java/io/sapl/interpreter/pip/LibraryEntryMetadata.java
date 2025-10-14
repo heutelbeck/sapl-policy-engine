@@ -17,13 +17,13 @@
  */
 package io.sapl.interpreter.pip;
 
+import com.fasterxml.jackson.databind.JsonNode;
+
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.IntFunction;
-
-import com.fasterxml.jackson.databind.JsonNode;
 
 public interface LibraryEntryMetadata {
 

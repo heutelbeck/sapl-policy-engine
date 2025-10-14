@@ -17,14 +17,7 @@
  */
 package io.sapl.springdatar2dbc.enforcement;
 
-import java.util.function.Function;
-
-import org.aopalliance.intercept.MethodInvocation;
-import org.springframework.beans.factory.ObjectProvider;
-import org.springframework.security.access.AccessDeniedException;
-
 import com.fasterxml.jackson.databind.node.ArrayNode;
-
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.Decision;
@@ -35,8 +28,13 @@ import io.sapl.springdatar2dbc.queries.PartTreeToSqlQueryStringConverter;
 import io.sapl.springdatar2dbc.queries.QueryCreation;
 import io.sapl.springdatar2dbc.queries.QueryManipulationExecutor;
 import lombok.AllArgsConstructor;
+import org.aopalliance.intercept.MethodInvocation;
+import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.security.access.AccessDeniedException;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+
+import java.util.function.Function;
 
 /**
  * This class is responsible for the implementation of the

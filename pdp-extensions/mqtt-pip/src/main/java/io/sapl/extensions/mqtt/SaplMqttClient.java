@@ -17,32 +17,6 @@
  */
 package io.sapl.extensions.mqtt;
 
-import static io.sapl.extensions.mqtt.util.ConfigUtility.getClientId;
-import static io.sapl.extensions.mqtt.util.ConfigUtility.getConfigValueOrDefault;
-import static io.sapl.extensions.mqtt.util.ConfigUtility.getMqttBrokerConfig;
-import static io.sapl.extensions.mqtt.util.ConfigUtility.getPassword;
-import static io.sapl.extensions.mqtt.util.DefaultResponseUtility.getDefaultResponseConfig;
-import static io.sapl.extensions.mqtt.util.DefaultResponseUtility.getDefaultVal;
-import static io.sapl.extensions.mqtt.util.ErrorUtility.emitValueOnRetry;
-import static io.sapl.extensions.mqtt.util.ErrorUtility.getRetrySpec;
-import static io.sapl.extensions.mqtt.util.PayloadFormatUtility.convertBytesToArrayNode;
-import static io.sapl.extensions.mqtt.util.PayloadFormatUtility.getContentType;
-import static io.sapl.extensions.mqtt.util.PayloadFormatUtility.getPayloadFormatIndicator;
-import static io.sapl.extensions.mqtt.util.PayloadFormatUtility.getValOfJson;
-import static io.sapl.extensions.mqtt.util.PayloadFormatUtility.isValidUtf8String;
-import static io.sapl.extensions.mqtt.util.SubscriptionUtility.addSubscriptionsCountToSubscriptionList;
-import static io.sapl.extensions.mqtt.util.SubscriptionUtility.buildTopicSubscription;
-
-import java.net.InetSocketAddress;
-import java.nio.charset.StandardCharsets;
-import java.time.Duration;
-import java.util.Collection;
-import java.util.LinkedList;
-import java.util.Map;
-import java.util.Objects;
-import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
-
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.hivemq.client.mqtt.MqttClient;
@@ -54,7 +28,6 @@ import com.hivemq.client.mqtt.mqtt5.message.connect.connack.Mqtt5ConnAck;
 import com.hivemq.client.mqtt.mqtt5.message.publish.Mqtt5Publish;
 import com.hivemq.client.mqtt.mqtt5.message.unsubscribe.Mqtt5Unsubscribe;
 import com.hivemq.client.mqtt.mqtt5.reactor.Mqtt5ReactorClient;
-
 import io.sapl.api.interpreter.Val;
 import io.sapl.extensions.mqtt.util.DefaultResponseConfig;
 import io.sapl.extensions.mqtt.util.ErrorUtility;
@@ -66,6 +39,21 @@ import reactor.core.publisher.Sinks;
 import reactor.util.function.Tuple2;
 import reactor.util.function.Tuple4;
 import reactor.util.function.Tuples;
+
+import java.net.InetSocketAddress;
+import java.nio.charset.StandardCharsets;
+import java.time.Duration;
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
+
+import static io.sapl.extensions.mqtt.util.ConfigUtility.*;
+import static io.sapl.extensions.mqtt.util.DefaultResponseUtility.getDefaultResponseConfig;
+import static io.sapl.extensions.mqtt.util.DefaultResponseUtility.getDefaultVal;
+import static io.sapl.extensions.mqtt.util.ErrorUtility.emitValueOnRetry;
+import static io.sapl.extensions.mqtt.util.ErrorUtility.getRetrySpec;
+import static io.sapl.extensions.mqtt.util.PayloadFormatUtility.*;
+import static io.sapl.extensions.mqtt.util.SubscriptionUtility.addSubscriptionsCountToSubscriptionList;
+import static io.sapl.extensions.mqtt.util.SubscriptionUtility.buildTopicSubscription;
 
 /**
  * This mqtt client allows the user to receive mqtt messages of subscribed

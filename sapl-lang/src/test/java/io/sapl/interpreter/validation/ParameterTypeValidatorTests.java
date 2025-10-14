@@ -17,40 +17,28 @@
  */
 package io.sapl.interpreter.validation;
 
+import com.google.common.collect.Sets;
+import com.google.inject.Inject;
+import io.sapl.api.interpreter.Val;
+import io.sapl.api.validation.*;
+import io.sapl.api.validation.Long;
+import io.sapl.api.validation.Number;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
+
+import java.lang.annotation.Annotation;
+import java.lang.reflect.Parameter;
+import java.util.*;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
 import static io.sapl.interpreter.validation.ParameterTypeValidator.validateType;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
-
-import java.lang.annotation.Annotation;
-import java.lang.reflect.Parameter;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.LinkedList;
-import java.util.Map;
-import java.util.Set;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
-
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.MethodSource;
-
-import com.google.common.collect.Sets;
-import com.google.inject.Inject;
-
-import io.sapl.api.interpreter.Val;
-import io.sapl.api.validation.Array;
-import io.sapl.api.validation.Bool;
-import io.sapl.api.validation.Int;
-import io.sapl.api.validation.JsonObject;
-import io.sapl.api.validation.Long;
-import io.sapl.api.validation.Number;
-import io.sapl.api.validation.Text;
-import lombok.AllArgsConstructor;
-import lombok.Data;
 
 class ParameterTypeValidatorTests {
 

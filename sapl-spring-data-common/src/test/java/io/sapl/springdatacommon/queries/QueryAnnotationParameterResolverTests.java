@@ -17,20 +17,17 @@
  */
 package io.sapl.springdatacommon.queries;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import io.sapl.springdatacommon.database.MongoReactiveMethodInvocation;
+import io.sapl.springdatacommon.database.R2dbcMethodInvocation;
+import org.junit.jupiter.api.Test;
+import org.springframework.util.ReflectionUtils;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.junit.jupiter.api.Test;
-import org.springframework.util.ReflectionUtils;
-
-import io.sapl.springdatacommon.database.MongoReactiveMethodInvocation;
-import io.sapl.springdatacommon.database.R2dbcMethodInvocation;
+import static org.junit.jupiter.api.Assertions.*;
 
 class QueryAnnotationParameterResolverTests {
 

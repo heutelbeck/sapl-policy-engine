@@ -17,16 +17,7 @@
  */
 package io.sapl.springdatamongoreactive.enforcement;
 
-import java.util.function.Function;
-
-import org.aopalliance.intercept.MethodInvocation;
-import org.springframework.beans.factory.BeanFactory;
-import org.springframework.beans.factory.ObjectProvider;
-import org.springframework.data.mongodb.core.ReactiveMongoTemplate;
-import org.springframework.security.access.AccessDeniedException;
-
 import com.fasterxml.jackson.databind.node.ArrayNode;
-
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.Decision;
@@ -36,8 +27,15 @@ import io.sapl.springdatacommon.services.ConstraintQueryEnforcementService;
 import io.sapl.springdatamongoreactive.queries.QueryCreation;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.aopalliance.intercept.MethodInvocation;
+import org.springframework.beans.factory.BeanFactory;
+import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.data.mongodb.core.ReactiveMongoTemplate;
+import org.springframework.security.access.AccessDeniedException;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+
+import java.util.function.Function;
 
 /**
  * This class is responsible for the implementation of the

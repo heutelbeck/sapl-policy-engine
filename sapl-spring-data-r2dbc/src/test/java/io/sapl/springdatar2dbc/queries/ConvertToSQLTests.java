@@ -17,14 +17,14 @@
  */
 package io.sapl.springdatar2dbc.queries;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import org.junit.jupiter.api.Test;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 
 import java.util.ArrayList;
 import java.util.List;
 
-import org.junit.jupiter.api.Test;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Sort;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class ConvertToSQLTests {
 

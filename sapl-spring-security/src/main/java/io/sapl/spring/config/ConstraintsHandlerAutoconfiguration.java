@@ -17,17 +17,15 @@
  */
 package io.sapl.spring.config;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import io.sapl.spring.constraints.ConstraintEnforcementService;
+import io.sapl.spring.constraints.providers.ContentFilterPredicateProvider;
+import io.sapl.spring.constraints.providers.ContentFilteringProvider;
 import org.springframework.beans.factory.config.BeanDefinition;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.context.annotation.Role;
-
-import com.fasterxml.jackson.databind.ObjectMapper;
-
-import io.sapl.spring.constraints.ConstraintEnforcementService;
-import io.sapl.spring.constraints.providers.ContentFilterPredicateProvider;
-import io.sapl.spring.constraints.providers.ContentFilteringProvider;
 
 /**
  * Sets up the default constraint handler provides.

@@ -17,9 +17,8 @@
  */
 package io.sapl.springdatamongoreactive.sapl.database.repositoryerror;
 
-import org.bson.types.ObjectId;
-
 import io.sapl.springdatamongoreactive.sapl.database.TestUser;
+import org.bson.types.ObjectId;
 import reactor.core.publisher.Flux;
 
 public interface RepositoryNotFoundException extends R2dbcRepositoryNotFoundExceptionTests<TestUser, ObjectId> {

@@ -17,13 +17,13 @@
  */
 package io.sapl.springdatacommon.queries;
 
+import lombok.experimental.UtilityClass;
+
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
-
-import lombok.experimental.UtilityClass;
 
 /**
  * Utility class to resolve bounded method parameters and annotation parameters

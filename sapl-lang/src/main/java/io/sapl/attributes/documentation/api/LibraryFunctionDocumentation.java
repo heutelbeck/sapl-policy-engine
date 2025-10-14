@@ -17,15 +17,14 @@
  */
 package io.sapl.attributes.documentation.api;
 
-import java.util.List;
-import java.util.function.Function;
-import java.util.stream.Collectors;
-
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-
 import lombok.NonNull;
+
+import java.util.List;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 public record LibraryFunctionDocumentation(
         @NonNull String namespace,

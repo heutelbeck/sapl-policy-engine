@@ -17,13 +17,12 @@
  */
 package io.sapl.attributes.broker.impl;
 
-import java.time.Duration;
-
-import org.junit.jupiter.api.Test;
-
 import io.sapl.api.interpreter.Val;
+import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Flux;
 import reactor.test.StepVerifier;
+
+import java.time.Duration;
 
 class TimeOutWrapperTests {
 

@@ -17,16 +17,15 @@
  */
 package io.sapl.springdatar2dbc.database;
 
-import java.util.List;
-import java.util.stream.Stream;
-
+import io.sapl.spring.method.metadata.QueryEnforce;
 import org.springframework.data.r2dbc.repository.Query;
 import org.springframework.data.r2dbc.repository.R2dbcRepository;
 import org.springframework.stereotype.Repository;
-
-import io.sapl.spring.method.metadata.QueryEnforce;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+
+import java.util.List;
+import java.util.stream.Stream;
 
 @Repository
 public interface PersonR2dbcRepository extends R2dbcRepository<Person, Integer> {

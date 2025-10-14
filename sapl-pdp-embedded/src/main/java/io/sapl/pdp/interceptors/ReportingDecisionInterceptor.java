@@ -19,7 +19,6 @@ package io.sapl.pdp.interceptors;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-
 import io.sapl.api.pdp.TracedDecision;
 import io.sapl.api.pdp.TracedDecisionInterceptor;
 import lombok.RequiredArgsConstructor;

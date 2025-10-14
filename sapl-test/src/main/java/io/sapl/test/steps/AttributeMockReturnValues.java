@@ -17,13 +17,13 @@
  */
 package io.sapl.test.steps;
 
-import java.util.ArrayList;
-import java.util.List;
-
 import io.sapl.api.interpreter.Val;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Data;
+
+import java.util.ArrayList;
+import java.util.List;
 
 @Data
 @AllArgsConstructor(access = AccessLevel.PRIVATE)

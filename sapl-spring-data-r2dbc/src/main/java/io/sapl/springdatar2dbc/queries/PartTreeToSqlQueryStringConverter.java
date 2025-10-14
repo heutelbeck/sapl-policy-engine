@@ -17,17 +17,16 @@
  */
 package io.sapl.springdatar2dbc.queries;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-
+import io.sapl.springdatacommon.utils.Utilities;
+import lombok.SneakyThrows;
+import lombok.experimental.UtilityClass;
 import org.aopalliance.intercept.MethodInvocation;
 import org.springframework.data.repository.query.parser.Part;
 import org.springframework.data.repository.query.parser.PartTree;
 
-import io.sapl.springdatacommon.utils.Utilities;
-import lombok.SneakyThrows;
-import lombok.experimental.UtilityClass;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 
 /**
  * This class is responsible for translating a PartTree into a Sql-Query.

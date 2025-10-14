@@ -17,15 +17,8 @@
  */
 package io.sapl.pdp.config.resources;
 
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Optional;
-
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-
 import io.github.classgraph.ClassGraph;
 import io.github.classgraph.Resource;
 import io.sapl.api.interpreter.Val;
@@ -36,6 +29,12 @@ import io.sapl.pdp.config.VariablesAndCombinatorSource;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
+
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Optional;
 
 @Slf4j
 public final class ResourcesVariablesAndCombinatorSource implements VariablesAndCombinatorSource {

@@ -17,11 +17,10 @@
  */
 package io.sapl.interpreter.combinators;
 
-import static org.assertj.core.api.Assertions.assertThat;
-
+import io.sapl.grammar.sapl.CombiningAlgorithm;
 import org.junit.jupiter.api.Test;
 
-import io.sapl.grammar.sapl.CombiningAlgorithm;
+import static org.assertj.core.api.Assertions.assertThat;
 
 class DocumentsCombinatorFactoryTests {
 

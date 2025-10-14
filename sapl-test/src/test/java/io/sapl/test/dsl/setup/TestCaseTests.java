@@ -17,17 +17,15 @@
  */
 package io.sapl.test.dsl.setup;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.mockStatic;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-
-import java.util.Collections;
-import java.util.List;
-
+import io.sapl.test.SaplTestException;
+import io.sapl.test.SaplTestFixture;
+import io.sapl.test.TestHelper;
+import io.sapl.test.dsl.interfaces.StepConstructor;
+import io.sapl.test.grammar.sapltest.*;
+import io.sapl.test.steps.ExpectStep;
+import io.sapl.test.steps.GivenOrWhenStep;
+import io.sapl.test.steps.VerifyStep;
+import io.sapl.test.steps.WhenStep;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -36,24 +34,12 @@ import org.mockito.Mock;
 import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import io.sapl.test.SaplTestException;
-import io.sapl.test.SaplTestFixture;
-import io.sapl.test.TestHelper;
-import io.sapl.test.dsl.interfaces.StepConstructor;
-import io.sapl.test.grammar.sapltest.Document;
-import io.sapl.test.grammar.sapltest.Environment;
-import io.sapl.test.grammar.sapltest.Expectation;
-import io.sapl.test.grammar.sapltest.Given;
-import io.sapl.test.grammar.sapltest.GivenStep;
-import io.sapl.test.grammar.sapltest.MockDefinition;
-import io.sapl.test.grammar.sapltest.PdpCombiningAlgorithm;
-import io.sapl.test.grammar.sapltest.PdpVariables;
-import io.sapl.test.grammar.sapltest.Requirement;
-import io.sapl.test.grammar.sapltest.Scenario;
-import io.sapl.test.steps.ExpectStep;
-import io.sapl.test.steps.GivenOrWhenStep;
-import io.sapl.test.steps.VerifyStep;
-import io.sapl.test.steps.WhenStep;
+import java.util.Collections;
+import java.util.List;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class TestCaseTests {

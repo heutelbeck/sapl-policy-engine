@@ -17,13 +17,12 @@
  */
 package io.sapl.assertj;
 
-import org.assertj.core.api.AbstractAssert;
-import org.assertj.core.api.StringAssert;
-
 import io.sapl.api.interpreter.Val;
 import jakarta.validation.constraints.NotNull;
 import net.javacrumbs.jsonunit.assertj.JsonAssert.ConfigurableJsonAssert;
 import net.javacrumbs.jsonunit.assertj.JsonAssertions;
+import org.assertj.core.api.AbstractAssert;
+import org.assertj.core.api.StringAssert;
 
 /**
  * Assertions for SAPL Val.

@@ -17,10 +17,12 @@
  */
 package io.sapl.test.dsl;
 
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.util.function.Function;
-
+import com.google.inject.Injector;
+import io.sapl.test.SaplTestException;
+import io.sapl.test.grammar.SAPLTestStandaloneSetup;
+import io.sapl.test.grammar.sapltest.StringLiteral;
+import io.sapl.test.grammar.sapltest.Value;
+import io.sapl.test.grammar.services.SAPLTestGrammarAccess;
 import org.apache.commons.io.IOUtils;
 import org.eclipse.emf.common.util.URI;
 import org.eclipse.xtext.ParserRule;
@@ -28,13 +30,9 @@ import org.eclipse.xtext.resource.XtextResource;
 import org.eclipse.xtext.resource.XtextResourceSet;
 import org.mockito.ArgumentMatchers;
 
-import com.google.inject.Injector;
-
-import io.sapl.test.SaplTestException;
-import io.sapl.test.grammar.SAPLTestStandaloneSetup;
-import io.sapl.test.grammar.sapltest.StringLiteral;
-import io.sapl.test.grammar.sapltest.Value;
-import io.sapl.test.grammar.services.SAPLTestGrammarAccess;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.util.function.Function;
 
 public class ParserUtil {
     private static final Injector INJECTOR = new SAPLTestStandaloneSetup().createInjectorAndDoEMFRegistration();

@@ -17,14 +17,14 @@
  */
 package io.sapl.spring.pdp.embedded;
 
-import static org.assertj.core.api.Assertions.assertThat;
-
-import java.io.File;
-
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
+
+import java.io.File;
+
+import static org.assertj.core.api.Assertions.assertThat;
 
 class EmbeddedPDPPropertiesValidationTests {
 

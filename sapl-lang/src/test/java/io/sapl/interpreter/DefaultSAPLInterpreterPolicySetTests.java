@@ -17,27 +17,26 @@
  */
 package io.sapl.interpreter;
 
-import static com.spotify.hamcrest.jackson.IsJsonBoolean.jsonBoolean;
-import static com.spotify.hamcrest.optional.OptionalMatchers.optionalWithValue;
-import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.MatcherAssert.assertThat;
-
-import java.util.HashMap;
-import java.util.stream.Stream;
-
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.Arguments;
-import org.junit.jupiter.params.provider.MethodSource;
-
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.attributes.broker.api.AttributeStreamBroker;
 import io.sapl.attributes.broker.impl.CachingAttributeStreamBroker;
 import io.sapl.functions.FilterFunctionLibrary;
 import io.sapl.interpreter.functions.AnnotationFunctionContext;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import reactor.test.StepVerifier;
+
+import java.util.HashMap;
+import java.util.stream.Stream;
+
+import static com.spotify.hamcrest.jackson.IsJsonBoolean.jsonBoolean;
+import static com.spotify.hamcrest.optional.OptionalMatchers.optionalWithValue;
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.MatcherAssert.assertThat;
 
 class DefaultSAPLInterpreterPolicySetTests {
 

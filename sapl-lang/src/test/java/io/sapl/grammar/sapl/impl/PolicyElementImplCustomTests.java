@@ -17,18 +17,17 @@
  */
 package io.sapl.grammar.sapl.impl;
 
-import java.util.stream.Stream;
-
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.Arguments;
-import org.junit.jupiter.params.provider.MethodSource;
-import org.junit.jupiter.params.provider.ValueSource;
-
 import io.sapl.api.interpreter.Val;
 import io.sapl.interpreter.DefaultSAPLInterpreter;
 import io.sapl.interpreter.SAPLInterpreter;
 import io.sapl.testutil.MockUtil;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import reactor.test.StepVerifier;
+
+import java.util.stream.Stream;
 
 class PolicyElementImplCustomTests {
 

@@ -17,15 +17,13 @@
  */
 package io.sapl.test.lang;
 
-import org.eclipse.xtext.resource.XtextResourceSet;
-
 import com.google.inject.Injector;
-
 import io.sapl.grammar.SAPLStandaloneSetup;
 import io.sapl.grammar.sapl.SaplPackage;
 import io.sapl.grammar.sapl.impl.SaplFactoryImpl;
 import io.sapl.interpreter.DefaultSAPLInterpreter;
 import io.sapl.test.coverage.api.CoverageHitRecorder;
+import org.eclipse.xtext.resource.XtextResourceSet;
 
 public class TestSaplInterpreter extends DefaultSAPLInterpreter {
 

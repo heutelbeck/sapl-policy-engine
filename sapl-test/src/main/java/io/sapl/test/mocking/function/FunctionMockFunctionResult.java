@@ -17,12 +17,12 @@
  */
 package io.sapl.test.mocking.function;
 
-import java.util.function.Function;
-
 import io.sapl.api.interpreter.Val;
 import io.sapl.test.mocking.MockCall;
 import io.sapl.test.verification.MockRunInformation;
 import io.sapl.test.verification.TimesCalledVerification;
+
+import java.util.function.Function;
 
 public class FunctionMockFunctionResult implements FunctionMock {
 

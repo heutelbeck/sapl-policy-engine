@@ -17,15 +17,6 @@
  */
 package io.sapl.springdatamongoreactive.config;
 
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-
-import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.BeanFactory;
-import org.springframework.beans.factory.ObjectProvider;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
-
 import io.sapl.api.pdp.PolicyDecisionPoint;
 import io.sapl.spring.constraints.ConstraintEnforcementService;
 import io.sapl.springdatacommon.services.ConstraintQueryEnforcementService;
@@ -38,6 +29,14 @@ import io.sapl.springdatamongoreactive.proxy.MongoReactiveBeanPostProcessor;
 import io.sapl.springdatamongoreactive.proxy.MongoReactiveRepositoryFactoryCustomizer;
 import io.sapl.springdatamongoreactive.proxy.MongoReactiveRepositoryProxyPostProcessor;
 import io.sapl.springdatamongoreactive.sapl.database.TestUser;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.BeanFactory;
+import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 @SpringBootTest(classes = SaplMongoReactiveAutoConfiguration.class)
 class SaplMongoReactiveAutoConfigurationTests {

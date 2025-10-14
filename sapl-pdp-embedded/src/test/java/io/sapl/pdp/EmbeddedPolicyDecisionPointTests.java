@@ -17,28 +17,9 @@
  */
 package io.sapl.pdp;
 
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-
-import java.util.List;
-import java.util.Map;
-import java.util.function.UnaryOperator;
-
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
-
-import io.sapl.api.pdp.AuthorizationDecision;
-import io.sapl.api.pdp.AuthorizationSubscription;
-import io.sapl.api.pdp.Decision;
-import io.sapl.api.pdp.IdentifiableAuthorizationDecision;
-import io.sapl.api.pdp.MultiAuthorizationDecision;
-import io.sapl.api.pdp.MultiAuthorizationSubscription;
-import io.sapl.api.pdp.PolicyDecisionPoint;
+import io.sapl.api.pdp.*;
 import io.sapl.attributes.broker.api.AttributeStreamBroker;
 import io.sapl.attributes.broker.impl.CachingAttributeStreamBroker;
 import io.sapl.grammar.sapl.CombiningAlgorithm;
@@ -53,9 +34,17 @@ import io.sapl.pdp.interceptors.ReportingDecisionInterceptor;
 import io.sapl.prp.PolicyRetrievalPoint;
 import io.sapl.prp.PolicyRetrievalPointSource;
 import io.sapl.prp.PolicyRetrievalResult;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
+
+import java.util.List;
+import java.util.Map;
+import java.util.function.UnaryOperator;
+
+import static org.mockito.Mockito.*;
 
 class EmbeddedPolicyDecisionPointTests {
 

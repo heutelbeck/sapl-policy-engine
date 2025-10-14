@@ -17,6 +17,8 @@
  */
 package io.sapl.extension.jwt;
 
+import com.fasterxml.jackson.databind.JsonNode;
+
 import java.security.KeyFactory;
 import java.security.NoSuchAlgorithmException;
 import java.security.interfaces.RSAPublicKey;
@@ -24,8 +26,6 @@ import java.security.spec.InvalidKeySpecException;
 import java.security.spec.X509EncodedKeySpec;
 import java.util.Base64;
 import java.util.Optional;
-
-import com.fasterxml.jackson.databind.JsonNode;
 
 class JWTEncodingDecodingUtils {
 

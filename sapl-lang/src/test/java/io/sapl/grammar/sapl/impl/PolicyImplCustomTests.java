@@ -17,26 +17,24 @@
  */
 package io.sapl.grammar.sapl.impl;
 
-import static io.sapl.testutil.TestUtil.hasDecision;
-import static org.assertj.core.api.Assertions.assertThat;
-
-import java.util.Optional;
-import java.util.stream.Stream;
-
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.Arguments;
-import org.junit.jupiter.params.provider.MethodSource;
-
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.node.ArrayNode;
-
 import io.sapl.api.interpreter.Val;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.Decision;
 import io.sapl.interpreter.DefaultSAPLInterpreter;
 import io.sapl.testutil.MockUtil;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import reactor.test.StepVerifier;
+
+import java.util.Optional;
+import java.util.stream.Stream;
+
+import static io.sapl.testutil.TestUtil.hasDecision;
+import static org.assertj.core.api.Assertions.assertThat;
 
 class PolicyImplCustomTests {
 

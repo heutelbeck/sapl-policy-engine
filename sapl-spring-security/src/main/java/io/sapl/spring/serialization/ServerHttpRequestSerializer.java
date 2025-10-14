@@ -17,16 +17,15 @@
  */
 package io.sapl.spring.serialization;
 
-import java.io.IOException;
-import java.util.List;
-import java.util.Map.Entry;
-
-import org.springframework.boot.jackson.JsonComponent;
-import org.springframework.http.server.reactive.ServerHttpRequest;
-
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.JsonSerializer;
 import com.fasterxml.jackson.databind.SerializerProvider;
+import org.springframework.boot.jackson.JsonComponent;
+import org.springframework.http.server.reactive.ServerHttpRequest;
+
+import java.io.IOException;
+import java.util.List;
+import java.util.Map.Entry;
 
 @JsonComponent
 public class ServerHttpRequestSerializer extends JsonSerializer<ServerHttpRequest> {

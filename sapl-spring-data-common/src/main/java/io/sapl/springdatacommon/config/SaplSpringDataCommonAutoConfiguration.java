@@ -17,18 +17,13 @@
  */
 package io.sapl.springdatacommon.config;
 
+import io.sapl.springdatacommon.services.*;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.BeanFactory;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.security.access.expression.method.MethodSecurityExpressionHandler;
-
-import io.sapl.springdatacommon.services.ConstraintQueryEnforcementService;
-import io.sapl.springdatacommon.services.MethodSecurityExpressionEvaluator;
-import io.sapl.springdatacommon.services.QueryEnforceAuthorizationSubscriptionService;
-import io.sapl.springdatacommon.services.RepositoryInformationCollectorService;
-import io.sapl.springdatacommon.services.SecurityExpressionService;
-import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @AutoConfiguration

@@ -17,13 +17,12 @@
  */
 package io.sapl.grammar.ide.contentassist;
 
+import lombok.experimental.UtilityClass;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.text.StringEscapeUtils;
 import org.eclipse.xtext.RuleCall;
 import org.eclipse.xtext.TerminalRule;
 import org.eclipse.xtext.ide.editor.contentassist.ContentAssistContext;
-
-import lombok.experimental.UtilityClass;
-import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @UtilityClass

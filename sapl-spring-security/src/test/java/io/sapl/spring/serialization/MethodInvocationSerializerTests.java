@@ -17,27 +17,23 @@
  */
 package io.sapl.spring.serialization;
 
-import static com.spotify.hamcrest.jackson.JsonMatchers.jsonArray;
-import static com.spotify.hamcrest.jackson.JsonMatchers.jsonObject;
-import static com.spotify.hamcrest.jackson.JsonMatchers.jsonText;
-import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.containsInAnyOrder;
-import static org.hamcrest.Matchers.empty;
-
-import java.io.IOException;
-import java.io.Serializable;
-
-import org.aopalliance.intercept.MethodInvocation;
-import org.junit.jupiter.api.Test;
-import org.springframework.security.util.MethodInvocationUtils;
-
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.util.TokenBuffer;
-
 import io.sapl.api.SaplVersion;
+import org.aopalliance.intercept.MethodInvocation;
+import org.junit.jupiter.api.Test;
+import org.springframework.security.util.MethodInvocationUtils;
+
+import java.io.IOException;
+import java.io.Serializable;
+
+import static com.spotify.hamcrest.jackson.JsonMatchers.*;
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.hamcrest.Matchers.empty;
 
 class MethodInvocationSerializerTests {
 

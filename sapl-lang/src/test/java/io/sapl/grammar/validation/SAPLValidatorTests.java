@@ -17,6 +17,10 @@
  */
 package io.sapl.grammar.validation;
 
+import com.google.inject.Inject;
+import io.sapl.grammar.sapl.SAPL;
+import io.sapl.grammar.sapl.SaplPackage;
+import io.sapl.grammar.tests.SAPLInjectorProvider;
 import org.eclipse.xtext.diagnostics.Diagnostic;
 import org.eclipse.xtext.testing.InjectWith;
 import org.eclipse.xtext.testing.extensions.InjectionExtension;
@@ -25,12 +29,6 @@ import org.eclipse.xtext.testing.validation.ValidationTestHelper;
 import org.eclipse.xtext.xbase.lib.Extension;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-
-import com.google.inject.Inject;
-
-import io.sapl.grammar.sapl.SAPL;
-import io.sapl.grammar.sapl.SaplPackage;
-import io.sapl.grammar.tests.SAPLInjectorProvider;
 
 /**
  * tests for custom validator class SAPLValidator

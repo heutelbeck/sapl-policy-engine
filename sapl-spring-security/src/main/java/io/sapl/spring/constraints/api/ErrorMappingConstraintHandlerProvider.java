@@ -17,9 +17,9 @@
  */
 package io.sapl.spring.constraints.api;
 
-import java.util.function.UnaryOperator;
-
 import com.fasterxml.jackson.databind.JsonNode;
+
+import java.util.function.UnaryOperator;
 
 public interface ErrorMappingConstraintHandlerProvider extends Responsible, HasPriority {
 

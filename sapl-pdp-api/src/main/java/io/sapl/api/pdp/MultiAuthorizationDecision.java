@@ -17,19 +17,18 @@
  */
 package io.sapl.api.pdp;
 
-import static com.fasterxml.jackson.annotation.JsonInclude.Include.NON_EMPTY;
+import com.fasterxml.jackson.annotation.JsonInclude;
+import io.sapl.api.SaplVersion;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import lombok.NonNull;
 
 import java.io.Serializable;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 
-import com.fasterxml.jackson.annotation.JsonInclude;
-
-import io.sapl.api.SaplVersion;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-import lombok.NonNull;
+import static com.fasterxml.jackson.annotation.JsonInclude.Include.NON_EMPTY;
 
 /**
  * A multi-decision holds a map of authorization subscription IDs and

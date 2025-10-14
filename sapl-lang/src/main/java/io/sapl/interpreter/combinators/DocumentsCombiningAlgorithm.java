@@ -17,11 +17,11 @@
  */
 package io.sapl.interpreter.combinators;
 
-import java.util.List;
-
 import io.sapl.interpreter.CombinedDecision;
 import io.sapl.prp.DocumentMatch;
 import reactor.core.publisher.Flux;
+
+import java.util.List;
 
 @FunctionalInterface
 public interface DocumentsCombiningAlgorithm {

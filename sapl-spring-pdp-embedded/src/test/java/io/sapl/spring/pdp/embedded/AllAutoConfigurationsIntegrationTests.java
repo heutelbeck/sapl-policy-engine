@@ -17,19 +17,17 @@
  */
 package io.sapl.spring.pdp.embedded;
 
-import static org.assertj.core.api.Assertions.assertThat;
-
-import java.io.File;
-
+import com.fasterxml.jackson.databind.ObjectMapper;
+import io.sapl.api.pdp.PolicyDecisionPoint;
+import io.sapl.pdp.EmbeddedPolicyDecisionPoint;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import java.io.File;
 
-import io.sapl.api.pdp.PolicyDecisionPoint;
-import io.sapl.pdp.EmbeddedPolicyDecisionPoint;
+import static org.assertj.core.api.Assertions.assertThat;
 
 class AllAutoConfigurationsIntegrationTests {
 

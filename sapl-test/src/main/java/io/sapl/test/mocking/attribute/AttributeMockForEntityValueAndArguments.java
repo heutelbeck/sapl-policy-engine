@@ -17,13 +17,6 @@
  */
 package io.sapl.test.mocking.attribute;
 
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.List;
-
-import org.hamcrest.Matcher;
-
 import io.sapl.api.interpreter.Val;
 import io.sapl.attributes.broker.api.AttributeFinderInvocation;
 import io.sapl.test.Imports;
@@ -34,7 +27,13 @@ import io.sapl.test.verification.MockRunInformation;
 import io.sapl.test.verification.TimesParameterCalledVerification;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
+import org.hamcrest.Matcher;
 import reactor.core.publisher.Flux;
+
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.List;
 
 public class AttributeMockForEntityValueAndArguments implements AttributeMock {
 

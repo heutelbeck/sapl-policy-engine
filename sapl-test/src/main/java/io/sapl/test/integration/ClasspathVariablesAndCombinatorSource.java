@@ -17,13 +17,7 @@
  */
 package io.sapl.test.integration;
 
-import java.nio.file.Files;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Optional;
-
 import com.fasterxml.jackson.databind.ObjectMapper;
-
 import io.sapl.api.interpreter.Val;
 import io.sapl.interpreter.combinators.PolicyDocumentCombiningAlgorithm;
 import io.sapl.pdp.config.PolicyDecisionPointConfiguration;
@@ -33,6 +27,11 @@ import lombok.NonNull;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
+
+import java.nio.file.Files;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Optional;
 
 @Slf4j
 public class ClasspathVariablesAndCombinatorSource implements VariablesAndCombinatorSource {

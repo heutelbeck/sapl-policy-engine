@@ -17,13 +17,11 @@
  */
 package io.sapl.springdatamongoreactive.queries;
 
-import java.util.ArrayList;
-
+import com.fasterxml.jackson.databind.JsonNode;
+import lombok.experimental.UtilityClass;
 import org.springframework.data.mongodb.core.query.Query;
 
-import com.fasterxml.jackson.databind.JsonNode;
-
-import lombok.experimental.UtilityClass;
+import java.util.ArrayList;
 
 @UtilityClass
 public class QuerySelectionUtils {

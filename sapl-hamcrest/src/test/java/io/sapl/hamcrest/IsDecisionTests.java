@@ -17,20 +17,15 @@
  */
 package io.sapl.hamcrest;
 
-import static io.sapl.hamcrest.Matchers.anyDecision;
-import static io.sapl.hamcrest.Matchers.isDeny;
-import static io.sapl.hamcrest.Matchers.isIndeterminate;
-import static io.sapl.hamcrest.Matchers.isNotApplicable;
-import static io.sapl.hamcrest.Matchers.isPermit;
-import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.CoreMatchers.not;
-import static org.hamcrest.MatcherAssert.assertThat;
-
+import io.sapl.api.pdp.AuthorizationDecision;
+import io.sapl.api.pdp.Decision;
 import org.hamcrest.StringDescription;
 import org.junit.jupiter.api.Test;
 
-import io.sapl.api.pdp.AuthorizationDecision;
-import io.sapl.api.pdp.Decision;
+import static io.sapl.hamcrest.Matchers.*;
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.not;
+import static org.hamcrest.MatcherAssert.assertThat;
 
 class IsDecisionTests {
 

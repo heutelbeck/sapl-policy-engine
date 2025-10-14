@@ -17,13 +17,12 @@
  */
 package io.sapl.spring.constraints.providers;
 
-import java.util.function.Predicate;
-
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-
 import io.sapl.spring.constraints.api.FilterPredicateConstraintHandlerProvider;
 import lombok.RequiredArgsConstructor;
+
+import java.util.function.Predicate;
 
 @RequiredArgsConstructor
 public class ContentFilterPredicateProvider implements FilterPredicateConstraintHandlerProvider {

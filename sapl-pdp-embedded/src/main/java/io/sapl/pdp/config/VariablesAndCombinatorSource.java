@@ -17,12 +17,12 @@
  */
 package io.sapl.pdp.config;
 
-import java.util.Map;
-import java.util.Optional;
-
 import io.sapl.api.interpreter.Val;
 import io.sapl.interpreter.combinators.PolicyDocumentCombiningAlgorithm;
 import reactor.core.publisher.Flux;
+
+import java.util.Map;
+import java.util.Optional;
 
 public interface VariablesAndCombinatorSource {
 

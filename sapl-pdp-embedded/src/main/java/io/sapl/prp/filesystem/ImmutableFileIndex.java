@@ -17,15 +17,7 @@
  */
 package io.sapl.prp.filesystem;
 
-import java.io.IOException;
-import java.nio.file.Path;
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-
 import com.google.common.collect.Maps;
-
 import io.sapl.interpreter.SAPLInterpreter;
 import io.sapl.prp.PrpUpdateEvent;
 import io.sapl.prp.PrpUpdateEvent.Type;
@@ -36,6 +28,13 @@ import io.sapl.util.filemonitoring.FileEvent;
 import io.sapl.util.filemonitoring.FileMonitorUtil;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
+
+import java.io.IOException;
+import java.nio.file.Path;
+import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
 
 @Slf4j
 class ImmutableFileIndex {

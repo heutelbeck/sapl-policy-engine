@@ -17,12 +17,11 @@
  */
 package io.sapl.grammar.sapl.impl.util;
 
-import static org.assertj.core.api.Assertions.assertThat;
-
-import org.junit.jupiter.api.Test;
-
 import io.sapl.api.interpreter.Val;
+import org.junit.jupiter.api.Test;
 import reactor.util.function.Tuples;
+
+import static org.assertj.core.api.Assertions.assertThat;
 
 class RepackageUtilTests {
 

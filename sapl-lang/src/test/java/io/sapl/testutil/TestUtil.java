@@ -17,11 +17,8 @@
  */
 package io.sapl.testutil;
 
-import java.util.function.Predicate;
-
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-
 import io.sapl.api.interpreter.Val;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.grammar.sapl.BasicValue;
@@ -32,6 +29,8 @@ import io.sapl.interpreter.DocumentEvaluationResult;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import reactor.test.StepVerifier;
+
+import java.util.function.Predicate;
 
 @Slf4j
 public class TestUtil {

@@ -17,29 +17,9 @@
  */
 package io.sapl.prp.filesystem;
 
-import static com.spotify.hamcrest.pojo.IsPojo.pojo;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.arrayContainingInAnyOrder;
-import static org.hamcrest.Matchers.arrayWithSize;
-import static org.hamcrest.Matchers.is;
-
-import java.nio.file.FileSystem;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.Objects;
-import java.util.stream.Stream;
-
-import org.hamcrest.BaseMatcher;
-import org.hamcrest.Description;
-import org.hamcrest.Matcher;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.Arguments;
-import org.junit.jupiter.params.provider.MethodSource;
-
 import com.google.common.jimfs.Configuration;
 import com.google.common.jimfs.Jimfs;
 import com.spotify.hamcrest.pojo.IsPojo;
-
 import io.sapl.interpreter.DefaultSAPLInterpreter;
 import io.sapl.interpreter.SAPLInterpreter;
 import io.sapl.prp.PrpUpdateEvent.Type;
@@ -48,6 +28,22 @@ import io.sapl.util.filemonitoring.FileChangedEvent;
 import io.sapl.util.filemonitoring.FileCreatedEvent;
 import io.sapl.util.filemonitoring.FileDeletedEvent;
 import lombok.SneakyThrows;
+import org.hamcrest.BaseMatcher;
+import org.hamcrest.Description;
+import org.hamcrest.Matcher;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
+
+import java.nio.file.FileSystem;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.Objects;
+import java.util.stream.Stream;
+
+import static com.spotify.hamcrest.pojo.IsPojo.pojo;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.*;
 
 class ImmutableFileIndexTests {
 

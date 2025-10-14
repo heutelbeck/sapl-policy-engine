@@ -17,14 +17,14 @@
  */
 package io.sapl.mavenplugin.test.coverage;
 
-import java.io.IOException;
-
 import org.apache.commons.io.FileUtils;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugins.annotations.LifecyclePhase;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
+
+import java.io.IOException;
 
 @Mojo(name = "enable-coverage-collection", defaultPhase = LifecyclePhase.PROCESS_TEST_CLASSES)
 public class EnableCoverageCollectionMojo extends AbstractMojo {

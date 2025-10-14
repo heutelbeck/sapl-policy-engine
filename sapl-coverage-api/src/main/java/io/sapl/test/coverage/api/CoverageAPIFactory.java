@@ -17,9 +17,9 @@
  */
 package io.sapl.test.coverage.api;
 
-import java.nio.file.Path;
-
 import lombok.experimental.UtilityClass;
+
+import java.nio.file.Path;
 
 /**
  * Factory for {@link CoverageHitReader} and {@link CoverageHitRecorder}.

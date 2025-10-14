@@ -23,7 +23,7 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.ComponentScan;
 
-import static java.util.concurrent.Executors.*;
+import static java.util.concurrent.Executors.newSingleThreadExecutor;
 
 /**
  * Spring boot CLI application which starts a language server for sapl policy

@@ -17,17 +17,7 @@
  */
 package io.sapl.test.integration;
 
-import java.io.IOException;
-import java.nio.file.DirectoryStream;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
-
 import com.google.common.collect.Maps;
-
 import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.interpreter.SAPLInterpreter;
 import io.sapl.prp.Document;
@@ -41,6 +31,15 @@ import lombok.extern.slf4j.Slf4j;
 import reactor.core.Exceptions;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+
+import java.io.IOException;
+import java.nio.file.DirectoryStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
 
 @Slf4j
 public final class ClasspathPolicyRetrievalPoint implements PolicyRetrievalPoint {

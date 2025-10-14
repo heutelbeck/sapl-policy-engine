@@ -17,13 +17,13 @@
  */
 package io.sapl.spring.method.reactive;
 
-import java.util.NoSuchElementException;
-
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.NonNull;
 import lombok.SneakyThrows;
 import reactor.core.publisher.Mono;
+
+import java.util.NoSuchElementException;
 
 /**
  * A wrapper class to enable onErrorContinue with in protected Flux processing.

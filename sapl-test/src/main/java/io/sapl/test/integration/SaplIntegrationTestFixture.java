@@ -17,14 +17,7 @@
  */
 package io.sapl.test.integration;
 
-import java.nio.file.Paths;
-import java.util.Collection;
-import java.util.Map;
-import java.util.Objects;
-import java.util.function.Supplier;
-
 import com.fasterxml.jackson.databind.ObjectMapper;
-
 import io.sapl.api.interpreter.Val;
 import io.sapl.interpreter.SAPLInterpreter;
 import io.sapl.interpreter.combinators.PolicyDocumentCombiningAlgorithm;
@@ -36,6 +29,12 @@ import io.sapl.test.coverage.api.CoverageAPIFactory;
 import io.sapl.test.lang.TestSaplInterpreter;
 import io.sapl.test.steps.GivenStep;
 import io.sapl.test.steps.WhenStep;
+
+import java.nio.file.Paths;
+import java.util.Collection;
+import java.util.Map;
+import java.util.Objects;
+import java.util.function.Supplier;
 
 public class SaplIntegrationTestFixture extends SaplTestFixtureTemplate {
 

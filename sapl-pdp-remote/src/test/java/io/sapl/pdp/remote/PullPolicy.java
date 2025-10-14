@@ -17,12 +17,11 @@
  */
 package io.sapl.pdp.remote;
 
+import lombok.experimental.UtilityClass;
 import org.testcontainers.images.AbstractImagePullPolicy;
 import org.testcontainers.images.ImageData;
 import org.testcontainers.images.ImagePullPolicy;
 import org.testcontainers.utility.DockerImageName;
-
-import lombok.experimental.UtilityClass;
 
 @UtilityClass
 public class PullPolicy {

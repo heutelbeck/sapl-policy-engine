@@ -17,7 +17,25 @@
  */
 package io.sapl.extension.jwt;
 
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.nimbusds.jose.JOSEException;
+import com.nimbusds.jose.JWSAlgorithm;
+import com.nimbusds.jose.JWSHeader;
+import com.nimbusds.jwt.JWTClaimsSet;
+import io.sapl.api.interpreter.Val;
+import io.sapl.attributes.broker.impl.AnnotationPolicyInformationPointLoader;
+import io.sapl.attributes.broker.impl.CachingAttributeStreamBroker;
+import io.sapl.attributes.broker.impl.InMemoryPolicyInformationPointDocumentationProvider;
+import io.sapl.validation.ValidatorFactory;
+import okhttp3.mockwebserver.MockWebServer;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.springframework.web.reactive.function.client.WebClient;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
+import reactor.test.StepVerifier;
 
 import java.io.IOException;
 import java.security.KeyPair;
@@ -28,27 +46,7 @@ import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.springframework.web.reactive.function.client.WebClient;
-
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.nimbusds.jose.JOSEException;
-import com.nimbusds.jose.JWSAlgorithm;
-import com.nimbusds.jose.JWSHeader;
-import com.nimbusds.jwt.JWTClaimsSet;
-
-import io.sapl.api.interpreter.Val;
-import io.sapl.attributes.broker.impl.AnnotationPolicyInformationPointLoader;
-import io.sapl.attributes.broker.impl.CachingAttributeStreamBroker;
-import io.sapl.attributes.broker.impl.InMemoryPolicyInformationPointDocumentationProvider;
-import io.sapl.validation.ValidatorFactory;
-import okhttp3.mockwebserver.MockWebServer;
-import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
-import reactor.test.StepVerifier;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 
 class JWTPolicyInformationPointTests {
 

@@ -17,8 +17,6 @@
  */
 package io.sapl.test.unit;
 
-import java.util.function.Supplier;
-
 import io.sapl.interpreter.SAPLInterpreter;
 import io.sapl.prp.Document;
 import io.sapl.test.SaplTestException;
@@ -28,6 +26,8 @@ import io.sapl.test.lang.TestSaplInterpreter;
 import io.sapl.test.steps.GivenStep;
 import io.sapl.test.steps.WhenStep;
 import io.sapl.test.utils.DocumentHelper;
+
+import java.util.function.Supplier;
 
 public class SaplUnitTestFixture extends SaplTestFixtureTemplate {
 

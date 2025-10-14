@@ -17,8 +17,17 @@
  */
 package io.sapl.pdp.config.filesystem;
 
-import static io.sapl.util.filemonitoring.FileMonitorUtil.monitorDirectory;
-import static io.sapl.util.filemonitoring.FileMonitorUtil.resolveHomeFolderIfPresent;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import io.sapl.api.interpreter.Val;
+import io.sapl.interpreter.combinators.PolicyDocumentCombiningAlgorithm;
+import io.sapl.pdp.config.PolicyDecisionPointConfiguration;
+import io.sapl.pdp.config.VariablesAndCombinatorSource;
+import io.sapl.util.filemonitoring.FileDeletedEvent;
+import io.sapl.util.filemonitoring.FileEvent;
+import lombok.extern.slf4j.Slf4j;
+import reactor.core.Disposable;
+import reactor.core.publisher.Flux;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -29,18 +38,8 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-
-import io.sapl.api.interpreter.Val;
-import io.sapl.interpreter.combinators.PolicyDocumentCombiningAlgorithm;
-import io.sapl.pdp.config.PolicyDecisionPointConfiguration;
-import io.sapl.pdp.config.VariablesAndCombinatorSource;
-import io.sapl.util.filemonitoring.FileDeletedEvent;
-import io.sapl.util.filemonitoring.FileEvent;
-import lombok.extern.slf4j.Slf4j;
-import reactor.core.Disposable;
-import reactor.core.publisher.Flux;
+import static io.sapl.util.filemonitoring.FileMonitorUtil.monitorDirectory;
+import static io.sapl.util.filemonitoring.FileMonitorUtil.resolveHomeFolderIfPresent;
 
 @Slf4j
 public class FileSystemVariablesAndCombinatorSource implements VariablesAndCombinatorSource {

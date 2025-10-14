@@ -20,7 +20,6 @@ package io.sapl.server.ce.security.apikey;
 import io.sapl.server.ce.model.clients.AuthType;
 import io.sapl.server.ce.model.clients.ClientCredentialsRepository;
 import io.sapl.server.ce.model.setup.condition.SetupFinishedCondition;
-import io.sapl.server.ce.security.ClientDetailsService;
 import io.sapl.server.ce.security.Roles;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;

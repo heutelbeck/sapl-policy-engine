@@ -17,18 +17,7 @@
  */
 package io.sapl.spring.pdp.embedded;
 
-import java.util.Collection;
-
-import org.springframework.beans.factory.config.BeanDefinition;
-import org.springframework.boot.autoconfigure.AutoConfiguration;
-import org.springframework.boot.autoconfigure.AutoConfigureAfter;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
-import org.springframework.context.ConfigurableApplicationContext;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Role;
-
 import com.fasterxml.jackson.databind.ObjectMapper;
-
 import io.sapl.api.pip.PolicyInformationPoint;
 import io.sapl.api.pip.PolicyInformationPointSupplier;
 import io.sapl.api.pip.StaticPolicyInformationPointSupplier;
@@ -41,6 +30,15 @@ import io.sapl.interpreter.InitializationException;
 import io.sapl.validation.ValidatorFactory;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.config.BeanDefinition;
+import org.springframework.boot.autoconfigure.AutoConfiguration;
+import org.springframework.boot.autoconfigure.AutoConfigureAfter;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
+import org.springframework.context.ConfigurableApplicationContext;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Role;
+
+import java.util.Collection;
 
 @Slf4j
 @AutoConfiguration

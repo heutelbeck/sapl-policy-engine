@@ -17,11 +17,8 @@
  */
 package io.sapl.server.pdpcontroller;
 
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-
+import com.fasterxml.jackson.databind.node.JsonNodeFactory;
+import io.sapl.api.pdp.*;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.reactive.WebFluxTest;
@@ -32,17 +29,11 @@ import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.reactive.server.WebTestClient;
 import org.springframework.web.reactive.function.BodyInserters;
-
-import com.fasterxml.jackson.databind.node.JsonNodeFactory;
-
-import io.sapl.api.pdp.AuthorizationDecision;
-import io.sapl.api.pdp.AuthorizationSubscription;
-import io.sapl.api.pdp.IdentifiableAuthorizationDecision;
-import io.sapl.api.pdp.MultiAuthorizationDecision;
-import io.sapl.api.pdp.MultiAuthorizationSubscription;
-import io.sapl.api.pdp.PolicyDecisionPoint;
 import reactor.core.publisher.Flux;
 import reactor.test.StepVerifier;
+
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.*;
 
 @Import(PolicyDecisionPoint.class)
 @ContextConfiguration(classes = { PDPController.class })

@@ -17,9 +17,9 @@
  */
 package io.sapl.spring.pdp.embedded;
 
-import java.util.Collection;
-
 import io.sapl.attributes.documentation.api.LibraryDocumentation;
+
+import java.util.Collection;
 
 /**
  * Holds the documentation for all deployed Policy Information Points.

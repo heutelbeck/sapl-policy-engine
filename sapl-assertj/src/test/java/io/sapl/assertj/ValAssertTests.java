@@ -17,17 +17,15 @@
  */
 package io.sapl.assertj;
 
-import static io.sapl.assertj.SaplAssertions.assertThatVal;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
-
+import com.fasterxml.jackson.core.JsonProcessingException;
+import io.sapl.api.interpreter.Val;
+import io.sapl.api.pdp.SaplError;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.function.Executable;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-
-import io.sapl.api.interpreter.Val;
-import io.sapl.api.pdp.SaplError;
+import static io.sapl.assertj.SaplAssertions.assertThatVal;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 
 class ValAssertTests {
 

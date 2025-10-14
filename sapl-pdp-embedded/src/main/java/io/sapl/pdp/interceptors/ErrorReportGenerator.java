@@ -17,11 +17,10 @@
  */
 package io.sapl.pdp.interceptors;
 
-import org.apache.commons.text.StringEscapeUtils;
-
 import io.sapl.api.interpreter.Val;
 import io.sapl.api.pdp.SaplError;
 import lombok.experimental.UtilityClass;
+import org.apache.commons.text.StringEscapeUtils;
 
 @UtilityClass
 public class ErrorReportGenerator {

@@ -1,17 +1,17 @@
-import { LitElement, html, css } from 'lit';
+import {css, html, LitElement} from 'lit';
 import {
-    CodeMirrorStyles,
-    CodeMirrorLintStyles,
-    CodeMirrorHintStyles,
-    XTextAnnotationsStyles,
     AutocompleteWidgetStyle,
-    ReadOnlyStyle,
+    CodeMirrorHintStyles,
+    CodeMirrorLintStyles,
+    CodeMirrorStyles,
+    DarkStyle,
     HeightFix,
-    DarkStyle
+    ReadOnlyStyle,
+    XTextAnnotationsStyles
 } from './shared-styles.js';
 
 import './sapl-test-mode';
-import { exports as xtext } from './xtext-codemirror';
+import {exports as xtext} from './xtext-codemirror';
 
 import CodeMirror from 'codemirror';
 import 'codemirror/addon/lint/lint';

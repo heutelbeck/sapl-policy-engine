@@ -17,22 +17,14 @@
  */
 package io.sapl.test.dsl.interpreter;
 
-import static com.spotify.hamcrest.jackson.JsonMatchers.jsonBigDecimal;
-import static com.spotify.hamcrest.jackson.JsonMatchers.jsonText;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.doReturn;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.mockStatic;
-import static org.mockito.Mockito.when;
-
-import java.math.BigDecimal;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
-
+import com.fasterxml.jackson.databind.JsonNode;
+import com.spotify.hamcrest.jackson.IsJsonObject;
+import com.spotify.hamcrest.jackson.JsonMatchers;
+import io.sapl.test.SaplTestException;
+import io.sapl.test.TestHelper;
+import io.sapl.test.dsl.ParserUtil;
+import io.sapl.test.grammar.sapltest.*;
+import io.sapl.test.grammar.services.SAPLTestGrammarAccess;
 import org.hamcrest.Matcher;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.AfterEach;
@@ -45,25 +37,18 @@ import org.mockito.Mock;
 import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.spotify.hamcrest.jackson.IsJsonObject;
-import com.spotify.hamcrest.jackson.JsonMatchers;
+import java.math.BigDecimal;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
 
-import io.sapl.test.SaplTestException;
-import io.sapl.test.TestHelper;
-import io.sapl.test.dsl.ParserUtil;
-import io.sapl.test.grammar.sapltest.IsJsonArray;
-import io.sapl.test.grammar.sapltest.IsJsonBoolean;
-import io.sapl.test.grammar.sapltest.IsJsonNull;
-import io.sapl.test.grammar.sapltest.IsJsonNumber;
-import io.sapl.test.grammar.sapltest.IsJsonText;
-import io.sapl.test.grammar.sapltest.JsonArrayMatcher;
-import io.sapl.test.grammar.sapltest.JsonNodeMatcher;
-import io.sapl.test.grammar.sapltest.JsonObjectMatcher;
-import io.sapl.test.grammar.sapltest.StringIsNull;
-import io.sapl.test.grammar.sapltest.StringOrStringMatcher;
-import io.sapl.test.grammar.sapltest.Value;
-import io.sapl.test.grammar.services.SAPLTestGrammarAccess;
+import static com.spotify.hamcrest.jackson.JsonMatchers.jsonBigDecimal;
+import static com.spotify.hamcrest.jackson.JsonMatchers.jsonText;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class JsonNodeMatcherInterpreterTests {

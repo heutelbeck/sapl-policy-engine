@@ -17,9 +17,9 @@
  */
 package io.sapl.spring.pdp.embedded;
 
-import java.util.Collection;
-
 import io.sapl.interpreter.functions.LibraryDocumentation;
+
+import java.util.Collection;
 
 /**
  * Holds the documentation for all deployed function libraries.

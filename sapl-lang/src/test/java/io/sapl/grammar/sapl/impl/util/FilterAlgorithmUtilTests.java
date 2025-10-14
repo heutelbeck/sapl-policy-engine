@@ -17,12 +17,11 @@
  */
 package io.sapl.grammar.sapl.impl.util;
 
-import static org.mockito.Mockito.mock;
-
-import org.junit.jupiter.api.Test;
-
 import io.sapl.grammar.sapl.FilterStatement;
+import org.junit.jupiter.api.Test;
 import reactor.test.StepVerifier;
+
+import static org.mockito.Mockito.mock;
 
 class FilterAlgorithmUtilTests {
 

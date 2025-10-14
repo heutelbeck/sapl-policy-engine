@@ -17,13 +17,13 @@
  */
 package io.sapl.mavenplugin.test.coverage.report;
 
-import java.nio.file.Paths;
-import java.util.Collection;
-import java.util.List;
-
 import io.sapl.mavenplugin.test.coverage.report.model.LineCoveredValue;
 import io.sapl.mavenplugin.test.coverage.report.model.SaplDocumentCoverageInformation;
 import lombok.experimental.UtilityClass;
+
+import java.nio.file.Paths;
+import java.util.Collection;
+import java.util.List;
 
 @UtilityClass
 public class SampleCoverageInformation {

@@ -17,16 +17,15 @@
  */
 package io.sapl.test.dsl.interpreter;
 
-import java.util.List;
-
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
-
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.test.SaplTestException;
 import io.sapl.test.grammar.sapltest.AuthorizationDecisionType;
 import io.sapl.test.grammar.sapltest.Value;
 import lombok.RequiredArgsConstructor;
+
+import java.util.List;
 
 @RequiredArgsConstructor
 class AuthorizationDecisionInterpreter {

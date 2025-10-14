@@ -17,25 +17,23 @@
  */
 package io.sapl.hamcrest;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import io.sapl.api.pdp.AuthorizationDecision;
+import io.sapl.api.pdp.Decision;
+import org.hamcrest.Matcher;
+import org.hamcrest.StringDescription;
+import org.junit.jupiter.api.Test;
+
+import java.util.Optional;
+
 import static com.spotify.hamcrest.jackson.JsonMatchers.jsonText;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-
-import java.util.Optional;
-
-import org.hamcrest.Matcher;
-import org.hamcrest.StringDescription;
-import org.junit.jupiter.api.Test;
-
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
-
-import io.sapl.api.pdp.AuthorizationDecision;
-import io.sapl.api.pdp.Decision;
 
 class HasObligationContainingKeyValueTests {
 

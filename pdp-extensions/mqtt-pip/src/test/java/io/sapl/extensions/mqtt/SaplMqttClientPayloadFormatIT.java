@@ -17,24 +17,6 @@
  */
 package io.sapl.extensions.mqtt;
 
-import static io.sapl.extensions.mqtt.MqttTestUtility.buildAndStartBroker;
-import static io.sapl.extensions.mqtt.MqttTestUtility.buildVariables;
-import static io.sapl.extensions.mqtt.MqttTestUtility.startClient;
-import static io.sapl.extensions.mqtt.MqttTestUtility.stopBroker;
-import static io.sapl.extensions.mqtt.util.PayloadFormatUtility.convertBytesToArrayNode;
-
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Path;
-import java.time.Duration;
-import java.util.Objects;
-
-import org.eclipse.xtext.util.Strings;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.Timeout;
-import org.junit.jupiter.api.io.TempDir;
-
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.hivemq.client.mqtt.datatypes.MqttQos;
@@ -42,9 +24,22 @@ import com.hivemq.client.mqtt.mqtt5.Mqtt5BlockingClient;
 import com.hivemq.client.mqtt.mqtt5.message.publish.Mqtt5PayloadFormatIndicator;
 import com.hivemq.client.mqtt.mqtt5.message.publish.Mqtt5Publish;
 import com.hivemq.embedded.EmbeddedHiveMQ;
-
 import io.sapl.api.interpreter.Val;
+import org.eclipse.xtext.util.Strings;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
+import org.junit.jupiter.api.io.TempDir;
 import reactor.test.StepVerifier;
+
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Path;
+import java.time.Duration;
+import java.util.Objects;
+
+import static io.sapl.extensions.mqtt.MqttTestUtility.*;
+import static io.sapl.extensions.mqtt.util.PayloadFormatUtility.convertBytesToArrayNode;
 
 class SaplMqttClientPayloadFormatIT {
 

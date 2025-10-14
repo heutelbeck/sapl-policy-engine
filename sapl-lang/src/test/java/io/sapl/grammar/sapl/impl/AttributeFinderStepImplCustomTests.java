@@ -17,20 +17,6 @@
  */
 package io.sapl.grammar.sapl.impl;
 
-import static io.sapl.testutil.TestUtil.assertExpressionErrors;
-import static io.sapl.testutil.TestUtil.assertExpressionReturnsError;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
-
-import java.io.IOException;
-import java.util.stream.Stream;
-
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.Arguments;
-import org.junit.jupiter.params.provider.MethodSource;
-
 import io.sapl.api.interpreter.Val;
 import io.sapl.attributes.broker.api.AttributeStreamBroker;
 import io.sapl.grammar.sapl.AttributeFinderStep;
@@ -39,8 +25,21 @@ import io.sapl.grammar.sapl.impl.util.ErrorFactory;
 import io.sapl.interpreter.context.AuthorizationContext;
 import io.sapl.testutil.MockUtil;
 import io.sapl.testutil.ParserUtil;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import reactor.core.publisher.Flux;
 import reactor.test.StepVerifier;
+
+import java.io.IOException;
+import java.util.stream.Stream;
+
+import static io.sapl.testutil.TestUtil.assertExpressionErrors;
+import static io.sapl.testutil.TestUtil.assertExpressionReturnsError;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 class AttributeFinderStepImplCustomTests {
 

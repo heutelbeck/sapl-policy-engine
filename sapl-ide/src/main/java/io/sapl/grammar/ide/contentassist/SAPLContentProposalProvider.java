@@ -17,13 +17,17 @@
  */
 package io.sapl.grammar.ide.contentassist;
 
-import static io.sapl.grammar.ide.contentassist.ExpressionSchemaResolver.offsetOf;
-
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.Set;
-
+import com.google.common.base.Splitter;
+import com.google.common.base.Strings;
+import com.google.inject.Inject;
+import io.sapl.attributes.documentation.api.PolicyInformationPointDocumentationProvider;
+import io.sapl.grammar.ide.contentassist.ContextAnalyzer.ContextAnalysisResult;
+import io.sapl.grammar.ide.contentassist.ContextAnalyzer.ProposalType;
+import io.sapl.grammar.ide.contentassist.ProposalCreator.Proposal;
+import io.sapl.grammar.sapl.*;
+import io.sapl.grammar.services.SAPLGrammarAccess;
+import io.sapl.pdp.config.PDPConfiguration;
+import io.sapl.pdp.config.PDPConfigurationProvider;
 import org.eclipse.emf.common.util.EList;
 import org.eclipse.emf.ecore.EObject;
 import org.eclipse.xtext.Assignment;
@@ -37,26 +41,12 @@ import org.eclipse.xtext.nodemodel.INode;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
-import com.google.common.base.Splitter;
-import com.google.common.base.Strings;
-import com.google.inject.Inject;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import java.util.Set;
 
-import io.sapl.attributes.documentation.api.PolicyInformationPointDocumentationProvider;
-import io.sapl.grammar.ide.contentassist.ContextAnalyzer.ContextAnalysisResult;
-import io.sapl.grammar.ide.contentassist.ContextAnalyzer.ProposalType;
-import io.sapl.grammar.ide.contentassist.ProposalCreator.Proposal;
-import io.sapl.grammar.sapl.AttributeFinderStep;
-import io.sapl.grammar.sapl.BasicEnvironmentAttribute;
-import io.sapl.grammar.sapl.BasicEnvironmentHeadAttribute;
-import io.sapl.grammar.sapl.Expression;
-import io.sapl.grammar.sapl.HeadAttributeFinderStep;
-import io.sapl.grammar.sapl.Policy;
-import io.sapl.grammar.sapl.PolicyBody;
-import io.sapl.grammar.sapl.PolicySet;
-import io.sapl.grammar.sapl.ValueDefinition;
-import io.sapl.grammar.services.SAPLGrammarAccess;
-import io.sapl.pdp.config.PDPConfiguration;
-import io.sapl.pdp.config.PDPConfigurationProvider;
+import static io.sapl.grammar.ide.contentassist.ExpressionSchemaResolver.offsetOf;
 
 /**
  * This class enhances the auto-completion proposals that the language server

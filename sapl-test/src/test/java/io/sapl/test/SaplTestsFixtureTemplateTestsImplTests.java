@@ -17,17 +17,15 @@
  */
 package io.sapl.test;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
-
-import java.nio.file.Paths;
-
+import com.fasterxml.jackson.databind.ObjectMapper;
+import io.sapl.api.interpreter.Val;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import java.nio.file.Paths;
 
-import io.sapl.api.interpreter.Val;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 
 class SaplTestsFixtureTemplateTestsImplTests {
 

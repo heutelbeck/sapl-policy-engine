@@ -17,12 +17,11 @@
  */
 package io.sapl.test.lang;
 
-import static org.assertj.core.api.Assertions.assertThat;
-
+import io.sapl.test.coverage.api.CoverageHitRecorder;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
-import io.sapl.test.coverage.api.CoverageHitRecorder;
+import static org.assertj.core.api.Assertions.assertThat;
 
 class TestSaplInterpreterTests {
 

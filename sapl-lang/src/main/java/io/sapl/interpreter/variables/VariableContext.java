@@ -17,16 +17,15 @@
  */
 package io.sapl.interpreter.variables;
 
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
-
 import com.fasterxml.jackson.databind.JsonNode;
 import com.google.common.collect.Maps;
-
 import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.api.interpreter.Val;
 import io.sapl.api.pdp.AuthorizationSubscription;
+
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
 
 public class VariableContext {
 

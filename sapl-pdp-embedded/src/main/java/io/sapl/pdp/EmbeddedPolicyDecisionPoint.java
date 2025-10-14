@@ -17,20 +17,7 @@
  */
 package io.sapl.pdp;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.function.Function;
-
-import org.reactivestreams.Publisher;
-
-import io.sapl.api.pdp.AuthorizationDecision;
-import io.sapl.api.pdp.AuthorizationSubscription;
-import io.sapl.api.pdp.IdentifiableAuthorizationDecision;
-import io.sapl.api.pdp.IdentifiableAuthorizationSubscription;
-import io.sapl.api.pdp.MultiAuthorizationDecision;
-import io.sapl.api.pdp.MultiAuthorizationSubscription;
-import io.sapl.api.pdp.PolicyDecisionPoint;
-import io.sapl.api.pdp.TracedDecision;
+import io.sapl.api.pdp.*;
 import io.sapl.interpreter.CombinedDecision;
 import io.sapl.interpreter.combinators.CombiningAlgorithmFactory;
 import io.sapl.interpreter.context.AuthorizationContext;
@@ -38,8 +25,13 @@ import io.sapl.pdp.config.PDPConfiguration;
 import io.sapl.pdp.config.PDPConfigurationProvider;
 import io.sapl.prp.PolicyRetrievalResult;
 import lombok.RequiredArgsConstructor;
+import org.reactivestreams.Publisher;
 import reactor.core.publisher.Flux;
 import reactor.util.context.Context;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.function.Function;
 
 @RequiredArgsConstructor
 public class EmbeddedPolicyDecisionPoint implements PolicyDecisionPoint {

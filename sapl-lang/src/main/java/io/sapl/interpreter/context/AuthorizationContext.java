@@ -17,12 +17,6 @@
  */
 package io.sapl.interpreter.context;
 
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.NoSuchElementException;
-import java.util.Objects;
-
 import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.api.interpreter.Val;
 import io.sapl.api.pdp.AuthorizationSubscription;
@@ -34,6 +28,8 @@ import lombok.NonNull;
 import lombok.experimental.UtilityClass;
 import reactor.util.context.Context;
 import reactor.util.context.ContextView;
+
+import java.util.*;
 
 @UtilityClass
 public class AuthorizationContext {

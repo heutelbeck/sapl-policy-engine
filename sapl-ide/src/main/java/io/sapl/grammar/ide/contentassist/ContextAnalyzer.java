@@ -17,9 +17,8 @@
  */
 package io.sapl.grammar.ide.contentassist;
 
-import java.util.Set;
-import java.util.stream.Collectors;
-
+import io.sapl.grammar.sapl.*;
+import lombok.experimental.UtilityClass;
 import org.eclipse.xtext.Keyword;
 import org.eclipse.xtext.TerminalRule;
 import org.eclipse.xtext.ide.editor.contentassist.ContentAssistContext;
@@ -28,14 +27,8 @@ import org.eclipse.xtext.nodemodel.ILeafNode;
 import org.eclipse.xtext.nodemodel.INode;
 import org.eclipse.xtext.nodemodel.util.NodeModelUtils;
 
-import io.sapl.grammar.sapl.Arguments;
-import io.sapl.grammar.sapl.AttributeFinderStep;
-import io.sapl.grammar.sapl.BasicEnvironmentAttribute;
-import io.sapl.grammar.sapl.BasicEnvironmentHeadAttribute;
-import io.sapl.grammar.sapl.BasicFunction;
-import io.sapl.grammar.sapl.FunctionIdentifier;
-import io.sapl.grammar.sapl.HeadAttributeFinderStep;
-import lombok.experimental.UtilityClass;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @UtilityClass
 public class ContextAnalyzer {

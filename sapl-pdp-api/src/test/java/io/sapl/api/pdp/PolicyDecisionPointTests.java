@@ -17,12 +17,11 @@
  */
 package io.sapl.api.pdp;
 
-import static org.mockito.Mockito.mock;
-
 import org.junit.jupiter.api.Test;
-
 import reactor.core.publisher.Flux;
 import reactor.test.StepVerifier;
+
+import static org.mockito.Mockito.mock;
 
 class PolicyDecisionPointTests {
 

@@ -17,26 +17,23 @@
  */
 package io.sapl.prp.filesystem;
 
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.mockStatic;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.when;
-
-import java.nio.file.Paths;
-import java.util.Collections;
-
-import org.junit.jupiter.api.Test;
-import org.mockito.MockedConstruction;
-import org.mockito.MockedStatic;
-import org.mockito.Mockito;
-
 import io.sapl.interpreter.DefaultSAPLInterpreter;
 import io.sapl.prp.PrpUpdateEvent;
 import io.sapl.util.filemonitoring.FileCreatedEvent;
 import io.sapl.util.filemonitoring.FileDeletedEvent;
 import io.sapl.util.filemonitoring.FileMonitorUtil;
+import org.junit.jupiter.api.Test;
+import org.mockito.MockedConstruction;
+import org.mockito.MockedStatic;
+import org.mockito.Mockito;
 import reactor.core.publisher.Flux;
 import reactor.test.StepVerifier;
+
+import java.nio.file.Paths;
+import java.util.Collections;
+
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.*;
 
 class FileSystemPrpUpdateEventSourceTests {
 

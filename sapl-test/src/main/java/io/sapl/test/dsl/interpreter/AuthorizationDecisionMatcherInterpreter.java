@@ -17,36 +17,15 @@
  */
 package io.sapl.test.dsl.interpreter;
 
-import static io.sapl.hamcrest.Matchers.anyDecision;
-import static io.sapl.hamcrest.Matchers.hasAdvice;
-import static io.sapl.hamcrest.Matchers.hasAdviceContainingKeyValue;
-import static io.sapl.hamcrest.Matchers.hasObligation;
-import static io.sapl.hamcrest.Matchers.hasObligationContainingKeyValue;
-import static io.sapl.hamcrest.Matchers.hasResource;
-import static io.sapl.hamcrest.Matchers.isDeny;
-import static io.sapl.hamcrest.Matchers.isIndeterminate;
-import static io.sapl.hamcrest.Matchers.isNotApplicable;
-import static io.sapl.hamcrest.Matchers.isPermit;
-import static org.hamcrest.Matchers.is;
-
-import org.hamcrest.Matcher;
-
 import com.fasterxml.jackson.databind.JsonNode;
-
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.test.SaplTestException;
-import io.sapl.test.grammar.sapltest.AnyDecision;
-import io.sapl.test.grammar.sapltest.AuthorizationDecisionMatcher;
-import io.sapl.test.grammar.sapltest.AuthorizationDecisionMatcherType;
-import io.sapl.test.grammar.sapltest.DefaultObjectMatcher;
-import io.sapl.test.grammar.sapltest.ExtendedObjectMatcher;
-import io.sapl.test.grammar.sapltest.HasObligationOrAdvice;
-import io.sapl.test.grammar.sapltest.HasResource;
-import io.sapl.test.grammar.sapltest.IsDecision;
-import io.sapl.test.grammar.sapltest.ObjectWithExactMatch;
-import io.sapl.test.grammar.sapltest.ObjectWithKeyValueMatcher;
-import io.sapl.test.grammar.sapltest.ObjectWithMatcher;
+import io.sapl.test.grammar.sapltest.*;
 import lombok.RequiredArgsConstructor;
+import org.hamcrest.Matcher;
+
+import static io.sapl.hamcrest.Matchers.*;
+import static org.hamcrest.Matchers.is;
 
 @RequiredArgsConstructor
 class AuthorizationDecisionMatcherInterpreter {

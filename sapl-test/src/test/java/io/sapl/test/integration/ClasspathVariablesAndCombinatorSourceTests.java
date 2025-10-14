@@ -17,22 +17,18 @@
  */
 package io.sapl.test.integration;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
-import static org.assertj.core.api.Assertions.assertThatNullPointerException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import io.sapl.interpreter.combinators.PolicyDocumentCombiningAlgorithm;
+import io.sapl.pdp.config.PolicyDecisionPointConfiguration;
+import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
+import reactor.core.publisher.SignalType;
 
 import java.io.File;
 import java.io.IOException;
 import java.util.logging.Level;
 
-import org.junit.jupiter.api.Test;
-import org.mockito.Mockito;
-
-import com.fasterxml.jackson.databind.ObjectMapper;
-
-import io.sapl.interpreter.combinators.PolicyDocumentCombiningAlgorithm;
-import io.sapl.pdp.config.PolicyDecisionPointConfiguration;
-import reactor.core.publisher.SignalType;
+import static org.assertj.core.api.Assertions.*;
 
 class ClasspathVariablesAndCombinatorSourceTests {
 

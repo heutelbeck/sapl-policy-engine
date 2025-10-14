@@ -17,9 +17,9 @@
  */
 package io.sapl.springdatamongoreactive.queries;
 
-import java.util.ArrayList;
-import java.util.List;
-
+import com.fasterxml.jackson.databind.JsonNode;
+import io.sapl.springdatacommon.queries.QueryAnnotationParameterResolver;
+import lombok.experimental.UtilityClass;
 import org.aopalliance.intercept.MethodInvocation;
 import org.bson.Document;
 import org.springframework.data.domain.Pageable;
@@ -29,10 +29,8 @@ import org.springframework.data.mongodb.core.query.CriteriaDefinition;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.repository.query.parser.PartTree;
 
-import com.fasterxml.jackson.databind.JsonNode;
-
-import io.sapl.springdatacommon.queries.QueryAnnotationParameterResolver;
-import lombok.experimental.UtilityClass;
+import java.util.ArrayList;
+import java.util.List;
 
 @UtilityClass
 public class QueryCreation {

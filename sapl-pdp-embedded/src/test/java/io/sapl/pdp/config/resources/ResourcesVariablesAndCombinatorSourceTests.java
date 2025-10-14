@@ -17,17 +17,15 @@
  */
 package io.sapl.pdp.config.resources;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import io.sapl.interpreter.InitializationException;
+import io.sapl.interpreter.combinators.PolicyDocumentCombiningAlgorithm;
+import org.junit.jupiter.api.Test;
+
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
-
-import org.junit.jupiter.api.Test;
-
-import com.fasterxml.jackson.databind.ObjectMapper;
-
-import io.sapl.interpreter.InitializationException;
-import io.sapl.interpreter.combinators.PolicyDocumentCombiningAlgorithm;
 
 class ResourcesVariablesAndCombinatorSourceTests {
 

@@ -17,17 +17,16 @@
  */
 package io.sapl.prp.resources;
 
+import io.sapl.interpreter.DefaultSAPLInterpreter;
+import io.sapl.interpreter.SAPLInterpreter;
+import io.sapl.prp.PrpUpdateEvent.Type;
+import org.junit.jupiter.api.Test;
+
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
-
-import org.junit.jupiter.api.Test;
-
-import io.sapl.interpreter.DefaultSAPLInterpreter;
-import io.sapl.interpreter.SAPLInterpreter;
-import io.sapl.prp.PrpUpdateEvent.Type;
 
 class ResourcesPrpUpdateEventSourceTests {
 

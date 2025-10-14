@@ -17,8 +17,10 @@
  */
 package io.sapl.pdp.remote;
 
-import javax.net.ssl.SSLException;
-
+import io.sapl.api.pdp.AuthorizationDecision;
+import io.sapl.api.pdp.AuthorizationSubscription;
+import io.sapl.api.pdp.PolicyDecisionPoint;
+import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.SpringBootConfiguration;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -32,13 +34,10 @@ import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.wait.strategy.Wait;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.DockerImageName;
-
-import io.sapl.api.pdp.AuthorizationDecision;
-import io.sapl.api.pdp.AuthorizationSubscription;
-import io.sapl.api.pdp.PolicyDecisionPoint;
-import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
+
+import javax.net.ssl.SSLException;
 
 @Slf4j
 @DirtiesContext

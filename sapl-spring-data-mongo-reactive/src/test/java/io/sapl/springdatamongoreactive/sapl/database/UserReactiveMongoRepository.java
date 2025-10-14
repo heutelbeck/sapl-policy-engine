@@ -17,17 +17,16 @@
  */
 package io.sapl.springdatamongoreactive.sapl.database;
 
-import java.util.List;
-import java.util.stream.Stream;
-
+import io.sapl.spring.method.metadata.QueryEnforce;
 import org.bson.types.ObjectId;
 import org.springframework.data.mongodb.repository.Query;
 import org.springframework.data.mongodb.repository.ReactiveMongoRepository;
 import org.springframework.stereotype.Repository;
-
-import io.sapl.spring.method.metadata.QueryEnforce;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+
+import java.util.List;
+import java.util.stream.Stream;
 
 @Repository
 public interface UserReactiveMongoRepository extends ReactiveMongoRepository<TestUser, ObjectId> {

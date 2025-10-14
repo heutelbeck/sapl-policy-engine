@@ -17,24 +17,7 @@
  */
 package io.sapl.test.mocking.function;
 
-import static io.sapl.test.Imports.times;
-
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.function.Function;
-import java.util.regex.Pattern;
-
-import org.eclipse.emf.ecore.EObject;
-import org.hamcrest.number.OrderingComparison;
-
 import com.fasterxml.jackson.databind.JsonNode;
-
 import io.sapl.api.interpreter.ExpressionArgument;
 import io.sapl.api.interpreter.Val;
 import io.sapl.interpreter.functions.AnnotationFunctionContext.FunctionMetadata;
@@ -43,6 +26,14 @@ import io.sapl.interpreter.functions.LibraryDocumentation;
 import io.sapl.test.SaplTestException;
 import io.sapl.test.mocking.function.models.FunctionParameters;
 import io.sapl.test.verification.TimesCalledVerification;
+import org.eclipse.emf.ecore.EObject;
+import org.hamcrest.number.OrderingComparison;
+
+import java.util.*;
+import java.util.function.Function;
+import java.util.regex.Pattern;
+
+import static io.sapl.test.Imports.times;
 
 public class MockingFunctionContext implements FunctionContext {
 

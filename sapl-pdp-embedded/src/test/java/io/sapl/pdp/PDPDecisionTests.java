@@ -17,13 +17,6 @@
  */
 package io.sapl.pdp;
 
-import static net.javacrumbs.jsonunit.assertj.JsonAssertions.assertThatJson;
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
-
-import org.junit.jupiter.api.Test;
-
 import io.sapl.api.interpreter.Trace;
 import io.sapl.api.interpreter.Val;
 import io.sapl.api.pdp.AuthorizationDecision;
@@ -34,6 +27,12 @@ import io.sapl.interpreter.DefaultSAPLInterpreter;
 import io.sapl.interpreter.SAPLInterpreter;
 import io.sapl.prp.DocumentMatch;
 import io.sapl.prp.PolicyRetrievalResult;
+import org.junit.jupiter.api.Test;
+
+import static net.javacrumbs.jsonunit.assertj.JsonAssertions.assertThatJson;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 class PDPDecisionTests {
     private static final SAPLInterpreter INTERPERTER = new DefaultSAPLInterpreter();

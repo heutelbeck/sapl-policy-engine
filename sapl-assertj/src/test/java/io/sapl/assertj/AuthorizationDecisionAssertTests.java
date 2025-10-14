@@ -17,16 +17,14 @@
  */
 package io.sapl.assertj;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import io.sapl.api.pdp.AuthorizationDecision;
+import org.junit.jupiter.api.Test;
+
 import static io.sapl.assertj.SaplAssertions.assertThatAuthorizationDecision;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
-
-import org.junit.jupiter.api.Test;
-
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ArrayNode;
-
-import io.sapl.api.pdp.AuthorizationDecision;
 
 class AuthorizationDecisionAssertTests {
 

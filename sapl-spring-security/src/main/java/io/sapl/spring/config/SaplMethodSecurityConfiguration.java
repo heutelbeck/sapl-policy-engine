@@ -17,6 +17,15 @@
  */
 package io.sapl.spring.config;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import io.sapl.api.pdp.PolicyDecisionPoint;
+import io.sapl.spring.constraints.ConstraintEnforcementService;
+import io.sapl.spring.method.blocking.PolicyEnforcementPointAroundMethodInterceptor;
+import io.sapl.spring.method.blocking.PostEnforcePolicyEnforcementPoint;
+import io.sapl.spring.method.blocking.PreEnforcePolicyEnforcementPoint;
+import io.sapl.spring.method.metadata.SaplAttributeRegistry;
+import io.sapl.spring.subscriptions.WebAuthorizationSubscriptionBuilderService;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.aop.Advisor;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.config.BeanDefinition;
@@ -27,17 +36,6 @@ import org.springframework.context.annotation.Role;
 import org.springframework.security.access.expression.method.DefaultMethodSecurityExpressionHandler;
 import org.springframework.security.access.expression.method.MethodSecurityExpressionHandler;
 import org.springframework.security.config.core.GrantedAuthorityDefaults;
-
-import com.fasterxml.jackson.databind.ObjectMapper;
-
-import io.sapl.api.pdp.PolicyDecisionPoint;
-import io.sapl.spring.constraints.ConstraintEnforcementService;
-import io.sapl.spring.method.blocking.PolicyEnforcementPointAroundMethodInterceptor;
-import io.sapl.spring.method.blocking.PostEnforcePolicyEnforcementPoint;
-import io.sapl.spring.method.blocking.PreEnforcePolicyEnforcementPoint;
-import io.sapl.spring.method.metadata.SaplAttributeRegistry;
-import io.sapl.spring.subscriptions.WebAuthorizationSubscriptionBuilderService;
-import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Configuration(proxyBeanMethods = false)

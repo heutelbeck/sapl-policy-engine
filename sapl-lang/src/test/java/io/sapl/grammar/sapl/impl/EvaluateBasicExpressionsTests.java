@@ -17,19 +17,18 @@
  */
 package io.sapl.grammar.sapl.impl;
 
-import static io.sapl.testutil.TestUtil.assertExpressionEvaluatesTo;
-import static io.sapl.testutil.TestUtil.assertExpressionReturnsError;
-
-import java.util.stream.Stream;
-
+import io.sapl.api.interpreter.Val;
+import io.sapl.interpreter.context.AuthorizationContext;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
-
-import io.sapl.api.interpreter.Val;
-import io.sapl.interpreter.context.AuthorizationContext;
 import reactor.test.StepVerifier;
+
+import java.util.stream.Stream;
+
+import static io.sapl.testutil.TestUtil.assertExpressionEvaluatesTo;
+import static io.sapl.testutil.TestUtil.assertExpressionReturnsError;
 
 class EvaluateBasicExpressionsTests {
 

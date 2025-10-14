@@ -17,21 +17,20 @@
  */
 package io.sapl.test.verification;
 
-import static org.assertj.core.api.Assertions.assertThatNoException;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.number.OrderingComparison.comparesEqualTo;
-import static org.hamcrest.number.OrderingComparison.greaterThanOrEqualTo;
-
-import java.util.stream.Stream;
-
+import io.sapl.api.interpreter.Val;
+import io.sapl.test.mocking.MockCall;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
-import io.sapl.api.interpreter.Val;
-import io.sapl.test.mocking.MockCall;
+import java.util.stream.Stream;
+
+import static org.assertj.core.api.Assertions.assertThatNoException;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.number.OrderingComparison.comparesEqualTo;
+import static org.hamcrest.number.OrderingComparison.greaterThanOrEqualTo;
 
 class TimesCalledVerificationTests {
 

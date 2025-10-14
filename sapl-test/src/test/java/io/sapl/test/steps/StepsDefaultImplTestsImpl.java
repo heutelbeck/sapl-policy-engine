@@ -17,9 +17,6 @@
  */
 package io.sapl.test.steps;
 
-import java.util.LinkedList;
-import java.util.Map;
-
 import io.sapl.api.interpreter.Val;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.AuthorizationSubscription;
@@ -33,6 +30,9 @@ import io.sapl.test.mocking.attribute.MockingAttributeStreamBroker;
 import io.sapl.test.mocking.function.MockingFunctionContext;
 import reactor.core.publisher.Flux;
 import reactor.test.StepVerifier;
+
+import java.util.LinkedList;
+import java.util.Map;
 
 class StepsDefaultImplTestsImpl extends StepsDefaultImpl {
 

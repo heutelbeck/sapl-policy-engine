@@ -17,9 +17,9 @@
  */
 package io.sapl.api.interpreter;
 
-import java.util.Collection;
-
 import com.fasterxml.jackson.databind.JsonNode;
+
+import java.util.Collection;
 
 /**
  * Interface for all calculation results that are traced.

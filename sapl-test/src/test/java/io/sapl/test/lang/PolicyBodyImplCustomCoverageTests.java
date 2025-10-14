@@ -17,19 +17,6 @@
  */
 package io.sapl.test.lang;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-
-import java.util.HashMap;
-
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.mockito.ArgumentCaptor;
-
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.attributes.broker.impl.CachingAttributeStreamBroker;
 import io.sapl.interpreter.DocumentEvaluationResult;
@@ -38,7 +25,16 @@ import io.sapl.interpreter.context.AuthorizationContext;
 import io.sapl.interpreter.functions.AnnotationFunctionContext;
 import io.sapl.test.coverage.api.CoverageHitRecorder;
 import io.sapl.test.coverage.api.model.PolicyConditionHit;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import reactor.test.StepVerifier;
+
+import java.util.HashMap;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.*;
 
 class PolicyBodyImplCustomCoverageTests {
 

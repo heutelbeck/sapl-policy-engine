@@ -17,12 +17,7 @@
  */
 package io.sapl.interpreter;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Optional;
-
 import com.fasterxml.jackson.databind.JsonNode;
-
 import io.sapl.api.interpreter.Trace;
 import io.sapl.api.interpreter.Val;
 import io.sapl.api.pdp.AuthorizationDecision;
@@ -30,6 +25,10 @@ import io.sapl.grammar.sapl.CombiningAlgorithm;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.ToString;
+
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Optional;
 
 @Getter
 @ToString

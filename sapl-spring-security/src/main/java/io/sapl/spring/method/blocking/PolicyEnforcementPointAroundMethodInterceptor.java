@@ -17,8 +17,9 @@
  */
 package io.sapl.spring.method.blocking;
 
-import java.lang.annotation.Annotation;
-
+import io.sapl.spring.method.metadata.*;
+import lombok.Getter;
+import lombok.NonNull;
 import org.aopalliance.aop.Advice;
 import org.aopalliance.intercept.MethodInterceptor;
 import org.aopalliance.intercept.MethodInvocation;
@@ -30,13 +31,7 @@ import org.springframework.aop.support.Pointcuts;
 import org.springframework.aop.support.annotation.AnnotationMatchingPointcut;
 import org.springframework.core.Ordered;
 
-import io.sapl.spring.method.metadata.EnforceDropWhileDenied;
-import io.sapl.spring.method.metadata.EnforceRecoverableIfDenied;
-import io.sapl.spring.method.metadata.EnforceTillDenied;
-import io.sapl.spring.method.metadata.PostEnforce;
-import io.sapl.spring.method.metadata.PreEnforce;
-import lombok.Getter;
-import lombok.NonNull;
+import java.lang.annotation.Annotation;
 
 public class PolicyEnforcementPointAroundMethodInterceptor
         implements Ordered, MethodInterceptor, PointcutAdvisor, AopInfrastructureBean {

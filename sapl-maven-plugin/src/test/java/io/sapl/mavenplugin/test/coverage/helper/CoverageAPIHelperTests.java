@@ -17,16 +17,15 @@
  */
 package io.sapl.mavenplugin.test.coverage.helper;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import io.sapl.test.coverage.api.CoverageAPIFactory;
+import io.sapl.test.coverage.api.model.PolicySetHit;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 import java.io.IOException;
 import java.nio.file.Path;
 
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.io.TempDir;
-
-import io.sapl.test.coverage.api.CoverageAPIFactory;
-import io.sapl.test.coverage.api.model.PolicySetHit;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class CoverageAPIHelperTests {
 

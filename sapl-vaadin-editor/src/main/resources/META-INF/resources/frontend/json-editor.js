@@ -1,4 +1,19 @@
-import { LitElement, html, css } from 'lit';
+import {css, html, LitElement} from 'lit';
+import {
+    CodeMirrorHintStyles,
+    CodeMirrorLintStyles,
+    CodeMirrorStyles,
+    DarkStyle,
+    HeightFix,
+    ReadOnlyStyle
+} from './shared-styles.js';
+import codemirror from 'codemirror';
+import 'codemirror/mode/javascript/javascript';
+import 'codemirror/addon/lint/lint';
+import 'codemirror/addon/lint/json-lint';
+import * as jsonlint from 'jsonlint-webpack';
+import 'codemirror/addon/merge/merge';
+import * as DMP from 'diff-match-patch';
 
 const MergeHeightFix = css`
     :host { display: block; height: 100%; }
@@ -52,15 +67,6 @@ const ChangeMarkerStyles = css`
     .cm-merge-gutter-marker { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
     .cm-merge-gutter-marker.changed { background: #f39c12; }
 `;
-
-import { CodeMirrorStyles, CodeMirrorLintStyles, CodeMirrorHintStyles, HeightFix, ReadOnlyStyle, DarkStyle } from './shared-styles.js';
-import codemirror from 'codemirror';
-import 'codemirror/mode/javascript/javascript';
-import 'codemirror/addon/lint/lint';
-import 'codemirror/addon/lint/json-lint';
-import * as jsonlint from 'jsonlint-webpack';
-import 'codemirror/addon/merge/merge';
-import * as DMP from 'diff-match-patch';
 
 const DiffMatchPatch = DMP.default || DMP.diff_match_patch || DMP;
 const DIFF_DELETE    = DMP.DIFF_DELETE ?? -1;

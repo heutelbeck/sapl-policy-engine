@@ -17,11 +17,11 @@
  */
 package io.sapl.spring.config;
 
-import java.util.ArrayList;
-import java.util.List;
-
 import org.springframework.context.annotation.AdviceMode;
 import org.springframework.context.annotation.AdviceModeImportSelector;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Adds ReactiveSaplMethodSecurityConfiguration to the imports

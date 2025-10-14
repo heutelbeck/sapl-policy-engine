@@ -17,17 +17,13 @@
  */
 package io.sapl.util.filemonitoring;
 
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import org.junit.jupiter.api.Test;
+import reactor.core.publisher.FluxSink;
 
 import java.io.File;
 
-import org.junit.jupiter.api.Test;
-
-import reactor.core.publisher.FluxSink;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.*;
 
 class FileEventAdaptorTests {
 

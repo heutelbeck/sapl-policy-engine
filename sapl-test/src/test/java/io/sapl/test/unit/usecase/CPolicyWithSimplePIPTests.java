@@ -17,18 +17,17 @@
  */
 package io.sapl.test.unit.usecase;
 
-import static io.sapl.hamcrest.Matchers.val;
-import static io.sapl.test.Imports.whenEntityValue;
-
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-
 import io.sapl.api.interpreter.Val;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.interpreter.InitializationException;
 import io.sapl.test.SaplTestFixture;
 import io.sapl.test.unit.SaplUnitTestFixture;
 import io.sapl.test.unit.TestPIP;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+
+import static io.sapl.hamcrest.Matchers.val;
+import static io.sapl.test.Imports.whenEntityValue;
 
 class CPolicyWithSimplePIPTests {
 

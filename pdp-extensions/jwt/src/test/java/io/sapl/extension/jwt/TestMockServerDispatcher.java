@@ -17,15 +17,14 @@
  */
 package io.sapl.extension.jwt;
 
-import java.util.HashMap;
-import java.util.Map;
-
-import org.jetbrains.annotations.NotNull;
-
 import lombok.Setter;
 import okhttp3.mockwebserver.Dispatcher;
 import okhttp3.mockwebserver.MockResponse;
 import okhttp3.mockwebserver.RecordedRequest;
+import org.jetbrains.annotations.NotNull;
+
+import java.util.HashMap;
+import java.util.Map;
 
 class TestMockServerDispatcher extends Dispatcher {
 

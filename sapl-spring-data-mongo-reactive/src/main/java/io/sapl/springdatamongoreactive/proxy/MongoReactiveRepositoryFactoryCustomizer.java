@@ -17,11 +17,10 @@
  */
 package io.sapl.springdatamongoreactive.proxy;
 
-import org.springframework.data.repository.core.support.RepositoryFactoryCustomizer;
-import org.springframework.data.repository.core.support.RepositoryFactorySupport;
-
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.repository.core.support.RepositoryFactoryCustomizer;
+import org.springframework.data.repository.core.support.RepositoryFactorySupport;
 
 /**
  * This service adds the EnforcementPoint to the corresponding

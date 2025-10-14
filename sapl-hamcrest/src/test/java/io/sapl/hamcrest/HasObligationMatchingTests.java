@@ -17,6 +17,16 @@
  */
 package io.sapl.hamcrest;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import io.sapl.api.pdp.AuthorizationDecision;
+import org.hamcrest.StringDescription;
+import org.junit.jupiter.api.Test;
+
+import java.util.function.Predicate;
+
 import static com.spotify.hamcrest.jackson.JsonMatchers.jsonObject;
 import static com.spotify.hamcrest.jackson.JsonMatchers.jsonText;
 import static io.sapl.hamcrest.Matchers.hasObligation;
@@ -25,18 +35,6 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-
-import java.util.function.Predicate;
-
-import org.hamcrest.StringDescription;
-import org.junit.jupiter.api.Test;
-
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ArrayNode;
-
-import io.sapl.api.pdp.AuthorizationDecision;
 
 class HasObligationMatchingTests {
 

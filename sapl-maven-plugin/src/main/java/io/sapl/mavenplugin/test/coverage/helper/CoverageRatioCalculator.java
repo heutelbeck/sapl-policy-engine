@@ -17,10 +17,9 @@
  */
 package io.sapl.mavenplugin.test.coverage.helper;
 
-import java.util.Collection;
-
 import javax.inject.Named;
 import javax.inject.Singleton;
+import java.util.Collection;
 
 @Named
 @Singleton

@@ -17,17 +17,6 @@
  */
 package io.sapl.springdatacommon.services;
 
-import static io.sapl.springdatacommon.utils.Utilities.ALIAS;
-import static io.sapl.springdatacommon.utils.Utilities.CONDITIONS;
-import static io.sapl.springdatacommon.utils.Utilities.SELECTION;
-import static io.sapl.springdatacommon.utils.Utilities.TRANSFORMATIONS;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Set;
-
-import org.springframework.security.access.AccessDeniedException;
-
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
@@ -35,9 +24,15 @@ import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.networknt.schema.JsonSchemaFactory;
 import com.networknt.schema.SpecVersion;
 import com.networknt.schema.ValidationMessage;
-
 import lombok.AllArgsConstructor;
 import lombok.Getter;
+import org.springframework.security.access.AccessDeniedException;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
+
+import static io.sapl.springdatacommon.utils.Utilities.*;
 
 @Getter
 @AllArgsConstructor

@@ -17,37 +17,17 @@
  */
 package io.sapl.grammar.ide.contentassist;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
-
+import com.fasterxml.jackson.databind.JsonNode;
+import io.sapl.attributes.documentation.api.PolicyInformationPointDocumentationProvider;
+import io.sapl.grammar.sapl.*;
+import io.sapl.interpreter.context.AuthorizationContext;
+import io.sapl.pdp.config.PDPConfiguration;
+import lombok.experimental.UtilityClass;
 import org.eclipse.emf.ecore.EObject;
 import org.eclipse.xtext.ide.editor.contentassist.ContentAssistContext;
 import org.eclipse.xtext.nodemodel.util.NodeModelUtils;
 
-import com.fasterxml.jackson.databind.JsonNode;
-
-import io.sapl.attributes.documentation.api.PolicyInformationPointDocumentationProvider;
-import io.sapl.grammar.sapl.AttributeFinderStep;
-import io.sapl.grammar.sapl.BasicEnvironmentAttribute;
-import io.sapl.grammar.sapl.BasicEnvironmentHeadAttribute;
-import io.sapl.grammar.sapl.BasicFunction;
-import io.sapl.grammar.sapl.BasicGroup;
-import io.sapl.grammar.sapl.BasicIdentifier;
-import io.sapl.grammar.sapl.Expression;
-import io.sapl.grammar.sapl.HeadAttributeFinderStep;
-import io.sapl.grammar.sapl.Import;
-import io.sapl.grammar.sapl.PolicyBody;
-import io.sapl.grammar.sapl.PolicySet;
-import io.sapl.grammar.sapl.SAPL;
-import io.sapl.grammar.sapl.Schema;
-import io.sapl.grammar.sapl.Step;
-import io.sapl.grammar.sapl.ValueDefinition;
-import io.sapl.interpreter.context.AuthorizationContext;
-import io.sapl.pdp.config.PDPConfiguration;
-import lombok.experimental.UtilityClass;
+import java.util.*;
 
 @UtilityClass
 public class ExpressionSchemaResolver {

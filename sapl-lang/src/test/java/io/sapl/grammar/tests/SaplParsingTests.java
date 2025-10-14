@@ -17,10 +17,11 @@
  */
 package io.sapl.grammar.tests;
 
-import static org.assertj.core.api.Assertions.assertThat;
-
-import java.util.stream.Stream;
-
+import com.google.inject.Inject;
+import io.sapl.grammar.sapl.SAPL;
+import io.sapl.grammar.sapl.SaplPackage;
+import io.sapl.grammar.validation.SAPLSyntaxErrorMessageProvider;
+import lombok.SneakyThrows;
 import org.eclipse.xtext.diagnostics.Diagnostic;
 import org.eclipse.xtext.testing.InjectWith;
 import org.eclipse.xtext.testing.extensions.InjectionExtension;
@@ -33,12 +34,9 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
-import com.google.inject.Inject;
+import java.util.stream.Stream;
 
-import io.sapl.grammar.sapl.SAPL;
-import io.sapl.grammar.sapl.SaplPackage;
-import io.sapl.grammar.validation.SAPLSyntaxErrorMessageProvider;
-import lombok.SneakyThrows;
+import static org.assertj.core.api.Assertions.assertThat;
 
 @ExtendWith(InjectionExtension.class)
 @InjectWith(SAPLInjectorProvider.class)

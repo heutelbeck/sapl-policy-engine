@@ -17,21 +17,19 @@
  */
 package io.sapl.integrationtest;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import io.sapl.api.pdp.AuthorizationSubscription;
+import io.sapl.interpreter.InitializationException;
+import io.sapl.interpreter.combinators.PolicyDocumentCombiningAlgorithm;
+import io.sapl.pdp.PolicyDecisionPointFactory;
+import org.junit.jupiter.api.Test;
 
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 
-import org.junit.jupiter.api.Test;
-
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-
-import io.sapl.api.pdp.AuthorizationSubscription;
-import io.sapl.interpreter.InitializationException;
-import io.sapl.interpreter.combinators.PolicyDocumentCombiningAlgorithm;
-import io.sapl.pdp.PolicyDecisionPointFactory;
+import static org.assertj.core.api.Assertions.assertThat;
 
 class SpecificScenarioTests {
 

@@ -17,14 +17,13 @@
  */
 package io.sapl.interpreter;
 
-import java.util.Map;
-
 import com.fasterxml.jackson.core.JsonProcessingException;
-
 import io.sapl.api.interpreter.Val;
 import io.sapl.api.pip.Attribute;
 import io.sapl.api.pip.PolicyInformationPoint;
 import reactor.core.publisher.Flux;
+
+import java.util.Map;
 
 @PolicyInformationPoint(name = MockXACMLPatientProfilePIP.NAME)
 public class MockXACMLPatientProfilePIP {

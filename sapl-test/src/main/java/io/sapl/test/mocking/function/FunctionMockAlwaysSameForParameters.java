@@ -17,12 +17,6 @@
  */
 package io.sapl.test.mocking.function;
 
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Optional;
-
-import org.hamcrest.Matcher;
-
 import io.sapl.api.interpreter.Val;
 import io.sapl.test.SaplTestException;
 import io.sapl.test.mocking.MockCall;
@@ -31,6 +25,11 @@ import io.sapl.test.verification.MockRunInformation;
 import io.sapl.test.verification.TimesCalledVerification;
 import io.sapl.test.verification.TimesParameterCalledVerification;
 import lombok.Getter;
+import org.hamcrest.Matcher;
+
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Optional;
 
 public class FunctionMockAlwaysSameForParameters implements FunctionMock {
 

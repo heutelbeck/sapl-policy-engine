@@ -17,15 +17,14 @@
  */
 package io.sapl.springdatamongoreactive.queries;
 
-import java.util.ArrayList;
-import java.util.List;
-
+import lombok.experimental.UtilityClass;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.CriteriaDefinition;
 import org.springframework.data.repository.query.parser.Part;
 import org.springframework.data.repository.query.parser.PartTree;
 
-import lombok.experimental.UtilityClass;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * This class builds a query and is supported by the {@link PartTree} class,

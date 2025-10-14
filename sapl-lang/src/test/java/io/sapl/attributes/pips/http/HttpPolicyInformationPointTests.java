@@ -17,20 +17,15 @@
  */
 package io.sapl.attributes.pips.http;
 
-import static org.assertj.core.api.Assertions.assertThatCode;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-
+import com.fasterxml.jackson.core.JsonProcessingException;
+import io.sapl.api.interpreter.Val;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpMethod;
-
-import com.fasterxml.jackson.core.JsonProcessingException;
-
-import io.sapl.api.interpreter.Val;
 import reactor.core.publisher.Flux;
+
+import static org.assertj.core.api.Assertions.assertThatCode;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.*;
 
 class HttpPolicyInformationPointTests {
 

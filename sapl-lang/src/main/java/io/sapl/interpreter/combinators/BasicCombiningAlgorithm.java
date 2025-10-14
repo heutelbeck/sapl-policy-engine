@@ -17,12 +17,6 @@
  */
 package io.sapl.interpreter.combinators;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.List;
-import java.util.function.Function;
-
 import io.sapl.api.interpreter.Val;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.grammar.sapl.CombiningAlgorithm;
@@ -33,6 +27,12 @@ import io.sapl.interpreter.DocumentEvaluationResult;
 import io.sapl.prp.DocumentMatch;
 import lombok.experimental.UtilityClass;
 import reactor.core.publisher.Flux;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.List;
+import java.util.function.Function;
 
 @UtilityClass
 public class BasicCombiningAlgorithm {

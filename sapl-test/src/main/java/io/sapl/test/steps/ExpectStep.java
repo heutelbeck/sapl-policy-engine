@@ -17,13 +17,12 @@
  */
 package io.sapl.test.steps;
 
-import java.time.Duration;
-import java.util.function.Predicate;
-
-import org.hamcrest.Matcher;
-
 import io.sapl.api.interpreter.Val;
 import io.sapl.api.pdp.AuthorizationDecision;
+import org.hamcrest.Matcher;
+
+import java.time.Duration;
+import java.util.function.Predicate;
 
 /**
  * This step is in charge of defining the expected results. Next Step available

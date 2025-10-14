@@ -17,14 +17,14 @@
  */
 package io.sapl.functions.sanitization;
 
-import java.util.function.Predicate;
-import java.util.regex.Pattern;
-
 import io.sapl.api.functions.Function;
 import io.sapl.api.functions.FunctionLibrary;
 import io.sapl.api.interpreter.Val;
 import io.sapl.api.validation.Text;
 import lombok.experimental.UtilityClass;
+
+import java.util.function.Predicate;
+import java.util.regex.Pattern;
 
 @UtilityClass
 @FunctionLibrary(name = SanitizationFunctionLibrary.NAME, description = SanitizationFunctionLibrary.DESCRIPTION_MD)

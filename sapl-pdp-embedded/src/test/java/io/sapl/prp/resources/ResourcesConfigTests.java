@@ -17,15 +17,14 @@
  */
 package io.sapl.prp.resources;
 
-import java.util.Optional;
-import java.util.logging.Level;
-
-import org.junit.jupiter.api.Test;
-
 import io.sapl.interpreter.InitializationException;
 import io.sapl.pdp.config.resources.ResourcesVariablesAndCombinatorSource;
+import org.junit.jupiter.api.Test;
 import reactor.core.publisher.SignalType;
 import reactor.test.StepVerifier;
+
+import java.util.Optional;
+import java.util.logging.Level;
 
 class ResourcesConfigTests {
 

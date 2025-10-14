@@ -17,25 +17,19 @@
  */
 package io.sapl.mavenplugin.test.coverage.helper;
 
-import java.util.Collection;
-import java.util.LinkedList;
-import java.util.List;
-
-import javax.inject.Named;
-import javax.inject.Singleton;
-
-import io.sapl.grammar.sapl.Condition;
-import io.sapl.grammar.sapl.Policy;
-import io.sapl.grammar.sapl.PolicyElement;
-import io.sapl.grammar.sapl.PolicySet;
-import io.sapl.grammar.sapl.SaplPackage;
-import io.sapl.grammar.sapl.Statement;
+import io.sapl.grammar.sapl.*;
 import io.sapl.mavenplugin.test.coverage.SaplTestException;
 import io.sapl.mavenplugin.test.coverage.model.CoverageTargets;
 import io.sapl.mavenplugin.test.coverage.model.SaplDocument;
 import io.sapl.test.coverage.api.model.PolicyConditionHit;
 import io.sapl.test.coverage.api.model.PolicyHit;
 import io.sapl.test.coverage.api.model.PolicySetHit;
+
+import javax.inject.Named;
+import javax.inject.Singleton;
+import java.util.Collection;
+import java.util.LinkedList;
+import java.util.List;
 
 @Named
 @Singleton

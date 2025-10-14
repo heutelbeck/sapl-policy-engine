@@ -17,24 +17,17 @@
  */
 package io.sapl.grammar.ide.contentassist;
 
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-
 import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.sapl.Expression;
 import io.sapl.interpreter.context.AuthorizationContext;
 import lombok.experimental.UtilityClass;
+
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.util.*;
 
 @UtilityClass
 public class SchemaProposalsGenerator {

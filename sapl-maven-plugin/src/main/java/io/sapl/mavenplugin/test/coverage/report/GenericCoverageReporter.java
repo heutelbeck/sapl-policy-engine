@@ -17,22 +17,7 @@
  */
 package io.sapl.mavenplugin.test.coverage.report;
 
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Objects;
-import java.util.Set;
-
-import org.eclipse.xtext.nodemodel.INode;
-import org.eclipse.xtext.nodemodel.util.NodeModelUtils;
-
-import io.sapl.grammar.sapl.Expression;
-import io.sapl.grammar.sapl.Policy;
-import io.sapl.grammar.sapl.PolicyElement;
-import io.sapl.grammar.sapl.PolicySet;
-import io.sapl.grammar.sapl.SaplPackage;
-import io.sapl.grammar.sapl.Statement;
+import io.sapl.grammar.sapl.*;
 import io.sapl.mavenplugin.test.coverage.SaplTestException;
 import io.sapl.mavenplugin.test.coverage.model.CoverageTargets;
 import io.sapl.mavenplugin.test.coverage.model.SaplDocument;
@@ -41,6 +26,10 @@ import io.sapl.mavenplugin.test.coverage.report.model.SaplDocumentCoverageInform
 import io.sapl.test.coverage.api.model.PolicyConditionHit;
 import io.sapl.test.coverage.api.model.PolicyHit;
 import io.sapl.test.coverage.api.model.PolicySetHit;
+import org.eclipse.xtext.nodemodel.INode;
+import org.eclipse.xtext.nodemodel.util.NodeModelUtils;
+
+import java.util.*;
 
 public class GenericCoverageReporter {
 

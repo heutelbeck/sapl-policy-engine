@@ -17,28 +17,22 @@
  */
 package io.sapl.extensions.mqtt;
 
-import static io.sapl.extensions.mqtt.MqttTestUtility.buildAndStartBroker;
-import static io.sapl.extensions.mqtt.MqttTestUtility.buildMqttPublishMessage;
-import static io.sapl.extensions.mqtt.MqttTestUtility.buildVariables;
-import static io.sapl.extensions.mqtt.MqttTestUtility.startClient;
-import static io.sapl.extensions.mqtt.MqttTestUtility.stopBroker;
-
-import java.nio.file.Path;
-import java.time.Duration;
-
+import com.fasterxml.jackson.databind.node.JsonNodeFactory;
+import com.hivemq.client.mqtt.mqtt5.Mqtt5BlockingClient;
+import com.hivemq.embedded.EmbeddedHiveMQ;
+import io.sapl.api.interpreter.Val;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 import org.junit.jupiter.api.io.TempDir;
-
-import com.fasterxml.jackson.databind.node.JsonNodeFactory;
-import com.hivemq.client.mqtt.mqtt5.Mqtt5BlockingClient;
-import com.hivemq.embedded.EmbeddedHiveMQ;
-
-import io.sapl.api.interpreter.Val;
 import reactor.core.publisher.Flux;
 import reactor.test.StepVerifier;
+
+import java.nio.file.Path;
+import java.time.Duration;
+
+import static io.sapl.extensions.mqtt.MqttTestUtility.*;
 
 @Timeout(30)
 class SaplMqttClientSubscriptionsIT {

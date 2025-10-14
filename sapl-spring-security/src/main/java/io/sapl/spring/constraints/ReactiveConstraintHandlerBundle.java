@@ -17,18 +17,17 @@
  */
 package io.sapl.spring.constraints;
 
+import lombok.AllArgsConstructor;
+import lombok.NoArgsConstructor;
+import org.aopalliance.intercept.MethodInvocation;
+import org.reactivestreams.Subscription;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
+
 import java.util.function.Consumer;
 import java.util.function.LongConsumer;
 import java.util.function.Predicate;
 import java.util.function.UnaryOperator;
-
-import org.aopalliance.intercept.MethodInvocation;
-import org.reactivestreams.Subscription;
-
-import lombok.AllArgsConstructor;
-import lombok.NoArgsConstructor;
-import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
 
 /**
  *

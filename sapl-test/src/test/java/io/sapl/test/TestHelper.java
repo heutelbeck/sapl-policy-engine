@@ -17,13 +17,13 @@
  */
 package io.sapl.test;
 
-import static org.mockito.Mockito.when;
+import org.eclipse.emf.common.util.BasicEList;
+import org.eclipse.emf.common.util.EList;
 
 import java.util.Collection;
 import java.util.function.Supplier;
 
-import org.eclipse.emf.common.util.BasicEList;
-import org.eclipse.emf.common.util.EList;
+import static org.mockito.Mockito.when;
 
 public class TestHelper {
 

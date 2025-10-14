@@ -17,26 +17,16 @@
  */
 package io.sapl.functions.geo.traccar;
 
-import static io.sapl.assertj.SaplAssertions.assertThatVal;
-import static io.sapl.functions.geo.traccar.TraccarFunctionLibrary.EXPECTED_GEOFENCE_BUT_GOT_S_ERROR;
-import static io.sapl.functions.geo.traccar.TraccarFunctionLibrary.EXPECTED_POSITION_BUT_GOT_S_ERROR;
-import static io.sapl.functions.geo.traccar.TraccarFunctionLibrary.GEOFENCE_MISSING_AREA_ERROR;
-import static io.sapl.functions.geo.traccar.TraccarFunctionLibrary.GEOMETRY_PROCESSING_ERROR_S_ERROR;
-import static io.sapl.functions.geo.traccar.TraccarFunctionLibrary.NO_VALID_LATITUDE_FIELD_ERROR;
-import static io.sapl.functions.geo.traccar.TraccarFunctionLibrary.NO_VALID_LONGITUDE_FIELD_ERROR;
-import static io.sapl.functions.geo.traccar.TraccarFunctionLibrary.traccarGeofenceToGeoJson;
-import static io.sapl.functions.geo.traccar.TraccarFunctionLibrary.traccarPositionToGeoJSON;
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.withPrecision;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import io.sapl.api.interpreter.Val;
+import io.sapl.functions.geo.traccar.TraccarFunctionLibrary.*;
+import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 
-import org.junit.jupiter.api.Test;
-
-import com.fasterxml.jackson.core.JsonProcessingException;
-
-import io.sapl.api.interpreter.Val;
-import io.sapl.functions.geo.traccar.TraccarFunctionLibrary.CoordinateFlippingFilter;
+import static io.sapl.assertj.SaplAssertions.assertThatVal;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.withPrecision;
 
 class TraccarFunctionLibraryTests {
 

@@ -17,12 +17,11 @@
  */
 package io.sapl.test.mocking.function.models;
 
-import java.util.Arrays;
-import java.util.List;
-
+import io.sapl.api.interpreter.Val;
 import org.hamcrest.Matcher;
 
-import io.sapl.api.interpreter.Val;
+import java.util.Arrays;
+import java.util.List;
 
 public class FunctionParameters {
 

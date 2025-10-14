@@ -17,17 +17,10 @@
  */
 package io.sapl.pdp;
 
-import java.time.Instant;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.LinkedList;
-import java.util.List;
-
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.BaseJsonNode;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
-
 import io.sapl.api.interpreter.Trace;
 import io.sapl.api.interpreter.Val;
 import io.sapl.api.pdp.AuthorizationDecision;
@@ -38,6 +31,12 @@ import io.sapl.prp.DocumentMatch;
 import io.sapl.prp.PolicyRetrievalResult;
 import lombok.Getter;
 import lombok.ToString;
+
+import java.time.Instant;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.LinkedList;
+import java.util.List;
 
 @Getter
 @ToString

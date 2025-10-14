@@ -17,13 +17,12 @@
  */
 package io.sapl.springdatacommon.services;
 
+import lombok.AllArgsConstructor;
+import org.aopalliance.intercept.MethodInvocation;
+
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
-
-import org.aopalliance.intercept.MethodInvocation;
-
-import lombok.AllArgsConstructor;
 
 @AllArgsConstructor
 public class SecurityExpressionService {

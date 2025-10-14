@@ -17,18 +17,17 @@
  */
 package io.sapl.pdp;
 
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.notNullValue;
-
-import java.util.List;
-
-import org.junit.jupiter.api.Test;
-
 import io.sapl.api.functions.Function;
 import io.sapl.api.functions.FunctionLibrary;
 import io.sapl.api.interpreter.Val;
 import io.sapl.interpreter.InitializationException;
 import lombok.experimental.UtilityClass;
+import org.junit.jupiter.api.Test;
+
+import java.util.List;
+
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.notNullValue;
 
 class PolicyDecisionPointFactoryTests {
     @UtilityClass

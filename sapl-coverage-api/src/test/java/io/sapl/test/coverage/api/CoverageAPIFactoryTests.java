@@ -17,8 +17,8 @@
  */
 package io.sapl.test.coverage.api;
 
-import static io.sapl.test.coverage.api.CoverageAPIFactory.constructCoverageHitRecorder;
-import static org.assertj.core.api.Assertions.assertThat;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -26,8 +26,8 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.io.TempDir;
+import static io.sapl.test.coverage.api.CoverageAPIFactory.constructCoverageHitRecorder;
+import static org.assertj.core.api.Assertions.assertThat;
 
 class CoverageAPIFactoryTests {
 

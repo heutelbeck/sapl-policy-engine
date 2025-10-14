@@ -17,23 +17,17 @@
  */
 package io.sapl.extensions.mqtt.util;
 
-import static io.sapl.extensions.mqtt.SaplMqttClient.ENVIRONMENT_BROKER_ADDRESS;
-import static io.sapl.extensions.mqtt.SaplMqttClient.ENVIRONMENT_BROKER_PORT;
-import static io.sapl.extensions.mqtt.SaplMqttClient.ENVIRONMENT_CLIENT_ID;
-import static io.sapl.extensions.mqtt.util.ConfigUtility.ENVIRONMENT_BROKER_CONFIG;
-import static io.sapl.extensions.mqtt.util.ConfigUtility.ENVIRONMENT_BROKER_CONFIG_NAME;
-import static io.sapl.extensions.mqtt.util.ConfigUtility.ENVIRONMENT_DEFAULT_BROKER_CONFIG_NAME;
-import static io.sapl.extensions.mqtt.util.ErrorUtility.ENVIRONMENT_ERROR_RETRY_ATTEMPTS;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrowsExactly;
+import com.fasterxml.jackson.databind.node.JsonNodeFactory;
+import io.sapl.api.interpreter.Val;
+import org.junit.jupiter.api.Test;
 
 import java.util.NoSuchElementException;
 
-import org.junit.jupiter.api.Test;
-
-import com.fasterxml.jackson.databind.node.JsonNodeFactory;
-
-import io.sapl.api.interpreter.Val;
+import static io.sapl.extensions.mqtt.SaplMqttClient.*;
+import static io.sapl.extensions.mqtt.util.ConfigUtility.*;
+import static io.sapl.extensions.mqtt.util.ErrorUtility.ENVIRONMENT_ERROR_RETRY_ATTEMPTS;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrowsExactly;
 
 class ConfigUtilityTests {
 

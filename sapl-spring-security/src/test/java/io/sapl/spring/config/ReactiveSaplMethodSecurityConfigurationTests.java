@@ -17,23 +17,8 @@
  */
 package io.sapl.spring.config;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.mockito.Mockito.mock;
-
-import org.aopalliance.intercept.MethodInvocation;
-import org.junit.jupiter.api.Test;
-import org.springframework.boot.test.context.runner.ApplicationContextRunner;
-import org.springframework.expression.Expression;
-import org.springframework.expression.spel.standard.SpelExpressionParser;
-import org.springframework.http.server.reactive.ServerHttpRequest;
-import org.springframework.security.access.expression.method.MethodSecurityExpressionHandler;
-import org.springframework.security.config.core.GrantedAuthorityDefaults;
-import org.springframework.security.util.MethodInvocationUtils;
-
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.module.SimpleModule;
-
 import io.sapl.api.pdp.PolicyDecisionPoint;
 import io.sapl.spring.constraints.ConstraintEnforcementService;
 import io.sapl.spring.method.metadata.PreEnforce;
@@ -45,6 +30,19 @@ import io.sapl.spring.serialization.MethodInvocationSerializer;
 import io.sapl.spring.serialization.ServerHttpRequestSerializer;
 import io.sapl.spring.subscriptions.WebfluxAuthorizationSubscriptionBuilderService;
 import jakarta.servlet.http.HttpServletRequest;
+import org.aopalliance.intercept.MethodInvocation;
+import org.junit.jupiter.api.Test;
+import org.springframework.boot.test.context.runner.ApplicationContextRunner;
+import org.springframework.expression.Expression;
+import org.springframework.expression.spel.standard.SpelExpressionParser;
+import org.springframework.http.server.reactive.ServerHttpRequest;
+import org.springframework.security.access.expression.method.MethodSecurityExpressionHandler;
+import org.springframework.security.config.core.GrantedAuthorityDefaults;
+import org.springframework.security.util.MethodInvocationUtils;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.mockito.Mockito.mock;
 
 class ReactiveSaplMethodSecurityConfigurationTests {
 

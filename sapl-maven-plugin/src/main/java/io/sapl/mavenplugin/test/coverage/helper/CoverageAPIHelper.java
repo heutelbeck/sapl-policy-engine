@@ -17,14 +17,13 @@
  */
 package io.sapl.mavenplugin.test.coverage.helper;
 
-import java.io.IOException;
-import java.nio.file.Path;
+import io.sapl.mavenplugin.test.coverage.model.CoverageTargets;
+import io.sapl.test.coverage.api.CoverageAPIFactory;
 
 import javax.inject.Named;
 import javax.inject.Singleton;
-
-import io.sapl.mavenplugin.test.coverage.model.CoverageTargets;
-import io.sapl.test.coverage.api.CoverageAPIFactory;
+import java.io.IOException;
+import java.nio.file.Path;
 
 @Named
 @Singleton

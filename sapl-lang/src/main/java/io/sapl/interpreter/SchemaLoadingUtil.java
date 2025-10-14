@@ -17,14 +17,13 @@
  */
 package io.sapl.interpreter;
 
-import java.io.IOException;
-import java.lang.reflect.Method;
-
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-
 import lombok.experimental.UtilityClass;
+
+import java.io.IOException;
+import java.lang.reflect.Method;
 
 @UtilityClass
 public class SchemaLoadingUtil {

@@ -17,16 +17,15 @@
  */
 package io.sapl.grammar.sapl.impl;
 
-import static io.sapl.api.pdp.AuthorizationDecision.PERMIT;
-import static io.sapl.testutil.TestUtil.hasDecision;
-
-import org.junit.jupiter.api.Test;
-
 import io.sapl.api.interpreter.Val;
 import io.sapl.interpreter.DefaultSAPLInterpreter;
 import io.sapl.interpreter.SAPLInterpreter;
 import io.sapl.testutil.MockUtil;
+import org.junit.jupiter.api.Test;
 import reactor.test.StepVerifier;
+
+import static io.sapl.api.pdp.AuthorizationDecision.PERMIT;
+import static io.sapl.testutil.TestUtil.hasDecision;
 
 class SAPLImplCustomTests {
 

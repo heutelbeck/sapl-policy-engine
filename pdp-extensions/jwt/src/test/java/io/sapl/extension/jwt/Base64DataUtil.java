@@ -17,13 +17,13 @@
  */
 package io.sapl.extension.jwt;
 
+import lombok.SneakyThrows;
+import lombok.experimental.UtilityClass;
+
 import java.nio.charset.StandardCharsets;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.util.Base64;
-
-import lombok.SneakyThrows;
-import lombok.experimental.UtilityClass;
 
 @UtilityClass
 class Base64DataUtil {

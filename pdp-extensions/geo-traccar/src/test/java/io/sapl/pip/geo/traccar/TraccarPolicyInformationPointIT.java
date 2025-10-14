@@ -17,15 +17,14 @@
  */
 package io.sapl.pip.geo.traccar;
 
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.Mockito.when;
-
-import java.time.Duration;
-import java.util.Map;
-
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import io.sapl.api.interpreter.PolicyEvaluationException;
+import io.sapl.api.interpreter.Val;
+import io.sapl.attributes.pips.http.ReactiveWebClient;
+import io.sapl.functions.geo.GeographicFunctionLibrary;
+import lombok.SneakyThrows;
+import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
@@ -33,18 +32,14 @@ import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.wait.strategy.Wait;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.utility.DockerImageName;
-
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-
-import io.sapl.api.interpreter.PolicyEvaluationException;
-import io.sapl.api.interpreter.Val;
-import io.sapl.attributes.pips.http.ReactiveWebClient;
-import io.sapl.functions.geo.GeographicFunctionLibrary;
-import lombok.SneakyThrows;
-import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
 import reactor.test.StepVerifier;
+
+import java.time.Duration;
+import java.util.Map;
+
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.when;
 
 @Slf4j
 class TraccarPolicyInformationPointIT {

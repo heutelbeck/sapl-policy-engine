@@ -17,9 +17,9 @@
  */
 package io.sapl.grammar.ide.contentassist;
 
-import java.util.List;
-
 import org.junit.jupiter.api.Test;
+
+import java.util.List;
 
 class FunctionProposalTests extends CompletionTests {
 

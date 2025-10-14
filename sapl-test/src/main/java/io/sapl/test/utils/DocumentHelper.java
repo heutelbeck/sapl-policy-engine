@@ -17,14 +17,14 @@
  */
 package io.sapl.test.utils;
 
-import java.nio.file.Files;
-
 import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.interpreter.SAPLInterpreter;
 import io.sapl.prp.Document;
 import lombok.SneakyThrows;
 import lombok.experimental.UtilityClass;
 import lombok.extern.slf4j.Slf4j;
+
+import java.nio.file.Files;
 
 @Slf4j
 @UtilityClass

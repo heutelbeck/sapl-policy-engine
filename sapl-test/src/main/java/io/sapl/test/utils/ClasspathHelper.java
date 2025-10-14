@@ -17,15 +17,15 @@
  */
 package io.sapl.test.utils;
 
-import java.net.URL;
-import java.net.URLClassLoader;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-
 import io.sapl.test.SaplTestException;
 import lombok.NonNull;
 import lombok.SneakyThrows;
 import lombok.experimental.UtilityClass;
+
+import java.net.URL;
+import java.net.URLClassLoader;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 
 @UtilityClass
 public class ClasspathHelper {

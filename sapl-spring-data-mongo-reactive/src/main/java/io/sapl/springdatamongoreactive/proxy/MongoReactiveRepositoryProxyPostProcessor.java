@@ -17,8 +17,10 @@
  */
 package io.sapl.springdatamongoreactive.proxy;
 
-import java.lang.reflect.Type;
-
+import io.sapl.springdatacommon.services.RepositoryInformationCollectorService;
+import io.sapl.springdatamongoreactive.enforcement.MongoReactivePolicyEnforcementPoint;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.aop.framework.ProxyFactory;
 import org.springframework.data.mongodb.repository.ReactiveMongoRepository;
 import org.springframework.data.repository.core.RepositoryInformation;
@@ -26,10 +28,7 @@ import org.springframework.data.repository.core.support.RepositoryProxyPostProce
 import org.springframework.data.repository.reactive.ReactiveCrudRepository;
 import org.springframework.data.repository.reactive.ReactiveSortingRepository;
 
-import io.sapl.springdatacommon.services.RepositoryInformationCollectorService;
-import io.sapl.springdatamongoreactive.enforcement.MongoReactivePolicyEnforcementPoint;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import java.lang.reflect.Type;
 
 /**
  * This service is used to provide an instance of type

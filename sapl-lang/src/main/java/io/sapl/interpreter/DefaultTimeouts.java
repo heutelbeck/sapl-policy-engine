@@ -17,9 +17,9 @@
  */
 package io.sapl.interpreter;
 
-import java.time.Duration;
-
 import lombok.experimental.UtilityClass;
+
+import java.time.Duration;
 
 @UtilityClass
 public class DefaultTimeouts {

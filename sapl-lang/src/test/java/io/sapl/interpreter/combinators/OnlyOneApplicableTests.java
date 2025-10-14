@@ -17,27 +17,8 @@
  */
 package io.sapl.interpreter.combinators;
 
-import static io.sapl.api.pdp.Decision.DENY;
-import static io.sapl.api.pdp.Decision.INDETERMINATE;
-import static io.sapl.api.pdp.Decision.NOT_APPLICABLE;
-import static io.sapl.api.pdp.Decision.PERMIT;
-import static io.sapl.interpreter.combinators.CombinatorTestUtil.validateAdvice;
-import static io.sapl.interpreter.combinators.CombinatorTestUtil.validateDecision;
-import static io.sapl.interpreter.combinators.CombinatorTestUtil.validateObligations;
-import static io.sapl.interpreter.combinators.CombinatorTestUtil.validateResource;
-
-import java.util.List;
-import java.util.Optional;
-import java.util.stream.Stream;
-
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.Arguments;
-import org.junit.jupiter.params.provider.MethodSource;
-
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
-
 import io.sapl.api.interpreter.Val;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.AuthorizationSubscription;
@@ -50,7 +31,18 @@ import io.sapl.interpreter.context.AuthorizationContext;
 import io.sapl.interpreter.functions.AnnotationFunctionContext;
 import io.sapl.prp.DocumentMatch;
 import io.sapl.prp.PolicyRetrievalResult;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import reactor.test.StepVerifier;
+
+import java.util.List;
+import java.util.Optional;
+import java.util.stream.Stream;
+
+import static io.sapl.api.pdp.Decision.*;
+import static io.sapl.interpreter.combinators.CombinatorTestUtil.*;
 
 class OnlyOneApplicableTests {
 

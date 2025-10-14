@@ -17,11 +17,6 @@
  */
 package io.sapl.extensions.mqtt;
 
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Path;
-import java.util.Map;
-import java.util.concurrent.ExecutionException;
-
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.hivemq.client.mqtt.datatypes.MqttQos;
 import com.hivemq.client.mqtt.mqtt5.Mqtt5BlockingClient;
@@ -32,10 +27,14 @@ import com.hivemq.client.mqtt.mqtt5.message.publish.Mqtt5Publish;
 import com.hivemq.configuration.service.InternalConfigurations;
 import com.hivemq.embedded.EmbeddedHiveMQ;
 import com.hivemq.migration.meta.PersistenceType;
-
 import io.sapl.api.interpreter.Val;
 import lombok.SneakyThrows;
 import lombok.experimental.UtilityClass;
+
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Path;
+import java.util.Map;
+import java.util.concurrent.ExecutionException;
 
 @UtilityClass
 class MqttTestUtility {

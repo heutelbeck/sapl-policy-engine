@@ -17,11 +17,13 @@
  */
 package io.sapl.springdatacommon.services;
 
-import java.lang.reflect.Method;
-import java.lang.reflect.Parameter;
-import java.util.Arrays;
-import java.util.regex.Pattern;
-
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import io.sapl.api.pdp.AuthorizationSubscription;
+import io.sapl.spring.method.metadata.QueryEnforce;
+import lombok.AllArgsConstructor;
+import lombok.SneakyThrows;
 import org.aopalliance.intercept.MethodInvocation;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.BeanFactory;
@@ -32,14 +34,10 @@ import org.springframework.expression.spel.standard.SpelExpressionParser;
 import org.springframework.expression.spel.support.StandardEvaluationContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 
-import com.fasterxml.jackson.databind.DeserializationFeature;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-
-import io.sapl.api.pdp.AuthorizationSubscription;
-import io.sapl.spring.method.metadata.QueryEnforce;
-import lombok.AllArgsConstructor;
-import lombok.SneakyThrows;
+import java.lang.reflect.Method;
+import java.lang.reflect.Parameter;
+import java.util.Arrays;
+import java.util.regex.Pattern;
 
 /**
  * This service is responsible for processing the {@link QueryEnforce}

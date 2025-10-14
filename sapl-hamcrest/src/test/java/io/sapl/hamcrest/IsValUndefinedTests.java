@@ -17,15 +17,14 @@
  */
 package io.sapl.hamcrest;
 
+import io.sapl.api.interpreter.Val;
+import org.hamcrest.StringDescription;
+import org.junit.jupiter.api.Test;
+
 import static io.sapl.hamcrest.Matchers.valUndefined;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
-
-import org.hamcrest.StringDescription;
-import org.junit.jupiter.api.Test;
-
-import io.sapl.api.interpreter.Val;
 
 class IsValUndefinedTests {
 

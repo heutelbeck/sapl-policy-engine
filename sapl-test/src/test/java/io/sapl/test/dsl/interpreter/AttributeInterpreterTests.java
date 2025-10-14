@@ -17,21 +17,14 @@
  */
 package io.sapl.test.dsl.interpreter;
 
-import static io.sapl.test.Imports.whenEntityValue;
-import static io.sapl.test.dsl.ParserUtil.compareArgumentToStringLiteral;
-import static org.junit.jupiter.api.Assertions.assertArrayEquals;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertInstanceOf;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
-
-import java.time.Duration;
-import java.util.Collections;
-import java.util.List;
-
+import io.sapl.api.interpreter.Val;
+import io.sapl.test.SaplTestException;
+import io.sapl.test.TestHelper;
+import io.sapl.test.dsl.ParserUtil;
+import io.sapl.test.grammar.sapltest.*;
+import io.sapl.test.grammar.services.SAPLTestGrammarAccess;
+import io.sapl.test.mocking.attribute.models.AttributeParameters;
+import io.sapl.test.steps.GivenOrWhenStep;
 import org.hamcrest.Matcher;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -42,23 +35,17 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import io.sapl.api.interpreter.Val;
-import io.sapl.test.SaplTestException;
-import io.sapl.test.TestHelper;
-import io.sapl.test.dsl.ParserUtil;
-import io.sapl.test.grammar.sapltest.AnyVal;
-import io.sapl.test.grammar.sapltest.Attribute;
-import io.sapl.test.grammar.sapltest.AttributeParameterMatchers;
-import io.sapl.test.grammar.sapltest.AttributeWithParameters;
-import io.sapl.test.grammar.sapltest.IsJsonNull;
-import io.sapl.test.grammar.sapltest.StringLiteral;
-import io.sapl.test.grammar.sapltest.ValMatcher;
-import io.sapl.test.grammar.sapltest.ValWithMatcher;
-import io.sapl.test.grammar.sapltest.ValWithValue;
-import io.sapl.test.grammar.sapltest.Value;
-import io.sapl.test.grammar.services.SAPLTestGrammarAccess;
-import io.sapl.test.mocking.attribute.models.AttributeParameters;
-import io.sapl.test.steps.GivenOrWhenStep;
+import java.time.Duration;
+import java.util.Collections;
+import java.util.List;
+
+import static io.sapl.test.Imports.whenEntityValue;
+import static io.sapl.test.dsl.ParserUtil.compareArgumentToStringLiteral;
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class AttributeInterpreterTests {

@@ -17,19 +17,17 @@
  */
 package io.sapl.spring.serialization;
 
+import com.fasterxml.jackson.core.JsonGenerator;
+import com.fasterxml.jackson.databind.JsonSerializer;
+import com.fasterxml.jackson.databind.SerializerProvider;
+import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.boot.jackson.JsonComponent;
+
 import java.io.IOException;
 import java.util.Enumeration;
 import java.util.Locale;
 import java.util.Map.Entry;
-
-import org.springframework.boot.jackson.JsonComponent;
-
-import com.fasterxml.jackson.core.JsonGenerator;
-import com.fasterxml.jackson.databind.JsonSerializer;
-import com.fasterxml.jackson.databind.SerializerProvider;
-
-import jakarta.servlet.http.Cookie;
-import jakarta.servlet.http.HttpServletRequest;
 
 @JsonComponent
 public class HttpServletRequestSerializer extends JsonSerializer<HttpServletRequest> {

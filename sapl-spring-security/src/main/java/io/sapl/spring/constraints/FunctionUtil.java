@@ -17,11 +17,11 @@
  */
 package io.sapl.spring.constraints;
 
+import lombok.experimental.UtilityClass;
+
 import java.util.function.Consumer;
 import java.util.function.LongConsumer;
 import java.util.function.Predicate;
-
-import lombok.experimental.UtilityClass;
 
 @UtilityClass
 public class FunctionUtil {

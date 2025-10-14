@@ -17,13 +17,12 @@
  */
 package io.sapl.spring.pdp.embedded;
 
+import io.sapl.interpreter.DefaultSAPLInterpreter;
+import io.sapl.interpreter.SAPLInterpreter;
 import org.springframework.beans.factory.config.BeanDefinition;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Role;
-
-import io.sapl.interpreter.DefaultSAPLInterpreter;
-import io.sapl.interpreter.SAPLInterpreter;
 
 @AutoConfiguration
 public class InterpreterAutoConfiguration {

@@ -17,37 +17,30 @@
  */
 package io.sapl.extensions.mqtt;
 
-import static io.sapl.extensions.mqtt.MqttTestUtility.buildAndStartBroker;
-import static io.sapl.extensions.mqtt.MqttTestUtility.buildVariables;
-import static io.sapl.extensions.mqtt.MqttTestUtility.startClient;
-import static io.sapl.extensions.mqtt.MqttTestUtility.stopBroker;
-import static io.sapl.extensions.mqtt.SaplMqttClient.ENVIRONMENT_BROKER_ADDRESS;
-import static io.sapl.extensions.mqtt.SaplMqttClient.ENVIRONMENT_BROKER_PORT;
-import static io.sapl.extensions.mqtt.SaplMqttClient.ENVIRONMENT_CLIENT_ID;
-import static io.sapl.extensions.mqtt.util.DefaultResponseUtility.ENVIRONMENT_DEFAULT_RESPONSE;
-import static io.sapl.extensions.mqtt.util.DefaultResponseUtility.ENVIRONMENT_DEFAULT_RESPONSE_TIMEOUT;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import com.fasterxml.jackson.databind.node.JsonNodeFactory;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.hivemq.client.mqtt.mqtt5.Mqtt5BlockingClient;
+import com.hivemq.embedded.EmbeddedHiveMQ;
+import io.sapl.api.interpreter.Val;
+import io.sapl.extensions.mqtt.util.DefaultResponseConfig;
+import io.sapl.extensions.mqtt.util.DefaultResponseUtility;
+import lombok.SneakyThrows;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
+import reactor.core.publisher.Flux;
+import reactor.test.StepVerifier;
 
 import java.nio.file.Path;
 import java.time.Duration;
 import java.util.Map;
 
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.io.TempDir;
-
-import com.fasterxml.jackson.databind.node.JsonNodeFactory;
-import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.hivemq.client.mqtt.mqtt5.Mqtt5BlockingClient;
-import com.hivemq.embedded.EmbeddedHiveMQ;
-
-import io.sapl.api.interpreter.Val;
-import io.sapl.extensions.mqtt.util.DefaultResponseConfig;
-import io.sapl.extensions.mqtt.util.DefaultResponseUtility;
-import lombok.SneakyThrows;
-import reactor.core.publisher.Flux;
-import reactor.test.StepVerifier;
+import static io.sapl.extensions.mqtt.MqttTestUtility.*;
+import static io.sapl.extensions.mqtt.SaplMqttClient.*;
+import static io.sapl.extensions.mqtt.util.DefaultResponseUtility.ENVIRONMENT_DEFAULT_RESPONSE;
+import static io.sapl.extensions.mqtt.util.DefaultResponseUtility.ENVIRONMENT_DEFAULT_RESPONSE_TIMEOUT;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class SaplMqttDefaultResponseIT {
 

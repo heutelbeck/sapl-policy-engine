@@ -17,17 +17,14 @@
  */
 package io.sapl.test.mocking.function;
 
-import static io.sapl.test.Imports.times;
-import static io.sapl.test.Imports.whenFunctionParams;
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
-import static org.assertj.core.api.Assertions.assertThatNoException;
-import static org.hamcrest.CoreMatchers.is;
-
-import org.junit.jupiter.api.Test;
-
 import io.sapl.api.interpreter.Val;
 import io.sapl.test.SaplTestException;
+import org.junit.jupiter.api.Test;
+
+import static io.sapl.test.Imports.times;
+import static io.sapl.test.Imports.whenFunctionParams;
+import static org.assertj.core.api.Assertions.*;
+import static org.hamcrest.CoreMatchers.is;
 
 class FunctionMockAlwaysSameForParametersTests {
 

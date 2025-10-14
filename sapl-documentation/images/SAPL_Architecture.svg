@@ -1,5 +1,6 @@
 <?xml version="1.0"?>
-<svg width="30910" height="13740" xmlns="http://www.w3.org/2000/svg" xmlns:svg="http://www.w3.org/2000/svg" fill-rule="evenodd" preserveAspectRatio="xMidYMid" stroke-linejoin="round" stroke-width="28.222" version="1.2" xml:space="preserve">
+<svg width="30910" height="13740" xmlns="http://www.w3.org/2000/svg" fill-rule="evenodd" preserveAspectRatio="xMidYMid"
+     stroke-linejoin="round" stroke-width="28.222" version="1.2" xml:space="preserve">
  <defs class="ClipPathGroup">
   <clipPath clipPathUnits="userSpaceOnUse" id="presentation_clip_path">
    <rect height="13740" id="svg_1" width="30910" x="0" y="0"/>

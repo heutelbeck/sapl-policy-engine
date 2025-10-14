@@ -17,11 +17,7 @@
  */
 package io.sapl.test;
 
-import java.util.HashMap;
-import java.util.Map;
-
 import com.fasterxml.jackson.databind.ObjectMapper;
-
 import io.sapl.api.interpreter.Val;
 import io.sapl.attributes.broker.impl.AnnotationPolicyInformationPointLoader;
 import io.sapl.attributes.broker.impl.CachingAttributeStreamBroker;
@@ -30,6 +26,9 @@ import io.sapl.attributes.documentation.api.PolicyInformationPointDocumentationP
 import io.sapl.interpreter.InitializationException;
 import io.sapl.interpreter.functions.AnnotationFunctionContext;
 import io.sapl.validation.ValidatorFactory;
+
+import java.util.HashMap;
+import java.util.Map;
 
 public abstract class SaplTestFixtureTemplate implements SaplTestFixture {
 

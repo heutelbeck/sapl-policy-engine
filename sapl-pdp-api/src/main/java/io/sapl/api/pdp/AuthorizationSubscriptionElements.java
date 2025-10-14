@@ -17,17 +17,16 @@
  */
 package io.sapl.api.pdp;
 
-import static com.fasterxml.jackson.annotation.JsonInclude.Include.NON_EMPTY;
-
-import java.io.Serializable;
-
 import com.fasterxml.jackson.annotation.JsonInclude;
-
 import io.sapl.api.SaplVersion;
 import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+
+import java.io.Serializable;
+
+import static com.fasterxml.jackson.annotation.JsonInclude.Include.NON_EMPTY;
 
 /**
  * Data structure holding IDs for the elements of an

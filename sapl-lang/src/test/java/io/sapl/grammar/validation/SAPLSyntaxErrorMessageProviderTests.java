@@ -17,10 +17,12 @@
  */
 package io.sapl.grammar.validation;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.mockito.Mockito.when;
-
+import com.google.inject.Inject;
+import io.sapl.grammar.sapl.Policy;
+import io.sapl.grammar.sapl.PolicyBody;
+import io.sapl.grammar.sapl.SAPL;
+import io.sapl.grammar.sapl.SaplPackage;
+import io.sapl.grammar.tests.SAPLInjectorProvider;
 import org.antlr.runtime.EarlyExitException;
 import org.antlr.runtime.MismatchedTokenException;
 import org.antlr.runtime.NoViableAltException;
@@ -40,13 +42,9 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mockito;
 
-import com.google.inject.Inject;
-
-import io.sapl.grammar.sapl.Policy;
-import io.sapl.grammar.sapl.PolicyBody;
-import io.sapl.grammar.sapl.SAPL;
-import io.sapl.grammar.sapl.SaplPackage;
-import io.sapl.grammar.tests.SAPLInjectorProvider;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(InjectionExtension.class)
 @InjectWith(SAPLInjectorProvider.class)

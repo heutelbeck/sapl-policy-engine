@@ -17,9 +17,6 @@
  */
 package io.sapl.interpreter.combinators;
 
-import java.util.LinkedList;
-import java.util.List;
-
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.Decision;
 import io.sapl.grammar.sapl.CombiningAlgorithm;
@@ -29,6 +26,9 @@ import io.sapl.interpreter.DocumentEvaluationResult;
 import io.sapl.prp.DocumentMatch;
 import lombok.experimental.UtilityClass;
 import reactor.core.publisher.Flux;
+
+import java.util.LinkedList;
+import java.util.List;
 
 /**
  * This algorithm is used if policy sets and policies are constructed in a way

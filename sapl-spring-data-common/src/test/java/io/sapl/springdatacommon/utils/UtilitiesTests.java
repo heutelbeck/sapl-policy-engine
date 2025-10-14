@@ -17,33 +17,24 @@
  */
 package io.sapl.springdatacommon.utils;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-import java.lang.reflect.Modifier;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
-import java.util.Objects;
-
+import com.fasterxml.jackson.core.JsonParseException;
+import io.sapl.springdatacommon.database.Person;
+import io.sapl.springdatacommon.database.Role;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.junit.platform.commons.util.ReflectionUtils;
-
-import com.fasterxml.jackson.core.JsonParseException;
-
-import io.sapl.springdatacommon.database.Person;
-import io.sapl.springdatacommon.database.Role;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
+
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
+import java.util.*;
+
+import static org.junit.jupiter.api.Assertions.*;
 
 class UtilitiesTests {
 

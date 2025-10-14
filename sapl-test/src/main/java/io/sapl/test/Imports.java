@@ -17,13 +17,6 @@
  */
 package io.sapl.test;
 
-import static org.hamcrest.CoreMatchers.any;
-import static org.hamcrest.number.OrderingComparison.comparesEqualTo;
-
-import org.hamcrest.BaseMatcher;
-import org.hamcrest.Description;
-import org.hamcrest.Matcher;
-
 import io.sapl.api.interpreter.Val;
 import io.sapl.test.mocking.attribute.models.AttributeArgumentMatchers;
 import io.sapl.test.mocking.attribute.models.AttributeEntityValueMatcher;
@@ -31,6 +24,12 @@ import io.sapl.test.mocking.attribute.models.AttributeParameters;
 import io.sapl.test.mocking.function.models.FunctionParameters;
 import io.sapl.test.verification.TimesCalledVerification;
 import lombok.experimental.UtilityClass;
+import org.hamcrest.BaseMatcher;
+import org.hamcrest.Description;
+import org.hamcrest.Matcher;
+
+import static org.hamcrest.CoreMatchers.any;
+import static org.hamcrest.number.OrderingComparison.comparesEqualTo;
 
 @UtilityClass
 public class Imports {

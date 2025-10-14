@@ -17,20 +17,19 @@
  */
 package io.sapl.spring.pdp.embedded;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
-
-import org.junit.jupiter.api.Test;
-import org.springframework.boot.autoconfigure.AutoConfigurations;
-import org.springframework.boot.test.context.runner.ApplicationContextRunner;
-
 import io.sapl.attributes.broker.api.AttributeStreamBroker;
 import io.sapl.interpreter.functions.FunctionContext;
 import io.sapl.prp.GenericInMemoryIndexedPolicyRetrievalPointSource;
 import io.sapl.prp.PolicyRetrievalPointSource;
 import io.sapl.prp.PrpUpdateEventSource;
+import org.junit.jupiter.api.Test;
+import org.springframework.boot.autoconfigure.AutoConfigurations;
+import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import reactor.core.publisher.Flux;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 class PRPAutoConfigurationTests {
 

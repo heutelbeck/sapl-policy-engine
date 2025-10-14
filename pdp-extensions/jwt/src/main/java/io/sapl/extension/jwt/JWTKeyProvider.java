@@ -17,6 +17,17 @@
  */
 package io.sapl.extension.jwt;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import io.sapl.api.SaplVersion;
+import lombok.Getter;
+import lombok.experimental.StandardException;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatusCode;
+import org.springframework.web.reactive.function.client.ClientResponse;
+import org.springframework.web.reactive.function.client.WebClient;
+import org.springframework.web.reactive.function.client.WebClient.ResponseSpec;
+import reactor.core.publisher.Mono;
+
 import java.security.interfaces.RSAPublicKey;
 import java.time.Instant;
 import java.util.Map;
@@ -24,19 +35,6 @@ import java.util.Optional;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
-
-import org.springframework.http.HttpStatusCode;
-import org.springframework.web.reactive.function.client.ClientResponse;
-import org.springframework.web.reactive.function.client.WebClient;
-import org.springframework.web.reactive.function.client.WebClient.ResponseSpec;
-
-import com.fasterxml.jackson.databind.JsonNode;
-
-import io.sapl.api.SaplVersion;
-import lombok.Getter;
-import lombok.experimental.StandardException;
-import lombok.extern.slf4j.Slf4j;
-import reactor.core.publisher.Mono;
 
 /**
  * Class for retrieving public keys from the JWT Authorization Server

@@ -17,24 +17,9 @@
  */
 package io.sapl.test.steps;
 
-import static io.sapl.hamcrest.Matchers.isDeny;
-import static io.sapl.hamcrest.Matchers.isIndeterminate;
-import static io.sapl.hamcrest.Matchers.isNotApplicable;
-import static io.sapl.hamcrest.Matchers.isPermit;
-
-import java.time.Duration;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.function.Function;
-import java.util.function.Predicate;
-
-import org.hamcrest.Matcher;
-
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-
 import io.sapl.api.interpreter.Val;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.AuthorizationSubscription;
@@ -45,8 +30,18 @@ import io.sapl.test.mocking.attribute.models.AttributeParameters;
 import io.sapl.test.mocking.function.MockingFunctionContext;
 import io.sapl.test.mocking.function.models.FunctionParameters;
 import io.sapl.test.verification.TimesCalledVerification;
+import org.hamcrest.Matcher;
 import reactor.test.StepVerifier.Step;
 import reactor.test.scheduler.VirtualTimeScheduler;
+
+import java.time.Duration;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
+import java.util.function.Predicate;
+
+import static io.sapl.hamcrest.Matchers.*;
 
 public abstract class StepsDefaultImpl implements GivenStep, WhenStep, GivenOrWhenStep, ExpectStep, ExpectOrVerifyStep {
 

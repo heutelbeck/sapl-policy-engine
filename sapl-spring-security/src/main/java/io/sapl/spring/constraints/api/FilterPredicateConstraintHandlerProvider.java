@@ -17,9 +17,9 @@
  */
 package io.sapl.spring.constraints.api;
 
-import java.util.function.Predicate;
-
 import com.fasterxml.jackson.databind.JsonNode;
+
+import java.util.function.Predicate;
 
 public interface FilterPredicateConstraintHandlerProvider extends Responsible {
 

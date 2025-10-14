@@ -17,32 +17,14 @@
  */
 package io.sapl.test.dsl.interpreter;
 
-import static com.spotify.hamcrest.jackson.JsonMatchers.jsonArray;
-import static com.spotify.hamcrest.jackson.JsonMatchers.jsonBigDecimal;
-import static com.spotify.hamcrest.jackson.JsonMatchers.jsonBoolean;
-import static com.spotify.hamcrest.jackson.JsonMatchers.jsonNull;
-import static com.spotify.hamcrest.jackson.JsonMatchers.jsonNumber;
-import static com.spotify.hamcrest.jackson.JsonMatchers.jsonObject;
-import static com.spotify.hamcrest.jackson.JsonMatchers.jsonText;
-import static org.hamcrest.Matchers.is;
-
+import com.fasterxml.jackson.databind.JsonNode;
+import io.sapl.test.SaplTestException;
+import io.sapl.test.grammar.sapltest.*;
+import lombok.RequiredArgsConstructor;
 import org.hamcrest.Matcher;
 
-import com.fasterxml.jackson.databind.JsonNode;
-
-import io.sapl.test.SaplTestException;
-import io.sapl.test.grammar.sapltest.FalseLiteral;
-import io.sapl.test.grammar.sapltest.IsJsonArray;
-import io.sapl.test.grammar.sapltest.IsJsonBoolean;
-import io.sapl.test.grammar.sapltest.IsJsonNull;
-import io.sapl.test.grammar.sapltest.IsJsonNumber;
-import io.sapl.test.grammar.sapltest.IsJsonObject;
-import io.sapl.test.grammar.sapltest.IsJsonText;
-import io.sapl.test.grammar.sapltest.JsonNodeMatcher;
-import io.sapl.test.grammar.sapltest.PlainString;
-import io.sapl.test.grammar.sapltest.StringMatcher;
-import io.sapl.test.grammar.sapltest.TrueLiteral;
-import lombok.RequiredArgsConstructor;
+import static com.spotify.hamcrest.jackson.JsonMatchers.*;
+import static org.hamcrest.Matchers.is;
 
 @RequiredArgsConstructor
 class JsonNodeMatcherInterpreter {

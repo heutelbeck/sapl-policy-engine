@@ -17,21 +17,16 @@
  */
 package io.sapl.spring.subscriptions;
 
-import static com.spotify.hamcrest.jackson.JsonMatchers.jsonArray;
-import static com.spotify.hamcrest.jackson.JsonMatchers.jsonInt;
-import static com.spotify.hamcrest.jackson.JsonMatchers.jsonMissing;
-import static com.spotify.hamcrest.jackson.JsonMatchers.jsonNull;
-import static com.spotify.hamcrest.jackson.JsonMatchers.jsonObject;
-import static com.spotify.hamcrest.jackson.JsonMatchers.jsonText;
-import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.containsInAnyOrder;
-import static org.junit.jupiter.api.Assertions.assertAll;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.spy;
-import static org.mockito.Mockito.when;
-
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.module.SimpleModule;
+import io.sapl.api.SaplVersion;
+import io.sapl.spring.method.metadata.PreEnforce;
+import io.sapl.spring.method.metadata.SaplAttribute;
+import io.sapl.spring.serialization.HttpServletRequestSerializer;
+import io.sapl.spring.serialization.MethodInvocationSerializer;
+import io.sapl.spring.serialization.ServerHttpRequestSerializer;
+import jakarta.servlet.http.HttpServletRequest;
 import org.aopalliance.intercept.MethodInvocation;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -50,21 +45,17 @@ import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.util.MethodInvocationUtils;
 import org.springframework.web.server.ServerWebExchange;
-
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.module.SimpleModule;
-
-import io.sapl.api.SaplVersion;
-import io.sapl.spring.method.metadata.PreEnforce;
-import io.sapl.spring.method.metadata.SaplAttribute;
-import io.sapl.spring.serialization.HttpServletRequestSerializer;
-import io.sapl.spring.serialization.MethodInvocationSerializer;
-import io.sapl.spring.serialization.ServerHttpRequestSerializer;
-import jakarta.servlet.http.HttpServletRequest;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 import reactor.util.context.Context;
+
+import static com.spotify.hamcrest.jackson.JsonMatchers.*;
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.junit.jupiter.api.Assertions.assertAll;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.*;
 
 class WebfluxAuthorizationSubscriptionBuilderServiceTests {
 

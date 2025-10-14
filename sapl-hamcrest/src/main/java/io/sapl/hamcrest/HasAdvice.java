@@ -17,16 +17,14 @@
  */
 package io.sapl.hamcrest;
 
-import java.util.Objects;
-import java.util.Optional;
-
+import com.fasterxml.jackson.databind.JsonNode;
+import io.sapl.api.pdp.AuthorizationDecision;
 import org.hamcrest.Description;
 import org.hamcrest.Matcher;
 import org.hamcrest.TypeSafeDiagnosingMatcher;
 
-import com.fasterxml.jackson.databind.JsonNode;
-
-import io.sapl.api.pdp.AuthorizationDecision;
+import java.util.Objects;
+import java.util.Optional;
 
 /**
  * Matcher for examining the advice contained in an AuthorizationDecision.

@@ -17,17 +17,16 @@
  */
 package io.sapl.springdatacommon.utils;
 
-import java.util.Collection;
-import java.util.List;
-import java.util.regex.Pattern;
-
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-
 import lombok.SneakyThrows;
 import lombok.experimental.UtilityClass;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+
+import java.util.Collection;
+import java.util.List;
+import java.util.regex.Pattern;
 
 @UtilityClass
 public class Utilities {
