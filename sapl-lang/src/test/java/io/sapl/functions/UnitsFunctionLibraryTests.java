@@ -21,14 +21,19 @@ import io.sapl.api.interpreter.Val;
 import lombok.val;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.ValueSource;
+
+import java.util.concurrent.TimeUnit;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.within;
 
 class UnitsFunctionLibraryTests {
+
+    public static final Val VERY_LONG_NUMBER = Val.of("1".repeat(10000) + "X");
 
     private static void assertParsesTo(String input, double expected, double tolerance) {
         val result = UnitsFunctionLibrary.parse(Val.of(input));
@@ -262,5 +267,38 @@ class UnitsFunctionLibraryTests {
             assertThat(result.isNumber()).isTrue();
             assertThat(result.getDouble()).isGreaterThan(1e17);
         }
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {
+            "1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1X",
+            "1111111111111111111111111111111111111111111111111111111111111111111111X",
+            "1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1eX",
+            "................................K",
+            "1.2.3.4.5.6.7.8.9.0.1.2.3.4.5.6.7.8.9.0Z"
+    })
+    @Timeout(value = 100, unit = TimeUnit.MILLISECONDS)
+    void whenParsingPotentialReDoSPatterns_thenCompletesQuickly(String input) {
+        val result = UnitsFunctionLibrary.parse(Val.of(input));
+        assertThat(result.isError()).isTrue();
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {
+            "1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1KB",
+            "1111111111111111111111111111111111111111111111111111111111111111111111XB",
+            "................................MB"
+    })
+    @Timeout(value = 100, unit = TimeUnit.MILLISECONDS)
+    void whenParsingPotentialReDoSPatternsInBytes_thenCompletesQuickly(String input) {
+        val result = UnitsFunctionLibrary.parseBytes(Val.of(input));
+        assertThat(result.isError()).isTrue();
+    }
+
+    @Test
+    @Timeout(value = 100, unit = TimeUnit.MILLISECONDS)
+    void whenParsingVeryLongInvalidString_thenCompletesQuickly() {
+        val result = UnitsFunctionLibrary.parse(VERY_LONG_NUMBER);
+        assertThat(result.isError()).isTrue();
     }
 }

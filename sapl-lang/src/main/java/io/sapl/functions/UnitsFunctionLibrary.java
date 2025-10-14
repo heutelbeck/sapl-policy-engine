@@ -26,7 +26,6 @@ import lombok.val;
 
 import java.math.BigDecimal;
 import java.util.Map;
-import java.util.regex.Pattern;
 
 @UtilityClass
 @FunctionLibrary(name = UnitsFunctionLibrary.NAME, description = UnitsFunctionLibrary.DESCRIPTION)
@@ -34,14 +33,10 @@ public class UnitsFunctionLibrary {
     public static final String NAME        = "units";
     public static final String DESCRIPTION = "Functions for converting human-readable unit strings into numeric values.";
 
-    private static final Pattern UNIT_PATTERN = Pattern
-            .compile("^([+-]?\\d+\\.?\\d*(?:[eE][+-]?\\d+)?)\\s*([a-zA-Z]*)$");
-
-    /**
+    /*
      * Unified multiplier map for both general and byte units.
      * Empty string entry handles byte-only context (no unit = bytes).
-     * Normalized keys: 'm' (lowercase milli), uppercase letters, 'I' suffix for
-     * binary units.
+     * Normalized keys: 'm' (lowercase milli), uppercase letters, 'I' suffix for binary units.
      */
     private static final Map<String, BigDecimal> MULTIPLIERS = Map.ofEntries(Map.entry("", BigDecimal.ONE),
             Map.entry("m", new BigDecimal("0.001")), Map.entry("K", new BigDecimal("1000")),
@@ -52,29 +47,22 @@ public class UnitsFunctionLibrary {
             Map.entry("TI", new BigDecimal("1099511627776")), Map.entry("PI", new BigDecimal("1125899906842624")),
             Map.entry("EI", new BigDecimal("1152921504606846976")));
 
-    /**
-     * Units not supported in byte parsing context (too large for practical byte
-     * sizes).
+    /*
+     * Units not supported in byte parsing context (too large for practical byte sizes).
      */
     private static final java.util.Set<String> UNSUPPORTED_FOR_BYTES = java.util.Set.of("P", "E", "PI", "EI");
 
-    /**
+    /*
      * Transforms a human-readable unit string into its numeric equivalent.
-     * Supports standard metric prefixes including both decimal SI units (m, K, M,
-     * G, T, P, E)
-     * and binary SI units (Ki, Mi, Gi, Ti, Pi, Ei). The prefix 'm' represents milli
-     * (0.001)
-     * while 'M' represents mega (1,000,000), making case sensitivity important for
-     * distinguishing
-     * these values. Other unit prefixes are case-insensitive. Scientific notation
-     * is fully supported
-     * in the numeric portion, enabling expressions such as "1e-3K" (evaluating to
-     * 1) or "2.5e6M"
+     * Supports standard metric prefixes including both decimal SI units (m, K, M, G, T, P, E)
+     * and binary SI units (Ki, Mi, Gi, Ti, Pi, Ei). The prefix 'm' represents milli (0.001)
+     * while 'M' represents mega (1,000,000), making case sensitivity important for distinguishing
+     * these values. Other unit prefixes are case-insensitive. Scientific notation is fully supported
+     * in the numeric portion, enabling expressions such as "1e-3K" (evaluating to 1) or "2.5e6M"
      * (evaluating to 2.5 trillion).
      *
      * @param unitString the human-readable unit expression to transform
-     * @return a Val containing the computed numeric value, or an error if parsing
-     * fails
+     * @return a Val containing the computed numeric value, or an error if parsing fails
      */
     @Function(docs = """
             ```units.parse(TEXT unitString)```: Transforms human-readable unit notation into numeric values.
@@ -133,24 +121,17 @@ public class UnitsFunctionLibrary {
         return parseWithContext(unitString, false);
     }
 
-    /**
-     * Converts human-readable byte size strings into their numeric byte count
-     * equivalents.
-     * Handles both decimal byte units (KB, MB, GB, TB) and binary byte units (KiB,
-     * MiB, GiB, TiB).
-     * The byte indicator ('b' or 'B') in the unit suffix is optional; omitting it
-     * yields identical
-     * results (e.g., "Mi" and "MiB" are treated equivalently). Decimal units use
-     * powers of 1000,
-     * while binary units use powers of 1024. Scientific notation is supported for
-     * the numeric
-     * component, allowing expressions such as "1.5e3MB" (1,500 megabytes) or
-     * "2e6GiB"
+    /*
+     * Converts human-readable byte size strings into their numeric byte count equivalents.
+     * Handles both decimal byte units (KB, MB, GB, TB) and binary byte units (KiB, MiB, GiB, TiB).
+     * The byte indicator ('b' or 'B') in the unit suffix is optional; omitting it yields identical
+     * results (e.g., "Mi" and "MiB" are treated equivalently). Decimal units use powers of 1000,
+     * while binary units use powers of 1024. Scientific notation is supported for the numeric
+     * component, allowing expressions such as "1.5e3MB" (1,500 megabytes) or "2e6GiB"
      * (2 million gibibytes).
      *
      * @param byteString the byte size string to convert
-     * @return a Val containing the byte count as a numeric value, or an error if
-     * parsing fails
+     * @return a Val containing the byte count as a numeric value, or an error if parsing fails
      */
     @Function(docs = """
             ```units.parseBytes(TEXT byteString)```: Converts byte size notation into precise byte counts.
@@ -193,7 +174,6 @@ public class UnitsFunctionLibrary {
 
               // Scientific notation examples
               var largeMegabytes = units.parseBytes("1.5e3MB");   // Returns 1500000000 (1500 MB)
-              var largeMegabytes = units.parseBytes("1.5e3MB");   // Returns 1500000000 (1500 MB)
               var massiveGibibytes = units.parseBytes("2e6GiB");  // Returns 2147483648000000 (2 million GiB)
               var smallKilobytes = units.parseBytes("1e-2KB");    // Returns 10 (0.01 KB)
 
@@ -223,27 +203,42 @@ public class UnitsFunctionLibrary {
         return parseWithContext(byteString, true);
     }
 
-    /**
+    /*
+     * Maximum length for entire input string to prevent DoS via extremely long inputs.
+     * 110 characters allows 100 digits plus sign, decimal, exponent notation, and short unit.
+     */
+    private static final int MAX_INPUT_LENGTH = 110;
+
+    /*
      * Core parsing logic shared by both parse and parseBytes functions.
+     * Uses manual string parsing instead of regex to avoid ReDoS vulnerabilities.
      * Extracts numeric value and unit suffix, normalizes the unit based on context,
      * and applies the appropriate multiplier.
      *
      * @param input the input string containing number and optional unit
-     * @param isByteContext true if parsing bytes (allows empty unit), false for
-     * general units
+     * @param isByteContext true if parsing bytes (allows empty unit), false for general units
      * @return a Val containing the computed value or an error
      */
     private static Val parseWithContext(Val input, boolean isByteContext) {
-        val text    = input.getText().trim();
-        val matcher = UNIT_PATTERN.matcher(text);
+        val text = input.getText().trim();
 
-        if (!matcher.matches()) {
-            return Val.error("Invalid " + (isByteContext ? "byte " : "unit ") + "format: '" + text
-                    + "'. Expected format: number followed by optional unit (e.g., '10K', '5.5M', '1e3G')");
+        if (text.isEmpty()) {
+            return createFormatError("", isByteContext);
         }
 
-        val numberPart = matcher.group(1);
-        val unitPart   = matcher.group(2);
+        // CRITICAL: Check length BEFORE parsing to prevent DoS
+        if (text.length() > MAX_INPUT_LENGTH) {
+            return Val.error("Input too long (max " + MAX_INPUT_LENGTH + " characters): '"
+                    + text.substring(0, 50) + "...'");
+        }
+
+        val parsed = parseNumberAndUnit(text);
+        if (parsed == null) {
+            return createFormatError(text, isByteContext);
+        }
+
+        val numberPart = parsed.numberPart();
+        val unitPart = parsed.unitPart();
 
         BigDecimal numericValue;
         try {
@@ -262,14 +257,186 @@ public class UnitsFunctionLibrary {
         if (multiplier == null || (isByteContext && UNSUPPORTED_FOR_BYTES.contains(normalizedUnit))) {
             return Val.error("Unknown " + (isByteContext ? "byte " : "") + "unit: '" + unitPart + "'. Supported units: "
                     + (isByteContext ? "B, KB/KiB, MB/MiB, GB/GiB, TB/TiB (byte suffix optional, case-insensitive)"
-                            : "m, K/Ki, M/Mi, G/Gi, T/Ti, P/Pi, E/Ei"));
+                    : "m, K/Ki, M/Mi, G/Gi, T/Ti, P/Pi, E/Ei"));
         }
 
         val result = numericValue.multiply(multiplier);
         return Val.of(result.doubleValue());
     }
 
-    /**
+    /*
+     * Parses a string into numeric and unit parts using explicit character scanning.
+     * Avoids regex to eliminate ReDoS vulnerability.
+     * Supports: optional sign, digits, optional decimal point, more digits, optional scientific notation, unit letters.
+     *
+     * @param text the trimmed input string to parse
+     * @return ParsedParts containing number and unit strings, or null if format is invalid
+     */
+    private static ParsedParts parseNumberAndUnit(String text) {
+        val parser = new UnitParser(text);
+
+        if (!parser.parseNumber()) {
+            return null;
+        }
+
+        parser.skipWhitespace();
+
+        if (!parser.parseUnit()) {
+            return null;
+        }
+
+        return parser.getParsedParts();
+    }
+
+    /*
+     * Helper class for parsing unit strings with maintained position state.
+     * Reduces cyclomatic complexity by encapsulating parsing logic.
+     */
+    private static class UnitParser {
+        private final String text;
+        private final int length;
+        private int position;
+        private int numberEnd;
+
+        UnitParser(String text) {
+            this.text = text;
+            this.length = text.length();
+            this.position = 0;
+            this.numberEnd = 0;
+        }
+
+        /*
+         * Parses the numeric portion of the input string.
+         * Handles sign, digits, decimal point, and scientific notation.
+         *
+         * @return true if a valid number was parsed, false otherwise
+         */
+        boolean parseNumber() {
+            parseOptionalSign();
+
+            if (!parseRequiredDigits()) {
+                return false;
+            }
+
+            parseOptionalDecimal();
+            parseOptionalScientificNotation();
+
+            return true;
+        }
+
+        /*
+         * Parses optional '+' or '-' sign at current position.
+         */
+        void parseOptionalSign() {
+            if (position < length && (text.charAt(position) == '+' || text.charAt(position) == '-')) {
+                position++;
+            }
+        }
+
+        /*
+         * Parses required digit sequence. At least one digit must be present.
+         *
+         * @return true if digits were found, false otherwise
+         */
+        boolean parseRequiredDigits() {
+            int digitStart = position;
+            while (position < length && Character.isDigit(text.charAt(position))) {
+                position++;
+            }
+            return position > digitStart;
+        }
+
+        /*
+         * Parses optional decimal point followed by digits.
+         */
+        void parseOptionalDecimal() {
+            if (position < length && text.charAt(position) == '.') {
+                position++;
+
+                while (position < length && Character.isDigit(text.charAt(position))) {
+                    position++;
+                }
+            }
+        }
+
+        /*
+         * Parses optional scientific notation (E or e followed by optional sign and required digits).
+         * If E/e is not followed by valid exponent, backtracks and treats it as part of the unit.
+         */
+        void parseOptionalScientificNotation() {
+            if (position < length && (text.charAt(position) == 'e' || text.charAt(position) == 'E')) {
+                int savedPosition = position;
+                position++;
+
+                if (position < length && (text.charAt(position) == '+' || text.charAt(position) == '-')) {
+                    position++;
+                }
+
+                int exponentStart = position;
+                while (position < length && Character.isDigit(text.charAt(position))) {
+                    position++;
+                }
+
+                if (position == exponentStart) {
+                    position = savedPosition;
+                }
+            }
+        }
+
+        /*
+         * Skips whitespace characters and records the end position of the number.
+         */
+        void skipWhitespace() {
+            while (position < length && Character.isWhitespace(text.charAt(position))) {
+                position++;
+            }
+
+            numberEnd = position;
+            while (numberEnd > 0 && Character.isWhitespace(text.charAt(numberEnd - 1))) {
+                numberEnd--;
+            }
+        }
+
+        /*
+         * Parses the unit portion (letters only).
+         *
+         * @return true if parsing succeeded (only letters or end of string), false if invalid characters found
+         */
+        boolean parseUnit() {
+            int unitStart = position;
+
+            while (position < length && Character.isLetter(text.charAt(position))) {
+                position++;
+            }
+
+            return position == length;
+        }
+
+        /*
+         * Extracts the parsed number and unit parts.
+         *
+         * @return ParsedParts containing the separated number and unit strings
+         */
+        ParsedParts getParsedParts() {
+            val numberPart = text.substring(0, numberEnd);
+            val unitPart = text.substring(numberEnd).trim();
+            return new ParsedParts(numberPart, unitPart);
+        }
+    }
+
+    /*
+     * Creates a standardized format error message.
+     *
+     * @param text the invalid input text
+     * @param isByteContext whether parsing in byte context
+     * @return a Val containing the format error
+     */
+    private static Val createFormatError(String text, boolean isByteContext) {
+        return Val.error("Invalid " + (isByteContext ? "byte " : "unit ") + "format: '" + text
+                + "'. Expected format: number followed by optional unit (e.g., '10K', '5.5M', '1e3G')");
+    }
+
+    /*
      * Normalizes a general unit string to canonical form for map lookup.
      * Preserves lowercase 'm' for milli vs uppercase 'M' for mega distinction.
      * Binary units (ending in 'i') are normalized to uppercase base + 'I'.
@@ -291,10 +458,10 @@ public class UnitsFunctionLibrary {
         return unit.toUpperCase();
     }
 
-    /**
+    /*
      * Normalizes a byte unit string by stripping optional 'B'/'b' suffix
      * then applying byte-specific normalization. For bytes, 'm' is always
-     * treated as 'M' (mega) since milli-bytes don't make sense.
+     * treated as 'M' (mega) since milli-bytes do not make sense.
      *
      * @param unit the byte unit string to normalize
      * @return normalized unit string matching a key in MULTIPLIERS map
@@ -318,5 +485,11 @@ public class UnitsFunctionLibrary {
         }
 
         return unit.toUpperCase();
+    }
+
+    /*
+     * Holds the parsed number and unit components of an input string.
+     */
+    private record ParsedParts(String numberPart, String unitPart) {
     }
 }

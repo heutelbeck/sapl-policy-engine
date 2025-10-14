@@ -237,7 +237,7 @@ class MathFunctionLibraryTests {
     @ParameterizedTest
     @MethodSource("provideConstantTestCases")
     void when_constantFunction_then_returnsCorrectValue(String constantName, double expectedValue) {
-        val actual = constantName.equals("pi") ? MathFunctionLibrary.pi() : MathFunctionLibrary.e();
+        val actual = "pi".equals(constantName) ? MathFunctionLibrary.pi() : MathFunctionLibrary.e();
         assertThatVal(actual).hasValue();
         assertThat(actual.get().asDouble()).isEqualTo(expectedValue);
     }

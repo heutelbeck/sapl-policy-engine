@@ -989,20 +989,20 @@ public class TemporalFunctionLibrary {
 
         final var result = new StringBuilder("P");
         if (years > 0)
-            result.append(years).append("Y");
+            result.append(years).append('Y');
         if (months > 0)
-            result.append(months).append("M");
+            result.append(months).append('M');
         if (days > 0)
-            result.append(days).append("D");
+            result.append(days).append('D');
 
         if (hours > 0 || minutes > 0 || seconds > 0) {
-            result.append("T");
+            result.append('T');
             if (hours > 0)
-                result.append(hours).append("H");
+                result.append(hours).append('H');
             if (minutes > 0)
-                result.append(minutes).append("M");
+                result.append(minutes).append('M');
             if (seconds > 0)
-                result.append(seconds).append("S");
+                result.append(seconds).append('S');
         }
 
         if (result.length() == 1)

@@ -272,7 +272,7 @@ class ArrayFunctionLibraryTests {
     @MethodSource("provideHeadAndLastTestCases")
     void when_headOrLast_then_returnsCorrectElement(String functionName, String inputArray, String expectedElement)
             throws JsonProcessingException {
-        val actual = functionName.equals("head") ? ArrayFunctionLibrary.head(json(inputArray))
+        val actual = "head".equals(functionName) ? ArrayFunctionLibrary.head(json(inputArray))
                 : ArrayFunctionLibrary.last(json(inputArray));
         assertThatVal(actual).hasValue();
         assertThat(actual.get()).isEqualTo(json(expectedElement).get());
@@ -317,7 +317,7 @@ class ArrayFunctionLibraryTests {
     @MethodSource("provideMaxMinNumericTestCases")
     void when_maxOrMinWithNumericArray_then_returnsCorrectValue(String functionName, String inputArray,
             double expectedValue) throws JsonProcessingException {
-        val actual = functionName.equals("max") ? ArrayFunctionLibrary.max(json(inputArray))
+        val actual = "max".equals(functionName) ? ArrayFunctionLibrary.max(json(inputArray))
                 : ArrayFunctionLibrary.min(json(inputArray));
         assertThatVal(actual).hasValue();
         assertThat(actual.get().asDouble()).isEqualTo(expectedValue);
@@ -334,7 +334,7 @@ class ArrayFunctionLibraryTests {
     @MethodSource("provideMaxMinStringTestCases")
     void when_maxOrMinWithStringArray_then_returnsCorrectValue(String functionName, String inputArray,
             String expectedValue) throws JsonProcessingException {
-        val actual = functionName.equals("max") ? ArrayFunctionLibrary.max(json(inputArray))
+        val actual = "max".equals(functionName) ? ArrayFunctionLibrary.max(json(inputArray))
                 : ArrayFunctionLibrary.min(json(inputArray));
         assertThatVal(actual).hasValue();
         assertThat(actual.get().asText()).isEqualTo(json(expectedValue).get().asText());
@@ -351,7 +351,7 @@ class ArrayFunctionLibraryTests {
     @MethodSource("provideMaxMinErrorTestCases")
     void when_maxOrMinWithInvalidInput_then_returnsError(String functionName, String inputArray,
             String expectedErrorMessage) throws JsonProcessingException {
-        val actual = functionName.equals("max") ? ArrayFunctionLibrary.max(json(inputArray))
+        val actual = "max".equals(functionName) ? ArrayFunctionLibrary.max(json(inputArray))
                 : ArrayFunctionLibrary.min(json(inputArray));
         assertThatVal(actual).isError();
         assertThat(actual.getMessage()).contains(expectedErrorMessage);

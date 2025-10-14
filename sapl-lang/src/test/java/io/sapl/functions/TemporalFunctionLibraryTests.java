@@ -22,13 +22,10 @@ import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
 import org.mockito.Mockito;
 
-import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
-import java.util.function.BiFunction;
-import java.util.function.Function;
 
 import static io.sapl.hamcrest.Matchers.val;
 import static org.hamcrest.CoreMatchers.is;
