@@ -29,6 +29,7 @@ import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
@@ -82,13 +83,13 @@ public class PatternsFunctionLibrary {
     private static final String ERROR_UNCLOSED_ALT_GROUP  = "Unclosed alternative group starting at position %d";
     private static final String ERROR_GLOB_TOO_NESTED     = "Glob pattern too deeply nested (max %d levels)";
 
-    private static final String REGEX_ANCHOR_START      = "^";
-    private static final String REGEX_ANCHOR_END        = "$";
+    private static final char REGEX_ANCHOR_START      = '^';
+    private static final char REGEX_ANCHOR_END        = '$';
     private static final String REGEX_ANY_CHAR_MULTIPLE = ".*";
     private static final String REGEX_ANY_CHAR_SINGLE   = ".";
     private static final String REGEX_DOUBLE_BACKSLASH  = "\\\\";
     private static final String REGEX_GROUP_START       = "(?:";
-    private static final String REGEX_ALTERNATION       = "|";
+    private static final char REGEX_ALTERNATION       = '|';
 
     @Function(docs = """
             ```patterns.matchGlob(TEXT pattern, TEXT value, ARRAY delimiters)```: Matches a string
@@ -607,7 +608,7 @@ public class PatternsFunctionLibrary {
         return new GlobConversionResult(result.toString(), position + characterCount);
     }
 
-    private static String buildDelimiterAwarePattern(List<String> delimiters, boolean allowMultiple) {
+    private static String buildDelimiterAwarePattern(Collection<String> delimiters, boolean allowMultiple) {
         if (delimiters == null || delimiters.isEmpty()) {
             return allowMultiple ? REGEX_ANY_CHAR_MULTIPLE : REGEX_ANY_CHAR_SINGLE;
         }
@@ -751,7 +752,7 @@ public class PatternsFunctionLibrary {
             val matches = JsonNodeFactory.instance.arrayNode();
 
             int count = 0;
-            while (matcher.find() && count < limit) {
+            while (count < limit && matcher.find()) {
                 matches.add(matcher.group());
                 count++;
             }
@@ -776,7 +777,7 @@ public class PatternsFunctionLibrary {
             val results = JsonNodeFactory.instance.arrayNode();
 
             int count = 0;
-            while (matcher.find() && count < limit) {
+            while (count < limit && matcher.find()) {
                 val matchArray = JsonNodeFactory.instance.arrayNode();
                 matchArray.add(matcher.group());
 
