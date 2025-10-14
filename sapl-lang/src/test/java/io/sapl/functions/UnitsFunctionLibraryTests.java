@@ -270,13 +270,10 @@ class UnitsFunctionLibraryTests {
     }
 
     @ParameterizedTest
-    @ValueSource(strings = {
-            "1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1X",
+    @ValueSource(strings = { "1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1X",
             "1111111111111111111111111111111111111111111111111111111111111111111111X",
-            "1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1eX",
-            "................................K",
-            "1.2.3.4.5.6.7.8.9.0.1.2.3.4.5.6.7.8.9.0Z"
-    })
+            "1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1eX", "................................K",
+            "1.2.3.4.5.6.7.8.9.0.1.2.3.4.5.6.7.8.9.0Z" })
     @Timeout(value = 100, unit = TimeUnit.MILLISECONDS)
     void whenParsingPotentialReDoSPatterns_thenCompletesQuickly(String input) {
         val result = UnitsFunctionLibrary.parse(Val.of(input));
@@ -284,11 +281,9 @@ class UnitsFunctionLibraryTests {
     }
 
     @ParameterizedTest
-    @ValueSource(strings = {
-            "1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1KB",
+    @ValueSource(strings = { "1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1KB",
             "1111111111111111111111111111111111111111111111111111111111111111111111XB",
-            "................................MB"
-    })
+            "................................MB" })
     @Timeout(value = 100, unit = TimeUnit.MILLISECONDS)
     void whenParsingPotentialReDoSPatternsInBytes_thenCompletesQuickly(String input) {
         val result = UnitsFunctionLibrary.parseBytes(Val.of(input));
