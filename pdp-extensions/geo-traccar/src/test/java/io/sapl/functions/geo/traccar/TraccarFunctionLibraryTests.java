@@ -25,6 +25,7 @@ import org.junit.jupiter.api.Test;
 import java.io.IOException;
 
 import static io.sapl.assertj.SaplAssertions.assertThatVal;
+import static io.sapl.functions.geo.traccar.TraccarFunctionLibrary.*;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.withPrecision;
 
