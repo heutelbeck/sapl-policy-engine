@@ -424,7 +424,7 @@ public class MathFunctionLibrary {
     }
 
     @Function(docs = """
-            ```log(NUMBER value, NUMBER base)```: Returns the logarithm of a value with an arbitrary base.
+            ```logb(NUMBER value, NUMBER base)```: Returns the logarithm of a value with an arbitrary base.
             Returns an error if the value is not positive or if the base is not positive and not equal to 1.
 
             **Examples:**
@@ -432,12 +432,12 @@ public class MathFunctionLibrary {
             policy "example"
             permit
             where
-              math.log(8, 2) == 3.0;     // log base 2 of 8
-              math.log(27, 3) == 3.0;    // log base 3 of 27
-              math.log(100, 10) == 2.0;  // equivalent to log10(100)
+              math.logb(8, 2) == 3.0;     // log base 2 of 8
+              math.logb(27, 3) == 3.0;    // log base 3 of 27
+              math.logb(100, 10) == 2.0;  // equivalent to log10(100)
             ```
             """, schema = RETURNS_NUMBER)
-    public static Val log(@Number Val value, @Number Val base) {
+    public static Val logb(@Number Val value, @Number Val base) {
         final var valueValidation = validatePositiveValueForLogs(value);
         if (valueValidation != null) {
             return valueValidation;

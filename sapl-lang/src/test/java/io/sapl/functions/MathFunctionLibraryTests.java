@@ -275,7 +275,7 @@ class MathFunctionLibraryTests {
     @ParameterizedTest
     @MethodSource("provideLogWithBaseTestCases")
     void when_logWithBase_then_returnsCorrectResult(double value, double base, double expected) {
-        val actual = MathFunctionLibrary.log(Val.of(value), Val.of(base));
+        val actual = MathFunctionLibrary.logb(Val.of(value), Val.of(base));
         assertThatVal(actual).hasValue();
         assertThat(actual.get().asDouble()).isCloseTo(expected, org.assertj.core.data.Offset.offset(EPSILON));
     }
@@ -292,7 +292,7 @@ class MathFunctionLibraryTests {
         val actual = switch (logType) {
         case "natural"  -> MathFunctionLibrary.log(Val.of(value));
         case "log10"    -> MathFunctionLibrary.log10(Val.of(value));
-        case "withBase" -> MathFunctionLibrary.log(Val.of(value), Val.of(base));
+        case "withBase" -> MathFunctionLibrary.logb(Val.of(value), Val.of(base));
         default         -> throw new IllegalArgumentException("Unknown log type: " + logType);
         };
 
