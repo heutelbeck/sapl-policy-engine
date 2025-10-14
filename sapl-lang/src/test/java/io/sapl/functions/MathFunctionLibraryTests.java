@@ -209,8 +209,8 @@ class MathFunctionLibraryTests {
 
     @Test
     void when_randomFloatWithSameSeed_then_returnsSameValue() {
-        val actual1 = MathFunctionLibrary.randomFloat(Val.of(42));
-        val actual2 = MathFunctionLibrary.randomFloat(Val.of(42));
+        val actual1 = MathFunctionLibrary.randomFloatSeeded(Val.of(42));
+        val actual2 = MathFunctionLibrary.randomFloatSeeded(Val.of(42));
 
         assertThatVal(actual1).hasValue();
         assertThatVal(actual2).hasValue();
@@ -219,8 +219,8 @@ class MathFunctionLibraryTests {
 
     @Test
     void when_randomFloatWithDifferentSeeds_then_returnsDifferentValues() {
-        val actual1 = MathFunctionLibrary.randomFloat(Val.of(42));
-        val actual2 = MathFunctionLibrary.randomFloat(Val.of(43));
+        val actual1 = MathFunctionLibrary.randomFloatSeeded(Val.of(42));
+        val actual2 = MathFunctionLibrary.randomFloatSeeded(Val.of(43));
 
         assertThatVal(actual1).hasValue();
         assertThatVal(actual2).hasValue();
@@ -229,7 +229,7 @@ class MathFunctionLibraryTests {
 
     @Test
     void when_randomFloatWithNonIntegerSeed_then_returnsError() {
-        val actual = MathFunctionLibrary.randomFloat(Val.of(42.5));
+        val actual = MathFunctionLibrary.randomFloatSeeded(Val.of(42.5));
         assertThatVal(actual).isError();
         assertThat(actual.getMessage()).contains("Seed must be an integer");
     }

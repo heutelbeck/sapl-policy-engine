@@ -317,11 +317,11 @@ public class MathFunctionLibrary {
     }
 
     @Function(docs = """
-            ```randomFloat(NUMBER seed)```: Returns a seeded random floating-point number in the range ```[0.0, 1.0)```
+            ```randomFloatSeeded(NUMBER seed)```: Returns a seeded random floating-point number in the range ```[0.0, 1.0)```
             (inclusive of 0.0, exclusive of 1.0). The seed determines the sequence of random numbers, allowing for
             reproducible results.
 
-            **Technical Note:** Despite the name ```randomFloat```, this function returns a double-precision floating-point
+            **Technical Note:** Despite the name ```randomFloatSeeded```, this function returns a double-precision floating-point
             number (64-bit) to maintain consistency with JSON number representation and Java's numeric operations.
 
             **Requirements:**
@@ -332,10 +332,10 @@ public class MathFunctionLibrary {
             policy "example"
             permit
             where
-              math.randomFloat(42) == math.randomFloat(42);  // same seed produces same result
+              math.randomFloatSeeded(42) == math.randomFloatSeeded(42);  // same seed produces same result
             ```
             """, schema = RETURNS_NUMBER)
-    public static Val randomFloat(@Number Val seed) {
+    public static Val randomFloatSeeded(@Number Val seed) {
         final var seedValidation = validateIntegerSeed(seed);
         if (seedValidation != null) {
             return seedValidation;
