@@ -124,8 +124,7 @@ class ReflectionFunctionLibraryTests {
     private static Stream<Arguments> provideIsFloatTestCases() {
         return Stream.of(Arguments.of(Val.of(3.5), true), Arguments.of(Val.of(0.5), true),
                 Arguments.of(Val.of(-2.5), true), Arguments.of(Val.of(5.0), true), Arguments.of(Val.of(42), false),
-                Arguments.of(Val.of(0), false), Arguments.of(Val.of("3.5"), false),
-                Arguments.of(Val.UNDEFINED, false));
+                Arguments.of(Val.of(0), false), Arguments.of(Val.of("3.5"), false), Arguments.of(Val.UNDEFINED, false));
     }
 
     @ParameterizedTest
