@@ -24,6 +24,7 @@ import io.sapl.api.interpreter.Val;
 import io.sapl.api.validation.Int;
 import io.sapl.api.validation.Text;
 import lombok.experimental.UtilityClass;
+import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 
 import java.util.ArrayList;
@@ -35,7 +36,11 @@ import java.util.regex.PatternSyntaxException;
  * Function library providing pattern matching capabilities for SAPL policies.
  * Includes glob pattern matching with configurable delimiters and comprehensive
  * regex operations with DoS protection mechanisms.
+ * <p>
+ * Security: ReDoS protection via pattern analysis. Timeout protection must be
+ * implemented at the PDP level for reactive environments.
  */
+@Slf4j
 @UtilityClass
 @FunctionLibrary(name = PatternsFunctionLibrary.NAME, description = PatternsFunctionLibrary.DESCRIPTION)
 public class PatternsFunctionLibrary {
@@ -47,9 +52,41 @@ public class PatternsFunctionLibrary {
     private static final int    MAX_INPUT_LENGTH           = 100_000;
     private static final int    MAX_MATCHES                = 10_000;
     private static final int    MAX_GLOB_RECURSION         = 50;
+    private static final int    MAX_ALTERNATIONS           = 100;
     private static final String REGEX_METACHARACTERS       = ".^$*+?()[]{}\\|";
     private static final String CHAR_CLASS_METACHARACTERS  = "\\]^[";
+    private static final String CHAR_CLASS_SPECIAL_CHARS   = "\\]^-[";
     private static final String GLOB_METACHARACTERS        = "*?[]{}\\-!";
+
+    private static final String ERROR_PATTERN_VALUE_TEXT    = "Pattern and value must be text values";
+    private static final String ERROR_PATTERN_TOO_LONG      = "Pattern too long (max %d characters)";
+    private static final String ERROR_INPUT_TOO_LONG        = "Input too long (max %d characters)";
+    private static final String ERROR_LIMIT_NOT_NUMBER      = "Limit must be a number";
+    private static final String ERROR_LIMIT_NEGATIVE        = "Limit must be non-negative";
+    private static final String ERROR_REPLACEMENT_TEXT      = "Replacement must be a text value";
+    private static final String ERROR_ESCAPE_GLOB_TEXT      = "escapeGlob requires a text value";
+    private static final String ERROR_TEMPLATE_ARGS_TEXT    = "All arguments must be text values";
+    private static final String ERROR_DELIMITERS_EMPTY      = "Delimiters cannot be empty";
+    private static final String ERROR_TEMPLATE_LENGTH       = "Template or value exceeds maximum length";
+    private static final String ERROR_TEMPLATE_FORMAT       = "Invalid template format: mismatched or nested delimiters";
+    private static final String ERROR_DANGEROUS_PATTERN     = "Invalid or dangerous regex pattern";
+    private static final String ERROR_DANGEROUS_TEMPLATE    = "Template contains dangerous regex patterns";
+    private static final String ERROR_INVALID_GLOB          = "Invalid glob pattern: %s";
+    private static final String ERROR_INVALID_TEMPLATE      = "Invalid regex in template: %s";
+    private static final String ERROR_REPLACEMENT_FAILED    = "Replacement failed: %s";
+    private static final String ERROR_SPLIT_FAILED          = "Split failed: %s";
+    private static final String ERROR_MATCHING_FAILED       = "Pattern matching failed: %s";
+    private static final String ERROR_UNCLOSED_CHAR_CLASS   = "Unclosed character class starting at position %d";
+    private static final String ERROR_UNCLOSED_ALT_GROUP    = "Unclosed alternative group starting at position %d";
+    private static final String ERROR_GLOB_TOO_NESTED       = "Glob pattern too deeply nested (max %d levels)";
+
+    private static final String REGEX_ANCHOR_START          = "^";
+    private static final String REGEX_ANCHOR_END            = "$";
+    private static final String REGEX_ANY_CHAR_MULTIPLE     = ".*";
+    private static final String REGEX_ANY_CHAR_SINGLE       = ".";
+    private static final String REGEX_DOUBLE_BACKSLASH      = "\\\\";
+    private static final String REGEX_GROUP_START           = "(?:";
+    private static final String REGEX_ALTERNATION           = "|";
 
     @Function(docs = """
             ```patterns.matchGlob(TEXT pattern, TEXT value, TEXT... delimiters)```: Matches a string
@@ -76,38 +113,6 @@ public class PatternsFunctionLibrary {
             - Returns error for malformed patterns (unclosed brackets, braces, etc.)
 
             **Returns:** Boolean value indicating match success, or error for invalid inputs.
-
-            **Examples:**
-            ```sapl
-            policy "demonstrate_glob_matching"
-            permit
-            where
-              // Default delimiter '.' - single wildcard respects boundaries
-              var domainMatch = patterns.matchGlob("*.github.com", "api.github.com");
-              // true - matches single segment before .github.com
-
-              var domainNoMatch = patterns.matchGlob("*.github.com", "api.cdn.github.com");
-              // false - single * cannot cross delimiter
-
-              var domainDoubleMatch = patterns.matchGlob("**.github.com", "api.cdn.github.com");
-              // true - double ** crosses delimiters
-
-              // Custom delimiter ':' for permission paths
-              var pathMatch = patterns.matchGlob("user:*:read", "user:admin:read", ":");
-              // true
-
-              // Character classes for specific formats
-              var fileMatch = patterns.matchGlob("[0-9]*.txt", "5file.txt");
-              // true - starts with digit
-
-              // Alternatives for multiple extensions
-              var extensionMatch = patterns.matchGlob("*.{jpg,png,gif}", "photo.jpg");
-              // true
-
-              // Escaping special characters
-              var literalMatch = patterns.matchGlob("file\\*.txt", "file*.txt");
-              // true - asterisk is literal, not wildcard
-            ```
             """)
     public static Val matchGlob(@Text Val pattern, @Text Val value, Val... delimiters) {
         val error = validateInputs(pattern, value);
@@ -132,24 +137,6 @@ public class PatternsFunctionLibrary {
             - Maximum nesting depth: 50 levels
 
             **Returns:** Boolean value indicating match success, or error for invalid inputs.
-
-            **Examples:**
-            ```sapl
-            policy "demonstrate_glob_without_delimiters"
-            permit
-            where
-              // Single * matches across dots without delimiter boundaries
-              var matchesDomain = patterns.matchGlobWithoutDelimiters("*hub.com", "api.cdn.github.com");
-              // true - whereas matchGlob with default delimiter would return false
-
-              // Flat identifier matching
-              var matchesPath = patterns.matchGlobWithoutDelimiters("user:*:read", "user:admin:data:extra:read");
-              // true
-
-              // Character classes and alternatives function normally
-              var matchesExtension = patterns.matchGlobWithoutDelimiters("*.{txt,log}", "debug.log");
-              // true
-            ```
             """)
     public static Val matchGlobWithoutDelimiters(@Text Val pattern, @Text Val value) {
         val error = validateInputs(pattern, value);
@@ -166,91 +153,20 @@ public class PatternsFunctionLibrary {
             Essential for safely incorporating untrusted input into glob patterns, preventing pattern injection
             attacks where malicious input could match unintended values.
 
-            **Behavior:**
-            - Non-text values return an error
-            - Empty strings return empty strings
-            - Strings without metacharacters return unchanged content (new allocation)
-
             **Returns:** Text with all glob metacharacters escaped, or error for non-text input.
-
-            **Examples:**
-            ```sapl
-            policy "demonstrate_glob_escaping"
-            permit
-            where
-              // Escape user input to prevent pattern injection
-              var userName = "alice*bob";
-              var safeName = patterns.escapeGlob(userName);
-              // "alice\\*bob"
-
-              // Use escaped value in pattern
-              var pattern = safeName + ":*:read";
-              var matches = patterns.matchGlob(pattern, "alice*bob:data:read", ":");
-              // true - literal asterisk in username
-
-              // Without escaping, different behavior occurs
-              var unsafeMatch = patterns.matchGlob("alice*bob:data:read", "aliceXXXbob:data:read", ":");
-              // true - asterisk interpreted as wildcard
-
-              // Multiple special characters
-              var complex = "file[1-9].{txt}";
-              var escaped = patterns.escapeGlob(complex);
-              // "file\\[1\\-9\\].\\{txt\\}"
-            ```
             """)
     public static Val escapeGlob(@Text Val text) {
         if (!text.isTextual()) {
-            return Val.error("escapeGlob requires a text value");
+            return Val.error(ERROR_ESCAPE_GLOB_TEXT);
         }
 
-        return Val.of(escapeCharacters(text.getText()));
+        return Val.of(escapeGlobCharacters(text.getText()));
     }
 
     @Function(docs = """
             ```patterns.isValidRegex(TEXT pattern)```: Validates if a string is a valid Java regular expression.
 
-            This function checks if a pattern can be compiled as a Java regex without errors.
-            It uses Java's standard Pattern class for validation.
-
-            **Validation Checks:**
-            - Pattern syntax correctness according to Java regex rules
-            - Maximum pattern length (1,000 characters)
-            - Compiles successfully without PatternSyntaxException
-
-            **Returns:**
-            - `true` if pattern is valid and within length limits
-            - `false` if pattern is invalid, too long, or not a text value
-
-            **Note:** This function only validates syntax, not pattern safety or performance.
-            Patterns can be syntactically valid but still cause performance issues (ReDoS).
-
-            **Examples:**
-            ```sapl
-            policy "demonstrate_regex_validation"
-            permit
-            where
-              // Valid patterns return true
-              var validSimple = patterns.isValidRegex("[a-z]+");
-              // Returns: true
-
-              var validComplex = patterns.isValidRegex("(?<name>\\w+)@(?<domain>[\\w.]+)");
-              // Returns: true
-
-              // Invalid patterns return false
-              var invalidBracket = patterns.isValidRegex("[a-z");
-              // Returns: false (unclosed bracket)
-
-              var invalidEscape = patterns.isValidRegex("\\");
-              // Returns: false (incomplete escape)
-
-              // Too long patterns return false
-              var tooLong = patterns.isValidRegex("a".repeat(1001));
-              // Returns: false
-
-              // Non-text values return false
-              var notText = patterns.isValidRegex(123);
-              // Returns: false
-            ```
+            **Returns:** `true` if pattern is valid and within length limits, `false` otherwise.
             """)
     public static Val isValidRegex(@Text Val pattern) {
         if (!pattern.isTextual() || pattern.getText().length() > MAX_PATTERN_LENGTH) {
@@ -268,48 +184,14 @@ public class PatternsFunctionLibrary {
     @Function(docs = """
             ```patterns.findMatches(TEXT pattern, TEXT value)```: Finds all matches of a regex pattern.
 
-            Scans the input text and returns all non-overlapping matches. Matching proceeds left-to-right,
-            and each character participates in at most one match.
-
             **DoS Protection:**
             - Maximum pattern length: 1,000 characters
             - Maximum input length: 100,000 characters
             - Maximum matches returned: 10,000
             - Rejects patterns with nested quantifiers like `(a+)+`
-            - Rejects patterns with more than 100 alternations
+            - Rejects patterns with excessive alternations
 
             **Returns:** Array of matched strings (empty if no matches), or error for invalid/dangerous patterns.
-
-            **Examples:**
-            ```sapl
-            policy "demonstrate_find_matches"
-            permit
-            where
-              // Extract all email addresses
-              var emails = patterns.findMatches("[a-z]+@[a-z]+\\.com",
-                  "Contact: alice@example.com or bob@test.com");
-              // ["alice@example.com", "bob@test.com"]
-
-              // Extract all numbers
-              var digits = patterns.findMatches("\\d+", "Room 123, Floor 4, Building 56");
-              // ["123", "4", "56"]
-
-              // No matches
-              var noMatch = patterns.findMatches("\\d+", "no numbers here");
-              // []
-
-              // Non-overlapping matches
-              var words = patterns.findMatches("\\w+", "hello world");
-              // ["hello", "world"]
-
-              // Invalid pattern
-              var invalid = patterns.findMatches("[unclosed", "test");
-              // error
-
-              // Dangerous pattern rejected
-              var dangerous = patterns.findMatches("(a+)+", "aaaaaaaaaa");
-              // error
-            ```
             """)
     public static Val findMatches(@Text Val pattern, @Text Val value) {
         return findMatchesWithLimit(pattern, value, MAX_MATCHES);
@@ -322,37 +204,15 @@ public class PatternsFunctionLibrary {
             is capped at 10,000 maximum. Negative limits return an error.
 
             **Returns:** Array of matched strings with at most the specified number of elements.
-
-            **Examples:**
-            ```sapl
-            policy "demonstrate_limited_matches"
-            permit
-            where
-              // Get only first 2 matches
-              var firstTwo = patterns.findMatches("\\d+", "1 2 3 4 5", 2);
-              // ["1", "2"]
-
-              // Limit larger than available matches
-              var allMatches = patterns.findMatches("\\d+", "1 2", 5);
-              // ["1", "2"]
-
-              // Zero limit
-              var none = patterns.findMatches("\\d+", "1 2 3", 0);
-              // []
-
-              // Limit above maximum is capped
-              var capped = patterns.findMatches(".", "a".repeat(20000), 15000);
-              // array with 10000 elements
-            ```
             """)
     public static Val findMatches(@Text Val pattern, @Text Val value, @Int Val limit) {
         if (!limit.isNumber()) {
-            return Val.error("Limit must be a number");
+            return Val.error(ERROR_LIMIT_NOT_NUMBER);
         }
 
         val limitValue = limit.get().asInt();
         if (limitValue < 0) {
-            return Val.error("Limit must be non-negative");
+            return Val.error(ERROR_LIMIT_NEGATIVE);
         }
 
         return findMatchesWithLimit(pattern, value, Math.min(limitValue, MAX_MATCHES));
@@ -362,52 +222,9 @@ public class PatternsFunctionLibrary {
             ```patterns.findAllSubmatch(TEXT pattern, TEXT value)```: Finds all matches with capturing groups.
 
             Returns matches with their capturing groups. Each match is represented as an array where index 0
-            contains the full match and subsequent indices contain captured groups. Non-participating optional
-            groups appear as null values.
-
-            **Capturing Groups:**
-            - Index 0: full match
-            - Index 1+: captured groups in order
-            - Named groups are accessed by position (names not preserved)
-
-            **Limitations:**
-            - Maximum pattern length: 1,000 characters
-            - Maximum input length: 100,000 characters
-            - Maximum matches returned: 10,000
-            - Same DoS protections as findMatches
+            contains the full match and subsequent indices contain captured groups.
 
             **Returns:** Nested array of matches and their captured groups.
-
-            **Examples:**
-            ```sapl
-            policy "demonstrate_submatch"
-            permit
-            where
-              // Extract email components
-              var emailParts = patterns.findAllSubmatch("([a-z]+)@([a-z]+)\\.com",
-                  "alice@example.com bob@test.com");
-              // [
-              //   ["alice@example.com", "alice", "example"],
-              //   ["bob@test.com", "bob", "test"]
-              // ]
-
-              // Optional groups
-              var optional = patterns.findAllSubmatch("(\\d+)-(\\d+)?", "10-20 30- 40");
-              // [
-              //   ["10-20", "10", "20"],
-              //   ["30-", "30", null],
-              //   ...
-              // ]
-
-              // No groups
-              var noGroups = patterns.findAllSubmatch("\\d+", "10 20 30");
-              // [["10"], ["20"], ["30"]]
-
-              // Access specific groups
-              var firstMatch = emailParts[0];
-              var username = firstMatch[1];
-              var domain = firstMatch[2];
-            ```
             """)
     public static Val findAllSubmatch(@Text Val pattern, @Text Val value) {
         return findAllSubmatchWithLimit(pattern, value, MAX_MATCHES);
@@ -417,35 +234,16 @@ public class PatternsFunctionLibrary {
             ```patterns.findAllSubmatch(TEXT pattern, TEXT value, INT limit)```: Finds up to limit matches
             with capturing groups.
 
-            Identical to findAllSubmatch but stops after the specified number of matches. The limit is capped
-            at 10,000 maximum. Negative limits return an error.
-
             **Returns:** Nested array of at most the specified number of matches with their captured groups.
-
-            **Examples:**
-            ```sapl
-            policy "demonstrate_limited_submatch"
-            permit
-            where
-              // Get only first match with groups
-              var firstEmail = patterns.findAllSubmatch("([a-z]+)@([a-z]+)\\.com",
-                  "alice@example.com bob@test.com jane@company.com", 1);
-              // [["alice@example.com", "alice", "example"]]
-
-              // Limit processing on large inputs
-              var limited = patterns.findAllSubmatch("(\\d+)-(\\d+)",
-                  "many number pairs in a very long string...", 5);
-              // at most 5 matches
-            ```
             """)
     public static Val findAllSubmatch(@Text Val pattern, @Text Val value, @Int Val limit) {
         if (!limit.isNumber()) {
-            return Val.error("Limit must be a number");
+            return Val.error(ERROR_LIMIT_NOT_NUMBER);
         }
 
         val limitValue = limit.get().asInt();
         if (limitValue < 0) {
-            return Val.error("Limit must be non-negative");
+            return Val.error(ERROR_LIMIT_NEGATIVE);
         }
 
         return findAllSubmatchWithLimit(pattern, value, Math.min(limitValue, MAX_MATCHES));
@@ -455,56 +253,7 @@ public class PatternsFunctionLibrary {
             ```patterns.replaceAll(TEXT value, TEXT pattern, TEXT replacement)```: Replaces all
             occurrences of a regex pattern.
 
-            Finds all matches of the pattern and replaces them with the replacement string.
-            Supports backreferences to captured groups in the replacement.
-
-            **Backreferences:**
-            - `$0` - full matched text
-            - `$1`, `$2`, etc. - captured groups by position
-            - `$` - literal dollar sign
-            - `\\` - escape character in replacement
-
-            **Limitations:**
-            - Maximum pattern length: 1,000 characters
-            - Maximum input length: 100,000 characters
-            - Same DoS protections as findMatches
-            - Replacement must be text (not a number or other type)
-
-            **Examples:**
-            ```sapl
-            policy "demonstrate_replace_all"
-            permit
-            where
-              // Simple replacement
-              var redacted = patterns.replaceAll("alice@example.com, bob@test.com",
-                  "[a-z]+@[a-z]+\\.com", "[REDACTED]");
-              // Returns: "[REDACTED], [REDACTED]"
-
-              // Swap with backreferences
-              var swapped = patterns.replaceAll("John Doe, Jane Smith",
-                  "(\\w+) (\\w+)", "$2, $1");
-              // Returns: "Doe, John, Smith, Jane"
-
-              // Normalize whitespace
-              var normalized = patterns.replaceAll("  hello   world  ",
-                  "\\s+", " ");
-              // Returns: " hello world "
-
-              // Remove matches (replace with empty string)
-              var removed = patterns.replaceAll("abc123def456",
-                  "\\d+", "");
-              // Returns: "abcdef"
-
-              // No matches returns original
-              var unchanged = patterns.replaceAll("no numbers",
-                  "\\d+", "X");
-              // Returns: "no numbers"
-
-              // Literal dollar sign
-              var withDollar = patterns.replaceAll("price: 100",
-                  "\\d+", "$50");
-              // Returns: "price: $50"
-            ```
+            **Returns:** Text with all pattern occurrences replaced, or error for invalid patterns.
             """)
     public static Val replaceAll(@Text Val value, @Text Val pattern, @Text Val replacement) {
         val error = validateInputs(pattern, value);
@@ -512,73 +261,25 @@ public class PatternsFunctionLibrary {
             return error;
 
         if (!replacement.isTextual()) {
-            return Val.error("Replacement must be a text value");
+            return Val.error(ERROR_REPLACEMENT_TEXT);
         }
 
         val compiledPattern = compileRegex(pattern.getText());
         if (compiledPattern == null)
-            return Val.error("Invalid regex pattern");
+            return Val.error(ERROR_DANGEROUS_PATTERN);
 
         try {
-            return Val.of(compiledPattern.matcher(value.getText()).replaceAll(replacement.getText()));
+            val result = compiledPattern.matcher(value.getText()).replaceAll(replacement.getText());
+            return Val.of(result);
         } catch (Exception e) {
-            return Val.error("Replacement failed: " + e.getMessage());
+            return Val.error(String.format(ERROR_REPLACEMENT_FAILED, e.getMessage()));
         }
     }
 
     @Function(docs = """
             ```patterns.split(TEXT pattern, TEXT value)```: Splits a string by a regex pattern.
 
-            Splits the input wherever the pattern matches, returning an array of the segments. Matched
-            delimiters are removed from the result. Leading, trailing, or consecutive delimiters create
-            empty strings in the result.
-
-            **Behavior:**
-            - Maximum splits: 10,000 (remaining text stays together)
-            - Empty matches are skipped
-            - Leading/trailing delimiters create empty strings
-            - Pattern content does not appear in result
-
-            **Limitations:**
-            - Maximum pattern length: 1,000 characters
-            - Maximum input length: 100,000 characters
-            - Same DoS protections as findMatches
-
             **Returns:** Array of string segments, or error for invalid patterns.
-
-            **Examples:**
-            ```sapl
-            policy "demonstrate_split"
-            permit
-            where
-              // CSV splitting with optional whitespace
-              var parts = patterns.split(",\\s*", "apple, banana,cherry,  date");
-              // ["apple", "banana", "cherry", "date"]
-
-              // Split on any whitespace
-              var words = patterns.split("\\s+", "hello   world  test");
-              // ["hello", "world", "test"]
-
-              // Multiple delimiter types
-              var mixed = patterns.split("[|:]", "name:John|age:30|city:NYC");
-              // ["name", "John", "age", "30", "city", "NYC"]
-
-              // No matches
-              var noSplit = patterns.split(",", "noseparator");
-              // ["noseparator"]
-
-              // Leading delimiter
-              var leading = patterns.split(",", ",a,b");
-              // ["", "a", "b"]
-
-              // Trailing delimiter
-              var trailing = patterns.split(",", "a,b,");
-              // ["a", "b", ""]
-
-              // Consecutive delimiters
-              var consecutive = patterns.split(",", "a,,b");
-              // ["a", "", "b"]
-            ```
             """)
     public static Val split(@Text Val pattern, @Text Val value) {
         val error = validateInputs(pattern, value);
@@ -587,15 +288,18 @@ public class PatternsFunctionLibrary {
 
         val compiledPattern = compileRegex(pattern.getText());
         if (compiledPattern == null)
-            return Val.error("Invalid regex pattern");
+            return Val.error(ERROR_DANGEROUS_PATTERN);
 
-        val parts      = compiledPattern.split(value.getText(), MAX_MATCHES);
-        val resultNode = JsonNodeFactory.instance.arrayNode();
-        for (val part : parts) {
-            resultNode.add(part);
+        try {
+            val parts      = compiledPattern.split(value.getText(), MAX_MATCHES);
+            val resultNode = JsonNodeFactory.instance.arrayNode();
+            for (val part : parts) {
+                resultNode.add(part);
+            }
+            return Val.of(resultNode);
+        } catch (Exception e) {
+            return Val.error(String.format(ERROR_SPLIT_FAILED, e.getMessage()));
         }
-
-        return Val.of(resultNode);
     }
 
     @Function(docs = """
@@ -603,107 +307,83 @@ public class PatternsFunctionLibrary {
             Matches a string against a template with embedded regex patterns.
 
             Templates combine literal text with regex patterns. Text outside delimiters is matched literally
-            (special regex characters have no special meaning). Text inside delimiters is treated as full
-            Java regex patterns. Delimiters must be balanced (each opening has matching closing delimiter).
+            (with support for backslash escape sequences). Text inside delimiters is treated as full Java
+            regex patterns.
 
-            **Template Syntax:**
-            - Literal text: matched character-by-character
-            - `{delimiterStart}regex{delimiterEnd}`: regex pattern at this position
-            - Delimiters: any non-empty strings
-
-            **Behavior:**
-            - Literal portions ignore regex special characters
-            - Regex portions use full Java regex syntax
-            - Nested delimiters not supported (returns error)
-
-            **Limitations:**
-            - Maximum template length: 1,000 characters
-            - Maximum value length: 100,000 characters
-            - Delimiters cannot be empty
-            - Same DoS protections for embedded regex patterns
+            In literal portions, use backslash to escape special characters (e.g., `\\*` for literal asterisk,
+            `\\\\` for literal backslash).
 
             **Returns:** Boolean indicating match success, or error for malformed templates.
-
-            **Examples:**
-            ```sapl
-            policy "demonstrate_template_matching"
-            permit
-            where
-              // URL path validation
-              var urlMatch = patterns.matchTemplate("/api/{\\w+}/users/{\\d+}",
-                  "/api/v2/users/42", "{", "}");
-              // true
-
-              // User ID format
-              var idMatch = patterns.matchTemplate("user-{\\d+}-profile",
-                  "user-12345-profile", "{", "}");
-              // true
-
-              // Email validation (@ and . are literal outside delimiters)
-              var emailMatch = patterns.matchTemplate("{[a-z]+}@{[a-z]+}\\.com",
-                  "admin@example.com", "{", "}");
-              // true
-
-              // Custom delimiters
-              var customMatch = patterns.matchTemplate("/api/<\\w+>/resource",
-                  "/api/v1/resource", "<", ">");
-              // true
-
-              // Mismatch
-              var noMatch = patterns.matchTemplate("prefix-{\\d+}-suffix",
-                  "prefix-abc-suffix", "{", "}");
-              // false
-
-              // Unclosed delimiter
-              var error = patterns.matchTemplate("test{pattern",
-                  "test123", "{", "}");
-              // error
-
-              // Multiple patterns
-              var dateMatch = patterns.matchTemplate("{\\d{4}}-{\\d{2}}-{\\d{2}}",
-                  "2025-01-15", "{", "}");
-              // true
-            ```
             """)
     public static Val matchTemplate(@Text Val template, @Text Val value, @Text Val delimiterStart,
                                     @Text Val delimiterEnd) {
         if (!template.isTextual() || !value.isTextual() || !delimiterStart.isTextual() || !delimiterEnd.isTextual()) {
-            return Val.error("All arguments must be text values");
+            return Val.error(ERROR_TEMPLATE_ARGS_TEXT);
         }
 
-        val templateText      = template.getText();
-        val valueText         = value.getText();
-        val startDelimiter    = delimiterStart.getText();
-        val endDelimiter      = delimiterEnd.getText();
+        val templateText   = template.getText();
+        val valueText      = value.getText();
+        val startDelimiter = delimiterStart.getText();
+        val endDelimiter   = delimiterEnd.getText();
 
         if (startDelimiter.isEmpty() || endDelimiter.isEmpty()) {
-            return Val.error("Delimiters cannot be empty");
+            return Val.error(ERROR_DELIMITERS_EMPTY);
         }
 
         if (templateText.length() > MAX_PATTERN_LENGTH || valueText.length() > MAX_INPUT_LENGTH) {
-            return Val.error("Template or value exceeds maximum length");
+            return Val.error(ERROR_TEMPLATE_LENGTH);
         }
 
         val regexPattern = buildTemplateRegex(templateText, startDelimiter, endDelimiter);
         if (regexPattern == null) {
-            return Val.error("Invalid template format: mismatched or nested delimiters");
+            return Val.error(ERROR_TEMPLATE_FORMAT);
         }
 
         if (isDangerousPattern(regexPattern)) {
-            return Val.error("Template contains dangerous regex patterns");
+            logSecurityEvent("Dangerous pattern in template rejected", regexPattern);
+            return Val.error(ERROR_DANGEROUS_TEMPLATE);
         }
 
         try {
-            return Val.of(Pattern.compile(regexPattern).matcher(valueText).matches());
+            val pattern = Pattern.compile(regexPattern);
+            return Val.of(pattern.matcher(valueText).matches());
         } catch (PatternSyntaxException e) {
-            return Val.error("Invalid regex in template: " + e.getMessage());
+            return Val.error(String.format(ERROR_INVALID_TEMPLATE, e.getMessage()));
         }
     }
 
-    private static String escapeCharacters(String input) {
+    private static String escapeGlobCharacters(String input) {
         val result = new StringBuilder(input.length() * 2);
         for (val character : input.toCharArray()) {
-            if (PatternsFunctionLibrary.GLOB_METACHARACTERS.indexOf(character) >= 0) {
+            if (GLOB_METACHARACTERS.indexOf(character) >= 0) {
+                result.append('\\');
+            }
+            result.append(character);
+        }
+        return result.toString();
+    }
+
+    private static String processTemplateEscapes(String input) {
+        val result = new StringBuilder(input.length());
+        int position = 0;
+
+        while (position < input.length()) {
+            if (input.charAt(position) == '\\' && position + 1 < input.length()) {
+                result.append(input.charAt(position + 1));
+                position += 2;
+            } else {
+                result.append(input.charAt(position));
+                position++;
+            }
+        }
+
+        return result.toString();
+    }
+
+    private static String escapeRegexCharacters(String input) {
+        val result = new StringBuilder(input.length() * 2);
+        for (val character : input.toCharArray()) {
+            if (REGEX_METACHARACTERS.indexOf(character) >= 0) {
                 result.append('\\');
             }
             result.append(character);
@@ -713,15 +393,15 @@ public class PatternsFunctionLibrary {
 
     private static Val validateInputs(Val pattern, Val value) {
         if (!pattern.isTextual() || !value.isTextual()) {
-            return Val.error("Pattern and value must be text values");
+            return Val.error(ERROR_PATTERN_VALUE_TEXT);
         }
 
         if (pattern.getText().length() > MAX_PATTERN_LENGTH) {
-            return Val.error("Pattern too long (max " + MAX_PATTERN_LENGTH + " characters)");
+            return Val.error(String.format(ERROR_PATTERN_TOO_LONG, MAX_PATTERN_LENGTH));
         }
 
         if (value.getText().length() > MAX_INPUT_LENGTH) {
-            return Val.error("Input too long (max " + MAX_INPUT_LENGTH + " characters)");
+            return Val.error(String.format(ERROR_INPUT_TOO_LONG, MAX_INPUT_LENGTH));
         }
 
         return null;
@@ -748,20 +428,21 @@ public class PatternsFunctionLibrary {
     private static Val matchGlobImplementation(String pattern, String value, List<String> delimiters) {
         try {
             val regex = convertGlobToRegex(pattern, delimiters, 0);
-            return Val.of(Pattern.compile(regex).matcher(value).matches());
+            val compiledPattern = Pattern.compile(regex);
+            return Val.of(compiledPattern.matcher(value).matches());
         } catch (IllegalStateException e) {
             return Val.error(e.getMessage());
         } catch (PatternSyntaxException e) {
-            return Val.error("Invalid glob pattern: " + e.getMessage());
+            return Val.error(String.format(ERROR_INVALID_GLOB, e.getMessage()));
         }
     }
 
     private static String convertGlobToRegex(String glob, List<String> delimiters, int recursionDepth) {
         if (recursionDepth > MAX_GLOB_RECURSION) {
-            throw new IllegalStateException("Glob pattern too deeply nested (max " + MAX_GLOB_RECURSION + " levels)");
+            throw new IllegalStateException(ERROR_GLOB_TOO_NESTED.formatted(MAX_GLOB_RECURSION));
         }
 
-        val regex = new StringBuilder("^");
+        val regex = new StringBuilder(REGEX_ANCHOR_START);
         int position = 0;
 
         while (position < glob.length()) {
@@ -778,7 +459,7 @@ public class PatternsFunctionLibrary {
             position = handler.nextPosition;
         }
 
-        return regex.append('$').toString();
+        return regex.append(REGEX_ANCHOR_END).toString();
     }
 
     private static GlobConversionResult processEscapeSequence(String glob, int position) {
@@ -791,12 +472,12 @@ public class PatternsFunctionLibrary {
             result.append(escapedCharacter);
             return new GlobConversionResult(result.toString(), position + 2);
         }
-        return new GlobConversionResult("\\\\", position + 1);
+        return new GlobConversionResult(REGEX_DOUBLE_BACKSLASH, position + 1);
     }
 
     private static GlobConversionResult processWildcard(String glob, int position, List<String> delimiters) {
         if (position + 1 < glob.length() && glob.charAt(position + 1) == '*') {
-            return new GlobConversionResult(".*", position + 2);
+            return new GlobConversionResult(REGEX_ANY_CHAR_MULTIPLE, position + 2);
         }
         return new GlobConversionResult(buildDelimiterAwarePattern(delimiters, true), position + 1);
     }
@@ -808,7 +489,7 @@ public class PatternsFunctionLibrary {
     private static GlobConversionResult processCharacterClass(String glob, int position) {
         int closingBracket = findClosingBracket(glob, position);
         if (closingBracket == -1) {
-            return new GlobConversionResult("\\[", position + 1);
+            throw new IllegalStateException(ERROR_UNCLOSED_CHAR_CLASS.formatted(position));
         }
 
         val content   = glob.substring(position + 1, closingBracket);
@@ -857,15 +538,15 @@ public class PatternsFunctionLibrary {
                                                             int recursionDepth) {
         int closingBrace = findClosingBrace(glob, position);
         if (closingBrace == -1) {
-            return new GlobConversionResult("\\{", position + 1);
+            throw new IllegalStateException(ERROR_UNCLOSED_ALT_GROUP.formatted(position));
         }
 
         val alternatives = splitAlternatives(glob.substring(position + 1, closingBrace));
-        val regex        = new StringBuilder("(?:");
+        val regex        = new StringBuilder(REGEX_GROUP_START);
 
         for (int i = 0; i < alternatives.size(); i++) {
             if (i > 0) {
-                regex.append('|');
+                regex.append(REGEX_ALTERNATION);
             }
             val alternativeRegex = convertGlobToRegex(alternatives.get(i), delimiters, recursionDepth + 1);
             regex.append(alternativeRegex, 1, alternativeRegex.length() - 1);
@@ -893,13 +574,13 @@ public class PatternsFunctionLibrary {
 
     private static String buildDelimiterAwarePattern(List<String> delimiters, boolean allowMultiple) {
         if (delimiters == null || delimiters.isEmpty()) {
-            return allowMultiple ? ".*" : ".";
+            return allowMultiple ? REGEX_ANY_CHAR_MULTIPLE : REGEX_ANY_CHAR_SINGLE;
         }
 
         val negatedCharClass = new StringBuilder("[^");
         for (val delimiter : delimiters) {
             for (val character : delimiter.toCharArray()) {
-                if ("\\]^-[".indexOf(character) >= 0) {
+                if (CHAR_CLASS_SPECIAL_CHARS.indexOf(character) >= 0) {
                     negatedCharClass.append('\\');
                 }
                 negatedCharClass.append(character);
@@ -951,10 +632,10 @@ public class PatternsFunctionLibrary {
     }
 
     private static List<String> splitAlternatives(String alternatives) {
-        val result           = new ArrayList<String>();
-        val current          = new StringBuilder();
-        int position         = 0;
-        int nestingDepth     = 0;
+        val result       = new ArrayList<String>();
+        val current      = new StringBuilder();
+        int position     = 0;
+        int nestingDepth = 0;
 
         while (position < alternatives.length()) {
             val character = alternatives.charAt(position);
@@ -986,6 +667,7 @@ public class PatternsFunctionLibrary {
 
     private static Pattern compileRegex(String patternText) {
         if (isDangerousPattern(patternText)) {
+            logSecurityEvent("Dangerous regex pattern rejected", patternText);
             return null;
         }
 
@@ -997,7 +679,7 @@ public class PatternsFunctionLibrary {
     }
 
     private static boolean isDangerousPattern(String pattern) {
-        if (pattern.split("\\|").length > 100) {
+        if (pattern.split("\\|").length > MAX_ALTERNATIONS) {
             return true;
         }
 
@@ -1005,7 +687,19 @@ public class PatternsFunctionLibrary {
             return true;
         }
 
-        return pattern.matches(".*\\([^)]*\\|[^)]*\\)[*+].*");
+        if (pattern.matches(".*\\([^)]*\\|[^)]*\\)[*+].*")) {
+            return true;
+        }
+
+        if (pattern.matches(".*\\(.*\\*.*\\).*\\*.*")) {
+            return true;
+        }
+
+        if (pattern.matches(".*\\{\\d+,\\d*}\\{\\d+,\\d*}.*")) {
+            return true;
+        }
+
+        return pattern.contains(".*.*") || pattern.contains(".+.+");
     }
 
     private static Val findMatchesWithLimit(Val pattern, Val value, int limit) {
@@ -1015,18 +709,22 @@ public class PatternsFunctionLibrary {
 
         val compiledPattern = compileRegex(pattern.getText());
         if (compiledPattern == null)
-            return Val.error("Invalid or dangerous regex pattern");
+            return Val.error(ERROR_DANGEROUS_PATTERN);
 
-        val matcher = compiledPattern.matcher(value.getText());
-        val matches = JsonNodeFactory.instance.arrayNode();
+        try {
+            val matcher = compiledPattern.matcher(value.getText());
+            val matches = JsonNodeFactory.instance.arrayNode();
 
-        int count = 0;
-        while (matcher.find() && count < limit) {
-            matches.add(matcher.group());
-            count++;
+            int count = 0;
+            while (matcher.find() && count < limit) {
+                matches.add(matcher.group());
+                count++;
+            }
+
+            return Val.of(matches);
+        } catch (Exception e) {
+            return Val.error(String.format(ERROR_MATCHING_FAILED, e.getMessage()));
         }
-
-        return Val.of(matches);
     }
 
     private static Val findAllSubmatchWithLimit(Val pattern, Val value, int limit) {
@@ -1036,30 +734,34 @@ public class PatternsFunctionLibrary {
 
         val compiledPattern = compileRegex(pattern.getText());
         if (compiledPattern == null)
-            return Val.error("Invalid or dangerous regex pattern");
+            return Val.error(ERROR_DANGEROUS_PATTERN);
 
-        val matcher = compiledPattern.matcher(value.getText());
-        val results = JsonNodeFactory.instance.arrayNode();
+        try {
+            val matcher = compiledPattern.matcher(value.getText());
+            val results = JsonNodeFactory.instance.arrayNode();
 
-        int count = 0;
-        while (matcher.find() && count < limit) {
-            val matchArray = JsonNodeFactory.instance.arrayNode();
-            matchArray.add(matcher.group());
+            int count = 0;
+            while (matcher.find() && count < limit) {
+                val matchArray = JsonNodeFactory.instance.arrayNode();
+                matchArray.add(matcher.group());
 
-            for (int i = 1; i <= matcher.groupCount(); i++) {
-                val group = matcher.group(i);
-                if (group != null) {
-                    matchArray.add(group);
-                } else {
-                    matchArray.addNull();
+                for (int i = 1; i <= matcher.groupCount(); i++) {
+                    val group = matcher.group(i);
+                    if (group != null) {
+                        matchArray.add(group);
+                    } else {
+                        matchArray.addNull();
+                    }
                 }
+
+                results.add(matchArray);
+                count++;
             }
 
-            results.add(matchArray);
-            count++;
+            return Val.of(results);
+        } catch (Exception e) {
+            return Val.error(String.format(ERROR_MATCHING_FAILED, e.getMessage()));
         }
-
-        return Val.of(results);
     }
 
     private static String buildTemplateRegex(String template, String startDelimiter, String endDelimiter) {
@@ -1070,12 +772,16 @@ public class PatternsFunctionLibrary {
             val startIndex = template.indexOf(startDelimiter, position);
 
             if (startIndex == -1) {
-                result.append(template, position, template.length());
+                val literalPortion = template.substring(position);
+                val processed = processTemplateEscapes(literalPortion);
+                result.append(escapeRegexCharacters(processed));
                 return result.toString();
             }
 
             if (startIndex > position) {
-                result.append(template, position, startIndex);
+                val literalPortion = template.substring(position, startIndex);
+                val processed = processTemplateEscapes(literalPortion);
+                result.append(escapeRegexCharacters(processed));
             }
 
             val endIndex = template.indexOf(endDelimiter, startIndex + startDelimiter.length());
@@ -1088,6 +794,12 @@ public class PatternsFunctionLibrary {
         }
 
         return result.toString();
+    }
+
+    private static void logSecurityEvent(String event, String details) {
+        if (log.isWarnEnabled()) {
+            log.warn("SECURITY: {} - {}", event, details);
+        }
     }
 
     private record GlobConversionResult(String regexFragment, int nextPosition) {
