@@ -264,7 +264,7 @@ public class MathFunctionLibrary {
     }
 
     @Function(docs = """
-            ```randomInteger(NUMBER bound, NUMBER seed)```: Returns a seeded random integer in the range ```[0, bound)```
+            ```randomIntegerSeeded(NUMBER bound, NUMBER seed)```: Returns a seeded random integer in the range ```[0, bound)```
             (inclusive of 0, exclusive of bound). The seed determines the sequence of random numbers, allowing for
             reproducible results.
 
@@ -277,10 +277,10 @@ public class MathFunctionLibrary {
             policy "example"
             permit
             where
-              math.randomInteger(10, 42) == math.randomInteger(10, 42);  // same seed produces same result
+              math.randomIntegerSeeded(10, 42) == math.randomIntegerSeeded(10, 42);  // same seed produces same result
             ```
             """, schema = RETURNS_NUMBER)
-    public static Val randomInteger(@Number Val bound, @Number Val seed) {
+    public static Val randomIntegerSeeded(@Number Val bound, @Number Val seed) {
         final var boundValidation = validateIntegerBound(bound);
         if (boundValidation != null) {
             return boundValidation;

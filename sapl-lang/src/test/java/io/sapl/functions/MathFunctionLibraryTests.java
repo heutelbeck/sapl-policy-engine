@@ -152,8 +152,8 @@ class MathFunctionLibraryTests {
 
     @Test
     void when_randomIntegerWithSameSeed_then_returnsSameValue() {
-        val actual1 = MathFunctionLibrary.randomInteger(Val.of(100), Val.of(42));
-        val actual2 = MathFunctionLibrary.randomInteger(Val.of(100), Val.of(42));
+        val actual1 = MathFunctionLibrary.randomIntegerSeeded(Val.of(100), Val.of(42));
+        val actual2 = MathFunctionLibrary.randomIntegerSeeded(Val.of(100), Val.of(42));
 
         assertThatVal(actual1).hasValue();
         assertThatVal(actual2).hasValue();
@@ -162,8 +162,8 @@ class MathFunctionLibraryTests {
 
     @Test
     void when_randomIntegerWithDifferentSeeds_then_returnsDifferentValues() {
-        val actual1 = MathFunctionLibrary.randomInteger(Val.of(100), Val.of(42));
-        val actual2 = MathFunctionLibrary.randomInteger(Val.of(100), Val.of(43));
+        val actual1 = MathFunctionLibrary.randomIntegerSeeded(Val.of(100), Val.of(42));
+        val actual2 = MathFunctionLibrary.randomIntegerSeeded(Val.of(100), Val.of(43));
 
         assertThatVal(actual1).hasValue();
         assertThatVal(actual2).hasValue();
@@ -174,7 +174,7 @@ class MathFunctionLibraryTests {
     @MethodSource("provideRandomIntegerErrorTestCases")
     void when_randomIntegerWithInvalidInput_then_returnsError(int bound, Integer seed, String expectedErrorMessage) {
         val actual = seed == null ? MathFunctionLibrary.randomInteger(Val.of(bound))
-                : MathFunctionLibrary.randomInteger(Val.of(bound), Val.of(seed));
+                : MathFunctionLibrary.randomIntegerSeeded(Val.of(bound), Val.of(seed));
 
         assertThatVal(actual).isError();
         assertThat(actual.getMessage()).contains(expectedErrorMessage);
@@ -194,7 +194,7 @@ class MathFunctionLibraryTests {
 
     @Test
     void when_randomIntegerWithNonIntegerSeed_then_returnsError() {
-        val actual = MathFunctionLibrary.randomInteger(Val.of(10), Val.of(42.5));
+        val actual = MathFunctionLibrary.randomIntegerSeeded(Val.of(10), Val.of(42.5));
         assertThatVal(actual).isError();
         assertThat(actual.getMessage()).contains("Seed must be an integer");
     }
