@@ -52,7 +52,7 @@ public final class AnnotationFunctionContext implements FunctionContext {
     static final String      UNKNOWN_FUNCTION_ERROR                         = "Unknown function %s";
     static final String      ILLEGAL_NUMBER_OF_PARAMETERS_ERROR             = "Illegal number of parameters. Function expected %d but got %d";
     static final String      CLASS_HAS_NO_FUNCTION_LIBRARY_ANNOTATION_ERROR = "Provided class has no @FunctionLibrary annotation.";
-    static final String      ILLEGAL_PARAMETER_FOR_IMPORT_ERROR             = "Function has parameters that are not a Val. Cannot be loaded. Type was: %s.";
+    static final String      ILLEGAL_PARAMETER_FOR_IMPORT_ERROR             = "Function %s in %s has parameters that are not a Val. Cannot be loaded. Type was: %s.";
     static final String      ILLEGAL_RETURN_TYPE_FOR_IMPORT_ERROR           = "Function does not return a Val. Cannot be loaded. Type was: %s.";
     static final String      MULTIPLE_SCHEMA_ANNOTATIONS_NOT_ALLOWED_ERROR  = "Function has both a schema and a schemaPath annotation. Multiple schema annotations are not allowed.";
     static final String      FUNCTION_NAME_COLLISION_ERROR                  = "Function name collision %s";
@@ -252,7 +252,8 @@ public final class AnnotationFunctionContext implements FunctionContext {
                     && Val.class.isAssignableFrom(parameterType.getComponentType())) {
                 parameters = VAR_ARGS;
             } else if (!Val.class.isAssignableFrom(parameterType)) {
-                throw new InitializationException(ILLEGAL_PARAMETER_FOR_IMPORT_ERROR, parameterType.getName());
+                throw new InitializationException(ILLEGAL_PARAMETER_FOR_IMPORT_ERROR, funName, libName,
+                        parameterType.getName());
             }
         }
 

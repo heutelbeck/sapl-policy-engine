@@ -21,6 +21,7 @@ import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import io.sapl.api.functions.Function;
 import io.sapl.api.functions.FunctionLibrary;
 import io.sapl.api.interpreter.Val;
+import io.sapl.api.validation.Array;
 import io.sapl.api.validation.Int;
 import io.sapl.api.validation.Text;
 import lombok.experimental.UtilityClass;
@@ -48,54 +49,56 @@ public class PatternsFunctionLibrary {
     public static final String NAME        = "patterns";
     public static final String DESCRIPTION = "Functions for pattern matching with globs and regular expressions.";
 
-    private static final int    MAX_PATTERN_LENGTH         = 1_000;
-    private static final int    MAX_INPUT_LENGTH           = 100_000;
-    private static final int    MAX_MATCHES                = 10_000;
-    private static final int    MAX_GLOB_RECURSION         = 50;
-    private static final int    MAX_ALTERNATIONS           = 100;
-    private static final String REGEX_METACHARACTERS       = ".^$*+?()[]{}\\|";
-    private static final String CHAR_CLASS_METACHARACTERS  = "\\]^[";
-    private static final String CHAR_CLASS_SPECIAL_CHARS   = "\\]^-[";
-    private static final String GLOB_METACHARACTERS        = "*?[]{}\\-!";
+    private static final int    MAX_PATTERN_LENGTH        = 1_000;
+    private static final int    MAX_INPUT_LENGTH          = 100_000;
+    private static final int    MAX_MATCHES               = 10_000;
+    private static final int    MAX_GLOB_RECURSION        = 50;
+    private static final int    MAX_ALTERNATIONS          = 100;
+    private static final String REGEX_METACHARACTERS      = ".^$*+?()[]{}\\|";
+    private static final String CHAR_CLASS_METACHARACTERS = "\\]^[";
+    private static final String CHAR_CLASS_SPECIAL_CHARS  = "\\]^-[";
+    private static final String GLOB_METACHARACTERS       = "*?[]{}\\-!";
 
-    private static final String ERROR_PATTERN_VALUE_TEXT    = "Pattern and value must be text values";
-    private static final String ERROR_PATTERN_TOO_LONG      = "Pattern too long (max %d characters)";
-    private static final String ERROR_INPUT_TOO_LONG        = "Input too long (max %d characters)";
-    private static final String ERROR_LIMIT_NOT_NUMBER      = "Limit must be a number";
-    private static final String ERROR_LIMIT_NEGATIVE        = "Limit must be non-negative";
-    private static final String ERROR_REPLACEMENT_TEXT      = "Replacement must be a text value";
-    private static final String ERROR_ESCAPE_GLOB_TEXT      = "escapeGlob requires a text value";
-    private static final String ERROR_TEMPLATE_ARGS_TEXT    = "All arguments must be text values";
-    private static final String ERROR_DELIMITERS_EMPTY      = "Delimiters cannot be empty";
-    private static final String ERROR_TEMPLATE_LENGTH       = "Template or value exceeds maximum length";
-    private static final String ERROR_TEMPLATE_FORMAT       = "Invalid template format: mismatched or nested delimiters";
-    private static final String ERROR_DANGEROUS_PATTERN     = "Invalid or dangerous regex pattern";
-    private static final String ERROR_DANGEROUS_TEMPLATE    = "Template contains dangerous regex patterns";
-    private static final String ERROR_INVALID_GLOB          = "Invalid glob pattern: %s";
-    private static final String ERROR_INVALID_TEMPLATE      = "Invalid regex in template: %s";
-    private static final String ERROR_REPLACEMENT_FAILED    = "Replacement failed: %s";
-    private static final String ERROR_SPLIT_FAILED          = "Split failed: %s";
-    private static final String ERROR_MATCHING_FAILED       = "Pattern matching failed: %s";
-    private static final String ERROR_UNCLOSED_CHAR_CLASS   = "Unclosed character class starting at position %d";
-    private static final String ERROR_UNCLOSED_ALT_GROUP    = "Unclosed alternative group starting at position %d";
-    private static final String ERROR_GLOB_TOO_NESTED       = "Glob pattern too deeply nested (max %d levels)";
+    private static final String ERROR_PATTERN_VALUE_TEXT  = "Pattern and value must be text values";
+    private static final String ERROR_PATTERN_TOO_LONG    = "Pattern too long (max %d characters)";
+    private static final String ERROR_INPUT_TOO_LONG      = "Input too long (max %d characters)";
+    private static final String ERROR_LIMIT_NOT_NUMBER    = "Limit must be a number";
+    private static final String ERROR_LIMIT_NEGATIVE      = "Limit must be non-negative";
+    private static final String ERROR_REPLACEMENT_TEXT    = "Replacement must be a text value";
+    private static final String ERROR_ESCAPE_GLOB_TEXT    = "escapeGlob requires a text value";
+    private static final String ERROR_TEMPLATE_ARGS_TEXT  = "All arguments must be text values";
+    private static final String ERROR_DELIMITERS_EMPTY    = "Delimiters cannot be empty";
+    private static final String ERROR_DELIMITERS_TEXT     = "All delimiters must be text values";
+    private static final String ERROR_TEMPLATE_LENGTH     = "Template or value exceeds maximum length";
+    private static final String ERROR_TEMPLATE_FORMAT     = "Invalid template format: mismatched or nested delimiters";
+    private static final String ERROR_DANGEROUS_PATTERN   = "Invalid or dangerous regex pattern";
+    private static final String ERROR_DANGEROUS_TEMPLATE  = "Template contains dangerous regex patterns";
+    private static final String ERROR_INVALID_GLOB        = "Invalid glob pattern: %s";
+    private static final String ERROR_INVALID_TEMPLATE    = "Invalid regex in template: %s";
+    private static final String ERROR_REPLACEMENT_FAILED  = "Replacement failed: %s";
+    private static final String ERROR_SPLIT_FAILED        = "Split failed: %s";
+    private static final String ERROR_MATCHING_FAILED     = "Pattern matching failed: %s";
+    private static final String ERROR_UNCLOSED_CHAR_CLASS = "Unclosed character class starting at position %d";
+    private static final String ERROR_UNCLOSED_ALT_GROUP  = "Unclosed alternative group starting at position %d";
+    private static final String ERROR_GLOB_TOO_NESTED     = "Glob pattern too deeply nested (max %d levels)";
 
-    private static final String REGEX_ANCHOR_START          = "^";
-    private static final String REGEX_ANCHOR_END            = "$";
-    private static final String REGEX_ANY_CHAR_MULTIPLE     = ".*";
-    private static final String REGEX_ANY_CHAR_SINGLE       = ".";
-    private static final String REGEX_DOUBLE_BACKSLASH      = "\\\\";
-    private static final String REGEX_GROUP_START           = "(?:";
-    private static final String REGEX_ALTERNATION           = "|";
+    private static final String REGEX_ANCHOR_START      = "^";
+    private static final String REGEX_ANCHOR_END        = "$";
+    private static final String REGEX_ANY_CHAR_MULTIPLE = ".*";
+    private static final String REGEX_ANY_CHAR_SINGLE   = ".";
+    private static final String REGEX_DOUBLE_BACKSLASH  = "\\\\";
+    private static final String REGEX_GROUP_START       = "(?:";
+    private static final String REGEX_ALTERNATION       = "|";
 
     @Function(docs = """
-            ```patterns.matchGlob(TEXT pattern, TEXT value, TEXT... delimiters)```: Matches a string
+            ```patterns.matchGlob(TEXT pattern, TEXT value, ARRAY delimiters)```: Matches a string
             against a glob pattern with configurable delimiters.
 
             Glob patterns provide hierarchical matching where wildcards respect segment boundaries.
             The single wildcard `*` matches zero or more characters within a segment (between delimiters),
             while the double wildcard `**` matches across segment boundaries. When no delimiters are
-            specified, the default delimiter `.` is used, suitable for domain names and hierarchical identifiers.
+            specified or an empty array is provided, the default delimiter `.` is used, suitable for
+            domain names and hierarchical identifiers.
 
             **Pattern Elements:**
             - `*` - Matches zero or more characters within a delimiter-bounded segment
@@ -106,18 +109,28 @@ public class PatternsFunctionLibrary {
             - `{cat,dog,bird}` - Matches any of the alternative patterns
             - `\\` - Escapes the next character (e.g., `\\*` matches literal asterisk)
 
+            **Parameters:**
+            - `pattern` - The glob pattern to match against
+            - `value` - The string value to test
+            - `delimiters` - Array of delimiter strings (optional, defaults to `["."]`)
+
             **Limitations:**
             - Maximum pattern length: 1,000 characters
             - Maximum input length: 100,000 characters
             - Maximum nesting depth: 50 levels
+            - All delimiters must be non-empty text values
             - Returns error for malformed patterns (unclosed brackets, braces, etc.)
 
             **Returns:** Boolean value indicating match success, or error for invalid inputs.
             """)
-    public static Val matchGlob(@Text Val pattern, @Text Val value, Val... delimiters) {
+    public static Val matchGlob(@Text Val pattern, @Text Val value, @Array Val delimiters) {
         val error = validateInputs(pattern, value);
         if (error != null)
             return error;
+
+        val delimiterError = validateDelimiters(delimiters);
+        if (delimiterError != null)
+            return delimiterError;
 
         val delimiterList = extractDelimiters(delimiters, List.of("."));
         return matchGlobImplementation(pattern.getText(), value.getText(), delimiterList);
@@ -198,14 +211,14 @@ public class PatternsFunctionLibrary {
     }
 
     @Function(docs = """
-            ```patterns.findMatches(TEXT pattern, TEXT value, INT limit)```: Finds up to limit matches.
+            ```patterns.findMatchesLimited(TEXT pattern, TEXT value, INT limit)```: Finds up to limit matches.
 
             Identical to findMatches but stops after finding the specified number of matches. The limit
             is capped at 10,000 maximum. Negative limits return an error.
 
             **Returns:** Array of matched strings with at most the specified number of elements.
             """)
-    public static Val findMatches(@Text Val pattern, @Text Val value, @Int Val limit) {
+    public static Val findMatchesLimited(@Text Val pattern, @Text Val value, @Int Val limit) {
         if (!limit.isNumber()) {
             return Val.error(ERROR_LIMIT_NOT_NUMBER);
         }
@@ -231,12 +244,12 @@ public class PatternsFunctionLibrary {
     }
 
     @Function(docs = """
-            ```patterns.findAllSubmatch(TEXT pattern, TEXT value, INT limit)```: Finds up to limit matches
+            ```patterns.findAllSubmatchLimited(TEXT pattern, TEXT value, INT limit)```: Finds up to limit matches
             with capturing groups.
 
             **Returns:** Nested array of at most the specified number of matches with their captured groups.
             """)
-    public static Val findAllSubmatch(@Text Val pattern, @Text Val value, @Int Val limit) {
+    public static Val findAllSubmatchLimited(@Text Val pattern, @Text Val value, @Int Val limit) {
         if (!limit.isNumber()) {
             return Val.error(ERROR_LIMIT_NOT_NUMBER);
         }
@@ -316,7 +329,7 @@ public class PatternsFunctionLibrary {
             **Returns:** Boolean indicating match success, or error for malformed templates.
             """)
     public static Val matchTemplate(@Text Val template, @Text Val value, @Text Val delimiterStart,
-                                    @Text Val delimiterEnd) {
+            @Text Val delimiterEnd) {
         if (!template.isTextual() || !value.isTextual() || !delimiterStart.isTextual() || !delimiterEnd.isTextual()) {
             return Val.error(ERROR_TEMPLATE_ARGS_TEXT);
         }
@@ -364,7 +377,7 @@ public class PatternsFunctionLibrary {
     }
 
     private static String processTemplateEscapes(String input) {
-        val result = new StringBuilder(input.length());
+        val result   = new StringBuilder(input.length());
         int position = 0;
 
         while (position < input.length()) {
@@ -407,17 +420,39 @@ public class PatternsFunctionLibrary {
         return null;
     }
 
-    private static List<String> extractDelimiters(Val[] delimiters, List<String> defaultValue) {
-        if (delimiters.length == 0) {
+    private static Val validateDelimiters(Val delimiters) {
+        if (delimiters.isUndefined() || !delimiters.isArray()) {
+            return null;
+        }
+
+        val arrayNode = delimiters.getArrayNode();
+        for (int i = 0; i < arrayNode.size(); i++) {
+            val element = Val.of(arrayNode.get(i));
+            if (!element.isTextual()) {
+                return Val.error(ERROR_DELIMITERS_TEXT);
+            }
+        }
+
+        return null;
+    }
+
+    private static List<String> extractDelimiters(Val delimiters, List<String> defaultValue) {
+        if (delimiters.isUndefined() || !delimiters.isArray()) {
             return defaultValue;
         }
 
-        val result          = new ArrayList<String>(delimiters.length);
+        val arrayNode = delimiters.getArrayNode();
+        if (arrayNode.isEmpty()) {
+            return defaultValue;
+        }
+
+        val     result      = new ArrayList<String>(arrayNode.size());
         boolean hasNonEmpty = false;
 
-        for (val delimiter : delimiters) {
-            if (delimiter.isTextual() && !delimiter.getText().isEmpty()) {
-                result.add(delimiter.getText());
+        for (int i = 0; i < arrayNode.size(); i++) {
+            val element = Val.of(arrayNode.get(i));
+            if (element.isTextual() && !element.getText().isEmpty()) {
+                result.add(element.getText());
                 hasNonEmpty = true;
             }
         }
@@ -427,7 +462,7 @@ public class PatternsFunctionLibrary {
 
     private static Val matchGlobImplementation(String pattern, String value, List<String> delimiters) {
         try {
-            val regex = convertGlobToRegex(pattern, delimiters, 0);
+            val regex           = convertGlobToRegex(pattern, delimiters, 0);
             val compiledPattern = Pattern.compile(regex);
             return Val.of(compiledPattern.matcher(value).matches());
         } catch (IllegalStateException e) {
@@ -442,17 +477,17 @@ public class PatternsFunctionLibrary {
             throw new IllegalStateException(ERROR_GLOB_TOO_NESTED.formatted(MAX_GLOB_RECURSION));
         }
 
-        val regex = new StringBuilder(REGEX_ANCHOR_START);
+        val regex    = new StringBuilder(REGEX_ANCHOR_START);
         int position = 0;
 
         while (position < glob.length()) {
             val handler = switch (glob.charAt(position)) {
-                case '\\' -> processEscapeSequence(glob, position);
-                case '*'  -> processWildcard(glob, position, delimiters);
-                case '?'  -> processSingleCharacterWildcard(position, delimiters);
-                case '['  -> processCharacterClass(glob, position);
-                case '{'  -> processAlternatives(glob, position, delimiters, recursionDepth);
-                default   -> processLiteralCharacter(glob, position);
+            case '\\' -> processEscapeSequence(glob, position);
+            case '*'  -> processWildcard(glob, position, delimiters);
+            case '?'  -> processSingleCharacterWildcard(position, delimiters);
+            case '['  -> processCharacterClass(glob, position);
+            case '{'  -> processAlternatives(glob, position, delimiters, recursionDepth);
+            default   -> processLiteralCharacter(glob, position);
             };
 
             regex.append(handler.regexFragment);
@@ -535,7 +570,7 @@ public class PatternsFunctionLibrary {
     }
 
     private static GlobConversionResult processAlternatives(String glob, int position, List<String> delimiters,
-                                                            int recursionDepth) {
+            int recursionDepth) {
         int closingBrace = findClosingBrace(glob, position);
         if (closingBrace == -1) {
             throw new IllegalStateException(ERROR_UNCLOSED_ALT_GROUP.formatted(position));
@@ -765,7 +800,7 @@ public class PatternsFunctionLibrary {
     }
 
     private static String buildTemplateRegex(String template, String startDelimiter, String endDelimiter) {
-        val result = new StringBuilder();
+        val result   = new StringBuilder();
         int position = 0;
 
         while (position < template.length()) {
@@ -773,14 +808,14 @@ public class PatternsFunctionLibrary {
 
             if (startIndex == -1) {
                 val literalPortion = template.substring(position);
-                val processed = processTemplateEscapes(literalPortion);
+                val processed      = processTemplateEscapes(literalPortion);
                 result.append(escapeRegexCharacters(processed));
                 return result.toString();
             }
 
             if (startIndex > position) {
                 val literalPortion = template.substring(position, startIndex);
-                val processed = processTemplateEscapes(literalPortion);
+                val processed      = processTemplateEscapes(literalPortion);
                 result.append(escapeRegexCharacters(processed));
             }
 
@@ -802,6 +837,5 @@ public class PatternsFunctionLibrary {
         }
     }
 
-    private record GlobConversionResult(String regexFragment, int nextPosition) {
-    }
+    private record GlobConversionResult(String regexFragment, int nextPosition) {}
 }
