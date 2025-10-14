@@ -17,16 +17,16 @@
  */
 package io.sapl.grammar.sapl.impl;
 
-import static io.sapl.grammar.sapl.impl.util.OperatorUtil.arithmeticOperator;
-
-import java.math.BigDecimal;
-import java.util.Map;
-
 import io.sapl.api.interpreter.Trace;
 import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.sapl.Modulo;
 import io.sapl.grammar.sapl.impl.util.ErrorFactory;
 import reactor.core.publisher.Flux;
+
+import java.math.BigDecimal;
+import java.util.Map;
+
+import static io.sapl.grammar.sapl.impl.util.OperatorUtil.arithmeticOperator;
 
 /**
  * Implements the numerical remainder operator, written as '%' in Expressions.

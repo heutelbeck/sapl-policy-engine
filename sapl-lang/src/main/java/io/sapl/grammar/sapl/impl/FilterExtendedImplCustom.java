@@ -17,18 +17,17 @@
  */
 package io.sapl.grammar.sapl.impl;
 
-import java.util.Map;
-import java.util.function.Function;
-
-import org.reactivestreams.Publisher;
-
 import io.sapl.api.interpreter.Trace;
 import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.sapl.FilterExtended;
 import io.sapl.grammar.sapl.FilterStatement;
 import io.sapl.grammar.sapl.impl.util.ErrorFactory;
 import io.sapl.grammar.sapl.impl.util.FilterAlgorithmUtil;
+import org.reactivestreams.Publisher;
 import reactor.core.publisher.Flux;
+
+import java.util.Map;
+import java.util.function.Function;
 
 public class FilterExtendedImplCustom extends FilterExtendedImpl {
 

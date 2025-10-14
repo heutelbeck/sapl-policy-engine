@@ -17,10 +17,6 @@
  */
 package io.sapl.attributes.broker.impl;
 
-import java.time.Duration;
-import java.util.concurrent.atomic.AtomicReference;
-import java.util.function.Consumer;
-
 import io.sapl.api.interpreter.Val;
 import io.sapl.attributes.broker.api.AttributeFinder;
 import io.sapl.attributes.broker.api.AttributeFinderInvocation;
@@ -32,6 +28,10 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Sinks;
 import reactor.core.publisher.Sinks.Many;
 import reactor.util.retry.Retry;
+
+import java.time.Duration;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Consumer;
 
 /**
  * An instance represents an attribute stream in use. The attribute stream is

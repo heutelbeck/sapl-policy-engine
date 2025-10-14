@@ -17,14 +17,14 @@
  */
 package io.sapl.grammar.sapl.impl;
 
-import static io.sapl.grammar.sapl.impl.util.OperatorUtil.arithmeticOperator;
-
-import java.util.Map;
-
 import io.sapl.api.interpreter.Trace;
 import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.sapl.Minus;
 import reactor.core.publisher.Flux;
+
+import java.util.Map;
+
+import static io.sapl.grammar.sapl.impl.util.OperatorUtil.arithmeticOperator;
 
 public class MinusImplCustom extends MinusImpl {
 

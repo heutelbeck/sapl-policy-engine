@@ -17,9 +17,9 @@
  */
 package io.sapl.attributes.broker.api;
 
-import java.util.Map;
-
 import lombok.NonNull;
+
+import java.util.Map;
 
 public record PolicyInformationPointImplementation(
         @NonNull PolicyInformationPointSpecification specification,

@@ -17,14 +17,14 @@
  */
 package io.sapl.attributes.broker.api;
 
-import static io.sapl.validation.NameValidator.requireValidName;
+import io.sapl.api.interpreter.Val;
+import lombok.NonNull;
 
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 
-import io.sapl.api.interpreter.Val;
-import lombok.NonNull;
+import static io.sapl.validation.NameValidator.requireValidName;
 
 public record AttributeFinderInvocation(
         @NonNull String pdpConfigurationId,

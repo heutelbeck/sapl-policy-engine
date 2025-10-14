@@ -17,11 +17,11 @@
  */
 package io.sapl.attributes.documentation.api;
 
+import lombok.NonNull;
+
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
-import lombok.NonNull;
 
 public record LibraryDocumentation(
         @NonNull LibraryType type,

@@ -17,17 +17,15 @@
  */
 package io.sapl.prp.index.canonical;
 
-import java.util.stream.Collectors;
-
+import com.google.common.base.Objects;
+import io.sapl.grammar.sapl.impl.util.FunctionUtil;
+import lombok.NonNull;
+import lombok.experimental.UtilityClass;
 import org.eclipse.emf.common.util.EList;
 import org.eclipse.emf.ecore.EObject;
 import org.eclipse.emf.ecore.EStructuralFeature;
 
-import com.google.common.base.Objects;
-
-import io.sapl.grammar.sapl.impl.util.FunctionUtil;
-import lombok.NonNull;
-import lombok.experimental.UtilityClass;
+import java.util.stream.Collectors;
 
 /**
  * For indexing, expressions must be compared based on equivalence.

@@ -17,13 +17,13 @@
  */
 package io.sapl.grammar.sapl.impl;
 
-import java.util.Map;
-
 import io.sapl.api.interpreter.Trace;
 import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.sapl.BasicIdentifier;
 import io.sapl.interpreter.context.AuthorizationContext;
 import reactor.core.publisher.Flux;
+
+import java.util.Map;
 
 /**
  * Implements the evaluation of identifiers.

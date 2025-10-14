@@ -17,11 +17,11 @@
  */
 package io.sapl.prp.index.canonical.ordering;
 
-import java.util.Collection;
-import java.util.List;
-
 import io.sapl.prp.index.canonical.Predicate;
 import io.sapl.prp.index.canonical.PredicateInfo;
+
+import java.util.Collection;
+import java.util.List;
 
 public class NoPredicateOrderStrategy implements PredicateOrderStrategy {
 

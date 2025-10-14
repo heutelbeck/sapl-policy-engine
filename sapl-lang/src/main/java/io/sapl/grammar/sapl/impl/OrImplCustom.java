@@ -17,8 +17,6 @@
  */
 package io.sapl.grammar.sapl.impl;
 
-import java.util.Map;
-
 import io.sapl.api.interpreter.Trace;
 import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.sapl.Or;
@@ -26,6 +24,8 @@ import io.sapl.grammar.sapl.impl.util.ErrorFactory;
 import io.sapl.grammar.sapl.impl.util.OperatorUtil;
 import io.sapl.grammar.sapl.impl.util.TargetExpressionUtil;
 import reactor.core.publisher.Flux;
+
+import java.util.Map;
 
 /**
  * Implements the lazy boolean OR operator, written as '||' in Expressions.

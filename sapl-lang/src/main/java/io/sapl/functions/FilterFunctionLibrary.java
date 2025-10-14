@@ -17,12 +17,12 @@
  */
 package io.sapl.functions;
 
-import java.util.Optional;
-
 import io.sapl.api.functions.Function;
 import io.sapl.api.functions.FunctionLibrary;
 import io.sapl.api.interpreter.Val;
 import lombok.experimental.UtilityClass;
+
+import java.util.Optional;
 
 /**
  * Function library implementing blacken, replace, and remove filter functions.

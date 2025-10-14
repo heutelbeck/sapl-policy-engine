@@ -17,9 +17,6 @@
  */
 package io.sapl.grammar.sapl.impl;
 
-import java.util.Map;
-import java.util.function.Function;
-
 import io.sapl.api.interpreter.Trace;
 import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.sapl.Condition;
@@ -29,6 +26,9 @@ import io.sapl.grammar.sapl.impl.util.ErrorFactory;
 import io.sapl.interpreter.context.AuthorizationContext;
 import reactor.core.publisher.Flux;
 import reactor.util.context.Context;
+
+import java.util.Map;
+import java.util.function.Function;
 
 public class PolicyBodyImplCustom extends PolicyBodyImpl {
 

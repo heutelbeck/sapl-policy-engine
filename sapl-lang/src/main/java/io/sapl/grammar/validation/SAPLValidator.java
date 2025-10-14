@@ -17,17 +17,12 @@
  */
 package io.sapl.grammar.validation;
 
-import java.util.Map;
-
+import io.sapl.grammar.sapl.*;
 import org.eclipse.emf.ecore.EClass;
 import org.eclipse.emf.ecore.EObject;
 import org.eclipse.xtext.validation.Check;
 
-import io.sapl.grammar.sapl.Policy;
-import io.sapl.grammar.sapl.PolicySet;
-import io.sapl.grammar.sapl.SaplPackage;
-import io.sapl.grammar.sapl.Schema;
-import io.sapl.grammar.sapl.ValueDefinition;
+import java.util.Map;
 
 /**
  * This class contains custom validation rules.

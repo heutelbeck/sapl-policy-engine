@@ -17,11 +17,10 @@
  */
 package io.sapl.grammar.sapl.impl.util;
 
-import org.eclipse.emf.ecore.EObject;
-
 import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.sapl.Expression;
 import lombok.experimental.UtilityClass;
+import org.eclipse.emf.ecore.EObject;
 import reactor.core.publisher.Mono;
 
 @UtilityClass

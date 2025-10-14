@@ -17,10 +17,6 @@
  */
 package io.sapl.prp.index.naive;
 
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.Map;
-
 import io.sapl.prp.Document;
 import io.sapl.prp.DocumentMatch;
 import io.sapl.prp.PolicyRetrievalResult;
@@ -31,6 +27,10 @@ import lombok.Getter;
 import lombok.ToString;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * The Index Object has to be immutable to avoid race conditions. SAPL Objects

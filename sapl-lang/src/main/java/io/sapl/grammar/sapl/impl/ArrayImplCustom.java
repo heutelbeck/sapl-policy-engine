@@ -17,14 +17,14 @@
  */
 package io.sapl.grammar.sapl.impl;
 
-import java.util.ArrayList;
-import java.util.LinkedList;
-import java.util.List;
-
 import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.sapl.Array;
 import io.sapl.grammar.sapl.Expression;
 import reactor.core.publisher.Flux;
+
+import java.util.ArrayList;
+import java.util.LinkedList;
+import java.util.List;
 
 /**
  * Implementation of an array in SAPL.

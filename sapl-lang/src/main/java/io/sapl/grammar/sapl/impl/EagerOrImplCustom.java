@@ -17,14 +17,14 @@
  */
 package io.sapl.grammar.sapl.impl;
 
-import static io.sapl.grammar.sapl.impl.util.OperatorUtil.booleanOperator;
-
-import java.util.Map;
-
 import io.sapl.api.interpreter.Trace;
 import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.sapl.EagerOr;
 import reactor.core.publisher.Flux;
+
+import java.util.Map;
+
+import static io.sapl.grammar.sapl.impl.util.OperatorUtil.booleanOperator;
 
 /**
  * Implements the eager logical OR operation, noted as '|' in the grammar.

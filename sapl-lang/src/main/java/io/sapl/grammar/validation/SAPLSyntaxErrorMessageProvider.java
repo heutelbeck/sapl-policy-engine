@@ -17,23 +17,14 @@
  */
 package io.sapl.grammar.validation;
 
-import org.antlr.runtime.EarlyExitException;
-import org.antlr.runtime.MismatchedTokenException;
-import org.antlr.runtime.NoViableAltException;
-import org.antlr.runtime.RecognitionException;
-import org.antlr.runtime.Token;
+import io.sapl.grammar.sapl.*;
+import org.antlr.runtime.*;
 import org.eclipse.emf.ecore.EObject;
 import org.eclipse.xtext.diagnostics.Diagnostic;
 import org.eclipse.xtext.nodemodel.INode;
 import org.eclipse.xtext.nodemodel.SyntaxErrorMessage;
 import org.eclipse.xtext.nodemodel.util.NodeModelUtils;
 import org.eclipse.xtext.parser.antlr.SyntaxErrorMessageProvider;
-
-import io.sapl.grammar.sapl.Policy;
-import io.sapl.grammar.sapl.PolicyBody;
-import io.sapl.grammar.sapl.PolicySet;
-import io.sapl.grammar.sapl.SAPL;
-import io.sapl.grammar.sapl.ValueDefinition;
 
 public class SAPLSyntaxErrorMessageProvider extends SyntaxErrorMessageProvider {
 

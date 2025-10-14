@@ -17,9 +17,9 @@
  */
 package io.sapl.attributes.broker.api;
 
-import java.util.Set;
-
 import lombok.NonNull;
+
+import java.util.Set;
 
 public record PolicyInformationPointSpecification(
         @NonNull String name,

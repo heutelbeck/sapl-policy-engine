@@ -483,4 +483,52 @@ public class ArrayFunctionLibrary {
         return Val.of(newArray);
     }
 
+    @Function(docs = """
+            ```isSet(ARRAY array)```: Returns ```true``` if the array contains only distinct elements (no duplicates),
+            ```false``` otherwise. An empty array is considered a set.
+            *Attention:* numerically equivalent but differently written numbers, i.e., ```0``` vs ```0.000```, may be
+            interpreted as non-equivalent.
+
+            **Example:**
+            ```sapl
+            policy "example"
+            permit
+            where
+              array.isSet([1, 2, 3, 4]);           // true, all elements are unique
+              array.isSet([1, 2, 3, 2]);           // false, 2 appears twice
+              array.isSet([]);                     // true, empty array is a set
+              array.isSet([1, "1", 2]);            // true, 1 and "1" are different types
+            ```
+            """, schema = RETURNS_BOOLEAN)
+    public static Val isSet(@Array Val array) {
+        final var jsonArray        = array.getArrayNode();
+        final var seen             = Val.JSON.arrayNode();
+        final var elementsIterator = jsonArray.elements();
+
+        while (elementsIterator.hasNext()) {
+            final var element = elementsIterator.next();
+            if (contains(element, seen, Object::equals)) {
+                return Val.FALSE;
+            }
+            seen.add(element.deepCopy());
+        }
+        return Val.TRUE;
+    }
+
+    @Function(docs = """
+            ```isEmpty(ARRAY array)```: Returns ```true``` if the array is empty (has no elements), ```false``` otherwise.
+
+            **Example:**
+            ```sapl
+            policy "example"
+            permit
+            where
+              array.isEmpty([]);           // true
+              array.isEmpty([1]);          // false
+              array.isEmpty([1, 2, 3]);    // false
+            ```
+            """, schema = RETURNS_BOOLEAN)
+    public static Val isEmpty(@Array Val array) {
+        return Val.of(array.getArrayNode().isEmpty());
+    }
 }

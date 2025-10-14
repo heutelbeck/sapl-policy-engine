@@ -17,16 +17,15 @@
  */
 package io.sapl.grammar.sapl.impl.util;
 
-import java.util.function.BiPredicate;
-import java.util.function.Supplier;
-
-import org.eclipse.emf.ecore.EObject;
-
 import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.api.interpreter.Val;
 import io.sapl.interpreter.context.AuthorizationContext;
 import lombok.experimental.UtilityClass;
+import org.eclipse.emf.ecore.EObject;
 import reactor.core.publisher.Flux;
+
+import java.util.function.BiPredicate;
+import java.util.function.Supplier;
 
 @UtilityClass
 public class SelectorUtil {

@@ -17,15 +17,14 @@
  */
 package io.sapl.attributes.repository.impl;
 
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-
 import com.fasterxml.jackson.databind.JsonNode;
-
 import io.sapl.api.interpreter.Val;
 import io.sapl.attributes.repository.api.AttributeRepository;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
+
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 @RequiredArgsConstructor
 public class InMemoryAttributeRepository implements AttributeRepository {

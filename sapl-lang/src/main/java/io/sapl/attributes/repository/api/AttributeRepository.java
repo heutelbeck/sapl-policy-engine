@@ -18,7 +18,6 @@
 package io.sapl.attributes.repository.api;
 
 import com.fasterxml.jackson.databind.JsonNode;
-
 import io.sapl.api.interpreter.Val;
 import lombok.NonNull;
 

@@ -17,13 +17,6 @@
  */
 package io.sapl.prp.index.canonical;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-import java.util.function.Function;
-
 import io.sapl.api.interpreter.Val;
 import io.sapl.prp.Document;
 import io.sapl.prp.DocumentMatch;
@@ -32,6 +25,9 @@ import lombok.NonNull;
 import lombok.experimental.UtilityClass;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+
+import java.util.*;
+import java.util.function.Function;
 
 @UtilityClass
 public class CanonicalIndexAlgorithm {

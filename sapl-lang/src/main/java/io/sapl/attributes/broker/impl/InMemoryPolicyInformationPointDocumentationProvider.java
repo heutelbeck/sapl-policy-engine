@@ -17,18 +17,17 @@
  */
 package io.sapl.attributes.broker.impl;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
 import com.fasterxml.jackson.databind.JsonNode;
-
 import io.sapl.attributes.broker.api.AttributeBrokerException;
 import io.sapl.attributes.documentation.api.FunctionType;
 import io.sapl.attributes.documentation.api.LibraryDocumentation;
 import io.sapl.attributes.documentation.api.LibraryFunctionDocumentation;
 import io.sapl.attributes.documentation.api.PolicyInformationPointDocumentationProvider;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 public class InMemoryPolicyInformationPointDocumentationProvider
         implements PolicyInformationPointDocumentationProvider {

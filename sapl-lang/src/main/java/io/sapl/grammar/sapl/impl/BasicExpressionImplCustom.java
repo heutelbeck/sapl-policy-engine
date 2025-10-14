@@ -17,17 +17,16 @@
  */
 package io.sapl.grammar.sapl.impl;
 
-import java.util.ArrayList;
-import java.util.function.Function;
-
-import org.eclipse.emf.common.util.EList;
-
 import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.sapl.BasicExpression;
 import io.sapl.grammar.sapl.Step;
 import io.sapl.grammar.sapl.impl.util.RepackageUtil;
 import io.sapl.interpreter.context.AuthorizationContext;
+import org.eclipse.emf.common.util.EList;
 import reactor.core.publisher.Flux;
+
+import java.util.ArrayList;
+import java.util.function.Function;
 
 /**
  * Superclass of basic expressions providing a method to evaluate the steps,

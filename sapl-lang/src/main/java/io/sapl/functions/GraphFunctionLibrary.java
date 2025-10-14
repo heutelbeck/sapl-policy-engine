@@ -21,18 +21,10 @@
 
 package io.sapl.functions;
 
-import java.util.ArrayDeque;
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
-import java.util.Objects;
-import java.util.function.Consumer;
-
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-
 import io.sapl.api.functions.Function;
 import io.sapl.api.functions.FunctionLibrary;
 import io.sapl.api.interpreter.Val;
@@ -40,6 +32,9 @@ import io.sapl.api.validation.Array;
 import io.sapl.api.validation.JsonObject;
 import lombok.experimental.UtilityClass;
 import lombok.val;
+
+import java.util.*;
+import java.util.function.Consumer;
 
 /**
  * Graph utilities for reachability, shortest paths, and graph walking.

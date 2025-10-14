@@ -17,9 +17,6 @@
  */
 package io.sapl.grammar.sapl.impl;
 
-import java.util.function.BiPredicate;
-import java.util.function.Supplier;
-
 import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.sapl.ArraySlicingStep;
 import io.sapl.grammar.sapl.AttributeUnionStep;
@@ -29,6 +26,9 @@ import io.sapl.grammar.sapl.impl.util.StepAlgorithmUtil;
 import io.sapl.interpreter.context.AuthorizationContext;
 import lombok.NonNull;
 import reactor.core.publisher.Flux;
+
+import java.util.function.BiPredicate;
+import java.util.function.Supplier;
 
 /**
  * Implements the application of an attribute union step to a previous object

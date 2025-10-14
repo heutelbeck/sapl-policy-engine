@@ -17,16 +17,15 @@
  */
 package io.sapl.attributes.broker.api.sub;
 
-import static io.sapl.validation.NameValidator.requireValidName;
+import io.sapl.api.interpreter.Val;
+import lombok.NonNull;
+import org.eclipse.emf.ecore.EObject;
 
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 
-import org.eclipse.emf.ecore.EObject;
-
-import io.sapl.api.interpreter.Val;
-import lombok.NonNull;
+import static io.sapl.validation.NameValidator.requireValidName;
 
 public record AttributeSubscription(
         @NonNull String pdpConfigurationId,

@@ -17,18 +17,17 @@
  */
 package io.sapl.grammar.sapl.impl.util;
 
+import io.sapl.api.interpreter.Val;
+import io.sapl.interpreter.context.AuthorizationContext;
+import lombok.experimental.UtilityClass;
+import org.eclipse.emf.ecore.EObject;
+import reactor.core.publisher.Flux;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.function.Supplier;
-
-import org.eclipse.emf.ecore.EObject;
-
-import io.sapl.api.interpreter.Val;
-import io.sapl.interpreter.context.AuthorizationContext;
-import lombok.experimental.UtilityClass;
-import reactor.core.publisher.Flux;
 
 @UtilityClass
 public class StepAlgorithmUtil {

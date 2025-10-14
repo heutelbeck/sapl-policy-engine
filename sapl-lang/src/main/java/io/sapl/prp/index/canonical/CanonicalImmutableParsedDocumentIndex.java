@@ -17,13 +17,6 @@
  */
 package io.sapl.prp.index.canonical;
 
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.stream.Collectors;
-
 import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.attributes.broker.api.AttributeStreamBroker;
 import io.sapl.interpreter.functions.FunctionContext;
@@ -36,6 +29,13 @@ import io.sapl.prp.index.UpdateEventDrivenPolicyRetrievalPoint;
 import io.sapl.prp.index.canonical.ordering.DefaultPredicateOrderStrategy;
 import io.sapl.prp.index.canonical.ordering.PredicateOrderStrategy;
 import reactor.core.publisher.Mono;
+
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.stream.Collectors;
 
 public class CanonicalImmutableParsedDocumentIndex implements UpdateEventDrivenPolicyRetrievalPoint {
 

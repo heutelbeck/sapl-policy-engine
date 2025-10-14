@@ -17,9 +17,6 @@
  */
 package io.sapl.attributes.broker.impl;
 
-import java.time.Duration;
-import java.util.concurrent.atomic.AtomicReference;
-
 import io.sapl.api.interpreter.Val;
 import lombok.experimental.UtilityClass;
 import reactor.core.Disposable;
@@ -27,6 +24,9 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.publisher.Sinks;
 import reactor.core.publisher.Sinks.Many;
+
+import java.time.Duration;
+import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * Holds utility functions for handling attribute time out events.

@@ -17,14 +17,14 @@
  */
 package io.sapl.grammar.sapl.impl;
 
-import static io.sapl.grammar.sapl.impl.util.OperatorUtil.operator;
-
-import java.util.Map;
-
 import io.sapl.api.interpreter.Trace;
 import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.sapl.Equals;
 import reactor.core.publisher.Flux;
+
+import java.util.Map;
+
+import static io.sapl.grammar.sapl.impl.util.OperatorUtil.operator;
 
 /**
  * Checks for equality of two values.

@@ -17,12 +17,7 @@
  */
 package io.sapl.grammar.sapl.impl;
 
-import java.math.BigDecimal;
-import java.util.ArrayList;
-import java.util.Map;
-
 import com.fasterxml.jackson.core.TreeNode;
-
 import io.sapl.api.interpreter.Trace;
 import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.sapl.FilterStatement;
@@ -33,6 +28,10 @@ import io.sapl.grammar.sapl.impl.util.RepackageUtil;
 import io.sapl.interpreter.context.AuthorizationContext;
 import lombok.NonNull;
 import reactor.core.publisher.Flux;
+
+import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.Map;
 
 /**
  * Implements the application of an index step to a previous array value, e.g.

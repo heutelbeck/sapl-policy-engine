@@ -15,12 +15,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.functions.time;
+package io.sapl.functions;
 
-import static io.sapl.hamcrest.Matchers.val;
-import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import io.sapl.api.interpreter.Val;
+import org.junit.jupiter.api.Test;
+import org.mockito.MockedStatic;
+import org.mockito.Mockito;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -30,12 +30,10 @@ import java.time.ZonedDateTime;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 
-import org.junit.jupiter.api.Test;
-import org.mockito.MockedStatic;
-import org.mockito.Mockito;
-
-import io.sapl.api.interpreter.Val;
-import io.sapl.functions.TemporalFunctionLibrary;
+import static io.sapl.hamcrest.Matchers.val;
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 class TemporalFunctionLibraryTests {
 

@@ -17,13 +17,13 @@
  */
 package io.sapl.grammar.sapl.impl;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-
 import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.sapl.Pair;
 import reactor.core.publisher.Flux;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
 
 /**
  * Implementation of an object in SAPL.

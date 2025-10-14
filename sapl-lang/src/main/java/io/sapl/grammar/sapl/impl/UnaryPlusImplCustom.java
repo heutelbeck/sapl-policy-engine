@@ -17,11 +17,11 @@
  */
 package io.sapl.grammar.sapl.impl;
 
-import static io.sapl.grammar.sapl.impl.util.OperatorUtil.arithmeticOperator;
-
 import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.sapl.UnaryPlus;
 import reactor.core.publisher.Flux;
+
+import static io.sapl.grammar.sapl.impl.util.OperatorUtil.arithmeticOperator;
 
 public class UnaryPlusImplCustom extends UnaryPlusImpl {
 

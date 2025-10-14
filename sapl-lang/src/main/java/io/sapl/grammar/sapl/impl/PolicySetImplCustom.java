@@ -17,11 +17,6 @@
  */
 package io.sapl.grammar.sapl.impl;
 
-import static io.sapl.interpreter.combinators.CombiningAlgorithmFactory.policySetCombiningAlgorithm;
-
-import java.util.HashSet;
-import java.util.Map;
-
 import io.sapl.api.interpreter.Trace;
 import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.sapl.PolicySet;
@@ -30,6 +25,11 @@ import io.sapl.interpreter.DocumentEvaluationResult;
 import io.sapl.interpreter.PolicySetDecision;
 import io.sapl.interpreter.context.AuthorizationContext;
 import reactor.core.publisher.Flux;
+
+import java.util.HashSet;
+import java.util.Map;
+
+import static io.sapl.interpreter.combinators.CombiningAlgorithmFactory.policySetCombiningAlgorithm;
 
 public class PolicySetImplCustom extends PolicySetImpl {
 

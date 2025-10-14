@@ -17,16 +17,14 @@
  */
 package io.sapl.attributes.pips.http;
 
-import org.springframework.http.HttpMethod;
-
 import com.fasterxml.jackson.databind.node.ObjectNode;
-
 import io.sapl.api.interpreter.Val;
 import io.sapl.api.pip.EnvironmentAttribute;
 import io.sapl.api.pip.PolicyInformationPoint;
 import io.sapl.api.validation.JsonObject;
 import io.sapl.api.validation.Text;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpMethod;
 import reactor.core.publisher.Flux;
 
 @RequiredArgsConstructor

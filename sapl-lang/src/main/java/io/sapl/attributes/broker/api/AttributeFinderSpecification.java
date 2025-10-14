@@ -17,12 +17,12 @@
  */
 package io.sapl.attributes.broker.api;
 
-import static io.sapl.validation.NameValidator.requireValidName;
+import io.sapl.validation.Validator;
+import lombok.NonNull;
 
 import java.util.List;
 
-import io.sapl.validation.Validator;
-import lombok.NonNull;
+import static io.sapl.validation.NameValidator.requireValidName;
 
 public record AttributeFinderSpecification(
         @NonNull String namespace,

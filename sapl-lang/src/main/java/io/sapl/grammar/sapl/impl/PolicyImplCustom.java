@@ -17,17 +17,16 @@
  */
 package io.sapl.grammar.sapl.impl;
 
-import java.util.function.BiFunction;
-
-import org.eclipse.emf.common.util.EList;
-
 import io.sapl.api.interpreter.Val;
 import io.sapl.api.pdp.Decision;
 import io.sapl.grammar.sapl.Expression;
 import io.sapl.grammar.sapl.Policy;
 import io.sapl.interpreter.DocumentEvaluationResult;
 import io.sapl.interpreter.PolicyDecision;
+import org.eclipse.emf.common.util.EList;
 import reactor.core.publisher.Flux;
+
+import java.util.function.BiFunction;
 
 public class PolicyImplCustom extends PolicyImpl {
 

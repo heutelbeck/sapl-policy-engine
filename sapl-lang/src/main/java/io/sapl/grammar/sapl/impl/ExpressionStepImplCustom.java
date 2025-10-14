@@ -17,14 +17,14 @@
  */
 package io.sapl.grammar.sapl.impl;
 
-import java.util.Map;
-
 import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.sapl.ExpressionStep;
 import io.sapl.grammar.sapl.FilterStatement;
 import io.sapl.grammar.sapl.impl.util.ErrorFactory;
 import lombok.NonNull;
 import reactor.core.publisher.Flux;
+
+import java.util.Map;
 
 /**
  * Implements the expression subscript of an array (or object), written as

@@ -17,13 +17,12 @@
  */
 package io.sapl.attributes.documentation.api;
 
-import java.util.List;
-import java.util.stream.Collectors;
-
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-
 import lombok.NonNull;
+
+import java.util.List;
+import java.util.stream.Collectors;
 
 public record ParameterDocumentation(@NonNull String name, @NonNull List<TypeOption> allowedTypes, boolean isVarArgs) {
 

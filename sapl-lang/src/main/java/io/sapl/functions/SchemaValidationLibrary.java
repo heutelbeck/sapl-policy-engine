@@ -17,18 +17,17 @@
  */
 package io.sapl.functions;
 
-import java.util.HashMap;
-
 import com.networknt.schema.JsonMetaSchema;
 import com.networknt.schema.JsonSchemaException;
 import com.networknt.schema.JsonSchemaFactory;
 import com.networknt.schema.resource.MapSchemaLoader;
-
 import io.sapl.api.functions.Function;
 import io.sapl.api.functions.FunctionLibrary;
 import io.sapl.api.interpreter.Val;
 import io.sapl.api.validation.JsonObject;
 import lombok.experimental.UtilityClass;
+
+import java.util.HashMap;
 
 @UtilityClass
 @FunctionLibrary(name = SchemaValidationLibrary.NAME, description = SchemaValidationLibrary.DESCRIPTION)

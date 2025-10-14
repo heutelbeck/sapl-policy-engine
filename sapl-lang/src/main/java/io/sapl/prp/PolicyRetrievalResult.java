@@ -17,16 +17,16 @@
  */
 package io.sapl.prp;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-
 import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.sapl.impl.util.ErrorFactory;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.ToString;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 
 @ToString
 @EqualsAndHashCode

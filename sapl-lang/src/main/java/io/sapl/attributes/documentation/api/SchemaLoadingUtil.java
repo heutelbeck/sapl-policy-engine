@@ -17,15 +17,14 @@
  */
 package io.sapl.attributes.documentation.api;
 
-import java.io.IOException;
-import java.lang.reflect.Method;
-
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-
 import io.sapl.attributes.broker.api.AttributeBrokerException;
 import lombok.experimental.UtilityClass;
+
+import java.io.IOException;
+import java.lang.reflect.Method;
 
 @UtilityClass
 public class SchemaLoadingUtil {

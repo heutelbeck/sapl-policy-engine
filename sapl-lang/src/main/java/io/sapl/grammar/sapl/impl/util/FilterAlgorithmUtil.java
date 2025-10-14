@@ -17,29 +17,23 @@
  */
 package io.sapl.grammar.sapl.impl.util;
 
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import io.sapl.api.interpreter.Val;
+import io.sapl.grammar.sapl.*;
+import io.sapl.interpreter.context.AuthorizationContext;
+import lombok.NonNull;
+import lombok.experimental.UtilityClass;
+import org.eclipse.emf.ecore.EObject;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
+import reactor.util.function.Tuple2;
+import reactor.util.function.Tuples;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.function.Supplier;
-
-import org.eclipse.emf.ecore.EObject;
-
-import com.fasterxml.jackson.databind.node.ArrayNode;
-
-import io.sapl.api.interpreter.Val;
-import io.sapl.grammar.sapl.Arguments;
-import io.sapl.grammar.sapl.ConditionStep;
-import io.sapl.grammar.sapl.FilterComponent;
-import io.sapl.grammar.sapl.FilterStatement;
-import io.sapl.grammar.sapl.FunctionIdentifier;
-import io.sapl.interpreter.context.AuthorizationContext;
-import lombok.NonNull;
-import lombok.experimental.UtilityClass;
-import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
-import reactor.util.function.Tuple2;
-import reactor.util.function.Tuples;
 
 @UtilityClass
 public class FilterAlgorithmUtil {

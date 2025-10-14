@@ -17,14 +17,6 @@
  */
 package io.sapl.grammar.sapl.impl.util;
 
-import static io.sapl.interpreter.context.AuthorizationContext.getAttributeStreamBroker;
-
-import java.time.Duration;
-import java.util.List;
-import java.util.Map;
-
-import org.eclipse.emf.ecore.EObject;
-
 import io.sapl.api.interpreter.Trace;
 import io.sapl.api.interpreter.Val;
 import io.sapl.attributes.broker.api.AttributeFinderInvocation;
@@ -33,8 +25,15 @@ import io.sapl.grammar.sapl.AttributeFinderStep;
 import io.sapl.grammar.sapl.FunctionIdentifier;
 import io.sapl.interpreter.context.AuthorizationContext;
 import lombok.experimental.UtilityClass;
+import org.eclipse.emf.ecore.EObject;
 import reactor.core.publisher.Flux;
 import reactor.util.context.ContextView;
+
+import java.time.Duration;
+import java.util.List;
+import java.util.Map;
+
+import static io.sapl.interpreter.context.AuthorizationContext.getAttributeStreamBroker;
 
 @UtilityClass
 public class AttributeFactory {

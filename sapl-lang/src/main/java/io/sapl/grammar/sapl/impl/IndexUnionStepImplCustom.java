@@ -17,10 +17,6 @@
  */
 package io.sapl.grammar.sapl.impl;
 
-import java.math.BigDecimal;
-import java.util.function.BiPredicate;
-import java.util.stream.Collectors;
-
 import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.sapl.ArraySlicingStep;
 import io.sapl.grammar.sapl.AttributeUnionStep;
@@ -30,6 +26,10 @@ import io.sapl.grammar.sapl.impl.util.SelectorUtil;
 import io.sapl.grammar.sapl.impl.util.StepAlgorithmUtil;
 import lombok.NonNull;
 import reactor.core.publisher.Flux;
+
+import java.math.BigDecimal;
+import java.util.function.BiPredicate;
+import java.util.stream.Collectors;
 
 /**
  * Implements the application of an index union step to a previous array value,

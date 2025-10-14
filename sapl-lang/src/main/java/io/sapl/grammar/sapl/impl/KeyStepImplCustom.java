@@ -17,9 +17,6 @@
  */
 package io.sapl.grammar.sapl.impl;
 
-import java.util.ArrayList;
-import java.util.Map;
-
 import io.sapl.api.interpreter.Trace;
 import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.sapl.FilterStatement;
@@ -31,6 +28,9 @@ import lombok.NonNull;
 import reactor.core.publisher.Flux;
 import reactor.util.function.Tuple2;
 import reactor.util.function.Tuples;
+
+import java.util.ArrayList;
+import java.util.Map;
 
 /**
  * Implements the application of a key step to a previous value, e.g

@@ -17,37 +17,11 @@
  */
 package io.sapl.attributes.broker.impl;
 
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-import java.lang.reflect.Modifier;
-import java.lang.reflect.ParameterizedType;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Set;
-
 import com.fasterxml.jackson.databind.JsonNode;
-
 import io.sapl.api.interpreter.Val;
-import io.sapl.api.pip.Attribute;
-import io.sapl.api.pip.EnvironmentAttribute;
-import io.sapl.api.pip.PolicyInformationPoint;
-import io.sapl.api.pip.PolicyInformationPointSupplier;
-import io.sapl.api.pip.StaticPolicyInformationPointSupplier;
-import io.sapl.attributes.broker.api.AttributeBrokerException;
-import io.sapl.attributes.broker.api.AttributeFinder;
-import io.sapl.attributes.broker.api.AttributeFinderInvocation;
-import io.sapl.attributes.broker.api.AttributeFinderSpecification;
-import io.sapl.attributes.broker.api.AttributeStreamBroker;
-import io.sapl.attributes.broker.api.PolicyInformationPointImplementation;
-import io.sapl.attributes.broker.api.PolicyInformationPointSpecification;
-import io.sapl.attributes.documentation.api.FunctionType;
-import io.sapl.attributes.documentation.api.LibraryDocumentation;
-import io.sapl.attributes.documentation.api.LibraryFunctionDocumentation;
-import io.sapl.attributes.documentation.api.LibraryType;
-import io.sapl.attributes.documentation.api.ParameterDocumentation;
-import io.sapl.attributes.documentation.api.PolicyInformationPointDocumentationProvider;
-import io.sapl.attributes.documentation.api.SchemaLoadingUtil;
+import io.sapl.api.pip.*;
+import io.sapl.attributes.broker.api.*;
+import io.sapl.attributes.documentation.api.*;
 import io.sapl.validation.ValidationException;
 import io.sapl.validation.Validator;
 import io.sapl.validation.ValidatorFactory;
@@ -56,6 +30,15 @@ import lombok.extern.slf4j.Slf4j;
 import reactor.core.CorePublisher;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
+import java.lang.reflect.ParameterizedType;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * This class uses reflection to detect any attribute finders declared by

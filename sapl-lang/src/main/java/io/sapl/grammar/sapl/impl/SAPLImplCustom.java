@@ -17,28 +17,23 @@
  */
 package io.sapl.grammar.sapl.impl;
 
+import io.sapl.api.interpreter.Trace;
+import io.sapl.api.interpreter.Val;
+import io.sapl.functions.SchemaValidationLibrary;
+import io.sapl.grammar.sapl.*;
+import io.sapl.grammar.sapl.impl.util.MatchingUtil;
+import io.sapl.interpreter.DocumentEvaluationResult;
+import org.eclipse.emf.common.util.EList;
+import org.eclipse.emf.ecore.util.EcoreUtil;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
+import reactor.util.function.Tuple2;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Supplier;
-
-import org.eclipse.emf.common.util.EList;
-import org.eclipse.emf.ecore.util.EcoreUtil;
-
-import io.sapl.api.interpreter.Trace;
-import io.sapl.api.interpreter.Val;
-import io.sapl.functions.SchemaValidationLibrary;
-import io.sapl.grammar.sapl.BinaryOperator;
-import io.sapl.grammar.sapl.Expression;
-import io.sapl.grammar.sapl.SAPL;
-import io.sapl.grammar.sapl.SaplFactory;
-import io.sapl.grammar.sapl.Schema;
-import io.sapl.grammar.sapl.impl.util.MatchingUtil;
-import io.sapl.interpreter.DocumentEvaluationResult;
-import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
-import reactor.util.function.Tuple2;
 
 public class SAPLImplCustom extends SAPLImpl {
 

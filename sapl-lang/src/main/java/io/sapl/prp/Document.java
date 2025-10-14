@@ -17,12 +17,11 @@
  */
 package io.sapl.prp;
 
-import org.eclipse.emf.common.util.Diagnostic;
-import org.eclipse.xtext.nodemodel.util.NodeModelUtils;
-
 import io.sapl.grammar.sapl.Policy;
 import io.sapl.grammar.sapl.SAPL;
 import io.sapl.interpreter.DocumentType;
+import org.eclipse.emf.common.util.Diagnostic;
+import org.eclipse.xtext.nodemodel.util.NodeModelUtils;
 
 public record Document(String id, String name, SAPL sapl, Diagnostic diagnostic, String errorMessage) {
 

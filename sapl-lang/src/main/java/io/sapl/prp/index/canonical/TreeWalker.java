@@ -18,12 +18,7 @@
 package io.sapl.prp.index.canonical;
 
 import com.google.common.base.Preconditions;
-
-import io.sapl.grammar.sapl.BasicGroup;
-import io.sapl.grammar.sapl.EagerAnd;
-import io.sapl.grammar.sapl.EagerOr;
-import io.sapl.grammar.sapl.Expression;
-import io.sapl.grammar.sapl.Not;
+import io.sapl.grammar.sapl.*;
 import lombok.experimental.UtilityClass;
 
 @UtilityClass

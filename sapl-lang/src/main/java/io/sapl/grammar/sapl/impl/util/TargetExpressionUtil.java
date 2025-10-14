@@ -17,11 +17,10 @@
  */
 package io.sapl.grammar.sapl.impl.util;
 
-import org.eclipse.emf.ecore.EObject;
-
 import io.sapl.grammar.sapl.Policy;
 import io.sapl.grammar.sapl.PolicySet;
 import lombok.experimental.UtilityClass;
+import org.eclipse.emf.ecore.EObject;
 
 @UtilityClass
 public class TargetExpressionUtil {

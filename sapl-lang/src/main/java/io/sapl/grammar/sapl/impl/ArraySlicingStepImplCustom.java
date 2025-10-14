@@ -17,9 +17,6 @@
  */
 package io.sapl.grammar.sapl.impl;
 
-import java.math.BigDecimal;
-import java.util.function.BiPredicate;
-
 import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.sapl.ArraySlicingStep;
@@ -29,6 +26,9 @@ import io.sapl.grammar.sapl.impl.util.SelectorUtil;
 import io.sapl.grammar.sapl.impl.util.StepAlgorithmUtil;
 import lombok.NonNull;
 import reactor.core.publisher.Flux;
+
+import java.math.BigDecimal;
+import java.util.function.BiPredicate;
 
 /**
  * Implements the application of an array slicing step to a previous array

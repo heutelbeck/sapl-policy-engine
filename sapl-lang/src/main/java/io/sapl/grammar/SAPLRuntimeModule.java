@@ -17,9 +17,8 @@
  */
 package io.sapl.grammar;
 
-import org.eclipse.xtext.parser.antlr.ISyntaxErrorMessageProvider;
-
 import io.sapl.grammar.validation.SAPLSyntaxErrorMessageProvider;
+import org.eclipse.xtext.parser.antlr.ISyntaxErrorMessageProvider;
 
 /**
  * Use this class to register components to be used at runtime / without the

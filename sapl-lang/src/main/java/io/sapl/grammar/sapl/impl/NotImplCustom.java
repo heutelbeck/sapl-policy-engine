@@ -17,12 +17,12 @@
  */
 package io.sapl.grammar.sapl.impl;
 
-import static io.sapl.grammar.sapl.impl.util.OperatorUtil.operator;
-
 import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.sapl.Not;
 import io.sapl.grammar.sapl.impl.util.OperatorUtil;
 import reactor.core.publisher.Flux;
+
+import static io.sapl.grammar.sapl.impl.util.OperatorUtil.operator;
 
 public class NotImplCustom extends NotImpl {
 

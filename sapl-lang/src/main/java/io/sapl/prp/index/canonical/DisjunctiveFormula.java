@@ -17,16 +17,9 @@
  */
 package io.sapl.prp.index.canonical;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.ListIterator;
-import java.util.Objects;
-
 import lombok.NonNull;
+
+import java.util.*;
 
 public final class DisjunctiveFormula {
 

@@ -17,9 +17,9 @@
  */
 package io.sapl.prp;
 
-import java.util.Collection;
-
 import reactor.core.publisher.Mono;
+
+import java.util.Collection;
 
 /**
  * A policy retrieval point is responsible for selecting all the policies

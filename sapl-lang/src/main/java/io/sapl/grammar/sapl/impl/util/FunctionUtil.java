@@ -17,22 +17,17 @@
  */
 package io.sapl.grammar.sapl.impl.util;
 
+import io.sapl.api.interpreter.Val;
+import io.sapl.grammar.sapl.*;
+import io.sapl.interpreter.context.AuthorizationContext;
+import lombok.experimental.UtilityClass;
+import org.eclipse.emf.ecore.EObject;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
+
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Stream;
-
-import org.eclipse.emf.ecore.EObject;
-
-import io.sapl.api.interpreter.Val;
-import io.sapl.grammar.sapl.Arguments;
-import io.sapl.grammar.sapl.Expression;
-import io.sapl.grammar.sapl.FunctionIdentifier;
-import io.sapl.grammar.sapl.Import;
-import io.sapl.grammar.sapl.SAPL;
-import io.sapl.interpreter.context.AuthorizationContext;
-import lombok.experimental.UtilityClass;
-import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
 
 @UtilityClass
 public class FunctionUtil {

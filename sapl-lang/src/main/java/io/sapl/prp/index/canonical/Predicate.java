@@ -18,7 +18,6 @@
 package io.sapl.prp.index.canonical;
 
 import com.google.common.base.Preconditions;
-
 import io.sapl.api.interpreter.Val;
 import lombok.Getter;
 import reactor.core.publisher.Mono;

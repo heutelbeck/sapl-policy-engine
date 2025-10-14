@@ -238,4 +238,33 @@ class ArrayFunctionLibraryTests {
                 Arguments.of("[1, 2, \"three\", 4]", "All array elements must be numeric"),
                 Arguments.of("[\"apple\", \"banana\", 3, \"cherry\"]", "All array elements must be text"));
     }
+
+    @ParameterizedTest
+    @MethodSource("provideIsSetTestCases")
+    void when_isSet_then_returnsCorrectResult(String inputArray, boolean expected) throws JsonProcessingException {
+        val actual = ArrayFunctionLibrary.isSet(json(inputArray));
+        assertThatVal(actual).isEqualTo(Val.of(expected));
+    }
+
+    private static Stream<Arguments> provideIsSetTestCases() {
+        return Stream.of(Arguments.of("[1, 2, 3, 4]", true), Arguments.of("[1, 2, 3, 2]", false),
+                Arguments.of("[]", true), Arguments.of("[1]", true), Arguments.of("[1, 1, 1]", false),
+                Arguments.of("[1, \"1\", 2]", true), Arguments.of("[\"apple\", \"banana\", \"cherry\"]", true),
+                Arguments.of("[\"apple\", \"banana\", \"apple\"]", false), Arguments.of("[null, null]", false),
+                Arguments.of("[null, 1, 2]", true), Arguments.of("[true, false, true]", false),
+                Arguments.of("[{\"a\": 1}, {\"a\": 1}]", false), Arguments.of("[{\"a\": 1}, {\"b\": 2}]", true),
+                Arguments.of("[0, 0.0]", true), Arguments.of("[1, 2.0, 3]", true));
+    }
+
+    @ParameterizedTest
+    @MethodSource("provideIsEmptyTestCases")
+    void when_isEmpty_then_returnsCorrectResult(String inputArray, boolean expected) throws JsonProcessingException {
+        val actual = ArrayFunctionLibrary.isEmpty(json(inputArray));
+        assertThatVal(actual).isEqualTo(Val.of(expected));
+    }
+
+    private static Stream<Arguments> provideIsEmptyTestCases() {
+        return Stream.of(Arguments.of("[]", true), Arguments.of("[1]", false), Arguments.of("[1, 2, 3]", false),
+                Arguments.of("[null]", false), Arguments.of("[[]]", false), Arguments.of("[{}]", false));
+    }
 }

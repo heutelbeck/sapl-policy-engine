@@ -17,15 +17,14 @@
  */
 package io.sapl.grammar.sapl.impl.util;
 
-import java.util.Objects;
-
-import org.eclipse.emf.ecore.EObject;
-import org.eclipse.xtext.nodemodel.util.NodeModelUtils;
-
 import io.sapl.api.interpreter.Val;
 import io.sapl.api.pdp.SaplError;
 import io.sapl.grammar.sapl.SAPL;
 import lombok.experimental.UtilityClass;
+import org.eclipse.emf.ecore.EObject;
+import org.eclipse.xtext.nodemodel.util.NodeModelUtils;
+
+import java.util.Objects;
 
 @UtilityClass
 public class ErrorFactory {
