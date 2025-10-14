@@ -298,7 +298,7 @@ public class MathFunctionLibrary {
     @Function(docs = """
             ```randomFloat()```: Returns a cryptographically secure random floating-point number in the range ```[0.0, 1.0)```
             (inclusive of 0.0, exclusive of 1.0). Uses ```SecureRandom``` for cryptographic strength randomness.
-            
+
             **Technical Note:** Despite the name ```randomFloat```, this function returns a double-precision floating-point
             number (64-bit) to maintain consistency with JSON number representation and Java's numeric operations.
 
@@ -320,7 +320,7 @@ public class MathFunctionLibrary {
             ```randomFloat(NUMBER seed)```: Returns a seeded random floating-point number in the range ```[0.0, 1.0)```
             (inclusive of 0.0, exclusive of 1.0). The seed determines the sequence of random numbers, allowing for
             reproducible results.
-            
+
             **Technical Note:** Despite the name ```randomFloat```, this function returns a double-precision floating-point
             number (64-bit) to maintain consistency with JSON number representation and Java's numeric operations.
 

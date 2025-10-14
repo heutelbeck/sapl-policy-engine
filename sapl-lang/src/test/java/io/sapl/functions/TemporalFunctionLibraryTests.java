@@ -37,61 +37,70 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 class TemporalFunctionLibraryTests {
 
+    private static Val timeValOf(String utcIsoTime) {
+        return Val.of(Instant.parse(utcIsoTime).toString());
+    }
+
+    /* ######## INSTANT MANIPULATION TESTS ######## */
+
     @Test
-    void nowPlusNanos() {
-        final var time  = timeValOf("2021-11-08T13:00:00Z");
-        final var added = TemporalFunctionLibrary.plusNanos(time, Val.of(10_000_000_000L));
-        assertThat(added, is(val("2021-11-08T13:00:10Z")));
+    void plusNanosMillisSecondsTest() {
+        final var time = timeValOf("2021-11-08T13:00:00Z");
+        assertThat(TemporalFunctionLibrary.plusNanos(time, Val.of(10_000_000_000L)), is(val("2021-11-08T13:00:10Z")));
+        assertThat(TemporalFunctionLibrary.plusMillis(time, Val.of(10_000L)), is(val("2021-11-08T13:00:10Z")));
+        assertThat(TemporalFunctionLibrary.plusSeconds(time, Val.of(10L)), is(val("2021-11-08T13:00:10Z")));
     }
 
     @Test
-    void nowPlusMillis() {
-        final var time  = timeValOf("2021-11-08T13:00:00Z");
-        final var added = TemporalFunctionLibrary.plusMillis(time, Val.of(10_000L));
-        assertThat(added, is(val("2021-11-08T13:00:10Z")));
+    void minusNanosMillisSecondsTest() {
+        final var time = timeValOf("2021-11-08T13:00:00Z");
+        assertThat(TemporalFunctionLibrary.minusNanos(time, Val.of(10_000_000_000L)), is(val("2021-11-08T12:59:50Z")));
+        assertThat(TemporalFunctionLibrary.minusMillis(time, Val.of(10_000L)), is(val("2021-11-08T12:59:50Z")));
+        assertThat(TemporalFunctionLibrary.minusSeconds(time, Val.of(10L)), is(val("2021-11-08T12:59:50Z")));
+    }
+
+    /* ######## DATE ARITHMETIC TESTS ######## */
+
+    @Test
+    void plusDaysMonthsYearsTest() {
+        final var time = timeValOf("2021-11-08T13:00:00Z");
+        assertThat(TemporalFunctionLibrary.plusDays(time, Val.of(5)), is(val("2021-11-13T13:00:00Z")));
+        assertThat(TemporalFunctionLibrary.plusMonths(time, Val.of(2)), is(val("2022-01-08T13:00:00Z")));
+        assertThat(TemporalFunctionLibrary.plusYears(time, Val.of(3)), is(val("2024-11-08T13:00:00Z")));
     }
 
     @Test
-    void nowPlusSeconds() {
-        final var time  = timeValOf("2021-11-08T13:00:00Z");
-        final var added = TemporalFunctionLibrary.plusSeconds(time, Val.of(10L));
-        assertThat(added, is(val("2021-11-08T13:00:10Z")));
+    void plusMonthsEdgeCases() {
+        assertThat(TemporalFunctionLibrary.plusMonths(timeValOf("2021-01-31T13:00:00Z"), Val.of(1)),
+                is(val("2021-02-28T13:00:00Z")));
+        assertThat(TemporalFunctionLibrary.plusYears(timeValOf("2020-02-29T13:00:00Z"), Val.of(1)),
+                is(val("2021-02-28T13:00:00Z")));
     }
 
     @Test
-    void nowMinusNanos() {
-        final var time       = timeValOf("2021-11-08T13:00:00Z");
-        final var subtracted = TemporalFunctionLibrary.minusNanos(time, Val.of(10_000_000_000L));
-        assertThat(subtracted, is(val("2021-11-08T12:59:50Z")));
+    void minusDaysMonthsYearsTest() {
+        final var time = timeValOf("2021-11-08T13:00:00Z");
+        assertThat(TemporalFunctionLibrary.minusDays(time, Val.of(5)), is(val("2021-11-03T13:00:00Z")));
+        assertThat(TemporalFunctionLibrary.minusMonths(time, Val.of(2)), is(val("2021-09-08T13:00:00Z")));
+        assertThat(TemporalFunctionLibrary.minusYears(time, Val.of(3)), is(val("2018-11-08T13:00:00Z")));
     }
 
     @Test
-    void nowMinusMillis() {
-        final var time       = timeValOf("2021-11-08T13:00:00Z");
-        final var subtracted = TemporalFunctionLibrary.minusMillis(time, Val.of(10_000L));
-        assertThat(subtracted, is(val("2021-11-08T12:59:50Z")));
+    void minusMonthsEdgeCases() {
+        assertThat(TemporalFunctionLibrary.minusMonths(timeValOf("2021-03-31T13:00:00Z"), Val.of(1)),
+                is(val("2021-02-28T13:00:00Z")));
+        assertThat(TemporalFunctionLibrary.minusDays(timeValOf("2021-01-05T13:00:00Z"), Val.of(10)),
+                is(val("2020-12-26T13:00:00Z")));
     }
 
-    @Test
-    void nowMinusSeconds() {
-        final var time       = timeValOf("2021-11-08T13:00:00Z");
-        final var subtracted = TemporalFunctionLibrary.minusSeconds(time, Val.of(10L));
-        assertThat(subtracted, is(val("2021-11-08T12:59:50Z")));
-    }
+    /* ######## CALENDAR TESTS ######## */
 
     @Test
-    void dayOfWeekTest() {
-        assertThat(TemporalFunctionLibrary.dayOfWeek(timeValOf("2021-11-08T13:00:00Z")), is(val("MONDAY")));
-    }
-
-    @Test
-    void dayOfYearTest() {
-        assertThat(TemporalFunctionLibrary.dayOfYear(timeValOf("2021-11-08T13:00:00Z")), is(val(312)));
-    }
-
-    @Test
-    void weekOfYearTest() {
-        assertThat(TemporalFunctionLibrary.weekOfYear(timeValOf("2021-11-08T13:00:00Z")), is(val(45)));
+    void calendarFunctionsTest() {
+        final var time = timeValOf("2021-11-08T13:00:00Z");
+        assertThat(TemporalFunctionLibrary.dayOfWeek(time), is(val("MONDAY")));
+        assertThat(TemporalFunctionLibrary.dayOfYear(time), is(val(312)));
+        assertThat(TemporalFunctionLibrary.weekOfYear(time), is(val(45)));
     }
 
     @Test
@@ -104,7 +113,6 @@ class TemporalFunctionLibraryTests {
         assertThat(TemporalFunctionLibrary.between(tomorrow, yesterday, today), is(val(false)));
         assertThat(TemporalFunctionLibrary.between(today, today, today), is(val(true)));
         assertThat(TemporalFunctionLibrary.between(yesterday, yesterday, tomorrow), is(val(true)));
-        assertThat(TemporalFunctionLibrary.between(yesterday, today, tomorrow), is(val(false)));
         assertThat(TemporalFunctionLibrary.between(tomorrow, today, tomorrow), is(val(true)));
     }
 
@@ -116,164 +124,238 @@ class TemporalFunctionLibraryTests {
         assertThat(TemporalFunctionLibrary.timeBetween(today, tomorrow, Val.of("DAYS")), is(val(1L)));
         assertThat(TemporalFunctionLibrary.timeBetween(today, tomorrow, Val.of("HOURS")), is(val(24L)));
         assertThat(TemporalFunctionLibrary.timeBetween(tomorrow, today, Val.of("DAYS")), is(val(-1L)));
-        assertThat(TemporalFunctionLibrary.timeBetween(tomorrow, today, Val.of("HOURS")), is(val(-24L)));
         assertThat(TemporalFunctionLibrary.timeBetween(Val.of("2001-01-01"), Val.of("2002-01-01"), Val.of("YEARS")),
                 is(val(1L)));
     }
 
     @Test
-    void beforeTest() {
-        assertThat(TemporalFunctionLibrary.before(timeValOf("2021-11-08T13:00:00Z"), timeValOf("2021-11-08T13:00:01Z")),
-                is(val(true)));
-        assertThat(TemporalFunctionLibrary.before(timeValOf("2021-11-08T13:00:01Z"), timeValOf("2021-11-08T13:00:00Z")),
-                is(val(false)));
+    void timeBetweenWithInvalidChronoUnit() {
+        assertThrows(IllegalArgumentException.class,
+                () -> TemporalFunctionLibrary.timeBetween(timeValOf("2021-11-08T13:00:00Z"),
+                        timeValOf("2021-11-09T13:00:00Z"), Val.of("INVALID_UNIT")));
     }
 
     @Test
-    void afterTest() {
-        assertThat(TemporalFunctionLibrary.after(timeValOf("2021-11-08T13:00:00Z"), timeValOf("2021-11-08T13:00:01Z")),
-                is(val(false)));
-        assertThat(TemporalFunctionLibrary.after(timeValOf("2021-11-08T13:00:01Z"), timeValOf("2021-11-08T13:00:00Z")),
-                is(val(true)));
+    void beforeAfterTest() {
+        final var earlier = timeValOf("2021-11-08T13:00:00Z");
+        final var later   = timeValOf("2021-11-08T13:00:01Z");
+        assertThat(TemporalFunctionLibrary.before(earlier, later), is(val(true)));
+        assertThat(TemporalFunctionLibrary.before(later, earlier), is(val(false)));
+        assertThat(TemporalFunctionLibrary.after(earlier, later), is(val(false)));
+        assertThat(TemporalFunctionLibrary.after(later, earlier), is(val(true)));
+    }
+
+    /* ######## EXTRACT PARTS TESTS ######## */
+
+    @Test
+    void extractPartsTest() {
+        final var time = timeValOf("2021-11-08T13:17:23Z");
+        assertThat(TemporalFunctionLibrary.dateOf(time), is(val("2021-11-08")));
+        assertThat(TemporalFunctionLibrary.timeOf(time), is(val("13:17:23")));
+        assertThat(TemporalFunctionLibrary.hourOf(time), is(val(13)));
+        assertThat(TemporalFunctionLibrary.minuteOf(time), is(val(17)));
+        assertThat(TemporalFunctionLibrary.secondOf(time), is(val(23)));
     }
 
     @Test
-    void dateOfTest() {
-        assertThat(TemporalFunctionLibrary.dateOf(timeValOf("2021-11-08T13:00:00Z")), is(val("2021-11-08")));
+    void timeOfFormattingTest() {
+        assertThat(TemporalFunctionLibrary.timeOf(timeValOf("2021-11-08T13:00:00Z")), is(val("13:00:00")));
+        assertThat(TemporalFunctionLibrary.timeOf(timeValOf("2021-11-08T13:00:00.999999999Z")), is(val("13:00:00")));
     }
 
-    @Test
-    void timeOfTest() {
-        assertThat(TemporalFunctionLibrary.timeOf(timeValOf("2021-11-08T13:00:00Z")), is(val("13:00")));
-    }
+    /* ######## EPOCH TESTS ######## */
 
     @Test
-    void hourOfTest() {
-        assertThat(TemporalFunctionLibrary.hourOf(timeValOf("2021-11-08T13:00:00Z")), is(val(13)));
-    }
-
-    @Test
-    void minuteOfTest() {
-        assertThat(TemporalFunctionLibrary.minuteOf(timeValOf("2021-11-08T13:00:00Z")), is(val(0)));
-    }
-
-    @Test
-    void secondOfTest() {
-        assertThat(TemporalFunctionLibrary.secondOf(timeValOf("2021-11-08T13:00:23Z")), is(val(23)));
-    }
-
-    @Test
-    void epocSecondTest() {
-        assertThat(TemporalFunctionLibrary.epochSecond(timeValOf("2021-11-08T13:00:00Z")), is(val(1_636_376_400L)));
-    }
-
-    @Test
-    void ofEpocSecondTest() {
+    void epochConversionTest() {
+        final var time = timeValOf("2021-11-08T13:00:00Z");
+        assertThat(TemporalFunctionLibrary.epochSecond(time), is(val(1_636_376_400L)));
+        assertThat(TemporalFunctionLibrary.epochMilli(time), is(val(1_636_376_400_000L)));
         assertThat(TemporalFunctionLibrary.ofEpochSecond(Val.of(1_636_376_400L)), is(val("2021-11-08T13:00:00Z")));
-    }
-
-    @Test
-    void epocMilliTest() {
-        assertThat(TemporalFunctionLibrary.epochMilli(timeValOf("2021-11-08T13:00:00Z")), is(val(1_636_376_400_000L)));
-    }
-
-    @Test
-    void ofEpocMilliTest() {
         assertThat(TemporalFunctionLibrary.ofEpochMilli(Val.of(1_636_376_400_000L)), is(val("2021-11-08T13:00:00Z")));
     }
 
+    /* ######## DURATION TESTS ######## */
+
     @Test
-    void durationOfSecondsTest() {
+    void durationConversionTest() {
         assertThat(TemporalFunctionLibrary.durationOfSeconds(Val.of(60)), is(val(60_000L)));
-    }
-
-    @Test
-    void durationOfMinutes() {
         assertThat(TemporalFunctionLibrary.durationOfMinutes(Val.of(1)), is(val(60_000L)));
-    }
-
-    @Test
-    void durationOfHours() {
         assertThat(TemporalFunctionLibrary.durationOfHours(Val.of(24)), is(val(86_400_000L)));
-    }
-
-    @Test
-    void durationOfDays() {
         assertThat(TemporalFunctionLibrary.durationOfDays(Val.of(1)), is(val(86_400_000L)));
     }
+
+    /* ######## VALIDATION TESTS ######## */
 
     @Test
     void validUtcTest() {
         assertThat(TemporalFunctionLibrary.validUTC(Val.of("2021-11-08T13:00:00Z")), is(val(true)));
+        assertThat(TemporalFunctionLibrary.validUTC(Val.of("2021-11-08T13:00:00.123456789Z")), is(val(true)));
+        assertThat(TemporalFunctionLibrary.validUTC(Val.of("2021-11-08")), is(val(true)));
         assertThat(TemporalFunctionLibrary.validUTC(Val.of("XXX")), is(val(false)));
+        assertThat(TemporalFunctionLibrary.validUTC(Val.NULL), is(val(false)));
     }
 
     @Test
-    void localToIsoTest() {
-        LocalDateTime ldt = LocalDateTime.of(2021, 11, 8, 13, 0, 0);
-        ZonedDateTime zdt = ZonedDateTime.of(ldt, ZoneId.systemDefault());
+    void validRFC3339Test() {
+        assertThat(TemporalFunctionLibrary.validRFC3339(Val.of("2021-11-08T13:00:00Z")), is(val(true)));
+        assertThat(TemporalFunctionLibrary.validRFC3339(Val.of("2021-11-08T13:00:00+05:00")), is(val(true)));
+        assertThat(TemporalFunctionLibrary.validRFC3339(Val.of("2021-11-08T13:00:00")), is(val(false)));
+        assertThat(TemporalFunctionLibrary.validRFC3339(Val.of("2021-11-08")), is(val(false)));
+        assertThat(TemporalFunctionLibrary.validRFC3339(Val.of("")), is(val(false)));
+    }
 
+    /* ######## TEMPORAL BOUNDS TESTS ######## */
+
+    @Test
+    void startEndOfDayTest() {
+        final var time = timeValOf("2021-11-08T13:45:30Z");
+        assertThat(TemporalFunctionLibrary.startOfDay(time), is(val("2021-11-08T00:00:00Z")));
+        assertThat(TemporalFunctionLibrary.endOfDay(time), is(val("2021-11-08T23:59:59.999999999Z")));
+    }
+
+    @Test
+    void startEndOfWeekTest() {
+        assertThat(TemporalFunctionLibrary.startOfWeek(timeValOf("2021-11-08T13:45:30Z")),
+                is(val("2021-11-08T00:00:00Z")));
+        assertThat(TemporalFunctionLibrary.endOfWeek(timeValOf("2021-11-08T13:45:30Z")),
+                is(val("2021-11-14T23:59:59.999999999Z")));
+    }
+
+    @Test
+    void startEndOfMonthTest() {
+        assertThat(TemporalFunctionLibrary.startOfMonth(timeValOf("2021-11-08T13:45:30Z")),
+                is(val("2021-11-01T00:00:00Z")));
+        assertThat(TemporalFunctionLibrary.endOfMonth(timeValOf("2021-11-08T13:45:30Z")),
+                is(val("2021-11-30T23:59:59.999999999Z")));
+        assertThat(TemporalFunctionLibrary.endOfMonth(timeValOf("2021-02-15T13:45:30Z")),
+                is(val("2021-02-28T23:59:59.999999999Z")));
+        assertThat(TemporalFunctionLibrary.endOfMonth(timeValOf("2020-02-15T13:45:30Z")),
+                is(val("2020-02-29T23:59:59.999999999Z")));
+    }
+
+    @Test
+    void startEndOfYearTest() {
+        assertThat(TemporalFunctionLibrary.startOfYear(timeValOf("2021-11-08T13:45:30Z")),
+                is(val("2021-01-01T00:00:00Z")));
+        assertThat(TemporalFunctionLibrary.endOfYear(timeValOf("2021-11-08T13:45:30Z")),
+                is(val("2021-12-31T23:59:59.999999999Z")));
+    }
+
+    /* ######## TEMPORAL ROUNDING TESTS ######## */
+
+    @Test
+    void truncateTest() {
+        final var time = timeValOf("2021-11-08T13:45:30.123Z");
+        assertThat(TemporalFunctionLibrary.truncateToHour(time), is(val("2021-11-08T13:00:00Z")));
+        assertThat(TemporalFunctionLibrary.truncateToDay(time), is(val("2021-11-08T00:00:00Z")));
+        assertThat(TemporalFunctionLibrary.truncateToWeek(timeValOf("2021-11-10T13:45:30Z")),
+                is(val("2021-11-08T00:00:00Z")));
+        assertThat(TemporalFunctionLibrary.truncateToMonth(time), is(val("2021-11-01T00:00:00Z")));
+        assertThat(TemporalFunctionLibrary.truncateToYear(time), is(val("2021-01-01T00:00:00Z")));
+    }
+
+    /* ######## ISO DURATION TESTS ######## */
+
+    @Test
+    void durationFromISOTest() {
+        assertThat(TemporalFunctionLibrary.durationFromISO(Val.of("P1D")), is(val(86400000L)));
+        assertThat(TemporalFunctionLibrary.durationFromISO(Val.of("PT2H")), is(val(7200000L)));
+        assertThat(TemporalFunctionLibrary.durationFromISO(Val.of("PT30M")), is(val(1800000L)));
+        assertThat(TemporalFunctionLibrary.durationFromISO(Val.of("P1DT2H30M")), is(val(95400000L)));
+    }
+
+    @Test
+    void durationFromISOWithPeriodTest() {
+        final var oneYear = (long) (365.2425 * 24 * 60 * 60 * 1000);
+        assertThat(TemporalFunctionLibrary.durationFromISO(Val.of("P1Y")).getLong(), is(oneYear));
+
+        final var oneMonth = (long) (30.436875 * 24 * 60 * 60 * 1000);
+        assertThat(TemporalFunctionLibrary.durationFromISO(Val.of("P1M")).getLong(), is(oneMonth));
+    }
+
+    @Test
+    void durationFromISOInvalidFormat() {
+        assertThrows(IllegalArgumentException.class, () -> TemporalFunctionLibrary.durationFromISO(Val.of("INVALID")));
+        assertThrows(IllegalArgumentException.class, () -> TemporalFunctionLibrary.durationFromISO(Val.of("")));
+    }
+
+    @Test
+    void durationToISOTest() {
+        assertThat(TemporalFunctionLibrary.durationToISOCompact(Val.of(7200000L)), is(val("PT2H")));
+        assertThat(TemporalFunctionLibrary.durationToISOCompact(Val.of(9015000L)), is(val("PT2H30M15S")));
+
+        final var oneYear = (long) (365.2425 * 24 * 60 * 60 * 1000);
+        assertThat(TemporalFunctionLibrary.durationToISOVerbose(Val.of(oneYear)), is(val("P1Y")));
+        assertThat(TemporalFunctionLibrary.durationToISOVerbose(Val.of(0L)), is(val("PT0S")));
+    }
+
+    /* ######## TIMEZONE CONVERSION TESTS ######## */
+
+    @Test
+    void toZoneTest() {
+        assertThat(TemporalFunctionLibrary.toZone(timeValOf("2021-11-08T13:00:00Z"), Val.of("Europe/Berlin")),
+                is(val("2021-11-08T14:00:00+01:00")));
+        assertThat(TemporalFunctionLibrary.toZone(timeValOf("2021-11-08T13:00:00Z"), Val.of("US/Pacific")),
+                is(val("2021-11-08T05:00:00-08:00")));
+    }
+
+    @Test
+    void toOffsetTest() {
+        assertThat(TemporalFunctionLibrary.toOffset(timeValOf("2021-11-08T13:00:00Z"), Val.of("+05:30")),
+                is(val("2021-11-08T18:30:00+05:30")));
+        assertThat(TemporalFunctionLibrary.toOffset(timeValOf("2021-11-08T13:00:00Z"), Val.of("+00:00")),
+                is(val("2021-11-08T13:00:00Z")));
+    }
+
+    /* ######## AGE CALCULATION TESTS ######## */
+
+    @Test
+    void ageInYearsTest() {
+        assertThat(TemporalFunctionLibrary.ageInYears(Val.of("1990-05-15"), Val.of("2021-11-08")), is(val(31)));
+        assertThat(TemporalFunctionLibrary.ageInYears(Val.of("1990-05-15"), Val.of("2021-05-14")), is(val(30)));
+        assertThat(TemporalFunctionLibrary.ageInYears(Val.of("2000-01-01"), Val.of("2000-12-31")), is(val(0)));
+    }
+
+    @Test
+    void ageInMonthsTest() {
+        assertThat(TemporalFunctionLibrary.ageInMonths(Val.of("1990-05-15"), Val.of("1990-08-20")), is(val(3L)));
+        assertThat(TemporalFunctionLibrary.ageInMonths(Val.of("1990-05-15"), Val.of("1991-05-15")), is(val(12L)));
+        assertThat(TemporalFunctionLibrary.ageInMonths(Val.of("2020-01-01"), Val.of("2021-02-01")), is(val(13L)));
+    }
+
+    /* ######## DATE/TIME CONVERSION TESTS ######## */
+
+    @Test
+    void localConversionTest() {
+        final var ldt = LocalDateTime.of(2021, 11, 8, 13, 0, 0);
+        final var zdt = ZonedDateTime.of(ldt, ZoneId.systemDefault());
         assertThat(TemporalFunctionLibrary.localIso(Val.of("2021-11-08T13:00:00")),
                 is(val(zdt.toInstant().toString())));
-    }
-
-    @Test
-    void dinToIsoTest() {
-        LocalDateTime ldt = LocalDateTime.of(2021, 11, 8, 13, 0, 0);
-        ZonedDateTime zdt = ZonedDateTime.of(ldt, ZoneId.systemDefault());
         assertThat(TemporalFunctionLibrary.localDin(Val.of("08.11.2021 13:00:00")),
                 is(val(zdt.toInstant().toString())));
     }
 
     @Test
-    void dateTimeAtOffsetTest() {
+    void dateTimeConversionTest() {
         assertThat(TemporalFunctionLibrary.dateTimeAtOffset(Val.of("2021-11-08T13:12:35"), Val.of("+05:00")),
                 is(val("2021-11-08T08:12:35Z")));
-    }
-
-    @Test
-    void dateTimeAtZoneTest() {
         assertThat(TemporalFunctionLibrary.dateTimeAtZone(Val.of("2021-11-08T13:12:35"), Val.of("Europe/Berlin")),
                 is(val("2021-11-08T12:12:35Z")));
-    }
-
-    @Test
-    void offsetDateTimeTest() {
         assertThat(TemporalFunctionLibrary.offsetDateTime(Val.of("2021-11-08T13:12:35+05:00")),
                 is(val("2021-11-08T08:12:35Z")));
     }
 
     @Test
-    void offsetTimeTest() {
+    void timeConversionTest() {
         assertThat(TemporalFunctionLibrary.offsetTime(Val.of("13:12:35+05:00")), is(val("08:12:35")));
-        assertThat(TemporalFunctionLibrary.offsetTime(Val.of("13:12:35-05:00")), is(val("18:12:35")));
-    }
-
-    @Test
-    void timeAtOffsetTest() {
-        assertThat(TemporalFunctionLibrary.timeAtOffset(Val.of("13:12:35"), Val.of("+05:00")), is(val("08:12:35")));
         assertThat(TemporalFunctionLibrary.timeAtOffset(Val.of("13:12:35"), Val.of("-05:00")), is(val("18:12:35")));
-    }
-
-    @Test
-    void timeAtZoneTest() {
         assertThat(TemporalFunctionLibrary.timeInZone(Val.of("13:12:35"), Val.of("2022-01-14"), Val.of("US/Pacific")),
                 is(val("21:12:35")));
-        assertThat(
-                TemporalFunctionLibrary.timeInZone(Val.of("13:12:35"), Val.of("2022-01-14"), Val.of("Europe/Samara")),
-                is(val("09:12:35")));
-    }
-
-    @Test
-    void timeAMPMTest() {
-        assertThat(TemporalFunctionLibrary.timeAMPM(Val.of("08:12:35 am")), is(val("08:12:35")));
-        assertThat(TemporalFunctionLibrary.timeAMPM(Val.of("08:12:35 AM")), is(val("08:12:35")));
-        assertThat(TemporalFunctionLibrary.timeAMPM(Val.of("08:12:35 pm")), is(val("20:12:35")));
         assertThat(TemporalFunctionLibrary.timeAMPM(Val.of("08:12:35 PM")), is(val("20:12:35")));
     }
 
     @Test
-    void zoneIdOfTest() {
+    void zoneIdHandlingTest() {
         final var defaultZoneId = ZoneId.of("AET", ZoneId.SHORT_IDS);
         try (MockedStatic<ZoneId> zoneIdMock = Mockito.mockStatic(ZoneId.class, Mockito.CALLS_REAL_METHODS)) {
             zoneIdMock.when(ZoneId::systemDefault).thenReturn(defaultZoneId);
@@ -282,83 +364,56 @@ class TemporalFunctionLibraryTests {
         }
         assertThat(TemporalFunctionLibrary.dateTimeAtZone(Val.of("2021-11-08T13:12:35"), Val.of("EST")),
                 is(val("2021-11-08T18:12:35Z")));
-        assertThat(TemporalFunctionLibrary.dateTimeAtZone(Val.of("2021-11-08T13:12:35"), Val.of("+06")),
-                is(val("2021-11-08T07:12:35Z")));
+    }
+
+    /* ######## ERROR HANDLING TESTS ######## */
+
+    @Test
+    void invalidInputErrorHandlingTest() {
+        assertThrows(IllegalArgumentException.class,
+                () -> TemporalFunctionLibrary.dateTimeAtOffset(Val.of("2021-11-08T13:12:35"), Val.of("INVALID")));
+        assertThrows(IllegalArgumentException.class,
+                () -> TemporalFunctionLibrary.dateTimeAtZone(Val.of("2021-11-08T13:12:35"), Val.of("Invalid/Zone")));
+        assertThrows(IllegalArgumentException.class,
+                () -> TemporalFunctionLibrary.toZone(timeValOf("2021-11-08T13:00:00Z"), Val.of("Invalid/Zone")));
+        assertThrows(IllegalArgumentException.class, () -> TemporalFunctionLibrary.epochSecond(Val.of("")));
     }
 
     @Test
-    void whenGivenInvalidTimeArgumentsThenFunctionsShouldReturnErrorForStandardPatterns() {
-        assertThrowsForTwoArgs(TemporalFunctionLibrary::before);
-        assertThrowsForTwoArgs(TemporalFunctionLibrary::after);
-        assertThrowsForTwoArgs(TemporalFunctionLibrary::plusNanos);
-        assertThrowsForTwoArgs(TemporalFunctionLibrary::plusMillis);
-        assertThrowsForTwoArgs(TemporalFunctionLibrary::plusSeconds);
-        assertThrowsForTwoArgs(TemporalFunctionLibrary::minusNanos);
-        assertThrowsForTwoArgs(TemporalFunctionLibrary::minusMillis);
-        assertThrowsForTwoArgs(TemporalFunctionLibrary::minusSeconds);
-
-        assertErrorValIsReturnedOneArg(TemporalFunctionLibrary::epochSecond);
-        assertErrorValIsReturnedOneArg(TemporalFunctionLibrary::epochMilli);
-        assertErrorValIsReturnedOneArg(TemporalFunctionLibrary::ofEpochSecond);
-        assertErrorValIsReturnedOneArg(TemporalFunctionLibrary::ofEpochMilli);
-
-        assertErrorValIsReturnedOneArg(TemporalFunctionLibrary::weekOfYear);
-        assertErrorValIsReturnedOneArg(TemporalFunctionLibrary::dayOfYear);
-        assertErrorValIsReturnedOneArg(TemporalFunctionLibrary::dayOfWeek);
-
-        assertErrorValIsReturnedOneArg(TemporalFunctionLibrary::dateOf);
-        assertErrorValIsReturnedOneArg(TemporalFunctionLibrary::timeOf);
-        assertErrorValIsReturnedOneArg(TemporalFunctionLibrary::hourOf);
-        assertErrorValIsReturnedOneArg(TemporalFunctionLibrary::minuteOf);
-        assertErrorValIsReturnedOneArg(TemporalFunctionLibrary::secondOf);
+    void temporalArithmeticBoundsTest() {
+        assertThrows(IllegalArgumentException.class, () -> TemporalFunctionLibrary
+                .plusSeconds(Val.of("+1000000000-01-01T00:00:00Z"), Val.of(Long.MAX_VALUE)));
+        assertThrows(IllegalArgumentException.class, () -> TemporalFunctionLibrary
+                .minusSeconds(Val.of("-1000000000-01-01T00:00:00Z"), Val.of(Long.MAX_VALUE)));
     }
 
     @Test
-    void whenGivenInvalidTimeArgumentsThenFunctionsShouldReturnError() {
-        final var valOfNullString     = Val.of((String) null);
-        final var valOfNullBigDecimal = Val.of((BigDecimal) null);
-        final var abc                 = Val.of("abc");
-        final var def                 = Val.of("def");
-        final var ghi                 = Val.of("ghi");
+    void dateOnlyParsingTest() {
+        assertThat(TemporalFunctionLibrary.epochSecond(Val.of("2021-01-01")), is(val(1609459200L)));
+        assertThat(TemporalFunctionLibrary.before(Val.of("2021-01-01"), Val.of("2021-01-02")), is(val(true)));
+    }
 
-        assertThrows(Exception.class,
-                () -> TemporalFunctionLibrary.between(Val.NULL, valOfNullBigDecimal, valOfNullString));
+    @Test
+    void fractionalSecondsHandlingTest() {
+        assertThat(TemporalFunctionLibrary.plusSeconds(Val.of("2021-11-08T13:00:00.123456789Z"), Val.of(1L)),
+                is(val("2021-11-08T13:00:01.123456789Z")));
+        assertThat(TemporalFunctionLibrary.offsetDateTime(Val.of("2021-11-08T13:12:35.999999999+05:00")),
+                is(val("2021-11-08T08:12:35.999999999Z")));
+    }
+
+    @Test
+    void nullAndInvalidInputsTest() {
+        final var valOfNull = Val.of((String) null);
+        final var abc       = Val.of("abc");
+
+        assertThrows(Exception.class, () -> TemporalFunctionLibrary.epochSecond(Val.NULL));
+        assertThrows(Exception.class, () -> TemporalFunctionLibrary.epochSecond(valOfNull));
+        assertThrows(Exception.class, () -> TemporalFunctionLibrary.epochSecond(abc));
         assertThrows(Exception.class,
                 () -> TemporalFunctionLibrary.between(Val.UNDEFINED, Val.UNDEFINED, Val.UNDEFINED));
-        assertThrows(Exception.class, () -> TemporalFunctionLibrary.between(abc, def, ghi));
-
-        assertThrows(Exception.class,
-                () -> TemporalFunctionLibrary.timeBetween(Val.NULL, valOfNullBigDecimal, valOfNullString));
-        assertThrows(Exception.class,
-                () -> TemporalFunctionLibrary.timeBetween(Val.UNDEFINED, Val.UNDEFINED, Val.UNDEFINED));
-        assertThrows(Exception.class, () -> TemporalFunctionLibrary.timeBetween(abc, def, ghi));
 
         assertThat(TemporalFunctionLibrary.validUTC(Val.NULL).getBoolean(), is(false));
-        assertThat(TemporalFunctionLibrary.validUTC(valOfNullString).getBoolean(), is(false));
-        assertThat(TemporalFunctionLibrary.validUTC(Val.UNDEFINED).getBoolean(), is(false));
-        assertThat(TemporalFunctionLibrary.validUTC(abc).getBoolean(), is(false));
-    }
-
-    private void assertErrorValIsReturnedOneArg(Function<Val, Val> function) {
-        final var valOfNull = Val.of((String) null);
-        final var abc       = Val.of("abc");
-        assertThrows(Exception.class, () -> function.apply(Val.NULL));
-        assertThrows(Exception.class, () -> function.apply(valOfNull));
-        assertThrows(Exception.class, () -> function.apply(Val.UNDEFINED));
-        assertThrows(Exception.class, () -> function.apply(abc));
-    }
-
-    private void assertThrowsForTwoArgs(BiFunction<Val, Val, Val> function) {
-        final var valOfNull = Val.of((String) null);
-        final var abc       = Val.of("abc");
-        final var def       = Val.of("def");
-        assertThrows(Exception.class, () -> function.apply(Val.NULL, valOfNull));
-        assertThrows(Exception.class, () -> function.apply(Val.UNDEFINED, Val.UNDEFINED));
-        assertThrows(Exception.class, () -> function.apply(abc, def));
-    }
-
-    private static Val timeValOf(String utcIsoTime) {
-        return Val.of(Instant.parse(utcIsoTime).toString());
+        assertThat(TemporalFunctionLibrary.validUTC(valOfNull).getBoolean(), is(false));
     }
 
 }

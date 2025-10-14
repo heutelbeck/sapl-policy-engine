@@ -39,7 +39,7 @@ class MathFunctionLibraryTests {
         val actual = switch (operation) {
         case "min" -> MathFunctionLibrary.min(Val.of(a), Val.of(b));
         case "max" -> MathFunctionLibrary.max(Val.of(a), Val.of(b));
-        default -> throw new IllegalArgumentException("Unknown operation: " + operation);
+        default    -> throw new IllegalArgumentException("Unknown operation: " + operation);
         };
 
         assertThatVal(actual).hasValue();
@@ -57,12 +57,12 @@ class MathFunctionLibraryTests {
     @MethodSource("provideUnaryOperationTestCases")
     void when_unaryOperation_then_returnsCorrectResult(String operation, double value, double expected) {
         val actual = switch (operation) {
-        case "abs" -> MathFunctionLibrary.abs(Val.of(value));
-        case "ceil" -> MathFunctionLibrary.ceil(Val.of(value));
+        case "abs"   -> MathFunctionLibrary.abs(Val.of(value));
+        case "ceil"  -> MathFunctionLibrary.ceil(Val.of(value));
         case "floor" -> MathFunctionLibrary.floor(Val.of(value));
         case "round" -> MathFunctionLibrary.round(Val.of(value));
-        case "sign" -> MathFunctionLibrary.sign(Val.of(value));
-        default -> throw new IllegalArgumentException("Unknown operation: " + operation);
+        case "sign"  -> MathFunctionLibrary.sign(Val.of(value));
+        default      -> throw new IllegalArgumentException("Unknown operation: " + operation);
         };
 
         assertThatVal(actual).hasValue();
@@ -290,10 +290,10 @@ class MathFunctionLibraryTests {
     void when_logWithInvalidInput_then_returnsError(String logType, Double value, Double base,
             String expectedErrorMessage) {
         val actual = switch (logType) {
-        case "natural" -> MathFunctionLibrary.log(Val.of(value));
-        case "log10" -> MathFunctionLibrary.log10(Val.of(value));
+        case "natural"  -> MathFunctionLibrary.log(Val.of(value));
+        case "log10"    -> MathFunctionLibrary.log10(Val.of(value));
         case "withBase" -> MathFunctionLibrary.log(Val.of(value), Val.of(base));
-        default -> throw new IllegalArgumentException("Unknown log type: " + logType);
+        default         -> throw new IllegalArgumentException("Unknown log type: " + logType);
         };
 
         assertThatVal(actual).isError();

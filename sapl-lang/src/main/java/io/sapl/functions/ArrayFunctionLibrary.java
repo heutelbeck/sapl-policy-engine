@@ -55,12 +55,12 @@ public class ArrayFunctionLibrary {
             }
             """;
 
-    private static final String RETURNS_NUMBER = """
+    private static final String RETURNS_NUMBER                            = """
             {
                 "type": "number"
             }
             """;
-    public static final String MUST_BE_NUMERIC_FOUND_NON_NUMERIC_ELEMENT = "All array elements must be numeric. Found non-numeric element: ";
+    public static final String  MUST_BE_NUMERIC_FOUND_NON_NUMERIC_ELEMENT = "All array elements must be numeric. Found non-numeric element: ";
 
     @Function(docs = """
             ```concatenate(ARRAY...arrays)```: Creates a new array concatenating the all array parameters in ```...arrays```.
@@ -364,15 +364,15 @@ public class ArrayFunctionLibrary {
      * Sorts array elements using provided type predicate and comparator.
      */
     private static Val sortArray(ArrayNode jsonArray, Predicate<JsonNode> typePredicate, String typeName,
-                                 Comparator<JsonNode> comparator) {
+            Comparator<JsonNode> comparator) {
         final var elements = new ArrayList<JsonNode>();
         final var iterator = jsonArray.elements();
 
         while (iterator.hasNext()) {
             final var element = iterator.next();
             if (!typePredicate.test(element)) {
-                return Val.error("All array elements must be " + typeName + ". Found non-" + typeName + " element: "
-                        + element);
+                return Val.error(
+                        "All array elements must be " + typeName + ". Found non-" + typeName + " element: " + element);
             }
             elements.add(element);
         }
@@ -386,7 +386,7 @@ public class ArrayFunctionLibrary {
      * Checks if element is contained in array using equality validator.
      */
     private static boolean contains(JsonNode element, ArrayNode array,
-                                    BiPredicate<JsonNode, JsonNode> equalityValidator) {
+            BiPredicate<JsonNode, JsonNode> equalityValidator) {
         final var elementsIterator = array.elements();
         while (elementsIterator.hasNext()) {
             final var nextElement = elementsIterator.next();
@@ -570,7 +570,7 @@ public class ArrayFunctionLibrary {
             where
               array.max([3, 1, 4, 1, 5, 9]) == 9;
               array.max(["dog", "cat", "bird"]) == "dog";
-            
+
               // These would return errors:
               // array.max([])              // empty array
               // array.max([1, "two", 3])   // mixed types
@@ -596,7 +596,7 @@ public class ArrayFunctionLibrary {
             where
               array.min([3, 1, 4, 1, 5, 9]) == 1;
               array.min(["dog", "cat", "bird"]) == "bird";
-            
+
               // These would return errors:
               // array.min([])              // empty array
               // array.min([1, "two", 3])   // mixed types
@@ -716,7 +716,7 @@ public class ArrayFunctionLibrary {
      * Aggregates numeric array using provided identity and accumulator function.
      */
     private static Val aggregateNumericArray(Val array, double identityValue,
-                                             java.util.function.DoubleBinaryOperator accumulator) {
+            java.util.function.DoubleBinaryOperator accumulator) {
         final var jsonArray = array.getArrayNode();
 
         if (jsonArray.isEmpty()) {
@@ -828,50 +828,50 @@ public class ArrayFunctionLibrary {
     }
 
     @Function(docs = """
-        ```range(NUMBER from, NUMBER to)```: Creates an array containing all integers from ```from``` to ```to``` (both inclusive).
-        Returns an empty array if the range is invalid (e.g., from > to with implied positive step).
+            ```range(NUMBER from, NUMBER to)```: Creates an array containing all integers from ```from``` to ```to``` (both inclusive).
+            Returns an empty array if the range is invalid (e.g., from > to with implied positive step).
 
-        **Requirements:**
-        - Both parameters must be integers
-        - Range is inclusive on both ends
+            **Requirements:**
+            - Both parameters must be integers
+            - Range is inclusive on both ends
 
-        **Examples:**
-        ```sapl
-        policy "example"
-        permit
-        where
-          array.range(1, 5) == [1, 2, 3, 4, 5];
-          array.range(5, 5) == [5];
-          array.range(5, 2) == [];  // invalid range returns empty array
-        ```
-        """, schema = RETURNS_ARRAY)
+            **Examples:**
+            ```sapl
+            policy "example"
+            permit
+            where
+              array.range(1, 5) == [1, 2, 3, 4, 5];
+              array.range(5, 5) == [5];
+              array.range(5, 2) == [];  // invalid range returns empty array
+            ```
+            """, schema = RETURNS_ARRAY)
     public static Val range(@Number Val from, @Number Val to) {
-        return range(from, to, Val.of(1));
+        return rangeStepped(from, to, Val.of(1));
     }
 
     @Function(docs = """
-        ```range(NUMBER from, NUMBER to, NUMBER step)```: Creates an array containing integers from ```from``` to ```to```
-        (both inclusive), incrementing by ```step```. The step can be positive or negative.
+            ```rangeStepped(NUMBER from, NUMBER to, NUMBER step)```: Creates an array containing integers from ```from``` to ```to```
+            (both inclusive), incrementing by ```step```. The step can be positive or negative.
 
-        **Requirements:**
-        - All parameters must be integers
-        - ```step``` must not be zero (returns error)
-        - If ```step``` is positive, ```from``` must be less than or equal to ```to```
-        - If ```step``` is negative, ```from``` must be greater than or equal to ```to```
-        - Range is inclusive on both ends
+            **Requirements:**
+            - All parameters must be integers
+            - ```step``` must not be zero (returns error)
+            - If ```step``` is positive, ```from``` must be less than or equal to ```to```
+            - If ```step``` is negative, ```from``` must be greater than or equal to ```to```
+            - Range is inclusive on both ends
 
-        **Examples:**
-        ```sapl
-        policy "example"
-        permit
-        where
-          array.range(1, 10, 2) == [1, 3, 5, 7, 9];
-          array.range(10, 1, -2) == [10, 8, 6, 4, 2];
-          array.range(5, 2, 1) == [];    // positive step but from > to returns empty
-          array.range(1, 5, -1) == [];   // negative step but from < to returns empty
-        ```
-        """, schema = RETURNS_ARRAY)
-    public static Val range(@Number Val from, @Number Val to, @Number Val step) {
+            **Examples:**
+            ```sapl
+            policy "example"
+            permit
+            where
+              array.rangeStepped(1, 10, 2) == [1, 3, 5, 7, 9];
+              array.rangeStepped(10, 1, -2) == [10, 8, 6, 4, 2];
+              array.rangeStepped(5, 2, 1) == [];    // positive step but from > to returns empty
+              array.rangeStepped(1, 5, -1) == [];   // negative step but from < to returns empty
+            ```
+            """, schema = RETURNS_ARRAY)
+    public static Val rangeStepped(@Number Val from, @Number Val to, @Number Val step) {
         final var fromNode = from.get();
         final var toNode   = to.get();
         final var stepNode = step.get();
@@ -906,13 +906,14 @@ public class ArrayFunctionLibrary {
     }
 
     /**
-     * Builds range array with positive step value. Calculates iteration count upfront to ensure
+     * Builds range array with positive step value. Calculates iteration count
+     * upfront to ensure
      * explicit loop termination.
      */
     private static void buildRangeWithPositiveStep(ArrayNode result, long fromValue, long toValue, long stepValue) {
-        final var totalRange      = toValue - fromValue;
-        final var numberOfSteps   = totalRange / stepValue;
-        final var iterationCount  = numberOfSteps + 1;
+        final var totalRange     = toValue - fromValue;
+        final var numberOfSteps  = totalRange / stepValue;
+        final var iterationCount = numberOfSteps + 1;
 
         for (long iteration = 0; iteration < iterationCount; iteration++) {
             final var currentValue = fromValue + (iteration * stepValue);
@@ -921,14 +922,15 @@ public class ArrayFunctionLibrary {
     }
 
     /**
-     * Builds range array with negative step value. Calculates iteration count upfront to ensure
+     * Builds range array with negative step value. Calculates iteration count
+     * upfront to ensure
      * explicit loop termination.
      */
     private static void buildRangeWithNegativeStep(ArrayNode result, long fromValue, long toValue, long stepValue) {
-        final var totalRange      = fromValue - toValue;
-        final var stepMagnitude   = -stepValue;
-        final var numberOfSteps   = totalRange / stepMagnitude;
-        final var iterationCount  = numberOfSteps + 1;
+        final var totalRange     = fromValue - toValue;
+        final var stepMagnitude  = -stepValue;
+        final var numberOfSteps  = totalRange / stepMagnitude;
+        final var iterationCount = numberOfSteps + 1;
 
         for (long iteration = 0; iteration < iterationCount; iteration++) {
             final var currentValue = fromValue + (iteration * stepValue);
@@ -937,7 +939,8 @@ public class ArrayFunctionLibrary {
     }
 
     /**
-     * Adds number node to result array, using int representation if value fits in int range.
+     * Adds number node to result array, using int representation if value fits in
+     * int range.
      */
     private static void addNumberNode(ArrayNode result, long value) {
         if (value >= Integer.MIN_VALUE && value <= Integer.MAX_VALUE) {
@@ -1006,8 +1009,8 @@ public class ArrayFunctionLibrary {
         final var jsonArray1 = array1.getArrayNode();
         final var jsonArray2 = array2.getArrayNode();
 
-        final var result     = Val.JSON.arrayNode();
-        final var minSize    = Math.min(jsonArray1.size(), jsonArray2.size());
+        final var result  = Val.JSON.arrayNode();
+        final var minSize = Math.min(jsonArray1.size(), jsonArray2.size());
 
         for (int i = 0; i < minSize; i++) {
             final var pair = Val.JSON.arrayNode();

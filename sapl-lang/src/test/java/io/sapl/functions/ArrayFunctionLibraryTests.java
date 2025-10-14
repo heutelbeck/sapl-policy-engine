@@ -197,8 +197,10 @@ class ArrayFunctionLibraryTests {
                 Arguments.of("[1, 2, 3, 4, 5]", "[2, 5, 4]", false), Arguments.of("[1, 2, 3, 4]", "[]", true),
                 Arguments.of("[1, 2, 3, 4, 5]", "[2, 6]", false), Arguments.of("[1, 2, 3, 4, 5]", "[1, 1, 2]", false),
                 Arguments.of("[1, 1, 2, 3, 4, 5]", "[1, 1, 2]", true),
-                Arguments.of("[\"Dagon\", \"Hydra\", \"Cthulhu\", \"Nyarlathotep\"]", "[\"Hydra\", \"Nyarlathotep\"]", true),
-                Arguments.of("[\"Dagon\", \"Hydra\", \"Cthulhu\", \"Nyarlathotep\"]", "[\"Cthulhu\", \"Hydra\"]", false));
+                Arguments.of("[\"Dagon\", \"Hydra\", \"Cthulhu\", \"Nyarlathotep\"]", "[\"Hydra\", \"Nyarlathotep\"]",
+                        true),
+                Arguments.of("[\"Dagon\", \"Hydra\", \"Cthulhu\", \"Nyarlathotep\"]", "[\"Cthulhu\", \"Hydra\"]",
+                        false));
     }
 
     @ParameterizedTest
@@ -212,7 +214,8 @@ class ArrayFunctionLibraryTests {
     private static Stream<Arguments> provideSortSuccessTestCases() {
         return Stream.of(Arguments.of("[3, 1, 4, 1, 5, 9, 2, 6]", "[1, 1, 2, 3, 4, 5, 6, 9]"),
                 Arguments.of("[2.71, 1.5, 2.71, 1.0]", "[1.0, 1.5, 2.71, 2.71]"),
-                Arguments.of("[\"Shoggoth\", \"Cthulhu\", \"Nyarlathotep\", \"Dagon\"]", "[\"Cthulhu\", \"Dagon\", \"Nyarlathotep\", \"Shoggoth\"]"),
+                Arguments.of("[\"Shoggoth\", \"Cthulhu\", \"Nyarlathotep\", \"Dagon\"]",
+                        "[\"Cthulhu\", \"Dagon\", \"Nyarlathotep\", \"Shoggoth\"]"),
                 Arguments.of("[\"10\", \"2\", \"20\", \"1\"]", "[\"1\", \"10\", \"2\", \"20\"]"),
                 Arguments.of("[1, 2, 3, 4, 5]", "[1, 2, 3, 4, 5]"), Arguments.of("[5, 4, 3, 2, 1]", "[1, 2, 3, 4, 5]"),
                 Arguments.of("[42]", "[42]"), Arguments.of("[3, -1, 4, -5, 2]", "[-5, -1, 2, 3, 4]"));
@@ -288,13 +291,13 @@ class ArrayFunctionLibraryTests {
     void when_operationOnEmptyArray_then_returnsError(String functionName, String expectedErrorMessage)
             throws JsonProcessingException {
         val actual = switch (functionName) {
-            case "head" -> ArrayFunctionLibrary.head(json("[]"));
-            case "last" -> ArrayFunctionLibrary.last(json("[]"));
-            case "max" -> ArrayFunctionLibrary.max(json("[]"));
-            case "min" -> ArrayFunctionLibrary.min(json("[]"));
-            case "avg" -> ArrayFunctionLibrary.avg(json("[]"));
-            case "median" -> ArrayFunctionLibrary.median(json("[]"));
-            default -> throw new IllegalArgumentException("Unknown function: " + functionName);
+        case "head"   -> ArrayFunctionLibrary.head(json("[]"));
+        case "last"   -> ArrayFunctionLibrary.last(json("[]"));
+        case "max"    -> ArrayFunctionLibrary.max(json("[]"));
+        case "min"    -> ArrayFunctionLibrary.min(json("[]"));
+        case "avg"    -> ArrayFunctionLibrary.avg(json("[]"));
+        case "median" -> ArrayFunctionLibrary.median(json("[]"));
+        default       -> throw new IllegalArgumentException("Unknown function: " + functionName);
         };
 
         assertThatVal(actual).isError();
@@ -313,7 +316,7 @@ class ArrayFunctionLibraryTests {
     @ParameterizedTest
     @MethodSource("provideMaxMinNumericTestCases")
     void when_maxOrMinWithNumericArray_then_returnsCorrectValue(String functionName, String inputArray,
-                                                                double expectedValue) throws JsonProcessingException {
+            double expectedValue) throws JsonProcessingException {
         val actual = functionName.equals("max") ? ArrayFunctionLibrary.max(json(inputArray))
                 : ArrayFunctionLibrary.min(json(inputArray));
         assertThatVal(actual).hasValue();
@@ -330,7 +333,7 @@ class ArrayFunctionLibraryTests {
     @ParameterizedTest
     @MethodSource("provideMaxMinStringTestCases")
     void when_maxOrMinWithStringArray_then_returnsCorrectValue(String functionName, String inputArray,
-                                                               String expectedValue) throws JsonProcessingException {
+            String expectedValue) throws JsonProcessingException {
         val actual = functionName.equals("max") ? ArrayFunctionLibrary.max(json(inputArray))
                 : ArrayFunctionLibrary.min(json(inputArray));
         assertThatVal(actual).hasValue();
@@ -347,7 +350,7 @@ class ArrayFunctionLibraryTests {
     @ParameterizedTest
     @MethodSource("provideMaxMinErrorTestCases")
     void when_maxOrMinWithInvalidInput_then_returnsError(String functionName, String inputArray,
-                                                         String expectedErrorMessage) throws JsonProcessingException {
+            String expectedErrorMessage) throws JsonProcessingException {
         val actual = functionName.equals("max") ? ArrayFunctionLibrary.max(json(inputArray))
                 : ArrayFunctionLibrary.min(json(inputArray));
         assertThatVal(actual).isError();
@@ -370,8 +373,8 @@ class ArrayFunctionLibraryTests {
     }
 
     private static Stream<Arguments> provideSumTestCases() {
-        return Stream.of(Arguments.of("[1, 2, 3, 4, 5]", 15.0), Arguments.of("[]", 0.0),
-                Arguments.of("[-5, 5]", 0.0), Arguments.of("[2.5, 3.5]", 6.0), Arguments.of("[100]", 100.0));
+        return Stream.of(Arguments.of("[1, 2, 3, 4, 5]", 15.0), Arguments.of("[]", 0.0), Arguments.of("[-5, 5]", 0.0),
+                Arguments.of("[2.5, 3.5]", 6.0), Arguments.of("[100]", 100.0));
     }
 
     @ParameterizedTest
@@ -393,11 +396,11 @@ class ArrayFunctionLibraryTests {
     void when_numericAggregationWithNonNumeric_then_returnsError(String functionName, String inputArray)
             throws JsonProcessingException {
         val actual = switch (functionName) {
-            case "sum" -> ArrayFunctionLibrary.sum(json(inputArray));
-            case "multiply" -> ArrayFunctionLibrary.multiply(json(inputArray));
-            case "avg" -> ArrayFunctionLibrary.avg(json(inputArray));
-            case "median" -> ArrayFunctionLibrary.median(json(inputArray));
-            default -> throw new IllegalArgumentException("Unknown function: " + functionName);
+        case "sum"      -> ArrayFunctionLibrary.sum(json(inputArray));
+        case "multiply" -> ArrayFunctionLibrary.multiply(json(inputArray));
+        case "avg"      -> ArrayFunctionLibrary.avg(json(inputArray));
+        case "median"   -> ArrayFunctionLibrary.median(json(inputArray));
+        default         -> throw new IllegalArgumentException("Unknown function: " + functionName);
         };
 
         assertThatVal(actual).isError();
@@ -418,14 +421,13 @@ class ArrayFunctionLibraryTests {
     }
 
     private static Stream<Arguments> provideAvgTestCases() {
-        return Stream.of(Arguments.of("[1, 2, 3, 4, 5]", 3.0), Arguments.of("[10, 20]", 15.0),
-                Arguments.of("[5]", 5.0), Arguments.of("[0, 0, 0]", 0.0));
+        return Stream.of(Arguments.of("[1, 2, 3, 4, 5]", 3.0), Arguments.of("[10, 20]", 15.0), Arguments.of("[5]", 5.0),
+                Arguments.of("[0, 0, 0]", 0.0));
     }
 
     @ParameterizedTest
     @MethodSource("provideMedianTestCases")
-    void when_median_then_returnsCorrectResult(String inputArray, double expectedValue)
-            throws JsonProcessingException {
+    void when_median_then_returnsCorrectResult(String inputArray, double expectedValue) throws JsonProcessingException {
         val actual = ArrayFunctionLibrary.median(json(inputArray));
         assertThatVal(actual).hasValue();
         assertThat(actual.get().asDouble()).isEqualTo(expectedValue);
@@ -445,15 +447,15 @@ class ArrayFunctionLibraryTests {
     }
 
     private static Stream<Arguments> provideRangeTestCases() {
-        return Stream.of(Arguments.of(1, 5, "[1, 2, 3, 4, 5]"), Arguments.of(5, 5, "[5]"),
-                Arguments.of(5, 2, "[]"), Arguments.of(0, 3, "[0, 1, 2, 3]"), Arguments.of(-2, 2, "[-2, -1, 0, 1, 2]"));
+        return Stream.of(Arguments.of(1, 5, "[1, 2, 3, 4, 5]"), Arguments.of(5, 5, "[5]"), Arguments.of(5, 2, "[]"),
+                Arguments.of(0, 3, "[0, 1, 2, 3]"), Arguments.of(-2, 2, "[-2, -1, 0, 1, 2]"));
     }
 
     @ParameterizedTest
     @MethodSource("provideRangeWithStepTestCases")
     void when_rangeWithStep_then_returnsCorrectResult(int from, int to, int step, String expectedArray)
             throws JsonProcessingException {
-        val actual = ArrayFunctionLibrary.range(Val.of(from), Val.of(to), Val.of(step));
+        val actual = ArrayFunctionLibrary.rangeStepped(Val.of(from), Val.of(to), Val.of(step));
         assertThatVal(actual).hasValue().isArray();
         assertThat(actual.getArrayNode()).isEqualTo(json(expectedArray).getArrayNode());
     }
@@ -466,7 +468,7 @@ class ArrayFunctionLibraryTests {
 
     @Test
     void when_rangeWithStepZero_then_returnsError() {
-        val actual = ArrayFunctionLibrary.range(Val.of(1), Val.of(5), Val.of(0));
+        val actual = ArrayFunctionLibrary.rangeStepped(Val.of(1), Val.of(5), Val.of(0));
         assertThatVal(actual).isError();
         assertThat(actual.getMessage()).contains("Step must not be zero");
     }
@@ -481,8 +483,7 @@ class ArrayFunctionLibraryTests {
     }
 
     private static Stream<Arguments> provideCrossProductTestCases() {
-        return Stream.of(
-                Arguments.of("[1, 2]", "[\"a\", \"b\"]", "[[1, \"a\"], [1, \"b\"], [2, \"a\"], [2, \"b\"]]"),
+        return Stream.of(Arguments.of("[1, 2]", "[\"a\", \"b\"]", "[[1, \"a\"], [1, \"b\"], [2, \"a\"], [2, \"b\"]]"),
                 Arguments.of("[1]", "[\"x\", \"y\", \"z\"]", "[[1, \"x\"], [1, \"y\"], [1, \"z\"]]"),
                 Arguments.of("[]", "[1, 2]", "[]"), Arguments.of("[1, 2]", "[]", "[]"),
                 Arguments.of("[true]", "[1, 2]", "[[true, 1], [true, 2]]"));

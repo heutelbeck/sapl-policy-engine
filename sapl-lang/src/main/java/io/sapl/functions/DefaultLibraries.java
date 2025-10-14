@@ -27,5 +27,5 @@ public class DefaultLibraries {
             FilterFunctionLibrary.class, LoggingFunctionLibrary.class, SchemaValidationLibrary.class,
             TemporalFunctionLibrary.class, GraphFunctionLibrary.class, ArrayFunctionLibrary.class,
             UuidFunctionLibrary.class, UnitsFunctionLibrary.class, ObjectFunctionLibrary.class,
-            ReflectionFunctionLibrary.class, SaplFunctionLibrary.class);
+            ReflectionFunctionLibrary.class, SaplFunctionLibrary.class, MathFunctionLibrary.class);
 }
