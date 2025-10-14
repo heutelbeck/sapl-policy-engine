@@ -997,7 +997,15 @@ public class PatternsFunctionLibrary {
     }
 
     private static boolean isDangerousPattern(String pattern) {
-        return pattern.matches(".*\\([^)]*[*+]\\)[*+].*") || pattern.split("\\|").length > 100;
+        if (pattern.split("\\|").length > 100) {
+            return true;
+        }
+
+        if (pattern.matches(".*\\([^)]*[*+]\\)[*+].*")) {
+            return true;
+        }
+
+        return pattern.matches(".*\\([^)]*\\|[^)]*\\)[*+].*");
     }
 
     private static Val findMatchesWithLimit(Val pattern, Val value, int limit) {
