@@ -193,6 +193,7 @@ public class UnitsFunctionLibrary {
 
               // Scientific notation examples
               var largeMegabytes = units.parseBytes("1.5e3MB");   // Returns 1500000000 (1500 MB)
+              var largeMegabytes = units.parseBytes("1.5e3MB");   // Returns 1500000000 (1500 MB)
               var massiveGibibytes = units.parseBytes("2e6GiB");  // Returns 2147483648000000 (2 million GiB)
               var smallKilobytes = units.parseBytes("1e-2KB");    // Returns 10 (0.01 KB)
 
@@ -278,7 +279,7 @@ public class UnitsFunctionLibrary {
      * @return normalized unit string matching a key in MULTIPLIERS map
      */
     private static String normalizeUnit(String unit) {
-        if (unit.isEmpty() || unit.equals("m")) {
+        if (unit.isEmpty() || "m".equals(unit)) {
             return unit;
         }
 
