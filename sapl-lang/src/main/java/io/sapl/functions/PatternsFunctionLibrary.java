@@ -627,7 +627,7 @@ public class PatternsFunctionLibrary {
      * @param delimiters the delimiter list for hierarchical matching
      * @return conversion result with regex fragment and next position
      */
-    private static GlobConversionResult processWildcard(String glob, int position, List<String> delimiters) {
+    private static GlobConversionResult processWildcard(String glob, int position, Collection<String> delimiters) {
         if (position + 1 < glob.length() && glob.charAt(position + 1) == '*') {
             return new GlobConversionResult(REGEX_ANY_CHAR_MULTIPLE, position + 2);
         }
@@ -641,7 +641,7 @@ public class PatternsFunctionLibrary {
      * @param delimiters the delimiter list for hierarchical matching
      * @return conversion result with regex fragment and next position
      */
-    private static GlobConversionResult processSingleCharacterWildcard(int position, List<String> delimiters) {
+    private static GlobConversionResult processSingleCharacterWildcard(int position, Collection<String> delimiters) {
         return new GlobConversionResult(buildDelimiterAwarePattern(delimiters, false), position + 1);
     }
 
