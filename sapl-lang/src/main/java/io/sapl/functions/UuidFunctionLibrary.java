@@ -112,6 +112,7 @@ public class UuidFunctionLibrary {
 
               var invalidUuid = uuid.parse("not-a-uuid");
               // Returns an error
+             ```
             """, schema = RETURNS_UUID_OBJECT)
     public static Val parse(@Text Val uuidVal) {
         UUID uuid;
