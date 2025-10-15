@@ -110,27 +110,27 @@ class DigestFunctionLibraryTests {
     /* SHA3-256 Tests */
 
     @Test
-    void sha3_256_whenSimpleText_computesCorrectHash() {
-        var result = DigestFunctionLibrary.sha3_256(Val.of("hello"));
+    void sha3256_whenSimpleText_computesCorrectHash() {
+        var result = DigestFunctionLibrary.sha3256(Val.of("hello"));
         assertEquals("3338be694f50c5f338814986cdf0686453a888b84f424d792af4b9202398f392", result.getText());
     }
 
     @Test
-    void sha3_256_whenEmptyString_computesCorrectHash() {
-        var result = DigestFunctionLibrary.sha3_256(Val.of(""));
+    void sha3256_whenEmptyString_computesCorrectHash() {
+        var result = DigestFunctionLibrary.sha3256(Val.of(""));
         assertEquals("a7ffc6f8bf1ed76651c14756a061d662f580ff4de43b49fa82d80a4b80f8434a", result.getText());
     }
 
     @Test
     void sha3_256_differFromSha256() {
         var sha2Result = DigestFunctionLibrary.sha256(Val.of("hello"));
-        var sha3Result = DigestFunctionLibrary.sha3_256(Val.of("hello"));
+        var sha3Result = DigestFunctionLibrary.sha3256(Val.of("hello"));
         assertNotEquals(sha2Result.getText(), sha3Result.getText());
     }
 
     @Test
-    void sha3_256_returnsLowercaseHex() {
-        var result = DigestFunctionLibrary.sha3_256(Val.of("hello"));
+    void sha3256_returnsLowercaseHex() {
+        var result = DigestFunctionLibrary.sha3256(Val.of("hello"));
         assertEquals(result.getText(), result.getText().toLowerCase());
         assertEquals(64, result.getText().length());
     }
@@ -138,15 +138,15 @@ class DigestFunctionLibraryTests {
     /* SHA3-384 Tests */
 
     @Test
-    void sha3_384_whenSimpleText_computesCorrectHash() {
-        var result = DigestFunctionLibrary.sha3_384(Val.of("hello"));
+    void sha3384_whenSimpleText_computesCorrectHash() {
+        var result = DigestFunctionLibrary.sha3384(Val.of("hello"));
         assertEquals("720aea11019ef06440fbf05d87aa24680a2153df3907b23631e7177ce620fa1330ff07c0fddee54699a4c3ee0ee9d887",
                 result.getText());
     }
 
     @Test
-    void sha3_384_returnsLowercaseHex() {
-        var result = DigestFunctionLibrary.sha3_384(Val.of("hello"));
+    void sha3384_returnsLowercaseHex() {
+        var result = DigestFunctionLibrary.sha3384(Val.of("hello"));
         assertEquals(result.getText(), result.getText().toLowerCase());
         assertEquals(96, result.getText().length());
     }
@@ -154,16 +154,16 @@ class DigestFunctionLibraryTests {
     /* SHA3-512 Tests */
 
     @Test
-    void sha3_512_whenSimpleText_computesCorrectHash() {
-        var result = DigestFunctionLibrary.sha3_512(Val.of("hello"));
+    void sha3512_whenSimpleText_computesCorrectHash() {
+        var result = DigestFunctionLibrary.sha3512(Val.of("hello"));
         assertEquals(
                 "75d527c368f2efe848ecf6b073a36767800805e9eef2b1857d5f984f036eb6df891d75f72d9b154518c1cd58835286d1da9a38deba3de98b5a53e5ed78a84976",
                 result.getText());
     }
 
     @Test
-    void sha3_512_returnsLowercaseHex() {
-        var result = DigestFunctionLibrary.sha3_512(Val.of("hello"));
+    void sha3512_returnsLowercaseHex() {
+        var result = DigestFunctionLibrary.sha3512(Val.of("hello"));
         assertEquals(result.getText(), result.getText().toLowerCase());
         assertEquals(128, result.getText().length());
     }
@@ -218,9 +218,9 @@ class DigestFunctionLibraryTests {
         assertTrue(DigestFunctionLibrary.sha256(input).isDefined());
         assertTrue(DigestFunctionLibrary.sha384(input).isDefined());
         assertTrue(DigestFunctionLibrary.sha512(input).isDefined());
-        assertTrue(DigestFunctionLibrary.sha3_256(input).isDefined());
-        assertTrue(DigestFunctionLibrary.sha3_384(input).isDefined());
-        assertTrue(DigestFunctionLibrary.sha3_512(input).isDefined());
+        assertTrue(DigestFunctionLibrary.sha3256(input).isDefined());
+        assertTrue(DigestFunctionLibrary.sha3384(input).isDefined());
+        assertTrue(DigestFunctionLibrary.sha3512(input).isDefined());
         assertTrue(DigestFunctionLibrary.md5(input).isDefined());
         assertTrue(DigestFunctionLibrary.sha1(input).isDefined());
     }
@@ -231,7 +231,7 @@ class DigestFunctionLibraryTests {
         assertTrue(DigestFunctionLibrary.sha256(input).isDefined());
         assertTrue(DigestFunctionLibrary.sha384(input).isDefined());
         assertTrue(DigestFunctionLibrary.sha512(input).isDefined());
-        assertTrue(DigestFunctionLibrary.sha3_256(input).isDefined());
+        assertTrue(DigestFunctionLibrary.sha3256(input).isDefined());
         assertTrue(DigestFunctionLibrary.md5(input).isDefined());
         assertTrue(DigestFunctionLibrary.sha1(input).isDefined());
     }
@@ -254,7 +254,7 @@ class DigestFunctionLibraryTests {
         var input  = Val.of("test");
         var sha256 = DigestFunctionLibrary.sha256(input);
         var sha512 = DigestFunctionLibrary.sha512(input);
-        var sha3   = DigestFunctionLibrary.sha3_256(input);
+        var sha3   = DigestFunctionLibrary.sha3256(input);
         var md5    = DigestFunctionLibrary.md5(input);
 
         assertNotEquals(sha256.getText(), sha512.getText());

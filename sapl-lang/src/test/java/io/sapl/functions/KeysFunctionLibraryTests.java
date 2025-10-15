@@ -17,7 +17,6 @@
  */
 package io.sapl.functions;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import io.sapl.api.interpreter.Val;
 import org.bouncycastle.asn1.x500.X500Name;
@@ -46,7 +45,6 @@ class KeysFunctionLibraryTests {
 
     private static final JsonNodeFactory JSON = JsonNodeFactory.instance;
 
-    private static KeysFunctionLibrary library;
     private static String              rsaPublicKeyPem;
     private static String              ecPublicKeyPem;
     private static String              ed25519PublicKeyPem;
@@ -54,8 +52,6 @@ class KeysFunctionLibraryTests {
 
     @BeforeAll
     static void setup() throws Exception {
-        library = new KeysFunctionLibrary(new ObjectMapper());
-
         var rsaGenerator = KeyPairGenerator.getInstance("RSA");
         rsaGenerator.initialize(2048);
         KeyPair rsaKeyPair = rsaGenerator.generateKeyPair();
@@ -78,7 +74,7 @@ class KeysFunctionLibraryTests {
 
     @Test
     void parsePublicKey_whenRsaKey_returnsKeyObject() {
-        var result = library.parsePublicKey(Val.of(rsaPublicKeyPem));
+        var result = KeysFunctionLibrary.parsePublicKey(Val.of(rsaPublicKeyPem));
         assertTrue(result.isDefined());
         assertEquals("RSA", result.get().get("algorithm").asText());
         assertEquals("X.509", result.get().get("format").asText());
@@ -87,7 +83,7 @@ class KeysFunctionLibraryTests {
 
     @Test
     void parsePublicKey_whenEcKey_returnsKeyObject() {
-        var result = library.parsePublicKey(Val.of(ecPublicKeyPem));
+        var result = KeysFunctionLibrary.parsePublicKey(Val.of(ecPublicKeyPem));
         assertTrue(result.isDefined());
         assertEquals("EC", result.get().get("algorithm").asText());
         assertTrue(result.get().has("curve"));
@@ -95,14 +91,14 @@ class KeysFunctionLibraryTests {
 
     @Test
     void parsePublicKey_whenEd25519Key_returnsKeyObject() {
-        var result = library.parsePublicKey(Val.of(ed25519PublicKeyPem));
+        var result = KeysFunctionLibrary.parsePublicKey(Val.of(ed25519PublicKeyPem));
         assertTrue(result.isDefined());
         assertEquals("EdDSA", result.get().get("algorithm").asText());
     }
 
     @Test
     void parsePublicKey_whenInvalidPem_returnsError() {
-        var result = library.parsePublicKey(Val.of("invalid key data"));
+        var result = KeysFunctionLibrary.parsePublicKey(Val.of("invalid key data"));
         assertTrue(result.isError());
     }
 
@@ -110,7 +106,7 @@ class KeysFunctionLibraryTests {
 
     @Test
     void extractPublicKeyFromCertificate_whenValidCert_returnsPemKey() {
-        var result = library.extractPublicKeyFromCertificate(Val.of(certificatePem));
+        var result = KeysFunctionLibrary.extractPublicKeyFromCertificate(Val.of(certificatePem));
         assertTrue(result.isDefined());
         assertTrue(result.getText().contains("BEGIN PUBLIC KEY"));
         assertTrue(result.getText().contains("END PUBLIC KEY"));
@@ -118,14 +114,14 @@ class KeysFunctionLibraryTests {
 
     @Test
     void extractPublicKeyFromCertificate_whenInvalidCert_returnsError() {
-        var result = library.extractPublicKeyFromCertificate(Val.of("invalid cert"));
+        var result = KeysFunctionLibrary.extractPublicKeyFromCertificate(Val.of("invalid cert"));
         assertTrue(result.isError());
     }
 
     @Test
     void extractPublicKeyFromCertificate_extractedKeyCanBeParsed() {
-        var extractedKey = library.extractPublicKeyFromCertificate(Val.of(certificatePem));
-        var parsedKey    = library.parsePublicKey(extractedKey);
+        var extractedKey = KeysFunctionLibrary.extractPublicKeyFromCertificate(Val.of(certificatePem));
+        var parsedKey    = KeysFunctionLibrary.parsePublicKey(extractedKey);
         assertTrue(parsedKey.isDefined());
         assertEquals("RSA", parsedKey.get().get("algorithm").asText());
     }
@@ -134,25 +130,25 @@ class KeysFunctionLibraryTests {
 
     @Test
     void extractKeyAlgorithm_whenRsaKey_returnsRsa() {
-        var result = library.extractKeyAlgorithm(Val.of(rsaPublicKeyPem));
+        var result = KeysFunctionLibrary.extractKeyAlgorithm(Val.of(rsaPublicKeyPem));
         assertEquals("RSA", result.getText());
     }
 
     @Test
     void extractKeyAlgorithm_whenEcKey_returnsEc() {
-        var result = library.extractKeyAlgorithm(Val.of(ecPublicKeyPem));
+        var result = KeysFunctionLibrary.extractKeyAlgorithm(Val.of(ecPublicKeyPem));
         assertEquals("EC", result.getText());
     }
 
     @Test
     void extractKeyAlgorithm_whenEd25519Key_returnsEdDsa() {
-        var result = library.extractKeyAlgorithm(Val.of(ed25519PublicKeyPem));
+        var result = KeysFunctionLibrary.extractKeyAlgorithm(Val.of(ed25519PublicKeyPem));
         assertEquals("EdDSA", result.getText());
     }
 
     @Test
     void extractKeyAlgorithm_whenInvalidKey_returnsError() {
-        var result = library.extractKeyAlgorithm(Val.of("invalid"));
+        var result = KeysFunctionLibrary.extractKeyAlgorithm(Val.of("invalid"));
         assertTrue(result.isError());
     }
 
@@ -160,25 +156,25 @@ class KeysFunctionLibraryTests {
 
     @Test
     void extractKeySize_whenRsa2048_returns2048() {
-        var result = library.extractKeySize(Val.of(rsaPublicKeyPem));
+        var result = KeysFunctionLibrary.extractKeySize(Val.of(rsaPublicKeyPem));
         assertEquals(2048, result.get().asInt());
     }
 
     @Test
     void extractKeySize_whenEcP256_returns256() {
-        var result = library.extractKeySize(Val.of(ecPublicKeyPem));
+        var result = KeysFunctionLibrary.extractKeySize(Val.of(ecPublicKeyPem));
         assertEquals(256, result.get().asInt());
     }
 
     @Test
     void extractKeySize_whenEd25519_returns256() {
-        var result = library.extractKeySize(Val.of(ed25519PublicKeyPem));
+        var result = KeysFunctionLibrary.extractKeySize(Val.of(ed25519PublicKeyPem));
         assertEquals(256, result.get().asInt());
     }
 
     @Test
     void extractKeySize_whenInvalidKey_returnsError() {
-        var result = library.extractKeySize(Val.of("invalid"));
+        var result = KeysFunctionLibrary.extractKeySize(Val.of("invalid"));
         assertTrue(result.isError());
     }
 
@@ -186,21 +182,21 @@ class KeysFunctionLibraryTests {
 
     @Test
     void extractEcCurve_whenEcKey_returnsCurveName() {
-        var result = library.extractEcCurve(Val.of(ecPublicKeyPem));
+        var result = KeysFunctionLibrary.extractEcCurve(Val.of(ecPublicKeyPem));
         assertTrue(result.isDefined());
         assertEquals("secp256r1", result.getText());
     }
 
     @Test
     void extractEcCurve_whenRsaKey_returnsError() {
-        var result = library.extractEcCurve(Val.of(rsaPublicKeyPem));
+        var result = KeysFunctionLibrary.extractEcCurve(Val.of(rsaPublicKeyPem));
         assertTrue(result.isError());
         assertTrue(result.getMessage().contains("not an EC key"));
     }
 
     @Test
     void extractEcCurve_whenInvalidKey_returnsError() {
-        var result = library.extractEcCurve(Val.of("invalid"));
+        var result = KeysFunctionLibrary.extractEcCurve(Val.of("invalid"));
         assertTrue(result.isError());
     }
 
@@ -208,7 +204,7 @@ class KeysFunctionLibraryTests {
 
     @Test
     void publicKeyToJwk_whenRsaKey_returnsJwk() {
-        var result = library.publicKeyToJwk(Val.of(rsaPublicKeyPem));
+        var result = KeysFunctionLibrary.publicKeyToJwk(Val.of(rsaPublicKeyPem));
         assertTrue(result.isDefined());
         assertEquals("RSA", result.get().get("kty").asText());
         assertTrue(result.get().has("n"));
@@ -217,7 +213,7 @@ class KeysFunctionLibraryTests {
 
     @Test
     void publicKeyToJwk_whenEcKey_returnsJwk() {
-        var result = library.publicKeyToJwk(Val.of(ecPublicKeyPem));
+        var result = KeysFunctionLibrary.publicKeyToJwk(Val.of(ecPublicKeyPem));
         assertTrue(result.isDefined());
         assertEquals("EC", result.get().get("kty").asText());
         assertTrue(result.get().has("crv"));
@@ -227,7 +223,7 @@ class KeysFunctionLibraryTests {
 
     @Test
     void publicKeyToJwk_whenEd25519Key_returnsJwk() {
-        var result = library.publicKeyToJwk(Val.of(ed25519PublicKeyPem));
+        var result = KeysFunctionLibrary.publicKeyToJwk(Val.of(ed25519PublicKeyPem));
         assertTrue(result.isDefined());
         assertEquals("OKP", result.get().get("kty").asText());
         assertEquals("Ed25519", result.get().get("crv").asText());
@@ -235,7 +231,7 @@ class KeysFunctionLibraryTests {
 
     @Test
     void publicKeyToJwk_whenInvalidKey_returnsError() {
-        var result = library.publicKeyToJwk(Val.of("invalid"));
+        var result = KeysFunctionLibrary.publicKeyToJwk(Val.of("invalid"));
         assertTrue(result.isError());
     }
 
@@ -243,8 +239,8 @@ class KeysFunctionLibraryTests {
 
     @Test
     void jwkToPublicKey_whenRsaJwk_returnsPem() {
-        var jwk = library.publicKeyToJwk(Val.of(rsaPublicKeyPem));
-        var pem = library.jwkToPublicKey(jwk);
+        var jwk = KeysFunctionLibrary.publicKeyToJwk(Val.of(rsaPublicKeyPem));
+        var pem = KeysFunctionLibrary.jwkToPublicKey(jwk);
         assertTrue(pem.isDefined());
         assertTrue(pem.getText().contains("BEGIN PUBLIC KEY"));
     }
@@ -252,14 +248,14 @@ class KeysFunctionLibraryTests {
     @Test
     void jwkToPublicKey_whenInvalidJwk_returnsError() {
         var invalidJwk = Val.of(JSON.objectNode().put("kty", "INVALID"));
-        var result     = library.jwkToPublicKey(invalidJwk);
+        var result     = KeysFunctionLibrary.jwkToPublicKey(invalidJwk);
         assertTrue(result.isError());
     }
 
     @Test
     void jwkToPublicKey_whenMissingFields_returnsError() {
         var incompleteJwk = Val.of(JSON.objectNode().put("kty", "RSA"));
-        var result        = library.jwkToPublicKey(incompleteJwk);
+        var result        = KeysFunctionLibrary.jwkToPublicKey(incompleteJwk);
         assertTrue(result.isError());
     }
 
@@ -267,9 +263,9 @@ class KeysFunctionLibraryTests {
 
     @Test
     void rsaKeyRoundTrip_pemToJwkToPem_maintainsKey() {
-        var originalJwk  = library.publicKeyToJwk(Val.of(rsaPublicKeyPem));
-        var convertedPem = library.jwkToPublicKey(originalJwk);
-        var finalJwk     = library.publicKeyToJwk(convertedPem);
+        var originalJwk  = KeysFunctionLibrary.publicKeyToJwk(Val.of(rsaPublicKeyPem));
+        var convertedPem = KeysFunctionLibrary.jwkToPublicKey(originalJwk);
+        var finalJwk     = KeysFunctionLibrary.publicKeyToJwk(convertedPem);
 
         assertEquals(originalJwk.get().get("n").asText(), finalJwk.get().get("n").asText());
         assertEquals(originalJwk.get().get("e").asText(), finalJwk.get().get("e").asText());
@@ -277,8 +273,8 @@ class KeysFunctionLibraryTests {
 
     @Test
     void extractedKeyFromCert_canBeConvertedToJwk() {
-        var extractedKey = library.extractPublicKeyFromCertificate(Val.of(certificatePem));
-        var jwk          = library.publicKeyToJwk(extractedKey);
+        var extractedKey = KeysFunctionLibrary.extractPublicKeyFromCertificate(Val.of(certificatePem));
+        var jwk          = KeysFunctionLibrary.publicKeyToJwk(extractedKey);
         assertTrue(jwk.isDefined());
         assertEquals("RSA", jwk.get().get("kty").asText());
     }
@@ -287,18 +283,18 @@ class KeysFunctionLibraryTests {
 
     @Test
     void keySizeMatchesExpectedValue() {
-        var keySize = library.extractKeySize(Val.of(rsaPublicKeyPem));
+        var keySize = KeysFunctionLibrary.extractKeySize(Val.of(rsaPublicKeyPem));
         assertEquals(2048, keySize.get().asInt());
 
-        var algorithm = library.extractKeyAlgorithm(Val.of(rsaPublicKeyPem));
+        var algorithm = KeysFunctionLibrary.extractKeyAlgorithm(Val.of(rsaPublicKeyPem));
         assertEquals("RSA", algorithm.getText());
     }
 
     @Test
     void ecKeysProvideConsistentInformation() {
-        var algorithm = library.extractKeyAlgorithm(Val.of(ecPublicKeyPem));
-        var curve     = library.extractEcCurve(Val.of(ecPublicKeyPem));
-        var size      = library.extractKeySize(Val.of(ecPublicKeyPem));
+        var algorithm = KeysFunctionLibrary.extractKeyAlgorithm(Val.of(ecPublicKeyPem));
+        var curve     = KeysFunctionLibrary.extractEcCurve(Val.of(ecPublicKeyPem));
+        var size      = KeysFunctionLibrary.extractKeySize(Val.of(ecPublicKeyPem));
 
         assertEquals("EC", algorithm.getText());
         assertEquals("secp256r1", curve.getText());
@@ -307,15 +303,15 @@ class KeysFunctionLibraryTests {
 
     @Test
     void allKeyTypes_canBeConvertedToJwk() {
-        var rsaJwk = library.publicKeyToJwk(Val.of(rsaPublicKeyPem));
+        var rsaJwk = KeysFunctionLibrary.publicKeyToJwk(Val.of(rsaPublicKeyPem));
         assertTrue(rsaJwk.isDefined());
         assertEquals("RSA", rsaJwk.get().get("kty").asText());
 
-        var ecJwk = library.publicKeyToJwk(Val.of(ecPublicKeyPem));
+        var ecJwk = KeysFunctionLibrary.publicKeyToJwk(Val.of(ecPublicKeyPem));
         assertTrue(ecJwk.isDefined());
         assertEquals("EC", ecJwk.get().get("kty").asText());
 
-        var edJwk = library.publicKeyToJwk(Val.of(ed25519PublicKeyPem));
+        var edJwk = KeysFunctionLibrary.publicKeyToJwk(Val.of(ed25519PublicKeyPem));
         assertTrue(edJwk.isDefined());
         assertEquals("OKP", edJwk.get().get("kty").asText());
     }

@@ -21,6 +21,7 @@ import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.sapl.api.functions.Function;
 import io.sapl.api.functions.FunctionLibrary;
+import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.api.interpreter.Val;
 import io.sapl.api.validation.Text;
 import lombok.experimental.UtilityClass;
@@ -28,10 +29,15 @@ import lombok.val;
 
 import java.io.ByteArrayInputStream;
 import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.security.cert.CertificateEncodingException;
+import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
 import java.time.Instant;
+import java.time.format.DateTimeParseException;
 import java.util.Base64;
+import java.util.Collection;
 import java.util.Date;
 import java.util.HexFormat;
 import java.util.List;
@@ -81,6 +87,19 @@ public class X509FunctionLibrary {
 
     private static final JsonNodeFactory JSON = JsonNodeFactory.instance;
 
+    private static final String PEM_CERTIFICATE_BEGIN = "-----BEGIN CERTIFICATE-----";
+    private static final String PEM_CERTIFICATE_END   = "-----END CERTIFICATE-----";
+
+    private static final int SAN_TYPE_OTHER_NAME    = 0;
+    private static final int SAN_TYPE_RFC822_NAME   = 1;
+    private static final int SAN_TYPE_DNS_NAME      = 2;
+    private static final int SAN_TYPE_X400_ADDRESS  = 3;
+    private static final int SAN_TYPE_DIRECTORY     = 4;
+    private static final int SAN_TYPE_EDI_PARTY     = 5;
+    private static final int SAN_TYPE_URI           = 6;
+    private static final int SAN_TYPE_IP_ADDRESS    = 7;
+    private static final int SAN_TYPE_REGISTERED_ID = 8;
+
     /* Certificate Parsing */
 
     @Function(docs = """
@@ -100,12 +119,12 @@ public class X509FunctionLibrary {
               cert.serialNumber == "1234567890";
             ```
             """, schema = RETURNS_OBJECT)
-    public Val parseCertificate(@Text Val certPem) {
+    public Val parseCertificate(@Text Val certificatePem) {
         try {
-            val certificate = decodeCertificate(certPem.getText());
-            val certObject  = buildCertificateObject(certificate);
-            return Val.of(certObject);
-        } catch (Exception exception) {
+            val certificate       = decodeCertificate(certificatePem.getText());
+            val certificateObject = buildCertificateObject(certificate);
+            return Val.of(certificateObject);
+        } catch (PolicyEvaluationException exception) {
             return Val.error("Failed to parse certificate: " + exception.getMessage());
         }
     }
@@ -126,11 +145,11 @@ public class X509FunctionLibrary {
               subjectDn =~ "CN=.*\\.example\\.com";
             ```
             """, schema = RETURNS_TEXT)
-    public Val extractSubjectDn(@Text Val certPem) {
+    public Val extractSubjectDn(@Text Val certificatePem) {
         try {
-            val certificate = decodeCertificate(certPem.getText());
+            val certificate = decodeCertificate(certificatePem.getText());
             return Val.of(certificate.getSubjectX500Principal().getName());
-        } catch (Exception exception) {
+        } catch (PolicyEvaluationException exception) {
             return Val.error("Failed to extract subject DN: " + exception.getMessage());
         }
     }
@@ -149,11 +168,11 @@ public class X509FunctionLibrary {
               issuerDn =~ "O=Trusted CA";
             ```
             """, schema = RETURNS_TEXT)
-    public Val extractIssuerDn(@Text Val certPem) {
+    public Val extractIssuerDn(@Text Val certificatePem) {
         try {
-            val certificate = decodeCertificate(certPem.getText());
+            val certificate = decodeCertificate(certificatePem.getText());
             return Val.of(certificate.getIssuerX500Principal().getName());
-        } catch (Exception exception) {
+        } catch (PolicyEvaluationException exception) {
             return Val.error("Failed to extract issuer DN: " + exception.getMessage());
         }
     }
@@ -171,11 +190,11 @@ public class X509FunctionLibrary {
               x509.extractSerialNumber(certPem) == "123456789";
             ```
             """, schema = RETURNS_TEXT)
-    public Val extractSerialNumber(@Text Val certPem) {
+    public Val extractSerialNumber(@Text Val certificatePem) {
         try {
-            val certificate = decodeCertificate(certPem.getText());
+            val certificate = decodeCertificate(certificatePem.getText());
             return Val.of(certificate.getSerialNumber().toString());
-        } catch (Exception exception) {
+        } catch (PolicyEvaluationException exception) {
             return Val.error("Failed to extract serial number: " + exception.getMessage());
         }
     }
@@ -194,12 +213,12 @@ public class X509FunctionLibrary {
               notBefore < "2025-01-01T00:00:00Z";
             ```
             """, schema = RETURNS_TEXT)
-    public Val extractNotBefore(@Text Val certPem) {
+    public Val extractNotBefore(@Text Val certificatePem) {
         try {
-            val certificate = decodeCertificate(certPem.getText());
+            val certificate = decodeCertificate(certificatePem.getText());
             val notBefore   = certificate.getNotBefore().toInstant().toString();
             return Val.of(notBefore);
-        } catch (Exception exception) {
+        } catch (PolicyEvaluationException exception) {
             return Val.error("Failed to extract notBefore: " + exception.getMessage());
         }
     }
@@ -218,12 +237,12 @@ public class X509FunctionLibrary {
               notAfter > "2025-01-01T00:00:00Z";
             ```
             """, schema = RETURNS_TEXT)
-    public Val extractNotAfter(@Text Val certPem) {
+    public Val extractNotAfter(@Text Val certificatePem) {
         try {
-            val certificate = decodeCertificate(certPem.getText());
+            val certificate = decodeCertificate(certificatePem.getText());
             val notAfter    = certificate.getNotAfter().toInstant().toString();
             return Val.of(notAfter);
-        } catch (Exception exception) {
+        } catch (PolicyEvaluationException exception) {
             return Val.error("Failed to extract notAfter: " + exception.getMessage());
         }
     }
@@ -245,14 +264,15 @@ public class X509FunctionLibrary {
               fingerprint == "expected_fingerprint_value";
             ```
             """, schema = RETURNS_TEXT)
-    public Val extractFingerprint(@Text Val certPem, @Text Val algorithm) {
+    public Val extractFingerprint(@Text Val certificatePem, @Text Val algorithm) {
         try {
-            val certificate    = decodeCertificate(certPem.getText());
-            val digest         = MessageDigest.getInstance(algorithm.getText());
-            val fingerprint    = digest.digest(certificate.getEncoded());
-            val hexFingerprint = HexFormat.of().formatHex(fingerprint);
-            return Val.of(hexFingerprint);
-        } catch (Exception exception) {
+            val certificate       = decodeCertificate(certificatePem.getText());
+            val digest            = createMessageDigest(algorithm.getText());
+            val certificateBytes  = encodeCertificate(certificate);
+            val fingerprintBytes  = digest.digest(certificateBytes);
+            val fingerprintHex    = HexFormat.of().formatHex(fingerprintBytes);
+            return Val.of(fingerprintHex);
+        } catch (PolicyEvaluationException exception) {
             return Val.error("Failed to compute fingerprint: " + exception.getMessage());
         }
     }
@@ -272,26 +292,26 @@ public class X509FunctionLibrary {
               "example.com" in sans[*].value;
             ```
             """, schema = RETURNS_ARRAY)
-    public Val extractSubjectAltNames(@Text Val certPem) {
+    public Val extractSubjectAltNames(@Text Val certificatePem) {
         try {
-            val certificate = decodeCertificate(certPem.getText());
-            val sans        = certificate.getSubjectAlternativeNames();
-            val sansArray   = JSON.arrayNode();
+            val certificate           = decodeCertificate(certificatePem.getText());
+            val subjectAltNames       = extractSubjectAlternativeNames(certificate);
+            val subjectAltNamesArray  = JSON.arrayNode();
 
-            if (sans != null) {
-                for (List<?> san : sans) {
+            if (subjectAltNames != null) {
+                for (List<?> subjectAltName : subjectAltNames) {
                     val sanObject = JSON.objectNode();
-                    val type      = (Integer) san.get(0);
-                    val value     = san.get(1).toString();
+                    val sanType   = (Integer) subjectAltName.get(0);
+                    val sanValue  = subjectAltName.get(1).toString();
 
-                    sanObject.put("type", getSanTypeName(type));
-                    sanObject.put("value", value);
-                    sansArray.add(sanObject);
+                    sanObject.put("type", getSanTypeName(sanType));
+                    sanObject.put("value", sanValue);
+                    subjectAltNamesArray.add(sanObject);
                 }
             }
 
-            return Val.of(sansArray);
-        } catch (Exception exception) {
+            return Val.of(subjectAltNamesArray);
+        } catch (PolicyEvaluationException exception) {
             return Val.error("Failed to extract subject alternative names: " + exception.getMessage());
         }
     }
@@ -311,13 +331,13 @@ public class X509FunctionLibrary {
               x509.isExpired(clientCertificate);
             ```
             """, schema = RETURNS_BOOLEAN)
-    public Val isExpired(@Text Val certPem) {
+    public Val isExpired(@Text Val certificatePem) {
         try {
-            val certificate = decodeCertificate(certPem.getText());
-            val now         = new Date();
-            val isExpired   = now.after(certificate.getNotAfter());
+            val certificate = decodeCertificate(certificatePem.getText());
+            val currentTime = new Date();
+            val isExpired   = currentTime.after(certificate.getNotAfter());
             return Val.of(isExpired);
-        } catch (Exception exception) {
+        } catch (PolicyEvaluationException exception) {
             return Val.error("Failed to check expiration: " + exception.getMessage());
         }
     }
@@ -336,14 +356,14 @@ public class X509FunctionLibrary {
               x509.isValidAt(certPem, "2024-06-15T12:00:00Z");
             ```
             """, schema = RETURNS_BOOLEAN)
-    public Val isValidAt(@Text Val certPem, @Text Val isoTimestamp) {
+    public Val isValidAt(@Text Val certificatePem, @Text Val isoTimestamp) {
         try {
-            val certificate = decodeCertificate(certPem.getText());
-            val timestamp   = Date.from(Instant.parse(isoTimestamp.getText()));
-            val isValid     = !timestamp.before(certificate.getNotBefore())
+            val certificate  = decodeCertificate(certificatePem.getText());
+            val timestamp    = parseTimestamp(isoTimestamp.getText());
+            val isValid      = !timestamp.before(certificate.getNotBefore())
                     && !timestamp.after(certificate.getNotAfter());
             return Val.of(isValid);
-        } catch (Exception exception) {
+        } catch (PolicyEvaluationException exception) {
             return Val.error("Failed to check validity: " + exception.getMessage());
         }
     }
@@ -351,24 +371,127 @@ public class X509FunctionLibrary {
     /**
      * Decodes a certificate from PEM or DER format.
      *
-     * @param certString the certificate string
+     * @param certificateString the certificate string
      * @return the X509Certificate
-     * @throws Exception if decoding fails
+     * @throws PolicyEvaluationException if decoding fails
      */
-    private X509Certificate decodeCertificate(String certString) throws Exception {
-        val    certificateFactory = CertificateFactory.getInstance("X.509");
-        byte[] certBytes;
+    private static X509Certificate decodeCertificate(String certificateString) {
+        val certificateFactory = getCertificateFactory();
+        val certificateBytes   = extractCertificateBytes(certificateString);
+        val inputStream        = new ByteArrayInputStream(certificateBytes);
 
-        if (certString.contains("BEGIN CERTIFICATE")) {
-            val pemContent = certString.replaceAll("-----BEGIN CERTIFICATE-----", "")
-                    .replaceAll("-----END CERTIFICATE-----", "").replaceAll("\\s+", "");
-            certBytes = Base64.getDecoder().decode(pemContent);
-        } else {
-            certBytes = Base64.getDecoder().decode(certString);
+        try {
+            return (X509Certificate) certificateFactory.generateCertificate(inputStream);
+        } catch (CertificateException exception) {
+            throw new PolicyEvaluationException("Failed to parse X.509 certificate", exception);
         }
+    }
 
-        val inputStream = new ByteArrayInputStream(certBytes);
-        return (X509Certificate) certificateFactory.generateCertificate(inputStream);
+    /**
+     * Gets the X.509 certificate factory.
+     *
+     * @return the CertificateFactory
+     * @throws PolicyEvaluationException if X.509 is not supported
+     */
+    private static CertificateFactory getCertificateFactory() {
+        try {
+            return CertificateFactory.getInstance("X.509");
+        } catch (CertificateException exception) {
+            throw new PolicyEvaluationException("X.509 certificate factory not available", exception);
+        }
+    }
+
+    /**
+     * Extracts certificate bytes from PEM or Base64 DER format.
+     *
+     * @param certificateString the certificate string
+     * @return the decoded certificate bytes
+     * @throws PolicyEvaluationException if Base64 decoding fails
+     */
+    private static byte[] extractCertificateBytes(String certificateString) {
+        if (certificateString.contains("BEGIN CERTIFICATE")) {
+            val pemContent = certificateString.replace(PEM_CERTIFICATE_BEGIN, "")
+                    .replace(PEM_CERTIFICATE_END, "")
+                    .replaceAll("\\s+", "");
+            return decodeBase64(pemContent);
+        }
+        return decodeBase64(certificateString);
+    }
+
+    /**
+     * Decodes Base64 content.
+     *
+     * @param content the Base64-encoded content
+     * @return the decoded bytes
+     * @throws PolicyEvaluationException if decoding fails
+     */
+    private static byte[] decodeBase64(String content) {
+        try {
+            return Base64.getDecoder().decode(content);
+        } catch (IllegalArgumentException exception) {
+            throw new PolicyEvaluationException("Invalid Base64 encoding in certificate: " + exception.getMessage(),
+                    exception);
+        }
+    }
+
+    /**
+     * Creates a MessageDigest for the specified algorithm.
+     *
+     * @param algorithm the hash algorithm name
+     * @return the MessageDigest
+     * @throws PolicyEvaluationException if algorithm is not supported
+     */
+    private static MessageDigest createMessageDigest(String algorithm) {
+        try {
+            return MessageDigest.getInstance(algorithm);
+        } catch (NoSuchAlgorithmException exception) {
+            throw new PolicyEvaluationException("Hash algorithm not supported: " + algorithm, exception);
+        }
+    }
+
+    /**
+     * Encodes a certificate to its DER byte representation.
+     *
+     * @param certificate the X509Certificate
+     * @return the encoded bytes
+     * @throws PolicyEvaluationException if encoding fails
+     */
+    private static byte[] encodeCertificate(X509Certificate certificate) {
+        try {
+            return certificate.getEncoded();
+        } catch (CertificateEncodingException exception) {
+            throw new PolicyEvaluationException("Failed to encode certificate", exception);
+        }
+    }
+
+    /**
+     * Extracts subject alternative names from a certificate.
+     *
+     * @param certificate the X509Certificate
+     * @return the collection of SANs, or null if none present
+     * @throws PolicyEvaluationException if extraction fails
+     */
+    private static Collection<List<?>> extractSubjectAlternativeNames(X509Certificate certificate) {
+        try {
+            return certificate.getSubjectAlternativeNames();
+        } catch (CertificateException exception) {
+            throw new PolicyEvaluationException("Failed to extract subject alternative names", exception);
+        }
+    }
+
+    /**
+     * Parses an ISO 8601 timestamp to a Date.
+     *
+     * @param isoTimestamp the ISO 8601 timestamp string
+     * @return the Date
+     * @throws PolicyEvaluationException if parsing fails
+     */
+    private static Date parseTimestamp(String isoTimestamp) {
+        try {
+            return Date.from(Instant.parse(isoTimestamp));
+        } catch (DateTimeParseException exception) {
+            throw new PolicyEvaluationException("Invalid ISO 8601 timestamp format: " + isoTimestamp, exception);
+        }
     }
 
     /**
@@ -376,25 +499,24 @@ public class X509FunctionLibrary {
      *
      * @param certificate the X509Certificate
      * @return the JSON object
-     * @throws Exception if building fails
      */
-    private ObjectNode buildCertificateObject(X509Certificate certificate) throws Exception {
-        val certObject = JSON.objectNode();
+    private static ObjectNode buildCertificateObject(X509Certificate certificate) {
+        val certificateObject = JSON.objectNode();
 
-        certObject.put("version", certificate.getVersion());
-        certObject.put("serialNumber", certificate.getSerialNumber().toString());
-        certObject.put("subject", certificate.getSubjectX500Principal().getName());
-        certObject.put("issuer", certificate.getIssuerX500Principal().getName());
-        certObject.put("notBefore", certificate.getNotBefore().toInstant().toString());
-        certObject.put("notAfter", certificate.getNotAfter().toInstant().toString());
-        certObject.put("signatureAlgorithm", certificate.getSigAlgName());
+        certificateObject.put("version", certificate.getVersion());
+        certificateObject.put("serialNumber", certificate.getSerialNumber().toString());
+        certificateObject.put("subject", certificate.getSubjectX500Principal().getName());
+        certificateObject.put("issuer", certificate.getIssuerX500Principal().getName());
+        certificateObject.put("notBefore", certificate.getNotBefore().toInstant().toString());
+        certificateObject.put("notAfter", certificate.getNotAfter().toInstant().toString());
+        certificateObject.put("signatureAlgorithm", certificate.getSigAlgName());
 
         val publicKeyInfo = JSON.objectNode();
         publicKeyInfo.put("algorithm", certificate.getPublicKey().getAlgorithm());
         publicKeyInfo.put("format", certificate.getPublicKey().getFormat());
-        certObject.set("publicKey", publicKeyInfo);
+        certificateObject.set("publicKey", publicKeyInfo);
 
-        return certObject;
+        return certificateObject;
     }
 
     /**
@@ -403,18 +525,18 @@ public class X509FunctionLibrary {
      * @param type the type code
      * @return the type name
      */
-    private String getSanTypeName(int type) {
+    private static String getSanTypeName(int type) {
         return switch (type) {
-        case 0  -> "otherName";
-        case 1  -> "rfc822Name";
-        case 2  -> "dNSName";
-        case 3  -> "x400Address";
-        case 4  -> "directoryName";
-        case 5  -> "ediPartyName";
-        case 6  -> "uniformResourceIdentifier";
-        case 7  -> "iPAddress";
-        case 8  -> "registeredID";
-        default -> "unknown";
+            case SAN_TYPE_OTHER_NAME    -> "otherName";
+            case SAN_TYPE_RFC822_NAME   -> "rfc822Name";
+            case SAN_TYPE_DNS_NAME      -> "dNSName";
+            case SAN_TYPE_X400_ADDRESS  -> "x400Address";
+            case SAN_TYPE_DIRECTORY     -> "directoryName";
+            case SAN_TYPE_EDI_PARTY     -> "ediPartyName";
+            case SAN_TYPE_URI           -> "uniformResourceIdentifier";
+            case SAN_TYPE_IP_ADDRESS    -> "iPAddress";
+            case SAN_TYPE_REGISTERED_ID -> "registeredID";
+            default                     -> "unknown";
         };
     }
 }

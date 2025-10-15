@@ -134,7 +134,7 @@ public class DigestFunctionLibrary {
               digest.sha3_256("hello") == "3338be694f50c5f338814986cdf0686453a888b84f424d792af4b9202398f392";
             ```
             """, schema = RETURNS_TEXT)
-    public static Val sha3_256(@Text Val data) {
+    public static Val sha3256(@Text Val data) {
         return computeDigest(data.getText(), "SHA3-256");
     }
 
@@ -154,7 +154,7 @@ public class DigestFunctionLibrary {
               hash == "720aea11019ef06440fbf05d87aa24680a2153df3907b23631e7177ce620fa1330ff07c0fddee54699a4c3ee0ee9d887";
             ```
             """, schema = RETURNS_TEXT)
-    public static Val sha3_384(@Text Val data) {
+    public static Val sha3384(@Text Val data) {
         return computeDigest(data.getText(), "SHA3-384");
     }
 
@@ -174,7 +174,7 @@ public class DigestFunctionLibrary {
               hash == "75d527c368f2efe848ecf6b073a36767800805e9eef2b1857d5f984f036eb6df891d75f72d9b154518c1cd58835286d1da9a38deba3de98b5a53e5ed78a84976";
             ```
             """, schema = RETURNS_TEXT)
-    public static Val sha3_512(@Text Val data) {
+    public static Val sha3512(@Text Val data) {
         return computeDigest(data.getText(), "SHA3-512");
     }
 
