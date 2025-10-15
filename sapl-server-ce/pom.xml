@@ -95,19 +95,11 @@
 		</dependency>
 		<dependency>
 			<groupId>io.sapl</groupId>
-			<artifactId>jwt</artifactId>
-		</dependency>
-		<dependency>
-			<groupId>io.sapl</groupId>
 			<artifactId>geo-functions</artifactId>
 		</dependency>
 		<dependency>
 			<groupId>io.sapl</groupId>
 			<artifactId>geo-traccar</artifactId>
-		</dependency>
-			<dependency>
-			<groupId>io.sapl</groupId>
-			<artifactId>input-sanitization-functions</artifactId>
 		</dependency>
 		<dependency>
 			<groupId>io.sapl</groupId>

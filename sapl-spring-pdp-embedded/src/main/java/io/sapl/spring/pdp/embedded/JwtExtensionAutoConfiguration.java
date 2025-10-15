@@ -19,9 +19,9 @@ package io.sapl.spring.pdp.embedded;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.sapl.api.functions.FunctionLibrarySupplier;
-import io.sapl.extension.jwt.JWTFunctionLibrary;
-import io.sapl.extension.jwt.JWTKeyProvider;
-import io.sapl.extension.jwt.JWTPolicyInformationPoint;
+import io.sapl.attributes.pips.jwt.JWTPolicyInformationPoint;
+import io.sapl.functions.JWTFunctionLibrary;
+import io.sapl.functions.util.jwt.JWTKeyProvider;
 import org.springframework.beans.factory.config.BeanDefinition;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;

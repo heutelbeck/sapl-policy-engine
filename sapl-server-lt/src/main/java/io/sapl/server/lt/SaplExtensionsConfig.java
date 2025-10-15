@@ -26,7 +26,6 @@ import io.sapl.extensions.mqtt.MqttPolicyInformationPoint;
 import io.sapl.extensions.mqtt.SaplMqttClient;
 import io.sapl.functions.geo.GeographicFunctionLibrary;
 import io.sapl.functions.geo.traccar.TraccarFunctionLibrary;
-import io.sapl.functions.sanitization.SanitizationFunctionLibrary;
 import io.sapl.pip.geo.traccar.TraccarPolicyInformationPoint;
 import org.springframework.beans.factory.config.BeanDefinition;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
@@ -64,8 +63,7 @@ public class SaplExtensionsConfig {
     @Bean
     @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
     StaticFunctionLibrarySupplier additionalStaticLibraries() {
-        return () -> List.of(MqttFunctionLibrary.class, GeographicFunctionLibrary.class, TraccarFunctionLibrary.class,
-                SanitizationFunctionLibrary.class);
+        return () -> List.of(MqttFunctionLibrary.class, GeographicFunctionLibrary.class, TraccarFunctionLibrary.class);
     }
 
 }

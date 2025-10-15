@@ -58,14 +58,6 @@
 			<version>${project.version}</version>
 		</dependency>
 
-		<!-- Optional JWT SAPL Extensions -->
-		<dependency>
-			<groupId>${project.groupId}</groupId>
-			<artifactId>jwt</artifactId>
-			<version>${project.version}</version>
-			<optional>true</optional>
-		</dependency>
-		
 		<!-- Utility -->
 		<dependency>
 			<groupId>org.projectlombok</groupId>

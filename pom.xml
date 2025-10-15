@@ -129,8 +129,6 @@
 		
 		<module>pdp-extensions/geo-functions</module>
 		<module>pdp-extensions/geo-traccar</module>
-		<module>pdp-extensions/input-sanitization-functions</module>
-		<module>pdp-extensions/jwt</module>
 		<module>pdp-extensions/mqtt-functions</module>
 		<module>pdp-extensions/mqtt-pip</module>
 		

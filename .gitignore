@@ -30,6 +30,7 @@ node_modules/
 **/package.json
 **/package-lock.json
 **/bin/
+**/.m2/
 sapl-web/src/main/java/io/sapl/grammar/web/SAPLWebSetup.java
 sapl-web/src/main/java/io/sapl/grammar/web/SAPLWebModule.java
 sapl-ide/src/test/java/io/sapl/grammar/ide/contentassist/Schema_wo_variables.java

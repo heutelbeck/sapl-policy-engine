@@ -59,6 +59,15 @@
 			<groupId>org.springframework</groupId>
 			<artifactId>spring-webflux</artifactId>
 		</dependency>
+        <dependency>
+            <groupId>net.jcip</groupId>
+            <artifactId>jcip-annotations</artifactId>
+           <version>1.0</version>
+        </dependency>
+        <dependency>
+            <groupId>com.nimbusds</groupId>
+            <artifactId>nimbus-jose-jwt</artifactId>
+        </dependency>
 	</dependencies>
 
 	<build>
@@ -91,13 +100,17 @@
 							spring-core,
 							spring-context,
 							spring-web,
-							spring-webflux
+							spring-webflux,
+                            jcip-annotations,
+                            nimbus-jose-jwt
 						</Embed-Dependency>
 						<Import-Package>
 							!groovy
 						</Import-Package>
 						<_exportcontents>
 							org.springframework.*;version="6.1.11",
+                            net.jcip.annotations.*;version="1.0.0",
+                            com.nimbusds.*;version="9.37.4"
 						</_exportcontents>
 						<Bundle-ClassPath>{maven-dependencies}</Bundle-ClassPath>
 						<Embed-Transitive>true</Embed-Transitive>

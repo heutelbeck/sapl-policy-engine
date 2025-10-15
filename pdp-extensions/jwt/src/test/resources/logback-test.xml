@@ -1,8 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<configuration>
-	<root level="error" />
-	<logger name="org.springframework" level="error" />
-	<logger name="org.hibernate" level="error" />
-	<logger name="okhttp3.mockwebserver" level="error" />
-	<logger name="ch.qos.logback" level="error" />
-</configuration>

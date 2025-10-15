@@ -27,17 +27,16 @@ import io.sapl.attributes.broker.impl.InMemoryPolicyInformationPointDocumentatio
 import io.sapl.attributes.documentation.api.PolicyInformationPointDocumentationProvider;
 import io.sapl.attributes.pips.http.HttpPolicyInformationPoint;
 import io.sapl.attributes.pips.http.ReactiveWebClient;
+import io.sapl.attributes.pips.jwt.JWTPolicyInformationPoint;
 import io.sapl.attributes.pips.time.TimePolicyInformationPoint;
-import io.sapl.extension.jwt.JWTFunctionLibrary;
-import io.sapl.extension.jwt.JWTKeyProvider;
-import io.sapl.extension.jwt.JWTPolicyInformationPoint;
 import io.sapl.extensions.mqtt.MqttFunctionLibrary;
 import io.sapl.extensions.mqtt.MqttPolicyInformationPoint;
 import io.sapl.extensions.mqtt.SaplMqttClient;
 import io.sapl.functions.DefaultLibraries;
+import io.sapl.functions.JWTFunctionLibrary;
 import io.sapl.functions.geo.GeographicFunctionLibrary;
 import io.sapl.functions.geo.traccar.TraccarFunctionLibrary;
-import io.sapl.functions.sanitization.SanitizationFunctionLibrary;
+import io.sapl.functions.util.jwt.JWTKeyProvider;
 import io.sapl.grammar.web.SAPLServlet;
 import io.sapl.interpreter.InitializationException;
 import io.sapl.interpreter.combinators.PolicyDocumentCombiningAlgorithm;
@@ -95,8 +94,8 @@ public class PlaygroundConfiguration {
     @Bean
     FunctionContext functionContext(ObjectMapper mapper) throws InitializationException {
         val staticLibraries = new ArrayList<Class<?>>(DefaultLibraries.STATIC_LIBRARIES);
-        staticLibraries.addAll(List.of(GeographicFunctionLibrary.class, MqttFunctionLibrary.class,
-                SanitizationFunctionLibrary.class, TraccarFunctionLibrary.class));
+        staticLibraries.addAll(
+                List.of(GeographicFunctionLibrary.class, MqttFunctionLibrary.class, TraccarFunctionLibrary.class));
         return new AnnotationFunctionContext(() -> List.of(new JWTFunctionLibrary(mapper)), () -> staticLibraries);
     }
 

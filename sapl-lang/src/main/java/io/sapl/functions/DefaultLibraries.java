@@ -40,6 +40,7 @@ public class DefaultLibraries {
             PatternsFunctionLibrary.class,
             PermissionsFunctionLibrary.class,
             ReflectionFunctionLibrary.class,
+            SanitizationFunctionLibrary.class,
             SaplFunctionLibrary.class,
             SchemaValidationLibrary.class,
             SignatureFunctionLibrary.class,

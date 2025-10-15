@@ -53,19 +53,11 @@
     <dependencies>
         <dependency>
             <groupId>io.sapl</groupId>
-            <artifactId>jwt</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>io.sapl</groupId>
             <artifactId>mqtt-functions</artifactId>
         </dependency>
         <dependency>
             <groupId>io.sapl</groupId>
             <artifactId>mqtt-pip</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>io.sapl</groupId>
-            <artifactId>input-sanitization-functions</artifactId>
         </dependency>
         <dependency>
             <groupId>io.sapl</groupId>

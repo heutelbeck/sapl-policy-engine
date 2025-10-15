@@ -150,6 +150,12 @@
 			<artifactId>reactor-extra</artifactId>
 		</dependency>
 
+        <!-- JSON Web Token Support -->
+        <dependency>
+            <groupId>com.nimbusds</groupId>
+            <artifactId>nimbus-jose-jwt</artifactId>
+        </dependency>
+
         <!-- Crypto -->
         <dependency>
             <groupId>org.bouncycastle</groupId>
