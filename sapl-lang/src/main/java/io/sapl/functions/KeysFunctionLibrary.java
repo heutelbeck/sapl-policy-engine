@@ -35,6 +35,7 @@ import java.math.BigInteger;
 import java.security.KeyFactory;
 import java.security.NoSuchAlgorithmException;
 import java.security.PublicKey;
+import java.security.cert.CertificateException;
 import java.security.interfaces.ECPublicKey;
 import java.security.interfaces.EdECPublicKey;
 import java.security.interfaces.RSAPublicKey;
@@ -124,7 +125,7 @@ public class KeysFunctionLibrary {
             val publicKey   = certificate.getPublicKey();
             val keyPem      = PemUtils.encodePublicKeyPem(publicKey.getEncoded());
             return Val.of(keyPem);
-        } catch (PolicyEvaluationException exception) {
+        } catch (PolicyEvaluationException | CertificateException exception) {
             return Val.error("Failed to extract public key from certificate: " + exception.getMessage());
         }
     }
@@ -255,7 +256,7 @@ public class KeysFunctionLibrary {
             val publicKey = convertJwkToPublicKey(jwk.get());
             val keyPem    = PemUtils.encodePublicKeyPem(publicKey.getEncoded());
             return Val.of(keyPem);
-        } catch (PolicyEvaluationException exception) {
+        } catch (PolicyEvaluationException | NoSuchAlgorithmException | InvalidKeySpecException exception) {
             return Val.error("Failed to convert JWK to public key: " + exception.getMessage());
         }
     }
@@ -311,7 +312,8 @@ public class KeysFunctionLibrary {
     /**
      * Converts a JWK to PublicKey.
      */
-    private static PublicKey convertJwkToPublicKey(JsonNode jwkNode) {
+    private static PublicKey convertJwkToPublicKey(JsonNode jwkNode)
+            throws NoSuchAlgorithmException, InvalidKeySpecException {
         val keyTypeNode = jwkNode.get("kty");
         if (keyTypeNode == null || !keyTypeNode.isTextual()) {
             throw new PolicyEvaluationException("JWK missing required 'kty' field");
@@ -332,7 +334,8 @@ public class KeysFunctionLibrary {
     /**
      * Converts an RSA JWK to PublicKey.
      */
-    private static PublicKey convertRsaJwkToPublicKey(JsonNode jwkNode) {
+    private static PublicKey convertRsaJwkToPublicKey(JsonNode jwkNode)
+            throws NoSuchAlgorithmException, InvalidKeySpecException {
         val modulusNode  = jwkNode.get("n");
         val exponentNode = jwkNode.get("e");
 
@@ -349,11 +352,7 @@ public class KeysFunctionLibrary {
         val exponent      = new BigInteger(1, exponentBytes);
 
         val keySpec = new java.security.spec.RSAPublicKeySpec(modulus, exponent);
-        try {
-            return KeyFactory.getInstance(ALGORITHM_RSA).generatePublic(keySpec);
-        } catch (InvalidKeySpecException | NoSuchAlgorithmException exception) {
-            throw new PolicyEvaluationException("Failed to generate RSA public key from JWK", exception);
-        }
+        return KeyFactory.getInstance(ALGORITHM_RSA).generatePublic(keySpec);
     }
 
     /**

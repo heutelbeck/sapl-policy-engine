@@ -18,6 +18,7 @@
 package io.sapl.functions.util.crypto;
 
 import io.sapl.api.interpreter.PolicyEvaluationException;
+import lombok.SneakyThrows;
 import lombok.val;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.junit.jupiter.api.BeforeAll;
@@ -32,6 +33,7 @@ import java.security.interfaces.ECPublicKey;
 import java.security.interfaces.EdECPublicKey;
 import java.security.interfaces.RSAPublicKey;
 import java.security.spec.ECGenParameterSpec;
+import java.security.spec.InvalidKeySpecException;
 import java.security.spec.X509EncodedKeySpec;
 import java.util.stream.Stream;
 
@@ -49,7 +51,8 @@ class KeyUtilsTest {
 
     @ParameterizedTest
     @MethodSource("provideKeysForParsing")
-    void parsePublicKey_withValidKey_succeeds(String algorithm, PublicKey expectedKey) {
+    void parsePublicKey_withValidKey_succeeds(String algorithm, PublicKey expectedKey)
+            throws NoSuchAlgorithmException, InvalidKeySpecException {
         val pemKey = generatePemFromPublicKey(expectedKey);
 
         val parsedKey = KeyUtils.parsePublicKey(pemKey, algorithm);
@@ -60,7 +63,7 @@ class KeyUtilsTest {
     }
 
     @Test
-    void parsePublicKey_withRsaKey_returnsRsaPublicKey() {
+    void parsePublicKey_withRsaKey_returnsRsaPublicKey() throws NoSuchAlgorithmException, InvalidKeySpecException {
         val keyPair = generateRsaKeyPair(2048);
         val pemKey  = generatePemFromPublicKey(keyPair.getPublic());
 
@@ -72,7 +75,7 @@ class KeyUtilsTest {
     }
 
     @Test
-    void parsePublicKey_withEcP256Key_returnsEcPublicKey() {
+    void parsePublicKey_withEcP256Key_returnsEcPublicKey() throws NoSuchAlgorithmException, InvalidKeySpecException {
         val keyPair = generateEcKeyPair(CURVE_SECP256R1);
         val pemKey  = generatePemFromPublicKey(keyPair.getPublic());
 
@@ -82,7 +85,7 @@ class KeyUtilsTest {
     }
 
     @Test
-    void parsePublicKey_withEd25519Key_returnsEdEcPublicKey() {
+    void parsePublicKey_withEd25519Key_returnsEdEcPublicKey() throws NoSuchAlgorithmException, InvalidKeySpecException {
         val keyPair = generateEd25519KeyPair();
         val pemKey  = generatePemFromPublicKey(keyPair.getPublic());
 
@@ -96,10 +99,7 @@ class KeyUtilsTest {
         val keyPair = generateRsaKeyPair(2048);
         val pemKey  = generatePemFromPublicKey(keyPair.getPublic());
 
-        val exception = assertThrows(PolicyEvaluationException.class,
-                () -> KeyUtils.parsePublicKey(pemKey, "INVALID_ALGORITHM"));
-
-        assertTrue(exception.getMessage().contains("Key algorithm not supported"));
+        assertThrows(NoSuchAlgorithmException.class, () -> KeyUtils.parsePublicKey(pemKey, "INVALID_ALGORITHM"));
     }
 
     @Test
@@ -107,10 +107,7 @@ class KeyUtilsTest {
         val keyPair = generateRsaKeyPair(2048);
         val pemKey  = generatePemFromPublicKey(keyPair.getPublic());
 
-        val exception = assertThrows(PolicyEvaluationException.class,
-                () -> KeyUtils.parsePublicKey(pemKey, ALGORITHM_EC));
-
-        assertTrue(exception.getMessage().contains("Invalid key format"));
+        assertThrows(InvalidKeySpecException.class, () -> KeyUtils.parsePublicKey(pemKey, ALGORITHM_EC));
     }
 
     @Test
@@ -127,7 +124,7 @@ class KeyUtilsTest {
     void parsePublicKey_withMalformedPem_throwsException() {
         val malformedPem = "not a pem key at all";
 
-        assertThrows(PolicyEvaluationException.class, () -> KeyUtils.parsePublicKey(malformedPem, ALGORITHM_RSA));
+        assertThrows(InvalidKeySpecException.class, () -> KeyUtils.parsePublicKey(malformedPem, ALGORITHM_RSA));
     }
 
     /* parsePublicKeyWithAlgorithmDetection Tests */
@@ -328,45 +325,33 @@ class KeyUtilsTest {
 
     /* Test Helper Methods */
 
+    @SneakyThrows
     private static KeyPair generateRsaKeyPair(int keySize) {
-        try {
-            val keyPairGenerator = KeyPairGenerator.getInstance(ALGORITHM_RSA);
-            keyPairGenerator.initialize(keySize);
-            return keyPairGenerator.generateKeyPair();
-        } catch (NoSuchAlgorithmException exception) {
-            throw new RuntimeException("Failed to generate RSA key pair", exception);
-        }
+        val keyPairGenerator = KeyPairGenerator.getInstance(ALGORITHM_RSA);
+        keyPairGenerator.initialize(keySize);
+        return keyPairGenerator.generateKeyPair();
     }
 
+    @SneakyThrows
     private static KeyPair generateEcKeyPair(String curveName) {
-        try {
-            val keyPairGenerator = KeyPairGenerator.getInstance(ALGORITHM_EC, "BC");
-            val ecSpec           = new ECGenParameterSpec(curveName);
-            keyPairGenerator.initialize(ecSpec);
-            return keyPairGenerator.generateKeyPair();
-        } catch (GeneralSecurityException exception) {
-            throw new RuntimeException("Failed to generate EC key pair", exception);
-        }
+        val keyPairGenerator = KeyPairGenerator.getInstance(ALGORITHM_EC, "BC");
+        val ecSpec           = new ECGenParameterSpec(curveName);
+        keyPairGenerator.initialize(ecSpec);
+        return keyPairGenerator.generateKeyPair();
     }
 
+    @SneakyThrows
     private static KeyPair generateEcKeyPairWithDefaultProvider(String curveName) {
-        try {
-            val keyPairGenerator = KeyPairGenerator.getInstance(ALGORITHM_EC);
-            val ecSpec           = new ECGenParameterSpec(curveName);
-            keyPairGenerator.initialize(ecSpec);
-            return keyPairGenerator.generateKeyPair();
-        } catch (GeneralSecurityException exception) {
-            throw new RuntimeException("Failed to generate EC key pair with default provider", exception);
-        }
+        val keyPairGenerator = KeyPairGenerator.getInstance(ALGORITHM_EC);
+        val ecSpec           = new ECGenParameterSpec(curveName);
+        keyPairGenerator.initialize(ecSpec);
+        return keyPairGenerator.generateKeyPair();
     }
 
+    @SneakyThrows
     private static KeyPair generateEd25519KeyPair() {
-        try {
-            val keyPairGenerator = KeyPairGenerator.getInstance(ALGORITHM_EDDSA);
-            return keyPairGenerator.generateKeyPair();
-        } catch (NoSuchAlgorithmException exception) {
-            throw new RuntimeException("Failed to generate Ed25519 key pair", exception);
-        }
+        val keyPairGenerator = KeyPairGenerator.getInstance(ALGORITHM_EDDSA);
+        return keyPairGenerator.generateKeyPair();
     }
 
     private static String generatePemFromPublicKey(PublicKey publicKey) {

@@ -18,6 +18,7 @@
 package io.sapl.functions.util.crypto;
 
 import io.sapl.api.interpreter.PolicyEvaluationException;
+import lombok.SneakyThrows;
 import lombok.val;
 import org.bouncycastle.asn1.x500.X500Name;
 import org.bouncycastle.asn1.x509.BasicConstraints;
@@ -37,9 +38,10 @@ import org.junit.jupiter.params.provider.MethodSource;
 import java.math.BigInteger;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
-import java.security.NoSuchAlgorithmException;
 import java.security.Security;
 import java.security.cert.CertificateEncodingException;
+import java.security.cert.CertificateException;
+import java.security.cert.CertificateParsingException;
 import java.security.cert.X509Certificate;
 import java.util.Base64;
 import java.util.Date;
@@ -58,7 +60,7 @@ class CertificateUtilsTest {
     /* parseCertificate Tests */
 
     @Test
-    void parseCertificate_withPemFormat_succeeds() throws CertificateEncodingException {
+    void parseCertificate_withPemFormat_succeeds() throws CertificateException {
         val certificate    = generateSelfSignedCertificate("CN=Test");
         val pemCertificate = convertToPem(certificate);
 
@@ -70,7 +72,7 @@ class CertificateUtilsTest {
     }
 
     @Test
-    void parseCertificate_withDerFormat_succeeds() {
+    void parseCertificate_withDerFormat_succeeds() throws CertificateException {
         val certificate    = generateSelfSignedCertificate("CN=Test");
         val derCertificate = convertToDer(certificate);
 
@@ -81,7 +83,7 @@ class CertificateUtilsTest {
     }
 
     @Test
-    void parseCertificate_withPemFormatWithWhitespace_succeeds() {
+    void parseCertificate_withPemFormatWithWhitespace_succeeds() throws CertificateException {
         val certificate       = generateSelfSignedCertificate("CN=Test");
         val pemWithWhitespace = "\n\n  " + convertToPem(certificate) + "  \n\n";
 
@@ -93,7 +95,7 @@ class CertificateUtilsTest {
 
     @ParameterizedTest
     @MethodSource("provideCertificatesWithDifferentSubjects")
-    void parseCertificate_withDifferentSubjects_preservesSubject(String subject) {
+    void parseCertificate_withDifferentSubjects_preservesSubject(String subject) throws CertificateException {
         val certificate    = generateSelfSignedCertificate(subject);
         val pemCertificate = convertToPem(certificate);
 
@@ -123,14 +125,14 @@ class CertificateUtilsTest {
 
     @Test
     void parseCertificate_withEmptyString_throwsException() {
-        assertThrows(PolicyEvaluationException.class, () -> CertificateUtils.parseCertificate(""));
+        assertThrows(CertificateException.class, () -> CertificateUtils.parseCertificate(""));
     }
 
     @Test
     void parseCertificate_withPartialPem_throwsException() {
         val partialPem = "-----BEGIN CERTIFICATE-----\naGVsbG8=\n";
 
-        assertThrows(PolicyEvaluationException.class, () -> CertificateUtils.parseCertificate(partialPem));
+        assertThrows(CertificateException.class, () -> CertificateUtils.parseCertificate(partialPem));
     }
 
     /* encodeCertificate Tests */
@@ -147,7 +149,7 @@ class CertificateUtilsTest {
     }
 
     @Test
-    void encodeCertificate_resultCanBeParsedBack() throws CertificateEncodingException {
+    void encodeCertificate_resultCanBeParsedBack() throws CertificateException {
         val originalCertificate = generateSelfSignedCertificate("CN=Test");
 
         val encodedBytes        = CertificateUtils.encodeCertificate(originalCertificate);
@@ -160,7 +162,7 @@ class CertificateUtilsTest {
 
     @ParameterizedTest
     @MethodSource("provideCertificatesWithDifferentKeyAlgorithms")
-    void encodeCertificate_withDifferentKeyAlgorithms_succeeds(String algorithm) {
+    void encodeCertificate_withDifferentKeyAlgorithms_succeeds(String algorithm) throws CertificateEncodingException {
         val certificate = generateCertificateWithKeyAlgorithm(algorithm);
 
         val encodedBytes = CertificateUtils.encodeCertificate(certificate);
@@ -172,7 +174,7 @@ class CertificateUtilsTest {
     /* extractSubjectAlternativeNames Tests */
 
     @Test
-    void extractSubjectAlternativeNames_withNullSans_returnsNull() {
+    void extractSubjectAlternativeNames_withNullSans_returnsNull() throws CertificateParsingException {
         val certificate = generateSelfSignedCertificate("CN=Test");
 
         val sans = CertificateUtils.extractSubjectAlternativeNames(certificate);
@@ -181,7 +183,7 @@ class CertificateUtilsTest {
     }
 
     @Test
-    void extractSubjectAlternativeNames_withDnsNames_returnsCorrectSans() {
+    void extractSubjectAlternativeNames_withDnsNames_returnsCorrectSans() throws CertificateParsingException {
         val dnsNames    = new String[] { "example.com", "www.example.com", "api.example.com" };
         val certificate = generateCertificateWithSans(dnsNames, GeneralName.dNSName);
 
@@ -198,7 +200,7 @@ class CertificateUtilsTest {
     }
 
     @Test
-    void extractSubjectAlternativeNames_withIpAddresses_returnsCorrectSans() {
+    void extractSubjectAlternativeNames_withIpAddresses_returnsCorrectSans() throws CertificateParsingException {
         val ipAddresses = new String[] { "192.168.1.1", "10.0.0.1" };
         val certificate = generateCertificateWithSans(ipAddresses, GeneralName.iPAddress);
 
@@ -214,7 +216,7 @@ class CertificateUtilsTest {
     }
 
     @Test
-    void extractSubjectAlternativeNames_withEmailAddresses_returnsCorrectSans() {
+    void extractSubjectAlternativeNames_withEmailAddresses_returnsCorrectSans() throws CertificateParsingException {
         val emails      = new String[] { "admin@example.com", "user@example.com" };
         val certificate = generateCertificateWithSans(emails, GeneralName.rfc822Name);
 
@@ -231,7 +233,7 @@ class CertificateUtilsTest {
     }
 
     @Test
-    void extractSubjectAlternativeNames_withUris_returnsCorrectSans() {
+    void extractSubjectAlternativeNames_withUris_returnsCorrectSans() throws CertificateParsingException {
         val uris        = new String[] { "https://example.com", "https://api.example.com" };
         val certificate = generateCertificateWithSans(uris, GeneralName.uniformResourceIdentifier);
 
@@ -247,7 +249,7 @@ class CertificateUtilsTest {
     }
 
     @Test
-    void extractSubjectAlternativeNames_withMixedTypes_returnsAllSans() {
+    void extractSubjectAlternativeNames_withMixedTypes_returnsAllSans() throws CertificateParsingException {
         val certificate = generateCertificateWithMixedSans();
 
         val sans = CertificateUtils.extractSubjectAlternativeNames(certificate);
@@ -264,7 +266,7 @@ class CertificateUtilsTest {
     /* getCertificateFactory Tests */
 
     @Test
-    void getCertificateFactory_returnsValidFactory() {
+    void getCertificateFactory_returnsValidFactory() throws CertificateException {
         val factory = CertificateUtils.getCertificateFactory();
 
         assertNotNull(factory);
@@ -287,7 +289,7 @@ class CertificateUtilsTest {
     /* Integration Tests */
 
     @Test
-    void roundTrip_parseEncodeAndParseAgain_producesEquivalentCertificate() throws CertificateEncodingException {
+    void roundTrip_parseEncodeAndParseAgain_producesEquivalentCertificate() throws CertificateException {
         val originalCertificate = generateSelfSignedCertificate("CN=Integration Test");
         val pemCertificate      = convertToPem(originalCertificate);
 
@@ -316,55 +318,43 @@ class CertificateUtilsTest {
 
     /* Test Helper Methods */
 
+    @SneakyThrows
     private static X509Certificate generateSelfSignedCertificate(String subjectDn) {
-        try {
-            val keyPair = generateRsaKeyPair();
-            return buildCertificate(subjectDn, keyPair, null);
-        } catch (Exception exception) {
-            throw new RuntimeException("Failed to generate self-signed certificate", exception);
-        }
+        val keyPair = generateRsaKeyPair();
+        return buildCertificate(subjectDn, keyPair, null);
     }
 
+    @SneakyThrows
     private static X509Certificate generateCertificateWithKeyAlgorithm(String algorithm) {
-        try {
-            val keyPair = switch (algorithm) {
-            case ALGORITHM_RSA -> generateRsaKeyPair();
-            case ALGORITHM_EC  -> generateEcKeyPair();
-            default            -> throw new IllegalArgumentException("Unsupported algorithm: " + algorithm);
-            };
-            return buildCertificate("CN=Test", keyPair, null);
-        } catch (Exception exception) {
-            throw new RuntimeException("Failed to generate certificate", exception);
-        }
+        val keyPair = switch (algorithm) {
+        case ALGORITHM_RSA -> generateRsaKeyPair();
+        case ALGORITHM_EC  -> generateEcKeyPair();
+        default            -> throw new IllegalArgumentException("Unsupported algorithm: " + algorithm);
+        };
+        return buildCertificate("CN=Test", keyPair, null);
     }
 
+    @SneakyThrows
     private static X509Certificate generateCertificateWithSans(String[] sanValues, int sanType) {
-        try {
-            val keyPair      = generateRsaKeyPair();
-            val generalNames = new GeneralName[sanValues.length];
+        val keyPair      = generateRsaKeyPair();
+        val generalNames = new GeneralName[sanValues.length];
 
-            for (var i = 0; i < sanValues.length; i++) {
-                generalNames[i] = new GeneralName(sanType, sanValues[i]);
-            }
-
-            val sans = new GeneralNames(generalNames);
-            return buildCertificate("CN=Test", keyPair, sans);
-        } catch (Exception exception) {
-            throw new RuntimeException("Failed to generate certificate with SANs", exception);
+        for (var i = 0; i < sanValues.length; i++) {
+            generalNames[i] = new GeneralName(sanType, sanValues[i]);
         }
+
+        val sans = new GeneralNames(generalNames);
+        return buildCertificate("CN=Test", keyPair, sans);
     }
 
+    @SneakyThrows
     private static X509Certificate generateCertificateWithMixedSans() {
-        try {
-            val keyPair      = generateRsaKeyPair();
-            val generalNames = new GeneralName[] { new GeneralName(GeneralName.dNSName, "example.com"),
-                    new GeneralName(GeneralName.rfc822Name, "admin@example.com"),
-                    new GeneralName(GeneralName.uniformResourceIdentifier, "https://example.com") };
-            val sans         = new GeneralNames(generalNames);
-            return buildCertificate("CN=Test", keyPair, sans);
-        } catch (Exception exception) {
-            throw new RuntimeException("Failed to generate certificate with mixed SANs", exception);
-        }
+        val keyPair      = generateRsaKeyPair();
+        val generalNames = new GeneralName[] { new GeneralName(GeneralName.dNSName, "example.com"),
+                new GeneralName(GeneralName.rfc822Name, "admin@example.com"),
+                new GeneralName(GeneralName.uniformResourceIdentifier, "https://example.com") };
+        val sans         = new GeneralNames(generalNames);
+        return buildCertificate("CN=Test", keyPair, sans);
     }
 
     private static X509Certificate buildCertificate(String subjectDn, KeyPair keyPair,
@@ -395,40 +385,28 @@ class CertificateUtilsTest {
         return new JcaX509CertificateConverter().setProvider("BC").getCertificate(certificateHolder);
     }
 
+    @SneakyThrows
     private static KeyPair generateRsaKeyPair() {
-        try {
-            val keyPairGenerator = KeyPairGenerator.getInstance(ALGORITHM_RSA);
-            keyPairGenerator.initialize(2048);
-            return keyPairGenerator.generateKeyPair();
-        } catch (NoSuchAlgorithmException exception) {
-            throw new RuntimeException("Failed to generate RSA key pair", exception);
-        }
+        val keyPairGenerator = KeyPairGenerator.getInstance(ALGORITHM_RSA);
+        keyPairGenerator.initialize(2048);
+        return keyPairGenerator.generateKeyPair();
     }
 
+    @SneakyThrows
     private static KeyPair generateEcKeyPair() {
-        try {
-            val keyPairGenerator = KeyPairGenerator.getInstance(ALGORITHM_EC);
-            keyPairGenerator.initialize(256);
-            return keyPairGenerator.generateKeyPair();
-        } catch (NoSuchAlgorithmException exception) {
-            throw new RuntimeException("Failed to generate EC key pair", exception);
-        }
+        val keyPairGenerator = KeyPairGenerator.getInstance(ALGORITHM_EC);
+        keyPairGenerator.initialize(256);
+        return keyPairGenerator.generateKeyPair();
     }
 
+    @SneakyThrows
     private static String convertToPem(X509Certificate certificate) {
-        try {
-            val encoded = Base64.getEncoder().encodeToString(certificate.getEncoded());
-            return PEM_CERTIFICATE_BEGIN + '\n' + encoded + '\n' + PEM_CERTIFICATE_END;
-        } catch (Exception exception) {
-            throw new RuntimeException("Failed to convert certificate to PEM", exception);
-        }
+        val encoded = Base64.getEncoder().encodeToString(certificate.getEncoded());
+        return PEM_CERTIFICATE_BEGIN + '\n' + encoded + '\n' + PEM_CERTIFICATE_END;
     }
 
+    @SneakyThrows
     private static String convertToDer(X509Certificate certificate) {
-        try {
-            return Base64.getEncoder().encodeToString(certificate.getEncoded());
-        } catch (Exception exception) {
-            throw new RuntimeException("Failed to convert certificate to DER", exception);
-        }
+        return Base64.getEncoder().encodeToString(certificate.getEncoded());
     }
 }

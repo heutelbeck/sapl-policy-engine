@@ -30,6 +30,9 @@ import lombok.val;
 
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.security.cert.CertificateEncodingException;
+import java.security.cert.CertificateException;
+import java.security.cert.CertificateParsingException;
 import java.security.cert.X509Certificate;
 import java.time.Instant;
 import java.time.format.DateTimeParseException;
@@ -269,7 +272,7 @@ public class X509FunctionLibrary {
                 }
 
                 return Val.of(subjectAltNamesArray);
-            } catch (PolicyEvaluationException exception) {
+            } catch (CertificateParsingException exception) {
                 return Val.error("Failed to extract subject alternative names: " + exception.getMessage());
             }
         }, "Failed to extract subject alternative names");
@@ -342,7 +345,7 @@ public class X509FunctionLibrary {
         try {
             val certificate = CertificateUtils.parseCertificate(certificateString);
             return operation.apply(certificate);
-        } catch (PolicyEvaluationException exception) {
+        } catch (CertificateException exception) {
             return Val.error(errorPrefix + ": " + exception.getMessage());
         }
     }
@@ -363,7 +366,7 @@ public class X509FunctionLibrary {
             return Val.of(fingerprintHex);
         } catch (NoSuchAlgorithmException exception) {
             return Val.error("Hash algorithm not supported: " + algorithm);
-        } catch (PolicyEvaluationException exception) {
+        } catch (CertificateEncodingException exception) {
             return Val.error("Failed to encode certificate: " + exception.getMessage());
         }
     }

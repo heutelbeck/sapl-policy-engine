@@ -307,7 +307,8 @@ public class SignatureFunctionLibrary {
                 throw new PolicyEvaluationException(
                         "Signature must be in hexadecimal or Base64 format. Hex parsing failed: "
                                 + hexParsingFailed.getMessage() + ". Base64 parsing failed: "
-                                + base64ParsingFailed.getMessage());
+                                + base64ParsingFailed.getMessage(),
+                        base64ParsingFailed);
             }
         }
     }

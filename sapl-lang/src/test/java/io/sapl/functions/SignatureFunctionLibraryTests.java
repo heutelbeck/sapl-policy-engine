@@ -21,6 +21,7 @@ import io.sapl.api.interpreter.Val;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
+import java.nio.charset.StandardCharsets;
 import java.security.*;
 import java.util.Base64;
 import java.util.HexFormat;
@@ -284,7 +285,7 @@ class SignatureFunctionLibraryTests {
     private byte[] createSignature(PrivateKey privateKey, String algorithm) throws Exception {
         var signature = Signature.getInstance(algorithm);
         signature.initSign(privateKey);
-        signature.update(SignatureFunctionLibraryTests.TEST_MESSAGE.getBytes());
+        signature.update(SignatureFunctionLibraryTests.TEST_MESSAGE.getBytes(StandardCharsets.UTF_8));
         return signature.sign();
     }
 

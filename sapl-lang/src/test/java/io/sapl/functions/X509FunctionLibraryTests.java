@@ -17,7 +17,9 @@
  */
 package io.sapl.functions;
 
+import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.api.interpreter.Val;
+import io.sapl.functions.util.crypto.KeyUtils;
 import org.bouncycastle.asn1.x500.X500Name;
 import org.bouncycastle.asn1.x509.BasicConstraints;
 import org.bouncycastle.asn1.x509.Extension;
@@ -38,6 +40,7 @@ import java.math.BigInteger;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.cert.X509Certificate;
+import java.security.spec.InvalidKeySpecException;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Base64;
@@ -45,7 +48,9 @@ import java.util.Date;
 import java.util.function.Function;
 import java.util.stream.Stream;
 
+import static io.sapl.functions.util.crypto.CryptoConstants.ALGORITHM_RSA;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 class X509FunctionLibraryTests {
@@ -87,8 +92,9 @@ class X509FunctionLibraryTests {
 
     @Test
     void parseCertificate_whenInvalidPem_returnsError() {
-        var result = X509FunctionLibrary.parseCertificate(Val.of("invalid certificate data"));
-        assertThat(result.isError()).isTrue();
+        assertThrows(PolicyEvaluationException.class,
+                () -> X509FunctionLibrary.parseCertificate(Val.of("invalid certificate data")));
+
     }
 
     @Test

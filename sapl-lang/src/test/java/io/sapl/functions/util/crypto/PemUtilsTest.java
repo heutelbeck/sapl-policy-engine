@@ -18,6 +18,7 @@
 package io.sapl.functions.util.crypto;
 
 import io.sapl.api.interpreter.PolicyEvaluationException;
+import lombok.SneakyThrows;
 import lombok.val;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.junit.jupiter.api.BeforeAll;
@@ -27,6 +28,7 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
+import java.nio.charset.StandardCharsets;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.Security;
@@ -39,7 +41,7 @@ import static org.junit.jupiter.api.Assertions.*;
 class PemUtilsTest {
 
     private static final String SAMPLE_BASE64 = "aGVsbG8gd29ybGQ=";
-    private static final byte[] SAMPLE_BYTES  = "hello world".getBytes();
+    private static final byte[] SAMPLE_BYTES  = "hello world".getBytes(StandardCharsets.UTF_8);
 
     @BeforeAll
     static void setupBouncyCastle() {
@@ -345,33 +347,24 @@ class PemUtilsTest {
 
     /* Test Helper Methods */
 
+    @SneakyThrows
     private static KeyPair generateRsaKeyPair() {
-        try {
-            val keyPairGenerator = KeyPairGenerator.getInstance(ALGORITHM_RSA);
-            keyPairGenerator.initialize(2048);
-            return keyPairGenerator.generateKeyPair();
-        } catch (Exception exception) {
-            throw new RuntimeException("Failed to generate RSA key pair", exception);
-        }
+        val keyPairGenerator = KeyPairGenerator.getInstance(ALGORITHM_RSA);
+        keyPairGenerator.initialize(2048);
+        return keyPairGenerator.generateKeyPair();
     }
 
+    @SneakyThrows
     private static KeyPair generateEcKeyPair() {
-        try {
-            val keyPairGenerator = KeyPairGenerator.getInstance(ALGORITHM_EC);
-            keyPairGenerator.initialize(256);
-            return keyPairGenerator.generateKeyPair();
-        } catch (Exception exception) {
-            throw new RuntimeException("Failed to generate EC key pair", exception);
-        }
+        val keyPairGenerator = KeyPairGenerator.getInstance(ALGORITHM_EC);
+        keyPairGenerator.initialize(256);
+        return keyPairGenerator.generateKeyPair();
     }
 
+    @SneakyThrows
     private static KeyPair generateEd25519KeyPair() {
-        try {
-            val keyPairGenerator = KeyPairGenerator.getInstance(ALGORITHM_EDDSA);
-            return keyPairGenerator.generateKeyPair();
-        } catch (Exception exception) {
-            throw new RuntimeException("Failed to generate Ed25519 key pair", exception);
-        }
+        val keyPairGenerator = KeyPairGenerator.getInstance(ALGORITHM_EDDSA);
+        return keyPairGenerator.generateKeyPair();
     }
 
     private static String insertNewlinesEvery64Chars(String input) {

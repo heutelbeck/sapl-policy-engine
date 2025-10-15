@@ -47,18 +47,12 @@ public class KeyUtils {
      * @return the parsed PublicKey
      * @throws PolicyEvaluationException if parsing fails
      */
-    public static PublicKey parsePublicKey(String pemKey, String keyAlgorithm) {
-        val keyBytes = PemUtils.decodePublicKeyPem(pemKey);
-        val keySpec  = new X509EncodedKeySpec(keyBytes);
-
-        try {
-            val keyFactory = KeyFactory.getInstance(keyAlgorithm);
-            return keyFactory.generatePublic(keySpec);
-        } catch (NoSuchAlgorithmException exception) {
-            throw new PolicyEvaluationException("Key algorithm not supported: " + keyAlgorithm, exception);
-        } catch (InvalidKeySpecException exception) {
-            throw new PolicyEvaluationException("Invalid key format for algorithm " + keyAlgorithm, exception);
-        }
+    public static PublicKey parsePublicKey(String pemKey, String keyAlgorithm)
+            throws NoSuchAlgorithmException, InvalidKeySpecException {
+        val keyBytes   = PemUtils.decodePublicKeyPem(pemKey);
+        val keySpec    = new X509EncodedKeySpec(keyBytes);
+        val keyFactory = KeyFactory.getInstance(keyAlgorithm);
+        return keyFactory.generatePublic(keySpec);
     }
 
     /**

@@ -22,10 +22,7 @@ import lombok.experimental.UtilityClass;
 import lombok.val;
 
 import java.io.ByteArrayInputStream;
-import java.security.cert.CertificateEncodingException;
-import java.security.cert.CertificateException;
-import java.security.cert.CertificateFactory;
-import java.security.cert.X509Certificate;
+import java.security.cert.*;
 import java.util.Collection;
 import java.util.List;
 
@@ -45,16 +42,11 @@ public class CertificateUtils {
      * @return the parsed X509Certificate
      * @throws PolicyEvaluationException if parsing fails
      */
-    public static X509Certificate parseCertificate(String certificateString) {
+    public static X509Certificate parseCertificate(String certificateString) throws CertificateException {
         val certificateFactory = getCertificateFactory();
         val certificateBytes   = PemUtils.decodeCertificatePem(certificateString);
         val inputStream        = new ByteArrayInputStream(certificateBytes);
-
-        try {
-            return (X509Certificate) certificateFactory.generateCertificate(inputStream);
-        } catch (CertificateException exception) {
-            throw new PolicyEvaluationException("Failed to parse X.509 certificate", exception);
-        }
+        return (X509Certificate) certificateFactory.generateCertificate(inputStream);
     }
 
     /**
@@ -64,12 +56,8 @@ public class CertificateUtils {
      * @return the encoded certificate bytes
      * @throws PolicyEvaluationException if encoding fails
      */
-    public static byte[] encodeCertificate(X509Certificate certificate) {
-        try {
-            return certificate.getEncoded();
-        } catch (CertificateEncodingException exception) {
-            throw new PolicyEvaluationException("Failed to encode certificate", exception);
-        }
+    public static byte[] encodeCertificate(X509Certificate certificate) throws CertificateEncodingException {
+        return certificate.getEncoded();
     }
 
     /**
@@ -80,12 +68,9 @@ public class CertificateUtils {
      * index 0 and value (String) at index 1, or null if no SANs present
      * @throws PolicyEvaluationException if extraction fails
      */
-    public static Collection<List<?>> extractSubjectAlternativeNames(X509Certificate certificate) {
-        try {
-            return certificate.getSubjectAlternativeNames();
-        } catch (CertificateException exception) {
-            throw new PolicyEvaluationException("Failed to extract subject alternative names", exception);
-        }
+    public static Collection<List<?>> extractSubjectAlternativeNames(X509Certificate certificate)
+            throws CertificateParsingException {
+        return certificate.getSubjectAlternativeNames();
     }
 
     /**
@@ -95,11 +80,7 @@ public class CertificateUtils {
      * @throws PolicyEvaluationException if X.509 certificate factory is not
      * available
      */
-    public static CertificateFactory getCertificateFactory() {
-        try {
-            return CertificateFactory.getInstance(CERTIFICATE_TYPE_X509);
-        } catch (CertificateException exception) {
-            throw new PolicyEvaluationException("X.509 certificate factory not available", exception);
-        }
+    public static CertificateFactory getCertificateFactory() throws CertificateException {
+        return CertificateFactory.getInstance(CERTIFICATE_TYPE_X509);
     }
 }
