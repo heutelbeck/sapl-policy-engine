@@ -23,12 +23,30 @@ import java.util.List;
 
 @UtilityClass
 public class DefaultLibraries {
-    public static final List<Class<?>> STATIC_LIBRARIES = List.of(ArrayFunctionLibrary.class,
-            BitwiseFunctionLibrary.class, DigestFunctionLibrary.class, EncodingFunctionLibrary.class,
-            FilterFunctionLibrary.class, GraphFunctionLibrary.class, LoggingFunctionLibrary.class,
-            MacFunctionLibrary.class, MathFunctionLibrary.class, NumeralFunctionLibrary.class,
-            ObjectFunctionLibrary.class, PatternsFunctionLibrary.class, PermissionsFunctionLibrary.class,
-            ReflectionFunctionLibrary.class, SaplFunctionLibrary.class, SchemaValidationLibrary.class,
-            SignatureFunctionLibrary.class, StandardFunctionLibrary.class, TemporalFunctionLibrary.class,
-            UnitsFunctionLibrary.class, UuidFunctionLibrary.class, X509FunctionLibrary.class);
+    // @formatter:off
+    public static final List<Class<?>> STATIC_LIBRARIES = List.of(
+            ArrayFunctionLibrary.class,
+            BitwiseFunctionLibrary.class,
+            DigestFunctionLibrary.class,
+            EncodingFunctionLibrary.class,
+            FilterFunctionLibrary.class,
+            GraphFunctionLibrary.class,
+            KeysFunctionLibrary.class,
+            LoggingFunctionLibrary.class,
+            MacFunctionLibrary.class,
+            MathFunctionLibrary.class,
+            NumeralFunctionLibrary.class,
+            ObjectFunctionLibrary.class,
+            PatternsFunctionLibrary.class,
+            PermissionsFunctionLibrary.class,
+            ReflectionFunctionLibrary.class,
+            SaplFunctionLibrary.class,
+            SchemaValidationLibrary.class,
+            SignatureFunctionLibrary.class,
+            StandardFunctionLibrary.class,
+            TemporalFunctionLibrary.class,
+            UnitsFunctionLibrary.class,
+            UuidFunctionLibrary.class,
+            X509FunctionLibrary.class);
+    // @formatter:on
 }

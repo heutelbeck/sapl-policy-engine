@@ -266,11 +266,11 @@ public class X509FunctionLibrary {
             """, schema = RETURNS_TEXT)
     public Val extractFingerprint(@Text Val certificatePem, @Text Val algorithm) {
         try {
-            val certificate       = decodeCertificate(certificatePem.getText());
-            val digest            = createMessageDigest(algorithm.getText());
-            val certificateBytes  = encodeCertificate(certificate);
-            val fingerprintBytes  = digest.digest(certificateBytes);
-            val fingerprintHex    = HexFormat.of().formatHex(fingerprintBytes);
+            val certificate      = decodeCertificate(certificatePem.getText());
+            val digest           = createMessageDigest(algorithm.getText());
+            val certificateBytes = encodeCertificate(certificate);
+            val fingerprintBytes = digest.digest(certificateBytes);
+            val fingerprintHex   = HexFormat.of().formatHex(fingerprintBytes);
             return Val.of(fingerprintHex);
         } catch (PolicyEvaluationException exception) {
             return Val.error("Failed to compute fingerprint: " + exception.getMessage());
@@ -294,9 +294,9 @@ public class X509FunctionLibrary {
             """, schema = RETURNS_ARRAY)
     public Val extractSubjectAltNames(@Text Val certificatePem) {
         try {
-            val certificate           = decodeCertificate(certificatePem.getText());
-            val subjectAltNames       = extractSubjectAlternativeNames(certificate);
-            val subjectAltNamesArray  = JSON.arrayNode();
+            val certificate          = decodeCertificate(certificatePem.getText());
+            val subjectAltNames      = extractSubjectAlternativeNames(certificate);
+            val subjectAltNamesArray = JSON.arrayNode();
 
             if (subjectAltNames != null) {
                 for (List<?> subjectAltName : subjectAltNames) {
@@ -358,9 +358,9 @@ public class X509FunctionLibrary {
             """, schema = RETURNS_BOOLEAN)
     public Val isValidAt(@Text Val certificatePem, @Text Val isoTimestamp) {
         try {
-            val certificate  = decodeCertificate(certificatePem.getText());
-            val timestamp    = parseTimestamp(isoTimestamp.getText());
-            val isValid      = !timestamp.before(certificate.getNotBefore())
+            val certificate = decodeCertificate(certificatePem.getText());
+            val timestamp   = parseTimestamp(isoTimestamp.getText());
+            val isValid     = !timestamp.before(certificate.getNotBefore())
                     && !timestamp.after(certificate.getNotAfter());
             return Val.of(isValid);
         } catch (PolicyEvaluationException exception) {
@@ -410,8 +410,7 @@ public class X509FunctionLibrary {
      */
     private static byte[] extractCertificateBytes(String certificateString) {
         if (certificateString.contains("BEGIN CERTIFICATE")) {
-            val pemContent = certificateString.replace(PEM_CERTIFICATE_BEGIN, "")
-                    .replace(PEM_CERTIFICATE_END, "")
+            val pemContent = certificateString.replace(PEM_CERTIFICATE_BEGIN, "").replace(PEM_CERTIFICATE_END, "")
                     .replaceAll("\\s+", "");
             return decodeBase64(pemContent);
         }
@@ -527,16 +526,16 @@ public class X509FunctionLibrary {
      */
     private static String getSanTypeName(int type) {
         return switch (type) {
-            case SAN_TYPE_OTHER_NAME    -> "otherName";
-            case SAN_TYPE_RFC822_NAME   -> "rfc822Name";
-            case SAN_TYPE_DNS_NAME      -> "dNSName";
-            case SAN_TYPE_X400_ADDRESS  -> "x400Address";
-            case SAN_TYPE_DIRECTORY     -> "directoryName";
-            case SAN_TYPE_EDI_PARTY     -> "ediPartyName";
-            case SAN_TYPE_URI           -> "uniformResourceIdentifier";
-            case SAN_TYPE_IP_ADDRESS    -> "iPAddress";
-            case SAN_TYPE_REGISTERED_ID -> "registeredID";
-            default                     -> "unknown";
+        case SAN_TYPE_OTHER_NAME    -> "otherName";
+        case SAN_TYPE_RFC822_NAME   -> "rfc822Name";
+        case SAN_TYPE_DNS_NAME      -> "dNSName";
+        case SAN_TYPE_X400_ADDRESS  -> "x400Address";
+        case SAN_TYPE_DIRECTORY     -> "directoryName";
+        case SAN_TYPE_EDI_PARTY     -> "ediPartyName";
+        case SAN_TYPE_URI           -> "uniformResourceIdentifier";
+        case SAN_TYPE_IP_ADDRESS    -> "iPAddress";
+        case SAN_TYPE_REGISTERED_ID -> "registeredID";
+        default                     -> "unknown";
         };
     }
 }

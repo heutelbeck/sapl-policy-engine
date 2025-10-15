@@ -45,10 +45,10 @@ class KeysFunctionLibraryTests {
 
     private static final JsonNodeFactory JSON = JsonNodeFactory.instance;
 
-    private static String              rsaPublicKeyPem;
-    private static String              ecPublicKeyPem;
-    private static String              ed25519PublicKeyPem;
-    private static String              certificatePem;
+    private static String rsaPublicKeyPem;
+    private static String ecPublicKeyPem;
+    private static String ed25519PublicKeyPem;
+    private static String certificatePem;
 
     @BeforeAll
     static void setup() throws Exception {

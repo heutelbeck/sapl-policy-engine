@@ -93,15 +93,15 @@ public class KeysFunctionLibrary {
     private static final String JWK_KEY_TYPE_EC  = "EC";
     private static final String JWK_KEY_TYPE_OKP = "OKP";
 
-    private static final String CURVE_SECP256R1   = "secp256r1";
-    private static final String CURVE_PRIME256V1  = "prime256v1";
-    private static final String CURVE_SECP384R1   = "secp384r1";
-    private static final String CURVE_SECP521R1   = "secp521r1";
-    private static final String CURVE_ED25519     = "Ed25519";
-    private static final String CURVE_P256_JWK    = "P-256";
-    private static final String CURVE_P384_JWK    = "P-384";
-    private static final String CURVE_P521_JWK    = "P-521";
-    private static final String CURVE_UNKNOWN     = "unknown";
+    private static final String CURVE_SECP256R1  = "secp256r1";
+    private static final String CURVE_PRIME256V1 = "prime256v1";
+    private static final String CURVE_SECP384R1  = "secp384r1";
+    private static final String CURVE_SECP521R1  = "secp521r1";
+    private static final String CURVE_ED25519    = "Ed25519";
+    private static final String CURVE_P256_JWK   = "P-256";
+    private static final String CURVE_P384_JWK   = "P-384";
+    private static final String CURVE_P521_JWK   = "P-521";
+    private static final String CURVE_UNKNOWN    = "unknown";
 
     private static final int EDDSA_KEY_SIZE_BITS = 256;
     private static final int EC_P256_BITS        = 256;
@@ -302,9 +302,7 @@ public class KeysFunctionLibrary {
      * @return the cleaned Base64 content
      */
     private static String cleanPemContent(String pemContent, String beginMarker, String endMarker) {
-        return pemContent.replace(beginMarker, "")
-                .replace(endMarker, "")
-                .replaceAll("\\s+", "");
+        return pemContent.replace(beginMarker, "").replace(endMarker, "").replaceAll("\\s+", "");
     }
 
     /**
@@ -312,7 +310,8 @@ public class KeysFunctionLibrary {
      *
      * @param pemKey the PEM-encoded key
      * @return the PublicKey
-     * @throws PolicyEvaluationException if decoding fails for all supported algorithms
+     * @throws PolicyEvaluationException if decoding fails for all supported
+     * algorithms
      */
     private static PublicKey decodePublicKey(String pemKey) {
         val cleanedPem = cleanPemContent(pemKey, PEM_PUBLIC_KEY_BEGIN, PEM_PUBLIC_KEY_END);
@@ -446,10 +445,10 @@ public class KeysFunctionLibrary {
      */
     private static int getKeySize(PublicKey publicKey) {
         return switch (publicKey) {
-            case RSAPublicKey rsaKey -> rsaKey.getModulus().bitLength();
-            case ECPublicKey ecKey -> ecKey.getParams().getOrder().bitLength();
-            case EdECPublicKey edEcKey -> EDDSA_KEY_SIZE_BITS;
-            default -> 0;
+        case RSAPublicKey rsaKey   -> rsaKey.getModulus().bitLength();
+        case ECPublicKey ecKey     -> ecKey.getParams().getOrder().bitLength();
+        case EdECPublicKey edEcKey -> EDDSA_KEY_SIZE_BITS;
+        default                    -> 0;
         };
     }
 
@@ -477,34 +476,35 @@ public class KeysFunctionLibrary {
      *
      * @param publicKey the public key
      * @return the JWK JSON object
-     * @throws PolicyEvaluationException if conversion fails or key type is unsupported
+     * @throws PolicyEvaluationException if conversion fails or key type is
+     * unsupported
      */
     private static JsonNode convertPublicKeyToJwk(PublicKey publicKey) {
         return switch (publicKey) {
-            case RSAPublicKey rsaKey -> {
-                val jwk = JSON.objectNode();
-                jwk.put("kty", JWK_KEY_TYPE_RSA);
-                jwk.put("n", base64UrlEncode(rsaKey.getModulus()));
-                jwk.put("e", base64UrlEncode(rsaKey.getPublicExponent()));
-                yield jwk;
-            }
-            case ECPublicKey ecKey -> {
-                val jwk = JSON.objectNode();
-                jwk.put("kty", JWK_KEY_TYPE_EC);
-                jwk.put("crv", getCurveNameForJwk(ecKey));
-                jwk.put("x", base64UrlEncode(ecKey.getW().getAffineX()));
-                jwk.put("y", base64UrlEncode(ecKey.getW().getAffineY()));
-                yield jwk;
-            }
-            case EdECPublicKey edEcKey -> {
-                val jwk = JSON.objectNode();
-                jwk.put("kty", JWK_KEY_TYPE_OKP);
-                jwk.put("crv", CURVE_ED25519);
-                jwk.put("x", Base64.getUrlEncoder().withoutPadding().encodeToString(edEcKey.getEncoded()));
-                yield jwk;
-            }
-            default -> throw new PolicyEvaluationException(
-                    "Unsupported key type for JWK conversion: " + publicKey.getClass().getName());
+        case RSAPublicKey rsaKey   -> {
+            val jwk = JSON.objectNode();
+            jwk.put("kty", JWK_KEY_TYPE_RSA);
+            jwk.put("n", base64UrlEncode(rsaKey.getModulus()));
+            jwk.put("e", base64UrlEncode(rsaKey.getPublicExponent()));
+            yield jwk;
+        }
+        case ECPublicKey ecKey     -> {
+            val jwk = JSON.objectNode();
+            jwk.put("kty", JWK_KEY_TYPE_EC);
+            jwk.put("crv", getCurveNameForJwk(ecKey));
+            jwk.put("x", base64UrlEncode(ecKey.getW().getAffineX()));
+            jwk.put("y", base64UrlEncode(ecKey.getW().getAffineY()));
+            yield jwk;
+        }
+        case EdECPublicKey edEcKey -> {
+            val jwk = JSON.objectNode();
+            jwk.put("kty", JWK_KEY_TYPE_OKP);
+            jwk.put("crv", CURVE_ED25519);
+            jwk.put("x", Base64.getUrlEncoder().withoutPadding().encodeToString(edEcKey.getEncoded()));
+            yield jwk;
+        }
+        default                    -> throw new PolicyEvaluationException(
+                "Unsupported key type for JWK conversion: " + publicKey.getClass().getName());
         };
     }
 
@@ -513,7 +513,8 @@ public class KeysFunctionLibrary {
      *
      * @param jwkNode the JWK JSON object
      * @return the PublicKey
-     * @throws PolicyEvaluationException if conversion fails or key type is unsupported
+     * @throws PolicyEvaluationException if conversion fails or key type is
+     * unsupported
      */
     private static PublicKey convertJwkToPublicKey(JsonNode jwkNode) {
         val keyTypeNode = jwkNode.get("kty");
@@ -524,12 +525,12 @@ public class KeysFunctionLibrary {
         val keyType = keyTypeNode.asText();
 
         return switch (keyType) {
-            case JWK_KEY_TYPE_RSA -> convertRsaJwkToPublicKey(jwkNode);
-            case JWK_KEY_TYPE_EC -> throw new PolicyEvaluationException(
-                    "EC JWK to PublicKey conversion not yet implemented");
-            case JWK_KEY_TYPE_OKP -> throw new PolicyEvaluationException(
-                    "OKP JWK to PublicKey conversion not yet implemented");
-            default -> throw new PolicyEvaluationException("Unsupported JWK key type: " + keyType);
+        case JWK_KEY_TYPE_RSA -> convertRsaJwkToPublicKey(jwkNode);
+        case JWK_KEY_TYPE_EC  ->
+            throw new PolicyEvaluationException("EC JWK to PublicKey conversion not yet implemented");
+        case JWK_KEY_TYPE_OKP ->
+            throw new PolicyEvaluationException("OKP JWK to PublicKey conversion not yet implemented");
+        default               -> throw new PolicyEvaluationException("Unsupported JWK key type: " + keyType);
         };
     }
 
@@ -538,7 +539,8 @@ public class KeysFunctionLibrary {
      *
      * @param jwkNode the RSA JWK JSON object
      * @return the RSA PublicKey
-     * @throws PolicyEvaluationException if conversion fails or required fields are missing
+     * @throws PolicyEvaluationException if conversion fails or required fields are
+     * missing
      */
     private static PublicKey convertRsaJwkToPublicKey(JsonNode jwkNode) {
         val modulusNode  = jwkNode.get("n");
@@ -573,10 +575,10 @@ public class KeysFunctionLibrary {
     private static String getCurveNameForJwk(ECPublicKey ecKey) {
         val bitLength = ecKey.getParams().getOrder().bitLength();
         return switch (bitLength) {
-            case EC_P256_BITS -> CURVE_P256_JWK;
-            case EC_P384_BITS -> CURVE_P384_JWK;
-            case EC_P521_BITS -> CURVE_P521_JWK;
-            default -> CURVE_UNKNOWN;
+        case EC_P256_BITS -> CURVE_P256_JWK;
+        case EC_P384_BITS -> CURVE_P384_JWK;
+        case EC_P521_BITS -> CURVE_P521_JWK;
+        default           -> CURVE_UNKNOWN;
         };
     }
 

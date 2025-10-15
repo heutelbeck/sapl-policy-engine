@@ -273,7 +273,7 @@ public class SignatureFunctionLibrary {
      * @return a Val containing true if valid, Val.FALSE if invalid, or an error
      */
     private static Val verifySignature(String message, String signatureString, String publicKeyPem,
-                                       String signatureAlgorithm, String keyAlgorithm) {
+            String signatureAlgorithm, String keyAlgorithm) {
         try {
             val publicKey      = parsePublicKey(publicKeyPem, keyAlgorithm);
             val signatureBytes = parseSignature(signatureString);
@@ -305,9 +305,8 @@ public class SignatureFunctionLibrary {
      * @throws PolicyEvaluationException if parsing fails
      */
     private static PublicKey parsePublicKey(String pemKey, String keyAlgorithm) {
-        val cleanedPem = pemKey.replace(PEM_PUBLIC_KEY_BEGIN, "")
-                .replace(PEM_PUBLIC_KEY_END, "")
-                .replaceAll("\\s+", "");
+        val cleanedPem = pemKey.replace(PEM_PUBLIC_KEY_BEGIN, "").replace(PEM_PUBLIC_KEY_END, "").replaceAll("\\s+",
+                "");
 
         val keyBytes = decodeBase64(cleanedPem);
         val keySpec  = new X509EncodedKeySpec(keyBytes);
