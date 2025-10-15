@@ -93,7 +93,16 @@ public class PatternsFunctionLibrary {
     private static final String REGEX_GROUP_START       = "(?:";
     private static final char   REGEX_ALTERNATION       = '|';
 
-    /* Javadoc unchanged for brevity - keeping existing documentation */
+    /**
+     * Pre-compiled patterns for ReDoS detection.
+     * These patterns are safe because they use find() without greedy quantifiers at
+     * boundaries.
+     */
+    private static final Pattern NESTED_QUANTIFIERS     = Pattern.compile("\\([^)]*[*+]\\)[*+]");
+    private static final Pattern ALTERNATION_WITH_QUANT = Pattern.compile("\\([^)]*\\|[^)]*\\)[*+]");
+    private static final Pattern NESTED_WILDCARDS       = Pattern.compile("\\([^)]*\\*[^)]*\\)[^)]*\\*");
+    private static final Pattern NESTED_BOUNDED_QUANT   = Pattern.compile("\\{\\d+,\\d*}[^{]*\\{\\d+,\\d*}");
+
     @Function(docs = """
             ```patterns.matchGlob(TEXT pattern, TEXT value, ARRAY delimiters)```: Matches a string
             against a glob pattern with configurable delimiters.
@@ -910,6 +919,7 @@ public class PatternsFunctionLibrary {
 
     /**
      * Analyzes regex pattern for dangerous constructs that could cause ReDoS.
+     * Uses pre-compiled patterns with find() to avoid ReDoS in detection itself.
      *
      * @param pattern the regex pattern string
      * @return true if pattern contains dangerous constructs
@@ -919,19 +929,19 @@ public class PatternsFunctionLibrary {
             return true;
         }
 
-        if (pattern.matches(".*\\([^)]*[*+]\\)[*+].*")) {
+        if (NESTED_QUANTIFIERS.matcher(pattern).find()) {
             return true;
         }
 
-        if (pattern.matches(".*\\([^)]*\\|[^)]*\\)[*+].*")) {
+        if (ALTERNATION_WITH_QUANT.matcher(pattern).find()) {
             return true;
         }
 
-        if (pattern.matches(".*\\(.*\\*.*\\).*\\*.*")) {
+        if (NESTED_WILDCARDS.matcher(pattern).find()) {
             return true;
         }
 
-        if (pattern.matches(".*\\{\\d+,\\d*}\\{\\d+,\\d*}.*")) {
+        if (NESTED_BOUNDED_QUANT.matcher(pattern).find()) {
             return true;
         }
 
