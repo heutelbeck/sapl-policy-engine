@@ -20,6 +20,7 @@ package io.sapl.functions.util.crypto;
 import io.sapl.api.interpreter.PolicyEvaluationException;
 import lombok.SneakyThrows;
 import lombok.val;
+import org.bouncycastle.asn1.ASN1Encodable;
 import org.bouncycastle.asn1.x500.X500Name;
 import org.bouncycastle.asn1.x509.BasicConstraints;
 import org.bouncycastle.asn1.x509.Extension;
@@ -358,7 +359,7 @@ class CertificateUtilsTest {
     }
 
     private static X509Certificate buildCertificate(String subjectDn, KeyPair keyPair,
-            GeneralNames subjectAlternativeNames) throws Exception {
+                                                    ASN1Encodable subjectAlternativeNames) throws Exception {
         val now          = new Date();
         val notBefore    = new Date(now.getTime() - 86400000L);
         val notAfter     = new Date(now.getTime() + 31536000000L);
@@ -374,7 +375,7 @@ class CertificateUtilsTest {
             certificateBuilder.addExtension(Extension.subjectAlternativeName, false, subjectAlternativeNames);
         }
 
-        val signatureAlgorithm = keyPair.getPublic().getAlgorithm().equals(ALGORITHM_RSA) ? ALGORITHM_RSA_SHA256
+        val signatureAlgorithm = ALGORITHM_RSA.equals(keyPair.getPublic().getAlgorithm()) ? ALGORITHM_RSA_SHA256
                 : ALGORITHM_ECDSA_SHA256;
 
         val contentSigner = new JcaContentSignerBuilder(signatureAlgorithm).setProvider("BC")
