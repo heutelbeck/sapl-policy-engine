@@ -137,14 +137,43 @@ public class UuidFunctionLibrary {
     }
 
     /**
+     * Generates a cryptographically strong random version 4 UUID.
+     * This method uses a secure random number generator to produce unpredictable
+     * UUIDs suitable for production use and security-sensitive contexts.
+     *
+     * @return a Val containing a randomly generated UUID as a text string
+     */
+    @Function(docs = """
+            ```uuid.random()```: Generates a cryptographically strong random version 4 UUID using a secure
+            random number generator. Returns the UUID as a text string. This function produces unpredictable
+            UUIDs suitable for production use and security-sensitive contexts.
+
+            **Example:**
+            ```sapl
+            policy "example"
+            permit
+            where
+              var randomUuid = uuid.random();
+              // Generates a new random UUID like "a3bb189e-8bf9-3888-9912-ace4e6543002"
+
+              var anotherUuid = uuid.random();
+              // Generates a different random UUID
+
+              randomUuid != anotherUuid;  // true, each call produces a unique UUID
+            ```
+            """)
+    public static Val random() {
+        return Val.of(UUID.randomUUID().toString());
+    }
+
+    /**
      * Creates a version 4 (pseudo-random) UUID using a seeded random number
      * generator.
      * This method produces deterministic UUIDs based on the provided seed, making
-     * it
-     * suitable for testing or scenarios requiring reproducible UUID generation.
+     * it suitable for testing or scenarios requiring reproducible UUID generation.
      *
      * @param seed the seed value for the random number generator
-     * @return a UUID generated using the seeded random number generator
+     * @return a Val containing a UUID generated using the seeded random number generator
      */
     @Function(docs = """
             ```uuid.seededRandom(INT seed)```: Generates a deterministic version 4 (pseudo-random) UUID using
@@ -154,7 +183,7 @@ public class UuidFunctionLibrary {
 
             **Attention:** This function uses a seeded random number generator and produces predictable results.
             It is NOT cryptographically secure and should not be used for security-sensitive contexts.
-            For production use requiring true randomness, use a different UUID generation method.
+            For production use requiring true randomness, use uuid.random() instead.
 
             **Example:**
             ```sapl

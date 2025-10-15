@@ -23,6 +23,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
+import java.util.HashSet;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -72,6 +73,39 @@ class UuidFunctionLibraryTests {
         val result = UuidFunctionLibrary.parse(invalidUuidVal);
 
         assertThat(result.isError()).isTrue();
+    }
+
+    @Test
+    void random_producesValidVersion4IetfVariantUuid() {
+        val result = UuidFunctionLibrary.random();
+
+        assertThat(result.isError()).isFalse();
+        val uuidString = result.getText();
+        assertThat(uuidString).matches("^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$");
+        val uuid = UUID.fromString(uuidString);
+        assertThat(uuid.version()).isEqualTo(4);
+        assertThat(uuid.variant()).isEqualTo(2);
+    }
+
+    @Test
+    void random_producesUniqueUuidsOnMultipleCalls() {
+        val generatedUuids = new HashSet<String>();
+        val numberOfCalls  = 1000;
+
+        for (int i = 0; i < numberOfCalls; i++) {
+            val result = UuidFunctionLibrary.random();
+            generatedUuids.add(result.getText());
+        }
+
+        assertThat(generatedUuids).hasSize(numberOfCalls);
+    }
+
+    @Test
+    void random_producesDifferentUuidsOnConsecutiveCalls() {
+        val result1 = UuidFunctionLibrary.random();
+        val result2 = UuidFunctionLibrary.random();
+
+        assertThat(result1.getText()).isNotEqualTo(result2.getText());
     }
 
     @Test
