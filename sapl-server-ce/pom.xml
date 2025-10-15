@@ -145,6 +145,7 @@
 			<groupId>org.projectlombok</groupId>
 			<artifactId>lombok</artifactId>
 			<scope>provided</scope>
+            <optional>true</optional>
 		</dependency>
 		<!-- bouncycastle holds a full Java-based implementation of the Argon2
 		algorithm -->
@@ -235,6 +236,14 @@
 			<artifactId>vaadin-testbench-junit5</artifactId>
 			<scope>test</scope>
 		</dependency>
+
+        <!-- Explicitly declare transitive annotation processor as optional to suppress SPDX warning -->
+        <dependency>
+            <groupId>org.infinispan.protostream</groupId>
+            <artifactId>protostream-processor</artifactId>
+            <scope>provided</scope>
+            <optional>true</optional>
+        </dependency>
 	</dependencies>
 	<repositories>
 		<repository>
@@ -377,6 +386,9 @@
 						</goals>
 					</execution>
 				</executions>
+                <configuration>
+                    <includeProvidedScope>false</includeProvidedScope>
+                </configuration>
 			</plugin>
 		</plugins>
 	</build>

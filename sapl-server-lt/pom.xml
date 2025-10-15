@@ -109,6 +109,7 @@
 			<groupId>org.projectlombok</groupId>
 			<artifactId>lombok</artifactId>
 			<scope>provided</scope>
+            <optional>true</optional>
 		</dependency>
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
@@ -186,6 +187,13 @@
 			<artifactId>reactor-test</artifactId>
 			<scope>test</scope>
 		</dependency>
+        <!-- Explicitly declare transitive annotation processor as optional to suppress SPDX warning -->
+        <dependency>
+            <groupId>org.infinispan.protostream</groupId>
+            <artifactId>protostream-processor</artifactId>
+            <scope>provided</scope>
+            <optional>true</optional>
+        </dependency>
 	</dependencies>
 
 	<build>
@@ -271,6 +279,9 @@
 						</goals>
 					</execution>
 				</executions>
+                <configuration>
+                    <includeProvidedScope>false</includeProvidedScope>
+                </configuration>
 			</plugin>
 		</plugins>
 	</build>

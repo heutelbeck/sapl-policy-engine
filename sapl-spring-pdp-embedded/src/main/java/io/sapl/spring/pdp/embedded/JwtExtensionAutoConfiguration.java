@@ -24,7 +24,6 @@ import io.sapl.functions.JWTFunctionLibrary;
 import io.sapl.functions.util.jwt.JWTKeyProvider;
 import org.springframework.beans.factory.config.BeanDefinition;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Role;
 import org.springframework.web.reactive.function.client.WebClient;
@@ -32,7 +31,6 @@ import org.springframework.web.reactive.function.client.WebClient;
 import java.util.List;
 
 @AutoConfiguration
-@ConditionalOnClass(name = "io.sapl.extension.jwt.JWTFunctionLibrary")
 public class JwtExtensionAutoConfiguration {
 
     @Bean
