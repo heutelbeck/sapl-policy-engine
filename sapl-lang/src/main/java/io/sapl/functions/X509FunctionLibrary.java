@@ -36,11 +36,7 @@ import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
 import java.time.Instant;
 import java.time.format.DateTimeParseException;
-import java.util.Base64;
-import java.util.Collection;
-import java.util.Date;
-import java.util.HexFormat;
-import java.util.List;
+import java.util.*;
 
 /**
  * Provides functions for parsing and extracting information from X.509
