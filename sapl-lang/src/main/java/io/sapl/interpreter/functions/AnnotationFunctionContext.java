@@ -355,7 +355,7 @@ public final class AnnotationFunctionContext implements FunctionContext {
     }
 
     @Override
-    public Collection<String> getAvailableLibraries() {
+    public Set<String> getAvailableLibraries() {
         return this.libraries.keySet();
     }
 
@@ -381,7 +381,7 @@ public final class AnnotationFunctionContext implements FunctionContext {
     }
 
     @Override
-    public Collection<String> getAllFullyQualifiedFunctions() {
+    public Set<String> getAllFullyQualifiedFunctions() {
         return functions.keySet();
     }
 

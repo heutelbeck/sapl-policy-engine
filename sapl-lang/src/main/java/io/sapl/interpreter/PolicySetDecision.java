@@ -27,7 +27,7 @@ import lombok.Getter;
 import lombok.ToString;
 
 import java.util.ArrayList;
-import java.util.Collection;
+import java.util.List;
 import java.util.Optional;
 
 @Getter
@@ -102,7 +102,7 @@ public class PolicySetDecision implements DocumentEvaluationResult {
     }
 
     @Override
-    public Collection<Val> getErrorsFromTrace() {
+    public List<Val> getErrorsFromTrace() {
         final var errors = new ArrayList<Val>();
         targetResult.ifPresent(target -> errors.addAll(target.getErrorsFromTrace()));
         errors.addAll(combinedDecision.getErrorsFromTrace());

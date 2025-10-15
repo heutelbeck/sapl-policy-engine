@@ -38,7 +38,7 @@ public class LibraryProposalsGenerator {
 
     public record DocumentedProposal(String proposal, String label, String documentation) {}
 
-    public static Collection<Proposal> allEnvironmentAttributeSchemaExtensions(ContextAnalysisResult analysis,
+    public static Set<Proposal> allEnvironmentAttributeSchemaExtensions(ContextAnalysisResult analysis,
             ContentAssistContext context, PDPConfiguration pdpConfiguration,
             PolicyInformationPointDocumentationProvider docsProvider) {
         final var proposals  = new HashSet<Proposal>();
@@ -51,7 +51,7 @@ public class LibraryProposalsGenerator {
         return proposals;
     }
 
-    public static Collection<Proposal> allAttributeSchemaExtensions(ContextAnalysisResult analysis,
+    public static Set<Proposal> allAttributeSchemaExtensions(ContextAnalysisResult analysis,
             ContentAssistContext context, PDPConfiguration pdpConfiguration,
             PolicyInformationPointDocumentationProvider docsProvider) {
         final var proposals  = new HashSet<Proposal>();
@@ -64,7 +64,7 @@ public class LibraryProposalsGenerator {
         return proposals;
     }
 
-    public static Collection<Proposal> allFunctionSchemaExtensions(ContextAnalysisResult analysis,
+    public static Set<Proposal> allFunctionSchemaExtensions(ContextAnalysisResult analysis,
             ContentAssistContext context, PDPConfiguration pdpConfiguration) {
         final var proposals = new HashSet<Proposal>();
         final var functions = pdpConfiguration.functionContext().getFunctionMetatata();
@@ -114,7 +114,7 @@ public class LibraryProposalsGenerator {
      * @return a List of all attribute finder proposals with their aliased
      * alternatives based on imports.
      */
-    public static Collection<Proposal> allAttributeFinders(ContextAnalysisResult analysis, ContentAssistContext context,
+    public static List<Proposal> allAttributeFinders(ContextAnalysisResult analysis, ContentAssistContext context,
             PolicyInformationPointDocumentationProvider docsProvider) {
         final var proposals  = new ArrayList<Proposal>();
         final var attributes = docsProvider.getAttributeMetatata();
@@ -135,7 +135,7 @@ public class LibraryProposalsGenerator {
      * @return a List of all attribute finder proposals with their aliased
      * alternatives based on imports.
      */
-    public static Collection<Proposal> allEnvironmentAttributeFinders(ContextAnalysisResult analysis,
+    public static List<Proposal> allEnvironmentAttributeFinders(ContextAnalysisResult analysis,
             ContentAssistContext context, PolicyInformationPointDocumentationProvider docsProvider) {
         final var proposals  = new ArrayList<Proposal>();
         final var attributes = docsProvider.getAttributeMetatata();
@@ -158,7 +158,7 @@ public class LibraryProposalsGenerator {
      * @return a List of all function proposals with their aliased alternatives
      * based on imports.
      */
-    public static Collection<Proposal> allFunctions(ContextAnalysisResult analysis, ContentAssistContext context,
+    public static List<Proposal> allFunctions(ContextAnalysisResult analysis, ContentAssistContext context,
             PDPConfiguration pdpConfiguration) {
         final var proposals = new ArrayList<Proposal>();
         final var functions = pdpConfiguration.functionContext().getFunctionMetatata();
@@ -180,7 +180,7 @@ public class LibraryProposalsGenerator {
      * @return a List of all proposals for the supplied function with their aliased
      * alternatives based on imports.
      */
-    private static Collection<Proposal> documentedProposalsForLibraryEntry(String prefix, String ctxPrefix,
+    private static List<Proposal> documentedProposalsForLibraryEntry(String prefix, String ctxPrefix,
             LibraryEntryMetadata function, ContentAssistContext context) {
         final var proposals = new ArrayList<Proposal>();
         final var aliases   = aliasNamesOfFunctionFromImports(function.fullyQualifiedName(), context);
@@ -209,7 +209,7 @@ public class LibraryProposalsGenerator {
      * @return a List with the original name and all possible aliases based on
      * imports.
      */
-    private static Collection<String> aliasNamesOfFunctionFromImports(String fullyQualifiedName,
+    private static List<String> aliasNamesOfFunctionFromImports(String fullyQualifiedName,
             ContentAssistContext context) {
         final var aliases = new ArrayList<String>();
         aliases.add(fullyQualifiedName);
@@ -238,7 +238,7 @@ public class LibraryProposalsGenerator {
         if (null == alias && fullyQualifiedName.startsWith(steps) && functionName != null) {
             return Optional.of(functionName);
         } else if (fullyQualifiedName.equals(fullyQualifiedNameInImport)) {
-            return Optional.of(alias);
+            return Optional.ofNullable(alias);
         }
         return Optional.empty();
     }

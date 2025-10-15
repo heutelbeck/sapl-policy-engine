@@ -60,7 +60,7 @@ class JWTKeyProviderTests {
     private JWTKeyProvider provider;
 
     @BeforeAll
-    public static void preSetup() throws IOException, NoSuchAlgorithmException {
+    static void preSetup() throws IOException, NoSuchAlgorithmException {
         Logger.getLogger(MockWebServer.class.getName()).setLevel(Level.OFF);
         keyPair      = Base64DataUtil.generateRSAKeyPair();
         kid          = KeyTestUtility.kid(keyPair);
@@ -73,7 +73,7 @@ class JWTKeyProviderTests {
     }
 
     @AfterAll
-    public static void teardown() throws IOException {
+    static void teardown() throws IOException {
         server.close();
     }
 

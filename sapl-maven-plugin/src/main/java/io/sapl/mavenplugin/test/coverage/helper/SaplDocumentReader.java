@@ -30,7 +30,6 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -42,7 +41,7 @@ public class SaplDocumentReader {
 
     private static final String ERROR_PATH_WAS_FILE = "Error reading coverage targets: Unable to find policies at \"%s\" on the classpath. The path points to a file.";
 
-    public Collection<SaplDocument> retrievePolicyDocuments(Log log, MavenProject project, String policyPath)
+    public List<SaplDocument> retrievePolicyDocuments(Log log, MavenProject project, String policyPath)
             throws MojoExecutionException {
         DefaultSAPLInterpreter interpreter = new DefaultSAPLInterpreter();
 

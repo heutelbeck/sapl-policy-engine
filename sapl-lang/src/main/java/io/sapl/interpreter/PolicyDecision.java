@@ -183,7 +183,7 @@ public class PolicyDecision implements DocumentEvaluationResult {
     }
 
     @Override
-    public Collection<Val> getErrorsFromTrace() {
+    public List<Val> getErrorsFromTrace() {
         final var errors = new ArrayList<Val>();
         targetResult.ifPresent(target -> errors.addAll(target.getErrorsFromTrace()));
         whereResult.ifPresent(where -> errors.addAll(where.getErrorsFromTrace()));

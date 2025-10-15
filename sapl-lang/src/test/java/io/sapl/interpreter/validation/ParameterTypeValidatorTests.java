@@ -66,7 +66,7 @@ class ParameterTypeValidatorTests {
 			Val.of(""), 						new Class<?>[] { Text.class });
 	// @formatter:on
 
-    static Collection<ValidationTestSpecification> data() {
+    static List<ValidationTestSpecification> data() {
         final var testData = new LinkedList<ValidationTestSpecification>();
         for (var testCase : TEST_CASES.entrySet()) {
             final var     givenValue                          = testCase.getKey();

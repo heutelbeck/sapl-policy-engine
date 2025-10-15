@@ -33,7 +33,6 @@ import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.math.BigDecimal;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -41,7 +40,7 @@ import static org.mockito.Mockito.mock;
 
 class StepApplyNullCheckAndErrorPropagationTests {
 
-    static Collection<Step> data()
+    static List<Step> data()
             throws InstantiationException, IllegalAccessException, InvocationTargetException, NoSuchMethodException {
         final var  reflections = new Reflections("io.sapl.grammar.sapl.impl");
         final var  classes     = reflections.getSubTypesOf(Step.class);

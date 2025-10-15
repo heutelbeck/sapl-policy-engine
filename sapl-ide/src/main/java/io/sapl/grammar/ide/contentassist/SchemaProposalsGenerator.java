@@ -46,8 +46,7 @@ public class SchemaProposalsGenerator {
 
     private static final Collection<String> KEYWORDS_INDICATING_TYPE_ARRAY = Set.of("allOf", "anyOf", "oneOf", TYPE);
 
-    public static Collection<String> getCodeTemplates(String prefix, Expression expression,
-            Map<String, Val> variables) {
+    public static List<String> getCodeTemplates(String prefix, Expression expression, Map<String, Val> variables) {
         if (null == expression) {
             return List.of();
         }
@@ -155,9 +154,8 @@ public class SchemaProposalsGenerator {
         final var anchorField = objectNode.get(ANCHOR);
         if (null != anchorField && anchorField.asText().equals(anchor))
             return objectNode;
-        final var fieldsIterator = objectNode.properties().iterator();
-        while (fieldsIterator.hasNext()) {
-            final var schema = lookupAnchorReference(fieldsIterator.next().getValue(), anchor);
+        for (var stringJsonNodeEntry : objectNode.properties()) {
+            final var schema = lookupAnchorReference(stringJsonNodeEntry.getValue(), anchor);
             if (null != schema)
                 return schema;
         }
@@ -250,9 +248,7 @@ public class SchemaProposalsGenerator {
         if (!properties.isObject())
             return;
 
-        final var fieldsIterator = properties.properties().iterator();
-        while (fieldsIterator.hasNext()) {
-            final var field   = fieldsIterator.next();
+        for (var field : properties.properties()) {
             final var newPath = prefix + '.' + escaped(field.getKey());
             proposals.add(newPath);
             addProposals(baseSchema, newPath, field.getValue(), definitions, proposals, recursionDepth + 1);
