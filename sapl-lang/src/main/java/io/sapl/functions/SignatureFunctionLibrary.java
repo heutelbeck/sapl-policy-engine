@@ -22,15 +22,19 @@ import io.sapl.api.functions.FunctionLibrary;
 import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.api.interpreter.Val;
 import io.sapl.api.validation.Text;
+import io.sapl.functions.util.crypto.KeyUtils;
 import lombok.experimental.UtilityClass;
 import lombok.val;
 
 import java.nio.charset.StandardCharsets;
-import java.security.*;
-import java.security.spec.InvalidKeySpecException;
-import java.security.spec.X509EncodedKeySpec;
+import java.security.InvalidKeyException;
+import java.security.NoSuchAlgorithmException;
+import java.security.Signature;
+import java.security.SignatureException;
 import java.util.Base64;
 import java.util.HexFormat;
+
+import static io.sapl.functions.util.crypto.CryptoConstants.*;
 
 /**
  * Provides digital signature verification functions for verifying message
@@ -57,21 +61,6 @@ public class SignatureFunctionLibrary {
                 "type": "boolean"
             }
             """;
-
-    private static final String PEM_PUBLIC_KEY_BEGIN = "-----BEGIN PUBLIC KEY-----";
-    private static final String PEM_PUBLIC_KEY_END   = "-----END PUBLIC KEY-----";
-
-    private static final String ALGORITHM_RSA_SHA256   = "SHA256withRSA";
-    private static final String ALGORITHM_RSA_SHA384   = "SHA384withRSA";
-    private static final String ALGORITHM_RSA_SHA512   = "SHA512withRSA";
-    private static final String ALGORITHM_ECDSA_SHA256 = "SHA256withECDSA";
-    private static final String ALGORITHM_ECDSA_SHA384 = "SHA384withECDSA";
-    private static final String ALGORITHM_ECDSA_SHA512 = "SHA512withECDSA";
-    private static final String ALGORITHM_ED25519      = "Ed25519";
-
-    private static final String KEY_ALGORITHM_RSA   = "RSA";
-    private static final String KEY_ALGORITHM_EC    = "EC";
-    private static final String KEY_ALGORITHM_EDDSA = "EdDSA";
 
     /* RSA Signature Verification */
 
@@ -102,7 +91,7 @@ public class SignatureFunctionLibrary {
             """, schema = RETURNS_BOOLEAN)
     public static Val verifyRsaSha256(@Text Val message, @Text Val signature, @Text Val publicKeyPem) {
         return verifySignature(message.getText(), signature.getText(), publicKeyPem.getText(), ALGORITHM_RSA_SHA256,
-                KEY_ALGORITHM_RSA);
+                ALGORITHM_RSA);
     }
 
     @Function(docs = """
@@ -126,7 +115,7 @@ public class SignatureFunctionLibrary {
             """, schema = RETURNS_BOOLEAN)
     public static Val verifyRsaSha384(@Text Val message, @Text Val signature, @Text Val publicKeyPem) {
         return verifySignature(message.getText(), signature.getText(), publicKeyPem.getText(), ALGORITHM_RSA_SHA384,
-                KEY_ALGORITHM_RSA);
+                ALGORITHM_RSA);
     }
 
     @Function(docs = """
@@ -150,7 +139,7 @@ public class SignatureFunctionLibrary {
             """, schema = RETURNS_BOOLEAN)
     public static Val verifyRsaSha512(@Text Val message, @Text Val signature, @Text Val publicKeyPem) {
         return verifySignature(message.getText(), signature.getText(), publicKeyPem.getText(), ALGORITHM_RSA_SHA512,
-                KEY_ALGORITHM_RSA);
+                ALGORITHM_RSA);
     }
 
     /* ECDSA Signature Verification */
@@ -177,7 +166,7 @@ public class SignatureFunctionLibrary {
             """, schema = RETURNS_BOOLEAN)
     public static Val verifyEcdsaP256(@Text Val message, @Text Val signature, @Text Val publicKeyPem) {
         return verifySignature(message.getText(), signature.getText(), publicKeyPem.getText(), ALGORITHM_ECDSA_SHA256,
-                KEY_ALGORITHM_EC);
+                ALGORITHM_EC);
     }
 
     @Function(docs = """
@@ -201,7 +190,7 @@ public class SignatureFunctionLibrary {
             """, schema = RETURNS_BOOLEAN)
     public static Val verifyEcdsaP384(@Text Val message, @Text Val signature, @Text Val publicKeyPem) {
         return verifySignature(message.getText(), signature.getText(), publicKeyPem.getText(), ALGORITHM_ECDSA_SHA384,
-                KEY_ALGORITHM_EC);
+                ALGORITHM_EC);
     }
 
     @Function(docs = """
@@ -225,7 +214,7 @@ public class SignatureFunctionLibrary {
             """, schema = RETURNS_BOOLEAN)
     public static Val verifyEcdsaP521(@Text Val message, @Text Val signature, @Text Val publicKeyPem) {
         return verifySignature(message.getText(), signature.getText(), publicKeyPem.getText(), ALGORITHM_ECDSA_SHA512,
-                KEY_ALGORITHM_EC);
+                ALGORITHM_EC);
     }
 
     /* EdDSA Signature Verification */
@@ -254,23 +243,28 @@ public class SignatureFunctionLibrary {
             """, schema = RETURNS_BOOLEAN)
     public static Val verifyEd25519(@Text Val message, @Text Val signature, @Text Val publicKeyPem) {
         return verifySignature(message.getText(), signature.getText(), publicKeyPem.getText(), ALGORITHM_ED25519,
-                KEY_ALGORITHM_EDDSA);
+                ALGORITHM_EDDSA);
     }
 
+    /* Helper Methods */
+
     /**
-     * Verifies a digital signature using the specified algorithm.
+     * Verifies a digital signature using the specified algorithm. Parses the public
+     * key,
+     * decodes the signature, and performs cryptographic verification.
      *
-     * @param message the original message
-     * @param signatureString the signature in hex or Base64
+     * @param message the original message that was signed
+     * @param signatureString the signature in hexadecimal or Base64 format
      * @param publicKeyPem the public key in PEM format
      * @param signatureAlgorithm the signature algorithm name
      * @param keyAlgorithm the key algorithm name
-     * @return a Val containing true if valid, Val.FALSE if invalid, or an error
+     * @return Val containing true if signature is valid, Val.FALSE if invalid, or
+     * an error
      */
     private static Val verifySignature(String message, String signatureString, String publicKeyPem,
             String signatureAlgorithm, String keyAlgorithm) {
         try {
-            val publicKey      = parsePublicKey(publicKeyPem, keyAlgorithm);
+            val publicKey      = KeyUtils.parsePublicKey(publicKeyPem, keyAlgorithm);
             val signatureBytes = parseSignature(signatureString);
             val messageBytes   = message.getBytes(StandardCharsets.UTF_8);
 
@@ -283,61 +277,23 @@ public class SignatureFunctionLibrary {
         } catch (PolicyEvaluationException exception) {
             return Val.error(exception.getMessage());
         } catch (NoSuchAlgorithmException exception) {
-            return Val.error("Signature algorithm not supported: " + exception.getMessage());
+            return Val.error("Signature algorithm not supported: " + signatureAlgorithm);
         } catch (InvalidKeyException exception) {
             return Val.error("Invalid public key: " + exception.getMessage());
         } catch (SignatureException exception) {
             return Val.error("Signature verification failed: " + exception.getMessage());
+        } catch (Exception exception) {
+            return Val.error("Failed to verify signature: " + exception.getMessage());
         }
     }
 
     /**
-     * Parses a PEM-encoded public key.
+     * Parses a signature from hexadecimal or Base64 string format. Attempts hex
+     * parsing first, then falls back to Base64 if hex parsing fails.
      *
-     * @param pemKey the PEM-encoded key
-     * @param keyAlgorithm the key algorithm
-     * @return the PublicKey
-     * @throws PolicyEvaluationException if parsing fails
-     */
-    private static PublicKey parsePublicKey(String pemKey, String keyAlgorithm) {
-        val cleanedPem = pemKey.replace(PEM_PUBLIC_KEY_BEGIN, "").replace(PEM_PUBLIC_KEY_END, "").replaceAll("\\s+",
-                "");
-
-        val keyBytes = decodeBase64(cleanedPem);
-        val keySpec  = new X509EncodedKeySpec(keyBytes);
-
-        try {
-            val keyFactory = KeyFactory.getInstance(keyAlgorithm);
-            return keyFactory.generatePublic(keySpec);
-        } catch (NoSuchAlgorithmException exception) {
-            throw new PolicyEvaluationException("Key algorithm not supported: " + keyAlgorithm, exception);
-        } catch (InvalidKeySpecException exception) {
-            throw new PolicyEvaluationException("Invalid key format for algorithm " + keyAlgorithm, exception);
-        }
-    }
-
-    /**
-     * Decodes Base64 content.
-     *
-     * @param content the Base64-encoded content
-     * @return the decoded bytes
-     * @throws PolicyEvaluationException if decoding fails
-     */
-    private static byte[] decodeBase64(String content) {
-        try {
-            return Base64.getDecoder().decode(content);
-        } catch (IllegalArgumentException exception) {
-            throw new PolicyEvaluationException("Invalid Base64 encoding in public key: " + exception.getMessage(),
-                    exception);
-        }
-    }
-
-    /**
-     * Parses a signature from hexadecimal or Base64 string.
-     *
-     * @param signatureString the signature string
-     * @return the signature bytes
-     * @throws PolicyEvaluationException if the format is invalid
+     * @param signatureString the signature string in hex or Base64 format
+     * @return the decoded signature bytes
+     * @throws PolicyEvaluationException if both hex and Base64 parsing fail
      */
     private static byte[] parseSignature(String signatureString) {
         val cleanedSignature = signatureString.strip();

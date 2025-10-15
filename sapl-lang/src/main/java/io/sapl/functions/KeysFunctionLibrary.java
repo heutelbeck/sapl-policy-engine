@@ -25,33 +25,28 @@ import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.api.interpreter.Val;
 import io.sapl.api.validation.JsonObject;
 import io.sapl.api.validation.Text;
+import io.sapl.functions.util.crypto.CertificateUtils;
+import io.sapl.functions.util.crypto.KeyUtils;
+import io.sapl.functions.util.crypto.PemUtils;
 import lombok.experimental.UtilityClass;
 import lombok.val;
 
-import java.io.ByteArrayInputStream;
 import java.math.BigInteger;
 import java.security.KeyFactory;
 import java.security.NoSuchAlgorithmException;
 import java.security.PublicKey;
-import java.security.cert.CertificateException;
-import java.security.cert.CertificateFactory;
-import java.security.cert.X509Certificate;
 import java.security.interfaces.ECPublicKey;
 import java.security.interfaces.EdECPublicKey;
 import java.security.interfaces.RSAPublicKey;
 import java.security.spec.InvalidKeySpecException;
-import java.security.spec.X509EncodedKeySpec;
 import java.util.Base64;
+
+import static io.sapl.functions.util.crypto.CryptoConstants.*;
 
 /**
  * Provides functions for parsing and converting cryptographic key material.
- * <p>
  * Supports parsing public keys from PEM format, extracting keys from
- * certificates, and converting between different key representations. This
- * library focuses on public key operations relevant to policy evaluation.
- * <p>
- * Private key operations are intentionally limited as policy engines should
- * verify signatures rather than create them.
+ * certificates, and converting between different key representations.
  */
 @UtilityClass
 @FunctionLibrary(name = KeysFunctionLibrary.NAME, description = KeysFunctionLibrary.DESCRIPTION)
@@ -80,34 +75,6 @@ public class KeysFunctionLibrary {
 
     private static final JsonNodeFactory JSON = JsonNodeFactory.instance;
 
-    private static final String PEM_PUBLIC_KEY_BEGIN  = "-----BEGIN PUBLIC KEY-----";
-    private static final String PEM_PUBLIC_KEY_END    = "-----END PUBLIC KEY-----";
-    private static final String PEM_CERTIFICATE_BEGIN = "-----BEGIN CERTIFICATE-----";
-    private static final String PEM_CERTIFICATE_END   = "-----END CERTIFICATE-----";
-
-    private static final String ALGORITHM_RSA   = "RSA";
-    private static final String ALGORITHM_EC    = "EC";
-    private static final String ALGORITHM_EDDSA = "EdDSA";
-
-    private static final String JWK_KEY_TYPE_RSA = "RSA";
-    private static final String JWK_KEY_TYPE_EC  = "EC";
-    private static final String JWK_KEY_TYPE_OKP = "OKP";
-
-    private static final String CURVE_SECP256R1  = "secp256r1";
-    private static final String CURVE_PRIME256V1 = "prime256v1";
-    private static final String CURVE_SECP384R1  = "secp384r1";
-    private static final String CURVE_SECP521R1  = "secp521r1";
-    private static final String CURVE_ED25519    = "Ed25519";
-    private static final String CURVE_P256_JWK   = "P-256";
-    private static final String CURVE_P384_JWK   = "P-384";
-    private static final String CURVE_P521_JWK   = "P-521";
-    private static final String CURVE_UNKNOWN    = "unknown";
-
-    private static final int EDDSA_KEY_SIZE_BITS = 256;
-    private static final int EC_P256_BITS        = 256;
-    private static final int EC_P384_BITS        = 384;
-    private static final int EC_P521_BITS        = 521;
-
     /* Key Parsing */
 
     @Function(docs = """
@@ -128,7 +95,7 @@ public class KeysFunctionLibrary {
             """, schema = RETURNS_OBJECT)
     public Val parsePublicKey(@Text Val keyPem) {
         try {
-            val publicKey = decodePublicKey(keyPem.getText());
+            val publicKey = KeyUtils.parsePublicKeyWithAlgorithmDetection(keyPem.getText());
             val keyObject = buildKeyObject(publicKey);
             return Val.of(keyObject);
         } catch (PolicyEvaluationException exception) {
@@ -153,9 +120,9 @@ public class KeysFunctionLibrary {
             """, schema = RETURNS_TEXT)
     public Val extractPublicKeyFromCertificate(@Text Val certPem) {
         try {
-            val certificate = decodeCertificate(certPem.getText());
+            val certificate = CertificateUtils.parseCertificate(certPem.getText());
             val publicKey   = certificate.getPublicKey();
-            val keyPem      = publicKeyToPem(publicKey);
+            val keyPem      = PemUtils.encodePublicKeyPem(publicKey.getEncoded());
             return Val.of(keyPem);
         } catch (PolicyEvaluationException exception) {
             return Val.error("Failed to extract public key from certificate: " + exception.getMessage());
@@ -179,7 +146,7 @@ public class KeysFunctionLibrary {
             """, schema = RETURNS_TEXT)
     public Val extractKeyAlgorithm(@Text Val keyPem) {
         try {
-            val publicKey = decodePublicKey(keyPem.getText());
+            val publicKey = KeyUtils.parsePublicKeyWithAlgorithmDetection(keyPem.getText());
             return Val.of(publicKey.getAlgorithm());
         } catch (PolicyEvaluationException exception) {
             return Val.error("Failed to extract key algorithm: " + exception.getMessage());
@@ -202,8 +169,8 @@ public class KeysFunctionLibrary {
             """, schema = RETURNS_NUMBER)
     public Val extractKeySize(@Text Val keyPem) {
         try {
-            val publicKey = decodePublicKey(keyPem.getText());
-            val keySize   = getKeySize(publicKey);
+            val publicKey = KeyUtils.parsePublicKeyWithAlgorithmDetection(keyPem.getText());
+            val keySize   = KeyUtils.getKeySize(publicKey);
             return Val.of(keySize);
         } catch (PolicyEvaluationException exception) {
             return Val.error("Failed to extract key size: " + exception.getMessage());
@@ -226,14 +193,14 @@ public class KeysFunctionLibrary {
             """, schema = RETURNS_TEXT)
     public Val extractEcCurve(@Text Val keyPem) {
         try {
-            val publicKey = decodePublicKey(keyPem.getText());
+            val publicKey = KeyUtils.parsePublicKeyWithAlgorithmDetection(keyPem.getText());
 
             if (!(publicKey instanceof ECPublicKey ecKey)) {
                 return Val.error("Key is not an EC key");
             }
 
-            val curveName = ecKey.getParams().toString();
-            return Val.of(extractCurveNameFromParams(curveName));
+            val curveName = KeyUtils.extractEcCurveName(ecKey);
+            return Val.of(curveName);
         } catch (PolicyEvaluationException exception) {
             return Val.error("Failed to extract EC curve: " + exception.getMessage());
         }
@@ -260,7 +227,7 @@ public class KeysFunctionLibrary {
             """, schema = RETURNS_OBJECT)
     public Val publicKeyToJwk(@Text Val publicKeyPem) {
         try {
-            val publicKey = decodePublicKey(publicKeyPem.getText());
+            val publicKey = KeyUtils.parsePublicKeyWithAlgorithmDetection(publicKeyPem.getText());
             val jwk       = convertPublicKeyToJwk(publicKey);
             return Val.of(jwk);
         } catch (PolicyEvaluationException exception) {
@@ -286,7 +253,7 @@ public class KeysFunctionLibrary {
     public Val jwkToPublicKey(@JsonObject Val jwk) {
         try {
             val publicKey = convertJwkToPublicKey(jwk.get());
-            val keyPem    = publicKeyToPem(publicKey);
+            val keyPem    = PemUtils.encodePublicKeyPem(publicKey.getEncoded());
             return Val.of(keyPem);
         } catch (PolicyEvaluationException exception) {
             return Val.error("Failed to convert JWK to public key: " + exception.getMessage());
@@ -294,190 +261,23 @@ public class KeysFunctionLibrary {
     }
 
     /**
-     * Removes PEM headers, footers, and whitespace from encoded content.
-     *
-     * @param pemContent the PEM-formatted content
-     * @param beginMarker the begin marker to remove
-     * @param endMarker the end marker to remove
-     * @return the cleaned Base64 content
-     */
-    private static String cleanPemContent(String pemContent, String beginMarker, String endMarker) {
-        return pemContent.replace(beginMarker, "").replace(endMarker, "").replaceAll("\\s+", "");
-    }
-
-    /**
-     * Decodes a PEM-encoded public key by attempting each supported algorithm.
-     *
-     * @param pemKey the PEM-encoded key
-     * @return the PublicKey
-     * @throws PolicyEvaluationException if decoding fails for all supported
-     * algorithms
-     */
-    private static PublicKey decodePublicKey(String pemKey) {
-        val cleanedPem = cleanPemContent(pemKey, PEM_PUBLIC_KEY_BEGIN, PEM_PUBLIC_KEY_END);
-        val keyBytes   = decodeBase64(cleanedPem, "Invalid Base64 encoding in public key");
-        val keySpec    = new X509EncodedKeySpec(keyBytes);
-
-        return tryDecodePublicKeyWithAlgorithms(keySpec);
-    }
-
-    /**
-     * Attempts to decode a public key using all supported algorithms.
-     *
-     * @param keySpec the key specification
-     * @return the decoded PublicKey
-     * @throws PolicyEvaluationException if all algorithms fail
-     */
-    private static PublicKey tryDecodePublicKeyWithAlgorithms(X509EncodedKeySpec keySpec) {
-        val algorithms = new String[] { ALGORITHM_RSA, ALGORITHM_EC, ALGORITHM_EDDSA };
-
-        for (val algorithm : algorithms) {
-            try {
-                return KeyFactory.getInstance(algorithm).generatePublic(keySpec);
-            } catch (NoSuchAlgorithmException | InvalidKeySpecException ignored) {
-                // Try next algorithm
-            }
-        }
-
-        throw new PolicyEvaluationException("Unsupported key type or invalid key format. Tried: RSA, EC, EdDSA");
-    }
-
-    /**
-     * Decodes a certificate from PEM or DER format.
-     *
-     * @param certificateString the certificate string
-     * @return the X509Certificate
-     * @throws PolicyEvaluationException if decoding fails
-     */
-    private static X509Certificate decodeCertificate(String certificateString) {
-        val certificateFactory = getCertificateFactory();
-        val certificateBytes   = extractCertificateBytes(certificateString);
-        val inputStream        = new ByteArrayInputStream(certificateBytes);
-
-        try {
-            return (X509Certificate) certificateFactory.generateCertificate(inputStream);
-        } catch (CertificateException exception) {
-            throw new PolicyEvaluationException("Failed to parse X.509 certificate", exception);
-        }
-    }
-
-    /**
-     * Gets the X.509 certificate factory.
-     *
-     * @return the CertificateFactory
-     * @throws PolicyEvaluationException if X.509 is not supported
-     */
-    private static CertificateFactory getCertificateFactory() {
-        try {
-            return CertificateFactory.getInstance("X.509");
-        } catch (CertificateException exception) {
-            throw new PolicyEvaluationException("X.509 certificate factory not available", exception);
-        }
-    }
-
-    /**
-     * Extracts certificate bytes from PEM or Base64 DER format.
-     *
-     * @param certificateString the certificate string
-     * @return the decoded certificate bytes
-     * @throws PolicyEvaluationException if Base64 decoding fails
-     */
-    private static byte[] extractCertificateBytes(String certificateString) {
-        if (certificateString.contains("BEGIN CERTIFICATE")) {
-            val pemContent = cleanPemContent(certificateString, PEM_CERTIFICATE_BEGIN, PEM_CERTIFICATE_END);
-            return decodeBase64(pemContent, "Invalid Base64 encoding in certificate PEM");
-        }
-        return decodeBase64(certificateString, "Invalid Base64 encoding in certificate");
-    }
-
-    /**
-     * Decodes Base64 content with error context.
-     *
-     * @param content the Base64-encoded content
-     * @param errorContext the context description for error messages
-     * @return the decoded bytes
-     * @throws PolicyEvaluationException if decoding fails
-     */
-    private static byte[] decodeBase64(String content, String errorContext) {
-        try {
-            return Base64.getDecoder().decode(content);
-        } catch (IllegalArgumentException exception) {
-            throw new PolicyEvaluationException(errorContext + ": " + exception.getMessage(), exception);
-        }
-    }
-
-    /**
-     * Converts a PublicKey to PEM format.
-     *
-     * @param publicKey the public key
-     * @return the PEM string
-     */
-    private static String publicKeyToPem(PublicKey publicKey) {
-        val encoded = Base64.getEncoder().encodeToString(publicKey.getEncoded());
-        return PEM_PUBLIC_KEY_BEGIN + '\n' + encoded + '\n' + PEM_PUBLIC_KEY_END;
-    }
-
-    /**
      * Builds a JSON object representation of a public key.
-     *
-     * @param publicKey the public key
-     * @return the JSON object
      */
     private static JsonNode buildKeyObject(PublicKey publicKey) {
         val keyObject = JSON.objectNode();
         keyObject.put("algorithm", publicKey.getAlgorithm());
         keyObject.put("format", publicKey.getFormat());
-        keyObject.put("size", getKeySize(publicKey));
+        keyObject.put("size", KeyUtils.getKeySize(publicKey));
 
         if (publicKey instanceof ECPublicKey ecKey) {
-            val curveParametersString = ecKey.getParams().toString();
-            keyObject.put("curve", extractCurveNameFromParams(curveParametersString));
+            keyObject.put("curve", KeyUtils.extractEcCurveName(ecKey));
         }
 
         return keyObject;
     }
 
     /**
-     * Gets the key size in bits.
-     *
-     * @param publicKey the public key
-     * @return the key size in bits
-     */
-    private static int getKeySize(PublicKey publicKey) {
-        return switch (publicKey) {
-        case RSAPublicKey rsaKey   -> rsaKey.getModulus().bitLength();
-        case ECPublicKey ecKey     -> ecKey.getParams().getOrder().bitLength();
-        case EdECPublicKey edEcKey -> EDDSA_KEY_SIZE_BITS;
-        default                    -> 0;
-        };
-    }
-
-    /**
-     * Extracts the curve name from EC parameters string.
-     *
-     * @param parametersString the parameters string representation
-     * @return the standardized curve name
-     */
-    private static String extractCurveNameFromParams(String parametersString) {
-        if (parametersString.contains(CURVE_SECP256R1) || parametersString.contains(CURVE_PRIME256V1)) {
-            return CURVE_SECP256R1;
-        }
-        if (parametersString.contains(CURVE_SECP384R1)) {
-            return CURVE_SECP384R1;
-        }
-        if (parametersString.contains(CURVE_SECP521R1)) {
-            return CURVE_SECP521R1;
-        }
-        return CURVE_UNKNOWN;
-    }
-
-    /**
      * Converts a PublicKey to JWK format.
-     *
-     * @param publicKey the public key
-     * @return the JWK JSON object
-     * @throws PolicyEvaluationException if conversion fails or key type is
-     * unsupported
      */
     private static JsonNode convertPublicKeyToJwk(PublicKey publicKey) {
         return switch (publicKey) {
@@ -491,7 +291,7 @@ public class KeysFunctionLibrary {
         case ECPublicKey ecKey     -> {
             val jwk = JSON.objectNode();
             jwk.put("kty", JWK_KEY_TYPE_EC);
-            jwk.put("crv", getCurveNameForJwk(ecKey));
+            jwk.put("crv", KeyUtils.getJwkCurveName(ecKey));
             jwk.put("x", base64UrlEncode(ecKey.getW().getAffineX()));
             jwk.put("y", base64UrlEncode(ecKey.getW().getAffineY()));
             yield jwk;
@@ -510,11 +310,6 @@ public class KeysFunctionLibrary {
 
     /**
      * Converts a JWK to PublicKey.
-     *
-     * @param jwkNode the JWK JSON object
-     * @return the PublicKey
-     * @throws PolicyEvaluationException if conversion fails or key type is
-     * unsupported
      */
     private static PublicKey convertJwkToPublicKey(JsonNode jwkNode) {
         val keyTypeNode = jwkNode.get("kty");
@@ -536,11 +331,6 @@ public class KeysFunctionLibrary {
 
     /**
      * Converts an RSA JWK to PublicKey.
-     *
-     * @param jwkNode the RSA JWK JSON object
-     * @return the RSA PublicKey
-     * @throws PolicyEvaluationException if conversion fails or required fields are
-     * missing
      */
     private static PublicKey convertRsaJwkToPublicKey(JsonNode jwkNode) {
         val modulusNode  = jwkNode.get("n");
@@ -567,26 +357,7 @@ public class KeysFunctionLibrary {
     }
 
     /**
-     * Gets the JWK curve name from an EC key.
-     *
-     * @param ecKey the EC public key
-     * @return the JWK curve name
-     */
-    private static String getCurveNameForJwk(ECPublicKey ecKey) {
-        val bitLength = ecKey.getParams().getOrder().bitLength();
-        return switch (bitLength) {
-        case EC_P256_BITS -> CURVE_P256_JWK;
-        case EC_P384_BITS -> CURVE_P384_JWK;
-        case EC_P521_BITS -> CURVE_P521_JWK;
-        default           -> CURVE_UNKNOWN;
-        };
-    }
-
-    /**
      * Base64 URL encodes a BigInteger.
-     *
-     * @param value the big integer
-     * @return the Base64 URL encoded string without padding
      */
     private static String base64UrlEncode(BigInteger value) {
         return Base64.getUrlEncoder().withoutPadding().encodeToString(value.toByteArray());
@@ -594,10 +365,6 @@ public class KeysFunctionLibrary {
 
     /**
      * Base64 URL decodes a string to bytes.
-     *
-     * @param encoded the Base64 URL encoded string
-     * @return the decoded bytes
-     * @throws PolicyEvaluationException if decoding fails
      */
     private static byte[] base64UrlDecode(String encoded) {
         try {
