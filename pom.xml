@@ -106,11 +106,13 @@
 		<tycho.version>5.0.0</tycho.version>
 		<sb-contrib.version>7.6.14</sb-contrib.version>
 		<spdx-maven-plugin.version>1.0.3</spdx-maven-plugin.version>
+        <maven-deploy-plugin.version>3.1.4</maven-deploy-plugin.version>
+        <maven-install-plugin.version>3.1.4</maven-install-plugin.version>
 		<license-maven-plugin.version>5.0.0</license-maven-plugin.version>
 		<sonar-maven-plugin.version>5.2.0.4988</sonar-maven-plugin.version>
 		<maven-failsafe-plugin.version>3.5.4</maven-failsafe-plugin.version>
 		<maven-surefire-plugin.version>3.5.4</maven-surefire-plugin.version>
-		<maven-compiler-plugin.version>3.13.0</maven-compiler-plugin.version>
+		<maven-compiler-plugin.version>3.14.1</maven-compiler-plugin.version>
 		<spotbugs-maven-plugin.version>4.9.6.0</spotbugs-maven-plugin.version>
 		<sonar.exclusions>**/xtext-gen/**/*,**/xtend-gen/**/*,**/emf-gen/**/*</sonar.exclusions>
 
@@ -343,8 +345,18 @@
 				<plugin>
 					<groupId>org.codehaus.mojo</groupId>
 					<artifactId>build-helper-maven-plugin</artifactId>
-					<version>3.6.0</version>
+					<version>3.6.1</version>
 				</plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-install-plugin</artifactId>
+                    <version>${maven-install-plugin.version}</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-deploy-plugin</artifactId>
+                    <version>${maven-deploy-plugin.version}</version>
+                </plugin>
 				<plugin>
 					<groupId>org.apache.maven.plugins</groupId>
 					<artifactId>maven-resources-plugin</artifactId>
@@ -353,7 +365,7 @@
 				<plugin>
 					<groupId>org.apache.maven.plugins</groupId>
 					<artifactId>maven-dependency-plugin</artifactId>
-					<version>3.7.1</version>
+					<version>3.9.0</version>
 					<executions>
 				       <execution>
 				          <goals>
@@ -396,7 +408,7 @@
 				<plugin>
 					<groupId>org.apache.maven.plugins</groupId>
 					<artifactId>maven-clean-plugin</artifactId>
-					<version>3.4.0</version>
+					<version>3.5.0</version>
 					<configuration>
 						<filesets>
 							<fileset>
@@ -472,6 +484,7 @@
 						</execution>
 					</executions>
 					<configuration>
+                        <detectOfflineLinks>false</detectOfflineLinks>
 						<verbose>false</verbose>
 						<failOnWarnings>true</failOnWarnings>
 						<doclint>none</doclint>
@@ -624,6 +637,15 @@
 				<artifactId>tycho-maven-plugin</artifactId>
 				<version>${tycho.version}</version>
 				<extensions>true</extensions>
+                <configuration>
+                    <p2Artifacts>
+                        <digestAlgorithms>
+                            <digestAlgorithm>SHA-512</digestAlgorithm>
+                            <digestAlgorithm>SHA-256</digestAlgorithm>
+                        </digestAlgorithms>
+                    </p2Artifacts>
+                    <includeProvidedScope>false</includeProvidedScope>
+                </configuration>
 			</plugin>
 			<plugin>
 				<groupId>org.eclipse.tycho</groupId>

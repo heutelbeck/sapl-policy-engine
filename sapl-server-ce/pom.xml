@@ -386,9 +386,6 @@
 						</goals>
 					</execution>
 				</executions>
-                <configuration>
-                    <includeProvidedScope>false</includeProvidedScope>
-                </configuration>
 			</plugin>
 		</plugins>
 	</build>
