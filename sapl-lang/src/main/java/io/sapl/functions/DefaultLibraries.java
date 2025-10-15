@@ -23,10 +23,11 @@ import java.util.List;
 
 @UtilityClass
 public class DefaultLibraries {
-    public static final List<Class<?>> STATIC_LIBRARIES = List.of(StandardFunctionLibrary.class,
-            FilterFunctionLibrary.class, LoggingFunctionLibrary.class, SchemaValidationLibrary.class,
-            TemporalFunctionLibrary.class, GraphFunctionLibrary.class, ArrayFunctionLibrary.class,
-            UuidFunctionLibrary.class, UnitsFunctionLibrary.class, ObjectFunctionLibrary.class,
-            ReflectionFunctionLibrary.class, SaplFunctionLibrary.class, MathFunctionLibrary.class,
-            PatternsFunctionLibrary.class);
+    public static final List<Class<?>> STATIC_LIBRARIES = List.of(ArrayFunctionLibrary.class,
+            BitwiseFunctionLibrary.class, FilterFunctionLibrary.class, GraphFunctionLibrary.class,
+            LoggingFunctionLibrary.class, MathFunctionLibrary.class, NumeralFunctionLibrary.class,
+            ObjectFunctionLibrary.class, PatternsFunctionLibrary.class, PermissionsFunctionLibrary.class,
+            ReflectionFunctionLibrary.class, SaplFunctionLibrary.class, SchemaValidationLibrary.class,
+            StandardFunctionLibrary.class, TemporalFunctionLibrary.class, UnitsFunctionLibrary.class,
+            UuidFunctionLibrary.class);
 }

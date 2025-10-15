@@ -335,7 +335,7 @@ public class PatternsFunctionLibrary {
             **Returns:** Boolean indicating match success, or error for malformed templates.
             """)
     public static Val matchTemplate(@Text Val template, @Text Val value, @Text Val delimiterStart,
-                                    @Text Val delimiterEnd) {
+            @Text Val delimiterEnd) {
         if (!template.isTextual() || !value.isTextual() || !delimiterStart.isTextual() || !delimiterEnd.isTextual()) {
             return Val.error(ERROR_TEMPLATE_ARGS_TEXT);
         }
@@ -415,7 +415,8 @@ public class PatternsFunctionLibrary {
      * Escapes all regex metacharacters in the input string.
      *
      * @param input the string to escape
-     * @return the escaped string with all regex metacharacters preceded by backslash
+     * @return the escaped string with all regex metacharacters preceded by
+     * backslash
      */
     private static String escapeRegexCharacters(String input) {
         val result = new StringBuilder(input.length() * 2);
@@ -455,7 +456,8 @@ public class PatternsFunctionLibrary {
      * Validates that delimiters array contains only textual values.
      *
      * @param delimiters the delimiters array to validate
-     * @return error Val if validation fails, null if validation succeeds or delimiters is undefined
+     * @return error Val if validation fails, null if validation succeeds or
+     * delimiters is undefined
      */
     private static Val validateDelimiters(Val delimiters) {
         if (delimiters.isUndefined() || !delimiters.isArray()) {
@@ -474,11 +476,13 @@ public class PatternsFunctionLibrary {
     }
 
     /**
-     * Extracts delimiter strings from Val array, returning default if undefined or empty.
+     * Extracts delimiter strings from Val array, returning default if undefined or
+     * empty.
      *
      * @param delimiters the delimiters Val array
      * @param defaultValue the default delimiter list to use
-     * @return list of delimiter strings, or null if array contains no non-empty strings
+     * @return list of delimiter strings, or null if array contains no non-empty
+     * strings
      */
     private static List<String> extractDelimiters(Val delimiters, List<String> defaultValue) {
         if (delimiters.isUndefined() || !delimiters.isArray()) {
@@ -548,12 +552,12 @@ public class PatternsFunctionLibrary {
 
         while (position < glob.length()) {
             val handler = switch (glob.charAt(position)) {
-                case '\\' -> processEscapeSequence(glob, position);
-                case '*'  -> processWildcard(glob, position, delimiters);
-                case '?'  -> processSingleCharacterWildcard(position, delimiters);
-                case '['  -> processCharacterClass(glob, position);
-                case '{'  -> processAlternatives(glob, position, delimiters, recursionDepth);
-                default   -> processLiteralCharacter(glob, position);
+            case '\\' -> processEscapeSequence(glob, position);
+            case '*'  -> processWildcard(glob, position, delimiters);
+            case '?'  -> processSingleCharacterWildcard(position, delimiters);
+            case '['  -> processCharacterClass(glob, position);
+            case '{'  -> processAlternatives(glob, position, delimiters, recursionDepth);
+            default   -> processLiteralCharacter(glob, position);
             };
 
             regex.append(handler.regexFragment);
@@ -720,7 +724,7 @@ public class PatternsFunctionLibrary {
      * @throws IllegalStateException if alternative group is not closed
      */
     private static GlobConversionResult processAlternatives(String glob, int position, List<String> delimiters,
-                                                            int recursionDepth) {
+            int recursionDepth) {
         int closingBrace = findClosingBrace(glob, position);
         if (closingBrace == -1) {
             throw new IllegalStateException(ERROR_UNCLOSED_ALT_GROUP.formatted(position));
@@ -768,7 +772,8 @@ public class PatternsFunctionLibrary {
      * Builds regex pattern that respects delimiter boundaries.
      *
      * @param delimiters the delimiter collection
-     * @param allowMultiple true for zero-or-more pattern, false for single character
+     * @param allowMultiple true for zero-or-more pattern, false for single
+     * character
      * @return regex pattern string
      */
     private static String buildDelimiterAwarePattern(Collection<String> delimiters, boolean allowMultiple) {
