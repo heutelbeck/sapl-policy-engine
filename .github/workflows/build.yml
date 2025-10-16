@@ -114,7 +114,7 @@ jobs:
 
       - name: Run Unit Tests Only
         if: env.RUN_ANALYSIS == 'false'
-        run: mvn -B package -fae javadoc:jar
+        run: mvn -B package javadoc:jar
 
         # Runs JaCoCo and Spotbugs analysis which are needed for the subsequent
         # SonarCloud analysis. The SonarCloud analysis is run separately because a
@@ -122,7 +122,7 @@ jobs:
         # fork and workflows triggered by other events.
       - name: Run Unit Tests, Analysis, and Integration Tests
         if: env.RUN_ANALYSIS == 'true'
-        run: mvn -B verify -fae javadoc:jar spotbugs:spotbugs -pl '!sapl-bom,!sapl-code-style' -Pcoverage,it,spotbugs
+        run: mvn -B verify javadoc:jar spotbugs:spotbugs -pl '!sapl-bom,!sapl-code-style' -Pcoverage,it,spotbugs
 
       - name: Cache Sonar Packages
         if: ${{ (env.RUN_ANALYSIS == 'true') && (env.IS_FORK == 'false') }}
@@ -312,7 +312,7 @@ jobs:
           echo "version=$VERSION" >> $GITHUB_OUTPUT
 
       - name: Push Server LT Image to ghcr.io
-        uses: nick-fields/retry@v3
+        uses: nick-fields/retry@ce71cc2ab81d554ebbe88c79ab5975992d79ba08 # v3.0.2
         with:
           timeout_minutes: 10
           max_attempts: 3
@@ -320,7 +320,7 @@ jobs:
           command: docker push ghcr.io/heutelbeck/sapl-server-lt:${{ steps.get-version.outputs.VERSION }}
 
       - name: Push Server CE Image to ghcr.io
-        uses: nick-fields/retry@v3
+        uses: nick-fields/retry@ce71cc2ab81d554ebbe88c79ab5975992d79ba08 # v3.0.2
         with:
           timeout_minutes: 10
           max_attempts: 3
@@ -328,7 +328,7 @@ jobs:
           command: docker push ghcr.io/heutelbeck/sapl-server-ce:${{ steps.get-version.outputs.VERSION }}
 
       - name: Push Playground Image to ghcr.io
-        uses: nick-fields/retry@v3
+        uses: nick-fields/retry@ce71cc2ab81d554ebbe88c79ab5975992d79ba08 # v3.0.2
         with:
           timeout_minutes: 10
           max_attempts: 3
@@ -361,13 +361,13 @@ jobs:
               docker logs sapl-playground --tail 50
               exit 1
             fi
-            echo "✓ Container is running"
+            echo "[OK] Container is running"
             
             # Verify users can access the playground
             echo "Checking public availability at https://playground.sapl.io ..."
             for i in {1..6}; do
               if curl -f -s -m 10 https://playground.sapl.io > /dev/null 2>&1; then
-                echo "✓ Playground is publicly accessible"
+                echo "[OK] Playground is publicly accessible"
                 exit 0
               fi
               echo "Attempt $i/6: Not ready yet, waiting 10s..."
@@ -429,10 +429,32 @@ jobs:
             sapl-server-lt/target/sapl-server-lt-*.jar.md5
             sapl-server-lt/target/site/io.*.spdx.json    
 
-      - name: Trigger CI Build of Downstream Repositories
-        run: |
-          curl -XPOST -u "${{ secrets.GHUB_USERNAME }}:${{ secrets.GHUB_ACCESS_TOKEN }}" -H "Accept: application/vnd.github.everest-preview+json" -H "Content-Type: application/json" https://api.github.com/repos/heutelbeck/sapl-demos/dispatches --data '{"event_type": "build_application"}'
-          curl -XPOST -u "${{ secrets.GHUB_USERNAME }}:${{ secrets.GHUB_ACCESS_TOKEN }}" -H "Accept: application/vnd.github.everest-preview+json" -H "Content-Type: application/json" https://api.github.com/repos/heutelbeck/sapl-extensions/dispatches --data '{"event_type": "build_application"}'
+      - name: Trigger CI Build of sapl-demos
+        uses: nick-fields/retry@ce71cc2ab81d554ebbe88c79ab5975992d79ba08 # v3.0.2
+        with:
+          timeout_minutes: 2
+          max_attempts: 3
+          retry_on: error
+          command: |
+            curl -XPOST -u "${{ secrets.GHUB_USERNAME }}:${{ secrets.GHUB_ACCESS_TOKEN }}" -H "Accept: application/vnd.github.everest-preview+json" -H "Content-Type: application/json" https://api.github.com/repos/heutelbeck/sapl-demos/dispatches --data '{"event_type": "build_application"}'
+
+      - name: Trigger CI Build of sapl-extensions
+        uses: nick-fields/retry@ce71cc2ab81d554ebbe88c79ab5975992d79ba08 # v3.0.2
+        with:
+          timeout_minutes: 2
+          max_attempts: 3
+          retry_on: error
+          command: |
+            curl -XPOST -u "${{ secrets.GHUB_USERNAME }}:${{ secrets.GHUB_ACCESS_TOKEN }}" -H "Accept: application/vnd.github.everest-preview+json" -H "Content-Type: application/json" https://api.github.com/repos/heutelbeck/sapl-extensions/dispatches --data '{"event_type": "build_application"}'
+
+      - name: Trigger CI Build of sapl-server-ee
+        uses: nick-fields/retry@ce71cc2ab81d554ebbe88c79ab5975992d79ba08 # v3.0.2
+        with:
+          timeout_minutes: 2
+          max_attempts: 3
+          retry_on: error
+          command: |
+            curl -XPOST -u "${{ secrets.GHUB_USERNAME }}:${{ secrets.GHUB_ACCESS_TOKEN }}" -H "Accept: application/vnd.github.everest-preview+json" -H "Content-Type: application/json" https://api.github.com/repos/heutelbeck/sapl-server-ee/dispatches --data '{"event_type": "build_application"}'
 
       - name: Clean up Local Repository before Caching
         run: rm -rf ~/.m2/repository/io/sapl
