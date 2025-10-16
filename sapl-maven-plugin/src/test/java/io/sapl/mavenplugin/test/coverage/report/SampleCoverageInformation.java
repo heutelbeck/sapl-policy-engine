@@ -22,7 +22,6 @@ import io.sapl.mavenplugin.test.coverage.report.model.SaplDocumentCoverageInform
 import lombok.experimental.UtilityClass;
 
 import java.nio.file.Paths;
-import java.util.Collection;
 import java.util.List;
 
 @UtilityClass
