@@ -74,7 +74,7 @@ public class MockingFunctionContext implements FunctionContext {
     }
 
     @Override
-    public Collection<String> providedFunctionsOfLibrary(String libName) {
+    public Set<String> providedFunctionsOfLibrary(String libName) {
         Set<String> set = new HashSet<>();
 
         for (String fullName : this.registeredMocks.keySet()) {
@@ -229,7 +229,7 @@ public class MockingFunctionContext implements FunctionContext {
     }
 
     @Override
-    public Collection<String> getAvailableLibraries() {
+    public Set<String> getAvailableLibraries() {
         return this.registeredMocks.keySet();
     }
 
@@ -239,7 +239,7 @@ public class MockingFunctionContext implements FunctionContext {
     }
 
     @Override
-    public Collection<String> getAllFullyQualifiedFunctions() {
+    public List<String> getAllFullyQualifiedFunctions() {
         return List.of();
     }
 

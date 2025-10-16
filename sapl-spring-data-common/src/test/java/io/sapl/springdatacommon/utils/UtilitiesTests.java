@@ -32,7 +32,10 @@ import reactor.test.StepVerifier;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
-import java.util.*;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.Objects;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -60,7 +63,7 @@ class UtilitiesTests {
         return List.of();
     }
 
-    public Collection<Person> testMethodCollection() {
+    public List<Person> testMethodCollection() {
         return Collections.emptyList();
     }
 

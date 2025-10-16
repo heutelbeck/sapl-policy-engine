@@ -173,7 +173,8 @@ public class UuidFunctionLibrary {
      * it suitable for testing or scenarios requiring reproducible UUID generation.
      *
      * @param seed the seed value for the random number generator
-     * @return a Val containing a UUID generated using the seeded random number generator
+     * @return a Val containing a UUID generated using the seeded random number
+     * generator
      */
     @Function(docs = """
             ```uuid.seededRandom(INT seed)```: Generates a deterministic version 4 (pseudo-random) UUID using

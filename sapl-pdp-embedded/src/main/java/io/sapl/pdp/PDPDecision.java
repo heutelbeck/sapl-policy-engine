@@ -154,7 +154,7 @@ public class PDPDecision implements TracedDecision {
     }
 
     @Override
-    public Collection<Val> getErrorsFromTrace() {
+    public List<Val> getErrorsFromTrace() {
         final var all = new ArrayList<Val>();
         all.addAll(combinedDecision.getErrorsFromTrace());
         all.addAll(prpResult.getErrors());

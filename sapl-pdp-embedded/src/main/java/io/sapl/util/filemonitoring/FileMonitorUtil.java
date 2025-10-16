@@ -67,14 +67,13 @@ public class FileMonitorUtil {
                         emitter.error(e);
                     }
                 });
-
-                try {
-                    monitor.start();
-                } catch (Exception e) {
-                    emitter.error(e);
-                }
             } catch (IOException e) {
                 throw new PolicyEvaluationException("failed to monitor %s: %s", watchDir.toString(), e.getMessage());
+            }
+            try {
+                monitor.start();
+            } catch (Exception e) {
+                emitter.error(e);
             }
         });
     }

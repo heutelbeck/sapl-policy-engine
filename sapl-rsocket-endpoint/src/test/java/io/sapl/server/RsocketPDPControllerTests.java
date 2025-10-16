@@ -66,7 +66,7 @@ class RsocketPDPControllerTests {
     private RSocketRequester requester;
 
     @BeforeAll
-    public void startRsocketServer() {
+    void startRsocketServer() {
         SocketAcceptor responder = RSocketMessageHandler.responder(rSocketStrategies, new RSocketPDPController(pdp));
         this.server = RSocketServer.create(responder).payloadDecoder(PayloadDecoder.ZERO_COPY)
                 .bind(TcpServerTransport.create(serverPort)).block();
@@ -93,7 +93,7 @@ class RsocketPDPControllerTests {
     }
 
     @AfterAll
-    public void tearDown() {
+    void tearDown() {
         server.dispose();
     }
 

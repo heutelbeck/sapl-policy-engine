@@ -51,7 +51,7 @@ import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertAll;
 
-public class RemoteRsocketPolicyDecisionPointTests {
+class RemoteRsocketPolicyDecisionPointTests {
 
     private static CloseableChannel                 server;
     private static RemoteRsocketPolicyDecisionPoint pdp;
@@ -69,7 +69,7 @@ public class RemoteRsocketPolicyDecisionPointTests {
     private static final JsonNodeFactory JSON = JsonNodeFactory.instance;
 
     @BeforeAll
-    public static void setupOnce() {
+    static void setupOnce() {
 
         // create a Spring context for this test suite and obtain some beans
         context = new AnnotationConfigApplicationContext(ServerConfig.class);
@@ -83,7 +83,7 @@ public class RemoteRsocketPolicyDecisionPointTests {
     }
 
     @AfterAll
-    public static void tearDownOnce() {
+    static void tearDownOnce() {
         server.dispose();
         context.close();
     }

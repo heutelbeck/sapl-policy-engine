@@ -80,7 +80,7 @@ class R2dbcPolicyEnforcementPointTests {
     MockedStatic<Utilities>           utilitiesMock;
 
     @BeforeEach
-    public void beforeEach() {
+    void beforeEach() {
         lenient().when(objectProviderR2dbcAnnotationQueryManipulationEnforcementPointMock.getObject())
                 .thenReturn(r2dbcAnnotationQueryManipulationEnforcementPointMock);
         lenient().when(objectProviderR2dbcMethodNameQueryManipulationEnforcementPointMock.getObject())
@@ -93,7 +93,7 @@ class R2dbcPolicyEnforcementPointTests {
     }
 
     @AfterEach
-    public void cleanUp() {
+    void cleanUp() {
         annotationUtilitiesMock.close();
         utilitiesMock.close();
     }

@@ -344,9 +344,7 @@ class PostEnforcePolicyEnforcementPointTests {
 
     @Getter
     public static class BadForJackson {
-
         private String bad;
-
     }
 
     private SaplAttribute postEnforceAttributeFrom(String subject, String action, String resource, String environment,

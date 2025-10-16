@@ -48,24 +48,24 @@ class SaplConditionOperationTests {
     private static JsonNode conditionsWithOrPart;
 
     @BeforeAll
-    public static void setUp() throws JsonProcessingException {
+    static void setUp() throws JsonProcessingException {
         mongoQueryManipulation       = MAPPER.readTree("""
-                    		{
+                {
                   "type": "mongoQueryManipulation",
                   "conditions": [
                     "{'age': {'gt': 30 }}",
                     "{'firstname':  {'$in': ['Cathrin', 'Aaron']}}"
                   ]
                 }
-                    		""");
+                """);
         mongoQueryManipulationOrPart = MAPPER.readTree("""
-                    		{
+                {
                   "type": "mongoQueryManipulation",
                   "conditions": [
                     "{ 'age' : { '$lt' : 40}, '$or' : [{ 'firstname' : {'$eq': 'Aaron'}}]}"
                   ]
                 }
-                    		""");
+                """);
         conditions                   = mongoQueryManipulation.get("conditions");
         conditionsWithOrPart         = mongoQueryManipulationOrPart.get("conditions");
     }

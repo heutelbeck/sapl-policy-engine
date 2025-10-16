@@ -42,6 +42,7 @@ import javax.inject.Inject;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Collection;
+import java.util.List;
 import java.util.Locale;
 
 @Mojo(name = "report-coverage-information", defaultPhase = LifecyclePhase.VERIFY)
@@ -229,7 +230,7 @@ public class ReportCoverageInformationMojo extends AbstractMojo {
         }
     }
 
-    private Collection<SaplDocument> readSaplDocuments() throws MojoExecutionException {
+    private List<SaplDocument> readSaplDocuments() throws MojoExecutionException {
         return this.saplDocumentReader.retrievePolicyDocuments(getLog(), project, this.policyPath);
     }
 

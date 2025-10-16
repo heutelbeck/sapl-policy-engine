@@ -84,7 +84,7 @@ class R2dbcAnnotationQueryManipulationEnforcementPointTests {
     PolicyDecisionPoint                       pdp;
 
     @BeforeEach
-    public void beforeEach() throws InitializationException {
+    void beforeEach() throws InitializationException {
         pdp = buildPdp();
         lenient().when(objectProviderPolicyDecisionPointMock.getObject()).thenReturn(pdp);
         lenient().when(objectProviderQueryManipulationExecutorMock.getObject())
@@ -110,7 +110,7 @@ class R2dbcAnnotationQueryManipulationEnforcementPointTests {
     }
 
     @AfterEach
-    public void cleanUp() {
+    void cleanUp() {
         queryCreationMock.close();
     }
 

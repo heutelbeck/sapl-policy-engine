@@ -76,7 +76,7 @@ class GPolicyWithComplexExpectStepTests {
     private final Object defaultResource = new ResourceDTO();
 
     @BeforeEach
-    public void setUp() throws InitializationException {
+    void setUp() throws InitializationException {
         fixture = new SaplUnitTestFixture("policyWithObligationAndResource.sapl")
                 .registerFunctionLibrary(FilterFunctionLibrary.class);
         mapper  = new ObjectMapper();

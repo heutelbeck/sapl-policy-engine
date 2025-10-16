@@ -90,7 +90,7 @@ class MongoReactiveMethodNameQueryManipulationEnforcementPointTests {
     PolicyDecisionPoint                       pdp;
 
     @BeforeEach
-    public void beforeEach() throws InitializationException {
+    void beforeEach() throws InitializationException {
         pdp = buildPdp();
         lenient().when(objectProviderPolicyDecisionPointMock.getObject()).thenReturn(pdp);
         lenient().when(objectProviderBeanFactoryMock.getObject()).thenReturn(beanFactoryMock);
@@ -110,7 +110,7 @@ class MongoReactiveMethodNameQueryManipulationEnforcementPointTests {
     }
 
     @AfterEach
-    public void cleanUp() {
+    void cleanUp() {
         queryCreationMock.close();
     }
 

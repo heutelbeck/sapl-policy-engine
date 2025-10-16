@@ -68,7 +68,7 @@ class EnforceTillDeniedPolicyEnforcementPointTests {
     List<MethodInvocationConstraintHandlerProvider> globalInvocationHandlerProviders;
 
     @BeforeAll
-    public static void beforeAll() {
+    static void beforeAll() {
         // this eliminates excessive logging of dropped errors in case of onErrorStop()
         // downstream.
         Hooks.onErrorDropped(err -> {});

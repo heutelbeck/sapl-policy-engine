@@ -359,7 +359,7 @@ class CertificateUtilsTest {
     }
 
     private static X509Certificate buildCertificate(String subjectDn, KeyPair keyPair,
-                                                    ASN1Encodable subjectAlternativeNames) throws Exception {
+            ASN1Encodable subjectAlternativeNames) throws Exception {
         val now          = new Date();
         val notBefore    = new Date(now.getTime() - 86400000L);
         val notAfter     = new Date(now.getTime() + 31536000000L);

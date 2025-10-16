@@ -77,7 +77,7 @@ public class SecurityConfiguration {
     private final PasswordEncoder        passwordEncoder;
 
     @Value("${spring.security.oauth2.resourceserver.jwt.issuer-uri:#{null}}")
-    private String jwtIssuerURI;
+    private static String jwtIssuerURI;
 
     @Bean
     SecurityWebFilterChain securityFilterChainLocal(ServerHttpSecurity http) {

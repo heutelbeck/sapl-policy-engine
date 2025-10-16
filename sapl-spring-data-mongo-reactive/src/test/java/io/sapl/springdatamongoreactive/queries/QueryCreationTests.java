@@ -59,7 +59,7 @@ class QueryCreationTests {
     MockedStatic<QueryAnnotationParameterResolver> queryAnnotationParameterResolverMock;
 
     @BeforeEach
-    public void beforeEach() {
+    void beforeEach() {
         convertToMQLMock                     = mockStatic(ConvertToMQL.class);
         saplConditionOperationMock           = mockStatic(SaplConditionOperation.class);
         saplPartTreeCriteriaCreatorMock      = mockStatic(SaplPartTreeCriteriaCreator.class);
@@ -71,7 +71,7 @@ class QueryCreationTests {
     }
 
     @AfterEach
-    public void cleanUp() {
+    void cleanUp() {
         convertToMQLMock.close();
         saplConditionOperationMock.close();
         saplPartTreeCriteriaCreatorMock.close();

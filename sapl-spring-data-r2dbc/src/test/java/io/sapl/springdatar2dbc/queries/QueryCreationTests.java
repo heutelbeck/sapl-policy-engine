@@ -109,14 +109,14 @@ class QueryCreationTests {
     }
 
     @BeforeEach
-    public void beforeEach() {
+    void beforeEach() {
         convertToSQLMock                     = mockStatic(ConvertToSQL.class);
         querySelectionUtilsMock              = mockStatic(QuerySelectionUtils.class);
         queryAnnotationParameterResolverMock = mockStatic(QueryAnnotationParameterResolver.class);
     }
 
     @AfterEach
-    public void cleanUp() {
+    void cleanUp() {
         convertToSQLMock.close();
         querySelectionUtilsMock.close();
         queryAnnotationParameterResolverMock.close();

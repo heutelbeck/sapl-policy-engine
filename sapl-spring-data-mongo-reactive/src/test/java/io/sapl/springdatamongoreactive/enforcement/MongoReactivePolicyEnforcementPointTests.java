@@ -81,7 +81,7 @@ class MongoReactivePolicyEnforcementPointTests {
     MockedStatic<Utilities>           utilitiesMock;
 
     @BeforeEach
-    public void beforeEach() {
+    void beforeEach() {
         lenient().when(objectProviderMongoReactiveAnnotationQueryManipulationEnforcementPointMock.getObject())
                 .thenReturn(mongoReactiveAnnotationQueryManipulationEnforcementPointMock);
         lenient().when(objectProviderMongoReactiveMethodNameQueryManipulationEnforcementPointMock.getObject())
@@ -94,7 +94,7 @@ class MongoReactivePolicyEnforcementPointTests {
     }
 
     @AfterEach
-    public void cleanUp() {
+    void cleanUp() {
         annotationUtilitiesMock.close();
         utilitiesMock.close();
     }
