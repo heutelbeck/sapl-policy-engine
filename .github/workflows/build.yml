@@ -44,7 +44,7 @@ permissions:
 
 env:
   NODE_VERSION: '22'
-  MAVEN_THREADS: '1.5C'
+  MAVEN_THREADS: '1C'
   
 jobs:
   build:
@@ -61,7 +61,7 @@ jobs:
 
     env:
       # Run Sonar, Integration Tests, and JaCoCo only for Ubuntu JDK 21. All other platforms, just do quick unit tests.
-      RUN_ANALYSIS: ${{ (matrix.os == 'ubuntu-latest') && (matrix.java == '21') }}
+      RUN_ANALYSIS: ${{ (matrix.os == 'ubuntu-latest') && (matrix.java == '25') }}
       # PRs from Dependabot are treated the same as those from forks since secrets are not accessible
       # for both (see: https://github.com/dependabot/dependabot-core/issues/3253#issuecomment-852541544).
       IS_FORK: ${{ github.event.pull_request.head.repo.fork || (github.actor == 'dependabot[bot]') }}
@@ -234,11 +234,11 @@ jobs:
           lfs: true
           fetch-depth: 0
 
-      - name: Set up JDK 21
+      - name: Set up JDK 25
         uses: actions/setup-java@dded0888837ed1f317902acf8a20df0ad188d165 # v5.0.0
         with:
           distribution: 'temurin'
-          java-version: '21'
+          java-version: '25'
           cache: 'maven'
           server-id: central
           server-username: NEXUS_USERNAME
