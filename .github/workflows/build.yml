@@ -35,22 +35,29 @@ on:
       - '!.github/workflows/build.yml'
       - '**.md'
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 permissions:
   contents: read
+
+env:
+  NODE_VERSION: '22'
 
 jobs:
   build:
     strategy:
       matrix:
         java: [ '21', '25' ]
-        os: [ubuntu-latest, windows-latest ] #, macos-latest]
+        os: [ubuntu-latest, windows-latest]
       fail-fast: false
     name: Build (JDK ${{ matrix.java }} on ${{ matrix.os }})
     runs-on: ${{ matrix.os }}
     permissions:
       checks:  write # for scacap/action-surefire-report to publish result as PR check
     timeout-minutes: 60
-    
+
     env:
       # Run Sonar, Integration Tests, and JaCoCo only for Ubuntu JDK 21. All other platforms, just do quick unit tests.
       RUN_ANALYSIS: ${{ (matrix.os == 'ubuntu-latest') && (matrix.java == '21') }}
@@ -88,15 +95,10 @@ jobs:
           java-version: ${{ matrix.java }}
           cache: 'maven'
 
-      - name: Setup Maven
-        uses: stCarolas/setup-maven@d6af6abeda15e98926a57b5aa970a96bb37f97d1 # v5
-        with:
-          maven-version: 3.9.9
-
       - name: Set up Node.js
         uses: actions/setup-node@60edb5dd545a775178f52524783378180af0d1f8 # v4.0.2
         with:
-          node-version: '20'
+          node-version: ${{ env.NODE_VERSION }}
 
       - name: Add auth-host to /etc/hosts for OAuth Integration Tests
         if: env.RUN_ANALYSIS == 'true'
@@ -215,7 +217,9 @@ jobs:
       sapl-server-lt-docker-digest: ${{ steps.get-server-lt-hash.outputs.IMAGE_DIGEST }}
       sapl-playground-docker-digest: ${{ steps.get-playground-hash.outputs.IMAGE_DIGEST }}
     permissions:
-      actions: write # for Mattraks/delete-workflow-runs
+      actions: write    # for Mattraks/delete-workflow-runs
+      contents: read    # for checkout
+      packages: write   # for Docker registry push
     timeout-minutes: 60
     
     steps:
@@ -262,15 +266,10 @@ jobs:
           cat <(echo -e "${{ secrets.GPG_PRIVATE_KEY }}") | gpg --batch --import
           gpg --list-secret-keys --keyid-format LONG
 
-      - name: Setup Maven
-        uses: stCarolas/setup-maven@d6af6abeda15e98926a57b5aa970a96bb37f97d1 # v5
-        with:
-          maven-version: 3.9.9
-
       - name: Set up Node.js
         uses: actions/setup-node@60edb5dd545a775178f52524783378180af0d1f8 # v4.0.2
         with:
-          node-version: '20'
+          node-version: ${{ env.NODE_VERSION }}
 
       - name: Deploy Maven Artifacts
         run: mvn -B --no-transfer-progress -pl !:sapl-server-lt,!:sapl-server-ce,!:sapl-playground,!:io.sapl.eclipse.feature,!:sapl-eclipse-repository,!:sapl-eclipse-target,!:sapl-eclipse-thirdparty,!:sapl-eclipse-ui,!:sapl-test-eclipse-ui -PsonatypeDeploy -DskipTests clean deploy
@@ -306,19 +305,36 @@ jobs:
         id: get-version
         run: |
           VERSION=$( mvn help:evaluate -Dexpression=project.version -q -DforceStdout )
-          echo "version=$VERSION" >> $GITHUB_OUTPUT        
+          if [ -z "$VERSION" ]; then
+            echo "ERROR: Failed to extract version"
+            exit 1
+          fi
+          echo "Extracted version: $VERSION"
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
 
       - name: Push Server LT Image to ghcr.io
-        run: |
-          docker push ghcr.io/heutelbeck/sapl-server-lt:${{ steps.get-version.outputs.VERSION }}
+        uses: nick-fields/retry@v3
+        with:
+          timeout_minutes: 10
+          max_attempts: 3
+          retry_on: error
+          command: docker push ghcr.io/heutelbeck/sapl-server-lt:${{ steps.get-version.outputs.VERSION }}
 
       - name: Push Server CE Image to ghcr.io
-        run: |
-          docker push ghcr.io/heutelbeck/sapl-server-ce:${{ steps.get-version.outputs.VERSION }}
+        uses: nick-fields/retry@v3
+        with:
+          timeout_minutes: 10
+          max_attempts: 3
+          retry_on: error
+          command: docker push ghcr.io/heutelbeck/sapl-server-ce:${{ steps.get-version.outputs.VERSION }}
 
       - name: Push Playground Image to ghcr.io
-        run: |
-          docker push ghcr.io/heutelbeck/sapl-playground:${{ steps.get-version.outputs.VERSION }}
+        uses: nick-fields/retry@v3
+        with:
+          timeout_minutes: 10
+          max_attempts: 3
+          retry_on: error
+          command: docker push ghcr.io/heutelbeck/sapl-playground:${{ steps.get-version.outputs.VERSION }}
 
       - name: Deploy Playground to Server
         uses: appleboy/ssh-action@029f5b4aeeeb58fdfe1410a5d17f967dacf36262 # v1.0.3
@@ -336,6 +352,32 @@ jobs:
               -p 9003:8080 \
               -e SAPL_PLAYGROUND_BASEURL=https://playground.sapl.io \
               ghcr.io/heutelbeck/sapl-playground:${{ steps.get-version.outputs.VERSION }}
+            
+            echo "Verifying deployment..."
+            sleep 10
+            
+            # Verify container is running
+            if ! docker ps | grep -q sapl-playground; then
+              echo "ERROR: Container not running"
+              docker logs sapl-playground --tail 50
+              exit 1
+            fi
+            echo "✓ Container is running"
+            
+            # Verify users can access the playground
+            echo "Checking public availability at https://playground.sapl.io ..."
+            for i in {1..6}; do
+              if curl -f -s -m 10 https://playground.sapl.io > /dev/null 2>&1; then
+                echo "✓ Playground is publicly accessible"
+                exit 0
+              fi
+              echo "Attempt $i/6: Not ready yet, waiting 10s..."
+              sleep 10
+            done
+            
+            echo "ERROR: Playground not publicly accessible after 60 seconds"
+            docker logs sapl-playground --tail 50
+            exit 1
 
       - name: Get hashes of Server LT
         id: get-server-lt-hash
@@ -350,8 +392,8 @@ jobs:
           echo "hashes=$(sha256sum $ARTIFACT_PATTERN | base64 -w0)" >> "$GITHUB_OUTPUT"
           
           # Save the digest of the Docker image for later use
-          IMAGE_DIGEST=$(docker inspect ${REGISTRY}/${IMAGE} --format '{{.RepoDigests}}' | sed -e 's/^.*@//' -e 's/]$//')
-          echo "Digest of container" + $IMAGE_DIGEST
+          IMAGE_DIGEST=$(docker inspect ${REGISTRY}/${IMAGE} --format '{{index .RepoDigests 0}}' | cut -d'@' -f2)
+          echo "Digest of container: $IMAGE_DIGEST"
           echo "IMAGE_DIGEST=$IMAGE_DIGEST" >> $GITHUB_OUTPUT
 
       - name: Get hash of Playground
@@ -361,8 +403,8 @@ jobs:
           IMAGE: heutelbeck/sapl-playground:${{ steps.get-version.outputs.VERSION }}
         run: |
           # Save the digest of the Docker image for later use
-          IMAGE_DIGEST=$(docker inspect ${REGISTRY}/${IMAGE} --format '{{.RepoDigests}}' | sed -e 's/^.*@//' -e 's/]$//')
-          echo "Digest of playground container: $IMAGE_DIGEST"
+          IMAGE_DIGEST=$(docker inspect ${REGISTRY}/${IMAGE} --format '{{index .RepoDigests 0}}' | cut -d'@' -f2)
+          echo "Digest of container: $IMAGE_DIGEST"
           echo "IMAGE_DIGEST=$IMAGE_DIGEST" >> $GITHUB_OUTPUT
 
       - name: Push Eclipse Plugin to Website
