@@ -217,7 +217,6 @@ jobs:
       sapl-server-lt-docker-digest: ${{ steps.get-server-lt-hash.outputs.IMAGE_DIGEST }}
       sapl-playground-docker-digest: ${{ steps.get-playground-hash.outputs.IMAGE_DIGEST }}
     permissions:
-      actions: write    # for Mattraks/delete-workflow-runs
       contents: read    # for checkout
       packages: write   # for Docker registry push
     timeout-minutes: 60
@@ -434,14 +433,6 @@ jobs:
         run: |
           curl -XPOST -u "${{ secrets.GHUB_USERNAME }}:${{ secrets.GHUB_ACCESS_TOKEN }}" -H "Accept: application/vnd.github.everest-preview+json" -H "Content-Type: application/json" https://api.github.com/repos/heutelbeck/sapl-demos/dispatches --data '{"event_type": "build_application"}'
           curl -XPOST -u "${{ secrets.GHUB_USERNAME }}:${{ secrets.GHUB_ACCESS_TOKEN }}" -H "Accept: application/vnd.github.everest-preview+json" -H "Content-Type: application/json" https://api.github.com/repos/heutelbeck/sapl-extensions/dispatches --data '{"event_type": "build_application"}'
-
-      - name: Delete Workflow Runs
-        uses: Mattraks/delete-workflow-runs@39f0bbed25d76b34de5594dceab824811479e5de # v2.0.6
-        with:
-          token: ${{ github.token }}
-          repository: ${{ github.repository }}
-          retain_days: 1
-          keep_minimum_runs: 6
 
       - name: Clean up Local Repository before Caching
         run: rm -rf ~/.m2/repository/io/sapl
