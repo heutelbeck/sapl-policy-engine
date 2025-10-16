@@ -60,7 +60,7 @@ jobs:
     timeout-minutes: 60
 
     env:
-      # Run Sonar, Integration Tests, and JaCoCo only for Ubuntu JDK 21. All other platforms, just do quick unit tests.
+      # Run Sonar, Integration Tests, and JaCoCo only for Ubuntu JDK 25. All other platforms, just do quick unit tests.
       RUN_ANALYSIS: ${{ (matrix.os == 'ubuntu-latest') && (matrix.java == '25') }}
       # PRs from Dependabot are treated the same as those from forks since secrets are not accessible
       # for both (see: https://github.com/dependabot/dependabot-core/issues/3253#issuecomment-852541544).
