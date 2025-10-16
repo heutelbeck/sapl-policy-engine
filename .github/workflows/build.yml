@@ -44,7 +44,6 @@ permissions:
 
 env:
   NODE_VERSION: '22'
-  MAVEN_THREADS: '1C'
   
 jobs:
   build:
@@ -107,7 +106,7 @@ jobs:
 
       - name: Build Dependencies of SAPL Server LT
         if: env.RUN_ANALYSIS == 'true'
-        run: mvn -U -B install -pl sapl-server-lt -am -DskipTests -T ${{ env.MAVEN_THREADS }}
+        run: mvn -U -B install -pl sapl-server-lt -am -DskipTests
 
       - name: Build SAPL Server LT Image
         if: env.RUN_ANALYSIS == 'true'
@@ -115,7 +114,7 @@ jobs:
 
       - name: Run Unit Tests Only
         if: env.RUN_ANALYSIS == 'false'
-        run: mvn -B package javadoc:jar -T ${{ env.MAVEN_THREADS }}
+        run: mvn -B package javadoc:jar
 
         # Runs JaCoCo and Spotbugs analysis which are needed for the subsequent
         # SonarCloud analysis. The SonarCloud analysis is run separately because a
@@ -123,7 +122,7 @@ jobs:
         # fork and workflows triggered by other events.
       - name: Run Unit Tests, Analysis, and Integration Tests
         if: env.RUN_ANALYSIS == 'true'
-        run: mvn -B verify javadoc:jar spotbugs:spotbugs -pl '!sapl-bom,!sapl-code-style' -Pcoverage,it,spotbugs -T ${{ env.MAVEN_THREADS }}
+        run: mvn -B verify javadoc:jar spotbugs:spotbugs -pl '!sapl-bom,!sapl-code-style' -Pcoverage,it,spotbugs
 
       - name: Cache Sonar Packages
         if: ${{ (env.RUN_ANALYSIS == 'true') && (env.IS_FORK == 'false') }}
@@ -272,7 +271,7 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
 
       - name: Deploy Maven Artifacts
-        run: mvn -B --no-transfer-progress -pl !:sapl-server-lt,!:sapl-server-ce,!:sapl-playground,!:io.sapl.eclipse.feature,!:sapl-eclipse-repository,!:sapl-eclipse-target,!:sapl-eclipse-thirdparty,!:sapl-eclipse-ui,!:sapl-test-eclipse-ui -PsonatypeDeploy -DskipTests clean deploy -T ${{ env.MAVEN_THREADS }}
+        run: mvn -B --no-transfer-progress -pl !:sapl-server-lt,!:sapl-server-ce,!:sapl-playground,!:io.sapl.eclipse.feature,!:sapl-eclipse-repository,!:sapl-eclipse-target,!:sapl-eclipse-thirdparty,!:sapl-eclipse-ui,!:sapl-test-eclipse-ui -PsonatypeDeploy -DskipTests clean deploy
         env:
           MAVEN_USERNAME: ${{ secrets.NEXUS_USERNAME }}
           MAVEN_CENTRAL_TOKEN: ${{ secrets.NEXUS_PASSWORD }}
