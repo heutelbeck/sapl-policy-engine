@@ -48,6 +48,7 @@ public class DefaultLibraries {
             SchemaValidationLibrary.class,
             SignatureFunctionLibrary.class,
             StandardFunctionLibrary.class,
+            StringFunctionLibrary.class,
             TemporalFunctionLibrary.class,
             TomlFunctionLibrary.class,
             UnitsFunctionLibrary.class,

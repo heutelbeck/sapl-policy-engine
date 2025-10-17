@@ -1991,8 +1991,8 @@ public class GraphQLFunctionLibrary {
      * @return object containing directive analysis metrics
      */
     private static ObjectNode analyzeDirectives(OperationDefinition operation) {
-        val analysis           = Val.JSON.objectNode();
-        val counts             = new DirectiveCounts();
+        val analysis = Val.JSON.objectNode();
+        val counts   = new DirectiveCounts();
         countDirectivesRecursive(operation.getSelectionSet(), counts);
         val directivesPerField = counts.fieldCount > 0 ? (double) counts.directiveCount / counts.fieldCount : 0.0;
 
@@ -2030,8 +2030,9 @@ public class GraphQLFunctionLibrary {
      */
     private static class DirectiveCounts {
         int directiveCount = 0;
-        int fieldCount = 0;
+        int fieldCount     = 0;
     }
+
     /**
      * Counts the number of directives in a list.
      *

@@ -35,20 +35,83 @@ import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 
 /**
- * Function library providing pattern matching capabilities for SAPL policies.
- * Includes glob pattern matching with configurable delimiters and comprehensive
- * regex operations with DoS protection mechanisms.
+ * Pattern matching functions for authorization policies.
  * <p>
- * Security: ReDoS protection via pattern analysis. Timeout protection must be
- * implemented at the PDP level for reactive environments.
+ * This library provides two pattern matching approaches for different
+ * scenarios:
+ * <p>
+ * <b>Glob Patterns</b> - Hierarchical wildcard matching that respects segment
+ * boundaries defined by delimiters. Wildcards match within segments unless
+ * explicitly crossing boundaries with double wildcards. Use glob patterns for
+ * file paths, domain names, or structured identifiers where hierarchical
+ * structure matters. The syntax is simpler and more intuitive for non-technical
+ * users than regular expressions.
+ * <p>
+ * <b>Regular Expressions</b> - Full pattern matching using standard regex
+ * syntax following the same construction rules as the Java Pattern class. Use
+ * regex when glob patterns are insufficient or when advanced matching features
+ * like lookahead, backreferences, or precise quantifiers are needed. Regular
+ * expressions are more powerful but require familiarity with regex syntax.
+ * <p>
+ * For simple literal operations like checking prefixes, suffixes, or
+ * substrings,
+ * use the string library instead. It is faster and more straightforward for
+ * these common cases.
+ * <p>
+ * <b>Security</b>: All regex functions include protection against Regular
+ * Expression Denial of Service attacks. Patterns with dangerous constructs like
+ * nested quantifiers or excessive alternations are rejected before evaluation.
  */
 @Slf4j
 @UtilityClass
-@FunctionLibrary(name = PatternsFunctionLibrary.NAME, description = PatternsFunctionLibrary.DESCRIPTION)
+@FunctionLibrary(name = PatternsFunctionLibrary.NAME, description = PatternsFunctionLibrary.DESCRIPTION, libraryDocumentation = PatternsFunctionLibrary.DOCUMENTATION)
 public class PatternsFunctionLibrary {
 
     public static final String NAME        = "patterns";
-    public static final String DESCRIPTION = "Functions for pattern matching with globs and regular expressions.";
+    public static final String DESCRIPTION = "Pattern matching with glob patterns and regular expressions for authorization policies.";
+
+    public static final String DOCUMENTATION = """
+            # Pattern Matching in Authorization Policies
+
+            This library provides two complementary approaches for pattern matching in access control decisions.
+
+            ## Glob Patterns
+
+            Glob patterns provide hierarchical wildcard matching that respects segment boundaries. Use them when:
+            - Matching file paths, domain names, or other hierarchical identifiers
+            - Segment boundaries matter for your matching logic
+            - Non-technical users need to write or understand patterns
+
+            Glob patterns support:
+            - `*` - Matches zero or more characters within a segment
+            - `**` - Matches across segment boundaries
+            - `?` - Matches exactly one character
+            - `[abc]` or `[a-z]` - Character sets and ranges
+            - `[!abc]` - Negated character sets
+            - `{cat,dog,bird}` - Alternatives
+            - `\\` - Escape character for literal matching
+
+            Delimiters define segment boundaries. When not specified, `.` is used by default.
+
+            ## Regular Expressions
+
+            Regular expressions provide full pattern matching power using standard regex syntax. Construction
+            rules follow the Java Pattern class specification. Use them when:
+            - Glob patterns cannot express the required matching logic
+            - Advanced features like lookahead, backreferences, or precise quantifiers are needed
+            - Complex validation rules require regex capabilities
+
+            ## When to Use Simple String Operations
+
+            For literal prefix, suffix, or substring checks, use the string library instead. Functions like
+            `string.startsWith` or `string.contains` are faster and clearer for these common cases.
+
+            ## Security
+
+            All regex functions include protection against Regular Expression Denial of Service attacks.
+            Patterns containing dangerous constructs like nested quantifiers `(a+)+`, excessive alternations,
+            or nested wildcards are rejected before evaluation.
+            """;
 
     private static final int    MAX_PATTERN_LENGTH        = 1_000;
     private static final int    MAX_INPUT_LENGTH          = 100_000;
@@ -95,8 +158,8 @@ public class PatternsFunctionLibrary {
 
     /**
      * Pre-compiled patterns for ReDoS detection.
-     * These patterns are safe because they use find() without greedy quantifiers at
-     * boundaries.
+     * These patterns use find() without greedy quantifiers at boundaries to
+     * ensure safe detection.
      */
     private static final Pattern NESTED_QUANTIFIERS     = Pattern.compile("\\([^)]*[*+]\\)[*+]");
     private static final Pattern ALTERNATION_WITH_QUANT = Pattern.compile("\\([^)]*\\|[^)]*\\)[*+]");
@@ -104,38 +167,55 @@ public class PatternsFunctionLibrary {
     private static final Pattern NESTED_BOUNDED_QUANT   = Pattern.compile("\\{\\d+,\\d*}[^{]*\\{\\d+,\\d*}");
 
     @Function(docs = """
-            ```patterns.matchGlob(TEXT pattern, TEXT value, ARRAY delimiters)```: Matches a string
-            against a glob pattern with configurable delimiters.
+            ```matchGlob(TEXT pattern, TEXT value, ARRAY delimiters)```: Matches text against a glob pattern.
 
-            Glob patterns provide hierarchical matching where wildcards respect segment boundaries.
-            The single wildcard `*` matches zero or more characters within a segment (between delimiters),
-            while the double wildcard `**` matches across segment boundaries. When no delimiters are
-            specified or an empty array is provided, the default delimiter `.` is used, suitable for
-            domain names and hierarchical identifiers.
+            Performs hierarchical wildcard matching where wildcards respect segment boundaries defined by
+            delimiters. Use this for file paths, domain names, or structured identifiers where hierarchical
+            structure matters.
 
-            **Pattern Elements:**
-            - `*` - Matches zero or more characters within a delimiter-bounded segment
-            - `**` - Matches zero or more characters including across delimiter boundaries
-            - `?` - Matches exactly one character
-            - `[abc]` or `[a-z]` - Matches one character from the set or range
-            - `[!abc]` or `[!a-z]` - Matches one character NOT in the set or range (negation)
-            - `{cat,dog,bird}` - Matches any of the alternative patterns
-            - `\\` - Escapes the next character (e.g., `\\*` matches literal asterisk)
+            **When to Use**:
+            - File paths: `/api/*/documents` matches `/api/v1/documents` but not `/api/v1/admin/documents`
+            - Domain names: `*.example.com` matches `api.example.com` but not `foo.api.example.com`
+            - Hierarchical permissions: `user:*:read` matches `user:profile:read` within segments
 
-            **Parameters:**
-            - `pattern` - The glob pattern to match against
-            - `value` - The string value to test
-            - `delimiters` - Array of delimiter strings (optional, defaults to `["."]`)
+            **Default Delimiter**: When delimiters array is empty or not provided, `.` is used as the
+            delimiter.
 
-            **Limitations:**
-            - Maximum pattern length: 1,000 characters
-            - Maximum input length: 100,000 characters
-            - Maximum nesting depth: 50 levels
-            - Maximum alternative groups: 30 groups
-            - All delimiters must be non-empty text values
-            - Returns error for malformed patterns (unclosed brackets, braces, etc.)
+            **Examples**:
+            ```sapl
+            policy "api_paths"
+            permit
+            where
+              patterns.matchGlob("/api/*/users/*", resource.path, ["/"]);
+            ```
 
-            **Returns:** Boolean value indicating match success, or error for invalid inputs.
+            ```sapl
+            policy "domain_matching"
+            permit
+            where
+              patterns.matchGlob("*.company.com", request.host, ["."]);
+            ```
+
+            ```sapl
+            policy "permission_hierarchy"
+            permit
+            where
+              patterns.matchGlob("document:*:read", subject.permission, [":"]);
+            ```
+
+            ```sapl
+            policy "file_extensions"
+            permit
+            where
+              patterns.matchGlob("report.{pdf,docx,xlsx}", resource.filename, ["."]);
+            ```
+
+            ```sapl
+            policy "cross_segment"
+            permit
+            where
+              patterns.matchGlob("/api/**/admin", resource.path, ["/"]);
+            ```
             """)
     public static Val matchGlob(@Text Val pattern, @Text Val value, @Array Val delimiters) {
         val error = validateInputs(pattern, value);
@@ -151,20 +231,34 @@ public class PatternsFunctionLibrary {
     }
 
     @Function(docs = """
-            ```patterns.matchGlobWithoutDelimiters(TEXT pattern, TEXT value)```: Matches a string
-            against a glob pattern without delimiter boundaries.
+            ```matchGlobWithoutDelimiters(TEXT pattern, TEXT value)```: Matches text against a glob pattern
+            without segment boundaries.
 
-            Treats the entire input as a single segment, allowing wildcards to match any characters
-            without restriction. Both `*` and `**` behave identically in this mode. Useful for matching
-            flat strings without hierarchical structure where segment boundaries are not relevant.
+            Performs flat wildcard matching where all wildcards match any characters without restriction.
+            Both `*` and `**` behave identically. Use this for simple filename matching or flat strings without
+            hierarchical structure.
 
-            **Limitations:**
-            - Maximum pattern length: 1,000 characters
-            - Maximum input length: 100,000 characters
-            - Maximum nesting depth: 50 levels
-            - Maximum alternative groups: 30 groups
+            **Examples**:
+            ```sapl
+            policy "filename_only"
+            permit
+            where
+              patterns.matchGlobWithoutDelimiters("report_*.pdf", resource.filename);
+            ```
 
-            **Returns:** Boolean value indicating match success, or error for invalid inputs.
+            ```sapl
+            policy "simple_wildcard"
+            permit
+            where
+              patterns.matchGlobWithoutDelimiters("user_*_token", subject.sessionToken);
+            ```
+
+            ```sapl
+            policy "alternatives"
+            permit
+            where
+              patterns.matchGlobWithoutDelimiters("status_{active,pending}", resource.status);
+            ```
             """)
     public static Val matchGlobWithoutDelimiters(@Text Val pattern, @Text Val value) {
         val error = validateInputs(pattern, value);
@@ -175,13 +269,29 @@ public class PatternsFunctionLibrary {
     }
 
     @Function(docs = """
-            ```patterns.escapeGlob(TEXT text)```: Escapes glob metacharacters to treat them as literals.
+            ```escapeGlob(TEXT text)```: Escapes all glob metacharacters to treat input as literal text.
 
-            Prepends backslash to all glob special characters (`*?[]{}\\-!`) to prevent pattern interpretation.
-            Essential for safely incorporating untrusted input into glob patterns, preventing pattern injection
-            attacks where malicious input could match unintended values.
+            Prepends backslash to glob special characters. Essential for safely incorporating untrusted
+            input into glob patterns to prevent pattern injection where malicious input could match
+            unintended values.
 
-            **Returns:** Text with all glob metacharacters escaped, or error for non-text input.
+            **Examples**:
+            ```sapl
+            policy "safe_user_input"
+            permit
+            where
+              var safeUsername = patterns.escapeGlob(request.username);
+              var pattern = string.concat("/users/", safeUsername, "/*");
+              patterns.matchGlob(pattern, resource.path, ["/"]);
+            ```
+
+            ```sapl
+            policy "literal_match"
+            permit
+            where
+              var escaped = patterns.escapeGlob(resource.tag);
+              escaped == "literal*text";
+            ```
             """)
     public static Val escapeGlob(@Text Val text) {
         if (!text.isTextual()) {
@@ -192,9 +302,25 @@ public class PatternsFunctionLibrary {
     }
 
     @Function(docs = """
-            ```patterns.isValidRegex(TEXT pattern)```: Validates if a string is a valid Java regular expression.
+            ```isValidRegex(TEXT pattern)```: Checks if text is a valid regular expression.
 
-            **Returns:** `true` if pattern is valid and within length limits, `false` otherwise.
+            Returns true if the pattern is syntactically valid and within length limits, false otherwise.
+
+            **Examples**:
+            ```sapl
+            policy "validate_pattern"
+            permit
+            where
+              patterns.isValidRegex(resource.customPattern);
+            ```
+
+            ```sapl
+            policy "check_before_use"
+            permit
+            where
+              var pattern = request.filterPattern;
+              patterns.isValidRegex(pattern) && patterns.findMatches(pattern, resource.text) != [];
+            ```
             """)
     public static Val isValidRegex(@Text Val pattern) {
         if (!pattern.isTextual() || pattern.getText().length() > MAX_PATTERN_LENGTH) {
@@ -210,28 +336,62 @@ public class PatternsFunctionLibrary {
     }
 
     @Function(docs = """
-            ```patterns.findMatches(TEXT pattern, TEXT value)```: Finds all matches of a regex pattern.
+            ```findMatches(TEXT pattern, TEXT value)```: Finds all matches of a regex pattern.
 
-            **DoS Protection:**
-            - Maximum pattern length: 1,000 characters
-            - Maximum input length: 100,000 characters
-            - Maximum matches returned: 10,000
-            - Rejects patterns with nested quantifiers like `(a+)+`
-            - Rejects patterns with excessive alternations
+            Returns all non-overlapping matches. Maximum 10,000 matches returned. Patterns with dangerous
+            constructs are rejected.
 
-            **Returns:** Array of matched strings (empty if no matches), or error for invalid/dangerous patterns.
+            **Examples**:
+            ```sapl
+            policy "extract_emails"
+            permit
+            where
+              var emails = patterns.findMatches("[a-z0-9._%+-]+@[a-z0-9.-]+\\\\.[a-z]{2,}", resource.text);
+              array.size(emails) > 0;
+            ```
+
+            ```sapl
+            policy "find_tags"
+            permit
+            where
+              var tags = patterns.findMatches("#[a-zA-Z0-9]+", resource.content);
+              array.containsAll(tags, subject.allowedTags);
+            ```
+
+            ```sapl
+            policy "extract_numbers"
+            permit
+            where
+              var numbers = patterns.findMatches("\\\\d+", resource.input);
+              array.size(numbers) <= 10;
+            ```
             """)
     public static Val findMatches(@Text Val pattern, @Text Val value) {
         return findMatchesWithLimit(pattern, value, MAX_MATCHES);
     }
 
     @Function(docs = """
-            ```patterns.findMatchesLimited(TEXT pattern, TEXT value, INT limit)```: Finds up to limit matches.
+            ```findMatchesLimited(TEXT pattern, TEXT value, INT limit)```: Finds up to limit matches of a
+            regex pattern.
 
-            Identical to findMatches but stops after finding the specified number of matches. The limit
-            is capped at 10,000 maximum. Negative limits return an error.
+            Stops searching after finding the specified number of matches. Limit is capped at 10,000.
 
-            **Returns:** Array of matched strings with at most the specified number of elements.
+            **Examples**:
+            ```sapl
+            policy "first_ten_matches"
+            permit
+            where
+              var matches = patterns.findMatchesLimited("\\\\b\\\\w+\\\\b", resource.text, 10);
+              array.size(matches) == 10;
+            ```
+
+            ```sapl
+            policy "limited_extraction"
+            permit
+            where
+              var urls = patterns.findMatchesLimited("https://[^\\\\s]+", resource.document, 5);
+              array.size(urls) <= 5;
+            ```
             """)
     public static Val findMatchesLimited(@Text Val pattern, @Text Val value, @Int Val limit) {
         if (!limit.isNumber()) {
@@ -247,22 +407,47 @@ public class PatternsFunctionLibrary {
     }
 
     @Function(docs = """
-            ```patterns.findAllSubmatch(TEXT pattern, TEXT value)```: Finds all matches with capturing groups.
+            ```findAllSubmatch(TEXT pattern, TEXT value)```: Finds all regex matches with their capturing groups.
 
-            Returns matches with their capturing groups. Each match is represented as an array where index 0
-            contains the full match and subsequent indices contain captured groups.
+            Each match returns an array where index 0 is the full match and subsequent indices are captured
+            groups from parentheses in the pattern.
 
-            **Returns:** Nested array of matches and their captured groups.
+            **Examples**:
+            ```sapl
+            policy "parse_permissions"
+            permit
+            where
+              var matches = patterns.findAllSubmatch("(\\\\w+):(\\\\w+):(\\\\w+)", subject.permissions);
+              array.size(matches) > 0;
+            ```
+
+            ```sapl
+            policy "extract_structured"
+            permit
+            where
+              var data = patterns.findAllSubmatch("user=([^,]+),role=([^,]+)", resource.metadata);
+              var firstMatch = data[0];
+              firstMatch[2] == "admin";
+            ```
             """)
     public static Val findAllSubmatch(@Text Val pattern, @Text Val value) {
         return findAllSubmatchWithLimit(pattern, value, MAX_MATCHES);
     }
 
     @Function(docs = """
-            ```patterns.findAllSubmatchLimited(TEXT pattern, TEXT value, INT limit)```: Finds up to limit matches
-            with capturing groups.
+            ```findAllSubmatchLimited(TEXT pattern, TEXT value, INT limit)```: Finds up to limit matches with
+            capturing groups.
 
-            **Returns:** Nested array of at most the specified number of matches with their captured groups.
+            Each match array contains the full match at index 0 and captured groups at subsequent indices.
+
+            **Examples**:
+            ```sapl
+            policy "limited_parsing"
+            permit
+            where
+              var matches = patterns.findAllSubmatchLimited("(\\\\d{4})-(\\\\d{2})-(\\\\d{2})", resource.dates, 3);
+              array.size(matches) <= 3;
+            ```
             """)
     public static Val findAllSubmatchLimited(@Text Val pattern, @Text Val value, @Int Val limit) {
         if (!limit.isNumber()) {
@@ -278,10 +463,36 @@ public class PatternsFunctionLibrary {
     }
 
     @Function(docs = """
-            ```patterns.replaceAll(TEXT value, TEXT pattern, TEXT replacement)```: Replaces all
-            occurrences of a regex pattern.
+            ```replaceAll(TEXT value, TEXT pattern, TEXT replacement)```: Replaces all regex matches with
+            replacement text.
 
-            **Returns:** Text with all pattern occurrences replaced, or error for invalid patterns.
+            Replacement can include backreferences like `$1` to refer to captured groups from parentheses
+            in the pattern.
+
+            **Examples**:
+            ```sapl
+            policy "redact_emails"
+            permit
+            where
+              var redacted = patterns.replaceAll(resource.text, "[a-z0-9._%+-]+@[a-z0-9.-]+\\\\.[a-z]{2,}", "[REDACTED]");
+              resource.publicText == redacted;
+            ```
+
+            ```sapl
+            policy "normalize_paths"
+            permit
+            where
+              var normalized = patterns.replaceAll(resource.path, "/+", "/");
+              string.startsWith(normalized, "/api");
+            ```
+
+            ```sapl
+            policy "swap_format"
+            permit
+            where
+              var swapped = patterns.replaceAll(resource.date, "(\\\\d{2})/(\\\\d{2})/(\\\\d{4})", "$3-$1-$2");
+              swapped == resource.expectedFormat;
+            ```
             """)
     public static Val replaceAll(@Text Val value, @Text Val pattern, @Text Val replacement) {
         val error = validateInputs(pattern, value);
@@ -305,9 +516,34 @@ public class PatternsFunctionLibrary {
     }
 
     @Function(docs = """
-            ```patterns.split(TEXT pattern, TEXT value)```: Splits a string by a regex pattern.
+            ```split(TEXT pattern, TEXT value)```: Splits text by a regex pattern into array segments.
 
-            **Returns:** Array of string segments, or error for invalid patterns.
+            Each match of the pattern becomes a boundary where the string is divided.
+
+            **Examples**:
+            ```sapl
+            policy "parse_csv"
+            permit
+            where
+              var fields = patterns.split(",", resource.csvLine);
+              array.size(fields) == 5;
+            ```
+
+            ```sapl
+            policy "split_whitespace"
+            permit
+            where
+              var tokens = patterns.split("\\\\s+", resource.input);
+              array.containsAll(tokens, subject.requiredTokens);
+            ```
+
+            ```sapl
+            policy "split_delimiters"
+            permit
+            where
+              var parts = patterns.split("[;,|]", resource.delimitedData);
+              array.size(parts) > 0;
+            ```
             """)
     public static Val split(@Text Val pattern, @Text Val value) {
         val error = validateInputs(pattern, value);
@@ -331,17 +567,51 @@ public class PatternsFunctionLibrary {
     }
 
     @Function(docs = """
-            ```patterns.matchTemplate(TEXT template, TEXT value, TEXT delimiterStart, TEXT delimiterEnd)```:
-            Matches a string against a template with embedded regex patterns.
+            ```matchTemplate(TEXT template, TEXT value, TEXT delimiterStart, TEXT delimiterEnd)```: Matches text
+            against a template with embedded regex patterns.
 
-            Templates combine literal text with regex patterns. Text outside delimiters is matched literally
-            (with support for backslash escape sequences). Text inside delimiters is treated as full Java
-            regex patterns.
+            Combines literal text matching with embedded regular expressions. Text outside delimiters is
+            matched literally with backslash escapes. Text inside delimiters is treated as regex patterns.
 
-            In literal portions, use backslash to escape special characters (e.g., `\\*` for literal asterisk,
-            `\\\\` for literal backslash).
+            **When to Use**:
+            - Mix literal text with dynamic patterns
+            - Build patterns from configuration without escaping entire strings
+            - Separate static structure from variable matching logic
 
-            **Returns:** Boolean indicating match success, or error for malformed templates.
+            **Template Syntax**:
+            - Literal portions: Text outside delimiters, use `\\` to escape special characters
+            - Pattern portions: Text between `delimiterStart` and `delimiterEnd`
+            - Escape sequences: `\\*` becomes literal `*`, `\\\\` becomes literal `\\`
+
+            **Examples**:
+            ```sapl
+            policy "api_version"
+            permit
+            where
+              patterns.matchTemplate("/api/{{v[12]}}/users", resource.path, "{{", "}}");
+            ```
+
+            ```sapl
+            policy "structured_id"
+            permit
+            where
+              patterns.matchTemplate("tenant:{{\\\\d+}}:resource", resource.id, "{{", "}}");
+            ```
+
+            ```sapl
+            policy "mixed_format"
+            permit
+            where
+              var template = "user-{{[a-z]+}}-{{\\\\d{4}}}";
+              patterns.matchTemplate(template, resource.userId, "{{", "}}");
+            ```
+
+            ```sapl
+            policy "escaped_literals"
+            permit
+            where
+              patterns.matchTemplate("file\\\\*{{\\\\d+}}\\\\.txt", resource.filename, "{{", "}}");
+            ```
             """)
     public static Val matchTemplate(@Text Val template, @Text Val value, @Text Val delimiterStart,
             @Text Val delimiterEnd) {
@@ -382,9 +652,6 @@ public class PatternsFunctionLibrary {
 
     /**
      * Escapes all glob metacharacters in the input string.
-     *
-     * @param input the string to escape
-     * @return the escaped string with all glob metacharacters preceded by backslash
      */
     private static String escapeGlobCharacters(String input) {
         val result = new StringBuilder(input.length() * 2);
@@ -399,9 +666,6 @@ public class PatternsFunctionLibrary {
 
     /**
      * Processes backslash escape sequences in template literal portions.
-     *
-     * @param input the string with escape sequences
-     * @return the processed string with escape sequences resolved
      */
     private static String processTemplateEscapes(String input) {
         val result   = new StringBuilder(input.length());
@@ -422,10 +686,6 @@ public class PatternsFunctionLibrary {
 
     /**
      * Escapes all regex metacharacters in the input string.
-     *
-     * @param input the string to escape
-     * @return the escaped string with all regex metacharacters preceded by
-     * backslash
      */
     private static String escapeRegexCharacters(String input) {
         val result = new StringBuilder(input.length() * 2);
@@ -440,10 +700,6 @@ public class PatternsFunctionLibrary {
 
     /**
      * Validates that pattern and value are textual and within size limits.
-     *
-     * @param pattern the pattern value to validate
-     * @param value the input value to validate
-     * @return error Val if validation fails, null if validation succeeds
      */
     private static Val validateInputs(Val pattern, Val value) {
         if (!pattern.isTextual() || !value.isTextual()) {
@@ -463,10 +719,6 @@ public class PatternsFunctionLibrary {
 
     /**
      * Validates that delimiters array contains only textual values.
-     *
-     * @param delimiters the delimiters array to validate
-     * @return error Val if validation fails, null if validation succeeds or
-     * delimiters is undefined
      */
     private static Val validateDelimiters(Val delimiters) {
         if (delimiters.isUndefined() || !delimiters.isArray()) {
@@ -485,13 +737,8 @@ public class PatternsFunctionLibrary {
     }
 
     /**
-     * Extracts delimiter strings from Val array, returning default if undefined or
-     * empty.
-     *
-     * @param delimiters the delimiters Val array
-     * @param defaultValue the default delimiter list to use
-     * @return list of delimiter strings, or null if array contains no non-empty
-     * strings
+     * Extracts delimiter strings from Val array, returning default if undefined
+     * or empty.
      */
     private static List<String> extractDelimiters(Val delimiters, List<String> defaultValue) {
         if (delimiters.isUndefined() || !delimiters.isArray()) {
@@ -519,11 +766,6 @@ public class PatternsFunctionLibrary {
 
     /**
      * Implements glob pattern matching by converting glob to regex and matching.
-     *
-     * @param pattern the glob pattern string
-     * @param value the value to match against
-     * @param delimiters the delimiter list for hierarchical matching
-     * @return Val containing boolean match result or error
      */
     private static Val matchGlobImplementation(String pattern, String value, List<String> delimiters) {
         try {
@@ -539,12 +781,6 @@ public class PatternsFunctionLibrary {
 
     /**
      * Converts a glob pattern to equivalent regex pattern.
-     *
-     * @param glob the glob pattern string
-     * @param delimiters the delimiter list for hierarchical matching
-     * @param recursionDepth the current recursion depth for nested alternatives
-     * @return the equivalent regex pattern string
-     * @throws IllegalStateException if pattern exceeds nesting or complexity limits
      */
     private static String convertGlobToRegex(String glob, List<String> delimiters, int recursionDepth) {
         if (recursionDepth > MAX_GLOB_RECURSION) {
@@ -578,9 +814,6 @@ public class PatternsFunctionLibrary {
 
     /**
      * Counts the number of alternative groups in a glob pattern.
-     *
-     * @param glob the glob pattern string
-     * @return the number of alternative groups found
      */
     private static int countAlternativeGroups(String glob) {
         int count    = 0;
@@ -614,10 +847,6 @@ public class PatternsFunctionLibrary {
 
     /**
      * Processes backslash escape sequence in glob pattern.
-     *
-     * @param glob the glob pattern string
-     * @param position the current position
-     * @return conversion result with regex fragment and next position
      */
     private static GlobConversionResult processEscapeSequence(String glob, int position) {
         if (position + 1 < glob.length()) {
@@ -634,11 +863,6 @@ public class PatternsFunctionLibrary {
 
     /**
      * Processes wildcard character in glob pattern.
-     *
-     * @param glob the glob pattern string
-     * @param position the current position
-     * @param delimiters the delimiter list for hierarchical matching
-     * @return conversion result with regex fragment and next position
      */
     private static GlobConversionResult processWildcard(String glob, int position, Collection<String> delimiters) {
         if (position + 1 < glob.length() && glob.charAt(position + 1) == '*') {
@@ -649,10 +873,6 @@ public class PatternsFunctionLibrary {
 
     /**
      * Processes single character wildcard in glob pattern.
-     *
-     * @param position the current position
-     * @param delimiters the delimiter list for hierarchical matching
-     * @return conversion result with regex fragment and next position
      */
     private static GlobConversionResult processSingleCharacterWildcard(int position, Collection<String> delimiters) {
         return new GlobConversionResult(buildDelimiterAwarePattern(delimiters, false), position + 1);
@@ -660,11 +880,6 @@ public class PatternsFunctionLibrary {
 
     /**
      * Processes character class in glob pattern.
-     *
-     * @param glob the glob pattern string
-     * @param position the current position
-     * @return conversion result with regex fragment and next position
-     * @throws IllegalStateException if character class is not closed
      */
     private static GlobConversionResult processCharacterClass(String glob, int position) {
         int closingBracket = findClosingBracket(glob, position);
@@ -705,11 +920,6 @@ public class PatternsFunctionLibrary {
 
     /**
      * Determines if a character needs escaping within a character class.
-     *
-     * @param character the character to check
-     * @param position the position in the character class content
-     * @param contentLength the total length of the character class content
-     * @return true if character needs escaping
      */
     private static boolean needsEscapeInCharacterClass(char character, int position, int contentLength) {
         if (CHAR_CLASS_METACHARACTERS.indexOf(character) >= 0) {
@@ -724,13 +934,6 @@ public class PatternsFunctionLibrary {
 
     /**
      * Processes alternative group in glob pattern.
-     *
-     * @param glob the glob pattern string
-     * @param position the current position
-     * @param delimiters the delimiter list for hierarchical matching
-     * @param recursionDepth the current recursion depth
-     * @return conversion result with regex fragment and next position
-     * @throws IllegalStateException if alternative group is not closed
      */
     private static GlobConversionResult processAlternatives(String glob, int position, List<String> delimiters,
             int recursionDepth) {
@@ -756,10 +959,6 @@ public class PatternsFunctionLibrary {
 
     /**
      * Processes literal character in glob pattern.
-     *
-     * @param glob the glob pattern string
-     * @param position the current position
-     * @return conversion result with regex fragment and next position
      */
     private static GlobConversionResult processLiteralCharacter(String glob, int position) {
         int codePoint        = glob.codePointAt(position);
@@ -779,11 +978,6 @@ public class PatternsFunctionLibrary {
 
     /**
      * Builds regex pattern that respects delimiter boundaries.
-     *
-     * @param delimiters the delimiter collection
-     * @param allowMultiple true for zero-or-more pattern, false for single
-     * character
-     * @return regex pattern string
      */
     private static String buildDelimiterAwarePattern(Collection<String> delimiters, boolean allowMultiple) {
         if (delimiters == null || delimiters.isEmpty()) {
@@ -806,10 +1000,6 @@ public class PatternsFunctionLibrary {
 
     /**
      * Finds the closing brace matching an opening brace, handling nesting.
-     *
-     * @param pattern the glob pattern string
-     * @param startPosition the position of the opening brace
-     * @return the position of the matching closing brace, or -1 if not found
      */
     private static int findClosingBrace(String pattern, int startPosition) {
         int depth    = 1;
@@ -837,10 +1027,6 @@ public class PatternsFunctionLibrary {
 
     /**
      * Finds the closing bracket matching an opening bracket.
-     *
-     * @param pattern the glob pattern string
-     * @param startPosition the position of the opening bracket
-     * @return the position of the matching closing bracket, or -1 if not found
      */
     private static int findClosingBracket(String pattern, int startPosition) {
         int position = startPosition + 1;
@@ -860,9 +1046,6 @@ public class PatternsFunctionLibrary {
 
     /**
      * Splits alternative group content by commas at nesting depth zero.
-     *
-     * @param alternatives the content of the alternative group
-     * @return list of alternative pattern strings
      */
     private static List<String> splitAlternatives(String alternatives) {
         val result       = new ArrayList<String>();
@@ -900,9 +1083,6 @@ public class PatternsFunctionLibrary {
 
     /**
      * Compiles regex pattern after validating it is not dangerous.
-     *
-     * @param patternText the regex pattern string
-     * @return compiled Pattern, or null if pattern is dangerous or invalid
      */
     private static Pattern compileRegex(String patternText) {
         if (isDangerousPattern(patternText)) {
@@ -920,9 +1100,6 @@ public class PatternsFunctionLibrary {
     /**
      * Analyzes regex pattern for dangerous constructs that could cause ReDoS.
      * Uses pre-compiled patterns with find() to avoid ReDoS in detection itself.
-     *
-     * @param pattern the regex pattern string
-     * @return true if pattern contains dangerous constructs
      */
     private static boolean isDangerousPattern(String pattern) {
         if (pattern.split("\\|").length > MAX_ALTERNATIONS) {
@@ -950,11 +1127,6 @@ public class PatternsFunctionLibrary {
 
     /**
      * Finds all matches of regex pattern in value, up to specified limit.
-     *
-     * @param pattern the regex pattern Val
-     * @param value the value Val to search
-     * @param limit the maximum number of matches to find
-     * @return Val containing array of matched strings or error
      */
     private static Val findMatchesWithLimit(Val pattern, Val value, int limit) {
         val error = validateInputs(pattern, value);
@@ -983,11 +1155,6 @@ public class PatternsFunctionLibrary {
 
     /**
      * Finds all matches with capturing groups, up to specified limit.
-     *
-     * @param pattern the regex pattern Val
-     * @param value the value Val to search
-     * @param limit the maximum number of matches to find
-     * @return Val containing nested array of matches with groups or error
      */
     private static Val findAllSubmatchWithLimit(Val pattern, Val value, int limit) {
         val error = validateInputs(pattern, value);
@@ -1028,11 +1195,6 @@ public class PatternsFunctionLibrary {
 
     /**
      * Builds regex pattern from template with embedded regex patterns.
-     *
-     * @param template the template string
-     * @param startDelimiter the delimiter marking start of regex portions
-     * @param endDelimiter the delimiter marking end of regex portions
-     * @return the compiled regex pattern string, or null if template is malformed
      */
     private static String buildTemplateRegex(String template, String startDelimiter, String endDelimiter) {
         val result   = new StringBuilder();
@@ -1068,9 +1230,6 @@ public class PatternsFunctionLibrary {
 
     /**
      * Logs security-related events at WARN level.
-     *
-     * @param event the event description
-     * @param details the event details
      */
     private static void logSecurityEvent(String event, String details) {
         if (log.isWarnEnabled()) {
@@ -1080,9 +1239,6 @@ public class PatternsFunctionLibrary {
 
     /**
      * Holds the result of converting a glob pattern fragment to regex.
-     *
-     * @param regexFragment the regex string for this fragment
-     * @param nextPosition the position to continue parsing from
      */
     private record GlobConversionResult(String regexFragment, int nextPosition) {}
 }
