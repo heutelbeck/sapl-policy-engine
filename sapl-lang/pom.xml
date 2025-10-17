@@ -133,7 +133,12 @@
 			<groupId>com.networknt</groupId>
 			<artifactId>json-schema-validator</artifactId>
 		</dependency>
-
+        <!-- GraphQL Support -->
+        <dependency>
+            <groupId>com.graphql-java</groupId>
+            <artifactId>graphql-java</artifactId>
+            <version>24.3</version>
+        </dependency>
 		<!-- Webflux for the reactive WebClient -->
 		<dependency>
 			<groupId>org.springframework</groupId>

@@ -35,11 +35,13 @@
 	</properties>
 
 	<artifactId>sapl-eclipse-thirdparty</artifactId>
-	<name>SAPL Eclipse thirdparty dependencies</name>
+	<name>SAPL Eclipse third party dependencies</name>
 	<packaging>bundle</packaging>
 
 	<dependencies>
-		<dependency>
+        <!-- If the other modules complain some dependency is missing add the artefact here -->
+        <!-- Also add it below to: <Embed-Dependency> and <_exportcontents> BOTH are needed ! -->
+        <dependency>
 			<groupId>org.springframework</groupId>
 			<artifactId>spring-core</artifactId>
 		</dependency>
@@ -67,6 +69,11 @@
         <dependency>
             <groupId>com.nimbusds</groupId>
             <artifactId>nimbus-jose-jwt</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.graphql-java</groupId>
+            <artifactId>graphql-java</artifactId>
+            <version>24.3</version>
         </dependency>
 	</dependencies>
 
@@ -102,7 +109,8 @@
 							spring-web,
 							spring-webflux,
                             jcip-annotations,
-                            nimbus-jose-jwt
+                            nimbus-jose-jwt,
+                            graphql-java
 						</Embed-Dependency>
 						<Import-Package>
 							!groovy
@@ -110,7 +118,8 @@
 						<_exportcontents>
 							org.springframework.*;version="6.1.11",
                             net.jcip.annotations.*;version="1.0.0",
-                            com.nimbusds.*;version="9.37.4"
+                            com.nimbusds.*;version="9.37.4",
+                            graphql.*;version="24.3.0"
 						</_exportcontents>
 						<Bundle-ClassPath>{maven-dependencies}</Bundle-ClassPath>
 						<Embed-Transitive>true</Embed-Transitive>

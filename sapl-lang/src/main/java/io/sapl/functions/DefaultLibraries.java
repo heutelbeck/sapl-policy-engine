@@ -31,6 +31,7 @@ public class DefaultLibraries {
             EncodingFunctionLibrary.class,
             FilterFunctionLibrary.class,
             GraphFunctionLibrary.class,
+            GraphQLFunctionLibrary.class,
             KeysFunctionLibrary.class,
             LoggingFunctionLibrary.class,
             MacFunctionLibrary.class,
