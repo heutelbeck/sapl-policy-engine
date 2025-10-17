@@ -76,9 +76,9 @@
             <version>24.3</version>
         </dependency>
         <dependency>
-            <groupId>de.skuzzle</groupId>
-            <artifactId>semantic-version</artifactId>
-            <version>2.1.1</version>
+            <groupId>org.semver4j</groupId>
+            <artifactId>semver4j</artifactId>
+            <version>6.0.0</version>
         </dependency>
 	</dependencies>
 
@@ -116,7 +116,7 @@
                             jcip-annotations,
                             nimbus-jose-jwt,
                             graphql-java,
-                            semantic-version
+                            semver4j
 						</Embed-Dependency>
 						<Import-Package>
 							!groovy
@@ -126,7 +126,7 @@
                             net.jcip.annotations.*;version="1.0.0",
                             com.nimbusds.*;version="9.37.4",
                             graphql.*;version="24.3.0",
-                            de.skuzzle.*;version="2.1.1"
+                            org.semver4j.*;version="6.0.0"
 						</_exportcontents>
 						<Bundle-ClassPath>{maven-dependencies}</Bundle-ClassPath>
 						<Embed-Transitive>true</Embed-Transitive>

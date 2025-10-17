@@ -306,6 +306,7 @@ class StringFunctionLibraryTest {
         var result = StringFunctionLibrary.join(Val.of(array), Val.of(","));
         assertTrue(result.isError());
     }
+
     @ParameterizedTest(name = "concat({0}) -> {1}")
     @CsvSource(delimiter = '|', textBlock = """
             'necro,nomicon'                                      | necronomicon

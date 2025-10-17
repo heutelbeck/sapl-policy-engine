@@ -17,19 +17,25 @@
  */
 package io.sapl.functions;
 
-import de.skuzzle.semantic.Version;
+import com.fasterxml.jackson.databind.JsonNode;
 import io.sapl.api.functions.Function;
 import io.sapl.api.functions.FunctionLibrary;
 import io.sapl.api.interpreter.Val;
+import io.sapl.api.validation.Array;
 import io.sapl.api.validation.Text;
 import lombok.experimental.UtilityClass;
 import lombok.val;
+import org.semver4j.Semver;
+import org.semver4j.SemverException;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Functions for semantic version comparison and validation in authorization
  * policies.
- * Enables version-based access control decisions, API version compatibility
- * checks, and feature gate evaluation based on client or service versions.
+ * Supports version-based access control, API compatibility checks, and feature
+ * gating.
  */
 @UtilityClass
 @FunctionLibrary(name = SemVerFunctionLibrary.NAME, description = SemVerFunctionLibrary.DESCRIPTION, libraryDocumentation = SemVerFunctionLibrary.DOCUMENTATION)
@@ -41,49 +47,134 @@ public class SemVerFunctionLibrary {
     public static final String DOCUMENTATION = """
             # Semantic Versioning in Authorization Policies
 
-            This library provides functions for working with semantic version strings following the Semantic
-            Versioning 2.0.0 specification. Use these functions for version-based access control, API
-            compatibility checks, and feature gating based on client or service versions.
+            This library provides functions for working with semantic versions in SAPL policies, following the Semantic Versioning 2.0.0 specification. Use these functions to implement version-based access control, check API compatibility between services, and gate features based on client versions.
 
-            ## Version Format
+            ## Understanding Version Format
 
-            Semantic versions follow the format: `MAJOR.MINOR.PATCH[-PRERELEASE][+BUILDMETADATA]`
+            Semantic versions follow the format `MAJOR.MINOR.PATCH[-PRERELEASE][+BUILDMETADATA]`. Each component serves a specific purpose:
 
-            - **MAJOR**: Incompatible API changes (e.g., `2.0.0`)
-            - **MINOR**: Backwards-compatible functionality additions (e.g., `1.5.0`)
-            - **PATCH**: Backwards-compatible bug fixes (e.g., `1.0.3`)
-            - **PRERELEASE**: Optional pre-release identifier with dot-separated alphanumeric identifiers
-              (e.g., `alpha`, `beta.1`, `rc.2`)
-            - **BUILDMETADATA**: Optional build metadata with dot-separated alphanumeric identifiers
-              (e.g., `build.123`, `sha.5114f85`)
+            - MAJOR: Incremented for incompatible API changes (e.g., `2.0.0`)
+            - MINOR: Incremented when adding backwards-compatible functionality (e.g., `1.5.0`)
+            - PATCH: Incremented for backwards-compatible bug fixes (e.g., `1.0.3`)
+            - PRERELEASE: Optional pre-release identifier with dot-separated alphanumeric parts (e.g., `alpha`, `beta.1`, `rc.2`)
+            - BUILDMETADATA: Optional build metadata with dot-separated alphanumeric parts (e.g., `build.123`, `sha.5114f85`)
 
-            Examples: `1.0.0`, `2.3.5-alpha`, `1.0.0-beta.2+build.456`, `v3.0.0` (v-prefix supported)
+            Valid examples include `1.0.0`, `2.3.5-alpha`, and `1.0.0-beta.2+build.456`.
 
-            ## Version Comparison
+            The library accepts a lowercase `v` prefix for compatibility with Git tags (e.g., `v1.0.0`). However, uppercase `V` is not supported. While the strict SemVer 2.0.0 specification excludes any prefix, lowercase `v` is widely adopted in version control systems.
 
-            Versions are compared following semantic versioning precedence rules:
-            1. Major, minor, and patch numbers are compared numerically
-            2. Pre-release versions have lower precedence than normal versions
-            3. Pre-release identifiers are compared lexically
-            4. Build metadata is ignored in comparisons
+            ## How Version Comparison Works
 
-            ## Access Control Use Cases
+            Version precedence follows semantic versioning rules. Major, minor, and patch numbers are compared numerically. Pre-release versions always come before their corresponding normal versions (e.g., `1.0.0-alpha` is lower than `1.0.0`). When comparing pre-release identifiers, the comparison is alphanumeric. Build metadata never affects version precedence.
 
-            - **API Versioning**: Block access to deprecated API versions
-            - **Feature Gates**: Enable features for versions meeting minimum requirements
-            - **Client Requirements**: Enforce minimum client version for security or compatibility
-            - **Compatibility Windows**: Allow only compatible version ranges
-            - **Pre-release Access**: Restrict beta/alpha versions to specific user groups
-            - **Deprecation Policies**: Warn or block outdated versions
+            ## Expressing Version Ranges
+
+            The library supports NPM-style range syntax for flexible version matching:
+
+            - **Operators**: `>=1.0.0`, `>1.0.0`, `<=2.0.0`, `<2.0.0`, `=1.0.0`
+            - **Hyphen ranges**: `1.2.3 - 2.3.4` (both ends inclusive)
+            - **X-ranges**: `1.2.x`, `1.x`, `*` (wildcards for matching any value)
+            - **Tilde**: `~1.2.3` (allows patch-level changes: `>=1.2.3 <1.3.0`)
+            - **Caret**: `^1.2.3` (allows minor-level changes: `>=1.2.3 <2.0.0`)
+            - **OR**: `>=1.0.0 || >=2.0.0`
+            - **AND**: `>=1.0.0 <2.0.0` (space-separated conditions)
+
+            ## Common Authorization Scenarios
+
+            Version-based access control is essential for managing API lifecycle and ensuring security. For instance, you might need to block clients using deprecated API versions to force security updates. Here's how to enforce a minimum client version:
+
+            ```sapl
+            policy "enforce_minimum_secure_version"
+            deny
+            where
+              semver.isLower(subject.clientVersion, "2.5.0");
+            ```
+
+            Feature gating lets you enable advanced functionality only for clients meeting version requirements. This prevents older clients from attempting to use features they don't support:
+
+            ```sapl
+            policy "advanced_analytics_feature"
+            permit action.name == "useAdvancedAnalytics"
+            where
+              semver.isAtLeast(subject.appVersion, "3.2.0");
+            ```
+
+            API compatibility checking ensures services can communicate properly. When services depend on each other, you need to verify they speak compatible API versions:
+
+            ```sapl
+            policy "service_compatibility"
+            permit action.name == "invokeService"
+            where
+              semver.isCompatibleWith(subject.serviceVersion, resource.requiredApiVersion);
+            ```
+
+            Restricting pre-release versions to specific roles prevents unstable builds from reaching production environments. Development and staging teams might use pre-release versions, but production systems should only run stable releases:
+
+            ```sapl
+            policy "production_stable_only"
+            deny action.name == "deployToProduction"
+            where
+              semver.isPreRelease(resource.version);
+              subject.role != "release-manager";
+            ```
+
+            Compatibility windows help manage gradual rollouts. When migrating between major versions, you often need to support a range of client versions temporarily:
+
+            ```sapl
+            policy "migration_compatibility_window"
+            permit
+            where
+              semver.isBetween(subject.clientVersion, "2.0.0", "3.5.0");
+            ```
             """;
 
-    private static final String RETURNS_OBJECT = """
+    private static final String PARSED_VERSION_SCHEMA = """
             {
-                "type": "object"
+                "type": "object",
+                "properties": {
+                    "version": {
+                        "type": "string",
+                        "description": "Complete version string without v-prefix"
+                    },
+                    "major": {
+                        "type": "integer",
+                        "description": "Major version number"
+                    },
+                    "minor": {
+                        "type": "integer",
+                        "description": "Minor version number"
+                    },
+                    "patch": {
+                        "type": "integer",
+                        "description": "Patch version number"
+                    },
+                    "isStable": {
+                        "type": "boolean",
+                        "description": "Indicates stable release without pre-release identifier"
+                    },
+                    "isPreRelease": {
+                        "type": "boolean",
+                        "description": "Indicates pre-release version"
+                    },
+                    "preRelease": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        },
+                        "description": "Pre-release identifiers"
+                    },
+                    "buildMetadata": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        },
+                        "description": "Build metadata identifiers"
+                    }
+                },
+                "required": ["version", "major", "minor", "patch", "isStable", "isPreRelease", "preRelease", "buildMetadata"]
             }
             """;
-
-    private static final String RETURNS_BOOLEAN = """
+    private static final String RETURNS_BOOLEAN       = """
             {
                 "type": "boolean"
             }
@@ -95,69 +186,67 @@ public class SemVerFunctionLibrary {
             }
             """;
 
+    private static final String RETURNS_TEXT                  = """
+            {
+                "type": "string"
+            }
+            """;
+    public static final String  INVALID_VERSION_IN_COMPARISON = "Invalid version in comparison: ";
+    public static final String  INVALID_VERSION               = "Invalid version: ";
+
     @Function(docs = """
-            ```parse(TEXT versionString)```: Parses a semantic version string into its components.
+            ```parse(TEXT versionString)```: Parses a semantic version string into components.
 
-            Returns an object containing all parts of the version. Accepts versions with or without
-            'v' prefix. Returns error if the string is not a valid semantic version.
+            Returns an object with version parts. Accepts versions with or without lowercase `v` prefix.
+            Returns error if string is not valid.
 
-            **Result Object**:
-            - `version`: Complete version string without v-prefix
-            - `major`: Major version number
-            - `minor`: Minor version number
-            - `patch`: Patch version number
-            - `preRelease`: Pre-release identifier (empty string if none)
-            - `buildMetadata`: Build metadata (empty string if none)
+            Result fields:
+            - `version`: Complete version without v-prefix
+            - `major`, `minor`, `patch`: Version numbers
+            - `isStable`: Boolean indicating stable release (no pre-release)
+            - `isPreRelease`: Boolean indicating pre-release
+            - `preRelease`: Array of pre-release identifiers
+            - `buildMetadata`: Array of build metadata identifiers
 
-            **Examples:**
             ```sapl
-            policy "parse_client_version"
+            policy "require_stable_major_2"
             permit
             where
               var parsed = semver.parse(request.clientVersion);
               parsed.major >= 2;
+              parsed.isStable;
             ```
-
-            ```sapl
-            policy "check_prerelease"
-            permit
-            where
-              var version = semver.parse(resource.apiVersion);
-              version.preRelease == "";
-            ```
-            """, schema = RETURNS_OBJECT)
+            """, schema = PARSED_VERSION_SCHEMA)
     public static Val parse(@Text Val versionString) {
         try {
-            val text    = stripVPrefix(versionString.getText());
-            val version = Version.parseVersion(text);
+            val semver = new Semver(versionString.getText());
 
             val result = Val.JSON.objectNode();
-            result.put("version", version.toString());
-            result.put("major", version.getMajor());
-            result.put("minor", version.getMinor());
-            result.put("patch", version.getPatch());
-            result.put("preRelease", version.getPreRelease());
-            result.put("buildMetadata", version.getBuildMetaData());
+            result.put("version", semver.getVersion());
+            result.put("major", semver.getMajor());
+            result.put("minor", semver.getMinor());
+            result.put("patch", semver.getPatch());
+            result.put("isStable", semver.isStable());
+            result.put("isPreRelease", !semver.isStable());
+
+            val preReleaseList  = semver.getPreRelease();
+            val preReleaseArray = result.putArray("preRelease");
+            preReleaseList.forEach(preReleaseArray::add);
+
+            val buildList          = semver.getBuild();
+            val buildMetadataArray = result.putArray("buildMetadata");
+            buildList.forEach(buildMetadataArray::add);
 
             return Val.of(result);
-        } catch (Exception e) {
+        } catch (SemverException e) {
             return Val.error("Invalid semantic version: " + e.getMessage());
         }
     }
 
     @Function(docs = """
-            ```isValid(TEXT versionString)```: Checks if a string is a valid semantic version.
+            ```isValid(TEXT versionString)```: Validates semantic version format.
 
-            Returns true if the string conforms to Semantic Versioning 2.0.0 specification, false
-            otherwise. Accepts versions with or without 'v' prefix.
-
-            **Examples:**
-            ```sapl
-            policy "validate_version"
-            permit
-            where
-              semver.isValid(request.version);
-            ```
+            Returns true if string conforms to Semantic Versioning 2.0.0. Accepts lowercase `v` prefix.
 
             ```sapl
             policy "require_valid_version"
@@ -167,181 +256,116 @@ public class SemVerFunctionLibrary {
             ```
             """, schema = RETURNS_BOOLEAN)
     public static Val isValid(@Text Val versionString) {
-        try {
-            Version.parseVersion(stripVPrefix(versionString.getText()));
-            return Val.TRUE;
-        } catch (Exception e) {
-            return Val.FALSE;
-        }
+        return Val.of(Semver.isValid(versionString.getText()));
     }
 
     @Function(docs = """
             ```compare(TEXT version1, TEXT version2)```: Compares two semantic versions.
 
-            Returns -1 if version1 < version2, 0 if equal, 1 if version1 > version2. Build metadata
-            is ignored in comparison per semantic versioning specification.
+            Returns -1 if version1 < version2, 0 if equal, 1 if version1 > version2.
+            Build metadata ignored per specification.
 
-            **Examples:**
-            ```sapl
-            policy "version_comparison"
-            permit
-            where
-              semver.compare(resource.version, "2.0.0") >= 0;
-            ```
-
-            ```sapl
-            policy "version_order"
-            permit
-            where
-              var result = semver.compare(subject.clientVersion, resource.minVersion);
-              result >= 0;
-            ```
-            """, schema = RETURNS_NUMBER)
-    public static Val compare(@Text Val version1, @Text Val version2) {
-        try {
-            val v1 = parseVersion(version1);
-            val v2 = parseVersion(version2);
-            return Val.of(v1.compareTo(v2));
-        } catch (Exception e) {
-            return Val.error("Invalid version in comparison: " + e.getMessage());
-        }
-    }
-
-    @Function(docs = """
-            ```equals(TEXT version1, TEXT version2)```: Checks if two versions are equal.
-
-            Returns true if both versions are semantically equal. Build metadata is ignored in
-            comparison.
-
-            **Examples:**
-            ```sapl
-            policy "exact_version"
-            permit
-            where
-              semver.equals(resource.apiVersion, "2.1.0");
-            ```
-
-            ```sapl
-            policy "version_match"
-            permit
-            where
-              semver.equals(subject.requiredVersion, resource.providedVersion);
-            ```
-            """, schema = RETURNS_BOOLEAN)
-    public static Val equals(@Text Val version1, @Text Val version2) {
-        try {
-            val v1 = parseVersion(version1);
-            val v2 = parseVersion(version2);
-            return Val.of(v1.equals(v2));
-        } catch (Exception e) {
-            return Val.error("Invalid version in comparison: " + e.getMessage());
-        }
-    }
-
-    @Function(docs = """
-            ```isLower(TEXT version1, TEXT version2)```: Checks if version1 is lower than version2.
-
-            Returns true if version1 < version2 according to semantic versioning precedence rules.
-
-            **Examples:**
-            ```sapl
-            policy "require_upgrade"
-            deny
-            where
-              semver.isLower(subject.clientVersion, "2.0.0");
-            ```
-
-            ```sapl
-            policy "old_version_warning"
-            permit
-            where
-              semver.isLower(request.version, resource.recommendedVersion);
-            obligation
-              "warning" : "Please upgrade to the recommended version";
-            ```
-            """, schema = RETURNS_BOOLEAN)
-    public static Val isLower(@Text Val version1, @Text Val version2) {
-        try {
-            val v1 = parseVersion(version1);
-            val v2 = parseVersion(version2);
-            return Val.of(v1.compareTo(v2) < 0);
-        } catch (Exception e) {
-            return Val.error("Invalid version in comparison: " + e.getMessage());
-        }
-    }
-
-    @Function(docs = """
-            ```isHigher(TEXT version1, TEXT version2)```: Checks if version1 is higher than version2.
-
-            Returns true if version1 > version2 according to semantic versioning precedence rules.
-
-            **Examples:**
-            ```sapl
-            policy "new_version_access"
-            permit
-            where
-              semver.isHigher(subject.clientVersion, "3.0.0");
-            ```
-
-            ```sapl
-            policy "preview_features"
-            permit
-            where
-              semver.isHigher(request.version, resource.stableVersion);
-            ```
-            """, schema = RETURNS_BOOLEAN)
-    public static Val isHigher(@Text Val version1, @Text Val version2) {
-        try {
-            val v1 = parseVersion(version1);
-            val v2 = parseVersion(version2);
-            return Val.of(v1.compareTo(v2) > 0);
-        } catch (Exception e) {
-            return Val.error("Invalid version in comparison: " + e.getMessage());
-        }
-    }
-
-    @Function(docs = """
-            ```isLowerOrEqual(TEXT version1, TEXT version2)```: Checks if version1 is lower than or equal to version2.
-
-            Returns true if version1 <= version2 according to semantic versioning precedence rules.
-
-            **Examples:**
-            ```sapl
-            policy "max_version"
-            permit
-            where
-              semver.isLowerOrEqual(resource.apiVersion, "3.5.0");
-            ```
-
-            ```sapl
-            policy "version_cap"
-            permit
-            where
-              semver.isLowerOrEqual(subject.version, resource.maximumVersion);
-            ```
-            """, schema = RETURNS_BOOLEAN)
-    public static Val isLowerOrEqual(@Text Val version1, @Text Val version2) {
-        try {
-            val v1 = parseVersion(version1);
-            val v2 = parseVersion(version2);
-            return Val.of(v1.compareTo(v2) <= 0);
-        } catch (Exception e) {
-            return Val.error("Invalid version in comparison: " + e.getMessage());
-        }
-    }
-
-    @Function(docs = """
-            ```isHigherOrEqual(TEXT version1, TEXT version2)```: Checks if version1 is higher than or equal to version2.
-
-            Returns true if version1 >= version2 according to semantic versioning precedence rules.
-
-            **Examples:**
             ```sapl
             policy "minimum_version"
             permit
             where
-              semver.isHigherOrEqual(subject.clientVersion, "2.0.0");
+              semver.compare(resource.version, "2.0.0") >= 0;
             ```
+            """, schema = RETURNS_NUMBER)
+    public static Val compare(@Text Val version1, @Text Val version2) {
+        try {
+            val v1 = new Semver(version1.getText());
+            val v2 = new Semver(version2.getText());
+            return Val.of(v1.compareTo(v2));
+        } catch (SemverException e) {
+            return Val.error(INVALID_VERSION_IN_COMPARISON + e.getMessage());
+        }
+    }
+
+    @Function(docs = """
+            ```equals(TEXT version1, TEXT version2)```: Checks version equality.
+
+            Returns true if versions are semantically equal. Build metadata ignored.
+
+            ```sapl
+            policy "exact_version_required"
+            permit
+            where
+              semver.equals(resource.apiVersion, "2.1.0");
+            ```
+            """, schema = RETURNS_BOOLEAN)
+    public static Val equals(@Text Val version1, @Text Val version2) {
+        try {
+            val v1 = new Semver(version1.getText());
+            val v2 = new Semver(version2.getText());
+            return Val.of(v1.isEquivalentTo(v2));
+        } catch (SemverException e) {
+            return Val.error(INVALID_VERSION_IN_COMPARISON + e.getMessage());
+        }
+    }
+
+    @Function(docs = """
+            ```isLower(TEXT version1, TEXT version2)```: Tests if version1 < version2.
+
+            ```sapl
+            policy "block_outdated_clients"
+            deny
+            where
+              semver.isLower(subject.clientVersion, "2.0.0");
+            ```
+            """, schema = RETURNS_BOOLEAN)
+    public static Val isLower(@Text Val version1, @Text Val version2) {
+        try {
+            val v1 = new Semver(version1.getText());
+            val v2 = new Semver(version2.getText());
+            return Val.of(v1.isLowerThan(v2));
+        } catch (SemverException e) {
+            return Val.error(INVALID_VERSION_IN_COMPARISON + e.getMessage());
+        }
+    }
+
+    @Function(docs = """
+            ```isHigher(TEXT version1, TEXT version2)```: Tests if version1 > version2.
+
+            ```sapl
+            policy "early_access_features"
+            permit
+            where
+              semver.isHigher(subject.clientVersion, "3.0.0");
+            ```
+            """, schema = RETURNS_BOOLEAN)
+    public static Val isHigher(@Text Val version1, @Text Val version2) {
+        try {
+            val v1 = new Semver(version1.getText());
+            val v2 = new Semver(version2.getText());
+            return Val.of(v1.isGreaterThan(v2));
+        } catch (SemverException e) {
+            return Val.error(INVALID_VERSION_IN_COMPARISON + e.getMessage());
+        }
+    }
+
+    @Function(docs = """
+            ```isLowerOrEqual(TEXT version1, TEXT version2)```: Tests if version1 <= version2.
+
+            ```sapl
+            policy "version_ceiling"
+            permit
+            where
+              semver.isLowerOrEqual(resource.apiVersion, "3.5.0");
+            ```
+            """, schema = RETURNS_BOOLEAN)
+    public static Val isLowerOrEqual(@Text Val version1, @Text Val version2) {
+        try {
+            val v1 = new Semver(version1.getText());
+            val v2 = new Semver(version2.getText());
+            return Val.of(v1.isLowerThan(v2) || v1.isEquivalentTo(v2));
+        } catch (SemverException e) {
+            return Val.error(INVALID_VERSION_IN_COMPARISON + e.getMessage());
+        }
+    }
+
+    @Function(docs = """
+            ```isHigherOrEqual(TEXT version1, TEXT version2)```: Tests if version1 >= version2.
 
             ```sapl
             policy "feature_gate"
@@ -353,157 +377,108 @@ public class SemVerFunctionLibrary {
             """, schema = RETURNS_BOOLEAN)
     public static Val isHigherOrEqual(@Text Val version1, @Text Val version2) {
         try {
-            val v1 = parseVersion(version1);
-            val v2 = parseVersion(version2);
-            return Val.of(v1.compareTo(v2) >= 0);
-        } catch (Exception e) {
-            return Val.error("Invalid version in comparison: " + e.getMessage());
+            val v1 = new Semver(version1.getText());
+            val v2 = new Semver(version2.getText());
+            return Val.of(v1.isGreaterThan(v2) || v1.isEquivalentTo(v2));
+        } catch (SemverException e) {
+            return Val.error(INVALID_VERSION_IN_COMPARISON + e.getMessage());
         }
     }
 
     @Function(docs = """
-            ```haveSameMajor(TEXT version1, TEXT version2)```: Checks if two versions have the same major version.
+            ```haveSameMajor(TEXT version1, TEXT version2)```: Tests for matching major version.
 
-            Returns true if both versions share the same major version number, regardless of minor,
-            patch, or pre-release identifiers.
-
-            **Examples:**
             ```sapl
-            policy "major_version_compatible"
+            policy "api_v2_only"
             permit
             where
               semver.haveSameMajor(resource.apiVersion, "2.0.0");
             ```
-
-            ```sapl
-            policy "api_v2"
-            permit
-            where
-              semver.haveSameMajor(request.apiVersion, subject.supportedApiVersion);
-            ```
             """, schema = RETURNS_BOOLEAN)
     public static Val haveSameMajor(@Text Val version1, @Text Val version2) {
         try {
-            val v1 = parseVersion(version1);
-            val v2 = parseVersion(version2);
+            val v1 = new Semver(version1.getText());
+            val v2 = new Semver(version2.getText());
             return Val.of(v1.getMajor() == v2.getMajor());
-        } catch (Exception e) {
-            return Val.error("Invalid version in comparison: " + e.getMessage());
+        } catch (SemverException e) {
+            return Val.error(INVALID_VERSION_IN_COMPARISON + e.getMessage());
         }
     }
 
     @Function(docs = """
-            ```haveSameMinor(TEXT version1, TEXT version2)```: Checks if two versions have the same major and minor version.
+            ```haveSameMinor(TEXT version1, TEXT version2)```: Tests for matching major and minor version.
 
-            Returns true if both versions share the same major and minor version numbers, regardless
-            of patch or pre-release identifiers.
-
-            **Examples:**
             ```sapl
             policy "minor_version_match"
             permit
             where
               semver.haveSameMinor(resource.version, "2.3.0");
             ```
-
-            ```sapl
-            policy "compatible_minor"
-            permit
-            where
-              semver.haveSameMinor(subject.clientVersion, resource.serverVersion);
-            ```
             """, schema = RETURNS_BOOLEAN)
     public static Val haveSameMinor(@Text Val version1, @Text Val version2) {
         try {
-            val v1 = parseVersion(version1);
-            val v2 = parseVersion(version2);
+            val v1 = new Semver(version1.getText());
+            val v2 = new Semver(version2.getText());
             return Val.of(v1.getMajor() == v2.getMajor() && v1.getMinor() == v2.getMinor());
-        } catch (Exception e) {
-            return Val.error("Invalid version in comparison: " + e.getMessage());
+        } catch (SemverException e) {
+            return Val.error(INVALID_VERSION_IN_COMPARISON + e.getMessage());
         }
     }
 
     @Function(docs = """
-            ```haveSamePatch(TEXT version1, TEXT version2)```: Checks if two versions have the same major, minor, and patch version.
+            ```haveSamePatch(TEXT version1, TEXT version2)```: Tests for matching major, minor, and patch version.
 
-            Returns true if both versions share the same major, minor, and patch numbers, regardless
-            of pre-release or build metadata.
-
-            **Examples:**
             ```sapl
             policy "exact_patch_match"
             permit
             where
               semver.haveSamePatch(resource.version, "2.3.5");
             ```
-
-            ```sapl
-            policy "same_release"
-            permit
-            where
-              semver.haveSamePatch(subject.version, "1.0.0");
-            ```
             """, schema = RETURNS_BOOLEAN)
     public static Val haveSamePatch(@Text Val version1, @Text Val version2) {
         try {
-            val v1 = parseVersion(version1);
-            val v2 = parseVersion(version2);
+            val v1 = new Semver(version1.getText());
+            val v2 = new Semver(version2.getText());
             return Val.of(
                     v1.getMajor() == v2.getMajor() && v1.getMinor() == v2.getMinor() && v1.getPatch() == v2.getPatch());
-        } catch (Exception e) {
-            return Val.error("Invalid version in comparison: " + e.getMessage());
+        } catch (SemverException e) {
+            return Val.error(INVALID_VERSION_IN_COMPARISON + e.getMessage());
         }
     }
 
     @Function(docs = """
-            ```isCompatibleWith(TEXT version1, TEXT version2)```: Checks if version1 is compatible with version2.
+            ```isCompatibleWith(TEXT version1, TEXT version2)```: Tests API compatibility.
 
-            Returns true if versions are API-compatible according to semantic versioning principles:
-            - For major version 0 (0.y.z): Only exact major.minor match is compatible
-            - For major version 1+: Same major version indicates compatibility
+            Returns true if versions are API-compatible per semantic versioning:
+            - Major 0 (0.y.z): Only exact major.minor match is compatible
+            - Major 1+: Same major version indicates compatibility
 
-            **Examples:**
             ```sapl
             policy "api_compatibility"
             permit
             where
               semver.isCompatibleWith(subject.clientVersion, resource.apiVersion);
             ```
-
-            ```sapl
-            policy "compatible_versions"
-            permit
-            where
-              semver.isCompatibleWith("2.5.0", "2.0.0");
-            ```
             """, schema = RETURNS_BOOLEAN)
     public static Val isCompatibleWith(@Text Val version1, @Text Val version2) {
         try {
-            val v1 = parseVersion(version1);
-            val v2 = parseVersion(version2);
+            val v1 = new Semver(version1.getText());
+            val v2 = new Semver(version2.getText());
 
             if (v2.getMajor() == 0) {
                 return Val.of(v1.getMajor() == v2.getMajor() && v1.getMinor() == v2.getMinor());
             }
 
             return Val.of(v1.getMajor() == v2.getMajor());
-        } catch (Exception e) {
-            return Val.error("Invalid version in comparison: " + e.getMessage());
+        } catch (SemverException e) {
+            return Val.error(INVALID_VERSION_IN_COMPARISON + e.getMessage());
         }
     }
 
     @Function(docs = """
-            ```isAtLeast(TEXT version, TEXT minimum)```: Checks if version meets or exceeds minimum version.
+            ```isAtLeast(TEXT version, TEXT minimum)```: Tests if version meets minimum.
 
-            Returns true if version >= minimum. Useful for enforcing minimum version requirements.
-
-            **Examples:**
-            ```sapl
-            policy "minimum_client"
-            permit
-            where
-              semver.isAtLeast(subject.clientVersion, "2.0.0");
-            ```
+            Alias for isHigherOrEqual. Enforces minimum version requirements.
 
             ```sapl
             policy "security_requirement"
@@ -517,17 +492,9 @@ public class SemVerFunctionLibrary {
     }
 
     @Function(docs = """
-            ```isAtMost(TEXT version, TEXT maximum)```: Checks if version is at or below maximum version.
+            ```isAtMost(TEXT version, TEXT maximum)```: Tests if version is at or below maximum.
 
-            Returns true if version <= maximum. Useful for enforcing maximum version constraints.
-
-            **Examples:**
-            ```sapl
-            policy "maximum_version"
-            permit
-            where
-              semver.isAtMost(resource.version, "3.0.0");
-            ```
+            Alias for isLowerOrEqual. Enforces maximum version constraints.
 
             ```sapl
             policy "deprecated_after"
@@ -541,17 +508,9 @@ public class SemVerFunctionLibrary {
     }
 
     @Function(docs = """
-            ```isBetween(TEXT version, TEXT minimum, TEXT maximum)```: Checks if version is within range.
+            ```isBetween(TEXT version, TEXT minimum, TEXT maximum)```: Tests if version is in range.
 
-            Returns true if minimum <= version <= maximum. Both bounds are inclusive.
-
-            **Examples:**
-            ```sapl
-            policy "supported_versions"
-            permit
-            where
-              semver.isBetween(subject.clientVersion, "2.0.0", "3.0.0");
-            ```
+            Returns true if minimum <= version <= maximum. Both bounds inclusive.
 
             ```sapl
             policy "compatibility_window"
@@ -562,91 +521,65 @@ public class SemVerFunctionLibrary {
             """, schema = RETURNS_BOOLEAN)
     public static Val isBetween(@Text Val version, @Text Val minimum, @Text Val maximum) {
         try {
-            val v   = parseVersion(version);
-            val min = parseVersion(minimum);
-            val max = parseVersion(maximum);
+            val v   = new Semver(version.getText());
+            val min = new Semver(minimum.getText());
+            val max = new Semver(maximum.getText());
 
-            return Val.of(v.compareTo(min) >= 0 && v.compareTo(max) <= 0);
-        } catch (Exception e) {
-            return Val.error("Invalid version in comparison: " + e.getMessage());
+            return Val.of(
+                    (v.isGreaterThan(min) || v.isEquivalentTo(min)) && (v.isLowerThan(max) || v.isEquivalentTo(max)));
+        } catch (SemverException e) {
+            return Val.error(INVALID_VERSION_IN_COMPARISON + e.getMessage());
         }
     }
 
     @Function(docs = """
-            ```isPreRelease(TEXT version)```: Checks if version is a pre-release.
+            ```isPreRelease(TEXT version)```: Tests if version is pre-release.
 
-            Returns true if the version contains a pre-release identifier (e.g., alpha, beta, rc).
+            Returns true if version contains pre-release identifier (e.g., alpha, beta, rc).
 
-            **Examples:**
             ```sapl
-            policy "stable_only"
+            policy "block_unstable"
             deny
             where
               semver.isPreRelease(resource.version);
             ```
-
-            ```sapl
-            policy "beta_testers"
-            permit
-            where
-              semver.isPreRelease(resource.apiVersion);
-              subject.role == "beta-tester";
-            ```
             """, schema = RETURNS_BOOLEAN)
     public static Val isPreRelease(@Text Val version) {
         try {
-            val v = parseVersion(version);
-            return Val.of(!v.getPreRelease().isEmpty());
-        } catch (Exception e) {
-            return Val.error("Invalid version: " + e.getMessage());
+            val v = new Semver(version.getText());
+            return Val.of(!v.isStable());
+        } catch (SemverException e) {
+            return Val.error(INVALID_VERSION + e.getMessage());
         }
     }
 
     @Function(docs = """
-            ```isStable(TEXT version)```: Checks if version is a stable release.
+            ```isStable(TEXT version)```: Tests if version is stable release.
 
-            Returns true if the version does not contain a pre-release identifier.
+            Returns true if version does not contain pre-release identifier.
 
-            **Examples:**
             ```sapl
             policy "production_ready"
             permit
             where
               semver.isStable(resource.version);
-            ```
-
-            ```sapl
-            policy "stable_api"
-            permit
-            where
-              semver.isStable(resource.apiVersion);
               action.name == "production";
             ```
             """, schema = RETURNS_BOOLEAN)
     public static Val isStable(@Text Val version) {
         try {
-            val v = parseVersion(version);
-            return Val.of(v.getPreRelease().isEmpty());
-        } catch (Exception e) {
-            return Val.error("Invalid version: " + e.getMessage());
+            val v = new Semver(version.getText());
+            return Val.of(v.isStable());
+        } catch (SemverException e) {
+            return Val.error(INVALID_VERSION + e.getMessage());
         }
     }
 
     @Function(docs = """
-            ```getMajor(TEXT version)```: Extracts the major version number.
-
-            Returns the major version component as an integer.
-
-            **Examples:**
-            ```sapl
-            policy "major_version_check"
-            permit
-            where
-              semver.getMajor(resource.version) >= 2;
-            ```
+            ```getMajor(TEXT version)```: Extracts major version number.
 
             ```sapl
-            policy "api_v3"
+            policy "api_v3_only"
             permit
             where
               semver.getMajor(subject.apiVersion) == 3;
@@ -654,25 +587,15 @@ public class SemVerFunctionLibrary {
             """, schema = RETURNS_NUMBER)
     public static Val getMajor(@Text Val version) {
         try {
-            val v = parseVersion(version);
+            val v = new Semver(version.getText());
             return Val.of(v.getMajor());
-        } catch (Exception e) {
-            return Val.error("Invalid version: " + e.getMessage());
+        } catch (SemverException e) {
+            return Val.error(INVALID_VERSION + e.getMessage());
         }
     }
 
     @Function(docs = """
-            ```getMinor(TEXT version)```: Extracts the minor version number.
-
-            Returns the minor version component as an integer.
-
-            **Examples:**
-            ```sapl
-            policy "minor_version_check"
-            permit
-            where
-              semver.getMinor(resource.version) >= 5;
-            ```
+            ```getMinor(TEXT version)```: Extracts minor version number.
 
             ```sapl
             policy "feature_availability"
@@ -684,25 +607,15 @@ public class SemVerFunctionLibrary {
             """, schema = RETURNS_NUMBER)
     public static Val getMinor(@Text Val version) {
         try {
-            val v = parseVersion(version);
+            val v = new Semver(version.getText());
             return Val.of(v.getMinor());
-        } catch (Exception e) {
-            return Val.error("Invalid version: " + e.getMessage());
+        } catch (SemverException e) {
+            return Val.error(INVALID_VERSION + e.getMessage());
         }
     }
 
     @Function(docs = """
-            ```getPatch(TEXT version)```: Extracts the patch version number.
-
-            Returns the patch version component as an integer.
-
-            **Examples:**
-            ```sapl
-            policy "patch_level"
-            permit
-            where
-              semver.getPatch(resource.version) >= 10;
-            ```
+            ```getPatch(TEXT version)```: Extracts patch version number.
 
             ```sapl
             policy "specific_patch"
@@ -715,27 +628,200 @@ public class SemVerFunctionLibrary {
             """, schema = RETURNS_NUMBER)
     public static Val getPatch(@Text Val version) {
         try {
-            val v = parseVersion(version);
+            val v = new Semver(version.getText());
             return Val.of(v.getPatch());
-        } catch (Exception e) {
-            return Val.error("Invalid version: " + e.getMessage());
+        } catch (SemverException e) {
+            return Val.error(INVALID_VERSION + e.getMessage());
+        }
+    }
+
+    @Function(docs = """
+            ```satisfies(TEXT version, TEXT range)```: Tests if version satisfies range expression.
+
+            Returns true if version satisfies NPM-style range. Supports operators (>=, >, <=, <, =),
+            hyphen ranges (1.2.3 - 2.3.4), X-ranges (1.2.x, 1.x, *), tilde (~1.2.3 allows patch),
+            caret (^1.2.3 allows minor), and logical operators (||, space-separated AND).
+
+            ```sapl
+            policy "version_range"
+            permit
+            where
+              semver.satisfies(subject.clientVersion, ">=2.0.0 <3.0.0");
+            ```
+            """, schema = RETURNS_BOOLEAN)
+    public static Val satisfies(@Text Val version, @Text Val range) {
+        try {
+            val v = new Semver(version.getText());
+            return Val.of(v.satisfies(range.getText()));
+        } catch (SemverException e) {
+            return Val.error("Invalid version or range: " + e.getMessage());
+        }
+    }
+
+    @Function(docs = """
+            ```maxSatisfying(ARRAY versions, TEXT range)```: Finds highest version matching range.
+
+            Returns highest version from array satisfying range, or null if none match.
+
+            ```sapl
+            policy "use_latest_compatible"
+            permit
+            where
+              var compatible = semver.maxSatisfying(resource.availableVersions, "^2.0.0");
+              compatible != null;
+            ```
+            """, schema = RETURNS_TEXT)
+    public static Val maxSatisfying(@Array Val versions, @Text Val range) {
+        try {
+            val versionStrings  = extractVersionStrings(versions);
+            val rangeExpression = range.getText();
+
+            Semver maxVersion = null;
+            for (val versionString : versionStrings) {
+                val currentVersion = new Semver(versionString);
+                if (currentVersion.satisfies(rangeExpression)
+                        && (maxVersion == null || currentVersion.isGreaterThan(maxVersion))) {
+                    maxVersion = currentVersion;
+                }
+
+            }
+
+            return maxVersion != null ? Val.of(maxVersion.getVersion()) : Val.NULL;
+        } catch (SemverException e) {
+            return Val.error("Invalid versions or range: " + e.getMessage());
+        }
+    }
+
+    @Function(docs = """
+            ```minSatisfying(ARRAY versions, TEXT range)```: Finds lowest version matching range.
+
+            Returns lowest version from array satisfying range, or null if none match.
+
+            ```sapl
+            policy "require_minimum"
+            permit
+            where
+              var minimum = semver.minSatisfying(resource.supportedVersions, ">=1.0.0");
+              semver.isAtLeast(subject.clientVersion, minimum);
+            ```
+            """, schema = RETURNS_TEXT)
+    public static Val minSatisfying(@Array Val versions, @Text Val range) {
+        try {
+            val versionStrings  = extractVersionStrings(versions);
+            val rangeExpression = range.getText();
+
+            Semver minVersion = null;
+            for (val versionString : versionStrings) {
+                val currentVersion = new Semver(versionString);
+                if (currentVersion.satisfies(rangeExpression)
+                        && (minVersion == null || currentVersion.isLowerThan(minVersion))) {
+                    minVersion = currentVersion;
+                }
+
+            }
+
+            return minVersion != null ? Val.of(minVersion.getVersion()) : Val.NULL;
+        } catch (SemverException e) {
+            return Val.error("Invalid versions or range: " + e.getMessage());
+        }
+    }
+
+    @Function(docs = """
+            ```coerce(TEXT value)```: Coerces string to valid semantic version.
+
+            Normalizes common formats including partial versions (e.g., "1.2" becomes "1.2.0"),
+            lowercase v-prefix removal, and other standard version formats.
+
+            ```sapl
+            policy "normalize_version"
+            permit
+            where
+              var normalized = semver.coerce(request.version);
+              semver.isAtLeast(normalized, "2.0.0");
+            ```
+            """, schema = RETURNS_TEXT)
+    public static Val coerce(@Text Val value) {
+        try {
+            val text = value.getText();
+            if (text == null || text.isEmpty()) {
+                return Val.error("Cannot coerce empty string");
+            }
+
+            val coerced = Semver.coerce(text);
+            if (coerced == null) {
+                return Val.error("Cannot coerce to valid semantic version");
+            }
+
+            return Val.of(coerced.getVersion());
+        } catch (SemverException e) {
+            return Val.error("Coercion failed: " + e.getMessage());
+        }
+    }
+
+    @Function(docs = """
+            ```diff(TEXT version1, TEXT version2)```: Determines version change type.
+
+            Returns "major", "minor", "patch", "prerelease", or "none" for equal versions.
+            Determines if version change requires approval or special handling.
+
+            ```sapl
+            policy "breaking_change_approval"
+            permit action.name == "deploy"
+            where
+              var changeType = semver.diff(resource.currentVersion, resource.newVersion);
+              changeType == "major" implies subject.role == "architect";
+            ```
+            """, schema = RETURNS_TEXT)
+    public static Val diff(@Text Val version1, @Text Val version2) {
+        try {
+            val v1 = new Semver(version1.getText());
+            val v2 = new Semver(version2.getText());
+
+            if (v1.isEquivalentTo(v2)) {
+                return Val.of("none");
+            }
+
+            if (v1.getMajor() != v2.getMajor()) {
+                return Val.of("major");
+            }
+
+            if (v1.getMinor() != v2.getMinor()) {
+                return Val.of("minor");
+            }
+
+            if (v1.getPatch() != v2.getPatch()) {
+                return Val.of("patch");
+            }
+
+            val preRelease1 = v1.getPreRelease();
+            val preRelease2 = v2.getPreRelease();
+            if (preRelease1.isEmpty() != preRelease2.isEmpty()) {
+                return Val.of("prerelease");
+            }
+            if (!preRelease1.equals(preRelease2)) {
+                return Val.of("prerelease");
+            }
+
+            return Val.of("none");
+        } catch (SemverException e) {
+            return Val.error(INVALID_VERSION + e.getMessage());
         }
     }
 
     /**
-     * Parses version string and strips optional v-prefix.
+     * Extracts version strings from JSON array.
+     * Filters textual elements only.
+     *
+     * @param versions JSON array containing version strings
+     * @return list of version strings
      */
-    private static Version parseVersion(Val versionVal) {
-        return Version.parseVersion(stripVPrefix(versionVal.getText()));
-    }
-
-    /**
-     * Removes leading 'v' or 'V' from version string if present.
-     */
-    private static String stripVPrefix(String version) {
-        if (version != null && !version.isEmpty() && (version.charAt(0) == 'v' || version.charAt(0) == 'V')) {
-            return version.substring(1);
+    private static List<String> extractVersionStrings(Val versions) {
+        val versionStrings = new ArrayList<String>();
+        for (JsonNode element : versions.get()) {
+            if (element.isTextual()) {
+                versionStrings.add(element.asText());
+            }
         }
-        return version;
+        return versionStrings;
     }
 }
