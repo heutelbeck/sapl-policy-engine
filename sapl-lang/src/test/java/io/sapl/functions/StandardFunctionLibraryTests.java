@@ -17,63 +17,35 @@
  */
 package io.sapl.functions;
 
-import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import io.sapl.api.interpreter.Val;
+import lombok.val;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
+
+import java.util.stream.Stream;
 
 import static io.sapl.hamcrest.Matchers.val;
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 class StandardFunctionLibraryTests {
 
-    private static final String HTML_DOCUMENT = """
-            <!DOCTYPE html>
-            <html>
-            <body>
-            <p>First</p>
-            <p>Second</p>
-            </body>
-            </html>
-            """;
-
-    private static final String XML_DOCUMENT = """
-            <Flower>
-                <name>Poppy</name>
-                <color>RED</color>
-                <petals>9</petals>
-            </Flower>
-            """;
-
-    @Test
-    void xmlToJsonTest() {
-        final var html = StandardFunctionLibrary.xmlToVal(Val.of(HTML_DOCUMENT));
-        assertThat(html.get().get("body").get("p").get(0).asText()).isEqualTo("First");
-        final var xml = StandardFunctionLibrary.xmlToVal(Val.of(XML_DOCUMENT));
-        assertThat(xml.get().get("name").asText()).isEqualTo("Poppy");
-        assertThatThrownBy(() -> StandardFunctionLibrary.xmlToVal(Val.of("}NOT/><XML")))
-                .isInstanceOf(JsonParseException.class);
+    @ParameterizedTest
+    @MethodSource("emptyCollections")
+    void lengthOfEmptyCollectionsIsZero(Val emptyCollection) {
+        assertThat(StandardFunctionLibrary.length(emptyCollection), is(val(0)));
     }
 
-    @Test
-    void jsonToValTest() {
-        final var json = "{ \"hello\": \"world\" }";
-        final var val  = StandardFunctionLibrary.jsonToVal(Val.of(json));
-        assertThat(val.get().get("hello").asText()).isEqualTo("world");
-    }
-
-    @Test
-    void lengthOfEmptyIsZero() {
-        assertThat(StandardFunctionLibrary.length(Val.ofEmptyArray()), is(val(0)));
-        assertThat(StandardFunctionLibrary.length(Val.ofEmptyObject()), is(val(0)));
+    private static Stream<Arguments> emptyCollections() {
+        return Stream.of(Arguments.of(Val.ofEmptyArray()), Arguments.of(Val.ofEmptyObject()), Arguments.of(Val.of("")));
     }
 
     @Test
     void lengthOfArrayWithElements() {
-        final var array = Val.JSON.arrayNode();
+        val array = Val.JSON.arrayNode();
         array.add(Val.JSON.booleanNode(false));
         array.add(Val.JSON.booleanNode(false));
         array.add(Val.JSON.booleanNode(false));
@@ -83,7 +55,7 @@ class StandardFunctionLibraryTests {
 
     @Test
     void lengthOfObjectWithElements() {
-        final var object = Val.JSON.objectNode();
+        val object = Val.JSON.objectNode();
         object.set("key1", Val.JSON.booleanNode(false));
         object.set("key2", Val.JSON.booleanNode(false));
         object.set("key3", Val.JSON.booleanNode(false));
@@ -92,41 +64,44 @@ class StandardFunctionLibraryTests {
         assertThat(StandardFunctionLibrary.length(Val.of(object)), is(val(5)));
     }
 
-    @Test
-    void lengthOfText() {
-        assertThat(StandardFunctionLibrary.length(Val.of("ABC")), is(val(3)));
+    @ParameterizedTest
+    @MethodSource("textAndLengths")
+    void lengthOfText(String text, int expectedLength) {
+        assertThat(StandardFunctionLibrary.length(Val.of(text)), is(val(expectedLength)));
+    }
+
+    private static Stream<Arguments> textAndLengths() {
+        return Stream.of(Arguments.of("ABC", 3), Arguments.of("Hello, World!", 13), Arguments.of("", 0),
+                Arguments.of("🌸", 2), Arguments.of("多言語", 3));
+    }
+
+    @ParameterizedTest
+    @MethodSource("valuesAndStringRepresentations")
+    void asStringConvertsValuesToStrings(Val value, String expected) throws JsonProcessingException {
+        assertThat(StandardFunctionLibrary.asString(value), is(val(expected)));
+    }
+
+    private static Stream<Arguments> valuesAndStringRepresentations() throws JsonProcessingException {
+        return Stream.of(Arguments.of(Val.TRUE, "true"), Arguments.of(Val.FALSE, "false"),
+                Arguments.of(Val.NULL, "null"), Arguments.of(Val.of("ABC"), "ABC"),
+                Arguments.of(Val.of(1.23e-1D), "0.123"), Arguments.of(Val.ofJson("[1,2,3]"), "[1,2,3]"),
+                Arguments.of(Val.of(42), "42"), Arguments.of(Val.of(-17), "-17"));
     }
 
     @Test
-    void numberToStringBooleanLeftIntact() throws JsonProcessingException {
-        assertThat(StandardFunctionLibrary.asString(Val.TRUE), is(val("true")));
-        assertThat(StandardFunctionLibrary.asString(Val.ofJson("[1,2,3]")), is(val("[1,2,3]")));
+    void onErrorMapReturnsOriginalValueWhenNoError() {
+        assertThat(StandardFunctionLibrary.onErrorMap(Val.of("ORIGINAL"), Val.of("FALLBACK")), is(val("ORIGINAL")));
     }
 
     @Test
-    void numberToStringSomeNumberLeftIntact() {
-        assertThat(StandardFunctionLibrary.asString(Val.of(1.23e-1D)), is(val("0.123")));
+    void onErrorMapReturnsFallbackValueWhenError() {
+        assertThat(StandardFunctionLibrary.onErrorMap(Val.error((String) null), Val.of("FALLBACK")),
+                is(val("FALLBACK")));
     }
 
     @Test
-    void numberToStringNullEmptyString() {
-        assertThat(StandardFunctionLibrary.asString(Val.NULL), is(val("null")));
-    }
-
-    @Test
-    void numberToStringTextIntact() {
-        assertThat(StandardFunctionLibrary.asString(Val.of("ABC")), is(val("ABC")));
-    }
-
-    @Test
-    void when_noError_then_originalValueIsReturned() {
-        assertThat(StandardFunctionLibrary.onErrorMap(Val.of("ORIGINAL"), Val.of("REPLACED")), is(val("ORIGINAL")));
-    }
-
-    @Test
-    void when_error_then_valueIsReplaced() {
-        assertThat(StandardFunctionLibrary.onErrorMap(Val.error((String) null), Val.of("REPLACED")),
-                is(val("REPLACED")));
+    void onErrorMapReturnsFallbackForErrorWithMessage() {
+        assertThat(StandardFunctionLibrary.onErrorMap(Val.error("Something went wrong"), Val.of(999)), is(val(999)));
     }
 
 }

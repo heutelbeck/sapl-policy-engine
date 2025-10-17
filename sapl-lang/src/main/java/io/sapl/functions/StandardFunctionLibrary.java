@@ -17,14 +17,12 @@
  */
 package io.sapl.functions;
 
-import com.fasterxml.jackson.dataformat.xml.XmlMapper;
 import io.sapl.api.functions.Function;
 import io.sapl.api.functions.FunctionLibrary;
 import io.sapl.api.interpreter.Val;
 import io.sapl.api.validation.Array;
 import io.sapl.api.validation.JsonObject;
 import io.sapl.api.validation.Text;
-import lombok.SneakyThrows;
 import lombok.experimental.UtilityClass;
 
 @UtilityClass
@@ -33,8 +31,6 @@ public class StandardFunctionLibrary {
 
     public static final String NAME        = "standard";
     public static final String DESCRIPTION = "This the standard function library for SAPL.";
-
-    private static final XmlMapper XML_MAPPER = new XmlMapper();
 
     @Function(docs = """
             ```length(ARRAY|TEXT|JSON value)```: For TEXT it returns the length of the text string.
@@ -104,44 +100,6 @@ public class StandardFunctionLibrary {
             return fallback;
         }
         return guardedExpression;
-    }
-
-    @SneakyThrows
-    @Function(docs = """
-            ```xmlToVal(TEXT xml)```: Converts a well-formed XML document ```xml``` into a SAPL
-            value representing the content of the XML document.
-
-            **Example:**
-            ```
-            import standard.*
-            policy "example"
-            permit
-            where
-               var xml = "<Flower><name>Poppy</name><color>RED</color><petals>9</petals></Flower>";
-               xmlToVal(xml) == {"name":"Poppy","color":"RED","petals":"9"};
-            ```
-            """)
-    public Val xmlToVal(@Text Val xml) {
-        return Val.of(XML_MAPPER.readTree(xml.getText()));
-    }
-
-    @SneakyThrows
-    @Function(docs = """
-            ```jsonToVal(TEXT json)```: Converts a well-formed JSON document ```json``` into a SAPL
-            value representing the content of the JSON document.
-
-            **Example:**
-            ```
-            import standard.*
-            policy "example"
-            permit
-            where
-               var json = "{ \\"hello\\": \\"world\\" }";
-               jsonToVal(json) == { "hello":"world" };
-            ```
-            """)
-    public Val jsonToVal(@Text Val json) {
-        return Val.ofJson(json.getText());
     }
 
 }

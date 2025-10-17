@@ -27,11 +27,13 @@ public class DefaultLibraries {
     public static final List<Class<?>> STATIC_LIBRARIES = List.of(
             ArrayFunctionLibrary.class,
             BitwiseFunctionLibrary.class,
+            CsvFunctionLibrary.class,
             DigestFunctionLibrary.class,
             EncodingFunctionLibrary.class,
             FilterFunctionLibrary.class,
             GraphFunctionLibrary.class,
             GraphQLFunctionLibrary.class,
+            JsonFunctionLibrary.class,
             KeysFunctionLibrary.class,
             LoggingFunctionLibrary.class,
             MacFunctionLibrary.class,
@@ -47,8 +49,12 @@ public class DefaultLibraries {
             SignatureFunctionLibrary.class,
             StandardFunctionLibrary.class,
             TemporalFunctionLibrary.class,
+            TomlFunctionLibrary.class,
             UnitsFunctionLibrary.class,
             UuidFunctionLibrary.class,
-            X509FunctionLibrary.class);
+            X509FunctionLibrary.class,
+            XmlFunctionLibrary.class,
+            YamlFunctionLibrary.class);
+
     // @formatter:on
 }
