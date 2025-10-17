@@ -1992,12 +1992,11 @@ public class GraphQLFunctionLibrary {
      */
     private static ObjectNode analyzeDirectives(OperationDefinition operation) {
         val analysis           = Val.JSON.objectNode();
-        val counts             = countDirectivesRecursive(operation.getSelectionSet(), new int[] { 0, 0 });
-        val directiveCount     = counts[0];
-        val fieldCount         = counts[1];
-        val directivesPerField = fieldCount > 0 ? (double) directiveCount / fieldCount : 0.0;
+        val counts             = new DirectiveCounts();
+        countDirectivesRecursive(operation.getSelectionSet(), counts);
+        val directivesPerField = counts.fieldCount > 0 ? (double) counts.directiveCount / counts.fieldCount : 0.0;
 
-        analysis.put(PROP_DIRECTIVE_COUNT, directiveCount);
+        analysis.put(PROP_DIRECTIVE_COUNT, counts.directiveCount);
         analysis.put(PROP_DIRECTIVES_PER_FIELD, directivesPerField);
 
         return analysis;
@@ -2007,28 +2006,32 @@ public class GraphQLFunctionLibrary {
      * Counts directives and fields in a selection set recursively.
      *
      * @param selectionSet the selection set to analyze
-     * @param counts array holding [directiveCount, fieldCount]
-     * @return updated counts array
+     * @param counts accumulator for directive and field counts
      */
-    private static int[] countDirectivesRecursive(SelectionSet selectionSet, int[] counts) {
+    private static void countDirectivesRecursive(SelectionSet selectionSet, DirectiveCounts counts) {
         if (selectionSet == null) {
-            return counts;
+            return;
         }
 
         for (Selection<?> selection : selectionSet.getSelections()) {
             if (selection instanceof Field field) {
-                counts[1]++;
-                counts[0] += countDirectives(field.getDirectives());
+                counts.fieldCount++;
+                counts.directiveCount += countDirectives(field.getDirectives());
                 countDirectivesRecursive(field.getSelectionSet(), counts);
             } else if (selection instanceof InlineFragment fragment) {
-                counts[0] += countDirectives(fragment.getDirectives());
+                counts.directiveCount += countDirectives(fragment.getDirectives());
                 countDirectivesRecursive(fragment.getSelectionSet(), counts);
             }
         }
-
-        return counts;
     }
 
+    /**
+     * Mutable holder for directive and field counts.
+     */
+    private static class DirectiveCounts {
+        int directiveCount = 0;
+        int fieldCount = 0;
+    }
     /**
      * Counts the number of directives in a list.
      *

@@ -747,7 +747,7 @@ class GraphQLFunctionLibraryTests {
         for (int i = 1; i <= 100; i++) {
             queryBuilder.append(String.format("  investigator%d: investigator(id: \"%d\") { name sanity }%n", i, i));
         }
-        queryBuilder.append("}");
+        queryBuilder.append('}');
 
         val result = GraphQLFunctionLibrary.parseQuery(Val.of(queryBuilder.toString()));
 
@@ -971,7 +971,7 @@ class GraphQLFunctionLibraryTests {
                     }
                     """, i, i));
         }
-        queryBuilder.append("}");
+        queryBuilder.append('}');
 
         val result = GraphQLFunctionLibrary.parseQuery(Val.of(queryBuilder.toString()));
 
@@ -1168,7 +1168,7 @@ class GraphQLFunctionLibraryTests {
         for (int i = 1; i <= 50; i++) {
             queryBuilder.append(String.format("  cult%d: cultist(name: \"cultist-%d\") { name allegiance }%n", i, i));
         }
-        queryBuilder.append("}");
+        queryBuilder.append('}');
 
         val result = GraphQLFunctionLibrary.parseQuery(Val.of(queryBuilder.toString()));
 
