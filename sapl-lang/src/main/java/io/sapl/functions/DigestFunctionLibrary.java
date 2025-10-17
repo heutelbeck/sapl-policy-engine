@@ -118,7 +118,7 @@ public class DigestFunctionLibrary {
 
     /* SHA-3 Family (Modern Alternative) */
 
-    @Function(docs = """
+    @Function(name="sha3_256", docs = """
             ```sha3_256(TEXT data)```: Computes the SHA3-256 hash of the input data.
 
             SHA3-256 is part of the SHA-3 family (Keccak) and produces a 256-bit hash.
@@ -138,7 +138,7 @@ public class DigestFunctionLibrary {
         return computeDigest(data.getText(), "SHA3-256");
     }
 
-    @Function(docs = """
+    @Function(name="sha3_384", docs = """
             ```sha3_384(TEXT data)```: Computes the SHA3-384 hash of the input data.
 
             SHA3-384 is part of the SHA-3 family and produces a 384-bit hash. It provides
@@ -158,7 +158,7 @@ public class DigestFunctionLibrary {
         return computeDigest(data.getText(), "SHA3-384");
     }
 
-    @Function(docs = """
+    @Function(name="sha3_512", docs = """
             ```sha3_512(TEXT data)```: Computes the SHA3-512 hash of the input data.
 
             SHA3-512 is part of the SHA-3 family and produces a 512-bit hash. It provides
