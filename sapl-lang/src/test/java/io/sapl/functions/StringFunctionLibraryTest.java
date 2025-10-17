@@ -20,6 +20,7 @@ package io.sapl.functions;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.ValueSource;
@@ -71,7 +72,9 @@ class StringFunctionLibraryTest {
     @ParameterizedTest(name = "trim: [{0}] -> [{1}]")
     @CsvSource(delimiter = '|', textBlock = """
             '  elder sign  '                  | elder sign
-            '\t\nph''nglui mglw''nafh\n\t'    | ph'nglui mglw'nafh
+            '\t
+            ph''nglui mglw''nafh
+            \t'    | ph'nglui mglw'nafh
             '  iä  iä  cthulhu  fhtagn  '     | iä  iä  cthulhu  fhtagn
             '   '                             | ''
             'no whitespace'                   | no whitespace
@@ -85,7 +88,8 @@ class StringFunctionLibraryTest {
     @CsvSource(delimiter = '|', textBlock = """
             '  summon the old ones'     | 'summon the old ones'
             '  dark ritual  '           | 'dark ritual  '
-            '\t\ntext'                  | text
+            '\t
+            text'                  | text
             'no leading space'          | 'no leading space'
             """)
     void trimStart_removesLeadingWhitespaceOnly(String input, String expected) {
@@ -97,7 +101,8 @@ class StringFunctionLibraryTest {
     @CsvSource(delimiter = '|', textBlock = """
             'the stars are right  '     | 'the stars are right'
             '  madness approaches  '    | '  madness approaches'
-            'text\t\n'                  | text
+            'text\t
+            '                  | text
             'no trailing space'         | 'no trailing space'
             """)
     void trimEnd_removesTrailingWhitespaceOnly(String input, String expected) {
@@ -108,7 +113,8 @@ class StringFunctionLibraryTest {
     @ParameterizedTest(name = "isBlank: [{0}] -> {1}")
     @CsvSource(delimiter = '|', textBlock = """
             ''                    | true
-            '   \t\n  '           | true
+            '   \t
+              '           | true
             '  tekeli-li  '       | false
             text                  | false
             ' '                   | true
@@ -274,24 +280,32 @@ class StringFunctionLibraryTest {
         assertEquals(expected, result.getText());
     }
 
-    @ParameterizedTest(name = "join with non-text element returns error")
-    @ValueSource(strings = { "text,42", "42,text", "true,false" })
-    void join_returnsErrorForNonTextArrayElements(String input) {
+    @Test
+    void join_returnsErrorWhenTextFollowedByNumber() {
         var array = Val.ofEmptyArray().getArrayNode();
-        if (input.equals("text,42")) {
-            array.add("text");
-            array.add(42);
-        } else if (input.equals("42,text")) {
-            array.add(42);
-            array.add("text");
-        } else {
-            array.add(true);
-            array.add(false);
-        }
+        array.add("text");
+        array.add(42);
         var result = StringFunctionLibrary.join(Val.of(array), Val.of(","));
         assertTrue(result.isError());
     }
 
+    @Test
+    void join_returnsErrorWhenNumberFollowedByText() {
+        var array = Val.ofEmptyArray().getArrayNode();
+        array.add(42);
+        array.add("text");
+        var result = StringFunctionLibrary.join(Val.of(array), Val.of(","));
+        assertTrue(result.isError());
+    }
+
+    @Test
+    void join_returnsErrorForBooleanElements() {
+        var array = Val.ofEmptyArray().getArrayNode();
+        array.add(true);
+        array.add(false);
+        var result = StringFunctionLibrary.join(Val.of(array), Val.of(","));
+        assertTrue(result.isError());
+    }
     @ParameterizedTest(name = "concat({0}) -> {1}")
     @CsvSource(delimiter = '|', textBlock = """
             'necro,nomicon'                                      | necronomicon

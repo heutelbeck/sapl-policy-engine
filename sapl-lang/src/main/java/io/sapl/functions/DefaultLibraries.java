@@ -46,6 +46,7 @@ public class DefaultLibraries {
             SanitizationFunctionLibrary.class,
             SaplFunctionLibrary.class,
             SchemaValidationLibrary.class,
+            SemVerFunctionLibrary.class,
             SignatureFunctionLibrary.class,
             StandardFunctionLibrary.class,
             StringFunctionLibrary.class,

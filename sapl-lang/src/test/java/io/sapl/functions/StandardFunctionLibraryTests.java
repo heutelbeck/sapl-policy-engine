@@ -77,7 +77,7 @@ class StandardFunctionLibraryTests {
 
     @ParameterizedTest
     @MethodSource("valuesAndStringRepresentations")
-    void asStringConvertsValuesToStrings(Val value, String expected) throws JsonProcessingException {
+    void asStringConvertsValuesToStrings(Val value, String expected) {
         assertThat(StandardFunctionLibrary.asString(value), is(val(expected)));
     }
 
