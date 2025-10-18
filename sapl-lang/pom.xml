@@ -145,6 +145,11 @@
             <artifactId>semver4j</artifactId>
             <version>6.0.0</version>
         </dependency>
+        <dependency>
+            <groupId>com.github.seancfoley</groupId>
+            <artifactId>ipaddress</artifactId>
+            <version>5.5.1</version>
+        </dependency>
 		<!-- JSON schema validation -->
 		<dependency>
 			<groupId>com.networknt</groupId>

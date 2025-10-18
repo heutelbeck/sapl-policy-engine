@@ -80,6 +80,11 @@
             <artifactId>semver4j</artifactId>
             <version>6.0.0</version>
         </dependency>
+        <dependency>
+            <groupId>com.github.seancfoley</groupId>
+            <artifactId>ipaddress</artifactId>
+            <version>5.5.1</version>
+        </dependency>
 	</dependencies>
 
 	<build>
@@ -116,7 +121,8 @@
                             jcip-annotations,
                             nimbus-jose-jwt,
                             graphql-java,
-                            semver4j
+                            semver4j,
+                            ipaddress
 						</Embed-Dependency>
 						<Import-Package>
 							!groovy
@@ -126,7 +132,8 @@
                             net.jcip.annotations.*;version="1.0.0",
                             com.nimbusds.*;version="9.37.4",
                             graphql.*;version="24.3.0",
-                            org.semver4j.*;version="6.0.0"
+                            org.semver4j.*;version="6.0.0",
+                            com.github.seancfoley.*;version="5.5.1"
 						</_exportcontents>
 						<Bundle-ClassPath>{maven-dependencies}</Bundle-ClassPath>
 						<Embed-Transitive>true</Embed-Transitive>

@@ -27,6 +27,7 @@ public class DefaultLibraries {
     public static final List<Class<?>> STATIC_LIBRARIES = List.of(
             ArrayFunctionLibrary.class,
             BitwiseFunctionLibrary.class,
+            CidrFunctionLibrary.class,
             CsvFunctionLibrary.class,
             DigestFunctionLibrary.class,
             EncodingFunctionLibrary.class,

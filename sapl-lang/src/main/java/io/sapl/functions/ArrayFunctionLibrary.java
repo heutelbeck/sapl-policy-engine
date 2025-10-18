@@ -34,14 +34,108 @@ import java.util.function.BiPredicate;
 import java.util.function.Predicate;
 
 /**
- * Collection of functions for array manipulation.
+ * Array manipulation functions for authorization policies.
  */
 @UtilityClass
-@FunctionLibrary(name = ArrayFunctionLibrary.NAME, description = ArrayFunctionLibrary.DESCRIPTION)
+@FunctionLibrary(name = ArrayFunctionLibrary.NAME, description = ArrayFunctionLibrary.DESCRIPTION, libraryDocumentation = ArrayFunctionLibrary.DOCUMENTATION)
 public class ArrayFunctionLibrary {
 
-    public static final String NAME        = "array";
-    public static final String DESCRIPTION = "A collection functions for array manipulation.";
+    public static final String NAME          = "array";
+    public static final String DESCRIPTION   = "Array manipulation functions for authorization policies.";
+    public static final String DOCUMENTATION = """
+            # Array Functions
+
+            Array operations for building authorization policies that work with collections of values.
+            Test membership, combine sets of permissions, aggregate numeric data, and transform
+            attribute lists.
+
+            ## Core Principles
+
+            Array functions treat inputs as immutable collections and return new arrays. Equality
+            comparison uses JSON value equality - numerically equivalent but differently formatted
+            numbers (e.g., 0 versus 0.000) may not match. Empty arrays are valid inputs and follow
+            mathematical conventions: empty union returns empty, empty intersection returns empty,
+            sum of empty returns 0, product of empty returns 1.
+
+            ## Access Control Patterns
+
+            Check if a user possesses required permissions from a set. Verify that subjects hold
+            all mandatory roles before granting access.
+
+            ```sapl
+            policy "require_admin_or_editor"
+            permit action == "modify_content"
+            where
+                var required = ["admin", "editor"];
+                array.containsAny(subject.roles, required);
+            ```
+
+            Combine permissions from multiple sources when evaluating group memberships or
+            inherited roles.
+
+            ```sapl
+            policy "aggregate_permissions"
+            permit
+            where
+                var direct = subject.directPermissions;
+                var inherited = subject.groupPermissions;
+                var all = array.union(direct, inherited);
+                array.containsAll(all, ["read", "write"]);
+            ```
+
+            Find common capabilities between user privileges and resource requirements to
+            determine allowed operations.
+
+            ```sapl
+            policy "intersection_access"
+            permit
+            where
+                var allowed = array.intersect(subject.capabilities, resource.requirements);
+                !array.isEmpty(allowed);
+            obligation
+                {
+                    "type": "limit_operations",
+                    "operations": allowed
+                }
+            ```
+
+            Validate approval workflows by checking that signatories appear in the correct
+            sequence. Enforce that approvals happen in order without gaps.
+
+            ```sapl
+            policy "approval_sequence"
+            permit action == "finalize_transaction"
+            where
+                var required = ["manager", "director", "cfo"];
+                array.containsAllInOrder(resource.approvals, required);
+            ```
+
+            Filter sensitive attributes before releasing data. Remove fields that exceed the
+            user's clearance level.
+
+            ```sapl
+            policy "filter_classified"
+            permit action == "read_document"
+            where
+                subject.clearance >= resource.classification;
+            transform
+                var allowed = subject.viewableFields;
+                var actual = resource.fieldNames;
+                var permitted = array.intersect(allowed, actual);
+                resource |- { @.fields : permitted }
+            ```
+
+            Calculate aggregate metrics for rate limiting or quota enforcement. Sum request
+            counts or average response times across time windows.
+
+            ```sapl
+            policy "rate_limit"
+            deny action == "api_call"
+            where
+                var counts = subject.requestsPerMinute;
+                array.sum(counts) > 100;
+            ```
+            """;
 
     private static final String RETURNS_ARRAY = """
             {
@@ -63,15 +157,22 @@ public class ArrayFunctionLibrary {
     public static final String  MUST_BE_NUMERIC_FOUND_NON_NUMERIC_ELEMENT = "All array elements must be numeric. Found non-numeric element: ";
 
     @Function(docs = """
-            ```concatenate(ARRAY...arrays)```: Creates a new array concatenating the all array parameters in ```...arrays```.
-            It keeps the order of array parameters and the inner order of the arrays as provided.
+            ```array.concatenate(ARRAY...arrays)```
 
-            **Example:**
+            Creates a new array by appending all parameter arrays in order. Preserves element
+            order within each array and the order of array parameters. Duplicates are retained.
+
+            Parameters:
+            - arrays: Arrays to concatenate
+
+            Returns: New array containing all elements in order
+
+            Example:
             ```sapl
             policy "example"
             permit
             where
-              array.concatenate([1, 2, 3, 4], [3, 4, 5, 6]) == [1, 2, 3, 4, 3, 4, 5, 6];
+                array.concatenate([1, 2], [3, 4], [5]) == [1, 2, 3, 4, 5];
             ```
             """, schema = RETURNS_ARRAY)
     public static Val concatenate(@Array Val... arrays) {
@@ -87,17 +188,26 @@ public class ArrayFunctionLibrary {
     }
 
     @Function(docs = """
-            ```difference(ARRAY array1, ARRAY array2)```: Returns the set difference between the ```array1``` and ```array2```,
-            removing duplicates. It creates a new array that has the same elements as array1 except those that are also elements of array2.
-            *Attention*: numerically equivalent but differently written, i.e., ```0``` vs ```0.000```, numbers may be
-            interpreted as non-equivalent.
+            ```array.difference(ARRAY array1, ARRAY array2)```
 
-            **Example:**
+            Returns the set difference between array1 and array2, removing duplicates. Creates a
+            new array containing elements from array1 that do not appear in array2.
+
+            Parameters:
+            - array1: Array to subtract from
+            - array2: Array of elements to remove
+
+            Returns: New array with elements in array1 but not in array2
+
+            Example - remove revoked permissions:
             ```sapl
             policy "example"
             permit
             where
-              array.difference([1, 2, 3, 4], [3, 4, 5, 6]) == [1, 2];
+                var granted = subject.grantedPermissions;
+                var revoked = subject.revokedPermissions;
+                var effective = array.difference(granted, revoked);
+                array.containsAll(effective, resource.requiredPermissions);
             ```
             """, schema = RETURNS_ARRAY)
     public static Val difference(@Array Val array1, @Array Val array2) {
@@ -115,16 +225,23 @@ public class ArrayFunctionLibrary {
     }
 
     @Function(docs = """
-            ```union(ARRAY...arrays)```: Creates a new array with copies of all the array parameters in ```...arrays``` except the duplicate elements.
-            *Attention:* numerically equivalent but differently written, i.e., ```0``` vs ```0.000```, numbers may be
-            interpreted as non-equivalent.
+            ```array.union(ARRAY...arrays)```
 
-            **Example:**
+            Creates a new array containing all unique elements from all parameter arrays.
+            Removes duplicates while preserving the first occurrence of each element.
+
+            Parameters:
+            - arrays: Arrays to combine
+
+            Returns: New array with all unique elements
+
+            Example - combine permissions from multiple sources:
             ```sapl
             policy "example"
             permit
             where
-              array.union([1, 2, 3, 4], [3, 4, 5, 6]) == [1, 2, 3, 4, 5, 6];
+                var all = array.union(subject.directPermissions, subject.groupPermissions);
+                array.containsAll(all, ["read", "write"]);
             ```
             """, schema = RETURNS_ARRAY)
     public static Val union(@Array Val... arrays) {
@@ -143,17 +260,22 @@ public class ArrayFunctionLibrary {
     }
 
     @Function(docs = """
-            ```toSet(ARRAY array)```: Creates a copy of the ```array``` preserving the original order, but removing all
-            duplicate elements.
-            *Attention:* numerically equivalent but differently written, i.e., ```0``` versus ```0.000```, numbers may be
-            interpreted as non-equivalent.
+            ```array.toSet(ARRAY array)```
 
-            **Example:**
+            Creates a copy of the array preserving the original order but removing all
+            duplicate elements. Keeps the first occurrence of each element.
+
+            Parameters:
+            - array: Array to deduplicate
+
+            Returns: New array with unique elements
+
+            Example:
             ```sapl
             policy "example"
             permit
             where
-              array.toSet([1, 2, 3, 4, 3, 2, 1]) == [1, 2, 3, 4];
+                array.toSet([1, 2, 3, 4, 3, 2, 1]) == [1, 2, 3, 4];
             ```
             """, schema = RETURNS_ARRAY)
     public static Val toSet(@Array Val array) {
@@ -170,17 +292,24 @@ public class ArrayFunctionLibrary {
     }
 
     @Function(docs = """
-            ```intersect(ARRAY...arrays)```: Creates a new array only containing elements present in all
-            parameter arrays from ```...arrays```, while removing all duplicate elements.
-            *Attention:* numerically equivalent but differently written, i.e., ```0``` vs ```0.000```, numbers may be
-            interpreted as non-equivalent.
+            ```array.intersect(ARRAY...arrays)```
 
-            **Example:**
+            Creates a new array containing only elements present in all parameter arrays.
+            Removes duplicates from the result.
+
+            Parameters:
+            - arrays: Arrays to intersect
+
+            Returns: New array with common elements
+
+            Example - find permissions shared across all roles:
             ```sapl
             policy "example"
             permit
             where
-              array.intersect([1, 2, 3, 4], [3, 4, 5, 6]) == [3, 4];
+                var rolePerms = subject.roles.map(role -> role.permissions);
+                var common = array.intersect(rolePerms);
+                array.containsAll(common, resource.minimumPermissions);
             ```
             """, schema = RETURNS_ARRAY)
     public static Val intersect(@Array Val... arrays) {
@@ -213,19 +342,24 @@ public class ArrayFunctionLibrary {
     }
 
     @Function(docs = """
-            ```containsAny(ARRAY array, ARRAY elements)```: Returns ```true``` if the ```array``` contains at least one element
-            from the ```elements``` array. Returns ```false``` if no elements are found or if the ```elements``` array is empty.
-            *Attention:* numerically equivalent but differently written, i.e., ```0``` vs ```0.000```, numbers may be
-            interpreted as non-equivalent.
+            ```array.containsAny(ARRAY array, ARRAY elements)```
 
-            **Example:**
+            Returns true if the array contains at least one element from the elements array.
+            Returns false if no elements are found or if the elements array is empty.
+
+            Parameters:
+            - array: Array to search in
+            - elements: Elements to search for
+
+            Returns: Boolean indicating whether any element was found
+
+            Example - check if user has any admin role:
             ```sapl
             policy "example"
-            permit
+            permit action == "admin_panel"
             where
-              array.containsAny([1, 2, 3, 4], [3, 5, 6]);  // true, because 3 is in both arrays
-              array.containsAny([1, 2, 3, 4], [5, 6, 7]);  // false, no common elements
-              array.containsAny([1, 2, 3, 4], []);         // false, elements array is empty
+                var adminRoles = ["superadmin", "admin", "moderator"];
+                array.containsAny(subject.roles, adminRoles);
             ```
             """, schema = RETURNS_BOOLEAN)
     public static Val containsAny(@Array Val array, @Array Val elements) {
@@ -241,20 +375,24 @@ public class ArrayFunctionLibrary {
     }
 
     @Function(docs = """
-            ```containsAll(ARRAY array, ARRAY elements)```: Returns ```true``` if the ```array``` contains all elements
-            from the ```elements``` array. The elements do not need to appear in the same order. Returns ```true``` if the
-            ```elements``` array is empty.
-            *Attention:* numerically equivalent but differently written, i.e., ```0``` vs ```0.000```, numbers may be
-            interpreted as non-equivalent.
+            ```array.containsAll(ARRAY array, ARRAY elements)```
 
-            **Example:**
+            Returns true if the array contains all elements from the elements array. The elements
+            do not need to appear in the same order. Returns true if the elements array is empty.
+
+            Parameters:
+            - array: Array to search in
+            - elements: Elements that must all be present
+
+            Returns: Boolean indicating whether all elements were found
+
+            Example - verify user has all required permissions:
             ```sapl
             policy "example"
-            permit
+            permit action == "publish_article"
             where
-              array.containsAll([1, 2, 3, 4, 5], [3, 1, 5]);  // true, all elements present (order doesn't matter)
-              array.containsAll([1, 2, 3, 4], [3, 5, 6]);     // false, 5 and 6 are not in array
-              array.containsAll([1, 2, 3, 4], []);            // true, empty elements array
+                var required = ["write", "publish", "notify"];
+                array.containsAll(subject.permissions, required);
             ```
             """, schema = RETURNS_BOOLEAN)
     public static Val containsAll(@Array Val array, @Array Val elements) {
@@ -270,21 +408,25 @@ public class ArrayFunctionLibrary {
     }
 
     @Function(docs = """
-            ```containsAllInOrder(ARRAY array, ARRAY elements)```: Returns ```true``` if the ```array``` contains all elements
-            from the ```elements``` array in the same sequential order (though not necessarily consecutively). Returns ```true```
-            if the ```elements``` array is empty.
-            *Attention:* numerically equivalent but differently written, i.e., ```0``` vs ```0.000```, numbers may be
-            interpreted as non-equivalent.
+            ```array.containsAllInOrder(ARRAY array, ARRAY elements)```
 
-            **Example:**
+            Returns true if the array contains all elements from the elements array in the same
+            sequential order, though not necessarily consecutively. Returns true if the elements
+            array is empty.
+
+            Parameters:
+            - array: Array to search in
+            - elements: Elements that must appear in this order
+
+            Returns: Boolean indicating whether elements appear in order
+
+            Example - verify approval workflow sequence:
             ```sapl
             policy "example"
-            permit
+            permit action == "finalize_contract"
             where
-              array.containsAllInOrder([1, 2, 3, 4, 5], [2, 4, 5]);     // true, elements appear in order
-              array.containsAllInOrder([1, 2, 3, 4, 5], [2, 5, 4]);     // false, 5 appears before 4 in array
-              array.containsAllInOrder([1, 2, 3, 4, 5], [1, 1, 2]);     // false, only one occurrence of 1
-              array.containsAllInOrder([1, 2, 3, 4], []);               // true, empty elements array
+                var required = ["legal_review", "manager_approval", "director_signature"];
+                array.containsAllInOrder(resource.approvalSteps, required);
             ```
             """, schema = RETURNS_BOOLEAN)
     public static Val containsAllInOrder(@Array Val array, @Array Val elements) {
@@ -309,37 +451,29 @@ public class ArrayFunctionLibrary {
     }
 
     @Function(docs = """
-            ```sort(ARRAY array)```: Returns a new array with elements sorted in ascending order. The function determines
-            the sort order based on the type of the first element:
+            ```array.sort(ARRAY array)```
 
-            - **Numeric arrays**: Sorted numerically (e.g., ```[1, 2, 10, 20]```)
-            - **String arrays**: Sorted lexicographically (e.g., ```["a", "b", "c"]```)
+            Returns a new array with elements sorted in ascending order. The function determines
+            the sort order based on the type of the first element. Numeric arrays are sorted
+            numerically, string arrays are sorted lexicographically. All elements must be of the
+            same type. Returns an error for empty arrays, mixed types, or unsupported types.
 
-            **Requirements:**
-            - All elements must be of the same type (all numeric or all text)
-            - Array must not be empty
-            - If elements have mixed types or the first element is neither numeric nor text, an error is returned
+            Numeric sorting uses floating-point comparison for performance, which is appropriate
+            for SAPL's authorization policy use cases. Very large integers beyond 2^53 may lose
+            precision during comparison.
 
-            **Implementation Note:**
-            Numeric sorting uses floating-point comparison (```double```) for performance, which is appropriate for SAPL's
-            authorization policy use cases. This approach is consistent with other array functions and prioritizes fast
-            policy evaluation. Very large integers beyond 2^53 may lose precision during comparison.
+            Parameters:
+            - array: Array to sort
 
-            *Attention:* numerically equivalent but differently written numbers, i.e., ```0``` vs ```0.000```, may be
-            treated as distinct values during sorting.
+            Returns: New sorted array
 
-            **Examples:**
+            Example:
             ```sapl
             policy "example"
             permit
             where
-              array.sort([3, 1, 4, 1, 5, 9, 2, 6]) == [1, 1, 2, 3, 4, 5, 6, 9];  // numeric sort
-              array.sort(["dog", "cat", "bird", "ant"]) == ["ant", "bird", "cat", "dog"];  // string sort
-
-              // These would return errors:
-              // array.sort([1, "two", 3])  // mixed types
-              // array.sort([])              // empty array
-              // array.sort([true, false])   // unsupported type
+                array.sort([3, 1, 4, 1, 5, 9, 2, 6]) == [1, 1, 2, 3, 4, 5, 6, 9];
+                array.sort(["dog", "cat", "bird", "ant"]) == ["ant", "bird", "cat", "dog"];
             ```
             """, schema = RETURNS_ARRAY)
     public static Val sort(@Array Val array) {
@@ -398,14 +532,23 @@ public class ArrayFunctionLibrary {
     }
 
     @Function(docs = """
-            ```flatten(ARRAY array)```: Flattens a nested array structure into one level.
+            ```array.flatten(ARRAY array)```
 
-            **Example:**
+            Flattens a nested array structure by one level. Takes an array that may contain
+            other arrays and returns a new array with all nested arrays expanded into the
+            top level.
+
+            Parameters:
+            - array: Array to flatten
+
+            Returns: New flattened array
+
+            Example:
             ```sapl
             policy "example"
             permit
             where
-              array.flatten([1, [2, 3] , 4, [3, 2], 1]) == [1, 2, 3, 4, 3, 2, 1];
+                array.flatten([1, [2, 3], 4, [5]]) == [1, 2, 3, 4, 5];
             ```
             """, schema = RETURNS_ARRAY)
     public static Val flatten(@Array Val array) {
@@ -427,14 +570,21 @@ public class ArrayFunctionLibrary {
     }
 
     @Function(docs = """
-            ```size(ARRAY value)```: Returns the number of elements in the array.
+            ```array.size(ARRAY value)```
 
-            **Example:**
+            Returns the number of elements in the array.
+
+            Parameters:
+            - value: Array to measure
+
+            Returns: Integer count of elements
+
+            Example:
             ```sapl
             policy "example"
             permit
             where
-              array.size([1, 2, 3, 4]) == 4;
+                array.size(subject.roles) >= 2;
             ```
             """, schema = """
             {
@@ -445,14 +595,21 @@ public class ArrayFunctionLibrary {
     }
 
     @Function(docs = """
-            ```reverse(ARRAY array)```: Returns the array with its elements in reversed order.
+            ```array.reverse(ARRAY array)```
 
-            **Example:**
+            Returns the array with its elements in reversed order.
+
+            Parameters:
+            - array: Array to reverse
+
+            Returns: New array with elements in reverse order
+
+            Example:
             ```sapl
             policy "example"
             permit
             where
-              array.reverse([1, 2, 3, 4]) == [4, 3, 2, 1];
+                array.reverse([1, 2, 3, 4]) == [4, 3, 2, 1];
             ```
             """, schema = RETURNS_ARRAY)
     public static Val reverse(@Array Val array) {
@@ -466,20 +623,23 @@ public class ArrayFunctionLibrary {
     }
 
     @Function(docs = """
-            ```isSet(ARRAY array)```: Returns ```true``` if the array contains only distinct elements (no duplicates),
-            ```false``` otherwise. An empty array is considered a set.
-            *Attention:* numerically equivalent but differently written numbers, i.e., ```0``` vs ```0.000```, may be
-            interpreted as non-equivalent.
+            ```array.isSet(ARRAY array)```
 
-            **Example:**
+            Returns true if the array contains only distinct elements with no duplicates.
+            An empty array is considered a set.
+
+            Parameters:
+            - array: Array to test
+
+            Returns: Boolean indicating whether array is a set
+
+            Example:
             ```sapl
             policy "example"
             permit
             where
-              array.isSet([1, 2, 3, 4]);           // true, all elements are unique
-              array.isSet([1, 2, 3, 2]);           // false, 2 appears twice
-              array.isSet([]);                     // true, empty array is a set
-              array.isSet([1, "1", 2]);            // true, 1 and "1" are different types
+                array.isSet([1, 2, 3, 4]);
+                !array.isSet([1, 2, 3, 2]);
             ```
             """, schema = RETURNS_BOOLEAN)
     public static Val isSet(@Array Val array) {
@@ -498,16 +658,21 @@ public class ArrayFunctionLibrary {
     }
 
     @Function(docs = """
-            ```isEmpty(ARRAY array)```: Returns ```true``` if the array is empty (has no elements), ```false``` otherwise.
+            ```array.isEmpty(ARRAY array)```
 
-            **Example:**
+            Returns true if the array has no elements.
+
+            Parameters:
+            - array: Array to test
+
+            Returns: Boolean indicating whether array is empty
+
+            Example:
             ```sapl
             policy "example"
             permit
             where
-              array.isEmpty([]);           // true
-              array.isEmpty([1]);          // false
-              array.isEmpty([1, 2, 3]);    // false
+                !array.isEmpty(subject.permissions);
             ```
             """, schema = RETURNS_BOOLEAN)
     public static Val isEmpty(@Array Val array) {
@@ -515,15 +680,21 @@ public class ArrayFunctionLibrary {
     }
 
     @Function(docs = """
-            ```head(ARRAY array)```: Returns the first element of the array. Returns an error if the array is empty.
+            ```array.head(ARRAY array)```
 
-            **Example:**
+            Returns the first element of the array. Returns an error if the array is empty.
+
+            Parameters:
+            - array: Array to extract from
+
+            Returns: First element
+
+            Example:
             ```sapl
             policy "example"
             permit
             where
-              array.head([1, 2, 3, 4]) == 1;
-              array.head(["apple", "banana"]) == "apple";
+                array.head(subject.roles) == "admin";
             ```
             """)
     public static Val head(@Array Val array) {
@@ -535,15 +706,21 @@ public class ArrayFunctionLibrary {
     }
 
     @Function(docs = """
-            ```last(ARRAY array)```: Returns the last element of the array. Returns an error if the array is empty.
+            ```array.last(ARRAY array)```
 
-            **Example:**
+            Returns the last element of the array. Returns an error if the array is empty.
+
+            Parameters:
+            - array: Array to extract from
+
+            Returns: Last element
+
+            Example:
             ```sapl
             policy "example"
-            permit
+            permit action == "finalize"
             where
-              array.last([1, 2, 3, 4]) == 4;
-              array.last(["apple", "banana"]) == "banana";
+                array.last(resource.approvals) == "cfo_signature";
             ```
             """)
     public static Val last(@Array Val array) {
@@ -555,25 +732,24 @@ public class ArrayFunctionLibrary {
     }
 
     @Function(docs = """
-            ```max(ARRAY array)```: Returns the maximum value from the array. For numeric arrays, returns the largest number.
-            For string arrays, returns the last string in lexicographic order.
+            ```array.max(ARRAY array)```
 
-            **Requirements:**
-            - Array must not be empty
-            - All elements must be of the same type (all numeric or all text)
-            - Returns error if types are mixed or if first element is neither numeric nor text
+            Returns the maximum value from the array. For numeric arrays, returns the largest
+            number. For string arrays, returns the last string in lexicographic order. All
+            elements must be of the same type. Returns an error for empty arrays, mixed types,
+            or unsupported types.
 
-            **Examples:**
+            Parameters:
+            - array: Array to find maximum in
+
+            Returns: Maximum value
+
+            Example:
             ```sapl
             policy "example"
             permit
             where
-              array.max([3, 1, 4, 1, 5, 9]) == 9;
-              array.max(["dog", "cat", "bird"]) == "dog";
-
-              // These would return errors:
-              // array.max([])              // empty array
-              // array.max([1, "two", 3])   // mixed types
+                array.max([3, 1, 4, 1, 5, 9]) == 9;
             ```
             """, schema = RETURNS_NUMBER)
     public static Val max(@Array Val array) {
@@ -581,25 +757,24 @@ public class ArrayFunctionLibrary {
     }
 
     @Function(docs = """
-            ```min(ARRAY array)```: Returns the minimum value from the array. For numeric arrays, returns the smallest number.
-            For string arrays, returns the first string in lexicographic order.
+            ```array.min(ARRAY array)```
 
-            **Requirements:**
-            - Array must not be empty
-            - All elements must be of the same type (all numeric or all text)
-            - Returns error if types are mixed or if first element is neither numeric nor text
+            Returns the minimum value from the array. For numeric arrays, returns the smallest
+            number. For string arrays, returns the first string in lexicographic order. All
+            elements must be of the same type. Returns an error for empty arrays, mixed types,
+            or unsupported types.
 
-            **Examples:**
+            Parameters:
+            - array: Array to find minimum in
+
+            Returns: Minimum value
+
+            Example:
             ```sapl
             policy "example"
             permit
             where
-              array.min([3, 1, 4, 1, 5, 9]) == 1;
-              array.min(["dog", "cat", "bird"]) == "bird";
-
-              // These would return errors:
-              // array.min([])              // empty array
-              // array.min([1, "two", 3])   // mixed types
+                array.min(subject.securityLevels) >= 3;
             ```
             """, schema = RETURNS_NUMBER)
     public static Val min(@Array Val array) {
@@ -671,20 +846,22 @@ public class ArrayFunctionLibrary {
     }
 
     @Function(docs = """
-            ```sum(ARRAY array)```: Returns the sum of all numeric elements in the array. Returns ```0``` for an empty array.
+            ```array.sum(ARRAY array)```
 
-            **Requirements:**
-            - All elements must be numeric
-            - Returns error if any non-numeric element is encountered
+            Returns the sum of all numeric elements in the array. Returns 0 for an empty array.
+            All elements must be numeric or an error is returned.
 
-            **Examples:**
+            Parameters:
+            - array: Array of numbers to sum
+
+            Returns: Sum of all elements
+
+            Example - enforce rate limit:
             ```sapl
             policy "example"
-            permit
+            deny action == "api_call"
             where
-              array.sum([1, 2, 3, 4, 5]) == 15;
-              array.sum([]) == 0;
-              array.sum([-5, 5]) == 0;
+                array.sum(subject.requestCounts) > 1000;
             ```
             """, schema = RETURNS_NUMBER)
     public static Val sum(@Array Val array) {
@@ -692,20 +869,22 @@ public class ArrayFunctionLibrary {
     }
 
     @Function(docs = """
-            ```multiply(ARRAY array)```: Returns the product of all numeric elements in the array. Returns ```1``` for an empty array.
+            ```array.multiply(ARRAY array)```
 
-            **Requirements:**
-            - All elements must be numeric
-            - Returns error if any non-numeric element is encountered
+            Returns the product of all numeric elements in the array. Returns 1 for an empty
+            array. All elements must be numeric or an error is returned.
 
-            **Examples:**
+            Parameters:
+            - array: Array of numbers to multiply
+
+            Returns: Product of all elements
+
+            Example:
             ```sapl
             policy "example"
             permit
             where
-              array.multiply([2, 3, 4]) == 24;
-              array.multiply([]) == 1;
-              array.multiply([5, 0]) == 0;
+                array.multiply([2, 3, 4]) == 24;
             ```
             """, schema = RETURNS_NUMBER)
     public static Val multiply(@Array Val array) {
@@ -738,20 +917,22 @@ public class ArrayFunctionLibrary {
     }
 
     @Function(docs = """
-            ```avg(ARRAY array)```: Returns the arithmetic mean (average) of all numeric elements in the array.
+            ```array.avg(ARRAY array)```
 
-            **Requirements:**
-            - Array must not be empty
-            - All elements must be numeric
-            - Returns error if array is empty or if any non-numeric element is encountered
+            Returns the arithmetic mean (average) of all numeric elements in the array. Returns
+            an error for empty arrays. All elements must be numeric.
 
-            **Examples:**
+            Parameters:
+            - array: Array of numbers to average
+
+            Returns: Average value
+
+            Example:
             ```sapl
             policy "example"
             permit
             where
-              array.avg([1, 2, 3, 4, 5]) == 3.0;
-              array.avg([10, 20]) == 15.0;
+                array.avg(subject.performanceScores) >= 8.0;
             ```
             """, schema = RETURNS_NUMBER)
     public static Val avg(@Array Val array) {
@@ -778,23 +959,25 @@ public class ArrayFunctionLibrary {
     }
 
     @Function(docs = """
-            ```median(ARRAY array)```: Returns the median value of all numeric elements in the array. The median is the middle
-            value when the numbers are sorted. For arrays with an even number of elements, returns the average of the two
-            middle values.
+            ```array.median(ARRAY array)```
 
-            **Requirements:**
-            - Array must not be empty
-            - All elements must be numeric
-            - Returns error if array is empty or if any non-numeric element is encountered
+            Returns the median value of all numeric elements in the array. The median is the
+            middle value when the numbers are sorted. For arrays with an even number of elements,
+            returns the average of the two middle values. Returns an error for empty arrays.
+            All elements must be numeric.
 
-            **Examples:**
+            Parameters:
+            - array: Array of numbers to find median of
+
+            Returns: Median value
+
+            Example:
             ```sapl
             policy "example"
             permit
             where
-              array.median([1, 2, 3, 4, 5]) == 3;          // odd count: middle value
-              array.median([1, 2, 3, 4]) == 2.5;           // even count: average of two middle values
-              array.median([5, 1, 3, 2, 4]) == 3;          // unsorted input is sorted first
+                array.median([1, 2, 3, 4, 5]) == 3;
+                array.median([1, 2, 3, 4]) == 2.5;
             ```
             """, schema = RETURNS_NUMBER)
     public static Val median(@Array Val array) {
@@ -828,21 +1011,24 @@ public class ArrayFunctionLibrary {
     }
 
     @Function(docs = """
-            ```range(NUMBER from, NUMBER to)```: Creates an array containing all integers from ```from``` to ```to``` (both inclusive).
-            Returns an empty array if the range is invalid (e.g., from > to with implied positive step).
+            ```array.range(NUMBER from, NUMBER to)```
 
-            **Requirements:**
-            - Both parameters must be integers
-            - Range is inclusive on both ends
+            Creates an array containing all integers from from to to (both inclusive).
+            Returns an empty array if the range is invalid (from greater than to).
+            Both parameters must be integers.
 
-            **Examples:**
+            Parameters:
+            - from: Starting value (inclusive)
+            - to: Ending value (inclusive)
+
+            Returns: Array of consecutive integers
+
+            Example:
             ```sapl
             policy "example"
             permit
             where
-              array.range(1, 5) == [1, 2, 3, 4, 5];
-              array.range(5, 5) == [5];
-              array.range(5, 2) == [];  // invalid range returns empty array
+                array.range(1, 5) == [1, 2, 3, 4, 5];
             ```
             """, schema = RETURNS_ARRAY)
     public static Val range(@Number Val from, @Number Val to) {
@@ -850,25 +1036,28 @@ public class ArrayFunctionLibrary {
     }
 
     @Function(docs = """
-            ```rangeStepped(NUMBER from, NUMBER to, NUMBER step)```: Creates an array containing integers from ```from``` to ```to```
-            (both inclusive), incrementing by ```step```. The step can be positive or negative.
+            ```array.rangeStepped(NUMBER from, NUMBER to, NUMBER step)```
 
-            **Requirements:**
-            - All parameters must be integers
-            - ```step``` must not be zero (returns error)
-            - If ```step``` is positive, ```from``` must be less than or equal to ```to```
-            - If ```step``` is negative, ```from``` must be greater than or equal to ```to```
-            - Range is inclusive on both ends
+            Creates an array containing integers from from to to (both inclusive), incrementing
+            by step. The step can be positive or negative. Returns an error if step is zero.
+            All parameters must be integers. For positive step, from must be less than or equal
+            to to. For negative step, from must be greater than or equal to to. Range is
+            inclusive on both ends.
 
-            **Examples:**
+            Parameters:
+            - from: Starting value (inclusive)
+            - to: Ending value (inclusive)
+            - step: Increment value (positive or negative, not zero)
+
+            Returns: Array of integers with specified step
+
+            Example:
             ```sapl
             policy "example"
             permit
             where
-              array.rangeStepped(1, 10, 2) == [1, 3, 5, 7, 9];
-              array.rangeStepped(10, 1, -2) == [10, 8, 6, 4, 2];
-              array.rangeStepped(5, 2, 1) == [];    // positive step but from > to returns empty
-              array.rangeStepped(1, 5, -1) == [];   // negative step but from < to returns empty
+                array.rangeStepped(1, 10, 2) == [1, 3, 5, 7, 9];
+                array.rangeStepped(10, 1, -2) == [10, 8, 6, 4, 2];
             ```
             """, schema = RETURNS_ARRAY)
     public static Val rangeStepped(@Number Val from, @Number Val to, @Number Val step) {
@@ -951,18 +1140,26 @@ public class ArrayFunctionLibrary {
     }
 
     @Function(docs = """
-            ```crossProduct(ARRAY array1, ARRAY array2)```: Returns the Cartesian product of two arrays. The result is an array
-            of 2-element arrays, where each element contains one item from ```array1``` paired with one item from ```array2```.
-            Returns an empty array if either input array is empty.
+            ```array.crossProduct(ARRAY array1, ARRAY array2)```
 
-            **Examples:**
+            Returns the Cartesian product of two arrays. The result is an array of 2-element
+            arrays, where each element contains one item from array1 paired with one item from
+            array2. Returns an empty array if either input array is empty.
+
+            Parameters:
+            - array1: First array
+            - array2: Second array
+
+            Returns: Array of all possible pairs
+
+            Example - generate permission-resource combinations:
             ```sapl
             policy "example"
             permit
             where
-              array.crossProduct([1, 2], ["a", "b"]) == [[1, "a"], [1, "b"], [2, "a"], [2, "b"]];
-              array.crossProduct([1], ["x", "y", "z"]) == [[1, "x"], [1, "y"], [1, "z"]];
-              array.crossProduct([], [1, 2]) == [];
+                var actions = ["read", "write"];
+                var resources = ["doc1", "doc2"];
+                var combinations = array.crossProduct(actions, resources);
             ```
             """, schema = RETURNS_ARRAY)
     public static Val crossProduct(@Array Val array1, @Array Val array2) {
@@ -992,17 +1189,23 @@ public class ArrayFunctionLibrary {
     }
 
     @Function(docs = """
-            ```zip(ARRAY array1, ARRAY array2)```: Combines two arrays element-wise into an array of 2-element arrays (pairs).
+            ```array.zip(ARRAY array1, ARRAY array2)```
+
+            Combines two arrays element-wise into an array of 2-element arrays (pairs).
             The resulting array has length equal to the shorter of the two input arrays.
 
-            **Examples:**
+            Parameters:
+            - array1: First array
+            - array2: Second array
+
+            Returns: Array of paired elements
+
+            Example:
             ```sapl
             policy "example"
             permit
             where
-              array.zip([1, 2, 3], ["a", "b", "c"]) == [[1, "a"], [2, "b"], [3, "c"]];
-              array.zip([1, 2, 3, 4], ["a", "b"]) == [[1, "a"], [2, "b"]];
-              array.zip([], [1, 2, 3]) == [];
+                array.zip([1, 2, 3], ["a", "b", "c"]) == [[1, "a"], [2, "b"], [3, "c"]];
             ```
             """, schema = RETURNS_ARRAY)
     public static Val zip(@Array Val array1, @Array Val array2) {

@@ -25,15 +25,115 @@ import lombok.experimental.UtilityClass;
 import lombok.val;
 
 /**
- * Collection of bitwise operations for 64-bit signed long integers.
- * All operations use two's complement representation for negative numbers.
+ * Bitwise operations for authorization policies using 64-bit signed long
+ * integers.
  */
 @UtilityClass
-@FunctionLibrary(name = BitwiseFunctionLibrary.NAME, description = BitwiseFunctionLibrary.DESCRIPTION)
+@FunctionLibrary(name = BitwiseFunctionLibrary.NAME, description = BitwiseFunctionLibrary.DESCRIPTION, libraryDocumentation = BitwiseFunctionLibrary.DOCUMENTATION)
 public class BitwiseFunctionLibrary {
 
-    public static final String NAME        = "bitwise";
-    public static final String DESCRIPTION = "A collection of bitwise operations for 64-bit signed long integers using two's complement representation.";
+    public static final String NAME          = "bitwise";
+    public static final String DESCRIPTION   = "Bitwise operations for authorization policies using 64-bit signed long integers.";
+    public static final String DOCUMENTATION = """
+            # Bitwise Operations
+
+            Bitwise manipulation of 64-bit signed long integers for permission management in
+            authorization policies. Test individual permission bits, combine permission sets,
+            and manipulate feature flags using compact bit representations.
+
+            ## Core Principles
+
+            All operations use 64-bit signed long integers with two's complement representation
+            for negative numbers. Bit positions are numbered from right to left, starting at 0
+            for the least significant bit and ending at 63 for the most significant bit (sign bit).
+            Shift and rotate operations accept position values from 0 to 63 inclusive.
+
+            A single 64-bit integer represents up to 64 distinct permissions or feature flags.
+            Each bit position corresponds to one permission. Operations execute in constant time
+            regardless of how many permissions are checked.
+
+            ## Access Control Patterns
+
+            Store permissions as bit flags where each bit position represents a specific permission.
+            Check if a user has required permissions by testing individual bits.
+
+            ```sapl
+            policy "check_read_permission"
+            permit action == "read_document"
+            where
+                var READ_PERMISSION = 0;
+                bitwise.testBit(subject.permissions, READ_PERMISSION);
+            ```
+
+            Combine permission sets using bitwise OR when merging permissions from multiple sources
+            like direct grants and group memberships.
+
+            ```sapl
+            policy "merge_permissions"
+            permit
+            where
+                var direct = subject.directPermissions;
+                var inherited = subject.groupPermissions;
+                var combined = bitwise.bitwiseOr(direct, inherited);
+                var REQUIRED_PERMISSIONS = 15;
+                bitwise.bitwiseAnd(combined, REQUIRED_PERMISSIONS) == REQUIRED_PERMISSIONS;
+            ```
+
+            Use bitwise AND to check if all required permissions are present. When the result of
+            ANDing user permissions with required permissions equals the required permissions,
+            all necessary bits are set.
+
+            ```sapl
+            policy "require_all_permissions"
+            permit action == "admin_panel"
+            where
+                var ADMIN_PERMS = 240;
+                bitwise.bitwiseAnd(subject.permissions, ADMIN_PERMS) == ADMIN_PERMS;
+            ```
+
+            Implement feature flags by testing individual bits. Each bit represents whether a
+            specific feature is enabled for the user.
+
+            ```sapl
+            policy "feature_access"
+            permit action == "use_beta_feature"
+            where
+                var BETA_FEATURES_BIT = 5;
+                bitwise.testBit(subject.featureFlags, BETA_FEATURES_BIT);
+            ```
+
+            Remove specific permissions by clearing bits. This revokes individual permissions
+            without affecting others.
+
+            ```sapl
+            policy "revoke_permission"
+            permit
+            transform
+                var WRITE_BIT = 1;
+                subject.permissions = bitwise.clearBit(subject.permissions, WRITE_BIT);
+            ```
+
+            Count active permissions or enabled features using bit counting. This enforces
+            constraints on total permission counts.
+
+            ```sapl
+            policy "limit_permission_count"
+            deny action == "grant_permission"
+            where
+                bitwise.bitCount(subject.permissions) >= 10;
+            ```
+
+            Use XOR to toggle permissions or feature flags. This switches between states without
+            conditional logic.
+
+            ```sapl
+            policy "toggle_debug_mode"
+            permit action == "toggle_debug"
+            transform
+                var DEBUG_BIT = 7;
+                subject.flags = bitwise.toggleBit(subject.flags, DEBUG_BIT);
+            ```
+            """;
 
     private static final String RETURNS_NUMBER = """
             {
@@ -46,23 +146,28 @@ public class BitwiseFunctionLibrary {
                 "type": "boolean"
             }
             """;
-
-    /* Core Operations */
+    public static final String SHIFT = "Shift";
 
     @Function(docs = """
-            ```bitwiseAnd(LONG left, LONG right)```: Returns the bitwise AND of two long values.
+            ```bitwise.bitwiseAnd(LONG left, LONG right)```
 
-            Performs bitwise AND operation where the result bit is 1 only if both corresponding bits are 1.
-            Uses 64-bit signed long arithmetic with two's complement representation for negative numbers.
+            Performs bitwise AND operation where the result bit is 1 only if both corresponding
+            bits are 1. Use this to check if all required permission bits are set or to mask
+            out specific bits.
 
-            **Examples:**
+            Parameters:
+            - left: First operand
+            - right: Second operand
+
+            Returns: Bitwise AND result
+
+            Example - check if user has all required permissions:
             ```sapl
             policy "example"
             permit
             where
-              bitwise.bitwiseAnd(12, 10) == 8;      // 1100 & 1010 = 1000
-              bitwise.bitwiseAnd(255, 15) == 15;    // 0xFF & 0x0F = 0x0F
-              bitwise.bitwiseAnd(-1, 42) == 42;     // all bits set & value = value
+                var REQUIRED = 15;
+                bitwise.bitwiseAnd(subject.permissions, REQUIRED) == REQUIRED;
             ```
             """, schema = RETURNS_NUMBER)
     public static Val bitwiseAnd(@Long Val left, @Long Val right) {
@@ -70,19 +175,24 @@ public class BitwiseFunctionLibrary {
     }
 
     @Function(docs = """
-            ```bitwiseOr(LONG left, LONG right)```: Returns the bitwise OR of two long values.
+            ```bitwise.bitwiseOr(LONG left, LONG right)```
 
-            Performs bitwise OR operation where the result bit is 1 if at least one corresponding bit is 1.
-            Uses 64-bit signed long arithmetic with two's complement representation for negative numbers.
+            Performs bitwise OR operation where the result bit is 1 if at least one corresponding
+            bit is 1. Use this to combine permission sets or feature flags from multiple sources.
 
-            **Examples:**
+            Parameters:
+            - left: First operand
+            - right: Second operand
+
+            Returns: Bitwise OR result
+
+            Example - combine direct and inherited permissions:
             ```sapl
             policy "example"
             permit
             where
-              bitwise.bitwiseOr(12, 10) == 14;      // 1100 | 1010 = 1110
-              bitwise.bitwiseOr(8, 4) == 12;        // 1000 | 0100 = 1100
-              bitwise.bitwiseOr(0, 42) == 42;       // 0 | value = value
+                var all = bitwise.bitwiseOr(subject.directPermissions, subject.inheritedPermissions);
+                bitwise.testBit(all, 5);
             ```
             """, schema = RETURNS_NUMBER)
     public static Val bitwiseOr(@Long Val left, @Long Val right) {
@@ -90,19 +200,25 @@ public class BitwiseFunctionLibrary {
     }
 
     @Function(docs = """
-            ```bitwiseXor(LONG left, LONG right)```: Returns the bitwise XOR (exclusive OR) of two long values.
+            ```bitwise.bitwiseXor(LONG left, LONG right)```
 
-            Performs bitwise XOR operation where the result bit is 1 if exactly one corresponding bit is 1.
-            Uses 64-bit signed long arithmetic with two's complement representation for negative numbers.
+            Performs bitwise XOR (exclusive OR) operation where the result bit is 1 if exactly
+            one corresponding bit is 1. Use this to find differences between permission sets
+            or to toggle multiple bits simultaneously.
 
-            **Examples:**
+            Parameters:
+            - left: First operand
+            - right: Second operand
+
+            Returns: Bitwise XOR result
+
+            Example - find permissions that differ between two roles:
             ```sapl
             policy "example"
             permit
             where
-              bitwise.bitwiseXor(12, 10) == 6;      // 1100 ^ 1010 = 0110
-              bitwise.bitwiseXor(255, 255) == 0;    // same value ^ same value = 0
-              bitwise.bitwiseXor(42, 0) == 42;      // value ^ 0 = value
+                var differences = bitwise.bitwiseXor(resource.roleA, resource.roleB);
+                bitwise.bitCount(differences) < 5;
             ```
             """, schema = RETURNS_NUMBER)
     public static Val bitwiseXor(@Long Val left, @Long Val right) {
@@ -110,19 +226,23 @@ public class BitwiseFunctionLibrary {
     }
 
     @Function(docs = """
-            ```bitwiseNot(LONG value)```: Returns the bitwise NOT (one's complement) of a long value.
+            ```bitwise.bitwiseNot(LONG value)```
 
-            Inverts all bits of the value. In two's complement representation, this is equivalent to -(value + 1).
-            Uses 64-bit signed long arithmetic.
+            Inverts all bits of the value (one's complement). In two's complement representation,
+            this is equivalent to negating the value and subtracting 1.
 
-            **Examples:**
+            Parameters:
+            - value: Value to invert
+
+            Returns: Bitwise NOT result
+
+            Example:
             ```sapl
             policy "example"
             permit
             where
-              bitwise.bitwiseNot(0) == -1;          // all bits inverted
-              bitwise.bitwiseNot(-1) == 0;          // double inversion
-              bitwise.bitwiseNot(42) == -43;        // -(42 + 1)
+                bitwise.bitwiseNot(0) == -1;
+                bitwise.bitwiseNot(42) == -43;
             ```
             """, schema = RETURNS_NUMBER)
     public static Val bitwiseNot(@Long Val value) {
@@ -130,26 +250,30 @@ public class BitwiseFunctionLibrary {
     }
 
     @Function(docs = """
-            ```leftShift(LONG value, LONG positions)```: Returns the value left-shifted by the specified number of bit positions.
+            ```bitwise.leftShift(LONG value, LONG positions)```
 
-            Shifts bits to the left. Bits shifted out of the left side are discarded, and zeros are shifted in from the right.
-            Equivalent to multiplying by 2^positions (with overflow).
+            Shifts bits to the left by the specified number of positions. Bits shifted out of
+            the left side are discarded, and zeros are shifted in from the right. Equivalent
+            to multiplying by 2 raised to the power of positions, with overflow.
 
-            **Requirements:**
-            - positions must be between 0 and 63 (inclusive)
+            Parameters:
+            - value: Value to shift
+            - positions: Number of positions to shift (0 to 63)
 
-            **Examples:**
+            Returns: Left-shifted value
+
+            Example - calculate permission mask for bit position:
             ```sapl
             policy "example"
             permit
             where
-              bitwise.leftShift(1, 3) == 8;         // 0001 << 3 = 1000
-              bitwise.leftShift(5, 2) == 20;        // 0101 << 2 = 10100
-              bitwise.leftShift(1, 10) == 1024;     // 2^10
+                var PERMISSION_BIT = 3;
+                var mask = bitwise.leftShift(1, PERMISSION_BIT);
+                bitwise.bitwiseAnd(subject.permissions, mask) == mask;
             ```
             """, schema = RETURNS_NUMBER)
     public static Val leftShift(@Long Val value, @Long Val positions) {
-        val positionValidation = validatePosition(positions, "Shift");
+        val positionValidation = validatePosition(positions, SHIFT);
         if (positionValidation != null) {
             return positionValidation;
         }
@@ -158,27 +282,30 @@ public class BitwiseFunctionLibrary {
     }
 
     @Function(docs = """
-            ```rightShift(LONG value, LONG positions)```: Returns the value right-shifted by the specified number of bit positions using arithmetic shift (sign extension).
+            ```bitwise.rightShift(LONG value, LONG positions)```
 
-            Shifts bits to the right with sign extension. For positive numbers, zeros are shifted in from the left.
-            For negative numbers, ones are shifted in to preserve the sign (arithmetic shift).
-            Equivalent to dividing by 2^positions (rounding toward negative infinity).
+            Shifts bits to the right by the specified number of positions using arithmetic shift
+            (sign extension). For positive numbers, zeros are shifted in from the left. For
+            negative numbers, ones are shifted in to preserve the sign. Equivalent to dividing
+            by 2 raised to the power of positions, with rounding toward negative infinity.
 
-            **Requirements:**
-            - positions must be between 0 and 63 (inclusive)
+            Parameters:
+            - value: Value to shift
+            - positions: Number of positions to shift (0 to 63)
 
-            **Examples:**
+            Returns: Right-shifted value with sign extension
+
+            Example:
             ```sapl
             policy "example"
             permit
             where
-              bitwise.rightShift(16, 2) == 4;       // 16 / 4 = 4
-              bitwise.rightShift(-8, 1) == -4;      // sign-extended (arithmetic shift)
-              bitwise.rightShift(1024, 10) == 1;    // 1024 / 1024 = 1
+                bitwise.rightShift(16, 2) == 4;
+                bitwise.rightShift(-8, 1) == -4;
             ```
             """, schema = RETURNS_NUMBER)
     public static Val rightShift(@Long Val value, @Long Val positions) {
-        val positionValidation = validatePosition(positions, "Shift");
+        val positionValidation = validatePosition(positions, SHIFT);
         if (positionValidation != null) {
             return positionValidation;
         }
@@ -187,26 +314,29 @@ public class BitwiseFunctionLibrary {
     }
 
     @Function(docs = """
-            ```unsignedRightShift(LONG value, LONG positions)```: Returns the value right-shifted by the specified number of bit positions using logical shift (zero-fill).
+            ```bitwise.unsignedRightShift(LONG value, LONG positions)```
 
-            Shifts bits to the right with zero-fill. Zeros are always shifted in from the left, regardless of the sign bit.
+            Shifts bits to the right by the specified number of positions using logical shift
+            (zero-fill). Zeros are always shifted in from the left, regardless of the sign bit.
             Treats the value as an unsigned 64-bit integer for the purpose of shifting.
 
-            **Requirements:**
-            - positions must be between 0 and 63 (inclusive)
+            Parameters:
+            - value: Value to shift
+            - positions: Number of positions to shift (0 to 63)
 
-            **Examples:**
+            Returns: Right-shifted value with zero-fill
+
+            Example:
             ```sapl
             policy "example"
             permit
             where
-              bitwise.unsignedRightShift(16, 2) == 4;
-              bitwise.unsignedRightShift(-8, 1) == 9223372036854775804;  // zero-fill, not sign-extend
-              bitwise.unsignedRightShift(-1, 1) == 9223372036854775807;  // largest positive long
+                bitwise.unsignedRightShift(16, 2) == 4;
+                bitwise.unsignedRightShift(-1, 1) == 9223372036854775807;
             ```
             """, schema = RETURNS_NUMBER)
     public static Val unsignedRightShift(@Long Val value, @Long Val positions) {
-        val positionValidation = validatePosition(positions, "Shift");
+        val positionValidation = validatePosition(positions, SHIFT);
         if (positionValidation != null) {
             return positionValidation;
         }
@@ -214,25 +344,26 @@ public class BitwiseFunctionLibrary {
         return Val.of(value.get().longValue() >>> positions.get().longValue());
     }
 
-    /* Bit Manipulation */
-
     @Function(docs = """
-            ```testBit(LONG value, LONG position)```: Tests whether the bit at the specified position is set (1) or clear (0).
+            ```bitwise.testBit(LONG value, LONG position)```
 
-            Returns true if the bit at the given position is 1, false otherwise.
-            Bit positions are numbered from right to left, starting at 0 (least significant bit).
+            Tests whether the bit at the specified position is set (1) or clear (0). Returns
+            true if the bit is 1, false otherwise. Bit positions are numbered from right to
+            left, starting at 0 for the least significant bit.
 
-            **Requirements:**
-            - position must be between 0 and 63 (inclusive)
+            Parameters:
+            - value: Value to test
+            - position: Bit position to test (0 to 63)
 
-            **Examples:**
+            Returns: Boolean indicating whether bit is set
+
+            Example - check specific permission:
             ```sapl
             policy "example"
-            permit
+            permit action == "delete_user"
             where
-              bitwise.testBit(8, 3) == true;        // 1000 has bit 3 set
-              bitwise.testBit(8, 2) == false;       // 1000 does not have bit 2 set
-              bitwise.testBit(5, 0) == true;        // 0101 has bit 0 set
+                var DELETE_PERMISSION = 4;
+                bitwise.testBit(subject.permissions, DELETE_PERMISSION);
             ```
             """, schema = RETURNS_BOOLEAN)
     public static Val testBit(@Long Val value, @Long Val position) {
@@ -247,22 +378,25 @@ public class BitwiseFunctionLibrary {
     }
 
     @Function(docs = """
-            ```setBit(LONG value, LONG position)```: Returns the value with the bit at the specified position set to 1.
+            ```bitwise.setBit(LONG value, LONG position)```
 
-            Sets the bit at the given position to 1, leaving all other bits unchanged.
-            Bit positions are numbered from right to left, starting at 0 (least significant bit).
+            Returns the value with the bit at the specified position set to 1, leaving all
+            other bits unchanged. Bit positions are numbered from right to left, starting
+            at 0 for the least significant bit.
 
-            **Requirements:**
-            - position must be between 0 and 63 (inclusive)
+            Parameters:
+            - value: Value to modify
+            - position: Bit position to set (0 to 63)
 
-            **Examples:**
+            Returns: Value with bit set
+
+            Example - grant specific permission:
             ```sapl
             policy "example"
-            permit
-            where
-              bitwise.setBit(8, 2) == 12;           // 1000 -> 1100
-              bitwise.setBit(0, 3) == 8;            // 0000 -> 1000
-              bitwise.setBit(5, 1) == 7;            // 0101 -> 0111
+            permit action == "grant_read_permission"
+            transform
+                var READ_BIT = 0;
+                resource.user.permissions = bitwise.setBit(resource.user.permissions, READ_BIT);
             ```
             """, schema = RETURNS_NUMBER)
     public static Val setBit(@Long Val value, @Long Val position) {
@@ -277,22 +411,25 @@ public class BitwiseFunctionLibrary {
     }
 
     @Function(docs = """
-            ```clearBit(LONG value, LONG position)```: Returns the value with the bit at the specified position set to 0.
+            ```bitwise.clearBit(LONG value, LONG position)```
 
-            Clears the bit at the given position to 0, leaving all other bits unchanged.
-            Bit positions are numbered from right to left, starting at 0 (least significant bit).
+            Returns the value with the bit at the specified position set to 0, leaving all
+            other bits unchanged. Bit positions are numbered from right to left, starting
+            at 0 for the least significant bit.
 
-            **Requirements:**
-            - position must be between 0 and 63 (inclusive)
+            Parameters:
+            - value: Value to modify
+            - position: Bit position to clear (0 to 63)
 
-            **Examples:**
+            Returns: Value with bit cleared
+
+            Example - revoke specific permission:
             ```sapl
             policy "example"
-            permit
-            where
-              bitwise.clearBit(15, 2) == 11;        // 1111 -> 1011
-              bitwise.clearBit(8, 3) == 0;          // 1000 -> 0000
-              bitwise.clearBit(7, 1) == 5;          // 0111 -> 0101
+            permit action == "revoke_write_permission"
+            transform
+                var WRITE_BIT = 1;
+                resource.user.permissions = bitwise.clearBit(resource.user.permissions, WRITE_BIT);
             ```
             """, schema = RETURNS_NUMBER)
     public static Val clearBit(@Long Val value, @Long Val position) {
@@ -307,22 +444,25 @@ public class BitwiseFunctionLibrary {
     }
 
     @Function(docs = """
-            ```toggleBit(LONG value, LONG position)```: Returns the value with the bit at the specified position flipped (0 becomes 1, 1 becomes 0).
+            ```bitwise.toggleBit(LONG value, LONG position)```
 
-            Toggles the bit at the given position, leaving all other bits unchanged.
-            Bit positions are numbered from right to left, starting at 0 (least significant bit).
+            Returns the value with the bit at the specified position flipped: 0 becomes 1,
+            and 1 becomes 0. All other bits remain unchanged. Bit positions are numbered from
+            right to left, starting at 0 for the least significant bit.
 
-            **Requirements:**
-            - position must be between 0 and 63 (inclusive)
+            Parameters:
+            - value: Value to modify
+            - position: Bit position to toggle (0 to 63)
 
-            **Examples:**
+            Returns: Value with bit toggled
+
+            Example - toggle feature flag:
             ```sapl
             policy "example"
-            permit
-            where
-              bitwise.toggleBit(8, 3) == 0;         // 1000 -> 0000
-              bitwise.toggleBit(8, 2) == 12;        // 1000 -> 1100
-              bitwise.toggleBit(5, 1) == 7;         // 0101 -> 0111
+            permit action == "toggle_feature"
+            transform
+                var featurePosition = resource.featureId;
+                subject.featureFlags = bitwise.toggleBit(subject.featureFlags, featurePosition);
             ```
             """, schema = RETURNS_NUMBER)
     public static Val toggleBit(@Long Val value, @Long Val position) {
@@ -337,48 +477,53 @@ public class BitwiseFunctionLibrary {
     }
 
     @Function(docs = """
-            ```bitCount(LONG value)```: Returns the number of one-bits (population count) in the two's complement binary representation of the value.
+            ```bitwise.bitCount(LONG value)```
 
-            Counts how many bits are set to 1 in the 64-bit representation.
-            For negative numbers, this counts the 1-bits in the two's complement representation.
+            Returns the number of one-bits (population count) in the two's complement binary
+            representation of the value. Counts how many bits are set to 1 in the 64-bit
+            representation. For negative numbers, this counts the 1-bits in the two's
+            complement representation.
 
-            **Examples:**
+            Parameters:
+            - value: Value to count bits in
+
+            Returns: Number of set bits
+
+            Example - enforce maximum permission count:
             ```sapl
             policy "example"
-            permit
+            deny action == "grant_permission"
             where
-              bitwise.bitCount(0) == 0;             // no bits set
-              bitwise.bitCount(7) == 3;             // 0111 has 3 bits set
-              bitwise.bitCount(15) == 4;            // 1111 has 4 bits set
-              bitwise.bitCount(-1) == 64;           // all bits set in two's complement
+                bitwise.bitCount(subject.permissions) >= 20;
             ```
             """, schema = RETURNS_NUMBER)
     public static Val bitCount(@Long Val value) {
         return Val.of(java.lang.Long.bitCount(value.get().longValue()));
     }
 
-    /* Utility Functions */
-
     @Function(docs = """
-            ```rotateLeft(LONG value, LONG positions)```: Returns the value with bits rotated left by the specified number of positions.
+            ```bitwise.rotateLeft(LONG value, LONG positions)```
 
-            Rotates bits circularly to the left. Bits shifted out of the left side are rotated back in from the right.
-            Unlike left shift, no bits are lost in rotation.
+            Returns the value with bits rotated left by the specified number of positions.
+            Rotates bits circularly to the left. Bits shifted out of the left side are rotated
+            back in from the right. Unlike left shift, no bits are lost in rotation.
 
-            **Requirements:**
-            - positions must be between 0 and 63 (inclusive)
+            Parameters:
+            - value: Value to rotate
+            - positions: Number of positions to rotate (0 to 63)
 
-            **Examples:**
+            Returns: Rotated value
+
+            Example:
             ```sapl
             policy "example"
             permit
             where
-              bitwise.rotateLeft(1, 3) == 8;
-              bitwise.rotateLeft(0x8000000000000001, 1) == 3;  // high bit rotates to low
+                bitwise.rotateLeft(1, 3) == 8;
             ```
             """, schema = RETURNS_NUMBER)
     public static Val rotateLeft(@Long Val value, @Long Val positions) {
-        val positionValidation = validatePosition(positions, "Shift");
+        val positionValidation = validatePosition(positions, SHIFT);
         if (positionValidation != null) {
             return positionValidation;
         }
@@ -387,25 +532,28 @@ public class BitwiseFunctionLibrary {
     }
 
     @Function(docs = """
-            ```rotateRight(LONG value, LONG positions)```: Returns the value with bits rotated right by the specified number of positions.
+            ```bitwise.rotateRight(LONG value, LONG positions)```
 
-            Rotates bits circularly to the right. Bits shifted out of the right side are rotated back in from the left.
-            Unlike right shift, no bits are lost in rotation.
+            Returns the value with bits rotated right by the specified number of positions.
+            Rotates bits circularly to the right. Bits shifted out of the right side are
+            rotated back in from the left. Unlike right shift, no bits are lost in rotation.
 
-            **Requirements:**
-            - positions must be between 0 and 63 (inclusive)
+            Parameters:
+            - value: Value to rotate
+            - positions: Number of positions to rotate (0 to 63)
 
-            **Examples:**
+            Returns: Rotated value
+
+            Example:
             ```sapl
             policy "example"
             permit
             where
-              bitwise.rotateRight(8, 3) == 1;
-              bitwise.rotateRight(3, 1) == 0x8000000000000001;  // low bit rotates to high
+                bitwise.rotateRight(8, 3) == 1;
             ```
             """, schema = RETURNS_NUMBER)
     public static Val rotateRight(@Long Val value, @Long Val positions) {
-        val positionValidation = validatePosition(positions, "Shift");
+        val positionValidation = validatePosition(positions, SHIFT);
         if (positionValidation != null) {
             return positionValidation;
         }
@@ -414,20 +562,26 @@ public class BitwiseFunctionLibrary {
     }
 
     @Function(docs = """
-            ```leadingZeros(LONG value)```: Returns the number of zero bits preceding the highest-order (leftmost) one-bit in the two's complement binary representation.
+            ```bitwise.leadingZeros(LONG value)```
 
-            Returns 64 if the value is zero (all bits are leading zeros).
-            Useful for determining the position of the most significant set bit.
+            Returns the number of zero bits preceding the highest-order (leftmost) one-bit in
+            the two's complement binary representation. Returns 64 if the value is zero (all
+            bits are leading zeros). Useful for determining the position of the most significant
+            set bit.
 
-            **Examples:**
+            Parameters:
+            - value: Value to analyze
+
+            Returns: Number of leading zero bits
+
+            Example:
             ```sapl
             policy "example"
             permit
             where
-              bitwise.leadingZeros(0) == 64;        // all bits are zero
-              bitwise.leadingZeros(1) == 63;        // only bit 0 is set
-              bitwise.leadingZeros(8) == 60;        // bit 3 is highest set bit
-              bitwise.leadingZeros(-1) == 0;        // sign bit is set
+                bitwise.leadingZeros(0) == 64;
+                bitwise.leadingZeros(1) == 63;
+                bitwise.leadingZeros(8) == 60;
             ```
             """, schema = RETURNS_NUMBER)
     public static Val leadingZeros(@Long Val value) {
@@ -435,20 +589,26 @@ public class BitwiseFunctionLibrary {
     }
 
     @Function(docs = """
-            ```trailingZeros(LONG value)```: Returns the number of zero bits following the lowest-order (rightmost) one-bit in the two's complement binary representation.
+            ```bitwise.trailingZeros(LONG value)```
 
-            Returns 64 if the value is zero (all bits are trailing zeros).
-            Useful for determining how many times a value is divisible by 2.
+            Returns the number of zero bits following the lowest-order (rightmost) one-bit in
+            the two's complement binary representation. Returns 64 if the value is zero (all
+            bits are trailing zeros). Useful for determining how many times a value is divisible
+            by 2.
 
-            **Examples:**
+            Parameters:
+            - value: Value to analyze
+
+            Returns: Number of trailing zero bits
+
+            Example:
             ```sapl
             policy "example"
             permit
             where
-              bitwise.trailingZeros(0) == 64;       // all bits are zero
-              bitwise.trailingZeros(1) == 0;        // bit 0 is set
-              bitwise.trailingZeros(8) == 3;        // bits 0-2 are trailing zeros
-              bitwise.trailingZeros(12) == 2;       // 1100 has 2 trailing zeros
+                bitwise.trailingZeros(0) == 64;
+                bitwise.trailingZeros(1) == 0;
+                bitwise.trailingZeros(8) == 3;
             ```
             """, schema = RETURNS_NUMBER)
     public static Val trailingZeros(@Long Val value) {
@@ -456,18 +616,23 @@ public class BitwiseFunctionLibrary {
     }
 
     @Function(docs = """
-            ```reverseBits(LONG value)```: Returns the value with the bit order reversed.
+            ```bitwise.reverseBits(LONG value)```
 
-            The bit at position 0 moves to position 63, the bit at position 1 moves to position 62, and so on.
-            Effectively mirrors the bit pattern around the center.
+            Returns the value with the bit order reversed. The bit at position 0 moves to
+            position 63, the bit at position 1 moves to position 62, and so on. Effectively
+            mirrors the bit pattern around the center.
 
-            **Examples:**
+            Parameters:
+            - value: Value to reverse
+
+            Returns: Value with reversed bit order
+
+            Example:
             ```sapl
             policy "example"
             permit
             where
-              bitwise.reverseBits(1) == -9223372036854775808;  // bit 0 -> bit 63
-              bitwise.reverseBits(0) == 0;                      // all zeros stay zeros
+                bitwise.reverseBits(0) == 0;
             ```
             """, schema = RETURNS_NUMBER)
     public static Val reverseBits(@Long Val value) {
@@ -475,22 +640,27 @@ public class BitwiseFunctionLibrary {
     }
 
     @Function(docs = """
-            ```isPowerOfTwo(LONG value)```: Tests whether the value is a power of two (exactly one bit is set).
+            ```bitwise.isPowerOfTwo(LONG value)```
 
-            Returns true if the value has exactly one bit set to 1, which means it is a power of 2.
+            Tests whether the value is a power of two, meaning exactly one bit is set. Returns
+            true if the value has exactly one bit set to 1, which means it is a power of 2.
             Returns false for zero and negative numbers.
 
-            **Examples:**
+            Parameters:
+            - value: Value to test
+
+            Returns: Boolean indicating whether value is a power of two
+
+            Example:
             ```sapl
             policy "example"
             permit
             where
-              bitwise.isPowerOfTwo(1) == true;      // 2^0
-              bitwise.isPowerOfTwo(8) == true;      // 2^3
-              bitwise.isPowerOfTwo(1024) == true;   // 2^10
-              bitwise.isPowerOfTwo(0) == false;     // not a power of 2
-              bitwise.isPowerOfTwo(7) == false;     // 0111 has multiple bits set
-              bitwise.isPowerOfTwo(-8) == false;    // negative numbers are not powers of 2
+                bitwise.isPowerOfTwo(1);
+                bitwise.isPowerOfTwo(8);
+                bitwise.isPowerOfTwo(1024);
+                !bitwise.isPowerOfTwo(0);
+                !bitwise.isPowerOfTwo(7);
             ```
             """, schema = RETURNS_BOOLEAN)
     public static Val isPowerOfTwo(@Long Val value) {
