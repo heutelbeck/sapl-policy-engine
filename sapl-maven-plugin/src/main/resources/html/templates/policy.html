@@ -90,8 +90,8 @@
 					);
 				}
 			}
-			var popoverTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="popover"]'))
-			popoverTriggerList.map(function (textAreaElement) {
+            var popoverTriggerList = Array.prototype.slice.call(document.querySelectorAll('[data-bs-toggle="popover"]'))
+            popoverTriggerList.map(function (textAreaElement) {
 				return new bootstrap.Popover(textAreaElement)
 			})
 		});
