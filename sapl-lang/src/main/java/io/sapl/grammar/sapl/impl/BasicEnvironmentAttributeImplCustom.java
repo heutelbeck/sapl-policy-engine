@@ -28,7 +28,7 @@ public class BasicEnvironmentAttributeImplCustom extends BasicEnvironmentAttribu
 
     @Override
     public Flux<Val> evaluate() {
-        return AttributeFactory.evaluateEnvironmentAttibute(this, getIdentifier(), arguments);
+        return AttributeFactory.evaluateEnvironmentAttribute(this, getIdentifier(), arguments, attributeFinderOptions);
     }
 
 }

@@ -34,7 +34,8 @@ public class HeadAttributeFinderStepImplCustom extends HeadAttributeFinderStepIm
 
     @Override
     public Flux<Val> apply(@NonNull Val entity) {
-        return Flux.from(AttributeFactory.evaluateAttibute(this, identifier, entity, arguments).next());
+        return Flux.from(
+                AttributeFactory.evaluateAttribute(this, identifier, entity, arguments, attributeFinderOptions).next());
     }
 
     @Override

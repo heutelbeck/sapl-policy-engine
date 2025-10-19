@@ -32,6 +32,17 @@ import java.util.stream.Stream;
 @UtilityClass
 public class FunctionUtil {
 
+    public record ArgumentsAndOptions(Val[] arguments, Val options) {};
+
+    public Flux<ArgumentsAndOptions> combineArgumentFluxesAndOptions(Arguments arguments, Expression options) {
+        if (options == null) {
+            return combineArgumentFluxes(arguments)
+                    .map(evaluatedArguments -> new ArgumentsAndOptions(evaluatedArguments, null));
+        }
+
+        return Flux.combineLatest(combineArgumentFluxes(arguments), options.evaluate(), ArgumentsAndOptions::new);
+    }
+
     public Flux<Val[]> combineArgumentFluxes(Arguments arguments) {
         if (arguments == null || arguments.getArgs().isEmpty())
             return Mono.just(new Val[0]).flux();

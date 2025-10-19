@@ -139,10 +139,10 @@ BasicFunction:
 	identifier=FunctionIdentifier arguments=Arguments steps+=Step*;
 
 BasicEnvironmentAttribute:
-	{BasicEnvironmentAttribute}      '<' identifier=FunctionIdentifier arguments=Arguments? '>' steps+=Step*;
+	{BasicEnvironmentAttribute}      '<' identifier=FunctionIdentifier arguments=Arguments? ('[' attributeFinderOptions=Expression ']' )? '>' steps+=Step*;
 
 BasicEnvironmentHeadAttribute:
-	{BasicEnvironmentHeadAttribute} '|<' identifier=FunctionIdentifier arguments=Arguments? '>' steps+=Step*;
+	{BasicEnvironmentHeadAttribute} '|<' identifier=FunctionIdentifier arguments=Arguments? ('[' attributeFinderOptions=Expression ']' )? '>' steps+=Step*;
 
 FunctionIdentifier:
 	{FunctionIdentifier} nameFragments+=ID ('.' nameFragments+=SaplID)*;
@@ -187,10 +187,10 @@ WildcardStep:
 	{WildcardStep} '*';
 
 AttributeFinderStep:
-	'<' identifier=FunctionIdentifier arguments=Arguments? '>';
+	'<' identifier=FunctionIdentifier arguments=Arguments? ('[' attributeFinderOptions=Expression ']' )? '>';
 
 HeadAttributeFinderStep:
-	'|<' identifier=FunctionIdentifier arguments=Arguments? '>';
+	'|<' identifier=FunctionIdentifier arguments=Arguments? ('[' attributeFinderOptions=Expression ']' )? '>';
 
 RecursiveKeyStep:
 	(id=SaplID | '[' id=STRING ']');

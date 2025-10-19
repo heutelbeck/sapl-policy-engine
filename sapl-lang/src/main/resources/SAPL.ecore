@@ -39,6 +39,8 @@
         containment="true"/>
     <eStructuralFeatures xsi:type="ecore:EReference" name="arguments" eType="#//Arguments"
         containment="true"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="attributeFinderOptions" eType="#//Expression"
+        containment="true"/>
   </eClassifiers>
   <eClassifiers xsi:type="ecore:EClass" name="AttributeUnionStep" eSuperTypes="#//UnionStep">
     <eStructuralFeatures xsi:type="ecore:EAttribute" name="attributes" unique="false"
@@ -49,6 +51,8 @@
         containment="true"/>
     <eStructuralFeatures xsi:type="ecore:EReference" name="arguments" eType="#//Arguments"
         containment="true"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="attributeFinderOptions" eType="#//Expression"
+        containment="true"/>
     <eStructuralFeatures xsi:type="ecore:EReference" name="steps" upperBound="-1"
         eType="#//Step" containment="true"/>
   </eClassifiers>
@@ -56,6 +60,8 @@
     <eStructuralFeatures xsi:type="ecore:EReference" name="identifier" eType="#//FunctionIdentifier"
         containment="true"/>
     <eStructuralFeatures xsi:type="ecore:EReference" name="arguments" eType="#//Arguments"
+        containment="true"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="attributeFinderOptions" eType="#//Expression"
         containment="true"/>
     <eStructuralFeatures xsi:type="ecore:EReference" name="steps" upperBound="-1"
         eType="#//Step" containment="true"/>
@@ -193,6 +199,8 @@
     <eStructuralFeatures xsi:type="ecore:EReference" name="identifier" eType="#//FunctionIdentifier"
         containment="true"/>
     <eStructuralFeatures xsi:type="ecore:EReference" name="arguments" eType="#//Arguments"
+        containment="true"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="attributeFinderOptions" eType="#//Expression"
         containment="true"/>
   </eClassifiers>
   <eClassifiers xsi:type="ecore:EClass" name="Import">

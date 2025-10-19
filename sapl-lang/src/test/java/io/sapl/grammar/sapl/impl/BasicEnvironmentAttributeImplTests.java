@@ -18,6 +18,7 @@
 package io.sapl.grammar.sapl.impl;
 
 import io.sapl.api.interpreter.Val;
+import io.sapl.attributes.broker.api.AttributeFinderInvocation;
 import io.sapl.attributes.broker.api.AttributeStreamBroker;
 import io.sapl.grammar.sapl.BasicEnvironmentAttribute;
 import io.sapl.grammar.sapl.SaplFactory;
@@ -25,6 +26,7 @@ import io.sapl.grammar.sapl.impl.util.ErrorFactory;
 import io.sapl.interpreter.context.AuthorizationContext;
 import io.sapl.testutil.MockUtil;
 import io.sapl.testutil.ParserUtil;
+import lombok.val;
 import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Flux;
 import reactor.test.StepVerifier;
@@ -36,6 +38,11 @@ import static io.sapl.testutil.TestUtil.assertExpressionEvaluatesTo;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
+import java.time.Duration;
+import java.util.Map;
+import java.util.concurrent.atomic.AtomicReference;
+import reactor.util.context.Context;
+import static org.assertj.core.api.Assertions.assertThat;
 
 class BasicEnvironmentAttributeImplTests {
 
@@ -94,4 +101,189 @@ class BasicEnvironmentAttributeImplTests {
         return step;
     }
 
+    @Test
+    void attributeFinderInvocationRespectsDefaultOptions() {
+        val capturedInvocation = new AtomicReference<AttributeFinderInvocation>();
+        val capturingBroker    = mockCapturingAttributeStreamBroker(capturedInvocation);
+
+        val expression        = attributeFinderStep();
+        val evaluationContext = AuthorizationContext.setAttributeStreamBroker(
+                AuthorizationContext.setVariables(Context.empty(), Map.of()), capturingBroker);
+
+        StepVerifier.create(expression.evaluate().contextWrite(evaluationContext)).expectNextCount(1).verifyComplete();
+
+        val invocation = capturedInvocation.get();
+        assertThat(invocation).isNotNull();
+        assertThat(invocation.initialTimeOut()).isEqualTo(Duration.ofMillis(3000L));
+        assertThat(invocation.pollIntervall()).isEqualTo(Duration.ofMillis(30000L));
+        assertThat(invocation.backoff()).isEqualTo(Duration.ofMillis(1000L));
+        assertThat(invocation.retries()).isEqualTo(3);
+        assertThat(invocation.fresh()).isFalse();
+    }
+
+    @Test
+    void attributeFinderInvocationRespectsLocalOptions() throws IOException {
+        val capturedInvocation = new AtomicReference<AttributeFinderInvocation>();
+        val capturingBroker    = mockCapturingAttributeStreamBroker(capturedInvocation);
+
+        val expression = ParserUtil.expression("""
+                <test.attribute[{
+                    "initialTimeOutMs": 5000,
+                    "pollIntervalMs": 60000,
+                    "backoffMs": 2000,
+                    "retries": 5,
+                    "fresh": true
+                }]>
+                """);
+
+        val evaluationContext = AuthorizationContext.setAttributeStreamBroker(
+                AuthorizationContext.setVariables(Context.empty(), Map.of()), capturingBroker);
+
+        StepVerifier.create(expression.evaluate().contextWrite(evaluationContext)).expectNextCount(1).verifyComplete();
+
+        val invocation = capturedInvocation.get();
+        assertThat(invocation).isNotNull();
+        assertThat(invocation.initialTimeOut()).isEqualTo(Duration.ofMillis(5000L));
+        assertThat(invocation.pollIntervall()).isEqualTo(Duration.ofMillis(60000L));
+        assertThat(invocation.backoff()).isEqualTo(Duration.ofMillis(2000L));
+        assertThat(invocation.retries()).isEqualTo(5);
+        assertThat(invocation.fresh()).isTrue();
+    }
+
+    @Test
+    void attributeFinderInvocationRespectsGlobalOptions() throws IOException {
+        val capturedInvocation = new AtomicReference<AttributeFinderInvocation>();
+        val capturingBroker    = mockCapturingAttributeStreamBroker(capturedInvocation);
+
+        val expression = ParserUtil.expression("<test.attribute>");
+
+        val globalOptions = Val.ofJson("""
+                {
+                    "attributeFinderOptions": {
+                        "initialTimeOutMs": 7000,
+                        "pollIntervalMs": 45000,
+                        "backoffMs": 1500,
+                        "retries": 7,
+                        "fresh": true
+                    }
+                }
+                """);
+
+        val evaluationContext = AuthorizationContext.setAttributeStreamBroker(
+                AuthorizationContext.setVariables(Context.empty(), Map.of("SAPL", globalOptions)), capturingBroker);
+
+        StepVerifier.create(expression.evaluate().contextWrite(evaluationContext)).expectNextCount(1).verifyComplete();
+
+        val invocation = capturedInvocation.get();
+        assertThat(invocation).isNotNull();
+        assertThat(invocation.initialTimeOut()).isEqualTo(Duration.ofMillis(7000L));
+        assertThat(invocation.pollIntervall()).isEqualTo(Duration.ofMillis(45000L));
+        assertThat(invocation.backoff()).isEqualTo(Duration.ofMillis(1500L));
+        assertThat(invocation.retries()).isEqualTo(7);
+        assertThat(invocation.fresh()).isTrue();
+    }
+
+    @Test
+    void localOptionsOverrideGlobalOptions() throws IOException {
+        val capturedInvocation = new AtomicReference<AttributeFinderInvocation>();
+        val capturingBroker    = mockCapturingAttributeStreamBroker(capturedInvocation);
+
+        val expression = ParserUtil.expression("""
+                <test.attribute[{
+                    "initialTimeOutMs": 2000,
+                    "retries": 10
+                }]>
+                """);
+
+        val globalOptions = Val.ofJson("""
+                {
+                    "attributeFinderOptions": {
+                        "initialTimeOutMs": 8000,
+                        "pollIntervalMs": 50000,
+                        "backoffMs": 3000,
+                        "retries": 2,
+                        "fresh": true
+                    }
+                }
+                """);
+
+        val evaluationContext = AuthorizationContext.setAttributeStreamBroker(
+                AuthorizationContext.setVariables(Context.empty(), Map.of("SAPL", globalOptions)), capturingBroker);
+
+        StepVerifier.create(expression.evaluate().contextWrite(evaluationContext)).expectNextCount(1).verifyComplete();
+
+        val invocation = capturedInvocation.get();
+        assertThat(invocation).isNotNull();
+        assertThat(invocation.initialTimeOut()).isEqualTo(Duration.ofMillis(2000L));
+        assertThat(invocation.pollIntervall()).isEqualTo(Duration.ofMillis(50000L));
+        assertThat(invocation.backoff()).isEqualTo(Duration.ofMillis(3000L));
+        assertThat(invocation.retries()).isEqualTo(10);
+        assertThat(invocation.fresh()).isTrue();
+    }
+
+    @Test
+    void invalidOptionTypesFallBackToDefaults() throws IOException {
+        val capturedInvocation = new AtomicReference<AttributeFinderInvocation>();
+        val capturingBroker    = mockCapturingAttributeStreamBroker(capturedInvocation);
+
+        val expression = ParserUtil.expression("""
+                <test.attribute[{
+                    "initialTimeOutMs": "not-a-number",
+                    "retries": true,
+                    "fresh": 123
+                }]>
+                """);
+
+        val evaluationContext = AuthorizationContext.setAttributeStreamBroker(
+                AuthorizationContext.setVariables(Context.empty(), Map.of()), capturingBroker);
+
+        StepVerifier.create(expression.evaluate().contextWrite(evaluationContext)).expectNextCount(1).verifyComplete();
+
+        val invocation = capturedInvocation.get();
+        assertThat(invocation).isNotNull();
+        assertThat(invocation.initialTimeOut()).isEqualTo(Duration.ofMillis(3000L));
+        assertThat(invocation.pollIntervall()).isEqualTo(Duration.ofMillis(30000L));
+        assertThat(invocation.backoff()).isEqualTo(Duration.ofMillis(1000L));
+        assertThat(invocation.retries()).isEqualTo(3);
+        assertThat(invocation.fresh()).isFalse();
+    }
+
+    @Test
+    void optionsFromVariableReference() throws IOException {
+        val capturedInvocation = new AtomicReference<AttributeFinderInvocation>();
+        val capturingBroker    = mockCapturingAttributeStreamBroker(capturedInvocation);
+
+        val expression = ParserUtil.expression("<test.attribute[customOptions]>");
+
+        val customOptions = Val.ofJson("""
+                {
+                    "initialTimeOutMs": 4000,
+                    "fresh": true
+                }
+                """);
+
+        val evaluationContext = AuthorizationContext.setAttributeStreamBroker(
+                AuthorizationContext.setVariables(Context.empty(), Map.of("customOptions", customOptions)),
+                capturingBroker);
+
+        StepVerifier.create(expression.evaluate().contextWrite(evaluationContext)).expectNextCount(1).verifyComplete();
+
+        val invocation = capturedInvocation.get();
+        assertThat(invocation).isNotNull();
+        assertThat(invocation.initialTimeOut()).isEqualTo(Duration.ofMillis(4000L));
+        assertThat(invocation.pollIntervall()).isEqualTo(Duration.ofMillis(30000L));
+        assertThat(invocation.backoff()).isEqualTo(Duration.ofMillis(1000L));
+        assertThat(invocation.retries()).isEqualTo(3);
+        assertThat(invocation.fresh()).isTrue();
+    }
+
+    private static AttributeStreamBroker mockCapturingAttributeStreamBroker(
+            AtomicReference<AttributeFinderInvocation> capturedInvocation) {
+        val broker = mock(AttributeStreamBroker.class);
+        when(broker.attributeStream(any())).thenAnswer(invocation -> {
+            capturedInvocation.set(invocation.getArgument(0));
+            return Flux.just(Val.TRUE);
+        });
+        return broker;
+    }
 }

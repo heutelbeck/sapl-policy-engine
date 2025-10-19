@@ -36,7 +36,7 @@ public class AttributeFinderStepImplCustom extends AttributeFinderStepImpl {
 
     @Override
     public Flux<Val> apply(@NonNull Val entity) {
-        return AttributeFactory.evaluateAttibute(this, identifier, entity, arguments);
+        return AttributeFactory.evaluateAttribute(this, identifier, entity, arguments, attributeFinderOptions);
     }
 
     @Override
