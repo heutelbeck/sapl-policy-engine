@@ -56,7 +56,7 @@ jobs:
           echo "version=$VERSION" >> $GITHUB_OUTPUT
 
       - name: Build Required Modules Only
-        run: mvn -B clean install -pl sapl-documentation-generator -am -DskipTests -T 1C
+        run: mvn -B clean install -pl sapl-documentation-generator,sapl-bom -am -DskipTests -T 1C
 
       - name: Run Documentation Generator
         run: |
