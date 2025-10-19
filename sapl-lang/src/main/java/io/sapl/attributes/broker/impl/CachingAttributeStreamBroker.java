@@ -69,7 +69,7 @@ public class CachingAttributeStreamBroker implements AttributeStreamBroker {
      * @param invocation an invocation
      * @param pipsWithNameOfInvocation all PIPs with the same name.
      * @return a new AttributeStream, which is connected to a matching PIP is
-     * present. Else directly, an error is published in the stream that no PIP was
+     * present. Else directly, an error is published in the stream that no PIP
      * was found for the invocation.
      */
     private AttributeStream newAttributeStream(final AttributeFinderInvocation invocation,
@@ -134,8 +134,8 @@ public class CachingAttributeStreamBroker implements AttributeStreamBroker {
             }
             final var finderImplementations           = pipImplementation.implementsations();
             final var varargsFindersForDelayedLoading = new ArrayList<AttributeFinderSpecification>();
-            // Explanation: First load the non-varargs finders. If we would load a varargs
-            // first, this may trigger a match with an existing subscription and it would
+            // Explanation: First load the non-varargs finders. If we loaded a varargs
+            // first, this may trigger a match with an existing subscription, and it would
             // wrongly subscribe to it even if there also exist an exact match which has
             // not been seen while loading yet. If you fist load the exact matches, the
             // varargs match will not override it and the loading of the library is

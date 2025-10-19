@@ -8,7 +8,7 @@ code changes.
 
 English is the mandated language for all communication and contributions.
 
-This project has adopted a [Code of Conduct](CODE_OF_CONDUCT.md) and it will be enforced
+This project has adopted a [Code of Conduct,](CODE_OF_CONDUCT.md) and it will be enforced
 in any communication.
 
 ## Create an issue
@@ -19,7 +19,7 @@ the [issue page][issue-link].
 Choose and adhere to the provided templates and be as precise as possible to enable an
 easy evaluation of the issue.
 If you're interested in resolving your issue yourself, take a look at the possibility of
-creating [code contributions](#propose-a-code-change)](#propose-a-code-change).
+creating [code contributions](#propose-a-code-change)(#propose-a-code-change).
 
 **Before creating any issue, please look up already closed or open issues!**
 
@@ -142,7 +142,7 @@ be fixed, please add a comment to your pull request accordingly.
 
 To avoid issues on SonarCloud, you can use [SonarLint][sonarlint] and the
 [SpotBugs plugin][spotbugs-plugins] in your IDE to keep your code clean. Sb-contrib 
-can be added to the SpotBugs plugin and you can use our [exclude filter file][spotbugs-exclude-filter] in your SpotBugs plugin configuration to exclude certain 
+can be added to the SpotBugs plugin, and you can use our [exclude filter file][spotbugs-exclude-filter] in your SpotBugs plugin configuration to exclude certain 
 source files and rules from your local SpotBugs analysis. \
 Please note that not all issues on SonarCloud can be avoided by using SonarLint due to technical limitations of 
 SonarLint.

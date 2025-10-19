@@ -100,7 +100,7 @@ To use a PDP two implementations of the API are supplied. First, a completely em
    </dependency>
 ```
 
-The library with Spring auto configuration support:
+The library with Spring autoconfiguration support:
 
 ```xml
    <dependency>
@@ -122,7 +122,7 @@ Alternatively, a remote PDP server can be used via the same interface by using t
    </dependency>
 ```
 
-The library with Spring auto configuration support:
+The library with Spring autoconfiguration support:
 
 ```xml
    <dependency>

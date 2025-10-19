@@ -42,7 +42,7 @@ public class MarkdownGenerator {
     private static final Parser PARSER = Parser.builder().build();
 
     /*
-     * HTML renderer for converting markdown document nodes to HTML strings.
+     * HTML renderer for converting Markdown document nodes to HTML strings.
      */
     private static final HtmlRenderer RENDERER = HtmlRenderer.builder().build();
 
@@ -53,7 +53,7 @@ public class MarkdownGenerator {
 
     /**
      * Generates markdown documentation for a function library.
-     * Creates a structured markdown document with library name, description,
+     * Creates a structured Markdown document with library name, description,
      * library-level documentation, and individual function documentation.
      * Each function is separated by horizontal rules.
      *
@@ -81,7 +81,7 @@ public class MarkdownGenerator {
 
     /**
      * Generates markdown documentation for a policy information point.
-     * Creates a structured markdown document with PIP namespace, description,
+     * Creates a structured Markdown document with PIP namespace, description,
      * general documentation, and individual attribute documentation.
      * Each attribute is separated by horizontal rules.
      *

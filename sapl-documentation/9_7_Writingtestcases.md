@@ -116,7 +116,7 @@ Further mock types or overloaded methods are available [here](https://github.com
 
 The next defines the `AuthorizationSubscription` for the policy evaluation.
 
-- pass an `AuthorizationSubscription` created by it’s factory methods
+- pass an `AuthorizationSubscription` created by its factory methods
 
   ```java
   .when(AuthorizationSubscription.of("willi", "read", "something"))

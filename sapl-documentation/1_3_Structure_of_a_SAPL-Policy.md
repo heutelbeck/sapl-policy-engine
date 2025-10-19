@@ -63,7 +63,7 @@ where
     !<time.localTimeIsBetween("08:00:00", "18:00:00")>;
 ```
 
-This deny policy explicitly prohibits access outside business hours. The `<time.localTimeIsBetween(...)>` syntax accesses a streaming time attribute that continuously checks whether the current time falls within the specified window (covered in detail in [Accessing Attributes](../1_5_AccessingAttributes/)). The `!` operator negates the result, making the condition true when the current time is **outside** business hours.
+This `deny` policy explicitly prohibits access outside business hours. The `<time.localTimeIsBetween(...)>` syntax accesses a streaming time attribute that continuously checks whether the current time falls within the specified window (covered in detail in [Accessing Attributes](../1_5_AccessingAttributes/)). The `!` operator negates the result, making the condition true when the current time is **outside** business hours.
 
 Deny policies are useful for:
 - Implementing explicit prohibitions (blacklists, time restrictions)

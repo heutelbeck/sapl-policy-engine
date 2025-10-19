@@ -5,7 +5,7 @@ This module contains an eclipse update site which can be used to install the io.
 The following steps can be used to test a locally built version of the plugin in the Eclipse IDE:
 - Build the project with `mvn clean install`.
 - Open the "Install" dialog in Eclipse (Help -> Install New Software...).
-- Add the local update-site  to Eclipse (Click on "Add..." , then on "Local..." and select the local update-site.
+- Add the local update-site to Eclipse (Click on "Add...", then on "Local..." and select the local update-site).
   It can be found in this module in the subdirectory [target/repository](target/repository).
 - Select the update-site in the dropdown after "Work with". Its name is "SAPL Eclipse update site".
 - Select "SAPL" in the table below.

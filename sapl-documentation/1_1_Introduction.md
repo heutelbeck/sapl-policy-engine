@@ -121,7 +121,7 @@ If the Resource Access Point is a function `RAP: A → B`, then the Policy Enfor
 
 The PEP transforms the RAP by wrapping it with authorization logic, returning a new function that either yields an error (access denied) or the original result from the RAP.
 
-On first glance, this appears to be significant overhead. However, this is how a lot of real-world code looks when dealing with complex access control requirements that go beyond simple role-based access control.
+At first glance, this appears to be significant overhead. However, this is how a lot of real-world code looks when dealing with complex access control requirements that go beyond simple role-based access control.
 
 **The problem without SAPL:**
 * The result often is code where the separation of concerns between domain logic and access control is not made explicit.
@@ -181,7 +181,7 @@ There exist several proprietary platform-dependent or standardized languages, su
 - **Modularity and Distribution**. SAPL allows managing policies in a modular fashion allowing the distribution of authoring responsibilities across teams.
 - **Expressiveness**. SAPL provides access control schemas beyond the capabilities of most other practical languages. It allows for attribute-based access control (ABAC), role-based access control (RBAC), forms of entity-based access control (EBAC), and parameterized attribute access and attribute streaming.
 - **Human Readability**. The SAPL syntax is designed from the ground up to be easily readable by humans. Basic SAPL is easy to pick up for getting started but offers enough expressiveness to address complex access control scenarios.
-- **Transformation and Filtering**. SAPL allows transforming resources and filtering data from resources (e.g., blacken the first digits of a credit card number or hiding birth dates by assigning individuals into age groups).
+- **Transformation and Filtering**. SAPL allows transforming resources and filtering data from resources (e.g., blacken the first digits of a credit card number or hiding birthdays by assigning individuals into age groups).
 - SAPL supports **session and data stream-based applications** and offers low-latency authorization for interactive applications and data streams.
 - SAPL supports **JSON-driven APIs** and integrates easily with modern JSON-based APIs. The core data model of SAPL is JSON offering straightforward reasoning over such data and simple access to external attributes from RESTful JSON APIs.
 - SAPL supports **Multi-Subscriptions**. SAPL allows bundling multiple authorization subscriptions into one multi-subscription, thus further reducing connection time and latency.

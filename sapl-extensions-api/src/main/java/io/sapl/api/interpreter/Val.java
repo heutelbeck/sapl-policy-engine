@@ -401,7 +401,7 @@ public final class Val implements Traced, Serializable {
     }
 
     /**
-     * @return true, iff value is a Integer number.
+     * @return true, iff value is an Integer number.
      */
     public boolean isInt() {
         return isDefined() && value.canConvertToInt();

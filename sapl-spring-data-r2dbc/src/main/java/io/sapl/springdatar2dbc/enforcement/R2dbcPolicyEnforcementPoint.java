@@ -41,7 +41,7 @@ import static io.sapl.springdatacommon.utils.Utilities.convertReturnTypeIfNecess
  * MongoDb database type. A {@link MethodInterceptor} is needed to manipulate
  * the database method query. At the beginning the corresponding
  * {@link io.sapl.api.pdp.AuthorizationSubscription} is searched for and built
- * together if necessary. Afterwards between 4 scenarios is differentiated and
+ * together if necessary. Afterward between 4 scenarios is differentiated and
  * acted accordingly.
  * <p>
  * Scenario 1: The method of the repository, which is to be executed, has a
@@ -85,7 +85,7 @@ public class R2dbcPolicyEnforcementPoint<T> implements MethodInterceptor {
                         "The QueryEnforce annotation cannot be applied to custom repository methods. ");
             }
 
-            @SuppressWarnings("unchecked") // over repositoryInformation we can be save about domainType
+            @SuppressWarnings("unchecked") // over repositoryInformation we can be safe about domainType
             final var domainType = (Class<T>) repositoryInformation.getDomainType();
 
             final var returnClassOfMethod = Objects.requireNonNull(repositoryMethod).getReturnType();

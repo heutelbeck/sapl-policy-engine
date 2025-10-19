@@ -30,7 +30,7 @@ import static io.sapl.grammar.sapl.impl.util.OperatorUtil.operator;
  * Checks for equality of two values.
  * <p>
  * Grammar: Comparison returns Expression: Prefixed (({Equals.left=current}
- * '==') right=Prefixed)? ;
+ * '==') right=Prefixed)?
  */
 public class EqualsImplCustom extends EqualsImpl {
 

@@ -146,7 +146,7 @@ If the SAPL server runs in a [Docker container](#running-directly-as-a-docker-co
 
 To configure `Bucket4j` in your application, you'll need to adjust some properties in your configuration file. 
 
-Firstly, set `bucket4j.enabled=true` to activate Bucket4j's auto-configuration feature.
+Firstly, set `bucket4j.enabled=true` to activate Bucket4j's autoconfiguration feature.
 
 Secondly, set `infinispan.embedded.enabled=true` to use the embedded cache by infinispan.
 
@@ -503,7 +503,7 @@ After the build concludes an executable JAR will be available in the folder `sap
 
 The server application is available as container image. This container image is created using [Paketo Builder](https://paketo.io/docs/concepts/builders/) through the [Spring Boot Maven plugin](https://docs.spring.io/spring-boot/docs/current/maven-plugin/reference/htmlsingle/), eliminating the need for a Dockerfile.
 
-Here, the server is not configured with any TLS security or authentication. It is expected that in deployment this responsibility is delegated to the infrastructure, e. g., a matching Kubernetes Ingress.
+Here, the server is not configured with any TLS security or authentication. It is expected that in deployment this responsibility is delegated to the infrastructure, e.g., a matching Kubernetes Ingress.
 
 #### Running Directly as a Docker Container
 

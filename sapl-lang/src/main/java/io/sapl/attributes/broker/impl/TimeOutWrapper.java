@@ -35,20 +35,20 @@ import java.util.concurrent.atomic.AtomicReference;
 class TimeOutWrapper {
     /**
      * This function wraps a raw Flux of Val and ensures the following invariants:
-     *
+     * <p/>
      * a) If the source Flux is empty, the wrapped flux immediately emits a
      * Val.UNDIEFINED.
-     *
+     * <p/>
      * b) If the source Flux does not emit a value before the provided time out
      * expires, the wrapped flux emits a Val.UNDEFINED but stays subscribed to the
      * source Flux and emits subsequent values whenever the source emits them, this
      * includes errors.
-     *
+     * <p/>
      * c) If the source Flux emits values and completes the wrapped FLux also
-     * immediately completes and does not stay alive until the time out expires.
-     *
+     * immediately completes and does not stay alive until the time-out expires.
+     * <p/>
      * @param flux a Flux of Val values.
-     * @param timeOut The time out before the wrapped flux emits an undefined value.
+     * @param timeOut The time-out before the wrapped flux emits an undefined value.
      * @return a flux identical to the original flux, that emits a Val.UNDEFINED
      * after the given time out expired if the original flux did not emit any value
      * until then.
@@ -59,21 +59,21 @@ class TimeOutWrapper {
 
     /**
      * This function wraps a raw Flux of Val and ensures the following invariants:
-     *
+     * <p/>
      * a) If the source Flux is empty, the wrapped flux immediately emits the
      * provided emptyFluxValue.
-     *
+     * <p/>
      * b) If the source Flux does not emit a value before the provided time out
      * expires, the wrapped flux emits the provided timeOutValue but stays
      * subscribed to the source Flux and emits subsequent values whenever the source
      * emits them, this includes errors.
-     *
+     * <p/>
      * c) If the source Flux emits values and completes the wrapped FLux also
-     * immediately completes and does not stay alive until the time out expires.
+     * immediately completes and does not stay alive until the time-out expires.
      *
      * @param flux a Flux of Val values.
-     * @param timeOut The time out before the wrapped flux emits an undefined value.
-     * @param timeOutValue the value emitted when a time out occurs. E.g.,
+     * @param timeOut The time-out before the wrapped flux emits an undefined value.
+     * @param timeOutValue the value emitted when a time-out occurs. E.g.,
      * Val.UNDEFINED or a Val.error(...).
      * @param emptyFluxValue the value emitted when the original flux is empty.
      * E.g., Val.UNDEFINED or a Val.error(...).
@@ -100,9 +100,9 @@ class TimeOutWrapper {
                                 .onErrorComplete();
         // @formatter:on
 
-        // Do not use Flux.merge. If doing so, one cannot cancel the time out if the
-        // original Flux ends before the time out happens. This way the disposable is
-        // accessible and the time out can be disposed.
+        // Do not use Flux.merge. If doing so, one cannot cancel the time-out if the
+        // original Flux ends before the time-out happens. This way the disposable is
+        // accessible and the time-out can be disposed.
         final var mergedFlux = mergedSink.asFlux().doOnSubscribe(s -> {
             timeoutSubscription.set(timeout.subscribe());
             valuesSubscription.set(values.subscribe());

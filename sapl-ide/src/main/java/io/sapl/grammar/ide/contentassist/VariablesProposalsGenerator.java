@@ -64,7 +64,7 @@ public class VariablesProposalsGenerator {
          */
         if (null == TreeNavigationUtil.goToFirstParent(context.getCurrentModel(), Schema.class)) {
             /*
-             * The default variable names can always be valid identifier outside of the
+             * The default variable names can always be valid identifier outside the
              * schema definition.
              */
             proposals.addAll(AUTHORIZATION_SUBSCRIPTION_VARIABLES);

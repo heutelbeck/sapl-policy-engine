@@ -19,8 +19,8 @@ For users of the Eclipse IDE it is recommended to use the dedicated
 ## Configure SAPL Language server in Kate
 
 It is required to add a syntax highlighting file for sapl files to Kate before configuring the LSP connection.
-A file with the following content needs to be added as an xml file to the configuration directory.
-For Linux it is usually`$HOME/.local/share/org.kde.syntax-highlighting/syntax/` and for Windows
+A file with the following content needs to be added as a xml file to the configuration directory.
+For Linux, it is usually`$HOME/.local/share/org.kde.syntax-highlighting/syntax/` and for Windows
 `%USERPROFILE%\AppData\Local\org.kde.syntax-highlighting\syntax`.
 Details can be found at [Working with Syntax Highlighting](https://docs.kde.org/stable5/en/kate/katepart/highlight.html).
 

@@ -3,7 +3,7 @@
 ## Overview
 
 This project provides a PIP which provides information from geo-trackers (Traccar and OwnTracks), Databases (PostGIS and MySQL). 
-Also there is a function library containing geo-spatial operations like "within" or "touches". Finally there's a converter-libary which can be used to convert geometries to a different notation.
+Also, there is a function library containing geospatial operations like "within" or "touches". Finally, there's a converter-library which can be used to convert geometries to a different notation.
 
 ### Setup
 
@@ -22,7 +22,7 @@ EmbeddedPolicyDecisionPoint pdp = PolicyDecisionPointFactory.filesystemPolicyDec
 
 ### Traccar
 
-After establishing a session with the traccar server the PIP uses the traccar socket endpoint to provide the current position of a device. Additionally all of the devices geofences are responded too.
+After establishing a session with the Traccar server the PIP uses the Traccar socket endpoint to provide the current position of a device. Additionally, all the devices geofences are responded too.
 You can use the "within" function from the GeoFunctions-library to check if the device is inside a fence.
 
 #### Example policy
@@ -37,11 +37,11 @@ where
 
 #### Parameters
 
-* "user": the traccar user account
+* "user": the Traccar user account
 * "password": the password of the account
-* "server": the ip/dns-name of the traccar server
+* "server": the ip/dns-name of the Traccar server
 * "protocol": "http"/"https". (default is "http")
-* "responseFormat": Possible values: "GEOJSON", "WKT", "GML", "KML" (default is "GEOJSON" which is reccomended as the GeoFunction-library needs GeoJson as parameters)
+* "responseFormat": Possible values: "GEOJSON", "WKT", "GML", "KML" (default is "GEOJSON" which is recommended as the GeoFunction-library needs GeoJson as parameters)
 * "deviceId": the id of the device (int)
 * "latitudeFirst": true: latitude is first coordinate of geometries, false: longitude is first (Default is true)
 
@@ -132,7 +132,7 @@ Authentication:
 Query:
 * "table": the name of the table
 * "geoColumn": the name of the column containing the geometries
-* "defaultCRS": if you dont have a SRID specified in the database you can set the coordinate reference system for the response (int Default is 4326 for WGS84, EPSG:4326); otherwise the one from the database is used 
+* "defaultCRS": if you don't have a SRID specified in the database you can set the coordinate reference system for the response (int Default is 4326 for WGS84, EPSG:4326); otherwise the one from the database is used 
 * "responseFormat": Possible values: "GEOJSON", "WKT", "GML", "KML" (default is "GEOJSON" which is reccomended as the GeoFunction-library needs GeoJson as parameters)
 * "where": a where clause in sql, optional
 * "columns": additional columns to select (Array, ["column_1", "column_2",..., "column_x"], optional
@@ -151,7 +151,7 @@ where
  geoFunctions.within(position.geo, geofences[0].geo);
 ```
 
-To use MySQL replace postGis.geometry with mySql.geometry.
+To use MySQL replace `postGis.geometry` with `mySql.geometry`.
 
 The parameters used for the authentication can be stored in an environment variable called
  "POSTGIS_DEFAULT_CONFIG"/"MYSQL_DEFAULT_CONFIG"

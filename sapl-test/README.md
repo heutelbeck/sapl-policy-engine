@@ -512,7 +512,7 @@ e.g.
   group that is expected 0 - n times
 * `keyword1 keyword2 keyword3 keyword4` -> invalid since [String] is not contained in group
 
-> A extensive set of example test definitions can be found in the sapl-demos repository in the corresponding 
+> An extensive set of example test definitions can be found in the sapl-demos repository in the corresponding 
 > [Test Definition Subfolder](https://github.com/heutelbeck/sapl-demos/tree/master/sapl-demo-testing-dsl/junit/src/test/resources).
 > It contains various definitions showcasing different usecases for unit and integration tests. It also contains a lot 
 > of comments to explain the different definitions, so it is a good starting point to learn the SAPLTest DSL.
@@ -746,7 +746,7 @@ allows for an exact match with a string or using a matcher
 #### ExpectOrAdjustBlock
 
 Defines a Block that either contains a number of expect steps or adjustment steps. The blocks need to alternate and
-the chain has to end with a expect block.
+the chain has to end with an expect block.
 
 * ExpectBlock
   > expect (- [ExpectStep](#ExpectStep))+

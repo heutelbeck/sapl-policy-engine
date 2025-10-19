@@ -17,7 +17,7 @@
  */
 /**
  * This package contains the grammar definition of sapl policy files as well as
- * some configuration to setup sapl and to generate sources for the sapl grammar
+ * some configuration to set up sapl and to generate sources for the sapl grammar
  * with xtext.
  */
 @org.osgi.annotation.versioning.Version("3.0.0")

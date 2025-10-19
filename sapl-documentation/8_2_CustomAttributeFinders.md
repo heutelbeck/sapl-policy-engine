@@ -82,7 +82,7 @@ public Flux<Val> attribute(@Object Val leftHandObjectOfTheAttribute, Map<String,
 }
 ```
 
-Additionally, using Java variable argument lists, it is possible to declare attributes with a variable number of attributes. If a method wants to use variable arguments, the method must not declare any other parameters besides the optional left-hand or variables parameters. If an attribute is overloaded, an implementation with an exact match of the number of arguments takes precedence over a variable arguments implementation.
+Additionally, using Java variable argument lists, it is possible to declare attributes with a variable number of attributes. If a method wants to use variable arguments, the method must not declare any other parameters besides the optional left-hand or variables parameters. If an attribute is overloaded, an implementation with an exact match of the number of arguments takes precedence over a variable arguments' implementation.
 
 ```java
 /* subject.<user.attribute("AA","BB","CC")> */

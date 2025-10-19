@@ -164,7 +164,7 @@ public class DocumentationGenerator {
 
     /**
      * Generates markdown documentation for a function library.
-     * Creates a structured markdown document with library name, description,
+     * Creates a structured Markdown document with library name, description,
      * library-level documentation, and individual function documentation.
      * Each function is separated by horizontal rules.
      *
@@ -194,7 +194,7 @@ public class DocumentationGenerator {
 
     /**
      * Generates markdown documentation for a policy information point.
-     * Creates a structured markdown document with PIP namespace, description,
+     * Creates a structured Markdown document with PIP namespace, description,
      * general documentation, and individual attribute documentation.
      * Each attribute is separated by horizontal rules.
      *
@@ -222,7 +222,7 @@ public class DocumentationGenerator {
     }
 
     /**
-     * Appends Jekyll front matter to the markdown document.
+     * Appends Jekyll front matter to the Markdown document.
      * Includes title, parent page, and navigation order.
      *
      * @param stringBuilder the string builder to append to

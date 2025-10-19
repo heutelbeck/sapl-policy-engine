@@ -16,7 +16,7 @@ There are two layers with possibly multiple decisions that finally need to be co
 
 A combining algorithm describes how to come to the final decision. Both the PDP itself and each policy set must be configured with a combining algorithm.
 
-Some complexity is added to the algorithms if transformation statements in policies are used: There is no possibility to combine multiple transformation statements. Hence the combining algorithms have to deal with the situation that multiple policies evaluate to `PERMIT`, and at least one of them contains a transformation part. In case of such *transformation uncertainty*, the decision must not be `PERMIT`.
+Some complexity is added to the algorithms if transformation statements in policies are used: There is no possibility to combine multiple transformation statements. Hence, the combining algorithms have to deal with the situation that multiple policies evaluate to `PERMIT`, and at least one of them contains a transformation part. In case of such *transformation uncertainty*, the decision must not be `PERMIT`.
 
 SAPL provides the following combining algorithms:
 
@@ -27,7 +27,7 @@ SAPL provides the following combining algorithms:
 - `permit-overrides`
 - `first-applicable` (not allowed on PDP level for document combination)
 
-The algorithms work similarly on the PDP and on the policy set level. Thus the following section describes their function in general, using the term *policy document* for a policy and a policy set. If the algorithm is used on the PDP level, a *policy document* could be either a (top-level) policy or a policy set. On the policy set level, a *policy document* is always a policy.
+The algorithms work similarly on the PDP and on the policy set level. Thus, the following section describes their function in general, using the term *policy document* for a policy and a policy set. If the algorithm is used on the PDP level, a *policy document* could be either a (top-level) policy or a policy set. On the policy set level, a *policy document* is always a policy.
 
 ### `deny-unless-permit`
 
@@ -88,7 +88,7 @@ It works as follows:
 
 ### `first-applicable`
 
-This algorithm is used if the policy administrator manages the policy’s priority by their order in a policy set. As soon as the first policy returns `PERMIT`, `DENY`, or `INDETERMINATE`, its result is the final decision. Thus a "default" can be specified by creating a last policy without any conditions. If a decision is found, errors that might occur in later policies are ignored.
+This algorithm is used if the policy administrator manages the policy’s priority by their order in a policy set. As soon as the first policy returns `PERMIT`, `DENY`, or `INDETERMINATE`, its result is the final decision. Thus, a "default" can be specified by creating a last policy without any conditions. If a decision is found, errors that might occur in later policies are ignored.
 
 Since there is no order in the policy documents known to the PDP, the PDP cannot be configured with this algorithm. `first-applicable` might only be used for policy combination inside a policy set.
 

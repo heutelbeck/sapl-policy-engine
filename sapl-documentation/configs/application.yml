@@ -188,7 +188,7 @@ io.sapl.pdp.embedded:
 # A comma-separated list of directories can be set in loader.path. 
 # Here the server will pick up additional JARs and if the contained beans are in a sub package of 
 # 'io.sapl.server', or if the JARs are instrumented with the matching Spring autoconfiguration,
-# the libraries amd PIPs will be loaded at startup.
+# the libraries and PIPs will be loaded at startup.
 #   
 # loader.path: /pdp/data/lib
 #

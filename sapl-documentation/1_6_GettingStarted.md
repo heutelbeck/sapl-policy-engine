@@ -73,7 +73,7 @@ If you now send the same authorization request again to the PDP, it should retur
 
 10. So far we have just used a simple request-response pattern for answering authorization questions. Now let's move to a simple time-based publish-subscribe scenario.
 
-Issue the following request to the PDP. Note: here the API endpoint changed and we are no longer connecting to `https://localhost:8443/api/pdp/decide-once` but to `https://localhost:8443/api/pdp/decide`. This new endpoint returns server-sent events and the client stays subscribed to updates:
+Issue the following request to the PDP. Note: here the API endpoint changed, and we are no longer connecting to `https://localhost:8443/api/pdp/decide-once` but to `https://localhost:8443/api/pdp/decide`. This new endpoint returns server-sent events and the client stays subscribed to updates:
 ```powershell
 curl -v -k -H 'Authorization: Basic eHd1VWFSRDY1Rzozal9QSzcxYmp5IWhOMyp4cS54WnF2ZVUpdDVoS0xSXw==' -H 'Content-Type: application/json' -d '{"subject":"housemd","action":"use","resource":"MRT"}' https://localhost:8443/api/pdp/decide
 ```

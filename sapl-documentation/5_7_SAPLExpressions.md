@@ -211,19 +211,19 @@ Structure of `object`
 }
 ```
 
-| Expression | Returned Value | Explanation |
-| --- | --- | --- |
-| `object.key`  <br>`object['key']`  <br>`object["key"]` | `"value1"` | **Key step** in dot notation and bracket notation |
-| `object.array1[0]` | `{ "key" : "value2" }` | **Index step** |
-| `object.array2[-1]` | `5` | **Index step** with negative value n returns the n-th last element |
-| `object.*`  <br>`object[*]` | ["value1",<br>      [<br>        { "key" : "value2" },<br>        { "key" : "value3" }<br>      ],<br>      [ 1, 2, 3, 4, 5 ]<br>    ] | **Wildcard step** applied to an object, it returns an array with the value of each attribute - applied to an array, it returns the array itself |
-| `object.array2[0:-2:2]` | `[ 1, 3 ]` | **Array slicing step** starting from first to second last element with a step size of two |
-| `object..key`  <br>`object..['key']`  <br>`object..["key"]` | `[ "value1", "value2", "value3" ]` | **Recursive descent step** looking for an attribute |
-| `object..[0]` | `[ { "key" : "value2" }, 1 ]` | **Recursive descent step** looking for an array index |
-| `object.array2[(3+1)]` | `5` | **Expression step** that evaluates to number (index) - can also evaluate to an attribute name |
-| `object.array2[?(@>2)]` | `[ 3, 4, 5 ]` | **Condition step** that evaluates to true/false, `@` is a reference to the currently examined item - can also be applied to an object |
-| `object.array2[2,3]` | `[ 3 , 4 ]` | **Union step** for more than one array index |
-| `object["key","array2"]` | `[ "value1", [ 1, 2, 3, 4, 5 ] ]` | **Union step** for more than one attribute |
+| Expression                                                  | Returned Value                                                                                                                         | Explanation                                                                                                                                     |
+|-------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------|
+| `object.key`  <br>`object['key']`  <br>`object["key"]`      | `"value1"`                                                                                                                             | **Key step** in dot notation and bracket notation                                                                                               |
+| `object.array1[0]`                                          | `{ "key" : "value2" }`                                                                                                                 | **Index step**                                                                                                                                  |
+| `object.array2[-1]`                                         | `5`                                                                                                                                    | **Index step** with negative value n returns the n-th last element                                                                              |
+| `object.*`  <br>`object[*]`                                 | ["value1",<br>      [<br>        { "key" : "value2" },<br>        { "key" : "value3" }<br>      ],<br>      [ 1, 2, 3, 4, 5 ]<br>    ] | **Wildcard step** applied to an object, it returns an array with the value of each attribute - applied to an array, it returns the array itself |
+| `object.array2[0:-2:2]`                                     | `[ 1, 3 ]`                                                                                                                             | **Array slicing step** starting from first to second last element with a step size of two                                                       |
+| `object..key`  <br>`object..['key']`  <br>`object..["key"]` | `[ "value1", "value2", "value3" ]`                                                                                                     | **Recursive descent step** looking for an attribute                                                                                             |
+| `object..[0]`                                               | `[ { "key" : "value2" }, 1 ]`                                                                                                          | **Recursive descent step** looking for an array index                                                                                           |
+| `object.array2[(3+1)]`                                      | `5`                                                                                                                                    | **Expression step** that evaluates to number (index) - can also evaluate to an attribute name                                                   |
+| `object.array2[?(@>2)]`                                     | `[ 3, 4, 5 ]`                                                                                                                          | **Condition step** that evaluates to true/false, `@` is a reference to the currently examined item - can also be applied to an object           |
+| `object.array2[2,3]`                                        | `[ 3 , 4 ]`                                                                                                                            | **Union step** for more than one array index                                                                                                    |
+| `object["key","array2"]`                                    | `[ "value1", [ 1, 2, 3, 4, 5 ] ]`                                                                                                      | **Union step** for more than one attribute                                                                                                      |
 
 *Table 1. Selection Steps Overview*
 
@@ -237,7 +237,7 @@ The basic access syntax is quite similar to accessing an object’s attributes i
 Multiple selection steps can be **chained**. The steps are evaluated from left to right. Each step is applied to the result returned from the previous step.
 
 {: .info }
-**Example** <br /><br />The expression object.array\[2\] first selects the attribute with key array from the object object (first step). Then it returns the third element (index 2) of that array (second step). |
+**Example** <br /><br />The expression `object.array\[2\]` first selects the attribute with key array from the object `object` (first step). Then it returns the third element (index 2) of that array (second step). |
 
 
 ### Extended Possibilities
@@ -349,7 +349,7 @@ Although arrays do not have attributes (they have items), a key step can be appl
 
 In SAPL, it is possible to receive attributes that are not contained in the authorization subscription. Those attributes can be provided by external PIPs and obtained through attribute finders.
 
-The standard attributes in SAPL are intended to gather more information with regards to a given JSON value, i.e., the subject, action, resource, environment objects in the subscription, or any other JSON value.
+The standard attributes in SAPL are intended to gather more information in regard to a given JSON value, i.e., the subject, action, resource, environment objects in the subscription, or any other JSON value.
 
 A standard attribute finder is called via the selection step `.<finder.name>`. Where `finder.name` either is a fully qualified attribute finder name or can be a shorter name if imports are used (the finder name or the library alias followed by a period `.` and the finder name). Any number of selection steps can be appended after such a step.
 
@@ -502,7 +502,7 @@ The filter statements are applied successively from top to bottom.
 
 ### Custom Filter Functions
 
-Any function available in SAPL can be used in a filter statement. Hence it is easy to add custom filter functions.
+Any function available in SAPL can be used in a filter statement. Hence, it is easy to add custom filter functions.
 
 When used in a filter statement, the value to filter is passed to the function as its first argument. Consequently, the arguments specified in the function call are passed as second, third, etc., arguments.
 

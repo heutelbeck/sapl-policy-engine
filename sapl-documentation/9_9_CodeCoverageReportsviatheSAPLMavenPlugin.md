@@ -28,9 +28,9 @@ Currently, three coverage criteria are supported:
 
 ### Plugin Goals
 
-| **Goal** | **Description** |
-|:-----|:------------|
-| sapl:enable-coverage-collection | No description |
+| **Goal**                         | **Description**                                                                                |
+|:---------------------------------|:-----------------------------------------------------------------------------------------------|
+| sapl:enable-coverage-collection  | No description                                                                                 |
 | sapl:report-coverage-information | Collect coverage information and generate reports. Print path to HTML report in the Maven log. |
 
 ### Usage

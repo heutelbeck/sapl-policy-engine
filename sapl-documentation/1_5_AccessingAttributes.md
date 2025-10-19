@@ -141,7 +141,7 @@ Attribute access using PIPs (expressions in angle brackets `<...>`) must be plac
 - Must use eager evaluation operators (`&`, `|`) instead of lazy operators (`&&`, `||`)
 - Cannot contain PIP attribute lookups (`<finder.name>`)
 - Should be fast to evaluate for efficient policy indexing
-- Typically checks resource type and action
+- Typically, checks resource type and action
 
 **Body rules:**
 - Can use lazy evaluation operators (`&&`, `||`) for efficiency

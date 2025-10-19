@@ -73,7 +73,7 @@ public class InMemoryAttributeRepository implements AttributeRepository {
             // This operation is the reason for not using a concurrent queue.
             // It cannot implement an atomic operation like this and may create race
             // conditions.
-            // Therefore this operation has to be manually locked, and the manual locking on
+            // Therefore, this operation has to be manually locked, and the manual locking on
             // the internal queue makes the use of a concurrent queue redundant.
             var head = timeOutQueue.element();
             while (null != head) {

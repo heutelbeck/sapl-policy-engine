@@ -114,12 +114,12 @@ This module automatically configures your Spring application based on the added 
 
 This module contains the security namespace parsing code and Java configuration code. You need it if you use the Spring Security XML namespace for configuration or Spring Security’s Java Configuration support. The main package is `org.springframework.security.config`. None of the classes are intended for direct use in an application.
 
-| Dependency | Version | Description |
-|------------|---------|-------------|
-| spring-security-core |  |  |
-| spring-security-web |  | Required if you are using any web-related namespace configuration (optional). |
-| spring-security-ldap |  | Required if you are using the LDAP namespace options (optional). |
-| aspectjweaver | 1\.6.10 | Required if using the protect-pointcut namespace syntax (optional). |
+| Dependency           | Version | Description                                                                   |
+|----------------------|---------|-------------------------------------------------------------------------------|
+| spring-security-core |         |                                                                               |
+| spring-security-web  |         | Required if you are using any web-related namespace configuration (optional). |
+| spring-security-ldap |         | Required if you are using the LDAP namespace options (optional).              |
+| aspectjweaver        | 1\.6.10 | Required if using the protect-pointcut namespace syntax (optional).           |
 
 ### spring-security-web
 
@@ -132,12 +132,12 @@ This module contains the security namespace parsing code and Java configuration 
 
 This module contains filters and related web security infrastructure code. It contains anything with a servlet API dependency. You need it if you require Spring Security web authentication services and URL-based access control. The main package is `org.springframework.security.web`.
 
-| Dependency | Version | Description |
-|------------|---------|-------------|
-| spring-security-core |  |  |
-| spring-security-web |  | Required for clients that use HTTP remoting support. |
-| spring-jdbc |  | Required for a JDBC-based persistent remember-me token repository (optional). |
-| spring-tx |  | Required by remember-me persistent token repository implementations (optional). |
+| Dependency           | Version | Description                                                                     |
+|----------------------|---------|---------------------------------------------------------------------------------|
+| spring-security-core |         |                                                                                 |
+| spring-security-web  |         | Required for clients that use HTTP remoting support.                            |
+| spring-jdbc          |         | Required for a JDBC-based persistent remember-me token repository (optional).   |
+| spring-tx            |         | Required by remember-me persistent token repository implementations (optional). |
 
 ### jackson-datatype-jsr310
 
@@ -539,7 +539,7 @@ It is not possible to use the same annotation twice on the same method, e.g. you
 
 #### Constraints
 
-In SAPL, decisions can include additional requirements for the PEP to enforce beyond simply granting or denying access. SAPL decisions can include constraints, which are additional actions the PEP must perform to grant access. If a constraint is optional, it is called an *advice*. If the constraint is mandatory, it is called an *obligation*.
+In SAPL, decisions can include additional requirements for the PEP to enforce beyond simply granting or denying access. SAPL decisions can include constraints, which are additional actions the PEP must perform to grant access. If a constraint is optional, it is called *advice*. If the constraint is mandatory, it is called an *obligation*.
 
 - *Obligation*, i.e., a mandatory condition that the PEP must fulfil. If this is not possible, access must be denied.
 - *Advice*, i.e., an optional condition that the PEP should fulfil. If it fails to do so, access is still granted if the original  decision was `permit`.

@@ -71,7 +71,7 @@ public class SonarLineCoverageReportGenerator {
         /*
          * Sonarqube seems to require a path to the sapl file in the src directory
          *
-         * The path on the classpath "target/test-classes/policies/policySimple.sapl is
+         * The path on the classpath "target/test-classes/policies/policySimple.sapl" is
          * getting ignored because unknown to sonarqube
          */
         sonarFile.setPath(mavenBaseDir.toPath().resolve("src").resolve("main").resolve("resources").resolve(policyPath)

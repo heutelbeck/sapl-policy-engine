@@ -101,7 +101,7 @@ function parse (source) {
 
       try {
         formatted = formatter.formatJson(source, options.indent);
-        // Re-parse so exception output gets better line numbers
+        // Reparse so exception output gets better line numbers
         parsed = parser.parse(formatted);
       } catch (e) {
         if (! options.compact) {

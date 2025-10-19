@@ -37,18 +37,18 @@ import java.util.function.Consumer;
  * An instance represents an attribute stream in use. The attribute stream is
  * identified by this fully qualified attribute name and its parameter values,
  * i.e., the so-called PolicyInformationPointInvocation.
- *
+ * <p/>
  * This class is only to be used internally by the attribute broker for indexing
  * purposes.
- *
- * The ActiveAttribute takes a the PolicyInformationPointInvocation, a Flux<Val>
+ * <p/>
+ * The ActiveAttribute takes a PolicyInformationPointInvocation, a Flux<Val>
  * supplying the raw attribute stream matching the invocation, and a cleanup
  * action.
- *
- * The raw attribute stream is turned into a cached multi-cast stream, which
+ * <p/>
+ * The raw attribute stream is turned into a cached multicast stream, which
  * will call the cleanup action when the last subscriber cancelled, or the
  * stream terminated for some reason.
- *
+ * <p/>
  * The subscription to the raw attribute stream is kept alive for a given grace
  * period before it is cancelled, implementing a basic connection cache for
  * attribute streams.
