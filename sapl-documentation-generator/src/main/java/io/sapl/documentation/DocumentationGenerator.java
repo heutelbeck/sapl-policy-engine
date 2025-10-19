@@ -231,6 +231,7 @@ public class DocumentationGenerator {
                 layout: default
                 title: %s
                 parent: %s
+                grand_parent: SAPL Reference
                 nav_order: %d
                 ---
                 """, title, parent, navOrder));
