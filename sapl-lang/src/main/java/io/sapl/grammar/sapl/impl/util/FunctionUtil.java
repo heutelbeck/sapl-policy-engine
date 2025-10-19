@@ -20,6 +20,8 @@ package io.sapl.grammar.sapl.impl.util;
 import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.sapl.*;
 import io.sapl.interpreter.context.AuthorizationContext;
+import lombok.EqualsAndHashCode;
+import lombok.ToString;
 import lombok.experimental.UtilityClass;
 import org.eclipse.emf.ecore.EObject;
 import reactor.core.publisher.Flux;
@@ -32,7 +34,7 @@ import java.util.stream.Stream;
 @UtilityClass
 public class FunctionUtil {
 
-    public record ArgumentsAndOptions(Val[] arguments, Val options) {};
+    public record ArgumentsAndOptions(Val[] arguments, Val options) {}
 
     public Flux<ArgumentsAndOptions> combineArgumentFluxesAndOptions(Arguments arguments, Expression options) {
         if (options == null) {
