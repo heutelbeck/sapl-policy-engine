@@ -170,6 +170,8 @@
 		<module>sapl-eclipse-plugin/sapl-eclipse-feature</module>
 		<module>sapl-eclipse-plugin/sapl-eclipse-repository</module>
 
+        <module>sapl-documentation-generator</module>
+
 		<module>sapl-webflux-endpoint</module>
 		<module>sapl-rsocket-endpoint</module>
 		<module>sapl-vaadin-theme</module>

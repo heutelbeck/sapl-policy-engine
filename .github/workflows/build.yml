@@ -271,7 +271,7 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
 
       - name: Deploy Maven Artifacts
-        run: mvn -B --no-transfer-progress -pl !:sapl-server-lt,!:sapl-server-ce,!:sapl-playground,!:io.sapl.eclipse.feature,!:sapl-eclipse-repository,!:sapl-eclipse-target,!:sapl-eclipse-thirdparty,!:sapl-eclipse-ui,!:sapl-test-eclipse-ui -PsonatypeDeploy -DskipTests clean deploy
+        run: mvn -B --no-transfer-progress -pl !:sapl-server-lt,!:sapl-server-ce,!:sapl-playground,!:io.sapl.eclipse.feature,!:sapl-eclipse-repository,!:sapl-eclipse-target,!:sapl-eclipse-thirdparty,!:sapl-eclipse-ui,!:sapl-test-eclipse-ui,!:sapl-documentation-generator -PsonatypeDeploy -DskipTests clean deploy
         env:
           MAVEN_USERNAME: ${{ secrets.NEXUS_USERNAME }}
           MAVEN_CENTRAL_TOKEN: ${{ secrets.NEXUS_PASSWORD }}

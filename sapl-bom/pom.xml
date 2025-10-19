@@ -207,11 +207,16 @@
 				<artifactId>geo-functions</artifactId>
 				<version>${project.version}</version>
 			</dependency>
-			<dependency>
-				<groupId>${project.groupId}</groupId>
-				<artifactId>geo-traccar</artifactId>
-				<version>${project.version}</version>
-			</dependency>
+            <dependency>
+                <groupId>${project.groupId}</groupId>
+                <artifactId>geo-traccar</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>${project.groupId}</groupId>
+                <artifactId>sapl-documentation-markdown</artifactId>
+                <version>${project.version}</version>
+            </dependency>
 		</dependencies>
 	</dependencyManagement>
 	<profiles>
