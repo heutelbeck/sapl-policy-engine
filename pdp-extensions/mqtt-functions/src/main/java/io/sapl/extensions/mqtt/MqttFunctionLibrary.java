@@ -55,7 +55,7 @@ public class MqttFunctionLibrary {
                         Checks whether all ```topics``` match the wildcard ```wildcardTopic```.
 
             **Example:**
-            ```
+            ```sapl
             policy "allTopicsMatchMultilevelWildcardTopic"
             permit
               subject == "firstSubject"
@@ -87,7 +87,7 @@ public class MqttFunctionLibrary {
             Checks whether at least one topic in ```topics``` matches the wildcard ```wildcardTopic```.
 
             **Example:**
-            ```
+            ```sapl
             policy "atLeastOneTopicMatchesMultilevelWildcardTopic"
             permit
               subject == "secondSubject"

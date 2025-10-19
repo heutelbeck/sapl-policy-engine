@@ -49,13 +49,12 @@ public class YamlFunctionLibrary {
             value representing the content of the YAML document.
 
             **Example:**
-            ```
-            import yaml.*
+            ```sapl
             policy "example"
             permit
             where
                var yamlText = "name: Poppy\\ncolor: RED\\npetals: 9";
-               yamlToVal(yamlText) == {"name":"Poppy","color":"RED","petals":9};
+               yaml.yamlToVal(yamlText) == {"name":"Poppy","color":"RED","petals":9};
             ```
             """)
     public static Val yamlToVal(@Text Val yaml) {
@@ -73,14 +72,13 @@ public class YamlFunctionLibrary {
             ```valToYaml(value)```: Converts a SAPL ```value``` into a YAML string representation.
 
             **Example:**
-            ```
-            import yaml.*
+            ```sapl
             policy "example"
             permit
             where
                var object = {"name":"Poppy","color":"RED","petals":9};
                var expected = "---\\nname: \\"Poppy\\"\\ncolor: \\"RED\\"\\npetals: 9\\n";
-               valToYaml(object) == expected;
+               yaml.valToYaml(object) == expected;
             ```
             """, schema = """
             {

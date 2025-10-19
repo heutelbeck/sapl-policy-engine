@@ -55,8 +55,7 @@ public class TraccarFunctionLibrary {
 
             **Example:**
 
-            ```
-            import traccar.*
+            ```sapl
             policy "example"
             permit
             where
@@ -79,7 +78,7 @@ public class TraccarFunctionLibrary {
                       "motion": false
                       }
                 };
-                traccarPositionToGeoJSON(position) == '{"type":"Point","coordinates":[-122.4194,37.7749,100.0],"crs":{"type":"name","properties":{"name":"EPSG:4326"}}}';
+                traccar.traccarPositionToGeoJSON(position) == '{"type":"Point","coordinates":[-122.4194,37.7749,100.0],"crs":{"type":"name","properties":{"name":"EPSG:4326"}}}';
             ```
             """)
     public static Val traccarPositionToGeoJSON(Val traccarPosition) {
@@ -129,8 +128,7 @@ public class TraccarFunctionLibrary {
 
             **Example:**
 
-            ```
-            import traccar.*
+            ```sapl
             policy "example"
             permit
             where
@@ -144,9 +142,9 @@ public class TraccarFunctionLibrary {
                           "type": "polygon"
                       }
                    };
-                 traccarGeofenceToGeoJson(geofence) == '{"type":"Polygon","coordinates":[[[10.0,30.0],[40.0,40.0],[40.0,20.0],[20.0,10.0],[10.0,30.0]]],"crs":{"type":"name","properties":{"name":"EPSG:4326"}}}';
+                 traccar.traccarGeofenceToGeoJson(geofence) == '{"type":"Polygon","coordinates":[[[10.0,30.0],[40.0,40.0],[40.0,20.0],[20.0,10.0],[10.0,30.0]]],"crs":{"type":"name","properties":{"name":"EPSG:4326"}}}';
             ```
-             """)
+            """)
     public static Val traccarGeofenceToGeoJson(Val geofence) {
         if (!geofence.isDefined()) {
             return Val.error(String.format(EXPECTED_GEOFENCE_BUT_GOT_S_ERROR, geofence));

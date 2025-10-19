@@ -28,11 +28,11 @@ import org.springframework.http.HttpMethod;
 import reactor.core.publisher.Flux;
 
 @RequiredArgsConstructor
-@PolicyInformationPoint(name = "http", description = HttpPolicyInformationPoint.DESCRIPTION)
+@PolicyInformationPoint(name = "http", description = HttpPolicyInformationPoint.DESCRIPTION, pipDocumentation =  HttpPolicyInformationPoint.DOCUMENTATION)
 public class HttpPolicyInformationPoint {
-
-    public static final String DESCRIPTION = """
-            This Policy Information Point provided basic means to source attribute data by consuming
+    public static final String DESCRIPTION = "This Policy Information Point to get and monitor HTTP based information.";
+    public static final String DOCUMENTATION = """
+            This Policy Information Point provides basic means to source attribute data by consuming
             HTTP-based APIs and Websockets.
 
             The Attributes are named according to the HTTP verb, i.e., get, put, delete, post, and patch.
@@ -61,7 +61,7 @@ public class HttpPolicyInformationPoint {
             the response body to a SAPL value. Else, the response body is returned as a text value.
 
             Example:
-            ```
+            ```json
             {
               "baseUrl": "https://example.com",
               "path": "/api/owners",
@@ -90,7 +90,7 @@ public class HttpPolicyInformationPoint {
             polls it according the the settings.
 
             Example:
-            ```
+            ```sapl
             policy "http example"
             permit
             where
@@ -111,7 +111,7 @@ public class HttpPolicyInformationPoint {
             polls it according the the settings.
 
             Example:
-            ```
+            ```sapl
             policy "http example"
             permit
             where
@@ -133,7 +133,7 @@ public class HttpPolicyInformationPoint {
             polls it according the the settings.
 
             Example:
-            ```
+            ```sapl
             policy "http example"
             permit
             where
@@ -155,7 +155,7 @@ public class HttpPolicyInformationPoint {
             polls it according the the settings.
 
             Example:
-            ```
+            ```sapl
             policy "http example"
             permit
             where
@@ -177,7 +177,7 @@ public class HttpPolicyInformationPoint {
             request and polls it according the the settings.
 
             Example:
-            ```
+            ```sapl
             policy "http example"
             permit
             where
@@ -198,7 +198,7 @@ public class HttpPolicyInformationPoint {
             as sent by the server. Upon connection, the ```body``` of the settings is sent to the server.
 
             Example:
-            ```
+            ```sapl
             policy "http example"
             permit
             where
@@ -221,7 +221,7 @@ public class HttpPolicyInformationPoint {
             request and polls it according the the settings.
 
             Example:
-            ```
+            ```sapl
             policy "http example"
             permit
             where
@@ -239,7 +239,7 @@ public class HttpPolicyInformationPoint {
             request and polls it according the the settings.
 
             Example:
-            ```
+            ```sapl
             policy "http example"
             permit
             where
@@ -257,7 +257,7 @@ public class HttpPolicyInformationPoint {
             request and polls it according the the settings.
 
             Example:
-            ```
+            ```sapl
             policy "http example"
             permit
             where
@@ -275,7 +275,7 @@ public class HttpPolicyInformationPoint {
             request and polls it according the the settings.
 
             Example:
-            ```
+            ```sapl
             policy "http example"
             permit
             where
@@ -293,7 +293,7 @@ public class HttpPolicyInformationPoint {
             request and polls it according the the settings.
 
             Example:
-            ```
+            ```sapl
             policy "http example"
             permit
             where
@@ -311,7 +311,7 @@ public class HttpPolicyInformationPoint {
             as sent by the server. Upon connection, the ```body``` of the settings is sent to the server.
 
             Example:
-            ```
+            ```sapl
             policy "http example"
             permit
             where

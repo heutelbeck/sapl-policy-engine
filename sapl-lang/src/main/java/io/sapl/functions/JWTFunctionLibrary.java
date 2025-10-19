@@ -68,7 +68,7 @@ public class JWTFunctionLibrary {
 
             **Example:**
 
-            ```
+            ```sapl
             policy "jwt example"
             permit
             where
@@ -78,7 +78,7 @@ public class JWTFunctionLibrary {
 
             In this case, the statement ```"books.read" in jwt.parseJwt(rawToken).payload.scope;``` will evaluate to
             ```true```, as the the result of the ```parseJwt``` function would be:
-            ```
+            ```json
             {
               "header": {
                           "kid":"7dddc307-dda4-48f5-be5b-406edafb7988",

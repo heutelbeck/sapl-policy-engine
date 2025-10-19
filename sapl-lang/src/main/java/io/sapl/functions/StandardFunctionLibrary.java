@@ -39,14 +39,13 @@ public class StandardFunctionLibrary {
             For NUMBER, BOOLEAN, or NULL, the function will return an error.
 
             **Example:**
-            ```
-            import standard.*
+            ```sapl
             policy "example"
             permit
             where
-              length([1, 2, 3, 4]) == 4;
-              length("example") == 7;
-              length({ "key1" : 1, "key2" : 2}) == 2;
+              standard.length([1, 2, 3, 4]) == 4;
+              standard.length("example") == 7;
+              standard.length({ "key1" : 1, "key2" : 2}) == 2;
             ```
             """, schema = """
             {
@@ -64,12 +63,11 @@ public class StandardFunctionLibrary {
 
 
             **Example:**
-            ```
-            import standard.*
+            ```sapl
             policy "example"
             permit
             where
-              toString([1,2,3]) == "[1,2,3]";
+              standard.toString([1,2,3]) == "[1,2,3]";
             ```
             """, schema = """
             {
@@ -87,12 +85,11 @@ public class StandardFunctionLibrary {
             the ```fallback``` is returned instead. Otherwise the result of ```guardedExpression``` is returned.
 
             **Example:**
-            ```
-            import standard.*
+            ```sapl
             policy "example"
             permit
             where
-              onErrorMap(1/0,999) == 999;
+              standard.onErrorMap(1/0,999) == 999;
             ```
             """)
     public static Val onErrorMap(Val guardedExpression, Val fallback) {

@@ -83,7 +83,7 @@ public class FilterFunctionLibrary {
             **Example:**
 
             Given a subscription:
-            ```
+            ```json
             {
               "resource" : {
                              "array" : [ null, true ],
@@ -93,7 +93,7 @@ public class FilterFunctionLibrary {
             ```
 
             And the policy:
-            ```
+            ```sapl
             policy "test"
             permit
             transform resource |- {
@@ -102,7 +102,7 @@ public class FilterFunctionLibrary {
             ```
 
             The decision will contain a ```resource``` as follows:
-            ```
+            ```json
             {
               "array" : [ null, true ],
               "key1"  : "aXXXX"
@@ -235,7 +235,7 @@ public class FilterFunctionLibrary {
             **Example:**
 
             Given a subscription:
-            ```
+            ```json
             {
               "resource" : {
                              "array" : [ null, true ],
@@ -245,7 +245,7 @@ public class FilterFunctionLibrary {
             ```
 
             And the policy:
-            ```
+            ```sapl
             policy "test"
             permit
             transform resource |- {
@@ -255,7 +255,7 @@ public class FilterFunctionLibrary {
             ```
 
             The decision will contain a ```resource``` as follows:
-            ```
+            ```json
             {
               "array" : [ null, "***" ],
               "key1"  : null
@@ -284,7 +284,7 @@ public class FilterFunctionLibrary {
             The expression ```[ 0, 1, 2, 3, 4, 5 ] |- { @[-2:] : filter.remove }``` results in ```[0, 1, 2, 3]```.
 
             Given a subscription:
-            ```
+            ```json
             {
               "resource" : {
                              "array" : [ null, true ],
@@ -294,7 +294,7 @@ public class FilterFunctionLibrary {
             ```
 
             And the policy:
-            ```
+            ```sapl
             policy "test"
             permit
             transform resource |- {
@@ -303,7 +303,7 @@ public class FilterFunctionLibrary {
             ```
 
             The decision will contain a ```resource``` as follows:
-            ```
+            ```json
             {
               "array" : [ null, true ]
             }

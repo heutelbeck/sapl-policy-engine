@@ -52,7 +52,7 @@ public class LoggingFunctionLibrary {
             This allows it to be used to wrap any value in a SAPL expression without changing the overall structure of the policy.
 
             **Example:**
-            ```
+            ```sapl
             policy "logging"
             permit
             where
@@ -79,7 +79,7 @@ public class LoggingFunctionLibrary {
             This allows it to be used to wrap any value in a SAPL expression without changing the overall structure of the policy.
 
             **Example:**
-            ```
+            ```sapl
             policy "logging"
             permit
             where
@@ -106,7 +106,7 @@ public class LoggingFunctionLibrary {
             This allows it to be used to wrap any value in a SAPL expression without changing the overall structure of the policy.
 
             **Example:**
-            ```
+            ```sapl
             policy "logging"
             permit
             where
@@ -133,7 +133,7 @@ public class LoggingFunctionLibrary {
             This allows it to be used to wrap any value in a SAPL expression without changing the overall structure of the policy.
 
             **Example:**
-            ```
+            ```sapl
             policy "logging"
             permit
             where
@@ -160,7 +160,7 @@ public class LoggingFunctionLibrary {
             This allows it to be used to wrap any value in a SAPL expression without changing the overall structure of the policy.
 
             **Example:**
-            ```
+            ```sapl
             policy "logging"
             permit
             where
@@ -189,7 +189,7 @@ public class LoggingFunctionLibrary {
             not be triggered, as the evaluation of statements is lazy.
 
             **Example:**
-            ```
+            ```sapl
             policy "logging"
             permit
             where
@@ -219,7 +219,7 @@ public class LoggingFunctionLibrary {
             not be triggered, as the evaluation of statements is lazy.
 
             **Example:**
-            ```
+            ```sapl
             policy "logging"
             permit
             where
@@ -249,7 +249,7 @@ public class LoggingFunctionLibrary {
             not be triggered, as the evaluation of statements is lazy.
 
             **Example:**
-            ```
+            ```sapl
             policy "logging"
             permit
             where
@@ -279,7 +279,7 @@ public class LoggingFunctionLibrary {
             not be triggered, as the evaluation of statements is lazy.
 
             **Example:**
-            ```
+            ```sapl
             policy "logging"
             permit
             where
@@ -309,7 +309,7 @@ public class LoggingFunctionLibrary {
             not be triggered, as the evaluation of statements is lazy.
 
             **Example:**
-            ```
+            ```sapl
             policy "logging"
             permit
             where

@@ -89,7 +89,7 @@ public class TraccarPolicyInformationPoint {
                to connect to the Traccar server.
 
               - Alternatively, a policy-specific set of settings can be used:
-               ```
+               ```sapl
                subject.device.<{
                                  "baseUrl": "https://demo.traccar.org",
                                  "userName": "email@address.org",

@@ -137,14 +137,13 @@ public class GeographicFunctionLibrary {
 
             **Example:**
 
-            ```
-            import geo.*
+            ```sapl
             policy "example"
             permit
             where
                 var point1 = { "type": "Point", "coordinates": [10.0, 20.0] };
                 var point2 = { "type": "Point", "coordinates": [10.0, 20.0] };
-                equalsExact(point1, point2) == true;
+                geo.equalsExact(point1, point2) == true;
             ```
 
             **Notes:**
@@ -173,14 +172,13 @@ public class GeographicFunctionLibrary {
 
             **Example:**
 
-            ```
-            import geo.*
+            ```sapl
             policy "example"
             permit
             where
                 var polygon = { "type": "Polygon", "coordinates": [[[0,0], [0,10], [10,10], [10,0], [0,0]]] };
                 var point = { "type": "Point", "coordinates": [20.0, 20.0] };
-                disjoint(polygon, point) == true;
+                geo.disjoint(polygon, point) == true;
             ```
 
             **Notes:**
@@ -209,14 +207,13 @@ public class GeographicFunctionLibrary {
 
             **Example:**
 
-            ```
-            import geo.*
+            ```sapl
             policy "example"
             permit
             where
                 var polygon1 = { "type": "Polygon", "coordinates": [[[0,0], [0,10], [10,10], [10,0], [0,0]]] };
                 var polygon2 = { "type": "Polygon", "coordinates": [[[10,0], [10,10], [20,10], [20,0], [10,0]]] };
-                touches(polygon1, polygon2) == true;
+                geo.touches(polygon1, polygon2) == true;
             ```
 
             **Notes:**
@@ -244,16 +241,13 @@ public class GeographicFunctionLibrary {
 
             **Example:**
 
-            ```
-            import geo.*
-
+            ```sapl
             policy "example"
-
             permit
             where
                 var line1 = { "type": "LineString", "coordinates": [[0,0], [10,10]] };
                 var line2 = { "type": "LineString", "coordinates": [[0,10], [10,0]] };
-                crosses(line1, line2) == true;
+                geo.crosses(line1, line2) == true;
             ```
 
             **Notes:**
@@ -282,15 +276,12 @@ public class GeographicFunctionLibrary {
             **Example:**
 
             ```
-            import geo.*
-
             policy "example"
-
             permit
             where
                 var point = { "type": "Point", "coordinates": [5, 5] };
                 var polygon = { "type": "Polygon", "coordinates": [[[0,0], [0,10], [10,10], [10,0], [0,0]]] };
-                within(point, polygon) == true;
+                geo.within(point, polygon) == true;
             ```
 
             **Notes:**
@@ -320,15 +311,12 @@ public class GeographicFunctionLibrary {
             **Example:**
 
             ```
-            import geo.*
-
             policy "example"
-
             permit
             where
                 var polygon = { "type": "Polygon", "coordinates": [[[0,0], [0,10], [10,10], [10,0], [0,0]]] };
                 var point = { "type": "Point", "coordinates": [5, 5] };
-                contains(polygon, point) == true;
+                geo.contains(polygon, point) == true;
             ```
 
             **Notes:**
@@ -357,16 +345,13 @@ public class GeographicFunctionLibrary {
 
             **Example:**
 
-            ```
-            import geo.*
-
+            ```sapl
             policy "example"
-
             permit
             where
                 var polygon1 = { "type": "Polygon", "coordinates": [[[0,0], [0,10], [10,10], [10,0], [0,0]]] };
                 var polygon2 = { "type": "Polygon", "coordinates": [[[5,5], [5,15], [15,15], [15,5], [5,5]]] };
-                overlaps(polygon1, polygon2) == true;
+                geo.overlaps(polygon1, polygon2) == true;
             ```
 
             **Notes:**
@@ -394,16 +379,13 @@ public class GeographicFunctionLibrary {
 
             **Example:**
 
-            ```
-            import geo.*
-
+            ```sapl
             policy "example"
-
             permit
             where
                 var line1 = { "type": "LineString", "coordinates": [[0,0], [10,10]] };
                 var line2 = { "type": "LineString", "coordinates": [[0,10], [10,0]] };
-                intersects(line1, line2) == true;
+                geo.intersects(line1, line2) == true;
             ```
 
             **Notes:**
@@ -432,16 +414,13 @@ public class GeographicFunctionLibrary {
 
             **Example:**
 
-            ```
-            import geo.*
-
+            ```sapl
             policy "example"
-
             permit
             where
                 var point1 = { "type": "Point", "coordinates": [0, 0] };
                 var point2 = { "type": "Point", "coordinates": [3, 4] };
-                isWithinDistance(point1, point2, 5.0) == true;
+                geo.isWithinDistance(point1, point2, 5.0) == true;
             ```
 
             **Notes:**
@@ -471,16 +450,13 @@ public class GeographicFunctionLibrary {
 
             **Example:**
 
-            ```
-            import geo.*
-
+            ```sapl
             policy "example"
-
             permit
             where
                 var point1 = { "type": "Point", "coordinates": [0, 0] };
                 var point2 = { "type": "Point", "coordinates": [0.001, 0.001] };
-                isWithinGeoDistance(point1, point2, 150) == true;
+                geo.isWithinGeoDistance(point1, point2, 150) == true;
             ```
 
             **Notes:**
@@ -516,15 +492,12 @@ public class GeographicFunctionLibrary {
 
             **Example:**
 
-            ```
-            import geo.*
-
+            ```sapl
             policy "example"
-
             permit
             where
                 var line = { "type": "LineString", "coordinates": [[0,0], [1,1], [1,0], [0,0]] };
-                isSimple(line) == false;
+                geo.isSimple(line) == false;
             ```
 
             **Notes:**
@@ -549,15 +522,12 @@ public class GeographicFunctionLibrary {
 
             **Example:**
 
-            ```
-            import geo.*
-
+            ```sapl
             policy "example"
-
             permit
             where
                 var polygon = { "type": "Polygon", "coordinates": [[[0,0], [0,10], [10,10], [10,0], [0,0]]] };
-                isValid(polygon) == true;
+                geo.isValid(polygon) == true;
             ```
 
             **Notes:**
@@ -583,15 +553,12 @@ public class GeographicFunctionLibrary {
 
             **Example:**
 
-            ```
-            import geo.*
-
+            ```sapl
             policy "example"
-
             permit
             where
                 var ring = { "type": "LineString", "coordinates": [[0,0], [0,10], [10,10], [10,0], [0,0]] };
-                isClosed(ring) == true;
+                geo.isClosed(ring) == true;
             ```
 
             **Notes:**
@@ -605,14 +572,11 @@ public class GeographicFunctionLibrary {
                 || Geometry.TYPENAME_MULTIPOINT.equals(jtsGeometry.getGeometryType())) {
             return Val.TRUE;
         }
-        switch (jtsGeometry.getGeometryType()) {
-        case Geometry.TYPENAME_LINESTRING:
-            return Val.of(((LineString) jtsGeometry).isClosed());
-        case Geometry.TYPENAME_MULTILINESTRING:
-            return Val.of(((MultiLineString) jtsGeometry).isClosed());
-        default:
-            return Val.error(String.format(IS_CLOSED_NOT_APPLICABLE_FOR_S_ERROR, jtsGeometry.getGeometryType()));
-        }
+        return switch (jtsGeometry.getGeometryType()) {
+            case Geometry.TYPENAME_LINESTRING -> Val.of(((LineString) jtsGeometry).isClosed());
+            case Geometry.TYPENAME_MULTILINESTRING -> Val.of(((MultiLineString) jtsGeometry).isClosed());
+            default -> Val.error(String.format(IS_CLOSED_NOT_APPLICABLE_FOR_S_ERROR, jtsGeometry.getGeometryType()));
+        };
     }
 
     /*
@@ -634,15 +598,12 @@ public class GeographicFunctionLibrary {
 
             **Example:**
 
-            ```
-            import geo.*
-
+            ```sapl
             policy "example"
-
             permit
             where
                 var point = { "type": "Point", "coordinates": [0, 0] };
-                buffer(point, 10.0) == { "type": "Polygon", "coordinates": [[[10,0], [0,10], [-10,0], [0,-10], [10,0]]] };
+                geo.buffer(point, 10.0) == { "type": "Polygon", "coordinates": [[[10,0], [0,10], [-10,0], [0,-10], [10,0]]] };
             ```
 
             **Notes:**
@@ -666,15 +627,12 @@ public class GeographicFunctionLibrary {
 
             **Example:**
 
-            ```
-            import geo.*
-
+            ```sapl
             policy "example"
-
             permit
             where
                 var polygon = { "type": "Polygon", "coordinates": [[[0,0], [0,10], [10,10], [10,0], [0,0]]] };
-                boundary(polygon) == { "type": "LineString", "coordinates": [[0,0], [0,10], [10,10], [10,0], [0,0]] };
+                geo.boundary(polygon) == { "type": "LineString", "coordinates": [[0,0], [0,10], [10,10], [10,0], [0,0]] };
             ```
 
             **Notes:**
@@ -699,15 +657,12 @@ public class GeographicFunctionLibrary {
 
             **Example:**
 
-            ```
-            import geo.*
-
+            ```sapl
             policy "example"
-
             permit
             where
                 var polygon = { "type": "Polygon", "coordinates": [[[0,0], [0,10], [10,10], [10,0], [0,0]]] };
-                centroid(polygon) == { "type": "Point", "coordinates": [5, 5] };
+                geo.centroid(polygon) == { "type": "Point", "coordinates": [5, 5] };
             ```
 
             **Notes:**
@@ -732,15 +687,12 @@ public class GeographicFunctionLibrary {
 
             **Example:**
 
-            ```
-            import geo.*
-
+            ```sapl
             policy "example"
-
             permit
             where
                 var points = { "type": "MultiPoint", "coordinates": [[0,0], [0,10], [10,10], [10,0]] };
-                convexHull(points) == { "type": "Polygon", "coordinates": [[[0,0], [0,10], [10,10], [10,0], [0,0]]] };
+                geo.convexHull(points) == { "type": "Polygon", "coordinates": [[[0,0], [0,10], [10,10], [10,0], [0,0]]] };
             ```
 
             **Notes:**
@@ -769,16 +721,13 @@ public class GeographicFunctionLibrary {
 
             **Example:**
 
-            ```
-            import geo.*
-
+            ```sapl
             policy "example"
-
             permit
             where
                 var polygon1 = { "type": "Polygon", "coordinates": [[[0,0], [0,10], [10,10], [10,0], [0,0]]] };
                 var polygon2 = { "type": "Polygon", "coordinates": [[[5,5], [5,15], [15,15], [15,5], [5,5]]] };
-                union(polygon1, polygon2) == { "type": "Polygon", "coordinates": [[[0,0], [0,10], [5,10], [5,15], [15,15], [15,5], [10,5], [10,0], [0,0]]] };
+                geo.union(polygon1, polygon2) == { "type": "Polygon", "coordinates": [[[0,0], [0,10], [5,10], [5,15], [15,15], [15,5], [10,5], [10,0], [0,0]]] };
             ```
 
             **Notes:**
@@ -812,16 +761,13 @@ public class GeographicFunctionLibrary {
 
             **Example:**
 
-            ```
-            import geo.*
-
+            ```sapl
             policy "example"
-
             permit
             where
                 var polygon1 = { "type": "Polygon", "coordinates": [[[0,0], [0,10], [10,10], [10,0], [0,0]]] };
                 var polygon2 = { "type": "Polygon", "coordinates": [[[5,5], [5,15], [15,15], [15,5], [5,5]]] };
-                intersection(polygon1, polygon2) == { "type": "Polygon", "coordinates": [[[5,5], [5,10], [10,10], [10,5], [5,5]]] };
+                geo.intersection(polygon1, polygon2) == { "type": "Polygon", "coordinates": [[[5,5], [5,10], [10,10], [10,5], [5,5]]] };
             ```
 
             **Notes:**
@@ -848,16 +794,13 @@ public class GeographicFunctionLibrary {
 
             **Example:**
 
-            ```
-            import geo.*
-
+            ```sapl
             policy "example"
-
             permit
             where
                 var polygon1 = { "type": "Polygon", "coordinates": [[[0,0], [0,10], [10,10], [10,0], [0,0]]] };
                 var polygon2 = { "type": "Polygon", "coordinates": [[[5,5], [5,15], [15,15], [15,5], [5,5]]] };
-                difference(polygon1, polygon2) == { "type": "Polygon", "coordinates": [[[0,0], [0,10], [10,10], [10,0], [0,0]]] };
+                geo.difference(polygon1, polygon2) == { "type": "Polygon", "coordinates": [[[0,0], [0,10], [10,10], [10,0], [0,0]]] };
             ```
 
             **Notes:**
@@ -884,16 +827,13 @@ public class GeographicFunctionLibrary {
 
             **Example:**
 
-            ```
-            import geo.*
-
+            ```sapl
             policy "example"
-
             permit
             where
                 var polygon1 = { "type": "Polygon", "coordinates": [[[0,0], [0,10], [10,10], [10,0], [0,0]]] };
                 var polygon2 = { "type": "Polygon", "coordinates": [[[5,5], [5,15], [15,15], [15,5], [5,5]]] };
-                symDifference(polygon1, polygon2) == { "type": "MultiPolygon", "coordinates": [[[[0,0], [0,10], [10,10], [10,0], [0,0]]], [[[5,5], [5,15], [15,15], [15,5], [5,5]]]] };
+                geo.symDifference(polygon1, polygon2) == { "type": "MultiPolygon", "coordinates": [[[[0,0], [0,10], [10,10], [10,0], [0,0]]], [[[5,5], [5,15], [15,15], [15,5], [5,5]]]] };
             ```
 
             **Notes:**
@@ -930,16 +870,13 @@ public class GeographicFunctionLibrary {
 
             **Example:**
 
-            ```
-            import geo.*
-
+            ```sapl
             policy "example"
-
             permit
             where
                 var point1 = { "type": "Point", "coordinates": [0, 0] };
                 var point2 = { "type": "Point", "coordinates": [3, 4] };
-                distance(point1, point2) == 5.0;
+                geo.distance(point1, point2) == 5.0;
             ```
 
             **Notes:**
@@ -966,16 +903,13 @@ public class GeographicFunctionLibrary {
 
             **Example:**
 
-            ```
-            import geo.*
-
+            ```sapl
             policy "example"
-
             permit
             where
                 var point1 = { "type": "Point", "coordinates": [0, 0] };
                 var point2 = { "type": "Point", "coordinates": [0.001, 0.001] };
-                geoDistance(point1, point2) <= 157.25;
+                geo.geoDistance(point1, point2) <= 157.25;
             ```
 
             **Notes:**
@@ -1005,16 +939,13 @@ public class GeographicFunctionLibrary {
 
             **Example:**
 
-            ```
-            import geo.*
-
+            ```sapl
             policy "example"
-
             permit
             where
                 var point1 = { "type": "Point", "coordinates": [0, 0] };
                 var point2 = { "type": "Point", "coordinates": [0.001, 0.001] };
-                geoDistance(point1, point2, "EPSG:4326") <= 157.25;
+                geo.geoDistance(point1, point2, "EPSG:4326") <= 157.25;
             ```
 
             **Notes:**
@@ -1067,15 +998,12 @@ public class GeographicFunctionLibrary {
 
             **Example:**
 
-            ```
-            import geo.*
-
+            ```sapl
             policy "example"
-
             permit
             where
                 var line = { "type": "LineString", "coordinates": [[0,0], [0,10], [10,10], [10,0], [0,0]] };
-                length(line) == 40.0;
+                geo.length(line) == 40.0;
             ```
 
             **Notes:**
@@ -1099,15 +1027,12 @@ public class GeographicFunctionLibrary {
 
             **Example:**
 
-            ```
-            import geo.*
-
+            ```sapl
             policy "example"
-
             permit
             where
                 var polygon = { "type": "Polygon", "coordinates": [[[0,0], [0,10], [10,10], [10,0], [0,0]]] };
-                area(polygon) == 100.0;
+                geo.area(polygon) == 100.0;
             ```
 
             **Notes:**
@@ -1139,11 +1064,8 @@ public class GeographicFunctionLibrary {
 
             **Example:**
 
-            ```
-            import geo.*
-
+            ```sapl
             policy "example"
-
             permit
             where
                 var collection1 = { "type": "GeometryCollection", "geometries": [
@@ -1153,7 +1075,7 @@ public class GeographicFunctionLibrary {
                     { "type": "Point", "coordinates": [0, 0] },
                     { "type": "Point", "coordinates": [1, 1] }
                 ] };
-                subset(collection1, collection2) == true;
+                geo.subset(collection1, collection2) == true;
             ```
 
             **Notes:**
@@ -1197,11 +1119,8 @@ public class GeographicFunctionLibrary {
 
             **Example:**
 
-            ```
-            import geo.*
-
+            ```sapl
             policy "example"
-
             permit
             where
                 var collection1 = { "type": "GeometryCollection", "geometries": [
@@ -1211,7 +1130,7 @@ public class GeographicFunctionLibrary {
                     { "type": "Point", "coordinates": [1, 1] },
                     { "type": "Point", "coordinates": [0, 0] }
                 ] };
-                atLeastOneMemberOf(collection1, collection2) == true;
+                geo.atLeastOneMemberOf(collection1, collection2) == true;
             ```
 
             **Notes:**
@@ -1248,18 +1167,15 @@ public class GeographicFunctionLibrary {
 
             **Example:**
 
-            ```
-            import geo.*
-
+            ```sapl
             policy "example"
-
             permit
             where
                 var collection = { "type": "GeometryCollection", "geometries": [
                     { "type": "Point", "coordinates": [0, 0] },
                     { "type": "Point", "coordinates": [1, 1] }
                 ] };
-                bagSize(collection) == 2;
+                geo.bagSize(collection) == 2;
             ```
 
             **Notes:**
@@ -1284,17 +1200,14 @@ public class GeographicFunctionLibrary {
 
             **Example:**
 
-            ```
-            import geo.*
-
+            ```sapl
             policy "example"
-
             permit
             where
                 var collection = { "type": "GeometryCollection", "geometries": [
                     { "type": "Point", "coordinates": [0, 0] }
                 ] };
-                oneAndOnly(collection) == { "type": "Point", "coordinates": [0, 0] };
+                geo.oneAndOnly(collection) == { "type": "Point", "coordinates": [0, 0] };
             ```
 
             **Notes:**
@@ -1326,18 +1239,15 @@ public class GeographicFunctionLibrary {
 
             **Example:**
 
-            ```
-            import geo.*
-
+            ```sapl
             policy "example"
-
             permit
             where
                 var point = { "type": "Point", "coordinates": [0, 0] };
                 var collection = { "type": "GeometryCollection", "geometries": [
                     { "type": "Point", "coordinates": [0, 0] }
                 ] };
-                geometryIsIn(point, collection) == true;
+                geo.geometryIsIn(point, collection) == true;
             ```
 
             **Notes:**
@@ -1371,16 +1281,13 @@ public class GeographicFunctionLibrary {
 
             **Example:**
 
-            ```
-            import geo.*
-
+            ```sapl
             policy "example"
-
             permit
             where
                 var point1 = { "type": "Point", "coordinates": [0, 0] };
                 var point2 = { "type": "Point", "coordinates": [1, 1] };
-                geometryBag(point1, point2) == { "type": "GeometryCollection", "geometries": [
+                geo.geometryBag(point1, point2) == { "type": "GeometryCollection", "geometries": [
                     { "type": "Point", "coordinates": [0, 0] },
                     { "type": "Point", "coordinates": [1, 1] }
                 ] };
@@ -1411,18 +1318,15 @@ public class GeographicFunctionLibrary {
 
             **Example:**
 
-            ```
-            import geo.*
-
+            ```sapl
             policy "example"
-
             permit
             where
                 var geometries = [
                     { "type": "Point", "coordinates": [0, 0] },
                     { "type": "Point", "coordinates": [1, 1] }
                 ];
-                flattenGeometryBag(geometries) == { "type": "GeometryCollection", "geometries": [
+                geo.flattenGeometryBag(geometries) == { "type": "GeometryCollection", "geometries": [
                     { "type": "Point", "coordinates": [0, 0] },
                     { "type": "Point", "coordinates": [1, 1] }
                 ] };
@@ -1458,14 +1362,11 @@ public class GeographicFunctionLibrary {
 
             **Example:**
 
-            ```
-            import geo.*
-
+            ```sapl
             policy "example"
-
             permit
             where
-                milesToMeter(1.0) == 1609.34;
+                geo.milesToMeter(1.0) == 1609.34;
             ```
 
             **Notes:**
@@ -1493,14 +1394,11 @@ public class GeographicFunctionLibrary {
 
             **Example:**
 
-            ```
-            import geo.*
-
+            ```sapl
             policy "example"
-
             permit
             where
-                yardToMeter(1.0) == 0.9144;
+                geo.yardToMeter(1.0) == 0.9144;
             ```
 
             **Notes:**
@@ -1528,14 +1426,11 @@ public class GeographicFunctionLibrary {
 
             **Example:**
 
-            ```
-            import geo.*
-
+            ```sapl
             policy "example"
-
             permit
             where
-                degreeToMeter(1.0) == 111319.9;
+                geo.degreeToMeter(1.0) == 111319.9;
             ```
 
             **Notes:**
@@ -1563,15 +1458,12 @@ public class GeographicFunctionLibrary {
 
             **Example:**
 
-            ```
-            import geo.*
-
+            ```sapl
             policy "example"
-
             permit
             where
                 var kmlData = "<kml><Placemark><Point><coordinates>10,20</coordinates></Point></Placemark></kml>";
-                kmlToGeoJSON(kmlData) == { "type": "Point", "coordinates": [10, 20] };
+                geo.kmlToGeoJSON(kmlData) == { "type": "Point", "coordinates": [10, 20] };
             ```
 
             **Notes:**
@@ -1653,15 +1545,12 @@ public class GeographicFunctionLibrary {
 
             **Example:**
 
-            ```
-            import geo.*
-
+            ```sapl
             policy "example"
-
             permit
             where
                 var wktData = "POINT(10 20)";
-                wktToGeoJSON(wktData) == { "type": "Point", "coordinates": [10, 20] };
+                geo.wktToGeoJSON(wktData) == { "type": "Point", "coordinates": [10, 20] };
             ```
 
             **Notes:**
@@ -1687,15 +1576,12 @@ public class GeographicFunctionLibrary {
             - Returns a GeoJSON object representing the converted GML 3 data.
 
             **Example:**
-            ```
-            import geo.*
-
+            ```sapl
             policy "example"
-
             permit
             where
                 var gmlData = "<gml:Point><gml:coordinates>10,20</gml:coordinates></gml:Point>";
-                gml3ToGeoJSON(gmlData) == { "type": "Point", "coordinates": [10, 20] };
+                geo.gml3ToGeoJSON(gmlData) == { "type": "Point", "coordinates": [10, 20] };
             ```
 
             **Notes:**
@@ -1719,15 +1605,12 @@ public class GeographicFunctionLibrary {
 
             **Example:**
 
-            ```
-            import geo.*
-
+            ```sapl
             policy "example"
-
             permit
             where
                 var gmlData = "<gml:Point><gml:coordinates>10,20</gml:coordinates></gml:Point>";
-                gml2ToGeoJSON(gmlData) == { "type": "Point", "coordinates": [10, 20] };
+                geo.gml2ToGeoJSON(gmlData) == { "type": "Point", "coordinates": [10, 20] };
             ```
 
             **Notes:**

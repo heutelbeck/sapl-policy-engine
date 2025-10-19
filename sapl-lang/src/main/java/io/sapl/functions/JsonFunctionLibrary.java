@@ -49,13 +49,12 @@ public class JsonFunctionLibrary {
             value representing the content of the JSON document.
 
             **Example:**
-            ```
-            import json.*
+            ```sapl
             policy "example"
             permit
             where
                var jsonText = "{ \\"hello\\": \\"world\\" }";
-               jsonToVal(jsonText) == { "hello":"world" };
+               json.jsonToVal(jsonText) == { "hello":"world" };
             ```
             """)
     public static Val jsonToVal(@Text Val json) {
@@ -73,13 +72,12 @@ public class JsonFunctionLibrary {
             ```valToJson(value)```: Converts a SAPL ```value``` into a JSON string representation.
 
             **Example:**
-            ```
-            import json.*
+            ```sapl
             policy "example"
             permit
             where
                var object = { "hello":"world" };
-               valToJson(object) == "{\\"hello\\":\\"world\\"}";
+               json.valToJson(object) == "{\\"hello\\":\\"world\\"}";
             ```
             """, schema = """
             {

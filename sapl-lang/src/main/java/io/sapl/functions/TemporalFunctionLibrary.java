@@ -17,15 +17,19 @@
  */
 package io.sapl.functions;
 
-import io.sapl.api.functions.Function;
-import io.sapl.api.functions.FunctionLibrary;
-import io.sapl.api.interpreter.Val;
-import io.sapl.api.validation.Int;
-import io.sapl.api.validation.Number;
-import io.sapl.api.validation.Text;
-import lombok.experimental.UtilityClass;
-
-import java.time.*;
+import java.time.DateTimeException;
+import java.time.DayOfWeek;
+import java.time.Duration;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.time.OffsetDateTime;
+import java.time.OffsetTime;
+import java.time.Period;
+import java.time.ZoneId;
+import java.time.ZoneOffset;
+import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeFormatterBuilder;
 import java.time.format.DateTimeParseException;
@@ -34,29 +38,64 @@ import java.time.temporal.ChronoUnit;
 import java.time.temporal.UnsupportedTemporalTypeException;
 import java.util.Locale;
 
+import io.sapl.api.functions.Function;
+import io.sapl.api.functions.FunctionLibrary;
+import io.sapl.api.interpreter.Val;
+import io.sapl.api.validation.Int;
+import io.sapl.api.validation.Number;
+import io.sapl.api.validation.Text;
+import lombok.experimental.UtilityClass;
+
+/**
+ * Functions for temporal operations in authorization policies.
+ * Handles date-time parsing, comparison, arithmetic, and formatting using
+ * ISO 8601 and RFC3339 standards.
+ */
 @UtilityClass
-@FunctionLibrary(name = TemporalFunctionLibrary.NAME, description = TemporalFunctionLibrary.DESCRIPTION)
+@FunctionLibrary(name = TemporalFunctionLibrary.NAME, description = TemporalFunctionLibrary.DESCRIPTION, libraryDocumentation = TemporalFunctionLibrary.DOCUMENTATION)
 public class TemporalFunctionLibrary {
 
     public static final String NAME        = "time";
-    public static final String DESCRIPTION = """
-            This library contains temporal functions. It relies on [ISO 8601](https://www.iso.org/iso-8601-date-and-time-format.html)
-            and DIN 1355 standards for time representation. The latter has been officially withdrawn but continues to be used in practice.
+    public static final String DESCRIPTION = "Functions for temporal operations in authorization policies.";
+    public static final String DOCUMENTATION = """
+            Temporal functions for working with dates, times, and durations in authorization policies.
+            Based on ISO 8601 and DIN 1355 standards.
 
-            The most used variant format described in ISO 8601 is YYYY-MM-DD, e.g. "2017-10-28" for the 28th of October in the year 2017.
-            DIN 1355 describes DD.MM.YYYY, e.g. "28.10.2017". Time format is consistently hh:mm:ss with 24 hours per day, e.g. "16:14:11".
-            In ISO 8601 time and date can be joined into one string, e.g. "2017-10-28T16:14:11".
+            ## Date and Time Formats
 
-            The library accepts timestamps in ISO 8601 format, including RFC3339 compliant strings. RFC3339 is a strict profile
-            of ISO 8601 commonly used in internet protocols and APIs. RFC3339 requires timezone information (Z for UTC or ±HH:MM offset)
-            and uses the format YYYY-MM-DDTHH:MM:SS[.fraction](Z|±HH:MM), while ISO 8601 allows additional variations such as
-            omitting timezone information or using alternative date representations.
+            ISO 8601 uses YYYY-MM-DD for dates (e.g., "2017-10-28") and HH:mm:ss for times (e.g., "16:14:11").
+            Combined format: "2017-10-28T16:14:11".
 
-            Coordinated Universal Time [UTC](https://www.ipses.com/eng/in-depth-analysis/standard-of-time-definition/) is not based on the
-            time of rotation of the earth. It is time zone zero while central European time has an offset of one hour.
+            DIN 1355 uses DD.MM.YYYY for dates (e.g., "28.10.2017").
 
-            **Note on Leap Seconds:** RFC3339 allows leap seconds (e.g., "23:59:60Z"), but Java's temporal system silently
-            normalizes them to "23:59:59Z". This normalization is transparent and should not affect most use cases.
+            RFC3339 is a strict profile of ISO 8601 requiring timezone information:
+            YYYY-MM-DDTHH:MM:SS[.fraction](Z|±HH:MM)
+
+            All functions accept ISO 8601 and RFC3339 timestamps. RFC3339 leap seconds (e.g., "23:59:60Z")
+            are normalized to "23:59:59Z" by Java's temporal system.
+
+            ## Timezone Handling
+
+            UTC (Coordinated Universal Time) is timezone zero. Central European Time has a +01:00 offset.
+            Functions work with UTC timestamps and support timezone conversions.
+
+            **Examples:**
+            ```sapl
+            policy "working_hours"
+            permit
+            where
+              var currentTime = time.timeOf(environment.currentDateTime);
+              time.after(currentTime, "09:00:00");
+              time.before(currentTime, "17:00:00");
+            ```
+
+            ```sapl
+            policy "age_restriction"
+            permit
+            where
+              var age = time.ageInYears(subject.birthDate, environment.currentDate);
+              age >= 18;
+            ```
             """;
 
     private static final DateTimeFormatter DIN_DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm:ss");
@@ -66,50 +105,50 @@ public class TemporalFunctionLibrary {
     /* ######## DURATION ######## */
 
     @Function(docs = """
-            ```durationOfSeconds(NUMBER seconds)```:
-            For the temporal library, a duration is always defined in milliseconds. This function converts ```seconds```
-            to milliseconds, multiplying them by ```1000```.
+            ```durationOfSeconds(NUMBER seconds)```: Converts seconds to milliseconds for duration values.
+
+            Durations in the temporal library are expressed in milliseconds. Multiplies seconds by 1000.
 
             **Example:**
 
-            The expression ```time.durationOfSeconds(20.5)``` will return ```20500```.
+            The expression ```time.durationOfSeconds(20.5)``` returns ```20500```.
             """)
     public static Val durationOfSeconds(@Number Val seconds) {
         return Val.of(seconds.getLong() * 1000);
     }
 
     @Function(docs = """
-            ```durationOfMinutes(NUMBER minutes)```:
-            For the temporal library, a duration is always defined in milliseconds.
-            This function converts ```minutes``` to milliseconds, multiplying them by ```60000```.
+            ```durationOfMinutes(NUMBER minutes)```: Converts minutes to milliseconds for duration values.
+
+            Multiplies minutes by 60000.
 
             **Example:**
 
-            The expression ```time.durationOfMinutes(2.5)``` will return ```150000```.""")
+            The expression ```time.durationOfMinutes(2.5)``` returns ```150000```.""")
     public static Val durationOfMinutes(@Number Val minutes) {
         return Val.of(minutes.getLong() * 60 * 1000);
     }
 
     @Function(docs = """
-            ```durationOfHours(NUMBER hours)```:
-            For the temporal library, a duration is always defined in milliseconds. This function converts ```hours```
-            to milliseconds, multiplying them by ```3600000```.
+            ```durationOfHours(NUMBER hours)```: Converts hours to milliseconds for duration values.
+
+            Multiplies hours by 3600000.
 
             **Example:**
 
-            The expression ```time.durationOfHours(4.5)``` will return ```16200000```.""")
+            The expression ```time.durationOfHours(4.5)``` returns ```16200000```.""")
     public static Val durationOfHours(@Number Val hours) {
         return Val.of(hours.getLong() * 60 * 60 * 1000);
     }
 
     @Function(docs = """
-            ```durationOfDays(NUMBER days)```:
-            For the temporal library, a duration is always defined in milliseconds. This function converts ```days```
-            to milliseconds, multiplying them by ```86400000```.
+            ```durationOfDays(NUMBER days)```: Converts days to milliseconds for duration values.
+
+            Multiplies days by 86400000.
 
             **Example:**
 
-            The expression ```time.durationOfDays(365)``` will return ```31536000000```.""")
+            The expression ```time.durationOfDays(365)``` returns ```31536000000```.""")
     public static Val durationOfDays(@Number Val days) {
         return Val.of(days.getLong() * 24 * 60 * 60 * 1000);
     }
@@ -117,9 +156,9 @@ public class TemporalFunctionLibrary {
     /* ######## INSTANT/UTC COMPARISON ######## */
 
     @Function(docs = """
-            ```before(TEXT timeA, TEXT timeB)```: This function compares two instants. Both, ```timeA``` and ```timeB```
-            must be expressed as ISO 8601 strings at UTC.
-            The function returns ```true```, if ```timeA``` is before ```timeB```.
+            ```before(TEXT timeA, TEXT timeB)```: Compares two instants and returns true if timeA is before timeB.
+
+            Both parameters must be ISO 8601 strings at UTC.
 
             **Example:**
 
@@ -129,9 +168,9 @@ public class TemporalFunctionLibrary {
     }
 
     @Function(docs = """
-            ```after(TEXT timeA, TEXT timeB)```: This function compares two instants. Both, ```timeA``` and ```timeB```
-            must be expressed as ISO 8601 strings at UTC.
-            The function returns ```true```, if ```timeA``` is after ```timeB```.
+            ```after(TEXT timeA, TEXT timeB)```: Compares two instants and returns true if timeA is after timeB.
+
+            Both parameters must be ISO 8601 strings at UTC.
 
             **Example:**
 
@@ -141,13 +180,10 @@ public class TemporalFunctionLibrary {
     }
 
     @Function(docs = """
-            ```between(TEXT time, TEXT intervalStart, TEXT intervalEnd)```:
-            This function tests if ```time``` is inside of the closed interval defined by ```intervalStart``` and
-            ```intervalEnd```, where ```intervalStart``` must be before ```intervalEnd```.
-            All parameters must be expressed as ISO 8601 strings at UTC.
+            ```between(TEXT time, TEXT intervalStart, TEXT intervalEnd)```: Returns true if time falls within
+            the closed interval from intervalStart to intervalEnd.
 
-            The function returns ```true```, if ```time``` is inside of the closed interval defined by ```intervalStart```
-            and ```intervalEnd```.
+            All parameters must be ISO 8601 strings at UTC. intervalStart must be before intervalEnd.
 
             **Example:**
 
@@ -167,26 +203,17 @@ public class TemporalFunctionLibrary {
     }
 
     @Function(docs = """
-            ```timeBetween(TEXT timeA, TEXT timeB, TEXT chronoUnit)```:
-            This function calculates the timespan between ```timeA``` and ```timeB``` in the given ```chronoUnit```.
-            All ```timeA``` and ```timeB``` must be expressed as ISO 8601 strings at UTC.
-            The ```chronoUnit``` can be one of:
-            * NANOS: for nanoseconds.
-            * MICROS: for microsecond.
-            * MILLIS: for milliseconds.
-            * SECONDS: for seconds.
-            * MINUTES: for minutes
-            * HOURS: for hours
-            * HALF_DAYS: for ```12``` hours.
-            * DAYS: for days.
-            * WEEKS: for ```7``` days.
-            * MONTHS: The duration of a month is estimated as one twelfth of ```365.2425``` days.
-            * YEARS: The duration of a year is estimated as ```365.2425``` days.
-            * DECADES: for ```10``` years.
-            * CENTURIES: for ```100``` years.
-            * MILLENNIA: for ```1000``` years.
+            ```timeBetween(TEXT timeA, TEXT timeB, TEXT chronoUnit)```: Calculates the time span between
+            timeA and timeB in the specified chronoUnit.
 
-            Example: The expression ```time.timeBetween("2001-01-01", "2002-01-01", "YEARS")``` returns ```1```.""")
+            Both time parameters must be ISO 8601 strings at UTC. Valid chronoUnits: NANOS, MICROS, MILLIS,
+            SECONDS, MINUTES, HOURS, HALF_DAYS, DAYS, WEEKS, MONTHS, YEARS, DECADES, CENTURIES, MILLENNIA.
+
+            Month duration is estimated as one twelfth of 365.2425 days. Year duration is 365.2425 days.
+
+            **Example:**
+
+            The expression ```time.timeBetween("2001-01-01", "2002-01-01", "YEARS")``` returns ```1```.""")
     public static Val timeBetween(@Text Val timeA, @Text Val timeB, @Text Val chronoUnit) {
         final var unit        = parseChronoUnit(chronoUnit);
         final var instantFrom = instantOf(timeA);
@@ -203,9 +230,9 @@ public class TemporalFunctionLibrary {
     /* ######## DATE ARITHMETIC ######## */
 
     @Function(docs = """
-            ```plusDays(TEXT startTime, INTEGER days)```:
-            This function adds ```days``` days to ```startTime```.
-            The parameter ```startTime``` must be expressed as ISO 8601 strings at UTC. And ```days``` must be an integer.
+            ```plusDays(TEXT startTime, INTEGER days)```: Adds the specified number of days to startTime.
+
+            startTime must be an ISO 8601 string at UTC. days must be an integer.
 
             **Example:**
 
@@ -218,10 +245,10 @@ public class TemporalFunctionLibrary {
     }
 
     @Function(docs = """
-            ```plusMonths(TEXT startTime, INTEGER months)```:
-            This function adds ```months``` months to ```startTime```.
-            The parameter ```startTime``` must be expressed as ISO 8601 strings at UTC. And ```months``` must be an integer.
-            Month calculation uses the standard calendar rules (e.g., adding 1 month to Jan 31 results in Feb 28/29).
+            ```plusMonths(TEXT startTime, INTEGER months)```: Adds the specified number of months to startTime.
+
+            startTime must be an ISO 8601 string at UTC. months must be an integer.
+            Uses standard calendar rules (e.g., adding 1 month to Jan 31 results in Feb 28/29).
 
             **Example:**
 
@@ -234,10 +261,10 @@ public class TemporalFunctionLibrary {
     }
 
     @Function(docs = """
-            ```plusYears(TEXT startTime, INTEGER years)```:
-            This function adds ```years``` years to ```startTime```.
-            The parameter ```startTime``` must be expressed as ISO 8601 strings at UTC. And ```years``` must be an integer.
-            Year calculation uses the standard calendar rules (e.g., adding 1 year to Feb 29 in a leap year results in Feb 28).
+            ```plusYears(TEXT startTime, INTEGER years)```: Adds the specified number of years to startTime.
+
+            startTime must be an ISO 8601 string at UTC. years must be an integer.
+            Uses standard calendar rules (e.g., adding 1 year to Feb 29 in a leap year results in Feb 28).
 
             **Example:**
 
@@ -250,9 +277,9 @@ public class TemporalFunctionLibrary {
     }
 
     @Function(docs = """
-            ```minusDays(TEXT startTime, INTEGER days)```:
-            This function subtracts ```days``` days from ```startTime```.
-            The parameter ```startTime``` must be expressed as ISO 8601 strings at UTC. And ```days``` must be an integer.
+            ```minusDays(TEXT startTime, INTEGER days)```: Subtracts the specified number of days from startTime.
+
+            startTime must be an ISO 8601 string at UTC. days must be an integer.
 
             **Example:**
 
@@ -265,10 +292,10 @@ public class TemporalFunctionLibrary {
     }
 
     @Function(docs = """
-            ```minusMonths(TEXT startTime, INTEGER months)```:
-            This function subtracts ```months``` months from ```startTime```.
-            The parameter ```startTime``` must be expressed as ISO 8601 strings at UTC. And ```months``` must be an integer.
-            Month calculation uses the standard calendar rules.
+            ```minusMonths(TEXT startTime, INTEGER months)```: Subtracts the specified number of months from startTime.
+
+            startTime must be an ISO 8601 string at UTC. months must be an integer.
+            Uses standard calendar rules.
 
             **Example:**
 
@@ -281,10 +308,10 @@ public class TemporalFunctionLibrary {
     }
 
     @Function(docs = """
-            ```minusYears(TEXT startTime, INTEGER years)```:
-            This function subtracts ```years``` years from ```startTime```.
-            The parameter ```startTime``` must be expressed as ISO 8601 strings at UTC. And ```years``` must be an integer.
-            Year calculation uses the standard calendar rules.
+            ```minusYears(TEXT startTime, INTEGER years)```: Subtracts the specified number of years from startTime.
+
+            startTime must be an ISO 8601 string at UTC. years must be an integer.
+            Uses standard calendar rules.
 
             **Example:**
 
@@ -299,9 +326,9 @@ public class TemporalFunctionLibrary {
     /* ######## INSTANT/UTC MANIPULATION ######## */
 
     @Function(docs = """
-            ```plusNanos(TEXT startTime, INTEGER nanos)```:
-            This function adds ```nanos``` nanoseconds to ```startTime```.
-            The parameter ```startTime``` must be expressed as ISO 8601 strings at UTC. And ```nanos``` must be an integer.
+            ```plusNanos(TEXT startTime, INTEGER nanos)```: Adds the specified number of nanoseconds to startTime.
+
+            startTime must be an ISO 8601 string at UTC. nanos must be an integer.
 
             **Example:**
 
@@ -314,9 +341,9 @@ public class TemporalFunctionLibrary {
     }
 
     @Function(docs = """
-            ```plusMillis(TEXT startTime, INTEGER millis)```:
-            This function adds ```millis``` milliseconds to ```startTime```.
-            The parameter ```startTime``` must be expressed as ISO 8601 strings at UTC. And ```millis``` must be an integer.
+            ```plusMillis(TEXT startTime, INTEGER millis)```: Adds the specified number of milliseconds to startTime.
+
+            startTime must be an ISO 8601 string at UTC. millis must be an integer.
 
             **Example:**
 
@@ -329,9 +356,9 @@ public class TemporalFunctionLibrary {
     }
 
     @Function(docs = """
-            ```plusSeconds(TEXT startTime, INTEGER seconds)```:
-            This function adds ```seconds``` seconds to ```startTime```.
-            The parameter ```startTime``` must be expressed as ISO 8601 strings at UTC. And ```seconds``` must be an integer.
+            ```plusSeconds(TEXT startTime, INTEGER seconds)```: Adds the specified number of seconds to startTime.
+
+            startTime must be an ISO 8601 string at UTC. seconds must be an integer.
 
             **Example:**
 
@@ -344,9 +371,9 @@ public class TemporalFunctionLibrary {
     }
 
     @Function(docs = """
-            ```minusNanos(TEXT startTime, INTEGER nanos)```:
-            This function subtracts ```nanos``` nanoseconds from ```startTime```.
-            The parameter ```startTime``` must be expressed as ISO 8601 strings at UTC. And ```nanos``` must be an integer.
+            ```minusNanos(TEXT startTime, INTEGER nanos)```: Subtracts the specified number of nanoseconds from startTime.
+
+            startTime must be an ISO 8601 string at UTC. nanos must be an integer.
 
             **Example:**
 
@@ -359,9 +386,9 @@ public class TemporalFunctionLibrary {
     }
 
     @Function(docs = """
-            ```minusMillis(TEXT startTime, INTEGER millis)```:
-            This function subtracts ```millis``` milliseconds from ```startTime```.
-            The parameter ```startTime``` must be expressed as ISO 8601 strings at UTC. And ```millis``` must be an integer.
+            ```minusMillis(TEXT startTime, INTEGER millis)```: Subtracts the specified number of milliseconds from startTime.
+
+            startTime must be an ISO 8601 string at UTC. millis must be an integer.
 
             **Example:**
 
@@ -374,9 +401,9 @@ public class TemporalFunctionLibrary {
     }
 
     @Function(docs = """
-            ```minusSeconds(TEXT startTime, INTEGER seconds)```:
-            This function subtracts ```seconds``` seconds from ```startTime```.
-            The parameter ```startTime``` must be expressed as ISO 8601 strings at UTC. And ```seconds``` must be an integer.
+            ```minusSeconds(TEXT startTime, INTEGER seconds)```: Subtracts the specified number of seconds from startTime.
+
+            startTime must be an ISO 8601 string at UTC. seconds must be an integer.
 
             **Example:**
 
@@ -391,9 +418,8 @@ public class TemporalFunctionLibrary {
     /* ######## INSTANT/UTC EPOCH ######## */
 
     @Function(docs = """
-            ```epochSecond(TEXT utcDateTime)```:
-            This function converts an ISO 8601 string at UTC ```utcDateTime``` to the offset of this instant to the epoch date
-            ```"1970-01-01T00:00:00Z"``` in seconds.
+            ```epochSecond(TEXT utcDateTime)```: Converts an ISO 8601 UTC timestamp to seconds since
+            the epoch (1970-01-01T00:00:00Z).
 
             **Example:**
 
@@ -403,9 +429,8 @@ public class TemporalFunctionLibrary {
     }
 
     @Function(docs = """
-            ```epochMilli(TEXT utcDateTime)```:
-            This function converts an ISO 8601 string at UTC ```utcDateTime``` to the offset of this instant to the epoch date
-            ```"1970-01-01T00:00:00Z"``` in milliseconds.
+            ```epochMilli(TEXT utcDateTime)```: Converts an ISO 8601 UTC timestamp to milliseconds since
+            the epoch (1970-01-01T00:00:00Z).
 
             **Example:**
 
@@ -415,9 +440,7 @@ public class TemporalFunctionLibrary {
     }
 
     @Function(docs = """
-            ```ofEpochSecond(INTEGER epochSeconds)```:
-            This function converts an offset from the epoch date
-            ```"1970-01-01T00:00:00Z"``` in seconds to an instant represented as an ISO 8601 string at UTC.
+            ```ofEpochSecond(INTEGER epochSeconds)```: Converts seconds since the epoch to an ISO 8601 UTC timestamp.
 
             **Example:**
 
@@ -427,9 +450,7 @@ public class TemporalFunctionLibrary {
     }
 
     @Function(docs = """
-            ```ofEpochMilli(INTEGER epochMillis)```:
-            This function converts an offset from the epoch date
-            ```"1970-01-01T00:00:00Z"``` in milliseconds to an instant represented as an ISO 8601 string at UTC.
+            ```ofEpochMilli(INTEGER epochMillis)```: Converts milliseconds since the epoch to an ISO 8601 UTC timestamp.
 
             **Example:**
 
@@ -441,9 +462,9 @@ public class TemporalFunctionLibrary {
     /* ######## INSTANT/UTC CALENDAR ######## */
 
     @Function(docs = """
-            ```weekOfYear(TEXT utcDateTime)```:
-            This function returns the number of the calendar week (1-52) of the year for any
-            date represented as an ISO 8601 string at UTC.
+            ```weekOfYear(TEXT utcDateTime)```: Returns the calendar week number (1-52) for the given date.
+
+            utcDateTime must be an ISO 8601 string at UTC.
 
             **Example:**
 
@@ -454,9 +475,9 @@ public class TemporalFunctionLibrary {
     }
 
     @Function(docs = """
-            ```dayOfYear(TEXT utcDateTime)```:
-            This function returns the day (1-365) of the year for any
-            date represented as an ISO 8601 string at UTC.
+            ```dayOfYear(TEXT utcDateTime)```: Returns the day of the year (1-365) for the given date.
+
+            utcDateTime must be an ISO 8601 string at UTC.
 
             **Example:**
 
@@ -466,10 +487,10 @@ public class TemporalFunctionLibrary {
     }
 
     @Function(docs = """
-            ```dayOfWeek(TEXT utcDateTime)```:
-            This function returns the name of the day for any date represented as an ISO 8601 string at UTC.
-            The function returns one of: ```"SUNDAY"```, ```"MONDAY"```, ```"TUESDAY"```, ```"WEDNESDAY"```,
-            ```"THURSDAY"```, ```"FRIDAY"```, ```"SATURDAY"```.
+            ```dayOfWeek(TEXT utcDateTime)```: Returns the name of the weekday for the given date.
+
+            Returns one of: SUNDAY, MONDAY, TUESDAY, WEDNESDAY, THURSDAY, FRIDAY, SATURDAY.
+            utcDateTime must be an ISO 8601 string at UTC.
 
             **Example:**
 
@@ -482,8 +503,7 @@ public class TemporalFunctionLibrary {
     /* ######## VALIDATION ######## */
 
     @Function(docs = """
-            ```validUTC(TEXT utcDateTime)```:
-            This function validates if a value is a string in ISO 8601 string at UTC.
+            ```validUTC(TEXT utcDateTime)```: Returns true if the value is a valid ISO 8601 UTC timestamp.
 
             **Example:**
 
@@ -499,9 +519,9 @@ public class TemporalFunctionLibrary {
     }
 
     @Function(docs = """
-            ```validRFC3339(TEXT timestamp)```:
-            This function validates if a value is a valid RFC3339 timestamp. RFC3339 is stricter than ISO 8601
-            and requires a timezone designator (Z or offset like +05:00).
+            ```validRFC3339(TEXT timestamp)```: Returns true if the value is a valid RFC3339 timestamp.
+
+            RFC3339 requires a timezone designator (Z or offset like +05:00).
 
             **Example:**
 
@@ -533,8 +553,7 @@ public class TemporalFunctionLibrary {
     /* ######## TEMPORAL BOUNDS ######## */
 
     @Function(docs = """
-            ```startOfDay(TEXT dateTime)```:
-            This function returns the start of the day (00:00:00.000) for the given date-time at UTC.
+            ```startOfDay(TEXT dateTime)```: Returns the start of the day (00:00:00.000) for the given date-time at UTC.
 
             **Example:**
 
@@ -546,8 +565,7 @@ public class TemporalFunctionLibrary {
     }
 
     @Function(docs = """
-            ```endOfDay(TEXT dateTime)```:
-            This function returns the end of the day (23:59:59.999999999) for the given date-time at UTC.
+            ```endOfDay(TEXT dateTime)```: Returns the end of the day (23:59:59.999999999) for the given date-time at UTC.
 
             **Example:**
 
@@ -559,9 +577,9 @@ public class TemporalFunctionLibrary {
     }
 
     @Function(docs = """
-            ```startOfWeek(TEXT dateTime)```:
-            This function returns the start of the week (Monday 00:00:00.000) for the given date-time at UTC.
-            Weeks start on Monday according to ISO 8601.
+            ```startOfWeek(TEXT dateTime)```: Returns the start of the week (Monday 00:00:00.000) for the given date-time at UTC.
+
+            Weeks start on Monday per ISO 8601.
 
             **Example:**
 
@@ -575,9 +593,9 @@ public class TemporalFunctionLibrary {
     }
 
     @Function(docs = """
-            ```endOfWeek(TEXT dateTime)```:
-            This function returns the end of the week (Sunday 23:59:59.999999999) for the given date-time at UTC.
-            Weeks end on Sunday according to ISO 8601.
+            ```endOfWeek(TEXT dateTime)```: Returns the end of the week (Sunday 23:59:59.999999999) for the given date-time at UTC.
+
+            Weeks end on Sunday per ISO 8601.
 
             **Example:**
 
@@ -590,8 +608,7 @@ public class TemporalFunctionLibrary {
     }
 
     @Function(docs = """
-            ```startOfMonth(TEXT dateTime)```:
-            This function returns the start of the month (first day at 00:00:00.000) for the given date-time at UTC.
+            ```startOfMonth(TEXT dateTime)```: Returns the start of the month (first day at 00:00:00.000) for the given date-time at UTC.
 
             **Example:**
 
@@ -603,8 +620,7 @@ public class TemporalFunctionLibrary {
     }
 
     @Function(docs = """
-            ```endOfMonth(TEXT dateTime)```:
-            This function returns the end of the month (last day at 23:59:59.999999999) for the given date-time at UTC.
+            ```endOfMonth(TEXT dateTime)```: Returns the end of the month (last day at 23:59:59.999999999) for the given date-time at UTC.
 
             **Example:**
 
@@ -617,8 +633,7 @@ public class TemporalFunctionLibrary {
     }
 
     @Function(docs = """
-            ```startOfYear(TEXT dateTime)```:
-            This function returns the start of the year (January 1 at 00:00:00.000) for the given date-time at UTC.
+            ```startOfYear(TEXT dateTime)```: Returns the start of the year (January 1 at 00:00:00.000) for the given date-time at UTC.
 
             **Example:**
 
@@ -630,8 +645,7 @@ public class TemporalFunctionLibrary {
     }
 
     @Function(docs = """
-            ```endOfYear(TEXT dateTime)```:
-            This function returns the end of the year (December 31 at 23:59:59.999999999) for the given date-time at UTC.
+            ```endOfYear(TEXT dateTime)```: Returns the end of the year (December 31 at 23:59:59.999999999) for the given date-time at UTC.
 
             **Example:**
 
@@ -646,8 +660,7 @@ public class TemporalFunctionLibrary {
     /* ######## TEMPORAL ROUNDING ######## */
 
     @Function(docs = """
-            ```truncateToHour(TEXT dateTime)```:
-            This function truncates the given date-time to the hour, setting minutes, seconds, and nanoseconds to zero.
+            ```truncateToHour(TEXT dateTime)```: Truncates the date-time to the hour, setting minutes, seconds, and nanoseconds to zero.
 
             **Example:**
 
@@ -658,8 +671,7 @@ public class TemporalFunctionLibrary {
     }
 
     @Function(docs = """
-            ```truncateToDay(TEXT dateTime)```:
-            This function truncates the given date-time to the day, setting time to 00:00:00.000.
+            ```truncateToDay(TEXT dateTime)```: Truncates the date-time to the day, setting time to 00:00:00.000.
 
             **Example:**
 
@@ -669,8 +681,7 @@ public class TemporalFunctionLibrary {
     }
 
     @Function(docs = """
-            ```truncateToWeek(TEXT dateTime)```:
-            This function truncates the given date-time to the start of the week (Monday 00:00:00.000).
+            ```truncateToWeek(TEXT dateTime)```: Truncates the date-time to the start of the week (Monday 00:00:00.000).
 
             **Example:**
 
@@ -680,8 +691,7 @@ public class TemporalFunctionLibrary {
     }
 
     @Function(docs = """
-            ```truncateToMonth(TEXT dateTime)```:
-            This function truncates the given date-time to the start of the month (first day at 00:00:00.000).
+            ```truncateToMonth(TEXT dateTime)```: Truncates the date-time to the start of the month (first day at 00:00:00.000).
 
             **Example:**
 
@@ -691,8 +701,7 @@ public class TemporalFunctionLibrary {
     }
 
     @Function(docs = """
-            ```truncateToYear(TEXT dateTime)```:
-            This function truncates the given date-time to the start of the year (January 1 at 00:00:00.000).
+            ```truncateToYear(TEXT dateTime)```: Truncates the date-time to the start of the year (January 1 at 00:00:00.000).
 
             **Example:**
 
@@ -704,12 +713,12 @@ public class TemporalFunctionLibrary {
     /* ######## VALIDATION ######## */
 
     @Function(docs = """
-            ```localIso(TEXT localDateTime)```: This function parses a date-time ISO 8601 string without an offset,
-            such as ```"2011-12-03T10:15:30"``` while using the PDP's system default time zone.
+            ```localIso(TEXT localDateTime)```: Parses an ISO 8601 date-time string without timezone offset using
+            the PDP's system default timezone.
 
             **Example:**
 
-            In case the systems default time zone is ```Europe/Berlin``` the expression
+            With system default timezone Europe/Berlin, the expression
             ```time.localIso("2021-11-08T13:00:00")``` returns ```"2021-11-08T12:00:00Z"```.""")
     public static Val localIso(@Text Val localDateTime) {
         return Val.of(localDateTimeToInstant(
@@ -718,12 +727,12 @@ public class TemporalFunctionLibrary {
     }
 
     @Function(docs = """
-            ```localDin(TEXT dinDateTime)```: This function parses a DIN date-time string without an offset,
-            such as ```"08.11.2021 13:00:00"``` while using the PDP's system default time zone. It returns an ISO 8601 string.
+            ```localDin(TEXT dinDateTime)```: Parses a DIN date-time string without timezone offset using
+            the PDP's system default timezone. Returns an ISO 8601 string.
 
             **Example:**
 
-            In case the systems default time zone is ```Europe/Berlin``` the expression
+            With system default timezone Europe/Berlin, the expression
             ```time.localDin("08.11.2021 13:00:00")``` returns ```"2021-11-08T12:00:00Z"```.""")
     public static Val localDin(@Text Val dinDateTime) {
         return Val.of(localDateTimeToInstant(parseLocalDateTime(dinDateTime.getText(), DIN_DATE_TIME_FORMATTER),
@@ -731,7 +740,7 @@ public class TemporalFunctionLibrary {
     }
 
     @Function(docs = """
-            ```dateTimeAtOffset(TEXT localDateTime, TEXT offsetId)```: This function parses a local date-time string and
+            ```dateTimeAtOffset(TEXT localDateTime, TEXT offsetId)```: Parses a local date-time string and
             combines it with an offset, then converts to an ISO 8601 instant at UTC.
 
             **Example:**
@@ -745,11 +754,11 @@ public class TemporalFunctionLibrary {
     }
 
     @Function(docs = """
-            ```dateTimeAtZone(TEXT localDateTime, TEXT zoneId)```: This function parses an ISO 8601 date-time string and
-            for the provided [```zoneId```](https://en.wikipedia.org/wiki/List_of_tz_database_time_zones)
-            returns the matching ISO 8601 instant at UTC.
+            ```dateTimeAtZone(TEXT localDateTime, TEXT zoneId)```: Parses an ISO 8601 date-time string and
+            returns the matching ISO 8601 instant at UTC for the provided timezone.
 
-            If ```zoneId``` is empty or blank, the system default time zone is used.
+            If zoneId is empty or blank, uses system default timezone.
+            See [timezone database](https://en.wikipedia.org/wiki/List_of_tz_database_time_zones) for valid zoneId values.
 
             **Example:**
 
@@ -762,7 +771,7 @@ public class TemporalFunctionLibrary {
     }
 
     @Function(docs = """
-            ```offsetDateTime(TEXT isoDateTime)```: This function parses an ISO 8601 date-time with an offset
+            ```offsetDateTime(TEXT isoDateTime)```: Parses an ISO 8601 date-time with offset and
             returns the matching ISO 8601 instant at UTC.
 
             **Example:**
@@ -777,7 +786,7 @@ public class TemporalFunctionLibrary {
     /* ######## TIME CONVERSION ######## */
 
     @Function(docs = """
-            ```offsetTime(TEXT isoTime)```: This function parses an ISO 8601 time with an offset
+            ```offsetTime(TEXT isoTime)```: Parses an ISO 8601 time with offset and
             returns the matching time at UTC.
 
             **Example:**
@@ -789,8 +798,8 @@ public class TemporalFunctionLibrary {
     }
 
     @Function(docs = """
-            ```timeAtOffset(TEXT localTime, TEXT offsetId)```: This function parses a time ```localTime``` with a separate
-            ```offsetId``` parameter and returns the matching time at UTC.
+            ```timeAtOffset(TEXT localTime, TEXT offsetId)```: Parses a time with a separate offset parameter and
+            returns the matching time at UTC.
 
             **Example:**
 
@@ -802,8 +811,8 @@ public class TemporalFunctionLibrary {
     }
 
     @Function(docs = """
-            ```timeInZone(TEXT localTime, TEXT localDate, TEXT zoneId)```: This function parses a time ```localTime``` and
-            date ```localDate``` with a separate ```zoneId``` parameter and returns the matching time at UTC.
+            ```timeInZone(TEXT localTime, TEXT localDate, TEXT zoneId)```: Parses a time and date with a separate
+            timezone parameter and returns the matching time at UTC.
 
             **Example:**
 
@@ -816,9 +825,7 @@ public class TemporalFunctionLibrary {
     }
 
     @Function(docs = """
-            ```timeAMPM(TEXT timeInAMPM)```:
-            This function parses the given string ```timeInAMPM``` as local time in AM/PM-format
-            and converts it to 24-hour format.
+            ```timeAMPM(TEXT timeInAMPM)```: Parses a time string in AM/PM format and converts it to 24-hour format.
 
             **Example:**
 
@@ -831,8 +838,7 @@ public class TemporalFunctionLibrary {
     /* ######## EXTRACT PARTS ######## */
 
     @Function(docs = """
-            ```dateOf(TEXT isoDateTime)```:
-            This function returns the date part of the ISO 8601 string ```isoDateTime```.
+            ```dateOf(TEXT isoDateTime)```: Returns the date part of an ISO 8601 string.
 
             **Example:**
 
@@ -842,8 +848,7 @@ public class TemporalFunctionLibrary {
     }
 
     @Function(docs = """
-            ```timeOf(TEXT isoDateTime)```:
-            This function returns the local time of the ISO 8601 string ```isoDateTime```, truncated to seconds.
+            ```timeOf(TEXT isoDateTime)```: Returns the local time of an ISO 8601 string, truncated to seconds.
 
             **Example:**
 
@@ -855,8 +860,7 @@ public class TemporalFunctionLibrary {
     }
 
     @Function(docs = """
-            ```hourOf(TEXT isoDateTime)```:
-            This function returns the hour of the ISO 8601 string ```isoDateTime```.
+            ```hourOf(TEXT isoDateTime)```: Returns the hour of an ISO 8601 string.
 
             **Example:**
 
@@ -866,8 +870,7 @@ public class TemporalFunctionLibrary {
     }
 
     @Function(docs = """
-            ```minuteOf(TEXT isoDateTime)```:
-            This function returns the minute of the ISO 8601 string ```isoDateTime```.
+            ```minuteOf(TEXT isoDateTime)```: Returns the minute of an ISO 8601 string.
 
             **Example:**
 
@@ -877,8 +880,7 @@ public class TemporalFunctionLibrary {
     }
 
     @Function(docs = """
-            ```secondOf(TEXT isoDateTime)```:
-            This function returns the second of the ISO 8601 string ```isoDateTime```.
+            ```secondOf(TEXT isoDateTime)```: Returns the second of an ISO 8601 string.
 
             **Example:**
 
@@ -890,20 +892,17 @@ public class TemporalFunctionLibrary {
     /* ######## ISO DURATION ######## */
 
     @Function(docs = """
-            ```durationFromISO(TEXT isoDuration)```:
-            This function parses an ISO 8601 duration string and returns the duration in milliseconds.
-            Supports both Period format (years, months, days) and Duration format (hours, minutes, seconds).
+            ```durationFromISO(TEXT isoDuration)```: Parses an ISO 8601 duration string and returns the duration
+            in milliseconds.
 
-            Format: ```P[n]Y[n]M[n]DT[n]H[n]M[n]S```
-            - P: required prefix
-            - Years (Y) and Months (M) are approximated: 1 year = 365.2425 days, 1 month = 30.436875 days
-            - T: separator between date and time parts (required if time part present)
+            Format: P[n]Y[n]M[n]DT[n]H[n]M[n]S. Years (Y) and Months (M) are approximated:
+            1 year = 365.2425 days, 1 month = 30.436875 days.
 
             **Examples:**
 
             The expression ```time.durationFromISO("P1D")``` returns ```86400000``` (1 day in milliseconds).
             The expression ```time.durationFromISO("PT2H30M")``` returns ```9000000``` (2.5 hours in milliseconds).
-            The expression ```time.durationFromISO("P1Y2M3DT4H5M6S")``` returns duration in milliseconds (approximate for years/months).""")
+            The expression ```time.durationFromISO("P1Y2M3DT4H5M6S")``` returns duration in milliseconds.""")
     public static Val durationFromISO(@Text Val isoDuration) {
         if (isoDuration == null || isoDuration.isTextual() && isoDuration.getText() == null) {
             throw new IllegalArgumentException("ISO duration parameter cannot be null");
@@ -944,8 +943,9 @@ public class TemporalFunctionLibrary {
     }
 
     @Function(docs = """
-            ```durationToISOCompact(NUMBER milliseconds)```:
-            This function converts a duration in milliseconds to a compact ISO 8601 duration string.
+            ```durationToISOCompact(NUMBER milliseconds)```: Converts a duration in milliseconds to a compact
+            ISO 8601 duration string.
+
             Uses only time-based units (days, hours, minutes, seconds) for precision.
 
             **Examples:**
@@ -959,11 +959,10 @@ public class TemporalFunctionLibrary {
     }
 
     @Function(docs = """
-            ```durationToISOVerbose(NUMBER milliseconds)```:
-            This function converts a duration in milliseconds to a verbose ISO 8601 duration string
-            with approximate years and months for better readability of large durations.
+            ```durationToISOVerbose(NUMBER milliseconds)```: Converts a duration in milliseconds to a verbose
+            ISO 8601 duration string with approximate years and months.
 
-            Uses the approximation: 1 year = 365.2425 days, 1 month = 30.436875 days.
+            Uses approximation: 1 year = 365.2425 days, 1 month = 30.436875 days.
 
             **Examples:**
 
@@ -1014,8 +1013,8 @@ public class TemporalFunctionLibrary {
     /* ######## TIMEZONE CONVERSION FROM UTC ######## */
 
     @Function(docs = """
-            ```toZone(TEXT utcTime, TEXT zoneId)```:
-            This function converts a UTC timestamp to a specific timezone, returning an ISO 8601 timestamp with offset.
+            ```toZone(TEXT utcTime, TEXT zoneId)```: Converts a UTC timestamp to a specific timezone, returning
+            an ISO 8601 timestamp with offset.
 
             **Example:**
 
@@ -1029,8 +1028,8 @@ public class TemporalFunctionLibrary {
     }
 
     @Function(docs = """
-            ```toOffset(TEXT utcTime, TEXT offsetId)```:
-            This function converts a UTC timestamp to a specific offset, returning an ISO 8601 timestamp with that offset.
+            ```toOffset(TEXT utcTime, TEXT offsetId)```: Converts a UTC timestamp to a specific offset, returning
+            an ISO 8601 timestamp with that offset.
 
             **Example:**
 
@@ -1046,8 +1045,9 @@ public class TemporalFunctionLibrary {
     /* ######## AGE CALCULATION ######## */
 
     @Function(docs = """
-            ```ageInYears(TEXT birthDate, TEXT currentDate)```:
-            This function calculates the age in complete years between ```birthDate``` and ```currentDate```.
+            ```ageInYears(TEXT birthDate, TEXT currentDate)```: Calculates the age in complete years between
+            birthDate and currentDate.
+
             Both dates must be ISO 8601 strings.
 
             **Example:**
@@ -1060,8 +1060,9 @@ public class TemporalFunctionLibrary {
     }
 
     @Function(docs = """
-            ```ageInMonths(TEXT birthDate, TEXT currentDate)```:
-            This function calculates the age in complete months between ```birthDate``` and ```currentDate```.
+            ```ageInMonths(TEXT birthDate, TEXT currentDate)```: Calculates the age in complete months between
+            birthDate and currentDate.
+
             Both dates must be ISO 8601 strings.
 
             **Example:**
@@ -1074,8 +1075,11 @@ public class TemporalFunctionLibrary {
         return Val.of(period.getYears() * 12L + period.getMonths());
     }
 
-    /* ######## EXTRACT PARTS ######## */
+    /* ######## HELPER METHODS ######## */
 
+    /**
+     * Parses time parameter to an Instant. Accepts ISO 8601 instant or date format.
+     */
     private static Instant instantOf(Val time) {
         if (time == null || time.isTextual() && time.getText() == null) {
             throw new IllegalArgumentException("Time parameter cannot be null");
@@ -1099,6 +1103,9 @@ public class TemporalFunctionLibrary {
         }
     }
 
+    /**
+     * Parses zone parameter to a ZoneId. Returns system default if parameter is blank.
+     */
     private static ZoneId zoneIdOf(Val zone) {
         if (zone == null || zone.isTextual() && zone.getText() == null) {
             throw new IllegalArgumentException("Zone parameter cannot be null");
@@ -1118,6 +1125,9 @@ public class TemporalFunctionLibrary {
         }
     }
 
+    /**
+     * Parses offset parameter to a ZoneOffset.
+     */
     private static ZoneOffset parseZoneOffset(Val offset) {
         if (offset == null || offset.isTextual() && offset.getText() == null) {
             throw new IllegalArgumentException("Offset parameter cannot be null");
@@ -1135,6 +1145,9 @@ public class TemporalFunctionLibrary {
         }
     }
 
+    /**
+     * Parses chronoUnit parameter to a ChronoUnit.
+     */
     private static ChronoUnit parseChronoUnit(Val unit) {
         if (unit == null || unit.isTextual() && unit.getText() == null) {
             throw new IllegalArgumentException("ChronoUnit parameter cannot be null");
@@ -1154,6 +1167,9 @@ public class TemporalFunctionLibrary {
         }
     }
 
+    /**
+     * Validates temporal arithmetic bounds to prevent overflow.
+     */
     private static void validateTemporalBounds(Instant instant, long amount, ChronoUnit unit, boolean isAddition) {
         try {
             if (isAddition) {
@@ -1172,10 +1188,16 @@ public class TemporalFunctionLibrary {
         }
     }
 
+    /**
+     * Converts LocalDateTime to Instant using specified ZoneId.
+     */
     private static Instant localDateTimeToInstant(LocalDateTime ldt, ZoneId zoneId) {
         return ldt.atZone(zoneId).toInstant();
     }
 
+    /**
+     * Parses local date-time string using specified formatter.
+     */
     private static LocalDateTime parseLocalDateTime(String localDateTimeString, DateTimeFormatter dtf) {
         return dtf.parse(localDateTimeString, LocalDateTime::from);
     }

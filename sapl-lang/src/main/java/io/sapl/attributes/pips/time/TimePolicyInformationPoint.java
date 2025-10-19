@@ -55,7 +55,7 @@ public class TimePolicyInformationPoint {
             After that the time is emitted once every second.
 
             Example:
-            ```
+            ```sapl
             policy "time example"
             permit
             where
@@ -73,7 +73,7 @@ public class TimePolicyInformationPoint {
             After that the time is emitted once every ```updateIntervalInMillis`` milliseconds.
 
             Example:
-            ```
+            ```sapl
             policy "time example"
             permit
             where
@@ -134,7 +134,7 @@ public class TimePolicyInformationPoint {
             which would poll the clock regularly.
 
             Example:
-            ```
+            ```sapl
             policy "time example"
             permit action == "work"
             where
@@ -160,7 +160,7 @@ public class TimePolicyInformationPoint {
             ```<time.now>```, which would poll the clock regularly.
 
             Example:
-            ```
+            ```sapl
             policy "time example"
             permit action == "work"
             where
@@ -224,7 +224,7 @@ public class TimePolicyInformationPoint {
             one between the to times, crossing the midnight border of the days.
 
             Example:
-            ```
+            ```sapl
             policy "time example"
             permit action == "work"
             where
@@ -307,7 +307,7 @@ public class TimePolicyInformationPoint {
             ```<time.now>```, which would poll the clock regularly.
 
             Example:
-            ```
+            ```sapl
             policy "time example"
             permit action == "work"
             where
@@ -332,7 +332,7 @@ public class TimePolicyInformationPoint {
             which would poll the clock regularly.
 
             Example:
-            ```
+            ```sapl
             policy "time example"
             permit action == "work"
             where
@@ -377,7 +377,7 @@ public class TimePolicyInformationPoint {
             to ```<time.now>```.
 
             Example:
-            ```
+            ```sapl
             policy "time example"
             permit action == "work"
             where
@@ -419,7 +419,7 @@ public class TimePolicyInformationPoint {
             The attribute will forget its state in this case.
 
             Example:
-            ```
+            ```sapl
             policy "time example"
             permit action == "read"
             where
