@@ -30,15 +30,16 @@ import lombok.RequiredArgsConstructor;
 import reactor.core.publisher.Flux;
 
 /**
- * Policy Information Point for subscribing to MQTT topics and receiving messages
+ * Policy Information Point for subscribing to MQTT topics and receiving
+ * messages
  * from MQTT brokers.
  */
 @RequiredArgsConstructor
 @PolicyInformationPoint(name = MqttPolicyInformationPoint.NAME, description = MqttPolicyInformationPoint.DESCRIPTION, pipDocumentation = MqttPolicyInformationPoint.DOCUMENTATION)
 public class MqttPolicyInformationPoint {
 
-    static final String NAME        = "mqtt";
-    static final String DESCRIPTION = "Policy Information Point for subscribing to MQTT topics.";
+    static final String NAME          = "mqtt";
+    static final String DESCRIPTION   = "Policy Information Point for subscribing to MQTT topics.";
     static final String DOCUMENTATION = """
             This Policy Information Point subscribes to MQTT topics and returns messages from
             MQTT brokers as a reactive stream of attribute values.
@@ -321,7 +322,7 @@ public class MqttPolicyInformationPoint {
             ```
             """)
     public Flux<Val> messages(@Text @Array Val topic, Map<String, Val> variables, @Int Val qos,
-                              @Text @Array @JsonObject Val mqttPipConfig) {
+            @Text @Array @JsonObject Val mqttPipConfig) {
         return saplMqttClient.buildSaplMqttMessageFlux(topic, variables, qos, mqttPipConfig);
     }
 }

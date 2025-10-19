@@ -47,7 +47,7 @@ public class SchemaValidationLibrary {
     @Function(docs = """
             ```isCompliantWithSchema(validationSubject, OBJECT schema)```:
             This function tests the `validationSubject` for compliance with the with the provided JSON schema `schema`.
-            
+
             The schema itself cannot be validated and improper schema definitions may lead to unexpected results.
             If ```validationSubject``` is compliant with the ```schema```, the function returns ```true```,
             else it returns ```false```.
@@ -72,9 +72,9 @@ public class SchemaValidationLibrary {
 
     @Function(docs = """
             ```isCompliantWithSchema(validationSubject, OBJECT jsonSchema, ARRAY externalSchemas)```:
-            This function tests the ```validationSubject``` for compliance with the with the provided JSON 
+            This function tests the ```validationSubject``` for compliance with the with the provided JSON
             schema `schema`.
-            
+
             The schema itself cannot be validated and improper schema definitions may lead to unexcpected results.
             If ```validationSubject``` is compliant with the ```schema```, the function returns ```true```,
             else it returns ```false```.

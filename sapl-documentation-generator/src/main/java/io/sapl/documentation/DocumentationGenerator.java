@@ -37,8 +37,10 @@ import java.nio.file.Path;
 import java.util.*;
 
 /**
- * Component responsible for generating markdown documentation for SAPL libraries and policy information points.
- * Executes automatically after application startup, generates documentation files, and shuts down the application.
+ * Component responsible for generating markdown documentation for SAPL
+ * libraries and policy information points.
+ * Executes automatically after application startup, generates documentation
+ * files, and shuts down the application.
  */
 @Slf4j
 @Component
@@ -70,8 +72,10 @@ public class DocumentationGenerator {
     private String targetPath;
 
     /**
-     * Executes documentation generation after the application context has fully started.
-     * Generates markdown files for all function libraries and policy information points,
+     * Executes documentation generation after the application context has fully
+     * started.
+     * Generates markdown files for all function libraries and policy information
+     * points,
      * then shuts down the application.
      *
      * @param event the application ready event
@@ -131,7 +135,8 @@ public class DocumentationGenerator {
     }
 
     /**
-     * Sorts policy information point documentation by namespace in alphabetical order.
+     * Sorts policy information point documentation by namespace in alphabetical
+     * order.
      *
      * @param pips collection of policy information point documentation
      * @return sorted list of policy information point documentation
@@ -168,7 +173,7 @@ public class DocumentationGenerator {
      * @return markdown-formatted documentation string
      */
     public String generateMarkdownForLibrary(io.sapl.interpreter.functions.LibraryDocumentation documentation,
-                                             int navOrder) {
+            int navOrder) {
         val stringBuilder = new StringBuilder();
         appendFrontmatter(stringBuilder, navOrder, documentation.getName(), "Functions");
         appendHeader(stringBuilder, documentation.getName());

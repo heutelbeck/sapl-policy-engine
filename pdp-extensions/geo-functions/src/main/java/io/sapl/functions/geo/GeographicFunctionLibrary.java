@@ -573,9 +573,10 @@ public class GeographicFunctionLibrary {
             return Val.TRUE;
         }
         return switch (jtsGeometry.getGeometryType()) {
-            case Geometry.TYPENAME_LINESTRING -> Val.of(((LineString) jtsGeometry).isClosed());
-            case Geometry.TYPENAME_MULTILINESTRING -> Val.of(((MultiLineString) jtsGeometry).isClosed());
-            default -> Val.error(String.format(IS_CLOSED_NOT_APPLICABLE_FOR_S_ERROR, jtsGeometry.getGeometryType()));
+        case Geometry.TYPENAME_LINESTRING      -> Val.of(((LineString) jtsGeometry).isClosed());
+        case Geometry.TYPENAME_MULTILINESTRING -> Val.of(((MultiLineString) jtsGeometry).isClosed());
+        default                                ->
+            Val.error(String.format(IS_CLOSED_NOT_APPLICABLE_FOR_S_ERROR, jtsGeometry.getGeometryType()));
         };
     }
 

@@ -55,8 +55,8 @@ import lombok.experimental.UtilityClass;
 @FunctionLibrary(name = TemporalFunctionLibrary.NAME, description = TemporalFunctionLibrary.DESCRIPTION, libraryDocumentation = TemporalFunctionLibrary.DOCUMENTATION)
 public class TemporalFunctionLibrary {
 
-    public static final String NAME        = "time";
-    public static final String DESCRIPTION = "Functions for temporal operations in authorization policies.";
+    public static final String NAME          = "time";
+    public static final String DESCRIPTION   = "Functions for temporal operations in authorization policies.";
     public static final String DOCUMENTATION = """
             Temporal functions for working with dates, times, and durations in authorization policies.
             Based on ISO 8601 and DIN 1355 standards.
@@ -1104,7 +1104,8 @@ public class TemporalFunctionLibrary {
     }
 
     /**
-     * Parses zone parameter to a ZoneId. Returns system default if parameter is blank.
+     * Parses zone parameter to a ZoneId. Returns system default if parameter is
+     * blank.
      */
     private static ZoneId zoneIdOf(Val zone) {
         if (zone == null || zone.isTextual() && zone.getText() == null) {

@@ -28,9 +28,9 @@ import org.springframework.http.HttpMethod;
 import reactor.core.publisher.Flux;
 
 @RequiredArgsConstructor
-@PolicyInformationPoint(name = "http", description = HttpPolicyInformationPoint.DESCRIPTION, pipDocumentation =  HttpPolicyInformationPoint.DOCUMENTATION)
+@PolicyInformationPoint(name = "http", description = HttpPolicyInformationPoint.DESCRIPTION, pipDocumentation = HttpPolicyInformationPoint.DOCUMENTATION)
 public class HttpPolicyInformationPoint {
-    public static final String DESCRIPTION = "This Policy Information Point to get and monitor HTTP based information.";
+    public static final String DESCRIPTION   = "This Policy Information Point to get and monitor HTTP based information.";
     public static final String DOCUMENTATION = """
             This Policy Information Point provides basic means to source attribute data by consuming
             HTTP-based APIs and Websockets.

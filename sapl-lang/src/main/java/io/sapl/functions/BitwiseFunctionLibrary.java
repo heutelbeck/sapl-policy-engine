@@ -146,7 +146,7 @@ public class BitwiseFunctionLibrary {
                 "type": "boolean"
             }
             """;
-    public static final String SHIFT = "Shift";
+    public static final String  SHIFT           = "Shift";
 
     @Function(docs = """
             ```bitwise.bitwiseAnd(LONG left, LONG right)```
