@@ -100,13 +100,13 @@ public class TimePolicyInformationPoint {
         return duration;
     }
 
-    private Flux<Instant> instantNow(Duration pollIntervall) {
-        return poll(pollIntervall, clock::instant);
+    private Flux<Instant> instantNow(Duration pollInterval) {
+        return poll(pollInterval, clock::instant);
     }
 
-    private <T> Flux<T> poll(Duration pollIntervall, Supplier<T> supplier) {
+    private <T> Flux<T> poll(Duration pollInterval, Supplier<T> supplier) {
         final var first     = Flux.just(supplier.get());
-        final var following = Flux.just(0).repeat().delayElements(pollIntervall).map(tick -> supplier.get());
+        final var following = Flux.just(0).repeat().delayElements(pollInterval).map(tick -> supplier.get());
         return Flux.concat(first, following);
     }
 
@@ -216,9 +216,9 @@ public class TimePolicyInformationPoint {
             arguments.
             ```<localTimeIsBetween(startTime, endTime)>``` ```true```, if the current time at UTC between the ```startTime```
             and the ```endTime``` (both ISO 8601 String at UTC) and ```false```otherwise.
-            The attribute immediately emits the comparison result between the current time and the provided time intervall.
-            A new result will be emitted, if the current time corsses any of the intervall boundaries.
-            This *attribute is not polling the clock* and should be used instead of  manually comparing the intervall
+            The attribute immediately emits the comparison result between the current time and the provided time interval.
+            A new result will be emitted, if the current time crosses any of the interval boundaries.
+            This *attribute is not polling the clock* and should be used instead of  manually comparing the interval
             to ```<time.now>```.
             If the time of the first parameter is after the time of the second parameter, the interval ist considered to be the
             one between the to times, crossing the midnight border of the days.
@@ -371,9 +371,9 @@ public class TimePolicyInformationPoint {
             arguments.
             ```<nowIsBetween(startTime, endTime)>``` ```true```, if the current date time is after the ```startTime``` and
             before the ```endTime``` (both ISO 8601 String at UTC) and ```false```otherwise.
-            The attribute immediately emits the comparison result between the current time and the provided time intervall.
-            A new result will be emitted, if the current time corsses any of the intervall boundaries.
-            This *attribute is not polling the clock* and should be used instead of  manually comparing the intervall
+            The attribute immediately emits the comparison result between the current time and the provided time interval.
+            A new result will be emitted, if the current time crosses any of the interval boundaries.
+            This *attribute is not polling the clock* and should be used instead of  manually comparing the interval
             to ```<time.now>```.
 
             Example:
