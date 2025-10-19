@@ -228,6 +228,7 @@ public class DocumentationGenerator {
     private void appendFrontmatter(StringBuilder stringBuilder, int navOrder, String title, String parent) {
         stringBuilder.append(String.format("""
                 ---
+                layout: default
                 title: %s
                 parent: %s
                 nav_order: %d
