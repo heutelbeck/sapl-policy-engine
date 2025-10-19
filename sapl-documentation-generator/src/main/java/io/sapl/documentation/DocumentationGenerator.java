@@ -153,7 +153,7 @@ public class DocumentationGenerator {
     public String generateMarkdownForLibrary(io.sapl.interpreter.functions.LibraryDocumentation documentation,
                                              int navOrder) {
         val stringBuilder = new StringBuilder();
-        appendFrontmatter(stringBuilder, navOrder, documentation.getName(), "Function Libraries");
+        appendFrontmatter(stringBuilder, navOrder, documentation.getName(), "Functions");
         appendHeader(stringBuilder, documentation.getName());
         stringBuilder.append(documentation.getDescription()).append(MARKDOWN_LINE_BREAK);
         stringBuilder.append(documentation.getLibraryDocumentation()).append(MARKDOWN_LINE_BREAK);
@@ -182,7 +182,7 @@ public class DocumentationGenerator {
      */
     public String generateMarkdownForPolicyInformationPoint(LibraryDocumentation documentation, int navOrder) {
         val stringBuilder = new StringBuilder();
-        appendFrontmatter(stringBuilder, navOrder, documentation.namespace(), "Policy Information Points");
+        appendFrontmatter(stringBuilder, navOrder, documentation.namespace(), "Attribute Finders");
         appendHeader(stringBuilder, documentation.namespace());
         stringBuilder.append(documentation.descriptionMarkdown()).append(MARKDOWN_LINE_BREAK);
         stringBuilder.append(documentation.documentationMarkdown()).append(MARKDOWN_LINE_BREAK);

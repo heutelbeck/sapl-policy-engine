@@ -54,10 +54,10 @@ jobs:
           #echo "::set-output name=version::$VERSION" 
           echo "version=$VERSION" >> $GITHUB_OUTPUT
 
-      - name: Run Unit Tests Only
-        run: mvn -B clean package -DskipTests -T 1C
+      - name: Build Required Modules Only
+        run: mvn clean install -pl sapl-documentation-generator -am -DskipTests -T 1C
 
-      - name: Build Library Documentation
+      - name: Run Documentation Generator
         run: |
           pushd sapl-documentation-generator
           mvn spring-boot:run
