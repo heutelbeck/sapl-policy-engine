@@ -60,7 +60,7 @@ jobs:
       - name: Run Documentation Generator
         run: |
           pushd sapl-documentation-generator
-          mvn spring-boot:run
+          mvn spring-boot:run -o
           popd
 
       - name: Combine Documentation Directories
