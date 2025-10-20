@@ -19,10 +19,12 @@ package io.sapl.attributes.broker.impl;
 
 import java.time.Duration;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 
 import io.sapl.api.interpreter.Val;
 import lombok.experimental.UtilityClass;
 import lombok.val;
+import reactor.core.Disposable;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.publisher.Sinks;
@@ -72,9 +74,11 @@ class TimeOutWrapper {
      */
     public static Flux<Val> wrap(Flux<Val> flux, Duration timeOut, Val timeOutValue, Val emptyFluxValue) {
         return Flux.defer(() -> {
-            val sink              = Sinks.many().unicast().<Val>onBackpressureBuffer();
-            val hasEmittedValue   = new AtomicBoolean(false);
-            val timeoutWasCanceled = new AtomicBoolean(false);
+            val sink                  = Sinks.many().unicast().<Val>onBackpressureBuffer();
+            val hasEmittedValue       = new AtomicBoolean(false);
+            val timeoutWasCanceled    = new AtomicBoolean(false);
+            val timeoutSubscription   = new AtomicReference<Disposable>();
+            val sourceSubscription    = new AtomicReference<Disposable>();
 
             val sourceFlux = flux
                     .defaultIfEmpty(emptyFluxValue)
@@ -94,10 +98,25 @@ class TimeOutWrapper {
 
             return sink.asFlux()
                     .doOnSubscribe(subscription -> {
-                        timeoutFlux.subscribe();
-                        sourceFlux.subscribe();
+                        timeoutSubscription.set(timeoutFlux.subscribe());
+                        sourceSubscription.set(sourceFlux.subscribe());
+                    })
+                    .doOnTerminate(() -> {
+                        disposeIfPresent(timeoutSubscription);
+                        disposeIfPresent(sourceSubscription);
+                    })
+                    .doOnCancel(() -> {
+                        disposeIfPresent(timeoutSubscription);
+                        disposeIfPresent(sourceSubscription);
                     });
         });
+    }
+
+    private static void disposeIfPresent(AtomicReference<Disposable> ref) {
+        val disposable = ref.get();
+        if (disposable != null && !disposable.isDisposed()) {
+            disposable.dispose();
+        }
     }
 
 }
