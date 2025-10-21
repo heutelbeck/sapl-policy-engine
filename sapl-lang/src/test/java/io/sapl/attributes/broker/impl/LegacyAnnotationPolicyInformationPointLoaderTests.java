@@ -743,7 +743,7 @@ class LegacyAnnotationPolicyInformationPointLoaderTests {
         final var broker     = brokerWithPip(pip);
         final var variables  = Map.of("key1", Val.of("valueOfKey"));
         final var expression = ParserUtil.expression("<test.envAttribute>");
-        StepVerifier.create(expression.evaluate().log().contextWrite(this.constructContext(broker, variables)))
+        StepVerifier.create(expression.evaluate().contextWrite(this.constructContext(broker, variables)))
                 .expectNextMatches(valErrorText("INTENDED ERROR FROM TEST")).thenCancel().verify();
     }
 

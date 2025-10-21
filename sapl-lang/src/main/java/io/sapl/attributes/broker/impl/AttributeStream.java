@@ -70,35 +70,37 @@ public class AttributeStream {
     private final Flux<Val> stream;
 
     private final Consumer<AttributeStream>   cleanupAction;
-    private final AtomicReference<Disposable> currentPipSubscription           = new AtomicReference<>();
-    private final AtomicReference<Disposable> pipSnapshotAtGracePeriodStart    = new AtomicReference<>();
-    private final AtomicReference<Flux<Val>>  configuredAttributeFinderStream  = new AtomicReference<>();
-    private final Object                      connectionLock                   = new Object();
-    private volatile boolean                  disconnected                     = false;
-    private volatile boolean                  disconnectErrorAlreadyPublished  = false;
-    private volatile boolean                  hasActiveSubscribers             = false;
-    private volatile boolean                  disposed                         = false;
+    private final AtomicReference<Disposable> currentPipSubscription          = new AtomicReference<>();
+    private final AtomicReference<Disposable> pipSnapshotAtGracePeriodStart   = new AtomicReference<>();
+    private final AtomicReference<Flux<Val>>  configuredAttributeFinderStream = new AtomicReference<>();
+    private final Object                      connectionLock                  = new Object();
+    private volatile boolean                  disconnected                    = false;
+    private volatile boolean                  disconnectErrorAlreadyPublished = false;
+    private volatile boolean                  hasActiveSubscribers            = false;
+    private volatile boolean                  disposed                        = false;
 
     /**
      * Creates an AttributeStream without an initial PIP connection.
      * <p>
-     * The stream awaits PIP connection via {@link #connectToPolicyInformationPoint(AttributeFinder)}.
+     * The stream awaits PIP connection via
+     * {@link #connectToPolicyInformationPoint(AttributeFinder)}.
      * No values are emitted until a PIP is connected and a subscriber arrives.
      * <p>
      * Use case: PIP not yet available but may be hot-deployed during policy
      * evaluation lifecycle.
      *
-     * @param invocation    the attribute invocation configuration
+     * @param invocation the attribute invocation configuration
      * @param cleanupAction callback executed when grace period expires and stream
-     *                      should be cleaned up from broker registry
-     * @param gracePeriod   duration to keep stream alive after last subscriber
-     *                      cancels
+     * should be cleaned up from broker registry
+     * @param gracePeriod duration to keep stream alive after last subscriber
+     * cancels
      */
     public AttributeStream(@NonNull AttributeFinderInvocation invocation,
-                           @NonNull Consumer<AttributeStream> cleanupAction, @NonNull Duration gracePeriod) {
-        this.invocation      = invocation;
-        this.cleanupAction   = cleanupAction;
-        this.stream          = createMulticastStream(gracePeriod);
+            @NonNull Consumer<AttributeStream> cleanupAction,
+            @NonNull Duration gracePeriod) {
+        this.invocation    = invocation;
+        this.cleanupAction = cleanupAction;
+        this.stream        = createMulticastStream(gracePeriod, true);
     }
 
     /**
@@ -110,19 +112,20 @@ public class AttributeStream {
      * <p>
      * Use case: PIP is available at stream creation time.
      *
-     * @param invocation         the attribute invocation configuration
-     * @param cleanupAction      callback executed when grace period expires
-     * @param gracePeriod        duration to keep stream alive after last subscriber
-     *                           cancels
-     * @param attributeFinder    the PIP to connect immediately
+     * @param invocation the attribute invocation configuration
+     * @param cleanupAction callback executed when grace period expires
+     * @param gracePeriod duration to keep stream alive after last subscriber
+     * cancels
+     * @param attributeFinder the PIP to connect immediately
      */
     public AttributeStream(@NonNull AttributeFinderInvocation invocation,
-                           @NonNull Consumer<AttributeStream> cleanupAction, @NonNull Duration gracePeriod,
-                           @NonNull AttributeFinder attributeFinder) {
-        this.invocation                    = invocation;
-        this.cleanupAction                 = cleanupAction;
+            @NonNull Consumer<AttributeStream> cleanupAction,
+            @NonNull Duration gracePeriod,
+            @NonNull AttributeFinder attributeFinder) {
+        this.invocation    = invocation;
+        this.cleanupAction = cleanupAction;
         this.configuredAttributeFinderStream.set(configureAttributeFinderStream(attributeFinder));
-        this.stream                        = createMulticastStream(gracePeriod);
+        this.stream = createMulticastStream(gracePeriod, true);
     }
 
     /**
@@ -140,13 +143,18 @@ public class AttributeStream {
      * <li>doFinally: fires after cancellation, checks if PIP should be disposed
      * (not hot-swapped)</li>
      * </ul>
-     *  @param gracePeriod           duration to keep stream alive after last
-     *                              subscriber cancels
+     *
+     * @param gracePeriod duration to keep stream alive after last
+     * subscriber cancels
+     * @param startPipOnSubscribe if true, start PIP subscription when replay
+     * subscribes to sink
      */
-    private Flux<Val> createMulticastStream(Duration gracePeriod) {
+    private Flux<Val> createMulticastStream(Duration gracePeriod, boolean startPipOnSubscribe) {
         var flux = sink.asFlux();
 
-        flux = flux.doOnSubscribe(subscription -> startPipSubscription());
+        if (startPipOnSubscribe) {
+            flux = flux.doOnSubscribe(subscription -> startPipSubscription());
+        }
 
         return flux.doOnCancel(() -> {
             synchronized (connectionLock) {
@@ -189,7 +197,8 @@ public class AttributeStream {
      * Starts the PIP subscription when first subscriber arrives.
      * <p>
      * Marks that subscribers are active and attempts to start PIP subscription if
-     * a PIP is configured.
+     * a PIP is configured. If no PIP is configured, publishes an error to inform
+     * subscribers that no matching PIP was found for this invocation.
      * <p>
      * The subscription handlers are empty because values and errors are already
      * published to the sink via doOnNext and doOnError in the configured stream.
@@ -201,13 +210,12 @@ public class AttributeStream {
             synchronized (connectionLock) {
                 if (currentPipSubscription.get() == null) {
                     log.debug("Starting PIP subscription for {}", this);
-                    currentPipSubscription.set(pipStream.subscribe(
-                            value -> {},
-                            error -> {},
-                            () -> {}
-                    ));
+                    currentPipSubscription.set(pipStream.subscribe(value -> {}, error -> {}, () -> {}));
                 }
             }
+        } else {
+            log.debug("No PIP configured for {}, publishing error", this);
+            publish(Val.error("No unique policy information point found for " + invocation));
         }
     }
 
@@ -262,6 +270,17 @@ public class AttributeStream {
         val emitResult = sink.tryEmitNext(value);
         if (emitResult.isFailure()) {
             log.warn("Failed to emit value {} to {} with result {}", value, this, emitResult);
+        }
+    }
+
+    /**
+     * Publishes an error by wrapping the throwable message in Val.error().
+     * <p>
+     * Respects disconnected state - no errors published after disconnection.
+     */
+    private void publish(Throwable throwable) {
+        if (!disconnected) {
+            publish(Val.error(throwable.getMessage()));
         }
     }
 
@@ -322,13 +341,9 @@ public class AttributeStream {
      * @return configured Flux that publishes to sink
      */
     private Flux<Val> configureAttributeFinderStream(AttributeFinder attributeFinder) {
-        return attributeFinder.invoke(invocation)
-                .defaultIfEmpty(Val.UNDEFINED)
-                .transform(this::addInitialTimeout)
-                .transform(this::retryOnError)
-                .transform(this::pollOnComplete)
-                .onErrorResume(error -> Flux.just(Val.error(error.getMessage())))
-                .filter(value -> !disconnected)
+        return attributeFinder.invoke(invocation).defaultIfEmpty(Val.UNDEFINED).transform(this::addInitialTimeout)
+                .transform(this::retryOnError).transform(this::pollOnComplete)
+                .onErrorResume(error -> Flux.just(Val.error(error.getMessage()))).filter(value -> !disconnected)
                 .doOnNext(this::publish);
     }
 
@@ -340,8 +355,9 @@ public class AttributeStream {
      * <li>Resets disconnection state</li>
      * <li>Stores the new PIP configuration for subscription</li>
      * <li>Subscribes immediately if: there are active PIP subscribers (hot-swap),
-     *     reconnecting after explicit disconnect, or subscribers are waiting</li>
-     * <li>Defers subscription if: no subscribers yet (waits for first subscriber)</li>
+     * reconnecting after explicit disconnect, or subscribers are waiting</li>
+     * <li>Defers subscription if: no subscribers yet (waits for first
+     * subscriber)</li>
      * </ul>
      * <p>
      * The stream continues operating without interruption. Subscribers see values
@@ -366,18 +382,14 @@ public class AttributeStream {
             val existingSubscription = currentPipSubscription.get();
 
             if (existingSubscription != null || wasDisconnected || hasActiveSubscribers) {
-                log.debug("Subscribing PIP immediately for {}: hot-swap={}, reconnect={}, subscribers-waiting={}",
-                        this, existingSubscription != null, wasDisconnected, hasActiveSubscribers);
+                log.debug("Subscribing PIP immediately for {}: hot-swap={}, reconnect={}, subscribers-waiting={}", this,
+                        existingSubscription != null, wasDisconnected, hasActiveSubscribers);
                 currentPipSubscription.getAndUpdate(oldSubscription -> {
                     if (oldSubscription != null) {
                         log.debug("Disposing old PIP subscription while hot-swapping for {}", this);
                         oldSubscription.dispose();
                     }
-                    return newPipStream.subscribe(
-                            value -> {},
-                            error -> {},
-                            () -> {}
-                    );
+                    return newPipStream.subscribe(value -> {}, error -> {}, () -> {});
                 });
             } else {
                 log.debug("Storing PIP config for {}, will subscribe on first subscriber", this);

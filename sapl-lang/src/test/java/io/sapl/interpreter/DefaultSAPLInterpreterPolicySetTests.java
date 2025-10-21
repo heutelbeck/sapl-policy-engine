@@ -155,7 +155,7 @@ class DefaultSAPLInterpreterPolicySetTests {
                 """;
         StepVerifier
                 .create(INTERPRETER.evaluate(authorizationSubscription, policySet, attributeStreamBroker, functionCtx,
-                        new HashMap<>()).log())
+                        new HashMap<>()))
                 .assertNext(decision -> assertThat(decision.getResource(), is(optionalWithValue(jsonBoolean(false)))))
                 .verifyComplete();
     }

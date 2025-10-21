@@ -94,23 +94,15 @@ public class TimeOutWrapper {
                     .doOnNext(tick -> sink.tryEmitNext(timeOutValue));
 
             return sink.asFlux().doOnSubscribe(subscription -> {
-                timeoutSubscription.set(timeoutFlux.subscribe(
-                        value -> log.trace("timeout flux: {}", value),
-                        error -> {
-                            log.trace("Error in timeout flux", error);
-                            sink.tryEmitError(error);
-                        },
-                        () -> {}
-                ));
+                timeoutSubscription.set(timeoutFlux.subscribe(value -> log.trace("timeout flux: {}", value), error -> {
+                    log.trace("Error in timeout flux", error);
+                    sink.tryEmitError(error);
+                }, () -> {}));
 
-                sourceSubscription.set(sourceFlux.subscribe(
-                        value -> log.trace("source flux: {}", value),
-                        error -> {
-                            log.trace("Error in source flux", error);
-                            // Already handled by doOnError(sink::tryEmitError)
-                        },
-                        () -> {}
-                ));
+                sourceSubscription.set(sourceFlux.subscribe(value -> log.trace("source flux: {}", value), error -> {
+                    log.trace("Error in source flux", error);
+                    // Already handled by doOnError(sink::tryEmitError)
+                }, () -> {}));
             }).doOnTerminate(() -> {
                 disposeIfPresent(timeoutSubscription);
                 disposeIfPresent(sourceSubscription);

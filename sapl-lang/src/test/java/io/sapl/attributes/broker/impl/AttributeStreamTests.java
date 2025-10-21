@@ -38,6 +38,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
+
 /**
  * Comprehensive test suite for AttributeStream reactive streaming system.
  * <p>
@@ -82,7 +83,7 @@ class AttributeStreamTests {
     }
 
     private static AttributeFinderInvocation createInvocation(Duration initialTimeout, Duration pollInterval,
-                                                              Duration backoff, long retries) {
+            Duration backoff, long retries) {
         return new AttributeFinderInvocation("testConfig", "test.attribute", null, List.of(), Map.of(), initialTimeout,
                 pollInterval, backoff, retries, false);
     }
@@ -213,7 +214,8 @@ class AttributeStreamTests {
         val cleanupCalled = new AtomicInteger(0);
         val invocation    = createInvocation();
         val testPip       = (AttributeFinder) inv -> Flux.just(Val.of("test"));
-        val stream        = new AttributeStream(invocation, s -> cleanupCalled.incrementAndGet(), GRACE_PERIOD, testPip);
+        val stream        = new AttributeStream(invocation, s -> cleanupCalled.incrementAndGet(), GRACE_PERIOD,
+                testPip);
 
         stream.getStream().blockFirst();
         assertThat(cleanupCalled.get()).isZero();
@@ -236,7 +238,8 @@ class AttributeStreamTests {
         val cleanupCalled = new AtomicInteger(0);
         val invocation    = createInvocation();
         val testPip       = (AttributeFinder) inv -> Flux.just(Val.of("test"));
-        val stream        = new AttributeStream(invocation, s -> cleanupCalled.incrementAndGet(), GRACE_PERIOD, testPip);
+        val stream        = new AttributeStream(invocation, s -> cleanupCalled.incrementAndGet(), GRACE_PERIOD,
+                testPip);
 
         stream.getStream().blockFirst();
         assertThat(cleanupCalled.get()).isZero();
@@ -354,9 +357,9 @@ class AttributeStreamTests {
         await().pollDelay(10, MILLISECONDS).atMost(150, MILLISECONDS)
                 .until(() -> results.stream().anyMatch(v -> v.equals(Val.of("pip2"))));
 
-        val pip2Index         = results.indexOf(Val.of("pip2"));
-        val resultsSnapshot   = new ArrayList<>(results);
-        val valuesAfterPip2   = resultsSnapshot.subList(pip2Index + 1, resultsSnapshot.size());
+        val pip2Index       = results.indexOf(Val.of("pip2"));
+        val resultsSnapshot = new ArrayList<>(results);
+        val valuesAfterPip2 = resultsSnapshot.subList(pip2Index + 1, resultsSnapshot.size());
 
         assertThat(valuesAfterPip2).noneMatch(v -> v.get().asText().startsWith("pip1"));
     }
@@ -425,7 +428,7 @@ class AttributeStreamTests {
                 Flux.<Val>error(new RuntimeException("async-error")).delaySubscription(Duration.ofMillis(50)));
         val stream     = new AttributeStream(invocation, s -> {}, Duration.ofSeconds(10), faultyPip);
 
-        val results = new CopyOnWriteArrayList<Val>();
+        val results      = new CopyOnWriteArrayList<Val>();
         val subscription = stream.getStream().subscribe(results::add);
 
         await().pollDelay(10, MILLISECONDS).atMost(100, MILLISECONDS).until(() -> !results.isEmpty());
@@ -545,11 +548,11 @@ class AttributeStreamTests {
         val invocation = createInvocation(Duration.ofMillis(10), Duration.ofSeconds(10), Duration.ofMillis(1), retries);
         val attempts   = new AtomicInteger(0);
         val failingPip = (AttributeFinder) inv -> Flux.defer(() -> {
-            if (attempts.incrementAndGet() <= retries) {
-                return Flux.error(new RuntimeException("attempt-" + attempts.get()));
-            }
-            return Flux.just(Val.of("success-after-retries"));
-        });
+                           if (attempts.incrementAndGet() <= retries) {
+                               return Flux.error(new RuntimeException("attempt-" + attempts.get()));
+                           }
+                           return Flux.just(Val.of("success-after-retries"));
+                       });
         val stream     = new AttributeStream(invocation, s -> {}, GRACE_PERIOD, failingPip);
 
         StepVerifier.create(stream.getStream().take(1).timeout(Duration.ofSeconds(2)))
@@ -569,7 +572,8 @@ class AttributeStreamTests {
      * Validates that:
      * <ul>
      * <li>Empty streams are converted to UNDEFINED via defaultIfEmpty operator</li>
-     * <li>Policy evaluation receives a defined value (not hanging indefinitely)</li>
+     * <li>Policy evaluation receives a defined value (not hanging
+     * indefinitely)</li>
      * <li>Consistency with other "no value" scenarios</li>
      * </ul>
      */
@@ -649,10 +653,11 @@ class AttributeStreamTests {
 
         stream.connectToPolicyInformationPoint(pip2);
 
-        await().pollDelay(10, MILLISECONDS).atMost(200, MILLISECONDS)
-                .until(() -> results.stream().anyMatch(value -> !value.isError() && value.get().asText().startsWith("pip2")));
+        await().pollDelay(10, MILLISECONDS).atMost(200, MILLISECONDS).until(
+                () -> results.stream().anyMatch(value -> !value.isError() && value.get().asText().startsWith("pip2")));
 
-        val pip2Values = results.stream().filter(value -> !value.isError() && value.get().asText().startsWith("pip2")).toList();
+        val pip2Values = results.stream().filter(value -> !value.isError() && value.get().asText().startsWith("pip2"))
+                .toList();
 
         assertThat(pip2Values).isNotEmpty();
     }

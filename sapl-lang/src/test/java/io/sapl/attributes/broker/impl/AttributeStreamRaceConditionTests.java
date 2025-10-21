@@ -41,7 +41,8 @@ import static org.awaitility.Awaitility.await;
 /**
  * Race condition stress tests for AttributeStream.
  * <p>
- * These tests intentionally create concurrent scenarios that could expose threading bugs.
+ * These tests intentionally create concurrent scenarios that could expose
+ * threading bugs.
  * Tests use:
  * <ul>
  * <li>CountDownLatch to synchronize thread starts and maximize contention</li>
@@ -64,11 +65,13 @@ class AttributeStreamRaceConditionTests {
     /**
      * Tests concurrent connect operations with active subscription.
      * <p>
-     * Creates 10 threads that simultaneously connect different PIPs to the same stream
+     * Creates 10 threads that simultaneously connect different PIPs to the same
+     * stream
      * while values are being consumed. Each PIP emits a distinct identifier.
      * <p>
      * Expected: Stream remains functional and emits values from the winning PIP.
-     * Race condition being tested: Multiple threads racing to update currentPipSubscription.
+     * Race condition being tested: Multiple threads racing to update
+     * currentPipSubscription.
      */
     @RepeatedTest(10)
     void concurrentConnects_streamRemainsFunctional() throws Exception {
@@ -108,8 +111,7 @@ class AttributeStreamRaceConditionTests {
 
         subscription.dispose();
 
-        val validValues = results.stream()
-                .filter(value -> !value.isError() && value.get().asText().startsWith("pip-"))
+        val validValues = results.stream().filter(value -> !value.isError() && value.get().asText().startsWith("pip-"))
                 .toList();
 
         assertThat(validValues).as("Stream should emit values after concurrent connects").isNotEmpty();
@@ -118,12 +120,14 @@ class AttributeStreamRaceConditionTests {
     /**
      * Tests PIP connection and re-subscription during grace period.
      * <p>
-     * Simulates connecting a new PIP near the end of the grace period and immediately
+     * Simulates connecting a new PIP near the end of the grace period and
+     * immediately
      * re-subscribing. The re-subscription should reset the grace period timer and
      * preserve the new PIP.
      * <p>
      * Expected: New PIP is preserved, stream emits new values, cleanup is deferred.
-     * Race condition being tested: PIP swap and re-subscription during grace period.
+     * Race condition being tested: PIP swap and re-subscription during grace
+     * period.
      */
     @RepeatedTest(5)
     void reconnectAndResubscribeDuringGracePeriod_pipPreserved() throws Exception {
@@ -144,12 +148,10 @@ class AttributeStreamRaceConditionTests {
 
         val result = stream.getStream().blockFirst(Duration.ofSeconds(1));
 
-        assertThat(result).as("Stream should emit value from new PIP")
-                .isNotNull()
+        assertThat(result).as("Stream should emit value from new PIP").isNotNull()
                 .matches(value -> "reconnected".equals(value.get().asText()));
 
-        assertThat(cleanupCalled.get()).as("Cleanup should not have fired due to re-subscription")
-                .isZero();
+        assertThat(cleanupCalled.get()).as("Cleanup should not have fired due to re-subscription").isZero();
     }
 
     /**
@@ -159,7 +161,8 @@ class AttributeStreamRaceConditionTests {
      * removes the stream from the broker's index. Future requests for the same
      * invocation should create a new stream, not return a disposed one.
      * <p>
-     * Expected: Broker creates new stream after cleanup, old stream marked as disposed.
+     * Expected: Broker creates new stream after cleanup, old stream marked as
+     * disposed.
      * Tests: Grace period cleanup integration with broker.
      */
     @Test
@@ -176,12 +179,10 @@ class AttributeStreamRaceConditionTests {
 
         await().atMost(200, MILLISECONDS).until(() -> cleanupCalled.get() == 1);
 
-        assertThat(cleanupCalled.get()).as("Cleanup should have fired after grace period")
-                .isEqualTo(1);
+        assertThat(cleanupCalled.get()).as("Cleanup should have fired after grace period").isEqualTo(1);
 
         val streamAfterCleanup = stream.getStream();
-        assertThat(streamAfterCleanup).as("Stream should be disposed and return null")
-                .isNull();
+        assertThat(streamAfterCleanup).as("Stream should be disposed and return null").isNull();
     }
 
     /**
@@ -191,7 +192,8 @@ class AttributeStreamRaceConditionTests {
      * another disconnects immediately. The disconnect may happen before, during,
      * or after the connect completes.
      * <p>
-     * Expected: Either disconnect error appears, or the PIP connects and then gets disconnected.
+     * Expected: Either disconnect error appears, or the PIP connects and then gets
+     * disconnected.
      * The stream should not hang or crash.
      * Race condition being tested: Disconnect during PIP subscription setup.
      */
@@ -211,8 +213,7 @@ class AttributeStreamRaceConditionTests {
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
             }
-            val slowPip = (AttributeFinder) inv ->
-                    Flux.just(Val.of("slow-value")).delayElements(Duration.ofMillis(50));
+            val slowPip = (AttributeFinder) inv -> Flux.just(Val.of("slow-value")).delayElements(Duration.ofMillis(50));
             stream.connectToPolicyInformationPoint(slowPip);
         });
 
@@ -291,8 +292,7 @@ class AttributeStreamRaceConditionTests {
         Thread.sleep(100);
 
         val disconnectErrors = results.stream()
-                .filter(value -> value.isError() && value.getMessage().contains("disconnected"))
-                .count();
+                .filter(value -> value.isError() && value.getMessage().contains("disconnected")).count();
 
         assertThat(disconnectErrors).as("Should publish exactly one disconnect error").isEqualTo(1);
     }
@@ -300,11 +300,13 @@ class AttributeStreamRaceConditionTests {
     /**
      * Tests connect racing with another connect operation.
      * <p>
-     * Two threads connect different PIPs simultaneously. Each PIP emits continuously.
+     * Two threads connect different PIPs simultaneously. Each PIP emits
+     * continuously.
      * The implementation should properly dispose the losing PIP's subscription.
      * <p>
      * Expected: Only values from one PIP appear after both connects complete.
-     * Race condition being tested: Disposal of old subscription during concurrent connects.
+     * Race condition being tested: Disposal of old subscription during concurrent
+     * connects.
      */
     @RepeatedTest(10)
     void concurrentConnectsWithStreamingPips_noValueMixing() throws Exception {
@@ -315,10 +317,8 @@ class AttributeStreamRaceConditionTests {
 
         stream.getStream().subscribe(results::add);
 
-        val pip1 = (AttributeFinder) inv ->
-                Flux.interval(Duration.ofMillis(10)).map(i -> Val.of("pip1-" + i));
-        val pip2 = (AttributeFinder) inv ->
-                Flux.interval(Duration.ofMillis(10)).map(i -> Val.of("pip2-" + i));
+        val pip1 = (AttributeFinder) inv -> Flux.interval(Duration.ofMillis(10)).map(i -> Val.of("pip1-" + i));
+        val pip2 = (AttributeFinder) inv -> Flux.interval(Duration.ofMillis(10)).map(i -> Val.of("pip2-" + i));
 
         val thread1 = new Thread(() -> {
             latch.countDown();
@@ -360,9 +360,8 @@ class AttributeStreamRaceConditionTests {
 
         val winningPip = lastValue.get().asText().startsWith("pip1") ? "pip1" : "pip2";
 
-        val recentValues = snapshot.subList(Math.max(0, snapshot.size() - 5), snapshot.size());
-        val allFromWinner = recentValues.stream()
-                .filter(value -> !value.isError())
+        val recentValues  = snapshot.subList(Math.max(0, snapshot.size() - 5), snapshot.size());
+        val allFromWinner = recentValues.stream().filter(value -> !value.isError())
                 .allMatch(value -> value.get().asText().startsWith(winningPip));
 
         assertThat(allFromWinner).as("Recent values should all be from the winning PIP").isTrue();
@@ -371,7 +370,8 @@ class AttributeStreamRaceConditionTests {
     /**
      * Chaos test with mixed operations under high concurrency.
      * <p>
-     * Multiple threads perform random operations: connect, disconnect, subscribe, cancel.
+     * Multiple threads perform random operations: connect, disconnect, subscribe,
+     * cancel.
      * The stream should handle all operations without crashing or deadlocking.
      * <p>
      * Expected: Stream remains functional and can emit values at the end.
@@ -381,8 +381,7 @@ class AttributeStreamRaceConditionTests {
     void chaosMonkey_mixedOperations() throws Exception {
         val invocation     = createInvocation();
         val cleanupCalled  = new AtomicInteger(0);
-        val stream         = new AttributeStream(invocation, s -> cleanupCalled.incrementAndGet(),
-                SHORT_GRACE_PERIOD);
+        val stream         = new AttributeStream(invocation, s -> cleanupCalled.incrementAndGet(), SHORT_GRACE_PERIOD);
         val operationCount = new AtomicInteger(0);
         val latch          = new CountDownLatch(20);
         val threads        = new ArrayList<Thread>();
@@ -398,28 +397,28 @@ class AttributeStreamRaceConditionTests {
                 }
 
                 switch (threadId % 4) {
-                    case 0 -> {
-                        val pip = (AttributeFinder) inv -> Flux.just(Val.of("pip-" + threadId));
-                        stream.connectToPolicyInformationPoint(pip);
+                case 0 -> {
+                    val pip = (AttributeFinder) inv -> Flux.just(Val.of("pip-" + threadId));
+                    stream.connectToPolicyInformationPoint(pip);
+                    operationCount.incrementAndGet();
+                }
+                case 1 -> {
+                    stream.disconnectFromPolicyInformationPoint();
+                    operationCount.incrementAndGet();
+                }
+                case 2 -> {
+                    val subscription = stream.getStream().subscribe();
+                    subscription.dispose();
+                    operationCount.incrementAndGet();
+                }
+                case 3 -> {
+                    try {
+                        stream.getStream().blockFirst(Duration.ofMillis(100));
                         operationCount.incrementAndGet();
+                    } catch (Exception e) {
+                        // Expected under chaos
                     }
-                    case 1 -> {
-                        stream.disconnectFromPolicyInformationPoint();
-                        operationCount.incrementAndGet();
-                    }
-                    case 2 -> {
-                        val subscription = stream.getStream().subscribe();
-                        subscription.dispose();
-                        operationCount.incrementAndGet();
-                    }
-                    case 3 -> {
-                        try {
-                            stream.getStream().blockFirst(Duration.ofMillis(100));
-                            operationCount.incrementAndGet();
-                        } catch (Exception e) {
-                            // Expected under chaos
-                        }
-                    }
+                }
                 }
             }));
         }
@@ -443,7 +442,8 @@ class AttributeStreamRaceConditionTests {
     /**
      * Tests extreme backpressure handling.
      * <p>
-     * Creates a fast producer emitting 1000 values and a slow consumer with 10ms delays.
+     * Creates a fast producer emitting 1000 values and a slow consumer with 10ms
+     * delays.
      * The bounded buffer should prevent memory leaks while dropping excess values.
      * <p>
      * Expected: Some values received, none crashed, buffer doesn't overflow memory.
@@ -455,9 +455,7 @@ class AttributeStreamRaceConditionTests {
         val stream     = new AttributeStream(invocation, s -> {}, LONG_GRACE_PERIOD);
         val received   = new AtomicInteger(0);
 
-        stream.getStream()
-                .delayElements(Duration.ofMillis(10))
-                .subscribe(value -> received.incrementAndGet());
+        stream.getStream().delayElements(Duration.ofMillis(10)).subscribe(value -> received.incrementAndGet());
 
         val pip = (AttributeFinder) inv -> Flux.interval(Duration.ofMillis(1)).take(1000).map(Val::of);
         stream.connectToPolicyInformationPoint(pip);
@@ -484,25 +482,20 @@ class AttributeStreamRaceConditionTests {
         val stream     = new AttributeStream(invocation, s -> {}, LONG_GRACE_PERIOD);
         val results    = new CopyOnWriteArrayList<Val>();
 
-        val pip1 = (AttributeFinder) inv ->
-                Flux.interval(Duration.ofMillis(5)).take(100).map(i -> Val.of("pip1-" + i));
+        val pip1 = (AttributeFinder) inv -> Flux.interval(Duration.ofMillis(5)).take(100).map(i -> Val.of("pip1-" + i));
         stream.connectToPolicyInformationPoint(pip1);
 
         stream.getStream().subscribe(results::add);
 
-        await().pollDelay(10, MILLISECONDS).atMost(200, MILLISECONDS)
-                .until(() -> results.size() >= 10);
+        await().pollDelay(10, MILLISECONDS).atMost(200, MILLISECONDS).until(() -> results.size() >= 10);
 
-        val pip2 = (AttributeFinder) inv ->
-                Flux.interval(Duration.ofMillis(5)).take(100).map(i -> Val.of("pip2-" + i));
+        val pip2 = (AttributeFinder) inv -> Flux.interval(Duration.ofMillis(5)).take(100).map(i -> Val.of("pip2-" + i));
         stream.connectToPolicyInformationPoint(pip2);
 
-        await().pollDelay(10, MILLISECONDS).atMost(300, MILLISECONDS)
-                .until(() -> results.stream()
-                        .anyMatch(value -> !value.isError() && value.get().asText().startsWith("pip2")));
+        await().pollDelay(10, MILLISECONDS).atMost(300, MILLISECONDS).until(
+                () -> results.stream().anyMatch(value -> !value.isError() && value.get().asText().startsWith("pip2")));
 
-        val pip2Values = results.stream()
-                .filter(value -> !value.isError() && value.get().asText().startsWith("pip2"))
+        val pip2Values = results.stream().filter(value -> !value.isError() && value.get().asText().startsWith("pip2"))
                 .toList();
 
         assertThat(pip2Values).as("Should receive values from second PIP after swap").isNotEmpty();

@@ -52,20 +52,21 @@ public class CachingAttributeStreamBroker implements AttributeStreamBroker {
 
             if (!streams.isEmpty() && !invocation.fresh()) {
                 val stream = streams.getFirst();
-                val flux = stream.getStream();
+                val flux   = stream.getStream();
 
                 if (flux != null) {
                     log.debug("Returning existing stream for: '{}'", invocation.attributeName());
                     return flux;
                 }
 
-                log.debug("Stream was disposed during grace period, removing and creating new for: '{}'", invocation.attributeName());
+                log.debug("Stream was disposed during grace period, removing and creating new for: '{}'",
+                        invocation.attributeName());
                 streams.remove(stream);
             }
 
             log.debug("Creating new stream for: '{}'", invocation.attributeName());
             val matchingSpecsAndPips = attributeFinderIndex.get(invocation.attributeName());
-            val newStream = newAttributeStream(invocation, matchingSpecsAndPips);
+            val newStream            = newAttributeStream(invocation, matchingSpecsAndPips);
             streams.add(newStream);
             return newStream.getStream();
         }
@@ -82,13 +83,10 @@ public class CachingAttributeStreamBroker implements AttributeStreamBroker {
      */
     private AttributeStream newAttributeStream(final AttributeFinderInvocation invocation,
             Iterable<SpecificationAndFinder> pipsWithNameOfInvocation) {
-        log.error("Search for match in: {}", pipsWithNameOfInvocation);
         val uniquePipMatchingInvocation = searchForMatchingPip(invocation, pipsWithNameOfInvocation);
         if (null == uniquePipMatchingInvocation) {
-            log.error("no match");
             return new AttributeStream(invocation, this::removeAttributeStreamFromIndex, DEFAULT_GRACE_PERIOD);
         } else {
-            log.error("got match");
             return new AttributeStream(invocation, this::removeAttributeStreamFromIndex, DEFAULT_GRACE_PERIOD,
                     uniquePipMatchingInvocation);
         }
