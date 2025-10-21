@@ -17,10 +17,25 @@
  */
 package io.sapl.attributes.broker.api;
 
+import io.sapl.api.interpreter.Val;
 import lombok.NonNull;
 
-import java.util.Map;
+import java.util.List;
 
-public record PolicyInformationPointImplementation(
-        @NonNull PolicyInformationPointSpecification specification,
-        @NonNull Map<AttributeFinderSpecification, AttributeFinder> implementations) {}
+/**
+ * Unique key identifying an attribute in storage.
+ * <p>
+ * Composed of entity (optional), attribute name, and arguments list.
+ * Two keys are equal if all components are equal.
+ */
+public record AttributeKey(Val entity, @NonNull String attributeName, @NonNull List<Val> arguments) {
+    /**
+     * Creates an AttributeKey from an AttributeFinderInvocation.
+     *
+     * @param invocation the invocation to extract key from
+     * @return the attribute key
+     */
+    public static AttributeKey of(AttributeFinderInvocation invocation) {
+        return new AttributeKey(invocation.entity(), invocation.attributeName(), invocation.arguments());
+    }
+}

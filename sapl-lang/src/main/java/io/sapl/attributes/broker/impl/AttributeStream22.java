@@ -40,7 +40,7 @@ import java.util.function.Consumer;
  * <p>
  * The stream supports two initialization modes:
  * <ul>
- * <li>Without initial PIP: starts without values, awaiting PIP connection
+ * <li>Without initial PIP: starts with an error state, awaiting PIP connection
  * via hot-swap</li>
  * <li>With initial PIP: immediately connected and streaming values</li>
  * </ul>
@@ -56,34 +56,31 @@ import java.util.function.Consumer;
  * <li>Bounded backpressure buffering: buffers up to 128 values to handle
  * synchronous multi-value emissions and transient slow consumers, preventing
  * memory leaks while ensuring legitimate value sequences are delivered</li>
- * <li>Thread-safe disposal: prevents race conditions between getStream() and
- * grace period expiration</li>
  * </ul>
  */
 @Slf4j
-public class AttributeStream {
+public class AttributeStream22 {
     @Getter
     private final AttributeFinderInvocation invocation;
 
     private final Many<Val> sink = Sinks.many().multicast().onBackpressureBuffer(128);
 
+    @Getter
     private final Flux<Val> stream;
 
-    private final Consumer<AttributeStream>   cleanupAction;
+    private final Consumer<AttributeStream22>   cleanupAction;
     private final AtomicReference<Disposable> currentPipSubscription           = new AtomicReference<>();
     private final AtomicReference<Disposable> pipSnapshotAtGracePeriodStart    = new AtomicReference<>();
     private final AtomicReference<Flux<Val>>  configuredAttributeFinderStream  = new AtomicReference<>();
     private final Object                      connectionLock                   = new Object();
     private volatile boolean                  disconnected                     = false;
     private volatile boolean                  disconnectErrorAlreadyPublished  = false;
-    private volatile boolean                  hasActiveSubscribers             = false;
-    private volatile boolean                  disposed                         = false;
 
     /**
      * Creates an AttributeStream without an initial PIP connection.
      * <p>
-     * The stream awaits PIP connection via {@link #connectToPolicyInformationPoint(AttributeFinder)}.
-     * No values are emitted until a PIP is connected and a subscriber arrives.
+     * Immediately publishes an error state to subscribers. The stream awaits PIP
+     * connection via {@link #connectToPolicyInformationPoint(AttributeFinder)}.
      * <p>
      * Use case: PIP not yet available but may be hot-deployed during policy
      * evaluation lifecycle.
@@ -94,11 +91,12 @@ public class AttributeStream {
      * @param gracePeriod   duration to keep stream alive after last subscriber
      *                      cancels
      */
-    public AttributeStream(@NonNull AttributeFinderInvocation invocation,
-                           @NonNull Consumer<AttributeStream> cleanupAction, @NonNull Duration gracePeriod) {
+    public AttributeStream22(@NonNull AttributeFinderInvocation invocation,
+                             @NonNull Consumer<AttributeStream22> cleanupAction, @NonNull Duration gracePeriod) {
         this.invocation      = invocation;
         this.cleanupAction   = cleanupAction;
-        this.stream          = createMulticastStream(gracePeriod);
+        this.stream          = createMulticastStream(gracePeriod, false);
+        publish(Val.error("No unique policy information point found for " + invocation));
     }
 
     /**
@@ -116,13 +114,13 @@ public class AttributeStream {
      *                           cancels
      * @param attributeFinder    the PIP to connect immediately
      */
-    public AttributeStream(@NonNull AttributeFinderInvocation invocation,
-                           @NonNull Consumer<AttributeStream> cleanupAction, @NonNull Duration gracePeriod,
-                           @NonNull AttributeFinder attributeFinder) {
+    public AttributeStream22(@NonNull AttributeFinderInvocation invocation,
+                             @NonNull Consumer<AttributeStream22> cleanupAction, @NonNull Duration gracePeriod,
+                             @NonNull AttributeFinder attributeFinder) {
         this.invocation                    = invocation;
         this.cleanupAction                 = cleanupAction;
         this.configuredAttributeFinderStream.set(configureAttributeFinderStream(attributeFinder));
-        this.stream                        = createMulticastStream(gracePeriod);
+        this.stream                        = createMulticastStream(gracePeriod, true);
     }
 
     /**
@@ -140,18 +138,22 @@ public class AttributeStream {
      * <li>doFinally: fires after cancellation, checks if PIP should be disposed
      * (not hot-swapped)</li>
      * </ul>
-     *  @param gracePeriod           duration to keep stream alive after last
+     *
+     * @param gracePeriod           duration to keep stream alive after last
      *                              subscriber cancels
+     * @param startPipOnSubscribe   if true, start PIP subscription when replay
+     *                              subscribes to sink
      */
-    private Flux<Val> createMulticastStream(Duration gracePeriod) {
+    private Flux<Val> createMulticastStream(Duration gracePeriod, boolean startPipOnSubscribe) {
         var flux = sink.asFlux();
 
-        flux = flux.doOnSubscribe(subscription -> startPipSubscription());
+        if (startPipOnSubscribe) {
+            flux = flux.doOnSubscribe(subscription -> startPipSubscription());
+        }
 
         return flux.doOnCancel(() -> {
             synchronized (connectionLock) {
                 log.debug("Last subscriber grace period expired for {}, cleanup triggered", this);
-                hasActiveSubscribers = false;
                 pipSnapshotAtGracePeriodStart.set(currentPipSubscription.get());
                 cleanupAction.accept(this);
             }
@@ -164,47 +166,23 @@ public class AttributeStream {
     }
 
     /**
-     * Returns the reactive stream for subscription.
-     * <p>
-     * Thread-safe with respect to disposal. If the stream has been disposed due to
-     * grace period expiration, returns null to signal that a new stream should be
-     * created by the broker.
-     * <p>
-     * Synchronizes on connectionLock to ensure atomic check of disposal state,
-     * preventing race conditions where disposal completes between checking the
-     * disposed flag and returning the stream reference.
-     *
-     * @return the Flux for subscription, or null if stream has been disposed
-     */
-    public Flux<Val> getStream() {
-        synchronized (connectionLock) {
-            if (disposed) {
-                return null;
-            }
-            return stream;
-        }
-    }
-
-    /**
      * Starts the PIP subscription when first subscriber arrives.
      * <p>
-     * Marks that subscribers are active and attempts to start PIP subscription if
-     * a PIP is configured.
+     * Only applies to streams created with constructor 2 (immediate PIP).
      * <p>
      * The subscription handlers are empty because values and errors are already
      * published to the sink via doOnNext and doOnError in the configured stream.
      */
     private void startPipSubscription() {
-        hasActiveSubscribers = true;
         val pipStream = configuredAttributeFinderStream.get();
         if (pipStream != null) {
             synchronized (connectionLock) {
                 if (currentPipSubscription.get() == null) {
                     log.debug("Starting PIP subscription for {}", this);
                     currentPipSubscription.set(pipStream.subscribe(
-                            value -> {},
-                            error -> {},
-                            () -> {}
+                            value -> {},  // Values already published via doOnNext
+                            error -> {},  // Errors already published via doOnError
+                            () -> {}      // Completion handled by pollOnComplete
                     ));
                 }
             }
@@ -218,13 +196,8 @@ public class AttributeStream {
      * subscription. If they're the same, no hot-swap occurred and the PIP should be
      * disposed. If different, a new PIP was connected during grace period and
      * should be preserved.
-     * <p>
-     * Sets the disposed flag to prevent further getStream() calls from returning
-     * this stream instance.
      */
     private void maybeDisposePipAfterGracePeriod() {
-        disposed = true;
-
         val snapshotPip = pipSnapshotAtGracePeriodStart.getAndSet(null);
         val currentPip  = currentPipSubscription.get();
 
@@ -262,6 +235,17 @@ public class AttributeStream {
         val emitResult = sink.tryEmitNext(value);
         if (emitResult.isFailure()) {
             log.warn("Failed to emit value {} to {} with result {}", value, this, emitResult);
+        }
+    }
+
+    /**
+     * Publishes an error by wrapping the throwable message in Val.error().
+     * <p>
+     * Respects disconnected state - no errors published after disconnection.
+     */
+    private void publish(Throwable throwable) {
+        if (!disconnected) {
+            publish(Val.error(throwable.getMessage()));
         }
     }
 
@@ -338,14 +322,15 @@ public class AttributeStream {
      * Thread-safe operation that:
      * <ul>
      * <li>Resets disconnection state</li>
-     * <li>Stores the new PIP configuration for subscription</li>
-     * <li>Subscribes immediately if: there are active PIP subscribers (hot-swap),
-     *     reconnecting after explicit disconnect, or subscribers are waiting</li>
-     * <li>Defers subscription if: no subscribers yet (waits for first subscriber)</li>
+     * <li>Disposes old PIP subscription</li>
+     * <li>Creates and subscribes to new PIP</li>
      * </ul>
      * <p>
      * The stream continues operating without interruption. Subscribers see values
      * from the new PIP.
+     * <p>
+     * The subscription handlers are empty because values and errors are already
+     * published to the sink via doOnNext and doOnError in the configured stream.
      * <p>
      * Use case: Configuration update, PIP replacement, or recovery from
      * disconnection.
@@ -356,32 +341,23 @@ public class AttributeStream {
         synchronized (connectionLock) {
             log.debug("Connecting {} to {}", policyInformationPoint, this);
 
-            val wasDisconnected = disconnected;
             disconnected                    = false;
             disconnectErrorAlreadyPublished = false;
 
             val newPipStream = configureAttributeFinderStream(policyInformationPoint);
-            configuredAttributeFinderStream.set(newPipStream);
 
-            val existingSubscription = currentPipSubscription.get();
-
-            if (existingSubscription != null || wasDisconnected || hasActiveSubscribers) {
-                log.debug("Subscribing PIP immediately for {}: hot-swap={}, reconnect={}, subscribers-waiting={}",
-                        this, existingSubscription != null, wasDisconnected, hasActiveSubscribers);
-                currentPipSubscription.getAndUpdate(oldSubscription -> {
-                    if (oldSubscription != null) {
-                        log.debug("Disposing old PIP subscription while hot-swapping for {}", this);
-                        oldSubscription.dispose();
-                    }
-                    return newPipStream.subscribe(
-                            value -> {},
-                            error -> {},
-                            () -> {}
-                    );
-                });
-            } else {
-                log.debug("Storing PIP config for {}, will subscribe on first subscriber", this);
-            }
+            currentPipSubscription.getAndUpdate(oldSubscription -> {
+                if (oldSubscription != null) {
+                    log.debug("Disposing old PIP subscription while connecting {} to {}", policyInformationPoint,
+                            this);
+                    oldSubscription.dispose();
+                }
+                return newPipStream.subscribe(
+                        value -> {},  // Values already published via doOnNext
+                        error -> {},  // Errors already published via doOnError
+                        () -> {}      // Completion handled by pollOnComplete
+                );
+            });
         }
     }
 

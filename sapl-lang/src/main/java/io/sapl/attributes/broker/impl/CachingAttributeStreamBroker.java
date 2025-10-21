@@ -21,6 +21,7 @@ import io.sapl.api.interpreter.Val;
 import io.sapl.attributes.broker.api.*;
 import io.sapl.attributes.broker.api.AttributeFinderSpecification.Match;
 import lombok.extern.slf4j.Slf4j;
+import lombok.val;
 import reactor.core.publisher.Flux;
 
 import java.time.Duration;
@@ -45,21 +46,28 @@ public class CachingAttributeStreamBroker implements AttributeStreamBroker {
 
     @Override
     public Flux<Val> attributeStream(AttributeFinderInvocation invocation) {
+        log.debug("Requesting stream for: '{}'", invocation.attributeName());
         synchronized (lock) {
-            var streams = activeStreamIndex.get(invocation);
-            if (null == streams) {
-                streams = new ArrayList<>();
-                activeStreamIndex.put(invocation, streams);
+            var streams = activeStreamIndex.computeIfAbsent(invocation, k -> new ArrayList<>());
+
+            if (!streams.isEmpty() && !invocation.fresh()) {
+                val stream = streams.getFirst();
+                val flux = stream.getStream();
+
+                if (flux != null) {
+                    log.debug("Returning existing stream for: '{}'", invocation.attributeName());
+                    return flux;
+                }
+
+                log.debug("Stream was disposed during grace period, removing and creating new for: '{}'", invocation.attributeName());
+                streams.remove(stream);
             }
-            AttributeStream stream;
-            if (streams.isEmpty() || invocation.fresh()) {
-                final var matchingSpecsAndPips = attributeFinderIndex.get(invocation.attributeName());
-                stream = newAttributeStream(invocation, matchingSpecsAndPips);
-                streams.add(stream);
-            } else {
-                stream = streams.get(0);
-            }
-            return stream.getStream();
+
+            log.debug("Creating new stream for: '{}'", invocation.attributeName());
+            val matchingSpecsAndPips = attributeFinderIndex.get(invocation.attributeName());
+            val newStream = newAttributeStream(invocation, matchingSpecsAndPips);
+            streams.add(newStream);
+            return newStream.getStream();
         }
     }
 
@@ -74,15 +82,16 @@ public class CachingAttributeStreamBroker implements AttributeStreamBroker {
      */
     private AttributeStream newAttributeStream(final AttributeFinderInvocation invocation,
             Iterable<SpecificationAndFinder> pipsWithNameOfInvocation) {
-        final var attributeStream             = new AttributeStream(invocation, this::removeAttributeStreamFromIndex,
-                DEFAULT_GRACE_PERIOD);
-        final var uniquePipMatchingInvocation = searchForMatchingPip(invocation, pipsWithNameOfInvocation);
+        log.error("Search for match in: {}", pipsWithNameOfInvocation);
+        val uniquePipMatchingInvocation = searchForMatchingPip(invocation, pipsWithNameOfInvocation);
         if (null == uniquePipMatchingInvocation) {
-            attributeStream.publish(Val.error("No unique policy information point found for " + invocation));
+            log.error("no match");
+            return new AttributeStream(invocation, this::removeAttributeStreamFromIndex, DEFAULT_GRACE_PERIOD);
         } else {
-            attributeStream.connectToPolicyInformationPoint(uniquePipMatchingInvocation);
+            log.error("got match");
+            return new AttributeStream(invocation, this::removeAttributeStreamFromIndex, DEFAULT_GRACE_PERIOD,
+                    uniquePipMatchingInvocation);
         }
-        return attributeStream;
     }
 
     /**
@@ -99,7 +108,7 @@ public class CachingAttributeStreamBroker implements AttributeStreamBroker {
         }
         AttributeFinder varArgsMatch = null;
         for (var specAndPip : pipsWithNameOfInvocation) {
-            final var matchQuality = specAndPip.specification().matches(invocation);
+            val matchQuality = specAndPip.specification().matches(invocation);
             if (matchQuality == Match.EXACT_MATCH) {
                 // return exact matches early even if a varargs match already was found.
                 return specAndPip.policyInformationPoint();
@@ -117,7 +126,7 @@ public class CachingAttributeStreamBroker implements AttributeStreamBroker {
      */
     private void removeAttributeStreamFromIndex(AttributeStream attributeStream) {
         synchronized (lock) {
-            final var streams = activeStreamIndex.get(attributeStream.getInvocation());
+            val streams = activeStreamIndex.get(attributeStream.getInvocation());
             streams.remove(attributeStream);
         }
     }
@@ -125,15 +134,15 @@ public class CachingAttributeStreamBroker implements AttributeStreamBroker {
     @Override
     public void loadPolicyInformationPoint(PolicyInformationPointImplementation pipImplementation) {
         synchronized (lock) {
-            final var pipSpecification = pipImplementation.specification();
-            final var pipName          = pipSpecification.name();
+            val pipSpecification = pipImplementation.specification();
+            val pipName          = pipSpecification.name();
             if (pipRegistry.containsKey(pipName)) {
                 throw new AttributeBrokerException(String.format(
-                        "Namespace collission error. Policy Information Point with name %s already registered.",
+                        "Namespace collision error. Policy Information Point with name %s already registered.",
                         pipName));
             }
-            final var finderImplementations           = pipImplementation.implementsations();
-            final var varargsFindersForDelayedLoading = new ArrayList<AttributeFinderSpecification>();
+            val finderImplementations           = pipImplementation.implementations();
+            val varargsFindersForDelayedLoading = new ArrayList<AttributeFinderSpecification>();
             // Explanation: First load the non-varargs finders. If we loaded a varargs
             // first, this may trigger a match with an existing subscription, and it would
             // wrongly subscribe to it even if there also exist an exact match which has
@@ -144,12 +153,12 @@ public class CachingAttributeStreamBroker implements AttributeStreamBroker {
                 if (attributeFinderSpecification.hasVariableNumberOfArguments()) {
                     varargsFindersForDelayedLoading.add(attributeFinderSpecification);
                 } else {
-                    final var attributeFinder = finderImplementations.get(attributeFinderSpecification);
+                    val attributeFinder = finderImplementations.get(attributeFinderSpecification);
                     registerAttributeFinder(attributeFinderSpecification, attributeFinder);
                 }
             }
             for (var attributeFinderSpecification : varargsFindersForDelayedLoading) {
-                final var attributeFinder = finderImplementations.get(attributeFinderSpecification);
+                val attributeFinder = finderImplementations.get(attributeFinderSpecification);
                 registerAttributeFinder(attributeFinderSpecification, attributeFinder);
             }
             pipRegistry.put(pipName, pipSpecification);
@@ -169,29 +178,25 @@ public class CachingAttributeStreamBroker implements AttributeStreamBroker {
     private void registerAttributeFinder(AttributeFinderSpecification attributeFinderSpecification,
             AttributeFinder attributeFinder) {
         log.debug("Publishing PIP: {}", attributeFinderSpecification);
-        final var pipName        = attributeFinderSpecification.fullyQualifiedName();
-        var       findersForName = attributeFinderIndex.get(pipName);
-        if (null == findersForName) {
-            findersForName = new ArrayList<>();
-            attributeFinderIndex.put(pipName, findersForName);
-        }
+        val pipName        = attributeFinderSpecification.fullyQualifiedName();
+        var findersForName = attributeFinderIndex.computeIfAbsent(pipName, k -> new ArrayList<>());
         findersForName.add(new SpecificationAndFinder(attributeFinderSpecification, attributeFinder));
 
         for (var invocationAndStreams : activeStreamIndex.entrySet()) {
-            final var invocation     = invocationAndStreams.getKey();
-            final var streams        = invocationAndStreams.getValue();
-            final var newFinderMatch = attributeFinderSpecification.matches(invocation);
+            val invocation     = invocationAndStreams.getKey();
+            val streams        = invocationAndStreams.getValue();
+            val newFinderMatch = attributeFinderSpecification.matches(invocation);
             if (newFinderMatch == Match.EXACT_MATCH || (newFinderMatch == Match.VARARGS_MATCH
-                    && !doesExactlyMatchingPipExtist(findersForName, invocation))) {
+                    && !doesExactlyMatchingPipExist(findersForName, invocation))) {
                 connectStreamsToPip(attributeFinder, streams);
             }
         }
     }
 
-    private boolean doesExactlyMatchingPipExtist(Iterable<SpecificationAndFinder> pipsForName,
+    private boolean doesExactlyMatchingPipExist(Iterable<SpecificationAndFinder> pipsForName,
             final AttributeFinderInvocation invocation) {
         for (var pip : pipsForName) {
-            final var existingPipMatch = pip.specification().matches(invocation);
+            val existingPipMatch = pip.specification().matches(invocation);
             if (existingPipMatch == Match.EXACT_MATCH) {
                 return true;
             }
@@ -208,7 +213,7 @@ public class CachingAttributeStreamBroker implements AttributeStreamBroker {
     @Override
     public void unloadPolicyInformationPoint(String name) {
         synchronized (lock) {
-            final var pipToRemove = pipRegistry.get(name);
+            val pipToRemove = pipRegistry.get(name);
             if (null == pipToRemove) {
                 return;
             }
@@ -216,7 +221,7 @@ public class CachingAttributeStreamBroker implements AttributeStreamBroker {
             // avoid race conditions so that this does not lead to a case where this
             // temporarily switches to a varargs PIP that is about to be removed.
             // This is the inverse order as at loading time.
-            final var nonVarargsFindersForDelayedRemoval = new ArrayList<AttributeFinderSpecification>();
+            val nonVarargsFindersForDelayedRemoval = new ArrayList<AttributeFinderSpecification>();
             for (var finderForRemoval : pipToRemove.attributeFinders()) {
                 if (finderForRemoval.hasVariableNumberOfArguments()) {
                     removeAttributeFinder(finderForRemoval);
@@ -238,8 +243,8 @@ public class CachingAttributeStreamBroker implements AttributeStreamBroker {
      */
     private void removeAttributeFinder(AttributeFinderSpecification attributeFinderSpecification) {
         log.debug("Unpublishing AttributeFinder: {}", attributeFinderSpecification);
-        final var attributeName = attributeFinderSpecification.fullyQualifiedName();
-        final var pipsForName   = attributeFinderIndex.get(attributeName);
+        val attributeName = attributeFinderSpecification.fullyQualifiedName();
+        val pipsForName   = attributeFinderIndex.get(attributeName);
         if (null == pipsForName) {
             return;
         }
@@ -249,9 +254,9 @@ public class CachingAttributeStreamBroker implements AttributeStreamBroker {
         }
 
         for (var invocationAndStreams : activeStreamIndex.entrySet()) {
-            final var invocation      = invocationAndStreams.getKey();
-            final var streams         = invocationAndStreams.getValue();
-            final var removedPipMatch = attributeFinderSpecification.matches(invocation);
+            val invocation      = invocationAndStreams.getKey();
+            val streams         = invocationAndStreams.getValue();
+            val removedPipMatch = attributeFinderSpecification.matches(invocation);
 
             if (removedPipMatch != Match.NO_MATCH) {
                 disconnectStreams(streams);

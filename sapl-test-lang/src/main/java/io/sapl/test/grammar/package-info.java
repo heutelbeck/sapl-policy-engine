@@ -17,7 +17,8 @@
  */
 /**
  * This package contains the grammar definition of sapltest files as well as
- * some configuration to set up sapltest and to generate sources for the sapltest
+ * some configuration to set up sapltest and to generate sources for the
+ * sapltest
  * grammar with xtext.
  */
 @org.osgi.annotation.versioning.Version("3.0.0")

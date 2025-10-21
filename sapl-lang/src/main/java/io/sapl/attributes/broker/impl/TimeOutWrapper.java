@@ -17,24 +17,26 @@
  */
 package io.sapl.attributes.broker.impl;
 
-import java.time.Duration;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicReference;
-
 import io.sapl.api.interpreter.Val;
 import lombok.experimental.UtilityClass;
+import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import reactor.core.Disposable;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.publisher.Sinks;
 
+import java.time.Duration;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
+
 /**
  * Provides utility functions for wrapping attribute streams with timeout
  * behavior.
  */
+@Slf4j
 @UtilityClass
-class TimeOutWrapper {
+public class TimeOutWrapper {
 
     /**
      * Wraps a flux with timeout behavior using Val.UNDEFINED as fallback values.
@@ -47,7 +49,7 @@ class TimeOutWrapper {
      * <li>Early completion terminates immediately without waiting for timeout</li>
      * </ul>
      *
-     * @param flux    the source flux to wrap
+     * @param flux the source flux to wrap
      * @param timeOut duration before emitting timeout value
      * @return wrapped flux with timeout behavior
      */
@@ -66,49 +68,56 @@ class TimeOutWrapper {
      * <li>Early completion terminates immediately without waiting for timeout</li>
      * </ul>
      *
-     * @param flux           the source flux to wrap
-     * @param timeOut        duration before emitting timeout value
-     * @param timeOutValue   value emitted on timeout
+     * @param flux the source flux to wrap
+     * @param timeOut duration before emitting timeout value
+     * @param timeOutValue value emitted on timeout
      * @param emptyFluxValue value emitted when source is empty
      * @return wrapped flux with timeout behavior
      */
     public static Flux<Val> wrap(Flux<Val> flux, Duration timeOut, Val timeOutValue, Val emptyFluxValue) {
         return Flux.defer(() -> {
-            val sink                  = Sinks.many().unicast().<Val>onBackpressureBuffer();
-            val hasEmittedValue       = new AtomicBoolean(false);
-            val timeoutWasCanceled    = new AtomicBoolean(false);
-            val timeoutSubscription   = new AtomicReference<Disposable>();
-            val sourceSubscription    = new AtomicReference<Disposable>();
+            val sink                = Sinks.many().unicast().<Val>onBackpressureBuffer();
+            val hasEmittedValue     = new AtomicBoolean(false);
+            val timeoutWasCanceled  = new AtomicBoolean(false);
+            val timeoutSubscription = new AtomicReference<Disposable>();
+            val sourceSubscription  = new AtomicReference<Disposable>();
 
-            val sourceFlux = flux
-                    .defaultIfEmpty(emptyFluxValue)
-                    .doOnNext(value -> {
-                        hasEmittedValue.set(true);
-                        sink.tryEmitNext(value);
-                    })
-                    .doOnError(sink::tryEmitError)
-                    .doOnComplete(() -> {
-                        timeoutWasCanceled.set(true);
-                        sink.tryEmitComplete();
-                    });
+            val sourceFlux = flux.defaultIfEmpty(emptyFluxValue).doOnNext(value -> {
+                hasEmittedValue.set(true);
+                sink.tryEmitNext(value);
+            }).doOnError(sink::tryEmitError).doOnComplete(() -> {
+                timeoutWasCanceled.set(true);
+                sink.tryEmitComplete();
+            });
 
-            val timeoutFlux = Mono.delay(timeOut)
-                    .filter(tick -> !hasEmittedValue.get() && !timeoutWasCanceled.get())
+            val timeoutFlux = Mono.delay(timeOut).filter(tick -> !hasEmittedValue.get() && !timeoutWasCanceled.get())
                     .doOnNext(tick -> sink.tryEmitNext(timeOutValue));
 
-            return sink.asFlux()
-                    .doOnSubscribe(subscription -> {
-                        timeoutSubscription.set(timeoutFlux.subscribe());
-                        sourceSubscription.set(sourceFlux.subscribe());
-                    })
-                    .doOnTerminate(() -> {
-                        disposeIfPresent(timeoutSubscription);
-                        disposeIfPresent(sourceSubscription);
-                    })
-                    .doOnCancel(() -> {
-                        disposeIfPresent(timeoutSubscription);
-                        disposeIfPresent(sourceSubscription);
-                    });
+            return sink.asFlux().doOnSubscribe(subscription -> {
+                timeoutSubscription.set(timeoutFlux.subscribe(
+                        value -> log.trace("timeout flux: {}", value),
+                        error -> {
+                            log.trace("Error in timeout flux", error);
+                            sink.tryEmitError(error);
+                        },
+                        () -> {}
+                ));
+
+                sourceSubscription.set(sourceFlux.subscribe(
+                        value -> log.trace("source flux: {}", value),
+                        error -> {
+                            log.trace("Error in source flux", error);
+                            // Already handled by doOnError(sink::tryEmitError)
+                        },
+                        () -> {}
+                ));
+            }).doOnTerminate(() -> {
+                disposeIfPresent(timeoutSubscription);
+                disposeIfPresent(sourceSubscription);
+            }).doOnCancel(() -> {
+                disposeIfPresent(timeoutSubscription);
+                disposeIfPresent(sourceSubscription);
+            });
         });
     }
 

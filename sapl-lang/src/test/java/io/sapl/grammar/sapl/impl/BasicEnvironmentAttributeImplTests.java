@@ -115,7 +115,7 @@ class BasicEnvironmentAttributeImplTests {
         val invocation = capturedInvocation.get();
         assertThat(invocation).isNotNull();
         assertThat(invocation.initialTimeOut()).isEqualTo(Duration.ofMillis(3000L));
-        assertThat(invocation.pollIntervall()).isEqualTo(Duration.ofMillis(30000L));
+        assertThat(invocation.pollInterval()).isEqualTo(Duration.ofMillis(30000L));
         assertThat(invocation.backoff()).isEqualTo(Duration.ofMillis(1000L));
         assertThat(invocation.retries()).isEqualTo(3);
         assertThat(invocation.fresh()).isFalse();
@@ -144,7 +144,7 @@ class BasicEnvironmentAttributeImplTests {
         val invocation = capturedInvocation.get();
         assertThat(invocation).isNotNull();
         assertThat(invocation.initialTimeOut()).isEqualTo(Duration.ofMillis(5000L));
-        assertThat(invocation.pollIntervall()).isEqualTo(Duration.ofMillis(60000L));
+        assertThat(invocation.pollInterval()).isEqualTo(Duration.ofMillis(60000L));
         assertThat(invocation.backoff()).isEqualTo(Duration.ofMillis(2000L));
         assertThat(invocation.retries()).isEqualTo(5);
         assertThat(invocation.fresh()).isTrue();
@@ -177,7 +177,7 @@ class BasicEnvironmentAttributeImplTests {
         val invocation = capturedInvocation.get();
         assertThat(invocation).isNotNull();
         assertThat(invocation.initialTimeOut()).isEqualTo(Duration.ofMillis(7000L));
-        assertThat(invocation.pollIntervall()).isEqualTo(Duration.ofMillis(45000L));
+        assertThat(invocation.pollInterval()).isEqualTo(Duration.ofMillis(45000L));
         assertThat(invocation.backoff()).isEqualTo(Duration.ofMillis(1500L));
         assertThat(invocation.retries()).isEqualTo(7);
         assertThat(invocation.fresh()).isTrue();
@@ -215,7 +215,7 @@ class BasicEnvironmentAttributeImplTests {
         val invocation = capturedInvocation.get();
         assertThat(invocation).isNotNull();
         assertThat(invocation.initialTimeOut()).isEqualTo(Duration.ofMillis(2000L));
-        assertThat(invocation.pollIntervall()).isEqualTo(Duration.ofMillis(50000L));
+        assertThat(invocation.pollInterval()).isEqualTo(Duration.ofMillis(50000L));
         assertThat(invocation.backoff()).isEqualTo(Duration.ofMillis(3000L));
         assertThat(invocation.retries()).isEqualTo(10);
         assertThat(invocation.fresh()).isTrue();
@@ -242,7 +242,7 @@ class BasicEnvironmentAttributeImplTests {
         val invocation = capturedInvocation.get();
         assertThat(invocation).isNotNull();
         assertThat(invocation.initialTimeOut()).isEqualTo(Duration.ofMillis(3000L));
-        assertThat(invocation.pollIntervall()).isEqualTo(Duration.ofMillis(30000L));
+        assertThat(invocation.pollInterval()).isEqualTo(Duration.ofMillis(30000L));
         assertThat(invocation.backoff()).isEqualTo(Duration.ofMillis(1000L));
         assertThat(invocation.retries()).isEqualTo(3);
         assertThat(invocation.fresh()).isFalse();
@@ -271,7 +271,7 @@ class BasicEnvironmentAttributeImplTests {
         val invocation = capturedInvocation.get();
         assertThat(invocation).isNotNull();
         assertThat(invocation.initialTimeOut()).isEqualTo(Duration.ofMillis(4000L));
-        assertThat(invocation.pollIntervall()).isEqualTo(Duration.ofMillis(30000L));
+        assertThat(invocation.pollInterval()).isEqualTo(Duration.ofMillis(30000L));
         assertThat(invocation.backoff()).isEqualTo(Duration.ofMillis(1000L));
         assertThat(invocation.retries()).isEqualTo(3);
         assertThat(invocation.fresh()).isTrue();

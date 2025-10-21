@@ -33,7 +33,7 @@ public record AttributeFinderInvocation(
         @NonNull List<Val> arguments,
         @NonNull Map<String, Val> variables,
         @NonNull Duration initialTimeOut,
-        @NonNull Duration pollIntervall,
+        @NonNull Duration pollInterval,
         @NonNull Duration backoff,
         long retries,
         boolean fresh) {
@@ -43,11 +43,11 @@ public record AttributeFinderInvocation(
             @NonNull List<Val> arguments,
             @NonNull Map<String, Val> variables,
             @NonNull Duration initialTimeOut,
-            @NonNull Duration pollIntervall,
+            @NonNull Duration pollInterval,
             @NonNull Duration backoff,
             long retries,
             boolean fresh) {
-        this(pdpConfigurationId, fullyQualifiedName, null, arguments, variables, initialTimeOut, pollIntervall, backoff,
+        this(pdpConfigurationId, fullyQualifiedName, null, arguments, variables, initialTimeOut, pollInterval, backoff,
                 retries, fresh);
     }
 

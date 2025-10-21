@@ -30,10 +30,7 @@ import io.sapl.attributes.pips.jwt.JWTPolicyInformationPoint;
 
 import io.sapl.validation.ValidatorFactory;
 import okhttp3.mockwebserver.MockWebServer;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.*;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -385,6 +382,7 @@ class JWTPolicyInformationPointTests {
     }
 
     @Test
+    @Timeout(10)
     void validity_withNbfAfterNowAndExpAfterNbf_shouldBeImmatureThenValidThenExpired() throws JOSEException {
         dispatcher.setDispatchMode(DispatchMode.TRUE);
         final var variables = JsonTestUtility.publicKeyUriVariables(server, null);

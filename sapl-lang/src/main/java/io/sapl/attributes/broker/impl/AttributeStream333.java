@@ -56,20 +56,19 @@ import java.util.function.Consumer;
  * <li>Bounded backpressure buffering: buffers up to 128 values to handle
  * synchronous multi-value emissions and transient slow consumers, preventing
  * memory leaks while ensuring legitimate value sequences are delivered</li>
- * <li>Thread-safe disposal: prevents race conditions between getStream() and
- * grace period expiration</li>
  * </ul>
  */
 @Slf4j
-public class AttributeStream {
+public class AttributeStream333 {
     @Getter
     private final AttributeFinderInvocation invocation;
 
     private final Many<Val> sink = Sinks.many().multicast().onBackpressureBuffer(128);
 
+    @Getter
     private final Flux<Val> stream;
 
-    private final Consumer<AttributeStream>   cleanupAction;
+    private final Consumer<AttributeStream333>   cleanupAction;
     private final AtomicReference<Disposable> currentPipSubscription           = new AtomicReference<>();
     private final AtomicReference<Disposable> pipSnapshotAtGracePeriodStart    = new AtomicReference<>();
     private final AtomicReference<Flux<Val>>  configuredAttributeFinderStream  = new AtomicReference<>();
@@ -77,7 +76,6 @@ public class AttributeStream {
     private volatile boolean                  disconnected                     = false;
     private volatile boolean                  disconnectErrorAlreadyPublished  = false;
     private volatile boolean                  hasActiveSubscribers             = false;
-    private volatile boolean                  disposed                         = false;
 
     /**
      * Creates an AttributeStream without an initial PIP connection.
@@ -94,11 +92,11 @@ public class AttributeStream {
      * @param gracePeriod   duration to keep stream alive after last subscriber
      *                      cancels
      */
-    public AttributeStream(@NonNull AttributeFinderInvocation invocation,
-                           @NonNull Consumer<AttributeStream> cleanupAction, @NonNull Duration gracePeriod) {
+    public AttributeStream333(@NonNull AttributeFinderInvocation invocation,
+                              @NonNull Consumer<AttributeStream333> cleanupAction, @NonNull Duration gracePeriod) {
         this.invocation      = invocation;
         this.cleanupAction   = cleanupAction;
-        this.stream          = createMulticastStream(gracePeriod);
+        this.stream          = createMulticastStream(gracePeriod, true);
     }
 
     /**
@@ -116,13 +114,13 @@ public class AttributeStream {
      *                           cancels
      * @param attributeFinder    the PIP to connect immediately
      */
-    public AttributeStream(@NonNull AttributeFinderInvocation invocation,
-                           @NonNull Consumer<AttributeStream> cleanupAction, @NonNull Duration gracePeriod,
-                           @NonNull AttributeFinder attributeFinder) {
+    public AttributeStream333(@NonNull AttributeFinderInvocation invocation,
+                              @NonNull Consumer<AttributeStream333> cleanupAction, @NonNull Duration gracePeriod,
+                              @NonNull AttributeFinder attributeFinder) {
         this.invocation                    = invocation;
         this.cleanupAction                 = cleanupAction;
         this.configuredAttributeFinderStream.set(configureAttributeFinderStream(attributeFinder));
-        this.stream                        = createMulticastStream(gracePeriod);
+        this.stream                        = createMulticastStream(gracePeriod, true);
     }
 
     /**
@@ -140,13 +138,18 @@ public class AttributeStream {
      * <li>doFinally: fires after cancellation, checks if PIP should be disposed
      * (not hot-swapped)</li>
      * </ul>
-     *  @param gracePeriod           duration to keep stream alive after last
+     *
+     * @param gracePeriod           duration to keep stream alive after last
      *                              subscriber cancels
+     * @param startPipOnSubscribe   if true, start PIP subscription when replay
+     *                              subscribes to sink
      */
-    private Flux<Val> createMulticastStream(Duration gracePeriod) {
+    private Flux<Val> createMulticastStream(Duration gracePeriod, boolean startPipOnSubscribe) {
         var flux = sink.asFlux();
 
-        flux = flux.doOnSubscribe(subscription -> startPipSubscription());
+        if (startPipOnSubscribe) {
+            flux = flux.doOnSubscribe(subscription -> startPipSubscription());
+        }
 
         return flux.doOnCancel(() -> {
             synchronized (connectionLock) {
@@ -161,28 +164,6 @@ public class AttributeStream {
                 maybeDisposePipAfterGracePeriod();
             }
         }).replay(1).refCount(1, gracePeriod);
-    }
-
-    /**
-     * Returns the reactive stream for subscription.
-     * <p>
-     * Thread-safe with respect to disposal. If the stream has been disposed due to
-     * grace period expiration, returns null to signal that a new stream should be
-     * created by the broker.
-     * <p>
-     * Synchronizes on connectionLock to ensure atomic check of disposal state,
-     * preventing race conditions where disposal completes between checking the
-     * disposed flag and returning the stream reference.
-     *
-     * @return the Flux for subscription, or null if stream has been disposed
-     */
-    public Flux<Val> getStream() {
-        synchronized (connectionLock) {
-            if (disposed) {
-                return null;
-            }
-            return stream;
-        }
     }
 
     /**
@@ -218,13 +199,8 @@ public class AttributeStream {
      * subscription. If they're the same, no hot-swap occurred and the PIP should be
      * disposed. If different, a new PIP was connected during grace period and
      * should be preserved.
-     * <p>
-     * Sets the disposed flag to prevent further getStream() calls from returning
-     * this stream instance.
      */
     private void maybeDisposePipAfterGracePeriod() {
-        disposed = true;
-
         val snapshotPip = pipSnapshotAtGracePeriodStart.getAndSet(null);
         val currentPip  = currentPipSubscription.get();
 
@@ -262,6 +238,17 @@ public class AttributeStream {
         val emitResult = sink.tryEmitNext(value);
         if (emitResult.isFailure()) {
             log.warn("Failed to emit value {} to {} with result {}", value, this, emitResult);
+        }
+    }
+
+    /**
+     * Publishes an error by wrapping the throwable message in Val.error().
+     * <p>
+     * Respects disconnected state - no errors published after disconnection.
+     */
+    private void publish(Throwable throwable) {
+        if (!disconnected) {
+            publish(Val.error(throwable.getMessage()));
         }
     }
 
