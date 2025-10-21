@@ -25,7 +25,9 @@ import io.sapl.api.interpreter.Val;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.Decision;
+import io.sapl.attributes.broker.api.AttributeRepository;
 import io.sapl.attributes.broker.impl.CachingAttributeStreamBroker;
+import io.sapl.attributes.broker.impl.InMemoryAttributeRepository;
 import io.sapl.interpreter.DefaultSAPLInterpreter;
 import io.sapl.interpreter.InitializationException;
 import io.sapl.interpreter.functions.AnnotationFunctionContext;
@@ -35,6 +37,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import reactor.test.StepVerifier;
 
+import java.time.Clock;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -49,11 +52,15 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class FilterFunctionLibraryTests {
 
-    private static final ObjectMapper                 MAPPER           = new ObjectMapper()
+    private static final ObjectMapper                 MAPPER               = new ObjectMapper()
             .enable(SerializationFeature.INDENT_OUTPUT);
-    private static final DefaultSAPLInterpreter       INTERPRETER      = new DefaultSAPLInterpreter();
-    private static final CachingAttributeStreamBroker ATTRIBUTE_BROKER = new CachingAttributeStreamBroker();
-    private static final Map<String, Val>             SYSTEM_VARIABLES = Collections.unmodifiableMap(new HashMap<>());
+    private static final DefaultSAPLInterpreter       INTERPRETER          = new DefaultSAPLInterpreter();
+    private static final AttributeRepository          ATTRIBUTE_REPOSITORY = new InMemoryAttributeRepository(
+            Clock.systemUTC());
+    private static final CachingAttributeStreamBroker ATTRIBUTE_BROKER     = new CachingAttributeStreamBroker(
+            ATTRIBUTE_REPOSITORY);
+    private static final Map<String, Val>             SYSTEM_VARIABLES     = Collections
+            .unmodifiableMap(new HashMap<>());
 
     private AnnotationFunctionContext functionCtx;
 
@@ -302,7 +309,7 @@ class FilterFunctionLibraryTests {
                 policy "test"
                 permit
                 transform resource |- {
-                                        @.array[1] : filter.replace(\"***\"),
+                                        @.array[1] : filter.replace("***"),
                                         @.key1     : filter.replace(null)
                                       }""";
         final var expectedResource      = MAPPER.readValue("""

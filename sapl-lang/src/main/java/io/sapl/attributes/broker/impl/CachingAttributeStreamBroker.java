@@ -20,6 +20,7 @@ package io.sapl.attributes.broker.impl;
 import io.sapl.api.interpreter.Val;
 import io.sapl.attributes.broker.api.*;
 import io.sapl.attributes.broker.api.AttributeFinderSpecification.Match;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import reactor.core.publisher.Flux;
@@ -31,6 +32,7 @@ import java.util.List;
 import java.util.Map;
 
 @Slf4j
+@RequiredArgsConstructor
 public class CachingAttributeStreamBroker implements AttributeStreamBroker {
     static final Duration DEFAULT_GRACE_PERIOD = Duration.ofMillis(3000L);
 
@@ -43,6 +45,8 @@ public class CachingAttributeStreamBroker implements AttributeStreamBroker {
     private final Map<String, PolicyInformationPointSpecification>      pipRegistry          = new HashMap<>();
 
     private final Object lock = new Object();
+
+    private final AttributeRepository attributeRepository;
 
     @Override
     public Flux<Val> attributeStream(AttributeFinderInvocation invocation) {
@@ -114,7 +118,10 @@ public class CachingAttributeStreamBroker implements AttributeStreamBroker {
                 varArgsMatch = specAndPip.policyInformationPoint();
             }
         }
-        return varArgsMatch;
+        if (varArgsMatch != null) {
+            return varArgsMatch;
+        }
+        return attributeRepository;
     }
 
     /**

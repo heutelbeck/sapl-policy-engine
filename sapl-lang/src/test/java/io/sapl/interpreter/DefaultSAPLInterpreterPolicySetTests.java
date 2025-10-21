@@ -19,10 +19,13 @@ package io.sapl.interpreter;
 
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.AuthorizationSubscription;
+import io.sapl.attributes.broker.api.AttributeRepository;
 import io.sapl.attributes.broker.api.AttributeStreamBroker;
 import io.sapl.attributes.broker.impl.CachingAttributeStreamBroker;
+import io.sapl.attributes.broker.impl.InMemoryAttributeRepository;
 import io.sapl.functions.FilterFunctionLibrary;
 import io.sapl.interpreter.functions.AnnotationFunctionContext;
+import lombok.val;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -30,6 +33,7 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import reactor.test.StepVerifier;
 
+import java.time.Clock;
 import java.util.HashMap;
 import java.util.stream.Stream;
 
@@ -43,16 +47,15 @@ class DefaultSAPLInterpreterPolicySetTests {
     private static final DefaultSAPLInterpreter INTERPRETER = new DefaultSAPLInterpreter();
 
     private AuthorizationSubscription authorizationSubscription;
-
-    private AttributeStreamBroker attributeStreamBroker;
-
+    private AttributeStreamBroker     attributeStreamBroker;
     private AnnotationFunctionContext functionCtx;
 
     @BeforeEach
     void setUp() throws InitializationException {
         authorizationSubscription = new AuthorizationSubscription(null, null, null, null);
-        attributeStreamBroker     = new CachingAttributeStreamBroker();
-        functionCtx               = new AnnotationFunctionContext();
+        val attributeRepository = new InMemoryAttributeRepository(Clock.systemUTC());
+        attributeStreamBroker = new CachingAttributeStreamBroker(attributeRepository);
+        functionCtx           = new AnnotationFunctionContext();
         functionCtx.loadLibrary(FilterFunctionLibrary.class);
     }
 

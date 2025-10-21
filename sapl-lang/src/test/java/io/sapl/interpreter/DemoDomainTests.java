@@ -23,7 +23,9 @@ import com.fasterxml.jackson.databind.SerializationFeature;
 import io.sapl.api.interpreter.Val;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.AuthorizationSubscription;
+import io.sapl.attributes.broker.api.AttributeRepository;
 import io.sapl.attributes.broker.impl.CachingAttributeStreamBroker;
+import io.sapl.attributes.broker.impl.InMemoryAttributeRepository;
 import io.sapl.functions.FilterFunctionLibrary;
 import io.sapl.interpreter.functions.AnnotationFunctionContext;
 import org.junit.jupiter.api.BeforeEach;
@@ -38,12 +40,16 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 class DemoDomainTests {
-    private static final ObjectMapper                 MAPPER           = new ObjectMapper()
+    private static final ObjectMapper                 MAPPER               = new ObjectMapper()
             .enable(SerializationFeature.INDENT_OUTPUT);
-    private static final DefaultSAPLInterpreter       INTERPRETER      = new DefaultSAPLInterpreter();
-    private static final CachingAttributeStreamBroker ATTRIBUTE_BROKER = new CachingAttributeStreamBroker();
-    private static final AnnotationFunctionContext    FUNCTION_CTX     = new AnnotationFunctionContext();
-    private static final Map<String, Val>             SYSTEM_VARIABLES = Collections.unmodifiableMap(new HashMap<>());
+    private static final DefaultSAPLInterpreter       INTERPRETER          = new DefaultSAPLInterpreter();
+    private static final AttributeRepository          ATTRIBUTE_REPOSITORY = new InMemoryAttributeRepository(
+            Clock.systemUTC());
+    private static final CachingAttributeStreamBroker ATTRIBUTE_BROKER     = new CachingAttributeStreamBroker(
+            ATTRIBUTE_REPOSITORY);
+    private static final AnnotationFunctionContext    FUNCTION_CTX         = new AnnotationFunctionContext();
+    private static final Map<String, Val>             SYSTEM_VARIABLES     = Collections
+            .unmodifiableMap(new HashMap<>());
 
     @BeforeEach
     void setUp() throws InitializationException {

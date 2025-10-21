@@ -23,8 +23,10 @@ import com.nimbusds.jose.JWSAlgorithm;
 import com.nimbusds.jose.JWSHeader;
 import com.nimbusds.jwt.JWTClaimsSet;
 import io.sapl.api.interpreter.Val;
+import io.sapl.attributes.broker.api.AttributeRepository;
 import io.sapl.attributes.broker.impl.AnnotationPolicyInformationPointLoader;
 import io.sapl.attributes.broker.impl.CachingAttributeStreamBroker;
+import io.sapl.attributes.broker.impl.InMemoryAttributeRepository;
 import io.sapl.attributes.broker.impl.InMemoryPolicyInformationPointDocumentationProvider;
 import io.sapl.attributes.pips.jwt.JWTPolicyInformationPoint;
 
@@ -39,6 +41,7 @@ import reactor.test.StepVerifier;
 import java.io.IOException;
 import java.security.KeyPair;
 import java.security.NoSuchAlgorithmException;
+import java.time.Clock;
 import java.util.ArrayList;
 import java.util.Map;
 import java.util.Set;
@@ -89,7 +92,8 @@ class JWTPolicyInformationPointTests {
     void contextIsAbleToLoadJWTPolicyInformationPoint() {
         final var mapper                = new ObjectMapper();
         final var validatorFactory      = new ValidatorFactory(mapper);
-        final var attributeStreamBroker = new CachingAttributeStreamBroker();
+        final var attributeRepository   = new InMemoryAttributeRepository(Clock.systemUTC());
+        final var attributeStreamBroker = new CachingAttributeStreamBroker(attributeRepository);
         final var docsProvider          = new InMemoryPolicyInformationPointDocumentationProvider();
         final var pipLoader             = new AnnotationPolicyInformationPointLoader(attributeStreamBroker,
                 docsProvider, validatorFactory);
