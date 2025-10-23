@@ -940,6 +940,7 @@ class InMemoryAttributeRepositoryTests {
         val stream     = repository.invoke(createInvocation(TEST_ATTRIBUTE));
 
         stream.subscribe(new reactor.core.publisher.BaseSubscriber<Val>() {
+            @Override
             protected void hookOnSubscribe(@NotNull Subscription subscription) {
                 subscription.request(1);
             }

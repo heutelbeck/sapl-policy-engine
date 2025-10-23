@@ -19,6 +19,7 @@ package io.sapl.attributes.broker.impl;
 
 import io.sapl.api.interpreter.Val;
 import io.sapl.attributes.broker.api.*;
+import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import reactor.core.Disposable;
@@ -100,7 +101,7 @@ public class InMemoryAttributeRepository implements AttributeRepository {
      *
      * @param clock the clock to use for timing operations
      */
-    public InMemoryAttributeRepository(Clock clock) {
+    public InMemoryAttributeRepository(@NonNull Clock clock) {
         this(clock, new HeapAttributeStorage(), DEFAULT_BUFFER_SIZE, DEFAULT_MAX_REPOSITORY_SIZE);
     }
 
@@ -110,7 +111,7 @@ public class InMemoryAttributeRepository implements AttributeRepository {
      * @param clock the clock to use for timing operations
      * @param storage the storage backend for persistence
      */
-    public InMemoryAttributeRepository(Clock clock, AttributeStorage storage) {
+    public InMemoryAttributeRepository(@NonNull Clock clock, @NonNull AttributeStorage storage) {
         this(clock, storage, DEFAULT_BUFFER_SIZE, DEFAULT_MAX_REPOSITORY_SIZE);
     }
 
@@ -122,13 +123,7 @@ public class InMemoryAttributeRepository implements AttributeRepository {
      * @param bufferSize the backpressure buffer size for each attribute stream
      * @param maxRepositorySize the maximum number of attributes that can be stored
      */
-    public InMemoryAttributeRepository(Clock clock, AttributeStorage storage, int bufferSize, int maxRepositorySize) {
-        if (clock == null) {
-            throw new IllegalArgumentException("Clock must not be null");
-        }
-        if (storage == null) {
-            throw new IllegalArgumentException("Storage must not be null");
-        }
+    public InMemoryAttributeRepository(@NonNull Clock clock,@NonNull AttributeStorage storage, int bufferSize, int maxRepositorySize) {
         if (bufferSize <= 0) {
             throw new IllegalArgumentException("Buffer size must be positive");
         }
@@ -221,7 +216,7 @@ public class InMemoryAttributeRepository implements AttributeRepository {
 
     private RuntimeState updateAttributeValue(AttributeKey key, RuntimeState existing, PersistedAttribute newValue,
             long sequenceNumber) {
-        enforceCapacityLimit(key, existing);
+        enforceCapacityLimit(key);
 
         Disposable newTimeout = null;
         try {
@@ -238,7 +233,7 @@ public class InMemoryAttributeRepository implements AttributeRepository {
         return emitToSinkIfPresent(key, existing, newValue.value(), sequenceNumber, newTimeout);
     }
 
-    private void enforceCapacityLimit(AttributeKey key, RuntimeState existing) {
+    private void enforceCapacityLimit(AttributeKey key) {
         boolean isNewAttribute = !hasPersisted(key);
         if (isNewAttribute) {
             int currentCount = attributeCount.incrementAndGet();
@@ -381,7 +376,7 @@ public class InMemoryAttributeRepository implements AttributeRepository {
         runtimeState.compute(key, (k, existing) -> processRemoval(key, existing));
     }
 
-    private void validateRemovalParameters(String attributeName, List<Val> arguments) {
+    private void validateRemovalParameters(String attributeName, Iterable<Val> arguments) {
         if (attributeName == null || attributeName.isBlank()) {
             throw new IllegalArgumentException("Attribute name must not be null or blank");
         }

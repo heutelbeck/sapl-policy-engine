@@ -24,6 +24,7 @@ import lombok.val;
 import org.junit.jupiter.api.RepeatedTest;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
+import org.springframework.test.annotation.Repeat;
 import reactor.core.publisher.Flux;
 
 import java.time.Duration;
@@ -165,7 +166,8 @@ class AttributeStreamRaceConditionTests {
      * disposed.
      * Tests: Grace period cleanup integration with broker.
      */
-    @Test
+   // @Test
+    @RepeatedTest(100)
     void afterGracePeriodExpiration_brokerCreatesNewStream() throws Exception {
         val invocation    = createInvocation();
         val cleanupCalled = new AtomicInteger(0);
@@ -411,7 +413,7 @@ class AttributeStreamRaceConditionTests {
                     subscription.dispose();
                     operationCount.incrementAndGet();
                 }
-                case 3 -> {
+                default -> { // 3+ not case 3 to satisfy sonarqube
                     try {
                         stream.getStream().blockFirst(Duration.ofMillis(100));
                         operationCount.incrementAndGet();
@@ -463,8 +465,9 @@ class AttributeStreamRaceConditionTests {
         Thread.sleep(500);
 
         val receivedCount = received.get();
-        assertThat(receivedCount).as("Should receive some values").isGreaterThan(0);
-        assertThat(receivedCount).as("Should drop values under backpressure").isLessThan(1000);
+        assertThat(receivedCount)
+                .as("Should receive some values but drop some under backpressure")
+                .isBetween(1, 999);
     }
 
     /**

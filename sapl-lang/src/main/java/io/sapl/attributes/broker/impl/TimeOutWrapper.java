@@ -99,10 +99,10 @@ public class TimeOutWrapper {
                     sink.tryEmitError(error);
                 }, () -> {}));
 
-                sourceSubscription.set(sourceFlux.subscribe(value -> log.trace("source flux: {}", value), error -> {
-                    log.trace("Error in source flux", error);
+                sourceSubscription.set(sourceFlux.subscribe(value -> log.trace("source flux: {}", value), error ->
                     // Already handled by doOnError(sink::tryEmitError)
-                }, () -> {}));
+                    log.trace("Error in source flux", error),
+                    () -> {}));
             }).doOnTerminate(() -> {
                 disposeIfPresent(timeoutSubscription);
                 disposeIfPresent(sourceSubscription);

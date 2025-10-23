@@ -261,7 +261,7 @@ class CsvFunctionLibraryTests {
                     headers.append(',');
                 headers.append("artifact").append(i);
             }
-            headers.append("\n");
+            headers.append('\n');
             for (int i = 0; i < 50; i++) {
                 if (i > 0)
                     headers.append(',');

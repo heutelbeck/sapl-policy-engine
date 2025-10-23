@@ -100,7 +100,7 @@ public class AttributeStream {
             @NonNull Duration gracePeriod) {
         this.invocation    = invocation;
         this.cleanupAction = cleanupAction;
-        this.stream        = createMulticastStream(gracePeriod, true);
+        this.stream        = createMulticastStream(gracePeriod);
     }
 
     /**
@@ -125,7 +125,7 @@ public class AttributeStream {
         this.invocation    = invocation;
         this.cleanupAction = cleanupAction;
         this.configuredAttributeFinderStream.set(configureAttributeFinderStream(attributeFinder));
-        this.stream = createMulticastStream(gracePeriod, true);
+        this.stream = createMulticastStream(gracePeriod);
     }
 
     /**
@@ -143,18 +143,13 @@ public class AttributeStream {
      * <li>doFinally: fires after cancellation, checks if PIP should be disposed
      * (not hot-swapped)</li>
      * </ul>
-     *
-     * @param gracePeriod duration to keep stream alive after last
+     *  @param gracePeriod duration to keep stream alive after last
      * subscriber cancels
-     * @param startPipOnSubscribe if true, start PIP subscription when replay
-     * subscribes to sink
      */
-    private Flux<Val> createMulticastStream(Duration gracePeriod, boolean startPipOnSubscribe) {
+    private Flux<Val> createMulticastStream(Duration gracePeriod) {
         var flux = sink.asFlux();
 
-        if (startPipOnSubscribe) {
-            flux = flux.doOnSubscribe(subscription -> startPipSubscription());
-        }
+        flux = flux.doOnSubscribe(subscription -> startPipSubscription());
 
         return flux.doOnCancel(() -> {
             synchronized (connectionLock) {
@@ -270,17 +265,6 @@ public class AttributeStream {
         val emitResult = sink.tryEmitNext(value);
         if (emitResult.isFailure()) {
             log.warn("Failed to emit value {} to {} with result {}", value, this, emitResult);
-        }
-    }
-
-    /**
-     * Publishes an error by wrapping the throwable message in Val.error().
-     * <p>
-     * Respects disconnected state - no errors published after disconnection.
-     */
-    private void publish(Throwable throwable) {
-        if (!disconnected) {
-            publish(Val.error(throwable.getMessage()));
         }
     }
 
