@@ -423,9 +423,9 @@ class InMemoryAttributeRepositoryTests {
         val repository = new InMemoryAttributeRepository(Clock.systemUTC());
         val stream     = repository.invoke(createInvocation(TEST_ATTRIBUTE));
 
-        repository.publishAttribute(TEST_ATTRIBUTE, Val.of("first"), Duration.ofMillis(100), TimeOutStrategy.REMOVE);
+        repository.publishAttribute(TEST_ATTRIBUTE, Val.of("first"), Duration.ofMillis(300), TimeOutStrategy.REMOVE);
 
-        Mono.delay(Duration.ofMillis(95))
+        Mono.delay(Duration.ofMillis(150))
                 .subscribe(tick -> repository.publishAttribute(TEST_ATTRIBUTE, Val.of("second")));
 
         await().atMost(500, TimeUnit.MILLISECONDS).untilAsserted(() -> {});
