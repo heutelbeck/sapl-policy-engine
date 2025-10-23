@@ -30,7 +30,15 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CopyOnWriteArrayList;
 
+/**
+ * Caching attribute stream broker with thread-safe collection handling.
+ * <p>
+ * Uses CopyOnWriteArrayList for storing active streams to prevent
+ * ConcurrentModificationException when streams are added/removed by
+ * background threads during TTL expiration or PIP hot-swapping.
+ */
 @Slf4j
 @RequiredArgsConstructor
 public class CachingAttributeStreamBroker implements AttributeStreamBroker {
@@ -52,7 +60,7 @@ public class CachingAttributeStreamBroker implements AttributeStreamBroker {
     public Flux<Val> attributeStream(AttributeFinderInvocation invocation) {
         log.debug("Requesting stream for: '{}'", invocation.attributeName());
         synchronized (lock) {
-            var streams = activeStreamIndex.computeIfAbsent(invocation, k -> new ArrayList<>());
+            var streams = activeStreamIndex.computeIfAbsent(invocation, k -> new CopyOnWriteArrayList<>());
 
             if (!streams.isEmpty() && !invocation.fresh()) {
                 val stream = streams.getFirst();
@@ -77,12 +85,12 @@ public class CachingAttributeStreamBroker implements AttributeStreamBroker {
     }
 
     /**
-     * Create a new AttributeStream for an invocation.
+     * Creates a new AttributeStream for an invocation.
      *
      * @param invocation an invocation
-     * @param pipsWithNameOfInvocation all PIPs with the same name.
-     * @return a new AttributeStream, which is connected to a matching PIP is
-     * present. Else directly, an error is published in the stream that no PIP
+     * @param pipsWithNameOfInvocation all PIPs with the same name
+     * @return a new AttributeStream, which is connected to a matching PIP if
+     * present. Otherwise, an error is published in the stream indicating no PIP
      * was found for the invocation.
      */
     private AttributeStream newAttributeStream(final AttributeFinderInvocation invocation,
@@ -97,11 +105,11 @@ public class CachingAttributeStreamBroker implements AttributeStreamBroker {
     }
 
     /**
-     * Find a PIP with specification that matches an invocation in a list.
+     * Finds a PIP with specification that matches an invocation in a list.
      *
      * @param invocation an invocation
-     * @param pipsWithNameOfInvocation a List of PIPs with specification.
-     * @return a PIP whose specification is matching the invocation, or null.
+     * @param pipsWithNameOfInvocation a List of PIPs with specification
+     * @return a PIP whose specification matches the invocation, or null
      */
     private AttributeFinder searchForMatchingPip(AttributeFinderInvocation invocation,
             Iterable<SpecificationAndFinder> pipsWithNameOfInvocation) {
@@ -112,7 +120,6 @@ public class CachingAttributeStreamBroker implements AttributeStreamBroker {
         for (var specAndPip : pipsWithNameOfInvocation) {
             val matchQuality = specAndPip.specification().matches(invocation);
             if (matchQuality == Match.EXACT_MATCH) {
-                // return exact matches early even if a varargs match already was found.
                 return specAndPip.policyInformationPoint();
             } else if (matchQuality == Match.VARARGS_MATCH) {
                 varArgsMatch = specAndPip.policyInformationPoint();
@@ -126,13 +133,18 @@ public class CachingAttributeStreamBroker implements AttributeStreamBroker {
 
     /**
      * Default callback for attribute streams upon destruction.
+     * <p>
+     * Thread-safe: CopyOnWriteArrayList allows concurrent modifications during
+     * iteration.
      *
-     * @param attributeStream An attribute stream to remove.
+     * @param attributeStream an attribute stream to remove
      */
     private void removeAttributeStreamFromIndex(AttributeStream attributeStream) {
         synchronized (lock) {
             val streams = activeStreamIndex.get(attributeStream.getInvocation());
-            streams.remove(attributeStream);
+            if (streams != null) {
+                streams.remove(attributeStream);
+            }
         }
     }
 
@@ -148,12 +160,7 @@ public class CachingAttributeStreamBroker implements AttributeStreamBroker {
             }
             val finderImplementations           = pipImplementation.implementations();
             val varargsFindersForDelayedLoading = new ArrayList<AttributeFinderSpecification>();
-            // Explanation: First load the non-varargs finders. If we loaded a varargs
-            // first, this may trigger a match with an existing subscription, and it would
-            // wrongly subscribe to it even if there also exist an exact match which has
-            // not been seen while loading yet. If you fist load the exact matches, the
-            // varargs match will not override it and the loading of the library is
-            // seemingly atomic from the perspective of existing subscriptions.
+
             for (var attributeFinderSpecification : pipSpecification.attributeFinders()) {
                 if (attributeFinderSpecification.hasVariableNumberOfArguments()) {
                     varargsFindersForDelayedLoading.add(attributeFinderSpecification);
@@ -171,14 +178,14 @@ public class CachingAttributeStreamBroker implements AttributeStreamBroker {
     }
 
     /**
-     * This method registers a new PIP with the attribute broker. The specification
+     * Registers a new PIP with the attribute broker. The specification
      * must not collide with any existing specification. If there are any matching
      * attribute streams consumed by policies, the streams are connected to the new
      * PIP.
      *
-     * @param attributeFinderSpecification The specification of the PIP.
-     * @param attributeFinder The PIP itself.
-     * @throws AttributeBrokerException if there is a specification collision.
+     * @param attributeFinderSpecification the specification of the PIP
+     * @param attributeFinder the PIP itself
+     * @throws AttributeBrokerException if there is a specification collision
      */
     private void registerAttributeFinder(AttributeFinderSpecification attributeFinderSpecification,
             AttributeFinder attributeFinder) {
@@ -209,6 +216,15 @@ public class CachingAttributeStreamBroker implements AttributeStreamBroker {
         return false;
     }
 
+    /**
+     * Connects streams to a PIP.
+     * <p>
+     * Thread-safe: Iterating over CopyOnWriteArrayList is safe even if the list
+     * is modified concurrently by other threads.
+     *
+     * @param policyInformationPoint the PIP to connect
+     * @param streams the streams to connect
+     */
     private void connectStreamsToPip(AttributeFinder policyInformationPoint, final Iterable<AttributeStream> streams) {
         for (var attributeStream : streams) {
             attributeStream.connectToPolicyInformationPoint(policyInformationPoint);
@@ -222,10 +238,7 @@ public class CachingAttributeStreamBroker implements AttributeStreamBroker {
             if (null == pipToRemove) {
                 return;
             }
-            // Make sure varargs PIPs are removed first when unloading a class to
-            // avoid race conditions so that this does not lead to a case where this
-            // temporarily switches to a varargs PIP that is about to be removed.
-            // This is the inverse order as at loading time.
+
             val nonVarargsFindersForDelayedRemoval = new ArrayList<AttributeFinderSpecification>();
             for (var finderForRemoval : pipToRemove.attributeFinders()) {
                 if (finderForRemoval.hasVariableNumberOfArguments()) {
@@ -266,9 +279,7 @@ public class CachingAttributeStreamBroker implements AttributeStreamBroker {
             if (removedPipMatch != Match.NO_MATCH) {
                 disconnectStreams(streams);
             }
-            // Check if the subscription now falls back to a still existing varargs PIP.
-            // There cannot be another exact match, as the consistency rules at PIP load
-            // time forbids it.
+
             if (removedPipMatch == Match.EXACT_MATCH) {
                 for (var pip : pipsForName) {
                     if (pip.specification().matches(invocation) == Match.VARARGS_MATCH) {
@@ -279,6 +290,14 @@ public class CachingAttributeStreamBroker implements AttributeStreamBroker {
         }
     }
 
+    /**
+     * Disconnects streams from their PIPs.
+     * <p>
+     * Thread-safe: Iterating over CopyOnWriteArrayList is safe even if the list
+     * is modified concurrently.
+     *
+     * @param streams the streams to disconnect
+     */
     private void disconnectStreams(final Iterable<AttributeStream> streams) {
         for (var attributeStream : streams) {
             attributeStream.disconnectFromPolicyInformationPoint();
