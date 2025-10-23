@@ -24,7 +24,6 @@ import lombok.val;
 import org.junit.jupiter.api.RepeatedTest;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
-import org.springframework.test.annotation.Repeat;
 import reactor.core.publisher.Flux;
 
 import java.time.Duration;
@@ -142,7 +141,8 @@ class AttributeStreamRaceConditionTests {
         val subscription = stream.getStream().subscribe();
         subscription.dispose();
 
-        Thread.sleep(90);
+        // Wait 90% of grace period to test reconnection during grace period
+        await().pollDelay(90, MILLISECONDS).during(Duration.ofMillis(5)).atMost(95, MILLISECONDS);
 
         val newPip = (AttributeFinder) inv -> Flux.just(Val.of("reconnected"));
         stream.connectToPolicyInformationPoint(newPip);
@@ -222,6 +222,7 @@ class AttributeStreamRaceConditionTests {
             latch.countDown();
             try {
                 latch.await();
+                // Intentional delay to create race timing window with connect operation
                 Thread.sleep(10);
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
@@ -235,7 +236,9 @@ class AttributeStreamRaceConditionTests {
         connectThread.join();
         disconnectThread.join();
 
-        Thread.sleep(150);
+        await().pollDelay(10, MILLISECONDS).atMost(300, MILLISECONDS)
+                .until(() -> results.stream()
+                        .anyMatch(value -> value.isError() && value.getMessage().contains("disconnected")));
 
         val hasDisconnectError = results.stream()
                 .anyMatch(value -> value.isError() && value.getMessage().contains("disconnected"));
@@ -290,7 +293,13 @@ class AttributeStreamRaceConditionTests {
             }
         });
 
-        Thread.sleep(100);
+        // Wait for disconnect error to appear
+        await().pollDelay(20, MILLISECONDS).atMost(300, MILLISECONDS)
+                .until(() -> results.stream()
+                        .anyMatch(value -> value.isError() && value.getMessage().contains("disconnected")));
+
+        // Verify count has stabilized (no additional errors appear)
+        await().pollDelay(50, MILLISECONDS).during(Duration.ofMillis(50)).atMost(150, MILLISECONDS);
 
         val disconnectErrors = results.stream()
                 .filter(value -> value.isError() && value.getMessage().contains("disconnected")).count();
@@ -347,7 +356,11 @@ class AttributeStreamRaceConditionTests {
         thread1.join();
         thread2.join();
 
-        Thread.sleep(100);
+        // Wait for sufficient values to be emitted (at least 5 non-error values)
+        await().pollDelay(20, MILLISECONDS).atMost(500, MILLISECONDS).until(() -> {
+            val nonErrorCount = results.stream().filter(value -> !value.isError()).count();
+            return nonErrorCount >= 5;
+        });
 
         val snapshot = new ArrayList<>(results);
         if (snapshot.isEmpty()) {
@@ -398,28 +411,28 @@ class AttributeStreamRaceConditionTests {
                 }
 
                 switch (threadId % 4) {
-                case 0 -> {
-                    val pip = (AttributeFinder) inv -> Flux.just(Val.of("pip-" + threadId));
-                    stream.connectToPolicyInformationPoint(pip);
-                    operationCount.incrementAndGet();
-                }
-                case 1 -> {
-                    stream.disconnectFromPolicyInformationPoint();
-                    operationCount.incrementAndGet();
-                }
-                case 2 -> {
-                    val subscription = stream.getStream().subscribe();
-                    subscription.dispose();
-                    operationCount.incrementAndGet();
-                }
-                default -> { // 3+ not case 3 to satisfy sonarqube
-                    try {
-                        stream.getStream().blockFirst(Duration.ofMillis(100));
+                    case 0 -> {
+                        val pip = (AttributeFinder) inv -> Flux.just(Val.of("pip-" + threadId));
+                        stream.connectToPolicyInformationPoint(pip);
                         operationCount.incrementAndGet();
-                    } catch (Exception e) {
-                        // Expected under chaos
                     }
-                }
+                    case 1 -> {
+                        stream.disconnectFromPolicyInformationPoint();
+                        operationCount.incrementAndGet();
+                    }
+                    case 2 -> {
+                        val subscription = stream.getStream().subscribe();
+                        subscription.dispose();
+                        operationCount.incrementAndGet();
+                    }
+                    default -> { // 3+ not case 3 to satisfy sonarqube
+                        try {
+                            stream.getStream().blockFirst(Duration.ofMillis(100));
+                            operationCount.incrementAndGet();
+                        } catch (Exception e) {
+                            // Expected under chaos
+                        }
+                    }
                 }
             }));
         }
@@ -461,7 +474,13 @@ class AttributeStreamRaceConditionTests {
         val pip = (AttributeFinder) inv -> Flux.interval(Duration.ofMillis(1)).take(1000).map(Val::of);
         stream.connectToPolicyInformationPoint(pip);
 
-        Thread.sleep(500);
+        // Wait for producer to emit values and consumer to process some (demonstrating backpressure)
+        // Producer emits 1000 values at 1ms intervals (~1 second), consumer processes at ~10ms per value
+        await().pollDelay(200, MILLISECONDS).atMost(Duration.ofSeconds(2))
+                .until(() -> received.get() > 10);
+
+        // Allow additional time for buffered values to process
+        await().pollDelay(100, MILLISECONDS).during(Duration.ofMillis(100)).atMost(500, MILLISECONDS);
 
         val receivedCount = received.get();
         assertThat(receivedCount)
