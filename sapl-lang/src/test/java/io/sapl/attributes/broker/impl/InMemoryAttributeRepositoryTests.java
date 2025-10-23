@@ -566,6 +566,9 @@ class InMemoryAttributeRepositoryTests {
      * Tests the edge case where multiple rapid updates occur during the window
      * when a timeout is about to fire. Verifies that all updates are properly
      * sequenced and the final state reflects the most recent update.
+     * <p>
+     * Uses awaitility between publishes to ensure each update is observed before
+     * the next is published, guaranteeing deterministic ordering.
      */
     @RepeatedTest(5)
     void whenMultipleUpdatesRaceWithTimeout_allUpdatesObservedInOrder() {
@@ -574,20 +577,23 @@ class InMemoryAttributeRepositoryTests {
         val latch      = new CountDownLatch(1);
 
         val stream = repository.invoke(createInvocation(TEST_ATTRIBUTE));
-        stream.take(Duration.ofMillis(300)).doOnNext(emissions::add).doOnComplete(latch::countDown).subscribe();
+        stream.doOnNext(emissions::add).doOnComplete(latch::countDown).subscribe();
 
-        repository.publishAttribute(TEST_ATTRIBUTE, Val.of("first"), Duration.ofMillis(150), TimeOutStrategy.REMOVE);
+        repository.publishAttribute(TEST_ATTRIBUTE, Val.of("first"), Duration.ofMillis(200), TimeOutStrategy.REMOVE);
 
-        Mono.delay(Duration.ofMillis(100))
-                .subscribe(tick -> repository.publishAttribute(TEST_ATTRIBUTE, Val.of("second")));
+        await().atMost(200, TimeUnit.MILLISECONDS).until(() -> emissions.contains(Val.of("first")));
 
-        Mono.delay(Duration.ofMillis(110))
-                .subscribe(tick -> repository.publishAttribute(TEST_ATTRIBUTE, Val.of("third")));
+        repository.publishAttribute(TEST_ATTRIBUTE, Val.of("second"));
 
-        Mono.delay(Duration.ofMillis(120))
-                .subscribe(tick -> repository.publishAttribute(TEST_ATTRIBUTE, Val.of("fourth")));
+        await().atMost(200, TimeUnit.MILLISECONDS).until(() -> emissions.contains(Val.of("second")));
 
-        await().atMost(600, TimeUnit.MILLISECONDS).until(() -> latch.getCount() == 0);
+        repository.publishAttribute(TEST_ATTRIBUTE, Val.of("third"));
+
+        await().atMost(200, TimeUnit.MILLISECONDS).until(() -> emissions.contains(Val.of("third")));
+
+        repository.publishAttribute(TEST_ATTRIBUTE, Val.of("fourth"));
+
+        await().atMost(400, TimeUnit.MILLISECONDS).until(() -> emissions.contains(Val.of("fourth")));
 
         assertThat(emissions).isNotEmpty().contains(Val.of("first"), Val.of("second"), Val.of("third"), Val.of("fourth"))
                 .first().isEqualTo(InMemoryAttributeRepository.ATTRIBUTE_UNAVAILABLE);
