@@ -75,7 +75,7 @@ class FilterFunctionLibraryTests {
     @ParameterizedTest(name = "{index}: {6}")
     @MethodSource("invalidBlackenParameters")
     void blackenInvalidParameters(Val text, Val discloseLeft, Val discloseRight, Val replacement, Val length,
-                                  Class<? extends Exception> expectedException, String description) {
+            Class<? extends Exception> expectedException, String description) {
         if (length != null) {
             assertThrows(expectedException,
                     () -> FilterFunctionLibrary.blacken(text, discloseLeft, discloseRight, replacement, length));
@@ -94,33 +94,29 @@ class FilterFunctionLibraryTests {
     }
 
     static Stream<Arguments> invalidBlackenParameters() {
-        return Stream.of(
-                Arguments.of(null, null, null, null, null,
-                        IllegalArgumentException.class, "no arguments"),
-                Arguments.of(Val.of(9999), null, null, null, null,
-                        IllegalArgumentException.class, "non-string text parameter"),
+        return Stream.of(Arguments.of(null, null, null, null, null, IllegalArgumentException.class, "no arguments"),
+                Arguments.of(Val.of(9999), null, null, null, null, IllegalArgumentException.class,
+                        "non-string text parameter"),
                 Arguments.of(Val.of("Cthulhu"), Val.of(2), Val.of(2), Val.of(13), Val.of(2),
                         IllegalArgumentException.class, "non-string replacement parameter"),
                 Arguments.of(Val.of("Yog-Sothoth"), Val.of(2), Val.of(2), Val.of("*"), Val.of(-1),
                         IllegalArgumentException.class, "negative length parameter"),
                 Arguments.of(Val.of("Azathoth"), Val.of(2), Val.of(2), Val.of("*"), Val.of("eldritch"),
                         IllegalArgumentException.class, "non-numeric length parameter"),
-                Arguments.of(Val.of("Nyarlathotep"), Val.of(2), Val.of(-2), null, null,
-                        IllegalArgumentException.class, "negative discloseRight parameter"),
+                Arguments.of(Val.of("Nyarlathotep"), Val.of(2), Val.of(-2), null, null, IllegalArgumentException.class,
+                        "negative discloseRight parameter"),
                 Arguments.of(Val.of("Shub-Niggurath"), Val.of(-2), Val.of(2), null, null,
                         IllegalArgumentException.class, "negative discloseLeft parameter"),
-                Arguments.of(Val.of("Hastur"), Val.of(-2), Val.NULL, null, null,
-                        IllegalArgumentException.class, "discloseLeft negative, discloseRight null"),
-                Arguments.of(Val.of("Dagon"), Val.NULL, Val.of(2), null, null,
-                        IllegalArgumentException.class, "discloseLeft null, discloseRight valid"));
+                Arguments.of(Val.of("Hastur"), Val.of(-2), Val.NULL, null, null, IllegalArgumentException.class,
+                        "discloseLeft negative, discloseRight null"),
+                Arguments.of(Val.of("Dagon"), Val.NULL, Val.of(2), null, null, IllegalArgumentException.class,
+                        "discloseLeft null, discloseRight valid"));
     }
 
     @Test
     void blackenTooManyArguments() {
-        val params = new Val[] { Val.of("Necronomicon"), Val.of(2), Val.of(2),
-                Val.of("*"), Val.of(2), Val.of(2) };
-        assertThrows(IllegalArgumentException.class,
-                () -> FilterFunctionLibrary.blacken(params));
+        val params = new Val[] { Val.of("Necronomicon"), Val.of(2), Val.of(2), Val.of("*"), Val.of(2), Val.of(2) };
+        assertThrows(IllegalArgumentException.class, () -> FilterFunctionLibrary.blacken(params));
     }
 
     @ParameterizedTest(name = "Redacting {0}: discloseLeft={1}, discloseRight={2}, replacement={3}")
@@ -137,7 +133,7 @@ class FilterFunctionLibraryTests {
             Kadath            | 2 | 1 | ◼   | Ka◼◼◼h
             """)
     void blackenEldritchLocationsAndEntities(String text, int discloseLeft, int discloseRight, String replacement,
-                                             String expected) {
+            String expected) {
         val result = FilterFunctionLibrary.blacken(Val.of(text), Val.of(discloseLeft), Val.of(discloseRight),
                 Val.of(replacement));
 
@@ -153,7 +149,7 @@ class FilterFunctionLibraryTests {
             Azathoth     | 4 | 0 | 2  | Azat**
             """)
     void blackenWithLengthOverride(String text, int discloseLeft, int discloseRight, int blackenLength,
-                                   String expected) {
+            String expected) {
         val result = FilterFunctionLibrary.blacken(Val.of(text), Val.of(discloseLeft), Val.of(discloseRight),
                 Val.of("*"), Val.of(blackenLength));
 
@@ -167,7 +163,7 @@ class FilterFunctionLibraryTests {
             Yog-Sothoth    | 0 | 0 | # | ########### | fully blackened name
             """)
     void blackenDisclosureVariations(String text, int discloseLeft, int discloseRight, String replacement,
-                                     String expected, String description) {
+            String expected, String description) {
         val result = FilterFunctionLibrary.blacken(Val.of(text), Val.of(discloseLeft), Val.of(discloseRight),
                 Val.of(replacement));
 
@@ -205,18 +201,16 @@ class FilterFunctionLibraryTests {
         assertThat(result, is(val("R")));
     }
 
-
     @ParameterizedTest(name = "{5}")
     @MethodSource("specialReplacementScenarios")
-    void blackenSpecialReplacements(String text, int left, int right, String replacement,
-                                    Integer overrideLength, String expected, String description) {
+    void blackenSpecialReplacements(String text, int left, int right, String replacement, Integer overrideLength,
+            String expected, String description) {
         Val result;
         if (overrideLength != null) {
-            result = FilterFunctionLibrary.blacken(Val.of(text), Val.of(left), Val.of(right),
-                    Val.of(replacement), Val.of(overrideLength));
+            result = FilterFunctionLibrary.blacken(Val.of(text), Val.of(left), Val.of(right), Val.of(replacement),
+                    Val.of(overrideLength));
         } else {
-            result = FilterFunctionLibrary.blacken(Val.of(text), Val.of(left), Val.of(right),
-                    Val.of(replacement));
+            result = FilterFunctionLibrary.blacken(Val.of(text), Val.of(left), Val.of(right), Val.of(replacement));
         }
         assertThat(result, is(val(expected)));
     }
@@ -224,39 +218,30 @@ class FilterFunctionLibraryTests {
     static Stream<Arguments> specialReplacementScenarios() {
         return Stream.of(
                 Arguments.of("Nyarlathotep", 4, 4, "[REDACTED]", null,
-                        "Nyar[REDACTED][REDACTED][REDACTED][REDACTED]otep",
-                        "multi-character replacement"),
-                Arguments.of("古のもの", 1, 1, "█", null,
-                        "古██の",
-                        "unicode characters"),
-                Arguments.of("Nyarlathotep", 4, 4, "", 0,
-                        "Nyarotep",
-                        "empty replacement with zero length")
-        );
+                        "Nyar[REDACTED][REDACTED][REDACTED][REDACTED]otep", "multi-character replacement"),
+                Arguments.of("古のもの", 1, 1, "█", null, "古██の", "unicode characters"),
+                Arguments.of("Nyarlathotep", 4, 4, "", 0, "Nyarotep", "empty replacement with zero length"));
     }
 
     @ParameterizedTest(name = "{3}")
     @MethodSource("basicFunctionTestCases")
     void basicFunctionTests(Val input, Val replacement, Val expected, String description) {
         Val result = switch (description) {
-            case "remove returns undefined" -> FilterFunctionLibrary.remove(input);
-            case "replace returns replacement value" -> FilterFunctionLibrary.replace(input, replacement);
-            case "replace preserves errors" -> FilterFunctionLibrary.replace(input, replacement);
-            default -> throw new IllegalStateException("Unexpected test case: " + description);
+        case "remove returns undefined"          -> FilterFunctionLibrary.remove(input);
+        case "replace returns replacement value" -> FilterFunctionLibrary.replace(input, replacement);
+        case "replace preserves errors"          -> FilterFunctionLibrary.replace(input, replacement);
+        default                                  ->
+            throw new IllegalStateException("Unexpected test case: " + description);
         };
 
         assertThat(result, is(expected));
     }
 
     static Stream<Arguments> basicFunctionTestCases() {
-        return Stream.of(
-                Arguments.of(Val.of("Elder Sign"), null, Val.UNDEFINED,
-                        "remove returns undefined"),
-                Arguments.of(Val.NULL, Val.of(13), Val.of(13),
-                        "replace returns replacement value"),
+        return Stream.of(Arguments.of(Val.of("Elder Sign"), null, Val.UNDEFINED, "remove returns undefined"),
+                Arguments.of(Val.NULL, Val.of(13), Val.of(13), "replace returns replacement value"),
                 Arguments.of(Val.error("The ritual failed"), Val.of("Safe"), Val.error("The ritual failed"),
-                        "replace preserves errors")
-        );
+                        "replace preserves errors"));
     }
 
     @ParameterizedTest(name = "blackenUtil: {0} with left={1}, right={2}, length={3}")
@@ -275,7 +260,7 @@ class FilterFunctionLibraryTests {
     @Test
     void blackenVeryLongEldritchIncantation() {
         val longIncantation = "Ph'nglui mglw'nafh Cthulhu R'lyeh wgah'nagl fhtagn ".repeat(100);
-        val result = FilterFunctionLibrary.blacken(Val.of(longIncantation), Val.of(10), Val.of(10));
+        val result          = FilterFunctionLibrary.blacken(Val.of(longIncantation), Val.of(10), Val.of(10));
 
         assertThat(result.get().asText().length(), is(longIncantation.length()));
         assertThat(result.get().asText().substring(0, 10), is(longIncantation.substring(0, 10)));
