@@ -25,6 +25,7 @@ import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.RepeatedTest;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.EnumSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.reactivestreams.Subscription;
@@ -418,21 +419,185 @@ class InMemoryAttributeRepositoryTests {
                 .untilAsserted(() -> assertThat(receivedValues.get()).isGreaterThanOrEqualTo(2));
     }
 
+    /**
+     * Verifies that when an attribute update and timeout occur nearly simultaneously,
+     * the emission sequence remains logically consistent. The race between timeout
+     * (at 100ms) and update (at 95ms) may result in either order being observed,
+     * but the state machine must never emit contradictory values.
+     * <p>
+     * Valid sequences:
+     * <ul>
+     * <li>[UNAVAILABLE, "first", "second"] - update wins race before timeout fires</li>
+     * <li>[UNAVAILABLE, "first", UNAVAILABLE, "second"] - timeout fires, then update arrives</li>
+     * </ul>
+     * <p>
+     * Invalid sequences that would indicate a bug:
+     * <ul>
+     * <li>Missing "first" entirely (update should not skip emissions)</li>
+     * <li>"second" appearing before "first" (causality violation)</li>
+     * <li>Stream ending without resolution (incomplete state transition)</li>
+     * </ul>
+     */
     @RepeatedTest(10)
-    void whenTimeoutAndUpdateRace_stateRemainsConsistent() {
+    void whenTimeoutAndUpdateRace_emissionSequenceIsValid() {
         val repository = new InMemoryAttributeRepository(Clock.systemUTC());
-        val stream     = repository.invoke(createInvocation(TEST_ATTRIBUTE));
+        val emissions  = new ArrayList<Val>();
+        val latch      = new CountDownLatch(1);
 
-        repository.publishAttribute(TEST_ATTRIBUTE, Val.of("first"), Duration.ofMillis(300), TimeOutStrategy.REMOVE);
+        val stream = repository.invoke(createInvocation(TEST_ATTRIBUTE));
+        stream.take(Duration.ofMillis(250)).doOnNext(emissions::add).doOnComplete(latch::countDown).subscribe();
 
-        Mono.delay(Duration.ofMillis(150))
+        repository.publishAttribute(TEST_ATTRIBUTE, Val.of("first"), Duration.ofMillis(100), TimeOutStrategy.REMOVE);
+
+        Mono.delay(Duration.ofMillis(95))
                 .subscribe(tick -> repository.publishAttribute(TEST_ATTRIBUTE, Val.of("second")));
 
-        await().atMost(500, TimeUnit.MILLISECONDS).untilAsserted(() -> {});
+        await().atMost(500, TimeUnit.MILLISECONDS).until(() -> latch.getCount() == 0);
 
-        StepVerifier.create(stream.take(1)).expectNextMatches(
-                val -> val.equals(Val.of("second")) || val.equals(InMemoryAttributeRepository.ATTRIBUTE_UNAVAILABLE))
-                .expectComplete().verify(TEST_TIMEOUT);
+        assertThat(emissions).isNotEmpty().hasSizeGreaterThanOrEqualTo(2).first()
+                .isEqualTo(InMemoryAttributeRepository.ATTRIBUTE_UNAVAILABLE);
+
+        assertThat(emissions.get(1)).isEqualTo(Val.of("first"));
+
+        if (emissions.size() >= 3) {
+            assertThat(emissions.get(2)).satisfiesAnyOf(value -> assertThat(value).isEqualTo(Val.of("second")),
+                    value -> assertThat(value).isEqualTo(InMemoryAttributeRepository.ATTRIBUTE_UNAVAILABLE));
+        }
+
+        assertThat(emissions).last().isEqualTo(Val.of("second"));
+    }
+
+    /**
+     * Systematically tests various race scenarios between attribute updates and timeouts.
+     * Each scenario is designed to test a specific timing relationship:
+     * <ul>
+     * <li>Update BEFORE timeout (early update should prevent timeout)</li>
+     * <li>Update AFTER timeout (late update should occur after removal)</li>
+     * <li>Update NEAR timeout (tight race, both outcomes valid)</li>
+     * </ul>
+     * <p>
+     * Tests both REMOVE and BECOME_UNDEFINED strategies to ensure correctness
+     * across different timeout behaviors.
+     */
+    @ParameterizedTest
+    @CsvSource({ "50, 150, REMOVE", "200, 150, REMOVE", "140, 150, REMOVE", "50, 150, BECOME_UNDEFINED",
+            "200, 150, BECOME_UNDEFINED", "140, 150, BECOME_UNDEFINED" })
+    void whenUpdateAndTimeoutRace_emissionSequenceMatchesTimingAndStrategy(long updateDelayMillis, long timeoutMillis,
+                                                                           TimeOutStrategy strategy) {
+        val repository = new InMemoryAttributeRepository(Clock.systemUTC());
+        val emissions  = new ArrayList<Val>();
+        val latch      = new CountDownLatch(1);
+
+        val stream = repository.invoke(createInvocation(TEST_ATTRIBUTE));
+        stream.take(Duration.ofMillis(Math.max(updateDelayMillis, timeoutMillis) + 150)).doOnNext(emissions::add)
+                .doOnComplete(latch::countDown).subscribe();
+
+        repository.publishAttribute(TEST_ATTRIBUTE, Val.of("first"), Duration.ofMillis(timeoutMillis), strategy);
+
+        Mono.delay(Duration.ofMillis(updateDelayMillis))
+                .subscribe(tick -> repository.publishAttribute(TEST_ATTRIBUTE, Val.of("second")));
+
+        await().atMost(1, TimeUnit.SECONDS).until(() -> latch.getCount() == 0);
+
+        assertThat(emissions).isNotEmpty().hasSizeGreaterThanOrEqualTo(2).first()
+                .isEqualTo(InMemoryAttributeRepository.ATTRIBUTE_UNAVAILABLE);
+
+        assertThat(emissions.get(1)).isEqualTo(Val.of("first"));
+
+        val updateBeforeTimeout = updateDelayMillis < timeoutMillis;
+
+        if (updateBeforeTimeout) {
+            val secondIndex = emissions.indexOf(Val.of("second"));
+            assertThat(emissions).contains(Val.of("second"));
+            assertThat(secondIndex).isGreaterThan(0);
+
+            for (int i = 1; i < secondIndex; i++) {
+                assertThat(emissions.get(i)).isEqualTo(Val.of("first"));
+            }
+        } else {
+            val expectedTimeoutValue = strategy == TimeOutStrategy.REMOVE
+                    ? InMemoryAttributeRepository.ATTRIBUTE_UNAVAILABLE
+                    : Val.UNDEFINED;
+
+            assertThat(emissions).contains(expectedTimeoutValue, Val.of("second"));
+
+            assertThat(emissions.indexOf(expectedTimeoutValue)).isLessThan(emissions.indexOf(Val.of("second")));
+        }
+
+        assertThat(emissions).last().isEqualTo(Val.of("second"));
+    }
+
+    /**
+     * Verifies that when a BECOME_UNDEFINED timeout races with an update,
+     * the transition from UNDEFINED back to a defined value is correctly observed.
+     * This tests the specific case where an attribute becomes undefined due to timeout
+     * and is then immediately updated with a new value.
+     */
+    @RepeatedTest(5)
+    void whenBecomeUndefinedTimeoutRacesWithUpdate_transitionSequenceIsValid() {
+        val repository = new InMemoryAttributeRepository(Clock.systemUTC());
+        val emissions  = new ArrayList<Val>();
+        val latch      = new CountDownLatch(1);
+
+        val stream = repository.invoke(createInvocation(TEST_ATTRIBUTE));
+        stream.take(Duration.ofMillis(250)).doOnNext(emissions::add).doOnComplete(latch::countDown).subscribe();
+
+        repository.publishAttribute(TEST_ATTRIBUTE, Val.of("initial"), Duration.ofMillis(100),
+                TimeOutStrategy.BECOME_UNDEFINED);
+
+        Mono.delay(Duration.ofMillis(95))
+                .subscribe(tick -> repository.publishAttribute(TEST_ATTRIBUTE, Val.of("updated")));
+
+        await().atMost(500, TimeUnit.MILLISECONDS).until(() -> latch.getCount() == 0);
+
+        assertThat(emissions).isNotEmpty().contains(Val.of("initial"), Val.of("updated")).first()
+                .isEqualTo(InMemoryAttributeRepository.ATTRIBUTE_UNAVAILABLE);
+
+        val initialIndex = emissions.indexOf(Val.of("initial"));
+
+        assertThat(initialIndex).isLessThan(emissions.indexOf(Val.of("updated")));
+
+        if (emissions.contains(Val.UNDEFINED)) {
+            assertThat(emissions.indexOf(Val.UNDEFINED)).isGreaterThan(initialIndex);
+        }
+    }
+
+    /**
+     * Tests the edge case where multiple rapid updates occur during the window
+     * when a timeout is about to fire. Verifies that all updates are properly
+     * sequenced and the final state reflects the most recent update.
+     */
+    @RepeatedTest(5)
+    void whenMultipleUpdatesRaceWithTimeout_allUpdatesObservedInOrder() {
+        val repository = new InMemoryAttributeRepository(Clock.systemUTC());
+        val emissions  = new ArrayList<Val>();
+        val latch      = new CountDownLatch(1);
+
+        val stream = repository.invoke(createInvocation(TEST_ATTRIBUTE));
+        stream.take(Duration.ofMillis(300)).doOnNext(emissions::add).doOnComplete(latch::countDown).subscribe();
+
+        repository.publishAttribute(TEST_ATTRIBUTE, Val.of("first"), Duration.ofMillis(150), TimeOutStrategy.REMOVE);
+
+        Mono.delay(Duration.ofMillis(100))
+                .subscribe(tick -> repository.publishAttribute(TEST_ATTRIBUTE, Val.of("second")));
+
+        Mono.delay(Duration.ofMillis(110))
+                .subscribe(tick -> repository.publishAttribute(TEST_ATTRIBUTE, Val.of("third")));
+
+        Mono.delay(Duration.ofMillis(120))
+                .subscribe(tick -> repository.publishAttribute(TEST_ATTRIBUTE, Val.of("fourth")));
+
+        await().atMost(600, TimeUnit.MILLISECONDS).until(() -> latch.getCount() == 0);
+
+        assertThat(emissions).isNotEmpty().contains(Val.of("first"), Val.of("second"), Val.of("third"), Val.of("fourth"))
+                .first().isEqualTo(InMemoryAttributeRepository.ATTRIBUTE_UNAVAILABLE);
+
+        val indices = List.of(emissions.indexOf(Val.of("first")), emissions.indexOf(Val.of("second")),
+                emissions.indexOf(Val.of("third")), emissions.indexOf(Val.of("fourth")));
+
+        assertThat(indices).isSorted().doesNotHaveDuplicates();
+
+        assertThat(emissions).last().isEqualTo(Val.of("fourth"));
     }
 
     @Test
