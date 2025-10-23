@@ -399,17 +399,13 @@ class JWTPolicyInformationPointTests {
         val nbf = Date.from(Instant.now().plusSeconds(2));
         val exp = Date.from(Instant.now().plusSeconds(4));
 
-        val claims = new JWTClaimsSet.Builder()
-                .notBeforeTime(nbf)
-                .expirationTime(exp)
-                .build();
+        val claims = new JWTClaimsSet.Builder().notBeforeTime(nbf).expirationTime(exp).build();
         val source = JWTTestUtility.buildAndSignJwt(header, claims, keyPair);
 
         StepVerifier.create(jwtPolicyInformationPoint.validity(source, variables))
                 .expectNext(Val.of(JWTPolicyInformationPoint.ValidityState.IMMATURE.toString()))
                 .expectNext(Val.of(JWTPolicyInformationPoint.ValidityState.VALID.toString()))
-                .expectNext(Val.of(JWTPolicyInformationPoint.ValidityState.EXPIRED.toString()))
-                .thenCancel()
+                .expectNext(Val.of(JWTPolicyInformationPoint.ValidityState.EXPIRED.toString())).thenCancel()
                 .verify(Duration.ofSeconds(6));
     }
 

@@ -236,9 +236,8 @@ class AttributeStreamRaceConditionTests {
         connectThread.join();
         disconnectThread.join();
 
-        await().pollDelay(10, MILLISECONDS).atMost(300, MILLISECONDS)
-                .until(() -> results.stream()
-                        .anyMatch(value -> value.isError() && value.getMessage().contains("disconnected")));
+        await().pollDelay(10, MILLISECONDS).atMost(300, MILLISECONDS).until(() -> results.stream()
+                .anyMatch(value -> value.isError() && value.getMessage().contains("disconnected")));
 
         val hasDisconnectError = results.stream()
                 .anyMatch(value -> value.isError() && value.getMessage().contains("disconnected"));
@@ -294,9 +293,8 @@ class AttributeStreamRaceConditionTests {
         });
 
         // Wait for disconnect error to appear
-        await().pollDelay(20, MILLISECONDS).atMost(300, MILLISECONDS)
-                .until(() -> results.stream()
-                        .anyMatch(value -> value.isError() && value.getMessage().contains("disconnected")));
+        await().pollDelay(20, MILLISECONDS).atMost(300, MILLISECONDS).until(() -> results.stream()
+                .anyMatch(value -> value.isError() && value.getMessage().contains("disconnected")));
 
         // Verify count has stabilized (no additional errors appear)
         await().pollDelay(50, MILLISECONDS).during(Duration.ofMillis(50)).atMost(150, MILLISECONDS);
@@ -411,28 +409,28 @@ class AttributeStreamRaceConditionTests {
                 }
 
                 switch (threadId % 4) {
-                    case 0 -> {
-                        val pip = (AttributeFinder) inv -> Flux.just(Val.of("pip-" + threadId));
-                        stream.connectToPolicyInformationPoint(pip);
+                case 0  -> {
+                    val pip = (AttributeFinder) inv -> Flux.just(Val.of("pip-" + threadId));
+                    stream.connectToPolicyInformationPoint(pip);
+                    operationCount.incrementAndGet();
+                }
+                case 1  -> {
+                    stream.disconnectFromPolicyInformationPoint();
+                    operationCount.incrementAndGet();
+                }
+                case 2  -> {
+                    val subscription = stream.getStream().subscribe();
+                    subscription.dispose();
+                    operationCount.incrementAndGet();
+                }
+                default -> { // 3+ not case 3 to satisfy sonarqube
+                    try {
+                        stream.getStream().blockFirst(Duration.ofMillis(100));
                         operationCount.incrementAndGet();
+                    } catch (Exception e) {
+                        // Expected under chaos
                     }
-                    case 1 -> {
-                        stream.disconnectFromPolicyInformationPoint();
-                        operationCount.incrementAndGet();
-                    }
-                    case 2 -> {
-                        val subscription = stream.getStream().subscribe();
-                        subscription.dispose();
-                        operationCount.incrementAndGet();
-                    }
-                    default -> { // 3+ not case 3 to satisfy sonarqube
-                        try {
-                            stream.getStream().blockFirst(Duration.ofMillis(100));
-                            operationCount.incrementAndGet();
-                        } catch (Exception e) {
-                            // Expected under chaos
-                        }
-                    }
+                }
                 }
             }));
         }
@@ -474,18 +472,17 @@ class AttributeStreamRaceConditionTests {
         val pip = (AttributeFinder) inv -> Flux.interval(Duration.ofMillis(1)).take(1000).map(Val::of);
         stream.connectToPolicyInformationPoint(pip);
 
-        // Wait for producer to emit values and consumer to process some (demonstrating backpressure)
-        // Producer emits 1000 values at 1ms intervals (~1 second), consumer processes at ~10ms per value
-        await().pollDelay(200, MILLISECONDS).atMost(Duration.ofSeconds(2))
-                .until(() -> received.get() > 10);
+        // Wait for producer to emit values and consumer to process some (demonstrating
+        // backpressure)
+        // Producer emits 1000 values at 1ms intervals (~1 second), consumer processes
+        // at ~10ms per value
+        await().pollDelay(200, MILLISECONDS).atMost(Duration.ofSeconds(2)).until(() -> received.get() > 10);
 
         // Allow additional time for buffered values to process
         await().pollDelay(100, MILLISECONDS).during(Duration.ofMillis(100)).atMost(500, MILLISECONDS);
 
         val receivedCount = received.get();
-        assertThat(receivedCount)
-                .as("Should receive some values but drop some under backpressure")
-                .isBetween(1, 999);
+        assertThat(receivedCount).as("Should receive some values but drop some under backpressure").isBetween(1, 999);
     }
 
     /**

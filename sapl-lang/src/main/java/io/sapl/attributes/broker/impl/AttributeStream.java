@@ -143,7 +143,8 @@ public class AttributeStream {
      * <li>doFinally: fires after cancellation, checks if PIP should be disposed
      * (not hot-swapped)</li>
      * </ul>
-     *  @param gracePeriod duration to keep stream alive after last
+     *
+     * @param gracePeriod duration to keep stream alive after last
      * subscriber cancels
      */
     private Flux<Val> createMulticastStream(Duration gracePeriod) {

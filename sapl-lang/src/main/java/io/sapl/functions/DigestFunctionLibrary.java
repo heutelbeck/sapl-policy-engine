@@ -54,8 +54,6 @@ public class DigestFunctionLibrary {
             }
             """;
 
-    /* SHA-2 Family (Recommended) */
-
     @Function(docs = """
             ```sha256(TEXT data)```: Computes the SHA-256 hash of the input data.
 
@@ -115,8 +113,6 @@ public class DigestFunctionLibrary {
     public static Val sha512(@Text Val data) {
         return computeDigest(data.getText(), "SHA-512");
     }
-
-    /* SHA-3 Family (Modern Alternative) */
 
     @Function(name = "sha3_256", docs = """
             ```sha3_256(TEXT data)```: Computes the SHA3-256 hash of the input data.
@@ -178,12 +174,10 @@ public class DigestFunctionLibrary {
         return computeDigest(data.getText(), "SHA3-512");
     }
 
-    /* Legacy Algorithms (Use Only for Compatibility) */
-
     @Function(docs = """
             ```md5(TEXT data)```: Computes the MD5 hash of the input data.
 
-            **⚠ WARNING: MD5 is cryptographically broken and should not be used for security
+            **WARNING: MD5 is cryptographically broken and should not be used for security
             purposes.** It is vulnerable to collision attacks. Only use MD5 for compatibility
             with legacy systems or non-security applications like checksums.
 
@@ -204,7 +198,7 @@ public class DigestFunctionLibrary {
     @Function(docs = """
             ```sha1(TEXT data)```: Computes the SHA-1 hash of the input data.
 
-            **⚠ WARNING: SHA-1 is cryptographically weak and should not be used for security
+            **WARNING: SHA-1 is cryptographically weak and should not be used for security
             purposes.** It is vulnerable to collision attacks. Only use SHA-1 for compatibility
             with legacy systems or when required by existing protocols.
 
@@ -236,9 +230,7 @@ public class DigestFunctionLibrary {
             val hexHash       = HexFormat.of().formatHex(hash);
             return Val.of(hexHash);
         } catch (NoSuchAlgorithmException exception) {
-            return Val.error("Digest algorithm not available: " + algorithm);
-        } catch (Exception exception) {
-            return Val.error("Failed to compute " + algorithm + " hash: " + exception.getMessage());
+            return Val.error("Digest algorithm not available: " + algorithm + ".");
         }
     }
 }

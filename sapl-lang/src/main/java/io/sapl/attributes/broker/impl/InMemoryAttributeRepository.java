@@ -123,7 +123,10 @@ public class InMemoryAttributeRepository implements AttributeRepository {
      * @param bufferSize the backpressure buffer size for each attribute stream
      * @param maxRepositorySize the maximum number of attributes that can be stored
      */
-    public InMemoryAttributeRepository(@NonNull Clock clock,@NonNull AttributeStorage storage, int bufferSize, int maxRepositorySize) {
+    public InMemoryAttributeRepository(@NonNull Clock clock,
+            @NonNull AttributeStorage storage,
+            int bufferSize,
+            int maxRepositorySize) {
         if (bufferSize <= 0) {
             throw new IllegalArgumentException("Buffer size must be positive");
         }
