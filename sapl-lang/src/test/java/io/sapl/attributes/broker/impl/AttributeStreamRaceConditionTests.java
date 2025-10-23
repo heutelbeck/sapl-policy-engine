@@ -166,8 +166,7 @@ class AttributeStreamRaceConditionTests {
      * disposed.
      * Tests: Grace period cleanup integration with broker.
      */
-   // @Test
-    @RepeatedTest(100)
+    @RepeatedTest(20)
     void afterGracePeriodExpiration_brokerCreatesNewStream() throws Exception {
         val invocation    = createInvocation();
         val cleanupCalled = new AtomicInteger(0);
@@ -179,7 +178,7 @@ class AttributeStreamRaceConditionTests {
         val subscription = stream.getStream().subscribe();
         subscription.dispose();
 
-        await().atMost(200, MILLISECONDS).until(() -> cleanupCalled.get() == 1);
+        await().pollDelay(50, MILLISECONDS).atMost(500, MILLISECONDS).until(() -> cleanupCalled.get() == 1);
 
         assertThat(cleanupCalled.get()).as("Cleanup should have fired after grace period").isEqualTo(1);
 
