@@ -19,6 +19,7 @@ package io.sapl.prp.resources;
 
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.attributes.broker.impl.CachingAttributeStreamBroker;
+import io.sapl.attributes.broker.impl.InMemoryAttributeRepository;
 import io.sapl.interpreter.DefaultSAPLInterpreter;
 import io.sapl.interpreter.context.AuthorizationContext;
 import io.sapl.interpreter.functions.AnnotationFunctionContext;
@@ -33,6 +34,8 @@ import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Flux;
 import reactor.test.StepVerifier;
 import reactor.util.context.Context;
+
+import java.time.Clock;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
@@ -83,7 +86,8 @@ class ResourcesPRPTests {
     }
 
     private static Context setUpAuthorizationContext(Context ctx, AuthorizationSubscription authzSubscription) {
-        ctx = AuthorizationContext.setAttributeStreamBroker(ctx, new CachingAttributeStreamBroker());
+        ctx = AuthorizationContext.setAttributeStreamBroker(ctx,
+                new CachingAttributeStreamBroker(new InMemoryAttributeRepository(Clock.systemUTC())));
         ctx = AuthorizationContext.setFunctionContext(ctx, new AnnotationFunctionContext());
         ctx = AuthorizationContext.setSubscriptionVariables(ctx, authzSubscription);
         return ctx;

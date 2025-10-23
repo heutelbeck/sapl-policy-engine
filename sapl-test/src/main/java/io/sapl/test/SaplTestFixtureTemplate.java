@@ -21,12 +21,14 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.sapl.api.interpreter.Val;
 import io.sapl.attributes.broker.impl.AnnotationPolicyInformationPointLoader;
 import io.sapl.attributes.broker.impl.CachingAttributeStreamBroker;
+import io.sapl.attributes.broker.impl.InMemoryAttributeRepository;
 import io.sapl.attributes.broker.impl.InMemoryPolicyInformationPointDocumentationProvider;
 import io.sapl.attributes.documentation.api.PolicyInformationPointDocumentationProvider;
 import io.sapl.interpreter.InitializationException;
 import io.sapl.interpreter.functions.AnnotationFunctionContext;
 import io.sapl.validation.ValidatorFactory;
 
+import java.time.Clock;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -35,7 +37,8 @@ public abstract class SaplTestFixtureTemplate implements SaplTestFixture {
     protected final Map<String, Val> variables = HashMap.newHashMap(1);
 
     protected final AnnotationFunctionContext                   functionCtx           = new AnnotationFunctionContext();
-    protected final CachingAttributeStreamBroker                attributeStreamBroker = new CachingAttributeStreamBroker();
+    protected final CachingAttributeStreamBroker                attributeStreamBroker = new CachingAttributeStreamBroker(
+            new InMemoryAttributeRepository(Clock.systemUTC()));
     protected final PolicyInformationPointDocumentationProvider docsProvider          = new InMemoryPolicyInformationPointDocumentationProvider();
     protected final AnnotationPolicyInformationPointLoader      loader                = new AnnotationPolicyInformationPointLoader(
             attributeStreamBroker, docsProvider, new ValidatorFactory(new ObjectMapper()));

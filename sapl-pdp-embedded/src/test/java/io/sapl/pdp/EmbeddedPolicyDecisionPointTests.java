@@ -22,6 +22,7 @@ import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import io.sapl.api.pdp.*;
 import io.sapl.attributes.broker.api.AttributeStreamBroker;
 import io.sapl.attributes.broker.impl.CachingAttributeStreamBroker;
+import io.sapl.attributes.broker.impl.InMemoryAttributeRepository;
 import io.sapl.grammar.sapl.CombiningAlgorithm;
 import io.sapl.interpreter.combinators.PolicyDocumentCombiningAlgorithm;
 import io.sapl.interpreter.functions.AnnotationFunctionContext;
@@ -40,6 +41,7 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
+import java.time.Clock;
 import java.util.List;
 import java.util.Map;
 import java.util.function.UnaryOperator;
@@ -109,7 +111,7 @@ class EmbeddedPolicyDecisionPointTests {
         final var prpSource = mock(PolicyRetrievalPointSource.class);
 
         final var source   = new FileSystemVariablesAndCombinatorSource("src/test/resources/policies");
-        final var broker   = new CachingAttributeStreamBroker();
+        final var broker   = new CachingAttributeStreamBroker(new InMemoryAttributeRepository(Clock.systemUTC()));
         final var funcCtx  = new AnnotationFunctionContext();
         final var provider = new FixedFunctionsAndAttributesPDPConfigurationProvider(broker, funcCtx, source, List.of(),
                 List.of(), prpSource);

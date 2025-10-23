@@ -678,7 +678,7 @@ public class BitwiseFunctionLibrary {
     private static Val validatePosition(Val position, String context) {
         val positionValue = position.get().longValue();
         if (positionValue < 0 || positionValue >= 64) {
-            return Val.error(context + " position must be between 0 and 63");
+            return Val.error(context + " position must be between 0 and 63.");
         }
         return null;
     }

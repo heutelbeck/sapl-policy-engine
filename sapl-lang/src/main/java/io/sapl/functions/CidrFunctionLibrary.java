@@ -258,7 +258,8 @@ public class CidrFunctionLibrary {
         }
 
         val result = Val.JSON.arrayNode();
-        prefixBlock.iterator().forEachRemaining(addr -> result.add(addr.withoutPrefixLength().toCanonicalString()));
+        prefixBlock.iterator()
+                .forEachRemaining(ipAddress -> result.add(ipAddress.withoutPrefixLength().toCanonicalString()));
 
         return Val.of(result);
     }
@@ -947,6 +948,11 @@ public class CidrFunctionLibrary {
 
     /**
      * Merges address list into minimal prefix blocks.
+     * <p>
+     * Algorithm: Convert to prefix blocks, remove contained addresses, sort by
+     * address,
+     * merge adjacent or overlapping ranges, then convert merged ranges to minimal
+     * prefix blocks.
      *
      * @param addresses list of addresses (same family)
      * @return list of merged prefix blocks

@@ -25,6 +25,7 @@ import io.sapl.api.pip.Attribute;
 import io.sapl.api.pip.PolicyInformationPoint;
 import io.sapl.attributes.broker.impl.AnnotationPolicyInformationPointLoader;
 import io.sapl.attributes.broker.impl.CachingAttributeStreamBroker;
+import io.sapl.attributes.broker.impl.InMemoryAttributeRepository;
 import io.sapl.attributes.broker.impl.InMemoryPolicyInformationPointDocumentationProvider;
 import io.sapl.interpreter.DefaultSAPLInterpreter;
 import io.sapl.interpreter.SAPLInterpreter;
@@ -45,6 +46,7 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
+import java.time.Clock;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -98,7 +100,8 @@ class ReportingDecisionInterceptorTests {
         public Flux<PDPConfiguration> pdpConfiguration() {
             final var dInterceptor          = new ReportingDecisionInterceptor(new ObjectMapper(), false, true, true,
                     true);
-            final var attributeStreamBroker = new CachingAttributeStreamBroker();
+            final var attributeStreamBroker = new CachingAttributeStreamBroker(
+                    new InMemoryAttributeRepository(Clock.systemUTC()));
             final var docsProvider          = new InMemoryPolicyInformationPointDocumentationProvider();
             final var loader                = new AnnotationPolicyInformationPointLoader(attributeStreamBroker,
                     docsProvider, new ValidatorFactory(new ObjectMapper()));

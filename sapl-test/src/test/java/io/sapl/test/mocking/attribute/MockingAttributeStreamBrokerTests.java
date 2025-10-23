@@ -21,12 +21,14 @@ import io.sapl.api.interpreter.Val;
 import io.sapl.attributes.broker.api.AttributeFinderInvocation;
 import io.sapl.attributes.broker.api.AttributeStreamBroker;
 import io.sapl.attributes.broker.impl.CachingAttributeStreamBroker;
+import io.sapl.attributes.broker.impl.InMemoryAttributeRepository;
 import io.sapl.test.SaplTestException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import reactor.test.StepVerifier;
 
+import java.time.Clock;
 import java.time.Duration;
 import java.util.HashMap;
 import java.util.List;
@@ -224,7 +226,7 @@ class MockingAttributeStreamBrokerTests {
 
     @Test
     void test_mockEmit_UnmockedAttribute() {
-        final var anUnmockedCtx = new CachingAttributeStreamBroker();
+        final var anUnmockedCtx = new CachingAttributeStreamBroker(new InMemoryAttributeRepository(Clock.systemUTC()));
         final var ctx           = new MockingAttributeStreamBroker(anUnmockedCtx);
         final var valOne        = Val.of(1);
         assertThatExceptionOfType(SaplTestException.class).isThrownBy(() -> ctx.mockEmit("foo.bar", valOne));

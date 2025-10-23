@@ -23,6 +23,7 @@ package io.sapl.grammar.ui;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.sapl.attributes.broker.impl.AnnotationPolicyInformationPointLoader;
 import io.sapl.attributes.broker.impl.CachingAttributeStreamBroker;
+import io.sapl.attributes.broker.impl.InMemoryAttributeRepository;
 import io.sapl.attributes.broker.impl.InMemoryPolicyInformationPointDocumentationProvider;
 import io.sapl.attributes.pips.time.TimePolicyInformationPoint;
 import io.sapl.functions.DefaultLibraries;
@@ -68,7 +69,8 @@ public class SAPLUiModule extends AbstractSAPLUiModule {
     }
 
     public PDPConfigurationProvider bindPDPConfigurationProvider() throws InitializationException {
-        final var attributeStreamBroker = new CachingAttributeStreamBroker();
+        final var attributeStreamBroker = new CachingAttributeStreamBroker(
+                new InMemoryAttributeRepository(Clock.systemUTC()));
         final var docsProvider          = new InMemoryPolicyInformationPointDocumentationProvider();
         final var loader                = new AnnotationPolicyInformationPointLoader(attributeStreamBroker,
                 docsProvider, new ValidatorFactory(new ObjectMapper()));

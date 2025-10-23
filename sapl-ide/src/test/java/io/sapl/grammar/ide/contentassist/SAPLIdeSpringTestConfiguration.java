@@ -29,6 +29,7 @@ import io.sapl.api.pip.EnvironmentAttribute;
 import io.sapl.api.pip.PolicyInformationPoint;
 import io.sapl.attributes.broker.impl.AnnotationPolicyInformationPointLoader;
 import io.sapl.attributes.broker.impl.CachingAttributeStreamBroker;
+import io.sapl.attributes.broker.impl.InMemoryAttributeRepository;
 import io.sapl.attributes.broker.impl.InMemoryPolicyInformationPointDocumentationProvider;
 import io.sapl.attributes.documentation.api.PolicyInformationPointDocumentationProvider;
 import io.sapl.interpreter.InitializationException;
@@ -45,6 +46,7 @@ import org.springframework.context.annotation.Configuration;
 import reactor.core.publisher.Flux;
 
 import java.io.IOException;
+import java.time.Clock;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -67,7 +69,8 @@ public class SAPLIdeSpringTestConfiguration {
             throws IOException, InitializationException {
         final var mapper                = new ObjectMapper();
         final var validatorFactory      = new ValidatorFactory(mapper);
-        final var attributeStreamBroker = new CachingAttributeStreamBroker();
+        final var attributeRepository   = new InMemoryAttributeRepository(Clock.systemUTC());
+        final var attributeStreamBroker = new CachingAttributeStreamBroker(attributeRepository);
         final var pipLoader             = new AnnotationPolicyInformationPointLoader(attributeStreamBroker,
                 docsProvider, validatorFactory);
 

@@ -21,9 +21,11 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.sapl.api.pip.PolicyInformationPoint;
 import io.sapl.api.pip.PolicyInformationPointSupplier;
 import io.sapl.api.pip.StaticPolicyInformationPointSupplier;
+import io.sapl.attributes.broker.api.AttributeRepository;
 import io.sapl.attributes.broker.api.AttributeStreamBroker;
 import io.sapl.attributes.broker.impl.AnnotationPolicyInformationPointLoader;
 import io.sapl.attributes.broker.impl.CachingAttributeStreamBroker;
+import io.sapl.attributes.broker.impl.InMemoryAttributeRepository;
 import io.sapl.attributes.broker.impl.InMemoryPolicyInformationPointDocumentationProvider;
 import io.sapl.attributes.documentation.api.PolicyInformationPointDocumentationProvider;
 import io.sapl.interpreter.InitializationException;
@@ -38,6 +40,7 @@ import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Role;
 
+import java.time.Clock;
 import java.util.Collection;
 
 @Slf4j
@@ -54,8 +57,22 @@ public class AttributeContextAutoConfiguration {
     @Bean
     @ConditionalOnMissingBean
     @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
-    AttributeStreamBroker attributestreamBroker() {
-        return new CachingAttributeStreamBroker();
+    Clock clock() {
+        return Clock.systemUTC();
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
+    InMemoryAttributeRepository inMemoryAttributeRepository(Clock clock) {
+        return new InMemoryAttributeRepository(clock);
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
+    AttributeStreamBroker attributestreamBroker(AttributeRepository attributeRepository) {
+        return new CachingAttributeStreamBroker(attributeRepository);
     }
 
     @Bean
