@@ -87,6 +87,17 @@ public class EncodingFunctionLibrary {
             }
             """;
 
+    private static final String EMPTY_STRING = "";
+    private static final String UNDERSCORE   = "_";
+
+    private static final String ERROR_DECODED_INVALID_UTF8      = "Decoded data contains invalid UTF-8 sequences.";
+    private static final String ERROR_INPUT_EXCEEDS_MAX_LENGTH  = "Input exceeds maximum allowed length.";
+    private static final String ERROR_INVALID_BASE64            = "Invalid Base64 data.";
+    private static final String ERROR_INVALID_BASE64_STRICT     = "Invalid Base64 data: input must be properly padded and have length multiple of 4.";
+    private static final String ERROR_INVALID_BASE64_URL        = "Invalid Base64 URL data.";
+    private static final String ERROR_INVALID_BASE64_URL_STRICT = "Invalid Base64 URL data: input must be properly padded and have length multiple of 4.";
+    private static final String ERROR_INVALID_HEX               = "Invalid hexadecimal data.";
+
     /* Base64 Standard Encoding */
 
     @Function(docs = """
@@ -110,7 +121,7 @@ public class EncodingFunctionLibrary {
         if (input.length() > MAX_INPUT_LENGTH) {
             log.warn("Base64 encode attempted with input length {}, exceeds maximum {}", input.length(),
                     MAX_INPUT_LENGTH);
-            return Val.error("Input exceeds maximum allowed length.");
+            return Val.error(ERROR_INPUT_EXCEEDS_MAX_LENGTH);
         }
 
         val encoded = Base64.getEncoder().encodeToString(input.getBytes(StandardCharsets.UTF_8));
@@ -142,7 +153,7 @@ public class EncodingFunctionLibrary {
         if (input.length() > MAX_INPUT_LENGTH) {
             log.warn("Base64 decode attempted with input length {}, exceeds maximum {}", input.length(),
                     MAX_INPUT_LENGTH);
-            return Val.error("Input exceeds maximum allowed length.");
+            return Val.error(ERROR_INPUT_EXCEEDS_MAX_LENGTH);
         }
 
         try {
@@ -151,10 +162,10 @@ public class EncodingFunctionLibrary {
             return Val.of(decoded);
         } catch (IllegalArgumentException exception) {
             log.debug("Invalid Base64 data", exception);
-            return Val.error("Invalid Base64 data.");
+            return Val.error(ERROR_INVALID_BASE64);
         } catch (CharacterCodingException exception) {
             log.debug("Base64 decoded data contains invalid UTF-8", exception);
-            return Val.error("Decoded data contains invalid UTF-8 sequences.");
+            return Val.error(ERROR_DECODED_INVALID_UTF8);
         }
     }
 
@@ -183,11 +194,11 @@ public class EncodingFunctionLibrary {
         if (input.length() > MAX_INPUT_LENGTH) {
             log.warn("Base64 strict decode attempted with input length {}, exceeds maximum {}", input.length(),
                     MAX_INPUT_LENGTH);
-            return Val.error("Input exceeds maximum allowed length.");
+            return Val.error(ERROR_INPUT_EXCEEDS_MAX_LENGTH);
         }
 
         if (!isValidBase64Format(input, false)) {
-            return Val.error("Invalid Base64 data: input must be properly padded and have length multiple of 4.");
+            return Val.error(ERROR_INVALID_BASE64_STRICT);
         }
         return base64Decode(data);
     }
@@ -269,7 +280,7 @@ public class EncodingFunctionLibrary {
         if (input.length() > MAX_INPUT_LENGTH) {
             log.warn("Base64 URL encode attempted with input length {}, exceeds maximum {}", input.length(),
                     MAX_INPUT_LENGTH);
-            return Val.error("Input exceeds maximum allowed length.");
+            return Val.error(ERROR_INPUT_EXCEEDS_MAX_LENGTH);
         }
 
         val encoded = Base64.getUrlEncoder().encodeToString(input.getBytes(StandardCharsets.UTF_8));
@@ -301,7 +312,7 @@ public class EncodingFunctionLibrary {
         if (input.length() > MAX_INPUT_LENGTH) {
             log.warn("Base64 URL decode attempted with input length {}, exceeds maximum {}", input.length(),
                     MAX_INPUT_LENGTH);
-            return Val.error("Input exceeds maximum allowed length.");
+            return Val.error(ERROR_INPUT_EXCEEDS_MAX_LENGTH);
         }
 
         try {
@@ -310,10 +321,10 @@ public class EncodingFunctionLibrary {
             return Val.of(decoded);
         } catch (IllegalArgumentException exception) {
             log.debug("Invalid Base64 URL data", exception);
-            return Val.error("Invalid Base64 URL data.");
+            return Val.error(ERROR_INVALID_BASE64_URL);
         } catch (CharacterCodingException exception) {
             log.debug("Base64 URL decoded data contains invalid UTF-8", exception);
-            return Val.error("Decoded data contains invalid UTF-8 sequences.");
+            return Val.error(ERROR_DECODED_INVALID_UTF8);
         }
     }
 
@@ -342,11 +353,11 @@ public class EncodingFunctionLibrary {
         if (input.length() > MAX_INPUT_LENGTH) {
             log.warn("Base64 URL strict decode attempted with input length {}, exceeds maximum {}", input.length(),
                     MAX_INPUT_LENGTH);
-            return Val.error("Input exceeds maximum allowed length.");
+            return Val.error(ERROR_INPUT_EXCEEDS_MAX_LENGTH);
         }
 
         if (!isValidBase64Format(input, true)) {
-            return Val.error("Invalid Base64 URL data: input must be properly padded and have length multiple of 4.");
+            return Val.error(ERROR_INVALID_BASE64_URL_STRICT);
         }
         return base64UrlDecode(data);
     }
@@ -427,7 +438,7 @@ public class EncodingFunctionLibrary {
 
         if (input.length() > MAX_INPUT_LENGTH) {
             log.warn("Hex encode attempted with input length {}, exceeds maximum {}", input.length(), MAX_INPUT_LENGTH);
-            return Val.error("Input exceeds maximum allowed length.");
+            return Val.error(ERROR_INPUT_EXCEEDS_MAX_LENGTH);
         }
 
         val bytes   = input.getBytes(StandardCharsets.UTF_8);
@@ -460,20 +471,20 @@ public class EncodingFunctionLibrary {
 
         if (input.length() > MAX_INPUT_LENGTH) {
             log.warn("Hex decode attempted with input length {}, exceeds maximum {}", input.length(), MAX_INPUT_LENGTH);
-            return Val.error("Input exceeds maximum allowed length.");
+            return Val.error(ERROR_INPUT_EXCEEDS_MAX_LENGTH);
         }
 
         try {
-            val cleanedInput = input.strip().replace("_", "");
+            val cleanedInput = input.strip().replace(UNDERSCORE, EMPTY_STRING);
             val bytes        = HexFormat.of().parseHex(cleanedInput);
             val decoded      = decodeUtf8(bytes);
             return Val.of(decoded);
         } catch (IllegalArgumentException exception) {
             log.debug("Invalid hexadecimal data", exception);
-            return Val.error("Invalid hexadecimal data.");
+            return Val.error(ERROR_INVALID_HEX);
         } catch (CharacterCodingException exception) {
             log.debug("Hex decoded data contains invalid UTF-8", exception);
-            return Val.error("Decoded data contains invalid UTF-8 sequences.");
+            return Val.error(ERROR_DECODED_INVALID_UTF8);
         }
     }
 
@@ -504,7 +515,7 @@ public class EncodingFunctionLibrary {
         }
 
         try {
-            val cleanedInput = input.strip().replace("_", "");
+            val cleanedInput = input.strip().replace(UNDERSCORE, EMPTY_STRING);
             if (cleanedInput.isEmpty() || cleanedInput.length() % 2 != 0) {
                 return Val.of(false);
             }
@@ -563,39 +574,103 @@ public class EncodingFunctionLibrary {
      * otherwise
      */
     private static boolean isValidBase64Format(String input, boolean urlSafe) {
-        if (input == null || input.isEmpty() || input.length() > MAX_INPUT_LENGTH) {
+        if (!hasValidBasicFormat(input)) {
             return false;
         }
 
-        if (input.length() % 4 != 0) {
+        if (hasObviouslyInvalidCharacters(input)) {
             return false;
         }
 
-        // Early rejection: check for obviously invalid characters
+        val validAlphabet = urlSafe ? BASE64_URL_ALPHABET : BASE64_ALPHABET;
+        if (!hasValidCharactersAndPadding(input, validAlphabet)) {
+            return false;
+        }
+
+        return canBeDecoded(input, urlSafe);
+    }
+
+    /**
+     * Checks basic format requirements for Base64 input.
+     *
+     * @param input the string to validate
+     * @return true if input is non-null, non-empty, within length limits, and has
+     * length divisible by 4
+     */
+    private static boolean hasValidBasicFormat(String input) {
+        if (input == null || input.isEmpty()) {
+            return false;
+        }
+
+        if (input.length() > MAX_INPUT_LENGTH) {
+            return false;
+        }
+
+        return input.length() % 4 == 0;
+    }
+
+    /**
+     * Performs early rejection check for characters outside valid Base64 range.
+     * <p>
+     * Checks if any character falls outside the ASCII range that could possibly
+     * contain Base64 characters ('+' to 'z'). This quick check avoids expensive
+     * validation for obviously invalid input.
+     *
+     * @param input the string to check
+     * @return true if input contains characters that cannot be valid Base64, false
+     * otherwise
+     */
+    private static boolean hasObviouslyInvalidCharacters(String input) {
         for (var i = 0; i < input.length(); i++) {
-            val ch = input.charAt(i);
-            if (ch < '+' || ch > 'z') {
-                return false;
+            val character = input.charAt(i);
+            if (character < '+' || character > 'z') {
+                return true;
             }
         }
+        return false;
+    }
 
-        val validChars = urlSafe ? BASE64_URL_ALPHABET : BASE64_ALPHABET;
-
+    /**
+     * Validates that input contains only valid Base64 alphabet characters and
+     * padding appears only at the end.
+     * <p>
+     * Ensures all characters belong to the specified Base64 alphabet and that
+     * padding characters ('=') only appear at the end of the string, never in the
+     * middle.
+     *
+     * @param input the string to validate
+     * @param validAlphabet the Base64 alphabet to validate against
+     * @return true if all characters are valid and padding is correct, false
+     * otherwise
+     */
+    private static boolean hasValidCharactersAndPadding(String input, String validAlphabet) {
         var paddingFound = false;
-        for (var i = 0; i < input.length(); i++) {
-            val ch = input.charAt(i);
 
-            if (ch == '=') {
+        for (var i = 0; i < input.length(); i++) {
+            val character = input.charAt(i);
+
+            if (character == '=') {
                 paddingFound = true;
             } else if (paddingFound) {
                 return false;
             }
 
-            if (!containsChar(validChars, ch)) {
+            if (validAlphabet.indexOf(character) < 0) {
                 return false;
             }
         }
 
+        return true;
+    }
+
+    /**
+     * Attempts to decode the input to verify it is valid Base64.
+     *
+     * @param input the Base64 string to decode
+     * @param urlSafe whether to use URL-safe Base64 decoder
+     * @return true if input can be successfully decoded, false otherwise
+     */
+    private static boolean canBeDecoded(String input, boolean urlSafe) {
         try {
             if (urlSafe) {
                 Base64.getUrlDecoder().decode(input);
@@ -606,23 +681,5 @@ public class EncodingFunctionLibrary {
         } catch (IllegalArgumentException exception) {
             return false;
         }
-    }
-
-    /**
-     * Performs a constant-time check if a string contains a given character.
-     * <p>
-     * This method is designed to prevent timing attacks by always examining every
-     * character in the string, regardless of whether a match is found early.
-     *
-     * @param str the string to search
-     * @param ch the character to search for
-     * @return true if the string contains the character, false otherwise
-     */
-    private static boolean containsChar(String str, char ch) {
-        var found = false;
-        for (var i = 0; i < str.length(); i++) {
-            found |= (str.charAt(i) == ch);
-        }
-        return found;
     }
 }

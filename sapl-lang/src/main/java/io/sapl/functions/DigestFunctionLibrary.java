@@ -54,6 +54,8 @@ public class DigestFunctionLibrary {
             }
             """;
 
+    private static final String ERROR_ALGORITHM_NOT_AVAILABLE = "Digest algorithm not available: ";
+
     @Function(docs = """
             ```sha256(TEXT data)```: Computes the SHA-256 hash of the input data.
 
@@ -230,7 +232,7 @@ public class DigestFunctionLibrary {
             val hexHash       = HexFormat.of().formatHex(hash);
             return Val.of(hexHash);
         } catch (NoSuchAlgorithmException exception) {
-            return Val.error("Digest algorithm not available: " + algorithm + ".");
+            return Val.error(ERROR_ALGORITHM_NOT_AVAILABLE + algorithm + ".");
         }
     }
 }

@@ -420,15 +420,18 @@ class InMemoryAttributeRepositoryTests {
     }
 
     /**
-     * Verifies that when an attribute update and timeout occur nearly simultaneously,
+     * Verifies that when an attribute update and timeout occur nearly
+     * simultaneously,
      * the emission sequence remains logically consistent. The race between timeout
      * (at 100ms) and update (at 95ms) may result in either order being observed,
      * but the state machine must never emit contradictory values.
      * <p>
      * Valid sequences:
      * <ul>
-     * <li>[UNAVAILABLE, "first", "second"] - update wins race before timeout fires</li>
-     * <li>[UNAVAILABLE, "first", UNAVAILABLE, "second"] - timeout fires, then update arrives</li>
+     * <li>[UNAVAILABLE, "first", "second"] - update wins race before timeout
+     * fires</li>
+     * <li>[UNAVAILABLE, "first", UNAVAILABLE, "second"] - timeout fires, then
+     * update arrives</li>
      * </ul>
      * <p>
      * Invalid sequences that would indicate a bug:
@@ -468,7 +471,8 @@ class InMemoryAttributeRepositoryTests {
     }
 
     /**
-     * Systematically tests various race scenarios between attribute updates and timeouts.
+     * Systematically tests various race scenarios between attribute updates and
+     * timeouts.
      * Each scenario is designed to test a specific timing relationship:
      * <ul>
      * <li>Update BEFORE timeout (early update should prevent timeout)</li>
@@ -483,7 +487,7 @@ class InMemoryAttributeRepositoryTests {
     @CsvSource({ "50, 150, REMOVE", "200, 150, REMOVE", "140, 150, REMOVE", "50, 150, BECOME_UNDEFINED",
             "200, 150, BECOME_UNDEFINED", "140, 150, BECOME_UNDEFINED" })
     void whenUpdateAndTimeoutRace_emissionSequenceMatchesTimingAndStrategy(long updateDelayMillis, long timeoutMillis,
-                                                                           TimeOutStrategy strategy) {
+            TimeOutStrategy strategy) {
         val repository = new InMemoryAttributeRepository(Clock.systemUTC());
         val emissions  = new ArrayList<Val>();
         val latch      = new CountDownLatch(1);
@@ -530,7 +534,8 @@ class InMemoryAttributeRepositoryTests {
     /**
      * Verifies that when a BECOME_UNDEFINED timeout races with an update,
      * the transition from UNDEFINED back to a defined value is correctly observed.
-     * This tests the specific case where an attribute becomes undefined due to timeout
+     * This tests the specific case where an attribute becomes undefined due to
+     * timeout
      * and is then immediately updated with a new value.
      */
     @RepeatedTest(5)
@@ -595,8 +600,9 @@ class InMemoryAttributeRepositoryTests {
 
         await().atMost(400, TimeUnit.MILLISECONDS).until(() -> emissions.contains(Val.of("fourth")));
 
-        assertThat(emissions).isNotEmpty().contains(Val.of("first"), Val.of("second"), Val.of("third"), Val.of("fourth"))
-                .first().isEqualTo(InMemoryAttributeRepository.ATTRIBUTE_UNAVAILABLE);
+        assertThat(emissions).isNotEmpty()
+                .contains(Val.of("first"), Val.of("second"), Val.of("third"), Val.of("fourth")).first()
+                .isEqualTo(InMemoryAttributeRepository.ATTRIBUTE_UNAVAILABLE);
 
         val indices = List.of(emissions.indexOf(Val.of("first")), emissions.indexOf(Val.of("second")),
                 emissions.indexOf(Val.of("third")), emissions.indexOf(Val.of("fourth")));

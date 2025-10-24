@@ -160,6 +160,14 @@ public class CsvFunctionLibrary {
 
     private static final CsvMapper CSV_MAPPER = new CsvMapper();
 
+    private static final String EMPTY_STRING = "";
+
+    private static final String ERROR_ARRAY_ELEMENT_NOT_OBJECT      = " is not an object.";
+    private static final String ERROR_ARRAY_ELEMENT_PREFIX          = "CSV array element at index ";
+    private static final String ERROR_ARRAY_MUST_CONTAIN_OBJECTS    = "CSV array must contain objects.";
+    private static final String ERROR_FAILED_TO_GENERATE_CSV_PREFIX = "Failed to generate CSV: ";
+    private static final String ERROR_FAILED_TO_PARSE_CSV_PREFIX    = "Failed to parse CSV: ";
+
     @Function(docs = """
             ```csv.csvToVal(TEXT csv)```
 
@@ -194,7 +202,7 @@ public class CsvFunctionLibrary {
             val result = iterator.readAll();
             return Val.of(CSV_MAPPER.valueToTree(result));
         } catch (IOException exception) {
-            return Val.error("Failed to parse CSV: " + exception.getMessage());
+            return Val.error(ERROR_FAILED_TO_PARSE_CSV_PREFIX + exception.getMessage());
         }
     }
 
@@ -235,17 +243,17 @@ public class CsvFunctionLibrary {
 
         val arrayNode = array.get();
         if (arrayNode.isEmpty()) {
-            return Val.of("");
+            return Val.of(EMPTY_STRING);
         }
 
         val firstElement = arrayNode.get(0);
         if (!firstElement.isObject()) {
-            return Val.error("CSV array must contain objects.");
+            return Val.error(ERROR_ARRAY_MUST_CONTAIN_OBJECTS);
         }
 
         for (int i = 0; i < arrayNode.size(); i++) {
             if (!arrayNode.get(i).isObject()) {
-                return Val.error("CSV array element at index " + i + " is not an object.");
+                return Val.error(ERROR_ARRAY_ELEMENT_PREFIX + i + ERROR_ARRAY_ELEMENT_NOT_OBJECT);
             }
         }
 
@@ -256,7 +264,7 @@ public class CsvFunctionLibrary {
         try {
             return Val.of(CSV_MAPPER.writer(schema).writeValueAsString(arrayNode));
         } catch (IOException exception) {
-            return Val.error("Failed to generate CSV: " + exception.getMessage());
+            return Val.error(ERROR_FAILED_TO_GENERATE_CSV_PREFIX + exception.getMessage());
         }
     }
 

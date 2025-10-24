@@ -132,13 +132,41 @@ public class ArrayFunctionLibrary {
             }
             """;
 
-    private static final String RETURNS_NUMBER                            = """
+    private static final String RETURNS_NUMBER = """
             {
                 "type": "number"
             }
             """;
-    public static final String  MUST_BE_NUMERIC_FOUND_NON_NUMERIC_ELEMENT = "All array elements must be numeric. Found non-numeric element: ";
 
+    private static final String ERROR_EMPTY_ARRAY_AVERAGE = "Cannot calculate average of an empty array.";
+    private static final String ERROR_EMPTY_ARRAY_HEAD    = "Cannot get head of an empty array.";
+    private static final String ERROR_EMPTY_ARRAY_LAST    = "Cannot get last of an empty array.";
+    private static final String ERROR_EMPTY_ARRAY_MEDIAN  = "Cannot calculate median of an empty array.";
+
+    private static final String ERROR_MIXED_TYPE_NON_NUMERIC = "All array elements must be numeric. Found non-numeric element: ";
+    private static final String ERROR_MIXED_TYPE_NON_TEXT    = "All array elements must be text. Found non-text element: ";
+
+    private static final String ERROR_PREFIX_ALL_ELEMENTS_MUST_BE = "All array elements must be ";
+    private static final String ERROR_PREFIX_CANNOT_FIND          = "Cannot find ";
+    private static final String ERROR_PREFIX_ELEMENTS_MUST_BE     = "Array elements must be numeric or text. First element is: ";
+    private static final String ERROR_PREFIX_FOUND_NON            = ". Found non-";
+
+    private static final String ERROR_PARAMETERS_MUST_BE_INTEGERS = "All parameters must be integers.";
+    private static final String ERROR_STEP_MUST_NOT_BE_ZERO       = "Step must not be zero.";
+
+    private static final String ERROR_SUFFIX_ELEMENT     = " element: ";
+    private static final String ERROR_SUFFIX_EMPTY_ARRAY = " of an empty array.";
+    private static final String ERROR_SUFFIX_PERIOD      = ".";
+
+    private static final String TYPE_NAME_NUMERIC = "numeric";
+    private static final String TYPE_NAME_TEXT    = "text";
+
+    /**
+     * Concatenates multiple arrays into a single array.
+     *
+     * @param arrays arrays to concatenate
+     * @return new array containing all elements in order
+     */
     @Function(docs = """
             ```array.concatenate(ARRAY...arrays)```
 
@@ -168,6 +196,13 @@ public class ArrayFunctionLibrary {
         return Val.of(newArray);
     }
 
+    /**
+     * Returns the set difference between two arrays.
+     *
+     * @param array1 array to subtract from
+     * @param array2 array of elements to remove
+     * @return new array with elements in array1 but not in array2
+     */
     @Function(docs = """
             ```array.difference(ARRAY array1, ARRAY array2)```
 
@@ -207,6 +242,12 @@ public class ArrayFunctionLibrary {
         return createArrayFromElements(result);
     }
 
+    /**
+     * Returns the union of multiple arrays, removing duplicates.
+     *
+     * @param arrays arrays to combine
+     * @return new array with all unique elements
+     */
     @Function(docs = """
             ```array.union(ARRAY...arrays)```
 
@@ -237,6 +278,12 @@ public class ArrayFunctionLibrary {
         return createArrayFromElements(result);
     }
 
+    /**
+     * Removes duplicate elements from an array, preserving order.
+     *
+     * @param array array to deduplicate
+     * @return new array with unique elements
+     */
     @Function(docs = """
             ```array.toSet(ARRAY array)```
 
@@ -264,6 +311,12 @@ public class ArrayFunctionLibrary {
         return createArrayFromElements(result);
     }
 
+    /**
+     * Returns the intersection of multiple arrays.
+     *
+     * @param arrays arrays to intersect
+     * @return new array with elements present in all arrays
+     */
     @Function(docs = """
             ```array.intersect(ARRAY...arrays)```
 
@@ -306,7 +359,7 @@ public class ArrayFunctionLibrary {
             for (val element : arrays[i].getArrayNode()) {
                 set.add(element);
             }
-            result.retainAll(set);  // Much more efficient!
+            result.retainAll(set);
             if (result.isEmpty()) {
                 break;  // Early exit optimization
             }
@@ -315,6 +368,13 @@ public class ArrayFunctionLibrary {
         return createArrayFromElements(result);
     }
 
+    /**
+     * Checks if an array contains at least one element from another array.
+     *
+     * @param array array to search in
+     * @param elements elements to search for
+     * @return Val.TRUE if any element was found
+     */
     @Function(docs = """
             ```array.containsAny(ARRAY array, ARRAY elements)```
 
@@ -350,6 +410,13 @@ public class ArrayFunctionLibrary {
         return Val.FALSE;
     }
 
+    /**
+     * Checks if an array contains all elements from another array.
+     *
+     * @param array array to search in
+     * @param elements elements that must all be present
+     * @return Val.TRUE if all elements were found
+     */
     @Function(docs = """
             ```array.containsAll(ARRAY array, ARRAY elements)```
 
@@ -385,6 +452,14 @@ public class ArrayFunctionLibrary {
         return Val.TRUE;
     }
 
+    /**
+     * Checks if an array contains all elements from another array in sequential
+     * order.
+     *
+     * @param array array to search in
+     * @param elements elements that must appear in this order
+     * @return Val.TRUE if elements appear in order
+     */
     @Function(docs = """
             ```array.containsAllInOrder(ARRAY array, ARRAY elements)```
 
@@ -428,6 +503,12 @@ public class ArrayFunctionLibrary {
         return Val.of(requiredElementIndex == requiredElements.size());
     }
 
+    /**
+     * Sorts an array in ascending order.
+     *
+     * @param array array to sort
+     * @return new sorted array
+     */
     @Function(docs = """
             ```array.sort(ARRAY array)```
 
@@ -464,11 +545,12 @@ public class ArrayFunctionLibrary {
         val firstElement = jsonArray.get(0);
 
         if (firstElement.isNumber()) {
-            return sortArray(jsonArray, JsonNode::isNumber, "numeric", Comparator.comparingDouble(JsonNode::asDouble));
+            return sortArray(jsonArray, JsonNode::isNumber, TYPE_NAME_NUMERIC,
+                    Comparator.comparingDouble(JsonNode::asDouble));
         } else if (firstElement.isTextual()) {
-            return sortArray(jsonArray, JsonNode::isTextual, "text", Comparator.comparing(JsonNode::asText));
+            return sortArray(jsonArray, JsonNode::isTextual, TYPE_NAME_TEXT, Comparator.comparing(JsonNode::asText));
         } else {
-            return Val.error("Array elements must be numeric or text. First element is: " + firstElement.getNodeType());
+            return Val.error(ERROR_PREFIX_ELEMENTS_MUST_BE + firstElement.getNodeType() + ERROR_SUFFIX_PERIOD);
         }
     }
 
@@ -481,8 +563,8 @@ public class ArrayFunctionLibrary {
 
         for (val element : jsonArray) {
             if (!typePredicate.test(element)) {
-                return Val.error(
-                        "All array elements must be " + typeName + ". Found non-" + typeName + " element: " + element);
+                return Val.error(ERROR_PREFIX_ALL_ELEMENTS_MUST_BE + typeName + ERROR_PREFIX_FOUND_NON + typeName
+                        + ERROR_SUFFIX_ELEMENT + element);
             }
             elements.add(element);
         }
@@ -492,6 +574,12 @@ public class ArrayFunctionLibrary {
         return createArrayFromElements(elements);
     }
 
+    /**
+     * Flattens a nested array by one level.
+     *
+     * @param array array to flatten
+     * @return new flattened array
+     */
     @Function(docs = """
             ```array.flatten(ARRAY array)```
 
@@ -528,6 +616,12 @@ public class ArrayFunctionLibrary {
         return Val.of(newArray);
     }
 
+    /**
+     * Returns the number of elements in an array.
+     *
+     * @param value array to measure
+     * @return element count
+     */
     @Function(docs = """
             ```array.size(ARRAY value)```
 
@@ -553,6 +647,12 @@ public class ArrayFunctionLibrary {
         return Val.of(value.get().size());
     }
 
+    /**
+     * Returns an array with its elements in reversed order.
+     *
+     * @param array array to reverse
+     * @return new array with elements in reverse order
+     */
     @Function(docs = """
             ```array.reverse(ARRAY array)```
 
@@ -581,6 +681,12 @@ public class ArrayFunctionLibrary {
         return Val.of(newArray);
     }
 
+    /**
+     * Checks if an array contains only distinct elements.
+     *
+     * @param array array to test
+     * @return Val.TRUE if array contains no duplicates
+     */
     @Function(docs = """
             ```array.isSet(ARRAY array)```
 
@@ -611,6 +717,12 @@ public class ArrayFunctionLibrary {
         return Val.TRUE;
     }
 
+    /**
+     * Checks if an array is empty.
+     *
+     * @param array array to test
+     * @return Val.TRUE if array has no elements
+     */
     @Function(docs = """
             ```array.isEmpty(ARRAY array)```
 
@@ -633,6 +745,12 @@ public class ArrayFunctionLibrary {
         return Val.of(array.getArrayNode().isEmpty());
     }
 
+    /**
+     * Returns the first element of an array.
+     *
+     * @param array array to extract from
+     * @return first element
+     */
     @Function(docs = """
             ```array.head(ARRAY array)```
 
@@ -654,11 +772,17 @@ public class ArrayFunctionLibrary {
     public static Val head(@Array Val array) {
         val jsonArray = array.getArrayNode();
         if (jsonArray.isEmpty()) {
-            return Val.error("Cannot get head of an empty array.");
+            return Val.error(ERROR_EMPTY_ARRAY_HEAD);
         }
         return Val.of(jsonArray.get(0).deepCopy());
     }
 
+    /**
+     * Returns the last element of an array.
+     *
+     * @param array array to extract from
+     * @return last element
+     */
     @Function(docs = """
             ```array.last(ARRAY array)```
 
@@ -680,11 +804,17 @@ public class ArrayFunctionLibrary {
     public static Val last(@Array Val array) {
         val jsonArray = array.getArrayNode();
         if (jsonArray.isEmpty()) {
-            return Val.error("Cannot get last of an empty array.");
+            return Val.error(ERROR_EMPTY_ARRAY_LAST);
         }
         return Val.of(jsonArray.get(jsonArray.size() - 1).deepCopy());
     }
 
+    /**
+     * Returns the maximum value from an array.
+     *
+     * @param array array to find maximum in
+     * @return maximum value
+     */
     @Function(docs = """
             ```array.max(ARRAY array)```
 
@@ -710,6 +840,12 @@ public class ArrayFunctionLibrary {
         return findExtremum(array, "max", true);
     }
 
+    /**
+     * Returns the minimum value from an array.
+     *
+     * @param array array to find minimum in
+     * @return minimum value
+     */
     @Function(docs = """
             ```array.min(ARRAY array)```
 
@@ -742,7 +878,7 @@ public class ArrayFunctionLibrary {
         val jsonArray = array.getArrayNode();
 
         if (jsonArray.isEmpty()) {
-            return Val.error("Cannot find " + operationName + " of an empty array.");
+            return Val.error(ERROR_PREFIX_CANNOT_FIND + operationName + ERROR_SUFFIX_EMPTY_ARRAY);
         }
 
         val firstElement = jsonArray.get(0);
@@ -752,8 +888,7 @@ public class ArrayFunctionLibrary {
         } else if (firstElement.isTextual()) {
             return findTextualExtremum(jsonArray, findMaximum);
         } else {
-            return Val.error(
-                    "Array elements must be numeric or text. First element is: " + firstElement.getNodeType() + ".");
+            return Val.error(ERROR_PREFIX_ELEMENTS_MUST_BE + firstElement.getNodeType() + ERROR_SUFFIX_PERIOD);
         }
     }
 
@@ -766,7 +901,7 @@ public class ArrayFunctionLibrary {
         for (int i = 1; i < jsonArray.size(); i++) {
             val element = jsonArray.get(i);
             if (!element.isNumber()) {
-                return Val.error(MUST_BE_NUMERIC_FOUND_NON_NUMERIC_ELEMENT + element);
+                return Val.error(ERROR_MIXED_TYPE_NON_NUMERIC + element);
             }
             val value = element.asDouble();
             if (findMaximum ? value > extremumValue : value < extremumValue) {
@@ -786,7 +921,7 @@ public class ArrayFunctionLibrary {
         for (int i = 1; i < jsonArray.size(); i++) {
             val element = jsonArray.get(i);
             if (!element.isTextual()) {
-                return Val.error("All array elements must be text. Found non-text element: " + element);
+                return Val.error(ERROR_MIXED_TYPE_NON_TEXT + element);
             }
             val text = element.asText();
             if (findMaximum ? text.compareTo(extremumValue) > 0 : text.compareTo(extremumValue) < 0) {
@@ -797,6 +932,12 @@ public class ArrayFunctionLibrary {
         return Val.of(extremumValue);
     }
 
+    /**
+     * Returns the sum of all numeric elements in an array.
+     *
+     * @param array array of numbers to sum
+     * @return sum of all elements
+     */
     @Function(docs = """
             ```array.sum(ARRAY array)```
 
@@ -820,6 +961,12 @@ public class ArrayFunctionLibrary {
         return reduceNumericArray(array, 0.0, Double::sum);
     }
 
+    /**
+     * Returns the product of all numeric elements in an array.
+     *
+     * @param array array of numbers to multiply
+     * @return product of all elements
+     */
     @Function(docs = """
             ```array.multiply(ARRAY array)```
 
@@ -856,7 +1003,7 @@ public class ArrayFunctionLibrary {
         var result = identityValue;
         for (val element : jsonArray) {
             if (!element.isNumber()) {
-                return Val.error(MUST_BE_NUMERIC_FOUND_NON_NUMERIC_ELEMENT + element);
+                return Val.error(ERROR_MIXED_TYPE_NON_NUMERIC + element);
             }
             result = accumulator.applyAsDouble(result, element.asDouble());
         }
@@ -864,6 +1011,12 @@ public class ArrayFunctionLibrary {
         return Val.of(result);
     }
 
+    /**
+     * Returns the arithmetic mean of all numeric elements in an array.
+     *
+     * @param array array of numbers to average
+     * @return average value
+     */
     @Function(docs = """
             ```array.avg(ARRAY array)```
 
@@ -887,13 +1040,13 @@ public class ArrayFunctionLibrary {
         val jsonArray = array.getArrayNode();
 
         if (jsonArray.isEmpty()) {
-            return Val.error("Cannot calculate average of an empty array.");
+            return Val.error(ERROR_EMPTY_ARRAY_AVERAGE);
         }
 
         var sum = 0.0;
         for (val element : jsonArray) {
             if (!element.isNumber()) {
-                return Val.error(MUST_BE_NUMERIC_FOUND_NON_NUMERIC_ELEMENT + element);
+                return Val.error(ERROR_MIXED_TYPE_NON_NUMERIC + element);
             }
             sum += element.asDouble();
         }
@@ -901,6 +1054,12 @@ public class ArrayFunctionLibrary {
         return Val.of(sum / jsonArray.size());
     }
 
+    /**
+     * Returns the median value of all numeric elements in an array.
+     *
+     * @param array array of numbers to find median of
+     * @return median value
+     */
     @Function(docs = """
             ```array.median(ARRAY array)```
 
@@ -927,13 +1086,13 @@ public class ArrayFunctionLibrary {
         val jsonArray = array.getArrayNode();
 
         if (jsonArray.isEmpty()) {
-            return Val.error("Cannot calculate median of an empty array.");
+            return Val.error(ERROR_EMPTY_ARRAY_MEDIAN);
         }
 
         val numbers = new ArrayList<Double>();
         for (val element : jsonArray) {
             if (!element.isNumber()) {
-                return Val.error(MUST_BE_NUMERIC_FOUND_NON_NUMERIC_ELEMENT + element);
+                return Val.error(ERROR_MIXED_TYPE_NON_NUMERIC + element);
             }
             numbers.add(element.asDouble());
         }
@@ -947,6 +1106,13 @@ public class ArrayFunctionLibrary {
         return Val.of(medianValue);
     }
 
+    /**
+     * Creates an array of consecutive integers from from to to (inclusive).
+     *
+     * @param from starting value (inclusive)
+     * @param to ending value (inclusive)
+     * @return array of consecutive integers
+     */
     @Function(docs = """
             ```array.range(NUMBER from, NUMBER to)```
 
@@ -972,6 +1138,15 @@ public class ArrayFunctionLibrary {
         return rangeStepped(from, to, Val.of(1));
     }
 
+    /**
+     * Creates an array of integers from from to to (inclusive) with a step
+     * increment.
+     *
+     * @param from starting value (inclusive)
+     * @param to ending value (inclusive)
+     * @param step increment value (positive or negative, not zero)
+     * @return array of integers with specified step
+     */
     @Function(docs = """
             ```array.rangeStepped(NUMBER from, NUMBER to, NUMBER step)```
 
@@ -999,7 +1174,7 @@ public class ArrayFunctionLibrary {
             """, schema = RETURNS_ARRAY)
     public static Val rangeStepped(@Number Val from, @Number Val to, @Number Val step) {
         if (!from.isLong() || !to.isLong() || !step.isLong()) {
-            return Val.error("All parameters must be integers.");
+            return Val.error(ERROR_PARAMETERS_MUST_BE_INTEGERS);
         }
 
         val fromValue = from.getLong();
@@ -1007,7 +1182,7 @@ public class ArrayFunctionLibrary {
         val stepValue = step.getLong();
 
         if (stepValue == 0) {
-            return Val.error("Step must not be zero.");
+            return Val.error(ERROR_STEP_MUST_NOT_BE_ZERO);
         }
 
         val result = Val.JSON.arrayNode();
@@ -1025,6 +1200,13 @@ public class ArrayFunctionLibrary {
         return Val.of(result);
     }
 
+    /**
+     * Returns the Cartesian product of two arrays.
+     *
+     * @param array1 first array
+     * @param array2 second array
+     * @return array of all possible pairs
+     */
     @Function(docs = """
             ```array.crossProduct(ARRAY array1, ARRAY array2)```
 
@@ -1071,6 +1253,13 @@ public class ArrayFunctionLibrary {
         return Val.of(result);
     }
 
+    /**
+     * Combines two arrays element-wise into an array of pairs.
+     *
+     * @param array1 first array
+     * @param array2 second array
+     * @return array of paired elements
+     */
     @Function(docs = """
             ```array.zip(ARRAY array1, ARRAY array2)```
 

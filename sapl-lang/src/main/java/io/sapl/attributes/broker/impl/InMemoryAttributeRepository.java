@@ -314,7 +314,7 @@ public class InMemoryAttributeRepository implements AttributeRepository {
     }
 
     private void handleTimeout(AttributeKey key) {
-        log.info("Handling timeout for attribute: {}", key);
+        log.debug("Handling timeout for attribute: {}", key);
         runtimeState.compute(key, (k, current) -> processTimeout(key, current));
     }
 

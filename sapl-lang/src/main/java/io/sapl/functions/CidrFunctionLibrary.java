@@ -117,6 +117,8 @@ public class CidrFunctionLibrary {
 
     private static final String ERROR_ADDRESSES_MAXIMUM       = " addresses, maximum is ";
     private static final String ERROR_ALGORITHM_NOT_AVAILABLE = " not available: ";
+    private static final String ERROR_ARRAY_MUST_BE_STRINGS   = "Array must contain only strings";
+    private static final String ERROR_ARRAY_REQUIRED          = "Expected array of address strings";
     private static final String ERROR_CIDR_CONTAINS           = "CIDR contains ";
     private static final String ERROR_CIDR_MISSING_PREFIX     = "CIDR missing prefix length: ";
     private static final String ERROR_INVALID_ADDRESS         = "Invalid address: ";
@@ -894,13 +896,13 @@ public class CidrFunctionLibrary {
      */
     private static List<IPAddress> parseAddressArray(Val addresses) {
         if (!addresses.isArray()) {
-            throw new IllegalArgumentException("Expected array of address strings");
+            throw new IllegalArgumentException(ERROR_ARRAY_REQUIRED);
         }
 
         val result = new ArrayList<IPAddress>();
         for (JsonNode element : addresses.get()) {
             if (!element.isTextual()) {
-                throw new IllegalArgumentException("Array must contain only strings");
+                throw new IllegalArgumentException(ERROR_ARRAY_MUST_BE_STRINGS);
             }
 
             val address = parseAddress(element.textValue());
