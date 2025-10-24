@@ -1765,19 +1765,16 @@ public class PlaygroundView extends Composite<VerticalLayout> {
         menuBar.addThemeVariants(MenuBarVariant.LUMO_TERTIARY);
         val examplesItem = menuBar.addItem(LABEL_EXAMPLES);
         val mainSubMenu  = examplesItem.getSubMenu();
-
         for (val category : ExamplesCollection.getAllCategories()) {
-            val categoryIcon = category.icon().create();
+            val categoryIcon = VaadinIcon.valueOf(category.iconName()).create();
             categoryIcon.setSize(CSS_VALUE_ONE_EM);
             val categoryLabel = new Span(categoryIcon, new Text(" " + category.name()));
             val categoryItem  = mainSubMenu.addItem(categoryLabel);
             val categoryMenu  = categoryItem.getSubMenu();
-
             for (val example : category.examples()) {
                 categoryMenu.addItem(example.displayName(), event -> loadExampleWithConfirmation(example));
             }
         }
-
         return menuBar;
     }
 

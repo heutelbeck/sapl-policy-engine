@@ -17,16 +17,14 @@
  */
 package io.sapl.playground.examples;
 
-import com.vaadin.flow.component.icon.VaadinIcon;
-
 import java.util.List;
 
 /**
  * Represents a category of related examples with an icon for UI display.
  *
  * @param name category display name
- * @param icon Vaadin icon to display in menu
+ * @param iconName name of the Vaadin icon to display in menu
  * @param order sort order for category display
  * @param examples ordered list of examples in this category
  */
-public record ExampleCategory(String name, VaadinIcon icon, int order, List<Example> examples) {}
+public record ExampleCategory(String name, String iconName, int order, List<Example> examples) {}

@@ -17,7 +17,6 @@
  */
 package io.sapl.playground.examples;
 
-import com.vaadin.flow.component.icon.VaadinIcon;
 import io.sapl.interpreter.combinators.PolicyDocumentCombiningAlgorithm;
 import lombok.experimental.UtilityClass;
 
@@ -927,17 +926,17 @@ public class ExamplesCollection {
 
     /* Category Definitions */
 
-    private static final ExampleCategory DOCUMENTATION = new ExampleCategory("Documentation", VaadinIcon.BOOK, 1,
+    private static final ExampleCategory DOCUMENTATION = new ExampleCategory("Documentation", "BOOK", 1,
             List.of(DOCUMENTATION_AT_A_GLANCE, DOCUMENTATION_BUSINESS_HOURS, DOCUMENTATION_DENY_OVERRIDES));
 
-    private static final ExampleCategory MEDICAL = new ExampleCategory("Medical", VaadinIcon.HEART, 2,
+    private static final ExampleCategory MEDICAL = new ExampleCategory("Medical", "HEART", 2,
             List.of(MEDICAL_EMERGENCY_OVERRIDE));
 
-    private static final ExampleCategory GEOGRAPHIC = new ExampleCategory("Geographic", VaadinIcon.GLOBE, 4,
+    private static final ExampleCategory GEOGRAPHIC = new ExampleCategory("Geographic", "GLOBE", 4,
             List.of(GEOGRAPHIC_INSIDE_PERIMETER, GEOGRAPHIC_NEAR_FACILITY, GEOGRAPHIC_DENY_INTERSECTS_RESTRICTED,
                     GEOGRAPHIC_WAYPOINTS_SUBSET, GEOGRAPHIC_BUFFER_TOUCH, GEOGRAPHIC_WKT_INSIDE_ZONE));
 
-    private static final ExampleCategory ACCESS_CONTROL = new ExampleCategory("Access Control", VaadinIcon.LOCK, 5,
+    private static final ExampleCategory ACCESS_CONTROL = new ExampleCategory("Access Control", "LOCK", 5,
             List.of(ACCESS_CONTROL_RBAC, ACCESS_CONTROL_HIERARCHICAL_RBAC, ACCESS_CONTROL_BELL_LAPADULA_BASIC,
                     ACCESS_CONTROL_BELL_LAPADULA_COMPARTMENTS, ACCESS_CONTROL_BREWER_NASH_FINANCIAL,
                     ACCESS_CONTROL_BREWER_NASH_CONSULTING, ACCESS_CONTROL_BIBA_INTEGRITY));
