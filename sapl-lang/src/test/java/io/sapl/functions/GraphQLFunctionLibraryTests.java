@@ -18,6 +18,7 @@
 package io.sapl.functions;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
 import io.sapl.api.interpreter.Val;
 import lombok.val;
 import org.junit.jupiter.api.Test;
@@ -355,7 +356,7 @@ class GraphQLFunctionLibraryTests {
     @ParameterizedTest
     @MethodSource("provideComplexityEdgeCases")
     void when_calculateComplexity_withEdgeCases_then_handlesGracefully(String parsedJson, String weightsJson,
-            int expectedComplexity) throws JsonProcessingException {
+                                                                       int expectedComplexity) throws JsonProcessingException {
         val parsed     = Val.ofJson(parsedJson);
         val weights    = Val.ofJson(weightsJson);
         val complexity = GraphQLFunctionLibrary.complexity(parsed, weights);
@@ -1123,11 +1124,8 @@ class GraphQLFunctionLibraryTests {
         val result = GraphQLFunctionLibrary.parse(Val.of(query), Val.of(BASIC_SCHEMA));
 
         assertThatVal(result).hasValue();
-        val fields     = result.get().get("fields");
-        val fieldNames = new java.util.ArrayList<String>();
-        fields.forEach(node -> fieldNames.add(node.asText()));
-
-        assertThat(fieldNames).contains("forbiddenKnowledge");
+        val fields = result.get().get("fields");
+        assertThat(fields).extracting(JsonNode::asText).contains("forbiddenKnowledge");
     }
 
     @Test
@@ -1136,13 +1134,17 @@ class GraphQLFunctionLibraryTests {
                 query {
                   investigator(id: "1") {
                     tomes {
+                      title
                       rituals {
-                        cultist {
-                          rituals {
-                            name
-                          }
-                        }
+                        name
+                        requirements
+                        consequences
                       }
+                    }
+                    encounteredEntities {
+                      name
+                      realm
+                      power
                     }
                   }
                 }
@@ -1152,7 +1154,7 @@ class GraphQLFunctionLibraryTests {
                 {
                   "tomes": 10,
                   "rituals": 5,
-                  "cultist": 3
+                  "encounteredEntities": 8
                 }
                 """);
 
@@ -1166,7 +1168,7 @@ class GraphQLFunctionLibraryTests {
     void when_checkRateLimitByBatchingScore_then_identifiesAbuse() {
         val queryBuilder = new StringBuilder("query {\n");
         for (int i = 1; i <= 50; i++) {
-            queryBuilder.append(String.format("  cult%d: cultist(name: \"cultist-%d\") { name allegiance }%n", i, i));
+            queryBuilder.append("  cult%d: cultist(name: \"cultist-%d\") { name allegiance }%n".formatted(i, i));
         }
         queryBuilder.append('}');
 
@@ -1267,7 +1269,7 @@ class GraphQLFunctionLibraryTests {
     @ParameterizedTest
     @MethodSource("provideZeroValueEdgeCases")
     void when_parseQueryWithZeroOrEmptyValues_then_handlesGracefully(String query, String metricName,
-            Object expectedValue) {
+                                                                     Object expectedValue) {
         val result = GraphQLFunctionLibrary.parseQuery(Val.of(query));
 
         assertThatVal(result).hasValue();
@@ -1322,5 +1324,212 @@ class GraphQLFunctionLibraryTests {
         assertThatVal(result).hasValue();
         assertThat(result.get().get("valid").asBoolean()).isFalse();
         assertThat(result.get().get("errors").size()).isGreaterThanOrEqualTo(1);
+    }
+
+    /* Additional Comprehensive Edge Case Tests */
+
+    @Test
+    void when_parseQueryExceedingMaxDepth_then_capsAtMaximum() {
+        // Build a query exceeding the documented max depth of 100
+        val queryBuilder = new StringBuilder("query { investigator(id: \"1\") {");
+        for (int i = 0; i < 105; i++) {
+            queryBuilder.append(" tomes {");
+        }
+        queryBuilder.append(" title");
+        for (int i = 0; i < 105; i++) {
+            queryBuilder.append(" }");
+        }
+        queryBuilder.append(" }}");
+
+        val result = GraphQLFunctionLibrary.parseQuery(Val.of(queryBuilder.toString()));
+
+        assertThatVal(result).hasValue();
+        assertThat(result.get().get("depth").asInt()).isEqualTo(100);
+    }
+
+    @Test
+    void when_parseQueryWithVariablesWithoutDefaults_then_excludesFromResult() {
+        val query  = """
+                query($limit: Int, $offset: Int = 10, $nameFilter: String = "default") {
+                  investigators(limit: $limit, offset: $offset) {
+                    name
+                  }
+                }
+                """;
+        val result = GraphQLFunctionLibrary.parseQuery(Val.of(query));
+
+        assertThatVal(result).hasValue();
+        val variables = result.get().get("variables");
+        assertThat(variables.has("offset")).isTrue();
+        assertThat(variables.get("offset").asInt()).isEqualTo(10);
+        assertThat(variables.has("nameFilter")).isTrue();
+        assertThat(variables.get("nameFilter").asText()).isEqualTo("default");
+        assertThat(variables.has("limit")).isFalse();  // No default value
+    }
+
+    @Test
+    void when_parseVariableDefaultValues_then_preservesProperTypes() {
+        val query  = """
+                query($intVar: Int = 42, $strVar: String = "test", $boolVar: Boolean = true, $floatVar: Float = 3.14) {
+                  investigator(id: "1") { name }
+                }
+                """;
+        val result = GraphQLFunctionLibrary.parseQuery(Val.of(query));
+
+        assertThatVal(result).hasValue();
+        val variables = result.get().get("variables");
+        assertThat(variables.get("intVar").isInt()).isTrue();
+        assertThat(variables.get("intVar").asInt()).isEqualTo(42);
+        assertThat(variables.get("strVar").isTextual()).isTrue();
+        assertThat(variables.get("strVar").asText()).isEqualTo("test");
+        assertThat(variables.get("boolVar").isBoolean()).isTrue();
+        assertThat(variables.get("boolVar").asBoolean()).isTrue();
+        assertThat(variables.get("floatVar").isNumber()).isTrue();
+        assertThat(variables.get("floatVar").asDouble()).isEqualTo(3.14);
+    }
+
+    @Test
+    void when_parseArgumentsWithComplexTypes_then_preservesStructure() throws JsonProcessingException {
+        val query  = """
+                query {
+                  investigator(
+                    filters: {
+                      sanityMin: 50,
+                      hasKnowledge: true,
+                      names: ["Carter", "Ward", "Armitage"]
+                    }
+                  ) {
+                    name
+                  }
+                }
+                """;
+        val result = GraphQLFunctionLibrary.parseQuery(Val.of(query));
+
+        assertThatVal(result).hasValue();
+        val args = result.get().get("arguments").get("investigator");
+        assertThat(args).isNotNull();
+
+        val filters = args.get("filters");
+        assertThat(filters.isObject()).isTrue();
+        assertThat(filters.get("sanityMin").asInt()).isEqualTo(50);
+        assertThat(filters.get("hasKnowledge").asBoolean()).isTrue();
+        assertThat(filters.get("names").isArray()).isTrue();
+        assertThat(filters.get("names")).hasSize(3);
+        assertThat(filters.get("names").get(0).asText()).isEqualTo("Carter");
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {
+            "query { investigator(id: \"ℵ查询א\") { name } }",              // Hebrew, Chinese, Math symbol in string value
+            "query { investigator(id: \"Поиск\") { name } }",                 // Cyrillic in string value
+            "query { investigator(id: \"調査١\") { name } }",                 // Japanese, Arabic numeral in string value
+            "query { investigator(id: \"🔮\") { name } }",                    // Emoji in string value
+            "query ValidName { investigator(id: \"混合ميكस\") { name } }" }) // Mixed scripts in string value
+    void when_parseQueryWithUnicodeInStringValues_then_handlesCorrectly(String query) {
+        val result = GraphQLFunctionLibrary.parseQuery(Val.of(query));
+
+        assertThatVal(result).hasValue();
+        assertThat(result.get().get("valid").asBoolean()).isTrue();
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {
+            "query ℵ查询 { investigator(id: \"1\") { name } }",  // Unicode in operation name (invalid)
+            "query Поиск { investigator(id: \"1\") { name } }",   // Cyrillic in operation name (invalid)
+            "query 調査 { investigator(id: \"1\") { name } }" })  // Japanese in operation name (invalid)
+    void when_parseQueryWithUnicodeInOperationName_then_failsPerGraphQLSpec(String query) {
+        val result = GraphQLFunctionLibrary.parseQuery(Val.of(query));
+
+        assertThatVal(result).hasValue();
+        // GraphQL spec requires operation names to be [_A-Za-z][_0-9A-Za-z]*
+        // Unicode characters in operation names are invalid
+        assertThat(result.get().get("valid").asBoolean()).isFalse();
+    }
+
+    @Test
+    void when_calculateComplexityWithNullFragments_then_handlesGracefully() {
+        val query  = "query { investigator(id: \"1\") { name sanity } }";
+        val parsed = GraphQLFunctionLibrary.parseQuery(Val.of(query));
+        val weights = Val.JSON.objectNode();
+        weights.put("name", 5);
+        weights.put("sanity", 3);
+
+        val complexity = GraphQLFunctionLibrary.complexity(parsed, Val.of(weights));
+
+        assertThatVal(complexity).hasValue();
+        assertThat(complexity.get().asInt()).isGreaterThan(0);
+    }
+
+    @Test
+    void when_parsePaginationWithExtremeValues_then_capturesMaximum() {
+        val query  = """
+                query {
+                  investigators(limit: 2147483647) {
+                    name
+                  }
+                  tomes(first: 999999999) {
+                    title
+                  }
+                }
+                """;
+        val result = GraphQLFunctionLibrary.parseQuery(Val.of(query));
+
+        assertThatVal(result).hasValue();
+        assertThat(result.get().get("maxPaginationLimit").asInt()).isEqualTo(Integer.MAX_VALUE);
+    }
+
+    @Test
+    void when_parseArgumentsWithNestedArrays_then_preservesStructure() {
+        val query  = """
+                query {
+                  investigator(
+                    coordinates: [[1, 2], [3, 4], [5, 6]]
+                  ) {
+                    name
+                  }
+                }
+                """;
+        val result = GraphQLFunctionLibrary.parseQuery(Val.of(query));
+
+        assertThatVal(result).hasValue();
+        val args = result.get().get("arguments").get("investigator");
+        assertThat(args.get("coordinates").isArray()).isTrue();
+        assertThat(args.get("coordinates")).hasSize(3);
+        assertThat(args.get("coordinates").get(0).isArray()).isTrue();
+        assertThat(args.get("coordinates").get(0).get(0).asInt()).isEqualTo(1);
+    }
+
+    @Test
+    void when_parseArgumentsWithEnumValues_then_storesAsText() {
+        val query  = """
+                query {
+                  investigator(status: ACTIVE) {
+                    name
+                  }
+                }
+                """;
+        val result = GraphQLFunctionLibrary.parseQuery(Val.of(query));
+
+        assertThatVal(result).hasValue();
+        val args = result.get().get("arguments").get("investigator");
+        assertThat(args.get("status").isTextual()).isTrue();
+        assertThat(args.get("status").asText()).isEqualTo("ACTIVE");
+    }
+
+    @Test
+    void when_parseArgumentsWithNullValues_then_preservesNull() {
+        val query  = """
+                query {
+                  investigator(id: "1", filter: null) {
+                    name
+                  }
+                }
+                """;
+        val result = GraphQLFunctionLibrary.parseQuery(Val.of(query));
+
+        assertThatVal(result).hasValue();
+        val args = result.get().get("arguments").get("investigator");
+        assertThat(args.has("filter")).isTrue();
+        assertThat(args.get("filter").isNull()).isTrue();
     }
 }

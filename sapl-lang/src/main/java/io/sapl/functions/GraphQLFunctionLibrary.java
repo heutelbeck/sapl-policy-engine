@@ -1054,6 +1054,14 @@ public class GraphQLFunctionLibrary {
      * Calculates weighted complexity for a parsed query.
      * <p/>
      * Applies custom weights to fields based on their expected resource cost.
+     * Each field can be assigned a custom weight. Fields not specified in the
+     * weights object receive a default weight of 1.
+     * <p/>
+     * Important: When fragments are used multiple times via fragment spreads,
+     * their complexity is counted for each spread, reflecting the actual
+     * execution cost of evaluating the fragment content multiple times. For
+     * example, if a fragment with complexity 10 is spread 5 times, it
+     * contributes 50 to the total complexity.
      *
      * @param parsed the parsed query object from parse() or parseQuery()
      * @param fieldWeights object mapping field names to numeric weights
@@ -1677,9 +1685,9 @@ public class GraphQLFunctionLibrary {
      */
     private static String determineOperationType(OperationDefinition operation) {
         return switch (operation.getOperation()) {
-        case QUERY        -> OPERATION_QUERY;
-        case MUTATION     -> OPERATION_MUTATION;
-        case SUBSCRIPTION -> OPERATION_SUBSCRIPTION;
+            case QUERY        -> OPERATION_QUERY;
+            case MUTATION     -> OPERATION_MUTATION;
+            case SUBSCRIPTION -> OPERATION_SUBSCRIPTION;
         };
     }
 
@@ -1822,7 +1830,7 @@ public class GraphQLFunctionLibrary {
      * @param maxPaginationHolder array holding maximum pagination value
      */
     private static void analyzeArgumentsRecursive(SelectionSet selectionSet, ObjectNode argumentsMap,
-            int[] maxPaginationHolder) {
+                                                  int[] maxPaginationHolder) {
         if (selectionSet == null) {
             return;
         }
@@ -1855,7 +1863,7 @@ public class GraphQLFunctionLibrary {
             val argName  = argument.getName();
             val argValue = argument.getValue();
 
-            fieldArgs.put(argName, argValue.toString());
+            fieldArgs.set(argName, convertValueToJson(argValue));
             updateMaxPaginationIfApplicable(argName, argValue, maxPaginationHolder);
         }
 
@@ -1871,7 +1879,7 @@ public class GraphQLFunctionLibrary {
      * @param maxPaginationHolder array holding maximum pagination value
      */
     private static void updateMaxPaginationIfApplicable(String argumentName, Value<?> argumentValue,
-            int[] maxPaginationHolder) {
+                                                        int[] maxPaginationHolder) {
         if (PAGINATION_ARGS.contains(argumentName.toLowerCase()) && argumentValue instanceof IntValue intValue) {
             val value = intValue.getValue().intValue();
             maxPaginationHolder[0] = Math.max(maxPaginationHolder[0], value);
@@ -1939,7 +1947,7 @@ public class GraphQLFunctionLibrary {
      * @return true if circular reference found
      */
     private static boolean hasCircularReference(String fragmentName, FragmentDefinition fragment,
-            Map<String, FragmentDefinition> allFragments, Set<String> visited) {
+                                                Map<String, FragmentDefinition> allFragments, Set<String> visited) {
         if (visited.contains(fragmentName)) {
             return true;
         }
@@ -2044,10 +2052,55 @@ public class GraphQLFunctionLibrary {
     }
 
     /**
+     * Converts a GraphQL AST Value to a proper JSON node.
+     * Handles all GraphQL value types including scalars, arrays, objects, and
+     * variable references. This preserves proper JSON types instead of converting
+     * everything to strings.
+     *
+     * @param value the GraphQL value to convert
+     * @return JSON representation of the value with correct types
+     */
+    private static JsonNode convertValueToJson(Value<?> value) {
+        if (value instanceof IntValue intValue) {
+            return Val.JSON.numberNode(intValue.getValue().intValue());
+        } else if (value instanceof FloatValue floatValue) {
+            return Val.JSON.numberNode(floatValue.getValue().doubleValue());
+        } else if (value instanceof StringValue stringValue) {
+            return Val.JSON.textNode(stringValue.getValue());
+        } else if (value instanceof BooleanValue booleanValue) {
+            return Val.JSON.booleanNode(booleanValue.isValue());
+        } else if (value instanceof EnumValue enumValue) {
+            return Val.JSON.textNode(enumValue.getName());
+        } else if (value instanceof NullValue) {
+            return Val.JSON.nullNode();
+        } else if (value instanceof ArrayValue arrayValue) {
+            val array = Val.JSON.arrayNode();
+            arrayValue.getValues().forEach(v -> array.add(convertValueToJson(v)));
+            return array;
+        } else if (value instanceof ObjectValue objectValue) {
+            val object = Val.JSON.objectNode();
+            objectValue.getObjectFields()
+                    .forEach(field -> object.set(field.getName(), convertValueToJson(field.getValue())));
+            return object;
+        } else if (value instanceof VariableReference variableRef) {
+            // Store variable references as objects with "$variable" marker
+            val varObject = Val.JSON.objectNode();
+            varObject.put("$variable", variableRef.getName());
+            return varObject;
+        } else {
+            // Fallback for any unknown types
+            return Val.JSON.textNode(value.toString());
+        }
+    }
+
+    /**
      * Extracts variable definitions from an operation.
+     * Only includes variables that have default values specified in the query.
+     * Variables without default values are excluded from the result.
      *
      * @param operation the operation definition
-     * @return object containing variable definitions with default values
+     * @return object containing variable definitions with their default values as
+     *         proper JSON types (numbers, strings, booleans, arrays, objects)
      */
     private static ObjectNode extractVariablesFromOperation(OperationDefinition operation) {
         val variables = Val.JSON.objectNode();
@@ -2061,7 +2114,7 @@ public class GraphQLFunctionLibrary {
             val defaultValue = variableDefinition.getDefaultValue();
 
             if (defaultValue != null) {
-                variables.put(variableName, defaultValue.toString());
+                variables.set(variableName, convertValueToJson(defaultValue));
             }
         }
 
