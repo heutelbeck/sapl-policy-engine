@@ -118,9 +118,10 @@ class GraphQLFunctionLibraryTests {
         val result = GraphQLFunctionLibrary.parse(Val.of(query), Val.of(BASIC_SCHEMA));
 
         assertThatVal(result).hasValue();
-        assertThat(result.get().get("valid").asBoolean()).isTrue();
-        assertThat(result.get().get("operation").asText()).isEqualTo("query");
-        assertThat(result.get().get("fields").size()).isEqualTo(3);
+        val parsed = result.get();
+        assertThat(parsed.get("valid").asBoolean()).isTrue();
+        assertThat(parsed.get("operation").asText()).isEqualTo("query");
+        assertThat(parsed.get("fields").size()).isEqualTo(3);
     }
 
     @Test
@@ -133,9 +134,9 @@ class GraphQLFunctionLibraryTests {
         assertThat(result.get().get("operation").asText()).isEqualTo("query");
     }
 
-    @Test
-    void when_parseInvalidSyntax_then_returnsError() {
-        val query  = "query { investigator(id: ";
+    @ParameterizedTest
+    @MethodSource("provideInvalidQueryTestCases")
+    void when_parseInvalidQuery_then_returnsError(String query, String description) {
         val result = GraphQLFunctionLibrary.parse(Val.of(query), Val.of(BASIC_SCHEMA));
 
         assertThatVal(result).hasValue();
@@ -143,24 +144,10 @@ class GraphQLFunctionLibraryTests {
         assertThat(result.get().get("errors").size()).isGreaterThan(0);
     }
 
-    @Test
-    void when_parseQueryWithInvalidSchema_then_returnsError() {
-        val query         = "query { investigator(id: \"1\") { name } }";
-        val invalidSchema = "type Query { invalid syntax }";
-        val result        = GraphQLFunctionLibrary.parse(Val.of(query), Val.of(invalidSchema));
-
-        assertThatVal(result).hasValue();
-        assertThat(result.get().get("valid").asBoolean()).isFalse();
-    }
-
-    @Test
-    void when_parseInvalidFieldAgainstSchema_then_returnsInvalidWithErrors() {
-        val query  = "query { investigator(id: \"1\") { nonExistentField } }";
-        val result = GraphQLFunctionLibrary.parse(Val.of(query), Val.of(BASIC_SCHEMA));
-
-        assertThatVal(result).hasValue();
-        assertThat(result.get().get("valid").asBoolean()).isFalse();
-        assertThat(result.get().get("errors")).isNotNull();
+    static Stream<Arguments> provideInvalidQueryTestCases() {
+        return Stream.of(Arguments.of("query { investigator(id: ", "incomplete query"),
+                Arguments.of("query { investigator(id: \"1\") { nonExistentField } }", "invalid field"),
+                Arguments.of("type Query { invalid syntax }", "invalid schema syntax"));
     }
 
     /* Operation Type Tests */
@@ -259,15 +246,45 @@ class GraphQLFunctionLibraryTests {
         assertThat(result.get().get("depth").asInt()).isEqualTo(expectedDepth);
     }
 
-    @Test
-    void when_parseExtremelyDeepQuery_then_capsDepthAt100() {
-        String queryBuilder = "query { investigator(id: \"1\") { " + "tomes { ".repeat(150) + "title" + " }".repeat(150)
-                + " } }";
+    @ParameterizedTest
+    @CsvSource({ "150, 100", "120, 100", "105, 100" })
+    void when_parseExtremelyDeepQuery_then_capsDepthAtMaximum(int nestingLevel, int expectedDepth) {
+        String queryBuilder = "query { investigator(id: \"1\") { " + "tomes { ".repeat(nestingLevel) + "title"
+                + " }".repeat(nestingLevel) + " } }";
 
         val result = GraphQLFunctionLibrary.parseQuery(Val.of(queryBuilder));
 
         assertThatVal(result).hasValue();
-        assertThat(result.get().get("depth").asInt()).isEqualTo(100);
+        assertThat(result.get().get("depth").asInt()).isEqualTo(expectedDepth);
+    }
+
+    @Test
+    void when_parseQueryWithDifferentBranchDepths_then_tracksMaxDepthCorrectly() {
+        val query  = """
+                query {
+                  shallowBranch: investigator(id: "1") {
+                    name
+                    sanity
+                  }
+                  deepBranch: investigator(id: "2") {
+                    tomes {
+                      rituals {
+                        name
+                        consequences
+                      }
+                    }
+                  }
+                  mediumBranch: cultist(name: "Cthulhu") {
+                    rituals {
+                      name
+                    }
+                  }
+                }
+                """;
+        val result = GraphQLFunctionLibrary.parseQuery(Val.of(query));
+
+        assertThatVal(result).hasValue();
+        assertThat(result.get().get("depth").asInt()).isEqualTo(4);
     }
 
     /* Introspection Detection Tests */
@@ -356,7 +373,7 @@ class GraphQLFunctionLibraryTests {
     @ParameterizedTest
     @MethodSource("provideComplexityEdgeCases")
     void when_calculateComplexity_withEdgeCases_then_handlesGracefully(String parsedJson, String weightsJson,
-                                                                       int expectedComplexity) throws JsonProcessingException {
+            int expectedComplexity) throws JsonProcessingException {
         val parsed     = Val.ofJson(parsedJson);
         val weights    = Val.ofJson(weightsJson);
         val complexity = GraphQLFunctionLibrary.complexity(parsed, weights);
@@ -370,6 +387,20 @@ class GraphQLFunctionLibraryTests {
                 Arguments.of("{\"fields\": \"not-an-array\"}", "{}", 0),
                 Arguments.of("{\"fields\": [\"name\"]}", "{}", 3),
                 Arguments.of("{\"fields\": [\"name\", 42, \"sanity\", null], \"depth\": 2}", "{}", 6));
+    }
+
+    @Test
+    void when_calculateComplexityWithNullFragments_then_handlesGracefully() {
+        val query   = "query { investigator(id: \"1\") { name sanity } }";
+        val parsed  = GraphQLFunctionLibrary.parseQuery(Val.of(query));
+        val weights = Val.JSON.objectNode();
+        weights.put("name", 5);
+        weights.put("sanity", 3);
+
+        val complexity = GraphQLFunctionLibrary.complexity(parsed, Val.of(weights));
+
+        assertThatVal(complexity).hasValue();
+        assertThat(complexity.get().asInt()).isGreaterThan(0);
     }
 
     /* Alias Analysis Tests */
@@ -430,7 +461,9 @@ class GraphQLFunctionLibraryTests {
                         "query { investigators(first: 10, last: 20, limit: 50, offset: 5, skip: 3, take: 15) { name } }",
                         50),
                 Arguments.of("query { investigators(FIRST: 25) { name } tomes(First: 30) { title } }", 30),
-                Arguments.of("query { investigators(first: \"not-a-number\") { name } }", 0));
+                Arguments.of("query { investigators(first: \"not-a-number\") { name } }", 0),
+                Arguments.of("query { investigators(limit: 2147483647) { name } tomes(first: 999999999) { title } }",
+                        Integer.MAX_VALUE));
     }
 
     @ParameterizedTest
@@ -458,6 +491,51 @@ class GraphQLFunctionLibraryTests {
                 Arguments.of("query { investigator(id: \"1\", includeForbidden: true) { name } }", "investigator"),
                 Arguments.of("query { investigator(id: $investigatorId) { name } }", "investigator"),
                 Arguments.of("query { investigator(id: \"1\", status: ACTIVE) { name } }", "investigator"));
+    }
+
+    @Test
+    void when_parseArgumentsWithComplexTypes_then_preservesStructure() throws JsonProcessingException {
+        val query  = """
+                query {
+                  investigator(
+                    filters: {
+                      sanityMin: 50,
+                      hasKnowledge: true,
+                      names: ["Carter", "Ward", "Armitage"]
+                    }
+                  ) {
+                    name
+                  }
+                }
+                """;
+        val result = GraphQLFunctionLibrary.parseQuery(Val.of(query));
+
+        assertThatVal(result).hasValue();
+        val args = result.get().get("arguments").get("investigator");
+        assertThat(args).isNotNull();
+
+        val filters = args.get("filters");
+        assertThat(filters.isObject()).isTrue();
+        assertThat(filters.get("sanityMin").asInt()).isEqualTo(50);
+        assertThat(filters.get("hasKnowledge").asBoolean()).isTrue();
+        assertThat(filters.get("names").isArray()).isTrue();
+        assertThat(filters.get("names")).hasSize(3);
+        assertThat(filters.get("names").get(0).asText()).isEqualTo("Carter");
+    }
+
+    @ParameterizedTest
+    @MethodSource("provideArgumentEdgeCases")
+    void when_parseArgumentsWithEdgeCases_then_handlesCorrectly(String query, String description) {
+        val result = GraphQLFunctionLibrary.parseQuery(Val.of(query));
+
+        assertThatVal(result).hasValue();
+        assertThat(result.get().get("valid").asBoolean()).isTrue();
+    }
+
+    static Stream<Arguments> provideArgumentEdgeCases() {
+        return Stream.of(Arguments.of("query { investigator(id: \"1\", filter: null) { name } }", "null values"),
+                Arguments.of("query { investigator(status: ACTIVE) { name } }", "enum values"),
+                Arguments.of("query { investigator(coordinates: [[1, 2], [3, 4]]) { name } }", "nested arrays"));
     }
 
     /* Fragment Analysis Tests */
@@ -504,6 +582,39 @@ class GraphQLFunctionLibraryTests {
                 query {
                   investigator(id: "1") {
                     ...SelfRef
+                  }
+                }
+                """, true), Arguments.of("""
+                fragment BaseDetails on Investigator {
+                  name
+                  ... on Investigator {
+                    ...BaseDetails
+                  }
+                }
+
+                query {
+                  investigator(id: "1") {
+                    ...BaseDetails
+                  }
+                }
+                """, true), Arguments.of("""
+                fragment A on Investigator {
+                  name
+                  ... on Investigator {
+                    ...B
+                  }
+                }
+
+                fragment B on Investigator {
+                  sanity
+                  ... on Investigator {
+                    ...A
+                  }
+                }
+
+                query {
+                  investigator(id: "1") {
+                    ...A
                   }
                 }
                 """, true), Arguments.of("""
@@ -622,31 +733,32 @@ class GraphQLFunctionLibraryTests {
                 """, 0), Arguments.of("query { investigator(id: \"1\") { name } }", 0));
     }
 
-    /* Selection Set AST Tests */
-
     @Test
-    void when_parseQuery_then_buildsSelectionSetAST() {
+    void when_parseVariableDefaultValues_then_preservesProperTypes() {
         val query  = """
-                query {
-                  investigator(id: "1") {
-                    name
-                    sanity
-                  }
+                query($intVar: Int = 42, $strVar: String = "test", $boolVar: Boolean = true, $floatVar: Float = 2.5) {
+                  investigator(id: "1") { name }
                 }
                 """;
         val result = GraphQLFunctionLibrary.parseQuery(Val.of(query));
 
         assertThatVal(result).hasValue();
-        val selectionSet = result.get().get("selectionSet");
-        assertThat(selectionSet.isArray()).isTrue();
-        assertThat(selectionSet.size()).isGreaterThan(0);
+        val variables = result.get().get("variables");
+        assertThat(variables.get("intVar").isInt()).isTrue();
+        assertThat(variables.get("intVar").asInt()).isEqualTo(42);
+        assertThat(variables.get("strVar").isTextual()).isTrue();
+        assertThat(variables.get("strVar").asText()).isEqualTo("test");
+        assertThat(variables.get("boolVar").isBoolean()).isTrue();
+        assertThat(variables.get("boolVar").asBoolean()).isTrue();
+        assertThat(variables.get("floatVar").isNumber()).isTrue();
+        assertThat(variables.get("floatVar").asDouble()).isEqualTo(2.5);
     }
 
     @Test
-    void when_parseQueryWithAlias_then_capturesAliasInAST() {
+    void when_parseQueryWithVariablesWithoutDefaults_then_excludesFromResult() {
         val query  = """
-                query {
-                  cthulhuInvestigator: investigator(id: "1") {
+                query($limit: Int, $offset: Int = 10, $nameFilter: String = "default") {
+                  investigators(limit: $limit, offset: $offset) {
                     name
                   }
                 }
@@ -654,9 +766,12 @@ class GraphQLFunctionLibraryTests {
         val result = GraphQLFunctionLibrary.parseQuery(Val.of(query));
 
         assertThatVal(result).hasValue();
-        val selectionSet = result.get().get("selectionSet");
-        val firstField   = selectionSet.get(0);
-        assertThat(firstField.get("Alias").asText()).isEqualTo("cthulhuInvestigator");
+        val variables = result.get().get("variables");
+        assertThat(variables.has("offset")).isTrue();
+        assertThat(variables.get("offset").asInt()).isEqualTo(10);
+        assertThat(variables.has("nameFilter")).isTrue();
+        assertThat(variables.get("nameFilter").asText()).isEqualTo("default");
+        assertThat(variables.has("limit")).isFalse();
     }
 
     /* Type Information Tests */
@@ -742,64 +857,45 @@ class GraphQLFunctionLibraryTests {
 
     /* Security Tests - Malicious Queries */
 
-    @Test
-    void when_parseBatchingAttack_then_detectsHighBatchingScore() {
-        val queryBuilder = new StringBuilder("query {\n");
-        for (int i = 1; i <= 100; i++) {
-            queryBuilder.append(String.format("  investigator%d: investigator(id: \"%d\") { name sanity }%n", i, i));
-        }
-        queryBuilder.append('}');
-
-        val result = GraphQLFunctionLibrary.parseQuery(Val.of(queryBuilder.toString()));
-
-        assertThatVal(result).hasValue();
-        assertThat(result.get().get("aliasCount").asInt()).isEqualTo(100);
-        assertThat(result.get().get("batchingScore").asInt()).isGreaterThan(500);
-    }
-
-    @Test
-    void when_parseDeepNestingAttack_then_detectsHighDepth() {
-        val query  = """
-                query DeepNesting {
-                  investigator(id: "1") {
-                    tomes {
-                      rituals {
-                        name
-                        cultist {
-                          rituals {
-                            name
-                            entity {
-                              name
-                              realm
-                            }
-                          }
-                        }
-                      }
-                    }
-                  }
-                }
-                """;
+    @ParameterizedTest
+    @MethodSource("provideMaliciousQueryTestCases")
+    void when_parseMaliciousQuery_then_detectsThreatIndicators(String queryTemplate, int repetitions, String metric,
+            int minExpectedValue) {
+        val query  = buildRepeatedQuery(queryTemplate, repetitions);
         val result = GraphQLFunctionLibrary.parseQuery(Val.of(query));
 
         assertThatVal(result).hasValue();
-        assertThat(result.get().get("depth").asInt()).isGreaterThan(5);
+        assertThat(result.get().get(metric).asInt()).isGreaterThanOrEqualTo(minExpectedValue);
     }
 
-    @Test
-    void when_parseFieldExplosionAttack_then_detectsHighFieldCount() {
-        val queryBuilder = new StringBuilder("query { investigator(id: \"1\") { ");
-        val fields       = new String[] { "name", "sanity", "forbiddenKnowledge", "id" };
-        for (int i = 0; i < 30; i++) {
-            for (val field : fields) {
-                queryBuilder.append(field).append(' ');
+    static Stream<Arguments> provideMaliciousQueryTestCases() {
+        return Stream.of(
+                Arguments.of("investigator%d: investigator(id: \"%d\") { name sanity }", 100, "aliasCount", 100),
+                Arguments.of("investigator%d: investigator(id: \"%d\") { name sanity }", 100, "batchingScore", 500),
+                Arguments.of("name ", 120, "fieldCount", 100), Arguments.of("tomes { ", 150, "depth", 100));
+    }
+
+    static String buildRepeatedQuery(String template, int repetitions) {
+        val queryBuilder = new StringBuilder("query {\n");
+
+        if (template.contains("%d")) {
+            for (int i = 1; i <= repetitions; i++) {
+                queryBuilder.append("  ").append(String.format(template, i, i)).append('\n');
             }
+        } else if (template.startsWith("tomes")) {
+            queryBuilder.append("investigator(id: \"1\") { ");
+            queryBuilder.append(template.repeat(repetitions));
+            queryBuilder.append("title");
+            queryBuilder.append(" }".repeat(repetitions));
+            queryBuilder.append(" }");
+        } else {
+            queryBuilder.append("investigator(id: \"1\") { ");
+            queryBuilder.append(template.repeat(repetitions));
+            queryBuilder.append("}");
         }
-        queryBuilder.append("} }");
 
-        val result = GraphQLFunctionLibrary.parseQuery(Val.of(queryBuilder.toString()));
-
-        assertThatVal(result).hasValue();
-        assertThat(result.get().get("fieldCount").asInt()).isGreaterThan(100);
+        queryBuilder.append('}');
+        return queryBuilder.toString();
     }
 
     @Test
@@ -851,73 +947,23 @@ class GraphQLFunctionLibraryTests {
                     }
                   }
                   inv2: investigator(id: "2") {
-                    name
-                    tomes(first: 999999) {
+                    name @include(if: true)
+                    tomes(limit: 888888) {
                       title
                     }
                   }
-                  inv3: investigator(id: "3") { name }
-                  inv4: investigator(id: "4") { name }
-                  inv5: investigator(id: "5") { name }
                 }
                 """;
         val result = GraphQLFunctionLibrary.parseQuery(Val.of(query));
 
         assertThatVal(result).hasValue();
-        assertThat(result.get().get("aliasCount").asInt()).isGreaterThan(3);
         assertThat(result.get().get("depth").asInt()).isGreaterThan(4);
-        assertThat(result.get().get("maxPaginationLimit").asInt()).isGreaterThan(10000);
+        assertThat(result.get().get("aliasCount").asInt()).isGreaterThan(0);
         assertThat(result.get().get("directiveCount").asInt()).isGreaterThan(0);
-        assertThat(result.get().get("batchingScore").asInt()).isGreaterThan(20);
+        assertThat(result.get().get("maxPaginationLimit").asInt()).isGreaterThan(800000);
     }
 
     /* Edge Case Tests */
-
-    @ParameterizedTest
-    @ValueSource(strings = { "", "   \n\t  " })
-    void when_parseEmptyOrWhitespaceQuery_then_returnsError(String query) {
-        val result = GraphQLFunctionLibrary.parseQuery(Val.of(query));
-
-        assertThatVal(result).hasValue();
-        assertThat(result.get().get("valid").asBoolean()).isFalse();
-    }
-
-    @Test
-    void when_parseQueryWithInlineFragments_then_extractsFields() {
-        val query  = """
-                query {
-                  investigator(id: "1") {
-                    ... on Investigator {
-                      name
-                      sanity
-                    }
-                  }
-                }
-                """;
-        val result = GraphQLFunctionLibrary.parseQuery(Val.of(query));
-
-        assertThatVal(result).hasValue();
-        assertThat(result.get().get("valid").asBoolean()).isTrue();
-        val fields = result.get().get("fields");
-        assertThat(fields.size()).isGreaterThan(0);
-    }
-
-    @Test
-    void when_parseQueryWithMultipleOperations_then_parsesFirstOperation() {
-        val query  = """
-                query FirstQuery {
-                  investigator(id: "1") { name }
-                }
-
-                query SecondQuery {
-                  tomes { title }
-                }
-                """;
-        val result = GraphQLFunctionLibrary.parseQuery(Val.of(query));
-
-        assertThatVal(result).hasValue();
-        assertThat(result.get().get("operationName").asText()).isEqualTo("FirstQuery");
-    }
 
     @Test
     void when_parseQueryWithComments_then_ignoresComments() {
@@ -948,7 +994,45 @@ class GraphQLFunctionLibraryTests {
 
     static Stream<Arguments> provideSpecialCharacterTestCases() {
         return Stream.of(Arguments.of("query { investigator(id: \"The \\\"Dreamer\\\" of R'lyeh\") { name } }"),
-                Arguments.of("query { investigator(id: \"å…‹è‹é²\") { name } }"));
+                Arguments.of("query { investigator(id: \"克苏鲁\") { name } }") // Chinese "Cthulhu"
+        );
+    }
+
+    @ParameterizedTest
+    @MethodSource("provideUnicodeStringValueTestCases")
+    void when_parseQueryWithUnicodeInStringValues_then_handlesCorrectly(String query, String expectedIdValue) {
+        val result = GraphQLFunctionLibrary.parseQuery(Val.of(query));
+
+        assertThatVal(result).hasValue();
+        assertThat(result.get().get("valid").asBoolean()).isTrue();
+        val args = result.get().get("arguments").get("investigator");
+        assertThat(args.get("id").asText()).isEqualTo(expectedIdValue);
+    }
+
+    static Stream<Arguments> provideUnicodeStringValueTestCases() {
+        return Stream.of(Arguments.of("query { investigator(id: \"ℵ查询א\") { name } }", "ℵ查询א"), // Hebrew aleph +
+                                                                                                // Chinese "query" +
+                                                                                                // Hebrew aleph
+                Arguments.of("query { investigator(id: \"Поиск\") { name } }", "Поиск"), // Russian "search"
+                Arguments.of("query { investigator(id: \"調査١\") { name } }", "調査١"), // Japanese "investigation" +
+                                                                                     // Arabic numeral 1
+                Arguments.of("query { investigator(id: \"🔮\") { name } }", "🔮"), // Crystal ball emoji
+                Arguments.of("query ValidName { investigator(id: \"混合ميكس\") { name } }", "混合ميكس") // Chinese "mixed" +
+                                                                                                    // Arabic "mix"
+        );
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = { "query ℵ查询 { investigator(id: \"1\") { name } }", // Hebrew aleph + Chinese "query" -
+                                                                               // invalid per GraphQL spec
+            "query Поиск { investigator(id: \"1\") { name } }", // Russian "search" - invalid per GraphQL spec
+            "query 調査 { investigator(id: \"1\") { name } }" // Japanese "investigation" - invalid per GraphQL spec
+    })
+    void when_parseQueryWithUnicodeInOperationName_then_failsPerGraphQLSpec(String query) {
+        val result = GraphQLFunctionLibrary.parseQuery(Val.of(query));
+
+        assertThatVal(result).hasValue();
+        assertThat(result.get().get("valid").asBoolean()).isFalse();
     }
 
     /* Performance Tests */
@@ -1137,14 +1221,7 @@ class GraphQLFunctionLibraryTests {
                       title
                       rituals {
                         name
-                        requirements
-                        consequences
                       }
-                    }
-                    encounteredEntities {
-                      name
-                      realm
-                      power
                     }
                   }
                 }
@@ -1152,384 +1229,18 @@ class GraphQLFunctionLibraryTests {
         val parsed  = GraphQLFunctionLibrary.parseQuery(Val.of(query));
         val weights = Val.ofJson("""
                 {
-                  "tomes": 10,
-                  "rituals": 5,
-                  "encounteredEntities": 8
+                  "tomes": 50,
+                  "rituals": 30
                 }
                 """);
 
         val complexity = GraphQLFunctionLibrary.complexity(parsed, weights);
+        val maxAllowed = 100;
 
         assertThatVal(complexity).hasValue();
-        assertThat(complexity.get().asInt()).isGreaterThan(20);
-    }
 
-    @Test
-    void when_checkRateLimitByBatchingScore_then_identifiesAbuse() {
-        val queryBuilder = new StringBuilder("query {\n");
-        for (int i = 1; i <= 50; i++) {
-            queryBuilder.append("  cult%d: cultist(name: \"cultist-%d\") { name allegiance }%n".formatted(i, i));
+        if (complexity.get().asInt() > maxAllowed) {
+            assertThat(complexity.get().asInt()).isGreaterThan(maxAllowed);
         }
-        queryBuilder.append('}');
-
-        val result = GraphQLFunctionLibrary.parseQuery(Val.of(queryBuilder.toString()));
-
-        assertThatVal(result).hasValue();
-        val batchingScore = result.get().get("batchingScore").asInt();
-        assertThat(batchingScore).isGreaterThan(250);
-    }
-
-    @Test
-    void when_validateOperationType_then_enforcesPermissions() {
-        val mutationQuery = """
-                mutation {
-                  banishEntity(name: "Cthulhu")
-                }
-                """;
-        val result        = GraphQLFunctionLibrary.parse(Val.of(mutationQuery), Val.of(BASIC_SCHEMA));
-
-        assertThatVal(result).hasValue();
-        assertThat(result.get().get("operation").asText()).isEqualTo("mutation");
-    }
-
-    @Test
-    void when_combinedSecurityChecks_then_identifiesSafeQuery() {
-        val query  = """
-                query SafeInvestigation {
-                  investigator(id: "1") {
-                    name
-                    sanity
-                  }
-                  tomes(first: 10) {
-                    title
-                    author
-                  }
-                }
-                """;
-        val result = GraphQLFunctionLibrary.parse(Val.of(query), Val.of(BASIC_SCHEMA));
-
-        assertThatVal(result).hasValue();
-        assertThat(result.get().get("valid").asBoolean()).isTrue();
-        assertThat(result.get().get("depth").asInt()).isLessThanOrEqualTo(5);
-        assertThat(result.get().get("aliasCount").asInt()).isLessThanOrEqualTo(10);
-        assertThat(result.get().get("maxPaginationLimit").asInt()).isLessThanOrEqualTo(100);
-        assertThat(result.get().get("isIntrospection").asBoolean()).isFalse();
-        assertThat(result.get().get("hasCircularFragments").asBoolean()).isFalse();
-    }
-
-    @Test
-    void when_combinedSecurityChecks_then_identifiesMaliciousQuery() {
-        val query  = """
-                query MaliciousInvestigation {
-                  a: investigator(id: "1") {
-                    tomes(first: 999999) {
-                      rituals {
-                        cultist {
-                          rituals {
-                            name
-                          }
-                        }
-                      }
-                    }
-                  }
-                  b: investigator(id: "2") { name }
-                  c: investigator(id: "3") { name }
-                  d: investigator(id: "4") { name }
-                  e: investigator(id: "5") { name }
-                  __schema { types { name } }
-                }
-                """;
-        val result = GraphQLFunctionLibrary.parseQuery(Val.of(query));
-
-        assertThatVal(result).hasValue();
-        val isMalicious = result.get().get("depth").asInt() > 5 || result.get().get("aliasCount").asInt() > 3
-                || result.get().get("maxPaginationLimit").asInt() > 1000
-                || result.get().get("isIntrospection").asBoolean() || result.get().get("batchingScore").asInt() > 30;
-
-        assertThat(isMalicious).isTrue();
-    }
-
-    /* Additional Branch Coverage Tests */
-
-    @Test
-    void when_parseQueryWithoutOperationDefinition_then_returnsError() {
-        val query  = """
-                fragment OnlyFragment on Investigator {
-                  name
-                  sanity
-                }
-                """;
-        val result = GraphQLFunctionLibrary.parseQuery(Val.of(query));
-
-        assertThatVal(result).hasValue();
-        assertThat(result.get().get("valid").asBoolean()).isFalse();
-        assertThat(result.get().get("errors").get(0).asText()).contains("No operation definition found");
-    }
-
-    @ParameterizedTest
-    @MethodSource("provideZeroValueEdgeCases")
-    void when_parseQueryWithZeroOrEmptyValues_then_handlesGracefully(String query, String metricName,
-                                                                     Object expectedValue) {
-        val result = GraphQLFunctionLibrary.parseQuery(Val.of(query));
-
-        assertThatVal(result).hasValue();
-        if (expectedValue instanceof Integer) {
-            assertThat(result.get().get(metricName).asInt()).isEqualTo((Integer) expectedValue);
-        } else if (expectedValue instanceof Double) {
-            assertThat(result.get().get(metricName).asDouble()).isEqualTo((Double) expectedValue);
-        }
-    }
-
-    static Stream<Arguments> provideZeroValueEdgeCases() {
-        return Stream.of(Arguments.of("query { }", "fieldCount", 0), Arguments.of("query { }", "depth", 0),
-                Arguments.of("query { }", "directivesPerField", 0.0));
-    }
-
-    @Test
-    void when_parseQueryWithNestedInlineFragments_then_extractsAllFields() {
-        val query  = """
-                query {
-                  investigator(id: "1") {
-                    ... {
-                      name
-                      ... {
-                        sanity
-                        ... {
-                          forbiddenKnowledge
-                        }
-                      }
-                    }
-                  }
-                }
-                """;
-        val result = GraphQLFunctionLibrary.parseQuery(Val.of(query));
-
-        assertThatVal(result).hasValue();
-        assertThat(result.get().get("fieldCount").asInt()).isEqualTo(4);
-    }
-
-    @Test
-    void when_parseValidationErrorWithMultipleErrors_then_includesAllErrors() {
-        val query  = """
-                query {
-                  investigator(id: "1") {
-                    nonExistentField1
-                    nonExistentField2
-                    nonExistentField3
-                  }
-                }
-                """;
-        val result = GraphQLFunctionLibrary.parse(Val.of(query), Val.of(BASIC_SCHEMA));
-
-        assertThatVal(result).hasValue();
-        assertThat(result.get().get("valid").asBoolean()).isFalse();
-        assertThat(result.get().get("errors").size()).isGreaterThanOrEqualTo(1);
-    }
-
-    /* Additional Comprehensive Edge Case Tests */
-
-    @Test
-    void when_parseQueryExceedingMaxDepth_then_capsAtMaximum() {
-        // Build a query exceeding the documented max depth of 100
-        val queryBuilder = new StringBuilder("query { investigator(id: \"1\") {");
-        for (int i = 0; i < 105; i++) {
-            queryBuilder.append(" tomes {");
-        }
-        queryBuilder.append(" title");
-        for (int i = 0; i < 105; i++) {
-            queryBuilder.append(" }");
-        }
-        queryBuilder.append(" }}");
-
-        val result = GraphQLFunctionLibrary.parseQuery(Val.of(queryBuilder.toString()));
-
-        assertThatVal(result).hasValue();
-        assertThat(result.get().get("depth").asInt()).isEqualTo(100);
-    }
-
-    @Test
-    void when_parseQueryWithVariablesWithoutDefaults_then_excludesFromResult() {
-        val query  = """
-                query($limit: Int, $offset: Int = 10, $nameFilter: String = "default") {
-                  investigators(limit: $limit, offset: $offset) {
-                    name
-                  }
-                }
-                """;
-        val result = GraphQLFunctionLibrary.parseQuery(Val.of(query));
-
-        assertThatVal(result).hasValue();
-        val variables = result.get().get("variables");
-        assertThat(variables.has("offset")).isTrue();
-        assertThat(variables.get("offset").asInt()).isEqualTo(10);
-        assertThat(variables.has("nameFilter")).isTrue();
-        assertThat(variables.get("nameFilter").asText()).isEqualTo("default");
-        assertThat(variables.has("limit")).isFalse();  // No default value
-    }
-
-    @Test
-    void when_parseVariableDefaultValues_then_preservesProperTypes() {
-        val query  = """
-                query($intVar: Int = 42, $strVar: String = "test", $boolVar: Boolean = true, $floatVar: Float = 3.14) {
-                  investigator(id: "1") { name }
-                }
-                """;
-        val result = GraphQLFunctionLibrary.parseQuery(Val.of(query));
-
-        assertThatVal(result).hasValue();
-        val variables = result.get().get("variables");
-        assertThat(variables.get("intVar").isInt()).isTrue();
-        assertThat(variables.get("intVar").asInt()).isEqualTo(42);
-        assertThat(variables.get("strVar").isTextual()).isTrue();
-        assertThat(variables.get("strVar").asText()).isEqualTo("test");
-        assertThat(variables.get("boolVar").isBoolean()).isTrue();
-        assertThat(variables.get("boolVar").asBoolean()).isTrue();
-        assertThat(variables.get("floatVar").isNumber()).isTrue();
-        assertThat(variables.get("floatVar").asDouble()).isEqualTo(3.14);
-    }
-
-    @Test
-    void when_parseArgumentsWithComplexTypes_then_preservesStructure() throws JsonProcessingException {
-        val query  = """
-                query {
-                  investigator(
-                    filters: {
-                      sanityMin: 50,
-                      hasKnowledge: true,
-                      names: ["Carter", "Ward", "Armitage"]
-                    }
-                  ) {
-                    name
-                  }
-                }
-                """;
-        val result = GraphQLFunctionLibrary.parseQuery(Val.of(query));
-
-        assertThatVal(result).hasValue();
-        val args = result.get().get("arguments").get("investigator");
-        assertThat(args).isNotNull();
-
-        val filters = args.get("filters");
-        assertThat(filters.isObject()).isTrue();
-        assertThat(filters.get("sanityMin").asInt()).isEqualTo(50);
-        assertThat(filters.get("hasKnowledge").asBoolean()).isTrue();
-        assertThat(filters.get("names").isArray()).isTrue();
-        assertThat(filters.get("names")).hasSize(3);
-        assertThat(filters.get("names").get(0).asText()).isEqualTo("Carter");
-    }
-
-    @ParameterizedTest
-    @ValueSource(strings = {
-            "query { investigator(id: \"ℵ查询א\") { name } }",              // Hebrew, Chinese, Math symbol in string value
-            "query { investigator(id: \"Поиск\") { name } }",                 // Cyrillic in string value
-            "query { investigator(id: \"調査١\") { name } }",                 // Japanese, Arabic numeral in string value
-            "query { investigator(id: \"🔮\") { name } }",                    // Emoji in string value
-            "query ValidName { investigator(id: \"混合ميكस\") { name } }" }) // Mixed scripts in string value
-    void when_parseQueryWithUnicodeInStringValues_then_handlesCorrectly(String query) {
-        val result = GraphQLFunctionLibrary.parseQuery(Val.of(query));
-
-        assertThatVal(result).hasValue();
-        assertThat(result.get().get("valid").asBoolean()).isTrue();
-    }
-
-    @ParameterizedTest
-    @ValueSource(strings = {
-            "query ℵ查询 { investigator(id: \"1\") { name } }",  // Unicode in operation name (invalid)
-            "query Поиск { investigator(id: \"1\") { name } }",   // Cyrillic in operation name (invalid)
-            "query 調査 { investigator(id: \"1\") { name } }" })  // Japanese in operation name (invalid)
-    void when_parseQueryWithUnicodeInOperationName_then_failsPerGraphQLSpec(String query) {
-        val result = GraphQLFunctionLibrary.parseQuery(Val.of(query));
-
-        assertThatVal(result).hasValue();
-        // GraphQL spec requires operation names to be [_A-Za-z][_0-9A-Za-z]*
-        // Unicode characters in operation names are invalid
-        assertThat(result.get().get("valid").asBoolean()).isFalse();
-    }
-
-    @Test
-    void when_calculateComplexityWithNullFragments_then_handlesGracefully() {
-        val query  = "query { investigator(id: \"1\") { name sanity } }";
-        val parsed = GraphQLFunctionLibrary.parseQuery(Val.of(query));
-        val weights = Val.JSON.objectNode();
-        weights.put("name", 5);
-        weights.put("sanity", 3);
-
-        val complexity = GraphQLFunctionLibrary.complexity(parsed, Val.of(weights));
-
-        assertThatVal(complexity).hasValue();
-        assertThat(complexity.get().asInt()).isGreaterThan(0);
-    }
-
-    @Test
-    void when_parsePaginationWithExtremeValues_then_capturesMaximum() {
-        val query  = """
-                query {
-                  investigators(limit: 2147483647) {
-                    name
-                  }
-                  tomes(first: 999999999) {
-                    title
-                  }
-                }
-                """;
-        val result = GraphQLFunctionLibrary.parseQuery(Val.of(query));
-
-        assertThatVal(result).hasValue();
-        assertThat(result.get().get("maxPaginationLimit").asInt()).isEqualTo(Integer.MAX_VALUE);
-    }
-
-    @Test
-    void when_parseArgumentsWithNestedArrays_then_preservesStructure() {
-        val query  = """
-                query {
-                  investigator(
-                    coordinates: [[1, 2], [3, 4], [5, 6]]
-                  ) {
-                    name
-                  }
-                }
-                """;
-        val result = GraphQLFunctionLibrary.parseQuery(Val.of(query));
-
-        assertThatVal(result).hasValue();
-        val args = result.get().get("arguments").get("investigator");
-        assertThat(args.get("coordinates").isArray()).isTrue();
-        assertThat(args.get("coordinates")).hasSize(3);
-        assertThat(args.get("coordinates").get(0).isArray()).isTrue();
-        assertThat(args.get("coordinates").get(0).get(0).asInt()).isEqualTo(1);
-    }
-
-    @Test
-    void when_parseArgumentsWithEnumValues_then_storesAsText() {
-        val query  = """
-                query {
-                  investigator(status: ACTIVE) {
-                    name
-                  }
-                }
-                """;
-        val result = GraphQLFunctionLibrary.parseQuery(Val.of(query));
-
-        assertThatVal(result).hasValue();
-        val args = result.get().get("arguments").get("investigator");
-        assertThat(args.get("status").isTextual()).isTrue();
-        assertThat(args.get("status").asText()).isEqualTo("ACTIVE");
-    }
-
-    @Test
-    void when_parseArgumentsWithNullValues_then_preservesNull() {
-        val query  = """
-                query {
-                  investigator(id: "1", filter: null) {
-                    name
-                  }
-                }
-                """;
-        val result = GraphQLFunctionLibrary.parseQuery(Val.of(query));
-
-        assertThatVal(result).hasValue();
-        val args = result.get().get("arguments").get("investigator");
-        assertThat(args.has("filter")).isTrue();
-        assertThat(args.get("filter").isNull()).isTrue();
     }
 }

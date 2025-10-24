@@ -49,8 +49,8 @@ class GraphFunctionLibraryTests {
 
         val result = GraphFunctionLibrary.reachable(graph, initial).getArrayNode();
 
-        assertThat(result).extracting(JsonNode::asText)
-                .containsExactlyInAnyOrder("necronomicon", "pnakotic-manuscripts", "rlyeh-text", "miskatonic-journal");
+        assertThat(result).extracting(JsonNode::asText).containsExactlyInAnyOrder("necronomicon",
+                "pnakotic-manuscripts", "rlyeh-text", "miskatonic-journal");
     }
 
     @Test
@@ -72,17 +72,13 @@ class GraphFunctionLibraryTests {
         val paths = new ArrayList<JsonNode>();
         pathsArray.forEach(paths::add);
 
-        assertThat(paths).contains(
-                Val.ofJson("""
-                        ["azathoth"]
-                        """).get(),
-                Val.ofJson("""
-                        ["azathoth","shub-niggurath","dark-young"]
-                        """).get(),
-                Val.ofJson("""
-                        ["azathoth","nyarlathotep","haunter-of-the-dark"]
-                        """).get()
-        );
+        assertThat(paths).contains(Val.ofJson("""
+                ["azathoth"]
+                """).get(), Val.ofJson("""
+                ["azathoth","shub-niggurath","dark-young"]
+                """).get(), Val.ofJson("""
+                ["azathoth","nyarlathotep","haunter-of-the-dark"]
+                """).get());
     }
 
     @Test
@@ -100,8 +96,8 @@ class GraphFunctionLibraryTests {
 
         val reachable = GraphFunctionLibrary.reachable(graph, initial).getArrayNode();
 
-        assertThat(reachable).extracting(JsonNode::asText)
-                .containsExactlyInAnyOrder("necronomicon", "book-of-eibon", "unaussprechlichen-kulten");
+        assertThat(reachable).extracting(JsonNode::asText).containsExactlyInAnyOrder("necronomicon", "book-of-eibon",
+                "unaussprechlichen-kulten");
     }
 
     @ParameterizedTest
@@ -137,8 +133,7 @@ class GraphFunctionLibraryTests {
 
         val result = GraphFunctionLibrary.reachable(graph, initial).getArrayNode();
 
-        assertThat(result).extracting(JsonNode::asText)
-                .containsExactlyInAnyOrder("1", "2", "3", "4");
+        assertThat(result).extracting(JsonNode::asText).containsExactlyInAnyOrder("1", "2", "3", "4");
     }
 
     @Test
@@ -153,8 +148,7 @@ class GraphFunctionLibraryTests {
 
         val result = GraphFunctionLibrary.reachable(graph, initial).getArrayNode();
 
-        assertThat(result).extracting(JsonNode::asText)
-                .containsExactlyInAnyOrder("true", "false");
+        assertThat(result).extracting(JsonNode::asText).containsExactlyInAnyOrder("true", "false");
     }
 
     @Test
@@ -174,9 +168,8 @@ class GraphFunctionLibraryTests {
 
         val result = GraphFunctionLibrary.reachable(graph, initial).getArrayNode();
 
-        assertThat(result).extracting(JsonNode::asText)
-                .containsExactlyInAnyOrder("de-vermis-mysteriis", "cultes-des-goules", "book-of-eibon",
-                        "unaussprechlichen-kulten", "celaeno-fragments");
+        assertThat(result).extracting(JsonNode::asText).containsExactlyInAnyOrder("de-vermis-mysteriis",
+                "cultes-des-goules", "book-of-eibon", "unaussprechlichen-kulten", "celaeno-fragments");
     }
 
     @Test
@@ -193,8 +186,8 @@ class GraphFunctionLibraryTests {
 
         val result = GraphFunctionLibrary.reachable(graph, initial).getArrayNode();
 
-        assertThat(result).extracting(JsonNode::asText)
-                .containsExactlyInAnyOrder("necronomicon", "null", "pnakotic-manuscripts");
+        assertThat(result).extracting(JsonNode::asText).containsExactlyInAnyOrder("necronomicon", "null",
+                "pnakotic-manuscripts");
     }
 
     @Test
@@ -232,8 +225,8 @@ class GraphFunctionLibraryTests {
 
         val result = GraphFunctionLibrary.reachable(graph, initial).getArrayNode();
 
-        assertThat(result).extracting(JsonNode::asText)
-                .containsExactlyInAnyOrder("de-vermis-mysteriis", "cultes-des-goules");
+        assertThat(result).extracting(JsonNode::asText).containsExactlyInAnyOrder("de-vermis-mysteriis",
+                "cultes-des-goules");
     }
 
     @Test
@@ -255,20 +248,15 @@ class GraphFunctionLibraryTests {
         val paths = new ArrayList<JsonNode>();
         pathsArray.forEach(paths::add);
 
-        assertThat(paths).contains(
-                Val.ofJson("""
-                        ["pnakotic-manuscripts"]
-                        """).get(),
-                Val.ofJson("""
-                        ["pnakotic-manuscripts","rlyeh-text"]
-                        """).get(),
-                Val.ofJson("""
-                        ["book-of-eibon"]
-                        """).get(),
-                Val.ofJson("""
-                        ["book-of-eibon","testaments-of-carnamagos"]
-                        """).get()
-        );
+        assertThat(paths).contains(Val.ofJson("""
+                ["pnakotic-manuscripts"]
+                """).get(), Val.ofJson("""
+                ["pnakotic-manuscripts","rlyeh-text"]
+                """).get(), Val.ofJson("""
+                ["book-of-eibon"]
+                """).get(), Val.ofJson("""
+                ["book-of-eibon","testaments-of-carnamagos"]
+                """).get());
     }
 
     @Test
@@ -289,17 +277,13 @@ class GraphFunctionLibraryTests {
         val paths = new ArrayList<JsonNode>();
         pathsArray.forEach(paths::add);
 
-        assertThat(paths).contains(
-                Val.ofJson("""
-                        ["miskatonic-library-catalog"]
-                        """).get(),
-                Val.ofJson("""
-                        ["miskatonic-library-catalog","restricted-section"]
-                        """).get(),
-                Val.ofJson("""
-                        ["miskatonic-library-catalog","restricted-section","necronomicon-translation"]
-                        """).get()
-        );
+        assertThat(paths).contains(Val.ofJson("""
+                ["miskatonic-library-catalog"]
+                """).get(), Val.ofJson("""
+                ["miskatonic-library-catalog","restricted-section"]
+                """).get(), Val.ofJson("""
+                ["miskatonic-library-catalog","restricted-section","necronomicon-translation"]
+                """).get());
     }
 
     @Test
@@ -319,14 +303,11 @@ class GraphFunctionLibraryTests {
         val paths = new ArrayList<JsonNode>();
         pathsArray.forEach(paths::add);
 
-        assertThat(paths).contains(
-                Val.ofJson("""
-                        ["r-lyeh-text"]
-                        """).get(),
-                Val.ofJson("""
-                        ["r-lyeh-text","sussex-manuscript"]
-                        """).get()
-        ).hasSize(2);
+        assertThat(paths).contains(Val.ofJson("""
+                ["r-lyeh-text"]
+                """).get(), Val.ofJson("""
+                ["r-lyeh-text","sussex-manuscript"]
+                """).get()).hasSize(2);
     }
 
     @ParameterizedTest
