@@ -203,7 +203,7 @@ public class InMemoryAttributeRepository implements AttributeRepository {
     }
 
     @Override
-    public void publishAttribute(Val entity, String attributeName, List<Val> arguments, Val value, Duration ttl,
+    public Mono<Void> publishAttribute(Val entity, String attributeName, List<Val> arguments, Val value, Duration ttl,
                                  TimeOutStrategy timeOutStrategy) {
         validatePublishParameters(attributeName, arguments, value, ttl, timeOutStrategy);
 
@@ -214,6 +214,8 @@ public class InMemoryAttributeRepository implements AttributeRepository {
 
         runtimeState.compute(key,
                 (k, existing) -> updateAttributeValue(k, existing, persistedAttribute, sequenceNumber));
+
+        return Mono.empty();
     }
 
     private void validatePublishParameters(String attributeName, List<Val> arguments, Val value, Duration ttl,
@@ -491,10 +493,11 @@ public class InMemoryAttributeRepository implements AttributeRepository {
     }
 
     @Override
-    public void removeAttribute(Val entity, String attributeName, List<Val> arguments) {
+    public Mono<Void> removeAttribute(Val entity, String attributeName, List<Val> arguments) {
         validateRemovalParameters(attributeName, arguments);
         val key = new AttributeKey(entity, attributeName, arguments);
         runtimeState.compute(key, (k, existing) -> processRemoval(key, existing));
+        return Mono.empty();
     }
 
     /**

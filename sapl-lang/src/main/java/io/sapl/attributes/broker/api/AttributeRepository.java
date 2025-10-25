@@ -18,6 +18,7 @@
 package io.sapl.attributes.broker.api;
 
 import io.sapl.api.interpreter.Val;
+import reactor.core.publisher.Mono;
 
 import java.time.Duration;
 import java.util.List;
@@ -57,8 +58,8 @@ public interface AttributeRepository extends AttributeFinder {
      * @param ttl time-to-live duration after which the timeout strategy is applied
      * @param timeOutStrategy behavior when TTL expires
      */
-    void publishAttribute(Val entity, String attributeName, List<Val> arguments, Val value, Duration ttl,
-            TimeOutStrategy timeOutStrategy);
+    Mono<Void> publishAttribute(Val entity, String attributeName, List<Val> arguments, Val value, Duration ttl,
+                                TimeOutStrategy timeOutStrategy);
 
     /**
      * Publishes a global attribute with infinite TTL and removal strategy.
@@ -69,8 +70,8 @@ public interface AttributeRepository extends AttributeFinder {
      * @param attributeName the fully qualified attribute name
      * @param value the attribute value to publish
      */
-    default void publishAttribute(String attributeName, Val value) {
-        publishAttribute(null, attributeName, List.of(), value, INFINITE, TimeOutStrategy.REMOVE);
+    default Mono<Void> publishAttribute(String attributeName, Val value) {
+        return publishAttribute(null, attributeName, List.of(), value, INFINITE, TimeOutStrategy.REMOVE);
     }
 
     /**
@@ -84,8 +85,8 @@ public interface AttributeRepository extends AttributeFinder {
      * @param value the attribute value to publish
      * @param ttl time-to-live duration
      */
-    default void publishAttribute(String attributeName, Val value, Duration ttl) {
-        publishAttribute(null, attributeName, List.of(), value, ttl, TimeOutStrategy.REMOVE);
+    default Mono<Void> publishAttribute(String attributeName, Val value, Duration ttl) {
+        return  publishAttribute(null, attributeName, List.of(), value, ttl, TimeOutStrategy.REMOVE);
     }
 
     /**
@@ -102,8 +103,8 @@ public interface AttributeRepository extends AttributeFinder {
      * @param ttl time-to-live duration
      * @param timeOutStrategy behavior when TTL expires
      */
-    default void publishAttribute(String attributeName, Val value, Duration ttl, TimeOutStrategy timeOutStrategy) {
-        publishAttribute(null, attributeName, List.of(), value, ttl, timeOutStrategy);
+    default Mono<Void> publishAttribute(String attributeName, Val value, Duration ttl, TimeOutStrategy timeOutStrategy) {
+        return publishAttribute(null, attributeName, List.of(), value, ttl, timeOutStrategy);
     }
 
     /**
@@ -118,8 +119,8 @@ public interface AttributeRepository extends AttributeFinder {
      * @param attributeName the fully qualified attribute name
      * @param value the attribute value to publish
      */
-    default void publishAttribute(Val entity, String attributeName, Val value) {
-        publishAttribute(entity, attributeName, List.of(), value, INFINITE, TimeOutStrategy.REMOVE);
+    default Mono<Void> publishAttribute(Val entity, String attributeName, Val value) {
+        return publishAttribute(entity, attributeName, List.of(), value, INFINITE, TimeOutStrategy.REMOVE);
     }
 
     /**
@@ -134,8 +135,8 @@ public interface AttributeRepository extends AttributeFinder {
      * @param value the attribute value to publish
      * @param ttl time-to-live duration
      */
-    default void publishAttribute(Val entity, String attributeName, Val value, Duration ttl) {
-        publishAttribute(entity, attributeName, List.of(), value, ttl, TimeOutStrategy.REMOVE);
+    default Mono<Void> publishAttribute(Val entity, String attributeName, Val value, Duration ttl) {
+        return publishAttribute(entity, attributeName, List.of(), value, ttl, TimeOutStrategy.REMOVE);
     }
 
     /**
@@ -151,9 +152,9 @@ public interface AttributeRepository extends AttributeFinder {
      * @param ttl time-to-live duration
      * @param timeOutStrategy behavior when TTL expires
      */
-    default void publishAttribute(Val entity, String attributeName, Val value, Duration ttl,
+    default Mono<Void> publishAttribute(Val entity, String attributeName, Val value, Duration ttl,
             TimeOutStrategy timeOutStrategy) {
-        publishAttribute(entity, attributeName, List.of(), value, ttl, timeOutStrategy);
+        return publishAttribute(entity, attributeName, List.of(), value, ttl, timeOutStrategy);
     }
 
     /**
@@ -168,8 +169,8 @@ public interface AttributeRepository extends AttributeFinder {
      * @param arguments the attribute arguments
      * @param value the attribute value to publish
      */
-    default void publishAttribute(String attributeName, List<Val> arguments, Val value) {
-        publishAttribute(null, attributeName, arguments, value, INFINITE, TimeOutStrategy.REMOVE);
+    default Mono<Void> publishAttribute(String attributeName, List<Val> arguments, Val value) {
+        return publishAttribute(null, attributeName, arguments, value, INFINITE, TimeOutStrategy.REMOVE);
     }
 
     /**
@@ -184,8 +185,8 @@ public interface AttributeRepository extends AttributeFinder {
      * @param value the attribute value to publish
      * @param ttl time-to-live duration
      */
-    default void publishAttribute(String attributeName, List<Val> arguments, Val value, Duration ttl) {
-        publishAttribute(null, attributeName, arguments, value, ttl, TimeOutStrategy.REMOVE);
+    default Mono<Void> publishAttribute(String attributeName, List<Val> arguments, Val value, Duration ttl) {
+        return publishAttribute(null, attributeName, arguments, value, ttl, TimeOutStrategy.REMOVE);
     }
 
     /**
@@ -202,9 +203,9 @@ public interface AttributeRepository extends AttributeFinder {
      * @param ttl time-to-live duration
      * @param timeOutStrategy behavior when TTL expires
      */
-    default void publishAttribute(String attributeName, List<Val> arguments, Val value, Duration ttl,
+    default Mono<Void> publishAttribute(String attributeName, List<Val> arguments, Val value, Duration ttl,
             TimeOutStrategy timeOutStrategy) {
-        publishAttribute(null, attributeName, arguments, value, ttl, timeOutStrategy);
+        return publishAttribute(null, attributeName, arguments, value, ttl, timeOutStrategy);
     }
 
     /**
@@ -215,15 +216,15 @@ public interface AttributeRepository extends AttributeFinder {
      * @param attributeName the fully qualified attribute name
      * @param arguments the attribute arguments, or empty list if none
      */
-    void removeAttribute(Val entity, String attributeName, List<Val> arguments);
+    Mono<Void> removeAttribute(Val entity, String attributeName, List<Val> arguments);
 
     /**
      * Removes a global attribute without arguments.
      *
      * @param attributeName the fully qualified attribute name
      */
-    default void removeAttribute(String attributeName) {
-        removeAttribute(null, attributeName, List.of());
+    default Mono<Void> removeAttribute(String attributeName) {
+        return removeAttribute(null, attributeName, List.of());
     }
 
     /**
@@ -232,8 +233,8 @@ public interface AttributeRepository extends AttributeFinder {
      * @param entity the entity context
      * @param attributeName the fully qualified attribute name
      */
-    default void removeAttribute(Val entity, String attributeName) {
-        removeAttribute(entity, attributeName, List.of());
+    default Mono<Void> removeAttribute(Val entity, String attributeName) {
+        return removeAttribute(entity, attributeName, List.of());
     }
 
     /**
@@ -242,8 +243,8 @@ public interface AttributeRepository extends AttributeFinder {
      * @param attributeName the fully qualified attribute name
      * @param arguments the attribute arguments
      */
-    default void removeAttribute(String attributeName, List<Val> arguments) {
-        removeAttribute(null, attributeName, arguments);
+    default Mono<Void> removeAttribute(String attributeName, List<Val> arguments) {
+        return removeAttribute(null, attributeName, arguments);
     }
 
 }

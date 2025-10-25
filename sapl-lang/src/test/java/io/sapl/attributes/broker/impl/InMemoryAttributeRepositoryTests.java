@@ -98,7 +98,7 @@ class InMemoryAttributeRepositoryTests {
     void whenSubscribingAfterPublish_receivesCurrentValue() {
         val repository = new InMemoryAttributeRepository(Clock.systemUTC());
 
-        repository.publishAttribute(TEST_ATTRIBUTE, Val.of("cached"));
+        repository.publishAttribute(TEST_ATTRIBUTE, Val.of("cached")).block();
 
         val stream = repository.invoke(createInvocation(TEST_ATTRIBUTE));
 
@@ -108,13 +108,13 @@ class InMemoryAttributeRepositoryTests {
     @Test
     void whenAttributeRemoved_subscribersReceiveAttributeUnavailable() {
         val repository = new InMemoryAttributeRepository(Clock.systemUTC());
-        repository.publishAttribute(TEST_ATTRIBUTE, Val.of("value"));
+        repository.publishAttribute(TEST_ATTRIBUTE, Val.of("value")).block();
 
         val stream         = repository.invoke(createInvocation(TEST_ATTRIBUTE));
         val receivedValues = new CopyOnWriteArrayList<Val>();
         stream.subscribe(receivedValues::add);
 
-        repository.removeAttribute(TEST_ATTRIBUTE);
+        repository.removeAttribute(TEST_ATTRIBUTE).block();
 
         await().atMost(1, TimeUnit.SECONDS).untilAsserted(() -> {
             assertThat(receivedValues).hasSize(2);
@@ -126,13 +126,13 @@ class InMemoryAttributeRepositoryTests {
     @Test
     void whenAttributeUpdated_subscribersReceiveNewValue() {
         val repository = new InMemoryAttributeRepository(Clock.systemUTC());
-        repository.publishAttribute(TEST_ATTRIBUTE, Val.of("user"));
+        repository.publishAttribute(TEST_ATTRIBUTE, Val.of("user")).block();
 
         val stream         = repository.invoke(createInvocation(TEST_ATTRIBUTE));
         val receivedValues = new CopyOnWriteArrayList<Val>();
         stream.subscribe(receivedValues::add);
 
-        repository.publishAttribute(TEST_ATTRIBUTE, Val.of("admin"));
+        repository.publishAttribute(TEST_ATTRIBUTE, Val.of("admin")).block();
 
         await().atMost(1, TimeUnit.SECONDS).untilAsserted(() -> {
             assertThat(receivedValues).hasSize(2);
@@ -151,8 +151,8 @@ class InMemoryAttributeRepositoryTests {
         val user1      = Val.of("user-123");
         val user2      = Val.of("user-456");
 
-        repository.publishAttribute(user1, TEST_ATTRIBUTE, Val.of("user1-value"));
-        repository.publishAttribute(user2, TEST_ATTRIBUTE, Val.of("user2-value"));
+        repository.publishAttribute(user1, TEST_ATTRIBUTE, Val.of("user1-value")).block();
+        repository.publishAttribute(user2, TEST_ATTRIBUTE, Val.of("user2-value")).block();
 
         val invocation1 = new AttributeFinderInvocation("config", TEST_ATTRIBUTE, user1, List.of(), Map.of(),
                 Duration.ofSeconds(1), Duration.ofSeconds(1), Duration.ofSeconds(1), 0L, true);
@@ -170,8 +170,8 @@ class InMemoryAttributeRepositoryTests {
     void whenPublishingWithDifferentArguments_attributesAreIsolated() {
         val repository = new InMemoryAttributeRepository(Clock.systemUTC());
 
-        repository.publishAttribute(TEST_ATTRIBUTE, List.of(Val.of(1)), Val.of("result1"));
-        repository.publishAttribute(TEST_ATTRIBUTE, List.of(Val.of(2)), Val.of("result2"));
+        repository.publishAttribute(TEST_ATTRIBUTE, List.of(Val.of(1)), Val.of("result1")).block();
+        repository.publishAttribute(TEST_ATTRIBUTE, List.of(Val.of(2)), Val.of("result2")).block();
 
         val invocation1 = new AttributeFinderInvocation("config", TEST_ATTRIBUTE, null, List.of(Val.of(1)), Map.of(),
                 Duration.ofSeconds(1), Duration.ofSeconds(1), Duration.ofSeconds(1), 0L, true);
@@ -196,7 +196,7 @@ class InMemoryAttributeRepositoryTests {
         val receivedValues = new CopyOnWriteArrayList<Val>();
         stream.subscribe(receivedValues::add);
 
-        repository.publishAttribute(TEST_ATTRIBUTE, Val.of("token"), Duration.ofMillis(200), TimeOutStrategy.REMOVE);
+        repository.publishAttribute(TEST_ATTRIBUTE, Val.of("token"), Duration.ofMillis(200), TimeOutStrategy.REMOVE).block();
 
         await().atMost(1, TimeUnit.SECONDS).untilAsserted(() -> {
             assertThat(receivedValues).hasSize(3);
@@ -214,7 +214,7 @@ class InMemoryAttributeRepositoryTests {
         stream.subscribe(receivedValues::add);
 
         repository.publishAttribute(TEST_ATTRIBUTE, Val.of("online"), Duration.ofMillis(200),
-                TimeOutStrategy.BECOME_UNDEFINED);
+                TimeOutStrategy.BECOME_UNDEFINED).block();
 
         await().atMost(1, TimeUnit.SECONDS).untilAsserted(() -> {
             assertThat(receivedValues).hasSize(3);
@@ -229,7 +229,7 @@ class InMemoryAttributeRepositoryTests {
         val repository = new InMemoryAttributeRepository(Clock.systemUTC());
 
         repository.publishAttribute(TEST_ATTRIBUTE, Val.of("value"), Duration.ofMillis(100),
-                TimeOutStrategy.BECOME_UNDEFINED);
+                TimeOutStrategy.BECOME_UNDEFINED).block();
 
         await().pollDelay(200, TimeUnit.MILLISECONDS).atMost(300, TimeUnit.MILLISECONDS).untilAsserted(() -> {});
 
@@ -246,11 +246,11 @@ class InMemoryAttributeRepositoryTests {
 
         stream.subscribe(v -> receivedValues.incrementAndGet());
 
-        repository.publishAttribute(TEST_ATTRIBUTE, Val.of("first"), Duration.ofMillis(200), TimeOutStrategy.REMOVE);
+        repository.publishAttribute(TEST_ATTRIBUTE, Val.of("first"), Duration.ofMillis(200), TimeOutStrategy.REMOVE).block();
 
         await().pollDelay(100, TimeUnit.MILLISECONDS).atMost(150, TimeUnit.MILLISECONDS).untilAsserted(() -> {});
 
-        repository.publishAttribute(TEST_ATTRIBUTE, Val.of("second"), Duration.ofSeconds(10), TimeOutStrategy.REMOVE);
+        repository.publishAttribute(TEST_ATTRIBUTE, Val.of("second"), Duration.ofSeconds(10), TimeOutStrategy.REMOVE).block();
 
         await().pollDelay(300, TimeUnit.MILLISECONDS).atMost(400, TimeUnit.MILLISECONDS)
                 .untilAsserted(() -> assertThat(receivedValues.get()).isEqualTo(3));
@@ -264,11 +264,11 @@ class InMemoryAttributeRepositoryTests {
 
         stream.subscribe(v -> receivedValues.incrementAndGet());
 
-        repository.publishAttribute(TEST_ATTRIBUTE, Val.of("value"), Duration.ofMillis(500), TimeOutStrategy.REMOVE);
+        repository.publishAttribute(TEST_ATTRIBUTE, Val.of("value"), Duration.ofMillis(500), TimeOutStrategy.REMOVE).block();
 
         await().pollDelay(100, TimeUnit.MILLISECONDS).atMost(150, TimeUnit.MILLISECONDS).untilAsserted(() -> {});
 
-        repository.removeAttribute(TEST_ATTRIBUTE);
+        repository.removeAttribute(TEST_ATTRIBUTE).block();
 
         await().pollDelay(600, TimeUnit.MILLISECONDS).atMost(700, TimeUnit.MILLISECONDS)
                 .untilAsserted(() -> assertThat(receivedValues.get()).isEqualTo(3));
@@ -281,7 +281,7 @@ class InMemoryAttributeRepositoryTests {
         val receivedValues = new CopyOnWriteArrayList<Val>();
         stream.subscribe(receivedValues::add);
 
-        repository.publishAttribute(TEST_ATTRIBUTE, Val.of("value"), Duration.ZERO, TimeOutStrategy.REMOVE);
+        repository.publishAttribute(TEST_ATTRIBUTE, Val.of("value"), Duration.ZERO, TimeOutStrategy.REMOVE).block();
 
         await().atMost(500, TimeUnit.MILLISECONDS).untilAsserted(() -> {
             assertThat(receivedValues).hasSize(3);
@@ -299,7 +299,7 @@ class InMemoryAttributeRepositoryTests {
 
         stream.subscribe(v -> receivedValues.incrementAndGet());
 
-        repository.publishAttribute(TEST_ATTRIBUTE, Val.of("config"));
+        repository.publishAttribute(TEST_ATTRIBUTE, Val.of("config")).block();
 
         await().pollDelay(500, TimeUnit.MILLISECONDS).atMost(600, TimeUnit.MILLISECONDS)
                 .untilAsserted(() -> assertThat(receivedValues.get()).isEqualTo(2));
@@ -321,9 +321,9 @@ class InMemoryAttributeRepositoryTests {
             repository.invoke(createInvocation(TEST_ATTRIBUTE)).subscribe(v -> counter.incrementAndGet());
         });
 
-        repository.publishAttribute(TEST_ATTRIBUTE, Val.of("value1"));
-        repository.publishAttribute(TEST_ATTRIBUTE, Val.of("value2"));
-        repository.removeAttribute(TEST_ATTRIBUTE);
+        repository.publishAttribute(TEST_ATTRIBUTE, Val.of("value1")).block();
+        repository.publishAttribute(TEST_ATTRIBUTE, Val.of("value2")).block();
+        repository.removeAttribute(TEST_ATTRIBUTE).block();
 
         await().atMost(1, TimeUnit.SECONDS)
                 .untilAsserted(() -> counters.forEach(counter -> assertThat(counter.get()).isEqualTo(4)));
@@ -332,7 +332,7 @@ class InMemoryAttributeRepositoryTests {
     @Test
     void whenSubscribersDisposeQuickly_repositoryRemainsStable() {
         val repository = new InMemoryAttributeRepository(Clock.systemUTC());
-        repository.publishAttribute(TEST_ATTRIBUTE, Val.of("value"));
+        repository.publishAttribute(TEST_ATTRIBUTE, Val.of("value")).block();
 
         IntStream.range(0, 100).forEach(i -> {
             val subscription = repository.invoke(createInvocation(TEST_ATTRIBUTE)).subscribe();
@@ -361,7 +361,7 @@ class InMemoryAttributeRepositoryTests {
             try {
                 barrier.await();
                 IntStream.range(0, updatesPerThread).forEach(i -> repository.publishAttribute(TEST_ATTRIBUTE,
-                        Val.of("thread-" + threadId + "-update-" + i)));
+                        Val.of("thread-" + threadId + "-update-" + i)).block());
             } catch (Exception e) {
                 errors.set(e);
             }
@@ -382,7 +382,7 @@ class InMemoryAttributeRepositoryTests {
     @RepeatedTest(5)
     void whenConcurrentSubscribe_allSubscribersReceiveUpdates() throws InterruptedException {
         val repository = new InMemoryAttributeRepository(Clock.systemUTC());
-        repository.publishAttribute(TEST_ATTRIBUTE, Val.of("initial"));
+        repository.publishAttribute(TEST_ATTRIBUTE, Val.of("initial")).block();
 
         val subscriberCount = 100;
         val latch           = new CountDownLatch(subscriberCount);
@@ -412,9 +412,9 @@ class InMemoryAttributeRepositoryTests {
 
         stream.subscribe(v -> receivedValues.incrementAndGet());
 
-        repository.publishAttribute(TEST_ATTRIBUTE, Val.of("value"), Duration.ofMillis(100), TimeOutStrategy.REMOVE);
+        repository.publishAttribute(TEST_ATTRIBUTE, Val.of("value"), Duration.ofMillis(100), TimeOutStrategy.REMOVE).block();
 
-        Mono.delay(Duration.ofMillis(95)).subscribe(tick -> repository.removeAttribute(TEST_ATTRIBUTE));
+        Mono.delay(Duration.ofMillis(95)).then(repository.removeAttribute(TEST_ATTRIBUTE)).block();
 
         await().atMost(500, TimeUnit.MILLISECONDS)
                 .untilAsserted(() -> assertThat(receivedValues.get()).isGreaterThanOrEqualTo(2));
@@ -451,10 +451,10 @@ class InMemoryAttributeRepositoryTests {
         val stream = repository.invoke(createInvocation(TEST_ATTRIBUTE));
         stream.take(Duration.ofMillis(250)).doOnNext(emissions::add).doOnComplete(latch::countDown).subscribe();
 
-        repository.publishAttribute(TEST_ATTRIBUTE, Val.of("first"), Duration.ofMillis(100), TimeOutStrategy.REMOVE);
+        repository.publishAttribute(TEST_ATTRIBUTE, Val.of("first"), Duration.ofMillis(100), TimeOutStrategy.REMOVE).block();
 
         Mono.delay(Duration.ofMillis(95))
-                .subscribe(tick -> repository.publishAttribute(TEST_ATTRIBUTE, Val.of("second")));
+                .subscribe(tick -> repository.publishAttribute(TEST_ATTRIBUTE, Val.of("second")).block());
 
         await().atMost(500, TimeUnit.MILLISECONDS).until(() -> latch.getCount() == 0);
 
@@ -497,10 +497,10 @@ class InMemoryAttributeRepositoryTests {
         stream.take(Duration.ofMillis(Math.max(updateDelayMillis, timeoutMillis) + 150)).doOnNext(emissions::add)
                 .doOnComplete(latch::countDown).subscribe();
 
-        repository.publishAttribute(TEST_ATTRIBUTE, Val.of("first"), Duration.ofMillis(timeoutMillis), strategy);
+        repository.publishAttribute(TEST_ATTRIBUTE, Val.of("first"), Duration.ofMillis(timeoutMillis), strategy).block();
 
         Mono.delay(Duration.ofMillis(updateDelayMillis))
-                .subscribe(tick -> repository.publishAttribute(TEST_ATTRIBUTE, Val.of("second")));
+                .subscribe(tick -> repository.publishAttribute(TEST_ATTRIBUTE, Val.of("second")).block());
 
         await().atMost(1, TimeUnit.SECONDS).until(() -> latch.getCount() == 0);
 
@@ -549,10 +549,10 @@ class InMemoryAttributeRepositoryTests {
         stream.take(Duration.ofMillis(250)).doOnNext(emissions::add).doOnComplete(latch::countDown).subscribe();
 
         repository.publishAttribute(TEST_ATTRIBUTE, Val.of("initial"), Duration.ofMillis(100),
-                TimeOutStrategy.BECOME_UNDEFINED);
+                TimeOutStrategy.BECOME_UNDEFINED).block();
 
         Mono.delay(Duration.ofMillis(95))
-                .subscribe(tick -> repository.publishAttribute(TEST_ATTRIBUTE, Val.of("updated")));
+                .subscribe(tick -> repository.publishAttribute(TEST_ATTRIBUTE, Val.of("updated")).block());
 
         await().atMost(500, TimeUnit.MILLISECONDS).until(() -> latch.getCount() == 0);
 
@@ -585,19 +585,19 @@ class InMemoryAttributeRepositoryTests {
         val stream = repository.invoke(createInvocation(TEST_ATTRIBUTE));
         stream.doOnNext(emissions::add).doOnComplete(latch::countDown).subscribe();
 
-        repository.publishAttribute(TEST_ATTRIBUTE, Val.of("first"), Duration.ofMillis(200), TimeOutStrategy.REMOVE);
+        repository.publishAttribute(TEST_ATTRIBUTE, Val.of("first"), Duration.ofMillis(200), TimeOutStrategy.REMOVE).block();
 
         await().atMost(200, TimeUnit.MILLISECONDS).until(() -> emissions.contains(Val.of("first")));
 
-        repository.publishAttribute(TEST_ATTRIBUTE, Val.of("second"));
+        repository.publishAttribute(TEST_ATTRIBUTE, Val.of("second")).block();
 
         await().atMost(200, TimeUnit.MILLISECONDS).until(() -> emissions.contains(Val.of("second")));
 
-        repository.publishAttribute(TEST_ATTRIBUTE, Val.of("third"));
+        repository.publishAttribute(TEST_ATTRIBUTE, Val.of("third")).block();
 
         await().atMost(200, TimeUnit.MILLISECONDS).until(() -> emissions.contains(Val.of("third")));
 
-        repository.publishAttribute(TEST_ATTRIBUTE, Val.of("fourth"));
+        repository.publishAttribute(TEST_ATTRIBUTE, Val.of("fourth")).block();
 
         await().atMost(400, TimeUnit.MILLISECONDS).until(() -> emissions.contains(Val.of("fourth")));
 
@@ -627,9 +627,9 @@ class InMemoryAttributeRepositoryTests {
 
             stream.subscribe(v -> received.incrementAndGet());
 
-            IntStream.range(0, operationsPerAttribute).forEach(j -> {
-                repository.publishAttribute(attributeName, Val.of("value-" + j));
-            });
+            IntStream.range(0, operationsPerAttribute).forEach(j ->
+                repository.publishAttribute(attributeName, Val.of("value-" + j)).block()
+            );
 
             await().atMost(2, TimeUnit.SECONDS)
                     .untilAsserted(() -> assertThat(received.get()).isGreaterThanOrEqualTo(operationsPerAttribute));
@@ -648,10 +648,10 @@ class InMemoryAttributeRepositoryTests {
     void whenRepositoryFull_newAttributesRejected() {
         val repository = new InMemoryAttributeRepository(Clock.systemUTC());
 
-        IntStream.range(0, 10_000).forEach(i -> repository.publishAttribute("flood.attr" + i, Val.of("data")));
+        IntStream.range(0, 10_000).forEach(i -> repository.publishAttribute("flood.attr" + i, Val.of("data")).block());
 
         val testValue = Val.of("data");
-        assertThatThrownBy(() -> repository.publishAttribute("flood.attr10001", testValue))
+        assertThatThrownBy(() -> repository.publishAttribute("flood.attr10001", testValue).block())
                 .isInstanceOf(IllegalStateException.class).hasMessageContaining("Repository is full");
     }
 
@@ -659,12 +659,12 @@ class InMemoryAttributeRepositoryTests {
     void whenRepositoryFullAndRetried_consistentlyRejects() {
         val repository = new InMemoryAttributeRepository(Clock.systemUTC());
 
-        IntStream.range(0, 10_000).forEach(i -> repository.publishAttribute("flood.attr" + i, Val.of("data")));
+        IntStream.range(0, 10_000).forEach(i -> repository.publishAttribute("flood.attr" + i, Val.of("data")).block());
 
         val testValue = Val.of("data");
         IntStream.range(0, 100).forEach(i -> {
             val attributeName = "attack.attr" + i;
-            assertThatThrownBy(() -> repository.publishAttribute(attributeName, testValue))
+            assertThatThrownBy(() -> repository.publishAttribute(attributeName, testValue).block())
                     .isInstanceOf(IllegalStateException.class);
         });
     }
@@ -673,11 +673,11 @@ class InMemoryAttributeRepositoryTests {
     void whenRepositoryFull_updatesStillAllowed() {
         val repository = new InMemoryAttributeRepository(Clock.systemUTC());
 
-        repository.publishAttribute("test.existing", Val.of("v1"));
+        repository.publishAttribute("test.existing", Val.of("v1")).block();
 
-        IntStream.range(0, 9_999).forEach(i -> repository.publishAttribute("flood.attr" + i, Val.of("data")));
+        IntStream.range(0, 9_999).forEach(i -> repository.publishAttribute("flood.attr" + i, Val.of("data")).block());
 
-        repository.publishAttribute("test.existing", Val.of("v2"));
+        repository.publishAttribute("test.existing", Val.of("v2")).block();
 
         val stream = repository.invoke(createInvocation("test.existing"));
         StepVerifier.create(stream.take(1)).expectNext(Val.of("v2")).expectComplete().verify(TEST_TIMEOUT);
@@ -696,7 +696,7 @@ class InMemoryAttributeRepositoryTests {
         });
 
         assertThatCode(() -> {
-            IntStream.range(0, 2000).forEach(i -> repository.publishAttribute(TEST_ATTRIBUTE, Val.of("flood-" + i)));
+            IntStream.range(0, 2000).forEach(i -> repository.publishAttribute(TEST_ATTRIBUTE, Val.of("flood-" + i)).block());
         }).doesNotThrowAnyException();
 
         await().pollDelay(100, TimeUnit.MILLISECONDS).atMost(200, TimeUnit.MILLISECONDS).untilAsserted(() -> {});
@@ -707,7 +707,7 @@ class InMemoryAttributeRepositoryTests {
         val repository = new InMemoryAttributeRepository(Clock.systemUTC());
 
         assertThatCode(() -> {
-            IntStream.range(0, 100).forEach(i -> repository.publishAttribute(TEST_ATTRIBUTE, Val.of("value-" + i)));
+            IntStream.range(0, 100).forEach(i -> repository.publishAttribute(TEST_ATTRIBUTE, Val.of("value-" + i)).block());
         }).doesNotThrowAnyException();
 
         val stream = repository.invoke(createInvocation(TEST_ATTRIBUTE));
@@ -717,7 +717,7 @@ class InMemoryAttributeRepositoryTests {
     @Test
     void whenManySubscriptions_memoryUsageBounded() {
         val repository = new InMemoryAttributeRepository(Clock.systemUTC());
-        repository.publishAttribute(TEST_ATTRIBUTE, Val.of("value"));
+        repository.publishAttribute(TEST_ATTRIBUTE, Val.of("value")).block();
 
         val subscriptions = IntStream.range(0, 1000)
                 .mapToObj(i -> repository.invoke(createInvocation(TEST_ATTRIBUTE)).subscribe()).toList();
@@ -730,7 +730,7 @@ class InMemoryAttributeRepositoryTests {
     @RepeatedTest(5)
     void whenRapidSubscribeUnsubscribe_noResourceLeaks() {
         val repository = new InMemoryAttributeRepository(Clock.systemUTC());
-        repository.publishAttribute(TEST_ATTRIBUTE, Val.of("value"));
+        repository.publishAttribute(TEST_ATTRIBUTE, Val.of("value")).block();
 
         IntStream.range(0, 1000).forEach(i -> {
             val subscription = repository.invoke(createInvocation(TEST_ATTRIBUTE)).subscribe();
@@ -752,7 +752,7 @@ class InMemoryAttributeRepositoryTests {
         }
         val largeValue = Val.of(largeArray);
 
-        repository.publishAttribute(TEST_ATTRIBUTE, largeValue);
+        repository.publishAttribute(TEST_ATTRIBUTE, largeValue).block();
 
         val stream = repository.invoke(createInvocation(TEST_ATTRIBUTE));
         StepVerifier.create(stream.take(1)).expectNext(largeValue).expectComplete().verify(TEST_TIMEOUT);
@@ -768,7 +768,7 @@ class InMemoryAttributeRepositoryTests {
         val repository = new InMemoryAttributeRepository(Clock.systemUTC());
         val testValue  = Val.of("value");
 
-        assertThatThrownBy(() -> repository.publishAttribute(invalidName, testValue))
+        assertThatThrownBy(() -> repository.publishAttribute(invalidName, testValue).block())
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("Attribute name must not be null or blank");
     }
@@ -778,7 +778,7 @@ class InMemoryAttributeRepositoryTests {
         val repository = new InMemoryAttributeRepository(Clock.systemUTC());
         val testValue  = Val.of("value");
 
-        assertThatThrownBy(() -> repository.publishAttribute(null, testValue))
+        assertThatThrownBy(() -> repository.publishAttribute(null, testValue).block())
                 .isInstanceOf(IllegalArgumentException.class);
     }
 
@@ -787,7 +787,7 @@ class InMemoryAttributeRepositoryTests {
         val repository = new InMemoryAttributeRepository(Clock.systemUTC());
         val testValue  = Val.of("value");
 
-        assertThatThrownBy(() -> repository.publishAttribute(TEST_ATTRIBUTE, null, testValue))
+        assertThatThrownBy(() -> repository.publishAttribute(TEST_ATTRIBUTE, null, testValue).block())
                 .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("Arguments must not be null");
     }
 
@@ -795,7 +795,7 @@ class InMemoryAttributeRepositoryTests {
     void whenValueNull_publishThrowsException() {
         val repository = new InMemoryAttributeRepository(Clock.systemUTC());
 
-        assertThatThrownBy(() -> repository.publishAttribute(TEST_ATTRIBUTE, null))
+        assertThatThrownBy(() -> repository.publishAttribute(TEST_ATTRIBUTE, null).block())
                 .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("Value must not be null");
     }
 
@@ -804,7 +804,7 @@ class InMemoryAttributeRepositoryTests {
         val repository = new InMemoryAttributeRepository(Clock.systemUTC());
         val testValue  = Val.of("value");
 
-        assertThatThrownBy(() -> repository.publishAttribute(TEST_ATTRIBUTE, testValue, null, TimeOutStrategy.REMOVE))
+        assertThatThrownBy(() -> repository.publishAttribute(TEST_ATTRIBUTE, testValue, null, TimeOutStrategy.REMOVE).block())
                 .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("TTL must not be null or negative");
     }
 
@@ -815,7 +815,7 @@ class InMemoryAttributeRepositoryTests {
         val negativeDuration = Duration.ofSeconds(-1);
 
         assertThatThrownBy(
-                () -> repository.publishAttribute(TEST_ATTRIBUTE, testValue, negativeDuration, TimeOutStrategy.REMOVE))
+                () -> repository.publishAttribute(TEST_ATTRIBUTE, testValue, negativeDuration, TimeOutStrategy.REMOVE).block())
                 .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("TTL must not be null or negative");
     }
 
@@ -825,7 +825,7 @@ class InMemoryAttributeRepositoryTests {
         val testValue    = Val.of("value");
         val testDuration = Duration.ofSeconds(1);
 
-        assertThatThrownBy(() -> repository.publishAttribute(TEST_ATTRIBUTE, testValue, testDuration, null))
+        assertThatThrownBy(() -> repository.publishAttribute(TEST_ATTRIBUTE, testValue, testDuration, null).block())
                 .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("TimeOutStrategy must not be null");
     }
 
@@ -834,7 +834,7 @@ class InMemoryAttributeRepositoryTests {
     void whenAttributeNameInvalid_removeThrowsException(String invalidName) {
         val repository = new InMemoryAttributeRepository(Clock.systemUTC());
 
-        assertThatThrownBy(() -> repository.removeAttribute(invalidName)).isInstanceOf(IllegalArgumentException.class)
+        assertThatThrownBy(() -> repository.removeAttribute(invalidName).block()).isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("Attribute name must not be null or blank");
     }
 
@@ -842,7 +842,7 @@ class InMemoryAttributeRepositoryTests {
     void whenRemovingNonexistentAttribute_noException() {
         val repository = new InMemoryAttributeRepository(Clock.systemUTC());
 
-        assertThatCode(() -> repository.removeAttribute("test.nonexistent")).doesNotThrowAnyException();
+        assertThatCode(() -> repository.removeAttribute("test.nonexistent").block()).doesNotThrowAnyException();
     }
 
     // ========================================================================
@@ -857,7 +857,7 @@ class InMemoryAttributeRepositoryTests {
         val receivedValues = new CopyOnWriteArrayList<Val>();
         stream.subscribe(receivedValues::add);
 
-        repository.publishAttribute(TEST_ATTRIBUTE, Val.of("value"), Duration.ofMillis(200), strategy);
+        repository.publishAttribute(TEST_ATTRIBUTE, Val.of("value"), Duration.ofMillis(200), strategy).block();
 
         val expectedAfterTimeout = strategy == TimeOutStrategy.REMOVE
                 ? InMemoryAttributeRepository.ATTRIBUTE_UNAVAILABLE
@@ -879,11 +879,11 @@ class InMemoryAttributeRepositoryTests {
         stream.subscribe(receivedValues::add);
 
         repository.publishAttribute(TEST_ATTRIBUTE, Val.of("first"), Duration.ofMillis(100),
-                TimeOutStrategy.BECOME_UNDEFINED);
+                TimeOutStrategy.BECOME_UNDEFINED).block();
 
         await().atMost(500, TimeUnit.MILLISECONDS).pollDelay(150, TimeUnit.MILLISECONDS).untilAsserted(() -> {});
 
-        repository.publishAttribute(TEST_ATTRIBUTE, Val.of("second"), Duration.ofSeconds(10));
+        repository.publishAttribute(TEST_ATTRIBUTE, Val.of("second"), Duration.ofSeconds(10)).block();
 
         await().atMost(500, TimeUnit.MILLISECONDS).untilAsserted(() -> {
             assertThat(receivedValues).hasSize(4);
@@ -905,7 +905,7 @@ class InMemoryAttributeRepositoryTests {
         val veryLongDuration = Duration.ofSeconds(Long.MAX_VALUE);
 
         assertThatCode(
-                () -> repository.publishAttribute(TEST_ATTRIBUTE, testValue, veryLongDuration, TimeOutStrategy.REMOVE))
+                () -> repository.publishAttribute(TEST_ATTRIBUTE, testValue, veryLongDuration, TimeOutStrategy.REMOVE).block())
                 .doesNotThrowAnyException();
     }
 
@@ -913,7 +913,7 @@ class InMemoryAttributeRepositoryTests {
     void whenPublishingWithEmptyArguments_treatedAsNoArguments() {
         val repository = new InMemoryAttributeRepository(Clock.systemUTC());
 
-        repository.publishAttribute(TEST_ATTRIBUTE, List.of(), Val.of("value"));
+        repository.publishAttribute(TEST_ATTRIBUTE, List.of(), Val.of("value")).block();
 
         val stream = repository.invoke(createInvocation(TEST_ATTRIBUTE));
         StepVerifier.create(stream.take(1)).expectNext(Val.of("value")).expectComplete().verify(TEST_TIMEOUT);
@@ -927,9 +927,9 @@ class InMemoryAttributeRepositoryTests {
 
         stream.subscribe(v -> received.incrementAndGet());
 
-        repository.publishAttribute(TEST_ATTRIBUTE, Val.of("same"));
-        repository.publishAttribute(TEST_ATTRIBUTE, Val.of("same"));
-        repository.publishAttribute(TEST_ATTRIBUTE, Val.of("same"));
+        repository.publishAttribute(TEST_ATTRIBUTE, Val.of("same")).block();
+        repository.publishAttribute(TEST_ATTRIBUTE, Val.of("same")).block();
+        repository.publishAttribute(TEST_ATTRIBUTE, Val.of("same")).block();
 
         await().atMost(500, TimeUnit.MILLISECONDS).untilAsserted(() -> assertThat(received.get()).isEqualTo(4));
     }
@@ -939,7 +939,7 @@ class InMemoryAttributeRepositoryTests {
         val repository = new InMemoryAttributeRepository(Clock.systemUTC());
         val longName   = "very.long.attribute.name.segment.alpha.beta.gamma.delta.epsilon";
 
-        repository.publishAttribute(longName, Val.of("value"));
+        repository.publishAttribute(longName, Val.of("value")).block();
 
         val invocation = createInvocation(longName);
         val stream     = repository.invoke(invocation);
@@ -951,7 +951,7 @@ class InMemoryAttributeRepositoryTests {
     void whenPublishingUndefinedValue_storedAndEmitted() {
         val repository = new InMemoryAttributeRepository(Clock.systemUTC());
 
-        repository.publishAttribute(TEST_ATTRIBUTE, Val.UNDEFINED);
+        repository.publishAttribute(TEST_ATTRIBUTE, Val.UNDEFINED).block();
 
         val stream = repository.invoke(createInvocation(TEST_ATTRIBUTE));
 
@@ -963,7 +963,7 @@ class InMemoryAttributeRepositoryTests {
         val repository = new InMemoryAttributeRepository(Clock.systemUTC());
         val errorValue = Val.error("custom error");
 
-        repository.publishAttribute(TEST_ATTRIBUTE, errorValue);
+        repository.publishAttribute(TEST_ATTRIBUTE, errorValue).block();
 
         val stream = repository.invoke(createInvocation(TEST_ATTRIBUTE));
 
@@ -992,20 +992,20 @@ class InMemoryAttributeRepositoryTests {
         assertThat(events.getFirst()).isEqualTo(InMemoryAttributeRepository.ATTRIBUTE_UNAVAILABLE);
 
         repository.publishAttribute(userId, attributeName, Val.of("token-abc"), Duration.ofSeconds(30),
-                TimeOutStrategy.REMOVE);
+                TimeOutStrategy.REMOVE).block();
 
         await().pollDelay(50, TimeUnit.MILLISECONDS).atMost(200, TimeUnit.MILLISECONDS)
                 .untilAsserted(() -> assertThat(events).hasSize(2));
         assertThat(events.get(1)).isEqualTo(Val.of("token-abc"));
 
         repository.publishAttribute(userId, attributeName, Val.of("token-xyz"), Duration.ofSeconds(30),
-                TimeOutStrategy.REMOVE);
+                TimeOutStrategy.REMOVE).block();
 
         await().pollDelay(50, TimeUnit.MILLISECONDS).atMost(200, TimeUnit.MILLISECONDS)
                 .untilAsserted(() -> assertThat(events).hasSize(3));
         assertThat(events.get(2)).isEqualTo(Val.of("token-xyz"));
 
-        repository.removeAttribute(userId, attributeName);
+        repository.removeAttribute(userId, attributeName).block();
 
         await().pollDelay(50, TimeUnit.MILLISECONDS).atMost(200, TimeUnit.MILLISECONDS)
                 .untilAsserted(() -> assertThat(events).hasSize(4));
@@ -1029,13 +1029,13 @@ class InMemoryAttributeRepositoryTests {
                 .untilAsserted(() -> assertThat(events).hasSize(1));
 
         repository.publishAttribute(deviceId, attributeName, Val.of(true), Duration.ofMillis(300),
-                TimeOutStrategy.BECOME_UNDEFINED);
+                TimeOutStrategy.BECOME_UNDEFINED).block();
 
         await().pollDelay(50, TimeUnit.MILLISECONDS).atMost(200, TimeUnit.MILLISECONDS)
                 .untilAsserted(() -> assertThat(events).hasSize(2));
 
         repository.publishAttribute(deviceId, attributeName, Val.of(true), Duration.ofMillis(300),
-                TimeOutStrategy.BECOME_UNDEFINED);
+                TimeOutStrategy.BECOME_UNDEFINED).block();
 
         await().pollDelay(50, TimeUnit.MILLISECONDS).atMost(200, TimeUnit.MILLISECONDS)
                 .untilAsserted(() -> assertThat(events).hasSize(3));
@@ -1044,7 +1044,7 @@ class InMemoryAttributeRepositoryTests {
         assertThat(events.get(3)).isEqualTo(Val.UNDEFINED);
 
         repository.publishAttribute(deviceId, attributeName, Val.of(true), Duration.ofMillis(300),
-                TimeOutStrategy.BECOME_UNDEFINED);
+                TimeOutStrategy.BECOME_UNDEFINED).block();
 
         await().pollDelay(50, TimeUnit.MILLISECONDS).atMost(200, TimeUnit.MILLISECONDS)
                 .untilAsserted(() -> assertThat(events).hasSize(5));
@@ -1064,9 +1064,9 @@ class InMemoryAttributeRepositoryTests {
         val events = new CopyOnWriteArrayList<Val>();
         stream.subscribe(events::add);
 
-        repository.publishAttribute(userId, attributeName, Val.of(1), Duration.ofMillis(200), TimeOutStrategy.REMOVE);
-        repository.publishAttribute(userId, attributeName, Val.of(2), Duration.ofMillis(200), TimeOutStrategy.REMOVE);
-        repository.publishAttribute(userId, attributeName, Val.of(3), Duration.ofMillis(200), TimeOutStrategy.REMOVE);
+        repository.publishAttribute(userId, attributeName, Val.of(1), Duration.ofMillis(200), TimeOutStrategy.REMOVE).block();
+        repository.publishAttribute(userId, attributeName, Val.of(2), Duration.ofMillis(200), TimeOutStrategy.REMOVE).block();
+        repository.publishAttribute(userId, attributeName, Val.of(3), Duration.ofMillis(200), TimeOutStrategy.REMOVE).block();
 
         await().atMost(1, TimeUnit.SECONDS).untilAsserted(() -> {
             assertThat(events).hasSize(5);
@@ -1097,7 +1097,7 @@ class InMemoryAttributeRepositoryTests {
             }
         });
 
-        IntStream.range(0, updateCount).forEach(i -> repository.publishAttribute(TEST_ATTRIBUTE, Val.of("value-" + i)));
+        IntStream.range(0, updateCount).forEach(i -> repository.publishAttribute(TEST_ATTRIBUTE, Val.of("value-" + i)).block());
 
         await().atMost(1, TimeUnit.SECONDS).untilAsserted(() -> assertThat(receivedValues).hasSize(updateCount + 1));
     }
@@ -1106,7 +1106,7 @@ class InMemoryAttributeRepositoryTests {
     void whenRapidUpdates_latestValueAlwaysAvailable() {
         val repository = new InMemoryAttributeRepository(Clock.systemUTC());
 
-        IntStream.range(0, 100).forEach(i -> repository.publishAttribute(TEST_ATTRIBUTE, Val.of("value-" + i)));
+        IntStream.range(0, 100).forEach(i -> repository.publishAttribute(TEST_ATTRIBUTE, Val.of("value-" + i)).block());
 
         val stream = repository.invoke(createInvocation(TEST_ATTRIBUTE));
         StepVerifier.create(stream.take(1)).expectNext(Val.of("value-99")).expectComplete().verify(TEST_TIMEOUT);
@@ -1133,7 +1133,7 @@ class InMemoryAttributeRepositoryTests {
             try {
                 barrier.await();
                 IntStream.range(0, updatesPerThread).forEach(i -> repository.publishAttribute(TEST_ATTRIBUTE,
-                        Val.of("thread-" + threadId + "-update-" + i)));
+                        Val.of("thread-" + threadId + "-update-" + i)).block());
             } catch (Exception e) {
                 errors.set(e);
             }
