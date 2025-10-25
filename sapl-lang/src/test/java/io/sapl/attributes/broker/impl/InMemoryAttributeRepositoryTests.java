@@ -38,6 +38,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.CyclicBarrier;
 import java.util.concurrent.TimeUnit;
@@ -81,7 +82,7 @@ class InMemoryAttributeRepositoryTests {
         val repository = new InMemoryAttributeRepository(Clock.systemUTC());
         val stream     = repository.invoke(createInvocation(TEST_ATTRIBUTE));
 
-        val receivedValues = new ArrayList<Val>();
+        val receivedValues = new CopyOnWriteArrayList<Val>();
         stream.subscribe(receivedValues::add);
 
         repository.publishAttribute(TEST_ATTRIBUTE, Val.of("active"));
@@ -110,7 +111,7 @@ class InMemoryAttributeRepositoryTests {
         repository.publishAttribute(TEST_ATTRIBUTE, Val.of("value"));
 
         val stream         = repository.invoke(createInvocation(TEST_ATTRIBUTE));
-        val receivedValues = new ArrayList<Val>();
+        val receivedValues = new CopyOnWriteArrayList<Val>();
         stream.subscribe(receivedValues::add);
 
         repository.removeAttribute(TEST_ATTRIBUTE);
@@ -128,7 +129,7 @@ class InMemoryAttributeRepositoryTests {
         repository.publishAttribute(TEST_ATTRIBUTE, Val.of("user"));
 
         val stream         = repository.invoke(createInvocation(TEST_ATTRIBUTE));
-        val receivedValues = new ArrayList<Val>();
+        val receivedValues = new CopyOnWriteArrayList<Val>();
         stream.subscribe(receivedValues::add);
 
         repository.publishAttribute(TEST_ATTRIBUTE, Val.of("admin"));
@@ -192,7 +193,7 @@ class InMemoryAttributeRepositoryTests {
     void whenTTLExpires_attributeIsRemovedAndSubscribersNotified() {
         val repository     = new InMemoryAttributeRepository(Clock.systemUTC());
         val stream         = repository.invoke(createInvocation(TEST_ATTRIBUTE));
-        val receivedValues = new ArrayList<Val>();
+        val receivedValues = new CopyOnWriteArrayList<Val>();
         stream.subscribe(receivedValues::add);
 
         repository.publishAttribute(TEST_ATTRIBUTE, Val.of("token"), Duration.ofMillis(200), TimeOutStrategy.REMOVE);
@@ -209,7 +210,7 @@ class InMemoryAttributeRepositoryTests {
     void whenTTLExpiresWithBecomeUndefined_attributeBecomesUndefined() {
         val repository     = new InMemoryAttributeRepository(Clock.systemUTC());
         val stream         = repository.invoke(createInvocation(TEST_ATTRIBUTE));
-        val receivedValues = new ArrayList<Val>();
+        val receivedValues = new CopyOnWriteArrayList<Val>();
         stream.subscribe(receivedValues::add);
 
         repository.publishAttribute(TEST_ATTRIBUTE, Val.of("online"), Duration.ofMillis(200),
@@ -277,7 +278,7 @@ class InMemoryAttributeRepositoryTests {
     void whenTTLIsZero_attributeExpiresImmediately() {
         val repository     = new InMemoryAttributeRepository(Clock.systemUTC());
         val stream         = repository.invoke(createInvocation(TEST_ATTRIBUTE));
-        val receivedValues = new ArrayList<Val>();
+        val receivedValues = new CopyOnWriteArrayList<Val>();
         stream.subscribe(receivedValues::add);
 
         repository.publishAttribute(TEST_ATTRIBUTE, Val.of("value"), Duration.ZERO, TimeOutStrategy.REMOVE);
@@ -444,7 +445,7 @@ class InMemoryAttributeRepositoryTests {
     @RepeatedTest(10)
     void whenTimeoutAndUpdateRace_emissionSequenceIsValid() {
         val repository = new InMemoryAttributeRepository(Clock.systemUTC());
-        val emissions  = new ArrayList<Val>();
+        val emissions  = new CopyOnWriteArrayList<Val>();
         val latch      = new CountDownLatch(1);
 
         val stream = repository.invoke(createInvocation(TEST_ATTRIBUTE));
@@ -487,9 +488,9 @@ class InMemoryAttributeRepositoryTests {
     @CsvSource({ "50, 150, REMOVE", "200, 150, REMOVE", "140, 150, REMOVE", "50, 150, BECOME_UNDEFINED",
             "200, 150, BECOME_UNDEFINED", "140, 150, BECOME_UNDEFINED" })
     void whenUpdateAndTimeoutRace_emissionSequenceMatchesTimingAndStrategy(long updateDelayMillis, long timeoutMillis,
-            TimeOutStrategy strategy) {
+                                                                           TimeOutStrategy strategy) {
         val repository = new InMemoryAttributeRepository(Clock.systemUTC());
-        val emissions  = new ArrayList<Val>();
+        val emissions  = new CopyOnWriteArrayList<Val>();
         val latch      = new CountDownLatch(1);
 
         val stream = repository.invoke(createInvocation(TEST_ATTRIBUTE));
@@ -541,7 +542,7 @@ class InMemoryAttributeRepositoryTests {
     @RepeatedTest(5)
     void whenBecomeUndefinedTimeoutRacesWithUpdate_transitionSequenceIsValid() {
         val repository = new InMemoryAttributeRepository(Clock.systemUTC());
-        val emissions  = new ArrayList<Val>();
+        val emissions  = new CopyOnWriteArrayList<Val>();
         val latch      = new CountDownLatch(1);
 
         val stream = repository.invoke(createInvocation(TEST_ATTRIBUTE));
@@ -578,7 +579,7 @@ class InMemoryAttributeRepositoryTests {
     @RepeatedTest(5)
     void whenMultipleUpdatesRaceWithTimeout_allUpdatesObservedInOrder() {
         val repository = new InMemoryAttributeRepository(Clock.systemUTC());
-        val emissions  = new ArrayList<Val>();
+        val emissions  = new CopyOnWriteArrayList<Val>();
         val latch      = new CountDownLatch(1);
 
         val stream = repository.invoke(createInvocation(TEST_ATTRIBUTE));
@@ -853,7 +854,7 @@ class InMemoryAttributeRepositoryTests {
     void whenTimeoutFires_correctStrategyApplied(TimeOutStrategy strategy) {
         val repository     = new InMemoryAttributeRepository(Clock.systemUTC());
         val stream         = repository.invoke(createInvocation(TEST_ATTRIBUTE));
-        val receivedValues = new ArrayList<Val>();
+        val receivedValues = new CopyOnWriteArrayList<Val>();
         stream.subscribe(receivedValues::add);
 
         repository.publishAttribute(TEST_ATTRIBUTE, Val.of("value"), Duration.ofMillis(200), strategy);
@@ -874,7 +875,7 @@ class InMemoryAttributeRepositoryTests {
     void whenUpdatingUndefinedAttribute_newValueAndTimeoutApplied() {
         val repository     = new InMemoryAttributeRepository(Clock.systemUTC());
         val stream         = repository.invoke(createInvocation(TEST_ATTRIBUTE));
-        val receivedValues = new ArrayList<Val>();
+        val receivedValues = new CopyOnWriteArrayList<Val>();
         stream.subscribe(receivedValues::add);
 
         repository.publishAttribute(TEST_ATTRIBUTE, Val.of("first"), Duration.ofMillis(100),
@@ -983,7 +984,7 @@ class InMemoryAttributeRepositoryTests {
                 Duration.ofSeconds(1), Duration.ofSeconds(1), Duration.ofSeconds(1), 0L, true);
 
         val stream = repository.invoke(invocation);
-        val events = new ArrayList<Val>();
+        val events = new CopyOnWriteArrayList<Val>();
         stream.subscribe(events::add);
 
         await().pollDelay(50, TimeUnit.MILLISECONDS).atMost(200, TimeUnit.MILLISECONDS)
@@ -1021,7 +1022,7 @@ class InMemoryAttributeRepositoryTests {
                 Duration.ofSeconds(1), Duration.ofSeconds(1), Duration.ofSeconds(1), 0L, true);
 
         val stream = repository.invoke(invocation);
-        val events = new ArrayList<Val>();
+        val events = new CopyOnWriteArrayList<Val>();
         stream.subscribe(events::add);
 
         await().pollDelay(50, TimeUnit.MILLISECONDS).atMost(200, TimeUnit.MILLISECONDS)
@@ -1060,7 +1061,7 @@ class InMemoryAttributeRepositoryTests {
                 Duration.ofSeconds(1), Duration.ofSeconds(1), Duration.ofSeconds(1), 0L, true);
 
         val stream = repository.invoke(invocation);
-        val events = new ArrayList<Val>();
+        val events = new CopyOnWriteArrayList<Val>();
         stream.subscribe(events::add);
 
         repository.publishAttribute(userId, attributeName, Val.of(1), Duration.ofMillis(200), TimeOutStrategy.REMOVE);
@@ -1081,7 +1082,7 @@ class InMemoryAttributeRepositoryTests {
     void whenSubscriberRequestsItems_noBackpressureIssues() {
         val repository     = new InMemoryAttributeRepository(Clock.systemUTC());
         val stream         = repository.invoke(createInvocation(TEST_ATTRIBUTE));
-        val receivedValues = new ArrayList<Val>();
+        val receivedValues = new CopyOnWriteArrayList<Val>();
         val updateCount    = 100;
 
         stream.subscribe(new reactor.core.publisher.BaseSubscriber<Val>() {

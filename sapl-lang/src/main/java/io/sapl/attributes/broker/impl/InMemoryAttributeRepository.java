@@ -40,22 +40,42 @@ import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * In-memory implementation of AttributeRepository that stores attribute values
- * and provides reactive streams for attribute updates. Thread-safe for
- * concurrent
+ * and provides reactive streams for attribute updates. Thread-safe for concurrent
  * access using ConcurrentHashMap and Project Reactor's multicast sinks.
  * <p>
+ * Thread Safety: This implementation uses blocking calls to the persistence layer
+ * via {@code .block()}. Ensure the persistence implementation is compatible with
+ * the threading model. For WebFlux environments, verify that storage operations
+ * do not block event loop threads or use a storage implementation that supports
+ * non-blocking operations.
+ * <p>
+ * Basic usage:
+ * <pre>{@code
+ * val repository = new InMemoryAttributeRepository(Clock.systemUTC());
+ *
+ * // Subscribe to attribute stream
+ * Flux<Val> stream = repository.invoke(invocation);
+ * stream.subscribe(value -> processValue(value));
+ *
+ * // Publish attribute with TTL
+ * repository.publishAttribute(
+ *     Val.of("user123"),
+ *     "session.active",
+ *     Val.of(true),
+ *     Duration.ofMinutes(30),
+ *     TimeOutStrategy.REMOVE
+ * );
+ * }</pre>
+ * <p>
  * Race-condition-free subscription model:
- * - Storage is the single source of truth, updated atomically before sink
- * emission
+ * - Storage is the single source of truth, updated atomically before sink emission
  * - Each sink uses replay(1).autoConnect() to buffer the last emitted value
  * - New subscribers read storage first, then subscribe to replayed sink
- * - Sequence numbers filter duplicates when storage and sink contain the same
- * update
+ * - Sequence numbers filter duplicates when storage and sink contain the same update
  * <p>
  * How the race condition is prevented:
  * 1. Subscriber reads storage (sequence=N, value=V1)
- * 2. [Concurrent publish: storage→sequence=N+1, value=V2, then
- * sink→emit(N+1,V2)]
+ * 2. [Concurrent publish: storage→sequence=N+1, value=V2, then sink→emit(N+1,V2)]
  * 3. Subscriber subscribes to replayed sink, receives replayed value (N+1,V2)
  * 4. Subscriber emits V1 from storage (startWith)
  * 5. Subscriber receives V2 from sink, filters by sequence N+1 > N, emits V2
@@ -66,10 +86,8 @@ import java.util.concurrent.atomic.AtomicLong;
  * Sequence filtering prevents emitting V2 twice if it's already in storage.
  * <p>
  * Stage 0 Architecture:
- * - Persistent storage (values, TTLs, deadlines) handled by AttributeStorage
- * interface
- * - Runtime state (sinks, sequence numbers, timeouts) managed by this
- * repository
+ * - Persistent storage (values, TTLs, deadlines) handled by AttributeStorage interface
+ * - Runtime state (sinks, sequence numbers, timeouts) managed by this repository
  * - Sequence numbers are NOT persisted - they start fresh from zero on restart
  */
 @Slf4j
@@ -124,9 +142,9 @@ public class InMemoryAttributeRepository implements AttributeRepository {
      * @param maxRepositorySize the maximum number of attributes that can be stored
      */
     public InMemoryAttributeRepository(@NonNull Clock clock,
-            @NonNull AttributeStorage storage,
-            int bufferSize,
-            int maxRepositorySize) {
+                                       @NonNull AttributeStorage storage,
+                                       int bufferSize,
+                                       int maxRepositorySize) {
         if (bufferSize <= 0) {
             throw new IllegalArgumentException("Buffer size must be positive");
         }
@@ -164,6 +182,14 @@ public class InMemoryAttributeRepository implements AttributeRepository {
         });
     }
 
+    /**
+     * Creates a new sink infrastructure for an attribute key. The sink uses replay(1)
+     * to buffer the last emitted value, preventing race conditions where updates occur
+     * between storage reads and sink subscriptions.
+     *
+     * @param key the attribute key for which to create the sink
+     * @return the runtime state containing the sink, replayed flux, and initial sequence
+     */
     private RuntimeState createSinkForAttribute(AttributeKey key) {
         log.debug("Creating new sink for key: {}", key);
         val sink = Sinks.many().multicast().<SequencedVal>onBackpressureBuffer(bufferSize, false);
@@ -178,7 +204,7 @@ public class InMemoryAttributeRepository implements AttributeRepository {
 
     @Override
     public void publishAttribute(Val entity, String attributeName, List<Val> arguments, Val value, Duration ttl,
-            TimeOutStrategy timeOutStrategy) {
+                                 TimeOutStrategy timeOutStrategy) {
         validatePublishParameters(attributeName, arguments, value, ttl, timeOutStrategy);
 
         val key                = new AttributeKey(entity, attributeName, arguments);
@@ -191,7 +217,7 @@ public class InMemoryAttributeRepository implements AttributeRepository {
     }
 
     private void validatePublishParameters(String attributeName, List<Val> arguments, Val value, Duration ttl,
-            TimeOutStrategy strategy) {
+                                           TimeOutStrategy strategy) {
         if (attributeName == null || attributeName.isBlank()) {
             throw new IllegalArgumentException("Attribute name must not be null or blank");
         }
@@ -218,15 +244,17 @@ public class InMemoryAttributeRepository implements AttributeRepository {
     }
 
     private RuntimeState updateAttributeValue(AttributeKey key, RuntimeState existing, PersistedAttribute newValue,
-            long sequenceNumber) {
-        enforceCapacityLimit(key);
+                                              long sequenceNumber) {
+        val existingAttribute = enforceCapacityLimit(key);
 
         Disposable newTimeout = null;
         try {
             newTimeout = scheduleTimeoutIfNeeded(key, newValue.timeoutDeadline());
-        } finally {
+        } catch (Exception ex) {
             disposeExistingTimeout(existing);
+            throw ex;
         }
+        disposeExistingTimeout(existing);
 
         // Critical ordering: Write to persistent storage BEFORE emitting to sink.
         // This ensures any subscriber reading storage after this method returns
@@ -236,22 +264,33 @@ public class InMemoryAttributeRepository implements AttributeRepository {
         return emitToSinkIfPresent(key, existing, newValue.value(), sequenceNumber, newTimeout);
     }
 
-    private void enforceCapacityLimit(AttributeKey key) {
-        boolean isNewAttribute = !hasPersisted(key);
-        if (isNewAttribute) {
+    /**
+     * Enforces the repository capacity limit by checking if adding a new attribute
+     * would exceed the maximum. Returns the existing persisted attribute if present.
+     *
+     * @param key the attribute key to check
+     * @return the existing persisted attribute, or null if not present
+     * @throws IllegalStateException if the repository is full and the attribute is new
+     */
+    private PersistedAttribute enforceCapacityLimit(AttributeKey key) {
+        val existing = persistence.get(key).block();
+        if (existing == null) {
             int currentCount = attributeCount.incrementAndGet();
             if (currentCount > maxRepositorySize) {
                 attributeCount.decrementAndGet();
                 throw new IllegalStateException("Repository is full. Maximum " + maxRepositorySize
-                        + " attributes allowed. " + "Cannot store new attribute: " + key.attributeName());
+                        + " attributes allowed. Cannot store new attribute: " + key.attributeName());
             }
         }
+        return existing;
     }
 
-    private boolean hasPersisted(AttributeKey key) {
-        return persistence.get(key).block() != null;
-    }
-
+    /**
+     * Disposes an existing timeout subscription if present, preventing memory leaks
+     * when attributes are updated or removed.
+     *
+     * @param runtime the runtime state containing the timeout subscription to dispose
+     */
     private void disposeExistingTimeout(RuntimeState runtime) {
         if (runtime != null && runtime.timeoutSubscription != null) {
             log.debug("Cancelling existing timeout");
@@ -259,6 +298,15 @@ public class InMemoryAttributeRepository implements AttributeRepository {
         }
     }
 
+    /**
+     * Schedules a timeout for an attribute based on its deadline. If the deadline
+     * is Instant.MAX (infinite), no timeout is scheduled. If the deadline has already
+     * passed, the timeout handler is invoked immediately.
+     *
+     * @param key the attribute key for which to schedule the timeout
+     * @param deadline the instant when the timeout should fire
+     * @return the disposable timeout subscription, or null if no timeout was scheduled
+     */
     private Disposable scheduleTimeoutIfNeeded(AttributeKey key, Instant deadline) {
         if (deadline.equals(Instant.MAX)) {
             return null;
@@ -274,8 +322,19 @@ public class InMemoryAttributeRepository implements AttributeRepository {
         return Mono.delay(delayDuration).subscribeOn(Schedulers.parallel()).subscribe(tick -> handleTimeout(key));
     }
 
+    /**
+     * Emits a value to the sink if present, or creates a new sink if needed.
+     * Used during attribute publication to ensure subscribers receive updates.
+     *
+     * @param key the attribute key
+     * @param existing the existing runtime state
+     * @param value the value to emit
+     * @param sequenceNumber the sequence number for duplicate filtering
+     * @param newTimeout the new timeout subscription
+     * @return the updated runtime state
+     */
     private RuntimeState emitToSinkIfPresent(AttributeKey key, RuntimeState existing, Val value, long sequenceNumber,
-            Disposable newTimeout) {
+                                             Disposable newTimeout) {
         Sinks.Many<SequencedVal> sink;
         Flux<SequencedVal>       replayedSink;
 
@@ -313,11 +372,44 @@ public class InMemoryAttributeRepository implements AttributeRepository {
         }
     }
 
+    /**
+     * Creates a new RuntimeState after emitting a value to the sink. Handles both
+     * cases where a sink exists (emits and returns state) or doesn't exist (returns
+     * state with null sink).
+     *
+     * @param key the attribute key
+     * @param current the current runtime state
+     * @param value the value to emit
+     * @param sequenceNumber the sequence number for the emission
+     * @return the new runtime state with no timeout subscription
+     */
+    private RuntimeState createStateAfterEmit(AttributeKey key, RuntimeState current, Val value, long sequenceNumber) {
+        if (current != null && current.sink != null) {
+            tryEmitNext(key, current.sink, value, sequenceNumber);
+            return new RuntimeState(current.sink, current.replayedSink, null, sequenceNumber);
+        }
+        return new RuntimeState(null, null, null, sequenceNumber);
+    }
+
+    /**
+     * Handles timeout events for attributes. Invoked when a scheduled timeout fires,
+     * triggering the appropriate timeout strategy (REMOVE or BECOME_UNDEFINED).
+     *
+     * @param key the attribute key that timed out
+     */
     private void handleTimeout(AttributeKey key) {
         log.debug("Handling timeout for attribute: {}", key);
         runtimeState.compute(key, (k, current) -> processTimeout(key, current));
     }
 
+    /**
+     * Processes a timeout by verifying the attribute still exists and its deadline
+     * has been reached, then applying the configured timeout strategy.
+     *
+     * @param key the attribute key that timed out
+     * @param current the current runtime state
+     * @return the updated runtime state after processing timeout, or current state if timeout invalid
+     */
     private RuntimeState processTimeout(AttributeKey key, RuntimeState current) {
         val persisted = persistence.get(key).block();
         if (persisted == null) {
@@ -333,10 +425,25 @@ public class InMemoryAttributeRepository implements AttributeRepository {
         return applyTimeoutStrategy(key, current, persisted);
     }
 
+    /**
+     * Checks if a timeout deadline has been reached based on the current clock time.
+     *
+     * @param deadline the deadline to check
+     * @return true if the current time is after the deadline, false otherwise
+     */
     private boolean isDeadlineReached(Instant deadline) {
         return clock.instant().isAfter(deadline);
     }
 
+    /**
+     * Applies the configured timeout strategy for an attribute, either removing it
+     * or transitioning it to UNDEFINED state.
+     *
+     * @param key the attribute key
+     * @param current the current runtime state
+     * @param persisted the persisted attribute containing the strategy
+     * @return the updated runtime state after applying the strategy
+     */
     private RuntimeState applyTimeoutStrategy(AttributeKey key, RuntimeState current, PersistedAttribute persisted) {
         if (persisted.timeoutStrategy() == TimeOutStrategy.REMOVE) {
             return handleRemovalStrategy(key, current);
@@ -344,6 +451,14 @@ public class InMemoryAttributeRepository implements AttributeRepository {
         return handleBecomeUndefinedStrategy(key, current);
     }
 
+    /**
+     * Handles the REMOVE timeout strategy by deleting the attribute from persistence
+     * and emitting ATTRIBUTE_UNAVAILABLE to subscribers.
+     *
+     * @param key the attribute key to remove
+     * @param current the current runtime state
+     * @return the updated runtime state with ATTRIBUTE_UNAVAILABLE emitted, or null if no sink
+     */
     private RuntimeState handleRemovalStrategy(AttributeKey key, RuntimeState current) {
         log.debug("Removing timed-out attribute");
         attributeCount.decrementAndGet();
@@ -351,12 +466,19 @@ public class InMemoryAttributeRepository implements AttributeRepository {
 
         if (current != null && current.sink != null) {
             val sequenceNumber = sequenceGenerator.incrementAndGet();
-            tryEmitNext(key, current.sink, ATTRIBUTE_UNAVAILABLE, sequenceNumber);
-            return new RuntimeState(current.sink, current.replayedSink, null, sequenceNumber);
+            return createStateAfterEmit(key, current, ATTRIBUTE_UNAVAILABLE, sequenceNumber);
         }
         return null;
     }
 
+    /**
+     * Handles the BECOME_UNDEFINED timeout strategy by transitioning the attribute to
+     * UNDEFINED state with infinite TTL and emitting Val.UNDEFINED to subscribers.
+     *
+     * @param key the attribute key to transition
+     * @param current the current runtime state
+     * @return the updated runtime state with Val.UNDEFINED emitted
+     */
     private RuntimeState handleBecomeUndefinedStrategy(AttributeKey key, RuntimeState current) {
         log.debug("Setting timed-out attribute to UNDEFINED");
         val sequenceNumber     = sequenceGenerator.incrementAndGet();
@@ -365,11 +487,7 @@ public class InMemoryAttributeRepository implements AttributeRepository {
 
         persistence.put(key, undefinedAttribute).block();
 
-        if (current != null && current.sink != null) {
-            tryEmitNext(key, current.sink, Val.UNDEFINED, sequenceNumber);
-            return new RuntimeState(current.sink, current.replayedSink, null, sequenceNumber);
-        }
-        return new RuntimeState(null, null, null, sequenceNumber);
+        return createStateAfterEmit(key, current, Val.UNDEFINED, sequenceNumber);
     }
 
     @Override
@@ -379,6 +497,13 @@ public class InMemoryAttributeRepository implements AttributeRepository {
         runtimeState.compute(key, (k, existing) -> processRemoval(key, existing));
     }
 
+    /**
+     * Validates parameters for attribute removal operations.
+     *
+     * @param attributeName the attribute name to validate
+     * @param arguments the arguments to validate
+     * @throws IllegalArgumentException if any parameter is invalid
+     */
     private void validateRemovalParameters(String attributeName, Iterable<Val> arguments) {
         if (attributeName == null || attributeName.isBlank()) {
             throw new IllegalArgumentException("Attribute name must not be null or blank");
@@ -388,6 +513,14 @@ public class InMemoryAttributeRepository implements AttributeRepository {
         }
     }
 
+    /**
+     * Processes attribute removal by disposing timeouts, deleting from persistence,
+     * and emitting ATTRIBUTE_UNAVAILABLE to subscribers.
+     *
+     * @param key the attribute key to remove
+     * @param existing the existing runtime state
+     * @return the updated runtime state with ATTRIBUTE_UNAVAILABLE emitted, or null if no sink
+     */
     private RuntimeState processRemoval(AttributeKey key, RuntimeState existing) {
         disposeExistingTimeout(existing);
 
@@ -399,8 +532,7 @@ public class InMemoryAttributeRepository implements AttributeRepository {
 
         if (existing != null && existing.sink != null) {
             val sequenceNumber = sequenceGenerator.incrementAndGet();
-            tryEmitNext(key, existing.sink, ATTRIBUTE_UNAVAILABLE, sequenceNumber);
-            return new RuntimeState(existing.sink, existing.replayedSink, null, sequenceNumber);
+            return createStateAfterEmit(key, existing, ATTRIBUTE_UNAVAILABLE, sequenceNumber);
         }
 
         return null;
