@@ -46,6 +46,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.IntStream;
 
+import static io.sapl.attributes.broker.api.AttributeRepository.INFINITE;
 import static org.assertj.core.api.Assertions.*;
 import static org.awaitility.Awaitility.await;
 
@@ -139,6 +140,25 @@ class InMemoryAttributeRepositoryTests {
         await().atMost(1, TimeUnit.SECONDS).untilAsserted(() -> {
             assertThat(receivedValues).hasSize(2)
                     .containsExactly(Val.of("user"), Val.of("admin"));
+        });
+    }
+
+    @Test
+    void whenValueChangesBackAndForth_allDistinctChangesEmitted() {
+        val repository = new InMemoryAttributeRepository(Clock.systemUTC());
+        repository.publishAttribute(TEST_ATTRIBUTE, Val.of("state1")).block();
+
+        val stream         = repository.invoke(createInvocation(TEST_ATTRIBUTE));
+        val receivedValues = new CopyOnWriteArrayList<Val>();
+        stream.subscribe(receivedValues::add);
+
+        repository.publishAttribute(TEST_ATTRIBUTE, Val.of("state2")).block();
+        repository.publishAttribute(TEST_ATTRIBUTE, Val.of("state1")).block();
+        repository.publishAttribute(TEST_ATTRIBUTE, Val.of("state2")).block();
+
+        await().atMost(1, TimeUnit.SECONDS).untilAsserted(() -> {
+            assertThat(receivedValues).hasSize(4)
+                    .containsExactly(Val.of("state1"), Val.of("state2"), Val.of("state1"), Val.of("state2"));
         });
     }
 
@@ -1314,5 +1334,198 @@ class InMemoryAttributeRepositoryTests {
         });
 
         assertThat(errors.get()).isNull();
+    }
+
+    // ========================================================================
+    // CAPACITY LIMIT ENFORCEMENT
+    // ========================================================================
+
+    @Test
+    void whenPublishingUpToMaximum_allAttributesAreStored() {
+        val maxSize    = 5;
+        val repository = new InMemoryAttributeRepository(Clock.systemUTC(), new HeapAttributeStorage(), 1000, maxSize);
+
+        IntStream.range(0, maxSize)
+                .forEach(i -> repository.publishAttribute("necronomicon.chapter" + i, Val.of("text-" + i)).block());
+
+        IntStream.range(0, maxSize).forEach(i -> {
+            val invocation = createInvocation("necronomicon.chapter" + i);
+            StepVerifier.create(repository.invoke(invocation).take(1))
+                    .expectNext(Val.of("text-" + i))
+                    .expectComplete()
+                    .verify(TEST_TIMEOUT);
+        });
+    }
+
+    @Test
+    void whenExceedingMaximumWithNewAttribute_throwsIllegalStateException() {
+        val maxSize    = 3;
+        val repository = new InMemoryAttributeRepository(Clock.systemUTC(), new HeapAttributeStorage(), 1000, maxSize);
+
+        repository.publishAttribute("ritual.preparation", Val.of("phase1")).block();
+        repository.publishAttribute("ritual.invocation", Val.of("phase2")).block();
+        repository.publishAttribute("ritual.binding", Val.of("phase3")).block();
+
+        assertThatThrownBy(() -> repository.publishAttribute("ritual.banishment", Val.of("phase4")).block())
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("Repository is full")
+                .hasMessageContaining("Maximum 3 attributes allowed")
+                .hasMessageContaining("ritual.banishment");
+    }
+
+    @Test
+    void whenUpdatingExistingAttribute_doesNotCountAgainstLimit() {
+        val maxSize    = 2;
+        val repository = new InMemoryAttributeRepository(Clock.systemUTC(), new HeapAttributeStorage(), 1000, maxSize);
+
+        repository.publishAttribute("elder.sign", Val.of("original")).block();
+        repository.publishAttribute("yellow.sign", Val.of("hastur")).block();
+
+        repository.publishAttribute("elder.sign", Val.of("updated")).block();
+        repository.publishAttribute("yellow.sign", Val.of("carcosa")).block();
+
+        val elderSignInvocation = createInvocation("elder.sign");
+        StepVerifier.create(repository.invoke(elderSignInvocation).take(1))
+                .expectNext(Val.of("updated"))
+                .expectComplete()
+                .verify(TEST_TIMEOUT);
+
+        val yellowSignInvocation = createInvocation("yellow.sign");
+        StepVerifier.create(repository.invoke(yellowSignInvocation).take(1))
+                .expectNext(Val.of("carcosa"))
+                .expectComplete()
+                .verify(TEST_TIMEOUT);
+    }
+
+    @Test
+    void whenRemovingAttribute_allowsNewAttributeToBeStored() {
+        val maxSize    = 2;
+        val repository = new InMemoryAttributeRepository(Clock.systemUTC(), new HeapAttributeStorage(), 1000, maxSize);
+
+        repository.publishAttribute("shoggoth.location", Val.of("antarctic")).block();
+        repository.publishAttribute("deep.one.city", Val.of("rlyeh")).block();
+
+        assertThatThrownBy(() -> repository.publishAttribute("byakhee.nest", Val.of("carcosa")).block())
+                .isInstanceOf(IllegalStateException.class);
+
+        repository.removeAttribute("shoggoth.location").block();
+
+        repository.publishAttribute("byakhee.nest", Val.of("carcosa")).block();
+
+        val invocation = createInvocation("byakhee.nest");
+        StepVerifier.create(repository.invoke(invocation).take(1))
+                .expectNext(Val.of("carcosa"))
+                .expectComplete()
+                .verify(TEST_TIMEOUT);
+    }
+
+    @Test
+    void whenAttributeTimesOutWithRemove_allowsNewAttributeToBeStored() {
+        val maxSize    = 2;
+        val repository = new InMemoryAttributeRepository(Clock.systemUTC(), new HeapAttributeStorage(), 1000, maxSize);
+
+        repository.publishAttribute("ward.protective", Val.of("active"), Duration.ofMillis(100), TimeOutStrategy.REMOVE)
+                .block();
+        repository.publishAttribute("seal.binding", Val.of("intact")).block();
+
+        assertThatThrownBy(() -> repository.publishAttribute("circle.summoning", Val.of("drawn")).block())
+                .isInstanceOf(IllegalStateException.class);
+
+        await().atMost(1, TimeUnit.SECONDS)
+                .untilAsserted(() -> {
+                    repository.publishAttribute("circle.summoning", Val.of("drawn")).block();
+                });
+
+        val invocation = createInvocation("circle.summoning");
+        StepVerifier.create(repository.invoke(invocation).take(1))
+                .expectNext(Val.of("drawn"))
+                .expectComplete()
+                .verify(TEST_TIMEOUT);
+    }
+
+    @Test
+    void whenAttributeTimesOutWithBecomeUndefined_doesNotFreeCapacity() {
+        val maxSize    = 2;
+        val repository = new InMemoryAttributeRepository(Clock.systemUTC(), new HeapAttributeStorage(), 1000, maxSize);
+
+        repository.publishAttribute("cultist.sanity", Val.of(100), Duration.ofMillis(100),
+                TimeOutStrategy.BECOME_UNDEFINED).block();
+        repository.publishAttribute("forbidden.knowledge", Val.of("minimal")).block();
+
+        assertThatThrownBy(() -> repository.publishAttribute("madness.level", Val.of("ascending")).block())
+                .isInstanceOf(IllegalStateException.class);
+
+        await().atMost(1, TimeUnit.SECONDS)
+                .untilAsserted(() -> {
+                    val invocation = createInvocation("cultist.sanity");
+                    StepVerifier.create(repository.invoke(invocation).take(1))
+                            .expectNext(Val.UNDEFINED)
+                            .expectComplete()
+                            .verify(TEST_TIMEOUT);
+                });
+
+        assertThatThrownBy(() -> repository.publishAttribute("madness.level", Val.of("ascending")).block())
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("Repository is full");
+    }
+
+    @Test
+    void whenPublishingMultipleEntitiesSameAttribute_eachCountsSeparately() {
+        val maxSize    = 3;
+        val repository = new InMemoryAttributeRepository(Clock.systemUTC(), new HeapAttributeStorage(), 1000, maxSize);
+
+        val investigator1 = Val.of("carter");
+        val investigator2 = Val.of("armitage");
+        val investigator3 = Val.of("dyer");
+        val investigator4 = Val.of("peaslee");
+
+        repository.publishAttribute(investigator1, "sanity.score", Val.of(80)).block();
+        repository.publishAttribute(investigator2, "sanity.score", Val.of(75)).block();
+        repository.publishAttribute(investigator3, "sanity.score", Val.of(90)).block();
+
+        assertThatThrownBy(() -> repository.publishAttribute(investigator4, "sanity.score", Val.of(85)).block())
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("Repository is full");
+    }
+
+    @Test
+    void whenPublishingSameEntityDifferentArguments_eachCountsSeparately() {
+        val maxSize    = 3;
+        val repository = new InMemoryAttributeRepository(Clock.systemUTC(), new HeapAttributeStorage(), 1000, maxSize);
+
+        val entity = Val.of("library");
+
+        repository.publishAttribute(entity, "tome.danger", List.of(Val.of("necronomicon")), Val.of("extreme"),
+                INFINITE, TimeOutStrategy.REMOVE).block();
+        repository.publishAttribute(entity, "tome.danger", List.of(Val.of("king-in-yellow")), Val.of("high"),
+                INFINITE, TimeOutStrategy.REMOVE).block();
+        repository.publishAttribute(entity, "tome.danger", List.of(Val.of("cultes-des-goules")), Val.of("severe"),
+                INFINITE, TimeOutStrategy.REMOVE).block();
+
+        assertThatThrownBy(() -> repository.publishAttribute(entity, "tome.danger",
+                List.of(Val.of("unaussprechlichen-kulten")), Val.of("moderate"),
+                INFINITE, TimeOutStrategy.REMOVE).block())
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("Repository is full");
+    }
+
+    @ParameterizedTest
+    @ValueSource(ints = { 1, 5, 10, 50 })
+    void whenRepositoryFilledToCapacity_correctAttributeCountMaintained(int maxSize) {
+        val repository = new InMemoryAttributeRepository(Clock.systemUTC(), new HeapAttributeStorage(), 1000, maxSize);
+
+        IntStream.range(0, maxSize)
+                .forEach(i -> repository.publishAttribute("scroll.fragment" + i, Val.of("text-" + i)).block());
+
+        IntStream.range(0, maxSize).forEach(i -> {
+            val invocation = createInvocation("scroll.fragment" + i);
+            StepVerifier.create(repository.invoke(invocation).take(1))
+                    .expectNext(Val.of("text-" + i))
+                    .expectComplete()
+                    .verify(TEST_TIMEOUT);
+        });
+
+        assertThatThrownBy(() -> repository.publishAttribute("scroll.fragmentExtra", Val.of("overflow")).block())
+                .isInstanceOf(IllegalStateException.class);
     }
 }
