@@ -891,7 +891,7 @@ class GraphQLFunctionLibraryTests {
         } else {
             queryBuilder.append("investigator(id: \"1\") { ");
             queryBuilder.append(template.repeat(repetitions));
-            queryBuilder.append("}");
+            queryBuilder.append('}');
         }
 
         queryBuilder.append('}');

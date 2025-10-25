@@ -944,14 +944,14 @@ public class GraphQLFunctionLibrary {
         val metrics = analyzeQueryInSinglePass(document, operationDefinition);
 
         // Populate basic metrics
-        result.put(PROP_OPERATION, metrics.operation);
-        result.put(PROP_OPERATION_NAME, metrics.operationName);
+        result.set(PROP_OPERATION, Val.JSON.textNode(metrics.operation));
+        result.set(PROP_OPERATION_NAME, Val.JSON.textNode(metrics.operationName));
         result.set(PROP_FIELDS, buildStringArray(metrics.fields));
-        result.put(PROP_FIELD_COUNT, metrics.fieldCount);
-        result.put(PROP_DEPTH, metrics.depth);
-        result.put(PROP_IS_INTROSPECTION, metrics.isIntrospection);
+        result.set(PROP_FIELD_COUNT, Val.JSON.numberNode(metrics.fieldCount));
+        result.set(PROP_DEPTH, Val.JSON.numberNode(metrics.depth));
+        result.set(PROP_IS_INTROSPECTION, Val.JSON.booleanNode(metrics.isIntrospection));
         result.set(PROP_VARIABLES, metrics.variables);
-        result.put(PROP_COMPLEXITY, calculateBasicComplexity(metrics.fieldCount, metrics.depth));
+        result.set(PROP_COMPLEXITY, Val.JSON.numberNode(calculateBasicComplexity(metrics.fieldCount, metrics.depth)));
 
         // Type and directive information
         result.set(PROP_TYPES, buildStringArray(new ArrayList<>(metrics.types)));
@@ -959,17 +959,17 @@ public class GraphQLFunctionLibrary {
 
         // Fragment information
         result.set(PROP_FRAGMENTS, metrics.fragments);
-        result.put(PROP_FRAGMENT_COUNT, metrics.fragmentCount);
-        result.put(PROP_HAS_CIRCULAR_FRAGMENTS, metrics.hasCircularFragments);
+        result.set(PROP_FRAGMENT_COUNT, Val.JSON.numberNode(metrics.fragmentCount));
+        result.set(PROP_HAS_CIRCULAR_FRAGMENTS, Val.JSON.booleanNode(metrics.hasCircularFragments));
 
         // Advanced security metrics
-        result.put(PROP_ALIAS_COUNT, metrics.aliasCount);
-        result.put(PROP_ROOT_FIELD_COUNT, metrics.rootFieldCount);
-        result.put(PROP_BATCHING_SCORE, metrics.batchingScore);
-        result.put(PROP_MAX_PAGINATION_LIMIT, metrics.maxPaginationLimit);
+        result.set(PROP_ALIAS_COUNT, Val.JSON.numberNode(metrics.aliasCount));
+        result.set(PROP_ROOT_FIELD_COUNT, Val.JSON.numberNode(metrics.rootFieldCount));
+        result.set(PROP_BATCHING_SCORE, Val.JSON.numberNode(metrics.batchingScore));
+        result.set(PROP_MAX_PAGINATION_LIMIT, Val.JSON.numberNode(metrics.maxPaginationLimit));
         result.set(PROP_ARGUMENTS, metrics.arguments);
-        result.put(PROP_DIRECTIVE_COUNT, metrics.directiveCount);
-        result.put(PROP_DIRECTIVES_PER_FIELD, metrics.directivesPerField);
+        result.set(PROP_DIRECTIVE_COUNT, Val.JSON.numberNode(metrics.directiveCount));
+        result.set(PROP_DIRECTIVES_PER_FIELD, Val.JSON.numberNode(metrics.directivesPerField));
     }
 
     /**
@@ -1117,7 +1117,7 @@ public class GraphQLFunctionLibrary {
      * @param spread the fragment spread to analyze
      * @param metrics the metrics accumulator
      */
-    private static void analyzeFragmentSpread(FragmentSpread spread, QueryMetrics metrics) {
+    private static void analyzeFragmentSpread(DirectivesContainer<?> spread, QueryMetrics metrics) {
         // Directive counting
         if (spread.getDirectives() != null) {
             val directives = spread.getDirectives();
@@ -1488,7 +1488,7 @@ public class GraphQLFunctionLibrary {
      * @param operation the operation definition
      * @return operation name or empty string if not specified
      */
-    private static String extractOperationName(OperationDefinition operation) {
+    private static String extractOperationName(NamedNode<?> operation) {
         return Objects.requireNonNullElse(operation.getName(), "");
     }
 
