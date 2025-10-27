@@ -262,15 +262,14 @@ public class InMemoryAttributeRepository implements AttributeRepository {
      */
     @Override
     public Flux<Val> invoke(AttributeFinderInvocation invocation) {
-        log.debug("Invoking attribute finder for: {}", invocation);
-        val key = AttributeKey.of(invocation);
-
         return Flux.defer(() -> {
+            log.debug("Invoking attribute finder for: {}", invocation);
+            val key = AttributeKey.of(invocation);
             // Capture runtime state reference at subscription time. This intentionally captures
             // the sequence number at this moment, which serves as the baseline for filtering
             // future updates. This is not a "stale read" - it's the correct reference point
             // representing "what has been seen up to subscription time".
-            val runtime              = runtimeState.computeIfAbsent(key, this::createSinkForAttribute);
+            val runtime = runtimeState.computeIfAbsent(key, this::createSinkForAttribute);
             val subscriptionSequence = runtime.sequenceNumber;
 
             // Read persistent storage reactively to get current value.
@@ -278,7 +277,7 @@ public class InMemoryAttributeRepository implements AttributeRepository {
             // to the replayed sink, maintaining the same temporal ordering as blocking
             // reads but without blocking the thread.
             return persistence.get(key)
-                    .map(persisted -> persisted.value())
+                    .map(PersistedAttribute::value)
                     .defaultIfEmpty(ATTRIBUTE_UNAVAILABLE)
                     .flatMapMany(currentValue ->
                             // Subscribe to replayed sink and prepend current storage value.
@@ -317,16 +316,31 @@ public class InMemoryAttributeRepository implements AttributeRepository {
     public Mono<Void> publishAttribute(Val entity, String attributeName, List<Val> arguments, Val value, Duration ttl,
                                        TimeOutStrategy timeOutStrategy) {
         validatePublishParameters(attributeName, arguments, value, ttl, timeOutStrategy);
+        return Mono.defer( () -> {
+            val key                = new AttributeKey(entity, attributeName, arguments);
+            val deadline           = calculateDeadline(ttl);
+            val sequenceNumber     = sequenceGenerator.incrementAndGet();
+            val persistedAttribute = new PersistedAttribute(value, clock.instant(), ttl, timeOutStrategy, deadline);
+            return enforceCapacityLimit(key)
+                    .then(scheduleTimeout(deadline));
+            runtimeState.compute(key,
+                    (k, existing) -> updateAttributeValue(k, existing, persistedAttribute, sequenceNumber));
+        });
+    }
 
-        val key                = new AttributeKey(entity, attributeName, arguments);
-        val deadline           = calculateDeadline(ttl);
-        val sequenceNumber     = sequenceGenerator.incrementAndGet();
-        val persistedAttribute = new PersistedAttribute(value, clock.instant(), ttl, timeOutStrategy, deadline);
+    private Mono<Void> scheduleTimeout(Instant deadline) {
+        return Mono.fromCallable(()-> {
 
-        runtimeState.compute(key,
-                (k, existing) -> updateAttributeValue(k, existing, persistedAttribute, sequenceNumber));
-
-        return Mono.empty();
+            Disposable newTimeout = null;
+            try {
+                newTimeout = scheduleTimeoutIfNeeded(key, newValue.timeoutDeadline());
+            } catch (Exception ex) {
+                disposeExistingTimeout(existing);
+                throw ex;
+            }
+            disposeExistingTimeout(existing);
+            return newTimeout;
+        }
     }
 
     private void validatePublishParameters(String attributeName, List<Val> arguments, Val value, Duration ttl,
@@ -356,27 +370,26 @@ public class InMemoryAttributeRepository implements AttributeRepository {
         }
     }
 
-    private RuntimeState updateAttributeValue(AttributeKey key, RuntimeState existing, PersistedAttribute newValue,
+    private Mono<RuntimeState> updateAttributeValue(AttributeKey key, RuntimeState existing, PersistedAttribute newValue,
                                               long sequenceNumber) {
-
         // Enforce capacity limit before scheduling timeout to avoid resource leaks
-        enforceCapacityLimit(key);
+        return enforceCapacityLimit(key).then(Mono.fromCallable(()-> {
 
-        Disposable newTimeout = null;
-        try {
-            newTimeout = scheduleTimeoutIfNeeded(key, newValue.timeoutDeadline());
-        } catch (Exception ex) {
-            disposeExistingTimeout(existing);
-            throw ex;
-        }
-        disposeExistingTimeout(existing);
-
-        // Critical ordering: Write to persistent storage BEFORE emitting to sink.
-        // This ensures any subscriber reading storage after this method returns
-        // will see a value with sequence >= any event emitted to the sink.
-        persistence.put(key, newValue).block();
-
-        return emitToSinkIfPresent(key, existing, newValue.value(), sequenceNumber, newTimeout);
+                    Disposable newTimeout = null;
+                    try {
+                        newTimeout = scheduleTimeoutIfNeeded(key, newValue.timeoutDeadline());
+                    } catch (Exception ex) {
+                        disposeExistingTimeout(existing);
+                        throw ex;
+                    }
+                    disposeExistingTimeout(existing);
+                    return newTimeout;
+                }).flatMap(finalTimeout ->
+                    // Critical ordering: Write to persistent storage BEFORE emitting to sink.
+                    // This ensures any subscriber reading storage after this method returns
+                    // will see a value with sequence >= any event emitted to the sink.
+                     persistence.put(key, newValue).then(Mono.fromCallable(()->emitToSinkIfPresent(key, existing, newValue.value(), sequenceNumber, finalTimeout)))
+                ));
     }
 
     /**
@@ -387,17 +400,18 @@ public class InMemoryAttributeRepository implements AttributeRepository {
      * @return the existing persisted attribute, or null if not present
      * @throws IllegalStateException if the repository is full and the attribute is new
      */
-    private PersistedAttribute enforceCapacityLimit(AttributeKey key) {
-        val existing = persistence.get(key).block();
-        if (existing == null) {
-            int currentCount = attributeCount.incrementAndGet();
-            if (currentCount > maxRepositorySize) {
-                attributeCount.decrementAndGet();
-                throw new IllegalStateException("Repository is full. Maximum " + maxRepositorySize
-                        + " attributes allowed. Cannot store new attribute: " + key.attributeName());
+    private Mono<Void> enforceCapacityLimit(AttributeKey key) {
+        return persistence.get(key).flatMap( existing -> {
+            if (existing == null) {
+                int currentCount = attributeCount.incrementAndGet();
+                if (currentCount > maxRepositorySize) {
+                    attributeCount.decrementAndGet();
+                    return Mono.error( new IllegalStateException("Repository is full. Maximum " + maxRepositorySize
+                            + " attributes allowed. Cannot store new attribute: " + key.attributeName()));
+                }
             }
-        }
-        return existing;
+            return Mono.empty();
+        });
     }
 
     /**
@@ -609,8 +623,9 @@ public class InMemoryAttributeRepository implements AttributeRepository {
     public Mono<Void> removeAttribute(Val entity, String attributeName, List<Val> arguments) {
         validateRemovalParameters(attributeName, arguments);
         val key = new AttributeKey(entity, attributeName, arguments);
-        runtimeState.compute(key, (k, existing) -> processRemoval(key, existing));
-        return Mono.empty();
+        return Mono.fromRunnable( () -> {
+            runtimeState.compute(key, (k, existing) -> processRemoval(key, existing));
+        });
     }
 
     /**

@@ -61,8 +61,18 @@ class InMemoryAttributeRepositoryTests {
     private static final String   TEST_ATTRIBUTE = "test.attribute";
 
     private static AttributeFinderInvocation createInvocation(String attributeName) {
-        return new AttributeFinderInvocation("configId", attributeName, List.of(), Map.of(), Duration.ofSeconds(1),
-                Duration.ofSeconds(1), Duration.ofSeconds(1), 0L, true);
+        return new AttributeFinderInvocation(
+                "configId",
+                attributeName,
+                null,
+                List.of(),
+                Map.of(),
+                Duration.ofSeconds(1),
+                Duration.ofSeconds(1),
+                Duration.ofSeconds(1),
+                0L,
+                true
+        );
     }
 
     // ========================================================================
@@ -754,7 +764,7 @@ class InMemoryAttributeRepositoryTests {
                 .block();
 
         val testValue = Val.of("data");
-        assertThatThrownBy(() -> repository.publishAttribute("flood.attr10001", testValue))
+        assertThatThrownBy(() -> repository.publishAttribute("flood.attr10001", testValue).block())
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("Repository is full");
     }
@@ -771,7 +781,7 @@ class InMemoryAttributeRepositoryTests {
         val testValue = Val.of("data");
         IntStream.range(0, 100).forEach(i -> {
             val attributeName = "attack.attr" + i;
-            assertThatThrownBy(() -> repository.publishAttribute(attributeName, testValue))
+            assertThatThrownBy(() -> repository.publishAttribute(attributeName, testValue).block())
                     .isInstanceOf(IllegalStateException.class);
         });
     }

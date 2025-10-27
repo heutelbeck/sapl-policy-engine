@@ -65,34 +65,4 @@ public interface AttributeStorage {
      */
     Mono<Void> remove(AttributeKey key);
 
-    /**
-     * Lists all persisted attribute keys.
-     * <p>
-     * Used for recovery on startup. May include expired entries.
-     * The repository filters expired attributes during recovery.
-     *
-     * @return Flux of all persisted keys
-     */
-    Flux<AttributeKey> getAllKeys();
-
-    /**
-     * Returns current count of persisted attributes.
-     * <p>
-     * Used for capacity enforcement.
-     *
-     * @return Mono with current size
-     */
-    Mono<Integer> size();
-
-    /**
-     * Closes storage and releases resources.
-     * <p>
-     * Should flush any pending writes before completing.
-     * Default implementation does nothing.
-     *
-     * @return Mono that completes when storage is closed
-     */
-    default Mono<Void> close() {
-        return Mono.empty();
-    }
 }

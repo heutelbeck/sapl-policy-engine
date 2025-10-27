@@ -31,9 +31,6 @@ import java.util.concurrent.ConcurrentHashMap;
  * <p>
  * No actual persistence - all data is lost on restart.
  * Wraps synchronous operations in Mono for interface compliance.
- * <p>
- * This is the default implementation providing the same behavior
- * as the original repository without any file or database dependencies.
  */
 public class HeapAttributeStorage implements AttributeStorage {
 
@@ -54,13 +51,4 @@ public class HeapAttributeStorage implements AttributeStorage {
         return Mono.fromRunnable(() -> storage.remove(key));
     }
 
-    @Override
-    public Flux<AttributeKey> getAllKeys() {
-        return Flux.fromIterable(new ArrayList<>(storage.keySet()));
-    }
-
-    @Override
-    public Mono<Integer> size() {
-        return Mono.just(storage.size());
-    }
 }
