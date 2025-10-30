@@ -14,7 +14,7 @@ We recommend using the SNAPSHOT version as the latest stable version is outdated
 			<dependency>
 				<groupId>io.sapl</groupId>
 				<artifactId>sapl-bom</artifactId>
-				<version>2.0.1</version>
+				<version>3.0.0</version>
 				<type>pom</type>
 				<scope>import</scope>
 			</dependency>
@@ -30,7 +30,7 @@ We recommend using the SNAPSHOT version as the latest stable version is outdated
 			<dependency>
 				<groupId>io.sapl</groupId>
 				<artifactId>sapl-bom</artifactId>
-				<version>3.0.0</version>
+				<version>3.1.0-SNAPSHOT</version>
 				<type>pom</type>
 				<scope>import</scope>
 			</dependency>
