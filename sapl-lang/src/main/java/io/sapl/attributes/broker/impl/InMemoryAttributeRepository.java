@@ -270,7 +270,7 @@ public class InMemoryAttributeRepository implements AttributeRepository {
         }).then();
     }
 
-    private void validateRemovalParameters(String attributeName, List<Val> arguments) {
+    private void validateRemovalParameters(String attributeName, Iterable<Val> arguments) {
         if (attributeName == null || attributeName.isBlank()) {
             throw new IllegalArgumentException("Attribute name must not be null or blank.");
         }
@@ -346,35 +346,64 @@ public class InMemoryAttributeRepository implements AttributeRepository {
     @Override
     public Flux<Val> invoke(AttributeFinderInvocation invocation) {
         val key         = AttributeKey.of(invocation);
-        val sinkAndFlux = activeSubscriptions.compute(key, (k, sinkFlux) -> {
-                            if (sinkFlux == null) {
-                                Sinks.Many<Val> sink = Sinks.many().multicast().onBackpressureBuffer();
-                                var             flux = storage.get(key).map(PersistedAttribute::value)
-                                        .defaultIfEmpty(ATTRIBUTE_UNAVAILABLE).concatWith(sink.asFlux())
-                                        .doOnCancel(() -> {
-                                                                                                 log.debug(
-                                                                                                         "Last subscriber cancelled {}, cleanup triggered",
-                                                                                                         key);
-                                                                                                 activeSubscriptions
-                                                                                                         .compute(key, (
-                                                                                                                 k2,
-                                                                                                                 snf) -> {
-                                                                                                                                                                  if (snf == null) {
-                                                                                                                                                                      return null;
-                                                                                                                                                                  }
-                                                                                                                                                                  if (snf.sink == sink) {
-                                                                                                                                                                      return null;
-                                                                                                                                                                  }
-                                                                                                                                                                  return snf;
-                                                                                                                                                              });
-                                                                                             })
-                                        .replay(1).refCount(1);
-                                return new SinkAndFlux(sink, flux);
-                            } else {
-                                return sinkFlux;
-                            }
-                        });
+        val sinkAndFlux = activeSubscriptions.compute(key, (k, sinkFlux) -> createOrReuseSinkAndFlux(key, sinkFlux));
         return sinkAndFlux.flux;
+    }
+
+    /**
+     * Creates a new SinkAndFlux for an attribute key or reuses an existing one.
+     * <p>
+     * Implements replay(1).refCount(1) semantics for sharing subscriptions.
+     *
+     * @param key the attribute key
+     * @param existingSinkFlux the existing SinkAndFlux if present, null otherwise
+     * @return a SinkAndFlux for the attribute
+     */
+    private SinkAndFlux createOrReuseSinkAndFlux(AttributeKey key, SinkAndFlux existingSinkFlux) {
+        if (existingSinkFlux != null) {
+            return existingSinkFlux;
+        }
+
+        val sink = Sinks.many().multicast().<Val>onBackpressureBuffer();
+        val flux = storage.get(key).map(PersistedAttribute::value).defaultIfEmpty(ATTRIBUTE_UNAVAILABLE)
+                .concatWith(sink.asFlux()).doOnCancel(() -> cleanupSubscription(key, sink)).replay(1).refCount(1);
+
+        return new SinkAndFlux(sink, flux);
+    }
+
+    /**
+     * Cleans up subscription state when the last subscriber cancels.
+     * <p>
+     * Removes the SinkAndFlux from active subscriptions if it matches the
+     * original sink.
+     *
+     * @param key the attribute key
+     * @param sink the sink that triggered cleanup
+     */
+    private void cleanupSubscription(AttributeKey key, Sinks.Many<Val> sink) {
+        log.debug("Last subscriber cancelled {}, cleanup triggered", key);
+        activeSubscriptions.compute(key, (k, sinkFlux) -> shouldRemoveSinkAndFlux(sinkFlux, sink));
+    }
+
+    /**
+     * Determines whether a SinkAndFlux should be removed during cleanup.
+     * <p>
+     * Returns null if the sink matches the original sink that triggered cleanup,
+     * indicating removal. Returns the existing SinkAndFlux if it represents a
+     * newer subscription.
+     *
+     * @param sinkFlux the current SinkAndFlux in the map
+     * @param originalSink the sink that triggered the cleanup
+     * @return null to remove, or the SinkAndFlux to retain
+     */
+    private SinkAndFlux shouldRemoveSinkAndFlux(SinkAndFlux sinkFlux, Sinks.Many<Val> originalSink) {
+        if (sinkFlux == null) {
+            return null;
+        }
+        if (sinkFlux.sink == originalSink) {
+            return null;
+        }
+        return sinkFlux;
     }
 
     private void notifySubscribers(AttributeKey key, Val value) {

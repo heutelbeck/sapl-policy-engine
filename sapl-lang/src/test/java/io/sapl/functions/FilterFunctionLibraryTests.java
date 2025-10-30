@@ -17,28 +17,9 @@
  */
 package io.sapl.functions;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
-import io.sapl.api.interpreter.Val;
-import io.sapl.api.pdp.AuthorizationDecision;
-import io.sapl.api.pdp.AuthorizationSubscription;
-import io.sapl.api.pdp.Decision;
-import io.sapl.attributes.broker.api.AttributeRepository;
-import io.sapl.attributes.broker.impl.CachingAttributeStreamBroker;
-import io.sapl.attributes.broker.impl.InMemoryAttributeRepository;
-import io.sapl.interpreter.DefaultSAPLInterpreter;
-import io.sapl.interpreter.InitializationException;
-import io.sapl.interpreter.functions.AnnotationFunctionContext;
-import lombok.val;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.Arguments;
-import org.junit.jupiter.params.provider.CsvSource;
-import org.junit.jupiter.params.provider.MethodSource;
-import reactor.test.StepVerifier;
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.time.Clock;
 import java.util.Collections;
@@ -47,10 +28,31 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Stream;
 
-import static io.sapl.hamcrest.Matchers.val;
-import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.MethodSource;
+
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
+
+import io.sapl.api.interpreter.Val;
+import io.sapl.api.pdp.AuthorizationDecision;
+import io.sapl.api.pdp.AuthorizationSubscription;
+import io.sapl.api.pdp.Decision;
+import io.sapl.attributes.broker.api.AttributeRepository;
+import io.sapl.attributes.broker.impl.CachingAttributeStreamBroker;
+import io.sapl.attributes.broker.impl.InMemoryAttributeRepository;
+import io.sapl.hamcrest.Matchers;
+import io.sapl.interpreter.DefaultSAPLInterpreter;
+import io.sapl.interpreter.InitializationException;
+import io.sapl.interpreter.functions.AnnotationFunctionContext;
+import lombok.val;
+import reactor.test.StepVerifier;
 
 class FilterFunctionLibraryTests {
 
@@ -115,7 +117,7 @@ class FilterFunctionLibraryTests {
 
     @Test
     void blackenTooManyArguments() {
-        val params = new Val[] { Val.of("Necronomicon"), Val.of(2), Val.of(2), Val.of("*"), Val.of(2), Val.of(2) };
+        var params = new Val[] { Val.of("Necronomicon"), Val.of(2), Val.of(2), Val.of("*"), Val.of(2), Val.of(2) };
         assertThrows(IllegalArgumentException.class, () -> FilterFunctionLibrary.blacken(params));
     }
 
@@ -137,7 +139,7 @@ class FilterFunctionLibraryTests {
         val result = FilterFunctionLibrary.blacken(Val.of(text), Val.of(discloseLeft), Val.of(discloseRight),
                 Val.of(replacement));
 
-        assertThat(result, is(val(expected)));
+        assertThat(result, is(Matchers.val(expected)));
     }
 
     @ParameterizedTest(name = "{0}: left={1}, right={2}, overrideLength={3} -> {4}")
@@ -153,7 +155,7 @@ class FilterFunctionLibraryTests {
         val result = FilterFunctionLibrary.blacken(Val.of(text), Val.of(discloseLeft), Val.of(discloseRight),
                 Val.of("*"), Val.of(blackenLength));
 
-        assertThat(result, is(val(expected)));
+        assertThat(result, is(Matchers.val(expected)));
     }
 
     @ParameterizedTest(name = "{5}")
@@ -167,7 +169,7 @@ class FilterFunctionLibraryTests {
         val result = FilterFunctionLibrary.blacken(Val.of(text), Val.of(discloseLeft), Val.of(discloseRight),
                 Val.of(replacement));
 
-        assertThat(result, is(val(expected)));
+        assertThat(result, is(Matchers.val(expected)));
     }
 
     @Test
@@ -180,28 +182,28 @@ class FilterFunctionLibraryTests {
         val result = FilterFunctionLibrary.blacken(incantation, discloseLeft, discloseRight, replacement);
 
         val expected = "Ph'nglui m******************************agl fhtagn";
-        assertThat(result, is(val(expected)));
+        assertThat(result, is(Matchers.val(expected)));
     }
 
     @Test
     void blackenEdgeCaseEmptyString() {
         val result = FilterFunctionLibrary.blacken(Val.of(""));
-        assertThat(result, is(val("")));
+        assertThat(result, is(Matchers.val("")));
     }
 
     @Test
     void blackenEdgeCaseSingleCharacter() {
         val result = FilterFunctionLibrary.blacken(Val.of("R"), Val.of(0), Val.of(0));
-        assertThat(result, is(val("X")));
+        assertThat(result, is(Matchers.val("X")));
     }
 
     @Test
     void blackenEdgeCaseSingleCharacterFullyDisclosed() {
         val result = FilterFunctionLibrary.blacken(Val.of("R"), Val.of(1), Val.of(0));
-        assertThat(result, is(val("R")));
+        assertThat(result, is(Matchers.val("R")));
     }
 
-    @ParameterizedTest(name = "{5}")
+    @ParameterizedTest(name = "{6}")
     @MethodSource("specialReplacementScenarios")
     void blackenSpecialReplacements(String text, int left, int right, String replacement, Integer overrideLength,
             String expected, String description) {
@@ -212,7 +214,7 @@ class FilterFunctionLibraryTests {
         } else {
             result = FilterFunctionLibrary.blacken(Val.of(text), Val.of(left), Val.of(right), Val.of(replacement));
         }
-        assertThat(result, is(val(expected)));
+        assertThat(result, is(Matchers.val(expected)));
     }
 
     static Stream<Arguments> specialReplacementScenarios() {
@@ -244,7 +246,7 @@ class FilterFunctionLibraryTests {
                         "replace preserves errors"));
     }
 
-    @ParameterizedTest(name = "blackenUtil: {0} with left={1}, right={2}, length={3}")
+    @ParameterizedTest(name = "blackenUtil: {0} with left={2}, right={3}, length={4}")
     @CsvSource(delimiter = '|', nullValues = "null", textBlock = """
             Necronomicon | * | 5 | 3 | null | Necro****con
             Cthulhu      | X | 2 | 2 | 10   | CtXXXXXXXXXXhu
@@ -268,105 +270,69 @@ class FilterFunctionLibraryTests {
                 is(longIncantation.substring(longIncantation.length() - 10)));
     }
 
-    @Test
-    void blackenInPolicyProtectsEldritchKnowledge() throws JsonProcessingException {
-        val authzSubscription = MAPPER.readValue("""
+    @ParameterizedTest(name = "{0}")
+    @MethodSource("policyIntegrationTestCases")
+    void filterFunctionsIntegrateWithPolicyEvaluation(String testName, String subscriptionJson, String policyDefinition,
+            String expectedResourceJson) throws JsonProcessingException {
+        val authzSubscription = MAPPER.readValue(subscriptionJson, AuthorizationSubscription.class);
+        val expectedResource  = MAPPER.readValue(expectedResourceJson, JsonNode.class);
+
+        val expectedAuthzDecision = new AuthorizationDecision(Decision.PERMIT, Optional.of(expectedResource),
+                Optional.empty(), Optional.empty());
+
+        StepVerifier
+                .create(INTERPRETER.evaluate(authzSubscription, policyDefinition, ATTRIBUTE_BROKER, functionCtx,
+                        SYSTEM_VARIABLES))
+                .assertNext(authzDecision -> assertThat(authzDecision, is(expectedAuthzDecision))).verifyComplete();
+    }
+
+    static Stream<Arguments> policyIntegrationTestCases() {
+        return Stream.of(Arguments.of("blacken protects eldritch knowledge", """
                 {
                   "resource" : {
                                  "artifacts" : [ "Necronomicon", "Elder Sign" ],
                                  "secretName"  : "Abdul Alhazred"
                                }
-                }""", AuthorizationSubscription.class);
-
-        val policyDefinition = """
+                }""", """
                 policy "protect_eldritch_names"
                 permit
                 transform resource |- {
                                         @.secretName : filter.blacken(1)
-                                      }""";
-
-        val expectedResource = MAPPER.readValue("""
+                                      }""", """
                 {
                   "artifacts" : [ "Necronomicon", "Elder Sign" ],
                   "secretName"  : "AXXXXXXXXXXXXX"
-                }""", JsonNode.class);
-
-        val expectedAuthzDecision = new AuthorizationDecision(Decision.PERMIT, Optional.of(expectedResource),
-                Optional.empty(), Optional.empty());
-
-        StepVerifier
-                .create(INTERPRETER.evaluate(authzSubscription, policyDefinition, ATTRIBUTE_BROKER, functionCtx,
-                        SYSTEM_VARIABLES))
-                .assertNext(authzDecision -> assertThat(authzDecision, is(expectedAuthzDecision))).verifyComplete();
-    }
-
-    @Test
-    void replaceInPolicyCensorsEldritchTruths() throws JsonProcessingException {
-        val authzSubscription = MAPPER.readValue("""
+                }"""), Arguments.of("replace censors eldritch truths", """
                 {
                   "resource" : {
                                  "rituals" : [ null, true ],
                                  "summoningWords"  : "Ia! Ia! Cthulhu fhtagn!"
                                }
-                }""", AuthorizationSubscription.class);
-
-        val policyDefinition = """
+                }""", """
                 policy "censor_summonings"
                 permit
                 transform resource |- {
                                         @.rituals[1] : filter.replace("REDACTED"),
                                         @.summoningWords : filter.replace(null)
-                                      }""";
-
-        val expectedResource = MAPPER.readValue("""
+                                      }""", """
                 {
                   "rituals" : [ null, "REDACTED" ],
                   "summoningWords"  : null
-                }""", JsonNode.class);
-
-        val expectedAuthzDecision = new AuthorizationDecision(Decision.PERMIT, Optional.of(expectedResource),
-                Optional.empty(), Optional.empty());
-
-        StepVerifier
-                .create(INTERPRETER.evaluate(authzSubscription, policyDefinition, ATTRIBUTE_BROKER, functionCtx,
-                        SYSTEM_VARIABLES))
-                .assertNext(authzDecision -> assertThat(authzDecision, is(expectedAuthzDecision))).verifyComplete();
-    }
-
-    @Test
-    void removeInPolicyErasesEldritchKnowledge() throws JsonProcessingException {
-        val authzSubscription = MAPPER.readValue("""
+                }"""), Arguments.of("remove erases eldritch knowledge", """
                 {
                   "resource" : {
                                  "locations" : [ "Arkham", "Innsmouth" ],
                                  "forbiddenKnowledge"  : "The King in Yellow"
                                }
-                }""", AuthorizationSubscription.class);
-
-        val policyDefinition = """
+                }""", """
                 policy "erase_forbidden_knowledge"
                 permit
                 transform resource |- {
                                         @.forbiddenKnowledge : filter.remove
-                                      }""";
-
-        val expectedResource = MAPPER.readValue("""
+                                      }""", """
                 {
                   "locations" : [ "Arkham", "Innsmouth" ]
-                }""", JsonNode.class);
-
-        val expectedAuthzDecision = new AuthorizationDecision(Decision.PERMIT, Optional.of(expectedResource),
-                Optional.empty(), Optional.empty());
-
-        StepVerifier
-                .create(INTERPRETER.evaluate(authzSubscription, policyDefinition, ATTRIBUTE_BROKER, functionCtx,
-                        SYSTEM_VARIABLES))
-                .assertNext(authzDecision -> assertThat(authzDecision, is(expectedAuthzDecision))).verifyComplete();
-    }
-
-    @Test
-    void blackenAppliesRecursivelyToNestedStructures() throws JsonProcessingException {
-        val authzSubscription = MAPPER.readValue("""
+                }"""), Arguments.of("blacken applies recursively to nested structures", """
                 {
                   "resource" : {
                     "investigators": [
@@ -382,16 +348,12 @@ class FilterFunctionLibraryTests {
                       }
                     ]
                   }
-                }""", AuthorizationSubscription.class);
-
-        val policyDefinition = """
+                }""", """
                 policy "mask_all_investigator_ssns"
                 permit
                 transform resource |- {
                     @..ssn : filter.blacken(0, 4)
-                }""";
-
-        val expectedResource = MAPPER.readValue("""
+                }""", """
                 {
                   "investigators": [
                     {
@@ -405,14 +367,6 @@ class FilterFunctionLibraryTests {
                       "ssn": "XXXXXXX4321"
                     }
                   ]
-                }""", JsonNode.class);
-
-        val expectedAuthzDecision = new AuthorizationDecision(Decision.PERMIT, Optional.of(expectedResource),
-                Optional.empty(), Optional.empty());
-
-        StepVerifier
-                .create(INTERPRETER.evaluate(authzSubscription, policyDefinition, ATTRIBUTE_BROKER, functionCtx,
-                        SYSTEM_VARIABLES))
-                .assertNext(authzDecision -> assertThat(authzDecision, is(expectedAuthzDecision))).verifyComplete();
+                }"""));
     }
 }
