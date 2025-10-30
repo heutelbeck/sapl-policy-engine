@@ -33,458 +33,359 @@ import java.time.DateTimeException;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
 
+/**
+ * In-memory implementation of AttributeRepository supporting reactive attribute
+ * streaming with TTL-based expiration and subscription management.
+ * <p>
+ * Provides thread-safe attribute storage with automatic timeout handling.
+ * Attributes
+ * can be published with optional TTL and timeout strategies (REMOVE or
+ * BECOME_UNDEFINED).
+ * Subscribers receive the current value immediately upon invocation, followed
+ * by updates
+ * as attributes are published or removed.
+ * <p>
+ * Uses Project Reactor for non-blocking operations. All subscriptions are
+ * managed with
+ * replay(1).refCount(1) semantics, ensuring late subscribers receive the last
+ * value and
+ * automatic cleanup occurs when the last subscriber cancels.
+ */
 @Slf4j
 public class InMemoryAttributeRepository implements AttributeRepository {
-    private static final int DEFAULT_MAX_REPOSITORY_SIZE = 10_000;
 
     public static final Val ATTRIBUTE_UNAVAILABLE = Val.error("Attribute unavailable.");
 
-    private record SequencedVal(Val value, long sequenceNumber) {}
+    private final AttributeStorage                             storage;
+    private final Clock                                        clock;
+    private final ConcurrentHashMap<AttributeKey, Disposable>  scheduledTimeouts   = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<AttributeKey, SinkAndFlux> activeSubscriptions = new ConcurrentHashMap<>();
 
-    private record RuntimeState(
-            Sinks.Many<SequencedVal> sink,
-            Flux<SequencedVal> replayedSink,
-            Disposable timeoutSubscription,
-            long sequenceNumber) {}
+    private record SinkAndFlux(Sinks.Many<Val> sink, Flux<Val> flux) {}
 
-    private final AttributeStorage                persistence;
-    private final Map<AttributeKey, RuntimeState> runtimeState      = new ConcurrentHashMap<>();
-    private final AtomicInteger                   attributeCount    = new AtomicInteger(0);
-    private final AtomicLong                      sequenceGenerator = new AtomicLong(0);
-    private final Clock                           clock;
-    private final int                             maxRepositorySize;
-
+    /**
+     * Creates an attribute repository with default heap-based storage.
+     *
+     * @param clock the clock for time-based operations, must not be null
+     */
     public InMemoryAttributeRepository(@NonNull Clock clock) {
-        this(clock, new HeapAttributeStorage(),  DEFAULT_MAX_REPOSITORY_SIZE);
-    }
-
-    public InMemoryAttributeRepository(@NonNull Clock clock, @NonNull AttributeStorage storage) {
-        this(clock, storage, DEFAULT_MAX_REPOSITORY_SIZE);
-    }
-
-    public InMemoryAttributeRepository(@NonNull Clock clock,
-                                       @NonNull AttributeStorage storage,
-                                       int maxRepositorySize) {
-        if (maxRepositorySize <= 0) {
-            throw new IllegalArgumentException("Max repository size must be positive");
-        }
-
-        this.clock             = clock;
-        this.persistence       = storage;
-        this.maxRepositorySize = maxRepositorySize;
-    }
-
-    @Override
-    public Flux<Val> invoke(AttributeFinderInvocation invocation) {
-        return Flux.defer(() -> {
-            log.debug("Invoking attribute finder for: {}", invocation);
-            val key = AttributeKey.of(invocation);
-            // Capture runtime state reference at subscription time. This intentionally captures
-            // the sequence number at this moment, which serves as the baseline for filtering
-            // future updates. This is not a "stale read" - it's the correct reference point
-            // representing "what has been seen up to subscription time".
-            val runtime = runtimeState.computeIfAbsent(key, this::createSinkForAttribute);
-            val subscriptionSequence = runtime.sequenceNumber;
-
-            // Read persistent storage reactively to get current value.
-            // The reactive chain ensures the storage read completes before subscribing
-            // to the replayed sink, maintaining the same temporal ordering as blocking
-            // reads but without blocking the thread.
-            return persistence.get(key)
-                    .map(PersistedAttribute::value)
-                    .defaultIfEmpty(ATTRIBUTE_UNAVAILABLE)
-                    .flatMapMany(currentValue ->
-                            // Subscribe to replayed sink and prepend current storage value.
-                            // Filter by sequence number to prevent emitting the same update twice.
-                            // The replay(1) buffer ensures any update emitted between the storage
-                            // read and this subscription is captured.
-                            runtime.replayedSink
-                                    .filter(sequencedVal -> sequencedVal.sequenceNumber > subscriptionSequence)
-                                    .map(SequencedVal::value)
-                                    .startWith(currentValue)
-                    );
-        });
+        this(clock, new HeapAttributeStorage());
     }
 
     /**
-     * Creates a new sink infrastructure for an attribute key. The sink uses replay(1)
-     * to buffer the last emitted value, preventing race conditions where updates occur
-     * between storage reads and sink subscriptions.
+     * Creates an attribute repository with custom storage backend.
      *
-     * @param key the attribute key for which to create the sink
-     * @return the runtime state containing the sink, replayed flux, and initial sequence
+     * @param clock the clock for time-based operations, must not be null
+     * @param storage the storage implementation, must not be null
      */
-    private RuntimeState createSinkForAttribute(AttributeKey key) {
-        log.debug("Creating new sink for key: {}", key);
-        val sink = Sinks.many().multicast().<SequencedVal>onBackpressureBuffer(bufferSize, false);
-        // replay(1) keeps the last emitted value in a buffer for new subscribers.
-        // autoConnect() means the replayed flux stays connected to the sink even when
-        // all subscribers disconnect.
-        // This prevents the race condition where an update is emitted between reading
-        // storage and subscribing.
-        val replayedSink = sink.asFlux().replay(1).autoConnect();
-        return new RuntimeState(sink, replayedSink, null, -1L);
+    public InMemoryAttributeRepository(@NonNull Clock clock, @NonNull AttributeStorage storage) {
+        this.clock   = clock;
+        this.storage = storage;
+        initialize();
     }
 
+    /**
+     * Initializes the repository by recovering pending timeouts from storage.
+     * Removes stale attributes whose timeout deadlines have passed and reschedules
+     * active timeouts for attributes that are still within their TTL.
+     * <p>
+     * Blocks until completion. Must be called before accepting connections.
+     */
+    private void initialize() {
+        log.info("Initializing attribute repository with storage: {}", storage.getClass().getSimpleName());
+        recoverTimeouts().block(); // Must complete before accepting connections
+        log.info("Attribute repository initialized. Scheduled timeouts: {}", scheduledTimeouts.size());
+    }
+
+    private Mono<Void> recoverTimeouts() {
+        log.debug("Recovering attribute timeouts from storage...");
+
+        val staleAttributes     = new AtomicInteger(0);
+        val permanentAttributes = new AtomicInteger(0);
+        val scheduledAttributes = new AtomicInteger(0);
+
+        return storage.findAll().concatMap(entry -> {
+            val key     = entry.getKey();
+            val value   = entry.getValue();
+            val timeout = value.timeoutDeadline();
+            if (timeout == null || timeout.equals(Instant.MAX)) {
+                permanentAttributes.incrementAndGet();
+                return Mono.empty();
+            } else {
+                if (timeout.isBefore(clock.instant())) {
+                    staleAttributes.incrementAndGet();
+                    log.info("Removing stale attribute from storage; {}", key);
+                    return storage.remove(key);
+                } else {
+                    scheduledAttributes.incrementAndGet();
+                    scheduleTimeout(key, timeout, value.timeoutStrategy());
+                    return Mono.empty();
+                }
+            }
+        }).then()
+                .doOnSuccess(v -> log.info("Timeout recovery complete. Scheduled: {}, Permanent: {}, Stale: {}",
+                        scheduledAttributes.get(), permanentAttributes.get(), staleAttributes.get()))
+                .doOnError(error -> log.error("Failed to recover timeouts", error));
+    }
+
+    private void scheduleTimeout(AttributeKey key, Instant deadline, TimeOutStrategy strategy) {
+        val      now          = clock.instant();
+        Duration practicalTTL = Duration.ofNanos(Long.MAX_VALUE);
+        try {
+            practicalTTL = Duration.between(now, deadline);
+        } catch (ArithmeticException e) {
+            log.warn("Delay is excessive. Fall back to default max delay of 292years");
+        }
+
+        log.info("Scheduling timeout for key: {} at deadline: {} (delay: {})", key, deadline, practicalTTL);
+
+        val subscriptionRef = new AtomicReference<Disposable>();
+
+        val timeout = Mono.delay(practicalTTL, Schedulers.parallel())
+                .flatMap(tick -> handleTimeout(key, strategy, deadline)).doFinally(signal -> {
+                    val self = subscriptionRef.get();
+                    if (self != null) {
+                        // Only remove if we're still the active timeout for this key
+                        val removed = scheduledTimeouts.remove(key, self);
+                        if (removed) {
+                            log.debug("Timeout cleanup: removed timeout for key: {}", key);
+                        } else {
+                            log.debug("Timeout cleanup: timeout for key: {} was already replaced", key);
+                        }
+                    }
+                }).subscribe(v -> log.debug("Timeout completed successfully for key: {}", key),
+                        error -> log.error("Timeout handling failed for key: {}", key, error));
+
+        subscriptionRef.set(timeout);
+
+        val previous = scheduledTimeouts.put(key, timeout);
+        if (previous != null) {
+            log.debug("Canceling previous timeout for key: {}", key);
+            previous.dispose();
+        }
+    }
+
+    /**
+     * Publishes an attribute value with optional TTL and timeout strategy.
+     * If an attribute with the same key exists, it is replaced. If a timeout
+     * was scheduled for the key, it is cancelled and rescheduled if TTL is
+     * provided.
+     * <p>
+     * Active subscribers are notified immediately with the new value.
+     *
+     * @param entity the entity the attribute belongs to, may be null
+     * @param attributeName the attribute name, must not be null or blank
+     * @param arguments the attribute arguments, must not be null
+     * @param value the attribute value, must not be null
+     * @param ttl the time-to-live, null for permanent attributes
+     * @param timeOutStrategy the strategy when TTL expires, must not be null
+     * @return a Mono that completes when the attribute is persisted
+     * @throws IllegalArgumentException if any parameter validation fails
+     */
     @Override
     public Mono<Void> publishAttribute(Val entity, String attributeName, List<Val> arguments, Val value, Duration ttl,
-                                       TimeOutStrategy timeOutStrategy) {
+            TimeOutStrategy timeOutStrategy) {
         validatePublishParameters(attributeName, arguments, value, ttl, timeOutStrategy);
-        return Mono.defer( () -> {
-            val key                = new AttributeKey(entity, attributeName, arguments);
-            val deadline           = calculateDeadline(ttl);
-            val sequenceNumber     = sequenceGenerator.incrementAndGet();
-            val persistedAttribute = new PersistedAttribute(value, clock.instant(), ttl, timeOutStrategy, deadline);
-            return enforceCapacityLimit(key)
-                    .then(scheduleTimeout(deadline));
-            runtimeState.compute(key,
-                    (k, existing) -> updateAttributeValue(k, existing, persistedAttribute, sequenceNumber));
+
+        return Mono.defer(() -> {
+            val key       = new AttributeKey(entity, attributeName, arguments);
+            val deadline  = calculateDeadline(ttl);
+            val persisted = new PersistedAttribute(value, clock.instant(), ttl, timeOutStrategy, deadline);
+
+            log.debug("Publishing attribute key: {}, value: {}, ttl: {}, deadline: {}, strategy: {}", key, value, ttl,
+                    deadline, timeOutStrategy);
+
+            return storage.put(key, persisted).doOnSuccess(v -> {
+                log.debug("Attribute persisted successfully: {}", key);
+                cancelScheduledTimeout(key);
+                if (ttl != null) {
+                    scheduleTimeout(key, deadline, timeOutStrategy);
+                }
+                notifySubscribers(key, value);
+            }).doOnError(error -> log.error("Failed to publish attribute: {}", key, error));
         });
     }
 
-    private Mono<Void> scheduleTimeout(Instant deadline) {
-        return Mono.fromCallable(()-> {
-
-            Disposable newTimeout = null;
-            try {
-                newTimeout = scheduleTimeoutIfNeeded(key, newValue.timeoutDeadline());
-            } catch (Exception ex) {
-                disposeExistingTimeout(existing);
-                throw ex;
-            }
-            disposeExistingTimeout(existing);
-            return newTimeout;
-        }
-    }
-
     private void validatePublishParameters(String attributeName, List<Val> arguments, Val value, Duration ttl,
-                                           TimeOutStrategy strategy) {
+            TimeOutStrategy strategy) {
         if (attributeName == null || attributeName.isBlank()) {
-            throw new IllegalArgumentException("Attribute name must not be null or blank");
+            throw new IllegalArgumentException("Attribute name must not be null or blank.");
         }
         if (arguments == null) {
-            throw new IllegalArgumentException("Arguments must not be null");
+            throw new IllegalArgumentException("Arguments must not be null.");
         }
         if (value == null) {
-            throw new IllegalArgumentException("Value must not be null");
+            throw new IllegalArgumentException("Value must not be null.");
         }
-        if (ttl == null || ttl.isNegative()) {
-            throw new IllegalArgumentException("TTL must not be null or negative");
+        if (ttl != null && ttl.isNegative()) {
+            throw new IllegalArgumentException("TTL must not be negative.");
         }
         if (strategy == null) {
-            throw new IllegalArgumentException("TimeOutStrategy must not be null");
+            throw new IllegalArgumentException("Timeout strategy must not be null.");
         }
     }
 
     private Instant calculateDeadline(Duration ttl) {
+        if (ttl == null) {
+            return null;
+        }
         try {
             return clock.instant().plus(ttl);
-        } catch (DateTimeException | ArithmeticException ex) {
+        } catch (DateTimeException | ArithmeticException e) {
+            log.debug("TTL too large, using Instant.MAX as deadline");
             return Instant.MAX;
         }
     }
 
-    private Mono<RuntimeState> updateAttributeValue(AttributeKey key, RuntimeState existing, PersistedAttribute newValue,
-                                              long sequenceNumber) {
-        // Enforce capacity limit before scheduling timeout to avoid resource leaks
-        return enforceCapacityLimit(key).then(Mono.fromCallable(()-> {
-
-                    Disposable newTimeout = null;
-                    try {
-                        newTimeout = scheduleTimeoutIfNeeded(key, newValue.timeoutDeadline());
-                    } catch (Exception ex) {
-                        disposeExistingTimeout(existing);
-                        throw ex;
-                    }
-                    disposeExistingTimeout(existing);
-                    return newTimeout;
-                }).flatMap(finalTimeout ->
-                    // Critical ordering: Write to persistent storage BEFORE emitting to sink.
-                    // This ensures any subscriber reading storage after this method returns
-                    // will see a value with sequence >= any event emitted to the sink.
-                     persistence.put(key, newValue).then(Mono.fromCallable(()->emitToSinkIfPresent(key, existing, newValue.value(), sequenceNumber, finalTimeout)))
-                ));
-    }
-
     /**
-     * Enforces the repository capacity limit by checking if adding a new attribute
-     * would exceed the maximum. Returns the existing persisted attribute if present.
+     * Removes an attribute and cancels its scheduled timeout if any.
+     * Active subscribers are notified with ATTRIBUTE_UNAVAILABLE.
+     * <p>
+     * If the attribute does not exist, the operation completes without error.
      *
-     * @param key the attribute key to check
-     * @return the existing persisted attribute, or null if not present
-     * @throws IllegalStateException if the repository is full and the attribute is new
+     * @param entity the entity the attribute belongs to, may be null
+     * @param attributeName the attribute name, must not be null or blank
+     * @param arguments the attribute arguments, must not be null
+     * @return a Mono that completes when the attribute is removed
+     * @throws IllegalArgumentException if any parameter validation fails
      */
-    private Mono<Void> enforceCapacityLimit(AttributeKey key) {
-        return persistence.get(key).flatMap( existing -> {
-            if (existing == null) {
-                int currentCount = attributeCount.incrementAndGet();
-                if (currentCount > maxRepositorySize) {
-                    attributeCount.decrementAndGet();
-                    return Mono.error( new IllegalStateException("Repository is full. Maximum " + maxRepositorySize
-                            + " attributes allowed. Cannot store new attribute: " + key.attributeName()));
-                }
-            }
-            return Mono.empty();
-        });
-    }
-
-    /**
-     * Disposes an existing timeout subscription if present, preventing memory leaks
-     * when attributes are updated or removed.
-     *
-     * @param runtime the runtime state containing the timeout subscription to dispose
-     */
-    private void disposeExistingTimeout(RuntimeState runtime) {
-        if (runtime != null && runtime.timeoutSubscription != null) {
-            log.debug("Cancelling existing timeout");
-            runtime.timeoutSubscription.dispose();
-        }
-    }
-
-    /**
-     * Schedules a timeout for an attribute based on its deadline. If the deadline
-     * is Instant.MAX (infinite), no timeout is scheduled. If the deadline has already
-     * passed, the timeout handler is invoked immediately.
-     *
-     * @param key the attribute key for which to schedule the timeout
-     * @param deadline the instant when the timeout should fire
-     * @return the disposable timeout subscription, or null if no timeout was scheduled
-     */
-    private Disposable scheduleTimeoutIfNeeded(AttributeKey key, Instant deadline) {
-        if (deadline.equals(Instant.MAX)) {
-            return null;
-        }
-
-        val delayDuration = Duration.between(clock.instant(), deadline);
-        if (delayDuration.isNegative() || delayDuration.isZero()) {
-            log.debug("Attribute already expired or expires immediately: {}", key);
-            return Mono.fromRunnable(() -> handleTimeout(key)).subscribeOn(Schedulers.parallel()).subscribe();
-        }
-
-        log.debug("Scheduling timeout in {} for key: {}", delayDuration, key);
-        return Mono.delay(delayDuration).subscribeOn(Schedulers.parallel()).subscribe(tick -> handleTimeout(key));
-    }
-
-    /**
-     * Emits a value to the sink if present, or creates a new sink if needed.
-     * Used during attribute publication to ensure subscribers receive updates.
-     *
-     * @param key the attribute key
-     * @param existing the existing runtime state
-     * @param value the value to emit
-     * @param sequenceNumber the sequence number for duplicate filtering
-     * @param newTimeout the new timeout subscription
-     * @return the updated runtime state
-     */
-    private RuntimeState emitToSinkIfPresent(AttributeKey key, RuntimeState existing, Val value, long sequenceNumber,
-                                             Disposable newTimeout) {
-        Sinks.Many<SequencedVal> sink;
-        Flux<SequencedVal>       replayedSink;
-
-        if (existing != null && existing.sink != null) {
-            sink         = existing.sink;
-            replayedSink = existing.replayedSink;
-        } else {
-            // Create new sink if it doesn't exist.
-            // This handles the case where publishAttribute() is called before any invoke().
-            log.debug("Creating new sink during publish for key: {}", key);
-            val newSinkHolder = createSinkForAttribute(key);
-            sink         = newSinkHolder.sink;
-            replayedSink = newSinkHolder.replayedSink;
-        }
-
-        log.debug("Emitting value to sink");
-        tryEmitNext(key, sink, value, sequenceNumber);
-        return new RuntimeState(sink, replayedSink, newTimeout, sequenceNumber);
-    }
-
-    private void tryEmitNext(AttributeKey key, Sinks.Many<SequencedVal> sink, Val value, long sequenceNumber) {
-        val result = sink.tryEmitNext(new SequencedVal(value, sequenceNumber));
-        if (result.isFailure()) {
-            if (result == Sinks.EmitResult.FAIL_OVERFLOW) {
-                log.warn("Backpressure overflow for attribute {}, update dropped. "
-                        + "Subscriber is not consuming fast enough.", key);
-            } else if (result == Sinks.EmitResult.FAIL_TERMINATED) {
-                log.debug("Sink terminated for attribute: {}", key);
-            } else if (result == Sinks.EmitResult.FAIL_ZERO_SUBSCRIBER) {
-                log.debug("No active subscribers for attribute: {}, value buffered by replay(1)", key);
-            } else {
-                log.error("Unexpected emit failure for {}: {}", key, result);
-                throw new IllegalStateException("Unexpected emit failure for attribute " + key + ": " + result);
-            }
-        }
-    }
-
-    /**
-     * Creates a new RuntimeState after emitting a value to the sink. Handles both
-     * cases where a sink exists (emits and returns state) or doesn't exist (returns
-     * state with null sink).
-     *
-     * @param key the attribute key
-     * @param current the current runtime state
-     * @param value the value to emit
-     * @param sequenceNumber the sequence number for the emission
-     * @return the new runtime state with no timeout subscription
-     */
-    private RuntimeState createStateAfterEmit(AttributeKey key, RuntimeState current, Val value, long sequenceNumber) {
-        if (current != null && current.sink != null) {
-            tryEmitNext(key, current.sink, value, sequenceNumber);
-            return new RuntimeState(current.sink, current.replayedSink, null, sequenceNumber);
-        }
-        return new RuntimeState(null, null, null, sequenceNumber);
-    }
-
-    /**
-     * Handles timeout events for attributes. Invoked when a scheduled timeout fires,
-     * triggering the appropriate timeout strategy (REMOVE or BECOME_UNDEFINED).
-     *
-     * @param key the attribute key that timed out
-     */
-    private void handleTimeout(AttributeKey key) {
-        log.debug("Handling timeout for attribute: {}", key);
-        runtimeState.compute(key, (k, current) -> processTimeout(key, current));
-    }
-
-    /**
-     * Processes a timeout by verifying the attribute still exists and its deadline
-     * has been reached, then applying the configured timeout strategy.
-     *
-     * @param key the attribute key that timed out
-     * @param current the current runtime state
-     * @return the updated runtime state after processing timeout, or current state if timeout invalid
-     */
-    private RuntimeState processTimeout(AttributeKey key, RuntimeState current) {
-        val persisted = persistence.get(key).block();
-        if (persisted == null) {
-            log.debug("Attribute no longer exists or already removed: {}", key);
-            return current;
-        }
-
-        if (!isDeadlineReached(persisted.timeoutDeadline())) {
-            log.warn("Timeout fired but deadline not yet reached for: {}", key);
-            return current;
-        }
-
-        return applyTimeoutStrategy(key, current, persisted);
-    }
-
-    /**
-     * Checks if a timeout deadline has been reached based on the current clock time.
-     *
-     * @param deadline the deadline to check
-     * @return true if the current time is after the deadline, false otherwise
-     */
-    private boolean isDeadlineReached(Instant deadline) {
-        return clock.instant().isAfter(deadline);
-    }
-
-    /**
-     * Applies the configured timeout strategy for an attribute, either removing it
-     * or transitioning it to UNDEFINED state.
-     *
-     * @param key the attribute key
-     * @param current the current runtime state
-     * @param persisted the persisted attribute containing the strategy
-     * @return the updated runtime state after applying the strategy
-     */
-    private RuntimeState applyTimeoutStrategy(AttributeKey key, RuntimeState current, PersistedAttribute persisted) {
-        if (persisted.timeoutStrategy() == TimeOutStrategy.REMOVE) {
-            return handleRemovalStrategy(key, current);
-        }
-        return handleBecomeUndefinedStrategy(key, current);
-    }
-
-    /**
-     * Handles the REMOVE timeout strategy by deleting the attribute from persistence
-     * and emitting ATTRIBUTE_UNAVAILABLE to subscribers.
-     *
-     * @param key the attribute key to remove
-     * @param current the current runtime state
-     * @return the updated runtime state with ATTRIBUTE_UNAVAILABLE emitted, or null if no sink
-     */
-    private RuntimeState handleRemovalStrategy(AttributeKey key, RuntimeState current) {
-        log.debug("Removing timed-out attribute");
-        attributeCount.decrementAndGet();
-        persistence.remove(key).block();
-
-        if (current != null && current.sink != null) {
-            val sequenceNumber = sequenceGenerator.incrementAndGet();
-            return createStateAfterEmit(key, current, ATTRIBUTE_UNAVAILABLE, sequenceNumber);
-        }
-        return null;
-    }
-
-    /**
-     * Handles the BECOME_UNDEFINED timeout strategy by transitioning the attribute to
-     * UNDEFINED state with infinite TTL and emitting Val.UNDEFINED to subscribers.
-     *
-     * @param key the attribute key to transition
-     * @param current the current runtime state
-     * @return the updated runtime state with Val.UNDEFINED emitted
-     */
-    private RuntimeState handleBecomeUndefinedStrategy(AttributeKey key, RuntimeState current) {
-        log.debug("Setting timed-out attribute to UNDEFINED");
-        val sequenceNumber     = sequenceGenerator.incrementAndGet();
-        val undefinedAttribute = new PersistedAttribute(Val.UNDEFINED, clock.instant(), INFINITE,
-                TimeOutStrategy.REMOVE, Instant.MAX);
-
-        persistence.put(key, undefinedAttribute).block();
-
-        return createStateAfterEmit(key, current, Val.UNDEFINED, sequenceNumber);
-    }
-
     @Override
     public Mono<Void> removeAttribute(Val entity, String attributeName, List<Val> arguments) {
         validateRemovalParameters(attributeName, arguments);
         val key = new AttributeKey(entity, attributeName, arguments);
-        return Mono.fromRunnable( () -> {
-            runtimeState.compute(key, (k, existing) -> processRemoval(key, existing));
+
+        log.debug("Removing attribute: {}", key);
+
+        return storage.get(key).flatMap(persisted -> {
+            cancelScheduledTimeout(key);
+            return storage.remove(key).doOnSuccess(v -> {
+                log.debug("Attribute removed successfully: {}", key);
+                notifySubscribers(key, ATTRIBUTE_UNAVAILABLE);
+            }).doOnError(error -> log.error("Failed to remove attribute: {}", key, error));
+
+        }).then();
+    }
+
+    private void validateRemovalParameters(String attributeName, List<Val> arguments) {
+        if (attributeName == null || attributeName.isBlank()) {
+            throw new IllegalArgumentException("Attribute name must not be null or blank.");
+        }
+        if (arguments == null) {
+            throw new IllegalArgumentException("Arguments must not be null.");
+        }
+    }
+
+    private void cancelScheduledTimeout(AttributeKey key) {
+        val timeout = scheduledTimeouts.remove(key);
+        if (timeout != null) {
+            log.debug("Canceling scheduled timeout for key: {}", key);
+            timeout.dispose();
+        }
+    }
+
+    private Mono<Void> handleTimeout(AttributeKey key, TimeOutStrategy strategy, Instant expectedDeadline) {
+        log.debug("Handling timeout for key: {}, strategy: {}, expected deadline: {}", key, strategy, expectedDeadline);
+        return storage.get(key).flatMap(persisted -> {
+            if (!expectedDeadline.equals(persisted.timeoutDeadline())) {
+                log.debug(
+                        "Deadline mismatch for key: {}. Expected: {}, Actual: {}. Attribute was republished, skipping timeout.",
+                        key, expectedDeadline, persisted.timeoutDeadline());
+                return Mono.empty();
+            }
+            log.debug("Deadline reached for key: {}, applying strategy: {}", key, strategy);
+            return applyTimeoutStrategy(key, strategy);
+        }).switchIfEmpty(Mono.fromRunnable(
+                () -> log.debug("Timeout fired for key: {} but attribute no longer exists in storage", key))).then();
+    }
+
+    private Mono<Void> applyTimeoutStrategy(AttributeKey key, TimeOutStrategy strategy) {
+        if (strategy == TimeOutStrategy.REMOVE) {
+            return handleRemovalStrategy(key);
+        }
+        return handleBecomeUndefinedStrategy(key);
+    }
+
+    private Mono<Void> handleRemovalStrategy(AttributeKey key) {
+        log.debug("Applying REMOVE strategy for timed-out attribute: {}", key);
+        return storage.remove(key).doOnSuccess(v -> {
+            log.debug("Timed-out attribute removed: {}", key);
+            notifySubscribers(key, ATTRIBUTE_UNAVAILABLE);
+        });
+    }
+
+    private Mono<Void> handleBecomeUndefinedStrategy(AttributeKey key) {
+        log.debug("Applying BECOME_UNDEFINED strategy for timed-out attribute: {}", key);
+        val undefinedAttribute = new PersistedAttribute(Val.UNDEFINED, clock.instant(), INFINITE,
+                TimeOutStrategy.REMOVE, Instant.MAX);
+
+        return storage.put(key, undefinedAttribute).doOnSuccess(v -> {
+            log.debug("Timed-out attribute set to UNDEFINED: {}", key);
+            notifySubscribers(key, Val.UNDEFINED);
         });
     }
 
     /**
-     * Validates parameters for attribute removal operations.
+     * Creates a reactive stream for an attribute that emits the current value
+     * followed by all future updates until the subscription is cancelled.
+     * <p>
+     * On first subscription for a key, emits the current value from storage or
+     * ATTRIBUTE_UNAVAILABLE if not present. Subsequent subscriptions share the
+     * same stream via replay(1).refCount(1) semantics.
+     * <p>
+     * The stream automatically cleans up when the last subscriber cancels.
      *
-     * @param attributeName the attribute name to validate
-     * @param arguments the arguments to validate
-     * @throws IllegalArgumentException if any parameter is invalid
+     * @param invocation the attribute invocation specifying entity, name, and
+     * arguments
+     * @return a Flux emitting attribute values, never completes unless explicitly
+     * cancelled
      */
-    private void validateRemovalParameters(String attributeName, Iterable<Val> arguments) {
-        if (attributeName == null || attributeName.isBlank()) {
-            throw new IllegalArgumentException("Attribute name must not be null or blank");
-        }
-        if (arguments == null) {
-            throw new IllegalArgumentException("Arguments must not be null");
+    @Override
+    public Flux<Val> invoke(AttributeFinderInvocation invocation) {
+        val key         = AttributeKey.of(invocation);
+        val sinkAndFlux = activeSubscriptions.compute(key, (k, sinkFlux) -> {
+                            if (sinkFlux == null) {
+                                Sinks.Many<Val> sink = Sinks.many().multicast().onBackpressureBuffer();
+                                var             flux = storage.get(key).map(PersistedAttribute::value)
+                                        .defaultIfEmpty(ATTRIBUTE_UNAVAILABLE).concatWith(sink.asFlux())
+                                        .doOnCancel(() -> {
+                                                                                                 log.debug(
+                                                                                                         "Last subscriber cancelled {}, cleanup triggered",
+                                                                                                         key);
+                                                                                                 activeSubscriptions
+                                                                                                         .compute(key, (
+                                                                                                                 k2,
+                                                                                                                 snf) -> {
+                                                                                                                                                                  if (snf == null) {
+                                                                                                                                                                      return null;
+                                                                                                                                                                  }
+                                                                                                                                                                  if (snf.sink == sink) {
+                                                                                                                                                                      return null;
+                                                                                                                                                                  }
+                                                                                                                                                                  return snf;
+                                                                                                                                                              });
+                                                                                             })
+                                        .replay(1).refCount(1);
+                                return new SinkAndFlux(sink, flux);
+                            } else {
+                                return sinkFlux;
+                            }
+                        });
+        return sinkAndFlux.flux;
+    }
+
+    private void notifySubscribers(AttributeKey key, Val value) {
+        val sinkAndFlux = activeSubscriptions.get(key);
+        if (sinkAndFlux != null) {
+            log.debug("Broadcasting value {} to subscribers for key: {}", value, key);
+            val emitResult = sinkAndFlux.sink.tryEmitNext(value);
+            if (emitResult.isFailure()) {
+                log.debug("Failed to emit value {} to subscriber for key: {} - result: {}", value, key, emitResult);
+            }
         }
     }
 
-    /**
-     * Processes attribute removal by disposing timeouts, deleting from persistence,
-     * and emitting ATTRIBUTE_UNAVAILABLE to subscribers.
-     *
-     * @param key the attribute key to remove
-     * @param existing the existing runtime state
-     * @return the updated runtime state with ATTRIBUTE_UNAVAILABLE emitted, or null if no sink
-     */
-    private RuntimeState processRemoval(AttributeKey key, RuntimeState existing) {
-        disposeExistingTimeout(existing);
-
-        val persisted = persistence.get(key).block();
-        if (persisted != null) {
-            attributeCount.decrementAndGet();
-            persistence.remove(key).block();
-        }
-
-        if (existing != null && existing.sink != null) {
-            val sequenceNumber = sequenceGenerator.incrementAndGet();
-            return createStateAfterEmit(key, existing, ATTRIBUTE_UNAVAILABLE, sequenceNumber);
-        }
-
-        return null;
-    }
 }

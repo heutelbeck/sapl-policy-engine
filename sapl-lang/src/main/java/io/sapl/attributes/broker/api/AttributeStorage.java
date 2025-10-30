@@ -20,6 +20,8 @@ package io.sapl.attributes.broker.api;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+import java.util.Map;
+
 /**
  * Storage backend for persisting attribute values.
  * <p>
@@ -64,5 +66,21 @@ public interface AttributeStorage {
      * @return Mono that completes when removal is durable
      */
     Mono<Void> remove(AttributeKey key);
+
+    /**
+     * Returns all stored attributes.
+     * <p>
+     * Used during startup to recover timeout schedules. This method is called
+     * once during application initialization and must complete before the
+     * application accepts any connections.
+     * <p>
+     * Implementations should stream results efficiently for large datasets.
+     * For heap storage, this is a simple iteration. For file-based storage,
+     * this reads and deserializes the entire file. For database storage, this
+     * executes a SELECT * query.
+     *
+     * @return Flux of all stored attributes with their keys
+     */
+    Flux<Map.Entry<AttributeKey, PersistedAttribute>> findAll();
 
 }

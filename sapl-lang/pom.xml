@@ -64,6 +64,7 @@
 			<artifactId>org.eclipse.xtext.xbase</artifactId>
 			<version>${xtext.version}</version>
 		</dependency>
+
 		<dependency>
 			<groupId>org.eclipse.xtext</groupId>
 			<artifactId>org.eclipse.xtext.xtext.generator</artifactId>
@@ -96,7 +97,7 @@
 			<groupId>com.google.guava</groupId>
 			<artifactId>guava</artifactId>
 		</dependency>
-		<!-- Logging -->
+        <!-- Logging -->
 		<dependency>
 			<groupId>org.slf4j</groupId>
 			<artifactId>slf4j-api</artifactId>
@@ -305,7 +306,11 @@
 			<version>0.10.2</version>
 			<scope>test</scope>
 		</dependency>
-	</dependencies>
+        <dependency>
+            <groupId>jakarta.annotation</groupId>
+            <artifactId>jakarta.annotation-api</artifactId>
+        </dependency>
+    </dependencies>
 	<build>
         <resources>
             <resource>

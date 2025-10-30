@@ -30,19 +30,19 @@ import lombok.val;
 import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Flux;
 import reactor.test.StepVerifier;
+import reactor.util.context.Context;
 
 import java.io.IOException;
-
-import static io.sapl.testutil.TestUtil.assertExpressionErrors;
-import static io.sapl.testutil.TestUtil.assertExpressionEvaluatesTo;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 import java.time.Duration;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
-import reactor.util.context.Context;
+
+import static io.sapl.testutil.TestUtil.assertExpressionErrors;
+import static io.sapl.testutil.TestUtil.assertExpressionEvaluatesTo;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 class BasicEnvironmentAttributeImplTests {
 

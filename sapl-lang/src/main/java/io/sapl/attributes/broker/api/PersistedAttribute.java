@@ -35,13 +35,10 @@ public record PersistedAttribute(
         Duration ttl,
         TimeOutStrategy timeoutStrategy,
         Instant timeoutDeadline) {
-    /**
-     * Checks if this attribute has expired based on the given time.
-     *
-     * @param now the time to check against
-     * @return true if the timeout deadline has passed
-     */
     public boolean isExpiredAt(Instant now) {
+        if (timeoutDeadline == null) {
+            return false;  // Infinite TTL never expires
+        }
         return now.isAfter(timeoutDeadline);
     }
 }

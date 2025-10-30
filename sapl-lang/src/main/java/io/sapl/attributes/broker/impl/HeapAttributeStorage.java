@@ -23,14 +23,17 @@ import io.sapl.attributes.broker.api.PersistedAttribute;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-import java.util.ArrayList;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * In-memory storage using ConcurrentHashMap.
  * <p>
- * No actual persistence - all data is lost on restart.
- * Wraps synchronous operations in Mono for interface compliance.
+ * No actual persistence - all data is lost on restart. Wraps synchronous
+ * operations in Mono/Flux for interface compliance.
+ * <p>
+ * Suitable for testing, development, and deployments where attribute loss
+ * on restart is acceptable.
  */
 public class HeapAttributeStorage implements AttributeStorage {
 
@@ -49,6 +52,11 @@ public class HeapAttributeStorage implements AttributeStorage {
     @Override
     public Mono<Void> remove(AttributeKey key) {
         return Mono.fromRunnable(() -> storage.remove(key));
+    }
+
+    @Override
+    public Flux<Map.Entry<AttributeKey, PersistedAttribute>> findAll() {
+        return Flux.fromIterable(storage.entrySet());
     }
 
 }

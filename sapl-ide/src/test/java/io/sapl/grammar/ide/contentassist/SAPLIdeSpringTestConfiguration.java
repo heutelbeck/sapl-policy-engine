@@ -202,7 +202,7 @@ public class SAPLIdeSpringTestConfiguration {
                     "period": { "type": "number"}
                   }
                 }
-                  """)
+                """)
         public Flux<Val> mean(Val a1, Val a2) throws JsonProcessingException {
             return Flux.just(Val.ofJson("""
                     {

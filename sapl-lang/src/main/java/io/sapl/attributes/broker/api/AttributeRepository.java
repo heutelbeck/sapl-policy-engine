@@ -29,12 +29,16 @@ import java.util.List;
  * settings and timeout strategies.
  * <p>
  * Attributes are identified by a composite key consisting of entity, name, and
- * arguments. The entity parameter distinguishes between global attributes (entity
- * is null) and entity-specific attributes (entity has a value). Global attributes
- * are shared across all policy evaluations, while entity-specific attributes are
+ * arguments. The entity parameter distinguishes between global attributes
+ * (entity
+ * is null) and entity-specific attributes (entity has a value). Global
+ * attributes
+ * are shared across all policy evaluations, while entity-specific attributes
+ * are
  * scoped to particular entities like users, devices, or sessions.
  * <p>
  * Basic usage for global attributes:
+ *
  * <pre>{@code
  * val repository = new InMemoryAttributeRepository(Clock.systemUTC());
  *
@@ -46,22 +50,18 @@ import java.util.List;
  * }</pre>
  * <p>
  * Entity-specific attribute usage:
+ *
  * <pre>{@code
  * // Publish an attribute for a specific user
  * val userId = Val.of("user-123");
  * repository.publishAttribute(userId, "user.role", Val.of("admin")).subscribe();
  *
  * // Publish with TTL - automatically removed after expiration
- * repository.publishAttribute(
- *     userId,
- *     "session.active",
- *     Val.of(true),
- *     Duration.ofMinutes(30)
- * ).subscribe();
+ * repository.publishAttribute(userId, "session.active", Val.of(true), Duration.ofMinutes(30)).subscribe();
  * }</pre>
  */
 public interface AttributeRepository extends AttributeFinder {
-    Duration INFINITE = Duration.ofSeconds(Long.MAX_VALUE, 999999999L);
+    Duration INFINITE = null;
 
     /**
      * Defines how an attribute behaves when its time-to-live expires.
@@ -93,7 +93,8 @@ public interface AttributeRepository extends AttributeFinder {
      * Thread Safety: This method is fully reactive and non-blocking. All operations
      * are safe for concurrent access from multiple threads.
      *
-     * @param entity the entity context for this attribute, or null for global attributes
+     * @param entity the entity context for this attribute, or null for global
+     * attributes
      * @param attributeName the fully qualified attribute name
      * @param arguments the attribute arguments, or empty list if none
      * @param value the attribute value to publish
@@ -102,13 +103,14 @@ public interface AttributeRepository extends AttributeFinder {
      * @return a Mono that completes when the attribute is published
      */
     Mono<Void> publishAttribute(Val entity, String attributeName, List<Val> arguments, Val value, Duration ttl,
-                                TimeOutStrategy timeOutStrategy);
+            TimeOutStrategy timeOutStrategy);
 
     /**
      * Publishes a global attribute with infinite TTL and removal strategy.
      * Suitable for static configuration values or long-lived attributes.
      * <p>
      * Example:
+     *
      * <pre>{@code
      * repository.publishAttribute("system.maxUsers", Val.of(1000)).subscribe();
      * }</pre>
@@ -126,12 +128,9 @@ public interface AttributeRepository extends AttributeFinder {
      * When TTL expires, the attribute is removed from the repository.
      * <p>
      * Example:
+     *
      * <pre>{@code
-     * repository.publishAttribute(
-     *     "cache.token",
-     *     Val.of(token),
-     *     Duration.ofMinutes(15)
-     * ).subscribe();
+     * repository.publishAttribute("cache.token", Val.of(token), Duration.ofMinutes(15)).subscribe();
      * }</pre>
      *
      * @param attributeName the fully qualified attribute name
@@ -149,13 +148,10 @@ public interface AttributeRepository extends AttributeFinder {
      * when TTL expires.
      * <p>
      * Example:
+     *
      * <pre>{@code
-     * repository.publishAttribute(
-     *     "session.status",
-     *     Val.of("active"),
-     *     Duration.ofMinutes(30),
-     *     TimeOutStrategy.BECOME_UNDEFINED
-     * ).subscribe();
+     * repository.publishAttribute("session.status", Val.of("active"), Duration.ofMinutes(30),
+     *         TimeOutStrategy.BECOME_UNDEFINED).subscribe();
      * }</pre>
      *
      * @param attributeName the fully qualified attribute name
@@ -164,21 +160,20 @@ public interface AttributeRepository extends AttributeFinder {
      * @param timeOutStrategy behavior when TTL expires
      * @return a Mono that completes when the attribute is published
      */
-    default Mono<Void> publishAttribute(String attributeName, Val value, Duration ttl, TimeOutStrategy timeOutStrategy) {
+    default Mono<Void> publishAttribute(String attributeName, Val value, Duration ttl,
+            TimeOutStrategy timeOutStrategy) {
         return publishAttribute(null, attributeName, List.of(), value, ttl, timeOutStrategy);
     }
 
     /**
      * Publishes an entity-specific attribute with infinite TTL.
-     * Useful for associating attributes with specific entities like users or resources.
+     * Useful for associating attributes with specific entities like users or
+     * resources.
      * <p>
      * Example:
+     *
      * <pre>{@code
-     * repository.publishAttribute(
-     *     Val.of("user-123"),
-     *     "user.role",
-     *     Val.of("admin")
-     * ).subscribe();
+     * repository.publishAttribute(Val.of("user-123"), "user.role", Val.of("admin")).subscribe();
      * }</pre>
      *
      * @param entity the entity context for this attribute
@@ -195,13 +190,10 @@ public interface AttributeRepository extends AttributeFinder {
      * The attribute is removed when TTL expires.
      * <p>
      * Example:
+     *
      * <pre>{@code
-     * repository.publishAttribute(
-     *     Val.of("device-abc"),
-     *     "device.temperature",
-     *     Val.of(22.5),
-     *     Duration.ofSeconds(60)
-     * ).subscribe();
+     * repository.publishAttribute(Val.of("device-abc"), "device.temperature", Val.of(22.5), Duration.ofSeconds(60))
+     *         .subscribe();
      * }</pre>
      *
      * @param entity the entity context for this attribute
@@ -219,14 +211,10 @@ public interface AttributeRepository extends AttributeFinder {
      * Provides full control over entity-bound attributes without arguments.
      * <p>
      * Example:
+     *
      * <pre>{@code
-     * repository.publishAttribute(
-     *     Val.of("session-xyz"),
-     *     "session.valid",
-     *     Val.of(true),
-     *     Duration.ofHours(1),
-     *     TimeOutStrategy.BECOME_UNDEFINED
-     * ).subscribe();
+     * repository.publishAttribute(Val.of("session-xyz"), "session.valid", Val.of(true), Duration.ofHours(1),
+     *         TimeOutStrategy.BECOME_UNDEFINED).subscribe();
      * }</pre>
      *
      * @param entity the entity context for this attribute
@@ -237,7 +225,7 @@ public interface AttributeRepository extends AttributeFinder {
      * @return a Mono that completes when the attribute is published
      */
     default Mono<Void> publishAttribute(Val entity, String attributeName, Val value, Duration ttl,
-                                        TimeOutStrategy timeOutStrategy) {
+            TimeOutStrategy timeOutStrategy) {
         return publishAttribute(entity, attributeName, List.of(), value, ttl, timeOutStrategy);
     }
 
@@ -246,12 +234,9 @@ public interface AttributeRepository extends AttributeFinder {
      * Useful for parameterized attributes like computed values or cached results.
      * <p>
      * Example:
+     *
      * <pre>{@code
-     * repository.publishAttribute(
-     *     "calculation.result",
-     *     List.of(Val.of(10), Val.of(20)),
-     *     Val.of(30)
-     * ).subscribe();
+     * repository.publishAttribute("calculation.result", List.of(Val.of(10), Val.of(20)), Val.of(30)).subscribe();
      * }</pre>
      *
      * @param attributeName the fully qualified attribute name
@@ -268,13 +253,10 @@ public interface AttributeRepository extends AttributeFinder {
      * The attribute is removed when TTL expires.
      * <p>
      * Example:
+     *
      * <pre>{@code
-     * repository.publishAttribute(
-     *     "cache.query",
-     *     List.of(Val.of("SELECT * FROM users")),
-     *     Val.of(resultSet),
-     *     Duration.ofMinutes(5)
-     * ).subscribe();
+     * repository.publishAttribute("cache.query", List.of(Val.of("SELECT * FROM users")), Val.of(resultSet),
+     *         Duration.ofMinutes(5)).subscribe();
      * }</pre>
      *
      * @param attributeName the fully qualified attribute name
@@ -292,14 +274,10 @@ public interface AttributeRepository extends AttributeFinder {
      * Provides full control for parameterized global attributes.
      * <p>
      * Example:
+     *
      * <pre>{@code
-     * repository.publishAttribute(
-     *     "metrics.average",
-     *     List.of(Val.of("cpu")),
-     *     Val.of(75.3),
-     *     Duration.ofSeconds(30),
-     *     TimeOutStrategy.BECOME_UNDEFINED
-     * ).subscribe();
+     * repository.publishAttribute("metrics.average", List.of(Val.of("cpu")), Val.of(75.3), Duration.ofSeconds(30),
+     *         TimeOutStrategy.BECOME_UNDEFINED).subscribe();
      * }</pre>
      *
      * @param attributeName the fully qualified attribute name
@@ -310,7 +288,7 @@ public interface AttributeRepository extends AttributeFinder {
      * @return a Mono that completes when the attribute is published
      */
     default Mono<Void> publishAttribute(String attributeName, List<Val> arguments, Val value, Duration ttl,
-                                        TimeOutStrategy timeOutStrategy) {
+            TimeOutStrategy timeOutStrategy) {
         return publishAttribute(null, attributeName, arguments, value, ttl, timeOutStrategy);
     }
 
@@ -318,8 +296,10 @@ public interface AttributeRepository extends AttributeFinder {
      * Removes an attribute from the repository. This is the primary method that all
      * convenience methods delegate to.
      * <p>
-     * Removing an attribute causes all active subscribers to receive ATTRIBUTE_UNAVAILABLE.
-     * The attribute key is determined by the combination of entity, name, and arguments.
+     * Removing an attribute causes all active subscribers to receive
+     * ATTRIBUTE_UNAVAILABLE.
+     * The attribute key is determined by the combination of entity, name, and
+     * arguments.
      *
      * @param entity the entity context, or null for global attributes
      * @param attributeName the fully qualified attribute name
@@ -332,6 +312,7 @@ public interface AttributeRepository extends AttributeFinder {
      * Removes a global attribute without arguments.
      * <p>
      * Example:
+     *
      * <pre>{@code
      * repository.removeAttribute("system.maintenanceMode").subscribe();
      * }</pre>
@@ -347,6 +328,7 @@ public interface AttributeRepository extends AttributeFinder {
      * Removes an entity-specific attribute without arguments.
      * <p>
      * Example:
+     *
      * <pre>{@code
      * repository.removeAttribute(Val.of("user-123"), "user.role").subscribe();
      * }</pre>
@@ -363,11 +345,9 @@ public interface AttributeRepository extends AttributeFinder {
      * Removes a global attribute with arguments.
      * <p>
      * Example:
+     *
      * <pre>{@code
-     * repository.removeAttribute(
-     *     "cache.query",
-     *     List.of(Val.of("SELECT * FROM users"))
-     * ).subscribe();
+     * repository.removeAttribute("cache.query", List.of(Val.of("SELECT * FROM users"))).subscribe();
      * }</pre>
      *
      * @param attributeName the fully qualified attribute name

@@ -36,6 +36,7 @@ import java.util.List;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 class FixedFunctionsAndAttributesPDPConfigurationProviderTests {
 
@@ -50,6 +51,7 @@ class FixedFunctionsAndAttributesPDPConfigurationProviderTests {
                 List.of(), List.of(), prpSource);
         final var config    = provider.pdpConfiguration().blockFirst();
         provider.destroy();
+        assertNotNull(config);
         assertThat(config.documentsCombinator() == PolicyDocumentCombiningAlgorithm.DENY_UNLESS_PERMIT,
                 is(Boolean.TRUE));
         assertThat(config.attributeStreamBroker(), is(broker));

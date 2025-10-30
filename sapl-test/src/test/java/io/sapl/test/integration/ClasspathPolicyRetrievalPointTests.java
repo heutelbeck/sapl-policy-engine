@@ -52,8 +52,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.collection.IsEmptyCollection.empty;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.mock;
 
 class ClasspathPolicyRetrievalPointTests {
@@ -157,7 +156,7 @@ class ClasspathPolicyRetrievalPointTests {
         assertThat(result1.getMatchingDocuments().size(), is(1));
         assertThat(result1.isRetrievalWithErrors(), is(false));
 
-        assertThat(result1.getMatchingDocuments().get(0).document().name(), is("policy read"));
+        assertThat(result1.getMatchingDocuments().getFirst().document().name(), is("policy read"));
 
         final var authzSubscription2 = AuthorizationSubscription.of("Willi", "eat", "ice cream");
 
@@ -175,7 +174,7 @@ class ClasspathPolicyRetrievalPointTests {
         assertThat(result2.isRetrievalWithErrors(), is(false));
         assertThat(result2.isPrpInconsistent(), is(false));
 
-        assertThat(result2.getMatchingDocuments().get(0).document().name(), is("policy eat ice cream"));
+        assertThat(result2.getMatchingDocuments().getFirst().document().name(), is("policy eat ice cream"));
     }
 
     @Test
@@ -191,6 +190,7 @@ class ClasspathPolicyRetrievalPointTests {
             return AuthorizationContext.setSubscriptionVariables(ctx, authzSubscription);
         }).block();
 
+        assertNotNull(result);
         Assertions.assertThat(result.isRetrievalWithErrors()).isTrue();
     }
 
@@ -324,7 +324,7 @@ class ClasspathPolicyRetrievalPointTests {
 
             assertThat(result, notNullValue());
             assertThat(result.getMatchingDocuments().size(), is(1));
-            assertThat(result.getMatchingDocuments().get(0).document().name(), is("policy eat ice cream"));
+            assertThat(result.getMatchingDocuments().getFirst().document().name(), is("policy eat ice cream"));
             assertThat(result.isRetrievalWithErrors(), is(true));
             assertThat(result.isPrpInconsistent(), is(false));
         }

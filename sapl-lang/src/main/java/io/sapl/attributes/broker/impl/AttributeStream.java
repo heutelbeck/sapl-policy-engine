@@ -62,10 +62,11 @@ import java.util.function.Consumer;
  */
 @Slf4j
 public class AttributeStream {
+    public static final int                 BUFFER_SIZE = 128;
     @Getter
     private final AttributeFinderInvocation invocation;
 
-    private final Many<Val> sink = Sinks.many().multicast().onBackpressureBuffer(128);
+    private final Many<Val> sink = Sinks.many().multicast().onBackpressureBuffer(BUFFER_SIZE);
 
     private final Flux<Val> stream;
 

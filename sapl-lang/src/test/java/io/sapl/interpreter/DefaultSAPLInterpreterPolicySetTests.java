@@ -19,7 +19,6 @@ package io.sapl.interpreter;
 
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.AuthorizationSubscription;
-import io.sapl.attributes.broker.api.AttributeRepository;
 import io.sapl.attributes.broker.api.AttributeStreamBroker;
 import io.sapl.attributes.broker.impl.CachingAttributeStreamBroker;
 import io.sapl.attributes.broker.impl.InMemoryAttributeRepository;

@@ -36,6 +36,7 @@ import reactor.test.StepVerifier;
 import reactor.util.context.Context;
 
 import java.time.Clock;
+import java.util.Objects;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
@@ -79,7 +80,7 @@ class ResourcesPRPTests {
         final var prp         = new GenericInMemoryIndexedPolicyRetrievalPointSource(
                 new NaiveImmutableParsedDocumentIndex(), source);
         final var authzSub    = AuthorizationSubscription.of("Willi", "write", "icecream");
-        final var sut         = prp.policyRetrievalPoint().blockFirst().retrievePolicies()
+        final var sut         = Objects.requireNonNull(prp.policyRetrievalPoint().blockFirst()).retrievePolicies()
                 .contextWrite(ctx -> setUpAuthorizationContext(ctx, authzSub));
         StepVerifier.create(sut).expectNextMatches(PolicyRetrievalResult.class::isInstance).verifyComplete();
         prp.dispose();
