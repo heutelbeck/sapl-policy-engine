@@ -23,23 +23,29 @@ import io.sapl.api.interpreter.Val;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.Decision;
+import io.sapl.attributes.broker.api.AttributeRepository;
 import io.sapl.attributes.broker.impl.CachingAttributeStreamBroker;
+import io.sapl.attributes.broker.impl.InMemoryAttributeRepository;
 import io.sapl.interpreter.DefaultSAPLInterpreter;
 import io.sapl.interpreter.functions.AnnotationFunctionContext;
 import lombok.experimental.UtilityClass;
 import reactor.core.publisher.Flux;
 import reactor.test.StepVerifier;
 
+import java.time.Clock;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
 @UtilityClass
 public class CombinatorTestUtil {
-    private static final DefaultSAPLInterpreter       INTERPRETER      = new DefaultSAPLInterpreter();
-    private static final CachingAttributeStreamBroker ATTRIBUTE_BROKER = new CachingAttributeStreamBroker();
-    private static final AnnotationFunctionContext    FUNCTION_CTX     = new AnnotationFunctionContext();
-    private static final Map<String, Val>             VARIABLES        = new HashMap<>();
+    private static final DefaultSAPLInterpreter       INTERPRETER          = new DefaultSAPLInterpreter();
+    private static final AttributeRepository          ATTRIBUTE_REPOSITORY = new InMemoryAttributeRepository(
+            Clock.systemUTC());
+    private static final CachingAttributeStreamBroker ATTRIBUTE_BROKER     = new CachingAttributeStreamBroker(
+            ATTRIBUTE_REPOSITORY);
+    private static final AnnotationFunctionContext    FUNCTION_CTX         = new AnnotationFunctionContext();
+    private static final Map<String, Val>             VARIABLES            = new HashMap<>();
 
     public static void validateDecision(AuthorizationSubscription subscription, String policySet, Decision expected) {
         final var decisions = evaluate(subscription, policySet).map(AuthorizationDecision::getDecision);

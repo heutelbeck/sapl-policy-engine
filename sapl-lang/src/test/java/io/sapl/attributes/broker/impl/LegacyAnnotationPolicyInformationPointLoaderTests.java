@@ -34,12 +34,15 @@ import io.sapl.interpreter.functions.AnnotationFunctionContext;
 import io.sapl.testutil.ParserUtil;
 import io.sapl.validation.ValidatorFactory;
 import jakarta.validation.constraints.NotNull;
+import lombok.val;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 import reactor.core.publisher.Flux;
 import reactor.test.StepVerifier;
 import reactor.util.context.Context;
 
 import java.io.IOException;
+import java.time.Clock;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -93,7 +96,7 @@ class LegacyAnnotationPolicyInformationPointLoaderTests {
         final var pipLoader = newPipLoader();
         pipLoader.loadPolicyInformationPoint(pip);
         assertThatThrownBy(() -> pipLoader.loadPolicyInformationPoint(pip)).isInstanceOf(AttributeBrokerException.class)
-                .hasMessageContaining("collission");
+                .hasMessageContaining("collision");
     }
 
     @Test
@@ -168,7 +171,8 @@ class LegacyAnnotationPolicyInformationPointLoaderTests {
         }
 
         final var pip                   = new PIP();
-        final var attributeStreamBroker = new CachingAttributeStreamBroker();
+        val       attributeRepository   = new InMemoryAttributeRepository(Clock.systemUTC());
+        val       attributeStreamBroker = new CachingAttributeStreamBroker(attributeRepository);
         final var docsProvider          = new InMemoryPolicyInformationPointDocumentationProvider();
         final var pipLoader             = new AnnotationPolicyInformationPointLoader(attributeStreamBroker,
                 docsProvider, new ValidatorFactory(new ObjectMapper()));
@@ -176,7 +180,7 @@ class LegacyAnnotationPolicyInformationPointLoaderTests {
         assertThat(docsProvider.getAvailableLibraries().contains("PIP"), is(true));
         assertThat(docsProvider.providedFunctionsOfLibrary("PIP").contains("x"), is(true));
         assertThat(docsProvider.isProvidedFunction("PIP.x"), is(Boolean.TRUE));
-        assertThat(new ArrayList<>(docsProvider.getDocumentation()).get(0).namespace(), is("PIP"));
+        assertThat(new ArrayList<>(docsProvider.getDocumentation()).getFirst().namespace(), is("PIP"));
     }
 
     @Test
@@ -302,8 +306,8 @@ class LegacyAnnotationPolicyInformationPointLoaderTests {
         }
 
         final var pip = new PIP();
-        assertLoadingPipThrowsAttributeBrokerException(pip, String
-                .format(AnnotationPolicyInformationPointLoader.NON_VAL_PARAMETER_AT_METHOD_S_ERROR, "x", "Object"));
+        assertLoadingPipThrowsAttributeBrokerException(pip,
+                String.format(AnnotationPolicyInformationPointLoader.NON_VAL_PARAMETER_AT_METHOD_S_ERROR, "x"));
     }
 
     @Test
@@ -510,10 +514,12 @@ class LegacyAnnotationPolicyInformationPointLoaderTests {
     }
 
     @Test
+    @Timeout(10)
     void when_evaluateUnknownAttribute_fails() throws IOException {
-        final var broker     = new CachingAttributeStreamBroker();
-        final var variables  = Map.of("key1", Val.of("valueOfKey"));
-        final var expression = ParserUtil.expression("<test.envAttribute(\"param1\",\"param2\")>");
+        val       attributeRepository = new InMemoryAttributeRepository(Clock.systemUTC());
+        val       broker              = new CachingAttributeStreamBroker(attributeRepository);
+        final var variables           = Map.of("key1", Val.of("valueOfKey"));
+        final var expression          = ParserUtil.expression("<test.envAttribute(\"param1\",\"param2\")>");
         StepVerifier.create(expression.evaluate().contextWrite(this.constructContext(broker, variables)))
                 .expectNextMatches(valErrorContains("No unique policy information point found")).thenCancel().verify();
     }
@@ -798,10 +804,12 @@ class LegacyAnnotationPolicyInformationPointLoaderTests {
     }
 
     @Test
+    @Timeout(10)
     void when_unknownAttribute_called_evaluatesToError() throws IOException {
-        final var broker     = new CachingAttributeStreamBroker();
-        final var variables  = Map.of("key1", Val.of("valueOfKey"));
-        final var expression = ParserUtil.expression("\"\".<test.envAttribute>");
+        val       attributeRepository = new InMemoryAttributeRepository(Clock.systemUTC());
+        val       broker              = new CachingAttributeStreamBroker(attributeRepository);
+        final var variables           = Map.of("key1", Val.of("valueOfKey"));
+        final var expression          = ParserUtil.expression("\"\".<test.envAttribute>");
         StepVerifier.create(expression.evaluate().contextWrite(this.constructContext(broker, variables)))
                 .expectNextMatches(
                         valErrorTextContains("No unique policy information point found for AttributeFinderInvocation"))
@@ -809,6 +817,7 @@ class LegacyAnnotationPolicyInformationPointLoaderTests {
     }
 
     @Test
+    @Timeout(10)
     void when_twoParamEnvironmentAttribute_calledWithOneParam_evaluatesToError()
             throws AttributeBrokerException, IOException {
         @PolicyInformationPoint(name = "test")
@@ -826,10 +835,11 @@ class LegacyAnnotationPolicyInformationPointLoaderTests {
         final var variables  = Map.of("key1", Val.of("valueOfKey"));
         final var expression = ParserUtil.expression("<test.envAttribute(\"param1\")>");
         StepVerifier.create(expression.evaluate().contextWrite(this.constructContext(broker, variables)))
-                .expectNextMatches(valErrorContains("No unique policy information point found")).thenCancel().verify();
+                .expectNextMatches(valErrorContains("Attribute unavailable.")).thenCancel().verify();
     }
 
     @Test
+    @Timeout(10)
     void when_varArgsWithVariablesEnvironmentAttributeAndBadParamType_evaluatesToError()
             throws AttributeBrokerException, IOException {
         @PolicyInformationPoint(name = "test")
@@ -958,6 +968,7 @@ class LegacyAnnotationPolicyInformationPointLoaderTests {
     }
 
     @Test
+    @Timeout(10)
     void when_environmentAttributeButOnlyNonEnvAttributePresent_fail() throws AttributeBrokerException, IOException {
         @PolicyInformationPoint(name = "test")
         class PIP {
@@ -974,9 +985,7 @@ class LegacyAnnotationPolicyInformationPointLoaderTests {
         final var variables  = Map.of("key1", Val.of("valueOfKey"));
         final var expression = ParserUtil.expression("<test.attribute(\"param1\",\"param2\")>");
         StepVerifier.create(expression.evaluate().contextWrite(this.constructContext(broker, variables)))
-                .expectNextMatches(
-                        valErrorTextContains("No unique policy information point found for AttributeFinderInvocation"))
-                .thenCancel().verify();
+                .expectNextMatches(valErrorTextContains("Attribute unavailable.")).thenCancel().verify();
     }
 
     private Function<Context, Context> constructContext(AttributeStreamBroker attributeStreamBroker,
@@ -1056,7 +1065,8 @@ class LegacyAnnotationPolicyInformationPointLoaderTests {
     }
 
     private AttributeStreamBroker brokerWithPip(Object pip) {
-        final var attributeStreamBroker = new CachingAttributeStreamBroker();
+        val       attributeRepository   = new InMemoryAttributeRepository(Clock.systemUTC());
+        val       attributeStreamBroker = new CachingAttributeStreamBroker(attributeRepository);
         final var docsProvider          = new InMemoryPolicyInformationPointDocumentationProvider();
         final var pipLoader             = new AnnotationPolicyInformationPointLoader(attributeStreamBroker,
                 docsProvider, new ValidatorFactory(new ObjectMapper()));
@@ -1065,7 +1075,8 @@ class LegacyAnnotationPolicyInformationPointLoaderTests {
     }
 
     private PolicyInformationPointDocumentationProvider docsProviderWithPip(Object pip) {
-        final var attributeStreamBroker = new CachingAttributeStreamBroker();
+        val       attributeRepository   = new InMemoryAttributeRepository(Clock.systemUTC());
+        val       attributeStreamBroker = new CachingAttributeStreamBroker(attributeRepository);
         final var docsProvider          = new InMemoryPolicyInformationPointDocumentationProvider();
         final var pipLoader             = new AnnotationPolicyInformationPointLoader(attributeStreamBroker,
                 docsProvider, new ValidatorFactory(new ObjectMapper()));
@@ -1102,7 +1113,8 @@ class LegacyAnnotationPolicyInformationPointLoaderTests {
     }
 
     private AnnotationPolicyInformationPointLoader newPipLoader() {
-        final var attributeStreamBroker = new CachingAttributeStreamBroker();
+        val       attributeRepository   = new InMemoryAttributeRepository(Clock.systemUTC());
+        val       attributeStreamBroker = new CachingAttributeStreamBroker(attributeRepository);
         final var docsProvider          = new InMemoryPolicyInformationPointDocumentationProvider();
         return new AnnotationPolicyInformationPointLoader(attributeStreamBroker, docsProvider,
                 new ValidatorFactory(MAPPER));

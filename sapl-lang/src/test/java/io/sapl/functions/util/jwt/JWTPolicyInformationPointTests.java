@@ -25,10 +25,11 @@ import com.nimbusds.jwt.JWTClaimsSet;
 import io.sapl.api.interpreter.Val;
 import io.sapl.attributes.broker.impl.AnnotationPolicyInformationPointLoader;
 import io.sapl.attributes.broker.impl.CachingAttributeStreamBroker;
+import io.sapl.attributes.broker.impl.InMemoryAttributeRepository;
 import io.sapl.attributes.broker.impl.InMemoryPolicyInformationPointDocumentationProvider;
 import io.sapl.attributes.pips.jwt.JWTPolicyInformationPoint;
-
 import io.sapl.validation.ValidatorFactory;
+import lombok.val;
 import okhttp3.mockwebserver.MockWebServer;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -42,7 +43,11 @@ import reactor.test.StepVerifier;
 import java.io.IOException;
 import java.security.KeyPair;
 import java.security.NoSuchAlgorithmException;
+import java.time.Clock;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
@@ -92,7 +97,8 @@ class JWTPolicyInformationPointTests {
     void contextIsAbleToLoadJWTPolicyInformationPoint() {
         final var mapper                = new ObjectMapper();
         final var validatorFactory      = new ValidatorFactory(mapper);
-        final var attributeStreamBroker = new CachingAttributeStreamBroker();
+        final var attributeRepository   = new InMemoryAttributeRepository(Clock.systemUTC());
+        final var attributeStreamBroker = new CachingAttributeStreamBroker(attributeRepository);
         final var docsProvider          = new InMemoryPolicyInformationPointDocumentationProvider();
         final var pipLoader             = new AnnotationPolicyInformationPointLoader(attributeStreamBroker,
                 docsProvider, validatorFactory);
@@ -387,17 +393,20 @@ class JWTPolicyInformationPointTests {
     @Test
     void validity_withNbfAfterNowAndExpAfterNbf_shouldBeImmatureThenValidThenExpired() throws JOSEException {
         dispatcher.setDispatchMode(DispatchMode.TRUE);
-        final var variables = JsonTestUtility.publicKeyUriVariables(server, null);
-        final var header    = new JWSHeader.Builder(JWSAlgorithm.RS256).keyID(kid).build();
-        final var claims    = new JWTClaimsSet.Builder().notBeforeTime(JWTTestUtility.timeOneUnitAfterNow())
-                .expirationTime(JWTTestUtility.timeThreeUnitsAfterNow()).build();
-        final var source    = JWTTestUtility.buildAndSignJwt(header, claims, keyPair);
-        StepVerifier.withVirtualTime(() -> jwtPolicyInformationPoint.validity(source, variables))
+        val variables = JsonTestUtility.publicKeyUriVariables(server, null);
+        val header    = new JWSHeader.Builder(JWSAlgorithm.RS256).keyID(kid).build();
+
+        val nbf = Date.from(Instant.now().plusSeconds(2));
+        val exp = Date.from(Instant.now().plusSeconds(4));
+
+        val claims = new JWTClaimsSet.Builder().notBeforeTime(nbf).expirationTime(exp).build();
+        val source = JWTTestUtility.buildAndSignJwt(header, claims, keyPair);
+
+        StepVerifier.create(jwtPolicyInformationPoint.validity(source, variables))
                 .expectNext(Val.of(JWTPolicyInformationPoint.ValidityState.IMMATURE.toString()))
-                .thenAwait(JWTTestUtility.twoUnitDuration())
                 .expectNext(Val.of(JWTPolicyInformationPoint.ValidityState.VALID.toString()))
-                .thenAwait(JWTTestUtility.twoUnitDuration())
-                .expectNext(Val.of(JWTPolicyInformationPoint.ValidityState.EXPIRED.toString())).verifyComplete();
+                .expectNext(Val.of(JWTPolicyInformationPoint.ValidityState.EXPIRED.toString())).thenCancel()
+                .verify(Duration.ofSeconds(6));
     }
 
 }

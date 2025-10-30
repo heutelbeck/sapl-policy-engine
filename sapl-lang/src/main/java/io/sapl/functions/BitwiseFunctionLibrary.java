@@ -146,8 +146,19 @@ public class BitwiseFunctionLibrary {
                 "type": "boolean"
             }
             """;
-    public static final String  SHIFT           = "Shift";
 
+    private static final String CONTEXT_BIT   = "Bit";
+    private static final String CONTEXT_SHIFT = "Shift";
+
+    private static final String ERROR_POSITION_MUST_BE_BETWEEN_0_AND_63 = " position must be between 0 and 63.";
+
+    /**
+     * Performs bitwise AND operation.
+     *
+     * @param left first operand
+     * @param right second operand
+     * @return bitwise AND result
+     */
     @Function(docs = """
             ```bitwise.bitwiseAnd(LONG left, LONG right)```
 
@@ -174,6 +185,13 @@ public class BitwiseFunctionLibrary {
         return Val.of(left.get().longValue() & right.get().longValue());
     }
 
+    /**
+     * Performs bitwise OR operation.
+     *
+     * @param left first operand
+     * @param right second operand
+     * @return bitwise OR result
+     */
     @Function(docs = """
             ```bitwise.bitwiseOr(LONG left, LONG right)```
 
@@ -199,6 +217,13 @@ public class BitwiseFunctionLibrary {
         return Val.of(left.get().longValue() | right.get().longValue());
     }
 
+    /**
+     * Performs bitwise XOR operation.
+     *
+     * @param left first operand
+     * @param right second operand
+     * @return bitwise XOR result
+     */
     @Function(docs = """
             ```bitwise.bitwiseXor(LONG left, LONG right)```
 
@@ -225,6 +250,12 @@ public class BitwiseFunctionLibrary {
         return Val.of(left.get().longValue() ^ right.get().longValue());
     }
 
+    /**
+     * Performs bitwise NOT operation.
+     *
+     * @param value value to invert
+     * @return bitwise NOT result
+     */
     @Function(docs = """
             ```bitwise.bitwiseNot(LONG value)```
 
@@ -249,6 +280,13 @@ public class BitwiseFunctionLibrary {
         return Val.of(~value.get().longValue());
     }
 
+    /**
+     * Performs left shift operation.
+     *
+     * @param value value to shift
+     * @param positions number of positions to shift (0 to 63)
+     * @return left shifted value
+     */
     @Function(docs = """
             ```bitwise.leftShift(LONG value, LONG positions)```
 
@@ -273,7 +311,7 @@ public class BitwiseFunctionLibrary {
             ```
             """, schema = RETURNS_NUMBER)
     public static Val leftShift(@Long Val value, @Long Val positions) {
-        val positionValidation = validatePosition(positions, SHIFT);
+        val positionValidation = validatePosition(positions, CONTEXT_SHIFT);
         if (positionValidation != null) {
             return positionValidation;
         }
@@ -281,6 +319,13 @@ public class BitwiseFunctionLibrary {
         return Val.of(value.get().longValue() << positions.get().longValue());
     }
 
+    /**
+     * Performs signed right shift operation.
+     *
+     * @param value value to shift
+     * @param positions number of positions to shift (0 to 63)
+     * @return right shifted value
+     */
     @Function(docs = """
             ```bitwise.rightShift(LONG value, LONG positions)```
 
@@ -305,7 +350,7 @@ public class BitwiseFunctionLibrary {
             ```
             """, schema = RETURNS_NUMBER)
     public static Val rightShift(@Long Val value, @Long Val positions) {
-        val positionValidation = validatePosition(positions, SHIFT);
+        val positionValidation = validatePosition(positions, CONTEXT_SHIFT);
         if (positionValidation != null) {
             return positionValidation;
         }
@@ -313,6 +358,13 @@ public class BitwiseFunctionLibrary {
         return Val.of(value.get().longValue() >> positions.get().longValue());
     }
 
+    /**
+     * Performs unsigned right shift operation.
+     *
+     * @param value value to shift
+     * @param positions number of positions to shift (0 to 63)
+     * @return unsigned right shifted value
+     */
     @Function(docs = """
             ```bitwise.unsignedRightShift(LONG value, LONG positions)```
 
@@ -336,7 +388,7 @@ public class BitwiseFunctionLibrary {
             ```
             """, schema = RETURNS_NUMBER)
     public static Val unsignedRightShift(@Long Val value, @Long Val positions) {
-        val positionValidation = validatePosition(positions, SHIFT);
+        val positionValidation = validatePosition(positions, CONTEXT_SHIFT);
         if (positionValidation != null) {
             return positionValidation;
         }
@@ -344,6 +396,13 @@ public class BitwiseFunctionLibrary {
         return Val.of(value.get().longValue() >>> positions.get().longValue());
     }
 
+    /**
+     * Tests whether a specific bit is set.
+     *
+     * @param value value to test
+     * @param position bit position to test (0 to 63)
+     * @return Val.TRUE if bit is set
+     */
     @Function(docs = """
             ```bitwise.testBit(LONG value, LONG position)```
 
@@ -367,7 +426,7 @@ public class BitwiseFunctionLibrary {
             ```
             """, schema = RETURNS_BOOLEAN)
     public static Val testBit(@Long Val value, @Long Val position) {
-        val positionValidation = validatePosition(position, "Bit");
+        val positionValidation = validatePosition(position, CONTEXT_BIT);
         if (positionValidation != null) {
             return positionValidation;
         }
@@ -377,6 +436,13 @@ public class BitwiseFunctionLibrary {
         return Val.of((value.get().longValue() & mask) != 0);
     }
 
+    /**
+     * Sets a specific bit to 1.
+     *
+     * @param value value to modify
+     * @param position bit position to set (0 to 63)
+     * @return value with bit set
+     */
     @Function(docs = """
             ```bitwise.setBit(LONG value, LONG position)```
 
@@ -400,7 +466,7 @@ public class BitwiseFunctionLibrary {
             ```
             """, schema = RETURNS_NUMBER)
     public static Val setBit(@Long Val value, @Long Val position) {
-        val positionValidation = validatePosition(position, "Bit");
+        val positionValidation = validatePosition(position, CONTEXT_BIT);
         if (positionValidation != null) {
             return positionValidation;
         }
@@ -410,6 +476,13 @@ public class BitwiseFunctionLibrary {
         return Val.of(value.get().longValue() | mask);
     }
 
+    /**
+     * Clears a specific bit to 0.
+     *
+     * @param value value to modify
+     * @param position bit position to clear (0 to 63)
+     * @return value with bit cleared
+     */
     @Function(docs = """
             ```bitwise.clearBit(LONG value, LONG position)```
 
@@ -433,7 +506,7 @@ public class BitwiseFunctionLibrary {
             ```
             """, schema = RETURNS_NUMBER)
     public static Val clearBit(@Long Val value, @Long Val position) {
-        val positionValidation = validatePosition(position, "Bit");
+        val positionValidation = validatePosition(position, CONTEXT_BIT);
         if (positionValidation != null) {
             return positionValidation;
         }
@@ -443,6 +516,13 @@ public class BitwiseFunctionLibrary {
         return Val.of(value.get().longValue() & ~mask);
     }
 
+    /**
+     * Toggles a specific bit.
+     *
+     * @param value value to modify
+     * @param position bit position to toggle (0 to 63)
+     * @return value with bit toggled
+     */
     @Function(docs = """
             ```bitwise.toggleBit(LONG value, LONG position)```
 
@@ -466,7 +546,7 @@ public class BitwiseFunctionLibrary {
             ```
             """, schema = RETURNS_NUMBER)
     public static Val toggleBit(@Long Val value, @Long Val position) {
-        val positionValidation = validatePosition(position, "Bit");
+        val positionValidation = validatePosition(position, CONTEXT_BIT);
         if (positionValidation != null) {
             return positionValidation;
         }
@@ -476,6 +556,12 @@ public class BitwiseFunctionLibrary {
         return Val.of(value.get().longValue() ^ mask);
     }
 
+    /**
+     * Returns the number of one-bits in the two's complement binary representation.
+     *
+     * @param value value to count bits in
+     * @return number of set bits
+     */
     @Function(docs = """
             ```bitwise.bitCount(LONG value)```
 
@@ -501,6 +587,13 @@ public class BitwiseFunctionLibrary {
         return Val.of(java.lang.Long.bitCount(value.get().longValue()));
     }
 
+    /**
+     * Rotates bits left by the specified number of positions.
+     *
+     * @param value value to rotate
+     * @param positions number of positions to rotate (0 to 63)
+     * @return rotated value
+     */
     @Function(docs = """
             ```bitwise.rotateLeft(LONG value, LONG positions)```
 
@@ -523,7 +616,7 @@ public class BitwiseFunctionLibrary {
             ```
             """, schema = RETURNS_NUMBER)
     public static Val rotateLeft(@Long Val value, @Long Val positions) {
-        val positionValidation = validatePosition(positions, SHIFT);
+        val positionValidation = validatePosition(positions, CONTEXT_SHIFT);
         if (positionValidation != null) {
             return positionValidation;
         }
@@ -531,6 +624,13 @@ public class BitwiseFunctionLibrary {
         return Val.of(java.lang.Long.rotateLeft(value.get().longValue(), (int) positions.get().longValue()));
     }
 
+    /**
+     * Rotates bits right by the specified number of positions.
+     *
+     * @param value value to rotate
+     * @param positions number of positions to rotate (0 to 63)
+     * @return rotated value
+     */
     @Function(docs = """
             ```bitwise.rotateRight(LONG value, LONG positions)```
 
@@ -553,7 +653,7 @@ public class BitwiseFunctionLibrary {
             ```
             """, schema = RETURNS_NUMBER)
     public static Val rotateRight(@Long Val value, @Long Val positions) {
-        val positionValidation = validatePosition(positions, SHIFT);
+        val positionValidation = validatePosition(positions, CONTEXT_SHIFT);
         if (positionValidation != null) {
             return positionValidation;
         }
@@ -561,6 +661,12 @@ public class BitwiseFunctionLibrary {
         return Val.of(java.lang.Long.rotateRight(value.get().longValue(), (int) positions.get().longValue()));
     }
 
+    /**
+     * Returns the number of zero bits preceding the highest-order one-bit.
+     *
+     * @param value value to analyze
+     * @return number of leading zero bits
+     */
     @Function(docs = """
             ```bitwise.leadingZeros(LONG value)```
 
@@ -588,6 +694,12 @@ public class BitwiseFunctionLibrary {
         return Val.of(java.lang.Long.numberOfLeadingZeros(value.get().longValue()));
     }
 
+    /**
+     * Returns the number of zero bits following the lowest-order one-bit.
+     *
+     * @param value value to analyze
+     * @return number of trailing zero bits
+     */
     @Function(docs = """
             ```bitwise.trailingZeros(LONG value)```
 
@@ -615,6 +727,12 @@ public class BitwiseFunctionLibrary {
         return Val.of(java.lang.Long.numberOfTrailingZeros(value.get().longValue()));
     }
 
+    /**
+     * Returns the value with bit order reversed.
+     *
+     * @param value value to reverse
+     * @return value with reversed bit order
+     */
     @Function(docs = """
             ```bitwise.reverseBits(LONG value)```
 
@@ -639,6 +757,12 @@ public class BitwiseFunctionLibrary {
         return Val.of(java.lang.Long.reverse(value.get().longValue()));
     }
 
+    /**
+     * Tests whether the value is a power of two.
+     *
+     * @param value value to test
+     * @return Val.TRUE if value is a power of two, Val.FALSE otherwise
+     */
     @Function(docs = """
             ```bitwise.isPowerOfTwo(LONG value)```
 
@@ -678,7 +802,7 @@ public class BitwiseFunctionLibrary {
     private static Val validatePosition(Val position, String context) {
         val positionValue = position.get().longValue();
         if (positionValue < 0 || positionValue >= 64) {
-            return Val.error(context + " position must be between 0 and 63");
+            return Val.error(context + ERROR_POSITION_MUST_BE_BETWEEN_0_AND_63);
         }
         return null;
     }

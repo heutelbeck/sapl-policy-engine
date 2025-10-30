@@ -44,7 +44,7 @@ public class ParserUtil {
         resource.setEntryPoint(INJECTOR.getInstance(SAPLGrammarAccess.class).getFilterComponentRule());
         InputStream in = new ByteArrayInputStream(sapl.getBytes(StandardCharsets.UTF_8));
         resource.load(in, resourceSet.getLoadOptions());
-        final var filterComponent = (FilterComponent) resource.getContents().get(0);
+        final var filterComponent = (FilterComponent) resource.getContents().getFirst();
         if (DEBUG)
             EObjectUtil.dump(filterComponent);
         return filterComponent;
@@ -56,7 +56,7 @@ public class ParserUtil {
         resource.setEntryPoint(INJECTOR.getInstance(SAPLGrammarAccess.class).getExpressionRule());
         InputStream in = new ByteArrayInputStream(sapl.getBytes(StandardCharsets.UTF_8));
         resource.load(in, resourceSet.getLoadOptions());
-        final var expression = (Expression) resource.getContents().get(0);
+        final var expression = (Expression) resource.getContents().getFirst();
         if (DEBUG)
             EObjectUtil.dump(expression);
         return expression;
@@ -68,7 +68,7 @@ public class ParserUtil {
         resource.setEntryPoint(INJECTOR.getInstance(SAPLGrammarAccess.class).getStatementRule());
         InputStream in = new ByteArrayInputStream(sapl.getBytes(StandardCharsets.UTF_8));
         resource.load(in, resourceSet.getLoadOptions());
-        final var statement = (Statement) resource.getContents().get(0);
+        final var statement = (Statement) resource.getContents().getFirst();
         if (DEBUG)
             EObjectUtil.dump(statement);
         return statement;
@@ -80,7 +80,7 @@ public class ParserUtil {
         resource.setEntryPoint(INJECTOR.getInstance(SAPLGrammarAccess.class).getEntitlementRule());
         InputStream in = new ByteArrayInputStream(sapl.getBytes(StandardCharsets.UTF_8));
         resource.load(in, resourceSet.getLoadOptions());
-        final var entitlement = (Entitlement) resource.getContents().get(0);
+        final var entitlement = (Entitlement) resource.getContents().getFirst();
         if (DEBUG)
             EObjectUtil.dump(entitlement);
         return entitlement;

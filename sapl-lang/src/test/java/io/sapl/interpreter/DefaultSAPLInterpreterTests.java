@@ -25,10 +25,7 @@ import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.api.interpreter.Val;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.AuthorizationSubscription;
-import io.sapl.attributes.broker.impl.AnnotationPolicyInformationPointLoader;
-import io.sapl.attributes.broker.impl.CachingAttributeStreamBroker;
-import io.sapl.attributes.broker.impl.InMemoryPolicyInformationPointDocumentationProvider;
-import io.sapl.attributes.broker.impl.TestPIP;
+import io.sapl.attributes.broker.impl.*;
 import io.sapl.functions.DefaultLibraries;
 import io.sapl.interpreter.functions.AnnotationFunctionContext;
 import io.sapl.validation.ValidatorFactory;
@@ -40,6 +37,7 @@ import org.junit.jupiter.params.provider.MethodSource;
 import reactor.test.StepVerifier;
 
 import java.io.InputStream;
+import java.time.Clock;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -109,7 +107,7 @@ class DefaultSAPLInterpreterTests {
     @BeforeAll
     static void beforeAll() throws JsonProcessingException, InitializationException {
         authzSubscription     = MAPPER.readValue(AUTHZ_SUBSCRIPTION_JSON, AuthorizationSubscription.class);
-        attributeStreamBroker = new CachingAttributeStreamBroker();
+        attributeStreamBroker = new CachingAttributeStreamBroker(new InMemoryAttributeRepository(Clock.systemUTC()));
         docsProvider          = new InMemoryPolicyInformationPointDocumentationProvider();
 
         final var loader = new AnnotationPolicyInformationPointLoader(attributeStreamBroker, docsProvider,

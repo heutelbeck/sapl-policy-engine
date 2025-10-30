@@ -25,6 +25,7 @@ import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.api.interpreter.Val;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.attributes.broker.impl.CachingAttributeStreamBroker;
+import io.sapl.attributes.broker.impl.InMemoryAttributeRepository;
 import io.sapl.interpreter.DefaultSAPLInterpreter;
 import io.sapl.interpreter.SAPLInterpreter;
 import io.sapl.interpreter.context.AuthorizationContext;
@@ -45,6 +46,7 @@ import org.mockito.MockedStatic;
 import org.mockito.Mockito;
 
 import java.io.InputStream;
+import java.time.Clock;
 import java.util.*;
 
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -73,7 +75,8 @@ class CanonicalImmutableParsedDocumentIndexTests {
             bindings.put(variable, null);
         }
 
-        emptyIndex = new CanonicalImmutableParsedDocumentIndex(new CachingAttributeStreamBroker(),
+        emptyIndex = new CanonicalImmutableParsedDocumentIndex(
+                new CachingAttributeStreamBroker(new InMemoryAttributeRepository(Clock.systemUTC())),
                 new AnnotationFunctionContext());
         variables  = new HashMap<>();
     }
@@ -139,7 +142,8 @@ class CanonicalImmutableParsedDocumentIndexTests {
 
         // when
         PolicyRetrievalResult result = updatedIndex.retrievePolicies().contextWrite(ctx -> {
-            ctx = AuthorizationContext.setAttributeStreamBroker(ctx, new CachingAttributeStreamBroker());
+            ctx = AuthorizationContext.setAttributeStreamBroker(ctx,
+                    new CachingAttributeStreamBroker(new InMemoryAttributeRepository(Clock.systemUTC())));
             ctx = AuthorizationContext.setFunctionContext(ctx, new AnnotationFunctionContext());
             ctx = AuthorizationContext.setVariables(ctx, variables);
             ctx = AuthorizationContext.setSubscriptionVariables(ctx, createRequestObject());
@@ -159,7 +163,8 @@ class CanonicalImmutableParsedDocumentIndexTests {
     void test_orphaned() {
         // given
         emptyIndex = new CanonicalImmutableParsedDocumentIndex(new NoPredicateOrderStrategy(),
-                new CachingAttributeStreamBroker(), new AnnotationFunctionContext());
+                new CachingAttributeStreamBroker(new InMemoryAttributeRepository(Clock.systemUTC())),
+                new AnnotationFunctionContext());
         List<Update> updates = new ArrayList<>(3);
 
         final var doc1 = INTERPERETER.parseDocument("policy \"p_0\" permit !resource.x1");
@@ -178,7 +183,8 @@ class CanonicalImmutableParsedDocumentIndexTests {
 
         // when
         PolicyRetrievalResult result = updatedIndex.retrievePolicies().contextWrite(ctx -> {
-            ctx = AuthorizationContext.setAttributeStreamBroker(ctx, new CachingAttributeStreamBroker());
+            ctx = AuthorizationContext.setAttributeStreamBroker(ctx,
+                    new CachingAttributeStreamBroker(new InMemoryAttributeRepository(Clock.systemUTC())));
             ctx = AuthorizationContext.setFunctionContext(ctx, new AnnotationFunctionContext());
             ctx = AuthorizationContext.setVariables(ctx, variables);
             ctx = AuthorizationContext.setSubscriptionVariables(ctx, createRequestObject());
@@ -214,7 +220,8 @@ class CanonicalImmutableParsedDocumentIndexTests {
 
         // when
         PolicyRetrievalResult result = updatedIndex.retrievePolicies().contextWrite(ctx -> {
-            ctx = AuthorizationContext.setAttributeStreamBroker(ctx, new CachingAttributeStreamBroker());
+            ctx = AuthorizationContext.setAttributeStreamBroker(ctx,
+                    new CachingAttributeStreamBroker(new InMemoryAttributeRepository(Clock.systemUTC())));
             ctx = AuthorizationContext.setFunctionContext(ctx, new AnnotationFunctionContext());
             ctx = AuthorizationContext.setVariables(ctx, variables);
             ctx = AuthorizationContext.setSubscriptionVariables(ctx, createRequestObject());
@@ -241,7 +248,8 @@ class CanonicalImmutableParsedDocumentIndexTests {
 
         // when
         PolicyRetrievalResult result = updatedIndex.retrievePolicies().contextWrite(ctx -> {
-            ctx = AuthorizationContext.setAttributeStreamBroker(ctx, new CachingAttributeStreamBroker());
+            ctx = AuthorizationContext.setAttributeStreamBroker(ctx,
+                    new CachingAttributeStreamBroker(new InMemoryAttributeRepository(Clock.systemUTC())));
             ctx = AuthorizationContext.setFunctionContext(ctx, new AnnotationFunctionContext());
             ctx = AuthorizationContext.setVariables(ctx, variables);
             ctx = AuthorizationContext.setSubscriptionVariables(ctx, createRequestObject());
@@ -278,7 +286,8 @@ class CanonicalImmutableParsedDocumentIndexTests {
 
         // when
         PolicyRetrievalResult result = updatedIndex.retrievePolicies().contextWrite(ctx -> {
-            ctx = AuthorizationContext.setAttributeStreamBroker(ctx, new CachingAttributeStreamBroker());
+            ctx = AuthorizationContext.setAttributeStreamBroker(ctx,
+                    new CachingAttributeStreamBroker(new InMemoryAttributeRepository(Clock.systemUTC())));
             ctx = AuthorizationContext.setFunctionContext(ctx, new AnnotationFunctionContext());
             ctx = AuthorizationContext.setVariables(ctx, variables);
             ctx = AuthorizationContext.setSubscriptionVariables(ctx, createRequestObject());
@@ -305,7 +314,8 @@ class CanonicalImmutableParsedDocumentIndexTests {
 
         // when
         PolicyRetrievalResult result = updatedIndex.retrievePolicies().contextWrite(ctx -> {
-            ctx = AuthorizationContext.setAttributeStreamBroker(ctx, new CachingAttributeStreamBroker());
+            ctx = AuthorizationContext.setAttributeStreamBroker(ctx,
+                    new CachingAttributeStreamBroker(new InMemoryAttributeRepository(Clock.systemUTC())));
             ctx = AuthorizationContext.setFunctionContext(ctx, new AnnotationFunctionContext());
             ctx = AuthorizationContext.setVariables(ctx, variables);
             ctx = AuthorizationContext.setSubscriptionVariables(ctx, createRequestObject());
@@ -335,7 +345,8 @@ class CanonicalImmutableParsedDocumentIndexTests {
 
         // when
         PolicyRetrievalResult result = updatedIndex.retrievePolicies().contextWrite(ctx -> {
-            ctx = AuthorizationContext.setAttributeStreamBroker(ctx, new CachingAttributeStreamBroker());
+            ctx = AuthorizationContext.setAttributeStreamBroker(ctx,
+                    new CachingAttributeStreamBroker(new InMemoryAttributeRepository(Clock.systemUTC())));
             ctx = AuthorizationContext.setFunctionContext(ctx, new AnnotationFunctionContext());
             ctx = AuthorizationContext.setVariables(ctx, variables);
             ctx = AuthorizationContext.setSubscriptionVariables(ctx, createRequestObject());

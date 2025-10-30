@@ -33,24 +33,23 @@ import java.util.stream.Stream;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
-/**
- * Comprehensive tests for CidrFunctionLibrary verifying RFC compliance and
- * security properties.
- *
- * Test Design Principles:
- * - Every test case is mathematically verified
- * - Address family mixing returns false (not error) for semantic correctness
- * - Edge cases (boundary conditions, alignment) are explicitly tested
- * - IPv4 and IPv6 are tested symmetrically where applicable
- * - IPv6 output is in RFC 5952 canonical form (compressed, lowercase)
- * - Semantic equivalence helpers test functional correctness independent of
- * formatting
- */
 class CidrFunctionLibraryTests {
+
+    private static final int BITS_PER_BYTE = 8;
 
     /**
      * Helper to check if two CIDR strings are semantically equivalent.
-     * Parses both and compares network address and prefix length.
+     * <p/>
+     * Algorithm: Parses both CIDRs, extracts their network addresses by applying
+     * the prefix length mask, then compares the masked addresses and prefix
+     * lengths.
+     * Handles cases where the same network might be represented differently, such
+     * as
+     * "192.168.1.64/26" vs "192.168.1.100/26" both representing 192.168.1.64/26.
+     *
+     * @param cidr1 first CIDR string
+     * @param cidr2 second CIDR string
+     * @return true if semantically equivalent
      */
     private static boolean cidrsSemanticallyEquivalent(String cidr1, String cidr2) {
         try {
@@ -70,13 +69,31 @@ class CidrFunctionLibraryTests {
         }
     }
 
+    /**
+     * Parses a CIDR string into a test range object.
+     *
+     * @param cidr CIDR notation string
+     * @return parsed test CIDR range
+     * @throws UnknownHostException if address cannot be parsed
+     */
     private static TestCidrRange parseCidrForTest(String cidr) throws UnknownHostException {
         val parts        = cidr.split("/");
         val address      = InetAddress.getByName(parts[0]);
-        val prefixLength = parts.length == 2 ? Integer.parseInt(parts[1]) : (address.getAddress().length * 8);
+        val prefixLength = parts.length == 2 ? Integer.parseInt(parts[1])
+                : (address.getAddress().length * BITS_PER_BYTE);
         return new TestCidrRange(address, prefixLength);
     }
 
+    /**
+     * Extracts the network address from a CIDR range by applying the prefix mask.
+     * <p/>
+     * Algorithm: Creates a byte mask based on prefix length, applies bitwise AND
+     * to each byte of the address to zero out host bits, leaving only network bits.
+     *
+     * @param range CIDR range to extract from
+     * @return network address
+     * @throws UnknownHostException if address cannot be constructed
+     */
     private static InetAddress getNetworkAddressForTest(TestCidrRange range) throws UnknownHostException {
         val addressBytes = range.address().getAddress();
         val mask         = createMaskForTest(range.prefixLength(), addressBytes.length);
@@ -89,15 +106,26 @@ class CidrFunctionLibraryTests {
         return InetAddress.getByAddress(resultBytes);
     }
 
+    /**
+     * Creates a subnet mask for testing CIDR operations.
+     * <p/>
+     * Algorithm: Sets first N complete bytes to 0xFF, then sets partial byte
+     * with remaining bits. For example, prefix 26 creates mask: 0xFF, 0xFF, 0xFF,
+     * 0xC0.
+     *
+     * @param prefixLength number of network bits
+     * @param addressLength total address length in bytes
+     * @return byte array representing the mask
+     */
     private static byte[] createMaskForTest(int prefixLength, int addressLength) {
         val mask          = new byte[addressLength];
-        val fullBytes     = prefixLength / 8;
-        val remainingBits = prefixLength % 8;
+        val fullBytes     = prefixLength / BITS_PER_BYTE;
+        val remainingBits = prefixLength % BITS_PER_BYTE;
 
         java.util.Arrays.fill(mask, 0, fullBytes, (byte) 0xFF);
 
         if (fullBytes < addressLength && remainingBits > 0) {
-            mask[fullBytes] = (byte) (0xFF << (8 - remainingBits));
+            mask[fullBytes] = (byte) (0xFF << (BITS_PER_BYTE - remainingBits));
         }
 
         return mask;
@@ -169,62 +197,41 @@ class CidrFunctionLibraryTests {
         assertThat(result.getBoolean()).isFalse();
     }
 
-    @Test
-    void testContainsMatchesBasicScenario() {
-        val cidrs = Val.JSON.arrayNode();
-        cidrs.add("10.0.0.0/8");
-        cidrs.add("192.168.0.0/16");
-        cidrs.add("172.16.0.0/12");
+    @ParameterizedTest(name = "{3}")
+    @MethodSource("containsMatchesScenarios")
+    void testContainsMatches(String[] cidrs, String[] ips, int[][] expectedMatches, String description) {
+        val cidrArray = Val.JSON.arrayNode();
+        for (String cidr : cidrs) {
+            cidrArray.add(cidr);
+        }
 
-        val ips = Val.JSON.arrayNode();
-        ips.add("10.1.2.3");
-        ips.add("8.8.8.8");
-        ips.add("192.168.5.10");
+        val ipArray = Val.JSON.arrayNode();
+        for (String ip : ips) {
+            ipArray.add(ip);
+        }
 
-        val result = CidrFunctionLibrary.containsMatches(Val.of(cidrs), Val.of(ips));
+        val result = CidrFunctionLibrary.containsMatches(Val.of(cidrArray), Val.of(ipArray));
 
         assertThat(result.isArray()).isTrue();
 
         val matches = result.get();
-        assertThat(matches).hasSize(2);
+        assertThat(matches).hasSize(expectedMatches.length);
 
-        assertThat(matches.get(0).get(0).asInt()).isZero();
-        assertThat(matches.get(0).get(1).asInt()).isZero();
-
-        assertThat(matches.get(1).get(0).asInt()).isEqualTo(1);
-        assertThat(matches.get(1).get(1).asInt()).isEqualTo(2);
+        for (int i = 0; i < expectedMatches.length; i++) {
+            assertThat(matches.get(i).get(0).asInt()).isEqualTo(expectedMatches[i][0]);
+            assertThat(matches.get(i).get(1).asInt()).isEqualTo(expectedMatches[i][1]);
+        }
     }
 
-    @Test
-    void testContainsMatchesNoMatches() {
-        val cidrs = Val.JSON.arrayNode();
-        cidrs.add("10.0.0.0/8");
-        cidrs.add("192.168.0.0/16");
-
-        val ips = Val.JSON.arrayNode();
-        ips.add("8.8.8.8");
-        ips.add("1.1.1.1");
-
-        val result = CidrFunctionLibrary.containsMatches(Val.of(cidrs), Val.of(ips));
-
-        assertThat(result.isArray()).isTrue();
-        assertThat(result.get()).isEmpty();
-    }
-
-    @Test
-    void testContainsMatchesAllMatch() {
-        val cidrs = Val.JSON.arrayNode();
-        cidrs.add("10.0.0.0/8");
-
-        val ips = Val.JSON.arrayNode();
-        ips.add("10.1.1.1");
-        ips.add("10.2.2.2");
-        ips.add("10.3.3.3");
-
-        val result = CidrFunctionLibrary.containsMatches(Val.of(cidrs), Val.of(ips));
-
-        assertThat(result.isArray()).isTrue();
-        assertThat(result.get()).hasSize(3);
+    static Stream<Arguments> containsMatchesScenarios() {
+        return Stream.of(
+                arguments(new String[] { "10.0.0.0/8", "192.168.0.0/16", "172.16.0.0/12" },
+                        new String[] { "10.1.2.3", "8.8.8.8", "192.168.5.10" }, new int[][] { { 0, 0 }, { 1, 2 } },
+                        "basic scenario with partial matches"),
+                arguments(new String[] { "10.0.0.0/8", "192.168.0.0/16" }, new String[] { "8.8.8.8", "1.1.1.1" },
+                        new int[][] {}, "no matches"),
+                arguments(new String[] { "10.0.0.0/8" }, new String[] { "10.1.1.1", "10.2.2.2", "10.3.3.3" },
+                        new int[][] { { 0, 0 }, { 0, 1 }, { 0, 2 } }, "all match"));
     }
 
     @Test
@@ -366,7 +373,7 @@ class CidrFunctionLibraryTests {
         result.get().forEach(node -> mergedCidrs.add(node.textValue()));
 
         assertThat(mergedCidrs).hasSize(1);
-        assertThat(cidrsSemanticallyEquivalent(mergedCidrs.get(0), "2001:db8::/63")).isTrue();
+        assertThat(cidrsSemanticallyEquivalent(mergedCidrs.getFirst(), "2001:db8::/63")).isTrue();
     }
 
     @ParameterizedTest(name = "isPrivateIpv4({0}) = {1}")
@@ -626,29 +633,26 @@ class CidrFunctionLibraryTests {
         assertThat(result.getText()).isEqualTo(expected);
     }
 
-    @Test
-    void testAnonymizeIpInvalidPrefix() {
-        val result = CidrFunctionLibrary.anonymizeIp(Val.of("192.168.1.1"), Val.of(33));
+    @ParameterizedTest(name = "{3}")
+    @MethodSource("hashIpPrefixTestCases")
+    void testHashIpPrefix(String ip1, String ip2, String salt1, String salt2, boolean shouldMatch, String description) {
+        val hash1 = CidrFunctionLibrary.hashIpPrefix(Val.of(ip1), Val.of(24), Val.of(salt1));
+        val hash2 = CidrFunctionLibrary.hashIpPrefix(Val.of(ip2), Val.of(24), Val.of(salt2));
 
-        assertThat(result.isError()).isTrue();
+        assertThat(hash1.isTextual()).isTrue();
+        assertThat(hash2.isTextual()).isTrue();
+
+        if (shouldMatch) {
+            assertThat(hash1.getText()).isEqualTo(hash2.getText());
+        } else {
+            assertThat(hash1.getText()).isNotEqualTo(hash2.getText());
+        }
     }
 
-    @Test
-    void testHashIpPrefixConsistency() {
-        val hash1 = CidrFunctionLibrary.hashIpPrefix(Val.of("192.168.1.100"), Val.of(24), Val.of("salt"));
-        val hash2 = CidrFunctionLibrary.hashIpPrefix(Val.of("192.168.1.200"), Val.of(24), Val.of("salt"));
-        val hash3 = CidrFunctionLibrary.hashIpPrefix(Val.of("192.168.2.100"), Val.of(24), Val.of("salt"));
-
-        assertThat(hash1.getText()).isEqualTo(hash2.getText());
-        assertThat(hash1.getText()).isNotEqualTo(hash3.getText());
-    }
-
-    @Test
-    void testHashIpPrefixDifferentSalts() {
-        val hash1 = CidrFunctionLibrary.hashIpPrefix(Val.of("192.168.1.100"), Val.of(24), Val.of("salt1"));
-        val hash2 = CidrFunctionLibrary.hashIpPrefix(Val.of("192.168.1.100"), Val.of(24), Val.of("salt2"));
-
-        assertThat(hash1.getText()).isNotEqualTo(hash2.getText());
+    static Stream<Arguments> hashIpPrefixTestCases() {
+        return Stream.of(arguments("192.168.1.100", "192.168.1.200", "salt", "salt", true, "same subnet, same salt"),
+                arguments("192.168.1.100", "192.168.2.100", "salt", "salt", false, "different subnet, same salt"),
+                arguments("192.168.1.100", "192.168.1.100", "salt1", "salt2", false, "same IP, different salts"));
     }
 
     @ParameterizedTest(name = "getNetworkAddress({0}) = {1}")
@@ -762,14 +766,6 @@ class CidrFunctionLibraryTests {
         assertThat(result.getBoolean()).isEqualTo(expected);
     }
 
-    @Test
-    void testSameSubnetDifferentAddressFamilies() {
-        val result = CidrFunctionLibrary.sameSubnet(Val.of("192.168.1.1"), Val.of("2001:db8::1"), Val.of(24));
-
-        assertThat(result.isBoolean()).isTrue();
-        assertThat(result.getBoolean()).isFalse();
-    }
-
     @ParameterizedTest(name = "getCommonPrefixLength({0}, {1}) = {2}")
     @CsvSource(delimiterString = "|", textBlock = """
             # Identical Addresses
@@ -791,14 +787,6 @@ class CidrFunctionLibraryTests {
 
         assertThat(result.isNumber()).isTrue();
         assertThat(result.get().asInt()).isEqualTo(expected);
-    }
-
-    @Test
-    void testGetCommonPrefixLengthDifferentFamilies() {
-        val result = CidrFunctionLibrary.getCommonPrefixLength(Val.of("192.168.1.1"), Val.of("2001:db8::1"));
-
-        assertThat(result.isNumber()).isTrue();
-        assertThat(result.get().asInt()).isZero();
     }
 
     @ParameterizedTest(name = "canSubdivide({0}, {1}) = {2}")
@@ -825,10 +813,38 @@ class CidrFunctionLibraryTests {
         assertThat(result.getBoolean()).isEqualTo(expected);
     }
 
-    @Test
-    void testCanSubdivideInvalidTargetPrefix() {
-        val result = CidrFunctionLibrary.canSubdivide(Val.of("192.168.0.0/24"), Val.of(33));
-
+    @ParameterizedTest(name = "{2}")
+    @MethodSource("errorConditionTestCases")
+    void testErrorConditions(Val result, String expectedMessageFragment, String description) {
         assertThat(result.isError()).isTrue();
+        if (expectedMessageFragment != null) {
+            assertThat(result.getMessage()).contains(expectedMessageFragment);
+        }
+    }
+
+    static Stream<Arguments> errorConditionTestCases() {
+        return Stream.of(
+                arguments(CidrFunctionLibrary.anonymizeIp(Val.of("192.168.1.1"), Val.of(33)), "out of range",
+                        "anonymizeIp with invalid prefix"),
+                arguments(CidrFunctionLibrary.canSubdivide(Val.of("192.168.0.0/24"), Val.of(33)), "out of range",
+                        "canSubdivide with invalid target prefix"),
+                arguments(CidrFunctionLibrary.isPublicRoutable(Val.of("invalid-ip")), "Invalid IP address",
+                        "isPublicRoutable with invalid IP"));
+    }
+
+    @Test
+    void testSameSubnetDifferentAddressFamilies() {
+        val result = CidrFunctionLibrary.sameSubnet(Val.of("192.168.1.1"), Val.of("2001:db8::1"), Val.of(24));
+
+        assertThat(result.isBoolean()).isTrue();
+        assertThat(result.getBoolean()).isFalse();
+    }
+
+    @Test
+    void testGetCommonPrefixLengthDifferentFamilies() {
+        val result = CidrFunctionLibrary.getCommonPrefixLength(Val.of("192.168.1.1"), Val.of("2001:db8::1"));
+
+        assertThat(result.isNumber()).isTrue();
+        assertThat(result.get().asInt()).isZero();
     }
 }

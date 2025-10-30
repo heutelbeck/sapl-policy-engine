@@ -25,14 +25,19 @@ import io.sapl.api.functions.FunctionLibrary;
 import io.sapl.api.interpreter.Val;
 import io.sapl.api.validation.Array;
 import io.sapl.api.validation.Text;
-import lombok.SneakyThrows;
 import lombok.experimental.UtilityClass;
 import lombok.val;
 
+import java.io.IOException;
 import java.util.Map;
 
 /**
  * CSV parsing and generation for authorization policies.
+ * <p/>
+ * Note: CSV parsing loads the entire document into memory. For very large CSV
+ * files
+ * (100,000+ rows), consider processing in chunks or using external data
+ * sources.
  */
 @UtilityClass
 @FunctionLibrary(name = CsvFunctionLibrary.NAME, description = CsvFunctionLibrary.DESCRIPTION, libraryDocumentation = CsvFunctionLibrary.DOCUMENTATION)
@@ -155,7 +160,14 @@ public class CsvFunctionLibrary {
 
     private static final CsvMapper CSV_MAPPER = new CsvMapper();
 
-    @SneakyThrows
+    private static final String EMPTY_STRING = "";
+
+    private static final String ERROR_ARRAY_ELEMENT_NOT_OBJECT      = " is not an object.";
+    private static final String ERROR_ARRAY_ELEMENT_PREFIX          = "CSV array element at index ";
+    private static final String ERROR_ARRAY_MUST_CONTAIN_OBJECTS    = "CSV array must contain objects.";
+    private static final String ERROR_FAILED_TO_GENERATE_CSV_PREFIX = "Failed to generate CSV: ";
+    private static final String ERROR_FAILED_TO_PARSE_CSV_PREFIX    = "Failed to parse CSV: ";
+
     @Function(docs = """
             ```csv.csvToVal(TEXT csv)```
 
@@ -183,14 +195,17 @@ public class CsvFunctionLibrary {
               "type": "array"
             }""")
     public static Val csvToVal(@Text Val csv) {
-        val                                  schema   = CsvSchema.emptySchema().withHeader();
-        MappingIterator<Map<String, String>> iterator = CSV_MAPPER.readerFor(Map.class).with(schema)
-                .readValues(csv.getText());
-        val                                  result   = iterator.readAll();
-        return Val.of(CSV_MAPPER.valueToTree(result));
+        val schema = CsvSchema.emptySchema().withHeader();
+
+        try (MappingIterator<Map<String, String>> iterator = CSV_MAPPER.readerFor(Map.class).with(schema)
+                .readValues(csv.getText())) {
+            val result = iterator.readAll();
+            return Val.of(CSV_MAPPER.valueToTree(result));
+        } catch (IOException exception) {
+            return Val.error(ERROR_FAILED_TO_PARSE_CSV_PREFIX + exception.getMessage());
+        }
     }
 
-    @SneakyThrows
     @Function(docs = """
             ```csv.valToCsv(ARRAY array)```
 
@@ -228,19 +243,29 @@ public class CsvFunctionLibrary {
 
         val arrayNode = array.get();
         if (arrayNode.isEmpty()) {
-            return Val.of("");
+            return Val.of(EMPTY_STRING);
         }
 
         val firstElement = arrayNode.get(0);
         if (!firstElement.isObject()) {
-            return Val.error("CSV array must contain objects");
+            return Val.error(ERROR_ARRAY_MUST_CONTAIN_OBJECTS);
+        }
+
+        for (int i = 0; i < arrayNode.size(); i++) {
+            if (!arrayNode.get(i).isObject()) {
+                return Val.error(ERROR_ARRAY_ELEMENT_PREFIX + i + ERROR_ARRAY_ELEMENT_NOT_OBJECT);
+            }
         }
 
         val schemaBuilder = CsvSchema.builder();
         firstElement.fieldNames().forEachRemaining(schemaBuilder::addColumn);
         val schema = schemaBuilder.build().withHeader();
 
-        return Val.of(CSV_MAPPER.writer(schema).writeValueAsString(arrayNode));
+        try {
+            return Val.of(CSV_MAPPER.writer(schema).writeValueAsString(arrayNode));
+        } catch (IOException exception) {
+            return Val.error(ERROR_FAILED_TO_GENERATE_CSV_PREFIX + exception.getMessage());
+        }
     }
 
 }

@@ -22,13 +22,16 @@ import io.sapl.api.interpreter.Val;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.attributes.broker.api.AttributeStreamBroker;
 import io.sapl.attributes.broker.impl.CachingAttributeStreamBroker;
+import io.sapl.attributes.broker.impl.InMemoryAttributeRepository;
 import io.sapl.interpreter.functions.AnnotationFunctionContext;
 import io.sapl.interpreter.functions.FunctionContext;
 import lombok.NonNull;
 import lombok.experimental.UtilityClass;
+import lombok.val;
 import reactor.util.context.Context;
 import reactor.util.context.ContextView;
 
+import java.time.Clock;
 import java.util.*;
 
 @UtilityClass
@@ -80,7 +83,8 @@ public class AuthorizationContext {
         if (ctx.hasKey(ATTRIBUTE_BROKER)) {
             return ctx.get(ATTRIBUTE_BROKER);
         }
-        return new CachingAttributeStreamBroker();
+        val attributeRepository = new InMemoryAttributeRepository(Clock.systemUTC());
+        return new CachingAttributeStreamBroker(attributeRepository);
     }
 
     public Context setAttributeStreamBroker(Context ctx, AttributeStreamBroker attributeStreamBroker) {

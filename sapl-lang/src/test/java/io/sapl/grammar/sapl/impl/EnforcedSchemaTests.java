@@ -21,6 +21,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.attributes.broker.impl.CachingAttributeStreamBroker;
+import io.sapl.attributes.broker.impl.InMemoryAttributeRepository;
 import io.sapl.functions.DefaultLibraries;
 import io.sapl.grammar.sapl.impl.util.MatchingUtil;
 import io.sapl.interpreter.DefaultSAPLInterpreter;
@@ -31,6 +32,7 @@ import lombok.SneakyThrows;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
+import java.time.Clock;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -44,7 +46,7 @@ class EnforcedSchemaTests {
 
     @BeforeAll
     static void beforeAll() throws InitializationException {
-        attributeStreamBroker = new CachingAttributeStreamBroker();
+        attributeStreamBroker = new CachingAttributeStreamBroker(new InMemoryAttributeRepository(Clock.systemUTC()));
         functionContext       = new AnnotationFunctionContext();
         functionContext.loadLibraries(() -> DefaultLibraries.STATIC_LIBRARIES);
     }

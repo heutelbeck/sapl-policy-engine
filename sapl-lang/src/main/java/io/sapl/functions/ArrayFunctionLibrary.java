@@ -27,21 +27,19 @@ import io.sapl.api.validation.Number;
 import lombok.experimental.UtilityClass;
 import lombok.val;
 
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
-import java.util.function.BiPredicate;
+import java.util.*;
+import java.util.function.DoubleBinaryOperator;
 import java.util.function.Predicate;
 
 /**
- * Array manipulation functions for authorization policies.
+ * Array manipulation functions.
  */
 @UtilityClass
 @FunctionLibrary(name = ArrayFunctionLibrary.NAME, description = ArrayFunctionLibrary.DESCRIPTION, libraryDocumentation = ArrayFunctionLibrary.DOCUMENTATION)
 public class ArrayFunctionLibrary {
 
     public static final String NAME          = "array";
-    public static final String DESCRIPTION   = "Array manipulation functions for authorization policies.";
+    public static final String DESCRIPTION   = "Array manipulation functions.";
     public static final String DOCUMENTATION = """
             # Array Functions
 
@@ -79,8 +77,8 @@ public class ArrayFunctionLibrary {
             where
                 var direct = subject.directPermissions;
                 var inherited = subject.groupPermissions;
-                var all = array.union(direct, inherited);
-                array.containsAll(all, ["read", "write"]);
+                var allOfSubjectsPermissions = array.union(direct, inherited);
+                array.containsAll(allOfSubjectsPermissions, ["read", "write"]);
             ```
 
             Find common capabilities between user privileges and resource requirements to
@@ -110,21 +108,6 @@ public class ArrayFunctionLibrary {
                 array.containsAllInOrder(resource.approvals, required);
             ```
 
-            Filter sensitive attributes before releasing data. Remove fields that exceed the
-            user's clearance level.
-
-            ```sapl
-            policy "filter_classified"
-            permit action == "read_document"
-            where
-                subject.clearance >= resource.classification;
-            transform
-                var allowed = subject.viewableFields;
-                var actual = resource.fieldNames;
-                var permitted = array.intersect(allowed, actual);
-                resource |- { @.fields : permitted }
-            ```
-
             Calculate aggregate metrics for rate limiting or quota enforcement. Sum request
             counts or average response times across time windows.
 
@@ -149,13 +132,41 @@ public class ArrayFunctionLibrary {
             }
             """;
 
-    private static final String RETURNS_NUMBER                            = """
+    private static final String RETURNS_NUMBER = """
             {
                 "type": "number"
             }
             """;
-    public static final String  MUST_BE_NUMERIC_FOUND_NON_NUMERIC_ELEMENT = "All array elements must be numeric. Found non-numeric element: ";
 
+    private static final String ERROR_EMPTY_ARRAY_AVERAGE = "Cannot calculate average of an empty array.";
+    private static final String ERROR_EMPTY_ARRAY_HEAD    = "Cannot get head of an empty array.";
+    private static final String ERROR_EMPTY_ARRAY_LAST    = "Cannot get last of an empty array.";
+    private static final String ERROR_EMPTY_ARRAY_MEDIAN  = "Cannot calculate median of an empty array.";
+
+    private static final String ERROR_MIXED_TYPE_NON_NUMERIC = "All array elements must be numeric. Found non-numeric element: ";
+    private static final String ERROR_MIXED_TYPE_NON_TEXT    = "All array elements must be text. Found non-text element: ";
+
+    private static final String ERROR_PREFIX_ALL_ELEMENTS_MUST_BE = "All array elements must be ";
+    private static final String ERROR_PREFIX_CANNOT_FIND          = "Cannot find ";
+    private static final String ERROR_PREFIX_ELEMENTS_MUST_BE     = "Array elements must be numeric or text. First element is: ";
+    private static final String ERROR_PREFIX_FOUND_NON            = ". Found non-";
+
+    private static final String ERROR_PARAMETERS_MUST_BE_INTEGERS = "All parameters must be integers.";
+    private static final String ERROR_STEP_MUST_NOT_BE_ZERO       = "Step must not be zero.";
+
+    private static final String ERROR_SUFFIX_ELEMENT     = " element: ";
+    private static final String ERROR_SUFFIX_EMPTY_ARRAY = " of an empty array.";
+    private static final String ERROR_SUFFIX_PERIOD      = ".";
+
+    private static final String TYPE_NAME_NUMERIC = "numeric";
+    private static final String TYPE_NAME_TEXT    = "text";
+
+    /**
+     * Concatenates multiple arrays into a single array.
+     *
+     * @param arrays arrays to concatenate
+     * @return new array containing all elements in order
+     */
     @Function(docs = """
             ```array.concatenate(ARRAY...arrays)```
 
@@ -176,17 +187,22 @@ public class ArrayFunctionLibrary {
             ```
             """, schema = RETURNS_ARRAY)
     public static Val concatenate(@Array Val... arrays) {
-        final var newArray = Val.JSON.arrayNode();
+        val newArray = Val.JSON.arrayNode();
         for (var array : arrays) {
-            final var jsonArray        = array.getArrayNode();
-            final var elementsIterator = jsonArray.elements();
-            while (elementsIterator.hasNext()) {
-                newArray.add(elementsIterator.next().deepCopy());
+            for (val element : array.getArrayNode()) {
+                newArray.add(element.deepCopy());
             }
         }
         return Val.of(newArray);
     }
 
+    /**
+     * Returns the set difference between two arrays.
+     *
+     * @param array1 array to subtract from
+     * @param array2 array of elements to remove
+     * @return new array with elements in array1 but not in array2
+     */
     @Function(docs = """
             ```array.difference(ARRAY array1, ARRAY array2)```
 
@@ -211,19 +227,27 @@ public class ArrayFunctionLibrary {
             ```
             """, schema = RETURNS_ARRAY)
     public static Val difference(@Array Val array1, @Array Val array2) {
-        final var newArray         = Val.JSON.arrayNode();
-        final var jsonArray        = array1.getArrayNode();
-        final var elementsIterator = jsonArray.elements();
-        while (elementsIterator.hasNext()) {
-            final var nextElement = elementsIterator.next();
-            if (!contains(nextElement, array2.getArrayNode(), Object::equals)
-                    && !contains(nextElement, newArray, Object::equals)) {
-                newArray.add(nextElement.deepCopy());
+        val excludeSet = new HashSet<JsonNode>();
+        for (val element : array2.getArrayNode()) {
+            excludeSet.add(element);
+        }
+
+        val result = new LinkedHashSet<JsonNode>();
+        for (val element : array1.getArrayNode()) {
+            if (!excludeSet.contains(element)) {
+                result.add(element);
             }
         }
-        return Val.of(newArray);
+
+        return createArrayFromElements(result);
     }
 
+    /**
+     * Returns the union of multiple arrays, removing duplicates.
+     *
+     * @param arrays arrays to combine
+     * @return new array with all unique elements
+     */
     @Function(docs = """
             ```array.union(ARRAY...arrays)```
 
@@ -245,20 +269,21 @@ public class ArrayFunctionLibrary {
             ```
             """, schema = RETURNS_ARRAY)
     public static Val union(@Array Val... arrays) {
-        final var newArray = Val.JSON.arrayNode();
+        val result = new LinkedHashSet<JsonNode>();
         for (var array : arrays) {
-            final var jsonArray        = array.getArrayNode();
-            final var elementsIterator = jsonArray.elements();
-            while (elementsIterator.hasNext()) {
-                final var nextElement = elementsIterator.next();
-                if (!contains(nextElement, newArray, Object::equals)) {
-                    newArray.add(nextElement.deepCopy());
-                }
+            for (val element : array.getArrayNode()) {
+                result.add(element);
             }
         }
-        return Val.of(newArray);
+        return createArrayFromElements(result);
     }
 
+    /**
+     * Removes duplicate elements from an array, preserving order.
+     *
+     * @param array array to deduplicate
+     * @return new array with unique elements
+     */
     @Function(docs = """
             ```array.toSet(ARRAY array)```
 
@@ -279,68 +304,77 @@ public class ArrayFunctionLibrary {
             ```
             """, schema = RETURNS_ARRAY)
     public static Val toSet(@Array Val array) {
-        final var newArray         = Val.JSON.arrayNode();
-        final var jsonArray        = array.getArrayNode();
-        final var elementsIterator = jsonArray.elements();
-        while (elementsIterator.hasNext()) {
-            final var nextElement = elementsIterator.next();
-            if (!contains(nextElement, newArray, Object::equals)) {
-                newArray.add(nextElement.deepCopy());
-            }
+        val result = new LinkedHashSet<JsonNode>();
+        for (val element : array.getArrayNode()) {
+            result.add(element);
         }
-        return Val.of(newArray);
+        return createArrayFromElements(result);
     }
 
+    /**
+     * Returns the intersection of multiple arrays.
+     *
+     * @param arrays arrays to intersect
+     * @return new array with elements present in all arrays
+     */
     @Function(docs = """
             ```array.intersect(ARRAY...arrays)```
 
-            Creates a new array containing only elements present in all parameter arrays.
-            Removes duplicates from the result.
+                    Creates a new array containing only elements present in all parameter arrays.
+                    Removes duplicates from the result, preserving order from the first array.
 
-            Parameters:
-            - arrays: Arrays to intersect
+                    Parameters:
+                    - arrays: Arrays to intersect
 
-            Returns: New array with common elements
+                    Returns: New array with common elements
 
-            Example - find permissions shared across all roles:
+                    Example - find shared permissions:
             ```sapl
             policy "example"
             permit
             where
-                var rolePerms = subject.roles.map(role -> role.permissions);
-                var common = array.intersect(rolePerms);
-                array.containsAll(common, resource.minimumPermissions);
+                var adminPerms = ["read", "write", "delete"];
+                var editorPerms = ["read", "write"];
+                var viewerPerms = ["read"];
+                var common = array.intersect(adminPerms, editorPerms, viewerPerms);
+                common == ["read"];
             ```
             """, schema = RETURNS_ARRAY)
     public static Val intersect(@Array Val... arrays) {
-        return intersect(arrays, Object::equals);
-    }
-
-    private static Val intersect(Val[] arrays, BiPredicate<JsonNode, JsonNode> equalityValidator) {
         if (arrays.length == 0) {
             return Val.ofEmptyArray();
         }
 
-        var intersection = Val.of(arrays[0].getArrayNode().deepCopy());
-        for (var i = 1; i < arrays.length; i++) {
-            intersection = intersect(intersection, arrays[i], equalityValidator);
+        if (arrays.length == 1) {
+            return toSet(arrays[0]);
         }
-        return intersection;
-    }
 
-    private static Val intersect(Val array1, Val array2, BiPredicate<JsonNode, JsonNode> equalityValidator) {
-        final var newArray         = Val.JSON.arrayNode();
-        final var jsonArray        = array1.getArrayNode();
-        final var elementsIterator = jsonArray.elements();
-        while (elementsIterator.hasNext()) {
-            final var nextElement = elementsIterator.next();
-            if (contains(nextElement, array2.getArrayNode(), equalityValidator)) {
-                newArray.add(nextElement.deepCopy());
+        val result = new LinkedHashSet<JsonNode>();
+        for (val element : arrays[0].getArrayNode()) {
+            result.add(element);
+        }
+
+        for (int i = 1; i < arrays.length; i++) {
+            val set = new HashSet<JsonNode>();
+            for (val element : arrays[i].getArrayNode()) {
+                set.add(element);
+            }
+            result.retainAll(set);
+            if (result.isEmpty()) {
+                break;  // Early exit optimization
             }
         }
-        return Val.of(newArray);
+
+        return createArrayFromElements(result);
     }
 
+    /**
+     * Checks if an array contains at least one element from another array.
+     *
+     * @param array array to search in
+     * @param elements elements to search for
+     * @return Val.TRUE if any element was found
+     */
     @Function(docs = """
             ```array.containsAny(ARRAY array, ARRAY elements)```
 
@@ -363,17 +397,26 @@ public class ArrayFunctionLibrary {
             ```
             """, schema = RETURNS_BOOLEAN)
     public static Val containsAny(@Array Val array, @Array Val elements) {
-        final var elementsArray    = elements.getArrayNode();
-        final var elementsIterator = elementsArray.elements();
-        while (elementsIterator.hasNext()) {
-            final var element = elementsIterator.next();
-            if (contains(element, array.getArrayNode(), Object::equals)) {
+        val arraySet = new HashSet<JsonNode>();
+        for (val element : array.getArrayNode()) {
+            arraySet.add(element);
+        }
+
+        for (val element : elements.getArrayNode()) {
+            if (arraySet.contains(element)) {
                 return Val.TRUE;
             }
         }
         return Val.FALSE;
     }
 
+    /**
+     * Checks if an array contains all elements from another array.
+     *
+     * @param array array to search in
+     * @param elements elements that must all be present
+     * @return Val.TRUE if all elements were found
+     */
     @Function(docs = """
             ```array.containsAll(ARRAY array, ARRAY elements)```
 
@@ -396,17 +439,27 @@ public class ArrayFunctionLibrary {
             ```
             """, schema = RETURNS_BOOLEAN)
     public static Val containsAll(@Array Val array, @Array Val elements) {
-        final var elementsArray    = elements.getArrayNode();
-        final var elementsIterator = elementsArray.elements();
-        while (elementsIterator.hasNext()) {
-            final var element = elementsIterator.next();
-            if (!contains(element, array.getArrayNode(), Object::equals)) {
+        val arraySet = new HashSet<JsonNode>();
+        for (val element : array.getArrayNode()) {
+            arraySet.add(element);
+        }
+
+        for (val element : elements.getArrayNode()) {
+            if (!arraySet.contains(element)) {
                 return Val.FALSE;
             }
         }
         return Val.TRUE;
     }
 
+    /**
+     * Checks if an array contains all elements from another array in sequential
+     * order.
+     *
+     * @param array array to search in
+     * @param elements elements that must appear in this order
+     * @return Val.TRUE if elements appear in order
+     */
     @Function(docs = """
             ```array.containsAllInOrder(ARRAY array, ARRAY elements)```
 
@@ -430,8 +483,8 @@ public class ArrayFunctionLibrary {
             ```
             """, schema = RETURNS_BOOLEAN)
     public static Val containsAllInOrder(@Array Val array, @Array Val elements) {
-        final var arrayElements    = array.getArrayNode();
-        final var requiredElements = elements.getArrayNode();
+        val arrayElements    = array.getArrayNode();
+        val requiredElements = elements.getArrayNode();
 
         if (requiredElements.isEmpty()) {
             return Val.TRUE;
@@ -450,13 +503,19 @@ public class ArrayFunctionLibrary {
         return Val.of(requiredElementIndex == requiredElements.size());
     }
 
+    /**
+     * Sorts an array in ascending order.
+     *
+     * @param array array to sort
+     * @return new sorted array
+     */
     @Function(docs = """
             ```array.sort(ARRAY array)```
 
             Returns a new array with elements sorted in ascending order. The function determines
             the sort order based on the type of the first element. Numeric arrays are sorted
             numerically, string arrays are sorted lexicographically. All elements must be of the
-            same type. Returns an error for empty arrays, mixed types, or unsupported types.
+            same type. Returns an error for mixed types, or unsupported types.
 
             Numeric sorting uses floating-point comparison for performance, which is appropriate
             for SAPL's authorization policy use cases. Very large integers beyond 2^53 may lose
@@ -477,20 +536,21 @@ public class ArrayFunctionLibrary {
             ```
             """, schema = RETURNS_ARRAY)
     public static Val sort(@Array Val array) {
-        final var jsonArray = array.getArrayNode();
+        val jsonArray = array.getArrayNode();
 
         if (jsonArray.isEmpty()) {
-            return Val.error("Cannot sort an empty array");
+            return Val.ofEmptyArray();
         }
 
-        final var firstElement = jsonArray.get(0);
+        val firstElement = jsonArray.get(0);
 
         if (firstElement.isNumber()) {
-            return sortArray(jsonArray, JsonNode::isNumber, "numeric", Comparator.comparingDouble(JsonNode::asDouble));
+            return sortArray(jsonArray, JsonNode::isNumber, TYPE_NAME_NUMERIC,
+                    Comparator.comparingDouble(JsonNode::asDouble));
         } else if (firstElement.isTextual()) {
-            return sortArray(jsonArray, JsonNode::isTextual, "text", Comparator.comparing(JsonNode::asText));
+            return sortArray(jsonArray, JsonNode::isTextual, TYPE_NAME_TEXT, Comparator.comparing(JsonNode::asText));
         } else {
-            return Val.error("Array elements must be numeric or text. First element is: " + firstElement.getNodeType());
+            return Val.error(ERROR_PREFIX_ELEMENTS_MUST_BE + firstElement.getNodeType() + ERROR_SUFFIX_PERIOD);
         }
     }
 
@@ -499,14 +559,12 @@ public class ArrayFunctionLibrary {
      */
     private static Val sortArray(ArrayNode jsonArray, Predicate<JsonNode> typePredicate, String typeName,
             Comparator<JsonNode> comparator) {
-        final var elements = new ArrayList<JsonNode>();
-        final var iterator = jsonArray.elements();
+        val elements = new ArrayList<JsonNode>();
 
-        while (iterator.hasNext()) {
-            final var element = iterator.next();
+        for (val element : jsonArray) {
             if (!typePredicate.test(element)) {
-                return Val.error(
-                        "All array elements must be " + typeName + ". Found non-" + typeName + " element: " + element);
+                return Val.error(ERROR_PREFIX_ALL_ELEMENTS_MUST_BE + typeName + ERROR_PREFIX_FOUND_NON + typeName
+                        + ERROR_SUFFIX_ELEMENT + element);
             }
             elements.add(element);
         }
@@ -517,20 +575,11 @@ public class ArrayFunctionLibrary {
     }
 
     /**
-     * Checks if element is contained in array using equality validator.
+     * Flattens a nested array by one level.
+     *
+     * @param array array to flatten
+     * @return new flattened array
      */
-    private static boolean contains(JsonNode element, ArrayNode array,
-            BiPredicate<JsonNode, JsonNode> equalityValidator) {
-        final var elementsIterator = array.elements();
-        while (elementsIterator.hasNext()) {
-            final var nextElement = elementsIterator.next();
-            if (equalityValidator.test(element, nextElement)) {
-                return true;
-            }
-        }
-        return false;
-    }
-
     @Function(docs = """
             ```array.flatten(ARRAY array)```
 
@@ -552,23 +601,27 @@ public class ArrayFunctionLibrary {
             ```
             """, schema = RETURNS_ARRAY)
     public static Val flatten(@Array Val array) {
-        val newArray         = Val.JSON.arrayNode();
-        val jsonArray        = array.getArrayNode();
-        val elementsIterator = jsonArray.elements();
-        while (elementsIterator.hasNext()) {
-            final var nextElement = elementsIterator.next();
-            if (nextElement.isArray()) {
-                val innerIterator = nextElement.elements();
-                while (innerIterator.hasNext()) {
-                    newArray.add(innerIterator.next().deepCopy());
+        val newArray  = Val.JSON.arrayNode();
+        val jsonArray = array.getArrayNode();
+
+        for (val element : jsonArray) {
+            if (element.isArray()) {
+                for (val innerElement : element) {
+                    newArray.add(innerElement.deepCopy());
                 }
             } else {
-                newArray.add(nextElement.deepCopy());
+                newArray.add(element.deepCopy());
             }
         }
         return Val.of(newArray);
     }
 
+    /**
+     * Returns the number of elements in an array.
+     *
+     * @param value array to measure
+     * @return element count
+     */
     @Function(docs = """
             ```array.size(ARRAY value)```
 
@@ -594,6 +647,12 @@ public class ArrayFunctionLibrary {
         return Val.of(value.get().size());
     }
 
+    /**
+     * Returns an array with its elements in reversed order.
+     *
+     * @param array array to reverse
+     * @return new array with elements in reverse order
+     */
     @Function(docs = """
             ```array.reverse(ARRAY array)```
 
@@ -622,6 +681,12 @@ public class ArrayFunctionLibrary {
         return Val.of(newArray);
     }
 
+    /**
+     * Checks if an array contains only distinct elements.
+     *
+     * @param array array to test
+     * @return Val.TRUE if array contains no duplicates
+     */
     @Function(docs = """
             ```array.isSet(ARRAY array)```
 
@@ -643,20 +708,21 @@ public class ArrayFunctionLibrary {
             ```
             """, schema = RETURNS_BOOLEAN)
     public static Val isSet(@Array Val array) {
-        final var jsonArray        = array.getArrayNode();
-        final var seen             = Val.JSON.arrayNode();
-        final var elementsIterator = jsonArray.elements();
-
-        while (elementsIterator.hasNext()) {
-            final var element = elementsIterator.next();
-            if (contains(element, seen, Object::equals)) {
+        val seen = new HashSet<JsonNode>();
+        for (val element : array.getArrayNode()) {
+            if (!seen.add(element)) {
                 return Val.FALSE;
             }
-            seen.add(element.deepCopy());
         }
         return Val.TRUE;
     }
 
+    /**
+     * Checks if an array is empty.
+     *
+     * @param array array to test
+     * @return Val.TRUE if array has no elements
+     */
     @Function(docs = """
             ```array.isEmpty(ARRAY array)```
 
@@ -679,6 +745,12 @@ public class ArrayFunctionLibrary {
         return Val.of(array.getArrayNode().isEmpty());
     }
 
+    /**
+     * Returns the first element of an array.
+     *
+     * @param array array to extract from
+     * @return first element
+     */
     @Function(docs = """
             ```array.head(ARRAY array)```
 
@@ -698,13 +770,19 @@ public class ArrayFunctionLibrary {
             ```
             """)
     public static Val head(@Array Val array) {
-        final var jsonArray = array.getArrayNode();
+        val jsonArray = array.getArrayNode();
         if (jsonArray.isEmpty()) {
-            return Val.error("Cannot get head of an empty array");
+            return Val.error(ERROR_EMPTY_ARRAY_HEAD);
         }
         return Val.of(jsonArray.get(0).deepCopy());
     }
 
+    /**
+     * Returns the last element of an array.
+     *
+     * @param array array to extract from
+     * @return last element
+     */
     @Function(docs = """
             ```array.last(ARRAY array)```
 
@@ -724,13 +802,19 @@ public class ArrayFunctionLibrary {
             ```
             """)
     public static Val last(@Array Val array) {
-        final var jsonArray = array.getArrayNode();
+        val jsonArray = array.getArrayNode();
         if (jsonArray.isEmpty()) {
-            return Val.error("Cannot get last of an empty array");
+            return Val.error(ERROR_EMPTY_ARRAY_LAST);
         }
         return Val.of(jsonArray.get(jsonArray.size() - 1).deepCopy());
     }
 
+    /**
+     * Returns the maximum value from an array.
+     *
+     * @param array array to find maximum in
+     * @return maximum value
+     */
     @Function(docs = """
             ```array.max(ARRAY array)```
 
@@ -753,9 +837,15 @@ public class ArrayFunctionLibrary {
             ```
             """, schema = RETURNS_NUMBER)
     public static Val max(@Array Val array) {
-        return findExtremum(array, "max", (a, b) -> a > b);
+        return findExtremum(array, "max", true);
     }
 
+    /**
+     * Returns the minimum value from an array.
+     *
+     * @param array array to find minimum in
+     * @return minimum value
+     */
     @Function(docs = """
             ```array.min(ARRAY array)```
 
@@ -778,44 +868,43 @@ public class ArrayFunctionLibrary {
             ```
             """, schema = RETURNS_NUMBER)
     public static Val min(@Array Val array) {
-        return findExtremum(array, "min", (a, b) -> a < b);
+        return findExtremum(array, "min", false);
     }
 
     /**
-     * Finds extremum (min or max) in array based on comparison predicate.
+     * Finds extremum (min or max) in array.
      */
-    private static Val findExtremum(Val array, String operationName, BiPredicate<Double, Double> numericComparator) {
-        final var jsonArray = array.getArrayNode();
+    private static Val findExtremum(Val array, String operationName, boolean findMaximum) {
+        val jsonArray = array.getArrayNode();
 
         if (jsonArray.isEmpty()) {
-            return Val.error("Cannot find " + operationName + " of an empty array");
+            return Val.error(ERROR_PREFIX_CANNOT_FIND + operationName + ERROR_SUFFIX_EMPTY_ARRAY);
         }
 
-        final var firstElement = jsonArray.get(0);
+        val firstElement = jsonArray.get(0);
 
         if (firstElement.isNumber()) {
-            return findNumericExtremum(jsonArray, numericComparator);
+            return findNumericExtremum(jsonArray, findMaximum);
         } else if (firstElement.isTextual()) {
-            return findTextualExtremum(jsonArray, numericComparator);
+            return findTextualExtremum(jsonArray, findMaximum);
         } else {
-            return Val.error("Array elements must be numeric or text. First element is: " + firstElement.getNodeType());
+            return Val.error(ERROR_PREFIX_ELEMENTS_MUST_BE + firstElement.getNodeType() + ERROR_SUFFIX_PERIOD);
         }
     }
 
     /**
      * Finds extremum value among numeric elements.
      */
-    private static Val findNumericExtremum(ArrayNode jsonArray, BiPredicate<Double, Double> comparator) {
-        final var iterator      = jsonArray.elements();
-        var       extremumValue = iterator.next().asDouble();
+    private static Val findNumericExtremum(ArrayNode jsonArray, boolean findMaximum) {
+        var extremumValue = jsonArray.get(0).asDouble();
 
-        while (iterator.hasNext()) {
-            final var element = iterator.next();
+        for (int i = 1; i < jsonArray.size(); i++) {
+            val element = jsonArray.get(i);
             if (!element.isNumber()) {
-                return Val.error(MUST_BE_NUMERIC_FOUND_NON_NUMERIC_ELEMENT + element);
+                return Val.error(ERROR_MIXED_TYPE_NON_NUMERIC + element);
             }
-            final var value = element.asDouble();
-            if (comparator.test(value, extremumValue)) {
+            val value = element.asDouble();
+            if (findMaximum ? value > extremumValue : value < extremumValue) {
                 extremumValue = value;
             }
         }
@@ -826,18 +915,16 @@ public class ArrayFunctionLibrary {
     /**
      * Finds extremum value among textual elements.
      */
-    private static Val findTextualExtremum(ArrayNode jsonArray, BiPredicate<Double, Double> numericComparator) {
-        final var iterator      = jsonArray.elements();
-        var       extremumValue = iterator.next().asText();
+    private static Val findTextualExtremum(ArrayNode jsonArray, boolean findMaximum) {
+        var extremumValue = jsonArray.get(0).asText();
 
-        while (iterator.hasNext()) {
-            final var element = iterator.next();
+        for (int i = 1; i < jsonArray.size(); i++) {
+            val element = jsonArray.get(i);
             if (!element.isTextual()) {
-                return Val.error("All array elements must be text. Found non-text element: " + element);
+                return Val.error(ERROR_MIXED_TYPE_NON_TEXT + element);
             }
-            final var text       = element.asText();
-            final var comparison = text.compareTo(extremumValue);
-            if (numericComparator.test((double) comparison, 0.0)) {
+            val text = element.asText();
+            if (findMaximum ? text.compareTo(extremumValue) > 0 : text.compareTo(extremumValue) < 0) {
                 extremumValue = text;
             }
         }
@@ -845,6 +932,12 @@ public class ArrayFunctionLibrary {
         return Val.of(extremumValue);
     }
 
+    /**
+     * Returns the sum of all numeric elements in an array.
+     *
+     * @param array array of numbers to sum
+     * @return sum of all elements
+     */
     @Function(docs = """
             ```array.sum(ARRAY array)```
 
@@ -865,9 +958,15 @@ public class ArrayFunctionLibrary {
             ```
             """, schema = RETURNS_NUMBER)
     public static Val sum(@Array Val array) {
-        return aggregateNumericArray(array, 0.0, Double::sum);
+        return reduceNumericArray(array, 0.0, Double::sum);
     }
 
+    /**
+     * Returns the product of all numeric elements in an array.
+     *
+     * @param array array of numbers to multiply
+     * @return product of all elements
+     */
     @Function(docs = """
             ```array.multiply(ARRAY array)```
 
@@ -888,27 +987,23 @@ public class ArrayFunctionLibrary {
             ```
             """, schema = RETURNS_NUMBER)
     public static Val multiply(@Array Val array) {
-        return aggregateNumericArray(array, 1.0, (a, b) -> a * b);
+        return reduceNumericArray(array, 1.0, (a, b) -> a * b);
     }
 
     /**
-     * Aggregates numeric array using provided identity and accumulator function.
+     * Reduces numeric array using accumulator function with identity value.
      */
-    private static Val aggregateNumericArray(Val array, double identityValue,
-            java.util.function.DoubleBinaryOperator accumulator) {
-        final var jsonArray = array.getArrayNode();
+    private static Val reduceNumericArray(Val array, double identityValue, DoubleBinaryOperator accumulator) {
+        val jsonArray = array.getArrayNode();
 
         if (jsonArray.isEmpty()) {
             return Val.of(identityValue);
         }
 
-        final var iterator = jsonArray.elements();
-        var       result   = identityValue;
-
-        while (iterator.hasNext()) {
-            final var element = iterator.next();
+        var result = identityValue;
+        for (val element : jsonArray) {
             if (!element.isNumber()) {
-                return Val.error(MUST_BE_NUMERIC_FOUND_NON_NUMERIC_ELEMENT + element);
+                return Val.error(ERROR_MIXED_TYPE_NON_NUMERIC + element);
             }
             result = accumulator.applyAsDouble(result, element.asDouble());
         }
@@ -916,6 +1011,12 @@ public class ArrayFunctionLibrary {
         return Val.of(result);
     }
 
+    /**
+     * Returns the arithmetic mean of all numeric elements in an array.
+     *
+     * @param array array of numbers to average
+     * @return average value
+     */
     @Function(docs = """
             ```array.avg(ARRAY array)```
 
@@ -936,28 +1037,29 @@ public class ArrayFunctionLibrary {
             ```
             """, schema = RETURNS_NUMBER)
     public static Val avg(@Array Val array) {
-        final var jsonArray = array.getArrayNode();
+        val jsonArray = array.getArrayNode();
 
         if (jsonArray.isEmpty()) {
-            return Val.error("Cannot calculate average of an empty array");
+            return Val.error(ERROR_EMPTY_ARRAY_AVERAGE);
         }
 
-        final var iterator = jsonArray.elements();
-        var       sum      = 0.0;
-        var       count    = 0;
-
-        while (iterator.hasNext()) {
-            final var element = iterator.next();
+        var sum = 0.0;
+        for (val element : jsonArray) {
             if (!element.isNumber()) {
-                return Val.error(MUST_BE_NUMERIC_FOUND_NON_NUMERIC_ELEMENT + element);
+                return Val.error(ERROR_MIXED_TYPE_NON_NUMERIC + element);
             }
             sum += element.asDouble();
-            count++;
         }
 
-        return Val.of(sum / count);
+        return Val.of(sum / jsonArray.size());
     }
 
+    /**
+     * Returns the median value of all numeric elements in an array.
+     *
+     * @param array array of numbers to find median of
+     * @return median value
+     */
     @Function(docs = """
             ```array.median(ARRAY array)```
 
@@ -981,35 +1083,36 @@ public class ArrayFunctionLibrary {
             ```
             """, schema = RETURNS_NUMBER)
     public static Val median(@Array Val array) {
-        final var jsonArray = array.getArrayNode();
+        val jsonArray = array.getArrayNode();
 
         if (jsonArray.isEmpty()) {
-            return Val.error("Cannot calculate median of an empty array");
+            return Val.error(ERROR_EMPTY_ARRAY_MEDIAN);
         }
 
-        final var numbers  = new ArrayList<Double>();
-        final var iterator = jsonArray.elements();
-
-        while (iterator.hasNext()) {
-            final var element = iterator.next();
+        val numbers = new ArrayList<Double>();
+        for (val element : jsonArray) {
             if (!element.isNumber()) {
-                return Val.error(MUST_BE_NUMERIC_FOUND_NON_NUMERIC_ELEMENT + element);
+                return Val.error(ERROR_MIXED_TYPE_NON_NUMERIC + element);
             }
             numbers.add(element.asDouble());
         }
 
         numbers.sort(Double::compareTo);
 
-        final var size = numbers.size();
-        if (size % 2 == 1) {
-            return Val.of(numbers.get(size / 2));
-        } else {
-            final var middle1 = numbers.get(size / 2 - 1);
-            final var middle2 = numbers.get(size / 2);
-            return Val.of((middle1 + middle2) / 2.0);
-        }
+        val size        = numbers.size();
+        val medianValue = (size % 2 == 1) ? numbers.get(size / 2)
+                : (numbers.get(size / 2 - 1) + numbers.get(size / 2)) / 2.0;
+
+        return Val.of(medianValue);
     }
 
+    /**
+     * Creates an array of consecutive integers from from to to (inclusive).
+     *
+     * @param from starting value (inclusive)
+     * @param to ending value (inclusive)
+     * @return array of consecutive integers
+     */
     @Function(docs = """
             ```array.range(NUMBER from, NUMBER to)```
 
@@ -1035,6 +1138,15 @@ public class ArrayFunctionLibrary {
         return rangeStepped(from, to, Val.of(1));
     }
 
+    /**
+     * Creates an array of integers from from to to (inclusive) with a step
+     * increment.
+     *
+     * @param from starting value (inclusive)
+     * @param to ending value (inclusive)
+     * @param step increment value (positive or negative, not zero)
+     * @return array of integers with specified step
+     */
     @Function(docs = """
             ```array.rangeStepped(NUMBER from, NUMBER to, NUMBER step)```
 
@@ -1061,84 +1173,40 @@ public class ArrayFunctionLibrary {
             ```
             """, schema = RETURNS_ARRAY)
     public static Val rangeStepped(@Number Val from, @Number Val to, @Number Val step) {
-        final var fromNode = from.get();
-        final var toNode   = to.get();
-        final var stepNode = step.get();
-
-        if (!fromNode.isIntegralNumber() || !toNode.isIntegralNumber() || !stepNode.isIntegralNumber()) {
-            return Val.error("All parameters must be integers");
+        if (!from.isLong() || !to.isLong() || !step.isLong()) {
+            return Val.error(ERROR_PARAMETERS_MUST_BE_INTEGERS);
         }
 
-        final var fromValue = fromNode.asLong();
-        final var toValue   = toNode.asLong();
-        final var stepValue = stepNode.asLong();
+        val fromValue = from.getLong();
+        val toValue   = to.getLong();
+        val stepValue = step.getLong();
 
         if (stepValue == 0) {
-            return Val.error("Step must not be zero");
+            return Val.error(ERROR_STEP_MUST_NOT_BE_ZERO);
         }
 
-        final var result = Val.JSON.arrayNode();
+        val result = Val.JSON.arrayNode();
 
         if (stepValue > 0) {
-            if (fromValue > toValue) {
-                return Val.of(result);
+            for (long currentValue = fromValue; currentValue <= toValue; currentValue += stepValue) {
+                result.add(Val.JSON.numberNode(currentValue));
             }
-            buildRangeWithPositiveStep(result, fromValue, toValue, stepValue);
         } else {
-            if (fromValue < toValue) {
-                return Val.of(result);
+            for (long currentValue = fromValue; currentValue >= toValue; currentValue += stepValue) {
+                result.add(Val.JSON.numberNode(currentValue));
             }
-            buildRangeWithNegativeStep(result, fromValue, toValue, stepValue);
         }
 
         return Val.of(result);
     }
 
     /**
-     * Builds range array with positive step value. Calculates iteration count
-     * upfront to ensure
-     * explicit loop termination.
+     * Returns the Cartesian product of two arrays.
+     *
+     * @param array1 first array
+     * @param array2 second array
+     * @return array of all possible pairs
      */
-    private static void buildRangeWithPositiveStep(ArrayNode result, long fromValue, long toValue, long stepValue) {
-        final var totalRange     = toValue - fromValue;
-        final var numberOfSteps  = totalRange / stepValue;
-        final var iterationCount = numberOfSteps + 1;
-
-        for (long iteration = 0; iteration < iterationCount; iteration++) {
-            final var currentValue = fromValue + (iteration * stepValue);
-            addNumberNode(result, currentValue);
-        }
-    }
-
-    /**
-     * Builds range array with negative step value. Calculates iteration count
-     * upfront to ensure
-     * explicit loop termination.
-     */
-    private static void buildRangeWithNegativeStep(ArrayNode result, long fromValue, long toValue, long stepValue) {
-        final var totalRange     = fromValue - toValue;
-        final var stepMagnitude  = -stepValue;
-        final var numberOfSteps  = totalRange / stepMagnitude;
-        final var iterationCount = numberOfSteps + 1;
-
-        for (long iteration = 0; iteration < iterationCount; iteration++) {
-            final var currentValue = fromValue + (iteration * stepValue);
-            addNumberNode(result, currentValue);
-        }
-    }
-
-    /**
-     * Adds number node to result array, using int representation if value fits in
-     * int range.
-     */
-    private static void addNumberNode(ArrayNode result, long value) {
-        if (value >= Integer.MIN_VALUE && value <= Integer.MAX_VALUE) {
-            result.add(Val.JSON.numberNode((int) value));
-        } else {
-            result.add(Val.JSON.numberNode(value));
-        }
-    }
-
     @Function(docs = """
             ```array.crossProduct(ARRAY array1, ARRAY array2)```
 
@@ -1160,25 +1228,22 @@ public class ArrayFunctionLibrary {
                 var actions = ["read", "write"];
                 var resources = ["doc1", "doc2"];
                 var combinations = array.crossProduct(actions, resources);
+                combinations == [ ["read" , "doc1"], ["read" , "doc2"], ["write" , "doc1"], ["write" , "doc2"]];
             ```
             """, schema = RETURNS_ARRAY)
     public static Val crossProduct(@Array Val array1, @Array Val array2) {
-        final var jsonArray1 = array1.getArrayNode();
-        final var jsonArray2 = array2.getArrayNode();
+        val jsonArray1 = array1.getArrayNode();
+        val jsonArray2 = array2.getArrayNode();
 
-        final var result = Val.JSON.arrayNode();
+        val result = Val.JSON.arrayNode();
 
         if (jsonArray1.isEmpty() || jsonArray2.isEmpty()) {
             return Val.of(result);
         }
 
-        final var iterator1 = jsonArray1.elements();
-        while (iterator1.hasNext()) {
-            final var element1  = iterator1.next();
-            final var iterator2 = jsonArray2.elements();
-            while (iterator2.hasNext()) {
-                final var element2 = iterator2.next();
-                final var pair     = Val.JSON.arrayNode();
+        for (val element1 : jsonArray1) {
+            for (val element2 : jsonArray2) {
+                val pair = Val.JSON.arrayNode();
                 pair.add(element1.deepCopy());
                 pair.add(element2.deepCopy());
                 result.add(pair);
@@ -1188,6 +1253,13 @@ public class ArrayFunctionLibrary {
         return Val.of(result);
     }
 
+    /**
+     * Combines two arrays element-wise into an array of pairs.
+     *
+     * @param array1 first array
+     * @param array2 second array
+     * @return array of paired elements
+     */
     @Function(docs = """
             ```array.zip(ARRAY array1, ARRAY array2)```
 
@@ -1209,14 +1281,14 @@ public class ArrayFunctionLibrary {
             ```
             """, schema = RETURNS_ARRAY)
     public static Val zip(@Array Val array1, @Array Val array2) {
-        final var jsonArray1 = array1.getArrayNode();
-        final var jsonArray2 = array2.getArrayNode();
+        val jsonArray1 = array1.getArrayNode();
+        val jsonArray2 = array2.getArrayNode();
 
-        final var result  = Val.JSON.arrayNode();
-        final var minSize = Math.min(jsonArray1.size(), jsonArray2.size());
+        val result  = Val.JSON.arrayNode();
+        val minSize = Math.min(jsonArray1.size(), jsonArray2.size());
 
         for (int i = 0; i < minSize; i++) {
-            final var pair = Val.JSON.arrayNode();
+            val pair = Val.JSON.arrayNode();
             pair.add(jsonArray1.get(i).deepCopy());
             pair.add(jsonArray2.get(i).deepCopy());
             result.add(pair);
@@ -1226,10 +1298,10 @@ public class ArrayFunctionLibrary {
     }
 
     /**
-     * Creates ArrayNode from list of elements.
+     * Creates ArrayNode from collection of elements.
      */
-    private static Val createArrayFromElements(List<JsonNode> elements) {
-        final var resultArray = Val.JSON.arrayNode();
+    private static Val createArrayFromElements(Collection<JsonNode> elements) {
+        val resultArray = Val.JSON.arrayNode();
         for (var element : elements) {
             resultArray.add(element.deepCopy());
         }

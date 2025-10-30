@@ -27,6 +27,7 @@ import io.sapl.api.pip.EnvironmentAttribute;
 import io.sapl.api.pip.PolicyInformationPoint;
 import io.sapl.attributes.broker.impl.AnnotationPolicyInformationPointLoader;
 import io.sapl.attributes.broker.impl.CachingAttributeStreamBroker;
+import io.sapl.attributes.broker.impl.InMemoryAttributeRepository;
 import io.sapl.attributes.broker.impl.InMemoryPolicyInformationPointDocumentationProvider;
 import io.sapl.functions.FilterFunctionLibrary;
 import io.sapl.grammar.sapl.AttributeFinderStep;
@@ -44,6 +45,7 @@ import org.eclipse.emf.common.util.EList;
 import reactor.core.publisher.Flux;
 import reactor.util.context.Context;
 
+import java.time.Clock;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -68,7 +70,8 @@ public class MockUtil {
     public static Context setUpAuthorizationContext(Context ctx) {
         final var mapper                = new ObjectMapper();
         final var validatorFactory      = new ValidatorFactory(mapper);
-        final var attributeStreamBroker = new CachingAttributeStreamBroker();
+        final var attributeStreamBroker = new CachingAttributeStreamBroker(
+                new InMemoryAttributeRepository(Clock.systemUTC()));
         final var docsProvider          = new InMemoryPolicyInformationPointDocumentationProvider();
         final var pipLoader             = new AnnotationPolicyInformationPointLoader(attributeStreamBroker,
                 docsProvider, validatorFactory);

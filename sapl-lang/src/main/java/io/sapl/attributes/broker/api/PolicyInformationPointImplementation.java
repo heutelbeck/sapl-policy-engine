@@ -23,4 +23,4 @@ import java.util.Map;
 
 public record PolicyInformationPointImplementation(
         @NonNull PolicyInformationPointSpecification specification,
-        @NonNull Map<AttributeFinderSpecification, AttributeFinder> implementsations) {}
+        @NonNull Map<AttributeFinderSpecification, AttributeFinder> implementations) {}

@@ -30,6 +30,7 @@ import io.sapl.api.pip.StaticPolicyInformationPointSupplier;
 import io.sapl.attributes.broker.api.AttributeStreamBroker;
 import io.sapl.attributes.broker.impl.AnnotationPolicyInformationPointLoader;
 import io.sapl.attributes.broker.impl.CachingAttributeStreamBroker;
+import io.sapl.attributes.broker.impl.InMemoryAttributeRepository;
 import io.sapl.attributes.broker.impl.InMemoryPolicyInformationPointDocumentationProvider;
 import io.sapl.attributes.pips.http.HttpPolicyInformationPoint;
 import io.sapl.attributes.pips.http.ReactiveWebClient;
@@ -221,7 +222,8 @@ public class PolicyDecisionPointFactory {
     private static AttributeStreamBroker constructAttributeStreamBroker(PolicyInformationPointSupplier pips,
             StaticPolicyInformationPointSupplier staticPips) {
         final var mapper                = new ObjectMapper();
-        final var attributeStreamBroker = new CachingAttributeStreamBroker();
+        final var attributeRepository   = new InMemoryAttributeRepository(Clock.systemUTC());
+        final var attributeStreamBroker = new CachingAttributeStreamBroker(attributeRepository);
         final var docsProvider          = new InMemoryPolicyInformationPointDocumentationProvider();
         final var loader                = new AnnotationPolicyInformationPointLoader(attributeStreamBroker,
                 docsProvider, new ValidatorFactory(mapper));

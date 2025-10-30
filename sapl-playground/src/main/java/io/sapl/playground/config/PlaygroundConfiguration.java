@@ -23,6 +23,7 @@ import io.sapl.api.interpreter.Val;
 import io.sapl.attributes.broker.api.AttributeStreamBroker;
 import io.sapl.attributes.broker.impl.AnnotationPolicyInformationPointLoader;
 import io.sapl.attributes.broker.impl.CachingAttributeStreamBroker;
+import io.sapl.attributes.broker.impl.InMemoryAttributeRepository;
 import io.sapl.attributes.broker.impl.InMemoryPolicyInformationPointDocumentationProvider;
 import io.sapl.attributes.documentation.api.PolicyInformationPointDocumentationProvider;
 import io.sapl.attributes.pips.http.HttpPolicyInformationPoint;
@@ -103,7 +104,8 @@ public class PlaygroundConfiguration {
     AttributeStreamBroker attributeStreamBroker(ObjectMapper mapper,
             PolicyInformationPointDocumentationProvider policyInformationPointDocumentationProvider) {
         val validatorFactory      = new ValidatorFactory(mapper);
-        val attributeStreamBroker = new CachingAttributeStreamBroker();
+        val attributeStreamBroker = new CachingAttributeStreamBroker(
+                new InMemoryAttributeRepository(Clock.systemUTC()));
         val pipLoader             = new AnnotationPolicyInformationPointLoader(attributeStreamBroker,
                 policyInformationPointDocumentationProvider, validatorFactory);
         val webClient             = new DummyReactiveWebClient(mapper);

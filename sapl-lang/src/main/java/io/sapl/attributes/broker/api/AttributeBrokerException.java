@@ -18,9 +18,13 @@
 package io.sapl.attributes.broker.api;
 
 import io.sapl.api.SaplVersion;
+import io.sapl.api.interpreter.PolicyEvaluationException;
 import lombok.experimental.StandardException;
 
+import java.io.Serial;
+
 @StandardException
-public class AttributeBrokerException extends RuntimeException {
+public class AttributeBrokerException extends PolicyEvaluationException {
+    @Serial
     private static final long serialVersionUID = SaplVersion.VERISION_UID;
 }

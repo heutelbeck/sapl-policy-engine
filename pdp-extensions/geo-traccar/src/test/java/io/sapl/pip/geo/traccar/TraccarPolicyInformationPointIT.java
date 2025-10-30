@@ -234,8 +234,7 @@ class TraccarPolicyInformationPointIT {
     @Test
     void traccarPositionTest_invalidConfig() {
         final var attributestream = TRACCAR_PIP
-                .traccarPosition(deviceId, Map.of(TraccarPolicyInformationPoint.TRACCAR_CONFIG, badSettings)).log()
-                .next();
+                .traccarPosition(deviceId, Map.of(TraccarPolicyInformationPoint.TRACCAR_CONFIG, badSettings)).next();
         StepVerifier.create(attributestream).expectNextMatches(Val::isError).verifyComplete();
     }
 

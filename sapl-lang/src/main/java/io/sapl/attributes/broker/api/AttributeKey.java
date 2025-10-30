@@ -15,21 +15,27 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.attributes.repository.api;
+package io.sapl.attributes.broker.api;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import io.sapl.api.interpreter.Val;
 import lombok.NonNull;
 
-public interface AttributeRepository {
+import java.util.List;
 
-    void publishAttribute(@NonNull JsonNode entity, @NonNull String attributeName, @NonNull Val attributeValue);
-
-    void publishEnvironmentAttribute(@NonNull JsonNode entity, @NonNull String attributeName,
-            @NonNull Val attributeValue);
-
-    void removeAttribute(@NonNull JsonNode entity, @NonNull String attributeName);
-
-    void removeEnvironmentAttribute(@NonNull String attributeName);
-
+/**
+ * Unique key identifying an attribute in storage.
+ * <p>
+ * Composed of entity (optional), attribute name, and arguments list.
+ * Two keys are equal if all components are equal.
+ */
+public record AttributeKey(Val entity, @NonNull String attributeName, @NonNull List<Val> arguments) {
+    /**
+     * Creates an AttributeKey from an AttributeFinderInvocation.
+     *
+     * @param invocation the invocation to extract key from
+     * @return the attribute key
+     */
+    public static AttributeKey of(AttributeFinderInvocation invocation) {
+        return new AttributeKey(invocation.entity(), invocation.attributeName(), invocation.arguments());
+    }
 }

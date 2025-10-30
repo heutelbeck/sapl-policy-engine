@@ -20,6 +20,7 @@ package io.sapl.integrationtest;
 import io.sapl.api.interpreter.Val;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.attributes.broker.impl.CachingAttributeStreamBroker;
+import io.sapl.attributes.broker.impl.InMemoryAttributeRepository;
 import io.sapl.interpreter.DefaultSAPLInterpreter;
 import io.sapl.interpreter.SAPLInterpreter;
 import io.sapl.interpreter.context.AuthorizationContext;
@@ -33,6 +34,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 import reactor.util.context.Context;
 
+import java.time.Clock;
 import java.util.HashMap;
 
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -52,7 +54,8 @@ class IntegrationTests {
     @BeforeEach
     void setUp() {
         interpreter = new DefaultSAPLInterpreter();
-        seedIndex   = new CanonicalImmutableParsedDocumentIndex(new CachingAttributeStreamBroker(),
+        seedIndex   = new CanonicalImmutableParsedDocumentIndex(
+                new CachingAttributeStreamBroker(new InMemoryAttributeRepository(Clock.systemUTC())),
                 new AnnotationFunctionContext());
     }
 
@@ -142,7 +145,7 @@ class IntegrationTests {
     }
 
     public static Context setUpAuthorizationContext(Context ctx, AuthorizationSubscription authzSubscription) {
-        final var broker      = new CachingAttributeStreamBroker();
+        final var broker      = new CachingAttributeStreamBroker(new InMemoryAttributeRepository(Clock.systemUTC()));
         final var functionCtx = new AnnotationFunctionContext();
         ctx = AuthorizationContext.setAttributeStreamBroker(ctx, broker);
         ctx = AuthorizationContext.setFunctionContext(ctx, functionCtx);

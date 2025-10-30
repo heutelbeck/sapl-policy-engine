@@ -36,7 +36,8 @@ public record AttributeFinderSpecification(
     public enum Match {
         NO_MATCH,
         EXACT_MATCH,
-        VARARGS_MATCH
+        VARARGS_MATCH,
+        CATCH_ALL_MATCH,
     }
 
     public static final int HAS_VARIABLE_NUMBER_OF_ARGUMENTS = -1;
@@ -52,7 +53,7 @@ public record AttributeFinderSpecification(
     /**
      * @param other another specification
      * @return true, if the presence of the two specifications leads to
-     * disambiguates in resolving PIP lookups.
+     * disambiguation in resolving PIP lookups.
      */
     public boolean collidesWith(AttributeFinderSpecification other) {
         if (!fullyQualifiedName().equals(other.fullyQualifiedName())

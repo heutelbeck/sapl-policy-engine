@@ -15,28 +15,30 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.attributes.broker.api.sub;
+package io.sapl.attributes.broker.api;
 
 import io.sapl.api.interpreter.Val;
-import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
+import io.sapl.attributes.broker.api.AttributeRepository.TimeOutStrategy;
 
 import java.time.Duration;
+import java.time.Instant;
 
-public interface AttributeRepository {
-    public enum TimeOutStrategy {
-        REMOVE,
-        BECOME_UNDEFINED
+/**
+ * Attribute data persisted to storage.
+ * <p>
+ * Sequence numbers are NOT persisted - they coordinate in-flight subscribers
+ * during runtime only. On restart, sequence numbers start fresh from zero.
+ */
+public record PersistedAttribute(
+        Val value,
+        Instant timestamp,
+        Duration ttl,
+        TimeOutStrategy timeoutStrategy,
+        Instant timeoutDeadline) {
+    public boolean isExpiredAt(Instant now) {
+        if (timeoutDeadline == null) {
+            return false;  // Infinite TTL never expires
+        }
+        return now.isAfter(timeoutDeadline);
     }
-
-    Mono<Void> publishAttribute(String fullyQualifiedName, Val value, Duration ttl, TimeOutStrategy timeOutStrategy);
-
-    Mono<Void> publishAttribute(String fullyQualifiedName, Val value, Duration ttl);
-
-    Mono<Void> publishAttribute(String fullyQualifiedName, Val value);
-
-    Mono<Void> removeAttribute(String fullyQualifiedName);
-
-    Flux<Val> subscribeToAttribute();
-
 }

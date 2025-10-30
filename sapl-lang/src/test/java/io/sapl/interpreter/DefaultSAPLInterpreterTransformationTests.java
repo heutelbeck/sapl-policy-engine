@@ -25,6 +25,7 @@ import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.Decision;
 import io.sapl.attributes.broker.impl.CachingAttributeStreamBroker;
+import io.sapl.attributes.broker.impl.InMemoryAttributeRepository;
 import io.sapl.functions.FilterFunctionLibrary;
 import io.sapl.interpreter.functions.AnnotationFunctionContext;
 import lombok.SneakyThrows;
@@ -47,7 +48,8 @@ class DefaultSAPLInterpreterTransformationTests {
     private static final ObjectMapper                 MAPPER           = new ObjectMapper()
             .enable(SerializationFeature.INDENT_OUTPUT);
     private static final DefaultSAPLInterpreter       INTERPRETER      = new DefaultSAPLInterpreter();
-    private static final CachingAttributeStreamBroker ATTRIBUTE_BROKER = new CachingAttributeStreamBroker();
+    private static final CachingAttributeStreamBroker ATTRIBUTE_BROKER = new CachingAttributeStreamBroker(
+            new InMemoryAttributeRepository(Clock.systemUTC()));
     private static final Map<String, Val>             SYSTEM_VARIABLES = Collections.unmodifiableMap(new HashMap<>());
 
     private AnnotationFunctionContext functionCtx;

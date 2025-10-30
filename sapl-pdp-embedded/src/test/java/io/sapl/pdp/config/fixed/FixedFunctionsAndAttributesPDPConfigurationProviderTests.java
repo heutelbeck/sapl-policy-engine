@@ -18,6 +18,7 @@
 package io.sapl.pdp.config.fixed;
 
 import io.sapl.attributes.broker.impl.CachingAttributeStreamBroker;
+import io.sapl.attributes.broker.impl.InMemoryAttributeRepository;
 import io.sapl.interpreter.DefaultSAPLInterpreter;
 import io.sapl.interpreter.combinators.PolicyDocumentCombiningAlgorithm;
 import io.sapl.interpreter.functions.AnnotationFunctionContext;
@@ -29,11 +30,13 @@ import io.sapl.prp.index.UpdateEventDrivenPolicyRetrievalPoint;
 import io.sapl.prp.index.naive.NaiveImmutableParsedDocumentIndex;
 import org.junit.jupiter.api.Test;
 
+import java.time.Clock;
 import java.util.List;
 
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 class FixedFunctionsAndAttributesPDPConfigurationProviderTests {
 
@@ -42,12 +45,13 @@ class FixedFunctionsAndAttributesPDPConfigurationProviderTests {
 
         final var source    = new FileSystemVariablesAndCombinatorSource("src/test/resources/policies");
         final var prpSource = constructFilesystemPolicyRetrievalPointSource("src/test/resources/policies");
-        final var broker    = new CachingAttributeStreamBroker();
+        final var broker    = new CachingAttributeStreamBroker(new InMemoryAttributeRepository(Clock.systemUTC()));
         final var funcCtx   = new AnnotationFunctionContext();
         final var provider  = new FixedFunctionsAndAttributesPDPConfigurationProvider(broker, funcCtx, source,
                 List.of(), List.of(), prpSource);
         final var config    = provider.pdpConfiguration().blockFirst();
         provider.destroy();
+        assertNotNull(config);
         assertThat(config.documentsCombinator() == PolicyDocumentCombiningAlgorithm.DENY_UNLESS_PERMIT,
                 is(Boolean.TRUE));
         assertThat(config.attributeStreamBroker(), is(broker));

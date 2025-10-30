@@ -24,6 +24,7 @@ import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.Decision;
 import io.sapl.attributes.broker.impl.CachingAttributeStreamBroker;
+import io.sapl.attributes.broker.impl.InMemoryAttributeRepository;
 import io.sapl.grammar.sapl.impl.util.ErrorFactory;
 import io.sapl.interpreter.CombinedDecision;
 import io.sapl.interpreter.DefaultSAPLInterpreter;
@@ -37,6 +38,7 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import reactor.test.StepVerifier;
 
+import java.time.Clock;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Stream;
@@ -166,8 +168,8 @@ class OnlyOneApplicableTests {
         StepVerifier.create(OnlyOneApplicable.onlyOneApplicable(given.getMatchingDocuments())
                 .map(CombinedDecision::getAuthorizationDecision)
                 .contextWrite(ctx -> AuthorizationContext.setFunctionContext(ctx, new AnnotationFunctionContext()))
-                .contextWrite(
-                        ctx -> AuthorizationContext.setAttributeStreamBroker(ctx, new CachingAttributeStreamBroker())))
+                .contextWrite(ctx -> AuthorizationContext.setAttributeStreamBroker(ctx,
+                        new CachingAttributeStreamBroker(new InMemoryAttributeRepository(Clock.systemUTC())))))
                 .expectNext(expected).verifyComplete();
     }
 
