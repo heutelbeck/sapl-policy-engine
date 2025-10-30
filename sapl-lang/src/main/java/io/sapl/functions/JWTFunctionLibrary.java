@@ -27,94 +27,168 @@ import io.sapl.api.functions.FunctionLibrary;
 import io.sapl.api.interpreter.Val;
 import io.sapl.api.validation.Text;
 import lombok.RequiredArgsConstructor;
-import lombok.SneakyThrows;
 
+import java.text.ParseException;
 import java.time.Instant;
 
 /**
- * Library of functions for evaluating JSON Web Tokens (JWT)
+ * Function library for parsing JSON Web Tokens without validation.
  * <p>
- * Functions may be used in target expressions of SAPL policies. Since target
- * expressions need to be evaluated quickly for indexing and selecting policies,
- * functions are not allowed to call external services.
+ * This library provides fast, unvalidated access to JWT contents for use in
+ * policy target expressions. Target expressions require rapid evaluation for
+ * policy indexing and selection, which prohibits external service calls needed
+ * for signature verification.
  * <p>
- * This prohibits functions from verifying digital signatures, as it would be
- * necessary to fetch public keys or certificates from external sources. <br>
- * The functions in this library therefore return information contained in JWTs
- * as-is, without verifying the token's validity.
+ * <strong>Security Warning:</strong> Functions in this library return JWT
+ * contents without verifying signatures or validating claims. For secure
+ * authorization decisions, always use JWT attributes from the JWT Policy
+ * Information Point, which perform proper signature verification and time-based
+ * validation.
  * <p>
- * For secure implementations, any function used in the target expression for
- * selecting a policy should therefore be repeated as attribute in the policy's
- * body, as JWT attributes are properly validated.
+ * <strong>Recommended Pattern:</strong> Use functions in target expressions for
+ * fast policy selection, then validate using JWT PIP attributes in policy
+ * bodies:
+ *
+ * <pre>
+ * policy "secure-jwt-access"
+ * permit action == "read"
+ *   where "admin" in jwt.parseJwt(subject.token).payload.roles;
+ * where
+ *   subject.token.&lt;jwt.valid&gt;;
+ * </pre>
+ *
+ * @see io.sapl.attributes.pips.jwt.JWTPolicyInformationPoint
  */
 @RequiredArgsConstructor
-@FunctionLibrary(name = JWTFunctionLibrary.NAME, description = JWTFunctionLibrary.DESCRIPTION)
+@FunctionLibrary(name = JWTFunctionLibrary.NAME, description = JWTFunctionLibrary.DESCRIPTION, libraryDocumentation = JWTFunctionLibrary.LIBRARY_DOCUMENTATION)
 public class JWTFunctionLibrary {
 
     static final String NAME        = "jwt";
-    static final String DESCRIPTION = """
-            Functions for evaluating JSON Web Tokens.
-            The contents of the token are returned without verifying the token's validity.""";
+    static final String DESCRIPTION = "Functions for parsing JSON Web Tokens. Contents are returned without validation.";
+
+    static final String LIBRARY_DOCUMENTATION = """
+            # JWT Function Library
+
+            Provides fast, unvalidated parsing of JSON Web Tokens for use in policy target expressions.
+
+            ## Security Model
+
+            **Functions in this library DO NOT validate JWT signatures or claims.** They return token
+            contents as-is without verification. This design enables fast policy selection through target
+            expressions, which cannot call external services required for proper JWT validation.
+
+            For secure authorization decisions, combine this library with the JWT Policy Information Point:
+
+            * **Function Library** (jwt.parseJwt): Fast parsing for target expressions and policy selection
+            * **JWT PIP** (jwt.valid, jwt.validity): Secure validation with signature verification
+
+            ## Recommended Pattern
+
+            Use functions for quick filtering, then validate with PIP attributes:
+
+            ```sapl
+            policy "secure-resource-access"
+            permit action.method == "GET"
+              where "documents:read" in jwt.parseJwt(subject.token).payload.scope;
+            where
+              subject.token.<jwt.valid>;
+            ```
+
+            This pattern provides:
+            1. Fast policy selection via unvalidated token parsing in target
+            2. Secure authorization via validated token in policy body
+
+            ## JWT PIP Integration
+
+            The JWT Policy Information Point provides validated attributes:
+
+            * `<jwt.valid>`: Boolean indicating current token validity
+            * `<jwt.validity>`: Validity state (VALID, EXPIRED, IMMATURE, UNTRUSTED, etc.)
+
+            PIP attributes are reactive streams that automatically trigger policy re-evaluation when
+            tokens transition between states (immature → valid → expired).
+
+            See JWT PIP documentation for configuration of public key servers and trusted key whitelists.
+
+            ## Example
+
+            Target expression for policy selection:
+            ```sapl
+            policy "api-scope-filter"
+            permit action.api == "documents"
+              where "docs:write" in jwt.parseJwt(subject.credentials).payload.scope;
+            where
+              var token = subject.credentials;
+              token.<jwt.validity> == "VALID";
+            ```
+
+            The target expression quickly filters relevant policies by checking scopes without validation.
+            The policy body then validates the token signature and time claims before granting access.
+            """;
 
     private static final JsonNodeFactory JSON = JsonNodeFactory.instance;
 
     private final ObjectMapper mapper;
 
+    /**
+     * Parses a JWT and returns its decoded header and payload without
+     * validation.
+     *
+     * @param rawToken the Base64-encoded JWT string
+     * @return Val containing header and payload, or error if parsing fails
+     */
     @Function(docs = """
-            ```parseJwt(TEXT rawToken)```:
-            This function parses the raw encoded JWT Token and converts it into a SAPL value with the decoded contents
-            of the token. The token is not validated by this function. Use the JWT PIPs/Attributes for this purpose,
-            as the validity is time dependent.
+            ```parseJwt(TEXT rawToken)```: Parses the raw encoded JWT token and converts it into a SAPL
+            value with the decoded header and payload. The token is NOT validated by this function.
+            Use JWT PIP attributes for validation.
 
-            **Example:**
-
-            ```sapl
-            policy "jwt example"
-            permit
-            where
-              var rawToken = "eyJraWQiOiI3ZGRkYzMwNy1kZGE0LTQ4ZjUtYmU1Yi00MDZlZGFmYjc5ODgiLCJhbGciOiJSUzI1NiJ9.eyJzdWIiOiJ1c2VyMSIsImF1ZCI6Im1pc2thdG9uaWMtY2xpZW50IiwibmJmIjoxNjM1MjUxNDE1LCJzY29wZSI6WyJmYWN1bHR5LnJlYWQiLCJib29rcy5yZWFkIl0sImlzcyI6Imh0dHA6XC9cL2F1dGgtc2VydmVyOjkwMDAiLCJleHAiOjE2MzUyNTE3MTUsImlhdCI6MTYzNTI1MTQxNX0.V0-bViu4pFVufOzrn8yTQO9TnDAbE-qEKW8DnBKNLKCn2BlrQHbLYNSCpc4RdFU-cj32OwNn3in5cFPtiL5CTiD-lRXxnnc5WaNPNW2FchYag0zc252UdfV0Hs2sOAaNJ8agJ_uv0fFupMRS340gNDFFZthmjhTrDHGErZU7qxc1Lk2NF7-TGngre66-5W3NZzBsexkDO9yDLP11StjF63705juPFL2hTdgAIqLpsIOMwfrgoAsl0-6P98ecRwtGZKK4rEjUxBwghxCu1gm7eZiYoet4K28wPoBzF3hso4LG789N6GJt5HBIKpob9Q6G1ZJhMgieLeXH__9jvw1e0w";
-              "books.read" in jwt.parseJwt(rawToken).payload.scope;
-            ```
-
-            In this case, the statement ```"books.read" in jwt.parseJwt(rawToken).payload.scope;``` will evaluate to
-            ```true```, as the the result of the ```parseJwt``` function would be:
+            Returns an object with structure:
             ```json
             {
-              "header": {
-                          "kid":"7dddc307-dda4-48f5-be5b-406edafb7988",
-                          "alg":"RS256"
-                        },
-              "payload": {
-                           "sub":"user1",
-                           "aud":"miskatonic-client",
-                           "nbf":"2021-10-26T12:30:15Z",
-                           "scope":["faculty.read","books.read"],
-                           "iss":"http://auth-server:9000",
-                           "exp":"2021-10-26T12:35:15Z",
-                           "iat":"2021-10-26T12:30:15Z"
-                         }
+              "header": { "kid": "...", "alg": "..." },
+              "payload": { "sub": "...", "exp": "...", ... }
             }
             ```
+
+            Time claims (nbf, exp, iat) are converted from epoch seconds to ISO-8601 timestamps.
+
+            **Example:**
+            ```sapl
+            policy "check-token-scope"
+            permit
+              where "admin" in jwt.parseJwt(subject.token).payload.roles;
+            where
+              subject.token.<jwt.valid>;
+            ```
             """)
-    @SneakyThrows
     public Val parseJwt(@Text Val rawToken) {
-        final var signedJwt = SignedJWT.parse(rawToken.getText());
-        final var jsonToken = JSON.objectNode();
-        final var payload   = mapper.convertValue(signedJwt.getPayload().toJSONObject(), JsonNode.class);
-        ifPresentReplaceEpocFieldWithIsoTime(payload, "nbf");
-        ifPresentReplaceEpocFieldWithIsoTime(payload, "exp");
-        ifPresentReplaceEpocFieldWithIsoTime(payload, "iat");
-        jsonToken.set("header", mapper.convertValue(signedJwt.getHeader().toJSONObject(), JsonNode.class));
-        jsonToken.set("payload", payload);
-        return Val.of(jsonToken);
+        try {
+            var signedJwt = SignedJWT.parse(rawToken.getText());
+            var jsonToken = JSON.objectNode();
+            var payload = mapper.convertValue(signedJwt.getPayload().toJSONObject(), JsonNode.class);
+
+            ifPresentReplaceEpochFieldWithIsoTime(payload, "nbf");
+            ifPresentReplaceEpochFieldWithIsoTime(payload, "exp");
+            ifPresentReplaceEpochFieldWithIsoTime(payload, "iat");
+
+            jsonToken.set("header", mapper.convertValue(signedJwt.getHeader().toJSONObject(), JsonNode.class));
+            jsonToken.set("payload", payload);
+
+            return Val.of(jsonToken);
+        } catch (ParseException exception) {
+            return Val.error("Failed to parse JWT: %s".formatted(exception.getMessage()));
+        } catch (Exception exception) {
+            return Val.error("Error processing JWT: %s".formatted(exception.getMessage()));
+        }
     }
 
-    private void ifPresentReplaceEpocFieldWithIsoTime(JsonNode payload, String key) {
-        if (!(payload.isObject() && payload.has(key) && payload.get(key).isNumber()))
+    private void ifPresentReplaceEpochFieldWithIsoTime(JsonNode payload, String key) {
+        if (!(payload.isObject() && payload.has(key) && payload.get(key).isNumber())) {
             return;
+        }
 
-        final var epocSeconds = payload.get(key).asLong();
-        final var isoString   = Instant.ofEpochSecond(epocSeconds).toString();
+        var epochSeconds = payload.get(key).asLong();
+        var isoString = Instant.ofEpochSecond(epochSeconds).toString();
 
         ((ObjectNode) payload).set(key, JSON.textNode(isoString));
     }
