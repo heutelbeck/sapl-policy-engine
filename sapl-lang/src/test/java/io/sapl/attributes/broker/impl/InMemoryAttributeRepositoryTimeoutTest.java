@@ -202,7 +202,7 @@ class InMemoryAttributeRepositoryTimeoutTest {
                 .block();
 
         val recoveredRepo = new InMemoryAttributeRepository(clock, heapStorage);
-
+        assertThat(recoveredRepo).isNotNull();
         assertThat(heapStorage.get(patientOldRecord).block()).isNull();
         assertThat(heapStorage.get(patientMarsh).block()).isNotNull();
         assertThat(heapStorage.get(patientGilman).block()).isNotNull();

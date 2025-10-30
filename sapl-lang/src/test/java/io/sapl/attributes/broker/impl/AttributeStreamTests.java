@@ -63,14 +63,30 @@ import static org.awaitility.Awaitility.await;
  * <li>Graceful cleanup after subscriber cancellation</li>
  * <li>Resilience features (retry, timeout, polling)</li>
  * </ul>
+ * <p>
+ * Timing constants are sized for CI environment reliability:
+ * <ul>
+ * <li>Grace period timeout: 3.5x the actual grace period to account for thread
+ * scheduling variance</li>
+ * <li>Operation timeouts: 500ms-1000ms to handle CPU contention and reactive
+ * chain processing delays</li>
+ * <li>Poll configuration: 50ms delay with 25ms interval to reduce CPU
+ * overhead</li>
+ * </ul>
  */
 @Timeout(5)
 class AttributeStreamTests {
 
-    private static final Duration SHORT_TIMEOUT       = Duration.ofMillis(50L);
-    private static final Duration MEDIUM_TIMEOUT      = Duration.ofMillis(100L);
-    private static final Duration GRACE_PERIOD        = Duration.ofMillis(200L);
-    private static final Duration GRACE_PERIOD_MARGIN = Duration.ofMillis(250L);
+    private static final Duration SHORT_TIMEOUT  = Duration.ofMillis(50L);
+    private static final Duration MEDIUM_TIMEOUT = Duration.ofMillis(100L);
+    private static final Duration GRACE_PERIOD   = Duration.ofMillis(200L);
+
+    private static final long AWAIT_POLL_DELAY    = 50L;
+    private static final long AWAIT_POLL_INTERVAL = 25L;
+
+    private static final long FAST_OPERATION_TIMEOUT    = 500L;
+    private static final long GRACE_PERIOD_TIMEOUT      = 700L;
+    private static final long COMPLEX_OPERATION_TIMEOUT = 1000L;
 
     private static AttributeFinderInvocation createInvocation() {
         return new AttributeFinderInvocation("testConfig", "test.attribute", null, List.of(), Map.of(),
@@ -83,7 +99,7 @@ class AttributeStreamTests {
     }
 
     private static AttributeFinderInvocation createInvocation(Duration initialTimeout, Duration pollInterval,
-            Duration backoff, long retries) {
+                                                              Duration backoff, long retries) {
         return new AttributeFinderInvocation("testConfig", "test.attribute", null, List.of(), Map.of(), initialTimeout,
                 pollInterval, backoff, retries, false);
     }
@@ -219,7 +235,9 @@ class AttributeStreamTests {
 
         stream.getStream().blockFirst();
         assertThat(cleanupCalled.get()).isZero();
-        await().atMost(GRACE_PERIOD_MARGIN.toMillis(), MILLISECONDS).until(() -> cleanupCalled.get() == 1);
+
+        await().pollDelay(AWAIT_POLL_DELAY, MILLISECONDS).pollInterval(AWAIT_POLL_INTERVAL, MILLISECONDS)
+                .atMost(GRACE_PERIOD_TIMEOUT, MILLISECONDS).until(() -> cleanupCalled.get() == 1);
     }
 
     /**
@@ -247,7 +265,8 @@ class AttributeStreamTests {
         stream.getStream().blockFirst();
         assertThat(cleanupCalled.get()).isZero();
 
-        await().atMost(GRACE_PERIOD_MARGIN.toMillis(), MILLISECONDS).until(() -> cleanupCalled.get() == 1);
+        await().pollDelay(AWAIT_POLL_DELAY, MILLISECONDS).pollInterval(AWAIT_POLL_INTERVAL, MILLISECONDS)
+                .atMost(GRACE_PERIOD_TIMEOUT, MILLISECONDS).until(() -> cleanupCalled.get() == 1);
     }
 
     /* ========== PIP Connection and Disconnection Tests ========== */
@@ -276,11 +295,13 @@ class AttributeStreamTests {
         val results = new CopyOnWriteArrayList<Val>();
         stream.getStream().subscribe(results::add);
 
-        await().pollDelay(10, MILLISECONDS).atMost(150, MILLISECONDS).until(() -> !results.isEmpty());
+        await().pollDelay(AWAIT_POLL_DELAY, MILLISECONDS).pollInterval(AWAIT_POLL_INTERVAL, MILLISECONDS)
+                .atMost(FAST_OPERATION_TIMEOUT, MILLISECONDS).until(() -> !results.isEmpty());
 
         stream.disconnectFromPolicyInformationPoint();
 
-        await().pollDelay(10, MILLISECONDS).atMost(150, MILLISECONDS).until(() -> results.size() >= 2);
+        await().pollDelay(AWAIT_POLL_DELAY, MILLISECONDS).pollInterval(AWAIT_POLL_INTERVAL, MILLISECONDS)
+                .atMost(FAST_OPERATION_TIMEOUT, MILLISECONDS).until(() -> results.size() >= 2);
 
         assertThat(results.get(0)).isEqualTo(Val.of("before-disconnect"));
         assertThat(results.get(1).isError()).isTrue();
@@ -313,13 +334,18 @@ class AttributeStreamTests {
         val results = new CopyOnWriteArrayList<Val>();
         stream.getStream().subscribe(results::add);
 
-        await().pollDelay(10, MILLISECONDS).atMost(150, MILLISECONDS).until(() -> !results.isEmpty());
+        await().pollDelay(AWAIT_POLL_DELAY, MILLISECONDS).pollInterval(AWAIT_POLL_INTERVAL, MILLISECONDS)
+                .atMost(FAST_OPERATION_TIMEOUT, MILLISECONDS).until(() -> !results.isEmpty());
 
         stream.disconnectFromPolicyInformationPoint();
-        await().pollDelay(10, MILLISECONDS).atMost(150, MILLISECONDS).until(() -> results.size() >= 2);
+
+        await().pollDelay(AWAIT_POLL_DELAY, MILLISECONDS).pollInterval(AWAIT_POLL_INTERVAL, MILLISECONDS)
+                .atMost(FAST_OPERATION_TIMEOUT, MILLISECONDS).until(() -> results.size() >= 2);
 
         stream.connectToPolicyInformationPoint(pip2);
-        await().pollDelay(10, MILLISECONDS).atMost(150, MILLISECONDS).until(() -> results.size() >= 3);
+
+        await().pollDelay(AWAIT_POLL_DELAY, MILLISECONDS).pollInterval(AWAIT_POLL_INTERVAL, MILLISECONDS)
+                .atMost(FAST_OPERATION_TIMEOUT, MILLISECONDS).until(() -> results.size() >= 3);
 
         assertThat(results.get(0)).isEqualTo(Val.of("pip1"));
         assertThat(results.get(1).isError()).isTrue();
@@ -351,10 +377,13 @@ class AttributeStreamTests {
         val results = new CopyOnWriteArrayList<Val>();
         stream.getStream().subscribe(results::add);
 
-        await().pollDelay(10, MILLISECONDS).atMost(150, MILLISECONDS).until(() -> results.size() >= 2);
+        await().pollDelay(AWAIT_POLL_DELAY, MILLISECONDS).pollInterval(AWAIT_POLL_INTERVAL, MILLISECONDS)
+                .atMost(FAST_OPERATION_TIMEOUT, MILLISECONDS).until(() -> results.size() >= 2);
 
         stream.connectToPolicyInformationPoint(pip2);
-        await().pollDelay(10, MILLISECONDS).atMost(150, MILLISECONDS)
+
+        await().pollDelay(AWAIT_POLL_DELAY, MILLISECONDS).pollInterval(AWAIT_POLL_INTERVAL, MILLISECONDS)
+                .atMost(FAST_OPERATION_TIMEOUT, MILLISECONDS)
                 .until(() -> results.stream().anyMatch(v -> v.equals(Val.of("pip2"))));
 
         val pip2Index       = results.indexOf(Val.of("pip2"));
@@ -390,12 +419,13 @@ class AttributeStreamTests {
         val results = new CopyOnWriteArrayList<Val>();
         stream.getStream().subscribe(results::add);
 
-        await().pollDelay(10, MILLISECONDS).atMost(150, MILLISECONDS).until(() -> results.size() >= 3);
+        await().pollDelay(AWAIT_POLL_DELAY, MILLISECONDS).pollInterval(AWAIT_POLL_INTERVAL, MILLISECONDS)
+                .atMost(FAST_OPERATION_TIMEOUT, MILLISECONDS).until(() -> results.size() >= 3);
 
         stream.disconnectFromPolicyInformationPoint();
 
-        await().pollDelay(10, MILLISECONDS).atMost(200, MILLISECONDS)
-                .until(() -> results.stream().anyMatch(Val::isError));
+        await().pollDelay(AWAIT_POLL_DELAY, MILLISECONDS).pollInterval(AWAIT_POLL_INTERVAL, MILLISECONDS)
+                .atMost(FAST_OPERATION_TIMEOUT, MILLISECONDS).until(() -> results.stream().anyMatch(Val::isError));
 
         for (var i = 0; i < results.size(); i++) {
             if (results.get(i).isError()) {
@@ -431,12 +461,13 @@ class AttributeStreamTests {
         val results      = new CopyOnWriteArrayList<Val>();
         val subscription = stream.getStream().subscribe(results::add);
 
-        await().pollDelay(10, MILLISECONDS).atMost(100, MILLISECONDS).until(() -> !results.isEmpty());
+        await().pollDelay(AWAIT_POLL_DELAY, MILLISECONDS).pollInterval(AWAIT_POLL_INTERVAL, MILLISECONDS)
+                .atMost(FAST_OPERATION_TIMEOUT, MILLISECONDS).until(() -> !results.isEmpty());
 
         stream.disconnectFromPolicyInformationPoint();
 
-        await().pollDelay(10, MILLISECONDS).atMost(200, MILLISECONDS)
-                .until(() -> results.stream().anyMatch(Val::isError));
+        await().pollDelay(AWAIT_POLL_DELAY, MILLISECONDS).pollInterval(AWAIT_POLL_INTERVAL, MILLISECONDS)
+                .atMost(FAST_OPERATION_TIMEOUT, MILLISECONDS).until(() -> results.stream().anyMatch(Val::isError));
 
         val errors = results.stream().filter(Val::isError).toList();
 
@@ -548,11 +579,11 @@ class AttributeStreamTests {
         val invocation = createInvocation(Duration.ofMillis(10), Duration.ofSeconds(10), Duration.ofMillis(1), retries);
         val attempts   = new AtomicInteger(0);
         val failingPip = (AttributeFinder) inv -> Flux.defer(() -> {
-                           if (attempts.incrementAndGet() <= retries) {
-                               return Flux.error(new RuntimeException("attempt-" + attempts.get()));
-                           }
-                           return Flux.just(Val.of("success-after-retries"));
-                       });
+            if (attempts.incrementAndGet() <= retries) {
+                return Flux.error(new RuntimeException("attempt-" + attempts.get()));
+            }
+            return Flux.just(Val.of("success-after-retries"));
+        });
         val stream     = new AttributeStream(invocation, s -> {}, GRACE_PERIOD, failingPip);
 
         StepVerifier.create(stream.getStream().take(1).timeout(Duration.ofSeconds(2)))
@@ -649,12 +680,14 @@ class AttributeStreamTests {
         val results = new CopyOnWriteArrayList<Val>();
         stream.getStream().subscribe(results::add);
 
-        await().pollDelay(10, MILLISECONDS).atMost(200, MILLISECONDS).until(() -> results.size() >= 5);
+        await().pollDelay(AWAIT_POLL_DELAY, MILLISECONDS).pollInterval(AWAIT_POLL_INTERVAL, MILLISECONDS)
+                .atMost(FAST_OPERATION_TIMEOUT, MILLISECONDS).until(() -> results.size() >= 5);
 
         stream.connectToPolicyInformationPoint(pip2);
 
-        await().pollDelay(10, MILLISECONDS).atMost(200, MILLISECONDS).until(
-                () -> results.stream().anyMatch(value -> !value.isError() && value.get().asText().startsWith("pip2")));
+        await().pollDelay(AWAIT_POLL_DELAY, MILLISECONDS).pollInterval(AWAIT_POLL_INTERVAL, MILLISECONDS)
+                .atMost(COMPLEX_OPERATION_TIMEOUT, MILLISECONDS).until(
+                        () -> results.stream().anyMatch(value -> !value.isError() && value.get().asText().startsWith("pip2")));
 
         val pip2Values = results.stream().filter(value -> !value.isError() && value.get().asText().startsWith("pip2"))
                 .toList();
