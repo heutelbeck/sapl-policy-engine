@@ -17,23 +17,79 @@
  */
 package io.sapl.functions;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.sapl.api.functions.Function;
 import io.sapl.api.functions.FunctionLibrary;
 import io.sapl.api.interpreter.Val;
 import io.sapl.api.validation.Text;
-import lombok.SneakyThrows;
 import lombok.experimental.UtilityClass;
 
 /**
  * Function library providing JSON marshalling and unmarshalling operations.
+ * <p>
+ * Enables bidirectional conversion between JSON text and SAPL values. Primarily
+ * useful for parsing JSON from external sources (APIs, databases, configuration
+ * files) and serializing SAPL values for obligations, logging, or external
+ * system integration.
+ * <p>
+ * Values round-trip correctly through conversion:
+ * {@code json.jsonToVal(json.valToJson(value)) == value}
  */
 @UtilityClass
-@FunctionLibrary(name = JsonFunctionLibrary.NAME, description = JsonFunctionLibrary.DESCRIPTION)
+@FunctionLibrary(name = JsonFunctionLibrary.NAME, description = JsonFunctionLibrary.DESCRIPTION, libraryDocumentation = JsonFunctionLibrary.DOCUMENTATION)
 public class JsonFunctionLibrary {
 
     public static final String NAME        = "json";
     public static final String DESCRIPTION = "Function library for JSON marshalling and unmarshalling operations.";
+
+    public static final String DOCUMENTATION = """
+            # JSON Function Library
+
+            Provides bidirectional conversion between JSON text and SAPL values.
+
+            Use json.jsonToVal to parse JSON strings from external sources such as API responses,
+            configuration files, or database fields stored as JSON text.
+
+            Use json.valToJson to serialize SAPL values into JSON strings for obligations,
+            advice, or when passing data to external systems.
+
+            ## Examples
+
+            Parse stored configuration:
+            ```sapl
+            policy "check-feature-flags"
+            permit
+            where
+              var config = json.jsonToVal(resource.configJson);
+              config.featureEnabled == true;
+              config.minVersion <= subject.appVersion;
+            ```
+
+            Parse embedded permissions:
+            ```sapl
+            policy "validate-permissions"
+            permit resource.type == "document"
+            where
+              var userPerms = json.jsonToVal(subject.permissionsJson);
+              userPerms.canRead == true;
+            ```
+
+            Generate structured obligation data:
+            ```sapl
+            policy "require-audit"
+            permit
+            obligation
+              {
+                "auditEntry": json.valToJson({
+                  "userId": subject.id,
+                  "resourceId": resource.id,
+                  "action": action.method,
+                  "timestamp": time.now()
+                })
+              }
+            ```
+            """;
 
     private static final ObjectMapper JSON_MAPPER = new ObjectMapper();
 
@@ -41,43 +97,51 @@ public class JsonFunctionLibrary {
      * Converts a well-formed JSON document into a SAPL value.
      *
      * @param json the JSON text to parse
-     * @return a Val representing the parsed JSON content
+     * @return a Val representing the parsed JSON content, or an error if parsing
+     * fails
      */
-    @SneakyThrows
     @Function(docs = """
             ```jsonToVal(TEXT json)```: Converts a well-formed JSON document ```json``` into a SAPL
             value representing the content of the JSON document.
+            Returns an error if the JSON is malformed.
 
             **Example:**
             ```sapl
-            policy "example"
-            permit
+            policy "check-embedded-role"
+            permit action.method == "read"
             where
-               var jsonText = "{ \\"hello\\": \\"world\\" }";
-               json.jsonToVal(jsonText) == { "hello":"world" };
+              var userMetadata = json.jsonToVal(subject.metadataJson);
+              userMetadata.role == "admin";
             ```
             """)
     public static Val jsonToVal(@Text Val json) {
-        return Val.ofJson(json.getText());
+        try {
+            return Val.ofJson(json.getText());
+        } catch (Exception exception) {
+            return Val.error("Failed to parse JSON: %s".formatted(exception.getMessage()));
+        }
     }
 
     /**
      * Converts a SAPL value into a JSON string representation.
      *
      * @param value the value to convert to JSON
-     * @return a Val containing the JSON string representation
+     * @return a Val containing the JSON string representation, or an error if
+     * serialization fails
      */
-    @SneakyThrows
     @Function(docs = """
             ```valToJson(value)```: Converts a SAPL ```value``` into a JSON string representation.
+            Returns an error if serialization fails. Undefined and error values are returned unchanged.
 
             **Example:**
             ```sapl
-            policy "example"
+            policy "log-decision-context"
             permit
-            where
-               var object = { "hello":"world" };
-               json.valToJson(object) == "{\\"hello\\":\\"world\\"}";
+            obligation
+              {
+                "type": "audit",
+                "context": json.valToJson(subject)
+              }
             ```
             """, schema = """
             {
@@ -87,7 +151,11 @@ public class JsonFunctionLibrary {
         if (value.isError() || value.isUndefined()) {
             return value;
         }
-        return Val.of(JSON_MAPPER.writeValueAsString(value.get()));
+        try {
+            return Val.of(JSON_MAPPER.writeValueAsString(value.get()));
+        } catch (JsonProcessingException exception) {
+            return Val.error("Failed to serialize to JSON: %s".formatted(exception.getMessage()));
+        }
     }
 
 }

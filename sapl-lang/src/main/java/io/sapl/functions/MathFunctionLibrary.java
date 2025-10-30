@@ -30,11 +30,21 @@ import java.util.Random;
  * Collection of mathematical functions for scalar operations.
  */
 @UtilityClass
-@FunctionLibrary(name = MathFunctionLibrary.NAME, description = MathFunctionLibrary.DESCRIPTION)
+@FunctionLibrary(name = MathFunctionLibrary.NAME, description = MathFunctionLibrary.DESCRIPTION, libraryDocumentation = MathFunctionLibrary.DOCUMENTATION)
 public class MathFunctionLibrary {
 
-    public static final String NAME        = "math";
-    public static final String DESCRIPTION = "A collection of mathematical functions for scalar operations.";
+    public static final String NAME          = "math";
+    public static final String DESCRIPTION   = "A collection of mathematical functions for scalar operations.";
+    public static final String DOCUMENTATION = """
+            # Math Function Library (name: math)
+
+            This library provides standard mathematical functions for numeric operations in policies.
+            Functions include basic arithmetic operations (min, max, abs), rounding (ceil, floor, round),
+            exponentiation and roots (pow, sqrt), logarithms (log, log10, logb), clamping, sign determination,
+            random number generation, and mathematical constants (pi, e).
+
+            All functions operate on JSON numbers and return numeric results or error values for invalid inputs.
+            """;
 
     private static final SecureRandom SECURE_RANDOM = new SecureRandom();
 
@@ -47,7 +57,7 @@ public class MathFunctionLibrary {
     @Function(docs = """
             ```min(NUMBER a, NUMBER b)```: Returns the smaller of two numbers.
 
-            **Examples:**
+            **Example:**
             ```sapl
             policy "example"
             permit
@@ -64,7 +74,7 @@ public class MathFunctionLibrary {
     @Function(docs = """
             ```max(NUMBER a, NUMBER b)```: Returns the larger of two numbers.
 
-            **Examples:**
+            **Example:**
             ```sapl
             policy "example"
             permit
@@ -81,7 +91,7 @@ public class MathFunctionLibrary {
     @Function(docs = """
             ```abs(NUMBER value)```: Returns the absolute value of a number.
 
-            **Examples:**
+            **Example:**
             ```sapl
             policy "example"
             permit
@@ -98,7 +108,7 @@ public class MathFunctionLibrary {
     @Function(docs = """
             ```ceil(NUMBER value)```: Returns the smallest integer greater than or equal to the value (rounds up).
 
-            **Examples:**
+            **Example:**
             ```sapl
             policy "example"
             permit
@@ -116,7 +126,7 @@ public class MathFunctionLibrary {
     @Function(docs = """
             ```floor(NUMBER value)```: Returns the largest integer less than or equal to the value (rounds down).
 
-            **Examples:**
+            **Example:**
             ```sapl
             policy "example"
             permit
@@ -135,7 +145,7 @@ public class MathFunctionLibrary {
             ```round(NUMBER value)```: Returns the value rounded to the nearest integer. Values exactly halfway between
             two integers are rounded up (towards positive infinity).
 
-            **Examples:**
+            **Example:**
             ```sapl
             policy "example"
             permit
@@ -153,7 +163,7 @@ public class MathFunctionLibrary {
     @Function(docs = """
             ```pow(NUMBER base, NUMBER exponent)```: Returns the value of the base raised to the power of the exponent.
 
-            **Examples:**
+            **Example:**
             ```sapl
             policy "example"
             permit
@@ -167,7 +177,7 @@ public class MathFunctionLibrary {
     public static Val pow(@Number Val base, @Number Val exponent) {
         final var result = Math.pow(base.get().asDouble(), exponent.get().asDouble());
         if (Double.isNaN(result)) {
-            return Val.error("Power operation resulted in NaN (e.g., negative base with fractional exponent)");
+            return Val.error("Power operation resulted in NaN (e.g., negative base with fractional exponent).");
         }
         return Val.of(result);
     }
@@ -175,7 +185,7 @@ public class MathFunctionLibrary {
     @Function(docs = """
             ```sqrt(NUMBER value)```: Returns the square root of a number. Returns an error if the value is negative.
 
-            **Examples:**
+            **Example:**
             ```sapl
             policy "example"
             permit
@@ -188,7 +198,7 @@ public class MathFunctionLibrary {
     public static Val sqrt(@Number Val value) {
         final var number = value.get().asDouble();
         if (number < 0) {
-            return Val.error("Cannot calculate square root of a negative number");
+            return Val.error("Cannot calculate square root of a negative number.");
         }
         return Val.of(Math.sqrt(number));
     }
@@ -197,7 +207,7 @@ public class MathFunctionLibrary {
             ```sign(NUMBER value)```: Returns the sign of a number: ```-1``` for negative numbers, ```0``` for zero,
             and ```1``` for positive numbers.
 
-            **Examples:**
+            **Example:**
             ```sapl
             policy "example"
             permit
@@ -216,7 +226,7 @@ public class MathFunctionLibrary {
             If the value is less than the minimum, returns the minimum. If the value is greater than the maximum, returns
             the maximum. Otherwise, returns the value unchanged.
 
-            **Examples:**
+            **Example:**
             ```sapl
             policy "example"
             permit
@@ -224,6 +234,7 @@ public class MathFunctionLibrary {
               math.clamp(5, 0, 10) == 5;      // within range
               math.clamp(-5, 0, 10) == 0;     // below minimum
               math.clamp(15, 0, 10) == 10;    // above maximum
+              math.clamp(10, 0, 10) == 10;    // at boundary
             ```
             """, schema = RETURNS_NUMBER)
     public static Val clamp(@Number Val value, @Number Val minimum, @Number Val maximum) {
@@ -232,9 +243,10 @@ public class MathFunctionLibrary {
         final var max = maximum.get().asDouble();
 
         if (min > max) {
-            return Val.error("Minimum must be less than or equal to maximum");
+            return Val.error("Minimum must be less than or equal to maximum.");
         }
-        return Val.of(Math.clamp(val, min, max));
+
+        return Val.of(Math.max(min, Math.min(max, val)));
     }
 
     @Function(docs = """
@@ -244,13 +256,13 @@ public class MathFunctionLibrary {
             **Requirements:**
             - ```bound``` must be a positive integer
 
-            **Examples:**
+            **Example:**
             ```sapl
             policy "example"
             permit
             where
-              var randomValue = math.randomInteger(10);  // returns 0-9
-              var diceRoll = math.randomInteger(6) + 1;  // returns 1-6
+              var diceRoll = math.randomInteger(6) + 1;       // 1-6 inclusive
+              var randomPercent = math.randomInteger(101);    // 0-100 inclusive
             ```
             """, schema = RETURNS_NUMBER)
     public static Val randomInteger(@Number Val bound) {
@@ -259,8 +271,7 @@ public class MathFunctionLibrary {
             return validation;
         }
 
-        final var boundValue = bound.get().asInt();
-        return Val.of(SECURE_RANDOM.nextInt(boundValue));
+        return Val.of(SECURE_RANDOM.nextInt(bound.get().asInt()));
     }
 
     @Function(docs = """
@@ -272,7 +283,7 @@ public class MathFunctionLibrary {
             - ```bound``` must be a positive integer
             - ```seed``` must be an integer
 
-            **Examples:**
+            **Example:**
             ```sapl
             policy "example"
             permit
@@ -302,7 +313,7 @@ public class MathFunctionLibrary {
             **Technical Note:** Despite the name ```randomFloat```, this function returns a double-precision floating-point
             number (64-bit) to maintain consistency with JSON number representation and Java's numeric operations.
 
-            **Examples:**
+            **Example:**
             ```sapl
             policy "example"
             permit
@@ -327,7 +338,7 @@ public class MathFunctionLibrary {
             **Requirements:**
             - ```seed``` must be an integer
 
-            **Examples:**
+            **Example:**
             ```sapl
             policy "example"
             permit
@@ -349,7 +360,7 @@ public class MathFunctionLibrary {
             ```pi()```: Returns the mathematical constant π (pi), the ratio of a circle's circumference to its diameter.
             Value is approximately 3.141592653589793.
 
-            **Examples:**
+            **Example:**
             ```sapl
             policy "example"
             permit
@@ -366,7 +377,7 @@ public class MathFunctionLibrary {
             ```e()```: Returns the mathematical constant e (Euler's number), the base of natural logarithms.
             Value is approximately 2.718281828459045.
 
-            **Examples:**
+            **Example:**
             ```sapl
             policy "example"
             permit
@@ -382,7 +393,7 @@ public class MathFunctionLibrary {
             ```log(NUMBER value)```: Returns the natural logarithm (base e) of a number. Returns an error if the value
             is not positive.
 
-            **Examples:**
+            **Example:**
             ```sapl
             policy "example"
             permit
@@ -404,7 +415,7 @@ public class MathFunctionLibrary {
     @Function(docs = """
             ```log10(NUMBER value)```: Returns the base-10 logarithm of a number. Returns an error if the value is not positive.
 
-            **Examples:**
+            **Example:**
             ```sapl
             policy "example"
             permit
@@ -427,7 +438,7 @@ public class MathFunctionLibrary {
             ```logb(NUMBER value, NUMBER base)```: Returns the logarithm of a value with an arbitrary base.
             Returns an error if the value is not positive or if the base is not positive and not equal to 1.
 
-            **Examples:**
+            **Example:**
             ```sapl
             policy "example"
             permit
@@ -445,7 +456,7 @@ public class MathFunctionLibrary {
 
         final var baseNumber = base.get().asDouble();
         if (baseNumber <= 0 || baseNumber == 1) {
-            return Val.error("Logarithm base must be positive and not equal to 1");
+            return Val.error("Logarithm base must be positive and not equal to 1.");
         }
 
         return Val.of(Math.log(value.get().asDouble()) / Math.log(baseNumber));
@@ -458,11 +469,11 @@ public class MathFunctionLibrary {
         final var boundNode = bound.get();
 
         if (!boundNode.isIntegralNumber()) {
-            return Val.error("Bound must be an integer");
+            return Val.error("Bound must be an integer.");
         }
 
         if (boundNode.asInt() <= 0) {
-            return Val.error("Bound must be positive");
+            return Val.error("Bound must be positive.");
         }
 
         return null;
@@ -473,7 +484,7 @@ public class MathFunctionLibrary {
      */
     private static Val validateIntegerSeed(Val seed) {
         if (!seed.get().isIntegralNumber()) {
-            return Val.error("Seed must be an integer");
+            return Val.error("Seed must be an integer.");
         }
         return null;
     }
@@ -483,7 +494,7 @@ public class MathFunctionLibrary {
      */
     private static Val validatePositiveValueForLogs(Val value) {
         if (value.get().asDouble() <= 0) {
-            return Val.error("Logarithm" + " requires a positive value");
+            return Val.error("Logarithm requires a positive value.");
         }
         return null;
     }

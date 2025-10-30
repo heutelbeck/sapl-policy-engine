@@ -45,11 +45,61 @@ import java.util.HexFormat;
  * attacks when verifying MACs.
  */
 @UtilityClass
-@FunctionLibrary(name = MacFunctionLibrary.NAME, description = MacFunctionLibrary.DESCRIPTION)
+@FunctionLibrary(name = MacFunctionLibrary.NAME, description = MacFunctionLibrary.DESCRIPTION, libraryDocumentation = MacFunctionLibrary.DOCUMENTATION)
 public class MacFunctionLibrary {
 
-    public static final String NAME        = "mac";
-    public static final String DESCRIPTION = "Message Authentication Code functions for verifying message integrity and authenticity using HMAC algorithms.";
+    public static final String NAME          = "mac";
+    public static final String DESCRIPTION   = "Message Authentication Code functions for verifying message integrity and authenticity using HMAC algorithms.";
+    public static final String DOCUMENTATION = """
+            # Message Authentication Code Library
+
+            Verify message integrity and authenticity using HMAC algorithms with secret keys.
+            Use MACs when authorization decisions depend on cryptographic verification of
+            external data like webhook signatures, API tokens, or signed messages.
+
+            ## When to Use
+
+            Verify webhook signatures from external services:
+            ```sapl
+            policy "verify-github-webhook"
+            permit action == "process_webhook"
+            where
+              var payload = resource.body;
+              var receivedSignature = resource.headers["X-Hub-Signature-256"];
+              var secret = environment.webhookSecret;
+              mac.isValidHmac(payload, receivedSignature, secret, "HmacSHA256");
+            ```
+
+            Generate and verify signatures for API authentication:
+            ```sapl
+            policy "verify-api-request"
+            permit action == "api_call"
+            where
+              var requestData = resource.method + resource.path + resource.body;
+              var expectedMac = mac.hmacSha256(requestData, subject.apiSecret);
+              var receivedMac = resource.headers["X-Signature"];
+              mac.timingSafeEquals(receivedMac, expectedMac);
+            ```
+
+            Validate signed resource identifiers to ensure integrity:
+            ```sapl
+            policy "verify-signed-resource-id"
+            permit action == "access_resource"
+            where
+              var resourceData = resource.id + "|" + resource.permissions;
+              var expectedMac = mac.hmacSha256(resourceData, environment.signingKey);
+              mac.timingSafeEquals(resource.signature, expectedMac);
+            ```
+
+            ## Security Considerations
+
+            Always use timing-safe comparison when verifying MACs. The timingSafeEquals
+            and isValidHmac functions use constant-time comparison to prevent timing attacks
+            where an attacker could determine the correct MAC by measuring comparison time.
+
+            Never use string equality or standard comparison operators to verify MACs in
+            authorization decisions.
+            """;
 
     private static final String RETURNS_TEXT = """
             {
@@ -136,7 +186,7 @@ public class MacFunctionLibrary {
     /* Verification Functions */
 
     @Function(docs = """
-            ```verifyTimingSafe(TEXT mac1, TEXT mac2)```: Compares two MACs using constant-time comparison.
+            ```timingSafeEquals(TEXT mac1, TEXT mac2)```: Compares two MACs using constant-time comparison.
 
             Performs a timing-safe comparison of two hexadecimal MAC strings. This prevents
             timing attacks where an attacker could determine the correct MAC by measuring
@@ -151,10 +201,10 @@ public class MacFunctionLibrary {
             where
               var receivedMac = "abc123";
               var computedMac = "abc123";
-              mac.verifyTimingSafe(receivedMac, computedMac) == true;
+              mac.timingSafeEquals(receivedMac, computedMac);
             ```
             """, schema = RETURNS_BOOLEAN)
-    public static Val verifyTimingSafe(@Text Val mac1, @Text Val mac2) {
+    public static Val timingSafeEquals(@Text Val mac1, @Text Val mac2) {
         try {
             val bytes1 = hexToBytes(mac1.getText());
             val bytes2 = hexToBytes(mac2.getText());
@@ -173,7 +223,7 @@ public class MacFunctionLibrary {
     }
 
     @Function(docs = """
-            ```verifyHmac(TEXT message, TEXT expectedMac, TEXT key, TEXT algorithm)```: Verifies an HMAC signature.
+            ```isValidHmac(TEXT message, TEXT expectedMac, TEXT key, TEXT algorithm)```: Verifies an HMAC signature.
 
             Computes the HMAC of the message using the provided key and algorithm, then
             performs a timing-safe comparison with the expected MAC. Returns true if they match.
@@ -188,17 +238,17 @@ public class MacFunctionLibrary {
               var payload = "webhook payload";
               var signature = "expected_signature_from_header";
               var secret = "webhook_secret";
-              mac.verifyHmac(payload, signature, secret, "HmacSHA256");
+              mac.isValidHmac(payload, signature, secret, "HmacSHA256");
             ```
             """, schema = RETURNS_BOOLEAN)
-    public static Val verifyHmac(@Text Val message, @Text Val expectedMac, @Text Val key, @Text Val algorithm) {
+    public static Val isValidHmac(@Text Val message, @Text Val expectedMac, @Text Val key, @Text Val algorithm) {
         val computedMac = computeHmac(message.getText(), key.getText(), algorithm.getText());
 
         if (computedMac.isError()) {
             return computedMac;
         }
 
-        return verifyTimingSafe(computedMac, expectedMac);
+        return timingSafeEquals(computedMac, expectedMac);
     }
 
     /**

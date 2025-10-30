@@ -141,16 +141,16 @@ class MacFunctionLibraryTests {
             "abc123,       abc123de,     false, 'different length'",
             "'',           '',           true,  'empty strings'", "abc123,       '',           false, 'one empty'",
             "ab_c1_23,     abc123,       true,  'with underscores'" })
-    void verifyTimingSafe_whenVariousInputs_returnsExpectedResult(String mac1, String mac2, boolean expected,
+    void timingSafeEquals_whenVariousInputs_returnsExpectedResult(String mac1, String mac2, boolean expected,
             String scenario) {
-        var result = MacFunctionLibrary.verifyTimingSafe(Val.of(mac1), Val.of(mac2));
+        var result = MacFunctionLibrary.timingSafeEquals(Val.of(mac1), Val.of(mac2));
         assertThat(result.getBoolean()).as(scenario).isEqualTo(expected);
     }
 
     @ParameterizedTest
     @CsvSource({ "xyz,    abc", "abc123, abc123def" })
-    void verifyTimingSafe_whenInvalidHex_returnsError(String mac1, String mac2) {
-        var result = MacFunctionLibrary.verifyTimingSafe(Val.of(mac1), Val.of(mac2));
+    void timingSafeEquals_whenInvalidHex_returnsError(String mac1, String mac2) {
+        var result = MacFunctionLibrary.timingSafeEquals(Val.of(mac1), Val.of(mac2));
         assertThat(result.isError()).isTrue();
     }
 
@@ -158,13 +158,13 @@ class MacFunctionLibraryTests {
 
     @ParameterizedTest
     @MethodSource("provideHmacVerificationScenarios")
-    void verifyHmac_whenVariousScenarios_returnsExpectedResult(String message, String key, String algorithm,
+    void isValidHmac_whenVariousScenarios_returnsExpectedResult(String message, String key, String algorithm,
             BiFunction<Val, Val, Val> macGenerator, boolean expectSuccess) {
         var messageVal   = Val.of(message);
         var keyVal       = Val.of(key);
         var algorithmVal = Val.of(algorithm);
         var expectedMac  = macGenerator.apply(messageVal, keyVal);
-        var result       = MacFunctionLibrary.verifyHmac(messageVal, expectedMac, keyVal, algorithmVal);
+        var result       = MacFunctionLibrary.isValidHmac(messageVal, expectedMac, keyVal, algorithmVal);
 
         assertThat(result.getBoolean()).isEqualTo(expectSuccess);
     }
@@ -180,33 +180,33 @@ class MacFunctionLibraryTests {
     }
 
     @Test
-    void verifyHmac_whenIncorrectMac_returnsFalse() {
+    void isValidHmac_whenIncorrectMac_returnsFalse() {
         var message   = Val.of("test message");
         var key       = Val.of("secret");
         var algorithm = Val.of("HmacSHA256");
         var wrongMac  = Val.of("0000000000000000000000000000000000000000000000000000000000000000");
-        var result    = MacFunctionLibrary.verifyHmac(message, wrongMac, key, algorithm);
+        var result    = MacFunctionLibrary.isValidHmac(message, wrongMac, key, algorithm);
         assertThat(result.getBoolean()).isFalse();
     }
 
     @Test
-    void verifyHmac_whenWrongKey_returnsFalse() {
+    void isValidHmac_whenWrongKey_returnsFalse() {
         var message     = Val.of("test message");
         var correctKey  = Val.of("secret");
         var wrongKey    = Val.of("wrong");
         var algorithm   = Val.of("HmacSHA256");
         var expectedMac = MacFunctionLibrary.hmacSha256(message, correctKey);
-        var result      = MacFunctionLibrary.verifyHmac(message, expectedMac, wrongKey, algorithm);
+        var result      = MacFunctionLibrary.isValidHmac(message, expectedMac, wrongKey, algorithm);
         assertThat(result.getBoolean()).isFalse();
     }
 
     @Test
-    void verifyHmac_whenInvalidAlgorithm_returnsError() {
+    void isValidHmac_whenInvalidAlgorithm_returnsError() {
         var message   = Val.of("test message");
         var key       = Val.of("secret");
         var algorithm = Val.of("InvalidAlgorithm");
         var mac       = Val.of("abc123");
-        var result    = MacFunctionLibrary.verifyHmac(message, mac, key, algorithm);
+        var result    = MacFunctionLibrary.isValidHmac(message, mac, key, algorithm);
         assertThat(result.isError()).isTrue();
     }
 
@@ -217,7 +217,7 @@ class MacFunctionLibraryTests {
         var payload   = Val.of("{\"action\":\"opened\",\"number\":1}");
         var secret    = Val.of("my_webhook_secret");
         var signature = MacFunctionLibrary.hmacSha256(payload, secret);
-        var isValid   = MacFunctionLibrary.verifyHmac(payload, signature, secret, Val.of("HmacSHA256"));
+        var isValid   = MacFunctionLibrary.isValidHmac(payload, signature, secret, Val.of("HmacSHA256"));
         assertThat(isValid.getBoolean()).isTrue();
     }
 
@@ -227,7 +227,7 @@ class MacFunctionLibraryTests {
         var modifiedPayload   = Val.of("{\"action\":\"opened\",\"number\":2}");
         var secret            = Val.of("my_webhook_secret");
         var originalSignature = MacFunctionLibrary.hmacSha256(originalPayload, secret);
-        var isValid           = MacFunctionLibrary.verifyHmac(modifiedPayload, originalSignature, secret,
+        var isValid           = MacFunctionLibrary.isValidHmac(modifiedPayload, originalSignature, secret,
                 Val.of("HmacSHA256"));
         assertThat(isValid.getBoolean()).isFalse();
     }
