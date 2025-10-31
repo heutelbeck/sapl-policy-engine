@@ -606,7 +606,7 @@ public class PatternsFunctionLibrary {
             ```
             """)
     public static Val matchTemplate(@Text Val template, @Text Val value, @Text Val delimiterStart,
-                                    @Text Val delimiterEnd) {
+            @Text Val delimiterEnd) {
         if (!template.isTextual() || !value.isTextual() || !delimiterStart.isTextual() || !delimiterEnd.isTextual()) {
             return Val.error(ERROR_TEMPLATE_ARGS_TEXT);
         }
@@ -799,18 +799,18 @@ public class PatternsFunctionLibrary {
             throw new IllegalStateException(ERROR_TOO_MANY_ALT_GROUPS.formatted(MAX_ALTERNATIVE_GROUPS));
         }
 
-        val regex    = new StringBuilder(glob.length() * 2 + 2);
+        val regex = new StringBuilder(glob.length() * 2 + 2);
         regex.append(REGEX_ANCHOR_START);
         int position = 0;
 
         while (position < glob.length()) {
             val handler = switch (glob.charAt(position)) {
-                case '\\' -> escapeSequence(glob, position);
-                case '*'  -> wildcardPattern(glob, position, delimiters);
-                case '?'  -> singleCharWildcard(position, delimiters);
-                case '['  -> characterClass(glob, position);
-                case '{'  -> alternatives(glob, position, delimiters, recursionDepth);
-                default   -> literalCharacter(glob, position);
+            case '\\' -> escapeSequence(glob, position);
+            case '*'  -> wildcardPattern(glob, position, delimiters);
+            case '?'  -> singleCharWildcard(position, delimiters);
+            case '['  -> characterClass(glob, position);
+            case '{'  -> alternatives(glob, position, delimiters, recursionDepth);
+            default   -> literalCharacter(glob, position);
             };
 
             regex.append(handler.regexFragment);
@@ -897,8 +897,8 @@ public class PatternsFunctionLibrary {
             throw new IllegalStateException(ERROR_UNCLOSED_CHAR_CLASS.formatted(position));
         }
 
-        val content         = glob.substring(position + 1, closingBracket);
-        val processed       = new StringBuilder(content.length() + 2);
+        val content   = glob.substring(position + 1, closingBracket);
+        val processed = new StringBuilder(content.length() + 2);
         processed.append('[');
 
         int contentPosition = 0;
@@ -948,7 +948,7 @@ public class PatternsFunctionLibrary {
      * Converts alternative group in glob pattern to regex fragment.
      */
     private static GlobConversionResult alternatives(String glob, int position, List<String> delimiters,
-                                                     int recursionDepth) {
+            int recursionDepth) {
         int closingBrace = findClosingBrace(glob, position);
         if (closingBrace == -1) {
             throw new IllegalStateException(ERROR_UNCLOSED_ALT_GROUP.formatted(position));
@@ -1118,13 +1118,9 @@ public class PatternsFunctionLibrary {
      * Uses pre-compiled patterns with find() to avoid ReDoS in detection itself.
      */
     private static boolean isDangerousPattern(String pattern) {
-        return pattern.split("\\|").length > MAX_ALTERNATIONS ||
-                NESTED_QUANTIFIERS.matcher(pattern).find() ||
-                ALTERNATION_WITH_QUANT.matcher(pattern).find() ||
-                NESTED_WILDCARDS.matcher(pattern).find() ||
-                NESTED_BOUNDED_QUANT.matcher(pattern).find() ||
-                pattern.contains(".*.*") ||
-                pattern.contains(".+.+");
+        return pattern.split("\\|").length > MAX_ALTERNATIONS || NESTED_QUANTIFIERS.matcher(pattern).find()
+                || ALTERNATION_WITH_QUANT.matcher(pattern).find() || NESTED_WILDCARDS.matcher(pattern).find()
+                || NESTED_BOUNDED_QUANT.matcher(pattern).find() || pattern.contains(".*.*") || pattern.contains(".+.+");
     }
 
     /**

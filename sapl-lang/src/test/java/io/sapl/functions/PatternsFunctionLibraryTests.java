@@ -119,8 +119,9 @@ class PatternsFunctionLibraryTests {
     }
 
     @ParameterizedTest
-    @CsvSource({ "*hub.com, api.cdn.github.com", "*.github.com, api.github.com", "user:*:read, user:admin:data:extra:read",
-            "file-[0-9]??.txt, file-5xy.txt", "[0-9]*, 123", "'{*.jpg,*.png}', photo.jpg" })
+    @CsvSource({ "*hub.com, api.cdn.github.com", "*.github.com, api.github.com",
+            "user:*:read, user:admin:data:extra:read", "file-[0-9]??.txt, file-5xy.txt", "[0-9]*, 123",
+            "'{*.jpg,*.png}', photo.jpg" })
     void globMatchingWithoutDelimitersAllowsCrossingBoundaries(String pattern, String value) {
         assertMatchWithoutDelimiters(pattern, value);
     }
@@ -249,9 +250,8 @@ class PatternsFunctionLibraryTests {
     @Test
     void findMatchesExtractsAllMatches() {
         val result = PatternsFunctionLibrary.findMatches(Val.of("\\d+"), Val.of("abc 123 def 456 ghi 789"));
-        assertThat(result.getArrayNode()).hasSize(3)
-                .extracting(node -> node.asText())
-                .containsExactly("123", "456", "789");
+        assertThat(result.getArrayNode()).hasSize(3).extracting(node -> node.asText()).containsExactly("123", "456",
+                "789");
     }
 
     @Test
@@ -298,17 +298,15 @@ class PatternsFunctionLibraryTests {
     @Test
     void splitDividesTextByPattern() {
         val result = PatternsFunctionLibrary.split(Val.of(","), Val.of("a,b,c,d"));
-        assertThat(result.getArrayNode()).hasSize(4)
-                .extracting(node -> node.asText())
-                .containsExactly("a", "b", "c", "d");
+        assertThat(result.getArrayNode()).hasSize(4).extracting(node -> node.asText()).containsExactly("a", "b", "c",
+                "d");
     }
 
     @Test
     void splitHandlesComplexPatterns() {
         val result = PatternsFunctionLibrary.split(Val.of("\\s+"), Val.of("word1  word2    word3"));
-        assertThat(result.getArrayNode()).hasSize(3)
-                .extracting(node -> node.asText())
-                .containsExactly("word1", "word2", "word3");
+        assertThat(result.getArrayNode()).hasSize(3).extracting(node -> node.asText()).containsExactly("word1", "word2",
+                "word3");
     }
 
     @Test
@@ -334,13 +332,13 @@ class PatternsFunctionLibraryTests {
 
     @Test
     void templateWithEmptyDelimitersReturnsError() {
-        val result1 = PatternsFunctionLibrary.matchTemplate(Val.of("test{{pattern}}"), Val.of("test123"),
-                Val.of(""), Val.of("}}"));
+        val result1 = PatternsFunctionLibrary.matchTemplate(Val.of("test{{pattern}}"), Val.of("test123"), Val.of(""),
+                Val.of("}}"));
         assertThat(result1.isError()).isTrue();
         assertThat(result1.getMessage()).contains("empty");
 
-        val result2 = PatternsFunctionLibrary.matchTemplate(Val.of("test{{pattern}}"), Val.of("test123"),
-                Val.of("{{"), Val.of(""));
+        val result2 = PatternsFunctionLibrary.matchTemplate(Val.of("test{{pattern}}"), Val.of("test123"), Val.of("{{"),
+                Val.of(""));
         assertThat(result2.isError()).isTrue();
         assertThat(result2.getMessage()).contains("empty");
     }
@@ -485,7 +483,6 @@ class PatternsFunctionLibraryTests {
 
         val redacted = PatternsFunctionLibrary.replaceAll(Val.of("SSN: 123-45-6789"), Val.of("\\d{3}-\\d{2}-\\d{4}"),
                 Val.of("[REDACTED]"));
-        assertThat(redacted.getText()).contains("[REDACTED]")
-                .doesNotContain("123-45-6789");
+        assertThat(redacted.getText()).contains("[REDACTED]").doesNotContain("123-45-6789");
     }
 }

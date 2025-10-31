@@ -51,14 +51,18 @@ import static io.sapl.functions.util.crypto.CryptoConstants.*;
  * Supports parsing public keys from PEM format, extracting keys from
  * certificates, and converting between different key representations.
  *
- * <p>Supported key types:
+ * <p>
+ * Supported key types:
  * <ul>
- *   <li>RSA - Full bidirectional JWK conversion support</li>
- *   <li>EC (Elliptic Curve) - Full bidirectional JWK conversion support (P-256, P-384, P-521)</li>
- *   <li>EdDSA (Ed25519) - Full bidirectional JWK conversion support</li>
+ * <li>RSA - Full bidirectional JWK conversion support</li>
+ * <li>EC (Elliptic Curve) - Full bidirectional JWK conversion support (P-256,
+ * P-384, P-521)</li>
+ * <li>EdDSA (Ed25519) - Full bidirectional JWK conversion support</li>
  * </ul>
  *
- * <p>JWK conversion follows RFC 7517 (JSON Web Key) and RFC 7518 (JSON Web Algorithms).
+ * <p>
+ * JWK conversion follows RFC 7517 (JSON Web Key) and RFC 7518 (JSON Web
+ * Algorithms).
  */
 @UtilityClass
 @FunctionLibrary(name = KeysFunctionLibrary.NAME, description = KeysFunctionLibrary.DESCRIPTION, libraryDocumentation = KeysFunctionLibrary.DOCUMENTATION)
@@ -81,7 +85,7 @@ public class KeysFunctionLibrary {
             ## OAuth/OIDC Token Validation
 
             Fetch and use public keys from OAuth providers:
-            
+
             ```sapl
             policy "validate access token"
             permit action == "api.call"
@@ -90,11 +94,11 @@ public class KeysFunctionLibrary {
               var signingKey = keys.publicKeyFromJwk(resource.jwks.keys[0]);
               jwt.verify(request.token, signingKey);
             ```
-            
+
             ## Certificate-Based Access Control
-            
+
             Extract and validate keys from client certificates:
-            
+
             ```sapl
             policy "require strong client cert"
             permit action == "admin.access"
@@ -102,77 +106,77 @@ public class KeysFunctionLibrary {
               var publicKey = keys.publicKeyFromCertificate(request.clientCert);
               var algorithm = keys.algorithmFromKey(publicKey);
               var keySize = keys.sizeFromKey(publicKey);
-            
+
               algorithm == "RSA";
               keySize >= 2048;
             ```
-            
+
             ## Key Type Enforcement
-            
+
             Require specific cryptographic algorithms:
-            
+
             ```sapl
             policy "require modern crypto"
             permit
             where
               var algorithm = keys.algorithmFromKey(subject.publicKey);
               var keyInfo = keys.publicKeyFromPem(subject.publicKey);
-            
+
               // Allow only EC P-256 or Ed25519
               (algorithm == "EC" && keyInfo.curve == "secp256r1") ||
               (algorithm == "EdDSA");
             ```
-            
+
             ## Microservice Authentication
-            
+
             Publish service public keys as JWKs:
-            
+
             ```sapl
             policy "register service"
             permit action == "service.register"
             where
               var serviceKey = keys.publicKeyFromPem(subject.publicKey);
               var jwk = keys.jwkFromPublicKey(subject.publicKey);
-            
+
               // Store JWK for other services to use
               jwk.kty == "RSA";
               serviceKey.size >= 2048;
             ```
-            
+
             ## Dynamic Key Validation
-            
+
             Validate keys meet security requirements:
-            
+
             ```sapl
             policy "enforce key policy"
             permit
             where
               var key = keys.publicKeyFromPem(resource.encryptionKey);
               var size = keys.sizeFromKey(resource.encryptionKey);
-            
+
               key.algorithm in ["RSA", "EC"];
               size >= 2048;
             ```
-            
+
             ## Certificate Chain Validation
-            
+
             Extract and verify keys from certificate chains:
-            
+
             ```sapl
             policy "validate cert chain"
             permit
             where
               var leafKey = keys.publicKeyFromCertificate(request.cert);
               var caKey = keys.publicKeyFromCertificate(trust.caCert);
-            
+
               keys.algorithmFromKey(leafKey) == keys.algorithmFromKey(caKey);
               keys.sizeFromKey(leafKey) >= keys.sizeFromKey(caKey);
             ```
-            
+
             ## Error Handling
-            
+
             All functions return error values for invalid input:
-            
+
             ```sapl
             policy "safe key handling"
             permit
@@ -181,33 +185,33 @@ public class KeysFunctionLibrary {
               keyResult.isDefined();  // Check before using
               keyResult.algorithm == "RSA";
             ```
-            
+
             ## RFC Compliance
 
             JWK conversions follow RFC 7517 (JSON Web Key format), RFC 7518 (JSON Web Algorithms for RSA and EC),
             and RFC 8037 (CFRG Elliptic Curve for EdDSA/Ed25519). This ensures interoperability with OAuth providers,
             JWT libraries, and OIDC systems.
-            
+
             ## Integration
-            
+
             Works seamlessly with other SAPL libraries:
-            
+
             ```sapl
             policy "complete auth flow"
             permit
             where
               // Assume JWKS already retrieved via HTTP PIP
               var key = keys.publicKeyFromJwk(resource.jwks.keys[0]);
-            
+
               // Verify JWT
               jwt.verify(request.token, key);
-            
+
               // Additional validation
               keys.sizeFromKey(key) >= 2048;
             ```
-            
+
             ## Notes
-            
+
             - PEM format must include `-----BEGIN PUBLIC KEY-----` headers
             - JWK fields use base64url encoding (no padding)
             - All conversions preserve key functionality (verified via signature operations)
@@ -262,7 +266,7 @@ public class KeysFunctionLibrary {
             val keyObject = buildKeyObject(publicKey);
             return Val.of(keyObject);
         } catch (PolicyEvaluationException exception) {
-            val message = exception.getMessage();
+            val message      = exception.getMessage();
             val errorMessage = message.endsWith(".") ? message : message + ".";
             return Val.error("Failed to parse public key: " + errorMessage);
         }
@@ -290,7 +294,7 @@ public class KeysFunctionLibrary {
             val keyPem      = PemUtils.encodePublicKeyPem(publicKey.getEncoded());
             return Val.of(keyPem);
         } catch (PolicyEvaluationException | CertificateException exception) {
-            val message = exception.getMessage();
+            val message      = exception.getMessage();
             val errorMessage = message.endsWith(".") ? message : message + ".";
             return Val.error("Failed to extract public key from certificate: " + errorMessage);
         }
@@ -316,7 +320,7 @@ public class KeysFunctionLibrary {
             val publicKey = KeyUtils.parsePublicKeyWithAlgorithmDetection(keyPem.getText());
             return Val.of(publicKey.getAlgorithm());
         } catch (PolicyEvaluationException exception) {
-            val message = exception.getMessage();
+            val message      = exception.getMessage();
             val errorMessage = message.endsWith(".") ? message : message + ".";
             return Val.error("Failed to extract key algorithm: " + errorMessage);
         }
@@ -342,7 +346,7 @@ public class KeysFunctionLibrary {
             val keySize   = KeyUtils.getKeySize(publicKey);
             return Val.of(keySize);
         } catch (PolicyEvaluationException exception) {
-            val message = exception.getMessage();
+            val message      = exception.getMessage();
             val errorMessage = message.endsWith(".") ? message : message + ".";
             return Val.error("Failed to extract key size: " + errorMessage);
         }
@@ -373,7 +377,7 @@ public class KeysFunctionLibrary {
             val curveName = KeyUtils.extractEcCurveName(ecKey);
             return Val.of(curveName);
         } catch (PolicyEvaluationException exception) {
-            val message = exception.getMessage();
+            val message      = exception.getMessage();
             val errorMessage = message.endsWith(".") ? message : message + ".";
             return Val.error("Failed to extract EC curve: " + errorMessage);
         }
@@ -406,7 +410,7 @@ public class KeysFunctionLibrary {
             val jwk       = convertPublicKeyToJwk(publicKey);
             return Val.of(jwk);
         } catch (PolicyEvaluationException exception) {
-            val message = exception.getMessage();
+            val message      = exception.getMessage();
             val errorMessage = message.endsWith(".") ? message : message + ".";
             return Val.error("Failed to convert key to JWK: " + errorMessage);
         }
@@ -445,8 +449,8 @@ public class KeysFunctionLibrary {
             val keyPem    = PemUtils.encodePublicKeyPem(publicKey.getEncoded());
             return Val.of(keyPem);
         } catch (PolicyEvaluationException | NoSuchAlgorithmException | InvalidKeySpecException
-                 | java.security.InvalidAlgorithmParameterException exception) {
-            val message = exception.getMessage();
+                | java.security.InvalidAlgorithmParameterException exception) {
+            val message      = exception.getMessage();
             val errorMessage = message.endsWith(".") ? message : message + ".";
             return Val.error("Failed to convert JWK to public key: " + errorMessage);
         }
@@ -473,11 +477,11 @@ public class KeysFunctionLibrary {
      */
     private static JsonNode convertPublicKeyToJwk(PublicKey publicKey) {
         return switch (publicKey) {
-            case RSAPublicKey rsaKey   -> convertRsaPublicKeyToJwk(rsaKey);
-            case ECPublicKey ecKey     -> convertEcPublicKeyToJwk(ecKey);
-            case EdECPublicKey edEcKey -> convertEdEcPublicKeyToJwk(edEcKey);
-            default                    -> throw new PolicyEvaluationException(
-                    "Unsupported key type for JWK conversion: " + publicKey.getClass().getName());
+        case RSAPublicKey rsaKey   -> convertRsaPublicKeyToJwk(rsaKey);
+        case ECPublicKey ecKey     -> convertEcPublicKeyToJwk(ecKey);
+        case EdECPublicKey edEcKey -> convertEdEcPublicKeyToJwk(edEcKey);
+        default                    -> throw new PolicyEvaluationException(
+                "Unsupported key type for JWK conversion: " + publicKey.getClass().getName());
         };
     }
 
@@ -530,8 +534,8 @@ public class KeysFunctionLibrary {
         // Ed25519 X.509 format: fixed header followed by 32-byte key
         // Total length is 44 bytes, raw key is the last 32 bytes
         if (x509Encoded.length != ED25519_X509_TOTAL_SIZE) {
-            throw new PolicyEvaluationException(
-                    "Invalid Ed25519 X.509 encoding: expected " + ED25519_X509_TOTAL_SIZE + " bytes, got " + x509Encoded.length + ".");
+            throw new PolicyEvaluationException("Invalid Ed25519 X.509 encoding: expected " + ED25519_X509_TOTAL_SIZE
+                    + " bytes, got " + x509Encoded.length + ".");
         }
         return Arrays.copyOfRange(x509Encoded, ED25519_X509_HEADER_SIZE, ED25519_X509_TOTAL_SIZE);
     }
@@ -549,10 +553,10 @@ public class KeysFunctionLibrary {
         val keyType = keyTypeNode.asText();
 
         return switch (keyType) {
-            case JWK_KEY_TYPE_RSA -> convertRsaJwkToPublicKey(jwkNode);
-            case JWK_KEY_TYPE_EC  -> convertEcJwkToPublicKey(jwkNode);
-            case JWK_KEY_TYPE_OKP -> convertOkpJwkToPublicKey(jwkNode);
-            default               -> throw new PolicyEvaluationException("Unsupported JWK key type: " + keyType);
+        case JWK_KEY_TYPE_RSA -> convertRsaJwkToPublicKey(jwkNode);
+        case JWK_KEY_TYPE_EC  -> convertEcJwkToPublicKey(jwkNode);
+        case JWK_KEY_TYPE_OKP -> convertOkpJwkToPublicKey(jwkNode);
+        default               -> throw new PolicyEvaluationException("Unsupported JWK key type: " + keyType);
         };
     }
 
@@ -605,10 +609,10 @@ public class KeysFunctionLibrary {
 
         // Convert JWK curve name to Java curve name
         val javaCurveName = switch (curveName) {
-            case "P-256" -> "secp256r1";
-            case "P-384" -> "secp384r1";
-            case "P-521" -> "secp521r1";
-            default      -> throw new PolicyEvaluationException("Unsupported EC curve: " + curveName);
+        case "P-256" -> "secp256r1";
+        case "P-384" -> "secp384r1";
+        case "P-521" -> "secp521r1";
+        default      -> throw new PolicyEvaluationException("Unsupported EC curve: " + curveName);
         };
 
         // Build EC point and key spec
@@ -651,7 +655,8 @@ public class KeysFunctionLibrary {
 
         val rawKeyBytes = base64UrlDecode(xNode.asText());
 
-        // Reconstruct X.509 structure for Ed25519: 30 2a 30 05 06 03 2b 65 70 03 21 00 [32 bytes]
+        // Reconstruct X.509 structure for Ed25519: 30 2a 30 05 06 03 2b 65 70 03 21 00
+        // [32 bytes]
         val x509Encoded = reconstructEdEcX509Encoding(rawKeyBytes);
 
         val keySpec    = new X509EncodedKeySpec(x509Encoded);
@@ -664,8 +669,8 @@ public class KeysFunctionLibrary {
      */
     private static byte[] reconstructEdEcX509Encoding(byte[] rawKey) {
         if (rawKey.length != ED25519_RAW_KEY_SIZE) {
-            throw new PolicyEvaluationException(
-                    "Invalid Ed25519 key length: expected " + ED25519_RAW_KEY_SIZE + " bytes, got " + rawKey.length + ".");
+            throw new PolicyEvaluationException("Invalid Ed25519 key length: expected " + ED25519_RAW_KEY_SIZE
+                    + " bytes, got " + rawKey.length + ".");
         }
 
         // X.509 header for Ed25519: 30 2a 30 05 06 03 2b 65 70 03 21 00

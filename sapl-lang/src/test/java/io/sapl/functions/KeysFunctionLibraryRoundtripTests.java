@@ -64,8 +64,8 @@ class KeysFunctionLibraryRoundtripTests {
         // Generate key pairs for signing operations
         var rsaGenerator = KeyPairGenerator.getInstance("RSA");
         rsaGenerator.initialize(2048);
-        rsaKeyPair       = rsaGenerator.generateKeyPair();
-        rsaPublicKeyPem  = toPem(rsaKeyPair.getPublic());
+        rsaKeyPair      = rsaGenerator.generateKeyPair();
+        rsaPublicKeyPem = toPem(rsaKeyPair.getPublic());
 
         var ecGenerator = KeyPairGenerator.getInstance("EC");
         ecGenerator.initialize(new ECGenParameterSpec("secp256r1"));
@@ -114,7 +114,7 @@ class KeysFunctionLibraryRoundtripTests {
     @ParameterizedTest(name = "EC {2} round-trip")
     @MethodSource("ecKeyTestCases")
     void ecKey_roundTripConversion_producesEquivalentKey(String pemKey, KeyPair keyPair, String jwkCurve,
-                                                         String javaCurve) throws Exception {
+            String javaCurve) throws Exception {
         // Convert to JWK
         val jwkResult = KeysFunctionLibrary.jwkFromPublicKey(Val.of(pemKey));
         assertThat(jwkResult.isDefined()).isTrue();
@@ -175,7 +175,7 @@ class KeysFunctionLibraryRoundtripTests {
         val signature = signRsa(message, rsaKeyPair.getPrivate());
 
         // Convert public key through round-trip
-        val jwk         = KeysFunctionLibrary.jwkFromPublicKey(Val.of(rsaPublicKeyPem));
+        val jwk          = KeysFunctionLibrary.jwkFromPublicKey(Val.of(rsaPublicKeyPem));
         val convertedPem = KeysFunctionLibrary.publicKeyFromJwk(jwk);
         val convertedKey = parsePublicKeyFromPem(convertedPem.getText());
 
@@ -317,13 +317,13 @@ class KeysFunctionLibraryRoundtripTests {
         val jwk       = jwkResult.get();
 
         // Manually reconstruct key from JWK (simulating external consumer)
-        val nBytes  = Base64.getUrlDecoder().decode(jwk.get("n").asText());
-        val eBytes  = Base64.getUrlDecoder().decode(jwk.get("e").asText());
-        val modulus = new BigInteger(1, nBytes);
+        val nBytes   = Base64.getUrlDecoder().decode(jwk.get("n").asText());
+        val eBytes   = Base64.getUrlDecoder().decode(jwk.get("e").asText());
+        val modulus  = new BigInteger(1, nBytes);
         val exponent = new BigInteger(1, eBytes);
 
-        val keySpec    = new RSAPublicKeySpec(modulus, exponent);
-        val keyFactory = KeyFactory.getInstance("RSA");
+        val keySpec          = new RSAPublicKeySpec(modulus, exponent);
+        val keyFactory       = KeyFactory.getInstance("RSA");
         val reconstructedKey = keyFactory.generatePublic(keySpec);
 
         // Verify reconstructed key can verify signatures
@@ -351,8 +351,8 @@ class KeysFunctionLibraryRoundtripTests {
         val originalKey = (ECPublicKey) parsePublicKeyFromPem(ecP256PublicKeyPem);
         val ecParams    = originalKey.getParams();
 
-        val keySpec         = new ECPublicKeySpec(point, ecParams);
-        val keyFactory      = KeyFactory.getInstance("EC");
+        val keySpec          = new ECPublicKeySpec(point, ecParams);
+        val keyFactory       = KeyFactory.getInstance("EC");
         val reconstructedKey = keyFactory.generatePublic(keySpec);
 
         // Verify reconstructed key can verify signatures
@@ -367,7 +367,8 @@ class KeysFunctionLibraryRoundtripTests {
 
     @Test
     void rsaKey_withLargeExponent_handlesCorrectly() throws Exception {
-        // Most RSA keys use 65537 (0x10001) but library should handle any valid exponent
+        // Most RSA keys use 65537 (0x10001) but library should handle any valid
+        // exponent
         val jwk = KeysFunctionLibrary.jwkFromPublicKey(Val.of(rsaPublicKeyPem));
 
         val eBytes   = Base64.getUrlDecoder().decode(jwk.get().get("e").asText());
@@ -411,8 +412,8 @@ class KeysFunctionLibraryRoundtripTests {
     private static PublicKey parsePublicKeyFromPem(String pem) throws Exception {
         val pemContent = pem.replace("-----BEGIN PUBLIC KEY-----", "").replace("-----END PUBLIC KEY-----", "")
                 .replaceAll("\\s", "");
-        val encoded = Base64.getDecoder().decode(pemContent);
-        val keySpec = new java.security.spec.X509EncodedKeySpec(encoded);
+        val encoded    = Base64.getDecoder().decode(pemContent);
+        val keySpec    = new java.security.spec.X509EncodedKeySpec(encoded);
 
         // Try different algorithms
         for (String algorithm : new String[] { "RSA", "EC", "Ed25519" }) {

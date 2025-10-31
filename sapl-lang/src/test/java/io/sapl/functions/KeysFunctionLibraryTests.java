@@ -110,7 +110,7 @@ class KeysFunctionLibraryTests {
     @ParameterizedTest(name = "{1} key with size {3}")
     @MethodSource("keyTypeTestCases")
     void parsePublicKey_withVariousKeyTypes_returnsCorrectKeyObject(String keyPem, String expectedAlgorithm,
-                                                                    String expectedFormat, int expectedSize, String expectedCurve) {
+            String expectedFormat, int expectedSize, String expectedCurve) {
         val result = KeysFunctionLibrary.publicKeyFromPem(Val.of(keyPem));
 
         assertThat(result.isDefined()).isTrue();
@@ -125,12 +125,10 @@ class KeysFunctionLibraryTests {
 
     static Stream<Arguments> invalidKeyInputs() {
         return Stream.of(Arguments.of("", "Empty input from the void"),
-                Arguments.of("Ph'nglui mglw'nafh Cthulhu", "Eldritch gibberish"),
-                Arguments.of("""
+                Arguments.of("Ph'nglui mglw'nafh Cthulhu", "Eldritch gibberish"), Arguments.of("""
                         -----BEGIN PUBLIC KEY-----
                         invalid
-                        -----END PUBLIC KEY-----""", "Corrupted PEM structure"),
-                Arguments.of("""
+                        -----END PUBLIC KEY-----""", "Corrupted PEM structure"), Arguments.of("""
                         -----BEGIN PUBLIC KEY-----
                         IA==
                         -----END PUBLIC KEY-----""", "Truncated key data"),
@@ -154,8 +152,8 @@ class KeysFunctionLibraryTests {
 
     @ParameterizedTest(name = "Extract {1} key from certificate")
     @MethodSource("certificateTestCases")
-    void extractPublicKeyFromCertificate_withValidCert_returnsValidPem(String certFieldName,
-                                                                       String expectedAlgorithm) throws Exception {
+    void extractPublicKeyFromCertificate_withValidCert_returnsValidPem(String certFieldName, String expectedAlgorithm)
+            throws Exception {
         val certPem = (String) KeysFunctionLibraryTests.class.getDeclaredField(certFieldName).get(null);
         val result  = KeysFunctionLibrary.publicKeyFromCertificate(Val.of(certPem));
 
@@ -172,10 +170,9 @@ class KeysFunctionLibraryTests {
         return Stream.of("", """
                 -----BEGIN CERTIFICATE-----
                 corrupted
-                -----END CERTIFICATE-----""", "Not a certificate at all",
-                "The Necronomicon, bound in human flesh", """
-                        -----BEGIN CERTIFICATE-----
-                        -----END CERTIFICATE-----""");
+                -----END CERTIFICATE-----""", "Not a certificate at all", "The Necronomicon, bound in human flesh", """
+                -----BEGIN CERTIFICATE-----
+                -----END CERTIFICATE-----""");
     }
 
     @ParameterizedTest
@@ -212,7 +209,7 @@ class KeysFunctionLibraryTests {
     @ParameterizedTest(name = "Extract algorithm from {0}")
     @MethodSource("keyTypeTestCases")
     void extractKeyAlgorithm_withVariousKeys_returnsCorrectAlgorithm(String keyPem, String expectedAlgorithm,
-                                                                     String ignored1, int ignored2, String ignored3) {
+            String ignored1, int ignored2, String ignored3) {
         val result = KeysFunctionLibrary.algorithmFromKey(Val.of(keyPem));
 
         assertThat(result.isDefined()).isTrue();
@@ -222,7 +219,7 @@ class KeysFunctionLibraryTests {
     @ParameterizedTest(name = "Extract size from key with expected size {3}")
     @MethodSource("keyTypeTestCases")
     void extractKeySize_withVariousKeys_returnsCorrectSize(String keyPem, String ignored1, String ignored2,
-                                                           int expectedSize, String ignored3) {
+            int expectedSize, String ignored3) {
         val result = KeysFunctionLibrary.sizeFromKey(Val.of(keyPem));
 
         assertThat(result.isDefined()).isTrue();
@@ -230,8 +227,8 @@ class KeysFunctionLibraryTests {
     }
 
     static Stream<Arguments> ecCurveTestCases() {
-        return Stream.of(Arguments.of(ecP256PublicKeyPem, "secp256r1"),
-                Arguments.of(ecP384PublicKeyPem, "secp384r1"), Arguments.of(ecP521PublicKeyPem, "secp521r1"));
+        return Stream.of(Arguments.of(ecP256PublicKeyPem, "secp256r1"), Arguments.of(ecP384PublicKeyPem, "secp384r1"),
+                Arguments.of(ecP521PublicKeyPem, "secp521r1"));
     }
 
     @ParameterizedTest(name = "Extract curve {1}")
@@ -392,7 +389,7 @@ class KeysFunctionLibraryTests {
     @ParameterizedTest(name = "Invalid JWK: {1}")
     @MethodSource("invalidJwkTestCases")
     void jwkToPublicKey_withInvalidJwk_returnsError(com.fasterxml.jackson.databind.node.ObjectNode invalidJwk,
-                                                    String description) {
+            String description) {
         val result = KeysFunctionLibrary.publicKeyFromJwk(Val.of(invalidJwk));
 
         assertThat(result.isError()).as("Should fail for: " + description).isTrue();
@@ -411,7 +408,7 @@ class KeysFunctionLibraryTests {
     @ParameterizedTest(name = "{1} key round-trip")
     @MethodSource("roundTripTestCases")
     void keyRoundTrip_pemToJwkToPem_maintainsKeyMaterial(String originalPem, String keyType, String param1,
-                                                         String param2) {
+            String param2) {
         val originalJwk  = KeysFunctionLibrary.jwkFromPublicKey(Val.of(originalPem));
         val convertedPem = KeysFunctionLibrary.publicKeyFromJwk(originalJwk);
         val finalJwk     = KeysFunctionLibrary.jwkFromPublicKey(convertedPem);
@@ -498,7 +495,7 @@ class KeysFunctionLibraryTests {
     @Test
     void edgeCase_rsaWithLargeExponent_handlesCorrectly() {
         // RSA keys typically use 65537 (0x10001) as exponent, but can use larger values
-        val jwk    = KeysFunctionLibrary.jwkFromPublicKey(Val.of(rsa2048PublicKeyPem));
+        val jwk      = KeysFunctionLibrary.jwkFromPublicKey(Val.of(rsa2048PublicKeyPem));
         val exponent = jwk.get().get("e").asText();
 
         // Verify exponent is properly base64url encoded without padding
@@ -584,9 +581,9 @@ class KeysFunctionLibraryTests {
         certBuilder.addExtension(Extension.basicConstraints, true, new BasicConstraints(false));
 
         val signatureAlgorithm = switch (algorithm) {
-            case "RSA" -> "SHA256withRSA";
-            case "EC"  -> "SHA256withECDSA";
-            default    -> throw new IllegalArgumentException("Unsupported algorithm: " + algorithm);
+        case "RSA" -> "SHA256withRSA";
+        case "EC"  -> "SHA256withECDSA";
+        default    -> throw new IllegalArgumentException("Unsupported algorithm: " + algorithm);
         };
 
         val signer = new JcaContentSignerBuilder(signatureAlgorithm).build(keyPair.getPrivate());

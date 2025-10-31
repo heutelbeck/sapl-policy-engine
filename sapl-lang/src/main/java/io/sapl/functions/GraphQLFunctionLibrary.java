@@ -229,11 +229,11 @@ public class GraphQLFunctionLibrary {
 
     private static final String INTROSPECTION_PREFIX = "__";
 
-    private static final Set<String> PAGINATION_ARGS = Set.of("first", "last", "limit", "offset", "skip", "take");
+    private static final Set<String> PAGINATION_ARGS       = Set.of("first", "last", "limit", "offset", "skip", "take");
     private static final Set<String> PAGINATION_ARGS_LOWER = Set.of("first", "last", "limit", "offset", "skip", "take");
 
     // Schema cache configuration constants
-    private static final float  CACHE_LOAD_FACTOR  = 0.75f;
+    private static final float   CACHE_LOAD_FACTOR  = 0.75f;
     private static final boolean CACHE_ACCESS_ORDER = true;
 
     // Schema cache - LRU with size limit
@@ -296,7 +296,7 @@ public class GraphQLFunctionLibrary {
      * @param query the GraphQL query string to parse and analyze
      * @param schema the GraphQL schema definition (SDL) to validate against
      * @return Val containing parsed query object with all metrics and validation
-     *         results
+     * results
      */
     @io.sapl.api.functions.Function(docs = """
             ```
@@ -545,10 +545,8 @@ public class GraphQLFunctionLibrary {
      * @throws IllegalArgumentException if no operation definition is found
      */
     private static OperationDefinition extractOperation(Document document) {
-        return (OperationDefinition) document.getDefinitions().stream()
-                .filter(OperationDefinition.class::isInstance)
-                .findFirst()
-                .orElseThrow(() -> new IllegalArgumentException("No operation definition found."));
+        return (OperationDefinition) document.getDefinitions().stream().filter(OperationDefinition.class::isInstance)
+                .findFirst().orElseThrow(() -> new IllegalArgumentException("No operation definition found."));
     }
 
     /**
@@ -561,11 +559,11 @@ public class GraphQLFunctionLibrary {
     private static QueryMetrics analyzeQueryInSinglePass(Document document, OperationDefinition operation) {
         val metrics = new QueryMetrics();
 
-        metrics.operation = switch (operation.getOperation()) {
-            case QUERY -> "query";
-            case MUTATION -> "mutation";
-            case SUBSCRIPTION -> "subscription";
-        };
+        metrics.operation     = switch (operation.getOperation()) {
+                              case QUERY        -> "query";
+                              case MUTATION     -> "mutation";
+                              case SUBSCRIPTION -> "subscription";
+                              };
         metrics.operationName = Objects.requireNonNullElse(operation.getName(), "");
         metrics.variables     = extractVariablesFromOperation(operation);
 
@@ -584,7 +582,7 @@ public class GraphQLFunctionLibrary {
      * @param isRoot true if this is the root selection set
      */
     private static void analyzeSelectionSet(SelectionSet selectionSet, int currentDepth, QueryMetrics metrics,
-                                            boolean isRoot) {
+            boolean isRoot) {
         if (selectionSet == null) {
             return;
         }
@@ -594,11 +592,10 @@ public class GraphQLFunctionLibrary {
 
         for (Selection<?> selection : selectionSet.getSelections()) {
             switch (selection) {
-                case Field field             -> analyzeField(field, nextDepth, metrics, isRoot);
-                case InlineFragment fragment -> analyzeInlineFragment(fragment, nextDepth, metrics);
-                case FragmentSpread spread   -> processDirectivesContainer(spread, metrics);
-                default                      -> {
-                }
+            case Field field             -> analyzeField(field, nextDepth, metrics, isRoot);
+            case InlineFragment fragment -> analyzeInlineFragment(fragment, nextDepth, metrics);
+            case FragmentSpread spread   -> processDirectivesContainer(spread, metrics);
+            default                      -> {}
             }
         }
     }
@@ -737,13 +734,12 @@ public class GraphQLFunctionLibrary {
 
         for (Selection<?> selection : selectionSet.getSelections()) {
             switch (selection) {
-                case Field field             -> {
-                    accumulator.add(field.getName());
-                    extractFieldsFromSelectionSet(field.getSelectionSet(), accumulator);
-                }
-                case InlineFragment fragment -> extractFieldsFromSelectionSet(fragment.getSelectionSet(), accumulator);
-                default                      -> {
-                }
+            case Field field             -> {
+                accumulator.add(field.getName());
+                extractFieldsFromSelectionSet(field.getSelectionSet(), accumulator);
+            }
+            case InlineFragment fragment -> extractFieldsFromSelectionSet(fragment.getSelectionSet(), accumulator);
+            default                      -> {}
             }
         }
     }
@@ -771,7 +767,8 @@ public class GraphQLFunctionLibrary {
      * 2. Recursively checks all fragment spreads
      * 3. Backtracks by removing from visited set
      * <p/>
-     * If a fragment is encountered while already in the visited set, a cycle exists.
+     * If a fragment is encountered while already in the visited set, a cycle
+     * exists.
      *
      * @param fragmentName the fragment name being checked
      * @param fragment the fragment definition
@@ -780,7 +777,7 @@ public class GraphQLFunctionLibrary {
      * @return true if circular reference found
      */
     private static boolean hasCircularReference(String fragmentName, FragmentDefinition fragment,
-                                                Map<String, FragmentDefinition> allFragments, Set<String> visited) {
+            Map<String, FragmentDefinition> allFragments, Set<String> visited) {
         // Cycle detected: fragment references itself through a chain
         if (visited.contains(fragmentName)) {
             return true;
@@ -818,11 +815,10 @@ public class GraphQLFunctionLibrary {
 
         for (Selection<?> selection : selectionSet.getSelections()) {
             switch (selection) {
-                case FragmentSpread spread   -> spreads.add(spread.getName());
-                case Field field             -> spreads.addAll(findFragmentSpreads(field.getSelectionSet()));
-                case InlineFragment fragment -> spreads.addAll(findFragmentSpreads(fragment.getSelectionSet()));
-                default                      -> {
-                }
+            case FragmentSpread spread   -> spreads.add(spread.getName());
+            case Field field             -> spreads.addAll(findFragmentSpreads(field.getSelectionSet()));
+            case InlineFragment fragment -> spreads.addAll(findFragmentSpreads(fragment.getSelectionSet()));
+            default                      -> {}
             }
         }
 
@@ -837,29 +833,29 @@ public class GraphQLFunctionLibrary {
      */
     private static JsonNode convertValueToJson(Value<?> value) {
         return switch (value) {
-            case IntValue intValue             -> Val.JSON.numberNode(intValue.getValue().intValue());
-            case FloatValue floatValue         -> Val.JSON.numberNode(floatValue.getValue().doubleValue());
-            case StringValue stringValue       -> Val.JSON.textNode(stringValue.getValue());
-            case BooleanValue booleanValue     -> Val.JSON.booleanNode(booleanValue.isValue());
-            case EnumValue enumValue           -> Val.JSON.textNode(enumValue.getName());
-            case NullValue ignored             -> Val.JSON.nullNode();
-            case ArrayValue arrayValue         -> {
-                val array = Val.JSON.arrayNode();
-                arrayValue.getValues().forEach(v -> array.add(convertValueToJson(v)));
-                yield array;
-            }
-            case ObjectValue objectValue       -> {
-                val object = Val.JSON.objectNode();
-                objectValue.getObjectFields()
-                        .forEach(field -> object.set(field.getName(), convertValueToJson(field.getValue())));
-                yield object;
-            }
-            case VariableReference variableRef -> {
-                val varObject = Val.JSON.objectNode();
-                varObject.put("$variable", variableRef.getName());
-                yield varObject;
-            }
-            default                            -> Val.JSON.textNode(value.toString());
+        case IntValue intValue             -> Val.JSON.numberNode(intValue.getValue().intValue());
+        case FloatValue floatValue         -> Val.JSON.numberNode(floatValue.getValue().doubleValue());
+        case StringValue stringValue       -> Val.JSON.textNode(stringValue.getValue());
+        case BooleanValue booleanValue     -> Val.JSON.booleanNode(booleanValue.isValue());
+        case EnumValue enumValue           -> Val.JSON.textNode(enumValue.getName());
+        case NullValue ignored             -> Val.JSON.nullNode();
+        case ArrayValue arrayValue         -> {
+            val array = Val.JSON.arrayNode();
+            arrayValue.getValues().forEach(v -> array.add(convertValueToJson(v)));
+            yield array;
+        }
+        case ObjectValue objectValue       -> {
+            val object = Val.JSON.objectNode();
+            objectValue.getObjectFields()
+                    .forEach(field -> object.set(field.getName(), convertValueToJson(field.getValue())));
+            yield object;
+        }
+        case VariableReference variableRef -> {
+            val varObject = Val.JSON.objectNode();
+            varObject.put("$variable", variableRef.getName());
+            yield varObject;
+        }
+        default                            -> Val.JSON.textNode(value.toString());
         };
     }
 
@@ -986,22 +982,22 @@ public class GraphQLFunctionLibrary {
      * final result object.
      */
     private static class QueryMetrics {
-        String           operation          = "query";
-        String           operationName      = "";
-        List<String>     fields             = new ArrayList<>();
-        int              fieldCount         = 0;
-        int              depth              = 0;
-        ObjectNode       variables          = Val.JSON.objectNode();
-        Set<String>      types              = new HashSet<>();
-        List<ObjectNode> directivesList     = new ArrayList<>();
-        ObjectNode       fragments          = Val.JSON.objectNode();
-        int              aliasCount         = 0;
-        int              rootFieldCount     = 0;
-        int              maxPaginationLimit = 0;
-        ObjectNode       arguments          = Val.JSON.objectNode();
-        int              fragmentCount      = 0;
+        String           operation            = "query";
+        String           operationName        = "";
+        List<String>     fields               = new ArrayList<>();
+        int              fieldCount           = 0;
+        int              depth                = 0;
+        ObjectNode       variables            = Val.JSON.objectNode();
+        Set<String>      types                = new HashSet<>();
+        List<ObjectNode> directivesList       = new ArrayList<>();
+        ObjectNode       fragments            = Val.JSON.objectNode();
+        int              aliasCount           = 0;
+        int              rootFieldCount       = 0;
+        int              maxPaginationLimit   = 0;
+        ObjectNode       arguments            = Val.JSON.objectNode();
+        int              fragmentCount        = 0;
         boolean          hasCircularFragments = false;
-        int              directiveCount     = 0;
+        int              directiveCount       = 0;
 
         /**
          * Adds a field to the metrics collection.

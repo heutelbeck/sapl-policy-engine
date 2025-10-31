@@ -165,7 +165,7 @@ public class JWTFunctionLibrary {
         try {
             var signedJwt = SignedJWT.parse(rawToken.getText());
             var jsonToken = JSON.objectNode();
-            var payload = mapper.convertValue(signedJwt.getPayload().toJSONObject(), JsonNode.class);
+            var payload   = mapper.convertValue(signedJwt.getPayload().toJSONObject(), JsonNode.class);
 
             ifPresentReplaceEpochFieldWithIsoTime(payload, "nbf");
             ifPresentReplaceEpochFieldWithIsoTime(payload, "exp");
@@ -188,7 +188,7 @@ public class JWTFunctionLibrary {
         }
 
         var epochSeconds = payload.get(key).asLong();
-        var isoString = Instant.ofEpochSecond(epochSeconds).toString();
+        var isoString    = Instant.ofEpochSecond(epochSeconds).toString();
 
         ((ObjectNode) payload).set(key, JSON.textNode(isoString));
     }
