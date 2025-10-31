@@ -23,11 +23,31 @@ import io.sapl.api.interpreter.Val;
 import io.sapl.api.validation.Text;
 import lombok.experimental.UtilityClass;
 
+import java.text.Normalizer;
 import java.util.function.Predicate;
 import java.util.regex.Pattern;
 
+/**
+ * Detects SQL injection attempts in policy information point parameters.
+ * <p/>
+ * Based on OWASP SQL Injection Prevention guidelines:
+ * <a href="https://cheatsheetseries.owasp.org/cheatsheets/SQL_Injection_Prevention_Cheat_Sheet.html">...</a>
+ * <p/>
+ * OWASP recommends parameterized queries as the primary defense and input validation as secondary defense.
+ * This library provides the input validation component.
+ * <p/>
+ * Two functions:
+ * <p/>
+ * assertNoSqlInjection (Balanced): Detects actual SQL injection patterns while allowing legitimate text containing
+ * SQL-like words or common punctuation. Use for user input like names, descriptions, or natural language.
+ * <p/>
+ * assertNoSqlInjectionStrict (Strict): Rejects any input containing SQL metacharacters or keywords. Maximizes
+ * security at the cost of false positives. Use for structured identifiers or codes where SQL syntax shouldn't appear.
+ * <p/>
+ * For custom validation patterns, use SAPL's =~ regex operator directly in policies.
+ */
 @UtilityClass
-@FunctionLibrary(name = SanitizationFunctionLibrary.NAME, description = SanitizationFunctionLibrary.DESCRIPTION_MD)
+@FunctionLibrary(name = SanitizationFunctionLibrary.NAME, description = SanitizationFunctionLibrary.DESCRIPTION_MD, libraryDocumentation = SanitizationFunctionLibrary.DOCUMENTATION_MD)
 public class SanitizationFunctionLibrary {
 
     public static final String NAME = "sanitize";
@@ -37,89 +57,269 @@ public class SanitizationFunctionLibrary {
             of potential SQL injections in strings.""";
 
     public static final String DOCUMENTATION_MD = """
-            This library contains functions to guard policy information points from injection attacks by
-            wrapping text values in expressions handed down as parameters of the policy information points.
+            Validates text in PIP parameter expressions to catch SQL injection attempts.
 
-            For example, in the expression ```subject.<some.pip(environment.country)>``` the value of ```environment.country```
-            maybe based on user input. In case the attribute ```<some.pip(parameter)>``` is implemented by building a
-            SQL query containing the text value of the ```parameter```, the policy information point may be susceptible to
-            an SQL injection attack.
+            See OWASP SQL Injection Prevention Guidelines:
+            https://cheatsheetseries.owasp.org/cheatsheets/SQL_Injection_Prevention_Cheat_Sheet.html
 
-            A common approach to mitigate against this class of attacks is to sanitize the input and check for suspicious
-            patterns in the provided user input.
+            OWASP recommends parameterized queries as the primary defense (always use those in your PIPs),
+            with input validation as a secondary layer. This library provides the validation layer.
 
-            This library implements functions to wrap a text value. In case the contents of the text appear
-            suspicious, the function returns an error value. Otherwise, it simply returns the original value.
+            Consider this expression: ```subject.<some.pip(environment.country)>```. If ```environment.country```
+            comes from user input and the PIP builds SQL queries with it, an attacker could inject "US'; DROP TABLE users--"
+            to break out of the query. This library detects these patterns and returns an error instead.
 
-            For example, the expression
-            ```subject.<some.pip(sanitize.assertNoSqlInjection("Robert'); DROP TABLES students;--"))>```
-            will return an error that will be handed over to the policy information point instead of the provided text value.
-            The error will be handled and potentially propagated where appropriate.
+            Two functions with different trade-offs:
+
+            assertNoSqlInjection (Balanced)
+            Catches injection patterns while allowing normal text. Passes through "O'Brien", "Portland OR Seattle",
+            and "What's your name?" but blocks "' OR '1'='1", "admin'--", and "1; DROP TABLE users". Use this for
+            names, descriptions, and any other open-ended text.
+
+            assertNoSqlInjectionStrict (Strict)
+            Rejects anything with SQL metacharacters or keywords. Passes "JohnDoe" and "Department123" but blocks
+            "O'Brien" and "user@example.com". Only use this for codes or identifiers where SQL syntax legitimately
+            shouldn't appear.
+
+            Example with HTTP PIP:
+            ```
+            policy "fetch_user_profile"
+            permit action == "read"
+            where
+                var userId = sanitize.assertNoSqlInjection(environment.userId);
+                var request = {
+                    "baseUrl": "https://api.example.com",
+                    "path": "/users/" + userId
+                };
+                var user = <http.get(request)>;
+                user.department == subject.department;
+            ```
+
+            If ```environment.userId``` contains "' OR '1'='1", the sanitization returns an error, the userId
+            assignment fails, the where clause evaluates to error, and the policy doesn't apply.
+
+            Example with strict mode for structured identifiers:
+            ```
+            policy "device_access"
+            permit action == "control"
+            where
+                var deviceId = sanitize.assertNoSqlInjectionStrict(environment.deviceId);
+                var request = {
+                    "baseUrl": "https://api.example.com",
+                    "urlParameters": { "device": deviceId }
+                };
+                <http.get(request)>.ownerId == subject.id;
+            ```
+
+            When to use regex allow-list validation instead:
+
+            If valid inputs match a specific pattern, use the =~ operator directly. This is safer than
+            pattern-based detection when possible:
+
+            ```
+            // Country codes
+            var country = environment.countryCode;
+            country =~ "^[A-Z]{2}$";
+
+            // Numeric IDs
+            var userId = environment.userId;
+            userId =~ "^\\d{1,10}$";
+
+            // Department codes
+            var deptCode = environment.deptCode;
+            deptCode =~ "^DEPT-[A-Z]{2}-\\d{3}$";
+            ```
+
+            Use this library when input is open-ended or when writing an allow-list would be impractical.
+
+            Critical: This is a SECONDARY DEFENSE. Parameterized queries in PIPs are still required as the primary
+            defense. Never concatenate user input into SQL strings.
+
+            Complete guide: [OWASP SQL Injection Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/SQL_Injection_Prevention_Cheat_Sheet.html)
             """;
 
-    private static final Pattern[] SQL_INJECTION_PATTERNS                   = {
-            // Detects single quotes, semicolons, or comment indicators that may terminate a
-            // query
-            Pattern.compile(".*([';]).*", Pattern.CASE_INSENSITIVE),
+    // Strict mode patterns - reject any SQL syntax elements
+    private static final Pattern[] STRICT_SQL_PATTERNS = {
+            // SQL metacharacters (including @ for emails)
+            Pattern.compile("[';*()@]"),
 
-            // Detects SQL comments using -- or #
-            Pattern.compile(".*(--|#).*", Pattern.CASE_INSENSITIVE),
+            // SQL comments
+            Pattern.compile("--|#"),
 
-            // Detects logical operators OR and AND, which are often used in injection
-            // attacks
-            Pattern.compile(".*(\\bOR\\b|\\bAND\\b).*", Pattern.CASE_INSENSITIVE),
-
-            // Detects common SQL keywords associated with data manipulation or schema
-            // modification
-            Pattern.compile(".*\\b(SELECT|INSERT|DELETE|UPDATE|DROP|UNION|ALTER|EXEC|EXECUTE)\\b.*",
+            // SQL keywords (data manipulation and schema modification)
+            Pattern.compile("\\b(SELECT|INSERT|DELETE|UPDATE|DROP|UNION|ALTER|EXEC|EXECUTE|TRUNCATE|CREATE|REPLACE)\\b",
                     Pattern.CASE_INSENSITIVE),
 
-            // Detects special SQL-related characters like *, parentheses, and semicolons
-            Pattern.compile("[*();]", Pattern.CASE_INSENSITIVE),
+            // Logical operators - match anywhere in text (catches UserOrAdmin, Anderson, etc.)
+            Pattern.compile("(OR|AND|NOT|XOR)", Pattern.CASE_INSENSITIVE),
 
-            // Detects logical operators (OR/AND) surrounded by quotes, which is a common
-            // injection pattern
-            Pattern.compile(".*(['\"][\\s]*\\b(OR|AND)\\b[\\s]*['\"]).*", Pattern.CASE_INSENSITIVE),
-
-            // Detects encoded inputs like %27 (') or %3B (;)
-            Pattern.compile(".*(%[0-9a-f]{2}|0x[0-9a-f]+).*", Pattern.CASE_INSENSITIVE) };
-    static final String            POTENTIAL_SQL_INJECTION_DETECTED_IN_TEXT = "Potential SQL injection detected in text";
-
-    private static final Predicate<String> SQL_INJECTION_PREDICATE = userInput -> {
-        if (userInput == null || userInput.isEmpty()) {
-            return false;
-        }
-        // Normalize input to handle Unicode obfuscation
-        final var normalizedInput = java.text.Normalizer.normalize(userInput, java.text.Normalizer.Form.NFKC);
-        for (Pattern regex : SQL_INJECTION_PATTERNS) {
-            final var matcher = regex.matcher(normalizedInput);
-            if (matcher.matches()) {
-                return true;
-            }
-        }
-        return false;
+            // URL-encoded or hex-encoded characters
+            Pattern.compile("%[0-9a-f]{2}|0x[0-9a-f]+", Pattern.CASE_INSENSITIVE)
     };
+
+    // Balanced mode patterns - detect actual injection attempts, not mere presence of SQL-like text
+    private static final Pattern[] BALANCED_SQL_PATTERNS = {
+            // Complete SQL statement structures (clear SQL syntax, not natural language)
+            Pattern.compile("\\bSELECT\\s+.+?\\s+FROM\\b", Pattern.CASE_INSENSITIVE),
+            Pattern.compile("\\bINSERT\\s+INTO\\b", Pattern.CASE_INSENSITIVE),
+            Pattern.compile("\\bDELETE\\s+FROM\\b", Pattern.CASE_INSENSITIVE),
+            Pattern.compile("\\bUPDATE\\s+\\w+\\s+SET\\b", Pattern.CASE_INSENSITIVE),
+
+            // Quote-based injection: single quote followed by SQL keyword or operators
+            Pattern.compile("'\\s*(OR|AND|UNION|SELECT|INSERT|DELETE|UPDATE|DROP|--|#)", Pattern.CASE_INSENSITIVE),
+
+            // Comment-based injection: SQL comments that could bypass query logic
+            Pattern.compile("(--|#)\\s*(\\w|$)"),
+
+            // Stacked queries: semicolon followed by SQL command
+            Pattern.compile(";\\s*(SELECT|INSERT|DELETE|UPDATE|DROP|UNION|CREATE|ALTER|TRUNCATE|EXEC|EXECUTE)",
+                    Pattern.CASE_INSENSITIVE),
+
+            // Destructive SQL operations (immediately dangerous even standalone)
+            Pattern.compile("\\b(DROP|TRUNCATE)\\s+TABLE\\b", Pattern.CASE_INSENSITIVE),
+            Pattern.compile("\\b(CREATE|ALTER)\\s+TABLE\\b", Pattern.CASE_INSENSITIVE),
+
+            // Classic injection patterns: quoted boolean expressions
+            Pattern.compile("'\\s*(OR|AND)\\s*'[^']*'\\s*=\\s*'", Pattern.CASE_INSENSITIVE),
+
+            // Union-based injection
+            Pattern.compile("\\bUNION\\s+(ALL\\s+)?SELECT\\b", Pattern.CASE_INSENSITIVE),
+
+            // Boolean-based blind injection: OR/AND with always-true conditions
+            Pattern.compile("(OR|AND)\\s+\\d+\\s*=\\s*\\d+", Pattern.CASE_INSENSITIVE),
+            Pattern.compile("(OR|AND)\\s+'[^']*'\\s*=\\s*'[^']*'", Pattern.CASE_INSENSITIVE),
+
+            // URL-encoded SQL metacharacters and sequences (common in attacks)
+            Pattern.compile("%27|%3B|%2D%2D|%23|(%[0-9a-fA-F]{2}){3,}", Pattern.CASE_INSENSITIVE),
+
+            // Hex-encoded strings (obfuscation technique)
+            Pattern.compile("0x[0-9a-f]{2,}", Pattern.CASE_INSENSITIVE)
+    };
+
+    static final String POTENTIAL_SQL_INJECTION_DETECTED = "Potential SQL injection detected in text.";
+
+    private static final Predicate<String> STRICT_SQL_INJECTION_PREDICATE = createInjectionPredicate(STRICT_SQL_PATTERNS);
+    private static final Predicate<String> BALANCED_SQL_INJECTION_PREDICATE = createInjectionPredicate(BALANCED_SQL_PATTERNS);
+
+    private static Predicate<String> createInjectionPredicate(Pattern[] patterns) {
+        return userInput -> {
+            if (userInput == null || userInput.isEmpty()) {
+                return false;
+            }
+            // Normalize input to handle Unicode obfuscation attacks
+            final var normalizedInput = Normalizer.normalize(userInput, Normalizer.Form.NFKC);
+            for (Pattern pattern : patterns) {
+                if (pattern.matcher(normalizedInput).find()) {
+                    return true;
+                }
+            }
+            return false;
+        };
+    }
 
     @Function(docs = """
             ```sanitize.assertNoSqlInjection(TEXT inputToSanitize)```
-            Checks the provided text for patterns commonly associated with SQL injection attacks.
-            If any suspicious patterns are detected, the function returns an error.
 
-            **Parameters:**
-            - `inputToSanitize` (TEXT): The input text to be analyzed.
+            Checks text for SQL injection patterns using balanced detection. Catches injection attempts while
+            allowing normal text that happens to contain SQL-like words or punctuation.
 
-            **Returns:**
-            - The original input if no suspicious patterns are detected.
-            - An error if the input contains patterns associated with SQL injection attacks.
+            Detects complete SQL statements (SELECT...FROM, INSERT INTO, etc.), injection patterns like quoted
+            expressions and stacked queries, and encoding tricks (URL-encoded, hex-encoded, Unicode obfuscation).
+            At the same time, it allows apostrophes in names (O'Brien, D'Angelo), SQL keywords used normally
+            (Portland OR Seattle), and contractions (What's your name?).
 
-            **Examples:**
-            - Safe Input: ```sanitize.assertNoSqlInjection("Hello World")``` returns "Hello World".
-            - Injection Attempt: ```sanitize.assertNoSqlInjection("' OR '1'='1")``` returns an error.
+            Takes a TEXT value and returns it unchanged if clean, or an error if injection patterns are detected.
+
+            These inputs pass through:
+            ```
+            sanitize.assertNoSqlInjection("O'Brien")                    // Apostrophe in name
+            sanitize.assertNoSqlInjection("Portland OR Seattle")        // OR as word
+            sanitize.assertNoSqlInjection("What's your name?")         // Contractions
+            sanitize.assertNoSqlInjection("Department: HR-001")         // Structured data
+            ```
+
+            These get blocked:
+            ```
+            sanitize.assertNoSqlInjection("' OR '1'='1")                // Classic injection
+            sanitize.assertNoSqlInjection("admin'--")                   // Comment injection
+            sanitize.assertNoSqlInjection("1; DROP TABLE users")        // Stacked query
+            sanitize.assertNoSqlInjection("1' UNION SELECT * FROM")     // Union injection
+            sanitize.assertNoSqlInjection("SELECT * FROM users")        // Complete SQL query
+            ```
+
+            Example usage:
+            ```
+            policy "fetch_user_profile"
+            permit action == "read"
+            where
+                var userId = sanitize.assertNoSqlInjection(environment.userId);
+                var request = {
+                    "baseUrl": "https://api.example.com",
+                    "path": "/users/" + userId
+                };
+                var user = <http.get(request)>;
+                user.department == subject.department;
+            ```
+
+            Use assertNoSqlInjectionStrict if the input should be a structured identifier where SQL syntax never belongs.
             """)
     public Val assertNoSqlInjection(@Text Val inputToSanitize) {
-        final var potentialInjectionDetected = SQL_INJECTION_PREDICATE.test(inputToSanitize.getText());
+        final var potentialInjectionDetected = BALANCED_SQL_INJECTION_PREDICATE.test(inputToSanitize.getText());
         if (potentialInjectionDetected) {
-            return Val.error(POTENTIAL_SQL_INJECTION_DETECTED_IN_TEXT);
+            return Val.error(POTENTIAL_SQL_INJECTION_DETECTED);
+        }
+        return inputToSanitize;
+    }
+
+    @Function(docs = """
+            ```sanitize.assertNoSqlInjectionStrict(TEXT inputToSanitize)```
+
+            Checks text using strict detection. Rejects anything with SQL metacharacters or keywords, even when harmless.
+            Gives maximum security but produces false positives on legitimate text.
+
+            Blocks single quotes, semicolons, SQL metacharacters, SQL keywords (SELECT, INSERT, DROP), logical
+            operators (OR, AND, NOT), and URL-encoded characters. Only safe for structured identifiers that shouldn't
+            contain SQL syntax.
+
+            Takes a TEXT value and returns it unchanged if clean, or an error if any SQL syntax is found.
+
+            These inputs pass through:
+            ```
+            sanitize.assertNoSqlInjectionStrict("USER123")              // Alphanumeric ID
+            sanitize.assertNoSqlInjectionStrict("dept-hr")              // Hyphenated code
+            sanitize.assertNoSqlInjectionStrict("US")                   // Country code
+            ```
+
+            These get rejected (even though some are harmless):
+            ```
+            sanitize.assertNoSqlInjectionStrict("O'Brien")              // Apostrophe (blocked)
+            sanitize.assertNoSqlInjectionStrict("Portland OR Seattle")  // Contains OR (blocked)
+            sanitize.assertNoSqlInjectionStrict("user@email.com")       // Special chars (blocked)
+            ```
+
+            Example usage:
+            ```
+            policy "device_access"
+            permit action == "control"
+            where
+                var deviceId = sanitize.assertNoSqlInjectionStrict(environment.deviceId);
+                var request = {
+                    "baseUrl": "https://api.example.com",
+                    "urlParameters": { "device": deviceId }
+                };
+                <http.get(request)>.ownerId == subject.id;
+            ```
+
+            Zero tolerance for SQL syntax means higher security but more false positives. It rejects legitimate text
+            with apostrophes or SQL-like words. Only use this when input should be a code or identifier where SQL
+            syntax legitimately shouldn't appear.
+
+            For natural language or user names, use assertNoSqlInjection instead.
+            """)
+    public Val assertNoSqlInjectionStrict(@Text Val inputToSanitize) {
+        final var potentialInjectionDetected = STRICT_SQL_INJECTION_PREDICATE.test(inputToSanitize.getText());
+        if (potentialInjectionDetected) {
+            return Val.error(POTENTIAL_SQL_INJECTION_DETECTED);
         }
         return inputToSanitize;
     }
