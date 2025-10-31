@@ -31,20 +31,27 @@ import java.util.regex.Pattern;
  * Detects SQL injection attempts in policy information point parameters.
  * <p/>
  * Based on OWASP SQL Injection Prevention guidelines:
- * <a href="https://cheatsheetseries.owasp.org/cheatsheets/SQL_Injection_Prevention_Cheat_Sheet.html">...</a>
+ * <a href=
+ * "https://cheatsheetseries.owasp.org/cheatsheets/SQL_Injection_Prevention_Cheat_Sheet.html">...</a>
  * <p/>
- * OWASP recommends parameterized queries as the primary defense and input validation as secondary defense.
+ * OWASP recommends parameterized queries as the primary defense and input
+ * validation as secondary defense.
  * This library provides the input validation component.
  * <p/>
  * Two functions:
  * <p/>
- * assertNoSqlInjection (Balanced): Detects actual SQL injection patterns while allowing legitimate text containing
- * SQL-like words or common punctuation. Use for user input like names, descriptions, or natural language.
+ * assertNoSqlInjection (Balanced): Detects actual SQL injection patterns while
+ * allowing legitimate text containing
+ * SQL-like words or common punctuation. Use for user input like names,
+ * descriptions, or natural language.
  * <p/>
- * assertNoSqlInjectionStrict (Strict): Rejects any input containing SQL metacharacters or keywords. Maximizes
- * security at the cost of false positives. Use for structured identifiers or codes where SQL syntax shouldn't appear.
+ * assertNoSqlInjectionStrict (Strict): Rejects any input containing SQL
+ * metacharacters or keywords. Maximizes
+ * security at the cost of false positives. Use for structured identifiers or
+ * codes where SQL syntax shouldn't appear.
  * <p/>
- * For custom validation patterns, use SAPL's =~ regex operator directly in policies.
+ * For custom validation patterns, use SAPL's =~ regex operator directly in
+ * policies.
  */
 @UtilityClass
 @FunctionLibrary(name = SanitizationFunctionLibrary.NAME, description = SanitizationFunctionLibrary.DESCRIPTION_MD, libraryDocumentation = SanitizationFunctionLibrary.DOCUMENTATION_MD)
@@ -150,14 +157,15 @@ public class SanitizationFunctionLibrary {
             Pattern.compile("\\b(SELECT|INSERT|DELETE|UPDATE|DROP|UNION|ALTER|EXEC|EXECUTE|TRUNCATE|CREATE|REPLACE)\\b",
                     Pattern.CASE_INSENSITIVE),
 
-            // Logical operators - match anywhere in text (catches UserOrAdmin, Anderson, etc.)
+            // Logical operators - match anywhere in text (catches UserOrAdmin, Anderson,
+            // etc.)
             Pattern.compile("(OR|AND|NOT|XOR)", Pattern.CASE_INSENSITIVE),
 
             // URL-encoded or hex-encoded characters
-            Pattern.compile("%[0-9a-f]{2}|0x[0-9a-f]+", Pattern.CASE_INSENSITIVE)
-    };
+            Pattern.compile("%[0-9a-f]{2}|0x[0-9a-f]+", Pattern.CASE_INSENSITIVE) };
 
-    // Balanced mode patterns - detect actual injection attempts, not mere presence of SQL-like text
+    // Balanced mode patterns - detect actual injection attempts, not mere presence
+    // of SQL-like text
     private static final Pattern[] BALANCED_SQL_PATTERNS = {
             // Complete SQL statement structures (clear SQL syntax, not natural language)
             Pattern.compile("\\bSELECT\\s+.+?\\s+FROM\\b", Pattern.CASE_INSENSITIVE),
@@ -193,13 +201,14 @@ public class SanitizationFunctionLibrary {
             Pattern.compile("%27|%3B|%2D%2D|%23|(%[0-9a-fA-F]{2}){3,}", Pattern.CASE_INSENSITIVE),
 
             // Hex-encoded strings (obfuscation technique)
-            Pattern.compile("0x[0-9a-f]{2,}", Pattern.CASE_INSENSITIVE)
-    };
+            Pattern.compile("0x[0-9a-f]{2,}", Pattern.CASE_INSENSITIVE) };
 
     static final String POTENTIAL_SQL_INJECTION_DETECTED = "Potential SQL injection detected in text.";
 
-    private static final Predicate<String> STRICT_SQL_INJECTION_PREDICATE = createInjectionPredicate(STRICT_SQL_PATTERNS);
-    private static final Predicate<String> BALANCED_SQL_INJECTION_PREDICATE = createInjectionPredicate(BALANCED_SQL_PATTERNS);
+    private static final Predicate<String> STRICT_SQL_INJECTION_PREDICATE   = createInjectionPredicate(
+            STRICT_SQL_PATTERNS);
+    private static final Predicate<String> BALANCED_SQL_INJECTION_PREDICATE = createInjectionPredicate(
+            BALANCED_SQL_PATTERNS);
 
     private static Predicate<String> createInjectionPredicate(Pattern[] patterns) {
         return userInput -> {
