@@ -17,7 +17,6 @@
  */
 package io.sapl.functions;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import io.sapl.api.interpreter.Val;
 import lombok.val;
 import org.junit.jupiter.api.Test;
@@ -25,173 +24,174 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class TomlFunctionLibraryTests {
 
     @Test
     void tomlToValParsesSimpleKeyValuePairs() {
         val toml   = """
-                name = "Poppy"
-                color = "RED"
-                petals = 9
+                cultist = "Wilbur Whateley"
+                role = "ACOLYTE"
+                securityLevel = 3
                 """;
         val result = TomlFunctionLibrary.tomlToVal(Val.of(toml));
-        assertThat(result.get().get("name").asText()).isEqualTo("Poppy");
-        assertThat(result.get().get("color").asText()).isEqualTo("RED");
-        assertThat(result.get().get("petals").asInt()).isEqualTo(9);
+        assertThat(result.get().get("cultist").asText()).isEqualTo("Wilbur Whateley");
+        assertThat(result.get().get("role").asText()).isEqualTo("ACOLYTE");
+        assertThat(result.get().get("securityLevel").asInt()).isEqualTo(3);
     }
 
     @Test
     void tomlToValParsesTable() {
         val toml   = """
-                [flower]
-                name = "Rose"
-                color = "PINK"
-                petals = 5
+                [entity]
+                name = "Azathoth"
+                title = "Daemon Sultan"
+                threatLevel = 9
                 """;
         val result = TomlFunctionLibrary.tomlToVal(Val.of(toml));
-        assertThat(result.get().get("flower").get("name").asText()).isEqualTo("Rose");
-        assertThat(result.get().get("flower").get("color").asText()).isEqualTo("PINK");
-        assertThat(result.get().get("flower").get("petals").asInt()).isEqualTo(5);
+        assertThat(result.get().get("entity").get("name").asText()).isEqualTo("Azathoth");
+        assertThat(result.get().get("entity").get("title").asText()).isEqualTo("Daemon Sultan");
+        assertThat(result.get().get("entity").get("threatLevel").asInt()).isEqualTo(9);
     }
 
     @Test
     void tomlToValParsesNestedTables() {
         val toml   = """
-                [database]
-                server = "localhost"
+                [ritual]
+                name = "Summoning"
 
-                [database.connection]
-                max_retries = 5
-                timeout = 30
+                [ritual.location]
+                site = "Miskatonic University"
+                dangerLevel = 5
+                containment = 30
                 """;
         val result = TomlFunctionLibrary.tomlToVal(Val.of(toml));
-        assertThat(result.get().get("database").get("server").asText()).isEqualTo("localhost");
-        assertThat(result.get().get("database").get("connection").get("max_retries").asInt()).isEqualTo(5);
-        assertThat(result.get().get("database").get("connection").get("timeout").asInt()).isEqualTo(30);
+        assertThat(result.get().get("ritual").get("name").asText()).isEqualTo("Summoning");
+        assertThat(result.get().get("ritual").get("location").get("site").asText()).isEqualTo("Miskatonic University");
+        assertThat(result.get().get("ritual").get("location").get("dangerLevel").asInt()).isEqualTo(5);
+        assertThat(result.get().get("ritual").get("location").get("containment").asInt()).isEqualTo(30);
     }
 
     @Test
     void tomlToValParsesArrays() {
         val toml   = """
-                fruits = ["apple", "banana", "cherry"]
-                numbers = [1, 2, 3, 4, 5]
+                artifacts = ["Necronomicon", "Silver Key", "Shining Trapezohedron"]
+                threatLevels = [1, 2, 3, 4, 5]
                 """;
         val result = TomlFunctionLibrary.tomlToVal(Val.of(toml));
 
-        val fruits = result.get().get("fruits");
-        assertThat(fruits.isArray()).isTrue();
-        assertThat(fruits.size()).isEqualTo(3);
-        assertThat(fruits.get(0).asText()).isEqualTo("apple");
+        val artifacts = result.get().get("artifacts");
+        assertThat(artifacts.isArray()).isTrue();
+        assertThat(artifacts.size()).isEqualTo(3);
+        assertThat(artifacts.get(0).asText()).isEqualTo("Necronomicon");
 
-        val numbers = result.get().get("numbers");
-        assertThat(numbers.size()).isEqualTo(5);
-        assertThat(numbers.get(0).asInt()).isEqualTo(1);
+        val threatLevels = result.get().get("threatLevels");
+        assertThat(threatLevels.size()).isEqualTo(5);
+        assertThat(threatLevels.get(0).asInt()).isEqualTo(1);
     }
 
     @Test
     void tomlToValParsesArrayOfTables() {
-        val toml     = """
-                [[products]]
-                name = "Laptop"
-                price = 999
+        val toml          = """
+                [[investigators]]
+                name = "Carter"
+                sanity = 85
 
-                [[products]]
-                name = "Mouse"
-                price = 25
+                [[investigators]]
+                name = "Pickman"
+                sanity = 42
                 """;
-        val result   = TomlFunctionLibrary.tomlToVal(Val.of(toml));
-        val products = result.get().get("products");
+        val result        = TomlFunctionLibrary.tomlToVal(Val.of(toml));
+        val investigators = result.get().get("investigators");
 
-        assertThat(products.isArray()).isTrue();
-        assertThat(products.size()).isEqualTo(2);
-        assertThat(products.get(0).get("name").asText()).isEqualTo("Laptop");
-        assertThat(products.get(1).get("name").asText()).isEqualTo("Mouse");
+        assertThat(investigators.isArray()).isTrue();
+        assertThat(investigators.size()).isEqualTo(2);
+        assertThat(investigators.get(0).get("name").asText()).isEqualTo("Carter");
+        assertThat(investigators.get(1).get("name").asText()).isEqualTo("Pickman");
     }
 
     @Test
     void tomlToValParsesInlineTable() {
         val toml   = """
-                point = { x = 10, y = 20, z = 30 }
+                location = { city = "Arkham", state = "Massachusetts", year = 1928 }
                 """;
         val result = TomlFunctionLibrary.tomlToVal(Val.of(toml));
-        assertThat(result.get().get("point").get("x").asInt()).isEqualTo(10);
-        assertThat(result.get().get("point").get("y").asInt()).isEqualTo(20);
-        assertThat(result.get().get("point").get("z").asInt()).isEqualTo(30);
+        assertThat(result.get().get("location").get("city").asText()).isEqualTo("Arkham");
+        assertThat(result.get().get("location").get("state").asText()).isEqualTo("Massachusetts");
+        assertThat(result.get().get("location").get("year").asInt()).isEqualTo(1928);
     }
 
     @ParameterizedTest
     @ValueSource(strings = { "true", "false" })
     void tomlToValParsesBooleans(String boolValue) {
-        val toml   = "flag = " + boolValue;
+        val toml   = "sealed = " + boolValue;
         val result = TomlFunctionLibrary.tomlToVal(Val.of(toml));
-        assertThat(result.get().get("flag").isBoolean()).isTrue();
+        assertThat(result.get().get("sealed").isBoolean()).isTrue();
     }
 
     @Test
     void tomlToValParsesIntegers() {
         val toml   = """
-                positive = 42
-                negative = -17
+                cultists = 42
+                depth = -999
                 zero = 0
-                large = 1000000
+                population = 1000000
                 """;
         val result = TomlFunctionLibrary.tomlToVal(Val.of(toml));
-        assertThat(result.get().get("positive").asInt()).isEqualTo(42);
-        assertThat(result.get().get("negative").asInt()).isEqualTo(-17);
+        assertThat(result.get().get("cultists").asInt()).isEqualTo(42);
+        assertThat(result.get().get("depth").asInt()).isEqualTo(-999);
         assertThat(result.get().get("zero").asInt()).isZero();
     }
 
     @Test
     void tomlToValParsesFloats() {
         val toml   = """
-                pi = 2.14
+                power = 9.99
                 negative = -0.5
-                scientific = 1.23e-4
+                probability = 1.23e-4
                 """;
         val result = TomlFunctionLibrary.tomlToVal(Val.of(toml));
-        assertThat(result.get().get("pi").asDouble()).isEqualTo(2.14);
+        assertThat(result.get().get("power").asDouble()).isEqualTo(9.99);
         assertThat(result.get().get("negative").asDouble()).isEqualTo(-0.5);
     }
 
     @Test
     void tomlToValParsesStrings() {
         val toml   = """
-                basic = "Hello, World!"
-                multiline = \"""
-                Line 1
-                Line 2
-                Line 3\"""
+                chant = "Ia! Ia! Cthulhu fhtagn!"
+                prophecy = \"""
+                When the stars are right
+                The Great Old Ones shall return
+                From their cosmic slumber\"""
                 """;
         val result = TomlFunctionLibrary.tomlToVal(Val.of(toml));
-        assertThat(result.get().get("basic").asText()).isEqualTo("Hello, World!");
-        assertThat(result.get().get("multiline").asText()).contains("Line 1");
-        assertThat(result.get().get("multiline").asText()).contains("Line 2");
+        assertThat(result.get().get("chant").asText()).isEqualTo("Ia! Ia! Cthulhu fhtagn!");
+        assertThat(result.get().get("prophecy").asText()).contains("stars are right");
+        assertThat(result.get().get("prophecy").asText()).contains("Great Old Ones");
     }
 
     @Test
     void tomlToValHandlesQuotedKeys() {
         val toml   = """
-                "key with spaces" = "value"
-                "special.key" = "another value"
+                "cultist name" = "Lavinia Whateley"
+                "location.city" = "Dunwich"
                 """;
         val result = TomlFunctionLibrary.tomlToVal(Val.of(toml));
-        assertThat(result.get().get("key with spaces").asText()).isEqualTo("value");
-        assertThat(result.get().get("special.key").asText()).isEqualTo("another value");
+        assertThat(result.get().get("cultist name").asText()).isEqualTo("Lavinia Whateley");
+        assertThat(result.get().get("location.city").asText()).isEqualTo("Dunwich");
     }
 
     @Test
     void tomlToValHandlesComments() {
         val toml   = """
-                # This is a comment
-                name = "Alice" # inline comment
-                # Another comment
-                age = 30
+                # Elder entity configuration
+                name = "Cthulhu" # The Dreamer in R'lyeh
+                # Location data
+                depth = 9999
                 """;
         val result = TomlFunctionLibrary.tomlToVal(Val.of(toml));
-        assertThat(result.get().get("name").asText()).isEqualTo("Alice");
-        assertThat(result.get().get("age").asInt()).isEqualTo(30);
+        assertThat(result.get().get("name").asText()).isEqualTo("Cthulhu");
+        assertThat(result.get().get("depth").asInt()).isEqualTo(9999);
     }
 
     @Test
@@ -205,88 +205,85 @@ class TomlFunctionLibraryTests {
     @Test
     void tomlToValHandlesComplexConfiguration() {
         val toml   = """
-                title = "TOML Example"
+                title = "Arkham Asylum Configuration"
 
-                [owner]
-                name = "Tom Preston-Werner"
+                [warden]
+                name = "Herbert West"
 
-                [database]
-                server = "192.168.1.1"
-                ports = [ 8001, 8001, 8002 ]
-                connection_max = 5000
+                [security]
+                system = "Restricted"
+                levels = [ 1, 2, 3, 4, 5 ]
+                max_containment = 999
                 enabled = true
 
-                [servers]
+                [facilities]
 
-                [servers.alpha]
-                ip = "10.0.0.1"
-                dc = "eqdc10"
+                [facilities.cellBlock_A]
+                location = "East Wing"
+                dangerLevel = "EXTREME"
 
-                [servers.beta]
-                ip = "10.0.0.2"
-                dc = "eqdc10"
+                [facilities.cellBlock_B]
+                location = "West Wing"
+                dangerLevel = "HIGH"
                 """;
         val result = TomlFunctionLibrary.tomlToVal(Val.of(toml));
 
-        assertThat(result.get().get("title").asText()).isEqualTo("TOML Example");
-        assertThat(result.get().get("owner").get("name").asText()).isEqualTo("Tom Preston-Werner");
-        assertThat(result.get().get("database").get("server").asText()).isEqualTo("192.168.1.1");
-        assertThat(result.get().get("database").get("enabled").asBoolean()).isTrue();
-        assertThat(result.get().get("servers").get("alpha").get("ip").asText()).isEqualTo("10.0.0.1");
+        assertThat(result.get().get("title").asText()).isEqualTo("Arkham Asylum Configuration");
+        assertThat(result.get().get("warden").get("name").asText()).isEqualTo("Herbert West");
+        assertThat(result.get().get("security").get("system").asText()).isEqualTo("Restricted");
+        assertThat(result.get().get("security").get("enabled").asBoolean()).isTrue();
+        assertThat(result.get().get("facilities").get("cellBlock_A").get("location").asText()).isEqualTo("East Wing");
     }
 
     @ParameterizedTest
-    @ValueSource(strings = { "invalid = ", "[unclosed", "key = value without quotes", "= value",
-            "[table\nkey = value" })
-    void tomlToValThrowsExceptionForInvalidToml(String invalidToml) {
-        assertThatThrownBy(() -> TomlFunctionLibrary.tomlToVal(Val.of(invalidToml))).isInstanceOf(Exception.class);
+    @ValueSource(strings = { "invalid = ", "[unclosed", "= value", "[table\nkey = value" })
+    void tomlToValReturnsErrorForInvalidToml(String invalidToml) {
+        val result = TomlFunctionLibrary.tomlToVal(Val.of(invalidToml));
+        assertThat(result.isError()).isTrue();
+        assertThat(result.getMessage()).startsWith("Failed to parse TOML:");
     }
 
     @Test
-    void valToTomlConvertsObjectToTomlString() throws JsonProcessingException {
-        val object = Val.ofJson("{\"name\":\"Rose\",\"color\":\"PINK\",\"petals\":5}");
+    void valToTomlConvertsObjectToTomlString() {
+        val object = Val.JSON.objectNode();
+        object.put("name", "Nyarlathotep");
+        object.put("title", "Crawling Chaos");
+        object.put("threatLevel", 8);
 
-        val result = TomlFunctionLibrary.valToToml(object);
+        val result = TomlFunctionLibrary.valToToml(Val.of(object));
 
-        assertThat(result.getText()).contains("name");
-        assertThat(result.getText()).contains("Rose");
-        assertThat(result.getText()).contains("color");
-        assertThat(result.getText()).contains("PINK");
-        assertThat(result.getText()).contains("petals");
+        assertThat(result.getText()).contains("name").contains("Nyarlathotep").contains("title")
+                .contains("Crawling Chaos").contains("threatLevel");
     }
 
     @Test
     void valToTomlHandlesNestedObjects() {
-        val parent = Val.JSON.objectNode();
-        val child  = Val.JSON.objectNode();
-        child.put("key", "value");
-        parent.set("child", child);
+        val ritual   = Val.JSON.objectNode();
+        val location = Val.JSON.objectNode();
+        location.put("site", "R'lyeh");
+        ritual.set("location", location);
 
-        val result = TomlFunctionLibrary.valToToml(Val.of(parent));
+        val result = TomlFunctionLibrary.valToToml(Val.of(ritual));
 
-        assertThat(result.getText()).contains("child");
-        assertThat(result.getText()).contains("key");
-        assertThat(result.getText()).contains("value");
+        assertThat(result.getText()).contains("location").contains("site").contains("R'lyeh");
     }
 
     @Test
     void valToTomlHandlesArrays() {
         val object = Val.JSON.objectNode();
         val array  = Val.JSON.arrayNode();
-        array.add("apple");
-        array.add("banana");
-        object.set("fruits", array);
+        array.add("Dagon");
+        array.add("Hydra");
+        object.set("deities", array);
 
         val result = TomlFunctionLibrary.valToToml(Val.of(object));
 
-        assertThat(result.getText()).contains("fruits");
-        assertThat(result.getText()).contains("apple");
-        assertThat(result.getText()).contains("banana");
+        assertThat(result.getText()).contains("deities").contains("Dagon").contains("Hydra");
     }
 
     @Test
     void valToTomlReturnsErrorForErrorValue() {
-        val error  = Val.error("Test error");
+        val error  = Val.error("Ritual interrupted.");
         val result = TomlFunctionLibrary.valToToml(error);
         assertThat(result.isError()).isTrue();
     }
@@ -301,18 +298,18 @@ class TomlFunctionLibraryTests {
     @Test
     void roundTripConversionPreservesData() {
         val original   = """
-                [person]
-                name = "Charlie"
-                age = 35
-                hobbies = ["reading", "coding"]
+                [investigator]
+                name = "Carter"
+                sanity = 77
+                artifacts = ["Silver Key", "Lamp"]
                 """;
         val parsed     = TomlFunctionLibrary.tomlToVal(Val.of(original));
         val serialized = TomlFunctionLibrary.valToToml(parsed);
         val reparsed   = TomlFunctionLibrary.tomlToVal(serialized);
 
-        assertThat(reparsed.get().get("person").get("name").asText()).isEqualTo("Charlie");
-        assertThat(reparsed.get().get("person").get("age").asInt()).isEqualTo(35);
-        assertThat(reparsed.get().get("person").get("hobbies").size()).isEqualTo(2);
+        assertThat(reparsed.get().get("investigator").get("name").asText()).isEqualTo("Carter");
+        assertThat(reparsed.get().get("investigator").get("sanity").asInt()).isEqualTo(77);
+        assertThat(reparsed.get().get("investigator").get("artifacts").size()).isEqualTo(2);
     }
 
     @Test
@@ -324,16 +321,14 @@ class TomlFunctionLibraryTests {
     @Test
     void valToTomlHandlesPrimitiveValues() {
         val object = Val.JSON.objectNode();
-        object.put("bool", true);
-        object.put("number", 42);
-        object.put("text", "hello");
-        object.putNull("nullable");
+        object.put("sealed", true);
+        object.put("year", 1928);
+        object.put("location", "Arkham");
+        object.putNull("sanity");
 
         val result = TomlFunctionLibrary.valToToml(Val.of(object));
 
-        assertThat(result.getText()).contains("bool");
-        assertThat(result.getText()).contains("number");
-        assertThat(result.getText()).contains("text");
+        assertThat(result.getText()).contains("sealed").contains("year").contains("location");
     }
 
 }

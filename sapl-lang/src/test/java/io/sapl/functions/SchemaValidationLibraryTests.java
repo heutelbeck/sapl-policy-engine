@@ -219,7 +219,7 @@ class SchemaValidationLibraryTests {
     @ParameterizedTest(name = "{0}")
     @MethodSource("provideIsCompliantScenarios")
     void when_usingIsCompliant_then_returnsExpectedResult(String scenario, Val subject, Val schema,
-                                                          boolean expectedCompliant, boolean expectError) {
+            boolean expectedCompliant, boolean expectError) {
         val result = isCompliant(subject, schema);
 
         if (expectError) {
@@ -255,7 +255,7 @@ class SchemaValidationLibraryTests {
     @ParameterizedTest(name = "{0}")
     @MethodSource("provideValidateScenarios")
     void when_usingValidate_then_returnsExpectedStructuredResult(String scenario, Val subject, Val schema,
-                                                                 boolean expectedValid, boolean expectErrors, boolean expectError) {
+            boolean expectedValid, boolean expectErrors, boolean expectError) {
         val result = validate(subject, schema);
 
         if (expectError) {
@@ -480,7 +480,7 @@ class SchemaValidationLibraryTests {
     @MethodSource("provideValidationScenarios")
     @SneakyThrows
     void when_validatingVariousScenarios_then_resultsMatchExpectations(String scenario, String json, String schema,
-                                                                       boolean expectedValid) {
+            boolean expectedValid) {
         val result = validate(Val.ofJson(json), Val.ofJson(schema));
 
         assertThat(result.get().get("valid").asBoolean()).isEqualTo(expectedValid);
@@ -496,7 +496,7 @@ class SchemaValidationLibraryTests {
     @MethodSource("provideValidationScenarios")
     @SneakyThrows
     void when_usingIsCompliantWithVariousScenarios_then_resultsMatchExpectations(String scenario, String json,
-                                                                                 String schema, boolean expectedValid) {
+            String schema, boolean expectedValid) {
         val result = isCompliant(Val.ofJson(json), Val.ofJson(schema));
 
         assertThat(result.isBoolean()).isTrue();
@@ -598,7 +598,7 @@ class SchemaValidationLibraryTests {
     @MethodSource("provideErrorPropagationScenarios")
     @SneakyThrows
     void when_errorOrUndefinedSubject_then_handledAppropriately(String scenario, Val subject,
-                                                                boolean useExternalSchemas) {
+            boolean useExternalSchemas) {
         val externals = Val.ofEmptyArray();
         val schema    = Val.ofJson(VALID_SCHEMA);
 

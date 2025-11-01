@@ -191,7 +191,7 @@ public class SchemaValidationLibrary {
             ```
             """, schema = RETURNS_BOOLEAN)
     public static Val isCompliantWithExternalSchemas(Val validationSubject, @JsonObject Val jsonSchema,
-                                                     Val externalSchemas) {
+            Val externalSchemas) {
         val result = validateWithExternalSchemas(validationSubject, jsonSchema, externalSchemas);
         if (result.isError()) {
             return result;
@@ -287,7 +287,7 @@ public class SchemaValidationLibrary {
             ```
             """, schema = VALIDATION_RESULT_SCHEMA)
     public static Val validateWithExternalSchemas(Val validationSubject, @JsonObject Val jsonSchema,
-                                                  Val externalSchemas) {
+            Val externalSchemas) {
         if (validationSubject.isError()) {
             return validationSubject;
         }

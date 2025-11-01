@@ -74,16 +74,8 @@ class JWTFunctionLibraryTests {
     }
 
     @ParameterizedTest
-    @ValueSource(strings = {
-            "This is not a JWT token at all",
-            "eyJhbGciOiJSUzI1NiJ9.incomplete",
-            "eyJhbGciOiJSUzI1NiJ9eyJzdWIiOiJ0ZXN0In0",
-            "",
-            "...",
-            "a.b.c.d",
-            "header.payload",
-            "x"
-    })
+    @ValueSource(strings = { "This is not a JWT token at all", "eyJhbGciOiJSUzI1NiJ9.incomplete",
+            "eyJhbGciOiJSUzI1NiJ9eyJzdWIiOiJ0ZXN0In0", "", "...", "a.b.c.d", "header.payload", "x" })
     void malformedTokensReturnError(String malformedToken) {
         var result = createLibrary().parseJwt(Val.of(malformedToken));
 

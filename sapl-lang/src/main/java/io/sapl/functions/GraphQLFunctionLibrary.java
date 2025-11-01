@@ -218,9 +218,9 @@ public class GraphQLFunctionLibrary {
     private static final String OPERATION_SUBSCRIPTION = "subscription";
 
     // GraphQL-specific constants
-    private static final String      INTROSPECTION_PREFIX   = "__";
-    private static final String      VARIABLE_MARKER        = "$variable";
-    private static final Set<String> PAGINATION_ARGS_LOWER  = Set.of("first", "last", "limit", "offset", "skip", "take");
+    private static final String      INTROSPECTION_PREFIX  = "__";
+    private static final String      VARIABLE_MARKER       = "$variable";
+    private static final Set<String> PAGINATION_ARGS_LOWER = Set.of("first", "last", "limit", "offset", "skip", "take");
 
     // Complexity calculation
     private static final int BATCHING_SCORE_MULTIPLIER = 5;
@@ -240,18 +240,18 @@ public class GraphQLFunctionLibrary {
     private static final boolean CACHE_ACCESS_ORDER    = true;
 
     // Error messages
-    private static final String ERROR_SCHEMA_PARSE_FAILED     = "Schema parsing failed";
-    private static final String ERROR_QUERY_PARSE_FAILED      = "Failed to parse GraphQL query";
-    private static final String ERROR_NO_OPERATION_FOUND      = "No operation definition found.";
+    private static final String ERROR_SCHEMA_PARSE_FAILED = "Schema parsing failed";
+    private static final String ERROR_QUERY_PARSE_FAILED  = "Failed to parse GraphQL query";
+    private static final String ERROR_NO_OPERATION_FOUND  = "No operation definition found.";
 
     // JSON field names - common fields
-    private static final String FIELD_VALID      = "valid";
-    private static final String FIELD_OPERATION  = "operation";
-    private static final String FIELD_FIELDS     = "fields";
+    private static final String FIELD_VALID       = "valid";
+    private static final String FIELD_OPERATION   = "operation";
+    private static final String FIELD_FIELDS      = "fields";
     private static final String FIELD_FIELD_COUNT = "fieldCount";
-    private static final String FIELD_DEPTH      = "depth";
-    private static final String FIELD_COMPLEXITY = "complexity";
-    private static final String FIELD_ERRORS     = "errors";
+    private static final String FIELD_DEPTH       = "depth";
+    private static final String FIELD_COMPLEXITY  = "complexity";
+    private static final String FIELD_ERRORS      = "errors";
 
     // JSON field names - security metrics
     private static final String FIELD_SECURITY               = "security";
@@ -603,10 +603,10 @@ public class GraphQLFunctionLibrary {
         val metrics = new QueryMetrics();
 
         metrics.operation     = switch (operation.getOperation()) {
-            case QUERY        -> OPERATION_QUERY;
-            case MUTATION     -> OPERATION_MUTATION;
-            case SUBSCRIPTION -> OPERATION_SUBSCRIPTION;
-        };
+                              case QUERY        -> OPERATION_QUERY;
+                              case MUTATION     -> OPERATION_MUTATION;
+                              case SUBSCRIPTION -> OPERATION_SUBSCRIPTION;
+                              };
         metrics.operationName = Objects.requireNonNullElse(operation.getName(), "");
         metrics.variables     = extractVariablesFromOperation(operation);
 
@@ -625,7 +625,7 @@ public class GraphQLFunctionLibrary {
      * @param isRoot true if this is the root selection set
      */
     private static void analyzeSelectionSet(SelectionSet selectionSet, int currentDepth, QueryMetrics metrics,
-                                            boolean isRoot) {
+            boolean isRoot) {
         if (selectionSet == null) {
             return; // Null selection set
         }
@@ -635,10 +635,10 @@ public class GraphQLFunctionLibrary {
 
         for (Selection<?> selection : selectionSet.getSelections()) {
             switch (selection) {
-                case Field field             -> analyzeField(field, nextDepth, metrics, isRoot);
-                case InlineFragment fragment -> analyzeInlineFragment(fragment, nextDepth, metrics);
-                case FragmentSpread spread   -> processDirectivesContainer(spread, metrics);
-                default                      -> {} // Other selection types
+            case Field field             -> analyzeField(field, nextDepth, metrics, isRoot);
+            case InlineFragment fragment -> analyzeInlineFragment(fragment, nextDepth, metrics);
+            case FragmentSpread spread   -> processDirectivesContainer(spread, metrics);
+            default                      -> {} // Other selection types
             }
         }
     }
@@ -777,12 +777,12 @@ public class GraphQLFunctionLibrary {
 
         for (Selection<?> selection : selectionSet.getSelections()) {
             switch (selection) {
-                case Field field             -> {
-                    accumulator.add(field.getName());
-                    extractFieldsFromSelectionSet(field.getSelectionSet(), accumulator);
-                }
-                case InlineFragment fragment -> extractFieldsFromSelectionSet(fragment.getSelectionSet(), accumulator);
-                default                      -> {} // Other selection types
+            case Field field             -> {
+                accumulator.add(field.getName());
+                extractFieldsFromSelectionSet(field.getSelectionSet(), accumulator);
+            }
+            case InlineFragment fragment -> extractFieldsFromSelectionSet(fragment.getSelectionSet(), accumulator);
+            default                      -> {} // Other selection types
             }
         }
     }
@@ -820,7 +820,7 @@ public class GraphQLFunctionLibrary {
      * @return true if circular reference found
      */
     private static boolean hasCircularReference(String fragmentName, FragmentDefinition fragment,
-                                                Map<String, FragmentDefinition> allFragments, Set<String> visited) {
+            Map<String, FragmentDefinition> allFragments, Set<String> visited) {
         // Cycle detected: fragment references itself through a chain
         if (visited.contains(fragmentName)) {
             return true;
@@ -858,10 +858,10 @@ public class GraphQLFunctionLibrary {
 
         for (Selection<?> selection : selectionSet.getSelections()) {
             switch (selection) {
-                case FragmentSpread spread   -> spreads.add(spread.getName());
-                case Field field             -> spreads.addAll(findFragmentSpreads(field.getSelectionSet()));
-                case InlineFragment fragment -> spreads.addAll(findFragmentSpreads(fragment.getSelectionSet()));
-                default                      -> {} // Other selection types
+            case FragmentSpread spread   -> spreads.add(spread.getName());
+            case Field field             -> spreads.addAll(findFragmentSpreads(field.getSelectionSet()));
+            case InlineFragment fragment -> spreads.addAll(findFragmentSpreads(fragment.getSelectionSet()));
+            default                      -> {} // Other selection types
             }
         }
 
@@ -876,29 +876,29 @@ public class GraphQLFunctionLibrary {
      */
     private static JsonNode convertValueToJson(Value<?> value) {
         return switch (value) {
-            case IntValue intValue             -> Val.JSON.numberNode(intValue.getValue().intValue());
-            case FloatValue floatValue         -> Val.JSON.numberNode(floatValue.getValue().doubleValue());
-            case StringValue stringValue       -> Val.JSON.textNode(stringValue.getValue());
-            case BooleanValue booleanValue     -> Val.JSON.booleanNode(booleanValue.isValue());
-            case EnumValue enumValue           -> Val.JSON.textNode(enumValue.getName());
-            case NullValue ignored             -> Val.JSON.nullNode();
-            case ArrayValue arrayValue         -> {
-                val array = Val.JSON.arrayNode();
-                arrayValue.getValues().forEach(v -> array.add(convertValueToJson(v)));
-                yield array;
-            }
-            case ObjectValue objectValue       -> {
-                val object = Val.JSON.objectNode();
-                objectValue.getObjectFields()
-                        .forEach(field -> object.set(field.getName(), convertValueToJson(field.getValue())));
-                yield object;
-            }
-            case VariableReference variableRef -> {
-                val varObject = Val.JSON.objectNode();
-                varObject.put(VARIABLE_MARKER, variableRef.getName());
-                yield varObject;
-            }
-            default                            -> Val.JSON.textNode(value.toString());
+        case IntValue intValue             -> Val.JSON.numberNode(intValue.getValue().intValue());
+        case FloatValue floatValue         -> Val.JSON.numberNode(floatValue.getValue().doubleValue());
+        case StringValue stringValue       -> Val.JSON.textNode(stringValue.getValue());
+        case BooleanValue booleanValue     -> Val.JSON.booleanNode(booleanValue.isValue());
+        case EnumValue enumValue           -> Val.JSON.textNode(enumValue.getName());
+        case NullValue ignored             -> Val.JSON.nullNode();
+        case ArrayValue arrayValue         -> {
+            val array = Val.JSON.arrayNode();
+            arrayValue.getValues().forEach(v -> array.add(convertValueToJson(v)));
+            yield array;
+        }
+        case ObjectValue objectValue       -> {
+            val object = Val.JSON.objectNode();
+            objectValue.getObjectFields()
+                    .forEach(field -> object.set(field.getName(), convertValueToJson(field.getValue())));
+            yield object;
+        }
+        case VariableReference variableRef -> {
+            val varObject = Val.JSON.objectNode();
+            varObject.put(VARIABLE_MARKER, variableRef.getName());
+            yield varObject;
+        }
+        default                            -> Val.JSON.textNode(value.toString());
         };
     }
 
@@ -1110,7 +1110,8 @@ public class GraphQLFunctionLibrary {
             security.put(FIELD_BATCHING_SCORE, aliasCount * BATCHING_SCORE_MULTIPLIER + rootFieldCount);
             security.put(FIELD_MAX_PAGINATION_LIMIT, maxPaginationLimit);
             security.put(FIELD_HAS_CIRCULAR_FRAGMENTS, hasCircularFragments);
-            security.put(FIELD_IS_INTROSPECTION, fields.stream().anyMatch(field -> field.startsWith(INTROSPECTION_PREFIX)));
+            security.put(FIELD_IS_INTROSPECTION,
+                    fields.stream().anyMatch(field -> field.startsWith(INTROSPECTION_PREFIX)));
             security.put(FIELD_DIRECTIVE_COUNT, directiveCount);
             security.put(FIELD_DIRECTIVES_PER_FIELD, fieldCount > 0 ? (double) directiveCount / fieldCount : 0.0);
 

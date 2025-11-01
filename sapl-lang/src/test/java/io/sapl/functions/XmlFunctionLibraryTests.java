@@ -17,7 +17,6 @@
  */
 package io.sapl.functions;
 
-import com.fasterxml.jackson.core.JsonParseException;
 import io.sapl.api.interpreter.Val;
 import lombok.val;
 import org.junit.jupiter.api.Test;
@@ -25,16 +24,15 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class XmlFunctionLibraryTests {
 
-    private static final String SIMPLE_XML = """
-            <Flower>
-                <name>Poppy</name>
-                <color>RED</color>
-                <petals>9</petals>
-            </Flower>
+    private static final String CULTIST_RECORD = """
+            <CultistRecord>
+                <name>Wilbur Whateley</name>
+                <role>ACOLYTE</role>
+                <securityLevel>3</securityLevel>
+            </CultistRecord>
             """;
 
     private static final String HTML_DOCUMENT = """
@@ -49,7 +47,7 @@ class XmlFunctionLibraryTests {
 
     @Test
     void xmlToValParsesSimpleXml() {
-        val result = XmlFunctionLibrary.xmlToVal(Val.of(SIMPLE_XML));
+        val result = XmlFunctionLibrary.xmlToVal(Val.of(CULTIST_RECORD));
         assertThat(result.isDefined()).isTrue();
     }
 
@@ -63,19 +61,19 @@ class XmlFunctionLibraryTests {
     @Test
     void xmlToValParsesNestedElements() {
         val xml    = """
-                <root>
-                    <parent>
-                        <child>value</child>
-                    </parent>
-                </root>
+                <Ritual>
+                    <invocation>
+                        <chant>Ia! Ia! Cthulhu fhtagn!</chant>
+                    </invocation>
+                </Ritual>
                 """;
         val result = XmlFunctionLibrary.xmlToVal(Val.of(xml));
-        assertThat(result.get().get("parent").get("child").asText()).isEqualTo("value");
+        assertThat(result.get().get("invocation").get("chant").asText()).isEqualTo("Ia! Ia! Cthulhu fhtagn!");
     }
 
     @Test
     void xmlToValParsesSelfClosingTags() {
-        val xml    = "<root><empty/></root>";
+        val xml    = "<Artifact><sealed/></Artifact>";
         val result = XmlFunctionLibrary.xmlToVal(Val.of(xml));
         assertThat(result.isDefined()).isTrue();
     }
@@ -83,27 +81,27 @@ class XmlFunctionLibraryTests {
     @Test
     void xmlToValParsesMultipleChildrenWithSameName() {
         val xml    = """
-                <items>
-                    <item>First</item>
-                    <item>Second</item>
-                    <item>Third</item>
-                </items>
+                <Grimoire>
+                    <chapter>The Shadow Over Innsmouth</chapter>
+                    <chapter>The Dunwich Horror</chapter>
+                    <chapter>At the Mountains of Madness</chapter>
+                </Grimoire>
                 """;
         val result = XmlFunctionLibrary.xmlToVal(Val.of(xml));
-        assertThat(result.get().get("item").isArray()).isTrue();
-        assertThat(result.get().get("item").size()).isEqualTo(3);
+        assertThat(result.get().get("chapter").isArray()).isTrue();
+        assertThat(result.get().get("chapter").size()).isEqualTo(3);
     }
 
     @Test
     void xmlToValParsesAttributes() {
-        val xml    = "<person name=\"Alice\" age=\"30\"/>";
+        val xml    = "<Cultist name=\"Lavinia Whateley\" dangerLevel=\"EXTREME\"/>";
         val result = XmlFunctionLibrary.xmlToVal(Val.of(xml));
         assertThat(result.isDefined()).isTrue();
     }
 
     @Test
     void xmlToValParsesEmptyElement() {
-        val xml    = "<root></root>";
+        val xml    = "<VoidSpace></VoidSpace>";
         val result = XmlFunctionLibrary.xmlToVal(Val.of(xml));
         assertThat(result.isDefined()).isTrue();
     }
@@ -111,63 +109,62 @@ class XmlFunctionLibraryTests {
     @Test
     void xmlToValHandlesWhitespace() {
         val xml    = """
-                <root>
-                    <item>   Content with spaces   </item>
-                </root>
+                <Prophecy>
+                    <text>   When the stars are right   </text>
+                </Prophecy>
                 """;
         val result = XmlFunctionLibrary.xmlToVal(Val.of(xml));
-        assertThat(result.get().get("item").asText()).contains("Content with spaces");
+        assertThat(result.get().get("text").asText()).contains("When the stars are right");
     }
 
     @Test
     void xmlToValHandlesSpecialCharacters() {
-        val xml    = "<root><message>Hello &amp; Goodbye</message></root>";
+        val xml    = "<Warning><message>R&apos;lyeh &amp; Carcosa</message></Warning>";
         val result = XmlFunctionLibrary.xmlToVal(Val.of(xml));
-        assertThat(result.get().get("message").asText()).isEqualTo("Hello & Goodbye");
+        assertThat(result.get().get("message").asText()).isEqualTo("R'lyeh & Carcosa");
     }
 
     @Test
     void xmlToValHandlesUnicodeCharacters() {
-        val xml    = "<root><message>Hello 世界 🌸</message></root>";
+        val xml    = "<Inscription><text>Ph'nglui mglw'nafh 世界 🌙</text></Inscription>";
         val result = XmlFunctionLibrary.xmlToVal(Val.of(xml));
-        assertThat(result.get().get("message").asText()).isEqualTo("Hello 世界 🌸");
+        assertThat(result.get().get("text").asText()).isEqualTo("Ph'nglui mglw'nafh 世界 🌙");
     }
 
     @ParameterizedTest
-    @ValueSource(strings = { "<invalid", "<root><unclosed>", "}NOT/><XML", "<root></wrong>", "not xml at all" })
-    void xmlToValThrowsExceptionForInvalidXml(String invalidXml) {
-        assertThatThrownBy(() -> XmlFunctionLibrary.xmlToVal(Val.of(invalidXml)))
-                .isInstanceOf(JsonParseException.class);
+    @ValueSource(strings = { "<invalid", "<Necronomicon><unclosed>", "}NOT/><XML", "<root></wrong>", "not xml at all" })
+    void xmlToValReturnsErrorForInvalidXml(String invalidXml) {
+        val result = XmlFunctionLibrary.xmlToVal(Val.of(invalidXml));
+        assertThat(result.isError()).isTrue();
+        assertThat(result.getMessage()).startsWith("Failed to parse XML:");
     }
 
     @Test
     void valToXmlConvertsObjectToXmlString() {
         val object = Val.JSON.objectNode();
-        object.put("name", "Rose");
-        object.put("color", "PINK");
-        object.put("petals", 5);
+        object.put("name", "Azathoth");
+        object.put("title", "Daemon Sultan");
+        object.put("threatLevel", 9);
 
         val result = XmlFunctionLibrary.valToXml(Val.of(object));
-        assertThat(result.getText()).contains("<name>Rose</name>");
-        assertThat(result.getText()).contains("<color>PINK</color>");
-        assertThat(result.getText()).contains("<petals>5</petals>");
+        assertThat(result.getText()).contains("<name>Azathoth</name>").contains("<title>Daemon Sultan</title>")
+                .contains("<threatLevel>9</threatLevel>");
     }
 
     @Test
     void valToXmlHandlesNestedObjects() {
-        val parent = Val.JSON.objectNode();
-        val child  = Val.JSON.objectNode();
-        child.put("value", "test");
-        parent.set("child", child);
+        val ritual   = Val.JSON.objectNode();
+        val location = Val.JSON.objectNode();
+        location.put("place", "Miskatonic University");
+        ritual.set("location", location);
 
-        val result = XmlFunctionLibrary.valToXml(Val.of(parent));
-        assertThat(result.getText()).contains("<child>");
-        assertThat(result.getText()).contains("<value>test</value>");
+        val result = XmlFunctionLibrary.valToXml(Val.of(ritual));
+        assertThat(result.getText()).contains("<location>").contains("<place>Miskatonic University</place>");
     }
 
     @Test
     void valToXmlReturnsErrorForErrorValue() {
-        val error  = Val.error("Test error");
+        val error  = Val.error("Summoning failed.");
         val result = XmlFunctionLibrary.valToXml(error);
         assertThat(result.isError()).isTrue();
     }
@@ -187,14 +184,14 @@ class XmlFunctionLibraryTests {
 
     @Test
     void valToXmlHandlesPrimitiveValues() {
-        val result = XmlFunctionLibrary.valToXml(Val.of("simple text"));
-        assertThat(result.getText()).contains("simple text");
+        val result = XmlFunctionLibrary.valToXml(Val.of("The King in Yellow"));
+        assertThat(result.getText()).contains("The King in Yellow");
     }
 
     @Test
     void valToXmlHandlesNumbers() {
-        val result = XmlFunctionLibrary.valToXml(Val.of(42));
-        assertThat(result.getText()).contains("42");
+        val result = XmlFunctionLibrary.valToXml(Val.of(1928));
+        assertThat(result.getText()).contains("1928");
     }
 
     @Test

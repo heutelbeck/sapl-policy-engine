@@ -24,6 +24,7 @@ import io.sapl.api.validation.Int;
 import io.sapl.api.validation.Number;
 import io.sapl.api.validation.Text;
 import lombok.experimental.UtilityClass;
+import lombok.val;
 
 import java.time.*;
 import java.time.format.DateTimeFormatter;
@@ -178,9 +179,9 @@ public class TemporalFunctionLibrary {
             The expression ```time.between("2021-11-08T13:00:00Z", "2021-11-07T13:00:00Z", "2021-11-09T13:00:00Z")```
             returns ```true```.""")
     public static Val between(@Text Val time, @Text Val intervalStart, @Text Val intervalEnd) {
-        final var t     = instantOf(time);
-        final var start = instantOf(intervalStart);
-        final var end   = instantOf(intervalEnd);
+        val t     = instantOf(time);
+        val start = instantOf(intervalStart);
+        val end   = instantOf(intervalEnd);
 
         if (t.equals(start))
             return Val.TRUE;
@@ -203,14 +204,14 @@ public class TemporalFunctionLibrary {
 
             The expression ```time.timeBetween("2001-01-01", "2002-01-01", "YEARS")``` returns ```1```.""")
     public static Val timeBetween(@Text Val timeA, @Text Val timeB, @Text Val chronoUnit) {
-        final var unit        = parseChronoUnit(chronoUnit);
-        final var instantFrom = instantOf(timeA);
-        final var instantTo   = instantOf(timeB);
+        val unit        = parseChronoUnit(chronoUnit);
+        val instantFrom = instantOf(timeA);
+        val instantTo   = instantOf(timeB);
         try {
             return Val.of(unit.between(instantFrom, instantTo));
         } catch (UnsupportedTemporalTypeException e) {
-            final var dateFrom = LocalDate.ofInstant(instantFrom, ZoneId.systemDefault());
-            final var dateTo   = LocalDate.ofInstant(instantTo, ZoneId.systemDefault());
+            val dateFrom = LocalDate.ofInstant(instantFrom, ZoneId.systemDefault());
+            val dateTo   = LocalDate.ofInstant(instantTo, ZoneId.systemDefault());
             return Val.of(unit.between(dateFrom, dateTo));
         }
     }
@@ -227,7 +228,7 @@ public class TemporalFunctionLibrary {
             The expression ```time.plusDays("2021-11-08T13:00:00Z", 5)```
             returns ```"2021-11-13T13:00:00Z"```.""")
     public static Val plusDays(@Text Val startTime, @Int Val days) {
-        final var instant = instantOf(startTime);
+        val instant = instantOf(startTime);
         validateTemporalBounds(instant, days.getLong(), ChronoUnit.DAYS, true);
         return Val.of(instant.plus(days.getLong(), ChronoUnit.DAYS).toString());
     }
@@ -243,8 +244,8 @@ public class TemporalFunctionLibrary {
             The expression ```time.plusMonths("2021-11-08T13:00:00Z", 2)```
             returns ```"2022-01-08T13:00:00Z"```.""")
     public static Val plusMonths(@Text Val startTime, @Int Val months) {
-        final var instant = instantOf(startTime);
-        final var zdt     = instant.atZone(ZoneOffset.UTC);
+        val instant = instantOf(startTime);
+        val zdt     = instant.atZone(ZoneOffset.UTC);
         return Val.of(zdt.plusMonths(months.getLong()).toInstant().toString());
     }
 
@@ -259,8 +260,8 @@ public class TemporalFunctionLibrary {
             The expression ```time.plusYears("2021-11-08T13:00:00Z", 3)```
             returns ```"2024-11-08T13:00:00Z"```.""")
     public static Val plusYears(@Text Val startTime, @Int Val years) {
-        final var instant = instantOf(startTime);
-        final var zdt     = instant.atZone(ZoneOffset.UTC);
+        val instant = instantOf(startTime);
+        val zdt     = instant.atZone(ZoneOffset.UTC);
         return Val.of(zdt.plusYears(years.getLong()).toInstant().toString());
     }
 
@@ -274,7 +275,7 @@ public class TemporalFunctionLibrary {
             The expression ```time.minusDays("2021-11-08T13:00:00Z", 5)```
             returns ```"2021-11-03T13:00:00Z"```.""")
     public static Val minusDays(@Text Val startTime, @Int Val days) {
-        final var instant = instantOf(startTime);
+        val instant = instantOf(startTime);
         validateTemporalBounds(instant, days.getLong(), ChronoUnit.DAYS, false);
         return Val.of(instant.minus(days.getLong(), ChronoUnit.DAYS).toString());
     }
@@ -290,8 +291,8 @@ public class TemporalFunctionLibrary {
             The expression ```time.minusMonths("2021-11-08T13:00:00Z", 2)```
             returns ```"2021-09-08T13:00:00Z"```.""")
     public static Val minusMonths(@Text Val startTime, @Int Val months) {
-        final var instant = instantOf(startTime);
-        final var zdt     = instant.atZone(ZoneOffset.UTC);
+        val instant = instantOf(startTime);
+        val zdt     = instant.atZone(ZoneOffset.UTC);
         return Val.of(zdt.minusMonths(months.getLong()).toInstant().toString());
     }
 
@@ -306,8 +307,8 @@ public class TemporalFunctionLibrary {
             The expression ```time.minusYears("2021-11-08T13:00:00Z", 3)```
             returns ```"2018-11-08T13:00:00Z"```.""")
     public static Val minusYears(@Text Val startTime, @Int Val years) {
-        final var instant = instantOf(startTime);
-        final var zdt     = instant.atZone(ZoneOffset.UTC);
+        val instant = instantOf(startTime);
+        val zdt     = instant.atZone(ZoneOffset.UTC);
         return Val.of(zdt.minusYears(years.getLong()).toInstant().toString());
     }
 
@@ -323,7 +324,7 @@ public class TemporalFunctionLibrary {
             The expression ```time.plusNanos("2021-11-08T13:00:00Z", 10000000000)```
             returns ```"2021-11-08T13:00:10Z"```.""")
     public static Val plusNanos(@Text Val startTime, @Int Val nanos) {
-        final var instant = instantOf(startTime);
+        val instant = instantOf(startTime);
         validateTemporalBounds(instant, nanos.getLong(), ChronoUnit.NANOS, true);
         return Val.of(instant.plusNanos(nanos.getLong()).toString());
     }
@@ -338,7 +339,7 @@ public class TemporalFunctionLibrary {
             The expression ```time.plusMillis("2021-11-08T13:00:00Z", 10000)```
             returns ```"2021-11-08T13:00:10Z"```.""")
     public static Val plusMillis(@Text Val startTime, @Int Val millis) {
-        final var instant = instantOf(startTime);
+        val instant = instantOf(startTime);
         validateTemporalBounds(instant, millis.getLong(), ChronoUnit.MILLIS, true);
         return Val.of(instant.plusMillis(millis.getLong()).toString());
     }
@@ -353,7 +354,7 @@ public class TemporalFunctionLibrary {
             The expression ```time.plusSeconds("2021-11-08T13:00:00Z", 10)```
             returns ```"2021-11-08T13:00:10Z"```.""")
     public static Val plusSeconds(@Text Val startTime, @Int Val seconds) {
-        final var instant = instantOf(startTime);
+        val instant = instantOf(startTime);
         validateTemporalBounds(instant, seconds.getLong(), ChronoUnit.SECONDS, true);
         return Val.of(instant.plusSeconds(seconds.getLong()).toString());
     }
@@ -368,7 +369,7 @@ public class TemporalFunctionLibrary {
             The expression ```time.minusNanos("2021-11-08T13:00:00Z", 10000000000)```
             returns ```"2021-11-08T12:59:50Z"```.""")
     public static Val minusNanos(@Text Val startTime, @Int Val nanos) {
-        final var instant = instantOf(startTime);
+        val instant = instantOf(startTime);
         validateTemporalBounds(instant, nanos.getLong(), ChronoUnit.NANOS, false);
         return Val.of(instant.minusNanos(nanos.getLong()).toString());
     }
@@ -383,7 +384,7 @@ public class TemporalFunctionLibrary {
             The expression ```time.minusMillis("2021-11-08T13:00:00Z", 10000)```
             returns ```"2021-11-08T12:59:50Z"```.""")
     public static Val minusMillis(@Text Val startTime, @Int Val millis) {
-        final var instant = instantOf(startTime);
+        val instant = instantOf(startTime);
         validateTemporalBounds(instant, millis.getLong(), ChronoUnit.MILLIS, false);
         return Val.of(instant.minusMillis(millis.getLong()).toString());
     }
@@ -398,7 +399,7 @@ public class TemporalFunctionLibrary {
             The expression ```time.minusSeconds("2021-11-08T13:00:00Z", 10)```
             returns ```"2021-11-08T12:59:50Z"```.""")
     public static Val minusSeconds(@Text Val startTime, @Int Val seconds) {
-        final var instant = instantOf(startTime);
+        val instant = instantOf(startTime);
         validateTemporalBounds(instant, seconds.getLong(), ChronoUnit.SECONDS, false);
         return Val.of(instant.minusSeconds(seconds.getLong()).toString());
     }
@@ -522,7 +523,7 @@ public class TemporalFunctionLibrary {
                 return Val.FALSE;
             }
 
-            final var text = timestamp.getText();
+            val text = timestamp.getText();
             if (text.isBlank()) {
                 return Val.FALSE;
             }
@@ -547,8 +548,8 @@ public class TemporalFunctionLibrary {
 
             The expression ```time.startOfDay("2021-11-08T13:45:30Z")``` returns ```"2021-11-08T00:00:00Z"```.""")
     public static Val startOfDay(@Text Val dateTime) {
-        final var instant = instantOf(dateTime);
-        final var date    = LocalDate.ofInstant(instant, ZoneOffset.UTC);
+        val instant = instantOf(dateTime);
+        val date    = LocalDate.ofInstant(instant, ZoneOffset.UTC);
         return Val.of(date.atStartOfDay(ZoneOffset.UTC).toInstant().toString());
     }
 
@@ -559,8 +560,8 @@ public class TemporalFunctionLibrary {
 
             The expression ```time.endOfDay("2021-11-08T13:45:30Z")``` returns ```"2021-11-08T23:59:59.999999999Z"```.""")
     public static Val endOfDay(@Text Val dateTime) {
-        final var instant = instantOf(dateTime);
-        final var date    = LocalDate.ofInstant(instant, ZoneOffset.UTC);
+        val instant = instantOf(dateTime);
+        val date    = LocalDate.ofInstant(instant, ZoneOffset.UTC);
         return Val.of(date.atTime(LocalTime.MAX).atZone(ZoneOffset.UTC).toInstant().toString());
     }
 
@@ -574,9 +575,9 @@ public class TemporalFunctionLibrary {
             The expression ```time.startOfWeek("2021-11-08T13:45:30Z")``` returns ```"2021-11-08T00:00:00Z"```
             (November 8, 2021 was a Monday).""")
     public static Val startOfWeek(@Text Val dateTime) {
-        final var instant = instantOf(dateTime);
-        final var date    = LocalDate.ofInstant(instant, ZoneOffset.UTC);
-        final var monday  = date.with(java.time.temporal.TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
+        val instant = instantOf(dateTime);
+        val date    = LocalDate.ofInstant(instant, ZoneOffset.UTC);
+        val monday  = date.with(java.time.temporal.TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
         return Val.of(monday.atStartOfDay(ZoneOffset.UTC).toInstant().toString());
     }
 
@@ -589,9 +590,9 @@ public class TemporalFunctionLibrary {
 
             The expression ```time.endOfWeek("2021-11-08T13:45:30Z")``` returns ```"2021-11-14T23:59:59.999999999Z"```.""")
     public static Val endOfWeek(@Text Val dateTime) {
-        final var instant = instantOf(dateTime);
-        final var date    = LocalDate.ofInstant(instant, ZoneOffset.UTC);
-        final var sunday  = date.with(java.time.temporal.TemporalAdjusters.nextOrSame(DayOfWeek.SUNDAY));
+        val instant = instantOf(dateTime);
+        val date    = LocalDate.ofInstant(instant, ZoneOffset.UTC);
+        val sunday  = date.with(java.time.temporal.TemporalAdjusters.nextOrSame(DayOfWeek.SUNDAY));
         return Val.of(sunday.atTime(LocalTime.MAX).atZone(ZoneOffset.UTC).toInstant().toString());
     }
 
@@ -602,8 +603,8 @@ public class TemporalFunctionLibrary {
 
             The expression ```time.startOfMonth("2021-11-08T13:45:30Z")``` returns ```"2021-11-01T00:00:00Z"```.""")
     public static Val startOfMonth(@Text Val dateTime) {
-        final var instant = instantOf(dateTime);
-        final var date    = LocalDate.ofInstant(instant, ZoneOffset.UTC);
+        val instant = instantOf(dateTime);
+        val date    = LocalDate.ofInstant(instant, ZoneOffset.UTC);
         return Val.of(date.withDayOfMonth(1).atStartOfDay(ZoneOffset.UTC).toInstant().toString());
     }
 
@@ -614,9 +615,9 @@ public class TemporalFunctionLibrary {
 
             The expression ```time.endOfMonth("2021-11-08T13:45:30Z")``` returns ```"2021-11-30T23:59:59.999999999Z"```.""")
     public static Val endOfMonth(@Text Val dateTime) {
-        final var instant = instantOf(dateTime);
-        final var date    = LocalDate.ofInstant(instant, ZoneOffset.UTC);
-        final var lastDay = date.withDayOfMonth(date.lengthOfMonth());
+        val instant = instantOf(dateTime);
+        val date    = LocalDate.ofInstant(instant, ZoneOffset.UTC);
+        val lastDay = date.withDayOfMonth(date.lengthOfMonth());
         return Val.of(lastDay.atTime(LocalTime.MAX).atZone(ZoneOffset.UTC).toInstant().toString());
     }
 
@@ -627,8 +628,8 @@ public class TemporalFunctionLibrary {
 
             The expression ```time.startOfYear("2021-11-08T13:45:30Z")``` returns ```"2021-01-01T00:00:00Z"```.""")
     public static Val startOfYear(@Text Val dateTime) {
-        final var instant = instantOf(dateTime);
-        final var date    = LocalDate.ofInstant(instant, ZoneOffset.UTC);
+        val instant = instantOf(dateTime);
+        val date    = LocalDate.ofInstant(instant, ZoneOffset.UTC);
         return Val.of(date.withDayOfYear(1).atStartOfDay(ZoneOffset.UTC).toInstant().toString());
     }
 
@@ -639,9 +640,9 @@ public class TemporalFunctionLibrary {
 
             The expression ```time.endOfYear("2021-11-08T13:45:30Z")``` returns ```"2021-12-31T23:59:59.999999999Z"```.""")
     public static Val endOfYear(@Text Val dateTime) {
-        final var instant = instantOf(dateTime);
-        final var date    = LocalDate.ofInstant(instant, ZoneOffset.UTC);
-        final var lastDay = date.withDayOfYear(date.lengthOfYear());
+        val instant = instantOf(dateTime);
+        val date    = LocalDate.ofInstant(instant, ZoneOffset.UTC);
+        val lastDay = date.withDayOfYear(date.lengthOfYear());
         return Val.of(lastDay.atTime(LocalTime.MAX).atZone(ZoneOffset.UTC).toInstant().toString());
     }
 
@@ -654,7 +655,7 @@ public class TemporalFunctionLibrary {
 
             The expression ```time.truncateToHour("2021-11-08T13:45:30.123Z")``` returns ```"2021-11-08T13:00:00Z"```.""")
     public static Val truncateToHour(@Text Val dateTime) {
-        final var instant = instantOf(dateTime);
+        val instant = instantOf(dateTime);
         return Val.of(instant.truncatedTo(ChronoUnit.HOURS).toString());
     }
 
@@ -736,8 +737,8 @@ public class TemporalFunctionLibrary {
             The expression ```time.dateTimeAtOffset("2021-11-08T13:12:35", "+05:00")```
             returns ```"2021-11-08T08:12:35Z"```.""")
     public static Val dateTimeAtOffset(@Text Val localDateTime, @Text Val offsetId) {
-        final var ldt = DateTimeFormatter.ISO_LOCAL_DATE_TIME.parse(localDateTime.getText(), LocalDateTime::from);
-        final var odt = OffsetDateTime.of(ldt, parseZoneOffset(offsetId));
+        val ldt = DateTimeFormatter.ISO_LOCAL_DATE_TIME.parse(localDateTime.getText(), LocalDateTime::from);
+        val odt = OffsetDateTime.of(ldt, parseZoneOffset(offsetId));
         return Val.of(odt.withOffsetSameInstant(ZoneOffset.UTC).toInstant().toString());
     }
 
@@ -753,8 +754,8 @@ public class TemporalFunctionLibrary {
             The expression ```time.dateTimeAtZone("2021-11-08T13:12:35", "Europe/Berlin")```
             returns ```"2021-11-08T12:12:35Z"```.""")
     public static Val dateTimeAtZone(@Text Val localDateTime, @Text Val zoneId) {
-        final var ldt = DateTimeFormatter.ISO_LOCAL_DATE_TIME.parse(localDateTime.getText(), LocalDateTime::from);
-        final var zdt = ZonedDateTime.of(ldt, zoneIdOf(zoneId));
+        val ldt = DateTimeFormatter.ISO_LOCAL_DATE_TIME.parse(localDateTime.getText(), LocalDateTime::from);
+        val zdt = ZonedDateTime.of(ldt, zoneIdOf(zoneId));
         return Val.of(zdt.withZoneSameInstant(ZoneId.of("UTC")).toInstant().toString());
     }
 
@@ -767,7 +768,7 @@ public class TemporalFunctionLibrary {
             The expression ```time.offsetDateTime("2021-11-08T13:12:35+05:00")```
             returns ```"2021-11-08T08:12:35Z"```.""")
     public static Val offsetDateTime(@Text Val isoDateTime) {
-        final var offsetDateTime = DateTimeFormatter.ISO_DATE_TIME.parse(isoDateTime.getText(), OffsetDateTime::from);
+        val offsetDateTime = DateTimeFormatter.ISO_DATE_TIME.parse(isoDateTime.getText(), OffsetDateTime::from);
         return Val.of(offsetDateTime.withOffsetSameInstant(ZoneOffset.UTC).toInstant().toString());
     }
 
@@ -781,7 +782,7 @@ public class TemporalFunctionLibrary {
 
             The expression ```time.offsetTime("13:12:35-05:00")``` returns ```"18:12:35"```.""")
     public static Val offsetTime(@Text Val isoTime) {
-        final var offsetTime = DateTimeFormatter.ISO_TIME.parse(isoTime.getText(), OffsetTime::from);
+        val offsetTime = DateTimeFormatter.ISO_TIME.parse(isoTime.getText(), OffsetTime::from);
         return Val.of(offsetTime.withOffsetSameInstant(ZoneOffset.UTC).toLocalTime().toString());
     }
 
@@ -793,8 +794,8 @@ public class TemporalFunctionLibrary {
 
             The expression ```time.timeAtOffset("13:12:35", "-05:00")``` returns ```"18:12:35"```.""")
     public static Val timeAtOffset(@Text Val localTime, @Text Val offsetId) {
-        final var lt     = DateTimeFormatter.ISO_LOCAL_TIME.parse(localTime.getText(), LocalTime::from);
-        final var offset = parseZoneOffset(offsetId);
+        val lt     = DateTimeFormatter.ISO_LOCAL_TIME.parse(localTime.getText(), LocalTime::from);
+        val offset = parseZoneOffset(offsetId);
         return Val.of(OffsetTime.of(lt, offset).withOffsetSameInstant(ZoneOffset.UTC).toLocalTime().toString());
     }
 
@@ -806,9 +807,9 @@ public class TemporalFunctionLibrary {
 
             The expression ```time.timeInZone("13:12:35", "2022-01-14", "US/Pacific")``` returns ```"21:12:35"```.""")
     public static Val timeInZone(@Text Val localTime, @Text Val localDate, @Text Val zoneId) {
-        final var zone          = zoneIdOf(zoneId);
-        final var lt            = DateTimeFormatter.ISO_LOCAL_TIME.parse(localTime.getText(), LocalTime::from);
-        final var zonedDateTime = ZonedDateTime.of(lt.atDate(LocalDate.parse(localDate.getText())), zone);
+        val zone          = zoneIdOf(zoneId);
+        val lt            = DateTimeFormatter.ISO_LOCAL_TIME.parse(localTime.getText(), LocalTime::from);
+        val zonedDateTime = ZonedDateTime.of(lt.atDate(LocalDate.parse(localDate.getText())), zone);
         return Val.of(zonedDateTime.withZoneSameInstant(ZoneId.of("UTC")).toLocalTime().toString());
     }
 
@@ -819,7 +820,7 @@ public class TemporalFunctionLibrary {
 
             The expression ```time.timeAMPM("08:12:35 PM")``` returns ```"20:12:35"```.""")
     public static Val timeAMPM(@Text Val timeInAMPM) {
-        final var lt = US_TIME_FORMATTER.parse(timeInAMPM.getText(), LocalTime::from);
+        val lt = US_TIME_FORMATTER.parse(timeInAMPM.getText(), LocalTime::from);
         return Val.of(lt.toString());
     }
 
@@ -842,7 +843,7 @@ public class TemporalFunctionLibrary {
 
             The expression ```time.timeOf("2021-11-08T13:00:00Z")``` returns ```"13:00:00"```.""")
     public static Val timeOf(@Text Val isoDateTime) {
-        final var time = DateTimeFormatter.ISO_DATE_TIME.parse(isoDateTime.getText(), LocalTime::from)
+        val time = DateTimeFormatter.ISO_DATE_TIME.parse(isoDateTime.getText(), LocalTime::from)
                 .truncatedTo(ChronoUnit.SECONDS);
         return Val.of(time.format(DateTimeFormatter.ISO_LOCAL_TIME));
     }
@@ -896,7 +897,7 @@ public class TemporalFunctionLibrary {
             throw new IllegalArgumentException("ISO duration parameter cannot be null");
         }
 
-        final var durationStr = isoDuration.getText();
+        val durationStr = isoDuration.getText();
         if (durationStr.isBlank()) {
             throw new IllegalArgumentException("ISO duration parameter cannot be blank");
         }
@@ -904,23 +905,23 @@ public class TemporalFunctionLibrary {
         try {
             var totalMillis = 0L;
 
-            final var hasPeriodComponents = durationStr.contains("Y")
+            val hasPeriodComponents = durationStr.contains("Y")
                     || (durationStr.contains("M") && !durationStr.contains("T"));
 
             if (hasPeriodComponents) {
-                final var period = Period.parse(durationStr);
+                val period = Period.parse(durationStr);
                 totalMillis += (long) (period.getYears() * 365.2425 * 24 * 60 * 60 * 1000);
                 totalMillis += (long) (period.getMonths() * 30.436875 * 24 * 60 * 60 * 1000);
                 totalMillis += period.getDays() * 24L * 60 * 60 * 1000;
 
                 if (durationStr.contains("T")) {
-                    final var timePartStart = durationStr.indexOf('T');
-                    final var timePart      = "PT" + durationStr.substring(timePartStart + 1);
-                    final var duration      = Duration.parse(timePart);
+                    val timePartStart = durationStr.indexOf('T');
+                    val timePart      = "PT" + durationStr.substring(timePartStart + 1);
+                    val duration      = Duration.parse(timePart);
                     totalMillis += duration.toMillis();
                 }
             } else {
-                final var duration = Duration.parse(durationStr);
+                val duration = Duration.parse(durationStr);
                 totalMillis = duration.toMillis();
             }
 
@@ -942,7 +943,7 @@ public class TemporalFunctionLibrary {
             The expression ```time.durationToISOCompact(9000000)``` returns ```"PT2H30M"```.
             The expression ```time.durationToISOCompact(90061000)``` returns ```"P1DT1H1M1S"```.""")
     public static Val durationToISOCompact(@Number Val milliseconds) {
-        final var duration = Duration.ofMillis(milliseconds.getLong());
+        val duration = Duration.ofMillis(milliseconds.getLong());
         return Val.of(duration.toString());
     }
 
@@ -959,22 +960,22 @@ public class TemporalFunctionLibrary {
     public static Val durationToISOVerbose(@Number Val milliseconds) {
         var remainingMillis = milliseconds.getLong();
 
-        final var millisPerYear  = (long) (365.2425 * 24 * 60 * 60 * 1000);
-        final var millisPerMonth = (long) (30.436875 * 24 * 60 * 60 * 1000);
+        val millisPerYear  = (long) (365.2425 * 24 * 60 * 60 * 1000);
+        val millisPerMonth = (long) (30.436875 * 24 * 60 * 60 * 1000);
 
-        final var years = remainingMillis / millisPerYear;
+        val years = remainingMillis / millisPerYear;
         remainingMillis %= millisPerYear;
 
-        final var months = remainingMillis / millisPerMonth;
+        val months = remainingMillis / millisPerMonth;
         remainingMillis %= millisPerMonth;
 
-        final var duration = Duration.ofMillis(remainingMillis);
-        final var days     = duration.toDays();
-        final var hours    = duration.toHoursPart();
-        final var minutes  = duration.toMinutesPart();
-        final var seconds  = duration.toSecondsPart();
+        val duration = Duration.ofMillis(remainingMillis);
+        val days     = duration.toDays();
+        val hours    = duration.toHoursPart();
+        val minutes  = duration.toMinutesPart();
+        val seconds  = duration.toSecondsPart();
 
-        final var result = new StringBuilder("P");
+        val result = new StringBuilder("P");
         if (years > 0)
             result.append(years).append('Y');
         if (months > 0)
@@ -1009,9 +1010,9 @@ public class TemporalFunctionLibrary {
             The expression ```time.toZone("2021-11-08T13:00:00Z", "Europe/Berlin")```
             returns ```"2021-11-08T14:00:00+01:00"```.""")
     public static Val toZone(@Text Val utcTime, @Text Val zoneId) {
-        final var instant = instantOf(utcTime);
-        final var zone    = zoneIdOf(zoneId);
-        final var zdt     = instant.atZone(zone);
+        val instant = instantOf(utcTime);
+        val zone    = zoneIdOf(zoneId);
+        val zdt     = instant.atZone(zone);
         return Val.of(zdt.format(DateTimeFormatter.ISO_OFFSET_DATE_TIME));
     }
 
@@ -1024,9 +1025,9 @@ public class TemporalFunctionLibrary {
             The expression ```time.toOffset("2021-11-08T13:00:00Z", "+05:30")```
             returns ```"2021-11-08T18:30:00+05:30"```.""")
     public static Val toOffset(@Text Val utcTime, @Text Val offsetId) {
-        final var instant = instantOf(utcTime);
-        final var offset  = parseZoneOffset(offsetId);
-        final var odt     = instant.atOffset(offset);
+        val instant = instantOf(utcTime);
+        val offset  = parseZoneOffset(offsetId);
+        val odt     = instant.atOffset(offset);
         return Val.of(odt.format(DateTimeFormatter.ISO_OFFSET_DATE_TIME));
     }
 
@@ -1042,8 +1043,8 @@ public class TemporalFunctionLibrary {
 
             The expression ```time.ageInYears("1990-05-15", "2021-11-08")``` returns ```31```.""")
     public static Val ageInYears(@Text Val birthDate, @Text Val currentDate) {
-        final var birth   = LocalDate.ofInstant(instantOf(birthDate), ZoneOffset.UTC);
-        final var current = LocalDate.ofInstant(instantOf(currentDate), ZoneOffset.UTC);
+        val birth   = LocalDate.ofInstant(instantOf(birthDate), ZoneOffset.UTC);
+        val current = LocalDate.ofInstant(instantOf(currentDate), ZoneOffset.UTC);
         return Val.of(Period.between(birth, current).getYears());
     }
 
@@ -1057,9 +1058,9 @@ public class TemporalFunctionLibrary {
 
             The expression ```time.ageInMonths("1990-05-15", "1990-08-20")``` returns ```3```.""")
     public static Val ageInMonths(@Text Val birthDate, @Text Val currentDate) {
-        final var birth   = LocalDate.ofInstant(instantOf(birthDate), ZoneOffset.UTC);
-        final var current = LocalDate.ofInstant(instantOf(currentDate), ZoneOffset.UTC);
-        final var period  = Period.between(birth, current);
+        val birth   = LocalDate.ofInstant(instantOf(birthDate), ZoneOffset.UTC);
+        val current = LocalDate.ofInstant(instantOf(currentDate), ZoneOffset.UTC);
+        val period  = Period.between(birth, current);
         return Val.of(period.getYears() * 12L + period.getMonths());
     }
 
@@ -1073,7 +1074,7 @@ public class TemporalFunctionLibrary {
             throw new IllegalArgumentException("Time parameter cannot be null");
         }
 
-        final var text = time.getText();
+        val text = time.getText();
         if (text.isBlank()) {
             throw new IllegalArgumentException("Time parameter cannot be blank");
         }
@@ -1100,7 +1101,7 @@ public class TemporalFunctionLibrary {
             throw new IllegalArgumentException("Zone parameter cannot be null");
         }
 
-        final var zoneIdStr = zone.getText().trim();
+        val zoneIdStr = zone.getText().trim();
         if (zoneIdStr.isBlank())
             return ZoneId.systemDefault();
 
@@ -1122,7 +1123,7 @@ public class TemporalFunctionLibrary {
             throw new IllegalArgumentException("Offset parameter cannot be null");
         }
 
-        final var offsetStr = offset.getText();
+        val offsetStr = offset.getText();
         if (offsetStr.isBlank()) {
             throw new IllegalArgumentException("Offset parameter cannot be blank");
         }
@@ -1142,7 +1143,7 @@ public class TemporalFunctionLibrary {
             throw new IllegalArgumentException("ChronoUnit parameter cannot be null");
         }
 
-        final var unitStr = unit.getText().trim().toUpperCase();
+        val unitStr = unit.getText().trim().toUpperCase();
         if (unitStr.isBlank()) {
             throw new IllegalArgumentException("ChronoUnit parameter cannot be blank");
         }
