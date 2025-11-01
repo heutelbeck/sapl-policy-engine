@@ -22,18 +22,25 @@ import io.sapl.api.functions.Function;
 import io.sapl.api.functions.FunctionLibrary;
 import io.sapl.api.interpreter.Val;
 import io.sapl.api.validation.Text;
-import lombok.SneakyThrows;
 import lombok.experimental.UtilityClass;
 
 /**
  * Function library providing YAML marshalling and unmarshalling operations.
  */
 @UtilityClass
-@FunctionLibrary(name = YamlFunctionLibrary.NAME, description = YamlFunctionLibrary.DESCRIPTION)
+@FunctionLibrary(name = YamlFunctionLibrary.NAME, description = YamlFunctionLibrary.DESCRIPTION, libraryDocumentation = YamlFunctionLibrary.LIBRARY_DOCUMENTATION)
 public class YamlFunctionLibrary {
 
     public static final String NAME        = "yaml";
     public static final String DESCRIPTION = "Function library for YAML marshalling and unmarshalling operations.";
+
+    public static final String LIBRARY_DOCUMENTATION = """
+            ## YAML Functions
+
+            Enables YAML processing in SAPL policies for configuration-based authorization systems and cloud-native environments.
+            Parse YAML configurations into SAPL values for policy evaluation, or serialize authorization decisions into YAML
+            format for integration with infrastructure-as-code and configuration management systems.
+            """;
 
     private static final YAMLMapper YAML_MAPPER = new YAMLMapper();
 
@@ -41,44 +48,49 @@ public class YamlFunctionLibrary {
      * Converts a well-formed YAML document into a SAPL value.
      *
      * @param yaml the YAML text to parse
-     * @return a Val representing the parsed YAML content
+     * @return a Val representing the parsed YAML content, or an error if parsing
+     * fails
      */
-    @SneakyThrows
     @Function(docs = """
             ```yamlToVal(TEXT yaml)```: Converts a well-formed YAML document ```yaml``` into a SAPL
             value representing the content of the YAML document.
 
             **Example:**
             ```sapl
-            policy "example"
+            policy "permit_resource_owner"
             permit
             where
-               var yamlText = "name: Poppy\\ncolor: RED\\npetals: 9";
-               yaml.yamlToVal(yamlText) == {"name":"Poppy","color":"RED","petals":9};
+               var resourceConfig = "owner: alice\\nclassification: CONFIDENTIAL\\naccessLevel: 3";
+               var resource = yaml.yamlToVal(resourceConfig);
+               resource.owner == subject.name;
             ```
             """)
     public static Val yamlToVal(@Text Val yaml) {
-        return Val.of(YAML_MAPPER.readTree(yaml.getText()));
+        try {
+            return Val.of(YAML_MAPPER.readTree(yaml.getText()));
+        } catch (Exception exception) {
+            return Val.error("Failed to parse YAML: %s".formatted(exception.getMessage()));
+        }
     }
 
     /**
      * Converts a SAPL value into a YAML string representation.
      *
      * @param value the value to convert to YAML
-     * @return a Val containing the YAML string representation
+     * @return a Val containing the YAML string representation, or an error if
+     * conversion fails
      */
-    @SneakyThrows
     @Function(docs = """
             ```valToYaml(value)```: Converts a SAPL ```value``` into a YAML string representation.
 
             **Example:**
             ```sapl
-            policy "example"
+            policy "export_audit_log"
             permit
             where
-               var object = {"name":"Poppy","color":"RED","petals":9};
-               var expected = "---\\nname: \\"Poppy\\"\\ncolor: \\"RED\\"\\npetals: 9\\n";
-               yaml.valToYaml(object) == expected;
+               var auditEntry = {"user":"bob","action":"READ","resource":"/api/data","timestamp":"2025-01-15T10:30:00Z"};
+               var auditYaml = yaml.valToYaml(auditEntry);
+               // auditYaml contains YAML-formatted audit log entry
             ```
             """, schema = """
             {
@@ -88,7 +100,11 @@ public class YamlFunctionLibrary {
         if (value.isError() || value.isUndefined()) {
             return value;
         }
-        return Val.of(YAML_MAPPER.writeValueAsString(value.get()));
+        try {
+            return Val.of(YAML_MAPPER.writeValueAsString(value.get()));
+        } catch (Exception exception) {
+            return Val.error("Failed to convert value to YAML: %s".formatted(exception.getMessage()));
+        }
     }
 
 }

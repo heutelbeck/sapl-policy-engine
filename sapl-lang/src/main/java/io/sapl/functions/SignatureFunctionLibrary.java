@@ -48,6 +48,18 @@ import static io.sapl.functions.util.crypto.CryptoConstants.*;
  * Common use cases include API request signature verification, document
  * signing, and general authentication where the signer uses a private key
  * and the verifier has access to the public key.
+ * <p>
+ * Signature Format Requirements:
+ * <ul>
+ * <li>Hexadecimal: lowercase or uppercase, no delimiters</li>
+ * <li>Base64: standard or URL-safe encoding accepted</li>
+ * <li>Whitespace is automatically stripped</li>
+ * </ul>
+ * <p>
+ * Thread Safety: All verification functions are thread-safe and can be called
+ * concurrently. The underlying {@code java.security.Signature} implementation
+ * provides constant-time comparison for signature verification on most JVM
+ * implementations, providing protection against timing attacks.
  */
 @UtilityClass
 @FunctionLibrary(name = SignatureFunctionLibrary.NAME, description = SignatureFunctionLibrary.DESCRIPTION)
@@ -65,13 +77,13 @@ public class SignatureFunctionLibrary {
     /* RSA Signature Verification */
 
     @Function(docs = """
-            ```verifyRsaSha256(TEXT message, TEXT signature, TEXT publicKeyPem)```: Verifies an RSA signature using SHA-256.
+            ```isValidRsaSha256(TEXT message, TEXT signature, TEXT publicKeyPem)```: Validates an RSA signature using SHA-256.
 
-            Verifies that the signature was created by signing the message with the private key
-            corresponding to the provided public key. The signature should be provided as a
-            hexadecimal or Base64 string.
+            Checks whether the signature was created using the private key corresponding to the
+            public key. Signature must be in hexadecimal or Base64 format.
 
-            Commonly used for API authentication and document signing.
+            Use for API authentication, document signing, and general RSA signature validation
+            where SHA-256 hash strength is sufficient.
 
             **Parameters:**
             - message: The original message that was signed
@@ -80,25 +92,25 @@ public class SignatureFunctionLibrary {
 
             **Examples:**
             ```sapl
-            policy "verify api signature"
+            policy "api signature check"
             permit
             where
               var message = "request payload";
               var signature = "signature_from_header";
               var publicKey = "-----BEGIN PUBLIC KEY-----\\n...\\n-----END PUBLIC KEY-----";
-              signature.verifyRsaSha256(message, signature, publicKey);
+              signature.isValidRsaSha256(message, signature, publicKey);
             ```
             """, schema = RETURNS_BOOLEAN)
-    public static Val verifyRsaSha256(@Text Val message, @Text Val signature, @Text Val publicKeyPem) {
+    public static Val isValidRsaSha256(@Text Val message, @Text Val signature, @Text Val publicKeyPem) {
         return verifySignature(message.getText(), signature.getText(), publicKeyPem.getText(), ALGORITHM_RSA_SHA256,
                 ALGORITHM_RSA);
     }
 
     @Function(docs = """
-            ```verifyRsaSha384(TEXT message, TEXT signature, TEXT publicKeyPem)```: Verifies an RSA signature using SHA-384.
+            ```isValidRsaSha384(TEXT message, TEXT signature, TEXT publicKeyPem)```: Validates an RSA signature using SHA-384.
 
-            Verifies RSA signatures using SHA-384 hash algorithm. Provides stronger security
-            than SHA-256 for high-security applications.
+            Checks RSA signatures using SHA-384 hash algorithm. Use when security policy
+            requires stronger hashing than SHA-256.
 
             **Parameters:**
             - message: The original message that was signed
@@ -107,22 +119,22 @@ public class SignatureFunctionLibrary {
 
             **Examples:**
             ```sapl
-            policy "verify document signature"
+            policy "document signature"
             permit
             where
-              signature.verifyRsaSha384(document, documentSignature, trustedPublicKey);
+              signature.isValidRsaSha384(document, documentSignature, trustedPublicKey);
             ```
             """, schema = RETURNS_BOOLEAN)
-    public static Val verifyRsaSha384(@Text Val message, @Text Val signature, @Text Val publicKeyPem) {
+    public static Val isValidRsaSha384(@Text Val message, @Text Val signature, @Text Val publicKeyPem) {
         return verifySignature(message.getText(), signature.getText(), publicKeyPem.getText(), ALGORITHM_RSA_SHA384,
                 ALGORITHM_RSA);
     }
 
     @Function(docs = """
-            ```verifyRsaSha512(TEXT message, TEXT signature, TEXT publicKeyPem)```: Verifies an RSA signature using SHA-512.
+            ```isValidRsaSha512(TEXT message, TEXT signature, TEXT publicKeyPem)```: Validates an RSA signature using SHA-512.
 
-            Verifies RSA signatures using SHA-512 hash algorithm. Provides the strongest
-            security in the RSA-SHA2 family.
+            Checks RSA signatures using SHA-512 hash algorithm. Strongest hash in the RSA-SHA2
+            family, use for high-security requirements.
 
             **Parameters:**
             - message: The original message that was signed
@@ -131,13 +143,13 @@ public class SignatureFunctionLibrary {
 
             **Examples:**
             ```sapl
-            policy "verify high-security signature"
+            policy "secure signature check"
             permit
             where
-              signature.verifyRsaSha512(criticalData, dataSignature, certifiedPublicKey);
+              signature.isValidRsaSha512(criticalData, dataSignature, certifiedPublicKey);
             ```
             """, schema = RETURNS_BOOLEAN)
-    public static Val verifyRsaSha512(@Text Val message, @Text Val signature, @Text Val publicKeyPem) {
+    public static Val isValidRsaSha512(@Text Val message, @Text Val signature, @Text Val publicKeyPem) {
         return verifySignature(message.getText(), signature.getText(), publicKeyPem.getText(), ALGORITHM_RSA_SHA512,
                 ALGORITHM_RSA);
     }
@@ -145,11 +157,11 @@ public class SignatureFunctionLibrary {
     /* ECDSA Signature Verification */
 
     @Function(docs = """
-            ```verifyEcdsaP256(TEXT message, TEXT signature, TEXT publicKeyPem)```: Verifies an ECDSA signature using P-256 curve.
+            ```isValidEcdsaP256(TEXT message, TEXT signature, TEXT publicKeyPem)```: Validates an ECDSA signature using P-256 curve.
 
-            Verifies ECDSA (Elliptic Curve Digital Signature Algorithm) signatures using the
-            P-256 (secp256r1) curve with SHA-256. ECDSA provides equivalent security to RSA
-            with smaller key sizes.
+            Checks ECDSA (Elliptic Curve Digital Signature Algorithm) signatures using the
+            P-256 (secp256r1) curve with SHA-256. ECDSA gives equivalent security to RSA
+            with smaller keys.
 
             **Parameters:**
             - message: The original message that was signed
@@ -158,22 +170,22 @@ public class SignatureFunctionLibrary {
 
             **Examples:**
             ```sapl
-            policy "verify ecdsa signature"
+            policy "transaction signature"
             permit
             where
-              signature.verifyEcdsaP256(transaction, transactionSig, userPublicKey);
+              signature.isValidEcdsaP256(transaction, transactionSig, userPublicKey);
             ```
             """, schema = RETURNS_BOOLEAN)
-    public static Val verifyEcdsaP256(@Text Val message, @Text Val signature, @Text Val publicKeyPem) {
+    public static Val isValidEcdsaP256(@Text Val message, @Text Val signature, @Text Val publicKeyPem) {
         return verifySignature(message.getText(), signature.getText(), publicKeyPem.getText(), ALGORITHM_ECDSA_SHA256,
                 ALGORITHM_EC);
     }
 
     @Function(docs = """
-            ```verifyEcdsaP384(TEXT message, TEXT signature, TEXT publicKeyPem)```: Verifies an ECDSA signature using P-384 curve.
+            ```isValidEcdsaP384(TEXT message, TEXT signature, TEXT publicKeyPem)```: Validates an ECDSA signature using P-384 curve.
 
-            Verifies ECDSA signatures using the P-384 (secp384r1) curve with SHA-384.
-            Provides stronger security than P-256.
+            Checks ECDSA signatures using the P-384 (secp384r1) curve with SHA-384.
+            Use when security policy requires stronger curves than P-256.
 
             **Parameters:**
             - message: The original message that was signed
@@ -182,22 +194,22 @@ public class SignatureFunctionLibrary {
 
             **Examples:**
             ```sapl
-            policy "verify ecdsa p384"
+            policy "ecdsa p384 check"
             permit
             where
-              signature.verifyEcdsaP384(sensitiveData, dataSig, trustedEcKey);
+              signature.isValidEcdsaP384(sensitiveData, dataSig, trustedEcKey);
             ```
             """, schema = RETURNS_BOOLEAN)
-    public static Val verifyEcdsaP384(@Text Val message, @Text Val signature, @Text Val publicKeyPem) {
+    public static Val isValidEcdsaP384(@Text Val message, @Text Val signature, @Text Val publicKeyPem) {
         return verifySignature(message.getText(), signature.getText(), publicKeyPem.getText(), ALGORITHM_ECDSA_SHA384,
                 ALGORITHM_EC);
     }
 
     @Function(docs = """
-            ```verifyEcdsaP521(TEXT message, TEXT signature, TEXT publicKeyPem)```: Verifies an ECDSA signature using P-521 curve.
+            ```isValidEcdsaP521(TEXT message, TEXT signature, TEXT publicKeyPem)```: Validates an ECDSA signature using P-521 curve.
 
-            Verifies ECDSA signatures using the P-521 (secp521r1) curve with SHA-512.
-            Provides the strongest security in the NIST EC curves.
+            Checks ECDSA signatures using the P-521 (secp521r1) curve with SHA-512.
+            Strongest NIST elliptic curve, use for highest security requirements.
 
             **Parameters:**
             - message: The original message that was signed
@@ -206,13 +218,13 @@ public class SignatureFunctionLibrary {
 
             **Examples:**
             ```sapl
-            policy "verify ecdsa p521"
+            policy "ecdsa p521 check"
             permit
             where
-              signature.verifyEcdsaP521(highSecurityData, dataSig, ecPublicKey);
+              signature.isValidEcdsaP521(highSecurityData, dataSig, ecPublicKey);
             ```
             """, schema = RETURNS_BOOLEAN)
-    public static Val verifyEcdsaP521(@Text Val message, @Text Val signature, @Text Val publicKeyPem) {
+    public static Val isValidEcdsaP521(@Text Val message, @Text Val signature, @Text Val publicKeyPem) {
         return verifySignature(message.getText(), signature.getText(), publicKeyPem.getText(), ALGORITHM_ECDSA_SHA512,
                 ALGORITHM_EC);
     }
@@ -220,13 +232,12 @@ public class SignatureFunctionLibrary {
     /* EdDSA Signature Verification */
 
     @Function(docs = """
-            ```verifyEd25519(TEXT message, TEXT signature, TEXT publicKeyPem)```: Verifies an Ed25519 signature.
+            ```isValidEd25519(TEXT message, TEXT signature, TEXT publicKeyPem)```: Validates an Ed25519 signature.
 
-            Verifies EdDSA (Edwards-curve Digital Signature Algorithm) signatures using the
-            Ed25519 curve. Ed25519 is a modern signature scheme that is fast, secure, and
-            has small keys and signatures.
+            Checks EdDSA (Edwards-curve Digital Signature Algorithm) signatures using the
+            Ed25519 curve. Ed25519 is fast, secure, and has small keys and signatures.
 
-            Commonly used in modern cryptographic protocols and blockchain applications.
+            Standard in SSH keys, TLS 1.3, Signal Protocol, and many blockchain implementations.
 
             **Parameters:**
             - message: The original message that was signed
@@ -235,13 +246,13 @@ public class SignatureFunctionLibrary {
 
             **Examples:**
             ```sapl
-            policy "verify ed25519 signature"
+            policy "ed25519 signature check"
             permit
             where
-              signature.verifyEd25519(blockData, blockSignature, validatorKey);
+              signature.isValidEd25519(blockData, blockSignature, validatorKey);
             ```
             """, schema = RETURNS_BOOLEAN)
-    public static Val verifyEd25519(@Text Val message, @Text Val signature, @Text Val publicKeyPem) {
+    public static Val isValidEd25519(@Text Val message, @Text Val signature, @Text Val publicKeyPem) {
         return verifySignature(message.getText(), signature.getText(), publicKeyPem.getText(), ALGORITHM_ED25519,
                 ALGORITHM_EDDSA);
     }
@@ -250,8 +261,7 @@ public class SignatureFunctionLibrary {
 
     /**
      * Verifies a digital signature using the specified algorithm. Parses the public
-     * key,
-     * decodes the signature, and performs cryptographic verification.
+     * key, decodes the signature, and performs cryptographic verification.
      *
      * @param message the original message that was signed
      * @param signatureString the signature in hexadecimal or Base64 format
@@ -288,8 +298,11 @@ public class SignatureFunctionLibrary {
     }
 
     /**
-     * Parses a signature from hexadecimal or Base64 string format. Attempts hex
-     * parsing first, then falls back to Base64 if hex parsing fails.
+     * Parses a signature from hexadecimal or Base64 string format.
+     * <p>
+     * Attempts hexadecimal parsing first, then falls back to Base64 if hex parsing
+     * fails. This two-step approach ensures maximum compatibility with various
+     * signature encoding formats commonly used in APIs and protocols.
      *
      * @param signatureString the signature string in hex or Base64 format
      * @return the decoded signature bytes

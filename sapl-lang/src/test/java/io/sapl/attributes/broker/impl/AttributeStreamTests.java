@@ -99,7 +99,7 @@ class AttributeStreamTests {
     }
 
     private static AttributeFinderInvocation createInvocation(Duration initialTimeout, Duration pollInterval,
-                                                              Duration backoff, long retries) {
+            Duration backoff, long retries) {
         return new AttributeFinderInvocation("testConfig", "test.attribute", null, List.of(), Map.of(), initialTimeout,
                 pollInterval, backoff, retries, false);
     }
@@ -579,11 +579,11 @@ class AttributeStreamTests {
         val invocation = createInvocation(Duration.ofMillis(10), Duration.ofSeconds(10), Duration.ofMillis(1), retries);
         val attempts   = new AtomicInteger(0);
         val failingPip = (AttributeFinder) inv -> Flux.defer(() -> {
-            if (attempts.incrementAndGet() <= retries) {
-                return Flux.error(new RuntimeException("attempt-" + attempts.get()));
-            }
-            return Flux.just(Val.of("success-after-retries"));
-        });
+                           if (attempts.incrementAndGet() <= retries) {
+                               return Flux.error(new RuntimeException("attempt-" + attempts.get()));
+                           }
+                           return Flux.just(Val.of("success-after-retries"));
+                       });
         val stream     = new AttributeStream(invocation, s -> {}, GRACE_PERIOD, failingPip);
 
         StepVerifier.create(stream.getStream().take(1).timeout(Duration.ofSeconds(2)))
@@ -686,8 +686,8 @@ class AttributeStreamTests {
         stream.connectToPolicyInformationPoint(pip2);
 
         await().pollDelay(AWAIT_POLL_DELAY, MILLISECONDS).pollInterval(AWAIT_POLL_INTERVAL, MILLISECONDS)
-                .atMost(COMPLEX_OPERATION_TIMEOUT, MILLISECONDS).until(
-                        () -> results.stream().anyMatch(value -> !value.isError() && value.get().asText().startsWith("pip2")));
+                .atMost(COMPLEX_OPERATION_TIMEOUT, MILLISECONDS).until(() -> results.stream()
+                        .anyMatch(value -> !value.isError() && value.get().asText().startsWith("pip2")));
 
         val pip2Values = results.stream().filter(value -> !value.isError() && value.get().asText().startsWith("pip2"))
                 .toList();

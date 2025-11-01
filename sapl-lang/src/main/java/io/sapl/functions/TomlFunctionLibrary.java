@@ -22,18 +22,25 @@ import io.sapl.api.functions.Function;
 import io.sapl.api.functions.FunctionLibrary;
 import io.sapl.api.interpreter.Val;
 import io.sapl.api.validation.Text;
-import lombok.SneakyThrows;
 import lombok.experimental.UtilityClass;
 
 /**
  * Function library providing TOML marshalling and unmarshalling operations.
  */
 @UtilityClass
-@FunctionLibrary(name = TomlFunctionLibrary.NAME, description = TomlFunctionLibrary.DESCRIPTION)
+@FunctionLibrary(name = TomlFunctionLibrary.NAME, description = TomlFunctionLibrary.DESCRIPTION, libraryDocumentation = TomlFunctionLibrary.LIBRARY_DOCUMENTATION)
 public class TomlFunctionLibrary {
 
     public static final String NAME        = "toml";
     public static final String DESCRIPTION = "Function library for TOML marshalling and unmarshalling operations.";
+
+    public static final String LIBRARY_DOCUMENTATION = """
+            ## TOML Functions
+
+            Enables TOML configuration file processing in SAPL policies for systems using TOML-based configuration management.
+            Parse TOML configuration files into SAPL values for policy evaluation, or serialize authorization configurations
+            into TOML format for application configuration files and infrastructure management.
+            """;
 
     private static final TomlMapper TOML_MAPPER = new TomlMapper();
 
@@ -41,44 +48,49 @@ public class TomlFunctionLibrary {
      * Converts a well-formed TOML document into a SAPL value.
      *
      * @param toml the TOML text to parse
-     * @return a Val representing the parsed TOML content
+     * @return a Val representing the parsed TOML content, or an error if parsing
+     * fails
      */
-    @SneakyThrows
     @Function(docs = """
             ```tomlToVal(TEXT toml)```: Converts a well-formed TOML document ```toml``` into a SAPL
             value representing the content of the TOML document.
 
             **Example:**
             ```sapl
-            policy "example"
+            policy "permit_based_on_config"
             permit
             where
-               var tomlText = "[flower]\\nname = \\"Poppy\\"\\ncolor = \\"RED\\"\\npetals = 9";
-               toml.tomlToVal(tomlText) == {"flower":{"name":"Poppy","color":"RED","petals":9}};
+               var configToml = "[resource]\\nowner = \\"alice\\"\\nclassification = \\"CONFIDENTIAL\\"\\naccessLevel = 3";
+               var config = toml.tomlToVal(configToml);
+               config.resource.owner == subject.name;
             ```
             """)
     public static Val tomlToVal(@Text Val toml) {
-        return Val.of(TOML_MAPPER.readTree(toml.getText()));
+        try {
+            return Val.of(TOML_MAPPER.readTree(toml.getText()));
+        } catch (Exception exception) {
+            return Val.error("Failed to parse TOML: %s".formatted(exception.getMessage()));
+        }
     }
 
     /**
      * Converts a SAPL value into a TOML string representation.
      *
      * @param value the value to convert to TOML
-     * @return a Val containing the TOML string representation
+     * @return a Val containing the TOML string representation, or an error if
+     * conversion fails
      */
-    @SneakyThrows
     @Function(docs = """
             ```valToToml(value)```: Converts a SAPL ```value``` into a TOML string representation.
 
             **Example:**
             ```sapl
-            policy "example"
+            policy "export_policy_config"
             permit
             where
-               var object = {"flower":{"name":"Poppy","color":"RED","petals":9}};
-               var expected = "[flower]\\nname = \\"Poppy\\"\\ncolor = \\"RED\\"\\npetals = 9\\n";
-               toml.valToToml(object) == expected;
+               var policyConfig = {"permissions":{"user":"bob","actions":["READ","WRITE"],"resources":["/api/data"]}};
+               var configToml = toml.valToToml(policyConfig);
+               // configToml contains TOML-formatted configuration
             ```
             """, schema = """
             {
@@ -88,7 +100,11 @@ public class TomlFunctionLibrary {
         if (value.isError() || value.isUndefined()) {
             return value;
         }
-        return Val.of(TOML_MAPPER.writeValueAsString(value.get()));
+        try {
+            return Val.of(TOML_MAPPER.writeValueAsString(value.get()));
+        } catch (Exception exception) {
+            return Val.error("Failed to convert value to TOML: %s".formatted(exception.getMessage()));
+        }
     }
 
 }

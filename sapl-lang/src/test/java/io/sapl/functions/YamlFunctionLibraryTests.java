@@ -17,7 +17,6 @@
  */
 package io.sapl.functions;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import io.sapl.api.interpreter.Val;
 import lombok.val;
 import org.junit.jupiter.api.Test;
@@ -31,92 +30,91 @@ class YamlFunctionLibraryTests {
     @Test
     void yamlToValParsesSimpleMapping() {
         val yaml   = """
-                name: Poppy
-                color: RED
-                petals: 9
+                cultist: Wilbur Whateley
+                role: ACOLYTE
+                securityLevel: 3
                 """;
         val result = YamlFunctionLibrary.yamlToVal(Val.of(yaml));
-        assertThat(result.get().get("name").asText()).isEqualTo("Poppy");
-        assertThat(result.get().get("color").asText()).isEqualTo("RED");
-        assertThat(result.get().get("petals").asInt()).isEqualTo(9);
+        assertThat(result.get().get("cultist").asText()).isEqualTo("Wilbur Whateley");
+        assertThat(result.get().get("role").asText()).isEqualTo("ACOLYTE");
+        assertThat(result.get().get("securityLevel").asInt()).isEqualTo(3);
     }
 
     @Test
     void yamlToValParsesNestedMappings() {
         val yaml   = """
-                person:
-                  name: Alice
-                  address:
-                    city: Wonderland
-                    zip: 12345
+                entity:
+                  name: Cthulhu
+                  location:
+                    city: R'lyeh
+                    depth: 9999
                 """;
         val result = YamlFunctionLibrary.yamlToVal(Val.of(yaml));
-        assertThat(result.get().get("person").get("name").asText()).isEqualTo("Alice");
-        assertThat(result.get().get("person").get("address").get("city").asText()).isEqualTo("Wonderland");
-        assertThat(result.get().get("person").get("address").get("zip").asInt()).isEqualTo(12345);
+        assertThat(result.get().get("entity").get("name").asText()).isEqualTo("Cthulhu");
+        assertThat(result.get().get("entity").get("location").get("city").asText()).isEqualTo("R'lyeh");
+        assertThat(result.get().get("entity").get("location").get("depth").asInt()).isEqualTo(9999);
     }
 
     @Test
     void yamlToValParsesSequences() {
-        val yaml   = """
-                fruits:
-                  - apple
-                  - banana
-                  - cherry
+        val yaml      = """
+                artifacts:
+                  - Necronomicon
+                  - Silver Key
+                  - Shining Trapezohedron
                 """;
-        val result = YamlFunctionLibrary.yamlToVal(Val.of(yaml));
-        val fruits = result.get().get("fruits");
-        assertThat(fruits.isArray()).isTrue();
-        assertThat(fruits.size()).isEqualTo(3);
-        assertThat(fruits.get(0).asText()).isEqualTo("apple");
-        assertThat(fruits.get(1).asText()).isEqualTo("banana");
-        assertThat(fruits.get(2).asText()).isEqualTo("cherry");
+        val result    = YamlFunctionLibrary.yamlToVal(Val.of(yaml));
+        val artifacts = result.get().get("artifacts");
+        assertThat(artifacts.isArray()).isTrue();
+        assertThat(artifacts.size()).isEqualTo(3);
+        assertThat(artifacts.get(0).asText()).isEqualTo("Necronomicon");
+        assertThat(artifacts.get(1).asText()).isEqualTo("Silver Key");
+        assertThat(artifacts.get(2).asText()).isEqualTo("Shining Trapezohedron");
     }
 
     @Test
     void yamlToValParsesInlineSequence() {
-        val yaml    = "numbers: [1, 2, 3, 4, 5]";
+        val yaml    = "threats: [1, 2, 3, 4, 5]";
         val result  = YamlFunctionLibrary.yamlToVal(Val.of(yaml));
-        val numbers = result.get().get("numbers");
-        assertThat(numbers.isArray()).isTrue();
-        assertThat(numbers.size()).isEqualTo(5);
+        val threats = result.get().get("threats");
+        assertThat(threats.isArray()).isTrue();
+        assertThat(threats.size()).isEqualTo(5);
     }
 
     @Test
     void yamlToValParsesInlineMapping() {
-        val yaml   = "person: {name: Bob, age: 30}";
+        val yaml   = "investigator: {name: Herbert West, sanity: 30}";
         val result = YamlFunctionLibrary.yamlToVal(Val.of(yaml));
-        assertThat(result.get().get("person").get("name").asText()).isEqualTo("Bob");
-        assertThat(result.get().get("person").get("age").asInt()).isEqualTo(30);
+        assertThat(result.get().get("investigator").get("name").asText()).isEqualTo("Herbert West");
+        assertThat(result.get().get("investigator").get("sanity").asInt()).isEqualTo(30);
     }
 
     @Test
     void yamlToValParsesMultilineString() {
-        val yaml        = """
-                description: |
-                  This is a multi-line
-                  string in YAML
-                  format.
+        val yaml     = """
+                prophecy: |
+                  When the stars are right
+                  the Great Old Ones
+                  shall return.
                 """;
-        val result      = YamlFunctionLibrary.yamlToVal(Val.of(yaml));
-        val description = result.get().get("description").asText();
-        assertThat(description).contains("multi-line");
-        assertThat(description).contains("YAML");
+        val result   = YamlFunctionLibrary.yamlToVal(Val.of(yaml));
+        val prophecy = result.get().get("prophecy").asText();
+        assertThat(prophecy).contains("stars are right").contains("Great Old Ones");
     }
 
     @ParameterizedTest
     @ValueSource(strings = { "true", "false", "yes", "no", "on", "off" })
     void yamlToValParsesBooleans(String booleanValue) {
-        val yaml   = "flag: " + booleanValue;
+        val yaml   = "sealed: " + booleanValue;
         val result = YamlFunctionLibrary.yamlToVal(Val.of(yaml));
-        assertThat(result.get().get("flag").isBoolean()).isTrue();
+        assertThat(result.get().get("sealed").isBoolean()).isTrue();
     }
 
     @Test
     void yamlToValParsesNull() {
-        val yaml   = "value: null";
+        val yaml   = "sanity: null";
         val result = YamlFunctionLibrary.yamlToVal(Val.of(yaml));
-        assertThat(result.get().get("value").isNull()).isTrue();
+        assertThat(result.get().get("sanity").isNull()).isTrue();
     }
 
     @Test
@@ -136,100 +134,114 @@ class YamlFunctionLibraryTests {
 
     @Test
     void yamlToValParsesEmptySequence() {
-        val yaml   = "items: []";
+        val yaml   = "incantations: []";
         val result = YamlFunctionLibrary.yamlToVal(Val.of(yaml));
-        assertThat(result.get().get("items").isArray()).isTrue();
-        assertThat(result.get().get("items").size()).isZero();
+        assertThat(result.get().get("incantations").isArray()).isTrue();
+        assertThat(result.get().get("incantations").size()).isZero();
     }
 
     @Test
     void yamlToValHandlesQuotedStrings() {
         val yaml   = """
-                message: "Hello, World!"
-                path: 'C:\\Users\\test'
+                chant: "Ia! Ia! Cthulhu fhtagn!"
+                path: 'C:\\Arkham\\Miskatonic'
                 """;
         val result = YamlFunctionLibrary.yamlToVal(Val.of(yaml));
-        assertThat(result.get().get("message").asText()).isEqualTo("Hello, World!");
-        assertThat(result.get().get("path").asText()).isEqualTo("C:\\Users\\test");
+        assertThat(result.get().get("chant").asText()).isEqualTo("Ia! Ia! Cthulhu fhtagn!");
+        assertThat(result.get().get("path").asText()).isEqualTo("C:\\Arkham\\Miskatonic");
     }
 
     @Test
     void yamlToValHandlesNumbers() {
         val yaml   = """
-                integer: 42
-                decimal: 2.5
-                negative: -17
-                scientific: 1.23e-4
+                cultists: 42
+                power: 9.99
+                depth: -999
+                probability: 1.23e-4
                 """;
         val result = YamlFunctionLibrary.yamlToVal(Val.of(yaml));
-        assertThat(result.get().get("integer").asInt()).isEqualTo(42);
-        assertThat(result.get().get("decimal").asDouble()).isEqualTo(2.5);
-        assertThat(result.get().get("negative").asInt()).isEqualTo(-17);
+        assertThat(result.get().get("cultists").asInt()).isEqualTo(42);
+        assertThat(result.get().get("power").asDouble()).isEqualTo(9.99);
+        assertThat(result.get().get("depth").asInt()).isEqualTo(-999);
     }
 
     @Test
     void yamlToValHandlesUnicodeCharacters() {
-        val yaml   = "message: Hello 世界 🌸";
+        val yaml   = "inscription: Ph'nglui mglw'nafh 世界 🌙";
         val result = YamlFunctionLibrary.yamlToVal(Val.of(yaml));
-        assertThat(result.get().get("message").asText()).isEqualTo("Hello 世界 🌸");
+        assertThat(result.get().get("inscription").asText()).isEqualTo("Ph'nglui mglw'nafh 世界 🌙");
     }
 
     @Test
     void yamlToValParsesComplexStructure() {
         val yaml   = """
-                services:
-                  database:
-                    image: postgres:latest
-                    ports:
-                      - 5432:5432
-                    environment:
-                      POSTGRES_PASSWORD: secret
-                  web:
-                    image: nginx:latest
-                    ports:
-                      - 80:80
-                      - 443:443
+                rituals:
+                  summoning:
+                    grimoire: Necronomicon
+                    requirements:
+                      - full moon
+                      - sacrificial altar
+                    danger:
+                      level: EXTREME
+                      containment: IMPOSSIBLE
+                  banishment:
+                    grimoire: Elder Sign
+                    requirements:
+                      - pure silver
+                      - ancient words
                 """;
         val result = YamlFunctionLibrary.yamlToVal(Val.of(yaml));
-        assertThat(result.get().get("services").get("database").get("image").asText()).isEqualTo("postgres:latest");
-        assertThat(result.get().get("services").get("web").get("ports").size()).isEqualTo(2);
+        assertThat(result.get().get("rituals").get("summoning").get("grimoire").asText()).isEqualTo("Necronomicon");
+        assertThat(result.get().get("rituals").get("summoning").get("requirements").size()).isEqualTo(2);
+        assertThat(result.get().get("rituals").get("summoning").get("danger").get("level").asText())
+                .isEqualTo("EXTREME");
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = { ":", "[invalid", "  : misplaced colon", "{unclosed: bracket", "key: [unclosed" })
+    void yamlToValReturnsErrorForInvalidYaml(String invalidYaml) {
+        val result = YamlFunctionLibrary.yamlToVal(Val.of(invalidYaml));
+        assertThat(result.isError()).isTrue();
+        assertThat(result.getMessage()).startsWith("Failed to parse YAML:");
     }
 
     @Test
-    void valToYamlConvertsObjectToYamlString() throws JsonProcessingException {
-        val object = Val.ofJson("{\"name\":\"Rose\",\"color\":\"PINK\",\"petals\":5}");
-        val result = YamlFunctionLibrary.valToYaml(object);
-        assertThat(result.getText()).contains("name:");
-        assertThat(result.getText()).contains("Rose");
-        assertThat(result.getText()).contains("color:");
-        assertThat(result.getText()).contains("PINK");
+    void valToYamlConvertsObjectToYamlString() {
+        val object = Val.JSON.objectNode();
+        object.put("name", "Azathoth");
+        object.put("title", "Daemon Sultan");
+        object.put("threatLevel", 9);
+
+        val result = YamlFunctionLibrary.valToYaml(Val.of(object));
+        assertThat(result.getText()).contains("name:").contains("Azathoth").contains("title:")
+                .contains("Daemon Sultan");
     }
 
     @Test
-    void valToYamlConvertsArrayToYamlString() throws JsonProcessingException {
-        val array  = Val.ofJson("[\"apple\",\"banana\",\"cherry\"]");
-        val result = YamlFunctionLibrary.valToYaml(array);
-        assertThat(result.getText()).contains("apple");
-        assertThat(result.getText()).contains("banana");
-        assertThat(result.getText()).contains("cherry");
+    void valToYamlConvertsArrayToYamlString() {
+        val array = Val.JSON.arrayNode();
+        array.add("Dagon");
+        array.add("Hydra");
+        array.add("Cthulhu");
+
+        val result = YamlFunctionLibrary.valToYaml(Val.of(array));
+        assertThat(result.getText()).contains("Dagon").contains("Hydra").contains("Cthulhu");
     }
 
     @Test
     void valToYamlHandlesNestedStructures() {
-        val parent = Val.JSON.objectNode();
-        val child  = Val.JSON.objectNode();
-        child.put("key", "value");
-        parent.set("child", child);
+        val ritual   = Val.JSON.objectNode();
+        val location = Val.JSON.objectNode();
+        location.put("place", "Miskatonic University");
+        ritual.set("location", location);
 
-        val result = YamlFunctionLibrary.valToYaml(Val.of(parent));
-        assertThat(result.getText()).contains("child:");
-        assertThat(result.getText()).contains("key:");
-        assertThat(result.getText()).contains("value");
+        val result = YamlFunctionLibrary.valToYaml(Val.of(ritual));
+        assertThat(result.getText()).contains("location:").contains("place:").contains("Miskatonic University");
     }
 
     @Test
     void valToYamlReturnsErrorForErrorValue() {
-        val error  = Val.error("Test error");
+        val error  = Val.error("Ritual failed.");
         val result = YamlFunctionLibrary.valToYaml(error);
         assertThat(result.isError()).isTrue();
     }
@@ -244,19 +256,19 @@ class YamlFunctionLibraryTests {
     @Test
     void roundTripConversionPreservesData() {
         val original   = """
-                name: Charlie
-                age: 35
-                hobbies:
-                  - reading
-                  - coding
+                investigator: Carter
+                sanity: 35
+                artifacts:
+                  - Silver Key
+                  - Lamp
                 """;
         val parsed     = YamlFunctionLibrary.yamlToVal(Val.of(original));
         val serialized = YamlFunctionLibrary.valToYaml(parsed);
         val reparsed   = YamlFunctionLibrary.yamlToVal(serialized);
 
-        assertThat(reparsed.get().get("name").asText()).isEqualTo("Charlie");
-        assertThat(reparsed.get().get("age").asInt()).isEqualTo(35);
-        assertThat(reparsed.get().get("hobbies").size()).isEqualTo(2);
+        assertThat(reparsed.get().get("investigator").asText()).isEqualTo("Carter");
+        assertThat(reparsed.get().get("sanity").asInt()).isEqualTo(35);
+        assertThat(reparsed.get().get("artifacts").size()).isEqualTo(2);
     }
 
     @Test
@@ -276,7 +288,7 @@ class YamlFunctionLibraryTests {
         assertThat(YamlFunctionLibrary.valToYaml(Val.TRUE).getText()).contains("true");
         assertThat(YamlFunctionLibrary.valToYaml(Val.FALSE).getText()).contains("false");
         assertThat(YamlFunctionLibrary.valToYaml(Val.NULL).getText()).contains("null");
-        assertThat(YamlFunctionLibrary.valToYaml(Val.of(42)).getText()).contains("42");
+        assertThat(YamlFunctionLibrary.valToYaml(Val.of(1928)).getText()).contains("1928");
     }
 
 }

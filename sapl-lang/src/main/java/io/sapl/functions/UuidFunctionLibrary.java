@@ -29,10 +29,34 @@ import java.util.Random;
 import java.util.UUID;
 
 @UtilityClass
-@FunctionLibrary(name = UuidFunctionLibrary.NAME, description = UuidFunctionLibrary.DESCRIPTION)
+@FunctionLibrary(name = UuidFunctionLibrary.NAME, description = UuidFunctionLibrary.DESCRIPTION, libraryDocumentation = UuidFunctionLibrary.LIBRARY_DOCUMENTATION)
 public class UuidFunctionLibrary {
     public static final String NAME        = "uuid";
     public static final String DESCRIPTION = "Utility functions for UUID handling.";
+
+    public static final String LIBRARY_DOCUMENTATION = """
+            The UUID library provides functions for generating and parsing Universally Unique Identifiers.
+            Use it when you need unique identifiers for correlation, tracking, or deduplication in policies.
+
+            Common use cases include generating request IDs for audit trails, creating unique session tokens,
+            or parsing UUID-based resource identifiers from requests. The library supports both cryptographically
+            secure random UUIDs for production and deterministic seeded UUIDs for testing.
+
+            **Example:**
+            ```sapl
+            policy "audit_with_request_id"
+            permit
+            where
+              var requestId = uuid.random();
+              // Use requestId for audit correlation
+            obligation
+              {
+                "type": "log",
+                "requestId": requestId,
+                "action": action.method
+              }
+            ```
+            """;
 
     private static final String RETURNS_UUID_OBJECT = """
             {
@@ -212,9 +236,11 @@ public class UuidFunctionLibrary {
         long mostSigBits  = 0;
         long leastSigBits = 0;
 
+        /* convert first 8 bytes to most significant bits */
         for (int i = 0; i < 8; i++) {
             mostSigBits = (mostSigBits << 8) | (randomBytes[i] & 0xff);
         }
+        /* convert last 8 bytes to least significant bits */
         for (int i = 8; i < 16; i++) {
             leastSigBits = (leastSigBits << 8) | (randomBytes[i] & 0xff);
         }

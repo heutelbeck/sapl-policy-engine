@@ -32,13 +32,13 @@ public class ReflectionFunctionLibrary {
     public static final String NAME        = "reflect";
     public static final String DESCRIPTION = "Functions for runtime type inspection and reflection.";
 
-    private static final String RETURNS_BOOLEAN = """
+    private static final String SCHEMA_BOOLEAN = """
             {
                 "type": "boolean"
             }
             """;
 
-    private static final String RETURNS_STRING = """
+    private static final String SCHEMA_STRING = """
             {
                 "type": "string"
             }
@@ -55,15 +55,16 @@ public class ReflectionFunctionLibrary {
 
             **Example:**
             ```sapl
-            policy "example"
+            policy "check_permissions_array"
             permit
             where
-              reflect.isArray([1, 2, 3]);        // true
+              var permissions = subject.permissions;
+              reflect.isArray(permissions);      // true if permissions is an array
               reflect.isArray([]);               // true
-              reflect.isArray({"key": "val"});   // false
+              reflect.isArray({"role": "admin"});// false
               reflect.isArray(undefined);        // false
             ```
-            """, schema = RETURNS_BOOLEAN)
+            """, schema = SCHEMA_BOOLEAN)
     public static Val isArray(Val value) {
         return Val.of(value.isArray());
     }
@@ -79,15 +80,16 @@ public class ReflectionFunctionLibrary {
 
             **Example:**
             ```sapl
-            policy "example"
+            policy "validate_user_object"
             permit
             where
-              reflect.isObject({"key": "val"});  // true
-              reflect.isObject({});              // true
-              reflect.isObject([1, 2, 3]);       // false
-              reflect.isObject(null);            // false
+              var user = resource.owner;
+              reflect.isObject(user);              // true if user is an object
+              reflect.isObject({});                // true
+              reflect.isObject(["admin", "user"]); // false
+              reflect.isObject(null);              // false
             ```
-            """, schema = RETURNS_BOOLEAN)
+            """, schema = SCHEMA_BOOLEAN)
     public static Val isObject(Val value) {
         return Val.of(value.isObject());
     }
@@ -103,15 +105,16 @@ public class ReflectionFunctionLibrary {
 
             **Example:**
             ```sapl
-            policy "example"
+            policy "validate_username"
             permit
             where
-              reflect.isText("hello");           // true
+              var username = subject.username;
+              reflect.isText(username);          // true if username is a string
               reflect.isText("");                // true
               reflect.isText(123);               // false
               reflect.isText(undefined);         // false
             ```
-            """, schema = RETURNS_BOOLEAN)
+            """, schema = SCHEMA_BOOLEAN)
     public static Val isText(Val value) {
         return Val.of(value.isTextual());
     }
@@ -128,15 +131,16 @@ public class ReflectionFunctionLibrary {
 
             **Example:**
             ```sapl
-            policy "example"
+            policy "check_access_level"
             permit
             where
+              var level = subject.accessLevel;
+              reflect.isNumber(level);           // true if level is numeric
               reflect.isNumber(42);              // true
               reflect.isNumber(3.14);            // true
-              reflect.isNumber(5.0);             // true
               reflect.isNumber("123");           // false
             ```
-            """, schema = RETURNS_BOOLEAN)
+            """, schema = SCHEMA_BOOLEAN)
     public static Val isNumber(Val value) {
         return Val.of(value.isNumber());
     }
@@ -153,15 +157,16 @@ public class ReflectionFunctionLibrary {
 
             **Example:**
             ```sapl
-            policy "example"
+            policy "check_flag"
             permit
             where
+              var isActive = subject.isActive;
+              reflect.isBoolean(isActive);       // true if isActive is boolean
               reflect.isBoolean(true);           // true
-              reflect.isBoolean(false);          // true
               reflect.isBoolean(1);              // false
               reflect.isBoolean("true");         // false
             ```
-            """, schema = RETURNS_BOOLEAN)
+            """, schema = SCHEMA_BOOLEAN)
     public static Val isBoolean(Val value) {
         return Val.of(value.isBoolean());
     }
@@ -175,20 +180,21 @@ public class ReflectionFunctionLibrary {
      * @return Val.TRUE if the value is an integer number, Val.FALSE otherwise
      */
     @Function(docs = """
-            ```reflect.isInteger(ANY value)```: Returns ```true``` if the value is an integer number (no fractional part),
-            ```false``` otherwise. Numbers like ```5.0``` are considered integers as they are mathematically equivalent to ```5```.
+            ```reflect.isInteger(ANY value)```: Returns ```true``` if the value is stored as an integer type,
+            ```false``` otherwise. Note that ```5.0``` is stored as a floating-point type and returns ```false```.
 
             **Example:**
             ```sapl
-            policy "example"
+            policy "validate_user_id"
             permit
             where
+              var userId = subject.id;
+              reflect.isInteger(userId);         // true if userId is an integer
               reflect.isInteger(42);             // true
-              reflect.isInteger(5.0);            // false
+              reflect.isInteger(5.0);            // false (stored as float)
               reflect.isInteger(3.14);           // false
-              reflect.isInteger("5");            // false
             ```
-            """, schema = RETURNS_BOOLEAN)
+            """, schema = SCHEMA_BOOLEAN)
     public static Val isInteger(Val value) {
         if (!value.isNumber()) {
             return Val.FALSE;
@@ -204,20 +210,21 @@ public class ReflectionFunctionLibrary {
      * @return Val.TRUE if the value is a floating-point number, Val.FALSE otherwise
      */
     @Function(docs = """
-            ```reflect.isFloat(ANY value)```: Returns ```true``` if the value is a floating-point number with a fractional part,
-            ```false``` otherwise. Integral numbers like ```5``` or ```5.0``` return ```false```.
+            ```reflect.isFloat(ANY value)```: Returns ```true``` if the value is stored as a floating-point type,
+            ```false``` otherwise. Note that ```5.0``` is stored as floating-point and returns ```true```.
 
             **Example:**
             ```sapl
-            policy "example"
+            policy "validate_threshold"
             permit
             where
+              var threshold = resource.threshold;
+              reflect.isFloat(threshold);        // true if threshold is a float
               reflect.isFloat(3.14);             // true
-              reflect.isFloat(0.5);              // true
-              reflect.isFloat(5.0);              // true
+              reflect.isFloat(5.0);              // true (stored as float)
               reflect.isFloat(42);               // false
             ```
-            """, schema = RETURNS_BOOLEAN)
+            """, schema = SCHEMA_BOOLEAN)
     public static Val isFloat(Val value) {
         if (!value.isNumber()) {
             return Val.FALSE;
@@ -237,15 +244,16 @@ public class ReflectionFunctionLibrary {
 
             **Example:**
             ```sapl
-            policy "example"
+            policy "check_optional_field"
             permit
             where
+              var department = subject.department;
+              reflect.isNull(department);        // true if explicitly set to null
               reflect.isNull(null);              // true
               reflect.isNull(undefined);         // false
-              reflect.isNull(0);                 // false
               reflect.isNull("");                // false
             ```
-            """, schema = RETURNS_BOOLEAN)
+            """, schema = SCHEMA_BOOLEAN)
     public static Val isNull(Val value) {
         return Val.of(value.isNull());
     }
@@ -262,14 +270,15 @@ public class ReflectionFunctionLibrary {
 
             **Example:**
             ```sapl
-            policy "example"
+            policy "check_missing_attribute"
             permit
             where
+              var attribute = subject.optionalAttr;
+              reflect.isUndefined(attribute);    // true if attribute not present
               reflect.isUndefined(undefined);    // true
               reflect.isUndefined(null);         // false
-              reflect.isUndefined(0);            // false
             ```
-            """, schema = RETURNS_BOOLEAN)
+            """, schema = SCHEMA_BOOLEAN)
     public static Val isUndefined(Val value) {
         return Val.of(value.isUndefined());
     }
@@ -286,14 +295,15 @@ public class ReflectionFunctionLibrary {
 
             **Example:**
             ```sapl
-            policy "example"
+            policy "require_attribute"
             permit
             where
-              reflect.isDefined(42);             // true
+              var role = subject.role;
+              reflect.isDefined(role);           // true if role exists (even if null)
               reflect.isDefined(null);           // true
               reflect.isDefined(undefined);      // false
             ```
-            """, schema = RETURNS_BOOLEAN)
+            """, schema = SCHEMA_BOOLEAN)
     public static Val isDefined(Val value) {
         return Val.of(value.isDefined());
     }
@@ -309,15 +319,15 @@ public class ReflectionFunctionLibrary {
 
             **Example:**
             ```sapl
-            policy "example"
+            policy "handle_computation_errors"
             permit
             where
-              var result = 10 / 0;  // Produces an error
-              reflect.isError(result);           // true
+              var result = resource.computedValue;
+              !reflect.isError(result);          // deny if computation failed
+              reflect.isError(10 / 0);           // true (division by zero)
               reflect.isError(42);               // false
-              reflect.isError(undefined);        // false
             ```
-            """, schema = RETURNS_BOOLEAN)
+            """, schema = SCHEMA_BOOLEAN)
     public static Val isError(Val value) {
         return Val.of(value.isError());
     }
@@ -326,7 +336,7 @@ public class ReflectionFunctionLibrary {
      * Checks if the value is marked as secret.
      *
      * @param value the value to check
-     * @return Val.TRUE if the value is marked as secret, Val.TRUE otherwise
+     * @return Val.TRUE if the value is marked as secret, Val.FALSE otherwise
      */
     @Function(docs = """
             ```reflect.isSecret(ANY value)```: Returns ```true``` if the value is marked as secret, ```false``` otherwise.
@@ -334,13 +344,14 @@ public class ReflectionFunctionLibrary {
 
             **Example:**
             ```sapl
-            policy "example"
+            policy "protect_sensitive_data"
             permit
             where
-              reflect.isSecret(secretData);      // true if marked as secret in the variables. Only in EE Server.
-              reflect.isSecret("public data");   // false
+              var password = subject.credentials.password;
+              reflect.isSecret(password);        // true if marked secret
+              !reflect.isSecret(subject.username); // username not secret
             ```
-            """, schema = RETURNS_BOOLEAN)
+            """, schema = SCHEMA_BOOLEAN)
     public static Val isSecret(Val value) {
         return Val.of(value.isSecret());
     }
@@ -358,17 +369,16 @@ public class ReflectionFunctionLibrary {
 
             **Example:**
             ```sapl
-            policy "example"
+            policy "require_permissions"
             permit
             where
+              var permissions = subject.permissions;
+              !reflect.isEmpty(permissions);     // deny if no permissions
               reflect.isEmpty([]);               // true
               reflect.isEmpty({});               // true
-              reflect.isEmpty([1, 2]);           // false
-              reflect.isEmpty({"a": 1});         // false
-              reflect.isEmpty(null);             // true
-              reflect.isEmpty("");               // true
+              reflect.isEmpty(["read", "write"]); // false
             ```
-            """, schema = RETURNS_BOOLEAN)
+            """, schema = SCHEMA_BOOLEAN)
     public static Val isEmpty(Val value) {
         return Val.of(value.isEmpty());
     }
@@ -386,18 +396,16 @@ public class ReflectionFunctionLibrary {
 
             **Example:**
             ```sapl
-            policy "example"
+            policy "dynamic_type_handling"
             permit
             where
-              reflect.typeOf([1, 2, 3]) == "ARRAY";
-              reflect.typeOf({"key": "val"}) == "OBJECT";
-              reflect.typeOf("hello") == "STRING";
-              reflect.typeOf(42) == "NUMBER";
-              reflect.typeOf(true) == "BOOLEAN";
-              reflect.typeOf(null) == "NULL";
-              reflect.typeOf(undefined) == "undefined";
+              var permissions = subject.permissions;
+              reflect.typeOf(permissions) == "ARRAY";
+              reflect.typeOf(subject) == "OBJECT";
+              reflect.typeOf(subject.username) == "STRING";
+              reflect.typeOf(subject.age) == "NUMBER";
             ```
-            """, schema = RETURNS_STRING)
+            """, schema = SCHEMA_STRING)
     public static Val typeOf(Val value) {
         return Val.of(value.getValType());
     }

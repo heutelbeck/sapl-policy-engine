@@ -19,7 +19,6 @@ package io.sapl.functions;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import io.sapl.api.interpreter.Val;
-import lombok.val;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -29,146 +28,203 @@ import org.junit.jupiter.params.provider.ValueSource;
 import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class JsonFunctionLibraryTests {
 
     @ParameterizedTest
     @MethodSource("validJsonExamples")
     void jsonToValParsesValidJson(String json, String expectedKey, String expectedValue) {
-        val result = JsonFunctionLibrary.jsonToVal(Val.of(json));
+        var result = JsonFunctionLibrary.jsonToVal(Val.of(json));
+
+        assertThat(result.isDefined()).isTrue();
         assertThat(result.get().get(expectedKey).asText()).isEqualTo(expectedValue);
     }
 
-    private static Stream<Arguments> validJsonExamples() {
-        return Stream.of(Arguments.of("{\"hello\":\"world\"}", "hello", "world"),
-                Arguments.of("{\"name\":\"Alice\"}", "name", "Alice"),
-                Arguments.of("{\"key\":\"value with spaces\"}", "key", "value with spaces"));
+    static Stream<Arguments> validJsonExamples() {
+        return Stream.of(Arguments.of("{\"commander\":\"Perry Rhodan\"}", "commander", "Perry Rhodan"),
+                Arguments.of("{\"ship\":\"SOL\"}", "ship", "SOL"),
+                Arguments.of("{\"species\":\"Arkonide from the three-sun system\"}", "species",
+                        "Arkonide from the three-sun system"));
     }
 
     @Test
-    void jsonToValParsesNestedJson() throws JsonProcessingException {
-        val json   = """
+    void jsonToValParsesNestedJson() {
+        var json   = """
                 {
-                  "person": {
-                    "name": "Alice",
-                    "age": 30
+                  "immortal": {
+                    "name": "Atlan",
+                    "age": 10000
                   }
                 }
                 """;
-        val result = JsonFunctionLibrary.jsonToVal(Val.of(json));
-        assertThat(result.get().get("person").get("name").asText()).isEqualTo("Alice");
-        assertThat(result.get().get("person").get("age").asInt()).isEqualTo(30);
+        var result = JsonFunctionLibrary.jsonToVal(Val.of(json));
+
+        assertThat(result.isDefined()).isTrue();
+        assertThat(result.get().get("immortal").get("name").asText()).isEqualTo("Atlan");
+        assertThat(result.get().get("immortal").get("age").asInt()).isEqualTo(10000);
     }
 
     @Test
     void jsonToValParsesArray() {
-        val json   = "[1,2,3,4,5]";
-        val result = JsonFunctionLibrary.jsonToVal(Val.of(json));
+        var json   = "[1,2,3,5,8]";
+        var result = JsonFunctionLibrary.jsonToVal(Val.of(json));
+
+        assertThat(result.isDefined()).isTrue();
         assertThat(result.get().isArray()).isTrue();
-        assertThat(result.get().size()).isEqualTo(5);
+        assertThat(result.get()).hasSize(5);
         assertThat(result.get().get(0).asInt()).isEqualTo(1);
     }
 
     @Test
     void jsonToValParsesEmptyObject() {
-        val result = JsonFunctionLibrary.jsonToVal(Val.of("{}"));
+        var result = JsonFunctionLibrary.jsonToVal(Val.of("{}"));
+
+        assertThat(result.isDefined()).isTrue();
         assertThat(result.get().isObject()).isTrue();
-        assertThat(result.get().size()).isZero();
+        assertThat(result.get()).isEmpty();
     }
 
     @Test
     void jsonToValParsesEmptyArray() {
-        val result = JsonFunctionLibrary.jsonToVal(Val.of("[]"));
+        var result = JsonFunctionLibrary.jsonToVal(Val.of("[]"));
+
+        assertThat(result.isDefined()).isTrue();
         assertThat(result.get().isArray()).isTrue();
-        assertThat(result.get().size()).isZero();
+        assertThat(result.get()).isEmpty();
     }
 
     @ParameterizedTest
-    @ValueSource(strings = { "null", "true", "false", "42", "\"text\"" })
+    @ValueSource(strings = { "null", "true", "false", "2326", "3.14159", "\"hyperspace\"" })
     void jsonToValParsesPrimitives(String json) {
-        val result = JsonFunctionLibrary.jsonToVal(Val.of(json));
+        var result = JsonFunctionLibrary.jsonToVal(Val.of(json));
+
         assertThat(result.isDefined()).isTrue();
     }
 
     @Test
     void jsonToValHandlesUnicodeCharacters() {
-        val json   = "{\"message\":\"Hello 🌸 World 世界\"}";
-        val result = JsonFunctionLibrary.jsonToVal(Val.of(json));
-        assertThat(result.get().get("message").asText()).isEqualTo("Hello 🌸 World 世界");
+        var json   = "{\"greeting\":\"Welcome to Arkon 🚀🌟\"}";
+        var result = JsonFunctionLibrary.jsonToVal(Val.of(json));
+
+        assertThat(result.isDefined()).isTrue();
+        assertThat(result.get().get("greeting").asText()).isEqualTo("Welcome to Arkon 🚀🌟");
     }
 
     @ParameterizedTest
-    @ValueSource(strings = { "{invalid}", "{\"key\":}", "{\"key\"", "not json at all", "{\"key\": undefined}" })
-    void jsonToValThrowsExceptionForInvalidJson(String invalidJson) {
-        assertThatThrownBy(() -> JsonFunctionLibrary.jsonToVal(Val.of(invalidJson))).isInstanceOf(Exception.class);
+    @ValueSource(strings = { "{invalid}", "{\"key\":}", "{\"key\"", "not json at all", "{\"key\": undefined}",
+            "{unquoted: value}", "[1, 2, 3,]" })
+    void jsonToValReturnsErrorForInvalidJson(String invalidJson) {
+        var result = JsonFunctionLibrary.jsonToVal(Val.of(invalidJson));
+
+        assertThat(result.isError()).isTrue();
+        assertThat(result.getMessage()).contains("Failed to parse JSON");
     }
 
     @Test
     void valToJsonConvertsObjectToJsonString() throws JsonProcessingException {
-        val object = Val.ofJson("{\"name\":\"Bob\",\"age\":25}");
-        val result = JsonFunctionLibrary.valToJson(object);
-        assertThat(result.getText()).contains("\"name\"");
-        assertThat(result.getText()).contains("\"Bob\"");
-        assertThat(result.getText()).contains("\"age\"");
-        assertThat(result.getText()).contains("25");
+        var object = Val.ofJson("{\"name\":\"Gucky\",\"species\":\"Mousebeaver\"}");
+        var result = JsonFunctionLibrary.valToJson(object);
+
+        assertThat(result.isDefined()).isTrue();
+        assertThat(result.getText()).contains("\"name\"").contains("\"Gucky\"").contains("\"species\"")
+                .contains("\"Mousebeaver\"");
     }
 
     @Test
     void valToJsonConvertsArrayToJsonString() throws JsonProcessingException {
-        val array  = Val.ofJson("[1,2,3]");
-        val result = JsonFunctionLibrary.valToJson(array);
+        var array  = Val.ofJson("[1,2,3]");
+        var result = JsonFunctionLibrary.valToJson(array);
+
+        assertThat(result.isDefined()).isTrue();
         assertThat(result.getText()).isEqualTo("[1,2,3]");
     }
 
     @ParameterizedTest
     @MethodSource("primitiveValues")
     void valToJsonConvertsPrimitives(Val value, String expectedJson) {
-        val result = JsonFunctionLibrary.valToJson(value);
+        var result = JsonFunctionLibrary.valToJson(value);
+
+        assertThat(result.isDefined()).isTrue();
         assertThat(result.getText()).isEqualTo(expectedJson);
     }
 
-    private static Stream<Arguments> primitiveValues() {
+    static Stream<Arguments> primitiveValues() {
         return Stream.of(Arguments.of(Val.TRUE, "true"), Arguments.of(Val.FALSE, "false"),
-                Arguments.of(Val.NULL, "null"), Arguments.of(Val.of(42), "42"),
-                Arguments.of(Val.of("test"), "\"test\""));
+                Arguments.of(Val.NULL, "null"), Arguments.of(Val.of(2500), "2500"),
+                Arguments.of(Val.of("NATHAN"), "\"NATHAN\""));
     }
 
     @Test
     void valToJsonReturnsErrorForErrorValue() {
-        val error  = Val.error("Test error");
-        val result = JsonFunctionLibrary.valToJson(error);
+        var error  = Val.error("Hyperspace transition failed");
+        var result = JsonFunctionLibrary.valToJson(error);
+
         assertThat(result.isError()).isTrue();
     }
 
     @Test
     void valToJsonReturnsUndefinedForUndefinedValue() {
-        val undefined = Val.UNDEFINED;
-        val result    = JsonFunctionLibrary.valToJson(undefined);
+        var result = JsonFunctionLibrary.valToJson(Val.UNDEFINED);
+
         assertThat(result.isUndefined()).isTrue();
     }
 
     @Test
     void roundTripConversionPreservesData() throws JsonProcessingException {
-        val original   = Val.ofJson("{\"name\":\"Charlie\",\"values\":[1,2,3],\"nested\":{\"key\":\"value\"}}");
-        val jsonString = JsonFunctionLibrary.valToJson(original);
-        val restored   = JsonFunctionLibrary.jsonToVal(jsonString);
+        var original   = Val.ofJson(
+                "{\"pilot\":\"Reginald Bull\",\"coordinates\":[42,13,7],\"destination\":{\"system\":\"Arkon\"}}");
+        var jsonString = JsonFunctionLibrary.valToJson(original);
+        var restored   = JsonFunctionLibrary.jsonToVal(jsonString);
 
-        assertThat(restored.get().get("name").asText()).isEqualTo("Charlie");
-        assertThat(restored.get().get("values").size()).isEqualTo(3);
-        assertThat(restored.get().get("nested").get("key").asText()).isEqualTo("value");
+        assertThat(restored.isDefined()).isTrue();
+        assertThat(restored.get().get("pilot").asText()).isEqualTo("Reginald Bull");
+        assertThat(restored.get().get("coordinates")).hasSize(3);
+        assertThat(restored.get().get("destination").get("system").asText()).isEqualTo("Arkon");
     }
 
     @Test
     void valToJsonHandlesEmptyObject() {
-        val result = JsonFunctionLibrary.valToJson(Val.ofEmptyObject());
+        var result = JsonFunctionLibrary.valToJson(Val.ofEmptyObject());
+
+        assertThat(result.isDefined()).isTrue();
         assertThat(result.getText()).isEqualTo("{}");
     }
 
     @Test
     void valToJsonHandlesEmptyArray() {
-        val result = JsonFunctionLibrary.valToJson(Val.ofEmptyArray());
+        var result = JsonFunctionLibrary.valToJson(Val.ofEmptyArray());
+
+        assertThat(result.isDefined()).isTrue();
         assertThat(result.getText()).isEqualTo("[]");
+    }
+
+    @Test
+    void jsonToValWithComplexNestedStructure() {
+        var json   = """
+                {
+                  "vessel": "SOL",
+                  "commander": {
+                    "name": "Perry Rhodan",
+                    "cellActivator": true
+                  },
+                  "crew": [
+                    {"name": "Atlan", "role": "Science Officer"},
+                    {"name": "Gucky", "role": "Teleporter"}
+                  ],
+                  "diameter": 2500,
+                  "hyperdrive": true
+                }
+                """;
+        var result = JsonFunctionLibrary.jsonToVal(Val.of(json));
+
+        assertThat(result.isDefined()).isTrue();
+        assertThat(result.get().get("vessel").asText()).isEqualTo("SOL");
+        assertThat(result.get().get("commander").get("name").asText()).isEqualTo("Perry Rhodan");
+        assertThat(result.get().get("commander").get("cellActivator").asBoolean()).isTrue();
+        assertThat(result.get().get("crew")).hasSize(2);
+        assertThat(result.get().get("crew").get(1).get("name").asText()).isEqualTo("Gucky");
+        assertThat(result.get().get("diameter").asInt()).isEqualTo(2500);
+        assertThat(result.get().get("hyperdrive").asBoolean()).isTrue();
     }
 
 }

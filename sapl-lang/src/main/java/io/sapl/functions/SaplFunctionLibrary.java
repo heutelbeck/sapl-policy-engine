@@ -31,16 +31,28 @@ import java.util.Properties;
  * Collection of SAPL system information functions.
  */
 @UtilityClass
-@FunctionLibrary(name = SaplFunctionLibrary.NAME, description = SaplFunctionLibrary.DESCRIPTION)
+@FunctionLibrary(name = SaplFunctionLibrary.NAME, description = SaplFunctionLibrary.DESCRIPTION, libraryDocumentation = SaplFunctionLibrary.DOCUMENTATION)
 public class SaplFunctionLibrary {
 
     public static final String NAME        = "sapl";
     public static final String DESCRIPTION = "SAPL system information functions.";
 
+    public static final String DOCUMENTATION = """
+            Runtime environment introspection for authorization policies. Query application version,
+            JDK details, and operating system information to make platform-aware access control decisions.
+
+            The library provides a single function that returns system metadata cached at class initialization.
+            Use this to enforce runtime requirements, restrict operations to specific platforms, or capture
+            environment context in audit trails.
+            """;
+
     private static final String UNKNOWN = "unknown";
 
     private static final String VERSION_PROPERTIES_PATH = "/saplversion.properties";
     private static final String GIT_PROPERTIES_PATH     = "/git.properties";
+
+    private static final Properties VERSION_PROPERTIES = loadProperties(VERSION_PROPERTIES_PATH);
+    private static final Properties GIT_PROPERTIES     = loadProperties(GIT_PROPERTIES_PATH);
 
     private static final String PROPERTY_VERSION = "saplVersion";
 
@@ -77,26 +89,47 @@ public class SaplFunctionLibrary {
             - ```osVersion```: Operating system version
             - ```osArch```: Operating system architecture
 
-            **Example:**
+            If properties cannot be loaded from the classpath, fields will contain "unknown" as a fallback value.
+
+            Use this function to validate system requirements, log runtime environment details for audit trails, or conditionally enable features based on platform capabilities.
+
+            **Example - Enforce Minimum JDK Version:**
             ```sapl
-            policy "example"
-            permit
+            policy "require_jdk21"
+            permit action == "system:deploy"
             where
-              var systemInfo = sapl.info();
-              systemInfo.version == "3.0.0";
+              var info = sapl.info();
+              info.jdkVersion >= "21";
+            ```
+
+            **Example - Platform-Specific Access Control:**
+            ```sapl
+            policy "linux_only_operations"
+            permit action == "admin:configure-network"
+            where
+              var info = sapl.info();
+              info.osName =~ "Linux";
+            ```
+
+            **Example - Audit Logging with Environment Context:**
+            ```sapl
+            policy "audit_with_environment"
+            permit action == "data:access"
+            obligation
+              {
+                "type": "log-access",
+                "environment": sapl.info()
+              }
             ```
             """, schema = RETURNS_OBJECT)
     public static Val info() {
-        val versionProperties = loadProperties(VERSION_PROPERTIES_PATH);
-        val gitProperties     = loadProperties(GIT_PROPERTIES_PATH);
-
         val infoObject = Val.JSON.objectNode();
 
-        infoObject.set(PROPERTY_VERSION, textNode(versionProperties.getProperty(PROPERTY_VERSION, UNKNOWN)));
+        infoObject.set(PROPERTY_VERSION, textNode(VERSION_PROPERTIES.getProperty(PROPERTY_VERSION, UNKNOWN)));
 
-        infoObject.set("gitCommitId", textNode(gitProperties, GIT_COMMIT_ID_ABBREV));
-        infoObject.set("gitBranch", textNode(gitProperties, GIT_BRANCH));
-        infoObject.set("gitBuildTime", textNode(gitProperties, GIT_BUILD_TIME));
+        infoObject.set("gitCommitId", textNode(GIT_PROPERTIES, GIT_COMMIT_ID_ABBREV));
+        infoObject.set("gitBranch", textNode(GIT_PROPERTIES, GIT_BRANCH));
+        infoObject.set("gitBuildTime", textNode(GIT_PROPERTIES, GIT_BUILD_TIME));
 
         infoObject.set("jdkVersion", textNode(System.getProperty(JAVA_SPECIFICATION_VERSION, UNKNOWN)));
         infoObject.set("javaVersion", textNode(System.getProperty(JAVA_VERSION, UNKNOWN)));

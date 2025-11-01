@@ -29,11 +29,18 @@ import lombok.val;
  * Functions for JSON object manipulation and inspection.
  */
 @UtilityClass
-@FunctionLibrary(name = ObjectFunctionLibrary.NAME, description = ObjectFunctionLibrary.DESCRIPTION)
+@FunctionLibrary(name = ObjectFunctionLibrary.NAME, description = ObjectFunctionLibrary.DESCRIPTION, libraryDocumentation = ObjectFunctionLibrary.DOCUMENTATION)
 public class ObjectFunctionLibrary {
 
-    public static final String NAME        = "object";
-    public static final String DESCRIPTION = "Functions for JSON object manipulation and inspection.";
+    public static final String NAME          = "object";
+    public static final String DESCRIPTION   = "Functions for JSON object manipulation and inspection.";
+    public static final String DOCUMENTATION = """
+            # Object Function Library (name: object)
+
+            This library provides basic functions for inspecting JSON objects in authorization policies.
+            Use these functions to extract keys and values, check object size, verify key existence,
+            and test for empty objects.
+            """;
 
     private static final String RETURNS_ARRAY = """
             {
@@ -61,19 +68,38 @@ public class ObjectFunctionLibrary {
      * @return a Val containing an array of all keys as text values
      */
     @Function(docs = """
-            ```object.keys(OBJECT object)```: Returns an array containing all the keys of the given object as text values.
-            The order of keys in the returned array matches the iteration order of the object's properties.
+            ```object.keys(OBJECT object)```: Returns an array containing all the keys of the given object.
 
-            **Example:**
+            ## Parameters
+
+            - object: JSON object to extract keys from
+
+            ## Returns
+
+            - Array of strings representing all keys in the object
+            - Empty array for empty objects
+
+            ## Example
+
             ```sapl
             policy "example"
             permit
             where
-              var person = {"name": "Alice", "age": 30, "city": "Berlin"};
-              var keyList = object.keys(person);
-              // Returns ["name", "age", "city"]
+              var user = {"name": "Alice", "role": "admin", "active": true};
+              var fields = object.keys(user);
+              // Returns ["name", "role", "active"]
 
-              object.keys({}) == [];  // Empty object returns empty array
+              object.keys({}) == [];
+            ```
+
+            Check for admin permissions:
+
+            ```sapl
+            policy "check-admin-access"
+            permit
+            where
+              var permissions = object.keys(subject.permissions);
+              "admin:write" in permissions;
             ```
             """, schema = RETURNS_ARRAY)
     public static Val keys(@JsonObject Val object) {
@@ -97,18 +123,27 @@ public class ObjectFunctionLibrary {
      */
     @Function(docs = """
             ```object.values(OBJECT object)```: Returns an array containing all the values of the given object.
-            The order of values in the returned array matches the iteration order of the object's properties.
 
-            **Example:**
+            ## Parameters
+
+            - object: JSON object to extract values from
+
+            ## Returns
+
+            - Array containing all values from the object
+            - Empty array for empty objects
+
+            ## Example
+
             ```sapl
             policy "example"
             permit
             where
-              var person = {"name": "Alice", "age": 30, "city": "Berlin"};
-              var valueList = object.values(person);
-              // Returns ["Alice", 30, "Berlin"]
+              var user = {"name": "Alice", "role": "admin", "active": true};
+              var data = object.values(user);
+              // Returns ["Alice", "admin", true]
 
-              object.values({}) == [];  // Empty object returns empty array
+              object.values({}) == [];
             ```
             """, schema = RETURNS_ARRAY)
     public static Val values(@JsonObject Val object) {
@@ -130,17 +165,26 @@ public class ObjectFunctionLibrary {
      * @return a Val containing the count as an integer
      */
     @Function(docs = """
-            ```object.size(OBJECT object)```: Returns the number of key-value pairs (properties) in the given object.
+            ```object.size(OBJECT object)```: Returns the number of key-value pairs in the given object.
 
-            **Example:**
+            ## Parameters
+
+            - object: JSON object to measure
+
+            ## Returns
+
+            - Integer representing the number of properties in the object
+
+            ## Example
+
             ```sapl
             policy "example"
             permit
             where
-              var person = {"name": "Alice", "age": 30, "city": "Berlin"};
-              object.size(person) == 3;
+              var user = {"name": "Alice", "role": "admin", "active": true};
+              object.size(user) == 3;
 
-              object.size({}) == 0;  // Empty object has size 0
+              object.size({}) == 0;
             ```
             """, schema = RETURNS_INTEGER)
     public static Val size(@JsonObject Val object) {
@@ -155,32 +199,47 @@ public class ObjectFunctionLibrary {
      * @return Val.TRUE if the key exists, Val.FALSE otherwise
      */
     @Function(docs = """
-            ```object.hasKey(OBJECT object, TEXT key)```: Returns ```true``` if the object contains the specified key,
-            ```false``` otherwise. This function only checks for key existence, regardless of the associated value
-            (including ```null``` or ```undefined```).
+            ```object.hasKey(OBJECT object, TEXT key)```: Returns true if the object contains the specified key,
+            false otherwise. Checks for key existence regardless of the associated value.
 
-            **Alternative Approach:**
-            You can also check key existence using: ```object["key"] != undefined```
-            However, ```hasKey``` provides:
-            - Better readability and explicit intent
-            - Direct key existence check without value access
-            - Clearer distinction between "key missing" and "key exists with null/undefined value"
+            ## Parameters
 
-            **Example:**
+            - object: JSON object to search
+            - key: String key name to check for
+
+            ## Returns
+
+            - true if the key exists in the object
+            - false if the key does not exist
+
+            ## Alternative approach
+
+            Key existence can also be checked using: ```object["key"] != undefined```
+
+            However, hasKey provides better readability and makes intent explicit.
+
+            ## Example
+
             ```sapl
             policy "example"
             permit
             where
-              var person = {"name": "Alice", "age": 30, "active": null};
+              var user = {"name": "Alice", "role": "admin", "active": null};
 
-              object.hasKey(person, "name");     // true
-              object.hasKey(person, "age");      // true
-              object.hasKey(person, "active");   // true, even though value is null
-              object.hasKey(person, "email");    // false, key doesn't exist
+              object.hasKey(user, "name");    // true
+              object.hasKey(user, "role");    // true
+              object.hasKey(user, "active");  // true, even though value is null
+              object.hasKey(user, "email");   // false
+            ```
 
-              // Alternative approach using field access:
-              person["name"] != undefined;       // true
-              person["email"] != undefined;      // false
+            Check optional attributes before using them:
+
+            ```sapl
+            policy "check-optional-field"
+            permit
+            where
+              object.hasKey(subject, "department");
+              subject.department == "sales";
             ```
             """, schema = RETURNS_BOOLEAN)
     public static Val hasKey(@JsonObject Val object, @Text Val key) {
@@ -196,17 +255,27 @@ public class ObjectFunctionLibrary {
      * @return Val.TRUE if the object is empty, Val.FALSE otherwise
      */
     @Function(docs = """
-            ```object.isEmpty(OBJECT object)```: Returns ```true``` if the object is empty (has no key-value pairs),
-            ```false``` otherwise.
+            ```object.isEmpty(OBJECT object)```: Returns true if the object is empty (has no key-value pairs),
+            false otherwise.
 
-            **Example:**
+            ## Parameters
+
+            - object: JSON object to check
+
+            ## Returns
+
+            - true if the object has zero properties
+            - false if the object has one or more properties
+
+            ## Example
+
             ```sapl
             policy "example"
             permit
             where
-              object.isEmpty({});                           // true
-              object.isEmpty({"a": 1});                     // false
-              object.isEmpty({"name": "Alice", "age": 30}); // false
+              object.isEmpty({});                          // true
+              object.isEmpty({"name": "Alice"});           // false
+              object.isEmpty({"a": 1, "b": 2});            // false
             ```
             """, schema = RETURNS_BOOLEAN)
     public static Val isEmpty(@JsonObject Val object) {

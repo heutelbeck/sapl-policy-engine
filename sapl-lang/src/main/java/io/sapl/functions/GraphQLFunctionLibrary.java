@@ -28,7 +28,6 @@ import graphql.schema.idl.RuntimeWiring;
 import graphql.schema.idl.SchemaGenerator;
 import graphql.schema.idl.SchemaParser;
 import graphql.schema.idl.errors.SchemaProblem;
-import graphql.validation.ValidationError;
 import graphql.validation.Validator;
 import io.sapl.api.functions.FunctionLibrary;
 import io.sapl.api.interpreter.Val;
@@ -38,7 +37,6 @@ import lombok.experimental.UtilityClass;
 import lombok.val;
 
 import java.util.*;
-import java.util.function.Function;
 
 /**
  * GraphQL query parsing and analysis for authorization policies.
@@ -63,7 +61,7 @@ public class GraphQLFunctionLibrary {
             ## Basic Usage
 
             ```sapl
-            var gql = graphql.parse(resource.query, resource."schema");
+            var gql = graphql.validateQuery(resource.query, resource."schema");
 
             // Access properties directly
             gql.valid                   // boolean - query validity
@@ -71,115 +69,59 @@ public class GraphQLFunctionLibrary {
             gql.depth                   // integer - maximum nesting depth
             gql.operation               // string - operation type (query/mutation/subscription)
             gql.complexity              // integer - complexity score
-            gql.aliasCount              // integer - aliased field count
-            gql.maxPaginationLimit      // integer - highest pagination limit
+
+            // Security metrics
+            gql.security.aliasCount              // integer - aliased field count
+            gql.security.batchingScore           // integer - batching attack indicator
+            gql.security.maxPaginationLimit      // integer - highest pagination limit
+            gql.security.hasCircularFragments    // boolean - circular fragment detection
+            gql.security.isIntrospection         // boolean - introspection query
+            gql.security.directiveCount          // integer - directive count
+            gql.security.directivesPerField      // number - average directives per field
+
+            // AST details
+            gql.ast.operationName       // string - operation name
+            gql.ast.types               // array - types used
+            gql.ast.variables           // object - variable definitions
+            gql.ast.arguments           // object - field arguments
+            gql.ast.fragments           // object - fragment definitions
+            gql.ast.directives          // array - directive details
             ```
-
-            ## Authorization Subscription
-
-            Typical subscription structure for GraphQL authorization:
-
-            ```json
-            {
-              "subject": {
-                "username": "alice",
-                "role": "user"
-              },
-              "action": "execute",
-              "resource": {
-                "query": "query { user(id: \\"123\\") { name email ssn } }",
-                "schema": "type Query { user(id: ID!): User } type User { name: String! email: String! ssn: String! }"
-              }
-            }
-            ```
-
-            Policy examples below assume this structure with `resource.query` and `resource."schema"`.
-
-            ## Properties
-
-            ### Query Validation
-
-            - `valid` (boolean) - Query is syntactically correct and valid against schema.
-            - `errors` (array) - Validation error messages if invalid.
-            - `operation` (string) - Operation type: "query", "mutation", "subscription", or "unknown".
-            - `operationName` (string) - Operation name or empty string if anonymous.
-
-            ### Field Analysis
-
-            - `fields` (array) - All field names in the query including nested fields.
-            - `fieldCount` (integer) - Total number of fields requested.
-            - `depth` (integer) - Maximum nesting depth (capped at 100).
-            - `isIntrospection` (boolean) - Query uses introspection fields (prefix `__`).
-
-            ### Type and Fragment Information
-
-            - `types` (array) - GraphQL type names accessed via inline fragments and fragment spreads.
-            - `fragments` (object) - Fragment definitions with `typeName` and `fields` properties.
-            - `fragmentCount` (integer) - Number of fragment definitions.
-            - `hasCircularFragments` (boolean) - Fragments contain circular references.
-
-            ### Directives
-
-            - `directives` (array) - Directive usages with `name` and `arguments` properties.
-            - `directiveCount` (integer) - Total directive usage count.
-            - `directivesPerField` (number) - Average directives per field.
-
-            ### Complexity and Security Metrics
-
-            - `complexity` (integer) - Basic score: `fieldCount + (depth × 2)`.
-            - `aliasCount` (integer) - Number of aliased fields.
-            - `rootFieldCount` (integer) - Fields at root level.
-            - `batchingScore` (integer) - Calculated as `(aliasCount × 5) + rootFieldCount`.
-            - `maxPaginationLimit` (integer) - Highest pagination argument value across first, last, limit, offset, skip, take.
-
-            ### Arguments and Variables
-
-            - `arguments` (object) - Field arguments mapped by field name.
-            - `variables` (object) - Variable definitions with default values.
 
             ## Functions
 
-            ### parse
+            ### validateQuery
 
             ```
-            graphql.parse(TEXT query, TEXT schema) -> OBJECT
+            graphql.validateQuery(TEXT query, TEXT schema) -> OBJECT
             ```
 
             Parses and validates a GraphQL query against a schema. Returns object with all security metrics.
-
-            **Parameters:**
-            - `query` - GraphQL query string
-            - `schema` - GraphQL schema definition (SDL)
-
-            **Returns:** Object with all properties listed above.
 
             **Example:**
             ```sapl
             policy "validate-graphql-query"
             permit action == "execute"
             where
-              var gql = graphql.parse(resource.query, resource."schema");
+              var gql = graphql.validateQuery(resource.query, resource."schema");
               gql.valid && gql.depth <= 5 && !("ssn" in gql.fields);
             ```
 
-            ### parseQuery
+            ### analyzeQuery
 
             ```
-            graphql.parseQuery(TEXT query) -> OBJECT
+            graphql.analyzeQuery(TEXT query) -> OBJECT
             ```
 
-            Parses a GraphQL query without schema validation. Returns same metrics as `parse()` but `valid` only checks syntax.
-
-            **Parameters:**
-            - `query` - GraphQL query string
+            Parses a GraphQL query without schema validation. Returns same metrics as `validateQuery()` but `valid` only checks syntax.
 
             **Example:**
             ```sapl
-            policy "check-query-structure"
+            policy "analyze-query-structure"
             permit action == "execute"
             where
-              var gql = graphql.parseQuery(resource.query);
-              gql.depth <= 5 && gql.aliasCount <= 10;
+              var gql = graphql.analyzeQuery(resource.query);
+              gql.depth <= 5 && gql.security.aliasCount <= 10;
             ```
 
             ### complexity
@@ -190,18 +132,11 @@ public class GraphQLFunctionLibrary {
 
             Calculates weighted complexity using custom field weights. Unweighted fields default to 1.
 
-            **Parameters:**
-            - `parsed` - Parsed query object from `parse()` or `parseQuery()`
-            - `fieldWeights` - Object mapping field names to numeric weights
-
             **Example:**
             ```sapl
-            policy "enforce-complexity-limit"
-            permit action == "execute"
-            where
-              var gql = graphql.parse(resource.query, resource."schema");
-              var weights = {"posts": 5, "comments": 3, "user": 1};
-              graphql.complexity(gql, weights) <= 200;
+            var gql = graphql.validateQuery(resource.query, resource."schema");
+            var weights = {"posts": 5, "comments": 3, "user": 1};
+            graphql.complexity(gql, weights) <= 200;
             ```
 
             ### parseSchema
@@ -212,418 +147,185 @@ public class GraphQLFunctionLibrary {
 
             Parses and validates a GraphQL schema definition.
 
-            **Parameters:**
-            - `schema` - GraphQL schema definition (SDL)
-
-            **Returns:** Object with `valid` (boolean), `ast` (object), and `errors` (array) properties.
-
-            **Example:**
-            ```sapl
-            policy "require-valid-schema"
-            permit action == "configure"
-            where
-              var schemaResult = graphql.parseSchema(resource."schema");
-              schemaResult.valid;
-            ```
-
-            ## Use Cases
+            ## Common Use Cases
 
             ### Field-Level Access Control
-
-            Deny access to sensitive PII fields:
 
             ```sapl
             policy "restrict-pii-fields"
             deny action == "execute"
             where
-              var gql = graphql.parse(resource.query, resource."schema");
-              var piiFields = ["ssn", "creditCard", "taxId", "passport"];
+              var gql = graphql.validateQuery(resource.query, resource."schema");
+              var piiFields = ["ssn", "creditCard", "taxId"];
               array.containsAny(gql.fields, piiFields);
             ```
 
-            ### Depth Limiting
-
-            Prevent deeply nested queries:
+            ### Depth and Complexity Limiting
 
             ```sapl
-            policy "limit-query-depth"
+            policy "enforce-limits"
             permit action == "execute"
             where
-              var gql = graphql.parse(resource.query, resource."schema");
-              gql.valid && gql.depth <= 5;
+              var gql = graphql.validateQuery(resource.query, resource."schema");
+              gql.valid && gql.depth <= 5 && gql.complexity <= 100;
             ```
 
             ### Operation Type Control
-
-            Restrict mutations to admins:
 
             ```sapl
             policy "mutations-require-admin"
             permit action == "execute"
             where
-              var gql = graphql.parse(resource.query, resource."schema");
+              var gql = graphql.validateQuery(resource.query, resource."schema");
               gql.operation != "mutation" || subject.role == "admin";
-            ```
-
-            ### Introspection Blocking
-
-            Block schema introspection in production:
-
-            ```sapl
-            policy "block-introspection-in-production"
-            deny action == "execute"
-            where
-              var gql = graphql.parse(resource.query, resource."schema");
-              environment.stage == "production" && gql.isIntrospection;
-            ```
-
-            ### Complexity Limiting
-
-            Enforce complexity limits:
-
-            ```sapl
-            policy "complexity-limits"
-            permit action == "execute"
-            where
-              var gql = graphql.parse(resource.query, resource."schema");
-              gql.valid && gql.complexity <= 100;
             ```
 
             ### Batching Attack Prevention
 
-            Detect and block alias-based batching:
-
             ```sapl
-            policy "prevent-batching-attacks"
+            policy "prevent-batching"
             deny action == "execute"
             where
-              var gql = graphql.parse(resource.query, resource."schema");
-              gql.aliasCount > 10 || gql.batchingScore > 50;
-            ```
-
-            ### Pagination Limit Enforcement
-
-            Prevent excessive pagination:
-
-            ```sapl
-            policy "limit-pagination"
-            deny action == "execute"
-            where
-              var gql = graphql.parse(resource.query, resource."schema");
-              gql.maxPaginationLimit > 100;
-            ```
-
-            ### Fragment Security
-
-            All fragment fields are included in `gql.fields`, so check that array:
-
-            ```sapl
-            policy "check-sensitive-fields"
-            deny action == "execute"
-            where
-              var gql = graphql.parse(resource.query, resource."schema");
-              var sensitiveFields = ["ssn", "password"];
-              array.containsAny(gql.fields, sensitiveFields);
-            ```
-
-            To check specific fragments (note: `fragments` is an object, not array):
-
-            ```sapl
-            policy "check-fragment-by-name"
-            deny action == "execute"
-            where
-              var gql = graphql.parse(resource.query, resource."schema");
-              var sensitiveFields = ["ssn", "password"];
-              array.containsAny(gql.fragments.SensitiveFragment.fields, sensitiveFields);
-            ```
-
-            ### Type-Based Access Control
-
-            Restrict access to admin-only types:
-
-            ```sapl
-            policy "admin-only-types"
-            deny action == "execute"
-            where
-              var gql = graphql.parse(resource.query, resource."schema");
-              var adminTypes = ["AdminUser", "SystemConfig"];
-              subject.role != "admin" && array.containsAny(gql.types, adminTypes);
-            ```
-
-            ### Directive Whitelisting
-
-            Only allow specific directives:
-
-            ```sapl
-            policy "whitelist-directives"
-            deny action == "execute"
-            where
-              var gql = graphql.parse(resource.query, resource."schema");
-              var allowed = ["include", "skip", "deprecated"];
-              gql.directives |- var directive : !(directive.name in allowed);
+              var gql = graphql.validateQuery(resource.query, resource."schema");
+              gql.security.aliasCount > 10 || gql.security.batchingScore > 50;
             ```
 
             ### Comprehensive Security
-
-            Combine multiple security checks:
 
             ```sapl
             policy "comprehensive-security"
             permit action == "execute"
             where
-              var gql = graphql.parse(resource.query, resource."schema");
+              var gql = graphql.validateQuery(resource.query, resource."schema");
               gql.valid &&
               gql.depth <= 5 &&
               gql.fieldCount <= 50 &&
-              gql.aliasCount <= 10 &&
-              gql.maxPaginationLimit <= 100 &&
-              !gql.hasCircularFragments &&
-              !gql.isIntrospection &&
+              gql.security.aliasCount <= 10 &&
+              gql.security.maxPaginationLimit <= 100 &&
+              !gql.security.hasCircularFragments &&
+              !gql.security.isIntrospection &&
               !("ssn" in gql.fields);
             ```
 
-            ### Tier-Based Complexity Budgets
+            ## Error Handling
 
-            Apply complexity limits by user tier:
-
-            ```sapl
-            policy "tiered-limits"
-            permit action == "execute"
-            where
-              var gql = graphql.parse(resource.query, resource."schema");
-              var weights = {"posts": 5, "comments": 3, "users": 2};
-              var cost = graphql.complexity(gql, weights);
-
-              (subject.tier == "enterprise" && cost <= 1000) ||
-              (subject.tier == "professional" && cost <= 200) ||
-              (subject.tier == "free" && cost <= 50);
-            ```
-
-            ## Notes
-
-            **Performance:** Single-pass analysis. Parse once and reuse result object. Schema caching enabled (max 100 schemas).
-
-            **Error Handling:** Invalid queries set `valid` to false with errors in `errors` array. Check `valid` before using other metrics.
-
-            **Schema Validation:** `parse()` requires schema definition. Use `parseQuery()` for syntax-only validation.
+            Invalid queries set `valid` to false with errors in `errors` array. Check `valid` before using other metrics.
             """;
 
-    // Argument name constants
-    private static final String ARG_FIRST  = "first";
-    private static final String ARG_LAST   = "last";
-    private static final String ARG_LIMIT  = "limit";
-    private static final String ARG_OFFSET = "offset";
-    private static final String ARG_SKIP   = "skip";
-    private static final String ARG_TAKE   = "take";
+    // GraphQL operation types
+    private static final String OPERATION_QUERY        = "query";
+    private static final String OPERATION_MUTATION     = "mutation";
+    private static final String OPERATION_SUBSCRIPTION = "subscription";
 
-    // AST structure field name constants
-    private static final String AST_ARGUMENTS_LOWER = "arguments";
-    private static final String AST_DIRECTIVES      = "directives";
-    private static final String AST_KIND            = "kind";
-    private static final String AST_NAME_LOWER      = "name";
+    // GraphQL-specific constants
+    private static final String      INTROSPECTION_PREFIX  = "__";
+    private static final String      VARIABLE_MARKER       = "$variable";
+    private static final Set<String> PAGINATION_ARGS_LOWER = Set.of("first", "last", "limit", "offset", "skip", "take");
 
-    // Fragment detail field constants
-    private static final String FRAGMENT_TYPE_NAME = "typeName";
-    private static final String FRAGMENT_FIELDS    = "fields";
-
-    // Schema AST field constants
-    private static final String SCHEMA_TYPES = "types";
-
-    // Configuration constants
+    // Complexity calculation
     private static final int BATCHING_SCORE_MULTIPLIER = 5;
     private static final int DEFAULT_FIELD_WEIGHT      = 1;
     private static final int DEFAULT_MAX_DEPTH         = 100;
-    private static final int DEPTH_COMPLEXITY_FACTOR   = 2;
-    private static final int MAX_SCHEMA_CACHE_SIZE     = 100;
 
-    // Error message constants
-    private static final String ERROR_NO_OPERATION = "No operation definition found.";
-    private static final String ERROR_PARSE_FAILED = "Failed to parse GraphQL query: ";
+    /**
+     * Complexity factor applied to query depth. Each level of nesting multiplies
+     * the base complexity by this factor. Default is 2, meaning a query with
+     * depth 3 adds 6 to the complexity score (3 * 2).
+     */
+    public static final int DEPTH_COMPLEXITY_FACTOR = 2;
 
-    // Operation type constants
-    private static final String OPERATION_MUTATION     = "mutation";
-    private static final String OPERATION_QUERY        = "query";
-    private static final String OPERATION_SUBSCRIPTION = "subscription";
+    // Schema cache configuration
+    private static final int     MAX_SCHEMA_CACHE_SIZE = 100;
+    private static final float   CACHE_LOAD_FACTOR     = 0.75f;
+    private static final boolean CACHE_ACCESS_ORDER    = true;
 
-    // Property name constants
-    private static final String PROP_ALIAS_COUNT            = "aliasCount";
-    private static final String PROP_ARGUMENTS              = "arguments";
-    private static final String PROP_AST                    = "ast";
-    private static final String PROP_BATCHING_SCORE         = "batchingScore";
-    private static final String PROP_COMPLEXITY             = "complexity";
-    private static final String PROP_DEPTH                  = "depth";
-    private static final String PROP_DIRECTIVE_COUNT        = "directiveCount";
-    private static final String PROP_DIRECTIVES             = "directives";
-    private static final String PROP_DIRECTIVES_PER_FIELD   = "directivesPerField";
-    private static final String PROP_ERRORS                 = "errors";
-    private static final String PROP_FIELD_COUNT            = "fieldCount";
-    private static final String PROP_FIELDS                 = "fields";
-    private static final String PROP_FRAGMENT_COUNT         = "fragmentCount";
-    private static final String PROP_FRAGMENTS              = "fragments";
-    private static final String PROP_HAS_CIRCULAR_FRAGMENTS = "hasCircularFragments";
-    private static final String PROP_IS_INTROSPECTION       = "isIntrospection";
-    private static final String PROP_MAX_PAGINATION_LIMIT   = "maxPaginationLimit";
-    private static final String PROP_OPERATION              = "operation";
-    private static final String PROP_OPERATION_NAME         = "operationName";
-    private static final String PROP_ROOT_FIELD_COUNT       = "rootFieldCount";
-    private static final String PROP_TYPES                  = "types";
-    private static final String PROP_VALID                  = "valid";
-    private static final String PROP_VARIABLES              = "variables";
+    // Error messages
+    private static final String ERROR_SCHEMA_PARSE_FAILED = "Schema parsing failed";
+    private static final String ERROR_QUERY_PARSE_FAILED  = "Failed to parse GraphQL query";
+    private static final String ERROR_NO_OPERATION_FOUND  = "No operation definition found.";
 
-    // Special field prefixes
-    private static final String INTROSPECTION_PREFIX = "__";
+    // JSON field names - common fields
+    private static final String FIELD_VALID       = "valid";
+    private static final String FIELD_OPERATION   = "operation";
+    private static final String FIELD_FIELDS      = "fields";
+    private static final String FIELD_FIELD_COUNT = "fieldCount";
+    private static final String FIELD_DEPTH       = "depth";
+    private static final String FIELD_COMPLEXITY  = "complexity";
+    private static final String FIELD_ERRORS      = "errors";
 
-    // Pagination argument names
-    private static final Set<String> PAGINATION_ARGS = Set.of(ARG_FIRST, ARG_LAST, ARG_LIMIT, ARG_OFFSET, ARG_SKIP,
-            ARG_TAKE);
+    // JSON field names - security metrics
+    private static final String FIELD_SECURITY               = "security";
+    private static final String FIELD_ALIAS_COUNT            = "aliasCount";
+    private static final String FIELD_ROOT_FIELD_COUNT       = "rootFieldCount";
+    private static final String FIELD_BATCHING_SCORE         = "batchingScore";
+    private static final String FIELD_MAX_PAGINATION_LIMIT   = "maxPaginationLimit";
+    private static final String FIELD_HAS_CIRCULAR_FRAGMENTS = "hasCircularFragments";
+    private static final String FIELD_IS_INTROSPECTION       = "isIntrospection";
+    private static final String FIELD_DIRECTIVE_COUNT        = "directiveCount";
+    private static final String FIELD_DIRECTIVES_PER_FIELD   = "directivesPerField";
 
-    // Default values for empty result objects
-    private static final Map<String, Object> DEFAULT_VALUES = Map.ofEntries(Map.entry(PROP_OPERATION, OPERATION_QUERY),
-            Map.entry(PROP_OPERATION_NAME, ""), Map.entry(PROP_DEPTH, 0), Map.entry(PROP_FIELD_COUNT, 0),
-            Map.entry(PROP_IS_INTROSPECTION, false), Map.entry(PROP_COMPLEXITY, 0), Map.entry(PROP_ALIAS_COUNT, 0),
-            Map.entry(PROP_ROOT_FIELD_COUNT, 0), Map.entry(PROP_BATCHING_SCORE, 0),
-            Map.entry(PROP_MAX_PAGINATION_LIMIT, 0), Map.entry(PROP_FRAGMENT_COUNT, 0),
-            Map.entry(PROP_HAS_CIRCULAR_FRAGMENTS, false), Map.entry(PROP_DIRECTIVE_COUNT, 0),
-            Map.entry(PROP_DIRECTIVES_PER_FIELD, 0.0));
+    // JSON field names - AST details
+    private static final String FIELD_AST            = "ast";
+    private static final String FIELD_OPERATION_NAME = "operationName";
+    private static final String FIELD_TYPES          = "types";
+    private static final String FIELD_VARIABLES      = "variables";
+    private static final String FIELD_ARGUMENTS      = "arguments";
+    private static final String FIELD_FRAGMENTS      = "fragments";
+    private static final String FIELD_FRAGMENT_COUNT = "fragmentCount";
+    private static final String FIELD_DIRECTIVES     = "directives";
 
-    private static final Set<String> ARRAY_PROPERTIES = Set.of(PROP_FIELDS, PROP_TYPES, PROP_DIRECTIVES);
-
-    private static final Set<String> OBJECT_PROPERTIES = Set.of(PROP_VARIABLES, PROP_FRAGMENTS, PROP_ARGUMENTS);
+    // JSON field names - schema AST
+    private static final String FIELD_KIND      = "kind";
+    private static final String FIELD_NAME      = "name";
+    private static final String FIELD_TYPE_NAME = "typeName";
 
     // Schema cache - LRU with size limit
     private static final Map<String, GraphQLSchema> SCHEMA_CACHE = Collections
-            .synchronizedMap(new LinkedHashMap<>(MAX_SCHEMA_CACHE_SIZE, 0.75f, true) {
+            .synchronizedMap(new LinkedHashMap<>(MAX_SCHEMA_CACHE_SIZE, CACHE_LOAD_FACTOR, CACHE_ACCESS_ORDER) {
                 @Override
                 protected boolean removeEldestEntry(Map.Entry<String, GraphQLSchema> eldest) {
                     return size() > MAX_SCHEMA_CACHE_SIZE;
                 }
             });
 
-    // Return type schemas with full structure for IDE support
-    private static final String RETURNS_NUMBER = """
-            {
-              "type": "integer",
-              "minimum": 0,
-              "description": "Weighted complexity score"
-            }
-            """;
-
+    // Return type schema for IDE support
     private static final String RETURNS_PARSED_QUERY = """
             {
               "type": "object",
               "properties": {
-                "valid": {
-                  "type": "boolean",
-                  "description": "True if the query is valid against the schema"
-                },
-                "operation": {
-                  "type": "string",
-                  "enum": ["query", "mutation", "subscription", "unknown"],
-                  "description": "The GraphQL operation type"
-                },
-                "operationName": {
-                  "type": "string",
-                  "description": "The operation name if specified"
-                },
-                "fields": {
-                  "type": "array",
-                  "items": {"type": "string"},
-                  "description": "All field names requested in the query"
-                },
-                "fieldCount": {
-                  "type": "integer",
-                  "minimum": 0,
-                  "description": "Total number of fields requested"
-                },
-                "depth": {
-                  "type": "integer",
-                  "minimum": 0,
-                  "maximum": 100,
-                  "description": "Maximum nesting depth of field selections"
-                },
-                "complexity": {
-                  "type": "integer",
-                  "minimum": 0,
-                  "description": "Basic complexity score (fieldCount + depth × 2)"
-                },
-                "isIntrospection": {
-                  "type": "boolean",
-                  "description": "True if the query uses introspection fields"
-                },
-                "variables": {
+                "valid": {"type": "boolean"},
+                "operation": {"type": "string", "enum": ["query", "mutation", "subscription"]},
+                "fields": {"type": "array", "items": {"type": "string"}},
+                "fieldCount": {"type": "integer", "minimum": 0},
+                "depth": {"type": "integer", "minimum": 0, "maximum": 100},
+                "complexity": {"type": "integer", "minimum": 0},
+                "security": {
                   "type": "object",
-                  "description": "Variable definitions with default values"
+                  "properties": {
+                    "aliasCount": {"type": "integer", "minimum": 0},
+                    "rootFieldCount": {"type": "integer", "minimum": 0},
+                    "batchingScore": {"type": "integer", "minimum": 0},
+                    "maxPaginationLimit": {"type": "integer", "minimum": 0},
+                    "hasCircularFragments": {"type": "boolean"},
+                    "isIntrospection": {"type": "boolean"},
+                    "directiveCount": {"type": "integer", "minimum": 0},
+                    "directivesPerField": {"type": "number", "minimum": 0}
+                  }
                 },
-                "types": {
-                  "type": "array",
-                  "items": {"type": "string"},
-                  "description": "GraphQL types accessed via fragments"
-                },
-                "directives": {
-                  "type": "array",
-                  "items": {
-                    "type": "object",
-                    "properties": {
-                      "name": {"type": "string"},
-                      "arguments": {"type": "object"}
-                    }
-                  },
-                  "description": "All directives used in the query"
-                },
-                "fragments": {
+                "ast": {
                   "type": "object",
-                  "description": "Fragment definitions with their fields and types"
+                  "properties": {
+                    "operationName": {"type": "string"},
+                    "types": {"type": "array", "items": {"type": "string"}},
+                    "variables": {"type": "object"},
+                    "arguments": {"type": "object"},
+                    "fragments": {"type": "object"},
+                    "fragmentCount": {"type": "integer", "minimum": 0},
+                    "directives": {"type": "array"}
+                  }
                 },
-                "aliasCount": {
-                  "type": "integer",
-                  "minimum": 0,
-                  "description": "Number of aliased fields"
-                },
-                "rootFieldCount": {
-                  "type": "integer",
-                  "minimum": 0,
-                  "description": "Number of fields at root level"
-                },
-                "batchingScore": {
-                  "type": "integer",
-                  "minimum": 0,
-                  "description": "Score indicating potential batching patterns"
-                },
-                "arguments": {
-                  "type": "object",
-                  "description": "All field arguments used in the query"
-                },
-                "maxPaginationLimit": {
-                  "type": "integer",
-                  "minimum": 0,
-                  "description": "Maximum pagination limit requested"
-                },
-                "fragmentCount": {
-                  "type": "integer",
-                  "minimum": 0,
-                  "description": "Number of fragment definitions"
-                },
-                "hasCircularFragments": {
-                  "type": "boolean",
-                  "description": "True if fragments contain circular references"
-                },
-                "directiveCount": {
-                  "type": "integer",
-                  "minimum": 0,
-                  "description": "Total number of directive usages"
-                },
-                "directivesPerField": {
-                  "type": "number",
-                  "minimum": 0,
-                  "description": "Average directives per field"
-                },
-                "errors": {
-                  "type": "array",
-                  "items": {"type": "string"},
-                  "description": "Validation errors if invalid"
-                }
-              },
-              "required": ["valid", "operation", "fields", "depth", "complexity"]
+                "errors": {"type": "array", "items": {"type": "string"}}
+              }
             }
             """;
 
@@ -641,7 +343,7 @@ public class GraphQLFunctionLibrary {
      */
     @io.sapl.api.functions.Function(docs = """
             ```
-            graphql.parse(TEXT query, TEXT schema) -> OBJECT
+            graphql.validateQuery(TEXT query, TEXT schema) -> OBJECT
             ```
 
             Parses and validates a GraphQL query against a schema.
@@ -649,114 +351,84 @@ public class GraphQLFunctionLibrary {
             Returns comprehensive security analysis including validation, field extraction,
             complexity metrics, and potential security concerns.
 
-            **Access all metrics via properties:**
-
-            Basic Information:
-            - `gql.valid`, `gql.operation`, `gql.operationName`, `gql.errors`
-
-            Field Analysis:
-            - `gql.fields`, `gql.fieldCount`, `gql.depth`, `gql.isIntrospection`,
-              `gql.complexity`, `gql.isIntrospection`
-
-            Type and Directive Information:
-            - `gql.types`, `gql.directives`, `gql.fragments`
-
-            Advanced Security:
-            - `gql.aliasCount`, `gql.rootFieldCount`, `gql.batchingScore`,
-              `gql.maxPaginationLimit`, `gql.arguments`, `gql.fragmentCount`,
-              `gql.hasCircularFragments`, `gql.directiveCount`, `gql.directivesPerField`
-
             **Example:**
             ```sapl
-            var gql = graphql.parse(resource.query, resource."schema");
-            gql.valid && gql.depth <= 5 && !("ssn" in gql.fields)
+            var gql = graphql.validateQuery(resource.query, resource."schema");
+            gql.valid && gql.depth <= 5 && !("ssn" in gql.fields);
             ```
             """, schema = RETURNS_PARSED_QUERY)
-    public static Val parse(@Text Val query, @Text Val schema) {
+    public static Val validateQuery(@Text Val query, @Text Val schema) {
         try {
-            val document      = parseQueryDocument(query.getText());
+            val document      = new Parser().parseDocument(query.getText());
             val graphQLSchema = parseSchemaWithCache(schema.getText());
 
             val result = Val.JSON.objectNode();
 
-            val validationErrors = validateQuery(document, graphQLSchema);
+            val validationErrors = new Validator().validateDocument(graphQLSchema, document, Locale.ENGLISH);
             val isValid          = validationErrors.isEmpty();
 
-            result.put(PROP_VALID, isValid);
+            result.put(FIELD_VALID, isValid);
 
             if (!isValid) {
-                result.set(PROP_ERRORS,
-                        buildArray(validationErrors, (ValidationError error) -> Val.JSON.textNode(error.getMessage())));
+                val errors = Val.JSON.arrayNode();
+                validationErrors.forEach(error -> errors.add(error.getMessage()));
+                result.set(FIELD_ERRORS, errors);
                 addEmptyDefaults(result);
                 return Val.of(result);
             }
 
-            populateQueryAnalysis(document, result);
+            val operation = extractOperation(document);
+            val metrics   = analyzeQueryInSinglePass(document, operation);
+            metrics.populateResult(result);
 
             return Val.of(result);
 
         } catch (SchemaProblem exception) {
-            return createErrorResult("Schema parsing failed: " + exception.getMessage());
+            return handleParseException(exception, ERROR_SCHEMA_PARSE_FAILED);
         } catch (InvalidSyntaxException | IllegalArgumentException exception) {
-            return createErrorResult(ERROR_PARSE_FAILED + exception.getMessage());
+            return handleParseException(exception, ERROR_QUERY_PARSE_FAILED);
         }
     }
 
     /**
      * Parses a GraphQL query without schema validation.
      * <p/>
-     * Returns the same comprehensive metrics as parse() except for validation
-     * results. Use this when you need query analysis but don't have the schema
-     * available.
+     * Returns the same comprehensive metrics as validateQuery() except for
+     * validation results. Use this when you need query analysis but don't have
+     * the schema available or want to analyze structure without enforcing schema
+     * conformance.
      *
      * @param query the GraphQL query string to parse and analyze
      * @return Val containing parsed query object with all metrics
      */
     @io.sapl.api.functions.Function(docs = """
             ```
-            graphql.parseQuery(TEXT query) -> OBJECT
+            graphql.analyzeQuery(TEXT query) -> OBJECT
             ```
 
-            Parses a GraphQL query without schema validation.
-
-            Returns the same comprehensive metrics as `parse()` except for validation.
-            Use when you need query analysis but don't have the schema available.
-
-            **Access all metrics via properties:**
-
-            Basic Information:
-            - `gql.valid`, `gql.operation`, `gql.operationName`
-
-            Field Analysis:
-            - `gql.fields`, `gql.fieldCount`, `gql.depth`,
-              `gql.complexity`, `gql.isIntrospection`
-
-            Type and Directive Information:
-            - `gql.types`, `gql.directives`, `gql.fragments`
-
-            Advanced Security:
-            - `gql.aliasCount`, `gql.rootFieldCount`, `gql.batchingScore`,
-              `gql.maxPaginationLimit`, `gql.arguments`, `gql.fragmentCount`,
-              `gql.hasCircularFragments`, `gql.directiveCount`, `gql.directivesPerField`
+            Parses a GraphQL query without schema validation. Only validates syntax.
 
             **Example:**
             ```sapl
-            var gql = graphql.parseQuery(resource.query);
-            gql.depth <= 5 && gql.aliasCount <= 10
+            var gql = graphql.analyzeQuery(resource.query);
+            gql.depth <= 5 && gql.security.aliasCount <= 10;
             ```
             """, schema = RETURNS_PARSED_QUERY)
-    public static Val parseQuery(@Text Val query) {
+    public static Val analyzeQuery(@Text Val query) {
         try {
-            val document = parseQueryDocument(query.getText());
-            val result   = Val.JSON.objectNode();
+            val document  = new Parser().parseDocument(query.getText());
+            val result    = Val.JSON.objectNode();
+            val operation = extractOperation(document);
 
-            result.put(PROP_VALID, true);
-            populateQueryAnalysis(document, result);
+            result.put(FIELD_VALID, true);
+
+            val metrics = analyzeQueryInSinglePass(document, operation);
+            metrics.populateResult(result);
 
             return Val.of(result);
 
         } catch (InvalidSyntaxException | IllegalArgumentException exception) {
-            return createErrorResult(ERROR_PARSE_FAILED + exception.getMessage());
+            return handleParseException(exception, ERROR_QUERY_PARSE_FAILED);
         }
     }
 
@@ -766,14 +438,8 @@ public class GraphQLFunctionLibrary {
      * Applies custom weights to fields based on their expected resource cost.
      * Each field can be assigned a custom weight. Fields not specified in the
      * weights object receive a default weight of 1.
-     * <p/>
-     * Important: When fragments are used multiple times via fragment spreads,
-     * their complexity is counted for each spread, reflecting the actual
-     * execution cost of evaluating the fragment content multiple times. For
-     * example, if a fragment with complexity 10 is spread 5 times, it
-     * contributes 50 to the total complexity.
      *
-     * @param parsed the parsed query object from parse() or parseQuery()
+     * @param parsed the parsed query object from validateQuery() or analyzeQuery()
      * @param fieldWeights object mapping field names to numeric weights
      * @return Val containing the weighted complexity score
      */
@@ -786,14 +452,16 @@ public class GraphQLFunctionLibrary {
 
             **Example:**
             ```sapl
-            var gql = graphql.parse(resource.query, resource."schema");
-            var weights = {"posts": 5, "comments": 3, "user": 1};
-            graphql.complexity(gql, weights) <= 200
+            var gql = graphql.validateQuery(resource.query, resource."schema");
+            var weights = {"posts": 5, "comments": 3};
+            graphql.complexity(gql, weights) <= 200;
             ```
-            """, schema = RETURNS_NUMBER)
+            """, schema = """
+            {"type": "integer", "minimum": 0}
+            """)
     public static Val complexity(@JsonObject Val parsed, @JsonObject Val fieldWeights) {
-        val fieldsNode = parsed.getJsonNode().get(PROP_FIELDS);
-        val depthNode  = parsed.getJsonNode().get(PROP_DEPTH);
+        val fieldsNode = parsed.getJsonNode().get(FIELD_FIELDS);
+        val depthNode  = parsed.getJsonNode().get(FIELD_DEPTH);
 
         if (fieldsNode == null || !fieldsNode.isArray()) {
             return Val.of(0);
@@ -811,8 +479,7 @@ public class GraphQLFunctionLibrary {
             }
         }
 
-        val depth = depthNode != null && depthNode.isNumber() ? depthNode.asInt() : 1;
-
+        val depth           = depthNode != null && depthNode.isNumber() ? depthNode.asInt() : 1;
         val depthComplexity = depth * DEPTH_COMPLEXITY_FACTOR;
         val totalComplexity = fieldComplexity + depthComplexity;
 
@@ -835,35 +502,19 @@ public class GraphQLFunctionLibrary {
 
             Parses and validates a GraphQL schema definition.
 
-            Returns an object with:
-            - `valid`: boolean indicating schema validity
-            - `ast`: the schema type definition registry as JSON
-            - `errors`: array of error messages if invalid
-
             **Example:**
             ```sapl
             var schemaResult = graphql.parseSchema(resource."schema");
-            schemaResult.valid
+            schemaResult.valid;
             ```
             """, schema = """
             {
               "type": "object",
               "properties": {
-                "valid": {
-                  "type": "boolean",
-                  "description": "True if the schema is valid"
-                },
-                "ast": {
-                  "type": "object",
-                  "description": "Schema type definition registry representation"
-                },
-                "errors": {
-                  "type": "array",
-                  "items": {"type": "string"},
-                  "description": "Error messages if schema is invalid"
-                }
-              },
-              "required": ["valid", "ast"]
+                "valid": {"type": "boolean"},
+                "ast": {"type": "object"},
+                "errors": {"type": "array", "items": {"type": "string"}}
+              }
             }
             """)
     public static Val parseSchema(@Text Val schema) {
@@ -872,19 +523,19 @@ public class GraphQLFunctionLibrary {
             val typeDefinitionRegistry = schemaParser.parse(schema.getText());
 
             val result = Val.JSON.objectNode();
-            result.put(PROP_VALID, true);
-            result.set(PROP_AST, buildSchemaAst(typeDefinitionRegistry));
+            result.put(FIELD_VALID, true);
+            result.set(FIELD_AST, buildSchemaAst(typeDefinitionRegistry));
 
             return Val.of(result);
 
         } catch (SchemaProblem | IllegalArgumentException exception) {
             val result = Val.JSON.objectNode();
-            result.put(PROP_VALID, false);
-            result.set(PROP_AST, Val.JSON.objectNode());
+            result.put(FIELD_VALID, false);
+            result.set(FIELD_AST, Val.JSON.objectNode());
 
             val errors = Val.JSON.arrayNode();
             errors.add(exception.getMessage());
-            result.set(PROP_ERRORS, errors);
+            result.set(FIELD_ERRORS, errors);
 
             return Val.of(result);
         }
@@ -897,84 +548,52 @@ public class GraphQLFunctionLibrary {
      * @return JSON object representing the schema structure
      */
     private static ObjectNode buildSchemaAst(graphql.schema.idl.TypeDefinitionRegistry typeDefinitionRegistry) {
-        val astNode = Val.JSON.objectNode();
-
+        val astNode    = Val.JSON.objectNode();
         val typesArray = Val.JSON.arrayNode();
 
-        // Add regular types (object, interface, union, enum, input)
+        // Add regular types
         typeDefinitionRegistry.types().values().forEach(typeDef -> {
             val typeNode = Val.JSON.objectNode();
-            typeNode.put(AST_KIND, typeDef.getClass().getSimpleName());
-            typeNode.put(AST_NAME_LOWER, typeDef.getName());
+            typeNode.put(FIELD_KIND, typeDef.getClass().getSimpleName());
+            typeNode.put(FIELD_NAME, typeDef.getName());
             typesArray.add(typeNode);
         });
 
-        // Add scalar types (stored separately in GraphQL Java)
+        // Add scalar types
         typeDefinitionRegistry.scalars().values().forEach(scalarDef -> {
             val typeNode = Val.JSON.objectNode();
-            typeNode.put(AST_KIND, scalarDef.getClass().getSimpleName());
-            typeNode.put(AST_NAME_LOWER, scalarDef.getName());
+            typeNode.put(FIELD_KIND, scalarDef.getClass().getSimpleName());
+            typeNode.put(FIELD_NAME, scalarDef.getName());
             typesArray.add(typeNode);
         });
 
-        astNode.set(SCHEMA_TYPES, typesArray);
+        astNode.set(FIELD_TYPES, typesArray);
 
         val directivesArray = Val.JSON.arrayNode();
         typeDefinitionRegistry.getDirectiveDefinitions().values().forEach(directiveDef -> {
             val directiveNode = Val.JSON.objectNode();
-            directiveNode.put(AST_NAME_LOWER, directiveDef.getName());
+            directiveNode.put(FIELD_NAME, directiveDef.getName());
             directivesArray.add(directiveNode);
         });
-        astNode.set(AST_DIRECTIVES, directivesArray);
+        astNode.set(FIELD_DIRECTIVES, directivesArray);
 
         return astNode;
     }
 
     /**
-     * Populates a result object with query analysis data using a single-pass
-     * traversal.
+     * Extracts the operation definition from a parsed document.
      *
-     * @param document the parsed query document
-     * @param result the result object to populate
+     * @param document the parsed GraphQL document
+     * @return the operation definition
+     * @throws IllegalArgumentException if no operation definition is found
      */
-    private static void populateQueryAnalysis(Document document, ObjectNode result) {
-        val operationDefinition = extractOperationDefinition(document);
-
-        // Single-pass analysis collecting all metrics at once
-        val metrics = analyzeQueryInSinglePass(document, operationDefinition);
-
-        // Populate basic metrics
-        result.set(PROP_OPERATION, Val.JSON.textNode(metrics.operation));
-        result.set(PROP_OPERATION_NAME, Val.JSON.textNode(metrics.operationName));
-        result.set(PROP_FIELDS, buildStringArray(metrics.fields));
-        result.set(PROP_FIELD_COUNT, Val.JSON.numberNode(metrics.fieldCount));
-        result.set(PROP_DEPTH, Val.JSON.numberNode(metrics.depth));
-        result.set(PROP_IS_INTROSPECTION, Val.JSON.booleanNode(metrics.isIntrospection));
-        result.set(PROP_VARIABLES, metrics.variables);
-        result.set(PROP_COMPLEXITY, Val.JSON.numberNode(calculateBasicComplexity(metrics.fieldCount, metrics.depth)));
-
-        // Type and directive information
-        result.set(PROP_TYPES, buildStringArray(new ArrayList<>(metrics.types)));
-        result.set(PROP_DIRECTIVES, buildArray(metrics.directivesList, directive -> directive));
-
-        // Fragment information
-        result.set(PROP_FRAGMENTS, metrics.fragments);
-        result.set(PROP_FRAGMENT_COUNT, Val.JSON.numberNode(metrics.fragmentCount));
-        result.set(PROP_HAS_CIRCULAR_FRAGMENTS, Val.JSON.booleanNode(metrics.hasCircularFragments));
-
-        // Advanced security metrics
-        result.set(PROP_ALIAS_COUNT, Val.JSON.numberNode(metrics.aliasCount));
-        result.set(PROP_ROOT_FIELD_COUNT, Val.JSON.numberNode(metrics.rootFieldCount));
-        result.set(PROP_BATCHING_SCORE, Val.JSON.numberNode(metrics.batchingScore));
-        result.set(PROP_MAX_PAGINATION_LIMIT, Val.JSON.numberNode(metrics.maxPaginationLimit));
-        result.set(PROP_ARGUMENTS, metrics.arguments);
-        result.set(PROP_DIRECTIVE_COUNT, Val.JSON.numberNode(metrics.directiveCount));
-        result.set(PROP_DIRECTIVES_PER_FIELD, Val.JSON.numberNode(metrics.directivesPerField));
+    private static OperationDefinition extractOperation(Document document) {
+        return (OperationDefinition) document.getDefinitions().stream().filter(OperationDefinition.class::isInstance)
+                .findFirst().orElseThrow(() -> new IllegalArgumentException(ERROR_NO_OPERATION_FOUND));
     }
 
     /**
      * Analyzes a GraphQL query in a single pass, collecting all metrics at once.
-     * This consolidates multiple recursive traversals into one efficient pass.
      *
      * @param document the parsed document
      * @param operation the operation definition
@@ -983,29 +602,22 @@ public class GraphQLFunctionLibrary {
     private static QueryMetrics analyzeQueryInSinglePass(Document document, OperationDefinition operation) {
         val metrics = new QueryMetrics();
 
-        // Basic operation information
-        metrics.operation     = determineOperationType(operation);
-        metrics.operationName = extractOperationName(operation);
+        metrics.operation     = switch (operation.getOperation()) {
+                              case QUERY        -> OPERATION_QUERY;
+                              case MUTATION     -> OPERATION_MUTATION;
+                              case SUBSCRIPTION -> OPERATION_SUBSCRIPTION;
+                              };
+        metrics.operationName = Objects.requireNonNullElse(operation.getName(), "");
         metrics.variables     = extractVariablesFromOperation(operation);
 
-        // Single pass through operation selection set
         analyzeSelectionSet(operation.getSelectionSet(), 0, metrics, true);
-
-        // Calculate derived metrics
-        metrics.batchingScore      = metrics.aliasCount * BATCHING_SCORE_MULTIPLIER + metrics.rootFieldCount;
-        metrics.directivesPerField = metrics.fieldCount > 0 ? (double) metrics.directiveCount / metrics.fieldCount
-                : 0.0;
-        metrics.isIntrospection    = metrics.fields.stream().anyMatch(field -> field.startsWith(INTROSPECTION_PREFIX));
-
-        // Process fragments separately (different document iteration)
         processFragments(document, metrics);
 
         return metrics;
     }
 
     /**
-     * Recursively analyzes a selection set, collecting all metrics in a single
-     * pass.
+     * Recursively analyzes a selection set, collecting all metrics.
      *
      * @param selectionSet the selection set to analyze
      * @param currentDepth the current nesting depth
@@ -1015,7 +627,7 @@ public class GraphQLFunctionLibrary {
     private static void analyzeSelectionSet(SelectionSet selectionSet, int currentDepth, QueryMetrics metrics,
             boolean isRoot) {
         if (selectionSet == null) {
-            return;
+            return; // Null selection set
         }
 
         val nextDepth = currentDepth + 1;
@@ -1025,8 +637,8 @@ public class GraphQLFunctionLibrary {
             switch (selection) {
             case Field field             -> analyzeField(field, nextDepth, metrics, isRoot);
             case InlineFragment fragment -> analyzeInlineFragment(fragment, nextDepth, metrics);
-            case FragmentSpread spread   -> analyzeFragmentSpread(spread, metrics);
-            default                      -> { /* Ignore unknown selection types */ }
+            case FragmentSpread spread   -> processDirectivesContainer(spread, metrics);
+            default                      -> { /* Other selection types */}
             }
         }
     }
@@ -1041,49 +653,68 @@ public class GraphQLFunctionLibrary {
      * @param isRoot true if this field is at root level
      */
     private static void analyzeField(Field field, int currentDepth, QueryMetrics metrics, boolean isRoot) {
-        // Collect field name
-        metrics.fields.add(field.getName());
-        metrics.fieldCount++;
-
-        // Root field counting
-        if (isRoot) {
-            metrics.rootFieldCount++;
-        }
-
-        // Alias counting
-        if (field.getAlias() != null) {
-            metrics.aliasCount++;
-        }
-
-        // Argument analysis
-        if (field.getArguments() != null && !field.getArguments().isEmpty()) {
-            val fieldArgs = Val.JSON.objectNode();
-
-            for (Argument argument : field.getArguments()) {
-                val argName  = argument.getName();
-                val argValue = argument.getValue();
-
-                fieldArgs.set(argName, convertValueToJson(argValue));
-
-                // Track max pagination limit
-                if (PAGINATION_ARGS.contains(argName.toLowerCase()) && argValue instanceof IntValue intValue) {
-                    val value = intValue.getValue().intValue();
-                    metrics.maxPaginationLimit = Math.max(metrics.maxPaginationLimit, value);
-                }
-            }
-
-            metrics.arguments.set(field.getName(), fieldArgs);
-        }
-
-        // Directive counting
-        if (field.getDirectives() != null) {
-            val directives = field.getDirectives();
-            metrics.directiveCount += directives.size();
-            processDirectivesForExtraction(directives, metrics.directivesList);
-        }
-
-        // Recurse into nested selections
+        metrics.addField(field.getName(), isRoot, field.getAlias() != null);
+        processFieldArguments(field, metrics);
+        processDirectivesContainer(field, metrics);
         analyzeSelectionSet(field.getSelectionSet(), currentDepth, metrics, false);
+    }
+
+    /**
+     * Processes arguments from a field, extracting pagination limits and storing
+     * argument values.
+     *
+     * @param field the field to process
+     * @param metrics the metrics accumulator
+     */
+    private static void processFieldArguments(Field field, QueryMetrics metrics) {
+        if (field.getArguments() == null || field.getArguments().isEmpty()) {
+            return; // No arguments
+        }
+
+        val fieldArgs = Val.JSON.objectNode();
+
+        for (Argument argument : field.getArguments()) {
+            val argName  = argument.getName();
+            val argValue = argument.getValue();
+
+            fieldArgs.set(argName, convertValueToJson(argValue));
+
+            if (PAGINATION_ARGS_LOWER.contains(argName.toLowerCase()) && argValue instanceof IntValue intValue) {
+                metrics.updateMaxPaginationLimit(intValue.getValue().intValue());
+            }
+        }
+
+        metrics.arguments.set(field.getName(), fieldArgs);
+    }
+
+    /**
+     * Processes directives from any directive container (field, inline fragment,
+     * fragment spread).
+     *
+     * @param container the container with directives
+     * @param metrics the metrics accumulator
+     */
+    private static void processDirectivesContainer(DirectivesContainer<?> container, QueryMetrics metrics) {
+        if (container.getDirectives() == null || container.getDirectives().isEmpty()) {
+            return; // No directives
+        }
+
+        val directives = container.getDirectives();
+        metrics.directiveCount += directives.size();
+
+        for (Directive directive : directives) {
+            val directiveNode = Val.JSON.objectNode();
+            directiveNode.put(FIELD_NAME, directive.getName());
+
+            val argsNode = Val.JSON.objectNode();
+            if (directive.getArguments() != null) {
+                directive.getArguments()
+                        .forEach(argument -> argsNode.set(argument.getName(), convertValueToJson(argument.getValue())));
+            }
+            directiveNode.set(FIELD_ARGUMENTS, argsNode);
+
+            metrics.directivesList.add(directiveNode);
+        }
     }
 
     /**
@@ -1095,58 +726,12 @@ public class GraphQLFunctionLibrary {
      * @param metrics the metrics accumulator
      */
     private static void analyzeInlineFragment(InlineFragment fragment, int currentDepth, QueryMetrics metrics) {
-        // Collect type condition
         if (fragment.getTypeCondition() != null) {
             metrics.types.add(fragment.getTypeCondition().getName());
         }
 
-        // Directive counting
-        if (fragment.getDirectives() != null) {
-            val directives = fragment.getDirectives();
-            metrics.directiveCount += directives.size();
-            processDirectivesForExtraction(directives, metrics.directivesList);
-        }
-
-        // Recurse into nested selections
+        processDirectivesContainer(fragment, metrics);
         analyzeSelectionSet(fragment.getSelectionSet(), currentDepth, metrics, false);
-    }
-
-    /**
-     * Analyzes a fragment spread, processing directives.
-     *
-     * @param spread the fragment spread to analyze
-     * @param metrics the metrics accumulator
-     */
-    private static void analyzeFragmentSpread(DirectivesContainer<?> spread, QueryMetrics metrics) {
-        // Directive counting
-        if (spread.getDirectives() != null) {
-            val directives = spread.getDirectives();
-            metrics.directiveCount += directives.size();
-            processDirectivesForExtraction(directives, metrics.directivesList);
-        }
-    }
-
-    /**
-     * Processes directives for extraction into the directives list.
-     *
-     * @param directives the list of directives
-     * @param directivesList the list to accumulate directive objects
-     */
-    private static void processDirectivesForExtraction(List<Directive> directives, List<ObjectNode> directivesList) {
-        for (Directive directive : directives) {
-            val directiveNode = Val.JSON.objectNode();
-            directiveNode.put(AST_NAME_LOWER, directive.getName());
-
-            val argsNode = Val.JSON.objectNode();
-            if (directive.getArguments() != null) {
-                for (Argument argument : directive.getArguments()) {
-                    argsNode.set(argument.getName(), convertValueToJson(argument.getValue()));
-                }
-            }
-            directiveNode.set(AST_ARGUMENTS_LOWER, argsNode);
-
-            directivesList.add(directiveNode);
-        }
     }
 
     /**
@@ -1163,17 +748,14 @@ public class GraphQLFunctionLibrary {
             if (definition instanceof FragmentDefinition fragment) {
                 fragmentDefinitions.put(fragment.getName(), fragment);
 
-                // Extract fragment details
                 val fragmentInfo = Val.JSON.objectNode();
-                fragmentInfo.put(FRAGMENT_TYPE_NAME, fragment.getTypeCondition().getName());
+                fragmentInfo.put(FIELD_TYPE_NAME, fragment.getTypeCondition().getName());
 
                 val fragmentFields = new ArrayList<String>();
                 extractFieldsFromSelectionSet(fragment.getSelectionSet(), fragmentFields);
-                fragmentInfo.set(FRAGMENT_FIELDS, buildStringArray(fragmentFields));
+                fragmentInfo.set(FIELD_FIELDS, arrayFrom(fragmentFields));
 
                 metrics.fragments.set(fragment.getName(), fragmentInfo);
-
-                // Collect fragment type
                 metrics.types.add(fragment.getTypeCondition().getName());
             }
         }
@@ -1183,15 +765,14 @@ public class GraphQLFunctionLibrary {
     }
 
     /**
-     * Extracts field names from a selection set (used only for fragment field
-     * extraction).
+     * Extracts field names from a selection set.
      *
      * @param selectionSet the selection set to process
      * @param accumulator list to accumulate field names
      */
     private static void extractFieldsFromSelectionSet(SelectionSet selectionSet, List<String> accumulator) {
         if (selectionSet == null) {
-            return;
+            return; // Null selection set
         }
 
         for (Selection<?> selection : selectionSet.getSelections()) {
@@ -1201,7 +782,7 @@ public class GraphQLFunctionLibrary {
                 extractFieldsFromSelectionSet(field.getSelectionSet(), accumulator);
             }
             case InlineFragment fragment -> extractFieldsFromSelectionSet(fragment.getSelectionSet(), accumulator);
-            default                      -> { /* Ignore fragment spreads and unknown selection types */ }
+            default                      -> { /* Other selection types */}
             }
         }
     }
@@ -1214,8 +795,7 @@ public class GraphQLFunctionLibrary {
      */
     private static boolean detectCircularFragments(Map<String, FragmentDefinition> fragments) {
         for (Map.Entry<String, FragmentDefinition> entry : fragments.entrySet()) {
-            val visited = new HashSet<String>();
-            if (hasCircularReference(entry.getKey(), entry.getValue(), fragments, visited)) {
+            if (hasCircularReference(entry.getKey(), entry.getValue(), fragments, new HashSet<>())) {
                 return true;
             }
         }
@@ -1224,29 +804,42 @@ public class GraphQLFunctionLibrary {
 
     /**
      * Checks for circular references in a fragment using depth-first search.
+     * <p/>
+     * Uses backtracking DFS with a visited set to detect cycles. The algorithm:
+     * 1. Marks current fragment as visited
+     * 2. Recursively checks all fragment spreads
+     * 3. Backtracks by removing from visited set
+     * <p/>
+     * If a fragment is encountered while already in the visited set, a cycle
+     * exists.
      *
      * @param fragmentName the fragment name being checked
      * @param fragment the fragment definition
      * @param allFragments map of all fragments
-     * @param visited set of already visited fragment names
+     * @param visited set of already visited fragment names in current path
      * @return true if circular reference found
      */
     private static boolean hasCircularReference(String fragmentName, FragmentDefinition fragment,
             Map<String, FragmentDefinition> allFragments, Set<String> visited) {
+        // Cycle detected: fragment references itself through a chain
         if (visited.contains(fragmentName)) {
             return true;
         }
 
+        // Mark as visited for this path
         visited.add(fragmentName);
 
+        // Find all fragments this fragment references
         val referencedFragments = findFragmentSpreads(fragment.getSelectionSet());
         for (String refName : referencedFragments) {
+            // Recursively check each referenced fragment for cycles
             if (allFragments.containsKey(refName)
                     && hasCircularReference(refName, allFragments.get(refName), allFragments, visited)) {
                 return true;
             }
         }
 
+        // Backtrack: remove from visited to allow other paths to use this fragment
         visited.remove(fragmentName);
         return false;
     }
@@ -1268,7 +861,7 @@ public class GraphQLFunctionLibrary {
             case FragmentSpread spread   -> spreads.add(spread.getName());
             case Field field             -> spreads.addAll(findFragmentSpreads(field.getSelectionSet()));
             case InlineFragment fragment -> spreads.addAll(findFragmentSpreads(fragment.getSelectionSet()));
-            default                      -> { /* Ignore unknown selection types */ }
+            default                      -> { /* Other selection types */}
             }
         }
 
@@ -1277,9 +870,6 @@ public class GraphQLFunctionLibrary {
 
     /**
      * Converts a GraphQL AST Value to a proper JSON node.
-     * Handles all GraphQL value types including scalars, arrays, objects, and
-     * variable references. This preserves proper JSON types instead of converting
-     * everything to strings.
      *
      * @param value the GraphQL value to convert
      * @return JSON representation of the value with correct types
@@ -1305,7 +895,7 @@ public class GraphQLFunctionLibrary {
         }
         case VariableReference variableRef -> {
             val varObject = Val.JSON.objectNode();
-            varObject.put("$variable", variableRef.getName());
+            varObject.put(VARIABLE_MARKER, variableRef.getName());
             yield varObject;
         }
         default                            -> Val.JSON.textNode(value.toString());
@@ -1313,13 +903,11 @@ public class GraphQLFunctionLibrary {
     }
 
     /**
-     * Extracts variable definitions from an operation.
-     * Only includes variables that have default values specified in the query.
-     * Variables without default values are excluded from the result.
+     * Extracts variable definitions from an operation. Only includes variables
+     * that have default values specified.
      *
      * @param operation the operation definition
-     * @return object containing variable definitions with their default values as
-     * proper JSON types (numbers, strings, booleans, arrays, objects)
+     * @return object containing variable definitions with their default values
      */
     private static ObjectNode extractVariablesFromOperation(OperationDefinition operation) {
         val variables = Val.JSON.objectNode();
@@ -1341,64 +929,38 @@ public class GraphQLFunctionLibrary {
     }
 
     /**
-     * Calculates basic complexity score from field count and depth.
-     *
-     * @param fieldCount total number of fields
-     * @param depth maximum nesting depth
-     * @return complexity score
-     */
-    private static int calculateBasicComplexity(int fieldCount, int depth) {
-        return fieldCount + (depth * DEPTH_COMPLEXITY_FACTOR);
-    }
-
-    /**
-     * Builds a JSON array from a list of items using a mapper function.
-     *
-     * @param items list of items to convert
-     * @param mapper function to convert each item to a JsonNode
-     * @param <T> type of items in the list
-     * @return JSON array node
-     */
-    private static <T> ArrayNode buildArray(List<T> items, Function<T, JsonNode> mapper) {
-        val array = Val.JSON.arrayNode();
-        items.stream().map(mapper).forEach(array::add);
-        return array;
-    }
-
-    /**
-     * Builds a JSON array from strings.
-     *
-     * @param items list of strings
-     * @return JSON array node
-     */
-    private static ArrayNode buildStringArray(List<String> items) {
-        val array = Val.JSON.arrayNode();
-        items.forEach(array::add);
-        return array;
-    }
-
-    /**
      * Adds empty default values for properties when query is invalid.
      *
      * @param result the result object to populate with defaults
      */
     private static void addEmptyDefaults(ObjectNode result) {
-        // Add scalar defaults
-        DEFAULT_VALUES.forEach((key, value) -> {
-            switch (value) {
-            case Integer i -> result.put(key, i);
-            case Double d  -> result.put(key, d);
-            case Boolean b -> result.put(key, b);
-            case String s  -> result.put(key, s);
-            default        -> throw new IllegalStateException("Unexpected default value type: " + value.getClass());
-            }
-        });
+        result.put(FIELD_OPERATION, OPERATION_QUERY);
+        result.put(FIELD_DEPTH, 0);
+        result.put(FIELD_FIELD_COUNT, 0);
+        result.put(FIELD_COMPLEXITY, 0);
 
-        // Add array defaults
-        ARRAY_PROPERTIES.forEach(key -> result.set(key, Val.JSON.arrayNode()));
+        result.set(FIELD_FIELDS, Val.JSON.arrayNode());
 
-        // Add object defaults
-        OBJECT_PROPERTIES.forEach(key -> result.set(key, Val.JSON.objectNode()));
+        val security = Val.JSON.objectNode();
+        security.put(FIELD_ALIAS_COUNT, 0);
+        security.put(FIELD_ROOT_FIELD_COUNT, 0);
+        security.put(FIELD_BATCHING_SCORE, 0);
+        security.put(FIELD_MAX_PAGINATION_LIMIT, 0);
+        security.put(FIELD_HAS_CIRCULAR_FRAGMENTS, false);
+        security.put(FIELD_IS_INTROSPECTION, false);
+        security.put(FIELD_DIRECTIVE_COUNT, 0);
+        security.put(FIELD_DIRECTIVES_PER_FIELD, 0.0);
+        result.set(FIELD_SECURITY, security);
+
+        val ast = Val.JSON.objectNode();
+        ast.put(FIELD_OPERATION_NAME, "");
+        ast.set(FIELD_TYPES, Val.JSON.arrayNode());
+        ast.set(FIELD_DIRECTIVES, Val.JSON.arrayNode());
+        ast.set(FIELD_VARIABLES, Val.JSON.objectNode());
+        ast.set(FIELD_FRAGMENTS, Val.JSON.objectNode());
+        ast.put(FIELD_FRAGMENT_COUNT, 0);
+        ast.set(FIELD_ARGUMENTS, Val.JSON.objectNode());
+        result.set(FIELD_AST, ast);
     }
 
     /**
@@ -1409,22 +971,23 @@ public class GraphQLFunctionLibrary {
      */
     private static Val createErrorResult(String errorMessage) {
         val result = Val.JSON.objectNode();
-        result.put(PROP_VALID, false);
+        result.put(FIELD_VALID, false);
         val errors = Val.JSON.arrayNode();
         errors.add(errorMessage);
-        result.set(PROP_ERRORS, errors);
+        result.set(FIELD_ERRORS, errors);
         addEmptyDefaults(result);
         return Val.of(result);
     }
 
     /**
-     * Parses a GraphQL query document from a string.
+     * Handles parsing and validation exceptions with consistent error messages.
      *
-     * @param query the query string to parse
-     * @return parsed Document
+     * @param exception the exception that occurred
+     * @param context the context describing what operation failed
+     * @return Val containing error result
      */
-    private static Document parseQueryDocument(String query) {
-        return new Parser().parseDocument(query);
+    private static Val handleParseException(Exception exception, String context) {
+        return createErrorResult(context + ": " + exception.getMessage());
     }
 
     /**
@@ -1445,58 +1008,21 @@ public class GraphQLFunctionLibrary {
     }
 
     /**
-     * Validates the query document against the schema.
+     * Converts a list of strings to a JSON array.
      *
-     * @param document the parsed query document
-     * @param schema the GraphQL schema
-     * @return list of validation errors, empty if valid
+     * @param items list of strings
+     * @return JSON array node
      */
-    private static List<ValidationError> validateQuery(Document document, GraphQLSchema schema) {
-        val validator = new Validator();
-        return validator.validateDocument(schema, document, Locale.ENGLISH);
-    }
-
-    /**
-     * Extracts the first operation definition from a document.
-     *
-     * @param document the parsed document
-     * @return the operation definition
-     * @throws IllegalArgumentException if no operation found
-     */
-    private static OperationDefinition extractOperationDefinition(Document document) {
-        return (OperationDefinition) document.getDefinitions().stream().filter(OperationDefinition.class::isInstance)
-                .findFirst().orElseThrow(() -> new IllegalArgumentException(ERROR_NO_OPERATION));
-    }
-
-    /**
-     * Determines the operation type from an operation definition.
-     *
-     * @param operation the operation definition
-     * @return operation type string
-     */
-    private static String determineOperationType(OperationDefinition operation) {
-        return switch (operation.getOperation()) {
-        case QUERY        -> OPERATION_QUERY;
-        case MUTATION     -> OPERATION_MUTATION;
-        case SUBSCRIPTION -> OPERATION_SUBSCRIPTION;
-        };
-    }
-
-    /**
-     * Extracts the operation name from an operation definition.
-     *
-     * @param operation the operation definition
-     * @return operation name or empty string if not specified
-     */
-    private static String extractOperationName(NamedNode<?> operation) {
-        return Objects.requireNonNullElse(operation.getName(), "");
+    private static ArrayNode arrayFrom(List<String> items) {
+        val array = Val.JSON.arrayNode();
+        items.forEach(array::add);
+        return array;
     }
 
     /**
      * Mutable metrics accumulator for collecting query analysis data during a
-     * single-pass traversal. All metrics are accumulated during the traversal and
-     * then converted to an immutable JSON result object. This mutable accumulator
-     * pattern is more efficient than creating new immutable instances at each step.
+     * single-pass traversal. Provides methods to update metrics and populate the
+     * final result object.
      */
     private static class QueryMetrics {
         String           operation            = OPERATION_QUERY;
@@ -1504,19 +1030,114 @@ public class GraphQLFunctionLibrary {
         List<String>     fields               = new ArrayList<>();
         int              fieldCount           = 0;
         int              depth                = 0;
-        boolean          isIntrospection      = false;
         ObjectNode       variables            = Val.JSON.objectNode();
         Set<String>      types                = new HashSet<>();
         List<ObjectNode> directivesList       = new ArrayList<>();
         ObjectNode       fragments            = Val.JSON.objectNode();
         int              aliasCount           = 0;
         int              rootFieldCount       = 0;
-        int              batchingScore        = 0;
         int              maxPaginationLimit   = 0;
         ObjectNode       arguments            = Val.JSON.objectNode();
         int              fragmentCount        = 0;
         boolean          hasCircularFragments = false;
         int              directiveCount       = 0;
-        double           directivesPerField   = 0.0;
+
+        /**
+         * Adds a field to the metrics collection.
+         *
+         * @param fieldName the name of the field
+         * @param isRoot whether this is a root-level field
+         * @param hasAlias whether this field has an alias
+         */
+        void addField(String fieldName, boolean isRoot, boolean hasAlias) {
+            fields.add(fieldName);
+            fieldCount++;
+
+            if (isRoot) {
+                rootFieldCount++;
+            }
+
+            if (hasAlias) {
+                aliasCount++;
+            }
+        }
+
+        /**
+         * Updates the maximum pagination limit encountered.
+         *
+         * @param limit the pagination limit value
+         */
+        void updateMaxPaginationLimit(int limit) {
+            maxPaginationLimit = Math.max(maxPaginationLimit, limit);
+        }
+
+        /**
+         * Populates the result object with all collected metrics in a hybrid
+         * flat/grouped structure. Common fields remain flat for policy ergonomics,
+         * while detailed metrics are grouped by category.
+         *
+         * @param result the result object to populate
+         */
+        void populateResult(ObjectNode result) {
+            populateCommonFields(result);
+            populateSecurityMetrics(result);
+            populateAstDetails(result);
+        }
+
+        /**
+         * Populates common fields that are frequently accessed in policies.
+         *
+         * @param result the result object to populate
+         */
+        private void populateCommonFields(ObjectNode result) {
+            result.put(FIELD_OPERATION, operation);
+            result.set(FIELD_FIELDS, arrayFrom(fields));
+            result.put(FIELD_FIELD_COUNT, fieldCount);
+            result.put(FIELD_DEPTH, depth);
+            result.put(FIELD_COMPLEXITY, fieldCount + (depth * DEPTH_COMPLEXITY_FACTOR));
+        }
+
+        /**
+         * Populates security-related metrics in a grouped structure.
+         *
+         * @param result the result object to populate
+         */
+        private void populateSecurityMetrics(ObjectNode result) {
+            val security = Val.JSON.objectNode();
+
+            security.put(FIELD_ALIAS_COUNT, aliasCount);
+            security.put(FIELD_ROOT_FIELD_COUNT, rootFieldCount);
+            security.put(FIELD_BATCHING_SCORE, aliasCount * BATCHING_SCORE_MULTIPLIER + rootFieldCount);
+            security.put(FIELD_MAX_PAGINATION_LIMIT, maxPaginationLimit);
+            security.put(FIELD_HAS_CIRCULAR_FRAGMENTS, hasCircularFragments);
+            security.put(FIELD_IS_INTROSPECTION,
+                    fields.stream().anyMatch(field -> field.startsWith(INTROSPECTION_PREFIX)));
+            security.put(FIELD_DIRECTIVE_COUNT, directiveCount);
+            security.put(FIELD_DIRECTIVES_PER_FIELD, fieldCount > 0 ? (double) directiveCount / fieldCount : 0.0);
+
+            result.set(FIELD_SECURITY, security);
+        }
+
+        /**
+         * Populates AST details in a grouped structure.
+         *
+         * @param result the result object to populate
+         */
+        private void populateAstDetails(ObjectNode result) {
+            val ast = Val.JSON.objectNode();
+
+            ast.put(FIELD_OPERATION_NAME, operationName);
+            ast.set(FIELD_TYPES, arrayFrom(new ArrayList<>(types)));
+            ast.set(FIELD_VARIABLES, variables);
+            ast.set(FIELD_ARGUMENTS, arguments);
+            ast.set(FIELD_FRAGMENTS, fragments);
+            ast.put(FIELD_FRAGMENT_COUNT, fragmentCount);
+
+            val directivesArray = Val.JSON.arrayNode();
+            directivesList.forEach(directivesArray::add);
+            ast.set(FIELD_DIRECTIVES, directivesArray);
+
+            result.set(FIELD_AST, ast);
+        }
     }
 }
