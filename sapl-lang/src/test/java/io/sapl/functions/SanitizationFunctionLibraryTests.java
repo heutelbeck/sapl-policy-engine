@@ -121,9 +121,9 @@ class SanitizationFunctionLibraryTests {
                 Arguments.of("%44%52%4f%50 %54%41%42%4c%45 students", "Hex-encoded DROP TABLE"),
 
                 // Unicode obfuscation (normalized by NFKC)
-                Arguments.of("\uFF33\uFF25\uFF2C\uFF25\uFF23\uFF34 * \uFF26\uFF32\uFF2F\uFF2D outer_gods",
+                Arguments.of("ＳＥＬＥＣＴ * ＦＲＯＭ outer_gods",
                         "Unicode fullwidth SELECT"),
-                Arguments.of("\uFF24\uFF32\uFF2F\uFF30 \uFF34\uFF21\uFF22\uFF2C\uFF25 servitors",
+                Arguments.of("ＤＲＯＰ ＴＡＢＬＥ servitors",
                         "Unicode fullwidth DROP"),
 
                 // Multi-line injections

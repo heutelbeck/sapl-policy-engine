@@ -429,26 +429,38 @@ public class X509FunctionLibrary {
 
             try {
                 val subjectAltNames = CertificateUtils.extractSubjectAlternativeNames(certificate);
-                if (subjectAltNames != null) {
-                    for (List<?> san : subjectAltNames) {
-                        val sanType = (Integer) san.get(0);
-                        if (sanType == SAN_TYPE_IP_ADDRESS) {
-                            val sanValue     = san.get(1);
-                            val normalizedIp = extractIpAddress(sanValue);
-                            if (normalizedIp != null && normalizedIp.equals(targetIp)) {
-                                return Val.of(true);
-                            }
-                        }
-                    }
-                }
+                return Val.of(containsIpAddress(subjectAltNames, targetIp));
             } catch (CertificateParsingException exception) {
                 return Val.error("Failed to check IP addresses: " + exception.getMessage() + ".");
             }
-
-            return Val.of(false);
         }, "Failed to check IP address");
     }
 
+    /**
+     * Checks if the given Subject Alternative Names contain a specific IP address.
+     *
+     * @param subjectAltNames the collection of SANs from a certificate
+     * @param targetIp the target IP address to search for
+     * @return true if the IP address is found in the SANs
+     */
+    private static boolean containsIpAddress(java.util.Collection<List<?>> subjectAltNames, String targetIp) {
+        if (subjectAltNames == null) {
+            return false;
+        }
+
+        for (List<?> san : subjectAltNames) {
+            val sanType = (Integer) san.get(0);
+            if (sanType == SAN_TYPE_IP_ADDRESS) {
+                val sanValue     = san.get(1);
+                val normalizedIp = extractIpAddress(sanValue);
+                if (normalizedIp != null && normalizedIp.equals(targetIp)) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
     /* Validity Checks */
 
     @Function(docs = """

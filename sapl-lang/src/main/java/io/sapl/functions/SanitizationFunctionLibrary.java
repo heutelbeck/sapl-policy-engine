@@ -163,7 +163,7 @@ public class SanitizationFunctionLibrary {
     // === Balanced Mode Patterns ===
 
     private static final Pattern SQL_SELECT_FROM_STATEMENT = Pattern
-            .compile("\\bSELECT\\s+\\S+(?:[,\\s]+(?!FROM\\b)\\S+)*\\s+FROM\\b", Pattern.CASE_INSENSITIVE);
+            .compile("\\bSELECT\\s+\\S+(?:\\s*,\\s*(?!FROM\\b)\\S+)*\\s+FROM\\b", Pattern.CASE_INSENSITIVE);
     private static final Pattern SQL_INSERT_INTO_STATEMENT = Pattern.compile("\\bINSERT\\s+INTO\\b",
             Pattern.CASE_INSENSITIVE);
     private static final Pattern SQL_DELETE_FROM_STATEMENT = Pattern.compile("\\bDELETE\\s+FROM\\b",
