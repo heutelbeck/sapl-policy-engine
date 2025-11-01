@@ -17,12 +17,9 @@
  */
 package io.sapl.functions;
 
-import java.util.*;
-
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-
 import graphql.language.*;
 import graphql.parser.InvalidSyntaxException;
 import graphql.parser.Parser;
@@ -38,6 +35,8 @@ import io.sapl.api.validation.JsonObject;
 import io.sapl.api.validation.Text;
 import lombok.experimental.UtilityClass;
 import lombok.val;
+
+import java.util.*;
 
 /**
  * GraphQL query parsing and analysis for authorization policies.
@@ -213,7 +212,17 @@ public class GraphQLFunctionLibrary {
             Invalid queries set `valid` to false with errors in `errors` array. Check `valid` before using other metrics.
             """;
 
-    // Configuration constants
+    // GraphQL operation types
+    private static final String OPERATION_QUERY        = "query";
+    private static final String OPERATION_MUTATION     = "mutation";
+    private static final String OPERATION_SUBSCRIPTION = "subscription";
+
+    // GraphQL-specific constants
+    private static final String      INTROSPECTION_PREFIX   = "__";
+    private static final String      VARIABLE_MARKER        = "$variable";
+    private static final Set<String> PAGINATION_ARGS_LOWER  = Set.of("first", "last", "limit", "offset", "skip", "take");
+
+    // Complexity calculation
     private static final int BATCHING_SCORE_MULTIPLIER = 5;
     private static final int DEFAULT_FIELD_WEIGHT      = 1;
     private static final int DEFAULT_MAX_DEPTH         = 100;
@@ -225,16 +234,50 @@ public class GraphQLFunctionLibrary {
      */
     public static final int DEPTH_COMPLEXITY_FACTOR = 2;
 
-    private static final int MAX_SCHEMA_CACHE_SIZE = 100;
+    // Schema cache configuration
+    private static final int     MAX_SCHEMA_CACHE_SIZE = 100;
+    private static final float   CACHE_LOAD_FACTOR     = 0.75f;
+    private static final boolean CACHE_ACCESS_ORDER    = true;
 
-    private static final String INTROSPECTION_PREFIX = "__";
+    // Error messages
+    private static final String ERROR_SCHEMA_PARSE_FAILED     = "Schema parsing failed";
+    private static final String ERROR_QUERY_PARSE_FAILED      = "Failed to parse GraphQL query";
+    private static final String ERROR_NO_OPERATION_FOUND      = "No operation definition found.";
 
-    private static final Set<String> PAGINATION_ARGS       = Set.of("first", "last", "limit", "offset", "skip", "take");
-    private static final Set<String> PAGINATION_ARGS_LOWER = Set.of("first", "last", "limit", "offset", "skip", "take");
+    // JSON field names - common fields
+    private static final String FIELD_VALID      = "valid";
+    private static final String FIELD_OPERATION  = "operation";
+    private static final String FIELD_FIELDS     = "fields";
+    private static final String FIELD_FIELD_COUNT = "fieldCount";
+    private static final String FIELD_DEPTH      = "depth";
+    private static final String FIELD_COMPLEXITY = "complexity";
+    private static final String FIELD_ERRORS     = "errors";
 
-    // Schema cache configuration constants
-    private static final float   CACHE_LOAD_FACTOR  = 0.75f;
-    private static final boolean CACHE_ACCESS_ORDER = true;
+    // JSON field names - security metrics
+    private static final String FIELD_SECURITY               = "security";
+    private static final String FIELD_ALIAS_COUNT            = "aliasCount";
+    private static final String FIELD_ROOT_FIELD_COUNT       = "rootFieldCount";
+    private static final String FIELD_BATCHING_SCORE         = "batchingScore";
+    private static final String FIELD_MAX_PAGINATION_LIMIT   = "maxPaginationLimit";
+    private static final String FIELD_HAS_CIRCULAR_FRAGMENTS = "hasCircularFragments";
+    private static final String FIELD_IS_INTROSPECTION       = "isIntrospection";
+    private static final String FIELD_DIRECTIVE_COUNT        = "directiveCount";
+    private static final String FIELD_DIRECTIVES_PER_FIELD   = "directivesPerField";
+
+    // JSON field names - AST details
+    private static final String FIELD_AST            = "ast";
+    private static final String FIELD_OPERATION_NAME = "operationName";
+    private static final String FIELD_TYPES          = "types";
+    private static final String FIELD_VARIABLES      = "variables";
+    private static final String FIELD_ARGUMENTS      = "arguments";
+    private static final String FIELD_FRAGMENTS      = "fragments";
+    private static final String FIELD_FRAGMENT_COUNT = "fragmentCount";
+    private static final String FIELD_DIRECTIVES     = "directives";
+
+    // JSON field names - schema AST
+    private static final String FIELD_KIND      = "kind";
+    private static final String FIELD_NAME      = "name";
+    private static final String FIELD_TYPE_NAME = "typeName";
 
     // Schema cache - LRU with size limit
     private static final Map<String, GraphQLSchema> SCHEMA_CACHE = Collections
@@ -324,12 +367,12 @@ public class GraphQLFunctionLibrary {
             val validationErrors = new Validator().validateDocument(graphQLSchema, document, Locale.ENGLISH);
             val isValid          = validationErrors.isEmpty();
 
-            result.put("valid", isValid);
+            result.put(FIELD_VALID, isValid);
 
             if (!isValid) {
                 val errors = Val.JSON.arrayNode();
                 validationErrors.forEach(error -> errors.add(error.getMessage()));
-                result.set("errors", errors);
+                result.set(FIELD_ERRORS, errors);
                 addEmptyDefaults(result);
                 return Val.of(result);
             }
@@ -341,9 +384,9 @@ public class GraphQLFunctionLibrary {
             return Val.of(result);
 
         } catch (SchemaProblem exception) {
-            return handleParseException(exception, "Schema parsing failed");
+            return handleParseException(exception, ERROR_SCHEMA_PARSE_FAILED);
         } catch (InvalidSyntaxException | IllegalArgumentException exception) {
-            return handleParseException(exception, "Failed to parse GraphQL query");
+            return handleParseException(exception, ERROR_QUERY_PARSE_FAILED);
         }
     }
 
@@ -377,7 +420,7 @@ public class GraphQLFunctionLibrary {
             val result    = Val.JSON.objectNode();
             val operation = extractOperation(document);
 
-            result.put("valid", true);
+            result.put(FIELD_VALID, true);
 
             val metrics = analyzeQueryInSinglePass(document, operation);
             metrics.populateResult(result);
@@ -385,7 +428,7 @@ public class GraphQLFunctionLibrary {
             return Val.of(result);
 
         } catch (InvalidSyntaxException | IllegalArgumentException exception) {
-            return handleParseException(exception, "Failed to parse GraphQL query");
+            return handleParseException(exception, ERROR_QUERY_PARSE_FAILED);
         }
     }
 
@@ -417,8 +460,8 @@ public class GraphQLFunctionLibrary {
             {"type": "integer", "minimum": 0}
             """)
     public static Val complexity(@JsonObject Val parsed, @JsonObject Val fieldWeights) {
-        val fieldsNode = parsed.getJsonNode().get("fields");
-        val depthNode  = parsed.getJsonNode().get("depth");
+        val fieldsNode = parsed.getJsonNode().get(FIELD_FIELDS);
+        val depthNode  = parsed.getJsonNode().get(FIELD_DEPTH);
 
         if (fieldsNode == null || !fieldsNode.isArray()) {
             return Val.of(0);
@@ -480,19 +523,19 @@ public class GraphQLFunctionLibrary {
             val typeDefinitionRegistry = schemaParser.parse(schema.getText());
 
             val result = Val.JSON.objectNode();
-            result.put("valid", true);
-            result.set("ast", buildSchemaAst(typeDefinitionRegistry));
+            result.put(FIELD_VALID, true);
+            result.set(FIELD_AST, buildSchemaAst(typeDefinitionRegistry));
 
             return Val.of(result);
 
         } catch (SchemaProblem | IllegalArgumentException exception) {
             val result = Val.JSON.objectNode();
-            result.put("valid", false);
-            result.set("ast", Val.JSON.objectNode());
+            result.put(FIELD_VALID, false);
+            result.set(FIELD_AST, Val.JSON.objectNode());
 
             val errors = Val.JSON.arrayNode();
             errors.add(exception.getMessage());
-            result.set("errors", errors);
+            result.set(FIELD_ERRORS, errors);
 
             return Val.of(result);
         }
@@ -511,28 +554,28 @@ public class GraphQLFunctionLibrary {
         // Add regular types
         typeDefinitionRegistry.types().values().forEach(typeDef -> {
             val typeNode = Val.JSON.objectNode();
-            typeNode.put("kind", typeDef.getClass().getSimpleName());
-            typeNode.put("name", typeDef.getName());
+            typeNode.put(FIELD_KIND, typeDef.getClass().getSimpleName());
+            typeNode.put(FIELD_NAME, typeDef.getName());
             typesArray.add(typeNode);
         });
 
         // Add scalar types
         typeDefinitionRegistry.scalars().values().forEach(scalarDef -> {
             val typeNode = Val.JSON.objectNode();
-            typeNode.put("kind", scalarDef.getClass().getSimpleName());
-            typeNode.put("name", scalarDef.getName());
+            typeNode.put(FIELD_KIND, scalarDef.getClass().getSimpleName());
+            typeNode.put(FIELD_NAME, scalarDef.getName());
             typesArray.add(typeNode);
         });
 
-        astNode.set("types", typesArray);
+        astNode.set(FIELD_TYPES, typesArray);
 
         val directivesArray = Val.JSON.arrayNode();
         typeDefinitionRegistry.getDirectiveDefinitions().values().forEach(directiveDef -> {
             val directiveNode = Val.JSON.objectNode();
-            directiveNode.put("name", directiveDef.getName());
+            directiveNode.put(FIELD_NAME, directiveDef.getName());
             directivesArray.add(directiveNode);
         });
-        astNode.set("directives", directivesArray);
+        astNode.set(FIELD_DIRECTIVES, directivesArray);
 
         return astNode;
     }
@@ -546,7 +589,7 @@ public class GraphQLFunctionLibrary {
      */
     private static OperationDefinition extractOperation(Document document) {
         return (OperationDefinition) document.getDefinitions().stream().filter(OperationDefinition.class::isInstance)
-                .findFirst().orElseThrow(() -> new IllegalArgumentException("No operation definition found."));
+                .findFirst().orElseThrow(() -> new IllegalArgumentException(ERROR_NO_OPERATION_FOUND));
     }
 
     /**
@@ -560,10 +603,10 @@ public class GraphQLFunctionLibrary {
         val metrics = new QueryMetrics();
 
         metrics.operation     = switch (operation.getOperation()) {
-                              case QUERY        -> "query";
-                              case MUTATION     -> "mutation";
-                              case SUBSCRIPTION -> "subscription";
-                              };
+            case QUERY        -> OPERATION_QUERY;
+            case MUTATION     -> OPERATION_MUTATION;
+            case SUBSCRIPTION -> OPERATION_SUBSCRIPTION;
+        };
         metrics.operationName = Objects.requireNonNullElse(operation.getName(), "");
         metrics.variables     = extractVariablesFromOperation(operation);
 
@@ -582,9 +625,9 @@ public class GraphQLFunctionLibrary {
      * @param isRoot true if this is the root selection set
      */
     private static void analyzeSelectionSet(SelectionSet selectionSet, int currentDepth, QueryMetrics metrics,
-            boolean isRoot) {
+                                            boolean isRoot) {
         if (selectionSet == null) {
-            return;
+            return; // Null selection set
         }
 
         val nextDepth = currentDepth + 1;
@@ -592,10 +635,10 @@ public class GraphQLFunctionLibrary {
 
         for (Selection<?> selection : selectionSet.getSelections()) {
             switch (selection) {
-            case Field field             -> analyzeField(field, nextDepth, metrics, isRoot);
-            case InlineFragment fragment -> analyzeInlineFragment(fragment, nextDepth, metrics);
-            case FragmentSpread spread   -> processDirectivesContainer(spread, metrics);
-            default                      -> {}
+                case Field field             -> analyzeField(field, nextDepth, metrics, isRoot);
+                case InlineFragment fragment -> analyzeInlineFragment(fragment, nextDepth, metrics);
+                case FragmentSpread spread   -> processDirectivesContainer(spread, metrics);
+                default                      -> {} // Other selection types
             }
         }
     }
@@ -625,7 +668,7 @@ public class GraphQLFunctionLibrary {
      */
     private static void processFieldArguments(Field field, QueryMetrics metrics) {
         if (field.getArguments() == null || field.getArguments().isEmpty()) {
-            return;
+            return; // No arguments
         }
 
         val fieldArgs = Val.JSON.objectNode();
@@ -653,7 +696,7 @@ public class GraphQLFunctionLibrary {
      */
     private static void processDirectivesContainer(DirectivesContainer<?> container, QueryMetrics metrics) {
         if (container.getDirectives() == null || container.getDirectives().isEmpty()) {
-            return;
+            return; // No directives
         }
 
         val directives = container.getDirectives();
@@ -661,14 +704,14 @@ public class GraphQLFunctionLibrary {
 
         for (Directive directive : directives) {
             val directiveNode = Val.JSON.objectNode();
-            directiveNode.put("name", directive.getName());
+            directiveNode.put(FIELD_NAME, directive.getName());
 
             val argsNode = Val.JSON.objectNode();
             if (directive.getArguments() != null) {
                 directive.getArguments()
                         .forEach(argument -> argsNode.set(argument.getName(), convertValueToJson(argument.getValue())));
             }
-            directiveNode.set("arguments", argsNode);
+            directiveNode.set(FIELD_ARGUMENTS, argsNode);
 
             metrics.directivesList.add(directiveNode);
         }
@@ -706,11 +749,11 @@ public class GraphQLFunctionLibrary {
                 fragmentDefinitions.put(fragment.getName(), fragment);
 
                 val fragmentInfo = Val.JSON.objectNode();
-                fragmentInfo.put("typeName", fragment.getTypeCondition().getName());
+                fragmentInfo.put(FIELD_TYPE_NAME, fragment.getTypeCondition().getName());
 
                 val fragmentFields = new ArrayList<String>();
                 extractFieldsFromSelectionSet(fragment.getSelectionSet(), fragmentFields);
-                fragmentInfo.set("fields", arrayFrom(fragmentFields));
+                fragmentInfo.set(FIELD_FIELDS, arrayFrom(fragmentFields));
 
                 metrics.fragments.set(fragment.getName(), fragmentInfo);
                 metrics.types.add(fragment.getTypeCondition().getName());
@@ -729,17 +772,17 @@ public class GraphQLFunctionLibrary {
      */
     private static void extractFieldsFromSelectionSet(SelectionSet selectionSet, List<String> accumulator) {
         if (selectionSet == null) {
-            return;
+            return; // Null selection set
         }
 
         for (Selection<?> selection : selectionSet.getSelections()) {
             switch (selection) {
-            case Field field             -> {
-                accumulator.add(field.getName());
-                extractFieldsFromSelectionSet(field.getSelectionSet(), accumulator);
-            }
-            case InlineFragment fragment -> extractFieldsFromSelectionSet(fragment.getSelectionSet(), accumulator);
-            default                      -> {}
+                case Field field             -> {
+                    accumulator.add(field.getName());
+                    extractFieldsFromSelectionSet(field.getSelectionSet(), accumulator);
+                }
+                case InlineFragment fragment -> extractFieldsFromSelectionSet(fragment.getSelectionSet(), accumulator);
+                default                      -> {} // Other selection types
             }
         }
     }
@@ -777,7 +820,7 @@ public class GraphQLFunctionLibrary {
      * @return true if circular reference found
      */
     private static boolean hasCircularReference(String fragmentName, FragmentDefinition fragment,
-            Map<String, FragmentDefinition> allFragments, Set<String> visited) {
+                                                Map<String, FragmentDefinition> allFragments, Set<String> visited) {
         // Cycle detected: fragment references itself through a chain
         if (visited.contains(fragmentName)) {
             return true;
@@ -815,10 +858,10 @@ public class GraphQLFunctionLibrary {
 
         for (Selection<?> selection : selectionSet.getSelections()) {
             switch (selection) {
-            case FragmentSpread spread   -> spreads.add(spread.getName());
-            case Field field             -> spreads.addAll(findFragmentSpreads(field.getSelectionSet()));
-            case InlineFragment fragment -> spreads.addAll(findFragmentSpreads(fragment.getSelectionSet()));
-            default                      -> {}
+                case FragmentSpread spread   -> spreads.add(spread.getName());
+                case Field field             -> spreads.addAll(findFragmentSpreads(field.getSelectionSet()));
+                case InlineFragment fragment -> spreads.addAll(findFragmentSpreads(fragment.getSelectionSet()));
+                default                      -> {} // Other selection types
             }
         }
 
@@ -833,29 +876,29 @@ public class GraphQLFunctionLibrary {
      */
     private static JsonNode convertValueToJson(Value<?> value) {
         return switch (value) {
-        case IntValue intValue             -> Val.JSON.numberNode(intValue.getValue().intValue());
-        case FloatValue floatValue         -> Val.JSON.numberNode(floatValue.getValue().doubleValue());
-        case StringValue stringValue       -> Val.JSON.textNode(stringValue.getValue());
-        case BooleanValue booleanValue     -> Val.JSON.booleanNode(booleanValue.isValue());
-        case EnumValue enumValue           -> Val.JSON.textNode(enumValue.getName());
-        case NullValue ignored             -> Val.JSON.nullNode();
-        case ArrayValue arrayValue         -> {
-            val array = Val.JSON.arrayNode();
-            arrayValue.getValues().forEach(v -> array.add(convertValueToJson(v)));
-            yield array;
-        }
-        case ObjectValue objectValue       -> {
-            val object = Val.JSON.objectNode();
-            objectValue.getObjectFields()
-                    .forEach(field -> object.set(field.getName(), convertValueToJson(field.getValue())));
-            yield object;
-        }
-        case VariableReference variableRef -> {
-            val varObject = Val.JSON.objectNode();
-            varObject.put("$variable", variableRef.getName());
-            yield varObject;
-        }
-        default                            -> Val.JSON.textNode(value.toString());
+            case IntValue intValue             -> Val.JSON.numberNode(intValue.getValue().intValue());
+            case FloatValue floatValue         -> Val.JSON.numberNode(floatValue.getValue().doubleValue());
+            case StringValue stringValue       -> Val.JSON.textNode(stringValue.getValue());
+            case BooleanValue booleanValue     -> Val.JSON.booleanNode(booleanValue.isValue());
+            case EnumValue enumValue           -> Val.JSON.textNode(enumValue.getName());
+            case NullValue ignored             -> Val.JSON.nullNode();
+            case ArrayValue arrayValue         -> {
+                val array = Val.JSON.arrayNode();
+                arrayValue.getValues().forEach(v -> array.add(convertValueToJson(v)));
+                yield array;
+            }
+            case ObjectValue objectValue       -> {
+                val object = Val.JSON.objectNode();
+                objectValue.getObjectFields()
+                        .forEach(field -> object.set(field.getName(), convertValueToJson(field.getValue())));
+                yield object;
+            }
+            case VariableReference variableRef -> {
+                val varObject = Val.JSON.objectNode();
+                varObject.put(VARIABLE_MARKER, variableRef.getName());
+                yield varObject;
+            }
+            default                            -> Val.JSON.textNode(value.toString());
         };
     }
 
@@ -891,33 +934,33 @@ public class GraphQLFunctionLibrary {
      * @param result the result object to populate with defaults
      */
     private static void addEmptyDefaults(ObjectNode result) {
-        result.put("operation", "query");
-        result.put("depth", 0);
-        result.put("fieldCount", 0);
-        result.put("complexity", 0);
+        result.put(FIELD_OPERATION, OPERATION_QUERY);
+        result.put(FIELD_DEPTH, 0);
+        result.put(FIELD_FIELD_COUNT, 0);
+        result.put(FIELD_COMPLEXITY, 0);
 
-        result.set("fields", Val.JSON.arrayNode());
+        result.set(FIELD_FIELDS, Val.JSON.arrayNode());
 
         val security = Val.JSON.objectNode();
-        security.put("aliasCount", 0);
-        security.put("rootFieldCount", 0);
-        security.put("batchingScore", 0);
-        security.put("maxPaginationLimit", 0);
-        security.put("hasCircularFragments", false);
-        security.put("isIntrospection", false);
-        security.put("directiveCount", 0);
-        security.put("directivesPerField", 0.0);
-        result.set("security", security);
+        security.put(FIELD_ALIAS_COUNT, 0);
+        security.put(FIELD_ROOT_FIELD_COUNT, 0);
+        security.put(FIELD_BATCHING_SCORE, 0);
+        security.put(FIELD_MAX_PAGINATION_LIMIT, 0);
+        security.put(FIELD_HAS_CIRCULAR_FRAGMENTS, false);
+        security.put(FIELD_IS_INTROSPECTION, false);
+        security.put(FIELD_DIRECTIVE_COUNT, 0);
+        security.put(FIELD_DIRECTIVES_PER_FIELD, 0.0);
+        result.set(FIELD_SECURITY, security);
 
         val ast = Val.JSON.objectNode();
-        ast.put("operationName", "");
-        ast.set("types", Val.JSON.arrayNode());
-        ast.set("directives", Val.JSON.arrayNode());
-        ast.set("variables", Val.JSON.objectNode());
-        ast.set("fragments", Val.JSON.objectNode());
-        ast.put("fragmentCount", 0);
-        ast.set("arguments", Val.JSON.objectNode());
-        result.set("ast", ast);
+        ast.put(FIELD_OPERATION_NAME, "");
+        ast.set(FIELD_TYPES, Val.JSON.arrayNode());
+        ast.set(FIELD_DIRECTIVES, Val.JSON.arrayNode());
+        ast.set(FIELD_VARIABLES, Val.JSON.objectNode());
+        ast.set(FIELD_FRAGMENTS, Val.JSON.objectNode());
+        ast.put(FIELD_FRAGMENT_COUNT, 0);
+        ast.set(FIELD_ARGUMENTS, Val.JSON.objectNode());
+        result.set(FIELD_AST, ast);
     }
 
     /**
@@ -928,10 +971,10 @@ public class GraphQLFunctionLibrary {
      */
     private static Val createErrorResult(String errorMessage) {
         val result = Val.JSON.objectNode();
-        result.put("valid", false);
+        result.put(FIELD_VALID, false);
         val errors = Val.JSON.arrayNode();
         errors.add(errorMessage);
-        result.set("errors", errors);
+        result.set(FIELD_ERRORS, errors);
         addEmptyDefaults(result);
         return Val.of(result);
     }
@@ -982,7 +1025,7 @@ public class GraphQLFunctionLibrary {
      * final result object.
      */
     private static class QueryMetrics {
-        String           operation            = "query";
+        String           operation            = OPERATION_QUERY;
         String           operationName        = "";
         List<String>     fields               = new ArrayList<>();
         int              fieldCount           = 0;
@@ -1047,11 +1090,11 @@ public class GraphQLFunctionLibrary {
          * @param result the result object to populate
          */
         private void populateCommonFields(ObjectNode result) {
-            result.put("operation", operation);
-            result.set("fields", arrayFrom(fields));
-            result.put("fieldCount", fieldCount);
-            result.put("depth", depth);
-            result.put("complexity", fieldCount + (depth * DEPTH_COMPLEXITY_FACTOR));
+            result.put(FIELD_OPERATION, operation);
+            result.set(FIELD_FIELDS, arrayFrom(fields));
+            result.put(FIELD_FIELD_COUNT, fieldCount);
+            result.put(FIELD_DEPTH, depth);
+            result.put(FIELD_COMPLEXITY, fieldCount + (depth * DEPTH_COMPLEXITY_FACTOR));
         }
 
         /**
@@ -1062,16 +1105,16 @@ public class GraphQLFunctionLibrary {
         private void populateSecurityMetrics(ObjectNode result) {
             val security = Val.JSON.objectNode();
 
-            security.put("aliasCount", aliasCount);
-            security.put("rootFieldCount", rootFieldCount);
-            security.put("batchingScore", aliasCount * BATCHING_SCORE_MULTIPLIER + rootFieldCount);
-            security.put("maxPaginationLimit", maxPaginationLimit);
-            security.put("hasCircularFragments", hasCircularFragments);
-            security.put("isIntrospection", fields.stream().anyMatch(field -> field.startsWith(INTROSPECTION_PREFIX)));
-            security.put("directiveCount", directiveCount);
-            security.put("directivesPerField", fieldCount > 0 ? (double) directiveCount / fieldCount : 0.0);
+            security.put(FIELD_ALIAS_COUNT, aliasCount);
+            security.put(FIELD_ROOT_FIELD_COUNT, rootFieldCount);
+            security.put(FIELD_BATCHING_SCORE, aliasCount * BATCHING_SCORE_MULTIPLIER + rootFieldCount);
+            security.put(FIELD_MAX_PAGINATION_LIMIT, maxPaginationLimit);
+            security.put(FIELD_HAS_CIRCULAR_FRAGMENTS, hasCircularFragments);
+            security.put(FIELD_IS_INTROSPECTION, fields.stream().anyMatch(field -> field.startsWith(INTROSPECTION_PREFIX)));
+            security.put(FIELD_DIRECTIVE_COUNT, directiveCount);
+            security.put(FIELD_DIRECTIVES_PER_FIELD, fieldCount > 0 ? (double) directiveCount / fieldCount : 0.0);
 
-            result.set("security", security);
+            result.set(FIELD_SECURITY, security);
         }
 
         /**
@@ -1082,18 +1125,18 @@ public class GraphQLFunctionLibrary {
         private void populateAstDetails(ObjectNode result) {
             val ast = Val.JSON.objectNode();
 
-            ast.put("operationName", operationName);
-            ast.set("types", arrayFrom(new ArrayList<>(types)));
-            ast.set("variables", variables);
-            ast.set("arguments", arguments);
-            ast.set("fragments", fragments);
-            ast.put("fragmentCount", fragmentCount);
+            ast.put(FIELD_OPERATION_NAME, operationName);
+            ast.set(FIELD_TYPES, arrayFrom(new ArrayList<>(types)));
+            ast.set(FIELD_VARIABLES, variables);
+            ast.set(FIELD_ARGUMENTS, arguments);
+            ast.set(FIELD_FRAGMENTS, fragments);
+            ast.put(FIELD_FRAGMENT_COUNT, fragmentCount);
 
             val directivesArray = Val.JSON.arrayNode();
             directivesList.forEach(directivesArray::add);
-            ast.set("directives", directivesArray);
+            ast.set(FIELD_DIRECTIVES, directivesArray);
 
-            result.set("ast", ast);
+            result.set(FIELD_AST, ast);
         }
     }
 }

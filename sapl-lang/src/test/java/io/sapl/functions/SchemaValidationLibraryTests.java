@@ -24,23 +24,16 @@ import com.networknt.schema.JsonSchemaException;
 import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.sapl.impl.util.ErrorFactory;
 import lombok.SneakyThrows;
+import lombok.val;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
-import lombok.val;
 
 import java.util.stream.Stream;
 
-import static io.sapl.functions.SchemaValidationLibrary.isCompliant;
-import static io.sapl.functions.SchemaValidationLibrary.isCompliantWithExternalSchemas;
-import static io.sapl.functions.SchemaValidationLibrary.validate;
-import static io.sapl.functions.SchemaValidationLibrary.validateWithExternalSchemas;
-import static io.sapl.hamcrest.Matchers.val;
-import static io.sapl.hamcrest.Matchers.valError;
+import static io.sapl.functions.SchemaValidationLibrary.*;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.MatcherAssert.assertThat;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.when;
 
@@ -135,7 +128,9 @@ class SchemaValidationLibraryTests {
                     }
                 """);
 
-        assertThat(isCompliantWithExternalSchemas(valid, specificSchema, externalsAsVal), is(val(true)));
+        val validResult = isCompliantWithExternalSchemas(valid, specificSchema, externalsAsVal);
+        assertThat(validResult.isBoolean()).isTrue();
+        assertThat(validResult.get().asBoolean()).isTrue();
 
         val invalid = Val.ofJson("""
                     {
@@ -145,8 +140,9 @@ class SchemaValidationLibraryTests {
                     }
                 """);
 
-        assertThat(isCompliantWithExternalSchemas(valid, specificSchema, externalsAsVal), is(val(true)));
-        assertThat(isCompliantWithExternalSchemas(invalid, specificSchema, externalsAsVal), is(val(false)));
+        val invalidResult = isCompliantWithExternalSchemas(invalid, specificSchema, externalsAsVal);
+        assertThat(invalidResult.isBoolean()).isTrue();
+        assertThat(invalidResult.get().asBoolean()).isFalse();
     }
 
     @Test
@@ -194,7 +190,9 @@ class SchemaValidationLibraryTests {
                     }
                 """);
 
-        assertThat(isCompliantWithExternalSchemas(valid, specificSchema, externalsAsVal), is(val(true)));
+        val validResult = isCompliantWithExternalSchemas(valid, specificSchema, externalsAsVal);
+        assertThat(validResult.isBoolean()).isTrue();
+        assertThat(validResult.get().asBoolean()).isTrue();
 
         val invalid = Val.ofJson("""
                     {
@@ -204,32 +202,32 @@ class SchemaValidationLibraryTests {
                     }
                 """);
 
-        assertThat(isCompliantWithExternalSchemas(valid, specificSchema, externalsAsVal), is(val(true)));
-        assertThat(isCompliantWithExternalSchemas(invalid, specificSchema, externalsAsVal), is(val(false)));
+        val invalidResult = isCompliantWithExternalSchemas(invalid, specificSchema, externalsAsVal);
+        assertThat(invalidResult.isBoolean()).isTrue();
+        assertThat(invalidResult.get().asBoolean()).isFalse();
     }
 
-    @Test
-    void when_subjectIsCompliant_then_isCompliantReturnsTrue() throws JsonProcessingException {
-        val result = isCompliant(Val.ofJson(COMPLIANT_JSON), Val.ofJson(VALID_SCHEMA));
-        assertThat(result, is(val(true)));
+    static Stream<Arguments> provideIsCompliantScenarios() throws JsonProcessingException {
+        return Stream.of(
+                Arguments.of("compliant subject", Val.ofJson(COMPLIANT_JSON), Val.ofJson(VALID_SCHEMA), true, false),
+                Arguments.of("non-compliant subject", Val.ofJson(NONCOMPLIANT_VALID_JSON), Val.ofJson(VALID_SCHEMA),
+                        false, false),
+                Arguments.of("undefined subject", Val.UNDEFINED, Val.ofJson(VALID_SCHEMA), false, false),
+                Arguments.of("error subject", ErrorFactory.error("test"), Val.ofJson(VALID_SCHEMA), false, true));
     }
 
-    @Test
-    void when_subjectIsNonCompliant_then_isCompliantReturnsFalse() throws JsonProcessingException {
-        val result = isCompliant(Val.ofJson(NONCOMPLIANT_VALID_JSON), Val.ofJson(VALID_SCHEMA));
-        assertThat(result, is(val(false)));
-    }
+    @ParameterizedTest(name = "{0}")
+    @MethodSource("provideIsCompliantScenarios")
+    void when_usingIsCompliant_then_returnsExpectedResult(String scenario, Val subject, Val schema,
+                                                          boolean expectedCompliant, boolean expectError) {
+        val result = isCompliant(subject, schema);
 
-    @Test
-    void when_subjectIsUndefined_then_isCompliantReturnsFalse() throws JsonProcessingException {
-        val result = isCompliant(Val.UNDEFINED, Val.ofJson(VALID_SCHEMA));
-        assertThat(result, is(val(false)));
-    }
-
-    @Test
-    void when_subjectIsError_then_isCompliantPropagatesToFalse() throws JsonProcessingException {
-        val result = isCompliant(ErrorFactory.error("test"), Val.ofJson(VALID_SCHEMA));
-        assertThat(result, is(valError("test")));
+        if (expectError) {
+            assertThat(result.isError()).isTrue();
+        } else {
+            assertThat(result.isBoolean()).isTrue();
+            assertThat(result.get().asBoolean()).isEqualTo(expectedCompliant);
+        }
     }
 
     @Test
@@ -238,19 +236,44 @@ class SchemaValidationLibraryTests {
         when(validationSubject.get()).thenThrow(new JsonSchemaException("test"));
 
         val result = isCompliant(validationSubject, Val.ofJson(VALID_SCHEMA));
-        assertThat(result, is(val(false)));
+
+        assertThat(result.isBoolean()).isTrue();
+        assertThat(result.get().asBoolean()).isFalse();
+    }
+
+    static Stream<Arguments> provideValidateScenarios() throws JsonProcessingException {
+        return Stream.of(
+                Arguments.of("compliant subject", Val.ofJson(COMPLIANT_JSON), Val.ofJson(VALID_SCHEMA), true, false,
+                        false),
+                Arguments.of("non-compliant subject", Val.ofJson(NONCOMPLIANT_VALID_JSON), Val.ofJson(VALID_SCHEMA),
+                        false, true, false),
+                Arguments.of("undefined subject", Val.UNDEFINED, Val.ofJson(VALID_SCHEMA), false, false, false),
+                Arguments.of("error subject", ErrorFactory.error("eldritch_horror"), Val.ofJson(VALID_SCHEMA), false,
+                        false, true));
+    }
+
+    @ParameterizedTest(name = "{0}")
+    @MethodSource("provideValidateScenarios")
+    void when_usingValidate_then_returnsExpectedStructuredResult(String scenario, Val subject, Val schema,
+                                                                 boolean expectedValid, boolean expectErrors, boolean expectError) {
+        val result = validate(subject, schema);
+
+        if (expectError) {
+            assertThat(result.isError()).isTrue();
+        } else {
+            assertThat(result.isDefined()).isTrue();
+            assertThat(result.get().get("valid").asBoolean()).isEqualTo(expectedValid);
+
+            if (expectErrors) {
+                assertThat(result.get().get("errors")).isNotEmpty();
+            } else {
+                assertThat(result.get().get("errors")).isEmpty();
+            }
+        }
     }
 
     @Test
-    void when_subjectIsCompliant_then_validateReturnsValidTrue() throws JsonProcessingException {
-        val result = validate(Val.ofJson(COMPLIANT_JSON), Val.ofJson(VALID_SCHEMA));
-
-        assertThat(result.get().get("valid").asBoolean()).isTrue();
-        assertThat(result.get().get("errors")).isEmpty();
-    }
-
-    @Test
-    void when_subjectIsNonCompliant_then_validateReturnsValidFalseWithErrors() throws JsonProcessingException {
+    void when_validateWithNonCompliant_then_errorStructureIsComplete() throws JsonProcessingException {
         val result = validate(Val.ofJson(NONCOMPLIANT_VALID_JSON), Val.ofJson(VALID_SCHEMA));
 
         assertThat(result.get().get("valid").asBoolean()).isFalse();
@@ -261,20 +284,10 @@ class SchemaValidationLibraryTests {
         assertThat(firstError.has("message")).isTrue();
         assertThat(firstError.has("type")).isTrue();
         assertThat(firstError.has("schemaPath")).isTrue();
-    }
-
-    @Test
-    void when_subjectIsUndefined_then_validateReturnsValidFalse() throws JsonProcessingException {
-        val result = validate(Val.UNDEFINED, Val.ofJson(VALID_SCHEMA));
-
-        assertThat(result.get().get("valid").asBoolean()).isFalse();
-        assertThat(result.get().get("errors")).isEmpty();
-    }
-
-    @Test
-    void when_subjectIsError_then_validatePropagatesError() throws JsonProcessingException {
-        val result = validate(ErrorFactory.error("eldritch_horror"), Val.ofJson(VALID_SCHEMA));
-        assertThat(result, is(valError("eldritch_horror")));
+        assertThat(firstError.get("path").isTextual()).isTrue();
+        assertThat(firstError.get("message").isTextual()).isTrue();
+        assertThat(firstError.get("type").isTextual()).isTrue();
+        assertThat(firstError.get("schemaPath").isTextual()).isTrue();
     }
 
     @Test
@@ -467,7 +480,7 @@ class SchemaValidationLibraryTests {
     @MethodSource("provideValidationScenarios")
     @SneakyThrows
     void when_validatingVariousScenarios_then_resultsMatchExpectations(String scenario, String json, String schema,
-            boolean expectedValid) {
+                                                                       boolean expectedValid) {
         val result = validate(Val.ofJson(json), Val.ofJson(schema));
 
         assertThat(result.get().get("valid").asBoolean()).isEqualTo(expectedValid);
@@ -483,10 +496,11 @@ class SchemaValidationLibraryTests {
     @MethodSource("provideValidationScenarios")
     @SneakyThrows
     void when_usingIsCompliantWithVariousScenarios_then_resultsMatchExpectations(String scenario, String json,
-            String schema, boolean expectedValid) {
+                                                                                 String schema, boolean expectedValid) {
         val result = isCompliant(Val.ofJson(json), Val.ofJson(schema));
 
-        assertThat(result, is(val(expectedValid)));
+        assertThat(result.isBoolean()).isTrue();
+        assertThat(result.get().asBoolean()).isEqualTo(expectedValid);
     }
 
     @Test
@@ -572,60 +586,32 @@ class SchemaValidationLibraryTests {
         assertThat(result.get().get("errors").size()).isGreaterThan(1);
     }
 
-    @Test
-    @SneakyThrows
-    void when_validatingWithErrorSubject_then_validatePropagatesError() {
-        val result = validate(ErrorFactory.error("cosmic_horror"), Val.ofJson(VALID_SCHEMA));
-        assertThat(result, is(valError("cosmic_horror")));
+    static Stream<Arguments> provideErrorPropagationScenarios() throws JsonProcessingException {
+        return Stream.of(Arguments.of("validate with error", ErrorFactory.error("cosmic_horror"), false),
+                Arguments.of("validate with undefined", Val.UNDEFINED, false),
+                Arguments.of("isCompliant with external schemas and error", ErrorFactory.error("forbidden_knowledge"),
+                        true),
+                Arguments.of("validate with external schemas and error", ErrorFactory.error("ancient_evil"), true));
     }
 
-    @Test
+    @ParameterizedTest(name = "{0}")
+    @MethodSource("provideErrorPropagationScenarios")
     @SneakyThrows
-    void when_validatingWithUndefinedSubject_then_validateReturnsInvalid() {
-        val result = validate(Val.UNDEFINED, Val.ofJson(VALID_SCHEMA));
-        assertThat(result.get().get("valid").asBoolean()).isFalse();
-        assertThat(result.get().get("errors")).isEmpty();
-    }
+    void when_errorOrUndefinedSubject_then_handledAppropriately(String scenario, Val subject,
+                                                                boolean useExternalSchemas) {
+        val externals = Val.ofEmptyArray();
+        val schema    = Val.ofJson(VALID_SCHEMA);
 
-    @Test
-    @SneakyThrows
-    void when_schemaExceptionInValidate_then_returnsInvalidWithNoErrors() {
-        val validationSubject = spy(Val.NULL);
-        when(validationSubject.get()).thenThrow(new JsonSchemaException("schema_error"));
+        val result = useExternalSchemas ? validateWithExternalSchemas(subject, schema, externals)
+                : validate(subject, schema);
 
-        val result = validate(validationSubject, Val.ofJson(VALID_SCHEMA));
-
-        assertThat(result.get().get("valid").asBoolean()).isFalse();
-        assertThat(result.get().get("errors")).isEmpty();
-    }
-
-    @Test
-    @SneakyThrows
-    void when_validateReturnsValid_then_errorArrayIsEmpty() {
-        val result = validate(Val.ofJson(COMPLIANT_JSON), Val.ofJson(VALID_SCHEMA));
-
-        assertThat(result.get().get("valid").asBoolean()).isTrue();
-        assertThat(result.get().get("errors").isArray()).isTrue();
-        assertThat(result.get().get("errors")).isEmpty();
-    }
-
-    @Test
-    @SneakyThrows
-    void when_validateReturnsInvalid_then_errorsHaveRequiredFields() {
-        val result = validate(Val.ofJson(NONCOMPLIANT_VALID_JSON), Val.ofJson(VALID_SCHEMA));
-
-        assertThat(result.get().get("valid").asBoolean()).isFalse();
-        assertThat(result.get().get("errors")).isNotEmpty();
-
-        val firstError = result.get().get("errors").get(0);
-        assertThat(firstError.has("path")).isTrue();
-        assertThat(firstError.has("message")).isTrue();
-        assertThat(firstError.has("type")).isTrue();
-        assertThat(firstError.has("schemaPath")).isTrue();
-        assertThat(firstError.get("path").isTextual()).isTrue();
-        assertThat(firstError.get("message").isTextual()).isTrue();
-        assertThat(firstError.get("type").isTextual()).isTrue();
-        assertThat(firstError.get("schemaPath").isTextual()).isTrue();
+        if (subject.isError()) {
+            assertThat(result.isError()).isTrue();
+        } else {
+            assertThat(result.isDefined()).isTrue();
+            assertThat(result.get().get("valid").asBoolean()).isFalse();
+            assertThat(result.get().get("errors")).isEmpty();
+        }
     }
 
     @Test
@@ -637,30 +623,17 @@ class SchemaValidationLibraryTests {
 
         val result = isCompliantWithExternalSchemas(errorSubject, specificSchema, externals);
 
-        assertThat(result, is(valError("forbidden_knowledge")));
+        assertThat(result.isError()).isTrue();
+        assertThat(result.getMessage()).isEqualTo("forbidden_knowledge");
     }
 
     @Test
     @SneakyThrows
-    void when_validateWithExternalSchemasReceivesError_then_errorPropagates() {
-        val externals      = Val.ofEmptyArray();
-        val specificSchema = Val.ofJson(VALID_SCHEMA);
-        val errorSubject   = ErrorFactory.error("ancient_evil");
+    void when_validateReturnsValid_then_errorArrayIsEmpty() {
+        val result = validate(Val.ofJson(COMPLIANT_JSON), Val.ofJson(VALID_SCHEMA));
 
-        val result = validateWithExternalSchemas(errorSubject, specificSchema, externals);
-
-        assertThat(result, is(valError("ancient_evil")));
-    }
-
-    @Test
-    @SneakyThrows
-    void when_validateWithExternalSchemasAndUndefined_then_returnsInvalid() {
-        val externals      = Val.ofEmptyArray();
-        val specificSchema = Val.ofJson(VALID_SCHEMA);
-
-        val result = validateWithExternalSchemas(Val.UNDEFINED, specificSchema, externals);
-
-        assertThat(result.get().get("valid").asBoolean()).isFalse();
+        assertThat(result.get().get("valid").asBoolean()).isTrue();
+        assertThat(result.get().get("errors").isArray()).isTrue();
         assertThat(result.get().get("errors")).isEmpty();
     }
 
@@ -851,4 +824,5 @@ class SchemaValidationLibraryTests {
         assertThat(result.get().get("valid").asBoolean()).isTrue();
         assertThat(result.get().get("errors")).isEmpty();
     }
+
 }

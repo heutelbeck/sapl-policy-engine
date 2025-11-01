@@ -17,13 +17,10 @@
  */
 package io.sapl.functions;
 
-import static io.sapl.assertj.SaplAssertions.assertThatVal;
-import static org.assertj.core.api.Assertions.assertThat;
-
-import java.util.Map;
-import java.util.concurrent.TimeUnit;
-import java.util.stream.Stream;
-
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import io.sapl.api.interpreter.Val;
+import lombok.val;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -32,11 +29,12 @@ import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonNode;
+import java.util.Map;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.Stream;
 
-import io.sapl.api.interpreter.Val;
-import lombok.val;
+import static io.sapl.assertj.SaplAssertions.assertThatVal;
+import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * Comprehensive test suite for GraphQLFunctionLibrary.

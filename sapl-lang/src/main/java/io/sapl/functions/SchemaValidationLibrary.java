@@ -40,8 +40,20 @@ public class SchemaValidationLibrary {
     public static final String NAME        = "jsonschema";
     public static final String DESCRIPTION = "This library contains the functions for testing the compliance of a value with a JSON schema.";
 
+    // JSON Schema field names
     private static final String SCHEMA_ID_FIELD = "$id";
 
+    // JSON result field names
+    private static final String FIELD_VALID  = "valid";
+    private static final String FIELD_ERRORS = "errors";
+
+    // JSON error object field names
+    private static final String FIELD_MESSAGE     = "message";
+    private static final String FIELD_PATH        = "path";
+    private static final String FIELD_SCHEMA_PATH = "schemaPath";
+    private static final String FIELD_TYPE        = "type";
+
+    // Return type schemas for IDE support
     private static final String RETURNS_BOOLEAN = """
             {
                 "type": "boolean"
@@ -121,7 +133,7 @@ public class SchemaValidationLibrary {
         if (result.isError()) {
             return result;
         }
-        return Val.of(result.get().get("valid").asBoolean());
+        return Val.of(result.get().get(FIELD_VALID).asBoolean());
     }
 
     @Function(docs = """
@@ -179,12 +191,12 @@ public class SchemaValidationLibrary {
             ```
             """, schema = RETURNS_BOOLEAN)
     public static Val isCompliantWithExternalSchemas(Val validationSubject, @JsonObject Val jsonSchema,
-            Val externalSchemas) {
+                                                     Val externalSchemas) {
         val result = validateWithExternalSchemas(validationSubject, jsonSchema, externalSchemas);
         if (result.isError()) {
             return result;
         }
-        return Val.of(result.get().get("valid").asBoolean());
+        return Val.of(result.get().get(FIELD_VALID).asBoolean());
     }
 
     @Function(docs = """
@@ -275,7 +287,7 @@ public class SchemaValidationLibrary {
             ```
             """, schema = VALIDATION_RESULT_SCHEMA)
     public static Val validateWithExternalSchemas(Val validationSubject, @JsonObject Val jsonSchema,
-            Val externalSchemas) {
+                                                  Val externalSchemas) {
         if (validationSubject.isError()) {
             return validationSubject;
         }
@@ -319,18 +331,18 @@ public class SchemaValidationLibrary {
     private static Val createValidationResult(boolean valid, Set<ValidationMessage> messages) {
         val factory = JsonNodeFactory.instance;
         val result  = factory.objectNode();
-        result.put("valid", valid);
+        result.put(FIELD_VALID, valid);
 
         val errorsArray = factory.arrayNode();
         for (var message : messages) {
             val errorObject = factory.objectNode();
-            errorObject.put("path", message.getInstanceLocation().toString());
-            errorObject.put("message", message.getMessage());
-            errorObject.put("type", message.getType());
-            errorObject.put("schemaPath", message.getEvaluationPath().toString());
+            errorObject.put(FIELD_PATH, message.getInstanceLocation().toString());
+            errorObject.put(FIELD_MESSAGE, message.getMessage());
+            errorObject.put(FIELD_TYPE, message.getType());
+            errorObject.put(FIELD_SCHEMA_PATH, message.getEvaluationPath().toString());
             errorsArray.add(errorObject);
         }
-        result.set("errors", errorsArray);
+        result.set(FIELD_ERRORS, errorsArray);
 
         return Val.of(result);
     }

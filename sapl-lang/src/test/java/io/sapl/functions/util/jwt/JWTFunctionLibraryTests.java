@@ -37,10 +37,13 @@ class JWTFunctionLibraryTests {
 
     private static final String WELL_FORMED_TOKEN = "eyJraWQiOiI3ZGRkYzMwNy1kZGE0LTQ4ZjUtYmU1Yi00MDZlZGFmYjc5ODgiLCJhbGciOiJSUzI1NiJ9.eyJzdWIiOiJ1c2VyMSIsImF1ZCI6Im1pc2thdG9uaWMtY2xpZW50IiwibmJmIjoxNjM1MjUxNDE1LCJzY29wZSI6WyJmYWN1bHR5LnJlYWQiLCJib29rcy5yZWFkIl0sImlzcyI6Imh0dHA6XC9cL2F1dGgtc2VydmVyOjkwMDAiLCJleHAiOjE2MzUyNTE3MTUsImlhdCI6MTYzNTI1MTQxNX0.V0-bViu4pFVufOzrn8yTQO9TnDAbE-qEKW8DnBKNLKCn2BlrQHbLYNSCpc4RdFU-cj32OwNn3in5cFPtiL5CTiD-lRXxnnc5WaNPNW2FchYag0zc252UdfV0Hs2sOAaNJ8agJ_uv0fFupMRS340gNDFFZthmjhTrDHGErZU7qxc1Lk2NF7-TGngre66-5W3NZzBsexkDO9yDLP11StjF63705juPFL2hTdgAIqLpsIOMwfrgoAsl0-6P98ecRwtGZKK4rEjUxBwghxCu1gm7eZiYoet4K28wPoBzF3hso4LG789N6GJt5HBIKpob9Q6G1ZJhMgieLeXH__9jvw1e0w";
 
+    private static JWTFunctionLibrary createLibrary() {
+        return new JWTFunctionLibrary(MAPPER);
+    }
+
     @Test
     void wellFormedTokenIsParsed() {
-        var library = new JWTFunctionLibrary(MAPPER);
-        var result  = library.parseJwt(Val.of(WELL_FORMED_TOKEN));
+        var result = createLibrary().parseJwt(Val.of(WELL_FORMED_TOKEN));
 
         assertThat(result.isDefined()).isTrue();
         assertThat(result.get().get("payload").get("sub").asText()).isEqualTo("user1");
@@ -50,8 +53,7 @@ class JWTFunctionLibraryTests {
 
     @Test
     void wellFormedTokenConvertsEpochTimestampsToIso() {
-        var library = new JWTFunctionLibrary(MAPPER);
-        var result  = library.parseJwt(Val.of(WELL_FORMED_TOKEN));
+        var result = createLibrary().parseJwt(Val.of(WELL_FORMED_TOKEN));
 
         assertThat(result.isDefined()).isTrue();
         assertThat(result.get().get("payload").get("nbf").asText()).isEqualTo("2021-10-26T12:30:15Z");
@@ -61,8 +63,7 @@ class JWTFunctionLibraryTests {
 
     @Test
     void wellFormedTokenExtractsScopes() {
-        var library = new JWTFunctionLibrary(MAPPER);
-        var result  = library.parseJwt(Val.of(WELL_FORMED_TOKEN));
+        var result = createLibrary().parseJwt(Val.of(WELL_FORMED_TOKEN));
 
         assertThat(result.isDefined()).isTrue();
         var scopes = result.get().get("payload").get("scope");
@@ -72,38 +73,19 @@ class JWTFunctionLibraryTests {
         assertThat(scopes.get(1).asText()).isEqualTo("books.read");
     }
 
-    @Test
-    void malformedTokenReturnsError() {
-        var library = new JWTFunctionLibrary(MAPPER);
-        var result  = library.parseJwt(Val.of("This is not a JWT token at all"));
-
-        assertThat(result.isError()).isTrue();
-        assertThat(result.getMessage()).contains("Failed to parse JWT");
-    }
-
-    @Test
-    void incompleteTokenReturnsError() {
-        var library = new JWTFunctionLibrary(MAPPER);
-        var result  = library.parseJwt(Val.of("eyJhbGciOiJSUzI1NiJ9.incomplete"));
-
-        assertThat(result.isError()).isTrue();
-        assertThat(result.getMessage()).contains("Failed to parse JWT");
-    }
-
-    @Test
-    void tokenWithoutDotsReturnsError() {
-        var library = new JWTFunctionLibrary(MAPPER);
-        var result  = library.parseJwt(Val.of("eyJhbGciOiJSUzI1NiJ9eyJzdWIiOiJ0ZXN0In0"));
-
-        assertThat(result.isError()).isTrue();
-        assertThat(result.getMessage()).contains("Failed to parse JWT");
-    }
-
     @ParameterizedTest
-    @ValueSource(strings = { "", "...", "a.b.c.d", "header.payload", "x" })
-    void variousMalformedTokensReturnError(String malformedToken) {
-        var library = new JWTFunctionLibrary(MAPPER);
-        var result  = library.parseJwt(Val.of(malformedToken));
+    @ValueSource(strings = {
+            "This is not a JWT token at all",
+            "eyJhbGciOiJSUzI1NiJ9.incomplete",
+            "eyJhbGciOiJSUzI1NiJ9eyJzdWIiOiJ0ZXN0In0",
+            "",
+            "...",
+            "a.b.c.d",
+            "header.payload",
+            "x"
+    })
+    void malformedTokensReturnError(String malformedToken) {
+        var result = createLibrary().parseJwt(Val.of(malformedToken));
 
         assertThat(result.isError()).isTrue();
         assertThat(result.getMessage()).contains("Failed to parse JWT");
@@ -191,6 +173,7 @@ class JWTFunctionLibraryTests {
     }
 
     @Test
+    @SuppressWarnings("unchecked")
     void payloadWithMixedClaimsWorks() {
         var mapper  = mock(ObjectMapper.class);
         var payload = JSON.objectNode();

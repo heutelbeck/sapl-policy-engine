@@ -148,7 +148,7 @@ public class PatternsFunctionLibrary {
     private static final String ERROR_GLOB_TOO_NESTED     = "Glob pattern too deeply nested (max %d levels).";
     private static final String ERROR_TOO_MANY_ALT_GROUPS = "Too many alternative groups (max %d groups).";
 
-    private static final String REGEX_ANCHOR_START      = "^";
+    private static final char   REGEX_ANCHOR_START      = '^';
     private static final char   REGEX_ANCHOR_END        = '$';
     private static final String REGEX_ANY_CHAR_MULTIPLE = ".*";
     private static final String REGEX_ANY_CHAR_SINGLE   = ".";

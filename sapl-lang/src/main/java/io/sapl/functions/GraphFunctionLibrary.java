@@ -28,7 +28,10 @@ import io.sapl.api.validation.JsonObject;
 import lombok.experimental.UtilityClass;
 import lombok.val;
 
-import java.util.*;
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.function.Consumer;
 
 /**

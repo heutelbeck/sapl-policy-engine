@@ -17,7 +17,6 @@
  */
 package io.sapl.functions;
 
-import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import io.sapl.api.interpreter.Val;
 import lombok.val;
 import org.junit.jupiter.api.BeforeAll;
@@ -46,8 +45,6 @@ import static org.assertj.core.api.Assertions.assertThat;
  * cryptographic operations.
  */
 class KeysFunctionLibraryRoundtripTests {
-
-    private static final JsonNodeFactory JSON = JsonNodeFactory.instance;
 
     private static KeyPair rsaKeyPair;
     private static KeyPair ecP256KeyPair;
@@ -84,7 +81,7 @@ class KeysFunctionLibraryRoundtripTests {
     /* Round-trip Functional Verification */
 
     @Test
-    void rsaKey_roundTripConversion_producesEquivalentKey() throws Exception {
+    void rsaKey_roundTripConversion_producesEquivalentKey() {
         // Convert to JWK
         val jwkResult = KeysFunctionLibrary.jwkFromPublicKey(Val.of(rsaPublicKeyPem));
         assertThat(jwkResult.isDefined()).isTrue();
@@ -114,7 +111,7 @@ class KeysFunctionLibraryRoundtripTests {
     @ParameterizedTest(name = "EC {2} round-trip")
     @MethodSource("ecKeyTestCases")
     void ecKey_roundTripConversion_producesEquivalentKey(String pemKey, KeyPair keyPair, String jwkCurve,
-            String javaCurve) throws Exception {
+            String javaCurve) {
         // Convert to JWK
         val jwkResult = KeysFunctionLibrary.jwkFromPublicKey(Val.of(pemKey));
         assertThat(jwkResult.isDefined()).isTrue();
@@ -138,7 +135,7 @@ class KeysFunctionLibraryRoundtripTests {
     }
 
     @Test
-    void ed25519Key_roundTripConversion_producesEquivalentKey() throws Exception {
+    void ed25519Key_roundTripConversion_producesEquivalentKey() {
         // Convert to JWK
         val jwkResult = KeysFunctionLibrary.jwkFromPublicKey(Val.of(ed25519PublicKeyPem));
         assertThat(jwkResult.isDefined()).isTrue();
@@ -221,7 +218,7 @@ class KeysFunctionLibraryRoundtripTests {
     /* JWK RFC Compliance Tests */
 
     @Test
-    void rsaJwk_followsRfc7517Structure() throws Exception {
+    void rsaJwk_followsRfc7517Structure() {
         val jwkResult = KeysFunctionLibrary.jwkFromPublicKey(Val.of(rsaPublicKeyPem));
         val jwk       = jwkResult.get();
 
@@ -252,7 +249,7 @@ class KeysFunctionLibraryRoundtripTests {
     }
 
     @Test
-    void ecJwk_followsRfc7517Structure() throws Exception {
+    void ecJwk_followsRfc7517Structure() {
         val jwkResult = KeysFunctionLibrary.jwkFromPublicKey(Val.of(ecP256PublicKeyPem));
         val jwk       = jwkResult.get();
 
@@ -286,7 +283,7 @@ class KeysFunctionLibraryRoundtripTests {
     }
 
     @Test
-    void ed25519Jwk_followsRfc8037Structure() throws Exception {
+    void ed25519Jwk_followsRfc8037Structure() {
         val jwkResult = KeysFunctionLibrary.jwkFromPublicKey(Val.of(ed25519PublicKeyPem));
         val jwk       = jwkResult.get();
 
@@ -366,7 +363,7 @@ class KeysFunctionLibraryRoundtripTests {
     /* Edge Case Integration Tests */
 
     @Test
-    void rsaKey_withLargeExponent_handlesCorrectly() throws Exception {
+    void rsaKey_withLargeExponent_handlesCorrectly() {
         // Most RSA keys use 65537 (0x10001) but library should handle any valid
         // exponent
         val jwk = KeysFunctionLibrary.jwkFromPublicKey(Val.of(rsaPublicKeyPem));
@@ -382,7 +379,7 @@ class KeysFunctionLibraryRoundtripTests {
     }
 
     @Test
-    void ecKey_coordinates_haveCorrectLength() throws Exception {
+    void ecKey_coordinates_haveCorrectLength() {
         val jwk = KeysFunctionLibrary.jwkFromPublicKey(Val.of(ecP256PublicKeyPem));
 
         val xBytes = Base64.getUrlDecoder().decode(jwk.get().get("x").asText());
@@ -409,7 +406,7 @@ class KeysFunctionLibraryRoundtripTests {
                 -----END PUBLIC KEY-----""".formatted(encoded);
     }
 
-    private static PublicKey parsePublicKeyFromPem(String pem) throws Exception {
+    private static PublicKey parsePublicKeyFromPem(String pem) {
         val pemContent = pem.replace("-----BEGIN PUBLIC KEY-----", "").replace("-----END PUBLIC KEY-----", "")
                 .replaceAll("\\s", "");
         val encoded    = Base64.getDecoder().decode(pemContent);
@@ -420,6 +417,7 @@ class KeysFunctionLibraryRoundtripTests {
             try {
                 return KeyFactory.getInstance(algorithm).generatePublic(keySpec);
             } catch (Exception ignored) {
+                /* no-op */
             }
         }
         throw new IllegalArgumentException("Unable to parse public key");
