@@ -560,7 +560,7 @@ public class X509FunctionLibrary {
      * @return the result of the operation or a Val.error
      */
     private static Val withCertificate(String certificateString,
-            java.util.function.Function<X509Certificate, Val> operation, String errorPrefix) {
+                                       java.util.function.Function<X509Certificate, Val> operation, String errorPrefix) {
         try {
             val certificate = CertificateUtils.parseCertificate(certificateString);
             return operation.apply(certificate);
@@ -685,16 +685,16 @@ public class X509FunctionLibrary {
      */
     private static String getSanTypeName(int type) {
         return switch (type) {
-        case SAN_TYPE_OTHER_NAME    -> "otherName";
-        case SAN_TYPE_RFC822_NAME   -> "rfc822Name";
-        case SAN_TYPE_DNS_NAME      -> "dNSName";
-        case SAN_TYPE_X400_ADDRESS  -> "x400Address";
-        case SAN_TYPE_DIRECTORY     -> "directoryName";
-        case SAN_TYPE_EDI_PARTY     -> "ediPartyName";
-        case SAN_TYPE_URI           -> "uniformResourceIdentifier";
-        case SAN_TYPE_IP_ADDRESS    -> "iPAddress";
-        case SAN_TYPE_REGISTERED_ID -> "registeredID";
-        default                     -> "unknown";
+            case SAN_TYPE_OTHER_NAME    -> "otherName";
+            case SAN_TYPE_RFC822_NAME   -> "rfc822Name";
+            case SAN_TYPE_DNS_NAME      -> "dNSName";
+            case SAN_TYPE_X400_ADDRESS  -> "x400Address";
+            case SAN_TYPE_DIRECTORY     -> "directoryName";
+            case SAN_TYPE_EDI_PARTY     -> "ediPartyName";
+            case SAN_TYPE_URI           -> "uniformResourceIdentifier";
+            case SAN_TYPE_IP_ADDRESS    -> "iPAddress";
+            case SAN_TYPE_REGISTERED_ID -> "registeredID";
+            default                     -> "unknown";
         };
     }
 
@@ -753,26 +753,21 @@ public class X509FunctionLibrary {
      * @return the IP address in standard notation
      */
     private static String convertBytesToIpAddress(byte[] bytes) {
-        if (bytes == null) {
+        if (bytes == null || (bytes.length != 4 && bytes.length != 16)) {
             return null;
         }
 
         if (bytes.length == 4) {
-            // IPv4: convert to dotted decimal
             return String.format("%d.%d.%d.%d", bytes[0] & 0xFF, bytes[1] & 0xFF, bytes[2] & 0xFF, bytes[3] & 0xFF);
         }
 
-        if (bytes.length == 16) {
-            // IPv6: convert to colon-separated hex format
-            val parts = new String[8];
-            for (int i = 0; i < 8; i++) {
-                val high = bytes[i * 2] & 0xFF;
-                val low  = bytes[i * 2 + 1] & 0xFF;
-                parts[i] = String.format("%x", (high << 8) | low);
-            }
-            return String.join(":", parts);
+        // IPv6: convert to colon-separated hex format
+        val parts = new String[8];
+        for (int i = 0; i < 8; i++) {
+            val high = bytes[i * 2] & 0xFF;
+            val low  = bytes[i * 2 + 1] & 0xFF;
+            parts[i] = String.format("%x", (high << 8) | low);
         }
-
-        return null;
+        return String.join(":", parts);
     }
 }

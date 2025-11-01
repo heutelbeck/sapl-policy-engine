@@ -127,11 +127,15 @@ class X509FunctionLibraryTests {
         assertThat(result.isError()).as(description).isTrue();
     }
 
-    static Stream<Arguments> malformedCertificates() {
+    static Stream<Arguments> malformedCertificates() throws OperatorCreationException, CertificateException, IOException {
+        val now = Instant.now();
+        val validCertPem = toPem(generateCertificate(CTHULHU_DN, now.minus(1, ChronoUnit.DAYS),
+                now.plus(365, ChronoUnit.DAYS), false, null));
+
         return Stream.of(arguments("invalid certificate from Outer Gods", "Invalid format"),
-                arguments(cthulhuCertPem.substring(0, cthulhuCertPem.length() / 2), "Truncated PEM"),
-                arguments(cthulhuCertPem.replace('A', '!'), "Corrupted Base64"),
-                arguments(cthulhuCertPem.replace("-----BEGIN CERTIFICATE-----", "").replace("-----END CERTIFICATE-----",
+                arguments(validCertPem.substring(0, validCertPem.length() / 2), "Truncated PEM"),
+                arguments(validCertPem.replace('A', '!'), "Corrupted Base64"),
+                arguments(validCertPem.replace("-----BEGIN CERTIFICATE-----", "").replace("-----END CERTIFICATE-----",
                         ""), "Missing PEM markers"));
     }
 
