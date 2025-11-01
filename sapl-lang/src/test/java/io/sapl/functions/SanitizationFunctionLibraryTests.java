@@ -43,7 +43,8 @@ class SanitizationFunctionLibraryTests {
                 // Geographic locations with SQL-like words
                 Arguments.of("Portland OR Seattle", "City names containing OR"),
                 Arguments.of("Alexandria AND Cairo", "City names containing AND"),
-                Arguments.of("Dunwich", "New England village"), Arguments.of("Innsmouth Harbor", "Coastal town"),
+                Arguments.of("Dunwich", "New England village"),
+                Arguments.of("Innsmouth Harbor", "Coastal town"),
 
                 // Contractions and natural language
                 Arguments.of("What's the access level?", "Contraction in question"),
