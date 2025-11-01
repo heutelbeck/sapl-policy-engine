@@ -586,7 +586,7 @@ class SchemaValidationLibraryTests {
         assertThat(result.get().get("errors").size()).isGreaterThan(1);
     }
 
-    static Stream<Arguments> provideErrorPropagationScenarios() throws JsonProcessingException {
+    static Stream<Arguments> provideErrorPropagationScenarios() {
         return Stream.of(Arguments.of("validate with error", ErrorFactory.error("cosmic_horror"), false),
                 Arguments.of("validate with undefined", Val.UNDEFINED, false),
                 Arguments.of("isCompliant with external schemas and error", ErrorFactory.error("forbidden_knowledge"),

@@ -44,6 +44,27 @@ import static org.assertj.core.api.Assertions.assertThat;
  */
 class GraphQLFunctionLibraryTests {
 
+    public static final String MULTI_QUERY = """
+            query {
+              shallowBranch: investigator(id: "1") {
+                name
+                sanity
+              }
+              deepBranch: investigator(id: "2") {
+                tomes {
+                  rituals {
+                    name
+                    consequences
+                  }
+                }
+              }
+              mediumBranch: cultist(name: "Cthulhu") {
+                rituals {
+                  name
+                }
+              }
+            }
+            """;
     private static final String BASIC_SCHEMA = """
             type Query {
               investigator(id: ID!): Investigator
@@ -255,36 +276,12 @@ class GraphQLFunctionLibraryTests {
                 Arguments.of(buildDeeplyNestedQuery(105), 100, "extreme depth 105 capped"),
 
                 // Multiple branches with different depths
-                Arguments.of(buildMultiBranchQuery(), 4, "mixed branch depths"));
+                Arguments.of(MULTI_QUERY, 4, "mixed branch depths"));
     }
 
     private static String buildDeeplyNestedQuery(int nestingLevel) {
         return "query { investigator(id: \"1\") { " + "tomes { ".repeat(nestingLevel) + "title"
                 + " }".repeat(nestingLevel) + " } }";
-    }
-
-    private static String buildMultiBranchQuery() {
-        return """
-                query {
-                  shallowBranch: investigator(id: "1") {
-                    name
-                    sanity
-                  }
-                  deepBranch: investigator(id: "2") {
-                    tomes {
-                      rituals {
-                        name
-                        consequences
-                      }
-                    }
-                  }
-                  mediumBranch: cultist(name: "Cthulhu") {
-                    rituals {
-                      name
-                    }
-                  }
-                }
-                """;
     }
 
     /* Introspection Detection Tests */
@@ -671,7 +668,7 @@ class GraphQLFunctionLibraryTests {
             case String strVal    -> assertThat(variables.get(name).asText()).isEqualTo(strVal);
             case Boolean boolVal  -> assertThat(variables.get(name).asBoolean()).isEqualTo(boolVal);
             case Double doubleVal -> assertThat(variables.get(name).asDouble()).isEqualTo(doubleVal);
-            default               -> {}
+            default               -> { /* no-op */}
             }
         });
     }

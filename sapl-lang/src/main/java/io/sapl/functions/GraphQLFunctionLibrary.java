@@ -638,7 +638,7 @@ public class GraphQLFunctionLibrary {
             case Field field             -> analyzeField(field, nextDepth, metrics, isRoot);
             case InlineFragment fragment -> analyzeInlineFragment(fragment, nextDepth, metrics);
             case FragmentSpread spread   -> processDirectivesContainer(spread, metrics);
-            default                      -> {} // Other selection types
+            default                      -> { /* Other selection types */}
             }
         }
     }
@@ -782,7 +782,7 @@ public class GraphQLFunctionLibrary {
                 extractFieldsFromSelectionSet(field.getSelectionSet(), accumulator);
             }
             case InlineFragment fragment -> extractFieldsFromSelectionSet(fragment.getSelectionSet(), accumulator);
-            default                      -> {} // Other selection types
+            default                      -> { /* Other selection types */}
             }
         }
     }
@@ -861,7 +861,7 @@ public class GraphQLFunctionLibrary {
             case FragmentSpread spread   -> spreads.add(spread.getName());
             case Field field             -> spreads.addAll(findFragmentSpreads(field.getSelectionSet()));
             case InlineFragment fragment -> spreads.addAll(findFragmentSpreads(fragment.getSelectionSet()));
-            default                      -> {} // Other selection types
+            default                      -> { /* Other selection types */}
             }
         }
 
