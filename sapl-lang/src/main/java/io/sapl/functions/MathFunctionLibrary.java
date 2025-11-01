@@ -246,7 +246,7 @@ public class MathFunctionLibrary {
             return Val.error("Minimum must be less than or equal to maximum.");
         }
 
-        return Val.of(Math.max(min, Math.min(max, val)));
+        return Val.of(Math.clamp(val, min, max));
     }
 
     @Function(docs = """
