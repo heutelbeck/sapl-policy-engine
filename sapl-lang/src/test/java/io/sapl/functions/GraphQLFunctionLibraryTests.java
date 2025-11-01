@@ -44,7 +44,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  */
 class GraphQLFunctionLibraryTests {
 
-    public static final String MULTI_QUERY = """
+    public static final String  MULTI_QUERY  = """
             query {
               shallowBranch: investigator(id: "1") {
                 name

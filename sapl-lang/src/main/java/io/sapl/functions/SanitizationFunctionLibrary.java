@@ -148,15 +148,13 @@ public class SanitizationFunctionLibrary {
     // === Shared Patterns ===
 
     private static final Pattern SQL_METACHARACTERS    = Pattern.compile("[';*()@]");
-    private static final Pattern SQL_DML_DDL_KEYWORDS  = Pattern
-            .compile("\\b(SELECT|INSERT|DELETE|UPDATE|DROP|UNION|ALTER|EXEC|EXECUTE|TRUNCATE|CREATE|REPLACE)\\b",
-                    Pattern.CASE_INSENSITIVE);
-    private static final Pattern SQL_LOGICAL_OPERATORS = Pattern.compile("(OR|AND|NOT|XOR)",
+    private static final Pattern SQL_DML_DDL_KEYWORDS  = Pattern.compile(
+            "\\b(SELECT|INSERT|DELETE|UPDATE|DROP|UNION|ALTER|EXEC|EXECUTE|TRUNCATE|CREATE|REPLACE)\\b",
             Pattern.CASE_INSENSITIVE);
+    private static final Pattern SQL_LOGICAL_OPERATORS = Pattern.compile("(OR|AND|NOT|XOR)", Pattern.CASE_INSENSITIVE);
 
-    private static final Pattern URL_ENCODED_CHARACTERS = Pattern.compile("%[0-9a-fA-F]{2}", Pattern.CASE_INSENSITIVE);
-    private static final Pattern HEX_ENCODED_STRINGS    = Pattern.compile("0x[0-9a-fA-F]{2,}",
-            Pattern.CASE_INSENSITIVE);
+    private static final Pattern URL_ENCODED_CHARACTERS = Pattern.compile("%[0-9a-f]{2}", Pattern.CASE_INSENSITIVE);
+    private static final Pattern HEX_ENCODED_STRINGS    = Pattern.compile("0x[0-9a-f]{2,}", Pattern.CASE_INSENSITIVE);
 
     // === Strict Mode Patterns ===
 
@@ -164,56 +162,56 @@ public class SanitizationFunctionLibrary {
 
     // === Balanced Mode Patterns ===
 
-    private static final Pattern SQL_SELECT_FROM_STATEMENT         = Pattern
-            .compile("\\bSELECT\\s+\\S+(?:[,\\s]+\\S+)*\\s+FROM\\b", Pattern.CASE_INSENSITIVE);
-    private static final Pattern SQL_INSERT_INTO_STATEMENT         = Pattern.compile("\\bINSERT\\s+INTO\\b",
+    private static final Pattern SQL_SELECT_FROM_STATEMENT = Pattern
+            .compile("\\bSELECT\\s+\\S+(?:[,\\s]+(?!FROM\\b)\\S+)*\\s+FROM\\b", Pattern.CASE_INSENSITIVE);
+    private static final Pattern SQL_INSERT_INTO_STATEMENT = Pattern.compile("\\bINSERT\\s+INTO\\b",
             Pattern.CASE_INSENSITIVE);
-    private static final Pattern SQL_DELETE_FROM_STATEMENT         = Pattern.compile("\\bDELETE\\s+FROM\\b",
+    private static final Pattern SQL_DELETE_FROM_STATEMENT = Pattern.compile("\\bDELETE\\s+FROM\\b",
             Pattern.CASE_INSENSITIVE);
-    private static final Pattern SQL_UPDATE_SET_STATEMENT          = Pattern.compile("\\bUPDATE\\s+\\w+\\s+SET\\b",
+    private static final Pattern SQL_UPDATE_SET_STATEMENT  = Pattern.compile("\\bUPDATE\\s+\\w+\\s+SET\\b",
             Pattern.CASE_INSENSITIVE);
 
-    private static final Pattern QUOTE_FOLLOWED_BY_SQL_KEYWORD     = Pattern.compile(
-            "'\\s*(OR|AND|UNION|SELECT|INSERT|DELETE|UPDATE|DROP|--|#)", Pattern.CASE_INSENSITIVE);
-    private static final Pattern QUOTED_BOOLEAN_OR_AND_EXPRESSION  = Pattern
+    private static final Pattern QUOTE_FOLLOWED_BY_SQL_KEYWORD    = Pattern
+            .compile("'\\s*(OR|AND|UNION|SELECT|INSERT|DELETE|UPDATE|DROP|--|#)", Pattern.CASE_INSENSITIVE);
+    private static final Pattern QUOTED_BOOLEAN_OR_AND_EXPRESSION = Pattern
             .compile("'\\s*(OR|AND)\\s*'[^']*'\\s*=\\s*'", Pattern.CASE_INSENSITIVE);
 
-    private static final Pattern SQL_COMMENT_WITH_CONTENT          = Pattern.compile("(--|#)\\s*(\\w|$)");
+    private static final Pattern SQL_COMMENT_WITH_CONTENT = Pattern.compile("(--|#)\\s*(\\w|$)");
 
     private static final Pattern SEMICOLON_FOLLOWED_BY_SQL_COMMAND = Pattern.compile(
             ";\\s*(SELECT|INSERT|DELETE|UPDATE|DROP|UNION|CREATE|ALTER|TRUNCATE|EXEC|EXECUTE)",
             Pattern.CASE_INSENSITIVE);
 
-    private static final Pattern DROP_OR_TRUNCATE_TABLE            = Pattern
-            .compile("\\b(DROP|TRUNCATE)\\s+TABLE\\b", Pattern.CASE_INSENSITIVE);
-    private static final Pattern CREATE_OR_ALTER_TABLE             = Pattern.compile("\\b(CREATE|ALTER)\\s+TABLE\\b",
+    private static final Pattern DROP_OR_TRUNCATE_TABLE = Pattern.compile("\\b(DROP|TRUNCATE)\\s+TABLE\\b",
+            Pattern.CASE_INSENSITIVE);
+    private static final Pattern CREATE_OR_ALTER_TABLE  = Pattern.compile("\\b(CREATE|ALTER)\\s+TABLE\\b",
             Pattern.CASE_INSENSITIVE);
 
-    private static final Pattern UNION_SELECT_STATEMENT            = Pattern
-            .compile("\\bUNION\\s+(ALL\\s+)?SELECT\\b", Pattern.CASE_INSENSITIVE);
-
-    private static final Pattern BOOLEAN_NUMERIC_EQUALITY          = Pattern
-            .compile("(OR|AND)\\s+\\d+\\s*=\\s*\\d+", Pattern.CASE_INSENSITIVE);
-    private static final Pattern BOOLEAN_STRING_EQUALITY           = Pattern
-            .compile("(OR|AND)\\s+'[^']*'\\s*=\\s*'[^']*'", Pattern.CASE_INSENSITIVE);
-
-    private static final Pattern SQL_SPECIFIC_URL_ENCODED_CHARS    = Pattern.compile("%27|%3B|%2D%2D|%23",
+    private static final Pattern UNION_SELECT_STATEMENT = Pattern.compile("\\bUNION\\s+(ALL\\s+)?SELECT\\b",
             Pattern.CASE_INSENSITIVE);
-    private static final Pattern LONG_URL_ENCODED_SEQUENCES        = Pattern.compile("(%[0-9a-fA-F]{2}){3,}",
+
+    private static final Pattern BOOLEAN_NUMERIC_EQUALITY = Pattern.compile("(OR|AND)\\s+\\d+\\s*=\\s*\\d+",
+            Pattern.CASE_INSENSITIVE);
+    private static final Pattern BOOLEAN_STRING_EQUALITY  = Pattern.compile("(OR|AND)\\s+'[^']*'\\s*=\\s*'[^']*'",
+            Pattern.CASE_INSENSITIVE);
+
+    private static final Pattern SQL_SPECIFIC_URL_ENCODED_CHARS = Pattern.compile("%27|%3B|%2D%2D|%23",
+            Pattern.CASE_INSENSITIVE);
+    private static final Pattern LONG_URL_ENCODED_SEQUENCES     = Pattern.compile("(%[0-9a-f]{2}){3,}",
             Pattern.CASE_INSENSITIVE);
 
     // === Pattern Arrays ===
 
-    private static final Pattern[] STRICT_SQL_PATTERNS   = { SQL_METACHARACTERS, SQL_COMMENT_MARKERS,
+    private static final Pattern[] STRICT_SQL_PATTERNS = { SQL_METACHARACTERS, SQL_COMMENT_MARKERS,
             SQL_DML_DDL_KEYWORDS, SQL_LOGICAL_OPERATORS, URL_ENCODED_CHARACTERS, HEX_ENCODED_STRINGS };
 
-    private static final Pattern[] BALANCED_SQL_PATTERNS = { SQL_SELECT_FROM_STATEMENT, SQL_INSERT_INTO_STATEMENT,
-            SQL_DELETE_FROM_STATEMENT, SQL_UPDATE_SET_STATEMENT, QUOTE_FOLLOWED_BY_SQL_KEYWORD,
-            QUOTED_BOOLEAN_OR_AND_EXPRESSION, SQL_COMMENT_WITH_CONTENT, SEMICOLON_FOLLOWED_BY_SQL_COMMAND,
-            DROP_OR_TRUNCATE_TABLE, CREATE_OR_ALTER_TABLE, UNION_SELECT_STATEMENT, BOOLEAN_NUMERIC_EQUALITY,
-            BOOLEAN_STRING_EQUALITY, SQL_SPECIFIC_URL_ENCODED_CHARS, LONG_URL_ENCODED_SEQUENCES,
-            HEX_ENCODED_STRINGS };
-    static final String POTENTIAL_SQL_INJECTION_DETECTED = "Potential SQL injection detected in text.";
+    private static final Pattern[] BALANCED_SQL_PATTERNS            = { SQL_SELECT_FROM_STATEMENT,
+            SQL_INSERT_INTO_STATEMENT, SQL_DELETE_FROM_STATEMENT, SQL_UPDATE_SET_STATEMENT,
+            QUOTE_FOLLOWED_BY_SQL_KEYWORD, QUOTED_BOOLEAN_OR_AND_EXPRESSION, SQL_COMMENT_WITH_CONTENT,
+            SEMICOLON_FOLLOWED_BY_SQL_COMMAND, DROP_OR_TRUNCATE_TABLE, CREATE_OR_ALTER_TABLE, UNION_SELECT_STATEMENT,
+            BOOLEAN_NUMERIC_EQUALITY, BOOLEAN_STRING_EQUALITY, SQL_SPECIFIC_URL_ENCODED_CHARS,
+            LONG_URL_ENCODED_SEQUENCES, HEX_ENCODED_STRINGS };
+    static final String            POTENTIAL_SQL_INJECTION_DETECTED = "Potential SQL injection detected in text.";
 
     private static final Predicate<String> STRICT_SQL_INJECTION_PREDICATE   = createInjectionPredicate(
             STRICT_SQL_PATTERNS);
