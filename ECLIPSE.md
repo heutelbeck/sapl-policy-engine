@@ -6,7 +6,7 @@ This document outlines some key configurations to make in your Eclipse install t
 
 ## JDK 
 
-The policy engine uses JDK 17 as a baseline. You can use any JDK newer than JDK 17 to run Eclipse. It is however recommended to install a JDK 17 for building the actual project. You can download a current version of JDK 17 from (https://adoptium.net). We recommend a ZIP. Unpack the ZIP to a folder of your choosing. In your workspace, go to "Window -> Preferences...". Now search for "JDK" and under "Installed JREs" "Add..." the JDK 17 providing your local installation path.
+The policy engine uses JDK 21 as a baseline. You can use any JDK newer than JDK 21 to run Eclipse. It is however recommended to install a JDK 21 for building the actual project. You can download a current version of JDK 21 from (https://adoptium.net). We recommend a ZIP. Unpack the ZIP to a folder of your choosing. In your workspace, go to "Window -> Preferences...". Now search for "JDK" and under "Installed JREs" "Add..." the JDK 17 providing your local installation path.
 
 ## Code Formatter and Warnings
 
