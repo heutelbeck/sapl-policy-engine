@@ -22,6 +22,9 @@ import com.vaadin.flow.component.page.Push;
 import com.vaadin.flow.server.AppShellSettings;
 import com.vaadin.flow.theme.Theme;
 import com.vaadin.flow.theme.lumo.Lumo;
+
+import io.sapl.api.SaplVersion;
+
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
@@ -29,6 +32,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 @SpringBootApplication
 @Theme(value = "sapl", variant = Lumo.DARK)
 public class PlaygroundApplication implements AppShellConfigurator {
+    private static final long serialVersionUID = SaplVersion.VERISION_UID;
 
     @Override
     public void configurePage(AppShellSettings settings) {

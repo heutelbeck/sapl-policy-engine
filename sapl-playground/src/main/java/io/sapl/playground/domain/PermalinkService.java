@@ -19,10 +19,14 @@ package io.sapl.playground.domain;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+
+import io.sapl.api.SaplVersion;
 import io.sapl.interpreter.combinators.PolicyDocumentCombiningAlgorithm;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
+import lombok.experimental.StandardException;
+
 import org.springframework.stereotype.Service;
 
 import java.io.ByteArrayInputStream;
@@ -347,13 +351,8 @@ public class PermalinkService {
     /**
      * Exception thrown when permalink encoding/decoding fails.
      */
+    @StandardException
     public static class PermalinkException extends Exception {
-        public PermalinkException(String message) {
-            super(message);
-        }
-
-        public PermalinkException(String message, Throwable cause) {
-            super(message, cause);
-        }
+        private static final long serialVersionUID = SaplVersion.VERISION_UID;
     }
 }

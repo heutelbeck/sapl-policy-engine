@@ -17,15 +17,15 @@
  */
 package io.sapl.spring.method.metadata;
 
-import org.junit.jupiter.api.Test;
-import org.springframework.expression.Expression;
-import org.springframework.security.util.MethodInvocationUtils;
-
 import static com.spotify.hamcrest.pojo.IsPojo.pojo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.collection.IsMapContaining.hasValue;
 import static org.hamcrest.collection.IsMapWithSize.anEmptyMap;
+
+import org.junit.jupiter.api.Test;
+import org.springframework.expression.Expression;
+import org.springframework.security.util.MethodInvocationUtils;
 
 class SaplAttributeRegistryTests {
 

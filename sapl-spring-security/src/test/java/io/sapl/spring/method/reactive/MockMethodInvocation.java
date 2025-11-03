@@ -17,12 +17,13 @@
  */
 package io.sapl.spring.method.reactive;
 
-import lombok.NonNull;
-import org.aopalliance.intercept.MethodInvocation;
-
 import java.lang.reflect.AccessibleObject;
 import java.lang.reflect.Method;
 import java.util.function.Supplier;
+
+import org.aopalliance.intercept.MethodInvocation;
+
+import lombok.NonNull;
 
 class MockMethodInvocation implements MethodInvocation {
 

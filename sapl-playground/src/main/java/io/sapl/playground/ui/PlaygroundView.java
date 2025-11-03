@@ -54,6 +54,8 @@ import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.data.selection.SelectionEvent;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
+
+import io.sapl.api.SaplVersion;
 import io.sapl.api.interpreter.Val;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.TracedDecision;
@@ -96,6 +98,7 @@ import java.util.stream.Collectors;
 @JsModule("./copytoclipboard.js")
 @JavaScript("./fragment-reader.js")
 public class PlaygroundView extends Composite<VerticalLayout> {
+    private static final long serialVersionUID = SaplVersion.VERISION_UID;
 
     private static final int DEFAULT_BUFFER_SIZE     = 10;
     private static final int EXAMPLE_PREFIX_LENGTH   = 8;

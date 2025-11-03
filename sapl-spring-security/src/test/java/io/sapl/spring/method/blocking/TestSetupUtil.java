@@ -17,23 +17,25 @@
  */
 package io.sapl.spring.method.blocking;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.module.SimpleModule;
-import io.sapl.spring.serialization.HttpServletRequestSerializer;
-import io.sapl.spring.serialization.MethodInvocationSerializer;
-import io.sapl.spring.serialization.ServerHttpRequestSerializer;
-import io.sapl.spring.subscriptions.WebAuthorizationSubscriptionBuilderService;
-import jakarta.servlet.http.HttpServletRequest;
-import lombok.experimental.UtilityClass;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
 import org.aopalliance.intercept.MethodInvocation;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.context.ApplicationContext;
 import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.springframework.security.access.expression.method.DefaultMethodSecurityExpressionHandler;
 
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.module.SimpleModule;
+
+import io.sapl.spring.serialization.HttpServletRequestSerializer;
+import io.sapl.spring.serialization.MethodInvocationSerializer;
+import io.sapl.spring.serialization.ServerHttpRequestSerializer;
+import io.sapl.spring.subscriptions.WebAuthorizationSubscriptionBuilderService;
+import jakarta.servlet.http.HttpServletRequest;
+import lombok.experimental.UtilityClass;
 
 @UtilityClass
 public class TestSetupUtil {

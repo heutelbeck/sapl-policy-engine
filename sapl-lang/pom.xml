@@ -117,7 +117,6 @@
 		<dependency>
 			<groupId>org.apache.commons</groupId>
 			<artifactId>commons-lang3</artifactId>
-            <version>${commons-lang.version}</version>
         </dependency>
 		<dependency>
 			<groupId>commons-io</groupId>
@@ -161,7 +160,6 @@
         <dependency>
             <groupId>com.graphql-java</groupId>
             <artifactId>graphql-java</artifactId>
-            <version>24.3</version>
         </dependency>
 		<!-- Webflux for the reactive WebClient -->
 		<dependency>

@@ -171,6 +171,7 @@ public class SaplEditor extends BaseEditor implements HasSize {
 
     @DomEvent("sapl-merge-chunks")
     public static class DiffChunksChangedEvent extends ComponentEvent<SaplEditor> {
+        private static final long serialVersionUID = SaplVersion.VERISION_UID;
 
         private final ArrayList<Chunk> chunks;
 

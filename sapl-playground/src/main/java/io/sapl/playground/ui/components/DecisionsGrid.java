@@ -21,6 +21,8 @@ import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.grid.GridVariant;
 import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.data.renderer.ComponentRenderer;
+
+import io.sapl.api.SaplVersion;
 import io.sapl.api.pdp.TracedDecision;
 
 /**
@@ -30,6 +32,7 @@ import io.sapl.api.pdp.TracedDecision;
  * presence of optional fields.
  */
 public class DecisionsGrid extends Grid<TracedDecision> {
+    private static final long serialVersionUID = SaplVersion.VERISION_UID;
 
     /**
      * Creates a new decisions grid with configured columns.

@@ -20,6 +20,8 @@ package io.sapl.playground.domain;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+
+import io.sapl.api.SaplVersion;
 import io.sapl.vaadin.Issue;
 import lombok.RequiredArgsConstructor;
 import lombok.val;
@@ -46,6 +48,7 @@ import java.util.stream.StreamSupport;
 @Service
 @RequiredArgsConstructor
 public class PlaygroundValidator implements Serializable {
+    private static final long serialVersionUID = SaplVersion.VERISION_UID;
 
     /*
      * Maximum length for variable names.
