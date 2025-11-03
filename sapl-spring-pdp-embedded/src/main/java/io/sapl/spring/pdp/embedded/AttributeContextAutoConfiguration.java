@@ -57,13 +57,6 @@ public class AttributeContextAutoConfiguration {
     @Bean
     @ConditionalOnMissingBean
     @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
-    Clock clock() {
-        return Clock.systemUTC();
-    }
-
-    @Bean
-    @ConditionalOnMissingBean
-    @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
     InMemoryAttributeRepository inMemoryAttributeRepository(Clock clock) {
         return new InMemoryAttributeRepository(clock);
     }

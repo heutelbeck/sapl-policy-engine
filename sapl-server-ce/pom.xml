@@ -37,8 +37,8 @@
 		<spring.profile.from.maven>default</spring.profile.from.maven>
 		<sonar.version>3.9.1.2184</sonar.version>
 		<jacoco.version>0.8.11</jacoco.version>
-		<spotbugs.version>4.8.5.0</spotbugs.version>
-		<sbcontrib.version>7.6.0</sbcontrib.version>
+		<spotbugs.version>4.9.8.1</spotbugs.version>
+		<sbcontrib.version>7.6.15</sbcontrib.version>
 		<maven.javadoc.skip>true</maven.javadoc.skip>
 		<main.basedir>${project.basedir}/../</main.basedir>
 	</properties>
