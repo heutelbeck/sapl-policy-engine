@@ -17,16 +17,20 @@
  */
 package io.sapl.spring.config;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import io.sapl.api.pdp.PolicyDecisionPoint;
-import io.sapl.spring.constraints.ConstraintEnforcementService;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.core.GrantedAuthorityDefaults;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.*;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+import io.sapl.api.pdp.PolicyDecisionPoint;
+import io.sapl.spring.constraints.ConstraintEnforcementService;
 
 class SaplMethodSecurityConfigurationTests {
 

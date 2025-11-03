@@ -43,7 +43,8 @@ public class SaplAuthorizationManager implements AuthorizationManager<RequestAut
 
     @Override
     // Must implement as interface still refers to deprecated method from authorize.
-    // Cannot remove deprecation warning, as it would break CI build with -Werror.
+    // Cannot remove deprecation warning suppression, as it would break CI build
+    // with -Werror.
     @SuppressWarnings("deprecation")
     public AuthorizationDecision check(Supplier<Authentication> authenticationSupplier,
             RequestAuthorizationContext requestAuthorizationContext) {

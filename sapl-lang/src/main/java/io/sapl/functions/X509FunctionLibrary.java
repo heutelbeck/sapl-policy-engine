@@ -560,7 +560,7 @@ public class X509FunctionLibrary {
      * @return the result of the operation or a Val.error
      */
     private static Val withCertificate(String certificateString,
-                                       java.util.function.Function<X509Certificate, Val> operation, String errorPrefix) {
+            java.util.function.Function<X509Certificate, Val> operation, String errorPrefix) {
         try {
             val certificate = CertificateUtils.parseCertificate(certificateString);
             return operation.apply(certificate);
@@ -685,16 +685,16 @@ public class X509FunctionLibrary {
      */
     private static String getSanTypeName(int type) {
         return switch (type) {
-            case SAN_TYPE_OTHER_NAME    -> "otherName";
-            case SAN_TYPE_RFC822_NAME   -> "rfc822Name";
-            case SAN_TYPE_DNS_NAME      -> "dNSName";
-            case SAN_TYPE_X400_ADDRESS  -> "x400Address";
-            case SAN_TYPE_DIRECTORY     -> "directoryName";
-            case SAN_TYPE_EDI_PARTY     -> "ediPartyName";
-            case SAN_TYPE_URI           -> "uniformResourceIdentifier";
-            case SAN_TYPE_IP_ADDRESS    -> "iPAddress";
-            case SAN_TYPE_REGISTERED_ID -> "registeredID";
-            default                     -> "unknown";
+        case SAN_TYPE_OTHER_NAME    -> "otherName";
+        case SAN_TYPE_RFC822_NAME   -> "rfc822Name";
+        case SAN_TYPE_DNS_NAME      -> "dNSName";
+        case SAN_TYPE_X400_ADDRESS  -> "x400Address";
+        case SAN_TYPE_DIRECTORY     -> "directoryName";
+        case SAN_TYPE_EDI_PARTY     -> "ediPartyName";
+        case SAN_TYPE_URI           -> "uniformResourceIdentifier";
+        case SAN_TYPE_IP_ADDRESS    -> "iPAddress";
+        case SAN_TYPE_REGISTERED_ID -> "registeredID";
+        default                     -> "unknown";
         };
     }
 

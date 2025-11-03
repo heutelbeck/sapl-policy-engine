@@ -17,18 +17,20 @@
  */
 package io.sapl.spring.config;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import io.sapl.api.pdp.PolicyDecisionPoint;
-import io.sapl.spring.constraints.ConstraintEnforcementService;
-import io.sapl.spring.manager.ReactiveSaplAuthorizationManager;
-import io.sapl.spring.manager.SaplAuthorizationManager;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.mock;
+
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.web.reactive.context.AnnotationConfigReactiveWebApplicationContext;
 import org.springframework.boot.web.servlet.context.AnnotationConfigServletWebApplicationContext;
 import org.springframework.mock.web.MockServletContext;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.mock;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+import io.sapl.api.pdp.PolicyDecisionPoint;
+import io.sapl.spring.constraints.ConstraintEnforcementService;
+import io.sapl.spring.manager.ReactiveSaplAuthorizationManager;
+import io.sapl.spring.manager.SaplAuthorizationManager;
 
 class AuthorizationManagerConfigurationTests {
 

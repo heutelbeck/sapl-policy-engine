@@ -61,12 +61,12 @@ import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 class X509FunctionLibraryTests {
 
-    private static final String CTHULHU_DN    = "CN=Cthulhu Accounting Services,O=Rlyeh Deep Ones LLC,C=US";
+    private static final String CTHULHU_DN     = "CN=Cthulhu Accounting Services,O=Rlyeh Deep Ones LLC,C=US";
     private static final String YOG_SOTHOTH_DN = "CN=Yog-Sothoth Time Services,O=Beyond the Gate,C=XX";
-    private static final String AZATHOTH_DN   = "CN=Azathoth Nuclear Daemon,O=Center of Chaos,C=ZZ";
-    private static final String DEFAULT_DNS_1 = "ritual-chamber.rlyeh.deep";
-    private static final String DEFAULT_DNS_2 = "shoggoth-services.antarctica";
-    private static final String DEFAULT_IP    = "192.168.1.1";
+    private static final String AZATHOTH_DN    = "CN=Azathoth Nuclear Daemon,O=Center of Chaos,C=ZZ";
+    private static final String DEFAULT_DNS_1  = "ritual-chamber.rlyeh.deep";
+    private static final String DEFAULT_DNS_2  = "shoggoth-services.antarctica";
+    private static final String DEFAULT_IP     = "192.168.1.1";
 
     private static String  cthulhuCertPem;
     private static String  expiredCertPem;
@@ -110,8 +110,8 @@ class X509FunctionLibraryTests {
     static Stream<Arguments> validCertificates() throws OperatorCreationException, CertificateException, IOException {
         val now = Instant.now();
         // Chinese: "CN=Cthulhu Accounting Services,O=Rlyeh Deep Ones LLC,C=CN"
-        val unicodeCertPem = toPem(generateCertificate("CN=克苏鲁会计服务,O=拉莱耶深潜者有限责任公司,C=CN",
-                now.minus(1, ChronoUnit.DAYS), now.plus(365, ChronoUnit.DAYS), false, null));
+        val unicodeCertPem = toPem(generateCertificate("CN=克苏鲁会计服务,O=拉莱耶深潜者有限责任公司,C=CN", now.minus(1, ChronoUnit.DAYS),
+                now.plus(365, ChronoUnit.DAYS), false, null));
 
         return Stream.of(arguments(cthulhuCertPem, "Cthulhu", "Standard certificate"),
                 arguments(expiredCertPem, "Yog-Sothoth", "Hyphenated name"),
@@ -127,8 +127,9 @@ class X509FunctionLibraryTests {
         assertThat(result.isError()).as(description).isTrue();
     }
 
-    static Stream<Arguments> malformedCertificates() throws OperatorCreationException, CertificateException, IOException {
-        val now = Instant.now();
+    static Stream<Arguments> malformedCertificates()
+            throws OperatorCreationException, CertificateException, IOException {
+        val now          = Instant.now();
         val validCertPem = toPem(generateCertificate(CTHULHU_DN, now.minus(1, ChronoUnit.DAYS),
                 now.plus(365, ChronoUnit.DAYS), false, null));
 
@@ -153,7 +154,7 @@ class X509FunctionLibraryTests {
     @ParameterizedTest
     @MethodSource("fieldExtractors")
     void extractField_whenValidCert_returnsExpectedValue(Function<Val, Val> extractor, String expectedContent,
-                                                         String description) {
+            String description) {
         val result = extractor.apply(Val.of(cthulhuCertPem));
 
         assertThat(result.isDefined()).as(description).isTrue();
@@ -171,8 +172,7 @@ class X509FunctionLibraryTests {
     }
 
     static Stream<Arguments> fieldExtractors() {
-        return Stream.of(
-                arguments((Function<Val, Val>) X509FunctionLibrary::extractSubjectDn, "Cthulhu", "Subject DN"),
+        return Stream.of(arguments((Function<Val, Val>) X509FunctionLibrary::extractSubjectDn, "Cthulhu", "Subject DN"),
                 arguments((Function<Val, Val>) X509FunctionLibrary::extractIssuerDn, "Cthulhu", "Issuer DN"),
                 arguments((Function<Val, Val>) X509FunctionLibrary::extractCommonName, "Cthulhu Accounting Services",
                         "Common Name"),
@@ -221,8 +221,7 @@ class X509FunctionLibraryTests {
     }
 
     @Test
-    void matchesFingerprint_whenCorrectFingerprint_returnsTrue()
-            throws CertificateException, NoSuchAlgorithmException {
+    void matchesFingerprint_whenCorrectFingerprint_returnsTrue() throws CertificateException, NoSuchAlgorithmException {
         val cert                = CertificateUtils.parseCertificate(cthulhuCertPem);
         val digest              = MessageDigest.getInstance("SHA-256");
         val expectedFingerprint = HexFormat.of().formatHex(digest.digest(cert.getEncoded()));
@@ -247,8 +246,8 @@ class X509FunctionLibraryTests {
         val fingerprint = HexFormat.of().formatHex(digest.digest(cert.getEncoded()));
         val result1     = X509FunctionLibrary.matchesFingerprint(Val.of(cthulhuCertPem),
                 Val.of(fingerprint.toLowerCase()), Val.of("SHA-256"));
-        val result2 = X509FunctionLibrary.matchesFingerprint(Val.of(cthulhuCertPem), Val.of(fingerprint.toUpperCase()),
-                Val.of("SHA-256"));
+        val result2     = X509FunctionLibrary.matchesFingerprint(Val.of(cthulhuCertPem),
+                Val.of(fingerprint.toUpperCase()), Val.of("SHA-256"));
 
         assertThat(result1.getBoolean()).isTrue();
         assertThat(result2.getBoolean()).isTrue();
@@ -299,7 +298,7 @@ class X509FunctionLibraryTests {
         val now  = Instant.now();
         val cert = generateCertificate("CN=*.rlyeh.deep,O=Wildcard Services,C=US", now.minus(1, ChronoUnit.DAYS),
                 now.plus(365, ChronoUnit.DAYS), true, new String[] { "*.rlyeh.deep" });
-        val pem = toPem(cert);
+        val pem  = toPem(cert);
 
         val result = X509FunctionLibrary.hasDnsName(Val.of(pem), Val.of("temple.rlyeh.deep"));
 
@@ -352,7 +351,7 @@ class X509FunctionLibraryTests {
     @CsvSource({ "1, DAYS, true, Within validity period", "-365, DAYS, false, Before validity start",
             "400, DAYS, false, After validity end" })
     void isValidAt_whenVariousTimestamps_returnsExpectedResult(long amount, ChronoUnit unit, boolean expected,
-                                                               String description) {
+            String description) {
         val timestamp = Instant.now().plus(amount, unit).toString();
         val result    = X509FunctionLibrary.isValidAt(Val.of(cthulhuCertPem), Val.of(timestamp));
 
@@ -402,8 +401,8 @@ class X509FunctionLibraryTests {
     @Test
     void remainingValidityDays_whenCertExpiresInTwoDays_returnsOneOrTwo()
             throws OperatorCreationException, CertificateException, IOException {
-        val now  = Instant.now();
-        val cert = generateCertificate(CTHULHU_DN, now.minus(365, ChronoUnit.DAYS), now.plus(2, ChronoUnit.DAYS),
+        val now     = Instant.now();
+        val cert    = generateCertificate(CTHULHU_DN, now.minus(365, ChronoUnit.DAYS), now.plus(2, ChronoUnit.DAYS),
                 false, null);
         val certPem = toPem(cert);
         val result  = X509FunctionLibrary.remainingValidityDays(Val.of(certPem));
@@ -419,9 +418,9 @@ class X509FunctionLibraryTests {
             throws OperatorCreationException, CertificateException, IOException {
         val cert = generateCertificate(dn, Instant.now().minus(1, ChronoUnit.DAYS),
                 Instant.now().plus(365, ChronoUnit.DAYS), false, null);
-        val pem = toPem(cert);
+        val pem  = toPem(cert);
 
-        val parseResult  = X509FunctionLibrary.parseCertificate(Val.of(pem));
+        val parseResult   = X509FunctionLibrary.parseCertificate(Val.of(pem));
         val extractResult = X509FunctionLibrary.extractSubjectDn(Val.of(pem));
 
         assertThat(parseResult.isDefined()).as(description).isTrue();
@@ -447,15 +446,15 @@ class X509FunctionLibraryTests {
     @Test
     void isValidAt_whenCertValidForOneHour_handlesCorrectly()
             throws OperatorCreationException, CertificateException, IOException {
-        val now  = Instant.now();
-        val cert = generateCertificate(CTHULHU_DN, now.minus(1, ChronoUnit.HOURS), now.plus(1, ChronoUnit.HOURS),
+        val now     = Instant.now();
+        val cert    = generateCertificate(CTHULHU_DN, now.minus(1, ChronoUnit.HOURS), now.plus(1, ChronoUnit.HOURS),
                 false, null);
         val certPem = toPem(cert);
 
         val validNow    = X509FunctionLibrary.isValidAt(Val.of(certPem), Val.of(now.toString()));
         val validBefore = X509FunctionLibrary.isValidAt(Val.of(certPem),
                 Val.of(now.minus(2, ChronoUnit.HOURS).toString()));
-        val validAfter = X509FunctionLibrary.isValidAt(Val.of(certPem),
+        val validAfter  = X509FunctionLibrary.isValidAt(Val.of(certPem),
                 Val.of(now.plus(2, ChronoUnit.HOURS).toString()));
 
         assertThat(validNow.getBoolean()).isTrue();
@@ -466,7 +465,7 @@ class X509FunctionLibraryTests {
     /* Helper Methods */
 
     private static X509Certificate generateCertificate(String subjectDn, Instant notBefore, Instant notAfter,
-                                                       boolean withSans, String[] dnsNames) throws OperatorCreationException, CertificateException, IOException {
+            boolean withSans, String[] dnsNames) throws OperatorCreationException, CertificateException, IOException {
         val subject     = new X500Name(subjectDn);
         val certBuilder = new JcaX509v3CertificateBuilder(subject, BigInteger.valueOf(System.currentTimeMillis()),
                 Date.from(notBefore), Date.from(notAfter), subject, keyPair.getPublic());
@@ -480,9 +479,9 @@ class X509FunctionLibraryTests {
 
             val dnsEntries = dnsNames != null
                     ? Stream.of(dnsNames).map(dns -> new GeneralName(GeneralName.dNSName, dns))
-                    .toArray(GeneralName[]::new)
+                            .toArray(GeneralName[]::new)
                     : new GeneralName[] { new GeneralName(GeneralName.dNSName, DEFAULT_DNS_1),
-                    new GeneralName(GeneralName.dNSName, DEFAULT_DNS_2) };
+                            new GeneralName(GeneralName.dNSName, DEFAULT_DNS_2) };
 
             val sanEntries = new GeneralName[dnsEntries.length + 1];
             System.arraycopy(dnsEntries, 0, sanEntries, 0, dnsEntries.length);

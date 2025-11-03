@@ -27,6 +27,8 @@ import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.tabs.TabSheet;
 import com.vaadin.flow.spring.annotation.SpringComponent;
 import com.vaadin.flow.spring.annotation.UIScope;
+
+import io.sapl.api.SaplVersion;
 import io.sapl.attributes.documentation.api.LibraryDocumentation;
 import io.sapl.attributes.documentation.api.PolicyInformationPointDocumentationProvider;
 import io.sapl.interpreter.functions.FunctionContext;
@@ -53,6 +55,7 @@ import java.util.function.Function;
 @UIScope
 @SpringComponent
 public class DocumentationDrawer implements Serializable {
+    private static final long serialVersionUID = SaplVersion.VERISION_UID;
 
     private static final String CSS_BORDER_RADIUS = "border-radius";
     private static final String CSS_BOTTOM        = "bottom";

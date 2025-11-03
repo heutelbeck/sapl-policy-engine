@@ -24,6 +24,8 @@ import com.vaadin.flow.component.dependency.JsModule;
 import com.vaadin.flow.component.dependency.NpmPackage;
 import com.vaadin.flow.component.dialog.Dialog;
 import com.vaadin.flow.component.icon.VaadinIcon;
+
+import io.sapl.api.SaplVersion;
 import lombok.val;
 
 /**
@@ -59,6 +61,7 @@ import lombok.val;
 @JsModule("./json-graph-component.ts")
 @NpmPackage(value = "d3", version = "7.9.0")
 public class JsonGraphVisualization extends Component implements HasSize, HasStyle {
+    private static final long serialVersionUID = SaplVersion.VERISION_UID;
 
     private static final String DIALOG_OPEN_ATTRIBUTE      = "dialog-open";
     private static final String HIDE_BUTTON_ATTRIBUTE      = "hide-maximize-button";

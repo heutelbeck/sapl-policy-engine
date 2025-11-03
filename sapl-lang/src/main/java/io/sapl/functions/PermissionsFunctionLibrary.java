@@ -63,16 +63,16 @@ public class PermissionsFunctionLibrary {
     private static final Val POSIX_RX      = Val.of(0x5L);
     private static final Val POSIX_WX      = Val.of(0x3L);
 
-    @SuppressWarnings("java:S1314")
-    private static final Val POSIX_MODE_755 = Val.of(0_755L);
-    @SuppressWarnings("java:S1314")
-    private static final Val POSIX_MODE_644 = Val.of(0_644L);
-    @SuppressWarnings("java:S1314")
-    private static final Val POSIX_MODE_777 = Val.of(0_777L);
-    @SuppressWarnings("java:S1314")
-    private static final Val POSIX_MODE_600 = Val.of(0_600L);
-    @SuppressWarnings("java:S1314")
-    private static final Val POSIX_MODE_666 = Val.of(0_666L);
+    // POSIX file mode for owner: rwx, group: r-x, others: r-x (755)
+    private static final Val POSIX_MODE_755 = Val.of(java.lang.Long.parseLong("755", 8));
+    // POSIX file mode for owner: rw-, group: r--, others: r-- (644)
+    private static final Val POSIX_MODE_644 = Val.of(java.lang.Long.parseLong("644", 8));
+    // POSIX file mode for owner: rwx, group: rwx, others: rwx (777)
+    private static final Val POSIX_MODE_777 = Val.of(java.lang.Long.parseLong("777", 8));
+    // POSIX file mode for owner: rw-, group: ---, others: --- (600)
+    private static final Val POSIX_MODE_600 = Val.of(java.lang.Long.parseLong("600", 8));
+    // POSIX file mode for owner: rw-, group: rw-, others: rw- (666)
+    private static final Val POSIX_MODE_666 = Val.of(java.lang.Long.parseLong("666", 8));
 
     private static final Val NONE = Val.of(0x0L);
     private static final Val ALL  = Val.of(-1L);

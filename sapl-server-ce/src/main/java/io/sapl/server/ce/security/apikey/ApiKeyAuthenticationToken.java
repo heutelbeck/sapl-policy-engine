@@ -22,6 +22,8 @@ import lombok.ToString;
 import org.springframework.security.authentication.AbstractAuthenticationToken;
 import org.springframework.security.core.GrantedAuthority;
 
+import io.sapl.api.SaplVersion;
+
 import java.util.Collection;
 
 /**
@@ -33,6 +35,7 @@ import java.util.Collection;
 @ToString
 @EqualsAndHashCode(callSuper = true)
 public final class ApiKeyAuthenticationToken extends AbstractAuthenticationToken {
+    private static final long serialVersionUID = SaplVersion.VERISION_UID;
 
     private String credentials;
     private String principal;
