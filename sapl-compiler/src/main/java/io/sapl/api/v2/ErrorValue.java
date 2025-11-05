@@ -17,40 +17,95 @@
  */
 package io.sapl.api.v2;
 
-import lombok.With;
+import io.sapl.api.SaplVersion;
+import lombok.NonNull;
+import lombok.val;
+import org.jetbrains.annotations.NotNull;
+
+import java.io.Serial;
+import java.util.Objects;
 
 /**
- * Represents an error Value state.
+ * Error value representing a failure during policy evaluation.
+ * Errors are values, not exceptions, enabling functional error handling.
  */
-public record ErrorValue(String message, Throwable cause, @With boolean secret) implements Value {
+public record ErrorValue(String message, Throwable cause, boolean secret) implements Value {
+
+    @Serial
+    private static final long serialVersionUID = SaplVersion.VERSION_UID;
+
+    /**
+     * Creates an error from an exception.
+     *
+     * @param cause the exception (must not be null)
+     * @param secret whether secret
+     */
+    public ErrorValue(@NonNull Throwable cause, boolean secret) {
+        this(cause.getMessage(), cause, secret);
+    }
+
+    /**
+     * Creates an error from an exception (not secret).
+     *
+     * @param cause the exception (must not be null)
+     */
+    public ErrorValue(@NonNull Throwable cause) {
+        this(cause.getMessage(), cause, false);
+    }
+
+    /**
+     * Creates an error with a message.
+     *
+     * @param message the error message (must not be null)
+     * @param secret whether secret
+     */
+    public ErrorValue(@NonNull String message, boolean secret) {
+        this(message, null, secret);
+    }
+
+    /**
+     * Creates an error with a message (not secret).
+     *
+     * @param message the error message (must not be null)
+     */
+    public ErrorValue(@NonNull String message) {
+        this(message, null, false);
+    }
 
     @Override
     public Value asSecret() {
-        return Value.asSecretHelper(this, v -> v.withSecret(true));
+        return secret ? this : new ErrorValue(message, cause, true);
     }
 
     @Override
-    public String getValType() {
-        return "ERROR";
+    public @NotNull String toString() {
+        if (secret) {
+            return SECRET_PLACEHOLDER;
+        }
+        val printMessage = message == null ? "unknown error" : message;
+        if (cause != null) {
+            return "ERROR[message=\"" + printMessage + "\", cause=" + cause.getClass().getSimpleName() + "]";
+        }
+        return "ERROR[message=\"" + printMessage + "\"]";
     }
 
     @Override
-    public Object getTrace() {
-        return null;
+    public boolean equals(Object that) {
+        if (this == that)
+            return true;
+        if (!(that instanceof ErrorValue thatError))
+            return false;
+        // Equality based on message and cause type (not cause instance).
+        return Objects.equals(message, thatError.message)
+                && Objects.equals(getCauseClass(), thatError.getCauseClass());
     }
 
     @Override
-    public Object getErrorsFromTrace() {
-        return null;
+    public int hashCode() {
+        return Objects.hash(message, getCauseClass());
     }
 
-    @Override
-    public String toString() {
-        return Value.formatToString("ErrorValue", secret, () -> {
-            if (cause != null) {
-                return "message=\"" + message + "\", cause=" + cause.getClass().getSimpleName();
-            }
-            return "message=\"" + message + "\"";
-        });
+    private Class<?> getCauseClass() {
+        return cause == null ? null : cause.getClass();
     }
 }

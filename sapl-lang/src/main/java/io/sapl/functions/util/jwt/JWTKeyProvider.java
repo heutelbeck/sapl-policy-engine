@@ -56,7 +56,7 @@ public class JWTKeyProvider {
      */
     @StandardException
     public static class CachingException extends Exception {
-        private static final long serialVersionUID = SaplVersion.VERISION_UID;
+        private static final long serialVersionUID = SaplVersion.VERSION_UID;
     }
 
     private final Map<String, RSAPublicKey> keyCache;

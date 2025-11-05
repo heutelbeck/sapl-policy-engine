@@ -37,7 +37,7 @@ import java.io.Serializable;
 @Table(name = "Variable")
 public class Variable implements Serializable {
 
-    private static final long serialVersionUID = SaplVersion.VERISION_UID;
+    private static final long serialVersionUID = SaplVersion.VERSION_UID;
 
     /**
      * The unique identifier of the variable.

@@ -48,7 +48,7 @@ import java.util.stream.StreamSupport;
 @Service
 @RequiredArgsConstructor
 public class PlaygroundValidator implements Serializable {
-    private static final long serialVersionUID = SaplVersion.VERISION_UID;
+    private static final long serialVersionUID = SaplVersion.VERSION_UID;
 
     /*
      * Maximum length for variable names.

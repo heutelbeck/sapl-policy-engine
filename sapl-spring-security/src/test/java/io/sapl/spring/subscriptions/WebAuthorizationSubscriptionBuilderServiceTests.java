@@ -361,7 +361,7 @@ class WebAuthorizationSubscriptionBuilderServiceTests {
 
     static class MockSecurityContext implements SecurityContext {
 
-        private static final long serialVersionUID = SaplVersion.VERISION_UID;
+        private static final long serialVersionUID = SaplVersion.VERSION_UID;
 
         private Authentication authentication;
 

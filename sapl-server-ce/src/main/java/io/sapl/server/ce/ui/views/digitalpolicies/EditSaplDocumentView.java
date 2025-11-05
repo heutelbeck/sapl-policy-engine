@@ -55,7 +55,7 @@ import java.util.Optional;
 @Conditional(SetupFinishedCondition.class)
 public class EditSaplDocumentView extends VerticalLayout implements HasUrlParameter<Long> {
 
-    private static final long serialVersionUID = SaplVersion.VERISION_UID;
+    private static final long serialVersionUID = SaplVersion.VERSION_UID;
 
     public static final String  ROUTE                       = "documents";
     private static final String NEW_VERSION_SELECTION_ENTRY = "New Version";

@@ -37,7 +37,7 @@ import java.io.Serializable;
 @Table(name = "SaplDocumentVersion")
 public class SaplDocumentVersion implements Serializable {
 
-    private static final long serialVersionUID = SaplVersion.VERISION_UID;
+    private static final long serialVersionUID = SaplVersion.VERSION_UID;
 
     public static final int MAX_DOCUMENT_SIZE = 64000;
 

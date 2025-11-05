@@ -45,7 +45,7 @@ import java.util.Optional;
 @Conditional(SetupFinishedCondition.class)
 public class AuthenticatedUser implements Serializable {
 
-    private static final long serialVersionUID = SaplVersion.VERISION_UID;
+    private static final long serialVersionUID = SaplVersion.VERSION_UID;
 
     // In a multi-provider scenario this parameter has to be replaced by a more
     // generic
@@ -59,7 +59,7 @@ public class AuthenticatedUser implements Serializable {
         if (authentication.getPrincipal() instanceof OAuth2User oauth2User) {
             return Optional.of(new UserDetails() {
 
-                private static final long serialVersionUID = SaplVersion.VERISION_UID;
+                private static final long serialVersionUID = SaplVersion.VERSION_UID;
 
                 @Override
                 public Collection<? extends GrantedAuthority> getAuthorities() {

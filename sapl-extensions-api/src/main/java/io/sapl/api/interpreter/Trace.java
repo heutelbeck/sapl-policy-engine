@@ -31,7 +31,7 @@ import java.util.*;
 @Value
 public class Trace implements Serializable {
 
-    private static final long serialVersionUID = SaplVersion.VERISION_UID;
+    private static final long serialVersionUID = SaplVersion.VERSION_UID;
 
     public static final String ADVICE                     = "advice";
     public static final String ARGUMENT                   = "argument";

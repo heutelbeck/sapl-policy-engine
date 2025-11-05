@@ -42,7 +42,7 @@ import java.util.Optional;
 @Table(name = "SaplDocument")
 public class SaplDocument implements Serializable {
 
-    private static final long serialVersionUID = SaplVersion.VERISION_UID;
+    private static final long serialVersionUID = SaplVersion.VERSION_UID;
 
     /**
      * The unique identifier of the SAPL document.

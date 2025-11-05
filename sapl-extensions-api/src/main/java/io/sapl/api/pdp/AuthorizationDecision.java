@@ -41,7 +41,7 @@ import java.util.Optional;
 @JsonAutoDetect(isGetterVisibility = Visibility.NONE, getterVisibility = Visibility.NONE, fieldVisibility = Visibility.ANY)
 public class AuthorizationDecision implements Serializable {
 
-    private static final long serialVersionUID = SaplVersion.VERISION_UID;
+    private static final long serialVersionUID = SaplVersion.VERSION_UID;
 
     /**
      * A simple PERMIT decision.

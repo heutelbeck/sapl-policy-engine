@@ -353,6 +353,6 @@ public class PermalinkService {
      */
     @StandardException
     public static class PermalinkException extends Exception {
-        private static final long serialVersionUID = SaplVersion.VERISION_UID;
+        private static final long serialVersionUID = SaplVersion.VERSION_UID;
     }
 }

@@ -24,7 +24,7 @@ import org.springframework.security.authorization.AuthorizationDecision;
 @Getter
 public class SaplAuthorizationDecision extends AuthorizationDecision {
 
-    private static final long serialVersionUID = SaplVersion.VERISION_UID;
+    private static final long serialVersionUID = SaplVersion.VERSION_UID;
 
     transient SaplAttribute attribute;
 

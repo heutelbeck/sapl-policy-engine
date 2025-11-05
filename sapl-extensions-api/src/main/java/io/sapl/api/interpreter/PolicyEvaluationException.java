@@ -24,7 +24,7 @@ import io.sapl.api.SaplVersion;
  */
 public class PolicyEvaluationException extends RuntimeException {
 
-    private static final long serialVersionUID = SaplVersion.VERISION_UID;
+    private static final long serialVersionUID = SaplVersion.VERSION_UID;
 
     /**
      * Create a new PolicyEvaluationException

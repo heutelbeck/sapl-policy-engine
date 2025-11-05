@@ -46,7 +46,7 @@ import static com.fasterxml.jackson.annotation.JsonInclude.Include.NON_EMPTY;
 @NoArgsConstructor
 public class MultiAuthorizationDecision implements Iterable<IdentifiableAuthorizationDecision>, Serializable {
 
-    private static final long serialVersionUID = SaplVersion.VERISION_UID;
+    private static final long serialVersionUID = SaplVersion.VERSION_UID;
 
     @JsonInclude(NON_EMPTY)
     HashMap<String, AuthorizationDecision> authorizationDecisions = new HashMap<>();

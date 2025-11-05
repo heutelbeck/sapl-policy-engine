@@ -17,38 +17,50 @@
  */
 package io.sapl.api.v2;
 
-import lombok.With;
+import io.sapl.api.SaplVersion;
+import org.jetbrains.annotations.NotNull;
+
+import java.io.Serial;
 
 /**
- * Represents a boolean Value.
+ * Boolean value implementation.
  */
-public record BooleanValue(boolean value, @With boolean secret) implements Value {
+public record BooleanValue(boolean value, boolean secret) implements Value {
 
-    static final BooleanValue TRUE = new BooleanValue(true, false);
-    static final BooleanValue FALSE = new BooleanValue(false, false);
+    @Serial
+    private static final long serialVersionUID = SaplVersion.VERSION_UID;
+
+    /**
+     * Singleton for secret true value.
+     */
+    public static final BooleanValue SECRET_TRUE = new BooleanValue(true, true);
+
+    /**
+     * Singleton for secret false value.
+     */
+    public static final BooleanValue SECRET_FALSE = new BooleanValue(false, true);
 
     @Override
     public Value asSecret() {
-        return Value.asSecretHelper(this, v -> v.withSecret(true));
+        return value ? SECRET_TRUE : SECRET_FALSE;
     }
 
     @Override
-    public String getValType() {
-        return "BOOLEAN";
+    public @NotNull String toString() {
+        return secret() ? SECRET_PLACEHOLDER : String.valueOf(value);
     }
 
     @Override
-    public Object getTrace() {
-        return null;
+    public boolean equals(Object that) {
+        if (this == that)
+            return true;
+        if (!(that instanceof BooleanValue(boolean thatValue, boolean thatSecret)))
+            return false;
+        return value == thatValue;
     }
 
     @Override
-    public Object getErrorsFromTrace() {
-        return null;
-    }
-
-    @Override
-    public String toString() {
-        return Value.formatToString("BooleanValue", secret, () -> String.valueOf(value));
+    public int hashCode() {
+        return Boolean.hashCode(value);
     }
 }

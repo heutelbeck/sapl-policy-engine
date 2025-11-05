@@ -98,7 +98,7 @@ import java.util.stream.Collectors;
 @JsModule("./copytoclipboard.js")
 @JavaScript("./fragment-reader.js")
 public class PlaygroundView extends Composite<VerticalLayout> {
-    private static final long serialVersionUID = SaplVersion.VERISION_UID;
+    private static final long serialVersionUID = SaplVersion.VERSION_UID;
 
     private static final int DEFAULT_BUFFER_SIZE     = 10;
     private static final int EXAMPLE_PREFIX_LENGTH   = 8;

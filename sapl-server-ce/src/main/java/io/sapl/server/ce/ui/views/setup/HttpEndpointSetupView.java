@@ -35,7 +35,7 @@ import java.io.IOException;
 @Conditional(SetupNotFinishedCondition.class)
 public class HttpEndpointSetupView extends EndpointSetupView {
 
-    private static final long serialVersionUID = SaplVersion.VERISION_UID;
+    private static final long serialVersionUID = SaplVersion.VERSION_UID;
 
     public static final String ROUTE = "/setup/http";
 

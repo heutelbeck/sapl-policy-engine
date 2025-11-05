@@ -79,7 +79,7 @@ public class ArrayUtil {
 
     private static class NumericAwareComparator implements Comparator<JsonNode>, Serializable {
 
-        private static final long serialVersionUID = SaplVersion.VERISION_UID;
+        private static final long serialVersionUID = SaplVersion.VERSION_UID;
 
         @Override
         public int compare(JsonNode o1, JsonNode o2) {

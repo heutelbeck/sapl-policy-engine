@@ -26,5 +26,5 @@ import java.io.Serial;
 @StandardException
 public class AttributeBrokerException extends PolicyEvaluationException {
     @Serial
-    private static final long serialVersionUID = SaplVersion.VERISION_UID;
+    private static final long serialVersionUID = SaplVersion.VERSION_UID;
 }
