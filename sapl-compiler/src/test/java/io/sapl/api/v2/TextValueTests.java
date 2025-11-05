@@ -45,8 +45,7 @@ class TextValueTests {
     @Test
     @DisplayName("Constructor with null value throws NullPointerException")
     void constructorNullValueThrows() {
-        assertThatThrownBy(() -> new TextValue(null, false))
-                .isInstanceOf(NullPointerException.class);
+        assertThatThrownBy(() -> new TextValue(null, false)).isInstanceOf(NullPointerException.class);
     }
 
     @Test
@@ -61,16 +60,14 @@ class TextValueTests {
         var text1 = Value.of("test");
         var text2 = Value.of("test");
 
-        assertThat(text1)
-                .isEqualTo(text2)
-                .isNotSameAs(text2);
+        assertThat(text1).isEqualTo(text2).isNotSameAs(text2);
     }
 
     @ParameterizedTest(name = "asSecret() on \"{0}\"")
-    @ValueSource(strings = {"test", "", "very long text string with lots of characters"})
+    @ValueSource(strings = { "test", "", "very long text string with lots of characters" })
     @DisplayName("asSecret() creates secret copy or returns same instance")
     void asSecretBehavior(String text) {
-        var original = new TextValue(text, false);
+        var original      = new TextValue(text, false);
         var alreadySecret = new TextValue(text, true);
 
         var secretCopy = original.asSecret();
@@ -84,13 +81,9 @@ class TextValueTests {
     @DisplayName("equals() and hashCode() compare by value only, ignoring secret flag")
     void equalsAndHashCode(TextValue value1, TextValue value2, boolean shouldBeEqual) {
         if (shouldBeEqual) {
-            assertThat(value1)
-                    .isEqualTo(value2)
-                    .hasSameHashCodeAs(value2);
+            assertThat(value1).isEqualTo(value2).hasSameHashCodeAs(value2);
         } else {
-            assertThat(value1)
-                    .isNotEqualTo(value2)
-                    .doesNotHaveSameHashCodeAs(value2);
+            assertThat(value1).isNotEqualTo(value2).doesNotHaveSameHashCodeAs(value2);
         }
     }
 
@@ -104,15 +97,8 @@ class TextValueTests {
     }
 
     @ParameterizedTest(name = "Text: {0}")
-    @ValueSource(strings = {
-        "simple text",
-        "",
-        " ",
-        "   multiple   spaces   ",
-        "Line1\nLine2\tTabbed",
-        "Unicode: ä¸–ç•Œ ðŸŒ",
-        "Quotes: \"nested\"",
-        "x" // single character
+    @ValueSource(strings = { "simple text", "", " ", "   multiple   spaces   ", "Line1\nLine2\tTabbed",
+            "Unicode: ä¸–ç•Œ ðŸŒ", "Quotes: \"nested\"", "x" // single character
     })
     @DisplayName("Various text content handled correctly")
     void variousTextContent(String text) {
@@ -126,7 +112,7 @@ class TextValueTests {
     @DisplayName("Very long string supported")
     void veryLongString() {
         var longString = "a".repeat(10000);
-        var value = new TextValue(longString, false);
+        var value      = new TextValue(longString, false);
 
         assertThat(value.value()).hasSize(10000);
     }
@@ -137,11 +123,9 @@ class TextValueTests {
         Value username = Value.of("admin");
 
         var result = switch (username) {
-            case TextValue(String name, boolean i) when "admin".equals(name) ->
-                "Administrator access";
-            case TextValue(String name, boolean i) ->
-                "User " + name;
-            default -> "Invalid";
+        case TextValue(String name, boolean i) when "admin".equals(name) -> "Administrator access";
+        case TextValue(String name, boolean i)                           -> "User " + name;
+        default                                                          -> "Invalid";
         };
 
         assertThat(result).isEqualTo("Administrator access");
@@ -155,30 +139,19 @@ class TextValueTests {
     }
 
     static Stream<Arguments> provideTextCombinations() {
-        return Stream.of(
-            Arguments.of("test", false),
-            Arguments.of("test", true),
-            Arguments.of("", false),
-            Arguments.of("", true),
-            Arguments.of("longer text with spaces", false)
-        );
+        return Stream.of(Arguments.of("test", false), Arguments.of("test", true), Arguments.of("", false),
+                Arguments.of("", true), Arguments.of("longer text with spaces", false));
     }
 
     static Stream<Arguments> provideEqualityHashCodeCases() {
-        return Stream.of(
-            Arguments.of(new TextValue("test", false), new TextValue("test", true), true),
-            Arguments.of(new TextValue("", false), new TextValue("", true), true),
-            Arguments.of(new TextValue("test", false), new TextValue("other", false), false),
-            Arguments.of(new TextValue("test", true), new TextValue("other", true), false)
-        );
+        return Stream.of(Arguments.of(new TextValue("test", false), new TextValue("test", true), true),
+                Arguments.of(new TextValue("", false), new TextValue("", true), true),
+                Arguments.of(new TextValue("test", false), new TextValue("other", false), false),
+                Arguments.of(new TextValue("test", true), new TextValue("other", true), false));
     }
 
     static Stream<Arguments> provideToStringCases() {
-        return Stream.of(
-            Arguments.of("hello", false, "\"hello\""),
-            Arguments.of("secret", true, "***SECRET***"),
-            Arguments.of("", false, "\"\""),
-            Arguments.of("", true, "***SECRET***")
-        );
+        return Stream.of(Arguments.of("hello", false, "\"hello\""), Arguments.of("secret", true, "***SECRET***"),
+                Arguments.of("", false, "\"\""), Arguments.of("", true, "***SECRET***"));
     }
 }

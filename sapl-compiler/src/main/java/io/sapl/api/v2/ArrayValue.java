@@ -30,17 +30,15 @@ import java.util.stream.Stream;
 /**
  * Array value implementing List semantics. The underlying list is immutable.
  * <p>
- * Elements from secret containers inherit the secret flag. Operations that would
+ * Elements from secret containers inherit the secret flag. Operations that
+ * would
  * normally throw exceptions return ErrorValue instead, consistent with SAPL's
  * error-as-value pattern.
  * <p>
  * Direct list usage:
+ *
  * <pre>{@code
- * ArrayValue permissions = Value.ofArray(
- *     Value.of("read"),
- *     Value.of("write"),
- *     Value.of("delete")
- * );
+ * ArrayValue permissions = Value.ofArray(Value.of("read"), Value.of("write"), Value.of("delete"));
  * Value first = permissions.get(0);
  * for (Value perm : permissions) {
  *     grantPermission(perm);
@@ -48,21 +46,20 @@ import java.util.stream.Stream;
  * }</pre>
  * <p>
  * Builder for fluent construction:
+ *
  * <pre>{@code
- * ArrayValue roles = ArrayValue.builder()
- *     .add(Value.of("admin"))
- *     .add(Value.of("user"))
- *     .secret()
- *     .build();
+ * ArrayValue roles = ArrayValue.builder().add(Value.of("admin")).add(Value.of("user")).secret().build();
  * }</pre>
  * <p>
  * Secret propagation:
+ *
  * <pre>{@code
  * ArrayValue tokens = array.asSecret();
  * Value token = tokens.get(0); // Also secret
  * }</pre>
  * <p>
  * Error handling:
+ *
  * <pre>{@code
  * Value result = array.get(999);
  * if (result instanceof ErrorValue error) {
@@ -77,7 +74,7 @@ public final class ArrayValue implements Value, List<Value> {
 
     @Delegate(excludes = ExcludedMethods.class)
     private final List<Value> value;
-    private final boolean secret;
+    private final boolean     secret;
 
     /**
      * Creates an ArrayValue.
@@ -86,7 +83,7 @@ public final class ArrayValue implements Value, List<Value> {
      * @param secret whether this value is secret
      */
     public ArrayValue(@NonNull List<Value> elements, boolean secret) {
-        this.value = List.copyOf(elements);
+        this.value  = List.copyOf(elements);
         this.secret = secret;
     }
 
@@ -97,7 +94,7 @@ public final class ArrayValue implements Value, List<Value> {
      * @param secret whether this value is secret
      */
     public ArrayValue(@NonNull Value[] elements, boolean secret) {
-        this.value = List.of(elements);
+        this.value  = List.of(elements);
         this.secret = secret;
     }
 
@@ -115,7 +112,7 @@ public final class ArrayValue implements Value, List<Value> {
      */
     public static final class Builder {
         private final ArrayList<Value> elements = new ArrayList<>();
-        private boolean secret = false;
+        private boolean                secret   = false;
 
         /**
          * Adds a value to the array.
@@ -215,7 +212,7 @@ public final class ArrayValue implements Value, List<Value> {
      *
      * @param index index of the element
      * @return the element (with secret flag if container is secret),
-     *         or ErrorValue if index is out of bounds
+     * or ErrorValue if index is out of bounds
      */
     @Override
     public @NotNull Value get(int index) {
@@ -229,11 +226,12 @@ public final class ArrayValue implements Value, List<Value> {
     /**
      * Returns the first element.
      * <p>
-     * Returns ErrorValue if the array is empty instead of throwing NoSuchElementException,
+     * Returns ErrorValue if the array is empty instead of throwing
+     * NoSuchElementException,
      * consistent with SAPL's error-as-value model.
      *
      * @return the first element (with secret flag if container is secret),
-     *         or ErrorValue if array is empty
+     * or ErrorValue if array is empty
      */
     @Override
     public @NotNull Value getFirst() {
@@ -246,11 +244,12 @@ public final class ArrayValue implements Value, List<Value> {
     /**
      * Returns the last element.
      * <p>
-     * Returns ErrorValue if the array is empty instead of throwing NoSuchElementException,
+     * Returns ErrorValue if the array is empty instead of throwing
+     * NoSuchElementException,
      * consistent with SAPL's error-as-value model.
      *
      * @return the last element (with secret flag if container is secret),
-     *         or ErrorValue if array is empty
+     * or ErrorValue if array is empty
      */
     @Override
     public @NotNull Value getLast() {
@@ -487,20 +486,35 @@ public final class ArrayValue implements Value, List<Value> {
      */
     private interface ExcludedMethods {
         boolean equals(Object obj);
+
         int hashCode();
+
         String toString();
+
         Value get(int index);
+
         Value getFirst();
+
         Value getLast();
+
         Iterator<Value> iterator();
+
         ListIterator<Value> listIterator();
+
         ListIterator<Value> listIterator(int index);
+
         List<Value> subList(int fromIndex, int toIndex);
+
         Object[] toArray();
+
         <T> T[] toArray(T[] a);
+
         Stream<Value> stream();
+
         Stream<Value> parallelStream();
+
         Spliterator<Value> spliterator();
+
         void forEach(java.util.function.Consumer<? super Value> action);
     }
 }

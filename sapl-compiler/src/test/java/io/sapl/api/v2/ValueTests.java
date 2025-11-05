@@ -1,3 +1,20 @@
+/*
+ * Copyright (C) 2017-2025 Dominic Heutelbeck (dominic@heutelbeck.com)
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package io.sapl.api.v2;
 
 import org.junit.jupiter.api.DisplayName;
@@ -27,7 +44,7 @@ class ValueTests {
         @DisplayName("of(true) returns TRUE singleton")
         void ofTrueReturnsSingleton() {
             Value result = Value.of(true);
-            
+
             assertThat(result).isSameAs(Value.TRUE);
             assertThat(result).isInstanceOf(BooleanValue.class);
         }
@@ -36,7 +53,7 @@ class ValueTests {
         @DisplayName("of(false) returns FALSE singleton")
         void ofFalseReturnsSingleton() {
             Value result = Value.of(false);
-            
+
             assertThat(result).isSameAs(Value.FALSE);
             assertThat(result).isInstanceOf(BooleanValue.class);
         }
@@ -57,7 +74,7 @@ class ValueTests {
         @DisplayName("of(0L) returns ZERO singleton")
         void ofZeroReturnsSingleton() {
             Value result = Value.of(0L);
-            
+
             assertThat(result).isSameAs(Value.ZERO);
         }
 
@@ -65,7 +82,7 @@ class ValueTests {
         @DisplayName("of(1L) returns ONE singleton")
         void ofOneReturnsSingleton() {
             Value result = Value.of(1L);
-            
+
             assertThat(result).isSameAs(Value.ONE);
         }
 
@@ -73,16 +90,16 @@ class ValueTests {
         @DisplayName("of(10L) returns TEN singleton")
         void ofTenReturnsSingleton() {
             Value result = Value.of(10L);
-            
+
             assertThat(result).isSameAs(Value.TEN);
         }
 
         @ParameterizedTest
-        @ValueSource(longs = {2L, 5L, 42L, 100L, 1000L, -1L, -10L, -100L})
+        @ValueSource(longs = { 2L, 5L, 42L, 100L, 1000L, -1L, -10L, -100L })
         @DisplayName("of(other values) creates new NumberValue")
         void ofOtherValues(long value) {
             Value result = Value.of(value);
-            
+
             assertThat(result).isInstanceOf(NumberValue.class);
             assertThat(((NumberValue) result).value()).isEqualByComparingTo(BigDecimal.valueOf(value));
         }
@@ -91,7 +108,7 @@ class ValueTests {
         @DisplayName("of(Long.MAX_VALUE) does not overflow")
         void ofMaxValue() {
             Value result = Value.of(Long.MAX_VALUE);
-            
+
             assertThat(result).isInstanceOf(NumberValue.class);
             assertThat(((NumberValue) result).value()).isEqualByComparingTo(BigDecimal.valueOf(Long.MAX_VALUE));
         }
@@ -100,7 +117,7 @@ class ValueTests {
         @DisplayName("of(Long.MIN_VALUE) does not overflow")
         void ofMinValue() {
             Value result = Value.of(Long.MIN_VALUE);
-            
+
             assertThat(result).isInstanceOf(NumberValue.class);
             assertThat(((NumberValue) result).value()).isEqualByComparingTo(BigDecimal.valueOf(Long.MIN_VALUE));
         }
@@ -108,9 +125,9 @@ class ValueTests {
         @Test
         @DisplayName("of(4294967296L) does not truncate to 0")
         void ofLargeValueDoesNotTruncate() {
-            long value = 4_294_967_296L; // 2^32, would truncate to 0 with (int) cast
+            long  value  = 4_294_967_296L; // 2^32, would truncate to 0 with (int) cast
             Value result = Value.of(value);
-            
+
             assertThat(result).isNotSameAs(Value.ZERO);
             assertThat(((NumberValue) result).value()).isEqualByComparingTo(new BigDecimal("4294967296"));
         }
@@ -118,9 +135,9 @@ class ValueTests {
         @Test
         @DisplayName("of(4294967297L) does not truncate to 1")
         void ofLargeValuePlusOneDoesNotTruncate() {
-            long value = 4_294_967_297L; // 2^32 + 1, would truncate to 1 with (int) cast
+            long  value  = 4_294_967_297L; // 2^32 + 1, would truncate to 1 with (int) cast
             Value result = Value.of(value);
-            
+
             assertThat(result).isNotSameAs(Value.ONE);
             assertThat(((NumberValue) result).value()).isEqualByComparingTo(new BigDecimal("4294967297"));
         }
@@ -131,11 +148,11 @@ class ValueTests {
     class DoubleFactoryTests {
 
         @ParameterizedTest
-        @ValueSource(doubles = {0.0, -0.0})
+        @ValueSource(doubles = { 0.0, -0.0 })
         @DisplayName("of(0.0 variants) returns ZERO singleton")
         void ofZeroReturnsSingleton(double value) {
             Value result = Value.of(value);
-            
+
             assertThat(result).isSameAs(Value.ZERO);
         }
 
@@ -143,7 +160,7 @@ class ValueTests {
         @DisplayName("of(1.0) returns ONE singleton")
         void ofOneReturnsSingleton() {
             Value result = Value.of(1.0);
-            
+
             assertThat(result).isSameAs(Value.ONE);
         }
 
@@ -151,16 +168,16 @@ class ValueTests {
         @DisplayName("of(10.0) returns TEN singleton")
         void ofTenReturnsSingleton() {
             Value result = Value.of(10.0);
-            
+
             assertThat(result).isSameAs(Value.TEN);
         }
 
         @ParameterizedTest
-        @ValueSource(doubles = {1.5, 3.14159, 2.71828, -1.0, 0.001, 1e10, 1e-10})
+        @ValueSource(doubles = { 1.5, 3.14159, 2.71828, -1.0, 0.001, 1e10, 1e-10 })
         @DisplayName("of(other values) creates new NumberValue")
         void ofOtherValues(double value) {
             Value result = Value.of(value);
-            
+
             assertThat(result).isInstanceOf(NumberValue.class);
             assertThat(((NumberValue) result).value()).isEqualByComparingTo(BigDecimal.valueOf(value));
         }
@@ -168,28 +185,24 @@ class ValueTests {
         @Test
         @DisplayName("of(NaN) throws IllegalArgumentException")
         void ofNaNThrows() {
-            assertThatThrownBy(() -> Value.of(Double.NaN))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("Cannot create Value from NaN")
-                .hasMessageContaining("Use Value.error()");
+            assertThatThrownBy(() -> Value.of(Double.NaN)).isInstanceOf(IllegalArgumentException.class)
+                    .hasMessageContaining("Cannot create Value from NaN").hasMessageContaining("Use Value.error()");
         }
 
         @Test
         @DisplayName("of(POSITIVE_INFINITY) throws IllegalArgumentException")
         void ofPositiveInfinityThrows() {
-            assertThatThrownBy(() -> Value.of(Double.POSITIVE_INFINITY))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("Cannot create Value from infinite double")
-                .hasMessageContaining("Use Value.error()");
+            assertThatThrownBy(() -> Value.of(Double.POSITIVE_INFINITY)).isInstanceOf(IllegalArgumentException.class)
+                    .hasMessageContaining("Cannot create Value from infinite double")
+                    .hasMessageContaining("Use Value.error()");
         }
 
         @Test
         @DisplayName("of(NEGATIVE_INFINITY) throws IllegalArgumentException")
         void ofNegativeInfinityThrows() {
-            assertThatThrownBy(() -> Value.of(Double.NEGATIVE_INFINITY))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("Cannot create Value from infinite double")
-                .hasMessageContaining("Use Value.error()");
+            assertThatThrownBy(() -> Value.of(Double.NEGATIVE_INFINITY)).isInstanceOf(IllegalArgumentException.class)
+                    .hasMessageContaining("Cannot create Value from infinite double")
+                    .hasMessageContaining("Use Value.error()");
         }
     }
 
@@ -201,7 +214,7 @@ class ValueTests {
         @DisplayName("of(BigDecimal.ZERO) returns ZERO singleton")
         void ofZeroReturnsSingleton() {
             Value result = Value.of(BigDecimal.ZERO);
-            
+
             assertThat(result).isSameAs(Value.ZERO);
         }
 
@@ -209,7 +222,7 @@ class ValueTests {
         @DisplayName("of(BigDecimal.ONE) returns ONE singleton")
         void ofOneReturnsSingleton() {
             Value result = Value.of(BigDecimal.ONE);
-            
+
             assertThat(result).isSameAs(Value.ONE);
         }
 
@@ -217,7 +230,7 @@ class ValueTests {
         @DisplayName("of(BigDecimal.TEN) returns TEN singleton")
         void ofTenReturnsSingleton() {
             Value result = Value.of(BigDecimal.TEN);
-            
+
             assertThat(result).isSameAs(Value.TEN);
         }
 
@@ -225,7 +238,7 @@ class ValueTests {
         @DisplayName("of(new BigDecimal(0)) returns ZERO singleton")
         void ofNewZeroReturnsSingleton() {
             Value result = Value.of(new BigDecimal("0"));
-            
+
             assertThat(result).isSameAs(Value.ZERO);
         }
 
@@ -233,7 +246,7 @@ class ValueTests {
         @DisplayName("of(new BigDecimal(0.00)) returns ZERO singleton")
         void ofZeroWithScaleReturnsSingleton() {
             Value result = Value.of(new BigDecimal("0.00"));
-            
+
             assertThat(result).isSameAs(Value.ZERO);
         }
 
@@ -242,26 +255,20 @@ class ValueTests {
         @DisplayName("of(other values) creates new NumberValue")
         void ofOtherValues(BigDecimal value) {
             Value result = Value.of(value);
-            
+
             assertThat(result).isInstanceOf(NumberValue.class);
             assertThat(((NumberValue) result).value()).isEqualByComparingTo(value);
         }
 
         static Stream<BigDecimal> provideBigDecimalValues() {
-            return Stream.of(
-                new BigDecimal("3.14159"),
-                new BigDecimal("2.71828"),
-                new BigDecimal("-1.5"),
-                new BigDecimal("1000000000000"),
-                new BigDecimal("0.000000001")
-            );
+            return Stream.of(new BigDecimal("3.14159"), new BigDecimal("2.71828"), new BigDecimal("-1.5"),
+                    new BigDecimal("1000000000000"), new BigDecimal("0.000000001"));
         }
 
         @Test
         @DisplayName("of(null) throws NullPointerException")
         void ofNullThrows() {
-            assertThatThrownBy(() -> Value.of((BigDecimal) null))
-                .isInstanceOf(NullPointerException.class);
+            assertThatThrownBy(() -> Value.of((BigDecimal) null)).isInstanceOf(NullPointerException.class);
         }
     }
 
@@ -273,16 +280,16 @@ class ValueTests {
         @DisplayName("of(empty string) returns EMPTY_TEXT singleton")
         void ofEmptyStringReturnsSingleton() {
             Value result = Value.of("");
-            
+
             assertThat(result).isSameAs(Value.EMPTY_TEXT);
         }
 
         @ParameterizedTest
-        @ValueSource(strings = {"hello", "world", "test", " ", "  ", "\t", "\n"})
+        @ValueSource(strings = { "hello", "world", "test", " ", "  ", "\t", "\n" })
         @DisplayName("of(non-empty strings) creates new TextValue")
         void ofNonEmptyStrings(String value) {
             Value result = Value.of(value);
-            
+
             assertThat(result).isInstanceOf(TextValue.class);
             assertThat(((TextValue) result).value()).isEqualTo(value);
         }
@@ -290,8 +297,7 @@ class ValueTests {
         @Test
         @DisplayName("of(null) throws NullPointerException")
         void ofNullThrows() {
-            assertThatThrownBy(() -> Value.of((String) null))
-                .isInstanceOf(NullPointerException.class);
+            assertThatThrownBy(() -> Value.of((String) null)).isInstanceOf(NullPointerException.class);
         }
     }
 
@@ -303,7 +309,7 @@ class ValueTests {
         @DisplayName("ofArray() with no args returns EMPTY_ARRAY singleton")
         void ofArrayNoArgsReturnsSingleton() {
             Value result = Value.ofArray();
-            
+
             assertThat(result).isSameAs(Value.EMPTY_ARRAY);
         }
 
@@ -311,7 +317,7 @@ class ValueTests {
         @DisplayName("ofArray(empty list) returns EMPTY_ARRAY singleton")
         void ofArrayEmptyListReturnsSingleton() {
             Value result = Value.ofArray(List.of());
-            
+
             assertThat(result).isSameAs(Value.EMPTY_ARRAY);
         }
 
@@ -319,7 +325,7 @@ class ValueTests {
         @DisplayName("ofArray(varargs) creates ArrayValue")
         void ofArrayVarargs() {
             Value result = Value.ofArray(Value.of(1), Value.of(2), Value.of(3));
-            
+
             assertThat(result).isInstanceOf(ArrayValue.class);
             ArrayValue array = (ArrayValue) result;
             assertThat(array).hasSize(3);
@@ -331,9 +337,9 @@ class ValueTests {
         @Test
         @DisplayName("ofArray(list) creates ArrayValue")
         void ofArrayList() {
-            List<Value> list = List.of(Value.of("a"), Value.of("b"));
-            Value result = Value.ofArray(list);
-            
+            List<Value> list   = List.of(Value.of("a"), Value.of("b"));
+            Value       result = Value.ofArray(list);
+
             assertThat(result).isInstanceOf(ArrayValue.class);
             ArrayValue array = (ArrayValue) result;
             assertThat(array).hasSize(2);
@@ -344,8 +350,7 @@ class ValueTests {
         @Test
         @DisplayName("ofArray(null list) throws NullPointerException")
         void ofArrayNullListThrows() {
-            assertThatThrownBy(() -> Value.ofArray((List<Value>) null))
-                .isInstanceOf(NullPointerException.class);
+            assertThatThrownBy(() -> Value.ofArray((List<Value>) null)).isInstanceOf(NullPointerException.class);
         }
     }
 
@@ -357,19 +362,16 @@ class ValueTests {
         @DisplayName("ofObject(empty map) returns EMPTY_OBJECT singleton")
         void ofObjectEmptyMapReturnsSingleton() {
             Value result = Value.ofObject(Map.of());
-            
+
             assertThat(result).isSameAs(Value.EMPTY_OBJECT);
         }
 
         @Test
         @DisplayName("ofObject(map) creates ObjectValue")
         void ofObjectMap() {
-            Map<String, Value> map = Map.of(
-                "name", Value.of("Alice"),
-                "age", Value.of(30)
-            );
-            Value result = Value.ofObject(map);
-            
+            Map<String, Value> map    = Map.of("name", Value.of("Alice"), "age", Value.of(30));
+            Value              result = Value.ofObject(map);
+
             assertThat(result).isInstanceOf(ObjectValue.class);
             ObjectValue obj = (ObjectValue) result;
             assertThat(obj).hasSize(2);
@@ -380,8 +382,7 @@ class ValueTests {
         @Test
         @DisplayName("ofObject(null) throws NullPointerException")
         void ofObjectNullThrows() {
-            assertThatThrownBy(() -> Value.ofObject(null))
-                .isInstanceOf(NullPointerException.class);
+            assertThatThrownBy(() -> Value.ofObject(null)).isInstanceOf(NullPointerException.class);
         }
     }
 
@@ -393,7 +394,7 @@ class ValueTests {
         @DisplayName("error(message) creates ErrorValue")
         void errorWithMessage() {
             Value result = Value.error("Test error");
-            
+
             assertThat(result).isInstanceOf(ErrorValue.class);
             ErrorValue error = (ErrorValue) result;
             assertThat(error.message()).isEqualTo("Test error");
@@ -404,9 +405,9 @@ class ValueTests {
         @Test
         @DisplayName("error(message, cause) creates ErrorValue")
         void errorWithMessageAndCause() {
-            Exception cause = new RuntimeException("Cause");
-            Value result = Value.error("Test error", cause);
-            
+            Exception cause  = new RuntimeException("Cause");
+            Value     result = Value.error("Test error", cause);
+
             assertThat(result).isInstanceOf(ErrorValue.class);
             ErrorValue error = (ErrorValue) result;
             assertThat(error.message()).isEqualTo("Test error");
@@ -417,9 +418,9 @@ class ValueTests {
         @Test
         @DisplayName("error(cause) creates ErrorValue with cause message")
         void errorWithCause() {
-            Exception cause = new RuntimeException("Cause message");
-            Value result = Value.error(cause);
-            
+            Exception cause  = new RuntimeException("Cause message");
+            Value     result = Value.error(cause);
+
             assertThat(result).isInstanceOf(ErrorValue.class);
             ErrorValue error = (ErrorValue) result;
             assertThat(error.message()).isEqualTo("Cause message");
@@ -430,15 +431,13 @@ class ValueTests {
         @Test
         @DisplayName("error(null message) throws NullPointerException")
         void errorNullMessageThrows() {
-            assertThatThrownBy(() -> Value.error((String) null))
-                .isInstanceOf(NullPointerException.class);
+            assertThatThrownBy(() -> Value.error((String) null)).isInstanceOf(NullPointerException.class);
         }
 
         @Test
         @DisplayName("error(null cause) throws NullPointerException")
         void errorNullCauseThrows() {
-            assertThatThrownBy(() -> Value.error((Throwable) null))
-                .isInstanceOf(NullPointerException.class);
+            assertThatThrownBy(() -> Value.error((Throwable) null)).isInstanceOf(NullPointerException.class);
         }
     }
 
@@ -550,10 +549,10 @@ class ValueTests {
             Value policyResult = Value.of(true);
 
             String decision = switch (policyResult) {
-                case BooleanValue(boolean allowed, boolean ignore) -> allowed ? "PERMIT" : "DENY";
-                case ErrorValue ignore -> "INDETERMINATE";
-                case UndefinedValue ignore -> "NOT_APPLICABLE";
-                default -> "INDETERMINATE";
+            case BooleanValue(boolean allowed, boolean ignore) -> allowed ? "PERMIT" : "DENY";
+            case ErrorValue ignore                             -> "INDETERMINATE";
+            case UndefinedValue ignore                         -> "NOT_APPLICABLE";
+            default                                            -> "INDETERMINATE";
             };
 
             assertThat(decision).isEqualTo("PERMIT");
@@ -565,13 +564,14 @@ class ValueTests {
             Value clearanceLevel = Value.of(7);
 
             String access = switch (clearanceLevel) {
-                case NumberValue(BigDecimal level, boolean ignore) when level.compareTo(BigDecimal.valueOf(10)) >= 0 ->
-                    "TOP SECRET";
-                case NumberValue(BigDecimal level, boolean ignore) when level.compareTo(BigDecimal.valueOf(5)) >= 0 ->
-                    "SECRET";
-                case NumberValue(BigDecimal level, boolean ignore) when level.compareTo(BigDecimal.ZERO) > 0 ->
-                    "CONFIDENTIAL";
-                default -> "PUBLIC";
+            case NumberValue(BigDecimal level, boolean ignore) when level.compareTo(BigDecimal.valueOf(10)) >= 0 ->
+                "TOP SECRET";
+            case NumberValue(BigDecimal level, boolean ignore) when level.compareTo(BigDecimal.valueOf(5)) >= 0  ->
+                "SECRET";
+            case NumberValue(BigDecimal level, boolean ignore) when level.compareTo(BigDecimal.ZERO) > 0         ->
+                "CONFIDENTIAL";
+            default                                                                                              ->
+                "PUBLIC";
             };
 
             assertThat(access).isEqualTo("SECRET");
@@ -580,17 +580,14 @@ class ValueTests {
         @Test
         @DisplayName("Pattern matching for attribute extraction")
         void patternMatchingAttributeExtraction() {
-            Value user = Value.ofObject(Map.of(
-                "name", Value.of("alice"),
-                "role", Value.of("admin")
-            ));
+            Value user = Value.ofObject(Map.of("name", Value.of("alice"), "role", Value.of("admin")));
 
             boolean isAdmin = switch (user) {
-                case ObjectValue obj -> {
-                    Value role = obj.get("role");
-                    yield role instanceof TextValue(String r, boolean ignore) && "admin".equals(r);
-                }
-                default -> false;
+            case ObjectValue obj -> {
+                Value role = obj.get("role");
+                yield role instanceof TextValue(String r, boolean ignore) && "admin".equals(r);
+            }
+            default              -> false;
             };
 
             assertThat(isAdmin).isTrue();
@@ -606,7 +603,7 @@ class ValueTests {
         void ofArrayVarargsConsistency() {
             Value v1 = Value.ofArray(Value.of(1), Value.of(2));
             Value v2 = Value.ofArray(Value.of(1), Value.of(2));
-            
+
             assertThat(v1).isEqualTo(v2);
         }
 
@@ -615,10 +612,10 @@ class ValueTests {
         void ofObjectDefensiveCopy() {
             Map<String, Value> mutableMap = new HashMap<>();
             mutableMap.put("key", Value.of(1));
-            
+
             Value obj = Value.ofObject(mutableMap);
             mutableMap.put("key2", Value.of(2));
-            
+
             assertThat(((ObjectValue) obj).size()).isEqualTo(1);
         }
 
@@ -660,16 +657,16 @@ class ValueTests {
         void bigDecimalScaleEquality() {
             Value v1 = Value.of(new BigDecimal("1.0"));
             Value v2 = Value.of(new BigDecimal("1.00"));
-            
+
             assertThat(v1).isEqualTo(v2);
         }
 
         @Test
         @DisplayName("Long values beyond int range")
         void longValuesBeyondIntRange() {
-            long large = 10_000_000_000L; // Beyond int range
+            long  large = 10_000_000_000L; // Beyond int range
             Value value = Value.of(large);
-            
+
             assertThat(value).isInstanceOf(NumberValue.class);
             NumberValue numValue = (NumberValue) value;
             assertThat(numValue.value()).isEqualByComparingTo(BigDecimal.valueOf(large));
@@ -678,14 +675,8 @@ class ValueTests {
         @Test
         @DisplayName("Array with mixed value types")
         void arrayWithMixedTypes() {
-            Value array = Value.ofArray(
-                Value.of(1),
-                Value.of("text"),
-                Value.of(true),
-                Value.NULL,
-                Value.UNDEFINED
-            );
-            
+            Value array = Value.ofArray(Value.of(1), Value.of("text"), Value.of(true), Value.NULL, Value.UNDEFINED);
+
             assertThat(array).isInstanceOf(ArrayValue.class);
             assertThat(((ArrayValue) array).size()).isEqualTo(5);
         }
@@ -693,13 +684,9 @@ class ValueTests {
         @Test
         @DisplayName("Object with all value types")
         void objectWithAllTypes() {
-            Value obj = Value.ofObject(Map.of(
-                "number", Value.of(1),
-                "text", Value.of("hello"),
-                "bool", Value.of(true),
-                "null", Value.NULL
-            ));
-            
+            Value obj = Value.ofObject(Map.of("number", Value.of(1), "text", Value.of("hello"), "bool", Value.of(true),
+                    "null", Value.NULL));
+
             assertThat(obj).isInstanceOf(ObjectValue.class);
             assertThat(((ObjectValue) obj).size()).isEqualTo(4);
         }
@@ -708,7 +695,7 @@ class ValueTests {
         @DisplayName("Error factory with null cause is allowed")
         void errorFactoryNullCause() {
             Value error = Value.error("message", null);
-            
+
             assertThat(error).isInstanceOf(ErrorValue.class);
             ErrorValue errorValue = (ErrorValue) error;
             assertThat(errorValue.message()).isEqualTo("message");

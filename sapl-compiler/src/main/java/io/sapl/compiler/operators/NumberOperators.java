@@ -1,3 +1,20 @@
+/*
+ * Copyright (C) 2017-2025 Dominic Heutelbeck (dominic@heutelbeck.com)
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package io.sapl.compiler.operators;
 
 import java.math.RoundingMode;
@@ -29,7 +46,8 @@ public class NumberOperators {
      *
      * @param a the minuend
      * @param b the subtrahend
-     * @return the difference of a and b, marked as secret if either operand is secret
+     * @return the difference of a and b, marked as secret if either operand is
+     * secret
      */
     public static NumberValue subtract(NumberValue a, NumberValue b) {
         return new NumberValue(a.value().subtract(b.value()), a.secret() || b.secret());
@@ -47,12 +65,14 @@ public class NumberOperators {
     }
 
     /**
-     * Divides one number value by another with HALF_UP rounding and 10 decimal places precision.
+     * Divides one number value by another with HALF_UP rounding and 10 decimal
+     * places precision.
      *
      * @param a the dividend
      * @param b the divisor
-     * @return the quotient of a and b, marked as secret if either operand is secret,
-     *         or an ErrorValue if the divisor is zero
+     * @return the quotient of a and b, marked as secret if either operand is
+     * secret,
+     * or an ErrorValue if the divisor is zero
      */
     public static Value divide(NumberValue a, NumberValue b) {
         if (b.value().signum() == 0) {
@@ -62,20 +82,23 @@ public class NumberOperators {
     }
 
     /**
-     * Computes the modulo of one number value by another using mathematical (Euclidean) semantics.
+     * Computes the modulo of one number value by another using mathematical
+     * (Euclidean) semantics.
      * The result is always non-negative when the divisor is positive.
      *
      * @param a the dividend
      * @param b the divisor
-     * @return the remainder of a divided by b, marked as secret if either operand is secret,
-     *         or an ErrorValue if the divisor is zero
+     * @return the remainder of a divided by b, marked as secret if either operand
+     * is secret,
+     * or an ErrorValue if the divisor is zero
      */
     public static Value modulo(NumberValue a, NumberValue b) {
         if (b.value().signum() == 0) {
             return new ErrorValue("Division by zero.", a.secret() || b.secret());
         }
         var result = a.value().remainder(b.value());
-        // Adjust to mathematical modulo: ensure non-negative result for positive divisor
+        // Adjust to mathematical modulo: ensure non-negative result for positive
+        // divisor
         if (result.signum() < 0 && b.value().signum() > 0) {
             result = result.add(b.value());
         }

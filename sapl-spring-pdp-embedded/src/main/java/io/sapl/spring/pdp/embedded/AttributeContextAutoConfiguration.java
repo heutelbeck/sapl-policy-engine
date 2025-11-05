@@ -54,7 +54,6 @@ public class AttributeContextAutoConfiguration {
     private final Collection<StaticPolicyInformationPointSupplier> staticPipSuppliers;
     private final ConfigurableApplicationContext                   applicationContext;
 
-
     @Bean
     @ConditionalOnMissingBean
     @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
