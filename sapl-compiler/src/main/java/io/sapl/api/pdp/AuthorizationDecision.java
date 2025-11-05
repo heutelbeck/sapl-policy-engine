@@ -15,27 +15,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.compiler;
+package io.sapl.api.pdp;
 
-import io.sapl.api.pdp.AuthorizationDecision;
-import io.sapl.api.pdp.AuthorizationSubscription;
-import io.sapl.api.pdp.Decision;
 import io.sapl.api.value.Value;
-import reactor.core.publisher.Flux;
+import lombok.NonNull;
 
-import java.util.ArrayList;
 import java.util.List;
 
-public class CompiledDocument {
-
-    private List<Value>        constants = new ArrayList<>();
-    private CompiledExpression targetExpression;
-
-    public boolean matches(AuthorizationSubscription authorizationSubscription) {
-        return true;
-    }
-
-    public Flux<AuthorizationDecision> evaluate(AuthorizationSubscription authorizationSubscription) {
-        return Flux.just(new AuthorizationDecision(Decision.NOT_APPLICABLE, List.of(), List.of(), Value.UNDEFINED));
-    }
-}
+public record AuthorizationDecision(
+        @NonNull Decision decision,
+        @NonNull List<Value> obligations,
+        @NonNull List<Value> advice,
+        @NonNull Value resource) {}

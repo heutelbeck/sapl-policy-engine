@@ -17,8 +17,8 @@
  */
 package io.sapl.compiler.operators;
 
-import io.sapl.api.v2.BooleanValue;
-import io.sapl.api.v2.Value;
+import io.sapl.api.value.BooleanValue;
+import io.sapl.api.value.Value;
 import lombok.experimental.UtilityClass;
 
 /**

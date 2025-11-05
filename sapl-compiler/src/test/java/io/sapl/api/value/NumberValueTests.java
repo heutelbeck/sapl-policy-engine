@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.api.v2;
+package io.sapl.api.value;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -148,7 +148,7 @@ class NumberValueTests {
     void toStringShowsValueOrPlaceholder(BigDecimal number, boolean secret, String expected) {
         var value = new NumberValue(number, secret);
 
-        assertThat(value.toString()).isEqualTo(expected);
+        assertThat(value).hasToString(expected);
     }
 
     @Test
@@ -191,7 +191,7 @@ class NumberValueTests {
     @ParameterizedTest(name = "{0}")
     @MethodSource("provideConstantCases")
     @DisplayName("Constants have expected secret flag")
-    void constantsHaveExpectedSecretFlag(String description, NumberValue constant, boolean expectedSecret) {
+    void constantsHaveExpectedSecretFlag(String description, Value constant, boolean expectedSecret) {
         assertThat(constant.secret()).isEqualTo(expectedSecret);
     }
 
@@ -281,7 +281,7 @@ class NumberValueTests {
         var exponential = new NumberValue(new BigDecimal(exponentialNotation), false);
 
         assertThat(decimal).isEqualTo(exponential);
-        assertThat(decimal.hashCode()).isEqualTo(exponential.hashCode());
+        assertThat(decimal).hasSameHashCodeAs(exponential);
     }
 
     @Test
@@ -300,7 +300,7 @@ class NumberValueTests {
         var value1 = new NumberValue(new BigDecimal(jsonValue), false);
         var value2 = new NumberValue(new BigDecimal(jsonValue), false);
 
-        assertThat(value1.hashCode()).isEqualTo(value2.hashCode());
+        assertThat(value1).hasSameHashCodeAs(value2);
     }
 
     @Test

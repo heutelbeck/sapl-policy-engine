@@ -261,7 +261,12 @@
 				<artifactId>junit-platform-engine</artifactId>
 				<version>${junit.version}</version>
 			</dependency>
-			<!-- Spring-Boot -->
+            <dependency>
+                <groupId>com.github.valfirst</groupId>
+                <artifactId>slf4j-test</artifactId>
+                <version>3.0.3</version>
+            </dependency>
+            <!-- Spring-Boot -->
 			<dependency>
 				<groupId>org.springframework.boot</groupId>
 				<artifactId>spring-boot-dependencies</artifactId>

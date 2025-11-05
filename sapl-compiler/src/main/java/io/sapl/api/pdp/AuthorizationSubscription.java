@@ -15,13 +15,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.compiler;
+package io.sapl.api.pdp;
 
-import io.sapl.api.pdp.Decision;
-import io.sapl.api.v2.Value;
+import io.sapl.api.value.Value;
+import lombok.NonNull;
 
-import java.util.List;
-
-public record AuthorizationDecision(Decision decision, Value resource, List<Value> obligations, List<Value> advice) {
-
-}
+public record AuthorizationSubscription(
+        @NonNull Value subject,
+        @NonNull Value action,
+        @NonNull Value resource,
+        @NonNull Value environment) {}

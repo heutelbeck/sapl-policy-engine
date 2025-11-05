@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.api.v2;
+package io.sapl.api.value;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -68,13 +68,13 @@ class NullValueTests {
     void toStringShowsNullOrPlaceholder(boolean secret, String expected) {
         var value = new NullValue(secret);
 
-        assertThat(value.toString()).isEqualTo(expected);
+        assertThat(value).hasToString(expected);
     }
 
     @ParameterizedTest(name = "{0}")
     @MethodSource("provideConstantCases")
     @DisplayName("Constants have expected secret flag")
-    void constantsHaveExpectedSecretFlag(String description, NullValue constant, boolean expectedSecret) {
+    void constantsHaveExpectedSecretFlag(String description, Value constant, boolean expectedSecret) {
         assertThat(constant.secret()).isEqualTo(expectedSecret);
     }
 

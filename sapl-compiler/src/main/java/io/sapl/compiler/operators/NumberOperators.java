@@ -19,9 +19,9 @@ package io.sapl.compiler.operators;
 
 import java.math.RoundingMode;
 
-import io.sapl.api.v2.ErrorValue;
-import io.sapl.api.v2.NumberValue;
-import io.sapl.api.v2.Value;
+import io.sapl.api.value.ErrorValue;
+import io.sapl.api.value.NumberValue;
+import io.sapl.api.value.Value;
 import lombok.experimental.UtilityClass;
 
 /**

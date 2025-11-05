@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.api.v2;
+package io.sapl.api.value;
 
 import io.sapl.api.SaplVersion;
 import lombok.NonNull;
@@ -166,7 +166,7 @@ public final class ArrayValue implements Value, List<Value> {
          */
         public ArrayValue build() {
             if (elements.isEmpty() && !secret) {
-                return (ArrayValue) Value.EMPTY_ARRAY;
+                return Value.EMPTY_ARRAY;
             }
             return new ArrayValue(elements, secret);
         }

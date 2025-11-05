@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.api.v2;
+package io.sapl.api.value;
 
 import io.sapl.api.SaplVersion;
 import org.jetbrains.annotations.NotNull;
@@ -23,39 +23,44 @@ import org.jetbrains.annotations.NotNull;
 import java.io.Serial;
 
 /**
- * Undefined value implementation.
+ * Boolean value implementation.
  */
-public record UndefinedValue(boolean secret) implements Value {
+public record BooleanValue(boolean value, boolean secret) implements Value {
 
     @Serial
     private static final long serialVersionUID = SaplVersion.VERSION_UID;
 
     /**
-     * Singleton for secret undefined value.
+     * Singleton for secret true value.
      */
-    public static final Value SECRET_UNDEFINED = new UndefinedValue(true);
+    public static final BooleanValue SECRET_TRUE = new BooleanValue(true, true);
+
+    /**
+     * Singleton for secret false value.
+     */
+    public static final BooleanValue SECRET_FALSE = new BooleanValue(false, true);
 
     @Override
     public Value asSecret() {
-        return SECRET_UNDEFINED;
+        return value ? SECRET_TRUE : SECRET_FALSE;
     }
 
     @Override
     public @NotNull String toString() {
-        return secret ? SECRET_PLACEHOLDER : "undefined";
+        return secret() ? SECRET_PLACEHOLDER : String.valueOf(value);
     }
 
     @Override
     public boolean equals(Object that) {
         if (this == that)
             return true;
-        // All undefined values are semantically equal.
-        return that instanceof UndefinedValue;
+        if (!(that instanceof BooleanValue(boolean thatValue, boolean thatSecret)))
+            return false;
+        return value == thatValue;
     }
 
     @Override
     public int hashCode() {
-        // All undefined values have same hash code.
-        return UndefinedValue.class.hashCode();
+        return Boolean.hashCode(value);
     }
 }

@@ -17,7 +17,7 @@
  */
 package io.sapl.compiler;
 
-import io.sapl.api.v2.Value;
+import io.sapl.api.value.Value;
 import lombok.RequiredArgsConstructor;
 import org.eclipse.xtext.xbase.controlflow.EvaluationContext;
 import reactor.core.publisher.Flux;
