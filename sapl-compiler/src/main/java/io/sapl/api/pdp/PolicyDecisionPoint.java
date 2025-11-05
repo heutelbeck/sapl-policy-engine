@@ -15,13 +15,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.compiler;
+package io.sapl.api.pdp;
 
-import io.sapl.api.v2.Value;
-import lombok.NonNull;
+import reactor.core.publisher.Flux;
 
-public record AuthorizationSubscription(
-        @NonNull Value subject,
-        @NonNull Value action,
-        @NonNull Value resource,
-        @NonNull Value environment) {}
+public interface PolicyDecisionPoint {
+    Flux<AuthorizationDecision> decide(AuthorizationSubscription authorizationSubscription);
+}

@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.api.v2;
+package io.sapl.api.value;
 
 import io.sapl.api.SaplVersion;
 import org.jetbrains.annotations.NotNull;
@@ -23,39 +23,39 @@ import org.jetbrains.annotations.NotNull;
 import java.io.Serial;
 
 /**
- * Null value implementation.
+ * Undefined value implementation.
  */
-public record NullValue(boolean secret) implements Value {
+public record UndefinedValue(boolean secret) implements Value {
 
     @Serial
     private static final long serialVersionUID = SaplVersion.VERSION_UID;
 
     /**
-     * Singleton for secret null value.
+     * Singleton for secret undefined value.
      */
-    public static final Value SECRET_NULL = new NullValue(true);
+    public static final Value SECRET_UNDEFINED = new UndefinedValue(true);
 
     @Override
     public Value asSecret() {
-        return SECRET_NULL;
+        return SECRET_UNDEFINED;
     }
 
     @Override
     public @NotNull String toString() {
-        return secret ? SECRET_PLACEHOLDER : "null";
+        return secret ? SECRET_PLACEHOLDER : "undefined";
     }
 
     @Override
     public boolean equals(Object that) {
         if (this == that)
             return true;
-        // All null values are semantically equal.
-        return that instanceof NullValue;
+        // All undefined values are semantically equal.
+        return that instanceof UndefinedValue;
     }
 
     @Override
     public int hashCode() {
-        // All null values have same hash code.
-        return NullValue.class.hashCode();
+        // All undefined values have same hash code.
+        return UndefinedValue.class.hashCode();
     }
 }

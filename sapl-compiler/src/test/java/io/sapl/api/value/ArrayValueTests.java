@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.api.v2;
+package io.sapl.api.value;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -83,13 +83,12 @@ class ArrayValueTests {
         void emptySecretBuilderCreatesNewInstance() {
             var result = ArrayValue.builder().secret().build();
 
-            assertThat(result).isNotSameAs(Value.EMPTY_ARRAY);
-            assertThat(result).isEmpty();
+            assertThat(result).isNotSameAs(Value.EMPTY_ARRAY).isEmpty();
             assertThat(result.secret()).isTrue();
         }
 
         @ParameterizedTest(name = "Builder {0}")
-        @MethodSource("io.sapl.api.v2.ArrayValueTests#provideBuilderCases")
+        @MethodSource("io.sapl.api.value.ArrayValueTests#provideBuilderCases")
         @DisplayName("Builder methods chain fluently")
         void builderMethodsChain(String description, List<Value> expected) {
             ArrayValue result;
@@ -205,8 +204,8 @@ class ArrayValueTests {
     void listInterfaceMethodsWork() {
         var array = new ArrayValue(List.of(Value.of(1), Value.of(2), Value.of(3)), false);
 
-        assertThat(array.size()).isEqualTo(3);
-        assertThat(array.isEmpty()).isFalse();
+        assertThat(array).hasSize(3);
+        assertThat(array).isNotEmpty();
         assertThat(array.contains(Value.of(2))).isTrue();
         assertThat(array.indexOf(Value.of(2))).isEqualTo(1);
         assertThat(array.lastIndexOf(Value.of(2))).isEqualTo(1);
@@ -259,7 +258,7 @@ class ArrayValueTests {
 
         assertThat(array1).isEqualTo(array2).isEqualTo(plainList);
         assertThat(array1).isNotEqualTo(array3);
-        assertThat(array1.hashCode()).isEqualTo(array2.hashCode());
+        assertThat(array1).hasSameHashCodeAs(array2);
     }
 
     @ParameterizedTest(name = "{2}")

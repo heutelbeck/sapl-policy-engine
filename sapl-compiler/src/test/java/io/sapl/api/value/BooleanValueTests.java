@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.api.v2;
+package io.sapl.api.value;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -77,7 +77,7 @@ class BooleanValueTests {
     void toStringShowsValueOrPlaceholder(boolean value, boolean secret, String expected) {
         var boolValue = new BooleanValue(value, secret);
 
-        assertThat(boolValue.toString()).isEqualTo(expected);
+        assertThat(boolValue).hasToString(expected);
     }
 
     @Test
@@ -103,7 +103,7 @@ class BooleanValueTests {
     @ParameterizedTest(name = "{0}")
     @MethodSource("provideConstantCases")
     @DisplayName("Constants have expected secret flag")
-    void constantsHaveExpectedSecretFlag(String description, BooleanValue constant, boolean expectedSecret) {
+    void constantsHaveExpectedSecretFlag(String description, Value constant, boolean expectedSecret) {
         assertThat(constant.secret()).isEqualTo(expectedSecret);
     }
 

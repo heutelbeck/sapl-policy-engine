@@ -17,13 +17,12 @@
  */
 package io.sapl.compiler.operators;
 
-import java.math.BigDecimal;
-import java.util.Objects;
-
-import io.sapl.api.v2.NumberValue;
-import io.sapl.api.v2.TextValue;
-import io.sapl.api.v2.Value;
+import io.sapl.api.value.NumberValue;
+import io.sapl.api.value.TextValue;
+import io.sapl.api.value.Value;
 import lombok.experimental.UtilityClass;
+
+import java.math.BigDecimal;
 
 /**
  * Provides operations for TextValue instances.

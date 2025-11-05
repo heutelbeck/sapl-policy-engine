@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.api.v2;
+package io.sapl.api.value;
 
 import io.sapl.api.SaplVersion;
 import org.jetbrains.annotations.NotNull;
@@ -23,44 +23,39 @@ import org.jetbrains.annotations.NotNull;
 import java.io.Serial;
 
 /**
- * Boolean value implementation.
+ * Null value implementation.
  */
-public record BooleanValue(boolean value, boolean secret) implements Value {
+public record NullValue(boolean secret) implements Value {
 
     @Serial
     private static final long serialVersionUID = SaplVersion.VERSION_UID;
 
     /**
-     * Singleton for secret true value.
+     * Singleton for secret null value.
      */
-    public static final BooleanValue SECRET_TRUE = new BooleanValue(true, true);
-
-    /**
-     * Singleton for secret false value.
-     */
-    public static final BooleanValue SECRET_FALSE = new BooleanValue(false, true);
+    public static final Value SECRET_NULL = new NullValue(true);
 
     @Override
     public Value asSecret() {
-        return value ? SECRET_TRUE : SECRET_FALSE;
+        return SECRET_NULL;
     }
 
     @Override
     public @NotNull String toString() {
-        return secret() ? SECRET_PLACEHOLDER : String.valueOf(value);
+        return secret ? SECRET_PLACEHOLDER : "null";
     }
 
     @Override
     public boolean equals(Object that) {
         if (this == that)
             return true;
-        if (!(that instanceof BooleanValue(boolean thatValue, boolean thatSecret)))
-            return false;
-        return value == thatValue;
+        // All null values are semantically equal.
+        return that instanceof NullValue;
     }
 
     @Override
     public int hashCode() {
-        return Boolean.hashCode(value);
+        // All null values have same hash code.
+        return NullValue.class.hashCode();
     }
 }
