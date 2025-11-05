@@ -66,7 +66,8 @@ public record NumberValue(@NonNull BigDecimal value, boolean secret) implements 
             return value.stripTrailingZeros().hashCode();
         } catch (ArithmeticException e) {
             // Extreme scale edge case: fallback maintains contract
-            // Two numerically equal extreme values both fail, then both use fallback and are consistent
+            // Two numerically equal extreme values both fail, then both use fallback and
+            // are consistent
             return value.hashCode();
         }
     }

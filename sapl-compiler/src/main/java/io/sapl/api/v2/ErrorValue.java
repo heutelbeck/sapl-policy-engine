@@ -96,8 +96,7 @@ public record ErrorValue(String message, Throwable cause, boolean secret) implem
         if (!(that instanceof ErrorValue thatError))
             return false;
         // Equality based on message and cause type (not cause instance).
-        return Objects.equals(message, thatError.message)
-                && Objects.equals(getCauseClass(), thatError.getCauseClass());
+        return Objects.equals(message, thatError.message) && Objects.equals(getCauseClass(), thatError.getCauseClass());
     }
 
     @Override

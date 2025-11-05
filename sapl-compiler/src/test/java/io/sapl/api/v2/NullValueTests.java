@@ -44,18 +44,14 @@ class NullValueTests {
     void asSecretReturnsSingleton() {
         var regular = new NullValue(false);
 
-        assertThat(regular.asSecret())
-                .isSameAs(NullValue.SECRET_NULL)
-                .isSameAs(NullValue.SECRET_NULL.asSecret());
+        assertThat(regular.asSecret()).isSameAs(NullValue.SECRET_NULL).isSameAs(NullValue.SECRET_NULL.asSecret());
     }
 
     @ParameterizedTest(name = "{0}={1}, equal={2}")
     @MethodSource("provideEqualityHashCodeCases")
     @DisplayName("All NullValues are equal regardless of secret flag")
     void equalsAndHashCode(NullValue value1, NullValue value2, boolean shouldBeEqual) {
-        assertThat(value1)
-                .isEqualTo(value2)
-                .hasSameHashCodeAs(value2);
+        assertThat(value1).isEqualTo(value2).hasSameHashCodeAs(value2);
     }
 
     @Test
@@ -63,10 +59,7 @@ class NullValueTests {
     void notEqualToOtherValueTypes() {
         var nullValue = new NullValue(false);
 
-        assertThat(nullValue)
-                .isNotEqualTo(Value.UNDEFINED)
-                .isNotEqualTo(Value.of(0))
-                .isNotEqualTo(Value.of("null"));
+        assertThat(nullValue).isNotEqualTo(Value.UNDEFINED).isNotEqualTo(Value.of(0)).isNotEqualTo(Value.of("null"));
     }
 
     @ParameterizedTest(name = "secret={0} toString()={1}")
@@ -90,24 +83,17 @@ class NullValueTests {
     }
 
     static Stream<Arguments> provideEqualityHashCodeCases() {
-        return Stream.of(
-            Arguments.of(new NullValue(false), new NullValue(false), true),
-            Arguments.of(new NullValue(false), new NullValue(true), true),
-            Arguments.of(new NullValue(true), new NullValue(true), true)
-        );
+        return Stream.of(Arguments.of(new NullValue(false), new NullValue(false), true),
+                Arguments.of(new NullValue(false), new NullValue(true), true),
+                Arguments.of(new NullValue(true), new NullValue(true), true));
     }
 
     static Stream<Arguments> provideToStringCases() {
-        return Stream.of(
-            Arguments.of(false, "null"),
-            Arguments.of(true, "***SECRET***")
-        );
+        return Stream.of(Arguments.of(false, "null"), Arguments.of(true, "***SECRET***"));
     }
 
     static Stream<Arguments> provideConstantCases() {
-        return Stream.of(
-            Arguments.of("Value.NULL is not secret", Value.NULL, false),
-            Arguments.of("NullValue.SECRET_NULL is secret", NullValue.SECRET_NULL, true)
-        );
+        return Stream.of(Arguments.of("Value.NULL is not secret", Value.NULL, false),
+                Arguments.of("NullValue.SECRET_NULL is secret", NullValue.SECRET_NULL, true));
     }
 }

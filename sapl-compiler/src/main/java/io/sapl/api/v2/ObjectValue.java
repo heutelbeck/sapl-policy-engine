@@ -39,12 +39,10 @@ import java.util.stream.Collectors;
  * error-as-value pattern.
  * <p>
  * Direct map usage:
+ *
  * <pre>{@code
- * ObjectValue user = Value.ofObject(Map.of(
- *     "username", Value.of("alice"),
- *     "department", Value.of("engineering"),
- *     "clearance", Value.of(3)
- * ));
+ * ObjectValue user = Value.ofObject(
+ *         Map.of("username", Value.of("alice"), "department", Value.of("engineering"), "clearance", Value.of(3)));
  * Value username = user.get("username");
  * for (Map.Entry<String, Value> entry : user.entrySet()) {
  *     processAttribute(entry.getKey(), entry.getValue());
@@ -52,21 +50,21 @@ import java.util.stream.Collectors;
  * }</pre>
  * <p>
  * Builder for fluent construction:
+ *
  * <pre>{@code
- * ObjectValue metadata = ObjectValue.builder()
- *     .put("resourceId", Value.of("doc-123"))
- *     .put("owner", Value.of("bob"))
- *     .secret()
- *     .build();
+ * ObjectValue metadata = ObjectValue.builder().put("resourceId", Value.of("doc-123")).put("owner", Value.of("bob"))
+ *         .secret().build();
  * }</pre>
  * <p>
  * Secret propagation:
+ *
  * <pre>{@code
  * ObjectValue credentials = obj.asSecret();
  * Value password = credentials.get("password"); // Also secret
  * }</pre>
  * <p>
  * Error handling:
+ *
  * <pre>{@code
  * Value result = obj.get(null); // Returns ErrorValue
  * Value result2 = obj.get(123);  // Returns ErrorValue (not a String key)
@@ -79,7 +77,7 @@ public final class ObjectValue implements Value, Map<String, Value> {
 
     @Delegate(excludes = ExcludedMethods.class)
     private final Map<String, Value> value;
-    private final boolean secret;
+    private final boolean            secret;
 
     /**
      * Creates an ObjectValue.
@@ -88,7 +86,7 @@ public final class ObjectValue implements Value, Map<String, Value> {
      * @param secret whether this value is secret
      */
     public ObjectValue(@NonNull Map<String, Value> properties, boolean secret) {
-        this.value = Map.copyOf(properties);
+        this.value  = Map.copyOf(properties);
         this.secret = secret;
     }
 
@@ -106,7 +104,7 @@ public final class ObjectValue implements Value, Map<String, Value> {
      */
     public static final class Builder {
         private final HashMap<String, Value> properties = new HashMap<>();
-        private boolean secret = false;
+        private boolean                      secret     = false;
 
         /**
          * Adds a property to the object.
@@ -174,8 +172,7 @@ public final class ObjectValue implements Value, Map<String, Value> {
         if (value.isEmpty()) {
             return "{}";
         }
-        return '{' + value.entrySet().stream()
-                .map(e -> e.getKey() + ": " + e.getValue().toString())
+        return '{' + value.entrySet().stream().map(e -> e.getKey() + ": " + e.getValue().toString())
                 .collect(Collectors.joining(", ")) + '}';
     }
 
@@ -201,8 +198,8 @@ public final class ObjectValue implements Value, Map<String, Value> {
      *
      * @param key the key (must be a String)
      * @return the value (with secret flag if container is secret),
-     *         null if key not found,
-     *         or ErrorValue if key is null or not a String
+     * null if key not found,
+     * or ErrorValue if key is null or not a String
      */
     @Override
     public @Nullable Value get(Object key) {
@@ -219,13 +216,14 @@ public final class ObjectValue implements Value, Map<String, Value> {
     /**
      * Returns the value for the specified key, or defaultValue if not found.
      * <p>
-     * Returns ErrorValue for invalid key types instead of throwing ClassCastException.
+     * Returns ErrorValue for invalid key types instead of throwing
+     * ClassCastException.
      *
      * @param key the key (must be a String)
      * @param defaultValue the default value if key not found
      * @return the value (with secret flag if container is secret),
-     *         defaultValue (with secret flag) if key not found,
-     *         or ErrorValue if key is null or not a String
+     * defaultValue (with secret flag) if key not found,
+     * or ErrorValue if key is null or not a String
      */
     @Override
     public @NotNull Value getOrDefault(Object key, Value defaultValue) {
@@ -271,9 +269,7 @@ public final class ObjectValue implements Value, Map<String, Value> {
      */
     @Override
     public @NotNull Collection<Value> values() {
-        return value.values().stream()
-                .map(this::applySecretFlag)
-                .toList();
+        return value.values().stream().map(this::applySecretFlag).toList();
     }
 
     /**
@@ -284,8 +280,7 @@ public final class ObjectValue implements Value, Map<String, Value> {
      */
     @Override
     public @NotNull Set<Entry<String, Value>> entrySet() {
-        return value.entrySet().stream()
-                .map(e -> Map.entry(e.getKey(), applySecretFlag(e.getValue())))
+        return value.entrySet().stream().map(e -> Map.entry(e.getKey(), applySecretFlag(e.getValue())))
                 .collect(Collectors.toUnmodifiableSet());
     }
 
@@ -320,14 +315,23 @@ public final class ObjectValue implements Value, Map<String, Value> {
      */
     private interface ExcludedMethods {
         boolean equals(Object obj);
+
         int hashCode();
+
         String toString();
+
         Value get(Object key);
+
         Value getOrDefault(Object key, Value defaultValue);
+
         boolean containsKey(Object key);
+
         boolean containsValue(Object value);
+
         Collection<Value> values();
+
         Set<Entry<String, Value>> entrySet();
+
         void forEach(BiConsumer<? super String, ? super Value> action);
     }
 }

@@ -27,13 +27,16 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Central value type for policy evaluation. Represents defined values (null, boolean,
+ * Central value type for policy evaluation. Represents defined values (null,
+ * boolean,
  * number, text, array, object), error states, or undefined states.
  * <p>
- * Values can be marked as secret to prevent exposure in logs. The secret flag only
+ * Values can be marked as secret to prevent exposure in logs. The secret flag
+ * only
  * affects toString() and does not impact equality or evaluation.
  * <p>
  * Creating values:
+ *
  * <pre>{@code
  * Value user = Value.of("alice");
  * Value age = Value.of(30);
@@ -43,16 +46,18 @@ import java.util.Map;
  * }</pre>
  * <p>
  * Pattern matching for type-safe extraction:
+ *
  * <pre>{@code
- * String decision = switch(value) {
- *     case BooleanValue(boolean allowed, _) -> allowed ? "PERMIT" : "DENY";
- *     case TextValue(String role, _) -> "Role: " + role;
- *     case ErrorValue e -> "Error: " + e.message();
- *     default -> "INDETERMINATE";
+ * String decision = switch (value) {
+ * case BooleanValue(boolean allowed, _) -> allowed ? "PERMIT" : "DENY";
+ * case TextValue(String role, _) -> "Role: " + role;
+ * case ErrorValue e -> "Error: " + e.message();
+ * default -> "INDETERMINATE";
  * };
  * }</pre>
  * <p>
  * Secret values prevent sensitive data exposure:
+ *
  * <pre>{@code
  * Value password = Value.of("secret123").asSecret();
  * System.out.println(password); // Prints: ***SECRET***
@@ -62,6 +67,7 @@ import java.util.Map;
  * }</pre>
  * <p>
  * Errors are values, not exceptions:
+ *
  * <pre>{@code
  * Value result = evaluatePolicy();
  * if (result instanceof ErrorValue error) {
@@ -73,6 +79,7 @@ import java.util.Map;
  * }</pre>
  * <p>
  * Collections implement standard Java interfaces:
+ *
  * <pre>{@code
  * ArrayValue roles = Value.ofArray(Value.of("admin"), Value.of("user"));
  * for (Value role : roles) {
@@ -170,17 +177,22 @@ public sealed interface Value extends Serializable
      * @return a NumberValue
      */
     static Value of(long value) {
-        if (value == 0L) return ZERO;
-        if (value == 1L) return ONE;
-        if (value == 10L) return TEN;
+        if (value == 0L)
+            return ZERO;
+        if (value == 1L)
+            return ONE;
+        if (value == 10L)
+            return TEN;
         return new NumberValue(BigDecimal.valueOf(value), false);
     }
 
     /**
      * Creates a number value from a double.
      * <p>
-     * Note: NaN and infinite values are not supported and will throw IllegalArgumentException.
-     * Function libraries should check for these conditions and return ErrorValue explicitly.
+     * Note: NaN and infinite values are not supported and will throw
+     * IllegalArgumentException.
+     * Function libraries should check for these conditions and return ErrorValue
+     * explicitly.
      *
      * @param value the double
      * @return a NumberValue
@@ -188,14 +200,19 @@ public sealed interface Value extends Serializable
      */
     static Value of(double value) {
         if (Double.isNaN(value)) {
-            throw new IllegalArgumentException("Cannot create Value from NaN. Use Value.error() for computation errors.");
+            throw new IllegalArgumentException(
+                    "Cannot create Value from NaN. Use Value.error() for computation errors.");
         }
         if (Double.isInfinite(value)) {
-            throw new IllegalArgumentException("Cannot create Value from infinite double: " + value + ". Use Value.error() for computation errors.");
+            throw new IllegalArgumentException("Cannot create Value from infinite double: " + value
+                    + ". Use Value.error() for computation errors.");
         }
-        if (value == 0.0) return ZERO;
-        if (value == 1.0) return ONE;
-        if (value == 10.0) return TEN;
+        if (value == 0.0)
+            return ZERO;
+        if (value == 1.0)
+            return ONE;
+        if (value == 10.0)
+            return TEN;
         return new NumberValue(BigDecimal.valueOf(value), false);
     }
 
@@ -206,9 +223,12 @@ public sealed interface Value extends Serializable
      * @return a NumberValue
      */
     static Value of(@NonNull BigDecimal value) {
-        if (value.compareTo(BigDecimal.ZERO) == 0) return ZERO;
-        if (value.compareTo(BigDecimal.ONE) == 0) return ONE;
-        if (value.compareTo(BigDecimal.TEN) == 0) return TEN;
+        if (value.compareTo(BigDecimal.ZERO) == 0)
+            return ZERO;
+        if (value.compareTo(BigDecimal.ONE) == 0)
+            return ONE;
+        if (value.compareTo(BigDecimal.TEN) == 0)
+            return TEN;
         return new NumberValue(value, false);
     }
 
@@ -219,7 +239,8 @@ public sealed interface Value extends Serializable
      * @return a TextValue
      */
     static Value of(@NonNull String value) {
-        if (value.isEmpty()) return EMPTY_TEXT;
+        if (value.isEmpty())
+            return EMPTY_TEXT;
         return new TextValue(value, false);
     }
 
@@ -230,18 +251,21 @@ public sealed interface Value extends Serializable
      * @return an immutable ArrayValue
      */
     static Value ofArray(Value... values) {
-        if (values.length == 0) return EMPTY_ARRAY;
+        if (values.length == 0)
+            return EMPTY_ARRAY;
         return new ArrayValue(values, false);
     }
 
     /**
      * Creates an array value from a list.
      *
-     * @param values the elements (must not be null or contain null - use Value.NULL instead)
+     * @param values the elements (must not be null or contain null - use Value.NULL
+     * instead)
      * @return an immutable ArrayValue
      */
     static Value ofArray(@NonNull List<Value> values) {
-        if (values.isEmpty()) return EMPTY_ARRAY;
+        if (values.isEmpty())
+            return EMPTY_ARRAY;
         return new ArrayValue(values, false);
     }
 
@@ -252,7 +276,8 @@ public sealed interface Value extends Serializable
      * @return an immutable ObjectValue
      */
     static Value ofObject(@NonNull Map<String, Value> properties) {
-        if (properties.isEmpty()) return EMPTY_OBJECT;
+        if (properties.isEmpty())
+            return EMPTY_OBJECT;
         return new ObjectValue(Map.copyOf(properties), false);
     }
 

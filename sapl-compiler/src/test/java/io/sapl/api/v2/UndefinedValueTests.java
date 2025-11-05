@@ -44,8 +44,7 @@ class UndefinedValueTests {
     void asSecretReturnsSingleton() {
         var regular = new UndefinedValue(false);
 
-        assertThat(regular.asSecret())
-                .isSameAs(UndefinedValue.SECRET_UNDEFINED)
+        assertThat(regular.asSecret()).isSameAs(UndefinedValue.SECRET_UNDEFINED)
                 .isSameAs(UndefinedValue.SECRET_UNDEFINED.asSecret());
     }
 
@@ -53,9 +52,7 @@ class UndefinedValueTests {
     @MethodSource("provideEqualityHashCodeCases")
     @DisplayName("All UndefinedValues are equal regardless of secret flag")
     void equalsAndHashCode(UndefinedValue value1, UndefinedValue value2, boolean shouldBeEqual) {
-        assertThat(value1)
-                .isEqualTo(value2)
-                .hasSameHashCodeAs(value2);
+        assertThat(value1).isEqualTo(value2).hasSameHashCodeAs(value2);
     }
 
     @Test
@@ -63,9 +60,7 @@ class UndefinedValueTests {
     void notEqualToOtherValueTypes() {
         var undefinedValue = new UndefinedValue(false);
 
-        assertThat(undefinedValue)
-                .isNotEqualTo(Value.NULL)
-                .isNotEqualTo(Value.of(0))
+        assertThat(undefinedValue).isNotEqualTo(Value.NULL).isNotEqualTo(Value.of(0))
                 .isNotEqualTo(Value.of("undefined"));
     }
 
@@ -90,24 +85,17 @@ class UndefinedValueTests {
     }
 
     static Stream<Arguments> provideEqualityHashCodeCases() {
-        return Stream.of(
-            Arguments.of(new UndefinedValue(false), new UndefinedValue(false), true),
-            Arguments.of(new UndefinedValue(false), new UndefinedValue(true), true),
-            Arguments.of(new UndefinedValue(true), new UndefinedValue(true), true)
-        );
+        return Stream.of(Arguments.of(new UndefinedValue(false), new UndefinedValue(false), true),
+                Arguments.of(new UndefinedValue(false), new UndefinedValue(true), true),
+                Arguments.of(new UndefinedValue(true), new UndefinedValue(true), true));
     }
 
     static Stream<Arguments> provideToStringCases() {
-        return Stream.of(
-            Arguments.of(false, "undefined"),
-            Arguments.of(true, "***SECRET***")
-        );
+        return Stream.of(Arguments.of(false, "undefined"), Arguments.of(true, "***SECRET***"));
     }
 
     static Stream<Arguments> provideConstantCases() {
-        return Stream.of(
-            Arguments.of("Value.UNDEFINED is not secret", Value.UNDEFINED, false),
-            Arguments.of("UndefinedValue.SECRET_UNDEFINED is secret", UndefinedValue.SECRET_UNDEFINED, true)
-        );
+        return Stream.of(Arguments.of("Value.UNDEFINED is not secret", Value.UNDEFINED, false),
+                Arguments.of("UndefinedValue.SECRET_UNDEFINED is secret", UndefinedValue.SECRET_UNDEFINED, true));
     }
 }

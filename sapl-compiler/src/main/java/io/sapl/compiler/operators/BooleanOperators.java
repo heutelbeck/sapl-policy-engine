@@ -32,7 +32,8 @@ public class BooleanOperators {
      *
      * @param a the first operand
      * @param b the second operand
-     * @return the logical AND of a and b, marked as secret if either operand is secret
+     * @return the logical AND of a and b, marked as secret if either operand is
+     * secret
      */
     public static BooleanValue and(BooleanValue a, BooleanValue b) {
         return preserveSecret(a.value() && b.value(), a.secret() || b.secret());
@@ -43,7 +44,8 @@ public class BooleanOperators {
      *
      * @param a the first operand
      * @param b the second operand
-     * @return the logical OR of a and b, marked as secret if either operand is secret
+     * @return the logical OR of a and b, marked as secret if either operand is
+     * secret
      */
     public static BooleanValue or(BooleanValue a, BooleanValue b) {
         return preserveSecret(a.value() || b.value(), a.secret() || b.secret());
@@ -54,7 +56,8 @@ public class BooleanOperators {
      *
      * @param a the first operand
      * @param b the second operand
-     * @return the logical XOR of a and b, marked as secret if either operand is secret
+     * @return the logical XOR of a and b, marked as secret if either operand is
+     * secret
      */
     public static BooleanValue xor(BooleanValue a, BooleanValue b) {
         return preserveSecret(a.value() ^ b.value(), a.secret() || b.secret());
@@ -71,7 +74,8 @@ public class BooleanOperators {
     }
 
     /**
-     * Creates a BooleanValue with appropriate secret handling, reusing constants when possible.
+     * Creates a BooleanValue with appropriate secret handling, reusing constants
+     * when possible.
      *
      * @param value the boolean value
      * @param secret whether the value should be marked as secret

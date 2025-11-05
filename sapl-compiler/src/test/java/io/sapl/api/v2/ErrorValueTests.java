@@ -67,24 +67,22 @@ class ErrorValueTests {
     @Test
     @DisplayName("Convenience constructor with null message throws NullPointerException")
     void convenienceConstructorNullMessageThrows() {
-        assertThatThrownBy(() -> new ErrorValue((String) null))
-                .isInstanceOf(NullPointerException.class);
+        assertThatThrownBy(() -> new ErrorValue((String) null)).isInstanceOf(NullPointerException.class);
     }
 
     @Test
     @DisplayName("Convenience constructor with null cause throws NullPointerException")
     void convenienceConstructorNullCauseThrows() {
-        assertThatThrownBy(() -> new ErrorValue((Throwable) null))
-                .isInstanceOf(NullPointerException.class);
+        assertThatThrownBy(() -> new ErrorValue((Throwable) null)).isInstanceOf(NullPointerException.class);
     }
 
     @Test
     @DisplayName("Value.error() factory methods create ErrorValue")
     void factoryMethodsCreateErrorValue() {
         var errorFromMessage = (ErrorValue) Value.error("test");
-        var cause = new RuntimeException("cause");
-        var errorFromCause = (ErrorValue) Value.error(cause);
-        var errorFromBoth = (ErrorValue) Value.error("message", cause);
+        var cause            = new RuntimeException("cause");
+        var errorFromCause   = (ErrorValue) Value.error(cause);
+        var errorFromBoth    = (ErrorValue) Value.error("message", cause);
 
         assertThat(errorFromMessage.message()).isEqualTo("test");
         assertThat(errorFromMessage.cause()).isNull();
@@ -102,8 +100,8 @@ class ErrorValueTests {
     @Test
     @DisplayName("asSecret() creates secret copy or returns same instance")
     void asSecretBehavior() {
-        var cause = new RuntimeException();
-        var original = new ErrorValue("message", cause, false);
+        var cause         = new RuntimeException();
+        var original      = new ErrorValue("message", cause, false);
         var alreadySecret = new ErrorValue("message", cause, true);
 
         var secretCopy = (ErrorValue) original.asSecret();
@@ -118,9 +116,7 @@ class ErrorValueTests {
     @DisplayName("equals() and hashCode() compare by message and cause type, ignoring secret flag and cause instance")
     void equalsAndHashCode(ErrorValue error1, ErrorValue error2, boolean shouldBeEqual) {
         if (shouldBeEqual) {
-            assertThat(error1)
-                    .isEqualTo(error2)
-                    .hasSameHashCodeAs(error2);
+            assertThat(error1).isEqualTo(error2).hasSameHashCodeAs(error2);
         } else {
             assertThat(error1).isNotEqualTo(error2);
         }
@@ -130,7 +126,7 @@ class ErrorValueTests {
     @MethodSource("provideToStringCases")
     @DisplayName("toString() formats appropriately")
     void toStringFormatting(String message, Throwable cause, boolean secret, String testDescription) {
-        var error = new ErrorValue(message, cause, secret);
+        var error  = new ErrorValue(message, cause, secret);
         var result = error.toString();
 
         if (secret) {
@@ -140,9 +136,7 @@ class ErrorValueTests {
             assertThat(result).contains(expectedMessage);
 
             if (cause != null) {
-                assertThat(result)
-                        .contains(cause.getClass().getSimpleName())
-                        .startsWith("ERROR[message=")
+                assertThat(result).contains(cause.getClass().getSimpleName()).startsWith("ERROR[message=")
                         .contains(", cause=");
             } else {
                 assertThat(result).isEqualTo("ERROR[message=\"" + expectedMessage + "\"]");
@@ -156,12 +150,16 @@ class ErrorValueTests {
         Value result = Value.error("Database connection failed");
 
         var recovery = switch (result) {
-            case ErrorValue(String msg, Throwable ignore, boolean ignoreSecret) when msg != null && msg.contains("Database") ->
-                "Retry with backup";
-            case ErrorValue(String msg, Throwable ignore, boolean ignoreSecret) when msg != null && msg.contains("Network") ->
-                "Check connectivity";
-            case ErrorValue e -> "Generic recovery";
-            default -> "No recovery needed";
+        case ErrorValue(String msg, Throwable ignore, boolean ignoreSecret) when msg != null && msg.contains(
+                "Database")                                                                                              ->
+            "Retry with backup";
+        case ErrorValue(String msg, Throwable ignore, boolean ignoreSecret) when msg != null && msg.contains(
+                "Network")                                                                                               ->
+            "Check connectivity";
+        case ErrorValue e                                                                                                ->
+            "Generic recovery";
+        default                                                                                                          ->
+            "No recovery needed";
         };
 
         assertThat(recovery).isEqualTo("Retry with backup");
@@ -173,10 +171,12 @@ class ErrorValueTests {
         Value result = Value.error("Failed", new IllegalArgumentException());
 
         var isValidationError = switch (result) {
-            case ErrorValue(String ignore, Throwable cause, boolean ignoreToo) when cause instanceof IllegalArgumentException ->
-                true;
-            case ErrorValue e -> false;
-            default -> false;
+        case ErrorValue(String ignore, Throwable cause, boolean ignoreToo) when cause instanceof IllegalArgumentException ->
+            true;
+        case ErrorValue e                                                                                                 ->
+            false;
+        default                                                                                                           ->
+            false;
         };
 
         assertThat(isValidationError).isTrue();
@@ -184,67 +184,32 @@ class ErrorValueTests {
 
     static Stream<Arguments> provideConstructorCases() {
         var cause = new RuntimeException("cause message");
-        return Stream.of(
-            Arguments.of("message", null, false, true),
-            Arguments.of("message", null, true, true),
-            Arguments.of("message", cause, false, true),
-            Arguments.of("message", cause, true, true),
-            Arguments.of(null, cause, false, true),
-            Arguments.of(null, cause, true, true),
-            Arguments.of("message", null, false, false),
-            Arguments.of("message", null, true, false),
-            Arguments.of("cause message", cause, false, false),
-            Arguments.of("cause message", cause, true, false)
-        );
+        return Stream.of(Arguments.of("message", null, false, true), Arguments.of("message", null, true, true),
+                Arguments.of("message", cause, false, true), Arguments.of("message", cause, true, true),
+                Arguments.of(null, cause, false, true), Arguments.of(null, cause, true, true),
+                Arguments.of("message", null, false, false), Arguments.of("message", null, true, false),
+                Arguments.of("cause message", cause, false, false), Arguments.of("cause message", cause, true, false));
     }
 
     static Stream<Arguments> provideEqualityCases() {
-        return Stream.of(
-            Arguments.of(
-                new ErrorValue("msg", false),
-                new ErrorValue("msg", true),
-                true
-            ),
-            Arguments.of(
-                new ErrorValue("msg", new RuntimeException(), false),
-                new ErrorValue("msg", new RuntimeException(), false),
-                true
-            ),
-            Arguments.of(
-                new ErrorValue("msg1", false),
-                new ErrorValue("msg2", false),
-                false
-            ),
-            Arguments.of(
-                new ErrorValue("msg", new RuntimeException(), false),
-                new ErrorValue("msg", new IllegalArgumentException(), false),
-                false
-            ),
-            Arguments.of(
-                new ErrorValue("msg", new RuntimeException(), false),
-                new ErrorValue("msg", false),
-                false
-            ),
-            Arguments.of(
-                new ErrorValue(null, new RuntimeException(), false),
-                new ErrorValue(null, new RuntimeException(), false),
-                true
-            ),
-            Arguments.of(
-                new ErrorValue(null, new RuntimeException(), false),
-                new ErrorValue("msg", new RuntimeException(), false),
-                false
-            )
-        );
+        return Stream.of(Arguments.of(new ErrorValue("msg", false), new ErrorValue("msg", true), true),
+                Arguments.of(new ErrorValue("msg", new RuntimeException(), false),
+                        new ErrorValue("msg", new RuntimeException(), false), true),
+                Arguments.of(new ErrorValue("msg1", false), new ErrorValue("msg2", false), false),
+                Arguments.of(new ErrorValue("msg", new RuntimeException(), false),
+                        new ErrorValue("msg", new IllegalArgumentException(), false), false),
+                Arguments.of(new ErrorValue("msg", new RuntimeException(), false), new ErrorValue("msg", false), false),
+                Arguments.of(new ErrorValue(null, new RuntimeException(), false),
+                        new ErrorValue(null, new RuntimeException(), false), true),
+                Arguments.of(new ErrorValue(null, new RuntimeException(), false),
+                        new ErrorValue("msg", new RuntimeException(), false), false));
     }
 
     static Stream<Arguments> provideToStringCases() {
-        return Stream.of(
-            Arguments.of("test error", null, false, "message only"),
-            Arguments.of("test error", new RuntimeException(), false, "message and cause"),
-            Arguments.of("secret error", null, true, "secret"),
-            Arguments.of(null, new RuntimeException(), false, "null message with cause"),
-            Arguments.of("long error: " + "x".repeat(100), null, false, "long message")
-        );
+        return Stream.of(Arguments.of("test error", null, false, "message only"),
+                Arguments.of("test error", new RuntimeException(), false, "message and cause"),
+                Arguments.of("secret error", null, true, "secret"),
+                Arguments.of(null, new RuntimeException(), false, "null message with cause"),
+                Arguments.of("long error: " + "x".repeat(100), null, false, "long message"));
     }
 }
