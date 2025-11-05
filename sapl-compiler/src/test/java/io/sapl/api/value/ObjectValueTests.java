@@ -22,7 +22,10 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
 
 import static org.assertj.core.api.Assertions.*;
 
@@ -68,8 +71,7 @@ class ObjectValueTests {
         void emptySecretBuilderReturnsNewInstance() {
             var result = ObjectValue.builder().secret().build();
 
-            assertThat(result).isNotSameAs(Value.EMPTY_OBJECT);
-            assertThat(result).isEmpty();
+            assertThat(result).isNotSameAs(Value.EMPTY_OBJECT).isEmpty();
             assertThat(result.secret()).isTrue();
         }
 
@@ -78,9 +80,7 @@ class ObjectValueTests {
         void builderPutChains() {
             var result = ObjectValue.builder().put("name", Value.of("Alice")).put("age", Value.of(30)).build();
 
-            assertThat(result).hasSize(2);
-            assertThat(result).containsEntry("name", Value.of("Alice"));
-            assertThat(result).containsEntry("age", Value.of(30));
+            assertThat(result).hasSize(2).containsEntry("name", Value.of("Alice")).containsEntry("age", Value.of(30));
         }
 
         @Test
@@ -89,8 +89,7 @@ class ObjectValueTests {
             var map    = Map.of("key1", Value.of("value1"), "key2", Value.of("value2"));
             var result = ObjectValue.builder().putAll(map).build();
 
-            assertThat(result).hasSize(2);
-            assertThat(result.get("key1")).isEqualTo(Value.of("value1"));
+            assertThat(result).hasSize(2).containsEntry("key1", Value.of("value1"));
         }
 
         @Test
@@ -338,7 +337,7 @@ class ObjectValueTests {
         void containsKeyForPresentKey() {
             var obj = new ObjectValue(Map.of("key", Value.of(1)), false);
 
-            assertThat(obj.containsKey("key")).isTrue();
+            assertThat(obj).containsKey("key");
         }
 
         @Test
@@ -357,9 +356,10 @@ class ObjectValueTests {
         @Test
         @DisplayName("put() throws UnsupportedOperationException")
         void putThrows() {
-            var obj = new ObjectValue(Map.of("key", Value.of(1)), false);
+            var obj      = new ObjectValue(Map.of("key", Value.of(1)), false);
+            var newValue = Value.of(2);
 
-            assertThatThrownBy(() -> obj.put("newKey", Value.of(2))).isInstanceOf(UnsupportedOperationException.class);
+            assertThatThrownBy(() -> obj.put("newKey", newValue)).isInstanceOf(UnsupportedOperationException.class);
         }
 
         @Test
@@ -510,8 +510,7 @@ class ObjectValueTests {
             var obj1 = new ObjectValue(Map.of("key", Value.of(1)), false);
             var obj2 = new ObjectValue(Map.of("key", Value.of(1)), false);
 
-            assertThat(obj1).isEqualTo(obj2);
-            assertThat(obj1).hasSameHashCodeAs(obj2);
+            assertThat(obj1).isEqualTo(obj2).hasSameHashCodeAs(obj2);
         }
 
         @Test
