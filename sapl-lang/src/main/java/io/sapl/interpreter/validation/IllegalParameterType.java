@@ -22,5 +22,5 @@ import lombok.experimental.StandardException;
 
 @StandardException
 public class IllegalParameterType extends Exception {
-    private static final long serialVersionUID = SaplVersion.VERISION_UID;
+    private static final long serialVersionUID = SaplVersion.VERSION_UID;
 }

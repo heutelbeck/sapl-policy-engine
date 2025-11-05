@@ -51,7 +51,7 @@ import java.util.EnumSet;
 @Conditional(SetupNotFinishedCondition.class)
 public class LoggingSetupView extends VerticalLayout {
 
-    private static final long serialVersionUID = SaplVersion.VERISION_UID;
+    private static final long serialVersionUID = SaplVersion.VERSION_UID;
 
     public static final String ROUTE = "/setup/logging";
 

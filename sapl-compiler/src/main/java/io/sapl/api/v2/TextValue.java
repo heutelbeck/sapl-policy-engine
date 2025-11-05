@@ -17,35 +17,42 @@
  */
 package io.sapl.api.v2;
 
-import lombok.With;
+import io.sapl.api.SaplVersion;
+import lombok.NonNull;
+import org.jetbrains.annotations.NotNull;
+
+import java.io.Serial;
+import java.util.Objects;
 
 /**
- * Represents a text Value.
+ * Text value implementation.
  */
-public record TextValue(String value, @With boolean secret) implements Value {
+public record TextValue(@NonNull String value, boolean secret) implements Value {
+
+    @Serial
+    private static final long serialVersionUID = SaplVersion.VERSION_UID;
 
     @Override
     public Value asSecret() {
-        return Value.asSecretHelper(this, v -> v.withSecret(true));
+        return secret ? this : new TextValue(value, true);
     }
 
     @Override
-    public String getValType() {
-        return "STRING";
+    public @NotNull String toString() {
+        return secret ? SECRET_PLACEHOLDER : "\"" + value + "\"";
     }
 
     @Override
-    public Object getTrace() {
-        return null;
+    public boolean equals(Object that) {
+        if (this == that)
+            return true;
+        if (!(that instanceof TextValue thatText))
+            return false;
+        return Objects.equals(value, thatText.value);
     }
 
     @Override
-    public Object getErrorsFromTrace() {
-        return null;
-    }
-
-    @Override
-    public String toString() {
-        return Value.formatToString("TextValue", secret, () -> "\"" + value + "\"");
+    public int hashCode() {
+        return Objects.hashCode(value);
     }
 }

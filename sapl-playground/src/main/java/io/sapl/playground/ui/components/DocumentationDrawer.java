@@ -55,7 +55,7 @@ import java.util.function.Function;
 @UIScope
 @SpringComponent
 public class DocumentationDrawer implements Serializable {
-    private static final long serialVersionUID = SaplVersion.VERISION_UID;
+    private static final long serialVersionUID = SaplVersion.VERSION_UID;
 
     private static final String CSS_BORDER_RADIUS = "border-radius";
     private static final String CSS_BOTTOM        = "bottom";

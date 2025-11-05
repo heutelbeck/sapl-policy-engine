@@ -43,7 +43,7 @@ import java.util.List;
 public class SaplTestEditor extends BaseEditor implements HasSize {
 
     @Serial
-    private static final long serialVersionUID = SaplVersion.VERISION_UID;
+    private static final long serialVersionUID = SaplVersion.VERSION_UID;
 
     private final List<ValidationFinishedListener> validationFinishedListeners = new ArrayList<>();
 

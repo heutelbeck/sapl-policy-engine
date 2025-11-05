@@ -25,7 +25,7 @@ import lombok.NonNull;
  */
 public class DuplicatedVariableNameException extends Exception {
 
-    private static final long serialVersionUID = SaplVersion.VERISION_UID;
+    private static final long serialVersionUID = SaplVersion.VERSION_UID;
 
     public DuplicatedVariableNameException(@NonNull String duplicatedName) {
         super(String.format("variable name \"%s\" is already used by another variable", duplicatedName));

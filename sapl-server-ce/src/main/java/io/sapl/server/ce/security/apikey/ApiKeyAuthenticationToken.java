@@ -35,7 +35,7 @@ import java.util.Collection;
 @ToString
 @EqualsAndHashCode(callSuper = true)
 public final class ApiKeyAuthenticationToken extends AbstractAuthenticationToken {
-    private static final long serialVersionUID = SaplVersion.VERISION_UID;
+    private static final long serialVersionUID = SaplVersion.VERSION_UID;
 
     private String credentials;
     private String principal;

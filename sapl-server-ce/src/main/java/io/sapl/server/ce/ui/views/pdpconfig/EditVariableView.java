@@ -45,7 +45,7 @@ import java.util.Optional;
 @Conditional(SetupFinishedCondition.class)
 public class EditVariableView extends VerticalLayout implements HasUrlParameter<Long> {
 
-    private static final long serialVersionUID = SaplVersion.VERISION_UID;
+    private static final long serialVersionUID = SaplVersion.VERSION_UID;
 
     public static final String ROUTE = "pdp-config/edit-variable";
 

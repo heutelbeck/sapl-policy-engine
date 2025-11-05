@@ -32,7 +32,7 @@ import io.sapl.api.pdp.TracedDecision;
  * presence of optional fields.
  */
 public class DecisionsGrid extends Grid<TracedDecision> {
-    private static final long serialVersionUID = SaplVersion.VERISION_UID;
+    private static final long serialVersionUID = SaplVersion.VERSION_UID;
 
     /**
      * Creates a new decisions grid with configured columns.

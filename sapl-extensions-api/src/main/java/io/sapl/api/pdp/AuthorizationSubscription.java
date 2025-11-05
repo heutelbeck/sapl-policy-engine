@@ -56,7 +56,7 @@ import java.io.Serializable;
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 public class AuthorizationSubscription implements Serializable {
 
-    private static final long serialVersionUID = SaplVersion.VERISION_UID;
+    private static final long serialVersionUID = SaplVersion.VERSION_UID;
 
     private static final ObjectMapper MAPPER = new ObjectMapper().registerModule(new Jdk8Module());
 

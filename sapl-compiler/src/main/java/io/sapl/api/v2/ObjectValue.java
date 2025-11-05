@@ -17,52 +17,78 @@
  */
 package io.sapl.api.v2;
 
-import java.util.Map;
-
-import lombok.EqualsAndHashCode;
-import lombok.With;
+import io.sapl.api.SaplVersion;
+import lombok.NonNull;
 import lombok.experimental.Delegate;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+
+import java.io.Serial;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Set;
+import java.util.function.BiConsumer;
+import java.util.stream.Collectors;
 
 /**
- * Represents an object Value that implements Map semantics.
- * The underlying map is immutable.
- *
- * Use directly as a Map:
+ * Object value implementing Map semantics. The underlying map is immutable.
+ * <p>
+ * Values from secret containers inherit the secret flag. Invalid key types
+ * return ErrorValue instead of throwing exceptions, consistent with SAPL's
+ * error-as-value pattern.
+ * <p>
+ * Direct map usage:
  * <pre>{@code
- * ObjectValue obj = (ObjectValue) Value.ofObject(Map.of("key", value));
- * Value val = obj.get("key");
- * boolean hasKey = obj.containsKey("key");
- * for (Map.Entry<String, Value> entry : obj.entrySet()) {
- *     // process entry
+ * ObjectValue user = Value.ofObject(Map.of(
+ *     "username", Value.of("alice"),
+ *     "department", Value.of("engineering"),
+ *     "clearance", Value.of(3)
+ * ));
+ * Value username = user.get("username");
+ * for (Map.Entry<String, Value> entry : user.entrySet()) {
+ *     processAttribute(entry.getKey(), entry.getValue());
  * }
  * }</pre>
- *
- * Or use builder for fluent construction:
+ * <p>
+ * Builder for fluent construction:
  * <pre>{@code
- * ObjectValue obj = ObjectValue.builder()
- *     .put("username", Value.of("alice"))
- *     .put("role", Value.of("admin"))
+ * ObjectValue metadata = ObjectValue.builder()
+ *     .put("resourceId", Value.of("doc-123"))
+ *     .put("owner", Value.of("bob"))
  *     .secret()
  *     .build();
  * }</pre>
+ * <p>
+ * Secret propagation:
+ * <pre>{@code
+ * ObjectValue credentials = obj.asSecret();
+ * Value password = credentials.get("password"); // Also secret
+ * }</pre>
+ * <p>
+ * Error handling:
+ * <pre>{@code
+ * Value result = obj.get(null); // Returns ErrorValue
+ * Value result2 = obj.get(123);  // Returns ErrorValue (not a String key)
+ * }</pre>
  */
-@EqualsAndHashCode
 public final class ObjectValue implements Value, Map<String, Value> {
 
-    @Delegate
-    private final Map<String, Value> delegate;
+    @Serial
+    private static final long serialVersionUID = SaplVersion.VERSION_UID;
 
-    @With
+    @Delegate(excludes = ExcludedMethods.class)
+    private final Map<String, Value> value;
     private final boolean secret;
 
     /**
      * Creates an ObjectValue.
      *
-     * @param properties the map properties (will be defensively copied)
+     * @param properties the map properties (defensively copied, must not be null)
      * @param secret whether this value is secret
      */
-    public ObjectValue(Map<String, Value> properties, boolean secret) {
-        this.delegate = Map.copyOf(properties);
+    public ObjectValue(@NonNull Map<String, Value> properties, boolean secret) {
+        this.value = Map.copyOf(properties);
         this.secret = secret;
     }
 
@@ -79,7 +105,7 @@ public final class ObjectValue implements Value, Map<String, Value> {
      * Builder for fluent ObjectValue construction.
      */
     public static final class Builder {
-        private final java.util.HashMap<String, Value> properties = new java.util.HashMap<>();
+        private final HashMap<String, Value> properties = new HashMap<>();
         private boolean secret = false;
 
         /**
@@ -107,6 +133,7 @@ public final class ObjectValue implements Value, Map<String, Value> {
 
         /**
          * Marks the object as secret.
+         * Values from secret objects inherit the secret flag.
          *
          * @return this builder
          */
@@ -116,11 +143,15 @@ public final class ObjectValue implements Value, Map<String, Value> {
         }
 
         /**
-         * Builds the ObjectValue.
+         * Builds the immutable ObjectValue.
+         * Returns singleton for empty objects.
          *
          * @return the constructed ObjectValue
          */
         public ObjectValue build() {
+            if (properties.isEmpty() && !secret) {
+                return Value.EMPTY_OBJECT;
+            }
             return new ObjectValue(properties, secret);
         }
     }
@@ -132,31 +163,171 @@ public final class ObjectValue implements Value, Map<String, Value> {
 
     @Override
     public Value asSecret() {
-        return Value.asSecretHelper(this, v -> v.withSecret(true));
+        return secret ? this : new ObjectValue(value, true);
     }
 
     @Override
-    public String getValType() {
-        return "OBJECT";
+    public @NotNull String toString() {
+        if (secret) {
+            return SECRET_PLACEHOLDER;
+        }
+        if (value.isEmpty()) {
+            return "{}";
+        }
+        return '{' + value.entrySet().stream()
+                .map(e -> e.getKey() + ": " + e.getValue().toString())
+                .collect(Collectors.joining(", ")) + '}';
     }
 
     @Override
-    public Object getTrace() {
-        return null;
+    public boolean equals(Object that) {
+        if (this == that)
+            return true;
+        if (!(that instanceof Map<?, ?> thatMap))
+            return false;
+        return value.equals(thatMap);
     }
 
     @Override
-    public Object getErrorsFromTrace() {
-        return null;
+    public int hashCode() {
+        return value.hashCode();
     }
 
+    /**
+     * Returns the value for the specified key.
+     * <p>
+     * Returns ErrorValue for invalid key types instead of throwing
+     * ClassCastException, consistent with SAPL's error-as-value model.
+     *
+     * @param key the key (must be a String)
+     * @return the value (with secret flag if container is secret),
+     *         null if key not found,
+     *         or ErrorValue if key is null or not a String
+     */
     @Override
-    public String toString() {
-        return Value.formatToString("ObjectValue", secret, () -> {
-            if (delegate.isEmpty()) {
-                return "keys=[]";
-            }
-            return "keys=" + delegate.keySet();
-        });
+    public @Nullable Value get(Object key) {
+        if (key == null) {
+            return new ErrorValue("Object key cannot be null", secret);
+        }
+        if (!(key instanceof String)) {
+            return new ErrorValue("Invalid key type: expected String, got " + key.getClass().getSimpleName(), secret);
+        }
+        var v = value.get(key);
+        return v == null ? null : applySecretFlag(v);
+    }
+
+    /**
+     * Returns the value for the specified key, or defaultValue if not found.
+     * <p>
+     * Returns ErrorValue for invalid key types instead of throwing ClassCastException.
+     *
+     * @param key the key (must be a String)
+     * @param defaultValue the default value if key not found
+     * @return the value (with secret flag if container is secret),
+     *         defaultValue (with secret flag) if key not found,
+     *         or ErrorValue if key is null or not a String
+     */
+    @Override
+    public @NotNull Value getOrDefault(Object key, Value defaultValue) {
+        if (key == null) {
+            return new ErrorValue("Object key cannot be null", secret);
+        }
+        if (!(key instanceof String)) {
+            return new ErrorValue("Invalid key type: expected String, got " + key.getClass().getSimpleName(), secret);
+        }
+        var v = value.getOrDefault(key, defaultValue);
+        return applySecretFlag(v);
+    }
+
+    /**
+     * Returns true if this map contains the specified key.
+     * <p>
+     * Returns false for non-String keys instead of throwing ClassCastException.
+     *
+     * @param key key to test
+     * @return true if map contains the key (which must be a String)
+     */
+    @Override
+    public boolean containsKey(Object key) {
+        return key instanceof String && value.containsKey(key);
+    }
+
+    /**
+     * Returns true if this map contains the specified value.
+     *
+     * @param value value to test
+     * @return true if map contains the value
+     */
+    @Override
+    public boolean containsValue(Object value) {
+        return this.value.containsValue(value);
+    }
+
+    /**
+     * Returns a collection of values in this map.
+     * Values from secret containers are marked as secret.
+     *
+     * @return an immutable collection with secret flag applied
+     */
+    @Override
+    public @NotNull Collection<Value> values() {
+        return value.values().stream()
+                .map(this::applySecretFlag)
+                .toList();
+    }
+
+    /**
+     * Returns a set of entries in this map.
+     * Values from secret containers are marked as secret.
+     *
+     * @return an immutable set with secret flag applied to values
+     */
+    @Override
+    public @NotNull Set<Entry<String, Value>> entrySet() {
+        return value.entrySet().stream()
+                .map(e -> Map.entry(e.getKey(), applySecretFlag(e.getValue())))
+                .collect(Collectors.toUnmodifiableSet());
+    }
+
+    /**
+     * Performs the given action for each entry.
+     * Values have secret flag applied if container is secret.
+     *
+     * @param action the action for each entry
+     */
+    @Override
+    public void forEach(BiConsumer<? super String, ? super Value> action) {
+        value.forEach((k, v) -> action.accept(k, applySecretFlag(v)));
+    }
+
+    /**
+     * Applies secret flag from the container to the value.
+     *
+     * @param v the value
+     * @return the value, marked as secret if container is secret
+     */
+    private Value applySecretFlag(Value v) {
+        return secret ? v.asSecret() : v;
+    }
+
+    /**
+     * Methods excluded from Lombok delegation to preserve Value semantics.
+     * These methods require custom implementations to:
+     * - Maintain equals/hashCode contracts
+     * - Propagate secret flag during value access
+     * - Apply error-as-value pattern for invalid keys (null, wrong type)
+     * - Transform collection views to apply secret flag
+     */
+    private interface ExcludedMethods {
+        boolean equals(Object obj);
+        int hashCode();
+        String toString();
+        Value get(Object key);
+        Value getOrDefault(Object key, Value defaultValue);
+        boolean containsKey(Object key);
+        boolean containsValue(Object value);
+        Collection<Value> values();
+        Set<Entry<String, Value>> entrySet();
+        void forEach(BiConsumer<? super String, ? super Value> action);
     }
 }

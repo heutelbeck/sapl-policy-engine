@@ -30,7 +30,7 @@ import org.eclipse.xtext.web.servlet.XtextServlet;
 @WebServlet(name = "XtextServices", urlPatterns = "/xtext-service/*")
 public class SAPLServlet extends XtextServlet {
 
-    private static final long serialVersionUID = SaplVersion.VERISION_UID;
+    private static final long serialVersionUID = SaplVersion.VERSION_UID;
 
     private transient DisposableRegistry disposableRegistry;
 

@@ -17,35 +17,45 @@
  */
 package io.sapl.api.v2;
 
+import io.sapl.api.SaplVersion;
+import org.jetbrains.annotations.NotNull;
+
+import java.io.Serial;
+
 /**
- * Represents a null Value.
+ * Null value implementation.
  */
 public record NullValue(boolean secret) implements Value {
 
-    static final NullValue INSTANCE = new NullValue(false);
+    @Serial
+    private static final long serialVersionUID = SaplVersion.VERSION_UID;
+
+    /**
+     * Singleton for secret null value.
+     */
+    public static final Value SECRET_NULL = new NullValue(true);
 
     @Override
     public Value asSecret() {
-        return secret ? this : new NullValue(true);
+        return SECRET_NULL;
     }
 
     @Override
-    public String getValType() {
-        return "NULL";
+    public @NotNull String toString() {
+        return secret ? SECRET_PLACEHOLDER : "null";
     }
 
     @Override
-    public Object getTrace() {
-        return null;
+    public boolean equals(Object that) {
+        if (this == that)
+            return true;
+        // All null values are semantically equal.
+        return that instanceof NullValue;
     }
 
     @Override
-    public Object getErrorsFromTrace() {
-        return null;
-    }
-
-    @Override
-    public String toString() {
-        return Value.formatToStringSimple("NullValue", secret);
+    public int hashCode() {
+        // All null values have same hash code.
+        return NullValue.class.hashCode();
     }
 }

@@ -17,21 +17,86 @@
  */
 package io.sapl.api.v2;
 
+import io.sapl.api.SaplVersion;
+import lombok.NonNull;
+
+import java.io.Serial;
 import java.io.Serializable;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Function;
 
 /**
- * Central value type for policy evaluation. A Value can represent a defined
- * value (null, boolean, number, text, array, object), an error state, or an
- * undefined state.
- * <p/>
- * Values can be marked as secret to prevent exposure in traces and logs.
+ * Central value type for policy evaluation. Represents defined values (null, boolean,
+ * number, text, array, object), error states, or undefined states.
+ * <p>
+ * Values can be marked as secret to prevent exposure in logs. The secret flag only
+ * affects toString() and does not impact equality or evaluation.
+ * <p>
+ * Creating values:
+ * <pre>{@code
+ * Value user = Value.of("alice");
+ * Value age = Value.of(30);
+ * Value active = Value.of(true);
+ * Value permissions = Value.ofArray(Value.of("read"), Value.of("write"));
+ * Value metadata = Value.ofObject(Map.of("department", Value.of("engineering")));
+ * }</pre>
+ * <p>
+ * Pattern matching for type-safe extraction:
+ * <pre>{@code
+ * String decision = switch(value) {
+ *     case BooleanValue(boolean allowed, _) -> allowed ? "PERMIT" : "DENY";
+ *     case TextValue(String role, _) -> "Role: " + role;
+ *     case ErrorValue e -> "Error: " + e.message();
+ *     default -> "INDETERMINATE";
+ * };
+ * }</pre>
+ * <p>
+ * Secret values prevent sensitive data exposure:
+ * <pre>{@code
+ * Value password = Value.of("secret123").asSecret();
+ * System.out.println(password); // Prints: ***SECRET***
+ *
+ * ArrayValue tokens = new ArrayValue(List.of(Value.of("token1")), true);
+ * Value extracted = tokens.get(0); // Inherits secret flag
+ * }</pre>
+ * <p>
+ * Errors are values, not exceptions:
+ * <pre>{@code
+ * Value result = evaluatePolicy();
+ * if (result instanceof ErrorValue error) {
+ *     log.error("Policy evaluation failed: {}", error.message());
+ * }
+ *
+ * ArrayValue users = getUsers();
+ * Value missing = users.get(999); // Returns ErrorValue, not exception
+ * }</pre>
+ * <p>
+ * Collections implement standard Java interfaces:
+ * <pre>{@code
+ * ArrayValue roles = Value.ofArray(Value.of("admin"), Value.of("user"));
+ * for (Value role : roles) {
+ *     processRole(role);
+ * }
+ *
+ * ObjectValue attrs = Value.ofObject(Map.of("userId", Value.of("123")));
+ * Value userId = attrs.get("userId");
+ * }</pre>
+ *
+ * @see BooleanValue
+ * @see NumberValue
+ * @see TextValue
+ * @see ArrayValue
+ * @see ObjectValue
+ * @see ErrorValue
+ * @see UndefinedValue
+ * @see NullValue
  */
 public sealed interface Value extends Serializable
         permits UndefinedValue, ErrorValue, NullValue, BooleanValue, NumberValue, TextValue, ArrayValue, ObjectValue {
+
+    @Serial
+    long serialVersionUID = SaplVersion.VERSION_UID;
 
     /**
      * Placeholder text used when displaying secret values.
@@ -39,209 +104,204 @@ public sealed interface Value extends Serializable
     String SECRET_PLACEHOLDER = "***SECRET***";
 
     /**
-     * Creates an undefined Value.
-     *
-     * @return an undefined Value
+     * Singleton for boolean true.
      */
-    static Value undefined() {
-        return UndefinedValue.INSTANCE;
-    }
+    BooleanValue TRUE = new BooleanValue(true, false);
 
     /**
-     * Creates a null Value.
-     *
-     * @return a null Value
+     * Singleton for boolean false.
      */
-    static Value ofNull() {
-        return NullValue.INSTANCE;
-    }
+    BooleanValue FALSE = new BooleanValue(false, false);
 
     /**
-     * Creates a boolean Value.
+     * Singleton for undefined values.
+     */
+    UndefinedValue UNDEFINED = new UndefinedValue(false);
+
+    /**
+     * Singleton for null values.
+     */
+    NullValue NULL = new NullValue(false);
+
+    /**
+     * Constant for numeric zero.
+     */
+    NumberValue ZERO = new NumberValue(BigDecimal.ZERO, false);
+
+    /**
+     * Constant for numeric one.
+     */
+    NumberValue ONE = new NumberValue(BigDecimal.ONE, false);
+
+    /**
+     * Constant for numeric ten.
+     */
+    NumberValue TEN = new NumberValue(BigDecimal.TEN, false);
+
+    /**
+     * Constant for empty array.
+     */
+    ArrayValue EMPTY_ARRAY = new ArrayValue(List.of(), false);
+
+    /**
+     * Constant for empty object.
+     */
+    ObjectValue EMPTY_OBJECT = new ObjectValue(Map.of(), false);
+
+    /**
+     * Constant for empty text.
+     */
+    TextValue EMPTY_TEXT = new TextValue("", false);
+
+    /**
+     * Creates a boolean value.
      *
-     * @param value the boolean value
-     * @return a boolean Value
+     * @param value the boolean
+     * @return TRUE or FALSE singleton
      */
     static Value of(boolean value) {
-        return value ? BooleanValue.TRUE : BooleanValue.FALSE;
+        return value ? TRUE : FALSE;
     }
 
     /**
-     * Creates a number Value from a long.
+     * Creates a number value from a long.
      *
-     * @param value the long value
-     * @return a number Value
+     * @param value the long
+     * @return a NumberValue
      */
     static Value of(long value) {
+        if (value == 0L) return ZERO;
+        if (value == 1L) return ONE;
+        if (value == 10L) return TEN;
         return new NumberValue(BigDecimal.valueOf(value), false);
     }
 
     /**
-     * Creates a number Value from a double.
+     * Creates a number value from a double.
+     * <p>
+     * Note: NaN and infinite values are not supported and will throw IllegalArgumentException.
+     * Function libraries should check for these conditions and return ErrorValue explicitly.
      *
-     * @param value the double value
-     * @return a number Value
+     * @param value the double
+     * @return a NumberValue
+     * @throws IllegalArgumentException if value is NaN or infinite
      */
     static Value of(double value) {
+        if (Double.isNaN(value)) {
+            throw new IllegalArgumentException("Cannot create Value from NaN. Use Value.error() for computation errors.");
+        }
+        if (Double.isInfinite(value)) {
+            throw new IllegalArgumentException("Cannot create Value from infinite double: " + value + ". Use Value.error() for computation errors.");
+        }
+        if (value == 0.0) return ZERO;
+        if (value == 1.0) return ONE;
+        if (value == 10.0) return TEN;
         return new NumberValue(BigDecimal.valueOf(value), false);
     }
 
     /**
-     * Creates a number Value from a BigDecimal.
+     * Creates a number value from a BigDecimal.
      *
-     * @param value the BigDecimal value
-     * @return a number Value
+     * @param value the BigDecimal (must not be null)
+     * @return a NumberValue
      */
-    static Value of(BigDecimal value) {
+    static Value of(@NonNull BigDecimal value) {
+        if (value.compareTo(BigDecimal.ZERO) == 0) return ZERO;
+        if (value.compareTo(BigDecimal.ONE) == 0) return ONE;
+        if (value.compareTo(BigDecimal.TEN) == 0) return TEN;
         return new NumberValue(value, false);
     }
 
     /**
-     * Creates a text Value.
+     * Creates a text value.
      *
-     * @param value the text value
-     * @return a text Value
+     * @param value the text (must not be null - use Value.NULL for null values)
+     * @return a TextValue
      */
-    static Value of(String value) {
+    static Value of(@NonNull String value) {
+        if (value.isEmpty()) return EMPTY_TEXT;
         return new TextValue(value, false);
     }
 
     /**
-     * Creates an array Value.
+     * Creates an array value from varargs.
      *
-     * @param values the array elements
-     * @return an array Value
+     * @param values the elements (must not contain null - use Value.NULL instead)
+     * @return an immutable ArrayValue
      */
     static Value ofArray(Value... values) {
-        return new ArrayValue(List.of(values), false);
+        if (values.length == 0) return EMPTY_ARRAY;
+        return new ArrayValue(values, false);
     }
 
     /**
-     * Creates an array Value from a list.
+     * Creates an array value from a list.
      *
-     * @param values the array elements
-     * @return an array Value
+     * @param values the elements (must not be null or contain null - use Value.NULL instead)
+     * @return an immutable ArrayValue
      */
-    static Value ofArray(List<Value> values) {
-        return new ArrayValue(List.copyOf(values), false);
+    static Value ofArray(@NonNull List<Value> values) {
+        if (values.isEmpty()) return EMPTY_ARRAY;
+        return new ArrayValue(values, false);
     }
 
     /**
-     * Creates an object Value.
+     * Creates an object value from a map.
      *
-     * @param properties the object properties
-     * @return an object Value
+     * @param properties the properties (must not be null)
+     * @return an immutable ObjectValue
      */
-    static Value ofObject(Map<String, Value> properties) {
+    static Value ofObject(@NonNull Map<String, Value> properties) {
+        if (properties.isEmpty()) return EMPTY_OBJECT;
         return new ObjectValue(Map.copyOf(properties), false);
     }
 
     /**
-     * Creates an error Value.
+     * Creates an error value with a message.
      *
-     * @param message the error message
-     * @return an error Value
+     * @param message the error message (must not be null)
+     * @return an ErrorValue
      */
-    static Value error(String message) {
+    static Value error(@NonNull String message) {
         return new ErrorValue(message, null, false);
     }
 
     /**
-     * Creates an error Value with a cause.
+     * Creates an error value with a message and cause.
      *
-     * @param message the error message
-     * @param cause the causing exception
-     * @return an error Value
+     * @param message the error message (must not be null)
+     * @param cause the exception (may be null)
+     * @return an ErrorValue
      */
-    static Value error(String message, Throwable cause) {
+    static Value error(@NonNull String message, Throwable cause) {
         return new ErrorValue(message, cause, false);
     }
 
     /**
-     * Creates an error Value from an exception.
+     * Creates an error value from an exception.
      *
-     * @param cause the causing exception
-     * @return an error Value
+     * @param cause the exception (must not be null)
+     * @return an ErrorValue
      */
-    static Value error(Throwable cause) {
-        return new ErrorValue(cause.getMessage(), cause, false);
+    static Value error(@NonNull Throwable cause) {
+        return new ErrorValue(cause, false);
     }
 
     /**
-     * Checks if the Value is marked as secret.
+     * Marks this value as secret.
+     * Secret values display as "***SECRET***" in toString() to prevent exposure.
+     * The secret flag does not affect equality or evaluation.
+     * <p>
+     * Container types propagate the secret flag to extracted elements.
      *
-     * @return true if secret, false otherwise
-     */
-    boolean secret();
-
-    /**
-     * Marks the Value as secret. Implementations should use the helper method
-     * asSecretHelper to implement this consistently.
-     *
-     * @return a new Value marked as secret
+     * @return a secret value (or this instance if already secret)
      */
     Value asSecret();
 
     /**
-     * Helper method to implement asSecret() consistently across all Value types.
-     * Eliminates duplication of the "check if already secret" pattern.
+     * Returns whether this value is marked as secret.
      *
-     * @param value the current value
-     * @param secretCreator function that creates a secret version of the value
-     * @param <T> the specific Value type
-     * @return the value if already secret, or a new secret version
+     * @return true if secret
      */
-    static <T extends Value> T asSecretHelper(T value, Function<T, T> secretCreator) {
-        return value.secret() ? value : secretCreator.apply(value);
-    }
-
-    /**
-     * Gets a string describing the type of the Value.
-     *
-     * @return the type description
-     */
-    String getValType();
-
-    /**
-     * Placeholder for trace information.
-     * TODO: Design tracing mechanism without Jackson dependency.
-     *
-     * @return trace representation (format TBD)
-     */
-    Object getTrace();
-
-    /**
-     * Placeholder for error collection from trace.
-     * TODO: Design error collection mechanism.
-     *
-     * @return collected errors (format TBD)
-     */
-    Object getErrorsFromTrace();
-
-    /**
-     * Utility method to format a toString representation respecting secret flag.
-     *
-     * @param typeName the name of the type (e.g., "BooleanValue")
-     * @param secret whether this value is secret
-     * @param valueSupplier supplier that produces the value representation
-     * @return formatted string, with SECRET_PLACEHOLDER if secret
-     */
-    static String formatToString(String typeName, boolean secret, java.util.function.Supplier<String> valueSupplier) {
-        if (secret) {
-            return typeName + "[" + SECRET_PLACEHOLDER + "]";
-        }
-        return typeName + "[" + valueSupplier.get() + "]";
-    }
-
-    /**
-     * Utility method to format a simple toString with no brackets.
-     * Used for types where the type name alone is sufficient (e.g., UndefinedValue).
-     *
-     * @param typeName the name of the type
-     * @param secret whether this value is secret
-     * @return formatted string
-     */
-    static String formatToStringSimple(String typeName, boolean secret) {
-        return secret ? typeName + "[" + SECRET_PLACEHOLDER + "]" : typeName;
-    }
+    boolean secret();
 }

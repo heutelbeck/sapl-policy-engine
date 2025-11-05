@@ -32,7 +32,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 @SpringBootApplication
 @Theme(value = "sapl", variant = Lumo.DARK)
 public class PlaygroundApplication implements AppShellConfigurator {
-    private static final long serialVersionUID = SaplVersion.VERISION_UID;
+    private static final long serialVersionUID = SaplVersion.VERSION_UID;
 
     @Override
     public void configurePage(AppShellSettings settings) {

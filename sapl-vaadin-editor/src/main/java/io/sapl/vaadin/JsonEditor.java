@@ -43,7 +43,7 @@ import java.io.Serializable;
 @NpmPackage(value = "diff-match-patch", version = "1.0.5")
 public class JsonEditor extends BaseEditor implements HasSize {
 
-    private static final long serialVersionUID = SaplVersion.VERISION_UID;
+    private static final long serialVersionUID = SaplVersion.VERSION_UID;
 
     private boolean mergeModeEnabled;
     private String  mergeRightContent;

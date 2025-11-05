@@ -38,7 +38,7 @@ import java.util.List;
 @NpmPackage(value = "diff-match-patch", version = "1.0.5")
 public class SaplEditor extends BaseEditor implements HasSize {
 
-    private static final long serialVersionUID = SaplVersion.VERISION_UID;
+    private static final long serialVersionUID = SaplVersion.VERSION_UID;
 
     private final List<ValidationFinishedListener> validationFinishedListeners = new ArrayList<>();
 
@@ -171,7 +171,7 @@ public class SaplEditor extends BaseEditor implements HasSize {
 
     @DomEvent("sapl-merge-chunks")
     public static class DiffChunksChangedEvent extends ComponentEvent<SaplEditor> {
-        private static final long serialVersionUID = SaplVersion.VERISION_UID;
+        private static final long serialVersionUID = SaplVersion.VERSION_UID;
 
         private final ArrayList<Chunk> chunks;
 

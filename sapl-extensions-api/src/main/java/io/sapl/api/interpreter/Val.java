@@ -40,7 +40,7 @@ import java.util.function.Supplier;
  */
 public final class Val implements Traced, Serializable {
 
-    private static final long serialVersionUID = SaplVersion.VERISION_UID;
+    private static final long serialVersionUID = SaplVersion.VERSION_UID;
 
     static final String ERROR_LITERAL                              = "ERROR";
     static final String UNDEFINED_LITERAL                          = "undefined";
@@ -1083,7 +1083,7 @@ public final class Val implements Traced, Serializable {
 
     private static class NumericAwareComparator implements Comparator<JsonNode>, Serializable {
 
-        private static final long serialVersionUID = SaplVersion.VERISION_UID;
+        private static final long serialVersionUID = SaplVersion.VERSION_UID;
 
         @Override
         public int compare(JsonNode o1, JsonNode o2) {

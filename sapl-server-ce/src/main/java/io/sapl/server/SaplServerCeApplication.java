@@ -35,7 +35,7 @@ import org.springframework.context.ConfigurableApplicationContext;
 @SpringBootApplication(exclude = { DataSourceAutoConfiguration.class })
 public class SaplServerCeApplication implements AppShellConfigurator {
 
-    private static final long serialVersionUID = SaplVersion.VERISION_UID;
+    private static final long serialVersionUID = SaplVersion.VERSION_UID;
 
     public static void main(String[] args) {
         context = SpringApplication.run(SaplServerCeApplication.class, args);
