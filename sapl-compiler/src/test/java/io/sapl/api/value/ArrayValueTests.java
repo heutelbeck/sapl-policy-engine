@@ -90,7 +90,7 @@ class ArrayValueTests {
         @ParameterizedTest(name = "Builder {0}")
         @MethodSource("io.sapl.api.value.ArrayValueTests#provideBuilderCases")
         @DisplayName("Builder methods chain fluently")
-        void builderMethodsChain(String description, List<Value> expected) {
+        void builderMethodsChain(String description, Iterable<Value> expected) {
             ArrayValue result;
 
             switch (description) {
@@ -146,7 +146,7 @@ class ArrayValueTests {
 
         var values = accessor.apply(secretArray).toList();
 
-        assertThat(values).allMatch(Value::secret);
+        assertThat(values).isNotEmpty().allMatch(Value::secret);
     }
 
     @Test
@@ -204,11 +204,8 @@ class ArrayValueTests {
     void listInterfaceMethodsWork() {
         var array = new ArrayValue(List.of(Value.of(1), Value.of(2), Value.of(3)), false);
 
-        assertThat(array).hasSize(3);
-        assertThat(array).isNotEmpty();
-        assertThat(array.contains(Value.of(2))).isTrue();
-        assertThat(array.indexOf(Value.of(2))).isEqualTo(1);
-        assertThat(array.lastIndexOf(Value.of(2))).isEqualTo(1);
+        assertThat(array).isNotEmpty().hasSize(3).contains(Value.of(2));
+        assertThat(array.indexOf(Value.of(2))).isEqualTo(array.lastIndexOf(Value.of(2))).isEqualTo(1);
     }
 
     @Test
@@ -256,9 +253,7 @@ class ArrayValueTests {
         var array3    = new ArrayValue(List.of(Value.of(1), Value.of(3)), false);
         var plainList = List.of(Value.of(1), Value.of(2));
 
-        assertThat(array1).isEqualTo(array2).isEqualTo(plainList);
-        assertThat(array1).isNotEqualTo(array3);
-        assertThat(array1).hasSameHashCodeAs(array2);
+        assertThat(array1).isEqualTo(array2).isEqualTo(plainList).isNotEqualTo(array3).hasSameHashCodeAs(array2);
     }
 
     @ParameterizedTest(name = "{2}")

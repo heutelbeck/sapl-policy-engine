@@ -372,9 +372,7 @@ class ValueTests {
 
             assertThat(result).isInstanceOf(ObjectValue.class);
             var obj = (ObjectValue) result;
-            assertThat(obj).hasSize(2);
-            assertThat(obj).containsEntry("name", Value.of("Alice"));
-            assertThat(obj).containsEntry("age", Value.of(30));
+            assertThat(obj).hasSize(2).containsEntry("name", Value.of("Alice")).containsEntry("age", Value.of(30));
         }
 
         @Test
@@ -500,16 +498,14 @@ class ValueTests {
         @Test
         @DisplayName("EMPTY_ARRAY is empty ArrayValue")
         void emptyArrayConstant() {
-            assertThat(Value.EMPTY_ARRAY).isInstanceOf(ArrayValue.class);
-            assertThat(Value.EMPTY_ARRAY).isEmpty();
+            assertThat(Value.EMPTY_ARRAY).isInstanceOf(ArrayValue.class).isEmpty();
             assertThat(Value.EMPTY_ARRAY.secret()).isFalse();
         }
 
         @Test
         @DisplayName("EMPTY_OBJECT is empty ObjectValue")
         void emptyObjectConstant() {
-            assertThat(Value.EMPTY_OBJECT).isInstanceOf(ObjectValue.class);
-            assertThat(Value.EMPTY_OBJECT).isEmpty();
+            assertThat(Value.EMPTY_OBJECT).isInstanceOf(ObjectValue.class).isEmpty();
             assertThat(Value.EMPTY_OBJECT.secret()).isFalse();
         }
 
@@ -676,7 +672,7 @@ class ValueTests {
             var array = Value.ofArray(Value.of(1), Value.of("text"), Value.of(true), Value.NULL, Value.UNDEFINED);
 
             assertThat(array).isInstanceOf(ArrayValue.class);
-            assertThat(((ArrayValue) array).size()).isEqualTo(5);
+            assertThat((ArrayValue) array).hasSize(5);
         }
 
         @Test
@@ -686,7 +682,7 @@ class ValueTests {
                     "null", Value.NULL));
 
             assertThat(obj).isInstanceOf(ObjectValue.class);
-            assertThat(((ObjectValue) obj).size()).isEqualTo(4);
+            assertThat((ObjectValue) obj).hasSize(4);
         }
 
         @Test

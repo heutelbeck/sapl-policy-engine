@@ -280,8 +280,7 @@ class NumberValueTests {
         var decimal     = new NumberValue(new BigDecimal(decimalNotation), false);
         var exponential = new NumberValue(new BigDecimal(exponentialNotation), false);
 
-        assertThat(decimal).isEqualTo(exponential);
-        assertThat(decimal).hasSameHashCodeAs(exponential);
+        assertThat(decimal).isEqualTo(exponential).hasSameHashCodeAs(exponential);
     }
 
     @Test
