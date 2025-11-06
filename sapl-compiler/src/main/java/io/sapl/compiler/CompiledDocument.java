@@ -22,14 +22,18 @@ import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.Decision;
 import io.sapl.api.value.Value;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 import java.util.ArrayList;
 import java.util.List;
 
 public class CompiledDocument {
 
-    private List<Value>        constants = new ArrayList<>();
-    private CompiledExpression targetExpression;
+    private List<Value> constants = new ArrayList<>();
+    // This should be mostly non-reactive.. no acccess but to the reactive
+    // evaluation context.
+    // Its only wrapped in a Mono because we need to access said context.
+    private Mono<Value> targetExpression;
 
     public boolean matches(AuthorizationSubscription authorizationSubscription) {
         return true;

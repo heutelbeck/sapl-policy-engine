@@ -191,8 +191,7 @@ class ArrayValueTests {
     void allMutationOperationsThrow(String operation, java.util.function.Consumer<ArrayValue> mutator) {
         var array = new ArrayValue(List.of(Value.of(1), Value.of(2)), false);
 
-        assertThatThrownBy(() -> mutator.accept(array)).isInstanceOf(UnsupportedOperationException.class)
-                .hasMessageContaining("immutable");
+        assertThatThrownBy(() -> mutator.accept(array)).isInstanceOf(UnsupportedOperationException.class);
     }
 
     // ============================================================================

@@ -17,24 +17,5 @@
  */
 package io.sapl.compiler;
 
-import io.sapl.interpreter.DefaultSAPLInterpreter;
-import io.sapl.interpreter.SAPLInterpreter;
-import lombok.val;
-import org.junit.jupiter.api.Test;
-
-public class SaplCompilerTests {
-    private static final SAPLInterpreter PARSER   = new DefaultSAPLInterpreter();
-    private static final SaplCompiler    COMPILER = new SaplCompiler();
-
-    @Test
-    void experimentWithCompiler() {
-        val source   = """
-                policy "test policy"
-                permit subject.name == "abc"
-                where
-                   resource.id == "def";
-                """;
-        val ast      = PARSER.parse(source);
-        val compiled = COMPILER.compile(ast);
-    }
+public class PureFunction {
 }
