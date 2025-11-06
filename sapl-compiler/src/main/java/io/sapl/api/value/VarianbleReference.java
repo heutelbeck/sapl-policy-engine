@@ -15,21 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.compiler;
+package io.sapl.api.value;
 
-import io.sapl.api.value.Value;
-import lombok.RequiredArgsConstructor;
-import org.eclipse.xtext.xbase.controlflow.EvaluationContext;
-import reactor.core.publisher.Flux;
-
-public interface CompiledExpression {
-
-    interface PureCompiledExpression extends CompiledExpression {
-        public Value evaluate();
-    }
-
-    interface AsyncCompiledExpression extends CompiledExpression {
-        public Flux<Value> evaluate();
-    }
-
+public final class VarianbleReference implements CompiledExpression {
 }

@@ -99,7 +99,7 @@ import java.util.Map;
  * @see UndefinedValue
  * @see NullValue
  */
-public sealed interface Value extends Serializable
+public sealed interface Value extends Serializable, CompiledExpression
         permits UndefinedValue, ErrorValue, NullValue, BooleanValue, NumberValue, TextValue, ArrayValue, ObjectValue {
 
     @Serial

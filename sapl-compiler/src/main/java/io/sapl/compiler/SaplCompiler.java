@@ -17,10 +17,45 @@
  */
 package io.sapl.compiler;
 
-import io.sapl.grammar.sapl.SAPL;
+import io.sapl.api.value.CompiledExpression;
+import io.sapl.grammar.sapl.*;
+
+import java.lang.Object;
+import java.util.Map;
 
 public class SaplCompiler {
-    public CompiledDocument compile(SAPL document, String source) {
+
+    public record Schema(Value schema, boolean enforced, Object compiledSchema) {
+        public Schema(Value schema, boolean enforced) {
+            this(schema, enforced, null);
+        }
+    }
+
+    public record CompilationContext(
+            Object imports,
+            Object schemas,
+            Map<String, CompiledExpression> variablesInScope) {}
+
+    public CompiledDocument compile(SAPL document) {
+        // 1. Load imports into context
+
+        // 2. Load schemata into context
+        // Schema expressions must evaluate to constant values !
+        // ID must be one of subject, action, resource or environment
+
         return null;
+    }
+
+    public CompiledExpression compile(Expression expression) {
+        return switch (expression) {
+        case Or or             -> null;
+        case EagerOr eagerOr   -> null;
+        case And and           -> null;
+        case EagerAnd eagerAnd -> null;
+        case Not not           -> null;
+        case Equals equals     -> null;
+        case Less less         -> null;
+        default                -> null;
+        };
     }
 }
