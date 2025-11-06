@@ -19,112 +19,86 @@ package io.sapl.compiler.operators;
 
 import io.sapl.api.value.ErrorValue;
 import io.sapl.api.value.Value;
+import lombok.val;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import java.util.Map;
+import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-/**
- * Tests for SchemaValidation.
- */
 class SchemaValidationTests {
 
-    // ============================================================
-    // Basic Validation Tests
-    // ============================================================
+    private static final Value STRING_SCHEMA = Value.ofObject(Map.of("type", Value.of("string")));
+    private static final Value NUMBER_SCHEMA = Value.ofObject(Map.of("type", Value.of("number")));
 
-    @Test
-    void validatorReturnsTrue() {
-        var schema    = Value.ofObject(Map.of("type", Value.of("string")));
-        var validator = SchemaValidation.schemaValidatorFromSchema(schema);
-        var result    = validator.apply(Value.of("alice"));
+    @ParameterizedTest
+    @MethodSource("validationTestCases")
+    void validatesValueAgainstSchema(Value schema, Value input, Value expected) {
+        val validator = SchemaValidation.schemaValidatorFromSchema(schema);
+        assertThat(validator.apply(input)).isEqualTo(expected);
+    }
 
-        assertThat(result).isEqualTo(Value.TRUE);
+    static Stream<Arguments> validationTestCases() {
+        return Stream.of(Arguments.of(STRING_SCHEMA, Value.of("Frodo"), Value.TRUE),
+                Arguments.of(STRING_SCHEMA, Value.of(9), Value.FALSE),
+                Arguments.of(NUMBER_SCHEMA, Value.of(20), Value.TRUE),
+                Arguments.of(NUMBER_SCHEMA, Value.of("Gandalf"), Value.FALSE));
     }
 
     @Test
-    void validatorReturnsFalse() {
-        var schema    = Value.ofObject(Map.of("type", Value.of("string")));
-        var validator = SchemaValidation.schemaValidatorFromSchema(schema);
-        var result    = validator.apply(Value.of(42));
+    void validatorCanBeReusedForMultipleRingBearers() {
+        val validator = SchemaValidation.schemaValidatorFromSchema(NUMBER_SCHEMA);
 
-        assertThat(result).isEqualTo(Value.FALSE);
+        assertThat(validator.apply(Value.of(3))).isEqualTo(Value.TRUE);
+        assertThat(validator.apply(Value.of("Sauron"))).isEqualTo(Value.FALSE);
+        assertThat(validator.apply(Value.of(9))).isEqualTo(Value.TRUE);
+    }
+
+    @ParameterizedTest
+    @MethodSource("invalidSchemaTestCases")
+    void returnsErrorForInvalidSchema(Value invalidSchema) {
+        val validator = SchemaValidation.schemaValidatorFromSchema(invalidSchema);
+        val result    = validator.apply(Value.of("Aragorn"));
+
+        assertThat(result).isInstanceOf(ErrorValue.class);
+    }
+
+    static Stream<Arguments> invalidSchemaTestCases() {
+        return Stream.of(Arguments.of(Value.UNDEFINED), Arguments.of(Value.error("Melkor corrupted the schema")));
+    }
+
+    @ParameterizedTest
+    @MethodSource("invalidValueTestCases")
+    void returnsErrorForInvalidValue(Value invalidValue) {
+        val validator = SchemaValidation.schemaValidatorFromSchema(STRING_SCHEMA);
+        val result    = validator.apply(invalidValue);
+
+        assertThat(result).isInstanceOf(ErrorValue.class);
+    }
+
+    static Stream<Arguments> invalidValueTestCases() {
+        return Stream.of(Arguments.of(Value.UNDEFINED), Arguments.of(Value.error("The Ring has been destroyed")));
     }
 
     @Test
-    void validatorCanBeReused() {
-        var schema    = Value.ofObject(Map.of("type", Value.of("number")));
-        var validator = SchemaValidation.schemaValidatorFromSchema(schema);
-
-        assertThat(validator.apply(Value.of(42))).isEqualTo(Value.TRUE);
-        assertThat(validator.apply(Value.of("text"))).isEqualTo(Value.FALSE);
-        assertThat(validator.apply(Value.of(3.14))).isEqualTo(Value.TRUE);
-    }
-
-    // ============================================================
-    // Schema Compilation Error Tests
-    // ============================================================
-
-    @Test
-    void unmarshallableSchemaReturnsErrorFunction() {
-        var validator = SchemaValidation.schemaValidatorFromSchema(Value.UNDEFINED);
-        var result    = validator.apply(Value.of("test"));
-
-        assertThat(result instanceof ErrorValue).isTrue();
-    }
-
-    @Test
-    void errorValueSchemaReturnsErrorFunction() {
-        var errorSchema = Value.error("Bad schema");
-        var validator   = SchemaValidation.schemaValidatorFromSchema(errorSchema);
-        var result      = validator.apply(Value.of("test"));
-
-        assertThat(result instanceof ErrorValue).isTrue();
-    }
-
-    // ============================================================
-    // Validation Error Tests
-    // ============================================================
-
-    @Test
-    void validatorReturnsErrorForUndefinedValue() {
-        var schema    = Value.ofObject(Map.of("type", Value.of("string")));
-        var validator = SchemaValidation.schemaValidatorFromSchema(schema);
-        var result    = validator.apply(Value.UNDEFINED);
-
-        assertThat(result instanceof ErrorValue).isTrue();
-    }
-
-    @Test
-    void validatorReturnsErrorForErrorValue() {
-        var schema     = Value.ofObject(Map.of("type", Value.of("string")));
-        var validator  = SchemaValidation.schemaValidatorFromSchema(schema);
-        var errorValue = Value.error("Something went wrong");
-        var result     = validator.apply(errorValue);
-
-        assertThat(result instanceof ErrorValue).isTrue();
-    }
-
-    // ============================================================
-    // Access Control Example
-    // ============================================================
-
-    @Test
-    void validatesAccessControlSubject() {
-        var schema = Value.ofObject(Map.of("type", Value.of("object"), "properties",
-                Value.ofObject(Map.of("userId", Value.ofObject(Map.of("type", Value.of("string"))), "clearanceLevel",
+    void validatesMiddleEarthSecurityClearances() {
+        val schema = Value.ofObject(Map.of("type", Value.of("object"), "properties",
+                Value.ofObject(Map.of("bearer", Value.ofObject(Map.of("type", Value.of("string"))), "ringPower",
                         Value.ofObject(
-                                Map.of("type", Value.of("number"), "minimum", Value.of(1), "maximum", Value.of(5))))),
-                "required", Value.ofArray(Value.of("userId"), Value.of("clearanceLevel"))));
+                                Map.of("type", Value.of("number"), "minimum", Value.of(1), "maximum", Value.of(20))))),
+                "required", Value.ofArray(Value.of("bearer"), Value.of("ringPower"))));
 
-        var validator = SchemaValidation.schemaValidatorFromSchema(schema);
+        val validator = SchemaValidation.schemaValidatorFromSchema(schema);
 
-        var validSubject = Value.ofObject(Map.of("userId", Value.of("alice"), "clearanceLevel", Value.of(3)));
+        val validRingBearer = Value.ofObject(Map.of("bearer", Value.of("Galadriel"), "ringPower", Value.of(15)));
 
-        var invalidSubject = Value.ofObject(Map.of("userId", Value.of("bob"), "clearanceLevel", Value.of(10)));
+        val invalidRingBearer = Value.ofObject(Map.of("bearer", Value.of("Sauron"), "ringPower", Value.of(100)));
 
-        assertThat(validator.apply(validSubject)).isEqualTo(Value.TRUE);
-        assertThat(validator.apply(invalidSubject)).isEqualTo(Value.FALSE);
+        assertThat(validator.apply(validRingBearer)).isEqualTo(Value.TRUE);
+        assertThat(validator.apply(invalidRingBearer)).isEqualTo(Value.FALSE);
     }
 }
