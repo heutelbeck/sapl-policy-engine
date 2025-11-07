@@ -42,7 +42,7 @@ public class SaplCompiler {
         return switch (policyElement) {
         case Policy policy       -> compilePolicy(policy, context);
         case PolicySet policySet -> compilePolicySet(policySet, context);
-        default                  -> throw new IllegalStateException("Unexpected policy element: " + policyElement);
+        default                  -> throw new SaplCompilerException("Unexpected policy element: " + policyElement);
         };
     }
 
@@ -94,7 +94,7 @@ public class SaplCompiler {
     }
 
     private CompiledPolicy compilePolicySet(PolicySet policySet, CompilationContext context) {
-        throw new UnsupportedOperationException("Not supported yet.");
+        throw new SaplCompilerException("Policy Sets not supported yet.");
     }
 
     private void compileSchemas(EList<Schema> schemas, CompilationContext context) {
