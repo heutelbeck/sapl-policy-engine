@@ -17,5 +17,5 @@
  */
 package io.sapl.compiler;
 
-public class StreamFunction {
+public class CompiledBody {
 }

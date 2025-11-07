@@ -17,7 +17,8 @@
  */
 package io.sapl.api.value;
 
-public sealed interface CompiledExpression
-        permits AttributeDependentExpression, SubscriptionDependentExpression, Value {
+import reactor.core.publisher.Flux;
 
+public non-sealed interface AttributeDependentExpression extends CompiledExpression {
+    public Flux<Value> evaluate();
 }

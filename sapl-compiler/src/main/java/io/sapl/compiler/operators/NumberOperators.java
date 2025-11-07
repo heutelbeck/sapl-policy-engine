@@ -17,12 +17,14 @@
  */
 package io.sapl.compiler.operators;
 
-import java.math.RoundingMode;
-
 import io.sapl.api.value.ErrorValue;
 import io.sapl.api.value.NumberValue;
+import io.sapl.api.value.TextValue;
 import io.sapl.api.value.Value;
 import lombok.experimental.UtilityClass;
+
+import java.math.BigDecimal;
+import java.util.function.BiFunction;
 
 /**
  * Provides arithmetic operations for NumberValue instances.
@@ -30,55 +32,30 @@ import lombok.experimental.UtilityClass;
 @UtilityClass
 public class NumberOperators {
 
-    /**
-     * Adds two number values.
-     *
-     * @param a the first operand
-     * @param b the second operand
-     * @return the sum of a and b, marked as secret if either operand is secret
-     */
-    public static NumberValue add(NumberValue a, NumberValue b) {
-        return new NumberValue(a.value().add(b.value()), a.secret() || b.secret());
-    }
-
-    /**
-     * Subtracts one number value from another.
-     *
-     * @param a the minuend
-     * @param b the subtrahend
-     * @return the difference of a and b, marked as secret if either operand is
-     * secret
-     */
-    public static NumberValue subtract(NumberValue a, NumberValue b) {
-        return new NumberValue(a.value().subtract(b.value()), a.secret() || b.secret());
-    }
-
-    /**
-     * Multiplies two number values.
-     *
-     * @param a the first factor
-     * @param b the second factor
-     * @return the product of a and b, marked as secret if either operand is secret
-     */
-    public static NumberValue multiply(NumberValue a, NumberValue b) {
-        return new NumberValue(a.value().multiply(b.value()), a.secret() || b.secret());
-    }
-
-    /**
-     * Divides one number value by another with HALF_UP rounding and 10 decimal
-     * places precision.
-     *
-     * @param a the dividend
-     * @param b the divisor
-     * @return the quotient of a and b, marked as secret if either operand is
-     * secret,
-     * or an ErrorValue if the divisor is zero
-     */
-    public static Value divide(NumberValue a, NumberValue b) {
-        if (b.value().signum() == 0) {
-            return new ErrorValue("Division by zero.", a.secret() || b.secret());
+    public static Value add(Value a, Value b) {
+        if (a instanceof TextValue leftText) {
+            if (!(b instanceof TextValue rightText)) {
+                return new TextValue(leftText.value() + b.toString(), a.secret() || b.secret());
+            }
+            return new TextValue(leftText.value() + rightText.value(), a.secret() || b.secret());
         }
-        return new NumberValue(a.value().divide(b.value(), 10, RoundingMode.HALF_UP), a.secret() || b.secret());
+        return applyNumericOperation(a, b, BigDecimal::add);
+    }
+
+    public static Value subtract(Value a, Value b) {
+        return applyNumericOperation(a, b, BigDecimal::subtract);
+    }
+
+    public static Value multiply(Value a, Value b) {
+        return applyNumericOperation(a, b, BigDecimal::multiply);
+    }
+
+    public static Value divide(Value a, Value b) {
+        try {
+            return applyNumericOperation(a, b, BigDecimal::divide);
+        } catch (ArithmeticException e) {
+            return new ErrorValue(e, a.secret() || b.secret());
+        }
     }
 
     /**
@@ -86,22 +63,40 @@ public class NumberOperators {
      * (Euclidean) semantics.
      * The result is always non-negative when the divisor is positive.
      *
-     * @param a the dividend
-     * @param b the divisor
+     * @param dividend the dividend
+     * @param divisor the divisor
      * @return the remainder of a divided by b, marked as secret if either operand
      * is secret,
      * or an ErrorValue if the divisor is zero
      */
-    public static Value modulo(NumberValue a, NumberValue b) {
-        if (b.value().signum() == 0) {
-            return new ErrorValue("Division by zero.", a.secret() || b.secret());
+    public static Value modulo(Value dividend, Value divisor) {
+        if (!(dividend instanceof NumberValue(BigDecimal dividendValue, boolean dividendSecret))) {
+            return Value.error(String.format("Numeric operation requires number values, but found: %s", dividend));
         }
-        var result = a.value().remainder(b.value());
+        if (!(divisor instanceof NumberValue(BigDecimal divisorValue, boolean divisorSecret))) {
+            return Value.error(String.format("Numeric operation requires number values, but found: %s", dividend));
+        }
+        if (divisorValue.signum() == 0) {
+            return new ErrorValue("Division by zero.", dividendSecret || divisorSecret);
+        }
+        var result = dividendValue.remainder(divisorValue);
         // Adjust to mathematical modulo: ensure non-negative result for positive
         // divisor
-        if (result.signum() < 0 && b.value().signum() > 0) {
-            result = result.add(b.value());
+        if (result.signum() < 0 && divisorValue.signum() > 0) {
+            result = result.add(divisorValue);
         }
-        return new NumberValue(result, a.secret() || b.secret());
+        return new NumberValue(result, dividendSecret || divisorSecret);
     }
+
+    private static Value applyNumericOperation(Value left, Value right,
+            BiFunction<BigDecimal, BigDecimal, BigDecimal> operation) {
+        if (!(left instanceof NumberValue(BigDecimal leftValue, boolean leftSecret))) {
+            return Value.error(String.format("Numeric operation requires number values, but found: %s", left));
+        }
+        if (!(right instanceof NumberValue(BigDecimal rightValue, boolean rightSecret))) {
+            return Value.error(String.format("Numeric operation requires number values, but found: %s", right));
+        }
+        return new NumberValue(operation.apply(leftValue, rightValue), leftSecret || rightSecret);
+    }
+
 }

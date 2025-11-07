@@ -19,22 +19,30 @@ package io.sapl.compiler;
 
 import io.sapl.interpreter.DefaultSAPLInterpreter;
 import io.sapl.interpreter.SAPLInterpreter;
+import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import org.junit.jupiter.api.Test;
 
+@Slf4j
 public class SaplCompilerTests {
     private static final SAPLInterpreter PARSER   = new DefaultSAPLInterpreter();
     private static final SaplCompiler    COMPILER = new SaplCompiler();
 
     @Test
     void experimentWithCompiler() {
-        val source   = """
+        val source  = """
                 policy "test policy"
-                permit subject.name == "abc"
-                where
-                   resource.id == "def";
+                permit "237"+undefined+ {}
+                // where
+                  // resource.id == "def";
                 """;
-        val ast      = PARSER.parse(source);
-        val compiled = COMPILER.compile(ast);
+        val sapl    = PARSER.parse(source);
+        val context = new CompilationContext();
+        try {
+            val compiled = COMPILER.compileDocument(sapl, context);
+            System.err.println(compiled);
+        } catch (SaplCompilerException e) {
+            System.err.println(e.getMessage());
+        }
     }
 }
