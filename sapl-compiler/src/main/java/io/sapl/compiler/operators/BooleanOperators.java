@@ -21,61 +21,46 @@ import io.sapl.api.value.BooleanValue;
 import io.sapl.api.value.Value;
 import lombok.experimental.UtilityClass;
 
+import java.util.function.BiFunction;
+
 /**
  * Provides logical operations for BooleanValue instances.
  */
 @UtilityClass
 public class BooleanOperators {
 
-    /**
-     * Performs logical AND operation on two boolean values.
-     *
-     * @param a the first operand
-     * @param b the second operand
-     * @return the logical AND of a and b, marked as secret if either operand is
-     * secret
-     */
-    public static BooleanValue and(BooleanValue a, BooleanValue b) {
-        return preserveSecret(a.value() && b.value(), a.secret() || b.secret());
+    public static Value and(Value a, Value b) {
+        return applyBooleanOperation(a, b, (left, right) -> left && right);
+    }
+
+    public static Value or(Value a, Value b) {
+        return applyBooleanOperation(a, b, (left, right) -> left || right);
+    }
+
+    public static Value xor(Value a, Value b) {
+        return applyBooleanOperation(a, b, (left, right) -> left ^ right);
+    }
+
+    public static Value not(Value a) {
+        if (!(a instanceof BooleanValue(boolean value, boolean secret))) {
+            return Value.error(String.format("Boolean operation requires Boolean values, but found: %s", a));
+        }
+        return preserveSecret(!value, secret);
+    }
+
+    private static Value applyBooleanOperation(Value left, Value right,
+            BiFunction<Boolean, Boolean, Boolean> operation) {
+        if (!(left instanceof BooleanValue boolLeft)) {
+            return Value.error(String.format("Boolean operation requires Boolean values, but found: %s", left));
+        }
+        if (!(right instanceof BooleanValue boolRight)) {
+            return Value.error(String.format("Boolean operation requires Boolean values, but found: %s", right));
+        }
+        return preserveSecret(operation.apply(boolLeft.value(), boolRight.value()), left.secret() || right.secret());
     }
 
     /**
-     * Performs logical OR operation on two boolean values.
-     *
-     * @param a the first operand
-     * @param b the second operand
-     * @return the logical OR of a and b, marked as secret if either operand is
-     * secret
-     */
-    public static BooleanValue or(BooleanValue a, BooleanValue b) {
-        return preserveSecret(a.value() || b.value(), a.secret() || b.secret());
-    }
-
-    /**
-     * Performs logical XOR operation on two boolean values.
-     *
-     * @param a the first operand
-     * @param b the second operand
-     * @return the logical XOR of a and b, marked as secret if either operand is
-     * secret
-     */
-    public static BooleanValue xor(BooleanValue a, BooleanValue b) {
-        return preserveSecret(a.value() ^ b.value(), a.secret() || b.secret());
-    }
-
-    /**
-     * Performs logical NOT operation on a boolean value.
-     *
-     * @param a the operand to negate
-     * @return the logical NOT of a, preserving its secret status
-     */
-    public static BooleanValue not(BooleanValue a) {
-        return preserveSecret(!a.value(), a.secret());
-    }
-
-    /**
-     * Creates a BooleanValue with appropriate secret handling, reusing constants
-     * when possible.
+     * Creates a BooleanValue with secret handling, reusing constants.
      *
      * @param value the boolean value
      * @param secret whether the value should be marked as secret

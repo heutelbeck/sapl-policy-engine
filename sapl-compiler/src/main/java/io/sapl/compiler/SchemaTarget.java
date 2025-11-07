@@ -15,9 +15,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.api.value;
+package io.sapl.compiler;
 
-public sealed interface CompiledExpression
-        permits AttributeDependentExpression, SubscriptionDependentExpression, Value {
-
+public enum SchemaTarget {
+    SUBJECT,
+    ACTION,
+    RESOURCE,
+    ENVIRONMENT
 }

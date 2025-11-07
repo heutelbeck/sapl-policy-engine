@@ -15,9 +15,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.api.value;
+package io.sapl.compiler;
 
-public sealed interface CompiledExpression
-        permits AttributeDependentExpression, SubscriptionDependentExpression, Value {
+import io.sapl.api.value.Value;
+import io.sapl.grammar.sapl.Object;
 
+public record CompiledSchema(Value schema, boolean enforced, Object compiledSchema) {
+    public CompiledSchema(Value schema, boolean enforced) {
+        this(schema, enforced, null);
+    }
 }

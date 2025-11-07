@@ -15,7 +15,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.api.value;
+package io.sapl.compiler;
 
-public final class UnaryOperation implements CompiledExpression {
-}
+import io.sapl.api.value.CompiledExpression;
+
+import java.util.List;
+
+public record CompiledPolicy(
+        String name,
+        Entitlement entitlement,
+        CompiledExpression targetExpression,
+        CompiledExpression body,
+        List<CompiledExpression> obligations,
+        List<CompiledExpression> advice,
+        CompiledExpression transformation) {}

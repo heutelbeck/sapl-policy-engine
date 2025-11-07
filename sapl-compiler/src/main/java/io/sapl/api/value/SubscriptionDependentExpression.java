@@ -17,7 +17,11 @@
  */
 package io.sapl.api.value;
 
-public sealed interface CompiledExpression
-        permits AttributeDependentExpression, SubscriptionDependentExpression, Value {
+import java.util.function.Function;
 
+public record SubscriptionDependentExpression(Function<EvaluationContext, Value> expressionFunction)
+        implements CompiledExpression {
+    public Value evaluate(EvaluationContext evaluationContext) {
+        return expressionFunction.apply(evaluationContext);
+    }
 }

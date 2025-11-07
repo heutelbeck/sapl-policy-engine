@@ -15,7 +15,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.api.value;
+package io.sapl.compiler;
 
-public final class VarianbleReference implements CompiledExpression {
+import lombok.experimental.StandardException;
+
+@StandardException
+public class SaplCompilerException extends RuntimeException {
 }

@@ -17,19 +17,18 @@
  */
 package io.sapl.compiler;
 
-import io.sapl.api.value.Value;
-import lombok.RequiredArgsConstructor;
-import org.eclipse.xtext.xbase.controlflow.EvaluationContext;
-import reactor.core.publisher.Flux;
+import io.sapl.grammar.sapl.Deny;
+import io.sapl.grammar.sapl.Permit;
 
-public interface CompiledExpression {
+public enum Entitlement {
+    PERMIT,
+    DENY;
 
-    interface PureCompiledExpression extends CompiledExpression {
-        public Value evaluate();
+    public static Entitlement of(io.sapl.grammar.sapl.Entitlement entitlement) {
+        return switch (entitlement) {
+        case Permit p -> PERMIT;
+        case Deny d   -> DENY;
+        default       -> throw new IllegalArgumentException("Unexpected value: " + entitlement);
+        };
     }
-
-    interface AsyncCompiledExpression extends CompiledExpression {
-        public Flux<Value> evaluate();
-    }
-
 }

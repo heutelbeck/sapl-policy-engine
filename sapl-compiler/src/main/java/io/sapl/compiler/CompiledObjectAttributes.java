@@ -15,7 +15,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.api.value;
+package io.sapl.compiler;
 
-public final class LazyOperation implements CompiledExpression {
-}
+import io.sapl.api.value.CompiledExpression;
+
+import java.util.Map;
+
+public record CompiledObjectAttributes(Nature nature, Map<String, CompiledExpression> attributes) {}

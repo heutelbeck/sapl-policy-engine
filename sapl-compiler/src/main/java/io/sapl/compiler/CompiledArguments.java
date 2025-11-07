@@ -17,5 +17,6 @@
  */
 package io.sapl.compiler;
 
-public class PureFunction {
-}
+import io.sapl.api.value.CompiledExpression;
+
+public record CompiledArguments(Nature nature, CompiledExpression[] arguments) {}
