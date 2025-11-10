@@ -17,6 +17,8 @@
  */
 package io.sapl.api.value;
 
+import io.sapl.api.plugins.DynamicPlugInsContext;
+import io.sapl.api.plugins.StaticPlugInsServer;
 import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import lombok.NonNull;
@@ -26,7 +28,10 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public record EvaluationContext(@NonNull Map<String, CompiledExpression> variables) {
+public record EvaluationContext(
+        @NonNull Map<String, CompiledExpression> variables,
+        DynamicPlugInsContext dynamicPlugIns,
+        StaticPlugInsServer staticPlugins) {
 
     private static final String ACTION = "action";
     private static final String ENVIRONMENT = "environment";
@@ -34,16 +39,22 @@ public record EvaluationContext(@NonNull Map<String, CompiledExpression> variabl
     private static final String SUBJECT = "subject";
     private static final List<String> RESERVED_IDENTIFIERS = List.of(ACTION, ENVIRONMENT, RESOURCE, SUBJECT);
 
-    public EvaluationContext(AuthorizationSubscription authorizationSubscription) {
-        this(new HashMap<>());
+    public EvaluationContext(AuthorizationSubscription authorizationSubscription,
+            DynamicPlugInsContext dynamicPlugIns,
+            StaticPlugInsServer staticPlugins) {
+        this(new HashMap<>(), dynamicPlugIns, staticPlugins);
         variables.put(SUBJECT, authorizationSubscription.subject());
         variables.put(ACTION, authorizationSubscription.action());
         variables.put(RESOURCE, authorizationSubscription.resource());
         variables.put(ENVIRONMENT, authorizationSubscription.environment());
     }
 
-    private EvaluationContext(EvaluationContext originalContext, String identifier, CompiledExpression value) {
-        this(new HashMap<>());
+    private EvaluationContext(EvaluationContext originalContext,
+            String identifier,
+            CompiledExpression value,
+            DynamicPlugInsContext dynamicPlugIns,
+            StaticPlugInsServer staticPlugins) {
+        this(new HashMap<>(), dynamicPlugIns, staticPlugins);
         variables.putAll(originalContext.variables);
         if (RESERVED_IDENTIFIERS.contains(identifier)) {
             throw new PolicyEvaluationException("Identifier " + identifier + " is reserved.");
@@ -76,7 +87,7 @@ public record EvaluationContext(@NonNull Map<String, CompiledExpression> variabl
     }
 
     public EvaluationContext with(String identifier, Value value) {
-        return new EvaluationContext(this, identifier, value);
+        return new EvaluationContext(this, identifier, value, dynamicPlugIns, staticPlugins);
     }
 
 }

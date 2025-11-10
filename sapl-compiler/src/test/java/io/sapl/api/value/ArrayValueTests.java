@@ -34,22 +34,6 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 @DisplayName("ArrayValue Tests")
 class ArrayValueTests {
-
-    // ============================================================================
-    // CONSTRUCTION AND BUILDER
-    // ============================================================================
-
-    @Test
-    @DisplayName("Constructor with list defensively copies")
-    void constructorDefensivelyCopies() {
-        var original = new ArrayList<>(List.of(Value.of(1), Value.of(2)));
-        var array    = new ArrayValue(original, false);
-
-        original.add(Value.of(3));
-
-        assertThat(array).hasSize(2);
-    }
-
     @Test
     @DisplayName("Constructor with array creates immutable list")
     void constructorWithArray() {

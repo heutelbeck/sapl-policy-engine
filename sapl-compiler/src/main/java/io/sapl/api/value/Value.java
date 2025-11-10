@@ -166,7 +166,7 @@ public sealed interface Value extends Serializable, CompiledExpression
      * @param value the boolean
      * @return TRUE or FALSE singleton
      */
-    static Value of(boolean value) {
+    static BooleanValue of(boolean value) {
         return value ? TRUE : FALSE;
     }
 
@@ -176,7 +176,7 @@ public sealed interface Value extends Serializable, CompiledExpression
      * @param value the long
      * @return a NumberValue
      */
-    static Value of(long value) {
+    static NumberValue of(long value) {
         if (value == 0L)
             return ZERO;
         if (value == 1L)
@@ -198,7 +198,7 @@ public sealed interface Value extends Serializable, CompiledExpression
      * @return a NumberValue
      * @throws IllegalArgumentException if value is NaN or infinite
      */
-    static Value of(double value) {
+    static NumberValue of(double value) {
         if (Double.isNaN(value)) {
             throw new IllegalArgumentException(
                     "Cannot create Value from NaN. Use Value.error() for computation errors.");
@@ -238,7 +238,7 @@ public sealed interface Value extends Serializable, CompiledExpression
      * @param value the text (must not be null - use Value.NULL for null values)
      * @return a TextValue
      */
-    static Value of(@NonNull String value) {
+    static TextValue of(@NonNull String value) {
         if (value.isEmpty())
             return EMPTY_TEXT;
         return new TextValue(value, false);
@@ -250,7 +250,7 @@ public sealed interface Value extends Serializable, CompiledExpression
      * @param values the elements (must not contain null - use Value.NULL instead)
      * @return an immutable ArrayValue
      */
-    static Value ofArray(Value... values) {
+    static ArrayValue ofArray(Value... values) {
         if (values.length == 0)
             return EMPTY_ARRAY;
         return new ArrayValue(values, false);
@@ -263,7 +263,7 @@ public sealed interface Value extends Serializable, CompiledExpression
      * instead)
      * @return an immutable ArrayValue
      */
-    static Value ofArray(@NonNull List<Value> values) {
+    static ArrayValue ofArray(@NonNull List<Value> values) {
         if (values.isEmpty())
             return EMPTY_ARRAY;
         return new ArrayValue(values, false);
@@ -275,7 +275,7 @@ public sealed interface Value extends Serializable, CompiledExpression
      * @param properties the properties (must not be null)
      * @return an immutable ObjectValue
      */
-    static Value ofObject(@NonNull Map<String, Value> properties) {
+    static ObjectValue ofObject(@NonNull Map<String, Value> properties) {
         if (properties.isEmpty())
             return EMPTY_OBJECT;
         return new ObjectValue(Map.copyOf(properties), false);
@@ -287,7 +287,7 @@ public sealed interface Value extends Serializable, CompiledExpression
      * @param message the error message (must not be null)
      * @return an ErrorValue
      */
-    static Value error(@NonNull String message) {
+    static ErrorValue error(@NonNull String message) {
         return new ErrorValue(message, null, false);
     }
 
@@ -298,7 +298,7 @@ public sealed interface Value extends Serializable, CompiledExpression
      * @param cause the exception (may be null)
      * @return an ErrorValue
      */
-    static Value error(@NonNull String message, Throwable cause) {
+    static ErrorValue error(@NonNull String message, Throwable cause) {
         return new ErrorValue(message, cause, false);
     }
 
@@ -308,7 +308,7 @@ public sealed interface Value extends Serializable, CompiledExpression
      * @param cause the exception (must not be null)
      * @return an ErrorValue
      */
-    static Value error(@NonNull Throwable cause) {
+    static ErrorValue error(@NonNull Throwable cause) {
         return new ErrorValue(cause, false);
     }
 

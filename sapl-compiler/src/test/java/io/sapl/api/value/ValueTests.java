@@ -335,7 +335,7 @@ class ValueTests {
         @Test
         @DisplayName("ofArray(list) creates ArrayValue")
         void ofArrayList() {
-            var list   = List.of(Value.of("a"), Value.of("b"));
+            var list   = List.<Value>of(Value.<Value>of("a"), Value.of("b"));
             var result = Value.ofArray(list);
 
             assertThat(result).isInstanceOf(ArrayValue.class);
@@ -367,7 +367,7 @@ class ValueTests {
         @Test
         @DisplayName("ofObject(map) creates ObjectValue")
         void ofObjectMap() {
-            var map    = Map.of("name", Value.of("Alice"), "age", Value.of(30));
+            var map    = Map.<String, Value>of("name", Value.of("Alice"), "age", Value.of(30));
             var result = Value.ofObject(map);
 
             assertThat(result).isInstanceOf(ObjectValue.class);
@@ -540,7 +540,7 @@ class ValueTests {
         @Test
         @DisplayName("Pattern matching for policy decision")
         void patternMatchingPolicyDecision() {
-            var policyResult = Value.of(true);
+            Value policyResult = Value.of(true);
 
             var decision = switch (policyResult) {
             case BooleanValue(boolean allowed, boolean ignore) -> allowed ? "PERMIT" : "DENY";
@@ -574,7 +574,7 @@ class ValueTests {
         @Test
         @DisplayName("Pattern matching for attribute extraction")
         void patternMatchingAttributeExtraction() {
-            var user = Value.ofObject(Map.of("name", Value.of("alice"), "role", Value.of("admin")));
+            Value user = Value.ofObject(Map.of("name", Value.of("alice"), "role", Value.of("admin")));
 
             boolean isAdmin = switch (user) {
             case ObjectValue obj -> {

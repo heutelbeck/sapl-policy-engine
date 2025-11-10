@@ -402,7 +402,7 @@ public final class AnnotationFunctionContext implements FunctionContext {
     }
 
     @Override
-    public Collection<FunctionMetadata> getFunctionMetatata() {
+    public Collection<FunctionMetadata> getFunctionMetadata() {
         return new ArrayList<>(functions.values());
     }
 

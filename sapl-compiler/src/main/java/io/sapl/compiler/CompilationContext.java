@@ -21,6 +21,7 @@ import io.sapl.api.value.CompiledExpression;
 import io.sapl.api.value.Value;
 import io.sapl.grammar.sapl.Import;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 import lombok.ToString;
 
 import java.util.ArrayList;
@@ -31,11 +32,14 @@ import java.util.function.Function;
 
 @Data
 @ToString
+@NoArgsConstructor
 public class CompilationContext {
-    List<Import>                            imports          = new ArrayList<>();
-    Map<SchemaTarget, List<CompiledSchema>> schemas          = new HashMap<>();
-    Map<String, CompiledExpression>         variablesInScope = new HashMap<>();
-    Map<Value, Value>                       constants        = new HashMap<>();
+    final boolean                           dynamicLibrariesEnabled = false;
+    final boolean                           debugInformationEnabled = false;
+    List<Import>                            imports                 = new ArrayList<>();
+    Map<SchemaTarget, List<CompiledSchema>> schemas                 = new HashMap<>();
+    Map<String, CompiledExpression>         localVariablesInScope   = new HashMap<>();
+    Map<Value, Value>                       constants               = new HashMap<>();
 
     public void addAllImports(List<Import> imports) {
         if (imports != null) {
@@ -45,11 +49,14 @@ public class CompilationContext {
 
     public void resetForNextDocument() {
         imports.clear();
-        variablesInScope.clear();
+        localVariablesInScope.clear();
         schemas.clear();
     }
 
     public CompiledExpression dedupe(Value constantValue) {
+        if (debugInformationEnabled) {
+            return constantValue;
+        }
         return constants.computeIfAbsent(constantValue, Function.identity());
     }
 }

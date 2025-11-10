@@ -39,7 +39,7 @@ public class NameValidator {
     public static void requireValidName(String stringUnderTest) {
         if (!PATTERN.test(stringUnderTest)) {
             throw new IllegalArgumentException(String.format("""
-                    The fully qualified name of a Policy Information Point or function must cosist of \
+                    The fully qualified name of a Policy Information Point or function must consist of \
                     at least two Strings separated by a '.'. Each of the strings must not \
                     contain white spaces and must start with a letter. \
                     No special characters are allowed. \

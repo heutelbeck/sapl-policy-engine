@@ -17,6 +17,7 @@
  */
 package io.sapl.compiler.operators;
 
+import io.sapl.api.value.BooleanValue;
 import io.sapl.api.value.ErrorValue;
 import io.sapl.api.value.NumberValue;
 import io.sapl.api.value.TextValue;
@@ -86,6 +87,62 @@ public class NumberOperators {
             result = result.add(divisorValue);
         }
         return new NumberValue(result, dividendSecret || divisorSecret);
+    }
+
+    public static Value unaryPlus(Value v) {
+        if (!(v instanceof NumberValue)) {
+            return Value.error(String.format("Numeric operation requires number values, but found: %s", v));
+        }
+        return v;
+    }
+
+    public static Value unaryMinus(Value v) {
+        if (!(v instanceof NumberValue(BigDecimal number, boolean secret))) {
+            return Value.error(String.format("Numeric operation requires number values, but found: %s", v));
+        }
+        return new NumberValue(number.negate(), secret);
+    }
+
+    public static Value lessThan(Value a, Value b) {
+        return applyNumericComparison(a, b, (left, right) -> left.compareTo(right) < 0);
+    }
+
+    public static Value lessThanOrEqual(Value a, Value b) {
+        return applyNumericComparison(a, b, (left, right) -> left.compareTo(right) <= 0);
+    }
+
+    public static Value greaterThan(Value a, Value b) {
+        return applyNumericComparison(a, b, (left, right) -> left.compareTo(right) > 0);
+    }
+
+    public static Value greaterThanOrEqual(Value a, Value b) {
+        return applyNumericComparison(a, b, (left, right) -> left.compareTo(right) >= 0);
+    }
+
+    private static Value applyNumericComparison(Value left, Value right,
+            BiFunction<BigDecimal, BigDecimal, Boolean> comparison) {
+        if (!(left instanceof NumberValue(BigDecimal leftValue, boolean leftSecret))) {
+            return Value.error(String.format("Numeric comparison requires number values, but found: %s", left));
+        }
+        if (!(right instanceof NumberValue(BigDecimal rightValue, boolean rightSecret))) {
+            return Value.error(String.format("Numeric comparison requires number values, but found: %s", right));
+        }
+        return preserveSecret(comparison.apply(leftValue, rightValue), leftSecret || rightSecret);
+    }
+
+    /**
+     * Creates a BooleanValue with secret handling, reusing constants.
+     *
+     * @param value the boolean value
+     * @param secret whether the value should be marked as secret
+     * @return a BooleanValue with the specified value and secret flag
+     */
+    private static BooleanValue preserveSecret(boolean value, boolean secret) {
+        if (secret) {
+            return value ? BooleanValue.SECRET_TRUE : BooleanValue.SECRET_FALSE;
+        } else {
+            return value ? Value.TRUE : Value.FALSE;
+        }
     }
 
     private static Value applyNumericOperation(Value left, Value right,
