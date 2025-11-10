@@ -29,6 +29,7 @@ import graphql.schema.idl.SchemaGenerator;
 import graphql.schema.idl.SchemaParser;
 import graphql.schema.idl.errors.SchemaProblem;
 import graphql.validation.Validator;
+import io.sapl.api.functions.Function;
 import io.sapl.api.functions.FunctionLibrary;
 import io.sapl.api.interpreter.Val;
 import io.sapl.api.validation.JsonObject;
@@ -341,7 +342,7 @@ public class GraphQLFunctionLibrary {
      * @return Val containing parsed query object with all metrics and validation
      * results
      */
-    @io.sapl.api.functions.Function(docs = """
+    @Function(docs = """
             ```
             graphql.validateQuery(TEXT query, TEXT schema) -> OBJECT
             ```
@@ -401,7 +402,7 @@ public class GraphQLFunctionLibrary {
      * @param query the GraphQL query string to parse and analyze
      * @return Val containing parsed query object with all metrics
      */
-    @io.sapl.api.functions.Function(docs = """
+    @Function(docs = """
             ```
             graphql.analyzeQuery(TEXT query) -> OBJECT
             ```
@@ -443,7 +444,7 @@ public class GraphQLFunctionLibrary {
      * @param fieldWeights object mapping field names to numeric weights
      * @return Val containing the weighted complexity score
      */
-    @io.sapl.api.functions.Function(docs = """
+    @Function(docs = """
             ```
             graphql.complexity(OBJECT parsed, OBJECT fieldWeights) -> NUMBER
             ```
@@ -495,7 +496,7 @@ public class GraphQLFunctionLibrary {
      * @param schema the GraphQL schema definition string
      * @return Val containing schema validation result with AST
      */
-    @io.sapl.api.functions.Function(docs = """
+    @Function(docs = """
             ```
             graphql.parseSchema(TEXT schema) -> OBJECT
             ```

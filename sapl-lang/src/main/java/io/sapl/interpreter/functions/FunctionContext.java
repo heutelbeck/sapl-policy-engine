@@ -39,5 +39,5 @@ public interface FunctionContext extends LibraryFunctionProvider {
 
     Map<String, JsonNode> getFunctionSchemas();
 
-    Collection<FunctionMetadata> getFunctionMetatata();
+    Collection<FunctionMetadata> getFunctionMetadata();
 }

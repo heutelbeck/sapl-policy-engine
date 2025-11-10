@@ -34,6 +34,10 @@ public record ErrorValue(String message, Throwable cause, boolean secret) implem
     @Serial
     private static final long serialVersionUID = SaplVersion.VERSION_UID;
 
+    public ErrorValue(@NonNull String message, @NonNull Throwable cause) {
+        this(message, cause, false);
+    }
+
     /**
      * Creates an error from an exception.
      *

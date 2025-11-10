@@ -41,13 +41,6 @@ public class BooleanOperators {
         return applyBooleanOperation(a, b, (left, right) -> left ^ right);
     }
 
-    public static Value not(Value a) {
-        if (!(a instanceof BooleanValue(boolean value, boolean secret))) {
-            return Value.error(String.format("Boolean operation requires Boolean values, but found: %s", a));
-        }
-        return preserveSecret(!value, secret);
-    }
-
     private static Value applyBooleanOperation(Value left, Value right,
             BiFunction<Boolean, Boolean, Boolean> operation) {
         if (!(left instanceof BooleanValue boolLeft)) {
@@ -57,6 +50,13 @@ public class BooleanOperators {
             return Value.error(String.format("Boolean operation requires Boolean values, but found: %s", right));
         }
         return preserveSecret(operation.apply(boolLeft.value(), boolRight.value()), left.secret() || right.secret());
+    }
+
+    public static Value not(Value value) {
+        if (!(value instanceof BooleanValue(boolean bool, boolean secret))) {
+            return Value.error(String.format("Boolean operation requires Boolean values, but found: %s", value));
+        }
+        return preserveSecret(!bool, secret);
     }
 
     /**

@@ -254,7 +254,7 @@ public class MockingFunctionContext implements FunctionContext {
     }
 
     @Override
-    public Collection<FunctionMetadata> getFunctionMetatata() {
+    public Collection<FunctionMetadata> getFunctionMetadata() {
         return List.of();
     }
 

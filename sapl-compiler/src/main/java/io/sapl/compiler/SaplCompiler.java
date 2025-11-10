@@ -17,22 +17,33 @@
  */
 package io.sapl.compiler;
 
+import io.sapl.api.plugins.FunctionInvocation;
+import io.sapl.api.plugins.StaticPlugInsServer;
 import io.sapl.api.value.*;
 import io.sapl.api.value.Value;
 import io.sapl.compiler.operators.BooleanOperators;
+import io.sapl.compiler.operators.ComparisonOperators;
 import io.sapl.compiler.operators.NumberOperators;
 import io.sapl.grammar.sapl.*;
 import io.sapl.grammar.sapl.Object;
+import io.sapl.grammar.sapl.impl.util.FunctionUtil;
+import lombok.RequiredArgsConstructor;
 import lombok.val;
 import org.eclipse.emf.common.util.EList;
+import org.eclipse.emf.ecore.EObject;
+
+import java.util.ArrayList;
 import java.util.function.BiFunction;
 
 import java.util.HashMap;
 import java.util.List;
 
+@RequiredArgsConstructor
 public class SaplCompiler {
 
     private final static Value UNIMPLEMENTED = Value.error("unimplemented");
+
+    private final StaticPlugInsServer staticPlugInsServer;
 
     public CompiledPolicy compileDocument(SAPL document, CompilationContext context) {
         context.resetForNextDocument();
@@ -77,7 +88,6 @@ public class SaplCompiler {
                     "Error compiling policy '%s': %s expression always returns false. These rules will never be applicable.",
                     name, where));
         }
-
     }
 
     private CompiledExpression compileBody(PolicyBody body, CompilationContext context) {
@@ -114,21 +124,23 @@ public class SaplCompiler {
         case XOr xor               -> compileBinaryOperation(xor, BooleanOperators::xor, context);
         case And and               -> compileBinaryOperation(and, BooleanOperators::and, context); // TODO add lazy !
         case EagerAnd eagerAnd     -> compileBinaryOperation(eagerAnd, BooleanOperators::and, context);
-        case Not not               -> UNIMPLEMENTED;
-        case UnaryPlus unaryPlus   -> UNIMPLEMENTED;
-        case UnaryMinus unaryMinus -> UNIMPLEMENTED;
+        case Not not               -> compileUnaryOperation(not, BooleanOperators::not, context);
         case Multi multi           -> compileBinaryOperation(multi, NumberOperators::multiply, context);
         case Div div               -> compileBinaryOperation(div, NumberOperators::divide, context);
         case Modulo modulo         -> compileBinaryOperation(modulo, NumberOperators::modulo, context);
         case Plus plus             -> compileBinaryOperation(plus, NumberOperators::add, context);
         case Minus minus           -> compileBinaryOperation(minus, NumberOperators::subtract, context);
-        case Equals equals         -> UNIMPLEMENTED;
-        case NotEquals notEquals   -> UNIMPLEMENTED;
-        case Less less             -> UNIMPLEMENTED;
-        case LessEquals lessEquals -> UNIMPLEMENTED;
-        case More more             -> UNIMPLEMENTED;
-        case MoreEquals moreEquals -> UNIMPLEMENTED;
-        case ElementOf elementOf   -> UNIMPLEMENTED;
+        case Less less             -> compileBinaryOperation(less, NumberOperators::lessThan, context);
+        case LessEquals lessEquals -> compileBinaryOperation(lessEquals, NumberOperators::lessThanOrEqual, context);
+        case More more             -> compileBinaryOperation(more, NumberOperators::greaterThan, context);
+        case MoreEquals moreEquals -> compileBinaryOperation(moreEquals, NumberOperators::greaterThanOrEqual, context);
+        case UnaryPlus unaryPlus   -> compileUnaryOperation(unaryPlus, NumberOperators::unaryPlus, context);
+        case UnaryMinus unaryMinus -> compileUnaryOperation(unaryMinus, NumberOperators::unaryMinus, context);
+        case ElementOf elementOf   -> compileBinaryOperation(elementOf, ComparisonOperators::notEquals, context);
+        case Equals equals         -> compileBinaryOperation(equals, ComparisonOperators::equals, context);
+        case NotEquals notEquals   -> compileBinaryOperation(notEquals, ComparisonOperators::notEquals, context);
+        case Regex regex           ->
+            compileBinaryOperation(regex, ComparisonOperators::matchesRegularExpression, context);
         case BasicExpression basic -> compileBasicExpression(basic, context);
         default                    -> throw new SaplCompilerException("unexpected expression: " + expression + ".");
         };
@@ -138,6 +150,12 @@ public class SaplCompiler {
             BiFunction<Value, Value, Value> operation, CompilationContext context) {
         val left  = compileExpression(operator.getLeft(), context);
         val right = compileExpression(operator.getRight(), context);
+        if (left instanceof ErrorValue) {
+            return left;
+        }
+        if (right instanceof ErrorValue) {
+            return right;
+        }
         if (left instanceof Value leftValue && right instanceof Value rightValue) {
             return operation.apply(leftValue, rightValue);
         }
@@ -151,6 +169,10 @@ public class SaplCompiler {
                     ctx -> operation.apply(subLeft.evaluate(ctx), subRight.evaluate(ctx)));
         }
         if (left instanceof SubscriptionDependentExpression subLeft && right instanceof Value valRight) {
+            if (operator instanceof Regex) {
+                val compiledRegex = ComparisonOperators.compileRegularExpressionOperation(valRight);
+                return new SubscriptionDependentExpression(ctx -> compiledRegex.apply(subLeft.evaluate(ctx)));
+            }
             return new SubscriptionDependentExpression(ctx -> operation.apply(subLeft.evaluate(ctx), valRight));
         }
         if (left instanceof Value valLeft && right instanceof SubscriptionDependentExpression subRight) {
@@ -160,11 +182,25 @@ public class SaplCompiler {
                 + left.getClass().getSimpleName() + " and " + right.getClass().getSimpleName() + ".");
     }
 
+    private CompiledExpression compileUnaryOperation(UnaryOperator operator,
+            java.util.function.UnaryOperator<Value> operation, CompilationContext context) {
+        val expression = compileExpression(operator.getExpression(), context);
+        if (expression instanceof Value value) {
+            return operation.apply(value);
+        }
+        if (expression instanceof AttributeDependentExpression) {
+            // TODO: implement
+            return UNIMPLEMENTED;
+        }
+        val subExpression = (SubscriptionDependentExpression) expression;
+        return new SubscriptionDependentExpression(ctx -> operation.apply(subExpression.evaluate(ctx)));
+    }
+
     private CompiledExpression compileBasicExpression(BasicExpression expression, CompilationContext context) {
         return switch (expression) {
         case BasicGroup group                               -> compileExpression(group.getExpression(), context);
         case BasicValue value                               -> compileValue(value, context);
-        case BasicFunction function                         -> UNIMPLEMENTED;
+        case BasicFunction function                         -> compileFunction(function, context);
         case BasicEnvironmentAttribute envAttribute         -> UNIMPLEMENTED;
         case BasicEnvironmentHeadAttribute envHeadAttribute -> UNIMPLEMENTED;
         case BasicIdentifier identifier                     -> compileIdentifier(identifier, context);
@@ -174,9 +210,38 @@ public class SaplCompiler {
         };
     }
 
+    private CompiledExpression compileFunction(BasicFunction function, CompilationContext context) {
+        if (context.isDynamicLibrariesEnabled()) {
+            return UNIMPLEMENTED;
+        }
+        val arguments = new ArrayList<CompiledExpression>();
+        var nature    = Nature.VALUE;
+        if (function.getArguments() != null && function.getArguments().getArgs() != null) {
+            for (val expression : function.getArguments().getArgs()) {
+                val compiled = compileExpression(expression, context);
+                arguments.add(compiled);
+                if (compiled instanceof SubscriptionDependentExpression) {
+                    if (nature != Nature.ATTRIBUTE_DEPENDENT) {
+                        nature = Nature.SUBSCRIPTION_DEPENDENT;
+                    }
+                } else if (compiled instanceof AttributeDependentExpression) {
+                    nature = Nature.ATTRIBUTE_DEPENDENT;
+                }
+            }
+        }
+        if (nature == Nature.VALUE) {
+            val valueArguments = arguments.stream().map(Value.class::cast).toList();
+            val invocation     = new FunctionInvocation(
+                    FunctionUtil.resolveFunctionIdentifierByImports(function, function.getIdentifier()),
+                    valueArguments);
+            return staticPlugInsServer.evaluateFunction(invocation);
+        }
+        return UNIMPLEMENTED;
+    }
+
     private CompiledExpression compileIdentifier(BasicIdentifier identifier, CompilationContext context) {
         val variableIdentifier = identifier.getIdentifier();
-        val maybeLocalVariable = context.variablesInScope.get(variableIdentifier);
+        val maybeLocalVariable = context.localVariablesInScope.get(variableIdentifier);
         if (maybeLocalVariable != null) {
             return maybeLocalVariable;
         }
@@ -294,5 +359,4 @@ public class SaplCompiler {
         }
         return new CompiledArguments(nature, compiledArguments);
     }
-
 }

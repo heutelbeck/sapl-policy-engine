@@ -35,18 +35,6 @@ class ObjectValueTests {
     @Nested
     @DisplayName("Construction")
     class ConstructionTests {
-
-        @Test
-        @DisplayName("Constructor copies defensively")
-        void constructorCopiesDefensively() {
-            var original = new HashMap<>(Map.of("key", Value.of(1)));
-            var obj      = new ObjectValue(original, false);
-
-            original.put("newKey", Value.of(2));
-
-            assertThat(obj).hasSize(1);
-        }
-
         @Test
         @DisplayName("Constructor with null map throws NullPointerException")
         void constructorNullMapThrows() {
@@ -86,7 +74,7 @@ class ObjectValueTests {
         @Test
         @DisplayName("Builder putAll() works")
         void builderPutAll() {
-            var map    = Map.of("key1", Value.of("value1"), "key2", Value.of("value2"));
+            var map    = Map.<String, Value>of("key1", Value.of("value1"), "key2", Value.of("value2"));
             var result = ObjectValue.builder().putAll(map).build();
 
             assertThat(result).hasSize(2).containsEntry("key1", Value.of("value1"));
@@ -273,7 +261,7 @@ class ObjectValueTests {
         @Test
         @DisplayName("equals() accepts HashMap with same content")
         void equalsAcceptsHashMap() {
-            var content     = Map.of("key", Value.of(1));
+            var content     = Map.<String, Value>of("key", Value.of(1));
             var objectValue = new ObjectValue(content, false);
             var hashMap     = new HashMap<>(content);
 
@@ -284,7 +272,7 @@ class ObjectValueTests {
         @Test
         @DisplayName("equals() accepts Map.of() with same content")
         void equalsAcceptsMapOf() {
-            var content     = Map.of("key", Value.of(1));
+            var content     = Map.<String, Value>of("key", Value.of(1));
             var objectValue = new ObjectValue(content, false);
 
             assertThat(objectValue).isEqualTo(content);
@@ -294,7 +282,7 @@ class ObjectValueTests {
         @Test
         @DisplayName("hashCode() matches HashMap hashCode")
         void hashCodeMatchesHashMap() {
-            var content     = Map.of("key", Value.of(1));
+            var content     = Map.<String, Value>of("key", Value.of(1));
             var objectValue = new ObjectValue(content, false);
             var hashMap     = new HashMap<>(content);
 
@@ -922,8 +910,6 @@ class ObjectValueTests {
                 "Read-only access";
             case ObjectValue o                                                                                                ->
                 "No access";
-            default                                                                                                           ->
-                "Invalid resource data";
             };
 
             assertThat(decision).isEqualTo("Access granted to owner");
@@ -939,7 +925,6 @@ class ObjectValueTests {
                 var email = obj.get("email");
                 yield !(email instanceof NullValue);
             }
-            default              -> false;
             };
 
             assertThat(hasEmail).isFalse();

@@ -67,7 +67,7 @@ public class LibraryProposalsGenerator {
     public static Set<Proposal> allFunctionSchemaExtensions(ContextAnalysisResult analysis,
             ContentAssistContext context, PDPConfiguration pdpConfiguration) {
         final var proposals = new HashSet<Proposal>();
-        final var functions = pdpConfiguration.functionContext().getFunctionMetatata();
+        final var functions = pdpConfiguration.functionContext().getFunctionMetadata();
         final var variables = pdpConfiguration.variables();
         functions.stream()
                 .filter(function -> aliasNamesOfFunctionFromImports(function.fullyQualifiedName(), context)
@@ -161,7 +161,7 @@ public class LibraryProposalsGenerator {
     public static List<Proposal> allFunctions(ContextAnalysisResult analysis, ContentAssistContext context,
             PDPConfiguration pdpConfiguration) {
         final var proposals = new ArrayList<Proposal>();
-        final var functions = pdpConfiguration.functionContext().getFunctionMetatata();
+        final var functions = pdpConfiguration.functionContext().getFunctionMetadata();
         functions.forEach(function -> proposals.addAll(
                 documentedProposalsForLibraryEntry(analysis.prefix(), analysis.ctxPrefix(), function, context)));
         return proposals;
