@@ -908,7 +908,7 @@ class ObjectValueTests {
             case ObjectValue obj when obj.containsKey(
                     "resourceId")                                                                                             ->
                 "Read-only access";
-            case ObjectValue o                                                                                                ->
+            case ObjectValue ignored                                                                                          ->
                 "No access";
             };
 

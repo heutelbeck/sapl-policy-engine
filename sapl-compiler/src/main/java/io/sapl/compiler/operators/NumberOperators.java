@@ -26,12 +26,16 @@ import lombok.experimental.UtilityClass;
 
 import java.math.BigDecimal;
 import java.util.function.BiFunction;
+import java.util.function.BiPredicate;
+import java.util.function.BinaryOperator;
 
 /**
  * Provides arithmetic operations for NumberValue instances.
  */
 @UtilityClass
 public class NumberOperators {
+
+    public static final String TYPE_MISMATCH_NUMBER_EXPECTED_ERROR = "Numeric operation requires number values, but found: %s";
 
     public static Value add(Value a, Value b) {
         if (a instanceof TextValue leftText) {
@@ -72,10 +76,10 @@ public class NumberOperators {
      */
     public static Value modulo(Value dividend, Value divisor) {
         if (!(dividend instanceof NumberValue(BigDecimal dividendValue, boolean dividendSecret))) {
-            return Value.error(String.format("Numeric operation requires number values, but found: %s", dividend));
+            return Value.error(String.format(TYPE_MISMATCH_NUMBER_EXPECTED_ERROR, dividend));
         }
         if (!(divisor instanceof NumberValue(BigDecimal divisorValue, boolean divisorSecret))) {
-            return Value.error(String.format("Numeric operation requires number values, but found: %s", dividend));
+            return Value.error(String.format(TYPE_MISMATCH_NUMBER_EXPECTED_ERROR, dividend));
         }
         if (divisorValue.signum() == 0) {
             return new ErrorValue("Division by zero.", dividendSecret || divisorSecret);
@@ -91,14 +95,14 @@ public class NumberOperators {
 
     public static Value unaryPlus(Value v) {
         if (!(v instanceof NumberValue)) {
-            return Value.error(String.format("Numeric operation requires number values, but found: %s", v));
+            return Value.error(String.format(TYPE_MISMATCH_NUMBER_EXPECTED_ERROR, v));
         }
         return v;
     }
 
     public static Value unaryMinus(Value v) {
         if (!(v instanceof NumberValue(BigDecimal number, boolean secret))) {
-            return Value.error(String.format("Numeric operation requires number values, but found: %s", v));
+            return Value.error(String.format(TYPE_MISMATCH_NUMBER_EXPECTED_ERROR, v));
         }
         return new NumberValue(number.negate(), secret);
     }
@@ -119,15 +123,14 @@ public class NumberOperators {
         return applyNumericComparison(a, b, (left, right) -> left.compareTo(right) >= 0);
     }
 
-    private static Value applyNumericComparison(Value left, Value right,
-            BiFunction<BigDecimal, BigDecimal, Boolean> comparison) {
+    private static Value applyNumericComparison(Value left, Value right, BiPredicate<BigDecimal, BigDecimal> comparison) {
         if (!(left instanceof NumberValue(BigDecimal leftValue, boolean leftSecret))) {
-            return Value.error(String.format("Numeric comparison requires number values, but found: %s", left));
+            return Value.error(String.format(TYPE_MISMATCH_NUMBER_EXPECTED_ERROR, left));
         }
         if (!(right instanceof NumberValue(BigDecimal rightValue, boolean rightSecret))) {
-            return Value.error(String.format("Numeric comparison requires number values, but found: %s", right));
+            return Value.error(String.format(TYPE_MISMATCH_NUMBER_EXPECTED_ERROR, right));
         }
-        return preserveSecret(comparison.apply(leftValue, rightValue), leftSecret || rightSecret);
+        return preserveSecret(comparison.test(leftValue, rightValue), leftSecret || rightSecret);
     }
 
     /**
@@ -145,13 +148,12 @@ public class NumberOperators {
         }
     }
 
-    private static Value applyNumericOperation(Value left, Value right,
-            BiFunction<BigDecimal, BigDecimal, BigDecimal> operation) {
+    private static Value applyNumericOperation(Value left, Value right, BinaryOperator<BigDecimal> operation) {
         if (!(left instanceof NumberValue(BigDecimal leftValue, boolean leftSecret))) {
-            return Value.error(String.format("Numeric operation requires number values, but found: %s", left));
+            return Value.error(String.format(TYPE_MISMATCH_NUMBER_EXPECTED_ERROR, left));
         }
         if (!(right instanceof NumberValue(BigDecimal rightValue, boolean rightSecret))) {
-            return Value.error(String.format("Numeric operation requires number values, but found: %s", right));
+            return Value.error(String.format(TYPE_MISMATCH_NUMBER_EXPECTED_ERROR, right));
         }
         return new NumberValue(operation.apply(leftValue, rightValue), leftSecret || rightSecret);
     }

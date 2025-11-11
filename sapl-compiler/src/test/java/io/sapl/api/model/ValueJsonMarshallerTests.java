@@ -47,7 +47,6 @@ class ValueJsonMarshallerTests {
     private static final String ENTITY_AZATHOTH     = "Azathoth";
     private static final String ENTITY_NYARLATHOTEP = "Nyarlathotep";
     private static final String LOCATION_RLYEH      = "R'lyeh";
-    private static final String LOCATION_YUGGOTH    = "Yuggoth";
     private static final int    SANITY_THRESHOLD    = 42;
     private static final int    HORROR_LEVEL_MAX    = 100;
 
