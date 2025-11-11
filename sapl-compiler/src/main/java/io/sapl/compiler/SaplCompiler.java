@@ -40,7 +40,7 @@ import java.util.function.BiFunction;
 @RequiredArgsConstructor
 public class SaplCompiler {
 
-    private final static Value UNIMPLEMENTED = Value.error("unimplemented");
+    private static final Value UNIMPLEMENTED = Value.error("unimplemented");
 
     private final FunctionBroker staticPlugInsServer;
 

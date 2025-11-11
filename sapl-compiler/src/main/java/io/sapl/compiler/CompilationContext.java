@@ -25,10 +25,7 @@ import lombok.NoArgsConstructor;
 import lombok.ToString;
 
 import java.math.BigDecimal;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.function.Function;
 
 @Data
@@ -38,7 +35,7 @@ public class CompilationContext {
     final boolean                           dynamicLibrariesEnabled = false;
     final boolean                           debugInformationEnabled = false;
     List<Import>                            imports                 = new ArrayList<>();
-    Map<SchemaTarget, List<CompiledSchema>> schemas                 = new HashMap<>();
+    Map<SchemaTarget, List<CompiledSchema>> schemas                 = new EnumMap<>(SchemaTarget.class);
     Map<String, CompiledExpression>         localVariablesInScope   = new HashMap<>();
     Map<Value, Value>                       constants               = new HashMap<>();
     Value                                   relativeValue;

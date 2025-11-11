@@ -88,7 +88,7 @@ public class ComparisonOperators {
                 return preserveSecret(pattern.test(inputText.value()), secret);
             };
         } catch (IllegalArgumentException e) {
-            throw new SaplCompilerException(String.format("Invalid regular expression: %s", regex));
+            throw new SaplCompilerException(String.format("Invalid regular expression: %s", regex), e);
         }
     }
 

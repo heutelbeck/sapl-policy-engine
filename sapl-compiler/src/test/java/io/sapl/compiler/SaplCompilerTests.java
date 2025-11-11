@@ -27,7 +27,7 @@ import lombok.val;
 import org.junit.jupiter.api.Test;
 
 @Slf4j
-public class SaplCompilerTests {
+class SaplCompilerTests {
     private static final SAPLInterpreter       PARSER   = new DefaultSAPLInterpreter();
     private static final DefaultFunctionBroker PLUGINS  = new DefaultFunctionBroker();
     private static final SaplCompiler          COMPILER = new SaplCompiler(PLUGINS);

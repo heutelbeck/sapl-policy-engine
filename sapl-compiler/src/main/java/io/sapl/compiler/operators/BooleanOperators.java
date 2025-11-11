@@ -21,13 +21,15 @@ import io.sapl.api.model.BooleanValue;
 import io.sapl.api.model.Value;
 import lombok.experimental.UtilityClass;
 
-import java.util.function.BiFunction;
+import java.util.function.BinaryOperator;
 
 /**
  * Provides logical operations for BooleanValue instances.
  */
 @UtilityClass
 public class BooleanOperators {
+
+    public static final String TYPE_MISMATCH_BOOLEAN_EXPECTED_ERROR = "Boolean operation requires Boolean values, but found: %s";
 
     public static Value and(Value a, Value b) {
         return applyBooleanOperation(a, b, (left, right) -> left && right);
@@ -42,19 +44,19 @@ public class BooleanOperators {
     }
 
     private static Value applyBooleanOperation(Value left, Value right,
-            BiFunction<Boolean, Boolean, Boolean> operation) {
+            BinaryOperator<Boolean> operation) {
         if (!(left instanceof BooleanValue boolLeft)) {
-            return Value.error(String.format("Boolean operation requires Boolean values, but found: %s", left));
+            return Value.error(String.format(TYPE_MISMATCH_BOOLEAN_EXPECTED_ERROR, left));
         }
         if (!(right instanceof BooleanValue boolRight)) {
-            return Value.error(String.format("Boolean operation requires Boolean values, but found: %s", right));
+            return Value.error(String.format(TYPE_MISMATCH_BOOLEAN_EXPECTED_ERROR, right));
         }
         return preserveSecret(operation.apply(boolLeft.value(), boolRight.value()), left.secret() || right.secret());
     }
 
     public static Value not(Value value) {
         if (!(value instanceof BooleanValue(boolean bool, boolean secret))) {
-            return Value.error(String.format("Boolean operation requires Boolean values, but found: %s", value));
+            return Value.error(String.format(TYPE_MISMATCH_BOOLEAN_EXPECTED_ERROR, value));
         }
         return preserveSecret(!bool, secret);
     }

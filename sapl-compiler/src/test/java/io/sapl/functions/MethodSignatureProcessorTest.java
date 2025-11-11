@@ -226,8 +226,7 @@ class MethodSignatureProcessorTest {
 
             val result = spec.function().apply(invocation);
 
-            assertThat(result).isNotNull();
-            assertThat(result).isInstanceOf(TextValue.class);
+            assertThat(result).isNotNull().isInstanceOf(TextValue.class);
             val textResult = (TextValue) result;
             assertThat(textResult.value()).isEqualTo("Stormbringer bound to Elric");
         }
@@ -243,8 +242,7 @@ class MethodSignatureProcessorTest {
 
             val result = spec.function().apply(invocation);
 
-            assertThat(result).isNotNull();
-            assertThat(result).isInstanceOf(TextValue.class);
+            assertThat(result).isNotNull().isInstanceOf(TextValue.class);
             val textResult = (TextValue) result;
             assertThat(textResult.value()).contains("drained");
         }
@@ -261,8 +259,7 @@ class MethodSignatureProcessorTest {
 
             val result = spec.function().apply(invocation);
 
-            assertThat(result).isNotNull();
-            assertThat(result).isInstanceOf(TextValue.class);
+            assertThat(result).isNotNull().isInstanceOf(TextValue.class);
             val textResult = (TextValue) result;
             assertThat(textResult.value()).contains("Elric").contains("fire").contains("9");
         }
@@ -277,8 +274,7 @@ class MethodSignatureProcessorTest {
 
             val result = spec.function().apply(invocation);
 
-            assertThat(result).isNotNull();
-            assertThat(result).isInstanceOf(TextValue.class);
+            assertThat(result).isNotNull().isInstanceOf(TextValue.class);
             val textResult = (TextValue) result;
             assertThat(textResult.value()).contains("Elric awakens 0 towers");
         }
@@ -294,8 +290,7 @@ class MethodSignatureProcessorTest {
 
             val result = spec.function().apply(invocation);
 
-            assertThat(result).isNotNull();
-            assertThat(result).isInstanceOf(TextValue.class);
+            assertThat(result).isNotNull().isInstanceOf(TextValue.class);
             val textResult = (TextValue) result;
             assertThat(textResult.value()).contains("Elric awakens 1 towers");
         }
@@ -311,8 +306,7 @@ class MethodSignatureProcessorTest {
 
             val result = spec.function().apply(invocation);
 
-            assertThat(result).isNotNull();
-            assertThat(result).isInstanceOf(TextValue.class);
+            assertThat(result).isNotNull().isInstanceOf(TextValue.class);
             val textResult = (TextValue) result;
             assertThat(textResult.value()).contains("Elric awakens 3 towers");
         }
@@ -328,8 +322,7 @@ class MethodSignatureProcessorTest {
 
             val result = spec.function().apply(invocation);
 
-            assertThat(result).isNotNull();
-            assertThat(result).isInstanceOf(TextValue.class);
+            assertThat(result).isNotNull().isInstanceOf(TextValue.class);
             val textResult = (TextValue) result;
             assertThat(textResult.value()).contains("Summoned 3 Chaos Lords");
         }
@@ -345,8 +338,7 @@ class MethodSignatureProcessorTest {
 
             val result = spec.function().apply(invocation);
 
-            assertThat(result).isNotNull();
-            assertThat(result).isInstanceOf(TextValue.class);
+            assertThat(result).isNotNull().isInstanceOf(TextValue.class);
             val textResult = (TextValue) result;
             assertThat(textResult.value()).contains("Actorios").contains("8");
         }
@@ -366,8 +358,7 @@ class MethodSignatureProcessorTest {
 
             val result = spec.function().apply(invocation);
 
-            assertThat(result).isNotNull();
-            assertThat(result).isInstanceOf(ErrorValue.class);
+            assertThat(result).isNotNull().isInstanceOf(ErrorValue.class);
             val error = (ErrorValue) result;
             assertThat(error.message()).contains("requires exactly 3 arguments").contains("received 1");
         }
@@ -383,8 +374,7 @@ class MethodSignatureProcessorTest {
 
             val result = spec.function().apply(invocation);
 
-            assertThat(result).isNotNull();
-            assertThat(result).isInstanceOf(ErrorValue.class);
+            assertThat(result).isNotNull().isInstanceOf(ErrorValue.class);
             val error = (ErrorValue) result;
             assertThat(error.message()).contains("requires exactly 1 arguments").contains("received 2");
         }
@@ -399,8 +389,7 @@ class MethodSignatureProcessorTest {
 
             val result = spec.function().apply(invocation);
 
-            assertThat(result).isNotNull();
-            assertThat(result).isInstanceOf(ErrorValue.class);
+            assertThat(result).isNotNull().isInstanceOf(ErrorValue.class);
             val error = (ErrorValue) result;
             assertThat(error.message()).contains("requires at least 1 arguments").contains("received 0");
         }
@@ -415,8 +404,7 @@ class MethodSignatureProcessorTest {
 
             val result = spec.function().apply(invocation);
 
-            assertThat(result).isNotNull();
-            assertThat(result).isInstanceOf(ErrorValue.class);
+            assertThat(result).isNotNull().isInstanceOf(ErrorValue.class);
             val error = (ErrorValue) result;
             assertThat(error.message()).contains("argument 0").contains("expected TextValue")
                     .contains("received NumberValue");
@@ -432,8 +420,7 @@ class MethodSignatureProcessorTest {
 
             val result = spec.function().apply(invocation);
 
-            assertThat(result).isNotNull();
-            assertThat(result).isInstanceOf(ErrorValue.class);
+            assertThat(result).isNotNull().isInstanceOf(ErrorValue.class);
             val error = (ErrorValue) result;
             assertThat(error.message()).contains("varargs argument 0").contains("expected TextValue")
                     .contains("received BooleanValue");
@@ -450,8 +437,7 @@ class MethodSignatureProcessorTest {
 
             val result = spec.function().apply(invocation);
 
-            assertThat(result).isNotNull();
-            assertThat(result).isInstanceOf(ErrorValue.class);
+            assertThat(result).isNotNull().isInstanceOf(ErrorValue.class);
             val error = (ErrorValue) result;
             assertThat(error.message()).contains("varargs argument 1");
         }
@@ -470,8 +456,7 @@ class MethodSignatureProcessorTest {
 
             val result = spec.function().apply(invocation);
 
-            assertThat(result).isNotNull();
-            assertThat(result).isInstanceOf(ErrorValue.class);
+            assertThat(result).isNotNull().isInstanceOf(ErrorValue.class);
             val error = (ErrorValue) result;
             assertThat(error.message()).contains("execution failed").contains("Stormbringer rebels");
         }
