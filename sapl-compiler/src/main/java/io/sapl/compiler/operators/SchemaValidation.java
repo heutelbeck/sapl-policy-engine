@@ -20,8 +20,8 @@ package io.sapl.compiler.operators;
 import com.networknt.schema.JsonMetaSchema;
 import com.networknt.schema.JsonSchemaException;
 import com.networknt.schema.JsonSchemaFactory;
-import io.sapl.api.value.Value;
-import io.sapl.api.value.ValueJsonMarshaller;
+import io.sapl.api.model.Value;
+import io.sapl.api.model.ValueJsonMarshaller;
 import lombok.experimental.UtilityClass;
 import lombok.val;
 

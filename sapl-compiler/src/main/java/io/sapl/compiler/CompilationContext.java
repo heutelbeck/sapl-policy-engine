@@ -17,13 +17,14 @@
  */
 package io.sapl.compiler;
 
-import io.sapl.api.value.CompiledExpression;
-import io.sapl.api.value.Value;
+import io.sapl.api.model.CompiledExpression;
+import io.sapl.api.model.Value;
 import io.sapl.grammar.sapl.Import;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.ToString;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -40,6 +41,9 @@ public class CompilationContext {
     Map<SchemaTarget, List<CompiledSchema>> schemas                 = new HashMap<>();
     Map<String, CompiledExpression>         localVariablesInScope   = new HashMap<>();
     Map<Value, Value>                       constants               = new HashMap<>();
+    Value                                   relativeValue;
+    String                                  relativeKey;
+    BigDecimal                              relativeIndex;
 
     public void addAllImports(List<Import> imports) {
         if (imports != null) {
@@ -47,10 +51,29 @@ public class CompilationContext {
         }
     }
 
+    public void setRelativeValue(Value relativeValue, String relativeKey) {
+        this.relativeValue = relativeValue;
+        this.relativeKey   = relativeKey;
+        this.relativeIndex = null;
+    }
+
+    public void setRelativeValue(Value relativeValue, int relativeIndex) {
+        this.relativeValue = relativeValue;
+        this.relativeKey   = null;
+        this.relativeIndex = BigDecimal.valueOf(relativeIndex);
+    }
+
+    public void clearRelativeValue() {
+        this.relativeIndex = null;
+        this.relativeKey   = null;
+        this.relativeValue = null;
+    }
+
     public void resetForNextDocument() {
         imports.clear();
         localVariablesInScope.clear();
         schemas.clear();
+        clearRelativeValue();
     }
 
     public CompiledExpression dedupe(Value constantValue) {

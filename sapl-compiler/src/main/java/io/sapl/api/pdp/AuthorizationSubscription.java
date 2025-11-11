@@ -17,7 +17,7 @@
  */
 package io.sapl.api.pdp;
 
-import io.sapl.api.value.Value;
+import io.sapl.api.model.Value;
 import lombok.NonNull;
 
 public record AuthorizationSubscription(

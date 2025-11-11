@@ -17,17 +17,11 @@
  */
 package io.sapl.compiler.operators;
 
-import io.sapl.api.interpreter.Trace;
-import io.sapl.api.interpreter.Val;
-import io.sapl.api.value.*;
+import io.sapl.api.model.*;
 import io.sapl.compiler.SaplCompilerException;
-import io.sapl.grammar.sapl.Regex;
-import io.sapl.grammar.sapl.impl.util.ErrorFactory;
 import lombok.experimental.UtilityClass;
 import lombok.val;
 
-import java.util.Map;
-import java.util.function.Function;
 import java.util.function.UnaryOperator;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;

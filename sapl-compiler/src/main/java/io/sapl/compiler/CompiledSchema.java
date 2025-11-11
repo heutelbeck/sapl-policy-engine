@@ -17,7 +17,7 @@
  */
 package io.sapl.compiler;
 
-import io.sapl.api.value.Value;
+import io.sapl.api.model.Value;
 import io.sapl.grammar.sapl.Object;
 
 public record CompiledSchema(Value schema, boolean enforced, Object compiledSchema) {

@@ -17,8 +17,8 @@
  */
 package io.sapl.compiler.operators;
 
-import io.sapl.api.value.BooleanValue;
-import io.sapl.api.value.Value;
+import io.sapl.api.model.BooleanValue;
+import io.sapl.api.model.Value;
 import lombok.experimental.UtilityClass;
 
 import java.util.function.BiFunction;

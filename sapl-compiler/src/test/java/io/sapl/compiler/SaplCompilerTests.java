@@ -17,31 +17,24 @@
  */
 package io.sapl.compiler;
 
-import io.sapl.api.value.NumberValue;
+import io.sapl.functions.DefaultFunctionBroker;
+import io.sapl.functions.libraries.TemporalFunctionLibrary;
 import io.sapl.interpreter.DefaultSAPLInterpreter;
 import io.sapl.interpreter.InitializationException;
 import io.sapl.interpreter.SAPLInterpreter;
-import io.sapl.plugins.DefaultStaticPluginsServer;
-import io.sapl.plugins.MethodSignatureProcessor;
-import io.sapl.plugins.TemporalFunctionLibrary;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 @Slf4j
 public class SaplCompilerTests {
-    private static final SAPLInterpreter            PARSER   = new DefaultSAPLInterpreter();
-    private static final DefaultStaticPluginsServer PLUGINS  = new DefaultStaticPluginsServer();
-    private static final SaplCompiler               COMPILER = new SaplCompiler(PLUGINS);
+    private static final SAPLInterpreter       PARSER   = new DefaultSAPLInterpreter();
+    private static final DefaultFunctionBroker PLUGINS  = new DefaultFunctionBroker();
+    private static final SaplCompiler          COMPILER = new SaplCompiler(PLUGINS);
 
     @Test
-    void experimentWithCompiler() throws NoSuchMethodException, InitializationException {
-        val method = TemporalFunctionLibrary.class.getMethod("durationOfSeconds", NumberValue.class);
-
-        val spec = MethodSignatureProcessor.functionSpecification(null, "time", method);
-        Assertions.assertNotNull(spec);
-        PLUGINS.loadFunction(spec);
+    void experimentWithCompiler() throws InitializationException {
+        PLUGINS.loadStaticFunctionLibrary(TemporalFunctionLibrary.class);
         val source  = """
                 policy "test policy"
                 permit time.durationOfSeconds(1234)
