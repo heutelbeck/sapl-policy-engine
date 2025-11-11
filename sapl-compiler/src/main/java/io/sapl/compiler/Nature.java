@@ -19,6 +19,6 @@ package io.sapl.compiler;
 
 enum Nature {
     VALUE,
-    SUBSCRIPTION_DEPENDENT,
-    ATTRIBUTE_DEPENDENT
+    PURE,
+    STREAM
 }

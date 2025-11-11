@@ -102,11 +102,7 @@ public class TemporalFunctionLibrary {
             The expression ```time.durationOfSeconds(20.5)``` returns ```20500```.
             """)
     public static Value durationOfSeconds(NumberValue seconds) {
-        try {
-            return Value.of(seconds.value().longValue() * 1000);
-        } catch (Exception e) {
-            return Value.error("Failed to convert seconds to duration.", e);
-        }
+        return Value.of(seconds.value().longValue() * 1000);
     }
 
     @Function(docs = """
@@ -118,11 +114,7 @@ public class TemporalFunctionLibrary {
 
             The expression ```time.durationOfMinutes(2.5)``` returns ```150000```.""")
     public static Value durationOfMinutes(NumberValue minutes) {
-        try {
-            return Value.of(minutes.value().longValue() * 60 * 1000);
-        } catch (Exception e) {
-            return Value.error("Failed to convert minutes to duration.", e);
-        }
+        return Value.of(minutes.value().longValue() * 60 * 1000);
     }
 
     @Function(docs = """
@@ -134,11 +126,7 @@ public class TemporalFunctionLibrary {
 
             The expression ```time.durationOfHours(4.5)``` returns ```16200000```.""")
     public static Value durationOfHours(NumberValue hours) {
-        try {
-            return Value.of(hours.value().longValue() * 60 * 60 * 1000);
-        } catch (Exception e) {
-            return Value.error("Failed to convert hours to duration.", e);
-        }
+        return Value.of(hours.value().longValue() * 60 * 60 * 1000);
     }
 
     @Function(docs = """
@@ -150,11 +138,7 @@ public class TemporalFunctionLibrary {
 
             The expression ```time.durationOfDays(365)``` returns ```31536000000```.""")
     public static Value durationOfDays(NumberValue days) {
-        try {
-            return Value.of(days.value().longValue() * 24 * 60 * 60 * 1000);
-        } catch (Exception e) {
-            return Value.error("Failed to convert days to duration.", e);
-        }
+        return Value.of(days.value().longValue() * 24 * 60 * 60 * 1000);
     }
 
     /* ######## INSTANT/UTC COMPARISON ######## */

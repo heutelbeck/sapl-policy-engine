@@ -48,17 +48,20 @@ class StepOperatorsTests {
             .put("name", Value.of("Wilbur Whateley")).put("ritualKnowledge", Value.of(85)).put("sanity", Value.of(12))
             .build();
 
-    private static final Value AL_AZIF                = Value.of("Al Azif");
-    private static final Value CULTUS_MALEFICARUM     = Value.of("Cultus Maleficarum");
-    private static final Value RITES_OF_YOG_SOTHOTH   = Value.of("Rites of Yog-Sothoth");
-    private static final Value FORBIDDEN_SUMMONINGS   = Value.of("Forbidden Summonings");
-    private static final Value THE_KEY_AND_THE_GATE   = Value.of("The Key and the Gate");
-    private static final Value WILBUR_WHATELEY        = Value.of("Wilbur Whateley");
+    private static final Value AL_AZIF              = Value.of("Al Azif");
+    private static final Value CULTUS_MALEFICARUM   = Value.of("Cultus Maleficarum");
+    private static final Value RITES_OF_YOG_SOTHOTH = Value.of("Rites of Yog-Sothoth");
+    private static final Value FORBIDDEN_SUMMONINGS = Value.of("Forbidden Summonings");
+    private static final Value THE_KEY_AND_THE_GATE = Value.of("The Key and the Gate");
+    private static final Value WILBUR_WHATELEY      = Value.of("Wilbur Whateley");
 
     @SneakyThrows
+    @SuppressWarnings("unchecked")
     private static <T extends Value> T json(String jsonString) {
-        JsonNode node = MAPPER.readTree(jsonString);
-        return (T) ValueJsonMarshaller.fromJsonNode(node);
+        val node  = MAPPER.readTree(jsonString);
+        val value = ValueJsonMarshaller.fromJsonNode(node);
+        ;
+        return (T) value;
     }
 
     // ========== keyStep Tests ==========
@@ -108,7 +111,8 @@ class StepOperatorsTests {
                 Arguments.of(NECRONOMICON_CHAPTERS, 10, "far beyond the veil"),
                 Arguments.of(NECRONOMICON_CHAPTERS, -6, "negative beyond start"),
                 Arguments.of(NECRONOMICON_CHAPTERS, -10, "far into the void"),
-                Arguments.of(Value.EMPTY_ARRAY, 0, "empty tome"), Arguments.of(Value.EMPTY_ARRAY, -1, "empty tome negative"));
+                Arguments.of(Value.EMPTY_ARRAY, 0, "empty tome"),
+                Arguments.of(Value.EMPTY_ARRAY, -1, "empty tome negative"));
     }
 
     @ParameterizedTest(name = "[{index}] indexStep error: {2}")
@@ -138,8 +142,7 @@ class StepOperatorsTests {
         val result = wildcardStep(CULTIST_RECORD);
         assertThat(result).isInstanceOf(ArrayValue.class);
         val arrayResult = (ArrayValue) result;
-        assertThat(arrayResult).hasSize(3)
-                .contains(WILBUR_WHATELEY, Value.of(85), Value.of(12));
+        assertThat(arrayResult).hasSize(3).contains(WILBUR_WHATELEY, Value.of(85), Value.of(12));
     }
 
     @Test
@@ -183,8 +186,7 @@ class StepOperatorsTests {
                 }
                 """);
         val array       = (ArrayValue) recursiveKeyStep(nestedCults, "power");
-        assertThat(array).hasSize(3)
-                .contains(Value.of(100), Value.of(200), Value.of(50));
+        assertThat(array).hasSize(3).contains(Value.of(100), Value.of(200), Value.of(50));
     }
 
     @Test
@@ -202,21 +204,9 @@ class StepOperatorsTests {
                 ]
                 """);
         val array          = (ArrayValue) recursiveKeyStep(arrayOfObjects, "ritual");
-        assertThat(array).hasSize(3)
-                .contains(Value.of("summoning"), Value.of("binding"), Value.of("banishment"));
+        assertThat(array).hasSize(3).contains(Value.of("summoning"), Value.of("binding"), Value.of("banishment"));
     }
 
-    /**
-     * Tests that recursion depth limit is enforced to prevent stack overflow.
-     * <p>
-     * WARNING: This test is intentionally slow (~2-5 seconds) because it:
-     * 1. Recursively creates 501 nested objects (expensive)
-     * 2. Processes 500 levels before hitting the depth limit
-     * <p>
-     * The @Timeout prevents indefinite hangs if the depth check mechanism fails.
-     * We use boolean instanceof check instead of AssertJ's isInstanceOf() to avoid
-     * inspection overhead on deeply nested structures.
-     */
     @Test
     @Timeout(value = 5, unit = TimeUnit.SECONDS)
     void recursiveKeyStepHandlesMaxDepth() {
@@ -248,8 +238,8 @@ class StepOperatorsTests {
                 ]
                 """);
         val array        = (ArrayValue) recursiveIndexStep(nestedChants, BigDecimal.valueOf(0));
-        assertThat(array).hasSize(3)
-                .contains(Value.of("Ia! Ia!"), Value.of("Cthulhu"), json("[\"Ia! Ia!\", \"Ph'nglui\"]"));
+        assertThat(array).hasSize(3).contains(Value.of("Ia! Ia!"), Value.of("Cthulhu"),
+                json("[\"Ia! Ia!\", \"Ph'nglui\"]"));
     }
 
     @Test
@@ -261,8 +251,8 @@ class StepOperatorsTests {
                 ]
                 """);
         val array   = (ArrayValue) recursiveIndexStep(rituals, BigDecimal.valueOf(-1));
-        assertThat(array).hasSize(3)
-                .contains(Value.of("Banishment"), Value.of("Greater"), json("[\"Lesser\", \"Greater\"]"));
+        assertThat(array).hasSize(3).contains(Value.of("Banishment"), Value.of("Greater"),
+                json("[\"Lesser\", \"Greater\"]"));
     }
 
     @Test
@@ -289,21 +279,9 @@ class StepOperatorsTests {
                 }
                 """);
         val array            = (ArrayValue) recursiveIndexStep(objectWithArrays, BigDecimal.valueOf(1));
-        assertThat(array).hasSize(2)
-                .contains(Value.of("Cthulhu"), Value.of("mglw'nafh"));
+        assertThat(array).hasSize(2).contains(Value.of("Cthulhu"), Value.of("mglw'nafh"));
     }
 
-    /**
-     * Tests that recursion depth limit is enforced to prevent stack overflow.
-     * <p>
-     * WARNING: This test is intentionally slow (~2-5 seconds) because it:
-     * 1. Recursively creates 501 nested arrays (expensive)
-     * 2. Processes 500 levels before hitting the depth limit
-     * <p>
-     * The @Timeout prevents indefinite hangs if the depth check mechanism fails.
-     * We use boolean instanceof check instead of AssertJ's isInstanceOf() to avoid
-     * inspection overhead on deeply nested structures.
-     */
     @Test
     @Timeout(value = 5, unit = TimeUnit.SECONDS)
     void recursiveIndexStepHandlesMaxDepth() {
@@ -330,16 +308,14 @@ class StepOperatorsTests {
     @Test
     void recursiveWildcardStepCollectsAllArrayElements() {
         val result = (ArrayValue) recursiveWildcardStep(NECRONOMICON_CHAPTERS);
-        assertThat(result).hasSize(5)
-                .contains(AL_AZIF, CULTUS_MALEFICARUM, RITES_OF_YOG_SOTHOTH,
-                        FORBIDDEN_SUMMONINGS, THE_KEY_AND_THE_GATE);
+        assertThat(result).hasSize(5).contains(AL_AZIF, CULTUS_MALEFICARUM, RITES_OF_YOG_SOTHOTH, FORBIDDEN_SUMMONINGS,
+                THE_KEY_AND_THE_GATE);
     }
 
     @Test
     void recursiveWildcardStepCollectsAllObjectValues() {
         val result = (ArrayValue) recursiveWildcardStep(CULTIST_RECORD);
-        assertThat(result).hasSize(3)
-                .contains(WILBUR_WHATELEY, Value.of(85), Value.of(12));
+        assertThat(result).hasSize(3).contains(WILBUR_WHATELEY, Value.of(85), Value.of(12));
     }
 
     @Test
@@ -352,10 +328,9 @@ class StepOperatorsTests {
                 ]
                 """);
         val result       = (ArrayValue) recursiveWildcardStep(nestedChants);
-        assertThat(result).hasSize(7)
-                .contains(json("[\"Ia! Ia!\", \"Ph'nglui\"]"), Value.of("Ia! Ia!"), Value.of("Ph'nglui"),
-                        json("[\"Cthulhu\", \"R'lyeh\"]"), Value.of("Cthulhu"), Value.of("R'lyeh"),
-                        Value.of("fhtagn"));
+        assertThat(result).hasSize(7).contains(json("[\"Ia! Ia!\", \"Ph'nglui\"]"), Value.of("Ia! Ia!"),
+                Value.of("Ph'nglui"), json("[\"Cthulhu\", \"R'lyeh\"]"), Value.of("Cthulhu"), Value.of("R'lyeh"),
+                Value.of("fhtagn"));
     }
 
     @Test
@@ -374,11 +349,10 @@ class StepOperatorsTests {
                 }
                 """);
         val result      = (ArrayValue) recursiveWildcardStep(nestedCults);
-        assertThat(result).hasSize(7)
-                .contains(json("{\"name\": \"Esoteric Order\", \"location\": \"Arkham\"}"),
-                        Value.of("Esoteric Order"), Value.of("Arkham"),
-                        json("{\"highPriest\": \"Cthulhu\", \"forbidden\": true}"),
-                        Value.of("Cthulhu"), Value.TRUE, Value.of(666));
+        assertThat(result).hasSize(7).contains(json("{\"name\": \"Esoteric Order\", \"location\": \"Arkham\"}"),
+                Value.of("Esoteric Order"), Value.of("Arkham"),
+                json("{\"highPriest\": \"Cthulhu\", \"forbidden\": true}"), Value.of("Cthulhu"), Value.TRUE,
+                Value.of(666));
     }
 
     @Test
@@ -394,12 +368,11 @@ class StepOperatorsTests {
                 }
                 """);
         val result           = (ArrayValue) recursiveWildcardStep(complexStructure);
-        assertThat(result).hasSize(9)
-                .contains(json("[\"Necronomicon\", \"Unaussprechlichen Kulten\"]"),
-                        Value.of("Necronomicon"), Value.of("Unaussprechlichen Kulten"),
-                        json("{\"summoning\": [\"Lesser\", \"Greater\"], \"banishment\": \"Elder Sign\"}"),
-                        json("[\"Lesser\", \"Greater\"]"), Value.of("Lesser"), Value.of("Greater"),
-                        Value.of("Elder Sign"), Value.of(13));
+        assertThat(result).hasSize(9).contains(json("[\"Necronomicon\", \"Unaussprechlichen Kulten\"]"),
+                Value.of("Necronomicon"), Value.of("Unaussprechlichen Kulten"),
+                json("{\"summoning\": [\"Lesser\", \"Greater\"], \"banishment\": \"Elder Sign\"}"),
+                json("[\"Lesser\", \"Greater\"]"), Value.of("Lesser"), Value.of("Greater"), Value.of("Elder Sign"),
+                Value.of(13));
     }
 
     @Test
@@ -413,8 +386,7 @@ class StepOperatorsTests {
         val withSpecialValues = ObjectValue.builder().put("void", Value.NULL).put("madness", Value.UNDEFINED)
                 .put("real", Value.of("Cthulhu")).build();
         val result            = (ArrayValue) recursiveWildcardStep(withSpecialValues);
-        assertThat(result).hasSize(3)
-                .contains(Value.NULL, Value.UNDEFINED, Value.of("Cthulhu"));
+        assertThat(result).hasSize(3).contains(Value.NULL, Value.UNDEFINED, Value.of("Cthulhu"));
     }
 
     @Test
@@ -426,8 +398,7 @@ class StepOperatorsTests {
         val withError = builder.build();
 
         val result = (ArrayValue) recursiveWildcardStep(withError);
-        assertThat(result).hasSize(3)
-                .contains(Value.of("Elder Sign"), Value.of("Ward"));
+        assertThat(result).hasSize(3).contains(Value.of("Elder Sign"), Value.of("Ward"));
         assertThat(result.get(1)).isInstanceOf(ErrorValue.class);
     }
 
@@ -460,24 +431,11 @@ class StepOperatorsTests {
                 """);
         val result    = (ArrayValue) recursiveWildcardStep(structure);
         // Verify all expected elements are present (order may vary by insertion order)
-        assertThat(result).hasSize(12)
-                .contains(Value.of("value1"), json("[{\"key\":\"value2\"},{\"key\":\"value3\"}]"),
-                        json("{\"key\":\"value2\"}"), Value.of("value2"), json("{\"key\":\"value3\"}"),
-                        Value.of("value3"), json("[1,2,3,4,5]"), Value.of(1), Value.of(2),
-                        Value.of(3), Value.of(4), Value.of(5));
+        assertThat(result).hasSize(12).contains(Value.of("value1"), json("[{\"key\":\"value2\"},{\"key\":\"value3\"}]"),
+                json("{\"key\":\"value2\"}"), Value.of("value2"), json("{\"key\":\"value3\"}"), Value.of("value3"),
+                json("[1,2,3,4,5]"), Value.of(1), Value.of(2), Value.of(3), Value.of(4), Value.of(5));
     }
 
-    /**
-     * Tests that recursion depth limit is enforced to prevent stack overflow.
-     * <p>
-     * WARNING: This test is intentionally slow (~2-5 seconds) because it:
-     * 1. Recursively creates 501 nested arrays (expensive)
-     * 2. Processes 500 levels before hitting the depth limit
-     * <p>
-     * The @Timeout prevents indefinite hangs if the depth check mechanism fails.
-     * We use boolean instanceof check instead of AssertJ's isInstanceOf() to avoid
-     * inspection overhead on deeply nested structures.
-     */
     @Test
     @Timeout(value = 5, unit = TimeUnit.SECONDS)
     void recursiveWildcardStepHandlesMaxDepth() {
@@ -500,7 +458,7 @@ class StepOperatorsTests {
             "-3,, 1, '[7, 8, 9]', 'last three signs'", ", -2, 1, '[0, 1, 2, 3, 4, 5, 6, 7]', 'all but last two'",
             "7, -1, 1, '[7, 8]', 'from seventh to penultimate'" })
     void sliceArrayForwardCases(BigDecimal start, BigDecimal end, BigDecimal step, String expectedJson,
-                                String description) {
+            String description) {
         assertThat(sliceArray(ELDER_SIGNS, start, end, step)).isEqualTo(json(expectedJson));
     }
 
@@ -509,7 +467,7 @@ class StepOperatorsTests {
             ",, -3, '[1, 4, 7]', 'step -3 pattern'", "1, 5, -1, '[1, 2, 3, 4]', 'negative step in range'",
             "-2, 6, -1, '[]', 'reversed range yields void'", "-2, -5, -1, '[]', 'negative reversed range'" })
     void sliceArraySAPLNegativeStepSemantics(BigDecimal start, BigDecimal end, BigDecimal step, String expectedJson,
-                                             String description) {
+            String description) {
         assertThat(sliceArray(ELDER_SIGNS, start, end, step)).isEqualTo(json(expectedJson));
     }
 
@@ -670,18 +628,11 @@ class StepOperatorsTests {
 
     @Test
     void attributeUnionEarlyExitsAfterFindingAllKeys() {
-        val extensiveGrimoire = ObjectValue.builder()
-                .put("chant1", Value.of("Ia"))
-                .put("chant2", Value.of("Cthulhu"))
-                .put("chant3", Value.of("fhtagn"))
-                .put("chant4", Value.of("Ph'nglui"))
-                .put("chant5", Value.of("mglw'nafh"))
-                .put("chant6", Value.of("R'lyeh"))
-                .put("chant7", Value.of("wgah'nagl"))
-                .put("chant8", Value.of("fhtagn"))
-                .put("chant9", Value.of("n'gha"))
-                .put("chant10", Value.of("ghaa"))
-                .build();
+        val extensiveGrimoire = ObjectValue.builder().put("chant1", Value.of("Ia")).put("chant2", Value.of("Cthulhu"))
+                .put("chant3", Value.of("fhtagn")).put("chant4", Value.of("Ph'nglui"))
+                .put("chant5", Value.of("mglw'nafh")).put("chant6", Value.of("R'lyeh"))
+                .put("chant7", Value.of("wgah'nagl")).put("chant8", Value.of("fhtagn")).put("chant9", Value.of("n'gha"))
+                .put("chant10", Value.of("ghaa")).build();
         val array             = (ArrayValue) attributeUnion(extensiveGrimoire, List.of("chant1", "chant2"));
         assertThat(array).hasSize(2);
         assertThat(array.getFirst()).isEqualTo(Value.of("Ia"));

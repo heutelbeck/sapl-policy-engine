@@ -17,14 +17,20 @@
  */
 package io.sapl.compiler;
 
+import io.sapl.api.model.ObjectValue;
+import io.sapl.api.model.Value;
 import io.sapl.functions.DefaultFunctionBroker;
 import io.sapl.functions.libraries.TemporalFunctionLibrary;
 import io.sapl.interpreter.DefaultSAPLInterpreter;
 import io.sapl.interpreter.InitializationException;
 import io.sapl.interpreter.SAPLInterpreter;
+import io.sapl.util.TestUtil;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import org.junit.jupiter.api.Test;
+
+import static io.sapl.util.TestUtil.assertCompiledExpressionEvaluatesTo;
+import static io.sapl.util.TestUtil.assertExpressionCompilesToValue;
 
 @Slf4j
 class SaplCompilerTests {
@@ -49,5 +55,14 @@ class SaplCompilerTests {
         } catch (SaplCompilerException e) {
             System.err.println(e.getMessage());
         }
+    }
+
+    @Test
+    void constantFoldingWorks() {
+        val expression = """
+                { "key1": undefined }
+                """;
+        val expected   = ObjectValue.builder().put("key1", Value.UNDEFINED).build();
+        assertExpressionCompilesToValue(expression, expected);
     }
 }

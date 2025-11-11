@@ -21,4 +21,7 @@ import io.sapl.api.model.CompiledExpression;
 
 import java.util.Map;
 
-public record CompiledObjectAttributes(Nature nature, Map<String, CompiledExpression> attributes) {}
+public record CompiledObjectAttributes(
+        Nature nature,
+        boolean isSubscriptionScoped,
+        Map<String, CompiledExpression> attributes) {}
