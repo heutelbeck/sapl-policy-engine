@@ -19,4 +19,4 @@ package io.sapl.compiler;
 
 import io.sapl.api.model.CompiledExpression;
 
-public record CompiledArguments(Nature nature, CompiledExpression[] arguments) {}
+public record CompiledArguments(Nature nature, boolean isSubscriptionScoped, CompiledExpression[] arguments) {}

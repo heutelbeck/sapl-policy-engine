@@ -36,7 +36,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.function.BiFunction;
-import static io.sapl.api.model.ReservedIdentifiers.*;
 
 @RequiredArgsConstructor
 public class SaplCompiler {
@@ -224,11 +223,11 @@ public class SaplCompiler {
                 val compiled = compileExpression(expression, context);
                 arguments.add(compiled);
                 if (compiled instanceof PureExpression) {
-                    if (nature != Nature.ATTRIBUTE_DEPENDENT) {
-                        nature = Nature.SUBSCRIPTION_DEPENDENT;
+                    if (nature != Nature.STREAM) {
+                        nature = Nature.PURE;
                     }
                 } else if (compiled instanceof StreamExpression) {
-                    nature = Nature.ATTRIBUTE_DEPENDENT;
+                    nature = Nature.STREAM;
                 }
             }
         }
@@ -419,14 +418,34 @@ public class SaplCompiler {
             return Value.EMPTY_ARRAY;
         }
         val arguments = compileArguments(items, context);
-        if (arguments.nature() == Nature.VALUE) {
+        return switch (arguments.nature()) {
+        case VALUE  -> compileValueArray(arguments);
+        case PURE   -> compilePureArray(arguments);
+        case STREAM -> UNIMPLEMENTED;
+        };
+    }
+
+    private CompiledExpression compilePureArray(CompiledArguments arguments) {
+        return new PureExpression(ctx -> {
             val arrayBuilder = ArrayValue.builder();
             for (val argument : arguments.arguments()) {
-                arrayBuilder.add((Value) argument);
+                // argument cannot be StreamExpression here!
+                if (argument instanceof PureExpression pureExpression) {
+                    arrayBuilder.add(pureExpression.evaluate(ctx));
+                } else {
+                    arrayBuilder.add((Value) argument);
+                }
             }
             return arrayBuilder.build();
+        }, arguments.isSubscriptionScoped());
+    }
+
+    private Value compileValueArray(CompiledArguments arguments) {
+        val arrayBuilder = ArrayValue.builder();
+        for (val argument : arguments.arguments()) {
+            arrayBuilder.add((Value) argument);
         }
-        return UNIMPLEMENTED;
+        return arrayBuilder.build();
     }
 
     private CompiledExpression composeObject(Object object, CompilationContext context) {
@@ -435,57 +454,87 @@ public class SaplCompiler {
             return Value.EMPTY_OBJECT;
         }
         CompiledObjectAttributes attributes = compileAttributes(members, context);
-        if (attributes.nature() == Nature.VALUE) {
+        return switch (attributes.nature()) {
+        case VALUE  -> compileValueObject(attributes);
+        case PURE   -> compilePureObject(attributes);
+        case STREAM -> UNIMPLEMENTED;
+        };
+    }
+
+    private CompiledExpression compilePureObject(CompiledObjectAttributes attributes) {
+        return new PureExpression(ctx -> {
             val objectBuilder = ObjectValue.builder();
             for (val attribute : attributes.attributes().entrySet()) {
-                objectBuilder.put(attribute.getKey(), (Value) attribute.getValue());
+                val key               = attribute.getKey();
+                val compiledAttribute = attribute.getValue();
+                // compiledAttribute cannot be a StreamExpression here
+                if (compiledAttribute instanceof PureExpression pureExpression) {
+                    objectBuilder.put(key, pureExpression.evaluate(ctx));
+                } else {
+                    objectBuilder.put(key, (Value) compiledAttribute);
+                }
             }
             return objectBuilder.build();
+        }, attributes.isSubscriptionScoped());
+    }
+
+    private CompiledExpression compileValueObject(CompiledObjectAttributes attributes) {
+        val objectBuilder = ObjectValue.builder();
+        for (val attribute : attributes.attributes().entrySet()) {
+            objectBuilder.put(attribute.getKey(), (Value) attribute.getValue());
         }
-        return UNIMPLEMENTED;
+        return objectBuilder.build();
     }
 
     private CompiledObjectAttributes compileAttributes(EList<Pair> members, CompilationContext context) {
-        val compiledArguments     = new HashMap<String, CompiledExpression>(members.size());
-        var subscriptionDependent = false;
-        var attributeDependent    = false;
+        val compiledArguments    = new HashMap<String, CompiledExpression>(members.size());
+        var isStream             = false;
+        var isPure               = false;
+        var isSubscriptionScoped = false;
         for (Pair pair : members) {
             val compiledAttribute = compileExpression(pair.getValue(), context);
-            if (compiledAttribute instanceof PureExpression) {
-                subscriptionDependent = true;
+            if (compiledAttribute instanceof PureExpression pureExpression) {
+                isPure = true;
+                if (pureExpression.isSubscriptionScoped()) {
+                    isSubscriptionScoped = true;
+                }
             } else if (compiledAttribute instanceof StreamExpression) {
-                attributeDependent = true;
+                isStream = true;
             }
             compiledArguments.put(pair.getKey(), compiledAttribute);
         }
         var nature = Nature.VALUE;
-        if (attributeDependent) {
-            nature = Nature.ATTRIBUTE_DEPENDENT;
-        } else if (subscriptionDependent) {
-            nature = Nature.SUBSCRIPTION_DEPENDENT;
+        if (isPure) {
+            nature = Nature.STREAM;
+        } else if (isStream) {
+            nature = Nature.PURE;
         }
-        return new CompiledObjectAttributes(nature, compiledArguments);
+        return new CompiledObjectAttributes(nature, isSubscriptionScoped, compiledArguments);
     }
 
     private CompiledArguments compileArguments(EList<Expression> arguments, CompilationContext context) {
-        val compiledArguments     = new CompiledExpression[arguments.size()];
-        var subscriptionDependent = false;
-        var attributeDependent    = false;
+        val compiledArguments    = new CompiledExpression[arguments.size()];
+        var isPure               = false;
+        var isStream             = false;
+        var isSubscriptionScoped = false;
         for (int i = 0; i < arguments.size(); i++) {
             val compiledArgument = compileExpression(arguments.get(i), context);
-            if (compiledArgument instanceof PureExpression) {
-                subscriptionDependent = true;
+            if (compiledArgument instanceof PureExpression pureExpression) {
+                isPure = true;
+                if (pureExpression.isSubscriptionScoped()) {
+                    isSubscriptionScoped = true;
+                }
             } else if (compiledArgument instanceof StreamExpression) {
-                attributeDependent = true;
+                isStream = true;
             }
             compiledArguments[i] = compiledArgument;
         }
         var nature = Nature.VALUE;
-        if (attributeDependent) {
-            nature = Nature.ATTRIBUTE_DEPENDENT;
-        } else if (subscriptionDependent) {
-            nature = Nature.SUBSCRIPTION_DEPENDENT;
+        if (isStream) {
+            nature = Nature.STREAM;
+        } else if (isPure) {
+            nature = Nature.PURE;
         }
-        return new CompiledArguments(nature, compiledArguments);
+        return new CompiledArguments(nature, isSubscriptionScoped, compiledArguments);
     }
 }
