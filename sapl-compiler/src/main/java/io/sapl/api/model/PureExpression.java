@@ -19,10 +19,8 @@ package io.sapl.api.model;
 
 import java.util.function.Function;
 
-public record PureExpression(
-        Function<EvaluationContext, Value> expressionFunction,
-        boolean dependsOnVariables,
-        boolean isRelative) implements CompiledExpression {
+public record PureExpression(Function<EvaluationContext, Value> expressionFunction, boolean isSubscriptionScoped)
+        implements CompiledExpression {
     public Value evaluate(EvaluationContext evaluationContext) {
         return expressionFunction.apply(evaluationContext);
     }

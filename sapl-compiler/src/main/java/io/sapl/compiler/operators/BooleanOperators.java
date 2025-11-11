@@ -43,8 +43,7 @@ public class BooleanOperators {
         return applyBooleanOperation(a, b, (left, right) -> left ^ right);
     }
 
-    private static Value applyBooleanOperation(Value left, Value right,
-            BinaryOperator<Boolean> operation) {
+    private static Value applyBooleanOperation(Value left, Value right, BinaryOperator<Boolean> operation) {
         if (!(left instanceof BooleanValue boolLeft)) {
             return Value.error(String.format(TYPE_MISMATCH_BOOLEAN_EXPECTED_ERROR, left));
         }

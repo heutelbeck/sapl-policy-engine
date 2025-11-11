@@ -123,7 +123,8 @@ public class NumberOperators {
         return applyNumericComparison(a, b, (left, right) -> left.compareTo(right) >= 0);
     }
 
-    private static Value applyNumericComparison(Value left, Value right, BiPredicate<BigDecimal, BigDecimal> comparison) {
+    private static Value applyNumericComparison(Value left, Value right,
+            BiPredicate<BigDecimal, BigDecimal> comparison) {
         if (!(left instanceof NumberValue(BigDecimal leftValue, boolean leftSecret))) {
             return Value.error(String.format(TYPE_MISMATCH_NUMBER_EXPECTED_ERROR, left));
         }

@@ -320,7 +320,6 @@ class TemporalFunctionLibraryTests {
         final var oneMonth = (long) (30.436875 * 24 * 60 * 60 * 1000);
         assertThat(io.sapl.functions.libraries.TemporalFunctionLibrary.durationFromISO(Value.of("P1M")))
                 .isEqualTo(Value.of(oneMonth));
-        ;
     }
 
     @Test
