@@ -17,7 +17,7 @@
  */
 package io.sapl.compiler;
 
-import io.sapl.api.value.CompiledExpression;
+import io.sapl.api.model.CompiledExpression;
 
 import java.util.List;
 

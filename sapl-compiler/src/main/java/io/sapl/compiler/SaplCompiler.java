@@ -17,33 +17,32 @@
  */
 package io.sapl.compiler;
 
-import io.sapl.api.plugins.FunctionInvocation;
-import io.sapl.api.plugins.StaticPlugInsServer;
-import io.sapl.api.value.*;
-import io.sapl.api.value.Value;
+import io.sapl.api.functions.FunctionInvocation;
+import io.sapl.api.functions.FunctionBroker;
+import io.sapl.api.model.*;
+import io.sapl.api.model.Value;
 import io.sapl.compiler.operators.BooleanOperators;
 import io.sapl.compiler.operators.ComparisonOperators;
 import io.sapl.compiler.operators.NumberOperators;
+import io.sapl.compiler.operators.StepOperators;
 import io.sapl.grammar.sapl.*;
 import io.sapl.grammar.sapl.Object;
 import io.sapl.grammar.sapl.impl.util.FunctionUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.val;
 import org.eclipse.emf.common.util.EList;
-import org.eclipse.emf.ecore.EObject;
 
 import java.util.ArrayList;
-import java.util.function.BiFunction;
-
 import java.util.HashMap;
 import java.util.List;
+import java.util.function.BiFunction;
 
 @RequiredArgsConstructor
 public class SaplCompiler {
 
     private final static Value UNIMPLEMENTED = Value.error("unimplemented");
 
-    private final StaticPlugInsServer staticPlugInsServer;
+    private final FunctionBroker staticPlugInsServer;
 
     public CompiledPolicy compileDocument(SAPL document, CompilationContext context) {
         context.resetForNextDocument();
@@ -71,7 +70,7 @@ public class SaplCompiler {
     }
 
     private void assertExpressionSuitableForTargetOrBody(String where, String name, CompiledExpression expression) {
-        if (expression instanceof AttributeDependentExpression) {
+        if (expression instanceof StreamExpression) {
             throw new SaplCompilerException(String.format(
                     "Error compiling policy '%s': %s expression must not contain access to any <> attribute finders.",
                     name, where));
@@ -159,24 +158,27 @@ public class SaplCompiler {
         if (left instanceof Value leftValue && right instanceof Value rightValue) {
             return operation.apply(leftValue, rightValue);
         }
-        if (left instanceof AttributeDependentExpression || right instanceof AttributeDependentExpression) {
+        if (left instanceof StreamExpression || right instanceof StreamExpression) {
             // TODO: implement
             return UNIMPLEMENTED;
         }
-        if (left instanceof SubscriptionDependentExpression subLeft
-                && right instanceof SubscriptionDependentExpression subRight) {
-            return new SubscriptionDependentExpression(
-                    ctx -> operation.apply(subLeft.evaluate(ctx), subRight.evaluate(ctx)));
+        if (left instanceof PureExpression subLeft && right instanceof PureExpression subRight) {
+            return new PureExpression(ctx -> operation.apply(subLeft.evaluate(ctx), subRight.evaluate(ctx)),
+                    subLeft.dependsOnVariables() || subRight.dependsOnVariables(),
+                    subLeft.isRelative() || subRight.isRelative());
         }
-        if (left instanceof SubscriptionDependentExpression subLeft && right instanceof Value valRight) {
+        if (left instanceof PureExpression subLeft && right instanceof Value valRight) {
             if (operator instanceof Regex) {
                 val compiledRegex = ComparisonOperators.compileRegularExpressionOperation(valRight);
-                return new SubscriptionDependentExpression(ctx -> compiledRegex.apply(subLeft.evaluate(ctx)));
+                return new PureExpression(ctx -> compiledRegex.apply(subLeft.evaluate(ctx)),
+                        subLeft.dependsOnVariables(), subLeft.isRelative());
             }
-            return new SubscriptionDependentExpression(ctx -> operation.apply(subLeft.evaluate(ctx), valRight));
+            return new PureExpression(ctx -> operation.apply(subLeft.evaluate(ctx), valRight),
+                    subLeft.dependsOnVariables(), subLeft.isRelative());
         }
-        if (left instanceof Value valLeft && right instanceof SubscriptionDependentExpression subRight) {
-            return new SubscriptionDependentExpression(ctx -> operation.apply(valLeft, subRight.evaluate(ctx)));
+        if (left instanceof Value valLeft && right instanceof PureExpression subRight) {
+            return new PureExpression(ctx -> operation.apply(valLeft, subRight.evaluate(ctx)),
+                    subRight.dependsOnVariables(), subRight.isRelative());
         }
         throw new SaplCompilerException("Unexpected expression types. Should not be possible: "
                 + left.getClass().getSimpleName() + " and " + right.getClass().getSimpleName() + ".");
@@ -188,12 +190,13 @@ public class SaplCompiler {
         if (expression instanceof Value value) {
             return operation.apply(value);
         }
-        if (expression instanceof AttributeDependentExpression) {
+        if (expression instanceof StreamExpression) {
             // TODO: implement
             return UNIMPLEMENTED;
         }
-        val subExpression = (SubscriptionDependentExpression) expression;
-        return new SubscriptionDependentExpression(ctx -> operation.apply(subExpression.evaluate(ctx)));
+        val subExpression = (PureExpression) expression;
+        return new PureExpression(ctx -> operation.apply(subExpression.evaluate(ctx)),
+                subExpression.dependsOnVariables(), subExpression.isRelative());
     }
 
     private CompiledExpression compileBasicExpression(BasicExpression expression, CompilationContext context) {
@@ -220,11 +223,11 @@ public class SaplCompiler {
             for (val expression : function.getArguments().getArgs()) {
                 val compiled = compileExpression(expression, context);
                 arguments.add(compiled);
-                if (compiled instanceof SubscriptionDependentExpression) {
+                if (compiled instanceof PureExpression) {
                     if (nature != Nature.ATTRIBUTE_DEPENDENT) {
                         nature = Nature.SUBSCRIPTION_DEPENDENT;
                     }
-                } else if (compiled instanceof AttributeDependentExpression) {
+                } else if (compiled instanceof StreamExpression) {
                     nature = Nature.ATTRIBUTE_DEPENDENT;
                 }
             }
@@ -245,17 +248,17 @@ public class SaplCompiler {
         if (maybeLocalVariable != null) {
             return maybeLocalVariable;
         }
-        return new SubscriptionDependentExpression(ctx -> {
+        return new PureExpression(ctx -> {
             val variableExpression = ctx.get(variableIdentifier);
-            if (variableExpression instanceof AttributeDependentExpression) {
+            if (variableExpression instanceof StreamExpression) {
                 return Value.error(
                         "Encountered an attribute dependent expression during subscription dependent evaluation. Must not happen.");
             }
-            if (variableExpression instanceof SubscriptionDependentExpression subExpression) {
+            if (variableExpression instanceof PureExpression subExpression) {
                 return subExpression.evaluate(ctx);
             }
             return (Value) variableExpression;
-        });
+        }, true, false);
     }
 
     private CompiledExpression compileValue(BasicValue basic, CompilationContext context) {
@@ -273,15 +276,143 @@ public class SaplCompiler {
                               throw new SaplCompilerException("unexpected value: " + value + ".");
                           };
 
-        val steps = basic.getSteps();
-        if (steps != null && !steps.isEmpty()) {
-            return UNIMPLEMENTED;
-        }
+        compiledValue = compileSteps(compiledValue, basic.getSteps(), context);
 
         if (compiledValue instanceof Value constantValue) {
             return context.dedupe(constantValue);
         }
         return compiledValue;
+    }
+
+    private CompiledExpression compileSteps(CompiledExpression expression, EList<Step> steps,
+            CompilationContext context) {
+        if (steps == null || steps.isEmpty()) {
+            return expression;
+        }
+        for (val step : steps) {
+            expression = compileStep(expression, step, context);
+        }
+        return expression;
+    }
+
+    private CompiledExpression compileStep(CompiledExpression parent, Step step, CompilationContext context) {
+        return switch (step) {
+        case KeyStep keyStep                                 ->
+            compileStep(parent, p -> StepOperators.keyStep(p, keyStep.getId()), context);
+        case EscapedKeyStep escapedKeyStep                   ->
+            compileStep(parent, p -> StepOperators.keyStep(p, escapedKeyStep.getId()), context);
+        case WildcardStep wildcardStep                       ->
+            compileStep(parent, StepOperators::wildcardStep, context);
+        case AttributeFinderStep attributeFinderStep         -> UNIMPLEMENTED;
+        case HeadAttributeFinderStep headAttributeFinderStep -> UNIMPLEMENTED;
+        case RecursiveKeyStep recursiveKeyStep               ->
+            compileStep(parent, p -> StepOperators.recursiveKeyStep(p, recursiveKeyStep.getId()), context);
+        case RecursiveWildcardStep recursiveWildcardStep     ->
+            compileStep(parent, StepOperators::recursiveWildcardStep, context);
+        case RecursiveIndexStep recursiveIndexStep           ->
+            compileStep(parent, p -> StepOperators.recursiveIndexStep(p, recursiveIndexStep.getIndex()), context);
+        case IndexStep indexStep                             ->
+            compileStep(parent, p -> StepOperators.indexStep(p, indexStep.getIndex()), context);
+        case ArraySlicingStep arraySlicingStep               -> compileStep(parent, p -> StepOperators.sliceArray(p,
+                arraySlicingStep.getIndex(), arraySlicingStep.getTo(), arraySlicingStep.getStep()), context);
+        case ExpressionStep expressionStep                   -> compileExpressionStep(parent, expressionStep, context);
+        case ConditionStep conditionStep                     -> UNIMPLEMENTED;
+        case IndexUnionStep indexUnionStep                   ->
+            compileStep(parent, p -> StepOperators.indexUnion(p, indexUnionStep.getIndices()), context);
+        case AttributeUnionStep attributeUnionStep           ->
+            compileStep(parent, p -> StepOperators.attributeUnion(p, attributeUnionStep.getAttributes()), context);
+        default                                              -> UNIMPLEMENTED;
+        };
+    }
+
+    private CompiledExpression compileExpressionStep(CompiledExpression parent, ExpressionStep expressionStep,
+            CompilationContext context) {
+        if (parent instanceof ErrorValue || parent instanceof UndefinedValue) {
+            return parent;
+        }
+        val compiledExpression = compileExpression(expressionStep.getExpression(), context);
+        if (compiledExpression instanceof StreamExpression) {
+            throw new SaplCompilerException("No attribute finders allowed in expression steps.");
+        }
+        if (parent instanceof Value value) {
+            if (compiledExpression instanceof PureExpression pureExpression) {
+                return new PureExpression(ctx -> indexOrKeyStep(value, pureExpression.evaluate(ctx)),
+                        pureExpression.dependsOnVariables(), pureExpression.isRelative());
+            } else {
+                return UNIMPLEMENTED;
+            }
+        } else if (parent instanceof PureExpression pureParentExpression) {
+            if (compiledExpression instanceof PureExpression pureExpression) {
+                return new PureExpression(
+                        ctx -> indexOrKeyStep(pureParentExpression.evaluate(ctx), pureExpression.evaluate(ctx)),
+                        pureParentExpression.dependsOnVariables() || pureExpression.dependsOnVariables(),
+                        pureParentExpression.isRelative() || pureExpression.isRelative());
+            } else {
+                return UNIMPLEMENTED;
+            }
+        }
+        val parentStream = (StreamExpression) parent;
+        return UNIMPLEMENTED;
+    }
+
+    private CompiledExpression compileConditionStep(CompiledExpression parent, ExpressionStep expressionStep,
+            CompilationContext context) {
+        if (parent instanceof ErrorValue || parent instanceof UndefinedValue) {
+            return parent;
+        }
+        val compiledConditionExpression = compileExpression(expressionStep.getExpression(), context);
+        if (compiledConditionExpression instanceof StreamExpression) {
+            throw new SaplCompilerException("No attribute finders allowed in condition steps.");
+        }
+        if (parent instanceof Value value) {
+            if (parent instanceof ObjectValue objectValue) {
+                if (compiledConditionExpression instanceof PureExpression pureExpression) {
+                    if (pureExpression.dependsOnVariables()) {
+
+                    }
+                    return new PureExpression(ctx -> indexOrKeyStep(value, pureExpression.evaluate(ctx)),
+                            pureExpression.dependsOnVariables(), pureExpression.isRelative());
+                } else {
+                    return UNIMPLEMENTED;
+                }
+            }
+        } else if (parent instanceof PureExpression pureParentExpression) {
+            if (compiledConditionExpression instanceof PureExpression pureExpression) {
+                return new PureExpression(
+                        ctx -> indexOrKeyStep(pureParentExpression.evaluate(ctx), pureExpression.evaluate(ctx)),
+                        pureParentExpression.dependsOnVariables() || pureExpression.dependsOnVariables(),
+                        pureParentExpression.isRelative() || pureExpression.isRelative());
+            } else {
+                return UNIMPLEMENTED;
+            }
+        }
+        val parentStream = (StreamExpression) parent;
+        return UNIMPLEMENTED;
+    }
+
+    private static Value indexOrKeyStep(Value value, Value expressionResult) {
+        if (expressionResult instanceof NumberValue numberValue) {
+            return StepOperators.indexStep(value, numberValue.value());
+        } else if (expressionResult instanceof TextValue textValue) {
+            return StepOperators.keyStep(value, textValue.value());
+        } else {
+            return Value.error("Expression in expression step must return number of text, but got %s."
+                    .formatted(expressionResult));
+        }
+    }
+
+    private CompiledExpression compileStep(CompiledExpression parent, java.util.function.UnaryOperator<Value> operation,
+            CompilationContext context) {
+        if (parent instanceof Value value) {
+            return operation.apply(value);
+        }
+        if (parent instanceof StreamExpression) {
+            // TODO: implement
+            return UNIMPLEMENTED;
+        }
+        val pureParent = (PureExpression) parent;
+        return new PureExpression(ctx -> operation.apply(pureParent.evaluate(ctx)), pureParent.dependsOnVariables(),
+                pureParent.isRelative());
     }
 
     private CompiledExpression composeArray(Array array, CompilationContext context) {
@@ -322,9 +453,9 @@ public class SaplCompiler {
         var attributeDependent    = false;
         for (Pair pair : members) {
             val compiledAttribute = compileExpression(pair.getValue(), context);
-            if (compiledAttribute instanceof SubscriptionDependentExpression) {
+            if (compiledAttribute instanceof PureExpression) {
                 subscriptionDependent = true;
-            } else if (compiledAttribute instanceof AttributeDependentExpression) {
+            } else if (compiledAttribute instanceof StreamExpression) {
                 attributeDependent = true;
             }
             compiledArguments.put(pair.getKey(), compiledAttribute);
@@ -344,9 +475,9 @@ public class SaplCompiler {
         var attributeDependent    = false;
         for (int i = 0; i < arguments.size(); i++) {
             val compiledArgument = compileExpression(arguments.get(i), context);
-            if (compiledArgument instanceof SubscriptionDependentExpression) {
+            if (compiledArgument instanceof PureExpression) {
                 subscriptionDependent = true;
-            } else if (compiledArgument instanceof AttributeDependentExpression) {
+            } else if (compiledArgument instanceof StreamExpression) {
                 attributeDependent = true;
             }
             compiledArguments[i] = compiledArgument;

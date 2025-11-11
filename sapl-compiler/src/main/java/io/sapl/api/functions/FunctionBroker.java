@@ -15,10 +15,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.compiler;
+package io.sapl.api.functions;
 
-import io.sapl.api.model.CompiledExpression;
+import io.sapl.api.model.Value;
 
-import java.util.Map;
-
-public record CompiledObjectAttributes(Nature nature, Map<String, CompiledExpression> attributes) {}
+public interface FunctionBroker {
+    Value evaluateFunction(FunctionInvocation invocation);
+}

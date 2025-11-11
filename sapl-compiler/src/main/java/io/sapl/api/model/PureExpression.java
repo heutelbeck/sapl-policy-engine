@@ -15,10 +15,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.compiler;
+package io.sapl.api.model;
 
-import io.sapl.api.model.CompiledExpression;
+import java.util.function.Function;
 
-import java.util.Map;
-
-public record CompiledObjectAttributes(Nature nature, Map<String, CompiledExpression> attributes) {}
+public record PureExpression(
+        Function<EvaluationContext, Value> expressionFunction,
+        boolean dependsOnVariables,
+        boolean isRelative) implements CompiledExpression {
+    public Value evaluate(EvaluationContext evaluationContext) {
+        return expressionFunction.apply(evaluationContext);
+    }
+}

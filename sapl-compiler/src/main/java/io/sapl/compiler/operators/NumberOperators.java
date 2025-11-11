@@ -17,11 +17,11 @@
  */
 package io.sapl.compiler.operators;
 
-import io.sapl.api.value.BooleanValue;
-import io.sapl.api.value.ErrorValue;
-import io.sapl.api.value.NumberValue;
-import io.sapl.api.value.TextValue;
-import io.sapl.api.value.Value;
+import io.sapl.api.model.BooleanValue;
+import io.sapl.api.model.ErrorValue;
+import io.sapl.api.model.NumberValue;
+import io.sapl.api.model.TextValue;
+import io.sapl.api.model.Value;
 import lombok.experimental.UtilityClass;
 
 import java.math.BigDecimal;

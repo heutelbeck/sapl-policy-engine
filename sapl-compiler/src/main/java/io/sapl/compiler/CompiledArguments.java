@@ -17,6 +17,6 @@
  */
 package io.sapl.compiler;
 
-import io.sapl.api.value.CompiledExpression;
+import io.sapl.api.model.CompiledExpression;
 
 public record CompiledArguments(Nature nature, CompiledExpression[] arguments) {}

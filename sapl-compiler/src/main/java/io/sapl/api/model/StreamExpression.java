@@ -15,10 +15,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.compiler;
+package io.sapl.api.model;
 
-import io.sapl.api.model.CompiledExpression;
+import reactor.core.publisher.Flux;
 
-import java.util.Map;
-
-public record CompiledObjectAttributes(Nature nature, Map<String, CompiledExpression> attributes) {}
+public non-sealed interface StreamExpression extends CompiledExpression {
+    public Flux<Value> evaluate();
+}

@@ -15,10 +15,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.compiler;
+package io.sapl.api.model;
 
-import io.sapl.api.model.CompiledExpression;
+public sealed interface CompiledExpression permits StreamExpression, PureExpression, Value {
 
-import java.util.Map;
-
-public record CompiledObjectAttributes(Nature nature, Map<String, CompiledExpression> attributes) {}
+}

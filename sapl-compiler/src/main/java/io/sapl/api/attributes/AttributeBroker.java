@@ -15,10 +15,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.compiler;
+package io.sapl.api.attributes;
 
-import io.sapl.api.model.CompiledExpression;
+import io.sapl.api.model.Value;
+import reactor.core.publisher.Flux;
 
-import java.util.Map;
-
-public record CompiledObjectAttributes(Nature nature, Map<String, CompiledExpression> attributes) {}
+public interface AttributeBroker {
+    Flux<Value> attributeStream(AttributeFinderInvocation invocation);
+}
