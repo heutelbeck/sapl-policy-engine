@@ -41,22 +41,19 @@ class StepOperatorsTests {
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
-    // Lovecraftian-themed test data
-    private static final ArrayValue  EMPTY_TOME            = json("[]");
     private static final ArrayValue  NECRONOMICON_CHAPTERS = json(
             "[\"Al Azif\", \"Cultus Maleficarum\", \"Rites of Yog-Sothoth\", \"Forbidden Summonings\", \"The Key and the Gate\"]");
     private static final ArrayValue  ELDER_SIGNS           = json("[0, 1, 2, 3, 4, 5, 6, 7, 8, 9]");
-    private static final ObjectValue EMPTY_GRIMOIRE        = json("{}");
     private static final ObjectValue CULTIST_RECORD        = ObjectValue.builder()
-            .put("name", json("\"Wilbur Whateley\"")).put("ritualKnowledge", json("85")).put("sanity", json("12"))
+            .put("name", Value.of("Wilbur Whateley")).put("ritualKnowledge", Value.of(85)).put("sanity", Value.of(12))
             .build();
-    private static final ObjectValue ARTIFACT_WITH_VOID    = json("""
-            {
-                "arkham": "Miskatonic University",
-                "innsmouth": null,
-                "dunwich": "Sentinel Hill"
-            }
-            """);
+
+    private static final Value AL_AZIF                = Value.of("Al Azif");
+    private static final Value CULTUS_MALEFICARUM     = Value.of("Cultus Maleficarum");
+    private static final Value RITES_OF_YOG_SOTHOTH   = Value.of("Rites of Yog-Sothoth");
+    private static final Value FORBIDDEN_SUMMONINGS   = Value.of("Forbidden Summonings");
+    private static final Value THE_KEY_AND_THE_GATE   = Value.of("The Key and the Gate");
+    private static final Value WILBUR_WHATELEY        = Value.of("Wilbur Whateley");
 
     @SneakyThrows
     private static <T extends Value> T json(String jsonString) {
@@ -67,11 +64,11 @@ class StepOperatorsTests {
     // ========== keyStep Tests ==========
 
     private static Stream<Arguments> keyStepCases() {
-        return Stream.of(Arguments.of(CULTIST_RECORD, "name", json("\"Wilbur Whateley\""), "existing key"),
-                Arguments.of(CULTIST_RECORD, "ritualKnowledge", json("85"), "numeric value"),
-                Arguments.of(CULTIST_RECORD, "sanity", json("12"), "last key"),
+        return Stream.of(Arguments.of(CULTIST_RECORD, "name", WILBUR_WHATELEY, "existing key"),
+                Arguments.of(CULTIST_RECORD, "ritualKnowledge", Value.of(85), "numeric value"),
+                Arguments.of(CULTIST_RECORD, "sanity", Value.of(12), "last key"),
                 Arguments.of(CULTIST_RECORD, "forbidden", Value.UNDEFINED, "missing key returns UNDEFINED"),
-                Arguments.of(EMPTY_GRIMOIRE, "any", Value.UNDEFINED, "empty object returns UNDEFINED"));
+                Arguments.of(Value.EMPTY_OBJECT, "any", Value.UNDEFINED, "empty object returns UNDEFINED"));
     }
 
     @ParameterizedTest(name = "[{index}] keyStep: {3}")
@@ -90,14 +87,14 @@ class StepOperatorsTests {
     // ========== indexStep Tests ==========
 
     private static Stream<Arguments> indexStepValidCases() {
-        return Stream.of(Arguments.of(NECRONOMICON_CHAPTERS, 0, json("\"Al Azif\""), "first chapter"),
-                Arguments.of(NECRONOMICON_CHAPTERS, 2, json("\"Rites of Yog-Sothoth\""), "middle chapter"),
-                Arguments.of(NECRONOMICON_CHAPTERS, 4, json("\"The Key and the Gate\""), "last chapter"),
-                Arguments.of(NECRONOMICON_CHAPTERS, -1, json("\"The Key and the Gate\""), "negative: last"),
-                Arguments.of(NECRONOMICON_CHAPTERS, -2, json("\"Forbidden Summonings\""), "negative: second-to-last"),
-                Arguments.of(NECRONOMICON_CHAPTERS, -5, json("\"Al Azif\""), "negative: first"),
-                Arguments.of(ELDER_SIGNS, 0, json("0"), "elder sign zero"),
-                Arguments.of(ELDER_SIGNS, 9, json("9"), "elder sign nine"));
+        return Stream.of(Arguments.of(NECRONOMICON_CHAPTERS, 0, AL_AZIF, "first chapter"),
+                Arguments.of(NECRONOMICON_CHAPTERS, 2, RITES_OF_YOG_SOTHOTH, "middle chapter"),
+                Arguments.of(NECRONOMICON_CHAPTERS, 4, THE_KEY_AND_THE_GATE, "last chapter"),
+                Arguments.of(NECRONOMICON_CHAPTERS, -1, THE_KEY_AND_THE_GATE, "negative: last"),
+                Arguments.of(NECRONOMICON_CHAPTERS, -2, FORBIDDEN_SUMMONINGS, "negative: second-to-last"),
+                Arguments.of(NECRONOMICON_CHAPTERS, -5, AL_AZIF, "negative: first"),
+                Arguments.of(ELDER_SIGNS, 0, Value.of(0), "elder sign zero"),
+                Arguments.of(ELDER_SIGNS, 9, Value.of(9), "elder sign nine"));
     }
 
     @ParameterizedTest(name = "[{index}] indexStep valid: {3}")
@@ -111,7 +108,7 @@ class StepOperatorsTests {
                 Arguments.of(NECRONOMICON_CHAPTERS, 10, "far beyond the veil"),
                 Arguments.of(NECRONOMICON_CHAPTERS, -6, "negative beyond start"),
                 Arguments.of(NECRONOMICON_CHAPTERS, -10, "far into the void"),
-                Arguments.of(EMPTY_TOME, 0, "empty tome"), Arguments.of(EMPTY_TOME, -1, "empty tome negative"));
+                Arguments.of(Value.EMPTY_ARRAY, 0, "empty tome"), Arguments.of(Value.EMPTY_ARRAY, -1, "empty tome negative"));
     }
 
     @ParameterizedTest(name = "[{index}] indexStep error: {2}")
@@ -141,23 +138,23 @@ class StepOperatorsTests {
         val result = wildcardStep(CULTIST_RECORD);
         assertThat(result).isInstanceOf(ArrayValue.class);
         val arrayResult = (ArrayValue) result;
-        assertThat(arrayResult).hasSize(3).contains(json("\"Wilbur Whateley\"")).contains(json("85"))
-                .contains(json("12"));
+        assertThat(arrayResult).hasSize(3)
+                .contains(WILBUR_WHATELEY, Value.of(85), Value.of(12));
     }
 
     @Test
     void wildcardStepPreservesObjectInsertionOrder() {
-        val cthulhuPriests = ObjectValue.builder().put("rlyeh", json("\"Cthulhu\""))
-                .put("yuggoth", json("\"Shub-Niggurath\"")).put("kadath", json("\"Nyarlathotep\"")).build();
+        val cthulhuPriests = ObjectValue.builder().put("rlyeh", Value.of("Cthulhu"))
+                .put("yuggoth", Value.of("Shub-Niggurath")).put("kadath", Value.of("Nyarlathotep")).build();
         val result         = (ArrayValue) wildcardStep(cthulhuPriests);
-        assertThat(result.getFirst()).isEqualTo(json("\"Cthulhu\""));
-        assertThat(result.get(1)).isEqualTo(json("\"Shub-Niggurath\""));
-        assertThat(result.get(2)).isEqualTo(json("\"Nyarlathotep\""));
+        assertThat(result.getFirst()).isEqualTo(Value.of("Cthulhu"));
+        assertThat(result.get(1)).isEqualTo(Value.of("Shub-Niggurath"));
+        assertThat(result.get(2)).isEqualTo(Value.of("Nyarlathotep"));
     }
 
     @Test
     void wildcardStepReturnsErrorForNonContainer() {
-        val result = wildcardStep(json("42"));
+        val result = wildcardStep(Value.of(42));
         assertThat(result).isInstanceOf(ErrorValue.class);
         assertThat(result.toString()).contains("can only be applied to arrays or objects");
     }
@@ -168,7 +165,7 @@ class StepOperatorsTests {
     void recursiveKeyStepFindsShallowKey() {
         val array = (ArrayValue) recursiveKeyStep(CULTIST_RECORD, "name");
         assertThat(array).hasSize(1);
-        assertThat(array.getFirst()).isEqualTo(json("\"Wilbur Whateley\""));
+        assertThat(array.getFirst()).isEqualTo(WILBUR_WHATELEY);
     }
 
     @Test
@@ -186,12 +183,13 @@ class StepOperatorsTests {
                 }
                 """);
         val array       = (ArrayValue) recursiveKeyStep(nestedCults, "power");
-        assertThat(array).hasSize(3).contains(json("100")).contains(json("200")).contains(json("50"));
+        assertThat(array).hasSize(3)
+                .contains(Value.of(100), Value.of(200), Value.of(50));
     }
 
     @Test
     void recursiveKeyStepReturnsEmptyForMissingKey() {
-        assertThat(recursiveKeyStep(CULTIST_RECORD, "unknownOldOne")).isEqualTo(EMPTY_TOME);
+        assertThat(recursiveKeyStep(CULTIST_RECORD, "unknownOldOne")).isEqualTo(Value.EMPTY_ARRAY);
     }
 
     @Test
@@ -204,8 +202,8 @@ class StepOperatorsTests {
                 ]
                 """);
         val array          = (ArrayValue) recursiveKeyStep(arrayOfObjects, "ritual");
-        assertThat(array).hasSize(3).contains(json("\"summoning\"")).contains(json("\"binding\""))
-                .contains(json("\"banishment\""));
+        assertThat(array).hasSize(3)
+                .contains(Value.of("summoning"), Value.of("binding"), Value.of("banishment"));
     }
 
     /**
@@ -237,7 +235,7 @@ class StepOperatorsTests {
     void recursiveIndexStepFindsShallowIndex() {
         val array = (ArrayValue) recursiveIndexStep(NECRONOMICON_CHAPTERS, BigDecimal.valueOf(0));
         assertThat(array).hasSize(1);
-        assertThat(array.getFirst()).isEqualTo(json("\"Al Azif\""));
+        assertThat(array.getFirst()).isEqualTo(AL_AZIF);
     }
 
     @Test
@@ -250,8 +248,8 @@ class StepOperatorsTests {
                 ]
                 """);
         val array        = (ArrayValue) recursiveIndexStep(nestedChants, BigDecimal.valueOf(0));
-        assertThat(array).hasSize(3).contains(json("\"Ia! Ia!\"")).contains(json("\"Cthulhu\""))
-                .contains(json("[\"Ia! Ia!\", \"Ph'nglui\"]"));
+        assertThat(array).hasSize(3)
+                .contains(Value.of("Ia! Ia!"), Value.of("Cthulhu"), json("[\"Ia! Ia!\", \"Ph'nglui\"]"));
     }
 
     @Test
@@ -263,8 +261,8 @@ class StepOperatorsTests {
                 ]
                 """);
         val array   = (ArrayValue) recursiveIndexStep(rituals, BigDecimal.valueOf(-1));
-        assertThat(array).hasSize(3).contains(json("\"Banishment\"")).contains(json("\"Greater\""))
-                .contains(json("[\"Lesser\", \"Greater\"]"));
+        assertThat(array).hasSize(3)
+                .contains(Value.of("Banishment"), Value.of("Greater"), json("[\"Lesser\", \"Greater\"]"));
     }
 
     @Test
@@ -277,7 +275,7 @@ class StepOperatorsTests {
                 """);
         val array        = (ArrayValue) recursiveIndexStep(unevenDepths, BigDecimal.valueOf(2));
         assertThat(array).hasSize(1);
-        assertThat(array.getFirst()).isEqualTo(json("\"descending\""));
+        assertThat(array.getFirst()).isEqualTo(Value.of("descending"));
     }
 
     @Test
@@ -291,7 +289,8 @@ class StepOperatorsTests {
                 }
                 """);
         val array            = (ArrayValue) recursiveIndexStep(objectWithArrays, BigDecimal.valueOf(1));
-        assertThat(array).hasSize(2).contains(json("\"Cthulhu\"")).contains(json("\"mglw'nafh\""));
+        assertThat(array).hasSize(2)
+                .contains(Value.of("Cthulhu"), Value.of("mglw'nafh"));
     }
 
     /**
@@ -321,25 +320,26 @@ class StepOperatorsTests {
 
     @Test
     void recursiveWildcardStepReturnsEmptyForPrimitives() {
-        assertThat(recursiveWildcardStep(json("42"))).isEqualTo(EMPTY_TOME);
-        assertThat(recursiveWildcardStep(json("\"Azathoth\""))).isEqualTo(EMPTY_TOME);
-        assertThat(recursiveWildcardStep(json("true"))).isEqualTo(EMPTY_TOME);
-        assertThat(recursiveWildcardStep(json("null"))).isEqualTo(EMPTY_TOME);
-        assertThat(recursiveWildcardStep(Value.UNDEFINED)).isEqualTo(EMPTY_TOME);
+        assertThat(recursiveWildcardStep(Value.of(42))).isEqualTo(Value.EMPTY_ARRAY);
+        assertThat(recursiveWildcardStep(Value.of("Azathoth"))).isEqualTo(Value.EMPTY_ARRAY);
+        assertThat(recursiveWildcardStep(Value.TRUE)).isEqualTo(Value.EMPTY_ARRAY);
+        assertThat(recursiveWildcardStep(Value.NULL)).isEqualTo(Value.EMPTY_ARRAY);
+        assertThat(recursiveWildcardStep(Value.UNDEFINED)).isEqualTo(Value.EMPTY_ARRAY);
     }
 
     @Test
     void recursiveWildcardStepCollectsAllArrayElements() {
         val result = (ArrayValue) recursiveWildcardStep(NECRONOMICON_CHAPTERS);
-        assertThat(result).hasSize(5).contains(json("\"Al Azif\"")).contains(json("\"Cultus Maleficarum\""))
-                .contains(json("\"Rites of Yog-Sothoth\"")).contains(json("\"Forbidden Summonings\""))
-                .contains(json("\"The Key and the Gate\""));
+        assertThat(result).hasSize(5)
+                .contains(AL_AZIF, CULTUS_MALEFICARUM, RITES_OF_YOG_SOTHOTH,
+                        FORBIDDEN_SUMMONINGS, THE_KEY_AND_THE_GATE);
     }
 
     @Test
     void recursiveWildcardStepCollectsAllObjectValues() {
         val result = (ArrayValue) recursiveWildcardStep(CULTIST_RECORD);
-        assertThat(result).hasSize(3).contains(json("\"Wilbur Whateley\"")).contains(json("85")).contains(json("12"));
+        assertThat(result).hasSize(3)
+                .contains(WILBUR_WHATELEY, Value.of(85), Value.of(12));
     }
 
     @Test
@@ -352,9 +352,10 @@ class StepOperatorsTests {
                 ]
                 """);
         val result       = (ArrayValue) recursiveWildcardStep(nestedChants);
-        assertThat(result).hasSize(7).contains(json("[\"Ia! Ia!\", \"Ph'nglui\"]")).contains(json("\"Ia! Ia!\""))
-                .contains(json("\"Ph'nglui\"")).contains(json("[\"Cthulhu\", \"R'lyeh\"]"))
-                .contains(json("\"Cthulhu\"")).contains(json("\"R'lyeh\"")).contains(json("\"fhtagn\""));
+        assertThat(result).hasSize(7)
+                .contains(json("[\"Ia! Ia!\", \"Ph'nglui\"]"), Value.of("Ia! Ia!"), Value.of("Ph'nglui"),
+                        json("[\"Cthulhu\", \"R'lyeh\"]"), Value.of("Cthulhu"), Value.of("R'lyeh"),
+                        Value.of("fhtagn"));
     }
 
     @Test
@@ -373,10 +374,11 @@ class StepOperatorsTests {
                 }
                 """);
         val result      = (ArrayValue) recursiveWildcardStep(nestedCults);
-        assertThat(result).hasSize(7).contains(json("{\"name\": \"Esoteric Order\", \"location\": \"Arkham\"}"))
-                .contains(json("\"Esoteric Order\"")).contains(json("\"Arkham\""))
-                .contains(json("{\"highPriest\": \"Cthulhu\", \"forbidden\": true}")).contains(json("\"Cthulhu\""))
-                .contains(json("true")).contains(json("666"));
+        assertThat(result).hasSize(7)
+                .contains(json("{\"name\": \"Esoteric Order\", \"location\": \"Arkham\"}"),
+                        Value.of("Esoteric Order"), Value.of("Arkham"),
+                        json("{\"highPriest\": \"Cthulhu\", \"forbidden\": true}"),
+                        Value.of("Cthulhu"), Value.TRUE, Value.of(666));
     }
 
     @Test
@@ -392,37 +394,40 @@ class StepOperatorsTests {
                 }
                 """);
         val result           = (ArrayValue) recursiveWildcardStep(complexStructure);
-        assertThat(result).hasSize(9).contains(json("[\"Necronomicon\", \"Unaussprechlichen Kulten\"]"))
-                .contains(json("\"Necronomicon\"")).contains(json("\"Unaussprechlichen Kulten\""))
-                .contains(json("{\"summoning\": [\"Lesser\", \"Greater\"], \"banishment\": \"Elder Sign\"}"))
-                .contains(json("[\"Lesser\", \"Greater\"]")).contains(json("\"Lesser\"")).contains(json("\"Greater\""))
-                .contains(json("\"Elder Sign\"")).contains(json("13"));
+        assertThat(result).hasSize(9)
+                .contains(json("[\"Necronomicon\", \"Unaussprechlichen Kulten\"]"),
+                        Value.of("Necronomicon"), Value.of("Unaussprechlichen Kulten"),
+                        json("{\"summoning\": [\"Lesser\", \"Greater\"], \"banishment\": \"Elder Sign\"}"),
+                        json("[\"Lesser\", \"Greater\"]"), Value.of("Lesser"), Value.of("Greater"),
+                        Value.of("Elder Sign"), Value.of(13));
     }
 
     @Test
     void recursiveWildcardStepReturnsEmptyForEmptyContainers() {
-        assertThat(recursiveWildcardStep(EMPTY_TOME)).isEqualTo(EMPTY_TOME);
-        assertThat(recursiveWildcardStep(EMPTY_GRIMOIRE)).isEqualTo(EMPTY_TOME);
+        assertThat(recursiveWildcardStep(Value.EMPTY_ARRAY)).isEqualTo(Value.EMPTY_ARRAY);
+        assertThat(recursiveWildcardStep(Value.EMPTY_OBJECT)).isEqualTo(Value.EMPTY_ARRAY);
     }
 
     @Test
     void recursiveWildcardStepIncludesNullAndUndefinedValues() {
-        val withSpecialValues = ObjectValue.builder().put("void", json("null")).put("madness", Value.UNDEFINED)
-                .put("real", json("\"Cthulhu\"")).build();
+        val withSpecialValues = ObjectValue.builder().put("void", Value.NULL).put("madness", Value.UNDEFINED)
+                .put("real", Value.of("Cthulhu")).build();
         val result            = (ArrayValue) recursiveWildcardStep(withSpecialValues);
-        assertThat(result).hasSize(3).contains(json("null")).contains(Value.UNDEFINED).contains(json("\"Cthulhu\""));
+        assertThat(result).hasSize(3)
+                .contains(Value.NULL, Value.UNDEFINED, Value.of("Cthulhu"));
     }
 
     @Test
     void recursiveWildcardStepIncludesErrorValues() {
         val builder = ArrayValue.builder();
-        builder.add(json("\"Elder Sign\""));
+        builder.add(Value.of("Elder Sign"));
         builder.add(Value.error("The void gazes back"));
-        builder.add(json("\"Ward\""));
+        builder.add(Value.of("Ward"));
         val withError = builder.build();
 
         val result = (ArrayValue) recursiveWildcardStep(withError);
-        assertThat(result).hasSize(3).contains(json("\"Elder Sign\"")).contains(json("\"Ward\""));
+        assertThat(result).hasSize(3)
+                .contains(Value.of("Elder Sign"), Value.of("Ward"));
         assertThat(result.get(1)).isInstanceOf(ErrorValue.class);
     }
 
@@ -437,11 +442,11 @@ class StepOperatorsTests {
                 """);
         val result    = (ArrayValue) recursiveWildcardStep(structure);
         assertThat(result).hasSize(5);
-        assertThat(result.get(0)).isEqualTo(json("\"first\""));
+        assertThat(result.get(0)).isEqualTo(Value.of("first"));
         assertThat(result.get(1)).isEqualTo(json("[\"nested-first\", \"nested-second\"]"));
-        assertThat(result.get(2)).isEqualTo(json("\"nested-first\""));
-        assertThat(result.get(3)).isEqualTo(json("\"nested-second\""));
-        assertThat(result.get(4)).isEqualTo(json("\"second\""));
+        assertThat(result.get(2)).isEqualTo(Value.of("nested-first"));
+        assertThat(result.get(3)).isEqualTo(Value.of("nested-second"));
+        assertThat(result.get(4)).isEqualTo(Value.of("second"));
     }
 
     @Test
@@ -455,11 +460,11 @@ class StepOperatorsTests {
                 """);
         val result    = (ArrayValue) recursiveWildcardStep(structure);
         // Verify all expected elements are present (order may vary by insertion order)
-        assertThat(result).hasSize(12).contains(json("\"value1\""))
-                .contains(json("[{\"key\":\"value2\"},{\"key\":\"value3\"}]")).contains(json("{\"key\":\"value2\"}"))
-                .contains(json("\"value2\"")).contains(json("{\"key\":\"value3\"}")).contains(json("\"value3\""))
-                .contains(json("[1,2,3,4,5]")).contains(json("1")).contains(json("2")).contains(json("3"))
-                .contains(json("4")).contains(json("5"));
+        assertThat(result).hasSize(12)
+                .contains(Value.of("value1"), json("[{\"key\":\"value2\"},{\"key\":\"value3\"}]"),
+                        json("{\"key\":\"value2\"}"), Value.of("value2"), json("{\"key\":\"value3\"}"),
+                        Value.of("value3"), json("[1,2,3,4,5]"), Value.of(1), Value.of(2),
+                        Value.of(3), Value.of(4), Value.of(5));
     }
 
     /**
@@ -495,7 +500,7 @@ class StepOperatorsTests {
             "-3,, 1, '[7, 8, 9]', 'last three signs'", ", -2, 1, '[0, 1, 2, 3, 4, 5, 6, 7]', 'all but last two'",
             "7, -1, 1, '[7, 8]', 'from seventh to penultimate'" })
     void sliceArrayForwardCases(BigDecimal start, BigDecimal end, BigDecimal step, String expectedJson,
-            String description) {
+                                String description) {
         assertThat(sliceArray(ELDER_SIGNS, start, end, step)).isEqualTo(json(expectedJson));
     }
 
@@ -504,7 +509,7 @@ class StepOperatorsTests {
             ",, -3, '[1, 4, 7]', 'step -3 pattern'", "1, 5, -1, '[1, 2, 3, 4]', 'negative step in range'",
             "-2, 6, -1, '[]', 'reversed range yields void'", "-2, -5, -1, '[]', 'negative reversed range'" })
     void sliceArraySAPLNegativeStepSemantics(BigDecimal start, BigDecimal end, BigDecimal step, String expectedJson,
-            String description) {
+                                             String description) {
         assertThat(sliceArray(ELDER_SIGNS, start, end, step)).isEqualTo(json(expectedJson));
     }
 
@@ -524,7 +529,7 @@ class StepOperatorsTests {
 
     @Test
     void sliceArrayHandlesEmptyArray() {
-        assertThat(sliceArray(EMPTY_TOME, null, null, null)).isEqualTo(EMPTY_TOME);
+        assertThat(sliceArray(Value.EMPTY_ARRAY, null, null, null)).isEqualTo(Value.EMPTY_ARRAY);
     }
 
     // ========== indexUnion Tests ==========
@@ -533,49 +538,49 @@ class StepOperatorsTests {
     void indexUnionSelectsMultipleIndices() {
         val array = (ArrayValue) indexUnion(NECRONOMICON_CHAPTERS, bigDecimals(0, 2, 4));
         assertThat(array).hasSize(3);
-        assertThat(array.getFirst()).isEqualTo(json("\"Al Azif\""));
-        assertThat(array.get(1)).isEqualTo(json("\"Rites of Yog-Sothoth\""));
-        assertThat(array.get(2)).isEqualTo(json("\"The Key and the Gate\""));
+        assertThat(array.getFirst()).isEqualTo(AL_AZIF);
+        assertThat(array.get(1)).isEqualTo(RITES_OF_YOG_SOTHOTH);
+        assertThat(array.get(2)).isEqualTo(THE_KEY_AND_THE_GATE);
     }
 
     @Test
     void indexUnionPreservesArrayOrder() {
         val array = (ArrayValue) indexUnion(NECRONOMICON_CHAPTERS, bigDecimals(4, 1, 3, 0));
-        assertThat(array.getFirst()).isEqualTo(json("\"Al Azif\""));
-        assertThat(array.get(1)).isEqualTo(json("\"Cultus Maleficarum\""));
-        assertThat(array.get(2)).isEqualTo(json("\"Forbidden Summonings\""));
-        assertThat(array.get(3)).isEqualTo(json("\"The Key and the Gate\""));
+        assertThat(array.getFirst()).isEqualTo(AL_AZIF);
+        assertThat(array.get(1)).isEqualTo(CULTUS_MALEFICARUM);
+        assertThat(array.get(2)).isEqualTo(FORBIDDEN_SUMMONINGS);
+        assertThat(array.get(3)).isEqualTo(THE_KEY_AND_THE_GATE);
     }
 
     @Test
     void indexUnionDeduplicatesIndices() {
         val array = (ArrayValue) indexUnion(NECRONOMICON_CHAPTERS, bigDecimals(1, 2, 1, 2, 1));
         assertThat(array).hasSize(2);
-        assertThat(array.getFirst()).isEqualTo(json("\"Cultus Maleficarum\""));
-        assertThat(array.get(1)).isEqualTo(json("\"Rites of Yog-Sothoth\""));
+        assertThat(array.getFirst()).isEqualTo(CULTUS_MALEFICARUM);
+        assertThat(array.get(1)).isEqualTo(RITES_OF_YOG_SOTHOTH);
     }
 
     @Test
     void indexUnionHandlesNegativeIndices() {
         val array = (ArrayValue) indexUnion(NECRONOMICON_CHAPTERS, bigDecimals(-1, 0, -2));
         assertThat(array).hasSize(3);
-        assertThat(array.getFirst()).isEqualTo(json("\"Al Azif\""));
-        assertThat(array.get(1)).isEqualTo(json("\"Forbidden Summonings\""));
-        assertThat(array.get(2)).isEqualTo(json("\"The Key and the Gate\""));
+        assertThat(array.getFirst()).isEqualTo(AL_AZIF);
+        assertThat(array.get(1)).isEqualTo(FORBIDDEN_SUMMONINGS);
+        assertThat(array.get(2)).isEqualTo(THE_KEY_AND_THE_GATE);
     }
 
     @Test
     void indexUnionHandlesMixedPositiveNegativeIndices() {
         val array = (ArrayValue) indexUnion(ELDER_SIGNS, bigDecimals(3, -2, 1));
         assertThat(array).hasSize(3);
-        assertThat(array.getFirst()).isEqualTo(json("1"));
-        assertThat(array.get(1)).isEqualTo(json("3"));
-        assertThat(array.get(2)).isEqualTo(json("8"));
+        assertThat(array.getFirst()).isEqualTo(Value.of(1));
+        assertThat(array.get(1)).isEqualTo(Value.of(3));
+        assertThat(array.get(2)).isEqualTo(Value.of(8));
     }
 
     @Test
     void indexUnionReturnsEmptyForEmptyIndices() {
-        assertThat(indexUnion(NECRONOMICON_CHAPTERS, bigDecimals())).isEqualTo(EMPTY_TOME);
+        assertThat(indexUnion(NECRONOMICON_CHAPTERS, bigDecimals())).isEqualTo(Value.EMPTY_ARRAY);
     }
 
     @Test
@@ -605,18 +610,18 @@ class StepOperatorsTests {
     void attributeUnionSelectsMultipleKeys() {
         val array = (ArrayValue) attributeUnion(CULTIST_RECORD, List.of("name", "sanity"));
         assertThat(array).hasSize(2);
-        assertThat(array.getFirst()).isEqualTo(json("\"Wilbur Whateley\""));
-        assertThat(array.get(1)).isEqualTo(json("12"));
+        assertThat(array.getFirst()).isEqualTo(WILBUR_WHATELEY);
+        assertThat(array.get(1)).isEqualTo(Value.of(12));
     }
 
     @Test
     void attributeUnionPreservesObjectInsertionOrder() {
-        val eldritchLocations = ObjectValue.builder().put("yuggoth", json("\"Pluto\""))
-                .put("rlyeh", json("\"Pacific\"")).put("kadath", json("\"Dreamlands\"")).build();
+        val eldritchLocations = ObjectValue.builder().put("yuggoth", Value.of("Pluto"))
+                .put("rlyeh", Value.of("Pacific")).put("kadath", Value.of("Dreamlands")).build();
         val array             = (ArrayValue) attributeUnion(eldritchLocations, List.of("kadath", "yuggoth", "rlyeh"));
-        assertThat(array.getFirst()).isEqualTo(json("\"Pluto\""));
-        assertThat(array.get(1)).isEqualTo(json("\"Pacific\""));
-        assertThat(array.get(2)).isEqualTo(json("\"Dreamlands\""));
+        assertThat(array.getFirst()).isEqualTo(Value.of("Pluto"));
+        assertThat(array.get(1)).isEqualTo(Value.of("Pacific"));
+        assertThat(array.get(2)).isEqualTo(Value.of("Dreamlands"));
     }
 
     @Test
@@ -624,8 +629,8 @@ class StepOperatorsTests {
         val array = (ArrayValue) attributeUnion(CULTIST_RECORD,
                 List.of("name", "ritualKnowledge", "name", "ritualKnowledge", "name"));
         assertThat(array).hasSize(2);
-        assertThat(array.getFirst()).isEqualTo(json("\"Wilbur Whateley\""));
-        assertThat(array.get(1)).isEqualTo(json("85"));
+        assertThat(array.getFirst()).isEqualTo(WILBUR_WHATELEY);
+        assertThat(array.get(1)).isEqualTo(Value.of(85));
     }
 
     @Test
@@ -633,47 +638,54 @@ class StepOperatorsTests {
         val array = (ArrayValue) attributeUnion(CULTIST_RECORD,
                 List.of("name", "unknownOldOne", "sanity", "forbiddenKnowledge"));
         assertThat(array).hasSize(2);
-        assertThat(array.getFirst()).isEqualTo(json("\"Wilbur Whateley\""));
-        assertThat(array.get(1)).isEqualTo(json("12"));
+        assertThat(array.getFirst()).isEqualTo(WILBUR_WHATELEY);
+        assertThat(array.get(1)).isEqualTo(Value.of(12));
     }
 
     @Test
     void attributeUnionIncludesErrorValues() {
         val builder = ObjectValue.builder();
-        builder.put("readable", json("\"Elder Sign\""));
+        builder.put("readable", Value.of("Elder Sign"));
         builder.put("corrupted", Value.error("Maddening whispers beyond comprehension"));
-        builder.put("legible", json("\"Ward\""));
+        builder.put("legible", Value.of("Ward"));
         val withError = builder.build();
 
         val array = (ArrayValue) attributeUnion(withError, List.of("readable", "corrupted", "legible"));
         assertThat(array).hasSize(3);
-        assertThat(array.getFirst()).isEqualTo(json("\"Elder Sign\""));
+        assertThat(array.getFirst()).isEqualTo(Value.of("Elder Sign"));
         assertThat(array.get(1)).isInstanceOf(ErrorValue.class);
-        assertThat(array.get(2)).isEqualTo(json("\"Ward\""));
+        assertThat(array.get(2)).isEqualTo(Value.of("Ward"));
     }
 
     @Test
     void attributeUnionReturnsEmptyForEmptyKeys() {
-        assertThat(attributeUnion(CULTIST_RECORD, List.of())).isEqualTo(EMPTY_TOME);
+        assertThat(attributeUnion(CULTIST_RECORD, List.of())).isEqualTo(Value.EMPTY_ARRAY);
     }
 
     @Test
     void attributeUnionReturnsEmptyForAllMissingKeys() {
         assertThat(attributeUnion(CULTIST_RECORD, List.of("azathoth", "nyarlathotep", "yogSothoth")))
-                .isEqualTo(EMPTY_TOME);
+                .isEqualTo(Value.EMPTY_ARRAY);
     }
 
     @Test
     void attributeUnionEarlyExitsAfterFindingAllKeys() {
-        val extensiveGrimoire = ObjectValue.builder().put("chant1", json("\"Ia\"")).put("chant2", json("\"Cthulhu\""))
-                .put("chant3", json("\"fhtagn\"")).put("chant4", json("\"Ph'nglui\""))
-                .put("chant5", json("\"mglw'nafh\"")).put("chant6", json("\"R'lyeh\""))
-                .put("chant7", json("\"wgah'nagl\"")).put("chant8", json("\"fhtagn\"")).put("chant9", json("\"n'gha\""))
-                .put("chant10", json("\"ghaa\"")).build();
+        val extensiveGrimoire = ObjectValue.builder()
+                .put("chant1", Value.of("Ia"))
+                .put("chant2", Value.of("Cthulhu"))
+                .put("chant3", Value.of("fhtagn"))
+                .put("chant4", Value.of("Ph'nglui"))
+                .put("chant5", Value.of("mglw'nafh"))
+                .put("chant6", Value.of("R'lyeh"))
+                .put("chant7", Value.of("wgah'nagl"))
+                .put("chant8", Value.of("fhtagn"))
+                .put("chant9", Value.of("n'gha"))
+                .put("chant10", Value.of("ghaa"))
+                .build();
         val array             = (ArrayValue) attributeUnion(extensiveGrimoire, List.of("chant1", "chant2"));
         assertThat(array).hasSize(2);
-        assertThat(array.getFirst()).isEqualTo(json("\"Ia\""));
-        assertThat(array.get(1)).isEqualTo(json("\"Cthulhu\""));
+        assertThat(array.getFirst()).isEqualTo(Value.of("Ia"));
+        assertThat(array.get(1)).isEqualTo(Value.of("Cthulhu"));
     }
 
     @Test
