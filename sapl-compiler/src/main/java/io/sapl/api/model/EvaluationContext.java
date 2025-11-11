@@ -24,19 +24,11 @@ import lombok.NonNull;
 import lombok.val;
 
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
-public record EvaluationContext(@NonNull Map<String, CompiledExpression> variables, FunctionBroker pluginsServer) {
+import static io.sapl.api.model.ReservedIdentifiers.*;
 
-    private static final String ACTION = "action";
-    private static final String ENVIRONMENT = "environment";
-    private static final String RESOURCE = "resource";
-    private static final String SUBJECT = "subject";
-    private static final String RELATIVE_VALUE = "@";
-    private static final String RELATIVE_LOCATION = "#";
-    private static final List<String> RESERVED_IDENTIFIERS = List.of(ACTION, ENVIRONMENT, RESOURCE, SUBJECT,
-            RELATIVE_VALUE, RELATIVE_LOCATION);
+public record EvaluationContext(@NonNull Map<String, CompiledExpression> variables, FunctionBroker pluginsServer) {
 
     public EvaluationContext(AuthorizationSubscription authorizationSubscription, FunctionBroker pluginsServer) {
         this(new HashMap<>(), pluginsServer);

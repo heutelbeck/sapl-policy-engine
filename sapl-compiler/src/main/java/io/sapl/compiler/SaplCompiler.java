@@ -36,6 +36,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.function.BiFunction;
+import static io.sapl.api.model.ReservedIdentifiers.*;
 
 @RequiredArgsConstructor
 public class SaplCompiler {
@@ -164,21 +165,20 @@ public class SaplCompiler {
         }
         if (left instanceof PureExpression subLeft && right instanceof PureExpression subRight) {
             return new PureExpression(ctx -> operation.apply(subLeft.evaluate(ctx), subRight.evaluate(ctx)),
-                    subLeft.dependsOnVariables() || subRight.dependsOnVariables(),
-                    subLeft.isRelative() || subRight.isRelative());
+                    subLeft.isSubscriptionScoped() || subRight.isSubscriptionScoped());
         }
         if (left instanceof PureExpression subLeft && right instanceof Value valRight) {
             if (operator instanceof Regex) {
                 val compiledRegex = ComparisonOperators.compileRegularExpressionOperation(valRight);
                 return new PureExpression(ctx -> compiledRegex.apply(subLeft.evaluate(ctx)),
-                        subLeft.dependsOnVariables(), subLeft.isRelative());
+                        subLeft.isSubscriptionScoped());
             }
             return new PureExpression(ctx -> operation.apply(subLeft.evaluate(ctx), valRight),
-                    subLeft.dependsOnVariables(), subLeft.isRelative());
+                    subLeft.isSubscriptionScoped());
         }
         if (left instanceof Value valLeft && right instanceof PureExpression subRight) {
             return new PureExpression(ctx -> operation.apply(valLeft, subRight.evaluate(ctx)),
-                    subRight.dependsOnVariables(), subRight.isRelative());
+                    subRight.isSubscriptionScoped());
         }
         throw new SaplCompilerException("Unexpected expression types. Should not be possible: "
                 + left.getClass().getSimpleName() + " and " + right.getClass().getSimpleName() + ".");
@@ -196,7 +196,7 @@ public class SaplCompiler {
         }
         val subExpression = (PureExpression) expression;
         return new PureExpression(ctx -> operation.apply(subExpression.evaluate(ctx)),
-                subExpression.dependsOnVariables(), subExpression.isRelative());
+                subExpression.isSubscriptionScoped());
     }
 
     private CompiledExpression compileBasicExpression(BasicExpression expression, CompilationContext context) {
@@ -248,6 +248,7 @@ public class SaplCompiler {
         if (maybeLocalVariable != null) {
             return maybeLocalVariable;
         }
+
         return new PureExpression(ctx -> {
             val variableExpression = ctx.get(variableIdentifier);
             if (variableExpression instanceof StreamExpression) {
@@ -258,7 +259,7 @@ public class SaplCompiler {
                 return subExpression.evaluate(ctx);
             }
             return (Value) variableExpression;
-        }, true, false);
+        }, true);
     }
 
     private CompiledExpression compileValue(BasicValue basic, CompilationContext context) {
@@ -337,7 +338,7 @@ public class SaplCompiler {
         if (parent instanceof Value value) {
             if (compiledExpression instanceof PureExpression pureExpression) {
                 return new PureExpression(ctx -> indexOrKeyStep(value, pureExpression.evaluate(ctx)),
-                        pureExpression.dependsOnVariables(), pureExpression.isRelative());
+                        pureExpression.isSubscriptionScoped());
             } else {
                 return UNIMPLEMENTED;
             }
@@ -345,8 +346,7 @@ public class SaplCompiler {
             if (compiledExpression instanceof PureExpression pureExpression) {
                 return new PureExpression(
                         ctx -> indexOrKeyStep(pureParentExpression.evaluate(ctx), pureExpression.evaluate(ctx)),
-                        pureParentExpression.dependsOnVariables() || pureExpression.dependsOnVariables(),
-                        pureParentExpression.isRelative() || pureExpression.isRelative());
+                        pureParentExpression.isSubscriptionScoped() || pureExpression.isSubscriptionScoped());
             } else {
                 return UNIMPLEMENTED;
             }
@@ -367,11 +367,11 @@ public class SaplCompiler {
         if (parent instanceof Value value) {
             if (parent instanceof ObjectValue objectValue) {
                 if (compiledConditionExpression instanceof PureExpression pureExpression) {
-                    if (pureExpression.dependsOnVariables()) {
+                    if (pureExpression.isSubscriptionScoped()) {
 
                     }
                     return new PureExpression(ctx -> indexOrKeyStep(value, pureExpression.evaluate(ctx)),
-                            pureExpression.dependsOnVariables(), pureExpression.isRelative());
+                            pureExpression.isSubscriptionScoped());
                 } else {
                     return UNIMPLEMENTED;
                 }
@@ -380,8 +380,7 @@ public class SaplCompiler {
             if (compiledConditionExpression instanceof PureExpression pureExpression) {
                 return new PureExpression(
                         ctx -> indexOrKeyStep(pureParentExpression.evaluate(ctx), pureExpression.evaluate(ctx)),
-                        pureParentExpression.dependsOnVariables() || pureExpression.dependsOnVariables(),
-                        pureParentExpression.isRelative() || pureExpression.isRelative());
+                        pureParentExpression.isSubscriptionScoped() || pureExpression.isSubscriptionScoped());
             } else {
                 return UNIMPLEMENTED;
             }
@@ -411,8 +410,7 @@ public class SaplCompiler {
             return UNIMPLEMENTED;
         }
         val pureParent = (PureExpression) parent;
-        return new PureExpression(ctx -> operation.apply(pureParent.evaluate(ctx)), pureParent.dependsOnVariables(),
-                pureParent.isRelative());
+        return new PureExpression(ctx -> operation.apply(pureParent.evaluate(ctx)), pureParent.isSubscriptionScoped());
     }
 
     private CompiledExpression composeArray(Array array, CompilationContext context) {
