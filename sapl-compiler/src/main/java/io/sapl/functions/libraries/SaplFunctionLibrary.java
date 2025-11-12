@@ -26,7 +26,6 @@ import lombok.experimental.UtilityClass;
 import lombok.val;
 
 import java.io.IOException;
-import java.util.HashMap;
 import java.util.Properties;
 
 /**
@@ -53,10 +52,16 @@ public class SaplFunctionLibrary {
     private static final String VERSION_PROPERTIES_PATH = "/saplversion.properties";
     private static final String GIT_PROPERTIES_PATH     = "/git.properties";
 
-    private static final Properties VERSION_PROPERTIES = loadProperties(VERSION_PROPERTIES_PATH);
-    private static final Properties GIT_PROPERTIES     = loadProperties(GIT_PROPERTIES_PATH);
-
-    private static final String PROPERTY_VERSION = "saplVersion";
+    private static final String PROPERTY_GIT_COMMIT_ID  = "gitCommitId";
+    private static final String PROPERTY_GIT_BRANCH     = "gitBranch";
+    private static final String PROPERTY_GIT_BUILD_TIME = "gitBuildTime";
+    private static final String PROPERTY_JDK_VERSION    = "jdkVersion";
+    private static final String PROPERTY_JAVA_VERSION   = "javaVersion";
+    private static final String PROPERTY_JAVA_VENDOR    = "javaVendor";
+    private static final String PROPERTY_OS_NAME        = "osName";
+    private static final String PROPERTY_OS_VERSION     = "osVersion";
+    private static final String PROPERTY_OS_ARCH        = "osArch";
+    private static final String PROPERTY_SAPL_VERSION   = "saplVersion";
 
     private static final String GIT_COMMIT_ID_ABBREV = "git.commit.id.abbrev";
     private static final String GIT_BRANCH           = "git.branch";
@@ -75,6 +80,9 @@ public class SaplFunctionLibrary {
                 "type": "object"
             }
             """;
+
+    private static final Properties VERSION_PROPERTIES = loadProperties(VERSION_PROPERTIES_PATH);
+    private static final Properties GIT_PROPERTIES     = loadProperties(GIT_PROPERTIES_PATH);
 
     @Function(docs = """
             ```info()```: Returns system information including application version, git details, JDK/JRE, and operating system information.
@@ -125,23 +133,23 @@ public class SaplFunctionLibrary {
             ```
             """, schema = RETURNS_OBJECT)
     public static Value info() {
-        val infoObject = new HashMap<String, Value>();
+        val builder = ObjectValue.builder();
 
-        infoObject.put(PROPERTY_VERSION, textValue(VERSION_PROPERTIES.getProperty(PROPERTY_VERSION, UNKNOWN)));
+        builder.put(PROPERTY_SAPL_VERSION, saplVersion());
 
-        infoObject.put("gitCommitId", textValue(GIT_PROPERTIES, GIT_COMMIT_ID_ABBREV));
-        infoObject.put("gitBranch", textValue(GIT_PROPERTIES, GIT_BRANCH));
-        infoObject.put("gitBuildTime", textValue(GIT_PROPERTIES, GIT_BUILD_TIME));
+        builder.put(PROPERTY_GIT_COMMIT_ID, gitProperty(GIT_COMMIT_ID_ABBREV));
+        builder.put(PROPERTY_GIT_BRANCH, gitProperty(GIT_BRANCH));
+        builder.put(PROPERTY_GIT_BUILD_TIME, gitProperty(GIT_BUILD_TIME));
 
-        infoObject.put("jdkVersion", textValue(System.getProperty(JAVA_SPECIFICATION_VERSION, UNKNOWN)));
-        infoObject.put("javaVersion", textValue(System.getProperty(JAVA_VERSION, UNKNOWN)));
-        infoObject.put("javaVendor", textValue(System.getProperty(JAVA_VENDOR, UNKNOWN)));
+        builder.put(PROPERTY_JDK_VERSION, systemProperty(JAVA_SPECIFICATION_VERSION));
+        builder.put(PROPERTY_JAVA_VERSION, systemProperty(JAVA_VERSION));
+        builder.put(PROPERTY_JAVA_VENDOR, systemProperty(JAVA_VENDOR));
 
-        infoObject.put("osName", textValue(System.getProperty(OS_NAME, UNKNOWN)));
-        infoObject.put("osVersion", textValue(System.getProperty(OS_VERSION, UNKNOWN)));
-        infoObject.put("osArch", textValue(System.getProperty(OS_ARCH, UNKNOWN)));
+        builder.put(PROPERTY_OS_NAME, systemProperty(OS_NAME));
+        builder.put(PROPERTY_OS_VERSION, systemProperty(OS_VERSION));
+        builder.put(PROPERTY_OS_ARCH, systemProperty(OS_ARCH));
 
-        return new ObjectValue(infoObject, false);
+        return builder.build();
     }
 
     /**
@@ -163,23 +171,31 @@ public class SaplFunctionLibrary {
     }
 
     /**
-     * Creates a TextNode from a property value with default fallback.
+     * Retrieves the SAPL version from version properties.
      *
-     * @param properties the properties object
-     * @param key the property key
-     * @return TextNode with property value or "unknown"
+     * @return TextValue containing the version string, or "unknown" if not available
      */
-    private static TextValue textValue(Properties properties, String key) {
-        return new TextValue(properties.getProperty(key, UNKNOWN), false);
+    private static TextValue saplVersion() {
+        return new TextValue(VERSION_PROPERTIES.getProperty(PROPERTY_SAPL_VERSION, UNKNOWN), false);
     }
 
     /**
-     * Creates a TextNode from a string value.
+     * Retrieves a property from git properties.
      *
-     * @param value the string value
-     * @return TextNode with the value
+     * @param key the property key
+     * @return TextValue containing the property value, or "unknown" if not available
      */
-    private static TextValue textValue(String value) {
-        return new TextValue(value, false);
+    private static TextValue gitProperty(String key) {
+        return new TextValue(SaplFunctionLibrary.GIT_PROPERTIES.getProperty(key, UNKNOWN), false);
+    }
+
+    /**
+     * Retrieves a system property.
+     *
+     * @param key the system property key
+     * @return TextValue containing the property value, or "unknown" if not available
+     */
+    private static TextValue systemProperty(String key) {
+        return new TextValue(System.getProperty(key, UNKNOWN), false);
     }
 }

@@ -174,7 +174,8 @@ public class ExpressionCompiler {
 
     private CompiledExpression compileBasicFunction(BasicFunction function, CompilationContext context) {
         if (context.isDynamicLibrariesEnabled()) {
-            return UNIMPLEMENTED;
+            throw new SaplCompilerException(
+                    "Dynamic function libraries are not supported in this version of the compiler.");
         }
         var arguments = CompiledArguments.EMPTY_ARGUMENTS;
         if (function.getArguments() != null && function.getArguments().getArgs() != null) {
