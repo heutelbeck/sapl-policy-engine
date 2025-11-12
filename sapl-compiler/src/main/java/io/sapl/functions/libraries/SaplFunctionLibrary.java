@@ -26,8 +26,8 @@ import lombok.experimental.UtilityClass;
 import lombok.val;
 
 import java.io.IOException;
-import java.util.Properties;
 import java.util.HashMap;
+import java.util.Properties;
 
 /**
  * Collection of SAPL system information functions.

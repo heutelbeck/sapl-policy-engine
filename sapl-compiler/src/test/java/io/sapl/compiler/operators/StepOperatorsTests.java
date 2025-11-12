@@ -17,7 +17,6 @@
  */
 package io.sapl.compiler.operators;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.sapl.api.model.*;
 import lombok.SneakyThrows;
