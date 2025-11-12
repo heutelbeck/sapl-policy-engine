@@ -24,12 +24,10 @@ import io.sapl.functions.libraries.TemporalFunctionLibrary;
 import io.sapl.interpreter.DefaultSAPLInterpreter;
 import io.sapl.interpreter.InitializationException;
 import io.sapl.interpreter.SAPLInterpreter;
-import io.sapl.util.TestUtil;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import org.junit.jupiter.api.Test;
 
-import static io.sapl.util.TestUtil.assertCompiledExpressionEvaluatesTo;
 import static io.sapl.util.TestUtil.assertExpressionCompilesToValue;
 
 @Slf4j
@@ -60,9 +58,9 @@ class SaplCompilerTests {
     @Test
     void constantFoldingWorks() {
         val expression = """
-                { "key1": undefined }
+                { "key1": 123 }
                 """;
-        val expected   = ObjectValue.builder().put("key1", Value.UNDEFINED).build();
+        val expected   = ObjectValue.builder().put("key1", Value.of(123)).build();
         assertExpressionCompilesToValue(expression, expected);
     }
 }
