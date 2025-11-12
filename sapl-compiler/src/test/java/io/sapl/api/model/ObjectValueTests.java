@@ -87,6 +87,155 @@ class ObjectValueTests {
 
             assertThat(result.secret()).isTrue();
         }
+
+        @Test
+        @DisplayName("Builder secret() called before put() marks subsequent entries as secret")
+        void secretBeforePutMarksEntriesSecret() {
+            val grimoire = ObjectValue.builder()
+                    .secret()
+                    .put("ritual", Value.of("Summon Yog-Sothoth"))
+                    .put("location", Value.of("Miskatonic University"))
+                    .build();
+
+            assertThat(grimoire.secret()).isTrue();
+            val ritual = grimoire.get("ritual");
+            assertThat(ritual).isNotNull();
+            assertThat(ritual.secret()).isTrue();
+            val location = grimoire.get("location");
+            assertThat(location).isNotNull();
+            assertThat(location.secret()).isTrue();
+        }
+
+        @Test
+        @DisplayName("Builder secret() called after put() marks existing entries as secret")
+        void secretAfterPutMarksEntriesSecret() {
+            val forbiddenKnowledge = ObjectValue.builder()
+                    .put("incantation", Value.of("Ph'nglui mglw'nafh"))
+                    .put("deity", Value.of("Cthulhu"))
+                    .secret()
+                    .build();
+
+            assertThat(forbiddenKnowledge.secret()).isTrue();
+            val incantation = forbiddenKnowledge.get("incantation");
+            assertThat(incantation).isNotNull();
+            assertThat(incantation.secret()).isTrue();
+            val deity = forbiddenKnowledge.get("deity");
+            assertThat(deity).isNotNull();
+            assertThat(deity.secret()).isTrue();
+        }
+
+        @Test
+        @DisplayName("Builder putAll() with secret builder marks all entries as secret")
+        void putAllWithSecretBuilderMarksSecret() {
+            val elderSigns = Map.<String, Value>of(
+                    "pentagram", Value.of("Protective ward"),
+                    "eye", Value.of("All-seeing symbol"),
+                    "star", Value.of("Gateway marker")
+            );
+
+            val secretGrimoire = ObjectValue.builder()
+                    .secret()
+                    .putAll(elderSigns)
+                    .build();
+
+            assertThat(secretGrimoire.secret()).isTrue();
+            val pentagram = secretGrimoire.get("pentagram");
+            assertThat(pentagram).isNotNull();
+            assertThat(pentagram.secret()).isTrue();
+            val eye = secretGrimoire.get("eye");
+            assertThat(eye).isNotNull();
+            assertThat(eye.secret()).isTrue();
+            val star = secretGrimoire.get("star");
+            assertThat(star).isNotNull();
+            assertThat(star.secret()).isTrue();
+        }
+
+        @Test
+        @DisplayName("Builder putAll() then secret() marks all entries as secret")
+        void putAllThenSecretMarksSecret() {
+            val cultMembers = Map.<String, Value>of(
+                    "highPriest", Value.of("Wilbur Whateley"),
+                    "acolyte", Value.of("Lavinia Whateley"),
+                    "witness", Value.of("Henry Armitage")
+            );
+
+            val memberRegistry = ObjectValue.builder()
+                    .putAll(cultMembers)
+                    .secret()
+                    .build();
+
+            assertThat(memberRegistry.secret()).isTrue();
+            val highPriest = memberRegistry.get("highPriest");
+            assertThat(highPriest).isNotNull();
+            assertThat(highPriest.secret()).isTrue();
+            val acolyte = memberRegistry.get("acolyte");
+            assertThat(acolyte).isNotNull();
+            assertThat(acolyte.secret()).isTrue();
+            val witness = memberRegistry.get("witness");
+            assertThat(witness).isNotNull();
+            assertThat(witness.secret()).isTrue();
+        }
+
+        @Test
+        @DisplayName("Builder secret() is idempotent")
+        void secretIdempotency() {
+            val necronomicon = ObjectValue.builder()
+                    .put("chapter", Value.of("The Dunwich Horror"))
+                    .secret()
+                    .secret()
+                    .put("page", Value.of(731))
+                    .secret()
+                    .build();
+
+            assertThat(necronomicon.secret()).isTrue();
+            val chapter = necronomicon.get("chapter");
+            assertThat(chapter).isNotNull();
+            assertThat(chapter.secret()).isTrue();
+            val page = necronomicon.get("page");
+            assertThat(page).isNotNull();
+            assertThat(page.secret()).isTrue();
+        }
+
+        @Test
+        @DisplayName("Builder mixed operations maintain secret consistency")
+        void mixedOperationsMaintainSecretConsistency() {
+            val ritualComponents = Map.<String, Value>of(
+                    "candles", Value.of(13),
+                    "incense", Value.of("sandalwood")
+            );
+
+            val ritual = ObjectValue.builder()
+                    .put("tome", Value.of("De Vermis Mysteriis"))
+                    .secret()
+                    .putAll(ritualComponents)
+                    .put("bloodOffering", Value.of("goat"))
+                    .build();
+
+            assertThat(ritual.secret()).isTrue();
+            assertThat(ritual).hasSize(4);
+            ritual.values().forEach(value -> assertThat(value.secret()).isTrue());
+        }
+
+        @Test
+        @DisplayName("Builder with non-secret putAll preserves individual entry states")
+        void nonSecretPutAllPreservesStates() {
+            val publicRecords = Map.<String, Value>of(
+                    "town", Value.of("Arkham"),
+                    "population", Value.of(15000)
+            );
+
+            val records = ObjectValue.builder()
+                    .putAll(publicRecords)
+                    .build();
+
+            assertThat(records.secret()).isFalse();
+            val town = records.get("town");
+            assertThat(town).isNotNull();
+            assertThat(town.secret()).isFalse();
+            val population = records.get("population");
+            assertThat(population).isNotNull();
+            assertThat(population.secret()).isFalse();
+        }
     }
 
     @Nested
@@ -135,6 +284,7 @@ class ObjectValueTests {
             var obj   = new ObjectValue(Map.of("key", Value.of(1)), true);
             var value = obj.get("key");
 
+            assertThat(value).isNotNull();
             assertThat(value.secret()).isTrue();
         }
 
@@ -151,7 +301,7 @@ class ObjectValueTests {
         void entrySetOnSecretObjectReturnsSecret() {
             var obj = new ObjectValue(Map.of("key", Value.of(1)), true);
 
-            obj.entrySet().forEach(entry -> assertThat(entry.getValue().secret()).isTrue());
+            obj.forEach((key, value) -> assertThat(value.secret()).isTrue());
         }
 
         @Test
@@ -174,8 +324,9 @@ class ObjectValueTests {
             var result = obj.get(null);
 
             assertThat(result).isInstanceOf(ErrorValue.class);
-            var error = (ErrorValue) result;
-            assertThat(error.message()).contains("Object key cannot be null");
+            if (result instanceof ErrorValue error) {
+                assertThat(error.message()).contains("Object key cannot be null");
+            }
         }
 
         @Test
@@ -185,8 +336,9 @@ class ObjectValueTests {
             var result = obj.get(123);
 
             assertThat(result).isInstanceOf(ErrorValue.class);
-            var error = (ErrorValue) result;
-            assertThat(error.message()).contains("Invalid key type", "String", "Integer");
+            if (result instanceof ErrorValue error) {
+                assertThat(error.message()).contains("Invalid key type", "String", "Integer");
+            }
         }
 
         @Test
@@ -585,33 +737,85 @@ class ObjectValueTests {
             var obj = ObjectValue.builder().put("key1", Value.of(1)).put("key2", Value.of(2)).secret().build();
 
             assertThat(obj.secret()).isTrue();
-            assertThat(obj.get("key1").secret()).isTrue();
-            assertThat(obj.get("key2").secret()).isTrue();
+            val key1 = obj.get("key1");
+            assertThat(key1).isNotNull();
+            assertThat(key1.secret()).isTrue();
+            val key2 = obj.get("key2");
+            assertThat(key2).isNotNull();
+            assertThat(key2.secret()).isTrue();
         }
 
         @Test
-        @DisplayName("Builder can be used multiple times")
-        void builderMultipleUse() {
+        @DisplayName("Builder cannot be reused after build()")
+        void builderCannotBeReused() {
             var builder = ObjectValue.builder();
-
-            var first  = builder.put("k1", Value.of(1)).build();
-            var second = builder.put("k2", Value.of(2)).build();
+            var first   = builder.put("k1", Value.of(1)).build();
 
             assertThat(first).hasSize(1);
-            assertThat(second).hasSize(2);
+            assertThatThrownBy(() -> builder.put("k2", Value.of(2)))
+                    .isInstanceOf(IllegalStateException.class)
+                    .hasMessageContaining("already been used");
+        }
+
+        @Test
+        @DisplayName("Builder throws on put after build()")
+        void builderThrowsOnPutAfterBuild() {
+            var builder = ObjectValue.builder().put("cultist", Value.of("Wilbur Whateley"));
+            builder.build();
+
+            assertThatThrownBy(() -> builder.put("elder", Value.of("Yog-Sothoth")))
+                    .isInstanceOf(IllegalStateException.class)
+                    .hasMessageContaining("already been used");
+        }
+
+        @Test
+        @DisplayName("Builder throws on putAll after build()")
+        void builderThrowsOnPutAllAfterBuild() {
+            var builder = ObjectValue.builder().put("tome", Value.of("Necronomicon"));
+            builder.build();
+
+            var moreEntries = Map.<String, Value>of("ritual", Value.of("Summoning"));
+            assertThatThrownBy(() -> builder.putAll(moreEntries))
+                    .isInstanceOf(IllegalStateException.class)
+                    .hasMessageContaining("already been used");
+        }
+
+        @Test
+        @DisplayName("Builder throws on secret after build()")
+        void builderThrowsOnSecretAfterBuild() {
+            var builder = ObjectValue.builder().put("incantation", Value.of("Ph'nglui mglw'nafh"));
+            builder.build();
+
+            assertThatThrownBy(builder::secret)
+                    .isInstanceOf(IllegalStateException.class)
+                    .hasMessageContaining("already been used");
+        }
+
+        @Test
+        @DisplayName("Builder throws on multiple build() calls")
+        void builderThrowsOnMultipleBuildCalls() {
+            var builder = ObjectValue.builder().put("elder", Value.of("Cthulhu"));
+            builder.build();
+
+            assertThatThrownBy(builder::build)
+                    .isInstanceOf(IllegalStateException.class)
+                    .hasMessageContaining("already been used");
         }
 
         @Test
         @DisplayName("Builder secret can be set before or after adding properties")
         void builderSecretOrdering() {
             var secretFirst = ObjectValue.builder().secret().put("key", Value.of(1)).build();
-
-            var secretLast = ObjectValue.builder().put("key", Value.of(1)).secret().build();
+            var secretLast  = ObjectValue.builder().put("key", Value.of(1)).secret().build();
 
             assertThat(secretFirst.secret()).isTrue();
             assertThat(secretLast.secret()).isTrue();
-            assertThat(secretFirst.get("key").secret()).isTrue();
-            assertThat(secretLast.get("key").secret()).isTrue();
+            val firstKey = secretFirst.get("key");
+            assertThat(firstKey).isNotNull();
+            assertThat(firstKey.secret()).isTrue();
+            val lastKey = secretLast.get("key");
+            assertThat(lastKey).isNotNull();
+            assertThat(lastKey.secret()).isTrue();
         }
 
         @Test
@@ -655,12 +859,16 @@ class ObjectValueTests {
             var nonSecretObj = ObjectValue.builder().put("key", secretValue).build();
 
             assertThat(nonSecretObj.secret()).isFalse();
-            assertThat(nonSecretObj.get("key").secret()).isTrue(); // Values retain their secret flag
+            val nonSecretKey = nonSecretObj.get("key");
+            assertThat(nonSecretKey).isNotNull();
+            assertThat(nonSecretKey.secret()).isTrue();
 
             var secretObj = ObjectValue.builder().put("key", secretValue).secret().build();
 
             assertThat(secretObj.secret()).isTrue();
-            assertThat(secretObj.get("key").secret()).isTrue();
+            val secretKey = secretObj.get("key");
+            assertThat(secretKey).isNotNull();
+            assertThat(secretKey.secret()).isTrue();
         }
 
         @Test
@@ -669,21 +877,25 @@ class ObjectValueTests {
             var nonSecretValue = Value.of(1);
             var secretValue    = Value.of(2).asSecret();
 
-            // Non-secret container with non-secret value: value remains non-secret
             var nonSecretContainer1 = ObjectValue.builder().put("key", nonSecretValue).build();
-            assertThat(nonSecretContainer1.get("key").secret()).isFalse();
+            val value1 = nonSecretContainer1.get("key");
+            assertThat(value1).isNotNull();
+            assertThat(value1.secret()).isFalse();
 
-            // Non-secret container with secret value: value remains secret
             var nonSecretContainer2 = ObjectValue.builder().put("key", secretValue).build();
-            assertThat(nonSecretContainer2.get("key").secret()).isTrue();
+            val value2 = nonSecretContainer2.get("key");
+            assertThat(value2).isNotNull();
+            assertThat(value2.secret()).isTrue();
 
-            // Secret container with non-secret value: value becomes secret
             var secretContainer1 = ObjectValue.builder().put("key", nonSecretValue).secret().build();
-            assertThat(secretContainer1.get("key").secret()).isTrue();
+            val value3 = secretContainer1.get("key");
+            assertThat(value3).isNotNull();
+            assertThat(value3.secret()).isTrue();
 
-            // Secret container with secret value: value remains secret
             var secretContainer2 = ObjectValue.builder().put("key", secretValue).secret().build();
-            assertThat(secretContainer2.get("key").secret()).isTrue();
+            val value4 = secretContainer2.get("key");
+            assertThat(value4).isNotNull();
+            assertThat(value4.secret()).isTrue();
         }
     }
 
@@ -742,6 +954,7 @@ class ObjectValueTests {
             var secret = new ObjectValue(Map.of("key", Value.of(1)), true);
             var result = secret.getOrDefault("key", Value.of(999));
 
+            assertThat(result).isNotNull();
             assertThat(result.secret()).isTrue();
         }
 
@@ -751,6 +964,7 @@ class ObjectValueTests {
             var secret = new ObjectValue(Map.of("key", Value.of(1)), true);
             var result = secret.getOrDefault("missing", Value.of(999));
 
+            assertThat(result).isNotNull();
             assertThat(result.secret()).isTrue();
         }
 
@@ -902,14 +1116,14 @@ class ObjectValueTests {
             var resourceData = Value.ofObject(Map.of("resourceId", Value.of("doc-123"), "owner", Value.of("alice")));
 
             var decision = switch (resourceData) {
-            case ObjectValue obj when obj.get("owner") instanceof TextValue(String owner, boolean i) && "alice"
-                    .equals(owner)                                                                                            ->
-                "Access granted to owner";
-            case ObjectValue obj when obj.containsKey(
-                    "resourceId")                                                                                             ->
-                "Read-only access";
-            case ObjectValue ignored                                                                                          ->
-                "No access";
+                case ObjectValue obj when obj.get("owner") instanceof TextValue(String owner, boolean i) && "alice"
+                        .equals(owner)                                                                                            ->
+                        "Access granted to owner";
+                case ObjectValue obj when obj.containsKey(
+                        "resourceId")                                                                                             ->
+                        "Read-only access";
+                case ObjectValue ignored                                                                                          ->
+                        "No access";
             };
 
             assertThat(decision).isEqualTo("Access granted to owner");
@@ -921,10 +1135,10 @@ class ObjectValueTests {
             var userData = Value.ofObject(Map.of("username", Value.of("bob"), "email", Value.NULL));
 
             boolean hasEmail = switch (userData) {
-            case ObjectValue obj -> {
-                var email = obj.get("email");
-                yield !(email instanceof NullValue);
-            }
+                case ObjectValue obj -> {
+                    var email = obj.get("email");
+                    yield !(email instanceof NullValue);
+                }
             };
 
             assertThat(hasEmail).isFalse();

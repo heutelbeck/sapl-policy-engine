@@ -83,6 +83,9 @@ public final class ObjectValue implements Value, Map<String, Value> {
      * <p>
      * If secret is true, applies the secret flag to all values at construction time
      * for optimal read performance.
+     * <p>
+     * Note: This does a defensive copy of the supplied Map. For better performance
+     * without the need to copy use the Builder!
      *
      * @param properties the map properties (defensively copied, must not be null)
      * @param secret whether this value is secret
@@ -103,6 +106,18 @@ public final class ObjectValue implements Value, Map<String, Value> {
     }
 
     /**
+     * Zero-copy constructor for builder use only.
+     * The supplied map is used directly without copying.
+     *
+     * @param secret whether this value is secret
+     * @param properties the map properties (used directly, must be mutable until wrapped)
+     */
+    private ObjectValue(boolean secret, Map<String, Value> properties) {
+        this.value = Collections.unmodifiableMap(properties);
+        this.secret = secret;
+    }
+
+    /**
      * Creates a builder for fluent object construction.
      *
      * @return a new builder
@@ -113,10 +128,13 @@ public final class ObjectValue implements Value, Map<String, Value> {
 
     /**
      * Builder for fluent ObjectValue construction.
+     * <p>
+     * Builders are single-use only. After calling build(), the builder cannot be
+     * reused. This prevents immutability violations from the zero-copy optimization.
      */
     public static final class Builder {
-        private final LinkedHashMap<String, Value> properties = new LinkedHashMap<>();
-        private boolean                            secret     = false;
+        private LinkedHashMap<String, Value> properties = new LinkedHashMap<>();
+        private boolean                      secret     = false;
 
         /**
          * Adds a property to the object.
@@ -124,8 +142,15 @@ public final class ObjectValue implements Value, Map<String, Value> {
          * @param key the property key
          * @param value the property value
          * @return this builder
+         * @throws IllegalStateException if builder has already been used
          */
         public Builder put(String key, Value value) {
+            if (properties == null) {
+                throw new IllegalStateException("Builder has already been used.");
+            }
+            if (secret) {
+                value = value.asSecret();
+            }
             properties.put(key, value);
             return this;
         }
@@ -135,34 +160,60 @@ public final class ObjectValue implements Value, Map<String, Value> {
          *
          * @param entries the properties to add
          * @return this builder
+         * @throws IllegalStateException if builder has already been used
          */
         public Builder putAll(Map<String, Value> entries) {
-            properties.putAll(entries);
+            if (properties == null) {
+                throw new IllegalStateException("Builder has already been used.");
+            }
+            for (val entry : entries.entrySet()) {
+                put(entry.getKey(), entry.getValue());
+            }
             return this;
         }
 
         /**
          * Marks the object as secret.
          * Values from secret objects will have the secret flag applied at construction.
+         * <p>
+         * Note: For performance reasons, if possible call this method as early as
+         * possible in the building process.
          *
          * @return this builder
+         * @throws IllegalStateException if builder has already been used
          */
         public Builder secret() {
-            this.secret = true;
+            if (properties == null) {
+                throw new IllegalStateException("Builder has already been used.");
+            }
+            if (!this.secret) {
+                this.secret = true;
+                properties.replaceAll((k, v) -> v.asSecret());
+            }
             return this;
         }
 
         /**
          * Builds the immutable ObjectValue.
          * Returns singleton for empty non-secret objects.
+         * <p>
+         * After calling this method, the builder cannot be reused. Attempting to call
+         * any builder methods after build() will throw IllegalStateException.
          *
          * @return the constructed ObjectValue
+         * @throws IllegalStateException if builder has already been used
          */
         public ObjectValue build() {
+            if (properties == null) {
+                throw new IllegalStateException("Builder has already been used.");
+            }
             if (properties.isEmpty() && !secret) {
+                properties = null;
                 return Value.EMPTY_OBJECT;
             }
-            return new ObjectValue(properties, secret);
+            val result = new ObjectValue(secret, properties);
+            properties = null;
+            return result;
         }
     }
 
