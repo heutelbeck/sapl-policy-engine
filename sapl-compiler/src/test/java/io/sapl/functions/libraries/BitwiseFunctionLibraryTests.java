@@ -21,6 +21,7 @@ import io.sapl.api.model.BooleanValue;
 import io.sapl.api.model.ErrorValue;
 import io.sapl.api.model.NumberValue;
 import io.sapl.api.model.Value;
+import io.sapl.functions.DefaultFunctionBroker;
 import lombok.val;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -31,6 +32,7 @@ import java.util.function.BiFunction;
 import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 
 /**
  * Comprehensive test suite for BitwiseFunctionLibrary.
@@ -38,6 +40,11 @@ import static org.assertj.core.api.Assertions.assertThat;
  * of edge cases and maintain consistency across similar operations.
  */
 class BitwiseFunctionLibraryTests {
+    @Test
+    void when_loadedIntoBroker_then_noError() {
+        val functionBroker = new DefaultFunctionBroker();
+        assertDoesNotThrow(() -> functionBroker.loadStaticFunctionLibrary(BitwiseFunctionLibrary.class));
+    }
 
     /* Core Operations Tests */
 

@@ -26,7 +26,6 @@ import io.sapl.compiler.operators.NumberOperators;
 import io.sapl.compiler.operators.StepOperators;
 import io.sapl.grammar.sapl.*;
 import io.sapl.grammar.sapl.Object;
-import io.sapl.grammar.sapl.impl.util.FunctionUtil;
 import lombok.experimental.UtilityClass;
 import lombok.val;
 import org.eclipse.emf.common.util.EList;
@@ -35,6 +34,7 @@ import reactor.core.publisher.Flux;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 
 @UtilityClass
 public class ExpressionCompiler {
@@ -79,12 +79,10 @@ public class ExpressionCompiler {
         val right = compileExpression(operator.getRight(), context);
         // Special case for regex. Here if the right side is a text constant, we can
         // immediately pre-compile the expression and do not need to do it at policy
-        // evaluation time.
-        // We do it here, to have a re-usable assembleBinaryOperation method, as that is
-        // a pretty
-        // critical and complex method that then can be re-used for assembling special
-        // cases of steps
-        // as well without repeating 99% of the logic.
+        // evaluation time. We do it here, to have a re-usable assembleBinaryOperation
+        // method, as that is a pretty critical and complex method that then can be
+        // re-used for assembling special cases of steps as well without repeating
+        // 99% of the logic.
         if (right instanceof Value valRight && operator instanceof Regex) {
             val compiledRegex = ComparisonOperators.compileRegularExpressionOperation(valRight);
             operation = (l, ignoredBecauseWeUseTheCompiledRegex) -> compiledRegex.apply(l);
@@ -164,7 +162,7 @@ public class ExpressionCompiler {
         return switch (expression) {
         case BasicGroup group                               -> compileExpression(group.getExpression(), context);
         case BasicValue value                               -> compileValue(value, context);
-        case BasicFunction function                         -> compileFunction(function, context);
+        case BasicFunction function                         -> compileBasicFunction(function, context);
         case BasicEnvironmentAttribute envAttribute         -> UNIMPLEMENTED;
         case BasicEnvironmentHeadAttribute envHeadAttribute -> UNIMPLEMENTED;
         case BasicIdentifier identifier                     -> compileIdentifier(identifier, context);
@@ -174,33 +172,54 @@ public class ExpressionCompiler {
         };
     }
 
-    private CompiledExpression compileFunction(BasicFunction function, CompilationContext context) {
+    private CompiledExpression compileBasicFunction(BasicFunction function, CompilationContext context) {
         if (context.isDynamicLibrariesEnabled()) {
             return UNIMPLEMENTED;
         }
-        val arguments = new ArrayList<CompiledExpression>();
-        var nature    = Nature.VALUE;
+        var arguments = CompiledArguments.EMPTY_ARGUMENTS;
         if (function.getArguments() != null && function.getArguments().getArgs() != null) {
-            for (val expression : function.getArguments().getArgs()) {
-                val compiled = compileExpression(expression, context);
-                arguments.add(compiled);
-                if (compiled instanceof PureExpression) {
-                    if (nature != Nature.STREAM) {
-                        nature = Nature.PURE;
-                    }
-                } else if (compiled instanceof StreamExpression) {
-                    nature = Nature.STREAM;
+            arguments = compileArguments(function.getArguments().getArgs(), context);
+        }
+        return switch (arguments.nature()) {
+        case VALUE  -> compileFunctionWithValueParameters(function, arguments.arguments(), context);
+        case PURE   -> compileFunctionWithPureParameters(function, arguments, context);
+        case STREAM -> compileFunctionWithStreamParameters(function, arguments, context);
+        };
+    }
+
+    private CompiledExpression compileFunctionWithStreamParameters(BasicFunction function, CompiledArguments arguments,
+            CompilationContext context) {
+        val sources = Arrays.stream(arguments.arguments()).map(ExpressionCompiler::compiledExpressionToFlux).toList();
+        val stream  = Flux.<Value, Value>combineLatest(sources,
+                combined -> compileFunctionWithValueParameters(function, (CompiledExpression[]) combined, context));
+        return new StreamExpression(stream);
+    }
+
+    private CompiledExpression compileFunctionWithPureParameters(BasicFunction function, CompiledArguments arguments,
+            CompilationContext context) {
+        return new PureExpression(ctx -> {
+            val valueArguments = new ArrayList<Value>(arguments.arguments().length);
+            for (val argument : arguments.arguments()) {
+                switch (argument) {
+                case Value value                   -> valueArguments.add(value);
+                case PureExpression pureExpression -> valueArguments.add(pureExpression.evaluate(ctx));
+                case StreamExpression ignored      -> throw new SaplCompilerException(
+                        "Encountered a stream expression during pure compilation path. Should not be possible.");
                 }
             }
-        }
-        if (nature == Nature.VALUE) {
-            val valueArguments = arguments.stream().map(Value.class::cast).toList();
-            val invocation     = new FunctionInvocation(
-                    FunctionUtil.resolveFunctionIdentifierByImports(function, function.getIdentifier()),
+            val invocation = new FunctionInvocation(
+                    ImportResolver.resolveFunctionIdentifierByImports(function, function.getIdentifier()),
                     valueArguments);
             return context.getFunctionBroker().evaluateFunction(invocation);
-        }
-        return UNIMPLEMENTED;
+        }, arguments.isSubscriptionScoped());
+    }
+
+    private Value compileFunctionWithValueParameters(BasicFunction function, CompiledExpression[] arguments,
+            CompilationContext context) {
+        val valueArguments = Arrays.stream(arguments).map(Value.class::cast).toList();
+        val invocation     = new FunctionInvocation(
+                ImportResolver.resolveFunctionIdentifierByImports(function, function.getIdentifier()), valueArguments);
+        return context.getFunctionBroker().evaluateFunction(invocation);
     }
 
     private CompiledExpression compileIdentifier(BasicIdentifier identifier, CompilationContext context) {
@@ -239,7 +258,6 @@ public class ExpressionCompiler {
                           };
 
         compiledValue = compileSteps(compiledValue, basic.getSteps(), context);
-
         if (compiledValue instanceof Value constantValue) {
             return context.dedupe(constantValue);
         }
@@ -364,10 +382,11 @@ public class ExpressionCompiler {
 
     private CompiledExpression compileStep(CompiledExpression parent, java.util.function.UnaryOperator<Value> operation,
             CompilationContext context) {
-        return switch(parent) {
-        case Value value -> operation.apply(value);
+        return switch (parent) {
+        case Value value                          -> operation.apply(value);
         case StreamExpression(Flux<Value> stream) -> new StreamExpression(stream.map(operation));
-        case PureExpression pureParent -> new PureExpression(ctx -> operation.apply(pureParent.evaluate(ctx)), pureParent.isSubscriptionScoped());
+        case PureExpression pureParent            ->
+            new PureExpression(ctx -> operation.apply(pureParent.evaluate(ctx)), pureParent.isSubscriptionScoped());
         };
     }
 
@@ -500,6 +519,9 @@ public class ExpressionCompiler {
     }
 
     private CompiledObjectAttributes compileAttributes(EList<Pair> members, CompilationContext context) {
+        if (members == null || members.isEmpty()) {
+            return CompiledObjectAttributes.EMPTY_ATTRIBUTES;
+        }
         val compiledArguments    = new HashMap<String, CompiledExpression>(members.size());
         var isStream             = false;
         var isPure               = false;
@@ -526,6 +548,9 @@ public class ExpressionCompiler {
     }
 
     private CompiledArguments compileArguments(EList<Expression> arguments, CompilationContext context) {
+        if (arguments == null || arguments.isEmpty()) {
+            return CompiledArguments.EMPTY_ARGUMENTS;
+        }
         val compiledArguments    = new CompiledExpression[arguments.size()];
         var isPure               = false;
         var isStream             = false;

@@ -62,8 +62,8 @@ class DefaultFunctionBrokerTests {
 
     @Test
     void loadInstantiatedFunctionLibraryWithNullThrowsException() {
-        assertThatThrownBy(() -> broker.loadInstantiatedFunctionLibrary(null)).isInstanceOf(IllegalArgumentException.class)
-                .hasMessage("Library instance must not be null.");
+        assertThatThrownBy(() -> broker.loadInstantiatedFunctionLibrary(null))
+                .isInstanceOf(IllegalArgumentException.class).hasMessage("Library instance must not be null.");
     }
 
     @Test
