@@ -364,14 +364,11 @@ public class ExpressionCompiler {
 
     private CompiledExpression compileStep(CompiledExpression parent, java.util.function.UnaryOperator<Value> operation,
             CompilationContext context) {
-        if (parent instanceof Value value) {
-            return operation.apply(value);
-        }
-        if (parent instanceof StreamExpression(Flux<Value> stream)) {
-            return new StreamExpression(stream.map(operation));
-        }
-        val pureParent = (PureExpression) parent;
-        return new PureExpression(ctx -> operation.apply(pureParent.evaluate(ctx)), pureParent.isSubscriptionScoped());
+        return switch(parent) {
+        case Value value -> operation.apply(value);
+        case StreamExpression(Flux<Value> stream) -> new StreamExpression(stream.map(operation));
+        case PureExpression pureParent -> new PureExpression(ctx -> operation.apply(pureParent.evaluate(ctx)), pureParent.isSubscriptionScoped());
+        };
     }
 
     private CompiledExpression composeArray(Array array, CompilationContext context) {
