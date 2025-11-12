@@ -21,7 +21,7 @@ import io.sapl.api.functions.FunctionBroker;
 import io.sapl.api.model.*;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.compiler.CompilationContext;
-import io.sapl.compiler.SaplCompiler;
+import io.sapl.compiler.ExpressionCompiler;
 import io.sapl.functions.DefaultFunctionBroker;
 import lombok.SneakyThrows;
 import lombok.experimental.UtilityClass;
@@ -34,10 +34,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 @UtilityClass
 public class TestUtil {
     private static final FunctionBroker FUNCTION_BROKER = new DefaultFunctionBroker();
-    private static final SaplCompiler   SAPL_COMPILER   = new SaplCompiler(FUNCTION_BROKER);
 
     private CompilationContext createCompilationContext() {
-        return new CompilationContext();
+        return new CompilationContext(FUNCTION_BROKER);
     }
 
     private EvaluationContext createEvaluationContext(AuthorizationSubscription authorizationSubscription) {
@@ -63,7 +62,7 @@ public class TestUtil {
     @SneakyThrows
     private CompiledExpression compileExpression(String expression) {
         val parsedExpression = ParserUtil.expression(expression);
-        return SAPL_COMPILER.compileExpression(parsedExpression, createCompilationContext());
+        return ExpressionCompiler.compileExpression(parsedExpression, createCompilationContext());
     }
 
     private Flux<Value> evaluateExpression(CompiledExpression expression, EvaluationContext evaluationContext) {

@@ -32,13 +32,12 @@ import static io.sapl.util.TestUtil.assertExpressionCompilesToValue;
 
 @Slf4j
 class SaplCompilerTests {
-    private static final SAPLInterpreter       PARSER   = new DefaultSAPLInterpreter();
-    private static final DefaultFunctionBroker PLUGINS  = new DefaultFunctionBroker();
-    private static final SaplCompiler          COMPILER = new SaplCompiler(PLUGINS);
+    private static final SAPLInterpreter       PARSER          = new DefaultSAPLInterpreter();
+    private static final DefaultFunctionBroker FUNCTION_BROKER = new DefaultFunctionBroker();
 
     @Test
     void experimentWithCompiler() throws InitializationException {
-        PLUGINS.loadStaticFunctionLibrary(TemporalFunctionLibrary.class);
+        FUNCTION_BROKER.loadStaticFunctionLibrary(TemporalFunctionLibrary.class);
         val source  = """
                 policy "test policy"
                 permit time.durationOfSeconds(1234)
@@ -46,9 +45,9 @@ class SaplCompilerTests {
                   // resource.id == "def";
                 """;
         val sapl    = PARSER.parse(source);
-        val context = new CompilationContext();
+        val context = new CompilationContext(FUNCTION_BROKER);
         try {
-            val compiled = COMPILER.compileDocument(sapl, context);
+            val compiled = SaplCompiler.compileDocument(sapl, context);
             System.err.println(compiled);
         } catch (SaplCompilerException e) {
             System.err.println(e.getMessage());
