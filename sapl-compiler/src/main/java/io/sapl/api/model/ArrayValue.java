@@ -82,6 +82,9 @@ public final class ArrayValue implements Value, List<Value> {
      * <p>
      * If secret is true, applies the secret flag to all elements at construction
      * time for optimal read performance.
+     * <p>
+     * Note: This does a defensive copy of the supplied List. For better performance
+     * without the need to copy use the Builder!
      *
      * @param elements the list elements (defensively copied, must not be null)
      * @param secret whether this value is secret
@@ -122,6 +125,18 @@ public final class ArrayValue implements Value, List<Value> {
     }
 
     /**
+     * Zero-copy constructor for builder use only.
+     * The supplied list is used directly without copying.
+     *
+     * @param secret whether this value is secret
+     * @param elements the list elements (used directly, must be mutable until wrapped)
+     */
+    private ArrayValue(boolean secret, List<Value> elements) {
+        this.value = Collections.unmodifiableList(elements);
+        this.secret = secret;
+    }
+
+    /**
      * Creates a builder for fluent array construction.
      *
      * @return a new builder
@@ -132,18 +147,28 @@ public final class ArrayValue implements Value, List<Value> {
 
     /**
      * Builder for fluent ArrayValue construction.
+     * <p>
+     * Builders are single-use only. After calling build(), the builder cannot be
+     * reused. This prevents immutability violations from the zero-copy optimization.
      */
     public static final class Builder {
-        private final ArrayList<Value> elements = new ArrayList<>();
-        private boolean                secret   = false;
+        private ArrayList<Value> elements = new ArrayList<>();
+        private boolean          secret   = false;
 
         /**
          * Adds a value to the array.
          *
          * @param value the value to add
          * @return this builder
+         * @throws IllegalStateException if builder has already been used
          */
         public Builder add(Value value) {
+            if (elements == null) {
+                throw new IllegalStateException("Builder has already been used.");
+            }
+            if (secret) {
+                value = value.asSecret();
+            }
             elements.add(value);
             return this;
         }
@@ -153,9 +178,15 @@ public final class ArrayValue implements Value, List<Value> {
          *
          * @param values the values to add
          * @return this builder
+         * @throws IllegalStateException if builder has already been used
          */
         public Builder addAll(Value... values) {
-            Collections.addAll(elements, values);
+            if (elements == null) {
+                throw new IllegalStateException("Builder has already been used.");
+            }
+            for (var value : values) {
+                add(value);
+            }
             return this;
         }
 
@@ -164,34 +195,60 @@ public final class ArrayValue implements Value, List<Value> {
          *
          * @param values the values to add
          * @return this builder
+         * @throws IllegalStateException if builder has already been used
          */
-        public Builder addAll(Collection<Value> values) {
-            elements.addAll(values);
+        public Builder addAll(Collection<? extends Value> values) {
+            if (elements == null) {
+                throw new IllegalStateException("Builder has already been used.");
+            }
+            for (var value : values) {
+                add(value);
+            }
             return this;
         }
 
         /**
          * Marks the array as secret.
          * Elements will have the secret flag applied at construction.
+         * <p>
+         * Note: For performance reasons, if possible call this method as early as
+         * possible in the building process.
          *
          * @return this builder
+         * @throws IllegalStateException if builder has already been used
          */
         public Builder secret() {
-            this.secret = true;
+            if (elements == null) {
+                throw new IllegalStateException("Builder has already been used.");
+            }
+            if (!this.secret) {
+                this.secret = true;
+                elements.replaceAll(Value::asSecret);
+            }
             return this;
         }
 
         /**
          * Builds the immutable ArrayValue.
          * Returns singleton for empty non-secret arrays.
+         * <p>
+         * After calling this method, the builder cannot be reused. Attempting to call
+         * any builder methods after build() will throw IllegalStateException.
          *
          * @return the constructed ArrayValue
+         * @throws IllegalStateException if builder has already been used
          */
         public ArrayValue build() {
+            if (elements == null) {
+                throw new IllegalStateException("Builder has already been used.");
+            }
             if (elements.isEmpty() && !secret) {
+                elements = null;
                 return Value.EMPTY_ARRAY;
             }
-            return new ArrayValue(elements, secret);
+            var result = new ArrayValue(secret, elements);
+            elements = null;
+            return result;
         }
     }
 
