@@ -17,11 +17,13 @@
  */
 package io.sapl.compiler;
 
+import io.sapl.api.functions.FunctionBroker;
 import io.sapl.api.model.CompiledExpression;
 import io.sapl.api.model.Value;
 import io.sapl.grammar.sapl.Import;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import lombok.RequiredArgsConstructor;
 import lombok.ToString;
 
 import java.math.BigDecimal;
@@ -30,14 +32,16 @@ import java.util.function.Function;
 
 @Data
 @ToString
-@NoArgsConstructor
+@RequiredArgsConstructor
 public class CompilationContext {
-    final boolean                           dynamicLibrariesEnabled = false;
-    final boolean                           debugInformationEnabled = false;
-    List<Import>                            imports                 = new ArrayList<>();
-    Map<SchemaTarget, List<CompiledSchema>> schemas                 = new EnumMap<>(SchemaTarget.class);
-    Map<String, CompiledExpression>         localVariablesInScope   = new HashMap<>();
-    Map<Value, Value>                       constants               = new HashMap<>();
+    final FunctionBroker                    functionBroker;
+    boolean                                 isInsideTargetExpression = false;
+    final boolean                           dynamicLibrariesEnabled  = false;
+    final boolean                           debugInformationEnabled  = false;
+    List<Import>                            imports                  = new ArrayList<>();
+    Map<SchemaTarget, List<CompiledSchema>> schemas                  = new EnumMap<>(SchemaTarget.class);
+    Map<String, CompiledExpression>         localVariablesInScope    = new HashMap<>();
+    Map<Value, Value>                       constants                = new HashMap<>();
     Value                                   relativeValue;
     String                                  relativeKey;
     BigDecimal                              relativeIndex;
@@ -79,4 +83,5 @@ public class CompilationContext {
         }
         return constants.computeIfAbsent(constantValue, Function.identity());
     }
+
 }
