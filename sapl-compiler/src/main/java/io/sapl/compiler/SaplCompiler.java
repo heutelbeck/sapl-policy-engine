@@ -34,10 +34,7 @@ import org.eclipse.emf.common.util.EList;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
+import java.util.*;
 import java.util.function.BiFunction;
 
 @RequiredArgsConstructor
@@ -461,10 +458,14 @@ public class SaplCompiler {
             val arrayBuilder = ArrayValue.builder();
             for (val argument : arguments.arguments()) {
                 // argument cannot be StreamExpression here!
-                if (argument instanceof PureExpression pureExpression) {
-                    arrayBuilder.add(pureExpression.evaluate(ctx));
-                } else {
-                    arrayBuilder.add((Value) argument);
+                val evaluatedArgument = (argument instanceof PureExpression pureExpression)
+                        ? pureExpression.evaluate(ctx)
+                        : argument;
+                if (evaluatedArgument instanceof ErrorValue errorValue) {
+                    return errorValue;
+                }
+                if (evaluatedArgument instanceof Value value && !(value instanceof UndefinedValue)) {
+                    arrayBuilder.add(value);
                 }
             }
             return arrayBuilder.build();
@@ -474,7 +475,12 @@ public class SaplCompiler {
     private Value compileValueArray(CompiledExpression[] arguments) {
         val arrayBuilder = ArrayValue.builder();
         for (val argument : arguments) {
-            arrayBuilder.add((Value) argument);
+            if (argument instanceof ErrorValue errorValue) {
+                return errorValue;
+            }
+            if (argument instanceof Value value && !(value instanceof UndefinedValue)) {
+                arrayBuilder.add(value);
+            }
         }
         return arrayBuilder.build();
     }
@@ -488,8 +494,36 @@ public class SaplCompiler {
         return switch (attributes.nature()) {
         case VALUE  -> compileValueObject(attributes);
         case PURE   -> compilePureObject(attributes);
-        case STREAM -> UNIMPLEMENTED;
+        case STREAM -> compileObjectStreamExpression(attributes);
         };
+    }
+
+    private record ObjectEntry(String key, Value value) {}
+
+    private CompiledExpression compileObjectStreamExpression(CompiledObjectAttributes attributes) {
+        val sources = new ArrayList<Flux<ObjectEntry>>(attributes.attributes().size());
+        for (val entry : attributes.attributes().entrySet()) {
+            sources.add(
+                    compiledExpressionToFlux(entry.getValue()).map(value -> new ObjectEntry(entry.getKey(), value)));
+        }
+        val stream = Flux.<ObjectEntry, Value>combineLatest(sources,
+                combined -> compileValueObject((ObjectEntry[]) combined));
+        return new StreamExpression(stream);
+    }
+
+    private Value compileValueObject(ObjectEntry[] attributes) {
+        val objectBuilder = ObjectValue.builder();
+        for (val attribute : attributes) {
+            val value = attribute.value;
+            val key   = attribute.key;
+            if (value instanceof ErrorValue errorValue) {
+                return errorValue;
+            }
+            if (!(value instanceof UndefinedValue)) {
+                objectBuilder.put(key, value);
+            }
+        }
+        return objectBuilder.build();
     }
 
     private CompiledExpression compilePureObject(CompiledObjectAttributes attributes) {
@@ -499,10 +533,14 @@ public class SaplCompiler {
                 val key               = attribute.getKey();
                 val compiledAttribute = attribute.getValue();
                 // compiledAttribute cannot be a StreamExpression here
-                if (compiledAttribute instanceof PureExpression pureExpression) {
-                    objectBuilder.put(key, pureExpression.evaluate(ctx));
-                } else {
-                    objectBuilder.put(key, (Value) compiledAttribute);
+                val evaluatedAttribute = (compiledAttribute instanceof PureExpression pureExpression)
+                        ? pureExpression.evaluate(ctx)
+                        : compiledAttribute;
+                if (evaluatedAttribute instanceof ErrorValue errorValue) {
+                    return errorValue;
+                }
+                if (evaluatedAttribute instanceof Value value && !(value instanceof UndefinedValue)) {
+                    objectBuilder.put(key, value);
                 }
             }
             return objectBuilder.build();
@@ -512,7 +550,14 @@ public class SaplCompiler {
     private CompiledExpression compileValueObject(CompiledObjectAttributes attributes) {
         val objectBuilder = ObjectValue.builder();
         for (val attribute : attributes.attributes().entrySet()) {
-            objectBuilder.put(attribute.getKey(), (Value) attribute.getValue());
+            val key   = attribute.getKey();
+            val value = attribute.getValue();
+            if (value instanceof ErrorValue errorValue) {
+                return errorValue;
+            }
+            if (value instanceof Value v && !(value instanceof UndefinedValue)) {
+                objectBuilder.put(key, v);
+            }
         }
         return objectBuilder.build();
     }
