@@ -17,7 +17,6 @@
  */
 package io.sapl.util;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.sapl.api.functions.FunctionBroker;
 import io.sapl.api.model.*;
 import io.sapl.api.pdp.AuthorizationSubscription;
@@ -34,7 +33,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 @UtilityClass
 public class TestUtil {
-    private static final ObjectMapper   MAPPER          = new ObjectMapper();
     private static final FunctionBroker FUNCTION_BROKER = new DefaultFunctionBroker();
     private static final SaplCompiler   SAPL_COMPILER   = new SaplCompiler(FUNCTION_BROKER);
 
