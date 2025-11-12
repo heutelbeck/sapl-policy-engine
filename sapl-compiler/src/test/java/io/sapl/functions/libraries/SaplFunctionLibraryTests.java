@@ -105,19 +105,16 @@ class SaplFunctionLibraryTests {
         assertThat(osArch).isInstanceOf(TextValue.class).isNotNull().isNotEqualTo("").isNotEqualTo("unknown");
     }
 
-    /*
-     * @Test
-     * void when_info_then_versionInfoMayBeUnknownIfPropertiesNotAvailable() {
-     * val result = SaplFunctionLibrary.info();
-     *
-     * assertThat(result).isInstanceOf(ObjectValue.class);
-     * ObjectValue infoObject = (ObjectValue) result;
-     *
-     * val saplArch = infoObject.get("saplArch");
-     * assertThat(saplArch).isInstanceOf(TextValue.class).isNotNull().isNotEqualTo(
-     * "").isNotEqualTo("unknown");
-     * }
-     */
+    @Test
+    void when_info_then_versionInfoMayBeUnknownIfPropertiesNotAvailable() {
+        val result = SaplFunctionLibrary.info();
+
+        assertThat(result).isInstanceOf(ObjectValue.class);
+        ObjectValue infoObject = (ObjectValue) result;
+
+        val saplArch = infoObject.get("saplVersion");
+        assertThat(saplArch).isInstanceOf(TextValue.class).isNotNull().isNotEqualTo("").isNotEqualTo("unknown");
+    }
 
     @Test
     void when_info_then_gitInfoMayBeUnknownIfPropertiesNotAvailable() {
