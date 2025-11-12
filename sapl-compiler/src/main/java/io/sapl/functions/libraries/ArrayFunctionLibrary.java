@@ -439,13 +439,9 @@ public class ArrayFunctionLibrary {
             ```
             """, schema = RETURNS_BOOLEAN)
     public static Value containsAll(ArrayValue array, ArrayValue elements) {
-        if (!(array instanceof ArrayValue arrayValue && elements instanceof ArrayValue elementsValue)) {
-            return Value.error("Arguments must be arrays.");
-        }
+        val arraySet = new HashSet<>(array);
 
-        val arraySet = new HashSet<>(arrayValue);
-
-        for (val element : elementsValue) {
+        for (val element : elements) {
             if (!arraySet.contains(element)) {
                 return Value.FALSE;
             }

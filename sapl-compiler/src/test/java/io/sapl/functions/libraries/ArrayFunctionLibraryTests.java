@@ -17,11 +17,13 @@
  */
 package io.sapl.functions.libraries;
 
+import io.sapl.api.functions.FunctionBroker;
 import io.sapl.api.model.ArrayValue;
 import io.sapl.api.model.BooleanValue;
 import io.sapl.api.model.ErrorValue;
 import io.sapl.api.model.NumberValue;
 import io.sapl.api.model.Value;
+import io.sapl.functions.DefaultFunctionBroker;
 import lombok.val;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -34,6 +36,7 @@ import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.offset;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 
 /**
  * Tests for ArrayFunctionLibrary using the new Value model.
@@ -54,6 +57,12 @@ class ArrayFunctionLibraryTests {
 
     private static Value[] values(int... numbers) {
         return IntStream.of(numbers).mapToObj(Value::of).toArray(Value[]::new);
+    }
+
+    @Test
+    void when_loadedIntoBroker_then_noError() {
+        val functionBroker = new DefaultFunctionBroker();
+        assertDoesNotThrow(() -> functionBroker.loadStaticFunctionLibrary(ArrayFunctionLibrary.class));
     }
 
     @Test

@@ -108,7 +108,7 @@ public class DefaultFunctionBroker implements FunctionBroker {
      * @throws IllegalArgumentException if libraryInstance is null or function
      * collision detected
      */
-    public void loadFunctionInstanceLibrary(Object libraryInstance) throws InitializationException {
+    public void loadInstantiatedFunctionLibrary(Object libraryInstance) throws InitializationException {
         if (libraryInstance == null) {
             throw new IllegalArgumentException(LIBRARY_INSTANCE_NULL_ERROR);
         }
