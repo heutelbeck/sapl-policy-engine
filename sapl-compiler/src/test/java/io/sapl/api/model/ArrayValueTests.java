@@ -79,13 +79,13 @@ class ArrayValueTests {
             ArrayValue result;
 
             switch (description) {
-                case "add()"              ->
-                        result = ArrayValue.builder().add(Value.of(1)).add(Value.of(2)).add(Value.of(3)).build();
-                case "addAll(varargs)"    ->
-                        result = ArrayValue.builder().addAll(Value.of(1), Value.of(2), Value.of(3)).build();
-                case "addAll(collection)" ->
-                        result = ArrayValue.builder().addAll(List.of(Value.of(1), Value.of(2), Value.of(3))).build();
-                default                   -> throw new IllegalArgumentException("Unknown case: " + description);
+            case "add()"              ->
+                result = ArrayValue.builder().add(Value.of(1)).add(Value.of(2)).add(Value.of(3)).build();
+            case "addAll(varargs)"    ->
+                result = ArrayValue.builder().addAll(Value.of(1), Value.of(2), Value.of(3)).build();
+            case "addAll(collection)" ->
+                result = ArrayValue.builder().addAll(List.of(Value.of(1), Value.of(2), Value.of(3))).build();
+            default                   -> throw new IllegalArgumentException("Unknown case: " + description);
             }
 
             assertThat(result).containsExactlyElementsOf(expected);
@@ -106,8 +106,7 @@ class ArrayValueTests {
             var first   = builder.add(Value.of(1)).build();
 
             assertThat(first).hasSize(1);
-            assertThatThrownBy(() -> builder.add(Value.of(2)))
-                    .isInstanceOf(IllegalStateException.class)
+            assertThatThrownBy(() -> builder.add(Value.of(2))).isInstanceOf(IllegalStateException.class)
                     .hasMessageContaining("already been used");
         }
 
@@ -118,8 +117,7 @@ class ArrayValueTests {
             builder.build();
 
             assertThatThrownBy(() -> builder.add(Value.of("De Vermis Mysteriis")))
-                    .isInstanceOf(IllegalStateException.class)
-                    .hasMessageContaining("already been used");
+                    .isInstanceOf(IllegalStateException.class).hasMessageContaining("already been used");
         }
 
         @Test
@@ -129,8 +127,7 @@ class ArrayValueTests {
             builder.build();
 
             assertThatThrownBy(() -> builder.addAll(Value.of("Yog-Sothoth"), Value.of("Nyarlathotep")))
-                    .isInstanceOf(IllegalStateException.class)
-                    .hasMessageContaining("already been used");
+                    .isInstanceOf(IllegalStateException.class).hasMessageContaining("already been used");
         }
 
         @Test
@@ -140,8 +137,7 @@ class ArrayValueTests {
             builder.build();
 
             var moreLocations = List.of(Value.of("Innsmouth"), Value.of("Arkham"));
-            assertThatThrownBy(() -> builder.addAll(moreLocations))
-                    .isInstanceOf(IllegalStateException.class)
+            assertThatThrownBy(() -> builder.addAll(moreLocations)).isInstanceOf(IllegalStateException.class)
                     .hasMessageContaining("already been used");
         }
 
@@ -151,8 +147,7 @@ class ArrayValueTests {
             var builder = ArrayValue.builder().add(Value.of("forbidden knowledge"));
             builder.build();
 
-            assertThatThrownBy(builder::secret)
-                    .isInstanceOf(IllegalStateException.class)
+            assertThatThrownBy(builder::secret).isInstanceOf(IllegalStateException.class)
                     .hasMessageContaining("already been used");
         }
 
@@ -162,19 +157,15 @@ class ArrayValueTests {
             var builder = ArrayValue.builder().add(Value.of("elder sign"));
             builder.build();
 
-            assertThatThrownBy(builder::build)
-                    .isInstanceOf(IllegalStateException.class)
+            assertThatThrownBy(builder::build).isInstanceOf(IllegalStateException.class)
                     .hasMessageContaining("already been used");
         }
 
         @Test
         @DisplayName("Builder secret() before add() marks subsequent elements as secret")
         void secretBeforeAddMarksElementsSecret() {
-            var grimoire = ArrayValue.builder()
-                    .secret()
-                    .add(Value.of("Ritual of Summoning"))
-                    .add(Value.of("Rites of Protection"))
-                    .build();
+            var grimoire = ArrayValue.builder().secret().add(Value.of("Ritual of Summoning"))
+                    .add(Value.of("Rites of Protection")).build();
 
             assertThat(grimoire.secret()).isTrue();
             var element0 = grimoire.getFirst();
@@ -188,11 +179,8 @@ class ArrayValueTests {
         @Test
         @DisplayName("Builder secret() after add() marks existing elements as secret")
         void secretAfterAddMarksElementsSecret() {
-            var cultists = ArrayValue.builder()
-                    .add(Value.of("Wilbur Whateley"))
-                    .add(Value.of("Lavinia Whateley"))
-                    .secret()
-                    .build();
+            var cultists = ArrayValue.builder().add(Value.of("Wilbur Whateley")).add(Value.of("Lavinia Whateley"))
+                    .secret().build();
 
             assertThat(cultists.secret()).isTrue();
             var element0 = cultists.getFirst();
@@ -206,10 +194,8 @@ class ArrayValueTests {
         @Test
         @DisplayName("Builder addAll(varargs) with secret builder marks all elements as secret")
         void addAllVarargsWithSecretBuilderMarksSecret() {
-            var elderSigns = ArrayValue.builder()
-                    .secret()
-                    .addAll(Value.of("Pentagram"), Value.of("Eye"), Value.of("Star"))
-                    .build();
+            var elderSigns = ArrayValue.builder().secret()
+                    .addAll(Value.of("Pentagram"), Value.of("Eye"), Value.of("Star")).build();
 
             assertThat(elderSigns.secret()).isTrue();
             elderSigns.forEach(element -> {
@@ -221,11 +207,9 @@ class ArrayValueTests {
         @Test
         @DisplayName("Builder addAll(collection) then secret() marks all elements as secret")
         void addAllCollectionThenSecretMarksSecret() {
-            var tomes = List.of(Value.of("Necronomicon"), Value.of("Pnakotic Manuscripts"), Value.of("Book of Eibon"));
-            var library = ArrayValue.builder()
-                    .addAll(tomes)
-                    .secret()
-                    .build();
+            var tomes   = List.of(Value.of("Necronomicon"), Value.of("Pnakotic Manuscripts"),
+                    Value.of("Book of Eibon"));
+            var library = ArrayValue.builder().addAll(tomes).secret().build();
 
             assertThat(library.secret()).isTrue();
             library.forEach(element -> {
@@ -237,13 +221,8 @@ class ArrayValueTests {
         @Test
         @DisplayName("Builder secret() is idempotent")
         void secretIdempotency() {
-            var incantations = ArrayValue.builder()
-                    .add(Value.of("Ph'nglui mglw'nafh"))
-                    .secret()
-                    .secret()
-                    .add(Value.of("Cthulhu R'lyeh"))
-                    .secret()
-                    .build();
+            var incantations = ArrayValue.builder().add(Value.of("Ph'nglui mglw'nafh")).secret().secret()
+                    .add(Value.of("Cthulhu R'lyeh")).secret().build();
 
             assertThat(incantations.secret()).isTrue();
             incantations.forEach(element -> {
@@ -255,12 +234,8 @@ class ArrayValueTests {
         @Test
         @DisplayName("Builder mixed operations maintain secret consistency")
         void mixedOperationsMaintainSecretConsistency() {
-            var ritualItems = ArrayValue.builder()
-                    .add(Value.of("candles"))
-                    .secret()
-                    .addAll(Value.of("incense"), Value.of("chalice"))
-                    .add(Value.of("dagger"))
-                    .build();
+            var ritualItems = ArrayValue.builder().add(Value.of("candles")).secret()
+                    .addAll(Value.of("incense"), Value.of("chalice")).add(Value.of("dagger")).build();
 
             assertThat(ritualItems.secret()).isTrue();
             assertThat(ritualItems).hasSize(4);
@@ -274,9 +249,7 @@ class ArrayValueTests {
         @DisplayName("Builder with non-secret addAll preserves element states")
         void nonSecretAddAllPreservesStates() {
             var locations = List.of(Value.of("Arkham"), Value.of("Innsmouth"), Value.of("Dunwich"));
-            var places = ArrayValue.builder()
-                    .addAll(locations)
-                    .build();
+            var places    = ArrayValue.builder().addAll(locations).build();
 
             assertThat(places.secret()).isFalse();
             places.forEach(element -> {
@@ -514,7 +487,7 @@ class ArrayValueTests {
                         Arguments.of(new ArrayValue(List.of(Value.of(1), Value.of(2)), false), "1, 2", "simple values"),
                         Arguments.of(new ArrayValue(List.of(Value.of(1)), true), "***SECRET***", "secret array"),
                         Arguments.of(new ArrayValue(
-                                        List.of(new ArrayValue(List.of(Value.of(1), Value.of(2)), false), Value.of(3)), false),
+                                List.of(new ArrayValue(List.of(Value.of(1), Value.of(2)), false), Value.of(3)), false),
                                 "[1, 2]", "nested arrays"),
                         Arguments.of(new ArrayValue(List.of(Value.of(1), Value.of("text"), Value.of(true), Value.NULL,
                                 Value.UNDEFINED, Value.error("test")), false), "ERROR", "mixed types"));
