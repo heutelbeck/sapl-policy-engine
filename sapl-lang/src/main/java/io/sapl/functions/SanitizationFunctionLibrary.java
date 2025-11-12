@@ -251,7 +251,7 @@ public class SanitizationFunctionLibrary {
             ```
             sanitize.assertNoSqlInjection("O'Brien")                    // Apostrophe in name
             sanitize.assertNoSqlInjection("Portland OR Seattle")        // OR as word
-            sanitize.assertNoSqlInjection("What's your name?")         // Contractions
+            sanitize.assertNoSqlInjection("What's your name?")          // Contractions
             sanitize.assertNoSqlInjection("Department: HR-001")         // Structured data
             ```
 

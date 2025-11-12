@@ -61,8 +61,8 @@ class DefaultFunctionBrokerTests {
     }
 
     @Test
-    void loadFunctionInstanceLibraryWithNullThrowsException() {
-        assertThatThrownBy(() -> broker.loadFunctionInstanceLibrary(null)).isInstanceOf(IllegalArgumentException.class)
+    void loadInstantiatedFunctionLibraryWithNullThrowsException() {
+        assertThatThrownBy(() -> broker.loadInstantiatedFunctionLibrary(null)).isInstanceOf(IllegalArgumentException.class)
                 .hasMessage("Library instance must not be null.");
     }
 
@@ -87,7 +87,7 @@ class DefaultFunctionBrokerTests {
 
     @Test
     void instanceMethodsWorkWithInstanceLibrary() throws InitializationException {
-        broker.loadFunctionInstanceLibrary(new MixedMethodLibrary());
+        broker.loadInstantiatedFunctionLibrary(new MixedMethodLibrary());
 
         val staticInvocation = new FunctionInvocation("nyarlathotep.summonMessenger", List.of());
         val staticResult     = broker.evaluateFunction(staticInvocation);
@@ -117,7 +117,7 @@ class DefaultFunctionBrokerTests {
 
     @Test
     void staticMethodsFromMixedLibraryWorkInInstanceMode() throws InitializationException {
-        broker.loadFunctionInstanceLibrary(new MixedMethodLibrary());
+        broker.loadInstantiatedFunctionLibrary(new MixedMethodLibrary());
 
         val staticInvocation = new FunctionInvocation("nyarlathotep.summonMessenger", List.of());
         val staticResult     = broker.evaluateFunction(staticInvocation);
