@@ -20,6 +20,8 @@ package io.sapl.functions.libraries;
 import io.sapl.api.model.ErrorValue;
 import io.sapl.api.model.TextValue;
 import io.sapl.api.model.Value;
+import io.sapl.functions.DefaultFunctionBroker;
+import lombok.val;
 import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
 import org.mockito.Mockito;
@@ -30,11 +32,18 @@ import java.time.ZoneId;
 import java.time.ZonedDateTime;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 
 class TemporalFunctionLibraryTests {
 
     private static TextValue timeValOf(String utcIsoTime) {
         return Value.of(Instant.parse(utcIsoTime).toString());
+    }
+
+    @Test
+    void when_loadedIntoBroker_then_noError() {
+        val functionBroker = new DefaultFunctionBroker();
+        assertDoesNotThrow(() -> functionBroker.loadStaticFunctionLibrary(TemporalFunctionLibrary.class));
     }
 
     /* ######## INSTANT MANIPULATION TESTS ######## */
