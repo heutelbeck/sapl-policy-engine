@@ -73,7 +73,7 @@ public class TestUtil {
         case Value value                       -> Flux.just(value);
         case PureExpression pureExpression     -> Flux.just(pureExpression.evaluate(evaluationContext));
         case StreamExpression streamExpression ->
-            streamExpression.evaluate().contextWrite(ctx -> ctx.put(EvaluationContext.class, evaluationContext));
+            streamExpression.stream().contextWrite(ctx -> ctx.put(EvaluationContext.class, evaluationContext));
         };
     }
 

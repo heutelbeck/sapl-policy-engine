@@ -31,8 +31,11 @@ import io.sapl.grammar.sapl.impl.util.FunctionUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.val;
 import org.eclipse.emf.common.util.EList;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.function.BiFunction;
@@ -146,7 +149,7 @@ public class SaplCompiler {
     }
 
     private CompiledExpression compileBinaryOperation(BinaryOperator operator,
-            BiFunction<Value, Value, Value> operation, CompilationContext context) {
+            java.util.function.BinaryOperator<Value> operation, CompilationContext context) {
         val left  = compileExpression(operator.getLeft(), context);
         val right = compileExpression(operator.getRight(), context);
         if (left instanceof ErrorValue) {
@@ -159,8 +162,7 @@ public class SaplCompiler {
             return operation.apply(leftValue, rightValue);
         }
         if (left instanceof StreamExpression || right instanceof StreamExpression) {
-            // TODO: implement
-            return UNIMPLEMENTED;
+            return compileBinaryStreamOperator(left, right, operation);
         }
         if (left instanceof PureExpression subLeft && right instanceof PureExpression subRight) {
             return new PureExpression(ctx -> operation.apply(subLeft.evaluate(ctx), subRight.evaluate(ctx)),
@@ -183,19 +185,42 @@ public class SaplCompiler {
                 + left.getClass().getSimpleName() + " and " + right.getClass().getSimpleName() + ".");
     }
 
+    private StreamExpression compileBinaryStreamOperator(CompiledExpression leftExpression,
+            CompiledExpression rightExpression, java.util.function.BinaryOperator<Value> operation) {
+        val stream = Flux.combineLatest(compiledExpressionToFlux(leftExpression),
+                compiledExpressionToFlux(leftExpression), operation);
+        return new StreamExpression(stream);
+    }
+
+    private Flux<Value> compiledExpressionToFlux(CompiledExpression expression) {
+        return switch (expression) {
+        case Value value                   -> Flux.just(value);
+        case StreamExpression stream       -> stream.stream();
+        case PureExpression pureExpression -> deferPureExpressionEvaluation(pureExpression);
+        };
+    }
+
+    private Flux<Value> deferPureExpressionEvaluation(PureExpression expression) {
+        return Flux.deferContextual(ctx -> Flux.just(expression.evaluate(ctx.get(EvaluationContext.class))));
+    }
+
     private CompiledExpression compileUnaryOperation(UnaryOperator operator,
             java.util.function.UnaryOperator<Value> operation, CompilationContext context) {
         val expression = compileExpression(operator.getExpression(), context);
         if (expression instanceof Value value) {
             return operation.apply(value);
         }
-        if (expression instanceof StreamExpression) {
-            // TODO: implement
-            return UNIMPLEMENTED;
+        if (expression instanceof StreamExpression(Flux<Value> stream)) {
+            return new StreamExpression(stream.map(operation));
         }
         val subExpression = (PureExpression) expression;
         return new PureExpression(ctx -> operation.apply(subExpression.evaluate(ctx)),
                 subExpression.isSubscriptionScoped());
+    }
+
+    private StreamExpression compileUnaryStreamOperator(CompiledExpression input,
+            java.util.function.UnaryOperator<Value> operation) {
+        return new StreamExpression(compiledExpressionToFlux(input).map(operation));
     }
 
     private CompiledExpression compileBasicExpression(BasicExpression expression, CompilationContext context) {
@@ -367,7 +392,7 @@ public class SaplCompiler {
             if (parent instanceof ObjectValue objectValue) {
                 if (compiledConditionExpression instanceof PureExpression pureExpression) {
                     if (pureExpression.isSubscriptionScoped()) {
-
+                        // TODO CONTINUE HERE !
                     }
                     return new PureExpression(ctx -> indexOrKeyStep(value, pureExpression.evaluate(ctx)),
                             pureExpression.isSubscriptionScoped());
@@ -394,7 +419,7 @@ public class SaplCompiler {
         } else if (expressionResult instanceof TextValue textValue) {
             return StepOperators.keyStep(value, textValue.value());
         } else {
-            return Value.error("Expression in expression step must return number of text, but got %s."
+            return Value.error("Expression in expression step must return a number or text, but got %s."
                     .formatted(expressionResult));
         }
     }
@@ -419,10 +444,16 @@ public class SaplCompiler {
         }
         val arguments = compileArguments(items, context);
         return switch (arguments.nature()) {
-        case VALUE  -> compileValueArray(arguments);
+        case VALUE  -> compileValueArray(arguments.arguments());
         case PURE   -> compilePureArray(arguments);
-        case STREAM -> UNIMPLEMENTED;
+        case STREAM -> compileArrayStreamExpression(arguments);
         };
+    }
+
+    private CompiledExpression compileArrayStreamExpression(CompiledArguments arguments) {
+        val sources = Arrays.stream(arguments.arguments()).map(this::compiledExpressionToFlux).toList();
+        val stream  = Flux.<Value, Value>combineLatest(sources, combined -> compileValueArray((Value[]) combined));
+        return new StreamExpression(stream);
     }
 
     private CompiledExpression compilePureArray(CompiledArguments arguments) {
@@ -440,9 +471,9 @@ public class SaplCompiler {
         }, arguments.isSubscriptionScoped());
     }
 
-    private Value compileValueArray(CompiledArguments arguments) {
+    private Value compileValueArray(CompiledExpression[] arguments) {
         val arrayBuilder = ArrayValue.builder();
-        for (val argument : arguments.arguments()) {
+        for (val argument : arguments) {
             arrayBuilder.add((Value) argument);
         }
         return arrayBuilder.build();
