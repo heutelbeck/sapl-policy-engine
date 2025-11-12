@@ -19,6 +19,4 @@ package io.sapl.api.model;
 
 import reactor.core.publisher.Flux;
 
-public non-sealed interface StreamExpression extends CompiledExpression {
-    public Flux<Value> evaluate();
-}
+public record StreamExpression(Flux<Value> stream) implements CompiledExpression {}
