@@ -110,10 +110,11 @@ public final class ObjectValue implements Value, Map<String, Value> {
      * The supplied map is used directly without copying.
      *
      * @param secret whether this value is secret
-     * @param properties the map properties (used directly, must be mutable until wrapped)
+     * @param properties the map properties (used directly, must be mutable until
+     * wrapped)
      */
     private ObjectValue(boolean secret, Map<String, Value> properties) {
-        this.value = Collections.unmodifiableMap(properties);
+        this.value  = Collections.unmodifiableMap(properties);
         this.secret = secret;
     }
 
@@ -130,7 +131,8 @@ public final class ObjectValue implements Value, Map<String, Value> {
      * Builder for fluent ObjectValue construction.
      * <p>
      * Builders are single-use only. After calling build(), the builder cannot be
-     * reused. This prevents immutability violations from the zero-copy optimization.
+     * reused. This prevents immutability violations from the zero-copy
+     * optimization.
      */
     public static final class Builder {
         private LinkedHashMap<String, Value> properties = new LinkedHashMap<>();

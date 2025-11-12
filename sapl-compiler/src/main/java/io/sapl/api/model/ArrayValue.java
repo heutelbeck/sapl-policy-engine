@@ -129,10 +129,11 @@ public final class ArrayValue implements Value, List<Value> {
      * The supplied list is used directly without copying.
      *
      * @param secret whether this value is secret
-     * @param elements the list elements (used directly, must be mutable until wrapped)
+     * @param elements the list elements (used directly, must be mutable until
+     * wrapped)
      */
     private ArrayValue(boolean secret, List<Value> elements) {
-        this.value = Collections.unmodifiableList(elements);
+        this.value  = Collections.unmodifiableList(elements);
         this.secret = secret;
     }
 
@@ -149,7 +150,8 @@ public final class ArrayValue implements Value, List<Value> {
      * Builder for fluent ArrayValue construction.
      * <p>
      * Builders are single-use only. After calling build(), the builder cannot be
-     * reused. This prevents immutability violations from the zero-copy optimization.
+     * reused. This prevents immutability violations from the zero-copy
+     * optimization.
      */
     public static final class Builder {
         private ArrayList<Value> elements = new ArrayList<>();

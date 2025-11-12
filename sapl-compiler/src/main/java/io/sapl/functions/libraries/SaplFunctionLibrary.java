@@ -173,7 +173,8 @@ public class SaplFunctionLibrary {
     /**
      * Retrieves the SAPL version from version properties.
      *
-     * @return TextValue containing the version string, or "unknown" if not available
+     * @return TextValue containing the version string, or "unknown" if not
+     * available
      */
     private static TextValue saplVersion() {
         return new TextValue(VERSION_PROPERTIES.getProperty(PROPERTY_SAPL_VERSION, UNKNOWN), false);
@@ -183,7 +184,8 @@ public class SaplFunctionLibrary {
      * Retrieves a property from git properties.
      *
      * @param key the property key
-     * @return TextValue containing the property value, or "unknown" if not available
+     * @return TextValue containing the property value, or "unknown" if not
+     * available
      */
     private static TextValue gitProperty(String key) {
         return new TextValue(SaplFunctionLibrary.GIT_PROPERTIES.getProperty(key, UNKNOWN), false);
@@ -193,7 +195,8 @@ public class SaplFunctionLibrary {
      * Retrieves a system property.
      *
      * @param key the system property key
-     * @return TextValue containing the property value, or "unknown" if not available
+     * @return TextValue containing the property value, or "unknown" if not
+     * available
      */
     private static TextValue systemProperty(String key) {
         return new TextValue(System.getProperty(key, UNKNOWN), false);
