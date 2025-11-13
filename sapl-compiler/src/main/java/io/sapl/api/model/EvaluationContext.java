@@ -28,7 +28,7 @@ import java.util.Map;
 
 import static io.sapl.api.model.ReservedIdentifiers.*;
 
-public record EvaluationContext(@NonNull Map<String, CompiledExpression> variables, FunctionBroker pluginsServer) {
+public record EvaluationContext(@NonNull Map<String, Value> variables, FunctionBroker functionBroker) {
 
     public EvaluationContext(AuthorizationSubscription authorizationSubscription, FunctionBroker pluginsServer) {
         this(new HashMap<>(), pluginsServer);
@@ -40,7 +40,7 @@ public record EvaluationContext(@NonNull Map<String, CompiledExpression> variabl
 
     private EvaluationContext(EvaluationContext originalContext,
             String identifier,
-            CompiledExpression value,
+            Value value,
             FunctionBroker pluginsServer) {
         this(new HashMap<>(), pluginsServer);
         variables.putAll(originalContext.variables);
@@ -48,8 +48,8 @@ public record EvaluationContext(@NonNull Map<String, CompiledExpression> variabl
     }
 
     private EvaluationContext(EvaluationContext originalContext,
-            CompiledExpression relativeValue,
-            CompiledExpression relativeLocation,
+            Value relativeValue,
+            Value relativeLocation,
             FunctionBroker pluginsServer) {
         this(new HashMap<>(), pluginsServer);
         variables.putAll(originalContext.variables);
@@ -57,27 +57,27 @@ public record EvaluationContext(@NonNull Map<String, CompiledExpression> variabl
         variables.put(RELATIVE_LOCATION, relativeLocation);
     }
 
-    public CompiledExpression subject() {
+    public Value subject() {
         return get(SUBJECT);
     }
 
-    public CompiledExpression action() {
+    public Value action() {
         return get(ACTION);
     }
 
-    public CompiledExpression resource() {
+    public Value resource() {
         return get(RESOURCE);
     }
 
-    public CompiledExpression relativeValue() {
+    public Value relativeValue() {
         return get(RELATIVE_VALUE);
     }
 
-    public CompiledExpression relativeLocation() {
+    public Value relativeLocation() {
         return get(RELATIVE_LOCATION);
     }
 
-    public CompiledExpression get(String identifier) {
+    public Value get(String identifier) {
         val value = variables.get(identifier);
         if (value == null) {
             return Value.UNDEFINED;
@@ -86,14 +86,18 @@ public record EvaluationContext(@NonNull Map<String, CompiledExpression> variabl
     }
 
     public EvaluationContext withRelativeValue(Value relativeValue, Value relativeLocation) {
-        return new EvaluationContext(this, relativeValue, relativeLocation, pluginsServer);
+        return new EvaluationContext(this, relativeValue, relativeLocation, functionBroker);
+    }
+
+    public EvaluationContext withRelativeValue(Value relativeValue) {
+        return new EvaluationContext(this, relativeValue, Value.UNDEFINED, functionBroker);
     }
 
     public EvaluationContext with(String identifier, Value value) {
         if (RESERVED_IDENTIFIERS.contains(identifier)) {
             throw new PolicyEvaluationException("Identifier " + identifier + " is reserved.");
         }
-        return new EvaluationContext(this, identifier, value, pluginsServer);
+        return new EvaluationContext(this, identifier, value, functionBroker);
     }
 
 }

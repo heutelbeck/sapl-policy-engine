@@ -34,7 +34,7 @@ import reactor.core.publisher.Flux;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
-import java.util.List;
+import java.util.Map;
 
 @UtilityClass
 public class ExpressionCompiler {
@@ -166,10 +166,14 @@ public class ExpressionCompiler {
         case BasicEnvironmentAttribute envAttribute         -> UNIMPLEMENTED;
         case BasicEnvironmentHeadAttribute envHeadAttribute -> UNIMPLEMENTED;
         case BasicIdentifier identifier                     -> compileIdentifier(identifier, context);
-        case BasicRelative relative                         -> UNIMPLEMENTED;
+        case BasicRelative ignored                          -> compileBasicRelative(context);
         default                                             ->
             throw new SaplCompilerException("unexpected expression: " + expression + ".");
         };
+    }
+
+    private static CompiledExpression compileBasicRelative(CompilationContext context) {
+        return new PureExpression(EvaluationContext::relativeValue, false);
     }
 
     private CompiledExpression compileBasicFunction(BasicFunction function, CompilationContext context) {
@@ -229,18 +233,7 @@ public class ExpressionCompiler {
         if (maybeLocalVariable != null) {
             return maybeLocalVariable;
         }
-
-        return new PureExpression(ctx -> {
-            val variableExpression = ctx.get(variableIdentifier);
-            if (variableExpression instanceof StreamExpression) {
-                return Value.error(
-                        "Encountered an attribute dependent expression during subscription dependent evaluation. Must not happen.");
-            }
-            if (variableExpression instanceof PureExpression subExpression) {
-                return subExpression.evaluate(ctx);
-            }
-            return (Value) variableExpression;
-        }, true);
+        return new PureExpression(ctx -> ctx.get(variableIdentifier), true);
     }
 
     private CompiledExpression compileValue(BasicValue basic, CompilationContext context) {
@@ -297,7 +290,7 @@ public class ExpressionCompiler {
         case ArraySlicingStep arraySlicingStep               -> compileStep(parent, p -> StepOperators.sliceArray(p,
                 arraySlicingStep.getIndex(), arraySlicingStep.getTo(), arraySlicingStep.getStep()), context);
         case ExpressionStep expressionStep                   -> compileExpressionStep(parent, expressionStep, context);
-        case ConditionStep conditionStep                     -> UNIMPLEMENTED;
+        case ConditionStep conditionStep                     -> compileConditionStep(parent, conditionStep, context);
         case IndexUnionStep indexUnionStep                   ->
             compileStep(parent, p -> StepOperators.indexUnion(p, indexUnionStep.getIndices()), context);
         case AttributeUnionStep attributeUnionStep           ->
@@ -306,68 +299,67 @@ public class ExpressionCompiler {
         };
     }
 
-    private CompiledExpression compileExpressionStep(CompiledExpression parent, ExpressionStep expressionStep,
+    private CompiledExpression compileExpressionStep(CompiledExpression parentExpression, ExpressionStep expressionStep,
             CompilationContext context) {
-
-        if (parent instanceof ErrorValue || parent instanceof UndefinedValue) {
-            return parent;
-        }
-        val compiledStepExpression = compileExpression(expressionStep.getExpression(), context);
-        if (compiledStepExpression instanceof StreamExpression) {
-            throw new SaplCompilerException("No attribute finders allowed in expression steps.");
-        }
-        if (parent instanceof Value value) {
-            if (compiledStepExpression instanceof PureExpression pureExpression) {
-                return new PureExpression(ctx -> indexOrKeyStep(value, pureExpression.evaluate(ctx)),
-                        pureExpression.isSubscriptionScoped());
-            } else {
-                return UNIMPLEMENTED;
-            }
-        } else if (parent instanceof PureExpression pureParentExpression) {
-            if (compiledStepExpression instanceof PureExpression pureExpression) {
-                return new PureExpression(
-                        ctx -> indexOrKeyStep(pureParentExpression.evaluate(ctx), pureExpression.evaluate(ctx)),
-                        pureParentExpression.isSubscriptionScoped() || pureExpression.isSubscriptionScoped());
-            } else {
-                return UNIMPLEMENTED;
-            }
-        }
-        val parentStream = (StreamExpression) parent;
-        return UNIMPLEMENTED;
+        val expressionStepExpression = compileExpression(expressionStep.getExpression(), context);
+        return assembleBinaryOperation(parentExpression, expressionStepExpression, ExpressionCompiler::indexOrKeyStep);
     }
 
-    private CompiledExpression compileConditionStep(CompiledExpression parent, ExpressionStep expressionStep,
+    private CompiledExpression compileConditionStep(CompiledExpression parent, ConditionStep expressionStep,
             CompilationContext context) {
         if (parent instanceof ErrorValue || parent instanceof UndefinedValue) {
             return parent;
         }
         val compiledConditionExpression = compileExpression(expressionStep.getExpression(), context);
-        if (compiledConditionExpression instanceof StreamExpression) {
-            throw new SaplCompilerException("No attribute finders allowed in condition steps.");
+        if (parent instanceof ObjectValue parentObject) {
+            return UNIMPLEMENTED;
+        } else if (parent instanceof ArrayValue parentArray) {
+            return UNIMPLEMENTED;
+        } else if (parent instanceof Value parentValue) {
+            return compileConditionStepForRelativeValue(parentValue, Value.UNDEFINED, compiledConditionExpression,
+                    context);
+        } else if (parent instanceof PureExpression pureParent) {
+            return UNIMPLEMENTED;
+        } else {
+            val streamParent = (StreamExpression) parent;
+            return UNIMPLEMENTED;
+
         }
-        if (parent instanceof Value value) {
-            if (parent instanceof ObjectValue objectValue) {
-                if (compiledConditionExpression instanceof PureExpression pureExpression) {
-                    if (pureExpression.isSubscriptionScoped()) {
-                        // TODO CONTINUE HERE !
-                    }
-                    return new PureExpression(ctx -> indexOrKeyStep(value, pureExpression.evaluate(ctx)),
-                            pureExpression.isSubscriptionScoped());
-                } else {
-                    return UNIMPLEMENTED;
-                }
-            }
-        } else if (parent instanceof PureExpression pureParentExpression) {
-            if (compiledConditionExpression instanceof PureExpression pureExpression) {
-                return new PureExpression(
-                        ctx -> indexOrKeyStep(pureParentExpression.evaluate(ctx), pureExpression.evaluate(ctx)),
-                        pureParentExpression.isSubscriptionScoped() || pureExpression.isSubscriptionScoped());
+    }
+
+    private CompiledExpression compileConditionStepForRelativeValue(Value relativeValue, Value relativeLocation,
+            CompiledExpression conditionExpression, CompilationContext context) {
+        val relativeCondition = switch (conditionExpression) {
+        case Value value                                -> value;
+        case PureExpression pureConditionExpression     -> {
+            if (pureConditionExpression.isSubscriptionScoped()) {
+                yield new PureExpression(
+                        ctx -> pureConditionExpression.evaluate(ctx.withRelativeValue(relativeValue, relativeLocation)),
+                        true);
             } else {
-                return UNIMPLEMENTED;
+                yield pureConditionExpression.evaluate(
+                        new EvaluationContext(Map.of(), context.getFunctionBroker()).withRelativeValue(relativeValue));
             }
         }
-        val parentStream = (StreamExpression) parent;
-        return UNIMPLEMENTED;
+        case StreamExpression streamConditionExpression ->
+            new StreamExpression(streamConditionExpression.stream().contextWrite(ctx -> {
+                                                            val evaluationContext = ctx.get(EvaluationContext.class);
+                                                            return ctx.put(EvaluationContext.class,
+                                                                    evaluationContext.withRelativeValue(relativeValue,
+                                                                            relativeLocation));
+                                                        }));
+        };
+        return assembleBinaryOperation(relativeValue, relativeCondition,
+                ExpressionCompiler::returnValueIfConditionMetElseUndefined);
+    }
+
+    private Value returnValueIfConditionMetElseUndefined(Value value, Value condition) {
+        if (!(condition instanceof BooleanValue booleanConstant)) {
+            return Value.error(
+                    "Type mismatch error. Conditions in condition steps must evaluate to a boolean value, but got: %s."
+                            .formatted(value));
+        }
+        return booleanConstant.equals(Value.TRUE) ? value : Value.UNDEFINED;
     }
 
     private static Value indexOrKeyStep(Value value, Value expressionResult) {
@@ -404,10 +396,17 @@ public class ExpressionCompiler {
         };
     }
 
-    private CompiledExpression compileArrayStreamExpression(CompiledArguments arguments) {
-        val sources = Arrays.stream(arguments.arguments()).map(ExpressionCompiler::compiledExpressionToFlux).toList();
-        val stream  = Flux.<Value, Value>combineLatest(sources, combined -> compileValueArray((Value[]) combined));
-        return new StreamExpression(stream);
+    private Value compileValueArray(CompiledExpression[] arguments) {
+        val arrayBuilder = ArrayValue.builder();
+        for (val argument : arguments) {
+            if (argument instanceof ErrorValue errorValue) {
+                return errorValue;
+            }
+            if (argument instanceof Value value && !(value instanceof UndefinedValue)) {
+                arrayBuilder.add(value);
+            }
+        }
+        return arrayBuilder.build();
     }
 
     private CompiledExpression compilePureArray(CompiledArguments arguments) {
@@ -429,17 +428,10 @@ public class ExpressionCompiler {
         }, arguments.isSubscriptionScoped());
     }
 
-    private Value compileValueArray(CompiledExpression[] arguments) {
-        val arrayBuilder = ArrayValue.builder();
-        for (val argument : arguments) {
-            if (argument instanceof ErrorValue errorValue) {
-                return errorValue;
-            }
-            if (argument instanceof Value value && !(value instanceof UndefinedValue)) {
-                arrayBuilder.add(value);
-            }
-        }
-        return arrayBuilder.build();
+    private CompiledExpression compileArrayStreamExpression(CompiledArguments arguments) {
+        val sources = Arrays.stream(arguments.arguments()).map(ExpressionCompiler::compiledExpressionToFlux).toList();
+        val stream  = Flux.<Value, Value>combineLatest(sources, combined -> compileValueArray((Value[]) combined));
+        return new StreamExpression(stream);
     }
 
     private CompiledExpression composeObject(Object object, CompilationContext context) {
@@ -456,17 +448,6 @@ public class ExpressionCompiler {
     }
 
     private record ObjectEntry(String key, Value value) {}
-
-    private CompiledExpression compileObjectStreamExpression(CompiledObjectAttributes attributes) {
-        val sources = new ArrayList<Flux<ObjectEntry>>(attributes.attributes().size());
-        for (val entry : attributes.attributes().entrySet()) {
-            sources.add(
-                    compiledExpressionToFlux(entry.getValue()).map(value -> new ObjectEntry(entry.getKey(), value)));
-        }
-        val stream = Flux.<ObjectEntry, Value>combineLatest(sources,
-                combined -> compileValueObject((ObjectEntry[]) combined));
-        return new StreamExpression(stream);
-    }
 
     private Value compileValueObject(ObjectEntry[] attributes) {
         val objectBuilder = ObjectValue.builder();
@@ -502,6 +483,17 @@ public class ExpressionCompiler {
             }
             return objectBuilder.build();
         }, attributes.isSubscriptionScoped());
+    }
+
+    private CompiledExpression compileObjectStreamExpression(CompiledObjectAttributes attributes) {
+        val sources = new ArrayList<Flux<ObjectEntry>>(attributes.attributes().size());
+        for (val entry : attributes.attributes().entrySet()) {
+            sources.add(
+                    compiledExpressionToFlux(entry.getValue()).map(value -> new ObjectEntry(entry.getKey(), value)));
+        }
+        val stream = Flux.<ObjectEntry, Value>combineLatest(sources,
+                combined -> compileValueObject((ObjectEntry[]) combined));
+        return new StreamExpression(stream);
     }
 
     private CompiledExpression compileValueObject(CompiledObjectAttributes attributes) {
