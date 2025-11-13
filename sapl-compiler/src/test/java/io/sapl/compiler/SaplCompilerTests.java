@@ -40,7 +40,7 @@ class SaplCompilerTests {
         FUNCTION_BROKER.loadStaticFunctionLibrary(TemporalFunctionLibrary.class);
         val source  = """
                 policy "test policy"
-                permit subject.name == ""
+                permit 7[?(@>subscription.age)]
                 // where
                   // resource.id == "def";
                 """;
