@@ -46,36 +46,36 @@ public class ExpressionCompiler {
             return null;
         }
         return switch (expression) {
-        case Or or                 -> compileBinaryOperation(or, BooleanOperators::or, context); // TODO add lazy !
-        case EagerOr eagerOr       -> compileBinaryOperation(eagerOr, BooleanOperators::or, context);
-        case XOr xor               -> compileBinaryOperation(xor, BooleanOperators::xor, context);
-        case And and               -> compileBinaryOperation(and, BooleanOperators::and, context); // TODO add lazy !
-        case EagerAnd eagerAnd     -> compileBinaryOperation(eagerAnd, BooleanOperators::and, context);
-        case Not not               -> compileUnaryOperation(not, BooleanOperators::not, context);
-        case Multi multi           -> compileBinaryOperation(multi, NumberOperators::multiply, context);
-        case Div div               -> compileBinaryOperation(div, NumberOperators::divide, context);
-        case Modulo modulo         -> compileBinaryOperation(modulo, NumberOperators::modulo, context);
-        case Plus plus             -> compileBinaryOperation(plus, NumberOperators::add, context);
-        case Minus minus           -> compileBinaryOperation(minus, NumberOperators::subtract, context);
-        case Less less             -> compileBinaryOperation(less, NumberOperators::lessThan, context);
-        case LessEquals lessEquals -> compileBinaryOperation(lessEquals, NumberOperators::lessThanOrEqual, context);
-        case More more             -> compileBinaryOperation(more, NumberOperators::greaterThan, context);
-        case MoreEquals moreEquals -> compileBinaryOperation(moreEquals, NumberOperators::greaterThanOrEqual, context);
-        case UnaryPlus unaryPlus   -> compileUnaryOperation(unaryPlus, NumberOperators::unaryPlus, context);
-        case UnaryMinus unaryMinus -> compileUnaryOperation(unaryMinus, NumberOperators::unaryMinus, context);
-        case ElementOf elementOf   -> compileBinaryOperation(elementOf, ComparisonOperators::notEquals, context);
-        case Equals equals         -> compileBinaryOperation(equals, ComparisonOperators::equals, context);
-        case NotEquals notEquals   -> compileBinaryOperation(notEquals, ComparisonOperators::notEquals, context);
-        case Regex regex           ->
-            compileBinaryOperation(regex, ComparisonOperators::matchesRegularExpression, context);
-        case BasicExpression basic -> compileBasicExpression(basic, context);
-        default                    -> throw new SaplCompilerException("unexpected expression: " + expression + ".");
+            case Or or -> compileBinaryOperation(or, BooleanOperators::or, context); // TODO add lazy !
+            case EagerOr eagerOr -> compileBinaryOperation(eagerOr, BooleanOperators::or, context);
+            case XOr xor -> compileBinaryOperation(xor, BooleanOperators::xor, context);
+            case And and -> compileBinaryOperation(and, BooleanOperators::and, context); // TODO add lazy !
+            case EagerAnd eagerAnd -> compileBinaryOperation(eagerAnd, BooleanOperators::and, context);
+            case Not not -> compileUnaryOperation(not, BooleanOperators::not, context);
+            case Multi multi -> compileBinaryOperation(multi, NumberOperators::multiply, context);
+            case Div div -> compileBinaryOperation(div, NumberOperators::divide, context);
+            case Modulo modulo -> compileBinaryOperation(modulo, NumberOperators::modulo, context);
+            case Plus plus -> compileBinaryOperation(plus, NumberOperators::add, context);
+            case Minus minus -> compileBinaryOperation(minus, NumberOperators::subtract, context);
+            case Less less -> compileBinaryOperation(less, NumberOperators::lessThan, context);
+            case LessEquals lessEquals -> compileBinaryOperation(lessEquals, NumberOperators::lessThanOrEqual, context);
+            case More more -> compileBinaryOperation(more, NumberOperators::greaterThan, context);
+            case MoreEquals moreEquals ->
+                    compileBinaryOperation(moreEquals, NumberOperators::greaterThanOrEqual, context);
+            case UnaryPlus unaryPlus -> compileUnaryOperation(unaryPlus, NumberOperators::unaryPlus, context);
+            case UnaryMinus unaryMinus -> compileUnaryOperation(unaryMinus, NumberOperators::unaryMinus, context);
+            case ElementOf elementOf -> compileBinaryOperation(elementOf, ComparisonOperators::isContainedIn, context);
+            case Equals equals -> compileBinaryOperation(equals, ComparisonOperators::equals, context);
+            case NotEquals notEquals -> compileBinaryOperation(notEquals, ComparisonOperators::notEquals, context);
+            case Regex regex -> compileBinaryOperation(regex, ComparisonOperators::matchesRegularExpression, context);
+            case BasicExpression basic -> compileBasicExpression(basic, context);
+            default -> throw new SaplCompilerException("unexpected expression: " + expression + ".");
         };
     }
 
     private CompiledExpression compileBinaryOperation(BinaryOperator operator,
-            java.util.function.BinaryOperator<Value> operation, CompilationContext context) {
-        val left  = compileExpression(operator.getLeft(), context);
+                                                      java.util.function.BinaryOperator<Value> operation, CompilationContext context) {
+        val left = compileExpression(operator.getLeft(), context);
         val right = compileExpression(operator.getRight(), context);
         // Special case for regex. Here if the right side is a text constant, we can
         // immediately pre-compile the expression and do not need to do it at policy
@@ -91,7 +91,7 @@ public class ExpressionCompiler {
     }
 
     private CompiledExpression assembleBinaryOperation(CompiledExpression left, CompiledExpression right,
-            java.util.function.BinaryOperator<Value> operation) {
+                                                       java.util.function.BinaryOperator<Value> operation) {
         if (left instanceof ErrorValue) {
             return left;
         }
@@ -121,17 +121,17 @@ public class ExpressionCompiler {
     }
 
     private StreamExpression compileBinaryStreamOperator(CompiledExpression leftExpression,
-            CompiledExpression rightExpression, java.util.function.BinaryOperator<Value> operation) {
+                                                         CompiledExpression rightExpression, java.util.function.BinaryOperator<Value> operation) {
         val stream = Flux.combineLatest(compiledExpressionToFlux(leftExpression),
-                compiledExpressionToFlux(leftExpression), operation);
+                compiledExpressionToFlux(rightExpression), operation);
         return new StreamExpression(stream);
     }
 
     private Flux<Value> compiledExpressionToFlux(CompiledExpression expression) {
         return switch (expression) {
-        case Value value                   -> Flux.just(value);
-        case StreamExpression stream       -> stream.stream();
-        case PureExpression pureExpression -> deferPureExpressionEvaluation(pureExpression);
+            case Value value -> Flux.just(value);
+            case StreamExpression stream -> stream.stream();
+            case PureExpression pureExpression -> deferPureExpressionEvaluation(pureExpression);
         };
     }
 
@@ -140,7 +140,7 @@ public class ExpressionCompiler {
     }
 
     private CompiledExpression compileUnaryOperation(UnaryOperator operator,
-            java.util.function.UnaryOperator<Value> operation, CompilationContext context) {
+                                                     java.util.function.UnaryOperator<Value> operation, CompilationContext context) {
         val expression = compileExpression(operator.getExpression(), context);
         if (expression instanceof Value value) {
             return operation.apply(value);
@@ -153,22 +153,16 @@ public class ExpressionCompiler {
                 subExpression.isSubscriptionScoped());
     }
 
-    private StreamExpression compileUnaryStreamOperator(CompiledExpression input,
-            java.util.function.UnaryOperator<Value> operation) {
-        return new StreamExpression(compiledExpressionToFlux(input).map(operation));
-    }
-
     private CompiledExpression compileBasicExpression(BasicExpression expression, CompilationContext context) {
         return switch (expression) {
-        case BasicGroup group                               -> compileExpression(group.getExpression(), context);
-        case BasicValue value                               -> compileValue(value, context);
-        case BasicFunction function                         -> compileBasicFunction(function, context);
-        case BasicEnvironmentAttribute envAttribute         -> UNIMPLEMENTED;
-        case BasicEnvironmentHeadAttribute envHeadAttribute -> UNIMPLEMENTED;
-        case BasicIdentifier identifier                     -> compileIdentifier(identifier, context);
-        case BasicRelative ignored                          -> compileBasicRelative(context);
-        default                                             ->
-            throw new SaplCompilerException("unexpected expression: " + expression + ".");
+            case BasicGroup group -> compileExpression(group.getExpression(), context);
+            case BasicValue value -> compileValue(value, context);
+            case BasicFunction function -> compileBasicFunction(function, context);
+            case BasicEnvironmentAttribute envAttribute -> UNIMPLEMENTED;
+            case BasicEnvironmentHeadAttribute envHeadAttribute -> UNIMPLEMENTED;
+            case BasicIdentifier identifier -> compileIdentifier(identifier, context);
+            case BasicRelative ignored -> compileBasicRelative(context);
+            default -> throw new SaplCompilerException("unexpected expression: " + expression + ".");
         };
     }
 
@@ -186,30 +180,30 @@ public class ExpressionCompiler {
             arguments = compileArguments(function.getArguments().getArgs(), context);
         }
         return switch (arguments.nature()) {
-        case VALUE  -> compileFunctionWithValueParameters(function, arguments.arguments(), context);
-        case PURE   -> compileFunctionWithPureParameters(function, arguments, context);
-        case STREAM -> compileFunctionWithStreamParameters(function, arguments, context);
+            case VALUE -> compileFunctionWithValueParameters(function, arguments.arguments(), context);
+            case PURE -> compileFunctionWithPureParameters(function, arguments, context);
+            case STREAM -> compileFunctionWithStreamParameters(function, arguments, context);
         };
     }
 
     private CompiledExpression compileFunctionWithStreamParameters(BasicFunction function, CompiledArguments arguments,
-            CompilationContext context) {
+                                                                   CompilationContext context) {
         val sources = Arrays.stream(arguments.arguments()).map(ExpressionCompiler::compiledExpressionToFlux).toList();
-        val stream  = Flux.<Value, Value>combineLatest(sources,
+        val stream = Flux.<Value, Value>combineLatest(sources,
                 combined -> compileFunctionWithValueParameters(function, (CompiledExpression[]) combined, context));
         return new StreamExpression(stream);
     }
 
     private CompiledExpression compileFunctionWithPureParameters(BasicFunction function, CompiledArguments arguments,
-            CompilationContext context) {
+                                                                 CompilationContext context) {
         return new PureExpression(ctx -> {
             val valueArguments = new ArrayList<Value>(arguments.arguments().length);
             for (val argument : arguments.arguments()) {
                 switch (argument) {
-                case Value value                   -> valueArguments.add(value);
-                case PureExpression pureExpression -> valueArguments.add(pureExpression.evaluate(ctx));
-                case StreamExpression ignored      -> throw new SaplCompilerException(
-                        "Encountered a stream expression during pure compilation path. Should not be possible.");
+                    case Value value -> valueArguments.add(value);
+                    case PureExpression pureExpression -> valueArguments.add(pureExpression.evaluate(ctx));
+                    case StreamExpression ignored -> throw new SaplCompilerException(
+                            "Encountered a stream expression during pure compilation path. Should not be possible.");
                 }
             }
             val invocation = new FunctionInvocation(
@@ -220,9 +214,9 @@ public class ExpressionCompiler {
     }
 
     private Value compileFunctionWithValueParameters(BasicFunction function, CompiledExpression[] arguments,
-            CompilationContext context) {
+                                                     CompilationContext context) {
         val valueArguments = Arrays.stream(arguments).map(Value.class::cast).toList();
-        val invocation     = new FunctionInvocation(
+        val invocation = new FunctionInvocation(
                 ImportResolver.resolveFunctionIdentifierByImports(function, function.getIdentifier()), valueArguments);
         return context.getFunctionBroker().evaluateFunction(invocation);
     }
@@ -237,19 +231,18 @@ public class ExpressionCompiler {
     }
 
     private CompiledExpression compileValue(BasicValue basic, CompilationContext context) {
-        val value         = basic.getValue();
+        val value = basic.getValue();
         var compiledValue = switch (value) {
-                          case Object object        -> composeObject(object, context);
-                          case Array array          -> composeArray(array, context);
-                          case StringLiteral string -> Value.of(string.getString());
-                          case NumberLiteral number -> Value.of(number.getNumber());
-                          case TrueLiteral t        -> Value.TRUE;
-                          case FalseLiteral f       -> Value.FALSE;
-                          case NullLiteral nil      -> Value.NULL;
-                          case UndefinedLiteral u   -> Value.UNDEFINED;
-                          default                   ->
-                              throw new SaplCompilerException("unexpected value: " + value + ".");
-                          };
+            case Object object -> composeObject(object, context);
+            case Array array -> composeArray(array, context);
+            case StringLiteral string -> Value.of(string.getString());
+            case NumberLiteral number -> Value.of(number.getNumber());
+            case TrueLiteral t -> Value.TRUE;
+            case FalseLiteral f -> Value.FALSE;
+            case NullLiteral nil -> Value.NULL;
+            case UndefinedLiteral u -> Value.UNDEFINED;
+            default -> throw new SaplCompilerException("unexpected value: " + value + ".");
+        };
 
         compiledValue = compileSteps(compiledValue, basic.getSteps(), context);
         if (compiledValue instanceof Value constantValue) {
@@ -259,7 +252,7 @@ public class ExpressionCompiler {
     }
 
     private CompiledExpression compileSteps(CompiledExpression expression, EList<Step> steps,
-            CompilationContext context) {
+                                            CompilationContext context) {
         if (steps == null || steps.isEmpty()) {
             return expression;
         }
@@ -271,83 +264,188 @@ public class ExpressionCompiler {
 
     private CompiledExpression compileStep(CompiledExpression parent, Step step, CompilationContext context) {
         return switch (step) {
-        case KeyStep keyStep                                 ->
-            compileStep(parent, p -> StepOperators.keyStep(p, keyStep.getId()), context);
-        case EscapedKeyStep escapedKeyStep                   ->
-            compileStep(parent, p -> StepOperators.keyStep(p, escapedKeyStep.getId()), context);
-        case WildcardStep wildcardStep                       ->
-            compileStep(parent, StepOperators::wildcardStep, context);
-        case AttributeFinderStep attributeFinderStep         -> UNIMPLEMENTED;
-        case HeadAttributeFinderStep headAttributeFinderStep -> UNIMPLEMENTED;
-        case RecursiveKeyStep recursiveKeyStep               ->
-            compileStep(parent, p -> StepOperators.recursiveKeyStep(p, recursiveKeyStep.getId()), context);
-        case RecursiveWildcardStep recursiveWildcardStep     ->
-            compileStep(parent, StepOperators::recursiveWildcardStep, context);
-        case RecursiveIndexStep recursiveIndexStep           ->
-            compileStep(parent, p -> StepOperators.recursiveIndexStep(p, recursiveIndexStep.getIndex()), context);
-        case IndexStep indexStep                             ->
-            compileStep(parent, p -> StepOperators.indexStep(p, indexStep.getIndex()), context);
-        case ArraySlicingStep arraySlicingStep               -> compileStep(parent, p -> StepOperators.sliceArray(p,
-                arraySlicingStep.getIndex(), arraySlicingStep.getTo(), arraySlicingStep.getStep()), context);
-        case ExpressionStep expressionStep                   -> compileExpressionStep(parent, expressionStep, context);
-        case ConditionStep conditionStep                     -> compileConditionStep(parent, conditionStep, context);
-        case IndexUnionStep indexUnionStep                   ->
-            compileStep(parent, p -> StepOperators.indexUnion(p, indexUnionStep.getIndices()), context);
-        case AttributeUnionStep attributeUnionStep           ->
-            compileStep(parent, p -> StepOperators.attributeUnion(p, attributeUnionStep.getAttributes()), context);
-        default                                              -> UNIMPLEMENTED;
+            case KeyStep keyStep -> compileStep(parent, p -> StepOperators.keyStep(p, keyStep.getId()), context);
+            case EscapedKeyStep escapedKeyStep ->
+                    compileStep(parent, p -> StepOperators.keyStep(p, escapedKeyStep.getId()), context);
+            case WildcardStep wildcardStep -> compileStep(parent, StepOperators::wildcardStep, context);
+            case AttributeFinderStep attributeFinderStep -> UNIMPLEMENTED;
+            case HeadAttributeFinderStep headAttributeFinderStep -> UNIMPLEMENTED;
+            case RecursiveKeyStep recursiveKeyStep ->
+                    compileStep(parent, p -> StepOperators.recursiveKeyStep(p, recursiveKeyStep.getId()), context);
+            case RecursiveWildcardStep recursiveWildcardStep ->
+                    compileStep(parent, StepOperators::recursiveWildcardStep, context);
+            case RecursiveIndexStep recursiveIndexStep ->
+                    compileStep(parent, p -> StepOperators.recursiveIndexStep(p, recursiveIndexStep.getIndex()), context);
+            case IndexStep indexStep ->
+                    compileStep(parent, p -> StepOperators.indexStep(p, indexStep.getIndex()), context);
+            case ArraySlicingStep arraySlicingStep -> compileStep(parent, p -> StepOperators.sliceArray(p,
+                    arraySlicingStep.getIndex(), arraySlicingStep.getTo(), arraySlicingStep.getStep()), context);
+            case ExpressionStep expressionStep -> compileExpressionStep(parent, expressionStep, context);
+            case ConditionStep conditionStep -> compileConditionStep(parent, conditionStep, context);
+            case IndexUnionStep indexUnionStep ->
+                    compileStep(parent, p -> StepOperators.indexUnion(p, indexUnionStep.getIndices()), context);
+            case AttributeUnionStep attributeUnionStep ->
+                    compileStep(parent, p -> StepOperators.attributeUnion(p, attributeUnionStep.getAttributes()), context);
+            default -> UNIMPLEMENTED;
         };
     }
 
     private CompiledExpression compileExpressionStep(CompiledExpression parentExpression, ExpressionStep expressionStep,
-            CompilationContext context) {
+                                                     CompilationContext context) {
         val expressionStepExpression = compileExpression(expressionStep.getExpression(), context);
         return assembleBinaryOperation(parentExpression, expressionStepExpression, ExpressionCompiler::indexOrKeyStep);
     }
 
     private CompiledExpression compileConditionStep(CompiledExpression parent, ConditionStep expressionStep,
-            CompilationContext context) {
+                                                    CompilationContext context) {
+        return switch (parent) {
+            case Value parentValue -> compileConditionStepOnValue(parentValue, expressionStep, context);
+            case PureExpression pureParent -> compileConditionStepOnPureExpression(pureParent, expressionStep, context);
+            case StreamExpression streamParent -> compileConditionStepOnStreamExpression(streamParent, expressionStep, context);
+        };
+    }
+
+    private static CompiledExpression compileConditionStepOnStreamExpression(StreamExpression streamParent, ConditionStep expressionStep, CompilationContext context) {
+        val compiledConditionExpression = compileExpression(expressionStep.getExpression(), context);
+
+        return UNIMPLEMENTED;
+    }
+
+    private CompiledExpression compileConditionStepOnPureExpression(PureExpression pureParent, ConditionStep expressionStep,
+                                                           CompilationContext context) {
+        val compiledConditionExpression = compileExpression(expressionStep.getExpression(), context);
+        return switch(compiledConditionExpression) {
+            case Value conditionValue -> new PureExpression(ctx -> returnValueIfConditionMetElseUndefined(pureParent.evaluate(ctx), conditionValue ), pureParent.isSubscriptionScoped());
+            case PureExpression pureCondition -> new PureExpression(ctx -> {
+                val parentValue = pureParent.evaluate(ctx);
+                val conditionValue = pureCondition.evaluate(ctx.withRelativeValue(parentValue, Value.UNDEFINED));
+                return returnValueIfConditionMetElseUndefined(parentValue, conditionValue);
+            }, pureParent.isSubscriptionScoped() || pureCondition.isSubscriptionScoped());
+            case StreamExpression conditionStream ->  new StreamExpression(
+                    Flux.<Value>deferContextual(ctx -> Flux.just(pureParent.evaluate(ctx.get(EvaluationContext.class))))
+                            .flatMap(parentValue -> conditionStream.stream().contextWrite(ctx -> {
+                                val evaluationContext = ctx.get(EvaluationContext.class);
+                                return ctx.put(EvaluationContext.class,
+                                        evaluationContext.withRelativeValue(parentValue,
+                                                Value.UNDEFINED));
+                            }).map(conditionValue -> returnValueIfConditionMetElseUndefined(parentValue, conditionValue)))
+            );
+        };
+    }
+
+    private CompiledExpression compileConditionStepOnValue(Value parent, ConditionStep expressionStep,
+                                                           CompilationContext context) {
         if (parent instanceof ErrorValue || parent instanceof UndefinedValue) {
             return parent;
         }
         val compiledConditionExpression = compileExpression(expressionStep.getExpression(), context);
-        if (parent instanceof ObjectValue parentObject) {
-            return UNIMPLEMENTED;
-        } else if (parent instanceof ArrayValue parentArray) {
-            return UNIMPLEMENTED;
-        } else if (parent instanceof Value parentValue) {
-            return compileConditionStepForRelativeValue(parentValue, Value.UNDEFINED, compiledConditionExpression,
-                    context);
-        } else if (parent instanceof PureExpression pureParent) {
-            return UNIMPLEMENTED;
-        } else {
-            val streamParent = (StreamExpression) parent;
-            return UNIMPLEMENTED;
+        return evaluateConditionStepOnValue(parent, compiledConditionExpression, context);
+    }
 
+    private CompiledExpression evaluateConditionStepOnValue(Value parent, CompiledExpression compiledConditionExpression,
+                                                           CompilationContext context) {
+        return switch (parent) {
+            case ArrayValue parentArray -> compileConditionStepForRelativeArray(parentArray, compiledConditionExpression, context);
+            case ObjectValue parentObject -> compileConditionStepForRelativeObject(parentObject, compiledConditionExpression, context);
+            case Value parentValue ->
+                    compileConditionStepForRelativeValue(parentValue, Value.UNDEFINED, compiledConditionExpression, context);
+        };
+    }
+
+    private CompiledExpression compileConditionStepForRelativeObject(ObjectValue relativeObject,
+                                                                    CompiledExpression conditionExpression,
+                                                                    CompilationContext context) {
+        if(relativeObject.isEmpty()) {
+            return relativeObject;
         }
+        val compiledArguments = new HashMap<String, CompiledExpression>(relativeObject.size());
+        var isStream = false;
+        var isPure = false;
+        var isSubscriptionScoped = false;
+        for (var pair : relativeObject.entrySet()) {
+            val compiledAttribute = compileConditionStepForRelativeValue(pair.getValue(), Value.of(pair.getKey()), conditionExpression, context);
+            if (compiledAttribute instanceof PureExpression pureExpression) {
+                isPure = true;
+                if (pureExpression.isSubscriptionScoped()) {
+                    isSubscriptionScoped = true;
+                }
+            } else if (compiledAttribute instanceof StreamExpression) {
+                isStream = true;
+            }
+            compiledArguments.put(pair.getKey(), compiledAttribute);
+        }
+        var nature = Nature.VALUE;
+        if (isStream) {
+            nature = Nature.STREAM;
+        } else if (isPure) {
+            nature = Nature.PURE;
+        }
+        val compiledObjectElementExpressions = new CompiledObjectAttributes(nature, isSubscriptionScoped, compiledArguments);
+        return compileAttributesToObject(compiledObjectElementExpressions);
+    }
+
+    private CompiledExpression compileConditionStepForRelativeArray(ArrayValue relativeArray,
+                                                                    CompiledExpression conditionExpression,
+                                                                    CompilationContext context) {
+        if(relativeArray.isEmpty()) {
+            return relativeArray;
+        }
+        val compiledArguments = new CompiledExpression[relativeArray.size()];
+        var isPure = false;
+        var isStream = false;
+        var isSubscriptionScoped = false;
+        for (int i = 0; i < relativeArray.size(); i++) {
+            val compiledArgument = compileConditionStepForRelativeValue(relativeArray.get(i), Value.of(i), conditionExpression, context);
+            if (compiledArgument instanceof PureExpression pureExpression) {
+                isPure = true;
+                if (pureExpression.isSubscriptionScoped()) {
+                    isSubscriptionScoped = true;
+                }
+            } else if (compiledArgument instanceof StreamExpression) {
+                isStream = true;
+            }
+            compiledArguments[i] = compiledArgument;
+        }
+        var nature = Nature.VALUE;
+        if (isStream) {
+            nature = Nature.STREAM;
+        } else if (isPure) {
+            nature = Nature.PURE;
+        }
+        val compiledArrayElementExpressions = new CompiledArguments(nature, isSubscriptionScoped, compiledArguments);
+        return compileArgumentsToArray(compiledArrayElementExpressions);
+    }
+
+    private CompiledExpression compileArgumentsToArray(CompiledArguments compiledArguments) {
+        return switch (compiledArguments.nature()) {
+            case VALUE -> compileValueArray(compiledArguments.arguments());
+            case PURE -> compilePureArray(compiledArguments);
+            case STREAM -> compileArrayStreamExpression(compiledArguments);
+        };
     }
 
     private CompiledExpression compileConditionStepForRelativeValue(Value relativeValue, Value relativeLocation,
-            CompiledExpression conditionExpression, CompilationContext context) {
+                                                                    CompiledExpression conditionExpression, CompilationContext context) {
         val relativeCondition = switch (conditionExpression) {
-        case Value value                                -> value;
-        case PureExpression pureConditionExpression     -> {
-            if (pureConditionExpression.isSubscriptionScoped()) {
-                yield new PureExpression(
-                        ctx -> pureConditionExpression.evaluate(ctx.withRelativeValue(relativeValue, relativeLocation)),
-                        true);
-            } else {
-                yield pureConditionExpression.evaluate(
-                        new EvaluationContext(Map.of(), context.getFunctionBroker()).withRelativeValue(relativeValue));
-            }
-        }
-        case StreamExpression streamConditionExpression ->
-            new StreamExpression(streamConditionExpression.stream().contextWrite(ctx -> {
-                                                            val evaluationContext = ctx.get(EvaluationContext.class);
-                                                            return ctx.put(EvaluationContext.class,
-                                                                    evaluationContext.withRelativeValue(relativeValue,
-                                                                            relativeLocation));
-                                                        }));
+            case Value value -> value;
+
+            case PureExpression pureConditionExpression when pureConditionExpression.isSubscriptionScoped() ->
+                    new PureExpression(ctx ->
+                            pureConditionExpression.evaluate(ctx.withRelativeValue(relativeValue, relativeLocation)), true);
+
+            // This case is dealing with the situation, when the only thing that could not be folded at compile time of the
+            // expression were the references to the relative value. But at this point that value is now known, and we can
+            // evaluate the pure expression without the need for any other variables.
+            case PureExpression pureConditionExpression -> pureConditionExpression.evaluate(
+                    new EvaluationContext(Map.of(), context.getFunctionBroker()).withRelativeValue(relativeValue));
+
+            case StreamExpression streamConditionExpression ->
+                    new StreamExpression(streamConditionExpression.stream().contextWrite(ctx -> {
+                        val evaluationContext = ctx.get(EvaluationContext.class);
+                        return ctx.put(EvaluationContext.class,
+                                evaluationContext.withRelativeValue(relativeValue,
+                                        relativeLocation));
+                    }));
         };
         return assembleBinaryOperation(relativeValue, relativeCondition,
                 ExpressionCompiler::returnValueIfConditionMetElseUndefined);
@@ -357,12 +455,13 @@ public class ExpressionCompiler {
         if (!(condition instanceof BooleanValue booleanConstant)) {
             return Value.error(
                     "Type mismatch error. Conditions in condition steps must evaluate to a boolean value, but got: %s."
-                            .formatted(value));
+                            .formatted(condition));
         }
         return booleanConstant.equals(Value.TRUE) ? value : Value.UNDEFINED;
     }
 
     private static Value indexOrKeyStep(Value value, Value expressionResult) {
+
         if (expressionResult instanceof NumberValue numberValue) {
             return StepOperators.indexStep(value, numberValue.value());
         } else if (expressionResult instanceof TextValue textValue) {
@@ -374,12 +473,12 @@ public class ExpressionCompiler {
     }
 
     private CompiledExpression compileStep(CompiledExpression parent, java.util.function.UnaryOperator<Value> operation,
-            CompilationContext context) {
+                                           CompilationContext context) {
         return switch (parent) {
-        case Value value                          -> operation.apply(value);
-        case StreamExpression(Flux<Value> stream) -> new StreamExpression(stream.map(operation));
-        case PureExpression pureParent            ->
-            new PureExpression(ctx -> operation.apply(pureParent.evaluate(ctx)), pureParent.isSubscriptionScoped());
+            case Value value -> operation.apply(value);
+            case StreamExpression(Flux<Value> stream) -> new StreamExpression(stream.map(operation));
+            case PureExpression pureParent ->
+                    new PureExpression(ctx -> operation.apply(pureParent.evaluate(ctx)), pureParent.isSubscriptionScoped());
         };
     }
 
@@ -388,12 +487,7 @@ public class ExpressionCompiler {
         if (items.isEmpty()) {
             return Value.EMPTY_ARRAY;
         }
-        val arguments = compileArguments(items, context);
-        return switch (arguments.nature()) {
-        case VALUE  -> compileValueArray(arguments.arguments());
-        case PURE   -> compilePureArray(arguments);
-        case STREAM -> compileArrayStreamExpression(arguments);
-        };
+        return compileArgumentsToArray(compileArguments(items, context));
     }
 
     private Value compileValueArray(CompiledExpression[] arguments) {
@@ -430,7 +524,7 @@ public class ExpressionCompiler {
 
     private CompiledExpression compileArrayStreamExpression(CompiledArguments arguments) {
         val sources = Arrays.stream(arguments.arguments()).map(ExpressionCompiler::compiledExpressionToFlux).toList();
-        val stream  = Flux.<Value, Value>combineLatest(sources, combined -> compileValueArray((Value[]) combined));
+        val stream = Flux.<Value, Value>combineLatest(sources, combined -> compileValueArray((Value[]) combined));
         return new StreamExpression(stream);
     }
 
@@ -439,21 +533,25 @@ public class ExpressionCompiler {
         if (members.isEmpty()) {
             return Value.EMPTY_OBJECT;
         }
-        CompiledObjectAttributes attributes = compileAttributes(members, context);
+        return compileAttributesToObject(compileAttributes(members, context));
+    }
+
+    private CompiledExpression compileAttributesToObject(CompiledObjectAttributes attributes) {
         return switch (attributes.nature()) {
-        case VALUE  -> compileValueObject(attributes);
-        case PURE   -> compilePureObject(attributes);
-        case STREAM -> compileObjectStreamExpression(attributes);
+            case VALUE -> compileValueObject(attributes);
+            case PURE -> compilePureObject(attributes);
+            case STREAM -> compileObjectStreamExpression(attributes);
         };
     }
 
-    private record ObjectEntry(String key, Value value) {}
+    private record ObjectEntry(String key, Value value) {
+    }
 
     private Value compileValueObject(ObjectEntry[] attributes) {
         val objectBuilder = ObjectValue.builder();
         for (val attribute : attributes) {
             val value = attribute.value;
-            val key   = attribute.key;
+            val key = attribute.key;
             if (value instanceof ErrorValue errorValue) {
                 return errorValue;
             }
@@ -468,7 +566,7 @@ public class ExpressionCompiler {
         return new PureExpression(ctx -> {
             val objectBuilder = ObjectValue.builder();
             for (val attribute : attributes.attributes().entrySet()) {
-                val key               = attribute.getKey();
+                val key = attribute.getKey();
                 val compiledAttribute = attribute.getValue();
                 // compiledAttribute cannot be a StreamExpression here
                 val evaluatedAttribute = (compiledAttribute instanceof PureExpression pureExpression)
@@ -499,7 +597,7 @@ public class ExpressionCompiler {
     private CompiledExpression compileValueObject(CompiledObjectAttributes attributes) {
         val objectBuilder = ObjectValue.builder();
         for (val attribute : attributes.attributes().entrySet()) {
-            val key   = attribute.getKey();
+            val key = attribute.getKey();
             val value = attribute.getValue();
             if (value instanceof ErrorValue errorValue) {
                 return errorValue;
@@ -515,9 +613,9 @@ public class ExpressionCompiler {
         if (members == null || members.isEmpty()) {
             return CompiledObjectAttributes.EMPTY_ATTRIBUTES;
         }
-        val compiledArguments    = new HashMap<String, CompiledExpression>(members.size());
-        var isStream             = false;
-        var isPure               = false;
+        val compiledArguments = new HashMap<String, CompiledExpression>(members.size());
+        var isStream = false;
+        var isPure = false;
         var isSubscriptionScoped = false;
         for (Pair pair : members) {
             val compiledAttribute = compileExpression(pair.getValue(), context);
@@ -532,21 +630,18 @@ public class ExpressionCompiler {
             compiledArguments.put(pair.getKey(), compiledAttribute);
         }
         var nature = Nature.VALUE;
-        if (isPure) {
+        if (isStream) {
             nature = Nature.STREAM;
-        } else if (isStream) {
+        } else if (isPure) {
             nature = Nature.PURE;
         }
         return new CompiledObjectAttributes(nature, isSubscriptionScoped, compiledArguments);
     }
 
     private CompiledArguments compileArguments(EList<Expression> arguments, CompilationContext context) {
-        if (arguments == null || arguments.isEmpty()) {
-            return CompiledArguments.EMPTY_ARGUMENTS;
-        }
-        val compiledArguments    = new CompiledExpression[arguments.size()];
-        var isPure               = false;
-        var isStream             = false;
+        val compiledArguments = new CompiledExpression[arguments.size()];
+        var isPure = false;
+        var isStream = false;
         var isSubscriptionScoped = false;
         for (int i = 0; i < arguments.size(); i++) {
             val compiledArgument = compileExpression(arguments.get(i), context);
