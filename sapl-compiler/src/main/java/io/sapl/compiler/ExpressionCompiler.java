@@ -30,6 +30,7 @@ import lombok.experimental.UtilityClass;
 import lombok.val;
 import org.eclipse.emf.common.util.EList;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -49,43 +50,43 @@ public class ExpressionCompiler {
     /**
      * Compiles a SAPL expression from the abstract syntax tree into an optimized
      * executable form. Dispatches to specialized compilation methods based on
-     * expression type.
+     * an expression type.
      *
      * @param expression the AST expression to compile
      * @param context the compilation context containing variables and function
-     *            broker
+     * broker
      * @return the compiled expression ready for evaluation, or null if input is
-     *         null
+     * null
      */
     public CompiledExpression compileExpression(Expression expression, CompilationContext context) {
         if (expression == null) {
             return null;
         }
         return switch (expression) {
-            case Or or -> compileBinaryOperation(or, BooleanOperators::or, context); // TODO add lazy !
-            case EagerOr eagerOr -> compileBinaryOperation(eagerOr, BooleanOperators::or, context);
-            case XOr xor -> compileBinaryOperation(xor, BooleanOperators::xor, context);
-            case And and -> compileBinaryOperation(and, BooleanOperators::and, context); // TODO add lazy !
-            case EagerAnd eagerAnd -> compileBinaryOperation(eagerAnd, BooleanOperators::and, context);
-            case Not not -> compileUnaryOperation(not, BooleanOperators::not, context);
-            case Multi multi -> compileBinaryOperation(multi, NumberOperators::multiply, context);
-            case Div div -> compileBinaryOperation(div, NumberOperators::divide, context);
-            case Modulo modulo -> compileBinaryOperation(modulo, NumberOperators::modulo, context);
-            case Plus plus -> compileBinaryOperation(plus, NumberOperators::add, context);
-            case Minus minus -> compileBinaryOperation(minus, NumberOperators::subtract, context);
-            case Less less -> compileBinaryOperation(less, NumberOperators::lessThan, context);
-            case LessEquals lessEquals -> compileBinaryOperation(lessEquals, NumberOperators::lessThanOrEqual, context);
-            case More more -> compileBinaryOperation(more, NumberOperators::greaterThan, context);
-            case MoreEquals moreEquals ->
-                    compileBinaryOperation(moreEquals, NumberOperators::greaterThanOrEqual, context);
-            case UnaryPlus unaryPlus -> compileUnaryOperation(unaryPlus, NumberOperators::unaryPlus, context);
-            case UnaryMinus unaryMinus -> compileUnaryOperation(unaryMinus, NumberOperators::unaryMinus, context);
-            case ElementOf elementOf -> compileBinaryOperation(elementOf, ComparisonOperators::isContainedIn, context);
-            case Equals equals -> compileBinaryOperation(equals, ComparisonOperators::equals, context);
-            case NotEquals notEquals -> compileBinaryOperation(notEquals, ComparisonOperators::notEquals, context);
-            case Regex regex -> compileBinaryOperation(regex, ComparisonOperators::matchesRegularExpression, context);
-            case BasicExpression basic -> compileBasicExpression(basic, context);
-            default -> throw new SaplCompilerException("unexpected expression: " + expression + ".");
+        case Or or                 -> compileBinaryOperator(or, BooleanOperators::or, context); // TODO add lazy !
+        case EagerOr eagerOr       -> compileBinaryOperator(eagerOr, BooleanOperators::or, context);
+        case XOr xor               -> compileBinaryOperator(xor, BooleanOperators::xor, context);
+        case And and               -> compileBinaryOperator(and, BooleanOperators::and, context); // TODO add lazy !
+        case EagerAnd eagerAnd     -> compileBinaryOperator(eagerAnd, BooleanOperators::and, context);
+        case Not not               -> compileUnaryOperator(not, BooleanOperators::not, context);
+        case Multi multi           -> compileBinaryOperator(multi, NumberOperators::multiply, context);
+        case Div div               -> compileBinaryOperator(div, NumberOperators::divide, context);
+        case Modulo modulo         -> compileBinaryOperator(modulo, NumberOperators::modulo, context);
+        case Plus plus             -> compileBinaryOperator(plus, NumberOperators::add, context);
+        case Minus minus           -> compileBinaryOperator(minus, NumberOperators::subtract, context);
+        case Less less             -> compileBinaryOperator(less, NumberOperators::lessThan, context);
+        case LessEquals lessEquals -> compileBinaryOperator(lessEquals, NumberOperators::lessThanOrEqual, context);
+        case More more             -> compileBinaryOperator(more, NumberOperators::greaterThan, context);
+        case MoreEquals moreEquals -> compileBinaryOperator(moreEquals, NumberOperators::greaterThanOrEqual, context);
+        case UnaryPlus unaryPlus   -> compileUnaryOperator(unaryPlus, NumberOperators::unaryPlus, context);
+        case UnaryMinus unaryMinus -> compileUnaryOperator(unaryMinus, NumberOperators::unaryMinus, context);
+        case ElementOf elementOf   -> compileBinaryOperator(elementOf, ComparisonOperators::isContainedIn, context);
+        case Equals equals         -> compileBinaryOperator(equals, ComparisonOperators::equals, context);
+        case NotEquals notEquals   -> compileBinaryOperator(notEquals, ComparisonOperators::notEquals, context);
+        case Regex regex           ->
+            compileBinaryOperator(regex, ComparisonOperators::matchesRegularExpression, context);
+        case BasicExpression basic -> compileBasicExpression(basic, context);
+        default                    -> throw new SaplCompilerException("unexpected expression: " + expression + ".");
         };
     }
 
@@ -94,26 +95,26 @@ public class ExpressionCompiler {
      * combining them. Performs pre-compilation optimization for regex patterns when
      * the right operand is a constant.
      *
-     * @param operator the binary operator AST node
-     * @param operation the operation to apply to compiled operands
+     * @param astOperator the binary operator AST node
+     * @param operator the operation to apply to compiled operands
      * @param context the compilation context
      * @return the compiled binary operation expression
      */
-    private CompiledExpression compileBinaryOperation(BinaryOperator operator,
-                                                      java.util.function.BinaryOperator<Value> operation, CompilationContext context) {
-        val left = compileExpression(operator.getLeft(), context);
-        val right = compileExpression(operator.getRight(), context);
+    private CompiledExpression compileBinaryOperator(BinaryOperator astOperator,
+            java.util.function.BinaryOperator<Value> operator, CompilationContext context) {
+        val left  = compileExpression(astOperator.getLeft(), context);
+        val right = compileExpression(astOperator.getRight(), context);
         // Special case for regex. Here if the right side is a text constant, we can
         // immediately pre-compile the expression and do not need to do it at policy
         // evaluation time. We do it here, to have a re-usable assembleBinaryOperation
         // method, as that is a pretty critical and complex method that then can be
         // re-used for assembling special cases of steps as well without repeating
         // 99% of the logic.
-        if (right instanceof Value valRight && operator instanceof Regex) {
-            val compiledRegex = ComparisonOperators.compileRegularExpressionOperation(valRight);
-            operation = (l, ignoredBecauseWeUseTheCompiledRegex) -> compiledRegex.apply(l);
+        if (right instanceof Value valRight && astOperator instanceof Regex) {
+            val compiledRegex = ComparisonOperators.compileRegularExpressionOperator(valRight);
+            operator = (l, ignoredBecauseWeUseTheCompiledRegex) -> compiledRegex.apply(l);
         }
-        return assembleBinaryOperation(left, right, operation);
+        return assembleBinaryOperation(left, right, operator);
     }
 
     /**
@@ -127,7 +128,7 @@ public class ExpressionCompiler {
      * @return the assembled binary operation expression
      */
     private CompiledExpression assembleBinaryOperation(CompiledExpression left, CompiledExpression right,
-                                                       java.util.function.BinaryOperator<Value> operation) {
+            java.util.function.BinaryOperator<Value> operation) {
         if (left instanceof ErrorValue) {
             return left;
         }
@@ -138,7 +139,7 @@ public class ExpressionCompiler {
             return operation.apply(leftValue, rightValue);
         }
         if (left instanceof StreamExpression || right instanceof StreamExpression) {
-            return compileBinaryStreamOperator(left, right, operation);
+            return assembleBinaryStreamOperator(left, right, operation);
         }
         if (left instanceof PureExpression subLeft && right instanceof PureExpression subRight) {
             return new PureExpression(ctx -> operation.apply(subLeft.evaluate(ctx), subRight.evaluate(ctx)),
@@ -152,56 +153,33 @@ public class ExpressionCompiler {
             return new PureExpression(ctx -> operation.apply(valLeft, subRight.evaluate(ctx)),
                     subRight.isSubscriptionScoped());
         }
-        throw new SaplCompilerException("Unexpected expression types. Should not be possible: "
-                + left.getClass().getSimpleName() + " and " + right.getClass().getSimpleName() + ".");
+        throw new SaplCompilerException(
+                "Unexpected expression types. Should not be possible: " + left.getClass().getSimpleName() + " and "
+                        + right.getClass().getSimpleName() + ". This indicates an implementation bug.");
     }
 
     /**
-     * Compiles a binary operation involving at least one stream expression. Uses
-     * Flux.combineLatest to reactively combine the latest values from both operands.
+     * Assembles a binary operation involving at least one stream expression. Uses
+     * Flux.combineLatest to reactively combine the latest values from both
+     * operands.
      *
      * @param leftExpression the left compiled expression
      * @param rightExpression the right compiled expression
      * @param operation the binary operation to apply
      * @return a stream expression that combines the operand streams
      */
-    private StreamExpression compileBinaryStreamOperator(CompiledExpression leftExpression,
-                                                         CompiledExpression rightExpression, java.util.function.BinaryOperator<Value> operation) {
+    private StreamExpression assembleBinaryStreamOperator(CompiledExpression leftExpression,
+            CompiledExpression rightExpression, java.util.function.BinaryOperator<Value> operation) {
         val stream = Flux.combineLatest(compiledExpressionToFlux(leftExpression),
                 compiledExpressionToFlux(rightExpression), operation);
         return new StreamExpression(stream);
     }
 
     /**
-     * Converts any compiled expression into a Flux stream. Values become single-item
-     * streams, stream expressions expose their internal stream, and pure expressions
-     * are deferred for evaluation.
-     *
-     * @param expression the compiled expression to convert
-     * @return a Flux stream emitting the expression's values
-     */
-    private Flux<Value> compiledExpressionToFlux(CompiledExpression expression) {
-        return switch (expression) {
-            case Value value -> Flux.just(value);
-            case StreamExpression stream -> stream.stream();
-            case PureExpression pureExpression -> deferPureExpressionEvaluation(pureExpression);
-        };
-    }
-
-    /**
-     * Wraps a pure expression in a deferred Flux that will evaluate it when
-     * subscribed, using the evaluation context from the Reactor context.
-     *
-     * @param expression the pure expression to defer
-     * @return a Flux that evaluates the expression on subscription
-     */
-    private Flux<Value> deferPureExpressionEvaluation(PureExpression expression) {
-        return Flux.deferContextual(ctx -> Flux.just(expression.evaluate(ctx.get(EvaluationContext.class))));
-    }
-
-    /**
-     * Compiles a unary operation by compiling its operand and applying the operation.
-     * Performs constant folding for value operands. Creates stream or pure expression
+     * Compiles a unary operation by compiling its operand and applying the
+     * operation.
+     * Performs constant folding for value operands. Creates stream or pure
+     * expression
      * wrappers for deferred operands.
      *
      * @param operator the unary operator AST node
@@ -209,22 +187,20 @@ public class ExpressionCompiler {
      * @param context the compilation context
      * @return the compiled unary operation expression
      */
-    private CompiledExpression compileUnaryOperation(UnaryOperator operator,
-                                                     java.util.function.UnaryOperator<Value> operation, CompilationContext context) {
+    private CompiledExpression compileUnaryOperator(UnaryOperator operator,
+            java.util.function.UnaryOperator<Value> operation, CompilationContext context) {
         val expression = compileExpression(operator.getExpression(), context);
-        if (expression instanceof Value value) {
-            return operation.apply(value);
-        }
-        if (expression instanceof StreamExpression(Flux<Value> stream)) {
-            return new StreamExpression(stream.map(operation));
-        }
-        val subExpression = (PureExpression) expression;
-        return new PureExpression(ctx -> operation.apply(subExpression.evaluate(ctx)),
-                subExpression.isSubscriptionScoped());
+        return switch (expression) {
+        case Value value                          -> operation.apply(value);
+        case PureExpression pureExpression        -> new PureExpression(
+                ctx -> operation.apply(pureExpression.evaluate(ctx)), pureExpression.isSubscriptionScoped());
+        case StreamExpression(Flux<Value> stream) -> new StreamExpression(stream.map(operation));
+        };
     }
 
     /**
-     * Compiles a basic expression by dispatching to the appropriate handler based on
+     * Compiles a basic expression by dispatching to the appropriate handler based
+     * on
      * the specific basic expression type.
      *
      * @param expression the basic expression AST node
@@ -233,14 +209,15 @@ public class ExpressionCompiler {
      */
     private CompiledExpression compileBasicExpression(BasicExpression expression, CompilationContext context) {
         return switch (expression) {
-            case BasicGroup group -> compileExpression(group.getExpression(), context);
-            case BasicValue value -> compileValue(value, context);
-            case BasicFunction function -> compileBasicFunction(function, context);
-            case BasicEnvironmentAttribute envAttribute -> UNIMPLEMENTED;
-            case BasicEnvironmentHeadAttribute envHeadAttribute -> UNIMPLEMENTED;
-            case BasicIdentifier identifier -> compileIdentifier(identifier, context);
-            case BasicRelative ignored -> compileBasicRelative(context);
-            default -> throw new SaplCompilerException("unexpected expression: " + expression + ".");
+        case BasicGroup group                               -> compileExpression(group.getExpression(), context);
+        case BasicValue value                               -> compileValue(value, context);
+        case BasicFunction function                         -> compileBasicFunction(function, context);
+        case BasicEnvironmentAttribute envAttribute         -> UNIMPLEMENTED;
+        case BasicEnvironmentHeadAttribute envHeadAttribute -> UNIMPLEMENTED;
+        case BasicIdentifier identifier                     -> compileIdentifier(identifier, context);
+        case BasicRelative ignored                          -> compileBasicRelative(context);
+        default                                             ->
+            throw new SaplCompilerException("unexpected expression: " + expression + ".");
         };
     }
 
@@ -264,18 +241,14 @@ public class ExpressionCompiler {
      * @return the compiled function call expression
      */
     private CompiledExpression compileBasicFunction(BasicFunction function, CompilationContext context) {
-        if (context.isDynamicLibrariesEnabled()) {
-            throw new SaplCompilerException(
-                    "Dynamic function libraries are not supported in this version of the compiler.");
-        }
         var arguments = CompiledArguments.EMPTY_ARGUMENTS;
         if (function.getArguments() != null && function.getArguments().getArgs() != null) {
             arguments = compileArguments(function.getArguments().getArgs(), context);
         }
         return switch (arguments.nature()) {
-            case VALUE -> compileFunctionWithValueParameters(function, arguments.arguments(), context);
-            case PURE -> compileFunctionWithPureParameters(function, arguments, context);
-            case STREAM -> compileFunctionWithStreamParameters(function, arguments, context);
+        case VALUE  -> foldFunctionWithValueParameters(function, arguments.arguments(), context);
+        case PURE   -> compileFunctionWithPureParameters(function, arguments, context);
+        case STREAM -> compileFunctionWithStreamParameters(function, arguments, context);
         };
     }
 
@@ -290,10 +263,11 @@ public class ExpressionCompiler {
      * @return a stream expression that evaluates the function reactively
      */
     private CompiledExpression compileFunctionWithStreamParameters(BasicFunction function, CompiledArguments arguments,
-                                                                   CompilationContext context) {
+            CompilationContext context) {
         val sources = Arrays.stream(arguments.arguments()).map(ExpressionCompiler::compiledExpressionToFlux).toList();
-        val stream = Flux.<Value, Value>combineLatest(sources,
-                combined -> compileFunctionWithValueParameters(function, (CompiledExpression[]) combined, context));
+        val stream  = Flux.combineLatest(sources, c -> c)
+                .flatMap(combined -> Flux.deferContextual(ctx -> Flux.just(evaluateFunctionWithValueParameters(function,
+                        (CompiledExpression[]) combined, ctx.get(EvaluationContext.class)))));
         return new StreamExpression(stream);
     }
 
@@ -307,15 +281,15 @@ public class ExpressionCompiler {
      * @return a pure expression that evaluates the function call
      */
     private CompiledExpression compileFunctionWithPureParameters(BasicFunction function, CompiledArguments arguments,
-                                                                 CompilationContext context) {
+            CompilationContext context) {
         return new PureExpression(ctx -> {
             val valueArguments = new ArrayList<Value>(arguments.arguments().length);
             for (val argument : arguments.arguments()) {
                 switch (argument) {
-                    case Value value -> valueArguments.add(value);
-                    case PureExpression pureExpression -> valueArguments.add(pureExpression.evaluate(ctx));
-                    case StreamExpression ignored -> throw new SaplCompilerException(
-                            "Encountered a stream expression during pure compilation path. Should not be possible.");
+                case Value value                   -> valueArguments.add(value);
+                case PureExpression pureExpression -> valueArguments.add(pureExpression.evaluate(ctx));
+                case StreamExpression ignored      -> throw new SaplCompilerException(
+                        "Encountered a stream expression during pure compilation path. Should not be possible.");
                 }
             }
             val invocation = new FunctionInvocation(
@@ -328,21 +302,35 @@ public class ExpressionCompiler {
     /**
      * Evaluates a function call with known constant parameters at compile time.
      * Performs immediate function invocation for compile-time constant folding.
-     * FIXME: Name suggests compilation but performs eager evaluation returning Value.
-     * Options: (1) Rename to evaluateFunctionWithKnownParameters, (2) Keep name and
-     * add comment, (3) Refactor to return CompiledExpression wrapper.
+     *
+     * @param function the function AST node
+     * @param arguments the compiled value arguments
+     * @param context the compilation context
+     * @return the function evaluation result as a CompiledExpression
+     */
+    private CompiledExpression foldFunctionWithValueParameters(BasicFunction function, CompiledExpression[] arguments,
+            CompilationContext context) {
+        val valueArguments = Arrays.stream(arguments).map(Value.class::cast).toList();
+        val invocation     = new FunctionInvocation(
+                ImportResolver.resolveFunctionIdentifierByImports(function, function.getIdentifier()), valueArguments);
+        return context.getFunctionBroker().evaluateFunction(invocation);
+    }
+
+    /**
+     * Evaluates a function call with known constant parameters during evaluation
+     * time.
      *
      * @param function the function AST node
      * @param arguments the compiled value arguments
      * @param context the compilation context
      * @return the function evaluation result as a Value
      */
-    private Value compileFunctionWithValueParameters(BasicFunction function, CompiledExpression[] arguments,
-                                                     CompilationContext context) {
+    private Value evaluateFunctionWithValueParameters(BasicFunction function, CompiledExpression[] arguments,
+            EvaluationContext context) {
         val valueArguments = Arrays.stream(arguments).map(Value.class::cast).toList();
-        val invocation = new FunctionInvocation(
+        val invocation     = new FunctionInvocation(
                 ImportResolver.resolveFunctionIdentifierByImports(function, function.getIdentifier()), valueArguments);
-        return context.getFunctionBroker().evaluateFunction(invocation);
+        return context.functionBroker().evaluateFunction(invocation);
     }
 
     /**
@@ -371,18 +359,19 @@ public class ExpressionCompiler {
      * @return the compiled value expression
      */
     private CompiledExpression compileValue(BasicValue basic, CompilationContext context) {
-        val value = basic.getValue();
+        val value         = basic.getValue();
         var compiledValue = switch (value) {
-            case Object object -> composeObject(object, context);
-            case Array array -> composeArray(array, context);
-            case StringLiteral string -> Value.of(string.getString());
-            case NumberLiteral number -> Value.of(number.getNumber());
-            case TrueLiteral t -> Value.TRUE;
-            case FalseLiteral f -> Value.FALSE;
-            case NullLiteral nil -> Value.NULL;
-            case UndefinedLiteral u -> Value.UNDEFINED;
-            default -> throw new SaplCompilerException("unexpected value: " + value + ".");
-        };
+                          case Object object        -> composeObject(object, context);
+                          case Array array          -> composeArray(array, context);
+                          case StringLiteral string -> Value.of(string.getString());
+                          case NumberLiteral number -> Value.of(number.getNumber());
+                          case TrueLiteral t        -> Value.TRUE;
+                          case FalseLiteral f       -> Value.FALSE;
+                          case NullLiteral nil      -> Value.NULL;
+                          case UndefinedLiteral u   -> Value.UNDEFINED;
+                          default                   ->
+                              throw new SaplCompilerException("unexpected value: " + value + ".");
+                          };
 
         compiledValue = compileSteps(compiledValue, basic.getSteps(), context);
         if (compiledValue instanceof Value constantValue) {
@@ -401,7 +390,7 @@ public class ExpressionCompiler {
      * @return the expression with all steps compiled and applied
      */
     private CompiledExpression compileSteps(CompiledExpression expression, EList<Step> steps,
-                                            CompilationContext context) {
+            CompilationContext context) {
         if (steps == null || steps.isEmpty()) {
             return expression;
         }
@@ -412,7 +401,8 @@ public class ExpressionCompiler {
     }
 
     /**
-     * Compiles a single step operation by dispatching to the appropriate step handler
+     * Compiles a single step operation by dispatching to the appropriate step
+     * handler
      * based on step type.
      *
      * @param parent the parent expression to which the step is applied
@@ -422,29 +412,31 @@ public class ExpressionCompiler {
      */
     private CompiledExpression compileStep(CompiledExpression parent, Step step, CompilationContext context) {
         return switch (step) {
-            case KeyStep keyStep -> compileStep(parent, p -> StepOperators.keyStep(p, keyStep.getId()), context);
-            case EscapedKeyStep escapedKeyStep ->
-                    compileStep(parent, p -> StepOperators.keyStep(p, escapedKeyStep.getId()), context);
-            case WildcardStep wildcardStep -> compileStep(parent, StepOperators::wildcardStep, context);
-            case AttributeFinderStep attributeFinderStep -> UNIMPLEMENTED;
-            case HeadAttributeFinderStep headAttributeFinderStep -> UNIMPLEMENTED;
-            case RecursiveKeyStep recursiveKeyStep ->
-                    compileStep(parent, p -> StepOperators.recursiveKeyStep(p, recursiveKeyStep.getId()), context);
-            case RecursiveWildcardStep recursiveWildcardStep ->
-                    compileStep(parent, StepOperators::recursiveWildcardStep, context);
-            case RecursiveIndexStep recursiveIndexStep ->
-                    compileStep(parent, p -> StepOperators.recursiveIndexStep(p, recursiveIndexStep.getIndex()), context);
-            case IndexStep indexStep ->
-                    compileStep(parent, p -> StepOperators.indexStep(p, indexStep.getIndex()), context);
-            case ArraySlicingStep arraySlicingStep -> compileStep(parent, p -> StepOperators.sliceArray(p,
-                    arraySlicingStep.getIndex(), arraySlicingStep.getTo(), arraySlicingStep.getStep()), context);
-            case ExpressionStep expressionStep -> compileExpressionStep(parent, expressionStep, context);
-            case ConditionStep conditionStep -> compileConditionStep(parent, conditionStep, context);
-            case IndexUnionStep indexUnionStep ->
-                    compileStep(parent, p -> StepOperators.indexUnion(p, indexUnionStep.getIndices()), context);
-            case AttributeUnionStep attributeUnionStep ->
-                    compileStep(parent, p -> StepOperators.attributeUnion(p, attributeUnionStep.getAttributes()), context);
-            default -> UNIMPLEMENTED;
+        case KeyStep keyStep                                 ->
+            compileStep(parent, p -> StepOperators.keyStep(p, keyStep.getId()), context);
+        case EscapedKeyStep escapedKeyStep                   ->
+            compileStep(parent, p -> StepOperators.keyStep(p, escapedKeyStep.getId()), context);
+        case WildcardStep wildcardStep                       ->
+            compileStep(parent, StepOperators::wildcardStep, context);
+        case AttributeFinderStep attributeFinderStep         -> UNIMPLEMENTED;
+        case HeadAttributeFinderStep headAttributeFinderStep -> UNIMPLEMENTED;
+        case RecursiveKeyStep recursiveKeyStep               ->
+            compileStep(parent, p -> StepOperators.recursiveKeyStep(p, recursiveKeyStep.getId()), context);
+        case RecursiveWildcardStep recursiveWildcardStep     ->
+            compileStep(parent, StepOperators::recursiveWildcardStep, context);
+        case RecursiveIndexStep recursiveIndexStep           ->
+            compileStep(parent, p -> StepOperators.recursiveIndexStep(p, recursiveIndexStep.getIndex()), context);
+        case IndexStep indexStep                             ->
+            compileStep(parent, p -> StepOperators.indexStep(p, indexStep.getIndex()), context);
+        case ArraySlicingStep arraySlicingStep               -> compileStep(parent, p -> StepOperators.sliceArray(p,
+                arraySlicingStep.getIndex(), arraySlicingStep.getTo(), arraySlicingStep.getStep()), context);
+        case ExpressionStep expressionStep                   -> compileExpressionStep(parent, expressionStep, context);
+        case ConditionStep conditionStep                     -> compileConditionStep(parent, conditionStep, context);
+        case IndexUnionStep indexUnionStep                   ->
+            compileStep(parent, p -> StepOperators.indexUnion(p, indexUnionStep.getIndices()), context);
+        case AttributeUnionStep attributeUnionStep           ->
+            compileStep(parent, p -> StepOperators.attributeUnion(p, attributeUnionStep.getAttributes()), context);
+        default                                              -> UNIMPLEMENTED;
         };
     }
 
@@ -458,14 +450,39 @@ public class ExpressionCompiler {
      * @return the compiled expression step
      */
     private CompiledExpression compileExpressionStep(CompiledExpression parentExpression, ExpressionStep expressionStep,
-                                                     CompilationContext context) {
+            CompilationContext context) {
         val expressionStepExpression = compileExpression(expressionStep.getExpression(), context);
         return assembleBinaryOperation(parentExpression, expressionStepExpression, StepOperators::indexOrKeyStep);
     }
 
     /**
+     * Compiles a step operation on a parent expression by applying a unary
+     * operation.
+     * Handles constant folding for value parents, and creates stream or pure
+     * expression wrappers for deferred parents.
+     *
+     * @param parent the parent expression
+     * @param operation the unary operation to apply
+     * @param context the compilation context
+     * @return the compiled step expression
+     */
+    private CompiledExpression compileStep(CompiledExpression parent, java.util.function.UnaryOperator<Value> operation,
+            CompilationContext context) {
+        return switch (parent) {
+        case Value value                          -> operation.apply(value);
+        case StreamExpression(Flux<Value> stream) -> new StreamExpression(stream.map(operation));
+        case PureExpression pureParent            ->
+            new PureExpression(ctx -> operation.apply(pureParent.evaluate(ctx)), pureParent.isSubscriptionScoped());
+        };
+    }
+
+    // ============================================================================
+    // ConditionStep
+    // ============================================================================
+
+    /**
      * Compiles a condition step by dispatching to the appropriate handler based on
-     * the parent expression type.
+     * the parent and condition expression type.
      *
      * @param parent the parent expression to filter
      * @param expressionStep the condition step AST node
@@ -473,172 +490,355 @@ public class ExpressionCompiler {
      * @return the compiled condition step expression
      */
     private CompiledExpression compileConditionStep(CompiledExpression parent, ConditionStep expressionStep,
-                                                    CompilationContext context) {
+            CompilationContext context) {
+        val compiledConditionExpression = compileExpression(expressionStep.getExpression(), context);
         return switch (parent) {
-            case Value parentValue -> compileConditionStepOnValue(parentValue, expressionStep, context);
-            case PureExpression pureParent -> compileConditionStepOnPureExpression(pureParent, expressionStep, context);
-            case StreamExpression streamParent -> compileConditionStepOnStreamExpression(streamParent, expressionStep, context);
-        };
-    }
-
-    /**
-     * Compiles a condition step for a stream parent expression.
-     *
-     * @param streamParent the parent stream expression
-     * @param expressionStep the condition step AST node
-     * @param context the compilation context
-     * @return the compiled condition step stream expression
-     */
-    private static CompiledExpression compileConditionStepOnStreamExpression(StreamExpression streamParent, ConditionStep expressionStep, CompilationContext context) {
-        val compiledConditionExpression = compileExpression(expressionStep.getExpression(), context);
-
-        return UNIMPLEMENTED;
-    }
-
-    /**
-     * Compiles a condition step for a pure parent expression. Creates a pure
-     * expression that evaluates the parent and condition, then filters based on the
-     * condition result.
-     * FIXME: Missing runtime array/object iteration logic for filtering collections.
-     * When parent evaluates to ArrayValue/ObjectValue, should iterate elements and
-     * filter, not treat as scalar.
-     *
-     * @param pureParent the parent pure expression
-     * @param expressionStep the condition step AST node
-     * @param context the compilation context
-     * @return the compiled condition step expression
-     */
-    private CompiledExpression compileConditionStepOnPureExpression(PureExpression pureParent, ConditionStep expressionStep,
-                                                                    CompilationContext context) {
-        val compiledConditionExpression = compileExpression(expressionStep.getExpression(), context);
-        return switch(compiledConditionExpression) {
-            case Value conditionValue -> new PureExpression(ctx -> returnValueIfConditionMetElseUndefined(pureParent.evaluate(ctx), conditionValue ), pureParent.isSubscriptionScoped());
-            case PureExpression pureCondition -> new PureExpression(ctx -> {
-                val parentValue = pureParent.evaluate(ctx);
-                val conditionValue = pureCondition.evaluate(ctx.withRelativeValue(parentValue, Value.UNDEFINED));
-                return returnValueIfConditionMetElseUndefined(parentValue, conditionValue);
-            }, pureParent.isSubscriptionScoped() || pureCondition.isSubscriptionScoped());
-            case StreamExpression conditionStream ->  new StreamExpression(
-                    Flux.<Value>deferContextual(ctx -> Flux.just(pureParent.evaluate(ctx.get(EvaluationContext.class))))
-                            .flatMap(parentValue -> conditionStream.stream().contextWrite(ctx -> {
-                                val evaluationContext = ctx.get(EvaluationContext.class);
-                                return ctx.put(EvaluationContext.class,
-                                        evaluationContext.withRelativeValue(parentValue,
-                                                Value.UNDEFINED));
-                            }).map(conditionValue -> returnValueIfConditionMetElseUndefined(parentValue, conditionValue)))
-            );
-        };
-    }
-
-    /**
-     * Compiles a condition step for a known value parent. Handles early return for
-     * errors and undefined values, then delegates to type-specific optimization.
-     * FIXME: Name suggests compilation but performs compile-time folding/optimization.
-     * Options: (1) Rename to foldConditionStepOnKnownValue to clarify, (2) Keep name
-     * and document behavior, (3) Extract pure compilation logic separately.
-     *
-     * @param parent the parent value
-     * @param expressionStep the condition step AST node
-     * @param context the compilation context
-     * @return the compiled condition step expression
-     */
-    private CompiledExpression compileConditionStepOnValue(Value parent, ConditionStep expressionStep,
-                                                           CompilationContext context) {
-        if (parent instanceof ErrorValue || parent instanceof UndefinedValue) {
-            return parent;
-        }
-        val compiledConditionExpression = compileExpression(expressionStep.getExpression(), context);
-        return optimizeConditionStepForKnownValue(parent, compiledConditionExpression, context);
-    }
-
-    /**
-     * Optimizes a condition step when the parent value is known at compile time.
-     * Dispatches to specialized handlers for arrays, objects, or scalar values to
-     * build optimized evaluation code.
-     *
-     * @param parent the known parent value
-     * @param compiledConditionExpression the compiled condition expression
-     * @param context the compilation context
-     * @return the optimized condition step expression
-     */
-    private CompiledExpression optimizeConditionStepForKnownValue(Value parent, CompiledExpression compiledConditionExpression,
-                                                                  CompilationContext context) {
-        return switch (parent) {
-            case ArrayValue parentArray -> compileConditionStepForRelativeArray(parentArray, compiledConditionExpression, context);
-            case ObjectValue parentObject -> compileConditionStepForRelativeObject(parentObject, compiledConditionExpression, context);
-            case Value parentValue ->
-                    compileConditionStepForRelativeValue(parentValue, Value.UNDEFINED, compiledConditionExpression, context);
-        };
-    }
-
-    /**
-     * Compiles a condition step for filtering an object's properties. Iterates over
-     * entries at compile time, building optimized code for each property.
-     * FIXME: Name suggests general compilation but performs compile-time iteration
-     * over known object. Options: (1) Rename to foldConditionStepOverKnownObject,
-     * (2) Document compile-time iteration behavior, (3) Extract iteration logic.
-     *
-     * @param relativeObject the object to filter
-     * @param conditionExpression the compiled condition
-     * @param context the compilation context
-     * @return the compiled filtered object expression
-     */
-    private CompiledExpression compileConditionStepForRelativeObject(ObjectValue relativeObject,
-                                                                     CompiledExpression conditionExpression,
-                                                                     CompilationContext context) {
-        if(relativeObject.isEmpty()) {
-            return relativeObject;
-        }
-        val compiledArguments = new HashMap<String, CompiledExpression>(relativeObject.size());
-        var isStream = false;
-        var isPure = false;
-        var isSubscriptionScoped = false;
-        for (var pair : relativeObject.entrySet()) {
-            val compiledAttribute = compileConditionStepForRelativeValue(pair.getValue(), Value.of(pair.getKey()), conditionExpression, context);
-            if (compiledAttribute instanceof PureExpression pureExpression) {
-                isPure = true;
-                if (pureExpression.isSubscriptionScoped()) {
-                    isSubscriptionScoped = true;
-                }
-            } else if (compiledAttribute instanceof StreamExpression) {
-                isStream = true;
+        case Value valueParent             -> {
+            if (valueParent instanceof ErrorValue || valueParent instanceof UndefinedValue) {
+                yield parent;
             }
-            compiledArguments.put(pair.getKey(), compiledAttribute);
+            yield switch (compiledConditionExpression) {
+            case Value valueCondition             ->
+                evaluateConditionOnValueParentWithConstantValueCondition(valueParent, valueCondition);
+            case PureExpression pureCondition     ->
+                compileConditionOnValueParentWithPureCondition(valueParent, pureCondition, context);
+            case StreamExpression streamCondition ->
+                compileConditionOnValueParentWithStreamCondition(valueParent, streamCondition);
+            };
         }
-        var nature = Nature.VALUE;
-        if (isStream) {
-            nature = Nature.STREAM;
-        } else if (isPure) {
-            nature = Nature.PURE;
+        case PureExpression pureParent     -> switch (compiledConditionExpression) {
+                                       case Value valueCondition                 ->
+                                           compileConditionOnPureParentWithValueCondition(pureParent, valueCondition);
+                                       case PureExpression pureCondition         ->
+                                           compileConditionOnPureParentWithPureCondition(pureParent, pureCondition,
+                                                   context);
+                                       case StreamExpression streamCondition     ->
+                                           compileConditionOnPureParentWithStreamCondition(pureParent, streamCondition);
+                                       };
+        case StreamExpression streamParent -> switch (compiledConditionExpression) {
+                                       case Value valueCondition                 ->
+                                           compileConditionOnStreamParentWithValueCondition(streamParent,
+                                                   valueCondition);
+                                       case PureExpression pureCondition         ->
+                                           compileConditionOnStreamParentWithPureCondition(streamParent, pureCondition);
+                                       case StreamExpression streamCondition     ->
+                                           compileConditionOnStreamParentWithStreamCondition(streamParent,
+                                                   streamCondition);
+                                       };
+        };
+    }
+
+    // ============================================================================
+    // ConditionStep -> Parent instanceof Value
+    // ============================================================================
+
+    // Value parent - Value condition
+    private Value evaluateConditionOnValueParentWithConstantValueCondition(Value valueParent, Value valueCondition) {
+        if (valueParent instanceof ErrorValue || valueParent instanceof UndefinedValue) {
+            return valueParent;
         }
-        val compiledObjectElementExpressions = new CompiledObjectAttributes(nature, isSubscriptionScoped, compiledArguments);
-        return compileAttributesToObject(compiledObjectElementExpressions);
+        if (!(valueCondition instanceof BooleanValue)) {
+            return Value.error(
+                    "Condition in condition step must evaluate to a Boolean, but got: %s.".formatted(valueCondition));
+        }
+        if (valueCondition.equals(Value.TRUE)) {
+            return valueParent;
+        }
+        return switch (valueParent) {
+        case ObjectValue o -> Value.EMPTY_OBJECT;
+        case ArrayValue a  -> Value.EMPTY_ARRAY;
+        default            -> Value.UNDEFINED;
+        };
+    }
+
+    // Value parent - Pure Condition
+
+    private static CompiledExpression compileConditionOnValueParentWithPureCondition(Value valueParent,
+            PureExpression pureCondition, CompilationContext context) {
+        val pureResult = switch (valueParent) {
+        case ArrayValue arrayParent   ->
+            compileConditionStepOnArrayValueConstantWithPureCondition(arrayParent, pureCondition);
+        case ObjectValue objectParent ->
+            compileConditionStepOnObjectValueConstantWithPureCondition(objectParent, pureCondition);
+        case Value scalarValue        ->
+            compileConditionStepOnScalarValueConstantWithPureCondition(scalarValue, pureCondition);
+        };
+        if (pureResult.isSubscriptionScoped()) {
+            return pureResult;
+        }
+        // Here we can fold the condition as the inner expressions only depend on the
+        // relative values.
+        return pureResult.evaluate(temporaryRelativeFoldingEvaluationContext(context));
+    }
+
+    private EvaluationContext temporaryRelativeFoldingEvaluationContext(CompilationContext compilationContext) {
+        return new EvaluationContext(Map.of(), compilationContext.getFunctionBroker());
+    }
+
+    private static PureExpression compileConditionStepOnScalarValueConstantWithPureCondition(Value scalarParent,
+            PureExpression pureCondition) {
+        return new PureExpression(
+                ctx -> returnValueIfConditionMetElseUndefined(scalarParent,
+                        pureCondition.evaluate(ctx.withRelativeValue(scalarParent))),
+                pureCondition.isSubscriptionScoped());
     }
 
     /**
-     * Compiles a condition step for filtering an array's elements. Iterates over
-     * elements at compile time, building optimized code for each element.
-     * FIXME: Name suggests general compilation but performs compile-time iteration
-     * over known array. Options: (1) Rename to foldConditionStepOverKnownArray,
-     * (2) Document compile-time iteration behavior, (3) Extract iteration logic.
+     * Returns the value if the condition is true, otherwise returns undefined.
+     * Validates that the condition evaluates to a boolean value.
      *
-     * @param relativeArray the array to filter
-     * @param conditionExpression the compiled condition
-     * @param context the compilation context
-     * @return the compiled filtered array expression
+     * @param value the value to potentially return
+     * @param condition the condition result
+     * @return the value if condition is true, undefined if false, or error if
+     * condition is not boolean
      */
-    private CompiledExpression compileConditionStepForRelativeArray(ArrayValue relativeArray,
-                                                                    CompiledExpression conditionExpression,
-                                                                    CompilationContext context) {
-        if(relativeArray.isEmpty()) {
-            return relativeArray;
+    private Value returnValueIfConditionMetElseUndefined(Value value, Value condition) {
+        if (value instanceof ErrorValue || value instanceof UndefinedValue) {
+            return value;
         }
-        val compiledArguments = new CompiledExpression[relativeArray.size()];
-        var isPure = false;
-        var isStream = false;
+        if (!(condition instanceof BooleanValue booleanConstant)) {
+            return Value.error(
+                    "Type mismatch error. Conditions in condition steps must evaluate to a boolean value, but got: %s."
+                            .formatted(condition));
+        }
+        return booleanConstant.equals(Value.TRUE) ? value : Value.UNDEFINED;
+    }
+
+    private static PureExpression compileConditionStepOnArrayValueConstantWithPureCondition(ArrayValue arrayParent,
+            PureExpression pureCondition) {
+        return new PureExpression(
+                ctx -> evaluateConditionStepOnArrayValueConstantWithPureCondition(ctx, arrayParent, pureCondition),
+                pureCondition.isSubscriptionScoped());
+    }
+
+    private static Value evaluateConditionStepOnArrayValueConstantWithPureCondition(EvaluationContext ctx,
+            ArrayValue arrayParent, PureExpression pureCondition) {
+        val array = ArrayValue.builder();
+        for (int i = 0; i < arrayParent.size(); i++) {
+            val originalValue = arrayParent.get(i);
+            val condition     = pureCondition.evaluate(ctx.withRelativeValue(originalValue, Value.of(i)));
+            val newEntry      = returnValueIfConditionMetElseUndefined(originalValue, condition);
+            if (newEntry instanceof ErrorValue) {
+                return newEntry;
+            }
+            if (!(newEntry instanceof UndefinedValue)) {
+                array.add(newEntry);
+            }
+        }
+        return array.build();
+    }
+
+    private static PureExpression compileConditionStepOnObjectValueConstantWithPureCondition(ObjectValue objectParent,
+            PureExpression pureCondition) {
+        return new PureExpression(
+                ctx -> evaluateConditionStepOnObjectValueConstantWithPureCondition(ctx, objectParent, pureCondition),
+                pureCondition.isSubscriptionScoped());
+    }
+
+    private static Value evaluateConditionStepOnObjectValueConstantWithPureCondition(EvaluationContext ctx,
+            ObjectValue objectParent, PureExpression pureCondition) {
+        val object = ObjectValue.builder();
+        for (val entry : objectParent.entrySet()) {
+            val key           = entry.getKey();
+            val originalValue = entry.getValue();
+            val condition     = pureCondition.evaluate(ctx.withRelativeValue(originalValue, Value.of(key)));
+            val newEntry      = returnValueIfConditionMetElseUndefined(originalValue, condition);
+            if (newEntry instanceof ErrorValue) {
+                return newEntry;
+            }
+            if (!(newEntry instanceof UndefinedValue)) {
+                object.put(key, newEntry);
+            }
+        }
+        return object.build();
+    }
+
+    // Value parent - Stream condition
+
+    private static CompiledExpression compileConditionOnValueParentWithStreamCondition(Value valueParent,
+            StreamExpression streamCondition) {
+        return new StreamExpression(Flux.just(valueParent).flatMap(
+                value -> evaluateConditionStepWithStreamConditionOnConstantValue(value, streamCondition.stream())));
+    }
+
+    private static Flux<Value> evaluateConditionStepWithStreamConditionOnConstantValue(Value parentValue,
+            Flux<Value> conditionStream) {
+        if (parentValue instanceof ErrorValue || parentValue instanceof UndefinedValue) {
+            return Flux.just(parentValue);
+        }
+        return switch (parentValue) {
+        case ObjectValue objectParent -> evaluateStreamConditionStepOnObjectValue(objectParent, conditionStream);
+        case ArrayValue arrayParent   -> evaluateStreamConditionStepOnArrayValue(arrayParent, conditionStream);
+        case Value scalarValue        -> setRelativeValueContext(conditionStream, scalarValue)
+                .map(conditionValue -> returnValueIfConditionMetElseUndefined(scalarValue, conditionValue));
+        };
+    }
+
+    private static Flux<Value> evaluateStreamConditionStepOnObjectValue(ObjectValue objectParent,
+            Flux<Value> conditionStream) {
+        val sources = new ArrayList<Flux<ObjectEntry>>(objectParent.size());
+        for (val entry : objectParent.entrySet()) {
+            val key               = entry.getKey();
+            val relativeLocation  = Value.of(key);
+            val relativeValue     = entry.getValue();
+            val objectEntryStream = setRelativeValueContext(conditionStream, relativeValue, relativeLocation)
+                    .map(conditionValue -> returnValueIfConditionMetElseUndefined(relativeValue, conditionValue))
+                    .map(filteredValue -> new ObjectEntry(key, filteredValue));
+            sources.add(objectEntryStream);
+        }
+        return Flux.combineLatest(sources, combined -> assembleObjectValue((ObjectEntry[]) combined));
+    }
+
+    private static Flux<Value> evaluateStreamConditionStepOnArrayValue(ArrayValue arrayParent,
+            Flux<Value> conditionStream) {
+        val sources = new ArrayList<Flux<Value>>(arrayParent.size());
+        for (var i = 0; i < arrayParent.size(); i++) {
+            val relativeLocation  = Value.of(i);
+            val relativeValue     = arrayParent.get(i);
+            val objectEntryStream = setRelativeValueContext(conditionStream, relativeValue, relativeLocation)
+                    .map(conditionValue -> returnValueIfConditionMetElseUndefined(relativeValue, conditionValue));
+            sources.add(objectEntryStream);
+        }
+        return Flux.combineLatest(sources, combined -> assembleArrayValue((Value[]) combined));
+    }
+
+    // ============================================================================
+    // ConditionStep -> Parent instanceof PureExpression
+    // ============================================================================
+
+    // Pure parent - Value condition
+
+    private static CompiledExpression compileConditionOnPureParentWithValueCondition(PureExpression pureParent,
+            Value valueCondition) {
+        return new PureExpression(ctx -> evaluateConditionOnValueParentWithConstantValueCondition(
+                pureParent.evaluate(ctx), valueCondition), pureParent.isSubscriptionScoped());
+    }
+
+    // Pure parent - Pure condition
+
+    private static CompiledExpression compileConditionOnPureParentWithPureCondition(PureExpression pureParent,
+            PureExpression pureCondition, CompilationContext context) {
+
+        return new PureExpression(ctx -> {
+            val valueParent = pureParent.evaluate(ctx);
+            if (valueParent instanceof ErrorValue || valueParent instanceof UndefinedValue) {
+                return valueParent;
+            }
+            return switch (valueParent) {
+            case ArrayValue arrayParent   ->
+                evaluateConditionStepOnArrayValueConstantWithPureCondition(ctx, arrayParent, pureCondition);
+            case ObjectValue objectParent ->
+                evaluateConditionStepOnObjectValueConstantWithPureCondition(ctx, objectParent, pureCondition);
+            case Value scalarValue        -> returnValueIfConditionMetElseUndefined(scalarValue,
+                    pureCondition.evaluate(ctx.withRelativeValue(scalarValue)));
+            };
+        }, pureParent.isSubscriptionScoped() || pureCondition.isSubscriptionScoped());
+    }
+
+    // Pure parent - Stream condition
+
+    private static CompiledExpression compileConditionOnPureParentWithStreamCondition(PureExpression pureParent,
+            StreamExpression streamCondition) {
+        return new StreamExpression(pureParent.flux()
+                .flatMap(parentValue -> evaluateConditionStepWithStreamConditionOnConstantValue(parentValue,
+                        streamCondition.stream())));
+    }
+
+    // ============================================================================
+    // ConditionStep -> Parent instanceof StreamExpression
+    // ============================================================================
+
+    // Stream parent - Value condition
+
+    private static CompiledExpression compileConditionOnStreamParentWithValueCondition(StreamExpression streamParent,
+            Value valueCondition) {
+        return new StreamExpression(streamParent.stream().map(
+                parentValue -> evaluateConditionOnValueParentWithConstantValueCondition(parentValue, valueCondition)));
+    }
+
+    // Stream parent - Pure condition
+
+    private static CompiledExpression compileConditionOnStreamParentWithPureCondition(StreamExpression streamParent,
+            PureExpression pureCondition) {
+        return new StreamExpression(streamParent.stream().flatMap(valueParent -> {
+            if (valueParent instanceof ErrorValue || valueParent instanceof UndefinedValue) {
+                return Mono.just(valueParent);
+            }
+            return Mono.deferContextual(reactiveCtx -> {
+                val ctx    = reactiveCtx.get(EvaluationContext.class);
+                val result = switch (valueParent) {
+                           case ArrayValue arrayParent   -> evaluateConditionStepOnArrayValueConstantWithPureCondition(
+                                   ctx, arrayParent, pureCondition);
+                           case ObjectValue objectParent -> evaluateConditionStepOnObjectValueConstantWithPureCondition(
+                                   ctx, objectParent, pureCondition);
+                           case Value scalarValue        -> returnValueIfConditionMetElseUndefined(scalarValue,
+                                   pureCondition.evaluate(ctx.withRelativeValue(scalarValue)));
+                           };
+                return Mono.just(result);
+            });
+        }));
+    }
+
+    // Stream parent - Stream condition
+
+    private static CompiledExpression compileConditionOnStreamParentWithStreamCondition(StreamExpression streamParent,
+            StreamExpression streamCondition) {
+        return new StreamExpression(streamParent.stream()
+                .flatMap(parentValue -> evaluateConditionStepWithStreamConditionOnConstantValue(parentValue,
+                        streamCondition.stream())));
+    }
+
+    // ============================================================================
+    // Array composition
+    // ============================================================================
+
+    /**
+     * Composes an array expression by compiling its items and delegating to the
+     * appropriate array builder.
+     *
+     * @param array the array AST node
+     * @param context the compilation context
+     * @return the compiled array expression, or empty array if no items
+     */
+    private CompiledExpression composeArray(Array array, CompilationContext context) {
+        val items = array.getItems();
+        if (items.isEmpty()) {
+            return Value.EMPTY_ARRAY;
+        }
+        return compileArgumentsToArray(compileArguments(items, context));
+    }
+
+    /**
+     * Dispatches compiled array arguments to the appropriate builder based on their
+     * nature.
+     *
+     * @param compiledArguments the compiled array element arguments
+     * @return the compiled array expression
+     */
+    private CompiledExpression compileArgumentsToArray(CompiledArguments compiledArguments) {
+        return switch (compiledArguments.nature()) {
+        case VALUE  -> assembleArrayValue(compiledArguments.arguments());
+        case PURE   -> compilePureArray(compiledArguments);
+        case STREAM -> compileArrayStreamExpression(compiledArguments);
+        };
+    }
+
+    /**
+     * Compiles expression arguments into a structured representation tracking
+     * whether
+     * arguments are values, pure expressions, or streams.
+     *
+     * @param arguments the argument expression AST nodes
+     * @param context the compilation context
+     * @return the compiled arguments with nature classification
+     */
+    private CompiledArguments compileArguments(EList<Expression> arguments, CompilationContext context) {
+        val compiledArguments    = new CompiledExpression[arguments.size()];
+        var isPure               = false;
+        var isStream             = false;
         var isSubscriptionScoped = false;
-        for (int i = 0; i < relativeArray.size(); i++) {
-            val compiledArgument = compileConditionStepForRelativeValue(relativeArray.get(i), Value.of(i), conditionExpression, context);
+        for (int i = 0; i < arguments.size(); i++) {
+            val compiledArgument = compileExpression(arguments.get(i), context);
             if (compiledArgument instanceof PureExpression pureExpression) {
                 isPure = true;
                 if (pureExpression.isSubscriptionScoped()) {
@@ -655,118 +855,7 @@ public class ExpressionCompiler {
         } else if (isPure) {
             nature = Nature.PURE;
         }
-        val compiledArrayElementExpressions = new CompiledArguments(nature, isSubscriptionScoped, compiledArguments);
-        return compileArgumentsToArray(compiledArrayElementExpressions);
-    }
-
-    /**
-     * Dispatches compiled array arguments to the appropriate builder based on their
-     * nature.
-     *
-     * @param compiledArguments the compiled array element arguments
-     * @return the compiled array expression
-     */
-    private CompiledExpression compileArgumentsToArray(CompiledArguments compiledArguments) {
-        return switch (compiledArguments.nature()) {
-            case VALUE -> assembleArrayValue(compiledArguments.arguments());
-            case PURE -> compilePureArray(compiledArguments);
-            case STREAM -> compileArrayStreamExpression(compiledArguments);
-        };
-    }
-
-    /**
-     * Prepares a condition step for a single relative value. Handles both
-     * compile-time evaluation when possible and deferred evaluation when needed.
-     * FIXME: Complex hybrid behavior mixing compile-time evaluation with deferred
-     * execution. Options: (1) Rename to prepareConditionStepForRelativeValue to
-     * clarify hybrid nature, (2) Split into separate compile-time and runtime paths,
-     * (3) Document the evaluation strategy clearly.
-     *
-     * @param relativeValue the value to test against the condition
-     * @param relativeLocation the location of the value
-     * @param conditionExpression the compiled condition
-     * @param context the compilation context
-     * @return the compiled condition test expression
-     */
-    private CompiledExpression compileConditionStepForRelativeValue(Value relativeValue, Value relativeLocation,
-                                                                    CompiledExpression conditionExpression, CompilationContext context) {
-        val relativeCondition = switch (conditionExpression) {
-            case Value value -> value;
-
-            case PureExpression pureConditionExpression when pureConditionExpression.isSubscriptionScoped() ->
-                    new PureExpression(ctx ->
-                            pureConditionExpression.evaluate(ctx.withRelativeValue(relativeValue, relativeLocation)), true);
-
-            // This case is dealing with the situation, when the only thing that could not be folded at compile time of the
-            // expression were the references to the relative value. But at this point that value is now known, and we can
-            // evaluate the pure expression without the need for any other variables.
-            case PureExpression pureConditionExpression -> pureConditionExpression.evaluate(
-                    new EvaluationContext(Map.of(), context.getFunctionBroker()).withRelativeValue(relativeValue));
-
-            case StreamExpression streamConditionExpression ->
-                    new StreamExpression(streamConditionExpression.stream().contextWrite(ctx -> {
-                        val evaluationContext = ctx.get(EvaluationContext.class);
-                        return ctx.put(EvaluationContext.class,
-                                evaluationContext.withRelativeValue(relativeValue,
-                                        relativeLocation));
-                    }));
-        };
-        return assembleBinaryOperation(relativeValue, relativeCondition,
-                ExpressionCompiler::returnValueIfConditionMetElseUndefined);
-    }
-
-    /**
-     * Returns the value if the condition is true, otherwise returns undefined.
-     * Validates that the condition evaluates to a boolean value.
-     *
-     * @param value the value to potentially return
-     * @param condition the condition result
-     * @return the value if condition is true, undefined if false, or error if
-     *         condition is not boolean
-     */
-    private Value returnValueIfConditionMetElseUndefined(Value value, Value condition) {
-        if (!(condition instanceof BooleanValue booleanConstant)) {
-            return Value.error(
-                    "Type mismatch error. Conditions in condition steps must evaluate to a boolean value, but got: %s."
-                            .formatted(condition));
-        }
-        return booleanConstant.equals(Value.TRUE) ? value : Value.UNDEFINED;
-    }
-
-    /**
-     * Compiles a step operation on a parent expression by applying a unary operation.
-     * Handles constant folding for value parents, and creates stream or pure
-     * expression wrappers for deferred parents.
-     *
-     * @param parent the parent expression
-     * @param operation the unary operation to apply
-     * @param context the compilation context
-     * @return the compiled step expression
-     */
-    private CompiledExpression compileStep(CompiledExpression parent, java.util.function.UnaryOperator<Value> operation,
-                                           CompilationContext context) {
-        return switch (parent) {
-            case Value value -> operation.apply(value);
-            case StreamExpression(Flux<Value> stream) -> new StreamExpression(stream.map(operation));
-            case PureExpression pureParent ->
-                    new PureExpression(ctx -> operation.apply(pureParent.evaluate(ctx)), pureParent.isSubscriptionScoped());
-        };
-    }
-
-    /**
-     * Composes an array expression by compiling its items and delegating to the
-     * appropriate array builder.
-     *
-     * @param array the array AST node
-     * @param context the compilation context
-     * @return the compiled array expression, or empty array if no items
-     */
-    private CompiledExpression composeArray(Array array, CompilationContext context) {
-        val items = array.getItems();
-        if (items.isEmpty()) {
-            return Value.EMPTY_ARRAY;
-        }
-        return compileArgumentsToArray(compileArguments(items, context));
+        return new CompiledArguments(nature, isSubscriptionScoped, compiledArguments);
     }
 
     /**
@@ -790,7 +879,8 @@ public class ExpressionCompiler {
     }
 
     /**
-     * Compiles an array with pure element expressions. Creates a pure expression that
+     * Compiles an array with pure element expressions. Creates a pure expression
+     * that
      * evaluates all elements and builds the array at evaluation time.
      *
      * @param arguments the compiled array element arguments
@@ -816,7 +906,8 @@ public class ExpressionCompiler {
     }
 
     /**
-     * Compiles an array with stream element expressions. Creates a stream expression
+     * Compiles an array with stream element expressions. Creates a stream
+     * expression
      * that combines element streams and assembles arrays from each combination at
      * runtime.
      *
@@ -825,9 +916,13 @@ public class ExpressionCompiler {
      */
     private CompiledExpression compileArrayStreamExpression(CompiledArguments arguments) {
         val sources = Arrays.stream(arguments.arguments()).map(ExpressionCompiler::compiledExpressionToFlux).toList();
-        val stream = Flux.<Value, Value>combineLatest(sources, combined -> assembleArrayValue((Value[]) combined));
+        val stream  = Flux.<Value, Value>combineLatest(sources, combined -> assembleArrayValue((Value[]) combined));
         return new StreamExpression(stream);
     }
+
+    // ============================================================================
+    // Object composition
+    // ============================================================================
 
     /**
      * Composes an object expression by compiling its members and delegating to the
@@ -846,7 +941,8 @@ public class ExpressionCompiler {
     }
 
     /**
-     * Dispatches compiled object attributes to the appropriate builder based on their
+     * Dispatches compiled object attributes to the appropriate builder based on
+     * their
      * nature.
      *
      * @param attributes the compiled object attributes
@@ -854,30 +950,31 @@ public class ExpressionCompiler {
      */
     private CompiledExpression compileAttributesToObject(CompiledObjectAttributes attributes) {
         return switch (attributes.nature()) {
-            case VALUE -> assembleObjectValue(attributes);
-            case PURE -> compilePureObject(attributes);
-            case STREAM -> compileObjectStreamExpression(attributes);
+        case VALUE  -> assembleObjectValue(attributes);
+        case PURE   -> compilePureObject(attributes);
+        case STREAM -> compileObjectStreamExpression(attributes);
         };
     }
 
     /**
      * Record representing an object key-value entry.
      */
-    private record ObjectEntry(String key, Value value) {
-    }
+    private record ObjectEntry(String key, Value value) {}
 
     /**
-     * Assembles an object value from property entries. Used both at compile time for
+     * Assembles an object value from property entries. Used both at compile time
+     * for
      * constant folding and at runtime during stream evaluation.
      *
      * @param attributes the object property entries
-     * @return the assembled object value, or error if any property value is an error
+     * @return the assembled object value, or error if any property value is an
+     * error
      */
     private Value assembleObjectValue(ObjectEntry[] attributes) {
         val objectBuilder = ObjectValue.builder();
         for (val attribute : attributes) {
             val value = attribute.value;
-            val key = attribute.key;
+            val key   = attribute.key;
             if (value instanceof ErrorValue errorValue) {
                 return errorValue;
             }
@@ -899,7 +996,7 @@ public class ExpressionCompiler {
         return new PureExpression(ctx -> {
             val objectBuilder = ObjectValue.builder();
             for (val attribute : attributes.attributes().entrySet()) {
-                val key = attribute.getKey();
+                val key               = attribute.getKey();
                 val compiledAttribute = attribute.getValue();
                 // compiledAttribute cannot be a StreamExpression here
                 val evaluatedAttribute = (compiledAttribute instanceof PureExpression pureExpression)
@@ -945,12 +1042,11 @@ public class ExpressionCompiler {
      */
     private Value assembleObjectValue(CompiledObjectAttributes attributes) {
         if (attributes.nature() != Nature.VALUE) {
-            throw new SaplCompilerException(
-                    "assembleObjectValue called with non-VALUE nature: " + attributes.nature());
+            throw new SaplCompilerException("assembleObjectValue called with non-VALUE nature: " + attributes.nature());
         }
         val objectBuilder = ObjectValue.builder();
         for (val attribute : attributes.attributes().entrySet()) {
-            val key = attribute.getKey();
+            val key   = attribute.getKey();
             val value = attribute.getValue();
             if (value instanceof ErrorValue errorValue) {
                 return errorValue;
@@ -974,9 +1070,9 @@ public class ExpressionCompiler {
         if (members == null || members.isEmpty()) {
             return CompiledObjectAttributes.EMPTY_ATTRIBUTES;
         }
-        val compiledArguments = new HashMap<String, CompiledExpression>(members.size());
-        var isStream = false;
-        var isPure = false;
+        val compiledArguments    = new HashMap<String, CompiledExpression>(members.size());
+        var isStream             = false;
+        var isPure               = false;
         var isSubscriptionScoped = false;
         for (Pair pair : members) {
             val compiledAttribute = compileExpression(pair.getValue(), context);
@@ -999,37 +1095,71 @@ public class ExpressionCompiler {
         return new CompiledObjectAttributes(nature, isSubscriptionScoped, compiledArguments);
     }
 
+    // ============================================================================
+    // ADAPTERS & UTILITIES
+    // ============================================================================
+
     /**
-     * Compiles expression arguments into a structured representation tracking whether
-     * arguments are values, pure expressions, or streams.
+     * Converts any compiled expression into a Flux stream. Values become
+     * single-item
+     * streams, stream expressions expose their internal stream, and pure
+     * expressions
+     * are deferred for evaluation.
      *
-     * @param arguments the argument expression AST nodes
-     * @param context the compilation context
-     * @return the compiled arguments with nature classification
+     * @param expression the compiled expression to convert
+     * @return a Flux stream emitting the expression's values
      */
-    private CompiledArguments compileArguments(EList<Expression> arguments, CompilationContext context) {
-        val compiledArguments = new CompiledExpression[arguments.size()];
-        var isPure = false;
-        var isStream = false;
-        var isSubscriptionScoped = false;
-        for (int i = 0; i < arguments.size(); i++) {
-            val compiledArgument = compileExpression(arguments.get(i), context);
-            if (compiledArgument instanceof PureExpression pureExpression) {
-                isPure = true;
-                if (pureExpression.isSubscriptionScoped()) {
-                    isSubscriptionScoped = true;
-                }
-            } else if (compiledArgument instanceof StreamExpression) {
-                isStream = true;
-            }
-            compiledArguments[i] = compiledArgument;
-        }
-        var nature = Nature.VALUE;
-        if (isStream) {
-            nature = Nature.STREAM;
-        } else if (isPure) {
-            nature = Nature.PURE;
-        }
-        return new CompiledArguments(nature, isSubscriptionScoped, compiledArguments);
+    private Flux<Value> compiledExpressionToFlux(CompiledExpression expression) {
+        return switch (expression) {
+        case Value value                   -> Flux.just(value);
+        case StreamExpression stream       -> stream.stream();
+        case PureExpression pureExpression -> pureExpression.flux();
+        };
+    }
+
+    /**
+     * Propagates the current reactive EvaluationContext while overriding the
+     * {@code RELATIVE_VALUE} variable for downstream operators.
+     * <p>
+     * This overload sets the relative value and resets the relative location to
+     * {@link Value#UNDEFINED}.
+     *
+     * @param original the original stream to enrich with a modified
+     * {@link EvaluationContext}
+     * @param relativeValue the value to expose as {@code RELATIVE_VALUE} in the
+     * evaluation context
+     * @return a Flux that emits the same elements as {@code original} but with an
+     * EvaluationContext where {@code RELATIVE_VALUE} is set to
+     * {@code relativeValue} and {@code RELATIVE_LOCATION} is undefined
+     */
+    private Flux<Value> setRelativeValueContext(Flux<Value> original, Value relativeValue) {
+        return setRelativeValueContext(original, relativeValue, Value.UNDEFINED);
+    }
+
+    /**
+     * Propagates the current reactive EvaluationContext while overriding the
+     * {@code RELATIVE_VALUE} and {@code RELATIVE_LOCATION} variables for
+     * downstream operators.
+     * <p>
+     * The existing {@link EvaluationContext} is retrieved from the Reactor
+     * context, and a new instance with the supplied relative value and location
+     * is stored back into the Reactor context for all downstream processing.
+     *
+     * @param original the original stream to enrich with a modified
+     * {@link EvaluationContext}
+     * @param relativeValue the value to expose as {@code RELATIVE_VALUE} in the
+     * evaluation context
+     * @param relativeLocation the value to expose as {@code RELATIVE_LOCATION} in
+     * the evaluation context
+     * @return a Flux that emits the same elements as {@code original} but with an
+     * EvaluationContext where {@code RELATIVE_VALUE} and
+     * {@code RELATIVE_LOCATION} are set to the given arguments
+     */
+    private Flux<Value> setRelativeValueContext(Flux<Value> original, Value relativeValue, Value relativeLocation) {
+        return original.contextWrite(ctx -> {
+            val evaluationContext = ctx.get(EvaluationContext.class);
+            return ctx.put(EvaluationContext.class,
+                    evaluationContext.withRelativeValue(relativeValue, relativeLocation));
+        });
     }
 }

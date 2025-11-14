@@ -18,7 +18,6 @@
 package io.sapl.compiler;
 
 import io.sapl.api.model.CompiledExpression;
-import org.eclipse.emf.common.util.EList;
 
 public record CompiledArguments(Nature nature, boolean isSubscriptionScoped, CompiledExpression[] arguments) {
     public static CompiledArguments EMPTY_ARGUMENTS = new CompiledArguments(Nature.VALUE, false,

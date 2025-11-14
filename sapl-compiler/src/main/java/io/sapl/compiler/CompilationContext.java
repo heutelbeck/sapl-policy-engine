@@ -36,7 +36,6 @@ import java.util.function.Function;
 public class CompilationContext {
     final FunctionBroker                    functionBroker;
     boolean                                 isInsideTargetExpression = false;
-    final boolean                           dynamicLibrariesEnabled  = false;
     final boolean                           debugInformationEnabled  = false;
     List<Import>                            imports                  = new ArrayList<>();
     Map<SchemaTarget, List<CompiledSchema>> schemas                  = new EnumMap<>(SchemaTarget.class);

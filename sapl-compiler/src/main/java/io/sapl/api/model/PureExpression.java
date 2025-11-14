@@ -17,11 +17,17 @@
  */
 package io.sapl.api.model;
 
+import reactor.core.publisher.Flux;
+
 import java.util.function.Function;
 
 public record PureExpression(Function<EvaluationContext, Value> expressionFunction, boolean isSubscriptionScoped)
         implements CompiledExpression {
     public Value evaluate(EvaluationContext evaluationContext) {
         return expressionFunction.apply(evaluationContext);
+    }
+
+    public Flux<Value> flux() {
+        return Flux.deferContextual(ctx -> Flux.just(evaluate(ctx.get(EvaluationContext.class))));
     }
 }

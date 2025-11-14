@@ -21,8 +21,6 @@ import com.fasterxml.jackson.databind.JsonNode;
 import io.sapl.api.interpreter.Val;
 import io.sapl.api.pip.*;
 import io.sapl.attributes.broker.api.*;
-import io.sapl.attributes.broker.api.AttributeFinderInvocation;
-import io.sapl.attributes.broker.api.AttributeFinderSpecification;
 import io.sapl.attributes.documentation.api.*;
 import io.sapl.validation.ValidationException;
 import io.sapl.validation.Validator;

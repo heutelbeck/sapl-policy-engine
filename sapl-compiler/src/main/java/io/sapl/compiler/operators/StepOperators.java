@@ -43,7 +43,7 @@ public class StepOperators {
      * @param value the value to access
      * @param expressionResult the index or key as a value
      * @return the accessed value, or an error if the expression result is not a
-     *         number or text
+     * number or text
      */
     public static Value indexOrKeyStep(Value value, Value expressionResult) {
         if (expressionResult instanceof NumberValue numberValue) {
