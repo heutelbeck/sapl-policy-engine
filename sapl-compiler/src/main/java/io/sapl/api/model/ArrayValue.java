@@ -18,15 +18,13 @@
 package io.sapl.api.model;
 
 import io.sapl.api.SaplVersion;
+import io.sapl.grammar.sapl.Array;
 import lombok.NonNull;
 import lombok.experimental.Delegate;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.Serial;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -72,6 +70,11 @@ public final class ArrayValue implements Value, List<Value> {
 
     @Serial
     private static final long serialVersionUID = SaplVersion.VERSION_UID;
+
+    /**
+     * Singleton for secret empty array.
+     */
+    public static final ArrayValue SECRET_EMPTY_ARRAY = new ArrayValue(List.of(), true);
 
     @Delegate(excludes = ExcludedMethods.class)
     private final List<Value> value;
@@ -247,6 +250,10 @@ public final class ArrayValue implements Value, List<Value> {
             if (elements.isEmpty() && !secret) {
                 elements = null;
                 return Value.EMPTY_ARRAY;
+            }
+            if (elements.isEmpty()) {
+                elements = null;
+                return SECRET_EMPTY_ARRAY;
             }
             var result = new ArrayValue(secret, elements);
             elements = null;

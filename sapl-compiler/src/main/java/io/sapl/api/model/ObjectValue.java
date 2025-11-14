@@ -74,6 +74,11 @@ public final class ObjectValue implements Value, Map<String, Value> {
     @Serial
     private static final long serialVersionUID = SaplVersion.VERSION_UID;
 
+    /**
+     * Singleton for secret empty object.
+     */
+    public static final ObjectValue SECRET_EMPTY_OBJECT = new ObjectValue(Map.of(), true);
+
     @Delegate(excludes = ExcludedMethods.class)
     private final Map<String, Value> value;
     private final boolean            secret;
@@ -213,6 +218,11 @@ public final class ObjectValue implements Value, Map<String, Value> {
                 properties = null;
                 return Value.EMPTY_OBJECT;
             }
+            if (properties.isEmpty()) {
+                properties = null;
+                return SECRET_EMPTY_OBJECT;
+            }
+
             val result = new ObjectValue(secret, properties);
             properties = null;
             return result;

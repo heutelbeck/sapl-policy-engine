@@ -17,7 +17,9 @@
  */
 package io.sapl.compiler;
 
-import io.sapl.grammar.sapl.*;
+import io.sapl.grammar.sapl.FunctionIdentifier;
+import io.sapl.grammar.sapl.Import;
+import io.sapl.grammar.sapl.SAPL;
 import lombok.experimental.UtilityClass;
 import org.eclipse.emf.ecore.EObject;
 

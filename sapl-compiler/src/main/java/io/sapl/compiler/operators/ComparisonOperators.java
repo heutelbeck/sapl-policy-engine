@@ -72,7 +72,7 @@ public class ComparisonOperators {
         }
     }
 
-    public UnaryOperator<Value> compileRegularExpressionOperation(Value regex) {
+    public UnaryOperator<Value> compileRegularExpressionOperator(Value regex) {
         if (!(regex instanceof TextValue regexText)) {
             throw new SaplCompilerException(String.format("Regular expressions must be strings, but got: %s.", regex));
         }
