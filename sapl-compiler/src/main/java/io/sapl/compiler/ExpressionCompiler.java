@@ -36,11 +36,27 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
+/**
+ * Compiles SAPL abstract syntax tree expressions into optimized executable
+ * representations. Performs compile-time constant folding and type-based
+ * optimization to generate efficient evaluation code.
+ */
 @UtilityClass
 public class ExpressionCompiler {
 
     private static final Value UNIMPLEMENTED = Value.error("unimplemented");
 
+    /**
+     * Compiles a SAPL expression from the abstract syntax tree into an optimized
+     * executable form. Dispatches to specialized compilation methods based on
+     * expression type.
+     *
+     * @param expression the AST expression to compile
+     * @param context the compilation context containing variables and function
+     *            broker
+     * @return the compiled expression ready for evaluation, or null if input is
+     *         null
+     */
     public CompiledExpression compileExpression(Expression expression, CompilationContext context) {
         if (expression == null) {
             return null;
@@ -73,6 +89,16 @@ public class ExpressionCompiler {
         };
     }
 
+    /**
+     * Compiles a binary operation by recursively compiling its operands and
+     * combining them. Performs pre-compilation optimization for regex patterns when
+     * the right operand is a constant.
+     *
+     * @param operator the binary operator AST node
+     * @param operation the operation to apply to compiled operands
+     * @param context the compilation context
+     * @return the compiled binary operation expression
+     */
     private CompiledExpression compileBinaryOperation(BinaryOperator operator,
                                                       java.util.function.BinaryOperator<Value> operation, CompilationContext context) {
         val left = compileExpression(operator.getLeft(), context);
@@ -90,6 +116,16 @@ public class ExpressionCompiler {
         return assembleBinaryOperation(left, right, operation);
     }
 
+    /**
+     * Assembles two compiled expressions into a binary operation. Performs constant
+     * folding when both operands are values. Creates optimized stream or pure
+     * expression wrappers based on operand types.
+     *
+     * @param left the compiled left operand
+     * @param right the compiled right operand
+     * @param operation the binary operation to apply
+     * @return the assembled binary operation expression
+     */
     private CompiledExpression assembleBinaryOperation(CompiledExpression left, CompiledExpression right,
                                                        java.util.function.BinaryOperator<Value> operation) {
         if (left instanceof ErrorValue) {
@@ -120,6 +156,15 @@ public class ExpressionCompiler {
                 + left.getClass().getSimpleName() + " and " + right.getClass().getSimpleName() + ".");
     }
 
+    /**
+     * Compiles a binary operation involving at least one stream expression. Uses
+     * Flux.combineLatest to reactively combine the latest values from both operands.
+     *
+     * @param leftExpression the left compiled expression
+     * @param rightExpression the right compiled expression
+     * @param operation the binary operation to apply
+     * @return a stream expression that combines the operand streams
+     */
     private StreamExpression compileBinaryStreamOperator(CompiledExpression leftExpression,
                                                          CompiledExpression rightExpression, java.util.function.BinaryOperator<Value> operation) {
         val stream = Flux.combineLatest(compiledExpressionToFlux(leftExpression),
@@ -127,6 +172,14 @@ public class ExpressionCompiler {
         return new StreamExpression(stream);
     }
 
+    /**
+     * Converts any compiled expression into a Flux stream. Values become single-item
+     * streams, stream expressions expose their internal stream, and pure expressions
+     * are deferred for evaluation.
+     *
+     * @param expression the compiled expression to convert
+     * @return a Flux stream emitting the expression's values
+     */
     private Flux<Value> compiledExpressionToFlux(CompiledExpression expression) {
         return switch (expression) {
             case Value value -> Flux.just(value);
@@ -135,10 +188,27 @@ public class ExpressionCompiler {
         };
     }
 
+    /**
+     * Wraps a pure expression in a deferred Flux that will evaluate it when
+     * subscribed, using the evaluation context from the Reactor context.
+     *
+     * @param expression the pure expression to defer
+     * @return a Flux that evaluates the expression on subscription
+     */
     private Flux<Value> deferPureExpressionEvaluation(PureExpression expression) {
         return Flux.deferContextual(ctx -> Flux.just(expression.evaluate(ctx.get(EvaluationContext.class))));
     }
 
+    /**
+     * Compiles a unary operation by compiling its operand and applying the operation.
+     * Performs constant folding for value operands. Creates stream or pure expression
+     * wrappers for deferred operands.
+     *
+     * @param operator the unary operator AST node
+     * @param operation the unary operation to apply
+     * @param context the compilation context
+     * @return the compiled unary operation expression
+     */
     private CompiledExpression compileUnaryOperation(UnaryOperator operator,
                                                      java.util.function.UnaryOperator<Value> operation, CompilationContext context) {
         val expression = compileExpression(operator.getExpression(), context);
@@ -153,6 +223,14 @@ public class ExpressionCompiler {
                 subExpression.isSubscriptionScoped());
     }
 
+    /**
+     * Compiles a basic expression by dispatching to the appropriate handler based on
+     * the specific basic expression type.
+     *
+     * @param expression the basic expression AST node
+     * @param context the compilation context
+     * @return the compiled basic expression
+     */
     private CompiledExpression compileBasicExpression(BasicExpression expression, CompilationContext context) {
         return switch (expression) {
             case BasicGroup group -> compileExpression(group.getExpression(), context);
@@ -166,10 +244,25 @@ public class ExpressionCompiler {
         };
     }
 
+    /**
+     * Compiles a basic relative expression that references the relative value from
+     * the evaluation context.
+     *
+     * @param context the compilation context
+     * @return a pure expression that extracts the relative value
+     */
     private static CompiledExpression compileBasicRelative(CompilationContext context) {
         return new PureExpression(EvaluationContext::relativeValue, false);
     }
 
+    /**
+     * Compiles a function call by compiling its arguments and dispatching to the
+     * appropriate handler based on argument types.
+     *
+     * @param function the function AST node
+     * @param context the compilation context
+     * @return the compiled function call expression
+     */
     private CompiledExpression compileBasicFunction(BasicFunction function, CompilationContext context) {
         if (context.isDynamicLibrariesEnabled()) {
             throw new SaplCompilerException(
@@ -186,6 +279,16 @@ public class ExpressionCompiler {
         };
     }
 
+    /**
+     * Compiles a function call with stream parameters. Creates a stream expression
+     * that combines the argument streams and evaluates the function with each
+     * combination.
+     *
+     * @param function the function AST node
+     * @param arguments the compiled arguments
+     * @param context the compilation context
+     * @return a stream expression that evaluates the function reactively
+     */
     private CompiledExpression compileFunctionWithStreamParameters(BasicFunction function, CompiledArguments arguments,
                                                                    CompilationContext context) {
         val sources = Arrays.stream(arguments.arguments()).map(ExpressionCompiler::compiledExpressionToFlux).toList();
@@ -194,6 +297,15 @@ public class ExpressionCompiler {
         return new StreamExpression(stream);
     }
 
+    /**
+     * Compiles a function call with pure parameters. Creates a pure expression that
+     * evaluates all arguments and then invokes the function.
+     *
+     * @param function the function AST node
+     * @param arguments the compiled arguments
+     * @param context the compilation context
+     * @return a pure expression that evaluates the function call
+     */
     private CompiledExpression compileFunctionWithPureParameters(BasicFunction function, CompiledArguments arguments,
                                                                  CompilationContext context) {
         return new PureExpression(ctx -> {
@@ -213,6 +325,18 @@ public class ExpressionCompiler {
         }, arguments.isSubscriptionScoped());
     }
 
+    /**
+     * Evaluates a function call with known constant parameters at compile time.
+     * Performs immediate function invocation for compile-time constant folding.
+     * FIXME: Name suggests compilation but performs eager evaluation returning Value.
+     * Options: (1) Rename to evaluateFunctionWithKnownParameters, (2) Keep name and
+     * add comment, (3) Refactor to return CompiledExpression wrapper.
+     *
+     * @param function the function AST node
+     * @param arguments the compiled value arguments
+     * @param context the compilation context
+     * @return the function evaluation result as a Value
+     */
     private Value compileFunctionWithValueParameters(BasicFunction function, CompiledExpression[] arguments,
                                                      CompilationContext context) {
         val valueArguments = Arrays.stream(arguments).map(Value.class::cast).toList();
@@ -221,6 +345,14 @@ public class ExpressionCompiler {
         return context.getFunctionBroker().evaluateFunction(invocation);
     }
 
+    /**
+     * Compiles an identifier reference by checking local scope first, then creating
+     * a pure expression that retrieves the identifier from the evaluation context.
+     *
+     * @param identifier the identifier AST node
+     * @param context the compilation context
+     * @return the compiled identifier reference
+     */
     private CompiledExpression compileIdentifier(BasicIdentifier identifier, CompilationContext context) {
         val variableIdentifier = identifier.getIdentifier();
         val maybeLocalVariable = context.localVariablesInScope.get(variableIdentifier);
@@ -230,6 +362,14 @@ public class ExpressionCompiler {
         return new PureExpression(ctx -> ctx.get(variableIdentifier), true);
     }
 
+    /**
+     * Compiles a value literal by extracting the value and compiling any subsequent
+     * steps. Performs deduplication for constant values.
+     *
+     * @param basic the basic value AST node
+     * @param context the compilation context
+     * @return the compiled value expression
+     */
     private CompiledExpression compileValue(BasicValue basic, CompilationContext context) {
         val value = basic.getValue();
         var compiledValue = switch (value) {
@@ -251,6 +391,15 @@ public class ExpressionCompiler {
         return compiledValue;
     }
 
+    /**
+     * Compiles a chain of steps by sequentially applying each step to the result of
+     * the previous step.
+     *
+     * @param expression the initial expression
+     * @param steps the list of steps to apply
+     * @param context the compilation context
+     * @return the expression with all steps compiled and applied
+     */
     private CompiledExpression compileSteps(CompiledExpression expression, EList<Step> steps,
                                             CompilationContext context) {
         if (steps == null || steps.isEmpty()) {
@@ -262,6 +411,15 @@ public class ExpressionCompiler {
         return expression;
     }
 
+    /**
+     * Compiles a single step operation by dispatching to the appropriate step handler
+     * based on step type.
+     *
+     * @param parent the parent expression to which the step is applied
+     * @param step the step AST node
+     * @param context the compilation context
+     * @return the compiled step expression
+     */
     private CompiledExpression compileStep(CompiledExpression parent, Step step, CompilationContext context) {
         return switch (step) {
             case KeyStep keyStep -> compileStep(parent, p -> StepOperators.keyStep(p, keyStep.getId()), context);
@@ -290,12 +448,30 @@ public class ExpressionCompiler {
         };
     }
 
+    /**
+     * Compiles an expression step that uses a sub-expression to determine the index
+     * or key for accessing the parent value.
+     *
+     * @param parentExpression the parent expression being accessed
+     * @param expressionStep the expression step AST node
+     * @param context the compilation context
+     * @return the compiled expression step
+     */
     private CompiledExpression compileExpressionStep(CompiledExpression parentExpression, ExpressionStep expressionStep,
                                                      CompilationContext context) {
         val expressionStepExpression = compileExpression(expressionStep.getExpression(), context);
-        return assembleBinaryOperation(parentExpression, expressionStepExpression, ExpressionCompiler::indexOrKeyStep);
+        return assembleBinaryOperation(parentExpression, expressionStepExpression, StepOperators::indexOrKeyStep);
     }
 
+    /**
+     * Compiles a condition step by dispatching to the appropriate handler based on
+     * the parent expression type.
+     *
+     * @param parent the parent expression to filter
+     * @param expressionStep the condition step AST node
+     * @param context the compilation context
+     * @return the compiled condition step expression
+     */
     private CompiledExpression compileConditionStep(CompiledExpression parent, ConditionStep expressionStep,
                                                     CompilationContext context) {
         return switch (parent) {
@@ -305,14 +481,35 @@ public class ExpressionCompiler {
         };
     }
 
+    /**
+     * Compiles a condition step for a stream parent expression.
+     *
+     * @param streamParent the parent stream expression
+     * @param expressionStep the condition step AST node
+     * @param context the compilation context
+     * @return the compiled condition step stream expression
+     */
     private static CompiledExpression compileConditionStepOnStreamExpression(StreamExpression streamParent, ConditionStep expressionStep, CompilationContext context) {
         val compiledConditionExpression = compileExpression(expressionStep.getExpression(), context);
 
         return UNIMPLEMENTED;
     }
 
+    /**
+     * Compiles a condition step for a pure parent expression. Creates a pure
+     * expression that evaluates the parent and condition, then filters based on the
+     * condition result.
+     * FIXME: Missing runtime array/object iteration logic for filtering collections.
+     * When parent evaluates to ArrayValue/ObjectValue, should iterate elements and
+     * filter, not treat as scalar.
+     *
+     * @param pureParent the parent pure expression
+     * @param expressionStep the condition step AST node
+     * @param context the compilation context
+     * @return the compiled condition step expression
+     */
     private CompiledExpression compileConditionStepOnPureExpression(PureExpression pureParent, ConditionStep expressionStep,
-                                                           CompilationContext context) {
+                                                                    CompilationContext context) {
         val compiledConditionExpression = compileExpression(expressionStep.getExpression(), context);
         return switch(compiledConditionExpression) {
             case Value conditionValue -> new PureExpression(ctx -> returnValueIfConditionMetElseUndefined(pureParent.evaluate(ctx), conditionValue ), pureParent.isSubscriptionScoped());
@@ -333,17 +530,39 @@ public class ExpressionCompiler {
         };
     }
 
+    /**
+     * Compiles a condition step for a known value parent. Handles early return for
+     * errors and undefined values, then delegates to type-specific optimization.
+     * FIXME: Name suggests compilation but performs compile-time folding/optimization.
+     * Options: (1) Rename to foldConditionStepOnKnownValue to clarify, (2) Keep name
+     * and document behavior, (3) Extract pure compilation logic separately.
+     *
+     * @param parent the parent value
+     * @param expressionStep the condition step AST node
+     * @param context the compilation context
+     * @return the compiled condition step expression
+     */
     private CompiledExpression compileConditionStepOnValue(Value parent, ConditionStep expressionStep,
                                                            CompilationContext context) {
         if (parent instanceof ErrorValue || parent instanceof UndefinedValue) {
             return parent;
         }
         val compiledConditionExpression = compileExpression(expressionStep.getExpression(), context);
-        return evaluateConditionStepOnValue(parent, compiledConditionExpression, context);
+        return optimizeConditionStepForKnownValue(parent, compiledConditionExpression, context);
     }
 
-    private CompiledExpression evaluateConditionStepOnValue(Value parent, CompiledExpression compiledConditionExpression,
-                                                           CompilationContext context) {
+    /**
+     * Optimizes a condition step when the parent value is known at compile time.
+     * Dispatches to specialized handlers for arrays, objects, or scalar values to
+     * build optimized evaluation code.
+     *
+     * @param parent the known parent value
+     * @param compiledConditionExpression the compiled condition expression
+     * @param context the compilation context
+     * @return the optimized condition step expression
+     */
+    private CompiledExpression optimizeConditionStepForKnownValue(Value parent, CompiledExpression compiledConditionExpression,
+                                                                  CompilationContext context) {
         return switch (parent) {
             case ArrayValue parentArray -> compileConditionStepForRelativeArray(parentArray, compiledConditionExpression, context);
             case ObjectValue parentObject -> compileConditionStepForRelativeObject(parentObject, compiledConditionExpression, context);
@@ -352,9 +571,21 @@ public class ExpressionCompiler {
         };
     }
 
+    /**
+     * Compiles a condition step for filtering an object's properties. Iterates over
+     * entries at compile time, building optimized code for each property.
+     * FIXME: Name suggests general compilation but performs compile-time iteration
+     * over known object. Options: (1) Rename to foldConditionStepOverKnownObject,
+     * (2) Document compile-time iteration behavior, (3) Extract iteration logic.
+     *
+     * @param relativeObject the object to filter
+     * @param conditionExpression the compiled condition
+     * @param context the compilation context
+     * @return the compiled filtered object expression
+     */
     private CompiledExpression compileConditionStepForRelativeObject(ObjectValue relativeObject,
-                                                                    CompiledExpression conditionExpression,
-                                                                    CompilationContext context) {
+                                                                     CompiledExpression conditionExpression,
+                                                                     CompilationContext context) {
         if(relativeObject.isEmpty()) {
             return relativeObject;
         }
@@ -384,6 +615,18 @@ public class ExpressionCompiler {
         return compileAttributesToObject(compiledObjectElementExpressions);
     }
 
+    /**
+     * Compiles a condition step for filtering an array's elements. Iterates over
+     * elements at compile time, building optimized code for each element.
+     * FIXME: Name suggests general compilation but performs compile-time iteration
+     * over known array. Options: (1) Rename to foldConditionStepOverKnownArray,
+     * (2) Document compile-time iteration behavior, (3) Extract iteration logic.
+     *
+     * @param relativeArray the array to filter
+     * @param conditionExpression the compiled condition
+     * @param context the compilation context
+     * @return the compiled filtered array expression
+     */
     private CompiledExpression compileConditionStepForRelativeArray(ArrayValue relativeArray,
                                                                     CompiledExpression conditionExpression,
                                                                     CompilationContext context) {
@@ -416,14 +659,35 @@ public class ExpressionCompiler {
         return compileArgumentsToArray(compiledArrayElementExpressions);
     }
 
+    /**
+     * Dispatches compiled array arguments to the appropriate builder based on their
+     * nature.
+     *
+     * @param compiledArguments the compiled array element arguments
+     * @return the compiled array expression
+     */
     private CompiledExpression compileArgumentsToArray(CompiledArguments compiledArguments) {
         return switch (compiledArguments.nature()) {
-            case VALUE -> compileValueArray(compiledArguments.arguments());
+            case VALUE -> assembleArrayValue(compiledArguments.arguments());
             case PURE -> compilePureArray(compiledArguments);
             case STREAM -> compileArrayStreamExpression(compiledArguments);
         };
     }
 
+    /**
+     * Prepares a condition step for a single relative value. Handles both
+     * compile-time evaluation when possible and deferred evaluation when needed.
+     * FIXME: Complex hybrid behavior mixing compile-time evaluation with deferred
+     * execution. Options: (1) Rename to prepareConditionStepForRelativeValue to
+     * clarify hybrid nature, (2) Split into separate compile-time and runtime paths,
+     * (3) Document the evaluation strategy clearly.
+     *
+     * @param relativeValue the value to test against the condition
+     * @param relativeLocation the location of the value
+     * @param conditionExpression the compiled condition
+     * @param context the compilation context
+     * @return the compiled condition test expression
+     */
     private CompiledExpression compileConditionStepForRelativeValue(Value relativeValue, Value relativeLocation,
                                                                     CompiledExpression conditionExpression, CompilationContext context) {
         val relativeCondition = switch (conditionExpression) {
@@ -451,6 +715,15 @@ public class ExpressionCompiler {
                 ExpressionCompiler::returnValueIfConditionMetElseUndefined);
     }
 
+    /**
+     * Returns the value if the condition is true, otherwise returns undefined.
+     * Validates that the condition evaluates to a boolean value.
+     *
+     * @param value the value to potentially return
+     * @param condition the condition result
+     * @return the value if condition is true, undefined if false, or error if
+     *         condition is not boolean
+     */
     private Value returnValueIfConditionMetElseUndefined(Value value, Value condition) {
         if (!(condition instanceof BooleanValue booleanConstant)) {
             return Value.error(
@@ -460,18 +733,16 @@ public class ExpressionCompiler {
         return booleanConstant.equals(Value.TRUE) ? value : Value.UNDEFINED;
     }
 
-    private static Value indexOrKeyStep(Value value, Value expressionResult) {
-
-        if (expressionResult instanceof NumberValue numberValue) {
-            return StepOperators.indexStep(value, numberValue.value());
-        } else if (expressionResult instanceof TextValue textValue) {
-            return StepOperators.keyStep(value, textValue.value());
-        } else {
-            return Value.error("Expression in expression step must return a number or text, but got %s."
-                    .formatted(expressionResult));
-        }
-    }
-
+    /**
+     * Compiles a step operation on a parent expression by applying a unary operation.
+     * Handles constant folding for value parents, and creates stream or pure
+     * expression wrappers for deferred parents.
+     *
+     * @param parent the parent expression
+     * @param operation the unary operation to apply
+     * @param context the compilation context
+     * @return the compiled step expression
+     */
     private CompiledExpression compileStep(CompiledExpression parent, java.util.function.UnaryOperator<Value> operation,
                                            CompilationContext context) {
         return switch (parent) {
@@ -482,6 +753,14 @@ public class ExpressionCompiler {
         };
     }
 
+    /**
+     * Composes an array expression by compiling its items and delegating to the
+     * appropriate array builder.
+     *
+     * @param array the array AST node
+     * @param context the compilation context
+     * @return the compiled array expression, or empty array if no items
+     */
     private CompiledExpression composeArray(Array array, CompilationContext context) {
         val items = array.getItems();
         if (items.isEmpty()) {
@@ -490,7 +769,14 @@ public class ExpressionCompiler {
         return compileArgumentsToArray(compileArguments(items, context));
     }
 
-    private Value compileValueArray(CompiledExpression[] arguments) {
+    /**
+     * Assembles an array value from element expressions. Used both at compile time
+     * for constant folding and at runtime during stream evaluation.
+     *
+     * @param arguments the array element expressions (must be Values)
+     * @return the assembled array value, or error if any element is an error
+     */
+    private Value assembleArrayValue(CompiledExpression[] arguments) {
         val arrayBuilder = ArrayValue.builder();
         for (val argument : arguments) {
             if (argument instanceof ErrorValue errorValue) {
@@ -503,6 +789,13 @@ public class ExpressionCompiler {
         return arrayBuilder.build();
     }
 
+    /**
+     * Compiles an array with pure element expressions. Creates a pure expression that
+     * evaluates all elements and builds the array at evaluation time.
+     *
+     * @param arguments the compiled array element arguments
+     * @return a pure expression that builds the array
+     */
     private CompiledExpression compilePureArray(CompiledArguments arguments) {
         return new PureExpression(ctx -> {
             val arrayBuilder = ArrayValue.builder();
@@ -522,12 +815,28 @@ public class ExpressionCompiler {
         }, arguments.isSubscriptionScoped());
     }
 
+    /**
+     * Compiles an array with stream element expressions. Creates a stream expression
+     * that combines element streams and assembles arrays from each combination at
+     * runtime.
+     *
+     * @param arguments the compiled array element arguments
+     * @return a stream expression that emits arrays
+     */
     private CompiledExpression compileArrayStreamExpression(CompiledArguments arguments) {
         val sources = Arrays.stream(arguments.arguments()).map(ExpressionCompiler::compiledExpressionToFlux).toList();
-        val stream = Flux.<Value, Value>combineLatest(sources, combined -> compileValueArray((Value[]) combined));
+        val stream = Flux.<Value, Value>combineLatest(sources, combined -> assembleArrayValue((Value[]) combined));
         return new StreamExpression(stream);
     }
 
+    /**
+     * Composes an object expression by compiling its members and delegating to the
+     * appropriate object builder.
+     *
+     * @param object the object AST node
+     * @param context the compilation context
+     * @return the compiled object expression, or empty object if no members
+     */
     private CompiledExpression composeObject(Object object, CompilationContext context) {
         val members = object.getMembers();
         if (members.isEmpty()) {
@@ -536,18 +845,35 @@ public class ExpressionCompiler {
         return compileAttributesToObject(compileAttributes(members, context));
     }
 
+    /**
+     * Dispatches compiled object attributes to the appropriate builder based on their
+     * nature.
+     *
+     * @param attributes the compiled object attributes
+     * @return the compiled object expression
+     */
     private CompiledExpression compileAttributesToObject(CompiledObjectAttributes attributes) {
         return switch (attributes.nature()) {
-            case VALUE -> compileValueObject(attributes);
+            case VALUE -> assembleObjectValue(attributes);
             case PURE -> compilePureObject(attributes);
             case STREAM -> compileObjectStreamExpression(attributes);
         };
     }
 
+    /**
+     * Record representing an object key-value entry.
+     */
     private record ObjectEntry(String key, Value value) {
     }
 
-    private Value compileValueObject(ObjectEntry[] attributes) {
+    /**
+     * Assembles an object value from property entries. Used both at compile time for
+     * constant folding and at runtime during stream evaluation.
+     *
+     * @param attributes the object property entries
+     * @return the assembled object value, or error if any property value is an error
+     */
+    private Value assembleObjectValue(ObjectEntry[] attributes) {
         val objectBuilder = ObjectValue.builder();
         for (val attribute : attributes) {
             val value = attribute.value;
@@ -562,6 +888,13 @@ public class ExpressionCompiler {
         return objectBuilder.build();
     }
 
+    /**
+     * Compiles an object with pure property expressions. Creates a pure expression
+     * that evaluates all properties and builds the object at evaluation time.
+     *
+     * @param attributes the compiled object attributes
+     * @return a pure expression that builds the object
+     */
     private CompiledExpression compilePureObject(CompiledObjectAttributes attributes) {
         return new PureExpression(ctx -> {
             val objectBuilder = ObjectValue.builder();
@@ -583,6 +916,14 @@ public class ExpressionCompiler {
         }, attributes.isSubscriptionScoped());
     }
 
+    /**
+     * Compiles an object with stream property expressions. Creates a stream
+     * expression that combines property streams and assembles objects from each
+     * combination at runtime.
+     *
+     * @param attributes the compiled object attributes
+     * @return a stream expression that emits objects
+     */
     private CompiledExpression compileObjectStreamExpression(CompiledObjectAttributes attributes) {
         val sources = new ArrayList<Flux<ObjectEntry>>(attributes.attributes().size());
         for (val entry : attributes.attributes().entrySet()) {
@@ -590,11 +931,23 @@ public class ExpressionCompiler {
                     compiledExpressionToFlux(entry.getValue()).map(value -> new ObjectEntry(entry.getKey(), value)));
         }
         val stream = Flux.<ObjectEntry, Value>combineLatest(sources,
-                combined -> compileValueObject((ObjectEntry[]) combined));
+                combined -> assembleObjectValue((ObjectEntry[]) combined));
         return new StreamExpression(stream);
     }
 
-    private CompiledExpression compileValueObject(CompiledObjectAttributes attributes) {
+    /**
+     * Assembles an object value from compiled attribute expressions. Used both at
+     * compile time for constant folding and at runtime during stream evaluation.
+     *
+     * @param attributes the compiled object attributes containing only Values
+     * @return the assembled object value, or error if any attribute is an error
+     * @throws SaplCompilerException if attributes nature is not VALUE
+     */
+    private Value assembleObjectValue(CompiledObjectAttributes attributes) {
+        if (attributes.nature() != Nature.VALUE) {
+            throw new SaplCompilerException(
+                    "assembleObjectValue called with non-VALUE nature: " + attributes.nature());
+        }
         val objectBuilder = ObjectValue.builder();
         for (val attribute : attributes.attributes().entrySet()) {
             val key = attribute.getKey();
@@ -609,6 +962,14 @@ public class ExpressionCompiler {
         return objectBuilder.build();
     }
 
+    /**
+     * Compiles object member expressions into a structured representation tracking
+     * whether members are values, pure expressions, or streams.
+     *
+     * @param members the object member AST nodes
+     * @param context the compilation context
+     * @return the compiled object attributes with nature classification
+     */
     private CompiledObjectAttributes compileAttributes(EList<Pair> members, CompilationContext context) {
         if (members == null || members.isEmpty()) {
             return CompiledObjectAttributes.EMPTY_ATTRIBUTES;
@@ -638,6 +999,14 @@ public class ExpressionCompiler {
         return new CompiledObjectAttributes(nature, isSubscriptionScoped, compiledArguments);
     }
 
+    /**
+     * Compiles expression arguments into a structured representation tracking whether
+     * arguments are values, pure expressions, or streams.
+     *
+     * @param arguments the argument expression AST nodes
+     * @param context the compilation context
+     * @return the compiled arguments with nature classification
+     */
     private CompiledArguments compileArguments(EList<Expression> arguments, CompilationContext context) {
         val compiledArguments = new CompiledExpression[arguments.size()];
         var isPure = false;

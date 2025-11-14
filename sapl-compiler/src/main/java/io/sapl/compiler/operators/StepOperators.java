@@ -18,9 +18,7 @@
 package io.sapl.compiler.operators;
 
 import io.sapl.api.SaplVersion;
-import io.sapl.api.model.ArrayValue;
-import io.sapl.api.model.ObjectValue;
-import io.sapl.api.model.Value;
+import io.sapl.api.model.*;
 import lombok.NonNull;
 import lombok.experimental.StandardException;
 import lombok.experimental.UtilityClass;
@@ -37,6 +35,26 @@ import java.util.List;
 public class StepOperators {
 
     private static final int MAX_RECURSION_DEPTH = 500;
+
+    /**
+     * Performs an index or key step based on the expression result type. Uses the
+     * expression result as an array index if numeric, or an object key if text.
+     *
+     * @param value the value to access
+     * @param expressionResult the index or key as a value
+     * @return the accessed value, or an error if the expression result is not a
+     *         number or text
+     */
+    public static Value indexOrKeyStep(Value value, Value expressionResult) {
+        if (expressionResult instanceof NumberValue numberValue) {
+            return StepOperators.indexStep(value, numberValue.value());
+        } else if (expressionResult instanceof TextValue textValue) {
+            return StepOperators.keyStep(value, textValue.value());
+        } else {
+            return Value.error("Expression in expression step must return a number or text, but got %s."
+                    .formatted(expressionResult));
+        }
+    }
 
     /**
      * Accesses an object property by key.
