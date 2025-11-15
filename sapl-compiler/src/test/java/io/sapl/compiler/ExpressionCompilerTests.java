@@ -46,19 +46,13 @@ class ExpressionCompilerTests {
     private static Stream<Arguments> expressionsThatCompileToConstants() {
         return Stream.of(
                 // Literals fold to constants
-                arguments("true", Value.TRUE),
-                arguments("false", Value.FALSE),
-                arguments("null", Value.NULL),
-                arguments("undefined", Value.UNDEFINED),
-                arguments("42", Value.of(42)),
-                arguments("-17", Value.of(-17)),
-                arguments("3.14159", Value.of(3.14159)),
-                arguments("\"Stormbringer\"", Value.of("Stormbringer")),
+                arguments("true", Value.TRUE), arguments("false", Value.FALSE), arguments("null", Value.NULL),
+                arguments("undefined", Value.UNDEFINED), arguments("42", Value.of(42)), arguments("-17", Value.of(-17)),
+                arguments("3.14159", Value.of(3.14159)), arguments("\"Stormbringer\"", Value.of("Stormbringer")),
                 arguments("\"\"", Value.EMPTY_TEXT),
 
                 // Empty collections
-                arguments("[]", Value.EMPTY_ARRAY),
-                arguments("{}", Value.EMPTY_OBJECT),
+                arguments("[]", Value.EMPTY_ARRAY), arguments("{}", Value.EMPTY_OBJECT),
 
                 // Simple arrays with constant elements
                 arguments("[1, 2, 3]", Value.ofArray(Value.of(1), Value.of(2), Value.of(3))),
@@ -67,84 +61,53 @@ class ExpressionCompilerTests {
                         Value.ofArray(Value.of("Elric"), Value.of("Moonglum"), Value.of("Dyvim Tvar"))),
 
                 // Simple objects with constant properties
-                arguments("{\"lord\": \"Arioch\"}",
-                        ObjectValue.builder().put("lord", Value.of("Arioch")).build()),
+                arguments("{\"lord\": \"Arioch\"}", ObjectValue.builder().put("lord", Value.of("Arioch")).build()),
                 arguments("{\"emperor\": \"Elric\", \"city\": \"Imrryr\"}",
-                        ObjectValue.builder()
-                                .put("emperor", Value.of("Elric"))
-                                .put("city", Value.of("Imrryr"))
+                        ObjectValue.builder().put("emperor", Value.of("Elric")).put("city", Value.of("Imrryr"))
                                 .build()),
                 arguments("{\"clearance\": 3, \"authorized\": true}",
-                        ObjectValue.builder()
-                                .put("clearance", Value.of(3))
-                                .put("authorized", Value.TRUE)
-                                .build()),
+                        ObjectValue.builder().put("clearance", Value.of(3)).put("authorized", Value.TRUE).build()),
 
                 // Nested structures with constants
                 arguments("{\"sword\": {\"name\": \"Stormbringer\", \"souls\": 999}}",
                         ObjectValue.builder()
-                                .put("sword", ObjectValue.builder()
-                                        .put("name", Value.of("Stormbringer"))
-                                        .put("souls", Value.of(999))
-                                        .build())
+                                .put("sword",
+                                        ObjectValue.builder().put("name", Value.of("Stormbringer"))
+                                                .put("souls", Value.of(999)).build())
                                 .build()),
                 arguments("[[1, 2], [3, 4], [5, 6]]",
-                        Value.ofArray(
-                                Value.ofArray(Value.of(1), Value.of(2)),
-                                Value.ofArray(Value.of(3), Value.of(4)),
+                        Value.ofArray(Value.ofArray(Value.of(1), Value.of(2)), Value.ofArray(Value.of(3), Value.of(4)),
                                 Value.ofArray(Value.of(5), Value.of(6)))),
 
                 // Arithmetic operations with constants fold
-                arguments("2 + 3", Value.of(5)),
-                arguments("10 - 7", Value.of(3)),
-                arguments("6 * 7", Value.of(42)),
-                arguments("100 / 4", Value.of(25)),
-                arguments("17 % 5", Value.of(2)),
-                arguments("2 + 3 * 4", Value.of(14)),
-                arguments("(2 + 3) * 4", Value.of(20)),
-                arguments("-5", Value.of(-5)),
-                arguments("+42", Value.of(42)),
+                arguments("2 + 3", Value.of(5)), arguments("10 - 7", Value.of(3)), arguments("6 * 7", Value.of(42)),
+                arguments("100 / 4", Value.of(25)), arguments("17 % 5", Value.of(2)),
+                arguments("2 + 3 * 4", Value.of(14)), arguments("(2 + 3) * 4", Value.of(20)),
+                arguments("-5", Value.of(-5)), arguments("+42", Value.of(42)),
 
                 // Boolean operations with constants fold
-                arguments("true && true", Value.TRUE),
-                arguments("true && false", Value.FALSE),
-                arguments("false && true", Value.FALSE),
-                arguments("false && false", Value.FALSE),
-                arguments("true || false", Value.TRUE),
-                arguments("false || false", Value.FALSE),
-                arguments("true ^ false", Value.TRUE),
-                arguments("true ^ true", Value.FALSE),
-                arguments("!true", Value.FALSE),
-                arguments("!false", Value.TRUE),
-                arguments("true & false", Value.FALSE),
-                arguments("true | false", Value.TRUE),
+                arguments("true && true", Value.TRUE), arguments("true && false", Value.FALSE),
+                arguments("false && true", Value.FALSE), arguments("false && false", Value.FALSE),
+                arguments("true || false", Value.TRUE), arguments("false || false", Value.FALSE),
+                arguments("true ^ false", Value.TRUE), arguments("true ^ true", Value.FALSE),
+                arguments("!true", Value.FALSE), arguments("!false", Value.TRUE),
+                arguments("true & false", Value.FALSE), arguments("true | false", Value.TRUE),
 
                 // Comparison operations with constants fold
-                arguments("5 > 3", Value.TRUE),
-                arguments("3 > 5", Value.FALSE),
-                arguments("5 >= 5", Value.TRUE),
-                arguments("3 < 5", Value.TRUE),
-                arguments("5 < 3", Value.FALSE),
-                arguments("5 <= 5", Value.TRUE),
-                arguments("42 == 42", Value.TRUE),
-                arguments("42 == 17", Value.FALSE),
-                arguments("42 != 17", Value.TRUE),
-                arguments("42 != 42", Value.FALSE),
-                arguments("\"Imrryr\" == \"Imrryr\"", Value.TRUE),
-                arguments("\"Imrryr\" != \"Tanelorn\"", Value.TRUE),
-                arguments("true == true", Value.TRUE),
-                arguments("null == null", Value.TRUE),
+                arguments("5 > 3", Value.TRUE), arguments("3 > 5", Value.FALSE), arguments("5 >= 5", Value.TRUE),
+                arguments("3 < 5", Value.TRUE), arguments("5 < 3", Value.FALSE), arguments("5 <= 5", Value.TRUE),
+                arguments("42 == 42", Value.TRUE), arguments("42 == 17", Value.FALSE),
+                arguments("42 != 17", Value.TRUE), arguments("42 != 42", Value.FALSE),
+                arguments("\"Imrryr\" == \"Imrryr\"", Value.TRUE), arguments("\"Imrryr\" != \"Tanelorn\"", Value.TRUE),
+                arguments("true == true", Value.TRUE), arguments("null == null", Value.TRUE),
 
                 // Element membership with constants fold
-                arguments("3 in [1, 2, 3, 4]", Value.TRUE),
-                arguments("5 in [1, 2, 3, 4]", Value.FALSE),
+                arguments("3 in [1, 2, 3, 4]", Value.TRUE), arguments("5 in [1, 2, 3, 4]", Value.FALSE),
                 arguments("\"read\" in [\"read\", \"write\", \"delete\"]", Value.TRUE),
 
                 // Complex expressions combining multiple operations
-                arguments("(5 > 3) && (10 < 20)", Value.TRUE),
-                arguments("(5 + 3) * 2 == 16", Value.TRUE),
-                arguments("(true || false) && (3 < 5)", Value.TRUE),
-                arguments("100 / (2 + 3) * 2", Value.of(40)),
+                arguments("(5 > 3) && (10 < 20)", Value.TRUE), arguments("(5 + 3) * 2 == 16", Value.TRUE),
+                arguments("(true || false) && (3 < 5)", Value.TRUE), arguments("100 / (2 + 3) * 2", Value.of(40)),
 
                 // Key step access on constant objects
                 arguments("{\"weapon\": \"Stormbringer\"}.weapon", Value.of("Stormbringer")),
@@ -158,45 +121,33 @@ class ExpressionCompilerTests {
                 arguments("{\"key.with.dots\": 42}[\"key.with.dots\"]", Value.of(42)),
 
                 // Index step access on constant arrays
-                arguments("[10, 20, 30, 40][0]", Value.of(10)),
-                arguments("[10, 20, 30, 40][2]", Value.of(30)),
+                arguments("[10, 20, 30, 40][0]", Value.of(10)), arguments("[10, 20, 30, 40][2]", Value.of(30)),
                 arguments("[10, 20, 30, 40][3]", Value.of(40)),
                 arguments("[\"Elric\", \"Moonglum\", \"Cymoril\"][1]", Value.of("Moonglum")),
                 arguments("[[1, 2], [3, 4]][0][1]", Value.of(2)),
 
                 // Array slicing on constants
-                arguments("[10, 20, 30, 40, 50][1:3]",
-                        Value.ofArray(Value.of(20), Value.of(30))),
-                arguments("[10, 20, 30, 40, 50][: :2]",
-                        Value.ofArray(Value.of(10), Value.of(30), Value.of(50))),
-                arguments("[10, 20, 30, 40, 50][1: :2]",
-                        Value.ofArray(Value.of(20), Value.of(40))),
-                arguments("[10, 20, 30, 40, 50][:3]",
-                        Value.ofArray(Value.of(10), Value.of(20), Value.of(30))),
-                arguments("[10, 20, 30, 40, 50][2:]",
-                        Value.ofArray(Value.of(30), Value.of(40), Value.of(50))),
+                arguments("[10, 20, 30, 40, 50][1:3]", Value.ofArray(Value.of(20), Value.of(30))),
+                arguments("[10, 20, 30, 40, 50][: :2]", Value.ofArray(Value.of(10), Value.of(30), Value.of(50))),
+                arguments("[10, 20, 30, 40, 50][1: :2]", Value.ofArray(Value.of(20), Value.of(40))),
+                arguments("[10, 20, 30, 40, 50][:3]", Value.ofArray(Value.of(10), Value.of(20), Value.of(30))),
+                arguments("[10, 20, 30, 40, 50][2:]", Value.ofArray(Value.of(30), Value.of(40), Value.of(50))),
 
                 // Wildcard on constant structures
-                arguments("[1, 2, 3].*",
-                        Value.ofArray(Value.of(1), Value.of(2), Value.of(3))),
-                arguments("{\"a\": 1, \"b\": 2}.*",
-                        ArrayValue.builder().add(Value.of(1)).add(Value.of(2)).build()),
+                arguments("[1, 2, 3].*", Value.ofArray(Value.of(1), Value.of(2), Value.of(3))),
+                arguments("{\"a\": 1, \"b\": 2}.*", ArrayValue.builder().add(Value.of(1)).add(Value.of(2)).build()),
 
                 // Condition step on constant arrays
-                arguments("[1, 2, 3, 4, 5][?(@ > 3)]",
-                        Value.ofArray(Value.of(4), Value.of(5))),
-                arguments("[10, 20, 30, 40][?(@ < 30)]",
-                        Value.ofArray(Value.of(10), Value.of(20))),
+                arguments("[1, 2, 3, 4, 5][?(@ > 3)]", Value.ofArray(Value.of(4), Value.of(5))),
+                arguments("[10, 20, 30, 40][?(@ < 30)]", Value.ofArray(Value.of(10), Value.of(20))),
 
                 // Expression step on constant values
                 arguments("[\"Imrryr\", \"Tanelorn\", \"Vilmir\"][(1 + 1)]", Value.of("Vilmir")),
                 arguments("[10, 20, 30][((6 / 2) - 1)]", Value.of(30)),
 
                 // Index union on constant arrays
-                arguments("[10, 20, 30, 40, 50][0, 2, 4]",
-                        Value.ofArray(Value.of(10), Value.of(30), Value.of(50))),
-                arguments("[\"a\", \"b\", \"c\", \"d\"][1, 3]",
-                        Value.ofArray(Value.of("b"), Value.of("d"))),
+                arguments("[10, 20, 30, 40, 50][0, 2, 4]", Value.ofArray(Value.of(10), Value.of(30), Value.of(50))),
+                arguments("[\"a\", \"b\", \"c\", \"d\"][1, 3]", Value.ofArray(Value.of("b"), Value.of("d"))),
 
                 // Attribute union on constant objects
                 arguments("{\"name\": \"Melniboné\", \"capital\": \"Imrryr\", \"age\": 10000}[\"name\", \"capital\"]",
@@ -208,11 +159,8 @@ class ExpressionCompilerTests {
                         Value.ofArray(Value.of(1), Value.of(2), Value.of(3))),
 
                 // Mixed operations with steps and operators
-                arguments("[1, 2, 3][0] + 10", Value.of(11)),
-                arguments("{\"value\": 100}.value / 4", Value.of(25)),
-                arguments("([1, 2, 3][1] * 5) > 9", Value.TRUE),
-                arguments("[5, 10, 15][?(@ > 7)][0]", Value.of(10))
-        );
+                arguments("[1, 2, 3][0] + 10", Value.of(11)), arguments("{\"value\": 100}.value / 4", Value.of(25)),
+                arguments("([1, 2, 3][1] * 5) > 9", Value.TRUE), arguments("[5, 10, 15][?(@ > 7)][0]", Value.of(10)));
     }
 
     @ParameterizedTest
@@ -224,16 +172,12 @@ class ExpressionCompilerTests {
     private static Stream<Arguments> expressionsThatCompileToPureExpressions() {
         return Stream.of(
                 // Subscription elements require runtime evaluation
-                arguments("subject", Value.of("Elric")),
-                arguments("action", Value.of("slay")),
-                arguments("resource", Value.of("Moonglum")),
-                arguments("environment", Value.of("Tanelorn")),
+                arguments("subject", Value.of("Elric")), arguments("action", Value.of("slay")),
+                arguments("resource", Value.of("Moonglum")), arguments("environment", Value.of("Tanelorn")),
 
                 // Operations on subscription elements
-                arguments("subject == \"Elric\"", Value.TRUE),
-                arguments("action == \"slay\"", Value.TRUE),
-                arguments("resource != \"Stormbringer\"", Value.TRUE),
-                arguments("subject == \"Arioch\"", Value.FALSE),
+                arguments("subject == \"Elric\"", Value.TRUE), arguments("action == \"slay\"", Value.TRUE),
+                arguments("resource != \"Stormbringer\"", Value.TRUE), arguments("subject == \"Arioch\"", Value.FALSE),
 
                 // Key access on subscription elements
                 arguments("{\"subject\": subject}.subject", Value.of("Elric")),
@@ -261,16 +205,14 @@ class ExpressionCompilerTests {
                 // Nested access with subscription elements
                 arguments("{\"user\": subject, \"weapons\": [\"Stormbringer\", \"Mournblade\"]}.user",
                         Value.of("Elric")),
-                arguments("{\"metadata\": {\"actor\": subject}}.metadata.actor",
-                        Value.of("Elric")),
+                arguments("{\"metadata\": {\"actor\": subject}}.metadata.actor", Value.of("Elric")),
 
                 // Comparisons involving subscription elements
                 arguments("{\"title\": \"emperor\"}.title == \"emperor\"", Value.TRUE),
                 arguments("[\"Elric\", \"Moonglum\"][0] == subject", Value.TRUE),
 
                 // Operations on objects containing subscription elements
-                arguments("{\"subject\": subject, \"action\": action}.subject == \"Elric\"",
-                        Value.TRUE),
+                arguments("{\"subject\": subject, \"action\": action}.subject == \"Elric\"", Value.TRUE),
                 arguments("{\"a\": subject, \"b\": resource}.b", Value.of("Moonglum")),
 
                 // Objects with undefined values filtered out
@@ -280,22 +222,18 @@ class ExpressionCompilerTests {
                         Value.of("Chaos")),
 
                 // Arrays with undefined values filtered out
-                arguments("[1, undefined, 3, undefined, 5]",
-                        Value.ofArray(Value.of(1), Value.of(3), Value.of(5))),
-                arguments("[subject, undefined, action]",
-                        Value.ofArray(Value.of("Elric"), Value.of("slay"))),
+                arguments("[1, undefined, 3, undefined, 5]", Value.ofArray(Value.of(1), Value.of(3), Value.of(5))),
+                arguments("[subject, undefined, action]", Value.ofArray(Value.of("Elric"), Value.of("slay"))),
 
                 // Condition steps with scalar values
-                arguments("42[?(@ > 40)]", Value.of(42)),
-                arguments("42[?(@ < 40)]", Value.UNDEFINED),
+                arguments("42[?(@ > 40)]", Value.of(42)), arguments("42[?(@ < 40)]", Value.UNDEFINED),
                 arguments("\"Stormbringer\"[?(@ == \"Stormbringer\")]", Value.of("Stormbringer")),
                 arguments("\"Stormbringer\"[?(@ == \"Mournblade\")]", Value.UNDEFINED),
 
                 // Condition steps on arrays with pure conditions
                 arguments("[1, 2, 3, 4, 5][?(@ > {\"threshold\": 3}.threshold)]",
                         Value.ofArray(Value.of(4), Value.of(5))),
-                arguments("[\"Elric\", \"Moonglum\", \"Cymoril\"][?(@ == subject)]",
-                        Value.ofArray(Value.of("Elric"))),
+                arguments("[\"Elric\", \"Moonglum\", \"Cymoril\"][?(@ == subject)]", Value.ofArray(Value.of("Elric"))),
 
                 // Condition steps on objects with pure conditions
                 arguments("{\"Elric\": 100, \"Moonglum\": 50, \"Cymoril\": 75}[?(@ > {\"min\": 60}.min)]",
@@ -313,10 +251,9 @@ class ExpressionCompilerTests {
                 // More complex object compositions
                 arguments("{\"lord\": {\"name\": subject, \"domain\": \"Chaos\"}}",
                         ObjectValue.builder()
-                                .put("lord", ObjectValue.builder()
-                                        .put("name", Value.of("Elric"))
-                                        .put("domain", Value.of("Chaos"))
-                                        .build())
+                                .put("lord",
+                                        ObjectValue.builder().put("name", Value.of("Elric"))
+                                                .put("domain", Value.of("Chaos")).build())
                                 .build()),
 
                 // Expression steps with pure expressions
@@ -333,27 +270,25 @@ class ExpressionCompilerTests {
 
                 // Eager AND operations
                 arguments("true & (subject == \"Elric\")", Value.TRUE),
-                arguments("false & (action == \"slay\")", Value.FALSE)
-        );
+                arguments("false & (action == \"slay\")", Value.FALSE));
     }
+
     @ParameterizedTest
     @MethodSource
     void errorConditionsHandledCorrectly(String expression, String expectedErrorSubstring) {
-        assertCompiledExpressionEvaluatesToErrorContaining(expression,expectedErrorSubstring);
+        assertCompiledExpressionEvaluatesToErrorContaining(expression, expectedErrorSubstring);
     }
 
     private static Stream<Arguments> errorConditionsHandledCorrectly() {
         return Stream.of(
                 // Condition steps with non-boolean conditions on scalars
-                arguments("42[?(@ + 1)]", "Condition"),
-                arguments("\"text\"[?(123)]", "Condition"),
+                arguments("42[?(@ + 1)]", "Condition"), arguments("\"text\"[?(123)]", "Condition"),
 
                 // Condition steps with non-boolean conditions on arrays
                 arguments("[1, 2, 3][?(@ * 2)]", "Condition"),
 
                 // Condition steps with non-boolean conditions on objects
-                arguments("{\"a\": 1, \"b\": 2}[?(@ + 5)]", "Condition")
-        );
+                arguments("{\"a\": 1, \"b\": 2}[?(@ + 5)]", "Condition"));
     }
 
     @ParameterizedTest
@@ -369,11 +304,10 @@ class ExpressionCompilerTests {
                 arguments("{\"a\": 1, \"b\": 2}[?(@ > 10)]", Value.EMPTY_OBJECT),
 
                 // Condition steps on empty collections
-                arguments("[][?(@ > 0)]", Value.EMPTY_ARRAY),
-                arguments("{}[?(@ > 0)]", Value.EMPTY_OBJECT),
+                arguments("[][?(@ > 0)]", Value.EMPTY_ARRAY), arguments("{}[?(@ > 0)]", Value.EMPTY_OBJECT),
 
                 // Nested empty collections
-                arguments("[[]]", Value.ofArray((new Value[] {Value.EMPTY_ARRAY}))),
+                arguments("[[]]", Value.ofArray((new Value[] { Value.EMPTY_ARRAY }))),
                 arguments("[{}]", Value.ofArray(Value.EMPTY_OBJECT)),
                 arguments("{\"empty\": []}", ObjectValue.builder().put("empty", Value.EMPTY_ARRAY).build()),
                 arguments("{\"empty\": {}}", ObjectValue.builder().put("empty", Value.EMPTY_OBJECT).build()),
@@ -384,32 +318,23 @@ class ExpressionCompilerTests {
 
                 // Mixed defined and undefined in nested structures
                 arguments("{\"outer\": {\"inner\": undefined, \"value\": 42}}",
-                        ObjectValue.builder()
-                                .put("outer", ObjectValue.builder().put("value", Value.of(42)).build())
+                        ObjectValue.builder().put("outer", ObjectValue.builder().put("value", Value.of(42)).build())
                                 .build()),
 
                 // All boolean combinations with lazy operators
-                arguments("true || true", Value.TRUE),
-                arguments("true || false", Value.TRUE),
+                arguments("true || true", Value.TRUE), arguments("true || false", Value.TRUE),
                 arguments("false || true", Value.TRUE),
 
                 // Unary plus and minus
-                arguments("+123", Value.of(123)),
-                arguments("+(5 + 5)", Value.of(10)),
+                arguments("+123", Value.of(123)), arguments("+(5 + 5)", Value.of(10)),
                 arguments("-(10 - 3)", Value.of(-7)),
 
                 // Comparison edge cases
-                arguments("0 == 0", Value.TRUE),
-                arguments("-1 < 0", Value.TRUE),
-                arguments("0 <= 0", Value.TRUE),
-                arguments("1 >= 1", Value.TRUE),
-                arguments("2 > 1", Value.TRUE),
+                arguments("0 == 0", Value.TRUE), arguments("-1 < 0", Value.TRUE), arguments("0 <= 0", Value.TRUE),
+                arguments("1 >= 1", Value.TRUE), arguments("2 > 1", Value.TRUE),
 
                 // Element membership edge cases
-                arguments("null in [null, 1, 2]", Value.TRUE),
-                arguments("undefined in [undefined, 1, 2]", Value.FALSE),
-                arguments("true in [true, false]", Value.TRUE),
-                arguments("false in [true, false]", Value.TRUE)
-        );
+                arguments("null in [null, 1, 2]", Value.TRUE), arguments("undefined in [undefined, 1, 2]", Value.FALSE),
+                arguments("true in [true, false]", Value.TRUE), arguments("false in [true, false]", Value.TRUE));
     }
 }

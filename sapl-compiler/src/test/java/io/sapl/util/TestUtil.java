@@ -57,7 +57,9 @@ public class TestUtil {
     public static void assertCompiledExpressionEvaluatesToErrorContaining(String expression, String message) {
         val compiledExpression = compileExpression(expression);
         val evaluated          = evaluateExpression(compiledExpression, createEvaluationContext());
-        StepVerifier.create(evaluated).expectNextMatches(e -> e instanceof ErrorValue error && error.message().contains(message)).verifyComplete();
+        StepVerifier.create(evaluated)
+                .expectNextMatches(e -> e instanceof ErrorValue error && error.message().contains(message))
+                .verifyComplete();
     }
 
     public static void assertExpressionCompilesToValue(String expression, Value expected) {
