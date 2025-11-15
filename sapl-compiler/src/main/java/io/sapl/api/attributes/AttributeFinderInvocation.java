@@ -17,7 +17,7 @@
  */
 package io.sapl.api.attributes;
 
-import io.sapl.api.interpreter.Val;
+import io.sapl.api.model.Value;
 import lombok.NonNull;
 
 import java.time.Duration;
@@ -29,9 +29,9 @@ import static io.sapl.validation.NameValidator.requireValidName;
 public record AttributeFinderInvocation(
         @NonNull String pdpConfigurationId,
         @NonNull String attributeName,
-        Val entity,
-        @NonNull List<Val> arguments,
-        @NonNull Map<String, Val> variables,
+        Value entity,
+        @NonNull List<Value> arguments,
+        @NonNull Map<String, Value> variables,
         @NonNull Duration initialTimeOut,
         @NonNull Duration pollInterval,
         @NonNull Duration backoff,
@@ -40,8 +40,8 @@ public record AttributeFinderInvocation(
 
     public AttributeFinderInvocation(@NonNull String pdpConfigurationId,
             @NonNull String fullyQualifiedName,
-            @NonNull List<Val> arguments,
-            @NonNull Map<String, Val> variables,
+            @NonNull List<Value> arguments,
+            @NonNull Map<String, Value> variables,
             @NonNull Duration initialTimeOut,
             @NonNull Duration pollInterval,
             @NonNull Duration backoff,

@@ -18,13 +18,15 @@
 package io.sapl.api.model;
 
 import io.sapl.api.SaplVersion;
-import io.sapl.grammar.sapl.Array;
 import lombok.NonNull;
 import lombok.experimental.Delegate;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.Serial;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
 import java.util.stream.Collectors;
 
 /**

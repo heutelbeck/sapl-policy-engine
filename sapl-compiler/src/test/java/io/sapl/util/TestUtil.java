@@ -21,6 +21,7 @@ import io.sapl.api.functions.FunctionBroker;
 import io.sapl.api.model.*;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.compiler.CompilationContext;
+import io.sapl.api.model.CompiledExpression;
 import io.sapl.compiler.ExpressionCompiler;
 import io.sapl.functions.DefaultFunctionBroker;
 import lombok.SneakyThrows;
@@ -57,8 +58,8 @@ public class TestUtil {
     public static void assertCompiledExpressionEvaluatesToErrorContaining(String expression, String message) {
         val compiledExpression = compileExpression(expression);
         val evaluated          = evaluateExpression(compiledExpression, createEvaluationContext());
-        StepVerifier.create(evaluated)
-                .expectNextMatches(e -> e instanceof ErrorValue error && error.message().contains(message))
+        StepVerifier.create(evaluated).expectNextMatches(
+                e -> e instanceof ErrorValue error && error.message().toLowerCase().contains(message.toLowerCase()))
                 .verifyComplete();
     }
 

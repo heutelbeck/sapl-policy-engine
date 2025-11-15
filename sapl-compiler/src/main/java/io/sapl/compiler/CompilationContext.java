@@ -40,7 +40,7 @@ public class CompilationContext {
     List<Import>                            imports                  = new ArrayList<>();
     Map<SchemaTarget, List<CompiledSchema>> schemas                  = new EnumMap<>(SchemaTarget.class);
     Map<String, CompiledExpression>         localVariablesInScope    = new HashMap<>();
-    Map<Value, Value>                       constants                = new HashMap<>();
+    Map<Value, Value>                       constantsCache           = new HashMap<>();
 
     public void addAllImports(List<Import> imports) {
         if (imports != null) {
@@ -58,7 +58,7 @@ public class CompilationContext {
         if (debugInformationEnabled) {
             return constantValue;
         }
-        return constants.computeIfAbsent(constantValue, Function.identity());
+        return constantsCache.computeIfAbsent(constantValue, Function.identity());
     }
 
 }
