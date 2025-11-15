@@ -59,6 +59,11 @@ public class ExpressionCompiler {
      * null
      */
     public CompiledExpression compileExpression(Expression expression, CompilationContext context) {
+        if (expression == null) {
+            // Intentional. Downstream, this cleans up the code and removes multiple null
+            // checks.
+            return null;
+        }
         return switch (expression) {
         case Or or                 -> compileBinaryOperator(or, BooleanOperators::or, context); // TODO add lazy !
         case EagerOr eagerOr       -> compileBinaryOperator(eagerOr, BooleanOperators::or, context);
@@ -205,14 +210,16 @@ public class ExpressionCompiler {
      * @return the compiled basic expression
      */
     private CompiledExpression compileBasicExpression(BasicExpression expression, CompilationContext context) {
+        // FIXME
         return switch (expression) {
-        case BasicGroup group                               -> compileExpression(group.getExpression(), context);
+        case BasicGroup group                               ->
+            compileSteps(compileExpression(group.getExpression(), context), group.getSteps(), context);
         case BasicValue value                               -> compileValue(value, context);
         case BasicFunction function                         -> compileBasicFunction(function, context);
         case BasicEnvironmentAttribute envAttribute         -> UNIMPLEMENTED;
         case BasicEnvironmentHeadAttribute envHeadAttribute -> UNIMPLEMENTED;
         case BasicIdentifier identifier                     -> compileIdentifier(identifier, context);
-        case BasicRelative ignored                          -> compileBasicRelative(context);
+        case BasicRelative relativeValue                    -> compileBasicRelative(relativeValue, context);
         default                                             ->
             throw new SaplCompilerException("unexpected expression: " + expression + ".");
         };
@@ -225,8 +232,10 @@ public class ExpressionCompiler {
      * @param context the compilation context
      * @return a pure expression that extracts the relative value
      */
-    private CompiledExpression compileBasicRelative(CompilationContext context) {
-        return new PureExpression(EvaluationContext::relativeValue, false);
+    private CompiledExpression compileBasicRelative(BasicRelative relativeValue, CompilationContext context) {
+        CompiledExpression compiled = new PureExpression(EvaluationContext::relativeValue, false);
+        return compileSteps(compiled, relativeValue.getSteps(), context);
+
     }
 
     /**
@@ -242,11 +251,13 @@ public class ExpressionCompiler {
         if (function.getArguments() != null && function.getArguments().getArgs() != null) {
             arguments = compileArguments(function.getArguments().getArgs(), context);
         }
-        return switch (arguments.nature()) {
+        CompiledExpression compiled = switch (arguments.nature()) {
         case VALUE  -> foldFunctionWithValueParameters(function, arguments.arguments(), context);
         case PURE   -> compileFunctionWithPureParameters(function, arguments, context);
         case STREAM -> compileFunctionWithStreamParameters(function, arguments, context);
         };
+        return compileSteps(compiled, function.getSteps(), context);
+
     }
 
     /**
@@ -343,7 +354,8 @@ public class ExpressionCompiler {
         if (maybeLocalVariable != null) {
             return maybeLocalVariable;
         }
-        return new PureExpression(ctx -> ctx.get(variableIdentifier), true);
+        CompiledExpression compiledValue = new PureExpression(ctx -> ctx.get(variableIdentifier), true);
+        return compileSteps(compiledValue, identifier.getSteps(), context);
     }
 
     /**
@@ -368,12 +380,7 @@ public class ExpressionCompiler {
                           default                   ->
                               throw new SaplCompilerException("unexpected value: " + value + ".");
                           };
-
-        compiledValue = compileSteps(compiledValue, basic.getSteps(), context);
-        if (compiledValue instanceof Value constantValue) {
-            return context.dedupe(constantValue);
-        }
-        return compiledValue;
+        return compileSteps(compiledValue, basic.getSteps(), context);
     }
 
     /**
@@ -392,6 +399,9 @@ public class ExpressionCompiler {
         }
         for (val step : steps) {
             expression = compileStep(expression, step, context);
+        }
+        if (expression instanceof Value constantValue) {
+            return context.dedupe(constantValue);
         }
         return expression;
     }
@@ -424,8 +434,12 @@ public class ExpressionCompiler {
             compileStep(parent, p -> StepOperators.recursiveIndexStep(p, recursiveIndexStep.getIndex()), context);
         case IndexStep indexStep                             ->
             compileStep(parent, p -> StepOperators.indexStep(p, indexStep.getIndex()), context);
-        case ArraySlicingStep arraySlicingStep               -> compileStep(parent, p -> StepOperators.sliceArray(p,
-                arraySlicingStep.getIndex(), arraySlicingStep.getTo(), arraySlicingStep.getStep()), context);
+        case ArraySlicingStep arraySlicingStep               -> {
+            System.err.println("DEBUG ArraySlicingStep: index=" + arraySlicingStep.getIndex() + ", to="
+                    + arraySlicingStep.getTo() + ", step=" + arraySlicingStep.getStep());
+            yield compileStep(parent, p -> StepOperators.sliceArray(p, arraySlicingStep.getIndex(),
+                    arraySlicingStep.getTo(), arraySlicingStep.getStep()), context);
+        }
         case ExpressionStep expressionStep                   -> compileExpressionStep(parent, expressionStep, context);
         case ConditionStep conditionStep                     -> compileConditionStep(parent, conditionStep, context);
         case IndexUnionStep indexUnionStep                   ->
@@ -688,13 +702,12 @@ public class ExpressionCompiler {
         return Flux.combineLatest(sources, ExpressionCompiler::assembleObjectValue);
     }
 
-    private Flux<Value> evaluateStreamConditionStepOnArrayValue(ArrayValue arrayParent,
-            Flux<Value> conditionStream) {
+    private Flux<Value> evaluateStreamConditionStepOnArrayValue(ArrayValue arrayParent, Flux<Value> conditionStream) {
         val sources = new ArrayList<Flux<Value>>(arrayParent.size());
         for (var i = 0; i < arrayParent.size(); i++) {
-            val relativeLocation  = Value.of(i);
-            val relativeValue     = arrayParent.get(i);
-            val elementStream = setRelativeValueContext(conditionStream, relativeValue, relativeLocation)
+            val relativeLocation = Value.of(i);
+            val relativeValue    = arrayParent.get(i);
+            val elementStream    = setRelativeValueContext(conditionStream, relativeValue, relativeLocation)
                     .map(conditionValue -> returnValueIfConditionMetElseUndefined(relativeValue, conditionValue));
             sources.add(elementStream);
         }
