@@ -28,14 +28,10 @@ import io.sapl.grammar.sapl.*;
 import io.sapl.grammar.sapl.Object;
 import lombok.experimental.UtilityClass;
 import lombok.val;
-import org.eclipse.emf.common.util.EList;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 
 /**
  * Compiles SAPL abstract syntax tree expressions into optimized executable
@@ -392,7 +388,7 @@ public class ExpressionCompiler {
      * @param context the compilation context
      * @return the expression with all steps compiled and applied
      */
-    private CompiledExpression compileSteps(CompiledExpression expression, EList<Step> steps,
+    private CompiledExpression compileSteps(CompiledExpression expression, List<Step> steps,
             CompilationContext context) {
         if (steps == null || steps.isEmpty()) {
             return expression;
@@ -844,7 +840,7 @@ public class ExpressionCompiler {
      * @param context the compilation context
      * @return the compiled arguments with nature classification
      */
-    private CompiledArguments compileArguments(EList<Expression> arguments, CompilationContext context) {
+    private CompiledArguments compileArguments(List<Expression> arguments, CompilationContext context) {
         val compiledArguments    = new CompiledExpression[arguments.size()];
         var isPure               = false;
         var isStream             = false;
@@ -1078,7 +1074,7 @@ public class ExpressionCompiler {
      * @param context the compilation context
      * @return the compiled object attributes with nature classification
      */
-    private CompiledObjectAttributes compileAttributes(EList<Pair> members, CompilationContext context) {
+    private CompiledObjectAttributes compileAttributes(List<Pair> members, CompilationContext context) {
         if (members == null || members.isEmpty()) {
             return CompiledObjectAttributes.EMPTY_ATTRIBUTES;
         }
