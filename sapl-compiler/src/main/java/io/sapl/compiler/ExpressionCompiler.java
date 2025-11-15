@@ -651,12 +651,8 @@ public class ExpressionCompiler {
             compileStep(parent, p -> StepOperators.recursiveIndexStep(p, recursiveIndexStep.getIndex()), context);
         case IndexStep indexStep                             ->
             compileStep(parent, p -> StepOperators.indexStep(p, indexStep.getIndex()), context);
-        case ArraySlicingStep arraySlicingStep               -> {
-            System.err.println("DEBUG ArraySlicingStep: index=" + arraySlicingStep.getIndex() + ", to="
-                    + arraySlicingStep.getTo() + ", step=" + arraySlicingStep.getStep());
-            yield compileStep(parent, p -> StepOperators.sliceArray(p, arraySlicingStep.getIndex(),
-                    arraySlicingStep.getTo(), arraySlicingStep.getStep()), context);
-        }
+        case ArraySlicingStep arraySlicingStep               -> compileStep(parent, p -> StepOperators.sliceArray(p,
+                arraySlicingStep.getIndex(), arraySlicingStep.getTo(), arraySlicingStep.getStep()), context);
         case ExpressionStep expressionStep                   -> compileExpressionStep(parent, expressionStep, context);
         case ConditionStep conditionStep                     -> compileConditionStep(parent, conditionStep, context);
         case IndexUnionStep indexUnionStep                   ->
