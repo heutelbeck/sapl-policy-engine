@@ -59,9 +59,6 @@ public class ExpressionCompiler {
      * null
      */
     public CompiledExpression compileExpression(Expression expression, CompilationContext context) {
-        if (expression == null) {
-            return null;
-        }
         return switch (expression) {
         case Or or                 -> compileBinaryOperator(or, BooleanOperators::or, context); // TODO add lazy !
         case EagerOr eagerOr       -> compileBinaryOperator(eagerOr, BooleanOperators::or, context);
@@ -265,9 +262,8 @@ public class ExpressionCompiler {
     private CompiledExpression compileFunctionWithStreamParameters(BasicFunction function, CompiledArguments arguments,
             CompilationContext context) {
         val sources = Arrays.stream(arguments.arguments()).map(ExpressionCompiler::compiledExpressionToFlux).toList();
-        val stream  = Flux.combineLatest(sources, c -> c)
-                .flatMap(combined -> Flux.deferContextual(ctx -> Flux.just(evaluateFunctionWithValueParameters(function,
-                        (CompiledExpression[]) combined, ctx.get(EvaluationContext.class)))));
+        val stream  = Flux.combineLatest(sources, c -> c).flatMap(combined -> Flux.deferContextual(ctx -> Flux
+                .just(evaluateFunctionWithValueParameters(function, combined, ctx.get(EvaluationContext.class)))));
         return new StreamExpression(stream);
     }
 
@@ -325,7 +321,7 @@ public class ExpressionCompiler {
      * @param context the compilation context
      * @return the function evaluation result as a Value
      */
-    private Value evaluateFunctionWithValueParameters(BasicFunction function, CompiledExpression[] arguments,
+    private Value evaluateFunctionWithValueParameters(BasicFunction function, java.lang.Object[] arguments,
             EvaluationContext context) {
         val valueArguments = Arrays.stream(arguments).map(Value.class::cast).toList();
         val invocation     = new FunctionInvocation(
@@ -468,6 +464,9 @@ public class ExpressionCompiler {
      */
     private CompiledExpression compileStep(CompiledExpression parent, java.util.function.UnaryOperator<Value> operation,
             CompilationContext context) {
+        if (parent instanceof ErrorValue || parent instanceof UndefinedValue) {
+            return parent;
+        }
         return switch (parent) {
         case Value value                          -> operation.apply(value);
         case StreamExpression(Flux<Value> stream) -> new StreamExpression(stream.map(operation));
@@ -686,7 +685,7 @@ public class ExpressionCompiler {
                     .map(filteredValue -> new ObjectEntry(key, filteredValue));
             sources.add(objectEntryStream);
         }
-        return Flux.combineLatest(sources, combined -> assembleObjectValue((ObjectEntry[]) combined));
+        return Flux.combineLatest(sources, ExpressionCompiler::assembleObjectValue);
     }
 
     private static Flux<Value> evaluateStreamConditionStepOnArrayValue(ArrayValue arrayParent,
@@ -699,7 +698,7 @@ public class ExpressionCompiler {
                     .map(conditionValue -> returnValueIfConditionMetElseUndefined(relativeValue, conditionValue));
             sources.add(objectEntryStream);
         }
-        return Flux.combineLatest(sources, combined -> assembleArrayValue((Value[]) combined));
+        return Flux.combineLatest(sources, ExpressionCompiler::assembleArrayValue);
     }
 
     // ============================================================================
@@ -865,7 +864,7 @@ public class ExpressionCompiler {
      * @param arguments the array element expressions (must be Values)
      * @return the assembled array value, or error if any element is an error
      */
-    private Value assembleArrayValue(CompiledExpression[] arguments) {
+    private Value assembleArrayValue(java.lang.Object[] arguments) {
         val arrayBuilder = ArrayValue.builder();
         for (val argument : arguments) {
             if (argument instanceof ErrorValue errorValue) {
@@ -916,7 +915,7 @@ public class ExpressionCompiler {
      */
     private CompiledExpression compileArrayStreamExpression(CompiledArguments arguments) {
         val sources = Arrays.stream(arguments.arguments()).map(ExpressionCompiler::compiledExpressionToFlux).toList();
-        val stream  = Flux.<Value, Value>combineLatest(sources, combined -> assembleArrayValue((Value[]) combined));
+        val stream  = Flux.combineLatest(sources, ExpressionCompiler::assembleArrayValue);
         return new StreamExpression(stream);
     }
 
@@ -970,11 +969,12 @@ public class ExpressionCompiler {
      * @return the assembled object value, or error if any property value is an
      * error
      */
-    private Value assembleObjectValue(ObjectEntry[] attributes) {
+    private Value assembleObjectValue(java.lang.Object[] attributes) {
         val objectBuilder = ObjectValue.builder();
         for (val attribute : attributes) {
-            val value = attribute.value;
-            val key   = attribute.key;
+            val entry = (ObjectEntry) attribute;
+            val value = entry.value;
+            val key   = entry.key;
             if (value instanceof ErrorValue errorValue) {
                 return errorValue;
             }
@@ -1027,8 +1027,7 @@ public class ExpressionCompiler {
             sources.add(
                     compiledExpressionToFlux(entry.getValue()).map(value -> new ObjectEntry(entry.getKey(), value)));
         }
-        val stream = Flux.<ObjectEntry, Value>combineLatest(sources,
-                combined -> assembleObjectValue((ObjectEntry[]) combined));
+        val stream = Flux.combineLatest(sources, ExpressionCompiler::assembleObjectValue);
         return new StreamExpression(stream);
     }
 

@@ -27,6 +27,9 @@ import io.sapl.interpreter.SAPLInterpreter;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import org.junit.jupiter.api.Test;
+import reactor.core.publisher.Flux;
+
+import java.util.ArrayList;
 
 import static io.sapl.util.TestUtil.assertExpressionCompilesToValue;
 
