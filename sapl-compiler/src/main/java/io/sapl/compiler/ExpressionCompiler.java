@@ -225,7 +225,7 @@ public class ExpressionCompiler {
      * @param context the compilation context
      * @return a pure expression that extracts the relative value
      */
-    private static CompiledExpression compileBasicRelative(CompilationContext context) {
+    private CompiledExpression compileBasicRelative(CompilationContext context) {
         return new PureExpression(EvaluationContext::relativeValue, false);
     }
 
@@ -552,7 +552,7 @@ public class ExpressionCompiler {
 
     // Value parent - Pure Condition
 
-    private static CompiledExpression compileConditionOnValueParentWithPureCondition(Value valueParent,
+    private CompiledExpression compileConditionOnValueParentWithPureCondition(Value valueParent,
             PureExpression pureCondition, CompilationContext context) {
         val pureResult = switch (valueParent) {
         case ArrayValue arrayParent   ->
@@ -574,7 +574,7 @@ public class ExpressionCompiler {
         return new EvaluationContext(Map.of(), compilationContext.getFunctionBroker());
     }
 
-    private static PureExpression compileConditionStepOnScalarValueConstantWithPureCondition(Value scalarParent,
+    private PureExpression compileConditionStepOnScalarValueConstantWithPureCondition(Value scalarParent,
             PureExpression pureCondition) {
         return new PureExpression(
                 ctx -> returnValueIfConditionMetElseUndefined(scalarParent,
@@ -603,14 +603,14 @@ public class ExpressionCompiler {
         return booleanConstant.equals(Value.TRUE) ? value : Value.UNDEFINED;
     }
 
-    private static PureExpression compileConditionStepOnArrayValueConstantWithPureCondition(ArrayValue arrayParent,
+    private PureExpression compileConditionStepOnArrayValueConstantWithPureCondition(ArrayValue arrayParent,
             PureExpression pureCondition) {
         return new PureExpression(
                 ctx -> evaluateConditionStepOnArrayValueConstantWithPureCondition(ctx, arrayParent, pureCondition),
                 pureCondition.isSubscriptionScoped());
     }
 
-    private static Value evaluateConditionStepOnArrayValueConstantWithPureCondition(EvaluationContext ctx,
+    private Value evaluateConditionStepOnArrayValueConstantWithPureCondition(EvaluationContext ctx,
             ArrayValue arrayParent, PureExpression pureCondition) {
         val array = ArrayValue.builder();
         for (int i = 0; i < arrayParent.size(); i++) {
@@ -627,14 +627,14 @@ public class ExpressionCompiler {
         return array.build();
     }
 
-    private static PureExpression compileConditionStepOnObjectValueConstantWithPureCondition(ObjectValue objectParent,
+    private PureExpression compileConditionStepOnObjectValueConstantWithPureCondition(ObjectValue objectParent,
             PureExpression pureCondition) {
         return new PureExpression(
                 ctx -> evaluateConditionStepOnObjectValueConstantWithPureCondition(ctx, objectParent, pureCondition),
                 pureCondition.isSubscriptionScoped());
     }
 
-    private static Value evaluateConditionStepOnObjectValueConstantWithPureCondition(EvaluationContext ctx,
+    private Value evaluateConditionStepOnObjectValueConstantWithPureCondition(EvaluationContext ctx,
             ObjectValue objectParent, PureExpression pureCondition) {
         val object = ObjectValue.builder();
         for (val entry : objectParent.entrySet()) {
@@ -654,13 +654,13 @@ public class ExpressionCompiler {
 
     // Value parent - Stream condition
 
-    private static CompiledExpression compileConditionOnValueParentWithStreamCondition(Value valueParent,
+    private CompiledExpression compileConditionOnValueParentWithStreamCondition(Value valueParent,
             StreamExpression streamCondition) {
         return new StreamExpression(Flux.just(valueParent).flatMap(
                 value -> evaluateConditionStepWithStreamConditionOnConstantValue(value, streamCondition.stream())));
     }
 
-    private static Flux<Value> evaluateConditionStepWithStreamConditionOnConstantValue(Value parentValue,
+    private Flux<Value> evaluateConditionStepWithStreamConditionOnConstantValue(Value parentValue,
             Flux<Value> conditionStream) {
         if (parentValue instanceof ErrorValue || parentValue instanceof UndefinedValue) {
             return Flux.just(parentValue);
@@ -673,7 +673,7 @@ public class ExpressionCompiler {
         };
     }
 
-    private static Flux<Value> evaluateStreamConditionStepOnObjectValue(ObjectValue objectParent,
+    private Flux<Value> evaluateStreamConditionStepOnObjectValue(ObjectValue objectParent,
             Flux<Value> conditionStream) {
         val sources = new ArrayList<Flux<ObjectEntry>>(objectParent.size());
         for (val entry : objectParent.entrySet()) {
@@ -688,15 +688,15 @@ public class ExpressionCompiler {
         return Flux.combineLatest(sources, ExpressionCompiler::assembleObjectValue);
     }
 
-    private static Flux<Value> evaluateStreamConditionStepOnArrayValue(ArrayValue arrayParent,
+    private Flux<Value> evaluateStreamConditionStepOnArrayValue(ArrayValue arrayParent,
             Flux<Value> conditionStream) {
         val sources = new ArrayList<Flux<Value>>(arrayParent.size());
         for (var i = 0; i < arrayParent.size(); i++) {
             val relativeLocation  = Value.of(i);
             val relativeValue     = arrayParent.get(i);
-            val objectEntryStream = setRelativeValueContext(conditionStream, relativeValue, relativeLocation)
+            val elementStream = setRelativeValueContext(conditionStream, relativeValue, relativeLocation)
                     .map(conditionValue -> returnValueIfConditionMetElseUndefined(relativeValue, conditionValue));
-            sources.add(objectEntryStream);
+            sources.add(elementStream);
         }
         return Flux.combineLatest(sources, ExpressionCompiler::assembleArrayValue);
     }
@@ -707,7 +707,7 @@ public class ExpressionCompiler {
 
     // Pure parent - Value condition
 
-    private static CompiledExpression compileConditionOnPureParentWithValueCondition(PureExpression pureParent,
+    private CompiledExpression compileConditionOnPureParentWithValueCondition(PureExpression pureParent,
             Value valueCondition) {
         return new PureExpression(ctx -> evaluateConditionOnValueParentWithConstantValueCondition(
                 pureParent.evaluate(ctx), valueCondition), pureParent.isSubscriptionScoped());
@@ -715,7 +715,7 @@ public class ExpressionCompiler {
 
     // Pure parent - Pure condition
 
-    private static CompiledExpression compileConditionOnPureParentWithPureCondition(PureExpression pureParent,
+    private CompiledExpression compileConditionOnPureParentWithPureCondition(PureExpression pureParent,
             PureExpression pureCondition, CompilationContext context) {
 
         return new PureExpression(ctx -> {
@@ -736,7 +736,7 @@ public class ExpressionCompiler {
 
     // Pure parent - Stream condition
 
-    private static CompiledExpression compileConditionOnPureParentWithStreamCondition(PureExpression pureParent,
+    private CompiledExpression compileConditionOnPureParentWithStreamCondition(PureExpression pureParent,
             StreamExpression streamCondition) {
         return new StreamExpression(pureParent.flux()
                 .flatMap(parentValue -> evaluateConditionStepWithStreamConditionOnConstantValue(parentValue,
@@ -749,7 +749,7 @@ public class ExpressionCompiler {
 
     // Stream parent - Value condition
 
-    private static CompiledExpression compileConditionOnStreamParentWithValueCondition(StreamExpression streamParent,
+    private CompiledExpression compileConditionOnStreamParentWithValueCondition(StreamExpression streamParent,
             Value valueCondition) {
         return new StreamExpression(streamParent.stream().map(
                 parentValue -> evaluateConditionOnValueParentWithConstantValueCondition(parentValue, valueCondition)));
@@ -757,7 +757,7 @@ public class ExpressionCompiler {
 
     // Stream parent - Pure condition
 
-    private static CompiledExpression compileConditionOnStreamParentWithPureCondition(StreamExpression streamParent,
+    private CompiledExpression compileConditionOnStreamParentWithPureCondition(StreamExpression streamParent,
             PureExpression pureCondition) {
         return new StreamExpression(streamParent.stream().flatMap(valueParent -> {
             if (valueParent instanceof ErrorValue || valueParent instanceof UndefinedValue) {
@@ -780,7 +780,7 @@ public class ExpressionCompiler {
 
     // Stream parent - Stream condition
 
-    private static CompiledExpression compileConditionOnStreamParentWithStreamCondition(StreamExpression streamParent,
+    private CompiledExpression compileConditionOnStreamParentWithStreamCondition(StreamExpression streamParent,
             StreamExpression streamCondition) {
         return new StreamExpression(streamParent.stream()
                 .flatMap(parentValue -> evaluateConditionStepWithStreamConditionOnConstantValue(parentValue,
