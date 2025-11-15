@@ -20,6 +20,7 @@ package io.sapl.compiler;
 import io.sapl.api.model.ObjectValue;
 import io.sapl.api.model.Value;
 import io.sapl.functions.DefaultFunctionBroker;
+import io.sapl.functions.libraries.ArrayFunctionLibrary;
 import io.sapl.functions.libraries.TemporalFunctionLibrary;
 import io.sapl.interpreter.DefaultSAPLInterpreter;
 import io.sapl.interpreter.InitializationException;
@@ -27,9 +28,6 @@ import io.sapl.interpreter.SAPLInterpreter;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import org.junit.jupiter.api.Test;
-import reactor.core.publisher.Flux;
-
-import java.util.ArrayList;
 
 import static io.sapl.util.TestUtil.assertExpressionCompilesToValue;
 
@@ -41,6 +39,7 @@ class SaplCompilerTests {
     @Test
     void experimentWithCompiler() throws InitializationException {
         FUNCTION_BROKER.loadStaticFunctionLibrary(TemporalFunctionLibrary.class);
+        FUNCTION_BROKER.loadStaticFunctionLibrary(ArrayFunctionLibrary.class);
         val source  = """
                 policy "test policy"
                 permit 7[?(@>subscription.age)]
