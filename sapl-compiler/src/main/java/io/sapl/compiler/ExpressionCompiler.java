@@ -33,6 +33,8 @@ import reactor.core.publisher.Mono;
 
 import java.util.*;
 
+import static io.sapl.compiler.operators.BooleanOperators.TYPE_MISMATCH_BOOLEAN_EXPECTED_ERROR;
+
 /**
  * Compiles SAPL abstract syntax tree expressions into optimized executable
  * representations. Performs compile-time constant folding and type-based
@@ -46,7 +48,7 @@ public class ExpressionCompiler {
     /**
      * Compiles a SAPL expression from the abstract syntax tree into an optimized
      * executable form. Dispatches to specialized compilation methods based on
-     * an expression type.
+     * expression type.
      *
      * @param expression the AST expression to compile
      * @param context the compilation context containing variables and function
@@ -61,11 +63,11 @@ public class ExpressionCompiler {
             return null;
         }
         return switch (expression) {
-        case Or or                 -> compileBinaryOperator(or, BooleanOperators::or, context); // TODO add lazy !
+        case Or or                 -> compileLazyOr(or, context);
+        case And and               -> compileLazyAnd(and, context);
         case EagerOr eagerOr       -> compileBinaryOperator(eagerOr, BooleanOperators::or, context);
-        case XOr xor               -> compileBinaryOperator(xor, BooleanOperators::xor, context);
-        case And and               -> compileBinaryOperator(and, BooleanOperators::and, context); // TODO add lazy !
         case EagerAnd eagerAnd     -> compileBinaryOperator(eagerAnd, BooleanOperators::and, context);
+        case XOr xor               -> compileBinaryOperator(xor, BooleanOperators::xor, context);
         case Not not               -> compileUnaryOperator(not, BooleanOperators::not, context);
         case Multi multi           -> compileBinaryOperator(multi, NumberOperators::multiply, context);
         case Div div               -> compileBinaryOperator(div, NumberOperators::divide, context);
@@ -86,6 +88,228 @@ public class ExpressionCompiler {
         case BasicExpression basic -> compileBasicExpression(basic, context);
         default                    -> throw new SaplCompilerException("unexpected expression: " + expression + ".");
         };
+    }
+
+    /**
+     * Compiles a lazy OR operation with short-circuit evaluation. Returns the left
+     * operand immediately if it is true at compile time, avoiding compilation of
+     * the right operand. For runtime evaluation, only evaluates the right operand
+     * when the left operand is false, enabling efficient attribute resolution and
+     * avoiding unnecessary PIP subscriptions.
+     *
+     * @param or the OR operator AST node
+     * @param context the compilation context
+     * @return the compiled lazy OR expression with short-circuit semantics
+     */
+    private CompiledExpression compileLazyOr(Or or, CompilationContext context) {
+        val left = compileExpression(or.getLeft(), context);
+        if (Value.TRUE.equals(left)) {
+            return left;
+        }
+        if (left instanceof ErrorValue) {
+            return left;
+        }
+        if (left instanceof Value && !(left instanceof BooleanValue)) {
+            return Value.error(String.format(TYPE_MISMATCH_BOOLEAN_EXPECTED_ERROR, left));
+        }
+        val right = compileExpression(or.getRight(), context);
+        if (Value.TRUE.equals(right)) {
+            return right;
+        }
+        if (right instanceof ErrorValue) {
+            return right;
+        }
+        if (left instanceof Value leftVal && right instanceof Value rightVal) {
+            return BooleanOperators.or(leftVal, rightVal);
+        }
+        if (left instanceof PureExpression pureLeft && right instanceof PureExpression pureRight) {
+            return new PureExpression(ctx -> evaluatePureLazyOr(pureLeft, pureRight, ctx),
+                    pureRight.isSubscriptionScoped() || pureLeft.isSubscriptionScoped());
+        }
+        return new StreamExpression(evaluateLazyOrWithStreamExpressions(left, right));
+    }
+
+    /**
+     * Evaluates a lazy OR operation with stream expressions using short-circuit
+     * semantics. Uses switchMap to cancel previous right subscriptions when left
+     * emits new values. Only subscribes to the right stream when the left value is
+     * false, implementing true lazy evaluation for streaming attribute resolution.
+     * Propagates secret flags from both operands when both are evaluated.
+     *
+     * @param left the left compiled expression
+     * @param right the right compiled expression
+     * @return a Flux that emits boolean values with lazy OR semantics
+     */
+    private static Flux<Value> evaluateLazyOrWithStreamExpressions(CompiledExpression left, CompiledExpression right) {
+        val leftFlux  = compiledExpressionToFlux(left);
+        val rightFlux = compiledExpressionToFlux(right);
+        return leftFlux.switchMap(leftValue -> {
+            if (Value.TRUE.equals(leftValue)) {
+                return Flux.just(leftValue);
+            }
+            if (leftValue instanceof ErrorValue) {
+                return Flux.just(leftValue);
+            }
+            if (!(leftValue instanceof BooleanValue)) {
+                return Flux.just(Value.error(String.format(TYPE_MISMATCH_BOOLEAN_EXPECTED_ERROR, leftValue)));
+            }
+            return rightFlux.map(rightValue -> {
+                if (rightValue instanceof ErrorValue) {
+                    return rightValue;
+                }
+                if (!(rightValue instanceof BooleanValue)) {
+                    return Value.error(String.format(TYPE_MISMATCH_BOOLEAN_EXPECTED_ERROR, rightValue));
+                }
+                return new BooleanValue(((BooleanValue) rightValue).value(), rightValue.secret() || leftValue.secret());
+            });
+        });
+    }
+
+    /**
+     * Evaluates a lazy OR operation with pure expressions using short-circuit
+     * semantics. Evaluates the left operand first, and only evaluates the right
+     * operand if the left is false. Properly propagates secret flags from both
+     * operands when both are evaluated, or only from the evaluated operand when
+     * short-circuiting occurs.
+     *
+     * @param pureLeft the left pure expression
+     * @param pureRight the right pure expression
+     * @param ctx the evaluation context
+     * @return the boolean result with appropriate secret flag
+     */
+    private static Value evaluatePureLazyOr(PureExpression pureLeft, PureExpression pureRight, EvaluationContext ctx) {
+        val left = pureLeft.evaluate(ctx);
+        if (Value.TRUE.equals(left)) {
+            return left;
+        }
+        if (left instanceof ErrorValue) {
+            return left;
+        }
+        if (!(left instanceof BooleanValue)) {
+            return Value.error(String.format(TYPE_MISMATCH_BOOLEAN_EXPECTED_ERROR, left));
+        }
+        val right = pureRight.evaluate(ctx);
+        if (Value.TRUE.equals(right)) {
+            return new BooleanValue(true, right.secret() || left.secret());
+        }
+        if (right instanceof ErrorValue) {
+            return right;
+        }
+        if (!(right instanceof BooleanValue)) {
+            return Value.error(String.format(TYPE_MISMATCH_BOOLEAN_EXPECTED_ERROR, right));
+        }
+        return new BooleanValue(false, right.secret() || left.secret());
+    }
+
+    /**
+     * Compiles a lazy AND operation with short-circuit evaluation. Returns the left
+     * operand immediately if it is false at compile time, avoiding compilation of
+     * the right operand. For runtime evaluation, only evaluates the right operand
+     * when the left operand is true, enabling efficient attribute resolution and
+     * avoiding unnecessary PIP subscriptions.
+     *
+     * @param and the AND operator AST node
+     * @param context the compilation context
+     * @return the compiled lazy AND expression with short-circuit semantics
+     */
+    private CompiledExpression compileLazyAnd(And and, CompilationContext context) {
+        val left = compileExpression(and.getLeft(), context);
+        if (Value.FALSE.equals(left)) {
+            return left;
+        }
+        if (left instanceof ErrorValue) {
+            return left;
+        }
+        if (left instanceof Value && !(left instanceof BooleanValue)) {
+            return Value.error(String.format(TYPE_MISMATCH_BOOLEAN_EXPECTED_ERROR, left));
+        }
+        val right = compileExpression(and.getRight(), context);
+        if (Value.FALSE.equals(right)) {
+            return right;
+        }
+        if (right instanceof ErrorValue) {
+            return right;
+        }
+        if (left instanceof Value leftVal && right instanceof Value rightVal) {
+            return BooleanOperators.and(leftVal, rightVal);
+        }
+        if (left instanceof PureExpression pureLeft && right instanceof PureExpression pureRight) {
+            return new PureExpression(ctx -> evaluatePureLazyAnd(pureLeft, pureRight, ctx),
+                    pureRight.isSubscriptionScoped() || pureLeft.isSubscriptionScoped());
+        }
+        return new StreamExpression(evaluateLazyAndWithStreamExpressions(left, right));
+    }
+
+    /**
+     * Evaluates a lazy AND operation with stream expressions using short-circuit
+     * semantics. Uses switchMap to cancel previous right subscriptions when left
+     * emits new values. Only subscribes to the right stream when the left value is
+     * true, implementing true lazy evaluation for streaming attribute resolution.
+     * Propagates secret flags from both operands when both are evaluated.
+     *
+     * @param left the left compiled expression
+     * @param right the right compiled expression
+     * @return a Flux that emits boolean values with lazy AND semantics
+     */
+    private static Flux<Value> evaluateLazyAndWithStreamExpressions(CompiledExpression left, CompiledExpression right) {
+        val leftFlux  = compiledExpressionToFlux(left);
+        val rightFlux = compiledExpressionToFlux(right);
+        return leftFlux.switchMap(leftValue -> {
+            if (Value.FALSE.equals(leftValue)) {
+                return Flux.just(leftValue);
+            }
+            if (leftValue instanceof ErrorValue) {
+                return Flux.just(leftValue);
+            }
+            if (!(leftValue instanceof BooleanValue)) {
+                return Flux.just(Value.error(String.format(TYPE_MISMATCH_BOOLEAN_EXPECTED_ERROR, leftValue)));
+            }
+            return rightFlux.map(rightValue -> {
+                if (rightValue instanceof ErrorValue) {
+                    return rightValue;
+                }
+                if (!(rightValue instanceof BooleanValue)) {
+                    return Value.error(String.format(TYPE_MISMATCH_BOOLEAN_EXPECTED_ERROR, rightValue));
+                }
+                return new BooleanValue(((BooleanValue) rightValue).value(), rightValue.secret() || leftValue.secret());
+            });
+        });
+    }
+
+    /**
+     * Evaluates a lazy AND operation with pure expressions using short-circuit
+     * semantics. Evaluates the left operand first, and only evaluates the right
+     * operand if the left is true. Properly propagates secret flags from both
+     * operands when both are evaluated, or only from the evaluated operand when
+     * short-circuiting occurs.
+     *
+     * @param pureLeft the left pure expression
+     * @param pureRight the right pure expression
+     * @param ctx the evaluation context
+     * @return the boolean result with appropriate secret flag
+     */
+    private static Value evaluatePureLazyAnd(PureExpression pureLeft, PureExpression pureRight, EvaluationContext ctx) {
+        val left = pureLeft.evaluate(ctx);
+        if (Value.FALSE.equals(left)) {
+            return left;
+        }
+        if (left instanceof ErrorValue) {
+            return left;
+        }
+        if (!(left instanceof BooleanValue)) {
+            return Value.error(String.format(TYPE_MISMATCH_BOOLEAN_EXPECTED_ERROR, left));
+        }
+        val right = pureRight.evaluate(ctx);
+        if (Value.FALSE.equals(right)) {
+            return new BooleanValue(false, right.secret() || left.secret());
+        }
+        if (right instanceof ErrorValue) {
+            return right;
+        }
+        if (!(right instanceof BooleanValue)) {
+            return Value.error(String.format(TYPE_MISMATCH_BOOLEAN_EXPECTED_ERROR, right));
+        }
+        return new BooleanValue(true, right.secret() || left.secret());
     }
 
     /**
@@ -177,8 +401,7 @@ public class ExpressionCompiler {
      * Compiles a unary operation by compiling its operand and applying the
      * operation.
      * Performs constant folding for value operands. Creates stream or pure
-     * expression
-     * wrappers for deferred operands.
+     * expression wrappers for deferred operands.
      *
      * @param operator the unary operator AST node
      * @param operation the unary operation to apply
@@ -198,15 +421,13 @@ public class ExpressionCompiler {
 
     /**
      * Compiles a basic expression by dispatching to the appropriate handler based
-     * on
-     * the specific basic expression type.
+     * on the specific basic expression type.
      *
      * @param expression the basic expression AST node
      * @param context the compilation context
      * @return the compiled basic expression
      */
     private CompiledExpression compileBasicExpression(BasicExpression expression, CompilationContext context) {
-        // FIXME
         return switch (expression) {
         case BasicGroup group                               ->
             compileSteps(compileExpression(group.getExpression(), context), group.getSteps(), context);
@@ -225,8 +446,9 @@ public class ExpressionCompiler {
      * Compiles a basic relative expression that references the relative value from
      * the evaluation context.
      *
+     * @param relativeValue the relative value AST node
      * @param context the compilation context
-     * @return a pure expression that extracts the relative value
+     * @return a pure expression that extracts the relative value and applies steps
      */
     private CompiledExpression compileBasicRelative(BasicRelative relativeValue, CompilationContext context) {
         CompiledExpression compiled = new PureExpression(EvaluationContext::relativeValue, false);
@@ -325,7 +547,7 @@ public class ExpressionCompiler {
      *
      * @param function the function AST node
      * @param arguments the compiled value arguments
-     * @param context the compilation context
+     * @param context the evaluation context
      * @return the function evaluation result as a Value
      */
     private Value evaluateFunctionWithValueParameters(BasicFunction function, java.lang.Object[] arguments,
@@ -404,8 +626,7 @@ public class ExpressionCompiler {
 
     /**
      * Compiles a single step operation by dispatching to the appropriate step
-     * handler
-     * based on step type.
+     * handler based on step type.
      *
      * @param parent the parent expression to which the step is applied
      * @param step the step AST node
@@ -542,6 +763,16 @@ public class ExpressionCompiler {
     // ============================================================================
 
     // Value parent - Value condition
+
+    /**
+     * Evaluates a condition step on a constant value parent with a constant boolean
+     * condition. Returns the parent if condition is true, or an appropriate empty
+     * container or undefined.
+     *
+     * @param valueParent the constant parent value
+     * @param valueCondition the constant condition value
+     * @return the filtered value or error if condition is not boolean
+     */
     private Value evaluateConditionOnValueParentWithConstantValueCondition(Value valueParent, Value valueCondition) {
         if (valueParent instanceof ErrorValue || valueParent instanceof UndefinedValue) {
             return valueParent;
@@ -562,6 +793,16 @@ public class ExpressionCompiler {
 
     // Value parent - Pure Condition
 
+    /**
+     * Compiles a condition step on a constant value parent with a pure condition
+     * expression. Applies immediate constant folding if condition is not
+     * subscription-scoped.
+     *
+     * @param valueParent the constant parent value
+     * @param pureCondition the pure condition expression
+     * @param context the compilation context
+     * @return the compiled filtered expression
+     */
     private CompiledExpression compileConditionOnValueParentWithPureCondition(Value valueParent,
             PureExpression pureCondition, CompilationContext context) {
         val pureResult = switch (valueParent) {
@@ -575,15 +816,31 @@ public class ExpressionCompiler {
         if (pureResult.isSubscriptionScoped()) {
             return pureResult;
         }
-        // Here we can fold the condition as the inner expressions only depend on the
-        // relative values.
         return pureResult.evaluate(temporaryRelativeFoldingEvaluationContext(context));
     }
 
+    /**
+     * Creates a temporary evaluation context for folding relative expressions at
+     * compile time. Contains only the function broker with no subscription
+     * variables.
+     *
+     * @param compilationContext the compilation context providing the function
+     * broker
+     * @return an evaluation context for compile-time folding
+     */
     private EvaluationContext temporaryRelativeFoldingEvaluationContext(CompilationContext compilationContext) {
         return new EvaluationContext(Map.of(), compilationContext.getFunctionBroker());
     }
 
+    /**
+     * Compiles a condition step on a scalar value with a pure condition. Creates a
+     * pure expression that evaluates the condition with the scalar as relative
+     * value.
+     *
+     * @param scalarParent the scalar parent value
+     * @param pureCondition the pure condition expression
+     * @return a pure expression evaluating the filtered scalar
+     */
     private PureExpression compileConditionStepOnScalarValueConstantWithPureCondition(Value scalarParent,
             PureExpression pureCondition) {
         return new PureExpression(
@@ -613,6 +870,14 @@ public class ExpressionCompiler {
         return booleanConstant.equals(Value.TRUE) ? value : Value.UNDEFINED;
     }
 
+    /**
+     * Compiles a condition step on an array value with a pure condition. Creates a
+     * pure expression that filters array elements based on condition evaluation.
+     *
+     * @param arrayParent the array parent value
+     * @param pureCondition the pure condition expression
+     * @return a pure expression building the filtered array
+     */
     private PureExpression compileConditionStepOnArrayValueConstantWithPureCondition(ArrayValue arrayParent,
             PureExpression pureCondition) {
         return new PureExpression(
@@ -620,6 +885,16 @@ public class ExpressionCompiler {
                 pureCondition.isSubscriptionScoped());
     }
 
+    /**
+     * Evaluates a condition step on an array value by filtering elements where the
+     * condition evaluates to true. Each element is set as the relative value with
+     * its index as relative location.
+     *
+     * @param ctx the evaluation context
+     * @param arrayParent the array to filter
+     * @param pureCondition the condition to evaluate per element
+     * @return the filtered array or error if condition evaluation fails
+     */
     private Value evaluateConditionStepOnArrayValueConstantWithPureCondition(EvaluationContext ctx,
             ArrayValue arrayParent, PureExpression pureCondition) {
         val array = ArrayValue.builder();
@@ -637,6 +912,14 @@ public class ExpressionCompiler {
         return array.build();
     }
 
+    /**
+     * Compiles a condition step on an object value with a pure condition. Creates a
+     * pure expression that filters object properties based on condition evaluation.
+     *
+     * @param objectParent the object parent value
+     * @param pureCondition the pure condition expression
+     * @return a pure expression building the filtered object
+     */
     private PureExpression compileConditionStepOnObjectValueConstantWithPureCondition(ObjectValue objectParent,
             PureExpression pureCondition) {
         return new PureExpression(
@@ -644,6 +927,16 @@ public class ExpressionCompiler {
                 pureCondition.isSubscriptionScoped());
     }
 
+    /**
+     * Evaluates a condition step on an object value by filtering properties where
+     * the condition evaluates to true. Each property value is set as the relative
+     * value with its key as relative location.
+     *
+     * @param ctx the evaluation context
+     * @param objectParent the object to filter
+     * @param pureCondition the condition to evaluate per property
+     * @return the filtered object or error if condition evaluation fails
+     */
     private Value evaluateConditionStepOnObjectValueConstantWithPureCondition(EvaluationContext ctx,
             ObjectValue objectParent, PureExpression pureCondition) {
         val object = ObjectValue.builder();
@@ -664,12 +957,28 @@ public class ExpressionCompiler {
 
     // Value parent - Stream condition
 
+    /**
+     * Compiles a condition step on a constant value parent with a stream condition.
+     * Creates a stream expression that evaluates the condition reactively.
+     *
+     * @param valueParent the constant parent value
+     * @param streamCondition the stream condition expression
+     * @return a stream expression with the filtered value
+     */
     private CompiledExpression compileConditionOnValueParentWithStreamCondition(Value valueParent,
             StreamExpression streamCondition) {
         return new StreamExpression(Flux.just(valueParent).flatMap(
                 value -> evaluateConditionStepWithStreamConditionOnConstantValue(value, streamCondition.stream())));
     }
 
+    /**
+     * Evaluates a condition step with a streaming condition on a constant parent
+     * value. Dispatches to specialized handlers based on parent value type.
+     *
+     * @param parentValue the parent value to filter
+     * @param conditionStream the condition stream
+     * @return a flux emitting filtered results
+     */
     private Flux<Value> evaluateConditionStepWithStreamConditionOnConstantValue(Value parentValue,
             Flux<Value> conditionStream) {
         if (parentValue instanceof ErrorValue || parentValue instanceof UndefinedValue) {
@@ -683,6 +992,14 @@ public class ExpressionCompiler {
         };
     }
 
+    /**
+     * Evaluates a stream condition step on an object value. Creates streams for
+     * each property evaluation and combines them into filtered objects.
+     *
+     * @param objectParent the object to filter
+     * @param conditionStream the condition stream
+     * @return a flux of filtered objects
+     */
     private Flux<Value> evaluateStreamConditionStepOnObjectValue(ObjectValue objectParent,
             Flux<Value> conditionStream) {
         val sources = new ArrayList<Flux<ObjectEntry>>(objectParent.size());
@@ -698,6 +1015,14 @@ public class ExpressionCompiler {
         return Flux.combineLatest(sources, ExpressionCompiler::assembleObjectValue);
     }
 
+    /**
+     * Evaluates a stream condition step on an array value. Creates streams for each
+     * element evaluation and combines them into filtered arrays.
+     *
+     * @param arrayParent the array to filter
+     * @param conditionStream the condition stream
+     * @return a flux of filtered arrays
+     */
     private Flux<Value> evaluateStreamConditionStepOnArrayValue(ArrayValue arrayParent, Flux<Value> conditionStream) {
         val sources = new ArrayList<Flux<Value>>(arrayParent.size());
         for (var i = 0; i < arrayParent.size(); i++) {
@@ -716,6 +1041,14 @@ public class ExpressionCompiler {
 
     // Pure parent - Value condition
 
+    /**
+     * Compiles a condition step on a pure parent with a constant value condition.
+     * Evaluates the parent at runtime and applies the constant condition.
+     *
+     * @param pureParent the pure parent expression
+     * @param valueCondition the constant condition value
+     * @return a pure expression evaluating the filtered parent
+     */
     private CompiledExpression compileConditionOnPureParentWithValueCondition(PureExpression pureParent,
             Value valueCondition) {
         return new PureExpression(ctx -> evaluateConditionOnValueParentWithConstantValueCondition(
@@ -724,6 +1057,16 @@ public class ExpressionCompiler {
 
     // Pure parent - Pure condition
 
+    /**
+     * Compiles a condition step on a pure parent with a pure condition. Creates a
+     * pure expression that evaluates both parent and condition, then filters
+     * accordingly.
+     *
+     * @param pureParent the pure parent expression
+     * @param pureCondition the pure condition expression
+     * @param context the compilation context
+     * @return a pure expression evaluating the filtered result
+     */
     private CompiledExpression compileConditionOnPureParentWithPureCondition(PureExpression pureParent,
             PureExpression pureCondition, CompilationContext context) {
 
@@ -745,6 +1088,14 @@ public class ExpressionCompiler {
 
     // Pure parent - Stream condition
 
+    /**
+     * Compiles a condition step on a pure parent with a stream condition. Creates a
+     * stream that evaluates the parent and applies the streaming condition.
+     *
+     * @param pureParent the pure parent expression
+     * @param streamCondition the stream condition expression
+     * @return a stream expression with filtered results
+     */
     private CompiledExpression compileConditionOnPureParentWithStreamCondition(PureExpression pureParent,
             StreamExpression streamCondition) {
         return new StreamExpression(pureParent.flux()
@@ -758,6 +1109,14 @@ public class ExpressionCompiler {
 
     // Stream parent - Value condition
 
+    /**
+     * Compiles a condition step on a stream parent with a constant value condition.
+     * Applies the constant condition to each emitted parent value.
+     *
+     * @param streamParent the stream parent expression
+     * @param valueCondition the constant condition value
+     * @return a stream expression with filtered values
+     */
     private CompiledExpression compileConditionOnStreamParentWithValueCondition(StreamExpression streamParent,
             Value valueCondition) {
         return new StreamExpression(streamParent.stream().map(
@@ -766,6 +1125,14 @@ public class ExpressionCompiler {
 
     // Stream parent - Pure condition
 
+    /**
+     * Compiles a condition step on a stream parent with a pure condition. Evaluates
+     * the pure condition for each emitted parent value.
+     *
+     * @param streamParent the stream parent expression
+     * @param pureCondition the pure condition expression
+     * @return a stream expression with filtered values
+     */
     private CompiledExpression compileConditionOnStreamParentWithPureCondition(StreamExpression streamParent,
             PureExpression pureCondition) {
         return new StreamExpression(streamParent.stream().flatMap(valueParent -> {
@@ -789,6 +1156,14 @@ public class ExpressionCompiler {
 
     // Stream parent - Stream condition
 
+    /**
+     * Compiles a condition step on a stream parent with a stream condition. Creates
+     * a stream that applies the streaming condition to each parent value.
+     *
+     * @param streamParent the stream parent expression
+     * @param streamCondition the stream condition expression
+     * @return a stream expression with filtered values
+     */
     private CompiledExpression compileConditionOnStreamParentWithStreamCondition(StreamExpression streamParent,
             StreamExpression streamCondition) {
         return new StreamExpression(streamParent.stream()
@@ -833,8 +1208,7 @@ public class ExpressionCompiler {
 
     /**
      * Compiles expression arguments into a structured representation tracking
-     * whether
-     * arguments are values, pure expressions, or streams.
+     * whether arguments are values, pure expressions, or streams.
      *
      * @param arguments the argument expression AST nodes
      * @param context the compilation context
@@ -888,8 +1262,7 @@ public class ExpressionCompiler {
 
     /**
      * Compiles an array with pure element expressions. Creates a pure expression
-     * that
-     * evaluates all elements and builds the array at evaluation time.
+     * that evaluates all elements and builds the array at evaluation time.
      *
      * @param arguments the compiled array element arguments
      * @return a pure expression that builds the array
@@ -898,7 +1271,6 @@ public class ExpressionCompiler {
         return new PureExpression(ctx -> {
             val arrayBuilder = ArrayValue.builder();
             for (val argument : arguments.arguments()) {
-                // argument cannot be StreamExpression here!
                 val evaluatedArgument = (argument instanceof PureExpression pureExpression)
                         ? pureExpression.evaluate(ctx)
                         : argument;
@@ -915,9 +1287,8 @@ public class ExpressionCompiler {
 
     /**
      * Compiles an array with stream element expressions. Creates a stream
-     * expression
-     * that combines element streams and assembles arrays from each combination at
-     * runtime.
+     * expression that combines element streams and assembles arrays from each
+     * combination at runtime.
      *
      * @param arguments the compiled array element arguments
      * @return a stream expression that emits arrays
@@ -950,8 +1321,7 @@ public class ExpressionCompiler {
 
     /**
      * Dispatches compiled object attributes to the appropriate builder based on
-     * their
-     * nature.
+     * their nature.
      *
      * @param attributes the compiled object attributes
      * @return the compiled object expression
@@ -971,8 +1341,7 @@ public class ExpressionCompiler {
 
     /**
      * Assembles an object value from property entries. Used both at compile time
-     * for
-     * constant folding and at runtime during stream evaluation.
+     * for constant folding and at runtime during stream evaluation.
      *
      * @param attributes the object property entries
      * @return the assembled object value, or error if any property value is an
@@ -1005,9 +1374,8 @@ public class ExpressionCompiler {
         return new PureExpression(ctx -> {
             val objectBuilder = ObjectValue.builder();
             for (val attribute : attributes.attributes().entrySet()) {
-                val key               = attribute.getKey();
-                val compiledAttribute = attribute.getValue();
-                // compiledAttribute cannot be a StreamExpression here
+                val key                = attribute.getKey();
+                val compiledAttribute  = attribute.getValue();
                 val evaluatedAttribute = (compiledAttribute instanceof PureExpression pureExpression)
                         ? pureExpression.evaluate(ctx)
                         : compiledAttribute;
@@ -1109,10 +1477,8 @@ public class ExpressionCompiler {
 
     /**
      * Converts any compiled expression into a Flux stream. Values become
-     * single-item
-     * streams, stream expressions expose their internal stream, and pure
-     * expressions
-     * are deferred for evaluation.
+     * single-item streams, stream expressions expose their internal stream, and
+     * pure expressions are deferred for evaluation.
      *
      * @param expression the compiled expression to convert
      * @return a Flux stream emitting the expression's values
@@ -1127,17 +1493,14 @@ public class ExpressionCompiler {
 
     /**
      * Propagates the current reactive EvaluationContext while overriding the
-     * {@code RELATIVE_VALUE} variable for downstream operators.
-     * <p>
-     * This overload sets the relative value and resets the relative location to
-     * {@link Value#UNDEFINED}.
+     * {@code RELATIVE_VALUE} variable for downstream operators. Sets relative
+     * location to {@link Value#UNDEFINED}.
      *
      * @param original the original stream to enrich with a modified
-     * {@link EvaluationContext}
+     * EvaluationContext
      * @param relativeValue the value to expose as {@code RELATIVE_VALUE} in the
      * evaluation context
-     * @return a Flux that emits the same elements as {@code original} but with an
-     * EvaluationContext where {@code RELATIVE_VALUE} is set to
+     * @return a Flux with EvaluationContext where {@code RELATIVE_VALUE} is set to
      * {@code relativeValue} and {@code RELATIVE_LOCATION} is undefined
      */
     private Flux<Value> setRelativeValueContext(Flux<Value> original, Value relativeValue) {
@@ -1146,21 +1509,17 @@ public class ExpressionCompiler {
 
     /**
      * Propagates the current reactive EvaluationContext while overriding the
-     * {@code RELATIVE_VALUE} and {@code RELATIVE_LOCATION} variables for
-     * downstream operators.
-     * <p>
-     * The existing {@link EvaluationContext} is retrieved from the Reactor
-     * context, and a new instance with the supplied relative value and location
-     * is stored back into the Reactor context for all downstream processing.
+     * {@code RELATIVE_VALUE} and {@code RELATIVE_LOCATION} variables for downstream
+     * operators. Retrieves the existing context from Reactor context and creates a
+     * new instance with the supplied relative values.
      *
      * @param original the original stream to enrich with a modified
-     * {@link EvaluationContext}
+     * EvaluationContext
      * @param relativeValue the value to expose as {@code RELATIVE_VALUE} in the
      * evaluation context
      * @param relativeLocation the value to expose as {@code RELATIVE_LOCATION} in
      * the evaluation context
-     * @return a Flux that emits the same elements as {@code original} but with an
-     * EvaluationContext where {@code RELATIVE_VALUE} and
+     * @return a Flux with EvaluationContext where {@code RELATIVE_VALUE} and
      * {@code RELATIVE_LOCATION} are set to the given arguments
      */
     private Flux<Value> setRelativeValueContext(Flux<Value> original, Value relativeValue, Value relativeLocation) {

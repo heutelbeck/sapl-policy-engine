@@ -29,7 +29,7 @@ import java.util.function.BinaryOperator;
 @UtilityClass
 public class BooleanOperators {
 
-    public static final String TYPE_MISMATCH_BOOLEAN_EXPECTED_ERROR = "Boolean operation requires Boolean values, but found: %s";
+    public static final String TYPE_MISMATCH_BOOLEAN_EXPECTED_ERROR = "Type mismatch error. Boolean operation requires Boolean values, but found: %s";
 
     public static Value and(Value a, Value b) {
         return applyBooleanOperation(a, b, (left, right) -> left && right);

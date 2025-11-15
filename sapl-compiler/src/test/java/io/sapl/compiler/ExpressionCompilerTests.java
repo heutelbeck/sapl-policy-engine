@@ -270,7 +270,36 @@ class ExpressionCompilerTests {
 
                 // Eager AND operations
                 arguments("true & (subject == \"Elric\")", Value.TRUE),
-                arguments("false & (action == \"slay\")", Value.FALSE));
+                arguments("false & (action == \"slay\")", Value.FALSE),
+
+                // Lazy operators with nested subscription access
+                arguments("({\"authorized\": true}.authorized) || (subject == \"Yyrkoon\")", Value.TRUE),
+                arguments("({\"authorized\": false}.authorized) || (subject == \"Elric\")", Value.TRUE),
+                arguments("({\"soulCount\": 999}.soulCount > 500) && (action == \"slay\")", Value.TRUE),
+                arguments("({\"soulCount\": 100}.soulCount > 500) && (action == \"slay\")", Value.FALSE),
+
+                // Lazy operators in complex boolean expressions
+                arguments("(subject == \"Elric\") || (action == \"summon\")", Value.TRUE),
+                arguments("(subject == \"Moonglum\") || (action == \"slay\")", Value.TRUE),
+                arguments("(subject == \"Yyrkoon\") || (action == \"summon\")", Value.FALSE),
+                arguments("(subject == \"Elric\") && (action == \"slay\")", Value.TRUE),
+                arguments("(subject == \"Elric\") && (action == \"summon\")", Value.FALSE),
+
+                // Lazy operators in condition steps
+                arguments("[1, 2, 3, 4, 5][?((@  > 2) && (subject == \"Elric\"))]",
+                        Value.ofArray(Value.of(3), Value.of(4), Value.of(5))),
+                arguments("[1, 2, 3, 4, 5][?((@  < 2) || (action == \"slay\"))]",
+                        Value.ofArray(Value.of(1), Value.of(2), Value.of(3), Value.of(4), Value.of(5))),
+
+                // Lazy operators with object property access
+                arguments("{\"emperor\": subject, \"weapon\": action}.emperor == \"Elric\"", Value.TRUE),
+                arguments("({\"dragonCount\": 13}.dragonCount > 10) && (resource == \"Moonglum\")", Value.TRUE),
+
+                // Chained lazy operators with subscription elements
+                arguments("(subject == \"Elric\") || (action == \"summon\") || (resource == \"Moonglum\")", Value.TRUE),
+                arguments("(subject == \"Yyrkoon\") || (action == \"betray\") || (resource == \"Moonglum\")",
+                        Value.TRUE),
+                arguments("(subject == \"Elric\") && (action == \"slay\") && true", Value.TRUE));
     }
 
     @ParameterizedTest
@@ -288,7 +317,34 @@ class ExpressionCompilerTests {
                 arguments("[1, 2, 3][?(@ * 2)]", "Condition"),
 
                 // Condition steps with non-boolean conditions on objects
-                arguments("{\"a\": 1, \"b\": 2}[?(@ + 5)]", "Condition"));
+                arguments("{\"a\": 1, \"b\": 2}[?(@ + 5)]", "Condition"),
+
+                // Lazy OR type errors - left operand
+                arguments("\"Stormbringer\" || true", "type mismatch"), arguments("999 || false", "type mismatch"),
+                arguments("null || true", "type mismatch"),
+                arguments("[\"Imrryr\", \"Tanelorn\"] || false", "type mismatch"),
+                arguments("{\"lord\": \"Arioch\"} || true", "type mismatch"),
+
+                // Lazy OR type errors - right operand
+                arguments("false || \"Mournblade\"", "type mismatch"), arguments("false || 666", "type mismatch"),
+                arguments("false || null", "type mismatch"), arguments("false || [\"Melniboné\"]", "type mismatch"),
+                arguments("false || {\"city\": \"Nadsokor\"}", "type mismatch"),
+
+                // Lazy AND type errors - left operand
+                arguments("\"Xiombarg\" && true", "type mismatch"), arguments("777 && false", "type mismatch"),
+                arguments("null && true", "type mismatch"),
+                arguments("[\"Pyaray\", \"Mabelode\"] && false", "type mismatch"),
+                arguments("{\"sword\": \"Stormbringer\"} && true", "type mismatch"),
+
+                // Lazy AND type errors - right operand
+                arguments("true && \"Young Kingdoms\"", "type mismatch"), arguments("true && 888", "type mismatch"),
+                arguments("true && null", "type mismatch"), arguments("true && [\"Dragon Lords\"]", "type mismatch"),
+                arguments("true && {\"emperor\": \"Elric\"}", "type mismatch"),
+
+                // Lazy operators with compile-time type errors
+                arguments("\"Elric\" || true", "type mismatch"), arguments("false || \"Moonglum\"", "type mismatch"),
+                arguments("\"Dyvim Tvar\" && false", "type mismatch"),
+                arguments("true && \"Tanelorn\"", "type mismatch"));
     }
 
     @ParameterizedTest
@@ -335,6 +391,33 @@ class ExpressionCompilerTests {
 
                 // Element membership edge cases
                 arguments("null in [null, 1, 2]", Value.TRUE), arguments("undefined in [undefined, 1, 2]", Value.FALSE),
-                arguments("true in [true, false]", Value.TRUE), arguments("false in [true, false]", Value.TRUE));
+                arguments("true in [true, false]", Value.TRUE), arguments("false in [true, false]", Value.TRUE),
+
+                // Lazy AND with all boolean combinations
+                arguments("true && true", Value.TRUE), arguments("true && false", Value.FALSE),
+                arguments("false && true", Value.FALSE), arguments("false && false", Value.FALSE),
+
+                // Chained lazy OR operations
+                arguments("true || false || false", Value.TRUE), arguments("false || false || true", Value.TRUE),
+                arguments("false || false || false", Value.FALSE), arguments("false || true || false", Value.TRUE),
+
+                // Chained lazy AND operations
+                arguments("true && true && true", Value.TRUE), arguments("true && false && true", Value.FALSE),
+                arguments("false && true && true", Value.FALSE), arguments("true && true && false", Value.FALSE),
+
+                // Mixed lazy and eager boolean operators
+                arguments("(true || false) & (false | true)", Value.TRUE),
+                arguments("(false && true) | (true && true)", Value.TRUE),
+                arguments("(true || true) & false", Value.FALSE), arguments("(false && false) | true", Value.TRUE),
+
+                // Lazy operators with negation
+                arguments("!(true || false)", Value.FALSE), arguments("!(false && true)", Value.TRUE),
+                arguments("!false || false", Value.TRUE), arguments("!true && true", Value.FALSE),
+
+                // Complex nested lazy operations
+                arguments("(true && (false || true))", Value.TRUE),
+                arguments("(false || (true && false))", Value.FALSE),
+                arguments("((true || false) && (true || false))", Value.TRUE),
+                arguments("((false && true) || (false && true))", Value.FALSE));
     }
 }

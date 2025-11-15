@@ -21,17 +21,40 @@ import lombok.experimental.UtilityClass;
 
 import java.util.Set;
 
+/**
+ * Reserved identifiers in SAPL that cannot be used as variable names.
+ * These identifiers are automatically populated in the evaluation context
+ * from the authorization subscription or during expression evaluation.
+ */
 @UtilityClass
 public class ReservedIdentifiers {
-    public static final String      ACTION                   = "action";
-    public static final String      ENVIRONMENT              = "environment";
-    public static final String      RESOURCE                 = "resource";
-    public static final String      SUBJECT                  = "subject";
-    public static final String      RELATIVE_VALUE           = "@";
-    public static final String      RELATIVE_LOCATION        = "#";
-    public static final Set<String> RESERVED_IDENTIFIERS     = Set.of(ACTION, ENVIRONMENT, RESOURCE, SUBJECT,
+    public static final String ACTION            = "action";
+    public static final String ENVIRONMENT       = "environment";
+    public static final String RESOURCE          = "resource";
+    public static final String SUBJECT           = "subject";
+    public static final String RELATIVE_VALUE    = "@";
+    public static final String RELATIVE_LOCATION = "#";
+
+    /**
+     * All reserved identifiers that cannot be used as variable names in policies.
+     * Attempting to define a variable with any of these names will result in a
+     * PolicyEvaluationException.
+     */
+    public static final Set<String> RESERVED_IDENTIFIERS = Set.of(ACTION, ENVIRONMENT, RESOURCE, SUBJECT,
             RELATIVE_VALUE, RELATIVE_LOCATION);
+
+    /**
+     * Identifiers populated from the authorization subscription. These represent
+     * the core access control decision context: who (subject) wants to do what
+     * (action) on which (resource) under what conditions (environment).
+     */
     public static final Set<String> SUBSCRIPTION_IDENTIFIERS = Set.of(ACTION, ENVIRONMENT, RESOURCE, SUBJECT);
-    public static final Set<String> RELATIVE_IDENTIFIERS     = Set.of(RELATIVE_VALUE, RELATIVE_LOCATION);
+
+    /**
+     * Identifiers set during filter step evaluation. The relative value (@) is the
+     * current element being processed, and the relative location (#) is its
+     * position (array index or object key).
+     */
+    public static final Set<String> RELATIVE_IDENTIFIERS = Set.of(RELATIVE_VALUE, RELATIVE_LOCATION);
 
 }
