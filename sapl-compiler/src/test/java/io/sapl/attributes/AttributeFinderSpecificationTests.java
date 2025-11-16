@@ -17,9 +17,11 @@
  */
 package io.sapl.attributes;
 
+import io.sapl.api.attributes.AttributeFinder;
 import io.sapl.api.attributes.AttributeFinderSpecification;
-import io.sapl.validation.Validator;
+import io.sapl.api.model.Value;
 import org.junit.jupiter.api.Test;
+import reactor.core.publisher.Flux;
 
 import java.util.List;
 
@@ -28,22 +30,21 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class AttributeFinderSpecificationTests {
 
-    private static final List<Validator> NO_VALIDATORS = List.of();
+    private static final AttributeFinder MOCK_FINDER = inv -> Flux.just(Value.UNDEFINED);
 
     @Test
     void whenConstructionOfPolicyInformationPointSpecificationHasBadParametersThenThrowElseDoNotThrow() {
-        assertThatThrownBy(() -> new AttributeFinderSpecification(null, "a", true, 0, true, e -> {}, NO_VALIDATORS))
+        assertThatThrownBy(() -> new AttributeFinderSpecification(null, "a", true, List.of(), null, MOCK_FINDER))
                 .isInstanceOf(NullPointerException.class);
-        assertThatThrownBy(() -> new AttributeFinderSpecification("a", null, true, 0, true, e -> {}, NO_VALIDATORS))
+        assertThatThrownBy(() -> new AttributeFinderSpecification("a", null, true, List.of(), null, MOCK_FINDER))
                 .isInstanceOf(NullPointerException.class);
     }
 
     @Test
     void whenVarArgsCheckedThenVarArgsCorrectlyDetected() {
-        var withVarArgs = new AttributeFinderSpecification("abc", "def", true,
-                AttributeFinderSpecification.HAS_VARIABLE_NUMBER_OF_ARGUMENTS, true, e -> {}, NO_VALIDATORS);
+        var withVarArgs    = new AttributeFinderSpecification("abc", "def", true, List.of(), Value.class, MOCK_FINDER);
+        var notWithVarArgs = new AttributeFinderSpecification("abc", "def", true, List.of(), null, MOCK_FINDER);
         assertThat(withVarArgs.hasVariableNumberOfArguments()).isTrue();
-        var notWithVarArgs = new AttributeFinderSpecification("abc", "def", true, 0, true, e -> {}, NO_VALIDATORS);
         assertThat(notWithVarArgs.hasVariableNumberOfArguments()).isFalse();
     }
 

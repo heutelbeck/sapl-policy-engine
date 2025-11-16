@@ -44,12 +44,8 @@ import java.util.concurrent.CopyOnWriteArrayList;
 public class CachingAttributeBroker implements AttributeBroker {
     static final Duration DEFAULT_GRACE_PERIOD = Duration.ofMillis(3000L);
 
-    private record SpecificationAndFinder(
-            AttributeFinderSpecification specification,
-            AttributeFinder policyInformationPoint) {}
-
     private final Map<AttributeFinderInvocation, List<AttributeStream>> activeStreamIndex    = new HashMap<>();
-    private final Map<String, List<SpecificationAndFinder>>             attributeFinderIndex = new HashMap<>();
+    private final Map<String, List<AttributeFinderSpecification>>       attributeFinderIndex = new HashMap<>();
     private final Map<String, PolicyInformationPointSpecification>      pipRegistry          = new HashMap<>();
 
     private final Object lock = new Object();
@@ -94,7 +90,7 @@ public class CachingAttributeBroker implements AttributeBroker {
      * was found for the invocation.
      */
     private AttributeStream newAttributeStream(final AttributeFinderInvocation invocation,
-            Iterable<SpecificationAndFinder> pipsWithNameOfInvocation) {
+            Iterable<AttributeFinderSpecification> pipsWithNameOfInvocation) {
         val uniquePipMatchingInvocation = searchForMatchingPip(invocation, pipsWithNameOfInvocation);
         if (null == uniquePipMatchingInvocation) {
             return new AttributeStream(invocation, this::removeAttributeStreamFromIndex, DEFAULT_GRACE_PERIOD);
@@ -112,17 +108,17 @@ public class CachingAttributeBroker implements AttributeBroker {
      * @return a PIP whose specification matches the invocation, or null
      */
     private AttributeFinder searchForMatchingPip(AttributeFinderInvocation invocation,
-            Iterable<SpecificationAndFinder> pipsWithNameOfInvocation) {
+            Iterable<AttributeFinderSpecification> pipsWithNameOfInvocation) {
         if (null == pipsWithNameOfInvocation) {
             return null;
         }
         AttributeFinder varArgsMatch = null;
-        for (var specAndPip : pipsWithNameOfInvocation) {
-            val matchQuality = specAndPip.specification().matches(invocation);
+        for (var spec : pipsWithNameOfInvocation) {
+            val matchQuality = spec.matches(invocation);
             if (matchQuality == Match.EXACT_MATCH) {
-                return specAndPip.policyInformationPoint();
+                return spec.attributeFinder();
             } else if (matchQuality == Match.VARARGS_MATCH) {
-                varArgsMatch = specAndPip.policyInformationPoint();
+                varArgsMatch = spec.attributeFinder();
             }
         }
         if (varArgsMatch != null) {
@@ -157,20 +153,17 @@ public class CachingAttributeBroker implements AttributeBroker {
                         "Namespace collision error. Policy Information Point with name %s already registered.",
                         pipName));
             }
-            val finderImplementations           = pipImplementation.implementations();
             val varargsFindersForDelayedLoading = new ArrayList<AttributeFinderSpecification>();
 
             for (var attributeFinderSpecification : pipSpecification.attributeFinders()) {
                 if (attributeFinderSpecification.hasVariableNumberOfArguments()) {
                     varargsFindersForDelayedLoading.add(attributeFinderSpecification);
                 } else {
-                    val attributeFinder = finderImplementations.get(attributeFinderSpecification);
-                    registerAttributeFinder(attributeFinderSpecification, attributeFinder);
+                    registerAttributeFinder(attributeFinderSpecification);
                 }
             }
             for (var attributeFinderSpecification : varargsFindersForDelayedLoading) {
-                val attributeFinder = finderImplementations.get(attributeFinderSpecification);
-                registerAttributeFinder(attributeFinderSpecification, attributeFinder);
+                registerAttributeFinder(attributeFinderSpecification);
             }
             pipRegistry.put(pipName, pipSpecification);
         }
@@ -183,15 +176,13 @@ public class CachingAttributeBroker implements AttributeBroker {
      * PIP.
      *
      * @param attributeFinderSpecification the specification of the PIP
-     * @param attributeFinder the PIP itself
      * @throws AttributeBrokerException if there is a specification collision
      */
-    private void registerAttributeFinder(AttributeFinderSpecification attributeFinderSpecification,
-            AttributeFinder attributeFinder) {
+    private void registerAttributeFinder(AttributeFinderSpecification attributeFinderSpecification) {
         log.debug("Publishing PIP: {}", attributeFinderSpecification);
         val pipName        = attributeFinderSpecification.fullyQualifiedName();
         var findersForName = attributeFinderIndex.computeIfAbsent(pipName, k -> new ArrayList<>());
-        findersForName.add(new SpecificationAndFinder(attributeFinderSpecification, attributeFinder));
+        findersForName.add(attributeFinderSpecification);
 
         for (var invocationAndStreams : activeStreamIndex.entrySet()) {
             val invocation     = invocationAndStreams.getKey();
@@ -199,15 +190,15 @@ public class CachingAttributeBroker implements AttributeBroker {
             val newFinderMatch = attributeFinderSpecification.matches(invocation);
             if (newFinderMatch == Match.EXACT_MATCH || (newFinderMatch == Match.VARARGS_MATCH
                     && !doesExactlyMatchingPipExist(findersForName, invocation))) {
-                connectStreamsToPip(attributeFinder, streams);
+                connectStreamsToPip(attributeFinderSpecification.attributeFinder(), streams);
             }
         }
     }
 
-    private boolean doesExactlyMatchingPipExist(Iterable<SpecificationAndFinder> pipsForName,
+    private boolean doesExactlyMatchingPipExist(Iterable<AttributeFinderSpecification> pipsForName,
             final AttributeFinderInvocation invocation) {
-        for (var pip : pipsForName) {
-            val existingPipMatch = pip.specification().matches(invocation);
+        for (var spec : pipsForName) {
+            val existingPipMatch = spec.matches(invocation);
             if (existingPipMatch == Match.EXACT_MATCH) {
                 return true;
             }
@@ -264,7 +255,7 @@ public class CachingAttributeBroker implements AttributeBroker {
         if (null == pipsForName) {
             return;
         }
-        pipsForName.removeIf(pipAndSpec -> pipAndSpec.specification().equals(attributeFinderSpecification));
+        pipsForName.removeIf(spec -> spec.equals(attributeFinderSpecification));
         if (pipsForName.isEmpty()) {
             attributeFinderIndex.remove(attributeName);
         }
@@ -279,9 +270,9 @@ public class CachingAttributeBroker implements AttributeBroker {
             }
 
             if (removedPipMatch == Match.EXACT_MATCH) {
-                for (var pip : pipsForName) {
-                    if (pip.specification().matches(invocation) == Match.VARARGS_MATCH) {
-                        connectStreamsToPip(pip.policyInformationPoint(), streams);
+                for (var spec : pipsForName) {
+                    if (spec.matches(invocation) == Match.VARARGS_MATCH) {
+                        connectStreamsToPip(spec.attributeFinder(), streams);
                     }
                 }
             }

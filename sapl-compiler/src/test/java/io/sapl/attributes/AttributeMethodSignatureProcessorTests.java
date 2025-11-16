@@ -18,6 +18,7 @@
 package io.sapl.attributes;
 
 import io.sapl.api.attributes.AttributeFinderInvocation;
+import io.sapl.api.attributes.AttributeFinderSpecification;
 import io.sapl.api.model.EvaluationContext;
 import io.sapl.api.model.ErrorValue;
 import io.sapl.api.model.NumberValue;
@@ -182,7 +183,7 @@ class AttributeMethodSignatureProcessorTests {
 
         Assertions.assertNotNull(result);
         StepVerifier
-                .create(result.attributeFinder().apply(invocation)
+                .create(result.attributeFinder().invoke(invocation)
                         .contextWrite(ctx -> ctx.put(EvaluationContext.class, context)))
                 .expectNext(Value.of(3)).verifyComplete();
     }
@@ -197,7 +198,7 @@ class AttributeMethodSignatureProcessorTests {
 
         Assertions.assertNotNull(result);
         StepVerifier
-                .create(result.attributeFinder().apply(invocation)
+                .create(result.attributeFinder().invoke(invocation)
                         .contextWrite(ctx -> ctx.put(EvaluationContext.class, context)))
                 .expectNextMatches(
                         v -> v instanceof ErrorValue e && e.message().contains("requires exactly 2 arguments"))
@@ -214,7 +215,7 @@ class AttributeMethodSignatureProcessorTests {
 
         Assertions.assertNotNull(result);
         StepVerifier
-                .create(result.attributeFinder().apply(invocation)
+                .create(result.attributeFinder().invoke(invocation)
                         .contextWrite(ctx -> ctx.put(EvaluationContext.class, context)))
                 .expectNext(Value.of(6)).verifyComplete();
     }
@@ -230,7 +231,7 @@ class AttributeMethodSignatureProcessorTests {
 
         Assertions.assertNotNull(result);
         StepVerifier
-                .create(result.attributeFinder().apply(invocation)
+                .create(result.attributeFinder().invoke(invocation)
                         .contextWrite(ctx -> ctx.put(EvaluationContext.class, context)))
                 .expectNext(Value.of("value")).verifyComplete();
     }
@@ -245,7 +246,7 @@ class AttributeMethodSignatureProcessorTests {
 
         Assertions.assertNotNull(result);
         StepVerifier
-                .create(result.attributeFinder().apply(invocation)
+                .create(result.attributeFinder().invoke(invocation)
                         .contextWrite(ctx -> ctx.put(EvaluationContext.class, context)))
                 .expectNextMatches(v -> v instanceof ErrorValue e && e.message().contains("execution failed"))
                 .verifyComplete();
