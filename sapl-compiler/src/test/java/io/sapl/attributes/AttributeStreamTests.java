@@ -17,12 +17,11 @@
  */
 package io.sapl.attributes;
 
-import io.sapl.api.model.ErrorValue;
-import io.sapl.api.model.Value;
-import io.sapl.api.model.ErrorValue;
-import io.sapl.api.model.TextValue;
 import io.sapl.api.attributes.AttributeFinder;
 import io.sapl.api.attributes.AttributeFinderInvocation;
+import io.sapl.api.model.ErrorValue;
+import io.sapl.api.model.TextValue;
+import io.sapl.api.model.Value;
 import lombok.val;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
@@ -34,7 +33,6 @@ import reactor.test.StepVerifier;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -694,12 +692,11 @@ class AttributeStreamTests {
         stream.connectToPolicyInformationPoint(pip2);
 
         await().pollDelay(AWAIT_POLL_DELAY, MILLISECONDS).pollInterval(AWAIT_POLL_INTERVAL, MILLISECONDS)
-                .atMost(COMPLEX_OPERATION_TIMEOUT, MILLISECONDS)
-                .until(() -> results.stream().anyMatch(value -> !(value instanceof ErrorValue)
-                        && value instanceof TextValue tv && tv.value().startsWith("pip2")));
+                .atMost(COMPLEX_OPERATION_TIMEOUT, MILLISECONDS).until(() -> results.stream()
+                        .anyMatch(value -> value instanceof TextValue tv && tv.value().startsWith("pip2")));
 
-        val pip2Values = results.stream().filter(value -> !(value instanceof ErrorValue)
-                && value instanceof TextValue tv && tv.value().startsWith("pip2")).toList();
+        val pip2Values = results.stream()
+                .filter(value -> value instanceof TextValue tv && tv.value().startsWith("pip2")).toList();
 
         assertThat(pip2Values).isNotEmpty();
     }

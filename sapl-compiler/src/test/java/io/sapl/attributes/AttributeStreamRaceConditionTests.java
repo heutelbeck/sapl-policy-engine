@@ -17,11 +17,11 @@
  */
 package io.sapl.attributes;
 
-import io.sapl.api.model.Value;
-import io.sapl.api.model.ErrorValue;
-import io.sapl.api.model.TextValue;
 import io.sapl.api.attributes.AttributeFinder;
 import io.sapl.api.attributes.AttributeFinderInvocation;
+import io.sapl.api.model.ErrorValue;
+import io.sapl.api.model.TextValue;
+import io.sapl.api.model.Value;
 import lombok.val;
 import org.junit.jupiter.api.RepeatedTest;
 import org.junit.jupiter.api.Test;
@@ -31,7 +31,6 @@ import reactor.core.publisher.Flux;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -113,8 +112,8 @@ class AttributeStreamRaceConditionTests {
 
         subscription.dispose();
 
-        val validValues = results.stream().filter(value -> !(value instanceof ErrorValue)
-                && value instanceof TextValue tv && tv.value().startsWith("pip-")).toList();
+        val validValues = results.stream()
+                .filter(value -> value instanceof TextValue tv && tv.value().startsWith("pip-")).toList();
 
         assertThat(validValues).as("Stream should emit values after concurrent connects").isNotEmpty();
     }
@@ -516,12 +515,11 @@ class AttributeStreamRaceConditionTests {
                 .map(i -> Value.of("pip2-" + i));
         stream.connectToPolicyInformationPoint(pip2);
 
-        await().pollDelay(10, MILLISECONDS).atMost(300, MILLISECONDS)
-                .until(() -> results.stream().anyMatch(value -> !(value instanceof ErrorValue)
-                        && value instanceof TextValue tv && tv.value().startsWith("pip2")));
+        await().pollDelay(10, MILLISECONDS).atMost(300, MILLISECONDS).until(() -> results.stream()
+                .anyMatch(value -> value instanceof TextValue tv && tv.value().startsWith("pip2")));
 
-        val pip2Values = results.stream().filter(value -> !(value instanceof ErrorValue)
-                && value instanceof TextValue tv && tv.value().startsWith("pip2")).toList();
+        val pip2Values = results.stream()
+                .filter(value -> value instanceof TextValue tv && tv.value().startsWith("pip2")).toList();
 
         assertThat(pip2Values).as("Should receive values from second PIP after swap").isNotEmpty();
     }
