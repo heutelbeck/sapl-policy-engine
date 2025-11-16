@@ -19,8 +19,4 @@ package io.sapl.api.attributes;
 
 import lombok.NonNull;
 
-import java.util.Map;
-
-public record PolicyInformationPointImplementation(
-        @NonNull PolicyInformationPointSpecification specification,
-        @NonNull Map<AttributeFinderSpecification, AttributeFinder> implementations) {}
+public record PolicyInformationPointImplementation(@NonNull PolicyInformationPointSpecification specification) {}

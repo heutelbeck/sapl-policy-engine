@@ -19,6 +19,7 @@ package io.sapl.attributes;
 
 import io.sapl.api.attributes.AttributeFinder;
 import io.sapl.api.attributes.AttributeFinderInvocation;
+import io.sapl.api.attributes.AttributeFinderSpecification;
 import io.sapl.api.model.EvaluationContext;
 import io.sapl.api.model.Value;
 import io.sapl.api.pip.Attribute;
@@ -55,8 +56,8 @@ public class AttributeMethodSignatureProcessor {
     public static final String ATTRIBUTE_EXECUTION_ERROR_TEMPLATE   = "Attribute '%s' execution failed: %s";
     public static final String VARIABLES_PARAM_MUST_BE_MAP_ERROR    = "Variables parameter must be Map<String, Value> but found: %s";
 
-    public static AttributeFinderResult processAttributeMethod(Object pipInstance, String namespace, Method method)
-            throws InitializationException {
+    public static AttributeFinderSpecification processAttributeMethod(Object pipInstance, String namespace,
+            Method method) throws InitializationException {
         if (!method.isAnnotationPresent(Attribute.class)) {
             return null;
         }
@@ -72,7 +73,7 @@ public class AttributeMethodSignatureProcessor {
 
         try {
             val attributeFinder = createAttributeFinderForMethod(pipInstance, method, signatureInfo, returnsFlux);
-            return new AttributeFinderResult(namespace, name, isEnvironmentAttr, signatureInfo.parameterTypes,
+            return new AttributeFinderSpecification(namespace, name, isEnvironmentAttr, signatureInfo.parameterTypes,
                     signatureInfo.varArgsParameterType, attributeFinder);
         } catch (IllegalAccessException exception) {
             throw new InitializationException(FAILED_TO_CREATE_METHOD_HANDLE_ERROR.formatted(name), exception);
@@ -178,9 +179,8 @@ public class AttributeMethodSignatureProcessor {
         return (Class<? extends Value>) clazz;
     }
 
-    static AttributeFinder createAttributeFinderForMethod(
-            Object pipInstance, Method method, SignatureInfo signatureInfo, boolean returnsFlux)
-            throws IllegalAccessException {
+    static AttributeFinder createAttributeFinderForMethod(Object pipInstance, Method method,
+            SignatureInfo signatureInfo, boolean returnsFlux) throws IllegalAccessException {
 
         method.setAccessible(true);
 
@@ -254,8 +254,7 @@ public class AttributeMethodSignatureProcessor {
 
                 if (hasVarArgs) {
                     val varArgsCount = argumentCount - minArgCount;
-                    val varArgsArray = Array.newInstance(signatureInfo.varArgsParameterType,
-                            varArgsCount);
+                    val varArgsArray = Array.newInstance(signatureInfo.varArgsParameterType, varArgsCount);
 
                     for (int i = 0; i < varArgsCount; i++) {
                         val argument = arguments[minArgCount + i];
@@ -340,11 +339,4 @@ public class AttributeMethodSignatureProcessor {
             List<Class<? extends Value>> parameterTypes,
             Class<? extends Value> varArgsParameterType) {}
 
-    public record AttributeFinderResult(
-            String namespace,
-            String attributeName,
-            boolean isEnvironmentAttribute,
-            List<Class<? extends Value>> parameterTypes,
-            Class<? extends Value> varArgsParameterType,
-            AttributeFinder attributeFinder) {}
 }

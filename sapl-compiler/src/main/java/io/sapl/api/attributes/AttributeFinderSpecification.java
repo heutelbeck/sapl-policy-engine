@@ -17,8 +17,8 @@
  */
 package io.sapl.api.attributes;
 
+import io.sapl.api.model.Value;
 import io.sapl.api.shared.Match;
-import io.sapl.validation.Validator;
 import lombok.NonNull;
 
 import java.util.List;
@@ -29,19 +29,16 @@ public record AttributeFinderSpecification(
         @NonNull String namespace,
         @NonNull String attributeName,
         boolean isEnvironmentAttribute,
-        int numberOfArguments,
-        boolean takesVariables,
-        @NonNull Validator entityValidator,
-        @NonNull List<Validator> parameterValidators) {
-
-    public static final int HAS_VARIABLE_NUMBER_OF_ARGUMENTS = -1;
+        @NonNull List<Class<? extends Value>> parameterTypes,
+        Class<? extends Value> varArgsParameterType,
+        @NonNull AttributeFinder attributeFinder) {
 
     public AttributeFinderSpecification {
         requireValidName(fullyQualifiedName());
     }
 
     public boolean hasVariableNumberOfArguments() {
-        return numberOfArguments == HAS_VARIABLE_NUMBER_OF_ARGUMENTS;
+        return varArgsParameterType != null;
     }
 
     /**
@@ -55,7 +52,7 @@ public record AttributeFinderSpecification(
             return false;
         }
         return (hasVariableNumberOfArguments() && other.hasVariableNumberOfArguments())
-                || numberOfArguments == other.numberOfArguments;
+                || parameterTypes.size() == other.parameterTypes.size();
     }
 
     public Match matches(AttributeFinderInvocation invocation) {
@@ -64,11 +61,11 @@ public record AttributeFinderSpecification(
             return Match.NO_MATCH;
         }
 
-        if (invocation.arguments().size() == numberOfArguments) {
+        if (invocation.arguments().size() == parameterTypes.size()) {
             return Match.EXACT_MATCH;
         }
 
-        if (hasVariableNumberOfArguments()) {
+        if (hasVariableNumberOfArguments() && invocation.arguments().size() >= parameterTypes.size()) {
             return Match.VARARGS_MATCH;
         }
 
