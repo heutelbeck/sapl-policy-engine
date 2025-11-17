@@ -21,7 +21,6 @@ import io.sapl.api.functions.FunctionBroker;
 import io.sapl.api.model.*;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.compiler.CompilationContext;
-import io.sapl.api.model.CompiledExpression;
 import io.sapl.compiler.ExpressionCompiler;
 import io.sapl.functions.DefaultFunctionBroker;
 import lombok.SneakyThrows;

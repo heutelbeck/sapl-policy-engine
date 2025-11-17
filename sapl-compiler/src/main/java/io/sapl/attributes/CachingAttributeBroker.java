@@ -19,17 +19,18 @@ package io.sapl.attributes;
 
 import io.sapl.api.attributes.*;
 import io.sapl.api.model.Value;
+import io.sapl.api.pip.PolicyInformationPoint;
 import io.sapl.api.shared.Match;
+import io.sapl.interpreter.InitializationException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import reactor.core.publisher.Flux;
 
+import java.lang.reflect.Method;
 import java.time.Duration;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 /**
@@ -47,6 +48,7 @@ public class CachingAttributeBroker implements AttributeBroker {
     private final Map<AttributeFinderInvocation, List<AttributeStream>> activeStreamIndex    = new HashMap<>();
     private final Map<String, List<AttributeFinderSpecification>>       attributeFinderIndex = new HashMap<>();
     private final Map<String, PolicyInformationPointSpecification>      pipRegistry          = new HashMap<>();
+    private final Map<String, List<String>>                             libraryToPipNamesMap = new ConcurrentHashMap<>();
 
     private final Object lock = new Object();
 
@@ -239,6 +241,9 @@ public class CachingAttributeBroker implements AttributeBroker {
             for (var finderForRemoval : nonVarargsFindersForDelayedRemoval) {
                 removeAttributeFinder(finderForRemoval);
             }
+
+            // Remove PIP from registry
+            pipRegistry.remove(name);
         }
     }
 
@@ -291,6 +296,177 @@ public class CachingAttributeBroker implements AttributeBroker {
         for (var attributeStream : streams) {
             attributeStream.disconnectFromPolicyInformationPoint();
         }
+    }
+
+    /**
+     * Loads a PIP library from a @PolicyInformationPoint annotated class.
+     * <p>
+     * <b>Atomicity:</b> All @Attribute methods are processed BEFORE any loading.
+     * If ANY method fails, NOTHING is loaded.
+     * <p>
+     * <b>Thread-safety:</b> Synchronized to prevent concurrent loads.
+     * Pre-checks done outside lock for performance.
+     * <p>
+     * <b>Collision detection:</b> Checks library name, PIP name, and all attribute
+     * names
+     * BEFORE loading anything.
+     *
+     * @param pipInstance the PIP instance to load
+     * @throws AttributeBrokerException if processing fails, library already loaded,
+     * or collision detected
+     */
+    public void loadPolicyInformationPointLibrary(Object pipInstance) {
+        // STEP 1: Process everything OUTSIDE synchronized block
+        // If this fails, nothing has been loaded yet
+        PolicyInformationPointImplementation pipImpl;
+        try {
+            pipImpl = processPipClass(pipInstance);
+        } catch (Exception e) {
+            throw new AttributeBrokerException("Failed to process PIP class: " + e.getMessage(), e);
+        }
+
+        String                            libraryName = pipImpl.specification().name();
+        String                            pipName     = pipImpl.specification().name(); // Same as library name
+        Set<AttributeFinderSpecification> finders     = pipImpl.specification().attributeFinders();
+
+        // STEP 2: Fast pre-check BEFORE lock (optimization)
+        if (libraryToPipNamesMap.containsKey(libraryName)) {
+            throw new AttributeBrokerException("Library already loaded: " + libraryName);
+        }
+
+        // STEP 3: ENTER synchronized block for collision checks + loading
+        synchronized (lock) {
+            // Double-check library not loaded (thread-safe)
+            if (libraryToPipNamesMap.containsKey(libraryName)) {
+                throw new AttributeBrokerException("Library already loaded: " + libraryName);
+            }
+
+            // Check PIP name collision
+            if (pipRegistry.containsKey(pipName)) {
+                throw new AttributeBrokerException("PIP name collision: " + pipName + " already registered");
+            }
+
+            // Check ALL attribute finder name collisions
+            for (AttributeFinderSpecification finder : finders) {
+                String                             attrName = finder.fullyQualifiedName();
+                List<AttributeFinderSpecification> existing = attributeFinderIndex.get(attrName);
+
+                if (existing != null) {
+                    for (AttributeFinderSpecification existingSpec : existing) {
+                        if (existingSpec.collidesWith(finder)) {
+                            throw new AttributeBrokerException("Attribute collision: " + attrName + " with signature "
+                                    + finder + " collides with existing " + existingSpec);
+                        }
+                    }
+                }
+            }
+
+            // ALL CHECKS PASSED - now load the PIP
+            // This uses existing hot-swap logic (reconnects streams, etc.)
+            loadPolicyInformationPoint(pipImpl);
+
+            // Track library
+            libraryToPipNamesMap.put(libraryName, List.of(pipName));
+
+            log.info("Loaded library '{}' with {} attributes", libraryName, finders.size());
+        }
+    }
+
+    /**
+     * Unloads a PIP library by name.
+     * <p>
+     * <b>Thread-safety:</b> Uses existing unloadPolicyInformationPoint which is
+     * synchronized.
+     *
+     * @param libraryName the name of the library to unload
+     * @return true if library was unloaded, false if not found
+     */
+    public boolean unloadPolicyInformationPointLibrary(String libraryName) {
+
+        // Remove from library registry (atomic ConcurrentHashMap operation)
+        List<String> pipNames = libraryToPipNamesMap.remove(libraryName);
+
+        if (pipNames == null) {
+            log.warn("Library '{}' not found, nothing to unload", libraryName);
+            return false;
+        }
+
+        // Unload the PIP (uses existing synchronized method)
+        synchronized (lock) {
+            for (String pipName : pipNames) {
+                unloadPolicyInformationPoint(pipName);
+            }
+        }
+
+        log.info("Unloaded library '{}'", libraryName);
+        return true;
+    }
+
+    /**
+     * Returns set of loaded library names.
+     * Lock-free read from ConcurrentHashMap.
+     *
+     * @return set of loaded library names
+     */
+    public Set<String> getLoadedLibraryNames() {
+        return libraryToPipNamesMap.keySet();
+    }
+
+    /**
+     * Processes @PolicyInformationPoint class into implementation.
+     * Processes ALL @Attribute methods. If ANY fails, throws exception.
+     * <p>
+     * Called OUTSIDE synchronized block for performance.
+     *
+     * @param pipInstance the PIP instance
+     * @return the processed PIP implementation
+     * @throws AttributeBrokerException if processing fails
+     */
+    private PolicyInformationPointImplementation processPipClass(Object pipInstance) {
+
+        Class<?> pipClass = pipInstance.getClass();
+
+        // Get @PolicyInformationPoint annotation
+        PolicyInformationPoint annotation = pipClass.getAnnotation(PolicyInformationPoint.class);
+        if (annotation == null) {
+            throw new AttributeBrokerException(
+                    "Class must be annotated with @PolicyInformationPoint: " + pipClass.getName());
+        }
+
+        String pipName = annotation.name();
+        if (pipName == null || pipName.isBlank()) {
+            throw new AttributeBrokerException("@PolicyInformationPoint.name() cannot be blank");
+        }
+
+        // Process ALL @Attribute methods
+        Set<AttributeFinderSpecification> attributeFinders = new HashSet<>();
+
+        for (Method method : pipClass.getDeclaredMethods()) {
+            try {
+                AttributeFinderSpecification spec = AttributeMethodSignatureProcessor
+                        .processAttributeMethod(pipInstance, pipName, method);
+
+                if (spec != null) {
+                    attributeFinders.add(spec);
+                }
+
+            } catch (InitializationException e) {
+                // Any method fails → entire library fails
+                throw new AttributeBrokerException("Failed to process method '" + method.getName() + "' in PIP '"
+                        + pipName + "': " + e.getMessage(), e);
+            }
+        }
+
+        // Validate: at least one attribute
+        if (attributeFinders.isEmpty()) {
+            throw new AttributeBrokerException(
+                    "PIP '" + pipName + "' must have at least one @Attribute or @EnvironmentAttribute method");
+        }
+
+        // Construct specification
+        PolicyInformationPointSpecification spec = new PolicyInformationPointSpecification(pipName, attributeFinders);
+
+        return new PolicyInformationPointImplementation(spec);
     }
 
 }

@@ -17,7 +17,6 @@
  */
 package io.sapl.attributes;
 
-import io.sapl.api.attributes.PolicyInformationPointImplementation;
 import io.sapl.api.model.Value;
 import io.sapl.api.pip.Attribute;
 import io.sapl.api.pip.PolicyInformationPoint;
