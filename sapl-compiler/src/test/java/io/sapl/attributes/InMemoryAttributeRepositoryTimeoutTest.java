@@ -17,11 +17,11 @@
  */
 package io.sapl.attributes;
 
-import io.sapl.api.model.Value;
 import io.sapl.api.attributes.AttributeKey;
 import io.sapl.api.attributes.AttributeRepository;
 import io.sapl.api.attributes.AttributeRepository.TimeOutStrategy;
 import io.sapl.api.attributes.PersistedAttribute;
+import io.sapl.api.model.Value;
 import lombok.val;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;

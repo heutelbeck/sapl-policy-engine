@@ -18,9 +18,8 @@
 package io.sapl.attributes;
 
 import io.sapl.api.attributes.AttributeFinderInvocation;
-import io.sapl.api.attributes.AttributeFinderSpecification;
-import io.sapl.api.model.EvaluationContext;
 import io.sapl.api.model.ErrorValue;
+import io.sapl.api.model.EvaluationContext;
 import io.sapl.api.model.NumberValue;
 import io.sapl.api.model.Value;
 import io.sapl.api.pip.Attribute;

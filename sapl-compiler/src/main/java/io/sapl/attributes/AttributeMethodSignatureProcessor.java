@@ -18,7 +18,6 @@
 package io.sapl.attributes;
 
 import io.sapl.api.attributes.AttributeFinder;
-import io.sapl.api.attributes.AttributeFinderInvocation;
 import io.sapl.api.attributes.AttributeFinderSpecification;
 import io.sapl.api.model.EvaluationContext;
 import io.sapl.api.model.Value;
@@ -39,7 +38,6 @@ import java.lang.reflect.ParameterizedType;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Function;
 
 @UtilityClass
 public class AttributeMethodSignatureProcessor {
@@ -58,16 +56,28 @@ public class AttributeMethodSignatureProcessor {
 
     public static AttributeFinderSpecification processAttributeMethod(Object pipInstance, String namespace,
             Method method) throws InitializationException {
-        if (!method.isAnnotationPresent(Attribute.class)) {
+        val hasAttribute            = method.isAnnotationPresent(Attribute.class);
+        val hasEnvironmentAttribute = method.isAnnotationPresent(EnvironmentAttribute.class);
+
+        // Method must have at least one attribute annotation
+        if (!hasAttribute && !hasEnvironmentAttribute) {
             return null;
         }
 
         validateStaticMethodRequirement(pipInstance, method);
         validateReturnType(method);
 
-        val annotation        = method.getAnnotation(Attribute.class);
-        val name              = annotationNameOrMethodName(annotation.name(), method);
-        val isEnvironmentAttr = method.isAnnotationPresent(EnvironmentAttribute.class);
+        // Get name from whichever annotation is present
+        String name;
+        if (hasAttribute) {
+            val annotation = method.getAnnotation(Attribute.class);
+            name = annotationNameOrMethodName(annotation.name(), method);
+        } else {
+            val annotation = method.getAnnotation(EnvironmentAttribute.class);
+            name = annotationNameOrMethodName(annotation.name(), method);
+        }
+
+        val isEnvironmentAttr = hasEnvironmentAttribute;
         val signatureInfo     = extractSignature(method, isEnvironmentAttr);
         val returnsFlux       = isFluxReturnType(method);
 

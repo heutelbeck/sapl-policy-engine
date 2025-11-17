@@ -25,7 +25,6 @@ import lombok.val;
 import org.junit.jupiter.api.Test;
 
 import java.util.stream.IntStream;
-import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
@@ -37,14 +36,6 @@ class ArrayFunctionLibraryTests {
 
     private static ArrayValue array(int... numbers) {
         return Value.ofArray(IntStream.of(numbers).mapToObj(Value::of).toArray(Value[]::new));
-    }
-
-    private static ArrayValue array(String... strings) {
-        return Value.ofArray(Stream.of(strings).map(Value::of).toArray(Value[]::new));
-    }
-
-    private static ArrayValue array(double... numbers) {
-        return Value.ofArray(java.util.stream.DoubleStream.of(numbers).mapToObj(Value::of).toArray(Value[]::new));
     }
 
     private static Value[] values(int... numbers) {

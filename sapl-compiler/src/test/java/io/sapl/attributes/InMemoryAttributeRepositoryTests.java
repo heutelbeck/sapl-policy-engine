@@ -17,12 +17,12 @@
  */
 package io.sapl.attributes;
 
-import io.sapl.api.model.Value;
 import io.sapl.api.attributes.AttributeFinderInvocation;
 import io.sapl.api.attributes.AttributeKey;
 import io.sapl.api.attributes.AttributeRepository.TimeOutStrategy;
 import io.sapl.api.attributes.AttributeStorage;
 import io.sapl.api.attributes.PersistedAttribute;
+import io.sapl.api.model.Value;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import org.awaitility.Awaitility;

@@ -17,8 +17,8 @@
  */
 package io.sapl.api.functions;
 
-import io.sapl.api.shared.Match;
 import io.sapl.api.model.Value;
+import io.sapl.api.shared.Match;
 
 import java.util.List;
 
