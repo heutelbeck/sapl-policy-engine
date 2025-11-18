@@ -20,10 +20,12 @@ package io.sapl.compiler;
 import io.sapl.api.attributes.AttributeBroker;
 import io.sapl.api.attributes.AttributeFinderInvocation;
 import io.sapl.api.model.*;
-import io.sapl.grammar.sapl.AttributeFinderStep;
+import io.sapl.api.model.Value;
+import io.sapl.grammar.sapl.*;
 import lombok.NonNull;
 import lombok.experimental.UtilityClass;
 import lombok.val;
+import org.eclipse.emf.ecore.EObject;
 import reactor.core.publisher.Flux;
 import reactor.util.context.ContextView;
 
@@ -54,25 +56,46 @@ public class AttributeCompiler {
 
     private static final Value UNIMPLEMENTED = new ErrorValue("Unimplemented");
 
+    public static CompiledExpression compileHeadAttributeFinderStep(CompiledExpression entity,
+            HeadAttributeFinderStep attributeFinderStep, CompilationContext context) {
+        val fullStream = compileAttributeFinderStep(attributeFinderStep, entity, attributeFinderStep.getIdentifier(),
+                attributeFinderStep.getArguments(), attributeFinderStep.getAttributeFinderOptions(), context);
+        return switch (fullStream) {
+        case ErrorValue error                  -> error;
+        case Value ignored                     ->
+            throw new SaplCompilerException("Compilation error. Got Value from PIP. Indicates implementation bug.");
+        case PureExpression ignored            -> throw new SaplCompilerException(
+                "Compilation error. Got PureExpression from PIP. Indicates implementation bug.");
+        case StreamExpression streamExpression -> new StreamExpression(streamExpression.stream().take(1));
+        };
+    }
+
     public static CompiledExpression compileAttributeFinderStep(CompiledExpression entity,
             AttributeFinderStep attributeFinderStep, CompilationContext context) {
+        return compileAttributeFinderStep(attributeFinderStep, entity, attributeFinderStep.getIdentifier(),
+                attributeFinderStep.getArguments(), attributeFinderStep.getAttributeFinderOptions(), context);
+    }
+
+    private static CompiledExpression compileAttributeFinderStep(EObject source, CompiledExpression entity,
+            FunctionIdentifier identifier, Arguments stepArguments, Expression attributeFinderOptions,
+            CompilationContext context) {
         if (entity instanceof ErrorValue) {
             return entity;
         }
-        var compiledOptions = ExpressionCompiler.compileExpression(attributeFinderStep.getAttributeFinderOptions(),
-                context);
+        var compiledOptions = ExpressionCompiler.compileExpression(attributeFinderOptions, context);
         if (compiledOptions == null) {
             compiledOptions = Value.EMPTY_OBJECT;
         }
 
-        val entityFlux           = ExpressionCompiler.compiledExpressionToFlux(entity);
+        val entityFlux           = entity == null ? Flux.just(Value.UNDEFINED)
+                : ExpressionCompiler.compiledExpressionToFlux(entity);
         val optionsParameterFlux = ExpressionCompiler.compiledExpressionToFlux(compiledOptions);
         val effectiveOptionsFlux = Flux.deferContextual(
                 ctx -> optionsParameterFlux.map(optionsParameterVale -> calculateOptions(ctx, optionsParameterVale)));
 
         var arguments = CompiledArguments.EMPTY_ARGUMENTS;
-        if (attributeFinderStep.getArguments() != null && attributeFinderStep.getArguments().getArgs() != null) {
-            arguments = ExpressionCompiler.compileArguments(attributeFinderStep.getArguments().getArgs(), context);
+        if (stepArguments != null && stepArguments.getArgs() != null) {
+            arguments = ExpressionCompiler.compileArguments(stepArguments.getArgs(), context);
         }
 
         val attributeFinderParameterSources = new ArrayList<Flux<?>>(arguments.arguments().length + 2);
@@ -82,16 +105,15 @@ public class AttributeCompiler {
             attributeFinderParameterSources.add(ExpressionCompiler.compiledExpressionToFlux(argument));
         }
 
-        val resolvedAttributeName = ImportResolver.resolveFunctionIdentifierByImports(attributeFinderStep,
-                attributeFinderStep.getIdentifier());
+        val resolvedAttributeName = ImportResolver.resolveFunctionIdentifierByImports(source, identifier);
 
         val attributeStream = Flux.combineLatest(attributeFinderParameterSources, Function.identity())
-                .switchMap(combined -> evaluatedAttributeFinder(combined, resolvedAttributeName));
+                .switchMap(combined -> evaluatedAttributeFinder(combined, resolvedAttributeName, entity == null));
         return new StreamExpression(attributeStream);
     }
 
     private static Flux<Value> evaluatedAttributeFinder(java.lang.Object[] evaluatedAttributeFinderParameters,
-            String attributeName) {
+            String attributeName, boolean isEnvironmentAttribute) {
         if (evaluatedAttributeFinderParameters.length < 2) {
             return Flux.just(Value
                     .error("Internal PDP Error. Attribute evaluation must have at least two parameters, but got %d."
@@ -102,7 +124,7 @@ public class AttributeCompiler {
         if (entity instanceof ErrorValue) {
             return Flux.just(entity);
         }
-        if (entity instanceof UndefinedValue) {
+        if (!isEnvironmentAttribute && entity instanceof UndefinedValue) {
             return Flux.just(Value.error(UNDEFINED_VALUE_ERROR));
         }
         val maybeOptions = (Options) evaluatedAttributeFinderParameters[1];
@@ -114,9 +136,9 @@ public class AttributeCompiler {
         var values     = new ArrayList<>(
                 Arrays.stream(evaluatedAttributeFinderParameters, 2, evaluatedAttributeFinderParameters.length)
                         .map(obj -> (Value) obj).toList());
-        val invocation = new AttributeFinderInvocation(options.configurationId, attributeName, entity, values,
-                options.variables, options.initialTimeOutDuration(), options.pollIntervalDuration(),
-                options.backoffDuration(), options.retries, options.fresh);
+        val invocation = new AttributeFinderInvocation(options.configurationId, attributeName,
+                isEnvironmentAttribute ? null : entity, values, options.variables, options.initialTimeOutDuration(),
+                options.pollIntervalDuration(), options.backoffDuration(), options.retries, options.fresh);
         return options.attributeBroker.attributeStream(invocation);
     }
 
@@ -217,6 +239,26 @@ public class AttributeCompiler {
         }
 
         return defaultValue;
+    }
+
+    public static CompiledExpression compileEnvironmentAttribute(BasicEnvironmentAttribute envAttribute,
+            CompilationContext context) {
+        return compileAttributeFinderStep(envAttribute, null, envAttribute.getIdentifier(), envAttribute.getArguments(),
+                envAttribute.getAttributeFinderOptions(), context);
+    }
+
+    public static CompiledExpression compileHeadEnvironmentAttribute(BasicEnvironmentHeadAttribute envAttribute,
+            CompilationContext context) {
+        val fullStream = compileAttributeFinderStep(envAttribute, null, envAttribute.getIdentifier(),
+                envAttribute.getArguments(), envAttribute.getAttributeFinderOptions(), context);
+        return switch (fullStream) {
+        case ErrorValue error                  -> error;
+        case Value ignored                     ->
+            throw new SaplCompilerException("Compilation error. Got Value from PIP. Indicates implementation bug.");
+        case PureExpression ignored            -> throw new SaplCompilerException(
+                "Compilation error. Got PureExpression from PIP. Indicates implementation bug.");
+        case StreamExpression streamExpression -> new StreamExpression(streamExpression.stream().take(1));
+        };
     }
 
     private sealed interface Options permits AttributeFinderOptions, OptionsError {

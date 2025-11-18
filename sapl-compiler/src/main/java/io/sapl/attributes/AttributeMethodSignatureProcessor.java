@@ -19,7 +19,6 @@ package io.sapl.attributes;
 
 import io.sapl.api.attributes.AttributeFinder;
 import io.sapl.api.attributes.AttributeFinderSpecification;
-import io.sapl.api.model.EvaluationContext;
 import io.sapl.api.model.Value;
 import io.sapl.api.pip.Attribute;
 import io.sapl.api.pip.EnvironmentAttribute;
@@ -52,7 +51,6 @@ public class AttributeMethodSignatureProcessor {
     public static final String TYPE_ERROR_TEMPLATE                  = "Attribute '%%s' argument %d: expected %s but received %%s";
     public static final String VARARG_TYPE_ERROR_TEMPLATE           = "Attribute '%%s' varargs argument %%d: expected %s but received %%s";
     public static final String ATTRIBUTE_EXECUTION_ERROR_TEMPLATE   = "Attribute '%s' execution failed: %s";
-    public static final String VARIABLES_PARAM_MUST_BE_MAP_ERROR    = "Variables parameter must be Map<String, Value> but found: %s";
 
     public static AttributeFinderSpecification processAttributeMethod(Object pipInstance, String namespace,
             Method method) throws InitializationException {
