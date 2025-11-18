@@ -36,9 +36,27 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.function.Function;
 
+/**
+ * Compiles SAPL attribute finder expressions into reactive streams that invoke
+ * PIPs.
+ *
+ * <p>
+ * Options precedence: inline > {@code SAPL.attributeFinderOptions} variable >
+ * defaults.
+ *
+ * <p>
+ * Uses {@code switchMap} - parameter changes cancel and restart PIP
+ * invocations.
+ * Type mismatches in options silently fall through to next precedence level.
+ * UNDEFINED entities rejected for attribute steps, allowed for environment
+ * attributes.
+ * {@link AttributeBroker} must be present in reactor context (runtime
+ * requirement).
+ */
 @UtilityClass
 public class AttributeCompiler {
 
+    /** Defaults: 3s timeout, 30s poll, 1s backoff, 3 retries, caching allowed. */
     private static final AttributeFinderOptions DEFAULT_OPTIONS = new AttributeFinderOptions("none", 3000L, 30000L,
             1000L, 3, false, null, null);
 
@@ -50,15 +68,22 @@ public class AttributeCompiler {
     private static final String OPTION_FIELD_INITIAL_TIMEOUT          = "initialTimeOutMs";
     private static final String OPTION_FIELD_POLL_INTERVAL            = "pollIntervalMs";
     private static final String OPTION_FIELD_RETRIES                  = "retries";
+    private static final String VARIABLE_NAME_SAPL                    = "SAPL";
 
-    private static final String VARIABLE_NAME_SAPL = "SAPL";
-
+    /**
+     * Compiles attribute finder step (e.g., {@code entity.<pip.attr>}).
+     * Entity becomes first parameter. UNDEFINED entity rejected at runtime.
+     */
     public static CompiledExpression compileAttributeFinderStep(CompiledExpression entity,
             AttributeFinderStep attributeFinderStep, CompilationContext context) {
         return compileAttributeFinderStep(attributeFinderStep, entity, attributeFinderStep.getIdentifier(),
                 attributeFinderStep.getArguments(), attributeFinderStep.getAttributeFinderOptions(), context);
     }
 
+    /**
+     * Compiles environment attribute (e.g., {@code <time.now>}).
+     * Entity set to UNDEFINED, which is allowed for environment attributes.
+     */
     public static CompiledExpression compileEnvironmentAttribute(BasicEnvironmentAttribute envAttribute,
             CompilationContext context) {
         return compileAttributeFinderStep(envAttribute, null, envAttribute.getIdentifier(), envAttribute.getArguments(),
@@ -66,6 +91,10 @@ public class AttributeCompiler {
 
     }
 
+    /**
+     * Compiles head attribute finder step (e.g., {@code entity.<pip.attr>|}).
+     * Applies {@code take(1)} - upstream may not cancel immediately.
+     */
     public static CompiledExpression compileHeadAttributeFinderStep(CompiledExpression entity,
             HeadAttributeFinderStep attributeFinderStep, CompilationContext context) {
         val fullStream = compileAttributeFinderStep(attributeFinderStep, entity, attributeFinderStep.getIdentifier(),
@@ -73,6 +102,9 @@ public class AttributeCompiler {
         return fullStreamToHead(fullStream);
     }
 
+    /**
+     * Compiles head environment attribute (e.g., {@code <time.now>|}).
+     */
     public static CompiledExpression compileHeadEnvironmentAttribute(BasicEnvironmentHeadAttribute envAttribute,
             CompilationContext context) {
         val fullStream = compileAttributeFinderStep(envAttribute, null, envAttribute.getIdentifier(),
@@ -80,6 +112,10 @@ public class AttributeCompiler {
         return fullStreamToHead(fullStream);
     }
 
+    /**
+     * Applies {@code take(1)} to stream. Throws if not {@link StreamExpression}
+     * (implementation bug).
+     */
     private CompiledExpression fullStreamToHead(CompiledExpression fullStream) {
         return switch (fullStream) {
         case ErrorValue error                  -> error;
@@ -91,6 +127,12 @@ public class AttributeCompiler {
         };
     }
 
+    /**
+     * Core method. Uses {@code combineLatest} + {@code switchMap}.
+     * Null options/arguments replaced with empty. Options deferred via
+     * {@code deferContextual}.
+     * Parameter array: [entity, options, args...].
+     */
     private static CompiledExpression compileAttributeFinderStep(EObject source, CompiledExpression entity,
             FunctionIdentifier identifier, Arguments stepArguments, Expression attributeFinderOptions,
             CompilationContext context) {
@@ -101,8 +143,10 @@ public class AttributeCompiler {
         if (compiledOptions == null) {
             compiledOptions = Value.EMPTY_OBJECT;
         }
-
-        val entityFlux           = entity == null ? Flux.just(Value.UNDEFINED)
+        if(entity instanceof UndefinedValue) {
+            throw new SaplCompilerException(UNDEFINED_VALUE_ERROR);
+        }
+        val entityFlux           = entity == null ? Flux.just(Value.NULL)
                 : ExpressionCompiler.compiledExpressionToFlux(entity);
         val optionsParameterFlux = ExpressionCompiler.compiledExpressionToFlux(compiledOptions);
         val effectiveOptionsFlux = Flux.deferContextual(
@@ -127,6 +171,12 @@ public class AttributeCompiler {
         return new StreamExpression(attributeStream);
     }
 
+    /**
+     * Validates params, delegates to AttributeBroker. Parameters: [entity, options,
+     * args...].
+     * Environment attributes pass entity as null (not UNDEFINED).
+     * Unchecked casts - ClassCastException if compilation bug.
+     */
     private static Flux<Value> evaluatedAttributeFinder(java.lang.Object[] evaluatedAttributeFinderParameters,
             String attributeName, boolean isEnvironmentAttribute) {
         if (evaluatedAttributeFinderParameters.length < 2) {
@@ -161,11 +211,8 @@ public class AttributeCompiler {
     }
 
     /**
-     * Retrieves global attribute finder defaults from the SAPL variable context.
-     *
-     * @param variables the current policy variables
-     * @return an optional containing the global defaults object, or empty if not
-     * present
+     * Extracts {@code SAPL.attributeFinderOptions} from variables. Returns empty if
+     * missing or wrong type.
      */
     private static Optional<ObjectValue> globalDefaults(Map<String, Value> variables) {
         val saplOptions = variables.get(VARIABLE_NAME_SAPL);
@@ -179,6 +226,9 @@ public class AttributeCompiler {
         return Optional.of(attributeFinderOptionsObject);
     }
 
+    /**
+     * Merges options at subscription time. Config ID from context, not options.
+     */
     private static Options calculateOptions(ContextView ctx, Value options) {
         if (options instanceof ErrorValue error) {
             return new OptionsError(error);
@@ -201,6 +251,7 @@ public class AttributeCompiler {
                 evaluationContext.variables(), evaluationContext.attributeBroker());
     }
 
+    /** BigDecimal to long - truncates fractional, may overflow. */
     private Long extractLong(Value v) {
         if (v instanceof NumberValue number) {
             return number.value().longValue();
@@ -208,6 +259,7 @@ public class AttributeCompiler {
         return null;
     }
 
+    /** BigDecimal to int - truncates fractional, may overflow. */
     private Integer extractInteger(Value v) {
         if (v instanceof NumberValue number) {
             return number.value().intValue();
@@ -222,6 +274,10 @@ public class AttributeCompiler {
         return null;
     }
 
+    /**
+     * Precedence: inline > global > default. Type mismatches silently fall through
+     * to next level.
+     */
     private static <T> @NonNull T optionValue(String fieldName, Map<String, Value> variables, Value options,
             @NonNull T defaultValue, Function<Value, T> extractor) {
         if (options instanceof ObjectValue optionsObject) {
@@ -246,11 +302,22 @@ public class AttributeCompiler {
         return defaultValue;
     }
 
+    /**
+     * Result of option calculation - either {@link AttributeFinderOptions} or
+     * {@link OptionsError}.
+     */
     private sealed interface Options permits AttributeFinderOptions, OptionsError {
     }
 
+    /** Wraps compilation errors from inline options. */
     private record OptionsError(ErrorValue error) implements Options {}
 
+    /**
+     * Resolved PIP invocation config. {@code configurationId} from
+     * EvaluationContext.
+     * {@code backoffMs} is exponential base. {@code retries} is additional attempts
+     * (3 = 4 total).
+     */
     private record AttributeFinderOptions(
             String configurationId,
             long initialTimeOutMs,
@@ -260,6 +327,7 @@ public class AttributeCompiler {
             boolean fresh,
             Map<String, Value> variables,
             AttributeBroker attributeBroker) implements Options {
+
         public @NonNull Duration backoffDuration() {
             return Duration.ofMillis(backoffMs);
         }
