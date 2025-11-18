@@ -31,6 +31,7 @@ import reactor.core.publisher.Flux;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -59,8 +60,8 @@ class AttributeStreamRaceConditionTests {
     private static final Duration LONG_GRACE_PERIOD  = Duration.ofSeconds(10);
 
     private static AttributeFinderInvocation createInvocation() {
-        return new AttributeFinderInvocation("test.attribute", null, List.of(), Duration.ofMillis(100),
-                Duration.ofSeconds(1), Duration.ofMillis(10), 0, false);
+        return new AttributeFinderInvocation("test-config", "test.attribute", List.of(), Map.of(),
+                Duration.ofMillis(100), Duration.ofSeconds(1), Duration.ofMillis(10), 0, false);
     }
 
     /**

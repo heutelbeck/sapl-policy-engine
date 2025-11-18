@@ -22,27 +22,33 @@ import lombok.NonNull;
 
 import java.time.Duration;
 import java.util.List;
+import java.util.Map;
 
 import static io.sapl.validation.NameValidator.requireValidName;
 
 public record AttributeFinderInvocation(
+        @NonNull String configurationId,
         @NonNull String attributeName,
         Value entity,
         @NonNull List<Value> arguments,
+        @NonNull Map<String, Value> variables,
         @NonNull Duration initialTimeOut,
         @NonNull Duration pollInterval,
         @NonNull Duration backoff,
         long retries,
         boolean fresh) {
 
-    public AttributeFinderInvocation(@NonNull String attributeName,
+    public AttributeFinderInvocation(@NonNull String configurationId,
+            @NonNull String attributeName,
             @NonNull List<Value> arguments,
+            @NonNull Map<String, Value> variables,
             @NonNull Duration initialTimeOut,
             @NonNull Duration pollInterval,
             @NonNull Duration backoff,
             long retries,
             boolean fresh) {
-        this(attributeName, null, arguments, initialTimeOut, pollInterval, backoff, retries, fresh);
+        this(configurationId, attributeName, null, arguments, variables, initialTimeOut, pollInterval, backoff, retries,
+                fresh);
     }
 
     public AttributeFinderInvocation {

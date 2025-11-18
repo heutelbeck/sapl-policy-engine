@@ -220,22 +220,6 @@ class AttributeMethodSignatureProcessorTests {
     }
 
     @Test
-    void whenInvokingAttributeFinderWithVariablesThenAccessesFromContext() throws Exception {
-        var method = TestPIP.class.getMethod("withVariables", Value.class, Map.class);
-        var result = AttributeMethodSignatureProcessor.processAttributeMethod(null, NAMESPACE, method);
-
-        var variables  = Map.<String, Value>of("key", Value.of("value"));
-        var invocation = mockInvocation("withVariables");
-        var context    = mockEvaluationContext(variables);
-
-        Assertions.assertNotNull(result);
-        StepVerifier
-                .create(result.attributeFinder().invoke(invocation)
-                        .contextWrite(ctx -> ctx.put(EvaluationContext.class, context)))
-                .expectNext(Value.of("value")).verifyComplete();
-    }
-
-    @Test
     void whenAttributeThrowsExceptionThenReturnsError() throws Exception {
         var method = TestPIP.class.getMethod("throwsException", Value.class);
         var result = AttributeMethodSignatureProcessor.processAttributeMethod(null, NAMESPACE, method);

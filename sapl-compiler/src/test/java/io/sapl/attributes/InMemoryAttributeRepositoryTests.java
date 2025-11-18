@@ -750,11 +750,11 @@ class InMemoryAttributeRepositoryTests {
 
     private AttributeFinderInvocation createInvocation(Value entity, String attributeName, List<Value> arguments) {
         if (entity == null) {
-            return new AttributeFinderInvocation(attributeName, arguments, Duration.ofSeconds(1),
-                    Duration.ofMillis(100), Duration.ofMillis(50), 3, false);
+            return new AttributeFinderInvocation("test-config", attributeName, arguments, Map.of(),
+                    Duration.ofSeconds(1), Duration.ofMillis(100), Duration.ofMillis(50), 3, false);
         }
-        return new AttributeFinderInvocation(attributeName, entity, arguments, Duration.ofSeconds(1),
-                Duration.ofMillis(100), Duration.ofMillis(50), 3, false);
+        return new AttributeFinderInvocation("test-config", attributeName, entity, arguments, Map.of(),
+                Duration.ofSeconds(1), Duration.ofMillis(100), Duration.ofMillis(50), 3, false);
     }
 
     private static class ControlledClock {

@@ -223,11 +223,10 @@ public class AttributeMethodSignatureProcessor {
         MethodHandle finalMethodHandle = methodHandle;
         return invocation -> Flux.deferContextual(ctx -> {
             try {
-                val evaluationContext = ctx.get(EvaluationContext.class);
-                val variables         = evaluationContext.variables();
-                val arguments         = invocation.arguments().toArray(new Value[0]);
-                val argumentCount     = arguments.length;
-                val attributeName     = invocation.attributeName();
+                val variables     = invocation.variables();
+                val arguments     = invocation.arguments().toArray(new Value[0]);
+                val argumentCount = arguments.length;
+                val attributeName = invocation.attributeName();
 
                 if (hasVarArgs) {
                     if (argumentCount < minArgCount) {

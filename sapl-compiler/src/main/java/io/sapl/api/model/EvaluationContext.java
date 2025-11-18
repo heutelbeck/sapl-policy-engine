@@ -17,42 +17,53 @@
  */
 package io.sapl.api.model;
 
+import io.sapl.api.attributes.AttributeBroker;
 import io.sapl.api.functions.FunctionBroker;
 import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import lombok.NonNull;
-import lombok.val;
 
 import java.util.HashMap;
 import java.util.Map;
 
 import static io.sapl.api.model.ReservedIdentifiers.*;
 
-public record EvaluationContext(@NonNull Map<String, Value> variables, FunctionBroker functionBroker) {
+public record EvaluationContext(
+        String configurationId,
+        String subscriptionId,
+        AuthorizationSubscription authorizationSubscription,
+        @NonNull Map<String, Value> variables,
+        FunctionBroker functionBroker,
+        AttributeBroker attributeBroker) {
 
-    public EvaluationContext(AuthorizationSubscription authorizationSubscription, FunctionBroker pluginsServer) {
-        this(new HashMap<>(), pluginsServer);
-        variables.put(SUBJECT, authorizationSubscription.subject());
-        variables.put(ACTION, authorizationSubscription.action());
-        variables.put(RESOURCE, authorizationSubscription.resource());
-        variables.put(ENVIRONMENT, authorizationSubscription.environment());
+    public EvaluationContext(String configurationId,
+            String subscriptionId,
+            AuthorizationSubscription authorizationSubscription,
+            FunctionBroker functionBroker,
+            AttributeBroker attributeBroker) {
+        this(configurationId, subscriptionId, authorizationSubscription, new HashMap<>(), functionBroker,
+                attributeBroker);
+        if (authorizationSubscription != null) {
+            this.variables.put(SUBJECT, authorizationSubscription.subject());
+            this.variables.put(ACTION, authorizationSubscription.action());
+            this.variables.put(RESOURCE, authorizationSubscription.resource());
+            this.variables.put(ENVIRONMENT, authorizationSubscription.environment());
+        }
     }
 
-    private EvaluationContext(EvaluationContext originalContext,
-            String identifier,
-            Value value,
-            FunctionBroker pluginsServer) {
-        this(new HashMap<>(), pluginsServer);
+    private EvaluationContext(EvaluationContext originalContext) {
+        this(originalContext.configurationId, originalContext.subscriptionId, originalContext.authorizationSubscription,
+                new HashMap<String, Value>(), originalContext.functionBroker, originalContext.attributeBroker);
         variables.putAll(originalContext.variables);
+    }
+
+    private EvaluationContext(EvaluationContext originalContext, String identifier, Value value) {
+        this(originalContext);
         variables.put(identifier, value);
     }
 
-    private EvaluationContext(EvaluationContext originalContext,
-            Value relativeValue,
-            Value relativeLocation,
-            FunctionBroker pluginsServer) {
-        this(new HashMap<>(), pluginsServer);
-        variables.putAll(originalContext.variables);
+    private EvaluationContext(EvaluationContext originalContext, Value relativeValue, Value relativeLocation) {
+        this(originalContext);
         variables.put(RELATIVE_VALUE, relativeValue);
         variables.put(RELATIVE_LOCATION, relativeLocation);
     }
@@ -78,26 +89,22 @@ public record EvaluationContext(@NonNull Map<String, Value> variables, FunctionB
     }
 
     public Value get(String identifier) {
-        val value = variables.get(identifier);
-        if (value == null) {
-            return Value.UNDEFINED;
-        }
-        return value;
+        return variables.getOrDefault(identifier, Value.UNDEFINED);
     }
 
     public EvaluationContext withRelativeValue(Value relativeValue, Value relativeLocation) {
-        return new EvaluationContext(this, relativeValue, relativeLocation, functionBroker);
+        return new EvaluationContext(this, relativeValue, relativeLocation);
     }
 
     public EvaluationContext withRelativeValue(Value relativeValue) {
-        return new EvaluationContext(this, relativeValue, Value.UNDEFINED, functionBroker);
+        return new EvaluationContext(this, relativeValue, Value.UNDEFINED);
     }
 
     public EvaluationContext with(String identifier, Value value) {
         if (RESERVED_IDENTIFIERS.contains(identifier)) {
             throw new PolicyEvaluationException("Identifier " + identifier + " is reserved.");
         }
-        return new EvaluationContext(this, identifier, value, functionBroker);
+        return new EvaluationContext(this, identifier, value);
     }
 
 }
