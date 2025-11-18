@@ -17,6 +17,7 @@
  */
 package io.sapl.compiler;
 
+import io.sapl.api.attributes.AttributeBroker;
 import io.sapl.api.functions.FunctionBroker;
 import io.sapl.api.model.CompiledExpression;
 import io.sapl.api.model.Value;
@@ -35,6 +36,7 @@ import java.util.function.Function;
 @RequiredArgsConstructor
 public class CompilationContext {
     final FunctionBroker                    functionBroker;
+    final AttributeBroker                   attributeBroker;
     boolean                                 isInsideTargetExpression = false;
     final boolean                           debugInformationEnabled  = false;
     List<Import>                            imports                  = new ArrayList<>();

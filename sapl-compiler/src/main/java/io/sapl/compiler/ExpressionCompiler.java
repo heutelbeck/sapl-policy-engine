@@ -31,7 +31,10 @@ import lombok.val;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
 
 import static io.sapl.compiler.operators.BooleanOperators.TYPE_MISMATCH_BOOLEAN_EXPECTED_ERROR;
 
@@ -475,7 +478,6 @@ public class ExpressionCompiler {
         case STREAM -> compileFunctionWithStreamParameters(function, arguments, context);
         };
         return compileSteps(compiled, function.getSteps(), context);
-
     }
 
     /**
@@ -641,7 +643,8 @@ public class ExpressionCompiler {
             compileStep(parent, p -> StepOperators.keyStep(p, escapedKeyStep.getId()), context);
         case WildcardStep wildcardStep                       ->
             compileStep(parent, StepOperators::wildcardStep, context);
-        case AttributeFinderStep attributeFinderStep         -> UNIMPLEMENTED;
+        case AttributeFinderStep attributeFinderStep         ->
+            AttributeCompiler.compileAttributeFinderStep(parent, attributeFinderStep, context);
         case HeadAttributeFinderStep headAttributeFinderStep -> UNIMPLEMENTED;
         case RecursiveKeyStep recursiveKeyStep               ->
             compileStep(parent, p -> StepOperators.recursiveKeyStep(p, recursiveKeyStep.getId()), context);
@@ -825,7 +828,8 @@ public class ExpressionCompiler {
      * @return an evaluation context for compile-time folding
      */
     private EvaluationContext temporaryRelativeFoldingEvaluationContext(CompilationContext compilationContext) {
-        return new EvaluationContext(Map.of(), compilationContext.getFunctionBroker());
+        return new EvaluationContext("", "", null, compilationContext.getFunctionBroker(),
+                compilationContext.getAttributeBroker());
     }
 
     /**
@@ -1210,7 +1214,7 @@ public class ExpressionCompiler {
      * @param context the compilation context
      * @return the compiled arguments with nature classification
      */
-    private CompiledArguments compileArguments(List<Expression> arguments, CompilationContext context) {
+    CompiledArguments compileArguments(List<Expression> arguments, CompilationContext context) {
         val compiledArguments    = new CompiledExpression[arguments.size()];
         var isPure               = false;
         var isStream             = false;
@@ -1479,7 +1483,7 @@ public class ExpressionCompiler {
      * @param expression the compiled expression to convert
      * @return a Flux stream emitting the expression's values
      */
-    private Flux<Value> compiledExpressionToFlux(CompiledExpression expression) {
+    Flux<Value> compiledExpressionToFlux(CompiledExpression expression) {
         return switch (expression) {
         case Value value                   -> Flux.just(value);
         case StreamExpression stream       -> stream.stream();

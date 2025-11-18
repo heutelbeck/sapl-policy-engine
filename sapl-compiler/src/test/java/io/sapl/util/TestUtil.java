@@ -17,30 +17,64 @@
  */
 package io.sapl.util;
 
+import io.sapl.api.attributes.AttributeBroker;
+import io.sapl.api.attributes.AttributeRepository;
 import io.sapl.api.functions.FunctionBroker;
 import io.sapl.api.model.*;
 import io.sapl.api.pdp.AuthorizationSubscription;
+import io.sapl.api.pip.Attribute;
+import io.sapl.api.pip.PolicyInformationPoint;
+import io.sapl.attributes.CachingAttributeBroker;
+import io.sapl.attributes.InMemoryAttributeRepository;
+import io.sapl.attributes.libraries.TimePolicyInformationPoint;
 import io.sapl.compiler.CompilationContext;
 import io.sapl.compiler.ExpressionCompiler;
 import io.sapl.functions.DefaultFunctionBroker;
+import io.sapl.functions.libraries.TemporalFunctionLibrary;
+import io.sapl.interpreter.InitializationException;
 import lombok.SneakyThrows;
 import lombok.experimental.UtilityClass;
 import lombok.val;
 import reactor.core.publisher.Flux;
 import reactor.test.StepVerifier;
 
+import java.time.Clock;
+
 import static org.assertj.core.api.Assertions.assertThat;
 
 @UtilityClass
 public class TestUtil {
-    private static final FunctionBroker FUNCTION_BROKER = new DefaultFunctionBroker();
+    private static final DefaultFunctionBroker  FUNCTION_BROKER      = new DefaultFunctionBroker();
+    private static final AttributeRepository    ATTRIBUTE_REPOSITORY = new InMemoryAttributeRepository(
+            Clock.systemUTC());
+    private static final CachingAttributeBroker ATTRIBUTE_BROKER     = new CachingAttributeBroker(ATTRIBUTE_REPOSITORY);
+
+    static {
+        ATTRIBUTE_BROKER.loadPolicyInformationPointLibrary(new TimePolicyInformationPoint(Clock.systemUTC()));
+        ATTRIBUTE_BROKER.loadPolicyInformationPointLibrary(new TestPip());
+        try {
+            FUNCTION_BROKER.loadStaticFunctionLibrary(TemporalFunctionLibrary.class);
+        } catch (InitializationException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    @PolicyInformationPoint(name = "test")
+    public static class TestPip {
+        @Attribute
+        public Flux<Value> echo(Value value) {
+            return Flux.just(value, Value.of("hello world"));
+        }
+
+    }
 
     private CompilationContext createCompilationContext() {
-        return new CompilationContext(FUNCTION_BROKER);
+        return new CompilationContext(FUNCTION_BROKER, ATTRIBUTE_BROKER);
     }
 
     private EvaluationContext createEvaluationContext(AuthorizationSubscription authorizationSubscription) {
-        return new EvaluationContext(authorizationSubscription, FUNCTION_BROKER);
+        return new EvaluationContext("testConfigurationId", "testSubscriptionId", authorizationSubscription,
+                FUNCTION_BROKER, ATTRIBUTE_BROKER);
     }
 
     private EvaluationContext createEvaluationContext() {
@@ -71,6 +105,11 @@ public class TestUtil {
     private CompiledExpression compileExpression(String expression) {
         val parsedExpression = ParserUtil.expression(expression);
         return ExpressionCompiler.compileExpression(parsedExpression, createCompilationContext());
+    }
+
+    public Flux<Value> evaluateExpression(String expression) {
+        val compiledExpression = compileExpression(expression);
+        return evaluateExpression(compiledExpression, createEvaluationContext());
     }
 
     private Flux<Value> evaluateExpression(CompiledExpression expression, EvaluationContext evaluationContext) {

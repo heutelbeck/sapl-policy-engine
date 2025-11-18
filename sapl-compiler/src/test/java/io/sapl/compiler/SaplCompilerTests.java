@@ -17,24 +17,34 @@
  */
 package io.sapl.compiler;
 
+import io.sapl.api.attributes.AttributeBroker;
+import io.sapl.api.attributes.AttributeRepository;
 import io.sapl.api.model.ObjectValue;
 import io.sapl.api.model.Value;
+import io.sapl.attributes.CachingAttributeBroker;
+import io.sapl.attributes.InMemoryAttributeRepository;
 import io.sapl.functions.DefaultFunctionBroker;
 import io.sapl.functions.libraries.ArrayFunctionLibrary;
 import io.sapl.functions.libraries.TemporalFunctionLibrary;
 import io.sapl.interpreter.DefaultSAPLInterpreter;
 import io.sapl.interpreter.InitializationException;
 import io.sapl.interpreter.SAPLInterpreter;
+import io.sapl.util.TestUtil;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import org.junit.jupiter.api.Test;
+
+import java.time.Clock;
 
 import static io.sapl.util.TestUtil.assertExpressionCompilesToValue;
 
 @Slf4j
 class SaplCompilerTests {
-    private static final SAPLInterpreter       PARSER          = new DefaultSAPLInterpreter();
-    private static final DefaultFunctionBroker FUNCTION_BROKER = new DefaultFunctionBroker();
+    private static final SAPLInterpreter       PARSER               = new DefaultSAPLInterpreter();
+    private static final DefaultFunctionBroker FUNCTION_BROKER      = new DefaultFunctionBroker();
+    private static final AttributeRepository   ATTRIBUTE_REPOSITORY = new InMemoryAttributeRepository(
+            Clock.systemUTC());
+    private static final AttributeBroker       ATTRIBUTE_BROKER     = new CachingAttributeBroker(ATTRIBUTE_REPOSITORY);
 
     @Test
     void experimentWithCompiler() throws InitializationException {
@@ -47,7 +57,7 @@ class SaplCompilerTests {
                   // resource.id == "def";
                 """;
         val sapl    = PARSER.parse(source);
-        val context = new CompilationContext(FUNCTION_BROKER);
+        val context = new CompilationContext(FUNCTION_BROKER, ATTRIBUTE_BROKER);
         try {
             val compiled = SaplCompiler.compileDocument(sapl, context);
             System.err.println(compiled);
@@ -63,5 +73,13 @@ class SaplCompilerTests {
                 """;
         val expected   = ObjectValue.builder().put("key1", Value.of(123)).build();
         assertExpressionCompilesToValue(expression, expected);
+    }
+
+    @Test
+    void constantAttributesWorks() {
+        val expression = """
+                "UTC".<test.echo>
+                """;
+        TestUtil.evaluateExpression(expression).doOnNext(System.err::println).take(2).blockLast();
     }
 }
