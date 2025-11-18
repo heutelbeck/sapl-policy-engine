@@ -35,6 +35,7 @@ import lombok.val;
 import org.junit.jupiter.api.Test;
 
 import java.time.Clock;
+import java.time.Duration;
 
 import static io.sapl.util.TestUtil.assertExpressionCompilesToValue;
 
@@ -78,8 +79,8 @@ class SaplCompilerTests {
     @Test
     void constantAttributesWorks() {
         val expression = """
-                "UTC".<test.echo>
+                |<time.now>
                 """;
-        TestUtil.evaluateExpression(expression).doOnNext(System.err::println).take(2).blockLast();
+        TestUtil.evaluateExpression(expression).doOnNext(System.err::println).take(2).blockLast(Duration.ofSeconds(5));
     }
 }

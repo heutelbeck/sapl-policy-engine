@@ -436,8 +436,10 @@ public class ExpressionCompiler {
             compileSteps(compileExpression(group.getExpression(), context), group.getSteps(), context);
         case BasicValue value                               -> compileValue(value, context);
         case BasicFunction function                         -> compileBasicFunction(function, context);
-        case BasicEnvironmentAttribute envAttribute         -> UNIMPLEMENTED;
-        case BasicEnvironmentHeadAttribute envHeadAttribute -> UNIMPLEMENTED;
+        case BasicEnvironmentAttribute envAttribute         ->
+            AttributeCompiler.compileEnvironmentAttribute(envAttribute, context);
+        case BasicEnvironmentHeadAttribute envHeadAttribute ->
+            AttributeCompiler.compileHeadEnvironmentAttribute(envHeadAttribute, context);
         case BasicIdentifier identifier                     -> compileIdentifier(identifier, context);
         case BasicRelative relativeValue                    -> compileBasicRelative(relativeValue, context);
         default                                             ->
@@ -645,7 +647,8 @@ public class ExpressionCompiler {
             compileStep(parent, StepOperators::wildcardStep, context);
         case AttributeFinderStep attributeFinderStep         ->
             AttributeCompiler.compileAttributeFinderStep(parent, attributeFinderStep, context);
-        case HeadAttributeFinderStep headAttributeFinderStep -> UNIMPLEMENTED;
+        case HeadAttributeFinderStep headAttributeFinderStep ->
+            AttributeCompiler.compileHeadAttributeFinderStep(parent, headAttributeFinderStep, context);
         case RecursiveKeyStep recursiveKeyStep               ->
             compileStep(parent, p -> StepOperators.recursiveKeyStep(p, recursiveKeyStep.getId()), context);
         case RecursiveWildcardStep recursiveWildcardStep     ->
