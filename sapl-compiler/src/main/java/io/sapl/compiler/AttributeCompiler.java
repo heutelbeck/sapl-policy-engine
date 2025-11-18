@@ -42,8 +42,7 @@ public class AttributeCompiler {
     private static final AttributeFinderOptions DEFAULT_OPTIONS = new AttributeFinderOptions("none", 3000L, 30000L,
             1000L, 3, false, null, null);
 
-    private static final String EXTERNAL_ATTRIBUTE_IN_TARGET_ERROR = "Attribute resolution error. Attributes not allowed in target.";
-    private static final String UNDEFINED_VALUE_ERROR              = "Undefined value handed over as left-hand parameter to policy information point";
+    private static final String UNDEFINED_VALUE_ERROR = "Undefined value handed over as left-hand parameter to policy information point";
 
     private static final String OPTION_FIELD_ATTRIBUTE_FINDER_OPTIONS = "attributeFinderOptions";
     private static final String OPTION_FIELD_BACKOFF                  = "backoffMs";
@@ -54,12 +53,34 @@ public class AttributeCompiler {
 
     private static final String VARIABLE_NAME_SAPL = "SAPL";
 
-    private static final Value UNIMPLEMENTED = new ErrorValue("Unimplemented");
+    public static CompiledExpression compileAttributeFinderStep(CompiledExpression entity,
+            AttributeFinderStep attributeFinderStep, CompilationContext context) {
+        return compileAttributeFinderStep(attributeFinderStep, entity, attributeFinderStep.getIdentifier(),
+                attributeFinderStep.getArguments(), attributeFinderStep.getAttributeFinderOptions(), context);
+    }
+
+    public static CompiledExpression compileEnvironmentAttribute(BasicEnvironmentAttribute envAttribute,
+            CompilationContext context) {
+        return compileAttributeFinderStep(envAttribute, null, envAttribute.getIdentifier(), envAttribute.getArguments(),
+                envAttribute.getAttributeFinderOptions(), context);
+
+    }
 
     public static CompiledExpression compileHeadAttributeFinderStep(CompiledExpression entity,
             HeadAttributeFinderStep attributeFinderStep, CompilationContext context) {
         val fullStream = compileAttributeFinderStep(attributeFinderStep, entity, attributeFinderStep.getIdentifier(),
                 attributeFinderStep.getArguments(), attributeFinderStep.getAttributeFinderOptions(), context);
+        return fullStreamToHead(fullStream);
+    }
+
+    public static CompiledExpression compileHeadEnvironmentAttribute(BasicEnvironmentHeadAttribute envAttribute,
+            CompilationContext context) {
+        val fullStream = compileAttributeFinderStep(envAttribute, null, envAttribute.getIdentifier(),
+                envAttribute.getArguments(), envAttribute.getAttributeFinderOptions(), context);
+        return fullStreamToHead(fullStream);
+    }
+
+    private CompiledExpression fullStreamToHead(CompiledExpression fullStream) {
         return switch (fullStream) {
         case ErrorValue error                  -> error;
         case Value ignored                     ->
@@ -68,12 +89,6 @@ public class AttributeCompiler {
                 "Compilation error. Got PureExpression from PIP. Indicates implementation bug.");
         case StreamExpression streamExpression -> new StreamExpression(streamExpression.stream().take(1));
         };
-    }
-
-    public static CompiledExpression compileAttributeFinderStep(CompiledExpression entity,
-            AttributeFinderStep attributeFinderStep, CompilationContext context) {
-        return compileAttributeFinderStep(attributeFinderStep, entity, attributeFinderStep.getIdentifier(),
-                attributeFinderStep.getArguments(), attributeFinderStep.getAttributeFinderOptions(), context);
     }
 
     private static CompiledExpression compileAttributeFinderStep(EObject source, CompiledExpression entity,
@@ -91,7 +106,7 @@ public class AttributeCompiler {
                 : ExpressionCompiler.compiledExpressionToFlux(entity);
         val optionsParameterFlux = ExpressionCompiler.compiledExpressionToFlux(compiledOptions);
         val effectiveOptionsFlux = Flux.deferContextual(
-                ctx -> optionsParameterFlux.map(optionsParameterVale -> calculateOptions(ctx, optionsParameterVale)));
+                ctx -> optionsParameterFlux.map(optionsParameterValue -> calculateOptions(ctx, optionsParameterValue)));
 
         var arguments = CompiledArguments.EMPTY_ARGUMENTS;
         if (stepArguments != null && stepArguments.getArgs() != null) {
@@ -132,10 +147,13 @@ public class AttributeCompiler {
             return Flux.just(error);
         }
 
-        val options    = (AttributeFinderOptions) maybeOptions;
-        var values     = new ArrayList<>(
-                Arrays.stream(evaluatedAttributeFinderParameters, 2, evaluatedAttributeFinderParameters.length)
-                        .map(obj -> (Value) obj).toList());
+        val options = (AttributeFinderOptions) maybeOptions;
+        if (options.attributeBroker == null) {
+            return Flux.just(Value.error("Internal PDP Error. AttributeBroker not configured in evaluation context."));
+        }
+
+        var values     = Arrays.stream(evaluatedAttributeFinderParameters, 2, evaluatedAttributeFinderParameters.length)
+                .map(obj -> (Value) obj).toList();
         val invocation = new AttributeFinderInvocation(options.configurationId, attributeName,
                 isEnvironmentAttribute ? null : entity, values, options.variables, options.initialTimeOutDuration(),
                 options.pollIntervalDuration(), options.backoffDuration(), options.retries, options.fresh);
@@ -204,19 +222,6 @@ public class AttributeCompiler {
         return null;
     }
 
-    /**
-     * Extracts a single option value from local options, global defaults, or
-     * returns the default value.
-     *
-     * @param fieldName the name of the option field
-     * @param variables the current policy variables
-     * @param options the local options expression result
-     * @param defaultValue the default value to use if no valid value is found
-     * @param extractor function to extract and validate the value from a
-     * JsonNode
-     * @param <T> the type of the option value
-     * @return the resolved option value
-     */
     private static <T> @NonNull T optionValue(String fieldName, Map<String, Value> variables, Value options,
             @NonNull T defaultValue, Function<Value, T> extractor) {
         if (options instanceof ObjectValue optionsObject) {
@@ -239,26 +244,6 @@ public class AttributeCompiler {
         }
 
         return defaultValue;
-    }
-
-    public static CompiledExpression compileEnvironmentAttribute(BasicEnvironmentAttribute envAttribute,
-            CompilationContext context) {
-        return compileAttributeFinderStep(envAttribute, null, envAttribute.getIdentifier(), envAttribute.getArguments(),
-                envAttribute.getAttributeFinderOptions(), context);
-    }
-
-    public static CompiledExpression compileHeadEnvironmentAttribute(BasicEnvironmentHeadAttribute envAttribute,
-            CompilationContext context) {
-        val fullStream = compileAttributeFinderStep(envAttribute, null, envAttribute.getIdentifier(),
-                envAttribute.getArguments(), envAttribute.getAttributeFinderOptions(), context);
-        return switch (fullStream) {
-        case ErrorValue error                  -> error;
-        case Value ignored                     ->
-            throw new SaplCompilerException("Compilation error. Got Value from PIP. Indicates implementation bug.");
-        case PureExpression ignored            -> throw new SaplCompilerException(
-                "Compilation error. Got PureExpression from PIP. Indicates implementation bug.");
-        case StreamExpression streamExpression -> new StreamExpression(streamExpression.stream().take(1));
-        };
     }
 
     private sealed interface Options permits AttributeFinderOptions, OptionsError {
