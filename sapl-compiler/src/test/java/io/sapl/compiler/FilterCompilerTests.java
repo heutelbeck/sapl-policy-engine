@@ -87,8 +87,7 @@ class FilterCompilerTests {
         var result = TestUtil.evaluate("undefined |- filter.remove");
 
         assertThat(result).isInstanceOf(ErrorValue.class);
-        assertThat(((ErrorValue) result).message())
-                .contains("Filters cannot be applied to undefined");
+        assertThat(((ErrorValue) result).message()).contains("Filters cannot be applied to undefined");
     }
 
     @Test
@@ -165,8 +164,7 @@ class FilterCompilerTests {
         var result = TestUtil.evaluate("{} |- each filter.remove");
 
         assertThat(result).isInstanceOf(ErrorValue.class);
-        assertThat(((ErrorValue) result).message())
-                .contains("Cannot use 'each' keyword with non-array values");
+        assertThat(((ErrorValue) result).message()).contains("Cannot use 'each' keyword with non-array values");
     }
 
     @Test
@@ -269,5 +267,72 @@ class FilterCompilerTests {
 
         assertThat(result).isInstanceOf(ErrorValue.class);
         assertThat(((ErrorValue) result).message()).contains("Division by zero");
+    }
+
+    @Test
+    void extendedFilterWithTargetPath_filtersField() {
+        var result = TestUtil.evaluate("{ \"name\": \"secret\" } |- { @.name : filter.blacken }");
+
+        assertThat(result).isInstanceOf(ObjectValue.class);
+        var objectResult = (ObjectValue) result;
+        assertThat(objectResult.get("name")).isInstanceOf(TextValue.class);
+        assertThat(((TextValue) objectResult.get("name")).value()).isEqualTo("XXXXXX");
+    }
+
+    @Test
+    void extendedFilterWithTargetPath_removesField() {
+        var result = TestUtil.evaluate("{ \"name\": \"test\", \"age\": 42 } |- { @.name : filter.remove }");
+
+        assertThat(result).isInstanceOf(ObjectValue.class);
+        var objectResult = (ObjectValue) result;
+        assertThat(objectResult.containsKey("name")).isFalse();
+        assertThat(objectResult.containsKey("age")).isTrue();
+        assertThat(objectResult.get("age")).isEqualTo(Value.of(42));
+    }
+
+    @Test
+    void extendedFilterWithTargetPath_transformsField() {
+        var result = TestUtil.evaluate("{ \"count\": 5 } |- { @.count : simple.double }");
+
+        assertThat(result).isInstanceOf(ObjectValue.class);
+        var objectResult = (ObjectValue) result;
+        assertThat(objectResult.get("count")).isInstanceOf(NumberValue.class);
+        assertThat(((NumberValue) objectResult.get("count")).value().intValue()).isEqualTo(10);
+    }
+
+    @Test
+    void extendedFilterWithTargetPath_multipleFields() {
+        var result = TestUtil.evaluate(
+                "{ \"first\": \"hello\", \"second\": \"world\" } |- { @.first : simple.append(\"!\"), @.second : simple.append(\"?\") }");
+
+        assertThat(result).isInstanceOf(ObjectValue.class);
+        var objectResult = (ObjectValue) result;
+        assertThat(((TextValue) objectResult.get("first")).value()).isEqualTo("hello!");
+        assertThat(((TextValue) objectResult.get("second")).value()).isEqualTo("world?");
+    }
+
+    @Test
+    void extendedFilterWithTargetPath_nonExistentField_returnsError() {
+        var result = TestUtil.evaluate("{ \"name\": \"test\" } |- { @.missing : filter.blacken }");
+
+        assertThat(result).isInstanceOf(ErrorValue.class);
+        assertThat(((ErrorValue) result).message()).contains("Field 'missing' not found");
+    }
+
+    @Test
+    void extendedFilterWithTargetPath_onNonObject_returnsError() {
+        var result = TestUtil.evaluate("\"text\" |- { @.field : filter.blacken }");
+
+        assertThat(result).isInstanceOf(ErrorValue.class);
+        assertThat(((ErrorValue) result).message()).contains("Cannot apply key step to non-object");
+    }
+
+    @Test
+    void extendedFilterWithTargetPath_replacesField() {
+        var result = TestUtil.evaluate("{ \"status\": \"old\" } |- { @.status : filter.replace(\"new\") }");
+
+        assertThat(result).isInstanceOf(ObjectValue.class);
+        var objectResult = (ObjectValue) result;
+        assertThat(((TextValue) objectResult.get("status")).value()).isEqualTo("new");
     }
 }

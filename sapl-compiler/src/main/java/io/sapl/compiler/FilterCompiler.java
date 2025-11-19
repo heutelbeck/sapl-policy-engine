@@ -21,6 +21,7 @@ import io.sapl.api.functions.FunctionInvocation;
 import io.sapl.api.model.ArrayValue;
 import io.sapl.api.model.CompiledExpression;
 import io.sapl.api.model.ErrorValue;
+import io.sapl.api.model.ObjectValue;
 import io.sapl.api.model.PureExpression;
 import io.sapl.api.model.StreamExpression;
 import io.sapl.api.model.UndefinedValue;
@@ -28,6 +29,8 @@ import io.sapl.api.model.Value;
 import io.sapl.grammar.sapl.FilterComponent;
 import io.sapl.grammar.sapl.FilterExtended;
 import io.sapl.grammar.sapl.FilterSimple;
+import io.sapl.grammar.sapl.KeyStep;
+import io.sapl.grammar.sapl.Step;
 import lombok.experimental.UtilityClass;
 import lombok.val;
 
@@ -70,7 +73,7 @@ public class FilterCompiler {
         return switch (filter) {
         case FilterSimple simple     -> compileSimpleFilter(parent, simple, context);
         case FilterExtended extended -> compileExtendedFilter(parent, extended, context);
-        default                      -> throw new SaplCompilerException("Unknown filter type: " + filter.getClass());
+        default                      -> throw new SaplCompilerException("Unknown filter type: " + filter.getClass().getSimpleName());
         };
     }
 
@@ -189,10 +192,6 @@ public class FilterCompiler {
                 throw new SaplCompilerException("'each' keyword in extended filters not yet implemented.");
             }
 
-            if (statement.getTarget() != null) {
-                throw new SaplCompilerException("Target paths in extended filters not yet implemented.");
-            }
-
             var arguments = CompiledArguments.EMPTY_ARGUMENTS;
             if (statement.getArguments() != null && statement.getArguments().getArgs() != null) {
                 arguments = ExpressionCompiler.compileArguments(statement.getArguments().getArgs(), context);
@@ -201,12 +200,17 @@ public class FilterCompiler {
             val functionIdentifier = ImportResolver.resolveFunctionIdentifierByImports(statement,
                     statement.getIdentifier());
 
-            val result = applyFilterFunctionToValue(currentValue, functionIdentifier, arguments, context);
-
-            if (result instanceof Value resultValue) {
-                currentValue = resultValue;
+            if (statement.getTarget() != null && !statement.getTarget().getSteps().isEmpty()) {
+                currentValue = applyFilterFunctionToPath(currentValue, statement.getTarget().getSteps(),
+                        functionIdentifier, arguments, context);
             } else {
-                throw new SaplCompilerException("Non-value results in extended filter not yet implemented.");
+                val result = applyFilterFunctionToValue(currentValue, functionIdentifier, arguments, context);
+
+                if (result instanceof Value resultValue) {
+                    currentValue = resultValue;
+                } else {
+                    throw new SaplCompilerException("Non-value results in extended filter not yet implemented.");
+                }
             }
         }
 
@@ -239,19 +243,19 @@ public class FilterCompiler {
             yield context.getFunctionBroker().evaluateFunction(invocation);
         }
         case PURE   -> new PureExpression(ctx -> {
-            val valueArguments = new ArrayList<Value>(arguments.arguments().length + 1);
-            valueArguments.add(parentValue);
-            for (val argument : arguments.arguments()) {
-                switch (argument) {
-                case Value value                   -> valueArguments.add(value);
-                case PureExpression pureExpression -> valueArguments.add(pureExpression.evaluate(ctx));
-                case StreamExpression ignored      -> throw new SaplCompilerException(
-                        "Stream expression in pure filter arguments. Should not be possible.");
-                }
-            }
-            val invocation = new FunctionInvocation(functionIdentifier, valueArguments);
-            return ctx.functionBroker().evaluateFunction(invocation);
-        }, arguments.isSubscriptionScoped());
+                    val valueArguments = new ArrayList<Value>(arguments.arguments().length + 1);
+                    valueArguments.add(parentValue);
+                    for (val argument : arguments.arguments()) {
+                        switch (argument) {
+                        case Value value                       -> valueArguments.add(value);
+                        case PureExpression pureExpression     -> valueArguments.add(pureExpression.evaluate(ctx));
+                        case StreamExpression ignored          -> throw new SaplCompilerException(
+                                "Stream expression in pure filter arguments. Should not be possible.");
+                        }
+                    }
+                    val invocation = new FunctionInvocation(functionIdentifier, valueArguments);
+                    return ctx.functionBroker().evaluateFunction(invocation);
+                }, arguments.isSubscriptionScoped());
         case STREAM -> {
             val sources = Arrays.stream(arguments.arguments()).map(ExpressionCompiler::compiledExpressionToFlux)
                     .toList();
@@ -272,5 +276,87 @@ public class FilterCompiler {
             yield new StreamExpression(stream);
         }
         };
+    }
+
+    /**
+     * Applies a filter function to a value at a specific path.
+     * <p>
+     * Navigates to the path, applies the filter, and updates the parent value with
+     * the result.
+     *
+     * @param parentValue the value containing the path
+     * @param steps the path steps to navigate
+     * @param functionIdentifier the function to apply
+     * @param arguments the function arguments
+     * @param context the compilation context
+     * @return the updated parent value with the filter applied at the path
+     */
+    private Value applyFilterFunctionToPath(Value parentValue, org.eclipse.emf.common.util.EList<Step> steps,
+            String functionIdentifier, CompiledArguments arguments, CompilationContext context) {
+        if (steps.size() == 1) {
+            return applySingleStepFilter(parentValue, steps.get(0), functionIdentifier, arguments, context);
+        }
+
+        throw new SaplCompilerException("Multi-step paths not yet implemented.");
+    }
+
+    /**
+     * Applies a filter function to a value at a single-step path.
+     *
+     * @param parentValue the parent value
+     * @param step the single step to navigate
+     * @param functionIdentifier the function identifier
+     * @param arguments the function arguments
+     * @param context the compilation context
+     * @return the updated value
+     */
+    private Value applySingleStepFilter(Value parentValue, Step step, String functionIdentifier,
+            CompiledArguments arguments, CompilationContext context) {
+        if (step instanceof KeyStep keyStep) {
+            return applyKeyStepFilter(parentValue, keyStep.getId(), functionIdentifier, arguments, context);
+        }
+
+        throw new SaplCompilerException("Only key steps are supported. Step type: " + step.getClass());
+    }
+
+    /**
+     * Applies a filter function to an object field accessed by key.
+     *
+     * @param parentValue the parent object value
+     * @param key the field key
+     * @param functionIdentifier the function identifier
+     * @param arguments the function arguments
+     * @param context the compilation context
+     * @return the updated object with the filtered field
+     */
+    private Value applyKeyStepFilter(Value parentValue, String key, String functionIdentifier,
+            CompiledArguments arguments, CompilationContext context) {
+        if (!(parentValue instanceof ObjectValue objectValue)) {
+            return Value.error("Cannot apply key step to non-object value.");
+        }
+
+        val fieldValue = objectValue.get(key);
+        if (fieldValue == null) {
+            return Value.error("Field '" + key + "' not found in object.");
+        }
+
+        val result = applyFilterFunctionToValue(fieldValue, functionIdentifier, arguments, context);
+
+        if (!(result instanceof Value filteredValue)) {
+            throw new SaplCompilerException("Non-value results in path filter not yet implemented.");
+        }
+
+        val builder = ObjectValue.builder();
+        for (val entry : objectValue.entrySet()) {
+            if (entry.getKey().equals(key)) {
+                if (!(filteredValue instanceof UndefinedValue)) {
+                    builder.put(entry.getKey(), filteredValue);
+                }
+            } else {
+                builder.put(entry.getKey(), entry.getValue());
+            }
+        }
+
+        return builder.build();
     }
 }
