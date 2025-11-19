@@ -477,7 +477,7 @@ public class ExpressionCompiler {
             return FilterCompiler.compileFilter(compiled, expression.getFilter(), context);
         }
         if (expression.getSubtemplate() != null) {
-            throw new SaplCompilerException("Subtemplates not yet implemented. Step 18.");
+            return SubtemplateCompiler.compileSubtemplate(compiled, expression.getSubtemplate(), context);
         }
         return compiled;
     }
