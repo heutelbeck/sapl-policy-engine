@@ -296,11 +296,34 @@ public class FilterCompiler {
      */
     private Value applyFilterFunctionToPath(Value parentValue, org.eclipse.emf.common.util.EList<Step> steps,
             String functionIdentifier, CompiledArguments arguments, CompilationContext context) {
-        if (steps.size() == 1) {
-            return applySingleStepFilter(parentValue, steps.get(0), functionIdentifier, arguments, context);
+        return applyFilterFunctionToPathRecursive(parentValue, steps, 0, functionIdentifier, arguments, context);
+    }
+
+    private Value applyFilterFunctionToPathRecursive(Value parentValue, org.eclipse.emf.common.util.EList<Step> steps,
+            int stepIndex, String functionIdentifier, CompiledArguments arguments, CompilationContext context) {
+        if (stepIndex == steps.size() - 1) {
+            return applySingleStepFilter(parentValue, steps.get(stepIndex), functionIdentifier, arguments, context);
         }
 
-        throw new SaplCompilerException("Multi-step paths not yet implemented.");
+        val currentStep = steps.get(stepIndex);
+
+        if (currentStep instanceof KeyStep keyStep) {
+            return applyFilterToNestedPath(parentValue, keyStep.getId(), steps, stepIndex + 1, functionIdentifier,
+                    arguments, context);
+        }
+
+        if (currentStep instanceof IndexStep indexStep) {
+            return applyFilterToNestedArrayElement(parentValue, indexStep.getIndex().intValue(), steps, stepIndex + 1,
+                    functionIdentifier, arguments, context);
+        }
+
+        if (currentStep instanceof ArraySlicingStep slicingStep) {
+            return applyFilterToNestedArraySlice(parentValue, slicingStep, steps, stepIndex + 1, functionIdentifier,
+                    arguments, context);
+        }
+
+        throw new SaplCompilerException(
+                "Step type not supported in multi-step path: " + currentStep.getClass().getSimpleName());
     }
 
     /**
@@ -475,5 +498,147 @@ public class FilterCompiler {
             return (i - from) % step == 0;
         }
         return (to - i) % step == 0;
+    }
+
+    /**
+     * Applies a filter function to a nested path through an object field.
+     *
+     * @param parentValue the parent object value
+     * @param fieldName the field name to navigate through
+     * @param steps all path steps
+     * @param stepIndex the current step index (points to next step after field)
+     * @param functionIdentifier the function identifier
+     * @param arguments the function arguments
+     * @param context the compilation context
+     * @return the updated parent object
+     */
+    private Value applyFilterToNestedPath(Value parentValue, String fieldName,
+            org.eclipse.emf.common.util.EList<Step> steps, int stepIndex, String functionIdentifier,
+            CompiledArguments arguments, CompilationContext context) {
+        if (!(parentValue instanceof ObjectValue objectValue)) {
+            return Value.error("Cannot access field '" + fieldName + "' on non-object value.");
+        }
+
+        val fieldValue = objectValue.get(fieldName);
+        if (fieldValue == null) {
+            return parentValue;
+        }
+
+        val updatedFieldValue = applyFilterFunctionToPathRecursive(fieldValue, steps, stepIndex, functionIdentifier,
+                arguments, context);
+
+        if (updatedFieldValue instanceof ErrorValue) {
+            return updatedFieldValue;
+        }
+
+        val builder = ObjectValue.builder();
+        for (val entry : objectValue.entrySet()) {
+            if (entry.getKey().equals(fieldName)) {
+                builder.put(fieldName, updatedFieldValue);
+            } else {
+                builder.put(entry.getKey(), entry.getValue());
+            }
+        }
+
+        return builder.build();
+    }
+
+    /**
+     * Applies a filter function to a nested path through an array element.
+     *
+     * @param parentValue the parent array value
+     * @param index the array index to navigate through
+     * @param steps all path steps
+     * @param stepIndex the current step index (points to next step after index)
+     * @param functionIdentifier the function identifier
+     * @param arguments the function arguments
+     * @param context the compilation context
+     * @return the updated parent array
+     */
+    private Value applyFilterToNestedArrayElement(Value parentValue, int index,
+            org.eclipse.emf.common.util.EList<Step> steps, int stepIndex, String functionIdentifier,
+            CompiledArguments arguments, CompilationContext context) {
+        if (!(parentValue instanceof ArrayValue arrayValue)) {
+            return Value.error("Cannot access array index on non-array value.");
+        }
+
+        if (index < 0 || index >= arrayValue.size()) {
+            return parentValue;
+        }
+
+        val elementValue        = arrayValue.get(index);
+        val updatedElementValue = applyFilterFunctionToPathRecursive(elementValue, steps, stepIndex, functionIdentifier,
+                arguments, context);
+
+        if (updatedElementValue instanceof ErrorValue) {
+            return updatedElementValue;
+        }
+
+        val builder = ArrayValue.builder();
+        for (int i = 0; i < arrayValue.size(); i++) {
+            if (i == index) {
+                builder.add(updatedElementValue);
+            } else {
+                builder.add(arrayValue.get(i));
+            }
+        }
+
+        return builder.build();
+    }
+
+    /**
+     * Applies a filter function to nested paths through array slice elements.
+     *
+     * @param parentValue the parent array value
+     * @param slicingStep the slicing step defining the slice range
+     * @param steps all path steps
+     * @param stepIndex the current step index (points to next step after slice)
+     * @param functionIdentifier the function identifier
+     * @param arguments the function arguments
+     * @param context the compilation context
+     * @return the updated parent array
+     */
+    private Value applyFilterToNestedArraySlice(Value parentValue, ArraySlicingStep slicingStep,
+            org.eclipse.emf.common.util.EList<Step> steps, int stepIndex, String functionIdentifier,
+            CompiledArguments arguments, CompilationContext context) {
+        if (!(parentValue instanceof ArrayValue arrayValue)) {
+            return Value.error("Cannot apply slicing step to non-array value.");
+        }
+
+        val arraySize = arrayValue.size();
+        val step      = slicingStep.getStep() != null ? slicingStep.getStep().intValue() : 1;
+
+        if (step == 0) {
+            return Value.error("Step must not be zero.");
+        }
+
+        var index = slicingStep.getIndex() != null ? slicingStep.getIndex().intValue() : 0;
+        if (index < 0) {
+            index += arraySize;
+        }
+
+        var to = slicingStep.getTo() != null ? slicingStep.getTo().intValue() : arraySize;
+        if (to < 0) {
+            to += arraySize;
+        }
+
+        val builder = ArrayValue.builder();
+        for (int i = 0; i < arraySize; i++) {
+            if (isInNormalizedSlice(i, index, to, step)) {
+                val elementValue        = arrayValue.get(i);
+                val updatedElementValue = applyFilterFunctionToPathRecursive(elementValue, steps, stepIndex,
+                        functionIdentifier, arguments, context);
+
+                if (updatedElementValue instanceof ErrorValue) {
+                    return updatedElementValue;
+                }
+
+                builder.add(updatedElementValue);
+            } else {
+                builder.add(arrayValue.get(i));
+            }
+        }
+
+        return builder.build();
     }
 }

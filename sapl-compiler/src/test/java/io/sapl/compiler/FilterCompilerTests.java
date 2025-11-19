@@ -19,7 +19,10 @@ package io.sapl.compiler;
 
 import io.sapl.api.model.*;
 import io.sapl.util.TestUtil;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
+
+import java.util.Objects;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -276,7 +279,7 @@ class FilterCompilerTests {
         assertThat(result).isInstanceOf(ObjectValue.class);
         var objectResult = (ObjectValue) result;
         assertThat(objectResult.get("name")).isInstanceOf(TextValue.class);
-        assertThat(((TextValue) objectResult.get("name")).value()).isEqualTo("XXXXXX");
+        assertThat(((TextValue) Objects.requireNonNull(objectResult.get("name"))).value()).isEqualTo("XXXXXX");
     }
 
     @Test
@@ -297,7 +300,7 @@ class FilterCompilerTests {
         assertThat(result).isInstanceOf(ObjectValue.class);
         var objectResult = (ObjectValue) result;
         assertThat(objectResult.get("count")).isInstanceOf(NumberValue.class);
-        assertThat(((NumberValue) objectResult.get("count")).value().intValue()).isEqualTo(10);
+        assertThat(((NumberValue) Objects.requireNonNull(objectResult.get("count"))).value().intValue()).isEqualTo(10);
     }
 
     @Test
@@ -307,8 +310,8 @@ class FilterCompilerTests {
 
         assertThat(result).isInstanceOf(ObjectValue.class);
         var objectResult = (ObjectValue) result;
-        assertThat(((TextValue) objectResult.get("first")).value()).isEqualTo("hello!");
-        assertThat(((TextValue) objectResult.get("second")).value()).isEqualTo("world?");
+        assertThat(((TextValue) Objects.requireNonNull(objectResult.get("first"))).value()).isEqualTo("hello!");
+        assertThat(((TextValue) Objects.requireNonNull(objectResult.get("second"))).value()).isEqualTo("world?");
     }
 
     @Test
@@ -333,7 +336,7 @@ class FilterCompilerTests {
 
         assertThat(result).isInstanceOf(ObjectValue.class);
         var objectResult = (ObjectValue) result;
-        assertThat(((TextValue) objectResult.get("status")).value()).isEqualTo("new");
+        assertThat(((TextValue) Objects.requireNonNull(objectResult.get("status"))).value()).isEqualTo("new");
     }
 
     @Test
@@ -640,5 +643,120 @@ class FilterCompilerTests {
         assertThat(arrayResult).hasSize(2);
         assertThat(((NumberValue) arrayResult.get(0)).value().intValue()).isEqualTo(8);
         assertThat(((NumberValue) arrayResult.get(1)).value().intValue()).isEqualTo(9);
+    }
+
+    @Test
+    void extendedFilterWithMultiStepPath_twoKeys_appliesFilterToNestedField() {
+        var result = TestUtil.evaluate("{ \"user\": { \"age\": 25 } } |- { @.user.age : simple.double }");
+
+        assertThat(result).isInstanceOf(ObjectValue.class);
+        var objectResult = (ObjectValue) result;
+        var userValue    = objectResult.get("user");
+        assertThat(userValue).isInstanceOf(ObjectValue.class);
+        var userObject = (ObjectValue) userValue;
+        Assertions.assertNotNull(userObject);
+        assertThat(((NumberValue) Objects.requireNonNull(userObject.get("age"))).value().intValue()).isEqualTo(50);
+    }
+
+    @Test
+    void extendedFilterWithMultiStepPath_threeKeys_appliesFilterToDeepNestedField() {
+        var result = TestUtil.evaluate(
+                "{ \"user\": { \"address\": { \"zip\": 12345 } } } |- { @.user.address.zip : simple.double }");
+
+        assertThat(result).isInstanceOf(ObjectValue.class);
+        var objectResult = (ObjectValue) result;
+        var userValue    = objectResult.get("user");
+        assertThat(userValue).isInstanceOf(ObjectValue.class);
+        Assertions.assertNotNull(userValue);
+        var addressValue = ((ObjectValue) userValue).get("address");
+        assertThat(addressValue).isInstanceOf(ObjectValue.class);
+        Assertions.assertNotNull(addressValue);
+        var zipValue = ((ObjectValue) addressValue).get("zip");
+        Assertions.assertNotNull(zipValue);
+        assertThat(((NumberValue) zipValue).value().intValue()).isEqualTo(24690);
+    }
+
+    @Test
+    void extendedFilterWithMultiStepPath_keyThenIndex_appliesFilterToArrayElement() {
+        var result = TestUtil.evaluate("{ \"items\": [10, 20, 30] } |- { @.items[1] : simple.double }");
+
+        assertThat(result).isInstanceOf(ObjectValue.class);
+        var objectResult = (ObjectValue) result;
+        var itemsValue   = objectResult.get("items");
+        assertThat(itemsValue).isInstanceOf(ArrayValue.class);
+        var itemsArray = (ArrayValue) itemsValue;
+        Assertions.assertNotNull(itemsArray);
+        assertThat(((NumberValue) itemsArray.get(1)).value().intValue()).isEqualTo(40);
+        assertThat(((NumberValue) itemsArray.get(0)).value().intValue()).isEqualTo(10);
+        assertThat(((NumberValue) itemsArray.get(2)).value().intValue()).isEqualTo(30);
+    }
+
+    @Test
+    void extendedFilterWithMultiStepPath_indexThenKey_appliesFilterToObjectInArray() {
+        var result = TestUtil
+                .evaluate("[{ \"name\": \"Alice\" }, { \"name\": \"Bob\" }] |- { @[0].name : filter.blacken }");
+
+        assertThat(result).isInstanceOf(ArrayValue.class);
+        var arrayResult  = (ArrayValue) result;
+        var firstElement = arrayResult.getFirst();
+        assertThat(firstElement).isInstanceOf(ObjectValue.class);
+        assertThat(((TextValue) Objects.requireNonNull(((ObjectValue) firstElement).get("name"))).value()).isEqualTo("XXXXX");
+        var secondElement = arrayResult.get(1);
+        assertThat(((TextValue) Objects.requireNonNull(((ObjectValue) secondElement).get("name"))).value()).isEqualTo("Bob");
+    }
+
+    @Test
+    void extendedFilterWithMultiStepPath_keyIndexKey_appliesFilterToNestedArrayObject() {
+        var result = TestUtil.evaluate(
+                "{ \"users\": [{ \"name\": \"Alice\", \"age\": 30 }] } |- { @.users[0].age : simple.double }");
+
+        assertThat(result).isInstanceOf(ObjectValue.class);
+        var objectResult = (ObjectValue) result;
+        var usersValue   = objectResult.get("users");
+        assertThat(usersValue).isInstanceOf(ArrayValue.class);
+        Assertions.assertNotNull(usersValue);
+        var firstUser = (ObjectValue) ((ArrayValue) usersValue).getFirst();
+        assertThat(((NumberValue) Objects.requireNonNull(firstUser.get("age"))).value().intValue()).isEqualTo(60);
+        assertThat(((TextValue) Objects.requireNonNull(firstUser.get("name"))).value()).isEqualTo("Alice");
+    }
+
+    @Test
+    void extendedFilterWithMultiStepPath_keySliceKey_appliesFilterToFieldsInSlicedArrayElements() {
+        var result = TestUtil.evaluate(
+                "{ \"users\": [{ \"age\": 10 }, { \"age\": 20 }, { \"age\": 30 }] } |- { @.users[0:2].age : simple.double }");
+
+        assertThat(result).isInstanceOf(ObjectValue.class);
+        var objectResult = (ObjectValue) result;
+        var usersValue   = objectResult.get("users");
+        assertThat(usersValue).isInstanceOf(ArrayValue.class);
+        var usersArray = (ArrayValue) usersValue;
+        Assertions.assertNotNull(usersArray);
+        assertThat(((NumberValue) Objects.requireNonNull(((ObjectValue) usersArray.get(0)).get("age"))).value().intValue()).isEqualTo(20);
+        assertThat(((NumberValue) Objects.requireNonNull(((ObjectValue) usersArray.get(1)).get("age"))).value().intValue()).isEqualTo(40);
+        assertThat(((NumberValue) Objects.requireNonNull(((ObjectValue) usersArray.get(2)).get("age"))).value().intValue()).isEqualTo(30);
+    }
+
+    @Test
+    void extendedFilterWithMultiStepPath_missingField_returnsError() {
+        var result = TestUtil.evaluate("{ \"user\": { \"name\": \"Alice\" } } |- { @.user.age : simple.double }");
+
+        assertThat(result).isInstanceOf(ErrorValue.class);
+        assertThat(((ErrorValue) result).message()).contains("Field 'age' not found");
+    }
+
+    @Test
+    void extendedFilterWithMultiStepPath_onNonObjectIntermediate_returnsError() {
+        var result = TestUtil.evaluate("{ \"user\": 123 } |- { @.user.age : simple.double }");
+
+        assertThat(result).isInstanceOf(ErrorValue.class);
+        assertThat(((ErrorValue) result).message()).contains("Cannot apply key step to non-object");
+    }
+
+    @Test
+    void extendedFilterWithMultiStepPath_onNonArrayIntermediate_returnsError() {
+        var result = TestUtil.evaluate("{ \"users\": \"text\" } |- { @.users[0].age : simple.double }");
+
+        assertThat(result).isInstanceOf(ErrorValue.class);
+        assertThat(((ErrorValue) result).message()).contains("Cannot access array index");
     }
 }
