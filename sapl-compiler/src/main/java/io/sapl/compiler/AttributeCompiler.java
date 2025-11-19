@@ -24,6 +24,7 @@ import io.sapl.api.model.Value;
 import io.sapl.grammar.sapl.*;
 import lombok.NonNull;
 import lombok.experimental.UtilityClass;
+import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import org.eclipse.emf.ecore.EObject;
 import reactor.core.publisher.Flux;
@@ -53,6 +54,7 @@ import java.util.function.Function;
  * {@link AttributeBroker} must be present in reactor context (runtime
  * requirement).
  */
+@Slf4j
 @UtilityClass
 public class AttributeCompiler {
 
@@ -86,6 +88,7 @@ public class AttributeCompiler {
      */
     public static CompiledExpression compileEnvironmentAttribute(BasicEnvironmentAttribute envAttribute,
             CompilationContext context) {
+        log.debug("Compiling environment attribute: '{}'", envAttribute.getIdentifier());
         return compileAttributeFinderStep(envAttribute, null, envAttribute.getIdentifier(), envAttribute.getArguments(),
                 envAttribute.getAttributeFinderOptions(), context);
 
@@ -136,6 +139,7 @@ public class AttributeCompiler {
     private static CompiledExpression compileAttributeFinderStep(EObject source, CompiledExpression entity,
             FunctionIdentifier identifier, Arguments stepArguments, Expression attributeFinderOptions,
             CompilationContext context) {
+        log.debug("Compiling attribute finder step for: '{}' with entity {}", identifier, entity);
         if (entity instanceof ErrorValue) {
             return entity;
         }
@@ -143,7 +147,7 @@ public class AttributeCompiler {
         if (compiledOptions == null) {
             compiledOptions = Value.EMPTY_OBJECT;
         }
-        if(entity instanceof UndefinedValue) {
+        if (entity instanceof UndefinedValue) {
             throw new SaplCompilerException(UNDEFINED_VALUE_ERROR);
         }
         val entityFlux           = entity == null ? Flux.just(Value.NULL)

@@ -56,7 +56,9 @@ public class CachingAttributeBroker implements AttributeBroker {
 
     @Override
     public Flux<Value> attributeStream(AttributeFinderInvocation invocation) {
+        log.debug("Requesting stream for: '{}'", invocation);
         log.debug("Requesting stream for: '{}'", invocation.attributeName());
+
         synchronized (lock) {
             var streams = activeStreamIndex.computeIfAbsent(invocation, k -> new CopyOnWriteArrayList<>());
 
@@ -76,7 +78,8 @@ public class CachingAttributeBroker implements AttributeBroker {
 
             log.debug("Creating new stream for: '{}'", invocation.attributeName());
             val matchingSpecsAndPips = attributeFinderIndex.get(invocation.attributeName());
-            val newStream            = newAttributeStream(invocation, matchingSpecsAndPips);
+            log.debug("Name lookup for PIPs: {}", matchingSpecsAndPips);
+            val newStream = newAttributeStream(invocation, matchingSpecsAndPips);
             streams.add(newStream);
             return newStream.getStream();
         }
@@ -86,10 +89,10 @@ public class CachingAttributeBroker implements AttributeBroker {
      * Creates a new AttributeStream for an invocation.
      *
      * @param invocation an invocation
-     * @param pipsWithNameOfInvocation all PIPs with the same name
-     * @return a new AttributeStream, which is connected to a matching PIP if
-     * present. Otherwise, an error is published in the stream indicating no PIP
-     * was found for the invocation.
+     * @param pipsWithNameOfInvocation all PIPs with the same attribute name
+     * @return a new AttributeStream connected to a matching PIP, to the
+     * AttributeRepository (if PIPs exist but none match), or without a
+     * finder (emits error if no PIPs registered for that name)
      */
     private AttributeStream newAttributeStream(final AttributeFinderInvocation invocation,
             Iterable<AttributeFinderSpecification> pipsWithNameOfInvocation) {
@@ -103,11 +106,17 @@ public class CachingAttributeBroker implements AttributeBroker {
     }
 
     /**
-     * Finds a PIP with specification that matches an invocation in a list.
+     * Finds an AttributeFinder matching an invocation.
+     * <p>
+     * Searches for exact match first, then varargs match among the provided PIPs.
+     * If PIPs are provided but none match the signature, returns the
+     * AttributeRepository as fallback. If no PIPs are provided (null), returns
+     * null to signal no finder available.
      *
      * @param invocation an invocation
-     * @param pipsWithNameOfInvocation a List of PIPs with specification
-     * @return a PIP whose specification matches the invocation, or null
+     * @param pipsWithNameOfInvocation PIPs with matching attribute name, or null
+     * @return matching PIP, AttributeRepository (fallback), or null (no PIPs for
+     * that name)
      */
     private AttributeFinder searchForMatchingPip(AttributeFinderInvocation invocation,
             Iterable<AttributeFinderSpecification> pipsWithNameOfInvocation) {

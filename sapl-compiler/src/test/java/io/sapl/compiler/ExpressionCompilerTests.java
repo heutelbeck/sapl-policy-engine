@@ -18,11 +18,17 @@
 package io.sapl.compiler;
 
 import io.sapl.api.model.ArrayValue;
+import io.sapl.api.model.BooleanValue;
+import io.sapl.api.model.ErrorValue;
+import io.sapl.api.model.NumberValue;
 import io.sapl.api.model.ObjectValue;
 import io.sapl.api.model.Value;
+import io.sapl.util.TestUtil;
+import lombok.val;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
+import reactor.test.StepVerifier;
 
 import java.util.stream.Stream;
 
@@ -246,7 +252,7 @@ class ExpressionCompilerTests {
                 // Regex operations with constant patterns
                 arguments("\"Stormbringer\" =~ \"^Storm.*\"", Value.TRUE),
                 arguments("\"Stormbringer\" =~ \"^Mourn.*\"", Value.FALSE),
-                arguments("\"chaos@law.com\" =~ \".*@.*\\.com\"", Value.TRUE),
+                arguments("\"chaos@law.com\" =~ \".*@.*\\\\.com\"", Value.TRUE),
 
                 // More complex object compositions
                 arguments("{\"lord\": {\"name\": subject, \"domain\": \"Chaos\"}}",
@@ -419,5 +425,357 @@ class ExpressionCompilerTests {
                 arguments("(false || (true && false))", Value.FALSE),
                 arguments("((true || false) && (true || false))", Value.TRUE),
                 arguments("((false && true) || (false && true))", Value.FALSE));
+    }
+
+    @ParameterizedTest
+    @MethodSource
+    void functionCallsWithConstantParameters(String expression, Value expected) {
+        assertExpressionCompilesToValue(expression, expected);
+    }
+
+    private static Stream<Arguments> functionCallsWithConstantParameters() {
+        return Stream.of(
+                // Duration conversion functions with constant parameters fold
+                arguments("time.durationOfSeconds(60)", Value.of(60000)),
+                arguments("time.durationOfMinutes(5)", Value.of(300000)),
+                arguments("time.durationOfHours(2)", Value.of(7200000)),
+                arguments("time.durationOfDays(1)", Value.of(86400000)),
+
+                // Epoch conversion functions with constant parameters fold
+                arguments("time.ofEpochSecond(0)", Value.of("1970-01-01T00:00:00Z")),
+                arguments("time.ofEpochMilli(0)", Value.of("1970-01-01T00:00:00Z")),
+
+                // Date/time extraction functions with constant parameters fold
+                arguments("time.hourOf(\"2021-11-08T13:17:23Z\")", Value.of(13)),
+                arguments("time.minuteOf(\"2021-11-08T13:17:23Z\")", Value.of(17)),
+                arguments("time.secondOf(\"2021-11-08T13:00:23Z\")", Value.of(23)),
+                arguments("time.dayOfYear(\"2021-11-08T13:00:00Z\")", Value.of(312)),
+                arguments("time.weekOfYear(\"2021-11-08T13:00:00Z\")", Value.of(45)),
+
+                // Date arithmetic functions with constant parameters fold
+                arguments("time.plusDays(\"2021-11-08T13:00:00Z\", 5)", Value.of("2021-11-13T13:00:00Z")),
+                arguments("time.minusDays(\"2021-11-08T13:00:00Z\", 5)", Value.of("2021-11-03T13:00:00Z")),
+                arguments("time.plusSeconds(\"2021-11-08T13:00:00Z\", 10)", Value.of("2021-11-08T13:00:10Z")),
+                arguments("time.minusSeconds(\"2021-11-08T13:00:00Z\", 10)", Value.of("2021-11-08T12:59:50Z")),
+
+                // Date comparison functions with constant parameters fold
+                arguments("time.before(\"2021-11-08T13:00:00Z\", \"2021-11-08T13:00:01Z\")", Value.TRUE),
+                arguments("time.after(\"2021-11-08T13:00:01Z\", \"2021-11-08T13:00:00Z\")", Value.TRUE),
+                arguments("time.between(\"2021-11-08T13:00:00Z\", \"2021-11-07T13:00:00Z\", \"2021-11-09T13:00:00Z\")",
+                        Value.TRUE),
+
+                // Temporal bounds functions with constant parameters fold
+                arguments("time.startOfDay(\"2021-11-08T13:45:30Z\")", Value.of("2021-11-08T00:00:00Z")),
+                arguments("time.endOfDay(\"2021-11-08T13:45:30Z\")", Value.of("2021-11-08T23:59:59.999999999Z")),
+                arguments("time.startOfMonth(\"2021-11-08T13:45:30Z\")", Value.of("2021-11-01T00:00:00Z")),
+                arguments("time.endOfMonth(\"2021-11-08T13:45:30Z\")", Value.of("2021-11-30T23:59:59.999999999Z")),
+                arguments("time.startOfYear(\"2021-11-08T13:45:30Z\")", Value.of("2021-01-01T00:00:00Z")),
+
+                // Validation functions with constant parameters fold
+                arguments("time.validUTC(\"2021-11-08T13:00:00Z\")", Value.TRUE),
+                arguments("time.validUTC(\"20111-000:00Z\")", Value.FALSE),
+                arguments("time.validRFC3339(\"2021-11-08T13:00:00Z\")", Value.TRUE),
+                arguments("time.validRFC3339(\"2021-11-08T13:00:00\")", Value.FALSE),
+
+                // Age calculation functions with constant parameters fold
+                arguments("time.ageInYears(\"1990-05-15\", \"2021-11-08\")", Value.of(31)),
+                arguments("time.ageInMonths(\"1990-05-15\", \"1990-08-20\")", Value.of(3)),
+
+                // Nested function calls with constant parameters fold
+                arguments("time.hourOf(time.plusDays(\"2021-11-08T13:00:00Z\", 1))", Value.of(13)),
+                arguments("time.durationOfMinutes(time.hourOf(\"2021-11-08T02:00:00Z\"))", Value.of(120000)));
+    }
+
+    @ParameterizedTest
+    @MethodSource
+    void functionCallsWithPureParameters(String expression, Value expected) {
+        assertCompiledExpressionEvaluatesTo(expression, expected);
+    }
+
+    private static Stream<Arguments> functionCallsWithPureParameters() {
+        return Stream.of(
+                // Function calls with subscription elements
+                arguments("time.hourOf({\"time\": \"2021-11-08T13:00:00Z\"}.time)", Value.of(13)),
+                arguments("time.durationOfSeconds({\"duration\": 60}.duration)", Value.of(60000)),
+                arguments("time.validUTC({\"timestamp\": \"2021-11-08T13:00:00Z\"}.timestamp)", Value.TRUE),
+
+                // Function calls combined with operators
+                arguments("time.hourOf(\"2021-11-08T13:00:00Z\") > 12", Value.TRUE),
+                arguments("time.durationOfMinutes(5) == 300000", Value.TRUE),
+                arguments("time.before(\"2021-11-08T13:00:00Z\", \"2021-11-08T14:00:00Z\") && (subject == \"Elric\")",
+                        Value.TRUE),
+
+                // Function results with steps
+                arguments("time.dateOf(\"2021-11-08T13:00:00Z\") == \"2021-11-08\"", Value.TRUE),
+                arguments("[time.hourOf(\"2021-11-08T13:00:00Z\"), time.minuteOf(\"2021-11-08T13:17:23Z\")][0]",
+                        Value.of(13)),
+
+                // Functions in array and object construction
+                arguments("[time.hourOf(\"2021-11-08T13:00:00Z\"), time.hourOf(\"2021-11-08T14:00:00Z\")]",
+                        Value.ofArray(Value.of(13), Value.of(14))),
+                arguments("{\"hour\": time.hourOf(\"2021-11-08T13:00:00Z\")}",
+                        ObjectValue.builder().put("hour", Value.of(13)).build()),
+
+                // Functions in condition steps
+                arguments("[\"2021-11-08T13:00:00Z\", \"2021-11-08T14:00:00Z\"][?(time.hourOf(@) > 12)]",
+                        Value.ofArray(Value.of("2021-11-08T13:00:00Z"), Value.of("2021-11-08T14:00:00Z"))),
+
+                // Functions with mixed constant and pure parameters
+                arguments(
+                        "time.timeBetween(\"2021-01-01T00:00:00Z\", \"2022-01-01T00:00:00Z\", {\"unit\": \"YEARS\"}.unit)",
+                        Value.of(1)));
+    }
+
+    @ParameterizedTest
+    @MethodSource
+    void arithmeticErrorConditions(String expression, String expectedErrorSubstring) {
+        assertCompiledExpressionEvaluatesToErrorContaining(expression, expectedErrorSubstring);
+    }
+
+    private static Stream<Arguments> arithmeticErrorConditions() {
+        return Stream.of(
+                // Division by zero
+                arguments("10 / 0", "divis"), arguments("100 / 0", "divis"), arguments("42 / (5 - 5)", "divis"),
+
+                // Modulo by zero
+                arguments("10 % 0", "divis"), arguments("17 % (3 - 3)", "divis"),
+
+                // Division/modulo by zero in complex expressions
+                arguments("(100 / 0) + 5", "divis"), arguments("{\"value\": (10 % 0)}.value", "divis"));
+    }
+
+    @ParameterizedTest
+    @MethodSource
+    void invalidStepOperations(String expression, String expectedErrorSubstring) {
+        assertCompiledExpressionEvaluatesToErrorContaining(expression, expectedErrorSubstring);
+    }
+
+    private static Stream<Arguments> invalidStepOperations() {
+        return Stream.of(
+                // Key step on non-objects (returns error)
+                arguments("\"Stormbringer\".weapon", "non-object"), arguments("true.realm", "non-object"),
+                arguments("[1, 2, 3].key", "non-object"),
+
+                // Index step on non-arrays (returns error)
+                arguments("\"Stormbringer\"[0]", "non-array"), arguments("true[1]", "non-array"),
+                arguments("999[0]", "non-array"), arguments("{\"key\": \"value\"}[0]", "non-array"),
+
+                // Slicing on non-arrays (returns error)
+                arguments("999[1:3]", "slice"), arguments("{\"a\": 1}[0:2]", "slice"));
+    }
+
+    @ParameterizedTest
+    @MethodSource
+    void indexAndAttributeUnionEdgeCases(String expression, Value expected) {
+        assertCompiledExpressionEvaluatesTo(expression, expected);
+    }
+
+    private static Stream<Arguments> indexAndAttributeUnionEdgeCases() {
+        return Stream.of(
+                // Index unions automatically de-duplicate
+                arguments("[10, 20, 30][0, 1, 2]", Value.ofArray(Value.of(10), Value.of(20), Value.of(30))),
+                arguments("[\"Arioch\", \"Xiombarg\", \"Pyaray\"][0, 2]",
+                        Value.ofArray(Value.of("Arioch"), Value.of("Pyaray"))),
+
+                // Attribute unions automatically de-duplicate
+                arguments("{\"realm\": \"Chaos\", \"lord\": \"Arioch\"}[\"realm\", \"lord\"]",
+                        Value.ofArray(Value.of("Chaos"), Value.of("Arioch"))),
+
+                // Attribute unions with non-existent keys (only returns existing values, skips
+                // missing)
+                arguments("{\"weapon\": \"Stormbringer\"}[\"weapon\", \"missing\", \"nothere\"]",
+                        Value.ofArray(Value.of("Stormbringer"))));
+    }
+
+    @ParameterizedTest
+    @MethodSource
+    void indexUnionWithOutOfBoundsError(String expression, String expectedErrorSubstring) {
+        assertCompiledExpressionEvaluatesToErrorContaining(expression, expectedErrorSubstring);
+    }
+
+    private static Stream<Arguments> indexUnionWithOutOfBoundsError() {
+        return Stream.of(
+                // Out-of-bounds indices cause errors
+                arguments("[10, 20, 30][0, 10, 1]", "out of bounds"),
+                arguments("[\"Elric\", \"Moonglum\"][-1, 0, 5]", "out of bounds"));
+    }
+
+    @ParameterizedTest
+    @MethodSource
+    void chainedConditionSteps(String expression, Value expected) {
+        assertCompiledExpressionEvaluatesTo(expression, expected);
+    }
+
+    private static Stream<Arguments> chainedConditionSteps() {
+        return Stream.of(
+                // Multiple condition steps chained on arrays
+                arguments("[1, 2, 3, 4, 5, 6, 7, 8][?(@ > 2)][?(@ < 7)]",
+                        Value.ofArray(Value.of(3), Value.of(4), Value.of(5), Value.of(6))),
+                arguments("[10, 20, 30, 40, 50][?(@ >= 20)][?(@ <= 40)]",
+                        Value.ofArray(Value.of(20), Value.of(30), Value.of(40))),
+
+                // Slicing followed by condition step on non-edge values
+                arguments("[10, 20, 30, 40, 50, 60][1:5][?(@ < 40)]", Value.ofArray(Value.of(20), Value.of(30))),
+
+                // Condition step followed by slicing
+                arguments("[1, 2, 3, 4, 5, 6, 7, 8, 9, 10][?(@ > 3)][0:3]",
+                        Value.ofArray(Value.of(4), Value.of(5), Value.of(6))));
+    }
+
+    @ParameterizedTest
+    @MethodSource
+    void nullAndUndefinedPropagation(String expression, Value expected) {
+        assertCompiledExpressionEvaluatesTo(expression, expected);
+    }
+
+    private static Stream<Arguments> nullAndUndefinedPropagation() {
+        return Stream.of(
+                // Null in comparisons
+                arguments("null == null", Value.TRUE), arguments("null != null", Value.FALSE),
+                arguments("null == 42", Value.FALSE), arguments("null == \"Elric\"", Value.FALSE),
+
+                // Undefined in comparisons
+                arguments("undefined == undefined", Value.TRUE), arguments("undefined != undefined", Value.FALSE),
+                arguments("undefined == null", Value.FALSE), arguments("undefined == 42", Value.FALSE),
+
+                // Null and undefined with 'in' operator
+                arguments("null in [null, 1, 2]", Value.TRUE), arguments("null in [1, 2, 3]", Value.FALSE),
+                // undefined values are filtered from arrays before 'in' check
+                arguments("undefined in [undefined, 1, 2]", Value.FALSE),
+                arguments("undefined in [1, 2, 3]", Value.FALSE),
+
+                // Null in boolean contexts (type errors handled elsewhere)
+                arguments("null == null && true", Value.TRUE), arguments("(null == null) || false", Value.TRUE));
+    }
+
+    // ========== StreamExpression Tests using Attribute Finders ==========
+
+    @ParameterizedTest
+    @MethodSource
+    void attributeFinderBasicUsage(String expression, int expectedStreamCount) {
+        // Attribute finders create StreamExpressions that emit multiple values
+        val evaluated = TestUtil.evaluateExpression(expression);
+        StepVerifier.create(evaluated.take(expectedStreamCount)).expectNextCount(expectedStreamCount).verifyComplete();
+    }
+
+    private static Stream<Arguments> attributeFinderBasicUsage() {
+        return Stream.of(
+                // TestPip.echo returns Flux.just(value, "hello world") - 2 values
+                arguments("\"Elric\".<test.echo[{\"fresh\":true}]>", 2),
+                arguments("subject.<test.echo[{\"fresh\":true}]>", 2),
+                // Workaround: Use (42) instead of 42 due to lexer ambiguity with decimal
+                // numbers
+                arguments("(43).<test.echo>", 2), arguments("true.<test.echo>", 2));
+    }
+
+    @ParameterizedTest
+    @MethodSource
+    void attributeFinderInExpressions(String expression) {
+        // Attribute finders in expressions create StreamExpressions - verify it streams
+        val evaluated = TestUtil.evaluateExpression(expression);
+        StepVerifier.create(evaluated.take(2).log()).expectNextCount(2).verifyComplete();
+    }
+
+    private static Stream<Arguments> attributeFinderInExpressions() {
+        return Stream.of(
+                // Attribute finders in comparisons
+                arguments("\"Elric\".<test.echo[{\"fresh\":true}]> == \"Elric\""), // arguments("subject.<test.echo[{fresh=true}]>
+                                                                                   // !=
+                // \"Yyrkoon\""),
+                arguments("subject.<test.echo[{\"fresh\": true}]>"),
+                // Attribute finders in arithmetic
+                // Workaround: Use (number) instead of number due to lexer ambiguity
+                arguments("(42).<test.echo> + 10"), arguments("(100).<test.echo> - 50"),
+
+                // Attribute finders in comparisons
+                arguments("\"Stormbringer\".<test.echo> == \"Stormbringer\""), arguments("(999).<test.echo> > 500"),
+
+                // Attribute finders with 'in' operator
+                arguments("\"Elric\" in [\"Elric\", \"Moonglum\"].<test.echo>"));
+    }
+
+    @ParameterizedTest
+    @MethodSource
+    void attributeFinderWithSteps(String expression) {
+        // Attribute finders with steps applied
+        val evaluated = TestUtil.evaluateExpression(expression);
+        StepVerifier.create(evaluated.take(1)).expectNextMatches(v -> !(v instanceof ErrorValue)).verifyComplete();
+    }
+
+    private static Stream<Arguments> attributeFinderWithSteps() {
+        return Stream.of(
+                // Key access on attribute result
+                arguments("{\"weapon\": \"Stormbringer\"}.<test.echo>.weapon"),
+
+                // Index access on attribute result
+                arguments("[\"Arioch\", \"Xiombarg\"].<test.echo>[0]"),
+
+                // Condition step on attribute result
+                arguments("[1, 2, 3, 4, 5].<test.echo>[?(@ > 2)]"),
+
+                // Slicing on attribute result
+                arguments("[10, 20, 30, 40, 50].<test.echo>[0:2]"),
+
+                // Wildcard on attribute result
+                arguments("{\"a\": 1, \"b\": 2}.<test.echo>.*"),
+
+                // Recursive descent on attribute result
+                arguments("{\"level1\": {\"value\": 42}}.<test.echo>..value"));
+    }
+
+    @ParameterizedTest
+    @MethodSource
+    void attributeFinderInDataStructures(String expression) {
+        // Attribute finders in arrays and objects
+        val evaluated = TestUtil.evaluateExpression(expression);
+        StepVerifier.create(evaluated.take(1))
+                .expectNextMatches(v -> v instanceof ArrayValue || v instanceof ObjectValue).verifyComplete();
+    }
+
+    private static Stream<Arguments> attributeFinderInDataStructures() {
+        return Stream.of(
+                // In array construction
+                arguments("[\"Elric\".<test.echo>, \"static\"]"), arguments("[subject.<test.echo>, action]"),
+
+                // In object construction
+                arguments("{\"dynamic\": \"Moonglum\".<test.echo>, \"static\": \"value\"}"),
+                arguments("{\"s\": subject.<test.echo>, \"a\": action}"));
+    }
+
+    @ParameterizedTest
+    @MethodSource
+    void attributeFinderInFunctionCalls(String expression) {
+        // Attribute finders as function arguments create StreamExpressions
+        val evaluated = TestUtil.evaluateExpression(expression);
+        StepVerifier.create(evaluated.take(1)).expectNextMatches(v -> !(v instanceof ErrorValue)).verifyComplete();
+    }
+
+    private static Stream<Arguments> attributeFinderInFunctionCalls() {
+        return Stream.of(
+                // Time functions with attribute finder arguments
+                arguments("time.hourOf(\"2021-11-08T13:00:00Z\".<test.echo>)"),
+                // Workaround: Use (60) instead of 60 due to lexer ambiguity
+                arguments("time.durationOfSeconds((60).<test.echo>)"),
+                arguments("time.validUTC(\"2021-11-08T13:00:00Z\".<test.echo>)"));
+    }
+
+    @ParameterizedTest
+    @MethodSource
+    void chainedAttributeFinderOperations(String expression) {
+        // Multiple attribute finders chained
+        // Filter errors because TestPip emits 2 values and chained operations
+        // on "hello world" may produce errors (e.g., .key on a string)
+        val evaluated = TestUtil.evaluateExpression(expression);
+        StepVerifier.create(evaluated.filter(v -> !(v instanceof ErrorValue)).take(1)).expectNextCount(1)
+                .verifyComplete();
+    }
+
+    private static Stream<Arguments> chainedAttributeFinderOperations() {
+        return Stream.of(
+                // Attribute finder on attribute finder result
+                arguments("\"Elric\".<test.echo>.<test.echo>"), arguments("subject.<test.echo>.<test.echo>"),
+
+                // Attribute finder with steps then another attribute finder
+                arguments("{\"key\": \"value\"}.<test.echo>.key.<test.echo>"));
     }
 }

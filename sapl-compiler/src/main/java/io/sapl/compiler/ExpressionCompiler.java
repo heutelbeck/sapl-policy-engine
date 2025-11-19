@@ -327,8 +327,15 @@ public class ExpressionCompiler {
      */
     private CompiledExpression compileBinaryOperator(BinaryOperator astOperator,
             java.util.function.BinaryOperator<Value> operator, CompilationContext context) {
+
         val left  = compileExpression(astOperator.getLeft(), context);
         val right = compileExpression(astOperator.getRight(), context);
+        if (left == null) {
+            return Value.error("Left operand of %s missing".formatted(astOperator.getClass().getSimpleName()));
+        }
+        if (right == null) {
+            return Value.error("Right operand of %s missing".formatted(astOperator.getClass().getSimpleName()));
+        }
         // Special case for regex. Here if the right side is a text constant, we can
         // immediately pre-compile the expression and do not need to do it at policy
         // evaluation time. We do it here, to have a re-usable assembleBinaryOperation

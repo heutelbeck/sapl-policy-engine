@@ -1,0 +1,107 @@
+/*
+ * Copyright (C) 2017-2025 Dominic Heutelbeck (dominic@heutelbeck.com)
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package io.sapl.api.attributes;
+
+import io.sapl.api.model.Value;
+import org.junit.jupiter.api.Test;
+
+import java.time.Duration;
+import java.util.List;
+import java.util.Map;
+
+import static org.assertj.core.api.Assertions.assertThat;
+
+/**
+ * Tests for AttributeKey equality and factory method.
+ */
+class AttributeKeyTests {
+
+    @Test
+    void of_createsKeyFromInvocation() {
+        var invocation = new AttributeFinderInvocation("test-config", "test.attr", Value.of("user123"),
+                List.of(Value.of("arg1"), Value.of("arg2")), Map.of(), Duration.ofSeconds(1), Duration.ofSeconds(30),
+                Duration.ofSeconds(1), 0, false);
+
+        var key = AttributeKey.of(invocation);
+
+        assertThat(key.entity()).isEqualTo(Value.of("user123"));
+        assertThat(key.attributeName()).isEqualTo("test.attr");
+        assertThat(key.arguments()).containsExactly(Value.of("arg1"), Value.of("arg2"));
+    }
+
+    @Test
+    void of_environmentAttribute_entityIsNull() {
+        var invocation = new AttributeFinderInvocation("test-config", "time.now", List.of(), // environment attribute -
+                                                                                             // no entity
+                Map.of(), Duration.ofSeconds(1), Duration.ofSeconds(30), Duration.ofSeconds(1), 0, false);
+
+        var key = AttributeKey.of(invocation);
+
+        assertThat(key.entity()).isNull();
+        assertThat(key.attributeName()).isEqualTo("time.now");
+    }
+
+    @Test
+    void equals_sameComponents_areEqual() {
+        var key1 = new AttributeKey(Value.of("entity"), "test.attr", List.of(Value.of("arg")));
+        var key2 = new AttributeKey(Value.of("entity"), "test.attr", List.of(Value.of("arg")));
+
+        assertThat(key1).isEqualTo(key2);
+        assertThat(key1.hashCode()).isEqualTo(key2.hashCode());
+    }
+
+    @Test
+    void equals_differentEntity_notEqual() {
+        var key1 = new AttributeKey(Value.of("entity1"), "test.attr", List.of());
+        var key2 = new AttributeKey(Value.of("entity2"), "test.attr", List.of());
+
+        assertThat(key1).isNotEqualTo(key2);
+    }
+
+    @Test
+    void equals_differentAttributeName_notEqual() {
+        var key1 = new AttributeKey(Value.of("entity"), "test.attr1", List.of());
+        var key2 = new AttributeKey(Value.of("entity"), "test.attr2", List.of());
+
+        assertThat(key1).isNotEqualTo(key2);
+    }
+
+    @Test
+    void equals_differentArguments_notEqual() {
+        var key1 = new AttributeKey(Value.of("entity"), "test.attr", List.of(Value.of("arg1")));
+        var key2 = new AttributeKey(Value.of("entity"), "test.attr", List.of(Value.of("arg2")));
+
+        assertThat(key1).isNotEqualTo(key2);
+    }
+
+    @Test
+    void equals_nullEntityVsNonNull_notEqual() {
+        var key1 = new AttributeKey(null, "test.attr", List.of());
+        var key2 = new AttributeKey(Value.of("entity"), "test.attr", List.of());
+
+        assertThat(key1).isNotEqualTo(key2);
+    }
+
+    @Test
+    void equals_bothNullEntity_areEqual() {
+        var key1 = new AttributeKey(null, "test.attr", List.of());
+        var key2 = new AttributeKey(null, "test.attr", List.of());
+
+        assertThat(key1).isEqualTo(key2);
+    }
+}
