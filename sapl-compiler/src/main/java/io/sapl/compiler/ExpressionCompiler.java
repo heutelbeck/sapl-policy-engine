@@ -432,13 +432,19 @@ public class ExpressionCompiler {
     /**
      * Compiles a basic expression by dispatching to the appropriate handler based
      * on the specific basic expression type.
+     * <p>
+     * Grammar: BasicExpression: Basic (FILTER filter=FilterComponent | SUBTEMPLATE
+     * subtemplate=BasicExpression)?
+     * <p>
+     * First compiles the Basic part, then applies any filter or subtemplate.
      *
      * @param expression the basic expression AST node
      * @param context the compilation context
      * @return the compiled basic expression
      */
     private CompiledExpression compileBasicExpression(BasicExpression expression, CompilationContext context) {
-        return switch (expression) {
+        // First compile the Basic part
+        val basicCompiled = switch (expression) {
         case BasicGroup group                               ->
             compileSteps(compileExpression(group.getExpression(), context), group.getSteps(), context);
         case BasicValue value                               -> compileValue(value, context);
@@ -452,6 +458,28 @@ public class ExpressionCompiler {
         default                                             ->
             throw new SaplCompilerException("unexpected expression: " + expression + ".");
         };
+
+        // Then apply filter or subtemplate if present
+        return applyFilterOrSubtemplate(basicCompiled, expression, context);
+    }
+
+    /**
+     * Applies filter or subtemplate to a compiled expression if present in the AST.
+     *
+     * @param compiled the compiled basic expression
+     * @param expression the original AST node (may have filter/subtemplate)
+     * @param context the compilation context
+     * @return the expression with filter/subtemplate applied, or original if none
+     */
+    private CompiledExpression applyFilterOrSubtemplate(CompiledExpression compiled, BasicExpression expression,
+            CompilationContext context) {
+        if (expression.getFilter() != null) {
+            return FilterCompiler.compileFilter(compiled, expression.getFilter(), context);
+        }
+        if (expression.getSubtemplate() != null) {
+            throw new SaplCompilerException("Subtemplates not yet implemented. Step 18.");
+        }
+        return compiled;
     }
 
     /**
