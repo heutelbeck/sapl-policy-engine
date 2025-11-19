@@ -26,6 +26,7 @@ import io.sapl.api.model.PureExpression;
 import io.sapl.api.model.StreamExpression;
 import io.sapl.api.model.UndefinedValue;
 import io.sapl.api.model.Value;
+import io.sapl.grammar.sapl.ArraySlicingStep;
 import io.sapl.grammar.sapl.FilterComponent;
 import io.sapl.grammar.sapl.FilterExtended;
 import io.sapl.grammar.sapl.FilterSimple;
@@ -323,6 +324,10 @@ public class FilterCompiler {
                     context);
         }
 
+        if (step instanceof ArraySlicingStep slicingStep) {
+            return applySlicingStepFilter(parentValue, slicingStep, functionIdentifier, arguments, context);
+        }
+
         throw new SaplCompilerException("Step type not supported: " + step.getClass().getSimpleName());
     }
 
@@ -406,5 +411,69 @@ public class FilterCompiler {
         }
 
         return builder.build();
+    }
+
+    /**
+     * Applies a filter function to array elements accessed by slice.
+     *
+     * @param parentValue the parent array value
+     * @param slicingStep the slicing step with start, end, and step parameters
+     * @param functionIdentifier the function identifier
+     * @param arguments the function arguments
+     * @param context the compilation context
+     * @return the updated array with filtered slice elements
+     */
+    private Value applySlicingStepFilter(Value parentValue, ArraySlicingStep slicingStep, String functionIdentifier,
+            CompiledArguments arguments, CompilationContext context) {
+        if (!(parentValue instanceof ArrayValue arrayValue)) {
+            return Value.error("Cannot apply slicing step to non-array value.");
+        }
+
+        val arraySize = arrayValue.size();
+        val step      = slicingStep.getStep() != null ? slicingStep.getStep().intValue() : 1;
+
+        if (step == 0) {
+            return Value.error("Step must not be zero.");
+        }
+
+        var index = slicingStep.getIndex() != null ? slicingStep.getIndex().intValue() : 0;
+        if (index < 0) {
+            index += arraySize;
+        }
+
+        var to = slicingStep.getTo() != null ? slicingStep.getTo().intValue() : arraySize;
+        if (to < 0) {
+            to += arraySize;
+        }
+
+        val builder = ArrayValue.builder();
+        for (int i = 0; i < arraySize; i++) {
+            if (isInNormalizedSlice(i, index, to, step)) {
+                val elementValue = arrayValue.get(i);
+                val result       = applyFilterFunctionToValue(elementValue, functionIdentifier, arguments, context);
+
+                if (!(result instanceof Value filteredValue)) {
+                    throw new SaplCompilerException("Non-value results in slicing filter not yet implemented.");
+                }
+
+                if (!(filteredValue instanceof UndefinedValue)) {
+                    builder.add(filteredValue);
+                }
+            } else {
+                builder.add(arrayValue.get(i));
+            }
+        }
+
+        return builder.build();
+    }
+
+    private boolean isInNormalizedSlice(int i, int from, int to, int step) {
+        if (i < from || i >= to) {
+            return false;
+        }
+        if (step > 0) {
+            return (i - from) % step == 0;
+        }
+        return (to - i) % step == 0;
     }
 }
