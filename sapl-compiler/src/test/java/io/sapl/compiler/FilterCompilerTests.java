@@ -872,4 +872,102 @@ class FilterCompilerTests {
         assertThat(((TextValue) Objects.requireNonNull(first.get("name"))).value()).isEqualTo("XXXXX");
         assertThat(((NumberValue) Objects.requireNonNull(first.get("age"))).value().intValue()).isEqualTo(20);
     }
+
+    @Test
+    void extendedFilterWithWildcard_onArray_appliesFunctionToAllElements() {
+        var result = TestUtil.evaluate("[1, 2, 3, 4, 5] |- { @.* : simple.double }");
+
+        assertThat(result).isInstanceOf(ArrayValue.class);
+        var arrayResult = (ArrayValue) result;
+        assertThat(arrayResult).hasSize(5);
+        assertThat(((NumberValue) arrayResult.get(0)).value().intValue()).isEqualTo(2);
+        assertThat(((NumberValue) arrayResult.get(1)).value().intValue()).isEqualTo(4);
+        assertThat(((NumberValue) arrayResult.get(2)).value().intValue()).isEqualTo(6);
+        assertThat(((NumberValue) arrayResult.get(3)).value().intValue()).isEqualTo(8);
+        assertThat(((NumberValue) arrayResult.get(4)).value().intValue()).isEqualTo(10);
+    }
+
+    @Test
+    void extendedFilterWithWildcard_onObject_appliesFunctionToAllFieldValues() {
+        var result = TestUtil.evaluate("{ \"a\": 1, \"b\": 2, \"c\": 3 } |- { @.* : simple.double }");
+
+        assertThat(result).isInstanceOf(ObjectValue.class);
+        var objectResult = (ObjectValue) result;
+        assertThat(objectResult).hasSize(3);
+        assertThat(((NumberValue) Objects.requireNonNull(objectResult.get("a"))).value().intValue()).isEqualTo(2);
+        assertThat(((NumberValue) Objects.requireNonNull(objectResult.get("b"))).value().intValue()).isEqualTo(4);
+        assertThat(((NumberValue) Objects.requireNonNull(objectResult.get("c"))).value().intValue()).isEqualTo(6);
+    }
+
+    @Test
+    void extendedFilterWithWildcard_withMultiStepPath_appliesFunctionToNestedFields() {
+        var result = TestUtil
+                .evaluate("{ \"users\": [{ \"age\": 10 }, { \"age\": 20 }] } |- { @.users.*.age : simple.double }");
+
+        assertThat(result).isInstanceOf(ObjectValue.class);
+        var objectResult = (ObjectValue) result;
+        var usersValue   = objectResult.get("users");
+        assertThat(usersValue).isInstanceOf(ArrayValue.class);
+        var usersArray = (ArrayValue) usersValue;
+        Assertions.assertNotNull(usersArray);
+        assertThat(usersArray).hasSize(2);
+        var first = (ObjectValue) usersArray.getFirst();
+        assertThat(((NumberValue) Objects.requireNonNull(first.get("age"))).value().intValue()).isEqualTo(20);
+        var second = (ObjectValue) usersArray.get(1);
+        assertThat(((NumberValue) Objects.requireNonNull(second.get("age"))).value().intValue()).isEqualTo(40);
+    }
+
+    @Test
+    void extendedFilterWithWildcard_removingElements_filtersOutUndefined() {
+        var result = TestUtil.evaluate("[\"a\", \"b\", \"c\"] |- { @.* : filter.remove }");
+
+        assertThat(result).isInstanceOf(ArrayValue.class);
+        var arrayResult = (ArrayValue) result;
+        assertThat(arrayResult).isEmpty();
+    }
+
+    @Test
+    void extendedFilterWithWildcard_removingFields_filtersOutUndefined() {
+        var result = TestUtil.evaluate("{ \"a\": 1, \"b\": 2 } |- { @.* : filter.remove }");
+
+        assertThat(result).isInstanceOf(ObjectValue.class);
+        var objectResult = (ObjectValue) result;
+        assertThat(objectResult).isEmpty();
+    }
+
+    @Test
+    void extendedFilterWithWildcard_onNonArrayNonObject_returnsError() {
+        var result = TestUtil.evaluate("\"text\" |- { @.* : filter.blacken }");
+
+        assertThat(result).isInstanceOf(ErrorValue.class);
+        assertThat(((ErrorValue) result).message()).contains("Cannot apply wildcard step to non-array/non-object");
+    }
+
+    @Test
+    void extendedFilterWithWildcard_withBlacken_redactsAllValues() {
+        var result = TestUtil.evaluate("[\"secret1\", \"secret2\", \"secret3\"] |- { @.* : filter.blacken }");
+
+        assertThat(result).isInstanceOf(ArrayValue.class);
+        var arrayResult = (ArrayValue) result;
+        assertThat(arrayResult).hasSize(3);
+        assertThat(((TextValue) arrayResult.get(0)).value()).isEqualTo("XXXXXXX");
+        assertThat(((TextValue) arrayResult.get(1)).value()).isEqualTo("XXXXXXX");
+        assertThat(((TextValue) arrayResult.get(2)).value()).isEqualTo("XXXXXXX");
+    }
+
+    @Test
+    void extendedFilterWithWildcard_nestedObjectArrayPath_appliesFilterCorrectly() {
+        var result = TestUtil.evaluate(
+                "{ \"departments\": { \"engineering\": { \"employees\": 10 }, \"sales\": { \"employees\": 20 } } } "
+                        + "|- { @.departments.*.employees : simple.double }");
+
+        assertThat(result).isInstanceOf(ObjectValue.class);
+        var objectResult   = (ObjectValue) result;
+        var departmentsObj = (ObjectValue) Objects.requireNonNull(objectResult.get("departments"));
+        var engineering    = (ObjectValue) Objects.requireNonNull(departmentsObj.get("engineering"));
+        assertThat(((NumberValue) Objects.requireNonNull(engineering.get("employees"))).value().intValue())
+                .isEqualTo(20);
+        var sales = (ObjectValue) Objects.requireNonNull(departmentsObj.get("sales"));
+        assertThat(((NumberValue) Objects.requireNonNull(sales.get("employees"))).value().intValue()).isEqualTo(40);
+    }
 }
