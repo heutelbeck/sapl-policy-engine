@@ -57,6 +57,7 @@ public class TestUtil {
             FUNCTION_BROKER.loadStaticFunctionLibrary(TemporalFunctionLibrary.class);
             FUNCTION_BROKER.loadStaticFunctionLibrary(SimpleFunctionLibrary.class);
             FUNCTION_BROKER.loadStaticFunctionLibrary(FilterFunctionLibrary.class);
+            FUNCTION_BROKER.loadStaticFunctionLibrary(MockFunctionLibrary.class);
         } catch (InitializationException e) {
             throw new RuntimeException(e);
         }

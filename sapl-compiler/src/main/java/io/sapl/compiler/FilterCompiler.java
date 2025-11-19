@@ -27,11 +27,20 @@ import io.sapl.api.model.StreamExpression;
 import io.sapl.api.model.UndefinedValue;
 import io.sapl.api.model.Value;
 import io.sapl.grammar.sapl.ArraySlicingStep;
+import io.sapl.grammar.sapl.AttributeFinderStep;
+import io.sapl.grammar.sapl.AttributeUnionStep;
+import io.sapl.grammar.sapl.ConditionStep;
+import io.sapl.grammar.sapl.ExpressionStep;
 import io.sapl.grammar.sapl.FilterComponent;
 import io.sapl.grammar.sapl.FilterExtended;
 import io.sapl.grammar.sapl.FilterSimple;
+import io.sapl.grammar.sapl.HeadAttributeFinderStep;
 import io.sapl.grammar.sapl.IndexStep;
+import io.sapl.grammar.sapl.IndexUnionStep;
 import io.sapl.grammar.sapl.KeyStep;
+import io.sapl.grammar.sapl.RecursiveIndexStep;
+import io.sapl.grammar.sapl.RecursiveKeyStep;
+import io.sapl.grammar.sapl.RecursiveWildcardStep;
 import io.sapl.grammar.sapl.Step;
 import io.sapl.grammar.sapl.WildcardStep;
 import lombok.experimental.UtilityClass;
@@ -51,8 +60,9 @@ import java.util.Arrays;
 @UtilityClass
 public class FilterCompiler {
 
-    private static final String FILTERS_CANNOT_BE_APPLIED_TO_UNDEFINED = "Filters cannot be applied to undefined values.";
-    private static final String EACH_REQUIRES_ARRAY                    = "Cannot use 'each' keyword with non-array values.";
+    private static final String FILTERS_CANNOT_BE_APPLIED_TO_UNDEFINED   = "Filters cannot be applied to undefined values.";
+    private static final String EACH_REQUIRES_ARRAY                      = "Cannot use 'each' keyword with non-array values.";
+    private static final String ATTRIBUTE_FINDER_NOT_PERMITTED_IN_FILTER = "AttributeFinderStep not permitted in filter selection steps.";
 
     /**
      * Compiles a filter expression (|- operator).
@@ -100,18 +110,60 @@ public class FilterCompiler {
             arguments = ExpressionCompiler.compileArguments(filter.getArguments().getArgs(), context);
         }
 
-        // For now, only handle Value parent (Step 1-2)
-        if (!(parent instanceof Value parentValue)) {
-            throw new SaplCompilerException("Non-value filter parents not yet implemented. Step 15-16.");
-        }
+        val finalArguments     = arguments;
+        val functionIdentifier = ImportResolver.resolveFunctionIdentifierByImports(filter, filter.getIdentifier());
 
-        // Handle 'each' keyword - map function over array elements
-        if (filter.isEach()) {
-            return applyFilterFunctionToEachArrayElement(parentValue, filter, arguments, context);
-        }
+        // Define the filter operation that works on Values
+        java.util.function.UnaryOperator<CompiledExpression> filterOp = parentValue -> {
+            if (!(parentValue instanceof Value value)) {
+                return Value.error("Filter operations require Value inputs.");
+            }
 
-        // Apply filter function with parent as left-hand argument
-        return applyFilterFunctionToValue(parentValue, filter, arguments, context);
+            // Handle 'each' keyword - map function over array elements
+            if (filter.isEach()) {
+                return applyFilterFunctionToEachArrayElement(value, filter, finalArguments, context);
+            }
+
+            // Apply filter function with parent as left-hand argument
+            return applyFilterFunctionToValue(value, functionIdentifier, finalArguments, context);
+        };
+
+        // Wrap the operation to handle PureExpression/StreamExpression parents
+        return wrapFilterOperation(parent, filterOp);
+    }
+
+    /**
+     * Wraps a filter operation to handle Value, PureExpression, and
+     * StreamExpression
+     * parents.
+     * <p>
+     * This is the core wrapper pattern that enables filters to work with all
+     * expression types, similar to how ExpressionCompiler handles step operations.
+     *
+     * @param parent the parent expression (Value, PureExpression, or
+     * StreamExpression)
+     * @param filterOperation the filter operation to apply (works on
+     * CompiledExpression)
+     * @return the wrapped filter result
+     */
+    private CompiledExpression wrapFilterOperation(CompiledExpression parent,
+            java.util.function.UnaryOperator<CompiledExpression> filterOperation) {
+        if (parent instanceof ErrorValue || parent instanceof UndefinedValue) {
+            return parent;
+        }
+        return switch (parent) {
+        case Value value                  -> filterOperation.apply(value);
+        case StreamExpression(var stream) -> new StreamExpression(
+                stream.flatMap(v -> ExpressionCompiler.compiledExpressionToFlux(filterOperation.apply(v))));
+        case PureExpression pureParent    -> new PureExpression(ctx -> {
+                                          val     evaluatedParent = pureParent.evaluate(ctx);
+                                          val     result          = filterOperation.apply(evaluatedParent);
+                                          return (result instanceof Value v) ? v
+                                                  : (result instanceof PureExpression pe) ? pe.evaluate(ctx)
+                                                          : Value.error("Unexpected filter result type");
+                                      },
+                pureParent.isSubscriptionScoped());
+        };
     }
 
     /**
@@ -186,38 +238,43 @@ public class FilterCompiler {
      */
     private CompiledExpression compileExtendedFilter(CompiledExpression parent, FilterExtended filter,
             CompilationContext context) {
-        if (!(parent instanceof Value parentValue)) {
-            throw new SaplCompilerException("Non-value filter parents not yet implemented.");
-        }
-
-        var currentValue = parentValue;
-        for (val statement : filter.getStatements()) {
-            var arguments = CompiledArguments.EMPTY_ARGUMENTS;
-            if (statement.getArguments() != null && statement.getArguments().getArgs() != null) {
-                arguments = ExpressionCompiler.compileArguments(statement.getArguments().getArgs(), context);
+        // Define the extended filter operation that works on Values
+        java.util.function.UnaryOperator<CompiledExpression> filterOp = parentExpr -> {
+            if (!(parentExpr instanceof Value currentValue)) {
+                return Value.error("Extended filter operations require Value inputs.");
             }
 
-            val functionIdentifier = ImportResolver.resolveFunctionIdentifierByImports(statement,
-                    statement.getIdentifier());
+            for (val statement : filter.getStatements()) {
+                var arguments = CompiledArguments.EMPTY_ARGUMENTS;
+                if (statement.getArguments() != null && statement.getArguments().getArgs() != null) {
+                    arguments = ExpressionCompiler.compileArguments(statement.getArguments().getArgs(), context);
+                }
 
-            if (statement.isEach()) {
-                currentValue = applyEachFilterStatement(currentValue, statement.getTarget(), functionIdentifier,
-                        arguments, context);
-            } else if (statement.getTarget() != null && !statement.getTarget().getSteps().isEmpty()) {
-                currentValue = applyFilterFunctionToPath(currentValue, statement.getTarget().getSteps(),
-                        functionIdentifier, arguments, context);
-            } else {
-                val result = applyFilterFunctionToValue(currentValue, functionIdentifier, arguments, context);
+                val functionIdentifier = ImportResolver.resolveFunctionIdentifierByImports(statement,
+                        statement.getIdentifier());
 
-                if (result instanceof Value resultValue) {
-                    currentValue = resultValue;
+                if (statement.isEach()) {
+                    currentValue = applyEachFilterStatement(currentValue, statement.getTarget(), functionIdentifier,
+                            arguments, context);
+                } else if (statement.getTarget() != null && !statement.getTarget().getSteps().isEmpty()) {
+                    currentValue = applyFilterFunctionToPath(currentValue, statement.getTarget().getSteps(),
+                            functionIdentifier, arguments, context);
                 } else {
-                    throw new SaplCompilerException("Non-value results in extended filter not yet implemented.");
+                    val result = applyFilterFunctionToValue(currentValue, functionIdentifier, arguments, context);
+
+                    if (result instanceof Value resultValue) {
+                        currentValue = resultValue;
+                    } else {
+                        return Value.error("Non-value results in extended filter statements not yet supported.");
+                    }
                 }
             }
-        }
 
-        return currentValue;
+            return currentValue;
+        };
+
+        // Wrap the operation to handle PureExpression/StreamExpression parents
+        return wrapFilterOperation(parent, filterOp);
     }
 
     /**
@@ -307,28 +364,34 @@ public class FilterCompiler {
 
         val currentStep = steps.get(stepIndex);
 
-        if (currentStep instanceof KeyStep keyStep) {
-            return applyFilterToNestedPath(parentValue, keyStep.getId(), steps, stepIndex + 1, functionIdentifier,
-                    arguments, context);
-        }
-
-        if (currentStep instanceof IndexStep indexStep) {
-            return applyFilterToNestedArrayElement(parentValue, indexStep.getIndex().intValue(), steps, stepIndex + 1,
-                    functionIdentifier, arguments, context);
-        }
-
-        if (currentStep instanceof ArraySlicingStep slicingStep) {
-            return applyFilterToNestedArraySlice(parentValue, slicingStep, steps, stepIndex + 1, functionIdentifier,
-                    arguments, context);
-        }
-
-        if (currentStep instanceof WildcardStep) {
-            return applyFilterToNestedWildcard(parentValue, steps, stepIndex + 1, functionIdentifier, arguments,
-                    context);
-        }
-
-        throw new SaplCompilerException(
+        return switch (currentStep) {
+        case KeyStep keyStep                         -> applyFilterToNestedPath(parentValue, keyStep.getId(), steps,
+                stepIndex + 1, functionIdentifier, arguments, context);
+        case IndexStep indexStep                     -> applyFilterToNestedArrayElement(parentValue,
+                indexStep.getIndex().intValue(), steps, stepIndex + 1, functionIdentifier, arguments, context);
+        case ArraySlicingStep slicingStep            -> applyFilterToNestedArraySlice(parentValue, slicingStep, steps,
+                stepIndex + 1, functionIdentifier, arguments, context);
+        case WildcardStep wildcardStep               ->
+            applyFilterToNestedWildcard(parentValue, steps, stepIndex + 1, functionIdentifier, arguments, context);
+        case RecursiveKeyStep recursiveKeyStep       -> applyFilterToNestedRecursiveKey(parentValue,
+                recursiveKeyStep.getId(), steps, stepIndex + 1, functionIdentifier, arguments, context);
+        case RecursiveWildcardStep recursiveWildcard -> applyFilterToNestedRecursiveWildcard(parentValue, steps,
+                stepIndex + 1, functionIdentifier, arguments, context);
+        case RecursiveIndexStep recursiveIndexStep   -> applyFilterToNestedRecursiveIndex(parentValue,
+                recursiveIndexStep.getIndex().intValue(), steps, stepIndex + 1, functionIdentifier, arguments, context);
+        case AttributeUnionStep attributeUnionStep   -> applyFilterToNestedAttributeUnion(parentValue,
+                attributeUnionStep.getAttributes(), steps, stepIndex + 1, functionIdentifier, arguments, context);
+        case IndexUnionStep indexUnionStep           -> applyFilterToNestedIndexUnion(parentValue,
+                indexUnionStep.getIndices(), steps, stepIndex + 1, functionIdentifier, arguments, context);
+        case AttributeFinderStep attributeFinder     -> Value.error(ATTRIBUTE_FINDER_NOT_PERMITTED_IN_FILTER);
+        case HeadAttributeFinderStep headAttrFinder  -> Value.error(ATTRIBUTE_FINDER_NOT_PERMITTED_IN_FILTER);
+        case ConditionStep conditionStep             -> applyFilterToNestedCondition(parentValue, conditionStep, steps,
+                stepIndex + 1, functionIdentifier, arguments, context);
+        case ExpressionStep expressionStep           -> applyFilterToNestedExpression(parentValue, expressionStep,
+                steps, stepIndex + 1, functionIdentifier, arguments, context);
+        default                                      -> throw new SaplCompilerException(
                 "Step type not supported in multi-step path: " + currentStep.getClass().getSimpleName());
+        };
     }
 
     /**
@@ -343,38 +406,67 @@ public class FilterCompiler {
      */
     private Value applySingleStepFilter(Value parentValue, Step step, String functionIdentifier,
             CompiledArguments arguments, CompilationContext context) {
-        if (step instanceof KeyStep keyStep) {
-            return applyKeyStepFilter(parentValue, keyStep.getId(), functionIdentifier, arguments, context);
-        }
-
-        if (step instanceof IndexStep indexStep) {
-            return applyIndexStepFilter(parentValue, indexStep.getIndex().intValue(), functionIdentifier, arguments,
-                    context);
-        }
-
-        if (step instanceof ArraySlicingStep slicingStep) {
-            return applySlicingStepFilter(parentValue, slicingStep, functionIdentifier, arguments, context);
-        }
-
-        if (step instanceof WildcardStep) {
-            return applyWildcardStepFilter(parentValue, functionIdentifier, arguments, context);
-        }
-
-        throw new SaplCompilerException("Step type not supported: " + step.getClass().getSimpleName());
+        return switch (step) {
+        case KeyStep keyStep                         ->
+            applyKeyStepFilter(parentValue, keyStep.getId(), functionIdentifier, arguments, context);
+        case IndexStep indexStep                     ->
+            applyIndexStepFilter(parentValue, indexStep.getIndex().intValue(), functionIdentifier, arguments, context);
+        case ArraySlicingStep slicingStep            ->
+            applySlicingStepFilter(parentValue, slicingStep, functionIdentifier, arguments, context);
+        case WildcardStep wildcardStep               ->
+            applyWildcardStepFilter(parentValue, functionIdentifier, arguments, context);
+        case RecursiveKeyStep recursiveKeyStep       ->
+            applyRecursiveKeyStepFilter(parentValue, recursiveKeyStep.getId(), functionIdentifier, arguments, context);
+        case RecursiveWildcardStep recursiveWildcard ->
+            applyRecursiveWildcardStepFilter(parentValue, functionIdentifier, arguments, context);
+        case RecursiveIndexStep recursiveIndexStep   -> applyRecursiveIndexStepFilter(parentValue,
+                recursiveIndexStep.getIndex().intValue(), functionIdentifier, arguments, context);
+        case AttributeUnionStep attributeUnionStep   -> applyAttributeUnionStepFilter(parentValue,
+                attributeUnionStep.getAttributes(), functionIdentifier, arguments, context);
+        case IndexUnionStep indexUnionStep           ->
+            applyIndexUnionStepFilter(parentValue, indexUnionStep.getIndices(), functionIdentifier, arguments, context);
+        case AttributeFinderStep attributeFinder     -> Value.error(ATTRIBUTE_FINDER_NOT_PERMITTED_IN_FILTER);
+        case HeadAttributeFinderStep headAttrFinder  -> Value.error(ATTRIBUTE_FINDER_NOT_PERMITTED_IN_FILTER);
+        case ConditionStep conditionStep             ->
+            applyConditionStepFilter(parentValue, conditionStep, functionIdentifier, arguments, context);
+        case ExpressionStep expressionStep           ->
+            applyExpressionStepFilter(parentValue, expressionStep, functionIdentifier, arguments, context);
+        default                                      ->
+            throw new SaplCompilerException("Step type not supported: " + step.getClass().getSimpleName());
+        };
     }
 
     /**
      * Applies a filter function to an object field accessed by key.
+     * <p>
+     * For arrays: applies the key step to each array element (implicit array
+     * mapping).
+     * For objects: applies the filter to the specified field.
      *
-     * @param parentValue the parent object value
+     * @param parentValue the parent object or array value
      * @param key the field key
      * @param functionIdentifier the function identifier
      * @param arguments the function arguments
      * @param context the compilation context
-     * @return the updated object with the filtered field
+     * @return the updated object/array with the filtered field(s)
      */
     private Value applyKeyStepFilter(Value parentValue, String key, String functionIdentifier,
             CompiledArguments arguments, CompilationContext context) {
+        // Handle implicit array mapping: apply key step to each element
+        if (parentValue instanceof ArrayValue arrayValue) {
+            val builder = ArrayValue.builder();
+            for (val element : arrayValue) {
+                val result = applyKeyStepFilter(element, key, functionIdentifier, arguments, context);
+
+                if (result instanceof ErrorValue) {
+                    return result;
+                }
+
+                builder.add(result);
+            }
+            return builder.build();
+        }
+
         if (!(parentValue instanceof ObjectValue objectValue)) {
             return Value.error("Cannot apply key step to non-object value.");
         }
@@ -420,11 +512,12 @@ public class FilterCompiler {
             return Value.error("Cannot apply index step to non-array value.");
         }
 
-        if (index < 0 || index >= arrayValue.size()) {
+        val normalizedIndex = normalizeIndex(index, arrayValue.size());
+        if (normalizedIndex < 0 || normalizedIndex >= arrayValue.size()) {
             return Value.error("Array index out of bounds: " + index + " (size: " + arrayValue.size() + ").");
         }
 
-        val elementValue = arrayValue.get(index);
+        val elementValue = arrayValue.get(normalizedIndex);
         val result       = applyFilterFunctionToValue(elementValue, functionIdentifier, arguments, context);
 
         if (!(result instanceof Value filteredValue)) {
@@ -433,7 +526,7 @@ public class FilterCompiler {
 
         val builder = ArrayValue.builder();
         for (int i = 0; i < arrayValue.size(); i++) {
-            if (i == index) {
+            if (i == normalizedIndex) {
                 if (!(filteredValue instanceof UndefinedValue)) {
                     builder.add(filteredValue);
                 }
@@ -511,19 +604,39 @@ public class FilterCompiler {
 
     /**
      * Applies a filter function to a nested path through an object field.
+     * <p>
+     * For arrays: applies the nested path to each array element (implicit array
+     * mapping).
+     * For objects: applies the filter to the specified nested field.
      *
-     * @param parentValue the parent object value
+     * @param parentValue the parent object or array value
      * @param fieldName the field name to navigate through
      * @param steps all path steps
      * @param stepIndex the current step index (points to next step after field)
      * @param functionIdentifier the function identifier
      * @param arguments the function arguments
      * @param context the compilation context
-     * @return the updated parent object
+     * @return the updated parent object/array
      */
     private Value applyFilterToNestedPath(Value parentValue, String fieldName,
             org.eclipse.emf.common.util.EList<Step> steps, int stepIndex, String functionIdentifier,
             CompiledArguments arguments, CompilationContext context) {
+        // Handle implicit array mapping: apply nested path to each element
+        if (parentValue instanceof ArrayValue arrayValue) {
+            val builder = ArrayValue.builder();
+            for (val element : arrayValue) {
+                val result = applyFilterToNestedPath(element, fieldName, steps, stepIndex, functionIdentifier,
+                        arguments, context);
+
+                if (result instanceof ErrorValue) {
+                    return result;
+                }
+
+                builder.add(result);
+            }
+            return builder.build();
+        }
+
         if (!(parentValue instanceof ObjectValue objectValue)) {
             return Value.error("Cannot access field '" + fieldName + "' on non-object value.");
         }
@@ -571,11 +684,12 @@ public class FilterCompiler {
             return Value.error("Cannot access array index on non-array value.");
         }
 
-        if (index < 0 || index >= arrayValue.size()) {
+        val normalizedIndex = normalizeIndex(index, arrayValue.size());
+        if (normalizedIndex < 0 || normalizedIndex >= arrayValue.size()) {
             return parentValue;
         }
 
-        val elementValue        = arrayValue.get(index);
+        val elementValue        = arrayValue.get(normalizedIndex);
         val updatedElementValue = applyFilterFunctionToPathRecursive(elementValue, steps, stepIndex, functionIdentifier,
                 arguments, context);
 
@@ -585,7 +699,7 @@ public class FilterCompiler {
 
         val builder = ArrayValue.builder();
         for (int i = 0; i < arrayValue.size(); i++) {
-            if (i == index) {
+            if (i == normalizedIndex) {
                 builder.add(updatedElementValue);
             } else {
                 builder.add(arrayValue.get(i));
@@ -789,5 +903,785 @@ public class FilterCompiler {
         }
 
         return Value.error("Cannot apply wildcard step to non-array/non-object value.");
+    }
+
+    /**
+     * Applies a filter function to all matching keys recursively (recursive
+     * descent).
+     * <p>
+     * Recursively searches for the key in all nested objects and arrays,
+     * applies the filter to all matching values.
+     *
+     * @param parentValue the parent value to search
+     * @param key the key to match
+     * @param functionIdentifier the function identifier
+     * @param arguments the function arguments
+     * @param context the compilation context
+     * @return the updated value with filters applied to all matching keys
+     */
+    private Value applyRecursiveKeyStepFilter(Value parentValue, String key, String functionIdentifier,
+            CompiledArguments arguments, CompilationContext context) {
+        if (parentValue instanceof ObjectValue objectValue) {
+            return applyRecursiveKeyToObject(objectValue, key, functionIdentifier, arguments, context);
+        }
+
+        if (parentValue instanceof ArrayValue arrayValue) {
+            return applyRecursiveKeyToArray(arrayValue, key, functionIdentifier, arguments, context);
+        }
+
+        // Non-array/non-object: no matches, return unchanged
+        return parentValue;
+    }
+
+    private Value applyRecursiveKeyToObject(ObjectValue objectValue, String key, String functionIdentifier,
+            CompiledArguments arguments, CompilationContext context) {
+        val builder = ObjectValue.builder();
+
+        for (val entry : objectValue.entrySet()) {
+            if (entry.getKey().equals(key)) {
+                // This field matches - apply filter
+                val result = applyFilterFunctionToValue(entry.getValue(), functionIdentifier, arguments, context);
+
+                if (!(result instanceof Value filteredValue)) {
+                    throw new SaplCompilerException("Non-value results in recursive key filter not yet implemented.");
+                }
+
+                if (filteredValue instanceof ErrorValue) {
+                    return filteredValue;
+                }
+
+                if (!(filteredValue instanceof UndefinedValue)) {
+                    builder.put(entry.getKey(), filteredValue);
+                }
+            } else {
+                // This field doesn't match - recurse into it
+                val recursedValue = applyRecursiveKeyStepFilter(entry.getValue(), key, functionIdentifier, arguments,
+                        context);
+
+                if (recursedValue instanceof ErrorValue) {
+                    return recursedValue;
+                }
+
+                builder.put(entry.getKey(), recursedValue);
+            }
+        }
+
+        return builder.build();
+    }
+
+    private Value applyRecursiveKeyToArray(ArrayValue arrayValue, String key, String functionIdentifier,
+            CompiledArguments arguments, CompilationContext context) {
+        val builder = ArrayValue.builder();
+
+        for (val element : arrayValue) {
+            // Arrays don't have keys, so just recurse into each element
+            val recursedValue = applyRecursiveKeyStepFilter(element, key, functionIdentifier, arguments, context);
+
+            if (recursedValue instanceof ErrorValue) {
+                return recursedValue;
+            }
+
+            builder.add(recursedValue);
+        }
+
+        return builder.build();
+    }
+
+    /**
+     * Applies a filter function recursively to all nested structures (recursive
+     * wildcard).
+     * <p>
+     * Note: For filtering, recursive wildcard behaves like regular wildcard at the
+     * current level.
+     * This matches the original implementation behavior where recursive descent
+     * doesn't translate well to filtering.
+     *
+     * @param parentValue the parent value to search
+     * @param functionIdentifier the function identifier
+     * @param arguments the function arguments
+     * @param context the compilation context
+     * @return the updated value with filters applied recursively
+     */
+    private Value applyRecursiveWildcardStepFilter(Value parentValue, String functionIdentifier,
+            CompiledArguments arguments, CompilationContext context) {
+        // For filtering, @..* is treated as @.* (regular wildcard)
+        // This matches the original implementation where recursive descent doesn't
+        // translate well to filtering
+        return applyWildcardStepFilter(parentValue, functionIdentifier, arguments, context);
+    }
+
+    /**
+     * Applies a filter function to all matching indices recursively (recursive
+     * index descent).
+     * <p>
+     * Recursively searches for the index in all nested arrays, applies the filter
+     * to all matching elements.
+     *
+     * @param parentValue the parent value to search
+     * @param index the index to match
+     * @param functionIdentifier the function identifier
+     * @param arguments the function arguments
+     * @param context the compilation context
+     * @return the updated value with filters applied to all matching indices
+     */
+    private Value applyRecursiveIndexStepFilter(Value parentValue, int index, String functionIdentifier,
+            CompiledArguments arguments, CompilationContext context) {
+        if (parentValue instanceof ArrayValue arrayValue) {
+            return applyRecursiveIndexToArray(arrayValue, index, functionIdentifier, arguments, context);
+        }
+
+        if (parentValue instanceof ObjectValue objectValue) {
+            return applyRecursiveIndexToObject(objectValue, index, functionIdentifier, arguments, context);
+        }
+
+        // Non-array/non-object: no matches, return unchanged
+        return parentValue;
+    }
+
+    private Value applyRecursiveIndexToArray(ArrayValue arrayValue, int index, String functionIdentifier,
+            CompiledArguments arguments, CompilationContext context) {
+        val builder      = ArrayValue.builder();
+        val arraySize    = arrayValue.size();
+        val idx          = normalizeIndex(index, arraySize);
+        var elementCount = 0;
+
+        for (val element : arrayValue) {
+            // First, recurse into the element to handle any nested structures
+            val recursedValue = applyRecursiveIndexStepFilter(element, index, functionIdentifier, arguments, context);
+
+            if (recursedValue instanceof ErrorValue) {
+                return recursedValue;
+            }
+
+            // Then, if this is the matching index at THIS level, apply filter
+            if (elementCount == idx) {
+                val result = applyFilterFunctionToValue(recursedValue, functionIdentifier, arguments, context);
+
+                if (!(result instanceof Value filteredValue)) {
+                    throw new SaplCompilerException("Non-value results in recursive index filter not yet implemented.");
+                }
+
+                if (filteredValue instanceof ErrorValue) {
+                    return filteredValue;
+                }
+
+                if (!(filteredValue instanceof UndefinedValue)) {
+                    builder.add(filteredValue);
+                }
+            } else {
+                builder.add(recursedValue);
+            }
+            elementCount++;
+        }
+
+        return builder.build();
+    }
+
+    private Value applyRecursiveIndexToObject(ObjectValue objectValue, int index, String functionIdentifier,
+            CompiledArguments arguments, CompilationContext context) {
+        val builder = ObjectValue.builder();
+
+        for (val entry : objectValue.entrySet()) {
+            // Objects don't have indices, so just recurse into each field value
+            val recursedValue = applyRecursiveIndexStepFilter(entry.getValue(), index, functionIdentifier, arguments,
+                    context);
+
+            if (recursedValue instanceof ErrorValue) {
+                return recursedValue;
+            }
+
+            builder.put(entry.getKey(), recursedValue);
+        }
+
+        return builder.build();
+    }
+
+    private static int normalizeIndex(int idx, int size) {
+        return idx < 0 ? size + idx : idx;
+    }
+
+    /**
+     * Applies a filter function to selected object attributes (attribute union).
+     * <p>
+     * Applies the filter only to the specified attributes of an object.
+     *
+     * @param parentValue the parent object value
+     * @param attributes the list of attribute names to filter
+     * @param functionIdentifier the function identifier
+     * @param arguments the function arguments
+     * @param context the compilation context
+     * @return the updated object with filtered attributes
+     */
+    private Value applyAttributeUnionStepFilter(Value parentValue, org.eclipse.emf.common.util.EList<String> attributes,
+            String functionIdentifier, CompiledArguments arguments, CompilationContext context) {
+        if (!(parentValue instanceof ObjectValue objectValue)) {
+            return Value.error("Cannot apply attribute union to non-object value.");
+        }
+
+        val builder = ObjectValue.builder();
+
+        for (val entry : objectValue.entrySet()) {
+            if (attributes.contains(entry.getKey())) {
+                // This attribute is in the union - apply filter
+                val result = applyFilterFunctionToValue(entry.getValue(), functionIdentifier, arguments, context);
+
+                if (!(result instanceof Value filteredValue)) {
+                    throw new SaplCompilerException("Non-value results in attribute union filter not yet implemented.");
+                }
+
+                if (filteredValue instanceof ErrorValue) {
+                    return filteredValue;
+                }
+
+                if (!(filteredValue instanceof UndefinedValue)) {
+                    builder.put(entry.getKey(), filteredValue);
+                }
+            } else {
+                // This attribute is not in the union - keep unchanged
+                builder.put(entry.getKey(), entry.getValue());
+            }
+        }
+
+        return builder.build();
+    }
+
+    /**
+     * Applies a filter function to selected array indices (index union).
+     * <p>
+     * Applies the filter only to elements at the specified indices.
+     * Supports negative indices.
+     *
+     * @param parentValue the parent array value
+     * @param indices the list of indices to filter
+     * @param functionIdentifier the function identifier
+     * @param arguments the function arguments
+     * @param context the compilation context
+     * @return the updated array with filtered elements
+     */
+    private Value applyIndexUnionStepFilter(Value parentValue,
+            org.eclipse.emf.common.util.EList<java.math.BigDecimal> indices, String functionIdentifier,
+            CompiledArguments arguments, CompilationContext context) {
+        if (!(parentValue instanceof ArrayValue arrayValue)) {
+            return Value.error("Cannot apply index union to non-array value.");
+        }
+
+        val arraySize = arrayValue.size();
+        val builder   = ArrayValue.builder();
+
+        // Normalize indices (handle negative indices)
+        val normalizedIndices = new ArrayList<Integer>();
+        for (val index : indices) {
+            int idx = index.intValue();
+            if (idx < 0) {
+                idx += arraySize;
+            }
+            if (idx >= 0 && idx < arraySize) {
+                normalizedIndices.add(idx);
+            }
+        }
+
+        for (int i = 0; i < arraySize; i++) {
+            if (normalizedIndices.contains(i)) {
+                // This index is in the union - apply filter
+                val result = applyFilterFunctionToValue(arrayValue.get(i), functionIdentifier, arguments, context);
+
+                if (!(result instanceof Value filteredValue)) {
+                    throw new SaplCompilerException("Non-value results in index union filter not yet implemented.");
+                }
+
+                if (filteredValue instanceof ErrorValue) {
+                    return filteredValue;
+                }
+
+                if (!(filteredValue instanceof UndefinedValue)) {
+                    builder.add(filteredValue);
+                }
+            } else {
+                // This index is not in the union - keep unchanged
+                builder.add(arrayValue.get(i));
+            }
+        }
+
+        return builder.build();
+    }
+
+    /**
+     * Applies a filter function to nested paths through recursive key descent.
+     *
+     * @param parentValue the parent value
+     * @param key the key to match recursively
+     * @param steps all path steps
+     * @param stepIndex the current step index (points to next step after recursive
+     * key)
+     * @param functionIdentifier the function identifier
+     * @param arguments the function arguments
+     * @param context the compilation context
+     * @return the updated parent value
+     */
+    private Value applyFilterToNestedRecursiveKey(Value parentValue, String key,
+            org.eclipse.emf.common.util.EList<Step> steps, int stepIndex, String functionIdentifier,
+            CompiledArguments arguments, CompilationContext context) {
+        if (parentValue instanceof ObjectValue objectValue) {
+            val builder = ObjectValue.builder();
+
+            for (val entry : objectValue.entrySet()) {
+                if (entry.getKey().equals(key)) {
+                    // This field matches - continue with remaining steps
+                    val updatedValue = applyFilterFunctionToPathRecursive(entry.getValue(), steps, stepIndex,
+                            functionIdentifier, arguments, context);
+
+                    if (updatedValue instanceof ErrorValue) {
+                        return updatedValue;
+                    }
+
+                    builder.put(entry.getKey(), updatedValue);
+                } else {
+                    // This field doesn't match - recurse into it
+                    val recursedValue = applyFilterToNestedRecursiveKey(entry.getValue(), key, steps, stepIndex,
+                            functionIdentifier, arguments, context);
+
+                    if (recursedValue instanceof ErrorValue) {
+                        return recursedValue;
+                    }
+
+                    builder.put(entry.getKey(), recursedValue);
+                }
+            }
+
+            return builder.build();
+        }
+
+        if (parentValue instanceof ArrayValue arrayValue) {
+            val builder = ArrayValue.builder();
+
+            for (val element : arrayValue) {
+                val recursedValue = applyFilterToNestedRecursiveKey(element, key, steps, stepIndex, functionIdentifier,
+                        arguments, context);
+
+                if (recursedValue instanceof ErrorValue) {
+                    return recursedValue;
+                }
+
+                builder.add(recursedValue);
+            }
+
+            return builder.build();
+        }
+
+        return parentValue;
+    }
+
+    /**
+     * Applies a filter function to nested paths through recursive wildcard descent.
+     *
+     * @param parentValue the parent value
+     * @param steps all path steps
+     * @param stepIndex the current step index (points to next step after recursive
+     * wildcard)
+     * @param functionIdentifier the function identifier
+     * @param arguments the function arguments
+     * @param context the compilation context
+     * @return the updated parent value
+     */
+    private Value applyFilterToNestedRecursiveWildcard(Value parentValue, org.eclipse.emf.common.util.EList<Step> steps,
+            int stepIndex, String functionIdentifier, CompiledArguments arguments, CompilationContext context) {
+        // For nested recursive wildcard, treat it like regular wildcard at current
+        // level
+        // This matches the original implementation behavior
+        return applyFilterToNestedWildcard(parentValue, steps, stepIndex, functionIdentifier, arguments, context);
+    }
+
+    /**
+     * Applies a filter function to nested paths through recursive index descent.
+     *
+     * @param parentValue the parent value
+     * @param index the index to match recursively
+     * @param steps all path steps
+     * @param stepIndex the current step index (points to next step after recursive
+     * index)
+     * @param functionIdentifier the function identifier
+     * @param arguments the function arguments
+     * @param context the compilation context
+     * @return the updated parent value
+     */
+    private Value applyFilterToNestedRecursiveIndex(Value parentValue, int index,
+            org.eclipse.emf.common.util.EList<Step> steps, int stepIndex, String functionIdentifier,
+            CompiledArguments arguments, CompilationContext context) {
+        if (parentValue instanceof ArrayValue arrayValue) {
+            val builder      = ArrayValue.builder();
+            val arraySize    = arrayValue.size();
+            val idx          = normalizeIndex(index, arraySize);
+            var elementCount = 0;
+
+            for (val element : arrayValue) {
+                // First, recurse into the element
+                val recursedValue = applyFilterToNestedRecursiveIndex(element, index, steps, stepIndex,
+                        functionIdentifier, arguments, context);
+
+                if (recursedValue instanceof ErrorValue) {
+                    return recursedValue;
+                }
+
+                // Then, if this is the matching index at THIS level, apply remaining steps
+                if (elementCount == idx) {
+                    val updatedValue = applyFilterFunctionToPathRecursive(recursedValue, steps, stepIndex,
+                            functionIdentifier, arguments, context);
+
+                    if (updatedValue instanceof ErrorValue) {
+                        return updatedValue;
+                    }
+
+                    builder.add(updatedValue);
+                } else {
+                    builder.add(recursedValue);
+                }
+                elementCount++;
+            }
+
+            return builder.build();
+        }
+
+        if (parentValue instanceof ObjectValue objectValue) {
+            val builder = ObjectValue.builder();
+
+            for (val entry : objectValue.entrySet()) {
+                val recursedValue = applyFilterToNestedRecursiveIndex(entry.getValue(), index, steps, stepIndex,
+                        functionIdentifier, arguments, context);
+
+                if (recursedValue instanceof ErrorValue) {
+                    return recursedValue;
+                }
+
+                builder.put(entry.getKey(), recursedValue);
+            }
+
+            return builder.build();
+        }
+
+        return parentValue;
+    }
+
+    /**
+     * Applies a filter function to nested paths through attribute union.
+     *
+     * @param parentValue the parent object value
+     * @param attributes the list of attribute names
+     * @param steps all path steps
+     * @param stepIndex the current step index (points to next step after union)
+     * @param functionIdentifier the function identifier
+     * @param arguments the function arguments
+     * @param context the compilation context
+     * @return the updated parent object
+     */
+    private Value applyFilterToNestedAttributeUnion(Value parentValue,
+            org.eclipse.emf.common.util.EList<String> attributes, org.eclipse.emf.common.util.EList<Step> steps,
+            int stepIndex, String functionIdentifier, CompiledArguments arguments, CompilationContext context) {
+        if (!(parentValue instanceof ObjectValue objectValue)) {
+            return Value.error("Cannot apply attribute union to non-object value.");
+        }
+
+        val builder = ObjectValue.builder();
+
+        for (val entry : objectValue.entrySet()) {
+            if (attributes.contains(entry.getKey())) {
+                // This attribute is in the union - continue with remaining steps
+                val updatedValue = applyFilterFunctionToPathRecursive(entry.getValue(), steps, stepIndex,
+                        functionIdentifier, arguments, context);
+
+                if (updatedValue instanceof ErrorValue) {
+                    return updatedValue;
+                }
+
+                builder.put(entry.getKey(), updatedValue);
+            } else {
+                // This attribute is not in the union - keep unchanged
+                builder.put(entry.getKey(), entry.getValue());
+            }
+        }
+
+        return builder.build();
+    }
+
+    /**
+     * Applies a filter function to nested paths through index union.
+     *
+     * @param parentValue the parent array value
+     * @param indices the list of indices
+     * @param steps all path steps
+     * @param stepIndex the current step index (points to next step after union)
+     * @param functionIdentifier the function identifier
+     * @param arguments the function arguments
+     * @param context the compilation context
+     * @return the updated parent array
+     */
+    private Value applyFilterToNestedIndexUnion(Value parentValue,
+            org.eclipse.emf.common.util.EList<java.math.BigDecimal> indices,
+            org.eclipse.emf.common.util.EList<Step> steps, int stepIndex, String functionIdentifier,
+            CompiledArguments arguments, CompilationContext context) {
+        if (!(parentValue instanceof ArrayValue arrayValue)) {
+            return Value.error("Cannot apply index union to non-array value.");
+        }
+
+        val arraySize = arrayValue.size();
+        val builder   = ArrayValue.builder();
+
+        // Normalize indices (handle negative indices)
+        val normalizedIndices = new ArrayList<Integer>();
+        for (val index : indices) {
+            int idx = index.intValue();
+            if (idx < 0) {
+                idx += arraySize;
+            }
+            if (idx >= 0 && idx < arraySize) {
+                normalizedIndices.add(idx);
+            }
+        }
+
+        for (int i = 0; i < arraySize; i++) {
+            if (normalizedIndices.contains(i)) {
+                // This index is in the union - continue with remaining steps
+                val updatedValue = applyFilterFunctionToPathRecursive(arrayValue.get(i), steps, stepIndex,
+                        functionIdentifier, arguments, context);
+
+                if (updatedValue instanceof ErrorValue) {
+                    return updatedValue;
+                }
+
+                builder.add(updatedValue);
+            } else {
+                // This index is not in the union - keep unchanged
+                builder.add(arrayValue.get(i));
+            }
+        }
+
+        return builder.build();
+    }
+
+    /**
+     * Applies a filter function to elements/fields matching a condition (condition
+     * step).
+     * <p>
+     * For arrays: applies filter to elements where condition evaluates to true. For
+     * objects: applies filter to field values where condition evaluates to true.
+     *
+     * @param parentValue the parent value (array or object)
+     * @param conditionStep the condition step with the expression to evaluate
+     * @param functionIdentifier the function identifier
+     * @param arguments the function arguments
+     * @param context the compilation context
+     * @return the filtered value
+     */
+    private Value applyConditionStepFilter(Value parentValue, ConditionStep conditionStep, String functionIdentifier,
+            CompiledArguments arguments, CompilationContext context) {
+        // Non-array/non-object: no elements to match condition, return unchanged
+        if (!(parentValue instanceof ArrayValue) && !(parentValue instanceof ObjectValue)) {
+            return parentValue;
+        }
+
+        // Compile condition expression once
+        val conditionExpr = ExpressionCompiler.compileExpression(conditionStep.getExpression(), context);
+
+        // Check if condition is static (constant value)
+        if (!(conditionExpr instanceof Value conditionValue)) {
+            return Value.error("Non-value condition results not yet implemented in ConditionStep filter compilation.");
+        }
+
+        if (conditionValue instanceof ErrorValue) {
+            return conditionValue;
+        }
+
+        if (!(conditionValue instanceof io.sapl.api.model.BooleanValue booleanResult)) {
+            return Value.error("Type mismatch. Expected the condition expression to return a Boolean, but was '"
+                    + conditionValue.getClass().getSimpleName() + "'.");
+        }
+
+        // With constant condition: if false, return unchanged; if true, apply to all
+        // elements (wildcard)
+        if (!booleanResult.value()) {
+            return parentValue;
+        }
+
+        // Condition is constant true - apply filter like wildcard
+        return applyWildcardStepFilter(parentValue, functionIdentifier, arguments, context);
+    }
+
+    /**
+     * Applies a filter function to nested paths through condition-matched
+     * elements/fields.
+     *
+     * @param parentValue the parent value (array or object)
+     * @param conditionStep the condition step
+     * @param steps all path steps
+     * @param stepIndex the current step index (points to next step after
+     * condition)
+     * @param functionIdentifier the function identifier
+     * @param arguments the function arguments
+     * @param context the compilation context
+     * @return the updated parent value
+     */
+    private Value applyFilterToNestedCondition(Value parentValue, ConditionStep conditionStep,
+            org.eclipse.emf.common.util.EList<Step> steps, int stepIndex, String functionIdentifier,
+            CompiledArguments arguments, CompilationContext context) {
+        // Non-array/non-object: no elements to match condition, return unchanged
+        if (!(parentValue instanceof ArrayValue) && !(parentValue instanceof ObjectValue)) {
+            return parentValue;
+        }
+
+        // Compile condition expression once
+        val conditionExpr = ExpressionCompiler.compileExpression(conditionStep.getExpression(), context);
+
+        // Check if condition is static (constant value)
+        if (!(conditionExpr instanceof Value conditionValue)) {
+            return Value.error("Non-value condition results not yet implemented in ConditionStep filter compilation.");
+        }
+
+        if (conditionValue instanceof ErrorValue) {
+            return conditionValue;
+        }
+
+        if (!(conditionValue instanceof io.sapl.api.model.BooleanValue booleanResult)) {
+            return Value.error("Type mismatch. Expected the condition expression to return a Boolean, but was '"
+                    + conditionValue.getClass().getSimpleName() + "'.");
+        }
+
+        // With constant condition: if false, return unchanged; if true, descend like
+        // wildcard
+        if (!booleanResult.value()) {
+            return parentValue;
+        }
+
+        // Condition is constant true - descend into all elements/fields
+        return applyFilterToNestedWildcard(parentValue, steps, stepIndex, functionIdentifier, arguments, context);
+    }
+
+    /**
+     * Applies a filter function using an expression step to compute the key/index.
+     * <p>
+     * Expression steps allow dynamic key/index selection: @[(expression)]
+     * <p>
+     * For arrays: expression must evaluate to a number (index) For objects:
+     * expression must evaluate to a string (key)
+     *
+     * @param parentValue the parent value (array or object)
+     * @param expressionStep the expression step
+     * @param functionIdentifier the function identifier
+     * @param arguments the function arguments
+     * @param context the compilation context
+     * @return the filtered value
+     */
+    private Value applyExpressionStepFilter(Value parentValue, ExpressionStep expressionStep, String functionIdentifier,
+            CompiledArguments arguments, CompilationContext context) {
+        // Non-array/non-object: no action
+        if (!(parentValue instanceof ArrayValue) && !(parentValue instanceof ObjectValue)) {
+            return parentValue;
+        }
+
+        // Compile expression once to get constant key/index
+        val keyOrIndexExpr = ExpressionCompiler.compileExpression(expressionStep.getExpression(), context);
+
+        if (!(keyOrIndexExpr instanceof Value keyOrIndexValue)) {
+            return Value
+                    .error("Non-value expression results not yet implemented in ExpressionStep filter compilation.");
+        }
+
+        if (keyOrIndexValue instanceof ErrorValue) {
+            return keyOrIndexValue;
+        }
+
+        // Delegate to appropriate step handler based on parent type
+        if (parentValue instanceof ArrayValue arrayValue) {
+            if (!(keyOrIndexValue instanceof io.sapl.api.model.NumberValue numberValue)) {
+                return Value.error("Array access type mismatch. Expect an integer, was: "
+                        + keyOrIndexValue.getClass().getSimpleName());
+            }
+            return applyIndexStepFilter(arrayValue, numberValue.value().intValue(), functionIdentifier, arguments,
+                    context);
+        }
+
+        if (parentValue instanceof ObjectValue objectValue) {
+            if (!(keyOrIndexValue instanceof io.sapl.api.model.TextValue textValue)) {
+                return Value.error("Object access type mismatch. Expect a string, was: "
+                        + keyOrIndexValue.getClass().getSimpleName());
+            }
+
+            String key = textValue.value();
+            if (!objectValue.containsKey(key)) {
+                return parentValue;
+            }
+            return applyKeyStepFilter(objectValue, key, functionIdentifier, arguments, context);
+        }
+
+        return parentValue;
+    }
+
+    /**
+     * Applies a filter function to nested paths through an expression-selected
+     * element/field.
+     * <p>
+     * The expression is evaluated to get a key (for objects) or index (for arrays),
+     * then the filter continues with remaining steps on that element.
+     *
+     * @param parentValue the parent value (array or object)
+     * @param expressionStep the expression step
+     * @param steps all path steps
+     * @param stepIndex the current step index (points to next step after
+     * expression)
+     * @param functionIdentifier the function identifier
+     * @param arguments the function arguments
+     * @param context the compilation context
+     * @return the updated parent value
+     */
+    private Value applyFilterToNestedExpression(Value parentValue, ExpressionStep expressionStep,
+            org.eclipse.emf.common.util.EList<Step> steps, int stepIndex, String functionIdentifier,
+            CompiledArguments arguments, CompilationContext context) {
+        // Non-array/non-object: no action
+        if (!(parentValue instanceof ArrayValue) && !(parentValue instanceof ObjectValue)) {
+            return parentValue;
+        }
+
+        // Compile expression once to get constant key/index
+        val keyOrIndexExpr = ExpressionCompiler.compileExpression(expressionStep.getExpression(), context);
+
+        if (!(keyOrIndexExpr instanceof Value keyOrIndexValue)) {
+            return Value
+                    .error("Non-value expression results not yet implemented in ExpressionStep filter compilation.");
+        }
+
+        if (keyOrIndexValue instanceof ErrorValue) {
+            return keyOrIndexValue;
+        }
+
+        // Delegate to appropriate nested handler based on parent type
+        if (parentValue instanceof ArrayValue arrayValue) {
+            if (!(keyOrIndexValue instanceof io.sapl.api.model.NumberValue numberValue)) {
+                return Value.error("Array access type mismatch. Expect an integer, was: "
+                        + keyOrIndexValue.getClass().getSimpleName());
+            }
+
+            int index = numberValue.value().intValue();
+            if (index < 0 || index >= arrayValue.size()) {
+                return Value.error("Index out of bounds. Index must be between 0 and " + (arrayValue.size() - 1)
+                        + ", was: " + index);
+            }
+
+            return applyFilterToNestedArrayElement(arrayValue, index, steps, stepIndex, functionIdentifier, arguments,
+                    context);
+        }
+
+        if (parentValue instanceof ObjectValue objectValue) {
+            if (!(keyOrIndexValue instanceof io.sapl.api.model.TextValue textValue)) {
+                return Value.error("Object access type mismatch. Expect a string, was: "
+                        + keyOrIndexValue.getClass().getSimpleName());
+            }
+
+            String key = textValue.value();
+            if (!objectValue.containsKey(key)) {
+                return parentValue;
+            }
+
+            return applyFilterToNestedPath(objectValue, key, steps, stepIndex, functionIdentifier, arguments, context);
+        }
+
+        return parentValue;
     }
 }
