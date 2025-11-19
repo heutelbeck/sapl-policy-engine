@@ -431,4 +431,214 @@ class FilterCompilerTests {
         assertThat(result).isInstanceOf(ErrorValue.class);
         assertThat(((ErrorValue) result).message()).contains("Cannot apply index step to non-array");
     }
+
+    @Test
+    void extendedFilterWithSlicing_transformsRange() {
+        var result = TestUtil.evaluate("[1, 2, 3, 4, 5] |- { @[1:3] : simple.double }");
+
+        assertThat(result).isInstanceOf(ArrayValue.class);
+        var arrayResult = (ArrayValue) result;
+        assertThat(arrayResult).hasSize(5);
+        assertThat(((NumberValue) arrayResult.get(0)).value().intValue()).isEqualTo(1);
+        assertThat(((NumberValue) arrayResult.get(1)).value().intValue()).isEqualTo(4);
+        assertThat(((NumberValue) arrayResult.get(2)).value().intValue()).isEqualTo(6);
+        assertThat(((NumberValue) arrayResult.get(3)).value().intValue()).isEqualTo(4);
+        assertThat(((NumberValue) arrayResult.get(4)).value().intValue()).isEqualTo(5);
+    }
+
+    @Test
+    void extendedFilterWithSlicing_fromStart() {
+        var result = TestUtil.evaluate("[1, 2, 3, 4, 5] |- { @[:3] : simple.double }");
+
+        assertThat(result).isInstanceOf(ArrayValue.class);
+        var arrayResult = (ArrayValue) result;
+        assertThat(arrayResult).hasSize(5);
+        assertThat(((NumberValue) arrayResult.get(0)).value().intValue()).isEqualTo(2);
+        assertThat(((NumberValue) arrayResult.get(1)).value().intValue()).isEqualTo(4);
+        assertThat(((NumberValue) arrayResult.get(2)).value().intValue()).isEqualTo(6);
+        assertThat(((NumberValue) arrayResult.get(3)).value().intValue()).isEqualTo(4);
+        assertThat(((NumberValue) arrayResult.get(4)).value().intValue()).isEqualTo(5);
+    }
+
+    @Test
+    void extendedFilterWithSlicing_toEnd() {
+        var result = TestUtil.evaluate("[1, 2, 3, 4, 5] |- { @[2:] : simple.double }");
+
+        assertThat(result).isInstanceOf(ArrayValue.class);
+        var arrayResult = (ArrayValue) result;
+        assertThat(arrayResult).hasSize(5);
+        assertThat(((NumberValue) arrayResult.get(0)).value().intValue()).isEqualTo(1);
+        assertThat(((NumberValue) arrayResult.get(1)).value().intValue()).isEqualTo(2);
+        assertThat(((NumberValue) arrayResult.get(2)).value().intValue()).isEqualTo(6);
+        assertThat(((NumberValue) arrayResult.get(3)).value().intValue()).isEqualTo(8);
+        assertThat(((NumberValue) arrayResult.get(4)).value().intValue()).isEqualTo(10);
+    }
+
+    @Test
+    void extendedFilterWithSlicing_entireArray() {
+        var result = TestUtil.evaluate("[1, 2, 3] |- { @[:] : simple.double }");
+
+        assertThat(result).isInstanceOf(ArrayValue.class);
+        var arrayResult = (ArrayValue) result;
+        assertThat(arrayResult).hasSize(3);
+        assertThat(((NumberValue) arrayResult.get(0)).value().intValue()).isEqualTo(2);
+        assertThat(((NumberValue) arrayResult.get(1)).value().intValue()).isEqualTo(4);
+        assertThat(((NumberValue) arrayResult.get(2)).value().intValue()).isEqualTo(6);
+    }
+
+    @Test
+    void extendedFilterWithSlicing_withStep() {
+        var result = TestUtil.evaluate("[1, 2, 3, 4, 5, 6] |- { @[0:6:2] : simple.double }");
+
+        assertThat(result).isInstanceOf(ArrayValue.class);
+        var arrayResult = (ArrayValue) result;
+        assertThat(arrayResult).hasSize(6);
+        assertThat(((NumberValue) arrayResult.get(0)).value().intValue()).isEqualTo(2);
+        assertThat(((NumberValue) arrayResult.get(1)).value().intValue()).isEqualTo(2);
+        assertThat(((NumberValue) arrayResult.get(2)).value().intValue()).isEqualTo(6);
+        assertThat(((NumberValue) arrayResult.get(3)).value().intValue()).isEqualTo(4);
+        assertThat(((NumberValue) arrayResult.get(4)).value().intValue()).isEqualTo(10);
+        assertThat(((NumberValue) arrayResult.get(5)).value().intValue()).isEqualTo(6);
+    }
+
+    @Test
+    void extendedFilterWithSlicing_rangeWithStep() {
+        var result = TestUtil.evaluate("[1, 2, 3, 4, 5, 6] |- { @[1:5:2] : simple.double }");
+
+        assertThat(result).isInstanceOf(ArrayValue.class);
+        var arrayResult = (ArrayValue) result;
+        assertThat(arrayResult).hasSize(6);
+        assertThat(((NumberValue) arrayResult.get(0)).value().intValue()).isEqualTo(1);
+        assertThat(((NumberValue) arrayResult.get(1)).value().intValue()).isEqualTo(4);
+        assertThat(((NumberValue) arrayResult.get(2)).value().intValue()).isEqualTo(3);
+        assertThat(((NumberValue) arrayResult.get(3)).value().intValue()).isEqualTo(8);
+        assertThat(((NumberValue) arrayResult.get(4)).value().intValue()).isEqualTo(5);
+        assertThat(((NumberValue) arrayResult.get(5)).value().intValue()).isEqualTo(6);
+    }
+
+    @Test
+    void extendedFilterWithSlicing_removesElements() {
+        var result = TestUtil.evaluate("[1, 2, 3, 4, 5] |- { @[1:4] : filter.remove }");
+
+        assertThat(result).isInstanceOf(ArrayValue.class);
+        var arrayResult = (ArrayValue) result;
+        assertThat(arrayResult).hasSize(2);
+        assertThat(((NumberValue) arrayResult.get(0)).value().intValue()).isEqualTo(1);
+        assertThat(((NumberValue) arrayResult.get(1)).value().intValue()).isEqualTo(5);
+    }
+
+    @Test
+    void extendedFilterWithSlicing_blackensStrings() {
+        var result = TestUtil
+                .evaluate("[\"public\", \"secret1\", \"secret2\", \"data\"] |- { @[1:3] : filter.blacken }");
+
+        assertThat(result).isInstanceOf(ArrayValue.class);
+        var arrayResult = (ArrayValue) result;
+        assertThat(arrayResult).hasSize(4);
+        assertThat(((TextValue) arrayResult.get(0)).value()).isEqualTo("public");
+        assertThat(((TextValue) arrayResult.get(1)).value()).isEqualTo("XXXXXXX");
+        assertThat(((TextValue) arrayResult.get(2)).value()).isEqualTo("XXXXXXX");
+        assertThat(((TextValue) arrayResult.get(3)).value()).isEqualTo("data");
+    }
+
+    @Test
+    void extendedFilterWithSlicing_outOfBounds_clamps() {
+        var result = TestUtil.evaluate("[1, 2, 3] |- { @[1:10] : simple.double }");
+
+        assertThat(result).isInstanceOf(ArrayValue.class);
+        var arrayResult = (ArrayValue) result;
+        assertThat(arrayResult).hasSize(3);
+        assertThat(((NumberValue) arrayResult.get(0)).value().intValue()).isEqualTo(1);
+        assertThat(((NumberValue) arrayResult.get(1)).value().intValue()).isEqualTo(4);
+        assertThat(((NumberValue) arrayResult.get(2)).value().intValue()).isEqualTo(6);
+    }
+
+    @Test
+    void extendedFilterWithSlicing_onNonArray_returnsError() {
+        var result = TestUtil.evaluate("\"text\" |- { @[1:3] : filter.blacken }");
+
+        assertThat(result).isInstanceOf(ErrorValue.class);
+        assertThat(((ErrorValue) result).message()).contains("Cannot apply slicing step to non-array");
+    }
+
+    @Test
+    void extendedFilterWithSlicing_negativeToIndex_appliesFilterToSlice() {
+        var result = TestUtil.evaluate("[0, 1, 2, 3, 4, 5, 6, 7, 8, 9] |- { @[7:-1] : simple.double }");
+
+        assertThat(result).isInstanceOf(ArrayValue.class);
+        var arrayResult = (ArrayValue) result;
+        assertThat(arrayResult).hasSize(10);
+        assertThat(((NumberValue) arrayResult.get(7)).value().intValue()).isEqualTo(14);
+        assertThat(((NumberValue) arrayResult.get(8)).value().intValue()).isEqualTo(16);
+    }
+
+    @Test
+    void extendedFilterWithSlicing_negativeFromIndex_appliesFilterToSlice() {
+        var result = TestUtil.evaluate("[0, 1, 2, 3, 4, 5, 6, 7, 8, 9] |- { @[-3:9] : simple.double }");
+
+        assertThat(result).isInstanceOf(ArrayValue.class);
+        var arrayResult = (ArrayValue) result;
+        assertThat(arrayResult).hasSize(10);
+        assertThat(((NumberValue) arrayResult.get(7)).value().intValue()).isEqualTo(14);
+        assertThat(((NumberValue) arrayResult.get(8)).value().intValue()).isEqualTo(16);
+    }
+
+    @Test
+    void extendedFilterWithSlicing_negativeFromOmittedTo_appliesFilterToSlice() {
+        var result = TestUtil.evaluate("[0, 1, 2, 3, 4, 5, 6, 7, 8, 9] |- { @[-3:] : simple.double }");
+
+        assertThat(result).isInstanceOf(ArrayValue.class);
+        var arrayResult = (ArrayValue) result;
+        assertThat(arrayResult).hasSize(10);
+        assertThat(((NumberValue) arrayResult.get(7)).value().intValue()).isEqualTo(14);
+        assertThat(((NumberValue) arrayResult.get(8)).value().intValue()).isEqualTo(16);
+        assertThat(((NumberValue) arrayResult.get(9)).value().intValue()).isEqualTo(18);
+    }
+
+    @Test
+    void extendedFilterWithSlicing_negativeStepMinusOne_appliesFilterToAllElements() {
+        var result = TestUtil.evaluate("[0, 1, 2, 3, 4, 5, 6, 7, 8, 9] |- { @[: :-1] : simple.double }");
+
+        assertThat(result).isInstanceOf(ArrayValue.class);
+        var arrayResult = (ArrayValue) result;
+        assertThat(arrayResult).hasSize(10);
+        assertThat(((NumberValue) arrayResult.get(0)).value().intValue()).isEqualTo(0);
+        assertThat(((NumberValue) arrayResult.get(5)).value().intValue()).isEqualTo(10);
+        assertThat(((NumberValue) arrayResult.get(9)).value().intValue()).isEqualTo(18);
+    }
+
+    @Test
+    void extendedFilterWithSlicing_negativeStepMinusThree_appliesFilterToMatchingElements() {
+        var result = TestUtil.evaluate("[0, 1, 2, 3, 4, 5, 6, 7, 8, 9] |- { @[: :-3] : simple.double }");
+
+        assertThat(result).isInstanceOf(ArrayValue.class);
+        var arrayResult = (ArrayValue) result;
+        assertThat(arrayResult).hasSize(10);
+        assertThat(((NumberValue) arrayResult.get(1)).value().intValue()).isEqualTo(2);
+        assertThat(((NumberValue) arrayResult.get(4)).value().intValue()).isEqualTo(8);
+        assertThat(((NumberValue) arrayResult.get(7)).value().intValue()).isEqualTo(14);
+    }
+
+    @Test
+    void extendedFilterWithSlicing_negativeStepMinusTwo_appliesFilterToMatchingElements() {
+        var result = TestUtil.evaluate("[0, 1, 2, 3, 4, 5, 6, 7, 8, 9] |- { @[: :-2] : filter.remove }");
+
+        assertThat(result).isInstanceOf(ArrayValue.class);
+        var arrayResult = (ArrayValue) result;
+        assertThat(arrayResult).hasSize(5);
+        assertThat(((NumberValue) arrayResult.get(0)).value().intValue()).isEqualTo(1);
+        assertThat(((NumberValue) arrayResult.get(1)).value().intValue()).isEqualTo(3);
+        assertThat(((NumberValue) arrayResult.get(4)).value().intValue()).isEqualTo(9);
+    }
+
+    @Test
+    void extendedFilterWithSlicing_negativeToWithFilter_appliesFilterBeforeTo() {
+        var result = TestUtil.evaluate("[0, 1, 2, 3, 4, 5, 6, 7, 8, 9] |- { @[:-2] : filter.remove }");
+
+        assertThat(result).isInstanceOf(ArrayValue.class);
+        var arrayResult = (ArrayValue) result;
+        assertThat(arrayResult).hasSize(2);
+        assertThat(((NumberValue) arrayResult.get(0)).value().intValue()).isEqualTo(8);
+        assertThat(((NumberValue) arrayResult.get(1)).value().intValue()).isEqualTo(9);
+    }
 }
