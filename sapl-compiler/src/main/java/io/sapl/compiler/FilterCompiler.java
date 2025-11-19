@@ -191,10 +191,6 @@ public class FilterCompiler {
 
         var currentValue = parentValue;
         for (val statement : filter.getStatements()) {
-            if (statement.isEach()) {
-                throw new SaplCompilerException("'each' keyword in extended filters not yet implemented.");
-            }
-
             var arguments = CompiledArguments.EMPTY_ARGUMENTS;
             if (statement.getArguments() != null && statement.getArguments().getArgs() != null) {
                 arguments = ExpressionCompiler.compileArguments(statement.getArguments().getArgs(), context);
@@ -203,7 +199,10 @@ public class FilterCompiler {
             val functionIdentifier = ImportResolver.resolveFunctionIdentifierByImports(statement,
                     statement.getIdentifier());
 
-            if (statement.getTarget() != null && !statement.getTarget().getSteps().isEmpty()) {
+            if (statement.isEach()) {
+                currentValue = applyEachFilterStatement(currentValue, statement.getTarget(), functionIdentifier,
+                        arguments, context);
+            } else if (statement.getTarget() != null && !statement.getTarget().getSteps().isEmpty()) {
                 currentValue = applyFilterFunctionToPath(currentValue, statement.getTarget().getSteps(),
                         functionIdentifier, arguments, context);
             } else {
@@ -636,6 +635,51 @@ public class FilterCompiler {
                 builder.add(updatedElementValue);
             } else {
                 builder.add(arrayValue.get(i));
+            }
+        }
+
+        return builder.build();
+    }
+
+    /**
+     * Applies a filter statement with 'each' keyword to array elements.
+     * <p>
+     * The 'each' keyword applies the filter to each element of an array.
+     * Elements that result in UNDEFINED are filtered out.
+     *
+     * @param parentValue the parent array value
+     * @param target the target path (maybe null)
+     * @param functionIdentifier the function identifier
+     * @param arguments the function arguments
+     * @param context the compilation context
+     * @return the filtered array
+     */
+    private Value applyEachFilterStatement(Value parentValue, io.sapl.grammar.sapl.BasicRelative target,
+            String functionIdentifier, CompiledArguments arguments, CompilationContext context) {
+        if (!(parentValue instanceof ArrayValue arrayValue)) {
+            return Value.error("Cannot use 'each' keyword with non-array values.");
+        }
+
+        val builder = ArrayValue.builder();
+        for (val element : arrayValue) {
+            Value result;
+
+            if (target != null && !target.getSteps().isEmpty()) {
+                result = applyFilterFunctionToPath(element, target.getSteps(), functionIdentifier, arguments, context);
+            } else {
+                val filterResult = applyFilterFunctionToValue(element, functionIdentifier, arguments, context);
+                if (!(filterResult instanceof Value)) {
+                    throw new SaplCompilerException("Non-value results in 'each' filter not yet implemented.");
+                }
+                result = (Value) filterResult;
+            }
+
+            if (result instanceof ErrorValue) {
+                return result;
+            }
+
+            if (!(result instanceof UndefinedValue)) {
+                builder.add(result);
             }
         }
 

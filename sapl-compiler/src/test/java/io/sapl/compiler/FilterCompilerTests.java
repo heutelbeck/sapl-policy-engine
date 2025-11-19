@@ -700,9 +700,11 @@ class FilterCompilerTests {
         var arrayResult  = (ArrayValue) result;
         var firstElement = arrayResult.getFirst();
         assertThat(firstElement).isInstanceOf(ObjectValue.class);
-        assertThat(((TextValue) Objects.requireNonNull(((ObjectValue) firstElement).get("name"))).value()).isEqualTo("XXXXX");
+        assertThat(((TextValue) Objects.requireNonNull(((ObjectValue) firstElement).get("name"))).value())
+                .isEqualTo("XXXXX");
         var secondElement = arrayResult.get(1);
-        assertThat(((TextValue) Objects.requireNonNull(((ObjectValue) secondElement).get("name"))).value()).isEqualTo("Bob");
+        assertThat(((TextValue) Objects.requireNonNull(((ObjectValue) secondElement).get("name"))).value())
+                .isEqualTo("Bob");
     }
 
     @Test
@@ -731,9 +733,15 @@ class FilterCompilerTests {
         assertThat(usersValue).isInstanceOf(ArrayValue.class);
         var usersArray = (ArrayValue) usersValue;
         Assertions.assertNotNull(usersArray);
-        assertThat(((NumberValue) Objects.requireNonNull(((ObjectValue) usersArray.get(0)).get("age"))).value().intValue()).isEqualTo(20);
-        assertThat(((NumberValue) Objects.requireNonNull(((ObjectValue) usersArray.get(1)).get("age"))).value().intValue()).isEqualTo(40);
-        assertThat(((NumberValue) Objects.requireNonNull(((ObjectValue) usersArray.get(2)).get("age"))).value().intValue()).isEqualTo(30);
+        assertThat(
+                ((NumberValue) Objects.requireNonNull(((ObjectValue) usersArray.get(0)).get("age"))).value().intValue())
+                .isEqualTo(20);
+        assertThat(
+                ((NumberValue) Objects.requireNonNull(((ObjectValue) usersArray.get(1)).get("age"))).value().intValue())
+                .isEqualTo(40);
+        assertThat(
+                ((NumberValue) Objects.requireNonNull(((ObjectValue) usersArray.get(2)).get("age"))).value().intValue())
+                .isEqualTo(30);
     }
 
     @Test
@@ -758,5 +766,110 @@ class FilterCompilerTests {
 
         assertThat(result).isInstanceOf(ErrorValue.class);
         assertThat(((ErrorValue) result).message()).contains("Cannot access array index");
+    }
+
+    @Test
+    void extendedFilterWithEach_noTarget_appliesFunctionToEachElement() {
+        var result = TestUtil.evaluate("[1, 2, 3] |- { each : simple.double }");
+
+        assertThat(result).isInstanceOf(ArrayValue.class);
+        var arrayResult = (ArrayValue) result;
+        assertThat(arrayResult).hasSize(3);
+        assertThat(((NumberValue) arrayResult.get(0)).value().intValue()).isEqualTo(2);
+        assertThat(((NumberValue) arrayResult.get(1)).value().intValue()).isEqualTo(4);
+        assertThat(((NumberValue) arrayResult.get(2)).value().intValue()).isEqualTo(6);
+    }
+
+    @Test
+    void extendedFilterWithEach_withKeyTarget_appliesFunctionToFieldInEachElement() {
+        var result = TestUtil
+                .evaluate("[{ \"age\": 10 }, { \"age\": 20 }, { \"age\": 30 }] |- { each @.age : simple.double }");
+
+        assertThat(result).isInstanceOf(ArrayValue.class);
+        var arrayResult = (ArrayValue) result;
+        assertThat(arrayResult).hasSize(3);
+        var first = (ObjectValue) arrayResult.get(0);
+        assertThat(((NumberValue) Objects.requireNonNull(first.get("age"))).value().intValue()).isEqualTo(20);
+        var second = (ObjectValue) arrayResult.get(1);
+        assertThat(((NumberValue) Objects.requireNonNull(second.get("age"))).value().intValue()).isEqualTo(40);
+        var third = (ObjectValue) arrayResult.get(2);
+        assertThat(((NumberValue) Objects.requireNonNull(third.get("age"))).value().intValue()).isEqualTo(60);
+    }
+
+    @Test
+    void extendedFilterWithEach_withIndexTarget_appliesFunctionToIndexInEachElement() {
+        var result = TestUtil.evaluate("[[1, 2], [3, 4], [5, 6]] |- { each @[0] : simple.double }");
+
+        assertThat(result).isInstanceOf(ArrayValue.class);
+        var arrayResult = (ArrayValue) result;
+        assertThat(arrayResult).hasSize(3);
+        var first = (ArrayValue) arrayResult.getFirst();
+        assertThat(((NumberValue) first.get(0)).value().intValue()).isEqualTo(2);
+        assertThat(((NumberValue) first.get(1)).value().intValue()).isEqualTo(2);
+        var second = (ArrayValue) arrayResult.get(1);
+        assertThat(((NumberValue) second.get(0)).value().intValue()).isEqualTo(6);
+        assertThat(((NumberValue) second.get(1)).value().intValue()).isEqualTo(4);
+        var third = (ArrayValue) arrayResult.get(2);
+        assertThat(((NumberValue) third.get(0)).value().intValue()).isEqualTo(10);
+        assertThat(((NumberValue) third.get(1)).value().intValue()).isEqualTo(6);
+    }
+
+    @Test
+    void extendedFilterWithEach_removesElements_filtersOutUndefined() {
+        var result = TestUtil.evaluate("[1, 2, 3, 4] |- { each : filter.remove }");
+
+        assertThat(result).isInstanceOf(ArrayValue.class);
+        var arrayResult = (ArrayValue) result;
+        assertThat(arrayResult).isEmpty();
+    }
+
+    @Test
+    void extendedFilterWithEach_onNonArray_returnsError() {
+        var result = TestUtil.evaluate("{ \"key\": \"value\" } |- { each : filter.blacken }");
+
+        assertThat(result).isInstanceOf(ErrorValue.class);
+        assertThat(((ErrorValue) result).message()).contains("Cannot use 'each' keyword with non-array values");
+    }
+
+    @Test
+    void extendedFilterWithEach_withMultiStepPath_appliesFunctionToNestedPath() {
+        var result = TestUtil.evaluate(
+                "[{ \"user\": { \"age\": 10 } }, { \"user\": { \"age\": 20 } }] |- { each @.user.age : simple.double }");
+
+        assertThat(result).isInstanceOf(ArrayValue.class);
+        var arrayResult = (ArrayValue) result;
+        assertThat(arrayResult).hasSize(2);
+        var first     = (ObjectValue) arrayResult.getFirst();
+        var firstUser = (ObjectValue) Objects.requireNonNull(first.get("user"));
+        assertThat(((NumberValue) Objects.requireNonNull(firstUser.get("age"))).value().intValue()).isEqualTo(20);
+        var second     = (ObjectValue) arrayResult.get(1);
+        var secondUser = (ObjectValue) Objects.requireNonNull(second.get("user"));
+        assertThat(((NumberValue) Objects.requireNonNull(secondUser.get("age"))).value().intValue()).isEqualTo(40);
+    }
+
+    @Test
+    void extendedFilterWithEach_withSlicing_appliesFunctionToSliceInEachElement() {
+        var result = TestUtil.evaluate("[[1, 2, 3], [4, 5, 6], [7, 8, 9]] |- { each @[0:2] : simple.double }");
+
+        assertThat(result).isInstanceOf(ArrayValue.class);
+        var arrayResult = (ArrayValue) result;
+        assertThat(arrayResult).hasSize(3);
+        var first = (ArrayValue) arrayResult.getFirst();
+        assertThat(((NumberValue) first.get(0)).value().intValue()).isEqualTo(2);
+        assertThat(((NumberValue) first.get(1)).value().intValue()).isEqualTo(4);
+        assertThat(((NumberValue) first.get(2)).value().intValue()).isEqualTo(3);
+    }
+
+    @Test
+    void extendedFilterWithEach_multipleStatements_appliesInSequence() {
+        var result = TestUtil.evaluate(
+                "[{ \"name\": \"Alice\", \"age\": 10 }] |- { each @.name : filter.blacken, each @.age : simple.double }");
+
+        assertThat(result).isInstanceOf(ArrayValue.class);
+        var arrayResult = (ArrayValue) result;
+        assertThat(arrayResult).hasSize(1);
+        var first = (ObjectValue) arrayResult.getFirst();
+        assertThat(((TextValue) Objects.requireNonNull(first.get("name"))).value()).isEqualTo("XXXXX");
+        assertThat(((NumberValue) Objects.requireNonNull(first.get("age"))).value().intValue()).isEqualTo(20);
     }
 }
