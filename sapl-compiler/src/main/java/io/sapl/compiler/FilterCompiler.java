@@ -33,6 +33,7 @@ import io.sapl.grammar.sapl.FilterSimple;
 import io.sapl.grammar.sapl.IndexStep;
 import io.sapl.grammar.sapl.KeyStep;
 import io.sapl.grammar.sapl.Step;
+import io.sapl.grammar.sapl.WildcardStep;
 import lombok.experimental.UtilityClass;
 import lombok.val;
 
@@ -321,6 +322,11 @@ public class FilterCompiler {
                     arguments, context);
         }
 
+        if (currentStep instanceof WildcardStep) {
+            return applyFilterToNestedWildcard(parentValue, steps, stepIndex + 1, functionIdentifier, arguments,
+                    context);
+        }
+
         throw new SaplCompilerException(
                 "Step type not supported in multi-step path: " + currentStep.getClass().getSimpleName());
     }
@@ -348,6 +354,10 @@ public class FilterCompiler {
 
         if (step instanceof ArraySlicingStep slicingStep) {
             return applySlicingStepFilter(parentValue, slicingStep, functionIdentifier, arguments, context);
+        }
+
+        if (step instanceof WildcardStep) {
+            return applyWildcardStepFilter(parentValue, functionIdentifier, arguments, context);
         }
 
         throw new SaplCompilerException("Step type not supported: " + step.getClass().getSimpleName());
@@ -684,5 +694,100 @@ public class FilterCompiler {
         }
 
         return builder.build();
+    }
+
+    /**
+     * Applies a filter function to all elements/fields via wildcard step.
+     * <p>
+     * For arrays: applies filter to each element (preserves array structure).
+     * For objects: applies filter to each field value (preserves object structure).
+     *
+     * @param parentValue the parent value (array or object)
+     * @param functionIdentifier the function identifier
+     * @param arguments the function arguments
+     * @param context the compilation context
+     * @return the filtered value with all elements/fields transformed
+     */
+    private Value applyWildcardStepFilter(Value parentValue, String functionIdentifier, CompiledArguments arguments,
+            CompilationContext context) {
+        if (parentValue instanceof ArrayValue arrayValue) {
+            val builder = ArrayValue.builder();
+            for (val element : arrayValue) {
+                val result = applyFilterFunctionToValue(element, functionIdentifier, arguments, context);
+
+                if (!(result instanceof Value filteredValue)) {
+                    throw new SaplCompilerException("Non-value results in wildcard filter not yet implemented.");
+                }
+
+                if (!(filteredValue instanceof UndefinedValue)) {
+                    builder.add(filteredValue);
+                }
+            }
+            return builder.build();
+        }
+
+        if (parentValue instanceof ObjectValue objectValue) {
+            val builder = ObjectValue.builder();
+            for (val entry : objectValue.entrySet()) {
+                val result = applyFilterFunctionToValue(entry.getValue(), functionIdentifier, arguments, context);
+
+                if (!(result instanceof Value filteredValue)) {
+                    throw new SaplCompilerException("Non-value results in wildcard filter not yet implemented.");
+                }
+
+                if (!(filteredValue instanceof UndefinedValue)) {
+                    builder.put(entry.getKey(), filteredValue);
+                }
+            }
+            return builder.build();
+        }
+
+        return Value.error("Cannot apply wildcard step to non-array/non-object value.");
+    }
+
+    /**
+     * Applies a filter function to nested paths through wildcard elements/fields.
+     *
+     * @param parentValue the parent value (array or object)
+     * @param steps all path steps
+     * @param stepIndex the current step index (points to next step after wildcard)
+     * @param functionIdentifier the function identifier
+     * @param arguments the function arguments
+     * @param context the compilation context
+     * @return the updated parent value
+     */
+    private Value applyFilterToNestedWildcard(Value parentValue, org.eclipse.emf.common.util.EList<Step> steps,
+            int stepIndex, String functionIdentifier, CompiledArguments arguments, CompilationContext context) {
+        if (parentValue instanceof ArrayValue arrayValue) {
+            val builder = ArrayValue.builder();
+            for (val element : arrayValue) {
+                val updatedElement = applyFilterFunctionToPathRecursive(element, steps, stepIndex, functionIdentifier,
+                        arguments, context);
+
+                if (updatedElement instanceof ErrorValue) {
+                    return updatedElement;
+                }
+
+                builder.add(updatedElement);
+            }
+            return builder.build();
+        }
+
+        if (parentValue instanceof ObjectValue objectValue) {
+            val builder = ObjectValue.builder();
+            for (val entry : objectValue.entrySet()) {
+                val updatedValue = applyFilterFunctionToPathRecursive(entry.getValue(), steps, stepIndex,
+                        functionIdentifier, arguments, context);
+
+                if (updatedValue instanceof ErrorValue) {
+                    return updatedValue;
+                }
+
+                builder.put(entry.getKey(), updatedValue);
+            }
+            return builder.build();
+        }
+
+        return Value.error("Cannot apply wildcard step to non-array/non-object value.");
     }
 }
