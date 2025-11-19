@@ -1960,4 +1960,305 @@ class FilterCompilerTests {
         var firstElement = arrayResult.getFirst();
         assertThat(firstElement).isNotNull().hasToString("[5, 6]");
     }
+
+    // =========================================================================
+    // SUBTEMPLATE TESTS (:: operator)
+    // =========================================================================
+
+    @Test
+    void subtemplate_simpleObjectTransformation() {
+        var result = TestUtil.evaluate("{ \"name\": \"Alice\", \"age\": 30 } :: { \"newName\": @.name }");
+
+        assertThat(result).isNotNull().isInstanceOf(ObjectValue.class);
+        var objectResult = (ObjectValue) result;
+        assertThat(objectResult.get("newName")).isEqualTo(Value.of("Alice"));
+        assertThat(objectResult.size()).isEqualTo(1);
+    }
+
+    @Test
+    void subtemplate_arrayImplicitMapping() {
+        var result = TestUtil.evaluate("[ { \"name\": \"Alice\" }, { \"name\": \"Bob\" }, { \"name\": \"Charlie\" } ] "
+                + ":: { \"userName\": @.name }");
+
+        assertThat(result).isNotNull().isInstanceOf(ArrayValue.class);
+        var arrayResult = (ArrayValue) result;
+        assertThat(arrayResult).hasSize(3);
+        assertThat(((ObjectValue) arrayResult.get(0)).get("userName")).isEqualTo(Value.of("Alice"));
+        assertThat(((ObjectValue) arrayResult.get(1)).get("userName")).isEqualTo(Value.of("Bob"));
+        assertThat(((ObjectValue) arrayResult.get(2)).get("userName")).isEqualTo(Value.of("Charlie"));
+    }
+
+    @Test
+    void subtemplate_emptyArrayStaysEmpty() {
+        var result = TestUtil.evaluate("[] :: { \"foo\": \"bar\" }");
+
+        assertThat(result).isNotNull().isInstanceOf(ArrayValue.class);
+        var arrayResult = (ArrayValue) result;
+        assertThat(arrayResult).isEmpty();
+    }
+
+    @Test
+    void subtemplate_withNestedFieldAccess() {
+        var result = TestUtil.evaluate(
+                "{ \"person\": { \"name\": \"Alice\", \"address\": { \"city\": \"Berlin\", \"country\": \"Germany\" } } } "
+                        + ":: { \"city\": @.person.address.city, \"country\": @.person.address.country }");
+
+        assertThat(result).isNotNull().isInstanceOf(ObjectValue.class);
+        var objectResult = (ObjectValue) result;
+        assertThat(objectResult.get("city")).isEqualTo(Value.of("Berlin"));
+        assertThat(objectResult.get("country")).isEqualTo(Value.of("Germany"));
+    }
+
+    @Test
+    void subtemplate_withArrayIndexAccess() {
+        var result = TestUtil.evaluate(
+                "{ \"items\": [10, 20, 30, 40] } :: { \"first\": @.items[0], \"last\": @.items[-1], \"second\": @.items[1] }");
+
+        assertThat(result).isNotNull().isInstanceOf(ObjectValue.class);
+        var objectResult = (ObjectValue) result;
+        assertThat(objectResult.get("first")).isEqualTo(Value.of(10));
+        assertThat(objectResult.get("last")).isEqualTo(Value.of(40));
+        assertThat(objectResult.get("second")).isEqualTo(Value.of(20));
+    }
+
+    @Test
+    void subtemplate_withWildcardStep() {
+        var result = TestUtil.evaluate("{ \"a\": 1, \"b\": 2, \"c\": 3 } :: { \"values\": @.* }");
+
+        assertThat(result).isNotNull().isInstanceOf(ObjectValue.class);
+        var objectResult = (ObjectValue) result;
+        var values       = objectResult.get("values");
+        assertThat(values).isInstanceOf(ArrayValue.class);
+        var valuesArray = (ArrayValue) values;
+        assertThat(valuesArray).hasSize(3);
+        assertThat(valuesArray).contains(Value.of(1), Value.of(2), Value.of(3));
+    }
+
+    @Test
+    void subtemplate_withArithmeticExpressions() {
+        var result = TestUtil.evaluate("{ \"x\": 5, \"y\": 10 } :: { \"sum\": @.x + @.y, \"product\": @.x * @.y }");
+
+        assertThat(result).isNotNull().isInstanceOf(ObjectValue.class);
+        var objectResult = (ObjectValue) result;
+        assertThat(objectResult.get("sum")).isEqualTo(Value.of(15));
+        assertThat(objectResult.get("product")).isEqualTo(Value.of(50));
+    }
+
+    @Test
+    void subtemplate_propagatesErrorValue() {
+        var result = TestUtil.evaluate("(10/0) :: { \"name\": \"foo\" }");
+
+        assertThat(result).isInstanceOf(ErrorValue.class);
+    }
+
+    @Test
+    void subtemplate_propagatesUndefinedValue() {
+        var result = TestUtil.evaluate("undefined :: { \"name\": \"foo\" }");
+
+        assertThat(result).isInstanceOf(UndefinedValue.class);
+    }
+
+    @Test
+    void subtemplate_withConstantTemplate() {
+        var result = TestUtil.evaluate("{ \"x\": 5 } :: { \"fixed\": 42 }");
+
+        assertThat(result).isNotNull().isInstanceOf(ObjectValue.class);
+        var objectResult = (ObjectValue) result;
+        assertThat(objectResult.get("fixed")).isEqualTo(Value.of(42));
+    }
+
+    @Test
+    void subtemplate_withMixedFieldTypes() {
+        var result = TestUtil.evaluate("{ \"str\": \"hello\", \"num\": 42, \"bool\": true, \"arr\": [1,2,3] } "
+                + ":: { \"s\": @.str, \"n\": @.num, \"b\": @.bool, \"a\": @.arr }");
+
+        assertThat(result).isNotNull().isInstanceOf(ObjectValue.class);
+        var objectResult = (ObjectValue) result;
+        assertThat(objectResult.get("s")).isEqualTo(Value.of("hello"));
+        assertThat(objectResult.get("n")).isEqualTo(Value.of(42));
+        assertThat(objectResult.get("b")).isEqualTo(Value.of(true));
+        assertThat(objectResult.get("a")).isInstanceOf(ArrayValue.class);
+    }
+
+    @Test
+    void subtemplate_arrayMappingWithCalculations() {
+        var result = TestUtil.evaluate(
+                "[ { \"price\": 10 }, { \"price\": 20 }, { \"price\": 30 } ] " + ":: { \"withTax\": @.price * 1.2 }");
+
+        assertThat(result).isNotNull().isInstanceOf(ArrayValue.class);
+        var arrayResult = (ArrayValue) result;
+        assertThat(arrayResult).hasSize(3);
+        assertThat(((ObjectValue) arrayResult.get(0)).get("withTax")).isEqualTo(Value.of(12));
+        assertThat(((ObjectValue) arrayResult.get(1)).get("withTax")).isEqualTo(Value.of(24));
+        assertThat(((ObjectValue) arrayResult.get(2)).get("withTax")).isEqualTo(Value.of(36));
+    }
+
+    @Test
+    void subtemplate_withConditionalExpressions() {
+        var result = TestUtil.evaluate("{ \"age\": 25 } :: { \"canVote\": @.age >= 18 }");
+
+        assertThat(result).isNotNull().isInstanceOf(ObjectValue.class);
+        var objectResult = (ObjectValue) result;
+        assertThat(objectResult.get("canVote")).isEqualTo(Value.of(true));
+    }
+
+    @Test
+    void subtemplate_combineWithFilteredInput() {
+        var result = TestUtil.evaluate("[ { \"key\": 1, \"val\": \"a\" }, { \"key\": 3, \"val\": \"b\" }, "
+                + "{ \"key\": 5, \"val\": \"c\" } ] [?(@.key > 2)] :: { \"value\": @.val }");
+
+        assertThat(result).isNotNull().isInstanceOf(ArrayValue.class);
+        var arrayResult = (ArrayValue) result;
+        assertThat(arrayResult).hasSize(2);
+        assertThat(((ObjectValue) arrayResult.get(0)).get("value")).isEqualTo(Value.of("b"));
+        assertThat(((ObjectValue) arrayResult.get(1)).get("value")).isEqualTo(Value.of("c"));
+    }
+
+    @Test
+    void subtemplate_withSlicingStep() {
+        var result = TestUtil.evaluate("[1, 2, 3, 4, 5][1:4] :: { \"doubled\": @ * 2 }");
+
+        assertThat(result).isNotNull().isInstanceOf(ArrayValue.class);
+        var arrayResult = (ArrayValue) result;
+        assertThat(arrayResult).hasSize(3);
+        assertThat(((ObjectValue) arrayResult.get(0)).get("doubled")).isEqualTo(Value.of(4));
+        assertThat(((ObjectValue) arrayResult.get(1)).get("doubled")).isEqualTo(Value.of(6));
+        assertThat(((ObjectValue) arrayResult.get(2)).get("doubled")).isEqualTo(Value.of(8));
+    }
+
+    @Test
+    void subtemplate_nestedSubtemplates() {
+        var result = TestUtil.evaluate(
+                "[ { \"outer\": 1 }, { \"outer\": 2 } ] :: { \"inner\": [{ \"x\": @ }] :: { \"doubled\": @.x.outer * 2 } }");
+
+        assertThat(result).isNotNull().isInstanceOf(ArrayValue.class);
+        var outerArray = (ArrayValue) result;
+        assertThat(outerArray).hasSize(2);
+
+        var firstOuter = (ObjectValue) outerArray.get(0);
+        var firstInner = (ArrayValue) firstOuter.get("inner");
+        assertThat(firstInner).hasSize(1);
+        assertThat(((ObjectValue) firstInner.get(0)).get("doubled")).isEqualTo(Value.of(2));
+
+        var secondOuter = (ObjectValue) outerArray.get(1);
+        var secondInner = (ArrayValue) secondOuter.get("inner");
+        assertThat(secondInner).hasSize(1);
+        assertThat(((ObjectValue) secondInner.get(0)).get("doubled")).isEqualTo(Value.of(4));
+    }
+
+    @Test
+    void subtemplate_simpleValueAsInput() {
+        var result = TestUtil.evaluate("42 :: { \"value\": @, \"doubled\": @ * 2 }");
+
+        assertThat(result).isNotNull().isInstanceOf(ObjectValue.class);
+        var objectResult = (ObjectValue) result;
+        assertThat(objectResult.get("value")).isEqualTo(Value.of(42));
+        assertThat(objectResult.get("doubled")).isEqualTo(Value.of(84));
+    }
+
+    @Test
+    void subtemplate_stringValue() {
+        var result = TestUtil.evaluate("\"hello\" :: { \"text\": @, \"upper\": simple.append(@, \" world\") }");
+
+        assertThat(result).isNotNull().isInstanceOf(ObjectValue.class);
+        var objectResult = (ObjectValue) result;
+        assertThat(objectResult.get("text")).isEqualTo(Value.of("hello"));
+        assertThat(objectResult.get("upper")).isEqualTo(Value.of("hello world"));
+    }
+
+    @Test
+    void subtemplate_withFunctionCall() {
+        var result = TestUtil.evaluate("{ \"x\": 5 } :: { \"doubled\": simple.double(@.x) }");
+
+        assertThat(result).isNotNull().isInstanceOf(ObjectValue.class);
+        var objectResult = (ObjectValue) result;
+        assertThat(objectResult.get("doubled")).isEqualTo(Value.of(10));
+    }
+
+    @Test
+    void subtemplate_multipleFieldsFromSameSource() {
+        var result = TestUtil
+                .evaluate("{ \"value\": 10 } :: { \"a\": @.value, \"b\": @.value * 2, \"c\": @.value * 3 }");
+
+        assertThat(result).isNotNull().isInstanceOf(ObjectValue.class);
+        var objectResult = (ObjectValue) result;
+        assertThat(objectResult.get("a")).isEqualTo(Value.of(10));
+        assertThat(objectResult.get("b")).isEqualTo(Value.of(20));
+        assertThat(objectResult.get("c")).isEqualTo(Value.of(30));
+    }
+
+    @Test
+    void subtemplate_withRecursiveDescentStep() {
+        var result = TestUtil.evaluate(
+                "{ \"a\": { \"b\": { \"c\": 42 } }, \"x\": { \"b\": { \"c\": 99 } } } :: { \"allCs\": @..c }");
+
+        assertThat(result).isNotNull().isInstanceOf(ObjectValue.class);
+        var objectResult = (ObjectValue) result;
+        var allCs        = objectResult.get("allCs");
+        assertThat(allCs).isInstanceOf(ArrayValue.class);
+        var allCsArray = (ArrayValue) allCs;
+        assertThat(allCsArray).hasSize(2);
+        assertThat(allCsArray).contains(Value.of(42), Value.of(99));
+    }
+
+    @Test
+    void subtemplate_preservesRelativeContext() {
+        var result = TestUtil.evaluate("{ \"x\": 5, \"y\": 10 } :: { \"sum\": @.x, \"product\": @.y }");
+
+        assertThat(result).isNotNull().isInstanceOf(ObjectValue.class);
+        var objectResult = (ObjectValue) result;
+        assertThat(objectResult.get("sum")).isEqualTo(Value.of(5));
+        assertThat(objectResult.get("product")).isEqualTo(Value.of(10));
+    }
+
+    @Test
+    void subtemplate_arrayOfPrimitives() {
+        var result = TestUtil.evaluate("[1, 2, 3, 4, 5] :: { \"value\": @, \"squared\": @ * @ }");
+
+        assertThat(result).isNotNull().isInstanceOf(ArrayValue.class);
+        var arrayResult = (ArrayValue) result;
+        assertThat(arrayResult).hasSize(5);
+        assertThat(((ObjectValue) arrayResult.get(0)).get("value")).isEqualTo(Value.of(1));
+        assertThat(((ObjectValue) arrayResult.get(0)).get("squared")).isEqualTo(Value.of(1));
+        assertThat(((ObjectValue) arrayResult.get(4)).get("value")).isEqualTo(Value.of(5));
+        assertThat(((ObjectValue) arrayResult.get(4)).get("squared")).isEqualTo(Value.of(25));
+    }
+
+    @Test
+    void subtemplate_withNullValue() {
+        var result = TestUtil.evaluate("{ \"x\": null } :: { \"value\": @.x }");
+
+        assertThat(result).isNotNull().isInstanceOf(ObjectValue.class);
+        var objectResult = (ObjectValue) result;
+        assertThat(objectResult.get("value")).isEqualTo(Value.NULL);
+    }
+
+    @Test
+    void subtemplate_returnsArrayTemplate() {
+        var result = TestUtil.evaluate("{ \"a\": 1, \"b\": 2 } :: [@.a, @.b, @.a + @.b]");
+
+        assertThat(result).isNotNull().isInstanceOf(ArrayValue.class);
+        var arrayResult = (ArrayValue) result;
+        assertThat(arrayResult).hasSize(3);
+        assertThat(arrayResult.get(0)).isEqualTo(Value.of(1));
+        assertThat(arrayResult.get(1)).isEqualTo(Value.of(2));
+        assertThat(arrayResult.get(2)).isEqualTo(Value.of(3));
+    }
+
+    @Test
+    void subtemplate_returnsSimpleValueTemplate() {
+        var result = TestUtil.evaluate("{ \"x\": 5 } :: @.x * 10");
+
+        assertThat(result).isNotNull().isEqualTo(Value.of(50));
+    }
+
+    @Test
+    void subtemplate_withBooleanLogic() {
+        var result = TestUtil.evaluate("{ \"age\": 15 } :: { \"isAdult\": @.age >= 18, \"isMinor\": @.age < 18 }");
+
+        assertThat(result).isNotNull().isInstanceOf(ObjectValue.class);
+        var objectResult = (ObjectValue) result;
+        assertThat(objectResult.get("isAdult")).isEqualTo(Value.of(false));
+        assertThat(objectResult.get("isMinor")).isEqualTo(Value.of(true));
+    }
 }
