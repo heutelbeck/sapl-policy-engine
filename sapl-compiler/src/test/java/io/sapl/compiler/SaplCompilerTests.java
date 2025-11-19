@@ -33,6 +33,7 @@ import io.sapl.util.TestUtil;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 
 import java.time.Clock;
 import java.time.Duration;
@@ -77,9 +78,10 @@ class SaplCompilerTests {
     }
 
     @Test
+    @Timeout(5)
     void constantAttributesWorks() {
         val expression = """
-                |<time.now>
+                "123".<test.echo> == "123"
                 """;
         TestUtil.evaluateExpression(expression).doOnNext(System.err::println).take(2).blockLast(Duration.ofSeconds(5));
     }

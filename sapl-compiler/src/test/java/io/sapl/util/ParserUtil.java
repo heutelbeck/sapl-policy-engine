@@ -65,6 +65,18 @@ public class ParserUtil {
         resource.setEntryPoint(rule);
         val inputStream = new ByteArrayInputStream(sapl.getBytes(StandardCharsets.UTF_8));
         resource.load(inputStream, resourceSet.getLoadOptions());
+
+        // Throw exception if parse errors exist
+        // This prevents silent failures where invalid SAPL syntax like {fresh=true}
+        // gets parsed as {} without any error, leading to confusing runtime behavior.
+        if (!resource.getErrors().isEmpty()) {
+            val errorMessages = new StringBuilder("Parse errors:\n");
+            for (val error : resource.getErrors()) {
+                errorMessages.append("  - ").append(error.getMessage()).append("\n");
+            }
+            throw new IOException(errorMessages.toString());
+        }
+
         return (T) resource.getContents().getFirst();
     }
 

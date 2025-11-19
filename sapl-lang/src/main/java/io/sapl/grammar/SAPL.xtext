@@ -124,10 +124,10 @@ Basic returns BasicExpression:
 	  BasicGroup
 	| BasicValue
 	| BasicFunction
-	| BasicEnvironmentAttribute
-	| BasicEnvironmentHeadAttribute
 	| BasicIdentifier
-	| BasicRelative;
+	| BasicRelative
+	| BasicEnvironmentAttribute
+	| BasicEnvironmentHeadAttribute;
 
 BasicGroup:
     {BasicGroup} '(' expression=Expression ')' steps+=Step*;
@@ -157,11 +157,11 @@ Arguments:
 	{Arguments} '(' (args+=Expression (',' args+=Expression)*)? ')';
 
 Step:
-	'.' ( KeyStep
+	'.' ( AttributeFinderStep
+	    | HeadAttributeFinderStep
+	    | KeyStep
 	    | EscapedKeyStep
-	    | WildcardStep
-	    | AttributeFinderStep
-	    | HeadAttributeFinderStep )
+	    | WildcardStep )
 	| '[' Subscript ']'
 	| '..' (RecursiveKeyStep
 	| RecursiveWildcardStep
@@ -273,8 +273,12 @@ terminal FILTER:
 terminal SUBTEMPLATE:
 	'::';
 
-terminal JSONNUMBER returns ecore::EBigDecimal: // Definition according to JSON standard unary operator for negation/plus prefix
-	('0' | ('1'..'9') DIGIT*) ('.' DIGIT+)? (('E' | 'e') ('+' | '-')? DIGIT+)?;
+  terminal JSONNUMBER returns ecore::EBigDecimal:
+          // Integer with optional exponent - try first!
+          ('0' | ('1'..'9') DIGIT*) (('E' | 'e') ('+' | '-')? DIGIT+)?
+          // Decimal - requires digits after dot
+        | ('0' | ('1'..'9') DIGIT*) '.' DIGIT+ (('E' | 'e') ('+' | '-')? DIGIT+)?;
+
 
 terminal fragment DIGIT:
 	('0'..'9');

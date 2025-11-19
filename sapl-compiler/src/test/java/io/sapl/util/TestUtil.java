@@ -34,11 +34,14 @@ import io.sapl.functions.libraries.TemporalFunctionLibrary;
 import io.sapl.interpreter.InitializationException;
 import lombok.SneakyThrows;
 import lombok.experimental.UtilityClass;
+import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import reactor.core.publisher.Flux;
 import reactor.test.StepVerifier;
 
 import java.time.Clock;
+import java.time.Duration;
+import java.util.logging.Level;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -59,11 +62,13 @@ public class TestUtil {
         }
     }
 
+    @Slf4j
     @PolicyInformationPoint(name = "test")
     public static class TestPip {
         @Attribute
-        public Flux<Value> echo(Value value) {
-            return Flux.just(value, Value.of("hello world"));
+        public Flux<Value> echo(Value entity) {
+            log.debug("echo called with entity: {}", entity);
+            return Flux.just(entity, Value.of("hello world")).delayElements(Duration.ofMillis(30));
         }
 
     }

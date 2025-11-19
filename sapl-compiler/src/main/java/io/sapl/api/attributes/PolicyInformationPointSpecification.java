@@ -21,6 +21,23 @@ import lombok.NonNull;
 
 import java.util.Set;
 
+/**
+ * Metadata describing a Policy Information Point (PIP) library.
+ * <p>
+ * A PIP specification encapsulates the name and all attribute finders provided
+ * by a PIP. It is created during PIP registration from @PolicyInformationPoint
+ * annotated classes or programmatic registration.
+ * <p>
+ * The name serves as a namespace for all attributes in the PIP. For example, a
+ * PIP named "time" would provide attributes like "time.now", "time.dayOfWeek",
+ * etc.
+ *
+ * @param name the PIP name (namespace for all its attributes)
+ * @param attributeFinders the set of attribute finder specifications provided
+ * by this PIP
+ * @see PolicyInformationPointImplementation
+ * @see io.sapl.api.pip.PolicyInformationPoint
+ */
 public record PolicyInformationPointSpecification(
         @NonNull String name,
         @NonNull Set<AttributeFinderSpecification> attributeFinders) {}

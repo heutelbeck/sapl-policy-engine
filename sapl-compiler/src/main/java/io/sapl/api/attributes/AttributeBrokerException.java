@@ -23,6 +23,23 @@ import lombok.experimental.StandardException;
 
 import java.io.Serial;
 
+/**
+ * Exception thrown when attribute broker operations fail.
+ * <p>
+ * This exception is raised during:
+ * <ul>
+ * <li>PIP registration failures (namespace collisions, duplicate
+ * attributes)</li>
+ * <li>Invalid PIP class processing (@PolicyInformationPoint annotation
+ * missing)</li>
+ * <li>Attribute method processing errors (invalid signatures, type
+ * mismatches)</li>
+ * <li>Library loading failures (missing @Attribute methods, invalid
+ * configurations)</li>
+ * </ul>
+ *
+ * @see AttributeBroker
+ */
 @StandardException
 public class AttributeBrokerException extends PolicyEvaluationException {
     @Serial
