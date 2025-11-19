@@ -17,9 +17,7 @@
  */
 package io.sapl.util;
 
-import io.sapl.api.attributes.AttributeBroker;
 import io.sapl.api.attributes.AttributeRepository;
-import io.sapl.api.functions.FunctionBroker;
 import io.sapl.api.model.*;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pip.Attribute;
@@ -30,6 +28,7 @@ import io.sapl.attributes.libraries.TimePolicyInformationPoint;
 import io.sapl.compiler.CompilationContext;
 import io.sapl.compiler.ExpressionCompiler;
 import io.sapl.functions.DefaultFunctionBroker;
+import io.sapl.functions.libraries.FilterFunctionLibrary;
 import io.sapl.functions.libraries.TemporalFunctionLibrary;
 import io.sapl.interpreter.InitializationException;
 import lombok.SneakyThrows;
@@ -41,7 +40,6 @@ import reactor.test.StepVerifier;
 
 import java.time.Clock;
 import java.time.Duration;
-import java.util.logging.Level;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -57,6 +55,8 @@ public class TestUtil {
         ATTRIBUTE_BROKER.loadPolicyInformationPointLibrary(new TestPip());
         try {
             FUNCTION_BROKER.loadStaticFunctionLibrary(TemporalFunctionLibrary.class);
+            FUNCTION_BROKER.loadStaticFunctionLibrary(SimpleFunctionLibrary.class);
+            FUNCTION_BROKER.loadStaticFunctionLibrary(FilterFunctionLibrary.class);
         } catch (InitializationException e) {
             throw new RuntimeException(e);
         }
@@ -115,6 +115,25 @@ public class TestUtil {
     public Flux<Value> evaluateExpression(String expression) {
         val compiledExpression = compileExpression(expression);
         return evaluateExpression(compiledExpression, createEvaluationContext());
+    }
+
+    /**
+     * Compiles and evaluates an expression to a single Value synchronously.
+     * <p>
+     * For testing convenience. If expression produces a stream, returns first
+     * emitted value.
+     *
+     * @param expression the expression string to evaluate
+     * @return the evaluated Value
+     */
+    public Value evaluate(String expression) {
+        val compiledExpression = compileExpression(expression);
+        return switch (compiledExpression) {
+        case Value value                       -> value;
+        case PureExpression pureExpression     -> pureExpression.evaluate(createEvaluationContext());
+        case StreamExpression streamExpression -> streamExpression.stream()
+                .contextWrite(ctx -> ctx.put(EvaluationContext.class, createEvaluationContext())).blockFirst();
+        };
     }
 
     private Flux<Value> evaluateExpression(CompiledExpression expression, EvaluationContext evaluationContext) {
