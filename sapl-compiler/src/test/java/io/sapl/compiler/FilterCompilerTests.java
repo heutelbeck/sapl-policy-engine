@@ -335,4 +335,100 @@ class FilterCompilerTests {
         var objectResult = (ObjectValue) result;
         assertThat(((TextValue) objectResult.get("status")).value()).isEqualTo("new");
     }
+
+    @Test
+    void extendedFilterWithIndexPath_transformsElement() {
+        var result = TestUtil.evaluate("[1, 2, 3] |- { @[1] : simple.double }");
+
+        assertThat(result).isInstanceOf(ArrayValue.class);
+        var arrayResult = (ArrayValue) result;
+        assertThat(arrayResult).hasSize(3);
+        assertThat(((NumberValue) arrayResult.get(0)).value().intValue()).isEqualTo(1);
+        assertThat(((NumberValue) arrayResult.get(1)).value().intValue()).isEqualTo(4);
+        assertThat(((NumberValue) arrayResult.get(2)).value().intValue()).isEqualTo(3);
+    }
+
+    @Test
+    void extendedFilterWithIndexPath_removesElement() {
+        var result = TestUtil.evaluate("[1, 2, 3] |- { @[1] : filter.remove }");
+
+        assertThat(result).isInstanceOf(ArrayValue.class);
+        var arrayResult = (ArrayValue) result;
+        assertThat(arrayResult).hasSize(2);
+        assertThat(((NumberValue) arrayResult.get(0)).value().intValue()).isEqualTo(1);
+        assertThat(((NumberValue) arrayResult.get(1)).value().intValue()).isEqualTo(3);
+    }
+
+    @Test
+    void extendedFilterWithIndexPath_blackensElement() {
+        var result = TestUtil.evaluate("[\"public\", \"secret\", \"data\"] |- { @[1] : filter.blacken }");
+
+        assertThat(result).isInstanceOf(ArrayValue.class);
+        var arrayResult = (ArrayValue) result;
+        assertThat(arrayResult).hasSize(3);
+        assertThat(((TextValue) arrayResult.get(0)).value()).isEqualTo("public");
+        assertThat(((TextValue) arrayResult.get(1)).value()).isEqualTo("XXXXXX");
+        assertThat(((TextValue) arrayResult.get(2)).value()).isEqualTo("data");
+    }
+
+    @Test
+    void extendedFilterWithIndexPath_firstElement() {
+        var result = TestUtil.evaluate("[5, 10, 15] |- { @[0] : simple.double }");
+
+        assertThat(result).isInstanceOf(ArrayValue.class);
+        var arrayResult = (ArrayValue) result;
+        assertThat(arrayResult).hasSize(3);
+        assertThat(((NumberValue) arrayResult.get(0)).value().intValue()).isEqualTo(10);
+        assertThat(((NumberValue) arrayResult.get(1)).value().intValue()).isEqualTo(10);
+        assertThat(((NumberValue) arrayResult.get(2)).value().intValue()).isEqualTo(15);
+    }
+
+    @Test
+    void extendedFilterWithIndexPath_lastElement() {
+        var result = TestUtil.evaluate("[5, 10, 15] |- { @[2] : simple.double }");
+
+        assertThat(result).isInstanceOf(ArrayValue.class);
+        var arrayResult = (ArrayValue) result;
+        assertThat(arrayResult).hasSize(3);
+        assertThat(((NumberValue) arrayResult.get(0)).value().intValue()).isEqualTo(5);
+        assertThat(((NumberValue) arrayResult.get(1)).value().intValue()).isEqualTo(10);
+        assertThat(((NumberValue) arrayResult.get(2)).value().intValue()).isEqualTo(30);
+    }
+
+    @Test
+    void extendedFilterWithIndexPath_multipleIndices() {
+        var result = TestUtil.evaluate("[1, 2, 3, 4] |- { @[0] : simple.double, @[2] : simple.double }");
+
+        assertThat(result).isInstanceOf(ArrayValue.class);
+        var arrayResult = (ArrayValue) result;
+        assertThat(arrayResult).hasSize(4);
+        assertThat(((NumberValue) arrayResult.get(0)).value().intValue()).isEqualTo(2);
+        assertThat(((NumberValue) arrayResult.get(1)).value().intValue()).isEqualTo(2);
+        assertThat(((NumberValue) arrayResult.get(2)).value().intValue()).isEqualTo(6);
+        assertThat(((NumberValue) arrayResult.get(3)).value().intValue()).isEqualTo(4);
+    }
+
+    @Test
+    void extendedFilterWithIndexPath_outOfBounds_returnsError() {
+        var result = TestUtil.evaluate("[1, 2, 3] |- { @[5] : simple.double }");
+
+        assertThat(result).isInstanceOf(ErrorValue.class);
+        assertThat(((ErrorValue) result).message()).contains("Array index out of bounds");
+    }
+
+    @Test
+    void extendedFilterWithIndexPath_negativeIndex_returnsError() {
+        var result = TestUtil.evaluate("[1, 2, 3] |- { @[-1] : simple.double }");
+
+        assertThat(result).isInstanceOf(ErrorValue.class);
+        assertThat(((ErrorValue) result).message()).contains("Array index out of bounds");
+    }
+
+    @Test
+    void extendedFilterWithIndexPath_onNonArray_returnsError() {
+        var result = TestUtil.evaluate("\"text\" |- { @[0] : filter.blacken }");
+
+        assertThat(result).isInstanceOf(ErrorValue.class);
+        assertThat(((ErrorValue) result).message()).contains("Cannot apply index step to non-array");
+    }
 }

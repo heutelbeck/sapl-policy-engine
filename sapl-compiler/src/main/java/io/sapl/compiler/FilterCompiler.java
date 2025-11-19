@@ -29,6 +29,7 @@ import io.sapl.api.model.Value;
 import io.sapl.grammar.sapl.FilterComponent;
 import io.sapl.grammar.sapl.FilterExtended;
 import io.sapl.grammar.sapl.FilterSimple;
+import io.sapl.grammar.sapl.IndexStep;
 import io.sapl.grammar.sapl.KeyStep;
 import io.sapl.grammar.sapl.Step;
 import lombok.experimental.UtilityClass;
@@ -73,7 +74,8 @@ public class FilterCompiler {
         return switch (filter) {
         case FilterSimple simple     -> compileSimpleFilter(parent, simple, context);
         case FilterExtended extended -> compileExtendedFilter(parent, extended, context);
-        default                      -> throw new SaplCompilerException("Unknown filter type: " + filter.getClass().getSimpleName());
+        default                      ->
+            throw new SaplCompilerException("Unknown filter type: " + filter.getClass().getSimpleName());
         };
     }
 
@@ -316,7 +318,12 @@ public class FilterCompiler {
             return applyKeyStepFilter(parentValue, keyStep.getId(), functionIdentifier, arguments, context);
         }
 
-        throw new SaplCompilerException("Only key steps are supported. Step type: " + step.getClass());
+        if (step instanceof IndexStep indexStep) {
+            return applyIndexStepFilter(parentValue, indexStep.getIndex().intValue(), functionIdentifier, arguments,
+                    context);
+        }
+
+        throw new SaplCompilerException("Step type not supported: " + step.getClass().getSimpleName());
     }
 
     /**
@@ -354,6 +361,47 @@ public class FilterCompiler {
                 }
             } else {
                 builder.put(entry.getKey(), entry.getValue());
+            }
+        }
+
+        return builder.build();
+    }
+
+    /**
+     * Applies a filter function to an array element accessed by index.
+     *
+     * @param parentValue the parent array value
+     * @param index the element index
+     * @param functionIdentifier the function identifier
+     * @param arguments the function arguments
+     * @param context the compilation context
+     * @return the updated array with the filtered element
+     */
+    private Value applyIndexStepFilter(Value parentValue, int index, String functionIdentifier,
+            CompiledArguments arguments, CompilationContext context) {
+        if (!(parentValue instanceof ArrayValue arrayValue)) {
+            return Value.error("Cannot apply index step to non-array value.");
+        }
+
+        if (index < 0 || index >= arrayValue.size()) {
+            return Value.error("Array index out of bounds: " + index + " (size: " + arrayValue.size() + ").");
+        }
+
+        val elementValue = arrayValue.get(index);
+        val result       = applyFilterFunctionToValue(elementValue, functionIdentifier, arguments, context);
+
+        if (!(result instanceof Value filteredValue)) {
+            throw new SaplCompilerException("Non-value results in index filter not yet implemented.");
+        }
+
+        val builder = ArrayValue.builder();
+        for (int i = 0; i < arrayValue.size(); i++) {
+            if (i == index) {
+                if (!(filteredValue instanceof UndefinedValue)) {
+                    builder.add(filteredValue);
+                }
+            } else {
+                builder.add(arrayValue.get(i));
             }
         }
 
