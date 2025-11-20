@@ -17,9 +17,7 @@
  */
 package io.sapl.compiler.operators;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.sapl.api.model.*;
-import lombok.SneakyThrows;
 import lombok.val;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
@@ -34,11 +32,10 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
 
 import static io.sapl.compiler.operators.StepOperators.*;
+import static io.sapl.util.TestUtil.json;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class StepOperatorsTests {
-
-    private static final ObjectMapper MAPPER = new ObjectMapper();
 
     private static final ArrayValue  NECRONOMICON_CHAPTERS = json(
             "[\"Al Azif\", \"Cultus Maleficarum\", \"Rites of Yog-Sothoth\", \"Forbidden Summonings\", \"The Key and the Gate\"]");
@@ -53,15 +50,6 @@ class StepOperatorsTests {
     private static final Value FORBIDDEN_SUMMONINGS = Value.of("Forbidden Summonings");
     private static final Value THE_KEY_AND_THE_GATE = Value.of("The Key and the Gate");
     private static final Value WILBUR_WHATELEY      = Value.of("Wilbur Whateley");
-
-    @SneakyThrows
-    @SuppressWarnings("unchecked")
-    private static <T extends Value> T json(String jsonString) {
-        val node  = MAPPER.readTree(jsonString);
-        val value = ValueJsonMarshaller.fromJsonNode(node);
-        ;
-        return (T) value;
-    }
 
     // ========== keyStep Tests ==========
 
