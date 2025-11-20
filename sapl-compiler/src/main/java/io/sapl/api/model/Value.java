@@ -292,6 +292,28 @@ public sealed interface Value extends Serializable, CompiledExpression
     }
 
     /**
+     * Creates an error value with a formatted message.
+     * <p>
+     * Uses {@link String#format(String, Object...)} to construct the error message
+     * from the format string and arguments.
+     * <p>
+     * Example:
+     *
+     * <pre>{@code
+     * Value error = Value.error("Index %d out of bounds for array of size %d", 5, 3);
+     * // Creates error: "Index 5 out of bounds for array of size 3"
+     * }</pre>
+     *
+     * @param message the format string (must not be null)
+     * @param args the arguments for the format string
+     * @return an ErrorValue with the formatted message
+     * @throws IllegalArgumentException if the format string is invalid
+     */
+    static ErrorValue error(@NonNull String message, Object... args) {
+        return new ErrorValue(String.format(message, args), null, false);
+    }
+
+    /**
      * Creates an error value with a message and cause.
      *
      * @param message the error message (must not be null)

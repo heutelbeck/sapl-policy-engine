@@ -36,6 +36,17 @@ public class StepOperators {
 
     private static final int MAX_RECURSION_DEPTH = 500;
 
+    // Error message constants (sorted alphabetically)
+    private static final String ERROR_EXPRESSION_STEP_TYPE_MISMATCH = "Expression in expression step must return a number or text, but got %s.";
+    private static final String ERROR_INDEX_OUT_OF_BOUNDS           = "Index %d out of bounds for array of size %d.";
+    private static final String ERROR_INDEX_UNION_REQUIRES_ARRAY    = "Index union steps can only be applied to arrays but got %s.";
+    private static final String ERROR_KEY_UNION_REQUIRES_OBJECT     = "Key union steps can only be applied to objects but got %s.";
+    private static final String ERROR_MAX_RECURSION_DEPTH_INDEX     = "Maximum nesting depth exceeded during recursive index step.";
+    private static final String ERROR_MAX_RECURSION_DEPTH_KEY       = "Maximum nesting depth exceeded during recursive key step.";
+    private static final String ERROR_MAX_RECURSION_DEPTH_WILDCARD  = "Maximum nesting depth exceeded during recursive wildcard step.";
+    private static final String ERROR_SLICING_REQUIRES_ARRAY        = "Cannot slice a non-array value. Expected an Array but got %s.";
+    private static final String ERROR_SLICING_STEP_ZERO             = "Step must not be zero.";
+
     /**
      * Performs an index or key step based on the expression result type. Uses the
      * expression result as an array index if numeric, or an object key if text.
@@ -51,8 +62,7 @@ public class StepOperators {
         } else if (expressionResult instanceof TextValue textValue) {
             return StepOperators.keyStep(value, textValue.value());
         } else {
-            return Value.error("Expression in expression step must return a number or text, but got %s."
-                    .formatted(expressionResult));
+            return Value.error(ERROR_EXPRESSION_STEP_TYPE_MISMATCH, expressionResult);
         }
     }
 
@@ -100,7 +110,7 @@ public class StepOperators {
         }
         var normalizedIndex = index < 0 ? index + arrayValue.size() : index;
         if (normalizedIndex < 0 || normalizedIndex >= arrayValue.size()) {
-            return Value.error("Index %d out of bounds for array of size %d.".formatted(index, arrayValue.size()));
+            return Value.error(ERROR_INDEX_OUT_OF_BOUNDS, index, arrayValue.size());
         }
         return arrayValue.get(normalizedIndex);
     }
@@ -142,7 +152,7 @@ public class StepOperators {
             recursiveKeyStep(parent, key, 0, arrayBuilder);
             return arrayBuilder.build();
         } catch (MaxRecursionDepthException e) {
-            return Value.error("Maximum nesting depth exceeded during recursive key step.");
+            return Value.error(ERROR_MAX_RECURSION_DEPTH_KEY);
         }
     }
 
@@ -226,14 +236,14 @@ public class StepOperators {
         }
 
         if (!(parent instanceof ArrayValue arrayValue)) {
-            return Value.error("Cannot slice a non-array value. Expected an Array but got %s.".formatted(parent));
+            return Value.error(ERROR_SLICING_REQUIRES_ARRAY, parent);
         }
 
         val arraySize  = arrayValue.size();
         val actualStep = step == null ? 1 : step;
 
         if (actualStep == 0) {
-            return Value.error("Step must not be zero.");
+            return Value.error(ERROR_SLICING_STEP_ZERO);
         }
 
         // SAPL always uses same defaults regardless of step direction
@@ -298,7 +308,7 @@ public class StepOperators {
             }
         }
         if (!(parent instanceof ArrayValue arrayValue)) {
-            return Value.error("Index union steps can only be applied to arrays but got %s.".formatted(parent));
+            return Value.error(ERROR_INDEX_UNION_REQUIRES_ARRAY, parent);
         }
         val size  = arrayValue.size();
         val pairs = new int[indexes.length][2];
@@ -311,7 +321,7 @@ public class StepOperators {
         int lastIndex    = -1;
         for (val pair : pairs) {
             if (pair[1] < 0 || pair[1] >= size) {
-                return Value.error("Index %d out of bounds for array of size %d.".formatted(pair[0], size));
+                return Value.error(ERROR_INDEX_OUT_OF_BOUNDS, pair[0], size);
             }
 
             if (pair[1] != lastIndex) {
@@ -334,7 +344,7 @@ public class StepOperators {
      */
     public static Value attributeUnion(Value parent, List<String> keys) {
         if (!(parent instanceof ObjectValue objectValue)) {
-            return Value.error("Key union steps can only be applied to objects but got %s.".formatted(parent));
+            return Value.error(ERROR_KEY_UNION_REQUIRES_OBJECT, parent);
         }
         val requestedKeys = new HashSet<>(keys);
         val arrayBuilder  = ArrayValue.builder();
@@ -365,7 +375,7 @@ public class StepOperators {
             recursiveWildcardStep(parent, 0, arrayBuilder);
             return arrayBuilder.build();
         } catch (MaxRecursionDepthException e) {
-            return Value.error("Maximum nesting depth exceeded during recursive wildcard step.");
+            return Value.error(ERROR_MAX_RECURSION_DEPTH_WILDCARD);
         }
     }
 
@@ -406,7 +416,7 @@ public class StepOperators {
         } catch (ArithmeticException exception) {
             return Value.error(exception);
         } catch (MaxRecursionDepthException e) {
-            return Value.error("Maximum nesting depth exceeded during recursive index step.");
+            return Value.error(ERROR_MAX_RECURSION_DEPTH_INDEX);
         }
     }
 

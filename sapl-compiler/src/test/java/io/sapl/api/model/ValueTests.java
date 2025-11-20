@@ -688,7 +688,7 @@ class ValueTests {
         @Test
         @DisplayName("Error factory with null cause is allowed")
         void errorFactoryNullCause() {
-            var error = Value.error("message", null);
+            var error = Value.error("message", (Throwable) null);
 
             assertThat(error).isInstanceOf(ErrorValue.class);
             var errorValue = (ErrorValue) error;

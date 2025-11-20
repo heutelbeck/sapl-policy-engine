@@ -42,6 +42,9 @@ import lombok.val;
 @UtilityClass
 public class SubtemplateCompiler {
 
+    private static final String ERROR_SUBTEMPLATE_STREAMING_COMPILE_TIME = "Subtemplate contains streaming operations, cannot be evaluated at compile time.";
+    private static final String ERROR_SUBTEMPLATE_STREAMING_RUNTIME      = "Subtemplate contains streaming operations, cannot be evaluated in this context.";
+
     /**
      * Compiles a subtemplate expression (:: operator).
      * <p>
@@ -235,8 +238,7 @@ public class SubtemplateCompiler {
                     .withRelativeValue(relativeNode);
             yield pureTemplate.evaluate(evaluationContext);
         }
-        case StreamExpression ignored    ->
-            Value.error("Subtemplate contains streaming operations, cannot be evaluated at compile time.");
+        case StreamExpression ignored    -> Value.error(ERROR_SUBTEMPLATE_STREAMING_COMPILE_TIME);
         };
     }
 
@@ -260,8 +262,7 @@ public class SubtemplateCompiler {
             val contextWithRelativeNode = ctx.withRelativeValue(relativeNode);
             yield pureTemplate.evaluate(contextWithRelativeNode);
         }
-        case StreamExpression ignored    ->
-            Value.error("Subtemplate contains streaming operations, cannot be evaluated in this context.");
+        case StreamExpression ignored    -> Value.error(ERROR_SUBTEMPLATE_STREAMING_RUNTIME);
         };
     }
 }

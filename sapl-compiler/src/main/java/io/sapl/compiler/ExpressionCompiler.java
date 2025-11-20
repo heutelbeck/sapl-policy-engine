@@ -46,7 +46,14 @@ import static io.sapl.compiler.operators.BooleanOperators.TYPE_MISMATCH_BOOLEAN_
 @UtilityClass
 public class ExpressionCompiler {
 
-    private static final Value UNIMPLEMENTED = Value.error("unimplemented");
+    private static final String ERROR_ASSEMBLE_OBJECT_NON_VALUE_NATURE = "assembleObjectValue called with non-VALUE nature: %s";
+    private static final String ERROR_LEFT_OPERAND_MISSING             = "Left operand of %s missing";
+    private static final String ERROR_RIGHT_OPERAND_MISSING            = "Right operand of %s missing";
+    private static final String ERROR_UNEXPECTED_EXPRESSION            = "unexpected expression: %s.";
+    private static final String ERROR_UNEXPECTED_VALUE                 = "unexpected value: %s.";
+    private static final String ERROR_UNIMPLEMENTED                    = "unimplemented";
+
+    private static final Value UNIMPLEMENTED = Value.error(ERROR_UNIMPLEMENTED);
 
     /**
      * Compiles a SAPL expression from the abstract syntax tree into an optimized
@@ -89,7 +96,8 @@ public class ExpressionCompiler {
         case Regex regex           ->
             compileBinaryOperator(regex, ComparisonOperators::matchesRegularExpression, context);
         case BasicExpression basic -> compileBasicExpression(basic, context);
-        default                    -> throw new SaplCompilerException("unexpected expression: " + expression + ".");
+        default                    ->
+            throw new SaplCompilerException(String.format(ERROR_UNEXPECTED_EXPRESSION, expression));
         };
     }
 
@@ -113,7 +121,7 @@ public class ExpressionCompiler {
             return left;
         }
         if (left instanceof Value && !(left instanceof BooleanValue)) {
-            return Value.error(String.format(TYPE_MISMATCH_BOOLEAN_EXPECTED_ERROR, left));
+            return Value.error(TYPE_MISMATCH_BOOLEAN_EXPECTED_ERROR, left);
         }
         val right = compileExpression(or.getRight(), context);
         if (Value.TRUE.equals(right)) {
@@ -154,14 +162,14 @@ public class ExpressionCompiler {
                 return Flux.just(leftValue);
             }
             if (!(leftValue instanceof BooleanValue)) {
-                return Flux.just(Value.error(String.format(TYPE_MISMATCH_BOOLEAN_EXPECTED_ERROR, leftValue)));
+                return Flux.just(Value.error(TYPE_MISMATCH_BOOLEAN_EXPECTED_ERROR, leftValue));
             }
             return rightFlux.map(rightValue -> {
                 if (rightValue instanceof ErrorValue) {
                     return rightValue;
                 }
                 if (!(rightValue instanceof BooleanValue)) {
-                    return Value.error(String.format(TYPE_MISMATCH_BOOLEAN_EXPECTED_ERROR, rightValue));
+                    return Value.error(TYPE_MISMATCH_BOOLEAN_EXPECTED_ERROR, rightValue);
                 }
                 return new BooleanValue(((BooleanValue) rightValue).value(), rightValue.secret() || leftValue.secret());
             });
@@ -189,7 +197,7 @@ public class ExpressionCompiler {
             return left;
         }
         if (!(left instanceof BooleanValue)) {
-            return Value.error(String.format(TYPE_MISMATCH_BOOLEAN_EXPECTED_ERROR, left));
+            return Value.error(TYPE_MISMATCH_BOOLEAN_EXPECTED_ERROR, left);
         }
         val right = pureRight.evaluate(ctx);
         if (Value.TRUE.equals(right)) {
@@ -199,7 +207,7 @@ public class ExpressionCompiler {
             return right;
         }
         if (!(right instanceof BooleanValue)) {
-            return Value.error(String.format(TYPE_MISMATCH_BOOLEAN_EXPECTED_ERROR, right));
+            return Value.error(TYPE_MISMATCH_BOOLEAN_EXPECTED_ERROR, right);
         }
         return new BooleanValue(false, right.secret() || left.secret());
     }
@@ -224,7 +232,7 @@ public class ExpressionCompiler {
             return left;
         }
         if (left instanceof Value && !(left instanceof BooleanValue)) {
-            return Value.error(String.format(TYPE_MISMATCH_BOOLEAN_EXPECTED_ERROR, left));
+            return Value.error(TYPE_MISMATCH_BOOLEAN_EXPECTED_ERROR, left);
         }
         val right = compileExpression(and.getRight(), context);
         if (Value.FALSE.equals(right)) {
@@ -265,14 +273,14 @@ public class ExpressionCompiler {
                 return Flux.just(leftValue);
             }
             if (!(leftValue instanceof BooleanValue)) {
-                return Flux.just(Value.error(String.format(TYPE_MISMATCH_BOOLEAN_EXPECTED_ERROR, leftValue)));
+                return Flux.just(Value.error(TYPE_MISMATCH_BOOLEAN_EXPECTED_ERROR, leftValue));
             }
             return rightFlux.map(rightValue -> {
                 if (rightValue instanceof ErrorValue) {
                     return rightValue;
                 }
                 if (!(rightValue instanceof BooleanValue)) {
-                    return Value.error(String.format(TYPE_MISMATCH_BOOLEAN_EXPECTED_ERROR, rightValue));
+                    return Value.error(TYPE_MISMATCH_BOOLEAN_EXPECTED_ERROR, rightValue);
                 }
                 return new BooleanValue(((BooleanValue) rightValue).value(), rightValue.secret() || leftValue.secret());
             });
@@ -300,7 +308,7 @@ public class ExpressionCompiler {
             return left;
         }
         if (!(left instanceof BooleanValue)) {
-            return Value.error(String.format(TYPE_MISMATCH_BOOLEAN_EXPECTED_ERROR, left));
+            return Value.error(TYPE_MISMATCH_BOOLEAN_EXPECTED_ERROR, left);
         }
         val right = pureRight.evaluate(ctx);
         if (Value.FALSE.equals(right)) {
@@ -310,7 +318,7 @@ public class ExpressionCompiler {
             return right;
         }
         if (!(right instanceof BooleanValue)) {
-            return Value.error(String.format(TYPE_MISMATCH_BOOLEAN_EXPECTED_ERROR, right));
+            return Value.error(TYPE_MISMATCH_BOOLEAN_EXPECTED_ERROR, right);
         }
         return new BooleanValue(true, right.secret() || left.secret());
     }
@@ -331,10 +339,10 @@ public class ExpressionCompiler {
         val left  = compileExpression(astOperator.getLeft(), context);
         val right = compileExpression(astOperator.getRight(), context);
         if (left == null) {
-            return Value.error("Left operand of %s missing".formatted(astOperator.getClass().getSimpleName()));
+            return Value.error(ERROR_LEFT_OPERAND_MISSING, astOperator.getClass().getSimpleName());
         }
         if (right == null) {
-            return Value.error("Right operand of %s missing".formatted(astOperator.getClass().getSimpleName()));
+            return Value.error(ERROR_RIGHT_OPERAND_MISSING, astOperator.getClass().getSimpleName());
         }
         // Special case for regex. Here if the right side is a text constant, we can
         // immediately pre-compile the expression and do not need to do it at policy
@@ -456,7 +464,7 @@ public class ExpressionCompiler {
         case BasicIdentifier identifier                     -> compileIdentifier(identifier, context);
         case BasicRelative relativeValue                    -> compileBasicRelative(relativeValue, context);
         default                                             ->
-            throw new SaplCompilerException("unexpected expression: " + expression + ".");
+            throw new SaplCompilerException(String.format(ERROR_UNEXPECTED_EXPRESSION, expression));
         };
 
         // Then apply filter or subtemplate if present
@@ -635,7 +643,7 @@ public class ExpressionCompiler {
                           case NullLiteral nil      -> Value.NULL;
                           case UndefinedLiteral u   -> Value.UNDEFINED;
                           default                   ->
-                              throw new SaplCompilerException("unexpected value: " + value + ".");
+                              throw new SaplCompilerException(String.format(ERROR_UNEXPECTED_VALUE, value));
                           };
         return compileSteps(compiledValue, basic.getSteps(), context);
     }
@@ -1456,7 +1464,7 @@ public class ExpressionCompiler {
      */
     private Value assembleObjectValue(CompiledObjectAttributes attributes) {
         if (attributes.nature() != Nature.VALUE) {
-            throw new SaplCompilerException("assembleObjectValue called with non-VALUE nature: " + attributes.nature());
+            throw new SaplCompilerException(String.format(ERROR_ASSEMBLE_OBJECT_NON_VALUE_NATURE, attributes.nature()));
         }
         val objectBuilder = ObjectValue.builder();
         for (val attribute : attributes.attributes().entrySet()) {

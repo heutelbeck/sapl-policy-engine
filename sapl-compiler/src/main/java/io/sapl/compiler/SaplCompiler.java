@@ -29,7 +29,11 @@ import java.util.List;
 @UtilityClass
 public class SaplCompiler {
 
-    private static final Value UNIMPLEMENTED = Value.error("unimplemented");
+    private static final String ERROR_POLICY_SETS_NOT_SUPPORTED = "Policy Sets not supported yet.";
+    private static final String ERROR_UNEXPECTED_POLICY_ELEMENT = "Unexpected policy element: %s";
+    private static final String ERROR_UNIMPLEMENTED             = "unimplemented";
+
+    private static final Value UNIMPLEMENTED = Value.error(ERROR_UNIMPLEMENTED);
 
     public CompiledPolicy compileDocument(SAPL document, CompilationContext context) {
         context.resetForNextDocument();
@@ -39,7 +43,8 @@ public class SaplCompiler {
         return switch (policyElement) {
         case Policy policy       -> compilePolicy(policy, context);
         case PolicySet policySet -> compilePolicySet(policySet, context);
-        default                  -> throw new SaplCompilerException("Unexpected policy element: " + policyElement);
+        default                  ->
+            throw new SaplCompilerException(String.format(ERROR_UNEXPECTED_POLICY_ELEMENT, policyElement));
         };
     }
 
@@ -95,7 +100,7 @@ public class SaplCompiler {
     }
 
     private CompiledPolicy compilePolicySet(PolicySet policySet, CompilationContext context) {
-        throw new SaplCompilerException("Policy Sets not supported yet.");
+        throw new SaplCompilerException(ERROR_POLICY_SETS_NOT_SUPPORTED);
     }
 
     private void compileSchemas(EList<Schema> schemas, CompilationContext context) {

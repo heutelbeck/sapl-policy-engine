@@ -302,13 +302,31 @@ As attributes have no order, the sorting of the result array of a condition step
 
 #### Array Slicing `[Start:Stop:Step]`
 
-The slice contains the items with indices between `Start` and `Stop`, with `Start` being inclusive and `Stop` being exclusive. `Step` describes the distance between the elements to be included in the slice, i.e., with a `Step` of 2, only each second element would be included (with `Start` as the first element’s index). All parts except the first colon are optional. `Step` defaults to 1.
+The slice contains the items with indices between `Start` and `Stop`, with `Start` being inclusive and `Stop` being exclusive. `Step` describes the distance between the elements to be included in the slice, i.e., with a `Step` of 2, only each second element would be included (with `Start` as the first element's index). All parts except the first colon are optional. `Step` defaults to 1.
 
-In case `Step` is positive, `Start` defaults to 0 and `Stop` defaults to the length of the array. If `Step` is negative, `Start` defaults to the length of the array minus 1 (i.e., the last element’s index) and `Stop` defaults to -1. A `Step` of 0 leads to an error.
+**Default values:** `Start` defaults to 0 and `Stop` defaults to the length of the array, regardless of the sign of `Step`. A `Step` of 0 leads to an error.
+
+**Negative indices:** Both `Start` and `Stop` support negative indices, which count from the end of the array. For example, an index of -1 refers to the last element, -2 to the second-to-last, and so on.
+
+**SAPL slicing semantics:** Unlike Python-style slicing, negative step values in SAPL do not reverse the iteration direction. Instead, array indices are always iterated forward (0 to length-1), and the step value affects the selection pattern:
+
+- **Positive step:** An element at index `i` is selected if `(i - Start) % Step == 0`
+- **Negative step:** An element at index `i` is selected if `(Stop - i) % Step == 0`
+
+The range constraint `Start <= i < Stop` always applies (assuming `Start < Stop`).
 
 
-> Applied to the Array `[1, 2, 3, 4, 5]`, the selection step `[-2:]` returns the Array `[4, 5]` (the last two elements).
+> Applied to the array `[1, 2, 3, 4, 5]`, the selection step `[-2:]` returns the array `[4, 5]` (the last two elements).
 
+
+**Examples of SAPL slicing behavior:**
+
+> Applied to `[0, 1, 2, 3, 4, 5, 6, 7, 8, 9]`:
+> - `[1:4:1]` returns `[1, 2, 3]` (standard forward slice)
+> - `[::3]` returns `[0, 3, 6, 9]` (every third element starting from 0)
+> - `[::-1]` returns `[0, 1, 2, 3, 4, 5, 6, 7, 8, 9]` (all elements, since all satisfy `(10-i) % -1 == 0`)
+> - `[::-3]` returns `[1, 4, 7]` (elements where `(10-i) % -3 == 0`)
+> - `[1:5:-1]` returns `[1, 2, 3, 4]` (range 1-5, elements where `(5-i) % -1 == 0`)
 
 
 > If Start and Stop are to be left empty, the two colons must be separated by a whitespace to avoid confusion with the sub-template operator. So write `[: :-2]` instead of `[::-2]`.
@@ -512,7 +530,7 @@ When used in a filter statement, the value to filter is passed to the function a
 
 ## Subtemplate
 
-It is possible to define a subtemplate for an array to replace each item of the array with this subtemplate. A subtemplate component is an optional part of a basic expression.
+A subtemplate applies a template expression to a value, enabling transformation of data structures. The subtemplate is denoted after a double colon using the `::` operator. A subtemplate component is an optional part of a basic expression.
 
 E.g., the basic expression:
 
@@ -522,16 +540,27 @@ resource.patients :: { "name" : @.name }
 
 This expression would return the `patients` array from the resource but with each item containing only one attribute `name`.
 
-The subtemplate is denoted after a double colon:
+The subtemplate syntax is:
 
 ```
-Array :: Expression
+Value :: Expression
 ```
 
-This `Expression` represents the replacement template. In this expression, basic relative expressions (starting with `@`) can be used to access the attributes of the current array item. `@` references the array item, which is currently being replaced. `Array` must evaluate to an array. For each item of `Array`, `Expression` is evaluated, and the item is replaced by the result.
+The `Expression` represents the replacement template. Within this expression, basic relative expressions (starting with `@`) can be used to access attributes of the current value. The `@` symbol references the value being transformed.
 
-Example
-Given the variable array contains the following array:
+**Subtemplate behavior:**
+
+- **Non-empty arrays:** The template is mapped over each array element. For each item of the array, `Expression` is evaluated with `@` referencing that item, and the item is replaced by the result. The result is an array of the same length with transformed elements.
+
+- **Empty arrays:** An empty array remains an empty array. The template is not evaluated.
+
+- **Non-array values:** The template is applied directly to the value, with `@` referencing that value. The result is the evaluation of the template expression.
+
+- **Error and undefined values:** Error and undefined values are propagated without applying the template.
+
+**Example: Array transformation**
+
+Given the variable `array` contains the following array:
 
 ```json
 [
@@ -544,7 +573,7 @@ The basic expression
 
 ```sapl
 array :: {
-    "aKey" : "aValue"
+    "aKey" : "aValue",
     "identifier" : @.id
 }
 ```
@@ -556,4 +585,34 @@ would evaluate to:
     {"aKey" : "aValue", "identifier" : 1 },
     {"aKey" : "aValue", "identifier" : 2 }
 ]
+```
+
+**Example: Non-array transformation**
+
+Given the variable `user` contains the following object:
+
+```json
+{
+    "id" : 123,
+    "name" : "Alice",
+    "email" : "alice@example.com"
+}
+```
+
+The basic expression
+
+```sapl
+user :: {
+    "userId" : @.id,
+    "displayName" : @.name
+}
+```
+
+would evaluate to:
+
+```json
+{
+    "userId" : 123,
+    "displayName" : "Alice"
+}
 ```

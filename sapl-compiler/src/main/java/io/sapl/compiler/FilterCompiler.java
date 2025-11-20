@@ -60,9 +60,38 @@ import java.util.Arrays;
 @UtilityClass
 public class FilterCompiler {
 
-    private static final String FILTERS_CANNOT_BE_APPLIED_TO_UNDEFINED   = "Filters cannot be applied to undefined values.";
-    private static final String EACH_REQUIRES_ARRAY                      = "Cannot use 'each' keyword with non-array values.";
-    private static final String ATTRIBUTE_FINDER_NOT_PERMITTED_IN_FILTER = "AttributeFinderStep not permitted in filter selection steps.";
+    private static final String ERROR_ARRAY_ACCESS_TYPE_MISMATCH                 = "Array access type mismatch. Expect an integer, was: %s.";
+    private static final String ERROR_ARRAY_INDEX_OUT_OF_BOUNDS                  = "Array index out of bounds: %d (size: %d).";
+    private static final String ERROR_ATTRIBUTE_FINDER_NOT_PERMITTED             = "AttributeFinderStep not permitted in filter selection steps.";
+    private static final String ERROR_ATTRIBUTE_UNION_REQUIRES_OBJECT            = "Cannot apply attribute union to non-object value.";
+    private static final String ERROR_CONDITION_TYPE_MISMATCH                    = "Type mismatch. Expected the condition expression to return a Boolean, but was '%s'.";
+    private static final String ERROR_DYNAMIC_ARGS_NOT_SUPPORTED_EXTENDED        = "Dynamic filter arguments not yet supported in path-based extended filters.";
+    private static final String ERROR_DYNAMIC_ARGS_NOT_SUPPORTED_RECURSIVE_INDEX = "Dynamic filter arguments not yet supported in recursive index filters.";
+    private static final String ERROR_DYNAMIC_ARGS_NOT_SUPPORTED_RECURSIVE_KEY   = "Dynamic filter arguments not yet supported in recursive key filters.";
+    private static final String ERROR_EACH_REQUIRES_ARRAY                        = "Cannot use 'each' keyword with non-array values.";
+    private static final String ERROR_EXPRESSION_STEP_REQUIRES_ARRAY             = "Cannot access array index on non-array value.";
+    private static final String ERROR_EXTENDED_FILTER_REQUIRES_VALUE             = "Extended filter operations require Value inputs.";
+    private static final String ERROR_EXTENDED_FILTER_UNSUPPORTED_NON_VALUE      = "Non-value results in extended filter statements not yet supported.";
+    private static final String ERROR_FIELD_NOT_FOUND_IN_OBJECT                  = "Field '%s' not found in object.";
+    private static final String ERROR_FIELD_REQUIRES_OBJECT                      = "Cannot access field '%s' on non-object value.";
+    private static final String ERROR_FILTER_REQUIRES_VALUE                      = "Filter operations require Value inputs.";
+    private static final String ERROR_FILTERS_CANNOT_BE_APPLIED_TO_UNDEFINED     = "Filters cannot be applied to undefined values.";
+    private static final String ERROR_INDEX_OUT_OF_BOUNDS                        = "Index out of bounds. Index must be between 0 and %d (inclusive), but got: %d.";
+    private static final String ERROR_INDEX_STEP_REQUIRES_ARRAY                  = "Cannot apply index step to non-array value.";
+    private static final String ERROR_INDEX_UNION_REQUIRES_ARRAY                 = "Cannot apply index union to non-array value.";
+    private static final String ERROR_KEY_STEP_REQUIRES_OBJECT                   = "Cannot apply key step to non-object value.";
+    private static final String ERROR_KEY_STEP_REQUIRES_OBJECT_ARRAY_ELEMENT     = "Cannot apply key step to non-object array element.";
+    private static final String ERROR_SLICING_REQUIRES_ARRAY                     = "Cannot apply slicing step to non-array value.";
+    private static final String ERROR_SLICING_STEP_ZERO                          = "Step must not be zero.";
+    private static final String ERROR_STEP_TYPE_NOT_SUPPORTED                    = "Step type not supported: %s";
+    private static final String ERROR_UNEXPECTED_FILTER_RESULT_TYPE              = "Unexpected filter result type";
+    private static final String ERROR_UNEXPECTED_NON_VALUE_ARRAY_MAPPING         = "Unexpected non-value result in array mapping with constant arguments.";
+    private static final String ERROR_UNEXPECTED_NON_VALUE_CONSTANT_ARGS         = "Unexpected non-value result with constant arguments.";
+    private static final String ERROR_UNEXPECTED_NON_VALUE_EXPRESSION_STEP       = "Unexpected non-value result in expression step filter.";
+    private static final String ERROR_UNEXPECTED_NON_VALUE_RECURSIVE_INDEX       = "Unexpected non-value result in recursive index filter.";
+    private static final String ERROR_UNEXPECTED_NON_VALUE_RECURSIVE_KEY         = "Unexpected non-value result in recursive key filter.";
+    private static final String ERROR_UNKNOWN_FILTER_TYPE                        = "Unknown filter type: %s";
+    private static final String ERROR_WILDCARD_REQUIRES_ARRAY_OR_OBJECT          = "Cannot apply wildcard step to non-array/non-object value.";
 
     /**
      * Compiles a filter expression (|- operator).
@@ -81,13 +110,13 @@ public class FilterCompiler {
             return parent;
         }
         if (parent instanceof UndefinedValue) {
-            return Value.error(FILTERS_CANNOT_BE_APPLIED_TO_UNDEFINED);
+            return Value.error(ERROR_FILTERS_CANNOT_BE_APPLIED_TO_UNDEFINED);
         }
         return switch (filter) {
         case FilterSimple simple     -> compileSimpleFilter(parent, simple, context);
         case FilterExtended extended -> compileExtendedFilter(parent, extended, context);
-        default                      ->
-            throw new SaplCompilerException("Unknown filter type: " + filter.getClass().getSimpleName());
+        default                      -> throw new SaplCompilerException(
+                String.format(ERROR_UNKNOWN_FILTER_TYPE, filter.getClass().getSimpleName()));
         };
     }
 
@@ -116,7 +145,7 @@ public class FilterCompiler {
         // Define the filter operation that works on Values
         java.util.function.UnaryOperator<CompiledExpression> filterOp = parentValue -> {
             if (!(parentValue instanceof Value value)) {
-                return Value.error("Filter operations require Value inputs.");
+                return Value.error(ERROR_FILTER_REQUIRES_VALUE);
             }
 
             // Handle 'each' keyword - map function over array elements
@@ -160,7 +189,7 @@ public class FilterCompiler {
                                           val     result          = filterOperation.apply(evaluatedParent);
                                           return (result instanceof Value v) ? v
                                                   : (result instanceof PureExpression pe) ? pe.evaluate(ctx)
-                                                          : Value.error("Unexpected filter result type");
+                                                          : Value.error(ERROR_UNEXPECTED_FILTER_RESULT_TYPE);
                                       },
                 pureParent.isSubscriptionScoped());
         };
@@ -182,7 +211,7 @@ public class FilterCompiler {
             CompiledArguments arguments, CompilationContext context) {
         // Validate parent is an array
         if (!(parentValue instanceof ArrayValue arrayValue)) {
-            return Value.error(EACH_REQUIRES_ARRAY);
+            return Value.error(ERROR_EACH_REQUIRES_ARRAY);
         }
 
         val functionIdentifier = ImportResolver.resolveFunctionIdentifierByImports(filter, filter.getIdentifier());
@@ -293,7 +322,7 @@ public class FilterCompiler {
         // Define the extended filter operation that works on Values
         java.util.function.UnaryOperator<CompiledExpression> filterOp = parentExpr -> {
             if (!(parentExpr instanceof Value currentValue)) {
-                return Value.error("Extended filter operations require Value inputs.");
+                return Value.error(ERROR_EXTENDED_FILTER_REQUIRES_VALUE);
             }
 
             for (val statement : filter.getStatements()) {
@@ -317,7 +346,7 @@ public class FilterCompiler {
                     if (result instanceof Value resultValue) {
                         currentValue = resultValue;
                     } else {
-                        return Value.error("Non-value results in extended filter statements not yet supported.");
+                        return Value.error(ERROR_EXTENDED_FILTER_UNSUPPORTED_NON_VALUE);
                     }
                 }
             }
@@ -340,54 +369,7 @@ public class FilterCompiler {
      */
     private CompiledExpression applyFilterFunctionToValue(Value parentValue, String functionIdentifier,
             CompiledArguments arguments, CompilationContext context) {
-        return switch (arguments.nature()) {
-        case VALUE  -> {
-            val valueArguments = new ArrayList<Value>(arguments.arguments().length + 1);
-            valueArguments.add(parentValue);
-            for (val arg : arguments.arguments()) {
-                val argValue = (Value) arg;
-                if (argValue instanceof ErrorValue) {
-                    yield argValue;
-                }
-                valueArguments.add(argValue);
-            }
-            val invocation = new FunctionInvocation(functionIdentifier, valueArguments);
-            yield context.getFunctionBroker().evaluateFunction(invocation);
-        }
-        case PURE   -> new PureExpression(ctx -> {
-                    val valueArguments = new ArrayList<Value>(arguments.arguments().length + 1);
-                    valueArguments.add(parentValue);
-                    for (val argument : arguments.arguments()) {
-                        switch (argument) {
-                        case Value value                       -> valueArguments.add(value);
-                        case PureExpression pureExpression     -> valueArguments.add(pureExpression.evaluate(ctx));
-                        case StreamExpression ignored          -> throw new SaplCompilerException(
-                                "Stream expression in pure filter arguments. Should not be possible.");
-                        }
-                    }
-                    val invocation = new FunctionInvocation(functionIdentifier, valueArguments);
-                    return ctx.functionBroker().evaluateFunction(invocation);
-                }, arguments.isSubscriptionScoped());
-        case STREAM -> {
-            val sources = Arrays.stream(arguments.arguments()).map(ExpressionCompiler::compiledExpressionToFlux)
-                    .toList();
-            val stream  = reactor.core.publisher.Flux.combineLatest(sources, argValues -> {
-                            val valueArguments = new ArrayList<Value>(argValues.length + 1);
-                            valueArguments.add(parentValue);
-                            for (val argValue : argValues) {
-                                valueArguments.add((Value) argValue);
-                            }
-                            return valueArguments;
-                        })
-                    .flatMap(valueArgs -> reactor.core.publisher.Flux.deferContextual(ctx -> {
-                        val invocation = new FunctionInvocation(functionIdentifier, valueArgs);
-                        val evaluationContext = ctx.get(io.sapl.api.model.EvaluationContext.class);
-                        return reactor.core.publisher.Flux
-                                .just(evaluationContext.functionBroker().evaluateFunction(invocation));
-                    }));
-            yield new StreamExpression(stream);
-        }
-        };
+        return FilterApplicationStrategy.applyFilterToValue(parentValue, functionIdentifier, arguments, context);
     }
 
     /**
@@ -413,7 +395,7 @@ public class FilterCompiler {
         // Check for dynamic arguments - not yet supported in path-based extended
         // filters
         if (arguments.nature() != Nature.VALUE) {
-            return Value.error("Dynamic filter arguments not yet supported in path-based extended filters.");
+            return Value.error(ERROR_DYNAMIC_ARGS_NOT_SUPPORTED_EXTENDED);
         }
 
         if (stepIndex == steps.size() - 1) {
@@ -421,7 +403,7 @@ public class FilterCompiler {
                     context);
             // With VALUE arguments, result should always be a Value
             if (!(result instanceof Value resultValue)) {
-                return Value.error("Unexpected non-value result with constant arguments.");
+                return Value.error(ERROR_UNEXPECTED_NON_VALUE_CONSTANT_ARGS);
             }
             return resultValue;
         }
@@ -447,8 +429,8 @@ public class FilterCompiler {
                 attributeUnionStep.getAttributes(), steps, stepIndex + 1, functionIdentifier, arguments, context);
         case IndexUnionStep indexUnionStep         -> applyFilterToNestedIndexUnion(parentValue,
                 indexUnionStep.getIndices(), steps, stepIndex + 1, functionIdentifier, arguments, context);
-        case AttributeFinderStep ignored           -> Value.error(ATTRIBUTE_FINDER_NOT_PERMITTED_IN_FILTER);
-        case HeadAttributeFinderStep ignored       -> Value.error(ATTRIBUTE_FINDER_NOT_PERMITTED_IN_FILTER);
+        case AttributeFinderStep ignored           -> Value.error(ERROR_ATTRIBUTE_FINDER_NOT_PERMITTED);
+        case HeadAttributeFinderStep ignored       -> Value.error(ERROR_ATTRIBUTE_FINDER_NOT_PERMITTED);
         case ConditionStep conditionStep           -> applyFilterToNestedCondition(parentValue, conditionStep, steps,
                 stepIndex + 1, functionIdentifier, arguments, context);
         case ExpressionStep expressionStep         -> applyFilterToNestedExpression(parentValue, expressionStep, steps,
@@ -490,14 +472,14 @@ public class FilterCompiler {
                 attributeUnionStep.getAttributes(), functionIdentifier, arguments, context);
         case IndexUnionStep indexUnionStep         ->
             applyIndexUnionStepFilter(parentValue, indexUnionStep.getIndices(), functionIdentifier, arguments, context);
-        case AttributeFinderStep ignored           -> Value.error(ATTRIBUTE_FINDER_NOT_PERMITTED_IN_FILTER);
-        case HeadAttributeFinderStep ignored       -> Value.error(ATTRIBUTE_FINDER_NOT_PERMITTED_IN_FILTER);
+        case AttributeFinderStep ignored           -> Value.error(ERROR_ATTRIBUTE_FINDER_NOT_PERMITTED);
+        case HeadAttributeFinderStep ignored       -> Value.error(ERROR_ATTRIBUTE_FINDER_NOT_PERMITTED);
         case ConditionStep conditionStep           ->
             applyConditionStepFilter(parentValue, conditionStep, functionIdentifier, arguments, context);
         case ExpressionStep expressionStep         ->
             applyExpressionStepFilter(parentValue, expressionStep, functionIdentifier, arguments, context);
-        default                                    ->
-            throw new SaplCompilerException("Step type not supported: " + step.getClass().getSimpleName());
+        default                                    -> throw new SaplCompilerException(
+                String.format(ERROR_STEP_TYPE_NOT_SUPPORTED, step.getClass().getSimpleName()));
         };
     }
 
@@ -531,7 +513,7 @@ public class FilterCompiler {
 
                     if (!(result instanceof Value resultValue)) {
                         // Should not happen with VALUE arguments, but be defensive
-                        return Value.error("Unexpected non-value result in array mapping with constant arguments.");
+                        return Value.error(ERROR_UNEXPECTED_NON_VALUE_ARRAY_MAPPING);
                     }
 
                     builder.add(resultValue);
@@ -544,107 +526,16 @@ public class FilterCompiler {
         }
 
         if (!(parentValue instanceof ObjectValue objectValue)) {
-            return Value.error("Cannot apply key step to non-object value.");
+            return Value.error(ERROR_KEY_STEP_REQUIRES_OBJECT);
         }
 
         val fieldValue = objectValue.get(key);
         if (fieldValue == null) {
-            return Value.error("Field '" + key + "' not found in object.");
+            return Value.error(ERROR_FIELD_NOT_FOUND_IN_OBJECT, key);
         }
 
-        // Handle based on argument nature to support dynamic filter operations
-        return switch (arguments.nature()) {
-        case VALUE  -> {
-            val result = applyFilterFunctionToValue(fieldValue, functionIdentifier, arguments, context);
-            if (!(result instanceof Value filteredValue)) {
-                // Defensive: should not happen with VALUE arguments
-                yield Value.error("Unexpected non-value result from filter with constant arguments.");
-            }
-            val builder = ObjectValue.builder();
-            for (val entry : objectValue.entrySet()) {
-                if (entry.getKey().equals(key)) {
-                    if (!(filteredValue instanceof UndefinedValue)) {
-                        builder.put(entry.getKey(), filteredValue);
-                    }
-                } else {
-                    builder.put(entry.getKey(), entry.getValue());
-                }
-            }
-            yield builder.build();
-        }
-        case PURE   -> // Dynamic pure arguments: defer object reconstruction to runtime
-            new PureExpression(ctx -> {
-                val valueArguments = new ArrayList<Value>(arguments.arguments().length + 1);
-                valueArguments.add(fieldValue);
-                for (val argument : arguments.arguments()) {
-                    switch (argument) {
-                    case Value value                   -> valueArguments.add(value);
-                    case PureExpression pureExpression -> valueArguments.add(pureExpression.evaluate(ctx));
-                    case StreamExpression ignored      -> throw new SaplCompilerException(
-                            "Stream expression in pure filter arguments. Should not be possible.");
-                    }
-                }
-                val invocation   = new FunctionInvocation(functionIdentifier, valueArguments);
-                val filterResult = ctx.functionBroker().evaluateFunction(invocation);
-
-                val builder = ObjectValue.builder();
-                if (filterResult instanceof UndefinedValue) {
-                    // Remove field
-                    for (val entry : objectValue.entrySet()) {
-                        if (!entry.getKey().equals(key)) {
-                            builder.put(entry.getKey(), entry.getValue());
-                        }
-                    }
-                } else {
-                    // Replace field value
-                    for (val entry : objectValue.entrySet()) {
-                        if (entry.getKey().equals(key)) {
-                            builder.put(entry.getKey(), filterResult);
-                        } else {
-                            builder.put(entry.getKey(), entry.getValue());
-                        }
-                    }
-                }
-                return builder.build();
-            }, arguments.isSubscriptionScoped());
-        case STREAM -> {
-            // Dynamic streaming arguments: defer object reconstruction to runtime with
-            // reactive streams
-            val sources = Arrays.stream(arguments.arguments()).map(ExpressionCompiler::compiledExpressionToFlux)
-                    .toList();
-            val stream  = reactor.core.publisher.Flux.combineLatest(sources, argValues -> {
-                            val valueArguments = new ArrayList<Value>(argValues.length + 1);
-                            valueArguments.add(fieldValue);
-                            for (var argValue : argValues) {
-                                valueArguments.add((Value) argValue);
-                            }
-                            val invocation   = new FunctionInvocation(functionIdentifier, valueArguments);
-                            val filterResult = context.getFunctionBroker().evaluateFunction(invocation);
-
-                            val builder = ObjectValue.builder();
-                            if (filterResult instanceof UndefinedValue) {
-                                // Remove field
-                                for (val entry : objectValue.entrySet()) {
-                                    if (!entry.getKey().equals(key)) {
-                                        builder.put(entry.getKey(), entry.getValue());
-                                    }
-                                }
-                                return builder.build();
-                            } else {
-                                // Replace field value
-                                for (val entry : objectValue.entrySet()) {
-                                    if (entry.getKey().equals(key)) {
-                                        builder.put(entry.getKey(), filterResult);
-                                    } else {
-                                        builder.put(entry.getKey(), entry.getValue());
-                                    }
-                                }
-                                return (Value) builder.build();
-                            }
-                        });
-            yield new StreamExpression(stream);
-        }
-        };
+        return FilterApplicationStrategy.applyFilterToObjectFields(objectValue, k -> k.equals(key), functionIdentifier,
+                arguments, context);
     }
 
     /**
@@ -673,7 +564,7 @@ public class FilterCompiler {
                             for (val element : arrayValue) {
                                 // Each element should be an object with the key field
                                 if (!(element instanceof ObjectValue elementObj)) {
-                                    return Value.error("Cannot apply key step to non-object array element.");
+                                    return Value.error(ERROR_KEY_STEP_REQUIRES_OBJECT_ARRAY_ELEMENT);
                                 }
 
                                 val fieldValue = elementObj.get(key);
@@ -722,7 +613,7 @@ public class FilterCompiler {
                 for (val element : arrayValue) {
                     // Each element should be an object with the key field
                     if (!(element instanceof ObjectValue elementObj)) {
-                        return Value.error("Cannot apply key step to non-object array element.");
+                        return Value.error(ERROR_KEY_STEP_REQUIRES_OBJECT_ARRAY_ELEMENT);
                     }
 
                     val fieldValue = elementObj.get(key);
@@ -784,88 +675,16 @@ public class FilterCompiler {
     private CompiledExpression applyIndexStepFilter(Value parentValue, int index, String functionIdentifier,
             CompiledArguments arguments, CompilationContext context) {
         if (!(parentValue instanceof ArrayValue arrayValue)) {
-            return Value.error("Cannot apply index step to non-array value.");
+            return Value.error(ERROR_INDEX_STEP_REQUIRES_ARRAY);
         }
 
         val normalizedIndex = normalizeIndex(index, arrayValue.size());
         if (normalizedIndex < 0 || normalizedIndex >= arrayValue.size()) {
-            return Value.error("Array index out of bounds: " + index + " (size: " + arrayValue.size() + ").");
+            return Value.error(ERROR_ARRAY_INDEX_OUT_OF_BOUNDS, index, arrayValue.size());
         }
 
-        val elementValue = arrayValue.get(normalizedIndex);
-
-        return switch (arguments.nature()) {
-        case VALUE  -> {
-            val result = applyFilterFunctionToValue(elementValue, functionIdentifier, arguments, context);
-            if (!(result instanceof Value filteredValue)) {
-                yield Value.error("Unexpected non-value result with constant arguments.");
-            }
-
-            val builder = ArrayValue.builder();
-            for (int i = 0; i < arrayValue.size(); i++) {
-                if (i == normalizedIndex) {
-                    if (!(filteredValue instanceof UndefinedValue)) {
-                        builder.add(filteredValue);
-                    }
-                } else {
-                    builder.add(arrayValue.get(i));
-                }
-            }
-            yield builder.build();
-        }
-        case PURE   -> new PureExpression(ctx -> {
-                    val valueArguments = new ArrayList<Value>(arguments.arguments().length + 1);
-                    valueArguments.add(elementValue);
-                    for (val argument : arguments.arguments()) {
-                        switch (argument) {
-                        case Value value                       -> valueArguments.add(value);
-                        case PureExpression pureExpression     -> valueArguments.add(pureExpression.evaluate(ctx));
-                        case StreamExpression ignored          -> throw new SaplCompilerException(
-                                "Stream expression in pure filter arguments. Should not be possible.");
-                        }
-                    }
-                    val     invocation   = new FunctionInvocation(functionIdentifier, valueArguments);
-                    val     filterResult = ctx.functionBroker().evaluateFunction(invocation);
-
-                    val builder = ArrayValue.builder();
-                    for (int i = 0; i < arrayValue.size(); i++) {
-                        if (i == normalizedIndex) {
-                            if (!(filterResult instanceof UndefinedValue)) {
-                                builder.add(filterResult);
-                            }
-                        } else {
-                            builder.add(arrayValue.get(i));
-                        }
-                    }
-                    return builder.build();
-                }, arguments.isSubscriptionScoped());
-        case STREAM -> {
-            val sources = Arrays.stream(arguments.arguments()).map(ExpressionCompiler::compiledExpressionToFlux)
-                    .toList();
-            val stream  = reactor.core.publisher.Flux.combineLatest(sources, argValues -> {
-                            val valueArguments = new ArrayList<Value>(argValues.length + 1);
-                            valueArguments.add(elementValue);
-                            for (var argValue : argValues) {
-                                valueArguments.add((Value) argValue);
-                            }
-                            val invocation   = new FunctionInvocation(functionIdentifier, valueArguments);
-                            val filterResult = context.getFunctionBroker().evaluateFunction(invocation);
-
-                            val builder = ArrayValue.builder();
-                            for (int i = 0; i < arrayValue.size(); i++) {
-                                if (i == normalizedIndex) {
-                                    if (!(filterResult instanceof UndefinedValue)) {
-                                        builder.add(filterResult);
-                                    }
-                                } else {
-                                    builder.add(arrayValue.get(i));
-                                }
-                            }
-                            return (Value) builder.build();
-                        });
-            yield new StreamExpression(stream);
-        }
-        };
+        return FilterApplicationStrategy.applyFilterToArrayElements(arrayValue, i -> i == normalizedIndex,
+                functionIdentifier, arguments, context);
     }
 
     /**
@@ -881,14 +700,14 @@ public class FilterCompiler {
     private CompiledExpression applySlicingStepFilter(Value parentValue, ArraySlicingStep slicingStep,
             String functionIdentifier, CompiledArguments arguments, CompilationContext context) {
         if (!(parentValue instanceof ArrayValue arrayValue)) {
-            return Value.error("Cannot apply slicing step to non-array value.");
+            return Value.error(ERROR_SLICING_REQUIRES_ARRAY);
         }
 
         val arraySize = arrayValue.size();
         val step      = slicingStep.getStep() != null ? slicingStep.getStep().intValue() : 1;
 
         if (step == 0) {
-            return Value.error("Step must not be zero.");
+            return Value.error(ERROR_SLICING_STEP_ZERO);
         }
 
         var index = slicingStep.getIndex() != null ? slicingStep.getIndex().intValue() : 0;
@@ -904,85 +723,8 @@ public class FilterCompiler {
         val finalIndex = index;
         val finalTo    = to;
 
-        return switch (arguments.nature()) {
-        case VALUE  -> {
-            val builder = ArrayValue.builder();
-            for (int i = 0; i < arraySize; i++) {
-                if (isInNormalizedSlice(i, finalIndex, finalTo, step)) {
-                    val elementValue = arrayValue.get(i);
-                    val result       = applyFilterFunctionToValue(elementValue, functionIdentifier, arguments, context);
-
-                    if (!(result instanceof Value filteredValue)) {
-                        yield Value.error("Unexpected non-value result with constant arguments.");
-                    }
-
-                    if (!(filteredValue instanceof UndefinedValue)) {
-                        builder.add(filteredValue);
-                    }
-                } else {
-                    builder.add(arrayValue.get(i));
-                }
-            }
-            yield builder.build();
-        }
-        case PURE   -> new PureExpression(ctx -> {
-                    val builder = ArrayValue.builder();
-                    for (int i = 0; i < arraySize; i++) {
-                        if (isInNormalizedSlice(i, finalIndex, finalTo, step)) {
-                            val elementValue = arrayValue.get(i);
-
-                            val valueArguments = new ArrayList<Value>(arguments.arguments().length + 1);
-                            valueArguments.add(elementValue);
-                            for (val argument : arguments.arguments()) {
-                                switch (argument) {
-                                case Value value                       -> valueArguments.add(value);
-                                case PureExpression pureExpression     ->
-                                    valueArguments.add(pureExpression.evaluate(ctx));
-                                case StreamExpression ignored          -> throw new SaplCompilerException(
-                                        "Stream expression in pure filter arguments. Should not be possible.");
-                                }
-                            }
-                            val     invocation   = new FunctionInvocation(functionIdentifier, valueArguments);
-                            val     filterResult = ctx.functionBroker().evaluateFunction(invocation);
-
-                            if (!(filterResult instanceof UndefinedValue)) {
-                                builder.add(filterResult);
-                            }
-                        } else {
-                            builder.add(arrayValue.get(i));
-                        }
-                    }
-                    return builder.build();
-                }, arguments.isSubscriptionScoped());
-        case STREAM -> {
-            val sources = Arrays.stream(arguments.arguments()).map(ExpressionCompiler::compiledExpressionToFlux)
-                    .toList();
-            val stream  = reactor.core.publisher.Flux.combineLatest(sources, argValues -> {
-                            val builder = ArrayValue.builder();
-                            for (int i = 0; i < arraySize; i++) {
-                                if (isInNormalizedSlice(i, finalIndex, finalTo, step)) {
-                                    val elementValue = arrayValue.get(i);
-
-                                    val valueArguments = new ArrayList<Value>(argValues.length + 1);
-                                    valueArguments.add(elementValue);
-                                    for (var argValue : argValues) {
-                                        valueArguments.add((Value) argValue);
-                                    }
-                                    val invocation   = new FunctionInvocation(functionIdentifier, valueArguments);
-                                    val filterResult = context.getFunctionBroker().evaluateFunction(invocation);
-
-                                    if (!(filterResult instanceof UndefinedValue)) {
-                                        builder.add(filterResult);
-                                    }
-                                } else {
-                                    builder.add(arrayValue.get(i));
-                                }
-                            }
-                            return (Value) builder.build();
-                        });
-            yield new StreamExpression(stream);
-        }
-        };
+        return FilterApplicationStrategy.applyFilterToArrayElements(arrayValue,
+                i -> isInNormalizedSlice(i, finalIndex, finalTo, step), functionIdentifier, arguments, context);
     }
 
     private boolean isInNormalizedSlice(int i, int from, int to, int step) {
@@ -1031,7 +773,7 @@ public class FilterCompiler {
         }
 
         if (!(parentValue instanceof ObjectValue objectValue)) {
-            return Value.error("Cannot access field '" + fieldName + "' on non-object value.");
+            return Value.error(ERROR_FIELD_REQUIRES_OBJECT, fieldName);
         }
 
         val fieldValue = objectValue.get(fieldName);
@@ -1074,7 +816,7 @@ public class FilterCompiler {
             org.eclipse.emf.common.util.EList<Step> steps, int stepIndex, String functionIdentifier,
             CompiledArguments arguments, CompilationContext context) {
         if (!(parentValue instanceof ArrayValue arrayValue)) {
-            return Value.error("Cannot access array index on non-array value.");
+            return Value.error(ERROR_EXPRESSION_STEP_REQUIRES_ARRAY);
         }
 
         val normalizedIndex = normalizeIndex(index, arrayValue.size());
@@ -1118,14 +860,14 @@ public class FilterCompiler {
             org.eclipse.emf.common.util.EList<Step> steps, int stepIndex, String functionIdentifier,
             CompiledArguments arguments, CompilationContext context) {
         if (!(parentValue instanceof ArrayValue arrayValue)) {
-            return Value.error("Cannot apply slicing step to non-array value.");
+            return Value.error(ERROR_SLICING_REQUIRES_ARRAY);
         }
 
         val arraySize = arrayValue.size();
         val step      = slicingStep.getStep() != null ? slicingStep.getStep().intValue() : 1;
 
         if (step == 0) {
-            return Value.error("Step must not be zero.");
+            return Value.error(ERROR_SLICING_STEP_ZERO);
         }
 
         var index = slicingStep.getIndex() != null ? slicingStep.getIndex().intValue() : 0;
@@ -1174,7 +916,7 @@ public class FilterCompiler {
     private Value applyEachFilterStatement(Value parentValue, io.sapl.grammar.sapl.BasicRelative target,
             String functionIdentifier, CompiledArguments arguments, CompilationContext context) {
         if (!(parentValue instanceof ArrayValue arrayValue)) {
-            return Value.error("Cannot use 'each' keyword with non-array values.");
+            return Value.error(ERROR_EACH_REQUIRES_ARRAY);
         }
 
         val builder = ArrayValue.builder();
@@ -1226,137 +968,19 @@ public class FilterCompiler {
             return applyWildcardToObject(objectValue, functionIdentifier, arguments, context);
         }
 
-        return Value.error("Cannot apply wildcard step to non-array/non-object value.");
+        return Value.error(ERROR_WILDCARD_REQUIRES_ARRAY_OR_OBJECT);
     }
 
     private CompiledExpression applyWildcardToArray(ArrayValue arrayValue, String functionIdentifier,
             CompiledArguments arguments, CompilationContext context) {
-        return switch (arguments.nature()) {
-        case VALUE  -> {
-            val builder = ArrayValue.builder();
-            for (val element : arrayValue) {
-                val result = applyFilterFunctionToValue(element, functionIdentifier, arguments, context);
-
-                if (!(result instanceof Value filteredValue)) {
-                    yield Value.error("Unexpected non-value result with constant arguments.");
-                }
-
-                if (!(filteredValue instanceof UndefinedValue)) {
-                    builder.add(filteredValue);
-                }
-            }
-            yield builder.build();
-        }
-        case PURE   -> new PureExpression(ctx -> {
-                    val builder = ArrayValue.builder();
-                    for (val element : arrayValue) {
-                        val valueArguments = new ArrayList<Value>(arguments.arguments().length + 1);
-                        valueArguments.add(element);
-                        for (val argument : arguments.arguments()) {
-                            switch (argument) {
-                            case Value value                       -> valueArguments.add(value);
-                            case PureExpression pureExpression     -> valueArguments.add(pureExpression.evaluate(ctx));
-                            case StreamExpression ignored          -> throw new SaplCompilerException(
-                                    "Stream expression in pure filter arguments. Should not be possible.");
-                            }
-                        }
-                        val     invocation   = new FunctionInvocation(functionIdentifier, valueArguments);
-                        val     filterResult = ctx.functionBroker().evaluateFunction(invocation);
-
-                        if (!(filterResult instanceof UndefinedValue)) {
-                            builder.add(filterResult);
-                        }
-                    }
-                    return builder.build();
-                }, arguments.isSubscriptionScoped());
-        case STREAM -> {
-            val sources = Arrays.stream(arguments.arguments()).map(ExpressionCompiler::compiledExpressionToFlux)
-                    .toList();
-            val stream  = reactor.core.publisher.Flux.combineLatest(sources, argValues -> {
-                            val builder = ArrayValue.builder();
-                            for (val element : arrayValue) {
-                                val valueArguments = new ArrayList<Value>(argValues.length + 1);
-                                valueArguments.add(element);
-                                for (var argValue : argValues) {
-                                    valueArguments.add((Value) argValue);
-                                }
-                                val invocation   = new FunctionInvocation(functionIdentifier, valueArguments);
-                                val filterResult = context.getFunctionBroker().evaluateFunction(invocation);
-
-                                if (!(filterResult instanceof UndefinedValue)) {
-                                    builder.add(filterResult);
-                                }
-                            }
-                            return (Value) builder.build();
-                        });
-            yield new StreamExpression(stream);
-        }
-        };
+        return FilterApplicationStrategy.applyFilterToAllArrayElements(arrayValue, functionIdentifier, arguments,
+                context);
     }
 
     private CompiledExpression applyWildcardToObject(ObjectValue objectValue, String functionIdentifier,
             CompiledArguments arguments, CompilationContext context) {
-        return switch (arguments.nature()) {
-        case VALUE  -> {
-            val builder = ObjectValue.builder();
-            for (val entry : objectValue.entrySet()) {
-                val result = applyFilterFunctionToValue(entry.getValue(), functionIdentifier, arguments, context);
-
-                if (!(result instanceof Value filteredValue)) {
-                    yield Value.error("Unexpected non-value result with constant arguments.");
-                }
-
-                if (!(filteredValue instanceof UndefinedValue)) {
-                    builder.put(entry.getKey(), filteredValue);
-                }
-            }
-            yield builder.build();
-        }
-        case PURE   -> new PureExpression(ctx -> {
-                    val builder = ObjectValue.builder();
-                    for (val entry : objectValue.entrySet()) {
-                        val valueArguments = new ArrayList<Value>(arguments.arguments().length + 1);
-                        valueArguments.add(entry.getValue());
-                        for (val argument : arguments.arguments()) {
-                            switch (argument) {
-                            case Value value                       -> valueArguments.add(value);
-                            case PureExpression pureExpression     -> valueArguments.add(pureExpression.evaluate(ctx));
-                            case StreamExpression ignored          -> throw new SaplCompilerException(
-                                    "Stream expression in pure filter arguments. Should not be possible.");
-                            }
-                        }
-                        val     invocation   = new FunctionInvocation(functionIdentifier, valueArguments);
-                        val     filterResult = ctx.functionBroker().evaluateFunction(invocation);
-
-                        if (!(filterResult instanceof UndefinedValue)) {
-                            builder.put(entry.getKey(), filterResult);
-                        }
-                    }
-                    return builder.build();
-                }, arguments.isSubscriptionScoped());
-        case STREAM -> {
-            val sources = Arrays.stream(arguments.arguments()).map(ExpressionCompiler::compiledExpressionToFlux)
-                    .toList();
-            val stream  = reactor.core.publisher.Flux.combineLatest(sources, argValues -> {
-                            val builder = ObjectValue.builder();
-                            for (val entry : objectValue.entrySet()) {
-                                val valueArguments = new ArrayList<Value>(argValues.length + 1);
-                                valueArguments.add(entry.getValue());
-                                for (var argValue : argValues) {
-                                    valueArguments.add((Value) argValue);
-                                }
-                                val invocation   = new FunctionInvocation(functionIdentifier, valueArguments);
-                                val filterResult = context.getFunctionBroker().evaluateFunction(invocation);
-
-                                if (!(filterResult instanceof UndefinedValue)) {
-                                    builder.put(entry.getKey(), filterResult);
-                                }
-                            }
-                            return (Value) builder.build();
-                        });
-            yield new StreamExpression(stream);
-        }
-        };
+        return FilterApplicationStrategy.applyFilterToAllObjectFields(objectValue, functionIdentifier, arguments,
+                context);
     }
 
     /**
@@ -1402,7 +1026,7 @@ public class FilterCompiler {
             return builder.build();
         }
 
-        return Value.error("Cannot apply wildcard step to non-array/non-object value.");
+        return Value.error(ERROR_WILDCARD_REQUIRES_ARRAY_OR_OBJECT);
     }
 
     /**
@@ -1423,7 +1047,7 @@ public class FilterCompiler {
             CompiledArguments arguments, CompilationContext context) {
         // Check for dynamic arguments - not yet supported in recursive filters
         if (arguments.nature() != Nature.VALUE) {
-            return Value.error("Dynamic filter arguments not yet supported in recursive key filters.");
+            return Value.error(ERROR_DYNAMIC_ARGS_NOT_SUPPORTED_RECURSIVE_KEY);
         }
 
         if (parentValue instanceof ObjectValue objectValue) {
@@ -1448,7 +1072,7 @@ public class FilterCompiler {
                 val result = applyFilterFunctionToValue(entry.getValue(), functionIdentifier, arguments, context);
 
                 if (!(result instanceof Value filteredValue)) {
-                    return Value.error("Unexpected non-value result with constant arguments.");
+                    return Value.error(ERROR_UNEXPECTED_NON_VALUE_CONSTANT_ARGS);
                 }
 
                 if (filteredValue instanceof ErrorValue) {
@@ -1464,7 +1088,7 @@ public class FilterCompiler {
                         context);
 
                 if (!(recursedResult instanceof Value recursedValue)) {
-                    return Value.error("Unexpected non-value result in recursive key filter.");
+                    return Value.error(ERROR_UNEXPECTED_NON_VALUE_RECURSIVE_KEY);
                 }
 
                 if (recursedValue instanceof ErrorValue) {
@@ -1487,7 +1111,7 @@ public class FilterCompiler {
             val recursedResult = applyRecursiveKeyStepFilter(element, key, functionIdentifier, arguments, context);
 
             if (!(recursedResult instanceof Value recursedValue)) {
-                return Value.error("Unexpected non-value result in recursive key filter.");
+                return Value.error(ERROR_UNEXPECTED_NON_VALUE_RECURSIVE_KEY);
             }
 
             if (recursedValue instanceof ErrorValue) {
@@ -1541,7 +1165,7 @@ public class FilterCompiler {
             CompiledArguments arguments, CompilationContext context) {
         // Check for dynamic arguments - not yet supported in recursive filters
         if (arguments.nature() != Nature.VALUE) {
-            return Value.error("Dynamic filter arguments not yet supported in recursive index filters.");
+            return Value.error(ERROR_DYNAMIC_ARGS_NOT_SUPPORTED_RECURSIVE_INDEX);
         }
 
         if (parentValue instanceof ArrayValue arrayValue) {
@@ -1568,7 +1192,7 @@ public class FilterCompiler {
             val recursedResult = applyRecursiveIndexStepFilter(element, index, functionIdentifier, arguments, context);
 
             if (!(recursedResult instanceof Value recursedValue)) {
-                return Value.error("Unexpected non-value result in recursive index filter.");
+                return Value.error(ERROR_UNEXPECTED_NON_VALUE_RECURSIVE_INDEX);
             }
 
             if (recursedValue instanceof ErrorValue) {
@@ -1580,7 +1204,7 @@ public class FilterCompiler {
                 val result = applyFilterFunctionToValue(recursedValue, functionIdentifier, arguments, context);
 
                 if (!(result instanceof Value filteredValue)) {
-                    return Value.error("Unexpected non-value result with constant arguments.");
+                    return Value.error(ERROR_UNEXPECTED_NON_VALUE_CONSTANT_ARGS);
                 }
 
                 if (filteredValue instanceof ErrorValue) {
@@ -1609,7 +1233,7 @@ public class FilterCompiler {
                     context);
 
             if (!(recursedResult instanceof Value recursedValue)) {
-                return Value.error("Unexpected non-value result in recursive index filter.");
+                return Value.error(ERROR_UNEXPECTED_NON_VALUE_RECURSIVE_INDEX);
             }
 
             if (recursedValue instanceof ErrorValue) {
@@ -1642,92 +1266,11 @@ public class FilterCompiler {
             org.eclipse.emf.common.util.EList<String> attributes, String functionIdentifier,
             CompiledArguments arguments, CompilationContext context) {
         if (!(parentValue instanceof ObjectValue objectValue)) {
-            return Value.error("Cannot apply attribute union to non-object value.");
+            return Value.error(ERROR_ATTRIBUTE_UNION_REQUIRES_OBJECT);
         }
 
-        return switch (arguments.nature()) {
-        case VALUE  -> {
-            val builder = ObjectValue.builder();
-
-            for (val entry : objectValue.entrySet()) {
-                if (attributes.contains(entry.getKey())) {
-                    // This attribute is in the union - apply filter
-                    val result = applyFilterFunctionToValue(entry.getValue(), functionIdentifier, arguments, context);
-
-                    if (!(result instanceof Value filteredValue)) {
-                        yield Value.error("Unexpected non-value result with constant arguments.");
-                    }
-
-                    if (filteredValue instanceof ErrorValue) {
-                        yield filteredValue;
-                    }
-
-                    if (!(filteredValue instanceof UndefinedValue)) {
-                        builder.put(entry.getKey(), filteredValue);
-                    }
-                } else {
-                    // This attribute is not in the union - keep unchanged
-                    builder.put(entry.getKey(), entry.getValue());
-                }
-            }
-            yield builder.build();
-        }
-        case PURE   -> new PureExpression(ctx -> {
-                    val builder = ObjectValue.builder();
-
-                    for (val entry : objectValue.entrySet()) {
-                        if (attributes.contains(entry.getKey())) {
-                            val valueArguments = new ArrayList<Value>(arguments.arguments().length + 1);
-                            valueArguments.add(entry.getValue());
-                            for (val argument : arguments.arguments()) {
-                                switch (argument) {
-                                case Value value                       -> valueArguments.add(value);
-                                case PureExpression pureExpression     ->
-                                    valueArguments.add(pureExpression.evaluate(ctx));
-                                case StreamExpression ignored          -> throw new SaplCompilerException(
-                                        "Stream expression in pure filter arguments. Should not be possible.");
-                                }
-                            }
-                            val     invocation   = new FunctionInvocation(functionIdentifier, valueArguments);
-                            val     filterResult = ctx.functionBroker().evaluateFunction(invocation);
-
-                            if (!(filterResult instanceof UndefinedValue)) {
-                                builder.put(entry.getKey(), filterResult);
-                            }
-                        } else {
-                            builder.put(entry.getKey(), entry.getValue());
-                        }
-                    }
-                    return builder.build();
-                }, arguments.isSubscriptionScoped());
-        case STREAM -> {
-            val sources = Arrays.stream(arguments.arguments()).map(ExpressionCompiler::compiledExpressionToFlux)
-                    .toList();
-            val stream  = reactor.core.publisher.Flux.combineLatest(sources, argValues -> {
-                            val builder = ObjectValue.builder();
-
-                            for (val entry : objectValue.entrySet()) {
-                                if (attributes.contains(entry.getKey())) {
-                                    val valueArguments = new ArrayList<Value>(argValues.length + 1);
-                                    valueArguments.add(entry.getValue());
-                                    for (var argValue : argValues) {
-                                        valueArguments.add((Value) argValue);
-                                    }
-                                    val invocation   = new FunctionInvocation(functionIdentifier, valueArguments);
-                                    val filterResult = context.getFunctionBroker().evaluateFunction(invocation);
-
-                                    if (!(filterResult instanceof UndefinedValue)) {
-                                        builder.put(entry.getKey(), filterResult);
-                                    }
-                                } else {
-                                    builder.put(entry.getKey(), entry.getValue());
-                                }
-                            }
-                            return (Value) builder.build();
-                        });
-            yield new StreamExpression(stream);
-        }
-        };
+        return FilterApplicationStrategy.applyFilterToObjectFields(objectValue, attributes::contains,
+                functionIdentifier, arguments, context);
     }
 
     /**
@@ -1747,7 +1290,7 @@ public class FilterCompiler {
             org.eclipse.emf.common.util.EList<java.math.BigDecimal> indices, String functionIdentifier,
             CompiledArguments arguments, CompilationContext context) {
         if (!(parentValue instanceof ArrayValue arrayValue)) {
-            return Value.error("Cannot apply index union to non-array value.");
+            return Value.error(ERROR_INDEX_UNION_REQUIRES_ARRAY);
         }
 
         val arraySize = arrayValue.size();
@@ -1764,89 +1307,8 @@ public class FilterCompiler {
             }
         }
 
-        return switch (arguments.nature()) {
-        case VALUE  -> {
-            val builder = ArrayValue.builder();
-
-            for (int i = 0; i < arraySize; i++) {
-                if (normalizedIndices.contains(i)) {
-                    // This index is in the union - apply filter
-                    val result = applyFilterFunctionToValue(arrayValue.get(i), functionIdentifier, arguments, context);
-
-                    if (!(result instanceof Value filteredValue)) {
-                        yield Value.error("Unexpected non-value result with constant arguments.");
-                    }
-
-                    if (filteredValue instanceof ErrorValue) {
-                        yield filteredValue;
-                    }
-
-                    if (!(filteredValue instanceof UndefinedValue)) {
-                        builder.add(filteredValue);
-                    }
-                } else {
-                    // This index is not in the union - keep unchanged
-                    builder.add(arrayValue.get(i));
-                }
-            }
-            yield builder.build();
-        }
-        case PURE   -> new PureExpression(ctx -> {
-                    val builder = ArrayValue.builder();
-
-                    for (int i = 0; i < arraySize; i++) {
-                        if (normalizedIndices.contains(i)) {
-                            val valueArguments = new ArrayList<Value>(arguments.arguments().length + 1);
-                            valueArguments.add(arrayValue.get(i));
-                            for (val argument : arguments.arguments()) {
-                                switch (argument) {
-                                case Value value                       -> valueArguments.add(value);
-                                case PureExpression pureExpression     ->
-                                    valueArguments.add(pureExpression.evaluate(ctx));
-                                case StreamExpression ignored          -> throw new SaplCompilerException(
-                                        "Stream expression in pure filter arguments. Should not be possible.");
-                                }
-                            }
-                            val     invocation   = new FunctionInvocation(functionIdentifier, valueArguments);
-                            val     filterResult = ctx.functionBroker().evaluateFunction(invocation);
-
-                            if (!(filterResult instanceof UndefinedValue)) {
-                                builder.add(filterResult);
-                            }
-                        } else {
-                            builder.add(arrayValue.get(i));
-                        }
-                    }
-                    return builder.build();
-                }, arguments.isSubscriptionScoped());
-        case STREAM -> {
-            val sources = Arrays.stream(arguments.arguments()).map(ExpressionCompiler::compiledExpressionToFlux)
-                    .toList();
-            val stream  = reactor.core.publisher.Flux.combineLatest(sources, argValues -> {
-                            val builder = ArrayValue.builder();
-
-                            for (int i = 0; i < arraySize; i++) {
-                                if (normalizedIndices.contains(i)) {
-                                    val valueArguments = new ArrayList<Value>(argValues.length + 1);
-                                    valueArguments.add(arrayValue.get(i));
-                                    for (var argValue : argValues) {
-                                        valueArguments.add((Value) argValue);
-                                    }
-                                    val invocation   = new FunctionInvocation(functionIdentifier, valueArguments);
-                                    val filterResult = context.getFunctionBroker().evaluateFunction(invocation);
-
-                                    if (!(filterResult instanceof UndefinedValue)) {
-                                        builder.add(filterResult);
-                                    }
-                                } else {
-                                    builder.add(arrayValue.get(i));
-                                }
-                            }
-                            return (Value) builder.build();
-                        });
-            yield new StreamExpression(stream);
-        }
-        };
+        return FilterApplicationStrategy.applyFilterToArrayElements(arrayValue, normalizedIndices::contains,
+                functionIdentifier, arguments, context);
     }
 
     /**
@@ -2021,7 +1483,7 @@ public class FilterCompiler {
             org.eclipse.emf.common.util.EList<String> attributes, org.eclipse.emf.common.util.EList<Step> steps,
             int stepIndex, String functionIdentifier, CompiledArguments arguments, CompilationContext context) {
         if (!(parentValue instanceof ObjectValue objectValue)) {
-            return Value.error("Cannot apply attribute union to non-object value.");
+            return Value.error(ERROR_ATTRIBUTE_UNION_REQUIRES_OBJECT);
         }
 
         val builder = ObjectValue.builder();
@@ -2063,7 +1525,7 @@ public class FilterCompiler {
             org.eclipse.emf.common.util.EList<Step> steps, int stepIndex, String functionIdentifier,
             CompiledArguments arguments, CompilationContext context) {
         if (!(parentValue instanceof ArrayValue arrayValue)) {
-            return Value.error("Cannot apply index union to non-array value.");
+            return Value.error(ERROR_INDEX_UNION_REQUIRES_ARRAY);
         }
 
         val arraySize = arrayValue.size();
@@ -2136,8 +1598,7 @@ public class FilterCompiler {
         }
 
         if (!(conditionValue instanceof io.sapl.api.model.BooleanValue booleanResult)) {
-            return Value.error("Type mismatch. Expected the condition expression to return a Boolean, but was '"
-                    + conditionValue.getClass().getSimpleName() + "'.");
+            return Value.error(ERROR_CONDITION_TYPE_MISMATCH, conditionValue.getClass().getSimpleName());
         }
 
         // With constant condition: if false, return unchanged; if true, apply to all
@@ -2186,8 +1647,7 @@ public class FilterCompiler {
         }
 
         if (!(conditionValue instanceof io.sapl.api.model.BooleanValue booleanResult)) {
-            return Value.error("Type mismatch. Expected the condition expression to return a Boolean, but was '"
-                    + conditionValue.getClass().getSimpleName() + "'.");
+            return Value.error(ERROR_CONDITION_TYPE_MISMATCH, conditionValue.getClass().getSimpleName());
         }
 
         // With constant condition: if false, return unchanged; if true, descend like
@@ -2237,14 +1697,14 @@ public class FilterCompiler {
         // Delegate to appropriate step handler based on parent type
         if (parentValue instanceof ArrayValue arrayValue) {
             if (!(keyOrIndexValue instanceof io.sapl.api.model.NumberValue numberValue)) {
-                return Value.error("Array access type mismatch. Expect an integer, was: "
-                        + keyOrIndexValue.getClass().getSimpleName());
+                return Value.error(
+                        String.format(ERROR_ARRAY_ACCESS_TYPE_MISMATCH, keyOrIndexValue.getClass().getSimpleName()));
             }
             val result = applyIndexStepFilter(arrayValue, numberValue.value().intValue(), functionIdentifier, arguments,
                     context);
             // Path-based filters reject dynamic arguments, so result is always a Value
             if (!(result instanceof Value resultValue)) {
-                return Value.error("Unexpected non-value result in expression step filter.");
+                return Value.error(ERROR_UNEXPECTED_NON_VALUE_EXPRESSION_STEP);
             }
             return resultValue;
         }
@@ -2262,7 +1722,7 @@ public class FilterCompiler {
         val result = applyKeyStepFilter(objectValue, key, functionIdentifier, arguments, context);
         // Path-based filters reject dynamic arguments, so result is always a Value
         if (!(result instanceof Value resultValue)) {
-            return Value.error("Unexpected non-value result in expression step filter.");
+            return Value.error(ERROR_UNEXPECTED_NON_VALUE_EXPRESSION_STEP);
         }
         return resultValue;
 
@@ -2308,14 +1768,13 @@ public class FilterCompiler {
         // Delegate to appropriate nested handler based on parent type
         if (parentValue instanceof ArrayValue arrayValue) {
             if (!(keyOrIndexValue instanceof io.sapl.api.model.NumberValue numberValue)) {
-                return Value.error("Array access type mismatch. Expect an integer, was: "
-                        + keyOrIndexValue.getClass().getSimpleName());
+                return Value.error(
+                        String.format(ERROR_ARRAY_ACCESS_TYPE_MISMATCH, keyOrIndexValue.getClass().getSimpleName()));
             }
 
             int index = numberValue.value().intValue();
             if (index < 0 || index >= arrayValue.size()) {
-                return Value.error("Index out of bounds. Index must be between 0 and " + (arrayValue.size() - 1)
-                        + ", was: " + index);
+                return Value.error(ERROR_INDEX_OUT_OF_BOUNDS, arrayValue.size() - 1, index);
             }
 
             return applyFilterToNestedArrayElement(arrayValue, index, steps, stepIndex, functionIdentifier, arguments,
