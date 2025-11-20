@@ -115,6 +115,11 @@ class ExpressionCompilerTests {
                 arguments("(5 > 3) && (10 < 20)", Value.TRUE), arguments("(5 + 3) * 2 == 16", Value.TRUE),
                 arguments("(true || false) && (3 < 5)", Value.TRUE), arguments("100 / (2 + 3) * 2", Value.of(40)),
 
+                // Arithmetic with various spacing patterns
+                arguments("1+-1", Value.of(0)), arguments("1+ -1", Value.of(0)), arguments("1 + -1", Value.of(0)),
+                arguments("1 + - 1", Value.of(0)), arguments("--1", Value.of(1)), arguments("1+ +(2)", Value.of(3)),
+                arguments("(1+2)*3.0", Value.of(9.0)), arguments("5+5-3", Value.of(7)),
+
                 // Key step access on constant objects
                 arguments("{\"weapon\": \"Stormbringer\"}.weapon", Value.of("Stormbringer")),
                 arguments("{\"dragons\": 13, \"city\": \"Imrryr\"}.dragons", Value.of(13)),
@@ -150,6 +155,8 @@ class ExpressionCompilerTests {
                 // Expression step on constant values
                 arguments("[\"Imrryr\", \"Tanelorn\", \"Vilmir\"][(1 + 1)]", Value.of("Vilmir")),
                 arguments("[10, 20, 30][((6 / 2) - 1)]", Value.of(30)),
+                arguments("[0,1,2,3,4,5,6,7,8,9][(2+3)]", Value.of(5)),
+                arguments("{ \"key\" : true }[(\"ke\"+\"y\")]", Value.TRUE),
 
                 // Index union on constant arrays
                 arguments("[10, 20, 30, 40, 50][0, 2, 4]", Value.ofArray(Value.of(10), Value.of(30), Value.of(50))),
@@ -235,6 +242,9 @@ class ExpressionCompilerTests {
                 arguments("42[?(@ > 40)]", Value.of(42)), arguments("42[?(@ < 40)]", Value.UNDEFINED),
                 arguments("\"Stormbringer\"[?(@ == \"Stormbringer\")]", Value.of("Stormbringer")),
                 arguments("\"Stormbringer\"[?(@ == \"Mournblade\")]", Value.UNDEFINED),
+
+                // Expression steps with non-existent keys return undefined
+                arguments("{ \"key\" : true }[(\"no_ke\"+\"y\")]", Value.UNDEFINED),
 
                 // Condition steps on arrays with pure conditions
                 arguments("[1, 2, 3, 4, 5][?(@ > {\"threshold\": 3}.threshold)]",
@@ -561,7 +571,19 @@ class ExpressionCompilerTests {
                 arguments("999[0]", "non-array"), arguments("{\"key\": \"value\"}[0]", "non-array"),
 
                 // Slicing on non-arrays (returns error)
-                arguments("999[1:3]", "slice"), arguments("{\"a\": 1}[0:2]", "slice"));
+                arguments("999[1:3]", "slice"), arguments("{\"a\": 1}[0:2]", "slice"),
+
+                // Expression step type errors
+                arguments("[1,2,3][(true)]", "but got true"),
+                arguments("[0,1,2,3,4,5,6,7,8,9][(\"key\")]", "using a key"),
+                arguments("{ \"key\" : true }[(5+2)]", "non-array"), arguments("undefined[(1 + 1)]", "non-array"),
+
+                // Expression step out of bounds errors
+                arguments("[1,2,3][(1+100)]", "out of bounds"), arguments("[1,2,3][(1 - 100)]", "out of bounds"),
+
+                // Expression step error propagation
+                arguments("[][(10/0)]", "division"), arguments("[(10/0)][(2+2)]", "division"),
+                arguments("{ \"key\" : true }[(10/0)]", "division"));
     }
 
     @ParameterizedTest
@@ -660,12 +682,12 @@ class ExpressionCompilerTests {
 
     private static Stream<Arguments> attributeFinderBasicUsage() {
         return Stream.of(
-                // TestPip.echo returns Flux.just(value, "hello world") - 2 values
-                arguments("\"Elric\".<test.echo[{\"fresh\":true}]>", 2),
-                arguments("subject.<test.echo[{\"fresh\":true}]>", 2),
+                // TestPip.echo returns Flux.just(entity) - 1 value
+                arguments("\"Elric\".<test.echo[{\"fresh\":true}]>", 1),
+                arguments("subject.<test.echo[{\"fresh\":true}]>", 1),
                 // Workaround: Use (42) instead of 42 due to lexer ambiguity with decimal
                 // numbers
-                arguments("(43).<test.echo>", 2), arguments("true.<test.echo>", 2));
+                arguments("(43).<test.echo>", 1), arguments("true.<test.echo>", 1));
     }
 
     @ParameterizedTest
@@ -673,7 +695,7 @@ class ExpressionCompilerTests {
     void attributeFinderInExpressions(String expression) {
         // Attribute finders in expressions create StreamExpressions - verify it streams
         val evaluated = TestUtil.evaluateExpression(expression);
-        StepVerifier.create(evaluated.take(2).log()).expectNextCount(2).verifyComplete();
+        StepVerifier.create(evaluated.take(1).log()).expectNextCount(1).verifyComplete();
     }
 
     private static Stream<Arguments> attributeFinderInExpressions() {
