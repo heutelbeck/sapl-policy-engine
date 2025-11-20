@@ -167,25 +167,6 @@ public class FilterCompiler {
     }
 
     /**
-     * Applies a filter function to a constant value with the value as left-hand
-     * argument.
-     * <p>
-     * Performs constant folding if all arguments are values, otherwise creates
-     * appropriate expression type.
-     *
-     * @param parentValue the value to filter
-     * @param filter the filter AST node
-     * @param arguments the compiled filter arguments
-     * @param context the compilation context
-     * @return the result of applying the filter function
-     */
-    private CompiledExpression applyFilterFunctionToValue(Value parentValue, FilterSimple filter,
-            CompiledArguments arguments, CompilationContext context) {
-        val functionIdentifier = ImportResolver.resolveFunctionIdentifierByImports(filter, filter.getIdentifier());
-        return applyFilterFunctionToValue(parentValue, functionIdentifier, arguments, context);
-    }
-
-    /**
      * Applies a filter function to each element of an array value.
      * <p>
      * Maps the function over array elements, filtering out undefined results.
@@ -454,11 +435,11 @@ public class FilterCompiler {
                 indexStep.getIndex().intValue(), steps, stepIndex + 1, functionIdentifier, arguments, context);
         case ArraySlicingStep slicingStep            -> applyFilterToNestedArraySlice(parentValue, slicingStep, steps,
                 stepIndex + 1, functionIdentifier, arguments, context);
-        case WildcardStep wildcardStep               ->
+        case WildcardStep ignored                    ->
             applyFilterToNestedWildcard(parentValue, steps, stepIndex + 1, functionIdentifier, arguments, context);
         case RecursiveKeyStep recursiveKeyStep       -> applyFilterToNestedRecursiveKey(parentValue,
                 recursiveKeyStep.getId(), steps, stepIndex + 1, functionIdentifier, arguments, context);
-        case RecursiveWildcardStep recursiveWildcard -> applyFilterToNestedRecursiveWildcard(parentValue, steps,
+        case RecursiveWildcardStep ignored           -> applyFilterToNestedRecursiveWildcard(parentValue, steps,
                 stepIndex + 1, functionIdentifier, arguments, context);
         case RecursiveIndexStep recursiveIndexStep   -> applyFilterToNestedRecursiveIndex(parentValue,
                 recursiveIndexStep.getIndex().intValue(), steps, stepIndex + 1, functionIdentifier, arguments, context);
@@ -466,8 +447,8 @@ public class FilterCompiler {
                 attributeUnionStep.getAttributes(), steps, stepIndex + 1, functionIdentifier, arguments, context);
         case IndexUnionStep indexUnionStep           -> applyFilterToNestedIndexUnion(parentValue,
                 indexUnionStep.getIndices(), steps, stepIndex + 1, functionIdentifier, arguments, context);
-        case AttributeFinderStep attributeFinder     -> Value.error(ATTRIBUTE_FINDER_NOT_PERMITTED_IN_FILTER);
-        case HeadAttributeFinderStep headAttrFinder  -> Value.error(ATTRIBUTE_FINDER_NOT_PERMITTED_IN_FILTER);
+        case AttributeFinderStep ignored             -> Value.error(ATTRIBUTE_FINDER_NOT_PERMITTED_IN_FILTER);
+        case HeadAttributeFinderStep ignored         -> Value.error(ATTRIBUTE_FINDER_NOT_PERMITTED_IN_FILTER);
         case ConditionStep conditionStep             -> applyFilterToNestedCondition(parentValue, conditionStep, steps,
                 stepIndex + 1, functionIdentifier, arguments, context);
         case ExpressionStep expressionStep           -> applyFilterToNestedExpression(parentValue, expressionStep,
@@ -485,7 +466,8 @@ public class FilterCompiler {
      * @param functionIdentifier the function identifier
      * @param arguments the function arguments
      * @param context the compilation context
-     * @return the updated value (may be Value, PureExpression, or StreamExpression)
+     * @return the updated value (maybe a Value, PureExpression, or
+     * StreamExpression)
      */
     private CompiledExpression applySingleStepFilter(Value parentValue, Step step, String functionIdentifier,
             CompiledArguments arguments, CompilationContext context) {
@@ -496,11 +478,11 @@ public class FilterCompiler {
             applyIndexStepFilter(parentValue, indexStep.getIndex().intValue(), functionIdentifier, arguments, context);
         case ArraySlicingStep slicingStep            ->
             applySlicingStepFilter(parentValue, slicingStep, functionIdentifier, arguments, context);
-        case WildcardStep wildcardStep               ->
+        case WildcardStep ignored                    ->
             applyWildcardStepFilter(parentValue, functionIdentifier, arguments, context);
         case RecursiveKeyStep recursiveKeyStep       ->
             applyRecursiveKeyStepFilter(parentValue, recursiveKeyStep.getId(), functionIdentifier, arguments, context);
-        case RecursiveWildcardStep recursiveWildcard ->
+        case RecursiveWildcardStep ignored           ->
             applyRecursiveWildcardStepFilter(parentValue, functionIdentifier, arguments, context);
         case RecursiveIndexStep recursiveIndexStep   -> applyRecursiveIndexStepFilter(parentValue,
                 recursiveIndexStep.getIndex().intValue(), functionIdentifier, arguments, context);
@@ -508,8 +490,8 @@ public class FilterCompiler {
                 attributeUnionStep.getAttributes(), functionIdentifier, arguments, context);
         case IndexUnionStep indexUnionStep           ->
             applyIndexUnionStepFilter(parentValue, indexUnionStep.getIndices(), functionIdentifier, arguments, context);
-        case AttributeFinderStep attributeFinder     -> Value.error(ATTRIBUTE_FINDER_NOT_PERMITTED_IN_FILTER);
-        case HeadAttributeFinderStep headAttrFinder  -> Value.error(ATTRIBUTE_FINDER_NOT_PERMITTED_IN_FILTER);
+        case AttributeFinderStep ignored             -> Value.error(ATTRIBUTE_FINDER_NOT_PERMITTED_IN_FILTER);
+        case HeadAttributeFinderStep ignored         -> Value.error(ATTRIBUTE_FINDER_NOT_PERMITTED_IN_FILTER);
         case ConditionStep conditionStep             ->
             applyConditionStepFilter(parentValue, conditionStep, functionIdentifier, arguments, context);
         case ExpressionStep expressionStep           ->
@@ -537,7 +519,7 @@ public class FilterCompiler {
             CompiledArguments arguments, CompilationContext context) {
         // Handle implicit array mapping: apply key step to each element
         if (parentValue instanceof ArrayValue arrayValue) {
-            // Check if we can constant fold (all arguments are values)
+            // Check if we can fold a constant (all arguments are values)
             if (arguments.nature() == Nature.VALUE) {
                 val builder = ArrayValue.builder();
                 for (val element : arrayValue) {
@@ -590,12 +572,10 @@ public class FilterCompiler {
             }
             yield builder.build();
         }
-        case PURE   -> {
-            // Dynamic pure arguments: defer object reconstruction to runtime
-            yield new PureExpression(ctx -> {
-                val runtimeFieldValue = fieldValue;
-                val valueArguments    = new ArrayList<Value>(arguments.arguments().length + 1);
-                valueArguments.add(runtimeFieldValue);
+        case PURE   -> // Dynamic pure arguments: defer object reconstruction to runtime
+            new PureExpression(ctx -> {
+                val valueArguments = new ArrayList<Value>(arguments.arguments().length + 1);
+                valueArguments.add(fieldValue);
                 for (val argument : arguments.arguments()) {
                     switch (argument) {
                     case Value value                   -> valueArguments.add(value);
@@ -607,18 +587,16 @@ public class FilterCompiler {
                 val invocation   = new FunctionInvocation(functionIdentifier, valueArguments);
                 val filterResult = ctx.functionBroker().evaluateFunction(invocation);
 
+                val builder = ObjectValue.builder();
                 if (filterResult instanceof UndefinedValue) {
                     // Remove field
-                    val builder = ObjectValue.builder();
                     for (val entry : objectValue.entrySet()) {
                         if (!entry.getKey().equals(key)) {
                             builder.put(entry.getKey(), entry.getValue());
                         }
                     }
-                    return builder.build();
                 } else {
                     // Replace field value
-                    val builder = ObjectValue.builder();
                     for (val entry : objectValue.entrySet()) {
                         if (entry.getKey().equals(key)) {
                             builder.put(entry.getKey(), filterResult);
@@ -626,10 +604,9 @@ public class FilterCompiler {
                             builder.put(entry.getKey(), entry.getValue());
                         }
                     }
-                    return builder.build();
                 }
+                return builder.build();
             }, arguments.isSubscriptionScoped());
-        }
         case STREAM -> {
             // Dynamic streaming arguments: defer object reconstruction to runtime with
             // reactive streams
@@ -644,18 +621,17 @@ public class FilterCompiler {
                             val invocation   = new FunctionInvocation(functionIdentifier, valueArguments);
                             val filterResult = context.getFunctionBroker().evaluateFunction(invocation);
 
+                            val builder = ObjectValue.builder();
                             if (filterResult instanceof UndefinedValue) {
                                 // Remove field
-                                val builder = ObjectValue.builder();
                                 for (val entry : objectValue.entrySet()) {
                                     if (!entry.getKey().equals(key)) {
                                         builder.put(entry.getKey(), entry.getValue());
                                     }
                                 }
-                                return (Value) builder.build();
+                                return builder.build();
                             } else {
                                 // Replace field value
-                                val builder = ObjectValue.builder();
                                 for (val entry : objectValue.entrySet()) {
                                     if (entry.getKey().equals(key)) {
                                         builder.put(entry.getKey(), filterResult);
@@ -697,7 +673,7 @@ public class FilterCompiler {
                             for (val element : arrayValue) {
                                 // Each element should be an object with the key field
                                 if (!(element instanceof ObjectValue elementObj)) {
-                                    return (Value) Value.error("Cannot apply key step to non-object array element.");
+                                    return Value.error("Cannot apply key step to non-object array element.");
                                 }
 
                                 val fieldValue = elementObj.get(key);
@@ -716,18 +692,16 @@ public class FilterCompiler {
                                 val filterResult = context.getFunctionBroker().evaluateFunction(invocation);
 
                                 // Rebuild element object with filtered field
+                                val elemBuilder = ObjectValue.builder();
                                 if (filterResult instanceof UndefinedValue) {
                                     // Remove field from element
-                                    val elemBuilder = ObjectValue.builder();
                                     for (val entry : elementObj.entrySet()) {
                                         if (!entry.getKey().equals(key)) {
                                             elemBuilder.put(entry.getKey(), entry.getValue());
                                         }
                                     }
-                                    builder.add(elemBuilder.build());
                                 } else {
                                     // Replace field value in element
-                                    val elemBuilder = ObjectValue.builder();
                                     for (val entry : elementObj.entrySet()) {
                                         if (entry.getKey().equals(key)) {
                                             elemBuilder.put(entry.getKey(), filterResult);
@@ -735,10 +709,10 @@ public class FilterCompiler {
                                             elemBuilder.put(entry.getKey(), entry.getValue());
                                         }
                                     }
-                                    builder.add(elemBuilder.build());
                                 }
+                                builder.add(elemBuilder.build());
                             }
-                            return (Value) builder.build();
+                            return builder.build();
                         });
             return new StreamExpression(stream);
         } else {
@@ -772,18 +746,16 @@ public class FilterCompiler {
                     val filterResult = ctx.functionBroker().evaluateFunction(invocation);
 
                     // Rebuild element object with filtered field
+                    val elemBuilder = ObjectValue.builder();
                     if (filterResult instanceof UndefinedValue) {
                         // Remove field from element
-                        val elemBuilder = ObjectValue.builder();
                         for (val entry : elementObj.entrySet()) {
                             if (!entry.getKey().equals(key)) {
                                 elemBuilder.put(entry.getKey(), entry.getValue());
                             }
                         }
-                        builder.add(elemBuilder.build());
                     } else {
                         // Replace field value in element
-                        val elemBuilder = ObjectValue.builder();
                         for (val entry : elementObj.entrySet()) {
                             if (entry.getKey().equals(key)) {
                                 elemBuilder.put(entry.getKey(), filterResult);
@@ -791,8 +763,8 @@ public class FilterCompiler {
                                 elemBuilder.put(entry.getKey(), entry.getValue());
                             }
                         }
-                        builder.add(elemBuilder.build());
                     }
+                    builder.add(elemBuilder.build());
                 }
                 return builder.build();
             }, arguments.isSubscriptionScoped());
@@ -2277,25 +2249,23 @@ public class FilterCompiler {
             return resultValue;
         }
 
-        if (parentValue instanceof ObjectValue objectValue) {
-            if (!(keyOrIndexValue instanceof io.sapl.api.model.TextValue textValue)) {
-                return Value.error("Object access type mismatch. Expect a string, was: "
-                        + keyOrIndexValue.getClass().getSimpleName());
-            }
-
-            String key = textValue.value();
-            if (!objectValue.containsKey(key)) {
-                return parentValue;
-            }
-            val result = applyKeyStepFilter(objectValue, key, functionIdentifier, arguments, context);
-            // Path-based filters reject dynamic arguments, so result is always a Value
-            if (!(result instanceof Value resultValue)) {
-                return Value.error("Unexpected non-value result in expression step filter.");
-            }
-            return resultValue;
+        val objectValue = (ObjectValue) parentValue;
+        if (!(keyOrIndexValue instanceof io.sapl.api.model.TextValue textValue)) {
+            return Value.error(
+                    "Object access type mismatch. Expect a string, was: " + keyOrIndexValue.getClass().getSimpleName());
         }
 
-        return parentValue;
+        String key = textValue.value();
+        if (!objectValue.containsKey(key)) {
+            return parentValue;
+        }
+        val result = applyKeyStepFilter(objectValue, key, functionIdentifier, arguments, context);
+        // Path-based filters reject dynamic arguments, so result is always a Value
+        if (!(result instanceof Value resultValue)) {
+            return Value.error("Unexpected non-value result in expression step filter.");
+        }
+        return resultValue;
+
     }
 
     /**
@@ -2352,20 +2322,18 @@ public class FilterCompiler {
                     context);
         }
 
-        if (parentValue instanceof ObjectValue objectValue) {
-            if (!(keyOrIndexValue instanceof io.sapl.api.model.TextValue textValue)) {
-                return Value.error("Object access type mismatch. Expect a string, was: "
-                        + keyOrIndexValue.getClass().getSimpleName());
-            }
-
-            String key = textValue.value();
-            if (!objectValue.containsKey(key)) {
-                return parentValue;
-            }
-
-            return applyFilterToNestedPath(objectValue, key, steps, stepIndex, functionIdentifier, arguments, context);
+        val objectValue = (ObjectValue) parentValue;
+        if (!(keyOrIndexValue instanceof io.sapl.api.model.TextValue textValue)) {
+            return Value.error(
+                    "Object access type mismatch. Expect a string, was: " + keyOrIndexValue.getClass().getSimpleName());
         }
 
-        return parentValue;
+        String key = textValue.value();
+        if (!objectValue.containsKey(key)) {
+            return parentValue;
+        }
+
+        return applyFilterToNestedPath(objectValue, key, steps, stepIndex, functionIdentifier, arguments, context);
+
     }
 }

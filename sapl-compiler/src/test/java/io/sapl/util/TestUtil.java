@@ -22,6 +22,7 @@ import io.sapl.api.attributes.AttributeRepository;
 import io.sapl.api.model.*;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pip.Attribute;
+import io.sapl.api.pip.EnvironmentAttribute;
 import io.sapl.api.pip.PolicyInformationPoint;
 import io.sapl.attributes.CachingAttributeBroker;
 import io.sapl.attributes.InMemoryAttributeRepository;
@@ -46,24 +47,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 @UtilityClass
 public class TestUtil {
-    private static final ObjectMapper           MAPPER               = new ObjectMapper();
-    private static final DefaultFunctionBroker  FUNCTION_BROKER      = new DefaultFunctionBroker();
-    private static final AttributeRepository    ATTRIBUTE_REPOSITORY = new InMemoryAttributeRepository(
-            Clock.systemUTC());
-    private static final CachingAttributeBroker ATTRIBUTE_BROKER     = new CachingAttributeBroker(ATTRIBUTE_REPOSITORY);
-
-    static {
-        ATTRIBUTE_BROKER.loadPolicyInformationPointLibrary(new TimePolicyInformationPoint(Clock.systemUTC()));
-        ATTRIBUTE_BROKER.loadPolicyInformationPointLibrary(new TestPip());
-        try {
-            FUNCTION_BROKER.loadStaticFunctionLibrary(TemporalFunctionLibrary.class);
-            FUNCTION_BROKER.loadStaticFunctionLibrary(SimpleFunctionLibrary.class);
-            FUNCTION_BROKER.loadStaticFunctionLibrary(FilterFunctionLibrary.class);
-            FUNCTION_BROKER.loadStaticFunctionLibrary(MockFunctionLibrary.class);
-        } catch (InitializationException e) {
-            throw new RuntimeException(e);
-        }
-    }
+    private static final ObjectMapper MAPPER = new ObjectMapper();
 
     @Slf4j
     @PolicyInformationPoint(name = "test")
@@ -71,18 +55,78 @@ public class TestUtil {
         @Attribute
         public Flux<Value> echo(Value entity) {
             log.debug("echo called with entity: {}", entity);
-            return Flux.just(entity, Value.of("hello world")).delayElements(Duration.ofMillis(30));
+            return Flux.just(entity);
+        }
+
+        @EnvironmentAttribute
+        public Flux<Value> sequence() {
+            log.debug("sequence called - emitting [1, 2, 3]");
+            return Flux.just(Value.of(1), Value.of(2), Value.of(3));
+        }
+
+        @Attribute
+        public Flux<Value> counter(Value entity) {
+            log.debug("counter called with entity: {}", entity);
+            if (!(entity instanceof NumberValue startNum)) {
+                return Flux.just(Value.error("counter requires a number argument"));
+            }
+            int startInt = startNum.value().intValue();
+            return Flux.just(Value.of(startInt), Value.of(startInt + 1), Value.of(startInt + 2));
+        }
+
+        @Attribute
+        public Flux<Value> changes(Value entity) {
+            log.debug("changes called with entity: {}", entity);
+            if (!(entity instanceof ObjectValue obj)) {
+                return Flux.just(Value.error("changes requires an object argument"));
+            }
+            // Emit the object 3 times with an incrementing "version" field
+            return Flux.just(ObjectValue.builder().putAll(obj).put("version", Value.of(1)).build(),
+                    ObjectValue.builder().putAll(obj).put("version", Value.of(2)).build(),
+                    ObjectValue.builder().putAll(obj).put("version", Value.of(3)).build());
         }
 
     }
 
+    /**
+     * Creates a new CompilationContext with fresh broker instances for test
+     * isolation.
+     */
+    @SneakyThrows
     private CompilationContext createCompilationContext() {
-        return new CompilationContext(FUNCTION_BROKER, ATTRIBUTE_BROKER);
+        val functionBroker = new DefaultFunctionBroker();
+        functionBroker.loadStaticFunctionLibrary(TemporalFunctionLibrary.class);
+        functionBroker.loadStaticFunctionLibrary(SimpleFunctionLibrary.class);
+        functionBroker.loadStaticFunctionLibrary(FilterFunctionLibrary.class);
+        functionBroker.loadStaticFunctionLibrary(MockFunctionLibrary.class);
+
+        val attributeRepository = new InMemoryAttributeRepository(Clock.systemUTC());
+        val attributeBroker     = new CachingAttributeBroker(attributeRepository);
+        attributeBroker.loadPolicyInformationPointLibrary(new TimePolicyInformationPoint(Clock.systemUTC()));
+        attributeBroker.loadPolicyInformationPointLibrary(new TestPip());
+
+        return new CompilationContext(functionBroker, attributeBroker);
     }
 
+    /**
+     * Creates a new EvaluationContext with fresh broker instances for test
+     * isolation.
+     */
+    @SneakyThrows
     private EvaluationContext createEvaluationContext(AuthorizationSubscription authorizationSubscription) {
+        val functionBroker = new DefaultFunctionBroker();
+        functionBroker.loadStaticFunctionLibrary(TemporalFunctionLibrary.class);
+        functionBroker.loadStaticFunctionLibrary(SimpleFunctionLibrary.class);
+        functionBroker.loadStaticFunctionLibrary(FilterFunctionLibrary.class);
+        functionBroker.loadStaticFunctionLibrary(MockFunctionLibrary.class);
+
+        val attributeRepository = new InMemoryAttributeRepository(Clock.systemUTC());
+        val attributeBroker     = new CachingAttributeBroker(attributeRepository);
+        attributeBroker.loadPolicyInformationPointLibrary(new TimePolicyInformationPoint(Clock.systemUTC()));
+        attributeBroker.loadPolicyInformationPointLibrary(new TestPip());
+
         return new EvaluationContext("testConfigurationId", "testSubscriptionId", authorizationSubscription,
-                FUNCTION_BROKER, ATTRIBUTE_BROKER);
+                functionBroker, attributeBroker);
     }
 
     private EvaluationContext createEvaluationContext() {
@@ -90,10 +134,20 @@ public class TestUtil {
                 Value.of("Moonglum"), Value.of("Tanelorn")));
     }
 
+    /**
+     * Asserts that a compiled expression evaluates to an expected value.
+     * <p>
+     * For expressions with attribute finders, only the first emitted value is
+     * verified. The stream is canceled after verification (broker keeps streams
+     * open).
+     *
+     * @param expression the expression to compile and evaluate
+     * @param expected the expected value
+     */
     public static void assertCompiledExpressionEvaluatesTo(String expression, Value expected) {
         val compiledExpression = compileExpression(expression);
         val evaluated          = evaluateExpression(compiledExpression, createEvaluationContext());
-        StepVerifier.create(evaluated).expectNext(expected).verifyComplete();
+        StepVerifier.create(evaluated).expectNext(expected).thenCancel();
     }
 
     /**
@@ -128,6 +182,27 @@ public class TestUtil {
     }
 
     /**
+     * Asserts that an expression evaluates to a specific Value.
+     * <p>
+     * Convenience method for comparing expression results to Value objects.
+     *
+     * @param actualExpression the expression to evaluate
+     * @param expectedValue the expected Value object
+     */
+    public static void assertExpressionEvaluatesTo(String actualExpression, Value expectedValue) {
+        assertThat(evaluate(actualExpression)).isEqualTo(expectedValue);
+    }
+
+    public static void assertExpressionAsStreamEmits(String actualExpression, String... expectedJson) {
+        val actual = evaluateExpression(actualExpression);
+        val values = new Value[expectedJson.length];
+        for (int i = 0; i < values.length; i++) {
+            values[i] = json(expectedJson[i]);
+        }
+        StepVerifier.create(actual).expectNext(values).thenCancel().verify();
+    }
+
+    /**
      * Asserts that an expression evaluates to an error containing a specific
      * message.
      * <p>
@@ -143,12 +218,22 @@ public class TestUtil {
         assertThat(((ErrorValue) result).message().toLowerCase()).contains(expectedMessageFragment.toLowerCase());
     }
 
+    /**
+     * Asserts that a compiled expression evaluates to an error containing a
+     * specific message.
+     * <p>
+     * For expressions with attribute finders, only the first emitted value is
+     * verified. The stream is canceled after verification.
+     *
+     * @param expression the expression to compile and evaluate
+     * @param message the expected error message fragment (case-insensitive)
+     */
     public static void assertCompiledExpressionEvaluatesToErrorContaining(String expression, String message) {
         val compiledExpression = compileExpression(expression);
         val evaluated          = evaluateExpression(compiledExpression, createEvaluationContext());
         StepVerifier.create(evaluated).expectNextMatches(
                 e -> e instanceof ErrorValue error && error.message().toLowerCase().contains(message.toLowerCase()))
-                .verifyComplete();
+                .thenCancel();
     }
 
     public static void assertExpressionCompilesToValue(String expression, Value expected) {
@@ -193,6 +278,37 @@ public class TestUtil {
         case StreamExpression streamExpression ->
             streamExpression.stream().contextWrite(ctx -> ctx.put(EvaluationContext.class, evaluationContext));
         };
+    }
+
+    /**
+     * Creates a test case with description, expression, and expected values.
+     * Automatically wraps expected values into String[] for varargs compatibility.
+     * <p>
+     * This helper is used with parameterized tests to avoid verbose array wrapping
+     * in test data.
+     *
+     * @param description test case description
+     * @param expression the SAPL expression to test
+     * @param expectedValues the expected JSON values as strings
+     * @return Object[] containing description, expression, and expected values
+     * array
+     */
+    public static Object[] testCase(String description, String expression, String... expectedValues) {
+        return new Object[] { description, expression, expectedValues };
+    }
+
+    /**
+     * Creates an error test case with description, expression, and error fragment.
+     * <p>
+     * This helper is used with parameterized error tests.
+     *
+     * @param description test case description
+     * @param expression the SAPL expression that should produce an error
+     * @param errorFragment the expected error message fragment (case-insensitive)
+     * @return Object[] containing description, expression, and error fragment
+     */
+    public static Object[] errorCase(String description, String expression, String errorFragment) {
+        return new Object[] { description, expression, errorFragment };
     }
 
 }

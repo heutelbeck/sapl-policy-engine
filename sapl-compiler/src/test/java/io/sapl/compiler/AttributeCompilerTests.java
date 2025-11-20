@@ -18,8 +18,6 @@
 package io.sapl.compiler;
 
 import io.sapl.api.attributes.AttributeBroker;
-import io.sapl.api.attributes.AttributeFinderInvocation;
-import io.sapl.api.attributes.AttributeRepository;
 import io.sapl.api.functions.FunctionBroker;
 import io.sapl.api.model.*;
 import io.sapl.api.pdp.AuthorizationSubscription;
@@ -32,9 +30,7 @@ import io.sapl.functions.DefaultFunctionBroker;
 import io.sapl.util.ParserUtil;
 import lombok.SneakyThrows;
 import lombok.val;
-import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -42,88 +38,50 @@ import reactor.core.publisher.Flux;
 import reactor.test.StepVerifier;
 
 import java.time.Clock;
-import java.time.Duration;
 import java.util.stream.Stream;
 
+import static io.sapl.util.TestUtil.json;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
-/**
- * Comprehensive tests for AttributeCompiler covering attribute finder steps,
- * environment attributes, option resolution, head attributes, and error
- * conditions.
- *
- * Test data theme: Norse Mythology
- */
 class AttributeCompilerTests {
 
-    private static final DefaultFunctionBroker  FUNCTION_BROKER      = new DefaultFunctionBroker();
-    private static final AttributeRepository    ATTRIBUTE_REPOSITORY = new InMemoryAttributeRepository(
-            Clock.systemUTC());
-    private static final CachingAttributeBroker ATTRIBUTE_BROKER     = new CachingAttributeBroker(ATTRIBUTE_REPOSITORY);
+    private record Brokers(FunctionBroker functionBroker, AttributeBroker attributeBroker) {}
 
-    static {
-        ATTRIBUTE_BROKER.loadPolicyInformationPointLibrary(new NorsePip());
+    /**
+     * Creates fresh broker instances for test isolation.
+     */
+    private Brokers createBrokers() {
+        val functionBroker      = new DefaultFunctionBroker();
+        val attributeRepository = new InMemoryAttributeRepository(Clock.systemUTC());
+        val attributeBroker     = new CachingAttributeBroker(attributeRepository);
+        attributeBroker.loadPolicyInformationPointLibrary(new DiscworldPip());
+        return new Brokers(functionBroker, attributeBroker);
     }
 
-    @PolicyInformationPoint(name = "norse")
-    public static class NorsePip {
-
-        @Attribute
-        public Flux<Value> realm(Value entity) {
-            if (entity instanceof TextValue text && text.value().equals("Odin")) {
-                return Flux.just(Value.of("Asgard"));
-            }
-            if (entity instanceof TextValue text && text.value().equals("Thor")) {
-                return Flux.just(Value.of("Midgard"));
-            }
-            return Flux.just(Value.of("Unknown"));
-        }
-
-        @Attribute
-        public Flux<Value> weapon(Value entity) {
-            if (entity instanceof TextValue text && text.value().equals("Thor")) {
-                return Flux.just(Value.of("Mjolnir"));
-            }
-            if (entity instanceof TextValue text && text.value().equals("Odin")) {
-                return Flux.just(Value.of("Gungnir"));
-            }
-            return Flux.just(Value.UNDEFINED);
-        }
-
-        @EnvironmentAttribute
-        public Flux<Value> streaming() {
-            return Flux.<Value>just(Value.of("Yggdrasil"), Value.of("Bifrost"), Value.of("Valhalla"));
-        }
-
-        @Attribute
-        public Flux<Value> withArguments(Value entity, Value arg1, Value arg2) {
-            return Flux.just(Value.ofArray(entity, arg1, arg2));
-        }
-
-        @Attribute
-        public Flux<Value> echo(Value entity) {
-            return Flux.just(entity);
-        }
-
-        @EnvironmentAttribute(name = "rune.magic")
-        public Flux<Value> runeMagic() {
-            return Flux.just(Value.of("Ancient Power"));
-        }
-    }
-
+    /**
+     * Creates a fresh CompilationContext with new broker instances for test
+     * isolation.
+     */
     private CompilationContext createCompilationContext() {
-        return new CompilationContext(FUNCTION_BROKER, ATTRIBUTE_BROKER);
+        val brokers = createBrokers();
+        return new CompilationContext(brokers.functionBroker(), brokers.attributeBroker());
     }
 
+    /**
+     * Creates a fresh EvaluationContext with new broker instances for test
+     * isolation.
+     */
     private EvaluationContext createEvaluationContext(AuthorizationSubscription authorizationSubscription) {
-        return new EvaluationContext("asgard", "subscription_001", authorizationSubscription, FUNCTION_BROKER,
-                ATTRIBUTE_BROKER);
+        val brokers = createBrokers();
+        return new EvaluationContext("ankh_morpork", "subscription_001", authorizationSubscription,
+                brokers.functionBroker(), brokers.attributeBroker());
     }
 
     private EvaluationContext createEvaluationContext() {
-        return createEvaluationContext(new AuthorizationSubscription(Value.of("Thor"), Value.of("wield"),
-                Value.of("Mjolnir"), Value.of("Midgard")));
+        return createEvaluationContext(new AuthorizationSubscription(Value.of("Rincewind"), Value.of("flee"),
+                Value.of("danger"), Value.of("The Disc")));
     }
 
     private EvaluationContext createEvaluationContextWithGlobalOptions(ObjectValue globalOptions) {
@@ -146,297 +104,307 @@ class AttributeCompilerTests {
         };
     }
 
-    @Nested
-    class AttributeFinderStepTests {
+    // =========================================================================
+    // Helper Methods
+    // =========================================================================
 
-        @Test
-        void basicAttributeFinderStep_compilesToStreamExpression() {
-            val compiled = compileExpression("\"Odin\".<norse.realm>");
-            assertThat(compiled).isInstanceOf(StreamExpression.class);
+    private void assertEvaluatesToValue(String expression, Value expected) {
+        val compiled  = compileExpression(expression);
+        val evaluated = evaluateExpression(compiled, createEvaluationContext());
+        StepVerifier.create(evaluated).expectNext(expected).thenCancel().verify();
+    }
+
+    private void assertEvaluatesToValueWithContext(String expression, Value expected, EvaluationContext ctx) {
+        val compiled  = compileExpression(expression);
+        val evaluated = evaluateExpression(compiled, ctx);
+        StepVerifier.create(evaluated).expectNext(expected).thenCancel().verify();
+    }
+
+    private void assertEvaluatesToError(String expression, String errorFragment) {
+        val compiled  = compileExpression(expression);
+        val evaluated = evaluateExpression(compiled, createEvaluationContext());
+        StepVerifier.create(evaluated).expectNextMatches(v -> v instanceof ErrorValue error
+                && error.message().toLowerCase().contains(errorFragment.toLowerCase())).thenCancel().verify();
+    }
+
+    private void assertHeadCompletesWithValue(String expression, Value expected) {
+        val compiled  = compileExpression(expression);
+        val evaluated = evaluateExpression(compiled, createEvaluationContext());
+        StepVerifier.create(evaluated).expectNext(expected).verifyComplete();
+    }
+
+    private void assertStreamEmitsValues(String expression, Value... expectedValues) {
+        val compiled  = compileExpression(expression);
+        val evaluated = evaluateExpression(compiled, createEvaluationContext());
+        StepVerifier.create(evaluated.take(expectedValues.length)).expectNext(expectedValues).verifyComplete();
+    }
+
+    private void assertCompilesToStreamExpression(String expression) {
+        val compiled = compileExpression(expression);
+        assertThat(compiled).isInstanceOf(StreamExpression.class);
+    }
+
+    private void assertThrowsCompileTimeError(String expression) {
+        assertThrows(SaplCompilerException.class, () -> compileExpression(expression));
+    }
+
+    // =========================================================================
+    // Policy Information Point
+    // =========================================================================
+
+    @PolicyInformationPoint(name = "discworld")
+    public static class DiscworldPip {
+
+        @Attribute
+        public Flux<Value> city(Value entity) {
+            if (entity instanceof TextValue text && text.value().equals("Ridcully")) {
+                return Flux.just(Value.of("Ankh-Morpork"));
+            }
+            if (entity instanceof TextValue text && text.value().equals("Rincewind")) {
+                return Flux.just(Value.of("The Disc"));
+            }
+            return Flux.just(Value.of("Unknown"));
         }
 
-        @Test
-        void basicAttributeFinderStep_evaluatesToCorrectValue() {
-            val compiled  = compileExpression("\"Odin\".<norse.realm>");
-            val evaluated = evaluateExpression(compiled, createEvaluationContext());
-            StepVerifier.create(evaluated.take(1)).expectNext(Value.of("Asgard")).verifyComplete();
+        @Attribute
+        public Flux<Value> companion(Value entity) {
+            if (entity instanceof TextValue text && text.value().equals("Rincewind")) {
+                return Flux.just(Value.of("The Luggage"));
+            }
+            if (entity instanceof TextValue text && text.value().equals("Ridcully")) {
+                return Flux.just(Value.of("Staff"));
+            }
+            return Flux.just(Value.UNDEFINED);
         }
 
-        @Test
-        void attributeFinderStepOnVariable_evaluatesCorrectly() {
-            val ctx       = createEvaluationContext().with("god", Value.of("Thor"));
-            val compiled  = compileExpression("god.<norse.weapon>");
-            val evaluated = evaluateExpression(compiled, ctx);
-            StepVerifier.create(evaluated.take(1)).expectNext(Value.of("Mjolnir")).verifyComplete();
+        @EnvironmentAttribute
+        public Flux<Value> famousLocations() {
+            return Flux.just(Value.of("Unseen University"), Value.of("The Patrician's Palace"),
+                    Value.of("The Mended Drum"));
         }
 
-        @Test
-        void attributeFinderStepWithArguments_passesArgumentsCorrectly() {
-            val compiled  = compileExpression("\"Odin\".<norse.withArguments(\"Sleipnir\", \"Huginn\")>");
-            val evaluated = evaluateExpression(compiled, createEvaluationContext());
-            val expected  = Value.ofArray(Value.of("Odin"), Value.of("Sleipnir"), Value.of("Huginn"));
-            StepVerifier.create(evaluated.take(1)).expectNext(expected).verifyComplete();
+        @Attribute
+        public Flux<Value> withArguments(Value entity, Value arg1, Value arg2) {
+            return Flux.just(Value.ofArray(entity, arg1, arg2));
         }
 
-        @Test
-        void chainedAttributeFinderSteps_evaluateInSequence() {
-            val compiled  = compileExpression("\"Thor\".<norse.echo>.<norse.weapon>");
-            val evaluated = evaluateExpression(compiled, createEvaluationContext());
-            StepVerifier.create(evaluated.take(1)).expectNext(Value.of("Mjolnir")).verifyComplete();
+        @Attribute
+        public Flux<Value> echo(Value entity) {
+            return Flux.just(entity);
         }
 
-        @Test
-        void attributeFinderOnUndefined_producesCompileTimeError() {
-            // UNDEFINED entity is rejected at compile time
-            assertThrows(SaplCompilerException.class, () -> compileExpression("undefined.<norse.realm>"));
-        }
-
-        @Test
-        void attributeFinderOnNull_passesNullToAttribute() {
-            val compiled  = compileExpression("null.<norse.echo>");
-            val evaluated = evaluateExpression(compiled, createEvaluationContext());
-            StepVerifier.create(evaluated.take(1)).expectNext(Value.NULL).verifyComplete();
-        }
-
-        @Test
-        void attributeFinderOnError_propagatesError() {
-            val compiled  = compileExpression("(1/0).<norse.realm>");
-            val evaluated = evaluateExpression(compiled, createEvaluationContext());
-            StepVerifier.create(evaluated.take(1)).expectNextMatches(v -> v instanceof ErrorValue).verifyComplete();
+        @EnvironmentAttribute(name = "octarine.magic")
+        public Flux<Value> octarineMagic() {
+            return Flux.just(Value.of("The Eighth Colour"));
         }
     }
 
-    @Nested
-    class EnvironmentAttributeTests {
+    // =========================================================================
+    // Compilation Type Tests
+    // =========================================================================
 
-        @Test
-        void environmentAttribute_compilesToStreamExpression() {
-            val compiled = compileExpression("<norse.streaming>");
-            assertThat(compiled).isInstanceOf(StreamExpression.class);
-        }
-
-        @Test
-        void environmentAttribute_evaluatesToStream() {
-            val compiled  = compileExpression("<norse.streaming [{\"fresh\": true}]>");
-            val evaluated = evaluateExpression(compiled, createEvaluationContext());
-            StepVerifier.create(evaluated.take(3))
-                    .expectNext(Value.of("Yggdrasil"), Value.of("Bifrost"), Value.of("Valhalla")).verifyComplete();
-        }
-
-        @Test
-        void environmentAttributeWithQualifiedName_resolvesCorrectly() {
-            val compiled  = compileExpression("<norse.rune.magic>");
-            val evaluated = evaluateExpression(compiled, createEvaluationContext());
-            StepVerifier.create(evaluated.take(1)).expectNext(Value.of("Ancient Power")).verifyComplete();
-        }
+    @ParameterizedTest(name = "[{index}] {0}")
+    @MethodSource
+    void attributeFindersCompileToStreamExpressions(String description, String expression) {
+        assertCompilesToStreamExpression(expression);
     }
 
-    @Nested
-    class HeadAttributeTests {
-
-        @Test
-        void headAttributeFinderStep_compilesToStreamExpression() {
-            val compiled = compileExpression("\"Odin\".|<norse.realm>");
-            assertThat(compiled).isInstanceOf(StreamExpression.class);
-        }
-
-        @Test
-        void headAttributeFinderStep_takesOnlyFirstValue() {
-            val compiled  = compileExpression("|<norse.streaming [{\"fresh\": true}]>");
-            val evaluated = evaluateExpression(compiled, createEvaluationContext());
-            StepVerifier.create(evaluated).expectNext(Value.of("Yggdrasil")).verifyComplete();
-        }
-
-        @Test
-        void headEnvironmentAttribute_takesOnlyFirstValue() {
-            val compiled  = compileExpression("|<norse.streaming [{\"fresh\": true}]>");
-            val evaluated = evaluateExpression(compiled, createEvaluationContext());
-            StepVerifier.create(evaluated).expectNext(Value.of("Yggdrasil")).verifyComplete();
-        }
-
-        @Test
-        void headOnRegularAttribute_completesAfterFirstValue() {
-            val compiled  = compileExpression("\"Thor\".|<norse.weapon>");
-            val evaluated = evaluateExpression(compiled, createEvaluationContext());
-            StepVerifier.create(evaluated).expectNext(Value.of("Mjolnir")).verifyComplete();
-        }
+    private static Stream<Arguments> attributeFindersCompileToStreamExpressions() {
+        return Stream.of(
+                arguments("Basic attribute finder compiles to StreamExpression", "\"Ridcully\".<discworld.city>"),
+                arguments("Environment attribute compiles to StreamExpression", "<discworld.famousLocations>"),
+                arguments("Head attribute finder compiles to StreamExpression", "\"Ridcully\".|<discworld.city>"));
     }
 
-    @Nested
-    class OptionResolutionTests {
+    // =========================================================================
+    // Basic Value Tests
+    // =========================================================================
 
-        @Test
-        void defaultOptions_areUsedWhenNoOthersSpecified() {
-            val compiled = compileExpression("\"Odin\".<norse.realm>");
-            assertThat(compiled).isInstanceOf(StreamExpression.class);
-            // Default options: 3s timeout, 30s poll, 1s backoff, 3 retries
-            // Cannot directly inspect options but verify it compiles and runs
-            val evaluated = evaluateExpression(compiled, createEvaluationContext());
-            StepVerifier.create(evaluated.take(1)).expectNext(Value.of("Asgard")).verifyComplete();
-        }
-
-        @Test
-        void inlineOptions_overrideDefaults() {
-            val compiled  = compileExpression("\"Thor\".<norse.weapon [{\"fresh\": true}]>");
-            val evaluated = evaluateExpression(compiled, createEvaluationContext());
-            StepVerifier.create(evaluated.take(1)).expectNext(Value.of("Mjolnir")).verifyComplete();
-        }
-
-        @Test
-        void globalOptions_overrideDefaultsButNotInline() {
-            val globalOptions = ObjectValue.builder().put("fresh", Value.TRUE).put("retries", Value.of(5)).build();
-            val ctx           = createEvaluationContextWithGlobalOptions(globalOptions);
-            val compiled      = compileExpression("\"Odin\".<norse.realm>");
-            val evaluated     = evaluateExpression(compiled, ctx);
-            StepVerifier.create(evaluated.take(1)).expectNext(Value.of("Asgard")).verifyComplete();
-        }
-
-        @Test
-        void inlineOptions_takePrecedenceOverGlobal() {
-            val globalOptions = ObjectValue.builder().put("retries", Value.of(10)).build();
-            val ctx           = createEvaluationContextWithGlobalOptions(globalOptions);
-            val compiled      = compileExpression("\"Thor\".<norse.weapon [{\"retries\": 1}]>");
-            val evaluated     = evaluateExpression(compiled, ctx);
-            StepVerifier.create(evaluated.take(1)).expectNext(Value.of("Mjolnir")).verifyComplete();
-        }
-
-        @Test
-        void wrongTypeInOptions_fallsBackToNextLevel() {
-            // String instead of number for retries - should fall back to default
-            val compiled  = compileExpression("\"Odin\".<norse.realm [{\"retries\": \"many\"}]>");
-            val evaluated = evaluateExpression(compiled, createEvaluationContext());
-            StepVerifier.create(evaluated.take(1)).expectNext(Value.of("Asgard")).verifyComplete();
-        }
-
-        @Test
-        void numericOptionsWithDecimals_areTruncatedToIntegers() {
-            val compiled  = compileExpression("\"Thor\".<norse.weapon [{\"retries\": 3.7}]>");
-            val evaluated = evaluateExpression(compiled, createEvaluationContext());
-            // Should truncate to 3, not error
-            StepVerifier.create(evaluated.take(1)).expectNext(Value.of("Mjolnir")).verifyComplete();
-        }
-
-        @Test
-        void booleanOptions_acceptBooleanValues() {
-            val compiled  = compileExpression("\"Odin\".<norse.realm [{\"fresh\": true}]>");
-            val evaluated = evaluateExpression(compiled, createEvaluationContext());
-            StepVerifier.create(evaluated.take(1)).expectNext(Value.of("Asgard")).verifyComplete();
-        }
-
-        @Test
-        void timeoutOptions_acceptNumericMilliseconds() {
-            val compiled  = compileExpression("\"Thor\".<norse.weapon [{\"initialTimeOutMs\": 5000}]>");
-            val evaluated = evaluateExpression(compiled, createEvaluationContext());
-            StepVerifier.create(evaluated.take(1)).expectNext(Value.of("Mjolnir")).verifyComplete();
-        }
+    @ParameterizedTest(name = "[{index}] {0}")
+    @MethodSource
+    void attributeFinderBasicEvaluations(String description, String expression, String expectedJson) {
+        assertEvaluatesToValue(expression, json(expectedJson));
     }
 
-    @Nested
-    class ErrorConditionTests {
-
-        @Test
-        void attributeFinderOnUndefinedEntity_producesCompileTimeError() {
-            // UNDEFINED entity is rejected at compile time
-            assertThrows(SaplCompilerException.class, () -> compileExpression("undefined.<norse.realm>"));
-        }
-
-        @Test
-        void attributeFinderOnErrorEntity_propagatesError() {
-            val compiled  = compileExpression("(1/0).<norse.weapon>");
-            val evaluated = evaluateExpression(compiled, createEvaluationContext());
-            StepVerifier.create(evaluated.take(1)).expectNextMatches(v -> v instanceof ErrorValue).verifyComplete();
-        }
-
-        @Test
-        void invalidAttributeName_producesErrorAtRuntime() {
-            val compiled  = compileExpression("\"Odin\".<norse.nonexistent>");
-            val evaluated = evaluateExpression(compiled, createEvaluationContext());
-            StepVerifier.create(evaluated.take(1)).expectNextMatches(v -> v instanceof ErrorValue).verifyComplete();
-        }
-
-        @Test
-        void errorInOptions_propagatesToResult() {
-            val compiled  = compileExpression("\"Thor\".<norse.weapon [{\"retries\": (1/0)}]>");
-            val evaluated = evaluateExpression(compiled, createEvaluationContext());
-            StepVerifier.create(evaluated.take(1)).expectNextMatches(v -> v instanceof ErrorValue).verifyComplete();
-        }
-
-        @Test
-        void errorInArgument_passedToAttributeInArray() {
-            // Error is passed as part of the argument array, not propagated immediately
-            val compiled  = compileExpression("\"Odin\".<norse.withArguments((1/0), \"valid\")>");
-            val evaluated = evaluateExpression(compiled, createEvaluationContext());
-            StepVerifier.create(evaluated.take(1)).expectNextMatches(
-                    v -> v instanceof ArrayValue array && array.size() == 3 && array.get(1) instanceof ErrorValue)
-                    .verifyComplete();
-        }
+    private static Stream<Arguments> attributeFinderBasicEvaluations() {
+        return Stream.of(
+                arguments("Attribute finder evaluates to correct value", "\"Ridcully\".<discworld.city>",
+                        "\"Ankh-Morpork\""),
+                arguments("Attribute finder with arguments passes arguments correctly",
+                        "\"Ridcully\".<discworld.withArguments(\"The Librarian\", \"Hex\")>",
+                        "[\"Ridcully\", \"The Librarian\", \"Hex\"]"),
+                arguments("Chained attribute finders evaluate in sequence",
+                        "\"Rincewind\".<discworld.echo>.<discworld.companion>", "\"The Luggage\""),
+                arguments("Attribute finder on null passes null to attribute", "null.<discworld.echo>", "null"),
+                arguments("Environment attribute with qualified name resolves correctly", "<discworld.octarine.magic>",
+                        "\"The Eighth Colour\""),
+                arguments("Inline options override defaults", "\"Rincewind\".<discworld.companion>", "\"The Luggage\""),
+                arguments("Wrong type in options falls back to next level",
+                        "\"Ridcully\".<discworld.city [{\"retries\": \"many\"}]>", "\"Ankh-Morpork\""),
+                arguments("Numeric options with decimals are truncated to integers",
+                        "\"Rincewind\".<discworld.companion [{\"retries\": 3.7}]>", "\"The Luggage\""),
+                arguments("Boolean options accept boolean values", "\"Ridcully\".<discworld.city>", "\"Ankh-Morpork\""),
+                arguments("Timeout options accept numeric milliseconds",
+                        "\"Rincewind\".<discworld.companion [{\"initialTimeOutMs\": 5000}]>", "\"The Luggage\""));
     }
 
-    @Nested
-    class ReactiveStreamBehaviorTests {
+    // =========================================================================
+    // Error Tests
+    // =========================================================================
 
-        @Test
-        void attributeReturnsMultipleValues_allAreEmitted() {
-            val compiled  = compileExpression("<norse.streaming [{\"fresh\": true}]>");
-            val evaluated = evaluateExpression(compiled, createEvaluationContext());
-            StepVerifier.create(evaluated.take(3))
-                    .expectNext(Value.of("Yggdrasil"), Value.of("Bifrost"), Value.of("Valhalla")).verifyComplete();
-        }
-
-        @Test
-        void headOnStreamingAttribute_completesAfterFirst() {
-            val compiled  = compileExpression("|<norse.streaming [{\"fresh\": true}]>");
-            val evaluated = evaluateExpression(compiled, createEvaluationContext());
-            StepVerifier.create(evaluated).expectNext(Value.of("Yggdrasil")).verifyComplete();
-        }
-
-        @Test
-        void entityFromStream_triggersResubscription() {
-            // This tests that if entity is a stream, attribute is re-evaluated for each
-            // value
-            val ctx       = createEvaluationContext().with("gods", Value.ofArray(Value.of("Thor"), Value.of("Odin")));
-            val compiled  = compileExpression("gods[0].|<norse.weapon>");
-            val evaluated = evaluateExpression(compiled, ctx);
-            StepVerifier.create(evaluated).expectNext(Value.of("Mjolnir")).verifyComplete();
-        }
+    @ParameterizedTest(name = "[{index}] {0}")
+    @MethodSource
+    void attributeFinderErrorConditions(String description, String expression, String errorFragment) {
+        assertEvaluatesToError(expression, errorFragment);
     }
 
-    @Nested
-    class SpecialCasesTests {
+    private static Stream<Arguments> attributeFinderErrorConditions() {
+        return Stream.of(
+                arguments("Attribute finder on error entity propagates error", "(1/0).<discworld.city>",
+                        "division by zero"),
+                arguments("Attribute finder on error propagates error", "(1/0).<discworld.companion>",
+                        "division by zero"),
+                arguments("Invalid attribute name produces error at runtime", "\"Ridcully\".<discworld.nonexistent>",
+                        "attribute"),
+                arguments("Error in options propagates to result",
+                        "\"Rincewind\".<discworld.companion [{\"retries\": (1/0)}]>", "division by zero"));
+    }
 
-        @Test
-        void headOperatorWithAttribute_takesFirstValue() {
-            // Head operator test - inline options not supported with head operator
-            val compiled  = compileExpression("\"Odin\".|<norse.realm>");
-            val evaluated = evaluateExpression(compiled, createEvaluationContext());
-            StepVerifier.create(evaluated).expectNext(Value.of("Asgard")).verifyComplete();
-        }
+    // =========================================================================
+    // Compile-Time Error Tests
+    // =========================================================================
 
-        @Test
-        void nullOptions_usesDefaults() {
-            val compiled  = compileExpression("\"Thor\".|<norse.weapon>");
-            val evaluated = evaluateExpression(compiled, createEvaluationContext());
-            StepVerifier.create(evaluated).expectNext(Value.of("Mjolnir")).verifyComplete();
-        }
+    @ParameterizedTest(name = "[{index}] {0}")
+    @MethodSource
+    void attributeFinderCompileTimeErrors(String description, String expression) {
+        assertThrowsCompileTimeError(expression);
+    }
 
-        @Test
-        void attributeOnArray_eachElementProcessed() {
-            val ctx       = createEvaluationContext().with("gods", Value.ofArray(Value.of("Thor"), Value.of("Odin")));
-            val compiled  = compileExpression("gods.|<norse.echo>");
-            val evaluated = evaluateExpression(compiled, ctx);
-            // This should process the array as a single entity
-            StepVerifier.create(evaluated).expectNext(Value.ofArray(Value.of("Thor"), Value.of("Odin")))
-                    .verifyComplete();
-        }
+    private static Stream<Arguments> attributeFinderCompileTimeErrors() {
+        return Stream.of(
+                arguments("Attribute finder on undefined produces compile-time error", "undefined.<discworld.city>"),
+                arguments("Attribute finder on undefined entity produces compile-time error",
+                        "undefined.<discworld.city>"));
+    }
 
-        @Test
-        void attributeOnObject_passedAsEntity() {
-            val ctx       = createEvaluationContext().with("being",
-                    ObjectValue.builder().put("name", Value.of("Thor")).build());
-            val compiled  = compileExpression("being.|<norse.echo>");
-            val evaluated = evaluateExpression(compiled, ctx);
-            StepVerifier.create(evaluated).expectNext(ObjectValue.builder().put("name", Value.of("Thor")).build())
-                    .verifyComplete();
+    // =========================================================================
+    // Head Operator Completion Tests
+    // =========================================================================
+
+    @ParameterizedTest(name = "[{index}] {0}")
+    @MethodSource
+    void headOperatorCompletionTests(String description, String expression, String expectedJson) {
+        assertHeadCompletesWithValue(expression, json(expectedJson));
+    }
+
+    private static Stream<Arguments> headOperatorCompletionTests() {
+        return Stream.of(
+                arguments("Head attribute finder takes only first value", "|<discworld.famousLocations>",
+                        "\"Unseen University\""),
+                arguments("Head environment attribute takes only first value", "|<discworld.famousLocations>",
+                        "\"Unseen University\""),
+                arguments("Head on regular attribute completes after first value",
+                        "\"Rincewind\".|<discworld.companion>", "\"The Luggage\""),
+                arguments("Head on streaming attribute completes after first", "|<discworld.famousLocations>",
+                        "\"Unseen University\""),
+                arguments("Head operator with attribute takes first value", "\"Ridcully\".|<discworld.city>",
+                        "\"Ankh-Morpork\""),
+                arguments("Null options uses defaults", "\"Rincewind\".|<discworld.companion>", "\"The Luggage\""));
+    }
+
+    // =========================================================================
+    // Multi-Value Stream Tests
+    // =========================================================================
+
+    @ParameterizedTest(name = "[{index}] {0}")
+    @MethodSource
+    void multiValueStreamTests(String description, String expression, String... expectedJson) {
+        val expectedValues = new Value[expectedJson.length];
+        for (int i = 0; i < expectedJson.length; i++) {
+            expectedValues[i] = json(expectedJson[i]);
         }
+        assertStreamEmitsValues(expression, expectedValues);
+    }
+
+    private static Stream<Arguments> multiValueStreamTests() {
+        return Stream.of(
+                arguments("Environment attribute evaluates to stream", "<discworld.famousLocations>",
+                        new String[] { "\"Unseen University\"", "\"The Patrician's Palace\"", "\"The Mended Drum\"" }),
+                arguments("Attribute returns multiple values all are emitted", "<discworld.famousLocations>",
+                        new String[] { "\"Unseen University\"", "\"The Patrician's Palace\"", "\"The Mended Drum\"" }));
+    }
+
+    // =========================================================================
+    // Custom Context Tests
+    // =========================================================================
+
+    @Test
+    void attributeFinderStepOnVariable_evaluatesCorrectly() {
+        val ctx = createEvaluationContext().with("wizard", Value.of("Rincewind"));
+        assertEvaluatesToValueWithContext("wizard.<discworld.companion>", Value.of("The Luggage"), ctx);
+    }
+
+    @Test
+    void globalOptions_overrideDefaultsButNotInline() {
+        val globalOptions = (ObjectValue) json("{\"fresh\": true, \"retries\": 5}");
+        val ctx           = createEvaluationContextWithGlobalOptions(globalOptions);
+        assertEvaluatesToValueWithContext("\"Ridcully\".<discworld.city>", Value.of("Ankh-Morpork"), ctx);
+    }
+
+    @Test
+    void inlineOptions_takePrecedenceOverGlobal() {
+        val globalOptions = (ObjectValue) json("{\"retries\": 10}");
+        val ctx           = createEvaluationContextWithGlobalOptions(globalOptions);
+        assertEvaluatesToValueWithContext("\"Rincewind\".<discworld.companion [{\"retries\": 1}]>",
+                Value.of("The Luggage"), ctx);
+    }
+
+    @Test
+    void entityFromStream_triggersResubscription() {
+        val ctx       = createEvaluationContext().with("wizards", json("[\"Rincewind\", \"Ridcully\"]"));
+        val compiled  = compileExpression("wizards[0].|<discworld.companion>");
+        val evaluated = evaluateExpression(compiled, ctx);
+        StepVerifier.create(evaluated).expectNext(Value.of("The Luggage")).verifyComplete();
+    }
+
+    @Test
+    void attributeOnArray_eachElementProcessed() {
+        val ctx       = createEvaluationContext().with("wizards", json("[\"Rincewind\", \"Ridcully\"]"));
+        val compiled  = compileExpression("wizards.|<discworld.echo>");
+        val evaluated = evaluateExpression(compiled, ctx);
+        StepVerifier.create(evaluated).expectNext(json("[\"Rincewind\", \"Ridcully\"]")).verifyComplete();
+    }
+
+    @Test
+    void attributeOnObject_passedAsEntity() {
+        val ctx       = createEvaluationContext().with("being", json("{\"name\": \"Rincewind\"}"));
+        val compiled  = compileExpression("being.|<discworld.echo>");
+        val evaluated = evaluateExpression(compiled, ctx);
+        StepVerifier.create(evaluated).expectNext(json("{\"name\": \"Rincewind\"}")).verifyComplete();
+    }
+
+    // =========================================================================
+    // Special Case Tests
+    // =========================================================================
+
+    @Test
+    void defaultOptions_areUsedWhenNoOthersSpecified() {
+        val compiled = compileExpression("\"Ridcully\".<discworld.city>");
+        assertThat(compiled).isInstanceOf(StreamExpression.class);
+        // Default options: 3s timeout, 30s poll, 1s backoff, 3 retries
+        // Cannot directly inspect options but verify it compiles and runs
+        val evaluated = evaluateExpression(compiled, createEvaluationContext());
+        StepVerifier.create(evaluated).expectNext(Value.of("Ankh-Morpork")).thenCancel().verify();
+    }
+
+    @Test
+    void errorInArgument_passedToAttributeInArray() {
+        // Error is passed as part of the argument array, not propagated immediately
+        val compiled  = compileExpression("\"Ridcully\".<discworld.withArguments((1/0), \"valid\")>");
+        val evaluated = evaluateExpression(compiled, createEvaluationContext());
+        StepVerifier.create(evaluated)
+                .expectNextMatches(
+                        v -> v instanceof ArrayValue array && array.size() == 3 && array.get(1) instanceof ErrorValue)
+                .thenCancel().verify();
     }
 }

@@ -65,6 +65,7 @@ class SchemaValidationTests {
         val result    = validator.apply(Value.of("Aragorn"));
 
         assertThat(result).isInstanceOf(ErrorValue.class);
+        assertThat(((ErrorValue) result).message()).isNotEmpty();
     }
 
     static Stream<Arguments> invalidSchemaTestCases() {
@@ -78,6 +79,7 @@ class SchemaValidationTests {
         val result    = validator.apply(invalidValue);
 
         assertThat(result).isInstanceOf(ErrorValue.class);
+        assertThat(((ErrorValue) result).message()).isNotEmpty();
     }
 
     static Stream<Arguments> invalidValueTestCases() {

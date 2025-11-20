@@ -42,16 +42,21 @@ import static io.sapl.util.TestUtil.assertExpressionCompilesToValue;
 
 @Slf4j
 class SaplCompilerTests {
-    private static final SAPLInterpreter       PARSER               = new DefaultSAPLInterpreter();
-    private static final DefaultFunctionBroker FUNCTION_BROKER      = new DefaultFunctionBroker();
-    private static final AttributeRepository   ATTRIBUTE_REPOSITORY = new InMemoryAttributeRepository(
-            Clock.systemUTC());
-    private static final AttributeBroker       ATTRIBUTE_BROKER     = new CachingAttributeBroker(ATTRIBUTE_REPOSITORY);
+    private static final SAPLInterpreter PARSER = new DefaultSAPLInterpreter();
+
+    private CompilationContext createCompilationContext() throws InitializationException {
+        val functionBroker      = new DefaultFunctionBroker();
+        val attributeRepository = new InMemoryAttributeRepository(Clock.systemUTC());
+        val attributeBroker     = new CachingAttributeBroker(attributeRepository);
+
+        functionBroker.loadStaticFunctionLibrary(TemporalFunctionLibrary.class);
+        functionBroker.loadStaticFunctionLibrary(ArrayFunctionLibrary.class);
+
+        return new CompilationContext(functionBroker, attributeBroker);
+    }
 
     @Test
     void experimentWithCompiler() throws InitializationException {
-        FUNCTION_BROKER.loadStaticFunctionLibrary(TemporalFunctionLibrary.class);
-        FUNCTION_BROKER.loadStaticFunctionLibrary(ArrayFunctionLibrary.class);
         val source  = """
                 policy "test policy"
                 permit 7[?(@>subscription.age)]
@@ -59,7 +64,7 @@ class SaplCompilerTests {
                   // resource.id == "def";
                 """;
         val sapl    = PARSER.parse(source);
-        val context = new CompilationContext(FUNCTION_BROKER, ATTRIBUTE_BROKER);
+        val context = createCompilationContext();
         try {
             val compiled = SaplCompiler.compileDocument(sapl, context);
             System.err.println(compiled);
@@ -83,6 +88,6 @@ class SaplCompilerTests {
         val expression = """
                 "123".<test.echo> == "123"
                 """;
-        TestUtil.evaluateExpression(expression).doOnNext(System.err::println).take(2).blockLast(Duration.ofSeconds(5));
+        TestUtil.evaluateExpression(expression).doOnNext(System.err::println).take(1).blockLast(Duration.ofSeconds(5));
     }
 }
