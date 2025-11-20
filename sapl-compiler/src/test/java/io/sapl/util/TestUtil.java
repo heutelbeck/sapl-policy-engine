@@ -17,6 +17,7 @@
  */
 package io.sapl.util;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.sapl.api.attributes.AttributeRepository;
 import io.sapl.api.model.*;
 import io.sapl.api.pdp.AuthorizationSubscription;
@@ -45,6 +46,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 @UtilityClass
 public class TestUtil {
+    private static final ObjectMapper           MAPPER               = new ObjectMapper();
     private static final DefaultFunctionBroker  FUNCTION_BROKER      = new DefaultFunctionBroker();
     private static final AttributeRepository    ATTRIBUTE_REPOSITORY = new InMemoryAttributeRepository(
             Clock.systemUTC());
@@ -92,6 +94,53 @@ public class TestUtil {
         val compiledExpression = compileExpression(expression);
         val evaluated          = evaluateExpression(compiledExpression, createEvaluationContext());
         StepVerifier.create(evaluated).expectNext(expected).verifyComplete();
+    }
+
+    /**
+     * Parses a JSON string into a Value object.
+     * <p>
+     * Convenience method for creating expected values in tests without using the
+     * compiler.
+     *
+     * @param jsonString the JSON string to parse
+     * @param <T> the expected Value type
+     * @return the parsed Value
+     */
+    @SneakyThrows
+    @SuppressWarnings("unchecked")
+    public static <T extends Value> T json(String jsonString) {
+        val node  = MAPPER.readTree(jsonString);
+        val value = ValueJsonMarshaller.fromJsonNode(node);
+        return (T) value;
+    }
+
+    /**
+     * Asserts that an expression evaluates to an expected value.
+     * <p>
+     * Convenience method for comparing expression results in tests. The expected
+     * value is parsed from JSON to avoid testing the compiler against itself.
+     *
+     * @param actualExpression the expression to evaluate
+     * @param expectedJson the JSON string representing the expected result
+     */
+    public static void assertExpressionsEqual(String actualExpression, String expectedJson) {
+        assertThat(evaluate(actualExpression)).isEqualTo(json(expectedJson));
+    }
+
+    /**
+     * Asserts that an expression evaluates to an error containing a specific
+     * message.
+     * <p>
+     * Convenience method for testing error conditions.
+     *
+     * @param expression the expression to evaluate
+     * @param expectedMessageFragment the expected error message fragment
+     * (case-insensitive)
+     */
+    public static void assertEvaluatesToError(String expression, String expectedMessageFragment) {
+        val result = evaluate(expression);
+        assertThat(result).isInstanceOf(ErrorValue.class);
+        assertThat(((ErrorValue) result).message().toLowerCase()).contains(expectedMessageFragment.toLowerCase());
     }
 
     public static void assertCompiledExpressionEvaluatesToErrorContaining(String expression, String message) {

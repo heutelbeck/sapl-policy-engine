@@ -17,13 +17,12 @@
  */
 package io.sapl.compiler;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.sapl.api.model.*;
 import io.sapl.util.TestUtil;
-import lombok.SneakyThrows;
 import lombok.val;
 import org.junit.jupiter.api.Test;
 
+import static io.sapl.util.TestUtil.json;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
@@ -39,16 +38,6 @@ import static org.assertj.core.api.Assertions.assertThat;
  * interpreter.
  */
 class LegacyFilterTests {
-
-    private static final ObjectMapper MAPPER = new ObjectMapper();
-
-    @SneakyThrows
-    @SuppressWarnings("unchecked")
-    private static <T extends Value> T json(String jsonString) {
-        val node  = MAPPER.readTree(jsonString);
-        val value = ValueJsonMarshaller.fromJsonNode(node);
-        return (T) value;
-    }
 
     // =========================================================================
     // SIMPLE FILTER TESTS (from ApplyFilteringSimpleTests)

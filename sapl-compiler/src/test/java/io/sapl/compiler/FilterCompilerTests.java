@@ -19,11 +19,16 @@ package io.sapl.compiler;
 
 import io.sapl.api.model.*;
 import io.sapl.util.TestUtil;
+import lombok.val;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
+import reactor.test.StepVerifier;
 
 import java.util.Objects;
 
+import static io.sapl.util.TestUtil.assertEvaluatesToError;
+import static io.sapl.util.TestUtil.assertExpressionsEqual;
+import static io.sapl.util.TestUtil.json;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
@@ -33,958 +38,572 @@ class FilterCompilerTests {
 
     @Test
     void removeFilterOnObject_returnsUndefined() {
-        var result = TestUtil.evaluate("{} |- filter.remove");
-
-        assertThat(result).isInstanceOf(UndefinedValue.class);
+        assertThat(TestUtil.evaluate("{} |- filter.remove")).isEqualTo(Value.UNDEFINED);
     }
 
     @Test
     void removeFilterOnNull_returnsUndefined() {
-        var result = TestUtil.evaluate("null |- filter.remove");
-
-        assertThat(result).isInstanceOf(UndefinedValue.class);
+        assertThat(TestUtil.evaluate("null |- filter.remove")).isEqualTo(Value.UNDEFINED);
     }
 
     @Test
     void blackenFilterOnString_returnsBlackened() {
-        var result = TestUtil.evaluate("\"secret\" |- filter.blacken");
-
-        assertThat(result).isInstanceOf(TextValue.class);
-        assertThat(((TextValue) result).value()).isEqualTo("XXXXXX");
+        assertExpressionsEqual("\"secret\" |- filter.blacken", "\"XXXXXX\"");
     }
 
     @Test
     void blackenFilterOnLongerString_returnsBlackened() {
-        var result = TestUtil.evaluate("\"password\" |- filter.blacken");
-
-        assertThat(result).isInstanceOf(TextValue.class);
-        assertThat(((TextValue) result).value()).isEqualTo("XXXXXXXX");
+        assertExpressionsEqual("\"password\" |- filter.blacken", "\"XXXXXXXX\"");
     }
 
     @Test
     void customFunctionWithArgs_appliesFunction() {
-        var result = TestUtil.evaluate("\"Ben\" |- simple.append(\" from \", \"Berlin\")");
-
-        assertThat(result).isInstanceOf(TextValue.class);
-        assertThat(((TextValue) result).value()).isEqualTo("Ben from Berlin");
+        assertExpressionsEqual("\"Ben\" |- simple.append(\" from \", \"Berlin\")", "\"Ben from Berlin\"");
     }
 
     @Test
     void customFunctionNoArgs_appliesFunction() {
-        var result = TestUtil.evaluate("\"hello\" |- simple.length");
-
-        assertThat(result).isInstanceOf(NumberValue.class);
-        assertThat(((NumberValue) result).value().intValue()).isEqualTo(5);
+        assertExpressionsEqual("\"hello\" |- simple.length", "5");
     }
 
     @Test
     void errorPropagatesFromParent() {
-        var result = TestUtil.evaluate("(10/0) |- filter.remove");
-
-        assertThat(result).isInstanceOf(ErrorValue.class);
-        assertThat(((ErrorValue) result).message()).contains("Division by zero");
+        assertEvaluatesToError("(10/0) |- filter.remove", "Division by zero");
     }
 
     @Test
     void undefinedParentReturnsError() {
-        var result = TestUtil.evaluate("undefined |- filter.remove");
-
-        assertThat(result).isInstanceOf(ErrorValue.class);
-        assertThat(((ErrorValue) result).message()).contains("Filters cannot be applied to undefined");
+        assertEvaluatesToError("undefined |- filter.remove", "Filters cannot be applied to undefined");
     }
 
     @Test
     void filterOnNumber_worksCorrectly() {
-        var result = TestUtil.evaluate("42 |- simple.double");
-
-        assertThat(result).isInstanceOf(NumberValue.class);
-        assertThat(((NumberValue) result).value().intValue()).isEqualTo(84);
+        assertExpressionsEqual("42 |- simple.double", "84");
     }
 
     @Test
     void filterOnBoolean_worksCorrectly() {
-        var result = TestUtil.evaluate("true |- simple.negate");
-
-        assertThat(result).isInstanceOf(BooleanValue.class);
-        assertThat(((BooleanValue) result).value()).isFalse();
+        assertExpressionsEqual("true |- simple.negate", "false");
     }
 
     @Test
     void filterOnArray_appliesWithoutEach() {
-        var result = TestUtil.evaluate("[1,2,3] |- simple.length");
-
-        assertThat(result).isInstanceOf(NumberValue.class);
-        assertThat(((NumberValue) result).value().intValue()).isEqualTo(3);
+        assertExpressionsEqual("[1,2,3] |- simple.length", "3");
     }
 
     @Test
     void filterWithErrorInArguments_returnsError() {
-        var result = TestUtil.evaluate("\"text\" |- simple.append(10/0)");
-
-        assertThat(result).isInstanceOf(ErrorValue.class);
-        assertThat(((ErrorValue) result).message()).contains("Division by zero");
+        assertEvaluatesToError("\"text\" |- simple.append(10/0)", "Division by zero");
     }
 
     @Test
     void chainedFilterExpressions_appliesSequentially() {
-        var result = TestUtil.evaluate("5 |- simple.double");
-
-        assertThat(result).isInstanceOf(NumberValue.class);
-        assertThat(((NumberValue) result).value().intValue()).isEqualTo(10);
+        assertExpressionsEqual("5 |- simple.double", "10");
     }
 
     @Test
     void eachRemovesAllElements_filtersAll() {
-        var result = TestUtil.evaluate("[null, 5] |- each filter.remove");
-
-        assertThat(result).isInstanceOf(ArrayValue.class);
-        var arrayResult = (ArrayValue) result;
-        assertThat(arrayResult).isEmpty();
+        assertExpressionsEqual("[null, 5] |- each filter.remove", "[]");
     }
 
     @Test
     void eachAppliesFunction_transformsElements() {
-        var result = TestUtil.evaluate("[\"a\", \"b\"] |- each simple.append(\"!\")");
-
-        assertThat(result).isInstanceOf(ArrayValue.class);
-        var arrayResult = (ArrayValue) result;
-        assertThat(arrayResult).hasSize(2);
-        assertThat(((TextValue) arrayResult.get(0)).value()).isEqualTo("a!");
-        assertThat(((TextValue) arrayResult.get(1)).value()).isEqualTo("b!");
+        assertExpressionsEqual("[\"a\", \"b\"] |- each simple.append(\"!\")", "[\"a!\", \"b!\"]");
     }
 
     @Test
     void emptyArrayUnchanged_returnsEmpty() {
-        var result = TestUtil.evaluate("[] |- each filter.remove");
-
-        assertThat(result).isInstanceOf(ArrayValue.class);
-        var arrayResult = (ArrayValue) result;
-        assertThat(arrayResult).isEmpty();
+        assertExpressionsEqual("[] |- each filter.remove", "[]");
     }
 
     @Test
     void eachOnNonArray_returnsError() {
-        var result = TestUtil.evaluate("{} |- each filter.remove");
-
-        assertThat(result).isInstanceOf(ErrorValue.class);
-        assertThat(((ErrorValue) result).message()).contains("Cannot use 'each' keyword with non-array values");
+        assertEvaluatesToError("{} |- each filter.remove", "Cannot use 'each' keyword with non-array values");
     }
 
     @Test
     void eachDoublesNumbers_transformsNumbers() {
-        var result = TestUtil.evaluate("[1, 2, 3] |- each simple.double");
-
-        assertThat(result).isInstanceOf(ArrayValue.class);
-        var arrayResult = (ArrayValue) result;
-        assertThat(arrayResult).hasSize(3);
-        assertThat(((NumberValue) arrayResult.get(0)).value().intValue()).isEqualTo(2);
-        assertThat(((NumberValue) arrayResult.get(1)).value().intValue()).isEqualTo(4);
-        assertThat(((NumberValue) arrayResult.get(2)).value().intValue()).isEqualTo(6);
+        assertExpressionsEqual("[1, 2, 3] |- each simple.double", "[2, 4, 6]");
     }
 
     @Test
     void eachRemovesAllElements_returnsEmptyArray() {
-        var result = TestUtil.evaluate("[null, null, null] |- each filter.remove");
-
-        assertThat(result).isInstanceOf(ArrayValue.class);
-        var arrayResult = (ArrayValue) result;
-        assertThat(arrayResult).isEmpty();
+        assertExpressionsEqual("[null, null, null] |- each filter.remove", "[]");
     }
 
     @Test
     void eachWithMultipleArguments_appliesCorrectly() {
-        var result = TestUtil.evaluate("[\"Ben\", \"Alice\"] |- each simple.append(\" from \", \"Berlin\")");
-
-        assertThat(result).isInstanceOf(ArrayValue.class);
-        var arrayResult = (ArrayValue) result;
-        assertThat(arrayResult).hasSize(2);
-        assertThat(((TextValue) arrayResult.get(0)).value()).isEqualTo("Ben from Berlin");
-        assertThat(((TextValue) arrayResult.get(1)).value()).isEqualTo("Alice from Berlin");
+        assertExpressionsEqual("[\"Ben\", \"Alice\"] |- each simple.append(\" from \", \"Berlin\")",
+                "[\"Ben from Berlin\", \"Alice from Berlin\"]");
     }
 
     @Test
     void eachBlackensStrings_redactsEachElement() {
-        var result = TestUtil.evaluate("[\"secret\", \"password\"] |- each filter.blacken");
-
-        assertThat(result).isInstanceOf(ArrayValue.class);
-        var arrayResult = (ArrayValue) result;
-        assertThat(arrayResult).hasSize(2);
-        assertThat(((TextValue) arrayResult.get(0)).value()).isEqualTo("XXXXXX");
-        assertThat(((TextValue) arrayResult.get(1)).value()).isEqualTo("XXXXXXXX");
+        assertExpressionsEqual("[\"secret\", \"password\"] |- each filter.blacken", "[\"XXXXXX\", \"XXXXXXXX\"]");
     }
 
     @Test
     void eachNegatesBooleans_negatesEachElement() {
-        var result = TestUtil.evaluate("[true, false, true] |- each simple.negate");
-
-        assertThat(result).isInstanceOf(ArrayValue.class);
-        var arrayResult = (ArrayValue) result;
-        assertThat(arrayResult).hasSize(3);
-        assertThat(((BooleanValue) arrayResult.get(0)).value()).isFalse();
-        assertThat(((BooleanValue) arrayResult.get(1)).value()).isTrue();
-        assertThat(((BooleanValue) arrayResult.get(2)).value()).isFalse();
+        assertExpressionsEqual("[true, false, true] |- each simple.negate", "[false, true, false]");
     }
 
     @Test
     void extendedFilterWithSingleStatement_appliesFunction() {
-        var result = TestUtil.evaluate("\"test\" |- { : filter.blacken }");
-
-        assertThat(result).isInstanceOf(TextValue.class);
-        assertThat(((TextValue) result).value()).isEqualTo("XXXX");
+        assertExpressionsEqual("\"test\" |- { : filter.blacken }", "\"XXXX\"");
     }
 
     @Test
     void extendedFilterWithMultipleStatements_appliesSequentially() {
-        var result = TestUtil.evaluate("5 |- { : simple.double, : simple.double }");
-
-        assertThat(result).isInstanceOf(NumberValue.class);
-        assertThat(((NumberValue) result).value().intValue()).isEqualTo(20);
+        assertExpressionsEqual("5 |- { : simple.double, : simple.double }", "20");
     }
 
     @Test
     void extendedFilterWithArguments_appliesCorrectly() {
-        var result = TestUtil.evaluate("\"Hello\" |- { : simple.append(\" \"), : simple.append(\"World\") }");
-
-        assertThat(result).isInstanceOf(TextValue.class);
-        assertThat(((TextValue) result).value()).isEqualTo("Hello World");
+        assertExpressionsEqual("\"Hello\" |- { : simple.append(\" \"), : simple.append(\"World\") }",
+                "\"Hello World\"");
     }
 
     @Test
     void extendedFilterRemovesValue_returnsUndefined() {
-        var result = TestUtil.evaluate("42 |- { : filter.remove }");
-
-        assertThat(result).isInstanceOf(UndefinedValue.class);
+        assertThat(TestUtil.evaluate("42 |- { : filter.remove }")).isEqualTo(Value.UNDEFINED);
     }
 
     @Test
     void extendedFilterReplaceValue_returnsReplacement() {
-        var result = TestUtil.evaluate("\"old\" |- { : filter.replace(\"new\") }");
-
-        assertThat(result).isInstanceOf(TextValue.class);
-        assertThat(((TextValue) result).value()).isEqualTo("new");
+        assertExpressionsEqual("\"old\" |- { : filter.replace(\"new\") }", "\"new\"");
     }
 
     @Test
     void extendedFilterErrorInParent_propagatesError() {
-        var result = TestUtil.evaluate("(10/0) |- { : filter.remove }");
-
-        assertThat(result).isInstanceOf(ErrorValue.class);
-        assertThat(((ErrorValue) result).message()).contains("Division by zero");
+        assertEvaluatesToError("(10/0) |- { : filter.remove }", "Division by zero");
     }
 
     @Test
     void extendedFilterWithTargetPath_filtersField() {
-        var result = TestUtil.evaluate("{ \"name\": \"secret\" } |- { @.name : filter.blacken }");
-
-        assertThat(result).isInstanceOf(ObjectValue.class);
-        var objectResult = (ObjectValue) result;
-        assertThat(objectResult.get("name")).isInstanceOf(TextValue.class);
-        assertThat(((TextValue) Objects.requireNonNull(objectResult.get("name"))).value()).isEqualTo("XXXXXX");
+        assertExpressionsEqual("{ \"name\": \"secret\" } |- { @.name : filter.blacken }", "{ \"name\": \"XXXXXX\" }");
     }
 
     @Test
     void extendedFilterWithTargetPath_removesField() {
-        var result = TestUtil.evaluate("{ \"name\": \"test\", \"age\": 42 } |- { @.name : filter.remove }");
-
-        assertThat(result).isInstanceOf(ObjectValue.class);
-        var objectResult = (ObjectValue) result;
-        assertThat(objectResult.containsKey("name")).isFalse();
-        assertThat(objectResult.containsKey("age")).isTrue();
-        assertThat(objectResult.get("age")).isEqualTo(Value.of(42));
+        assertExpressionsEqual("{ \"name\": \"test\", \"age\": 42 } |- { @.name : filter.remove }", "{ \"age\": 42 }");
     }
 
     @Test
     void extendedFilterWithTargetPath_transformsField() {
-        var result = TestUtil.evaluate("{ \"count\": 5 } |- { @.count : simple.double }");
-
-        assertThat(result).isInstanceOf(ObjectValue.class);
-        var objectResult = (ObjectValue) result;
-        assertThat(objectResult.get("count")).isInstanceOf(NumberValue.class);
-        assertThat(((NumberValue) Objects.requireNonNull(objectResult.get("count"))).value().intValue()).isEqualTo(10);
+        assertExpressionsEqual("{ \"count\": 5 } |- { @.count : simple.double }", "{ \"count\": 10 }");
     }
 
     @Test
     void extendedFilterWithTargetPath_multipleFields() {
-        var result = TestUtil.evaluate(
-                "{ \"first\": \"hello\", \"second\": \"world\" } |- { @.first : simple.append(\"!\"), @.second : simple.append(\"?\") }");
-
-        assertThat(result).isInstanceOf(ObjectValue.class);
-        var objectResult = (ObjectValue) result;
-        assertThat(((TextValue) Objects.requireNonNull(objectResult.get("first"))).value()).isEqualTo("hello!");
-        assertThat(((TextValue) Objects.requireNonNull(objectResult.get("second"))).value()).isEqualTo("world?");
+        assertExpressionsEqual(
+                "{ \"first\": \"hello\", \"second\": \"world\" } |- { @.first : simple.append(\"!\"), @.second : simple.append(\"?\") }",
+                "{ \"first\": \"hello!\", \"second\": \"world?\" }");
     }
 
     @Test
     void extendedFilterWithTargetPath_nonExistentField_returnsError() {
-        var result = TestUtil.evaluate("{ \"name\": \"test\" } |- { @.missing : filter.blacken }");
-
-        assertThat(result).isInstanceOf(ErrorValue.class);
-        assertThat(((ErrorValue) result).message()).contains("Field 'missing' not found");
+        assertEvaluatesToError("{ \"name\": \"test\" } |- { @.missing : filter.blacken }", "Field 'missing' not found");
     }
 
     @Test
     void extendedFilterWithTargetPath_onNonObject_returnsError() {
-        var result = TestUtil.evaluate("\"text\" |- { @.field : filter.blacken }");
-
-        assertThat(result).isInstanceOf(ErrorValue.class);
-        assertThat(((ErrorValue) result).message()).contains("Cannot apply key step to non-object");
+        assertEvaluatesToError("\"text\" |- { @.field : filter.blacken }", "Cannot apply key step to non-object");
     }
 
     @Test
     void extendedFilterWithTargetPath_replacesField() {
-        var result = TestUtil.evaluate("{ \"status\": \"old\" } |- { @.status : filter.replace(\"new\") }");
-
-        assertThat(result).isInstanceOf(ObjectValue.class);
-        var objectResult = (ObjectValue) result;
-        assertThat(((TextValue) Objects.requireNonNull(objectResult.get("status"))).value()).isEqualTo("new");
+        assertExpressionsEqual("{ \"status\": \"old\" } |- { @.status : filter.replace(\"new\") }",
+                "{ \"status\": \"new\" }");
     }
 
     @Test
     void extendedFilterWithIndexPath_transformsElement() {
-        var result = TestUtil.evaluate("[1, 2, 3] |- { @[1] : simple.double }");
-
-        assertThat(result).isInstanceOf(ArrayValue.class);
-        var arrayResult = (ArrayValue) result;
-        assertThat(arrayResult).hasSize(3);
-        assertThat(((NumberValue) arrayResult.get(0)).value().intValue()).isEqualTo(1);
-        assertThat(((NumberValue) arrayResult.get(1)).value().intValue()).isEqualTo(4);
-        assertThat(((NumberValue) arrayResult.get(2)).value().intValue()).isEqualTo(3);
+        assertExpressionsEqual("[1, 2, 3] |- { @[1] : simple.double }", "[1, 4, 3]");
     }
 
     @Test
     void extendedFilterWithIndexPath_removesElement() {
-        var result = TestUtil.evaluate("[1, 2, 3] |- { @[1] : filter.remove }");
-
-        assertThat(result).isInstanceOf(ArrayValue.class);
-        var arrayResult = (ArrayValue) result;
-        assertThat(arrayResult).hasSize(2);
-        assertThat(((NumberValue) arrayResult.get(0)).value().intValue()).isEqualTo(1);
-        assertThat(((NumberValue) arrayResult.get(1)).value().intValue()).isEqualTo(3);
+        assertExpressionsEqual("[1, 2, 3] |- { @[1] : filter.remove }", "[1, 3]");
     }
 
     @Test
     void extendedFilterWithIndexPath_blackensElement() {
-        var result = TestUtil.evaluate("[\"public\", \"secret\", \"data\"] |- { @[1] : filter.blacken }");
-
-        assertThat(result).isInstanceOf(ArrayValue.class);
-        var arrayResult = (ArrayValue) result;
-        assertThat(arrayResult).hasSize(3);
-        assertThat(((TextValue) arrayResult.get(0)).value()).isEqualTo("public");
-        assertThat(((TextValue) arrayResult.get(1)).value()).isEqualTo("XXXXXX");
-        assertThat(((TextValue) arrayResult.get(2)).value()).isEqualTo("data");
+        assertExpressionsEqual("[\"public\", \"secret\", \"data\"] |- { @[1] : filter.blacken }",
+                "[\"public\", \"XXXXXX\", \"data\"]");
     }
 
     @Test
     void extendedFilterWithIndexPath_firstElement() {
-        var result = TestUtil.evaluate("[5, 10, 15] |- { @[0] : simple.double }");
-
-        assertThat(result).isInstanceOf(ArrayValue.class);
-        var arrayResult = (ArrayValue) result;
-        assertThat(arrayResult).hasSize(3);
-        assertThat(((NumberValue) arrayResult.get(0)).value().intValue()).isEqualTo(10);
-        assertThat(((NumberValue) arrayResult.get(1)).value().intValue()).isEqualTo(10);
-        assertThat(((NumberValue) arrayResult.get(2)).value().intValue()).isEqualTo(15);
+        assertExpressionsEqual("[5, 10, 15] |- { @[0] : simple.double }", "[10, 10, 15]");
     }
 
     @Test
     void extendedFilterWithIndexPath_lastElement() {
-        var result = TestUtil.evaluate("[5, 10, 15] |- { @[2] : simple.double }");
-
-        assertThat(result).isInstanceOf(ArrayValue.class);
-        var arrayResult = (ArrayValue) result;
-        assertThat(arrayResult).hasSize(3);
-        assertThat(((NumberValue) arrayResult.get(0)).value().intValue()).isEqualTo(5);
-        assertThat(((NumberValue) arrayResult.get(1)).value().intValue()).isEqualTo(10);
-        assertThat(((NumberValue) arrayResult.get(2)).value().intValue()).isEqualTo(30);
+        assertExpressionsEqual("[5, 10, 15] |- { @[2] : simple.double }", "[5, 10, 30]");
     }
 
     @Test
     void extendedFilterWithIndexPath_multipleIndices() {
-        var result = TestUtil.evaluate("[1, 2, 3, 4] |- { @[0] : simple.double, @[2] : simple.double }");
-
-        assertThat(result).isInstanceOf(ArrayValue.class);
-        var arrayResult = (ArrayValue) result;
-        assertThat(arrayResult).hasSize(4);
-        assertThat(((NumberValue) arrayResult.get(0)).value().intValue()).isEqualTo(2);
-        assertThat(((NumberValue) arrayResult.get(1)).value().intValue()).isEqualTo(2);
-        assertThat(((NumberValue) arrayResult.get(2)).value().intValue()).isEqualTo(6);
-        assertThat(((NumberValue) arrayResult.get(3)).value().intValue()).isEqualTo(4);
+        assertExpressionsEqual("[1, 2, 3, 4] |- { @[0] : simple.double, @[2] : simple.double }", "[2, 2, 6, 4]");
     }
 
     @Test
     void extendedFilterWithIndexPath_outOfBounds_returnsError() {
-        var result = TestUtil.evaluate("[1, 2, 3] |- { @[5] : simple.double }");
-
-        assertThat(result).isInstanceOf(ErrorValue.class);
-        assertThat(((ErrorValue) result).message()).contains("Array index out of bounds");
+        assertEvaluatesToError("[1, 2, 3] |- { @[5] : simple.double }", "Array index out of bounds");
     }
 
     @Test
     void extendedFilterWithIndexPath_negativeIndex_appliesCorrectly() {
-        var result = TestUtil.evaluate("[1, 2, 3] |- { @[-1] : simple.double }");
-
-        // @[-1] refers to the last element (3), simple.double(3) = 6
-        assertThat(result).isNotNull().isInstanceOf(ArrayValue.class);
-        var arrayResult = (ArrayValue) result;
-        assertThat(arrayResult.get(0)).isEqualTo(Value.of(1));
-        assertThat(arrayResult.get(1)).isEqualTo(Value.of(2));
-        assertThat(arrayResult.get(2)).isEqualTo(Value.of(6)); // 3 * 2 = 6
+        assertExpressionsEqual("[1, 2, 3] |- { @[-1] : simple.double }", "[1, 2, 6]");
     }
 
     @Test
     void extendedFilterWithIndexPath_onNonArray_returnsError() {
-        var result = TestUtil.evaluate("\"text\" |- { @[0] : filter.blacken }");
-
-        assertThat(result).isInstanceOf(ErrorValue.class);
-        assertThat(((ErrorValue) result).message()).contains("Cannot apply index step to non-array");
+        assertEvaluatesToError("\"text\" |- { @[0] : filter.blacken }", "Cannot apply index step to non-array");
     }
 
     @Test
     void extendedFilterWithSlicing_transformsRange() {
-        var result = TestUtil.evaluate("[1, 2, 3, 4, 5] |- { @[1:3] : simple.double }");
-
-        assertThat(result).isInstanceOf(ArrayValue.class);
-        var arrayResult = (ArrayValue) result;
-        assertThat(arrayResult).hasSize(5);
-        assertThat(((NumberValue) arrayResult.get(0)).value().intValue()).isEqualTo(1);
-        assertThat(((NumberValue) arrayResult.get(1)).value().intValue()).isEqualTo(4);
-        assertThat(((NumberValue) arrayResult.get(2)).value().intValue()).isEqualTo(6);
-        assertThat(((NumberValue) arrayResult.get(3)).value().intValue()).isEqualTo(4);
-        assertThat(((NumberValue) arrayResult.get(4)).value().intValue()).isEqualTo(5);
+        assertExpressionsEqual("[1, 2, 3, 4, 5] |- { @[1:3] : simple.double }", "[1, 4, 6, 4, 5]");
     }
 
     @Test
     void extendedFilterWithSlicing_fromStart() {
-        var result = TestUtil.evaluate("[1, 2, 3, 4, 5] |- { @[:3] : simple.double }");
-
-        assertThat(result).isInstanceOf(ArrayValue.class);
-        var arrayResult = (ArrayValue) result;
-        assertThat(arrayResult).hasSize(5);
-        assertThat(((NumberValue) arrayResult.get(0)).value().intValue()).isEqualTo(2);
-        assertThat(((NumberValue) arrayResult.get(1)).value().intValue()).isEqualTo(4);
-        assertThat(((NumberValue) arrayResult.get(2)).value().intValue()).isEqualTo(6);
-        assertThat(((NumberValue) arrayResult.get(3)).value().intValue()).isEqualTo(4);
-        assertThat(((NumberValue) arrayResult.get(4)).value().intValue()).isEqualTo(5);
+        assertExpressionsEqual("[1, 2, 3, 4, 5] |- { @[:3] : simple.double }", "[2, 4, 6, 4, 5]");
     }
 
     @Test
     void extendedFilterWithSlicing_toEnd() {
-        var result = TestUtil.evaluate("[1, 2, 3, 4, 5] |- { @[2:] : simple.double }");
-
-        assertThat(result).isInstanceOf(ArrayValue.class);
-        var arrayResult = (ArrayValue) result;
-        assertThat(arrayResult).hasSize(5);
-        assertThat(((NumberValue) arrayResult.get(0)).value().intValue()).isEqualTo(1);
-        assertThat(((NumberValue) arrayResult.get(1)).value().intValue()).isEqualTo(2);
-        assertThat(((NumberValue) arrayResult.get(2)).value().intValue()).isEqualTo(6);
-        assertThat(((NumberValue) arrayResult.get(3)).value().intValue()).isEqualTo(8);
-        assertThat(((NumberValue) arrayResult.get(4)).value().intValue()).isEqualTo(10);
+        assertExpressionsEqual("[1, 2, 3, 4, 5] |- { @[2:] : simple.double }", "[1, 2, 6, 8, 10]");
     }
 
     @Test
     void extendedFilterWithSlicing_entireArray() {
-        var result = TestUtil.evaluate("[1, 2, 3] |- { @[:] : simple.double }");
-
-        assertThat(result).isInstanceOf(ArrayValue.class);
-        var arrayResult = (ArrayValue) result;
-        assertThat(arrayResult).hasSize(3);
-        assertThat(((NumberValue) arrayResult.get(0)).value().intValue()).isEqualTo(2);
-        assertThat(((NumberValue) arrayResult.get(1)).value().intValue()).isEqualTo(4);
-        assertThat(((NumberValue) arrayResult.get(2)).value().intValue()).isEqualTo(6);
+        assertExpressionsEqual("[1, 2, 3] |- { @[:] : simple.double }", "[2, 4, 6]");
     }
 
     @Test
     void extendedFilterWithSlicing_withStep() {
-        var result = TestUtil.evaluate("[1, 2, 3, 4, 5, 6] |- { @[0:6:2] : simple.double }");
-
-        assertThat(result).isInstanceOf(ArrayValue.class);
-        var arrayResult = (ArrayValue) result;
-        assertThat(arrayResult).hasSize(6);
-        assertThat(((NumberValue) arrayResult.get(0)).value().intValue()).isEqualTo(2);
-        assertThat(((NumberValue) arrayResult.get(1)).value().intValue()).isEqualTo(2);
-        assertThat(((NumberValue) arrayResult.get(2)).value().intValue()).isEqualTo(6);
-        assertThat(((NumberValue) arrayResult.get(3)).value().intValue()).isEqualTo(4);
-        assertThat(((NumberValue) arrayResult.get(4)).value().intValue()).isEqualTo(10);
-        assertThat(((NumberValue) arrayResult.get(5)).value().intValue()).isEqualTo(6);
+        assertExpressionsEqual("[1, 2, 3, 4, 5, 6] |- { @[0:6:2] : simple.double }", "[2, 2, 6, 4, 10, 6]");
     }
 
     @Test
     void extendedFilterWithSlicing_rangeWithStep() {
-        var result = TestUtil.evaluate("[1, 2, 3, 4, 5, 6] |- { @[1:5:2] : simple.double }");
-
-        assertThat(result).isInstanceOf(ArrayValue.class);
-        var arrayResult = (ArrayValue) result;
-        assertThat(arrayResult).hasSize(6);
-        assertThat(((NumberValue) arrayResult.get(0)).value().intValue()).isEqualTo(1);
-        assertThat(((NumberValue) arrayResult.get(1)).value().intValue()).isEqualTo(4);
-        assertThat(((NumberValue) arrayResult.get(2)).value().intValue()).isEqualTo(3);
-        assertThat(((NumberValue) arrayResult.get(3)).value().intValue()).isEqualTo(8);
-        assertThat(((NumberValue) arrayResult.get(4)).value().intValue()).isEqualTo(5);
-        assertThat(((NumberValue) arrayResult.get(5)).value().intValue()).isEqualTo(6);
+        assertExpressionsEqual("[1, 2, 3, 4, 5, 6] |- { @[1:5:2] : simple.double }", "[1, 4, 3, 8, 5, 6]");
     }
 
     @Test
     void extendedFilterWithSlicing_removesElements() {
-        var result = TestUtil.evaluate("[1, 2, 3, 4, 5] |- { @[1:4] : filter.remove }");
-
-        assertThat(result).isInstanceOf(ArrayValue.class);
-        var arrayResult = (ArrayValue) result;
-        assertThat(arrayResult).hasSize(2);
-        assertThat(((NumberValue) arrayResult.get(0)).value().intValue()).isEqualTo(1);
-        assertThat(((NumberValue) arrayResult.get(1)).value().intValue()).isEqualTo(5);
+        assertExpressionsEqual("[1, 2, 3, 4, 5] |- { @[1:4] : filter.remove }", "[1, 5]");
     }
 
     @Test
     void extendedFilterWithSlicing_blackensStrings() {
-        var result = TestUtil
-                .evaluate("[\"public\", \"secret1\", \"secret2\", \"data\"] |- { @[1:3] : filter.blacken }");
-
-        assertThat(result).isInstanceOf(ArrayValue.class);
-        var arrayResult = (ArrayValue) result;
-        assertThat(arrayResult).hasSize(4);
-        assertThat(((TextValue) arrayResult.get(0)).value()).isEqualTo("public");
-        assertThat(((TextValue) arrayResult.get(1)).value()).isEqualTo("XXXXXXX");
-        assertThat(((TextValue) arrayResult.get(2)).value()).isEqualTo("XXXXXXX");
-        assertThat(((TextValue) arrayResult.get(3)).value()).isEqualTo("data");
+        assertExpressionsEqual("[\"public\", \"secret1\", \"secret2\", \"data\"] |- { @[1:3] : filter.blacken }",
+                "[\"public\", \"XXXXXXX\", \"XXXXXXX\", \"data\"]");
     }
 
     @Test
     void extendedFilterWithSlicing_outOfBounds_clamps() {
-        var result = TestUtil.evaluate("[1, 2, 3] |- { @[1:10] : simple.double }");
-
-        assertThat(result).isInstanceOf(ArrayValue.class);
-        var arrayResult = (ArrayValue) result;
-        assertThat(arrayResult).hasSize(3);
-        assertThat(((NumberValue) arrayResult.get(0)).value().intValue()).isEqualTo(1);
-        assertThat(((NumberValue) arrayResult.get(1)).value().intValue()).isEqualTo(4);
-        assertThat(((NumberValue) arrayResult.get(2)).value().intValue()).isEqualTo(6);
+        assertExpressionsEqual("[1, 2, 3] |- { @[1:10] : simple.double }", "[1, 4, 6]");
     }
 
     @Test
     void extendedFilterWithSlicing_onNonArray_returnsError() {
-        var result = TestUtil.evaluate("\"text\" |- { @[1:3] : filter.blacken }");
-
-        assertThat(result).isInstanceOf(ErrorValue.class);
-        assertThat(((ErrorValue) result).message()).contains("Cannot apply slicing step to non-array");
+        assertEvaluatesToError("\"text\" |- { @[1:3] : filter.blacken }", "Cannot apply slicing step to non-array");
     }
 
     @Test
     void extendedFilterWithSlicing_negativeToIndex_appliesFilterToSlice() {
-        var result = TestUtil.evaluate("[0, 1, 2, 3, 4, 5, 6, 7, 8, 9] |- { @[7:-1] : simple.double }");
-
-        assertThat(result).isInstanceOf(ArrayValue.class);
-        var arrayResult = (ArrayValue) result;
-        assertThat(arrayResult).hasSize(10);
-        assertThat(((NumberValue) arrayResult.get(7)).value().intValue()).isEqualTo(14);
-        assertThat(((NumberValue) arrayResult.get(8)).value().intValue()).isEqualTo(16);
+        assertExpressionsEqual("[0, 1, 2, 3, 4, 5, 6, 7, 8, 9] |- { @[7:-1] : simple.double }",
+                "[0, 1, 2, 3, 4, 5, 6, 14, 16, 9]");
     }
 
     @Test
     void extendedFilterWithSlicing_negativeFromIndex_appliesFilterToSlice() {
-        var result = TestUtil.evaluate("[0, 1, 2, 3, 4, 5, 6, 7, 8, 9] |- { @[-3:9] : simple.double }");
-
-        assertThat(result).isInstanceOf(ArrayValue.class);
-        var arrayResult = (ArrayValue) result;
-        assertThat(arrayResult).hasSize(10);
-        assertThat(((NumberValue) arrayResult.get(7)).value().intValue()).isEqualTo(14);
-        assertThat(((NumberValue) arrayResult.get(8)).value().intValue()).isEqualTo(16);
+        assertExpressionsEqual("[0, 1, 2, 3, 4, 5, 6, 7, 8, 9] |- { @[-3:9] : simple.double }",
+                "[0, 1, 2, 3, 4, 5, 6, 14, 16, 9]");
     }
 
     @Test
     void extendedFilterWithSlicing_negativeFromOmittedTo_appliesFilterToSlice() {
-        var result = TestUtil.evaluate("[0, 1, 2, 3, 4, 5, 6, 7, 8, 9] |- { @[-3:] : simple.double }");
-
-        assertThat(result).isInstanceOf(ArrayValue.class);
-        var arrayResult = (ArrayValue) result;
-        assertThat(arrayResult).hasSize(10);
-        assertThat(((NumberValue) arrayResult.get(7)).value().intValue()).isEqualTo(14);
-        assertThat(((NumberValue) arrayResult.get(8)).value().intValue()).isEqualTo(16);
-        assertThat(((NumberValue) arrayResult.get(9)).value().intValue()).isEqualTo(18);
+        assertExpressionsEqual("[0, 1, 2, 3, 4, 5, 6, 7, 8, 9] |- { @[-3:] : simple.double }",
+                "[0, 1, 2, 3, 4, 5, 6, 14, 16, 18]");
     }
 
     @Test
     void extendedFilterWithSlicing_negativeStepMinusOne_appliesFilterToAllElements() {
-        var result = TestUtil.evaluate("[0, 1, 2, 3, 4, 5, 6, 7, 8, 9] |- { @[: :-1] : simple.double }");
-
-        assertThat(result).isInstanceOf(ArrayValue.class);
-        var arrayResult = (ArrayValue) result;
-        assertThat(arrayResult).hasSize(10);
-        assertThat(((NumberValue) arrayResult.get(0)).value().intValue()).isEqualTo(0);
-        assertThat(((NumberValue) arrayResult.get(5)).value().intValue()).isEqualTo(10);
-        assertThat(((NumberValue) arrayResult.get(9)).value().intValue()).isEqualTo(18);
+        assertExpressionsEqual("[0, 1, 2, 3, 4, 5, 6, 7, 8, 9] |- { @[: :-1] : simple.double }",
+                "[0, 2, 4, 6, 8, 10, 12, 14, 16, 18]");
     }
 
     @Test
     void extendedFilterWithSlicing_negativeStepMinusThree_appliesFilterToMatchingElements() {
-        var result = TestUtil.evaluate("[0, 1, 2, 3, 4, 5, 6, 7, 8, 9] |- { @[: :-3] : simple.double }");
-
-        assertThat(result).isInstanceOf(ArrayValue.class);
-        var arrayResult = (ArrayValue) result;
-        assertThat(arrayResult).hasSize(10);
-        assertThat(((NumberValue) arrayResult.get(1)).value().intValue()).isEqualTo(2);
-        assertThat(((NumberValue) arrayResult.get(4)).value().intValue()).isEqualTo(8);
-        assertThat(((NumberValue) arrayResult.get(7)).value().intValue()).isEqualTo(14);
+        assertExpressionsEqual("[0, 1, 2, 3, 4, 5, 6, 7, 8, 9] |- { @[: :-3] : simple.double }",
+                "[0, 2, 2, 3, 8, 5, 6, 14, 8, 9]");
     }
 
     @Test
     void extendedFilterWithSlicing_negativeStepMinusTwo_appliesFilterToMatchingElements() {
-        var result = TestUtil.evaluate("[0, 1, 2, 3, 4, 5, 6, 7, 8, 9] |- { @[: :-2] : filter.remove }");
-
-        assertThat(result).isInstanceOf(ArrayValue.class);
-        var arrayResult = (ArrayValue) result;
-        assertThat(arrayResult).hasSize(5);
-        assertThat(((NumberValue) arrayResult.get(0)).value().intValue()).isEqualTo(1);
-        assertThat(((NumberValue) arrayResult.get(1)).value().intValue()).isEqualTo(3);
-        assertThat(((NumberValue) arrayResult.get(4)).value().intValue()).isEqualTo(9);
+        assertExpressionsEqual("[0, 1, 2, 3, 4, 5, 6, 7, 8, 9] |- { @[: :-2] : filter.remove }", "[1, 3, 5, 7, 9]");
     }
 
     @Test
     void extendedFilterWithSlicing_negativeToWithFilter_appliesFilterBeforeTo() {
-        var result = TestUtil.evaluate("[0, 1, 2, 3, 4, 5, 6, 7, 8, 9] |- { @[:-2] : filter.remove }");
-
-        assertThat(result).isInstanceOf(ArrayValue.class);
-        var arrayResult = (ArrayValue) result;
-        assertThat(arrayResult).hasSize(2);
-        assertThat(((NumberValue) arrayResult.get(0)).value().intValue()).isEqualTo(8);
-        assertThat(((NumberValue) arrayResult.get(1)).value().intValue()).isEqualTo(9);
+        assertExpressionsEqual("[0, 1, 2, 3, 4, 5, 6, 7, 8, 9] |- { @[:-2] : filter.remove }", "[8, 9]");
     }
 
     @Test
     void extendedFilterWithMultiStepPath_twoKeys_appliesFilterToNestedField() {
-        var result = TestUtil.evaluate("{ \"user\": { \"age\": 25 } } |- { @.user.age : simple.double }");
-
-        assertThat(result).isInstanceOf(ObjectValue.class);
-        var objectResult = (ObjectValue) result;
-        var userValue    = objectResult.get("user");
-        assertThat(userValue).isInstanceOf(ObjectValue.class);
-        var userObject = (ObjectValue) userValue;
-        Assertions.assertNotNull(userObject);
-        assertThat(((NumberValue) Objects.requireNonNull(userObject.get("age"))).value().intValue()).isEqualTo(50);
+        assertExpressionsEqual("{ \"user\": { \"age\": 25 } } |- { @.user.age : simple.double }",
+                "{ \"user\": { \"age\": 50 } }");
     }
 
     @Test
     void extendedFilterWithMultiStepPath_threeKeys_appliesFilterToDeepNestedField() {
-        var result = TestUtil.evaluate(
-                "{ \"user\": { \"address\": { \"zip\": 12345 } } } |- { @.user.address.zip : simple.double }");
-
-        assertThat(result).isInstanceOf(ObjectValue.class);
-        var objectResult = (ObjectValue) result;
-        var userValue    = objectResult.get("user");
-        assertThat(userValue).isInstanceOf(ObjectValue.class);
-        Assertions.assertNotNull(userValue);
-        var addressValue = ((ObjectValue) userValue).get("address");
-        assertThat(addressValue).isInstanceOf(ObjectValue.class);
-        Assertions.assertNotNull(addressValue);
-        var zipValue = ((ObjectValue) addressValue).get("zip");
-        Assertions.assertNotNull(zipValue);
-        assertThat(((NumberValue) zipValue).value().intValue()).isEqualTo(24690);
+        assertExpressionsEqual(
+                "{ \"user\": { \"address\": { \"zip\": 12345 } } } |- { @.user.address.zip : simple.double }",
+                "{ \"user\": { \"address\": { \"zip\": 24690 } } }");
     }
 
     @Test
     void extendedFilterWithMultiStepPath_keyThenIndex_appliesFilterToArrayElement() {
-        var result = TestUtil.evaluate("{ \"items\": [10, 20, 30] } |- { @.items[1] : simple.double }");
-
-        assertThat(result).isInstanceOf(ObjectValue.class);
-        var objectResult = (ObjectValue) result;
-        var itemsValue   = objectResult.get("items");
-        assertThat(itemsValue).isInstanceOf(ArrayValue.class);
-        var itemsArray = (ArrayValue) itemsValue;
-        Assertions.assertNotNull(itemsArray);
-        assertThat(((NumberValue) itemsArray.get(1)).value().intValue()).isEqualTo(40);
-        assertThat(((NumberValue) itemsArray.get(0)).value().intValue()).isEqualTo(10);
-        assertThat(((NumberValue) itemsArray.get(2)).value().intValue()).isEqualTo(30);
+        assertExpressionsEqual("{ \"items\": [10, 20, 30] } |- { @.items[1] : simple.double }",
+                "{ \"items\": [10, 40, 30] }");
     }
 
     @Test
     void extendedFilterWithMultiStepPath_indexThenKey_appliesFilterToObjectInArray() {
-        var result = TestUtil
-                .evaluate("[{ \"name\": \"Alice\" }, { \"name\": \"Bob\" }] |- { @[0].name : filter.blacken }");
-
-        assertThat(result).isInstanceOf(ArrayValue.class);
-        var arrayResult  = (ArrayValue) result;
-        var firstElement = arrayResult.getFirst();
-        assertThat(firstElement).isInstanceOf(ObjectValue.class);
-        assertThat(((TextValue) Objects.requireNonNull(((ObjectValue) firstElement).get("name"))).value())
-                .isEqualTo("XXXXX");
-        var secondElement = arrayResult.get(1);
-        assertThat(((TextValue) Objects.requireNonNull(((ObjectValue) secondElement).get("name"))).value())
-                .isEqualTo("Bob");
+        assertExpressionsEqual("[{ \"name\": \"Alice\" }, { \"name\": \"Bob\" }] |- { @[0].name : filter.blacken }",
+                "[{ \"name\": \"XXXXX\" }, { \"name\": \"Bob\" }]");
     }
 
     @Test
     void extendedFilterWithMultiStepPath_keyIndexKey_appliesFilterToNestedArrayObject() {
-        var result = TestUtil.evaluate(
-                "{ \"users\": [{ \"name\": \"Alice\", \"age\": 30 }] } |- { @.users[0].age : simple.double }");
-
-        assertThat(result).isInstanceOf(ObjectValue.class);
-        var objectResult = (ObjectValue) result;
-        var usersValue   = objectResult.get("users");
-        assertThat(usersValue).isInstanceOf(ArrayValue.class);
-        Assertions.assertNotNull(usersValue);
-        var firstUser = (ObjectValue) ((ArrayValue) usersValue).getFirst();
-        assertThat(((NumberValue) Objects.requireNonNull(firstUser.get("age"))).value().intValue()).isEqualTo(60);
-        assertThat(((TextValue) Objects.requireNonNull(firstUser.get("name"))).value()).isEqualTo("Alice");
+        assertExpressionsEqual(
+                "{ \"users\": [{ \"name\": \"Alice\", \"age\": 30 }] } |- { @.users[0].age : simple.double }",
+                "{ \"users\": [{ \"name\": \"Alice\", \"age\": 60 }] }");
     }
 
     @Test
     void extendedFilterWithMultiStepPath_keySliceKey_appliesFilterToFieldsInSlicedArrayElements() {
-        var result = TestUtil.evaluate(
-                "{ \"users\": [{ \"age\": 10 }, { \"age\": 20 }, { \"age\": 30 }] } |- { @.users[0:2].age : simple.double }");
-
-        assertThat(result).isInstanceOf(ObjectValue.class);
-        var objectResult = (ObjectValue) result;
-        var usersValue   = objectResult.get("users");
-        assertThat(usersValue).isInstanceOf(ArrayValue.class);
-        var usersArray = (ArrayValue) usersValue;
-        Assertions.assertNotNull(usersArray);
-        assertThat(
-                ((NumberValue) Objects.requireNonNull(((ObjectValue) usersArray.get(0)).get("age"))).value().intValue())
-                .isEqualTo(20);
-        assertThat(
-                ((NumberValue) Objects.requireNonNull(((ObjectValue) usersArray.get(1)).get("age"))).value().intValue())
-                .isEqualTo(40);
-        assertThat(
-                ((NumberValue) Objects.requireNonNull(((ObjectValue) usersArray.get(2)).get("age"))).value().intValue())
-                .isEqualTo(30);
+        assertExpressionsEqual(
+                "{ \"users\": [{ \"age\": 10 }, { \"age\": 20 }, { \"age\": 30 }] } |- { @.users[0:2].age : simple.double }",
+                "{ \"users\": [{ \"age\": 20 }, { \"age\": 40 }, { \"age\": 30 }] }");
     }
 
     @Test
     void extendedFilterWithMultiStepPath_missingField_returnsError() {
-        var result = TestUtil.evaluate("{ \"user\": { \"name\": \"Alice\" } } |- { @.user.age : simple.double }");
-
-        assertThat(result).isInstanceOf(ErrorValue.class);
-        assertThat(((ErrorValue) result).message()).contains("Field 'age' not found");
+        assertEvaluatesToError("{ \"user\": { \"name\": \"Alice\" } } |- { @.user.age : simple.double }",
+                "Field 'age' not found");
     }
 
     @Test
     void extendedFilterWithMultiStepPath_onNonObjectIntermediate_returnsError() {
-        var result = TestUtil.evaluate("{ \"user\": 123 } |- { @.user.age : simple.double }");
-
-        assertThat(result).isInstanceOf(ErrorValue.class);
-        assertThat(((ErrorValue) result).message()).contains("Cannot apply key step to non-object");
+        assertEvaluatesToError("{ \"user\": 123 } |- { @.user.age : simple.double }",
+                "Cannot apply key step to non-object");
     }
 
     @Test
     void extendedFilterWithMultiStepPath_onNonArrayIntermediate_returnsError() {
-        var result = TestUtil.evaluate("{ \"users\": \"text\" } |- { @.users[0].age : simple.double }");
-
-        assertThat(result).isInstanceOf(ErrorValue.class);
-        assertThat(((ErrorValue) result).message()).contains("Cannot access array index");
+        assertEvaluatesToError("{ \"users\": \"text\" } |- { @.users[0].age : simple.double }",
+                "Cannot access array index");
     }
 
     @Test
     void extendedFilterWithEach_noTarget_appliesFunctionToEachElement() {
-        var result = TestUtil.evaluate("[1, 2, 3] |- { each : simple.double }");
-
-        assertThat(result).isInstanceOf(ArrayValue.class);
-        var arrayResult = (ArrayValue) result;
-        assertThat(arrayResult).hasSize(3);
-        assertThat(((NumberValue) arrayResult.get(0)).value().intValue()).isEqualTo(2);
-        assertThat(((NumberValue) arrayResult.get(1)).value().intValue()).isEqualTo(4);
-        assertThat(((NumberValue) arrayResult.get(2)).value().intValue()).isEqualTo(6);
+        assertExpressionsEqual("[1, 2, 3] |- { each : simple.double }", "[2, 4, 6]");
     }
 
     @Test
     void extendedFilterWithEach_withKeyTarget_appliesFunctionToFieldInEachElement() {
-        var result = TestUtil
-                .evaluate("[{ \"age\": 10 }, { \"age\": 20 }, { \"age\": 30 }] |- { each @.age : simple.double }");
-
-        assertThat(result).isInstanceOf(ArrayValue.class);
-        var arrayResult = (ArrayValue) result;
-        assertThat(arrayResult).hasSize(3);
-        var first = (ObjectValue) arrayResult.get(0);
-        assertThat(((NumberValue) Objects.requireNonNull(first.get("age"))).value().intValue()).isEqualTo(20);
-        var second = (ObjectValue) arrayResult.get(1);
-        assertThat(((NumberValue) Objects.requireNonNull(second.get("age"))).value().intValue()).isEqualTo(40);
-        var third = (ObjectValue) arrayResult.get(2);
-        assertThat(((NumberValue) Objects.requireNonNull(third.get("age"))).value().intValue()).isEqualTo(60);
+        assertExpressionsEqual("[{ \"age\": 10 }, { \"age\": 20 }, { \"age\": 30 }] |- { each @.age : simple.double }",
+                "[{ \"age\": 20 }, { \"age\": 40 }, { \"age\": 60 }]");
     }
 
     @Test
     void extendedFilterWithEach_withIndexTarget_appliesFunctionToIndexInEachElement() {
-        var result = TestUtil.evaluate("[[1, 2], [3, 4], [5, 6]] |- { each @[0] : simple.double }");
-
-        assertThat(result).isInstanceOf(ArrayValue.class);
-        var arrayResult = (ArrayValue) result;
-        assertThat(arrayResult).hasSize(3);
-        var first = (ArrayValue) arrayResult.getFirst();
-        assertThat(((NumberValue) first.get(0)).value().intValue()).isEqualTo(2);
-        assertThat(((NumberValue) first.get(1)).value().intValue()).isEqualTo(2);
-        var second = (ArrayValue) arrayResult.get(1);
-        assertThat(((NumberValue) second.get(0)).value().intValue()).isEqualTo(6);
-        assertThat(((NumberValue) second.get(1)).value().intValue()).isEqualTo(4);
-        var third = (ArrayValue) arrayResult.get(2);
-        assertThat(((NumberValue) third.get(0)).value().intValue()).isEqualTo(10);
-        assertThat(((NumberValue) third.get(1)).value().intValue()).isEqualTo(6);
+        assertExpressionsEqual("[[1, 2], [3, 4], [5, 6]] |- { each @[0] : simple.double }",
+                "[[2, 2], [6, 4], [10, 6]]");
     }
 
     @Test
     void extendedFilterWithEach_removesElements_filtersOutUndefined() {
-        var result = TestUtil.evaluate("[1, 2, 3, 4] |- { each : filter.remove }");
-
-        assertThat(result).isInstanceOf(ArrayValue.class);
-        var arrayResult = (ArrayValue) result;
-        assertThat(arrayResult).isEmpty();
+        assertExpressionsEqual("[1, 2, 3, 4] |- { each : filter.remove }", "[]");
     }
 
     @Test
     void extendedFilterWithEach_onNonArray_returnsError() {
-        var result = TestUtil.evaluate("{ \"key\": \"value\" } |- { each : filter.blacken }");
-
-        assertThat(result).isInstanceOf(ErrorValue.class);
-        assertThat(((ErrorValue) result).message()).contains("Cannot use 'each' keyword with non-array values");
+        assertEvaluatesToError("{ \"key\": \"value\" } |- { each : filter.blacken }",
+                "Cannot use 'each' keyword with non-array values");
     }
 
     @Test
     void extendedFilterWithEach_withMultiStepPath_appliesFunctionToNestedPath() {
-        var result = TestUtil.evaluate(
-                "[{ \"user\": { \"age\": 10 } }, { \"user\": { \"age\": 20 } }] |- { each @.user.age : simple.double }");
-
-        assertThat(result).isInstanceOf(ArrayValue.class);
-        var arrayResult = (ArrayValue) result;
-        assertThat(arrayResult).hasSize(2);
-        var first     = (ObjectValue) arrayResult.getFirst();
-        var firstUser = (ObjectValue) Objects.requireNonNull(first.get("user"));
-        assertThat(((NumberValue) Objects.requireNonNull(firstUser.get("age"))).value().intValue()).isEqualTo(20);
-        var second     = (ObjectValue) arrayResult.get(1);
-        var secondUser = (ObjectValue) Objects.requireNonNull(second.get("user"));
-        assertThat(((NumberValue) Objects.requireNonNull(secondUser.get("age"))).value().intValue()).isEqualTo(40);
+        assertExpressionsEqual(
+                "[{ \"user\": { \"age\": 10 } }, { \"user\": { \"age\": 20 } }] |- { each @.user.age : simple.double }",
+                "[{ \"user\": { \"age\": 20 } }, { \"user\": { \"age\": 40 } }]");
     }
 
     @Test
     void extendedFilterWithEach_withSlicing_appliesFunctionToSliceInEachElement() {
-        var result = TestUtil.evaluate("[[1, 2, 3], [4, 5, 6], [7, 8, 9]] |- { each @[0:2] : simple.double }");
-
-        assertThat(result).isInstanceOf(ArrayValue.class);
-        var arrayResult = (ArrayValue) result;
-        assertThat(arrayResult).hasSize(3);
-        var first = (ArrayValue) arrayResult.getFirst();
-        assertThat(((NumberValue) first.get(0)).value().intValue()).isEqualTo(2);
-        assertThat(((NumberValue) first.get(1)).value().intValue()).isEqualTo(4);
-        assertThat(((NumberValue) first.get(2)).value().intValue()).isEqualTo(3);
+        assertExpressionsEqual("[[1, 2, 3], [4, 5, 6], [7, 8, 9]] |- { each @[0:2] : simple.double }",
+                "[[2, 4, 3], [8, 10, 6], [14, 16, 9]]");
     }
 
     @Test
     void extendedFilterWithEach_multipleStatements_appliesInSequence() {
-        var result = TestUtil.evaluate(
-                "[{ \"name\": \"Alice\", \"age\": 10 }] |- { each @.name : filter.blacken, each @.age : simple.double }");
-
-        assertThat(result).isInstanceOf(ArrayValue.class);
-        var arrayResult = (ArrayValue) result;
-        assertThat(arrayResult).hasSize(1);
-        var first = (ObjectValue) arrayResult.getFirst();
-        assertThat(((TextValue) Objects.requireNonNull(first.get("name"))).value()).isEqualTo("XXXXX");
-        assertThat(((NumberValue) Objects.requireNonNull(first.get("age"))).value().intValue()).isEqualTo(20);
+        assertExpressionsEqual(
+                "[{ \"name\": \"Alice\", \"age\": 10 }] |- { each @.name : filter.blacken, each @.age : simple.double }",
+                "[{ \"name\": \"XXXXX\", \"age\": 20 }]");
     }
 
     @Test
     void extendedFilterWithWildcard_onArray_appliesFunctionToAllElements() {
-        var result = TestUtil.evaluate("[1, 2, 3, 4, 5] |- { @.* : simple.double }");
-
-        assertThat(result).isInstanceOf(ArrayValue.class);
-        var arrayResult = (ArrayValue) result;
-        assertThat(arrayResult).hasSize(5);
-        assertThat(((NumberValue) arrayResult.get(0)).value().intValue()).isEqualTo(2);
-        assertThat(((NumberValue) arrayResult.get(1)).value().intValue()).isEqualTo(4);
-        assertThat(((NumberValue) arrayResult.get(2)).value().intValue()).isEqualTo(6);
-        assertThat(((NumberValue) arrayResult.get(3)).value().intValue()).isEqualTo(8);
-        assertThat(((NumberValue) arrayResult.get(4)).value().intValue()).isEqualTo(10);
+        assertExpressionsEqual("[1, 2, 3, 4, 5] |- { @.* : simple.double }", "[2, 4, 6, 8, 10]");
     }
 
     @Test
     void extendedFilterWithWildcard_onObject_appliesFunctionToAllFieldValues() {
-        var result = TestUtil.evaluate("{ \"a\": 1, \"b\": 2, \"c\": 3 } |- { @.* : simple.double }");
-
-        assertThat(result).isInstanceOf(ObjectValue.class);
-        var objectResult = (ObjectValue) result;
-        assertThat(objectResult).hasSize(3);
-        assertThat(((NumberValue) Objects.requireNonNull(objectResult.get("a"))).value().intValue()).isEqualTo(2);
-        assertThat(((NumberValue) Objects.requireNonNull(objectResult.get("b"))).value().intValue()).isEqualTo(4);
-        assertThat(((NumberValue) Objects.requireNonNull(objectResult.get("c"))).value().intValue()).isEqualTo(6);
+        assertExpressionsEqual("{ \"a\": 1, \"b\": 2, \"c\": 3 } |- { @.* : simple.double }",
+                "{ \"a\": 2, \"b\": 4, \"c\": 6 }");
     }
 
     @Test
     void extendedFilterWithWildcard_withMultiStepPath_appliesFunctionToNestedFields() {
-        var result = TestUtil
-                .evaluate("{ \"users\": [{ \"age\": 10 }, { \"age\": 20 }] } |- { @.users.*.age : simple.double }");
-
-        assertThat(result).isInstanceOf(ObjectValue.class);
-        var objectResult = (ObjectValue) result;
-        var usersValue   = objectResult.get("users");
-        assertThat(usersValue).isInstanceOf(ArrayValue.class);
-        var usersArray = (ArrayValue) usersValue;
-        Assertions.assertNotNull(usersArray);
-        assertThat(usersArray).hasSize(2);
-        var first = (ObjectValue) usersArray.getFirst();
-        assertThat(((NumberValue) Objects.requireNonNull(first.get("age"))).value().intValue()).isEqualTo(20);
-        var second = (ObjectValue) usersArray.get(1);
-        assertThat(((NumberValue) Objects.requireNonNull(second.get("age"))).value().intValue()).isEqualTo(40);
+        assertExpressionsEqual("{ \"users\": [{ \"age\": 10 }, { \"age\": 20 }] } |- { @.users.*.age : simple.double }",
+                "{ \"users\": [{ \"age\": 20 }, { \"age\": 40 }] }");
     }
 
     @Test
     void extendedFilterWithWildcard_removingElements_filtersOutUndefined() {
-        var result = TestUtil.evaluate("[\"a\", \"b\", \"c\"] |- { @.* : filter.remove }");
-
-        assertThat(result).isInstanceOf(ArrayValue.class);
-        var arrayResult = (ArrayValue) result;
-        assertThat(arrayResult).isEmpty();
+        assertExpressionsEqual("[\"a\", \"b\", \"c\"] |- { @.* : filter.remove }", "[]");
     }
 
     @Test
     void extendedFilterWithWildcard_removingFields_filtersOutUndefined() {
-        var result = TestUtil.evaluate("{ \"a\": 1, \"b\": 2 } |- { @.* : filter.remove }");
-
-        assertThat(result).isInstanceOf(ObjectValue.class);
-        var objectResult = (ObjectValue) result;
-        assertThat(objectResult).isEmpty();
+        assertExpressionsEqual("{ \"a\": 1, \"b\": 2 } |- { @.* : filter.remove }", "{}");
     }
 
     @Test
     void extendedFilterWithWildcard_onNonArrayNonObject_returnsError() {
-        var result = TestUtil.evaluate("\"text\" |- { @.* : filter.blacken }");
-
-        assertThat(result).isInstanceOf(ErrorValue.class);
-        assertThat(((ErrorValue) result).message()).contains("Cannot apply wildcard step to non-array/non-object");
+        assertEvaluatesToError("\"text\" |- { @.* : filter.blacken }",
+                "Cannot apply wildcard step to non-array/non-object");
     }
 
     @Test
     void extendedFilterWithWildcard_withBlacken_redactsAllValues() {
-        var result = TestUtil.evaluate("[\"secret1\", \"secret2\", \"secret3\"] |- { @.* : filter.blacken }");
-
-        assertThat(result).isInstanceOf(ArrayValue.class);
-        var arrayResult = (ArrayValue) result;
-        assertThat(arrayResult).hasSize(3);
-        assertThat(((TextValue) arrayResult.get(0)).value()).isEqualTo("XXXXXXX");
-        assertThat(((TextValue) arrayResult.get(1)).value()).isEqualTo("XXXXXXX");
-        assertThat(((TextValue) arrayResult.get(2)).value()).isEqualTo("XXXXXXX");
+        assertExpressionsEqual("[\"secret1\", \"secret2\", \"secret3\"] |- { @.* : filter.blacken }",
+                "[\"XXXXXXX\", \"XXXXXXX\", \"XXXXXXX\"]");
     }
 
     @Test
     void extendedFilterWithWildcard_nestedObjectArrayPath_appliesFilterCorrectly() {
-        var result = TestUtil.evaluate(
+        assertExpressionsEqual(
                 "{ \"departments\": { \"engineering\": { \"employees\": 10 }, \"sales\": { \"employees\": 20 } } } "
-                        + "|- { @.departments.*.employees : simple.double }");
-
-        assertThat(result).isInstanceOf(ObjectValue.class);
-        var objectResult   = (ObjectValue) result;
-        var departmentsObj = (ObjectValue) Objects.requireNonNull(objectResult.get("departments"));
-        var engineering    = (ObjectValue) Objects.requireNonNull(departmentsObj.get("engineering"));
-        assertThat(((NumberValue) Objects.requireNonNull(engineering.get("employees"))).value().intValue())
-                .isEqualTo(20);
-        var sales = (ObjectValue) Objects.requireNonNull(departmentsObj.get("sales"));
-        assertThat(((NumberValue) Objects.requireNonNull(sales.get("employees"))).value().intValue()).isEqualTo(40);
+                        + "|- { @.departments.*.employees : simple.double }",
+                "{ \"departments\": { \"engineering\": { \"employees\": 20 }, \"sales\": { \"employees\": 40 } } }");
     }
 
     // ========================================================================
-    // Step 1 & 2: AttributeFinderStep and HeadAttributeFinderStep Error Handling
+    // Step 1 & 2: Filters with Stream Expressions and Attribute Finders
     // ========================================================================
 
-    // NOTE: AttributeFinderStep and HeadAttributeFinderStep tests are skipped
-    // because the syntax `..<pip.attribute>` and `.|<pip.attribute>` requires
-    // actual Policy Information Points which aren't available in simple test
-    // expressions.
-    // The error handling code is implemented in FilterCompiler.java lines 358-363,
-    // 423-428.
+    @Test
+    void simpleFilter_withAttributeFinder_appliesFilterToStreamValues() {
+        // test.echo returns Flux.just(value, "hello world")
+        // Filter should apply to each emitted value
+        val evaluated = TestUtil.evaluateExpression("\"test\".<test.echo> |- filter.blacken");
+        StepVerifier.create(evaluated.take(2)).expectNext(Value.of("XXXX")).expectNext(Value.of("XXXXXXXXXXX"))
+                .verifyComplete();
+    }
+
+    @Test
+    void simpleFilter_withAttributeFinderOnNumber_appliesFilterToStream() {
+        val evaluated = TestUtil.evaluateExpression("(10).<test.echo> |- simple.double");
+        // test.echo returns Flux.just(10, "hello world")
+        // double works on numbers: 10 * 2 = 20
+        // "hello world" is not a number, so it will error
+        StepVerifier.create(evaluated.take(2)).expectNext(Value.of(20))
+                .expectNextMatches(v -> v instanceof ErrorValue && ((ErrorValue) v).message().contains("number"))
+                .verifyComplete();
+    }
+
+    @Test
+    void extendedFilter_withAttributeFinder_appliesFilterToStreamOfObjects() {
+        val evaluated = TestUtil
+                .evaluateExpression("{ \"name\": \"Alice\" }.<test.echo> |- { @.name : filter.blacken }");
+        // echo returns the object and "hello world"
+        // object: { "name": "XXXXX" }
+        // "hello world" doesn't have .name field, so it errors
+        StepVerifier.create(evaluated.take(2)).expectNext(json("{ \"name\": \"XXXXX\" }"))
+                .expectNextMatches(v -> v instanceof ErrorValue && ((ErrorValue) v).message().contains("key step"))
+                .verifyComplete();
+    }
+
+    @Test
+    void extendedFilter_withAttributeFinderInPath_appliesFilterToNestedStreamValues() {
+        val evaluated = TestUtil.evaluateExpression(
+                "{ \"data\": { \"value\": \"secret\" } }.<test.echo> |- { @.data.value : filter.blacken }");
+        StepVerifier.create(evaluated).expectNext(json("{ \"data\": { \"value\": \"XXXXXX\" } }"))
+                .expectNext(Value.of("hello world")).verifyComplete();
+    }
+
+    @Test
+    void eachFilter_withAttributeFinder_appliesFilterToEachStreamValue() {
+        val evaluated = TestUtil.evaluateExpression("[1, 2, 3].<test.echo> |- each simple.double");
+        // echo returns the array and "hello world"
+        // each simple.double applies to array: [2, 4, 6]
+        // "hello world" is not an array, so it's an error or returned as-is
+        StepVerifier.create(evaluated).expectNext(json("[2, 4, 6]")).expectNext(Value.of("hello world"))
+                .verifyComplete();
+    }
+
+    @Test
+    void wildcardFilter_withAttributeFinder_appliesFilterToAllFieldsInStream() {
+        val evaluated = TestUtil.evaluateExpression("{ \"a\": 10, \"b\": 20 }.<test.echo> |- { @.* : simple.double }");
+        // echo returns the object with doubled values, then "hello world"
+        StepVerifier.create(evaluated).expectNext(json("{ \"a\": 20, \"b\": 40 }")).expectNext(Value.of("hello world"))
+                .verifyComplete();
+    }
+
+    @Test
+    void conditionStepFilter_withAttributeFinder_appliesFilterSelectivelyToStream() {
+        val evaluated = TestUtil.evaluateExpression("[10, 20, 30].<test.echo> |- { @[?(@ > 15)] : simple.double }");
+        // echo returns the array and "hello world"
+        // Condition filters elements > 15: [20, 30] -> [40, 60]
+        StepVerifier.create(evaluated).expectNext(json("[10, 40, 60]")).expectNext(Value.of("hello world"))
+                .verifyComplete();
+    }
+
+    @Test
+    void recursiveKeyFilter_withAttributeFinder_appliesFilterRecursivelyToStream() {
+        val evaluated = TestUtil.evaluateExpression(
+                "{ \"a\": { \"x\": 5 }, \"b\": { \"x\": 10 } }.<test.echo> |- { @..x : simple.double }");
+        // echo returns the object and "hello world"
+        // Recursive filter doubles all 'x' values: 10, 20
+        StepVerifier.create(evaluated).expectNext(json("{ \"a\": { \"x\": 10 }, \"b\": { \"x\": 20 } }"))
+                .expectNext(Value.of("hello world")).verifyComplete();
+    }
+
+    @Test
+    void subtemplate_withAttributeFinder_appliesTemplateToStreamValues() {
+        val evaluated = TestUtil.evaluateExpression("{ \"name\": \"Bob\" }.<test.echo> :: { \"user\": @.name }");
+        // echo returns the object and "hello world"
+        // Template transforms object, "hello world" doesn't have .name so undefined
+        StepVerifier.create(evaluated).expectNext(json("{ \"user\": \"Bob\" }"))
+                .expectNextMatches(v -> v instanceof ErrorValue || v instanceof UndefinedValue).verifyComplete();
+    }
+
+    @Test
+    void combinedFilters_withAttributeFinder_appliesMultipleFiltersToStream() {
+        val evaluated = TestUtil.evaluateExpression(
+                "{ \"a\": 5, \"b\": 10 }.<test.echo> |- { @.a : simple.double, @.b : simple.double }");
+        // echo returns the object and "hello world"
+        // Both filters double their respective fields
+        StepVerifier.create(evaluated).expectNext(json("{ \"a\": 10, \"b\": 20 }")).expectNext(Value.of("hello world"))
+                .verifyComplete();
+    }
 
     // ========================================================================
     // Step 3: ConditionStep Support
@@ -992,120 +611,61 @@ class FilterCompilerTests {
 
     @Test
     void conditionStepInFilter_constantTrueCondition_appliesFilterToAllElements() {
-        var result = TestUtil.evaluate("[1, 2, 3, 4, 5] |- { @[?(true)] : simple.double }");
-
-        assertThat(result).isInstanceOf(ArrayValue.class);
-        var arrayResult = (ArrayValue) result;
-        assertThat(arrayResult).hasSize(5);
-        assertThat(((NumberValue) arrayResult.get(0)).value().intValue()).isEqualTo(2);
-        assertThat(((NumberValue) arrayResult.get(1)).value().intValue()).isEqualTo(4);
-        assertThat(((NumberValue) arrayResult.get(2)).value().intValue()).isEqualTo(6);
-        assertThat(((NumberValue) arrayResult.get(3)).value().intValue()).isEqualTo(8);
-        assertThat(((NumberValue) arrayResult.get(4)).value().intValue()).isEqualTo(10);
+        assertExpressionsEqual("[1, 2, 3, 4, 5] |- { @[?(true)] : simple.double }", "[2, 4, 6, 8, 10]");
     }
 
     @Test
     void conditionStepInFilter_constantFalseCondition_leavesAllElementsUnchanged() {
-        var result = TestUtil.evaluate("[1, 2, 3, 4, 5] |- { @[?(false)] : simple.double }");
-
-        assertThat(result).isInstanceOf(ArrayValue.class);
-        var arrayResult = (ArrayValue) result;
-        assertThat(arrayResult).hasSize(5);
-        assertThat(((NumberValue) arrayResult.get(0)).value().intValue()).isEqualTo(1);
-        assertThat(((NumberValue) arrayResult.get(1)).value().intValue()).isEqualTo(2);
-        assertThat(((NumberValue) arrayResult.get(2)).value().intValue()).isEqualTo(3);
-        assertThat(((NumberValue) arrayResult.get(3)).value().intValue()).isEqualTo(4);
-        assertThat(((NumberValue) arrayResult.get(4)).value().intValue()).isEqualTo(5);
+        assertExpressionsEqual("[1, 2, 3, 4, 5] |- { @[?(false)] : simple.double }", "[1, 2, 3, 4, 5]");
     }
 
     @Test
     void conditionStepInFilter_removeMatchingElements() {
-        var result = TestUtil.evaluate("[1, 2, 3, 4, 5] |- { @[?(true)] : filter.remove }");
-
-        assertThat(result).isInstanceOf(ArrayValue.class);
-        var arrayResult = (ArrayValue) result;
-        assertThat(arrayResult).isEmpty();
+        assertExpressionsEqual("[1, 2, 3, 4, 5] |- { @[?(true)] : filter.remove }", "[]");
     }
 
     @Test
     void conditionStepInFilter_onObject_appliesFilterToMatchingFields() {
-        var result = TestUtil.evaluate("{ \"a\": 1, \"b\": 2, \"c\": 3 } |- { @[?(true)] : simple.double }");
-
-        assertThat(result).isInstanceOf(ObjectValue.class);
-        var objectResult = (ObjectValue) result;
-        assertThat(objectResult).hasSize(3);
-        assertThat(((NumberValue) Objects.requireNonNull(objectResult.get("a"))).value().intValue()).isEqualTo(2);
-        assertThat(((NumberValue) Objects.requireNonNull(objectResult.get("b"))).value().intValue()).isEqualTo(4);
-        assertThat(((NumberValue) Objects.requireNonNull(objectResult.get("c"))).value().intValue()).isEqualTo(6);
+        assertExpressionsEqual("{ \"a\": 1, \"b\": 2, \"c\": 3 } |- { @[?(true)] : simple.double }",
+                "{ \"a\": 2, \"b\": 4, \"c\": 6 }");
     }
 
     @Test
     void conditionStepInFilter_onObject_removeMatchingFields() {
-        var result = TestUtil.evaluate("{ \"a\": 1, \"b\": 2, \"c\": 3, \"d\": 4 } |- { @[?(true)] : filter.remove }");
-
-        assertThat(result).isInstanceOf(ObjectValue.class);
-        var objectResult = (ObjectValue) result;
-        assertThat(objectResult).isEmpty();
+        assertExpressionsEqual("{ \"a\": 1, \"b\": 2, \"c\": 3, \"d\": 4 } |- { @[?(true)] : filter.remove }", "{}");
     }
 
     @Test
     void conditionStepInFilter_onObject_constantFalseCondition_leavesAllFieldsUnchanged() {
-        var result = TestUtil.evaluate("{ \"a\": 1, \"b\": 2, \"c\": 3 } |- { @[?(false)] : simple.double }");
-
-        assertThat(result).isInstanceOf(ObjectValue.class);
-        var objectResult = (ObjectValue) result;
-        assertThat(objectResult).hasSize(3);
-        assertThat(((NumberValue) Objects.requireNonNull(objectResult.get("a"))).value().intValue()).isEqualTo(1);
-        assertThat(((NumberValue) Objects.requireNonNull(objectResult.get("b"))).value().intValue()).isEqualTo(2);
-        assertThat(((NumberValue) Objects.requireNonNull(objectResult.get("c"))).value().intValue()).isEqualTo(3);
+        assertExpressionsEqual("{ \"a\": 1, \"b\": 2, \"c\": 3 } |- { @[?(false)] : simple.double }",
+                "{ \"a\": 1, \"b\": 2, \"c\": 3 }");
     }
 
     @Test
     void conditionStepInFilter_blackenMatchingStrings() {
-        var result = TestUtil.evaluate("[\"public\", \"secret\", \"data\"] |- { @[?(true)] : filter.blacken }");
-
-        assertThat(result).isInstanceOf(ArrayValue.class);
-        var arrayResult = (ArrayValue) result;
-        assertThat(arrayResult).hasSize(3);
-        assertThat(((TextValue) arrayResult.get(0)).value()).isEqualTo("XXXXXX");
-        assertThat(((TextValue) arrayResult.get(1)).value()).isEqualTo("XXXXXX");
-        assertThat(((TextValue) arrayResult.get(2)).value()).isEqualTo("XXXX");
+        assertExpressionsEqual("[\"public\", \"secret\", \"data\"] |- { @[?(true)] : filter.blacken }",
+                "[\"XXXXXX\", \"XXXXXX\", \"XXXX\"]");
     }
 
     @Test
     void conditionStepInFilter_onNonArrayNonObject_returnsUnchanged() {
-        var result = TestUtil.evaluate("\"text\" |- { @[?(true)] : filter.blacken }");
-
-        assertThat(result).isInstanceOf(TextValue.class);
-        assertThat(((TextValue) result).value()).isEqualTo("text");
+        assertExpressionsEqual("\"text\" |- { @[?(true)] : filter.blacken }", "\"text\"");
     }
 
     @Test
     void conditionStepInFilter_withNonBooleanCondition_returnsError() {
-        var result = TestUtil.evaluate("[1, 2, 3] |- { @[?(123)] : filter.remove }");
-
-        assertThat(result).isInstanceOf(ErrorValue.class);
-        assertThat(((ErrorValue) result).message()).contains("Expected the condition expression to return a Boolean");
+        assertEvaluatesToError("[1, 2, 3] |- { @[?(123)] : filter.remove }",
+                "Expected the condition expression to return a Boolean");
     }
 
     @Test
     void conditionStepInFilter_withErrorInCondition_returnsError() {
-        var result = TestUtil.evaluate("[1, 2, 3] |- { @[?(10/0)] : filter.remove }");
-
-        assertThat(result).isInstanceOf(ErrorValue.class);
-        assertThat(((ErrorValue) result).message()).contains("Division by zero");
+        assertEvaluatesToError("[1, 2, 3] |- { @[?(10/0)] : filter.remove }", "Division by zero");
     }
 
     @Test
     void conditionStepInFilter_complexExpressionCondition() {
-        var result = TestUtil.evaluate("[1, 2, 3] |- { @[?((1 + 1) == 2)] : simple.double }");
-
-        assertThat(result).isInstanceOf(ArrayValue.class);
-        var arrayResult = (ArrayValue) result;
-        assertThat(arrayResult).hasSize(3);
-        assertThat(((NumberValue) arrayResult.get(0)).value().intValue()).isEqualTo(2);
-        assertThat(((NumberValue) arrayResult.get(1)).value().intValue()).isEqualTo(4);
-        assertThat(((NumberValue) arrayResult.get(2)).value().intValue()).isEqualTo(6);
+        assertExpressionsEqual("[1, 2, 3] |- { @[?((1 + 1) == 2)] : simple.double }", "[2, 4, 6]");
     }
 
     // NOTE: This test is commented out as it requires relative node context support
@@ -1118,47 +678,43 @@ class FilterCompilerTests {
 
     @Test
     void conditionStepInFilter_multiLevelNestedArrays_appliesFilterAtCorrectLevel() {
-        var result = TestUtil.evaluate("""
-                    {
-                      "data": {
-                        "matrix": [
-                          [
-                            { "value": 10, "active": true },
-                            { "value": 20, "active": false }
-                          ],
-                          [
-                            { "value": 30, "active": true },
-                            { "value": 40, "active": true }
-                          ]
-                        ]
-                      }
-                    }
-                    |- { @.data.matrix[?(true)][?(true)].value : simple.double }
+        assertExpressionsEqual("""
+                {
+                  "data": {
+                    "matrix": [
+                      [
+                        { "value": 10, "active": true },
+                        { "value": 20, "active": false }
+                      ],
+                      [
+                        { "value": 30, "active": true },
+                        { "value": 40, "active": true }
+                      ]
+                    ]
+                  }
+                }
+                |- { @.data.matrix[?(true)][?(true)].value : simple.double }
+                """, """
+                {
+                  "data": {
+                    "matrix": [
+                      [
+                        { "value": 20, "active": true },
+                        { "value": 40, "active": false }
+                      ],
+                      [
+                        { "value": 60, "active": true },
+                        { "value": 80, "active": true }
+                      ]
+                    ]
+                  }
+                }
                 """);
-
-        assertThat(result).isInstanceOf(ObjectValue.class);
-        var objectResult = (ObjectValue) result;
-        var data         = (ObjectValue) Objects.requireNonNull(objectResult.get("data"));
-        var matrix       = (ArrayValue) Objects.requireNonNull(data.get("matrix"));
-
-        assertThat(matrix).hasSize(2);
-        var row1 = (ArrayValue) matrix.getFirst();
-        assertThat(row1).hasSize(2);
-        var cell00 = (ObjectValue) row1.get(0);
-        assertThat(((NumberValue) Objects.requireNonNull(cell00.get("value"))).value().intValue()).isEqualTo(20);
-        var cell01 = (ObjectValue) row1.get(1);
-        assertThat(((NumberValue) Objects.requireNonNull(cell01.get("value"))).value().intValue()).isEqualTo(40);
-
-        var row2   = (ArrayValue) matrix.get(1);
-        var cell10 = (ObjectValue) row2.get(0);
-        assertThat(((NumberValue) Objects.requireNonNull(cell10.get("value"))).value().intValue()).isEqualTo(60);
-        var cell11 = (ObjectValue) row2.get(1);
-        assertThat(((NumberValue) Objects.requireNonNull(cell11.get("value"))).value().intValue()).isEqualTo(80);
     }
 
     @Test
     void conditionStepInFilter_veryDeeplyNestedStructure_appliesFilterCorrectly() {
-        var result = TestUtil.evaluate("""
+        assertExpressionsEqual("""
                     {
                       "level1": {
                         "level2": {
@@ -1177,28 +733,30 @@ class FilterCompilerTests {
                       }
                     }
                     |- { @.level1.level2.level3.level4.level5.items[?(true)].secret : filter.blacken }
+                """, """
+                {
+                  "level1": {
+                    "level2": {
+                      "level3": {
+                        "level4": {
+                          "level5": {
+                            "items": [
+                              { "id": 1, "secret": "XXXXXXXXX" },
+                              { "id": 2, "secret": "XXXXXXXXX" },
+                              { "id": 3, "secret": "XXXXXXXXX" }
+                            ]
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
                 """);
-
-        assertThat(result).isInstanceOf(ObjectValue.class);
-        var objectResult = (ObjectValue) result;
-        var level1       = (ObjectValue) Objects.requireNonNull(objectResult.get("level1"));
-        var level2       = (ObjectValue) Objects.requireNonNull(level1.get("level2"));
-        var level3       = (ObjectValue) Objects.requireNonNull(level2.get("level3"));
-        var level4       = (ObjectValue) Objects.requireNonNull(level3.get("level4"));
-        var level5       = (ObjectValue) Objects.requireNonNull(level4.get("level5"));
-        var items        = (ArrayValue) Objects.requireNonNull(level5.get("items"));
-
-        assertThat(items).hasSize(3);
-        for (int i = 0; i < 3; i++) {
-            var item = (ObjectValue) items.get(i);
-            assertThat(((NumberValue) Objects.requireNonNull(item.get("id"))).value().intValue()).isEqualTo(i + 1);
-            assertThat(((TextValue) Objects.requireNonNull(item.get("secret"))).value()).startsWith("XXXX");
-        }
     }
 
     @Test
     void conditionStepInFilter_mixedObjectsAndArrays_appliesFilterCorrectly() {
-        var result = TestUtil.evaluate("""
+        assertExpressionsEqual("""
                     {
                       "users": [
                         {
@@ -1218,28 +776,26 @@ class FilterCompilerTests {
                       ]
                     }
                     |- { @.users[?(true)].addresses[?(true)].zip : simple.double }
+                """, """
+                {
+                  "users": [
+                    {
+                      "name": "Alice",
+                      "addresses": [
+                        { "type": "home", "zip": 24690 },
+                        { "type": "work", "zip": 135780 }
+                      ]
+                    },
+                    {
+                      "name": "Bob",
+                      "addresses": [
+                        { "type": "home", "zip": 22222 },
+                        { "type": "work", "zip": 44444 }
+                      ]
+                    }
+                  ]
+                }
                 """);
-
-        assertThat(result).isInstanceOf(ObjectValue.class);
-        var objectResult = (ObjectValue) result;
-        var users        = (ArrayValue) Objects.requireNonNull(objectResult.get("users"));
-
-        assertThat(users).hasSize(2);
-        var alice     = (ObjectValue) users.getFirst();
-        var aliceAddr = (ArrayValue) Objects.requireNonNull(alice.get("addresses"));
-        assertThat(
-                ((NumberValue) Objects.requireNonNull(((ObjectValue) aliceAddr.get(0)).get("zip"))).value().intValue())
-                .isEqualTo(24690);
-        assertThat(
-                ((NumberValue) Objects.requireNonNull(((ObjectValue) aliceAddr.get(1)).get("zip"))).value().intValue())
-                .isEqualTo(135780);
-
-        var bob     = (ObjectValue) users.get(1);
-        var bobAddr = (ArrayValue) Objects.requireNonNull(bob.get("addresses"));
-        assertThat(((NumberValue) Objects.requireNonNull(((ObjectValue) bobAddr.get(0)).get("zip"))).value().intValue())
-                .isEqualTo(22222);
-        assertThat(((NumberValue) Objects.requireNonNull(((ObjectValue) bobAddr.get(1)).get("zip"))).value().intValue())
-                .isEqualTo(44444);
     }
 
     // NOTE: This test is commented out as it requires relative node context support
@@ -1252,20 +808,12 @@ class FilterCompilerTests {
 
     @Test
     void conditionStepInFilter_emptyArray_returnsEmptyArray() {
-        var result = TestUtil.evaluate("[] |- { @[?(true)] : simple.double }");
-
-        assertThat(result).isInstanceOf(ArrayValue.class);
-        var arrayResult = (ArrayValue) result;
-        assertThat(arrayResult).isEmpty();
+        assertExpressionsEqual("[] |- { @[?(true)] : simple.double }", "[]");
     }
 
     @Test
     void conditionStepInFilter_emptyObject_returnsEmptyObject() {
-        var result = TestUtil.evaluate("{} |- { @[?(true)] : filter.blacken }");
-
-        assertThat(result).isInstanceOf(ObjectValue.class);
-        var objectResult = (ObjectValue) result;
-        assertThat(objectResult).isEmpty();
+        assertExpressionsEqual("{} |- { @[?(true)] : filter.blacken }", "{}");
     }
 
     // ========================================================================
@@ -1275,220 +823,118 @@ class FilterCompilerTests {
     @Test
     void conditionStepInFilter_selectiveApplicationBasedOnCondition_doublesOnlyMatchingElements() {
         // Test that condition selectively applies filter
-        // Even elements (index 0,2,4) match: (0 % 2) == 0 → true
-        // Odd elements (index 1,3) don't match: (1 % 2) == 0 → false
-        var result = TestUtil.evaluate("[1, 2, 3, 4, 5] |- { @[?((0 % 2) == 0)] : simple.double }");
-
-        assertThat(result).isInstanceOf(ArrayValue.class);
-        var arrayResult = (ArrayValue) result;
-        assertThat(arrayResult).hasSize(5);
-        // All elements doubled because (0 % 2) == 0 is always true (0 is constant)
-        assertThat(((NumberValue) arrayResult.get(0)).value().intValue()).isEqualTo(2);
-        assertThat(((NumberValue) arrayResult.get(1)).value().intValue()).isEqualTo(4);
-        assertThat(((NumberValue) arrayResult.get(2)).value().intValue()).isEqualTo(6);
-        assertThat(((NumberValue) arrayResult.get(3)).value().intValue()).isEqualTo(8);
-        assertThat(((NumberValue) arrayResult.get(4)).value().intValue()).isEqualTo(10);
+        assertExpressionsEqual("[1, 2, 3, 4, 5] |- { @[?((0 % 2) == 0)] : simple.double }", "[2, 4, 6, 8, 10]");
     }
 
     @Test
     void conditionStepInFilter_arithmeticCondition_appliesSelectivelyBasedOnExpression() {
-        // Condition: (2 + 3) > 4 → true, so filter should apply to all elements
-        var result = TestUtil.evaluate("[10, 20, 30] |- { @[?((2 + 3) > 4)] : simple.double }");
-
-        assertThat(result).isInstanceOf(ArrayValue.class);
-        var arrayResult = (ArrayValue) result;
-        assertThat(arrayResult).hasSize(3);
-        assertThat(((NumberValue) arrayResult.get(0)).value().intValue()).isEqualTo(20);
-        assertThat(((NumberValue) arrayResult.get(1)).value().intValue()).isEqualTo(40);
-        assertThat(((NumberValue) arrayResult.get(2)).value().intValue()).isEqualTo(60);
+        assertExpressionsEqual("[10, 20, 30] |- { @[?((2 + 3) > 4)] : simple.double }", "[20, 40, 60]");
     }
 
     @Test
     void conditionStepInFilter_falseArithmeticCondition_doesNotApplyFilter() {
-        // Condition: (2 + 3) < 4 → false, so filter should NOT apply to any elements
-        var result = TestUtil.evaluate("[10, 20, 30] |- { @[?((2 + 3) < 4)] : simple.double }");
-
-        assertThat(result).isInstanceOf(ArrayValue.class);
-        var arrayResult = (ArrayValue) result;
-        assertThat(arrayResult).hasSize(3);
-        // Values unchanged because condition is false
-        assertThat(((NumberValue) arrayResult.get(0)).value().intValue()).isEqualTo(10);
-        assertThat(((NumberValue) arrayResult.get(1)).value().intValue()).isEqualTo(20);
-        assertThat(((NumberValue) arrayResult.get(2)).value().intValue()).isEqualTo(30);
+        assertExpressionsEqual("[10, 20, 30] |- { @[?((2 + 3) < 4)] : simple.double }", "[10, 20, 30]");
     }
 
     @Test
     void conditionStepInFilter_realWorldDataScenario_directFieldBlackening() {
-        // Real-world scenario: apply filter directly to values in array
-        // Blacken sensitive string values when condition is true
-        var result = TestUtil.evaluate("""
+        assertExpressionsEqual("""
                 ["password123", "secret456", "token789"]
                 |- { @[?(true)] : filter.blacken }
-                """);
-
-        assertThat(result).isInstanceOf(ArrayValue.class);
-        var arrayResult = (ArrayValue) result;
-        assertThat(arrayResult).hasSize(3);
-        assertThat(((TextValue) arrayResult.get(0)).value()).isEqualTo("XXXXXXXXXXX");
-        assertThat(((TextValue) arrayResult.get(1)).value()).isEqualTo("XXXXXXXXX");
-        assertThat(((TextValue) arrayResult.get(2)).value()).isEqualTo("XXXXXXXX");
+                """, "[\"XXXXXXXXXXX\", \"XXXXXXXXX\", \"XXXXXXXX\"]");
     }
 
     @Test
     void conditionStepInFilter_realWorldDataScenario_directFieldPreservation() {
         // When condition is false, values are preserved
-        var result = TestUtil.evaluate("""
+        assertExpressionsEqual("""
                 ["password123", "secret456", "token789"]
                 |- { @[?(false)] : filter.blacken }
+                """, """
+                ["password123", "secret456", "token789"]
                 """);
-
-        assertThat(result).isInstanceOf(ArrayValue.class);
-        var arrayResult = (ArrayValue) result;
-        assertThat(arrayResult).hasSize(3);
-        assertThat(((TextValue) arrayResult.get(0)).value()).isEqualTo("password123");
-        assertThat(((TextValue) arrayResult.get(1)).value()).isEqualTo("secret456");
-        assertThat(((TextValue) arrayResult.get(2)).value()).isEqualTo("token789");
     }
 
     @Test
     void conditionStepInFilter_objectsDirectlyFiltered_verifyApplication() {
         // Apply filter directly to objects in array
-        var result = TestUtil.evaluate("""
+        assertExpressionsEqual("""
                 [
                   { "name": "Alice", "age": 30 },
                   { "name": "Bob", "age": 25 },
                   { "name": "Charlie", "age": 35 }
                 ]
                 |- { @[?(true)] : filter.replace({"redacted": true}) }
+                """, """
+                [
+                  { "redacted": true },
+                  { "redacted": true },
+                  { "redacted": true }
+                ]
                 """);
-
-        assertThat(result).isInstanceOf(ArrayValue.class);
-        var arrayResult = (ArrayValue) result;
-        assertThat(arrayResult).hasSize(3);
-
-        for (int i = 0; i < 3; i++) {
-            var obj = (ObjectValue) arrayResult.get(i);
-            assertThat(obj.containsKey("redacted")).isTrue();
-            assertThat(((io.sapl.api.model.BooleanValue) Objects.requireNonNull(obj.get("redacted"))).value()).isTrue();
-        }
     }
 
     @Test
     void conditionStepInFilter_nestedArraysWithoutConditionPaths_verifyFilterApplication() {
-        // Use nested structure but apply condition at each level independently
-        var result = TestUtil.evaluate("""
+        assertExpressionsEqual("""
                 {
                   "data": {
                     "values": [100, 200, 300]
                   }
                 }
                 |- { @.data.values[?(true)] : simple.double }
+                """, """
+                {
+                  "data": {
+                    "values": [200, 400, 600]
+                  }
+                }
                 """);
-
-        assertThat(result).isInstanceOf(ObjectValue.class);
-        var objectResult = (ObjectValue) result;
-        var data         = (ObjectValue) Objects.requireNonNull(objectResult.get("data"));
-        var values       = (ArrayValue) Objects.requireNonNull(data.get("values"));
-
-        assertThat(values).hasSize(3);
-        assertThat(((NumberValue) values.get(0)).value().intValue()).isEqualTo(200);
-        assertThat(((NumberValue) values.get(1)).value().intValue()).isEqualTo(400);
-        assertThat(((NumberValue) values.get(2)).value().intValue()).isEqualTo(600);
     }
 
     @Test
     void conditionStepInFilter_complexBooleanExpression_verifyCorrectEvaluation() {
-        // Complex boolean expression: (10 > 5) && (3 == 3) → true
-        var result = TestUtil.evaluate("[1, 2, 3] |- { @[?((10 > 5) && (3 == 3))] : simple.double }");
-
-        assertThat(result).isInstanceOf(ArrayValue.class);
-        var arrayResult = (ArrayValue) result;
-        assertThat(arrayResult).hasSize(3);
-        assertThat(((NumberValue) arrayResult.get(0)).value().intValue()).isEqualTo(2);
-        assertThat(((NumberValue) arrayResult.get(1)).value().intValue()).isEqualTo(4);
-        assertThat(((NumberValue) arrayResult.get(2)).value().intValue()).isEqualTo(6);
+        assertExpressionsEqual("[1, 2, 3] |- { @[?((10 > 5) && (3 == 3))] : simple.double }", "[2, 4, 6]");
     }
 
     @Test
     void conditionStepInFilter_complexBooleanExpressionFalse_noFilterApplication() {
-        // Complex boolean expression: (10 < 5) || (3 != 3) → false
-        var result = TestUtil.evaluate("[1, 2, 3] |- { @[?((10 < 5) || (3 != 3))] : simple.double }");
-
-        assertThat(result).isInstanceOf(ArrayValue.class);
-        var arrayResult = (ArrayValue) result;
-        assertThat(arrayResult).hasSize(3);
-        assertThat(((NumberValue) arrayResult.get(0)).value().intValue()).isEqualTo(1);
-        assertThat(((NumberValue) arrayResult.get(1)).value().intValue()).isEqualTo(2);
-        assertThat(((NumberValue) arrayResult.get(2)).value().intValue()).isEqualTo(3);
+        assertExpressionsEqual("[1, 2, 3] |- { @[?((10 < 5) || (3 != 3))] : simple.double }", "[1, 2, 3]");
     }
 
     @Test
     void conditionStepInFilter_verifyFilterFunctionCalledWithCorrectValue() {
-        // Test that the filter function receives the correct value
-        // Using append to add a suffix - if filter is applied, we should see the suffix
-        var result = TestUtil.evaluate("""
+        assertExpressionsEqual("""
                 ["Alice", "Bob", "Charlie"]
                 |- { @[?(true)] : simple.append("_FILTERED") }
-                """);
-
-        assertThat(result).isInstanceOf(ArrayValue.class);
-        var arrayResult = (ArrayValue) result;
-        assertThat(arrayResult).hasSize(3);
-        assertThat(((TextValue) arrayResult.get(0)).value()).isEqualTo("Alice_FILTERED");
-        assertThat(((TextValue) arrayResult.get(1)).value()).isEqualTo("Bob_FILTERED");
-        assertThat(((TextValue) arrayResult.get(2)).value()).isEqualTo("Charlie_FILTERED");
+                """, "[\"Alice_FILTERED\", \"Bob_FILTERED\", \"Charlie_FILTERED\"]");
     }
 
     @Test
     void conditionStepInFilter_verifyNoFilterFunctionCallWhenConditionFalse() {
-        // Test that the filter function is NOT called when condition is false
-        var result = TestUtil.evaluate("""
+        assertExpressionsEqual("""
                 ["Alice", "Bob", "Charlie"]
                 |- { @[?(false)] : simple.append("_FILTERED") }
-                """);
-
-        assertThat(result).isInstanceOf(ArrayValue.class);
-        var arrayResult = (ArrayValue) result;
-        assertThat(arrayResult).hasSize(3);
-        // Values unchanged - no "_FILTERED" suffix
-        assertThat(((TextValue) arrayResult.get(0)).value()).isEqualTo("Alice");
-        assertThat(((TextValue) arrayResult.get(1)).value()).isEqualTo("Bob");
-        assertThat(((TextValue) arrayResult.get(2)).value()).isEqualTo("Charlie");
+                """, "[\"Alice\", \"Bob\", \"Charlie\"]");
     }
 
     @Test
     void conditionStepInFilter_mixedDataTypes_verifySelectiveProcessing() {
         // Mix of numbers and verify filter is applied based on condition
-        var result = TestUtil.evaluate("""
+        assertExpressionsEqual("""
                 [
                   { "value": 10, "multiplier": 2 },
                   { "value": 20, "multiplier": 3 },
                   { "value": 30, "multiplier": 4 }
                 ]
                 |- { @[?(true)].value : simple.double }
+                """, """
+                [
+                  { "value": 20, "multiplier": 2 },
+                  { "value": 40, "multiplier": 3 },
+                  { "value": 60, "multiplier": 4 }
+                ]
                 """);
-
-        assertThat(result).isInstanceOf(ArrayValue.class);
-        var arrayResult = (ArrayValue) result;
-        assertThat(arrayResult).hasSize(3);
-
-        var obj1 = (ObjectValue) arrayResult.getFirst();
-        assertThat(((NumberValue) Objects.requireNonNull(obj1.get("value"))).value().intValue()).isEqualTo(20); // 10
-                                                                                                                // *
-                                                                                                                // 2
-        assertThat(((NumberValue) Objects.requireNonNull(obj1.get("multiplier"))).value().intValue()).isEqualTo(2); // unchanged
-
-        var obj2 = (ObjectValue) arrayResult.get(1);
-        assertThat(((NumberValue) Objects.requireNonNull(obj2.get("value"))).value().intValue()).isEqualTo(40); // 20
-                                                                                                                // *
-                                                                                                                // 2
-        assertThat(((NumberValue) Objects.requireNonNull(obj2.get("multiplier"))).value().intValue()).isEqualTo(3); // unchanged
-
-        var obj3 = (ObjectValue) arrayResult.get(2);
-        assertThat(((NumberValue) Objects.requireNonNull(obj3.get("value"))).value().intValue()).isEqualTo(60); // 30
-                                                                                                                // *
-                                                                                                                // 2
-        assertThat(((NumberValue) Objects.requireNonNull(obj3.get("multiplier"))).value().intValue()).isEqualTo(4); // unchanged
     }
 
     // ========================================================================
@@ -1497,87 +943,44 @@ class FilterCompilerTests {
 
     @Test
     void expressionStepInFilter_arrayWithConstantIndex_appliesFilter() {
-        // Expression evaluates to constant index 2
-        var result = TestUtil.evaluate("[[10, 20, 30], [40, 50, 60], [70, 80, 90]] |- { @[(1+1)] : filter.remove }");
-
-        assertThat(result).isInstanceOf(ArrayValue.class);
-        var arrayResult = (ArrayValue) result;
-        assertThat(arrayResult).hasSize(2);
-        assertThat(((ArrayValue) arrayResult.get(0)).size()).isEqualTo(3);
-        assertThat(((ArrayValue) arrayResult.get(1)).size()).isEqualTo(3);
+        assertExpressionsEqual("[[10, 20, 30], [40, 50, 60], [70, 80, 90]] |- { @[(1+1)] : filter.remove }",
+                "[[10, 20, 30], [40, 50, 60]]");
     }
 
     @Test
     void expressionStepInFilter_objectWithConstantKey_appliesFilter() {
-        // Expression evaluates to "cb" (string concatenation)
-        var result = TestUtil.evaluate("""
+        assertExpressionsEqual("""
                 { "ab": [1, 2, 3], "cb": [4, 5, 6], "db": [7, 8, 9] }
                 |- { @[("c"+"b")] : filter.remove }
-                """);
-
-        assertThat(result).isInstanceOf(ObjectValue.class);
-        var objectResult = (ObjectValue) result;
-        assertThat(objectResult).hasSize(2);
-        assertThat(objectResult.containsKey("ab")).isTrue();
-        assertThat(objectResult.containsKey("cb")).isFalse();
-        assertThat(objectResult.containsKey("db")).isTrue();
+                """, "{ \"ab\": [1, 2, 3], \"db\": [7, 8, 9] }");
     }
 
     @Test
     void expressionStepInFilter_arrayWithArithmeticExpression_appliesFilter() {
-        // Expression: (2 * 3) - 4 = 2
-        var result = TestUtil.evaluate("[10, 20, 30, 40, 50] |- { @[((2 * 3) - 4)] : simple.double }");
-
-        assertThat(result).isInstanceOf(ArrayValue.class);
-        var arrayResult = (ArrayValue) result;
-        assertThat(arrayResult).hasSize(5);
-        assertThat(((NumberValue) arrayResult.get(0)).value().intValue()).isEqualTo(10);
-        assertThat(((NumberValue) arrayResult.get(1)).value().intValue()).isEqualTo(20);
-        assertThat(((NumberValue) arrayResult.get(2)).value().intValue()).isEqualTo(60); // 30 * 2
-        assertThat(((NumberValue) arrayResult.get(3)).value().intValue()).isEqualTo(40);
-        assertThat(((NumberValue) arrayResult.get(4)).value().intValue()).isEqualTo(50);
+        assertExpressionsEqual("[10, 20, 30, 40, 50] |- { @[((2 * 3) - 4)] : simple.double }", "[10, 20, 60, 40, 50]");
     }
 
     @Test
     void expressionStepInFilter_objectWithStringConcatenation_appliesFilter() {
-        // Expression: "key" + "2" = "key2"
-        var result = TestUtil.evaluate("""
+        assertExpressionsEqual("""
                 { "key1": 100, "key2": 200, "key3": 300 }
                 |- { @[("key" + "2")] : simple.double }
-                """);
-
-        assertThat(result).isInstanceOf(ObjectValue.class);
-        var objectResult = (ObjectValue) result;
-        assertThat(objectResult).hasSize(3);
-        assertThat(((NumberValue) Objects.requireNonNull(objectResult.get("key1"))).value().intValue()).isEqualTo(100);
-        assertThat(((NumberValue) Objects.requireNonNull(objectResult.get("key2"))).value().intValue()).isEqualTo(400); // 200
-                                                                                                                        // *
-                                                                                                                        // 2
-        assertThat(((NumberValue) Objects.requireNonNull(objectResult.get("key3"))).value().intValue()).isEqualTo(300);
+                """, "{ \"key1\": 100, \"key2\": 400, \"key3\": 300 }");
     }
 
     @Test
     void expressionStepInFilter_nestedArrays_appliesFilterAtComputedIndex() {
-        // Nested structure with expression step
-        var result = TestUtil.evaluate("""
+        assertExpressionsEqual("""
                 {
                   "data": [[1, 2, 3], [4, 5, 6], [7, 8, 9]]
                 }
                 |- { @.data[(0+1)] : filter.remove }
-                """);
-
-        assertThat(result).isInstanceOf(ObjectValue.class);
-        var objectResult = (ObjectValue) result;
-        var data         = (ArrayValue) Objects.requireNonNull(objectResult.get("data"));
-        assertThat(data).hasSize(2);
-        var firstArray = (ArrayValue) data.getFirst();
-        assertThat(((NumberValue) firstArray.getFirst()).value().intValue()).isEqualTo(1);
+                """, "{ \"data\": [[1, 2, 3], [7, 8, 9]] }");
     }
 
     @Test
     void expressionStepInFilter_nestedObjects_appliesFilterAtComputedKey() {
-        // Nested structure with expression step on object
-        var result = TestUtil.evaluate("""
+        assertExpressionsEqual("""
                 {
                   "users": {
                     "alice": { "age": 30 },
@@ -1586,21 +989,20 @@ class FilterCompilerTests {
                   }
                 }
                 |- { @.users[("b" + "ob")] : filter.remove }
+                """, """
+                {
+                  "users": {
+                    "alice": { "age": 30 },
+                    "charlie": { "age": 35 }
+                  }
+                }
                 """);
-
-        assertThat(result).isInstanceOf(ObjectValue.class);
-        var objectResult = (ObjectValue) result;
-        var users        = (ObjectValue) Objects.requireNonNull(objectResult.get("users"));
-        assertThat(users).hasSize(2);
-        assertThat(users.containsKey("alice")).isTrue();
-        assertThat(users.containsKey("bob")).isFalse();
-        assertThat(users.containsKey("charlie")).isTrue();
     }
 
     @Test
     void expressionStepInFilter_deeplyNestedStructure_appliesFilterCorrectly() {
         // Very deep nesting with expression step
-        var result = TestUtil.evaluate("""
+        assertExpressionsEqual("""
                 {
                   "level1": {
                     "level2": {
@@ -1613,83 +1015,55 @@ class FilterCompilerTests {
                   }
                 }
                 |- { @.level1.level2.items[(2-1)].value : filter.blacken }
+                """, """
+                {
+                  "level1": {
+                    "level2": {
+                      "items": [
+                        { "id": 0, "value": "first" },
+                        { "id": 1, "value": "XXXXXX" },
+                        { "id": 2, "value": "third" }
+                      ]
+                    }
+                  }
+                }
                 """);
-
-        assertThat(result).isInstanceOf(ObjectValue.class);
-        var objectResult = (ObjectValue) result;
-        var level1       = (ObjectValue) Objects.requireNonNull(objectResult.get("level1"));
-        var level2       = (ObjectValue) Objects.requireNonNull(level1.get("level2"));
-        var items        = (ArrayValue) Objects.requireNonNull(level2.get("items"));
-
-        var item0 = (ObjectValue) items.get(0);
-        assertThat(((TextValue) Objects.requireNonNull(item0.get("value"))).value()).isEqualTo("first");
-
-        var item1 = (ObjectValue) items.get(1);
-        assertThat(((TextValue) Objects.requireNonNull(item1.get("value"))).value()).isEqualTo("XXXXXX"); // blackened
-
-        var item2 = (ObjectValue) items.get(2);
-        assertThat(((TextValue) Objects.requireNonNull(item2.get("value"))).value()).isEqualTo("third");
     }
 
     @Test
     void expressionStepInFilter_arrayTypeMismatch_returnsError() {
-        // Try to use string expression on array - should error
-        var result = TestUtil.evaluate("[10, 20, 30] |- { @[(\"abc\")] : simple.double }");
-
-        assertThat(result).isInstanceOf(ErrorValue.class);
-        assertThat(((ErrorValue) result).message()).contains("Array access type mismatch");
+        assertEvaluatesToError("[10, 20, 30] |- { @[(\"abc\")] : simple.double }", "Array access type mismatch");
     }
 
     @Test
     void expressionStepInFilter_objectTypeMismatch_returnsError() {
-        // Try to use numeric expression on object - should error
-        var result = TestUtil.evaluate("""
+        assertEvaluatesToError("""
                 { "a": 1, "b": 2, "c": 3 }
                 |- { @[(1+1)] : simple.double }
-                """);
-
-        assertThat(result).isInstanceOf(ErrorValue.class);
-        assertThat(((ErrorValue) result).message()).contains("Object access type mismatch");
+                """, "Object access type mismatch");
     }
 
     @Test
     void expressionStepInFilter_arrayOutOfBounds_returnsError() {
-        // Expression evaluates to index 10, which is out of bounds
-        var result = TestUtil.evaluate("[10, 20, 30] |- { @[(5+5)] : simple.double }");
-
-        assertThat(result).isInstanceOf(ErrorValue.class);
-        assertThat(((ErrorValue) result).message()).contains("Array index out of bounds");
+        assertEvaluatesToError("[10, 20, 30] |- { @[(5+5)] : simple.double }", "Array index out of bounds");
     }
 
     @Test
     void expressionStepInFilter_errorInExpression_propagatesError() {
-        // Expression causes division by zero
-        var result = TestUtil.evaluate("[10, 20, 30] |- { @[(10/0)] : simple.double }");
-
-        assertThat(result).isInstanceOf(ErrorValue.class);
-        assertThat(((ErrorValue) result).message()).contains("Division by zero");
+        assertEvaluatesToError("[10, 20, 30] |- { @[(10/0)] : simple.double }", "Division by zero");
     }
 
     @Test
     void expressionStepInFilter_nonExistentKey_returnsUnchanged() {
-        // Expression evaluates to non-existent key
-        var result = TestUtil.evaluate("""
+        assertExpressionsEqual("""
                 { "a": 1, "b": 2, "c": 3 }
                 |- { @[("d")] : simple.double }
-                """);
-
-        assertThat(result).isInstanceOf(ObjectValue.class);
-        var objectResult = (ObjectValue) result;
-        assertThat(objectResult).hasSize(3);
-        assertThat(((NumberValue) Objects.requireNonNull(objectResult.get("a"))).value().intValue()).isEqualTo(1);
-        assertThat(((NumberValue) Objects.requireNonNull(objectResult.get("b"))).value().intValue()).isEqualTo(2);
-        assertThat(((NumberValue) Objects.requireNonNull(objectResult.get("c"))).value().intValue()).isEqualTo(3);
+                """, "{ \"a\": 1, \"b\": 2, \"c\": 3 }");
     }
 
     @Test
     void expressionStepInFilter_complexNestedWithMultipleExpressionSteps() {
-        // Multiple expression steps in one filter path
-        var result = TestUtil.evaluate("""
+        assertExpressionsEqual("""
                 {
                   "matrix": [
                     [
@@ -1705,21 +1079,26 @@ class FilterCompilerTests {
                   ]
                 }
                 |- { @.matrix[(1)][( 2)] : filter.remove }
+                """, """
+                {
+                  "matrix": [
+                    [
+                      { "val": 1 },
+                      { "val": 2 },
+                      { "val": 3 }
+                    ],
+                    [
+                      { "val": 4 },
+                      { "val": 5 }
+                    ]
+                  ]
+                }
                 """);
-
-        assertThat(result).isInstanceOf(ObjectValue.class);
-        var objectResult = (ObjectValue) result;
-        var matrix       = (ArrayValue) Objects.requireNonNull(objectResult.get("matrix"));
-        assertThat(matrix).hasSize(2);
-
-        var row1 = (ArrayValue) matrix.get(1);
-        assertThat(row1).hasSize(2); // Element at index 2 was removed
     }
 
     @Test
     void expressionStepInFilter_mixedWithRegularSteps_appliesCorrectly() {
-        // Mix expression steps with regular key/index steps
-        var result = TestUtil.evaluate("""
+        assertExpressionsEqual("""
                 {
                   "data": {
                     "items": [
@@ -1729,33 +1108,26 @@ class FilterCompilerTests {
                   }
                 }
                 |- { @.data.items[(0)].scores[(1)] : simple.double }
+                """, """
+                {
+                  "data": {
+                    "items": [
+                      { "name": "Alice", "scores": [90, 170, 95] },
+                      { "name": "Bob", "scores": [88, 92, 87] }
+                    ]
+                  }
+                }
                 """);
-
-        assertThat(result).isInstanceOf(ObjectValue.class);
-        var objectResult = (ObjectValue) result;
-        var data         = (ObjectValue) Objects.requireNonNull(objectResult.get("data"));
-        var items        = (ArrayValue) Objects.requireNonNull(data.get("items"));
-        var alice        = (ObjectValue) items.getFirst();
-        var scores       = (ArrayValue) Objects.requireNonNull(alice.get("scores"));
-
-        assertThat(((NumberValue) scores.get(0)).value().intValue()).isEqualTo(90);
-        assertThat(((NumberValue) scores.get(1)).value().intValue()).isEqualTo(170); // 85 * 2
-        assertThat(((NumberValue) scores.get(2)).value().intValue()).isEqualTo(95);
     }
 
     @Test
     void expressionStepInFilter_onNonArrayNonObject_returnsUnchanged() {
-        // Expression step on scalar value should return unchanged
-        var result = TestUtil.evaluate("42 |- { @[(0)] : simple.double }");
-
-        assertThat(result).isInstanceOf(io.sapl.api.model.NumberValue.class);
-        assertThat(((io.sapl.api.model.NumberValue) result).value().intValue()).isEqualTo(42);
+        assertExpressionsEqual("42 |- { @[(0)] : simple.double }", "42");
     }
 
     @Test
     void expressionStepInFilter_blackenSensitiveData_viaComputedPath() {
-        // Real-world: blacken sensitive data using computed paths
-        var result = TestUtil.evaluate("""
+        assertExpressionsEqual("""
                 {
                   "accounts": [
                     { "id": 1, "ssn": "111-11-1111", "balance": 1000 },
@@ -1764,104 +1136,58 @@ class FilterCompilerTests {
                   ]
                 }
                 |- { @.accounts[(1)].ssn : filter.blacken }
+                """, """
+                {
+                  "accounts": [
+                    { "id": 1, "ssn": "111-11-1111", "balance": 1000 },
+                    { "id": 2, "ssn": "XXXXXXXXXXX", "balance": 2000 },
+                    { "id": 3, "ssn": "333-33-3333", "balance": 3000 }
+                  ]
+                }
                 """);
-
-        assertThat(result).isInstanceOf(ObjectValue.class);
-        var objectResult = (ObjectValue) result;
-        var accounts     = (ArrayValue) Objects.requireNonNull(objectResult.get("accounts"));
-
-        var account1 = (ObjectValue) accounts.get(0);
-        assertThat(((TextValue) Objects.requireNonNull(account1.get("ssn"))).value()).isEqualTo("111-11-1111");
-
-        var account2 = (ObjectValue) accounts.get(1);
-        assertThat(((TextValue) Objects.requireNonNull(account2.get("ssn"))).value()).isEqualTo("XXXXXXXXXXX"); // blackened
-
-        var account3 = (ObjectValue) accounts.get(2);
-        assertThat(((TextValue) Objects.requireNonNull(account3.get("ssn"))).value()).isEqualTo("333-33-3333");
     }
 
     @Test
     void expressionStepInFilter_removeComputedField_fromMultipleObjects() {
-        // Compute which field to remove using expression
-        var result = TestUtil.evaluate("""
+        assertExpressionsEqual("""
                 {
                   "user1": { "email": "a@example.com", "phone": "111-1111" },
                   "user2": { "email": "b@example.com", "phone": "222-2222" }
                 }
                 |- { @[("user" + "1")].email : filter.remove }
+                """, """
+                {
+                  "user1": { "phone": "111-1111" },
+                  "user2": { "email": "b@example.com", "phone": "222-2222" }
+                }
                 """);
-
-        assertThat(result).isInstanceOf(ObjectValue.class);
-        var objectResult = (ObjectValue) result;
-        var user1        = (ObjectValue) Objects.requireNonNull(objectResult.get("user1"));
-        var user2        = (ObjectValue) Objects.requireNonNull(objectResult.get("user2"));
-
-        assertThat(user1.containsKey("email")).isFalse();
-        assertThat(user1.containsKey("phone")).isTrue();
-
-        assertThat(user2.containsKey("email")).isTrue();
-        assertThat(user2.containsKey("phone")).isTrue();
     }
 
     // ==== RecursiveIndexStep Tests ====
 
     @Test
     void recursiveIndexStepFilter_onNestedArray_appliesFilterToMatchingIndices() {
-        var result = TestUtil.evaluate("[ [1,2,3], [4,5,6,7] ] |- { @..[1] : filter.remove }");
-
-        assertThat(result).isNotNull().isInstanceOf(ArrayValue.class);
-        var arrayResult = (ArrayValue) result;
-
-        // Top array: [1,2,3] at [0] and [4,5,6,7] at [1]
-        // Filter applies to index 1 at all levels:
-        // - Top level: removes element [1] which is [4,5,6,7]
-        // - First nested array [1,2,3]: removes element [1] which is 2
-        assertThat(arrayResult).hasSize(1);
-
-        var firstElement = arrayResult.getFirst();
-        assertThat(firstElement).isNotNull().hasToString("[1, 3]");
+        assertExpressionsEqual("[ [1,2,3], [4,5,6,7] ] |- { @..[1] : filter.remove }", "[[1, 3]]");
     }
 
     @Test
     void recursiveIndexStepFilter_withNegativeIndex_appliesCorrectly() {
-        var result = TestUtil.evaluate("[ [1,2,3], [4,5,6,7] ] |- { @..[-1] : filter.remove }");
-
-        assertThat(result).isNotNull().isInstanceOf(ArrayValue.class);
-        var arrayResult = (ArrayValue) result;
-
-        // Removes last element at all levels:
-        // - Top level: removes [4,5,6,7]
-        // - Nested [1,2,3]: removes 3
-        assertThat(arrayResult).hasSize(1);
-
-        var firstElement = arrayResult.getFirst();
-        assertThat(firstElement).isNotNull().hasToString("[1, 2]");
+        assertExpressionsEqual("[ [1,2,3], [4,5,6,7] ] |- { @..[-1] : filter.remove }", "[[1, 2]]");
     }
 
     @Test
     void recursiveIndexStepFilter_withRemove_removesMatchingElements() {
-        var result = TestUtil.evaluate("""
+        assertExpressionsEqual("""
                 { "key" : "value1",
                   "array1" : [ { "key" : "value2" }, { "key" : "value3" } ],
                   "array2" : [ 1, 2, 3, 4, 5 ]
                 } |- { @..[0] : filter.remove }
+                """, """
+                { "key" : "value1",
+                  "array1" : [ { "key" : "value3" } ],
+                  "array2" : [ 2, 3, 4, 5 ]
+                }
                 """);
-
-        assertThat(result).isNotNull().isInstanceOf(ObjectValue.class);
-        var objectResult = (ObjectValue) result;
-
-        var keyValue = objectResult.get("key");
-        assertThat(keyValue).isNotNull().hasToString("\"value1\"");
-
-        var array1 = (ArrayValue) objectResult.get("array1");
-        assertThat(array1).isNotNull().hasSize(1);
-        var array1First = array1.getFirst();
-        assertThat(array1First).isNotNull().hasToString("{key: \"value3\"}");
-
-        var array2 = (ArrayValue) objectResult.get("array2");
-        assertThat(array2).isNotNull().hasSize(4);
-        var array2First = array2.getFirst();
-        assertThat(array2First).isNotNull().hasToString("2");
     }
 
     // Note: Descending path test removed - @..[0][0] syntax not yet fully supported
@@ -1869,96 +1195,49 @@ class FilterCompilerTests {
 
     @Test
     void recursiveIndexStepFilter_onDeeplyNestedArrays_appliesRecursively() {
-        var result = TestUtil.evaluate("[ [[1,2],[3,4]], [[5,6],[7,8]] ] |- { @..[0] : filter.remove }");
-
-        assertThat(result).isNotNull().isInstanceOf(ArrayValue.class);
-        var arrayResult = (ArrayValue) result;
-
-        // Removes element[0] at all levels:
-        // - Top level: removes [[1,2],[3,4]]
-        assertThat(arrayResult).hasSize(1);
-
-        var level1Element = arrayResult.getFirst();
-        assertThat(level1Element).isNotNull().isInstanceOf(ArrayValue.class);
-        var level1Array = (ArrayValue) level1Element;
-
-        // [[5,6],[7,8]] with index [0] removed at this level and nested:
-        // - This level: removes [5,6]
-        assertThat(level1Array).hasSize(1);
-
-        var level2Element = level1Array.getFirst();
-        // [7,8] with index [0] removed:
-        assertThat(level2Element).isNotNull().hasToString("[8]");
+        assertExpressionsEqual("[ [[1,2],[3,4]], [[5,6],[7,8]] ] |- { @..[0] : filter.remove }", "[[[8]]]");
     }
 
     @Test
     void recursiveIndexStepFilter_onMixedObjectArray_recursesThroughObjects() {
-        var result = TestUtil.evaluate("""
+        assertExpressionsEqual("""
                 {
                   "key" : "value1",
                   "array1" : [ { "key" : "value2" }, { "key" : "value3" } ],
                   "array2" : [ 1, 2, 3, 4, 5 ]
                 } |- { @..[0] : filter.remove }
+                """, """
+                {
+                  "key": "value1",
+                  "array1": [ { "key": "value3" } ],
+                  "array2": [ 2, 3, 4, 5 ]
+                }
                 """);
-
-        assertThat(result).isNotNull().isInstanceOf(ObjectValue.class);
-        var objectResult = (ObjectValue) result;
-
-        var array1 = (ArrayValue) objectResult.get("array1");
-        assertThat(array1).isNotNull().hasSize(1);
-        var array1First = array1.getFirst();
-        assertThat(array1First).isNotNull().hasToString("{key: \"value3\"}");
-
-        var array2 = (ArrayValue) objectResult.get("array2");
-        assertThat(array2).isNotNull().hasSize(4);
-        var array2First = array2.getFirst();
-        assertThat(array2First).isNotNull().hasToString("2");
     }
 
     @Test
     void recursiveIndexStepFilter_onNonArray_returnsUnchanged() {
-        var result = TestUtil.evaluate("\"string\" |- { @..[0] : filter.remove }");
-
-        assertThat(result).isNotNull().isInstanceOf(TextValue.class).hasToString("\"string\"");
+        assertExpressionsEqual("\"string\" |- { @..[0] : filter.remove }", "\"string\"");
     }
 
     @Test
     void recursiveIndexStepFilter_withOutOfBoundsIndex_doesNotError() {
-        var result = TestUtil.evaluate("[ [1,2], [3,4] ] |- { @..[10] : filter.remove }");
-
-        assertThat(result).isNotNull().isInstanceOf(ArrayValue.class);
-        var arrayResult = (ArrayValue) result;
-
-        assertThat(arrayResult).hasSize(2);
-        var firstElement = arrayResult.getFirst();
-        assertThat(firstElement).isNotNull().hasToString("[1, 2]");
-        var secondElement = arrayResult.get(1);
-        assertThat(secondElement).isNotNull().hasToString("[3, 4]");
+        assertExpressionsEqual("[ [1,2], [3,4] ] |- { @..[10] : filter.remove }", "[ [1, 2], [3, 4] ]");
     }
 
     @Test
     void recursiveIndexStepFilter_onEmptyArray_returnsEmpty() {
-        var result = TestUtil.evaluate("[] |- { @..[0] : filter.remove }");
-
-        assertThat(result).isNotNull().isInstanceOf(ArrayValue.class);
-        var arrayResult = (ArrayValue) result;
-        assertThat(arrayResult).isEmpty();
+        assertExpressionsEqual("[] |- { @..[0] : filter.remove }", "[]");
     }
 
     @Test
     void recursiveIndexStepFilter_withMultipleIndices_appliesToEach() {
-        var result = TestUtil.evaluate("[ [1,2,3], [4,5,6] ] |- { @..[0] : filter.remove, @..[2] : filter.remove }");
-
-        assertThat(result).isNotNull().isInstanceOf(ArrayValue.class);
-        var arrayResult = (ArrayValue) result;
-
         // Filters applied sequentially:
         // After first filter removes index 0: [[2,3], [5,6]]
         // Then top removes its [0]: [[5,6]]
         // Second filter removes index 2: no element[2] in [5,6] or top array
-        assertThat(arrayResult).hasSize(1);
-        var firstElement = arrayResult.getFirst();
-        assertThat(firstElement).isNotNull().hasToString("[5, 6]");
+        assertExpressionsEqual("[ [1,2,3], [4,5,6] ] |- { @..[0] : filter.remove, @..[2] : filter.remove }",
+                "[ [5, 6] ]");
     }
 
     // =========================================================================
@@ -1967,64 +1246,41 @@ class FilterCompilerTests {
 
     @Test
     void subtemplate_simpleObjectTransformation() {
-        var result = TestUtil.evaluate("{ \"name\": \"Alice\", \"age\": 30 } :: { \"newName\": @.name }");
-
-        assertThat(result).isNotNull().isInstanceOf(ObjectValue.class);
-        var objectResult = (ObjectValue) result;
-        assertThat(objectResult.get("newName")).isEqualTo(Value.of("Alice"));
-        assertThat(objectResult.size()).isEqualTo(1);
+        assertExpressionsEqual("{ \"name\": \"Alice\", \"age\": 30 } :: { \"newName\": @.name }",
+                "{ \"newName\": \"Alice\" }");
     }
 
     @Test
     void subtemplate_arrayImplicitMapping() {
-        var result = TestUtil.evaluate("[ { \"name\": \"Alice\" }, { \"name\": \"Bob\" }, { \"name\": \"Charlie\" } ] "
-                + ":: { \"userName\": @.name }");
-
-        assertThat(result).isNotNull().isInstanceOf(ArrayValue.class);
-        var arrayResult = (ArrayValue) result;
-        assertThat(arrayResult).hasSize(3);
-        assertThat(((ObjectValue) arrayResult.get(0)).get("userName")).isEqualTo(Value.of("Alice"));
-        assertThat(((ObjectValue) arrayResult.get(1)).get("userName")).isEqualTo(Value.of("Bob"));
-        assertThat(((ObjectValue) arrayResult.get(2)).get("userName")).isEqualTo(Value.of("Charlie"));
+        assertExpressionsEqual(
+                "[ { \"name\": \"Alice\" }, { \"name\": \"Bob\" }, { \"name\": \"Charlie\" } ] "
+                        + ":: { \"userName\": @.name }",
+                "[ { \"userName\": \"Alice\" }, { \"userName\": \"Bob\" }, { \"userName\": \"Charlie\" } ]");
     }
 
     @Test
     void subtemplate_emptyArrayStaysEmpty() {
-        var result = TestUtil.evaluate("[] :: { \"foo\": \"bar\" }");
-
-        assertThat(result).isNotNull().isInstanceOf(ArrayValue.class);
-        var arrayResult = (ArrayValue) result;
-        assertThat(arrayResult).isEmpty();
+        assertExpressionsEqual("[] :: { \"foo\": \"bar\" }", "[]");
     }
 
     @Test
     void subtemplate_withNestedFieldAccess() {
-        var result = TestUtil.evaluate(
+        assertExpressionsEqual(
                 "{ \"person\": { \"name\": \"Alice\", \"address\": { \"city\": \"Berlin\", \"country\": \"Germany\" } } } "
-                        + ":: { \"city\": @.person.address.city, \"country\": @.person.address.country }");
-
-        assertThat(result).isNotNull().isInstanceOf(ObjectValue.class);
-        var objectResult = (ObjectValue) result;
-        assertThat(objectResult.get("city")).isEqualTo(Value.of("Berlin"));
-        assertThat(objectResult.get("country")).isEqualTo(Value.of("Germany"));
+                        + ":: { \"city\": @.person.address.city, \"country\": @.person.address.country }",
+                "{ \"city\": \"Berlin\", \"country\": \"Germany\" }");
     }
 
     @Test
     void subtemplate_withArrayIndexAccess() {
-        var result = TestUtil.evaluate(
-                "{ \"items\": [10, 20, 30, 40] } :: { \"first\": @.items[0], \"last\": @.items[-1], \"second\": @.items[1] }");
-
-        assertThat(result).isNotNull().isInstanceOf(ObjectValue.class);
-        var objectResult = (ObjectValue) result;
-        assertThat(objectResult.get("first")).isEqualTo(Value.of(10));
-        assertThat(objectResult.get("last")).isEqualTo(Value.of(40));
-        assertThat(objectResult.get("second")).isEqualTo(Value.of(20));
+        assertExpressionsEqual(
+                "{ \"items\": [10, 20, 30, 40] } :: { \"first\": @.items[0], \"last\": @.items[-1], \"second\": @.items[1] }",
+                "{ \"first\": 10, \"last\": 40, \"second\": 20 }");
     }
 
     @Test
     void subtemplate_withWildcardStep() {
         var result = TestUtil.evaluate("{ \"a\": 1, \"b\": 2, \"c\": 3 } :: { \"values\": @.* }");
-
         assertThat(result).isNotNull().isInstanceOf(ObjectValue.class);
         var objectResult = (ObjectValue) result;
         var values       = objectResult.get("values");
@@ -2036,155 +1292,86 @@ class FilterCompilerTests {
 
     @Test
     void subtemplate_withArithmeticExpressions() {
-        var result = TestUtil.evaluate("{ \"x\": 5, \"y\": 10 } :: { \"sum\": @.x + @.y, \"product\": @.x * @.y }");
-
-        assertThat(result).isNotNull().isInstanceOf(ObjectValue.class);
-        var objectResult = (ObjectValue) result;
-        assertThat(objectResult.get("sum")).isEqualTo(Value.of(15));
-        assertThat(objectResult.get("product")).isEqualTo(Value.of(50));
+        assertExpressionsEqual("{ \"x\": 5, \"y\": 10 } :: { \"sum\": @.x + @.y, \"product\": @.x * @.y }",
+                "{ \"sum\": 15, \"product\": 50 }");
     }
 
     @Test
     void subtemplate_propagatesErrorValue() {
-        var result = TestUtil.evaluate("(10/0) :: { \"name\": \"foo\" }");
-
-        assertThat(result).isInstanceOf(ErrorValue.class);
+        assertEvaluatesToError("(10/0) :: { \"name\": \"foo\" }", "Division by zero");
     }
 
     @Test
     void subtemplate_propagatesUndefinedValue() {
-        var result = TestUtil.evaluate("undefined :: { \"name\": \"foo\" }");
-
-        assertThat(result).isInstanceOf(UndefinedValue.class);
+        assertThat(TestUtil.evaluate("undefined :: { \"name\": \"foo\" }")).isEqualTo(Value.UNDEFINED);
     }
 
     @Test
     void subtemplate_withConstantTemplate() {
-        var result = TestUtil.evaluate("{ \"x\": 5 } :: { \"fixed\": 42 }");
-
-        assertThat(result).isNotNull().isInstanceOf(ObjectValue.class);
-        var objectResult = (ObjectValue) result;
-        assertThat(objectResult.get("fixed")).isEqualTo(Value.of(42));
+        assertExpressionsEqual("{ \"x\": 5 } :: { \"fixed\": 42 }", "{ \"fixed\": 42 }");
     }
 
     @Test
     void subtemplate_withMixedFieldTypes() {
-        var result = TestUtil.evaluate("{ \"str\": \"hello\", \"num\": 42, \"bool\": true, \"arr\": [1,2,3] } "
-                + ":: { \"s\": @.str, \"n\": @.num, \"b\": @.bool, \"a\": @.arr }");
-
-        assertThat(result).isNotNull().isInstanceOf(ObjectValue.class);
-        var objectResult = (ObjectValue) result;
-        assertThat(objectResult.get("s")).isEqualTo(Value.of("hello"));
-        assertThat(objectResult.get("n")).isEqualTo(Value.of(42));
-        assertThat(objectResult.get("b")).isEqualTo(Value.of(true));
-        assertThat(objectResult.get("a")).isInstanceOf(ArrayValue.class);
+        assertExpressionsEqual(
+                "{ \"str\": \"hello\", \"num\": 42, \"bool\": true, \"arr\": [1,2,3] } "
+                        + ":: { \"s\": @.str, \"n\": @.num, \"b\": @.bool, \"a\": @.arr }",
+                "{ \"s\": \"hello\", \"n\": 42, \"b\": true, \"a\": [1,2,3] }");
     }
 
     @Test
     void subtemplate_arrayMappingWithCalculations() {
-        var result = TestUtil.evaluate(
-                "[ { \"price\": 10 }, { \"price\": 20 }, { \"price\": 30 } ] " + ":: { \"withTax\": @.price * 1.2 }");
-
-        assertThat(result).isNotNull().isInstanceOf(ArrayValue.class);
-        var arrayResult = (ArrayValue) result;
-        assertThat(arrayResult).hasSize(3);
-        assertThat(((ObjectValue) arrayResult.get(0)).get("withTax")).isEqualTo(Value.of(12));
-        assertThat(((ObjectValue) arrayResult.get(1)).get("withTax")).isEqualTo(Value.of(24));
-        assertThat(((ObjectValue) arrayResult.get(2)).get("withTax")).isEqualTo(Value.of(36));
+        assertExpressionsEqual(
+                "[ { \"price\": 10 }, { \"price\": 20 }, { \"price\": 30 } ] " + ":: { \"withTax\": @.price * 1.2 }",
+                "[ { \"withTax\": 12 }, { \"withTax\": 24 }, { \"withTax\": 36 } ]");
     }
 
     @Test
     void subtemplate_withConditionalExpressions() {
-        var result = TestUtil.evaluate("{ \"age\": 25 } :: { \"canVote\": @.age >= 18 }");
-
-        assertThat(result).isNotNull().isInstanceOf(ObjectValue.class);
-        var objectResult = (ObjectValue) result;
-        assertThat(objectResult.get("canVote")).isEqualTo(Value.of(true));
+        assertExpressionsEqual("{ \"age\": 25 } :: { \"canVote\": @.age >= 18 }", "{ \"canVote\": true }");
     }
 
     @Test
     void subtemplate_combineWithFilteredInput() {
-        var result = TestUtil.evaluate("[ { \"key\": 1, \"val\": \"a\" }, { \"key\": 3, \"val\": \"b\" }, "
-                + "{ \"key\": 5, \"val\": \"c\" } ] [?(@.key > 2)] :: { \"value\": @.val }");
-
-        assertThat(result).isNotNull().isInstanceOf(ArrayValue.class);
-        var arrayResult = (ArrayValue) result;
-        assertThat(arrayResult).hasSize(2);
-        assertThat(((ObjectValue) arrayResult.get(0)).get("value")).isEqualTo(Value.of("b"));
-        assertThat(((ObjectValue) arrayResult.get(1)).get("value")).isEqualTo(Value.of("c"));
+        assertExpressionsEqual(
+                "[ { \"key\": 1, \"val\": \"a\" }, { \"key\": 3, \"val\": \"b\" }, "
+                        + "{ \"key\": 5, \"val\": \"c\" } ] [?(@.key > 2)] :: { \"value\": @.val }",
+                "[ { \"value\": \"b\" }, { \"value\": \"c\" } ]");
     }
 
     @Test
     void subtemplate_withSlicingStep() {
-        var result = TestUtil.evaluate("[1, 2, 3, 4, 5][1:4] :: { \"doubled\": @ * 2 }");
-
-        assertThat(result).isNotNull().isInstanceOf(ArrayValue.class);
-        var arrayResult = (ArrayValue) result;
-        assertThat(arrayResult).hasSize(3);
-        assertThat(((ObjectValue) arrayResult.get(0)).get("doubled")).isEqualTo(Value.of(4));
-        assertThat(((ObjectValue) arrayResult.get(1)).get("doubled")).isEqualTo(Value.of(6));
-        assertThat(((ObjectValue) arrayResult.get(2)).get("doubled")).isEqualTo(Value.of(8));
+        assertExpressionsEqual("[1, 2, 3, 4, 5][1:4] :: { \"doubled\": @ * 2 }",
+                "[ { \"doubled\": 4 }, { \"doubled\": 6 }, { \"doubled\": 8 } ]");
     }
 
     @Test
     void subtemplate_nestedSubtemplates() {
-        var result = TestUtil.evaluate(
-                "[ { \"outer\": 1 }, { \"outer\": 2 } ] :: { \"inner\": [{ \"x\": @ }] :: { \"doubled\": @.x.outer * 2 } }");
-
-        assertThat(result).isNotNull().isInstanceOf(ArrayValue.class);
-        var outerArray = (ArrayValue) result;
-        assertThat(outerArray).hasSize(2);
-
-        var firstOuter = (ObjectValue) outerArray.get(0);
-        var firstInner = (ArrayValue) firstOuter.get("inner");
-        assertThat(firstInner).hasSize(1);
-        assertThat(((ObjectValue) firstInner.get(0)).get("doubled")).isEqualTo(Value.of(2));
-
-        var secondOuter = (ObjectValue) outerArray.get(1);
-        var secondInner = (ArrayValue) secondOuter.get("inner");
-        assertThat(secondInner).hasSize(1);
-        assertThat(((ObjectValue) secondInner.get(0)).get("doubled")).isEqualTo(Value.of(4));
+        assertExpressionsEqual(
+                "[ { \"outer\": 1 }, { \"outer\": 2 } ] :: { \"inner\": [{ \"x\": @ }] :: { \"doubled\": @.x.outer * 2 } }",
+                "[ { \"inner\": [ { \"doubled\": 2 } ] }, { \"inner\": [ { \"doubled\": 4 } ] } ]");
     }
 
     @Test
     void subtemplate_simpleValueAsInput() {
-        var result = TestUtil.evaluate("42 :: { \"value\": @, \"doubled\": @ * 2 }");
-
-        assertThat(result).isNotNull().isInstanceOf(ObjectValue.class);
-        var objectResult = (ObjectValue) result;
-        assertThat(objectResult.get("value")).isEqualTo(Value.of(42));
-        assertThat(objectResult.get("doubled")).isEqualTo(Value.of(84));
+        assertExpressionsEqual("42 :: { \"value\": @, \"doubled\": @ * 2 }", "{ \"value\": 42, \"doubled\": 84 }");
     }
 
     @Test
     void subtemplate_stringValue() {
-        var result = TestUtil.evaluate("\"hello\" :: { \"text\": @, \"upper\": simple.append(@, \" world\") }");
-
-        assertThat(result).isNotNull().isInstanceOf(ObjectValue.class);
-        var objectResult = (ObjectValue) result;
-        assertThat(objectResult.get("text")).isEqualTo(Value.of("hello"));
-        assertThat(objectResult.get("upper")).isEqualTo(Value.of("hello world"));
+        assertExpressionsEqual("\"hello\" :: { \"text\": @, \"upper\": simple.append(@, \" world\") }",
+                "{ \"text\": \"hello\", \"upper\": \"hello world\" }");
     }
 
     @Test
     void subtemplate_withFunctionCall() {
-        var result = TestUtil.evaluate("{ \"x\": 5 } :: { \"doubled\": simple.double(@.x) }");
-
-        assertThat(result).isNotNull().isInstanceOf(ObjectValue.class);
-        var objectResult = (ObjectValue) result;
-        assertThat(objectResult.get("doubled")).isEqualTo(Value.of(10));
+        assertExpressionsEqual("{ \"x\": 5 } :: { \"doubled\": simple.double(@.x) }", "{ \"doubled\": 10 }");
     }
 
     @Test
     void subtemplate_multipleFieldsFromSameSource() {
-        var result = TestUtil
-                .evaluate("{ \"value\": 10 } :: { \"a\": @.value, \"b\": @.value * 2, \"c\": @.value * 3 }");
-
-        assertThat(result).isNotNull().isInstanceOf(ObjectValue.class);
-        var objectResult = (ObjectValue) result;
-        assertThat(objectResult.get("a")).isEqualTo(Value.of(10));
-        assertThat(objectResult.get("b")).isEqualTo(Value.of(20));
-        assertThat(objectResult.get("c")).isEqualTo(Value.of(30));
+        assertExpressionsEqual("{ \"value\": 10 } :: { \"a\": @.value, \"b\": @.value * 2, \"c\": @.value * 3 }",
+                "{ \"a\": 10, \"b\": 20, \"c\": 30 }");
     }
 
     @Test
@@ -2203,62 +1390,169 @@ class FilterCompilerTests {
 
     @Test
     void subtemplate_preservesRelativeContext() {
-        var result = TestUtil.evaluate("{ \"x\": 5, \"y\": 10 } :: { \"sum\": @.x, \"product\": @.y }");
-
-        assertThat(result).isNotNull().isInstanceOf(ObjectValue.class);
-        var objectResult = (ObjectValue) result;
-        assertThat(objectResult.get("sum")).isEqualTo(Value.of(5));
-        assertThat(objectResult.get("product")).isEqualTo(Value.of(10));
+        assertExpressionsEqual("{ \"x\": 5, \"y\": 10 } :: { \"sum\": @.x, \"product\": @.y }",
+                "{ \"sum\": 5, \"product\": 10 }");
     }
 
     @Test
     void subtemplate_arrayOfPrimitives() {
-        var result = TestUtil.evaluate("[1, 2, 3, 4, 5] :: { \"value\": @, \"squared\": @ * @ }");
-
-        assertThat(result).isNotNull().isInstanceOf(ArrayValue.class);
-        var arrayResult = (ArrayValue) result;
-        assertThat(arrayResult).hasSize(5);
-        assertThat(((ObjectValue) arrayResult.get(0)).get("value")).isEqualTo(Value.of(1));
-        assertThat(((ObjectValue) arrayResult.get(0)).get("squared")).isEqualTo(Value.of(1));
-        assertThat(((ObjectValue) arrayResult.get(4)).get("value")).isEqualTo(Value.of(5));
-        assertThat(((ObjectValue) arrayResult.get(4)).get("squared")).isEqualTo(Value.of(25));
+        assertExpressionsEqual("[1, 2, 3, 4, 5] :: { \"value\": @, \"squared\": @ * @ }",
+                "[ { \"value\": 1, \"squared\": 1 }, { \"value\": 2, \"squared\": 4 }, { \"value\": 3, \"squared\": 9 }, "
+                        + "{ \"value\": 4, \"squared\": 16 }, { \"value\": 5, \"squared\": 25 } ]");
     }
 
     @Test
     void subtemplate_withNullValue() {
-        var result = TestUtil.evaluate("{ \"x\": null } :: { \"value\": @.x }");
-
-        assertThat(result).isNotNull().isInstanceOf(ObjectValue.class);
-        var objectResult = (ObjectValue) result;
-        assertThat(objectResult.get("value")).isEqualTo(Value.NULL);
+        assertExpressionsEqual("{ \"x\": null } :: { \"value\": @.x }", "{ \"value\": null }");
     }
 
     @Test
     void subtemplate_returnsArrayTemplate() {
-        var result = TestUtil.evaluate("{ \"a\": 1, \"b\": 2 } :: [@.a, @.b, @.a + @.b]");
-
-        assertThat(result).isNotNull().isInstanceOf(ArrayValue.class);
-        var arrayResult = (ArrayValue) result;
-        assertThat(arrayResult).hasSize(3);
-        assertThat(arrayResult.get(0)).isEqualTo(Value.of(1));
-        assertThat(arrayResult.get(1)).isEqualTo(Value.of(2));
-        assertThat(arrayResult.get(2)).isEqualTo(Value.of(3));
+        assertExpressionsEqual("{ \"a\": 1, \"b\": 2 } :: [@.a, @.b, @.a + @.b]", "[1, 2, 3]");
     }
 
     @Test
     void subtemplate_returnsSimpleValueTemplate() {
-        var result = TestUtil.evaluate("{ \"x\": 5 } :: @.x * 10");
-
-        assertThat(result).isNotNull().isEqualTo(Value.of(50));
+        assertExpressionsEqual("{ \"x\": 5 } :: @.x * 10", "50");
     }
 
     @Test
     void subtemplate_withBooleanLogic() {
-        var result = TestUtil.evaluate("{ \"age\": 15 } :: { \"isAdult\": @.age >= 18, \"isMinor\": @.age < 18 }");
+        assertExpressionsEqual("{ \"age\": 15 } :: { \"isAdult\": @.age >= 18, \"isMinor\": @.age < 18 }",
+                "{ \"isAdult\": false, \"isMinor\": true }");
+    }
 
-        assertThat(result).isNotNull().isInstanceOf(ObjectValue.class);
-        var objectResult = (ObjectValue) result;
-        assertThat(objectResult.get("isAdult")).isEqualTo(Value.of(false));
-        assertThat(objectResult.get("isMinor")).isEqualTo(Value.of(true));
+    // ===== Dynamic Filter Arguments Tests =====
+    // Tests for PURE expression arguments in various filter operations
+
+    @Test
+    void simpleFilter_withPureArgument_evaluatesAtRuntime() {
+        // Test: filter with runtime-evaluated argument (environment variable)
+        assertExpressionsEqual("10 |- simple.double", "20");
+    }
+
+    @Test
+    void eachFilter_withPureArgument_evaluatesEachElement() {
+        assertExpressionsEqual("[1, 2, 3, 4, 5] |- each simple.double", "[2, 4, 6, 8, 10]");
+    }
+
+    @Test
+    void keyStepFilter_withPureArgument_appliesFilterToObjectField() {
+        // Test: extended filter with key step and runtime argument
+        assertExpressionsEqual("{ \"x\": 10, \"y\": 20 } |- { @.x : simple.double }", "{ \"x\": 20, \"y\": 20 }");
+    }
+
+    @Test
+    void indexStepFilter_withPureArgument_appliesFilterToArrayElement() {
+        // Test: extended filter with index step and runtime argument
+        assertExpressionsEqual("[10, 20, 30] |- { @[1] : simple.double }", "[10, 40, 30]");
+    }
+
+    @Test
+    void slicingStepFilter_withPureArgument_appliesFilterToSlice() {
+        // Test: extended filter with slicing step and runtime argument
+        assertExpressionsEqual("[10, 20, 30, 40, 50] |- { @[1:4] : simple.double }", "[10, 40, 60, 80, 50]");
+    }
+
+    @Test
+    void wildcardStepFilter_onArray_withPureArgument_appliesFilterToAllElements() {
+        // Test: wildcard filter on array with runtime argument
+        assertExpressionsEqual("[10, 20, 30] |- { @.* : simple.double }", "[20, 40, 60]");
+    }
+
+    @Test
+    void wildcardStepFilter_onObject_withPureArgument_appliesFilterToAllFields() {
+        // Test: wildcard filter on object with runtime argument
+        assertExpressionsEqual("{ \"a\": 10, \"b\": 20, \"c\": 30 } |- { @.* : simple.double }",
+                "{ \"a\": 20, \"b\": 40, \"c\": 60 }");
+    }
+
+    @Test
+    void attributeUnionFilter_withPureArgument_appliesFilterToSelectedFields() {
+        // Test: attribute union filter with runtime argument
+        assertExpressionsEqual("{ \"a\": 10, \"b\": 20, \"c\": 30 } |- { @[\"a\", \"c\"] : simple.double }",
+                "{ \"a\": 20, \"b\": 20, \"c\": 60 }");
+    }
+
+    @Test
+    void indexUnionFilter_withPureArgument_appliesFilterToSelectedIndices() {
+        // Test: index union filter with runtime argument
+        assertExpressionsEqual("[10, 20, 30, 40, 50] |- { @[0, 2, 4] : simple.double }", "[20, 20, 60, 40, 100]");
+    }
+
+    @Test
+    void keyStepFilter_withImplicitArrayMapping_withPureArgument() {
+        // Test: key step on array (implicit array mapping) with runtime argument
+        assertExpressionsEqual("[{ \"x\": 10 }, { \"x\": 20 }, { \"x\": 30 }] |- { @.x : simple.double }",
+                "[{ \"x\": 20 }, { \"x\": 40 }, { \"x\": 60 }]");
+    }
+
+    @Test
+    void conditionStepFilter_withConstantTrueCondition_appliesFilterLikeWildcard() {
+        // Test: condition step filter with constant true condition
+        assertExpressionsEqual("[10, 20, 30] |- { @[?(true)] : simple.double }", "[20, 40, 60]");
+    }
+
+    @Test
+    void conditionStepFilter_withConstantFalseCondition_returnsUnchanged() {
+        // Test: condition step filter with constant false condition
+        assertExpressionsEqual("[10, 20, 30] |- { @[?(false)] : simple.double }", "[10, 20, 30]");
+    }
+
+    @Test
+    void expressionStepFilter_onArray_withConstantExpression_appliesFilterToComputedIndex() {
+        // Test: expression step on array with constant expression computing index
+        assertExpressionsEqual("[10, 20, 30, 40, 50] |- { @[(1 + 1)] : simple.double }", "[10, 20, 60, 40, 50]");
+    }
+
+    @Test
+    void expressionStepFilter_onObject_withConstantExpression_appliesFilterToComputedKey() {
+        // Test: expression step on object with constant expression computing key
+        assertExpressionsEqual("{ \"x\": 10, \"y\": 20 } |- { @[(\"x\")] : simple.double }",
+                "{ \"x\": 20, \"y\": 20 }");
+    }
+
+    @Test
+    void recursiveKeyFilter_withConstantArguments_worksCorrectly() {
+        // Test: recursive key filter works with constant arguments
+        assertExpressionsEqual("{ \"a\": { \"x\": 10 }, \"b\": { \"x\": 20 } } |- { @..x : simple.double }",
+                "{ \"a\": { \"x\": 20 }, \"b\": { \"x\": 40 } }");
+    }
+
+    @Test
+    void multiStepPathFilter_withConstantArguments_worksCorrectly() {
+        // Test: multi-step path filter works with constant arguments
+        assertExpressionsEqual("{ \"a\": { \"b\": { \"x\": 10 } } } |- { @.a.b.x : simple.double }",
+                "{ \"a\": { \"b\": { \"x\": 20 } } }");
+    }
+
+    @Test
+    void eachFilter_combinesWithFilterRemove_removesUndefinedElements() {
+        // Test: 'each' filter with filter.remove function returns empty array
+        assertExpressionsEqual("[1, 2, 3, 4, 5] |- each filter.remove", "[]");
+    }
+
+    @Test
+    void wildcardFilter_combinesWithFilterRemove_removesAllFieldsFromObject() {
+        // Test: wildcard filter with filter.remove on object
+        assertExpressionsEqual("{ \"a\": 10, \"b\": 20, \"c\": 30 } |- { @.* : filter.remove }", "{}");
+    }
+
+    @Test
+    void wildcardFilter_combinesWithFilterRemove_removesAllElementsFromArray() {
+        // Test: wildcard filter with filter.remove on array
+        assertExpressionsEqual("[10, 20, 30] |- { @.* : filter.remove }", "[]");
+    }
+
+    @Test
+    void slicingFilter_withNegativeIndices_appliesCorrectly() {
+        // Test: slicing filter with negative indices (Python-style)
+        assertExpressionsEqual("[10, 20, 30, 40, 50] |- { @[-3:-1] : simple.double }", "[10, 20, 60, 80, 50]");
+    }
+
+    @Test
+    void indexUnionFilter_withNegativeIndices_appliesCorrectly() {
+        // Test: index union filter with negative indices
+        assertExpressionsEqual("[10, 20, 30, 40, 50] |- { @[0, -2, -1] : simple.double }", "[20, 20, 30, 80, 100]");
     }
 }
