@@ -429,31 +429,31 @@ public class FilterCompiler {
         val currentStep = steps.get(stepIndex);
 
         return switch (currentStep) {
-        case KeyStep keyStep                         -> applyFilterToNestedPath(parentValue, keyStep.getId(), steps,
+        case KeyStep keyStep                       -> applyFilterToNestedPath(parentValue, keyStep.getId(), steps,
                 stepIndex + 1, functionIdentifier, arguments, context);
-        case IndexStep indexStep                     -> applyFilterToNestedArrayElement(parentValue,
+        case IndexStep indexStep                   -> applyFilterToNestedArrayElement(parentValue,
                 indexStep.getIndex().intValue(), steps, stepIndex + 1, functionIdentifier, arguments, context);
-        case ArraySlicingStep slicingStep            -> applyFilterToNestedArraySlice(parentValue, slicingStep, steps,
+        case ArraySlicingStep slicingStep          -> applyFilterToNestedArraySlice(parentValue, slicingStep, steps,
                 stepIndex + 1, functionIdentifier, arguments, context);
-        case WildcardStep ignored                    ->
+        case WildcardStep ignored                  ->
             applyFilterToNestedWildcard(parentValue, steps, stepIndex + 1, functionIdentifier, arguments, context);
-        case RecursiveKeyStep recursiveKeyStep       -> applyFilterToNestedRecursiveKey(parentValue,
+        case RecursiveKeyStep recursiveKeyStep     -> applyFilterToNestedRecursiveKey(parentValue,
                 recursiveKeyStep.getId(), steps, stepIndex + 1, functionIdentifier, arguments, context);
-        case RecursiveWildcardStep ignored           -> applyFilterToNestedRecursiveWildcard(parentValue, steps,
+        case RecursiveWildcardStep ignored         -> applyFilterToNestedRecursiveWildcard(parentValue, steps,
                 stepIndex + 1, functionIdentifier, arguments, context);
-        case RecursiveIndexStep recursiveIndexStep   -> applyFilterToNestedRecursiveIndex(parentValue,
+        case RecursiveIndexStep recursiveIndexStep -> applyFilterToNestedRecursiveIndex(parentValue,
                 recursiveIndexStep.getIndex().intValue(), steps, stepIndex + 1, functionIdentifier, arguments, context);
-        case AttributeUnionStep attributeUnionStep   -> applyFilterToNestedAttributeUnion(parentValue,
+        case AttributeUnionStep attributeUnionStep -> applyFilterToNestedAttributeUnion(parentValue,
                 attributeUnionStep.getAttributes(), steps, stepIndex + 1, functionIdentifier, arguments, context);
-        case IndexUnionStep indexUnionStep           -> applyFilterToNestedIndexUnion(parentValue,
+        case IndexUnionStep indexUnionStep         -> applyFilterToNestedIndexUnion(parentValue,
                 indexUnionStep.getIndices(), steps, stepIndex + 1, functionIdentifier, arguments, context);
-        case AttributeFinderStep ignored             -> Value.error(ATTRIBUTE_FINDER_NOT_PERMITTED_IN_FILTER);
-        case HeadAttributeFinderStep ignored         -> Value.error(ATTRIBUTE_FINDER_NOT_PERMITTED_IN_FILTER);
-        case ConditionStep conditionStep             -> applyFilterToNestedCondition(parentValue, conditionStep, steps,
+        case AttributeFinderStep ignored           -> Value.error(ATTRIBUTE_FINDER_NOT_PERMITTED_IN_FILTER);
+        case HeadAttributeFinderStep ignored       -> Value.error(ATTRIBUTE_FINDER_NOT_PERMITTED_IN_FILTER);
+        case ConditionStep conditionStep           -> applyFilterToNestedCondition(parentValue, conditionStep, steps,
                 stepIndex + 1, functionIdentifier, arguments, context);
-        case ExpressionStep expressionStep           -> applyFilterToNestedExpression(parentValue, expressionStep,
-                steps, stepIndex + 1, functionIdentifier, arguments, context);
-        default                                      -> throw new SaplCompilerException(
+        case ExpressionStep expressionStep         -> applyFilterToNestedExpression(parentValue, expressionStep, steps,
+                stepIndex + 1, functionIdentifier, arguments, context);
+        default                                    -> throw new SaplCompilerException(
                 "Step type not supported in multi-step path: " + currentStep.getClass().getSimpleName());
         };
     }
@@ -472,31 +472,31 @@ public class FilterCompiler {
     private CompiledExpression applySingleStepFilter(Value parentValue, Step step, String functionIdentifier,
             CompiledArguments arguments, CompilationContext context) {
         return switch (step) {
-        case KeyStep keyStep                         ->
+        case KeyStep keyStep                       ->
             applyKeyStepFilter(parentValue, keyStep.getId(), functionIdentifier, arguments, context);
-        case IndexStep indexStep                     ->
+        case IndexStep indexStep                   ->
             applyIndexStepFilter(parentValue, indexStep.getIndex().intValue(), functionIdentifier, arguments, context);
-        case ArraySlicingStep slicingStep            ->
+        case ArraySlicingStep slicingStep          ->
             applySlicingStepFilter(parentValue, slicingStep, functionIdentifier, arguments, context);
-        case WildcardStep ignored                    ->
+        case WildcardStep ignored                  ->
             applyWildcardStepFilter(parentValue, functionIdentifier, arguments, context);
-        case RecursiveKeyStep recursiveKeyStep       ->
+        case RecursiveKeyStep recursiveKeyStep     ->
             applyRecursiveKeyStepFilter(parentValue, recursiveKeyStep.getId(), functionIdentifier, arguments, context);
-        case RecursiveWildcardStep ignored           ->
+        case RecursiveWildcardStep ignored         ->
             applyRecursiveWildcardStepFilter(parentValue, functionIdentifier, arguments, context);
-        case RecursiveIndexStep recursiveIndexStep   -> applyRecursiveIndexStepFilter(parentValue,
+        case RecursiveIndexStep recursiveIndexStep -> applyRecursiveIndexStepFilter(parentValue,
                 recursiveIndexStep.getIndex().intValue(), functionIdentifier, arguments, context);
-        case AttributeUnionStep attributeUnionStep   -> applyAttributeUnionStepFilter(parentValue,
+        case AttributeUnionStep attributeUnionStep -> applyAttributeUnionStepFilter(parentValue,
                 attributeUnionStep.getAttributes(), functionIdentifier, arguments, context);
-        case IndexUnionStep indexUnionStep           ->
+        case IndexUnionStep indexUnionStep         ->
             applyIndexUnionStepFilter(parentValue, indexUnionStep.getIndices(), functionIdentifier, arguments, context);
-        case AttributeFinderStep ignored             -> Value.error(ATTRIBUTE_FINDER_NOT_PERMITTED_IN_FILTER);
-        case HeadAttributeFinderStep ignored         -> Value.error(ATTRIBUTE_FINDER_NOT_PERMITTED_IN_FILTER);
-        case ConditionStep conditionStep             ->
+        case AttributeFinderStep ignored           -> Value.error(ATTRIBUTE_FINDER_NOT_PERMITTED_IN_FILTER);
+        case HeadAttributeFinderStep ignored       -> Value.error(ATTRIBUTE_FINDER_NOT_PERMITTED_IN_FILTER);
+        case ConditionStep conditionStep           ->
             applyConditionStepFilter(parentValue, conditionStep, functionIdentifier, arguments, context);
-        case ExpressionStep expressionStep           ->
+        case ExpressionStep expressionStep         ->
             applyExpressionStepFilter(parentValue, expressionStep, functionIdentifier, arguments, context);
-        default                                      ->
+        default                                    ->
             throw new SaplCompilerException("Step type not supported: " + step.getClass().getSimpleName());
         };
     }
