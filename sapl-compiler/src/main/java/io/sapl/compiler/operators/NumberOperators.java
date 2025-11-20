@@ -71,10 +71,10 @@ public class NumberOperators {
      */
     public static Value modulo(Value dividend, Value divisor) {
         if (!(dividend instanceof NumberValue(BigDecimal dividendValue, boolean dividendSecret))) {
-            return Value.error(String.format(TYPE_MISMATCH_NUMBER_EXPECTED_ERROR, dividend));
+            return Value.error(TYPE_MISMATCH_NUMBER_EXPECTED_ERROR, dividend);
         }
         if (!(divisor instanceof NumberValue(BigDecimal divisorValue, boolean divisorSecret))) {
-            return Value.error(String.format(TYPE_MISMATCH_NUMBER_EXPECTED_ERROR, dividend));
+            return Value.error(TYPE_MISMATCH_NUMBER_EXPECTED_ERROR, dividend);
         }
         if (divisorValue.signum() == 0) {
             return new ErrorValue("Division by zero.", dividendSecret || divisorSecret);
@@ -90,14 +90,14 @@ public class NumberOperators {
 
     public static Value unaryPlus(Value v) {
         if (!(v instanceof NumberValue)) {
-            return Value.error(String.format(TYPE_MISMATCH_NUMBER_EXPECTED_ERROR, v));
+            return Value.error(TYPE_MISMATCH_NUMBER_EXPECTED_ERROR, v);
         }
         return v;
     }
 
     public static Value unaryMinus(Value v) {
         if (!(v instanceof NumberValue(BigDecimal number, boolean secret))) {
-            return Value.error(String.format(TYPE_MISMATCH_NUMBER_EXPECTED_ERROR, v));
+            return Value.error(TYPE_MISMATCH_NUMBER_EXPECTED_ERROR, v);
         }
         return new NumberValue(number.negate(), secret);
     }
@@ -121,10 +121,10 @@ public class NumberOperators {
     private static Value applyNumericComparison(Value left, Value right,
             BiPredicate<BigDecimal, BigDecimal> comparison) {
         if (!(left instanceof NumberValue(BigDecimal leftValue, boolean leftSecret))) {
-            return Value.error(String.format(TYPE_MISMATCH_NUMBER_EXPECTED_ERROR, left));
+            return Value.error(TYPE_MISMATCH_NUMBER_EXPECTED_ERROR, left);
         }
         if (!(right instanceof NumberValue(BigDecimal rightValue, boolean rightSecret))) {
-            return Value.error(String.format(TYPE_MISMATCH_NUMBER_EXPECTED_ERROR, right));
+            return Value.error(TYPE_MISMATCH_NUMBER_EXPECTED_ERROR, right);
         }
         return preserveSecret(comparison.test(leftValue, rightValue), leftSecret || rightSecret);
     }
@@ -146,10 +146,10 @@ public class NumberOperators {
 
     private static Value applyNumericOperation(Value left, Value right, BinaryOperator<BigDecimal> operation) {
         if (!(left instanceof NumberValue(BigDecimal leftValue, boolean leftSecret))) {
-            return Value.error(String.format(TYPE_MISMATCH_NUMBER_EXPECTED_ERROR, left));
+            return Value.error(TYPE_MISMATCH_NUMBER_EXPECTED_ERROR, left);
         }
         if (!(right instanceof NumberValue(BigDecimal rightValue, boolean rightSecret))) {
-            return Value.error(String.format(TYPE_MISMATCH_NUMBER_EXPECTED_ERROR, right));
+            return Value.error(TYPE_MISMATCH_NUMBER_EXPECTED_ERROR, right);
         }
         return new NumberValue(operation.apply(leftValue, rightValue), leftSecret || rightSecret);
     }

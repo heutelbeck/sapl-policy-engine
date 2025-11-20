@@ -62,7 +62,11 @@ public class AttributeCompiler {
     private static final AttributeFinderOptions DEFAULT_OPTIONS = new AttributeFinderOptions("none", 3000L, 30000L,
             1000L, 3, false, null, null);
 
-    private static final String UNDEFINED_VALUE_ERROR = "Undefined value handed over as left-hand parameter to policy information point";
+    private static final String ERROR_ATTRIBUTE_BROKER_NOT_CONFIGURED   = "Internal PDP Error. AttributeBroker not configured in evaluation context.";
+    private static final String ERROR_ATTRIBUTE_PARAMETERS_INSUFFICIENT = "Internal PDP Error. Attribute evaluation must have at least two parameters, but got %d.";
+    private static final String ERROR_PIP_RETURNED_PURE_EXPRESSION      = "Compilation error. Got PureExpression from PIP. Indicates implementation bug.";
+    private static final String ERROR_PIP_RETURNED_VALUE                = "Compilation error. Got Value from PIP. Indicates implementation bug.";
+    private static final String ERROR_UNDEFINED_VALUE_LEFT_HAND         = "Undefined value handed over as left-hand parameter to policy information point";
 
     private static final String OPTION_FIELD_ATTRIBUTE_FINDER_OPTIONS = "attributeFinderOptions";
     private static final String OPTION_FIELD_BACKOFF                  = "backoffMs";
@@ -122,10 +126,8 @@ public class AttributeCompiler {
     private CompiledExpression fullStreamToHead(CompiledExpression fullStream) {
         return switch (fullStream) {
         case ErrorValue error                  -> error;
-        case Value ignored                     ->
-            throw new SaplCompilerException("Compilation error. Got Value from PIP. Indicates implementation bug.");
-        case PureExpression ignored            -> throw new SaplCompilerException(
-                "Compilation error. Got PureExpression from PIP. Indicates implementation bug.");
+        case Value ignored                     -> throw new SaplCompilerException(ERROR_PIP_RETURNED_VALUE);
+        case PureExpression ignored            -> throw new SaplCompilerException(ERROR_PIP_RETURNED_PURE_EXPRESSION);
         case StreamExpression streamExpression -> new StreamExpression(streamExpression.stream().take(1));
         };
     }
@@ -148,7 +150,7 @@ public class AttributeCompiler {
             compiledOptions = Value.EMPTY_OBJECT;
         }
         if (entity instanceof UndefinedValue) {
-            throw new SaplCompilerException(UNDEFINED_VALUE_ERROR);
+            throw new SaplCompilerException(ERROR_UNDEFINED_VALUE_LEFT_HAND);
         }
         val entityFlux           = entity == null ? Flux.just(Value.NULL)
                 : ExpressionCompiler.compiledExpressionToFlux(entity);
@@ -184,9 +186,8 @@ public class AttributeCompiler {
     private static Flux<Value> evaluatedAttributeFinder(java.lang.Object[] evaluatedAttributeFinderParameters,
             String attributeName, boolean isEnvironmentAttribute) {
         if (evaluatedAttributeFinderParameters.length < 2) {
-            return Flux.just(Value
-                    .error("Internal PDP Error. Attribute evaluation must have at least two parameters, but got %d."
-                            .formatted(evaluatedAttributeFinderParameters.length)));
+            return Flux.just(Value.error(
+                    String.format(ERROR_ATTRIBUTE_PARAMETERS_INSUFFICIENT, evaluatedAttributeFinderParameters.length)));
         }
         val entity = (Value) evaluatedAttributeFinderParameters[0];
 
@@ -194,7 +195,7 @@ public class AttributeCompiler {
             return Flux.just(entity);
         }
         if (!isEnvironmentAttribute && entity instanceof UndefinedValue) {
-            return Flux.just(Value.error(UNDEFINED_VALUE_ERROR));
+            return Flux.just(Value.error(ERROR_UNDEFINED_VALUE_LEFT_HAND));
         }
         val maybeOptions = (Options) evaluatedAttributeFinderParameters[1];
         if (maybeOptions instanceof OptionsError(ErrorValue error)) {
@@ -203,7 +204,7 @@ public class AttributeCompiler {
 
         val options = (AttributeFinderOptions) maybeOptions;
         if (options.attributeBroker == null) {
-            return Flux.just(Value.error("Internal PDP Error. AttributeBroker not configured in evaluation context."));
+            return Flux.just(Value.error(ERROR_ATTRIBUTE_BROKER_NOT_CONFIGURED));
         }
 
         var values     = Arrays.stream(evaluatedAttributeFinderParameters, 2, evaluatedAttributeFinderParameters.length)

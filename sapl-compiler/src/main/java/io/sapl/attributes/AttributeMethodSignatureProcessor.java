@@ -286,8 +286,8 @@ public class AttributeMethodSignatureProcessor {
                 }
 
             } catch (Throwable throwable) {
-                return Flux.just(Value.error(ATTRIBUTE_EXECUTION_ERROR_TEMPLATE.formatted(invocation.attributeName(),
-                        throwable.getMessage())));
+                return Flux.just(Value.error(ATTRIBUTE_EXECUTION_ERROR_TEMPLATE, invocation.attributeName(),
+                        throwable.getMessage()));
             }
         });
     }

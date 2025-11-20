@@ -197,7 +197,7 @@ public class DefaultFunctionBroker implements FunctionBroker {
             }
         }
 
-        return Value.error(NO_MATCHING_FUNCTION_FOUND_ERROR.formatted(invocation));
+        return Value.error(NO_MATCHING_FUNCTION_FOUND_ERROR, invocation);
     }
 
 }

@@ -45,17 +45,17 @@ public class BooleanOperators {
 
     private static Value applyBooleanOperation(Value left, Value right, BinaryOperator<Boolean> operation) {
         if (!(left instanceof BooleanValue boolLeft)) {
-            return Value.error(String.format(TYPE_MISMATCH_BOOLEAN_EXPECTED_ERROR, left));
+            return Value.error(TYPE_MISMATCH_BOOLEAN_EXPECTED_ERROR, left);
         }
         if (!(right instanceof BooleanValue boolRight)) {
-            return Value.error(String.format(TYPE_MISMATCH_BOOLEAN_EXPECTED_ERROR, right));
+            return Value.error(TYPE_MISMATCH_BOOLEAN_EXPECTED_ERROR, right);
         }
         return preserveSecret(operation.apply(boolLeft.value(), boolRight.value()), left.secret() || right.secret());
     }
 
     public static Value not(Value value) {
         if (!(value instanceof BooleanValue(boolean bool, boolean secret))) {
-            return Value.error(String.format(TYPE_MISMATCH_BOOLEAN_EXPECTED_ERROR, value));
+            return Value.error(TYPE_MISMATCH_BOOLEAN_EXPECTED_ERROR, value);
         }
         return preserveSecret(!bool, secret);
     }
