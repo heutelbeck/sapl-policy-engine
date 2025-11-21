@@ -36,7 +36,6 @@ public class StepOperators {
 
     private static final int MAX_RECURSION_DEPTH = 500;
 
-    // Error message constants (sorted alphabetically)
     private static final String ERROR_EXPRESSION_STEP_TYPE_MISMATCH = "Expression in expression step must return a number or text, but got %s.";
     private static final String ERROR_INDEX_OUT_OF_BOUNDS           = "Index %d out of bounds for array of size %d.";
     private static final String ERROR_INDEX_UNION_REQUIRES_ARRAY    = "Index union steps can only be applied to arrays but got %s.";

@@ -32,7 +32,6 @@ import java.util.regex.PatternSyntaxException;
 @UtilityClass
 public class ComparisonOperators {
 
-    // Error message constants (sorted alphabetically)
     private static final String ERROR_IN_OPERATOR_TYPE_MISMATCH   = "'in' operator supports value lookup in arrays or objects, as well as substring matching with two strings. But I got: %s in %s.";
     private static final String ERROR_REGEX_INVALID               = "Invalid regular expression: %s";
     private static final String ERROR_REGEX_MUST_BE_STRING        = "Regular expressions must be strings, but got: %s.";

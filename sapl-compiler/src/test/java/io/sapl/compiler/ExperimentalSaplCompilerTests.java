@@ -17,8 +17,6 @@
  */
 package io.sapl.compiler;
 
-import io.sapl.api.attributes.AttributeBroker;
-import io.sapl.api.attributes.AttributeRepository;
 import io.sapl.api.model.ObjectValue;
 import io.sapl.api.model.Value;
 import io.sapl.attributes.CachingAttributeBroker;
@@ -41,7 +39,7 @@ import java.time.Duration;
 import static io.sapl.util.TestUtil.assertExpressionCompilesToValue;
 
 @Slf4j
-class SaplCompilerTests {
+class ExperimentalSaplCompilerTests {
     private static final SAPLInterpreter PARSER = new DefaultSAPLInterpreter();
 
     private CompilationContext createCompilationContext() throws InitializationException {

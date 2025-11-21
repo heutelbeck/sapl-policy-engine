@@ -315,7 +315,34 @@ class ExpressionCompilerTests {
                 arguments("(subject == \"Elric\") || (action == \"summon\") || (resource == \"Moonglum\")", Value.TRUE),
                 arguments("(subject == \"Yyrkoon\") || (action == \"betray\") || (resource == \"Moonglum\")",
                         Value.TRUE),
-                arguments("(subject == \"Elric\") && (action == \"slay\") && true", Value.TRUE));
+                arguments("(subject == \"Elric\") && (action == \"slay\") && true", Value.TRUE),
+
+                // Mixed operand tests: Value left + PureExpression right for AND
+                arguments("true && (subject == \"Elric\")", Value.TRUE),
+                arguments("true && (action == \"slay\")", Value.TRUE),
+                arguments("false && (subject == \"Elric\")", Value.FALSE), // short-circuit
+
+                // Mixed operand tests: PureExpression left + Value right for AND
+                arguments("(subject == \"Elric\") && true", Value.TRUE),
+                arguments("(action == \"slay\") && true", Value.TRUE),
+                arguments("(subject == \"Moonglum\") && false", Value.FALSE),
+                arguments("(subject == \"Elric\") && false", Value.FALSE),
+
+                // Mixed operand tests: Value left + PureExpression right for OR
+                arguments("false || (subject == \"Elric\")", Value.TRUE),
+                arguments("false || (action == \"slay\")", Value.TRUE),
+                arguments("true || (subject == \"Elric\")", Value.TRUE), // short-circuit
+
+                // Mixed operand tests: PureExpression left + Value right for OR
+                arguments("(subject == \"Elric\") || false", Value.TRUE),
+                arguments("(action == \"slay\") || false", Value.TRUE),
+                arguments("(subject == \"Moonglum\") || true", Value.TRUE),
+                arguments("(subject == \"Yyrkoon\") || false", Value.FALSE),
+
+                // Complex mixed operand combinations
+                arguments("(true && (subject == \"Elric\")) || (false && (action == \"read\"))", Value.TRUE),
+                arguments("((subject == \"Elric\") && true) && (action == \"slay\")", Value.TRUE),
+                arguments("(false || (subject == \"Elric\")) && (true || (action == \"betray\"))", Value.TRUE));
     }
 
     @ParameterizedTest
