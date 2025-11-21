@@ -19,17 +19,9 @@ package io.sapl.functions.libraries;
 
 import io.sapl.api.functions.Function;
 import io.sapl.api.functions.FunctionLibrary;
-import io.sapl.api.model.ArrayValue;
-import io.sapl.api.model.ErrorValue;
-import io.sapl.api.model.NumberValue;
-import io.sapl.api.model.ObjectValue;
-import io.sapl.api.model.TextValue;
-import io.sapl.api.model.Value;
+import io.sapl.api.model.*;
 import lombok.experimental.UtilityClass;
 import lombok.val;
-
-import java.io.IOException;
-import java.util.Properties;
 
 @UtilityClass
 @FunctionLibrary(name = StandardFunctionLibrary.NAME, description = StandardFunctionLibrary.DESCRIPTION)
@@ -58,16 +50,12 @@ public class StandardFunctionLibrary {
               "type": "integer"
             }""")
     public static Value length(Value value) {
-        switch (value) {
-        case TextValue text:
-            return Value.of(text.toString().length() - 2);
-        case ObjectValue object:
-            return Value.of(object.keySet().size());
-        case ArrayValue array:
-            return Value.of(array.size());
-        default:
-            return Value.error("Argument must be a text, array, or object.");
-        }
+        return switch (value) {
+        case TextValue text     -> Value.of(text.toString().length() - 2);
+        case ObjectValue object -> Value.of(object.size());
+        case ArrayValue array   -> Value.of(array.size());
+        default                 -> Value.error("Argument must be a text, array, or object.");
+        };
 
     }
 
@@ -80,20 +68,18 @@ public class StandardFunctionLibrary {
             policy "example"
             permit
             where
-              standard.toString([1,2,3]) == "[1,2,3]";
+              standard.asString([1,2,3]) == "[1,2,3]";
             ```
             """, schema = """
             {
               "type": "string"
             }""")
     public static Value asString(Value value) {
-        switch (value) {
-        case TextValue text:
+        if (value instanceof TextValue text) {
             val str = text.toString();
             return Value.of(str.substring(1, str.length() - 1));
-        default:
-            return Value.of(value.toString());
         }
+        return Value.of(value.toString());
     }
 
     @Function(docs = """
@@ -109,12 +95,10 @@ public class StandardFunctionLibrary {
             ```
             """)
     public static Value onErrorMap(Value guardedExpression, Value fallback) {
-        switch (guardedExpression) {
-        case ErrorValue err:
+        if (guardedExpression instanceof ErrorValue) {
             return fallback;
-        default:
-            return guardedExpression;
         }
+        return guardedExpression;
     }
 
 }
