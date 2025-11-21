@@ -39,7 +39,6 @@ import java.util.List;
 @UtilityClass
 public class MethodSignatureProcessor {
 
-    // String constants sorted alphabetically
     public static final String BAD_PARAMETER_TYPE_ERROR             = "Functions must only have Value or its Sub-Types as parameters, but found: %s.";
     public static final String BAD_RETURN_TYPE_ERROR                = "Function method must return Value or a subtype, but returns: %s.";
     public static final String BAD_VARARGS_PARAMETER_TYPE_ERROR     = "Varargs array must have Value or its Sub-Types as component type, but found: %s.";

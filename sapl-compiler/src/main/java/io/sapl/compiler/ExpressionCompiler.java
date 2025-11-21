@@ -137,6 +137,25 @@ public class ExpressionCompiler {
             return new PureExpression(ctx -> evaluatePureLazyOr(pureLeft, pureRight, ctx),
                     pureRight.isSubscriptionScoped() || pureLeft.isSubscriptionScoped());
         }
+        if (left instanceof Value leftVal && right instanceof PureExpression pureRight) {
+            return new PureExpression(ctx -> BooleanOperators.or(leftVal, pureRight.evaluate(ctx)),
+                    pureRight.isSubscriptionScoped());
+        }
+        if (left instanceof PureExpression pureLeft && right instanceof Value rightVal) {
+            return new PureExpression(ctx -> {
+                val leftValue = pureLeft.evaluate(ctx);
+                if (Value.TRUE.equals(leftValue)) {
+                    return leftValue;
+                }
+                if (leftValue instanceof ErrorValue) {
+                    return leftValue;
+                }
+                if (!(leftValue instanceof BooleanValue)) {
+                    return Value.error(TYPE_MISMATCH_BOOLEAN_EXPECTED_ERROR, leftValue);
+                }
+                return BooleanOperators.or(leftValue, rightVal);
+            }, pureLeft.isSubscriptionScoped());
+        }
         return new StreamExpression(evaluateLazyOrWithStreamExpressions(left, right));
     }
 
@@ -224,7 +243,11 @@ public class ExpressionCompiler {
      * @return the compiled lazy AND expression with short-circuit semantics
      */
     private CompiledExpression compileLazyAnd(And and, CompilationContext context) {
-        val left = compileExpression(and.getLeft(), context);
+        return compileLazyAnd(compileExpression(and.getLeft(), context), and.getRight(), context);
+    }
+
+    public CompiledExpression compileLazyAnd(CompiledExpression left, Expression rightArgument,
+            CompilationContext context) {
         if (Value.FALSE.equals(left)) {
             return left;
         }
@@ -234,7 +257,11 @@ public class ExpressionCompiler {
         if (left instanceof Value && !(left instanceof BooleanValue)) {
             return Value.error(TYPE_MISMATCH_BOOLEAN_EXPECTED_ERROR, left);
         }
-        val right = compileExpression(and.getRight(), context);
+        val right = compileExpression(rightArgument, context);
+        if (right == null) {
+            // No right side (e.g., no target expression), just return left
+            return left;
+        }
         if (Value.FALSE.equals(right)) {
             return right;
         }
@@ -247,6 +274,25 @@ public class ExpressionCompiler {
         if (left instanceof PureExpression pureLeft && right instanceof PureExpression pureRight) {
             return new PureExpression(ctx -> evaluatePureLazyAnd(pureLeft, pureRight, ctx),
                     pureRight.isSubscriptionScoped() || pureLeft.isSubscriptionScoped());
+        }
+        if (left instanceof Value leftVal && right instanceof PureExpression pureRight) {
+            return new PureExpression(ctx -> BooleanOperators.and(leftVal, pureRight.evaluate(ctx)),
+                    pureRight.isSubscriptionScoped());
+        }
+        if (left instanceof PureExpression pureLeft && right instanceof Value rightVal) {
+            return new PureExpression(ctx -> {
+                val leftValue = pureLeft.evaluate(ctx);
+                if (Value.FALSE.equals(leftValue)) {
+                    return leftValue;
+                }
+                if (leftValue instanceof ErrorValue) {
+                    return leftValue;
+                }
+                if (!(leftValue instanceof BooleanValue)) {
+                    return Value.error(TYPE_MISMATCH_BOOLEAN_EXPECTED_ERROR, leftValue);
+                }
+                return BooleanOperators.and(leftValue, rightVal);
+            }, pureLeft.isSubscriptionScoped());
         }
         return new StreamExpression(evaluateLazyAndWithStreamExpressions(left, right));
     }

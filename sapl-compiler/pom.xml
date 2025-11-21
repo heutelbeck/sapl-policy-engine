@@ -55,7 +55,12 @@
 			<artifactId>sapl-lang</artifactId>
 			<version>${project.version}</version>
 		</dependency>
-		<dependency>
+        <!-- JSON schema validation -->
+        <dependency>
+            <groupId>com.networknt</groupId>
+            <artifactId>json-schema-validator</artifactId>
+        </dependency>
+        <dependency>
 			<groupId>org.projectlombok</groupId>
 			<artifactId>lombok</artifactId>
 			<scope>provided</scope>

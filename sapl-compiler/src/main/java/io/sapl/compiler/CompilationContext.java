@@ -35,14 +35,13 @@ import java.util.function.Function;
 @ToString
 @RequiredArgsConstructor
 public class CompilationContext {
-    final FunctionBroker                    functionBroker;
-    final AttributeBroker                   attributeBroker;
-    boolean                                 isInsideTargetExpression = false;
-    final boolean                           debugInformationEnabled  = false;
-    List<Import>                            imports                  = new ArrayList<>();
-    Map<SchemaTarget, List<CompiledSchema>> schemas                  = new EnumMap<>(SchemaTarget.class);
-    Map<String, CompiledExpression>         localVariablesInScope    = new HashMap<>();
-    Map<Value, Value>                       constantsCache           = new HashMap<>();
+    final FunctionBroker            functionBroker;
+    final AttributeBroker           attributeBroker;
+    boolean                         isInsideTargetExpression = false;
+    final boolean                   debugInformationEnabled  = false;
+    List<Import>                    imports                  = new ArrayList<>();
+    Map<String, CompiledExpression> localVariablesInScope    = new HashMap<>();
+    Map<Value, Value>               constantsCache           = new HashMap<>();
 
     public void addAllImports(List<Import> imports) {
         if (imports != null) {
@@ -53,7 +52,6 @@ public class CompilationContext {
     public void resetForNextDocument() {
         imports.clear();
         localVariablesInScope.clear();
-        schemas.clear();
     }
 
     public CompiledExpression dedupe(Value constantValue) {
