@@ -17,6 +17,7 @@
  */
 package io.sapl.compiler;
 
+import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.api.model.*;
 import io.sapl.api.model.Value;
 import io.sapl.api.pdp.Decision;
@@ -61,15 +62,32 @@ public class SaplCompiler {
     private CompiledPolicy compilePolicy(Policy policy, CompiledExpression schemaCheckingExpression,
             CompilationContext context) {
         val name             = policy.getSaplName();
-        val entitlement      = decisionOf(policy.getEntitlement());
         val targetExpression = ExpressionCompiler.compileLazyAnd(schemaCheckingExpression, policy.getTargetExpression(),
                 context);
         assertExpressionSuitableForTarget(name, targetExpression);
+        val matchExpression    = compileTargetExpressionToMatchExpression((PureExpression) targetExpression);
+        val decisionExpression = compileDecisionExpression(policy, context);
+        return new CompiledPolicy(name, matchExpression, decisionExpression);
+    }
+
+    private CompiledExpression compileDecisionExpression(Policy policy, CompilationContext context) {
+        val entitlement    = decisionOf(policy.getEntitlement());
         val body           = compileBody(policy.getBody(), context);
         val obligations    = compileListOfExpressions(policy.getObligations(), context);
         val advice         = compileListOfExpressions(policy.getAdvice(), context);
         val transformation = ExpressionCompiler.compileExpression(policy.getTransformation(), context);
-        return new CompiledPolicy(name, entitlement, targetExpression, body, obligations, advice, transformation);
+        return body;
+    }
+
+    public PureExpression compileTargetExpressionToMatchExpression(PureExpression targetExpression) {
+        return new PureExpression(evaluationContext -> {
+            val targetExpressionResult = targetExpression.evaluate(evaluationContext);
+            if (targetExpressionResult instanceof BooleanValue) {
+                return targetExpressionResult;
+            }
+            return Value.error("Expected a Boolean value to be returned from the target expression, found %s",
+                    targetExpressionResult);
+        }, targetExpression.isSubscriptionScoped());
     }
 
     private void assertExpressionSuitableForTarget(String name, CompiledExpression expression) {
