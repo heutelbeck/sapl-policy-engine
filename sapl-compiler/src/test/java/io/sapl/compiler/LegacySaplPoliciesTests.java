@@ -60,6 +60,9 @@ class LegacySaplPoliciesTests {
         functionBroker.loadStaticFunctionLibrary(BitwiseFunctionLibrary.class);
         functionBroker.loadStaticFunctionLibrary(SaplFunctionLibrary.class);
         functionBroker.loadStaticFunctionLibrary(SchemaValidationLibrary.class);
+        // Mock libraries for XACML-style tests
+        functionBroker.loadStaticFunctionLibrary(MockXACMLStringFunctionLibrary.class);
+        functionBroker.loadStaticFunctionLibrary(MockXACMLDateFunctionLibrary.class);
 
         context = new CompilationContext(functionBroker, attributeBroker);
     }
@@ -149,6 +152,85 @@ class LegacySaplPoliciesTests {
                     resource == "foo"
                 where
                     "WILLI" == subject;
+                """;
+        assertPolicyCompiles(policy);
+    }
+
+    @Test
+    void simplePolicy_emptyPermit() {
+        val policy = """
+                policy "test policy"
+                permit
+                """;
+        assertPolicyCompiles(policy);
+    }
+
+    @Test
+    void simplePolicy_emptyDeny() {
+        val policy = """
+                policy "test policy"
+                deny
+                """;
+        assertPolicyCompiles(policy);
+    }
+
+    @Test
+    void simplePolicy_targetWithJSONObject() {
+        val policy = """
+                policy "test policy"
+                permit { "key" : "value" } == { "key": "value", "id" : 1234, "active" : false }
+                """;
+        // This policy has a target that always evaluates to false (different JSON
+        // objects)
+        assertThatThrownBy(() -> assertPolicyCompiles(policy)).isInstanceOf(SaplCompilerException.class)
+                .hasMessageContaining("always returns false");
+    }
+
+    @Test
+    void simplePolicy_targetWithRegex() {
+        val policy = """
+                policy "test policy"
+                deny action =~ "some regex"
+                """;
+        assertPolicyCompiles(policy);
+    }
+
+    @Test
+    void simplePolicy_complexBooleanTarget() {
+        val policy = """
+                policy "test policy"
+                permit (subject == "aSubject" & target == "aTarget")
+                """;
+        assertPolicyCompiles(policy);
+    }
+
+    @Test
+    void simplePolicy_disjunctionTarget() {
+        val policy = """
+                policy "test policy"
+                permit ((subject == "aSubject") | (target == "aTarget"))
+                """;
+        assertPolicyCompiles(policy);
+    }
+
+    @Test
+    void simplePolicy_negationInTarget() {
+        val policy = """
+                policy "test policy"
+                permit !(subject == "aSubject" | target == "aTarget")
+                """;
+        assertPolicyCompiles(policy);
+    }
+
+    @Test
+    void simplePolicy_variableDefinitionInBody() {
+        val policy = """
+                policy "test policy"
+                permit
+                where
+                    var subject_id = subject.metadata.id;
+                    !("a" == "b");
+                    action =~ "HTTP.GET";
                 """;
         assertPolicyCompiles(policy);
     }
@@ -458,6 +540,162 @@ class LegacySaplPoliciesTests {
         assertPolicyCompiles(policy);
     }
 
+    @Test
+    void complexPolicy_simpleTransformation() {
+        val policy = """
+                policy "test"
+                permit
+                transform
+                    "teststring"
+                """;
+        assertPolicyCompiles(policy);
+    }
+
+    @Test
+    void complexPolicy_transformWithConstant() {
+        val policy = """
+                policy "policy"
+                permit
+                transform
+                    true
+                """;
+        assertPolicyCompiles(policy);
+    }
+
+    @Test
+    void complexPolicy_obligationOnly() {
+        val policy = """
+                policy "p"
+                permit
+                obligation
+                    "wash your hands"
+                """;
+        assertPolicyCompiles(policy);
+    }
+
+    @Test
+    void complexPolicy_adviceOnly() {
+        val policy = """
+                policy "p"
+                permit
+                advice
+                    "smile"
+                """;
+        assertPolicyCompiles(policy);
+    }
+
+    @Test
+    void complexPolicy_obligationAdviceTransform() {
+        val policy = """
+                policy "p"
+                permit
+                where
+                    true;
+                obligation
+                    "wash your hands"
+                advice
+                    "smile"
+                transform
+                    [true,false,null]
+                """;
+        assertPolicyCompiles(policy);
+    }
+
+    @Test
+    void complexPolicy_transformWithBody() {
+        val policy = """
+                policy "p"
+                permit
+                where
+                    (1/10);
+                transform
+                    "aaa"
+                """;
+        assertPolicyCompiles(policy);
+    }
+
+    @Test
+    void complexPolicy_multipleObligations() {
+        val policy = """
+                policy "test"
+                permit
+                obligation
+                    { "type": "log", "message": "access granted" }
+                obligation
+                    { "type": "notify", "recipient": "admin" }
+                """;
+        assertPolicyCompiles(policy);
+    }
+
+    @Test
+    void complexPolicy_multipleAdvice() {
+        val policy = """
+                policy "test"
+                permit
+                advice
+                    { "type": "cache", "duration": 300 }
+                advice
+                    { "type": "rate_limit", "max": 100 }
+                """;
+        assertPolicyCompiles(policy);
+    }
+
+    @Test
+    void complexPolicy_schemaEnforcementBasic() {
+        val policy = """
+                subject enforced schema {
+                    "$schema": "https://json-schema.org/draft/2020-12/schema",
+                    "type": "string"
+                }
+                policy "test"
+                permit
+                """;
+        assertPolicyCompiles(policy);
+    }
+
+    @Test
+    void complexPolicy_schemaEnforcementWithTarget() {
+        val policy = """
+                subject enforced schema {
+                    "$schema": "https://json-schema.org/draft/2020-12/schema",
+                    "type": "string"
+                }
+                policy "test"
+                permit true
+                """;
+        assertPolicyCompiles(policy);
+    }
+
+    @Test
+    void complexPolicy_multipleSchemas() {
+        val policy = """
+                subject enforced schema {
+                    "$schema": "https://json-schema.org/draft/2020-12/schema",
+                    "type": "string"
+                }
+                action enforced schema {
+                    "$schema": "https://json-schema.org/draft/2020-12/schema",
+                    "type": "string"
+                }
+                policy "test"
+                permit
+                """;
+        assertPolicyCompiles(policy);
+    }
+
+    @Test
+    void complexPolicy_nonEnforcedSchema() {
+        val policy = """
+                subject schema {
+                    "$schema": "https://json-schema.org/draft/2020-12/schema",
+                    "type": "string"
+                }
+                policy "test"
+                permit
+                """;
+        assertPolicyCompiles(policy);
+    }
+
     // =========================================================================
     // CATEGORY 5: JWT API FILTER POLICIES
     // =========================================================================
@@ -727,5 +965,90 @@ class LegacySaplPoliciesTests {
                 bla bla bla
                 """;
         assertThatThrownBy(() -> PARSER.parse(policy)).hasMessageContaining("Parsing error");
+    }
+
+    // =========================================================================
+    // CATEGORY 7: XACML-STYLE POLICIES (From SampleXACMLTests)
+    // =========================================================================
+
+    @Test
+    void xacmlPolicy_simplePolicy1() {
+        val policy = """
+                policy "SimplePolicy1"
+                /* Any subject with an e-mail name in the med.example.com
+                   domain can perform any action on any resource. */
+                permit subject =~ "(?i).*@med\\\\.example\\\\.com"
+                """;
+        assertPolicyCompiles(policy);
+    }
+
+    @Test
+    void xacmlPolicy_rule1() {
+        val policy = """
+                policy "rule_1"
+                /* A person may read any medical record in the
+                    http://www.med.example.com/schemas/record.xsd namespace
+                    for which he or she is the designated patient */
+
+                permit
+                    resource._type == "urn:example:med:schemas:record" &
+                    string.starts_with(resource._selector, "@") &
+                    action == "read"
+                where
+                    subject.role == "patient";
+                    subject.patient_number == resource._content.patient.patient_number;
+                """;
+        // Original policy from SampleXACMLTests - compiles successfully with mock
+        // string library
+        assertPolicyCompiles(policy);
+    }
+
+    @Test
+    void xacmlPolicy_rule2_withPIP() {
+        val policy = """
+                policy "rule_2"
+                /* A person may read any medical record in the
+                    http://www.med.example.com/records.xsd namespace
+                    for which he or she is the designated parent or guardian,
+                    and for which the patient is under 16 years of age */
+
+                permit
+                    resource._type == "urn:example:med:schemas:record" &
+                    string.starts_with(resource._selector, "@") &
+                    action == "read"
+                where
+                    subject.role == "parent_guardian";
+                    subject.parent_guardian_id == resource._content.patient.patient_number.<patient.profile>.parentGuardian.id;
+                    date.diff("years", environment.current_date, resource._content.patient.dob) < 16;
+                """;
+        // Original policy from SampleXACMLTests - compiles with mock libraries
+        // (PIPs in where clause conditions are compiled as part of the policy body)
+        assertPolicyCompiles(policy);
+    }
+
+    @Test
+    void xacmlPolicy_rule3_withObligation() {
+        val policy = """
+                policy "rule_3"
+                /* A physician may write any medical element in a record
+                    for which he or she is the designated primary care
+                    physician, provided an email is sent to the patient */
+
+                permit
+                    subject.role == "physician" &
+                    string.starts_with(resource._selector, "@.medical") &
+                    action == "write"
+                where
+                    subject.physician_id == resource._content.primaryCarePhysician.registrationID;
+                obligation
+                    {
+                        "id" : "email",
+                        "mailto" : resource._content.patient.contact.email,
+                        "text" : "Your medical record has been accessed by:" + subject.id
+                    }
+                """;
+        // Original policy from SampleXACMLTests - compiles successfully with mock
+        // string library
+        assertPolicyCompiles(policy);
     }
 }

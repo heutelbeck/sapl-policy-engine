@@ -19,6 +19,7 @@ package io.sapl.compiler;
 
 import io.sapl.api.model.*;
 import io.sapl.api.model.Value;
+import io.sapl.api.pdp.Decision;
 import io.sapl.compiler.operators.BooleanOperators;
 import io.sapl.functions.libraries.SchemaValidationLibrary;
 import io.sapl.grammar.sapl.*;
@@ -60,7 +61,7 @@ public class SaplCompiler {
     private CompiledPolicy compilePolicy(Policy policy, CompiledExpression schemaCheckingExpression,
             CompilationContext context) {
         val name             = policy.getSaplName();
-        val entitlement      = Entitlement.of(policy.getEntitlement());
+        val entitlement      = decisionOf(policy.getEntitlement());
         val targetExpression = ExpressionCompiler.compileLazyAnd(schemaCheckingExpression, policy.getTargetExpression(),
                 context);
         assertExpressionSuitableForTarget(name, targetExpression);
@@ -83,6 +84,14 @@ public class SaplCompiler {
         } else if (expression instanceof PureExpression pureExpression && !pureExpression.isSubscriptionScoped()) {
             throw new SaplCompilerException(ERROR_POLICY_UNRESOLVED_RELATIVE.formatted(name, "Target"));
         }
+    }
+
+    public static Decision decisionOf(Entitlement entitlement) {
+        return switch (entitlement) {
+        case Permit p -> Decision.PERMIT;
+        case Deny d   -> Decision.DENY;
+        default       -> throw new IllegalArgumentException("Unexpected value: " + entitlement);
+        };
     }
 
     private CompiledExpression compileBody(PolicyBody body, CompilationContext context) {
@@ -114,8 +123,9 @@ public class SaplCompiler {
             }
         }
         if (compiledBody == null) {
-            return Value.TRUE;
+            compiledBody = Value.TRUE;
         }
+
         return compiledBody;
     }
 

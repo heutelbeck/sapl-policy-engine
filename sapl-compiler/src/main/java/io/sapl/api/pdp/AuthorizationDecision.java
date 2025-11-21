@@ -26,4 +26,9 @@ public record AuthorizationDecision(
         @NonNull Decision decision,
         @NonNull List<Value> obligations,
         @NonNull List<Value> advice,
-        @NonNull Value resource) {}
+        @NonNull Value resource) {
+    public final static AuthorizationDecision INDETERMINATE = new AuthorizationDecision(Decision.INDETERMINATE,
+            List.of(), List.of(), Value.UNDEFINED);
+    public final static AuthorizationDecision NOT_APPLICABLE = new AuthorizationDecision(Decision.NOT_APPLICABLE,
+            List.of(), List.of(), Value.UNDEFINED);
+}
