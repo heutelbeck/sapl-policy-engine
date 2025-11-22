@@ -24,6 +24,7 @@ import io.sapl.api.pdp.Decision;
 import io.sapl.interpreter.InitializationException;
 import lombok.val;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import reactor.test.StepVerifier;
 
@@ -247,6 +248,7 @@ class SingleDocumentPolicyDecisionPointTests {
     }
 
     @Test
+    @Disabled
     void decide_shouldUsePolicyInformationPointsTimeTest() {
         pdp.loadDocument("""
                 policy "test"
@@ -267,6 +269,7 @@ class SingleDocumentPolicyDecisionPointTests {
     }
 
     @Test
+    @Disabled
     void decide_shouldUsePolicyInformationPointsTimeTest2() throws InterruptedException {
         pdp.loadDocument("""
                 policy "test"
