@@ -15,19 +15,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.functions;
+package io.sapl.functions.libraries;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import io.sapl.api.functions.Function;
 import io.sapl.api.functions.FunctionLibrary;
-import io.sapl.api.interpreter.PolicyEvaluationException;
-import io.sapl.api.interpreter.Val;
-import io.sapl.api.validation.JsonObject;
-import io.sapl.api.validation.Text;
-import io.sapl.functions.util.crypto.CertificateUtils;
-import io.sapl.functions.util.crypto.KeyUtils;
-import io.sapl.functions.util.crypto.PemUtils;
+import io.sapl.api.model.ErrorValue;
+import io.sapl.api.model.ObjectValue;
+import io.sapl.api.model.TextValue;
+import io.sapl.api.model.ValueJsonMarshaller;
+import io.sapl.api.model.Value;
+import io.sapl.compiler.PolicyEvaluationException;
+import io.sapl.functions.libraries.util.crypto.CertificateUtils;
+import io.sapl.functions.libraries.util.crypto.KeyUtils;
+import io.sapl.functions.libraries.util.crypto.PemUtils;
 import lombok.experimental.UtilityClass;
 import lombok.val;
 
@@ -45,7 +47,7 @@ import java.security.spec.X509EncodedKeySpec;
 import java.util.Arrays;
 import java.util.Base64;
 
-import static io.sapl.functions.util.crypto.CryptoConstants.*;
+import static io.sapl.functions.libraries.util.crypto.CryptoConstants.*;
 
 /**
  * Provides functions for parsing and converting cryptographic key material.
@@ -261,13 +263,13 @@ public class KeysFunctionLibrary {
               key.format == "X.509";
             ```
             """, schema = RETURNS_OBJECT)
-    public Val publicKeyFromPem(@Text Val keyPem) {
+    public Value publicKeyFromPem(TextValue keyPem) {
         try {
-            val publicKey = KeyUtils.parsePublicKeyWithAlgorithmDetection(keyPem.getText());
+            val publicKey = KeyUtils.parsePublicKeyWithAlgorithmDetection(keyPem.value());
             val keyObject = buildKeyObject(publicKey);
-            return Val.of(keyObject);
+            return ValueJsonMarshaller.fromJsonNode(keyObject);
         } catch (PolicyEvaluationException exception) {
-            return Val.error("Failed to parse public key: " + exception.getMessage());
+            return new ErrorValue("Failed to parse public key: " + exception.getMessage());
         }
     }
 
@@ -286,16 +288,16 @@ public class KeysFunctionLibrary {
               signature.verifyRsaSha256(message, sig, publicKey);
             ```
             """, schema = RETURNS_TEXT)
-    public Val publicKeyFromCertificate(@Text Val certPem) {
+    public Value publicKeyFromCertificate(TextValue certPem) {
         try {
-            val certificate = CertificateUtils.parseCertificate(certPem.getText());
+            val certificate = CertificateUtils.parseCertificate(certPem.value());
             val publicKey   = certificate.getPublicKey();
             val keyPem      = PemUtils.encodePublicKeyPem(publicKey.getEncoded());
-            return Val.of(keyPem);
+            return Value.of(keyPem);
         } catch (PolicyEvaluationException exception) {
-            return Val.error("Failed to extract public key from certificate: " + exception.getMessage());
+            return new ErrorValue("Failed to extract public key from certificate: " + exception.getMessage());
         } catch (CertificateException exception) {
-            return Val.error("Failed to extract public key from certificate: " + exception.getMessage() + ".");
+            return new ErrorValue("Failed to extract public key from certificate: " + exception.getMessage() + ".");
         }
     }
 
@@ -314,12 +316,12 @@ public class KeysFunctionLibrary {
               keys.algorithmFromKey(publicKey) == "RSA";
             ```
             """, schema = RETURNS_TEXT)
-    public Val algorithmFromKey(@Text Val keyPem) {
+    public Value algorithmFromKey(TextValue keyPem) {
         try {
-            val publicKey = KeyUtils.parsePublicKeyWithAlgorithmDetection(keyPem.getText());
-            return Val.of(publicKey.getAlgorithm());
+            val publicKey = KeyUtils.parsePublicKeyWithAlgorithmDetection(keyPem.value());
+            return Value.of(publicKey.getAlgorithm());
         } catch (PolicyEvaluationException exception) {
-            return Val.error("Failed to extract key algorithm: " + exception.getMessage());
+            return new ErrorValue("Failed to extract key algorithm: " + exception.getMessage());
         }
     }
 
@@ -337,13 +339,13 @@ public class KeysFunctionLibrary {
               keys.sizeFromKey(publicKey) >= 2048;
             ```
             """, schema = RETURNS_NUMBER)
-    public Val sizeFromKey(@Text Val keyPem) {
+    public Value sizeFromKey(TextValue keyPem) {
         try {
-            val publicKey = KeyUtils.parsePublicKeyWithAlgorithmDetection(keyPem.getText());
+            val publicKey = KeyUtils.parsePublicKeyWithAlgorithmDetection(keyPem.value());
             val keySize   = KeyUtils.getKeySize(publicKey);
-            return Val.of(keySize);
+            return Value.of(keySize);
         } catch (PolicyEvaluationException exception) {
-            return Val.error("Failed to extract key size: " + exception.getMessage());
+            return new ErrorValue("Failed to extract key size: " + exception.getMessage());
         }
     }
 
@@ -361,18 +363,18 @@ public class KeysFunctionLibrary {
               keys.curveFromKey(publicKey) == "secp256r1";
             ```
             """, schema = RETURNS_TEXT)
-    public Val curveFromKey(@Text Val keyPem) {
+    public Value curveFromKey(TextValue keyPem) {
         try {
-            val publicKey = KeyUtils.parsePublicKeyWithAlgorithmDetection(keyPem.getText());
+            val publicKey = KeyUtils.parsePublicKeyWithAlgorithmDetection(keyPem.value());
 
             if (!(publicKey instanceof ECPublicKey ecKey)) {
-                return Val.error("Key is not an EC key.");
+                return new ErrorValue("Key is not an EC key.");
             }
 
             val curveName = KeyUtils.extractEcCurveName(ecKey);
-            return Val.of(curveName);
+            return Value.of(curveName);
         } catch (PolicyEvaluationException exception) {
-            return Val.error("Failed to extract EC curve: " + exception.getMessage());
+            return new ErrorValue("Failed to extract EC curve: " + exception.getMessage());
         }
     }
 
@@ -397,13 +399,13 @@ public class KeysFunctionLibrary {
               jwk.n != null;
             ```
             """, schema = RETURNS_OBJECT)
-    public Val jwkFromPublicKey(@Text Val publicKeyPem) {
+    public Value jwkFromPublicKey(TextValue publicKeyPem) {
         try {
-            val publicKey = KeyUtils.parsePublicKeyWithAlgorithmDetection(publicKeyPem.getText());
+            val publicKey = KeyUtils.parsePublicKeyWithAlgorithmDetection(publicKeyPem.value());
             val jwk       = convertPublicKeyToJwk(publicKey);
-            return Val.of(jwk);
+            return ValueJsonMarshaller.fromJsonNode(jwk);
         } catch (PolicyEvaluationException exception) {
-            return Val.error("Failed to convert key to JWK: " + exception.getMessage());
+            return new ErrorValue("Failed to convert key to JWK: " + exception.getMessage());
         }
     }
 
@@ -434,15 +436,16 @@ public class KeysFunctionLibrary {
               jwt.verify(request.token, publicKey);
             ```
             """, schema = RETURNS_TEXT)
-    public Val publicKeyFromJwk(@JsonObject Val jwk) {
+    public Value publicKeyFromJwk(ObjectValue jwk) {
         try {
-            val publicKey = convertJwkToPublicKey(jwk.get());
+            val jwkNode   = ValueJsonMarshaller.toJsonNode(jwk);
+            val publicKey = convertJwkToPublicKey(jwkNode);
             val keyPem    = PemUtils.encodePublicKeyPem(publicKey.getEncoded());
-            return Val.of(keyPem);
+            return Value.of(keyPem);
         } catch (PolicyEvaluationException exception) {
-            return Val.error("Failed to convert JWK to public key: " + exception.getMessage());
+            return new ErrorValue("Failed to convert JWK to public key: " + exception.getMessage());
         } catch (NoSuchAlgorithmException | InvalidKeySpecException | InvalidAlgorithmParameterException exception) {
-            return Val.error("Failed to convert JWK to public key: " + exception.getMessage() + ".");
+            return new ErrorValue("Failed to convert JWK to public key: " + exception.getMessage() + ".");
         }
     }
 
