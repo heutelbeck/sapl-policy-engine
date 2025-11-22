@@ -15,9 +15,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.functions.util.crypto;
+package io.sapl.functions.libraries.util.crypto;
 
-import io.sapl.api.interpreter.PolicyEvaluationException;
+import io.sapl.compiler.PolicyEvaluationException;
 import lombok.experimental.UtilityClass;
 import lombok.val;
 
@@ -30,7 +30,7 @@ import java.security.interfaces.RSAPublicKey;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.X509EncodedKeySpec;
 
-import static io.sapl.functions.util.crypto.CryptoConstants.*;
+import static io.sapl.functions.libraries.util.crypto.CryptoConstants.*;
 
 /**
  * Utilities for working with cryptographic keys. Provides methods for parsing
