@@ -17,8 +17,9 @@
  */
 package io.sapl.compiler;
 
-import io.sapl.api.model.*;
-import lombok.val;
+import io.sapl.api.model.ArrayValue;
+import io.sapl.api.model.ObjectValue;
+import io.sapl.api.model.Value;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;

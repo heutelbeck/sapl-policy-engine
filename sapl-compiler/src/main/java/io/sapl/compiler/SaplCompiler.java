@@ -17,7 +17,6 @@
  */
 package io.sapl.compiler;
 
-import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.api.model.*;
 import io.sapl.api.model.Value;
 import io.sapl.api.pdp.Decision;
@@ -27,6 +26,7 @@ import io.sapl.grammar.sapl.*;
 import lombok.experimental.UtilityClass;
 import lombok.val;
 import org.eclipse.emf.common.util.EList;
+import reactor.core.publisher.Flux;
 
 import java.util.List;
 
@@ -65,7 +65,14 @@ public class SaplCompiler {
         val targetExpression = ExpressionCompiler.compileLazyAnd(schemaCheckingExpression, policy.getTargetExpression(),
                 context);
         assertExpressionSuitableForTarget(name, targetExpression);
-        val matchExpression    = compileTargetExpressionToMatchExpression((PureExpression) targetExpression);
+        val matchExpression    = switch (targetExpression) {
+                               case PureExpression pureExpression ->
+                                   compileTargetExpressionToMatchExpression(pureExpression);
+                               case Value value                   ->
+                                   compileTargetExpressionToMatchExpression(new PureExpression(ctx -> value, true));
+                               default                            -> throw new SaplCompilerException(
+                                       "Unexpected target expression type: " + targetExpression.getClass());
+                               };
         val decisionExpression = compileDecisionExpression(policy, context);
         return new CompiledPolicy(name, matchExpression, decisionExpression);
     }
@@ -76,7 +83,203 @@ public class SaplCompiler {
         val obligations    = compileListOfExpressions(policy.getObligations(), context);
         val advice         = compileListOfExpressions(policy.getAdvice(), context);
         val transformation = ExpressionCompiler.compileExpression(policy.getTransformation(), context);
-        return body;
+
+        // Optimization #3: Error detection at compile time
+        if (body instanceof ErrorValue) {
+            return buildDecisionObject(Decision.INDETERMINATE, List.of(), List.of(), Value.UNDEFINED);
+        }
+        for (val obligation : obligations) {
+            if (obligation instanceof ErrorValue) {
+                return buildDecisionObject(Decision.INDETERMINATE, List.of(), List.of(), Value.UNDEFINED);
+            }
+        }
+        for (val adv : advice) {
+            if (adv instanceof ErrorValue) {
+                return buildDecisionObject(Decision.INDETERMINATE, List.of(), List.of(), Value.UNDEFINED);
+            }
+        }
+        if (transformation instanceof ErrorValue) {
+            return buildDecisionObject(Decision.INDETERMINATE, List.of(), List.of(), Value.UNDEFINED);
+        }
+
+        // Optimization #1: Body constant folding
+        if (body instanceof Value bodyValue) {
+            // Non-boolean body value
+            if (!(bodyValue instanceof BooleanValue)) {
+                return buildDecisionObject(Decision.INDETERMINATE, List.of(), List.of(), Value.UNDEFINED);
+            }
+            // Body is FALSE
+            if (BooleanValue.FALSE.equals(bodyValue)) {
+                return buildDecisionObject(Decision.NOT_APPLICABLE, List.of(), List.of(), Value.UNDEFINED);
+            }
+            // Body is TRUE - check for all-constant optimization
+            // Optimization #2: All-constant decision folding
+            if (allAreValues(obligations) && allAreValues(advice)
+                    && (transformation == null || transformation instanceof Value)) {
+                val oblValues = obligations.stream().map(o -> (Value) o).toList();
+                val advValues = advice.stream().map(a -> (Value) a).toList();
+                val resource  = transformation != null ? (Value) transformation : Value.UNDEFINED;
+                if (containsError(oblValues) || containsError(advValues) || resource instanceof ErrorValue) {
+                    return buildDecisionObject(Decision.INDETERMINATE, List.of(), List.of(), Value.UNDEFINED);
+                }
+                return buildDecisionObject(entitlement, oblValues, advValues, resource);
+            }
+        }
+
+        // Optimization #4: Pure expression path (no PIPs, only subscription-scoped
+        // evaluation)
+        if (body instanceof PureExpression bodyPure && allArePureExpressions(obligations)
+                && allArePureExpressions(advice)
+                && (transformation == null || transformation instanceof PureExpression)) {
+            val transPure = (PureExpression) transformation;
+            return new PureExpression(ctx -> {
+                val bodyResult = bodyPure.evaluate(ctx);
+                if (!(bodyResult instanceof BooleanValue)) {
+                    return buildDecisionObject(Decision.INDETERMINATE, List.of(), List.of(), Value.UNDEFINED);
+                }
+                if (BooleanValue.FALSE.equals(bodyResult)) {
+                    return buildDecisionObject(Decision.NOT_APPLICABLE, List.of(), List.of(), Value.UNDEFINED);
+                }
+                val oblValues = evaluatePureExpressionList(obligations, ctx);
+                val advValues = evaluatePureExpressionList(advice, ctx);
+                val resource  = transPure != null ? transPure.evaluate(ctx) : Value.UNDEFINED;
+                if (containsError(oblValues) || containsError(advValues) || resource instanceof ErrorValue) {
+                    return buildDecisionObject(Decision.INDETERMINATE, List.of(), List.of(), Value.UNDEFINED);
+                }
+                return buildDecisionObject(entitlement, oblValues, advValues, resource);
+            }, true);
+        }
+
+        // Mixed case with PureExpression body and some Value constraints
+        if (body instanceof PureExpression bodyPure) {
+            return compilePureBodyWithMixedConstraints(entitlement, bodyPure, obligations, advice, transformation);
+        }
+
+        // Default: Full streaming evaluation
+        val bodyFlux = ExpressionCompiler.compiledExpressionToFlux(body);
+        val stream   = bodyFlux.switchMap(bodyResult -> {
+                         if (!(bodyResult instanceof BooleanValue)) {
+                             return Flux.just(buildDecisionObject(Decision.INDETERMINATE, List.of(), List.of(),
+                                     Value.UNDEFINED));
+                         }
+                         if (BooleanValue.FALSE.equals(bodyResult)) {
+                             return Flux.just(buildDecisionObject(Decision.NOT_APPLICABLE, List.of(), List.of(),
+                                     Value.UNDEFINED));
+                         }
+                         return evaluateConstraintsAndBuildDecision(entitlement, obligations, advice, transformation);
+                     });
+        return new StreamExpression(stream);
+    }
+
+    private static CompiledExpression compilePureBodyWithMixedConstraints(Decision entitlement, PureExpression bodyPure,
+            List<CompiledExpression> obligations, List<CompiledExpression> advice, CompiledExpression transformation) {
+        // Check if all constraints are Values (can be evaluated immediately when body
+        // is true)
+        if (allAreValues(obligations) && allAreValues(advice)
+                && (transformation == null || transformation instanceof Value)) {
+            val oblValues = obligations.stream().map(o -> (Value) o).toList();
+            val advValues = advice.stream().map(a -> (Value) a).toList();
+            val resource  = transformation != null ? (Value) transformation : Value.UNDEFINED;
+            if (containsError(oblValues) || containsError(advValues) || resource instanceof ErrorValue) {
+                return buildDecisionObject(Decision.INDETERMINATE, List.of(), List.of(), Value.UNDEFINED);
+            }
+            // Pure body + constant constraints = PureExpression
+            return new PureExpression(ctx -> {
+                val bodyResult = bodyPure.evaluate(ctx);
+                if (!(bodyResult instanceof BooleanValue)) {
+                    return buildDecisionObject(Decision.INDETERMINATE, List.of(), List.of(), Value.UNDEFINED);
+                }
+                if (BooleanValue.FALSE.equals(bodyResult)) {
+                    return buildDecisionObject(Decision.NOT_APPLICABLE, List.of(), List.of(), Value.UNDEFINED);
+                }
+                return buildDecisionObject(entitlement, oblValues, advValues, resource);
+            }, true);
+        }
+        // Fall back to streaming for mixed pure/stream constraints
+        val bodyFlux = ExpressionCompiler.compiledExpressionToFlux(bodyPure);
+        val stream   = bodyFlux.switchMap(bodyResult -> {
+                         if (!(bodyResult instanceof BooleanValue)) {
+                             return Flux.just(buildDecisionObject(Decision.INDETERMINATE, List.of(), List.of(),
+                                     Value.UNDEFINED));
+                         }
+                         if (BooleanValue.FALSE.equals(bodyResult)) {
+                             return Flux.just(buildDecisionObject(Decision.NOT_APPLICABLE, List.of(), List.of(),
+                                     Value.UNDEFINED));
+                         }
+                         return evaluateConstraintsAndBuildDecision(entitlement, obligations, advice, transformation);
+                     });
+        return new StreamExpression(stream);
+    }
+
+    private static boolean allAreValues(List<CompiledExpression> expressions) {
+        return expressions.stream().allMatch(e -> e instanceof Value);
+    }
+
+    private static boolean allArePureExpressions(List<CompiledExpression> expressions) {
+        return expressions.stream().allMatch(e -> e instanceof PureExpression);
+    }
+
+    private static List<Value> evaluatePureExpressionList(List<CompiledExpression> expressions, EvaluationContext ctx) {
+        val result = new java.util.ArrayList<Value>(expressions.size());
+        for (val expr : expressions) {
+            if (expr instanceof PureExpression pureExpr) {
+                result.add(pureExpr.evaluate(ctx));
+            }
+        }
+        return result;
+    }
+
+    private static Flux<Value> evaluateConstraintsAndBuildDecision(Decision entitlement,
+            List<CompiledExpression> obligations, List<CompiledExpression> advice, CompiledExpression transformation) {
+        val obligationsFlux    = evaluateExpressionListToFlux(obligations);
+        val adviceFlux         = evaluateExpressionListToFlux(advice);
+        val transformationFlux = transformation != null ? ExpressionCompiler.compiledExpressionToFlux(transformation)
+                : Flux.just(Value.UNDEFINED);
+
+        return Flux.combineLatest(obligationsFlux, adviceFlux, transformationFlux,
+                values -> assembleDecisionObject(entitlement, values));
+    }
+
+    private static Value assembleDecisionObject(Decision entitlement, java.lang.Object[] values) {
+        @SuppressWarnings("unchecked")
+        val obligations = (List<Value>) values[0];
+        @SuppressWarnings("unchecked")
+        val advice      = (List<Value>) values[1];
+        val resource    = (Value) values[2];
+
+        if (containsError(obligations) || containsError(advice) || resource instanceof ErrorValue) {
+            return buildDecisionObject(Decision.INDETERMINATE, List.of(), List.of(), Value.UNDEFINED);
+        }
+        return buildDecisionObject(entitlement, obligations, advice, resource);
+    }
+
+    private static Value buildDecisionObject(Decision decision, List<Value> obligations, List<Value> advice,
+            Value resource) {
+        return ObjectValue.builder().put("decision", new TextValue(decision.name(), false))
+                .put("obligations", new ArrayValue(obligations, false)).put("advice", new ArrayValue(advice, false))
+                .put("resource", resource).build();
+    }
+
+    private static Flux<List<Value>> evaluateExpressionListToFlux(List<CompiledExpression> expressions) {
+        if (expressions.isEmpty()) {
+            return Flux.just(List.of());
+        }
+        val sources = expressions.stream().map(ExpressionCompiler::compiledExpressionToFlux).toList();
+        return Flux.combineLatest(sources, SaplCompiler::assembleValueList);
+    }
+
+    private static List<Value> assembleValueList(java.lang.Object[] arguments) {
+        val result = new java.util.ArrayList<Value>(arguments.length);
+        for (val argument : arguments) {
+            if (argument instanceof Value value) {
+                result.add(value);
+            }
+        }
+        return result;
+    }
+
+    private static boolean containsError(List<Value> values) {
+        return values.stream().anyMatch(v -> v instanceof ErrorValue);
     }
 
     public PureExpression compileTargetExpressionToMatchExpression(PureExpression targetExpression) {

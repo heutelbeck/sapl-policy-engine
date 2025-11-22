@@ -17,7 +17,10 @@
  */
 package io.sapl.compiler.operators;
 
-import io.sapl.api.model.*;
+import io.sapl.api.model.ArrayValue;
+import io.sapl.api.model.ErrorValue;
+import io.sapl.api.model.ObjectValue;
+import io.sapl.api.model.Value;
 import lombok.val;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
