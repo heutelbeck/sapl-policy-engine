@@ -18,9 +18,7 @@
 package io.sapl.compiler;
 
 import io.sapl.api.model.ArrayValue;
-import io.sapl.api.model.BooleanValue;
 import io.sapl.api.model.ErrorValue;
-import io.sapl.api.model.NumberValue;
 import io.sapl.api.model.ObjectValue;
 import io.sapl.api.model.Value;
 import io.sapl.util.TestUtil;
