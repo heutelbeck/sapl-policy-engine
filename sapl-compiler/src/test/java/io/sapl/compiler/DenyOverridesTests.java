@@ -253,4 +253,262 @@ class DenyOverridesTests {
                 """;
         assertDecision(evaluatePolicy(source), Decision.NOT_APPLICABLE);
     }
+
+    // ========== Additional Tests from Legacy Implementation ==========
+
+    @Test
+    void indeterminateCondition() {
+        val source = """
+                set "test"
+                deny-overrides
+
+                policy "testp" permit
+                where "a" < 5;
+                """;
+        assertDecision(evaluatePolicy(source), Decision.INDETERMINATE);
+    }
+
+    @Test
+    void denyWithIndeterminate_returnsDeny() {
+        val source = """
+                set "test"
+                deny-overrides
+
+                policy "deny policy" deny
+
+                policy "indeterminate policy" deny
+                where "a" > 5;
+                """;
+        assertDecision(evaluatePolicy(source), Decision.DENY);
+    }
+
+    @Test
+    void permitIndeterminateNotApplicable_withoutDeny_returnsIndeterminate() {
+        val source = """
+                set "test"
+                deny-overrides
+
+                policy "permit policy" permit
+
+                policy "indeterminate policy" deny
+                where "a" < 5;
+
+                policy "not applicable policy" deny subject == "non-matching"
+                """;
+        assertDecision(evaluatePolicy(source), Decision.INDETERMINATE);
+    }
+
+    @Test
+    void singlePermitTransformation_returnsPermit() {
+        val source = """
+                set "test"
+                deny-overrides
+
+                policy "testp" permit
+                transform { "value": true }
+                """;
+        assertDecision(evaluatePolicy(source), Decision.PERMIT);
+    }
+
+    @Test
+    void singlePermitTransformationResource_verifiesResource() {
+        val source = """
+                set "test"
+                deny-overrides
+
+                policy "testp" permit
+                transform { "value": true }
+                """;
+        val result = evaluatePolicy(source);
+        assertDecision(result, Decision.PERMIT);
+
+        // Verify resource transformation
+        assertInstanceOf(ObjectValue.class, result);
+        val resourceField = ((ObjectValue) result).get("resource");
+        assertInstanceOf(ObjectValue.class, resourceField);
+        val valueField = ((ObjectValue) resourceField).get("value");
+        assertInstanceOf(BooleanValue.class, valueField);
+        assertTrue(((BooleanValue) valueField).value());
+    }
+
+    @Test
+    void transformUncertaintyButDenyWins_usesFirstDenyResource() {
+        val source = """
+                set "test"
+                deny-overrides
+
+                policy "deny with transform" deny
+                transform { "type": "deny" }
+
+                policy "permit with transform" permit
+                transform { "type": "permit" }
+                """;
+        val result = evaluatePolicy(source);
+        assertDecision(result, Decision.DENY);
+
+        // DENY wins, should use DENY's resource
+        assertInstanceOf(ObjectValue.class, result);
+        val resourceField = ((ObjectValue) result).get("resource");
+        assertInstanceOf(ObjectValue.class, resourceField);
+        val typeField = ((ObjectValue) resourceField).get("type");
+        assertInstanceOf(TextValue.class, typeField);
+        assertEquals("deny", ((TextValue) typeField).value());
+    }
+
+    @Test
+    void multiplePermitNoTransformation_returnsPermit() {
+        val source = """
+                set "test"
+                deny-overrides
+
+                policy "permit policy 1" permit
+                policy "permit policy 2" permit
+                """;
+        assertDecision(evaluatePolicy(source), Decision.PERMIT);
+    }
+
+    @Test
+    void collectObligationsFromDeny() {
+        val source = """
+                set "test"
+                deny-overrides
+
+                policy "deny 1" deny
+                obligation { "type": "obligation1" }
+                advice { "type": "advice1" }
+
+                policy "deny 2" deny
+                obligation { "type": "obligation2" }
+                advice { "type": "advice2" }
+
+                policy "permit" permit
+                obligation { "type": "obligation3" }
+                advice { "type": "advice3" }
+
+                policy "not applicable" deny subject == "non-matching"
+                obligation { "type": "obligation4" }
+                advice { "type": "advice4" }
+                """;
+        val result = evaluatePolicy(source);
+        assertDecision(result, Decision.DENY);
+
+        // Verify obligations from DENY policies only
+        assertInstanceOf(ObjectValue.class, result);
+        val obligationsField = ((ObjectValue) result).get("obligations");
+        assertInstanceOf(ArrayValue.class, obligationsField);
+        val obligations = (ArrayValue) obligationsField;
+        assertEquals(2, obligations.size());
+
+        val obl1 = ((ObjectValue) obligations.get(0)).get("type");
+        assertEquals("obligation1", ((TextValue) obl1).value());
+        val obl2 = ((ObjectValue) obligations.get(1)).get("type");
+        assertEquals("obligation2", ((TextValue) obl2).value());
+    }
+
+    @Test
+    void collectAdviceFromDeny() {
+        val source = """
+                set "test"
+                deny-overrides
+
+                policy "deny 1" deny
+                obligation { "type": "obligation1" }
+                advice { "type": "advice1" }
+
+                policy "deny 2" deny
+                obligation { "type": "obligation2" }
+                advice { "type": "advice2" }
+
+                policy "permit" permit
+                obligation { "type": "obligation3" }
+                advice { "type": "advice3" }
+                """;
+        val result = evaluatePolicy(source);
+        assertDecision(result, Decision.DENY);
+
+        // Verify advice from DENY policies only
+        assertInstanceOf(ObjectValue.class, result);
+        val adviceField = ((ObjectValue) result).get("advice");
+        assertInstanceOf(ArrayValue.class, adviceField);
+        val advice = (ArrayValue) adviceField;
+        assertEquals(2, advice.size());
+
+        val adv1 = ((ObjectValue) advice.get(0)).get("type");
+        assertEquals("advice1", ((TextValue) adv1).value());
+        val adv2 = ((ObjectValue) advice.get(1)).get("type");
+        assertEquals("advice2", ((TextValue) adv2).value());
+    }
+
+    @Test
+    void collectObligationsFromPermit() {
+        val source = """
+                set "test"
+                deny-overrides
+
+                policy "permit 1" permit
+                obligation { "type": "obligation1" }
+                advice { "type": "advice1" }
+
+                policy "permit 2" permit
+                obligation { "type": "obligation2" }
+                advice { "type": "advice2" }
+
+                policy "not applicable deny" deny subject == "non-matching"
+                obligation { "type": "obligation3" }
+                advice { "type": "advice3" }
+
+                policy "not applicable where" deny
+                where false;
+                obligation { "type": "obligation4" }
+                advice { "type": "advice4" }
+                """;
+        val result = evaluatePolicy(source);
+        assertDecision(result, Decision.PERMIT);
+
+        // Verify obligations from PERMIT policies only
+        assertInstanceOf(ObjectValue.class, result);
+        val obligationsField = ((ObjectValue) result).get("obligations");
+        assertInstanceOf(ArrayValue.class, obligationsField);
+        val obligations = (ArrayValue) obligationsField;
+        assertEquals(2, obligations.size());
+
+        val obl1 = ((ObjectValue) obligations.get(0)).get("type");
+        assertEquals("obligation1", ((TextValue) obl1).value());
+        val obl2 = ((ObjectValue) obligations.get(1)).get("type");
+        assertEquals("obligation2", ((TextValue) obl2).value());
+    }
+
+    @Test
+    void collectAdviceFromPermit() {
+        val source = """
+                set "test"
+                deny-overrides
+
+                policy "permit 1" permit
+                obligation { "type": "obligation1" }
+                advice { "type": "advice1" }
+
+                policy "permit 2" permit
+                obligation { "type": "obligation2" }
+                advice { "type": "advice2" }
+
+                policy "not applicable" deny subject == "non-matching"
+                obligation { "type": "obligation3" }
+                advice { "type": "advice3" }
+                """;
+        val result = evaluatePolicy(source);
+        assertDecision(result, Decision.PERMIT);
+
+        // Verify advice from PERMIT policies only
+        assertInstanceOf(ObjectValue.class, result);
+        val adviceField = ((ObjectValue) result).get("advice");
+        assertInstanceOf(ArrayValue.class, adviceField);
+        val advice = (ArrayValue) adviceField;
+        assertEquals(2, advice.size());
+
+        val adv1 = ((ObjectValue) advice.get(0)).get("type");
+        assertEquals("advice1", ((TextValue) adv1).value());
+        val adv2 = ((ObjectValue) advice.get(1)).get("type");
+        assertEquals("advice2", ((TextValue) adv2).value());
+    }
 }

@@ -29,298 +29,231 @@ import java.util.List;
 @UtilityClass
 public class CombiningAlgorithmCompiler {
 
-    public static CompiledExpression firstApplicable(List<CompiledPolicy> compiledPolicies,
-            CompilationContext context) {
-        if (compiledPolicies.isEmpty()) {
-            return SaplCompiler.buildDecisionObject(Decision.NOT_APPLICABLE, List.of(), List.of(), Value.UNDEFINED);
-        }
-        // Optimization: Check if all policies are pure or constant
-        val allPureOrConstant = compiledPolicies.stream().allMatch(
-                p -> p.decisionExpression() instanceof Value || p.decisionExpression() instanceof PureExpression);
+    // ========== Constants for Common Decision Objects ==========
 
-        if (allPureOrConstant) {
-            // Pure path - no streaming needed
-            return new PureExpression(ctx -> {
-                for (val compiledPolicy : compiledPolicies) {
-                    val matches = evalValueOrPure(compiledPolicy.matchExpression(), ctx);
-                    if (!(matches instanceof BooleanValue matchesBool)) {
-                        return SaplCompiler.buildDecisionObject(Decision.INDETERMINATE, List.of(), List.of(),
-                                Value.UNDEFINED);
-                    }
-                    if (matchesBool.value()) {
-                        Value decision = evalValueOrPure(compiledPolicy.decisionExpression(), ctx);
-                        if (!(decision instanceof ObjectValue objectValue)) {
-                            return SaplCompiler.buildDecisionObject(Decision.INDETERMINATE, List.of(), List.of(),
-                                    Value.UNDEFINED);
-                        }
-                        val decisionAttribute = objectValue.get("decision");
-                        if (!(decisionAttribute instanceof TextValue textValue)) {
-                            return SaplCompiler.buildDecisionObject(Decision.INDETERMINATE, List.of(), List.of(),
-                                    Value.UNDEFINED);
-                        }
-                        try {
-                            val d = Decision.valueOf(textValue.value());
-                            if (d == Decision.NOT_APPLICABLE) {
-                                continue;
-                            }
-                            return decision;
-                        } catch (IllegalArgumentException e) {
-                            return SaplCompiler.buildDecisionObject(Decision.INDETERMINATE, List.of(), List.of(),
-                                    Value.UNDEFINED);
-                        }
-                    }
-                }
-                // No policy was applicable
-                return SaplCompiler.buildDecisionObject(Decision.NOT_APPLICABLE, List.of(), List.of(), Value.UNDEFINED);
-            }, true);
-        }
+    private static final Value NOT_APPLICABLE_DECISION = SaplCompiler.buildDecisionObject(Decision.NOT_APPLICABLE,
+            List.of(), List.of(), Value.UNDEFINED);
 
-        var decisionStream = Flux
-                .just(SaplCompiler.buildDecisionObject(Decision.NOT_APPLICABLE, List.of(), List.of(), Value.UNDEFINED));
-        for (var i = compiledPolicies.size() - 1; i >= 0; i--) {
-            val compiledPolicy = compiledPolicies.get(i);
-            val matchFlux      = ExpressionCompiler.compiledExpressionToFlux(compiledPolicy.matchExpression());
-            val previousStream = decisionStream;
-            decisionStream = matchFlux.switchMap(matches -> {
-                if (!(matches instanceof BooleanValue matchesBool)) {
-                    return Flux.just(SaplCompiler.buildDecisionObject(Decision.INDETERMINATE, List.of(), List.of(),
-                            Value.UNDEFINED));
-                }
-                if (matchesBool.value()) {
-                    return ExpressionCompiler.compiledExpressionToFlux(compiledPolicy.decisionExpression())
-                            .switchMap(decision -> {
-                                if (!(decision instanceof ObjectValue objectValue)) {
-                                    return Flux.just(SaplCompiler.buildDecisionObject(Decision.INDETERMINATE, List.of(),
-                                            List.of(), Value.UNDEFINED));
-                                }
-                                val decisionAttribute = objectValue.get("decision");
-                                if (!(decisionAttribute instanceof TextValue textValue)) {
-                                    return Flux.just(SaplCompiler.buildDecisionObject(Decision.INDETERMINATE, List.of(),
-                                            List.of(), Value.UNDEFINED));
-                                }
-                                try {
-                                    val d = Decision.valueOf(textValue.value());
-                                    if (d == Decision.NOT_APPLICABLE) {
-                                        return previousStream;
-                                    }
-                                    return Flux.just(decision);
-                                } catch (IllegalArgumentException e) {
-                                    return Flux.just(SaplCompiler.buildDecisionObject(Decision.INDETERMINATE, List.of(),
-                                            List.of(), Value.UNDEFINED));
-                                }
-                            });
-                }
-                return previousStream;
-            });
-        }
-        return new StreamExpression(decisionStream);
-    }
+    private static final Value INDETERMINATE_DECISION = SaplCompiler.buildDecisionObject(Decision.INDETERMINATE,
+            List.of(), List.of(), Value.UNDEFINED);
 
-    public static CompiledExpression denyUnlessPermit(List<CompiledPolicy> compiledPolicies,
-            CompilationContext context) {
-        if (compiledPolicies.isEmpty()) {
-            return SaplCompiler.buildDecisionObject(Decision.DENY, List.of(), List.of(), Value.UNDEFINED);
-        }
+    private static final Value DENY_DECISION = SaplCompiler.buildDecisionObject(Decision.DENY, List.of(), List.of(),
+            Value.UNDEFINED);
 
-        // Check if all decision expressions are pure or constant
-        val allPureOrConstant = compiledPolicies.stream().allMatch(
-                p -> p.decisionExpression() instanceof Value || p.decisionExpression() instanceof PureExpression);
+    private static final Value PERMIT_DECISION = SaplCompiler.buildDecisionObject(Decision.PERMIT, List.of(), List.of(),
+            Value.UNDEFINED);
 
-        if (allPureOrConstant) {
-            // Pure path - evaluate all decisions synchronously
-            return new PureExpression(ctx -> evaluateDenyUnlessPermitPure(compiledPolicies, ctx), true);
-        } else {
-            // Streaming path - use Flux.combineLatest
-            return new StreamExpression(buildDenyUnlessPermitStream(compiledPolicies));
+    // ========== Common Data Structures ==========
+
+    /**
+     * Holds the result of evaluating a single policy: decision, resource
+     * transformation,
+     * obligations, and advice.
+     */
+    private record PolicyEvaluation(Decision decision, Value resource, ArrayValue obligations, ArrayValue advice) {
+        static PolicyEvaluation notApplicable() {
+            return new PolicyEvaluation(Decision.NOT_APPLICABLE, Value.UNDEFINED, new ArrayValue(List.of(), false),
+                    new ArrayValue(List.of(), false));
         }
     }
 
-    private static Value evaluateDenyUnlessPermitPure(List<CompiledPolicy> compiledPolicies, EvaluationContext ctx) {
-        var   entitlement       = Decision.DENY; // Default for deny-unless-permit
-        Value resource          = Value.UNDEFINED;
-        var   hasResource       = false;
-        val   permitObligations = new ArrayList<Value>();
-        val   permitAdvice      = new ArrayList<Value>();
-        val   denyObligations   = new ArrayList<Value>();
-        val   denyAdvice        = new ArrayList<Value>();
+    /**
+     * Accumulator for combining multiple policy decisions according to algorithm
+     * semantics.
+     */
+    private static class DecisionAccumulator {
+        Decision    entitlement;
+        Value       resource          = Value.UNDEFINED;
+        boolean     hasResource       = false;
+        List<Value> permitObligations = new ArrayList<>();
+        List<Value> permitAdvice      = new ArrayList<>();
+        List<Value> denyObligations   = new ArrayList<>();
+        List<Value> denyAdvice        = new ArrayList<>();
 
-        for (val compiledPolicy : compiledPolicies) {
-            // Evaluate match expression
-            val matches = evalValueOrPure(compiledPolicy.matchExpression(), ctx);
-            if (!(matches instanceof BooleanValue matchesBool)) {
-                // Match expression error - treat as non-matching
-                continue;
-            }
-            if (!matchesBool.value()) {
-                // Policy doesn't match
-                continue;
-            }
+        DecisionAccumulator(Decision defaultDecision) {
+            this.entitlement = defaultDecision;
+        }
 
-            // Policy matches - evaluate decision expression
-            val decision = evalValueOrPure(compiledPolicy.decisionExpression(), ctx);
-            if (!(decision instanceof ObjectValue decisionObj)) {
-                // Invalid decision structure - skip
-                continue;
-            }
+        void addPolicyEvaluation(PolicyEvaluation eval, CombiningAlgorithmLogic logic) {
+            // Update entitlement based on algorithm-specific logic
+            entitlement = logic.combineDecisions(entitlement, eval.decision);
 
-            // Extract decision value
-            val decisionAttr = decisionObj.get("decision");
-            if (!(decisionAttr instanceof TextValue decisionText)) {
-                continue;
+            // Handle resource transformations
+            if (!(eval.resource instanceof UndefinedValue)) {
+                if (hasResource) {
+                    // Transformation uncertainty
+                    entitlement = logic.handleTransformationUncertainty(entitlement);
+                } else {
+                    resource    = eval.resource;
+                    hasResource = true;
+                }
             }
 
-            Decision policyDecision;
-            try {
-                policyDecision = Decision.valueOf(decisionText.value());
-            } catch (IllegalArgumentException e) {
-                continue;
-            }
-
-            // Collect obligations and advice
-            val obligations = decisionObj.get("obligations");
-            val advice      = decisionObj.get("advice");
-
-            if (policyDecision == Decision.PERMIT) {
-                entitlement = Decision.PERMIT;
-
-                // Check for transformation uncertainty
-                val policyResource = decisionObj.get("resource");
-                if (!(policyResource instanceof UndefinedValue)) {
-                    if (hasResource) {
-                        // Transformation uncertainty - revert to DENY
-                        entitlement = Decision.DENY;
-                    } else {
-                        resource    = policyResource;
-                        hasResource = true;
-                    }
-                }
-
-                // Collect PERMIT obligations and advice
-                if (obligations instanceof ArrayValue obligationsArray) {
-                    permitObligations.addAll(obligationsArray);
-                }
-                if (advice instanceof ArrayValue adviceArray) {
-                    permitAdvice.addAll(adviceArray);
-                }
-            } else if (policyDecision == Decision.DENY) {
-                // Collect DENY obligations and advice
-                if (obligations instanceof ArrayValue obligationsArray) {
-                    denyObligations.addAll(obligationsArray);
-                }
-                if (advice instanceof ArrayValue adviceArray) {
-                    denyAdvice.addAll(adviceArray);
-                }
+            // Collect obligations and advice by decision type
+            if (eval.decision == Decision.PERMIT) {
+                permitObligations.addAll(eval.obligations);
+                permitAdvice.addAll(eval.advice);
+            } else if (eval.decision == Decision.DENY) {
+                denyObligations.addAll(eval.obligations);
+                denyAdvice.addAll(eval.advice);
             }
         }
 
-        // Build final decision with appropriate obligations/advice
-        val finalObligations = entitlement == Decision.PERMIT ? permitObligations : denyObligations;
-        val finalAdvice      = entitlement == Decision.PERMIT ? permitAdvice : denyAdvice;
-
-        return SaplCompiler.buildDecisionObject(entitlement, finalObligations, finalAdvice, resource);
-    }
-
-    private static Flux<Value> buildDenyUnlessPermitStream(List<CompiledPolicy> compiledPolicies) {
-        // Convert each policy to a Flux<PolicyEvaluation>
-        val policyFluxes = new ArrayList<Flux<PolicyEvaluation>>();
-
-        for (val compiledPolicy : compiledPolicies) {
-            val matchFlux  = ExpressionCompiler.compiledExpressionToFlux(compiledPolicy.matchExpression());
-            val policyFlux = matchFlux.switchMap(matches -> {
-                               if (!(matches instanceof BooleanValue matchesBool) || !matchesBool.value()) {
-                                   // Not matched - return NOT_APPLICABLE
-                                   return Flux.just(new PolicyEvaluation(Decision.NOT_APPLICABLE, Value.UNDEFINED,
-                                           new ArrayValue(List.of(), false), new ArrayValue(List.of(), false)));
-                               }
-
-                               // Matched - evaluate decision
-                               return ExpressionCompiler.compiledExpressionToFlux(compiledPolicy.decisionExpression())
-                                       .map(decision -> {
-                                                          if (!(decision instanceof ObjectValue decisionObj)) {
-                                                              return new PolicyEvaluation(Decision.NOT_APPLICABLE,
-                                                                      Value.UNDEFINED, new ArrayValue(List.of(), false),
-                                                                      new ArrayValue(List.of(), false));
-                                                          }
-
-                                                          val decisionAttr = decisionObj.get("decision");
-                                                          if (!(decisionAttr instanceof TextValue decisionText)) {
-                                                              return new PolicyEvaluation(Decision.NOT_APPLICABLE,
-                                                                      Value.UNDEFINED, new ArrayValue(List.of(), false),
-                                                                      new ArrayValue(List.of(), false));
-                                                          }
-
-                                                          Decision policyDecision;
-                                                          try {
-                                                              policyDecision = Decision.valueOf(decisionText.value());
-                                                          } catch (IllegalArgumentException e) {
-                                                              return new PolicyEvaluation(Decision.NOT_APPLICABLE,
-                                                                      Value.UNDEFINED, new ArrayValue(List.of(), false),
-                                                                      new ArrayValue(List.of(), false));
-                                                          }
-
-                                                          val resource = decisionObj.get("resource");
-                                                          val obligations = decisionObj.get("obligations");
-                                                          val advice = decisionObj.get("advice");
-
-                                                          val obligationsArray = obligations instanceof ArrayValue arr ? arr
-                                                                  : new ArrayValue(List.of(), false);
-                                                          val adviceArray = advice instanceof ArrayValue arr ? arr
-                                                                  : new ArrayValue(List.of(), false);
-
-                                                          return new PolicyEvaluation(policyDecision, resource,
-                                                                  obligationsArray, adviceArray);
-                                                      });
-                           });
-            policyFluxes.add(policyFlux);
-        }
-
-        // Combine all policy evaluations
-        return Flux.combineLatest(policyFluxes, evaluations -> {
-            var   entitlement       = Decision.DENY; // Default for deny-unless-permit
-            Value resource          = Value.UNDEFINED;
-            var   hasResource       = false;
-            val   permitObligations = new ArrayList<Value>();
-            val   permitAdvice      = new ArrayList<Value>();
-            val   denyObligations   = new ArrayList<Value>();
-            val   denyAdvice        = new ArrayList<Value>();
-
-            for (val evaluation : evaluations) {
-                val policyEval = (PolicyEvaluation) evaluation;
-
-                if (policyEval.decision == Decision.PERMIT) {
-                    entitlement = Decision.PERMIT;
-
-                    // Check for transformation uncertainty
-                    if (!(policyEval.resource instanceof UndefinedValue)) {
-                        if (hasResource) {
-                            // Transformation uncertainty - revert to DENY
-                            entitlement = Decision.DENY;
-                        } else {
-                            resource    = policyEval.resource;
-                            hasResource = true;
-                        }
-                    }
-
-                    // Collect PERMIT obligations and advice
-                    permitObligations.addAll(policyEval.obligations);
-                    permitAdvice.addAll(policyEval.advice);
-                } else if (policyEval.decision == Decision.DENY) {
-                    // Collect DENY obligations and advice
-                    denyObligations.addAll(policyEval.obligations);
-                    denyAdvice.addAll(policyEval.advice);
-                }
-            }
-
-            // Build final decision with appropriate obligations/advice
-            val finalObligations = entitlement == Decision.PERMIT ? permitObligations : denyObligations;
-            val finalAdvice      = entitlement == Decision.PERMIT ? permitAdvice : denyAdvice;
-
+        Value buildFinalDecision() {
+            val finalObligations = selectObligationsAdvice(entitlement, permitObligations, denyObligations);
+            val finalAdvice      = selectObligationsAdvice(entitlement, permitAdvice, denyAdvice);
             return SaplCompiler.buildDecisionObject(entitlement, finalObligations, finalAdvice, resource);
-        });
+        }
+
+        private List<Value> selectObligationsAdvice(Decision decision, List<Value> permitList, List<Value> denyList) {
+            return switch (decision) {
+            case PERMIT -> permitList;
+            case DENY   -> denyList;
+            default     -> new ArrayList<>();
+            };
+        }
     }
 
-    // Helper record for streaming evaluation
-    private record PolicyEvaluation(Decision decision, Value resource, ArrayValue obligations, ArrayValue advice) {}
+    /**
+     * Algorithm-specific logic for combining decisions and handling uncertainty.
+     */
+    private interface CombiningAlgorithmLogic {
+        Decision combineDecisions(Decision current, Decision newDecision);
+
+        Decision handleTransformationUncertainty(Decision current);
+
+        Decision getDefaultDecision();
+    }
+
+    // ========== Algorithm-Specific Logic Implementations ==========
+
+    private static final CombiningAlgorithmLogic DENY_UNLESS_PERMIT = new CombiningAlgorithmLogic() {
+        public Decision combineDecisions(Decision current, Decision newDecision) {
+            if (newDecision == Decision.PERMIT)
+                return Decision.PERMIT;
+            if (newDecision == Decision.DENY && current == Decision.DENY)
+                return Decision.DENY;
+            return current;
+        }
+
+        public Decision handleTransformationUncertainty(Decision current) {
+            return Decision.DENY;
+        }
+
+        public Decision getDefaultDecision() {
+            return Decision.DENY;
+        }
+    };
+
+    private static final CombiningAlgorithmLogic DENY_OVERRIDES = new CombiningAlgorithmLogic() {
+        public Decision combineDecisions(Decision current, Decision newDecision) {
+            if (newDecision == Decision.DENY)
+                return Decision.DENY;
+            if (newDecision == Decision.INDETERMINATE && current != Decision.DENY)
+                return Decision.INDETERMINATE;
+            if (newDecision == Decision.PERMIT && current == Decision.NOT_APPLICABLE)
+                return Decision.PERMIT;
+            return current;
+        }
+
+        public Decision handleTransformationUncertainty(Decision current) {
+            return current == Decision.DENY ? Decision.DENY : Decision.INDETERMINATE;
+        }
+
+        public Decision getDefaultDecision() {
+            return Decision.NOT_APPLICABLE;
+        }
+    };
+
+    private static final CombiningAlgorithmLogic PERMIT_OVERRIDES = new CombiningAlgorithmLogic() {
+        public Decision combineDecisions(Decision current, Decision newDecision) {
+            if (newDecision == Decision.PERMIT)
+                return Decision.PERMIT;
+            if (newDecision == Decision.INDETERMINATE && current != Decision.PERMIT)
+                return Decision.INDETERMINATE;
+            if (newDecision == Decision.DENY && current == Decision.NOT_APPLICABLE)
+                return Decision.DENY;
+            return current;
+        }
+
+        public Decision handleTransformationUncertainty(Decision current) {
+            return Decision.INDETERMINATE;
+        }
+
+        public Decision getDefaultDecision() {
+            return Decision.NOT_APPLICABLE;
+        }
+    };
+
+    private static final CombiningAlgorithmLogic PERMIT_UNLESS_DENY = new CombiningAlgorithmLogic() {
+        public Decision combineDecisions(Decision current, Decision newDecision) {
+            return newDecision == Decision.DENY ? Decision.DENY : current;
+        }
+
+        public Decision handleTransformationUncertainty(Decision current) {
+            return Decision.DENY;
+        }
+
+        public Decision getDefaultDecision() {
+            return Decision.PERMIT;
+        }
+    };
+
+    // ========== Common Helper Methods ==========
+
+    /**
+     * Evaluates a match expression (pure or constant).
+     */
+    private static boolean evaluateMatch(CompiledPolicy policy, EvaluationContext ctx) {
+        val matches = evalValueOrPure(policy.matchExpression(), ctx);
+        return matches instanceof BooleanValue boolValue && boolValue.value();
+    }
+
+    /**
+     * Evaluates a policy's decision expression and extracts PolicyEvaluation.
+     */
+    private static PolicyEvaluation evaluatePolicyDecision(CompiledPolicy policy, EvaluationContext ctx) {
+        val decision = evalValueOrPure(policy.decisionExpression(), ctx);
+        return extractPolicyEvaluation(decision);
+    }
+
+    /**
+     * Extracts decision, resource, obligations, and advice from a decision object.
+     */
+    private static PolicyEvaluation extractPolicyEvaluation(Value decisionValue) {
+        if (!(decisionValue instanceof ObjectValue decisionObj)) {
+            return PolicyEvaluation.notApplicable();
+        }
+
+        val decisionAttr = decisionObj.get("decision");
+        if (!(decisionAttr instanceof TextValue decisionText)) {
+            return PolicyEvaluation.notApplicable();
+        }
+
+        Decision policyDecision;
+        try {
+            policyDecision = Decision.valueOf(decisionText.value());
+        } catch (IllegalArgumentException e) {
+            return PolicyEvaluation.notApplicable();
+        }
+
+        val resource    = decisionObj.get("resource");
+        val obligations = decisionObj.get("obligations");
+        val advice      = decisionObj.get("advice");
+
+        val obligationsArray = obligations instanceof ArrayValue arr ? arr : new ArrayValue(List.of(), false);
+        val adviceArray      = advice instanceof ArrayValue arr ? arr : new ArrayValue(List.of(), false);
+
+        return new PolicyEvaluation(policyDecision, resource, obligationsArray, adviceArray);
+    }
+
+    /**
+     * Checks if all policies have pure or constant decision expressions.
+     */
+    private static boolean allPureOrConstant(List<CompiledPolicy> policies) {
+        return policies.stream().allMatch(
+                p -> p.decisionExpression() instanceof Value || p.decisionExpression() instanceof PureExpression);
+    }
 
     private static Value evalValueOrPure(CompiledExpression e, EvaluationContext ctx) {
         if (e instanceof Value v) {
@@ -329,628 +262,112 @@ public class CombiningAlgorithmCompiler {
         return ((PureExpression) e).evaluate(ctx);
     }
 
-    public static CompiledExpression denyOverrides(List<CompiledPolicy> compiledPolicies, CompilationContext context) {
+    /**
+     * Creates a Flux that evaluates a single policy and returns PolicyEvaluation.
+     */
+    private static Flux<PolicyEvaluation> createPolicyFlux(CompiledPolicy policy) {
+        val matchFlux = ExpressionCompiler.compiledExpressionToFlux(policy.matchExpression());
+        return matchFlux.switchMap(matches -> {
+            if (!(matches instanceof BooleanValue matchesBool) || !matchesBool.value()) {
+                return Flux.just(PolicyEvaluation.notApplicable());
+            }
+            return ExpressionCompiler.compiledExpressionToFlux(policy.decisionExpression())
+                    .map(CombiningAlgorithmCompiler::extractPolicyEvaluation);
+        });
+    }
+
+    // ========== Generic Combining Algorithm Implementation ==========
+
+    /**
+     * Generic implementation for combining algorithms that follow the standard
+     * pattern.
+     */
+    private static CompiledExpression genericCombiningAlgorithm(List<CompiledPolicy> compiledPolicies,
+            CombiningAlgorithmLogic logic) {
+
         if (compiledPolicies.isEmpty()) {
-            return SaplCompiler.buildDecisionObject(Decision.NOT_APPLICABLE, List.of(), List.of(), Value.UNDEFINED);
+            return getDefaultDecisionConstant(logic.getDefaultDecision());
         }
 
-        // Check if all decision expressions are pure or constant
-        val allPureOrConstant = compiledPolicies.stream().allMatch(
-                p -> p.decisionExpression() instanceof Value || p.decisionExpression() instanceof PureExpression);
-
-        if (allPureOrConstant) {
-            // Pure path - evaluate all decisions synchronously
-            return new PureExpression(ctx -> evaluateDenyOverridesPure(compiledPolicies, ctx), true);
+        if (allPureOrConstant(compiledPolicies)) {
+            return new PureExpression(ctx -> evaluateGenericPure(compiledPolicies, logic, ctx), true);
         } else {
-            // Streaming path - use Flux.combineLatest
-            return new StreamExpression(buildDenyOverridesStream(compiledPolicies));
+            return new StreamExpression(buildGenericStream(compiledPolicies, logic));
         }
     }
 
-    private static Value evaluateDenyOverridesPure(List<CompiledPolicy> compiledPolicies, EvaluationContext ctx) {
-        var   entitlement       = Decision.NOT_APPLICABLE;
-        Value resource          = Value.UNDEFINED;
-        var   hasResource       = false;
-        val   permitObligations = new ArrayList<Value>();
-        val   permitAdvice      = new ArrayList<Value>();
-        val   denyObligations   = new ArrayList<Value>();
-        val   denyAdvice        = new ArrayList<Value>();
-        var   hasIndeterminate  = false;
-
-        for (val compiledPolicy : compiledPolicies) {
-            // Evaluate match expression
-            val matches = evalValueOrPure(compiledPolicy.matchExpression(), ctx);
-            if (!(matches instanceof BooleanValue matchesBool)) {
-                // Match expression error - treat as non-matching
-                continue;
-            }
-            if (!matchesBool.value()) {
-                // Policy doesn't match
-                continue;
-            }
-
-            // Policy matches - evaluate decision expression
-            val decision = evalValueOrPure(compiledPolicy.decisionExpression(), ctx);
-            if (!(decision instanceof ObjectValue decisionObj)) {
-                // Invalid decision structure - skip
-                continue;
-            }
-
-            // Extract decision value
-            val decisionAttr = decisionObj.get("decision");
-            if (!(decisionAttr instanceof TextValue decisionText)) {
-                continue;
-            }
-
-            Decision policyDecision;
-            try {
-                policyDecision = Decision.valueOf(decisionText.value());
-            } catch (IllegalArgumentException e) {
-                continue;
-            }
-
-            // Collect obligations and advice
-            val obligations = decisionObj.get("obligations");
-            val advice      = decisionObj.get("advice");
-
-            // Apply deny-overrides logic
-            if (policyDecision == Decision.DENY) {
-                entitlement = Decision.DENY;
-            }
-            if (policyDecision == Decision.INDETERMINATE && entitlement != Decision.DENY) {
-                entitlement      = Decision.INDETERMINATE;
-                hasIndeterminate = true;
-            }
-            if (policyDecision == Decision.PERMIT && entitlement == Decision.NOT_APPLICABLE) {
-                entitlement = Decision.PERMIT;
-            }
-
-            // Handle transformations
-            val policyResource = decisionObj.get("resource");
-            if (!(policyResource instanceof UndefinedValue)) {
-                if (hasResource && entitlement != Decision.DENY) {
-                    // Transformation uncertainty - set to INDETERMINATE unless DENY
-                    entitlement = Decision.INDETERMINATE;
-                } else if (!hasResource) {
-                    resource    = policyResource;
-                    hasResource = true;
-                }
-            }
-
-            // Collect obligations and advice
-            if (policyDecision == Decision.PERMIT) {
-                if (obligations instanceof ArrayValue obligationsArray) {
-                    permitObligations.addAll(obligationsArray);
-                }
-                if (advice instanceof ArrayValue adviceArray) {
-                    permitAdvice.addAll(adviceArray);
-                }
-            } else if (policyDecision == Decision.DENY) {
-                if (obligations instanceof ArrayValue obligationsArray) {
-                    denyObligations.addAll(obligationsArray);
-                }
-                if (advice instanceof ArrayValue adviceArray) {
-                    denyAdvice.addAll(adviceArray);
-                }
-            }
-        }
-
-        // Build final decision with appropriate obligations/advice
-        val finalObligations = entitlement == Decision.PERMIT ? permitObligations
-                : entitlement == Decision.DENY ? denyObligations : new ArrayList<Value>();
-        val finalAdvice      = entitlement == Decision.PERMIT ? permitAdvice
-                : entitlement == Decision.DENY ? denyAdvice : new ArrayList<Value>();
-
-        return SaplCompiler.buildDecisionObject(entitlement, finalObligations, finalAdvice, resource);
+    private static Value getDefaultDecisionConstant(Decision decision) {
+        return switch (decision) {
+        case NOT_APPLICABLE -> NOT_APPLICABLE_DECISION;
+        case INDETERMINATE  -> INDETERMINATE_DECISION;
+        case DENY           -> DENY_DECISION;
+        case PERMIT         -> PERMIT_DECISION;
+        };
     }
 
-    private static Flux<Value> buildDenyOverridesStream(List<CompiledPolicy> compiledPolicies) {
-        // Convert each policy to a Flux<PolicyEvaluation>
-        val policyFluxes = new ArrayList<Flux<PolicyEvaluation>>();
+    private static Value evaluateGenericPure(List<CompiledPolicy> compiledPolicies, CombiningAlgorithmLogic logic,
+            EvaluationContext ctx) {
 
-        for (val compiledPolicy : compiledPolicies) {
-            val matchFlux  = ExpressionCompiler.compiledExpressionToFlux(compiledPolicy.matchExpression());
-            val policyFlux = matchFlux.switchMap(matches -> {
-                               if (!(matches instanceof BooleanValue matchesBool) || !matchesBool.value()) {
-                                   // Not matched - return NOT_APPLICABLE
-                                   return Flux.just(new PolicyEvaluation(Decision.NOT_APPLICABLE, Value.UNDEFINED,
-                                           new ArrayValue(List.of(), false), new ArrayValue(List.of(), false)));
-                               }
+        val accumulator = new DecisionAccumulator(logic.getDefaultDecision());
 
-                               // Matched - evaluate decision
-                               return ExpressionCompiler.compiledExpressionToFlux(compiledPolicy.decisionExpression())
-                                       .map(decision -> {
-                                                          if (!(decision instanceof ObjectValue decisionObj)) {
-                                                              return new PolicyEvaluation(Decision.NOT_APPLICABLE,
-                                                                      Value.UNDEFINED, new ArrayValue(List.of(), false),
-                                                                      new ArrayValue(List.of(), false));
-                                                          }
-
-                                                          val decisionAttr = decisionObj.get("decision");
-                                                          if (!(decisionAttr instanceof TextValue decisionText)) {
-                                                              return new PolicyEvaluation(Decision.NOT_APPLICABLE,
-                                                                      Value.UNDEFINED, new ArrayValue(List.of(), false),
-                                                                      new ArrayValue(List.of(), false));
-                                                          }
-
-                                                          Decision policyDecision;
-                                                          try {
-                                                              policyDecision = Decision.valueOf(decisionText.value());
-                                                          } catch (IllegalArgumentException e) {
-                                                              return new PolicyEvaluation(Decision.NOT_APPLICABLE,
-                                                                      Value.UNDEFINED, new ArrayValue(List.of(), false),
-                                                                      new ArrayValue(List.of(), false));
-                                                          }
-
-                                                          val resource = decisionObj.get("resource");
-                                                          val obligations = decisionObj.get("obligations");
-                                                          val advice = decisionObj.get("advice");
-
-                                                          val obligationsArray = obligations instanceof ArrayValue arr ? arr
-                                                                  : new ArrayValue(List.of(), false);
-                                                          val adviceArray = advice instanceof ArrayValue arr ? arr
-                                                                  : new ArrayValue(List.of(), false);
-
-                                                          return new PolicyEvaluation(policyDecision, resource,
-                                                                  obligationsArray, adviceArray);
-                                                      });
-                           });
-            policyFluxes.add(policyFlux);
+        for (val policy : compiledPolicies) {
+            if (!evaluateMatch(policy, ctx)) {
+                continue;
+            }
+            val evaluation = evaluatePolicyDecision(policy, ctx);
+            accumulator.addPolicyEvaluation(evaluation, logic);
         }
 
-        // Combine all policy evaluations
+        return accumulator.buildFinalDecision();
+    }
+
+    private static Flux<Value> buildGenericStream(List<CompiledPolicy> compiledPolicies,
+            CombiningAlgorithmLogic logic) {
+
+        val policyFluxes = compiledPolicies.stream().map(CombiningAlgorithmCompiler::createPolicyFlux).toList();
+
         return Flux.combineLatest(policyFluxes, evaluations -> {
-            var   entitlement       = Decision.NOT_APPLICABLE;
-            Value resource          = Value.UNDEFINED;
-            var   hasResource       = false;
-            val   permitObligations = new ArrayList<Value>();
-            val   permitAdvice      = new ArrayList<Value>();
-            val   denyObligations   = new ArrayList<Value>();
-            val   denyAdvice        = new ArrayList<Value>();
+            val accumulator = new DecisionAccumulator(logic.getDefaultDecision());
 
             for (val evaluation : evaluations) {
                 val policyEval = (PolicyEvaluation) evaluation;
-
-                // Apply deny-overrides logic
-                if (policyEval.decision == Decision.DENY) {
-                    entitlement = Decision.DENY;
-                }
-                if (policyEval.decision == Decision.INDETERMINATE && entitlement != Decision.DENY) {
-                    entitlement = Decision.INDETERMINATE;
-                }
-                if (policyEval.decision == Decision.PERMIT && entitlement == Decision.NOT_APPLICABLE) {
-                    entitlement = Decision.PERMIT;
-                }
-
-                // Handle transformation uncertainty
-                if (!(policyEval.resource instanceof UndefinedValue)) {
-                    if (hasResource && entitlement != Decision.DENY) {
-                        // Transformation uncertainty
-                        entitlement = Decision.INDETERMINATE;
-                    } else if (!hasResource) {
-                        resource    = policyEval.resource;
-                        hasResource = true;
-                    }
-                }
-
-                // Collect obligations and advice
-                if (policyEval.decision == Decision.PERMIT) {
-                    permitObligations.addAll(policyEval.obligations);
-                    permitAdvice.addAll(policyEval.advice);
-                } else if (policyEval.decision == Decision.DENY) {
-                    denyObligations.addAll(policyEval.obligations);
-                    denyAdvice.addAll(policyEval.advice);
+                if (policyEval.decision != Decision.NOT_APPLICABLE) {
+                    accumulator.addPolicyEvaluation(policyEval, logic);
                 }
             }
 
-            // Build final decision with appropriate obligations/advice
-            val finalObligations = entitlement == Decision.PERMIT ? permitObligations
-                    : entitlement == Decision.DENY ? denyObligations : new ArrayList<Value>();
-            val finalAdvice      = entitlement == Decision.PERMIT ? permitAdvice
-                    : entitlement == Decision.DENY ? denyAdvice : new ArrayList<Value>();
-
-            return SaplCompiler.buildDecisionObject(entitlement, finalObligations, finalAdvice, resource);
+            return accumulator.buildFinalDecision();
         });
+    }
+
+    // ========== Public API: Combining Algorithms ==========
+
+    public static CompiledExpression denyUnlessPermit(List<CompiledPolicy> compiledPolicies,
+            CompilationContext context) {
+        return genericCombiningAlgorithm(compiledPolicies, DENY_UNLESS_PERMIT);
+    }
+
+    public static CompiledExpression denyOverrides(List<CompiledPolicy> compiledPolicies, CompilationContext context) {
+        return genericCombiningAlgorithm(compiledPolicies, DENY_OVERRIDES);
     }
 
     public static CompiledExpression permitOverrides(List<CompiledPolicy> compiledPolicies,
             CompilationContext context) {
-        if (compiledPolicies.isEmpty()) {
-            return SaplCompiler.buildDecisionObject(Decision.NOT_APPLICABLE, List.of(), List.of(), Value.UNDEFINED);
-        }
-
-        val allPureOrConstant = compiledPolicies.stream().allMatch(
-                p -> p.decisionExpression() instanceof Value || p.decisionExpression() instanceof PureExpression);
-
-        if (allPureOrConstant) {
-            return new PureExpression(ctx -> evaluatePermitOverridesPure(compiledPolicies, ctx), true);
-        } else {
-            return new StreamExpression(buildPermitOverridesStream(compiledPolicies));
-        }
-    }
-
-    private static Value evaluatePermitOverridesPure(List<CompiledPolicy> compiledPolicies, EvaluationContext ctx) {
-        var   entitlement       = Decision.NOT_APPLICABLE;
-        Value resource          = Value.UNDEFINED;
-        var   hasResource       = false;
-        val   permitObligations = new ArrayList<Value>();
-        val   permitAdvice      = new ArrayList<Value>();
-        val   denyObligations   = new ArrayList<Value>();
-        val   denyAdvice        = new ArrayList<Value>();
-
-        for (val compiledPolicy : compiledPolicies) {
-            val matches = evalValueOrPure(compiledPolicy.matchExpression(), ctx);
-            if (!(matches instanceof BooleanValue matchesBool) || !matchesBool.value()) {
-                continue;
-            }
-
-            val decision = evalValueOrPure(compiledPolicy.decisionExpression(), ctx);
-            if (!(decision instanceof ObjectValue decisionObj)) {
-                continue;
-            }
-
-            val decisionAttr = decisionObj.get("decision");
-            if (!(decisionAttr instanceof TextValue decisionText)) {
-                continue;
-            }
-
-            Decision policyDecision;
-            try {
-                policyDecision = Decision.valueOf(decisionText.value());
-            } catch (IllegalArgumentException e) {
-                continue;
-            }
-
-            val obligations = decisionObj.get("obligations");
-            val advice      = decisionObj.get("advice");
-
-            // Apply permit-overrides logic
-            if (policyDecision == Decision.PERMIT) {
-                entitlement = Decision.PERMIT;
-            }
-            if (policyDecision == Decision.INDETERMINATE && entitlement != Decision.PERMIT) {
-                entitlement = Decision.INDETERMINATE;
-            }
-            if (policyDecision == Decision.DENY && entitlement == Decision.NOT_APPLICABLE) {
-                entitlement = Decision.DENY;
-            }
-
-            // Handle transformations
-            val policyResource = decisionObj.get("resource");
-            if (!(policyResource instanceof UndefinedValue)) {
-                if (hasResource) {
-                    // Transformation uncertainty
-                    entitlement = Decision.INDETERMINATE;
-                } else {
-                    resource    = policyResource;
-                    hasResource = true;
-                }
-            }
-
-            // Collect obligations and advice
-            if (policyDecision == Decision.PERMIT) {
-                if (obligations instanceof ArrayValue obligationsArray) {
-                    permitObligations.addAll(obligationsArray);
-                }
-                if (advice instanceof ArrayValue adviceArray) {
-                    permitAdvice.addAll(adviceArray);
-                }
-            } else if (policyDecision == Decision.DENY) {
-                if (obligations instanceof ArrayValue obligationsArray) {
-                    denyObligations.addAll(obligationsArray);
-                }
-                if (advice instanceof ArrayValue adviceArray) {
-                    denyAdvice.addAll(adviceArray);
-                }
-            }
-        }
-
-        val finalObligations = entitlement == Decision.PERMIT ? permitObligations
-                : entitlement == Decision.DENY ? denyObligations : new ArrayList<Value>();
-        val finalAdvice      = entitlement == Decision.PERMIT ? permitAdvice
-                : entitlement == Decision.DENY ? denyAdvice : new ArrayList<Value>();
-
-        return SaplCompiler.buildDecisionObject(entitlement, finalObligations, finalAdvice, resource);
-    }
-
-    private static Flux<Value> buildPermitOverridesStream(List<CompiledPolicy> compiledPolicies) {
-        val policyFluxes = new ArrayList<Flux<PolicyEvaluation>>();
-
-        for (val compiledPolicy : compiledPolicies) {
-            val matchFlux  = ExpressionCompiler.compiledExpressionToFlux(compiledPolicy.matchExpression());
-            val policyFlux = matchFlux.switchMap(matches -> {
-                               if (!(matches instanceof BooleanValue matchesBool) || !matchesBool.value()) {
-                                   return Flux.just(new PolicyEvaluation(Decision.NOT_APPLICABLE, Value.UNDEFINED,
-                                           new ArrayValue(List.of(), false), new ArrayValue(List.of(), false)));
-                               }
-
-                               return ExpressionCompiler.compiledExpressionToFlux(compiledPolicy.decisionExpression())
-                                       .map(decision -> {
-                                                          if (!(decision instanceof ObjectValue decisionObj)) {
-                                                              return new PolicyEvaluation(Decision.NOT_APPLICABLE,
-                                                                      Value.UNDEFINED, new ArrayValue(List.of(), false),
-                                                                      new ArrayValue(List.of(), false));
-                                                          }
-
-                                                          val decisionAttr = decisionObj.get("decision");
-                                                          if (!(decisionAttr instanceof TextValue decisionText)) {
-                                                              return new PolicyEvaluation(Decision.NOT_APPLICABLE,
-                                                                      Value.UNDEFINED, new ArrayValue(List.of(), false),
-                                                                      new ArrayValue(List.of(), false));
-                                                          }
-
-                                                          Decision policyDecision;
-                                                          try {
-                                                              policyDecision = Decision.valueOf(decisionText.value());
-                                                          } catch (IllegalArgumentException e) {
-                                                              return new PolicyEvaluation(Decision.NOT_APPLICABLE,
-                                                                      Value.UNDEFINED, new ArrayValue(List.of(), false),
-                                                                      new ArrayValue(List.of(), false));
-                                                          }
-
-                                                          val resource = decisionObj.get("resource");
-                                                          val obligations = decisionObj.get("obligations");
-                                                          val advice = decisionObj.get("advice");
-                                                          val obligationsArray = obligations instanceof ArrayValue arr ? arr
-                                                                  : new ArrayValue(List.of(), false);
-                                                          val adviceArray = advice instanceof ArrayValue arr ? arr
-                                                                  : new ArrayValue(List.of(), false);
-
-                                                          return new PolicyEvaluation(policyDecision, resource,
-                                                                  obligationsArray, adviceArray);
-                                                      });
-                           });
-            policyFluxes.add(policyFlux);
-        }
-
-        return Flux.combineLatest(policyFluxes, evaluations -> {
-            var   entitlement       = Decision.NOT_APPLICABLE;
-            Value resource          = Value.UNDEFINED;
-            var   hasResource       = false;
-            val   permitObligations = new ArrayList<Value>();
-            val   permitAdvice      = new ArrayList<Value>();
-            val   denyObligations   = new ArrayList<Value>();
-            val   denyAdvice        = new ArrayList<Value>();
-
-            for (val evaluation : evaluations) {
-                val policyEval = (PolicyEvaluation) evaluation;
-
-                // Apply permit-overrides logic
-                if (policyEval.decision == Decision.PERMIT) {
-                    entitlement = Decision.PERMIT;
-                }
-                if (policyEval.decision == Decision.INDETERMINATE && entitlement != Decision.PERMIT) {
-                    entitlement = Decision.INDETERMINATE;
-                }
-                if (policyEval.decision == Decision.DENY && entitlement == Decision.NOT_APPLICABLE) {
-                    entitlement = Decision.DENY;
-                }
-
-                // Handle transformation uncertainty
-                if (!(policyEval.resource instanceof UndefinedValue)) {
-                    if (hasResource) {
-                        entitlement = Decision.INDETERMINATE;
-                    } else {
-                        resource    = policyEval.resource;
-                        hasResource = true;
-                    }
-                }
-
-                // Collect obligations and advice
-                if (policyEval.decision == Decision.PERMIT) {
-                    permitObligations.addAll(policyEval.obligations);
-                    permitAdvice.addAll(policyEval.advice);
-                } else if (policyEval.decision == Decision.DENY) {
-                    denyObligations.addAll(policyEval.obligations);
-                    denyAdvice.addAll(policyEval.advice);
-                }
-            }
-
-            val finalObligations = entitlement == Decision.PERMIT ? permitObligations
-                    : entitlement == Decision.DENY ? denyObligations : new ArrayList<Value>();
-            val finalAdvice      = entitlement == Decision.PERMIT ? permitAdvice
-                    : entitlement == Decision.DENY ? denyAdvice : new ArrayList<Value>();
-
-            return SaplCompiler.buildDecisionObject(entitlement, finalObligations, finalAdvice, resource);
-        });
+        return genericCombiningAlgorithm(compiledPolicies, PERMIT_OVERRIDES);
     }
 
     public static CompiledExpression permitUnlessDeny(List<CompiledPolicy> compiledPolicies,
             CompilationContext context) {
-        if (compiledPolicies.isEmpty()) {
-            return SaplCompiler.buildDecisionObject(Decision.PERMIT, List.of(), List.of(), Value.UNDEFINED);
-        }
-
-        val allPureOrConstant = compiledPolicies.stream().allMatch(
-                p -> p.decisionExpression() instanceof Value || p.decisionExpression() instanceof PureExpression);
-
-        if (allPureOrConstant) {
-            return new PureExpression(ctx -> evaluatePermitUnlessDenyPure(compiledPolicies, ctx), true);
-        } else {
-            return new StreamExpression(buildPermitUnlessDenyStream(compiledPolicies));
-        }
-    }
-
-    private static Value evaluatePermitUnlessDenyPure(List<CompiledPolicy> compiledPolicies, EvaluationContext ctx) {
-        var   entitlement       = Decision.PERMIT; // Default for permit-unless-deny
-        Value resource          = Value.UNDEFINED;
-        var   hasResource       = false;
-        val   permitObligations = new ArrayList<Value>();
-        val   permitAdvice      = new ArrayList<Value>();
-        val   denyObligations   = new ArrayList<Value>();
-        val   denyAdvice        = new ArrayList<Value>();
-
-        for (val compiledPolicy : compiledPolicies) {
-            val matches = evalValueOrPure(compiledPolicy.matchExpression(), ctx);
-            if (!(matches instanceof BooleanValue matchesBool) || !matchesBool.value()) {
-                continue;
-            }
-
-            val decision = evalValueOrPure(compiledPolicy.decisionExpression(), ctx);
-            if (!(decision instanceof ObjectValue decisionObj)) {
-                continue;
-            }
-
-            val decisionAttr = decisionObj.get("decision");
-            if (!(decisionAttr instanceof TextValue decisionText)) {
-                continue;
-            }
-
-            Decision policyDecision;
-            try {
-                policyDecision = Decision.valueOf(decisionText.value());
-            } catch (IllegalArgumentException e) {
-                continue;
-            }
-
-            val obligations = decisionObj.get("obligations");
-            val advice      = decisionObj.get("advice");
-
-            // Apply permit-unless-deny logic
-            if (policyDecision == Decision.DENY) {
-                entitlement = Decision.DENY;
-            }
-
-            // Handle transformations
-            val policyResource = decisionObj.get("resource");
-            if (!(policyResource instanceof UndefinedValue)) {
-                if (hasResource) {
-                    // Transformation uncertainty - revert to DENY
-                    entitlement = Decision.DENY;
-                } else {
-                    resource    = policyResource;
-                    hasResource = true;
-                }
-            }
-
-            // Collect obligations and advice
-            if (policyDecision == Decision.PERMIT) {
-                if (obligations instanceof ArrayValue obligationsArray) {
-                    permitObligations.addAll(obligationsArray);
-                }
-                if (advice instanceof ArrayValue adviceArray) {
-                    permitAdvice.addAll(adviceArray);
-                }
-            } else if (policyDecision == Decision.DENY) {
-                if (obligations instanceof ArrayValue obligationsArray) {
-                    denyObligations.addAll(obligationsArray);
-                }
-                if (advice instanceof ArrayValue adviceArray) {
-                    denyAdvice.addAll(adviceArray);
-                }
-            }
-        }
-
-        val finalObligations = entitlement == Decision.PERMIT ? permitObligations : denyObligations;
-        val finalAdvice      = entitlement == Decision.PERMIT ? permitAdvice : denyAdvice;
-
-        return SaplCompiler.buildDecisionObject(entitlement, finalObligations, finalAdvice, resource);
-    }
-
-    private static Flux<Value> buildPermitUnlessDenyStream(List<CompiledPolicy> compiledPolicies) {
-        val policyFluxes = new ArrayList<Flux<PolicyEvaluation>>();
-
-        for (val compiledPolicy : compiledPolicies) {
-            val matchFlux  = ExpressionCompiler.compiledExpressionToFlux(compiledPolicy.matchExpression());
-            val policyFlux = matchFlux.switchMap(matches -> {
-                               if (!(matches instanceof BooleanValue matchesBool) || !matchesBool.value()) {
-                                   return Flux.just(new PolicyEvaluation(Decision.NOT_APPLICABLE, Value.UNDEFINED,
-                                           new ArrayValue(List.of(), false), new ArrayValue(List.of(), false)));
-                               }
-
-                               return ExpressionCompiler.compiledExpressionToFlux(compiledPolicy.decisionExpression())
-                                       .map(decision -> {
-                                                          if (!(decision instanceof ObjectValue decisionObj)) {
-                                                              return new PolicyEvaluation(Decision.NOT_APPLICABLE,
-                                                                      Value.UNDEFINED, new ArrayValue(List.of(), false),
-                                                                      new ArrayValue(List.of(), false));
-                                                          }
-
-                                                          val decisionAttr = decisionObj.get("decision");
-                                                          if (!(decisionAttr instanceof TextValue decisionText)) {
-                                                              return new PolicyEvaluation(Decision.NOT_APPLICABLE,
-                                                                      Value.UNDEFINED, new ArrayValue(List.of(), false),
-                                                                      new ArrayValue(List.of(), false));
-                                                          }
-
-                                                          Decision policyDecision;
-                                                          try {
-                                                              policyDecision = Decision.valueOf(decisionText.value());
-                                                          } catch (IllegalArgumentException e) {
-                                                              return new PolicyEvaluation(Decision.NOT_APPLICABLE,
-                                                                      Value.UNDEFINED, new ArrayValue(List.of(), false),
-                                                                      new ArrayValue(List.of(), false));
-                                                          }
-
-                                                          val resource = decisionObj.get("resource");
-                                                          val obligations = decisionObj.get("obligations");
-                                                          val advice = decisionObj.get("advice");
-                                                          val obligationsArray = obligations instanceof ArrayValue arr ? arr
-                                                                  : new ArrayValue(List.of(), false);
-                                                          val adviceArray = advice instanceof ArrayValue arr ? arr
-                                                                  : new ArrayValue(List.of(), false);
-
-                                                          return new PolicyEvaluation(policyDecision, resource,
-                                                                  obligationsArray, adviceArray);
-                                                      });
-                           });
-            policyFluxes.add(policyFlux);
-        }
-
-        return Flux.combineLatest(policyFluxes, evaluations -> {
-            var   entitlement       = Decision.PERMIT; // Default for permit-unless-deny
-            Value resource          = Value.UNDEFINED;
-            var   hasResource       = false;
-            val   permitObligations = new ArrayList<Value>();
-            val   permitAdvice      = new ArrayList<Value>();
-            val   denyObligations   = new ArrayList<Value>();
-            val   denyAdvice        = new ArrayList<Value>();
-
-            for (val evaluation : evaluations) {
-                val policyEval = (PolicyEvaluation) evaluation;
-
-                // Apply permit-unless-deny logic
-                if (policyEval.decision == Decision.DENY) {
-                    entitlement = Decision.DENY;
-                }
-
-                // Handle transformation uncertainty
-                if (!(policyEval.resource instanceof UndefinedValue)) {
-                    if (hasResource) {
-                        entitlement = Decision.DENY;
-                    } else {
-                        resource    = policyEval.resource;
-                        hasResource = true;
-                    }
-                }
-
-                // Collect obligations and advice
-                if (policyEval.decision == Decision.PERMIT) {
-                    permitObligations.addAll(policyEval.obligations);
-                    permitAdvice.addAll(policyEval.advice);
-                } else if (policyEval.decision == Decision.DENY) {
-                    denyObligations.addAll(policyEval.obligations);
-                    denyAdvice.addAll(policyEval.advice);
-                }
-            }
-
-            val finalObligations = entitlement == Decision.PERMIT ? permitObligations : denyObligations;
-            val finalAdvice      = entitlement == Decision.PERMIT ? permitAdvice : denyAdvice;
-
-            return SaplCompiler.buildDecisionObject(entitlement, finalObligations, finalAdvice, resource);
-        });
+        return genericCombiningAlgorithm(compiledPolicies, PERMIT_UNLESS_DENY);
     }
 
     public static CompiledExpression onlyOneApplicable(List<CompiledPolicy> compiledPolicies,
             CompilationContext context) {
         if (compiledPolicies.isEmpty()) {
-            return SaplCompiler.buildDecisionObject(Decision.NOT_APPLICABLE, List.of(), List.of(), Value.UNDEFINED);
+            return NOT_APPLICABLE_DECISION;
         }
 
-        val allPureOrConstant = compiledPolicies.stream().allMatch(
-                p -> p.decisionExpression() instanceof Value || p.decisionExpression() instanceof PureExpression);
-
-        if (allPureOrConstant) {
+        if (allPureOrConstant(compiledPolicies)) {
             return new PureExpression(ctx -> evaluateOnlyOneApplicablePure(compiledPolicies, ctx), true);
         } else {
             return new StreamExpression(buildOnlyOneApplicableStream(compiledPolicies));
@@ -962,100 +379,33 @@ public class CombiningAlgorithmCompiler {
         var   hasIndeterminate   = false;
         Value applicableDecision = null;
 
-        for (val compiledPolicy : compiledPolicies) {
-            val matches = evalValueOrPure(compiledPolicy.matchExpression(), ctx);
-            if (!(matches instanceof BooleanValue matchesBool) || !matchesBool.value()) {
+        for (val policy : compiledPolicies) {
+            if (!evaluateMatch(policy, ctx)) {
                 continue;
             }
 
-            val decision = evalValueOrPure(compiledPolicy.decisionExpression(), ctx);
-            if (!(decision instanceof ObjectValue decisionObj)) {
-                continue;
-            }
-
-            val decisionAttr = decisionObj.get("decision");
-            if (!(decisionAttr instanceof TextValue decisionText)) {
-                continue;
-            }
-
-            Decision policyDecision;
-            try {
-                policyDecision = Decision.valueOf(decisionText.value());
-            } catch (IllegalArgumentException e) {
-                continue;
-            }
-
-            if (policyDecision != Decision.NOT_APPLICABLE) {
+            val evaluation = evaluatePolicyDecision(policy, ctx);
+            if (evaluation.decision != Decision.NOT_APPLICABLE) {
                 applicableCount++;
-                applicableDecision = decision;
-                if (policyDecision == Decision.INDETERMINATE) {
+                if (evaluation.decision == Decision.INDETERMINATE) {
                     hasIndeterminate = true;
+                }
+                if (applicableDecision == null) {
+                    applicableDecision = SaplCompiler.buildDecisionObject(evaluation.decision,
+                            List.copyOf(evaluation.obligations), List.copyOf(evaluation.advice), evaluation.resource);
                 }
             }
         }
 
-        // Return INDETERMINATE if multiple applicable or any INDETERMINATE
         if (hasIndeterminate || applicableCount > 1) {
-            return SaplCompiler.buildDecisionObject(Decision.INDETERMINATE, List.of(), List.of(), Value.UNDEFINED);
+            return INDETERMINATE_DECISION;
         }
 
-        // Return the single applicable decision or NOT_APPLICABLE
-        if (applicableCount == 1) {
-            return applicableDecision;
-        }
-
-        return SaplCompiler.buildDecisionObject(Decision.NOT_APPLICABLE, List.of(), List.of(), Value.UNDEFINED);
+        return applicableCount == 1 ? applicableDecision : NOT_APPLICABLE_DECISION;
     }
 
     private static Flux<Value> buildOnlyOneApplicableStream(List<CompiledPolicy> compiledPolicies) {
-        val policyFluxes = new ArrayList<Flux<PolicyEvaluation>>();
-
-        for (val compiledPolicy : compiledPolicies) {
-            val matchFlux  = ExpressionCompiler.compiledExpressionToFlux(compiledPolicy.matchExpression());
-            val policyFlux = matchFlux.switchMap(matches -> {
-                               if (!(matches instanceof BooleanValue matchesBool) || !matchesBool.value()) {
-                                   return Flux.just(new PolicyEvaluation(Decision.NOT_APPLICABLE, Value.UNDEFINED,
-                                           new ArrayValue(List.of(), false), new ArrayValue(List.of(), false)));
-                               }
-
-                               return ExpressionCompiler.compiledExpressionToFlux(compiledPolicy.decisionExpression())
-                                       .map(decision -> {
-                                                          if (!(decision instanceof ObjectValue decisionObj)) {
-                                                              return new PolicyEvaluation(Decision.NOT_APPLICABLE,
-                                                                      Value.UNDEFINED, new ArrayValue(List.of(), false),
-                                                                      new ArrayValue(List.of(), false));
-                                                          }
-
-                                                          val decisionAttr = decisionObj.get("decision");
-                                                          if (!(decisionAttr instanceof TextValue decisionText)) {
-                                                              return new PolicyEvaluation(Decision.NOT_APPLICABLE,
-                                                                      Value.UNDEFINED, new ArrayValue(List.of(), false),
-                                                                      new ArrayValue(List.of(), false));
-                                                          }
-
-                                                          Decision policyDecision;
-                                                          try {
-                                                              policyDecision = Decision.valueOf(decisionText.value());
-                                                          } catch (IllegalArgumentException e) {
-                                                              return new PolicyEvaluation(Decision.NOT_APPLICABLE,
-                                                                      Value.UNDEFINED, new ArrayValue(List.of(), false),
-                                                                      new ArrayValue(List.of(), false));
-                                                          }
-
-                                                          val resource = decisionObj.get("resource");
-                                                          val obligations = decisionObj.get("obligations");
-                                                          val advice = decisionObj.get("advice");
-                                                          val obligationsArray = obligations instanceof ArrayValue arr ? arr
-                                                                  : new ArrayValue(List.of(), false);
-                                                          val adviceArray = advice instanceof ArrayValue arr ? arr
-                                                                  : new ArrayValue(List.of(), false);
-
-                                                          return new PolicyEvaluation(policyDecision, resource,
-                                                                  obligationsArray, adviceArray);
-                                                      });
-                           });
-            policyFluxes.add(policyFlux);
-        }
+        val policyFluxes = compiledPolicies.stream().map(CombiningAlgorithmCompiler::createPolicyFlux).toList();
 
         return Flux.combineLatest(policyFluxes, evaluations -> {
             var   applicableCount    = 0;
@@ -1064,13 +414,11 @@ public class CombiningAlgorithmCompiler {
 
             for (val evaluation : evaluations) {
                 val policyEval = (PolicyEvaluation) evaluation;
-
                 if (policyEval.decision != Decision.NOT_APPLICABLE) {
                     applicableCount++;
                     if (policyEval.decision == Decision.INDETERMINATE) {
                         hasIndeterminate = true;
                     }
-                    // Store the full decision object for potential return
                     if (applicableDecision == null) {
                         applicableDecision = SaplCompiler.buildDecisionObject(policyEval.decision,
                                 List.copyOf(policyEval.obligations), List.copyOf(policyEval.advice),
@@ -1079,17 +427,89 @@ public class CombiningAlgorithmCompiler {
                 }
             }
 
-            // Return INDETERMINATE if multiple applicable or any INDETERMINATE
             if (hasIndeterminate || applicableCount > 1) {
-                return SaplCompiler.buildDecisionObject(Decision.INDETERMINATE, List.of(), List.of(), Value.UNDEFINED);
+                return INDETERMINATE_DECISION;
             }
 
-            // Return the single applicable decision or NOT_APPLICABLE
-            if (applicableCount == 1) {
-                return applicableDecision;
-            }
-
-            return SaplCompiler.buildDecisionObject(Decision.NOT_APPLICABLE, List.of(), List.of(), Value.UNDEFINED);
+            return applicableCount == 1 ? applicableDecision : NOT_APPLICABLE_DECISION;
         });
+    }
+
+    // ========== First-Applicable (Special Case) ==========
+
+    public static CompiledExpression firstApplicable(List<CompiledPolicy> compiledPolicies,
+            CompilationContext context) {
+        if (compiledPolicies.isEmpty()) {
+            return NOT_APPLICABLE_DECISION;
+        }
+
+        val allPureOrConstant = compiledPolicies.stream().allMatch(
+                p -> p.decisionExpression() instanceof Value || p.decisionExpression() instanceof PureExpression);
+
+        if (allPureOrConstant) {
+            return new PureExpression(ctx -> {
+                for (val policy : compiledPolicies) {
+                    if (!evaluateMatch(policy, ctx)) {
+                        continue;
+                    }
+
+                    val decision = evalValueOrPure(policy.decisionExpression(), ctx);
+                    if (!(decision instanceof ObjectValue objectValue)) {
+                        return INDETERMINATE_DECISION;
+                    }
+
+                    val decisionAttribute = objectValue.get("decision");
+                    if (!(decisionAttribute instanceof TextValue textValue)) {
+                        return INDETERMINATE_DECISION;
+                    }
+
+                    try {
+                        val d = Decision.valueOf(textValue.value());
+                        if (d == Decision.NOT_APPLICABLE) {
+                            continue;
+                        }
+                        return decision;
+                    } catch (IllegalArgumentException e) {
+                        return INDETERMINATE_DECISION;
+                    }
+                }
+                return NOT_APPLICABLE_DECISION;
+            }, true);
+        }
+
+        var decisionStream = Flux.just(NOT_APPLICABLE_DECISION);
+        for (var i = compiledPolicies.size() - 1; i >= 0; i--) {
+            val compiledPolicy = compiledPolicies.get(i);
+            val matchFlux      = ExpressionCompiler.compiledExpressionToFlux(compiledPolicy.matchExpression());
+            val previousStream = decisionStream;
+            decisionStream = matchFlux.switchMap(matches -> {
+                if (!(matches instanceof BooleanValue matchesBool)) {
+                    return Flux.just(INDETERMINATE_DECISION);
+                }
+                if (matchesBool.value()) {
+                    return ExpressionCompiler.compiledExpressionToFlux(compiledPolicy.decisionExpression())
+                            .switchMap(decision -> {
+                                if (!(decision instanceof ObjectValue objectValue)) {
+                                    return Flux.just(INDETERMINATE_DECISION);
+                                }
+                                val decisionAttribute = objectValue.get("decision");
+                                if (!(decisionAttribute instanceof TextValue textValue)) {
+                                    return Flux.just(INDETERMINATE_DECISION);
+                                }
+                                try {
+                                    val d = Decision.valueOf(textValue.value());
+                                    if (d == Decision.NOT_APPLICABLE) {
+                                        return previousStream;
+                                    }
+                                    return Flux.just(decision);
+                                } catch (IllegalArgumentException e) {
+                                    return Flux.just(INDETERMINATE_DECISION);
+                                }
+                            });
+                }
+                return previousStream;
+            });
+        }
+        return new StreamExpression(decisionStream);
     }
 }
