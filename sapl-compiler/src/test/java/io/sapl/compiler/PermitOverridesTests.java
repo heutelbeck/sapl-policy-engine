@@ -17,406 +17,160 @@
  */
 package io.sapl.compiler;
 
-import io.sapl.api.attributes.AttributeBroker;
-import io.sapl.api.functions.FunctionBroker;
-import io.sapl.api.model.*;
-import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.Decision;
-import io.sapl.attributes.CachingAttributeBroker;
-import io.sapl.attributes.InMemoryAttributeRepository;
-import io.sapl.functions.DefaultFunctionBroker;
-import io.sapl.interpreter.DefaultSAPLInterpreter;
-import io.sapl.interpreter.InitializationException;
-import io.sapl.interpreter.SAPLInterpreter;
-import io.sapl.util.SimpleFunctionLibrary;
-import io.sapl.util.TestUtil;
 import lombok.val;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 
-import java.time.Clock;
-import java.time.Duration;
+import java.util.List;
+import java.util.stream.Stream;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static io.sapl.util.CombiningAlgorithmTestUtil.*;
+import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 class PermitOverridesTests {
-    private static final SAPLInterpreter PARSER = new DefaultSAPLInterpreter();
 
-    private FunctionBroker  functionBroker;
-    private AttributeBroker attributeBroker;
-
-    @BeforeEach
-    void setup() throws InitializationException {
-        val defaultFunctionBroker = new DefaultFunctionBroker();
-        defaultFunctionBroker.loadStaticFunctionLibrary(SimpleFunctionLibrary.class);
-        functionBroker = defaultFunctionBroker;
-        val attributeRepo = new InMemoryAttributeRepository(Clock.systemUTC());
-        attributeBroker = new CachingAttributeBroker(attributeRepo);
-        ((CachingAttributeBroker) attributeBroker).loadPolicyInformationPointLibrary(new TestUtil.TestPip());
+    @ParameterizedTest(name = "{0}")
+    @MethodSource
+    void permitOverridesDecisionTests(String description, String policySet, Decision expectedDecision) {
+        assertDecision(policySet, expectedDecision);
     }
 
-    private CompilationContext createContext() {
-        return new CompilationContext(functionBroker, attributeBroker);
+    private static Stream<Arguments> permitOverridesDecisionTests() {
+        return Stream.of(arguments("No policies match returns NOT_APPLICABLE", """
+                set "test" permit-overrides
+                policy "never matches" permit subject == "non-matching"
+                """, Decision.NOT_APPLICABLE),
+
+                arguments("Single permit returns PERMIT", """
+                        set "test" permit-overrides
+                        policy "permit policy" permit
+                        """, Decision.PERMIT),
+
+                arguments("Single deny returns DENY", """
+                        set "test" permit-overrides
+                        policy "deny policy" deny
+                        """, Decision.DENY),
+
+                arguments("Permit overrides deny", """
+                        set "test" permit-overrides
+                        policy "deny policy" deny
+                        policy "permit policy" permit
+                        """, Decision.PERMIT),
+
+                arguments("Transformation uncertainty returns INDETERMINATE", """
+                        set "test" permit-overrides
+                        policy "permit with transformation 1" permit transform "resource1"
+                        policy "permit with transformation 2" permit transform "resource2"
+                        """, Decision.INDETERMINATE),
+
+                arguments("Indeterminate without permit returns INDETERMINATE", """
+                        set "test" permit-overrides
+                        policy "permit policy 1" permit transform "resource1"
+                        policy "permit policy 2" permit transform "resource2"
+                        policy "deny policy" deny
+                        """, Decision.INDETERMINATE),
+
+                arguments("Only deny returns DENY", """
+                        set "test" permit-overrides
+                        policy "deny policy 1" deny
+                        policy "deny policy 2" deny
+                        """, Decision.DENY),
+
+                arguments("Only not applicable returns NOT_APPLICABLE", """
+                        set "test" permit-overrides
+                        policy "not applicable 1" permit subject == "non-matching1"
+                        policy "not applicable 2" deny subject == "non-matching2"
+                        """, Decision.NOT_APPLICABLE),
+
+                arguments("Permit with indeterminate returns PERMIT", """
+                        set "test" permit-overrides
+                        policy "permit policy" permit
+                        policy "indeterminate policy" permit where "a" > 5;
+                        """, Decision.PERMIT),
+
+                arguments("Deny indeterminate not applicable returns INDETERMINATE", """
+                        set "test" permit-overrides
+                        policy "deny policy" deny
+                        policy "indeterminate policy" permit where "a" < 5;
+                        policy "not applicable policy" permit subject == "non-matching"
+                        """, Decision.INDETERMINATE),
+
+                arguments("Deny not applicable returns DENY", """
+                        set "test" permit-overrides
+                        policy "deny policy" deny
+                        policy "not applicable" permit subject == "non-matching"
+                        """, Decision.DENY));
     }
 
-    private void assertDecision(Value result, Decision expected) {
-        assertInstanceOf(ObjectValue.class, result);
-        val decisionField = ((ObjectValue) result).get("decision");
-        assertInstanceOf(TextValue.class, decisionField);
-        assertEquals(expected.toString(), ((TextValue) decisionField).value());
+    @ParameterizedTest(name = "{0}")
+    @MethodSource
+    void permitOverridesResourceTests(String description, String policySet, Decision expectedDecision) {
+        val result = evaluatePolicySet(policySet);
+        assertDecision(result, expectedDecision);
+        assertResourceBoolean(result, "value", true);
     }
 
-    private Value evaluatePolicy(String source) {
-        try {
-            val sapl           = PARSER.parse(source);
-            val context        = createContext();
-            val compiledPolicy = SaplCompiler.compileDocument(sapl, context);
-            val decisionExpr   = compiledPolicy.decisionExpression();
+    private static Stream<Arguments> permitOverridesResourceTests() {
+        return Stream.of(arguments("Single permit transformation resource verifies resource", """
+                set "test" permit-overrides
+                policy "testp" permit transform { "value": true }
+                """, Decision.PERMIT));
+    }
 
-            val subscription = new AuthorizationSubscription(Value.of("subject"), Value.of("action"),
-                    Value.of("resource"), Value.UNDEFINED);
-            val evalContext  = new EvaluationContext("testConfig", "testSub", subscription, functionBroker,
-                    attributeBroker);
-
-            return switch (decisionExpr) {
-            case Value value                       -> value;
-            case PureExpression pureExpression     -> pureExpression.evaluate(evalContext);
-            case StreamExpression streamExpression ->
-                streamExpression.stream().contextWrite(ctx -> ctx.put(EvaluationContext.class, evalContext))
-                        .blockFirst(Duration.ofSeconds(5));
-            };
-        } catch (SaplCompilerException e) {
-            throw new RuntimeException("Compilation failed: " + e.getMessage(), e);
+    @ParameterizedTest(name = "{0}")
+    @MethodSource
+    void permitOverridesObligationsAdviceTests(String description, String policySet, Decision expectedDecision,
+            List<String> expectedObligations, List<String> expectedAdvice) {
+        val result = evaluatePolicySet(policySet);
+        assertDecision(result, expectedDecision);
+        if (expectedObligations != null) {
+            assertObligations(result, expectedObligations);
+        }
+        if (expectedAdvice != null) {
+            assertAdvice(result, expectedAdvice);
         }
     }
 
-    @Test
-    void noPoliciesMatch_returnsNotApplicable() {
-        val source = """
-                set "test"
-                permit-overrides
+    private static Stream<Arguments> permitOverridesObligationsAdviceTests() {
+        return Stream.of(
+                arguments("Collect obligations from deny",
+                        """
+                                set "test" permit-overrides
+                                policy "deny 1" deny obligation { "type": "obligation1" } advice { "type": "advice1" }
+                                policy "deny 2" deny obligation { "type": "obligation2" } advice { "type": "advice2" }
+                                policy "not applicable permit" permit subject == "non-matching" obligation { "type": "obligation3" } advice { "type": "advice3" }
+                                policy "not applicable deny" deny subject == "non-matching" obligation { "type": "obligation4" } advice { "type": "advice4" }
+                                """,
+                        Decision.DENY, List.of("obligation1", "obligation2"), null),
 
-                policy "never matches"
-                permit subject == "non-matching"
-                """;
-        assertDecision(evaluatePolicy(source), Decision.NOT_APPLICABLE);
-    }
+                arguments("Collect advice from deny",
+                        """
+                                set "test" permit-overrides
+                                policy "deny 1" deny obligation { "type": "obligation1" } advice { "type": "advice1" }
+                                policy "deny 2" deny obligation { "type": "obligation2" } advice { "type": "advice2" }
+                                policy "not applicable permit" permit subject == "non-matching" obligation { "type": "obligation3" } advice { "type": "advice3" }
+                                """,
+                        Decision.DENY, null, List.of("advice1", "advice2")),
 
-    @Test
-    void singlePermit_returnsPermit() {
-        val source = """
-                set "test"
-                permit-overrides
+                arguments("Collect obligations from permit",
+                        """
+                                set "test" permit-overrides
+                                policy "permit 1" permit obligation { "type": "obligation1" } advice { "type": "advice1" }
+                                policy "permit 2" permit obligation { "type": "obligation2" } advice { "type": "advice2" }
+                                policy "not applicable deny" deny subject == "non-matching" obligation { "type": "obligation3" } advice { "type": "advice3" }
+                                policy "not applicable permit" deny where false; obligation { "type": "obligation4" } advice { "type": "advice4" }
+                                """,
+                        Decision.PERMIT, List.of("obligation1", "obligation2"), null),
 
-                policy "permit policy"
-                permit
-                """;
-        assertDecision(evaluatePolicy(source), Decision.PERMIT);
-    }
-
-    @Test
-    void singleDeny_returnsDeny() {
-        val source = """
-                set "test"
-                permit-overrides
-
-                policy "deny policy"
-                deny
-                """;
-        assertDecision(evaluatePolicy(source), Decision.DENY);
-    }
-
-    @Test
-    void permitOverridesDeny() {
-        val source = """
-                set "test"
-                permit-overrides
-
-                policy "deny policy"
-                deny
-
-                policy "permit policy"
-                permit
-                """;
-        assertDecision(evaluatePolicy(source), Decision.PERMIT);
-    }
-
-    @Test
-    void transformationUncertainty_returnsIndeterminate() {
-        val source = """
-                set "test"
-                permit-overrides
-
-                policy "permit with transformation 1"
-                permit
-                transform "resource1"
-
-                policy "permit with transformation 2"
-                permit
-                transform "resource2"
-                """;
-        assertDecision(evaluatePolicy(source), Decision.INDETERMINATE);
-    }
-
-    @Test
-    void indeterminateWithoutPermit_returnsIndeterminate() {
-        val source = """
-                set "test"
-                permit-overrides
-
-                policy "permit policy 1"
-                permit
-                transform "resource1"
-
-                policy "permit policy 2"
-                permit
-                transform "resource2"
-
-                policy "deny policy"
-                deny
-                """;
-        // Transformation uncertainty -> INDETERMINATE
-        assertDecision(evaluatePolicy(source), Decision.INDETERMINATE);
-    }
-
-    @Test
-    void onlyDeny_returnsDeny() {
-        val source = """
-                set "test"
-                permit-overrides
-
-                policy "deny policy 1"
-                deny
-
-                policy "deny policy 2"
-                deny
-                """;
-        assertDecision(evaluatePolicy(source), Decision.DENY);
-    }
-
-    @Test
-    void onlyNotApplicable_returnsNotApplicable() {
-        val source = """
-                set "test"
-                permit-overrides
-
-                policy "not applicable 1"
-                permit subject == "non-matching1"
-
-                policy "not applicable 2"
-                deny subject == "non-matching2"
-                """;
-        assertDecision(evaluatePolicy(source), Decision.NOT_APPLICABLE);
-    }
-
-    // ========== Additional Tests from Legacy Implementation ==========
-
-    @Test
-    void permitWithIndeterminate_returnsPermit() {
-        val source = """
-                set "test"
-                permit-overrides
-
-                policy "permit policy" permit
-
-                policy "indeterminate policy" permit
-                where "a" > 5;
-                """;
-        assertDecision(evaluatePolicy(source), Decision.PERMIT);
-    }
-
-    @Test
-    void denyIndeterminateNotApplicable_returnsIndeterminate() {
-        val source = """
-                set "test"
-                permit-overrides
-
-                policy "deny policy" deny
-
-                policy "indeterminate policy" permit
-                where "a" < 5;
-
-                policy "not applicable policy" permit subject == "non-matching"
-                """;
-        assertDecision(evaluatePolicy(source), Decision.INDETERMINATE);
-    }
-
-    @Test
-    void denyNotApplicable_returnsDeny() {
-        val source = """
-                set "test"
-                permit-overrides
-
-                policy "deny policy" deny
-
-                policy "not applicable" permit subject == "non-matching"
-                """;
-        assertDecision(evaluatePolicy(source), Decision.DENY);
-    }
-
-    @Test
-    void singlePermitTransformationResource_verifiesResource() {
-        val source = """
-                set "test"
-                permit-overrides
-
-                policy "testp" permit
-                transform { "value": true }
-                """;
-        val result = evaluatePolicy(source);
-        assertDecision(result, Decision.PERMIT);
-
-        // Verify resource transformation
-        assertInstanceOf(ObjectValue.class, result);
-        val resourceField = ((ObjectValue) result).get("resource");
-        assertInstanceOf(ObjectValue.class, resourceField);
-        val valueField = ((ObjectValue) resourceField).get("value");
-        assertInstanceOf(BooleanValue.class, valueField);
-        assertTrue(((BooleanValue) valueField).value());
-    }
-
-    @Test
-    void collectObligationsFromDeny() {
-        val source = """
-                set "test"
-                permit-overrides
-
-                policy "deny 1" deny
-                obligation { "type": "obligation1" }
-                advice { "type": "advice1" }
-
-                policy "deny 2" deny
-                obligation { "type": "obligation2" }
-                advice { "type": "advice2" }
-
-                policy "not applicable permit" permit subject == "non-matching"
-                obligation { "type": "obligation3" }
-                advice { "type": "advice3" }
-
-                policy "not applicable deny" deny subject == "non-matching"
-                obligation { "type": "obligation4" }
-                advice { "type": "advice4" }
-                """;
-        val result = evaluatePolicy(source);
-        assertDecision(result, Decision.DENY);
-
-        // Verify obligations from DENY policies only
-        assertInstanceOf(ObjectValue.class, result);
-        val obligationsField = ((ObjectValue) result).get("obligations");
-        assertInstanceOf(ArrayValue.class, obligationsField);
-        val obligations = (ArrayValue) obligationsField;
-        assertEquals(2, obligations.size());
-
-        val obl1 = ((ObjectValue) obligations.get(0)).get("type");
-        assertEquals("obligation1", ((TextValue) obl1).value());
-        val obl2 = ((ObjectValue) obligations.get(1)).get("type");
-        assertEquals("obligation2", ((TextValue) obl2).value());
-    }
-
-    @Test
-    void collectAdviceFromDeny() {
-        val source = """
-                set "test"
-                permit-overrides
-
-                policy "deny 1" deny
-                obligation { "type": "obligation1" }
-                advice { "type": "advice1" }
-
-                policy "deny 2" deny
-                obligation { "type": "obligation2" }
-                advice { "type": "advice2" }
-
-                policy "not applicable permit" permit subject == "non-matching"
-                obligation { "type": "obligation3" }
-                advice { "type": "advice3" }
-                """;
-        val result = evaluatePolicy(source);
-        assertDecision(result, Decision.DENY);
-
-        // Verify advice from DENY policies only
-        assertInstanceOf(ObjectValue.class, result);
-        val adviceField = ((ObjectValue) result).get("advice");
-        assertInstanceOf(ArrayValue.class, adviceField);
-        val advice = (ArrayValue) adviceField;
-        assertEquals(2, advice.size());
-
-        val adv1 = ((ObjectValue) advice.get(0)).get("type");
-        assertEquals("advice1", ((TextValue) adv1).value());
-        val adv2 = ((ObjectValue) advice.get(1)).get("type");
-        assertEquals("advice2", ((TextValue) adv2).value());
-    }
-
-    @Test
-    void collectObligationsFromPermit() {
-        val source = """
-                set "test"
-                permit-overrides
-
-                policy "permit 1" permit
-                obligation { "type": "obligation1" }
-                advice { "type": "advice1" }
-
-                policy "permit 2" permit
-                obligation { "type": "obligation2" }
-                advice { "type": "advice2" }
-
-                policy "not applicable deny" deny subject == "non-matching"
-                obligation { "type": "obligation3" }
-                advice { "type": "advice3" }
-
-                policy "not applicable permit" deny
-                where false;
-                obligation { "type": "obligation4" }
-                advice { "type": "advice4" }
-                """;
-        val result = evaluatePolicy(source);
-        assertDecision(result, Decision.PERMIT);
-
-        // Verify obligations from PERMIT policies only
-        assertInstanceOf(ObjectValue.class, result);
-        val obligationsField = ((ObjectValue) result).get("obligations");
-        assertInstanceOf(ArrayValue.class, obligationsField);
-        val obligations = (ArrayValue) obligationsField;
-        assertEquals(2, obligations.size());
-
-        val obl1 = ((ObjectValue) obligations.get(0)).get("type");
-        assertEquals("obligation1", ((TextValue) obl1).value());
-        val obl2 = ((ObjectValue) obligations.get(1)).get("type");
-        assertEquals("obligation2", ((TextValue) obl2).value());
-    }
-
-    @Test
-    void collectAdviceFromPermit() {
-        val source = """
-                set "test"
-                permit-overrides
-
-                policy "permit 1" permit
-                obligation { "type": "obligation1" }
-                advice { "type": "advice1" }
-
-                policy "permit 2" permit
-                obligation { "type": "obligation2" }
-                advice { "type": "advice2" }
-
-                policy "not applicable" deny subject == "non-matching"
-                obligation { "type": "obligation3" }
-                advice { "type": "advice3" }
-                """;
-        val result = evaluatePolicy(source);
-        assertDecision(result, Decision.PERMIT);
-
-        // Verify advice from PERMIT policies only
-        assertInstanceOf(ObjectValue.class, result);
-        val adviceField = ((ObjectValue) result).get("advice");
-        assertInstanceOf(ArrayValue.class, adviceField);
-        val advice = (ArrayValue) adviceField;
-        assertEquals(2, advice.size());
-
-        val adv1 = ((ObjectValue) advice.get(0)).get("type");
-        assertEquals("advice1", ((TextValue) adv1).value());
-        val adv2 = ((ObjectValue) advice.get(1)).get("type");
-        assertEquals("advice2", ((TextValue) adv2).value());
+                arguments("Collect advice from permit",
+                        """
+                                set "test" permit-overrides
+                                policy "permit 1" permit obligation { "type": "obligation1" } advice { "type": "advice1" }
+                                policy "permit 2" permit obligation { "type": "obligation2" } advice { "type": "advice2" }
+                                policy "not applicable" deny subject == "non-matching" obligation { "type": "obligation3" } advice { "type": "advice3" }
+                                """,
+                        Decision.PERMIT, null, List.of("advice1", "advice2")));
     }
 }

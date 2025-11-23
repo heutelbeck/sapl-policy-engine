@@ -17,184 +17,66 @@
  */
 package io.sapl.compiler;
 
-import io.sapl.api.attributes.AttributeBroker;
-import io.sapl.api.functions.FunctionBroker;
-import io.sapl.api.model.*;
-import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.Decision;
-import io.sapl.attributes.CachingAttributeBroker;
-import io.sapl.attributes.InMemoryAttributeRepository;
-import io.sapl.functions.DefaultFunctionBroker;
-import io.sapl.interpreter.DefaultSAPLInterpreter;
-import io.sapl.interpreter.InitializationException;
-import io.sapl.interpreter.SAPLInterpreter;
-import io.sapl.util.SimpleFunctionLibrary;
-import io.sapl.util.TestUtil;
-import lombok.val;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 
-import java.time.Clock;
-import java.time.Duration;
+import java.util.stream.Stream;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static io.sapl.util.CombiningAlgorithmTestUtil.*;
+import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 class OnlyOneApplicableTests {
-    private static final SAPLInterpreter PARSER = new DefaultSAPLInterpreter();
 
-    private FunctionBroker  functionBroker;
-    private AttributeBroker attributeBroker;
-
-    @BeforeEach
-    void setup() throws InitializationException {
-        val defaultFunctionBroker = new DefaultFunctionBroker();
-        defaultFunctionBroker.loadStaticFunctionLibrary(SimpleFunctionLibrary.class);
-        functionBroker = defaultFunctionBroker;
-        val attributeRepo = new InMemoryAttributeRepository(Clock.systemUTC());
-        attributeBroker = new CachingAttributeBroker(attributeRepo);
-        ((CachingAttributeBroker) attributeBroker).loadPolicyInformationPointLibrary(new TestUtil.TestPip());
+    @ParameterizedTest(name = "{0}")
+    @MethodSource
+    void onlyOneApplicableTests(String description, String policySet, Decision expectedDecision) {
+        assertDecision(policySet, expectedDecision);
     }
 
-    private CompilationContext createContext() {
-        return new CompilationContext(functionBroker, attributeBroker);
-    }
+    private static Stream<Arguments> onlyOneApplicableTests() {
+        return Stream.of(arguments("No policies match returns NOT_APPLICABLE", """
+                set "test" only-one-applicable
+                policy "never matches 1" permit subject == "non-matching1"
+                policy "never matches 2" deny subject == "non-matching2"
+                """, Decision.NOT_APPLICABLE),
 
-    private void assertDecision(Value result, Decision expected) {
-        assertInstanceOf(ObjectValue.class, result);
-        val decisionField = ((ObjectValue) result).get("decision");
-        assertInstanceOf(TextValue.class, decisionField);
-        assertEquals(expected.toString(), ((TextValue) decisionField).value());
-    }
+                arguments("Single permit returns PERMIT", """
+                        set "test" only-one-applicable
+                        policy "permit policy" permit
+                        policy "never matches" deny subject == "non-matching"
+                        """, Decision.PERMIT),
 
-    private Value evaluatePolicy(String source) {
-        try {
-            val sapl           = PARSER.parse(source);
-            val context        = createContext();
-            val compiledPolicy = SaplCompiler.compileDocument(sapl, context);
-            val decisionExpr   = compiledPolicy.decisionExpression();
+                arguments("Single deny returns DENY", """
+                        set "test" only-one-applicable
+                        policy "deny policy" deny
+                        policy "never matches" permit subject == "non-matching"
+                        """, Decision.DENY),
 
-            val subscription = new AuthorizationSubscription(Value.of("subject"), Value.of("action"),
-                    Value.of("resource"), Value.UNDEFINED);
-            val evalContext  = new EvaluationContext("testConfig", "testSub", subscription, functionBroker,
-                    attributeBroker);
+                arguments("Multiple applicable returns INDETERMINATE", """
+                        set "test" only-one-applicable
+                        policy "permit policy" permit
+                        policy "deny policy" deny
+                        """, Decision.INDETERMINATE),
 
-            return switch (decisionExpr) {
-            case Value value                       -> value;
-            case PureExpression pureExpression     -> pureExpression.evaluate(evalContext);
-            case StreamExpression streamExpression ->
-                streamExpression.stream().contextWrite(ctx -> ctx.put(EvaluationContext.class, evalContext))
-                        .blockFirst(Duration.ofSeconds(5));
-            };
-        } catch (SaplCompilerException e) {
-            throw new RuntimeException("Compilation failed: " + e.getMessage(), e);
-        }
-    }
+                arguments("Multiple permits returns INDETERMINATE", """
+                        set "test" only-one-applicable
+                        policy "permit policy 1" permit
+                        policy "permit policy 2" permit
+                        """, Decision.INDETERMINATE),
 
-    @Test
-    void noPoliciesMatch_returnsNotApplicable() {
-        val source = """
-                set "test"
-                only-one-applicable
+                arguments("Multiple denies returns INDETERMINATE", """
+                        set "test" only-one-applicable
+                        policy "deny policy 1" deny
+                        policy "deny policy 2" deny
+                        """, Decision.INDETERMINATE),
 
-                policy "never matches 1"
-                permit subject == "non-matching1"
-
-                policy "never matches 2"
-                deny subject == "non-matching2"
-                """;
-        assertDecision(evaluatePolicy(source), Decision.NOT_APPLICABLE);
-    }
-
-    @Test
-    void singlePermit_returnsPermit() {
-        val source = """
-                set "test"
-                only-one-applicable
-
-                policy "permit policy"
-                permit
-
-                policy "never matches"
-                deny subject == "non-matching"
-                """;
-        assertDecision(evaluatePolicy(source), Decision.PERMIT);
-    }
-
-    @Test
-    void singleDeny_returnsDeny() {
-        val source = """
-                set "test"
-                only-one-applicable
-
-                policy "deny policy"
-                deny
-
-                policy "never matches"
-                permit subject == "non-matching"
-                """;
-        assertDecision(evaluatePolicy(source), Decision.DENY);
-    }
-
-    @Test
-    void multipleApplicable_returnsIndeterminate() {
-        val source = """
-                set "test"
-                only-one-applicable
-
-                policy "permit policy"
-                permit
-
-                policy "deny policy"
-                deny
-                """;
-        assertDecision(evaluatePolicy(source), Decision.INDETERMINATE);
-    }
-
-    @Test
-    void multiplePermits_returnsIndeterminate() {
-        val source = """
-                set "test"
-                only-one-applicable
-
-                policy "permit policy 1"
-                permit
-
-                policy "permit policy 2"
-                permit
-                """;
-        assertDecision(evaluatePolicy(source), Decision.INDETERMINATE);
-    }
-
-    @Test
-    void multipleDenies_returnsIndeterminate() {
-        val source = """
-                set "test"
-                only-one-applicable
-
-                policy "deny policy 1"
-                deny
-
-                policy "deny policy 2"
-                deny
-                """;
-        assertDecision(evaluatePolicy(source), Decision.INDETERMINATE);
-    }
-
-    @Test
-    void singleApplicablePermit_withNotApplicable_returnsPermit() {
-        val source = """
-                set "test"
-                only-one-applicable
-
-                policy "permit policy"
-                permit
-
-                policy "not applicable 1"
-                deny subject == "non-matching1"
-
-                policy "not applicable 2"
-                permit subject == "non-matching2"
-                """;
-        assertDecision(evaluatePolicy(source), Decision.PERMIT);
+                arguments("Single applicable permit with not applicable returns PERMIT", """
+                        set "test" only-one-applicable
+                        policy "permit policy" permit
+                        policy "not applicable 1" deny subject == "non-matching1"
+                        policy "not applicable 2" permit subject == "non-matching2"
+                        """, Decision.PERMIT));
     }
 }

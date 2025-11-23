@@ -17,908 +17,241 @@
  */
 package io.sapl.compiler;
 
-import io.sapl.api.attributes.AttributeBroker;
-import io.sapl.api.functions.FunctionBroker;
-import io.sapl.api.model.*;
+import io.sapl.api.model.ObjectValue;
+import io.sapl.api.model.Value;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.Decision;
-import io.sapl.attributes.CachingAttributeBroker;
-import io.sapl.attributes.InMemoryAttributeRepository;
-import io.sapl.functions.DefaultFunctionBroker;
-import io.sapl.interpreter.DefaultSAPLInterpreter;
-import io.sapl.interpreter.InitializationException;
-import io.sapl.interpreter.SAPLInterpreter;
-import io.sapl.util.SimpleFunctionLibrary;
-import io.sapl.util.TestUtil;
 import lombok.val;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 
-import java.time.Clock;
-import java.time.Duration;
 import java.util.List;
+import java.util.stream.Stream;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static io.sapl.util.CombiningAlgorithmTestUtil.*;
+import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 class DenyUnlessPermitTests {
-    private static final SAPLInterpreter PARSER = new DefaultSAPLInterpreter();
 
-    private FunctionBroker  functionBroker;
-    private AttributeBroker attributeBroker;
-
-    @BeforeEach
-    void setup() throws InitializationException {
-        val defaultFunctionBroker = new DefaultFunctionBroker();
-        defaultFunctionBroker.loadStaticFunctionLibrary(SimpleFunctionLibrary.class);
-        functionBroker = defaultFunctionBroker;
-        val attributeRepo = new InMemoryAttributeRepository(Clock.systemUTC());
-        attributeBroker = new CachingAttributeBroker(attributeRepo);
-        ((CachingAttributeBroker) attributeBroker).loadPolicyInformationPointLibrary(new TestUtil.TestPip());
+    @ParameterizedTest(name = "{0}")
+    @MethodSource
+    void denyUnlessPermitDecisionTests(String description, String policySet, Decision expectedDecision) {
+        assertDecision(policySet, expectedDecision);
     }
 
-    private CompilationContext createContext() {
-        return new CompilationContext(functionBroker, attributeBroker);
+    private static Stream<Arguments> denyUnlessPermitDecisionTests() {
+        return Stream.of(arguments("Single policy permit returns PERMIT", """
+                set "test" deny-unless-permit
+                policy "permit policy" permit
+                """, Decision.PERMIT),
+
+                arguments("Single policy deny returns DENY", """
+                        set "test" deny-unless-permit
+                        policy "deny policy" deny
+                        """, Decision.DENY),
+
+                arguments("Any permit without uncertainty returns PERMIT", """
+                        set "test" deny-unless-permit
+                        policy "deny policy" deny
+                        policy "permit policy" permit
+                        policy "another deny" deny
+                        """, Decision.PERMIT),
+
+                arguments("Transformation uncertainty returns DENY", """
+                        set "test" deny-unless-permit
+                        policy "permit with transformation 1" permit transform "resource1"
+                        policy "permit with transformation 2" permit transform "resource2"
+                        """, Decision.DENY));
     }
 
-    private void assertDecision(Value result, Decision expected) {
-        assertInstanceOf(ObjectValue.class, result, "Result should be an ObjectValue");
-        val decisionField = ((ObjectValue) result).get("decision");
-        assertInstanceOf(TextValue.class, decisionField, "Decision field should be a TextValue");
-        assertEquals(expected.toString(), ((TextValue) decisionField).value(), "Decision should be " + expected);
+    @ParameterizedTest(name = "{0}")
+    @MethodSource
+    void denyUnlessPermitDecisionTestsWithCustomSubscription(String description, String policySet,
+            Decision expectedDecision) {
+        val subscription = new AuthorizationSubscription(Value.of("actual_subject"), Value.of("action"),
+                Value.of("resource"), Value.UNDEFINED);
+        val result       = evaluatePolicySet(policySet, subscription);
+        assertDecision(result, expectedDecision);
     }
 
-    private void assertObligations(Value result, List<String> expectedObligations) {
-        assertInstanceOf(ObjectValue.class, result, "Result should be an ObjectValue");
-        val obligationsField = ((ObjectValue) result).get("obligations");
-        assertInstanceOf(ArrayValue.class, obligationsField, "Obligations field should be an ArrayValue");
-        val obligations = (ArrayValue) obligationsField;
-        assertEquals(expectedObligations.size(), obligations.size(), "Number of obligations should match");
-        for (int i = 0; i < expectedObligations.size(); i++) {
-            val obligation = obligations.get(i);
-            assertInstanceOf(ObjectValue.class, obligation, "Obligation should be an ObjectValue");
-            val typeField = ((ObjectValue) obligation).get("type");
-            assertInstanceOf(TextValue.class, typeField, "Type field should be a TextValue");
-            assertEquals(expectedObligations.get(i), ((TextValue) typeField).value(), "Obligation type should match");
+    private static Stream<Arguments> denyUnlessPermitDecisionTestsWithCustomSubscription() {
+        return Stream.of(arguments("No policies match returns DENY", """
+                set "test" deny-unless-permit
+                policy "never matches" permit subject == "non-matching"
+                """, Decision.DENY),
+
+                arguments("Single policy not applicable returns DENY", """
+                        set "test" deny-unless-permit
+                        policy "not applicable" permit subject == "non-matching"
+                        """, Decision.DENY),
+
+                arguments("All not applicable returns DENY", """
+                        set "test" deny-unless-permit
+                        policy "not applicable 1" permit subject == "non-matching1"
+                        policy "not applicable 2" permit subject == "non-matching2"
+                        """, Decision.DENY),
+
+                arguments("Mix of deny and not applicable returns DENY", """
+                        set "test" deny-unless-permit
+                        policy "deny policy" deny
+                        policy "not applicable" permit subject == "non-matching"
+                        """, Decision.DENY));
+    }
+
+    @ParameterizedTest(name = "{0}")
+    @MethodSource
+    void denyUnlessPermitObligationsAdviceTests(String description, String policySet, Decision expectedDecision,
+            List<String> expectedObligations, List<String> expectedAdvice) {
+        val result = evaluatePolicySet(policySet);
+        assertDecision(result, expectedDecision);
+        if (expectedObligations != null) {
+            assertObligations(result, expectedObligations);
+        }
+        if (expectedAdvice != null) {
+            assertAdvice(result, expectedAdvice);
         }
     }
 
-    private void assertAdvice(Value result, List<String> expectedAdvice) {
-        assertInstanceOf(ObjectValue.class, result, "Result should be an ObjectValue");
-        val adviceField = ((ObjectValue) result).get("advice");
-        assertInstanceOf(ArrayValue.class, adviceField, "Advice field should be an ArrayValue");
-        val advice = (ArrayValue) adviceField;
-        assertEquals(expectedAdvice.size(), advice.size(), "Number of advice should match");
-        for (int i = 0; i < expectedAdvice.size(); i++) {
-            val adviceItem = advice.get(i);
-            assertInstanceOf(ObjectValue.class, adviceItem, "Advice should be an ObjectValue");
-            val typeField = ((ObjectValue) adviceItem).get("type");
-            assertInstanceOf(TextValue.class, typeField, "Type field should be a TextValue");
-            assertEquals(expectedAdvice.get(i), ((TextValue) typeField).value(), "Advice type should match");
+    private static Stream<Arguments> denyUnlessPermitObligationsAdviceTests() {
+        return Stream.of(arguments("Permit decision includes permit obligations", """
+                set "test" deny-unless-permit
+                policy "permit with obligation" permit obligation {"type": "log"}
+                policy "deny with obligation" deny obligation {"type": "deny_log"}
+                """, Decision.PERMIT, List.of("log"), null),
+
+                arguments("Multiple policies collect all permit obligations", """
+                        set "test" deny-unless-permit
+                        policy "permit 1" permit obligation {"type": "log1"}
+                        policy "permit 2" permit obligation {"type": "log2"}
+                        """, Decision.PERMIT, List.of("log1", "log2"), null),
+
+                arguments("Permit decision includes permit advice", """
+                        set "test" deny-unless-permit
+                        policy "permit with advice" permit advice {"type": "cache"}
+                        policy "deny with advice" deny advice {"type": "deny_advice"}
+                        """, Decision.PERMIT, null, List.of("cache")));
+    }
+
+    @ParameterizedTest(name = "{0}")
+    @MethodSource
+    void denyUnlessPermitObligationsTestsWithCustomSubscription(String description, String policySet,
+            Decision expectedDecision, List<String> expectedObligations) {
+        val subscription = new AuthorizationSubscription(Value.of("actual_subject"), Value.of("action"),
+                Value.of("resource"), Value.UNDEFINED);
+        val result       = evaluatePolicySet(policySet, subscription);
+        assertDecision(result, expectedDecision);
+        assertObligations(result, expectedObligations);
+    }
+
+    private static Stream<Arguments> denyUnlessPermitObligationsTestsWithCustomSubscription() {
+        return Stream.of(arguments("Deny decision includes deny obligations", """
+                set "test" deny-unless-permit
+                policy "permit with obligation" permit subject == "non-matching" obligation {"type": "permit_log"}
+                policy "deny with obligation" deny obligation {"type": "deny_log"}
+                """, Decision.DENY, List.of("deny_log")));
+    }
+
+    @ParameterizedTest(name = "{0}")
+    @MethodSource
+    void denyUnlessPermitResourceTests(String description, String policySet, Decision expectedDecision,
+            Value expectedResource) {
+        assertDecisionWithResource(policySet, expectedDecision, expectedResource);
+    }
+
+    private static Stream<Arguments> denyUnlessPermitResourceTests() {
+        return Stream.of(arguments("Single permit with transformation returns PERMIT with resource", """
+                set "test" deny-unless-permit
+                policy "permit with transformation" permit transform "modified_resource"
+                """, Decision.PERMIT, Value.of("modified_resource")),
+
+                arguments("Permit without transformation and permit with transformation uses transformation", """
+                        set "test" deny-unless-permit
+                        policy "permit without transformation" permit
+                        policy "permit with transformation" permit transform "modified_resource"
+                        """, Decision.PERMIT, Value.of("modified_resource")));
+    }
+
+    @ParameterizedTest(name = "{0}")
+    @MethodSource
+    void denyUnlessPermitSubscriptionFieldTests(String description, AuthorizationSubscription subscription,
+            String policySet, Decision expectedDecision) {
+        val result = evaluatePolicySet(policySet, subscription);
+        assertDecision(result, expectedDecision);
+    }
+
+    private static Stream<Arguments> denyUnlessPermitSubscriptionFieldTests() {
+        return Stream.of(
+                arguments("Target expression with subscription fields",
+                        new AuthorizationSubscription(Value.of("Alice"), Value.of("read"), Value.of("document"),
+                                Value.UNDEFINED),
+                        """
+                                set "test" deny-unless-permit
+                                policy "subject match" permit subject == "Alice"
+                                policy "fallback" deny
+                                """, Decision.PERMIT),
+
+                arguments("Target expression with object field access",
+                        new AuthorizationSubscription(ObjectValue.builder().put("name", Value.of("Alice")).build(),
+                                Value.of("read"), Value.of("document"), Value.UNDEFINED),
+                        """
+                                set "test" deny-unless-permit
+                                policy "object field match" permit subject.name == "Alice"
+                                policy "fallback" deny
+                                """, Decision.PERMIT));
+    }
+
+    @ParameterizedTest(name = "{0}")
+    @MethodSource
+    void denyUnlessPermitSubscriptionResourceTests(String description, AuthorizationSubscription subscription,
+            String policySet, Decision expectedDecision, Value expectedResource) {
+        val result = evaluatePolicySet(policySet, subscription);
+        assertDecision(result, expectedDecision);
+        assertResource(result, expectedResource);
+    }
+
+    private static Stream<Arguments> denyUnlessPermitSubscriptionResourceTests() {
+        return Stream.of(arguments("Decision expression with subscription reference",
+                new AuthorizationSubscription(ObjectValue.builder().put("name", Value.of("Alice")).build(),
+                        Value.of("read"), Value.of("document"), Value.UNDEFINED),
+                """
+                        set "test" deny-unless-permit
+                        policy "transform based on subject" permit transform subject.name
+                        """, Decision.PERMIT, Value.of("Alice")));
+    }
+
+    @ParameterizedTest(name = "{0}")
+    @MethodSource
+    void denyUnlessPermitComplexScenarioTests(String description, String policySet, Decision expectedDecision,
+            List<String> expectedObligations, List<String> expectedAdvice, Value expectedResource) {
+        val result = evaluatePolicySet(policySet);
+        assertDecision(result, expectedDecision);
+        if (expectedObligations != null) {
+            assertObligations(result, expectedObligations);
+        }
+        if (expectedAdvice != null) {
+            assertAdvice(result, expectedAdvice);
+        }
+        if (expectedResource != null) {
+            assertResource(result, expectedResource);
         }
     }
 
-    private void assertResource(Value result, Value expectedResource) {
-        assertInstanceOf(ObjectValue.class, result, "Result should be an ObjectValue");
-        val resourceField = ((ObjectValue) result).get("resource");
-        assertEquals(expectedResource, resourceField, "Resource should match");
-    }
-
-    // ========== Basic Scenarios ==========
-
-    @Test
-    void noPoliciesMatch_returnsDeny() {
-        val source = """
-                set "test"
-                deny-unless-permit
-
-                policy "never matches"
-                permit subject == "non-matching"
-                """;
-        try {
-            val sapl           = PARSER.parse(source);
-            val context        = createContext();
-            val compiledPolicy = SaplCompiler.compileDocument(sapl, context);
-            val decisionExpr   = compiledPolicy.decisionExpression();
-
-            val subscription = new AuthorizationSubscription(Value.of("actual_subject"), Value.of("action"),
-                    Value.of("resource"), Value.UNDEFINED);
-            val evalContext  = new EvaluationContext("testConfig", "testSub", subscription, functionBroker,
-                    attributeBroker);
-
-            val result = switch (decisionExpr) {
-            case Value value                       -> value;
-            case PureExpression pureExpression     -> pureExpression.evaluate(evalContext);
-            case StreamExpression streamExpression ->
-                streamExpression.stream().contextWrite(ctx -> ctx.put(EvaluationContext.class, evalContext))
-                        .blockFirst(Duration.ofSeconds(5));
-            };
-
-            // No matching policies should return DENY (default for deny-unless-permit)
-            assertDecision(result, Decision.DENY);
-        } catch (SaplCompilerException e) {
-            throw new RuntimeException("Compilation failed: " + e.getMessage(), e);
-        }
-    }
-
-    @Test
-    void singlePolicyPermit_returnsPermit() {
-        val source = """
-                set "test"
-                deny-unless-permit
-
-                policy "permit policy"
-                permit
-                """;
-        try {
-            val sapl           = PARSER.parse(source);
-            val context        = createContext();
-            val compiledPolicy = SaplCompiler.compileDocument(sapl, context);
-            val decisionExpr   = compiledPolicy.decisionExpression();
-
-            val subscription = new AuthorizationSubscription(Value.of("subject"), Value.of("action"),
-                    Value.of("resource"), Value.UNDEFINED);
-            val evalContext  = new EvaluationContext("testConfig", "testSub", subscription, functionBroker,
-                    attributeBroker);
-
-            val result = switch (decisionExpr) {
-            case Value value                       -> value;
-            case PureExpression pureExpression     -> pureExpression.evaluate(evalContext);
-            case StreamExpression streamExpression ->
-                streamExpression.stream().contextWrite(ctx -> ctx.put(EvaluationContext.class, evalContext))
-                        .blockFirst(Duration.ofSeconds(5));
-            };
-
-            assertDecision(result, Decision.PERMIT);
-        } catch (SaplCompilerException e) {
-            throw new RuntimeException("Compilation failed: " + e.getMessage(), e);
-        }
-    }
-
-    @Test
-    void singlePolicyDeny_returnsDeny() {
-        val source = """
-                set "test"
-                deny-unless-permit
-
-                policy "deny policy"
-                deny
-                """;
-        try {
-            val sapl           = PARSER.parse(source);
-            val context        = createContext();
-            val compiledPolicy = SaplCompiler.compileDocument(sapl, context);
-            val decisionExpr   = compiledPolicy.decisionExpression();
-
-            val subscription = new AuthorizationSubscription(Value.of("subject"), Value.of("action"),
-                    Value.of("resource"), Value.UNDEFINED);
-            val evalContext  = new EvaluationContext("testConfig", "testSub", subscription, functionBroker,
-                    attributeBroker);
-
-            val result = switch (decisionExpr) {
-            case Value value                       -> value;
-            case PureExpression pureExpression     -> pureExpression.evaluate(evalContext);
-            case StreamExpression streamExpression ->
-                streamExpression.stream().contextWrite(ctx -> ctx.put(EvaluationContext.class, evalContext))
-                        .blockFirst(Duration.ofSeconds(5));
-            };
-
-            assertDecision(result, Decision.DENY);
-        } catch (SaplCompilerException e) {
-            throw new RuntimeException("Compilation failed: " + e.getMessage(), e);
-        }
-    }
-
-    @Test
-    void singlePolicyNotApplicable_returnsDeny() {
-        val source = """
-                set "test"
-                deny-unless-permit
-
-                policy "not applicable"
-                permit subject == "non-matching"
-                """;
-        try {
-            val sapl           = PARSER.parse(source);
-            val context        = createContext();
-            val compiledPolicy = SaplCompiler.compileDocument(sapl, context);
-            val decisionExpr   = compiledPolicy.decisionExpression();
-
-            val subscription = new AuthorizationSubscription(Value.of("actual_subject"), Value.of("action"),
-                    Value.of("resource"), Value.UNDEFINED);
-            val evalContext  = new EvaluationContext("testConfig", "testSub", subscription, functionBroker,
-                    attributeBroker);
-
-            val result = switch (decisionExpr) {
-            case Value value                       -> value;
-            case PureExpression pureExpression     -> pureExpression.evaluate(evalContext);
-            case StreamExpression streamExpression ->
-                streamExpression.stream().contextWrite(ctx -> ctx.put(EvaluationContext.class, evalContext))
-                        .blockFirst(Duration.ofSeconds(5));
-            };
-
-            // Policy doesn't match, should return DENY (default)
-            assertDecision(result, Decision.DENY);
-        } catch (SaplCompilerException e) {
-            throw new RuntimeException("Compilation failed: " + e.getMessage(), e);
-        }
-    }
-
-    // ========== Algorithm Semantics ==========
-
-    @Test
-    void anyPermitWithoutUncertainty_returnsPermit() {
-        val source = """
-                set "test"
-                deny-unless-permit
-
-                policy "deny policy"
-                deny
-
-                policy "permit policy"
-                permit
-
-                policy "another deny"
-                deny
-                """;
-        try {
-            val sapl           = PARSER.parse(source);
-            val context        = createContext();
-            val compiledPolicy = SaplCompiler.compileDocument(sapl, context);
-            val decisionExpr   = compiledPolicy.decisionExpression();
-
-            val subscription = new AuthorizationSubscription(Value.of("subject"), Value.of("action"),
-                    Value.of("resource"), Value.UNDEFINED);
-            val evalContext  = new EvaluationContext("testConfig", "testSub", subscription, functionBroker,
-                    attributeBroker);
-
-            val result = switch (decisionExpr) {
-            case Value value                       -> value;
-            case PureExpression pureExpression     -> pureExpression.evaluate(evalContext);
-            case StreamExpression streamExpression ->
-                streamExpression.stream().contextWrite(ctx -> ctx.put(EvaluationContext.class, evalContext))
-                        .blockFirst(Duration.ofSeconds(5));
-            };
-
-            assertDecision(result, Decision.PERMIT);
-        } catch (SaplCompilerException e) {
-            throw new RuntimeException("Compilation failed: " + e.getMessage(), e);
-        }
-    }
-
-    @Test
-    void transformationUncertainty_returnsDeny() {
-        val source = """
-                set "test"
-                deny-unless-permit
-
-                policy "permit with transformation 1"
-                permit
-                transform "resource1"
-
-                policy "permit with transformation 2"
-                permit
-                transform "resource2"
-                """;
-        try {
-            val sapl           = PARSER.parse(source);
-            val context        = createContext();
-            val compiledPolicy = SaplCompiler.compileDocument(sapl, context);
-            val decisionExpr   = compiledPolicy.decisionExpression();
-
-            val subscription = new AuthorizationSubscription(Value.of("subject"), Value.of("action"),
-                    Value.of("resource"), Value.UNDEFINED);
-            val evalContext  = new EvaluationContext("testConfig", "testSub", subscription, functionBroker,
-                    attributeBroker);
-
-            val result = switch (decisionExpr) {
-            case Value value                       -> value;
-            case PureExpression pureExpression     -> pureExpression.evaluate(evalContext);
-            case StreamExpression streamExpression ->
-                streamExpression.stream().contextWrite(ctx -> ctx.put(EvaluationContext.class, evalContext))
-                        .blockFirst(Duration.ofSeconds(5));
-            };
-
-            // Transformation uncertainty should result in DENY
-            assertDecision(result, Decision.DENY);
-        } catch (SaplCompilerException e) {
-            throw new RuntimeException("Compilation failed: " + e.getMessage(), e);
-        }
-    }
-
-    @Test
-    void allNotApplicable_returnsDeny() {
-        val source = """
-                set "test"
-                deny-unless-permit
-
-                policy "not applicable 1"
-                permit subject == "non-matching1"
-
-                policy "not applicable 2"
-                permit subject == "non-matching2"
-                """;
-        try {
-            val sapl           = PARSER.parse(source);
-            val context        = createContext();
-            val compiledPolicy = SaplCompiler.compileDocument(sapl, context);
-            val decisionExpr   = compiledPolicy.decisionExpression();
-
-            val subscription = new AuthorizationSubscription(Value.of("actual_subject"), Value.of("action"),
-                    Value.of("resource"), Value.UNDEFINED);
-            val evalContext  = new EvaluationContext("testConfig", "testSub", subscription, functionBroker,
-                    attributeBroker);
-
-            val result = switch (decisionExpr) {
-            case Value value                       -> value;
-            case PureExpression pureExpression     -> pureExpression.evaluate(evalContext);
-            case StreamExpression streamExpression ->
-                streamExpression.stream().contextWrite(ctx -> ctx.put(EvaluationContext.class, evalContext))
-                        .blockFirst(Duration.ofSeconds(5));
-            };
-
-            // No policies match, should return DENY (default)
-            assertDecision(result, Decision.DENY);
-        } catch (SaplCompilerException e) {
-            throw new RuntimeException("Compilation failed: " + e.getMessage(), e);
-        }
-    }
-
-    @Test
-    void mixOfDenyAndNotApplicable_returnsDeny() {
-        val source = """
-                set "test"
-                deny-unless-permit
-
-                policy "deny policy"
-                deny
-
-                policy "not applicable"
-                permit subject == "non-matching"
-                """;
-        try {
-            val sapl           = PARSER.parse(source);
-            val context        = createContext();
-            val compiledPolicy = SaplCompiler.compileDocument(sapl, context);
-            val decisionExpr   = compiledPolicy.decisionExpression();
-
-            val subscription = new AuthorizationSubscription(Value.of("actual_subject"), Value.of("action"),
-                    Value.of("resource"), Value.UNDEFINED);
-            val evalContext  = new EvaluationContext("testConfig", "testSub", subscription, functionBroker,
-                    attributeBroker);
-
-            val result = switch (decisionExpr) {
-            case Value value                       -> value;
-            case PureExpression pureExpression     -> pureExpression.evaluate(evalContext);
-            case StreamExpression streamExpression ->
-                streamExpression.stream().contextWrite(ctx -> ctx.put(EvaluationContext.class, evalContext))
-                        .blockFirst(Duration.ofSeconds(5));
-            };
-
-            assertDecision(result, Decision.DENY);
-        } catch (SaplCompilerException e) {
-            throw new RuntimeException("Compilation failed: " + e.getMessage(), e);
-        }
-    }
-
-    // ========== Obligation and Advice Tests ==========
-
-    @Test
-    void permitDecision_includesPermitObligations() {
-        val source = """
-                set "test"
-                deny-unless-permit
-
-                policy "permit with obligation"
-                permit
-                obligation {"type": "log"}
-
-                policy "deny with obligation"
-                deny
-                obligation {"type": "deny_log"}
-                """;
-        try {
-            val sapl           = PARSER.parse(source);
-            val context        = createContext();
-            val compiledPolicy = SaplCompiler.compileDocument(sapl, context);
-            val decisionExpr   = compiledPolicy.decisionExpression();
-
-            val subscription = new AuthorizationSubscription(Value.of("subject"), Value.of("action"),
-                    Value.of("resource"), Value.UNDEFINED);
-            val evalContext  = new EvaluationContext("testConfig", "testSub", subscription, functionBroker,
-                    attributeBroker);
-
-            val result = switch (decisionExpr) {
-            case Value value                       -> value;
-            case PureExpression pureExpression     -> pureExpression.evaluate(evalContext);
-            case StreamExpression streamExpression ->
-                streamExpression.stream().contextWrite(ctx -> ctx.put(EvaluationContext.class, evalContext))
-                        .blockFirst(Duration.ofSeconds(5));
-            };
-
-            assertDecision(result, Decision.PERMIT);
-            assertObligations(result, List.of("log"));
-        } catch (SaplCompilerException e) {
-            throw new RuntimeException("Compilation failed: " + e.getMessage(), e);
-        }
-    }
-
-    @Test
-    void denyDecision_includesDenyObligations() {
-        val source = """
-                set "test"
-                deny-unless-permit
-
-                policy "permit with obligation"
-                permit subject == "non-matching"
-                obligation {"type": "permit_log"}
-
-                policy "deny with obligation"
-                deny
-                obligation {"type": "deny_log"}
-                """;
-        try {
-            val sapl           = PARSER.parse(source);
-            val context        = createContext();
-            val compiledPolicy = SaplCompiler.compileDocument(sapl, context);
-            val decisionExpr   = compiledPolicy.decisionExpression();
-
-            val subscription = new AuthorizationSubscription(Value.of("actual_subject"), Value.of("action"),
-                    Value.of("resource"), Value.UNDEFINED);
-            val evalContext  = new EvaluationContext("testConfig", "testSub", subscription, functionBroker,
-                    attributeBroker);
-
-            val result = switch (decisionExpr) {
-            case Value value                       -> value;
-            case PureExpression pureExpression     -> pureExpression.evaluate(evalContext);
-            case StreamExpression streamExpression ->
-                streamExpression.stream().contextWrite(ctx -> ctx.put(EvaluationContext.class, evalContext))
-                        .blockFirst(Duration.ofSeconds(5));
-            };
-
-            assertDecision(result, Decision.DENY);
-            assertObligations(result, List.of("deny_log"));
-        } catch (SaplCompilerException e) {
-            throw new RuntimeException("Compilation failed: " + e.getMessage(), e);
-        }
-    }
-
-    @Test
-    void multiplePolicies_collectsAllPermitObligations() {
-        val source = """
-                set "test"
-                deny-unless-permit
-
-                policy "permit 1"
-                permit
-                obligation {"type": "log1"}
-
-                policy "permit 2"
-                permit
-                obligation {"type": "log2"}
-                """;
-        try {
-            val sapl           = PARSER.parse(source);
-            val context        = createContext();
-            val compiledPolicy = SaplCompiler.compileDocument(sapl, context);
-            val decisionExpr   = compiledPolicy.decisionExpression();
-
-            val subscription = new AuthorizationSubscription(Value.of("subject"), Value.of("action"),
-                    Value.of("resource"), Value.UNDEFINED);
-            val evalContext  = new EvaluationContext("testConfig", "testSub", subscription, functionBroker,
-                    attributeBroker);
-
-            val result = switch (decisionExpr) {
-            case Value value                       -> value;
-            case PureExpression pureExpression     -> pureExpression.evaluate(evalContext);
-            case StreamExpression streamExpression ->
-                streamExpression.stream().contextWrite(ctx -> ctx.put(EvaluationContext.class, evalContext))
-                        .blockFirst(Duration.ofSeconds(5));
-            };
-
-            assertDecision(result, Decision.PERMIT);
-            assertObligations(result, List.of("log1", "log2"));
-        } catch (SaplCompilerException e) {
-            throw new RuntimeException("Compilation failed: " + e.getMessage(), e);
-        }
-    }
-
-    @Test
-    void permitDecision_includesPermitAdvice() {
-        val source = """
-                set "test"
-                deny-unless-permit
-
-                policy "permit with advice"
-                permit
-                advice {"type": "cache"}
-
-                policy "deny with advice"
-                deny
-                advice {"type": "deny_advice"}
-                """;
-        try {
-            val sapl           = PARSER.parse(source);
-            val context        = createContext();
-            val compiledPolicy = SaplCompiler.compileDocument(sapl, context);
-            val decisionExpr   = compiledPolicy.decisionExpression();
-
-            val subscription = new AuthorizationSubscription(Value.of("subject"), Value.of("action"),
-                    Value.of("resource"), Value.UNDEFINED);
-            val evalContext  = new EvaluationContext("testConfig", "testSub", subscription, functionBroker,
-                    attributeBroker);
-
-            val result = switch (decisionExpr) {
-            case Value value                       -> value;
-            case PureExpression pureExpression     -> pureExpression.evaluate(evalContext);
-            case StreamExpression streamExpression ->
-                streamExpression.stream().contextWrite(ctx -> ctx.put(EvaluationContext.class, evalContext))
-                        .blockFirst(Duration.ofSeconds(5));
-            };
-
-            assertDecision(result, Decision.PERMIT);
-            assertAdvice(result, List.of("cache"));
-        } catch (SaplCompilerException e) {
-            throw new RuntimeException("Compilation failed: " + e.getMessage(), e);
-        }
-    }
-
-    // ========== Transformation Tests ==========
-
-    @Test
-    void singlePermitWithTransformation_returnsPermitWithResource() {
-        val source = """
-                set "test"
-                deny-unless-permit
-
-                policy "permit with transformation"
-                permit
-                transform "modified_resource"
-                """;
-        try {
-            val sapl           = PARSER.parse(source);
-            val context        = createContext();
-            val compiledPolicy = SaplCompiler.compileDocument(sapl, context);
-            val decisionExpr   = compiledPolicy.decisionExpression();
-
-            val subscription = new AuthorizationSubscription(Value.of("subject"), Value.of("action"),
-                    Value.of("resource"), Value.UNDEFINED);
-            val evalContext  = new EvaluationContext("testConfig", "testSub", subscription, functionBroker,
-                    attributeBroker);
-
-            val result = switch (decisionExpr) {
-            case Value value                       -> value;
-            case PureExpression pureExpression     -> pureExpression.evaluate(evalContext);
-            case StreamExpression streamExpression ->
-                streamExpression.stream().contextWrite(ctx -> ctx.put(EvaluationContext.class, evalContext))
-                        .blockFirst(Duration.ofSeconds(5));
-            };
-
-            assertDecision(result, Decision.PERMIT);
-            assertResource(result, Value.of("modified_resource"));
-        } catch (SaplCompilerException e) {
-            throw new RuntimeException("Compilation failed: " + e.getMessage(), e);
-        }
-    }
-
-    @Test
-    void permitWithoutTransformationAndPermitWithTransformation_usesTransformation() {
-        val source = """
-                set "test"
-                deny-unless-permit
-
-                policy "permit without transformation"
-                permit
-
-                policy "permit with transformation"
-                permit
-                transform "modified_resource"
-                """;
-        try {
-            val sapl           = PARSER.parse(source);
-            val context        = createContext();
-            val compiledPolicy = SaplCompiler.compileDocument(sapl, context);
-            val decisionExpr   = compiledPolicy.decisionExpression();
-
-            val subscription = new AuthorizationSubscription(Value.of("subject"), Value.of("action"),
-                    Value.of("resource"), Value.UNDEFINED);
-            val evalContext  = new EvaluationContext("testConfig", "testSub", subscription, functionBroker,
-                    attributeBroker);
-
-            val result = switch (decisionExpr) {
-            case Value value                       -> value;
-            case PureExpression pureExpression     -> pureExpression.evaluate(evalContext);
-            case StreamExpression streamExpression ->
-                streamExpression.stream().contextWrite(ctx -> ctx.put(EvaluationContext.class, evalContext))
-                        .blockFirst(Duration.ofSeconds(5));
-            };
-
-            assertDecision(result, Decision.PERMIT);
-            assertResource(result, Value.of("modified_resource"));
-        } catch (SaplCompilerException e) {
-            throw new RuntimeException("Compilation failed: " + e.getMessage(), e);
-        }
-    }
-
-    // ========== Subscription Reference Tests ==========
-
-    @Test
-    void targetExpression_withSubscriptionFields() {
-        val source = """
-                set "test"
-                deny-unless-permit
-
-                policy "subject match"
-                permit subject == "Alice"
-
-                policy "fallback"
-                deny
-                """;
-        try {
-            val sapl           = PARSER.parse(source);
-            val context        = createContext();
-            val compiledPolicy = SaplCompiler.compileDocument(sapl, context);
-            val decisionExpr   = compiledPolicy.decisionExpression();
-
-            val subscription = new AuthorizationSubscription(Value.of("Alice"), Value.of("read"), Value.of("document"),
-                    Value.UNDEFINED);
-            val evalContext  = new EvaluationContext("testConfig", "testSub", subscription, functionBroker,
-                    attributeBroker);
-
-            val result = switch (decisionExpr) {
-            case Value value                       -> value;
-            case PureExpression pureExpression     -> pureExpression.evaluate(evalContext);
-            case StreamExpression streamExpression ->
-                streamExpression.stream().contextWrite(ctx -> ctx.put(EvaluationContext.class, evalContext))
-                        .blockFirst(Duration.ofSeconds(5));
-            };
-
-            assertDecision(result, Decision.PERMIT);
-        } catch (SaplCompilerException e) {
-            throw new RuntimeException("Compilation failed: " + e.getMessage(), e);
-        }
-    }
-
-    @Test
-    void targetExpression_withObjectFieldAccess() {
-        val source = """
-                set "test"
-                deny-unless-permit
-
-                policy "object field match"
-                permit subject.name == "Alice"
-
-                policy "fallback"
-                deny
-                """;
-        try {
-            val sapl           = PARSER.parse(source);
-            val context        = createContext();
-            val compiledPolicy = SaplCompiler.compileDocument(sapl, context);
-            val decisionExpr   = compiledPolicy.decisionExpression();
-
-            val subscription = new AuthorizationSubscription(
-                    ObjectValue.builder().put("name", Value.of("Alice")).build(), Value.of("read"),
-                    Value.of("document"), Value.UNDEFINED);
-            val evalContext  = new EvaluationContext("testConfig", "testSub", subscription, functionBroker,
-                    attributeBroker);
-
-            val result = switch (decisionExpr) {
-            case Value value                       -> value;
-            case PureExpression pureExpression     -> pureExpression.evaluate(evalContext);
-            case StreamExpression streamExpression ->
-                streamExpression.stream().contextWrite(ctx -> ctx.put(EvaluationContext.class, evalContext))
-                        .blockFirst(Duration.ofSeconds(5));
-            };
-
-            assertDecision(result, Decision.PERMIT);
-        } catch (SaplCompilerException e) {
-            throw new RuntimeException("Compilation failed: " + e.getMessage(), e);
-        }
-    }
-
-    @Test
-    void decisionExpression_withSubscriptionReference() {
-        val source = """
-                set "test"
-                deny-unless-permit
-
-                policy "transform based on subject"
-                permit
-                transform subject.name
-                """;
-        try {
-            val sapl           = PARSER.parse(source);
-            val context        = createContext();
-            val compiledPolicy = SaplCompiler.compileDocument(sapl, context);
-            val decisionExpr   = compiledPolicy.decisionExpression();
-
-            val subscription = new AuthorizationSubscription(
-                    ObjectValue.builder().put("name", Value.of("Alice")).build(), Value.of("read"),
-                    Value.of("document"), Value.UNDEFINED);
-            val evalContext  = new EvaluationContext("testConfig", "testSub", subscription, functionBroker,
-                    attributeBroker);
-
-            val result = switch (decisionExpr) {
-            case Value value                       -> value;
-            case PureExpression pureExpression     -> pureExpression.evaluate(evalContext);
-            case StreamExpression streamExpression ->
-                streamExpression.stream().contextWrite(ctx -> ctx.put(EvaluationContext.class, evalContext))
-                        .blockFirst(Duration.ofSeconds(5));
-            };
-
-            assertDecision(result, Decision.PERMIT);
-            assertResource(result, Value.of("Alice"));
-        } catch (SaplCompilerException e) {
-            throw new RuntimeException("Compilation failed: " + e.getMessage(), e);
-        }
-    }
-
-    // ========== Streaming Tests ==========
-
-    @Test
-    void streamingAttribute_inDecisionExpression() {
-        val source = """
-                set "test"
-                deny-unless-permit
-
-                policy "streaming permit"
-                permit
-                where
-                    (10).<test.counter> > 11;
-                """;
-        try {
-            val sapl           = PARSER.parse(source);
-            val context        = createContext();
-            val compiledPolicy = SaplCompiler.compileDocument(sapl, context);
-            val decisionExpr   = compiledPolicy.decisionExpression();
-
-            assertInstanceOf(StreamExpression.class, decisionExpr,
-                    "Should be StreamExpression due to streaming attribute");
-
-            val subscription = new AuthorizationSubscription(Value.of("subject"), Value.of("action"),
-                    Value.of("resource"), Value.UNDEFINED);
-            val evalContext  = new EvaluationContext("testConfig", "testSub", subscription, functionBroker,
-                    attributeBroker);
-
-            val result = ((StreamExpression) decisionExpr).stream()
-                    .contextWrite(ctx -> ctx.put(EvaluationContext.class, evalContext))
-                    .blockFirst(Duration.ofSeconds(5));
-
-            assertDecision(result, Decision.PERMIT);
-        } catch (SaplCompilerException e) {
-            throw new RuntimeException("Compilation failed: " + e.getMessage(), e);
-        }
-    }
-
-    @Test
-    void streamingAttribute_withDenyPolicy() {
-        val source = """
-                set "test"
-                deny-unless-permit
-
-                policy "streaming permit"
-                permit
-                where
-                    (10).<test.counter> > 11;
-
-                policy "deny policy"
-                deny
-                """;
-        try {
-            val sapl           = PARSER.parse(source);
-            val context        = createContext();
-            val compiledPolicy = SaplCompiler.compileDocument(sapl, context);
-            val decisionExpr   = compiledPolicy.decisionExpression();
-
-            assertInstanceOf(StreamExpression.class, decisionExpr,
-                    "Should be StreamExpression due to streaming attribute");
-
-            val subscription = new AuthorizationSubscription(Value.of("subject"), Value.of("action"),
-                    Value.of("resource"), Value.UNDEFINED);
-            val evalContext  = new EvaluationContext("testConfig", "testSub", subscription, functionBroker,
-                    attributeBroker);
-
-            val result = ((StreamExpression) decisionExpr).stream()
-                    .contextWrite(ctx -> ctx.put(EvaluationContext.class, evalContext))
-                    .blockFirst(Duration.ofSeconds(5));
-
-            // Should still be PERMIT since one policy permits
-            assertDecision(result, Decision.PERMIT);
-        } catch (SaplCompilerException e) {
-            throw new RuntimeException("Compilation failed: " + e.getMessage(), e);
-        }
-    }
-
-    // ========== Complex Scenarios ==========
-
-    @Test
-    void complexScenario_permitWithObligationsAdviceAndTransformation() {
-        val source = """
-                set "test"
-                deny-unless-permit
-
-                policy "permit with everything"
-                permit
+    private static Stream<Arguments> denyUnlessPermitComplexScenarioTests() {
+        return Stream.of(arguments("Permit with obligations advice and transformation", """
+                set "test" deny-unless-permit
+                policy "permit with everything" permit
                 obligation {"type": "log"}
                 advice {"type": "cache"}
                 transform "modified"
+                policy "deny" deny obligation {"type": "deny_log"}
+                """, Decision.PERMIT, List.of("log"), List.of("cache"), Value.of("modified")),
 
-                policy "deny"
-                deny
-                obligation {"type": "deny_log"}
-                """;
-        try {
-            val sapl           = PARSER.parse(source);
-            val context        = createContext();
-            val compiledPolicy = SaplCompiler.compileDocument(sapl, context);
-            val decisionExpr   = compiledPolicy.decisionExpression();
-
-            val subscription = new AuthorizationSubscription(Value.of("subject"), Value.of("action"),
-                    Value.of("resource"), Value.UNDEFINED);
-            val evalContext  = new EvaluationContext("testConfig", "testSub", subscription, functionBroker,
-                    attributeBroker);
-
-            val result = switch (decisionExpr) {
-            case Value value                       -> value;
-            case PureExpression pureExpression     -> pureExpression.evaluate(evalContext);
-            case StreamExpression streamExpression ->
-                streamExpression.stream().contextWrite(ctx -> ctx.put(EvaluationContext.class, evalContext))
-                        .blockFirst(Duration.ofSeconds(5));
-            };
-
-            assertDecision(result, Decision.PERMIT);
-            assertObligations(result, List.of("log"));
-            assertAdvice(result, List.of("cache"));
-            assertResource(result, Value.of("modified"));
-        } catch (SaplCompilerException e) {
-            throw new RuntimeException("Compilation failed: " + e.getMessage(), e);
-        }
-    }
-
-    @Test
-    void complexScenario_multiplePermitsWithoutTransformationUncertainty() {
-        val source = """
-                set "test"
-                deny-unless-permit
-
-                policy "permit 1"
-                permit
-                obligation {"type": "log1"}
-
-                policy "permit 2"
-                permit
-                advice {"type": "cache"}
-
-                policy "permit 3 with transformation"
-                permit
-                transform "modified"
-                """;
-        try {
-            val sapl           = PARSER.parse(source);
-            val context        = createContext();
-            val compiledPolicy = SaplCompiler.compileDocument(sapl, context);
-            val decisionExpr   = compiledPolicy.decisionExpression();
-
-            val subscription = new AuthorizationSubscription(Value.of("subject"), Value.of("action"),
-                    Value.of("resource"), Value.UNDEFINED);
-            val evalContext  = new EvaluationContext("testConfig", "testSub", subscription, functionBroker,
-                    attributeBroker);
-
-            val result = switch (decisionExpr) {
-            case Value value                       -> value;
-            case PureExpression pureExpression     -> pureExpression.evaluate(evalContext);
-            case StreamExpression streamExpression ->
-                streamExpression.stream().contextWrite(ctx -> ctx.put(EvaluationContext.class, evalContext))
-                        .blockFirst(Duration.ofSeconds(5));
-            };
-
-            // Only one transformation - no uncertainty
-            assertDecision(result, Decision.PERMIT);
-            assertObligations(result, List.of("log1"));
-            assertAdvice(result, List.of("cache"));
-            assertResource(result, Value.of("modified"));
-        } catch (SaplCompilerException e) {
-            throw new RuntimeException("Compilation failed: " + e.getMessage(), e);
-        }
+                arguments("Multiple permits without transformation uncertainty", """
+                        set "test" deny-unless-permit
+                        policy "permit 1" permit obligation {"type": "log1"}
+                        policy "permit 2" permit advice {"type": "cache"}
+                        policy "permit 3 with transformation" permit transform "modified"
+                        """, Decision.PERMIT, List.of("log1"), List.of("cache"), Value.of("modified")));
     }
 }
