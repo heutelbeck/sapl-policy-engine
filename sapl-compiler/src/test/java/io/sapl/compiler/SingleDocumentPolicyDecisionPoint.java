@@ -147,7 +147,7 @@ public class SingleDocumentPolicyDecisionPoint implements PolicyDecisionPoint {
                 compilationContext.getFunctionBroker(), compilationContext.getAttributeBroker());
 
         // Evaluate match expression
-        val matchResult = compiledPolicy.matchExpression().evaluate(evaluationContext);
+        val matchResult = evalValueOrPure(compiledPolicy.matchExpression(), evaluationContext);
 
         // Handle match errors
         if (matchResult instanceof ErrorValue) {
@@ -166,6 +166,13 @@ public class SingleDocumentPolicyDecisionPoint implements PolicyDecisionPoint {
 
         // Policy matches - evaluate decision expression
         return evaluateDecisionExpression(evaluationContext);
+    }
+
+    private Value evalValueOrPure(CompiledExpression e, EvaluationContext ctx) {
+        if (e instanceof Value v) {
+            return v;
+        }
+        return ((PureExpression) e).evaluate(ctx);
     }
 
     private Flux<AuthorizationDecision> evaluateDecisionExpression(EvaluationContext evaluationContext) {

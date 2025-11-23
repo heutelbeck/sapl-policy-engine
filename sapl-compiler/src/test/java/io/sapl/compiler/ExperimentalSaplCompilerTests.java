@@ -72,6 +72,26 @@ class ExperimentalSaplCompilerTests {
     }
 
     @Test
+    void experimentWithCompiler2() throws InitializationException {
+        val source  = """
+                set "test"
+                first-applicable
+
+                policy "test policy"
+                permit
+                advice {"hello":"world"}
+                """;
+        val sapl    = PARSER.parse(source);
+        val context = createCompilationContext();
+        try {
+            val compiled = SaplCompiler.compileDocument(sapl, context);
+            System.err.println(compiled);
+        } catch (SaplCompilerException e) {
+            System.err.println(e.getMessage());
+        }
+    }
+
+    @Test
     void constantFoldingWorks() {
         val expression = """
                 { "key1": 123 }

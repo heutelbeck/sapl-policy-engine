@@ -28,4 +28,4 @@ import reactor.core.publisher.Flux;
 import java.util.ArrayList;
 import java.util.List;
 
-public record CompiledPolicy(String name, PureExpression matchExpression, CompiledExpression decisionExpression) {}
+public record CompiledPolicy(String name, CompiledExpression matchExpression, CompiledExpression decisionExpression) {}

@@ -35,13 +35,13 @@ import java.util.function.Function;
 @ToString
 @RequiredArgsConstructor
 public class CompilationContext {
-    final FunctionBroker            functionBroker;
-    final AttributeBroker           attributeBroker;
-    boolean                         isInsideTargetExpression = false;
-    final boolean                   debugInformationEnabled  = false;
-    List<Import>                    imports                  = new ArrayList<>();
-    Map<String, CompiledExpression> localVariablesInScope    = new HashMap<>();
-    Map<Value, Value>               constantsCache           = new HashMap<>();
+    final FunctionBroker                    functionBroker;
+    final AttributeBroker                   attributeBroker;
+    final boolean                           debugInformationEnabled  = false;
+    List<Import>                            imports                  = new ArrayList<>();
+    private Map<String, CompiledExpression> documentVariablesInScope = new HashMap<>();
+    Map<Value, Value>                       constantsCache           = new HashMap<>();
+    private Set<String>                     localVariableNames       = new HashSet<>();
 
     public void addAllImports(List<Import> imports) {
         if (imports != null) {
@@ -49,9 +49,33 @@ public class CompilationContext {
         }
     }
 
+    public boolean addGlobalPolicySetVariable(String variableName, CompiledExpression value) {
+        if (documentVariablesInScope.containsKey(variableName)) {
+            return false;
+        }
+        documentVariablesInScope.put(variableName, value);
+        return true;
+    }
+
+    public boolean addLocalPolicyVariable(String variableName, CompiledExpression value) {
+        if (documentVariablesInScope.containsKey(variableName)) {
+            return false;
+        }
+        documentVariablesInScope.put(variableName, value);
+        return true;
+    }
+
     public void resetForNextDocument() {
         imports.clear();
-        localVariablesInScope.clear();
+        documentVariablesInScope.clear();
+        localVariableNames.clear();
+    }
+
+    public void resetForNextPolicy() {
+        for (String localVariable : localVariableNames) {
+            documentVariablesInScope.remove(localVariable);
+        }
+        localVariableNames.clear();
     }
 
     public CompiledExpression dedupe(Value constantValue) {
@@ -61,4 +85,11 @@ public class CompilationContext {
         return constantsCache.computeIfAbsent(constantValue, Function.identity());
     }
 
+    public CompiledExpression getVariable(String variableName) {
+        return documentVariablesInScope.get(variableName);
+    }
+
+    public boolean containsVariable(String variableName) {
+        return documentVariablesInScope.containsKey(variableName);
+    }
 }

@@ -661,7 +661,7 @@ public class ExpressionCompiler {
      */
     private CompiledExpression compileIdentifier(BasicIdentifier identifier, CompilationContext context) {
         val variableIdentifier = identifier.getIdentifier();
-        val maybeLocalVariable = context.localVariablesInScope.get(variableIdentifier);
+        val maybeLocalVariable = context.getVariable(variableIdentifier);
         if (maybeLocalVariable != null) {
             return maybeLocalVariable;
         }

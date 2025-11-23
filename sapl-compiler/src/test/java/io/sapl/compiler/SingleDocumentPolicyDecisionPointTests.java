@@ -249,6 +249,55 @@ class SingleDocumentPolicyDecisionPointTests {
 
     @Test
     @Disabled
+    void decide_policySet() {
+        val source = """
+                set "test"
+                first-applicable
+
+                policy "test policy2"
+                permit
+                where false;
+                advice {"hello":"world2"}
+
+                policy "test policy"
+                permit
+                advice {"hello":"world"}
+                """;
+        pdp.loadDocument(source);
+
+        val subscription = new AuthorizationSubscription(Value.of("user"), Value.of("read"), Value.of("resource"),
+                Value.UNDEFINED);
+
+        StepVerifier.create(pdp.decide(subscription).take(1).doOnNext(System.err::println))
+                .expectNextMatches(decision -> decision.decision() == Decision.PERMIT).verifyComplete();
+    }
+
+    @Test
+    @Disabled
+    void decide_policySet2() {
+        val source = """
+                set "test"
+                first-applicable
+
+                policy "test policy2"
+                permit
+                where time.secondOf(<time.now>) % 2 == 0;
+                advice {"hello":"world2"}
+
+                policy "test policy"
+                permit
+                advice {"hello":"world"}
+                """;
+        pdp.loadDocument(source);
+
+        val subscription = new AuthorizationSubscription(Value.of("user"), Value.of("read"), Value.of("resource"),
+                Value.UNDEFINED);
+
+        pdp.decide(subscription).take(10).doOnNext(System.err::println).blockLast();
+    }
+
+    @Test
+    @Disabled
     void decide_shouldUsePolicyInformationPointsTimeTest() {
         pdp.loadDocument("""
                 policy "test"
