@@ -27,9 +27,9 @@ import io.sapl.api.model.TextValue;
 import io.sapl.api.model.ValueJsonMarshaller;
 import io.sapl.api.model.Value;
 import io.sapl.compiler.PolicyEvaluationException;
-import io.sapl.functions.libraries.util.crypto.CertificateUtils;
-import io.sapl.functions.libraries.util.crypto.KeyUtils;
-import io.sapl.functions.libraries.util.crypto.PemUtils;
+import io.sapl.functions.libraries.crypto.CertificateUtils;
+import io.sapl.functions.libraries.crypto.KeyUtils;
+import io.sapl.functions.libraries.crypto.PemUtils;
 import lombok.experimental.UtilityClass;
 import lombok.val;
 
@@ -47,7 +47,7 @@ import java.security.spec.X509EncodedKeySpec;
 import java.util.Arrays;
 import java.util.Base64;
 
-import static io.sapl.functions.libraries.util.crypto.CryptoConstants.*;
+import static io.sapl.functions.libraries.crypto.CryptoConstants.*;
 
 /**
  * Provides functions for parsing and converting cryptographic key material.

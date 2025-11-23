@@ -23,7 +23,7 @@ import io.sapl.api.model.ErrorValue;
 import io.sapl.api.model.TextValue;
 import io.sapl.api.model.Value;
 import io.sapl.compiler.PolicyEvaluationException;
-import io.sapl.functions.libraries.util.crypto.KeyUtils;
+import io.sapl.functions.libraries.crypto.KeyUtils;
 import lombok.experimental.UtilityClass;
 import lombok.val;
 
@@ -35,7 +35,7 @@ import java.security.SignatureException;
 import java.util.Base64;
 import java.util.HexFormat;
 
-import static io.sapl.functions.libraries.util.crypto.CryptoConstants.*;
+import static io.sapl.functions.libraries.crypto.CryptoConstants.*;
 
 /**
  * Provides digital signature verification functions for verifying message

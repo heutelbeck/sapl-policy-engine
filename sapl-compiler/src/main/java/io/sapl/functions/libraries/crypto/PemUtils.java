@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.functions.libraries.util.crypto;
+package io.sapl.functions.libraries.crypto;
 
 import io.sapl.compiler.PolicyEvaluationException;
 import lombok.experimental.UtilityClass;
@@ -23,7 +23,7 @@ import lombok.val;
 
 import java.util.Base64;
 
-import static io.sapl.functions.libraries.util.crypto.CryptoConstants.*;
+import static io.sapl.functions.libraries.crypto.CryptoConstants.*;
 
 /**
  * Utilities for handling PEM-encoded cryptographic data. Provides methods for

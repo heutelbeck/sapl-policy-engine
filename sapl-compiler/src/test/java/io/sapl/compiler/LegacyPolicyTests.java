@@ -44,7 +44,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
  * - Policies with complex features (obligations, advice, transformations)
  * - Error/invalid policies (negative tests)
  */
-class LegacySaplPoliciesTests {
+class LegacyPolicyTests {
     private static final SAPLInterpreter PARSER = new DefaultSAPLInterpreter();
     private CompilationContext           context;
 

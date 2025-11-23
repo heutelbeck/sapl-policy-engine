@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.functions.libraries.util.crypto;
+package io.sapl.functions.libraries.crypto;
 
 import io.sapl.compiler.PolicyEvaluationException;
 import lombok.experimental.UtilityClass;
@@ -26,7 +26,7 @@ import java.security.cert.*;
 import java.util.Collection;
 import java.util.List;
 
-import static io.sapl.functions.libraries.util.crypto.CryptoConstants.CERTIFICATE_TYPE_X509;
+import static io.sapl.functions.libraries.crypto.CryptoConstants.CERTIFICATE_TYPE_X509;
 
 /**
  * Utilities for working with X.509 certificates. Provides methods for parsing,

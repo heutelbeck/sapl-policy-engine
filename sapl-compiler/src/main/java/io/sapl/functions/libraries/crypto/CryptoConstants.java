@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.functions.libraries.util.crypto;
+package io.sapl.functions.libraries.crypto;
 
 import lombok.experimental.UtilityClass;
 
