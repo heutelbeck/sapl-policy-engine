@@ -43,7 +43,9 @@ public class JWTEncodingDecodingUtils {
     /**
      * decodes a Base64 encoded string into bytes
      *
-     * @param base64 encoded string
+     * @param base64
+     * encoded string
+     *
      * @return bytes
      */
     private static Optional<byte[]> decode(String base64) {
@@ -63,7 +65,9 @@ public class JWTEncodingDecodingUtils {
     /**
      * generates an RSAPublicKey from an X509EncodedKeySpec
      *
-     * @param x509Key an X509EncodedKeySpec object
+     * @param x509Key
+     * an X509EncodedKeySpec object
+     *
      * @return the RSAPublicKey object
      */
     private static Optional<RSAPublicKey> generatePublicKey(X509EncodedKeySpec x509Key) {

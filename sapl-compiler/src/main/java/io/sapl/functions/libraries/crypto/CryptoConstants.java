@@ -21,7 +21,8 @@ import lombok.experimental.UtilityClass;
 
 /**
  * Constants used across cryptographic utility classes for consistent PEM
- * handling, algorithm naming, and error messaging.
+ * handling, algorithm naming, and error
+ * messaging.
  */
 @UtilityClass
 public class CryptoConstants {

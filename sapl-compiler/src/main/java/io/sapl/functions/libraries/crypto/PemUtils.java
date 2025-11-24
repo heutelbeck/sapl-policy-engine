@@ -27,19 +27,23 @@ import static io.sapl.functions.libraries.crypto.CryptoConstants.*;
 
 /**
  * Utilities for handling PEM-encoded cryptographic data. Provides methods for
- * stripping PEM headers/footers and decoding Base64 content.
+ * stripping PEM headers/footers and
+ * decoding Base64 content.
  */
 @UtilityClass
 public class PemUtils {
 
     /**
-     * Strips PEM headers and footers from encoded content, leaving only the
-     * Base64 data.
+     * Strips PEM headers and footers from encoded content, leaving only the Base64
+     * data.
      *
-     * @param pemContent the PEM-formatted content
-     * @param beginMarker the begin marker to remove (e.g., "-----BEGIN PUBLIC
-     * KEY-----")
-     * @param endMarker the end marker to remove (e.g., "-----END PUBLIC KEY-----")
+     * @param pemContent
+     * the PEM-formatted content
+     * @param beginMarker
+     * the begin marker to remove (e.g., "-----BEGIN PUBLIC KEY-----")
+     * @param endMarker
+     * the end marker to remove (e.g., "-----END PUBLIC KEY-----")
+     *
      * @return the cleaned Base64 content without headers, footers, or whitespace
      */
     public static String stripPemHeaders(String pemContent, String beginMarker, String endMarker) {
@@ -50,9 +54,13 @@ public class PemUtils {
      * Decodes PEM-encoded public key content by stripping headers and decoding
      * Base64.
      *
-     * @param pemKey the PEM-encoded public key
+     * @param pemKey
+     * the PEM-encoded public key
+     *
      * @return the decoded key bytes
-     * @throws PolicyEvaluationException if Base64 decoding fails
+     *
+     * @throws PolicyEvaluationException
+     * if Base64 decoding fails
      */
     public static byte[] decodePublicKeyPem(String pemKey) {
         val cleanedPem = stripPemHeaders(pemKey, PEM_PUBLIC_KEY_BEGIN, PEM_PUBLIC_KEY_END);
@@ -61,11 +69,16 @@ public class PemUtils {
 
     /**
      * Decodes PEM-encoded certificate content by stripping headers and decoding
-     * Base64. Handles both PEM format (with headers) and raw Base64 DER format.
+     * Base64. Handles both PEM format (with
+     * headers) and raw Base64 DER format.
      *
-     * @param certificateString the certificate string in PEM or Base64 DER format
+     * @param certificateString
+     * the certificate string in PEM or Base64 DER format
+     *
      * @return the decoded certificate bytes
-     * @throws PolicyEvaluationException if Base64 decoding fails
+     *
+     * @throws PolicyEvaluationException
+     * if Base64 decoding fails
      */
     public static byte[] decodeCertificatePem(String certificateString) {
         if (certificateString.contains("BEGIN CERTIFICATE")) {
@@ -78,7 +91,9 @@ public class PemUtils {
     /**
      * Encodes a public key in PEM format with proper headers and Base64 encoding.
      *
-     * @param keyBytes the public key bytes to encode
+     * @param keyBytes
+     * the public key bytes to encode
+     *
      * @return the PEM-formatted public key string
      */
     public static String encodePublicKeyPem(byte[] keyBytes) {
@@ -89,11 +104,16 @@ public class PemUtils {
     /**
      * Decodes Base64 content with contextual error messages.
      *
-     * @param content the Base64-encoded content
-     * @param context the context description for error messages (e.g., "public
-     * key", "certificate")
+     * @param content
+     * the Base64-encoded content
+     * @param context
+     * the context description for error messages (e.g., "public key",
+     * "certificate")
+     *
      * @return the decoded bytes
-     * @throws PolicyEvaluationException if decoding fails
+     *
+     * @throws PolicyEvaluationException
+     * if decoding fails
      */
     private static byte[] decodeBase64(String content, String context) {
         try {

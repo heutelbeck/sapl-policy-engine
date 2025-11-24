@@ -48,9 +48,13 @@ public record AuthorizationDecision(
      * <li>"resource" - Value representing the resource transformation</li>
      * </ul>
      *
-     * @param decisionObject the decision object value
+     * @param decisionObject
+     * the decision object value
+     *
      * @return the AuthorizationDecision
-     * @throws IllegalArgumentException if the value is not a valid decision object
+     *
+     * @throws IllegalArgumentException
+     * if the value is not a valid decision object
      */
     public static AuthorizationDecision of(Value decisionObject) {
         if (!(decisionObject instanceof ObjectValue obj)) {

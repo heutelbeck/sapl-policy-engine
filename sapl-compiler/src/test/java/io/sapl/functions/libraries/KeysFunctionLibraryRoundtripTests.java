@@ -44,8 +44,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * Integration tests verifying that KeysFunctionLibrary produces valid,
- * functionally correct cryptographic keys that can be used for actual
- * cryptographic operations.
+ * functionally correct cryptographic keys that can
+ * be used for actual cryptographic operations.
  */
 class KeysFunctionLibraryRoundtripTests {
 

@@ -100,12 +100,10 @@ class StandardFunctionLibraryTests {
     }
 
     /*
-     * @Test
-     * void onErrorMapReturnsFallbackValueWhenError() {
+     * @Test void onErrorMapReturnsFallbackValueWhenError() {
      * assertThat(StandardFunctionLibrary.onErrorMap(Value.error((String) null),
      * Value.of("FALLBACK")))
-     * .isEqualTo(Value.of("FALLBACK"));
-     * }
+     * .isEqualTo(Value.of("FALLBACK")); }
      */
 
     @Test

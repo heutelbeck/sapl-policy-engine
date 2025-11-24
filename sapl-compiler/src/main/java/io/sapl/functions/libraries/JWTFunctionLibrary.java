@@ -37,19 +37,20 @@ import java.time.Instant;
  * Function library for parsing JSON Web Tokens without validation.
  * <p>
  * This library provides fast, unvalidated access to JWT contents for use in
- * policy target expressions. Target expressions require rapid evaluation for
- * policy indexing and selection, which prohibits external service calls needed
+ * policy target expressions. Target
+ * expressions require rapid evaluation for policy indexing and selection, which
+ * prohibits external service calls needed
  * for signature verification.
  * <p>
  * <strong>Security Warning:</strong> Functions in this library return JWT
- * contents without verifying signatures or validating claims. For secure
- * authorization decisions, always use JWT attributes from the JWT Policy
- * Information Point, which perform proper signature verification and time-based
- * validation.
+ * contents without verifying signatures or
+ * validating claims. For secure authorization decisions, always use JWT
+ * attributes from the JWT Policy Information
+ * Point, which perform proper signature verification and time-based validation.
  * <p>
  * <strong>Recommended Pattern:</strong> Use functions in target expressions for
- * fast policy selection, then validate using JWT PIP attributes in policy
- * bodies:
+ * fast policy selection, then validate
+ * using JWT PIP attributes in policy bodies:
  *
  * <pre>
  * policy "secure-jwt-access"
@@ -133,10 +134,11 @@ public class JWTFunctionLibrary {
     private final ObjectMapper mapper;
 
     /**
-     * Parses a JWT and returns its decoded header and payload without
-     * validation.
+     * Parses a JWT and returns its decoded header and payload without validation.
      *
-     * @param rawToken the Base64-encoded JWT string
+     * @param rawToken
+     * the Base64-encoded JWT string
+     *
      * @return Value containing header and payload, or error if parsing fails
      */
     @Function(docs = """

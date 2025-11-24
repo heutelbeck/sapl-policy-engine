@@ -39,7 +39,7 @@ public class JWTTestUtility {
     static final String UNSUPPORTED_KEY_ERROR = "The type of the provided key is not supported!";
 
     static final long TIME_UNIT             = 2000L; // two seconds in millis
-    static final long SYNCHRONOUS_TIME_UNIT = 50L;   // fifty milliseconds
+    static final long SYNCHRONOUS_TIME_UNIT = 50L; // fifty milliseconds
 
     static final String EC  = "EC";
     static final String RSA = "RSA";

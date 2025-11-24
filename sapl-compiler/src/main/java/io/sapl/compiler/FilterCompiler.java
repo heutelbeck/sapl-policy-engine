@@ -51,11 +51,13 @@ import java.util.Arrays;
 
 /**
  * Compiles SAPL filter expressions (|- operator) and subtemplates (:: operator)
- * into optimized executable representations.
+ * into optimized executable
+ * representations.
  * <p>
  * Filters transform values by applying functions, supporting both simple
- * ({@code value |- func}) and extended ({@code value |- { @.field : func }})
- * syntax. Subtemplates apply templates to values, with implicit array mapping.
+ * ({@code value |- func}) and extended
+ * ({@code value |- { @.field : func }}) syntax. Subtemplates apply templates to
+ * values, with implicit array mapping.
  */
 @UtilityClass
 public class FilterCompiler {
@@ -96,12 +98,17 @@ public class FilterCompiler {
     /**
      * Compiles a filter expression (|- operator).
      * <p>
-     * Filters apply functions to values, optionally using the 'each' keyword to
-     * map over arrays. Extended filters support complex targeting with paths.
+     * Filters apply functions to values, optionally using the 'each' keyword to map
+     * over arrays. Extended filters
+     * support complex targeting with paths.
      *
-     * @param parent the expression to filter
-     * @param filter the filter component (simple or extended)
-     * @param context the compilation context
+     * @param parent
+     * the expression to filter
+     * @param filter
+     * the filter component (simple or extended)
+     * @param context
+     * the compilation context
+     *
      * @return the compiled filter expression
      */
     public CompiledExpression compileFilter(CompiledExpression parent, FilterComponent filter,
@@ -126,9 +133,13 @@ public class FilterCompiler {
      * Without 'each': applies function to entire value. With 'each': maps function
      * over array elements.
      *
-     * @param parent the parent expression to filter
-     * @param filter the simple filter AST node
-     * @param context the compilation context
+     * @param parent
+     * the parent expression to filter
+     * @param filter
+     * the simple filter AST node
+     * @param context
+     * the compilation context
+     *
      * @return the compiled filter expression
      */
     private CompiledExpression compileSimpleFilter(CompiledExpression parent, FilterSimple filter,
@@ -163,16 +174,17 @@ public class FilterCompiler {
 
     /**
      * Wraps a filter operation to handle Value, PureExpression, and
-     * StreamExpression
-     * parents.
+     * StreamExpression parents.
      * <p>
      * This is the core wrapper pattern that enables filters to work with all
-     * expression types, similar to how ExpressionCompiler handles step operations.
+     * expression types, similar to how
+     * ExpressionCompiler handles step operations.
      *
-     * @param parent the parent expression (Value, PureExpression, or
-     * StreamExpression)
-     * @param filterOperation the filter operation to apply (works on
-     * CompiledExpression)
+     * @param parent
+     * the parent expression (Value, PureExpression, or StreamExpression)
+     * @param filterOperation
+     * the filter operation to apply (works on CompiledExpression)
+     *
      * @return the wrapped filter result
      */
     private CompiledExpression wrapFilterOperation(CompiledExpression parent,
@@ -198,13 +210,19 @@ public class FilterCompiler {
     /**
      * Applies a filter function to each element of an array value.
      * <p>
-     * Maps the function over array elements, filtering out undefined results.
-     * This implements the 'each' keyword semantics.
+     * Maps the function over array elements, filtering out undefined results. This
+     * implements the 'each' keyword
+     * semantics.
      *
-     * @param parentValue the array value to filter
-     * @param filter the filter AST node
-     * @param arguments the compiled filter arguments
-     * @param context the compilation context
+     * @param parentValue
+     * the array value to filter
+     * @param filter
+     * the filter AST node
+     * @param arguments
+     * the compiled filter arguments
+     * @param context
+     * the compilation context
+     *
      * @return an array with the function applied to each element
      */
     private CompiledExpression applyFilterFunctionToEachArrayElement(Value parentValue, FilterSimple filter,
@@ -247,11 +265,17 @@ public class FilterCompiler {
      * <p>
      * This is used when filter arguments contain dynamic expressions.
      *
-     * @param arrayValue the array value to filter
-     * @param functionIdentifier the function identifier
-     * @param arguments the compiled filter arguments
-     * @param context the compilation context
-     * @param isStream whether arguments contain streaming expressions
+     * @param arrayValue
+     * the array value to filter
+     * @param functionIdentifier
+     * the function identifier
+     * @param arguments
+     * the compiled filter arguments
+     * @param context
+     * the compilation context
+     * @param isStream
+     * whether arguments contain streaming expressions
+     *
      * @return a PureExpression or StreamExpression
      */
     private CompiledExpression createEachRuntimeExpression(ArrayValue arrayValue, String functionIdentifier,
@@ -312,9 +336,13 @@ public class FilterCompiler {
      * Applies multiple filter statements to a value, optionally targeting specific
      * paths within the value.
      *
-     * @param parent the parent expression to filter
-     * @param filter the extended filter AST node
-     * @param context the compilation context
+     * @param parent
+     * the parent expression to filter
+     * @param filter
+     * the extended filter AST node
+     * @param context
+     * the compilation context
+     *
      * @return the compiled filter expression
      */
     private CompiledExpression compileExtendedFilter(CompiledExpression parent, FilterExtended filter,
@@ -361,10 +389,15 @@ public class FilterCompiler {
     /**
      * Applies a filter function to a value given the function identifier.
      *
-     * @param parentValue the value to filter
-     * @param functionIdentifier the function identifier
-     * @param arguments the compiled filter arguments
-     * @param context the compilation context
+     * @param parentValue
+     * the value to filter
+     * @param functionIdentifier
+     * the function identifier
+     * @param arguments
+     * the compiled filter arguments
+     * @param context
+     * the compilation context
+     *
      * @return the result of applying the filter function
      */
     private CompiledExpression applyFilterFunctionToValue(Value parentValue, String functionIdentifier,
@@ -378,11 +411,17 @@ public class FilterCompiler {
      * Navigates to the path, applies the filter, and updates the parent value with
      * the result.
      *
-     * @param parentValue the value containing the path
-     * @param steps the path steps to navigate
-     * @param functionIdentifier the function to apply
-     * @param arguments the function arguments
-     * @param context the compilation context
+     * @param parentValue
+     * the value containing the path
+     * @param steps
+     * the path steps to navigate
+     * @param functionIdentifier
+     * the function to apply
+     * @param arguments
+     * the function arguments
+     * @param context
+     * the compilation context
+     *
      * @return the updated parent value with the filter applied at the path
      */
     private Value applyFilterFunctionToPath(Value parentValue, org.eclipse.emf.common.util.EList<Step> steps,
@@ -443,11 +482,17 @@ public class FilterCompiler {
     /**
      * Applies a filter function to a value at a single-step path.
      *
-     * @param parentValue the parent value
-     * @param step the single step to navigate
-     * @param functionIdentifier the function identifier
-     * @param arguments the function arguments
-     * @param context the compilation context
+     * @param parentValue
+     * the parent value
+     * @param step
+     * the single step to navigate
+     * @param functionIdentifier
+     * the function identifier
+     * @param arguments
+     * the function arguments
+     * @param context
+     * the compilation context
+     *
      * @return the updated value (maybe a Value, PureExpression, or
      * StreamExpression)
      */
@@ -487,14 +532,20 @@ public class FilterCompiler {
      * Applies a filter function to an object field accessed by key.
      * <p>
      * For arrays: applies the key step to each array element (implicit array
-     * mapping).
-     * For objects: applies the filter to the specified field.
+     * mapping). For objects: applies the filter
+     * to the specified field.
      *
-     * @param parentValue the parent object or array value
-     * @param key the field key
-     * @param functionIdentifier the function identifier
-     * @param arguments the function arguments
-     * @param context the compilation context
+     * @param parentValue
+     * the parent object or array value
+     * @param key
+     * the field key
+     * @param functionIdentifier
+     * the function identifier
+     * @param arguments
+     * the function arguments
+     * @param context
+     * the compilation context
+     *
      * @return the updated object/array with the filtered field(s)
      */
     private CompiledExpression applyKeyStepFilter(Value parentValue, String key, String functionIdentifier,
@@ -544,11 +595,17 @@ public class FilterCompiler {
      * <p>
      * Used when arguments are PURE or STREAM and implicit array mapping is needed.
      *
-     * @param arrayValue the array value to map over
-     * @param key the field key to access in each element
-     * @param functionIdentifier the function identifier
-     * @param arguments the compiled filter arguments
-     * @param context the compilation context
+     * @param arrayValue
+     * the array value to map over
+     * @param key
+     * the field key to access in each element
+     * @param functionIdentifier
+     * the function identifier
+     * @param arguments
+     * the compiled filter arguments
+     * @param context
+     * the compilation context
+     *
      * @return a PureExpression or StreamExpression
      */
     private CompiledExpression createKeyStepArrayMappingExpression(ArrayValue arrayValue, String key,
@@ -665,11 +722,17 @@ public class FilterCompiler {
     /**
      * Applies a filter function to an array element accessed by index.
      *
-     * @param parentValue the parent array value
-     * @param index the element index
-     * @param functionIdentifier the function identifier
-     * @param arguments the function arguments
-     * @param context the compilation context
+     * @param parentValue
+     * the parent array value
+     * @param index
+     * the element index
+     * @param functionIdentifier
+     * the function identifier
+     * @param arguments
+     * the function arguments
+     * @param context
+     * the compilation context
+     *
      * @return the updated array with the filtered element
      */
     private CompiledExpression applyIndexStepFilter(Value parentValue, int index, String functionIdentifier,
@@ -690,11 +753,17 @@ public class FilterCompiler {
     /**
      * Applies a filter function to array elements accessed by slice.
      *
-     * @param parentValue the parent array value
-     * @param slicingStep the slicing step with start, end, and step parameters
-     * @param functionIdentifier the function identifier
-     * @param arguments the function arguments
-     * @param context the compilation context
+     * @param parentValue
+     * the parent array value
+     * @param slicingStep
+     * the slicing step with start, end, and step parameters
+     * @param functionIdentifier
+     * the function identifier
+     * @param arguments
+     * the function arguments
+     * @param context
+     * the compilation context
+     *
      * @return the updated array with filtered slice elements
      */
     private CompiledExpression applySlicingStepFilter(Value parentValue, ArraySlicingStep slicingStep,
@@ -741,16 +810,24 @@ public class FilterCompiler {
      * Applies a filter function to a nested path through an object field.
      * <p>
      * For arrays: applies the nested path to each array element (implicit array
-     * mapping).
-     * For objects: applies the filter to the specified nested field.
+     * mapping). For objects: applies the
+     * filter to the specified nested field.
      *
-     * @param parentValue the parent object or array value
-     * @param fieldName the field name to navigate through
-     * @param steps all path steps
-     * @param stepIndex the current step index (points to next step after field)
-     * @param functionIdentifier the function identifier
-     * @param arguments the function arguments
-     * @param context the compilation context
+     * @param parentValue
+     * the parent object or array value
+     * @param fieldName
+     * the field name to navigate through
+     * @param steps
+     * all path steps
+     * @param stepIndex
+     * the current step index (points to next step after field)
+     * @param functionIdentifier
+     * the function identifier
+     * @param arguments
+     * the function arguments
+     * @param context
+     * the compilation context
+     *
      * @return the updated parent object/array
      */
     private Value applyFilterToNestedPath(Value parentValue, String fieldName,
@@ -803,13 +880,21 @@ public class FilterCompiler {
     /**
      * Applies a filter function to a nested path through an array element.
      *
-     * @param parentValue the parent array value
-     * @param index the array index to navigate through
-     * @param steps all path steps
-     * @param stepIndex the current step index (points to next step after index)
-     * @param functionIdentifier the function identifier
-     * @param arguments the function arguments
-     * @param context the compilation context
+     * @param parentValue
+     * the parent array value
+     * @param index
+     * the array index to navigate through
+     * @param steps
+     * all path steps
+     * @param stepIndex
+     * the current step index (points to next step after index)
+     * @param functionIdentifier
+     * the function identifier
+     * @param arguments
+     * the function arguments
+     * @param context
+     * the compilation context
+     *
      * @return the updated parent array
      */
     private Value applyFilterToNestedArrayElement(Value parentValue, int index,
@@ -847,13 +932,21 @@ public class FilterCompiler {
     /**
      * Applies a filter function to nested paths through array slice elements.
      *
-     * @param parentValue the parent array value
-     * @param slicingStep the slicing step defining the slice range
-     * @param steps all path steps
-     * @param stepIndex the current step index (points to next step after slice)
-     * @param functionIdentifier the function identifier
-     * @param arguments the function arguments
-     * @param context the compilation context
+     * @param parentValue
+     * the parent array value
+     * @param slicingStep
+     * the slicing step defining the slice range
+     * @param steps
+     * all path steps
+     * @param stepIndex
+     * the current step index (points to next step after slice)
+     * @param functionIdentifier
+     * the function identifier
+     * @param arguments
+     * the function arguments
+     * @param context
+     * the compilation context
+     *
      * @return the updated parent array
      */
     private Value applyFilterToNestedArraySlice(Value parentValue, ArraySlicingStep slicingStep,
@@ -903,14 +996,21 @@ public class FilterCompiler {
     /**
      * Applies a filter statement with 'each' keyword to array elements.
      * <p>
-     * The 'each' keyword applies the filter to each element of an array.
-     * Elements that result in UNDEFINED are filtered out.
+     * The 'each' keyword applies the filter to each element of an array. Elements
+     * that result in UNDEFINED are filtered
+     * out.
      *
-     * @param parentValue the parent array value
-     * @param target the target path (maybe null)
-     * @param functionIdentifier the function identifier
-     * @param arguments the function arguments
-     * @param context the compilation context
+     * @param parentValue
+     * the parent array value
+     * @param target
+     * the target path (maybe null)
+     * @param functionIdentifier
+     * the function identifier
+     * @param arguments
+     * the function arguments
+     * @param context
+     * the compilation context
+     *
      * @return the filtered array
      */
     private Value applyEachFilterStatement(Value parentValue, io.sapl.grammar.sapl.BasicRelative target,
@@ -949,13 +1049,19 @@ public class FilterCompiler {
     /**
      * Applies a filter function to all elements/fields via wildcard step.
      * <p>
-     * For arrays: applies filter to each element (preserves array structure).
-     * For objects: applies filter to each field value (preserves object structure).
+     * For arrays: applies filter to each element (preserves array structure). For
+     * objects: applies filter to each field
+     * value (preserves object structure).
      *
-     * @param parentValue the parent value (array or object)
-     * @param functionIdentifier the function identifier
-     * @param arguments the function arguments
-     * @param context the compilation context
+     * @param parentValue
+     * the parent value (array or object)
+     * @param functionIdentifier
+     * the function identifier
+     * @param arguments
+     * the function arguments
+     * @param context
+     * the compilation context
+     *
      * @return the filtered value with all elements/fields transformed
      */
     private CompiledExpression applyWildcardStepFilter(Value parentValue, String functionIdentifier,
@@ -986,12 +1092,19 @@ public class FilterCompiler {
     /**
      * Applies a filter function to nested paths through wildcard elements/fields.
      *
-     * @param parentValue the parent value (array or object)
-     * @param steps all path steps
-     * @param stepIndex the current step index (points to next step after wildcard)
-     * @param functionIdentifier the function identifier
-     * @param arguments the function arguments
-     * @param context the compilation context
+     * @param parentValue
+     * the parent value (array or object)
+     * @param steps
+     * all path steps
+     * @param stepIndex
+     * the current step index (points to next step after wildcard)
+     * @param functionIdentifier
+     * the function identifier
+     * @param arguments
+     * the function arguments
+     * @param context
+     * the compilation context
+     *
      * @return the updated parent value
      */
     private Value applyFilterToNestedWildcard(Value parentValue, org.eclipse.emf.common.util.EList<Step> steps,
@@ -1033,14 +1146,20 @@ public class FilterCompiler {
      * Applies a filter function to all matching keys recursively (recursive
      * descent).
      * <p>
-     * Recursively searches for the key in all nested objects and arrays,
-     * applies the filter to all matching values.
+     * Recursively searches for the key in all nested objects and arrays, applies
+     * the filter to all matching values.
      *
-     * @param parentValue the parent value to search
-     * @param key the key to match
-     * @param functionIdentifier the function identifier
-     * @param arguments the function arguments
-     * @param context the compilation context
+     * @param parentValue
+     * the parent value to search
+     * @param key
+     * the key to match
+     * @param functionIdentifier
+     * the function identifier
+     * @param arguments
+     * the function arguments
+     * @param context
+     * the compilation context
+     *
      * @return the updated value with filters applied to all matching keys
      */
     private CompiledExpression applyRecursiveKeyStepFilter(Value parentValue, String key, String functionIdentifier,
@@ -1129,14 +1248,19 @@ public class FilterCompiler {
      * wildcard).
      * <p>
      * Note: For filtering, recursive wildcard behaves like regular wildcard at the
-     * current level.
-     * This matches the original implementation behavior where recursive descent
-     * doesn't translate well to filtering.
+     * current level. This matches the
+     * original implementation behavior where recursive descent doesn't translate
+     * well to filtering.
      *
-     * @param parentValue the parent value to search
-     * @param functionIdentifier the function identifier
-     * @param arguments the function arguments
-     * @param context the compilation context
+     * @param parentValue
+     * the parent value to search
+     * @param functionIdentifier
+     * the function identifier
+     * @param arguments
+     * the function arguments
+     * @param context
+     * the compilation context
+     *
      * @return the updated value with filters applied recursively
      */
     private CompiledExpression applyRecursiveWildcardStepFilter(Value parentValue, String functionIdentifier,
@@ -1154,11 +1278,17 @@ public class FilterCompiler {
      * Recursively searches for the index in all nested arrays, applies the filter
      * to all matching elements.
      *
-     * @param parentValue the parent value to search
-     * @param index the index to match
-     * @param functionIdentifier the function identifier
-     * @param arguments the function arguments
-     * @param context the compilation context
+     * @param parentValue
+     * the parent value to search
+     * @param index
+     * the index to match
+     * @param functionIdentifier
+     * the function identifier
+     * @param arguments
+     * the function arguments
+     * @param context
+     * the compilation context
+     *
      * @return the updated value with filters applied to all matching indices
      */
     private CompiledExpression applyRecursiveIndexStepFilter(Value parentValue, int index, String functionIdentifier,
@@ -1255,11 +1385,17 @@ public class FilterCompiler {
      * <p>
      * Applies the filter only to the specified attributes of an object.
      *
-     * @param parentValue the parent object value
-     * @param attributes the list of attribute names to filter
-     * @param functionIdentifier the function identifier
-     * @param arguments the function arguments
-     * @param context the compilation context
+     * @param parentValue
+     * the parent object value
+     * @param attributes
+     * the list of attribute names to filter
+     * @param functionIdentifier
+     * the function identifier
+     * @param arguments
+     * the function arguments
+     * @param context
+     * the compilation context
+     *
      * @return the updated object with filtered attributes
      */
     private CompiledExpression applyAttributeUnionStepFilter(Value parentValue,
@@ -1276,14 +1412,20 @@ public class FilterCompiler {
     /**
      * Applies a filter function to selected array indices (index union).
      * <p>
-     * Applies the filter only to elements at the specified indices.
-     * Supports negative indices.
+     * Applies the filter only to elements at the specified indices. Supports
+     * negative indices.
      *
-     * @param parentValue the parent array value
-     * @param indices the list of indices to filter
-     * @param functionIdentifier the function identifier
-     * @param arguments the function arguments
-     * @param context the compilation context
+     * @param parentValue
+     * the parent array value
+     * @param indices
+     * the list of indices to filter
+     * @param functionIdentifier
+     * the function identifier
+     * @param arguments
+     * the function arguments
+     * @param context
+     * the compilation context
+     *
      * @return the updated array with filtered elements
      */
     private CompiledExpression applyIndexUnionStepFilter(Value parentValue,
@@ -1314,14 +1456,21 @@ public class FilterCompiler {
     /**
      * Applies a filter function to nested paths through recursive key descent.
      *
-     * @param parentValue the parent value
-     * @param key the key to match recursively
-     * @param steps all path steps
-     * @param stepIndex the current step index (points to next step after recursive
-     * key)
-     * @param functionIdentifier the function identifier
-     * @param arguments the function arguments
-     * @param context the compilation context
+     * @param parentValue
+     * the parent value
+     * @param key
+     * the key to match recursively
+     * @param steps
+     * all path steps
+     * @param stepIndex
+     * the current step index (points to next step after recursive key)
+     * @param functionIdentifier
+     * the function identifier
+     * @param arguments
+     * the function arguments
+     * @param context
+     * the compilation context
+     *
      * @return the updated parent value
      */
     private Value applyFilterToNestedRecursiveKey(Value parentValue, String key,
@@ -1380,13 +1529,19 @@ public class FilterCompiler {
     /**
      * Applies a filter function to nested paths through recursive wildcard descent.
      *
-     * @param parentValue the parent value
-     * @param steps all path steps
-     * @param stepIndex the current step index (points to next step after recursive
-     * wildcard)
-     * @param functionIdentifier the function identifier
-     * @param arguments the function arguments
-     * @param context the compilation context
+     * @param parentValue
+     * the parent value
+     * @param steps
+     * all path steps
+     * @param stepIndex
+     * the current step index (points to next step after recursive wildcard)
+     * @param functionIdentifier
+     * the function identifier
+     * @param arguments
+     * the function arguments
+     * @param context
+     * the compilation context
+     *
      * @return the updated parent value
      */
     private Value applyFilterToNestedRecursiveWildcard(Value parentValue, org.eclipse.emf.common.util.EList<Step> steps,
@@ -1400,14 +1555,21 @@ public class FilterCompiler {
     /**
      * Applies a filter function to nested paths through recursive index descent.
      *
-     * @param parentValue the parent value
-     * @param index the index to match recursively
-     * @param steps all path steps
-     * @param stepIndex the current step index (points to next step after recursive
-     * index)
-     * @param functionIdentifier the function identifier
-     * @param arguments the function arguments
-     * @param context the compilation context
+     * @param parentValue
+     * the parent value
+     * @param index
+     * the index to match recursively
+     * @param steps
+     * all path steps
+     * @param stepIndex
+     * the current step index (points to next step after recursive index)
+     * @param functionIdentifier
+     * the function identifier
+     * @param arguments
+     * the function arguments
+     * @param context
+     * the compilation context
+     *
      * @return the updated parent value
      */
     private Value applyFilterToNestedRecursiveIndex(Value parentValue, int index,
@@ -1470,13 +1632,21 @@ public class FilterCompiler {
     /**
      * Applies a filter function to nested paths through attribute union.
      *
-     * @param parentValue the parent object value
-     * @param attributes the list of attribute names
-     * @param steps all path steps
-     * @param stepIndex the current step index (points to next step after union)
-     * @param functionIdentifier the function identifier
-     * @param arguments the function arguments
-     * @param context the compilation context
+     * @param parentValue
+     * the parent object value
+     * @param attributes
+     * the list of attribute names
+     * @param steps
+     * all path steps
+     * @param stepIndex
+     * the current step index (points to next step after union)
+     * @param functionIdentifier
+     * the function identifier
+     * @param arguments
+     * the function arguments
+     * @param context
+     * the compilation context
+     *
      * @return the updated parent object
      */
     private Value applyFilterToNestedAttributeUnion(Value parentValue,
@@ -1511,13 +1681,21 @@ public class FilterCompiler {
     /**
      * Applies a filter function to nested paths through index union.
      *
-     * @param parentValue the parent array value
-     * @param indices the list of indices
-     * @param steps all path steps
-     * @param stepIndex the current step index (points to next step after union)
-     * @param functionIdentifier the function identifier
-     * @param arguments the function arguments
-     * @param context the compilation context
+     * @param parentValue
+     * the parent array value
+     * @param indices
+     * the list of indices
+     * @param steps
+     * all path steps
+     * @param stepIndex
+     * the current step index (points to next step after union)
+     * @param functionIdentifier
+     * the function identifier
+     * @param arguments
+     * the function arguments
+     * @param context
+     * the compilation context
+     *
      * @return the updated parent array
      */
     private Value applyFilterToNestedIndexUnion(Value parentValue,
@@ -1568,13 +1746,20 @@ public class FilterCompiler {
      * step).
      * <p>
      * For arrays: applies filter to elements where condition evaluates to true. For
-     * objects: applies filter to field values where condition evaluates to true.
+     * objects: applies filter to field
+     * values where condition evaluates to true.
      *
-     * @param parentValue the parent value (array or object)
-     * @param conditionStep the condition step with the expression to evaluate
-     * @param functionIdentifier the function identifier
-     * @param arguments the function arguments
-     * @param context the compilation context
+     * @param parentValue
+     * the parent value (array or object)
+     * @param conditionStep
+     * the condition step with the expression to evaluate
+     * @param functionIdentifier
+     * the function identifier
+     * @param arguments
+     * the function arguments
+     * @param context
+     * the compilation context
+     *
      * @return the filtered value
      */
     private CompiledExpression applyConditionStepFilter(Value parentValue, ConditionStep conditionStep,
@@ -1615,14 +1800,21 @@ public class FilterCompiler {
      * Applies a filter function to nested paths through condition-matched
      * elements/fields.
      *
-     * @param parentValue the parent value (array or object)
-     * @param conditionStep the condition step
-     * @param steps all path steps
-     * @param stepIndex the current step index (points to next step after
-     * condition)
-     * @param functionIdentifier the function identifier
-     * @param arguments the function arguments
-     * @param context the compilation context
+     * @param parentValue
+     * the parent value (array or object)
+     * @param conditionStep
+     * the condition step
+     * @param steps
+     * all path steps
+     * @param stepIndex
+     * the current step index (points to next step after condition)
+     * @param functionIdentifier
+     * the function identifier
+     * @param arguments
+     * the function arguments
+     * @param context
+     * the compilation context
+     *
      * @return the updated parent value
      */
     private Value applyFilterToNestedCondition(Value parentValue, ConditionStep conditionStep,
@@ -1668,11 +1860,17 @@ public class FilterCompiler {
      * For arrays: expression must evaluate to a number (index) For objects:
      * expression must evaluate to a string (key)
      *
-     * @param parentValue the parent value (array or object)
-     * @param expressionStep the expression step
-     * @param functionIdentifier the function identifier
-     * @param arguments the function arguments
-     * @param context the compilation context
+     * @param parentValue
+     * the parent value (array or object)
+     * @param expressionStep
+     * the expression step
+     * @param functionIdentifier
+     * the function identifier
+     * @param arguments
+     * the function arguments
+     * @param context
+     * the compilation context
+     *
      * @return the filtered value
      */
     private CompiledExpression applyExpressionStepFilter(Value parentValue, ExpressionStep expressionStep,
@@ -1733,16 +1931,24 @@ public class FilterCompiler {
      * element/field.
      * <p>
      * The expression is evaluated to get a key (for objects) or index (for arrays),
-     * then the filter continues with remaining steps on that element.
+     * then the filter continues with
+     * remaining steps on that element.
      *
-     * @param parentValue the parent value (array or object)
-     * @param expressionStep the expression step
-     * @param steps all path steps
-     * @param stepIndex the current step index (points to next step after
-     * expression)
-     * @param functionIdentifier the function identifier
-     * @param arguments the function arguments
-     * @param context the compilation context
+     * @param parentValue
+     * the parent value (array or object)
+     * @param expressionStep
+     * the expression step
+     * @param steps
+     * all path steps
+     * @param stepIndex
+     * the current step index (points to next step after expression)
+     * @param functionIdentifier
+     * the function identifier
+     * @param arguments
+     * the function arguments
+     * @param context
+     * the compilation context
+     *
      * @return the updated parent value
      */
     private Value applyFilterToNestedExpression(Value parentValue, ExpressionStep expressionStep,

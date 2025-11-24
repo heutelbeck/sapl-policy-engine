@@ -48,10 +48,14 @@ public class StepOperators {
 
     /**
      * Performs an index or key step based on the expression result type. Uses the
-     * expression result as an array index if numeric, or an object key if text.
+     * expression result as an array index
+     * if numeric, or an object key if text.
      *
-     * @param value the value to access
-     * @param expressionResult the index or key as a value
+     * @param value
+     * the value to access
+     * @param expressionResult
+     * the index or key as a value
+     *
      * @return the accessed value, or an error if the expression result is not a
      * number or text
      */
@@ -68,8 +72,11 @@ public class StepOperators {
     /**
      * Accesses an object property by key.
      *
-     * @param parent the object value
-     * @param key the property key
+     * @param parent
+     * the object value
+     * @param key
+     * the property key
+     *
      * @return the property value, UNDEFINED if key not found, or error if parent is
      * not an object
      */
@@ -90,8 +97,11 @@ public class StepOperators {
      * Accesses an array element by index. Supports negative indices counting from
      * the end.
      *
-     * @param parent the array value
-     * @param bigIndex the element index (negative values count from end)
+     * @param parent
+     * the array value
+     * @param bigIndex
+     * the element index (negative values count from end)
+     *
      * @return the array element, or error if parent is not an array or index out of
      * bounds
      */
@@ -117,7 +127,9 @@ public class StepOperators {
     /**
      * Selects all elements from an array or all values from an object.
      *
-     * @param parent the array or object value
+     * @param parent
+     * the array or object value
+     *
      * @return the array itself if parent is array, array of object values if parent
      * is object, or error otherwise
      */
@@ -140,8 +152,11 @@ public class StepOperators {
      * Recursively searches for a key in nested objects and arrays, collecting all
      * matching values.
      *
-     * @param parent the value to search
-     * @param key the key to search for
+     * @param parent
+     * the value to search
+     * @param key
+     * the key to search for
+     *
      * @return array of all found values, or error if maximum recursion depth
      * exceeded
      */
@@ -163,10 +178,10 @@ public class StepOperators {
         if (parent instanceof ObjectValue objectValue) {
             val potentialMatch = objectValue.get(key);
             if (potentialMatch != null) {
-                builder.add(potentialMatch);  // Direct add, no intermediate arrays
+                builder.add(potentialMatch); // Direct add, no intermediate arrays
             }
             for (val value : objectValue.values()) {
-                recursiveKeyStep(value, key, depth + 1, builder);  // No result to check!
+                recursiveKeyStep(value, key, depth + 1, builder); // No result to check!
             }
         } else if (parent instanceof ArrayValue arrayValue) {
             for (val value : arrayValue) {
@@ -179,7 +194,8 @@ public class StepOperators {
      * Applies array slicing using SAPL semantics.
      * <p>
      * SAPL slicing differs from Python: negative step affects SELECTION pattern,
-     * not iteration direction. Iteration is always forward through array indices.
+     * not iteration direction. Iteration is
+     * always forward through array indices.
      * <p>
      * Slicing syntax: {@code array[start:end:step]}
      * <ul>
@@ -209,10 +225,15 @@ public class StepOperators {
      * <li>{@code [0,1,2,3,4,5,6,7,8,9][-2:6:-1]} → {@code []} (from &gt; to)</li>
      * </ul>
      *
-     * @param parent the array to slice
-     * @param bigIndex the starting index (null defaults to 0)
-     * @param bigTo the ending index (null defaults to array.length)
-     * @param bigStep the step size (null defaults to 1)
+     * @param parent
+     * the array to slice
+     * @param bigIndex
+     * the starting index (null defaults to 0)
+     * @param bigTo
+     * the ending index (null defaults to array.length)
+     * @param bigStep
+     * the step size (null defaults to 1)
+     *
      * @return the sliced array, or an error if parent is not an array or step is
      * zero
      */
@@ -289,13 +310,17 @@ public class StepOperators {
 
     /**
      * Selects multiple array elements by index union. Returns elements in array
-     * order with duplicates removed.
-     * Supports negative indices counting from the end.
+     * order with duplicates removed. Supports
+     * negative indices counting from the end.
      *
-     * @param parent the array value
-     * @param bigIndexes the indices to select (negative values count from end)
+     * @param parent
+     * the array value
+     * @param bigIndexes
+     * the indices to select (negative values count from end)
+     *
      * @return array containing selected elements in array order, or error if parent
-     * is not an array or any index out of bounds
+     * is not an array or any index out of
+     * bounds
      */
     public static Value indexUnion(Value parent, List<BigDecimal> bigIndexes) {
         int[] indexes = new int[bigIndexes.size()];
@@ -336,8 +361,11 @@ public class StepOperators {
      * insertion order with duplicates removed.
      * Missing keys are silently skipped.
      *
-     * @param parent the object value
-     * @param keys the keys to select
+     * @param parent
+     * the object value
+     * @param keys
+     * the keys to select
+     *
      * @return array containing selected values in object's insertion order, or
      * error if parent is not an object
      */
@@ -361,10 +389,12 @@ public class StepOperators {
 
     /**
      * Recursively collects all values from nested arrays and objects into a flat
-     * array.
-     * Traverses the entire structure depth-first, collecting values in pre-order.
+     * array. Traverses the entire structure
+     * depth-first, collecting values in pre-order.
      *
-     * @param parent the value to search
+     * @param parent
+     * the value to search
+     *
      * @return array of all found values at all nesting levels, or error if maximum
      * recursion depth exceeded
      */
@@ -398,11 +428,14 @@ public class StepOperators {
 
     /**
      * Recursively searches for an index in nested arrays, collecting all matching
-     * values.
-     * Supports negative indices counting from the end.
+     * values. Supports negative indices
+     * counting from the end.
      *
-     * @param parent the value to search
-     * @param index the index to search for (negative values count from end)
+     * @param parent
+     * the value to search
+     * @param index
+     * the index to search for (negative values count from end)
+     *
      * @return array of all found values, or error if maximum recursion depth
      * exceeded
      */

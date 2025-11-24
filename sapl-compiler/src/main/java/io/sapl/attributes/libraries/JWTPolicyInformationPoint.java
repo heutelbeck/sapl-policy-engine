@@ -41,11 +41,13 @@ import java.util.function.Function;
 
 /**
  * Policy Information Point for validating and monitoring JSON Web Tokens.
- * Attributes depend on the JWT's validity, meaning they can change their state
- * over time according to the JWT's signature, maturity, and expiration.
- * Public keys must be fetched from the trusted authentication server for
- * validating signatures. For this purpose, the url and http method for fetching
- * public keys need to be specified in the pdp.json configuration file.
+ * Attributes depend on the JWT's validity,
+ * meaning they can change their state over time according to the JWT's
+ * signature, maturity, and expiration. Public keys
+ * must be fetched from the trusted authentication server for validating
+ * signatures. For this purpose, the url and http
+ * method for fetching public keys need to be specified in the pdp.json
+ * configuration file.
  */
 @Slf4j
 @PolicyInformationPoint(name = JWTPolicyInformationPoint.NAME, description = JWTPolicyInformationPoint.DESCRIPTION, pipDocumentation = JWTPolicyInformationPoint.DOCUMENTATION)
@@ -204,13 +206,14 @@ public class JWTPolicyInformationPoint {
         IMMATURE,
         /**
          * The JWT's signature does not match. Either the payload has been tampered
-         * with, the public key could not be obtained, or the public key does not match
-         * the signature
+         * with, the public key could not be
+         * obtained, or the public key does not match the signature
          */
         UNTRUSTED,
         /**
          * The JWT is incompatible. Either an incompatible hashing algorithm has been
-         * used or required fields do not have the correct format
+         * used or required fields do not
+         * have the correct format
          */
         INCOMPATIBLE,
         /**
@@ -228,7 +231,8 @@ public class JWTPolicyInformationPoint {
     /**
      * Constructor
      *
-     * @param jwtKeyProvider a JWTKeyProvider
+     * @param jwtKeyProvider
+     * a JWTKeyProvider
      */
     public JWTPolicyInformationPoint(JWTKeyProvider jwtKeyProvider) {
         this.keyProvider = jwtKeyProvider;
@@ -238,8 +242,11 @@ public class JWTPolicyInformationPoint {
      * Checks the validity of a JWT token. Will update based on validity times of
      * the token.
      *
-     * @param rawToken a raw JWT Token
-     * @param variables SAPL variables
+     * @param rawToken
+     * a raw JWT Token
+     * @param variables
+     * SAPL variables
+     *
      * @return a TRUE Value, iff the token is valid.
      */
     @Attribute(docs = """
@@ -280,11 +287,14 @@ public class JWTPolicyInformationPoint {
     }
 
     /**
-     * A JWT's validity state over time.
-     * The validity may change over time as it becomes mature and then expires.
+     * A JWT's validity state over time. The validity may change over time as it
+     * becomes mature and then expires.
      *
-     * @param rawToken object containing JWT
-     * @param variables configuration variables
+     * @param rawToken
+     * object containing JWT
+     * @param variables
+     * configuration variables
+     *
      * @return Flux representing the JWT's validity over time
      */
     @Attribute(docs = """
@@ -453,7 +463,9 @@ public class JWTPolicyInformationPoint {
     /**
      * Verifies token validity based on time
      *
-     * @param claims JWT claims
+     * @param claims
+     * JWT claims
+     *
      * @return Flux containing IMMATURE, VALID, and/or EXPIRED
      */
     private Flux<ValidityState> validateTime(JWTClaimsSet claims) {
@@ -494,7 +506,9 @@ public class JWTPolicyInformationPoint {
     /**
      * Checks if token contains all required claims
      *
-     * @param jwt base64 encoded header.body.signature triplet
+     * @param jwt
+     * base64 encoded header.body.signature triplet
+     *
      * @return true if the token contains all required claims
      */
     private boolean hasRequiredClaims(SignedJWT jwt) {
@@ -506,7 +520,9 @@ public class JWTPolicyInformationPoint {
     /**
      * Checks if claims meet requirements
      *
-     * @param jwt JWT
+     * @param jwt
+     * JWT
+     *
      * @return true all claims meet requirements
      */
     private boolean hasCompatibleClaims(SignedJWT jwt) {

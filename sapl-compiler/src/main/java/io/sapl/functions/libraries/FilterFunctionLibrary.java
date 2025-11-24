@@ -31,7 +31,8 @@ import lombok.val;
  * transformation in access control policies.
  * <p>
  * This library provides essential functions for redacting, replacing, and
- * removing sensitive data in authorization decisions.
+ * removing sensitive data in authorization
+ * decisions.
  */
 @UtilityClass
 @FunctionLibrary(name = FilterFunctionLibrary.NAME, description = FilterFunctionLibrary.DESCRIPTION)
@@ -60,13 +61,15 @@ public class FilterFunctionLibrary {
     /**
      * Replaces a section of a text with a fixed character.
      *
-     * @param parameters STRING (original textual Value), DISCLOSE_LEFT leave this
-     * number of characters original on the left side of the
-     * string, DISCLOSE_RIGHT leave this number of characters
-     * original on the right side of the string, REPLACEMENT the
-     * replacement characters, defaulting to X, BLACKEN_LENGTH the
-     * number of replacement characters to use, overriding the
-     * calculated length.
+     * @param parameters
+     * STRING (original textual Value), DISCLOSE_LEFT leave this number of
+     * characters original on the left
+     * side of the string, DISCLOSE_RIGHT leave this number of characters original
+     * on the right side of the
+     * string, REPLACEMENT the replacement characters, defaulting to X,
+     * BLACKEN_LENGTH the number of
+     * replacement characters to use, overriding the calculated length.
+     *
      * @return the original Text value with the indicated characters replaced with
      * the replacement characters.
      */
@@ -89,12 +92,17 @@ public class FilterFunctionLibrary {
     /**
      * Utility method to blacken a string with optional length override.
      *
-     * @param originalString the original string to blacken
-     * @param replacement the replacement character(s)
-     * @param discloseRight number of characters to keep on the right
-     * @param discloseLeft number of characters to keep on the left
-     * @param blackenLength override length for replacement characters, or null to
-     * use calculated length
+     * @param originalString
+     * the original string to blacken
+     * @param replacement
+     * the replacement character(s)
+     * @param discloseRight
+     * number of characters to keep on the right
+     * @param discloseLeft
+     * number of characters to keep on the left
+     * @param blackenLength
+     * override length for replacement characters, or null to use calculated length
+     *
      * @return the blackened string
      */
     public static String blackenUtil(String originalString, String replacement, int discloseRight, int discloseLeft,
@@ -122,12 +130,19 @@ public class FilterFunctionLibrary {
     /**
      * Extracts a positive integer parameter from the parameters array.
      *
-     * @param parameters the parameters array
-     * @param index the index of the parameter to extract
-     * @param defaultValue the default value if parameter is not present
-     * @param errorMessage the error message if parameter is invalid
+     * @param parameters
+     * the parameters array
+     * @param index
+     * the index of the parameter to extract
+     * @param defaultValue
+     * the default value if parameter is not present
+     * @param errorMessage
+     * the error message if parameter is invalid
+     *
      * @return the extracted integer or the default value
-     * @throws IllegalArgumentException if parameter is present but invalid
+     *
+     * @throws IllegalArgumentException
+     * if parameter is present but invalid
      */
     private static int extractPositiveIntParameter(Value[] parameters, int index, int defaultValue,
             String errorMessage) {
@@ -175,10 +190,13 @@ public class FilterFunctionLibrary {
     /**
      * Extracts the blacken length from parameters.
      *
-     * @param parameters the function parameters
+     * @param parameters
+     * the function parameters
+     *
      * @return the blacken length if provided, otherwise null
-     * @throws IllegalArgumentException if the length parameter is not a positive
-     * integer
+     *
+     * @throws IllegalArgumentException
+     * if the length parameter is not a positive integer
      */
     private static Integer extractBlackenLength(Value... parameters) {
         if (hasNoParameterAtIndex(parameters.length, BLACKEN_LENGTH_INDEX)) {
@@ -206,8 +224,11 @@ public class FilterFunctionLibrary {
     /**
      * Replaces the original with another value.
      *
-     * @param original the original value, which is ignored unless it's an error.
-     * @param replacement a replacement value.
+     * @param original
+     * the original value, which is ignored unless it's an error.
+     * @param replacement
+     * a replacement value.
+     *
      * @return the replacement value, or the original if it's an error.
      */
     @Function(docs = "Replace a value with another value (errors bubble up)")
@@ -221,7 +242,9 @@ public class FilterFunctionLibrary {
     /**
      * Replaces any value with UNDEFINED.
      *
-     * @param original some value
+     * @param original
+     * some value
+     *
      * @return Value.UNDEFINED
      */
     @Function(docs = "Remove a value by replacing it with undefined")

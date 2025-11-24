@@ -686,7 +686,8 @@ class GraphQLFunctionLibraryTests {
             case String strVal    -> assertThat(variables.get(name).asText()).isEqualTo(strVal);
             case Boolean boolVal  -> assertThat(variables.get(name).asBoolean()).isEqualTo(boolVal);
             case Double doubleVal -> assertThat(variables.get(name).asDouble()).isEqualTo(doubleVal);
-            default               -> { /* no-op */}
+            default               -> {
+                /* no-op */}
             }
         });
     }

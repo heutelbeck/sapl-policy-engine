@@ -24,7 +24,8 @@ import io.sapl.api.model.Value;
 
 /**
  * Mock date function library for XACML-style tests. Adapted from sapl-lang to
- * use Value instead of Val. Returns hardcoded values for testing purposes.
+ * use Value instead of Val. Returns
+ * hardcoded values for testing purposes.
  */
 @FunctionLibrary(name = "date")
 public class MockXACMLDateFunctionLibrary {

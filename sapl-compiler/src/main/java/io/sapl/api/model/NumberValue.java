@@ -25,9 +25,9 @@ import java.io.Serial;
 import java.math.BigDecimal;
 
 /**
- * Numeric value implementation.
- * Uses numerical equality (not BigDecimal scale-sensitive equality).
- * For example, Value.of(1.0) equals Value.of(1.00).
+ * Numeric value implementation. Uses numerical equality (not BigDecimal
+ * scale-sensitive equality). For example,
+ * Value.of(1.0) equals Value.of(1.00).
  */
 public record NumberValue(@NonNull BigDecimal value, boolean secret) implements Value {
 

@@ -26,8 +26,9 @@ import java.io.Serial;
 import java.util.Objects;
 
 /**
- * Error value representing a failure during policy evaluation.
- * Errors are values, not exceptions, enabling functional error handling.
+ * Error value representing a failure during policy evaluation. Errors are
+ * values, not exceptions, enabling functional
+ * error handling.
  */
 public record ErrorValue(String message, Throwable cause, boolean secret) implements Value {
 
@@ -41,8 +42,10 @@ public record ErrorValue(String message, Throwable cause, boolean secret) implem
     /**
      * Creates an error from an exception.
      *
-     * @param cause the exception (must not be null)
-     * @param secret whether secret
+     * @param cause
+     * the exception (must not be null)
+     * @param secret
+     * whether secret
      */
     public ErrorValue(@NonNull Throwable cause, boolean secret) {
         this(cause.getMessage(), cause, secret);
@@ -51,7 +54,8 @@ public record ErrorValue(String message, Throwable cause, boolean secret) implem
     /**
      * Creates an error from an exception (not secret).
      *
-     * @param cause the exception (must not be null)
+     * @param cause
+     * the exception (must not be null)
      */
     public ErrorValue(@NonNull Throwable cause) {
         this(cause.getMessage(), cause, false);
@@ -60,8 +64,10 @@ public record ErrorValue(String message, Throwable cause, boolean secret) implem
     /**
      * Creates an error with a message.
      *
-     * @param message the error message (must not be null)
-     * @param secret whether secret
+     * @param message
+     * the error message (must not be null)
+     * @param secret
+     * whether secret
      */
     public ErrorValue(@NonNull String message, boolean secret) {
         this(message, null, secret);
@@ -70,7 +76,8 @@ public record ErrorValue(String message, Throwable cause, boolean secret) implem
     /**
      * Creates an error with a message (not secret).
      *
-     * @param message the error message (must not be null)
+     * @param message
+     * the error message (must not be null)
      */
     public ErrorValue(@NonNull String message) {
         this(message, null, false);

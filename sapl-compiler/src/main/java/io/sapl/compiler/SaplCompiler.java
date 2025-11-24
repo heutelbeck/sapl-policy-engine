@@ -369,7 +369,9 @@ public class SaplCompiler {
      * <li>Automatically disconnects when all subscribers unsubscribe</li>
      * </ul>
      *
-     * @param streamExpression the stream expression to multicast
+     * @param streamExpression
+     * the stream expression to multicast
+     *
      * @return a new StreamExpression with multicast behavior
      */
     private static StreamExpression makeExpressionMulticast(StreamExpression streamExpression) {

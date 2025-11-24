@@ -35,9 +35,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 
 /**
- * Comprehensive test suite for BitwiseFunctionLibrary.
- * Tests are primarily parameterized to ensure comprehensive coverage
- * of edge cases and maintain consistency across similar operations.
+ * Comprehensive test suite for BitwiseFunctionLibrary. Tests are primarily
+ * parameterized to ensure comprehensive
+ * coverage of edge cases and maintain consistency across similar operations.
  */
 class BitwiseFunctionLibraryTests {
     @Test

@@ -39,7 +39,9 @@ public class MockFunctionLibrary {
      * <p>
      * Used in tests to verify filter behavior with null-producing functions.
      *
-     * @param parameters ignored parameters
+     * @param parameters
+     * ignored parameters
+     *
      * @return null value
      */
     @Function(docs = "Returns null, ignoring all parameters")
@@ -52,7 +54,9 @@ public class MockFunctionLibrary {
      * <p>
      * Used in tests to verify filter replacement behavior.
      *
-     * @param parameters ignored parameters
+     * @param parameters
+     * ignored parameters
+     *
      * @return empty string value
      */
     @Function(docs = "Returns an empty string, ignoring all parameters")
@@ -65,7 +69,9 @@ public class MockFunctionLibrary {
      * <p>
      * Used in tests to verify error propagation in filters.
      *
-     * @param parameters ignored parameters
+     * @param parameters
+     * ignored parameters
+     *
      * @return error value
      */
     @Function(docs = "Returns an error value for testing")
@@ -78,8 +84,11 @@ public class MockFunctionLibrary {
      * <p>
      * Used in tests to verify exception handling in filters.
      *
-     * @param parameters ignored parameters
-     * @throws RuntimeException always thrown
+     * @param parameters
+     * ignored parameters
+     *
+     * @throws RuntimeException
+     * always thrown
      */
     @Function(docs = "Throws a runtime exception for testing")
     public static Value exception(Value... parameters) {
@@ -91,7 +100,9 @@ public class MockFunctionLibrary {
      * <p>
      * Used in tests to verify parameter passing in filters.
      *
-     * @param parameters the parameters to collect
+     * @param parameters
+     * the parameters to collect
+     *
      * @return array containing all parameters
      */
     @Function(docs = "Returns an array of all parameters")

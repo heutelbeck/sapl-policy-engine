@@ -42,8 +42,8 @@ import java.util.*;
  * GraphQL query parsing and analysis for authorization policies.
  * <p/>
  * Provides query inspection capabilities including field analysis, complexity
- * calculation, and security metrics for authorization decisions based on
- * GraphQL query characteristics.
+ * calculation, and security metrics for
+ * authorization decisions based on GraphQL query characteristics.
  */
 @UtilityClass
 @FunctionLibrary(name = GraphQLFunctionLibrary.NAME, description = GraphQLFunctionLibrary.DESCRIPTION, libraryDocumentation = GraphQLFunctionLibrary.DOCUMENTATION)
@@ -229,8 +229,9 @@ public class GraphQLFunctionLibrary {
 
     /**
      * Complexity factor applied to query depth. Each level of nesting multiplies
-     * the base complexity by this factor. Default is 2, meaning a query with
-     * depth 3 adds 6 to the complexity score (3 * 2).
+     * the base complexity by this factor.
+     * Default is 2, meaning a query with depth 3 adds 6 to the complexity score (3
+     * * 2).
      */
     public static final int DEPTH_COMPLEXITY_FACTOR = 2;
 
@@ -332,12 +333,15 @@ public class GraphQLFunctionLibrary {
     /**
      * Parses and validates a GraphQL query against a schema.
      * <p/>
-     * Returns a comprehensive object containing all security metrics and
-     * validation results. Parsing and validation happen in a single pass for
-     * optimal performance.
+     * Returns a comprehensive object containing all security metrics and validation
+     * results. Parsing and validation
+     * happen in a single pass for optimal performance.
      *
-     * @param query the GraphQL query string to parse and analyze
-     * @param schema the GraphQL schema definition (SDL) to validate against
+     * @param query
+     * the GraphQL query string to parse and analyze
+     * @param schema
+     * the GraphQL schema definition (SDL) to validate against
+     *
      * @return Value containing parsed query object with all metrics and validation
      * results
      */
@@ -394,11 +398,14 @@ public class GraphQLFunctionLibrary {
      * Parses a GraphQL query without schema validation.
      * <p/>
      * Returns the same comprehensive metrics as validateQuery() except for
-     * validation results. Use this when you need query analysis but don't have
-     * the schema available or want to analyze structure without enforcing schema
+     * validation results. Use this when you need
+     * query analysis but don't have the schema available or want to analyze
+     * structure without enforcing schema
      * conformance.
      *
-     * @param query the GraphQL query string to parse and analyze
+     * @param query
+     * the GraphQL query string to parse and analyze
+     *
      * @return Value containing parsed query object with all metrics
      */
     @Function(docs = """
@@ -435,12 +442,16 @@ public class GraphQLFunctionLibrary {
     /**
      * Calculates weighted complexity for a parsed query.
      * <p/>
-     * Applies custom weights to fields based on their expected resource cost.
-     * Each field can be assigned a custom weight. Fields not specified in the
-     * weights object receive a default weight of 1.
+     * Applies custom weights to fields based on their expected resource cost. Each
+     * field can be assigned a custom
+     * weight. Fields not specified in the weights object receive a default weight
+     * of 1.
      *
-     * @param parsed the parsed query object from validateQuery() or analyzeQuery()
-     * @param fieldWeights object mapping field names to numeric weights
+     * @param parsed
+     * the parsed query object from validateQuery() or analyzeQuery()
+     * @param fieldWeights
+     * object mapping field names to numeric weights
+     *
      * @return Value containing the weighted complexity score
      */
     @Function(docs = """
@@ -493,7 +504,9 @@ public class GraphQLFunctionLibrary {
      * Returns an object indicating validity and containing the schema AST
      * representation.
      *
-     * @param schema the GraphQL schema definition string
+     * @param schema
+     * the GraphQL schema definition string
+     *
      * @return Value containing schema validation result with AST
      */
     @Function(docs = """
@@ -545,7 +558,9 @@ public class GraphQLFunctionLibrary {
     /**
      * Builds a schema AST representation from a type definition registry.
      *
-     * @param typeDefinitionRegistry the schema type definition registry
+     * @param typeDefinitionRegistry
+     * the schema type definition registry
+     *
      * @return ObjectValue representing the schema structure
      */
     private static ObjectValue buildSchemaAst(graphql.schema.idl.TypeDefinitionRegistry typeDefinitionRegistry) {
@@ -584,9 +599,13 @@ public class GraphQLFunctionLibrary {
     /**
      * Extracts the operation definition from a parsed document.
      *
-     * @param document the parsed GraphQL document
+     * @param document
+     * the parsed GraphQL document
+     *
      * @return the operation definition
-     * @throws IllegalArgumentException if no operation definition is found
+     *
+     * @throws IllegalArgumentException
+     * if no operation definition is found
      */
     private static OperationDefinition extractOperation(Document document) {
         return (OperationDefinition) document.getDefinitions().stream().filter(OperationDefinition.class::isInstance)
@@ -596,8 +615,11 @@ public class GraphQLFunctionLibrary {
     /**
      * Analyzes a GraphQL query in a single pass, collecting all metrics at once.
      *
-     * @param document the parsed document
-     * @param operation the operation definition
+     * @param document
+     * the parsed document
+     * @param operation
+     * the operation definition
+     *
      * @return QueryMetrics containing all collected metrics
      */
     private static QueryMetrics analyzeQueryInSinglePass(Document document, OperationDefinition operation) {
@@ -620,10 +642,14 @@ public class GraphQLFunctionLibrary {
     /**
      * Recursively analyzes a selection set, collecting all metrics.
      *
-     * @param selectionSet the selection set to analyze
-     * @param currentDepth the current nesting depth
-     * @param metrics the metrics accumulator
-     * @param isRoot true if this is the root selection set
+     * @param selectionSet
+     * the selection set to analyze
+     * @param currentDepth
+     * the current nesting depth
+     * @param metrics
+     * the metrics accumulator
+     * @param isRoot
+     * true if this is the root selection set
      */
     private static void analyzeSelectionSet(SelectionSet selectionSet, int currentDepth, QueryMetrics metrics,
             boolean isRoot) {
@@ -639,7 +665,8 @@ public class GraphQLFunctionLibrary {
             case Field field             -> analyzeField(field, nextDepth, metrics, isRoot);
             case InlineFragment fragment -> analyzeInlineFragment(fragment, nextDepth, metrics);
             case FragmentSpread spread   -> processDirectivesContainer(spread, metrics);
-            default                      -> { /* Other selection types */}
+            default                      -> {
+                /* Other selection types */}
             }
         }
     }
@@ -648,10 +675,14 @@ public class GraphQLFunctionLibrary {
      * Analyzes a field, collecting field name, alias, arguments, directives, and
      * recursing into nested selections.
      *
-     * @param field the field to analyze
-     * @param currentDepth the current nesting depth
-     * @param metrics the metrics accumulator
-     * @param isRoot true if this field is at root level
+     * @param field
+     * the field to analyze
+     * @param currentDepth
+     * the current nesting depth
+     * @param metrics
+     * the metrics accumulator
+     * @param isRoot
+     * true if this field is at root level
      */
     private static void analyzeField(Field field, int currentDepth, QueryMetrics metrics, boolean isRoot) {
         metrics.addField(field.getName(), isRoot, field.getAlias() != null);
@@ -664,8 +695,10 @@ public class GraphQLFunctionLibrary {
      * Processes arguments from a field, extracting pagination limits and storing
      * argument values.
      *
-     * @param field the field to process
-     * @param metrics the metrics accumulator
+     * @param field
+     * the field to process
+     * @param metrics
+     * the metrics accumulator
      */
     private static void processFieldArguments(Field field, QueryMetrics metrics) {
         if (field.getArguments() == null || field.getArguments().isEmpty()) {
@@ -692,8 +725,10 @@ public class GraphQLFunctionLibrary {
      * Processes directives from any directive container (field, inline fragment,
      * fragment spread).
      *
-     * @param container the container with directives
-     * @param metrics the metrics accumulator
+     * @param container
+     * the container with directives
+     * @param metrics
+     * the metrics accumulator
      */
     private static void processDirectivesContainer(DirectivesContainer<?> container, QueryMetrics metrics) {
         if (container.getDirectives() == null || container.getDirectives().isEmpty()) {
@@ -722,9 +757,12 @@ public class GraphQLFunctionLibrary {
      * Analyzes an inline fragment, collecting type conditions and recursing into
      * nested selections.
      *
-     * @param fragment the inline fragment to analyze
-     * @param currentDepth the current nesting depth
-     * @param metrics the metrics accumulator
+     * @param fragment
+     * the inline fragment to analyze
+     * @param currentDepth
+     * the current nesting depth
+     * @param metrics
+     * the metrics accumulator
      */
     private static void analyzeInlineFragment(InlineFragment fragment, int currentDepth, QueryMetrics metrics) {
         if (fragment.getTypeCondition() != null) {
@@ -739,8 +777,10 @@ public class GraphQLFunctionLibrary {
      * Processes fragments to extract fragment details and detect circular
      * references.
      *
-     * @param document the parsed document
-     * @param metrics the metrics accumulator
+     * @param document
+     * the parsed document
+     * @param metrics
+     * the metrics accumulator
      */
     private static void processFragments(Document document, QueryMetrics metrics) {
         val fragmentDefinitions = new HashMap<String, FragmentDefinition>();
@@ -768,8 +808,10 @@ public class GraphQLFunctionLibrary {
     /**
      * Extracts field names from a selection set.
      *
-     * @param selectionSet the selection set to process
-     * @param accumulator list to accumulate field names
+     * @param selectionSet
+     * the selection set to process
+     * @param accumulator
+     * list to accumulate field names
      */
     private static void extractFieldsFromSelectionSet(SelectionSet selectionSet, List<String> accumulator) {
         if (selectionSet == null) {
@@ -783,7 +825,8 @@ public class GraphQLFunctionLibrary {
                 extractFieldsFromSelectionSet(field.getSelectionSet(), accumulator);
             }
             case InlineFragment fragment -> extractFieldsFromSelectionSet(fragment.getSelectionSet(), accumulator);
-            default                      -> { /* Other selection types */}
+            default                      -> {
+                /* Other selection types */}
             }
         }
     }
@@ -791,7 +834,9 @@ public class GraphQLFunctionLibrary {
     /**
      * Detects circular references in fragment definitions.
      *
-     * @param fragments map of fragment names to definitions
+     * @param fragments
+     * map of fragment names to definitions
+     *
      * @return true if circular references detected
      */
     private static boolean detectCircularFragments(Map<String, FragmentDefinition> fragments) {
@@ -806,18 +851,23 @@ public class GraphQLFunctionLibrary {
     /**
      * Checks for circular references in a fragment using depth-first search.
      * <p/>
-     * Uses backtracking DFS with a visited set to detect cycles. The algorithm:
-     * 1. Marks current fragment as visited
-     * 2. Recursively checks all fragment spreads
-     * 3. Backtracks by removing from visited set
+     * Uses backtracking DFS with a visited set to detect cycles. The algorithm: 1.
+     * Marks current fragment as visited 2.
+     * Recursively checks all fragment spreads 3. Backtracks by removing from
+     * visited set
      * <p/>
      * If a fragment is encountered while already in the visited set, a cycle
      * exists.
      *
-     * @param fragmentName the fragment name being checked
-     * @param fragment the fragment definition
-     * @param allFragments map of all fragments
-     * @param visited set of already visited fragment names in current path
+     * @param fragmentName
+     * the fragment name being checked
+     * @param fragment
+     * the fragment definition
+     * @param allFragments
+     * map of all fragments
+     * @param visited
+     * set of already visited fragment names in current path
+     *
      * @return true if circular reference found
      */
     private static boolean hasCircularReference(String fragmentName, FragmentDefinition fragment,
@@ -848,7 +898,9 @@ public class GraphQLFunctionLibrary {
     /**
      * Finds fragment spreads in a selection set.
      *
-     * @param selectionSet the selection set to search
+     * @param selectionSet
+     * the selection set to search
+     *
      * @return set of fragment names referenced
      */
     private static Set<String> findFragmentSpreads(SelectionSet selectionSet) {
@@ -862,7 +914,8 @@ public class GraphQLFunctionLibrary {
             case FragmentSpread spread   -> spreads.add(spread.getName());
             case Field field             -> spreads.addAll(findFragmentSpreads(field.getSelectionSet()));
             case InlineFragment fragment -> spreads.addAll(findFragmentSpreads(fragment.getSelectionSet()));
-            default                      -> { /* Other selection types */}
+            default                      -> {
+                /* Other selection types */}
             }
         }
 
@@ -872,7 +925,9 @@ public class GraphQLFunctionLibrary {
     /**
      * Converts a GraphQL AST Value to a SAPL Value.
      *
-     * @param value the GraphQL value to convert
+     * @param value
+     * the GraphQL value to convert
+     *
      * @return Value representation with correct types
      */
     private static Value convertGraphQLValueToValue(graphql.language.Value<?> value) {
@@ -904,10 +959,12 @@ public class GraphQLFunctionLibrary {
     }
 
     /**
-     * Extracts variable definitions from an operation. Only includes variables
-     * that have default values specified.
+     * Extracts variable definitions from an operation. Only includes variables that
+     * have default values specified.
      *
-     * @param operation the operation definition
+     * @param operation
+     * the operation definition
+     *
      * @return ObjectValue containing variable definitions with their default values
      */
     private static ObjectValue extractVariablesFromOperation(OperationDefinition operation) {
@@ -932,7 +989,8 @@ public class GraphQLFunctionLibrary {
     /**
      * Adds empty default values for properties when query is invalid.
      *
-     * @param result the result object builder to populate with defaults
+     * @param result
+     * the result object builder to populate with defaults
      */
     private static void addEmptyDefaults(ObjectValue.Builder result) {
         result.put(FIELD_OPERATION, Value.of(OPERATION_QUERY));
@@ -967,7 +1025,9 @@ public class GraphQLFunctionLibrary {
     /**
      * Creates an error result object with default values.
      *
-     * @param errorMessage the error message to include
+     * @param errorMessage
+     * the error message to include
+     *
      * @return Value containing error result
      */
     private static Value createErrorResult(String errorMessage) {
@@ -983,8 +1043,11 @@ public class GraphQLFunctionLibrary {
     /**
      * Handles parsing and validation exceptions with consistent error messages.
      *
-     * @param exception the exception that occurred
-     * @param context the context describing what operation failed
+     * @param exception
+     * the exception that occurred
+     * @param context
+     * the context describing what operation failed
+     *
      * @return Value containing error result
      */
     private static Value handleParseException(Exception exception, String context) {
@@ -995,7 +1058,9 @@ public class GraphQLFunctionLibrary {
      * Parses a GraphQL schema from a string and creates an executable schema with
      * caching.
      *
-     * @param schemaString the schema definition string
+     * @param schemaString
+     * the schema definition string
+     *
      * @return executable GraphQLSchema
      */
     private static GraphQLSchema parseSchemaWithCache(String schemaString) {
@@ -1011,7 +1076,9 @@ public class GraphQLFunctionLibrary {
     /**
      * Converts a list of strings to a Value array.
      *
-     * @param items list of strings
+     * @param items
+     * list of strings
+     *
      * @return ArrayValue
      */
     private static ArrayValue arrayFrom(List<String> items) {
@@ -1022,8 +1089,8 @@ public class GraphQLFunctionLibrary {
 
     /**
      * Mutable metrics accumulator for collecting query analysis data during a
-     * single-pass traversal. Provides methods to update metrics and populate the
-     * final result object.
+     * single-pass traversal. Provides methods
+     * to update metrics and populate the final result object.
      */
     private static class QueryMetrics {
         String              operation            = OPERATION_QUERY;
@@ -1046,9 +1113,12 @@ public class GraphQLFunctionLibrary {
         /**
          * Adds a field to the metrics collection.
          *
-         * @param fieldName the name of the field
-         * @param isRoot whether this is a root-level field
-         * @param hasAlias whether this field has an alias
+         * @param fieldName
+         * the name of the field
+         * @param isRoot
+         * whether this is a root-level field
+         * @param hasAlias
+         * whether this field has an alias
          */
         void addField(String fieldName, boolean isRoot, boolean hasAlias) {
             fields.add(fieldName);
@@ -1066,7 +1136,8 @@ public class GraphQLFunctionLibrary {
         /**
          * Updates the maximum pagination limit encountered.
          *
-         * @param limit the pagination limit value
+         * @param limit
+         * the pagination limit value
          */
         void updateMaxPaginationLimit(int limit) {
             maxPaginationLimit = Math.max(maxPaginationLimit, limit);
@@ -1074,10 +1145,12 @@ public class GraphQLFunctionLibrary {
 
         /**
          * Populates the result object with all collected metrics in a hybrid
-         * flat/grouped structure. Common fields remain flat for policy ergonomics,
-         * while detailed metrics are grouped by category.
+         * flat/grouped structure. Common fields
+         * remain flat for policy ergonomics, while detailed metrics are grouped by
+         * category.
          *
-         * @param result the result object builder to populate
+         * @param result
+         * the result object builder to populate
          */
         void populateResult(ObjectValue.Builder result) {
             populateCommonFields(result);
@@ -1088,7 +1161,8 @@ public class GraphQLFunctionLibrary {
         /**
          * Populates common fields that are frequently accessed in policies.
          *
-         * @param result the result object builder to populate
+         * @param result
+         * the result object builder to populate
          */
         private void populateCommonFields(ObjectValue.Builder result) {
             result.put(FIELD_OPERATION, Value.of(operation));
@@ -1101,7 +1175,8 @@ public class GraphQLFunctionLibrary {
         /**
          * Populates security-related metrics in a grouped structure.
          *
-         * @param result the result object builder to populate
+         * @param result
+         * the result object builder to populate
          */
         private void populateSecurityMetrics(ObjectValue.Builder result) {
             val security = ObjectValue.builder();
@@ -1124,7 +1199,8 @@ public class GraphQLFunctionLibrary {
         /**
          * Populates AST details in a grouped structure.
          *
-         * @param result the result object builder to populate
+         * @param result
+         * the result object builder to populate
          */
         private void populateAstDetails(ObjectValue.Builder result) {
             val ast = ObjectValue.builder();

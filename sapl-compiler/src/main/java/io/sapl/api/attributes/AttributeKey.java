@@ -25,14 +25,16 @@ import java.util.List;
 /**
  * Unique key identifying an attribute in storage.
  * <p>
- * Composed of entity (optional), attribute name, and arguments list.
- * Two keys are equal if all components are equal.
+ * Composed of entity (optional), attribute name, and arguments list. Two keys
+ * are equal if all components are equal.
  */
 public record AttributeKey(Value entity, @NonNull String attributeName, @NonNull List<Value> arguments) {
     /**
      * Creates an AttributeKey from an AttributeFinderInvocation.
      *
-     * @param invocation the invocation to extract key from
+     * @param invocation
+     * the invocation to extract key from
+     *
      * @return the attribute key
      */
     public static AttributeKey of(AttributeFinderInvocation invocation) {

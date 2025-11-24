@@ -31,8 +31,8 @@ import java.util.function.IntPredicate;
 import java.util.function.Predicate;
 
 /**
- * Utility for applying filter functions with different argument natures
- * (VALUE, PURE, STREAM).
+ * Utility for applying filter functions with different argument natures (VALUE,
+ * PURE, STREAM).
  * <p>
  * Provides methods for applying filters to:
  * <ul>
@@ -42,7 +42,8 @@ import java.util.function.Predicate;
  * </ul>
  * <p>
  * Each method switches on the argument nature to enable compile-time
- * optimization (constant folding) or runtime evaluation.
+ * optimization (constant folding) or runtime
+ * evaluation.
  */
 @UtilityClass
 class FilterApplicationStrategy {
@@ -52,10 +53,15 @@ class FilterApplicationStrategy {
     /**
      * Applies a filter function to a single value.
      *
-     * @param targetValue the value to filter
-     * @param functionIdentifier the function identifier
-     * @param arguments the function arguments
-     * @param context the compilation context
+     * @param targetValue
+     * the value to filter
+     * @param functionIdentifier
+     * the function identifier
+     * @param arguments
+     * the function arguments
+     * @param context
+     * the compilation context
+     *
      * @return the filtered result
      */
     public CompiledExpression applyFilterToValue(Value targetValue, String functionIdentifier,
@@ -70,11 +76,17 @@ class FilterApplicationStrategy {
     /**
      * Applies a filter function to specific array elements.
      *
-     * @param arrayValue the array to filter
-     * @param indexMatcher predicate determining which indices to filter
-     * @param functionIdentifier the function identifier
-     * @param arguments the function arguments
-     * @param context the compilation context
+     * @param arrayValue
+     * the array to filter
+     * @param indexMatcher
+     * predicate determining which indices to filter
+     * @param functionIdentifier
+     * the function identifier
+     * @param arguments
+     * the function arguments
+     * @param context
+     * the compilation context
+     *
      * @return the filtered array
      */
     public CompiledExpression applyFilterToArrayElements(ArrayValue arrayValue, IntPredicate indexMatcher,
@@ -91,10 +103,15 @@ class FilterApplicationStrategy {
     /**
      * Applies a filter function to all array elements.
      *
-     * @param arrayValue the array to filter
-     * @param functionIdentifier the function identifier
-     * @param arguments the function arguments
-     * @param context the compilation context
+     * @param arrayValue
+     * the array to filter
+     * @param functionIdentifier
+     * the function identifier
+     * @param arguments
+     * the function arguments
+     * @param context
+     * the compilation context
+     *
      * @return the filtered array
      */
     public CompiledExpression applyFilterToAllArrayElements(ArrayValue arrayValue, String functionIdentifier,
@@ -105,11 +122,17 @@ class FilterApplicationStrategy {
     /**
      * Applies a filter function to specific object fields.
      *
-     * @param objectValue the object to filter
-     * @param keyMatcher predicate determining which keys to filter
-     * @param functionIdentifier the function identifier
-     * @param arguments the function arguments
-     * @param context the compilation context
+     * @param objectValue
+     * the object to filter
+     * @param keyMatcher
+     * predicate determining which keys to filter
+     * @param functionIdentifier
+     * the function identifier
+     * @param arguments
+     * the function arguments
+     * @param context
+     * the compilation context
+     *
      * @return the filtered object
      */
     public CompiledExpression applyFilterToObjectFields(ObjectValue objectValue, Predicate<String> keyMatcher,
@@ -124,10 +147,15 @@ class FilterApplicationStrategy {
     /**
      * Applies a filter function to all object fields.
      *
-     * @param objectValue the object to filter
-     * @param functionIdentifier the function identifier
-     * @param arguments the function arguments
-     * @param context the compilation context
+     * @param objectValue
+     * the object to filter
+     * @param functionIdentifier
+     * the function identifier
+     * @param arguments
+     * the function arguments
+     * @param context
+     * the compilation context
+     *
      * @return the filtered object
      */
     public CompiledExpression applyFilterToAllObjectFields(ObjectValue objectValue, String functionIdentifier,
@@ -233,8 +261,7 @@ class FilterApplicationStrategy {
     // =========================================================================
 
     /**
-     * Applies a filter with streaming arguments (Nature.STREAM) to a single
-     * value.
+     * Applies a filter with streaming arguments (Nature.STREAM) to a single value.
      * <p>
      * Creates a StreamExpression that combines argument streams reactively.
      */
@@ -252,8 +279,7 @@ class FilterApplicationStrategy {
     }
 
     /**
-     * Applies a filter with streaming arguments (Nature.STREAM) to array
-     * elements.
+     * Applies a filter with streaming arguments (Nature.STREAM) to array elements.
      * <p>
      * Creates a StreamExpression that rebuilds the array for each argument
      * combination.

@@ -30,10 +30,11 @@ import java.util.concurrent.ConcurrentHashMap;
  * In-memory storage using ConcurrentHashMap.
  * <p>
  * No actual persistence - all data is lost on restart. Wraps synchronous
- * operations in Mono/Flux for interface compliance.
+ * operations in Mono/Flux for interface
+ * compliance.
  * <p>
- * Suitable for testing, development, and deployments where attribute loss
- * on restart is acceptable.
+ * Suitable for testing, development, and deployments where attribute loss on
+ * restart is acceptable.
  */
 public class HeapAttributeStorage implements AttributeStorage {
 

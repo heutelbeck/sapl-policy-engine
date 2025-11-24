@@ -40,8 +40,9 @@ import static io.sapl.compiler.operators.BooleanOperators.TYPE_MISMATCH_BOOLEAN_
 
 /**
  * Compiles SAPL abstract syntax tree expressions into optimized executable
- * representations. Performs compile-time constant folding and type-based
- * optimization to generate efficient evaluation code.
+ * representations. Performs compile-time
+ * constant folding and type-based optimization to generate efficient evaluation
+ * code.
  */
 @UtilityClass
 public class ExpressionCompiler {
@@ -57,12 +58,14 @@ public class ExpressionCompiler {
 
     /**
      * Compiles a SAPL expression from the abstract syntax tree into an optimized
-     * executable form. Dispatches to specialized compilation methods based on
-     * expression type.
+     * executable form. Dispatches to
+     * specialized compilation methods based on expression type.
      *
-     * @param expression the AST expression to compile
-     * @param context the compilation context containing variables and function
-     * broker
+     * @param expression
+     * the AST expression to compile
+     * @param context
+     * the compilation context containing variables and function broker
+     *
      * @return the compiled expression ready for evaluation, or null if input is
      * null
      */
@@ -103,13 +106,18 @@ public class ExpressionCompiler {
 
     /**
      * Compiles a lazy OR operation with short-circuit evaluation. Returns the left
-     * operand immediately if it is true at compile time, avoiding compilation of
-     * the right operand. For runtime evaluation, only evaluates the right operand
+     * operand immediately if it is true at
+     * compile time, avoiding compilation of the right operand. For runtime
+     * evaluation, only evaluates the right operand
      * when the left operand is false, enabling efficient attribute resolution and
-     * avoiding unnecessary PIP subscriptions.
+     * avoiding unnecessary PIP
+     * subscriptions.
      *
-     * @param or the OR operator AST node
-     * @param context the compilation context
+     * @param or
+     * the OR operator AST node
+     * @param context
+     * the compilation context
+     *
      * @return the compiled lazy OR expression with short-circuit semantics
      */
     private CompiledExpression compileLazyOr(Or or, CompilationContext context) {
@@ -161,13 +169,18 @@ public class ExpressionCompiler {
 
     /**
      * Evaluates a lazy OR operation with stream expressions using short-circuit
-     * semantics. Uses switchMap to cancel previous right subscriptions when left
-     * emits new values. Only subscribes to the right stream when the left value is
-     * false, implementing true lazy evaluation for streaming attribute resolution.
-     * Propagates secret flags from both operands when both are evaluated.
+     * semantics. Uses switchMap to cancel
+     * previous right subscriptions when left emits new values. Only subscribes to
+     * the right stream when the left value
+     * is false, implementing true lazy evaluation for streaming attribute
+     * resolution. Propagates secret flags from both
+     * operands when both are evaluated.
      *
-     * @param left the left compiled expression
-     * @param right the right compiled expression
+     * @param left
+     * the left compiled expression
+     * @param right
+     * the right compiled expression
+     *
      * @return a Flux that emits boolean values with lazy OR semantics
      */
     private static Flux<Value> evaluateLazyOrWithStreamExpressions(CompiledExpression left, CompiledExpression right) {
@@ -197,14 +210,19 @@ public class ExpressionCompiler {
 
     /**
      * Evaluates a lazy OR operation with pure expressions using short-circuit
-     * semantics. Evaluates the left operand first, and only evaluates the right
-     * operand if the left is false. Properly propagates secret flags from both
+     * semantics. Evaluates the left operand
+     * first, and only evaluates the right operand if the left is false. Properly
+     * propagates secret flags from both
      * operands when both are evaluated, or only from the evaluated operand when
      * short-circuiting occurs.
      *
-     * @param pureLeft the left pure expression
-     * @param pureRight the right pure expression
-     * @param ctx the evaluation context
+     * @param pureLeft
+     * the left pure expression
+     * @param pureRight
+     * the right pure expression
+     * @param ctx
+     * the evaluation context
+     *
      * @return the boolean result with appropriate secret flag
      */
     private static Value evaluatePureLazyOr(PureExpression pureLeft, PureExpression pureRight, EvaluationContext ctx) {
@@ -233,13 +251,18 @@ public class ExpressionCompiler {
 
     /**
      * Compiles a lazy AND operation with short-circuit evaluation. Returns the left
-     * operand immediately if it is false at compile time, avoiding compilation of
-     * the right operand. For runtime evaluation, only evaluates the right operand
-     * when the left operand is true, enabling efficient attribute resolution and
-     * avoiding unnecessary PIP subscriptions.
+     * operand immediately if it is false
+     * at compile time, avoiding compilation of the right operand. For runtime
+     * evaluation, only evaluates the right
+     * operand when the left operand is true, enabling efficient attribute
+     * resolution and avoiding unnecessary PIP
+     * subscriptions.
      *
-     * @param and the AND operator AST node
-     * @param context the compilation context
+     * @param and
+     * the AND operator AST node
+     * @param context
+     * the compilation context
+     *
      * @return the compiled lazy AND expression with short-circuit semantics
      */
     private CompiledExpression compileLazyAnd(And and, CompilationContext context) {
@@ -299,13 +322,18 @@ public class ExpressionCompiler {
 
     /**
      * Evaluates a lazy AND operation with stream expressions using short-circuit
-     * semantics. Uses switchMap to cancel previous right subscriptions when left
-     * emits new values. Only subscribes to the right stream when the left value is
-     * true, implementing true lazy evaluation for streaming attribute resolution.
-     * Propagates secret flags from both operands when both are evaluated.
+     * semantics. Uses switchMap to cancel
+     * previous right subscriptions when left emits new values. Only subscribes to
+     * the right stream when the left value
+     * is true, implementing true lazy evaluation for streaming attribute
+     * resolution. Propagates secret flags from both
+     * operands when both are evaluated.
      *
-     * @param left the left compiled expression
-     * @param right the right compiled expression
+     * @param left
+     * the left compiled expression
+     * @param right
+     * the right compiled expression
+     *
      * @return a Flux that emits boolean values with lazy AND semantics
      */
     private static Flux<Value> evaluateLazyAndWithStreamExpressions(CompiledExpression left, CompiledExpression right) {
@@ -335,14 +363,19 @@ public class ExpressionCompiler {
 
     /**
      * Evaluates a lazy AND operation with pure expressions using short-circuit
-     * semantics. Evaluates the left operand first, and only evaluates the right
-     * operand if the left is true. Properly propagates secret flags from both
+     * semantics. Evaluates the left operand
+     * first, and only evaluates the right operand if the left is true. Properly
+     * propagates secret flags from both
      * operands when both are evaluated, or only from the evaluated operand when
      * short-circuiting occurs.
      *
-     * @param pureLeft the left pure expression
-     * @param pureRight the right pure expression
-     * @param ctx the evaluation context
+     * @param pureLeft
+     * the left pure expression
+     * @param pureRight
+     * the right pure expression
+     * @param ctx
+     * the evaluation context
+     *
      * @return the boolean result with appropriate secret flag
      */
     private static Value evaluatePureLazyAnd(PureExpression pureLeft, PureExpression pureRight, EvaluationContext ctx) {
@@ -371,12 +404,16 @@ public class ExpressionCompiler {
 
     /**
      * Compiles a binary operation by recursively compiling its operands and
-     * combining them. Performs pre-compilation optimization for regex patterns when
-     * the right operand is a constant.
+     * combining them. Performs pre-compilation
+     * optimization for regex patterns when the right operand is a constant.
      *
-     * @param astOperator the binary operator AST node
-     * @param operator the operation to apply to compiled operands
-     * @param context the compilation context
+     * @param astOperator
+     * the binary operator AST node
+     * @param operator
+     * the operation to apply to compiled operands
+     * @param context
+     * the compilation context
+     *
      * @return the compiled binary operation expression
      */
     private CompiledExpression compileBinaryOperator(BinaryOperator astOperator,
@@ -405,12 +442,17 @@ public class ExpressionCompiler {
 
     /**
      * Assembles two compiled expressions into a binary operation. Performs constant
-     * folding when both operands are values. Creates optimized stream or pure
-     * expression wrappers based on operand types.
+     * folding when both operands are
+     * values. Creates optimized stream or pure expression wrappers based on operand
+     * types.
      *
-     * @param left the compiled left operand
-     * @param right the compiled right operand
-     * @param operation the binary operation to apply
+     * @param left
+     * the compiled left operand
+     * @param right
+     * the compiled right operand
+     * @param operation
+     * the binary operation to apply
+     *
      * @return the assembled binary operation expression
      */
     private CompiledExpression assembleBinaryOperation(CompiledExpression left, CompiledExpression right,
@@ -446,12 +488,16 @@ public class ExpressionCompiler {
 
     /**
      * Assembles a binary operation involving at least one stream expression. Uses
-     * Flux.combineLatest to reactively combine the latest values from both
-     * operands.
+     * Flux.combineLatest to reactively
+     * combine the latest values from both operands.
      *
-     * @param leftExpression the left compiled expression
-     * @param rightExpression the right compiled expression
-     * @param operation the binary operation to apply
+     * @param leftExpression
+     * the left compiled expression
+     * @param rightExpression
+     * the right compiled expression
+     * @param operation
+     * the binary operation to apply
+     *
      * @return a stream expression that combines the operand streams
      */
     private StreamExpression assembleBinaryStreamOperator(CompiledExpression leftExpression,
@@ -463,13 +509,17 @@ public class ExpressionCompiler {
 
     /**
      * Compiles a unary operation by compiling its operand and applying the
-     * operation.
-     * Performs constant folding for value operands. Creates stream or pure
-     * expression wrappers for deferred operands.
+     * operation. Performs constant folding for
+     * value operands. Creates stream or pure expression wrappers for deferred
+     * operands.
      *
-     * @param operator the unary operator AST node
-     * @param operation the unary operation to apply
-     * @param context the compilation context
+     * @param operator
+     * the unary operator AST node
+     * @param operation
+     * the unary operation to apply
+     * @param context
+     * the compilation context
+     *
      * @return the compiled unary operation expression
      */
     private CompiledExpression compileUnaryOperator(UnaryOperator operator,
@@ -485,15 +535,19 @@ public class ExpressionCompiler {
 
     /**
      * Compiles a basic expression by dispatching to the appropriate handler based
-     * on the specific basic expression type.
+     * on the specific basic expression
+     * type.
      * <p>
      * Grammar: BasicExpression: Basic (FILTER filter=FilterComponent | SUBTEMPLATE
      * subtemplate=BasicExpression)?
      * <p>
      * First compiles the Basic part, then applies any filter or subtemplate.
      *
-     * @param expression the basic expression AST node
-     * @param context the compilation context
+     * @param expression
+     * the basic expression AST node
+     * @param context
+     * the compilation context
+     *
      * @return the compiled basic expression
      */
     private CompiledExpression compileBasicExpression(BasicExpression expression, CompilationContext context) {
@@ -520,9 +574,13 @@ public class ExpressionCompiler {
     /**
      * Applies filter or subtemplate to a compiled expression if present in the AST.
      *
-     * @param compiled the compiled basic expression
-     * @param expression the original AST node (may have filter/subtemplate)
-     * @param context the compilation context
+     * @param compiled
+     * the compiled basic expression
+     * @param expression
+     * the original AST node (may have filter/subtemplate)
+     * @param context
+     * the compilation context
+     *
      * @return the expression with filter/subtemplate applied, or original if none
      */
     private CompiledExpression applyFilterOrSubtemplate(CompiledExpression compiled, BasicExpression expression,
@@ -540,8 +598,11 @@ public class ExpressionCompiler {
      * Compiles a basic relative expression that references the relative value from
      * the evaluation context.
      *
-     * @param relativeValue the relative value AST node
-     * @param context the compilation context
+     * @param relativeValue
+     * the relative value AST node
+     * @param context
+     * the compilation context
+     *
      * @return a pure expression that extracts the relative value and applies steps
      */
     private CompiledExpression compileBasicRelative(BasicRelative relativeValue, CompilationContext context) {
@@ -552,10 +613,14 @@ public class ExpressionCompiler {
 
     /**
      * Compiles a function call by compiling its arguments and dispatching to the
-     * appropriate handler based on argument types.
+     * appropriate handler based on argument
+     * types.
      *
-     * @param function the function AST node
-     * @param context the compilation context
+     * @param function
+     * the function AST node
+     * @param context
+     * the compilation context
+     *
      * @return the compiled function call expression
      */
     private CompiledExpression compileBasicFunction(BasicFunction function, CompilationContext context) {
@@ -573,12 +638,16 @@ public class ExpressionCompiler {
 
     /**
      * Compiles a function call with stream parameters. Creates a stream expression
-     * that combines the argument streams and evaluates the function with each
-     * combination.
+     * that combines the argument streams
+     * and evaluates the function with each combination.
      *
-     * @param function the function AST node
-     * @param arguments the compiled arguments
-     * @param context the compilation context
+     * @param function
+     * the function AST node
+     * @param arguments
+     * the compiled arguments
+     * @param context
+     * the compilation context
+     *
      * @return a stream expression that evaluates the function reactively
      */
     private CompiledExpression compileFunctionWithStreamParameters(BasicFunction function, CompiledArguments arguments,
@@ -591,11 +660,16 @@ public class ExpressionCompiler {
 
     /**
      * Compiles a function call with pure parameters. Creates a pure expression that
-     * evaluates all arguments and then invokes the function.
+     * evaluates all arguments and then
+     * invokes the function.
      *
-     * @param function the function AST node
-     * @param arguments the compiled arguments
-     * @param context the compilation context
+     * @param function
+     * the function AST node
+     * @param arguments
+     * the compiled arguments
+     * @param context
+     * the compilation context
+     *
      * @return a pure expression that evaluates the function call
      */
     private CompiledExpression compileFunctionWithPureParameters(BasicFunction function, CompiledArguments arguments,
@@ -619,11 +693,16 @@ public class ExpressionCompiler {
 
     /**
      * Evaluates a function call with known constant parameters at compile time.
-     * Performs immediate function invocation for compile-time constant folding.
+     * Performs immediate function invocation
+     * for compile-time constant folding.
      *
-     * @param function the function AST node
-     * @param arguments the compiled value arguments
-     * @param context the compilation context
+     * @param function
+     * the function AST node
+     * @param arguments
+     * the compiled value arguments
+     * @param context
+     * the compilation context
+     *
      * @return the function evaluation result as a CompiledExpression
      */
     private CompiledExpression foldFunctionWithValueParameters(BasicFunction function, CompiledExpression[] arguments,
@@ -638,9 +717,13 @@ public class ExpressionCompiler {
      * Evaluates a function call with known constant parameters during evaluation
      * time.
      *
-     * @param function the function AST node
-     * @param arguments the compiled value arguments
-     * @param context the evaluation context
+     * @param function
+     * the function AST node
+     * @param arguments
+     * the compiled value arguments
+     * @param context
+     * the evaluation context
+     *
      * @return the function evaluation result as a Value
      */
     private Value evaluateFunctionWithValueParameters(BasicFunction function, java.lang.Object[] arguments,
@@ -653,10 +736,14 @@ public class ExpressionCompiler {
 
     /**
      * Compiles an identifier reference by checking local scope first, then creating
-     * a pure expression that retrieves the identifier from the evaluation context.
+     * a pure expression that retrieves
+     * the identifier from the evaluation context.
      *
-     * @param identifier the identifier AST node
-     * @param context the compilation context
+     * @param identifier
+     * the identifier AST node
+     * @param context
+     * the compilation context
+     *
      * @return the compiled identifier reference
      */
     private CompiledExpression compileIdentifier(BasicIdentifier identifier, CompilationContext context) {
@@ -671,10 +758,14 @@ public class ExpressionCompiler {
 
     /**
      * Compiles a value literal by extracting the value and compiling any subsequent
-     * steps. Performs deduplication for constant values.
+     * steps. Performs deduplication for
+     * constant values.
      *
-     * @param basic the basic value AST node
-     * @param context the compilation context
+     * @param basic
+     * the basic value AST node
+     * @param context
+     * the compilation context
+     *
      * @return the compiled value expression
      */
     private CompiledExpression compileValue(BasicValue basic, CompilationContext context) {
@@ -698,9 +789,13 @@ public class ExpressionCompiler {
      * Compiles a chain of steps by sequentially applying each step to the result of
      * the previous step.
      *
-     * @param expression the initial expression
-     * @param steps the list of steps to apply
-     * @param context the compilation context
+     * @param expression
+     * the initial expression
+     * @param steps
+     * the list of steps to apply
+     * @param context
+     * the compilation context
+     *
      * @return the expression with all steps compiled and applied
      */
     private CompiledExpression compileSteps(CompiledExpression expression, List<Step> steps,
@@ -721,9 +816,13 @@ public class ExpressionCompiler {
      * Compiles a single step operation by dispatching to the appropriate step
      * handler based on step type.
      *
-     * @param parent the parent expression to which the step is applied
-     * @param step the step AST node
-     * @param context the compilation context
+     * @param parent
+     * the parent expression to which the step is applied
+     * @param step
+     * the step AST node
+     * @param context
+     * the compilation context
+     *
      * @return the compiled step expression
      */
     private CompiledExpression compileStep(CompiledExpression parent, Step step, CompilationContext context) {
@@ -760,11 +859,16 @@ public class ExpressionCompiler {
 
     /**
      * Compiles an expression step that uses a sub-expression to determine the index
-     * or key for accessing the parent value.
+     * or key for accessing the parent
+     * value.
      *
-     * @param parentExpression the parent expression being accessed
-     * @param expressionStep the expression step AST node
-     * @param context the compilation context
+     * @param parentExpression
+     * the parent expression being accessed
+     * @param expressionStep
+     * the expression step AST node
+     * @param context
+     * the compilation context
+     *
      * @return the compiled expression step
      */
     private CompiledExpression compileExpressionStep(CompiledExpression parentExpression, ExpressionStep expressionStep,
@@ -775,13 +879,17 @@ public class ExpressionCompiler {
 
     /**
      * Compiles a step operation on a parent expression by applying a unary
-     * operation.
-     * Handles constant folding for value parents, and creates stream or pure
-     * expression wrappers for deferred parents.
+     * operation. Handles constant folding for
+     * value parents, and creates stream or pure expression wrappers for deferred
+     * parents.
      *
-     * @param parent the parent expression
-     * @param operation the unary operation to apply
-     * @param context the compilation context
+     * @param parent
+     * the parent expression
+     * @param operation
+     * the unary operation to apply
+     * @param context
+     * the compilation context
+     *
      * @return the compiled step expression
      */
     private CompiledExpression compileStep(CompiledExpression parent, java.util.function.UnaryOperator<Value> operation,
@@ -803,11 +911,16 @@ public class ExpressionCompiler {
 
     /**
      * Compiles a condition step by dispatching to the appropriate handler based on
-     * the parent and condition expression type.
+     * the parent and condition expression
+     * type.
      *
-     * @param parent the parent expression to filter
-     * @param expressionStep the condition step AST node
-     * @param context the compilation context
+     * @param parent
+     * the parent expression to filter
+     * @param expressionStep
+     * the condition step AST node
+     * @param context
+     * the compilation context
+     *
      * @return the compiled condition step expression
      */
     private CompiledExpression compileConditionStep(CompiledExpression parent, ConditionStep expressionStep,
@@ -857,11 +970,14 @@ public class ExpressionCompiler {
 
     /**
      * Evaluates a condition step on a constant value parent with a constant boolean
-     * condition. Returns the parent if condition is true, or an appropriate empty
-     * container or undefined.
+     * condition. Returns the parent if
+     * condition is true, or an appropriate empty container or undefined.
      *
-     * @param valueParent the constant parent value
-     * @param valueCondition the constant condition value
+     * @param valueParent
+     * the constant parent value
+     * @param valueCondition
+     * the constant condition value
+     *
      * @return the filtered value or error if condition is not boolean
      */
     private Value evaluateConditionOnValueParentWithConstantValueCondition(Value valueParent, Value valueCondition) {
@@ -886,12 +1002,16 @@ public class ExpressionCompiler {
 
     /**
      * Compiles a condition step on a constant value parent with a pure condition
-     * expression. Applies immediate constant folding if condition is not
-     * subscription-scoped.
+     * expression. Applies immediate constant
+     * folding if condition is not subscription-scoped.
      *
-     * @param valueParent the constant parent value
-     * @param pureCondition the pure condition expression
-     * @param context the compilation context
+     * @param valueParent
+     * the constant parent value
+     * @param pureCondition
+     * the pure condition expression
+     * @param context
+     * the compilation context
+     *
      * @return the compiled filtered expression
      */
     private CompiledExpression compileConditionOnValueParentWithPureCondition(Value valueParent,
@@ -912,11 +1032,12 @@ public class ExpressionCompiler {
 
     /**
      * Creates a temporary evaluation context for folding relative expressions at
-     * compile time. Contains only the function broker with no subscription
-     * variables.
+     * compile time. Contains only the
+     * function broker with no subscription variables.
      *
-     * @param compilationContext the compilation context providing the function
-     * broker
+     * @param compilationContext
+     * the compilation context providing the function broker
+     *
      * @return an evaluation context for compile-time folding
      */
     private EvaluationContext temporaryRelativeFoldingEvaluationContext(CompilationContext compilationContext) {
@@ -926,11 +1047,14 @@ public class ExpressionCompiler {
 
     /**
      * Compiles a condition step on a scalar value with a pure condition. Creates a
-     * pure expression that evaluates the condition with the scalar as relative
-     * value.
+     * pure expression that evaluates the
+     * condition with the scalar as relative value.
      *
-     * @param scalarParent the scalar parent value
-     * @param pureCondition the pure condition expression
+     * @param scalarParent
+     * the scalar parent value
+     * @param pureCondition
+     * the pure condition expression
+     *
      * @return a pure expression evaluating the filtered scalar
      */
     private PureExpression compileConditionStepOnScalarValueConstantWithPureCondition(Value scalarParent,
@@ -943,10 +1067,14 @@ public class ExpressionCompiler {
 
     /**
      * Returns the value if the condition is true, otherwise returns undefined.
-     * Validates that the condition evaluates to a boolean value.
+     * Validates that the condition evaluates
+     * to a boolean value.
      *
-     * @param value the value to potentially return
-     * @param condition the condition result
+     * @param value
+     * the value to potentially return
+     * @param condition
+     * the condition result
+     *
      * @return the value if condition is true, undefined if false, or error if
      * condition is not boolean
      */
@@ -964,10 +1092,14 @@ public class ExpressionCompiler {
 
     /**
      * Compiles a condition step on an array value with a pure condition. Creates a
-     * pure expression that filters array elements based on condition evaluation.
+     * pure expression that filters array
+     * elements based on condition evaluation.
      *
-     * @param arrayParent the array parent value
-     * @param pureCondition the pure condition expression
+     * @param arrayParent
+     * the array parent value
+     * @param pureCondition
+     * the pure condition expression
+     *
      * @return a pure expression building the filtered array
      */
     private PureExpression compileConditionStepOnArrayValueConstantWithPureCondition(ArrayValue arrayParent,
@@ -979,12 +1111,16 @@ public class ExpressionCompiler {
 
     /**
      * Evaluates a condition step on an array value by filtering elements where the
-     * condition evaluates to true. Each element is set as the relative value with
-     * its index as relative location.
+     * condition evaluates to true. Each
+     * element is set as the relative value with its index as relative location.
      *
-     * @param ctx the evaluation context
-     * @param arrayParent the array to filter
-     * @param pureCondition the condition to evaluate per element
+     * @param ctx
+     * the evaluation context
+     * @param arrayParent
+     * the array to filter
+     * @param pureCondition
+     * the condition to evaluate per element
+     *
      * @return the filtered array or error if condition evaluation fails
      */
     private Value evaluateConditionStepOnArrayValueConstantWithPureCondition(EvaluationContext ctx,
@@ -1006,10 +1142,14 @@ public class ExpressionCompiler {
 
     /**
      * Compiles a condition step on an object value with a pure condition. Creates a
-     * pure expression that filters object properties based on condition evaluation.
+     * pure expression that filters object
+     * properties based on condition evaluation.
      *
-     * @param objectParent the object parent value
-     * @param pureCondition the pure condition expression
+     * @param objectParent
+     * the object parent value
+     * @param pureCondition
+     * the pure condition expression
+     *
      * @return a pure expression building the filtered object
      */
     private PureExpression compileConditionStepOnObjectValueConstantWithPureCondition(ObjectValue objectParent,
@@ -1021,12 +1161,17 @@ public class ExpressionCompiler {
 
     /**
      * Evaluates a condition step on an object value by filtering properties where
-     * the condition evaluates to true. Each property value is set as the relative
-     * value with its key as relative location.
+     * the condition evaluates to true. Each
+     * property value is set as the relative value with its key as relative
+     * location.
      *
-     * @param ctx the evaluation context
-     * @param objectParent the object to filter
-     * @param pureCondition the condition to evaluate per property
+     * @param ctx
+     * the evaluation context
+     * @param objectParent
+     * the object to filter
+     * @param pureCondition
+     * the condition to evaluate per property
+     *
      * @return the filtered object or error if condition evaluation fails
      */
     private Value evaluateConditionStepOnObjectValueConstantWithPureCondition(EvaluationContext ctx,
@@ -1051,10 +1196,14 @@ public class ExpressionCompiler {
 
     /**
      * Compiles a condition step on a constant value parent with a stream condition.
-     * Creates a stream expression that evaluates the condition reactively.
+     * Creates a stream expression that
+     * evaluates the condition reactively.
      *
-     * @param valueParent the constant parent value
-     * @param streamCondition the stream condition expression
+     * @param valueParent
+     * the constant parent value
+     * @param streamCondition
+     * the stream condition expression
+     *
      * @return a stream expression with the filtered value
      */
     private CompiledExpression compileConditionOnValueParentWithStreamCondition(Value valueParent,
@@ -1065,10 +1214,14 @@ public class ExpressionCompiler {
 
     /**
      * Evaluates a condition step with a streaming condition on a constant parent
-     * value. Dispatches to specialized handlers based on parent value type.
+     * value. Dispatches to specialized
+     * handlers based on parent value type.
      *
-     * @param parentValue the parent value to filter
-     * @param conditionStream the condition stream
+     * @param parentValue
+     * the parent value to filter
+     * @param conditionStream
+     * the condition stream
+     *
      * @return a flux emitting filtered results
      */
     private Flux<Value> evaluateConditionStepWithStreamConditionOnConstantValue(Value parentValue,
@@ -1086,10 +1239,14 @@ public class ExpressionCompiler {
 
     /**
      * Evaluates a stream condition step on an object value. Creates streams for
-     * each property evaluation and combines them into filtered objects.
+     * each property evaluation and combines
+     * them into filtered objects.
      *
-     * @param objectParent the object to filter
-     * @param conditionStream the condition stream
+     * @param objectParent
+     * the object to filter
+     * @param conditionStream
+     * the condition stream
+     *
      * @return a flux of filtered objects
      */
     private Flux<Value> evaluateStreamConditionStepOnObjectValue(ObjectValue objectParent,
@@ -1109,10 +1266,14 @@ public class ExpressionCompiler {
 
     /**
      * Evaluates a stream condition step on an array value. Creates streams for each
-     * element evaluation and combines them into filtered arrays.
+     * element evaluation and combines
+     * them into filtered arrays.
      *
-     * @param arrayParent the array to filter
-     * @param conditionStream the condition stream
+     * @param arrayParent
+     * the array to filter
+     * @param conditionStream
+     * the condition stream
+     *
      * @return a flux of filtered arrays
      */
     private Flux<Value> evaluateStreamConditionStepOnArrayValue(ArrayValue arrayParent, Flux<Value> conditionStream) {
@@ -1135,10 +1296,14 @@ public class ExpressionCompiler {
 
     /**
      * Compiles a condition step on a pure parent with a constant value condition.
-     * Evaluates the parent at runtime and applies the constant condition.
+     * Evaluates the parent at runtime and
+     * applies the constant condition.
      *
-     * @param pureParent the pure parent expression
-     * @param valueCondition the constant condition value
+     * @param pureParent
+     * the pure parent expression
+     * @param valueCondition
+     * the constant condition value
+     *
      * @return a pure expression evaluating the filtered parent
      */
     private CompiledExpression compileConditionOnPureParentWithValueCondition(PureExpression pureParent,
@@ -1151,12 +1316,16 @@ public class ExpressionCompiler {
 
     /**
      * Compiles a condition step on a pure parent with a pure condition. Creates a
-     * pure expression that evaluates both parent and condition, then filters
-     * accordingly.
+     * pure expression that evaluates both
+     * parent and condition, then filters accordingly.
      *
-     * @param pureParent the pure parent expression
-     * @param pureCondition the pure condition expression
-     * @param context the compilation context
+     * @param pureParent
+     * the pure parent expression
+     * @param pureCondition
+     * the pure condition expression
+     * @param context
+     * the compilation context
+     *
      * @return a pure expression evaluating the filtered result
      */
     private CompiledExpression compileConditionOnPureParentWithPureCondition(PureExpression pureParent,
@@ -1182,10 +1351,14 @@ public class ExpressionCompiler {
 
     /**
      * Compiles a condition step on a pure parent with a stream condition. Creates a
-     * stream that evaluates the parent and applies the streaming condition.
+     * stream that evaluates the parent
+     * and applies the streaming condition.
      *
-     * @param pureParent the pure parent expression
-     * @param streamCondition the stream condition expression
+     * @param pureParent
+     * the pure parent expression
+     * @param streamCondition
+     * the stream condition expression
+     *
      * @return a stream expression with filtered results
      */
     private CompiledExpression compileConditionOnPureParentWithStreamCondition(PureExpression pureParent,
@@ -1203,10 +1376,14 @@ public class ExpressionCompiler {
 
     /**
      * Compiles a condition step on a stream parent with a constant value condition.
-     * Applies the constant condition to each emitted parent value.
+     * Applies the constant condition to
+     * each emitted parent value.
      *
-     * @param streamParent the stream parent expression
-     * @param valueCondition the constant condition value
+     * @param streamParent
+     * the stream parent expression
+     * @param valueCondition
+     * the constant condition value
+     *
      * @return a stream expression with filtered values
      */
     private CompiledExpression compileConditionOnStreamParentWithValueCondition(StreamExpression streamParent,
@@ -1219,10 +1396,14 @@ public class ExpressionCompiler {
 
     /**
      * Compiles a condition step on a stream parent with a pure condition. Evaluates
-     * the pure condition for each emitted parent value.
+     * the pure condition for each emitted
+     * parent value.
      *
-     * @param streamParent the stream parent expression
-     * @param pureCondition the pure condition expression
+     * @param streamParent
+     * the stream parent expression
+     * @param pureCondition
+     * the pure condition expression
+     *
      * @return a stream expression with filtered values
      */
     private CompiledExpression compileConditionOnStreamParentWithPureCondition(StreamExpression streamParent,
@@ -1250,10 +1431,14 @@ public class ExpressionCompiler {
 
     /**
      * Compiles a condition step on a stream parent with a stream condition. Creates
-     * a stream that applies the streaming condition to each parent value.
+     * a stream that applies the streaming
+     * condition to each parent value.
      *
-     * @param streamParent the stream parent expression
-     * @param streamCondition the stream condition expression
+     * @param streamParent
+     * the stream parent expression
+     * @param streamCondition
+     * the stream condition expression
+     *
      * @return a stream expression with filtered values
      */
     private CompiledExpression compileConditionOnStreamParentWithStreamCondition(StreamExpression streamParent,
@@ -1271,8 +1456,11 @@ public class ExpressionCompiler {
      * Composes an array expression by compiling its items and delegating to the
      * appropriate array builder.
      *
-     * @param array the array AST node
-     * @param context the compilation context
+     * @param array
+     * the array AST node
+     * @param context
+     * the compilation context
+     *
      * @return the compiled array expression, or empty array if no items
      */
     private CompiledExpression composeArray(Array array, CompilationContext context) {
@@ -1287,7 +1475,9 @@ public class ExpressionCompiler {
      * Dispatches compiled array arguments to the appropriate builder based on their
      * nature.
      *
-     * @param compiledArguments the compiled array element arguments
+     * @param compiledArguments
+     * the compiled array element arguments
+     *
      * @return the compiled array expression
      */
     private CompiledExpression compileArgumentsToArray(CompiledArguments compiledArguments) {
@@ -1300,10 +1490,14 @@ public class ExpressionCompiler {
 
     /**
      * Compiles expression arguments into a structured representation tracking
-     * whether arguments are values, pure expressions, or streams.
+     * whether arguments are values, pure
+     * expressions, or streams.
      *
-     * @param arguments the argument expression AST nodes
-     * @param context the compilation context
+     * @param arguments
+     * the argument expression AST nodes
+     * @param context
+     * the compilation context
+     *
      * @return the compiled arguments with nature classification
      */
     CompiledArguments compileArguments(List<Expression> arguments, CompilationContext context) {
@@ -1334,9 +1528,12 @@ public class ExpressionCompiler {
 
     /**
      * Assembles an array value from element expressions. Used both at compile time
-     * for constant folding and at runtime during stream evaluation.
+     * for constant folding and at runtime
+     * during stream evaluation.
      *
-     * @param arguments the array element expressions (must be Values)
+     * @param arguments
+     * the array element expressions (must be Values)
+     *
      * @return the assembled array value, or error if any element is an error
      */
     private Value assembleArrayValue(java.lang.Object[] arguments) {
@@ -1354,9 +1551,12 @@ public class ExpressionCompiler {
 
     /**
      * Compiles an array with pure element expressions. Creates a pure expression
-     * that evaluates all elements and builds the array at evaluation time.
+     * that evaluates all elements and builds
+     * the array at evaluation time.
      *
-     * @param arguments the compiled array element arguments
+     * @param arguments
+     * the compiled array element arguments
+     *
      * @return a pure expression that builds the array
      */
     private CompiledExpression compilePureArray(CompiledArguments arguments) {
@@ -1379,10 +1579,12 @@ public class ExpressionCompiler {
 
     /**
      * Compiles an array with stream element expressions. Creates a stream
-     * expression that combines element streams and assembles arrays from each
-     * combination at runtime.
+     * expression that combines element streams and
+     * assembles arrays from each combination at runtime.
      *
-     * @param arguments the compiled array element arguments
+     * @param arguments
+     * the compiled array element arguments
+     *
      * @return a stream expression that emits arrays
      */
     private CompiledExpression compileArrayStreamExpression(CompiledArguments arguments) {
@@ -1399,8 +1601,11 @@ public class ExpressionCompiler {
      * Composes an object expression by compiling its members and delegating to the
      * appropriate object builder.
      *
-     * @param object the object AST node
-     * @param context the compilation context
+     * @param object
+     * the object AST node
+     * @param context
+     * the compilation context
+     *
      * @return the compiled object expression, or empty object if no members
      */
     private CompiledExpression composeObject(Object object, CompilationContext context) {
@@ -1415,7 +1620,9 @@ public class ExpressionCompiler {
      * Dispatches compiled object attributes to the appropriate builder based on
      * their nature.
      *
-     * @param attributes the compiled object attributes
+     * @param attributes
+     * the compiled object attributes
+     *
      * @return the compiled object expression
      */
     private CompiledExpression compileAttributesToObject(CompiledObjectAttributes attributes) {
@@ -1433,9 +1640,12 @@ public class ExpressionCompiler {
 
     /**
      * Assembles an object value from property entries. Used both at compile time
-     * for constant folding and at runtime during stream evaluation.
+     * for constant folding and at runtime
+     * during stream evaluation.
      *
-     * @param attributes the object property entries
+     * @param attributes
+     * the object property entries
+     *
      * @return the assembled object value, or error if any property value is an
      * error
      */
@@ -1457,9 +1667,12 @@ public class ExpressionCompiler {
 
     /**
      * Compiles an object with pure property expressions. Creates a pure expression
-     * that evaluates all properties and builds the object at evaluation time.
+     * that evaluates all properties and
+     * builds the object at evaluation time.
      *
-     * @param attributes the compiled object attributes
+     * @param attributes
+     * the compiled object attributes
+     *
      * @return a pure expression that builds the object
      */
     private CompiledExpression compilePureObject(CompiledObjectAttributes attributes) {
@@ -1484,10 +1697,12 @@ public class ExpressionCompiler {
 
     /**
      * Compiles an object with stream property expressions. Creates a stream
-     * expression that combines property streams and assembles objects from each
-     * combination at runtime.
+     * expression that combines property streams
+     * and assembles objects from each combination at runtime.
      *
-     * @param attributes the compiled object attributes
+     * @param attributes
+     * the compiled object attributes
+     *
      * @return a stream expression that emits objects
      */
     private CompiledExpression compileObjectStreamExpression(CompiledObjectAttributes attributes) {
@@ -1502,11 +1717,16 @@ public class ExpressionCompiler {
 
     /**
      * Assembles an object value from compiled attribute expressions. Used both at
-     * compile time for constant folding and at runtime during stream evaluation.
+     * compile time for constant folding and
+     * at runtime during stream evaluation.
      *
-     * @param attributes the compiled object attributes containing only Values
+     * @param attributes
+     * the compiled object attributes containing only Values
+     *
      * @return the assembled object value, or error if any attribute is an error
-     * @throws SaplCompilerException if attributes nature is not VALUE
+     *
+     * @throws SaplCompilerException
+     * if attributes nature is not VALUE
      */
     private Value assembleObjectValue(CompiledObjectAttributes attributes) {
         if (attributes.nature() != Nature.VALUE) {
@@ -1528,10 +1748,14 @@ public class ExpressionCompiler {
 
     /**
      * Compiles object member expressions into a structured representation tracking
-     * whether members are values, pure expressions, or streams.
+     * whether members are values, pure
+     * expressions, or streams.
      *
-     * @param members the object member AST nodes
-     * @param context the compilation context
+     * @param members
+     * the object member AST nodes
+     * @param context
+     * the compilation context
+     *
      * @return the compiled object attributes with nature classification
      */
     private CompiledObjectAttributes compileAttributes(List<Pair> members, CompilationContext context) {
@@ -1569,10 +1793,12 @@ public class ExpressionCompiler {
 
     /**
      * Converts any compiled expression into a Flux stream. Values become
-     * single-item streams, stream expressions expose their internal stream, and
-     * pure expressions are deferred for evaluation.
+     * single-item streams, stream expressions expose
+     * their internal stream, and pure expressions are deferred for evaluation.
      *
-     * @param expression the compiled expression to convert
+     * @param expression
+     * the compiled expression to convert
+     *
      * @return a Flux stream emitting the expression's values
      */
     Flux<Value> compiledExpressionToFlux(CompiledExpression expression) {
@@ -1585,15 +1811,17 @@ public class ExpressionCompiler {
 
     /**
      * Propagates the current reactive EvaluationContext while overriding the
-     * {@code RELATIVE_VALUE} variable for downstream operators. Sets relative
-     * location to {@link Value#UNDEFINED}.
+     * {@code RELATIVE_VALUE} variable for
+     * downstream operators. Sets relative location to {@link Value#UNDEFINED}.
      *
-     * @param original the original stream to enrich with a modified
-     * EvaluationContext
-     * @param relativeValue the value to expose as {@code RELATIVE_VALUE} in the
-     * evaluation context
+     * @param original
+     * the original stream to enrich with a modified EvaluationContext
+     * @param relativeValue
+     * the value to expose as {@code RELATIVE_VALUE} in the evaluation context
+     *
      * @return a Flux with EvaluationContext where {@code RELATIVE_VALUE} is set to
-     * {@code relativeValue} and {@code RELATIVE_LOCATION} is undefined
+     * {@code relativeValue} and
+     * {@code RELATIVE_LOCATION} is undefined
      */
     private Flux<Value> setRelativeValueContext(Flux<Value> original, Value relativeValue) {
         return setRelativeValueContext(original, relativeValue, Value.UNDEFINED);
@@ -1601,18 +1829,21 @@ public class ExpressionCompiler {
 
     /**
      * Propagates the current reactive EvaluationContext while overriding the
-     * {@code RELATIVE_VALUE} and {@code RELATIVE_LOCATION} variables for downstream
-     * operators. Retrieves the existing context from Reactor context and creates a
-     * new instance with the supplied relative values.
+     * {@code RELATIVE_VALUE} and
+     * {@code RELATIVE_LOCATION} variables for downstream operators. Retrieves the
+     * existing context from Reactor context
+     * and creates a new instance with the supplied relative values.
      *
-     * @param original the original stream to enrich with a modified
-     * EvaluationContext
-     * @param relativeValue the value to expose as {@code RELATIVE_VALUE} in the
-     * evaluation context
-     * @param relativeLocation the value to expose as {@code RELATIVE_LOCATION} in
-     * the evaluation context
+     * @param original
+     * the original stream to enrich with a modified EvaluationContext
+     * @param relativeValue
+     * the value to expose as {@code RELATIVE_VALUE} in the evaluation context
+     * @param relativeLocation
+     * the value to expose as {@code RELATIVE_LOCATION} in the evaluation context
+     *
      * @return a Flux with EvaluationContext where {@code RELATIVE_VALUE} and
-     * {@code RELATIVE_LOCATION} are set to the given arguments
+     * {@code RELATIVE_LOCATION} are set to the
+     * given arguments
      */
     private Flux<Value> setRelativeValueContext(Flux<Value> original, Value relativeValue, Value relativeLocation) {
         return original.contextWrite(ctx -> {

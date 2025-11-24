@@ -33,8 +33,8 @@ import java.util.stream.Collectors;
  * Array value implementing List semantics. The underlying list is immutable.
  * <p>
  * Secret containers eagerly apply the secret flag to all contained values at
- * construction time, enabling zero-overhead reads and optimal performance for
- * recursive operations.
+ * construction time, enabling zero-overhead
+ * reads and optimal performance for recursive operations.
  * <p>
  * Direct list usage:
  *
@@ -89,10 +89,13 @@ public final class ArrayValue implements Value, List<Value> {
      * time for optimal read performance.
      * <p>
      * Note: This does a defensive copy of the supplied List. For better performance
-     * without the need to copy use the Builder!
+     * without the need to copy use the
+     * Builder!
      *
-     * @param elements the list elements (defensively copied, must not be null)
-     * @param secret whether this value is secret
+     * @param elements
+     * the list elements (defensively copied, must not be null)
+     * @param secret
+     * whether this value is secret
      */
     public ArrayValue(@NonNull List<Value> elements, boolean secret) {
         if (secret) {
@@ -113,8 +116,10 @@ public final class ArrayValue implements Value, List<Value> {
      * If secret is true, applies the secret flag to all elements at construction
      * time for optimal read performance.
      *
-     * @param elements the list elements (defensively copied, must not be null)
-     * @param secret whether this value is secret
+     * @param elements
+     * the list elements (defensively copied, must not be null)
+     * @param secret
+     * whether this value is secret
      */
     public ArrayValue(@NonNull Value[] elements, boolean secret) {
         if (secret) {
@@ -130,12 +135,13 @@ public final class ArrayValue implements Value, List<Value> {
     }
 
     /**
-     * Zero-copy constructor for builder use only.
-     * The supplied list is used directly without copying.
+     * Zero-copy constructor for builder use only. The supplied list is used
+     * directly without copying.
      *
-     * @param secret whether this value is secret
-     * @param elements the list elements (used directly, must be mutable until
-     * wrapped)
+     * @param secret
+     * whether this value is secret
+     * @param elements
+     * the list elements (used directly, must be mutable until wrapped)
      */
     private ArrayValue(boolean secret, List<Value> elements) {
         this.value  = Collections.unmodifiableList(elements);
@@ -155,8 +161,8 @@ public final class ArrayValue implements Value, List<Value> {
      * Builder for fluent ArrayValue construction.
      * <p>
      * Builders are single-use only. After calling build(), the builder cannot be
-     * reused. This prevents immutability violations from the zero-copy
-     * optimization.
+     * reused. This prevents immutability
+     * violations from the zero-copy optimization.
      */
     public static final class Builder {
         private ArrayList<Value> elements = new ArrayList<>();
@@ -165,9 +171,13 @@ public final class ArrayValue implements Value, List<Value> {
         /**
          * Adds a value to the array.
          *
-         * @param value the value to add
+         * @param value
+         * the value to add
+         *
          * @return this builder
-         * @throws IllegalStateException if builder has already been used
+         *
+         * @throws IllegalStateException
+         * if builder has already been used
          */
         public Builder add(Value value) {
             if (elements == null) {
@@ -183,9 +193,13 @@ public final class ArrayValue implements Value, List<Value> {
         /**
          * Adds multiple values to the array.
          *
-         * @param values the values to add
+         * @param values
+         * the values to add
+         *
          * @return this builder
-         * @throws IllegalStateException if builder has already been used
+         *
+         * @throws IllegalStateException
+         * if builder has already been used
          */
         public Builder addAll(Value... values) {
             if (elements == null) {
@@ -200,9 +214,13 @@ public final class ArrayValue implements Value, List<Value> {
         /**
          * Adds multiple values to the array.
          *
-         * @param values the values to add
+         * @param values
+         * the values to add
+         *
          * @return this builder
-         * @throws IllegalStateException if builder has already been used
+         *
+         * @throws IllegalStateException
+         * if builder has already been used
          */
         public Builder addAll(Collection<? extends Value> values) {
             if (elements == null) {
@@ -215,14 +233,16 @@ public final class ArrayValue implements Value, List<Value> {
         }
 
         /**
-         * Marks the array as secret.
-         * Elements will have the secret flag applied at construction.
+         * Marks the array as secret. Elements will have the secret flag applied at
+         * construction.
          * <p>
          * Note: For performance reasons, if possible call this method as early as
          * possible in the building process.
          *
          * @return this builder
-         * @throws IllegalStateException if builder has already been used
+         *
+         * @throws IllegalStateException
+         * if builder has already been used
          */
         public Builder secret() {
             if (elements == null) {
@@ -236,14 +256,17 @@ public final class ArrayValue implements Value, List<Value> {
         }
 
         /**
-         * Builds the immutable ArrayValue.
-         * Returns singleton for empty non-secret arrays.
+         * Builds the immutable ArrayValue. Returns singleton for empty non-secret
+         * arrays.
          * <p>
          * After calling this method, the builder cannot be reused. Attempting to call
-         * any builder methods after build() will throw IllegalStateException.
+         * any builder methods after build()
+         * will throw IllegalStateException.
          *
          * @return the constructed ArrayValue
-         * @throws IllegalStateException if builder has already been used
+         *
+         * @throws IllegalStateException
+         * if builder has already been used
          */
         public ArrayValue build() {
             if (elements == null) {
@@ -299,10 +322,13 @@ public final class ArrayValue implements Value, List<Value> {
      * Returns the element at the specified position.
      * <p>
      * Returns ErrorValue for invalid indices instead of throwing
-     * IndexOutOfBoundsException, consistent with SAPL's error-as-value model.
-     * Elements already have the secret flag applied if container is secret.
+     * IndexOutOfBoundsException, consistent with SAPL's
+     * error-as-value model. Elements already have the secret flag applied if
+     * container is secret.
      *
-     * @param index index of the element
+     * @param index
+     * index of the element
+     *
      * @return the element, or ErrorValue if index is out of bounds
      */
     @Override
@@ -317,8 +343,9 @@ public final class ArrayValue implements Value, List<Value> {
      * Returns the first element.
      * <p>
      * Returns ErrorValue if the array is empty instead of throwing
-     * NoSuchElementException, consistent with SAPL's error-as-value model.
-     * Elements already have the secret flag applied if container is secret.
+     * NoSuchElementException, consistent with SAPL's
+     * error-as-value model. Elements already have the secret flag applied if
+     * container is secret.
      *
      * @return the first element, or ErrorValue if array is empty
      */
@@ -334,8 +361,9 @@ public final class ArrayValue implements Value, List<Value> {
      * Returns the last element.
      * <p>
      * Returns ErrorValue if the array is empty instead of throwing
-     * NoSuchElementException, consistent with SAPL's error-as-value model.
-     * Elements already have the secret flag applied if container is secret.
+     * NoSuchElementException, consistent with SAPL's
+     * error-as-value model. Elements already have the secret flag applied if
+     * container is secret.
      *
      * @return the last element, or ErrorValue if array is empty
      */
@@ -348,11 +376,14 @@ public final class ArrayValue implements Value, List<Value> {
     }
 
     /**
-     * Returns a view of the portion between the specified indices.
-     * The returned sublist propagates the secret flag.
+     * Returns a view of the portion between the specified indices. The returned
+     * sublist propagates the secret flag.
      *
-     * @param fromIndex low endpoint (inclusive)
-     * @param toIndex high endpoint (exclusive)
+     * @param fromIndex
+     * low endpoint (inclusive)
+     * @param toIndex
+     * high endpoint (exclusive)
+     *
      * @return a sublist as ArrayValue with secret flag propagated
      */
     @Override
@@ -361,8 +392,9 @@ public final class ArrayValue implements Value, List<Value> {
     }
 
     /**
-     * Methods excluded from Lombok delegation to preserve Value semantics.
-     * These methods require custom implementations for error handling.
+     * Methods excluded from Lombok delegation to preserve Value semantics. These
+     * methods require custom implementations
+     * for error handling.
      */
     private interface ExcludedMethods {
         boolean equals(Object obj);

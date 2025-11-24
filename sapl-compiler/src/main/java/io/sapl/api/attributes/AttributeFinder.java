@@ -25,8 +25,9 @@ import reactor.core.publisher.Flux;
  * finder.
  * <p>
  * An AttributeFinder provides external data to SAPL policies through reactive
- * streams. It is invoked when a policy references an attribute (e.g.,
- * {@code <pip.attribute>} or {@code entity.<pip.attribute>}).
+ * streams. It is invoked when a policy
+ * references an attribute (e.g., {@code <pip.attribute>} or
+ * {@code entity.<pip.attribute>}).
  * <p>
  * <b>Implementation Requirements:</b>
  * <ul>
@@ -54,7 +55,8 @@ public interface AttributeFinder {
      * Invokes the attribute finder to retrieve attribute values.
      * <p>
      * This method is called by the AttributeBroker when a policy evaluates an
-     * attribute expression. The implementation should:
+     * attribute expression. The implementation
+     * should:
      * <ul>
      * <li>Use the entity from the invocation as the first parameter (if
      * applicable)</li>
@@ -64,8 +66,9 @@ public interface AttributeFinder {
      * <li>Return a reactive stream that may emit multiple values over time</li>
      * </ul>
      *
-     * @param invocation the attribute finder invocation containing entity,
-     * arguments, and metadata
+     * @param invocation
+     * the attribute finder invocation containing entity, arguments, and metadata
+     *
      * @return a Flux emitting attribute values; errors should be emitted as
      * {@link Value#error(String)}
      */

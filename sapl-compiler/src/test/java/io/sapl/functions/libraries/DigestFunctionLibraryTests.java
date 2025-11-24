@@ -34,8 +34,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 class DigestFunctionLibraryTests {
 
     /**
-     * Test data for hash correctness verification.
-     * Each row: algorithm, input, expected hash
+     * Test data for hash correctness verification. Each row: algorithm, input,
+     * expected hash
      */
     private static Stream<Arguments> hashCorrectnessTestCases() {
         return Stream.of(
@@ -86,8 +86,8 @@ class DigestFunctionLibraryTests {
     }
 
     /**
-     * Test data for hash format verification.
-     * Each row: algorithm, expected hex length
+     * Test data for hash format verification. Each row: algorithm, expected hex
+     * length
      */
     @ParameterizedTest(name = "{0} should return lowercase hex of length {1}")
     @CsvSource({ "sha256, 64", "sha384, 96", "sha512, 128", "sha3_256, 64", "sha3_384, 96", "sha3_512, 128", "md5, 32",
@@ -177,7 +177,8 @@ class DigestFunctionLibraryTests {
 
     /**
      * Verify that Unicode characters are correctly encoded to UTF-8 before hashing.
-     * This test uses known hash values computed with UTF-8 encoding.
+     * This test uses known hash values
+     * computed with UTF-8 encoding.
      */
     @Test
     void allDigests_whenUnicodeInput_useUtf8Encoding() {

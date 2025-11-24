@@ -38,9 +38,8 @@ import java.time.Clock;
  * Test utility for single-document policy evaluation.
  * <p>
  * Loads standard function libraries and Policy Information Points (PIPs),
- * compiles a single SAPL policy document, and evaluates it against
- * authorization
- * subscriptions.
+ * compiles a single SAPL policy document, and
+ * evaluates it against authorization subscriptions.
  * <p>
  * Loaded function libraries:
  * <ul>
@@ -76,8 +75,8 @@ public class SingleDocumentPolicyDecisionPoint implements PolicyDecisionPoint {
      * Creates a new SingleDocumentPolicyDecisionPoint with default function
      * libraries and PIPs.
      *
-     * @throws InitializationException if function or attribute library loading
-     * fails
+     * @throws InitializationException
+     * if function or attribute library loading fails
      */
     public SingleDocumentPolicyDecisionPoint() throws InitializationException {
         val clock               = Clock.systemUTC();
@@ -102,9 +101,8 @@ public class SingleDocumentPolicyDecisionPoint implements PolicyDecisionPoint {
     /**
      * Creates a SingleDocumentPolicyDecisionPoint with custom compilation context.
      *
-     * @param compilationContext the compilation context with configured function
-     * and
-     * attribute brokers
+     * @param compilationContext
+     * the compilation context with configured function and attribute brokers
      */
     public SingleDocumentPolicyDecisionPoint(CompilationContext compilationContext) {
         this.compilationContext = compilationContext;
@@ -113,8 +111,11 @@ public class SingleDocumentPolicyDecisionPoint implements PolicyDecisionPoint {
     /**
      * Loads and compiles a SAPL policy document.
      *
-     * @param document the SAPL policy document as a string
-     * @throws SaplCompilerException if parsing or compilation fails
+     * @param document
+     * the SAPL policy document as a string
+     *
+     * @throws SaplCompilerException
+     * if parsing or compilation fails
      */
     public void loadDocument(String document) {
         val parsed = PARSER.parse(document);
@@ -133,9 +134,13 @@ public class SingleDocumentPolicyDecisionPoint implements PolicyDecisionPoint {
      * AuthorizationDecision</li>
      * </ol>
      *
-     * @param authorizationSubscription the authorization subscription
+     * @param authorizationSubscription
+     * the authorization subscription
+     *
      * @return Flux of authorization decisions
-     * @throws IllegalStateException if no document has been loaded
+     *
+     * @throws IllegalStateException
+     * if no document has been loaded
      */
     @Override
     public Flux<AuthorizationDecision> decide(AuthorizationSubscription authorizationSubscription) {

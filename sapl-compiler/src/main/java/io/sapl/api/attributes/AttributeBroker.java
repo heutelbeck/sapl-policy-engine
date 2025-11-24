@@ -25,7 +25,8 @@ import reactor.core.publisher.Flux;
  * process.
  * <p>
  * The AttributeBroker routes attribute requests to matching PIP implementations
- * based on attribute name and signature. Resolution follows this priority:
+ * based on attribute name and signature.
+ * Resolution follows this priority:
  * <ol>
  * <li>Exact parameter match in registered PIPs</li>
  * <li>Varargs parameter match in registered PIPs</li>
@@ -52,8 +53,9 @@ public interface AttributeBroker {
      * Requests an attribute stream for the given invocation.
      * <p>
      * The broker searches for a matching PIP by attribute name and signature. If
-     * PIPs are registered for that name but none match the signature, the request
-     * falls back to the AttributeRepository. If no PIPs are registered for that
+     * PIPs are registered for that name but
+     * none match the signature, the request falls back to the AttributeRepository.
+     * If no PIPs are registered for that
      * attribute name, returns an error stream.
      * <p>
      * Depending on the {@code fresh} flag in the invocation, the broker either:
@@ -63,8 +65,10 @@ public interface AttributeBroker {
      * exists)</li>
      * </ul>
      *
-     * @param invocation the attribute finder invocation containing the attribute
-     * name, entity, arguments, and options
+     * @param invocation
+     * the attribute finder invocation containing the attribute name, entity,
+     * arguments, and options
+     *
      * @return a Flux emitting attribute values from a PIP, repository, or error
      */
     Flux<Value> attributeStream(AttributeFinderInvocation invocation);

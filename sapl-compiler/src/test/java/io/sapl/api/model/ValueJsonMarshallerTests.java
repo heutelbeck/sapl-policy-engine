@@ -33,9 +33,9 @@ import java.util.stream.Stream;
 import static org.assertj.core.api.Assertions.*;
 
 /**
- * Comprehensive test suite for ValueJsonMarshaller.
- * Tests cover round-trip conversion, edge cases, error handling, and depth
- * protection.
+ * Comprehensive test suite for ValueJsonMarshaller. Tests cover round-trip
+ * conversion, edge cases, error handling, and
+ * depth protection.
  */
 class ValueJsonMarshallerTests {
 

@@ -43,8 +43,11 @@ class FilterArgumentEvaluator {
      * All arguments are already Values, just need to prepend the left-hand
      * argument.
      *
-     * @param arguments the compiled arguments
-     * @param leftHandArg the left-hand argument (target value)
+     * @param arguments
+     * the compiled arguments
+     * @param leftHandArg
+     * the left-hand argument (target value)
+     *
      * @return list of Value arguments, or ErrorValue if any argument is an error
      */
     static List<Value> extractValueArguments(CompiledArguments arguments, Value leftHandArg) {
@@ -67,9 +70,13 @@ class FilterArgumentEvaluator {
      * <p>
      * Arguments may be Values or PureExpressions that need runtime evaluation.
      *
-     * @param arguments the compiled arguments
-     * @param leftHandArg the left-hand argument (target value)
-     * @param ctx the evaluation context
+     * @param arguments
+     * the compiled arguments
+     * @param leftHandArg
+     * the left-hand argument (target value)
+     * @param ctx
+     * the evaluation context
+     *
      * @return list of evaluated Value arguments
      */
     static List<Value> evaluatePureArguments(CompiledArguments arguments, Value leftHandArg,
@@ -93,8 +100,11 @@ class FilterArgumentEvaluator {
      * <p>
      * Arguments contain StreamExpressions that emit values over time.
      *
-     * @param arguments the compiled arguments
-     * @param leftHandArg the left-hand argument (target value)
+     * @param arguments
+     * the compiled arguments
+     * @param leftHandArg
+     * the left-hand argument (target value)
+     *
      * @return flux of argument value lists
      */
     static reactor.core.publisher.Flux<List<Value>> combineStreamArguments(CompiledArguments arguments,

@@ -35,8 +35,9 @@ import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 /**
  * Tests for compile-time constant folding and pure expression compilation in
- * ExpressionCompiler. Verifies that constants are folded at compile time and
- * that expressions requiring runtime evaluation compile to appropriate
+ * ExpressionCompiler. Verifies that
+ * constants are folded at compile time and that expressions requiring runtime
+ * evaluation compile to appropriate
  * representations.
  */
 class ExpressionCompilerTests {

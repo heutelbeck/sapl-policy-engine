@@ -34,13 +34,13 @@ import java.util.HexFormat;
  * Provides cryptographic hash functions for computing message digests.
  * <p>
  * Hash functions produce fixed-size outputs (digests) from variable-size
- * inputs. They are one-way functions used for integrity verification, content
- * addressing, and fingerprinting. The same input always produces the same
- * digest.
+ * inputs. They are one-way functions used for
+ * integrity verification, content addressing, and fingerprinting. The same
+ * input always produces the same digest.
  * <p>
  * Includes modern secure algorithms (SHA-2 and SHA-3 families) as well as
- * legacy algorithms (MD5, SHA-1) that should only be used for compatibility
- * with existing systems.
+ * legacy algorithms (MD5, SHA-1) that should
+ * only be used for compatibility with existing systems.
  */
 @UtilityClass
 @FunctionLibrary(name = DigestFunctionLibrary.NAME, description = DigestFunctionLibrary.DESCRIPTION)
@@ -222,8 +222,11 @@ public class DigestFunctionLibrary {
     /**
      * Computes a message digest using the specified algorithm.
      *
-     * @param data the input data to hash
-     * @param algorithm the digest algorithm name
+     * @param data
+     * the input data to hash
+     * @param algorithm
+     * the digest algorithm name
+     *
      * @return a Value containing the hexadecimal hash or an error
      */
     private static Value computeDigest(String data, String algorithm) {

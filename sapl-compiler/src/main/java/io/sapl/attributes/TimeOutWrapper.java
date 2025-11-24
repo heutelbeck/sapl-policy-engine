@@ -45,12 +45,16 @@ public class TimeOutWrapper {
      * <ul>
      * <li>Empty source flux emits Value.UNDEFINED immediately</li>
      * <li>Timeout before first value emits Value.UNDEFINED, but continues emitting
-     * subsequent values from the source</li>
+     * subsequent values from the
+     * source</li>
      * <li>Early completion terminates immediately without waiting for timeout</li>
      * </ul>
      *
-     * @param flux the source flux to wrap
-     * @param timeOut duration before emitting timeout value
+     * @param flux
+     * the source flux to wrap
+     * @param timeOut
+     * duration before emitting timeout value
+     *
      * @return wrapped flux with timeout behavior
      */
     public static Flux<Value> wrap(Flux<Value> flux, Duration timeOut) {
@@ -68,10 +72,15 @@ public class TimeOutWrapper {
      * <li>Early completion terminates immediately without waiting for timeout</li>
      * </ul>
      *
-     * @param flux the source flux to wrap
-     * @param timeOut duration before emitting timeout value
-     * @param timeOutValue value emitted on timeout
-     * @param emptyFluxValue value emitted when source is empty
+     * @param flux
+     * the source flux to wrap
+     * @param timeOut
+     * duration before emitting timeout value
+     * @param timeOutValue
+     * value emitted on timeout
+     * @param emptyFluxValue
+     * value emitted when source is empty
+     *
      * @return wrapped flux with timeout behavior
      */
     public static Flux<Value> wrap(Flux<Value> flux, Duration timeOut, Value timeOutValue, Value emptyFluxValue) {

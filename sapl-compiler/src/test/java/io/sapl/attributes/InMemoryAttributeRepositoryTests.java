@@ -59,7 +59,8 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
  * world of Elric of Melniboné.
  * <p>
  * Test scenarios are based on the authorization requirements of the Dreaming
- * City and the balance between Law and Chaos.
+ * City and the balance between Law and
+ * Chaos.
  */
 @Slf4j
 @Timeout(30)

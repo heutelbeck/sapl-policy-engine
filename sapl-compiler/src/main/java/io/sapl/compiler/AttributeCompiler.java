@@ -40,19 +40,16 @@ import java.util.function.Function;
 /**
  * Compiles SAPL attribute finder expressions into reactive streams that invoke
  * PIPs.
- *
  * <p>
  * Options precedence: inline > {@code SAPL.attributeFinderOptions} variable >
  * defaults.
- *
  * <p>
  * Uses {@code switchMap} - parameter changes cancel and restart PIP
- * invocations.
- * Type mismatches in options silently fall through to next precedence level.
- * UNDEFINED entities rejected for attribute steps, allowed for environment
- * attributes.
- * {@link AttributeBroker} must be present in reactor context (runtime
- * requirement).
+ * invocations. Type mismatches in options silently
+ * fall through to next precedence level. UNDEFINED entities rejected for
+ * attribute steps, allowed for environment
+ * attributes. {@link AttributeBroker} must be present in reactor context
+ * (runtime requirement).
  */
 @Slf4j
 @UtilityClass
@@ -77,8 +74,9 @@ public class AttributeCompiler {
     private static final String VARIABLE_NAME_SAPL                    = "SAPL";
 
     /**
-     * Compiles attribute finder step (e.g., {@code entity.<pip.attr>}).
-     * Entity becomes first parameter. UNDEFINED entity rejected at runtime.
+     * Compiles attribute finder step (e.g., {@code entity.<pip.attr>}). Entity
+     * becomes first parameter. UNDEFINED
+     * entity rejected at runtime.
      */
     public static CompiledExpression compileAttributeFinderStep(CompiledExpression entity,
             AttributeFinderStep attributeFinderStep, CompilationContext context) {
@@ -87,8 +85,9 @@ public class AttributeCompiler {
     }
 
     /**
-     * Compiles environment attribute (e.g., {@code <time.now>}).
-     * Entity set to UNDEFINED, which is allowed for environment attributes.
+     * Compiles environment attribute (e.g., {@code <time.now>}). Entity set to
+     * UNDEFINED, which is allowed for
+     * environment attributes.
      */
     public static CompiledExpression compileEnvironmentAttribute(BasicEnvironmentAttribute envAttribute,
             CompilationContext context) {
@@ -100,7 +99,8 @@ public class AttributeCompiler {
 
     /**
      * Compiles head attribute finder step (e.g., {@code entity.<pip.attr>|}).
-     * Applies {@code take(1)} - upstream may not cancel immediately.
+     * Applies {@code take(1)} - upstream may
+     * not cancel immediately.
      */
     public static CompiledExpression compileHeadAttributeFinderStep(CompiledExpression entity,
             HeadAttributeFinderStep attributeFinderStep, CompilationContext context) {
@@ -133,10 +133,10 @@ public class AttributeCompiler {
     }
 
     /**
-     * Core method. Uses {@code combineLatest} + {@code switchMap}.
-     * Null options/arguments replaced with empty. Options deferred via
-     * {@code deferContextual}.
-     * Parameter array: [entity, options, args...].
+     * Core method. Uses {@code combineLatest} + {@code switchMap}. Null
+     * options/arguments replaced with empty. Options
+     * deferred via {@code deferContextual}. Parameter array: [entity, options,
+     * args...].
      */
     private static CompiledExpression compileAttributeFinderStep(EObject source, CompiledExpression entity,
             FunctionIdentifier identifier, Arguments stepArguments, Expression attributeFinderOptions,
@@ -179,9 +179,9 @@ public class AttributeCompiler {
 
     /**
      * Validates params, delegates to AttributeBroker. Parameters: [entity, options,
-     * args...].
-     * Environment attributes pass entity as null (not UNDEFINED).
-     * Unchecked casts - ClassCastException if compilation bug.
+     * args...]. Environment attributes
+     * pass entity as null (not UNDEFINED). Unchecked casts - ClassCastException if
+     * compilation bug.
      */
     private static Flux<Value> evaluatedAttributeFinder(java.lang.Object[] evaluatedAttributeFinderParameters,
             String attributeName, boolean isEnvironmentAttribute) {
@@ -319,9 +319,8 @@ public class AttributeCompiler {
 
     /**
      * Resolved PIP invocation config. {@code configurationId} from
-     * EvaluationContext.
-     * {@code backoffMs} is exponential base. {@code retries} is additional attempts
-     * (3 = 4 total).
+     * EvaluationContext. {@code backoffMs} is exponential
+     * base. {@code retries} is additional attempts (3 = 4 total).
      */
     private record AttributeFinderOptions(
             String configurationId,

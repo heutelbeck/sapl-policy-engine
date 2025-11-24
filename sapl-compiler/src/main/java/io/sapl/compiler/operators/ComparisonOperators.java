@@ -96,8 +96,11 @@ public class ComparisonOperators {
     /**
      * Creates a BooleanValue with secret handling, reusing constants.
      *
-     * @param value the boolean value
-     * @param secret whether the value should be marked as secret
+     * @param value
+     * the boolean value
+     * @param secret
+     * whether the value should be marked as secret
+     *
      * @return a BooleanValue with the specified value and secret flag
      */
     private static BooleanValue preserveSecret(boolean value, boolean secret) {

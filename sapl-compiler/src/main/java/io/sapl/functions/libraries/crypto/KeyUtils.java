@@ -34,7 +34,8 @@ import static io.sapl.functions.libraries.crypto.CryptoConstants.*;
 
 /**
  * Utilities for working with cryptographic keys. Provides methods for parsing
- * public keys from PEM format and extracting key metadata.
+ * public keys from PEM format and
+ * extracting key metadata.
  */
 @UtilityClass
 public class KeyUtils {
@@ -42,10 +43,15 @@ public class KeyUtils {
     /**
      * Parses a PEM-encoded public key using the specified algorithm.
      *
-     * @param pemKey the PEM-encoded public key string
-     * @param keyAlgorithm the key algorithm (RSA, EC, or EdDSA)
+     * @param pemKey
+     * the PEM-encoded public key string
+     * @param keyAlgorithm
+     * the key algorithm (RSA, EC, or EdDSA)
+     *
      * @return the parsed PublicKey
-     * @throws PolicyEvaluationException if parsing fails
+     *
+     * @throws PolicyEvaluationException
+     * if parsing fails
      */
     public static PublicKey parsePublicKey(String pemKey, String keyAlgorithm)
             throws NoSuchAlgorithmException, InvalidKeySpecException {
@@ -57,11 +63,16 @@ public class KeyUtils {
 
     /**
      * Attempts to parse a public key by trying multiple algorithms in sequence.
-     * Tries RSA, EC, and EdDSA algorithms until one succeeds.
+     * Tries RSA, EC, and EdDSA algorithms
+     * until one succeeds.
      *
-     * @param pemKey the PEM-encoded public key string
+     * @param pemKey
+     * the PEM-encoded public key string
+     *
      * @return the parsed PublicKey
-     * @throws PolicyEvaluationException if all algorithms fail
+     *
+     * @throws PolicyEvaluationException
+     * if all algorithms fail
      */
     public static PublicKey parsePublicKeyWithAlgorithmDetection(String pemKey) {
         val keyBytes = PemUtils.decodePublicKeyPem(pemKey);
@@ -73,10 +84,15 @@ public class KeyUtils {
     /**
      * Attempts to decode a public key using multiple algorithms.
      *
-     * @param keySpec the X509EncodedKeySpec to decode
-     * @param algorithms the algorithms to try in order
+     * @param keySpec
+     * the X509EncodedKeySpec to decode
+     * @param algorithms
+     * the algorithms to try in order
+     *
      * @return the decoded PublicKey
-     * @throws PolicyEvaluationException if all algorithms fail
+     *
+     * @throws PolicyEvaluationException
+     * if all algorithms fail
      */
     public static PublicKey tryParseWithMultipleAlgorithms(X509EncodedKeySpec keySpec, String... algorithms) {
         for (val algorithm : algorithms) {
@@ -94,7 +110,9 @@ public class KeyUtils {
     /**
      * Gets the key size in bits for a public key.
      *
-     * @param publicKey the public key
+     * @param publicKey
+     * the public key
+     *
      * @return the key size in bits
      */
     public static int getKeySize(PublicKey publicKey) {
@@ -109,7 +127,9 @@ public class KeyUtils {
     /**
      * Extracts the standardized curve name from EC key parameters.
      *
-     * @param ecKey the EC public key
+     * @param ecKey
+     * the EC public key
+     *
      * @return the standardized curve name (secp256r1, secp384r1, secp521r1, or
      * "unknown")
      */
@@ -130,7 +150,9 @@ public class KeyUtils {
     /**
      * Gets the JWK curve name for an EC public key based on bit length.
      *
-     * @param ecKey the EC public key
+     * @param ecKey
+     * the EC public key
+     *
      * @return the JWK curve name (P-256, P-384, P-521, or "unknown")
      */
     public static String getJwkCurveName(ECPublicKey ecKey) {

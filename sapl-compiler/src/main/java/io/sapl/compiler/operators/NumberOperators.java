@@ -60,14 +60,17 @@ public class NumberOperators {
 
     /**
      * Computes the modulo of one number value by another using mathematical
-     * (Euclidean) semantics.
-     * The result is always non-negative when the divisor is positive.
+     * (Euclidean) semantics. The result is always
+     * non-negative when the divisor is positive.
      *
-     * @param dividend the dividend
-     * @param divisor the divisor
+     * @param dividend
+     * the dividend
+     * @param divisor
+     * the divisor
+     *
      * @return the remainder of a divided by b, marked as secret if either operand
-     * is secret,
-     * or an ErrorValue if the divisor is zero
+     * is secret, or an ErrorValue if the
+     * divisor is zero
      */
     public static Value modulo(Value dividend, Value divisor) {
         if (!(dividend instanceof NumberValue(BigDecimal dividendValue, boolean dividendSecret))) {
@@ -132,8 +135,11 @@ public class NumberOperators {
     /**
      * Creates a BooleanValue with secret handling, reusing constants.
      *
-     * @param value the boolean value
-     * @param secret whether the value should be marked as secret
+     * @param value
+     * the boolean value
+     * @param secret
+     * whether the value should be marked as secret
+     *
      * @return a BooleanValue with the specified value and secret flag
      */
     private static BooleanValue preserveSecret(boolean value, boolean secret) {

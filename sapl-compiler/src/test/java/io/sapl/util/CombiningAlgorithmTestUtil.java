@@ -39,8 +39,9 @@ import java.util.List;
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
- * Utility class for testing combining algorithm implementations.
- * Provides convenience methods to reduce boilerplate in test classes.
+ * Utility class for testing combining algorithm implementations. Provides
+ * convenience methods to reduce boilerplate in
+ * test classes.
  */
 @UtilityClass
 public class CombiningAlgorithmTestUtil {
@@ -48,8 +49,9 @@ public class CombiningAlgorithmTestUtil {
     private static final SAPLInterpreter PARSER = new DefaultSAPLInterpreter();
 
     /**
-     * Creates a default authorization subscription for testing.
-     * Uses simple string values for subject, action, resource.
+     * Creates a default authorization subscription for testing. Uses simple string
+     * values for subject, action,
+     * resource.
      *
      * @return authorization subscription with default test values
      */
@@ -61,10 +63,14 @@ public class CombiningAlgorithmTestUtil {
     /**
      * Evaluates a policy set and returns the decision value.
      *
-     * @param policySet the policy set source code
+     * @param policySet
+     * the policy set source code
+     *
      * @return the decision value (ObjectValue containing decision, obligations,
      * etc.)
-     * @throws RuntimeException if compilation fails
+     *
+     * @throws RuntimeException
+     * if compilation fails
      */
     public static Value evaluatePolicySet(String policySet) {
         return evaluatePolicySet(policySet, defaultSubscription());
@@ -74,11 +80,16 @@ public class CombiningAlgorithmTestUtil {
      * Evaluates a policy set with a custom subscription and returns the decision
      * value.
      *
-     * @param policySet the policy set source code
-     * @param subscription the authorization subscription
+     * @param policySet
+     * the policy set source code
+     * @param subscription
+     * the authorization subscription
+     *
      * @return the decision value (ObjectValue containing decision, obligations,
      * etc.)
-     * @throws RuntimeException if compilation fails
+     *
+     * @throws RuntimeException
+     * if compilation fails
      */
     public static Value evaluatePolicySet(String policySet, AuthorizationSubscription subscription) {
         try {
@@ -112,8 +123,10 @@ public class CombiningAlgorithmTestUtil {
     /**
      * Asserts that a policy set evaluates to a specific decision.
      *
-     * @param policySet the policy set source code
-     * @param expectedDecision the expected decision
+     * @param policySet
+     * the policy set source code
+     * @param expectedDecision
+     * the expected decision
      */
     public static void assertDecision(String policySet, Decision expectedDecision) {
         assertDecision(evaluatePolicySet(policySet), expectedDecision);
@@ -122,8 +135,10 @@ public class CombiningAlgorithmTestUtil {
     /**
      * Asserts that a result value contains a specific decision.
      *
-     * @param result the result value from policy evaluation
-     * @param expectedDecision the expected decision
+     * @param result
+     * the result value from policy evaluation
+     * @param expectedDecision
+     * the expected decision
      */
     public static void assertDecision(Value result, Decision expectedDecision) {
         assertInstanceOf(ObjectValue.class, result);
@@ -136,9 +151,12 @@ public class CombiningAlgorithmTestUtil {
      * Asserts that a policy set evaluates to a specific decision with a specific
      * resource value.
      *
-     * @param policySet the policy set source code
-     * @param expectedDecision the expected decision
-     * @param expectedResource the expected resource value
+     * @param policySet
+     * the policy set source code
+     * @param expectedDecision
+     * the expected decision
+     * @param expectedResource
+     * the expected resource value
      */
     public static void assertDecisionWithResource(String policySet, Decision expectedDecision, Value expectedResource) {
         val result = evaluatePolicySet(policySet);
@@ -149,8 +167,10 @@ public class CombiningAlgorithmTestUtil {
     /**
      * Asserts that a result contains a specific resource value.
      *
-     * @param result the result value from policy evaluation
-     * @param expectedResource the expected resource value
+     * @param result
+     * the result value from policy evaluation
+     * @param expectedResource
+     * the expected resource value
      */
     public static void assertResource(Value result, Value expectedResource) {
         assertInstanceOf(ObjectValue.class, result);
@@ -161,8 +181,10 @@ public class CombiningAlgorithmTestUtil {
     /**
      * Asserts that a result contains specific obligations.
      *
-     * @param result the result value from policy evaluation
-     * @param expectedObligationTypes list of expected obligation type strings
+     * @param result
+     * the result value from policy evaluation
+     * @param expectedObligationTypes
+     * list of expected obligation type strings
      */
     public static void assertObligations(Value result, List<String> expectedObligationTypes) {
         assertInstanceOf(ObjectValue.class, result);
@@ -183,8 +205,10 @@ public class CombiningAlgorithmTestUtil {
     /**
      * Asserts that a result contains specific advice.
      *
-     * @param result the result value from policy evaluation
-     * @param expectedAdviceTypes list of expected advice type strings
+     * @param result
+     * the result value from policy evaluation
+     * @param expectedAdviceTypes
+     * list of expected advice type strings
      */
     public static void assertAdvice(Value result, List<String> expectedAdviceTypes) {
         assertInstanceOf(ObjectValue.class, result);
@@ -206,9 +230,12 @@ public class CombiningAlgorithmTestUtil {
      * Asserts that a result contains a transformed resource with a specific field
      * value.
      *
-     * @param result the result value from policy evaluation
-     * @param fieldName the name of the field in the resource object
-     * @param expectedValue the expected value for that field
+     * @param result
+     * the result value from policy evaluation
+     * @param fieldName
+     * the name of the field in the resource object
+     * @param expectedValue
+     * the expected value for that field
      */
     public static void assertResourceField(Value result, String fieldName, Value expectedValue) {
         assertInstanceOf(ObjectValue.class, result);
@@ -221,9 +248,12 @@ public class CombiningAlgorithmTestUtil {
     /**
      * Asserts that a resource field contains a boolean value.
      *
-     * @param result the result value from policy evaluation
-     * @param fieldName the name of the boolean field
-     * @param expectedBoolean the expected boolean value
+     * @param result
+     * the result value from policy evaluation
+     * @param fieldName
+     * the name of the boolean field
+     * @param expectedBoolean
+     * the expected boolean value
      */
     public static void assertResourceBoolean(Value result, String fieldName, boolean expectedBoolean) {
         assertInstanceOf(ObjectValue.class, result);
@@ -237,9 +267,12 @@ public class CombiningAlgorithmTestUtil {
     /**
      * Asserts that a resource field contains a text value.
      *
-     * @param result the result value from policy evaluation
-     * @param fieldName the name of the text field
-     * @param expectedText the expected text value
+     * @param result
+     * the result value from policy evaluation
+     * @param fieldName
+     * the name of the text field
+     * @param expectedText
+     * the expected text value
      */
     public static void assertResourceText(Value result, String fieldName, String expectedText) {
         assertInstanceOf(ObjectValue.class, result);

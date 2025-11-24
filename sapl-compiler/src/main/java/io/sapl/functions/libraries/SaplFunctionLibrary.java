@@ -155,7 +155,9 @@ public class SaplFunctionLibrary {
     /**
      * Loads a properties file from the classpath.
      *
-     * @param path the classpath path to the properties file
+     * @param path
+     * the classpath path to the properties file
+     *
      * @return loaded Properties object, or empty Properties if file not found
      */
     private static Properties loadProperties(String path) {
@@ -183,7 +185,9 @@ public class SaplFunctionLibrary {
     /**
      * Retrieves a property from git properties.
      *
-     * @param key the property key
+     * @param key
+     * the property key
+     *
      * @return TextValue containing the property value, or "unknown" if not
      * available
      */
@@ -194,7 +198,9 @@ public class SaplFunctionLibrary {
     /**
      * Retrieves a system property.
      *
-     * @param key the system property key
+     * @param key
+     * the system property key
+     *
      * @return TextValue containing the property value, or "unknown" if not
      * available
      */

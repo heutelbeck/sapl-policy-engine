@@ -36,12 +36,13 @@ import java.util.function.Consumer;
 
 /**
  * Manages a multicast reactive stream for attribute values with grace period
- * support for efficient re-subscription and PIP hot-swapping capabilities.
+ * support for efficient re-subscription and
+ * PIP hot-swapping capabilities.
  * <p>
  * The stream supports two initialization modes:
  * <ul>
- * <li>Without initial PIP: starts without values, awaiting PIP connection
- * via hot-swap</li>
+ * <li>Without initial PIP: starts without values, awaiting PIP connection via
+ * hot-swap</li>
  * <li>With initial PIP: immediately connected and streaming values</li>
  * </ul>
  * <p>
@@ -54,8 +55,9 @@ import java.util.function.Consumer;
  * <li>PIP hot-swapping: can replace data source without recreating the
  * stream</li>
  * <li>Bounded backpressure buffering: buffers up to 128 values to handle
- * synchronous multi-value emissions and transient slow consumers, preventing
- * memory leaks while ensuring legitimate value sequences are delivered</li>
+ * synchronous multi-value emissions and
+ * transient slow consumers, preventing memory leaks while ensuring legitimate
+ * value sequences are delivered</li>
  * <li>Thread-safe disposal: prevents race conditions between getStream() and
  * grace period expiration</li>
  * </ul>
@@ -84,17 +86,19 @@ public class AttributeStream {
      * Creates an AttributeStream without an initial PIP connection.
      * <p>
      * The stream awaits PIP connection via
-     * {@link #connectToPolicyInformationPoint(AttributeFinder)}.
-     * No values are emitted until a PIP is connected and a subscriber arrives.
+     * {@link #connectToPolicyInformationPoint(AttributeFinder)}. No values are
+     * emitted until a PIP is connected and a subscriber arrives.
      * <p>
      * Use case: PIP not yet available but may be hot-deployed during policy
      * evaluation lifecycle.
      *
-     * @param invocation the attribute invocation configuration
-     * @param cleanupAction callback executed when grace period expires and stream
-     * should be cleaned up from broker registry
-     * @param gracePeriod duration to keep stream alive after last subscriber
-     * cancels
+     * @param invocation
+     * the attribute invocation configuration
+     * @param cleanupAction
+     * callback executed when grace period expires and stream should be cleaned up
+     * from broker registry
+     * @param gracePeriod
+     * duration to keep stream alive after last subscriber cancels
      */
     public AttributeStream(@NonNull AttributeFinderInvocation invocation,
             @NonNull Consumer<AttributeStream> cleanupAction,
@@ -113,11 +117,14 @@ public class AttributeStream {
      * <p>
      * Use case: PIP is available at stream creation time.
      *
-     * @param invocation the attribute invocation configuration
-     * @param cleanupAction callback executed when grace period expires
-     * @param gracePeriod duration to keep stream alive after last subscriber
-     * cancels
-     * @param attributeFinder the PIP to connect immediately
+     * @param invocation
+     * the attribute invocation configuration
+     * @param cleanupAction
+     * callback executed when grace period expires
+     * @param gracePeriod
+     * duration to keep stream alive after last subscriber cancels
+     * @param attributeFinder
+     * the PIP to connect immediately
      */
     public AttributeStream(@NonNull AttributeFinderInvocation invocation,
             @NonNull Consumer<AttributeStream> cleanupAction,
@@ -133,7 +140,8 @@ public class AttributeStream {
      * Creates the multicast stream with unified reactive chain structure.
      * <p>
      * Chain structure: sink → [optional PIP start] → [grace period hooks] →
-     * replay(1) → refCount(grace period) → subscribers
+     * replay(1) → refCount(grace period) →
+     * subscribers
      * <p>
      * The hooks capture when refCount drops to zero after grace period expiration:
      * <ul>
@@ -145,8 +153,8 @@ public class AttributeStream {
      * (not hot-swapped)</li>
      * </ul>
      *
-     * @param gracePeriod duration to keep stream alive after last
-     * subscriber cancels
+     * @param gracePeriod
+     * duration to keep stream alive after last subscriber cancels
      */
     private Flux<Value> createMulticastStream(Duration gracePeriod) {
         var flux = sink.asFlux();
@@ -172,12 +180,13 @@ public class AttributeStream {
      * Returns the reactive stream for subscription.
      * <p>
      * Thread-safe with respect to disposal. If the stream has been disposed due to
-     * grace period expiration, returns null to signal that a new stream should be
-     * created by the broker.
+     * grace period expiration, returns
+     * null to signal that a new stream should be created by the broker.
      * <p>
      * Synchronizes on connectionLock to ensure atomic check of disposal state,
-     * preventing race conditions where disposal completes between checking the
-     * disposed flag and returning the stream reference.
+     * preventing race conditions where
+     * disposal completes between checking the disposed flag and returning the
+     * stream reference.
      *
      * @return the Flux for subscription, or null if stream has been disposed
      */
@@ -193,12 +202,14 @@ public class AttributeStream {
     /**
      * Starts the PIP subscription when first subscriber arrives.
      * <p>
-     * Marks that subscribers are active and attempts to start PIP subscription if
-     * a PIP is configured. If no PIP is configured, publishes an error to inform
-     * subscribers that no matching PIP was found for this invocation.
+     * Marks that subscribers are active and attempts to start PIP subscription if a
+     * PIP is configured. If no PIP is
+     * configured, publishes an error to inform subscribers that no matching PIP was
+     * found for this invocation.
      * <p>
      * The subscription handlers are empty because values and errors are already
-     * published to the sink via doOnNext and doOnError in the configured stream.
+     * published to the sink via doOnNext and
+     * doOnError in the configured stream.
      */
     private void startPipSubscription() {
         hasActiveSubscribers = true;
@@ -220,8 +231,9 @@ public class AttributeStream {
      * Disposes the PIP subscription if it wasn't hot-swapped during grace period.
      * <p>
      * Compares the snapshot taken when grace period started with the current PIP
-     * subscription. If they're the same, no hot-swap occurred and the PIP should be
-     * disposed. If different, a new PIP was connected during grace period and
+     * subscription. If they're the same, no
+     * hot-swap occurred and the PIP should be disposed. If different, a new PIP was
+     * connected during grace period and
      * should be preserved.
      * <p>
      * Sets the disposed flag to prevent further getStream() calls from returning
@@ -260,7 +272,8 @@ public class AttributeStream {
      * Package-private: intended for internal use by AttributeStream and related
      * broker components.
      *
-     * @param value the value to publish
+     * @param value
+     * the value to publish
      */
     void publish(Value value) {
         log.debug("Publishing {} to {}", value, this);
@@ -302,8 +315,7 @@ public class AttributeStream {
      * <li>defaultIfEmpty: converts empty streams to UNDEFINED</li>
      * <li>addInitialTimeout: emits UNDEFINED if first value takes too long</li>
      * <li>retryOnError: exponential backoff retry on error signals</li>
-     * <li>pollOnComplete: re-subscribes after completion with polling
-     * interval</li>
+     * <li>pollOnComplete: re-subscribes after completion with polling interval</li>
      * <li>onErrorResume: converts error signals (including from polling) to
      * Value.error() values</li>
      * <li>filter: prevents values from disconnected PIPs reaching the sink</li>
@@ -320,10 +332,12 @@ public class AttributeStream {
      * </ul>
      * <p>
      * By converting errors to Value.error() values after all reactive operations,
-     * the final stream only emits values, ensuring clean error handling without
-     * Reactor warnings.
+     * the final stream only emits values,
+     * ensuring clean error handling without Reactor warnings.
      *
-     * @param attributeFinder the PIP to configure
+     * @param attributeFinder
+     * the PIP to configure
+     *
      * @return configured Flux that publishes to sink
      */
     private Flux<Value> configureAttributeFinderStream(AttributeFinder attributeFinder) {
@@ -341,7 +355,8 @@ public class AttributeStream {
      * <li>Resets disconnection state</li>
      * <li>Stores the new PIP configuration for subscription</li>
      * <li>Subscribes immediately if: there are active PIP subscribers (hot-swap),
-     * reconnecting after explicit disconnect, or subscribers are waiting</li>
+     * reconnecting after explicit
+     * disconnect, or subscribers are waiting</li>
      * <li>Defers subscription if: no subscribers yet (waits for first
      * subscriber)</li>
      * </ul>
@@ -352,7 +367,8 @@ public class AttributeStream {
      * Use case: Configuration update, PIP replacement, or recovery from
      * disconnection.
      *
-     * @param policyInformationPoint the new PIP to connect
+     * @param policyInformationPoint
+     * the new PIP to connect
      */
     public void connectToPolicyInformationPoint(AttributeFinder policyInformationPoint) {
         synchronized (connectionLock) {
@@ -387,11 +403,12 @@ public class AttributeStream {
      * Adds initial timeout handling.
      * <p>
      * Emits UNDEFINED if the first value doesn't arrive within the configured
-     * timeout. The subscription remains active and the actual value will be emitted
-     * when it arrives.
+     * timeout. The subscription remains active
+     * and the actual value will be emitted when it arrives.
      * <p>
      * Applied before retry logic to ensure timeout only applies to the initial
-     * attempt, not to the entire retry sequence.
+     * attempt, not to the entire retry
+     * sequence.
      */
     private Flux<Value> addInitialTimeout(Flux<Value> attributeStream) {
         return TimeOutWrapper.wrap(attributeStream, invocation.initialTimeOut());
@@ -401,8 +418,8 @@ public class AttributeStream {
      * Adds polling behavior for streams that complete.
      * <p>
      * After the PIP completes, waits for the polling interval then re-subscribes to
-     * fetch fresh values. This supports attributes that need periodic
-     * re-evaluation.
+     * fetch fresh values. This supports
+     * attributes that need periodic re-evaluation.
      */
     private Flux<Value> pollOnComplete(Flux<Value> attributeStream) {
         return attributeStream.repeatWhen(repeat -> repeat.delayElements(invocation.pollInterval()));
@@ -412,7 +429,8 @@ public class AttributeStream {
      * Adds retry behavior with exponential backoff.
      * <p>
      * If retries=0, errors propagate immediately. Otherwise, retries the specified
-     * number of times with exponential backoff delay.
+     * number of times with exponential
+     * backoff delay.
      */
     private Flux<Value> retryOnError(Flux<Value> attributeStream) {
         if (invocation.retries() == 0) {

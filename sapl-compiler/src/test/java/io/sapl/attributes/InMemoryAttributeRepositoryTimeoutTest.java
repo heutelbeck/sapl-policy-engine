@@ -37,9 +37,10 @@ import static org.awaitility.Awaitility.await;
  * Tests timeout management in InMemoryAttributeRepository.
  * <p>
  * These tests use Lovecraftian scenarios to verify attributes being published
- * with various TTL settings and observing them timing out according to their
- * configured strategies. The cosmic horror theme provides engaging test data
- * while testing real authorization and access control scenarios:
+ * with various TTL settings and observing
+ * them timing out according to their configured strategies. The cosmic horror
+ * theme provides engaging test data while
+ * testing real authorization and access control scenarios:
  * <ul>
  * <li>Elder Sign protections that expire over time</li>
  * <li>Investigator sanity degrading to undefined states</li>

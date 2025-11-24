@@ -35,14 +35,12 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /**
  * Comprehensive test suite for all legacy SAPL policies found across modules.
- * Tests that existing policies compile successfully with the new compiler.
- *
- * Policies are organized by complexity:
- * - Simple policies (basic logic only)
- * - Policies with functions
- * - Policies with PIPs/attributes
- * - Policies with complex features (obligations, advice, transformations)
- * - Error/invalid policies (negative tests)
+ * Tests that existing policies compile
+ * successfully with the new compiler. Policies are organized by complexity: -
+ * Simple policies (basic logic only) -
+ * Policies with functions - Policies with PIPs/attributes - Policies with
+ * complex features (obligations, advice,
+ * transformations) - Error/invalid policies (negative tests)
  */
 class LegacyPolicyTests {
     private static final SAPLInterpreter PARSER = new DefaultSAPLInterpreter();

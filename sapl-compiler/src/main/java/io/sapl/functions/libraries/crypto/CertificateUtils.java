@@ -30,7 +30,8 @@ import static io.sapl.functions.libraries.crypto.CryptoConstants.CERTIFICATE_TYP
 
 /**
  * Utilities for working with X.509 certificates. Provides methods for parsing,
- * encoding, and extracting information from certificates.
+ * encoding, and extracting information
+ * from certificates.
  */
 @UtilityClass
 public class CertificateUtils {
@@ -38,9 +39,13 @@ public class CertificateUtils {
     /**
      * Parses an X.509 certificate from PEM or DER format.
      *
-     * @param certificateString the certificate string in PEM or DER format
+     * @param certificateString
+     * the certificate string in PEM or DER format
+     *
      * @return the parsed X509Certificate
-     * @throws PolicyEvaluationException if parsing fails
+     *
+     * @throws PolicyEvaluationException
+     * if parsing fails
      */
     public static X509Certificate parseCertificate(String certificateString) throws CertificateException {
         val certificateFactory = getCertificateFactory();
@@ -52,9 +57,13 @@ public class CertificateUtils {
     /**
      * Encodes a certificate to its DER byte representation.
      *
-     * @param certificate the X509Certificate to encode
+     * @param certificate
+     * the X509Certificate to encode
+     *
      * @return the encoded certificate bytes
-     * @throws PolicyEvaluationException if encoding fails
+     *
+     * @throws PolicyEvaluationException
+     * if encoding fails
      */
     public static byte[] encodeCertificate(X509Certificate certificate) throws CertificateEncodingException {
         return certificate.getEncoded();
@@ -63,10 +72,15 @@ public class CertificateUtils {
     /**
      * Extracts Subject Alternative Names from a certificate.
      *
-     * @param certificate the X509Certificate to extract SANs from
+     * @param certificate
+     * the X509Certificate to extract SANs from
+     *
      * @return collection of SANs where each entry is a list with type (Integer) at
-     * index 0 and value (String) at index 1, or null if no SANs present
-     * @throws PolicyEvaluationException if extraction fails
+     * index 0 and value (String) at index
+     * 1, or null if no SANs present
+     *
+     * @throws PolicyEvaluationException
+     * if extraction fails
      */
     public static Collection<List<?>> extractSubjectAlternativeNames(X509Certificate certificate)
             throws CertificateParsingException {
@@ -77,8 +91,9 @@ public class CertificateUtils {
      * Gets the X.509 certificate factory instance.
      *
      * @return the CertificateFactory for X.509 certificates
-     * @throws PolicyEvaluationException if X.509 certificate factory is not
-     * available
+     *
+     * @throws PolicyEvaluationException
+     * if X.509 certificate factory is not available
      */
     public static CertificateFactory getCertificateFactory() throws CertificateException {
         return CertificateFactory.getInstance(CERTIFICATE_TYPE_X509);

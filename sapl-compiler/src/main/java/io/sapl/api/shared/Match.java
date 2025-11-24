@@ -24,8 +24,8 @@ public enum Match {
     CATCH_ALL_MATCH;
 
     /**
-     * Determines the priority level of this match type.
-     * Higher values indicate more specific matches.
+     * Determines the priority level of this match type. Higher values indicate more
+     * specific matches.
      *
      * @return the priority value (0-3)
      */
@@ -40,18 +40,20 @@ public enum Match {
 
     /**
      * Determines if this match type is more specific than another match type.
-     * NO_MATCH is never better than any match type.
-     * The specificity order is: EXACT_MATCH > VARARGS_MATCH > CATCH_ALL_MATCH >
-     * NO_MATCH
+     * NO_MATCH is never better than any match
+     * type. The specificity order is: EXACT_MATCH > VARARGS_MATCH > CATCH_ALL_MATCH
+     * > NO_MATCH
      * <p/>
      * | this/other | NO_MATCH | EXACT_MATCH | VARARGS_MATCH | CATCH_ALL_MATCH |
      * |----------------|----------|-------------|---------------|-----------------|
-     * | NO_MATCH | false | false | false | false |
-     * | EXACT_MATCH | true | false | true | true |
-     * | VARARGS_MATCH | true | false | false | true |
-     * | CATCH_ALL_MATCH| true | false | false | false |
+     * | NO_MATCH | false | false | false
+     * | false | | EXACT_MATCH | true | false | true | true | | VARARGS_MATCH | true
+     * | false | false | true | |
+     * CATCH_ALL_MATCH| true | false | false | false |
      *
-     * @param other the match type to compare against
+     * @param other
+     * the match type to compare against
+     *
      * @return true if this match is more specific than the other match, false
      * otherwise
      */

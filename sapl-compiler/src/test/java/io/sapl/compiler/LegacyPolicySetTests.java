@@ -29,8 +29,8 @@ import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * Legacy tests for policy sets, replicating tests from sapl-lang's
- * DefaultSAPLInterpreterPolicySetTests to ensure backwards compatibility
- * with the new compiler implementation.
+ * DefaultSAPLInterpreterPolicySetTests to ensure
+ * backwards compatibility with the new compiler implementation.
  */
 class LegacyPolicySetTests {
 

@@ -77,10 +77,11 @@ public class ReactiveWebClient {
      * Connects to an HTTP service and produces a Flux&lt;Value&gt;
      * </p>
      *
-     * @param method the @see HttpMethod to execute and a @see ObjectValue
-     * containing the
-     * settings
-     * @param requestSettings contains the HTTP parameters for the request.
+     * @param method
+     * the @see HttpMethod to execute and a @see ObjectValue containing the settings
+     * @param requestSettings
+     * contains the HTTP parameters for the request.
+     *
      * @return a @see Flux&lt;@see Value&gt;
      */
     public Flux<Value> httpRequest(HttpMethod method, ObjectValue requestSettings) {
@@ -124,7 +125,9 @@ public class ReactiveWebClient {
     }
 
     /**
-     * @param requestSettings the request specification
+     * @param requestSettings
+     * the request specification
+     *
      * @return a Flux of incoming messages
      */
     public Flux<Value> consumeWebSocket(ObjectValue requestSettings) {

@@ -44,8 +44,7 @@ import static org.awaitility.Awaitility.await;
  * Race condition stress tests for AttributeStream.
  * <p>
  * These tests intentionally create concurrent scenarios that could expose
- * threading bugs.
- * Tests use:
+ * threading bugs. Tests use:
  * <ul>
  * <li>CountDownLatch to synchronize thread starts and maximize contention</li>
  * <li>RepeatedTest to increase probability of exposing rare races</li>
@@ -68,12 +67,12 @@ class AttributeStreamRaceConditionTests {
      * Tests concurrent connect operations with active subscription.
      * <p>
      * Creates 10 threads that simultaneously connect different PIPs to the same
-     * stream
-     * while values are being consumed. Each PIP emits a distinct identifier.
+     * stream while values are being consumed.
+     * Each PIP emits a distinct identifier.
      * <p>
      * Expected: Stream remains functional and emits values from the winning PIP.
-     * Race condition being tested: Multiple threads racing to update
-     * currentPipSubscription.
+     * Race condition being tested: Multiple
+     * threads racing to update currentPipSubscription.
      */
     @RepeatedTest(10)
     void concurrentConnects_streamRemainsFunctional() throws Exception {
@@ -123,13 +122,12 @@ class AttributeStreamRaceConditionTests {
      * Tests PIP connection and re-subscription during grace period.
      * <p>
      * Simulates connecting a new PIP near the end of the grace period and
-     * immediately
-     * re-subscribing. The re-subscription should reset the grace period timer and
-     * preserve the new PIP.
+     * immediately re-subscribing. The
+     * re-subscription should reset the grace period timer and preserve the new PIP.
      * <p>
      * Expected: New PIP is preserved, stream emits new values, cleanup is deferred.
-     * Race condition being tested: PIP swap and re-subscription during grace
-     * period.
+     * Race condition being tested: PIP
+     * swap and re-subscription during grace period.
      */
     @RepeatedTest(5)
     void reconnectAndResubscribeDuringGracePeriod_pipPreserved() throws Exception {
@@ -161,12 +159,13 @@ class AttributeStreamRaceConditionTests {
      * Tests that streams are properly removed from broker index after grace period.
      * <p>
      * When grace period expires without re-subscription, the cleanup callback
-     * removes the stream from the broker's index. Future requests for the same
-     * invocation should create a new stream, not return a disposed one.
+     * removes the stream from the broker's
+     * index. Future requests for the same invocation should create a new stream,
+     * not return a disposed one.
      * <p>
      * Expected: Broker creates new stream after cleanup, old stream marked as
-     * disposed.
-     * Tests: Grace period cleanup integration with broker.
+     * disposed. Tests: Grace period cleanup
+     * integration with broker.
      */
     @RepeatedTest(20)
     void afterGracePeriodExpiration_brokerCreatesNewStream() throws Exception {
@@ -192,13 +191,13 @@ class AttributeStreamRaceConditionTests {
      * Tests disconnect racing with connect operation.
      * <p>
      * Two threads race: one connects a slow-starting PIP (delayed emission),
-     * another disconnects immediately. The disconnect may happen before, during,
-     * or after the connect completes.
+     * another disconnects immediately. The
+     * disconnect may happen before, during, or after the connect completes.
      * <p>
      * Expected: Either disconnect error appears, or the PIP connects and then gets
-     * disconnected.
-     * The stream should not hang or crash.
-     * Race condition being tested: Disconnect during PIP subscription setup.
+     * disconnected. The stream should not
+     * hang or crash. Race condition being tested: Disconnect during PIP
+     * subscription setup.
      */
     @RepeatedTest(10)
     void disconnectRacingWithConnect_streamRemainsStable() throws Exception {
@@ -252,12 +251,13 @@ class AttributeStreamRaceConditionTests {
     /**
      * Tests multiple concurrent disconnect calls.
      * <p>
-     * Multiple threads call disconnect simultaneously on an active stream.
-     * The implementation should ensure only one disconnect error is published.
+     * Multiple threads call disconnect simultaneously on an active stream. The
+     * implementation should ensure only one
+     * disconnect error is published.
      * <p>
-     * Expected: Exactly one disconnect error published.
-     * Race condition being tested: Multiple threads racing to set disconnected flag
-     * and publish error.
+     * Expected: Exactly one disconnect error published. Race condition being
+     * tested: Multiple threads racing to set
+     * disconnected flag and publish error.
      */
     @RepeatedTest(10)
     void concurrentDisconnects_singleErrorPublished() throws Exception {
@@ -312,12 +312,12 @@ class AttributeStreamRaceConditionTests {
      * Tests connect racing with another connect operation.
      * <p>
      * Two threads connect different PIPs simultaneously. Each PIP emits
-     * continuously.
-     * The implementation should properly dispose the losing PIP's subscription.
+     * continuously. The implementation should
+     * properly dispose the losing PIP's subscription.
      * <p>
-     * Expected: Only values from one PIP appear after both connects complete.
-     * Race condition being tested: Disposal of old subscription during concurrent
-     * connects.
+     * Expected: Only values from one PIP appear after both connects complete. Race
+     * condition being tested: Disposal of
+     * old subscription during concurrent connects.
      */
     @RepeatedTest(10)
     void concurrentConnectsWithStreamingPips_noValueueMixing() throws Exception {
@@ -386,11 +386,12 @@ class AttributeStreamRaceConditionTests {
      * Chaos test with mixed operations under high concurrency.
      * <p>
      * Multiple threads perform random operations: connect, disconnect, subscribe,
-     * cancel.
-     * The stream should handle all operations without crashing or deadlocking.
+     * cancel. The stream should handle all
+     * operations without crashing or deadlocking.
      * <p>
-     * Expected: Stream remains functional and can emit values at the end.
-     * Tests overall thread safety under unpredictable load.
+     * Expected: Stream remains functional and can emit values at the end. Tests
+     * overall thread safety under
+     * unpredictable load.
      */
     @RepeatedTest(3)
     void chaosMonkey_mixedOperations() throws Exception {
@@ -458,11 +459,12 @@ class AttributeStreamRaceConditionTests {
      * Tests extreme backpressure handling.
      * <p>
      * Creates a fast producer emitting 1000 values and a slow consumer with 10ms
-     * delays.
-     * The bounded buffer should prevent memory leaks while dropping excess values.
+     * delays. The bounded buffer should
+     * prevent memory leaks while dropping excess values.
      * <p>
      * Expected: Some values received, none crashed, buffer doesn't overflow memory.
-     * Tests the bounded buffer (128 elements) under extreme load.
+     * Tests the bounded buffer (128
+     * elements) under extreme load.
      */
     @Test
     void extremeBackpressure_handlesGracefully() throws Exception {
@@ -492,11 +494,11 @@ class AttributeStreamRaceConditionTests {
      * Tests hot-swapping PIPs during active high-frequency emission.
      * <p>
      * Starts with a fast-emitting PIP, then hot-swaps to another PIP mid-stream.
-     * Valueidates that the swap happens cleanly without value corruption or
-     * hanging.
+     * Valueidates that the swap happens
+     * cleanly without value corruption or hanging.
      * <p>
-     * Expected: Valueues from second PIP appear, no intermixed values.
-     * Tests PIP replacement under load.
+     * Expected: Valueues from second PIP appear, no intermixed values. Tests PIP
+     * replacement under load.
      */
     @Test
     void hotSwapDuringHighFrequencyEmission_swapSucceeds() throws Exception {

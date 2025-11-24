@@ -23,11 +23,13 @@ import lombok.NonNull;
  * Wrapper for a Policy Information Point specification.
  * <p>
  * This record provides a layer of indirection for PIP implementations, allowing
- * for potential future extensions without breaking API compatibility.
- * Currently, it simply wraps a PolicyInformationPointSpecification.
+ * for potential future extensions without
+ * breaking API compatibility. Currently, it simply wraps a
+ * PolicyInformationPointSpecification.
  *
- * @param specification the PIP specification containing name and attribute
- * finders
+ * @param specification
+ * the PIP specification containing name and attribute finders
+ *
  * @see PolicyInformationPointSpecification
  */
 public record PolicyInformationPointImplementation(@NonNull PolicyInformationPointSpecification specification) {}

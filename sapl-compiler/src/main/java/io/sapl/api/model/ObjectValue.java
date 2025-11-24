@@ -34,8 +34,8 @@ import java.util.stream.Collectors;
  * Object value implementing Map semantics. The underlying map is immutable.
  * <p>
  * Secret containers eagerly apply the secret flag to all contained values at
- * construction time, enabling zero-overhead reads and optimal performance for
- * recursive operations.
+ * construction time, enabling zero-overhead
+ * reads and optimal performance for recursive operations.
  * <p>
  * Direct map usage:
  *
@@ -66,7 +66,7 @@ import java.util.stream.Collectors;
  *
  * <pre>{@code
  * Value result = obj.get(null); // Returns ErrorValue
- * Value result2 = obj.get(123);  // Returns ErrorValue (not a String key)
+ * Value result2 = obj.get(123); // Returns ErrorValue (not a String key)
  * }</pre>
  */
 public final class ObjectValue implements Value, Map<String, Value> {
@@ -90,10 +90,13 @@ public final class ObjectValue implements Value, Map<String, Value> {
      * for optimal read performance.
      * <p>
      * Note: This does a defensive copy of the supplied Map. For better performance
-     * without the need to copy use the Builder!
+     * without the need to copy use the
+     * Builder!
      *
-     * @param properties the map properties (defensively copied, must not be null)
-     * @param secret whether this value is secret
+     * @param properties
+     * the map properties (defensively copied, must not be null)
+     * @param secret
+     * whether this value is secret
      */
     public ObjectValue(@NonNull Map<String, Value> properties, boolean secret) {
         if (secret) {
@@ -111,12 +114,13 @@ public final class ObjectValue implements Value, Map<String, Value> {
     }
 
     /**
-     * Zero-copy constructor for builder use only.
-     * The supplied map is used directly without copying.
+     * Zero-copy constructor for builder use only. The supplied map is used directly
+     * without copying.
      *
-     * @param secret whether this value is secret
-     * @param properties the map properties (used directly, must be mutable until
-     * wrapped)
+     * @param secret
+     * whether this value is secret
+     * @param properties
+     * the map properties (used directly, must be mutable until wrapped)
      */
     private ObjectValue(boolean secret, Map<String, Value> properties) {
         this.value  = Collections.unmodifiableMap(properties);
@@ -136,8 +140,8 @@ public final class ObjectValue implements Value, Map<String, Value> {
      * Builder for fluent ObjectValue construction.
      * <p>
      * Builders are single-use only. After calling build(), the builder cannot be
-     * reused. This prevents immutability violations from the zero-copy
-     * optimization.
+     * reused. This prevents immutability
+     * violations from the zero-copy optimization.
      */
     public static final class Builder {
         private LinkedHashMap<String, Value> properties = new LinkedHashMap<>();
@@ -146,10 +150,15 @@ public final class ObjectValue implements Value, Map<String, Value> {
         /**
          * Adds a property to the object.
          *
-         * @param key the property key
-         * @param value the property value
+         * @param key
+         * the property key
+         * @param value
+         * the property value
+         *
          * @return this builder
-         * @throws IllegalStateException if builder has already been used
+         *
+         * @throws IllegalStateException
+         * if builder has already been used
          */
         public Builder put(String key, Value value) {
             if (properties == null) {
@@ -165,9 +174,13 @@ public final class ObjectValue implements Value, Map<String, Value> {
         /**
          * Adds multiple properties to the object.
          *
-         * @param entries the properties to add
+         * @param entries
+         * the properties to add
+         *
          * @return this builder
-         * @throws IllegalStateException if builder has already been used
+         *
+         * @throws IllegalStateException
+         * if builder has already been used
          */
         public Builder putAll(Map<String, Value> entries) {
             if (properties == null) {
@@ -180,14 +193,16 @@ public final class ObjectValue implements Value, Map<String, Value> {
         }
 
         /**
-         * Marks the object as secret.
-         * Values from secret objects will have the secret flag applied at construction.
+         * Marks the object as secret. Values from secret objects will have the secret
+         * flag applied at construction.
          * <p>
          * Note: For performance reasons, if possible call this method as early as
          * possible in the building process.
          *
          * @return this builder
-         * @throws IllegalStateException if builder has already been used
+         *
+         * @throws IllegalStateException
+         * if builder has already been used
          */
         public Builder secret() {
             if (properties == null) {
@@ -201,14 +216,17 @@ public final class ObjectValue implements Value, Map<String, Value> {
         }
 
         /**
-         * Builds the immutable ObjectValue.
-         * Returns singleton for empty non-secret objects.
+         * Builds the immutable ObjectValue. Returns singleton for empty non-secret
+         * objects.
          * <p>
          * After calling this method, the builder cannot be reused. Attempting to call
-         * any builder methods after build() will throw IllegalStateException.
+         * any builder methods after build()
+         * will throw IllegalStateException.
          *
          * @return the constructed ObjectValue
-         * @throws IllegalStateException if builder has already been used
+         *
+         * @throws IllegalStateException
+         * if builder has already been used
          */
         public ObjectValue build() {
             if (properties == null) {
@@ -269,10 +287,13 @@ public final class ObjectValue implements Value, Map<String, Value> {
      * Returns the value for the specified key.
      * <p>
      * Returns ErrorValue for invalid key types instead of throwing
-     * ClassCastException, consistent with SAPL's error-as-value model.
-     * Values already have the secret flag applied if container is secret.
+     * ClassCastException, consistent with SAPL's
+     * error-as-value model. Values already have the secret flag applied if
+     * container is secret.
      *
-     * @param key the key (must be a String)
+     * @param key
+     * the key (must be a String)
+     *
      * @return the value, null if key not found, or ErrorValue if key is null or not
      * a String
      */
@@ -292,11 +313,14 @@ public final class ObjectValue implements Value, Map<String, Value> {
      * Returns the value for the specified key, or defaultValue if not found.
      * <p>
      * Returns ErrorValue for invalid key types instead of throwing
-     * ClassCastException. Values already have the secret flag applied if container
-     * is secret.
+     * ClassCastException. Values already have the secret
+     * flag applied if container is secret.
      *
-     * @param key the key (must be a String)
-     * @param defaultValue the default value if key not found
+     * @param key
+     * the key (must be a String)
+     * @param defaultValue
+     * the default value if key not found
+     *
      * @return the value, defaultValue if key not found, or ErrorValue if key is
      * null or not a String
      */
@@ -321,7 +345,9 @@ public final class ObjectValue implements Value, Map<String, Value> {
      * <p>
      * Returns false for non-String keys instead of throwing ClassCastException.
      *
-     * @param key key to test
+     * @param key
+     * key to test
+     *
      * @return true if map contains the key (which must be a String)
      */
     @Override
@@ -330,9 +356,9 @@ public final class ObjectValue implements Value, Map<String, Value> {
     }
 
     /**
-     * Methods excluded from Lombok delegation to preserve Value semantics.
-     * These methods require custom implementations for error handling and type
-     * safety.
+     * Methods excluded from Lombok delegation to preserve Value semantics. These
+     * methods require custom implementations
+     * for error handling and type safety.
      */
     private interface ExcludedMethods {
         boolean equals(Object obj);

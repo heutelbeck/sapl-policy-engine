@@ -51,9 +51,9 @@ import static io.sapl.functions.libraries.crypto.CryptoConstants.*;
 
 /**
  * Provides functions for parsing and converting cryptographic key material.
- * Supports parsing public keys from PEM format, extracting keys from
- * certificates, and converting between different key representations.
- *
+ * Supports parsing public keys from PEM
+ * format, extracting keys from certificates, and converting between different
+ * key representations.
  * <p>
  * Supported key types:
  * <ul>
@@ -62,7 +62,6 @@ import static io.sapl.functions.libraries.crypto.CryptoConstants.*;
  * P-384, P-521)</li>
  * <li>EdDSA (Ed25519) - Full bidirectional JWK conversion support</li>
  * </ul>
- *
  * <p>
  * JWK conversion follows RFC 7517 (JSON Web Key) and RFC 7518 (JSON Web
  * Algorithms).
@@ -502,8 +501,9 @@ public class KeysFunctionLibrary {
     }
 
     /**
-     * Converts an EdEC (Ed25519) public key to JWK format.
-     * Extracts the raw 32-byte public key from the X.509 encoded structure.
+     * Converts an EdEC (Ed25519) public key to JWK format. Extracts the raw 32-byte
+     * public key from the X.509 encoded
+     * structure.
      */
     private static JsonNode convertEdEcPublicKeyToJwk(EdECPublicKey edEcKey) {
         val jwk = JSON.objectNode();
@@ -520,8 +520,9 @@ public class KeysFunctionLibrary {
     }
 
     /**
-     * Extracts the raw Ed25519 public key bytes from X.509 encoded format.
-     * The X.509 structure for Ed25519 ends with the 32-byte raw public key.
+     * Extracts the raw Ed25519 public key bytes from X.509 encoded format. The
+     * X.509 structure for Ed25519 ends with
+     * the 32-byte raw public key.
      */
     private static byte[] extractRawEdEcPublicKey(byte[] x509Encoded) {
         // Ed25519 X.509 format: fixed header followed by 32-byte key
@@ -675,8 +676,9 @@ public class KeysFunctionLibrary {
     }
 
     /**
-     * Base64 URL encodes a BigInteger, stripping the sign byte if present.
-     * Follows RFC 7518 unsigned big-endian integer encoding.
+     * Base64 URL encodes a BigInteger, stripping the sign byte if present. Follows
+     * RFC 7518 unsigned big-endian integer
+     * encoding.
      */
     private static String base64UrlEncode(BigInteger value) {
         byte[] bytes = value.toByteArray();

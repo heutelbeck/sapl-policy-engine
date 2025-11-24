@@ -37,8 +37,9 @@ import java.util.concurrent.CopyOnWriteArrayList;
  * Caching attribute stream broker with thread-safe collection handling.
  * <p>
  * Uses CopyOnWriteArrayList for storing active streams to prevent
- * ConcurrentModificationException when streams are added/removed by
- * background threads during TTL expiration or PIP hot-swapping.
+ * ConcurrentModificationException when streams are
+ * added/removed by background threads during TTL expiration or PIP
+ * hot-swapping.
  */
 @Slf4j
 @RequiredArgsConstructor
@@ -88,11 +89,14 @@ public class CachingAttributeBroker implements AttributeBroker {
     /**
      * Creates a new AttributeStream for an invocation.
      *
-     * @param invocation an invocation
-     * @param pipsWithNameOfInvocation all PIPs with the same attribute name
+     * @param invocation
+     * an invocation
+     * @param pipsWithNameOfInvocation
+     * all PIPs with the same attribute name
+     *
      * @return a new AttributeStream connected to a matching PIP, to the
-     * AttributeRepository (if PIPs exist but none match), or without a
-     * finder (emits error if no PIPs registered for that name)
+     * AttributeRepository (if PIPs exist but none
+     * match), or without a finder (emits error if no PIPs registered for that name)
      */
     private AttributeStream newAttributeStream(final AttributeFinderInvocation invocation,
             Iterable<AttributeFinderSpecification> pipsWithNameOfInvocation) {
@@ -109,12 +113,16 @@ public class CachingAttributeBroker implements AttributeBroker {
      * Finds an AttributeFinder matching an invocation.
      * <p>
      * Searches for exact match first, then varargs match among the provided PIPs.
-     * If PIPs are provided but none match the signature, returns the
-     * AttributeRepository as fallback. If no PIPs are provided (null), returns
-     * null to signal no finder available.
+     * If PIPs are provided but none match
+     * the signature, returns the AttributeRepository as fallback. If no PIPs are
+     * provided (null), returns null to
+     * signal no finder available.
      *
-     * @param invocation an invocation
-     * @param pipsWithNameOfInvocation PIPs with matching attribute name, or null
+     * @param invocation
+     * an invocation
+     * @param pipsWithNameOfInvocation
+     * PIPs with matching attribute name, or null
+     *
      * @return matching PIP, AttributeRepository (fallback), or null (no PIPs for
      * that name)
      */
@@ -144,7 +152,8 @@ public class CachingAttributeBroker implements AttributeBroker {
      * Thread-safe: CopyOnWriteArrayList allows concurrent modifications during
      * iteration.
      *
-     * @param attributeStream an attribute stream to remove
+     * @param attributeStream
+     * an attribute stream to remove
      */
     private void removeAttributeStreamFromIndex(AttributeStream attributeStream) {
         synchronized (lock) {
@@ -181,13 +190,17 @@ public class CachingAttributeBroker implements AttributeBroker {
     }
 
     /**
-     * Registers a new PIP with the attribute broker. The specification
-     * must not collide with any existing specification. If there are any matching
-     * attribute streams consumed by policies, the streams are connected to the new
-     * PIP.
+     * Registers a new PIP with the attribute broker. The specification must not
+     * collide with any existing
+     * specification. If there are any matching attribute streams consumed by
+     * policies, the streams are connected to the
+     * new PIP.
      *
-     * @param attributeFinderSpecification the specification of the PIP
-     * @throws AttributeBrokerException if there is a specification collision
+     * @param attributeFinderSpecification
+     * the specification of the PIP
+     *
+     * @throws AttributeBrokerException
+     * if there is a specification collision
      */
     private void registerAttributeFinder(AttributeFinderSpecification attributeFinderSpecification) {
         log.debug("Publishing PIP: {}", attributeFinderSpecification);
@@ -220,11 +233,14 @@ public class CachingAttributeBroker implements AttributeBroker {
     /**
      * Connects streams to a PIP.
      * <p>
-     * Thread-safe: Iterating over CopyOnWriteArrayList is safe even if the list
-     * is modified concurrently by other threads.
+     * Thread-safe: Iterating over CopyOnWriteArrayList is safe even if the list is
+     * modified concurrently by other
+     * threads.
      *
-     * @param policyInformationPoint the PIP to connect
-     * @param streams the streams to connect
+     * @param policyInformationPoint
+     * the PIP to connect
+     * @param streams
+     * the streams to connect
      */
     private void connectStreamsToPip(AttributeFinder policyInformationPoint, final Iterable<AttributeStream> streams) {
         for (var attributeStream : streams) {
@@ -260,7 +276,8 @@ public class CachingAttributeBroker implements AttributeBroker {
      * Removes a PIP with a given specification from the broker and disconnects all
      * connected attribute streams.
      *
-     * @param attributeFinderSpecification the specification of the PIP to remove
+     * @param attributeFinderSpecification
+     * the specification of the PIP to remove
      */
     private void removeAttributeFinder(AttributeFinderSpecification attributeFinderSpecification) {
         log.debug("Unpublishing AttributeFinder: {}", attributeFinderSpecification);
@@ -296,10 +313,11 @@ public class CachingAttributeBroker implements AttributeBroker {
     /**
      * Disconnects streams from their PIPs.
      * <p>
-     * Thread-safe: Iterating over CopyOnWriteArrayList is safe even if the list
-     * is modified concurrently.
+     * Thread-safe: Iterating over CopyOnWriteArrayList is safe even if the list is
+     * modified concurrently.
      *
-     * @param streams the streams to disconnect
+     * @param streams
+     * the streams to disconnect
      */
     private void disconnectStreams(final Iterable<AttributeStream> streams) {
         for (var attributeStream : streams) {
@@ -310,19 +328,21 @@ public class CachingAttributeBroker implements AttributeBroker {
     /**
      * Loads a PIP library from a @PolicyInformationPoint annotated class.
      * <p>
-     * <b>Atomicity:</b> All @Attribute methods are processed BEFORE any loading.
-     * If ANY method fails, NOTHING is loaded.
+     * <b>Atomicity:</b> All @Attribute methods are processed BEFORE any loading. If
+     * ANY method fails, NOTHING is
+     * loaded.
      * <p>
-     * <b>Thread-safety:</b> Synchronized to prevent concurrent loads.
-     * Pre-checks done outside lock for performance.
+     * <b>Thread-safety:</b> Synchronized to prevent concurrent loads. Pre-checks
+     * done outside lock for performance.
      * <p>
      * <b>Collision detection:</b> Checks library name, PIP name, and all attribute
-     * names
-     * BEFORE loading anything.
+     * names BEFORE loading anything.
      *
-     * @param pipInstance the PIP instance to load
-     * @throws AttributeBrokerException if processing fails, library already loaded,
-     * or collision detected
+     * @param pipInstance
+     * the PIP instance to load
+     *
+     * @throws AttributeBrokerException
+     * if processing fails, library already loaded, or collision detected
      */
     public void loadPolicyInformationPointLibrary(Object pipInstance) {
         // STEP 1: Process everything OUTSIDE synchronized block
@@ -387,7 +407,9 @@ public class CachingAttributeBroker implements AttributeBroker {
      * <b>Thread-safety:</b> Uses existing unloadPolicyInformationPoint which is
      * synchronized.
      *
-     * @param libraryName the name of the library to unload
+     * @param libraryName
+     * the name of the library to unload
+     *
      * @return true if library was unloaded, false if not found
      */
     public boolean unloadPolicyInformationPointLibrary(String libraryName) {
@@ -412,8 +434,7 @@ public class CachingAttributeBroker implements AttributeBroker {
     }
 
     /**
-     * Returns set of loaded library names.
-     * Lock-free read from ConcurrentHashMap.
+     * Returns set of loaded library names. Lock-free read from ConcurrentHashMap.
      *
      * @return set of loaded library names
      */
@@ -422,14 +443,19 @@ public class CachingAttributeBroker implements AttributeBroker {
     }
 
     /**
-     * Processes @PolicyInformationPoint class into implementation.
-     * Processes ALL @Attribute methods. If ANY fails, throws exception.
+     * Processes @PolicyInformationPoint class into implementation. Processes
+     * ALL @Attribute methods. If ANY fails,
+     * throws exception.
      * <p>
      * Called OUTSIDE synchronized block for performance.
      *
-     * @param pipInstance the PIP instance
+     * @param pipInstance
+     * the PIP instance
+     *
      * @return the processed PIP implementation
-     * @throws AttributeBrokerException if processing fails
+     *
+     * @throws AttributeBrokerException
+     * if processing fails
      */
     private PolicyInformationPointImplementation processPipClass(Object pipInstance) {
 

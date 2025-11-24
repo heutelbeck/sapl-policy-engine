@@ -34,25 +34,25 @@ import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Default implementation of function broker managing registration and
- * invocation
- * of SAPL functions from function libraries.
- *
+ * invocation of SAPL functions from function
+ * libraries.
  * <p>
  * Threading Model:
  * <ul>
  * <li>Library loading is typically performed at application startup before
  * policy evaluation begins</li>
  * <li>Function evaluation is lock-free and supports thousands of concurrent
- * calls for optimal performance in reactive policy evaluation</li>
+ * calls for optimal performance in reactive
+ * policy evaluation</li>
  * <li>Dynamic runtime library loading is supported but rare. For atomic
- * multi-library updates, create a new broker instance and swap references</li>
+ * multi-library updates, create a new broker
+ * instance and swap references</li>
  * </ul>
- *
  * <p>
  * Concurrency: Per-function registration is atomic via
- * ConcurrentHashMap.compute().
- * Concurrent dynamic loading of different functions is safe. Loading the same
- * function concurrently will result in collision detection on one thread.
+ * ConcurrentHashMap.compute(). Concurrent dynamic loading of
+ * different functions is safe. Loading the same function concurrently will
+ * result in collision detection on one thread.
  */
 public class DefaultFunctionBroker implements FunctionBroker {
 
@@ -67,21 +67,21 @@ public class DefaultFunctionBroker implements FunctionBroker {
 
     /**
      * Loads a static function library from the provided class.
-     *
      * <p>
      * The class must be annotated with {@link FunctionLibrary}. All methods
      * annotated as functions will be registered.
-     *
      * <p>
-     * Thread-safety: Safe to call during initialization. Concurrent loading
-     * of different libraries is supported. Collision detection ensures duplicate
-     * function signatures are rejected.
+     * Thread-safety: Safe to call during initialization. Concurrent loading of
+     * different libraries is supported.
+     * Collision detection ensures duplicate function signatures are rejected.
      *
-     * @param libraryClass the class containing static function methods
-     * @throws InitializationException if the class lacks @FunctionLibrary
-     * annotation
-     * @throws IllegalArgumentException if libraryClass is null or function
-     * collision detected
+     * @param libraryClass
+     * the class containing static function methods
+     *
+     * @throws InitializationException
+     * if the class lacks @FunctionLibrary annotation
+     * @throws IllegalArgumentException
+     * if libraryClass is null or function collision detected
      */
     public void loadStaticFunctionLibrary(Class<?> libraryClass) throws InitializationException {
         if (libraryClass == null) {
@@ -92,21 +92,22 @@ public class DefaultFunctionBroker implements FunctionBroker {
 
     /**
      * Loads a function library from the provided instance.
-     *
      * <p>
-     * The instance's class must be annotated with {@link FunctionLibrary}.
-     * All methods annotated as functions will be registered.
-     *
+     * The instance's class must be annotated with {@link FunctionLibrary}. All
+     * methods annotated as functions will be
+     * registered.
      * <p>
-     * Thread-safety: Safe to call during initialization. Concurrent loading
-     * of different libraries is supported. Collision detection ensures duplicate
-     * function signatures are rejected.
+     * Thread-safety: Safe to call during initialization. Concurrent loading of
+     * different libraries is supported.
+     * Collision detection ensures duplicate function signatures are rejected.
      *
-     * @param libraryInstance the object instance containing function methods
-     * @throws InitializationException if the class lacks @FunctionLibrary
-     * annotation
-     * @throws IllegalArgumentException if libraryInstance is null or function
-     * collision detected
+     * @param libraryInstance
+     * the object instance containing function methods
+     *
+     * @throws InitializationException
+     * if the class lacks @FunctionLibrary annotation
+     * @throws IllegalArgumentException
+     * if libraryInstance is null or function collision detected
      */
     public void loadInstantiatedFunctionLibrary(Object libraryInstance) throws InitializationException {
         if (libraryInstance == null) {
@@ -157,20 +158,23 @@ public class DefaultFunctionBroker implements FunctionBroker {
     /**
      * Evaluates a function invocation by finding the best matching function
      * specification and applying it.
-     *
      * <p>
      * The matching algorithm compares the invocation against all registered
-     * functions with the same name, selecting the best match based on parameter
-     * type compatibility.
-     *
+     * functions with the same name, selecting the
+     * best match based on parameter type compatibility.
      * <p>
      * Performance: This method is lock-free and optimized for high-throughput
-     * concurrent access. It is called on the hot path during policy evaluation.
+     * concurrent access. It is called on the
+     * hot path during policy evaluation.
      *
-     * @param invocation the function invocation containing name and parameters
+     * @param invocation
+     * the function invocation containing name and parameters
+     *
      * @return the result of the function evaluation, or an error Value if no match
      * found
-     * @throws IllegalArgumentException if invocation is null
+     *
+     * @throws IllegalArgumentException
+     * if invocation is null
      */
     @Override
     public Value evaluateFunction(FunctionInvocation invocation) {

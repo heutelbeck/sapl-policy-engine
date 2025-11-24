@@ -31,8 +31,8 @@ import java.math.BigDecimal;
  * integers.
  * <p>
  * Functions accept NumberValue parameters and return Value to support the
- * error-as-value pattern. Overflow checking is performed when converting
- * BigDecimal to long primitives.
+ * error-as-value pattern. Overflow checking is
+ * performed when converting BigDecimal to long primitives.
  */
 @UtilityClass
 @FunctionLibrary(name = BitwiseFunctionLibrary.NAME, description = BitwiseFunctionLibrary.DESCRIPTION, libraryDocumentation = BitwiseFunctionLibrary.DOCUMENTATION)
@@ -162,7 +162,9 @@ public class BitwiseFunctionLibrary {
     /**
      * Safely converts NumberValue to long, checking for overflow.
      *
-     * @param number the number to convert
+     * @param number
+     * the number to convert
+     *
      * @return the long value, or null if out of range
      */
     private static Long toLongSafe(NumberValue number) {
@@ -180,8 +182,11 @@ public class BitwiseFunctionLibrary {
     /**
      * Performs bitwise AND operation.
      *
-     * @param left first operand
-     * @param right second operand
+     * @param left
+     * first operand
+     * @param right
+     * second operand
+     *
      * @return bitwise AND result
      */
     @Function(docs = """
@@ -218,8 +223,11 @@ public class BitwiseFunctionLibrary {
     /**
      * Performs bitwise OR operation.
      *
-     * @param left first operand
-     * @param right second operand
+     * @param left
+     * first operand
+     * @param right
+     * second operand
+     *
      * @return bitwise OR result
      */
     @Function(docs = """
@@ -255,8 +263,11 @@ public class BitwiseFunctionLibrary {
     /**
      * Performs bitwise XOR operation.
      *
-     * @param left first operand
-     * @param right second operand
+     * @param left
+     * first operand
+     * @param right
+     * second operand
+     *
      * @return bitwise XOR result
      */
     @Function(docs = """
@@ -292,7 +303,9 @@ public class BitwiseFunctionLibrary {
     /**
      * Performs bitwise NOT operation.
      *
-     * @param value operand
+     * @param value
+     * operand
+     *
      * @return bitwise NOT result
      */
     @Function(docs = """
@@ -327,8 +340,11 @@ public class BitwiseFunctionLibrary {
     /**
      * Tests whether a specific bit is set.
      *
-     * @param value value to test
-     * @param position bit position (0 to 63)
+     * @param value
+     * value to test
+     * @param position
+     * bit position (0 to 63)
+     *
      * @return Value.TRUE if bit is set, Value.FALSE otherwise
      */
     @Function(docs = """
@@ -371,8 +387,11 @@ public class BitwiseFunctionLibrary {
     /**
      * Sets a specific bit to 1.
      *
-     * @param value value to modify
-     * @param position bit position (0 to 63)
+     * @param value
+     * value to modify
+     * @param position
+     * bit position (0 to 63)
+     *
      * @return value with bit set
      */
     @Function(docs = """
@@ -415,8 +434,11 @@ public class BitwiseFunctionLibrary {
     /**
      * Clears a specific bit to 0.
      *
-     * @param value value to modify
-     * @param position bit position (0 to 63)
+     * @param value
+     * value to modify
+     * @param position
+     * bit position (0 to 63)
+     *
      * @return value with bit cleared
      */
     @Function(docs = """
@@ -459,8 +481,11 @@ public class BitwiseFunctionLibrary {
     /**
      * Toggles a specific bit.
      *
-     * @param value value to modify
-     * @param position bit position (0 to 63)
+     * @param value
+     * value to modify
+     * @param position
+     * bit position (0 to 63)
+     *
      * @return value with bit toggled
      */
     @Function(docs = """
@@ -504,7 +529,9 @@ public class BitwiseFunctionLibrary {
     /**
      * Returns the number of one-bits.
      *
-     * @param value value to analyze
+     * @param value
+     * value to analyze
+     *
      * @return number of one-bits
      */
     @Function(docs = """
@@ -537,8 +564,11 @@ public class BitwiseFunctionLibrary {
     /**
      * Shifts bits left by the specified number of positions.
      *
-     * @param value value to shift
-     * @param positions number of positions to shift (0 to 63)
+     * @param value
+     * value to shift
+     * @param positions
+     * number of positions to shift (0 to 63)
+     *
      * @return shifted value
      */
     @Function(docs = """
@@ -580,8 +610,11 @@ public class BitwiseFunctionLibrary {
     /**
      * Shifts bits right by the specified number of positions with sign extension.
      *
-     * @param value value to shift
-     * @param positions number of positions to shift (0 to 63)
+     * @param value
+     * value to shift
+     * @param positions
+     * number of positions to shift (0 to 63)
+     *
      * @return shifted value
      */
     @Function(docs = """
@@ -624,8 +657,11 @@ public class BitwiseFunctionLibrary {
     /**
      * Shifts bits right by the specified number of positions with zero extension.
      *
-     * @param value value to shift
-     * @param positions number of positions to shift (0 to 63)
+     * @param value
+     * value to shift
+     * @param positions
+     * number of positions to shift (0 to 63)
+     *
      * @return shifted value
      */
     @Function(docs = """
@@ -667,8 +703,11 @@ public class BitwiseFunctionLibrary {
     /**
      * Rotates bits left by the specified number of positions.
      *
-     * @param value value to rotate
-     * @param positions number of positions to rotate (0 to 63)
+     * @param value
+     * value to rotate
+     * @param positions
+     * number of positions to rotate (0 to 63)
+     *
      * @return rotated value
      */
     @Function(docs = """
@@ -710,8 +749,11 @@ public class BitwiseFunctionLibrary {
     /**
      * Rotates bits right by the specified number of positions.
      *
-     * @param value value to rotate
-     * @param positions number of positions to rotate (0 to 63)
+     * @param value
+     * value to rotate
+     * @param positions
+     * number of positions to rotate (0 to 63)
+     *
      * @return rotated value
      */
     @Function(docs = """
@@ -753,7 +795,9 @@ public class BitwiseFunctionLibrary {
     /**
      * Returns the number of zero bits preceding the highest-order one-bit.
      *
-     * @param value value to analyze
+     * @param value
+     * value to analyze
+     *
      * @return number of leading zero bits
      */
     @Function(docs = """
@@ -790,7 +834,9 @@ public class BitwiseFunctionLibrary {
     /**
      * Returns the number of zero bits following the lowest-order one-bit.
      *
-     * @param value value to analyze
+     * @param value
+     * value to analyze
+     *
      * @return number of trailing zero bits
      */
     @Function(docs = """
@@ -827,7 +873,9 @@ public class BitwiseFunctionLibrary {
     /**
      * Returns the value with bit order reversed.
      *
-     * @param value value to reverse
+     * @param value
+     * value to reverse
+     *
      * @return value with reversed bit order
      */
     @Function(docs = """
@@ -861,7 +909,9 @@ public class BitwiseFunctionLibrary {
     /**
      * Tests whether the value is a power of two.
      *
-     * @param value value to test
+     * @param value
+     * value to test
+     *
      * @return Value.TRUE if value is a power of two, Value.FALSE otherwise
      */
     @Function(docs = """
@@ -899,8 +949,11 @@ public class BitwiseFunctionLibrary {
     /**
      * Validates that the position is between 0 and 63 (inclusive).
      *
-     * @param position the position to validate
-     * @param context the context for error messages (e.g., "Shift", "Bit")
+     * @param position
+     * the position to validate
+     * @param context
+     * the context for error messages (e.g., "Shift", "Bit")
+     *
      * @return error Value if invalid, null if valid
      */
     private static Value validatePosition(NumberValue position, String context) {

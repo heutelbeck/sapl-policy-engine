@@ -95,13 +95,35 @@ class ReflectionFunctionLibraryTests {
     }
 
     private static Stream<Arguments> isNumberTests() {
-        return Stream.of(arguments("Integer 42 returns true", Value.of(42), true),
-                arguments("Float 3.5 returns true", Value.of(3.5), true),
+        return Stream.of(arguments("Integer returns true", Value.of(15), true),
+                arguments("Float 2.7 returns true", Value.of(2.7), true),
                 arguments("Float 5.0 returns true", Value.of(5.0), true),
                 arguments("Zero returns true", Value.of(0), true),
                 arguments("Negative number returns true", Value.of(-10), true),
                 arguments("String number returns false", Value.of("123"), false),
                 arguments("Boolean returns false", Value.TRUE, false),
+                arguments("Undefined returns false", Value.UNDEFINED, false));
+    }
+
+    @ParameterizedTest(name = "{0}")
+    @MethodSource
+    void isIntegerTests(String description, Value input, boolean expected) {
+        val actual = ReflectionFunctionLibrary.isInteger(input);
+        assertEquals(Value.of(expected), actual);
+    }
+
+    private static Stream<Arguments> isIntegerTests() {
+        return Stream.of(arguments("Integer 7 returns true", Value.of(7), true),
+                arguments("Integer -5 returns true", Value.of(-5), true),
+                arguments("Zero returns true", Value.of(0), true),
+                arguments("Float 1.0 returns true", Value.of(1.0), true),
+                arguments("Float 2.00 returns true", Value.of(2.00), true),
+                arguments("Float 2.7 returns false", Value.of(2.7), false),
+                arguments("Float 1.5 returns false", Value.of(1.5), false),
+                arguments("String returns false", Value.of("7"), false),
+                arguments("Boolean returns false", Value.TRUE, false),
+                arguments("Array returns false", Value.EMPTY_ARRAY, false),
+                arguments("Null returns false", Value.NULL, false),
                 arguments("Undefined returns false", Value.UNDEFINED, false));
     }
 

@@ -28,12 +28,12 @@ import java.util.Map;
 
 /**
  * Central value type for policy evaluation. Represents defined values (null,
- * boolean,
- * number, text, array, object), error states, or undefined states.
+ * boolean, number, text, array, object),
+ * error states, or undefined states.
  * <p>
  * Values can be marked as secret to prevent exposure in logs. The secret flag
- * only
- * affects toString() and does not impact equality or evaluation.
+ * only affects toString() and does not
+ * impact equality or evaluation.
  * <p>
  * Creating values:
  *
@@ -163,7 +163,9 @@ public sealed interface Value extends Serializable, CompiledExpression
     /**
      * Creates a boolean value.
      *
-     * @param value the boolean
+     * @param value
+     * the boolean
+     *
      * @return TRUE or FALSE singleton
      */
     static BooleanValue of(boolean value) {
@@ -173,7 +175,9 @@ public sealed interface Value extends Serializable, CompiledExpression
     /**
      * Creates a number value from a long.
      *
-     * @param value the long
+     * @param value
+     * the long
+     *
      * @return a NumberValue
      */
     static NumberValue of(long value) {
@@ -190,13 +194,16 @@ public sealed interface Value extends Serializable, CompiledExpression
      * Creates a number value from a double.
      * <p>
      * Note: NaN and infinite values are not supported and will throw
-     * IllegalArgumentException.
-     * Function libraries should check for these conditions and return ErrorValue
-     * explicitly.
+     * IllegalArgumentException. Function libraries
+     * should check for these conditions and return ErrorValue explicitly.
      *
-     * @param value the double
+     * @param value
+     * the double
+     *
      * @return a NumberValue
-     * @throws IllegalArgumentException if value is NaN or infinite
+     *
+     * @throws IllegalArgumentException
+     * if value is NaN or infinite
      */
     static NumberValue of(double value) {
         if (Double.isNaN(value)) {
@@ -219,7 +226,9 @@ public sealed interface Value extends Serializable, CompiledExpression
     /**
      * Creates a number value from a BigDecimal.
      *
-     * @param value the BigDecimal (must not be null)
+     * @param value
+     * the BigDecimal (must not be null)
+     *
      * @return a NumberValue
      */
     static Value of(@NonNull BigDecimal value) {
@@ -235,7 +244,9 @@ public sealed interface Value extends Serializable, CompiledExpression
     /**
      * Creates a text value.
      *
-     * @param value the text (must not be null - use Value.NULL for null values)
+     * @param value
+     * the text (must not be null - use Value.NULL for null values)
+     *
      * @return a TextValue
      */
     static TextValue of(@NonNull String value) {
@@ -247,7 +258,9 @@ public sealed interface Value extends Serializable, CompiledExpression
     /**
      * Creates an array value from varargs.
      *
-     * @param values the elements (must not contain null - use Value.NULL instead)
+     * @param values
+     * the elements (must not contain null - use Value.NULL instead)
+     *
      * @return an immutable ArrayValue
      */
     static ArrayValue ofArray(Value... values) {
@@ -259,8 +272,9 @@ public sealed interface Value extends Serializable, CompiledExpression
     /**
      * Creates an array value from a list.
      *
-     * @param values the elements (must not be null or contain null - use Value.NULL
-     * instead)
+     * @param values
+     * the elements (must not be null or contain null - use Value.NULL instead)
+     *
      * @return an immutable ArrayValue
      */
     static ArrayValue ofArray(@NonNull List<Value> values) {
@@ -272,7 +286,9 @@ public sealed interface Value extends Serializable, CompiledExpression
     /**
      * Creates an object value from a map.
      *
-     * @param properties the properties (must not be null)
+     * @param properties
+     * the properties (must not be null)
+     *
      * @return an immutable ObjectValue
      */
     static ObjectValue ofObject(@NonNull Map<String, Value> properties) {
@@ -284,7 +300,9 @@ public sealed interface Value extends Serializable, CompiledExpression
     /**
      * Creates an error value with a message.
      *
-     * @param message the error message (must not be null)
+     * @param message
+     * the error message (must not be null)
+     *
      * @return an ErrorValue
      */
     static ErrorValue error(@NonNull String message) {
@@ -295,7 +313,8 @@ public sealed interface Value extends Serializable, CompiledExpression
      * Creates an error value with a formatted message.
      * <p>
      * Uses {@link String#format(String, Object...)} to construct the error message
-     * from the format string and arguments.
+     * from the format string and
+     * arguments.
      * <p>
      * Example:
      *
@@ -304,10 +323,15 @@ public sealed interface Value extends Serializable, CompiledExpression
      * // Creates error: "Index 5 out of bounds for array of size 3"
      * }</pre>
      *
-     * @param message the format string (must not be null)
-     * @param args the arguments for the format string
+     * @param message
+     * the format string (must not be null)
+     * @param args
+     * the arguments for the format string
+     *
      * @return an ErrorValue with the formatted message
-     * @throws IllegalArgumentException if the format string is invalid
+     *
+     * @throws IllegalArgumentException
+     * if the format string is invalid
      */
     static ErrorValue error(@NonNull String message, Object... args) {
         return new ErrorValue(String.format(message, args), null, false);
@@ -316,8 +340,11 @@ public sealed interface Value extends Serializable, CompiledExpression
     /**
      * Creates an error value with a message and cause.
      *
-     * @param message the error message (must not be null)
-     * @param cause the exception (may be null)
+     * @param message
+     * the error message (must not be null)
+     * @param cause
+     * the exception (may be null)
+     *
      * @return an ErrorValue
      */
     static ErrorValue error(@NonNull String message, Throwable cause) {
@@ -327,7 +354,9 @@ public sealed interface Value extends Serializable, CompiledExpression
     /**
      * Creates an error value from an exception.
      *
-     * @param cause the exception (must not be null)
+     * @param cause
+     * the exception (must not be null)
+     *
      * @return an ErrorValue
      */
     static ErrorValue error(@NonNull Throwable cause) {
@@ -335,9 +364,9 @@ public sealed interface Value extends Serializable, CompiledExpression
     }
 
     /**
-     * Marks this value as secret.
-     * Secret values display as "***SECRET***" in toString() to prevent exposure.
-     * The secret flag does not affect equality or evaluation.
+     * Marks this value as secret. Secret values display as "***SECRET***" in
+     * toString() to prevent exposure. The secret
+     * flag does not affect equality or evaluation.
      * <p>
      * Container types propagate the secret flag to extracted elements.
      *

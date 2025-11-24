@@ -17,6 +17,8 @@
  */
 package io.sapl.functions.libraries;
 
+import java.math.BigDecimal;
+
 import io.sapl.api.functions.Function;
 import io.sapl.api.functions.FunctionLibrary;
 import io.sapl.api.model.*;
@@ -47,7 +49,9 @@ public class ReflectionFunctionLibrary {
     /**
      * Checks if the value is a JSON array.
      *
-     * @param value the value to check
+     * @param value
+     * the value to check
+     *
      * @return Value.TRUE if the value is an array, Value.FALSE otherwise
      */
     @Function(docs = """
@@ -73,7 +77,9 @@ public class ReflectionFunctionLibrary {
     /**
      * Checks if the value is a JSON object.
      *
-     * @param value the value to check
+     * @param value
+     * the value to check
+     *
      * @return Value.TRUE if the value is an object, Value.FALSE otherwise
      */
     @Function(docs = """
@@ -98,7 +104,9 @@ public class ReflectionFunctionLibrary {
     /**
      * Checks if the value is a text string.
      *
-     * @param value the value to check
+     * @param value
+     * the value to check
+     *
      * @return Value.TRUE if the value is textual, Value.FALSE otherwise
      */
     @Function(docs = """
@@ -123,7 +131,9 @@ public class ReflectionFunctionLibrary {
     /**
      * Checks if the value is a number.
      *
-     * @param value the value to check
+     * @param value
+     * the value to check
+     *
      * @return Value.TRUE if the value is a number, Value.FALSE otherwise
      */
     @Function(docs = """
@@ -148,9 +158,44 @@ public class ReflectionFunctionLibrary {
     }
 
     /**
+     * Checks if the value is an integer (no fractional part).
+     *
+     * @param value
+     * the value to check
+     *
+     * @return Value.TRUE if the value is an integer, Value.FALSE otherwise
+     */
+    @Function(docs = """
+            ```reflect.isInteger(ANY value)```: Returns ```true``` if the value is a number with no fractional part,
+            ```false``` otherwise. Numbers like ```1```, ```1.0```, and ```2.00``` are considered integers, while
+            ```1.5``` and ```2.7``` are not.
+
+            **Example:**
+            ```sapl
+            policy "validate_permission_mask"
+            permit
+            where
+              var mask = subject.permissionMask;
+              reflect.isInteger(mask);           // true for integer permission values
+              reflect.isInteger(7);              // true
+              reflect.isInteger(5.0);            // true (no fractional part)
+              reflect.isInteger(2.7);            // false (has fractional part)
+              reflect.isInteger("7");            // false (not a number)
+            ```
+            """, schema = SCHEMA_BOOLEAN)
+    public static Value isInteger(Value value) {
+        if (!(value instanceof NumberValue numberValue)) {
+            return Value.FALSE;
+        }
+        return Value.of(isIntegral(numberValue.value()));
+    }
+
+    /**
      * Checks if the value is a boolean.
      *
-     * @param value the value to check
+     * @param value
+     * the value to check
+     *
      * @return Value.TRUE if the value is a boolean, Value.FALSE otherwise
      */
     @Function(docs = """
@@ -177,7 +222,9 @@ public class ReflectionFunctionLibrary {
     /**
      * Checks if the value is JSON null.
      *
-     * @param value the value to check
+     * @param value
+     * the value to check
+     *
      * @return Value.TRUE if the value is null, Value.FALSE otherwise
      */
     @Function(docs = """
@@ -203,7 +250,9 @@ public class ReflectionFunctionLibrary {
     /**
      * Checks if the value is undefined.
      *
-     * @param value the value to check
+     * @param value
+     * the value to check
+     *
      * @return Value.TRUE if the value is undefined, Value.FALSE otherwise
      */
     @Function(docs = """
@@ -228,7 +277,9 @@ public class ReflectionFunctionLibrary {
     /**
      * Checks if the value is defined (not undefined and not an error).
      *
-     * @param value the value to check
+     * @param value
+     * the value to check
+     *
      * @return Value.TRUE if the value is defined, Value.FALSE otherwise
      */
     @Function(docs = """
@@ -253,7 +304,9 @@ public class ReflectionFunctionLibrary {
     /**
      * Checks if the value is an error.
      *
-     * @param value the value to check
+     * @param value
+     * the value to check
+     *
      * @return Value.TRUE if the value is an error, Value.FALSE otherwise
      */
     @Function(docs = """
@@ -278,7 +331,9 @@ public class ReflectionFunctionLibrary {
     /**
      * Checks if the value is marked as secret.
      *
-     * @param value the value to check
+     * @param value
+     * the value to check
+     *
      * @return Value.TRUE if the value is marked as secret, Value.FALSE otherwise
      */
     @Function(docs = """
@@ -302,7 +357,9 @@ public class ReflectionFunctionLibrary {
     /**
      * Checks if an array or object is empty.
      *
-     * @param value the value to check
+     * @param value
+     * the value to check
+     *
      * @return Value.TRUE if the value is an empty array or object, Value.FALSE
      * otherwise
      */
@@ -336,7 +393,9 @@ public class ReflectionFunctionLibrary {
     /**
      * Returns a string describing the type of the value.
      *
-     * @param value the value to inspect
+     * @param value
+     * the value to inspect
+     *
      * @return a text value describing the type
      */
     @Function(docs = """
@@ -368,5 +427,21 @@ public class ReflectionFunctionLibrary {
         case UndefinedValue ignored -> Value.of("undefined");
         case ErrorValue ignored     -> Value.of("ERROR");
         };
+    }
+
+    /**
+     * Checks if a BigDecimal represents an integral value with no fractional part.
+     *
+     * @param value
+     * the BigDecimal to check
+     *
+     * @return true if the value is integral, false if it has a fractional part
+     */
+    private static boolean isIntegral(BigDecimal value) {
+        try {
+            return value.stripTrailingZeros().scale() <= 0;
+        } catch (ArithmeticException e) {
+            return true;
+        }
     }
 }

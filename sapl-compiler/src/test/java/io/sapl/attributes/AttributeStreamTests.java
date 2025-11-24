@@ -45,7 +45,8 @@ import static org.awaitility.Awaitility.await;
  * Comprehensive test suite for AttributeStream reactive streaming system.
  * <p>
  * Tests cover the complete lifecycle and behavior of attribute streams in the
- * SAPL Policy Engine's attribute broker, including:
+ * SAPL Policy Engine's attribute broker,
+ * including:
  * <ul>
  * <li>Basic stream functionality and multicast semantics</li>
  * <li>Grace period management for efficient re-subscription</li>
@@ -194,10 +195,12 @@ class AttributeStreamTests {
      * the replay buffer.
      * <p>
      * Use case: Late-joining policy evaluation that needs the current attribute
-     * state without waiting for the next emission.
+     * state without waiting for the next
+     * emission.
      * <p>
      * Valueidates that replay(1) caches the most recent value and replays it to new
-     * subscribers, ensuring consistent policy evaluation state.
+     * subscribers, ensuring consistent
+     * policy evaluation state.
      */
     @Test
     void whenNewSubscriberAfterValueThenReceivesCachedLastValue() {
@@ -219,10 +222,12 @@ class AttributeStreamTests {
      * cancels.
      * <p>
      * Use case: Rapid policy re-evaluation cycles where subscriptions may cancel
-     * and re-subscribe quickly (e.g., request handling with retries).
+     * and re-subscribe quickly (e.g.,
+     * request handling with retries).
      * <p>
      * The grace period prevents expensive PIP reconnection overhead by keeping the
-     * stream alive briefly after cancellation. Valueidates that:
+     * stream alive briefly after
+     * cancellation. Valueidates that:
      * <ul>
      * <li>Cleanup is not immediate upon cancellation</li>
      * <li>Cleanup executes after grace period expires</li>
@@ -249,12 +254,12 @@ class AttributeStreamTests {
      * execution.
      * <p>
      * Use case: Request retry scenarios where a failed policy evaluation quickly
-     * retries and re-subscribes to the same attribute.
+     * retries and re-subscribes to the same
+     * attribute.
      * <p>
      * Valueidates that the refCount operator resets the grace period timer when a
-     * new
-     * subscriber arrives, avoiding unnecessary cleanup and PIP reconnection
-     * overhead.
+     * new subscriber arrives, avoiding
+     * unnecessary cleanup and PIP reconnection overhead.
      */
     @Test
     void whenNewSubscriberWithinGracePeriodThenCleanupNotCalled() {
@@ -281,7 +286,8 @@ class AttributeStreamTests {
      * emissions.
      * <p>
      * Use case: PIP becomes unavailable (unregistered, disabled, or removed from
-     * configuration) during active stream usage.
+     * configuration) during active stream
+     * usage.
      * <p>
      * Valueidates that:
      * <ul>
@@ -318,7 +324,8 @@ class AttributeStreamTests {
      * another.
      * <p>
      * Use case: Configuration update or PIP replacement where the attribute source
-     * changes but the stream continues operating.
+     * changes but the stream continues
+     * operating.
      * <p>
      * Valueidates that:
      * <ul>
@@ -448,7 +455,8 @@ class AttributeStreamTests {
      * subscribers.
      * <p>
      * Use case: A PIP with delayed error emissions (e.g., network timeout) is
-     * disconnected before the error materializes.
+     * disconnected before the error
+     * materializes.
      * <p>
      * The test validates that:
      * <ul>
@@ -489,7 +497,8 @@ class AttributeStreamTests {
      * Tests initial timeout handling when a PIP is slow to emit its first value.
      * <p>
      * Use case: External system with high latency or cold-start delays where policy
-     * evaluation needs a timely result (even if UNDEFINED).
+     * evaluation needs a timely result
+     * (even if UNDEFINED).
      * <p>
      * Valueidates that:
      * <ul>
@@ -542,9 +551,10 @@ class AttributeStreamTests {
      * that needs continuous monitoring.
      * <p>
      * The test validates that when a PIP's Flux completes, the repeatWhen operator
-     * waits for pollInterval before re-subscribing to obtain fresh values. The PIP
-     * must use Flux.defer() to ensure the supplier is re-evaluated on each
-     * subscription, not just once at lambda creation time.
+     * waits for pollInterval before
+     * re-subscribing to obtain fresh values. The PIP must use Flux.defer() to
+     * ensure the supplier is re-evaluated on
+     * each subscription, not just once at lambda creation time.
      */
     @Test
     void whenPipCompletesEarlyThenPollingRepeatsRequest() {
@@ -565,7 +575,8 @@ class AttributeStreamTests {
      * failures.
      * <p>
      * Use case: Network issues, rate limiting, or temporary service unavailability
-     * where the system should automatically retry before giving up.
+     * where the system should
+     * automatically retry before giving up.
      * <p>
      * The test validates that:
      * <ul>
@@ -577,8 +588,10 @@ class AttributeStreamTests {
      * </ul>
      * <p>
      * Implementation note: The PIP must use Flux.defer() to re-evaluate the
-     * success/failure condition on each subscription attempt. Without defer(), the
-     * retryWhen operator would re-subscribe to the same error Flux repeatedly.
+     * success/failure condition on each
+     * subscription attempt. Without defer(), the retryWhen operator would
+     * re-subscribe to the same error Flux
+     * repeatedly.
      */
     @ParameterizedTest
     @ValueSource(longs = { 1, 2, 3 })
@@ -630,7 +643,8 @@ class AttributeStreamTests {
      * Tests error propagation when a PIP fails immediately with retries disabled.
      * <p>
      * Use case: Permanent failures (invalid configuration, missing permissions, or
-     * non-existent resources) that should not trigger retry attempts.
+     * non-existent resources) that should
+     * not trigger retry attempts.
      * <p>
      * The test validates that:
      * <ul>
@@ -641,7 +655,8 @@ class AttributeStreamTests {
      * </ul>
      * <p>
      * With retries=0, the stream should publish the original error message directly
-     * to help with debugging and error diagnosis.
+     * to help with debugging and error
+     * diagnosis.
      */
     @Test
     void whenPipEmitsErrorThenErrorValuePublished() {
@@ -660,7 +675,8 @@ class AttributeStreamTests {
      * Tests PIP hot-swapping under high-frequency emission load.
      * <p>
      * Use case: Configuration updates or PIP replacements during active streaming
-     * with minimal disruption to ongoing policy evaluations.
+     * with minimal disruption to ongoing
+     * policy evaluations.
      * <p>
      * Valueidates that:
      * <ul>
@@ -673,7 +689,8 @@ class AttributeStreamTests {
      * </ul>
      * <p>
      * This test exercises the thread-safety mechanisms (atomic operations, volatile
-     * flags, reactive filtering) under realistic load conditions.
+     * flags, reactive filtering) under
+     * realistic load conditions.
      */
     @Test
     void whenHotSwappingUnderLoadThenStreamRemainsStable() {

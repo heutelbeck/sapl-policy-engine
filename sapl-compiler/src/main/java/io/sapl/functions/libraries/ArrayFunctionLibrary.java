@@ -166,7 +166,9 @@ public class ArrayFunctionLibrary {
     /**
      * Concatenates multiple arrays into a single array.
      *
-     * @param arrays arrays to concatenate
+     * @param arrays
+     * arrays to concatenate
+     *
      * @return new array containing all elements in order
      */
     @Function(docs = """
@@ -199,8 +201,11 @@ public class ArrayFunctionLibrary {
     /**
      * Returns the set difference between two arrays.
      *
-     * @param array1 array to subtract from
-     * @param array2 array of elements to remove
+     * @param array1
+     * array to subtract from
+     * @param array2
+     * array of elements to remove
+     *
      * @return new array with elements in array1 but not in array2
      */
     @Function(docs = """
@@ -242,7 +247,9 @@ public class ArrayFunctionLibrary {
     /**
      * Returns the union of multiple arrays, removing duplicates.
      *
-     * @param arrays arrays to combine
+     * @param arrays
+     * arrays to combine
+     *
      * @return new array with all unique elements
      */
     @Function(docs = """
@@ -278,7 +285,9 @@ public class ArrayFunctionLibrary {
     /**
      * Removes duplicate elements from an array, preserving order.
      *
-     * @param array array to deduplicate
+     * @param array
+     * array to deduplicate
+     *
      * @return new array with unique elements
      */
     @Function(docs = """
@@ -312,7 +321,9 @@ public class ArrayFunctionLibrary {
     /**
      * Returns the intersection of multiple arrays.
      *
-     * @param arrays arrays to intersect
+     * @param arrays
+     * arrays to intersect
+     *
      * @return new array with elements present in all arrays
      */
     @Function(docs = """
@@ -370,8 +381,11 @@ public class ArrayFunctionLibrary {
     /**
      * Checks if an array contains at least one element from another array.
      *
-     * @param array array to search in
-     * @param elements elements to search for
+     * @param array
+     * array to search in
+     * @param elements
+     * elements to search for
+     *
      * @return Value.TRUE if any element was found
      */
     @Function(docs = """
@@ -413,8 +427,11 @@ public class ArrayFunctionLibrary {
     /**
      * Checks if an array contains all elements from another array.
      *
-     * @param array array to search in
-     * @param elements elements that must all be present
+     * @param array
+     * array to search in
+     * @param elements
+     * elements that must all be present
+     *
      * @return Value.TRUE if all elements were found
      */
     @Function(docs = """
@@ -453,8 +470,11 @@ public class ArrayFunctionLibrary {
      * Checks if an array contains all elements from another array in sequential
      * order.
      *
-     * @param array array to search in
-     * @param elements elements that must appear in this order
+     * @param array
+     * array to search in
+     * @param elements
+     * elements that must appear in this order
+     *
      * @return Value.TRUE if elements appear in order
      */
     @Function(docs = """
@@ -504,7 +524,9 @@ public class ArrayFunctionLibrary {
     /**
      * Sorts an array in ascending order.
      *
-     * @param array array to sort
+     * @param array
+     * array to sort
+     *
      * @return new sorted array
      */
     @Function(docs = """
@@ -603,7 +625,9 @@ public class ArrayFunctionLibrary {
     /**
      * Flattens a nested array by one level.
      *
-     * @param array array to flatten
+     * @param array
+     * array to flatten
+     *
      * @return new flattened array
      */
     @Function(docs = """
@@ -647,7 +671,9 @@ public class ArrayFunctionLibrary {
     /**
      * Returns the number of elements in an array.
      *
-     * @param value array to measure
+     * @param value
+     * array to measure
+     *
      * @return element count
      */
     @Function(docs = """
@@ -681,7 +707,9 @@ public class ArrayFunctionLibrary {
     /**
      * Returns an array with its elements in reversed order.
      *
-     * @param array array to reverse
+     * @param array
+     * array to reverse
+     *
      * @return new array with elements in reverse order
      */
     @Function(docs = """
@@ -718,7 +746,9 @@ public class ArrayFunctionLibrary {
     /**
      * Checks if an array contains only distinct elements.
      *
-     * @param array array to test
+     * @param array
+     * array to test
+     *
      * @return Value.TRUE if array contains no duplicates
      */
     @Function(docs = """
@@ -758,7 +788,9 @@ public class ArrayFunctionLibrary {
     /**
      * Checks if an array is empty.
      *
-     * @param array array to test
+     * @param array
+     * array to test
+     *
      * @return Value.TRUE if array has no elements
      */
     @Function(docs = """
@@ -789,7 +821,9 @@ public class ArrayFunctionLibrary {
     /**
      * Returns the first element of an array.
      *
-     * @param array array to extract from
+     * @param array
+     * array to extract from
+     *
      * @return first element
      */
     @Function(docs = """
@@ -823,7 +857,9 @@ public class ArrayFunctionLibrary {
     /**
      * Returns the last element of an array.
      *
-     * @param array array to extract from
+     * @param array
+     * array to extract from
+     *
      * @return last element
      */
     @Function(docs = """
@@ -857,7 +893,9 @@ public class ArrayFunctionLibrary {
     /**
      * Returns the maximum value from an array.
      *
-     * @param array array to find maximum in
+     * @param array
+     * array to find maximum in
+     *
      * @return maximum value
      */
     @Function(docs = """
@@ -888,7 +926,9 @@ public class ArrayFunctionLibrary {
     /**
      * Returns the minimum value from an array.
      *
-     * @param array array to find minimum in
+     * @param array
+     * array to find minimum in
+     *
      * @return minimum value
      */
     @Function(docs = """
@@ -983,7 +1023,9 @@ public class ArrayFunctionLibrary {
     /**
      * Returns the sum of all numeric elements in an array.
      *
-     * @param array array of numbers to sum
+     * @param array
+     * array of numbers to sum
+     *
      * @return sum of all elements
      */
     @Function(docs = """
@@ -1012,7 +1054,9 @@ public class ArrayFunctionLibrary {
     /**
      * Returns the product of all numeric elements in an array.
      *
-     * @param array array of numbers to multiply
+     * @param array
+     * array of numbers to multiply
+     *
      * @return product of all elements
      */
     @Function(docs = """
@@ -1064,7 +1108,9 @@ public class ArrayFunctionLibrary {
     /**
      * Returns the arithmetic mean of all numeric elements in an array.
      *
-     * @param array array of numbers to average
+     * @param array
+     * array of numbers to average
+     *
      * @return average value
      */
     @Function(docs = """
@@ -1109,7 +1155,9 @@ public class ArrayFunctionLibrary {
     /**
      * Returns the median value of all numeric elements in an array.
      *
-     * @param array array of numbers to find median of
+     * @param array
+     * array of numbers to find median of
+     *
      * @return median value
      */
     @Function(docs = """
@@ -1163,8 +1211,11 @@ public class ArrayFunctionLibrary {
     /**
      * Creates an array of consecutive integers from from to to (inclusive).
      *
-     * @param from starting value (inclusive)
-     * @param to ending value (inclusive)
+     * @param from
+     * starting value (inclusive)
+     * @param to
+     * ending value (inclusive)
+     *
      * @return array of consecutive integers
      */
     @Function(docs = """
@@ -1196,9 +1247,13 @@ public class ArrayFunctionLibrary {
      * Creates an array of integers from from to to (inclusive) with a step
      * increment.
      *
-     * @param from starting value (inclusive)
-     * @param to ending value (inclusive)
-     * @param step increment value (positive or negative, not zero)
+     * @param from
+     * starting value (inclusive)
+     * @param to
+     * ending value (inclusive)
+     * @param step
+     * increment value (positive or negative, not zero)
+     *
      * @return array of integers with specified step
      */
     @Function(docs = """
@@ -1271,8 +1326,11 @@ public class ArrayFunctionLibrary {
     /**
      * Returns the Cartesian product of two arrays.
      *
-     * @param array1 first array
-     * @param array2 second array
+     * @param array1
+     * first array
+     * @param array2
+     * second array
+     *
      * @return array of all possible pairs
      */
     @Function(docs = """
@@ -1323,8 +1381,11 @@ public class ArrayFunctionLibrary {
     /**
      * Combines two arrays element-wise into an array of pairs.
      *
-     * @param array1 first array
-     * @param array2 second array
+     * @param array1
+     * first array
+     * @param array2
+     * second array
+     *
      * @return array of paired elements
      */
     @Function(docs = """

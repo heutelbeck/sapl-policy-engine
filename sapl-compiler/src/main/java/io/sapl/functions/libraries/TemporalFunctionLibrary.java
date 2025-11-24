@@ -35,9 +35,9 @@ import java.time.temporal.UnsupportedTemporalTypeException;
 import java.util.Locale;
 
 /**
- * Functions for temporal operations in authorization policies.
- * Handles date-time parsing, comparison, arithmetic, and formatting using
- * ISO 8601 and RFC3339 standards.
+ * Functions for temporal operations in authorization policies. Handles
+ * date-time parsing, comparison, arithmetic, and
+ * formatting using ISO 8601 and RFC3339 standards.
  */
 @UtilityClass
 @FunctionLibrary(name = TemporalFunctionLibrary.NAME, description = TemporalFunctionLibrary.DESCRIPTION, libraryDocumentation = TemporalFunctionLibrary.DOCUMENTATION)

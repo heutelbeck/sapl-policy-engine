@@ -23,12 +23,12 @@ import lombok.experimental.UtilityClass;
 import lombok.val;
 
 /**
- * Compiles SAPL subtemplate expressions (:: operator) into optimized
- * executable representations.
+ * Compiles SAPL subtemplate expressions (:: operator) into optimized executable
+ * representations.
  * <p>
  * Subtemplates apply template expressions to values, with implicit array
- * mapping. The template expression can reference the current value via @
- * (relative node).
+ * mapping. The template expression can reference
+ * the current value via @ (relative node).
  * <p>
  * Examples:
  * <ul>
@@ -57,9 +57,13 @@ public class SubtemplateCompiler {
      * <li>Other values: apply template with value as @ context</li>
      * </ul>
      *
-     * @param parent the expression to apply the template to
-     * @param subtemplateExpression the template expression to apply
-     * @param context the compilation context
+     * @param parent
+     * the expression to apply the template to
+     * @param subtemplateExpression
+     * the template expression to apply
+     * @param context
+     * the compilation context
+     *
      * @return the compiled subtemplate expression
      */
     public CompiledExpression compileSubtemplate(CompiledExpression parent, Expression subtemplateExpression,
@@ -85,8 +89,11 @@ public class SubtemplateCompiler {
      * <p>
      * Handles implicit array mapping for array values.
      *
-     * @param parentValue the value to apply the template to
-     * @param compiledTemplate the compiled template expression
+     * @param parentValue
+     * the value to apply the template to
+     * @param compiledTemplate
+     * the compiled template expression
+     *
      * @return the result of applying the template
      */
     private CompiledExpression applySubtemplateToValue(Value parentValue, CompiledExpression compiledTemplate) {
@@ -125,8 +132,11 @@ public class SubtemplateCompiler {
      * <p>
      * Creates a PureExpression that evaluates the parent and applies the template.
      *
-     * @param pureParent the pure expression parent
-     * @param compiledTemplate the compiled template expression
+     * @param pureParent
+     * the pure expression parent
+     * @param compiledTemplate
+     * the compiled template expression
+     *
      * @return a PureExpression applying the subtemplate
      */
     private CompiledExpression applySubtemplateToPureExpression(PureExpression pureParent,
@@ -168,8 +178,11 @@ public class SubtemplateCompiler {
      * <p>
      * Creates a StreamExpression that applies the template to each emitted value.
      *
-     * @param streamParent the stream expression parent
-     * @param compiledTemplate the compiled template expression
+     * @param streamParent
+     * the stream expression parent
+     * @param compiledTemplate
+     * the compiled template expression
+     *
      * @return a StreamExpression applying the subtemplate
      */
     private CompiledExpression applySubtemplateToStreamExpression(StreamExpression streamParent,
@@ -225,8 +238,11 @@ public class SubtemplateCompiler {
      * This is for compile-time evaluation (when both parent and template are
      * Values).
      *
-     * @param relativeNode the value to use as @ in the template
-     * @param compiledTemplate the compiled template expression
+     * @param relativeNode
+     * the value to use as @ in the template
+     * @param compiledTemplate
+     * the compiled template expression
+     *
      * @return the evaluated result
      */
     private Value evaluateTemplateWithRelativeNode(Value relativeNode, CompiledExpression compiledTemplate) {
@@ -248,9 +264,13 @@ public class SubtemplateCompiler {
      * <p>
      * This is for runtime evaluation within an existing context.
      *
-     * @param relativeNode the value to use as @ in the template
-     * @param compiledTemplate the compiled template expression
-     * @param ctx the evaluation context
+     * @param relativeNode
+     * the value to use as @ in the template
+     * @param compiledTemplate
+     * the compiled template expression
+     * @param ctx
+     * the evaluation context
+     *
      * @return the evaluated result
      */
     private Value evaluateTemplateWithRelativeNodeInContext(Value relativeNode, CompiledExpression compiledTemplate,

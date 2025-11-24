@@ -26,7 +26,8 @@ import java.time.Instant;
  * Attribute data persisted to storage.
  * <p>
  * Sequence numbers are NOT persisted - they coordinate in-flight subscribers
- * during runtime only. On restart, sequence numbers start fresh from zero.
+ * during runtime only. On restart, sequence
+ * numbers start fresh from zero.
  */
 public record PersistedAttribute(
         Value value,
@@ -36,7 +37,7 @@ public record PersistedAttribute(
         Instant timeoutDeadline) {
     public boolean isExpiredAt(Instant now) {
         if (timeoutDeadline == null) {
-            return false;  // Infinite TTL never expires
+            return false; // Infinite TTL never expires
         }
         return now.isAfter(timeoutDeadline);
     }

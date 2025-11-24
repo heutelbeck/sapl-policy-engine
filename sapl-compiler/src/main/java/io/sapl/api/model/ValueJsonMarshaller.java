@@ -30,9 +30,10 @@ import java.util.ArrayList;
  * Marshalling between SAPL Value types and Jackson JsonNode.
  * <p>
  * Provides bidirectional conversion for integration with JSON-based libraries.
- * UndefinedValue and ErrorValue cannot be marshalled. Secret flags are not
- * preserved.
- * Recursion depth is limited to prevent stack overflow from malicious input.
+ * UndefinedValue and ErrorValue cannot be
+ * marshalled. Secret flags are not preserved. Recursion depth is limited to
+ * prevent stack overflow from malicious
+ * input.
  */
 @UtilityClass
 public class ValueJsonMarshaller {
@@ -45,10 +46,13 @@ public class ValueJsonMarshaller {
      * <p>
      * Secret flags are ignored during marshalling.
      *
-     * @param value the value to convert
+     * @param value
+     * the value to convert
+     *
      * @return JsonNode representation
-     * @throws IllegalArgumentException if value is null, UndefinedValue,
-     * ErrorValue, or depth exceeds limit
+     *
+     * @throws IllegalArgumentException
+     * if value is null, UndefinedValue, ErrorValue, or depth exceeds limit
      */
     public static JsonNode toJsonNode(Value value) {
         if (value == null) {
@@ -61,10 +65,12 @@ public class ValueJsonMarshaller {
      * Converts a Jackson JsonNode to a Value.
      * <p>
      * NullNode and null map to Value.NULL. Values are created without secret flag.
-     * BINARY, POJO, and MISSING nodes return ErrorValue. Nesting exceeding 500
-     * levels returns ErrorValue.
+     * BINARY, POJO, and MISSING nodes
+     * return ErrorValue. Nesting exceeding 500 levels returns ErrorValue.
      *
-     * @param node the JsonNode to convert
+     * @param node
+     * the JsonNode to convert
+     *
      * @return Value representation, or ErrorValue for unsupported types or
      * excessive depth
      */
@@ -155,8 +161,8 @@ public class ValueJsonMarshaller {
     }
 
     /**
-     * Internal exception for depth limit enforcement.
-     * Caught at top level and converted to ErrorValue.
+     * Internal exception for depth limit enforcement. Caught at top level and
+     * converted to ErrorValue.
      */
     private static class DepthLimitExceededException extends RuntimeException {
         @Serial

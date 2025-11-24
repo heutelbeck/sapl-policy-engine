@@ -138,11 +138,13 @@ public class TestUtil {
      * Asserts that a compiled expression evaluates to an expected value.
      * <p>
      * For expressions with attribute finders, only the first emitted value is
-     * verified. The stream is canceled after verification (broker keeps streams
-     * open).
+     * verified. The stream is canceled after
+     * verification (broker keeps streams open).
      *
-     * @param expression the expression to compile and evaluate
-     * @param expected the expected value
+     * @param expression
+     * the expression to compile and evaluate
+     * @param expected
+     * the expected value
      */
     public static void assertCompiledExpressionEvaluatesTo(String expression, Value expected) {
         val compiledExpression = compileExpression(expression);
@@ -156,8 +158,11 @@ public class TestUtil {
      * Convenience method for creating expected values in tests without using the
      * compiler.
      *
-     * @param jsonString the JSON string to parse
-     * @param <T> the expected Value type
+     * @param jsonString
+     * the JSON string to parse
+     * @param <T>
+     * the expected Value type
+     *
      * @return the parsed Value
      */
     @SneakyThrows
@@ -172,10 +177,13 @@ public class TestUtil {
      * Asserts that an expression evaluates to an expected value.
      * <p>
      * Convenience method for comparing expression results in tests. The expected
-     * value is parsed from JSON to avoid testing the compiler against itself.
+     * value is parsed from JSON to avoid
+     * testing the compiler against itself.
      *
-     * @param actualExpression the expression to evaluate
-     * @param expectedJson the JSON string representing the expected result
+     * @param actualExpression
+     * the expression to evaluate
+     * @param expectedJson
+     * the JSON string representing the expected result
      */
     public static void assertExpressionsEqual(String actualExpression, String expectedJson) {
         assertThat(evaluate(actualExpression)).isEqualTo(json(expectedJson));
@@ -186,8 +194,10 @@ public class TestUtil {
      * <p>
      * Convenience method for comparing expression results to Value objects.
      *
-     * @param actualExpression the expression to evaluate
-     * @param expectedValue the expected Value object
+     * @param actualExpression
+     * the expression to evaluate
+     * @param expectedValue
+     * the expected Value object
      */
     public static void assertExpressionEvaluatesTo(String actualExpression, Value expectedValue) {
         assertThat(evaluate(actualExpression)).isEqualTo(expectedValue);
@@ -208,9 +218,10 @@ public class TestUtil {
      * <p>
      * Convenience method for testing error conditions.
      *
-     * @param expression the expression to evaluate
-     * @param expectedMessageFragment the expected error message fragment
-     * (case-insensitive)
+     * @param expression
+     * the expression to evaluate
+     * @param expectedMessageFragment
+     * the expected error message fragment (case-insensitive)
      */
     public static void assertEvaluatesToError(String expression, String expectedMessageFragment) {
         val result = evaluate(expression);
@@ -223,10 +234,13 @@ public class TestUtil {
      * specific message.
      * <p>
      * For expressions with attribute finders, only the first emitted value is
-     * verified. The stream is canceled after verification.
+     * verified. The stream is canceled after
+     * verification.
      *
-     * @param expression the expression to compile and evaluate
-     * @param message the expected error message fragment (case-insensitive)
+     * @param expression
+     * the expression to compile and evaluate
+     * @param message
+     * the expected error message fragment (case-insensitive)
      */
     public static void assertCompiledExpressionEvaluatesToErrorContaining(String expression, String message) {
         val compiledExpression = compileExpression(expression);
@@ -258,7 +272,9 @@ public class TestUtil {
      * For testing convenience. If expression produces a stream, returns first
      * emitted value.
      *
-     * @param expression the expression string to evaluate
+     * @param expression
+     * the expression string to evaluate
+     *
      * @return the evaluated Value
      */
     public Value evaluate(String expression) {
@@ -282,14 +298,19 @@ public class TestUtil {
 
     /**
      * Creates a test case with description, expression, and expected values.
-     * Automatically wraps expected values into String[] for varargs compatibility.
+     * Automatically wraps expected values into
+     * String[] for varargs compatibility.
      * <p>
      * This helper is used with parameterized tests to avoid verbose array wrapping
      * in test data.
      *
-     * @param description test case description
-     * @param expression the SAPL expression to test
-     * @param expectedValues the expected JSON values as strings
+     * @param description
+     * test case description
+     * @param expression
+     * the SAPL expression to test
+     * @param expectedValues
+     * the expected JSON values as strings
+     *
      * @return Object[] containing description, expression, and expected values
      * array
      */
@@ -302,9 +323,13 @@ public class TestUtil {
      * <p>
      * This helper is used with parameterized error tests.
      *
-     * @param description test case description
-     * @param expression the SAPL expression that should produce an error
-     * @param errorFragment the expected error message fragment (case-insensitive)
+     * @param description
+     * test case description
+     * @param expression
+     * the SAPL expression that should produce an error
+     * @param errorFragment
+     * the expected error message fragment (case-insensitive)
+     *
      * @return Object[] containing description, expression, and error fragment
      */
     public static Object[] errorCase(String description, String expression, String errorFragment) {

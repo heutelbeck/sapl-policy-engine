@@ -46,11 +46,13 @@ import java.util.List;
 
 /**
  * Functions for making access control decisions based on X.509 certificate
- * properties in mutual TLS and client certificate authentication scenarios.
+ * properties in mutual TLS and client
+ * certificate authentication scenarios.
  * <p>
  * Common use cases include verifying client certificates in mTLS connections,
- * implementing certificate pinning, checking certificate validity during
- * maintenance windows, and restricting access based on certificate subjects or
+ * implementing certificate pinning,
+ * checking certificate validity during maintenance windows, and restricting
+ * access based on certificate subjects or
  * SANs. All functions work with both PEM and DER encoded certificates.
  * <p>
  * Example - mTLS client authorization:
@@ -445,8 +447,11 @@ public class X509FunctionLibrary {
     /**
      * Checks if the given Subject Alternative Names contain a specific IP address.
      *
-     * @param subjectAltNames the collection of SANs from a certificate
-     * @param targetIp the target IP address to search for
+     * @param subjectAltNames
+     * the collection of SANs from a certificate
+     * @param targetIp
+     * the target IP address to search for
+     *
      * @return true if the IP address is found in the SANs
      */
     private static boolean containsIpAddress(java.util.Collection<List<?>> subjectAltNames, String targetIp) {
@@ -557,12 +562,17 @@ public class X509FunctionLibrary {
 
     /**
      * Executes an operation on a parsed certificate with automatic error handling.
-     * Parses the certificate string and applies the operation, catching any
-     * exceptions and converting them to Val.error responses.
+     * Parses the certificate string and
+     * applies the operation, catching any exceptions and converting them to
+     * Val.error responses.
      *
-     * @param certificateString the certificate string in PEM or DER format
-     * @param operation the operation to perform on the certificate
-     * @param errorPrefix the prefix for error messages
+     * @param certificateString
+     * the certificate string in PEM or DER format
+     * @param operation
+     * the operation to perform on the certificate
+     * @param errorPrefix
+     * the prefix for error messages
+     *
      * @return the result of the operation or a Val.error
      */
     private static Value withCertificate(String certificateString,
@@ -581,8 +591,11 @@ public class X509FunctionLibrary {
     /**
      * Computes the fingerprint of a certificate using the specified hash algorithm.
      *
-     * @param certificate the X509Certificate to fingerprint
-     * @param algorithm the hash algorithm name
+     * @param certificate
+     * the X509Certificate to fingerprint
+     * @param algorithm
+     * the hash algorithm name
+     *
      * @return a Value containing the hexadecimal fingerprint or an error
      */
     private static Value computeFingerprint(X509Certificate certificate, String algorithm) {
@@ -602,9 +615,13 @@ public class X509FunctionLibrary {
     /**
      * Parses an ISO 8601 timestamp string to a Date object.
      *
-     * @param isoTimestamp the ISO 8601 timestamp string
+     * @param isoTimestamp
+     * the ISO 8601 timestamp string
+     *
      * @return the parsed Date
-     * @throws PolicyEvaluationException if the timestamp format is invalid
+     *
+     * @throws PolicyEvaluationException
+     * if the timestamp format is invalid
      */
     private static Date parseTimestamp(String isoTimestamp) {
         try {
@@ -617,7 +634,9 @@ public class X509FunctionLibrary {
     /**
      * Builds a JSON object representation of a certificate with all fields.
      *
-     * @param certificate the X509Certificate to represent
+     * @param certificate
+     * the X509Certificate to represent
+     *
      * @return the JSON object containing certificate information
      */
     private static ObjectNode buildCertificateObject(X509Certificate certificate) {
@@ -640,10 +659,12 @@ public class X509FunctionLibrary {
     }
 
     /**
-     * Extracts the Common Name from a Distinguished Name string.
-     * Handles DN strings in RFC 2253 format.
+     * Extracts the Common Name from a Distinguished Name string. Handles DN strings
+     * in RFC 2253 format.
      *
-     * @param dn the Distinguished Name string
+     * @param dn
+     * the Distinguished Name string
+     *
      * @return the Common Name or null if not present
      */
     private static String extractCnFromDn(String dn) {
@@ -658,12 +679,15 @@ public class X509FunctionLibrary {
     }
 
     /**
-     * Checks if a DNS name from a certificate matches a target DNS name.
-     * Handles wildcard certificates (e.g., *.example.com).
+     * Checks if a DNS name from a certificate matches a target DNS name. Handles
+     * wildcard certificates (e.g.,
+     * *.example.com).
      *
-     * @param certificateDnsName the DNS name from the certificate (may contain
-     * wildcard)
-     * @param targetDnsName the target DNS name to match
+     * @param certificateDnsName
+     * the DNS name from the certificate (may contain wildcard)
+     * @param targetDnsName
+     * the target DNS name to match
+     *
      * @return true if the names match
      */
     private static boolean matchesDnsName(String certificateDnsName, String targetDnsName) {
@@ -686,7 +710,9 @@ public class X509FunctionLibrary {
     /**
      * Converts a Subject Alternative Name type code to its name.
      *
-     * @param type the SAN type code
+     * @param type
+     * the SAN type code
+     *
      * @return the corresponding type name
      */
     private static String getSanTypeName(int type) {
@@ -706,11 +732,14 @@ public class X509FunctionLibrary {
 
     /**
      * Extracts an IP address string from X.509 certificate SAN representation.
-     * X.509 certificates can store IP addresses as either String or byte array.
-     * This method handles both formats and converts to standard dotted-decimal
-     * notation.
+     * X.509 certificates can store IP
+     * addresses as either String or byte array. This method handles both formats
+     * and converts to standard
+     * dotted-decimal notation.
      *
-     * @param sanValue the raw SAN value (String or byte array)
+     * @param sanValue
+     * the raw SAN value (String or byte array)
+     *
      * @return the IP address in standard format, or null if conversion fails
      */
     private static String extractIpAddress(Object sanValue) {
@@ -726,10 +755,13 @@ public class X509FunctionLibrary {
     }
 
     /**
-     * Normalizes an IP address string from various string representations.
-     * Handles formats with leading slashes or hostname prefixes.
+     * Normalizes an IP address string from various string representations. Handles
+     * formats with leading slashes or
+     * hostname prefixes.
      *
-     * @param rawIpValue the raw IP address string
+     * @param rawIpValue
+     * the raw IP address string
+     *
      * @return the normalized IP address string
      */
     private static String normalizeIpAddress(String rawIpValue) {
@@ -752,10 +784,12 @@ public class X509FunctionLibrary {
     }
 
     /**
-     * Converts IP address bytes to standard string notation.
-     * Handles both IPv4 (4 bytes) and IPv6 (16 bytes) addresses.
+     * Converts IP address bytes to standard string notation. Handles both IPv4 (4
+     * bytes) and IPv6 (16 bytes) addresses.
      *
-     * @param bytes the IP address bytes
+     * @param bytes
+     * the IP address bytes
+     *
      * @return the IP address in standard notation
      */
     private static String convertBytesToIpAddress(byte[] bytes) {

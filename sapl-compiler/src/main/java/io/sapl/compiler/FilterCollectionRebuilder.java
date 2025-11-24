@@ -31,7 +31,8 @@ import java.util.function.Predicate;
  * Utility class for rebuilding arrays and objects after filter operations.
  * <p>
  * Handles the common pattern of applying transformations to specific elements
- * while preserving the structure and filtering out undefined values.
+ * while preserving the structure and
+ * filtering out undefined values.
  */
 @UtilityClass
 class FilterCollectionRebuilder {
@@ -40,12 +41,16 @@ class FilterCollectionRebuilder {
      * Rebuilds an array by applying a transformation to specific indices.
      * <p>
      * Elements at matching indices are transformed. Undefined results are filtered
-     * out.
-     * Elements at non-matching indices are preserved unchanged.
+     * out. Elements at non-matching
+     * indices are preserved unchanged.
      *
-     * @param original the original array
-     * @param matcher predicate determining which indices to transform
-     * @param transformer function to transform matched elements
+     * @param original
+     * the original array
+     * @param matcher
+     * predicate determining which indices to transform
+     * @param transformer
+     * function to transform matched elements
+     *
      * @return rebuilt array with transformations applied
      */
     static ArrayValue rebuildArray(ArrayValue original, IntPredicate matcher,
@@ -71,8 +76,11 @@ class FilterCollectionRebuilder {
      * <p>
      * All elements are transformed. Undefined results are filtered out.
      *
-     * @param original the original array
-     * @param transformer function to transform each element
+     * @param original
+     * the original array
+     * @param transformer
+     * function to transform each element
+     *
      * @return rebuilt array with transformations applied
      */
     static ArrayValue rebuildArrayAll(ArrayValue original, java.util.function.IntFunction<Value> transformer) {
@@ -82,13 +90,17 @@ class FilterCollectionRebuilder {
     /**
      * Rebuilds an object by applying a transformation to specific keys.
      * <p>
-     * Fields with matching keys are transformed. Undefined results are filtered
-     * out (field removed).
-     * Fields with non-matching keys are preserved unchanged.
+     * Fields with matching keys are transformed. Undefined results are filtered out
+     * (field removed). Fields with
+     * non-matching keys are preserved unchanged.
      *
-     * @param original the original object
-     * @param matcher predicate determining which keys to transform
-     * @param transformer function to transform matched field values (receives key)
+     * @param original
+     * the original object
+     * @param matcher
+     * predicate determining which keys to transform
+     * @param transformer
+     * function to transform matched field values (receives key)
+     *
      * @return rebuilt object with transformations applied
      */
     static ObjectValue rebuildObject(ObjectValue original, Predicate<String> matcher,
@@ -115,8 +127,11 @@ class FilterCollectionRebuilder {
      * All field values are transformed. Undefined results are filtered out (field
      * removed).
      *
-     * @param original the original object
-     * @param transformer function to transform each field value (receives key)
+     * @param original
+     * the original object
+     * @param transformer
+     * function to transform each field value (receives key)
+     *
      * @return rebuilt object with transformations applied
      */
     static ObjectValue rebuildObjectAll(ObjectValue original, java.util.function.Function<String, Value> transformer) {

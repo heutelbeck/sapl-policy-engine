@@ -96,9 +96,9 @@ class SchemaValidationLibraryTests {
                                 .put("age", ObjectValue.builder().put("type", Value.of("integer")).build()).build())
                 .build();
 
-        val subject = ObjectValue.builder().put("name", Value.of("Alice")).put("age", Value.of("25"))  // Should be
-                                                                                                       // integer, not
-                                                                                                       // string
+        val subject = ObjectValue.builder().put("name", Value.of("Alice")).put("age", Value.of("25")) // Should be
+                                                                                                      // integer, not
+                                                                                                      // string
                 .build();
 
         val result = validate(subject, schema);

@@ -29,8 +29,9 @@ import static io.sapl.validation.NameValidator.requireValidName;
  * Metadata describing an attribute finder's signature and implementation.
  * <p>
  * An AttributeFinderSpecification defines the contract for an attribute finder,
- * including its fully qualified name, parameter types, and whether it accepts a
- * variable number of arguments (varargs). The AttributeBroker uses
+ * including its fully qualified name,
+ * parameter types, and whether it accepts a variable number of arguments
+ * (varargs). The AttributeBroker uses
  * specifications to:
  * <ul>
  * <li>Match invocations to the correct PIP implementation</li>
@@ -49,16 +50,23 @@ import static io.sapl.validation.NameValidator.requireValidName;
  * </ul>
  * <p>
  * <b>Collision Detection:</b> Two specifications collide if they have the same
- * fully qualified name and would match the same invocations (either both have
- * varargs, or both have the same parameter count).
+ * fully qualified name and would match the
+ * same invocations (either both have varargs, or both have the same parameter
+ * count).
  *
- * @param namespace the PIP namespace (e.g., "time")
- * @param attributeName the attribute name (e.g., "now")
- * @param isEnvironmentAttribute true if this is an environment attribute (no
- * entity parameter)
- * @param parameterTypes list of fixed parameter types (entity excluded)
- * @param varArgsParameterType type of varargs parameter, or null if no varargs
- * @param attributeFinder the actual implementation
+ * @param namespace
+ * the PIP namespace (e.g., "time")
+ * @param attributeName
+ * the attribute name (e.g., "now")
+ * @param isEnvironmentAttribute
+ * true if this is an environment attribute (no entity parameter)
+ * @param parameterTypes
+ * list of fixed parameter types (entity excluded)
+ * @param varArgsParameterType
+ * type of varargs parameter, or null if no varargs
+ * @param attributeFinder
+ * the actual implementation
+ *
  * @see AttributeBroker
  * @see io.sapl.api.pip.Attribute
  */
@@ -87,8 +95,9 @@ public record AttributeFinderSpecification(
      * Checks if this specification would collide with another specification.
      * <p>
      * Two specifications collide if they have the same fully qualified name and
-     * would match the same invocations, making it ambiguous which one to invoke.
-     * Collisions are detected during PIP registration and cause
+     * would match the same invocations,
+     * making it ambiguous which one to invoke. Collisions are detected during PIP
+     * registration and cause
      * AttributeBrokerException.
      * <p>
      * Collision conditions:
@@ -99,7 +108,9 @@ public record AttributeFinderSpecification(
      * <li>Different parameter counts without varargs → no collision</li>
      * </ul>
      *
-     * @param other another specification
+     * @param other
+     * another specification
+     *
      * @return true if the presence of both specifications leads to ambiguity in
      * resolving PIP lookups
      */
@@ -129,10 +140,13 @@ public record AttributeFinderSpecification(
      * <li>VARARGS_MATCH is only used if no EXACT_MATCH exists</li>
      * </ul>
      *
-     * @param invocation the attribute finder invocation to match against
-     * @return Match.EXACT_MATCH if arguments equal parameters,
-     * Match.VARARGS_MATCH if varargs and enough arguments,
+     * @param invocation
+     * the attribute finder invocation to match against
+     *
+     * @return Match.EXACT_MATCH if arguments equal parameters, Match.VARARGS_MATCH
+     * if varargs and enough arguments,
      * Match.NO_MATCH otherwise
+     *
      * @see io.sapl.api.shared.Match
      */
     public Match matches(AttributeFinderInvocation invocation) {

@@ -63,10 +63,12 @@ public class SchemaValidation {
      * Value result = validator.apply(subject); // Value.of(true)
      * }</pre>
      *
-     * @param schema the JSON Schema 2020-12 as Value (typically ObjectValue)
+     * @param schema
+     * the JSON Schema 2020-12 as Value (typically ObjectValue)
+     *
      * @return validator function returning Value.of(true) if valid, Value.of(false)
-     * if invalid,
-     * or Value.error() if schema compilation or validation fails
+     * if invalid, or Value.error() if
+     * schema compilation or validation fails
      */
     public static Function<Value, Value> schemaValidatorFromSchema(Value schema) {
         try {

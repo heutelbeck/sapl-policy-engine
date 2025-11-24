@@ -50,11 +50,15 @@ public class KeyTestUtility {
     }
 
     /**
-     * @param keyPair the key pair
+     * @param keyPair
+     * the key pair
+     *
      * @return a mock web server used for testing public key requests
-     * @throws NoSuchAlgorithmException in case the specified algorithm is
-     * unavailable
-     * @throws IOException on IO errors
+     *
+     * @throws NoSuchAlgorithmException
+     * in case the specified algorithm is unavailable
+     * @throws IOException
+     * on IO errors
      */
     public static MockWebServer testServer(KeyPair keyPair) throws NoSuchAlgorithmException, IOException {
         val mockServerKeys = Map.of(KeyTestUtility.kid(keyPair),
@@ -65,9 +69,13 @@ public class KeyTestUtility {
     }
 
     /**
-     * @param keyPairs key pairs
+     * @param keyPairs
+     * key pairs
+     *
      * @return a mock web server used for testing public key requests
-     * @throws IllegalStateException upon server creation failure.
+     *
+     * @throws IllegalStateException
+     * upon server creation failure.
      */
     public static MockWebServer testServer(Set<KeyPair> keyPairs) {
         val mockServerKeys = new HashMap<String, String>();
@@ -85,11 +93,15 @@ public class KeyTestUtility {
     }
 
     /**
-     * @param keyPair a key pair
+     * @param keyPair
+     * a key pair
+     *
      * @return the public key's hash code
-     * @throws NoSuchAlgorithmException in case the specified algorithm is
-     * unavailable
-     * @throws IOException in IO errors
+     *
+     * @throws NoSuchAlgorithmException
+     * in case the specified algorithm is unavailable
+     * @throws IOException
+     * in IO errors
      */
     public static String kid(KeyPair keyPair) throws NoSuchAlgorithmException, IOException {
         val outputStream = new ByteArrayOutputStream();
@@ -100,9 +112,12 @@ public class KeyTestUtility {
     }
 
     /**
-     * @param keyPair a key pair
+     * @param keyPair
+     * a key pair
+     *
      * @return a predicate that evaluates to true iff it's input is of type
-     * RSAPublicKey and matches the public key of the supplied keyPair
+     * RSAPublicKey and matches the public key of
+     * the supplied keyPair
      */
     static Predicate<Object> keyValidator(KeyPair keyPair) {
         return publicKey -> {

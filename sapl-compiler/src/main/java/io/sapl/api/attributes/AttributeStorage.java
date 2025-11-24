@@ -25,11 +25,13 @@ import java.util.Map;
 /**
  * Storage backend for persisting attribute values.
  * <p>
- * All operations return Mono or Flux for reactive composition.
- * Implementations may be synchronous (heap, file) or truly reactive (R2DBC).
+ * All operations return Mono or Flux for reactive composition. Implementations
+ * may be synchronous (heap, file) or truly
+ * reactive (R2DBC).
  * <p>
- * This interface handles persistent storage only. Runtime coordination
- * (sinks, subscribers, sequence numbers) remains in the repository layer.
+ * This interface handles persistent storage only. Runtime coordination (sinks,
+ * subscribers, sequence numbers) remains
+ * in the repository layer.
  * <p>
  * Implementations must be thread-safe for concurrent access.
  */
@@ -38,7 +40,9 @@ public interface AttributeStorage {
     /**
      * Retrieves persisted attribute by key.
      *
-     * @param key the attribute key
+     * @param key
+     * the attribute key
+     *
      * @return Mono with the persisted attribute, or empty if not found
      */
     Mono<PersistedAttribute> get(AttributeKey key);
@@ -46,12 +50,15 @@ public interface AttributeStorage {
     /**
      * Persists an attribute value.
      * <p>
-     * Overwrites the value if the key already exists.
-     * The returned Mono completes when the write is durable
-     * (flushed to disk, committed to database, etc.).
+     * Overwrites the value if the key already exists. The returned Mono completes
+     * when the write is durable (flushed to
+     * disk, committed to database, etc.).
      *
-     * @param key the attribute key
-     * @param value the attribute to persist
+     * @param key
+     * the attribute key
+     * @param value
+     * the attribute to persist
+     *
      * @return Mono that completes when write is durable
      */
     Mono<Void> put(AttributeKey key, PersistedAttribute value);
@@ -59,10 +66,12 @@ public interface AttributeStorage {
     /**
      * Removes a persisted attribute.
      * <p>
-     * No-op if the key does not exist.
-     * The returned Mono completes when removal is durable.
+     * No-op if the key does not exist. The returned Mono completes when removal is
+     * durable.
      *
-     * @param key the attribute key to remove
+     * @param key
+     * the attribute key to remove
+     *
      * @return Mono that completes when removal is durable
      */
     Mono<Void> remove(AttributeKey key);
@@ -70,13 +79,14 @@ public interface AttributeStorage {
     /**
      * Returns all stored attributes.
      * <p>
-     * Used during startup to recover timeout schedules. This method is called
-     * once during application initialization and must complete before the
-     * application accepts any connections.
+     * Used during startup to recover timeout schedules. This method is called once
+     * during application initialization
+     * and must complete before the application accepts any connections.
      * <p>
-     * Implementations should stream results efficiently for large datasets.
-     * For heap storage, this is a simple iteration. For file-based storage,
-     * this reads and deserializes the entire file. For database storage, this
+     * Implementations should stream results efficiently for large datasets. For
+     * heap storage, this is a simple
+     * iteration. For file-based storage, this reads and deserializes the entire
+     * file. For database storage, this
      * executes a SELECT * query.
      *
      * @return Flux of all stored attributes with their keys

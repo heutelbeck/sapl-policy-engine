@@ -22,8 +22,8 @@ import io.sapl.api.functions.FunctionLibrary;
 import io.sapl.api.model.Value;
 
 /**
- * Mock string function library for XACML-style tests. Adapted from sapl-lang
- * to use Value instead of Val.
+ * Mock string function library for XACML-style tests. Adapted from sapl-lang to
+ * use Value instead of Val.
  */
 @FunctionLibrary(name = "string")
 public class MockXACMLStringFunctionLibrary {

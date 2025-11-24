@@ -39,21 +39,19 @@ import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * In-memory implementation of AttributeRepository supporting reactive attribute
- * streaming with TTL-based expiration and subscription management.
+ * streaming with TTL-based expiration and
+ * subscription management.
  * <p>
  * Provides thread-safe attribute storage with automatic timeout handling.
- * Attributes
- * can be published with optional TTL and timeout strategies (REMOVE or
- * BECOME_UNDEFINED).
- * Subscribers receive the current value immediately upon invocation, followed
- * by updates
- * as attributes are published or removed.
+ * Attributes can be published with optional TTL
+ * and timeout strategies (REMOVE or BECOME_UNDEFINED). Subscribers receive the
+ * current value immediately upon
+ * invocation, followed by updates as attributes are published or removed.
  * <p>
  * Uses Project Reactor for non-blocking operations. All subscriptions are
- * managed with
- * replay(1).refCount(1) semantics, ensuring late subscribers receive the last
- * value and
- * automatic cleanup occurs when the last subscriber cancels.
+ * managed with replay(1).refCount(1) semantics,
+ * ensuring late subscribers receive the last value and automatic cleanup occurs
+ * when the last subscriber cancels.
  */
 @Slf4j
 public class InMemoryAttributeRepository implements AttributeRepository {
@@ -70,7 +68,8 @@ public class InMemoryAttributeRepository implements AttributeRepository {
     /**
      * Creates an attribute repository with default heap-based storage.
      *
-     * @param clock the clock for time-based operations, must not be null
+     * @param clock
+     * the clock for time-based operations, must not be null
      */
     public InMemoryAttributeRepository(@NonNull Clock clock) {
         this(clock, new HeapAttributeStorage());
@@ -79,8 +78,10 @@ public class InMemoryAttributeRepository implements AttributeRepository {
     /**
      * Creates an attribute repository with custom storage backend.
      *
-     * @param clock the clock for time-based operations, must not be null
-     * @param storage the storage implementation, must not be null
+     * @param clock
+     * the clock for time-based operations, must not be null
+     * @param storage
+     * the storage implementation, must not be null
      */
     public InMemoryAttributeRepository(@NonNull Clock clock, @NonNull AttributeStorage storage) {
         this.clock   = clock;
@@ -90,8 +91,9 @@ public class InMemoryAttributeRepository implements AttributeRepository {
 
     /**
      * Initializes the repository by recovering pending timeouts from storage.
-     * Removes stale attributes whose timeout deadlines have passed and reschedules
-     * active timeouts for attributes that are still within their TTL.
+     * Removes stale attributes whose timeout
+     * deadlines have passed and reschedules active timeouts for attributes that are
+     * still within their TTL.
      * <p>
      * Blocks until completion. Must be called before accepting connections.
      */
@@ -170,21 +172,30 @@ public class InMemoryAttributeRepository implements AttributeRepository {
     }
 
     /**
-     * Publishes an attribute value with optional TTL and timeout strategy.
-     * If an attribute with the same key exists, it is replaced. If a timeout
-     * was scheduled for the key, it is cancelled and rescheduled if TTL is
-     * provided.
+     * Publishes an attribute value with optional TTL and timeout strategy. If an
+     * attribute with the same key exists, it
+     * is replaced. If a timeout was scheduled for the key, it is cancelled and
+     * rescheduled if TTL is provided.
      * <p>
      * Active subscribers are notified immediately with the new value.
      *
-     * @param entity the entity the attribute belongs to, may be null
-     * @param attributeName the attribute name, must not be null or blank
-     * @param arguments the attribute arguments, must not be null
-     * @param value the attribute value, must not be null
-     * @param ttl the time-to-live, null for permanent attributes
-     * @param timeOutStrategy the strategy when TTL expires, must not be null
+     * @param entity
+     * the entity the attribute belongs to, may be null
+     * @param attributeName
+     * the attribute name, must not be null or blank
+     * @param arguments
+     * the attribute arguments, must not be null
+     * @param value
+     * the attribute value, must not be null
+     * @param ttl
+     * the time-to-live, null for permanent attributes
+     * @param timeOutStrategy
+     * the strategy when TTL expires, must not be null
+     *
      * @return a Mono that completes when the attribute is persisted
-     * @throws IllegalArgumentException if any parameter validation fails
+     *
+     * @throws IllegalArgumentException
+     * if any parameter validation fails
      */
     @Override
     public Mono<Void> publishAttribute(Value entity, String attributeName, List<Value> arguments, Value value,
@@ -242,16 +253,23 @@ public class InMemoryAttributeRepository implements AttributeRepository {
     }
 
     /**
-     * Removes an attribute and cancels its scheduled timeout if any.
-     * Active subscribers are notified with ATTRIBUTE_UNAVAILABLE.
+     * Removes an attribute and cancels its scheduled timeout if any. Active
+     * subscribers are notified with
+     * ATTRIBUTE_UNAVAILABLE.
      * <p>
      * If the attribute does not exist, the operation completes without error.
      *
-     * @param entity the entity the attribute belongs to, may be null
-     * @param attributeName the attribute name, must not be null or blank
-     * @param arguments the attribute arguments, must not be null
+     * @param entity
+     * the entity the attribute belongs to, may be null
+     * @param attributeName
+     * the attribute name, must not be null or blank
+     * @param arguments
+     * the attribute arguments, must not be null
+     *
      * @return a Mono that completes when the attribute is removed
-     * @throws IllegalArgumentException if any parameter validation fails
+     *
+     * @throws IllegalArgumentException
+     * if any parameter validation fails
      */
     @Override
     public Mono<Void> removeAttribute(Value entity, String attributeName, List<Value> arguments) {
@@ -330,16 +348,19 @@ public class InMemoryAttributeRepository implements AttributeRepository {
 
     /**
      * Creates a reactive stream for an attribute that emits the current value
-     * followed by all future updates until the subscription is cancelled.
+     * followed by all future updates until the
+     * subscription is cancelled.
      * <p>
      * On first subscription for a key, emits the current value from storage or
-     * ATTRIBUTE_UNAVAILABLE if not present. Subsequent subscriptions share the
-     * same stream via replay(1).refCount(1) semantics.
+     * ATTRIBUTE_UNAVAILABLE if not present.
+     * Subsequent subscriptions share the same stream via replay(1).refCount(1)
+     * semantics.
      * <p>
      * The stream automatically cleans up when the last subscriber cancels.
      *
-     * @param invocation the attribute invocation specifying entity, name, and
-     * arguments
+     * @param invocation
+     * the attribute invocation specifying entity, name, and arguments
+     *
      * @return a Flux emitting attribute values, never completes unless explicitly
      * cancelled
      */
@@ -355,8 +376,11 @@ public class InMemoryAttributeRepository implements AttributeRepository {
      * <p>
      * Implements replay(1).refCount(1) semantics for sharing subscriptions.
      *
-     * @param key the attribute key
-     * @param existingSinkFlux the existing SinkAndFlux if present, null otherwise
+     * @param key
+     * the attribute key
+     * @param existingSinkFlux
+     * the existing SinkAndFlux if present, null otherwise
+     *
      * @return a SinkAndFlux for the attribute
      */
     private SinkAndFlux createOrReuseSinkAndFlux(AttributeKey key, SinkAndFlux existingSinkFlux) {
@@ -374,11 +398,13 @@ public class InMemoryAttributeRepository implements AttributeRepository {
     /**
      * Cleans up subscription state when the last subscriber cancels.
      * <p>
-     * Removes the SinkAndFlux from active subscriptions if it matches the
-     * original sink.
+     * Removes the SinkAndFlux from active subscriptions if it matches the original
+     * sink.
      *
-     * @param key the attribute key
-     * @param sink the sink that triggered cleanup
+     * @param key
+     * the attribute key
+     * @param sink
+     * the sink that triggered cleanup
      */
     private void cleanupSubscription(AttributeKey key, Sinks.Many<Value> sink) {
         log.debug("Last subscriber cancelled {}, cleanup triggered", key);
@@ -389,11 +415,14 @@ public class InMemoryAttributeRepository implements AttributeRepository {
      * Determines whether a SinkAndFlux should be removed during cleanup.
      * <p>
      * Returns null if the sink matches the original sink that triggered cleanup,
-     * indicating removal. Returns the existing SinkAndFlux if it represents a
-     * newer subscription.
+     * indicating removal. Returns the
+     * existing SinkAndFlux if it represents a newer subscription.
      *
-     * @param sinkFlux the current SinkAndFlux in the map
-     * @param originalSink the sink that triggered the cleanup
+     * @param sinkFlux
+     * the current SinkAndFlux in the map
+     * @param originalSink
+     * the sink that triggered the cleanup
+     *
      * @return null to remove, or the SinkAndFlux to retain
      */
     private SinkAndFlux shouldRemoveSinkAndFlux(SinkAndFlux sinkFlux, Sinks.Many<Value> originalSink) {

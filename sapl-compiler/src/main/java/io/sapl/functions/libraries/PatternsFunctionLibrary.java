@@ -41,26 +41,29 @@ import java.util.regex.PatternSyntaxException;
  * scenarios:
  * <p>
  * <b>Glob Patterns</b> - Hierarchical wildcard matching that respects segment
- * boundaries defined by delimiters. Wildcards match within segments unless
- * explicitly crossing boundaries with double wildcards. Use glob patterns for
+ * boundaries defined by delimiters.
+ * Wildcards match within segments unless explicitly crossing boundaries with
+ * double wildcards. Use glob patterns for
  * file paths, domain names, or structured identifiers where hierarchical
- * structure matters. The syntax is simpler and more intuitive for non-technical
- * users than regular expressions.
+ * structure matters. The syntax is simpler and
+ * more intuitive for non-technical users than regular expressions.
  * <p>
  * <b>Regular Expressions</b> - Full pattern matching using standard regex
- * syntax following the same construction rules as the Java Pattern class. Use
- * regex when glob patterns are insufficient or when advanced matching features
- * like lookahead, backreferences, or precise quantifiers are needed. Regular
- * expressions are more powerful but require familiarity with regex syntax.
+ * syntax following the same construction rules
+ * as the Java Pattern class. Use regex when glob patterns are insufficient or
+ * when advanced matching features like
+ * lookahead, backreferences, or precise quantifiers are needed. Regular
+ * expressions are more powerful but require
+ * familiarity with regex syntax.
  * <p>
  * For simple literal operations like checking prefixes, suffixes, or
- * substrings,
- * use the string library instead. It is faster and more straightforward for
- * these common cases.
+ * substrings, use the string library instead. It is
+ * faster and more straightforward for these common cases.
  * <p>
  * <b>Security</b>: All regex functions include protection against Regular
- * Expression Denial of Service attacks. Patterns with dangerous constructs like
- * nested quantifiers or excessive alternations are rejected before evaluation.
+ * Expression Denial of Service attacks.
+ * Patterns with dangerous constructs like nested quantifiers or excessive
+ * alternations are rejected before evaluation.
  */
 @Slf4j
 @UtilityClass
@@ -157,8 +160,8 @@ public class PatternsFunctionLibrary {
     private static final char   REGEX_ALTERNATION       = '|';
 
     /**
-     * Pre-compiled patterns for ReDoS detection.
-     * These patterns use find() without greedy quantifiers at boundaries to
+     * Pre-compiled patterns for ReDoS detection. These patterns use find() without
+     * greedy quantifiers at boundaries to
      * ensure safe detection.
      */
     private static final Pattern NESTED_QUANTIFIERS     = Pattern.compile("\\([^)]*[*+]\\)[*+]");
@@ -1082,8 +1085,9 @@ public class PatternsFunctionLibrary {
     }
 
     /**
-     * Analyzes regex pattern for dangerous constructs that could cause ReDoS.
-     * Uses pre-compiled patterns with find() to avoid ReDoS in detection itself.
+     * Analyzes regex pattern for dangerous constructs that could cause ReDoS. Uses
+     * pre-compiled patterns with find() to
+     * avoid ReDoS in detection itself.
      */
     private static boolean isDangerousPattern(String pattern) {
         return pattern.split("\\|").length > MAX_ALTERNATIONS || NESTED_QUANTIFIERS.matcher(pattern).find()

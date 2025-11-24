@@ -39,9 +39,10 @@ import java.util.HexFormat;
  * integrity and authenticity using secret keys.
  * <p>
  * HMACs combine cryptographic hash functions with a secret key to produce a
- * message authentication code. They are used to verify both the integrity and
- * authenticity of messages, commonly in webhook signatures, API authentication,
- * and secure communication protocols.
+ * message authentication code. They are used
+ * to verify both the integrity and authenticity of messages, commonly in
+ * webhook signatures, API authentication, and
+ * secure communication protocols.
  * <p>
  * The library includes timing-safe comparison functions to prevent timing
  * attacks when verifying MACs.
@@ -256,9 +257,13 @@ public class MacFunctionLibrary {
     /**
      * Computes an HMAC using the specified algorithm.
      *
-     * @param message the message to authenticate
-     * @param key the secret key
-     * @param algorithm the HMAC algorithm name
+     * @param message
+     * the message to authenticate
+     * @param key
+     * the secret key
+     * @param algorithm
+     * the HMAC algorithm name
+     *
      * @return a Value containing the hexadecimal MAC or an error
      */
     private static Value computeHmac(String message, String key, String algorithm) {
@@ -281,9 +286,13 @@ public class MacFunctionLibrary {
     /**
      * Converts a hexadecimal string to bytes.
      *
-     * @param hex the hexadecimal string
+     * @param hex
+     * the hexadecimal string
+     *
      * @return the byte array
-     * @throws IllegalArgumentException if the hex string is invalid
+     *
+     * @throws IllegalArgumentException
+     * if the hex string is invalid
      */
     private static byte[] hexToBytes(String hex) {
         val cleanedHex = hex.strip().replace("_", "").toLowerCase();

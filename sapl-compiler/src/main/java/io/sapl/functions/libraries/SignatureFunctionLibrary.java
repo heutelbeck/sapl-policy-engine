@@ -39,16 +39,18 @@ import static io.sapl.functions.libraries.crypto.CryptoConstants.*;
 
 /**
  * Provides digital signature verification functions for verifying message
- * authenticity and integrity using public key cryptography.
+ * authenticity and integrity using public key
+ * cryptography.
  * <p>
- * Digital signatures use asymmetric cryptography where a private key signs
- * data and the corresponding public key verifies the signature. This library
- * supports RSA, ECDSA, and EdDSA signature verification for use in policy
+ * Digital signatures use asymmetric cryptography where a private key signs data
+ * and the corresponding public key
+ * verifies the signature. This library supports RSA, ECDSA, and EdDSA signature
+ * verification for use in policy
  * evaluation.
  * <p>
  * Common use cases include API request signature verification, document
- * signing, and general authentication where the signer uses a private key
- * and the verifier has access to the public key.
+ * signing, and general authentication where the
+ * signer uses a private key and the verifier has access to the public key.
  * <p>
  * Signature Format Requirements:
  * <ul>
@@ -58,9 +60,10 @@ import static io.sapl.functions.libraries.crypto.CryptoConstants.*;
  * </ul>
  * <p>
  * Thread Safety: All verification functions are thread-safe and can be called
- * concurrently. The underlying {@code java.security.Signature} implementation
- * provides constant-time comparison for signature verification on most JVM
- * implementations, providing protection against timing attacks.
+ * concurrently. The underlying
+ * {@code java.security.Signature} implementation provides constant-time
+ * comparison for signature verification on most
+ * JVM implementations, providing protection against timing attacks.
  */
 @UtilityClass
 @FunctionLibrary(name = SignatureFunctionLibrary.NAME, description = SignatureFunctionLibrary.DESCRIPTION)
@@ -262,15 +265,22 @@ public class SignatureFunctionLibrary {
 
     /**
      * Verifies a digital signature using the specified algorithm. Parses the public
-     * key, decodes the signature, and performs cryptographic verification.
+     * key, decodes the signature, and
+     * performs cryptographic verification.
      *
-     * @param message the original message that was signed
-     * @param signatureString the signature in hexadecimal or Base64 format
-     * @param publicKeyPem the public key in PEM format
-     * @param signatureAlgorithm the signature algorithm name
-     * @param keyAlgorithm the key algorithm name
-     * @return Value containing true if signature is valid, FALSE if invalid, or
-     * an error
+     * @param message
+     * the original message that was signed
+     * @param signatureString
+     * the signature in hexadecimal or Base64 format
+     * @param publicKeyPem
+     * the public key in PEM format
+     * @param signatureAlgorithm
+     * the signature algorithm name
+     * @param keyAlgorithm
+     * the key algorithm name
+     *
+     * @return Value containing true if signature is valid, FALSE if invalid, or an
+     * error
      */
     private static Value verifySignature(String message, String signatureString, String publicKeyPem,
             String signatureAlgorithm, String keyAlgorithm) {
@@ -302,12 +312,17 @@ public class SignatureFunctionLibrary {
      * Parses a signature from hexadecimal or Base64 string format.
      * <p>
      * Attempts hexadecimal parsing first, then falls back to Base64 if hex parsing
-     * fails. This two-step approach ensures maximum compatibility with various
-     * signature encoding formats commonly used in APIs and protocols.
+     * fails. This two-step approach
+     * ensures maximum compatibility with various signature encoding formats
+     * commonly used in APIs and protocols.
      *
-     * @param signatureString the signature string in hex or Base64 format
+     * @param signatureString
+     * the signature string in hex or Base64 format
+     *
      * @return the decoded signature bytes
-     * @throws PolicyEvaluationException if both hex and Base64 parsing fail
+     *
+     * @throws PolicyEvaluationException
+     * if both hex and Base64 parsing fail
      */
     private static byte[] parseSignature(String signatureString) {
         val cleanedSignature = signatureString.strip();

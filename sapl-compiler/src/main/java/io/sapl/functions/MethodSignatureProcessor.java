@@ -33,8 +33,9 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Processes annotated methods to create optimized function specifications.
- * Uses MethodHandles instead of reflection for better performance.
+ * Processes annotated methods to create optimized function specifications. Uses
+ * MethodHandles instead of reflection for
+ * better performance.
  */
 @UtilityClass
 public class MethodSignatureProcessor {

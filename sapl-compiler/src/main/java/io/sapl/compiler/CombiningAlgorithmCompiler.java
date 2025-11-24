@@ -47,8 +47,7 @@ public class CombiningAlgorithmCompiler {
 
     /**
      * Holds the result of evaluating a single policy: decision, resource
-     * transformation,
-     * obligations, and advice.
+     * transformation, obligations, and advice.
      */
     private record PolicyEvaluation(Decision decision, Value resource, ArrayValue obligations, ArrayValue advice) {
         static PolicyEvaluation notApplicable() {
