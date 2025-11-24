@@ -17,8 +17,6 @@
  */
 package io.sapl.functions.libraries;
 
-import java.math.BigDecimal;
-
 import io.sapl.api.functions.Function;
 import io.sapl.api.functions.FunctionLibrary;
 import io.sapl.api.model.ArrayValue;
@@ -27,6 +25,8 @@ import io.sapl.api.model.NumberValue;
 import io.sapl.api.model.Value;
 import lombok.experimental.UtilityClass;
 import lombok.val;
+
+import java.math.BigDecimal;
 
 /**
  * Permission and access control functions for policy enforcement. Provides

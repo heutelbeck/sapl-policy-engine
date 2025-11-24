@@ -28,7 +28,6 @@ import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.regex.Pattern;
@@ -127,14 +126,9 @@ public class PatternsFunctionLibrary {
     private static final String CHAR_CLASS_SPECIAL_CHARS  = "\\]^-[";
     private static final String GLOB_METACHARACTERS       = "*?[]{}\\-!";
 
-    private static final String ERROR_PATTERN_VALUE_TEXT  = "Pattern and value must be text values.";
     private static final String ERROR_PATTERN_TOO_LONG    = "Pattern too long (max %d characters).";
     private static final String ERROR_INPUT_TOO_LONG      = "Input too long (max %d characters).";
-    private static final String ERROR_LIMIT_NOT_NUMBER    = "Limit must be a number.";
     private static final String ERROR_LIMIT_NEGATIVE      = "Limit must be non-negative.";
-    private static final String ERROR_REPLACEMENT_TEXT    = "Replacement must be a text value.";
-    private static final String ERROR_ESCAPE_GLOB_TEXT    = "escapeGlob requires a text value.";
-    private static final String ERROR_TEMPLATE_ARGS_TEXT  = "All arguments must be text values.";
     private static final String ERROR_DELIMITERS_EMPTY    = "Delimiters cannot be empty.";
     private static final String ERROR_DELIMITERS_TEXT     = "All delimiters must be text values.";
     private static final String ERROR_TEMPLATE_LENGTH     = "Template or value exceeds maximum length.";

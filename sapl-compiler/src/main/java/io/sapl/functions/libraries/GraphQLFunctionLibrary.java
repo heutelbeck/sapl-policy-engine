@@ -18,6 +18,8 @@
 package io.sapl.functions.libraries;
 
 import graphql.language.*;
+import graphql.language.BooleanValue;
+import graphql.language.NullValue;
 import graphql.parser.InvalidSyntaxException;
 import graphql.parser.Parser;
 import graphql.schema.GraphQLSchema;
@@ -28,10 +30,9 @@ import graphql.schema.idl.errors.SchemaProblem;
 import graphql.validation.Validator;
 import io.sapl.api.functions.Function;
 import io.sapl.api.functions.FunctionLibrary;
+import io.sapl.api.model.*;
 import io.sapl.api.model.ArrayValue;
-import io.sapl.api.model.NumberValue;
 import io.sapl.api.model.ObjectValue;
-import io.sapl.api.model.TextValue;
 import io.sapl.api.model.Value;
 import lombok.experimental.UtilityClass;
 import lombok.val;

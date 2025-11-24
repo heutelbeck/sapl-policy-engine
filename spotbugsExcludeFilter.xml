@@ -95,6 +95,7 @@
             <Bug pattern="CE_CLASS_ENVY" />
             <Bug pattern="ITC_INHERITANCE_TYPE_CHECKING" />
             <Bug pattern="OCP_OVERLY_CONCRETE_COLLECTION_PARAMETER" />
+            <Bug pattern="OCP_OVERLY_CONCRETE_PARAMETER" />
 		</Or>
 	</Match>
 </FindBugsFilter>

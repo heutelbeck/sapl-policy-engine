@@ -17,12 +17,12 @@
  */
 package io.sapl.functions.libraries;
 
-import java.math.BigDecimal;
-
 import io.sapl.api.functions.Function;
 import io.sapl.api.functions.FunctionLibrary;
 import io.sapl.api.model.*;
 import lombok.experimental.UtilityClass;
+
+import java.math.BigDecimal;
 
 /**
  * Functions for runtime type inspection and reflection on Value objects.

@@ -62,7 +62,7 @@ class AttributeKeyTests {
         var key2 = new AttributeKey(Value.of("entity"), "test.attr", List.of(Value.of("arg")));
 
         assertThat(key1).isEqualTo(key2);
-        assertThat(key1.hashCode()).isEqualTo(key2.hashCode());
+        assertThat(key1).hasSameHashCodeAs(key2);
     }
 
     @Test

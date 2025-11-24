@@ -21,12 +21,11 @@ import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.sapl.api.functions.Function;
 import io.sapl.api.functions.FunctionLibrary;
-import io.sapl.compiler.PolicyEvaluationException;
-import io.sapl.api.model.ValueJsonMarshaller;
-import io.sapl.api.model.Value;
-import io.sapl.api.model.TextValue;
 import io.sapl.api.model.ErrorValue;
-
+import io.sapl.api.model.TextValue;
+import io.sapl.api.model.Value;
+import io.sapl.api.model.ValueJsonMarshaller;
+import io.sapl.compiler.PolicyEvaluationException;
 import io.sapl.functions.libraries.crypto.CertificateUtils;
 import lombok.experimental.UtilityClass;
 import lombok.val;
