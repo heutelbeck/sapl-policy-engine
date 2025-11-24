@@ -37,7 +37,6 @@ public class SaplCompiler {
     private static final String ERROR_POLICY_ALWAYS_NON_BOOLEAN           = "Error compiling policy: %s expression always returns a non Boolean value: %s.";
     private static final String ERROR_POLICY_COMPILE_TIME_ERROR           = "Error compiling policy: %s expression yielded a compile time error: %s.";
     private static final String ERROR_POLICY_CONTAINS_ATTRIBUTE_FINDERS   = "Error compiling policy: %s expression must not contain access to any <> attribute finders.";
-    private static final String ERROR_POLICY_SETS_NOT_SUPPORTED           = "Policy Sets not supported yet.";
     private static final String ERROR_POLICY_UNRESOLVED_RELATIVE          = "Error compiling policy: %s expression contains an unresolved relative reference (e.g., @) and can never be evaluated correctly.";
     private static final String ERROR_SCHEMA_INVALID_SUBSCRIPTION_ELEMENT = "Schema must reference one of the four subscription identifiers: subject, action, resource, environment, but was: %s.";
     private static final String ERROR_SCHEMA_NOT_OBJECT_VALUE             = "Schema must evaluate to an ObjectValue, but was: %s";
@@ -114,7 +113,7 @@ public class SaplCompiler {
                 return buildDecisionObject(Decision.INDETERMINATE, List.of(), List.of(), Value.UNDEFINED);
             }
             // Body is FALSE
-            if (BooleanValue.FALSE.equals(bodyValue)) {
+            if (Value.FALSE.equals(bodyValue)) {
                 return buildDecisionObject(Decision.NOT_APPLICABLE, List.of(), List.of(), Value.UNDEFINED);
             }
             // Body is TRUE - check for all-constant optimization
@@ -142,7 +141,7 @@ public class SaplCompiler {
                 if (!(bodyResult instanceof BooleanValue)) {
                     return buildDecisionObject(Decision.INDETERMINATE, List.of(), List.of(), Value.UNDEFINED);
                 }
-                if (BooleanValue.FALSE.equals(bodyResult)) {
+                if (Value.FALSE.equals(bodyResult)) {
                     return buildDecisionObject(Decision.NOT_APPLICABLE, List.of(), List.of(), Value.UNDEFINED);
                 }
                 val oblValues = evaluatePureExpressionList(obligations, ctx);
@@ -167,7 +166,7 @@ public class SaplCompiler {
                              return Flux.just(buildDecisionObject(Decision.INDETERMINATE, List.of(), List.of(),
                                      Value.UNDEFINED));
                          }
-                         if (BooleanValue.FALSE.equals(bodyResult)) {
+                         if (Value.FALSE.equals(bodyResult)) {
                              return Flux.just(buildDecisionObject(Decision.NOT_APPLICABLE, List.of(), List.of(),
                                      Value.UNDEFINED));
                          }
@@ -194,7 +193,7 @@ public class SaplCompiler {
                 if (!(bodyResult instanceof BooleanValue)) {
                     return buildDecisionObject(Decision.INDETERMINATE, List.of(), List.of(), Value.UNDEFINED);
                 }
-                if (BooleanValue.FALSE.equals(bodyResult)) {
+                if (Value.FALSE.equals(bodyResult)) {
                     return buildDecisionObject(Decision.NOT_APPLICABLE, List.of(), List.of(), Value.UNDEFINED);
                 }
                 return buildDecisionObject(entitlement, oblValues, advValues, resource);
@@ -207,7 +206,7 @@ public class SaplCompiler {
                              return Flux.just(buildDecisionObject(Decision.INDETERMINATE, List.of(), List.of(),
                                      Value.UNDEFINED));
                          }
-                         if (BooleanValue.FALSE.equals(bodyResult)) {
+                         if (Value.FALSE.equals(bodyResult)) {
                              return Flux.just(buildDecisionObject(Decision.NOT_APPLICABLE, List.of(), List.of(),
                                      Value.UNDEFINED));
                          }
@@ -217,11 +216,11 @@ public class SaplCompiler {
     }
 
     private static boolean allAreValues(List<CompiledExpression> expressions) {
-        return expressions.stream().allMatch(e -> e instanceof Value);
+        return expressions.stream().allMatch(Value.class::isInstance);
     }
 
     private static boolean allArePureExpressions(List<CompiledExpression> expressions) {
-        return expressions.stream().allMatch(e -> e instanceof PureExpression);
+        return expressions.stream().allMatch(PureExpression.class::isInstance);
     }
 
     private static List<Value> evaluatePureExpressionList(List<CompiledExpression> expressions, EvaluationContext ctx) {

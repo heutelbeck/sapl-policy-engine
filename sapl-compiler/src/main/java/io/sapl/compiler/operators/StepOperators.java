@@ -60,13 +60,11 @@ public class StepOperators {
      * number or text
      */
     public static Value indexOrKeyStep(Value value, Value expressionResult) {
-        if (expressionResult instanceof NumberValue numberValue) {
-            return StepOperators.indexStep(value, numberValue.value());
-        } else if (expressionResult instanceof TextValue textValue) {
-            return StepOperators.keyStep(value, textValue.value());
-        } else {
-            return Value.error(ERROR_EXPRESSION_STEP_TYPE_MISMATCH, expressionResult);
-        }
+        return switch (expressionResult) {
+        case NumberValue numberValue -> StepOperators.indexStep(value, numberValue.value());
+        case TextValue textValue     -> StepOperators.keyStep(value, textValue.value());
+        default                      -> Value.error(ERROR_EXPRESSION_STEP_TYPE_MISMATCH, expressionResult);
+        };
     }
 
     /**
@@ -375,10 +373,10 @@ public class StepOperators {
         }
         val requestedKeys = new HashSet<>(keys);
         val arrayBuilder  = ArrayValue.builder();
-        // Loop this way to preserve inner order ob object.
-        for (val key : objectValue.keySet()) {
-            if (requestedKeys.remove(key)) {
-                arrayBuilder.add(objectValue.get(key));
+        // Loop this way to preserve inner order of object.
+        for (val entry : objectValue.entrySet()) {
+            if (requestedKeys.remove(entry.getKey())) {
+                arrayBuilder.add(entry.getValue());
             }
             if (requestedKeys.isEmpty()) {
                 break;

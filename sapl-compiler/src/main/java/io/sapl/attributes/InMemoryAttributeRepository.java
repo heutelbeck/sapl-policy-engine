@@ -54,7 +54,7 @@ import java.util.concurrent.atomic.AtomicReference;
  * when the last subscriber cancels.
  */
 @Slf4j
-public class InMemoryAttributeRepository implements AttributeRepository {
+public final class InMemoryAttributeRepository implements AttributeRepository {
 
     public static final Value ATTRIBUTE_UNAVAILABLE = Value.error("Attribute unavailable.");
 

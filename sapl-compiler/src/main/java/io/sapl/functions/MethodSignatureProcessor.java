@@ -27,6 +27,7 @@ import lombok.val;
 
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
+import java.lang.reflect.Array;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.util.ArrayList;
@@ -65,8 +66,7 @@ public class MethodSignatureProcessor {
         val parameterInfo = extractParameterTypes(method);
 
         try {
-            val function = createFunctionForMethod(libraryInstance, method, parameterInfo.parameterTypes,
-                    parameterInfo.varArgsParameterType);
+            val function = createFunctionForMethod(libraryInstance, method, parameterInfo);
             return new FunctionSpecification(namespace, name, parameterInfo.parameterTypes,
                     parameterInfo.varArgsParameterType, function);
         } catch (IllegalAccessException exception) {
@@ -76,20 +76,15 @@ public class MethodSignatureProcessor {
 
     private static void validateStaticMethodRequirement(Object libraryInstance, Method method)
             throws InitializationException {
-        if (libraryInstance != null) {
-            return;
-        }
-
-        if (!Modifier.isStatic(method.getModifiers())) {
+        if (libraryInstance == null && !Modifier.isStatic(method.getModifiers())) {
             throw new InitializationException(FUNCTION_NOT_STATIC_ERROR.formatted(method.getName()));
         }
     }
 
     private static void validateReturnType(Method method) {
-        if (Value.class.isAssignableFrom(method.getReturnType())) {
-            return;
+        if (!Value.class.isAssignableFrom(method.getReturnType())) {
+            throw new IllegalArgumentException(BAD_RETURN_TYPE_ERROR.formatted(method.getReturnType().getSimpleName()));
         }
-        throw new IllegalArgumentException(BAD_RETURN_TYPE_ERROR.formatted(method.getReturnType().getSimpleName()));
     }
 
     private static ParameterInfo extractParameterTypes(Method method) throws InitializationException {
@@ -134,97 +129,118 @@ public class MethodSignatureProcessor {
     }
 
     static java.util.function.Function<FunctionInvocation, Value> createFunctionForMethod(Object libraryInstance,
-            Method method, List<Class<? extends Value>> parameterTypes, Class<? extends Value> varArgsParameterType)
+            Method method, ParameterInfo parameterInfo) throws IllegalAccessException {
+
+        val methodHandle     = prepareMethodHandle(libraryInstance, method, parameterInfo);
+        val invocationConfig = new InvocationConfig(parameterInfo);
+
+        return invocation -> {
+            try {
+                val arguments = invocation.arguments().toArray(new Value[0]);
+
+                val validationError = validateArgumentCount(invocationConfig, invocation.functionName(),
+                        arguments.length);
+                if (validationError != null) {
+                    return validationError;
+                }
+
+                val methodParameters = buildMethodParameters(invocationConfig, invocation.functionName(), arguments);
+                if (methodParameters instanceof Value errorValue) {
+                    return errorValue;
+                }
+
+                return (Value) methodHandle.invokeWithArguments((Object[]) methodParameters);
+
+            } catch (Throwable throwable) {
+                return Value.error(FUNCTION_EXECUTION_ERROR_TEMPLATE, invocation.functionName(),
+                        throwable.getMessage());
+            }
+        };
+    }
+
+    private static MethodHandle prepareMethodHandle(Object libraryInstance, Method method, ParameterInfo parameterInfo)
             throws IllegalAccessException {
-
-        method.setAccessible(true);
-
         val isStaticMethod = Modifier.isStatic(method.getModifiers());
 
         var methodHandle = MethodHandles.lookup().unreflect(method);
 
-        // Only bind to instance for non-static methods
         if (!isStaticMethod && libraryInstance != null) {
             methodHandle = methodHandle.bindTo(libraryInstance);
         }
 
-        // Convert varargs to fixed-arity: last parameter becomes a regular array
-        if (varArgsParameterType != null) {
+        if (parameterInfo.varArgsParameterType != null) {
             methodHandle = methodHandle.asFixedArity();
         }
 
-        val minArgCount          = parameterTypes.size();
-        val hasVarArgs           = varArgsParameterType != null;
-        val methodParameterCount = hasVarArgs ? minArgCount + 1 : minArgCount;
+        return methodHandle;
+    }
 
-        // Pre-compute error templates
-        val fixedParamErrorTemplates = buildTypeErrorTemplates(parameterTypes.toArray(new Class[0]));
-        val exactArgCountError       = EXACT_ARG_COUNT_ERROR_TEMPLATE.formatted(minArgCount);
-        val minArgCountError         = MIN_ARG_COUNT_ERROR_TEMPLATE.formatted(minArgCount);
-        val varArgErrorTemplate      = hasVarArgs
-                ? VARARG_TYPE_ERROR_TEMPLATE.formatted(varArgsParameterType.getSimpleName())
-                : null;
-
-        MethodHandle finalMethodHandle = methodHandle;
-        return invocation -> {
-            try {
-                val arguments     = invocation.arguments().toArray(new Value[0]);
-                val argumentCount = arguments.length;
-                val functionName  = invocation.functionName();
-
-                // Validate argument count
-                if (hasVarArgs) {
-                    if (argumentCount < minArgCount) {
-                        return Value.error(minArgCountError.formatted(functionName, argumentCount));
-                    }
-                } else {
-                    if (argumentCount != minArgCount) {
-                        return Value.error(exactArgCountError.formatted(functionName, argumentCount));
-                    }
-                }
-
-                // Prepare method parameters array
-                val methodParameters = new Object[methodParameterCount];
-
-                // Validate and prepare fixed parameters
-                for (int i = 0; i < minArgCount; i++) {
-                    val argument     = arguments[i];
-                    val expectedType = parameterTypes.get(i);
-
-                    if (!expectedType.isInstance(argument)) {
-                        return Value.error(fixedParamErrorTemplates[i].formatted(functionName,
-                                argument.getClass().getSimpleName()));
-                    }
-
-                    methodParameters[i] = argument;
-                }
-
-                // Handle varargs if present
-                if (hasVarArgs) {
-                    val varArgsCount = argumentCount - minArgCount;
-                    val varArgsArray = java.lang.reflect.Array.newInstance(varArgsParameterType, varArgsCount);
-
-                    for (int i = 0; i < varArgsCount; i++) {
-                        val argument = arguments[minArgCount + i];
-
-                        if (!varArgsParameterType.isInstance(argument)) {
-                            return Value.error(varArgErrorTemplate.formatted(functionName, i,
-                                    argument.getClass().getSimpleName()));
-                        }
-
-                        java.lang.reflect.Array.set(varArgsArray, i, argument);
-                    }
-
-                    methodParameters[minArgCount] = varArgsArray;
-                }
-
-                return (Value) finalMethodHandle.invokeWithArguments(methodParameters);
-
-            } catch (Throwable throwable) {
-                return Value.error(
-                        FUNCTION_EXECUTION_ERROR_TEMPLATE.formatted(invocation.functionName(), throwable.getMessage()));
+    private static Value validateArgumentCount(InvocationConfig config, String functionName, int argumentCount) {
+        if (config.hasVarArgs) {
+            if (argumentCount < config.minArgCount) {
+                return Value.error(config.minArgCountError.formatted(functionName, argumentCount));
             }
-        };
+        } else {
+            if (argumentCount != config.minArgCount) {
+                return Value.error(config.exactArgCountError.formatted(functionName, argumentCount));
+            }
+        }
+        return null;
+    }
+
+    private static Object buildMethodParameters(InvocationConfig config, String functionName, Value[] arguments) {
+        val methodParameters = new Object[config.methodParameterCount];
+
+        val fixedParamsResult = addFixedParameters(methodParameters, 0, config, functionName, arguments);
+        if (fixedParamsResult instanceof Value errorValue) {
+            return errorValue;
+        }
+
+        if (config.hasVarArgs) {
+            val varArgsResult = addVarArgsParameters(methodParameters, config.minArgCount, config, functionName,
+                    arguments);
+            if (varArgsResult instanceof Value errorValue) {
+                return errorValue;
+            }
+        }
+
+        return methodParameters;
+    }
+
+    private static Object addFixedParameters(Object[] methodParameters, int startIndex, InvocationConfig config,
+            String functionName, Value[] arguments) {
+        for (int i = 0; i < config.minArgCount; i++) {
+            val argument     = arguments[i];
+            val expectedType = config.parameterTypes.get(i);
+
+            if (!expectedType.isInstance(argument)) {
+                return Value.error(config.fixedParamErrorTemplates[i].formatted(functionName,
+                        argument.getClass().getSimpleName()));
+            }
+
+            methodParameters[startIndex + i] = argument;
+        }
+        return startIndex + config.minArgCount;
+    }
+
+    private static Object addVarArgsParameters(Object[] methodParameters, int paramIndex, InvocationConfig config,
+            String functionName, Value[] arguments) {
+        val varArgsCount = arguments.length - config.minArgCount;
+        val varArgsArray = Array.newInstance(config.varArgsParameterType, varArgsCount);
+
+        for (int i = 0; i < varArgsCount; i++) {
+            val argument = arguments[config.minArgCount + i];
+
+            if (!config.varArgsParameterType.isInstance(argument)) {
+                return Value.error(
+                        config.varArgErrorTemplate.formatted(functionName, i, argument.getClass().getSimpleName()));
+            }
+
+            Array.set(varArgsArray, i, argument);
+        }
+
+        methodParameters[paramIndex] = varArgsArray;
+        return paramIndex;
     }
 
     private static String[] buildTypeErrorTemplates(Class<?>[] expectedTypes) {
@@ -245,4 +261,29 @@ public class MethodSignatureProcessor {
     private record ParameterInfo(
             List<Class<? extends Value>> parameterTypes,
             Class<? extends Value> varArgsParameterType) {}
+
+    private record InvocationConfig(
+            int minArgCount,
+            boolean hasVarArgs,
+            int methodParameterCount,
+            List<Class<? extends Value>> parameterTypes,
+            Class<? extends Value> varArgsParameterType,
+            String[] fixedParamErrorTemplates,
+            String exactArgCountError,
+            String minArgCountError,
+            String varArgErrorTemplate) {
+
+        InvocationConfig(ParameterInfo parameterInfo) {
+            this(parameterInfo.parameterTypes.size(), parameterInfo.varArgsParameterType != null,
+                    parameterInfo.varArgsParameterType != null ? parameterInfo.parameterTypes.size() + 1
+                            : parameterInfo.parameterTypes.size(),
+                    parameterInfo.parameterTypes, parameterInfo.varArgsParameterType,
+                    buildTypeErrorTemplates(parameterInfo.parameterTypes.toArray(new Class[0])),
+                    EXACT_ARG_COUNT_ERROR_TEMPLATE.formatted(parameterInfo.parameterTypes.size()),
+                    MIN_ARG_COUNT_ERROR_TEMPLATE.formatted(parameterInfo.parameterTypes.size()),
+                    parameterInfo.varArgsParameterType != null
+                            ? VARARG_TYPE_ERROR_TEMPLATE.formatted(parameterInfo.varArgsParameterType.getSimpleName())
+                            : null);
+        }
+    }
 }

@@ -63,7 +63,7 @@ import java.util.function.Consumer;
  * </ul>
  */
 @Slf4j
-public class AttributeStream {
+public final class AttributeStream {
     public static final int                 BUFFER_SIZE = 128;
     @Getter
     private final AttributeFinderInvocation invocation;

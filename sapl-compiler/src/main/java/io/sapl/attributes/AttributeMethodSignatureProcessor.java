@@ -18,6 +18,7 @@
 package io.sapl.attributes;
 
 import io.sapl.api.attributes.AttributeFinder;
+import io.sapl.api.attributes.AttributeFinderInvocation;
 import io.sapl.api.attributes.AttributeFinderSpecification;
 import io.sapl.api.model.Value;
 import io.sapl.api.pip.Attribute;
@@ -57,7 +58,6 @@ public class AttributeMethodSignatureProcessor {
         val hasAttribute            = method.isAnnotationPresent(Attribute.class);
         val hasEnvironmentAttribute = method.isAnnotationPresent(EnvironmentAttribute.class);
 
-        // Method must have at least one attribute annotation
         if (!hasAttribute && !hasEnvironmentAttribute) {
             return null;
         }
@@ -65,36 +65,31 @@ public class AttributeMethodSignatureProcessor {
         validateStaticMethodRequirement(pipInstance, method);
         validateReturnType(method);
 
-        // Get name from whichever annotation is present
-        String name;
-        if (hasAttribute) {
-            val annotation = method.getAnnotation(Attribute.class);
-            name = annotationNameOrMethodName(annotation.name(), method);
-        } else {
-            val annotation = method.getAnnotation(EnvironmentAttribute.class);
-            name = annotationNameOrMethodName(annotation.name(), method);
-        }
-
-        val isEnvironmentAttr = hasEnvironmentAttribute;
-        val signatureInfo     = extractSignature(method, isEnvironmentAttr);
-        val returnsFlux       = isFluxReturnType(method);
+        val name          = extractAttributeName(method, hasAttribute);
+        val signatureInfo = extractSignature(method, hasEnvironmentAttribute);
+        val returnsFlux   = isFluxReturnType(method);
 
         try {
             val attributeFinder = createAttributeFinderForMethod(pipInstance, method, signatureInfo, returnsFlux);
-            return new AttributeFinderSpecification(namespace, name, isEnvironmentAttr, signatureInfo.parameterTypes,
-                    signatureInfo.varArgsParameterType, attributeFinder);
+            return new AttributeFinderSpecification(namespace, name, hasEnvironmentAttribute,
+                    signatureInfo.parameterTypes, signatureInfo.varArgsParameterType, attributeFinder);
         } catch (IllegalAccessException exception) {
             throw new InitializationException(FAILED_TO_CREATE_METHOD_HANDLE_ERROR.formatted(name), exception);
         }
     }
 
+    private static String extractAttributeName(Method method, boolean hasAttribute) {
+        if (hasAttribute) {
+            val annotation = method.getAnnotation(Attribute.class);
+            return annotationNameOrMethodName(annotation.name(), method);
+        }
+        val annotation = method.getAnnotation(EnvironmentAttribute.class);
+        return annotationNameOrMethodName(annotation.name(), method);
+    }
+
     private static void validateStaticMethodRequirement(Object pipInstance, Method method)
             throws InitializationException {
-        if (pipInstance != null) {
-            return;
-        }
-
-        if (!Modifier.isStatic(method.getModifiers())) {
+        if (pipInstance == null && !Modifier.isStatic(method.getModifiers())) {
             throw new InitializationException(ATTRIBUTE_NOT_STATIC_ERROR.formatted(method.getName()));
         }
     }
@@ -133,16 +128,7 @@ public class AttributeMethodSignatureProcessor {
     private static SignatureInfo extractSignature(Method method, boolean isEnvironmentAttribute)
             throws InitializationException {
         val parameters = method.getParameters();
-        int startIndex = 0;
-
-        if (!isEnvironmentAttribute && parameters.length > 0) {
-            val firstParamType = parameters[0].getType();
-            if (Value.class.isAssignableFrom(firstParamType)) {
-                startIndex = 1;
-            } else {
-                throw new InitializationException(BAD_PARAMETER_TYPE_ERROR.formatted(firstParamType.getSimpleName()));
-            }
-        }
+        int startIndex = determineStartIndex(parameters, isEnvironmentAttribute);
 
         if (startIndex < parameters.length && parameters[startIndex].getType().equals(Map.class)) {
             startIndex++;
@@ -157,18 +143,28 @@ public class AttributeMethodSignatureProcessor {
 
             if (Value.class.isAssignableFrom(parameterType)) {
                 parameterTypes.add(asValueClass(parameterType));
-                continue;
-            }
-
-            if (isLastParameter && parameterType.isArray()) {
+            } else if (isLastParameter && parameterType.isArray()) {
                 varArgsParameterType = extractVarArgsType(parameterType);
-                continue;
+            } else {
+                throw new InitializationException(BAD_PARAMETER_TYPE_ERROR.formatted(parameterType.getSimpleName()));
             }
-
-            throw new InitializationException(BAD_PARAMETER_TYPE_ERROR.formatted(parameterType.getSimpleName()));
         }
 
         return new SignatureInfo(parameterTypes, varArgsParameterType);
+    }
+
+    private static int determineStartIndex(java.lang.reflect.Parameter[] parameters, boolean isEnvironmentAttribute)
+            throws InitializationException {
+        if (isEnvironmentAttribute || parameters.length == 0) {
+            return 0;
+        }
+
+        val firstParamType = parameters[0].getType();
+        if (Value.class.isAssignableFrom(firstParamType)) {
+            return 1;
+        }
+
+        throw new InitializationException(BAD_PARAMETER_TYPE_ERROR.formatted(firstParamType.getSimpleName()));
     }
 
     private static Class<? extends Value> extractVarArgsType(Class<?> arrayType) throws InitializationException {
@@ -190,8 +186,36 @@ public class AttributeMethodSignatureProcessor {
     static AttributeFinder createAttributeFinderForMethod(Object pipInstance, Method method,
             SignatureInfo signatureInfo, boolean returnsFlux) throws IllegalAccessException {
 
-        method.setAccessible(true);
+        val methodHandle     = prepareMethodHandle(pipInstance, method, signatureInfo);
+        val invocationConfig = new InvocationConfig(method, signatureInfo, returnsFlux);
 
+        return invocation -> Flux.deferContextual(ctx -> {
+            try {
+                val arguments = invocation.arguments().toArray(new Value[0]);
+
+                val validationError = validateArgumentCount(invocationConfig, invocation.attributeName(),
+                        arguments.length);
+                if (validationError != null) {
+                    return Flux.just(validationError);
+                }
+
+                val methodParameters = buildMethodParameters(invocationConfig, invocation, arguments);
+                if (methodParameters instanceof Value errorValue) {
+                    return Flux.just(errorValue);
+                }
+
+                val result = methodHandle.invokeWithArguments((Object[]) methodParameters);
+                return convertResultToFlux(result, returnsFlux);
+
+            } catch (Throwable throwable) {
+                return Flux.just(Value.error(ATTRIBUTE_EXECUTION_ERROR_TEMPLATE, invocation.attributeName(),
+                        throwable.getMessage()));
+            }
+        });
+    }
+
+    private static MethodHandle prepareMethodHandle(Object pipInstance, Method method, SignatureInfo signatureInfo)
+            throws IllegalAccessException {
         val isStaticMethod = Modifier.isStatic(method.getModifiers());
 
         var methodHandle = MethodHandles.lookup().unreflect(method);
@@ -204,92 +228,101 @@ public class AttributeMethodSignatureProcessor {
             methodHandle = methodHandle.asFixedArity();
         }
 
-        val minArgCount          = signatureInfo.parameterTypes.size();
-        val hasVarArgs           = signatureInfo.varArgsParameterType != null;
-        val methodParameterCount = calculateMethodParameterCount(method, hasVarArgs, minArgCount);
+        return methodHandle;
+    }
 
-        val fixedParamErrorTemplates = buildTypeErrorTemplates(signatureInfo.parameterTypes.toArray(new Class[0]));
-        val exactArgCountError       = EXACT_ARG_COUNT_ERROR_TEMPLATE.formatted(minArgCount);
-        val minArgCountError         = MIN_ARG_COUNT_ERROR_TEMPLATE.formatted(minArgCount);
-        val varArgErrorTemplate      = hasVarArgs
-                ? VARARG_TYPE_ERROR_TEMPLATE.formatted(signatureInfo.varArgsParameterType.getSimpleName())
-                : null;
-
-        val hasEntityParam    = hasEntityParameter(method);
-        val hasVariablesParam = hasVariablesParameter(method);
-
-        MethodHandle finalMethodHandle = methodHandle;
-        return invocation -> Flux.deferContextual(ctx -> {
-            try {
-                val variables     = invocation.variables();
-                val arguments     = invocation.arguments().toArray(new Value[0]);
-                val argumentCount = arguments.length;
-                val attributeName = invocation.attributeName();
-
-                if (hasVarArgs) {
-                    if (argumentCount < minArgCount) {
-                        return Flux.just(Value.error(minArgCountError.formatted(attributeName, argumentCount)));
-                    }
-                } else {
-                    if (argumentCount != minArgCount) {
-                        return Flux.just(Value.error(exactArgCountError.formatted(attributeName, argumentCount)));
-                    }
-                }
-
-                val methodParameters = new Object[methodParameterCount];
-                int paramIndex       = 0;
-
-                if (hasEntityParam) {
-                    methodParameters[paramIndex++] = invocation.entity();
-                }
-
-                if (hasVariablesParam) {
-                    methodParameters[paramIndex++] = variables;
-                }
-
-                for (int i = 0; i < minArgCount; i++) {
-                    val argument     = arguments[i];
-                    val expectedType = signatureInfo.parameterTypes.get(i);
-
-                    if (!expectedType.isInstance(argument)) {
-                        return Flux.just(Value.error(fixedParamErrorTemplates[i].formatted(attributeName,
-                                argument.getClass().getSimpleName())));
-                    }
-
-                    methodParameters[paramIndex++] = argument;
-                }
-
-                if (hasVarArgs) {
-                    val varArgsCount = argumentCount - minArgCount;
-                    val varArgsArray = Array.newInstance(signatureInfo.varArgsParameterType, varArgsCount);
-
-                    for (int i = 0; i < varArgsCount; i++) {
-                        val argument = arguments[minArgCount + i];
-
-                        if (!signatureInfo.varArgsParameterType.isInstance(argument)) {
-                            return Flux.just(Value.error(varArgErrorTemplate.formatted(attributeName, i,
-                                    argument.getClass().getSimpleName())));
-                        }
-
-                        Array.set(varArgsArray, i, argument);
-                    }
-
-                    methodParameters[paramIndex] = varArgsArray;
-                }
-
-                val result = finalMethodHandle.invokeWithArguments(methodParameters);
-
-                if (returnsFlux) {
-                    return (Flux<Value>) result;
-                } else {
-                    return ((Mono<Value>) result).flux();
-                }
-
-            } catch (Throwable throwable) {
-                return Flux.just(Value.error(ATTRIBUTE_EXECUTION_ERROR_TEMPLATE, invocation.attributeName(),
-                        throwable.getMessage()));
+    private static Value validateArgumentCount(InvocationConfig config, String attributeName, int argumentCount) {
+        if (config.hasVarArgs) {
+            if (argumentCount < config.minArgCount) {
+                return Value.error(config.minArgCountError.formatted(attributeName, argumentCount));
             }
-        });
+        } else {
+            if (argumentCount != config.minArgCount) {
+                return Value.error(config.exactArgCountError.formatted(attributeName, argumentCount));
+            }
+        }
+        return null;
+    }
+
+    private static Object buildMethodParameters(InvocationConfig config, AttributeFinderInvocation invocation,
+            Value[] arguments) {
+        val methodParameters = new Object[config.methodParameterCount];
+        int paramIndex       = 0;
+
+        paramIndex = addContextParameters(methodParameters, paramIndex, config, invocation);
+
+        val fixedParamsResult = addFixedParameters(methodParameters, paramIndex, config, invocation.attributeName(),
+                arguments);
+        if (fixedParamsResult instanceof Value errorValue) {
+            return errorValue;
+        }
+        paramIndex = (Integer) fixedParamsResult;
+
+        if (config.hasVarArgs) {
+            val varArgsResult = addVarArgsParameters(methodParameters, paramIndex, config, invocation.attributeName(),
+                    arguments);
+            if (varArgsResult instanceof Value errorValue) {
+                return errorValue;
+            }
+        }
+
+        return methodParameters;
+    }
+
+    private static int addContextParameters(Object[] methodParameters, int paramIndex, InvocationConfig config,
+            AttributeFinderInvocation invocation) {
+        if (config.hasEntityParam) {
+            methodParameters[paramIndex++] = invocation.entity();
+        }
+        if (config.hasVariablesParam) {
+            methodParameters[paramIndex++] = invocation.variables();
+        }
+        return paramIndex;
+    }
+
+    private static Object addFixedParameters(Object[] methodParameters, int startIndex, InvocationConfig config,
+            String attributeName, Value[] arguments) {
+        int paramIndex = startIndex;
+        for (int i = 0; i < config.minArgCount; i++) {
+            val argument     = arguments[i];
+            val expectedType = config.parameterTypes.get(i);
+
+            if (!expectedType.isInstance(argument)) {
+                return Value.error(config.fixedParamErrorTemplates[i].formatted(attributeName,
+                        argument.getClass().getSimpleName()));
+            }
+
+            methodParameters[paramIndex++] = argument;
+        }
+        return paramIndex;
+    }
+
+    private static Object addVarArgsParameters(Object[] methodParameters, int paramIndex, InvocationConfig config,
+            String attributeName, Value[] arguments) {
+        val varArgsCount = arguments.length - config.minArgCount;
+        val varArgsArray = Array.newInstance(config.varArgsParameterType, varArgsCount);
+
+        for (int i = 0; i < varArgsCount; i++) {
+            val argument = arguments[config.minArgCount + i];
+
+            if (!config.varArgsParameterType.isInstance(argument)) {
+                return Value.error(
+                        config.varArgErrorTemplate.formatted(attributeName, i, argument.getClass().getSimpleName()));
+            }
+
+            Array.set(varArgsArray, i, argument);
+        }
+
+        methodParameters[paramIndex] = varArgsArray;
+        return paramIndex;
+    }
+
+    @SuppressWarnings("unchecked")
+    private static Flux<Value> convertResultToFlux(Object result, boolean returnsFlux) {
+        if (returnsFlux) {
+            return (Flux<Value>) result;
+        }
+        return ((Mono<Value>) result).flux();
     }
 
     private static int calculateMethodParameterCount(Method method, boolean hasVarArgs, int minArgCount) {
@@ -345,5 +378,33 @@ public class AttributeMethodSignatureProcessor {
     private record SignatureInfo(
             List<Class<? extends Value>> parameterTypes,
             Class<? extends Value> varArgsParameterType) {}
+
+    private record InvocationConfig(
+            int minArgCount,
+            boolean hasVarArgs,
+            boolean hasEntityParam,
+            boolean hasVariablesParam,
+            int methodParameterCount,
+            List<Class<? extends Value>> parameterTypes,
+            Class<? extends Value> varArgsParameterType,
+            String[] fixedParamErrorTemplates,
+            String exactArgCountError,
+            String minArgCountError,
+            String varArgErrorTemplate) {
+
+        InvocationConfig(Method method, SignatureInfo signatureInfo, boolean returnsFlux) {
+            this(signatureInfo.parameterTypes.size(), signatureInfo.varArgsParameterType != null,
+                    hasEntityParameter(method), hasVariablesParameter(method),
+                    calculateMethodParameterCount(method, signatureInfo.varArgsParameterType != null,
+                            signatureInfo.parameterTypes.size()),
+                    signatureInfo.parameterTypes, signatureInfo.varArgsParameterType,
+                    buildTypeErrorTemplates(signatureInfo.parameterTypes.toArray(new Class[0])),
+                    EXACT_ARG_COUNT_ERROR_TEMPLATE.formatted(signatureInfo.parameterTypes.size()),
+                    MIN_ARG_COUNT_ERROR_TEMPLATE.formatted(signatureInfo.parameterTypes.size()),
+                    signatureInfo.varArgsParameterType != null
+                            ? VARARG_TYPE_ERROR_TEMPLATE.formatted(signatureInfo.varArgsParameterType.getSimpleName())
+                            : null);
+        }
+    }
 
 }

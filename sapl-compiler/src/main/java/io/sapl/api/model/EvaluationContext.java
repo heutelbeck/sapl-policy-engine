@@ -53,7 +53,7 @@ public record EvaluationContext(
 
     private EvaluationContext(EvaluationContext originalContext) {
         this(originalContext.configurationId, originalContext.subscriptionId, originalContext.authorizationSubscription,
-                new HashMap<String, Value>(), originalContext.functionBroker, originalContext.attributeBroker);
+                new HashMap<>(), originalContext.functionBroker, originalContext.attributeBroker);
         variables.putAll(originalContext.variables);
     }
 
