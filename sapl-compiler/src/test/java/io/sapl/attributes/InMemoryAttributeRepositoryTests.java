@@ -75,7 +75,6 @@ class InMemoryAttributeRepositoryTests {
     private static final String IMRRYR                   = "imrryr-the-dreaming-city";
     private static final String CHAOS_REALM              = "realm-of-chaos";
     private static final String LAW_REALM                = "realm-of-law";
-    private static final String PDP_CONFIGURATION        = "melnibone-pdp";
     private static final String STORMBRINGER_SOULS       = "stormbringer.souls";
     private static final String CHAOS_PACT               = "chaos.pact";
     private static final String DRAGON_BOND              = "dragon.bond";

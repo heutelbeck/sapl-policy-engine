@@ -30,9 +30,10 @@ import java.util.ArrayList;
  * Marshalling between SAPL Value types and Jackson JsonNode.
  * <p>
  * Provides bidirectional conversion for integration with JSON-based libraries.
- * UndefinedValue and ErrorValue cannot be marshalled. Secret flags are not
- * preserved. Recursion depth is limited to prevent stack overflow from
- * malicious input.
+ * UndefinedValue and ErrorValue cannot be
+ * marshalled. Secret flags are not preserved. Recursion depth is limited to
+ * prevent stack overflow from malicious
+ * input.
  */
 @UtilityClass
 public class ValueJsonMarshaller {
@@ -44,13 +45,13 @@ public class ValueJsonMarshaller {
      * Checks whether a Value can be marshalled to JSON.
      * <p>
      * A Value is JSON-compatible if it is not null, not UndefinedValue, not
-     * ErrorValue, and does not exceed the maximum nesting depth. This method
-     * performs a non-throwing validation check without actually creating the
-     * JsonNode.
+     * ErrorValue, and does not exceed the maximum
+     * nesting depth. This method performs a non-throwing validation check without
+     * actually creating the JsonNode.
      * <p>
      * Use this method in tests and validation logic where you need to verify that a
-     * computed Value can be serialized to JSON, without extracting and comparing
-     * the JSON structure.
+     * computed Value can be serialized to
+     * JSON, without extracting and comparing the JSON structure.
      *
      * <pre>{@code
      * // In access control policy evaluation, verify the decision can be serialized:
@@ -64,7 +65,9 @@ public class ValueJsonMarshaller {
      * assertThat(ValueJsonMarshaller.isJsonCompatible(result)).isTrue();
      * }</pre>
      *
-     * @param value the value to check
+     * @param value
+     * the value to check
+     *
      * @return true if the value can be converted to JsonNode, false otherwise
      */
     public static boolean isJsonCompatible(Value value) {

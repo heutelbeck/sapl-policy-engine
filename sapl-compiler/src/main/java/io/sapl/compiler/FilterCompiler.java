@@ -741,7 +741,7 @@ public class FilterCompiler {
             return Value.error(ERROR_INDEX_STEP_REQUIRES_ARRAY);
         }
 
-        val normalizedIndex = normalizeIndex(index, arrayValue.size());
+        val normalizedIndex = FilterCollectionRebuilder.normalizeIndex(index, arrayValue.size());
         if (normalizedIndex < 0 || normalizedIndex >= arrayValue.size()) {
             return Value.error(ERROR_ARRAY_INDEX_OUT_OF_BOUNDS, index, arrayValue.size());
         }
@@ -835,18 +835,8 @@ public class FilterCompiler {
             CompiledArguments arguments, CompilationContext context) {
         // Handle implicit array mapping: apply nested path to each element
         if (parentValue instanceof ArrayValue arrayValue) {
-            val builder = ArrayValue.builder();
-            for (val element : arrayValue) {
-                val result = applyFilterToNestedPath(element, fieldName, steps, stepIndex, functionIdentifier,
-                        arguments, context);
-
-                if (result instanceof ErrorValue) {
-                    return result;
-                }
-
-                builder.add(result);
-            }
-            return builder.build();
+            return FilterCollectionRebuilder.traverseArray(arrayValue, element -> applyFilterToNestedPath(element,
+                    fieldName, steps, stepIndex, functionIdentifier, arguments, context));
         }
 
         if (!(parentValue instanceof ObjectValue objectValue)) {
@@ -860,21 +850,12 @@ public class FilterCompiler {
 
         val updatedFieldValue = applyFilterFunctionToPathRecursive(fieldValue, steps, stepIndex, functionIdentifier,
                 arguments, context);
-
         if (updatedFieldValue instanceof ErrorValue) {
             return updatedFieldValue;
         }
 
-        val builder = ObjectValue.builder();
-        for (val entry : objectValue.entrySet()) {
-            if (entry.getKey().equals(fieldName)) {
-                builder.put(fieldName, updatedFieldValue);
-            } else {
-                builder.put(entry.getKey(), entry.getValue());
-            }
-        }
-
-        return builder.build();
+        return FilterCollectionRebuilder.traverseObjectSelective(objectValue, key -> key.equals(fieldName),
+                key -> updatedFieldValue);
     }
 
     /**
@@ -904,7 +885,7 @@ public class FilterCompiler {
             return Value.error(ERROR_EXPRESSION_STEP_REQUIRES_ARRAY);
         }
 
-        val normalizedIndex = normalizeIndex(index, arrayValue.size());
+        val normalizedIndex = FilterCollectionRebuilder.normalizeIndex(index, arrayValue.size());
         if (normalizedIndex < 0 || normalizedIndex >= arrayValue.size()) {
             return parentValue;
         }
@@ -912,21 +893,12 @@ public class FilterCompiler {
         val elementValue        = arrayValue.get(normalizedIndex);
         val updatedElementValue = applyFilterFunctionToPathRecursive(elementValue, steps, stepIndex, functionIdentifier,
                 arguments, context);
-
         if (updatedElementValue instanceof ErrorValue) {
             return updatedElementValue;
         }
 
-        val builder = ArrayValue.builder();
-        for (int i = 0; i < arrayValue.size(); i++) {
-            if (i == normalizedIndex) {
-                builder.add(updatedElementValue);
-            } else {
-                builder.add(arrayValue.get(i));
-            }
-        }
-
-        return builder.build();
+        return FilterCollectionRebuilder.traverseArraySelective(arrayValue, i -> i == normalizedIndex,
+                i -> updatedElementValue);
     }
 
     /**
@@ -963,34 +935,14 @@ public class FilterCompiler {
             return Value.error(ERROR_SLICING_STEP_ZERO);
         }
 
-        var index = slicingStep.getIndex() != null ? slicingStep.getIndex().intValue() : 0;
-        if (index < 0) {
-            index += arraySize;
-        }
+        val from = FilterCollectionRebuilder
+                .normalizeIndex(slicingStep.getIndex() != null ? slicingStep.getIndex().intValue() : 0, arraySize);
+        val to   = FilterCollectionRebuilder
+                .normalizeIndex(slicingStep.getTo() != null ? slicingStep.getTo().intValue() : arraySize, arraySize);
 
-        var to = slicingStep.getTo() != null ? slicingStep.getTo().intValue() : arraySize;
-        if (to < 0) {
-            to += arraySize;
-        }
-
-        val builder = ArrayValue.builder();
-        for (int i = 0; i < arraySize; i++) {
-            if (isInNormalizedSlice(i, index, to, step)) {
-                val elementValue        = arrayValue.get(i);
-                val updatedElementValue = applyFilterFunctionToPathRecursive(elementValue, steps, stepIndex,
-                        functionIdentifier, arguments, context);
-
-                if (updatedElementValue instanceof ErrorValue) {
-                    return updatedElementValue;
-                }
-
-                builder.add(updatedElementValue);
-            } else {
-                builder.add(arrayValue.get(i));
-            }
-        }
-
-        return builder.build();
+        return FilterCollectionRebuilder.traverseArraySelective(arrayValue, i -> isInNormalizedSlice(i, from, to, step),
+                i -> applyFilterFunctionToPathRecursive(arrayValue.get(i), steps, stepIndex, functionIdentifier,
+                        arguments, context));
     }
 
     /**
@@ -1110,33 +1062,15 @@ public class FilterCompiler {
     private Value applyFilterToNestedWildcard(Value parentValue, org.eclipse.emf.common.util.EList<Step> steps,
             int stepIndex, String functionIdentifier, CompiledArguments arguments, CompilationContext context) {
         if (parentValue instanceof ArrayValue arrayValue) {
-            val builder = ArrayValue.builder();
-            for (val element : arrayValue) {
-                val updatedElement = applyFilterFunctionToPathRecursive(element, steps, stepIndex, functionIdentifier,
-                        arguments, context);
-
-                if (updatedElement instanceof ErrorValue) {
-                    return updatedElement;
-                }
-
-                builder.add(updatedElement);
-            }
-            return builder.build();
+            return FilterCollectionRebuilder.traverseArray(arrayValue,
+                    element -> applyFilterFunctionToPathRecursive(element, steps, stepIndex, functionIdentifier,
+                            arguments, context));
         }
 
         if (parentValue instanceof ObjectValue objectValue) {
-            val builder = ObjectValue.builder();
-            for (val entry : objectValue.entrySet()) {
-                val updatedValue = applyFilterFunctionToPathRecursive(entry.getValue(), steps, stepIndex,
-                        functionIdentifier, arguments, context);
-
-                if (updatedValue instanceof ErrorValue) {
-                    return updatedValue;
-                }
-
-                builder.put(entry.getKey(), updatedValue);
-            }
-            return builder.build();
+            return FilterCollectionRebuilder.traverseObject(objectValue,
+                    fieldValue -> applyFilterFunctionToPathRecursive(fieldValue, steps, stepIndex, functionIdentifier,
+                            arguments, context));
         }
 
         return Value.error(ERROR_WILDCARD_REQUIRES_ARRAY_OR_OBJECT);
@@ -1223,24 +1157,14 @@ public class FilterCompiler {
 
     private Value applyRecursiveKeyToArray(ArrayValue arrayValue, String key, String functionIdentifier,
             CompiledArguments arguments, CompilationContext context) {
-        val builder = ArrayValue.builder();
-
-        for (val element : arrayValue) {
-            // Arrays don't have keys, so just recurse into each element
+        // Arrays don't have keys, so just recurse into each element
+        return FilterCollectionRebuilder.traverseArray(arrayValue, element -> {
             val recursedResult = applyRecursiveKeyStepFilter(element, key, functionIdentifier, arguments, context);
-
             if (!(recursedResult instanceof Value recursedValue)) {
                 return Value.error(ERROR_UNEXPECTED_NON_VALUE_RECURSIVE_KEY);
             }
-
-            if (recursedValue instanceof ErrorValue) {
-                return recursedValue;
-            }
-
-            builder.add(recursedValue);
-        }
-
-        return builder.build();
+            return recursedValue;
+        });
     }
 
     /**
@@ -1314,7 +1238,7 @@ public class FilterCompiler {
             CompiledArguments arguments, CompilationContext context) {
         val builder      = ArrayValue.builder();
         val arraySize    = arrayValue.size();
-        val idx          = normalizeIndex(index, arraySize);
+        val idx          = FilterCollectionRebuilder.normalizeIndex(index, arraySize);
         var elementCount = 0;
 
         for (val element : arrayValue) {
@@ -1355,29 +1279,15 @@ public class FilterCompiler {
 
     private Value applyRecursiveIndexToObject(ObjectValue objectValue, int index, String functionIdentifier,
             CompiledArguments arguments, CompilationContext context) {
-        val builder = ObjectValue.builder();
-
-        for (val entry : objectValue.entrySet()) {
-            // Objects don't have indices, so just recurse into each field value
-            val recursedResult = applyRecursiveIndexStepFilter(entry.getValue(), index, functionIdentifier, arguments,
+        // Objects don't have indices, so just recurse into each field value
+        return FilterCollectionRebuilder.traverseObject(objectValue, fieldValue -> {
+            val recursedResult = applyRecursiveIndexStepFilter(fieldValue, index, functionIdentifier, arguments,
                     context);
-
             if (!(recursedResult instanceof Value recursedValue)) {
                 return Value.error(ERROR_UNEXPECTED_NON_VALUE_RECURSIVE_INDEX);
             }
-
-            if (recursedValue instanceof ErrorValue) {
-                return recursedValue;
-            }
-
-            builder.put(entry.getKey(), recursedValue);
-        }
-
-        return builder.build();
-    }
-
-    private static int normalizeIndex(int idx, int size) {
-        return idx < 0 ? size + idx : idx;
+            return recursedValue;
+        });
     }
 
     /**
@@ -1435,19 +1345,10 @@ public class FilterCompiler {
             return Value.error(ERROR_INDEX_UNION_REQUIRES_ARRAY);
         }
 
-        val arraySize = arrayValue.size();
-
-        // Normalize indices (handle negative indices)
-        val normalizedIndices = new ArrayList<Integer>();
-        for (val index : indices) {
-            int idx = index.intValue();
-            if (idx < 0) {
-                idx += arraySize;
-            }
-            if (idx >= 0 && idx < arraySize) {
-                normalizedIndices.add(idx);
-            }
-        }
+        val arraySize         = arrayValue.size();
+        val normalizedIndices = indices.stream()
+                .map(index -> FilterCollectionRebuilder.normalizeIndex(index.intValue(), arraySize))
+                .filter(index -> index >= 0 && index < arraySize).toList();
 
         return FilterApplicationStrategy.applyFilterToArrayElements(arrayValue, normalizedIndices::contains,
                 functionIdentifier, arguments, context);
@@ -1477,50 +1378,17 @@ public class FilterCompiler {
             org.eclipse.emf.common.util.EList<Step> steps, int stepIndex, String functionIdentifier,
             CompiledArguments arguments, CompilationContext context) {
         if (parentValue instanceof ObjectValue objectValue) {
-            val builder = ObjectValue.builder();
-
-            for (val entry : objectValue.entrySet()) {
-                if (entry.getKey().equals(key)) {
-                    // This field matches - continue with remaining steps
-                    val updatedValue = applyFilterFunctionToPathRecursive(entry.getValue(), steps, stepIndex,
-                            functionIdentifier, arguments, context);
-
-                    if (updatedValue instanceof ErrorValue) {
-                        return updatedValue;
-                    }
-
-                    builder.put(entry.getKey(), updatedValue);
-                } else {
-                    // This field doesn't match - recurse into it
-                    val recursedValue = applyFilterToNestedRecursiveKey(entry.getValue(), key, steps, stepIndex,
-                            functionIdentifier, arguments, context);
-
-                    if (recursedValue instanceof ErrorValue) {
-                        return recursedValue;
-                    }
-
-                    builder.put(entry.getKey(), recursedValue);
-                }
-            }
-
-            return builder.build();
+            return FilterCollectionRebuilder.traverseObjectSelective(objectValue, fieldKey -> fieldKey.equals(key),
+                    fieldKey -> applyFilterFunctionToPathRecursive(objectValue.get(fieldKey), steps, stepIndex,
+                            functionIdentifier, arguments, context),
+                    fieldKey -> applyFilterToNestedRecursiveKey(objectValue.get(fieldKey), key, steps, stepIndex,
+                            functionIdentifier, arguments, context));
         }
 
         if (parentValue instanceof ArrayValue arrayValue) {
-            val builder = ArrayValue.builder();
-
-            for (val element : arrayValue) {
-                val recursedValue = applyFilterToNestedRecursiveKey(element, key, steps, stepIndex, functionIdentifier,
-                        arguments, context);
-
-                if (recursedValue instanceof ErrorValue) {
-                    return recursedValue;
-                }
-
-                builder.add(recursedValue);
-            }
-
-            return builder.build();
+            return FilterCollectionRebuilder.traverseArray(arrayValue,
+                    element -> applyFilterToNestedRecursiveKey(element, key, steps, stepIndex, functionIdentifier,
+                            arguments, context));
         }
 
         return parentValue;
@@ -1576,57 +1444,45 @@ public class FilterCompiler {
             org.eclipse.emf.common.util.EList<Step> steps, int stepIndex, String functionIdentifier,
             CompiledArguments arguments, CompilationContext context) {
         if (parentValue instanceof ArrayValue arrayValue) {
-            val builder      = ArrayValue.builder();
-            val arraySize    = arrayValue.size();
-            val idx          = normalizeIndex(index, arraySize);
-            var elementCount = 0;
-
-            for (val element : arrayValue) {
-                // First, recurse into the element
-                val recursedValue = applyFilterToNestedRecursiveIndex(element, index, steps, stepIndex,
-                        functionIdentifier, arguments, context);
-
-                if (recursedValue instanceof ErrorValue) {
-                    return recursedValue;
-                }
-
-                // Then, if this is the matching index at THIS level, apply remaining steps
-                if (elementCount == idx) {
-                    val updatedValue = applyFilterFunctionToPathRecursive(recursedValue, steps, stepIndex,
-                            functionIdentifier, arguments, context);
-
-                    if (updatedValue instanceof ErrorValue) {
-                        return updatedValue;
-                    }
-
-                    builder.add(updatedValue);
-                } else {
-                    builder.add(recursedValue);
-                }
-                elementCount++;
-            }
-
-            return builder.build();
+            val normalizedIndex = FilterCollectionRebuilder.normalizeIndex(index, arrayValue.size());
+            return applyRecursiveIndexToArrayNested(arrayValue, index, normalizedIndex, steps, stepIndex,
+                    functionIdentifier, arguments, context);
         }
 
         if (parentValue instanceof ObjectValue objectValue) {
-            val builder = ObjectValue.builder();
-
-            for (val entry : objectValue.entrySet()) {
-                val recursedValue = applyFilterToNestedRecursiveIndex(entry.getValue(), index, steps, stepIndex,
-                        functionIdentifier, arguments, context);
-
-                if (recursedValue instanceof ErrorValue) {
-                    return recursedValue;
-                }
-
-                builder.put(entry.getKey(), recursedValue);
-            }
-
-            return builder.build();
+            return FilterCollectionRebuilder.traverseObject(objectValue,
+                    fieldValue -> applyFilterToNestedRecursiveIndex(fieldValue, index, steps, stepIndex,
+                            functionIdentifier, arguments, context));
         }
 
         return parentValue;
+    }
+
+    private Value applyRecursiveIndexToArrayNested(ArrayValue arrayValue, int rawIndex, int normalizedIndex,
+            org.eclipse.emf.common.util.EList<Step> steps, int stepIndex, String functionIdentifier,
+            CompiledArguments arguments, CompilationContext context) {
+        val builder = ArrayValue.builder();
+        for (int i = 0; i < arrayValue.size(); i++) {
+            // First recurse into element
+            val recursedValue = applyFilterToNestedRecursiveIndex(arrayValue.get(i), rawIndex, steps, stepIndex,
+                    functionIdentifier, arguments, context);
+            if (recursedValue instanceof ErrorValue) {
+                return recursedValue;
+            }
+
+            // Then apply remaining steps if matching index
+            if (i == normalizedIndex) {
+                val updatedValue = applyFilterFunctionToPathRecursive(recursedValue, steps, stepIndex,
+                        functionIdentifier, arguments, context);
+                if (updatedValue instanceof ErrorValue) {
+                    return updatedValue;
+                }
+                builder.add(updatedValue);
+            } else {
+                builder.add(recursedValue);
+            }
+        }
+        return builder.build();
     }
 
     /**
@@ -1656,26 +1512,9 @@ public class FilterCompiler {
             return Value.error(ERROR_ATTRIBUTE_UNION_REQUIRES_OBJECT);
         }
 
-        val builder = ObjectValue.builder();
-
-        for (val entry : objectValue.entrySet()) {
-            if (attributes.contains(entry.getKey())) {
-                // This attribute is in the union - continue with remaining steps
-                val updatedValue = applyFilterFunctionToPathRecursive(entry.getValue(), steps, stepIndex,
-                        functionIdentifier, arguments, context);
-
-                if (updatedValue instanceof ErrorValue) {
-                    return updatedValue;
-                }
-
-                builder.put(entry.getKey(), updatedValue);
-            } else {
-                // This attribute is not in the union - keep unchanged
-                builder.put(entry.getKey(), entry.getValue());
-            }
-        }
-
-        return builder.build();
+        return FilterCollectionRebuilder.traverseObjectSelective(objectValue, attributes::contains,
+                fieldKey -> applyFilterFunctionToPathRecursive(objectValue.get(fieldKey), steps, stepIndex,
+                        functionIdentifier, arguments, context));
     }
 
     /**
@@ -1706,39 +1545,14 @@ public class FilterCompiler {
             return Value.error(ERROR_INDEX_UNION_REQUIRES_ARRAY);
         }
 
-        val arraySize = arrayValue.size();
-        val builder   = ArrayValue.builder();
+        val arraySize         = arrayValue.size();
+        val normalizedIndices = indices.stream()
+                .map(index -> FilterCollectionRebuilder.normalizeIndex(index.intValue(), arraySize))
+                .filter(index -> index >= 0 && index < arraySize).toList();
 
-        // Normalize indices (handle negative indices)
-        val normalizedIndices = new ArrayList<Integer>();
-        for (val index : indices) {
-            int idx = index.intValue();
-            if (idx < 0) {
-                idx += arraySize;
-            }
-            if (idx >= 0 && idx < arraySize) {
-                normalizedIndices.add(idx);
-            }
-        }
-
-        for (int i = 0; i < arraySize; i++) {
-            if (normalizedIndices.contains(i)) {
-                // This index is in the union - continue with remaining steps
-                val updatedValue = applyFilterFunctionToPathRecursive(arrayValue.get(i), steps, stepIndex,
-                        functionIdentifier, arguments, context);
-
-                if (updatedValue instanceof ErrorValue) {
-                    return updatedValue;
-                }
-
-                builder.add(updatedValue);
-            } else {
-                // This index is not in the union - keep unchanged
-                builder.add(arrayValue.get(i));
-            }
-        }
-
-        return builder.build();
+        return FilterCollectionRebuilder.traverseArraySelective(arrayValue, normalizedIndices::contains,
+                i -> applyFilterFunctionToPathRecursive(arrayValue.get(i), steps, stepIndex, functionIdentifier,
+                        arguments, context));
     }
 
     /**

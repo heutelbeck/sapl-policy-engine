@@ -18,12 +18,15 @@
 package io.sapl.compiler;
 
 import io.sapl.api.model.ArrayValue;
+import io.sapl.api.model.ErrorValue;
 import io.sapl.api.model.ObjectValue;
 import io.sapl.api.model.UndefinedValue;
 import io.sapl.api.model.Value;
 import lombok.experimental.UtilityClass;
 import lombok.val;
 
+import java.util.function.Function;
+import java.util.function.IntFunction;
 import java.util.function.IntPredicate;
 import java.util.function.Predicate;
 
@@ -134,8 +137,183 @@ class FilterCollectionRebuilder {
      *
      * @return rebuilt object with transformations applied
      */
-    static ObjectValue rebuildObjectAll(ObjectValue original, java.util.function.Function<String, Value> transformer) {
+    static ObjectValue rebuildObjectAll(ObjectValue original, Function<String, Value> transformer) {
         return rebuildObject(original, key -> true, transformer);
     }
 
+    /**
+     * Traverses array elements with early error return.
+     * <p>
+     * Applies transformer to each element, returning early if an error is
+     * encountered. Does not filter undefined
+     * values.
+     *
+     * @param array
+     * source array
+     * @param transformer
+     * function to transform each element
+     *
+     * @return rebuilt array or error if any transformation fails
+     */
+    static Value traverseArray(ArrayValue array, Function<Value, Value> transformer) {
+        val builder = ArrayValue.builder();
+        for (val element : array) {
+            val transformed = transformer.apply(element);
+            if (transformed instanceof ErrorValue) {
+                return transformed;
+            }
+            builder.add(transformed);
+        }
+        return builder.build();
+    }
+
+    /**
+     * Traverses object fields with early error return.
+     * <p>
+     * Applies transformer to each field value, returning early if an error is
+     * encountered. Does not filter undefined
+     * values.
+     *
+     * @param object
+     * source object
+     * @param transformer
+     * function to transform each field value
+     *
+     * @return rebuilt object or error if any transformation fails
+     */
+    static Value traverseObject(ObjectValue object, Function<Value, Value> transformer) {
+        val builder = ObjectValue.builder();
+        for (val entry : object.entrySet()) {
+            val transformed = transformer.apply(entry.getValue());
+            if (transformed instanceof ErrorValue) {
+                return transformed;
+            }
+            builder.put(entry.getKey(), transformed);
+        }
+        return builder.build();
+    }
+
+    /**
+     * Traverses selected array elements with early error return.
+     * <p>
+     * Applies transformer to matching elements, preserving non-matching elements
+     * unchanged. Does not filter undefined
+     * values.
+     *
+     * @param array
+     * source array
+     * @param selector
+     * predicate identifying indices to transform
+     * @param transformer
+     * function to transform selected elements
+     *
+     * @return rebuilt array or error if any transformation fails
+     */
+    static Value traverseArraySelective(ArrayValue array, IntPredicate selector, IntFunction<Value> transformer) {
+        val builder = ArrayValue.builder();
+        for (int index = 0; index < array.size(); index++) {
+            if (selector.test(index)) {
+                val transformed = transformer.apply(index);
+                if (transformed instanceof ErrorValue) {
+                    return transformed;
+                }
+                builder.add(transformed);
+            } else {
+                builder.add(array.get(index));
+            }
+        }
+        return builder.build();
+    }
+
+    /**
+     * Traverses selected object fields with early error return.
+     * <p>
+     * Applies transformer to matching fields, preserving non-matching fields
+     * unchanged. Does not filter undefined
+     * values.
+     *
+     * @param object
+     * source object
+     * @param selector
+     * predicate identifying keys to transform
+     * @param transformer
+     * function to transform selected field values
+     *
+     * @return rebuilt object or error if any transformation fails
+     */
+    static Value traverseObjectSelective(ObjectValue object, Predicate<String> selector,
+            Function<String, Value> transformer) {
+        return traverseObjectSelective(object, selector, transformer, key -> object.get(key));
+    }
+
+    /**
+     * Traverses object fields with different transformers for matching and
+     * non-matching keys.
+     * <p>
+     * Applies matchingTransformer to fields matching the selector, and
+     * nonMatchingTransformer to other fields. Returns
+     * early on error from either transformer.
+     *
+     * @param object
+     * source object
+     * @param selector
+     * predicate identifying keys for matching transformer
+     * @param matchingTransformer
+     * function to transform matching field values
+     * @param nonMatchingTransformer
+     * function to transform non-matching field values
+     *
+     * @return rebuilt object or error if any transformation fails
+     */
+    static Value traverseObjectSelective(ObjectValue object, Predicate<String> selector,
+            Function<String, Value> matchingTransformer, Function<String, Value> nonMatchingTransformer) {
+        val builder = ObjectValue.builder();
+        for (val entry : object.entrySet()) {
+            val transformer = selector.test(entry.getKey()) ? matchingTransformer : nonMatchingTransformer;
+            val transformed = transformer.apply(entry.getKey());
+            if (transformed instanceof ErrorValue) {
+                return transformed;
+            }
+            builder.put(entry.getKey(), transformed);
+        }
+        return builder.build();
+    }
+
+    /**
+     * Normalizes array index to handle negative indices.
+     *
+     * @param index
+     * raw index (may be negative)
+     * @param arraySize
+     * array size
+     *
+     * @return normalized non-negative index
+     */
+    static int normalizeIndex(int index, int arraySize) {
+        return index < 0 ? arraySize + index : index;
+    }
+
+    /**
+     * Creates slice predicate for array slicing filter operations.
+     *
+     * @param from
+     * start index (inclusive)
+     * @param to
+     * end index (exclusive)
+     * @param step
+     * step value (non-zero)
+     *
+     * @return predicate matching indices in slice range
+     */
+    static IntPredicate slicePredicate(int from, int to, int step) {
+        return index -> {
+            if (index < from || index >= to) {
+                return false;
+            }
+            if (step > 0) {
+                return (index - from) % step == 0;
+            }
+            return (to - index) % step == 0;
+        };
+    }
 }
