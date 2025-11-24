@@ -32,6 +32,7 @@ import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 @DisplayName("ArrayValue Tests")
 class ArrayValueTests {
@@ -421,32 +422,31 @@ class ArrayValueTests {
     // ============================================================================
 
     static Stream<Arguments> provideNullConstructorCases() {
-        return Stream.of(Arguments.of("list", (Runnable) () -> new ArrayValue((List<Value>) null, false)),
-                Arguments.of("array", (Runnable) () -> new ArrayValue((Value[]) null, false)));
+        return Stream.of(arguments("list", (Runnable) () -> new ArrayValue((List<Value>) null, false)),
+                arguments("array", (Runnable) () -> new ArrayValue((Value[]) null, false)));
     }
 
     static Stream<Arguments> provideBuilderCases() {
         var expected = List.of(Value.of(1), Value.of(2), Value.of(3));
-        return Stream.of(Arguments.of("add()", expected), Arguments.of("addAll(varargs)", expected),
-                Arguments.of("addAll(collection)", expected));
+        return Stream.of(arguments("add()", expected), arguments("addAll(varargs)", expected),
+                arguments("addAll(collection)", expected));
     }
 
     static Stream<Arguments> provideSecretPropagationMethods() {
         return Stream.of(
-                Arguments.of("get()",
+                arguments("get()",
                         (java.util.function.Function<ArrayValue, Stream<Value>>) arr -> Stream.of(arr.getFirst())),
-                Arguments.of("iterator()", (java.util.function.Function<ArrayValue, Stream<Value>>) arr -> {
+                arguments("iterator()", (java.util.function.Function<ArrayValue, Stream<Value>>) arr -> {
                     var values = new ArrayList<Value>();
                     arr.iterator().forEachRemaining(values::add);
                     return values.stream();
-                }),
-                Arguments.of("stream()", (java.util.function.Function<ArrayValue, Stream<Value>>) ArrayValue::stream),
-                Arguments.of("parallelStream()",
+                }), arguments("stream()", (java.util.function.Function<ArrayValue, Stream<Value>>) ArrayValue::stream),
+                arguments("parallelStream()",
                         (java.util.function.Function<ArrayValue, Stream<Value>>) ArrayValue::parallelStream),
-                Arguments.of("toArray()",
+                arguments("toArray()",
                         (java.util.function.Function<ArrayValue, Stream<Value>>) arr -> Arrays.stream(arr.toArray())
                                 .map(o -> (Value) o)),
-                Arguments.of("forEach()", (java.util.function.Function<ArrayValue, Stream<Value>>) arr -> {
+                arguments("forEach()", (java.util.function.Function<ArrayValue, Stream<Value>>) arr -> {
                     val values = new ArrayList<Value>(arr);
                     return values.stream();
                 }));
@@ -454,31 +454,28 @@ class ArrayValueTests {
 
     static Stream<Arguments> provideErrorAsValueCases() {
         return Stream.of(
-                Arguments.of("get() out of bounds",
-                        (java.util.function.Function<ArrayValue, Value>) arr -> arr.get(10)),
-                Arguments.of("getFirst() on empty",
-                        (java.util.function.Function<ArrayValue, Value>) ArrayValue::getFirst),
-                Arguments.of("getLast() on empty",
-                        (java.util.function.Function<ArrayValue, Value>) ArrayValue::getLast));
+                arguments("get() out of bounds", (java.util.function.Function<ArrayValue, Value>) arr -> arr.get(10)),
+                arguments("getFirst() on empty", (java.util.function.Function<ArrayValue, Value>) ArrayValue::getFirst),
+                arguments("getLast() on empty", (java.util.function.Function<ArrayValue, Value>) ArrayValue::getLast));
     }
 
     static Stream<Arguments> provideMutationAttempts() {
-        return Stream.of(Arguments.of("iterator().remove()", (java.util.function.Consumer<ArrayValue>) arr -> {
+        return Stream.of(arguments("iterator().remove()", (java.util.function.Consumer<ArrayValue>) arr -> {
             var iter = arr.iterator();
             iter.next();
             iter.remove();
-        }), Arguments.of("listIterator().remove()", (java.util.function.Consumer<ArrayValue>) arr -> {
+        }), arguments("listIterator().remove()", (java.util.function.Consumer<ArrayValue>) arr -> {
             var iter = arr.listIterator();
             iter.next();
             iter.remove();
-        }), Arguments.of("listIterator().set()", (java.util.function.Consumer<ArrayValue>) arr -> {
+        }), arguments("listIterator().set()", (java.util.function.Consumer<ArrayValue>) arr -> {
             var iter = arr.listIterator();
             iter.next();
             iter.set(Value.of(99));
-        }), Arguments.of("listIterator().add()", (java.util.function.Consumer<ArrayValue>) arr -> {
+        }), arguments("listIterator().add()", (java.util.function.Consumer<ArrayValue>) arr -> {
             var iter = arr.listIterator();
             iter.add(Value.of(99));
-        }), Arguments.of("listIterator(1).remove()", (java.util.function.Consumer<ArrayValue>) arr -> {
+        }), arguments("listIterator(1).remove()", (java.util.function.Consumer<ArrayValue>) arr -> {
             var iter = arr.listIterator(1);
             iter.next();
             iter.remove();
@@ -486,14 +483,12 @@ class ArrayValueTests {
     }
 
     static Stream<Arguments> provideToStringCases() {
-        return Stream
-                .of(Arguments.of(new ArrayValue(List.of(), false), "[]", "empty array"),
-                        Arguments.of(new ArrayValue(List.of(Value.of(1), Value.of(2)), false), "1, 2", "simple values"),
-                        Arguments.of(new ArrayValue(List.of(Value.of(1)), true), "***SECRET***", "secret array"),
-                        Arguments.of(new ArrayValue(
-                                List.of(new ArrayValue(List.of(Value.of(1), Value.of(2)), false), Value.of(3)), false),
-                                "[1, 2]", "nested arrays"),
-                        Arguments.of(new ArrayValue(List.of(Value.of(1), Value.of("text"), Value.of(true), Value.NULL,
-                                Value.UNDEFINED, Value.error("test")), false), "ERROR", "mixed types"));
+        return Stream.of(arguments(new ArrayValue(List.of(), false), "[]", "empty array"),
+                arguments(new ArrayValue(List.of(Value.of(1), Value.of(2)), false), "1, 2", "simple values"),
+                arguments(new ArrayValue(List.of(Value.of(1)), true), "***SECRET***", "secret array"),
+                arguments(new ArrayValue(List.of(new ArrayValue(List.of(Value.of(1), Value.of(2)), false), Value.of(3)),
+                        false), "[1, 2]", "nested arrays"),
+                arguments(new ArrayValue(List.of(Value.of(1), Value.of("text"), Value.of(true), Value.NULL,
+                        Value.UNDEFINED, Value.error("test")), false), "ERROR", "mixed types"));
     }
 }

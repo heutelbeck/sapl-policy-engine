@@ -30,6 +30,7 @@ import java.util.function.Function;
 import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 class DigestFunctionLibraryTests {
 
@@ -40,40 +41,40 @@ class DigestFunctionLibraryTests {
     private static Stream<Arguments> hashCorrectnessTestCases() {
         return Stream.of(
                 // SHA-256
-                Arguments.of("sha256", "hello", "2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824"),
-                Arguments.of("sha256", "", "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"),
+                arguments("sha256", "hello", "2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824"),
+                arguments("sha256", "", "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"),
 
                 // SHA-384
-                Arguments.of("sha384", "hello",
+                arguments("sha384", "hello",
                         "59e1748777448c69de6b800d7a33bbfb9ff1b463e44354c3553bcdb9c666fa90125a3c79f90397bdf5f6a13de828684f"),
-                Arguments.of("sha384", "",
+                arguments("sha384", "",
                         "38b060a751ac96384cd9327eb1b1e36a21fdb71114be07434c0cc7bf63f6e1da274edebfe76f65fbd51ad2f14898b95b"),
 
                 // SHA-512
-                Arguments.of("sha512", "hello",
+                arguments("sha512", "hello",
                         "9b71d224bd62f3785d96d46ad3ea3d73319bfbc2890caadae2dff72519673ca72323c3d99ba5c11d7c7acc6e14b8c5da0c4663475c2e5c3adef46f73bcdec043"),
-                Arguments.of("sha512", "",
+                arguments("sha512", "",
                         "cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e"),
 
                 // SHA3-256
-                Arguments.of("sha3_256", "hello", "3338be694f50c5f338814986cdf0686453a888b84f424d792af4b9202398f392"),
-                Arguments.of("sha3_256", "", "a7ffc6f8bf1ed76651c14756a061d662f580ff4de43b49fa82d80a4b80f8434a"),
+                arguments("sha3_256", "hello", "3338be694f50c5f338814986cdf0686453a888b84f424d792af4b9202398f392"),
+                arguments("sha3_256", "", "a7ffc6f8bf1ed76651c14756a061d662f580ff4de43b49fa82d80a4b80f8434a"),
 
                 // SHA3-384
-                Arguments.of("sha3_384", "hello",
+                arguments("sha3_384", "hello",
                         "720aea11019ef06440fbf05d87aa24680a2153df3907b23631e7177ce620fa1330ff07c0fddee54699a4c3ee0ee9d887"),
 
                 // SHA3-512
-                Arguments.of("sha3_512", "hello",
+                arguments("sha3_512", "hello",
                         "75d527c368f2efe848ecf6b073a36767800805e9eef2b1857d5f984f036eb6df891d75f72d9b154518c1cd58835286d1da9a38deba3de98b5a53e5ed78a84976"),
 
                 // MD5
-                Arguments.of("md5", "hello", "5d41402abc4b2a76b9719d911017c592"),
-                Arguments.of("md5", "", "d41d8cd98f00b204e9800998ecf8427e"),
+                arguments("md5", "hello", "5d41402abc4b2a76b9719d911017c592"),
+                arguments("md5", "", "d41d8cd98f00b204e9800998ecf8427e"),
 
                 // SHA-1
-                Arguments.of("sha1", "hello", "aaf4c61ddcc5e8a2dabede0f3b482cd9aea9434d"),
-                Arguments.of("sha1", "", "da39a3ee5e6b4b0d3255bfef95601890afd80709"));
+                arguments("sha1", "hello", "aaf4c61ddcc5e8a2dabede0f3b482cd9aea9434d"),
+                arguments("sha1", "", "da39a3ee5e6b4b0d3255bfef95601890afd80709"));
     }
 
     @ParameterizedTest(name = "{0}(\"{1}\") should produce correct hash")
@@ -97,9 +98,8 @@ class DigestFunctionLibraryTests {
         var result         = digestFunction.apply(Value.of("test"));
 
         assertThat(result).isNotInstanceOf(ErrorValue.class).isInstanceOf(TextValue.class)
-                .extracting(v -> ((TextValue) v).value()).satisfies(hash -> {
-                    assertThat(hash).isEqualTo(hash.toLowerCase()).hasSize(expectedLength);
-                });
+                .extracting(v -> ((TextValue) v).value())
+                .satisfies(hash -> assertThat(hash).isEqualTo(hash.toLowerCase()).hasSize(expectedLength));
     }
 
     @Test
@@ -151,13 +151,12 @@ class DigestFunctionLibraryTests {
      * Test data for special characters and edge cases.
      */
     private static Stream<Arguments> specialInputTestCases() {
-        return Stream.of(Arguments.of("special characters", "!@#$%^&*(){}[]|\\:;\"'<>,.?/~`"),
-                Arguments.of("Unicode - Chinese and emoji", "Hello 世界 🌍"),
-                Arguments.of("Unicode - emoji only", "😀🎉🌟"),
-                Arguments.of("Unicode - accented characters", "café résumé naïve"),
-                Arguments.of("whitespace - spaces", "   "), Arguments.of("whitespace - tabs", "\t\t\t"),
-                Arguments.of("whitespace - newlines", "\n\n\n"), Arguments.of("whitespace - mixed", " \t\n "),
-                Arguments.of("long input", "a".repeat(10000)));
+        return Stream.of(arguments("special characters", "!@#$%^&*(){}[]|\\:;\"'<>,.?/~`"),
+                arguments("Unicode - Chinese and emoji", "Hello 世界 🌍"), arguments("Unicode - emoji only", "😀🎉🌟"),
+                arguments("Unicode - accented characters", "café résumé naïve"),
+                arguments("whitespace - spaces", "   "), arguments("whitespace - tabs", "\t\t\t"),
+                arguments("whitespace - newlines", "\n\n\n"), arguments("whitespace - mixed", " \t\n "),
+                arguments("long input", "a".repeat(10000)));
     }
 
     @ParameterizedTest(name = "All algorithms should handle: {0}")

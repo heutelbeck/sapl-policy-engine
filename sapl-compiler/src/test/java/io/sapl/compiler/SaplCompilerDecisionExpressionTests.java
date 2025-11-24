@@ -17,21 +17,19 @@
  */
 package io.sapl.compiler;
 
-import static org.assertj.core.api.Assertions.assertThat;
-
-import java.time.Clock;
-
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-
 import io.sapl.api.model.Value;
-import io.sapl.api.pdp.Decision;
 import io.sapl.attributes.CachingAttributeBroker;
 import io.sapl.attributes.InMemoryAttributeRepository;
 import io.sapl.functions.DefaultFunctionBroker;
 import io.sapl.interpreter.DefaultSAPLInterpreter;
 import io.sapl.interpreter.InitializationException;
 import lombok.val;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+
+import java.time.Clock;
+
+import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * Tests verifying the refactored compileDecisionExpression method handles all

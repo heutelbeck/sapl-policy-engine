@@ -36,6 +36,7 @@ import java.util.function.Function;
 import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 class SignatureFunctionLibraryTests {
 
@@ -107,24 +108,24 @@ class SignatureFunctionLibraryTests {
 
         var result = verifyFunction.apply(new SignatureParams(testMessage, signatureHex, publicKeyPem));
 
-        assertThat(result).as("Signature verification should succeed for %s", algorithmName).isEqualTo(Value.of(true));
+        assertThat(result).as("Signature verification should succeed for %s", algorithmName).isEqualTo(Value.TRUE);
     }
 
     static Stream<Arguments> validSignatureScenarios() {
         return Stream.of(
-                Arguments.of("RSA-SHA256", wrapVerify(SignatureFunctionLibrary::isValidRsaSha256), rsaKeyPair,
+                arguments("RSA-SHA256", wrapVerify(SignatureFunctionLibrary::isValidRsaSha256), rsaKeyPair,
                         "SHA256withRSA", NECRONOMICON_EXCERPT),
-                Arguments.of("RSA-SHA384", wrapVerify(SignatureFunctionLibrary::isValidRsaSha384), rsaKeyPair,
+                arguments("RSA-SHA384", wrapVerify(SignatureFunctionLibrary::isValidRsaSha384), rsaKeyPair,
                         "SHA384withRSA", CULTIST_INVOCATION),
-                Arguments.of("RSA-SHA512", wrapVerify(SignatureFunctionLibrary::isValidRsaSha512), rsaKeyPair,
+                arguments("RSA-SHA512", wrapVerify(SignatureFunctionLibrary::isValidRsaSha512), rsaKeyPair,
                         "SHA512withRSA", FORBIDDEN_KNOWLEDGE),
-                Arguments.of("ECDSA-P256", wrapVerify(SignatureFunctionLibrary::isValidEcdsaP256), ecP256KeyPair,
+                arguments("ECDSA-P256", wrapVerify(SignatureFunctionLibrary::isValidEcdsaP256), ecP256KeyPair,
                         "SHA256withECDSA", RITUAL_INCANTATION),
-                Arguments.of("ECDSA-P384", wrapVerify(SignatureFunctionLibrary::isValidEcdsaP384), ecP384KeyPair,
+                arguments("ECDSA-P384", wrapVerify(SignatureFunctionLibrary::isValidEcdsaP384), ecP384KeyPair,
                         "SHA384withECDSA", DEEP_ONE_CHANT),
-                Arguments.of("ECDSA-P521", wrapVerify(SignatureFunctionLibrary::isValidEcdsaP521), ecP521KeyPair,
+                arguments("ECDSA-P521", wrapVerify(SignatureFunctionLibrary::isValidEcdsaP521), ecP521KeyPair,
                         "SHA512withECDSA", SHOGGOTH_WARNING),
-                Arguments.of("Ed25519", wrapVerify(SignatureFunctionLibrary::isValidEd25519), ed25519KeyPair, "Ed25519",
+                arguments("Ed25519", wrapVerify(SignatureFunctionLibrary::isValidEd25519), ed25519KeyPair, "Ed25519",
                         AZATHOTH_PROPHECY));
     }
 
@@ -141,24 +142,24 @@ class SignatureFunctionLibraryTests {
         var result = verifyFunction.apply(new SignatureParams(tamperedMessage, signatureHex, publicKeyPem));
 
         assertThat(result).as("Signature verification should fail for tampered message in %s", algorithmName)
-                .isEqualTo(Value.of(false));
+                .isEqualTo(Value.FALSE);
     }
 
     static Stream<Arguments> invalidSignatureScenarios() {
         return Stream.of(
-                Arguments.of("RSA-SHA256", wrapVerify(SignatureFunctionLibrary::isValidRsaSha256), rsaKeyPair,
+                arguments("RSA-SHA256", wrapVerify(SignatureFunctionLibrary::isValidRsaSha256), rsaKeyPair,
                         "SHA256withRSA", NECRONOMICON_EXCERPT, "That is ALIVE which can eternal lie"),
-                Arguments.of("RSA-SHA384", wrapVerify(SignatureFunctionLibrary::isValidRsaSha384), rsaKeyPair,
+                arguments("RSA-SHA384", wrapVerify(SignatureFunctionLibrary::isValidRsaSha384), rsaKeyPair,
                         "SHA384withRSA", CULTIST_INVOCATION, "Ph'nglui CORRUPTED Cthulhu"),
-                Arguments.of("RSA-SHA512", wrapVerify(SignatureFunctionLibrary::isValidRsaSha512), rsaKeyPair,
+                arguments("RSA-SHA512", wrapVerify(SignatureFunctionLibrary::isValidRsaSha512), rsaKeyPair,
                         "SHA512withRSA", FORBIDDEN_KNOWLEDGE, "The Elder Things NEVER dwelt"),
-                Arguments.of("ECDSA-P256", wrapVerify(SignatureFunctionLibrary::isValidEcdsaP256), ecP256KeyPair,
+                arguments("ECDSA-P256", wrapVerify(SignatureFunctionLibrary::isValidEcdsaP256), ecP256KeyPair,
                         "SHA256withECDSA", RITUAL_INCANTATION, "Yog-Sothoth FORGOT the gate"),
-                Arguments.of("ECDSA-P384", wrapVerify(SignatureFunctionLibrary::isValidEcdsaP384), ecP384KeyPair,
+                arguments("ECDSA-P384", wrapVerify(SignatureFunctionLibrary::isValidEcdsaP384), ecP384KeyPair,
                         "SHA384withECDSA", DEEP_ONE_CHANT, "From ATLANTIS beneath the waves"),
-                Arguments.of("ECDSA-P521", wrapVerify(SignatureFunctionLibrary::isValidEcdsaP521), ecP521KeyPair,
+                arguments("ECDSA-P521", wrapVerify(SignatureFunctionLibrary::isValidEcdsaP521), ecP521KeyPair,
                         "SHA512withECDSA", SHOGGOTH_WARNING, "Tekeli-li MODIFIED"),
-                Arguments.of("Ed25519", wrapVerify(SignatureFunctionLibrary::isValidEd25519), ed25519KeyPair, "Ed25519",
+                arguments("Ed25519", wrapVerify(SignatureFunctionLibrary::isValidEd25519), ed25519KeyPair, "Ed25519",
                         AZATHOTH_PROPHECY, "At the center of infinity, SANE Azathoth"));
     }
 
@@ -175,7 +176,7 @@ class SignatureFunctionLibraryTests {
         var result = verifyFunction.apply(new SignatureParams(NYARLATHOTEP_RIDDLE, signatureHex, wrongPublicKey));
 
         assertThat(result).as("Signature verification should fail with wrong public key for %s", algorithmName)
-                .isEqualTo(Value.of(false));
+                .isEqualTo(Value.FALSE);
     }
 
     static Stream<Arguments> wrongKeyScenarios() throws Exception {
@@ -187,16 +188,16 @@ class SignatureFunctionLibraryTests {
         var wrongEd25519    = generateKeyPair("Ed25519", null);
 
         return Stream.of(
-                Arguments.of("RSA-SHA256", wrapVerify(SignatureFunctionLibrary::isValidRsaSha256), rsaKeyPair,
+                arguments("RSA-SHA256", wrapVerify(SignatureFunctionLibrary::isValidRsaSha256), rsaKeyPair,
                         wrongRsaKeyPair, "SHA256withRSA"),
-                Arguments.of("ECDSA-P256", wrapVerify(SignatureFunctionLibrary::isValidEcdsaP256), ecP256KeyPair,
+                arguments("ECDSA-P256", wrapVerify(SignatureFunctionLibrary::isValidEcdsaP256), ecP256KeyPair,
                         wrongEcP256, "SHA256withECDSA"),
-                Arguments.of("ECDSA-P384", wrapVerify(SignatureFunctionLibrary::isValidEcdsaP384), ecP384KeyPair,
+                arguments("ECDSA-P384", wrapVerify(SignatureFunctionLibrary::isValidEcdsaP384), ecP384KeyPair,
                         wrongEcP384, "SHA384withECDSA"),
-                Arguments.of("ECDSA-P521", wrapVerify(SignatureFunctionLibrary::isValidEcdsaP521), ecP521KeyPair,
+                arguments("ECDSA-P521", wrapVerify(SignatureFunctionLibrary::isValidEcdsaP521), ecP521KeyPair,
                         wrongEcP521, "SHA512withECDSA"),
-                Arguments.of("Ed25519", wrapVerify(SignatureFunctionLibrary::isValidEd25519), ed25519KeyPair,
-                        wrongEd25519, "Ed25519"));
+                arguments("Ed25519", wrapVerify(SignatureFunctionLibrary::isValidEd25519), ed25519KeyPair, wrongEd25519,
+                        "Ed25519"));
     }
 
     /* Parameterized Format Tests (Hex and Base64) */
@@ -213,19 +214,19 @@ class SignatureFunctionLibraryTests {
         var result = verifyFunction.apply(new SignatureParams(MISKATONIC_RECORDS, encodedSignature, publicKeyPem));
 
         assertThat(result).as("%s with %s encoding should verify successfully", algorithmName, encodingType)
-                .isEqualTo(Value.of(true));
+                .isEqualTo(Value.TRUE);
     }
 
     static Stream<Arguments> signatureFormatScenarios() {
         return Stream.of(
-                Arguments.of("RSA-SHA256", "Hex", wrapVerify(SignatureFunctionLibrary::isValidRsaSha256), rsaKeyPair,
+                arguments("RSA-SHA256", "Hex", wrapVerify(SignatureFunctionLibrary::isValidRsaSha256), rsaKeyPair,
                         "SHA256withRSA", (java.util.function.Function<byte[], String>) HexFormat.of()::formatHex),
-                Arguments.of("RSA-SHA256", "Base64", wrapVerify(SignatureFunctionLibrary::isValidRsaSha256), rsaKeyPair,
+                arguments("RSA-SHA256", "Base64", wrapVerify(SignatureFunctionLibrary::isValidRsaSha256), rsaKeyPair,
                         "SHA256withRSA",
                         (java.util.function.Function<byte[], String>) Base64.getEncoder()::encodeToString),
-                Arguments.of("Ed25519", "Hex", wrapVerify(SignatureFunctionLibrary::isValidEd25519), ed25519KeyPair,
+                arguments("Ed25519", "Hex", wrapVerify(SignatureFunctionLibrary::isValidEd25519), ed25519KeyPair,
                         "Ed25519", (java.util.function.Function<byte[], String>) HexFormat.of()::formatHex),
-                Arguments.of("Ed25519", "Base64", wrapVerify(SignatureFunctionLibrary::isValidEd25519), ed25519KeyPair,
+                arguments("Ed25519", "Base64", wrapVerify(SignatureFunctionLibrary::isValidEd25519), ed25519KeyPair,
                         "Ed25519", (java.util.function.Function<byte[], String>) Base64.getEncoder()::encodeToString));
     }
 
@@ -252,7 +253,7 @@ class SignatureFunctionLibraryTests {
         var result = SignatureFunctionLibrary.isValidRsaSha256((TextValue) Value.of(message),
                 (TextValue) Value.of(signatureHex), (TextValue) Value.of(publicKeyPem));
 
-        assertThat(result).as("Should handle message: '%s'", message).isEqualTo(Value.of(true));
+        assertThat(result).as("Should handle message: '%s'", message).isEqualTo(Value.TRUE);
     }
 
     @Test
@@ -265,7 +266,7 @@ class SignatureFunctionLibraryTests {
         var result = SignatureFunctionLibrary.isValidRsaSha256((TextValue) Value.of(longMessage),
                 (TextValue) Value.of(signatureHex), (TextValue) Value.of(publicKeyPem));
 
-        assertThat(result).isEqualTo(Value.of(true));
+        assertThat(result).isEqualTo(Value.TRUE);
     }
 
     @Test
@@ -281,7 +282,7 @@ class SignatureFunctionLibraryTests {
                 (TextValue) Value.of(signatureWithWhitespace), (TextValue) Value.of(publicKeyPem));
 
         assertThat(result).as("Signature with leading/trailing whitespace should verify after stripping")
-                .isEqualTo(Value.of(true));
+                .isEqualTo(Value.TRUE);
     }
 
     @Test
@@ -314,16 +315,16 @@ class SignatureFunctionLibraryTests {
         var validKeyPem = toPem(rsaKeyPair.getPublic());
 
         return Stream.of(
-                Arguments.of("Invalid PEM format", wrapVerify(SignatureFunctionLibrary::isValidRsaSha256),
+                arguments("Invalid PEM format", wrapVerify(SignatureFunctionLibrary::isValidRsaSha256),
                         NECRONOMICON_EXCERPT, "abc123", "invalid pem key"),
-                Arguments.of("Invalid signature format (not hex or base64)",
+                arguments("Invalid signature format (not hex or base64)",
                         wrapVerify(SignatureFunctionLibrary::isValidRsaSha256), CULTIST_INVOCATION,
                         "not-hex-or-base64!@#$%^&*()", validKeyPem),
-                Arguments.of("Empty signature", wrapVerify(SignatureFunctionLibrary::isValidRsaSha256),
+                arguments("Empty signature", wrapVerify(SignatureFunctionLibrary::isValidRsaSha256),
                         FORBIDDEN_KNOWLEDGE, "", validKeyPem),
-                Arguments.of("Malformed Base64", wrapVerify(SignatureFunctionLibrary::isValidRsaSha256),
+                arguments("Malformed Base64", wrapVerify(SignatureFunctionLibrary::isValidRsaSha256),
                         RITUAL_INCANTATION, "This is not base64!", validKeyPem),
-                Arguments.of("Wrong key algorithm (RSA key for ECDSA)",
+                arguments("Wrong key algorithm (RSA key for ECDSA)",
                         wrapVerify(SignatureFunctionLibrary::isValidEcdsaP256), DEEP_ONE_CHANT, "abc123", validKeyPem));
     }
 
@@ -339,17 +340,8 @@ class SignatureFunctionLibraryTests {
         var result = SignatureFunctionLibrary.isValidEd25519((TextValue) Value.of(message),
                 (TextValue) Value.of(signature), (TextValue) Value.of(publicKey));
 
-        assertThat(result).as("RFC 8032 test vector 1 should verify").isEqualTo(Value.of(true));
+        assertThat(result).as("RFC 8032 test vector 1 should verify").isEqualTo(Value.TRUE);
     }
-
-    // NOTE: Additional RFC 8032 test vectors should be added here once complete
-    // test vector
-    // data (including matching key pairs, messages, and signatures) is extracted
-    // from the
-    // official RFC 8032 specification. The current roundtrip tests provide
-    // comprehensive
-    // validation, but standardized test vectors offer additional assurance of
-    // correctness.
 
     @Test
     void verify_withRfc8032Ed25519TestVectorModified_fails() {
@@ -361,7 +353,7 @@ class SignatureFunctionLibraryTests {
         var result = SignatureFunctionLibrary.isValidEd25519((TextValue) Value.of(tamperedMessage),
                 (TextValue) Value.of(signature), (TextValue) Value.of(publicKey));
 
-        assertThat(result).as("RFC test vector with tampered message should fail").isEqualTo(Value.of(false));
+        assertThat(result).as("RFC test vector with tampered message should fail").isEqualTo(Value.FALSE);
     }
 
     /* Thread Safety / Concurrent Verification Tests */
@@ -375,7 +367,7 @@ class SignatureFunctionLibraryTests {
         var result = SignatureFunctionLibrary.isValidRsaSha256((TextValue) Value.of(AZATHOTH_PROPHECY),
                 (TextValue) Value.of(signatureHex), (TextValue) Value.of(publicKeyPem));
 
-        assertThat(result).isEqualTo(Value.of(true));
+        assertThat(result).isEqualTo(Value.TRUE);
     }
 
     /* Helper Methods and Classes */

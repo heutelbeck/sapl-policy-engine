@@ -18,7 +18,6 @@
 package io.sapl.functions.libraries;
 
 import io.sapl.api.model.ArrayValue;
-import io.sapl.api.model.NumberValue;
 import io.sapl.api.model.Value;
 import io.sapl.functions.DefaultFunctionBroker;
 import lombok.val;
@@ -27,7 +26,7 @@ import org.junit.jupiter.api.Test;
 import java.util.stream.IntStream;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.assertj.core.api.Assertions.assertThatCode;
 
 /**
  * Tests for ArrayFunctionLibrary using the new Value model.
@@ -45,7 +44,8 @@ class ArrayFunctionLibraryTests {
     @Test
     void when_loadedIntoBroker_then_noError() {
         val functionBroker = new DefaultFunctionBroker();
-        assertDoesNotThrow(() -> functionBroker.loadStaticFunctionLibrary(ArrayFunctionLibrary.class));
+        assertThatCode(() -> functionBroker.loadStaticFunctionLibrary(ArrayFunctionLibrary.class))
+                .doesNotThrowAnyException();
     }
 
     @Test
@@ -89,7 +89,7 @@ class ArrayFunctionLibraryTests {
         assertThat(result).isInstanceOf(ArrayValue.class);
         val resultArray = (ArrayValue) result;
         assertThat(resultArray).hasSize(1);
-        assertThat(((NumberValue) resultArray.getFirst()).value().intValue()).isEqualTo(5);
+        assertThat(resultArray.getFirst()).isEqualTo(Value.of(5));
     }
 
     @Test

@@ -130,8 +130,7 @@ class FilterFunctionLibraryTests {
         val result = io.sapl.functions.libraries.FilterFunctionLibrary.blacken(Value.of(text), Value.of(discloseLeft),
                 Value.of(discloseRight), Value.of(replacement));
 
-        assertThat(result).isInstanceOf(TextValue.class);
-        assertThat(((TextValue) result).value()).isEqualTo(expected);
+        assertThat(result).isInstanceOf(TextValue.class).isEqualTo(Value.of(expected));
     }
 
     @ParameterizedTest(name = "{0}: left={1}, right={2}, overrideLength={3} -> {4}")
@@ -147,8 +146,7 @@ class FilterFunctionLibraryTests {
         val result = io.sapl.functions.libraries.FilterFunctionLibrary.blacken(Value.of(text), Value.of(discloseLeft),
                 Value.of(discloseRight), Value.of("*"), Value.of(blackenLength));
 
-        assertThat(result).isInstanceOf(TextValue.class);
-        assertThat(((TextValue) result).value()).isEqualTo(expected);
+        assertThat(result).isInstanceOf(TextValue.class).isEqualTo(Value.of(expected));
     }
 
     @Test
@@ -156,8 +154,7 @@ class FilterFunctionLibraryTests {
         val result = io.sapl.functions.libraries.FilterFunctionLibrary.blacken(Value.of("Shub-Niggurath"), Value.of(7),
                 Value.of(7), Value.of("*"));
 
-        assertThat(result).isInstanceOf(TextValue.class);
-        assertThat(((TextValue) result).value()).isEqualTo("Shub-Niggurath");
+        assertThat(result).isInstanceOf(TextValue.class).isEqualTo(Value.of("Shub-Niggurath"));
     }
 
     @Test
@@ -165,8 +162,7 @@ class FilterFunctionLibraryTests {
         val result = io.sapl.functions.libraries.FilterFunctionLibrary.blacken(Value.of("Yog-Sothoth"), Value.of(0),
                 Value.of(0), Value.of("#"));
 
-        assertThat(result).isInstanceOf(TextValue.class);
-        assertThat(((TextValue) result).value()).isEqualTo("###########");
+        assertThat(result).isInstanceOf(TextValue.class).isEqualTo(Value.of("###########"));
     }
 
     @Test
@@ -174,8 +170,8 @@ class FilterFunctionLibraryTests {
         val result = io.sapl.functions.libraries.FilterFunctionLibrary.blacken(Value.of("Nyarlathotep"), Value.of(4),
                 Value.of(4), Value.of("[REDACTED]"));
 
-        assertThat(result).isInstanceOf(TextValue.class);
-        assertThat(((TextValue) result).value()).isEqualTo("Nyar[REDACTED][REDACTED][REDACTED][REDACTED]otep");
+        assertThat(result).isInstanceOf(TextValue.class)
+                .isEqualTo(Value.of("Nyar[REDACTED][REDACTED][REDACTED][REDACTED]otep"));
     }
 
     @Test
@@ -183,8 +179,7 @@ class FilterFunctionLibraryTests {
         val result = io.sapl.functions.libraries.FilterFunctionLibrary.blacken(Value.of("古のもの"), Value.of(1),
                 Value.of(1), Value.of("█"));
 
-        assertThat(result).isInstanceOf(TextValue.class);
-        assertThat(((TextValue) result).value()).isEqualTo("古██の");
+        assertThat(result).isInstanceOf(TextValue.class).isEqualTo(Value.of("古██の"));
     }
 
     @Test
@@ -192,32 +187,28 @@ class FilterFunctionLibraryTests {
         val result = io.sapl.functions.libraries.FilterFunctionLibrary.blacken(Value.of("Nyarlathotep"), Value.of(4),
                 Value.of(4), Value.of(""), Value.of(0));
 
-        assertThat(result).isInstanceOf(TextValue.class);
-        assertThat(((TextValue) result).value()).isEqualTo("Nyarotep");
+        assertThat(result).isInstanceOf(TextValue.class).isEqualTo(Value.of("Nyarotep"));
     }
 
     @Test
     void blacken_emptyString_returnsEmpty() {
         val result = io.sapl.functions.libraries.FilterFunctionLibrary.blacken(Value.of(""));
 
-        assertThat(result).isInstanceOf(TextValue.class);
-        assertThat(((TextValue) result).value()).isEmpty();
+        assertThat(result).isInstanceOf(TextValue.class).isEqualTo(Value.of(""));
     }
 
     @Test
     void blacken_singleCharacter_blackensCorrectly() {
         val result = io.sapl.functions.libraries.FilterFunctionLibrary.blacken(Value.of("R"), Value.of(0), Value.of(0));
 
-        assertThat(result).isInstanceOf(TextValue.class);
-        assertThat(((TextValue) result).value()).isEqualTo("X");
+        assertThat(result).isInstanceOf(TextValue.class).isEqualTo(Value.of("X"));
     }
 
     @Test
     void blacken_singleCharacterFullyDisclosed_returnsOriginal() {
         val result = io.sapl.functions.libraries.FilterFunctionLibrary.blacken(Value.of("R"), Value.of(1), Value.of(0));
 
-        assertThat(result).isInstanceOf(TextValue.class);
-        assertThat(((TextValue) result).value()).isEqualTo("R");
+        assertThat(result).isInstanceOf(TextValue.class).isEqualTo(Value.of("R"));
     }
 
     @Test
@@ -231,8 +222,7 @@ class FilterFunctionLibraryTests {
                 discloseRight, replacement);
 
         val expected = "Ph'nglui m******************************agl fhtagn";
-        assertThat(result).isInstanceOf(TextValue.class);
-        assertThat(((TextValue) result).value()).isEqualTo(expected);
+        assertThat(result).isInstanceOf(TextValue.class).isEqualTo(Value.of(expected));
     }
 
     @Test

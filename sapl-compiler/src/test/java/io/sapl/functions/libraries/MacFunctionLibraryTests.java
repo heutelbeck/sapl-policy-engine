@@ -17,7 +17,6 @@
  */
 package io.sapl.functions.libraries;
 
-import io.sapl.api.model.BooleanValue;
 import io.sapl.api.model.ErrorValue;
 import io.sapl.api.model.TextValue;
 import io.sapl.api.model.Value;
@@ -186,7 +185,7 @@ class MacFunctionLibraryTests {
                 Value.of("0000000000000000000000000000000000000000000000000000000000000000"), Value.of("secret"),
                 Value.of("HmacSHA256"));
 
-        assertThat(result).isEqualTo(Value.of(false));
+        assertThat(result).isEqualTo(Value.FALSE);
     }
 
     @Test
@@ -196,7 +195,7 @@ class MacFunctionLibraryTests {
         var expectedMac = MacFunctionLibrary.hmacSha256(message, correctKey);
 
         assertThat(MacFunctionLibrary.isValidHmac(message, (TextValue) expectedMac, Value.of("wrong"),
-                Value.of("HmacSHA256"))).isEqualTo(Value.of(false));
+                Value.of("HmacSHA256"))).isEqualTo(Value.FALSE);
     }
 
     @Test
@@ -216,7 +215,7 @@ class MacFunctionLibraryTests {
         var signature = MacFunctionLibrary.hmacSha256(payload, secret);
 
         assertThat(MacFunctionLibrary.isValidHmac(payload, (TextValue) signature, secret, Value.of("HmacSHA256")))
-                .isEqualTo(Value.of(true));
+                .isEqualTo(Value.TRUE);
     }
 
     @Test
@@ -226,6 +225,6 @@ class MacFunctionLibraryTests {
         var originalSignature = MacFunctionLibrary.hmacSha256(originalPayload, secret);
 
         assertThat(MacFunctionLibrary.isValidHmac(Value.of("{\"action\":\"opened\",\"number\":2}"),
-                (TextValue) originalSignature, secret, Value.of("HmacSHA256"))).isEqualTo(Value.of(false));
+                (TextValue) originalSignature, secret, Value.of("HmacSHA256"))).isEqualTo(Value.FALSE);
     }
 }

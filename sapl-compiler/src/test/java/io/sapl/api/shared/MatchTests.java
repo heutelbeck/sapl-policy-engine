@@ -19,40 +19,39 @@ package io.sapl.api.shared;
 
 import org.junit.jupiter.api.Test;
 
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.assertj.core.api.Assertions.assertThat;
 
 class MatchTests {
 
     @Test
     void noMatch_isNotBetterThanAnything() {
-        assertFalse(Match.NO_MATCH.isBetterThan(Match.NO_MATCH));
-        assertFalse(Match.NO_MATCH.isBetterThan(Match.EXACT_MATCH));
-        assertFalse(Match.NO_MATCH.isBetterThan(Match.VARARGS_MATCH));
-        assertFalse(Match.NO_MATCH.isBetterThan(Match.CATCH_ALL_MATCH));
+        assertThat(Match.NO_MATCH.isBetterThan(Match.NO_MATCH)).isFalse();
+        assertThat(Match.NO_MATCH.isBetterThan(Match.EXACT_MATCH)).isFalse();
+        assertThat(Match.NO_MATCH.isBetterThan(Match.VARARGS_MATCH)).isFalse();
+        assertThat(Match.NO_MATCH.isBetterThan(Match.CATCH_ALL_MATCH)).isFalse();
     }
 
     @Test
     void exactMatch_isBetterThanAllExceptItself() {
-        assertTrue(Match.EXACT_MATCH.isBetterThan(Match.NO_MATCH));
-        assertFalse(Match.EXACT_MATCH.isBetterThan(Match.EXACT_MATCH));
-        assertTrue(Match.EXACT_MATCH.isBetterThan(Match.VARARGS_MATCH));
-        assertTrue(Match.EXACT_MATCH.isBetterThan(Match.CATCH_ALL_MATCH));
+        assertThat(Match.EXACT_MATCH.isBetterThan(Match.NO_MATCH)).isTrue();
+        assertThat(Match.EXACT_MATCH.isBetterThan(Match.EXACT_MATCH)).isFalse();
+        assertThat(Match.EXACT_MATCH.isBetterThan(Match.VARARGS_MATCH)).isTrue();
+        assertThat(Match.EXACT_MATCH.isBetterThan(Match.CATCH_ALL_MATCH)).isTrue();
     }
 
     @Test
     void varargsMatch_isBetterThanNoMatchAndCatchAll() {
-        assertTrue(Match.VARARGS_MATCH.isBetterThan(Match.NO_MATCH));
-        assertFalse(Match.VARARGS_MATCH.isBetterThan(Match.EXACT_MATCH));
-        assertFalse(Match.VARARGS_MATCH.isBetterThan(Match.VARARGS_MATCH));
-        assertTrue(Match.VARARGS_MATCH.isBetterThan(Match.CATCH_ALL_MATCH));
+        assertThat(Match.VARARGS_MATCH.isBetterThan(Match.NO_MATCH)).isTrue();
+        assertThat(Match.VARARGS_MATCH.isBetterThan(Match.EXACT_MATCH)).isFalse();
+        assertThat(Match.VARARGS_MATCH.isBetterThan(Match.VARARGS_MATCH)).isFalse();
+        assertThat(Match.VARARGS_MATCH.isBetterThan(Match.CATCH_ALL_MATCH)).isTrue();
     }
 
     @Test
     void catchAllMatch_isBetterThanOnlyNoMatch() {
-        assertTrue(Match.CATCH_ALL_MATCH.isBetterThan(Match.NO_MATCH));
-        assertFalse(Match.CATCH_ALL_MATCH.isBetterThan(Match.EXACT_MATCH));
-        assertFalse(Match.CATCH_ALL_MATCH.isBetterThan(Match.VARARGS_MATCH));
-        assertFalse(Match.CATCH_ALL_MATCH.isBetterThan(Match.CATCH_ALL_MATCH));
+        assertThat(Match.CATCH_ALL_MATCH.isBetterThan(Match.NO_MATCH)).isTrue();
+        assertThat(Match.CATCH_ALL_MATCH.isBetterThan(Match.EXACT_MATCH)).isFalse();
+        assertThat(Match.CATCH_ALL_MATCH.isBetterThan(Match.VARARGS_MATCH)).isFalse();
+        assertThat(Match.CATCH_ALL_MATCH.isBetterThan(Match.CATCH_ALL_MATCH)).isFalse();
     }
 }

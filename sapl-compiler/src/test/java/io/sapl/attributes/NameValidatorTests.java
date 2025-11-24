@@ -21,8 +21,8 @@ import io.sapl.validation.NameValidator;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 
 class NameValidatorTests {
 
@@ -37,7 +37,7 @@ class NameValidatorTests {
     @ParameterizedTest
     @ValueSource(strings = { "a.b", "a1.b2", "a2.d.x333", "a.b.c.d.e.f.g.h.i.j" })
     void whenPresentedWithValidNamesThenAssertionDoesNotThrow(String validName) {
-        assertDoesNotThrow(() -> NameValidator.requireValidName(validName));
+        assertThatCode(() -> NameValidator.requireValidName(validName)).doesNotThrowAnyException();
     }
 
 }

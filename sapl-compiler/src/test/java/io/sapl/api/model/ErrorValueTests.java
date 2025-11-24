@@ -27,6 +27,7 @@ import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 @DisplayName("ErrorValue Tests")
 class ErrorValueTests {
@@ -184,32 +185,32 @@ class ErrorValueTests {
 
     static Stream<Arguments> provideConstructorCases() {
         var cause = new RuntimeException("cause message");
-        return Stream.of(Arguments.of("message", null, false, true), Arguments.of("message", null, true, true),
-                Arguments.of("message", cause, false, true), Arguments.of("message", cause, true, true),
-                Arguments.of(null, cause, false, true), Arguments.of(null, cause, true, true),
-                Arguments.of("message", null, false, false), Arguments.of("message", null, true, false),
-                Arguments.of("cause message", cause, false, false), Arguments.of("cause message", cause, true, false));
+        return Stream.of(arguments("message", null, false, true), arguments("message", null, true, true),
+                arguments("message", cause, false, true), arguments("message", cause, true, true),
+                arguments(null, cause, false, true), arguments(null, cause, true, true),
+                arguments("message", null, false, false), arguments("message", null, true, false),
+                arguments("cause message", cause, false, false), arguments("cause message", cause, true, false));
     }
 
     static Stream<Arguments> provideEqualityCases() {
-        return Stream.of(Arguments.of(new ErrorValue("msg", false), new ErrorValue("msg", true), true),
-                Arguments.of(new ErrorValue("msg", new RuntimeException(), false),
+        return Stream.of(arguments(new ErrorValue("msg", false), new ErrorValue("msg", true), true),
+                arguments(new ErrorValue("msg", new RuntimeException(), false),
                         new ErrorValue("msg", new RuntimeException(), false), true),
-                Arguments.of(new ErrorValue("msg1", false), new ErrorValue("msg2", false), false),
-                Arguments.of(new ErrorValue("msg", new RuntimeException(), false),
+                arguments(new ErrorValue("msg1", false), new ErrorValue("msg2", false), false),
+                arguments(new ErrorValue("msg", new RuntimeException(), false),
                         new ErrorValue("msg", new IllegalArgumentException(), false), false),
-                Arguments.of(new ErrorValue("msg", new RuntimeException(), false), new ErrorValue("msg", false), false),
-                Arguments.of(new ErrorValue(null, new RuntimeException(), false),
+                arguments(new ErrorValue("msg", new RuntimeException(), false), new ErrorValue("msg", false), false),
+                arguments(new ErrorValue(null, new RuntimeException(), false),
                         new ErrorValue(null, new RuntimeException(), false), true),
-                Arguments.of(new ErrorValue(null, new RuntimeException(), false),
+                arguments(new ErrorValue(null, new RuntimeException(), false),
                         new ErrorValue("msg", new RuntimeException(), false), false));
     }
 
     static Stream<Arguments> provideToStringCases() {
-        return Stream.of(Arguments.of("test error", null, false, "message only"),
-                Arguments.of("test error", new RuntimeException(), false, "message and cause"),
-                Arguments.of("secret error", null, true, "secret"),
-                Arguments.of(null, new RuntimeException(), false, "null message with cause"),
-                Arguments.of("long error: " + "x".repeat(100), null, false, "long message"));
+        return Stream.of(arguments("test error", null, false, "message only"),
+                arguments("test error", new RuntimeException(), false, "message and cause"),
+                arguments("secret error", null, true, "secret"),
+                arguments(null, new RuntimeException(), false, "null message with cause"),
+                arguments("long error: " + "x".repeat(100), null, false, "long message"));
     }
 }

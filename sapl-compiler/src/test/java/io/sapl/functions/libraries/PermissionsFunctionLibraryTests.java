@@ -17,11 +17,7 @@
  */
 package io.sapl.functions.libraries;
 
-import io.sapl.api.model.ArrayValue;
-import io.sapl.api.model.BooleanValue;
-import io.sapl.api.model.ErrorValue;
-import io.sapl.api.model.NumberValue;
-import io.sapl.api.model.Value;
+import io.sapl.api.model.*;
 import lombok.val;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -32,6 +28,7 @@ import org.junit.jupiter.params.provider.ValueSource;
 import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 /**
  * Comprehensive test suite for PermissionsFunctionLibrary.
@@ -47,17 +44,17 @@ class PermissionsFunctionLibraryTests {
         val actual     = PermissionsFunctionLibrary.hasAll(Value.of(value), masksArray);
 
         assertThat(actual instanceof BooleanValue).isTrue();
-        assertThat(((BooleanValue) actual).value()).isEqualTo(expected);
+        assertThat(actual).isEqualTo(Value.of(expected));
     }
 
     private static Stream<Arguments> provideHasAllTestCases() {
-        return Stream.of(Arguments.of(0b1111L, new long[] { 0b0001L, 0b0010L, 0b0100L }, true), // Has all three
-                Arguments.of(0b1011L, new long[] { 0b0001L, 0b0010L, 0b0100L }, false), // Missing one
-                Arguments.of(0b1111L, new long[] { 0b1111L }, true), // Exact match
-                Arguments.of(0b0000L, new long[] { 0b0001L }, false), // Has none
-                Arguments.of(0b1111L, new long[] { 0b0001L }, true), // Has subset
-                Arguments.of(15L, new long[] { 1L, 2L, 4L, 8L }, true), // All bits
-                Arguments.of(7L, new long[] { 1L, 2L, 4L, 8L }, false) // Missing bit 8
+        return Stream.of(arguments(0b1111L, new long[] { 0b0001L, 0b0010L, 0b0100L }, true), // Has all three
+                arguments(0b1011L, new long[] { 0b0001L, 0b0010L, 0b0100L }, false), // Missing one
+                arguments(0b1111L, new long[] { 0b1111L }, true), // Exact match
+                arguments(0b0000L, new long[] { 0b0001L }, false), // Has none
+                arguments(0b1111L, new long[] { 0b0001L }, true), // Has subset
+                arguments(15L, new long[] { 1L, 2L, 4L, 8L }, true), // All bits
+                arguments(7L, new long[] { 1L, 2L, 4L, 8L }, false) // Missing bit 8
         );
     }
 
@@ -68,16 +65,16 @@ class PermissionsFunctionLibraryTests {
         val actual     = PermissionsFunctionLibrary.hasAny(Value.of(value), masksArray);
 
         assertThat(actual instanceof BooleanValue).isTrue();
-        assertThat(((BooleanValue) actual).value()).isEqualTo(expected);
+        assertThat(actual).isEqualTo(Value.of(expected));
     }
 
     private static Stream<Arguments> provideHasAnyTestCases() {
-        return Stream.of(Arguments.of(0b0001L, new long[] { 0b0001L, 0b0010L }, true), // Has first
-                Arguments.of(0b0010L, new long[] { 0b0001L, 0b0010L }, true), // Has second
-                Arguments.of(0b0000L, new long[] { 0b0001L, 0b0010L }, false), // Has neither
-                Arguments.of(0b1111L, new long[] { 0b0001L, 0b0010L }, true), // Has both
-                Arguments.of(1L, new long[] { 1L, 2L, 4L }, true), // Has one
-                Arguments.of(0L, new long[] { 1L, 2L, 4L }, false) // Has none
+        return Stream.of(arguments(0b0001L, new long[] { 0b0001L, 0b0010L }, true), // Has first
+                arguments(0b0010L, new long[] { 0b0001L, 0b0010L }, true), // Has second
+                arguments(0b0000L, new long[] { 0b0001L, 0b0010L }, false), // Has neither
+                arguments(0b1111L, new long[] { 0b0001L, 0b0010L }, true), // Has both
+                arguments(1L, new long[] { 1L, 2L, 4L }, true), // Has one
+                arguments(0L, new long[] { 1L, 2L, 4L }, false) // Has none
         );
     }
 
@@ -88,16 +85,16 @@ class PermissionsFunctionLibraryTests {
         val actual     = PermissionsFunctionLibrary.hasNone(Value.of(value), masksArray);
 
         assertThat(actual instanceof BooleanValue).isTrue();
-        assertThat(((BooleanValue) actual).value()).isEqualTo(expected);
+        assertThat(actual).isEqualTo(Value.of(expected));
     }
 
     private static Stream<Arguments> provideHasNoneTestCases() {
-        return Stream.of(Arguments.of(0b0000L, new long[] { 0b0001L, 0b0010L }, true), // Has none
-                Arguments.of(0b0001L, new long[] { 0b0001L, 0b0010L }, false), // Has one
-                Arguments.of(0b1100L, new long[] { 0b0001L, 0b0010L }, true), // Different bits
-                Arguments.of(0b1111L, new long[] { 0b0001L, 0b0010L }, false), // Has all
-                Arguments.of(8L, new long[] { 1L, 2L, 4L }, true), // No overlap
-                Arguments.of(0L, new long[] { 1L, 2L, 4L }, true) // Zero
+        return Stream.of(arguments(0b0000L, new long[] { 0b0001L, 0b0010L }, true), // Has none
+                arguments(0b0001L, new long[] { 0b0001L, 0b0010L }, false), // Has one
+                arguments(0b1100L, new long[] { 0b0001L, 0b0010L }, true), // Different bits
+                arguments(0b1111L, new long[] { 0b0001L, 0b0010L }, false), // Has all
+                arguments(8L, new long[] { 1L, 2L, 4L }, true), // No overlap
+                arguments(0L, new long[] { 1L, 2L, 4L }, true) // Zero
         );
     }
 
@@ -107,16 +104,16 @@ class PermissionsFunctionLibraryTests {
         val actual = PermissionsFunctionLibrary.hasExact(Value.of(value), Value.of(mask));
 
         assertThat(actual instanceof BooleanValue).isTrue();
-        assertThat(((BooleanValue) actual).value()).isEqualTo(expected);
+        assertThat(actual).isEqualTo(Value.of(expected));
     }
 
     private static Stream<Arguments> provideHasExactTestCases() {
-        return Stream.of(Arguments.of(0b0101L, 0b0101L, true), // Exact match
-                Arguments.of(0b0101L, 0b0111L, false), // More in mask
-                Arguments.of(0b0111L, 0b0101L, false), // More in value
-                Arguments.of(0L, 0L, true), // Both zero
-                Arguments.of(42L, 42L, true), // Same value
-                Arguments.of(42L, 43L, false) // Different values
+        return Stream.of(arguments(0b0101L, 0b0101L, true), // Exact match
+                arguments(0b0101L, 0b0111L, false), // More in mask
+                arguments(0b0111L, 0b0101L, false), // More in value
+                arguments(0L, 0L, true), // Both zero
+                arguments(42L, 42L, true), // Same value
+                arguments(42L, 43L, false) // Different values
         );
     }
 
@@ -127,16 +124,16 @@ class PermissionsFunctionLibraryTests {
         val actual     = PermissionsFunctionLibrary.hasOnly(Value.of(value), masksArray);
 
         assertThat(actual instanceof BooleanValue).isTrue();
-        assertThat(((BooleanValue) actual).value()).isEqualTo(expected);
+        assertThat(actual).isEqualTo(Value.of(expected));
     }
 
     private static Stream<Arguments> provideHasOnlyTestCases() {
-        return Stream.of(Arguments.of(0b0001L, new long[] { 0b0001L, 0b0010L }, true), // Subset
-                Arguments.of(0b0011L, new long[] { 0b0001L, 0b0010L }, true), // Exact
-                Arguments.of(0b0111L, new long[] { 0b0001L, 0b0010L }, false), // Extra bit
-                Arguments.of(0b0000L, new long[] { 0b0001L, 0b0010L }, true), // None is subset
-                Arguments.of(3L, new long[] { 1L, 2L, 4L }, true), // Within allowed
-                Arguments.of(8L, new long[] { 1L, 2L, 4L }, false) // Outside allowed
+        return Stream.of(arguments(0b0001L, new long[] { 0b0001L, 0b0010L }, true), // Subset
+                arguments(0b0011L, new long[] { 0b0001L, 0b0010L }, true), // Exact
+                arguments(0b0111L, new long[] { 0b0001L, 0b0010L }, false), // Extra bit
+                arguments(0b0000L, new long[] { 0b0001L, 0b0010L }, true), // None is subset
+                arguments(3L, new long[] { 1L, 2L, 4L }, true), // Within allowed
+                arguments(8L, new long[] { 1L, 2L, 4L }, false) // Outside allowed
         );
     }
 
@@ -147,15 +144,15 @@ class PermissionsFunctionLibraryTests {
         val actual     = PermissionsFunctionLibrary.combine(masksArray);
 
         assertThat(actual instanceof NumberValue).isTrue();
-        assertThat(((NumberValue) actual).value().longValue()).isEqualTo(expected);
+        assertThat(actual).isEqualTo(Value.of(expected));
     }
 
     private static Stream<Arguments> provideCombineTestCases() {
-        return Stream.of(Arguments.of(new long[] { 0b0001L, 0b0010L, 0b0100L }, 0b0111L), // OR three
-                Arguments.of(new long[] { 0b1111L, 0b0001L }, 0b1111L), // OR with superset
-                Arguments.of(new long[] { 1L, 2L, 4L, 8L }, 15L), // Power of 2s
-                Arguments.of(new long[] { 0L, 0L }, 0L), // All zeros
-                Arguments.of(new long[] { 5L, 3L }, 7L) // Overlapping bits
+        return Stream.of(arguments(new long[] { 0b0001L, 0b0010L, 0b0100L }, 0b0111L), // OR three
+                arguments(new long[] { 0b1111L, 0b0001L }, 0b1111L), // OR with superset
+                arguments(new long[] { 1L, 2L, 4L, 8L }, 15L), // Power of 2s
+                arguments(new long[] { 0L, 0L }, 0L), // All zeros
+                arguments(new long[] { 5L, 3L }, 7L) // Overlapping bits
         );
     }
 
@@ -166,14 +163,14 @@ class PermissionsFunctionLibraryTests {
         val actual     = PermissionsFunctionLibrary.combineAll(masksArray);
 
         assertThat(actual instanceof NumberValue).isTrue();
-        assertThat(((NumberValue) actual).value().longValue()).isEqualTo(expected);
+        assertThat(actual).isEqualTo(Value.of(expected));
     }
 
     private static Stream<Arguments> provideCombineAllTestCases() {
-        return Stream.of(Arguments.of(new long[] { 0b1111L, 0b0111L }, 0b0111L), // AND two
-                Arguments.of(new long[] { 0b1111L, 0b1111L }, 0b1111L), // AND identical
-                Arguments.of(new long[] { 15L, 7L, 3L }, 3L), // AND decreasing
-                Arguments.of(new long[] { 5L, 3L }, 1L) // AND with overlap
+        return Stream.of(arguments(new long[] { 0b1111L, 0b0111L }, 0b0111L), // AND two
+                arguments(new long[] { 0b1111L, 0b1111L }, 0b1111L), // AND identical
+                arguments(new long[] { 15L, 7L, 3L }, 3L), // AND decreasing
+                arguments(new long[] { 5L, 3L }, 1L) // AND with overlap
         );
     }
 
@@ -192,16 +189,16 @@ class PermissionsFunctionLibraryTests {
         val actual = PermissionsFunctionLibrary.isSubsetOf(Value.of(permissions), Value.of(superset));
 
         assertThat(actual instanceof BooleanValue).isTrue();
-        assertThat(((BooleanValue) actual).value()).isEqualTo(expected);
+        assertThat(actual).isEqualTo(Value.of(expected));
     }
 
     private static Stream<Arguments> provideIsSubsetOfTestCases() {
-        return Stream.of(Arguments.of(0b0001L, 0b0111L, true), // Subset
-                Arguments.of(0b0111L, 0b0001L, false), // Not subset
-                Arguments.of(0b0101L, 0b0101L, true), // Equal
-                Arguments.of(0b0000L, 0b1111L, true), // Empty is subset
-                Arguments.of(3L, 7L, true), // 3 is subset of 7
-                Arguments.of(8L, 7L, false) // 8 is not subset of 7
+        return Stream.of(arguments(0b0001L, 0b0111L, true), // Subset
+                arguments(0b0111L, 0b0001L, false), // Not subset
+                arguments(0b0101L, 0b0101L, true), // Equal
+                arguments(0b0000L, 0b1111L, true), // Empty is subset
+                arguments(3L, 7L, true), // 3 is subset of 7
+                arguments(8L, 7L, false) // 8 is not subset of 7
         );
     }
 
@@ -211,16 +208,16 @@ class PermissionsFunctionLibraryTests {
         val actual = PermissionsFunctionLibrary.overlaps(Value.of(permissions1), Value.of(permissions2));
 
         assertThat(actual instanceof BooleanValue).isTrue();
-        assertThat(((BooleanValue) actual).value()).isEqualTo(expected);
+        assertThat(actual).isEqualTo(Value.of(expected));
     }
 
     private static Stream<Arguments> provideOverlapsTestCases() {
-        return Stream.of(Arguments.of(0b0001L, 0b0001L, true), // Same bit
-                Arguments.of(0b0001L, 0b0010L, false), // Different bits
-                Arguments.of(0b0111L, 0b0100L, true), // Overlapping
-                Arguments.of(0b0000L, 0b1111L, false), // Zero overlaps nothing
-                Arguments.of(5L, 3L, true), // 5 & 3 = 1
-                Arguments.of(4L, 3L, false) // 4 & 3 = 0
+        return Stream.of(arguments(0b0001L, 0b0001L, true), // Same bit
+                arguments(0b0001L, 0b0010L, false), // Different bits
+                arguments(0b0111L, 0b0100L, true), // Overlapping
+                arguments(0b0000L, 0b1111L, false), // Zero overlaps nothing
+                arguments(5L, 3L, true), // 5 & 3 = 1
+                arguments(4L, 3L, false) // 4 & 3 = 0
         );
     }
 
@@ -230,16 +227,16 @@ class PermissionsFunctionLibraryTests {
         val actual = PermissionsFunctionLibrary.areDisjoint(Value.of(permissions1), Value.of(permissions2));
 
         assertThat(actual instanceof BooleanValue).isTrue();
-        assertThat(((BooleanValue) actual).value()).isEqualTo(expected);
+        assertThat(actual).isEqualTo(Value.of(expected));
     }
 
     private static Stream<Arguments> provideAreDisjointTestCases() {
-        return Stream.of(Arguments.of(0b0001L, 0b0010L, true), // Disjoint
-                Arguments.of(0b0001L, 0b0001L, false), // Not disjoint
-                Arguments.of(0b0111L, 0b1000L, true), // No overlap
-                Arguments.of(0b0000L, 0b1111L, true), // Zero is disjoint with all
-                Arguments.of(4L, 3L, true), // Disjoint
-                Arguments.of(5L, 3L, false) // Not disjoint
+        return Stream.of(arguments(0b0001L, 0b0010L, true), // Disjoint
+                arguments(0b0001L, 0b0001L, false), // Not disjoint
+                arguments(0b0111L, 0b1000L, true), // No overlap
+                arguments(0b0000L, 0b1111L, true), // Zero is disjoint with all
+                arguments(4L, 3L, true), // Disjoint
+                arguments(5L, 3L, false) // Not disjoint
         );
     }
 
@@ -256,20 +253,20 @@ class PermissionsFunctionLibraryTests {
         assertThat(actualGroup instanceof NumberValue).isTrue();
         assertThat(actualOther instanceof NumberValue).isTrue();
 
-        assertThat(((NumberValue) actualOwner).value().longValue()).isEqualTo(owner);
-        assertThat(((NumberValue) actualGroup).value().longValue()).isEqualTo(group);
-        assertThat(((NumberValue) actualOther).value().longValue()).isEqualTo(other);
+        assertThat(actualOwner).isEqualTo(Value.of(owner));
+        assertThat(actualGroup).isEqualTo(Value.of(group));
+        assertThat(actualOther).isEqualTo(Value.of(other));
     }
 
     private static Stream<Arguments> provideUnixExtractTestCases() {
-        return Stream.of(Arguments.of(493L, 7L, 5L, 5L), // 493 = 0755 (rwxr-xr-x)
-                Arguments.of(420L, 6L, 4L, 4L), // 420 = 0644 (rw-r--r--)
-                Arguments.of(511L, 7L, 7L, 7L), // 511 = 0777 (rwxrwxrwx)
-                Arguments.of(384L, 6L, 0L, 0L), // 384 = 0600 (rw-------)
-                Arguments.of(438L, 6L, 6L, 6L), // 438 = 0666 (rw-rw-rw-)
-                Arguments.of(0L, 0L, 0L, 0L), // 0 = 0000 (---------)
-                Arguments.of(256L, 4L, 0L, 0L), // 256 = 0400 (r--------)
-                Arguments.of(73L, 1L, 1L, 1L) // 73 = 0111 (--x--x--x)
+        return Stream.of(arguments(493L, 7L, 5L, 5L), // 493 = 0755 (rwxr-xr-x)
+                arguments(420L, 6L, 4L, 4L), // 420 = 0644 (rw-r--r--)
+                arguments(511L, 7L, 7L, 7L), // 511 = 0777 (rwxrwxrwx)
+                arguments(384L, 6L, 0L, 0L), // 384 = 0600 (rw-------)
+                arguments(438L, 6L, 6L, 6L), // 438 = 0666 (rw-rw-rw-)
+                arguments(0L, 0L, 0L, 0L), // 0 = 0000 (---------)
+                arguments(256L, 4L, 0L, 0L), // 256 = 0400 (r--------)
+                arguments(73L, 1L, 1L, 1L) // 73 = 0111 (--x--x--x)
         );
     }
 
@@ -279,18 +276,18 @@ class PermissionsFunctionLibraryTests {
         val actual = PermissionsFunctionLibrary.unixMode(Value.of(owner), Value.of(group), Value.of(other));
 
         assertThat(actual instanceof NumberValue).isTrue();
-        assertThat(((NumberValue) actual).value().longValue()).isEqualTo(expected);
+        assertThat(actual).isEqualTo(Value.of(expected));
     }
 
     private static Stream<Arguments> provideUnixModeTestCases() {
-        return Stream.of(Arguments.of(7L, 5L, 5L, 493L), // rwxr-xr-x = 0755
-                Arguments.of(6L, 4L, 4L, 420L), // rw-r--r-- = 0644
-                Arguments.of(7L, 7L, 7L, 511L), // rwxrwxrwx = 0777
-                Arguments.of(6L, 0L, 0L, 384L), // rw------- = 0600
-                Arguments.of(6L, 6L, 6L, 438L), // rw-rw-rw- = 0666
-                Arguments.of(0L, 0L, 0L, 0L), // --------- = 0000
-                Arguments.of(4L, 0L, 0L, 256L), // r-------- = 0400
-                Arguments.of(1L, 1L, 1L, 73L) // --x--x--x = 0111
+        return Stream.of(arguments(7L, 5L, 5L, 493L), // rwxr-xr-x = 0755
+                arguments(6L, 4L, 4L, 420L), // rw-r--r-- = 0644
+                arguments(7L, 7L, 7L, 511L), // rwxrwxrwx = 0777
+                arguments(6L, 0L, 0L, 384L), // rw------- = 0600
+                arguments(6L, 6L, 6L, 438L), // rw-rw-rw- = 0666
+                arguments(0L, 0L, 0L, 0L), // --------- = 0000
+                arguments(4L, 0L, 0L, 256L), // r-------- = 0400
+                arguments(1L, 1L, 1L, 73L) // --x--x--x = 0111
         );
     }
 
@@ -314,20 +311,20 @@ class PermissionsFunctionLibraryTests {
         assertThat(actualWrite instanceof BooleanValue).isTrue();
         assertThat(actualExecute instanceof BooleanValue).isTrue();
 
-        assertThat(((BooleanValue) actualRead).value()).isEqualTo(canRead);
-        assertThat(((BooleanValue) actualWrite).value()).isEqualTo(canWrite);
-        assertThat(((BooleanValue) actualExecute).value()).isEqualTo(canExecute);
+        assertThat(actualRead).isEqualTo(Value.of(canRead));
+        assertThat(actualWrite).isEqualTo(Value.of(canWrite));
+        assertThat(actualExecute).isEqualTo(Value.of(canExecute));
     }
 
     private static Stream<Arguments> provideUnixCanCheckTestCases() {
-        return Stream.of(Arguments.of(0L, false, false, false), // ---
-                Arguments.of(1L, false, false, true), // --x
-                Arguments.of(2L, false, true, false), // -w-
-                Arguments.of(3L, false, true, true), // -wx
-                Arguments.of(4L, true, false, false), // r--
-                Arguments.of(5L, true, false, true), // r-x
-                Arguments.of(6L, true, true, false), // rw-
-                Arguments.of(7L, true, true, true) // rwx
+        return Stream.of(arguments(0L, false, false, false), // ---
+                arguments(1L, false, false, true), // --x
+                arguments(2L, false, true, false), // -w-
+                arguments(3L, false, true, true), // -wx
+                arguments(4L, true, false, false), // r--
+                arguments(5L, true, false, true), // r-x
+                arguments(6L, true, true, false), // rw-
+                arguments(7L, true, true, true) // rwx
         );
     }
 
@@ -335,23 +332,23 @@ class PermissionsFunctionLibraryTests {
 
     @Test
     void when_posixConstants_then_returnCorrectValues() {
-        assertThat(((NumberValue) PermissionsFunctionLibrary.posixRead()).value().longValue()).isEqualTo(4L);
-        assertThat(((NumberValue) PermissionsFunctionLibrary.posixWrite()).value().longValue()).isEqualTo(2L);
-        assertThat(((NumberValue) PermissionsFunctionLibrary.posixExecute()).value().longValue()).isEqualTo(1L);
-        assertThat(((NumberValue) PermissionsFunctionLibrary.posixAll()).value().longValue()).isEqualTo(7L);
-        assertThat(((NumberValue) PermissionsFunctionLibrary.posixNone()).value().longValue()).isZero();
-        assertThat(((NumberValue) PermissionsFunctionLibrary.posixRW()).value().longValue()).isEqualTo(6L);
-        assertThat(((NumberValue) PermissionsFunctionLibrary.posixRX()).value().longValue()).isEqualTo(5L);
-        assertThat(((NumberValue) PermissionsFunctionLibrary.posixWX()).value().longValue()).isEqualTo(3L);
+        assertThat(PermissionsFunctionLibrary.posixRead()).isEqualTo(Value.of(4L));
+        assertThat(PermissionsFunctionLibrary.posixWrite()).isEqualTo(Value.of(2L));
+        assertThat(PermissionsFunctionLibrary.posixExecute()).isEqualTo(Value.of(1L));
+        assertThat(PermissionsFunctionLibrary.posixAll()).isEqualTo(Value.of(7L));
+        assertThat(PermissionsFunctionLibrary.posixNone()).isEqualTo(Value.of(0L));
+        assertThat(PermissionsFunctionLibrary.posixRW()).isEqualTo(Value.of(6L));
+        assertThat(PermissionsFunctionLibrary.posixRX()).isEqualTo(Value.of(5L));
+        assertThat(PermissionsFunctionLibrary.posixWX()).isEqualTo(Value.of(3L));
     }
 
     @Test
     void when_posixModeConstants_then_returnCorrectValues() {
-        assertThat(((NumberValue) PermissionsFunctionLibrary.posixMode755()).value().longValue()).isEqualTo(493L);
-        assertThat(((NumberValue) PermissionsFunctionLibrary.posixMode644()).value().longValue()).isEqualTo(420L);
-        assertThat(((NumberValue) PermissionsFunctionLibrary.posixMode777()).value().longValue()).isEqualTo(511L);
-        assertThat(((NumberValue) PermissionsFunctionLibrary.posixMode600()).value().longValue()).isEqualTo(384L);
-        assertThat(((NumberValue) PermissionsFunctionLibrary.posixMode666()).value().longValue()).isEqualTo(438L);
+        assertThat(PermissionsFunctionLibrary.posixMode755()).isEqualTo(Value.of(493L));
+        assertThat(PermissionsFunctionLibrary.posixMode644()).isEqualTo(Value.of(420L));
+        assertThat(PermissionsFunctionLibrary.posixMode777()).isEqualTo(Value.of(511L));
+        assertThat(PermissionsFunctionLibrary.posixMode600()).isEqualTo(Value.of(384L));
+        assertThat(PermissionsFunctionLibrary.posixMode666()).isEqualTo(Value.of(438L));
     }
 
     /* Manipulation Tests */
@@ -363,15 +360,15 @@ class PermissionsFunctionLibraryTests {
         val actual     = PermissionsFunctionLibrary.grant(Value.of(current), grantArray);
 
         assertThat(actual instanceof NumberValue).isTrue();
-        assertThat(((NumberValue) actual).value().longValue()).isEqualTo(expected);
+        assertThat(actual).isEqualTo(Value.of(expected));
     }
 
     private static Stream<Arguments> provideGrantTestCases() {
-        return Stream.of(Arguments.of(0b0000L, new long[] { 0b0001L, 0b0010L }, 0b0011L), // Add to empty
-                Arguments.of(0b0001L, new long[] { 0b0010L, 0b0100L }, 0b0111L), // Add to existing
-                Arguments.of(0b0111L, new long[] { 0b0001L, 0b0010L }, 0b0111L), // Add already present
-                Arguments.of(0L, new long[] { 1L, 2L, 4L }, 7L), // Grant multiple
-                Arguments.of(8L, new long[] { 1L, 2L }, 11L) // Add to existing
+        return Stream.of(arguments(0b0000L, new long[] { 0b0001L, 0b0010L }, 0b0011L), // Add to empty
+                arguments(0b0001L, new long[] { 0b0010L, 0b0100L }, 0b0111L), // Add to existing
+                arguments(0b0111L, new long[] { 0b0001L, 0b0010L }, 0b0111L), // Add already present
+                arguments(0L, new long[] { 1L, 2L, 4L }, 7L), // Grant multiple
+                arguments(8L, new long[] { 1L, 2L }, 11L) // Add to existing
         );
     }
 
@@ -382,15 +379,15 @@ class PermissionsFunctionLibraryTests {
         val actual      = PermissionsFunctionLibrary.revoke(Value.of(current), revokeArray);
 
         assertThat(actual instanceof NumberValue).isTrue();
-        assertThat(((NumberValue) actual).value().longValue()).isEqualTo(expected);
+        assertThat(actual).isEqualTo(Value.of(expected));
     }
 
     private static Stream<Arguments> provideRevokeTestCases() {
-        return Stream.of(Arguments.of(0b0111L, new long[] { 0b0001L, 0b0010L }, 0b0100L), // Remove some
-                Arguments.of(0b0111L, new long[] { 0b0111L }, 0b0000L), // Remove all
-                Arguments.of(0b0111L, new long[] { 0b1000L }, 0b0111L), // Remove non-present
-                Arguments.of(15L, new long[] { 1L, 2L }, 12L), // Revoke specific
-                Arguments.of(7L, new long[] { 4L, 2L }, 1L) // Revoke multiple
+        return Stream.of(arguments(0b0111L, new long[] { 0b0001L, 0b0010L }, 0b0100L), // Remove some
+                arguments(0b0111L, new long[] { 0b0111L }, 0b0000L), // Remove all
+                arguments(0b0111L, new long[] { 0b1000L }, 0b0111L), // Remove non-present
+                arguments(15L, new long[] { 1L, 2L }, 12L), // Revoke specific
+                arguments(7L, new long[] { 4L, 2L }, 1L) // Revoke multiple
         );
     }
 
@@ -401,15 +398,15 @@ class PermissionsFunctionLibraryTests {
         val actual      = PermissionsFunctionLibrary.toggle(Value.of(current), toggleArray);
 
         assertThat(actual instanceof NumberValue).isTrue();
-        assertThat(((NumberValue) actual).value().longValue()).isEqualTo(expected);
+        assertThat(actual).isEqualTo(Value.of(expected));
     }
 
     private static Stream<Arguments> provideToggleTestCases() {
-        return Stream.of(Arguments.of(0b0000L, new long[] { 0b0001L, 0b0010L }, 0b0011L), // Toggle on
-                Arguments.of(0b0011L, new long[] { 0b0001L, 0b0010L }, 0b0000L), // Toggle off
-                Arguments.of(0b0101L, new long[] { 0b0001L, 0b0010L }, 0b0110L), // Toggle mixed
-                Arguments.of(0L, new long[] { 1L, 2L }, 3L), // Toggle from zero
-                Arguments.of(7L, new long[] { 1L, 2L }, 4L) // Toggle some
+        return Stream.of(arguments(0b0000L, new long[] { 0b0001L, 0b0010L }, 0b0011L), // Toggle on
+                arguments(0b0011L, new long[] { 0b0001L, 0b0010L }, 0b0000L), // Toggle off
+                arguments(0b0101L, new long[] { 0b0001L, 0b0010L }, 0b0110L), // Toggle mixed
+                arguments(0L, new long[] { 1L, 2L }, 3L), // Toggle from zero
+                arguments(7L, new long[] { 1L, 2L }, 4L) // Toggle some
         );
     }
 
@@ -418,23 +415,20 @@ class PermissionsFunctionLibraryTests {
     @Test
     void when_none_then_returnsZero() {
         val actual = PermissionsFunctionLibrary.none();
-        assertThat(actual instanceof NumberValue).isTrue();
-        assertThat(((NumberValue) actual).value().longValue()).isZero();
+        assertThat(actual).isInstanceOf(NumberValue.class).isEqualTo(Value.of(0L));
     }
 
     @Test
     void when_all_then_returnsMinusOne() {
         val actual = PermissionsFunctionLibrary.all();
-        assertThat(actual instanceof NumberValue).isTrue();
-        assertThat(((NumberValue) actual).value().longValue()).isEqualTo(-1L);
+        assertThat(actual).isInstanceOf(NumberValue.class).isEqualTo(Value.of(-1L));
     }
 
     @ParameterizedTest
     @ValueSource(longs = { 0L, 1L, 2L, 31L, 32L, 63L })
     void when_bit_withValidPosition_then_returnsSingleBit(long position) {
         val actual = PermissionsFunctionLibrary.bit(Value.of(position));
-        assertThat(actual instanceof NumberValue).isTrue();
-        assertThat(((NumberValue) actual).value().longValue()).isEqualTo(1L << position);
+        assertThat(actual).isInstanceOf(NumberValue.class).isEqualTo(Value.of(1L << position));
     }
 
     @ParameterizedTest
@@ -477,8 +471,7 @@ class PermissionsFunctionLibraryTests {
     void when_combine_withIntegralEquivalentNumbers_then_succeeds() {
         val array  = ArrayValue.builder().add(Value.of(1.0)).add(Value.of(2.00)).add(Value.of(4)).build();
         val actual = PermissionsFunctionLibrary.combine(array);
-        assertThat(actual instanceof NumberValue).isTrue();
-        assertThat(((NumberValue) actual).value().longValue()).isEqualTo(7L);
+        assertThat(actual).isInstanceOf(NumberValue.class).isEqualTo(Value.of(7L));
     }
 
     /* Integration Tests */
@@ -491,21 +484,16 @@ class PermissionsFunctionLibraryTests {
 
         // Extract owner permissions
         val ownerPerms = PermissionsFunctionLibrary.unixOwner((NumberValue) mode);
-        assertThat(ownerPerms instanceof NumberValue).isTrue();
-        assertThat(((NumberValue) ownerPerms).value().longValue()).isEqualTo(7L);
+        assertThat(ownerPerms).isInstanceOf(NumberValue.class).isEqualTo(Value.of(7L));
 
         // Check owner can read, write, execute
         val canRead    = PermissionsFunctionLibrary.unixCanRead((NumberValue) ownerPerms);
         val canWrite   = PermissionsFunctionLibrary.unixCanWrite((NumberValue) ownerPerms);
         val canExecute = PermissionsFunctionLibrary.unixCanExecute((NumberValue) ownerPerms);
 
-        assertThat(canRead instanceof BooleanValue).isTrue();
-        assertThat(canWrite instanceof BooleanValue).isTrue();
-        assertThat(canExecute instanceof BooleanValue).isTrue();
-
-        assertThat(((BooleanValue) canRead).value()).isTrue();
-        assertThat(((BooleanValue) canWrite).value()).isTrue();
-        assertThat(((BooleanValue) canExecute).value()).isTrue();
+        assertThat(canRead).isInstanceOf(BooleanValue.class).isEqualTo(Value.TRUE);
+        assertThat(canWrite).isInstanceOf(BooleanValue.class).isEqualTo(Value.TRUE);
+        assertThat(canExecute).isInstanceOf(BooleanValue.class).isEqualTo(Value.TRUE);
     }
 
     @Test
@@ -514,20 +502,17 @@ class PermissionsFunctionLibraryTests {
 
         // Grant permissions
         val afterGrant = PermissionsFunctionLibrary.grant(initial, createLongArray(new long[] { 0b0010L, 0b0100L }));
-        assertThat(afterGrant instanceof NumberValue).isTrue();
-        assertThat(((NumberValue) afterGrant).value().longValue()).isEqualTo(0b0111L);
+        assertThat(afterGrant).isInstanceOf(NumberValue.class).isEqualTo(Value.of(0b0111L));
 
         // Revoke one permission
         val afterRevoke = PermissionsFunctionLibrary.revoke((NumberValue) afterGrant,
                 createLongArray(new long[] { 0b0010L }));
-        assertThat(afterRevoke instanceof NumberValue).isTrue();
-        assertThat(((NumberValue) afterRevoke).value().longValue()).isEqualTo(0b0101L);
+        assertThat(afterRevoke).isInstanceOf(NumberValue.class).isEqualTo(Value.of(0b0101L));
 
         // Toggle permissions
         val afterToggle = PermissionsFunctionLibrary.toggle((NumberValue) afterRevoke,
                 createLongArray(new long[] { 0b0001L, 0b1000L }));
-        assertThat(afterToggle instanceof NumberValue).isTrue();
-        assertThat(((NumberValue) afterToggle).value().longValue()).isEqualTo(0b1100L);
+        assertThat(afterToggle).isInstanceOf(NumberValue.class).isEqualTo(Value.of(0b1100L));
     }
 
     @Test
@@ -539,8 +524,7 @@ class PermissionsFunctionLibraryTests {
         val array = ArrayValue.builder().add(read).add(write).add(execute).build();
 
         val combined = PermissionsFunctionLibrary.combine(array);
-        assertThat(combined instanceof NumberValue).isTrue();
-        assertThat(((NumberValue) combined).value().longValue()).isEqualTo(7L);
+        assertThat(combined).isInstanceOf(NumberValue.class).isEqualTo(Value.of(7L));
     }
 
     /* Helper Methods */

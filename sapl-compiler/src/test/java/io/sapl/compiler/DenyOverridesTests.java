@@ -17,7 +17,6 @@
  */
 package io.sapl.compiler;
 
-import io.sapl.api.model.Value;
 import io.sapl.api.pdp.Decision;
 import lombok.val;
 import org.junit.jupiter.params.ParameterizedTest;

@@ -17,13 +17,7 @@
  */
 package io.sapl.functions.libraries;
 
-import io.sapl.api.model.ArrayValue;
-import io.sapl.api.model.BooleanValue;
-import io.sapl.api.model.NumberValue;
-import io.sapl.api.model.ObjectValue;
-import io.sapl.api.model.Value;
-import io.sapl.api.model.TextValue;
-import io.sapl.api.model.ErrorValue;
+import io.sapl.api.model.*;
 import io.sapl.functions.util.crypto.CertificateUtils;
 import lombok.val;
 import org.bouncycastle.asn1.DEROctetString;
@@ -59,6 +53,7 @@ import java.time.temporal.ChronoUnit;
 import java.util.Base64;
 import java.util.Date;
 import java.util.HexFormat;
+import java.util.Objects;
 import java.util.function.Function;
 import java.util.stream.Stream;
 
@@ -109,12 +104,12 @@ class X509FunctionLibraryTests {
         assertThat(jsonNode.containsKey("serialNumber")).as("%s: should have serialNumber", description).isTrue();
         assertThat(jsonNode.containsKey("notBefore")).as("%s: should have notBefore", description).isTrue();
         assertThat(jsonNode.containsKey("notAfter")).as("%s: should have notAfter", description).isTrue();
-        assertThat(getTextValue(jsonNode, "subject")).as("%s: subject should contain expected content", description)
+        assertThat(getTextValue(jsonNode)).as("%s: subject should contain expected content", description)
                 .contains(expectedFragment);
     }
 
-    private static String getTextValue(ObjectValue obj, String field) {
-        return ((TextValue) obj.get(field)).value();
+    private static String getTextValue(ObjectValue obj) {
+        return ((TextValue) Objects.requireNonNull(obj.get("subject"))).value();
     }
 
     static Stream<Arguments> validCertificates() throws OperatorCreationException, CertificateException, IOException {
@@ -238,13 +233,13 @@ class X509FunctionLibraryTests {
         val expectedFingerprint = HexFormat.of().formatHex(digest.digest(cert.getEncoded()));
 
         assertThat(X509FunctionLibrary.matchesFingerprint(Value.of(cthulhuCertPem), Value.of(expectedFingerprint),
-                Value.of("SHA-256"))).isEqualTo(Value.of(true));
+                Value.of("SHA-256"))).isEqualTo(Value.TRUE);
     }
 
     @Test
     void matchesFingerprint_whenWrongFingerprint_returnsFalse() {
         assertThat(X509FunctionLibrary.matchesFingerprint(Value.of(cthulhuCertPem), Value.of("deadbeefdeadbeef"),
-                Value.of("SHA-256"))).isEqualTo(Value.of(false));
+                Value.of("SHA-256"))).isEqualTo(Value.FALSE);
     }
 
     @Test
@@ -254,9 +249,9 @@ class X509FunctionLibraryTests {
         val fingerprint = HexFormat.of().formatHex(digest.digest(cert.getEncoded()));
 
         assertThat(X509FunctionLibrary.matchesFingerprint(Value.of(cthulhuCertPem), Value.of(fingerprint.toLowerCase()),
-                Value.of("SHA-256"))).isEqualTo(Value.of(true));
+                Value.of("SHA-256"))).isEqualTo(Value.TRUE);
         assertThat(X509FunctionLibrary.matchesFingerprint(Value.of(cthulhuCertPem), Value.of(fingerprint.toUpperCase()),
-                Value.of("SHA-256"))).isEqualTo(Value.of(true));
+                Value.of("SHA-256"))).isEqualTo(Value.TRUE);
     }
 
     /* Subject Alternative Names Tests */
@@ -275,7 +270,7 @@ class X509FunctionLibraryTests {
         assertThat(result).isNotInstanceOf(ErrorValue.class).isInstanceOf(ArrayValue.class);
         assertThat(((ArrayValue) result).isEmpty()).isFalse();
 
-        val firstSan = (ObjectValue) ((ArrayValue) result).get(0);
+        val firstSan = (ObjectValue) ((ArrayValue) result).getFirst();
         assertThat(firstSan.containsKey("type")).isTrue();
         assertThat(firstSan.containsKey("value")).isTrue();
     }
@@ -287,7 +282,7 @@ class X509FunctionLibraryTests {
         val result = X509FunctionLibrary.hasDnsName((TextValue) Value.of(certWithSansPem),
                 (TextValue) Value.of(DEFAULT_DNS_1));
 
-        assertThat(result).isEqualTo(Value.of(true));
+        assertThat(result).isEqualTo(Value.TRUE);
     }
 
     @Test
@@ -295,7 +290,7 @@ class X509FunctionLibraryTests {
         val result = X509FunctionLibrary.hasDnsName((TextValue) Value.of(certWithSansPem),
                 (TextValue) Value.of("miskatonic-university.edu"));
 
-        assertThat(result).isEqualTo(Value.of(false));
+        assertThat(result).isEqualTo(Value.FALSE);
     }
 
     @Test
@@ -309,7 +304,7 @@ class X509FunctionLibraryTests {
         val result = X509FunctionLibrary.hasDnsName((TextValue) Value.of(pem),
                 (TextValue) Value.of("temple.rlyeh.deep"));
 
-        assertThat(result).isEqualTo(Value.of(true));
+        assertThat(result).isEqualTo(Value.TRUE);
     }
 
     @ParameterizedTest
@@ -318,7 +313,7 @@ class X509FunctionLibraryTests {
         val result = X509FunctionLibrary.hasDnsName((TextValue) Value.of(certWithSansPem),
                 (TextValue) Value.of(dnsVariation));
 
-        assertThat(result).isEqualTo(Value.of(true));
+        assertThat(result).isEqualTo(Value.TRUE);
     }
 
     /* IP Address Tests */
@@ -328,7 +323,7 @@ class X509FunctionLibraryTests {
         val result = X509FunctionLibrary.hasIpAddress((TextValue) Value.of(certWithSansPem),
                 (TextValue) Value.of(DEFAULT_IP));
 
-        assertThat(result).isEqualTo(Value.of(true));
+        assertThat(result).isEqualTo(Value.TRUE);
     }
 
     @Test
@@ -336,7 +331,7 @@ class X509FunctionLibraryTests {
         val result = X509FunctionLibrary.hasIpAddress((TextValue) Value.of(certWithSansPem),
                 (TextValue) Value.of("10.0.0.1"));
 
-        assertThat(result).isEqualTo(Value.of(false));
+        assertThat(result).isEqualTo(Value.FALSE);
     }
 
     @Test
@@ -344,7 +339,7 @@ class X509FunctionLibraryTests {
         val result = X509FunctionLibrary.hasIpAddress((TextValue) Value.of(cthulhuCertPem),
                 (TextValue) Value.of(DEFAULT_IP));
 
-        assertThat(result).isEqualTo(Value.of(false));
+        assertThat(result).isEqualTo(Value.FALSE);
     }
 
     /* Validity Check Tests */
@@ -386,7 +381,7 @@ class X509FunctionLibraryTests {
         val result    = X509FunctionLibrary.isValidAt((TextValue) Value.of(cthulhuCertPem),
                 (TextValue) Value.of(timestamp));
 
-        assertThat(result).isEqualTo(Value.of(true));
+        assertThat(result).isEqualTo(Value.TRUE);
     }
 
     static Stream<Arguments> boundaryTimestamps() {
@@ -472,9 +467,9 @@ class X509FunctionLibraryTests {
         val validAfter  = X509FunctionLibrary.isValidAt((TextValue) Value.of(certPem),
                 (TextValue) Value.of(now.plus(2, ChronoUnit.HOURS).toString()));
 
-        assertThat(validNow).isEqualTo(Value.of(true));
-        assertThat(validBefore).isEqualTo(Value.of(false));
-        assertThat(validAfter).isEqualTo(Value.of(false));
+        assertThat(validNow).isEqualTo(Value.TRUE);
+        assertThat(validBefore).isEqualTo(Value.FALSE);
+        assertThat(validAfter).isEqualTo(Value.FALSE);
     }
 
     /* Helper Methods */

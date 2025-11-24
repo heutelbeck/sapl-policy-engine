@@ -24,8 +24,10 @@ import io.sapl.api.pdp.Decision;
 import lombok.val;
 import org.junit.jupiter.api.Test;
 
-import static io.sapl.util.CombiningAlgorithmTestUtil.*;
-import static org.junit.jupiter.api.Assertions.*;
+import static io.sapl.util.CombiningAlgorithmTestUtil.assertDecision;
+import static io.sapl.util.CombiningAlgorithmTestUtil.evaluatePolicySet;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 
 /**
  * Legacy tests for policy sets, replicating tests from sapl-lang's
@@ -295,7 +297,7 @@ class LegacyPolicySetTests {
         val obligationsField = ((ObjectValue) result).get("obligations");
         assertInstanceOf(ArrayValue.class, obligationsField);
         val obligations = (ArrayValue) obligationsField;
-        assertEquals(1, obligations.size());
+        assertThat(obligations).hasSize(1);
     }
 
     @Test
@@ -310,7 +312,7 @@ class LegacyPolicySetTests {
         val adviceField = ((ObjectValue) result).get("advice");
         assertInstanceOf(ArrayValue.class, adviceField);
         val advice = (ArrayValue) adviceField;
-        assertEquals(1, advice.size());
+        assertThat(advice).hasSize(1);
     }
 
     @Test
@@ -326,7 +328,7 @@ class LegacyPolicySetTests {
         assertInstanceOf(ObjectValue.class, resourceField);
         val modified = ((ObjectValue) resourceField).get("modified");
         assertInstanceOf(BooleanValue.class, modified);
-        assertTrue(((BooleanValue) modified).value());
+        assertThat(((BooleanValue) modified).value()).isTrue();
     }
 
     @Test

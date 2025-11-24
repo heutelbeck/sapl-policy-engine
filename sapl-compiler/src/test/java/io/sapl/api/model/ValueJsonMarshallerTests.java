@@ -31,6 +31,7 @@ import java.util.Objects;
 import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.*;
+import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 /**
  * Comprehensive test suite for ValueJsonMarshaller. Tests cover round-trip
@@ -64,8 +65,8 @@ class ValueJsonMarshallerTests {
     }
 
     static Stream<Arguments> nullValues() {
-        return Stream.of(Arguments.of("singleton", Value.NULL), Arguments.of("non-secret", new NullValue(false)),
-                Arguments.of("secret", new NullValue(true)));
+        return Stream.of(arguments("singleton", Value.NULL), arguments("non-secret", new NullValue(false)),
+                arguments("secret", new NullValue(true)));
     }
 
     @ParameterizedTest(name = "round-trip boolean: {0}")
@@ -93,12 +94,12 @@ class ValueJsonMarshallerTests {
     }
 
     static Stream<Arguments> numberValues() {
-        return Stream.of(Arguments.of(BigDecimal.ZERO), Arguments.of(BigDecimal.ONE), Arguments.of(BigDecimal.TEN),
-                Arguments.of(new BigDecimal("-1")), Arguments.of(new BigDecimal("3.14159")),
-                Arguments.of(new BigDecimal("42.42")),
-                Arguments.of(new BigDecimal("999999999999999999999999999999.999999999999")),
-                Arguments.of(new BigDecimal("-0.00000000000000000001")), Arguments.of(new BigDecimal(SANITY_THRESHOLD)),
-                Arguments.of(new BigDecimal(HORROR_LEVEL_MAX)));
+        return Stream.of(arguments(BigDecimal.ZERO), arguments(BigDecimal.ONE), arguments(BigDecimal.TEN),
+                arguments(new BigDecimal("-1")), arguments(new BigDecimal("3.14159")),
+                arguments(new BigDecimal("42.42")),
+                arguments(new BigDecimal("999999999999999999999999999999.999999999999")),
+                arguments(new BigDecimal("-0.00000000000000000001")), arguments(new BigDecimal(SANITY_THRESHOLD)),
+                arguments(new BigDecimal(HORROR_LEVEL_MAX)));
     }
 
     @ParameterizedTest(name = "round-trip text: {0}")
@@ -114,11 +115,11 @@ class ValueJsonMarshallerTests {
     }
 
     static Stream<Arguments> textValues() {
-        return Stream.of(Arguments.of("empty", ""), Arguments.of("space", " "), Arguments.of("simple", "simple"),
-                Arguments.of("entity", ENTITY_CTHULHU),
-                Arguments.of("incantation", "Ph'nglui mglw'nafh Cthulhu R'lyeh wgah'nagl fhtagn"),
-                Arguments.of("unicode", "日本語 中文 한국어 العربية"), Arguments.of("special", "\n\t\r\"'\\"),
-                Arguments.of("emoji", "🐙🦑👁️"), Arguments.of("long", "a".repeat(10000)));
+        return Stream.of(arguments("empty", ""), arguments("space", " "), arguments("simple", "simple"),
+                arguments("entity", ENTITY_CTHULHU),
+                arguments("incantation", "Ph'nglui mglw'nafh Cthulhu R'lyeh wgah'nagl fhtagn"),
+                arguments("unicode", "日本語 中文 한국어 العربية"), arguments("special", "\n\t\r\"'\\"),
+                arguments("emoji", "🐙🦑👁️"), arguments("long", "a".repeat(10000)));
     }
 
     @ParameterizedTest(name = "round-trip double: {0}")
@@ -132,9 +133,8 @@ class ValueJsonMarshallerTests {
     }
 
     static Stream<Arguments> doubleValues() {
-        return Stream.of(Arguments.of("zero", 0.0), Arguments.of("negative zero", -0.0),
-                Arguments.of("min", Double.MIN_VALUE), Arguments.of("max", Double.MAX_VALUE), Arguments.of("e", Math.E),
-                Arguments.of("pi", Math.PI));
+        return Stream.of(arguments("zero", 0.0), arguments("negative zero", -0.0), arguments("min", Double.MIN_VALUE),
+                arguments("max", Double.MAX_VALUE), arguments("e", Math.E), arguments("pi", Math.PI));
     }
 
     @Test
@@ -162,8 +162,8 @@ class ValueJsonMarshallerTests {
     }
 
     static Stream<Arguments> emptyCollections() {
-        return Stream.of(Arguments.of("array", Value.EMPTY_ARRAY, ArrayValue.class),
-                Arguments.of("object", Value.EMPTY_OBJECT, ObjectValue.class));
+        return Stream.of(arguments("array", Value.EMPTY_ARRAY, ArrayValue.class),
+                arguments("object", Value.EMPTY_OBJECT, ObjectValue.class));
     }
 
     @Test
@@ -296,9 +296,8 @@ class ValueJsonMarshallerTests {
 
     static Stream<Arguments> specialJsonNodes() {
         var objectNode = FACTORY.objectNode();
-        return Stream.of(Arguments.of("null", null, Value.NULL),
-                Arguments.of("null node", FACTORY.nullNode(), Value.NULL),
-                Arguments.of("missing node", objectNode.get("nonexistent"), Value.NULL));
+        return Stream.of(arguments("null", null, Value.NULL), arguments("null node", FACTORY.nullNode(), Value.NULL),
+                arguments("missing node", objectNode.get("nonexistent"), Value.NULL));
     }
 
     @ParameterizedTest(name = "fromJsonNode returns error for: {0}")
@@ -311,8 +310,8 @@ class ValueJsonMarshallerTests {
     }
 
     static Stream<Arguments> unsupportedJsonNodes() {
-        return Stream.of(Arguments.of("binary", FACTORY.binaryNode(new byte[] { 0x01, 0x02, 0x03 })),
-                Arguments.of("pojo", FACTORY.pojoNode(new Object())));
+        return Stream.of(arguments("binary", FACTORY.binaryNode(new byte[] { 0x01, 0x02, 0x03 })),
+                arguments("pojo", FACTORY.pojoNode(new Object())));
     }
 
     // ============================================================
@@ -327,10 +326,10 @@ class ValueJsonMarshallerTests {
     }
 
     static Stream<Arguments> excessivelyDeepValueStructures() {
-        return Stream.of(Arguments.of("arrays", createDeeplyNestedArray(MALICIOUS_DEPTH)),
-                Arguments.of("objects", createDeeplyNestedObject(MALICIOUS_DEPTH)),
-                Arguments.of("mixed", createDeeplyNestedMixed(MALICIOUS_DEPTH)),
-                Arguments.of("auth context", createMaliciousAuthorizationContext(MALICIOUS_DEPTH)));
+        return Stream.of(arguments("arrays", createDeeplyNestedArray(MALICIOUS_DEPTH)),
+                arguments("objects", createDeeplyNestedObject(MALICIOUS_DEPTH)),
+                arguments("mixed", createDeeplyNestedMixed(MALICIOUS_DEPTH)),
+                arguments("auth context", createMaliciousAuthorizationContext(MALICIOUS_DEPTH)));
     }
 
     @Test
@@ -350,8 +349,8 @@ class ValueJsonMarshallerTests {
     }
 
     static Stream<Arguments> excessivelyDeepJsonNodes() {
-        return Stream.of(Arguments.of("arrays", createDeeplyNestedJsonArray(MALICIOUS_DEPTH)),
-                Arguments.of("objects", createDeeplyNestedJsonObject(MALICIOUS_DEPTH)));
+        return Stream.of(arguments("arrays", createDeeplyNestedJsonArray(MALICIOUS_DEPTH)),
+                arguments("objects", createDeeplyNestedJsonObject(MALICIOUS_DEPTH)));
     }
 
     @Test
@@ -386,10 +385,9 @@ class ValueJsonMarshallerTests {
             largeObjectBuilder.put("cultist-" + i, Value.of("investigator-" + i));
         }
 
-        return Stream.of(Arguments.of("array", Value.ofArray(largeArray)),
-                Arguments.of("object", largeObjectBuilder.build()),
-                Arguments.of("string", Value.of("Ph'nglui mglw'nafh Cthulhu R'lyeh wgah'nagl fhtagn ".repeat(1000))),
-                Arguments.of("number", Value.of(new BigDecimal("9".repeat(1000) + "." + "9".repeat(1000)))));
+        return Stream.of(arguments("array", Value.ofArray(largeArray)), arguments("object", largeObjectBuilder.build()),
+                arguments("string", Value.of("Ph'nglui mglw'nafh Cthulhu R'lyeh wgah'nagl fhtagn ".repeat(1000))),
+                arguments("number", Value.of(new BigDecimal("9".repeat(1000) + "." + "9".repeat(1000)))));
     }
 
     @Test
@@ -430,8 +428,8 @@ class ValueJsonMarshallerTests {
     }
 
     static Stream<Arguments> allNullCollections() {
-        return Stream.of(Arguments.of("array", Value.ofArray(Value.NULL, Value.NULL, Value.NULL)), Arguments.of(
-                "object", Value.ofObject(Map.of("entity", Value.NULL, "location", Value.NULL, "status", Value.NULL))));
+        return Stream.of(arguments("array", Value.ofArray(Value.NULL, Value.NULL, Value.NULL)), arguments("object",
+                Value.ofObject(Map.of("entity", Value.NULL, "location", Value.NULL, "status", Value.NULL))));
     }
 
     // ============================================================

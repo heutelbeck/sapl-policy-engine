@@ -17,10 +17,10 @@
  */
 package io.sapl.functions.libraries;
 
-import io.sapl.api.model.Value;
-import io.sapl.api.model.TextValue;
 import io.sapl.api.model.ErrorValue;
 import io.sapl.api.model.ObjectValue;
+import io.sapl.api.model.TextValue;
+import io.sapl.api.model.Value;
 import lombok.val;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -38,9 +38,11 @@ import java.security.spec.ECPoint;
 import java.security.spec.ECPublicKeySpec;
 import java.security.spec.RSAPublicKeySpec;
 import java.util.Base64;
+import java.util.Objects;
 import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 /**
  * Integration tests verifying that KeysFunctionLibrary produces valid,
@@ -95,7 +97,7 @@ class KeysFunctionLibraryRoundtripTests {
 
         // Parse both original and converted keys
         val originalKey  = parsePublicKeyFromPem(rsaPublicKeyPem);
-        val convertedKey = parsePublicKeyFromPem(((TextValue) pemResult).value());
+        val convertedKey = parsePublicKeyFromPem(getTextValue(pemResult));
 
         // Verify they are functionally equivalent
         assertThat(convertedKey).isInstanceOf(RSAPublicKey.class);
@@ -107,8 +109,8 @@ class KeysFunctionLibraryRoundtripTests {
     }
 
     static Stream<Arguments> ecKeyTestCases() {
-        return Stream.of(Arguments.of(ecP256PublicKeyPem, ecP256KeyPair, "P-256", "secp256r1"),
-                Arguments.of(ecP384PublicKeyPem, ecP384KeyPair, "P-384", "secp384r1"));
+        return Stream.of(arguments(ecP256PublicKeyPem, ecP256KeyPair, "P-256", "secp256r1"),
+                arguments(ecP384PublicKeyPem, ecP384KeyPair, "P-384", "secp384r1"));
     }
 
     @ParameterizedTest(name = "EC {2} round-trip")
@@ -116,17 +118,17 @@ class KeysFunctionLibraryRoundtripTests {
     void ecKey_roundTripConversion_producesEquivalentKey(String pemKey, KeyPair keyPair, String jwkCurve,
             String javaCurve) {
         // Convert to JWK
-        val jwkResult = KeysFunctionLibrary.jwkFromPublicKey(Value.of(pemKey));
-        assertThat(jwkResult).isNotInstanceOf(ErrorValue.class);
-        assertThat(((TextValue) ((ObjectValue) jwkResult).get("crv")).value()).isEqualTo(jwkCurve);
+        val jwk = (ObjectValue) KeysFunctionLibrary.jwkFromPublicKey(Value.of(pemKey));
+        assertThat(jwk).isNotInstanceOf(ErrorValue.class);
+        assertThat(jwk.get("crv")).isEqualTo(Value.of(jwkCurve));
 
         // Convert back to PEM
-        val pemResult = KeysFunctionLibrary.publicKeyFromJwk((ObjectValue) jwkResult);
+        val pemResult = KeysFunctionLibrary.publicKeyFromJwk(jwk);
         assertThat(pemResult).isNotInstanceOf(ErrorValue.class);
 
         // Parse both original and converted keys
         val originalKey  = parsePublicKeyFromPem(pemKey);
-        val convertedKey = parsePublicKeyFromPem(((TextValue) pemResult).value());
+        val convertedKey = parsePublicKeyFromPem(getTextValue(pemResult));
 
         // Verify they are functionally equivalent
         assertThat(convertedKey).isInstanceOf(ECPublicKey.class);
@@ -140,26 +142,25 @@ class KeysFunctionLibraryRoundtripTests {
     @Test
     void ed25519Key_roundTripConversion_producesEquivalentKey() {
         // Convert to JWK
-        val jwkResult = KeysFunctionLibrary.jwkFromPublicKey(Value.of(ed25519PublicKeyPem));
-        assertThat(jwkResult).isNotInstanceOf(ErrorValue.class);
+        val jwk = (ObjectValue) KeysFunctionLibrary.jwkFromPublicKey(Value.of(ed25519PublicKeyPem));
+        assertThat(jwk).isNotInstanceOf(ErrorValue.class);
 
         // Verify JWK structure
-        val jwk = (ObjectValue) jwkResult;
-        assertThat(((TextValue) jwk.get("kty")).value()).isEqualTo("OKP");
-        assertThat(((TextValue) jwk.get("crv")).value()).isEqualTo("Ed25519");
-        assertThat(jwk.containsKey("x")).isTrue();
+        assertThat(jwk.get("kty")).isEqualTo(Value.of("OKP"));
+        assertThat(jwk.get("crv")).isEqualTo(Value.of("Ed25519"));
+        assertThat(jwk).containsKey("x");
 
         // Verify x parameter is 32 bytes (raw Ed25519 key)
-        val xBytes = Base64.getUrlDecoder().decode(((TextValue) jwk.get("x")).value());
+        val xBytes = Base64.getUrlDecoder().decode(getTextFieldValue(jwk, "x"));
         assertThat(xBytes).hasSize(32);
 
         // Convert back to PEM
-        val pemResult = KeysFunctionLibrary.publicKeyFromJwk((ObjectValue) jwkResult);
+        val pemResult = KeysFunctionLibrary.publicKeyFromJwk(jwk);
         assertThat(pemResult).isNotInstanceOf(ErrorValue.class);
 
         // Parse both keys
         val originalKey  = parsePublicKeyFromPem(ed25519PublicKeyPem);
-        val convertedKey = parsePublicKeyFromPem(((TextValue) pemResult).value());
+        val convertedKey = parsePublicKeyFromPem(getTextValue(pemResult));
 
         // Verify encoded forms match (EdEC doesn't expose coordinates like EC)
         assertThat(convertedKey.getEncoded()).isEqualTo(originalKey.getEncoded());
@@ -175,9 +176,9 @@ class KeysFunctionLibraryRoundtripTests {
         val signature = signRsa(message, rsaKeyPair.getPrivate());
 
         // Convert public key through round-trip
-        val jwk          = KeysFunctionLibrary.jwkFromPublicKey(Value.of(rsaPublicKeyPem));
-        val convertedPem = KeysFunctionLibrary.publicKeyFromJwk((ObjectValue) jwk);
-        val convertedKey = parsePublicKeyFromPem(((TextValue) convertedPem).value());
+        val jwk          = (ObjectValue) KeysFunctionLibrary.jwkFromPublicKey(Value.of(rsaPublicKeyPem));
+        val convertedPem = KeysFunctionLibrary.publicKeyFromJwk(jwk);
+        val convertedKey = parsePublicKeyFromPem(getTextValue(convertedPem));
 
         // Verify signature with converted key
         val verified = verifyRsa(message, signature, convertedKey);
@@ -192,9 +193,9 @@ class KeysFunctionLibraryRoundtripTests {
         val signature = signEc(message, ecP256KeyPair.getPrivate());
 
         // Convert public key through round-trip
-        val jwk          = KeysFunctionLibrary.jwkFromPublicKey(Value.of(ecP256PublicKeyPem));
-        val convertedPem = KeysFunctionLibrary.publicKeyFromJwk((ObjectValue) jwk);
-        val convertedKey = parsePublicKeyFromPem(((TextValue) convertedPem).value());
+        val jwk          = (ObjectValue) KeysFunctionLibrary.jwkFromPublicKey(Value.of(ecP256PublicKeyPem));
+        val convertedPem = KeysFunctionLibrary.publicKeyFromJwk(jwk);
+        val convertedKey = parsePublicKeyFromPem(getTextValue(convertedPem));
 
         // Verify signature with converted key
         val verified = verifyEc(message, signature, convertedKey);
@@ -209,9 +210,9 @@ class KeysFunctionLibraryRoundtripTests {
         val signature = signEd25519(message, ed25519KeyPair.getPrivate());
 
         // Convert public key through round-trip
-        val jwk          = KeysFunctionLibrary.jwkFromPublicKey(Value.of(ed25519PublicKeyPem));
-        val convertedPem = KeysFunctionLibrary.publicKeyFromJwk((ObjectValue) jwk);
-        val convertedKey = parsePublicKeyFromPem(((TextValue) convertedPem).value());
+        val jwk          = (ObjectValue) KeysFunctionLibrary.jwkFromPublicKey(Value.of(ed25519PublicKeyPem));
+        val convertedPem = KeysFunctionLibrary.publicKeyFromJwk(jwk);
+        val convertedKey = parsePublicKeyFromPem(getTextValue(convertedPem));
 
         // Verify signature with converted key
         val verified = verifyEd25519(message, signature, convertedKey);
@@ -222,20 +223,19 @@ class KeysFunctionLibraryRoundtripTests {
 
     @Test
     void rsaJwk_followsRfc7517Structure() {
-        val jwkResult = KeysFunctionLibrary.jwkFromPublicKey(Value.of(rsaPublicKeyPem));
-        val jwk       = (ObjectValue) jwkResult;
+        val jwk = (ObjectValue) KeysFunctionLibrary.jwkFromPublicKey(Value.of(rsaPublicKeyPem));
 
         // Verify required fields per RFC 7517
-        assertThat(jwk.containsKey("kty")).as("JWK must have 'kty' field").isTrue();
-        assertThat(((TextValue) jwk.get("kty")).value()).isEqualTo("RSA");
+        assertThat(jwk).as("JWK must have 'kty' field").containsKey("kty");
+        assertThat(jwk.get("kty")).isEqualTo(Value.of("RSA"));
 
         // Verify RSA-specific fields per RFC 7518 Section 6.3
-        assertThat(jwk.containsKey("n")).as("RSA JWK must have 'n' (modulus)").isTrue();
-        assertThat(jwk.containsKey("e")).as("RSA JWK must have 'e' (exponent)").isTrue();
+        assertThat(jwk).as("RSA JWK must have 'n' (modulus)").containsKey("n");
+        assertThat(jwk).as("RSA JWK must have 'e' (exponent)").containsKey("e");
 
         // Verify base64url encoding (no padding)
-        val nValue = ((TextValue) jwk.get("n")).value();
-        val eValue = ((TextValue) jwk.get("e")).value();
+        val nValue = getTextFieldValue(jwk, "n");
+        val eValue = getTextFieldValue(jwk, "e");
         assertThat(nValue).doesNotContain("=");
         assertThat(eValue).doesNotContain("=");
 
@@ -253,24 +253,23 @@ class KeysFunctionLibraryRoundtripTests {
 
     @Test
     void ecJwk_followsRfc7517Structure() {
-        val jwkResult = KeysFunctionLibrary.jwkFromPublicKey(Value.of(ecP256PublicKeyPem));
-        val jwk       = (ObjectValue) jwkResult;
+        val jwk = (ObjectValue) KeysFunctionLibrary.jwkFromPublicKey(Value.of(ecP256PublicKeyPem));
 
         // Verify required fields per RFC 7517
-        assertThat(jwk.containsKey("kty")).as("JWK must have 'kty' field").isTrue();
-        assertThat(((TextValue) jwk.get("kty")).value()).isEqualTo("EC");
+        assertThat(jwk).as("JWK must have 'kty' field").containsKey("kty");
+        assertThat(jwk.get("kty")).isEqualTo(Value.of("EC"));
 
         // Verify EC-specific fields per RFC 7518 Section 6.2
-        assertThat(jwk.containsKey("crv")).as("EC JWK must have 'crv' (curve)").isTrue();
-        assertThat(jwk.containsKey("x")).as("EC JWK must have 'x' coordinate").isTrue();
-        assertThat(jwk.containsKey("y")).as("EC JWK must have 'y' coordinate").isTrue();
+        assertThat(jwk).as("EC JWK must have 'crv' (curve)").containsKey("crv");
+        assertThat(jwk).as("EC JWK must have 'x' coordinate").containsKey("x");
+        assertThat(jwk).as("EC JWK must have 'y' coordinate").containsKey("y");
 
         // Verify curve name follows RFC 7518 (P-256, not secp256r1)
-        assertThat(((TextValue) jwk.get("crv")).value()).isEqualTo("P-256");
+        assertThat(jwk.get("crv")).isEqualTo(Value.of("P-256"));
 
         // Verify base64url encoding (no padding)
-        val xValue = ((TextValue) jwk.get("x")).value();
-        val yValue = ((TextValue) jwk.get("y")).value();
+        val xValue = getTextFieldValue(jwk, "x");
+        val yValue = getTextFieldValue(jwk, "y");
         assertThat(xValue).doesNotContain("=");
         assertThat(yValue).doesNotContain("=");
 
@@ -287,20 +286,19 @@ class KeysFunctionLibraryRoundtripTests {
 
     @Test
     void ed25519Jwk_followsRfc8037Structure() {
-        val jwkResult = KeysFunctionLibrary.jwkFromPublicKey(Value.of(ed25519PublicKeyPem));
-        val jwk       = (ObjectValue) jwkResult;
+        val jwk = (ObjectValue) KeysFunctionLibrary.jwkFromPublicKey(Value.of(ed25519PublicKeyPem));
 
         // Verify required fields per RFC 8037 Section 2
-        assertThat(jwk.containsKey("kty")).as("JWK must have 'kty' field").isTrue();
-        assertThat(((TextValue) jwk.get("kty")).value()).isEqualTo("OKP");
+        assertThat(jwk).as("JWK must have 'kty' field").containsKey("kty");
+        assertThat(jwk.get("kty")).isEqualTo(Value.of("OKP"));
 
-        assertThat(jwk.containsKey("crv")).as("OKP JWK must have 'crv' (curve)").isTrue();
-        assertThat(((TextValue) jwk.get("crv")).value()).isEqualTo("Ed25519");
+        assertThat(jwk).as("OKP JWK must have 'crv' (curve)").containsKey("crv");
+        assertThat(jwk.get("crv")).isEqualTo(Value.of("Ed25519"));
 
-        assertThat(jwk.containsKey("x")).as("OKP JWK must have 'x' parameter").isTrue();
+        assertThat(jwk).as("OKP JWK must have 'x' parameter").containsKey("x");
 
         // Verify base64url encoding (no padding)
-        val xValue = ((TextValue) jwk.get("x")).value();
+        val xValue = getTextFieldValue(jwk, "x");
         assertThat(xValue).doesNotContain("=");
 
         // Verify x parameter is exactly 32 bytes (raw Ed25519 public key)
@@ -313,12 +311,11 @@ class KeysFunctionLibraryRoundtripTests {
     @Test
     void rsaJwk_canBeReconstructedIntoFunctionalKey() throws Exception {
         // Get JWK from library
-        val jwkResult = KeysFunctionLibrary.jwkFromPublicKey(Value.of(rsaPublicKeyPem));
-        val jwk       = (ObjectValue) jwkResult;
+        val jwk = (ObjectValue) KeysFunctionLibrary.jwkFromPublicKey(Value.of(rsaPublicKeyPem));
 
         // Manually reconstruct key from JWK (simulating external consumer)
-        val nBytes   = Base64.getUrlDecoder().decode(((TextValue) jwk.get("n")).value());
-        val eBytes   = Base64.getUrlDecoder().decode(((TextValue) jwk.get("e")).value());
+        val nBytes   = Base64.getUrlDecoder().decode(getTextFieldValue(jwk, "n"));
+        val eBytes   = Base64.getUrlDecoder().decode(getTextFieldValue(jwk, "e"));
         val modulus  = new BigInteger(1, nBytes);
         val exponent = new BigInteger(1, eBytes);
 
@@ -337,12 +334,11 @@ class KeysFunctionLibraryRoundtripTests {
     @Test
     void ecJwk_canBeReconstructedIntoFunctionalKey() throws Exception {
         // Get JWK from library
-        val jwkResult = KeysFunctionLibrary.jwkFromPublicKey(Value.of(ecP256PublicKeyPem));
-        val jwk       = (ObjectValue) jwkResult;
+        val jwk = (ObjectValue) KeysFunctionLibrary.jwkFromPublicKey(Value.of(ecP256PublicKeyPem));
 
         // Manually reconstruct key from JWK
-        val xBytes = Base64.getUrlDecoder().decode(((TextValue) jwk.get("x")).value());
-        val yBytes = Base64.getUrlDecoder().decode(((TextValue) jwk.get("y")).value());
+        val xBytes = Base64.getUrlDecoder().decode(getTextFieldValue(jwk, "x"));
+        val yBytes = Base64.getUrlDecoder().decode(getTextFieldValue(jwk, "y"));
         val x      = new BigInteger(1, xBytes);
         val y      = new BigInteger(1, yBytes);
         val point  = new ECPoint(x, y);
@@ -369,9 +365,9 @@ class KeysFunctionLibraryRoundtripTests {
     void rsaKey_withLargeExponent_handlesCorrectly() {
         // Most RSA keys use 65537 (0x10001) but library should handle any valid
         // exponent
-        val jwk = KeysFunctionLibrary.jwkFromPublicKey(Value.of(rsaPublicKeyPem));
+        val jwk = (ObjectValue) KeysFunctionLibrary.jwkFromPublicKey(Value.of(rsaPublicKeyPem));
 
-        val eBytes   = Base64.getUrlDecoder().decode(((TextValue) ((ObjectValue) jwk).get("e")).value());
+        val eBytes   = Base64.getUrlDecoder().decode(getTextFieldValue(jwk, "e"));
         val exponent = new BigInteger(1, eBytes);
 
         // Common RSA exponent is 65537
@@ -383,10 +379,10 @@ class KeysFunctionLibraryRoundtripTests {
 
     @Test
     void ecKey_coordinates_haveCorrectLength() {
-        val jwk = KeysFunctionLibrary.jwkFromPublicKey(Value.of(ecP256PublicKeyPem));
+        val jwk = (ObjectValue) KeysFunctionLibrary.jwkFromPublicKey(Value.of(ecP256PublicKeyPem));
 
-        val xBytes = Base64.getUrlDecoder().decode(((TextValue) ((ObjectValue) jwk).get("x")).value());
-        val yBytes = Base64.getUrlDecoder().decode(((TextValue) ((ObjectValue) jwk).get("y")).value());
+        val xBytes = Base64.getUrlDecoder().decode(getTextFieldValue(jwk, "x"));
+        val yBytes = Base64.getUrlDecoder().decode(getTextFieldValue(jwk, "y"));
 
         // P-256 coordinates should be at most 32 bytes (256 bits)
         assertThat(xBytes.length).isLessThanOrEqualTo(32);
@@ -400,6 +396,14 @@ class KeysFunctionLibraryRoundtripTests {
     }
 
     /* Helper Methods */
+
+    private static String getTextValue(Value value) {
+        return ((TextValue) value).value();
+    }
+
+    private static String getTextFieldValue(ObjectValue object, String field) {
+        return ((TextValue) Objects.requireNonNull(object.get(field))).value();
+    }
 
     private static String toPem(PublicKey publicKey) {
         val encoded = Base64.getEncoder().encodeToString(publicKey.getEncoded());

@@ -37,6 +37,7 @@ import java.util.stream.Stream;
 import static io.sapl.compiler.operators.StepOperators.*;
 import static io.sapl.util.TestUtil.json;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 class StepOperatorsTests {
 
@@ -57,11 +58,11 @@ class StepOperatorsTests {
     // ========== keyStep Tests ==========
 
     private static Stream<Arguments> keyStepCases() {
-        return Stream.of(Arguments.of(CULTIST_RECORD, "name", WILBUR_WHATELEY, "existing key"),
-                Arguments.of(CULTIST_RECORD, "ritualKnowledge", Value.of(85), "numeric value"),
-                Arguments.of(CULTIST_RECORD, "sanity", Value.of(12), "last key"),
-                Arguments.of(CULTIST_RECORD, "forbidden", Value.UNDEFINED, "missing key returns UNDEFINED"),
-                Arguments.of(Value.EMPTY_OBJECT, "any", Value.UNDEFINED, "empty object returns UNDEFINED"));
+        return Stream.of(arguments(CULTIST_RECORD, "name", WILBUR_WHATELEY, "existing key"),
+                arguments(CULTIST_RECORD, "ritualKnowledge", Value.of(85), "numeric value"),
+                arguments(CULTIST_RECORD, "sanity", Value.of(12), "last key"),
+                arguments(CULTIST_RECORD, "forbidden", Value.UNDEFINED, "missing key returns UNDEFINED"),
+                arguments(Value.EMPTY_OBJECT, "any", Value.UNDEFINED, "empty object returns UNDEFINED"));
     }
 
     @ParameterizedTest(name = "[{index}] keyStep: {3}")
@@ -80,14 +81,14 @@ class StepOperatorsTests {
     // ========== indexStep Tests ==========
 
     private static Stream<Arguments> indexStepValidCases() {
-        return Stream.of(Arguments.of(NECRONOMICON_CHAPTERS, 0, AL_AZIF, "first chapter"),
-                Arguments.of(NECRONOMICON_CHAPTERS, 2, RITES_OF_YOG_SOTHOTH, "middle chapter"),
-                Arguments.of(NECRONOMICON_CHAPTERS, 4, THE_KEY_AND_THE_GATE, "last chapter"),
-                Arguments.of(NECRONOMICON_CHAPTERS, -1, THE_KEY_AND_THE_GATE, "negative: last"),
-                Arguments.of(NECRONOMICON_CHAPTERS, -2, FORBIDDEN_SUMMONINGS, "negative: second-to-last"),
-                Arguments.of(NECRONOMICON_CHAPTERS, -5, AL_AZIF, "negative: first"),
-                Arguments.of(ELDER_SIGNS, 0, Value.of(0), "elder sign zero"),
-                Arguments.of(ELDER_SIGNS, 9, Value.of(9), "elder sign nine"));
+        return Stream.of(arguments(NECRONOMICON_CHAPTERS, 0, AL_AZIF, "first chapter"),
+                arguments(NECRONOMICON_CHAPTERS, 2, RITES_OF_YOG_SOTHOTH, "middle chapter"),
+                arguments(NECRONOMICON_CHAPTERS, 4, THE_KEY_AND_THE_GATE, "last chapter"),
+                arguments(NECRONOMICON_CHAPTERS, -1, THE_KEY_AND_THE_GATE, "negative: last"),
+                arguments(NECRONOMICON_CHAPTERS, -2, FORBIDDEN_SUMMONINGS, "negative: second-to-last"),
+                arguments(NECRONOMICON_CHAPTERS, -5, AL_AZIF, "negative: first"),
+                arguments(ELDER_SIGNS, 0, Value.of(0), "elder sign zero"),
+                arguments(ELDER_SIGNS, 9, Value.of(9), "elder sign nine"));
     }
 
     @ParameterizedTest(name = "[{index}] indexStep valid: {3}")
@@ -97,12 +98,11 @@ class StepOperatorsTests {
     }
 
     private static Stream<Arguments> indexStepErrorCases() {
-        return Stream.of(Arguments.of(NECRONOMICON_CHAPTERS, 5, "beyond known chapters"),
-                Arguments.of(NECRONOMICON_CHAPTERS, 10, "far beyond the veil"),
-                Arguments.of(NECRONOMICON_CHAPTERS, -6, "negative beyond start"),
-                Arguments.of(NECRONOMICON_CHAPTERS, -10, "far into the void"),
-                Arguments.of(Value.EMPTY_ARRAY, 0, "empty tome"),
-                Arguments.of(Value.EMPTY_ARRAY, -1, "empty tome negative"));
+        return Stream.of(arguments(NECRONOMICON_CHAPTERS, 5, "beyond known chapters"),
+                arguments(NECRONOMICON_CHAPTERS, 10, "far beyond the veil"),
+                arguments(NECRONOMICON_CHAPTERS, -6, "negative beyond start"),
+                arguments(NECRONOMICON_CHAPTERS, -10, "far into the void"),
+                arguments(Value.EMPTY_ARRAY, 0, "empty tome"), arguments(Value.EMPTY_ARRAY, -1, "empty tome negative"));
     }
 
     @ParameterizedTest(name = "[{index}] indexStep error: {2}")

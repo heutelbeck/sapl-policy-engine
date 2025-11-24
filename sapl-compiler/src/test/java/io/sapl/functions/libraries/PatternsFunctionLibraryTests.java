@@ -17,13 +17,7 @@
  */
 package io.sapl.functions.libraries;
 
-import io.sapl.api.model.ArrayValue;
-import io.sapl.api.model.BooleanValue;
-import io.sapl.api.model.ErrorValue;
-import io.sapl.api.model.NullValue;
-import io.sapl.api.model.NumberValue;
-import io.sapl.api.model.TextValue;
-import io.sapl.api.model.Value;
+import io.sapl.api.model.*;
 import lombok.val;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
@@ -52,15 +46,13 @@ class PatternsFunctionLibraryTests {
         val delimitersArray = createDelimitersArray(delimiters);
         val result          = PatternsFunctionLibrary.matchGlob((TextValue) Value.of(pattern),
                 (TextValue) Value.of(value), delimitersArray);
-        assertThat(result).isInstanceOf(BooleanValue.class);
-        assertThat(((BooleanValue) result).value()).isEqualTo(expected);
+        assertThat(result).isInstanceOf(BooleanValue.class).isEqualTo(Value.of(expected));
     }
 
     private static void assertMatchWithoutDelimiters(String pattern, String value) {
         val result = PatternsFunctionLibrary.matchGlobWithoutDelimiters((TextValue) Value.of(pattern),
                 (TextValue) Value.of(value));
-        assertThat(result).isInstanceOf(BooleanValue.class);
-        assertThat(((BooleanValue) result).value()).isTrue();
+        assertThat(result).isInstanceOf(BooleanValue.class).isEqualTo(Value.TRUE);
     }
 
     private static void assertError(String pattern, String value, String errorFragment, String... delimiters) {
@@ -177,16 +169,14 @@ class PatternsFunctionLibraryTests {
         val emptyArray = ArrayValue.builder().build();
         val result     = PatternsFunctionLibrary.matchGlob((TextValue) Value.of("*.com"),
                 (TextValue) Value.of("example.com"), emptyArray);
-        assertThat(result).isInstanceOf(BooleanValue.class);
-        assertThat(((BooleanValue) result).value()).isTrue();
+        assertThat(result).isInstanceOf(BooleanValue.class).isEqualTo(Value.TRUE);
     }
 
     @Test
     void undefinedDelimitersUsesDefault() {
         val result = PatternsFunctionLibrary.matchGlob((TextValue) Value.of("*.com"),
                 (TextValue) Value.of("example.com"), ArrayValue.builder().build());
-        assertThat(result).isInstanceOf(BooleanValue.class);
-        assertThat(((BooleanValue) result).value()).isTrue();
+        assertThat(result).isInstanceOf(BooleanValue.class).isEqualTo(Value.TRUE);
     }
 
     @Test
@@ -253,9 +243,9 @@ class PatternsFunctionLibraryTests {
         val invalidPattern = PatternsFunctionLibrary.isValidRegex(Value.of("[a-z"));
         val tooLong        = PatternsFunctionLibrary.isValidRegex(Value.of("a".repeat(1001)));
 
-        assertThat(((BooleanValue) validPattern).value()).isTrue();
-        assertThat(((BooleanValue) invalidPattern).value()).isFalse();
-        assertThat(((BooleanValue) tooLong).value()).isFalse();
+        assertThat(validPattern).isEqualTo(Value.TRUE);
+        assertThat(invalidPattern).isEqualTo(Value.FALSE);
+        assertThat(tooLong).isEqualTo(Value.FALSE);
     }
 
     @Test
@@ -282,11 +272,11 @@ class PatternsFunctionLibraryTests {
         val firstMatch  = (ArrayValue) array.get(0);
         val secondMatch = (ArrayValue) array.get(1);
 
-        assertThat(((TextValue) firstMatch.get(0)).value()).isEqualTo("123-456");
-        assertThat(((TextValue) firstMatch.get(1)).value()).isEqualTo("123");
-        assertThat(((TextValue) firstMatch.get(2)).value()).isEqualTo("456");
-        assertThat(((TextValue) secondMatch.get(1)).value()).isEqualTo("789");
-        assertThat(((TextValue) secondMatch.get(2)).value()).isEqualTo("012");
+        assertThat(firstMatch.get(0)).isEqualTo(Value.of("123-456"));
+        assertThat(firstMatch.get(1)).isEqualTo(Value.of("123"));
+        assertThat(firstMatch.get(2)).isEqualTo(Value.of("456"));
+        assertThat(secondMatch.get(1)).isEqualTo(Value.of("789"));
+        assertThat(secondMatch.get(2)).isEqualTo(Value.of("012"));
     }
 
     @Test
@@ -298,22 +288,20 @@ class PatternsFunctionLibraryTests {
         val second = (ArrayValue) array.get(1);
 
         assertThat(first.get(1)).isInstanceOf(NullValue.class);
-        assertThat(((TextValue) second.get(1)).value()).isEqualTo("a");
+        assertThat(second.get(1)).isEqualTo(Value.of("a"));
     }
 
     @Test
     void replaceAllSubstitutesMatches() {
         val result = PatternsFunctionLibrary.replaceAll(Value.of("123 456 789"), Value.of("\\d+"), Value.of("X"));
-        assertThat(result).isInstanceOf(TextValue.class);
-        assertThat(((TextValue) result).value()).isEqualTo("X X X");
+        assertThat(result).isInstanceOf(TextValue.class).isEqualTo(Value.of("X X X"));
     }
 
     @Test
     void replaceAllSupportsBackreferences() {
         val result = PatternsFunctionLibrary.replaceAll(Value.of("John Doe"), Value.of("(\\w+) (\\w+)"),
                 Value.of("$2, $1"));
-        assertThat(result).isInstanceOf(TextValue.class);
-        assertThat(((TextValue) result).value()).isEqualTo("Doe, John");
+        assertThat(result).isInstanceOf(TextValue.class).isEqualTo(Value.of("Doe, John"));
     }
 
     @Test
@@ -337,8 +325,7 @@ class PatternsFunctionLibraryTests {
     @Test
     void escapeGlobEscapesMetacharacters() {
         val result = PatternsFunctionLibrary.escapeGlob(Value.of("file*.txt"));
-        assertThat(result).isInstanceOf(TextValue.class);
-        assertThat(((TextValue) result).value()).isEqualTo("file\\*.txt");
+        assertThat(result).isInstanceOf(TextValue.class).isEqualTo(Value.of("file\\*.txt"));
         assertMatch(((TextValue) result).value(), "file*.txt", true);
     }
 
@@ -346,16 +333,14 @@ class PatternsFunctionLibraryTests {
     void matchTemplateWithLiteralAndPatterns() {
         val result = PatternsFunctionLibrary.matchTemplate(Value.of("user-{{\\d+}}-file"), Value.of("user-123-file"),
                 Value.of("{{"), Value.of("}}"));
-        assertThat(result).isInstanceOf(BooleanValue.class);
-        assertThat(((BooleanValue) result).value()).isTrue();
+        assertThat(result).isInstanceOf(BooleanValue.class).isEqualTo(Value.TRUE);
     }
 
     @Test
     void matchTemplateHandlesEscapedLiterals() {
         val result = PatternsFunctionLibrary.matchTemplate(Value.of("file\\*{{\\d+}}"), Value.of("file*42"),
                 Value.of("{{"), Value.of("}}"));
-        assertThat(result).isInstanceOf(BooleanValue.class);
-        assertThat(((BooleanValue) result).value()).isTrue();
+        assertThat(result).isInstanceOf(BooleanValue.class).isEqualTo(Value.TRUE);
     }
 
     @Test
@@ -456,18 +441,6 @@ class PatternsFunctionLibraryTests {
         assertThat(cachedTime).isLessThan(TimeUnit.SECONDS.toNanos(1));
     }
 
-    // NOTE: This test is disabled because with Value API, type checking happens at
-    // compile time.
-    // The library methods now expect specific types (TextValue, NumberValue, etc.)
-    // so invalid
-    // types cannot be passed - the compiler will reject them. This is an
-    // improvement over the
-    // old Val API where type errors were only caught at runtime.
-    // @Test
-    // void invalidInputTypesRejected() {
-    // // These would not compile with Value API - compile-time type safety
-    // }
-
     @ParameterizedTest
     @ValueSource(ints = { -1, -100 })
     void negativeLimitsRejected(int limit) {
@@ -508,9 +481,9 @@ class PatternsFunctionLibraryTests {
                 Value.of("arn:aws:s3:us-east-1:123456789012:bucket/key"));
         assertThat(arn).isInstanceOf(ArrayValue.class);
         val arnArray = (ArrayValue) arn;
-        val match    = (ArrayValue) arnArray.get(0);
-        assertThat(((TextValue) match.get(1)).value()).isEqualTo("s3");
-        assertThat(((TextValue) match.get(4)).value()).isEqualTo("bucket/key");
+        val match    = (ArrayValue) arnArray.getFirst();
+        assertThat(match.get(1)).isEqualTo(Value.of("s3"));
+        assertThat(match.get(4)).isEqualTo(Value.of("bucket/key"));
 
         val userInput = "project-*-staging";
         val escaped   = PatternsFunctionLibrary.escapeGlob(Value.of(userInput));
@@ -520,7 +493,6 @@ class PatternsFunctionLibraryTests {
 
         val redacted = PatternsFunctionLibrary.replaceAll(Value.of("SSN: 123-45-6789"),
                 Value.of("\\d{3}-\\d{2}-\\d{4}"), Value.of("[REDACTED]"));
-        assertThat(redacted).isInstanceOf(TextValue.class);
-        assertThat(((TextValue) redacted).value()).contains("[REDACTED]").doesNotContain("123-45-6789");
+        assertThat(redacted).isInstanceOf(TextValue.class).isEqualTo(Value.of("SSN: [REDACTED]"));
     }
 }

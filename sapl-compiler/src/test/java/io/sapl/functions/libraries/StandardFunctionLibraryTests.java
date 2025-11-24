@@ -25,18 +25,20 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
-
 import java.util.HashMap;
 import java.util.stream.Stream;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
+import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 class StandardFunctionLibraryTests {
 
     @Test
     void when_loadedIntoBroker_then_noError() {
         val functionBroker = new DefaultFunctionBroker();
-        assertDoesNotThrow(() -> functionBroker.loadStaticFunctionLibrary(StandardFunctionLibrary.class));
+        assertThatCode(() -> functionBroker.loadStaticFunctionLibrary(StandardFunctionLibrary.class))
+                .doesNotThrowAnyException();
     }
 
     @ParameterizedTest
@@ -46,8 +48,7 @@ class StandardFunctionLibraryTests {
     }
 
     private static Stream<Arguments> emptyCollections() {
-        return Stream.of(Arguments.of(Value.EMPTY_ARRAY), Arguments.of(Value.EMPTY_OBJECT),
-                Arguments.of(Value.EMPTY_TEXT));
+        return Stream.of(arguments(Value.EMPTY_ARRAY), arguments(Value.EMPTY_OBJECT), arguments(Value.EMPTY_TEXT));
     }
 
     @Test
@@ -75,8 +76,8 @@ class StandardFunctionLibraryTests {
     }
 
     private static Stream<Arguments> textAndLengths() {
-        return Stream.of(Arguments.of("ABC", 3), Arguments.of("Hello, World!", 13), Arguments.of("", 0),
-                Arguments.of("🌸", 2), Arguments.of("多言語", 3));
+        return Stream.of(arguments("ABC", 3), arguments("Hello, World!", 13), arguments("", 0), arguments("🌸", 2),
+                arguments("多言語", 3));
     }
 
     @ParameterizedTest
@@ -86,11 +87,9 @@ class StandardFunctionLibraryTests {
     }
 
     private static Stream<Arguments> valuesAndStringRepresentations() {
-        return Stream.of(Arguments.of(Value.TRUE, "true"), Arguments.of(Value.FALSE, "false"),
-                Arguments.of(Value.NULL, "null"), Arguments.of(Value.of("ABC"), "ABC"),
-                Arguments.of(Value.of(1.23e-1D), "0.123"),
-                // Arguments.of(Value.ofJson("[1,2,3]"), "[1,2,3]"),
-                Arguments.of(Value.of(42), "42"), Arguments.of(Value.of(-17), "-17"));
+        return Stream.of(arguments(Value.TRUE, "true"), arguments(Value.FALSE, "false"), arguments(Value.NULL, "null"),
+                arguments(Value.of("ABC"), "ABC"), arguments(Value.of(1.23e-1D), "0.123"),
+                arguments(Value.of(42), "42"), arguments(Value.of(-17), "-17"));
     }
 
     @Test
@@ -99,12 +98,11 @@ class StandardFunctionLibraryTests {
                 .isEqualTo(Value.of("ORIGINAL"));
     }
 
-    /*
-     * @Test void onErrorMapReturnsFallbackValueWhenError() {
-     * assertThat(StandardFunctionLibrary.onErrorMap(Value.error((String) null),
-     * Value.of("FALLBACK")))
-     * .isEqualTo(Value.of("FALLBACK")); }
-     */
+    @Test
+    void onErrorMapReturnsFallbackValueWhenError() {
+        assertThat(StandardFunctionLibrary.onErrorMap(Value.error(""), Value.of("FALLBACK")))
+                .isEqualTo(Value.of("FALLBACK"));
+    }
 
     @Test
     void onErrorMapReturnsFallbackForErrorWithMessage() {

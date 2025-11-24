@@ -26,7 +26,7 @@ import org.junit.jupiter.params.provider.MethodSource;
 
 import java.util.stream.Stream;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 class ReflectionFunctionLibraryTests {
@@ -35,7 +35,7 @@ class ReflectionFunctionLibraryTests {
     @MethodSource
     void isArrayTests(String description, Value input, boolean expected) {
         val actual = ReflectionFunctionLibrary.isArray(input);
-        assertEquals(Value.of(expected), actual);
+        assertThat(actual).isEqualTo(Value.of(expected));
     }
 
     private static Stream<Arguments> isArrayTests() {
@@ -56,7 +56,7 @@ class ReflectionFunctionLibraryTests {
     @MethodSource
     void isObjectTests(String description, Value input, boolean expected) {
         val actual = ReflectionFunctionLibrary.isObject(input);
-        assertEquals(Value.of(expected), actual);
+        assertThat(actual).isEqualTo(Value.of(expected));
     }
 
     private static Stream<Arguments> isObjectTests() {
@@ -75,7 +75,7 @@ class ReflectionFunctionLibraryTests {
     @MethodSource
     void isTextTests(String description, Value input, boolean expected) {
         val actual = ReflectionFunctionLibrary.isText(input);
-        assertEquals(Value.of(expected), actual);
+        assertThat(actual).isEqualTo(Value.of(expected));
     }
 
     private static Stream<Arguments> isTextTests() {
@@ -91,7 +91,7 @@ class ReflectionFunctionLibraryTests {
     @MethodSource
     void isNumberTests(String description, Value input, boolean expected) {
         val actual = ReflectionFunctionLibrary.isNumber(input);
-        assertEquals(Value.of(expected), actual);
+        assertThat(actual).isEqualTo(Value.of(expected));
     }
 
     private static Stream<Arguments> isNumberTests() {
@@ -109,7 +109,7 @@ class ReflectionFunctionLibraryTests {
     @MethodSource
     void isIntegerTests(String description, Value input, boolean expected) {
         val actual = ReflectionFunctionLibrary.isInteger(input);
-        assertEquals(Value.of(expected), actual);
+        assertThat(actual).isEqualTo(Value.of(expected));
     }
 
     private static Stream<Arguments> isIntegerTests() {
@@ -131,7 +131,7 @@ class ReflectionFunctionLibraryTests {
     @MethodSource
     void isBooleanTests(String description, Value input, boolean expected) {
         val actual = ReflectionFunctionLibrary.isBoolean(input);
-        assertEquals(Value.of(expected), actual);
+        assertThat(actual).isEqualTo(Value.of(expected));
     }
 
     private static Stream<Arguments> isBooleanTests() {
@@ -147,7 +147,7 @@ class ReflectionFunctionLibraryTests {
     @MethodSource
     void isNullTests(String description, Value input, boolean expected) {
         val actual = ReflectionFunctionLibrary.isNull(input);
-        assertEquals(Value.of(expected), actual);
+        assertThat(actual).isEqualTo(Value.of(expected));
     }
 
     private static Stream<Arguments> isNullTests() {
@@ -162,7 +162,7 @@ class ReflectionFunctionLibraryTests {
     @MethodSource
     void isUndefinedTests(String description, Value input, boolean expected) {
         val actual = ReflectionFunctionLibrary.isUndefined(input);
-        assertEquals(Value.of(expected), actual);
+        assertThat(actual).isEqualTo(Value.of(expected));
     }
 
     private static Stream<Arguments> isUndefinedTests() {
@@ -177,7 +177,7 @@ class ReflectionFunctionLibraryTests {
     @MethodSource
     void isDefinedTests(String description, Value input, boolean expected) {
         val actual = ReflectionFunctionLibrary.isDefined(input);
-        assertEquals(Value.of(expected), actual);
+        assertThat(actual).isEqualTo(Value.of(expected));
     }
 
     private static Stream<Arguments> isDefinedTests() {
@@ -193,14 +193,14 @@ class ReflectionFunctionLibraryTests {
     void isError_whenError_returnsTrue() {
         val errorVal = Value.error("test error");
         val actual   = ReflectionFunctionLibrary.isError(errorVal);
-        assertEquals(Value.TRUE, actual);
+        assertThat(actual).isEqualTo(Value.TRUE);
     }
 
     @ParameterizedTest(name = "{0}")
     @MethodSource
     void isErrorTests(String description, Value input, boolean expected) {
         val actual = ReflectionFunctionLibrary.isError(input);
-        assertEquals(Value.of(expected), actual);
+        assertThat(actual).isEqualTo(Value.of(expected));
     }
 
     private static Stream<Arguments> isErrorTests() {
@@ -214,21 +214,21 @@ class ReflectionFunctionLibraryTests {
     void isSecret_whenSecret_returnsTrue() {
         val secretVal = Value.of("password").asSecret();
         val actual    = ReflectionFunctionLibrary.isSecret(secretVal);
-        assertEquals(Value.TRUE, actual);
+        assertThat(actual).isEqualTo(Value.TRUE);
     }
 
     @Test
     void isSecret_whenNotSecret_returnsFalse() {
         val normalVal = Value.of("public data");
         val actual    = ReflectionFunctionLibrary.isSecret(normalVal);
-        assertEquals(Value.FALSE, actual);
+        assertThat(actual).isEqualTo(Value.FALSE);
     }
 
     @ParameterizedTest(name = "{0}")
     @MethodSource
     void isEmptyTests(String description, Value input, boolean expected) {
         val actual = ReflectionFunctionLibrary.isEmpty(input);
-        assertEquals(Value.of(expected), actual);
+        assertThat(actual).isEqualTo(Value.of(expected));
     }
 
     private static Stream<Arguments> isEmptyTests() {
@@ -246,7 +246,7 @@ class ReflectionFunctionLibraryTests {
     @MethodSource
     void typeOfTests(String description, Value input, String expectedType) {
         val actual = ReflectionFunctionLibrary.typeOf(input);
-        assertEquals(Value.of(expectedType), actual);
+        assertThat(actual).isEqualTo(Value.of(expectedType));
     }
 
     private static Stream<Arguments> typeOfTests() {
@@ -265,6 +265,6 @@ class ReflectionFunctionLibraryTests {
     @Test
     void typeOf_whenComplexNumber_returnsNumber() {
         val actual = ReflectionFunctionLibrary.typeOf(Value.of(3.5));
-        assertEquals(Value.of("NUMBER"), actual);
+        assertThat(actual).isEqualTo(Value.of("NUMBER"));
     }
 }

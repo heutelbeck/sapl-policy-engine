@@ -28,6 +28,7 @@ import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 @DisplayName("TextValue Tests")
 class TextValueTests {
@@ -139,19 +140,19 @@ class TextValueTests {
     }
 
     static Stream<Arguments> provideTextCombinations() {
-        return Stream.of(Arguments.of("test", false), Arguments.of("test", true), Arguments.of("", false),
-                Arguments.of("", true), Arguments.of("longer text with spaces", false));
+        return Stream.of(arguments("test", false), arguments("test", true), arguments("", false), arguments("", true),
+                arguments("longer text with spaces", false));
     }
 
     static Stream<Arguments> provideEqualityHashCodeCases() {
-        return Stream.of(Arguments.of(new TextValue("test", false), new TextValue("test", true), true),
-                Arguments.of(new TextValue("", false), new TextValue("", true), true),
-                Arguments.of(new TextValue("test", false), new TextValue("other", false), false),
-                Arguments.of(new TextValue("test", true), new TextValue("other", true), false));
+        return Stream.of(arguments(new TextValue("test", false), new TextValue("test", true), true),
+                arguments(new TextValue("", false), new TextValue("", true), true),
+                arguments(new TextValue("test", false), new TextValue("other", false), false),
+                arguments(new TextValue("test", true), new TextValue("other", true), false));
     }
 
     static Stream<Arguments> provideToStringCases() {
-        return Stream.of(Arguments.of("hello", false, "\"hello\""), Arguments.of("secret", true, "***SECRET***"),
-                Arguments.of("", false, "\"\""), Arguments.of("", true, "***SECRET***"));
+        return Stream.of(arguments("hello", false, "\"hello\""), arguments("secret", true, "***SECRET***"),
+                arguments("", false, "\"\""), arguments("", true, "***SECRET***"));
     }
 }

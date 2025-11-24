@@ -27,6 +27,7 @@ import org.junit.jupiter.params.provider.ValueSource;
 import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 @DisplayName("BooleanValue Tests")
 class BooleanValueTests {
@@ -108,26 +109,26 @@ class BooleanValueTests {
     }
 
     static Stream<Arguments> provideBooleanCombinations() {
-        return Stream.of(Arguments.of(true, false), Arguments.of(true, true), Arguments.of(false, false),
-                Arguments.of(false, true));
+        return Stream.of(arguments(true, false), arguments(true, true), arguments(false, false),
+                arguments(false, true));
     }
 
     static Stream<Arguments> provideEqualityHashCodeCases() {
-        return Stream.of(Arguments.of(new BooleanValue(true, false), new BooleanValue(true, true), true),
-                Arguments.of(new BooleanValue(false, false), new BooleanValue(false, true), true),
-                Arguments.of(new BooleanValue(true, false), new BooleanValue(false, false), false),
-                Arguments.of(new BooleanValue(true, true), new BooleanValue(false, true), false));
+        return Stream.of(arguments(new BooleanValue(true, false), new BooleanValue(true, true), true),
+                arguments(new BooleanValue(false, false), new BooleanValue(false, true), true),
+                arguments(new BooleanValue(true, false), new BooleanValue(false, false), false),
+                arguments(new BooleanValue(true, true), new BooleanValue(false, true), false));
     }
 
     static Stream<Arguments> provideToStringCases() {
-        return Stream.of(Arguments.of(true, false, "true"), Arguments.of(false, false, "false"),
-                Arguments.of(true, true, "***SECRET***"), Arguments.of(false, true, "***SECRET***"));
+        return Stream.of(arguments(true, false, "true"), arguments(false, false, "false"),
+                arguments(true, true, "***SECRET***"), arguments(false, true, "***SECRET***"));
     }
 
     static Stream<Arguments> provideConstantCases() {
-        return Stream.of(Arguments.of("Value.TRUE is not secret", Value.TRUE, false),
-                Arguments.of("Value.FALSE is not secret", Value.FALSE, false),
-                Arguments.of("BooleanValue.SECRET_TRUE is secret", BooleanValue.SECRET_TRUE, true),
-                Arguments.of("BooleanValue.SECRET_FALSE is secret", BooleanValue.SECRET_FALSE, true));
+        return Stream.of(arguments("Value.TRUE is not secret", Value.TRUE, false),
+                arguments("Value.FALSE is not secret", Value.FALSE, false),
+                arguments("BooleanValue.SECRET_TRUE is secret", BooleanValue.SECRET_TRUE, true),
+                arguments("BooleanValue.SECRET_FALSE is secret", BooleanValue.SECRET_FALSE, true));
     }
 }

@@ -25,7 +25,6 @@ import io.sapl.api.model.Value;
 import io.sapl.api.pip.Attribute;
 import io.sapl.api.pip.EnvironmentAttribute;
 import io.sapl.interpreter.InitializationException;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -179,7 +178,7 @@ class AttributeMethodSignatureProcessorTests {
         var invocation = createInvocation("withArguments", Value.of(1), Value.of(2));
         var context    = createEvaluationContext(Map.of());
 
-        Assertions.assertNotNull(result);
+        assertThat(result).isNotNull();
         StepVerifier
                 .create(result.attributeFinder().invoke(invocation)
                         .contextWrite(ctx -> ctx.put(EvaluationContext.class, context)))
@@ -194,7 +193,7 @@ class AttributeMethodSignatureProcessorTests {
         var invocation = createInvocation("withArguments", Value.of(1));
         var context    = createEvaluationContext(Map.of());
 
-        Assertions.assertNotNull(result);
+        assertThat(result).isNotNull();
         StepVerifier
                 .create(result.attributeFinder().invoke(invocation)
                         .contextWrite(ctx -> ctx.put(EvaluationContext.class, context)))
@@ -211,7 +210,7 @@ class AttributeMethodSignatureProcessorTests {
         var invocation = createInvocation("withVarArgs", Value.of(1), Value.of(2), Value.of(3));
         var context    = createEvaluationContext(Map.of());
 
-        Assertions.assertNotNull(result);
+        assertThat(result).isNotNull();
         StepVerifier
                 .create(result.attributeFinder().invoke(invocation)
                         .contextWrite(ctx -> ctx.put(EvaluationContext.class, context)))
@@ -226,7 +225,7 @@ class AttributeMethodSignatureProcessorTests {
         var invocation = createInvocation("throwsException");
         var context    = createEvaluationContext(Map.of());
 
-        Assertions.assertNotNull(result);
+        assertThat(result).isNotNull();
         StepVerifier
                 .create(result.attributeFinder().invoke(invocation)
                         .contextWrite(ctx -> ctx.put(EvaluationContext.class, context)))

@@ -36,7 +36,7 @@ import java.time.Clock;
 import java.time.Duration;
 import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * Utility class for testing combining algorithm implementations. Provides
@@ -141,10 +141,10 @@ public class CombiningAlgorithmTestUtil {
      * the expected decision
      */
     public static void assertDecision(Value result, Decision expectedDecision) {
-        assertInstanceOf(ObjectValue.class, result);
+        assertThat(result).isInstanceOf(ObjectValue.class);
         val decisionField = ((ObjectValue) result).get("decision");
-        assertInstanceOf(TextValue.class, decisionField);
-        assertEquals(expectedDecision.toString(), ((TextValue) decisionField).value());
+        assertThat(decisionField).isInstanceOf(TextValue.class);
+        assertThat(((TextValue) decisionField).value()).isEqualTo(expectedDecision.toString());
     }
 
     /**
@@ -173,9 +173,9 @@ public class CombiningAlgorithmTestUtil {
      * the expected resource value
      */
     public static void assertResource(Value result, Value expectedResource) {
-        assertInstanceOf(ObjectValue.class, result);
+        assertThat(result).isInstanceOf(ObjectValue.class);
         val resourceField = ((ObjectValue) result).get("resource");
-        assertEquals(expectedResource, resourceField);
+        assertThat(resourceField).isEqualTo(expectedResource);
     }
 
     /**
@@ -187,18 +187,18 @@ public class CombiningAlgorithmTestUtil {
      * list of expected obligation type strings
      */
     public static void assertObligations(Value result, List<String> expectedObligationTypes) {
-        assertInstanceOf(ObjectValue.class, result);
+        assertThat(result).isInstanceOf(ObjectValue.class);
         val obligationsField = ((ObjectValue) result).get("obligations");
-        assertInstanceOf(ArrayValue.class, obligationsField);
+        assertThat(obligationsField).isInstanceOf(ArrayValue.class);
         val obligations = (ArrayValue) obligationsField;
-        assertEquals(expectedObligationTypes.size(), obligations.size());
+        assertThat(obligations).hasSize(expectedObligationTypes.size());
 
         for (int i = 0; i < expectedObligationTypes.size(); i++) {
             val obligation = obligations.get(i);
-            assertInstanceOf(ObjectValue.class, obligation);
+            assertThat(obligation).isInstanceOf(ObjectValue.class);
             val typeField = ((ObjectValue) obligation).get("type");
-            assertInstanceOf(TextValue.class, typeField);
-            assertEquals(expectedObligationTypes.get(i), ((TextValue) typeField).value());
+            assertThat(typeField).isInstanceOf(TextValue.class);
+            assertThat(((TextValue) typeField).value()).isEqualTo(expectedObligationTypes.get(i));
         }
     }
 
@@ -211,18 +211,18 @@ public class CombiningAlgorithmTestUtil {
      * list of expected advice type strings
      */
     public static void assertAdvice(Value result, List<String> expectedAdviceTypes) {
-        assertInstanceOf(ObjectValue.class, result);
+        assertThat(result).isInstanceOf(ObjectValue.class);
         val adviceField = ((ObjectValue) result).get("advice");
-        assertInstanceOf(ArrayValue.class, adviceField);
+        assertThat(adviceField).isInstanceOf(ArrayValue.class);
         val advice = (ArrayValue) adviceField;
-        assertEquals(expectedAdviceTypes.size(), advice.size());
+        assertThat(advice).hasSize(expectedAdviceTypes.size());
 
         for (int i = 0; i < expectedAdviceTypes.size(); i++) {
             val adviceItem = advice.get(i);
-            assertInstanceOf(ObjectValue.class, adviceItem);
+            assertThat(adviceItem).isInstanceOf(ObjectValue.class);
             val typeField = ((ObjectValue) adviceItem).get("type");
-            assertInstanceOf(TextValue.class, typeField);
-            assertEquals(expectedAdviceTypes.get(i), ((TextValue) typeField).value());
+            assertThat(typeField).isInstanceOf(TextValue.class);
+            assertThat(((TextValue) typeField).value()).isEqualTo(expectedAdviceTypes.get(i));
         }
     }
 
@@ -238,11 +238,11 @@ public class CombiningAlgorithmTestUtil {
      * the expected value for that field
      */
     public static void assertResourceField(Value result, String fieldName, Value expectedValue) {
-        assertInstanceOf(ObjectValue.class, result);
+        assertThat(result).isInstanceOf(ObjectValue.class);
         val resourceField = ((ObjectValue) result).get("resource");
-        assertInstanceOf(ObjectValue.class, resourceField);
+        assertThat(resourceField).isInstanceOf(ObjectValue.class);
         val fieldValue = ((ObjectValue) resourceField).get(fieldName);
-        assertEquals(expectedValue, fieldValue);
+        assertThat(fieldValue).isEqualTo(expectedValue);
     }
 
     /**
@@ -256,12 +256,12 @@ public class CombiningAlgorithmTestUtil {
      * the expected boolean value
      */
     public static void assertResourceBoolean(Value result, String fieldName, boolean expectedBoolean) {
-        assertInstanceOf(ObjectValue.class, result);
+        assertThat(result).isInstanceOf(ObjectValue.class);
         val resourceField = ((ObjectValue) result).get("resource");
-        assertInstanceOf(ObjectValue.class, resourceField);
+        assertThat(resourceField).isInstanceOf(ObjectValue.class);
         val fieldValue = ((ObjectValue) resourceField).get(fieldName);
-        assertInstanceOf(BooleanValue.class, fieldValue);
-        assertEquals(expectedBoolean, ((BooleanValue) fieldValue).value());
+        assertThat(fieldValue).isInstanceOf(BooleanValue.class);
+        assertThat(((BooleanValue) fieldValue).value()).isEqualTo(expectedBoolean);
     }
 
     /**
@@ -275,11 +275,11 @@ public class CombiningAlgorithmTestUtil {
      * the expected text value
      */
     public static void assertResourceText(Value result, String fieldName, String expectedText) {
-        assertInstanceOf(ObjectValue.class, result);
+        assertThat(result).isInstanceOf(ObjectValue.class);
         val resourceField = ((ObjectValue) result).get("resource");
-        assertInstanceOf(ObjectValue.class, resourceField);
+        assertThat(resourceField).isInstanceOf(ObjectValue.class);
         val fieldValue = ((ObjectValue) resourceField).get(fieldName);
-        assertInstanceOf(TextValue.class, fieldValue);
-        assertEquals(expectedText, ((TextValue) fieldValue).value());
+        assertThat(fieldValue).isInstanceOf(TextValue.class);
+        assertThat(((TextValue) fieldValue).value()).isEqualTo(expectedText);
     }
 }

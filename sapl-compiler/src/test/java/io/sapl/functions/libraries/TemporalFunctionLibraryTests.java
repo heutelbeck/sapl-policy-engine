@@ -32,7 +32,7 @@ import java.time.ZoneId;
 import java.time.ZonedDateTime;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.assertj.core.api.Assertions.assertThatCode;
 
 class TemporalFunctionLibraryTests {
 
@@ -43,7 +43,8 @@ class TemporalFunctionLibraryTests {
     @Test
     void when_loadedIntoBroker_then_noError() {
         val functionBroker = new DefaultFunctionBroker();
-        assertDoesNotThrow(() -> functionBroker.loadStaticFunctionLibrary(TemporalFunctionLibrary.class));
+        assertThatCode(() -> functionBroker.loadStaticFunctionLibrary(TemporalFunctionLibrary.class))
+                .doesNotThrowAnyException();
     }
 
     /* ######## INSTANT MANIPULATION TESTS ######## */

@@ -32,8 +32,7 @@ class SchemaValidationLibraryTests {
 
         val result = isCompliant(Value.TRUE, schema);
 
-        assertThat(result).isInstanceOf(BooleanValue.class);
-        assertThat(((BooleanValue) result).value()).isTrue();
+        assertThat(result).isInstanceOf(BooleanValue.class).isEqualTo(Value.TRUE);
     }
 
     @Test
@@ -42,8 +41,7 @@ class SchemaValidationLibraryTests {
 
         val result = isCompliant(Value.of(123), schema);
 
-        assertThat(result).isInstanceOf(BooleanValue.class);
-        assertThat(((BooleanValue) result).value()).isFalse();
+        assertThat(result).isInstanceOf(BooleanValue.class).isEqualTo(Value.FALSE);
     }
 
     @Test
@@ -54,7 +52,7 @@ class SchemaValidationLibraryTests {
 
         assertThat(result).isInstanceOf(ObjectValue.class);
         val resultObj = (ObjectValue) result;
-        assertThat(((BooleanValue) resultObj.get("valid")).value()).isFalse();
+        assertThat(resultObj.get("valid")).isNotNull().isEqualTo(Value.FALSE);
         assertThat((ArrayValue) resultObj.get("errors")).isEmpty();
     }
 
@@ -82,9 +80,8 @@ class SchemaValidationLibraryTests {
 
         assertThat(result).isInstanceOf(ObjectValue.class);
         val resultObj = (ObjectValue) result;
-        assertThat(resultObj.containsKey("valid")).isTrue();
-        assertThat(resultObj.containsKey("errors")).isTrue();
-        assertThat(((BooleanValue) resultObj.get("valid")).value()).isTrue();
+        assertThat(resultObj).containsKey("valid").containsKey("errors");
+        assertThat(resultObj.get("valid")).isNotNull().isEqualTo(Value.TRUE);
         assertThat((ArrayValue) resultObj.get("errors")).isEmpty();
     }
 
@@ -105,11 +102,11 @@ class SchemaValidationLibraryTests {
 
         assertThat(result).isInstanceOf(ObjectValue.class);
         val resultObj = (ObjectValue) result;
-        assertThat(((BooleanValue) resultObj.get("valid")).value()).isFalse();
+        assertThat(resultObj.get("valid")).isNotNull().isEqualTo(Value.FALSE);
         val errors = (ArrayValue) resultObj.get("errors");
         assertThat(errors).isNotEmpty();
 
-        val firstError = (ObjectValue) errors.get(0);
+        val firstError = (ObjectValue) errors.getFirst();
         assertThat(firstError.containsKey("path")).isTrue();
         assertThat(firstError.containsKey("message")).isTrue();
         assertThat(firstError.containsKey("type")).isTrue();
@@ -152,8 +149,7 @@ class SchemaValidationLibraryTests {
 
         val result = isCompliantWithExternalSchemas(validTriangle, triangleSchema, externals);
 
-        assertThat(result).isInstanceOf(BooleanValue.class);
-        assertThat(((BooleanValue) result).value()).isTrue();
+        assertThat(result).isInstanceOf(BooleanValue.class).isEqualTo(Value.TRUE);
     }
 
     @Test
@@ -182,7 +178,6 @@ class SchemaValidationLibraryTests {
 
         val result = isCompliantWithExternalSchemas(invalidTriangle, triangleSchema, externals);
 
-        assertThat(result).isInstanceOf(BooleanValue.class);
-        assertThat(((BooleanValue) result).value()).isFalse();
+        assertThat(result).isInstanceOf(BooleanValue.class).isEqualTo(Value.FALSE);
     }
 }

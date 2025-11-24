@@ -26,6 +26,7 @@ import org.junit.jupiter.params.provider.MethodSource;
 import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 @DisplayName("UndefinedValue Tests")
 class UndefinedValueTests {
@@ -81,21 +82,21 @@ class UndefinedValueTests {
     }
 
     static Stream<Arguments> provideSecretFlags() {
-        return Stream.of(Arguments.of(false), Arguments.of(true));
+        return Stream.of(arguments(false), arguments(true));
     }
 
     static Stream<Arguments> provideEqualityHashCodeCases() {
-        return Stream.of(Arguments.of(new UndefinedValue(false), new UndefinedValue(false), true),
-                Arguments.of(new UndefinedValue(false), new UndefinedValue(true), true),
-                Arguments.of(new UndefinedValue(true), new UndefinedValue(true), true));
+        return Stream.of(arguments(new UndefinedValue(false), new UndefinedValue(false), true),
+                arguments(new UndefinedValue(false), new UndefinedValue(true), true),
+                arguments(new UndefinedValue(true), new UndefinedValue(true), true));
     }
 
     static Stream<Arguments> provideToStringCases() {
-        return Stream.of(Arguments.of(false, "undefined"), Arguments.of(true, "***SECRET***"));
+        return Stream.of(arguments(false, "undefined"), arguments(true, "***SECRET***"));
     }
 
     static Stream<Arguments> provideConstantCases() {
-        return Stream.of(Arguments.of("Value.UNDEFINED is not secret", Value.UNDEFINED, false),
-                Arguments.of("UndefinedValue.SECRET_UNDEFINED is secret", UndefinedValue.SECRET_UNDEFINED, true));
+        return Stream.of(arguments("Value.UNDEFINED is not secret", Value.UNDEFINED, false),
+                arguments("UndefinedValue.SECRET_UNDEFINED is secret", UndefinedValue.SECRET_UNDEFINED, true));
     }
 }

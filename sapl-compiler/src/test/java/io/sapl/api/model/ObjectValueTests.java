@@ -583,8 +583,8 @@ class ObjectValueTests {
             var obj1 = new ObjectValue(Map.of("key", Value.of(1)), false);
             var obj2 = new ObjectValue(Map.of("key", Value.of(1)), false);
 
-            assertThat(obj1).isEqualTo(obj2);
-            assertThat(obj2).isEqualTo(obj1);
+            assertThat(obj1).isEqualTo(obj2).hasSameHashCodeAs(obj2);
+            assertThat(obj2).isEqualTo(obj1).hasSameHashCodeAs(obj1);
         }
 
         @Test
@@ -594,9 +594,9 @@ class ObjectValueTests {
             var obj2 = new ObjectValue(Map.of("key", Value.of(1)), false);
             var obj3 = new ObjectValue(Map.of("key", Value.of(1)), false);
 
-            assertThat(obj1).isEqualTo(obj2);
-            assertThat(obj2).isEqualTo(obj3);
-            assertThat(obj1).isEqualTo(obj3);
+            assertThat(obj1).isEqualTo(obj2).hasSameHashCodeAs(obj2);
+            assertThat(obj2).isEqualTo(obj3).hasSameHashCodeAs(obj3);
+            assertThat(obj1).isEqualTo(obj3).hasSameHashCodeAs(obj3);
         }
 
         @Test
@@ -605,8 +605,8 @@ class ObjectValueTests {
             var regular = new ObjectValue(Map.of("key", Value.of(1)), false);
             var secret  = new ObjectValue(Map.of("key", Value.of(1)), true);
 
-            assertThat(regular).isEqualTo(secret);
-            assertThat(secret).isEqualTo(regular);
+            assertThat(regular).isEqualTo(secret).hasSameHashCodeAs(secret);
+            assertThat(secret).isEqualTo(regular).hasSameHashCodeAs(regular);
         }
 
         @Test

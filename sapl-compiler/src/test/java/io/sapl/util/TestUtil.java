@@ -18,7 +18,6 @@
 package io.sapl.util;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.sapl.api.attributes.AttributeRepository;
 import io.sapl.api.model.*;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pip.Attribute;
@@ -32,7 +31,6 @@ import io.sapl.compiler.ExpressionCompiler;
 import io.sapl.functions.DefaultFunctionBroker;
 import io.sapl.functions.libraries.FilterFunctionLibrary;
 import io.sapl.functions.libraries.TemporalFunctionLibrary;
-import io.sapl.interpreter.InitializationException;
 import lombok.SneakyThrows;
 import lombok.experimental.UtilityClass;
 import lombok.extern.slf4j.Slf4j;
@@ -41,7 +39,6 @@ import reactor.core.publisher.Flux;
 import reactor.test.StepVerifier;
 
 import java.time.Clock;
-import java.time.Duration;
 
 import static org.assertj.core.api.Assertions.assertThat;
 

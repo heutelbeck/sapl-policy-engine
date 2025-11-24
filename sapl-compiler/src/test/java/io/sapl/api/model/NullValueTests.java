@@ -26,6 +26,7 @@ import org.junit.jupiter.params.provider.MethodSource;
 import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 @DisplayName("NullValue Tests")
 class NullValueTests {
@@ -79,21 +80,21 @@ class NullValueTests {
     }
 
     static Stream<Arguments> provideSecretFlags() {
-        return Stream.of(Arguments.of(false), Arguments.of(true));
+        return Stream.of(arguments(false), arguments(true));
     }
 
     static Stream<Arguments> provideEqualityHashCodeCases() {
-        return Stream.of(Arguments.of(new NullValue(false), new NullValue(false), true),
-                Arguments.of(new NullValue(false), new NullValue(true), true),
-                Arguments.of(new NullValue(true), new NullValue(true), true));
+        return Stream.of(arguments(new NullValue(false), new NullValue(false), true),
+                arguments(new NullValue(false), new NullValue(true), true),
+                arguments(new NullValue(true), new NullValue(true), true));
     }
 
     static Stream<Arguments> provideToStringCases() {
-        return Stream.of(Arguments.of(false, "null"), Arguments.of(true, "***SECRET***"));
+        return Stream.of(arguments(false, "null"), arguments(true, "***SECRET***"));
     }
 
     static Stream<Arguments> provideConstantCases() {
-        return Stream.of(Arguments.of("Value.NULL is not secret", Value.NULL, false),
-                Arguments.of("NullValue.SECRET_NULL is secret", NullValue.SECRET_NULL, true));
+        return Stream.of(arguments("Value.NULL is not secret", Value.NULL, false),
+                arguments("NullValue.SECRET_NULL is secret", NullValue.SECRET_NULL, true));
     }
 }

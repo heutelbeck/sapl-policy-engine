@@ -19,19 +19,21 @@ package io.sapl.functions.libraries;
 
 import io.sapl.api.model.ObjectValue;
 import io.sapl.api.model.TextValue;
+import io.sapl.api.model.Value;
 import io.sapl.functions.DefaultFunctionBroker;
 import lombok.val;
 import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.assertj.core.api.Assertions.assertThatCode;
 
 class SaplFunctionLibraryTests {
 
     @Test
     void when_loadedIntoBroker_then_noError() {
         val functionBroker = new DefaultFunctionBroker();
-        assertDoesNotThrow(() -> functionBroker.loadStaticFunctionLibrary(SaplFunctionLibrary.class));
+        assertThatCode(() -> functionBroker.loadStaticFunctionLibrary(SaplFunctionLibrary.class))
+                .doesNotThrowAnyException();
     }
 
     @Test
@@ -145,16 +147,16 @@ class SaplFunctionLibraryTests {
         ObjectValue infoObject1 = (ObjectValue) result1;
         ObjectValue infoObject2 = (ObjectValue) result2;
 
-        assertThat(infoObject1.get("javaVersion")).isNotNull().isInstanceOf(TextValue.class).isNotEqualTo("")
-                .isNotEqualTo("unknown");
-        assertThat(infoObject2.get("javaVersion")).isNotNull().isInstanceOf(TextValue.class).isNotEqualTo("")
-                .isNotEqualTo("unknown");
+        assertThat(infoObject1.get("javaVersion")).isNotNull().isInstanceOf(TextValue.class).isNotEqualTo(Value.of(""))
+                .isNotEqualTo(Value.of("unknown"));
+        assertThat(infoObject2.get("javaVersion")).isNotNull().isInstanceOf(TextValue.class).isNotEqualTo(Value.of(""))
+                .isNotEqualTo(Value.of("unknown"));
         val javaVersion1 = (TextValue) infoObject1.get("javaVersion");
         val javaVersion2 = (TextValue) infoObject2.get("javaVersion");
-        assertThat(infoObject1.get("osName")).isNotNull().isInstanceOf(TextValue.class).isNotEqualTo("")
-                .isNotEqualTo("unknown");
-        assertThat(infoObject2.get("osName")).isNotNull().isInstanceOf(TextValue.class).isNotEqualTo("")
-                .isNotEqualTo("unknown");
+        assertThat(infoObject1.get("osName")).isNotNull().isInstanceOf(TextValue.class).isNotEqualTo(Value.of(""))
+                .isNotEqualTo(Value.of("unknown"));
+        assertThat(infoObject2.get("osName")).isNotNull().isInstanceOf(TextValue.class).isNotEqualTo(Value.of(""))
+                .isNotEqualTo(Value.of("unknown"));
         val osName1 = (TextValue) infoObject1.get("osName");
         val osName2 = (TextValue) infoObject2.get("osName");
 

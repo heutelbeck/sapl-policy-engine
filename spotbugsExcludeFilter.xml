@@ -96,6 +96,7 @@
             <Bug pattern="ITC_INHERITANCE_TYPE_CHECKING" />
             <Bug pattern="OCP_OVERLY_CONCRETE_COLLECTION_PARAMETER" />
             <Bug pattern="OCP_OVERLY_CONCRETE_PARAMETER" />
+            <Bug pattern="EXS_EXCEPTION_SOFTENING_NO_CONSTRAINTS" />
 		</Or>
 	</Match>
 </FindBugsFilter>

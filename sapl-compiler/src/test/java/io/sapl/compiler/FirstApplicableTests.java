@@ -29,7 +29,8 @@ import org.junit.jupiter.params.provider.MethodSource;
 
 import java.util.stream.Stream;
 
-import static io.sapl.util.CombiningAlgorithmTestUtil.*;
+import static io.sapl.util.CombiningAlgorithmTestUtil.assertDecision;
+import static io.sapl.util.CombiningAlgorithmTestUtil.evaluatePolicySet;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 

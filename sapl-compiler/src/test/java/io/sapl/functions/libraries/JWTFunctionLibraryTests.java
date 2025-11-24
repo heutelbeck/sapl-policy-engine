@@ -19,12 +19,8 @@ package io.sapl.functions.libraries;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
-import io.sapl.api.model.ArrayValue;
-import io.sapl.api.model.BooleanValue;
-import io.sapl.api.model.ErrorValue;
-import io.sapl.api.model.ObjectValue;
-import io.sapl.api.model.TextValue;
-import io.sapl.api.model.Value;
+import io.sapl.api.model.*;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
@@ -55,13 +51,11 @@ class JWTFunctionLibraryTests {
         var payload = (ObjectValue) token.get("payload");
         var header  = (ObjectValue) token.get("header");
 
-        assertThat(getTextValue(payload, "sub")).isEqualTo("user1");
-        assertThat(getTextValue(header, "alg")).isEqualTo("RS256");
-        assertThat(getTextValue(header, "kid")).isEqualTo("7dddc307-dda4-48f5-be5b-406edafb7988");
-    }
-
-    private static String getTextValue(ObjectValue obj, String field) {
-        return ((TextValue) obj.get(field)).value();
+        Assertions.assertNotNull(payload);
+        assertThat(payload.get("sub")).isEqualTo(Value.of("user1"));
+        Assertions.assertNotNull(header);
+        assertThat(header.get("alg")).isEqualTo(Value.of("RS256"));
+        assertThat(header.get("kid")).isEqualTo(Value.of("7dddc307-dda4-48f5-be5b-406edafb7988"));
     }
 
     @Test
@@ -72,9 +66,10 @@ class JWTFunctionLibraryTests {
 
         var payload = (ObjectValue) ((ObjectValue) result).get("payload");
 
-        assertThat(getTextValue(payload, "nbf")).isEqualTo("2021-10-26T12:30:15Z");
-        assertThat(getTextValue(payload, "exp")).isEqualTo("2021-10-26T12:35:15Z");
-        assertThat(getTextValue(payload, "iat")).isEqualTo("2021-10-26T12:30:15Z");
+        Assertions.assertNotNull(payload);
+        assertThat(payload.get("nbf")).isEqualTo(Value.of("2021-10-26T12:30:15Z"));
+        assertThat(payload.get("exp")).isEqualTo(Value.of("2021-10-26T12:35:15Z"));
+        assertThat(payload.get("iat")).isEqualTo(Value.of("2021-10-26T12:30:15Z"));
     }
 
     @Test
@@ -84,11 +79,13 @@ class JWTFunctionLibraryTests {
         assertThat(result).isNotInstanceOf(ErrorValue.class);
 
         var payload = (ObjectValue) ((ObjectValue) result).get("payload");
-        var scopes  = (ArrayValue) payload.get("scope");
+        Assertions.assertNotNull(payload);
+        var scopes = (ArrayValue) payload.get("scope");
 
         assertThat(scopes).isInstanceOf(ArrayValue.class).hasSize(2);
-        assertThat(((TextValue) scopes.get(0)).value()).isEqualTo("faculty.read");
-        assertThat(((TextValue) scopes.get(1)).value()).isEqualTo("books.read");
+        Assertions.assertNotNull(scopes);
+        assertThat(scopes.get(0)).isEqualTo(Value.of("faculty.read"));
+        assertThat(scopes.get(1)).isEqualTo(Value.of("books.read"));
     }
 
     @ParameterizedTest
@@ -113,6 +110,7 @@ class JWTFunctionLibraryTests {
 
         var payload = (TextValue) ((ObjectValue) result).get("payload");
 
+        Assertions.assertNotNull(payload);
         assertThat(payload.value()).isEqualTo("SOL command structure");
     }
 
@@ -133,7 +131,7 @@ class JWTFunctionLibraryTests {
         var payloadValue = (ObjectValue) ((ObjectValue) result).get("payload");
 
         assertThat(payloadValue).isNotNull();
-        assertThat(getTextValue(payloadValue, "sub")).isEqualTo("perry.rhodan");
+        assertThat(payloadValue.get("sub")).isEqualTo(Value.of("perry.rhodan"));
     }
 
     @Test
@@ -153,7 +151,7 @@ class JWTFunctionLibraryTests {
         var payloadValue = (ObjectValue) ((ObjectValue) result).get("payload");
 
         assertThat(payloadValue).isNotNull();
-        assertThat(getTextValue(payloadValue, "nbf")).isEqualTo("not a number");
+        assertThat(payloadValue.get("nbf")).isEqualTo(Value.of("not a number"));
     }
 
     @ParameterizedTest
@@ -172,7 +170,8 @@ class JWTFunctionLibraryTests {
 
         var payloadValue = (ObjectValue) ((ObjectValue) result).get("payload");
 
-        assertThat(getTextValue(payloadValue, claimName)).isEqualTo("1970-01-01T00:00:00Z");
+        Assertions.assertNotNull(payloadValue);
+        assertThat(payloadValue.get(claimName)).isEqualTo(Value.of("1970-01-01T00:00:00Z"));
     }
 
     @Test
@@ -192,9 +191,10 @@ class JWTFunctionLibraryTests {
 
         var payloadValue = (ObjectValue) ((ObjectValue) result).get("payload");
 
-        assertThat(getTextValue(payloadValue, "nbf")).isEqualTo("2001-09-09T01:46:40Z");
-        assertThat(getTextValue(payloadValue, "exp")).isEqualTo("2033-05-18T03:33:20Z");
-        assertThat(getTextValue(payloadValue, "iat")).isEqualTo("2017-07-14T02:40:00Z");
+        Assertions.assertNotNull(payloadValue);
+        assertThat(payloadValue.get("nbf")).isEqualTo(Value.of("2001-09-09T01:46:40Z"));
+        assertThat(payloadValue.get("exp")).isEqualTo(Value.of("2033-05-18T03:33:20Z"));
+        assertThat(payloadValue.get("iat")).isEqualTo(Value.of("2017-07-14T02:40:00Z"));
     }
 
     @Test
@@ -216,11 +216,12 @@ class JWTFunctionLibraryTests {
 
         var payloadValue = (ObjectValue) ((ObjectValue) result).get("payload");
 
-        assertThat(getTextValue(payloadValue, "sub")).isEqualTo("gucky");
-        assertThat(getTextValue(payloadValue, "species")).isEqualTo("mousebeaver");
-        assertThat(((BooleanValue) payloadValue.get("cellActivator")).value()).isTrue();
-        assertThat(getTextValue(payloadValue, "nbf")).isEqualTo("2021-10-26T12:30:15Z");
-        assertThat(getTextValue(payloadValue, "exp")).isEqualTo("2021-10-26T12:35:15Z");
+        Assertions.assertNotNull(payloadValue);
+        assertThat(payloadValue.get("sub")).isEqualTo(Value.of("gucky"));
+        assertThat(payloadValue.get("species")).isEqualTo(Value.of("mousebeaver"));
+        assertThat(payloadValue.get("cellActivator")).isEqualTo(Value.TRUE);
+        assertThat(payloadValue.get("nbf")).isEqualTo(Value.of("2021-10-26T12:30:15Z"));
+        assertThat(payloadValue.get("exp")).isEqualTo(Value.of("2021-10-26T12:35:15Z"));
     }
 
 }

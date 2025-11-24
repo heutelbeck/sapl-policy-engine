@@ -125,10 +125,11 @@ public class AttributeCompiler {
      */
     private CompiledExpression fullStreamToHead(CompiledExpression fullStream) {
         return switch (fullStream) {
-        case ErrorValue error                  -> error;
-        case Value ignored                     -> throw new SaplCompilerException(ERROR_PIP_RETURNED_VALUE);
-        case PureExpression ignored            -> throw new SaplCompilerException(ERROR_PIP_RETURNED_PURE_EXPRESSION);
-        case StreamExpression streamExpression -> new StreamExpression(streamExpression.stream().take(1));
+        case ErrorValue error                     -> error;
+        case Value ignored                        -> throw new SaplCompilerException(ERROR_PIP_RETURNED_VALUE);
+        case PureExpression ignored               ->
+            throw new SaplCompilerException(ERROR_PIP_RETURNED_PURE_EXPRESSION);
+        case StreamExpression(Flux<Value> stream) -> new StreamExpression(stream.take(1));
         };
     }
 
@@ -208,7 +209,7 @@ public class AttributeCompiler {
         }
 
         var values     = Arrays.stream(evaluatedAttributeFinderParameters, 2, evaluatedAttributeFinderParameters.length)
-                .map(obj -> (Value) obj).toList();
+                .map(Value.class::cast).toList();
         val invocation = new AttributeFinderInvocation(options.configurationId, attributeName,
                 isEnvironmentAttribute ? null : entity, values, options.variables, options.initialTimeOutDuration(),
                 options.pollIntervalDuration(), options.backoffDuration(), options.retries, options.fresh);

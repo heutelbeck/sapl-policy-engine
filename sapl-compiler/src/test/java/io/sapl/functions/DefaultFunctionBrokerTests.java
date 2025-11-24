@@ -44,6 +44,7 @@ import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 class DefaultFunctionBrokerTests {
 
@@ -92,20 +93,20 @@ class DefaultFunctionBrokerTests {
         val staticInvocation = new FunctionInvocation("nyarlathotep.summonMessenger", List.of());
         val staticResult     = broker.evaluateFunction(staticInvocation);
 
-        assertThat(staticResult).isInstanceOf(TextValue.class);
-        assertThat(((TextValue) staticResult).value()).isEqualTo("Nyarlathotep approaches");
+        assertThat(staticResult).isInstanceOf(TextValue.class).extracting(v -> ((TextValue) v).value())
+                .isEqualTo("Nyarlathotep approaches");
 
         val instanceInvocation = new FunctionInvocation("nyarlathotep.revealForm", List.of());
         val instanceResult     = broker.evaluateFunction(instanceInvocation);
 
-        assertThat(instanceResult).isInstanceOf(TextValue.class);
-        assertThat(((TextValue) instanceResult).value()).isEqualTo("Haunter of the Dark");
+        assertThat(instanceResult).isInstanceOf(TextValue.class).extracting(v -> ((TextValue) v).value())
+                .isEqualTo("Haunter of the Dark");
 
         val transformInvocation = new FunctionInvocation("nyarlathotep.transform", List.of(Value.of("Faceless God")));
         val transformResult     = broker.evaluateFunction(transformInvocation);
 
-        assertThat(transformResult).isInstanceOf(TextValue.class);
-        assertThat(((TextValue) transformResult).value()).isEqualTo("Transformed to Faceless God");
+        assertThat(transformResult).isInstanceOf(TextValue.class).extracting(v -> ((TextValue) v).value())
+                .isEqualTo("Transformed to Faceless God");
     }
 
     @Test
@@ -122,8 +123,8 @@ class DefaultFunctionBrokerTests {
         val staticInvocation = new FunctionInvocation("nyarlathotep.summonMessenger", List.of());
         val staticResult     = broker.evaluateFunction(staticInvocation);
 
-        assertThat(staticResult).isInstanceOf(TextValue.class);
-        assertThat(((TextValue) staticResult).value()).isEqualTo("Nyarlathotep approaches");
+        assertThat(staticResult).isInstanceOf(TextValue.class).extracting(v -> ((TextValue) v).value())
+                .isEqualTo("Nyarlathotep approaches");
     }
 
     @Test
@@ -169,12 +170,12 @@ class DefaultFunctionBrokerTests {
         val oneArgResult  = broker.evaluateFunction(oneArgInvocation);
         val twoArgsResult = broker.evaluateFunction(twoArgsInvocation);
 
-        assertThat(noArgsResult).isInstanceOf(TextValue.class);
-        assertThat(((TextValue) noArgsResult).value()).isEqualTo("no gate");
-        assertThat(oneArgResult).isInstanceOf(TextValue.class);
-        assertThat(((TextValue) oneArgResult).value()).isEqualTo("one gate");
-        assertThat(twoArgsResult).isInstanceOf(TextValue.class);
-        assertThat(((TextValue) twoArgsResult).value()).isEqualTo("two gate");
+        assertThat(noArgsResult).isInstanceOf(TextValue.class).extracting(v -> ((TextValue) v).value())
+                .isEqualTo("no gate");
+        assertThat(oneArgResult).isInstanceOf(TextValue.class).extracting(v -> ((TextValue) v).value())
+                .isEqualTo("one gate");
+        assertThat(twoArgsResult).isInstanceOf(TextValue.class).extracting(v -> ((TextValue) v).value())
+                .isEqualTo("two gate");
     }
 
     @Test
@@ -182,8 +183,8 @@ class DefaultFunctionBrokerTests {
         val invocation = new FunctionInvocation("nonexistent.function", List.of());
         val result     = broker.evaluateFunction(invocation);
 
-        assertThat(result).isInstanceOf(ErrorValue.class);
-        assertThat(((ErrorValue) result).message()).contains("No matching function found");
+        assertThat(result).isInstanceOf(ErrorValue.class).extracting(v -> ((ErrorValue) v).message()).asString()
+                .contains("No matching function found");
     }
 
     @Test
@@ -196,10 +197,10 @@ class DefaultFunctionBrokerTests {
         val stringResult = broker.evaluateFunction(stringInvocation);
         val numberResult = broker.evaluateFunction(numberInvocation);
 
-        assertThat(stringResult).isInstanceOf(TextValue.class);
-        assertThat(((TextValue) stringResult).value()).isEqualTo("string transform");
-        assertThat(numberResult).isInstanceOf(TextValue.class);
-        assertThat(((TextValue) numberResult).value()).isEqualTo("number transform");
+        assertThat(stringResult).isInstanceOf(TextValue.class).extracting(v -> ((TextValue) v).value())
+                .isEqualTo("string transform");
+        assertThat(numberResult).isInstanceOf(TextValue.class).extracting(v -> ((TextValue) v).value())
+                .isEqualTo("number transform");
     }
 
     @Test
@@ -210,12 +211,10 @@ class DefaultFunctionBrokerTests {
         val result1    = broker.evaluateFunction(invocation);
         val result2    = broker.evaluateFunction(invocation);
 
-        assertThat(result1).isNotInstanceOf(ErrorValue.class);
-        assertThat(result2).isNotInstanceOf(ErrorValue.class);
-        assertThat(result1).isInstanceOf(TextValue.class);
-        assertThat(result2).isInstanceOf(TextValue.class);
-        assertThat(((TextValue) result1).value()).isEqualTo("Rlyeh rises");
-        assertThat(((TextValue) result2).value()).isEqualTo("Rlyeh rises");
+        assertThat(result1).isNotInstanceOf(ErrorValue.class).isInstanceOf(TextValue.class)
+                .extracting(v -> ((TextValue) v).value()).isEqualTo("Rlyeh rises");
+        assertThat(result2).isNotInstanceOf(ErrorValue.class).isInstanceOf(TextValue.class)
+                .extracting(v -> ((TextValue) v).value()).isEqualTo("Rlyeh rises");
     }
 
     @Test
@@ -337,16 +336,16 @@ class DefaultFunctionBrokerTests {
         val invocation = new FunctionInvocation(functionName, params);
         val result     = broker.evaluateFunction(invocation);
 
-        assertThat(result).isInstanceOf(TextValue.class);
-        assertThat(((TextValue) result).value()).isEqualTo(expectedResult);
+        assertThat(result).isInstanceOf(TextValue.class).extracting(v -> ((TextValue) v).value())
+                .isEqualTo(expectedResult);
     }
 
     static Stream<Arguments> provideInvocationsWithExpectedResults() {
-        return Stream.of(Arguments.of("cthulhu.summonEntity", List.of(), "Rlyeh rises"),
-                Arguments.of("cthulhu.awakeDreamer", List.of(Value.of("Hastur")), "Hastur awakens"),
-                Arguments.of("yog.gate", List.of(), "no gate"),
-                Arguments.of("yog.gate", List.of(Value.of("silver")), "one gate"),
-                Arguments.of("yog.gate", List.of(Value.of("silver"), Value.of("key")), "two gate"));
+        return Stream.of(arguments("cthulhu.summonEntity", List.of(), "Rlyeh rises"),
+                arguments("cthulhu.awakeDreamer", List.of(Value.of("Hastur")), "Hastur awakens"),
+                arguments("yog.gate", List.of(), "no gate"),
+                arguments("yog.gate", List.of(Value.of("silver")), "one gate"),
+                arguments("yog.gate", List.of(Value.of("silver"), Value.of("key")), "two gate"));
     }
 
     @ParameterizedTest
@@ -362,9 +361,9 @@ class DefaultFunctionBrokerTests {
     }
 
     static Stream<Arguments> provideInvalidInvocations() {
-        return Stream.of(Arguments.of("nonexistent.function", List.of()),
-                Arguments.of("cthulhu.summonEntity", List.of(Value.of("unexpected"))),
-                Arguments.of("cthulhu.awakeDreamer", List.of()), Arguments.of("wrong.library", List.of()));
+        return Stream.of(arguments("nonexistent.function", List.of()),
+                arguments("cthulhu.summonEntity", List.of(Value.of("unexpected"))),
+                arguments("cthulhu.awakeDreamer", List.of()), arguments("wrong.library", List.of()));
     }
 
     @FunctionLibrary(name = "cthulhu", description = "Functions for summoning Great Old Ones from Rlyeh")

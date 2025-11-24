@@ -38,6 +38,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 /**
  * Comprehensive test suite for GraphQLFunctionLibrary.
@@ -159,25 +160,24 @@ class GraphQLFunctionLibraryTests {
     static Stream<Arguments> provideBasicParsingTestCases() {
         return Stream.of(
                 // Valid queries with schema
-                Arguments.of("query { investigator(id: \"1\") { name sanity } }", BASIC_SCHEMA, true, true, "query", 3,
+                arguments("query { investigator(id: \"1\") { name sanity } }", BASIC_SCHEMA, true, true, "query", 3,
                         "valid query with schema"),
-                Arguments.of("mutation { performRitual(name: \"Summon\", participants: 13) { success } }", BASIC_SCHEMA,
+                arguments("mutation { performRitual(name: \"Summon\", participants: 13) { success } }", BASIC_SCHEMA,
                         true, true, "mutation", 2, "valid mutation with schema"),
-                Arguments.of("subscription { madnessIncreased { investigatorId } }", BASIC_SCHEMA, true, true,
+                arguments("subscription { madnessIncreased { investigatorId } }", BASIC_SCHEMA, true, true,
                         "subscription", 2, "valid subscription with schema"),
 
                 // Valid queries without schema
-                Arguments.of("query { investigator(id: \"1\") { name sanity } }", BASIC_SCHEMA, false, true, "query", 3,
+                arguments("query { investigator(id: \"1\") { name sanity } }", BASIC_SCHEMA, false, true, "query", 3,
                         "valid query without schema"),
-                Arguments.of("{ investigator(id: \"1\") { name } }", BASIC_SCHEMA, false, true, "query", 2,
+                arguments("{ investigator(id: \"1\") { name } }", BASIC_SCHEMA, false, true, "query", 2,
                         "shorthand query syntax"),
 
                 // Invalid queries
-                Arguments.of("query { investigator(id: ", BASIC_SCHEMA, true, false, "", 0, "incomplete query"),
-                Arguments.of("query { investigator(id: \"1\") { nonExistentField } }", BASIC_SCHEMA, true, false, "", 0,
+                arguments("query { investigator(id: ", BASIC_SCHEMA, true, false, "", 0, "incomplete query"),
+                arguments("query { investigator(id: \"1\") { nonExistentField } }", BASIC_SCHEMA, true, false, "", 0,
                         "invalid field"),
-                Arguments.of("type Query { invalid syntax }", BASIC_SCHEMA, true, false, "", 0,
-                        "invalid schema syntax"));
+                arguments("type Query { invalid syntax }", BASIC_SCHEMA, true, false, "", 0, "invalid schema syntax"));
     }
 
     @ParameterizedTest
@@ -243,18 +243,18 @@ class GraphQLFunctionLibraryTests {
 
     static Stream<Arguments> provideMetricCalculationTestCases() {
         return Stream.of(
-                Arguments.of("query { investigator(id: \"1\") { name sanity forbiddenKnowledge } }", "fieldCount", 4,
+                arguments("query { investigator(id: \"1\") { name sanity forbiddenKnowledge } }", "fieldCount", 4,
                         "field count"),
-                Arguments.of("query { investigator(id: \"1\") { name } tomes { title } }", "security.rootFieldCount", 2,
+                arguments("query { investigator(id: \"1\") { name } tomes { title } }", "security.rootFieldCount", 2,
                         "root field count"),
-                Arguments.of(
+                arguments(
                         "fragment Details on Investigator { name }\nfragment Info on Tome { title }\nquery { investigator(id: \"1\") { ...Details } }",
                         "ast.fragmentCount", 2, "fragment count"),
-                Arguments.of(
+                arguments(
                         "query { investigator(id: \"1\") { name @include(if: true) forbiddenKnowledge @skip(if: false) sanity @deprecated(reason: \"test\") } }",
                         "security.directiveCount", 3, "directive count"),
-                Arguments.of("query { investigator(id: \"1\") { name } }", "security.aliasCount", 0, "no aliases"),
-                Arguments.of(
+                arguments("query { investigator(id: \"1\") { name } }", "security.aliasCount", 0, "no aliases"),
+                arguments(
                         "query { first: investigator(id: \"1\") { name } second: investigator(id: \"2\") { name } third: investigator(id: \"3\") { name } }",
                         "security.aliasCount", 3, "multiple aliases"));
     }
@@ -274,16 +274,16 @@ class GraphQLFunctionLibraryTests {
     static Stream<Arguments> provideDepthTestCases() {
         return Stream.of(
                 // Simple queries
-                Arguments.of("query { investigator(id: \"1\") { name } }", 2, "simple query"),
-                Arguments.of("query { investigator(id: \"1\") { tomes { rituals { name } } } }", 4, "nested query"),
+                arguments("query { investigator(id: \"1\") { name } }", 2, "simple query"),
+                arguments("query { investigator(id: \"1\") { tomes { rituals { name } } } }", 4, "nested query"),
 
                 // Extreme depth (capped at 100)
-                Arguments.of(buildDeeplyNestedQuery(150), 100, "extreme depth 150 capped"),
-                Arguments.of(buildDeeplyNestedQuery(120), 100, "extreme depth 120 capped"),
-                Arguments.of(buildDeeplyNestedQuery(105), 100, "extreme depth 105 capped"),
+                arguments(buildDeeplyNestedQuery(150), 100, "extreme depth 150 capped"),
+                arguments(buildDeeplyNestedQuery(120), 100, "extreme depth 120 capped"),
+                arguments(buildDeeplyNestedQuery(105), 100, "extreme depth 105 capped"),
 
                 // Multiple branches with different depths
-                Arguments.of(MULTI_QUERY, 4, "mixed branch depths"));
+                arguments(MULTI_QUERY, 4, "mixed branch depths"));
     }
 
     private static String buildDeeplyNestedQuery(int nestingLevel) {
@@ -305,9 +305,9 @@ class GraphQLFunctionLibraryTests {
     }
 
     static Stream<Arguments> provideIntrospectionTestCases() {
-        return Stream.of(Arguments.of("query { __schema { types { name } } }", true, "schema introspection"),
-                Arguments.of("query { investigator(id: \"1\") { __typename name } }", true, "typename introspection"),
-                Arguments.of("query { investigator(id: \"1\") { name } }", false, "no introspection"));
+        return Stream.of(arguments("query { __schema { types { name } } }", true, "schema introspection"),
+                arguments("query { investigator(id: \"1\") { __typename name } }", true, "typename introspection"),
+                arguments("query { investigator(id: \"1\") { name } }", false, "no introspection"));
     }
 
     /* Complexity Tests */
@@ -348,7 +348,7 @@ class GraphQLFunctionLibraryTests {
     }
 
     static Stream<Arguments> provideComplexityTestCases() {
-        return Stream.of(Arguments.of("""
+        return Stream.of(arguments("""
                 query {
                   investigator(id: "1") {
                     name
@@ -365,13 +365,13 @@ class GraphQLFunctionLibraryTests {
                 }
                 """, 10, "weighted fields"),
 
-                Arguments.of("query { investigator(id: \"1\") { name sanity } }", """
+                arguments("query { investigator(id: \"1\") { name sanity } }", """
                         {
                           "name": 5
                         }
                         """, 5, "partial weights"),
 
-                Arguments.of("query { investigator(id: \"1\") { name sanity } }", "{}", 2, "no weights"));
+                arguments("query { investigator(id: \"1\") { name sanity } }", "{}", 2, "no weights"));
     }
 
     @ParameterizedTest
@@ -382,15 +382,13 @@ class GraphQLFunctionLibraryTests {
         val weights    = (ObjectValue) ValueJsonMarshaller.fromJsonNode(new ObjectMapper().readTree(weightsJson));
         val complexity = GraphQLFunctionLibrary.complexity(parsed, weights);
 
-        assertThat(complexity).isNotNull();
-        assertThat(((NumberValue) complexity).value().intValue()).isEqualTo(expectedComplexity);
+        assertThat(complexity).isNotNull().isEqualTo(Value.of(expectedComplexity));
     }
 
     static Stream<Arguments> provideComplexityEdgeCases() {
-        return Stream.of(Arguments.of("{\"fields\": [], \"depth\": 0}", "{}", 0), Arguments.of("{}", "{}", 0),
-                Arguments.of("{\"fields\": \"not-an-array\"}", "{}", 0),
-                Arguments.of("{\"fields\": [\"name\"]}", "{}", 3),
-                Arguments.of("{\"fields\": [\"name\", 42, \"sanity\", null], \"depth\": 2}", "{}", 6));
+        return Stream.of(arguments("{\"fields\": [], \"depth\": 0}", "{}", 0), arguments("{}", "{}", 0),
+                arguments("{\"fields\": \"not-an-array\"}", "{}", 0), arguments("{\"fields\": [\"name\"]}", "{}", 3),
+                arguments("{\"fields\": [\"name\", 42, \"sanity\", null], \"depth\": 2}", "{}", 6));
     }
 
     /* Alias and Batching Tests */
@@ -408,14 +406,14 @@ class GraphQLFunctionLibraryTests {
     }
 
     static Stream<Arguments> provideAliasBatchingTestCases() {
-        return Stream.of(Arguments.of("""
+        return Stream.of(arguments("""
                 query {
                   inv1: investigator(id: "1") { name }
                   inv2: investigator(id: "2") { name }
                 }
                 """, 2, 12, "two aliases"),
 
-                Arguments.of("""
+                arguments("""
                         query {
                           investigator(id: "1") { name }
                           tomes { title }
@@ -459,29 +457,29 @@ class GraphQLFunctionLibraryTests {
     static Stream<Arguments> providePaginationTestCases() {
         return Stream.of(
                 // Basic pagination
-                Arguments.of("query { investigators(first: 50) { name } tomes(limit: 100) { title } }", 100,
+                arguments("query { investigators(first: 50) { name } tomes(limit: 100) { title } }", 100,
                         "mixed limits"),
-                Arguments.of("query { investigator(id: \"1\") { name } }", 0, "no pagination"),
+                arguments("query { investigator(id: \"1\") { name } }", 0, "no pagination"),
 
                 // Multiple pagination args
-                Arguments.of("query { investigators(first: 10, last: 20, limit: 50) { name } }", 50, "multiple args"),
+                arguments("query { investigators(first: 10, last: 20, limit: 50) { name } }", 50, "multiple args"),
 
                 // Case-insensitive
-                Arguments.of("query { investigators(FIRST: 25) { name } tomes(First: 30) { title } }", 30,
+                arguments("query { investigators(FIRST: 25) { name } tomes(First: 30) { title } }", 30,
                         "case insensitive"),
 
                 // All pagination arg types
-                Arguments.of("query { investigators(first: 42) { name } }", 42, "first arg"),
-                Arguments.of("query { investigators(last: 42) { name } }", 42, "last arg"),
-                Arguments.of("query { investigators(limit: 42) { name } }", 42, "limit arg"),
-                Arguments.of("query { investigators(offset: 42) { name } }", 42, "offset arg"),
-                Arguments.of("query { investigators(skip: 42) { name } }", 42, "skip arg"),
-                Arguments.of("query { investigators(take: 42) { name } }", 42, "take arg"),
+                arguments("query { investigators(first: 42) { name } }", 42, "first arg"),
+                arguments("query { investigators(last: 42) { name } }", 42, "last arg"),
+                arguments("query { investigators(limit: 42) { name } }", 42, "limit arg"),
+                arguments("query { investigators(offset: 42) { name } }", 42, "offset arg"),
+                arguments("query { investigators(skip: 42) { name } }", 42, "skip arg"),
+                arguments("query { investigators(take: 42) { name } }", 42, "take arg"),
 
                 // Edge cases
-                Arguments.of("query { investigators(first: \"not-a-number\") { name } }", 0, "invalid type"),
-                Arguments.of("query { investigators(limit: 2147483647) { name } }", Integer.MAX_VALUE, "max int"),
-                Arguments.of("query { investigators(first: 999999) { name } }", 999999, "attack scenario"));
+                arguments("query { investigators(first: \"not-a-number\") { name } }", 0, "invalid type"),
+                arguments("query { investigators(limit: 2147483647) { name } }", Integer.MAX_VALUE, "max int"),
+                arguments("query { investigators(first: 999999) { name } }", 999999, "attack scenario"));
     }
 
     @Test
@@ -542,7 +540,7 @@ class GraphQLFunctionLibraryTests {
     }
 
     static Stream<Arguments> provideFragmentCircularityTestCases() {
-        return Stream.of(Arguments.of("""
+        return Stream.of(arguments("""
                 fragment InvestigatorWithTomes on Investigator {
                   name
                   tomes {
@@ -567,7 +565,7 @@ class GraphQLFunctionLibraryTests {
                 }
                 """, true, "circular fragments"),
 
-                Arguments.of("""
+                arguments("""
                         fragment SelfRef on Investigator {
                           name
                           ... SelfRef
@@ -580,7 +578,7 @@ class GraphQLFunctionLibraryTests {
                         }
                         """, true, "self-referencing fragment"),
 
-                Arguments.of("""
+                arguments("""
                         fragment BasicInfo on Investigator {
                           name
                           sanity
@@ -593,7 +591,7 @@ class GraphQLFunctionLibraryTests {
                         }
                         """, false, "non-circular fragments"),
 
-                Arguments.of("query { investigator(id: \"1\") { name } }", false, "no fragments"));
+                arguments("query { investigator(id: \"1\") { name } }", false, "no fragments"));
     }
 
     @Test
@@ -637,10 +635,10 @@ class GraphQLFunctionLibraryTests {
     static Stream<Arguments> provideDirectiveTestCases() {
         return Stream.of(
                 // No directives
-                Arguments.of("query { investigator(id: \"1\") { name } }", 0, 0.0, "no directives"),
+                arguments("query { investigator(id: \"1\") { name } }", 0, 0.0, "no directives"),
 
                 // Multiple directives on fields
-                Arguments.of("""
+                arguments("""
                         query {
                           investigator(id: "1") {
                             name @include(if: true)
@@ -650,7 +648,7 @@ class GraphQLFunctionLibraryTests {
                         """, 3, 1.0, "multiple directives on fields"),
 
                 // Directives on inline fragments
-                Arguments.of("""
+                arguments("""
                         query {
                           investigator(id: "1") {
                             ... @include(if: true) @skip(if: false) {
@@ -662,8 +660,8 @@ class GraphQLFunctionLibraryTests {
                         """, 2, 0.5, "directives on inline fragments"),
 
                 // Directive abuse (attack scenario)
-                Arguments.of("query { investigator(id: \"1\") { " + "name " + "@include(if: true) ".repeat(50) + "} }",
-                        50, 10.0, "directive abuse attack"));
+                arguments("query { investigator(id: \"1\") { " + "name " + "@include(if: true) ".repeat(50) + "} }", 50,
+                        10.0, "directive abuse attack"));
     }
 
     /* Variable Tests */
@@ -695,26 +693,26 @@ class GraphQLFunctionLibraryTests {
     static Stream<Arguments> provideVariableTestCases() {
         return Stream.of(
                 // With defaults
-                Arguments.of(
+                arguments(
                         "query($id: ID = \"default-investigator\", $includeDetails: Boolean = true) { investigator(id: $id) { name } }",
                         Map.of("id", "default-investigator", "includeDetails", true), "with defaults"),
 
                 // Without defaults (not included)
-                Arguments.of("query($id: ID!, $name: String!) { investigator(id: $id) { name } }", Map.of(),
+                arguments("query($id: ID!, $name: String!) { investigator(id: $id) { name } }", Map.of(),
                         "without defaults"),
 
                 // Mixed types
-                Arguments.of(
+                arguments(
                         "query($intVar: Int = 42, $strVar: String = \"test\", $boolVar: Boolean = true, $floatVar: Float = 2.5) { investigator(id: \"1\") { name } }",
                         Map.of("intVar", 42, "strVar", "test", "boolVar", true, "floatVar", 2.5), "mixed types"),
 
                 // Partial defaults
-                Arguments.of(
+                arguments(
                         "query($limit: Int, $offset: Int = 10, $nameFilter: String = \"default\") { investigators(limit: $limit, offset: $offset) { name } }",
                         Map.of("offset", 10, "nameFilter", "default"), "partial defaults"),
 
                 // No variables
-                Arguments.of("query { investigator(id: \"1\") { name } }", Map.of(), "no variables"));
+                arguments("query { investigator(id: \"1\") { name } }", Map.of(), "no variables"));
     }
 
     /* Type Information Tests */
@@ -841,12 +839,12 @@ class GraphQLFunctionLibraryTests {
 
     static Stream<Arguments> provideMaliciousQueryTestCases() {
         return Stream.of(
-                Arguments.of("investigator%d: investigator(id: \"%d\") { name sanity }", 100, "security.aliasCount",
-                        100, "alias batching attack"),
-                Arguments.of("investigator%d: investigator(id: \"%d\") { name sanity }", 100, "security.batchingScore",
+                arguments("investigator%d: investigator(id: \"%d\") { name sanity }", 100, "security.aliasCount", 100,
+                        "alias batching attack"),
+                arguments("investigator%d: investigator(id: \"%d\") { name sanity }", 100, "security.batchingScore",
                         500, "batching score attack"),
-                Arguments.of("name ", 120, "fieldCount", 100, "field repetition attack"),
-                Arguments.of("tomes { ", 150, "depth", 100, "depth bomb attack"));
+                arguments("name ", 120, "fieldCount", 100, "field repetition attack"),
+                arguments("tomes { ", 150, "depth", 100, "depth bomb attack"));
     }
 
     private static String buildRepeatedQuery(String template, int repetitions) {
@@ -924,7 +922,7 @@ class GraphQLFunctionLibraryTests {
     static Stream<Arguments> provideEdgeCaseTestCases() {
         return Stream.of(
                 // Comments
-                Arguments.of("""
+                arguments("""
                         # This is a comment about Cthulhu
                         query {
                           # Query the investigator
@@ -936,17 +934,17 @@ class GraphQLFunctionLibraryTests {
                         """, true, "query with comments"),
 
                 // Special characters in strings
-                Arguments.of("query { investigator(id: \"The \\\"Dreamer\\\" of R'lyeh\") { name } }", true,
+                arguments("query { investigator(id: \"The \\\"Dreamer\\\" of R'lyeh\") { name } }", true,
                         "escaped quotes"),
-                Arguments.of("query { investigator(id: \"克苏鲁\") { name } }", true, "Chinese characters in string"),
-                Arguments.of("query { investigator(id: \"ℵ查询א\") { name } }", true, "unicode in string"),
-                Arguments.of("query { investigator(id: \"Поиск\") { name } }", true, "Cyrillic in string"),
-                Arguments.of("query { investigator(id: \"🔮\") { name } }", true, "emoji in string"),
+                arguments("query { investigator(id: \"克苏鲁\") { name } }", true, "Chinese characters in string"),
+                arguments("query { investigator(id: \"ℵ查询א\") { name } }", true, "unicode in string"),
+                arguments("query { investigator(id: \"Поиск\") { name } }", true, "Cyrillic in string"),
+                arguments("query { investigator(id: \"🔮\") { name } }", true, "emoji in string"),
 
                 // Invalid unicode in operation names (per GraphQL spec)
-                Arguments.of("query ℵ查询 { investigator(id: \"1\") { name } }", false,
+                arguments("query ℵ查询 { investigator(id: \"1\") { name } }", false,
                         "unicode in operation name (invalid)"),
-                Arguments.of("query Поиск { investigator(id: \"1\") { name } }", false,
+                arguments("query Поиск { investigator(id: \"1\") { name } }", false,
                         "Cyrillic in operation name (invalid)"));
     }
 
@@ -963,8 +961,8 @@ class GraphQLFunctionLibraryTests {
     static Stream<Arguments> provideInvalidSchemaTestCases() {
         // Note: Removed test cases with invalid types (number, null) as these are now
         // prevented by compile-time type checking
-        return Stream.of(Arguments.of("query { investigator(id: \"1\") { name } }", ""),
-                Arguments.of("query { investigator(id: \"1\") { name } }", "type Query { investigator(id: ID! }"));
+        return Stream.of(arguments("query { investigator(id: \"1\") { name } }", ""),
+                arguments("query { investigator(id: \"1\") { name } }", "type Query { investigator(id: ID! }"));
     }
 
     /* Schema Parsing Tests */

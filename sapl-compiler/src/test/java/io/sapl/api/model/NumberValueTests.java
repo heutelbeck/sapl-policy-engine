@@ -29,6 +29,7 @@ import java.math.BigInteger;
 import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.*;
+import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 @DisplayName("NumberValue Tests")
 class NumberValueTests {
@@ -196,29 +197,29 @@ class NumberValueTests {
     }
 
     static Stream<Arguments> provideNumberCombinations() {
-        return Stream.of(Arguments.of(BigDecimal.ZERO, false), Arguments.of(BigDecimal.ONE, true),
-                Arguments.of(new BigDecimal("3.14"), false), Arguments.of(new BigDecimal("-100"), true));
+        return Stream.of(arguments(BigDecimal.ZERO, false), arguments(BigDecimal.ONE, true),
+                arguments(new BigDecimal("3.14"), false), arguments(new BigDecimal("-100"), true));
     }
 
     static Stream<Arguments> provideNumericallyEqualPairs() {
-        return Stream.of(Arguments.of(new BigDecimal("1"), new BigDecimal("1.0")),
-                Arguments.of(new BigDecimal("10"), new BigDecimal("10.00")),
-                Arguments.of(new BigDecimal("0"), new BigDecimal("0.0")),
-                Arguments.of(new BigDecimal("-0.0"), new BigDecimal("0.0")),
-                Arguments.of(new BigDecimal("100"), new BigDecimal("100.000")),
-                Arguments.of(new BigDecimal("1E+3"), new BigDecimal("1000")));
+        return Stream.of(arguments(new BigDecimal("1"), new BigDecimal("1.0")),
+                arguments(new BigDecimal("10"), new BigDecimal("10.00")),
+                arguments(new BigDecimal("0"), new BigDecimal("0.0")),
+                arguments(new BigDecimal("-0.0"), new BigDecimal("0.0")),
+                arguments(new BigDecimal("100"), new BigDecimal("100.000")),
+                arguments(new BigDecimal("1E+3"), new BigDecimal("1000")));
     }
 
     static Stream<Arguments> provideToStringCases() {
-        return Stream.of(Arguments.of(new BigDecimal("3.14"), false, "3.14"),
-                Arguments.of(BigDecimal.TEN, true, "***SECRET***"), Arguments.of(BigDecimal.ZERO, false, "0"),
-                Arguments.of(new BigDecimal("-5"), false, "-5"));
+        return Stream.of(arguments(new BigDecimal("3.14"), false, "3.14"),
+                arguments(BigDecimal.TEN, true, "***SECRET***"), arguments(BigDecimal.ZERO, false, "0"),
+                arguments(new BigDecimal("-5"), false, "-5"));
     }
 
     static Stream<Arguments> provideConstantCases() {
-        return Stream.of(Arguments.of("Value.ZERO is not secret", Value.ZERO, false),
-                Arguments.of("Value.ONE is not secret", Value.ONE, false),
-                Arguments.of("Value.TEN is not secret", Value.TEN, false));
+        return Stream.of(arguments("Value.ZERO is not secret", Value.ZERO, false),
+                arguments("Value.ONE is not secret", Value.ONE, false),
+                arguments("Value.TEN is not secret", Value.TEN, false));
     }
 
     // ============================================================================
@@ -319,18 +320,18 @@ class NumberValueTests {
     }
 
     static Stream<Arguments> provideExtremeScales() {
-        return Stream.of(Arguments.of(new BigDecimal(BigInteger.ONE, Integer.MAX_VALUE), "MIN scale: 1E-2147483647"),
-                Arguments.of(new BigDecimal(BigInteger.valueOf(123), Integer.MAX_VALUE - 1),
+        return Stream.of(arguments(new BigDecimal(BigInteger.ONE, Integer.MAX_VALUE), "MIN scale: 1E-2147483647"),
+                arguments(new BigDecimal(BigInteger.valueOf(123), Integer.MAX_VALUE - 1),
                         "Near MIN scale: 123E-2147483646"),
-                Arguments.of(new BigDecimal(BigInteger.ONE, Integer.MIN_VALUE), "MAX scale: 1E+2147483648"),
-                Arguments.of(new BigDecimal(BigInteger.TEN, Integer.MIN_VALUE + 1), "Near MAX scale: 10E+2147483647"),
-                Arguments.of(new BigDecimal(BigInteger.valueOf(100), Integer.MAX_VALUE / 2),
+                arguments(new BigDecimal(BigInteger.ONE, Integer.MIN_VALUE), "MAX scale: 1E+2147483648"),
+                arguments(new BigDecimal(BigInteger.TEN, Integer.MIN_VALUE + 1), "Near MAX scale: 10E+2147483647"),
+                arguments(new BigDecimal(BigInteger.valueOf(100), Integer.MAX_VALUE / 2),
                         "Mid-extreme scale: 100E-1073741823"));
     }
 
     static Stream<Arguments> providePowersOfTen() {
-        return Stream.of(Arguments.of("10", "1E1"), Arguments.of("100", "1E2"), Arguments.of("1000", "1E3"),
-                Arguments.of("0.1", "1E-1"), Arguments.of("0.01", "1E-2"), Arguments.of("0.001", "1E-3"));
+        return Stream.of(arguments("10", "1E1"), arguments("100", "1E2"), arguments("1000", "1E3"),
+                arguments("0.1", "1E-1"), arguments("0.01", "1E-2"), arguments("0.001", "1E-3"));
     }
 
     static Stream<String> provideJsonTypicalNumbers() {

@@ -53,6 +53,7 @@ import java.util.stream.Stream;
 import static io.sapl.attributes.InMemoryAttributeRepository.ATTRIBUTE_UNAVAILABLE;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 /**
  * Comprehensive tests for InMemoryAttributeRepository using scenarios from the
@@ -309,10 +310,10 @@ class InMemoryAttributeRepositoryTests {
     }
 
     private static Stream<Arguments> provideTimeoutStrategyScenarios() {
-        return Stream.of(Arguments.of("chaos.shield", TimeOutStrategy.REMOVE, ATTRIBUTE_UNAVAILABLE),
-                Arguments.of("elric.drug", TimeOutStrategy.BECOME_UNDEFINED, Value.UNDEFINED),
-                Arguments.of("dragon.stamina", TimeOutStrategy.REMOVE, ATTRIBUTE_UNAVAILABLE),
-                Arguments.of("sorcery.concentration", TimeOutStrategy.BECOME_UNDEFINED, Value.UNDEFINED));
+        return Stream.of(arguments("chaos.shield", TimeOutStrategy.REMOVE, ATTRIBUTE_UNAVAILABLE),
+                arguments("elric.drug", TimeOutStrategy.BECOME_UNDEFINED, Value.UNDEFINED),
+                arguments("dragon.stamina", TimeOutStrategy.REMOVE, ATTRIBUTE_UNAVAILABLE),
+                arguments("sorcery.concentration", TimeOutStrategy.BECOME_UNDEFINED, Value.UNDEFINED));
     }
 
     @Test
