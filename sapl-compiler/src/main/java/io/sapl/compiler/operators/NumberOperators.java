@@ -25,13 +25,32 @@ import java.util.function.BiPredicate;
 import java.util.function.BinaryOperator;
 
 /**
- * Provides arithmetic operations for NumberValue instances.
+ * Provides arithmetic and comparison operations for NumberValue instances.
+ * <p>
+ * Supports basic arithmetic (add, subtract, multiply, divide, modulo), unary
+ * operations, and numeric comparisons. All
+ * operations preserve secret flags from operands and return appropriate error
+ * values for type mismatches.
  */
 @UtilityClass
 public class NumberOperators {
 
     public static final String TYPE_MISMATCH_NUMBER_EXPECTED_ERROR = "Numeric operation requires number values, but found: %s";
 
+    /**
+     * Adds two values.
+     * <p>
+     * Special case: if the left operand is a TextValue, performs string
+     * concatenation instead of numeric addition.
+     *
+     * @param a
+     * the first operand (or string to concatenate to)
+     * @param b
+     * the second operand (or value to concatenate)
+     *
+     * @return sum of two numbers, or concatenated string if left operand is text,
+     * or error if type mismatch
+     */
     public static Value add(Value a, Value b) {
         if (a instanceof TextValue leftText) {
             if (!(b instanceof TextValue rightText)) {
@@ -42,14 +61,47 @@ public class NumberOperators {
         return applyNumericOperation(a, b, BigDecimal::add);
     }
 
+    /**
+     * Subtracts one number from another.
+     *
+     * @param a
+     * the minuend
+     * @param b
+     * the subtrahend
+     *
+     * @return difference of the two numbers, or error if either operand is not a
+     * NumberValue
+     */
     public static Value subtract(Value a, Value b) {
         return applyNumericOperation(a, b, BigDecimal::subtract);
     }
 
+    /**
+     * Multiplies two numbers.
+     *
+     * @param a
+     * the first factor
+     * @param b
+     * the second factor
+     *
+     * @return product of the two numbers, or error if either operand is not a
+     * NumberValue
+     */
     public static Value multiply(Value a, Value b) {
         return applyNumericOperation(a, b, BigDecimal::multiply);
     }
 
+    /**
+     * Divides one number by another.
+     *
+     * @param a
+     * the dividend
+     * @param b
+     * the divisor
+     *
+     * @return quotient of the division, or error if either operand is not a
+     * NumberValue or division is not exact
+     */
     public static Value divide(Value a, Value b) {
         try {
             return applyNumericOperation(a, b, BigDecimal::divide);
@@ -91,6 +143,14 @@ public class NumberOperators {
         return new NumberValue(result, dividendSecret || divisorSecret);
     }
 
+    /**
+     * Returns the numeric value unchanged (unary plus operator).
+     *
+     * @param v
+     * the value
+     *
+     * @return the value itself if it is a NumberValue, or error if not
+     */
     public static Value unaryPlus(Value v) {
         if (!(v instanceof NumberValue)) {
             return Value.error(TYPE_MISMATCH_NUMBER_EXPECTED_ERROR, v);
@@ -98,6 +158,14 @@ public class NumberOperators {
         return v;
     }
 
+    /**
+     * Negates a numeric value (unary minus operator).
+     *
+     * @param v
+     * the value to negate
+     *
+     * @return negated number preserving secret flag, or error if not a NumberValue
+     */
     public static Value unaryMinus(Value v) {
         if (!(v instanceof NumberValue(BigDecimal number, boolean secret))) {
             return Value.error(TYPE_MISMATCH_NUMBER_EXPECTED_ERROR, v);
@@ -105,22 +173,80 @@ public class NumberOperators {
         return new NumberValue(number.negate(), secret);
     }
 
+    /**
+     * Tests if one number is less than another.
+     *
+     * @param a
+     * the left operand
+     * @param b
+     * the right operand
+     *
+     * @return Value.TRUE if a &lt; b, Value.FALSE otherwise, or error if either
+     * operand is not a NumberValue
+     */
     public static Value lessThan(Value a, Value b) {
         return applyNumericComparison(a, b, (left, right) -> left.compareTo(right) < 0);
     }
 
+    /**
+     * Tests if one number is less than or equal to another.
+     *
+     * @param a
+     * the left operand
+     * @param b
+     * the right operand
+     *
+     * @return Value.TRUE if a &lt;= b, Value.FALSE otherwise, or error if either
+     * operand is not a NumberValue
+     */
     public static Value lessThanOrEqual(Value a, Value b) {
         return applyNumericComparison(a, b, (left, right) -> left.compareTo(right) <= 0);
     }
 
+    /**
+     * Tests if one number is greater than another.
+     *
+     * @param a
+     * the left operand
+     * @param b
+     * the right operand
+     *
+     * @return Value.TRUE if a &gt; b, Value.FALSE otherwise, or error if either
+     * operand is not a NumberValue
+     */
     public static Value greaterThan(Value a, Value b) {
         return applyNumericComparison(a, b, (left, right) -> left.compareTo(right) > 0);
     }
 
+    /**
+     * Tests if one number is greater than or equal to another.
+     *
+     * @param a
+     * the left operand
+     * @param b
+     * the right operand
+     *
+     * @return Value.TRUE if a &gt;= b, Value.FALSE otherwise, or error if either
+     * operand is not a NumberValue
+     */
     public static Value greaterThanOrEqual(Value a, Value b) {
         return applyNumericComparison(a, b, (left, right) -> left.compareTo(right) >= 0);
     }
 
+    /**
+     * Applies a numeric comparison operation with type checking and secret
+     * preservation.
+     *
+     * @param left
+     * the left operand
+     * @param right
+     * the right operand
+     * @param comparison
+     * the comparison predicate to apply
+     *
+     * @return result of the comparison with combined secret flag, or error if type
+     * mismatch
+     */
     private static Value applyNumericComparison(Value left, Value right,
             BiPredicate<BigDecimal, BigDecimal> comparison) {
         if (!(left instanceof NumberValue(BigDecimal leftValue, boolean leftSecret))) {
@@ -150,6 +276,19 @@ public class NumberOperators {
         }
     }
 
+    /**
+     * Applies a numeric operation with type checking and secret preservation.
+     *
+     * @param left
+     * the left operand
+     * @param right
+     * the right operand
+     * @param operation
+     * the arithmetic operation to apply
+     *
+     * @return result of the operation with combined secret flag, or error if type
+     * mismatch
+     */
     private static Value applyNumericOperation(Value left, Value right, BinaryOperator<BigDecimal> operation) {
         if (!(left instanceof NumberValue(BigDecimal leftValue, boolean leftSecret))) {
             return Value.error(TYPE_MISMATCH_NUMBER_EXPECTED_ERROR, left);

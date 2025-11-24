@@ -25,24 +25,77 @@ import java.util.function.BinaryOperator;
 
 /**
  * Provides logical operations for BooleanValue instances.
+ * <p>
+ * All operations preserve secret flags from operands and return appropriate
+ * error values for type mismatches.
  */
 @UtilityClass
 public class BooleanOperators {
 
     public static final String TYPE_MISMATCH_BOOLEAN_EXPECTED_ERROR = "Type mismatch error. Boolean operation requires Boolean values, but found: %s";
 
+    /**
+     * Performs logical AND operation on two boolean values.
+     *
+     * @param a
+     * the first operand
+     * @param b
+     * the second operand
+     *
+     * @return Value.TRUE if both operands are true, Value.FALSE otherwise, or error
+     * if either operand is not a
+     * BooleanValue
+     */
     public static Value and(Value a, Value b) {
         return applyBooleanOperation(a, b, (left, right) -> left && right);
     }
 
+    /**
+     * Performs logical OR operation on two boolean values.
+     *
+     * @param a
+     * the first operand
+     * @param b
+     * the second operand
+     *
+     * @return Value.TRUE if at least one operand is true, Value.FALSE otherwise, or
+     * error if either operand is not a
+     * BooleanValue
+     */
     public static Value or(Value a, Value b) {
         return applyBooleanOperation(a, b, (left, right) -> left || right);
     }
 
+    /**
+     * Performs logical XOR operation on two boolean values.
+     *
+     * @param a
+     * the first operand
+     * @param b
+     * the second operand
+     *
+     * @return Value.TRUE if exactly one operand is true, Value.FALSE otherwise, or
+     * error if either operand is not a
+     * BooleanValue
+     */
     public static Value xor(Value a, Value b) {
         return applyBooleanOperation(a, b, (left, right) -> left ^ right);
     }
 
+    /**
+     * Applies a binary boolean operation to two values with type checking and
+     * secret preservation.
+     *
+     * @param left
+     * the left operand
+     * @param right
+     * the right operand
+     * @param operation
+     * the boolean operation to apply
+     *
+     * @return result of the operation with combined secret flag, or error if type
+     * mismatch
+     */
     private static Value applyBooleanOperation(Value left, Value right, BinaryOperator<Boolean> operation) {
         if (!(left instanceof BooleanValue boolLeft)) {
             return Value.error(TYPE_MISMATCH_BOOLEAN_EXPECTED_ERROR, left);
@@ -53,6 +106,15 @@ public class BooleanOperators {
         return preserveSecret(operation.apply(boolLeft.value(), boolRight.value()), left.secret() || right.secret());
     }
 
+    /**
+     * Performs logical NOT operation on a boolean value.
+     *
+     * @param value
+     * the operand to negate
+     *
+     * @return negated boolean value preserving secret flag, or error if operand is
+     * not a BooleanValue
+     */
     public static Value not(Value value) {
         if (!(value instanceof BooleanValue(boolean bool, boolean secret))) {
             return Value.error(TYPE_MISMATCH_BOOLEAN_EXPECTED_ERROR, value);
