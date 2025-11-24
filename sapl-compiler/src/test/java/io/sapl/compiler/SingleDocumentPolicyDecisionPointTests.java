@@ -41,8 +41,10 @@ class SingleDocumentPolicyDecisionPointTests {
 
     @Test
     void decide_shouldThrowWhenNoDocumentLoaded() {
-        val subscription = new AuthorizationSubscription(Value.of("user"), Value.of("read"), Value.of("resource"),
-                Value.UNDEFINED);
+        val subject      = Value.of("user");
+        val action       = Value.of("read");
+        val resource     = Value.of("resource");
+        val subscription = new AuthorizationSubscription(subject, action, resource, Value.UNDEFINED);
 
         assertThatThrownBy(() -> pdp.decide(subscription).blockFirst()).isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("No policy document loaded");

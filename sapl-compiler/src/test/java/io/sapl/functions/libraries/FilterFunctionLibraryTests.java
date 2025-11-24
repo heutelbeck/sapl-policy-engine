@@ -46,7 +46,8 @@ class FilterFunctionLibraryTests {
 
     @Test
     void blacken_nonStringText_throwsException() {
-        assertThatThrownBy(() -> io.sapl.functions.libraries.FilterFunctionLibrary.blacken(Value.of(9999)))
+        val nonStringValue = Value.of(9999);
+        assertThatThrownBy(() -> io.sapl.functions.libraries.FilterFunctionLibrary.blacken(nonStringValue))
                 .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("STRING");
     }
 
@@ -60,36 +61,54 @@ class FilterFunctionLibraryTests {
 
     @Test
     void blacken_negativeDiscloseLeft_throwsException() {
-        assertThatThrownBy(
-                () -> io.sapl.functions.libraries.FilterFunctionLibrary.blacken(Value.of("test"), Value.of(-1)))
+        val text               = Value.of("test");
+        val negativeDisclosure = Value.of(-1);
+        assertThatThrownBy(() -> io.sapl.functions.libraries.FilterFunctionLibrary.blacken(text, negativeDisclosure))
                 .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("DISCLOSE_LEFT");
     }
 
     @Test
     void blacken_negativeDiscloseRight_throwsException() {
-        assertThatThrownBy(() -> io.sapl.functions.libraries.FilterFunctionLibrary.blacken(Value.of("test"),
-                Value.of(2), Value.of(-1))).isInstanceOf(IllegalArgumentException.class)
+        val text                  = Value.of("test");
+        val discloseLeft          = Value.of(2);
+        val negativeDiscloseRight = Value.of(-1);
+        assertThatThrownBy(() -> io.sapl.functions.libraries.FilterFunctionLibrary.blacken(text, discloseLeft,
+                negativeDiscloseRight)).isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("DISCLOSE_RIGHT");
     }
 
     @Test
     void blacken_nonStringReplacement_throwsException() {
-        assertThatThrownBy(() -> io.sapl.functions.libraries.FilterFunctionLibrary.blacken(Value.of("test"),
-                Value.of(2), Value.of(2), Value.of(13))).isInstanceOf(IllegalArgumentException.class)
+        val text                 = Value.of("test");
+        val discloseLeft         = Value.of(2);
+        val discloseRight        = Value.of(2);
+        val nonStringReplacement = Value.of(13);
+        assertThatThrownBy(() -> io.sapl.functions.libraries.FilterFunctionLibrary.blacken(text, discloseLeft,
+                discloseRight, nonStringReplacement)).isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("REPLACEMENT");
     }
 
     @Test
     void blacken_negativeLength_throwsException() {
-        assertThatThrownBy(() -> io.sapl.functions.libraries.FilterFunctionLibrary.blacken(Value.of("test"),
-                Value.of(2), Value.of(2), Value.of("*"), Value.of(-1))).isInstanceOf(IllegalArgumentException.class)
+        val text           = Value.of("test");
+        val discloseLeft   = Value.of(2);
+        val discloseRight  = Value.of(2);
+        val replacement    = Value.of("*");
+        val negativeLength = Value.of(-1);
+        assertThatThrownBy(() -> io.sapl.functions.libraries.FilterFunctionLibrary.blacken(text, discloseLeft,
+                discloseRight, replacement, negativeLength)).isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("BLACKEN_LENGTH");
     }
 
     @Test
     void blacken_nonNumericLength_throwsException() {
-        assertThatThrownBy(() -> io.sapl.functions.libraries.FilterFunctionLibrary.blacken(Value.of("test"),
-                Value.of(2), Value.of(2), Value.of("*"), Value.of("bad"))).isInstanceOf(IllegalArgumentException.class)
+        val text             = Value.of("test");
+        val discloseLeft     = Value.of(2);
+        val discloseRight    = Value.of(2);
+        val replacement      = Value.of("*");
+        val nonNumericLength = Value.of("bad");
+        assertThatThrownBy(() -> io.sapl.functions.libraries.FilterFunctionLibrary.blacken(text, discloseLeft,
+                discloseRight, replacement, nonNumericLength)).isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("BLACKEN_LENGTH");
     }
 

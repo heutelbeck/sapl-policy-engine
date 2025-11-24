@@ -26,11 +26,9 @@ import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class AttributeFinderInvocationTests {
 
@@ -75,12 +73,12 @@ class AttributeFinderInvocationTests {
                 ONE_SECOND, ONE_SECOND, FIFTY_MILLISECONDS, 20L, false)).isInstanceOf(IllegalArgumentException.class);
 
         // Valid construction with null entity (environment attribute)
-        assertDoesNotThrow(() -> new AttributeFinderInvocation(CONFIG_ID, "abc.def", null, EMPTY_ARGS, EMPTY_VARS,
-                ONE_SECOND, ONE_SECOND, FIFTY_MILLISECONDS, 20L, false));
+        assertThatCode(() -> new AttributeFinderInvocation(CONFIG_ID, "abc.def", null, EMPTY_ARGS, EMPTY_VARS,
+                ONE_SECOND, ONE_SECOND, FIFTY_MILLISECONDS, 20L, false)).doesNotThrowAnyException();
 
         // Valid construction with entity
-        assertDoesNotThrow(() -> new AttributeFinderInvocation(CONFIG_ID, "abc.def", Value.TRUE, EMPTY_ARGS, EMPTY_VARS,
-                ONE_SECOND, ONE_SECOND, FIFTY_MILLISECONDS, 20L, false));
+        assertThatCode(() -> new AttributeFinderInvocation(CONFIG_ID, "abc.def", Value.TRUE, EMPTY_ARGS, EMPTY_VARS,
+                ONE_SECOND, ONE_SECOND, FIFTY_MILLISECONDS, 20L, false)).doesNotThrowAnyException();
     }
 
     @Test
@@ -88,8 +86,8 @@ class AttributeFinderInvocationTests {
         val invocation = new AttributeFinderInvocation(CONFIG_ID, "abc.def", EMPTY_ARGS, EMPTY_VARS, ONE_SECOND,
                 ONE_SECOND, FIFTY_MILLISECONDS, 3L, false);
 
-        assertTrue(invocation.isEnvironmentAttributeInvocation());
-        assertEquals(null, invocation.entity());
+        assertThat(invocation.isEnvironmentAttributeInvocation()).isTrue();
+        assertThat(invocation.entity()).isNull();
     }
 
     @Test
@@ -97,8 +95,8 @@ class AttributeFinderInvocationTests {
         val invocation = new AttributeFinderInvocation(CONFIG_ID, "abc.def", Value.TRUE, EMPTY_ARGS, EMPTY_VARS,
                 ONE_SECOND, ONE_SECOND, FIFTY_MILLISECONDS, 3L, false);
 
-        assertFalse(invocation.isEnvironmentAttributeInvocation());
-        assertEquals(Value.TRUE, invocation.entity());
+        assertThat(invocation.isEnvironmentAttributeInvocation()).isFalse();
+        assertThat(invocation.entity()).isEqualTo(Value.TRUE);
     }
 
     @Test
@@ -108,20 +106,31 @@ class AttributeFinderInvocationTests {
         Map<String, Value> variables = Map.of("var1", Value.of("value1"));
         val                retries   = 5L;
         val                fresh     = true;
+        val                backoff   = Duration.ofMillis(100L);
 
         val invocation = new AttributeFinderInvocation(CONFIG_ID, "test.attribute", entity, arguments, variables,
-                ONE_SECOND, FIFTY_MILLISECONDS, Duration.ofMillis(100L), retries, fresh);
+                ONE_SECOND, FIFTY_MILLISECONDS, backoff, retries, fresh);
 
-        assertEquals(CONFIG_ID, invocation.configurationId());
-        assertEquals("test.attribute", invocation.attributeName());
-        assertEquals(entity, invocation.entity());
-        assertEquals(arguments, invocation.arguments());
-        assertEquals(variables, invocation.variables());
-        assertEquals(ONE_SECOND, invocation.initialTimeOut());
-        assertEquals(FIFTY_MILLISECONDS, invocation.pollInterval());
-        assertEquals(Duration.ofMillis(100L), invocation.backoff());
-        assertEquals(retries, invocation.retries());
-        assertEquals(fresh, invocation.fresh());
+        assertThat(invocation.configurationId()).isEqualTo(CONFIG_ID);
+        assertThat(invocation.attributeName()).isEqualTo("test.attribute");
+        assertThat(invocation.entity()).isEqualTo(entity);
+        assertThat(invocation.arguments()).isEqualTo(arguments);
+        assertThat(invocation.variables()).isEqualTo(variables);
+        assertThat(invocation.initialTimeOut()).isEqualTo(ONE_SECOND);
+        assertThat(invocation.pollInterval()).isEqualTo(FIFTY_MILLISECONDS);
+        assertThat(invocation.backoff()).isEqualTo(backoff);
+        assertThat(invocation.retries()).isEqualTo(retries);
+        assertThat(invocation.fresh()).isEqualTo(fresh);
+    }
+
+    @Test
+    void whenConstructingTwoEqualInvocationsThenEqualsAndHashCodeMatch() {
+        val invocation1 = new AttributeFinderInvocation(CONFIG_ID, "test.attr", Value.TRUE, EMPTY_ARGS, EMPTY_VARS,
+                ONE_SECOND, FIFTY_MILLISECONDS, Duration.ofMillis(100L), 3L, false);
+        val invocation2 = new AttributeFinderInvocation(CONFIG_ID, "test.attr", Value.TRUE, EMPTY_ARGS, EMPTY_VARS,
+                ONE_SECOND, FIFTY_MILLISECONDS, Duration.ofMillis(100L), 3L, false);
+
+        assertThat(invocation1).isEqualTo(invocation2).hasSameHashCodeAs(invocation2);
     }
 
 }

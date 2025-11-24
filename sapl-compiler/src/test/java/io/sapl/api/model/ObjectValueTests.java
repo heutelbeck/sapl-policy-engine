@@ -717,7 +717,8 @@ class ObjectValueTests {
             var first   = builder.put("k1", Value.of(1)).build();
 
             assertThat(first).hasSize(1);
-            assertThatThrownBy(() -> builder.put("k2", Value.of(2))).isInstanceOf(IllegalStateException.class)
+            val secondValue = Value.of(2);
+            assertThatThrownBy(() -> builder.put("k2", secondValue)).isInstanceOf(IllegalStateException.class)
                     .hasMessageContaining("already been used");
         }
 
@@ -727,8 +728,9 @@ class ObjectValueTests {
             var builder = ObjectValue.builder().put("cultist", Value.of("Wilbur Whateley"));
             builder.build();
 
-            assertThatThrownBy(() -> builder.put("elder", Value.of("Yog-Sothoth")))
-                    .isInstanceOf(IllegalStateException.class).hasMessageContaining("already been used");
+            val elderValue = Value.of("Yog-Sothoth");
+            assertThatThrownBy(() -> builder.put("elder", elderValue)).isInstanceOf(IllegalStateException.class)
+                    .hasMessageContaining("already been used");
         }
 
         @Test

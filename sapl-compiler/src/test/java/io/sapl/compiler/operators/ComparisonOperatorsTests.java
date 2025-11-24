@@ -269,13 +269,15 @@ class ComparisonOperatorsTests {
 
     @Test
     void when_compileRegularExpressionOperator_withNonTextRegex_then_throwsException() {
-        assertThatThrownBy(() -> ComparisonOperators.compileRegularExpressionOperator(Value.of(5)))
+        val nonTextValue = Value.of(5);
+        assertThatThrownBy(() -> ComparisonOperators.compileRegularExpressionOperator(nonTextValue))
                 .isInstanceOf(SaplCompilerException.class).hasMessageContaining("must be strings");
     }
 
     @Test
     void when_compileRegularExpressionOperator_withInvalidPattern_then_throwsException() {
-        assertThatThrownBy(() -> ComparisonOperators.compileRegularExpressionOperator(Value.of("[invalid")))
+        val invalidPattern = Value.of("[invalid");
+        assertThatThrownBy(() -> ComparisonOperators.compileRegularExpressionOperator(invalidPattern))
                 .isInstanceOf(SaplCompilerException.class).hasMessageContaining("Invalid regular expression");
     }
 

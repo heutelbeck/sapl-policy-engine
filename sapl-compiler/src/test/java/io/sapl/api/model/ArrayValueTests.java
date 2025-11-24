@@ -106,7 +106,8 @@ class ArrayValueTests {
             var first   = builder.add(Value.of(1)).build();
 
             assertThat(first).hasSize(1);
-            assertThatThrownBy(() -> builder.add(Value.of(2))).isInstanceOf(IllegalStateException.class)
+            val secondValue = Value.of(2);
+            assertThatThrownBy(() -> builder.add(secondValue)).isInstanceOf(IllegalStateException.class)
                     .hasMessageContaining("already been used");
         }
 
@@ -116,8 +117,9 @@ class ArrayValueTests {
             var builder = ArrayValue.builder().add(Value.of("Necronomicon"));
             builder.build();
 
-            assertThatThrownBy(() -> builder.add(Value.of("De Vermis Mysteriis")))
-                    .isInstanceOf(IllegalStateException.class).hasMessageContaining("already been used");
+            val additionalValue = Value.of("De Vermis Mysteriis");
+            assertThatThrownBy(() -> builder.add(additionalValue)).isInstanceOf(IllegalStateException.class)
+                    .hasMessageContaining("already been used");
         }
 
         @Test
@@ -126,8 +128,10 @@ class ArrayValueTests {
             var builder = ArrayValue.builder().add(Value.of("Cthulhu"));
             builder.build();
 
-            assertThatThrownBy(() -> builder.addAll(Value.of("Yog-Sothoth"), Value.of("Nyarlathotep")))
-                    .isInstanceOf(IllegalStateException.class).hasMessageContaining("already been used");
+            val value1 = Value.of("Yog-Sothoth");
+            val value2 = Value.of("Nyarlathotep");
+            assertThatThrownBy(() -> builder.addAll(value1, value2)).isInstanceOf(IllegalStateException.class)
+                    .hasMessageContaining("already been used");
         }
 
         @Test

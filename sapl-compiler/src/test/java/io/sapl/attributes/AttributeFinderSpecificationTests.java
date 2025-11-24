@@ -20,6 +20,7 @@ package io.sapl.attributes;
 import io.sapl.api.attributes.AttributeFinder;
 import io.sapl.api.attributes.AttributeFinderSpecification;
 import io.sapl.api.model.Value;
+import lombok.val;
 import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Flux;
 
@@ -34,9 +35,11 @@ class AttributeFinderSpecificationTests {
 
     @Test
     void whenConstructionOfPolicyInformationPointSpecificationHasBadParametersThenThrowElseDoNotThrow() {
-        assertThatThrownBy(() -> new AttributeFinderSpecification(null, "a", true, List.of(), null, MOCK_FINDER))
+        val validName = "a";
+        val emptyList = List.<Class<? extends Value>>of();
+        assertThatThrownBy(() -> new AttributeFinderSpecification(null, validName, true, emptyList, null, MOCK_FINDER))
                 .isInstanceOf(NullPointerException.class);
-        assertThatThrownBy(() -> new AttributeFinderSpecification("a", null, true, List.of(), null, MOCK_FINDER))
+        assertThatThrownBy(() -> new AttributeFinderSpecification(validName, null, true, emptyList, null, MOCK_FINDER))
                 .isInstanceOf(NullPointerException.class);
     }
 
