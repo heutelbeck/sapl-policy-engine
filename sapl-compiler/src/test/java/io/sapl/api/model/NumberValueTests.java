@@ -175,18 +175,10 @@ class NumberValueTests {
     void patternMatchingExtractsValue() {
         Value accessLevel = Value.of(3);
 
-        var result = switch (accessLevel) {
-        case NumberValue(BigDecimal level, boolean ignore) when level.compareTo(BigDecimal.valueOf(5)) >= 0 ->
-            "High clearance";
-        case NumberValue(BigDecimal level, boolean ignore) when level.compareTo(BigDecimal.ZERO) > 0        ->
-            "Standard clearance";
-        case NumberValue ignore                                                                             ->
-            "No clearance";
-        default                                                                                             ->
-            "Invalid";
-        };
-
-        assertThat(result).isEqualTo("Standard clearance");
+        assertThat(accessLevel).isInstanceOf(NumberValue.class);
+        if (accessLevel instanceof NumberValue(BigDecimal level, boolean ignored)) {
+            assertThat(level).isEqualByComparingTo(BigDecimal.valueOf(3));
+        }
     }
 
     @ParameterizedTest(name = "{0}")

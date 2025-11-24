@@ -18,6 +18,7 @@
 package io.sapl.api.model;
 
 import lombok.val;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -882,6 +883,7 @@ class ObjectValueTests {
             var error  = secret.get(123);
 
             assertThat(error).isInstanceOf(ErrorValue.class);
+            Assertions.assertNotNull(error);
             assertThat(error.secret()).isTrue();
         }
 

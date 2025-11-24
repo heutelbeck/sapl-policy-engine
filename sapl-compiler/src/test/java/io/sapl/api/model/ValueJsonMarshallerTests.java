@@ -315,6 +315,57 @@ class ValueJsonMarshallerTests {
     }
 
     // ============================================================
+    // JSON Compatibility Tests
+    // ============================================================
+
+    @ParameterizedTest(name = "isJsonCompatible true for: {0}")
+    @MethodSource("jsonCompatibleValues")
+    void isJsonCompatibleReturnsTrueForCompatibleValues(String description, Value value) {
+        assertThat(ValueJsonMarshaller.isJsonCompatible(value)).isTrue();
+    }
+
+    static Stream<Arguments> jsonCompatibleValues() {
+        return Stream.of(arguments("null", Value.NULL), arguments("true", Value.TRUE), arguments("false", Value.FALSE),
+                arguments("number", Value.of(SANITY_THRESHOLD)), arguments("text", Value.of(ENTITY_CTHULHU)),
+                arguments("empty array", Value.EMPTY_ARRAY), arguments("empty object", Value.EMPTY_OBJECT),
+                arguments("simple array", Value.ofArray(Value.of("item1"), Value.of("item2"))),
+                arguments("simple object", Value.ofObject(Map.of("key", Value.of("value")))),
+                arguments("nested structure",
+                        Value.ofObject(Map.of("investigators", Value.ofArray(Value.of("Carter"), Value.of("West")),
+                                "active", Value.of(true)))),
+                arguments("secret value", Value.of("classified").asSecret()),
+                arguments("max depth", createDeeplyNestedArray(ValueJsonMarshaller.MAX_DEPTH)));
+    }
+
+    @ParameterizedTest(name = "isJsonCompatible false for: {0}")
+    @MethodSource("jsonIncompatibleValues")
+    void isJsonCompatibleReturnsFalseForIncompatibleValues(String description, Value value) {
+        assertThat(ValueJsonMarshaller.isJsonCompatible(value)).isFalse();
+    }
+
+    static Stream<Arguments> jsonIncompatibleValues() {
+        return Stream.of(arguments("undefined", Value.UNDEFINED), arguments("error", Value.error("Eldritch horror")),
+                arguments("nested undefined in array", Value.ofArray(Value.of(ENTITY_CTHULHU), Value.UNDEFINED)),
+                arguments("nested error in object", Value.ofObject(Map.of("status", Value.error("Madness")))),
+                arguments("deeply nested error",
+                        Value.ofObject(Map.of("outer",
+                                Value.ofArray(Value.ofObject(Map.of("inner", Value.error("Deep horror"))))))),
+                arguments("excessive depth", createDeeplyNestedArray(MALICIOUS_DEPTH)));
+    }
+
+    @Test
+    void isJsonCompatibleReturnsFalseForNull() {
+        assertThat(ValueJsonMarshaller.isJsonCompatible(null)).isFalse();
+    }
+
+    @Test
+    void isJsonCompatibleDoesNotThrow() {
+        assertThatCode(() -> ValueJsonMarshaller.isJsonCompatible(Value.UNDEFINED)).doesNotThrowAnyException();
+        assertThatCode(() -> ValueJsonMarshaller.isJsonCompatible(Value.error("test"))).doesNotThrowAnyException();
+        assertThatCode(() -> ValueJsonMarshaller.isJsonCompatible(null)).doesNotThrowAnyException();
+    }
+
+    // ============================================================
     // Depth Protection Tests
     // ============================================================
 
@@ -327,9 +378,8 @@ class ValueJsonMarshallerTests {
 
     static Stream<Arguments> excessivelyDeepValueStructures() {
         return Stream.of(arguments("arrays", createDeeplyNestedArray(MALICIOUS_DEPTH)),
-                arguments("objects", createDeeplyNestedObject(MALICIOUS_DEPTH)),
-                arguments("mixed", createDeeplyNestedMixed(MALICIOUS_DEPTH)),
-                arguments("auth context", createMaliciousAuthorizationContext(MALICIOUS_DEPTH)));
+                arguments("objects", createDeeplyNestedObject()), arguments("mixed", createDeeplyNestedMixed()),
+                arguments("auth context", createMaliciousAuthorizationContext()));
     }
 
     @Test
@@ -350,7 +400,7 @@ class ValueJsonMarshallerTests {
 
     static Stream<Arguments> excessivelyDeepJsonNodes() {
         return Stream.of(arguments("arrays", createDeeplyNestedJsonArray(MALICIOUS_DEPTH)),
-                arguments("objects", createDeeplyNestedJsonObject(MALICIOUS_DEPTH)));
+                arguments("objects", createDeeplyNestedJsonObject()));
     }
 
     @Test
@@ -410,10 +460,9 @@ class ValueJsonMarshallerTests {
 
         assertThat(result).isEqualTo(original);
 
-        var resultObj   = (ObjectValue) result;
-        var originalObj = (ObjectValue) original;
+        var resultObj = (ObjectValue) result;
         assertThat(Objects.requireNonNull(resultObj.get("secret")).secret()).isFalse();
-        assertThat(Objects.requireNonNull(originalObj.get("secret")).secret()).isTrue();
+        assertThat(Objects.requireNonNull(((ObjectValue) original).get("secret")).secret()).isTrue();
 
         assertThat(result.toString()).isNotEqualTo(original.toString());
     }
@@ -444,17 +493,17 @@ class ValueJsonMarshallerTests {
         return current;
     }
 
-    private static Value createDeeplyNestedObject(int depth) {
+    private static Value createDeeplyNestedObject() {
         Value current = Value.of(SANITY_THRESHOLD);
-        for (int i = 0; i < depth - 1; i++) {
+        for (int i = 0; i < ValueJsonMarshallerTests.MALICIOUS_DEPTH - 1; i++) {
             current = Value.ofObject(Map.of("nest", current));
         }
         return current;
     }
 
-    private static Value createDeeplyNestedMixed(int depth) {
+    private static Value createDeeplyNestedMixed() {
         Value current = Value.of(ENTITY_CTHULHU);
-        for (int i = 0; i < depth - 1; i++) {
+        for (int i = 0; i < ValueJsonMarshallerTests.MALICIOUS_DEPTH - 1; i++) {
             if (i % 2 == 0) {
                 current = Value.ofArray(current);
             } else {
@@ -474,9 +523,9 @@ class ValueJsonMarshallerTests {
         return current;
     }
 
-    private static JsonNode createDeeplyNestedJsonObject(int depth) {
+    private static JsonNode createDeeplyNestedJsonObject() {
         JsonNode current = FACTORY.numberNode(SANITY_THRESHOLD);
-        for (int i = 0; i < depth - 1; i++) {
+        for (int i = 0; i < ValueJsonMarshallerTests.MALICIOUS_DEPTH - 1; i++) {
             var object = FACTORY.objectNode();
             object.set("nest", current);
             current = object;
@@ -484,9 +533,9 @@ class ValueJsonMarshallerTests {
         return current;
     }
 
-    private static Value createMaliciousAuthorizationContext(int depth) {
+    private static Value createMaliciousAuthorizationContext() {
         Value current = Value.ofObject(Map.of("userId", Value.of("attacker"), "malicious", Value.of(true)));
-        for (int i = 0; i < depth; i++) {
+        for (int i = 0; i < ValueJsonMarshallerTests.MALICIOUS_DEPTH; i++) {
             current = Value.ofObject(Map.of("level" + i, current, "metadata", Value.of("layer-" + i)));
         }
         return Value

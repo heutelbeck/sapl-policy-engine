@@ -123,13 +123,10 @@ class TextValueTests {
     void patternMatchingExtractsValue() {
         Value username = Value.of("admin");
 
-        var result = switch (username) {
-        case TextValue(String name, boolean i) when "admin".equals(name) -> "Administrator access";
-        case TextValue(String name, boolean i)                           -> "User " + name;
-        default                                                          -> "Invalid";
-        };
-
-        assertThat(result).isEqualTo("Administrator access");
+        assertThat(username).isInstanceOf(TextValue.class);
+        if (username instanceof TextValue(String name, boolean ignored)) {
+            assertThat(name).isEqualTo("admin");
+        }
     }
 
     @Test

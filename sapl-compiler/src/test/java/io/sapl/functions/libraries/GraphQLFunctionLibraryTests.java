@@ -1069,9 +1069,9 @@ class GraphQLFunctionLibraryTests {
         queryBuilder.append('}');
 
         val result = GraphQLFunctionLibrary.analyzeQuery(Value.of(queryBuilder.toString()));
-        val parsed = ValueJsonMarshaller.toJsonNode(result);
 
         assertThat(result).isNotNull();
+        assertThat(ValueJsonMarshaller.isJsonCompatible(result)).isTrue();
     }
 
     @Test
@@ -1091,8 +1091,9 @@ class GraphQLFunctionLibraryTests {
 
         for (int i = 0; i < 100; i++) {
             val result = GraphQLFunctionLibrary.analyzeQuery(Value.of(query));
-            val parsed = ValueJsonMarshaller.toJsonNode(result);
+
             assertThat(result).isNotNull();
+            assertThat(ValueJsonMarshaller.isJsonCompatible(result)).isTrue();
         }
     }
 }

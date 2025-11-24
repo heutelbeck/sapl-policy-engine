@@ -87,18 +87,15 @@ class BooleanValueTests {
         Value granted = Value.of(true);
         Value denied  = Value.of(false);
 
-        var grantedResult = switch (granted) {
-        case BooleanValue(boolean allowed, boolean ignore) -> allowed ? "PERMIT" : "DENY";
-        default                                            -> "INDETERMINATE";
-        };
+        assertThat(granted).isInstanceOf(BooleanValue.class);
+        assertThat(denied).isInstanceOf(BooleanValue.class);
 
-        var deniedResult = switch (denied) {
-        case BooleanValue(boolean allowed, boolean ignore) -> allowed ? "PERMIT" : "DENY";
-        default                                            -> "INDETERMINATE";
-        };
-
-        assertThat(grantedResult).isEqualTo("PERMIT");
-        assertThat(deniedResult).isEqualTo("DENY");
+        if (granted instanceof BooleanValue(boolean allowed, boolean ignored)) {
+            assertThat(allowed).isTrue();
+        }
+        if (denied instanceof BooleanValue(boolean allowed, boolean ignored)) {
+            assertThat(allowed).isFalse();
+        }
     }
 
     @ParameterizedTest(name = "{0}")

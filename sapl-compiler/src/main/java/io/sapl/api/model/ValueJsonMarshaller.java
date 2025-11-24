@@ -30,16 +30,59 @@ import java.util.ArrayList;
  * Marshalling between SAPL Value types and Jackson JsonNode.
  * <p>
  * Provides bidirectional conversion for integration with JSON-based libraries.
- * UndefinedValue and ErrorValue cannot be
- * marshalled. Secret flags are not preserved. Recursion depth is limited to
- * prevent stack overflow from malicious
- * input.
+ * UndefinedValue and ErrorValue cannot be marshalled. Secret flags are not
+ * preserved. Recursion depth is limited to prevent stack overflow from
+ * malicious input.
  */
 @UtilityClass
 public class ValueJsonMarshaller {
 
     private static final JsonNodeFactory FACTORY   = JsonNodeFactory.instance;
     static final int                     MAX_DEPTH = 500;
+
+    /**
+     * Checks whether a Value can be marshalled to JSON.
+     * <p>
+     * A Value is JSON-compatible if it is not null, not UndefinedValue, not
+     * ErrorValue, and does not exceed the maximum nesting depth. This method
+     * performs a non-throwing validation check without actually creating the
+     * JsonNode.
+     * <p>
+     * Use this method in tests and validation logic where you need to verify that a
+     * computed Value can be serialized to JSON, without extracting and comparing
+     * the JSON structure.
+     *
+     * <pre>{@code
+     * // In access control policy evaluation, verify the decision can be serialized:
+     * Value decision = policyEngine.evaluate(authorizationRequest);
+     * if (ValueJsonMarshaller.isJsonCompatible(decision)) {
+     *     // Safe to send as JSON response to the client
+     *     return ValueJsonMarshaller.toJsonNode(decision);
+     * }
+     *
+     * // In tests, assert JSON compatibility without extracting primitives:
+     * assertThat(ValueJsonMarshaller.isJsonCompatible(result)).isTrue();
+     * }</pre>
+     *
+     * @param value the value to check
+     * @return true if the value can be converted to JsonNode, false otherwise
+     */
+    public static boolean isJsonCompatible(Value value) {
+        return isJsonCompatible(value, 0);
+    }
+
+    private static boolean isJsonCompatible(Value value, int depth) {
+        if (value == null || depth >= MAX_DEPTH) {
+            return false;
+        }
+        return switch (value) {
+        case ArrayValue array   -> array.stream().allMatch(item -> isJsonCompatible(item, depth + 1));
+        case ObjectValue object -> object.values().stream().allMatch(v -> isJsonCompatible(v, depth + 1));
+        case UndefinedValue u   -> false;
+        case ErrorValue e       -> false;
+        default                 -> true;
+        };
+    }
 
     /**
      * Converts a Value to a Jackson JsonNode.
