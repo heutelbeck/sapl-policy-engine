@@ -27,10 +27,7 @@ import lombok.experimental.UtilityClass;
 import lombok.val;
 
 import java.math.BigDecimal;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.HashSet;
-import java.util.LinkedHashSet;
+import java.util.*;
 import java.util.function.DoubleBinaryOperator;
 
 /**
@@ -484,25 +481,18 @@ public class ArrayFunctionLibrary {
             ```
             """, schema = RETURNS_BOOLEAN)
     public static Value containsAllInOrder(ArrayValue array, ArrayValue elements) {
-        if (!(array instanceof ArrayValue arrayValue && elements instanceof ArrayValue elementsValue)) {
-            return Value.error("Arguments must be arrays.");
-        }
-
-        if (elementsValue.isEmpty()) {
+        if (elements.isEmpty()) {
             return Value.TRUE;
         }
-
         var arrayIndex           = 0;
         var requiredElementIndex = 0;
-
-        while (arrayIndex < arrayValue.size() && requiredElementIndex < elementsValue.size()) {
-            if (arrayValue.get(arrayIndex).equals(elementsValue.get(requiredElementIndex))) {
+        while (arrayIndex < array.size() && requiredElementIndex < elements.size()) {
+            if (array.get(arrayIndex).equals(elements.get(requiredElementIndex))) {
                 requiredElementIndex++;
             }
             arrayIndex++;
         }
-
-        return Value.of(requiredElementIndex == elementsValue.size());
+        return Value.of(requiredElementIndex == elements.size());
     }
 
     /**
@@ -540,20 +530,16 @@ public class ArrayFunctionLibrary {
             ```
             """, schema = RETURNS_ARRAY)
     public static Value sort(ArrayValue array) {
-        if (!(array instanceof ArrayValue arrayValue)) {
-            return Value.error("Argument must be an array.");
-        }
-
-        if (arrayValue.isEmpty()) {
+        if (array.isEmpty()) {
             return Value.EMPTY_ARRAY;
         }
 
-        val firstElement = arrayValue.getFirst();
+        val firstElement = array.getFirst();
 
         if (firstElement instanceof NumberValue) {
-            return sortNumericArray(arrayValue);
+            return sortNumericArray(array);
         } else if (firstElement instanceof TextValue) {
-            return sortTextArray(arrayValue);
+            return sortTextArray(array);
         } else {
             return Value.error(
                     ERROR_PREFIX_ELEMENTS_MUST_BE + firstElement.getClass().getSimpleName() + ERROR_SUFFIX_PERIOD);
@@ -635,27 +621,21 @@ public class ArrayFunctionLibrary {
             ```
             """, schema = RETURNS_ARRAY)
     public static Value flatten(ArrayValue array) {
-        if (!(array instanceof ArrayValue arrayValue)) {
-            return Value.error("Argument must be an array.");
-        }
-
         val builder = ArrayValue.builder();
-
-        for (val element : arrayValue) {
+        for (val element : array) {
             if (element instanceof ArrayValue innerArray) {
                 builder.addAll(innerArray);
             } else {
                 builder.add(element);
             }
         }
-
         return builder.build();
     }
 
     /**
      * Returns the number of elements in an array.
      *
-     * @param value
+     * @param array
      * array to measure
      *
      * @return element count
@@ -681,11 +661,8 @@ public class ArrayFunctionLibrary {
             {
               "type": "integer"
             }""")
-    public static Value size(ArrayValue value) {
-        if (value instanceof ArrayValue arrayValue) {
-            return Value.of(arrayValue.size());
-        }
-        return Value.error("Argument must be an array.");
+    public static Value size(ArrayValue array) {
+        return Value.of(array.size());
     }
 
     /**
@@ -715,14 +692,10 @@ public class ArrayFunctionLibrary {
             ```
             """, schema = RETURNS_ARRAY)
     public static Value reverse(ArrayValue array) {
-        if (!(array instanceof ArrayValue arrayValue)) {
-            return Value.error("Argument must be an array.");
-        }
-
         val builder = ArrayValue.builder();
-        val size    = arrayValue.size();
+        val size    = array.size();
         for (int i = size - 1; i >= 0; i--) {
-            builder.add(arrayValue.get(i));
+            builder.add(array.get(i));
         }
         return builder.build();
     }
@@ -796,10 +769,7 @@ public class ArrayFunctionLibrary {
             ```
             """, schema = RETURNS_BOOLEAN)
     public static Value isEmpty(ArrayValue array) {
-        if (array instanceof ArrayValue arrayValue) {
-            return Value.of(arrayValue.isEmpty());
-        }
-        return Value.error("Argument must be an array.");
+        return Value.of(array.isEmpty());
     }
 
     /**
@@ -829,13 +799,10 @@ public class ArrayFunctionLibrary {
             ```
             """)
     public static Value head(ArrayValue array) {
-        if (!(array instanceof ArrayValue arrayValue)) {
-            return Value.error("Argument must be an array.");
-        }
-        if (arrayValue.isEmpty()) {
+        if (array.isEmpty()) {
             return Value.error(ERROR_EMPTY_ARRAY_HEAD);
         }
-        return arrayValue.getFirst();
+        return array.getFirst();
     }
 
     /**
@@ -865,13 +832,10 @@ public class ArrayFunctionLibrary {
             ```
             """)
     public static Value last(ArrayValue array) {
-        if (!(array instanceof ArrayValue arrayValue)) {
-            return Value.error("Argument must be an array.");
-        }
-        if (arrayValue.isEmpty()) {
+        if (array.isEmpty()) {
             return Value.error(ERROR_EMPTY_ARRAY_LAST);
         }
-        return arrayValue.getLast();
+        return array.getLast();
     }
 
     /**
@@ -943,21 +907,15 @@ public class ArrayFunctionLibrary {
     /**
      * Finds extremum (min or max) in array.
      */
-    private static Value findExtremum(Value array, String operationName, boolean findMaximum) {
-        if (!(array instanceof ArrayValue arrayValue)) {
-            return Value.error("Argument must be an array.");
-        }
-
-        if (arrayValue.isEmpty()) {
+    private static Value findExtremum(ArrayValue array, String operationName, boolean findMaximum) {
+        if (array.isEmpty()) {
             return Value.error(ERROR_PREFIX_CANNOT_FIND + operationName + ERROR_SUFFIX_EMPTY_ARRAY);
         }
-
-        val firstElement = arrayValue.getFirst();
-
+        val firstElement = array.getFirst();
         if (firstElement instanceof NumberValue) {
-            return findNumericExtremum(arrayValue, findMaximum);
+            return findNumericExtremum(array, findMaximum);
         } else if (firstElement instanceof TextValue) {
-            return findTextualExtremum(arrayValue, findMaximum);
+            return findTextualExtremum(array, findMaximum);
         } else {
             return Value.error(
                     ERROR_PREFIX_ELEMENTS_MUST_BE + firstElement.getClass().getSimpleName() + ERROR_SUFFIX_PERIOD);
@@ -969,7 +927,6 @@ public class ArrayFunctionLibrary {
      */
     private static Value findNumericExtremum(ArrayValue arrayValue, boolean findMaximum) {
         var extremumValue = ((NumberValue) arrayValue.getFirst()).value().doubleValue();
-
         for (int i = 1; i < arrayValue.size(); i++) {
             val element = arrayValue.get(i);
             if (!(element instanceof NumberValue number)) {
@@ -980,7 +937,6 @@ public class ArrayFunctionLibrary {
                 extremumValue = value;
             }
         }
-
         return Value.of(extremumValue);
     }
 
@@ -989,7 +945,6 @@ public class ArrayFunctionLibrary {
      */
     private static Value findTextualExtremum(ArrayValue arrayValue, boolean findMaximum) {
         var extremumValue = ((TextValue) arrayValue.getFirst()).value();
-
         for (int i = 1; i < arrayValue.size(); i++) {
             val element = arrayValue.get(i);
             if (!(element instanceof TextValue text)) {
@@ -1000,7 +955,6 @@ public class ArrayFunctionLibrary {
                 extremumValue = textValue;
             }
         }
-
         return Value.of(extremumValue);
     }
 
@@ -1069,17 +1023,12 @@ public class ArrayFunctionLibrary {
     /**
      * Reduces numeric array using accumulator function with identity value.
      */
-    private static Value reduceNumericArray(Value array, double identityValue, DoubleBinaryOperator accumulator) {
-        if (!(array instanceof ArrayValue arrayValue)) {
-            return Value.error("Argument must be an array.");
-        }
-
-        if (arrayValue.isEmpty()) {
+    private static Value reduceNumericArray(ArrayValue array, double identityValue, DoubleBinaryOperator accumulator) {
+        if (array.isEmpty()) {
             return Value.of(identityValue);
         }
-
         var result = identityValue;
-        for (val element : arrayValue) {
+        for (val element : array) {
             if (!(element instanceof NumberValue number)) {
                 return Value.error(ERROR_MIXED_TYPE_NON_NUMERIC + element);
             }
@@ -1117,23 +1066,18 @@ public class ArrayFunctionLibrary {
             ```
             """, schema = RETURNS_NUMBER)
     public static Value avg(ArrayValue array) {
-        if (!(array instanceof ArrayValue arrayValue)) {
-            return Value.error("Argument must be an array.");
-        }
-
-        if (arrayValue.isEmpty()) {
+        if (array.isEmpty()) {
             return Value.error(ERROR_EMPTY_ARRAY_AVERAGE);
         }
-
         var sum = 0.0;
-        for (val element : arrayValue) {
+        for (val element : array) {
             if (!(element instanceof NumberValue number)) {
                 return Value.error(ERROR_MIXED_TYPE_NON_NUMERIC + element);
             }
             sum += number.value().doubleValue();
         }
 
-        return Value.of(sum / arrayValue.size());
+        return Value.of(sum / array.size());
     }
 
     /**
@@ -1167,28 +1111,20 @@ public class ArrayFunctionLibrary {
             ```
             """, schema = RETURNS_NUMBER)
     public static Value median(ArrayValue array) {
-        if (!(array instanceof ArrayValue arrayValue)) {
-            return Value.error("Argument must be an array.");
-        }
-
-        if (arrayValue.isEmpty()) {
+        if (array.isEmpty()) {
             return Value.error(ERROR_EMPTY_ARRAY_MEDIAN);
         }
-
         val numbers = new ArrayList<Double>();
-        for (val element : arrayValue) {
+        for (val element : array) {
             if (!(element instanceof NumberValue number)) {
                 return Value.error(ERROR_MIXED_TYPE_NON_NUMERIC + element);
             }
             numbers.add(number.value().doubleValue());
         }
-
         numbers.sort(Double::compareTo);
-
         val size        = numbers.size();
         val medianValue = (size % 2 == 1) ? numbers.get(size / 2)
                 : (numbers.get(size / 2 - 1) + numbers.get(size / 2)) / 2.0;
-
         return Value.of(medianValue);
     }
 
@@ -1342,18 +1278,14 @@ public class ArrayFunctionLibrary {
             ```
             """, schema = RETURNS_ARRAY)
     public static Value crossProduct(ArrayValue array1, ArrayValue array2) {
-        if (!(array1 instanceof ArrayValue arrayValue1 && array2 instanceof ArrayValue arrayValue2)) {
-            return Value.error("Arguments must be arrays.");
-        }
-
-        if (arrayValue1.isEmpty() || arrayValue2.isEmpty()) {
+        if (array1.isEmpty() || array2.isEmpty()) {
             return Value.EMPTY_ARRAY;
         }
 
         val builder = ArrayValue.builder();
 
-        for (val element1 : arrayValue1) {
-            for (val element2 : arrayValue2) {
+        for (val element1 : array1) {
+            for (val element2 : array2) {
                 val pair = Value.ofArray(element1, element2);
                 builder.add(pair);
             }
@@ -1393,15 +1325,11 @@ public class ArrayFunctionLibrary {
             ```
             """, schema = RETURNS_ARRAY)
     public static Value zip(ArrayValue array1, ArrayValue array2) {
-        if (!(array1 instanceof ArrayValue arrayValue1 && array2 instanceof ArrayValue arrayValue2)) {
-            return Value.error("Arguments must be arrays.");
-        }
-
         val builder = ArrayValue.builder();
-        val minSize = Math.min(arrayValue1.size(), arrayValue2.size());
+        val minSize = Math.min(array1.size(), array2.size());
 
         for (int i = 0; i < minSize; i++) {
-            val pair = Value.ofArray(arrayValue1.get(i), arrayValue2.get(i));
+            val pair = Value.ofArray(array1.get(i), array2.get(i));
             builder.add(pair);
         }
 
@@ -1411,9 +1339,7 @@ public class ArrayFunctionLibrary {
     /**
      * Creates ArrayValue from collection of elements.
      */
-    private static Value createArrayFromElements(java.util.Collection<Value> elements) {
-        val builder = ArrayValue.builder();
-        builder.addAll(elements);
-        return builder.build();
+    private static Value createArrayFromElements(Collection<Value> elements) {
+        return ArrayValue.builder().addAll(elements).build();
     }
 }
