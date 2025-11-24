@@ -85,7 +85,7 @@ class PerformanceBenchmarkTest {
         return new AuthorizationSubscription(subject, Value.of("read"), resource, Value.UNDEFINED);
     }
 
-    private double[] runColdStart(String policyName, String policyDoc, AuthorizationSubscription subscription)
+    private double[] runColdStart(String policyDoc, AuthorizationSubscription subscription)
             throws InitializationException {
         double[] results = new double[COLD_START_RUNS];
 
@@ -136,7 +136,7 @@ class PerformanceBenchmarkTest {
         System.out.println("Policy: permit action == \"read\" where subject.role == \"admin\";");
         System.out.println();
 
-        val simpleCold = runColdStart("Simple", SIMPLE_POLICY, createSimpleSubscription());
+        val simpleCold = runColdStart(SIMPLE_POLICY, createSimpleSubscription());
         System.out.println("Cold start (5 runs without warmup):");
         System.out.println("  Run 1: " + String.format("%.3f", simpleCold[0]) + " µs");
         System.out.println("  Run 2: " + String.format("%.3f", simpleCold[1]) + " µs");
@@ -158,7 +158,7 @@ class PerformanceBenchmarkTest {
                 .println("Policy: 3 conditions (resource.account.state, subject.risk_score in array, amount <= 1000)");
         System.out.println();
 
-        val simple2Cold = runColdStart("Simple2", SIMPLE_POLICY_2, createSimple2Subscription());
+        val simple2Cold = runColdStart(SIMPLE_POLICY_2, createSimple2Subscription());
         System.out.println("Cold start (5 runs without warmup):");
         System.out.println("  Run 1: " + String.format("%.3f", simple2Cold[0]) + " µs");
         System.out.println("  Run 2: " + String.format("%.3f", simple2Cold[1]) + " µs");
@@ -179,7 +179,7 @@ class PerformanceBenchmarkTest {
         System.out.println("Policy: 7 conditions + variable + function call + obligations + advice + transform");
         System.out.println();
 
-        val complexCold = runColdStart("Complex", COMPLEX_POLICY, createComplexSubscription());
+        val complexCold = runColdStart(COMPLEX_POLICY, createComplexSubscription());
         System.out.println("Cold start (5 runs without warmup):");
         System.out.println("  Run 1: " + String.format("%.3f", complexCold[0]) + " µs");
         System.out.println("  Run 2: " + String.format("%.3f", complexCold[1]) + " µs");

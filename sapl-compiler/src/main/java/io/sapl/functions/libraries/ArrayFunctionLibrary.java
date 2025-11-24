@@ -275,9 +275,7 @@ public class ArrayFunctionLibrary {
     public static Value union(ArrayValue... arrays) {
         val result = new LinkedHashSet<Value>();
         for (var array : arrays) {
-            if (array instanceof ArrayValue arrayValue) {
-                result.addAll(arrayValue);
-            }
+            result.addAll(array);
         }
         return createArrayFromElements(result);
     }
@@ -310,11 +308,7 @@ public class ArrayFunctionLibrary {
             ```
             """, schema = RETURNS_ARRAY)
     public static Value toSet(ArrayValue array) {
-        if (!(array instanceof ArrayValue arrayValue)) {
-            return Value.error("Argument must be an array.");
-        }
-
-        val result = new LinkedHashSet<>(arrayValue);
+        val result = new LinkedHashSet<>(array);
         return createArrayFromElements(result);
     }
 
@@ -353,22 +347,12 @@ public class ArrayFunctionLibrary {
         if (arrays.length == 0) {
             return Value.EMPTY_ARRAY;
         }
-
         if (arrays.length == 1) {
             return toSet(arrays[0]);
         }
-
-        if (!(arrays[0] instanceof ArrayValue firstArray)) {
-            return Value.error("Arguments must be arrays.");
-        }
-
-        val result = new LinkedHashSet<Value>(firstArray);
-
+        val result = new LinkedHashSet<>(arrays[0]);
         for (int i = 1; i < arrays.length; i++) {
-            if (!(arrays[i] instanceof ArrayValue arrayValue)) {
-                return Value.error("Arguments must be arrays.");
-            }
-            val currentSet = new HashSet<Value>(arrayValue);
+            val currentSet = new HashSet<>(arrays[i]);
             result.retainAll(currentSet);
             if (result.isEmpty()) {
                 break;

@@ -68,8 +68,8 @@ class FilterApplicationStrategy {
             CompiledArguments arguments, CompilationContext context) {
         return switch (arguments.nature()) {
         case VALUE  -> applyValueFilterToValue(targetValue, functionIdentifier, arguments, context);
-        case PURE   -> applyPureFilterToValue(targetValue, functionIdentifier, arguments, context);
-        case STREAM -> applyStreamFilterToValue(targetValue, functionIdentifier, arguments, context);
+        case PURE   -> applyPureFilterToValue(targetValue, functionIdentifier, arguments);
+        case STREAM -> applyStreamFilterToValue(targetValue, functionIdentifier, arguments);
         };
     }
 
@@ -94,7 +94,7 @@ class FilterApplicationStrategy {
         return switch (arguments.nature()) {
         case VALUE  ->
             applyValueFilterToArrayElements(arrayValue, indexMatcher, functionIdentifier, arguments, context);
-        case PURE   -> applyPureFilterToArrayElements(arrayValue, indexMatcher, functionIdentifier, arguments, context);
+        case PURE   -> applyPureFilterToArrayElements(arrayValue, indexMatcher, functionIdentifier, arguments);
         case STREAM ->
             applyStreamFilterToArrayElements(arrayValue, indexMatcher, functionIdentifier, arguments, context);
         };
@@ -139,7 +139,7 @@ class FilterApplicationStrategy {
             String functionIdentifier, CompiledArguments arguments, CompilationContext context) {
         return switch (arguments.nature()) {
         case VALUE  -> applyValueFilterToObjectFields(objectValue, keyMatcher, functionIdentifier, arguments, context);
-        case PURE   -> applyPureFilterToObjectFields(objectValue, keyMatcher, functionIdentifier, arguments, context);
+        case PURE   -> applyPureFilterToObjectFields(objectValue, keyMatcher, functionIdentifier, arguments);
         case STREAM -> applyStreamFilterToObjectFields(objectValue, keyMatcher, functionIdentifier, arguments, context);
         };
     }
@@ -220,7 +220,7 @@ class FilterApplicationStrategy {
      * Creates a PureExpression that evaluates arguments at runtime.
      */
     private CompiledExpression applyPureFilterToValue(Value targetValue, String functionIdentifier,
-            CompiledArguments arguments, CompilationContext context) {
+            CompiledArguments arguments) {
         return new PureExpression(ctx -> {
             val valueArguments = FilterArgumentEvaluator.evaluatePureArguments(arguments, targetValue, ctx);
             val invocation     = new FunctionInvocation(functionIdentifier, valueArguments);
@@ -234,7 +234,7 @@ class FilterApplicationStrategy {
      * Creates a PureExpression that rebuilds the array at runtime.
      */
     private CompiledExpression applyPureFilterToArrayElements(ArrayValue arrayValue, IntPredicate indexMatcher,
-            String functionIdentifier, CompiledArguments arguments, CompilationContext context) {
+            String functionIdentifier, CompiledArguments arguments) {
         return new PureExpression(ctx -> FilterCollectionRebuilder.rebuildArray(arrayValue, indexMatcher, i -> {
             val valueArguments = FilterArgumentEvaluator.evaluatePureArguments(arguments, arrayValue.get(i), ctx);
             val invocation     = new FunctionInvocation(functionIdentifier, valueArguments);
@@ -248,7 +248,7 @@ class FilterApplicationStrategy {
      * Creates a PureExpression that rebuilds the object at runtime.
      */
     private CompiledExpression applyPureFilterToObjectFields(ObjectValue objectValue, Predicate<String> keyMatcher,
-            String functionIdentifier, CompiledArguments arguments, CompilationContext context) {
+            String functionIdentifier, CompiledArguments arguments) {
         return new PureExpression(ctx -> FilterCollectionRebuilder.rebuildObject(objectValue, keyMatcher, key -> {
             val valueArguments = FilterArgumentEvaluator.evaluatePureArguments(arguments, objectValue.get(key), ctx);
             val invocation     = new FunctionInvocation(functionIdentifier, valueArguments);
@@ -266,7 +266,7 @@ class FilterApplicationStrategy {
      * Creates a StreamExpression that combines argument streams reactively.
      */
     private CompiledExpression applyStreamFilterToValue(Value targetValue, String functionIdentifier,
-            CompiledArguments arguments, CompilationContext context) {
+            CompiledArguments arguments) {
         val argumentFlux = FilterArgumentEvaluator.combineStreamArguments(arguments, targetValue);
 
         val stream = argumentFlux.flatMap(valueArgs -> reactor.core.publisher.Flux.deferContextual(ctx -> {

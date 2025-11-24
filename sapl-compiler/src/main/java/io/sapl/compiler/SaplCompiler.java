@@ -88,91 +88,176 @@ public class SaplCompiler {
         val advice         = compileListOfExpressions(policy.getAdvice(), context);
         val transformation = ExpressionCompiler.compileExpression(policy.getTransformation(), context);
 
-        // Optimization #3: Error detection at compile time
-        if (body instanceof ErrorValue) {
-            return buildDecisionObject(Decision.INDETERMINATE, List.of(), List.of(), Value.UNDEFINED);
-        }
-        for (val obligation : obligations) {
-            if (obligation instanceof ErrorValue) {
-                return buildDecisionObject(Decision.INDETERMINATE, List.of(), List.of(), Value.UNDEFINED);
-            }
-        }
-        for (val adv : advice) {
-            if (adv instanceof ErrorValue) {
-                return buildDecisionObject(Decision.INDETERMINATE, List.of(), List.of(), Value.UNDEFINED);
-            }
-        }
-        if (transformation instanceof ErrorValue) {
-            return buildDecisionObject(Decision.INDETERMINATE, List.of(), List.of(), Value.UNDEFINED);
+        if (hasCompileTimeErrors(body, obligations, advice, transformation)) {
+            return buildIndeterminateDecision();
         }
 
-        // Optimization #1: Body constant folding
         if (body instanceof Value bodyValue) {
-            // Non-boolean body value
-            if (!(bodyValue instanceof BooleanValue)) {
-                return buildDecisionObject(Decision.INDETERMINATE, List.of(), List.of(), Value.UNDEFINED);
-            }
-            // Body is FALSE
-            if (Value.FALSE.equals(bodyValue)) {
-                return buildDecisionObject(Decision.NOT_APPLICABLE, List.of(), List.of(), Value.UNDEFINED);
-            }
-            // Body is TRUE - check for all-constant optimization
-            // Optimization #2: All-constant decision folding
-            if (allAreValues(obligations) && allAreValues(advice)
-                    && (transformation == null || transformation instanceof Value)) {
-                val oblValues = obligations.stream().map(o -> (Value) o).toList();
-                val advValues = advice.stream().map(a -> (Value) a).toList();
-                val resource  = transformation != null ? (Value) transformation : Value.UNDEFINED;
-                if (containsError(oblValues) || containsError(advValues)) {
-                    return buildDecisionObject(Decision.INDETERMINATE, List.of(), List.of(), Value.UNDEFINED);
-                }
-                return buildDecisionObject(entitlement, oblValues, advValues, resource);
-            }
+            return compileConstantBodyDecision(entitlement, bodyValue, obligations, advice, transformation);
         }
 
-        // Optimization #4: Pure expression path (no PIPs, only subscription-scoped
-        // evaluation)
-        if (body instanceof PureExpression bodyPure && allArePureExpressions(obligations)
-                && allArePureExpressions(advice)
-                && (transformation == null || transformation instanceof PureExpression)) {
-            val transPure = (PureExpression) transformation;
-            return new PureExpression(ctx -> {
-                val bodyResult = bodyPure.evaluate(ctx);
-                if (!(bodyResult instanceof BooleanValue)) {
-                    return buildDecisionObject(Decision.INDETERMINATE, List.of(), List.of(), Value.UNDEFINED);
-                }
-                if (Value.FALSE.equals(bodyResult)) {
-                    return buildDecisionObject(Decision.NOT_APPLICABLE, List.of(), List.of(), Value.UNDEFINED);
-                }
-                val oblValues = evaluatePureExpressionList(obligations, ctx);
-                val advValues = evaluatePureExpressionList(advice, ctx);
-                val resource  = transPure != null ? transPure.evaluate(ctx) : Value.UNDEFINED;
-                if (containsError(oblValues) || containsError(advValues) || resource instanceof ErrorValue) {
-                    return buildDecisionObject(Decision.INDETERMINATE, List.of(), List.of(), Value.UNDEFINED);
-                }
-                return buildDecisionObject(entitlement, oblValues, advValues, resource);
-            }, true);
-        }
-
-        // Mixed case with PureExpression body and some Value constraints
         if (body instanceof PureExpression bodyPure) {
-            return compilePureBodyWithMixedConstraints(entitlement, bodyPure, obligations, advice, transformation);
+            return compilePureBodyDecision(entitlement, bodyPure, obligations, advice, transformation);
         }
 
-        // Default: Full streaming evaluation
+        return compileStreamingBodyDecision(entitlement, body, obligations, advice, transformation);
+    }
+
+    private static boolean hasCompileTimeErrors(CompiledExpression body, List<CompiledExpression> obligations,
+            List<CompiledExpression> advice, CompiledExpression transformation) {
+        if (body instanceof ErrorValue) {
+            return true;
+        }
+        if (containsAnyError(obligations)) {
+            return true;
+        }
+        if (containsAnyError(advice)) {
+            return true;
+        }
+        return transformation instanceof ErrorValue;
+    }
+
+    private static boolean containsAnyError(List<CompiledExpression> expressions) {
+        return expressions.stream().anyMatch(ErrorValue.class::isInstance);
+    }
+
+    private static CompiledExpression compileConstantBodyDecision(Decision entitlement, Value bodyValue,
+            List<CompiledExpression> obligations, List<CompiledExpression> advice, CompiledExpression transformation) {
+        if (!isValidBooleanBody(bodyValue)) {
+            return buildIndeterminateDecision();
+        }
+
+        if (isFalseBody(bodyValue)) {
+            return buildNotApplicableDecision();
+        }
+
+        val fullyConstantDecision = tryCompileFullyConstantDecision(entitlement, obligations, advice, transformation);
+        return fullyConstantDecision != null ? fullyConstantDecision
+                : compileConstantBodyWithMixedConstraints(entitlement, bodyValue, obligations, advice, transformation);
+    }
+
+    private static CompiledExpression compileConstantBodyWithMixedConstraints(Decision entitlement, Value bodyValue,
+            List<CompiledExpression> obligations, List<CompiledExpression> advice, CompiledExpression transformation) {
+        return compileStreamingBodyDecision(entitlement, bodyValue, obligations, advice, transformation);
+    }
+
+    private static boolean isValidBooleanBody(Value bodyValue) {
+        return bodyValue instanceof BooleanValue;
+    }
+
+    private static boolean isFalseBody(Value bodyValue) {
+        return Value.FALSE.equals(bodyValue);
+    }
+
+    private static CompiledExpression tryCompileFullyConstantDecision(Decision entitlement,
+            List<CompiledExpression> obligations, List<CompiledExpression> advice, CompiledExpression transformation) {
+        if (!areAllConstantValues(obligations, advice, transformation)) {
+            return null;
+        }
+
+        val obligationValues    = extractValues(obligations);
+        val adviceValues        = extractValues(advice);
+        val transformationValue = extractTransformationValue(transformation);
+
+        if (containsError(obligationValues) || containsError(adviceValues)) {
+            return buildIndeterminateDecision();
+        }
+
+        return buildDecisionObject(entitlement, obligationValues, adviceValues, transformationValue);
+    }
+
+    private static boolean areAllConstantValues(List<CompiledExpression> obligations, List<CompiledExpression> advice,
+            CompiledExpression transformation) {
+        return allAreValues(obligations) && allAreValues(advice)
+                && (transformation == null || transformation instanceof Value);
+    }
+
+    private static List<Value> extractValues(List<CompiledExpression> expressions) {
+        return expressions.stream().map(expression -> (Value) expression).toList();
+    }
+
+    private static Value extractTransformationValue(CompiledExpression transformation) {
+        return transformation != null ? (Value) transformation : Value.UNDEFINED;
+    }
+
+    private static CompiledExpression compilePureBodyDecision(Decision entitlement, PureExpression bodyPure,
+            List<CompiledExpression> obligations, List<CompiledExpression> advice, CompiledExpression transformation) {
+        if (areAllPureExpressions(obligations, advice, transformation)) {
+            return compileFullyPureDecision(entitlement, bodyPure, obligations, advice, transformation);
+        }
+
+        return compilePureBodyWithMixedConstraints(entitlement, bodyPure, obligations, advice, transformation);
+    }
+
+    private static boolean areAllPureExpressions(List<CompiledExpression> obligations, List<CompiledExpression> advice,
+            CompiledExpression transformation) {
+        return allArePureExpressions(obligations) && allArePureExpressions(advice)
+                && (transformation == null || transformation instanceof PureExpression);
+    }
+
+    private static CompiledExpression compileFullyPureDecision(Decision entitlement, PureExpression bodyPure,
+            List<CompiledExpression> obligations, List<CompiledExpression> advice, CompiledExpression transformation) {
+        val transformationPure = (PureExpression) transformation;
+        return new PureExpression(evaluationContext -> evaluatePureDecision(entitlement, bodyPure, transformationPure,
+                obligations, advice, evaluationContext), true);
+    }
+
+    private static Value evaluatePureDecision(Decision entitlement, PureExpression bodyPure,
+            PureExpression transformationPure, List<CompiledExpression> obligations, List<CompiledExpression> advice,
+            EvaluationContext evaluationContext) {
+        val bodyResult = bodyPure.evaluate(evaluationContext);
+
+        if (!isValidBooleanBody(bodyResult)) {
+            return buildIndeterminateDecision();
+        }
+
+        if (isFalseBody(bodyResult)) {
+            return buildNotApplicableDecision();
+        }
+
+        val obligationValues    = evaluatePureExpressionList(obligations, evaluationContext);
+        val adviceValues        = evaluatePureExpressionList(advice, evaluationContext);
+        val transformationValue = transformationPure != null ? transformationPure.evaluate(evaluationContext)
+                : Value.UNDEFINED;
+
+        if (hasAnyError(obligationValues, adviceValues, transformationValue)) {
+            return buildIndeterminateDecision();
+        }
+
+        return buildDecisionObject(entitlement, obligationValues, adviceValues, transformationValue);
+    }
+
+    private static boolean hasAnyError(List<Value> obligations, List<Value> advice, Value transformation) {
+        return containsError(obligations) || containsError(advice) || transformation instanceof ErrorValue;
+    }
+
+    private static CompiledExpression compileStreamingBodyDecision(Decision entitlement, CompiledExpression body,
+            List<CompiledExpression> obligations, List<CompiledExpression> advice, CompiledExpression transformation) {
         val bodyFlux = ExpressionCompiler.compiledExpressionToFlux(body);
-        val stream   = bodyFlux.switchMap(bodyResult -> {
-                         if (!(bodyResult instanceof BooleanValue)) {
-                             return Flux.just(buildDecisionObject(Decision.INDETERMINATE, List.of(), List.of(),
-                                     Value.UNDEFINED));
-                         }
-                         if (Value.FALSE.equals(bodyResult)) {
-                             return Flux.just(buildDecisionObject(Decision.NOT_APPLICABLE, List.of(), List.of(),
-                                     Value.UNDEFINED));
-                         }
-                         return evaluateConstraintsAndBuildDecision(entitlement, obligations, advice, transformation);
-                     });
+        val stream   = bodyFlux.switchMap(
+                bodyResult -> evaluateStreamingDecision(entitlement, bodyResult, obligations, advice, transformation));
         return new StreamExpression(stream);
+    }
+
+    private static Flux<Value> evaluateStreamingDecision(Decision entitlement, Value bodyResult,
+            List<CompiledExpression> obligations, List<CompiledExpression> advice, CompiledExpression transformation) {
+        if (!isValidBooleanBody(bodyResult)) {
+            return Flux.just(buildIndeterminateDecision());
+        }
+
+        if (isFalseBody(bodyResult)) {
+            return Flux.just(buildNotApplicableDecision());
+        }
+
+        return evaluateConstraintsAndBuildDecision(entitlement, obligations, advice, transformation);
+    }
+
+    private static Value buildIndeterminateDecision() {
+        return buildDecisionObject(Decision.INDETERMINATE, List.of(), List.of(), Value.UNDEFINED);
+    }
+
+    private static Value buildNotApplicableDecision() {
+        return buildDecisionObject(Decision.NOT_APPLICABLE, List.of(), List.of(), Value.UNDEFINED);
     }
 
     private static CompiledExpression compilePureBodyWithMixedConstraints(Decision entitlement, PureExpression bodyPure,
@@ -414,18 +499,12 @@ public class SaplCompiler {
             List<Policy> policies, CompilationContext context) {
         val compiledPolicies = policies.stream().map(p -> compilePolicy(p, Value.TRUE, context)).toList();
         return switch (combiningAlgorithm) {
-        case CombiningAlgorithm.DENY_OVERRIDES      ->
-            CombiningAlgorithmCompiler.denyOverrides(compiledPolicies, context);
-        case CombiningAlgorithm.DENY_UNLESS_PERMIT  ->
-            CombiningAlgorithmCompiler.denyUnlessPermit(compiledPolicies, context);
-        case CombiningAlgorithm.ONLY_ONE_APPLICABLE ->
-            CombiningAlgorithmCompiler.onlyOneApplicable(compiledPolicies, context);
-        case CombiningAlgorithm.FIRST_APPLICABLE    ->
-            CombiningAlgorithmCompiler.firstApplicable(compiledPolicies, context);
-        case CombiningAlgorithm.PERMIT_UNLESS_DENY  ->
-            CombiningAlgorithmCompiler.permitUnlessDeny(compiledPolicies, context);
-        case CombiningAlgorithm.PERMIT_OVERRIDES    ->
-            CombiningAlgorithmCompiler.permitOverrides(compiledPolicies, context);
+        case CombiningAlgorithm.DENY_OVERRIDES      -> CombiningAlgorithmCompiler.denyOverrides(compiledPolicies);
+        case CombiningAlgorithm.DENY_UNLESS_PERMIT  -> CombiningAlgorithmCompiler.denyUnlessPermit(compiledPolicies);
+        case CombiningAlgorithm.ONLY_ONE_APPLICABLE -> CombiningAlgorithmCompiler.onlyOneApplicable(compiledPolicies);
+        case CombiningAlgorithm.FIRST_APPLICABLE    -> CombiningAlgorithmCompiler.firstApplicable(compiledPolicies);
+        case CombiningAlgorithm.PERMIT_UNLESS_DENY  -> CombiningAlgorithmCompiler.permitUnlessDeny(compiledPolicies);
+        case CombiningAlgorithm.PERMIT_OVERRIDES    -> CombiningAlgorithmCompiler.permitOverrides(compiledPolicies);
         };
     }
 

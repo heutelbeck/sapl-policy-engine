@@ -187,7 +187,7 @@ public class AttributeMethodSignatureProcessor {
             SignatureInfo signatureInfo, boolean returnsFlux) throws IllegalAccessException {
 
         val methodHandle     = prepareMethodHandle(pipInstance, method, signatureInfo);
-        val invocationConfig = new InvocationConfig(method, signatureInfo, returnsFlux);
+        val invocationConfig = new InvocationConfig(method, signatureInfo);
 
         return invocation -> Flux.deferContextual(ctx -> {
             try {
@@ -392,7 +392,7 @@ public class AttributeMethodSignatureProcessor {
             String minArgCountError,
             String varArgErrorTemplate) {
 
-        InvocationConfig(Method method, SignatureInfo signatureInfo, boolean returnsFlux) {
+        InvocationConfig(Method method, SignatureInfo signatureInfo) {
             this(signatureInfo.parameterTypes.size(), signatureInfo.varArgsParameterType != null,
                     hasEntityParameter(method), hasVariablesParameter(method),
                     calculateMethodParameterCount(method, signatureInfo.varArgsParameterType != null,

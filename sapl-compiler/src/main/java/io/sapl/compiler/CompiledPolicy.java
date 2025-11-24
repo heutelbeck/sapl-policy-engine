@@ -17,15 +17,6 @@
  */
 package io.sapl.compiler;
 
-import io.sapl.api.interpreter.PolicyEvaluationException;
-import io.sapl.api.model.*;
-import io.sapl.api.pdp.AuthorizationDecision;
-import io.sapl.api.pdp.AuthorizationSubscription;
-import io.sapl.api.pdp.Decision;
-import lombok.val;
-import reactor.core.publisher.Flux;
-
-import java.util.ArrayList;
-import java.util.List;
+import io.sapl.api.model.CompiledExpression;
 
 public record CompiledPolicy(String name, CompiledExpression matchExpression, CompiledExpression decisionExpression) {}

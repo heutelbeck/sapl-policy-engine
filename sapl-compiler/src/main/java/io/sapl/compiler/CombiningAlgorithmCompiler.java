@@ -341,27 +341,23 @@ public class CombiningAlgorithmCompiler {
 
     // ========== Public API: Combining Algorithms ==========
 
-    public static CompiledExpression denyUnlessPermit(List<CompiledPolicy> compiledPolicies,
-            CompilationContext context) {
+    public static CompiledExpression denyUnlessPermit(List<CompiledPolicy> compiledPolicies) {
         return genericCombiningAlgorithm(compiledPolicies, DENY_UNLESS_PERMIT);
     }
 
-    public static CompiledExpression denyOverrides(List<CompiledPolicy> compiledPolicies, CompilationContext context) {
+    public static CompiledExpression denyOverrides(List<CompiledPolicy> compiledPolicies) {
         return genericCombiningAlgorithm(compiledPolicies, DENY_OVERRIDES);
     }
 
-    public static CompiledExpression permitOverrides(List<CompiledPolicy> compiledPolicies,
-            CompilationContext context) {
+    public static CompiledExpression permitOverrides(List<CompiledPolicy> compiledPolicies) {
         return genericCombiningAlgorithm(compiledPolicies, PERMIT_OVERRIDES);
     }
 
-    public static CompiledExpression permitUnlessDeny(List<CompiledPolicy> compiledPolicies,
-            CompilationContext context) {
+    public static CompiledExpression permitUnlessDeny(List<CompiledPolicy> compiledPolicies) {
         return genericCombiningAlgorithm(compiledPolicies, PERMIT_UNLESS_DENY);
     }
 
-    public static CompiledExpression onlyOneApplicable(List<CompiledPolicy> compiledPolicies,
-            CompilationContext context) {
+    public static CompiledExpression onlyOneApplicable(List<CompiledPolicy> compiledPolicies) {
         if (compiledPolicies.isEmpty()) {
             return NOT_APPLICABLE_DECISION;
         }
@@ -436,8 +432,7 @@ public class CombiningAlgorithmCompiler {
 
     // ========== First-Applicable (Special Case) ==========
 
-    public static CompiledExpression firstApplicable(List<CompiledPolicy> compiledPolicies,
-            CompilationContext context) {
+    public static CompiledExpression firstApplicable(List<CompiledPolicy> compiledPolicies) {
         if (compiledPolicies.isEmpty()) {
             return NOT_APPLICABLE_DECISION;
         }
