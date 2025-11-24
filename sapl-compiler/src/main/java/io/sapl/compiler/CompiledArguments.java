@@ -20,6 +20,6 @@ package io.sapl.compiler;
 import io.sapl.api.model.CompiledExpression;
 
 public record CompiledArguments(Nature nature, boolean isSubscriptionScoped, CompiledExpression[] arguments) {
-    public static CompiledArguments EMPTY_ARGUMENTS = new CompiledArguments(Nature.VALUE, false,
+    public static final CompiledArguments EMPTY_ARGUMENTS = new CompiledArguments(Nature.VALUE, false,
             new CompiledExpression[0]);
 }

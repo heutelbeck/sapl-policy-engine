@@ -25,6 +25,6 @@ public record CompiledObjectAttributes(
         Nature nature,
         boolean isSubscriptionScoped,
         Map<String, CompiledExpression> attributes) {
-    public static CompiledObjectAttributes EMPTY_ATTRIBUTES = new CompiledObjectAttributes(Nature.VALUE, false,
+    public static final CompiledObjectAttributes EMPTY_ATTRIBUTES = new CompiledObjectAttributes(Nature.VALUE, false,
             Map.of());
 }

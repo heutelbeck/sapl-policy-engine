@@ -31,13 +31,12 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
+import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 class AttributeMethodSignatureProcessorTests {
 
@@ -177,8 +176,8 @@ class AttributeMethodSignatureProcessorTests {
         var method = TestPIP.class.getMethod("withArguments", Value.class, Value.class, Value.class);
         var result = AttributeMethodSignatureProcessor.processAttributeMethod(null, NAMESPACE, method);
 
-        var invocation = mockInvocation("withArguments", Value.of(1), Value.of(2));
-        var context    = mockEvaluationContext(Map.of());
+        var invocation = createInvocation("withArguments", Value.of(1), Value.of(2));
+        var context    = createEvaluationContext(Map.of());
 
         Assertions.assertNotNull(result);
         StepVerifier
@@ -192,8 +191,8 @@ class AttributeMethodSignatureProcessorTests {
         var method = TestPIP.class.getMethod("withArguments", Value.class, Value.class, Value.class);
         var result = AttributeMethodSignatureProcessor.processAttributeMethod(null, NAMESPACE, method);
 
-        var invocation = mockInvocation("withArguments", Value.of(1));
-        var context    = mockEvaluationContext(Map.of());
+        var invocation = createInvocation("withArguments", Value.of(1));
+        var context    = createEvaluationContext(Map.of());
 
         Assertions.assertNotNull(result);
         StepVerifier
@@ -209,8 +208,8 @@ class AttributeMethodSignatureProcessorTests {
         var method = TestPIP.class.getMethod("withVarArgs", Value.class, Value[].class);
         var result = AttributeMethodSignatureProcessor.processAttributeMethod(null, NAMESPACE, method);
 
-        var invocation = mockInvocation("withVarArgs", Value.of(1), Value.of(2), Value.of(3));
-        var context    = mockEvaluationContext(Map.of());
+        var invocation = createInvocation("withVarArgs", Value.of(1), Value.of(2), Value.of(3));
+        var context    = createEvaluationContext(Map.of());
 
         Assertions.assertNotNull(result);
         StepVerifier
@@ -224,8 +223,8 @@ class AttributeMethodSignatureProcessorTests {
         var method = TestPIP.class.getMethod("throwsException", Value.class);
         var result = AttributeMethodSignatureProcessor.processAttributeMethod(null, NAMESPACE, method);
 
-        var invocation = mockInvocation("throwsException");
-        var context    = mockEvaluationContext(Map.of());
+        var invocation = createInvocation("throwsException");
+        var context    = createEvaluationContext(Map.of());
 
         Assertions.assertNotNull(result);
         StepVerifier
@@ -235,18 +234,14 @@ class AttributeMethodSignatureProcessorTests {
                 .verifyComplete();
     }
 
-    private AttributeFinderInvocation mockInvocation(String attributeName, Value... args) {
-        var invocation = mock(AttributeFinderInvocation.class);
-        when(invocation.attributeName()).thenReturn(attributeName);
-        when(invocation.entity()).thenReturn(Value.UNDEFINED);
-        when(invocation.arguments()).thenReturn(List.of(args));
-        return invocation;
+    private AttributeFinderInvocation createInvocation(String attributeName, Value... args) {
+        return new AttributeFinderInvocation("test-config", NAMESPACE + "." + attributeName, Value.UNDEFINED,
+                List.of(args), Map.of(), Duration.ofSeconds(1), Duration.ofSeconds(1), Duration.ofMillis(100), 3,
+                false);
     }
 
-    private EvaluationContext mockEvaluationContext(Map<String, Value> variables) {
-        var context = mock(EvaluationContext.class);
-        when(context.variables()).thenReturn(variables);
-        return context;
+    private EvaluationContext createEvaluationContext(Map<String, Value> variables) {
+        return new EvaluationContext("test-config", "test-subscription", null, variables, null, null);
     }
 
     static class TestPIP {

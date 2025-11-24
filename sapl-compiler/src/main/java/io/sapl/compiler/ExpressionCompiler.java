@@ -17,6 +17,7 @@
  */
 package io.sapl.compiler;
 
+import com.google.common.collect.Maps;
 import io.sapl.api.functions.FunctionInvocation;
 import io.sapl.api.model.*;
 import io.sapl.api.model.Value;
@@ -31,10 +32,7 @@ import lombok.val;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
+import java.util.*;
 
 import static io.sapl.compiler.operators.BooleanOperators.TYPE_MISMATCH_BOOLEAN_EXPECTED_ERROR;
 
@@ -631,7 +629,7 @@ public class ExpressionCompiler {
         CompiledExpression compiled = switch (arguments.nature()) {
         case VALUE  -> foldFunctionWithValueParameters(function, arguments.arguments(), context);
         case PURE   -> compileFunctionWithPureParameters(function, arguments, context);
-        case STREAM -> compileFunctionWithStreamParameters(function, arguments, context);
+        case STREAM -> compileFunctionWithStreamParameters(function, arguments);
         };
         return compileSteps(compiled, function.getSteps(), context);
     }
@@ -645,13 +643,11 @@ public class ExpressionCompiler {
      * the function AST node
      * @param arguments
      * the compiled arguments
-     * @param context
-     * the compilation context
      *
      * @return a stream expression that evaluates the function reactively
      */
-    private CompiledExpression compileFunctionWithStreamParameters(BasicFunction function, CompiledArguments arguments,
-            CompilationContext context) {
+    private CompiledExpression compileFunctionWithStreamParameters(BasicFunction function,
+            CompiledArguments arguments) {
         val sources = Arrays.stream(arguments.arguments()).map(ExpressionCompiler::compiledExpressionToFlux).toList();
         val stream  = Flux.combineLatest(sources, c -> c).flatMap(combined -> Flux.deferContextual(ctx -> Flux
                 .just(evaluateFunctionWithValueParameters(function, combined, ctx.get(EvaluationContext.class)))));
@@ -798,7 +794,7 @@ public class ExpressionCompiler {
      *
      * @return the expression with all steps compiled and applied
      */
-    private CompiledExpression compileSteps(CompiledExpression expression, List<Step> steps,
+    private CompiledExpression compileSteps(CompiledExpression expression, Collection<Step> steps,
             CompilationContext context) {
         if (steps == null || steps.isEmpty()) {
             return expression;
@@ -828,31 +824,30 @@ public class ExpressionCompiler {
     private CompiledExpression compileStep(CompiledExpression parent, Step step, CompilationContext context) {
         return switch (step) {
         case KeyStep keyStep                                 ->
-            compileStep(parent, p -> StepOperators.keyStep(p, keyStep.getId()), context);
+            compileStep(parent, p -> StepOperators.keyStep(p, keyStep.getId()));
         case EscapedKeyStep escapedKeyStep                   ->
-            compileStep(parent, p -> StepOperators.keyStep(p, escapedKeyStep.getId()), context);
-        case WildcardStep wildcardStep                       ->
-            compileStep(parent, StepOperators::wildcardStep, context);
+            compileStep(parent, p -> StepOperators.keyStep(p, escapedKeyStep.getId()));
+        case WildcardStep wildcardStep                       -> compileStep(parent, StepOperators::wildcardStep);
         case AttributeFinderStep attributeFinderStep         ->
             AttributeCompiler.compileAttributeFinderStep(parent, attributeFinderStep, context);
         case HeadAttributeFinderStep headAttributeFinderStep ->
             AttributeCompiler.compileHeadAttributeFinderStep(parent, headAttributeFinderStep, context);
         case RecursiveKeyStep recursiveKeyStep               ->
-            compileStep(parent, p -> StepOperators.recursiveKeyStep(p, recursiveKeyStep.getId()), context);
+            compileStep(parent, p -> StepOperators.recursiveKeyStep(p, recursiveKeyStep.getId()));
         case RecursiveWildcardStep recursiveWildcardStep     ->
-            compileStep(parent, StepOperators::recursiveWildcardStep, context);
+            compileStep(parent, StepOperators::recursiveWildcardStep);
         case RecursiveIndexStep recursiveIndexStep           ->
-            compileStep(parent, p -> StepOperators.recursiveIndexStep(p, recursiveIndexStep.getIndex()), context);
+            compileStep(parent, p -> StepOperators.recursiveIndexStep(p, recursiveIndexStep.getIndex()));
         case IndexStep indexStep                             ->
-            compileStep(parent, p -> StepOperators.indexStep(p, indexStep.getIndex()), context);
+            compileStep(parent, p -> StepOperators.indexStep(p, indexStep.getIndex()));
         case ArraySlicingStep arraySlicingStep               -> compileStep(parent, p -> StepOperators.sliceArray(p,
-                arraySlicingStep.getIndex(), arraySlicingStep.getTo(), arraySlicingStep.getStep()), context);
+                arraySlicingStep.getIndex(), arraySlicingStep.getTo(), arraySlicingStep.getStep()));
         case ExpressionStep expressionStep                   -> compileExpressionStep(parent, expressionStep, context);
         case ConditionStep conditionStep                     -> compileConditionStep(parent, conditionStep, context);
         case IndexUnionStep indexUnionStep                   ->
-            compileStep(parent, p -> StepOperators.indexUnion(p, indexUnionStep.getIndices()), context);
+            compileStep(parent, p -> StepOperators.indexUnion(p, indexUnionStep.getIndices()));
         case AttributeUnionStep attributeUnionStep           ->
-            compileStep(parent, p -> StepOperators.attributeUnion(p, attributeUnionStep.getAttributes()), context);
+            compileStep(parent, p -> StepOperators.attributeUnion(p, attributeUnionStep.getAttributes()));
         default                                              -> UNIMPLEMENTED;
         };
     }
@@ -887,13 +882,11 @@ public class ExpressionCompiler {
      * the parent expression
      * @param operation
      * the unary operation to apply
-     * @param context
-     * the compilation context
      *
      * @return the compiled step expression
      */
-    private CompiledExpression compileStep(CompiledExpression parent, java.util.function.UnaryOperator<Value> operation,
-            CompilationContext context) {
+    private CompiledExpression compileStep(CompiledExpression parent,
+            java.util.function.UnaryOperator<Value> operation) {
         if (parent instanceof ErrorValue || parent instanceof UndefinedValue) {
             return parent;
         }
@@ -944,8 +937,7 @@ public class ExpressionCompiler {
                                        case Value valueCondition                 ->
                                            compileConditionOnPureParentWithValueCondition(pureParent, valueCondition);
                                        case PureExpression pureCondition         ->
-                                           compileConditionOnPureParentWithPureCondition(pureParent, pureCondition,
-                                                   context);
+                                           compileConditionOnPureParentWithPureCondition(pureParent, pureCondition);
                                        case StreamExpression streamCondition     ->
                                            compileConditionOnPureParentWithStreamCondition(pureParent, streamCondition);
                                        };
@@ -1323,13 +1315,11 @@ public class ExpressionCompiler {
      * the pure parent expression
      * @param pureCondition
      * the pure condition expression
-     * @param context
-     * the compilation context
      *
      * @return a pure expression evaluating the filtered result
      */
     private CompiledExpression compileConditionOnPureParentWithPureCondition(PureExpression pureParent,
-            PureExpression pureCondition, CompilationContext context) {
+            PureExpression pureCondition) {
 
         return new PureExpression(ctx -> {
             val valueParent = pureParent.evaluate(ctx);
@@ -1762,7 +1752,7 @@ public class ExpressionCompiler {
         if (members == null || members.isEmpty()) {
             return CompiledObjectAttributes.EMPTY_ATTRIBUTES;
         }
-        val compiledArguments    = new HashMap<String, CompiledExpression>(members.size());
+        val compiledArguments    = HashMap.<String, CompiledExpression>newHashMap(members.size());
         var isStream             = false;
         var isPure               = false;
         var isSubscriptionScoped = false;
@@ -1803,9 +1793,9 @@ public class ExpressionCompiler {
      */
     Flux<Value> compiledExpressionToFlux(CompiledExpression expression) {
         return switch (expression) {
-        case Value value                   -> Flux.just(value);
-        case StreamExpression stream       -> stream.stream();
-        case PureExpression pureExpression -> pureExpression.flux();
+        case Value value                          -> Flux.just(value);
+        case StreamExpression(Flux<Value> stream) -> stream;
+        case PureExpression pureExpression        -> pureExpression.flux();
         };
     }
 
