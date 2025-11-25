@@ -133,11 +133,8 @@ class DigestFunctionLibraryTests {
         var md5    = DigestFunctionLibrary.md5(input);
         var sha1   = DigestFunctionLibrary.sha1(input);
 
-        assertThat(sha256).isNotEqualTo(sha512);
-        assertThat(sha256).isNotEqualTo(sha3);
-        assertThat(sha256).isNotEqualTo(md5);
-        assertThat(sha256).isNotEqualTo(sha1);
-        assertThat(sha512).isNotEqualTo(sha3);
+        assertThat(sha256).isNotEqualTo(sha512).isNotEqualTo(sha3).isNotEqualTo(md5).isNotEqualTo(sha1)
+                .isNotEqualTo(sha3);
     }
 
     @Test

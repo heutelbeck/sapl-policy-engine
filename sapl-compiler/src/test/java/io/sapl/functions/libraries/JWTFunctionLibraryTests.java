@@ -20,7 +20,7 @@ package io.sapl.functions.libraries;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import io.sapl.api.model.*;
-import org.junit.jupiter.api.Assertions;
+import lombok.val;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
@@ -43,49 +43,43 @@ class JWTFunctionLibraryTests {
 
     @Test
     void wellFormedTokenIsParsed() {
-        var result = createLibrary().parseJwt(Value.of(WELL_FORMED_TOKEN));
+        val result = createLibrary().parseJwt(Value.of(WELL_FORMED_TOKEN));
 
         assertThat(result).isNotInstanceOf(ErrorValue.class);
 
-        var token   = (ObjectValue) result;
-        var payload = (ObjectValue) token.get("payload");
-        var header  = (ObjectValue) token.get("header");
+        val token   = (ObjectValue) result;
+        val payload = (ObjectValue) token.get("payload");
+        val header  = (ObjectValue) token.get("header");
 
-        Assertions.assertNotNull(payload);
-        assertThat(payload.get("sub")).isEqualTo(Value.of("user1"));
-        Assertions.assertNotNull(header);
-        assertThat(header.get("alg")).isEqualTo(Value.of("RS256"));
-        assertThat(header.get("kid")).isEqualTo(Value.of("7dddc307-dda4-48f5-be5b-406edafb7988"));
+        assertThat(payload).isNotNull().containsEntry("sub", Value.of("user1"));
+        assertThat(header).isNotNull().containsEntry("alg", Value.of("RS256")).containsEntry("kid",
+                Value.of("7dddc307-dda4-48f5-be5b-406edafb7988"));
     }
 
     @Test
     void wellFormedTokenConvertsEpochTimestampsToIso() {
-        var result = createLibrary().parseJwt(Value.of(WELL_FORMED_TOKEN));
+        val result = createLibrary().parseJwt(Value.of(WELL_FORMED_TOKEN));
 
         assertThat(result).isNotInstanceOf(ErrorValue.class);
 
-        var payload = (ObjectValue) ((ObjectValue) result).get("payload");
+        val payload = (ObjectValue) ((ObjectValue) result).get("payload");
 
-        Assertions.assertNotNull(payload);
-        assertThat(payload.get("nbf")).isEqualTo(Value.of("2021-10-26T12:30:15Z"));
-        assertThat(payload.get("exp")).isEqualTo(Value.of("2021-10-26T12:35:15Z"));
-        assertThat(payload.get("iat")).isEqualTo(Value.of("2021-10-26T12:30:15Z"));
+        assertThat(payload).isNotNull().containsEntry("nbf", Value.of("2021-10-26T12:30:15Z"))
+                .containsEntry("exp", Value.of("2021-10-26T12:35:15Z"))
+                .containsEntry("iat", Value.of("2021-10-26T12:30:15Z"));
     }
 
     @Test
     void wellFormedTokenExtractsScopes() {
-        var result = createLibrary().parseJwt(Value.of(WELL_FORMED_TOKEN));
+        val result = createLibrary().parseJwt(Value.of(WELL_FORMED_TOKEN));
 
         assertThat(result).isNotInstanceOf(ErrorValue.class);
 
-        var payload = (ObjectValue) ((ObjectValue) result).get("payload");
-        Assertions.assertNotNull(payload);
-        var scopes = (ArrayValue) payload.get("scope");
+        val payload = (ObjectValue) ((ObjectValue) result).get("payload");
+        assertThat(payload).isNotNull();
+        val scopes = (ArrayValue) payload.get("scope");
 
-        assertThat(scopes).isInstanceOf(ArrayValue.class).hasSize(2);
-        Assertions.assertNotNull(scopes);
-        assertThat(scopes.get(0)).isEqualTo(Value.of("faculty.read"));
-        assertThat(scopes.get(1)).isEqualTo(Value.of("books.read"));
+        assertThat(scopes).isNotNull().hasSize(2).containsExactly(Value.of("faculty.read"), Value.of("books.read"));
     }
 
     @ParameterizedTest
@@ -101,107 +95,103 @@ class JWTFunctionLibraryTests {
     @Test
     @SuppressWarnings("unchecked")
     void payloadNotAnObjectWorks() {
-        var mapper = mock(ObjectMapper.class);
+        val mapper = mock(ObjectMapper.class);
         when(mapper.convertValue(any(), any(Class.class))).thenReturn(JSON.textNode("SOL command structure"));
-        var library = new JWTFunctionLibrary(mapper);
-        var result  = library.parseJwt(Value.of(WELL_FORMED_TOKEN));
+        val library = new JWTFunctionLibrary(mapper);
+        val result  = library.parseJwt(Value.of(WELL_FORMED_TOKEN));
 
         assertThat(result).isNotInstanceOf(ErrorValue.class);
 
-        var payload = (TextValue) ((ObjectValue) result).get("payload");
+        val payload = (TextValue) ((ObjectValue) result).get("payload");
 
-        Assertions.assertNotNull(payload);
+        assertThat(payload).isNotNull();
         assertThat(payload.value()).isEqualTo("SOL command structure");
     }
 
     @Test
     @SuppressWarnings("unchecked")
     void payloadWithoutTimeClaimsWorks() {
-        var mapper  = mock(ObjectMapper.class);
-        var payload = JSON.objectNode();
+        val mapper  = mock(ObjectMapper.class);
+        val payload = JSON.objectNode();
         payload.put("sub", "perry.rhodan");
         payload.put("role", "commander");
         when(mapper.convertValue(any(), any(Class.class))).thenReturn(payload);
 
-        var library = new JWTFunctionLibrary(mapper);
-        var result  = library.parseJwt(Value.of(WELL_FORMED_TOKEN));
+        val library = new JWTFunctionLibrary(mapper);
+        val result  = library.parseJwt(Value.of(WELL_FORMED_TOKEN));
 
         assertThat(result).isNotInstanceOf(ErrorValue.class);
 
-        var payloadValue = (ObjectValue) ((ObjectValue) result).get("payload");
+        val payloadValue = (ObjectValue) ((ObjectValue) result).get("payload");
 
-        assertThat(payloadValue).isNotNull();
-        assertThat(payloadValue.get("sub")).isEqualTo(Value.of("perry.rhodan"));
+        assertThat(payloadValue).isNotNull().containsEntry("sub", Value.of("perry.rhodan"));
     }
 
     @Test
     @SuppressWarnings("unchecked")
     void payloadWithNonNumericTimeClaimsWorks() {
-        var mapper  = mock(ObjectMapper.class);
-        var payload = JSON.objectNode();
+        val mapper  = mock(ObjectMapper.class);
+        val payload = JSON.objectNode();
         payload.put("sub", "atlan");
         payload.set("nbf", JSON.textNode("not a number"));
         when(mapper.convertValue(any(), any(Class.class))).thenReturn(payload);
 
-        var library = new JWTFunctionLibrary(mapper);
-        var result  = library.parseJwt(Value.of(WELL_FORMED_TOKEN));
+        val library = new JWTFunctionLibrary(mapper);
+        val result  = library.parseJwt(Value.of(WELL_FORMED_TOKEN));
 
         assertThat(result).isNotInstanceOf(ErrorValue.class);
 
-        var payloadValue = (ObjectValue) ((ObjectValue) result).get("payload");
+        val payloadValue = (ObjectValue) ((ObjectValue) result).get("payload");
 
-        assertThat(payloadValue).isNotNull();
-        assertThat(payloadValue.get("nbf")).isEqualTo(Value.of("not a number"));
+        assertThat(payloadValue).isNotNull().containsEntry("nbf", Value.of("not a number"));
     }
 
     @ParameterizedTest
     @SuppressWarnings("unchecked")
     @ValueSource(strings = { "nbf", "exp", "iat" })
     void timeClaimsAreConvertedFromEpochToIso(String claimName) {
-        var mapper  = mock(ObjectMapper.class);
-        var payload = JSON.objectNode();
+        val mapper  = mock(ObjectMapper.class);
+        val payload = JSON.objectNode();
         payload.set(claimName, JSON.numberNode(0L));
         when(mapper.convertValue(any(), any(Class.class))).thenReturn(payload);
 
-        var library = new JWTFunctionLibrary(mapper);
-        var result  = library.parseJwt(Value.of(WELL_FORMED_TOKEN));
+        val library = new JWTFunctionLibrary(mapper);
+        val result  = library.parseJwt(Value.of(WELL_FORMED_TOKEN));
 
         assertThat(result).isNotInstanceOf(ErrorValue.class);
 
-        var payloadValue = (ObjectValue) ((ObjectValue) result).get("payload");
+        val payloadValue = (ObjectValue) ((ObjectValue) result).get("payload");
 
-        Assertions.assertNotNull(payloadValue);
-        assertThat(payloadValue.get(claimName)).isEqualTo(Value.of("1970-01-01T00:00:00Z"));
+        assertThat(payloadValue).isNotNull().containsEntry(claimName, Value.of("1970-01-01T00:00:00Z"));
     }
 
     @Test
     @SuppressWarnings("unchecked")
     void allTimeClaimsConvertedTogether() {
-        var mapper  = mock(ObjectMapper.class);
-        var payload = JSON.objectNode();
+        val mapper  = mock(ObjectMapper.class);
+        val payload = JSON.objectNode();
         payload.set("nbf", JSON.numberNode(1000000000L));
         payload.set("exp", JSON.numberNode(2000000000L));
         payload.set("iat", JSON.numberNode(1500000000L));
         when(mapper.convertValue(any(), any(Class.class))).thenReturn(payload);
 
-        var library = new JWTFunctionLibrary(mapper);
-        var result  = library.parseJwt(Value.of(WELL_FORMED_TOKEN));
+        val library = new JWTFunctionLibrary(mapper);
+        val result  = library.parseJwt(Value.of(WELL_FORMED_TOKEN));
 
         assertThat(result).isNotInstanceOf(ErrorValue.class);
 
-        var payloadValue = (ObjectValue) ((ObjectValue) result).get("payload");
+        val payloadValue = (ObjectValue) ((ObjectValue) result).get("payload");
 
-        Assertions.assertNotNull(payloadValue);
-        assertThat(payloadValue.get("nbf")).isEqualTo(Value.of("2001-09-09T01:46:40Z"));
-        assertThat(payloadValue.get("exp")).isEqualTo(Value.of("2033-05-18T03:33:20Z"));
-        assertThat(payloadValue.get("iat")).isEqualTo(Value.of("2017-07-14T02:40:00Z"));
+        assertThat(payloadValue).isNotNull().containsEntry("nbf", Value.of("2001-09-09T01:46:40Z"))
+                .containsEntry("exp", Value.of("2033-05-18T03:33:20Z"))
+                .containsEntry("iat", Value.of("2017-07-14T02:40:00Z"));
     }
 
     @Test
     @SuppressWarnings("unchecked")
     void payloadWithMixedClaimsWorks() {
-        var mapper  = mock(ObjectMapper.class);
-        var payload = JSON.objectNode();
+        val mapper  = mock(ObjectMapper.class);
+        val payload = JSON.objectNode();
         payload.put("sub", "gucky");
         payload.put("species", "mousebeaver");
         payload.put("cellActivator", true);
@@ -209,19 +199,17 @@ class JWTFunctionLibraryTests {
         payload.set("exp", JSON.numberNode(1635251715L));
         when(mapper.convertValue(any(), any(Class.class))).thenReturn(payload);
 
-        var library = new JWTFunctionLibrary(mapper);
-        var result  = library.parseJwt(Value.of(WELL_FORMED_TOKEN));
+        val library = new JWTFunctionLibrary(mapper);
+        val result  = library.parseJwt(Value.of(WELL_FORMED_TOKEN));
 
         assertThat(result).isNotInstanceOf(ErrorValue.class);
 
-        var payloadValue = (ObjectValue) ((ObjectValue) result).get("payload");
+        val payloadValue = (ObjectValue) ((ObjectValue) result).get("payload");
 
-        Assertions.assertNotNull(payloadValue);
-        assertThat(payloadValue.get("sub")).isEqualTo(Value.of("gucky"));
-        assertThat(payloadValue.get("species")).isEqualTo(Value.of("mousebeaver"));
-        assertThat(payloadValue.get("cellActivator")).isEqualTo(Value.TRUE);
-        assertThat(payloadValue.get("nbf")).isEqualTo(Value.of("2021-10-26T12:30:15Z"));
-        assertThat(payloadValue.get("exp")).isEqualTo(Value.of("2021-10-26T12:35:15Z"));
+        assertThat(payloadValue).isNotNull().containsEntry("sub", Value.of("gucky"))
+                .containsEntry("species", Value.of("mousebeaver")).containsEntry("cellActivator", Value.TRUE)
+                .containsEntry("nbf", Value.of("2021-10-26T12:30:15Z"))
+                .containsEntry("exp", Value.of("2021-10-26T12:35:15Z"));
     }
 
 }

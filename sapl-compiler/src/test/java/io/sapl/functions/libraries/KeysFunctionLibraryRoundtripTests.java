@@ -146,9 +146,9 @@ class KeysFunctionLibraryRoundtripTests {
         assertThat(jwk).isNotInstanceOf(ErrorValue.class);
 
         // Verify JWK structure
+        assertThat(jwk).containsKey("x");
         assertThat(jwk.get("kty")).isEqualTo(Value.of("OKP"));
         assertThat(jwk.get("crv")).isEqualTo(Value.of("Ed25519"));
-        assertThat(jwk).containsKey("x");
 
         // Verify x parameter is 32 bytes (raw Ed25519 key)
         val xBytes = Base64.getUrlDecoder().decode(getTextFieldValue(jwk, "x"));
@@ -225,25 +225,23 @@ class KeysFunctionLibraryRoundtripTests {
     void rsaJwk_followsRfc7517Structure() {
         val jwk = (ObjectValue) KeysFunctionLibrary.jwkFromPublicKey(Value.of(rsaPublicKeyPem));
 
-        // Verify required fields per RFC 7517
-        assertThat(jwk).as("JWK must have 'kty' field").containsKey("kty");
+        // Verify required fields per RFC 7517 and RSA-specific fields per RFC 7518
+        // Section 6.3
+        assertThat(jwk).as("RSA JWK must have 'kty', 'n', and 'e' fields").containsKey("kty").containsKey("n")
+                .containsKey("e");
         assertThat(jwk.get("kty")).isEqualTo(Value.of("RSA"));
-
-        // Verify RSA-specific fields per RFC 7518 Section 6.3
-        assertThat(jwk).as("RSA JWK must have 'n' (modulus)").containsKey("n");
-        assertThat(jwk).as("RSA JWK must have 'e' (exponent)").containsKey("e");
 
         // Verify base64url encoding (no padding)
         val nValue = getTextFieldValue(jwk, "n");
         val eValue = getTextFieldValue(jwk, "e");
-        assertThat(nValue).doesNotContain("=");
-        assertThat(eValue).doesNotContain("=");
+        assertThat(nValue).as("'n' must use base64url encoding (no padding)").doesNotContain("=");
+        assertThat(eValue).as("'e' must use base64url encoding (no padding)").doesNotContain("=");
 
         // Verify we can decode the values
         val nBytes = Base64.getUrlDecoder().decode(nValue);
         val eBytes = Base64.getUrlDecoder().decode(eValue);
-        assertThat(nBytes).isNotEmpty();
-        assertThat(eBytes).isNotEmpty();
+        assertThat(nBytes).as("decoded 'n' bytes").isNotEmpty();
+        assertThat(eBytes).as("decoded 'e' bytes").isNotEmpty();
 
         // Verify modulus matches original key
         val originalKey = (RSAPublicKey) parsePublicKeyFromPem(rsaPublicKeyPem);
@@ -255,23 +253,19 @@ class KeysFunctionLibraryRoundtripTests {
     void ecJwk_followsRfc7517Structure() {
         val jwk = (ObjectValue) KeysFunctionLibrary.jwkFromPublicKey(Value.of(ecP256PublicKeyPem));
 
-        // Verify required fields per RFC 7517
-        assertThat(jwk).as("JWK must have 'kty' field").containsKey("kty");
+        // Verify required fields per RFC 7517 and EC-specific fields per RFC 7518
+        // Section 6.2
+        assertThat(jwk).as("EC JWK must have 'kty', 'crv', 'x', and 'y' fields").containsKey("kty").containsKey("crv")
+                .containsKey("x").containsKey("y");
         assertThat(jwk.get("kty")).isEqualTo(Value.of("EC"));
-
-        // Verify EC-specific fields per RFC 7518 Section 6.2
-        assertThat(jwk).as("EC JWK must have 'crv' (curve)").containsKey("crv");
-        assertThat(jwk).as("EC JWK must have 'x' coordinate").containsKey("x");
-        assertThat(jwk).as("EC JWK must have 'y' coordinate").containsKey("y");
-
         // Verify curve name follows RFC 7518 (P-256, not secp256r1)
         assertThat(jwk.get("crv")).isEqualTo(Value.of("P-256"));
 
         // Verify base64url encoding (no padding)
         val xValue = getTextFieldValue(jwk, "x");
         val yValue = getTextFieldValue(jwk, "y");
-        assertThat(xValue).doesNotContain("=");
-        assertThat(yValue).doesNotContain("=");
+        assertThat(xValue).as("'x' must use base64url encoding (no padding)").doesNotContain("=");
+        assertThat(yValue).as("'y' must use base64url encoding (no padding)").doesNotContain("=");
 
         // Verify coordinates match original key
         val originalKey = (ECPublicKey) parsePublicKeyFromPem(ecP256PublicKeyPem);
@@ -289,13 +283,10 @@ class KeysFunctionLibraryRoundtripTests {
         val jwk = (ObjectValue) KeysFunctionLibrary.jwkFromPublicKey(Value.of(ed25519PublicKeyPem));
 
         // Verify required fields per RFC 8037 Section 2
-        assertThat(jwk).as("JWK must have 'kty' field").containsKey("kty");
+        assertThat(jwk).as("OKP JWK must have 'kty', 'crv', and 'x' fields").containsKey("kty").containsKey("crv")
+                .containsKey("x");
         assertThat(jwk.get("kty")).isEqualTo(Value.of("OKP"));
-
-        assertThat(jwk).as("OKP JWK must have 'crv' (curve)").containsKey("crv");
         assertThat(jwk.get("crv")).isEqualTo(Value.of("Ed25519"));
-
-        assertThat(jwk).as("OKP JWK must have 'x' parameter").containsKey("x");
 
         // Verify base64url encoding (no padding)
         val xValue = getTextFieldValue(jwk, "x");
@@ -385,14 +376,12 @@ class KeysFunctionLibraryRoundtripTests {
         val yBytes = Base64.getUrlDecoder().decode(getTextFieldValue(jwk, "y"));
 
         // P-256 coordinates should be at most 32 bytes (256 bits)
-        assertThat(xBytes.length).isLessThanOrEqualTo(32);
-        assertThat(yBytes.length).isLessThanOrEqualTo(32);
+        assertThat(xBytes.length).as("x coordinate").isLessThanOrEqualTo(32);
+        assertThat(yBytes.length).as("y coordinate").isLessThanOrEqualTo(32);
 
-        // Should not have sign bytes
-        val x = new BigInteger(1, xBytes);
-        val y = new BigInteger(1, yBytes);
-        assertThat(x).isPositive();
-        assertThat(y).isPositive();
+        // Should not have sign bytes - coordinates must be positive
+        assertThat(new BigInteger(1, xBytes)).as("x as BigInteger").isPositive();
+        assertThat(new BigInteger(1, yBytes)).as("y as BigInteger").isPositive();
     }
 
     /* Helper Methods */

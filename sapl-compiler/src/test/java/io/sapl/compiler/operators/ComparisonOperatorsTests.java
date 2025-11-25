@@ -243,42 +243,33 @@ class ComparisonOperatorsTests {
         assertThat(noMatchResult).isEqualTo(Value.FALSE);
     }
 
-    @Test
-    void when_compileRegularExpressionOperator_withSecretRegex_then_preservesSecretInResults() {
-        val operator = ComparisonOperators.compileRegularExpressionOperator(Value.of("test").asSecret());
-
-        val result = operator.apply(Value.of("test"));
-        assertThat(result.secret()).isTrue();
+    @ParameterizedTest(name = "{0}")
+    @MethodSource
+    void when_compileRegularExpressionOperator_withSecrets_then_preservesSecretFlag(String description, Value regex,
+            Value input, boolean expectedSecret) {
+        val operator = ComparisonOperators.compileRegularExpressionOperator(regex);
+        val result   = operator.apply(input);
+        assertThat(result.secret()).isEqualTo(expectedSecret);
     }
 
-    @Test
-    void when_compileRegularExpressionOperator_withSecretInput_then_preservesSecretInResults() {
-        val operator = ComparisonOperators.compileRegularExpressionOperator(Value.of("test"));
-
-        val result = operator.apply(Value.of("test").asSecret());
-        assertThat(result.secret()).isTrue();
+    private static Stream<Arguments> when_compileRegularExpressionOperator_withSecrets_then_preservesSecretFlag() {
+        return Stream.of(arguments("both public", Value.of("test"), Value.of("test"), false),
+                arguments("regex secret", Value.of("test").asSecret(), Value.of("test"), true),
+                arguments("input secret", Value.of("test"), Value.of("test").asSecret(), true),
+                arguments("both secret", Value.of("test").asSecret(), Value.of("test").asSecret(), true));
     }
 
-    @Test
-    void when_compileRegularExpressionOperator_withBothSecret_then_preservesSecretInResults() {
-        val operator = ComparisonOperators.compileRegularExpressionOperator(Value.of("test").asSecret());
-
-        val result = operator.apply(Value.of("test").asSecret());
-        assertThat(result.secret()).isTrue();
+    @ParameterizedTest(name = "{0}")
+    @MethodSource
+    void when_compileRegularExpressionOperator_withInvalidInput_then_throwsException(String description, Value regex,
+            String expectedErrorFragment) {
+        assertThatThrownBy(() -> ComparisonOperators.compileRegularExpressionOperator(regex))
+                .isInstanceOf(SaplCompilerException.class).hasMessageContaining(expectedErrorFragment);
     }
 
-    @Test
-    void when_compileRegularExpressionOperator_withNonTextRegex_then_throwsException() {
-        val nonTextValue = Value.of(5);
-        assertThatThrownBy(() -> ComparisonOperators.compileRegularExpressionOperator(nonTextValue))
-                .isInstanceOf(SaplCompilerException.class).hasMessageContaining("must be strings");
-    }
-
-    @Test
-    void when_compileRegularExpressionOperator_withInvalidPattern_then_throwsException() {
-        val invalidPattern = Value.of("[invalid");
-        assertThatThrownBy(() -> ComparisonOperators.compileRegularExpressionOperator(invalidPattern))
-                .isInstanceOf(SaplCompilerException.class).hasMessageContaining("Invalid regular expression");
+    private static Stream<Arguments> when_compileRegularExpressionOperator_withInvalidInput_then_throwsException() {
+        return Stream.of(arguments("non-text regex", Value.of(5), "must be strings"),
+                arguments("invalid pattern", Value.of("[invalid"), "Invalid regular expression"));
     }
 
     @Test
