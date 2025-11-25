@@ -22,16 +22,32 @@ import io.sapl.api.SaplVersion;
 import java.io.Serial;
 
 /**
- * Exception thrown when policy evaluation encounters an error.
+ * Thrown when policy evaluation fails at runtime. Typically wraps PIP or
+ * function invocation failures that cannot be
+ * handled gracefully as error values.
  */
 public class PolicyEvaluationException extends RuntimeException {
     @Serial
     private static final long serialVersionUID = SaplVersion.VERSION_UID;
 
+    /**
+     * Creates an exception with the specified message.
+     *
+     * @param message
+     * description of the evaluation failure
+     */
     public PolicyEvaluationException(String message) {
         super(message);
     }
 
+    /**
+     * Creates an exception with the specified message and cause.
+     *
+     * @param message
+     * description of the evaluation failure
+     * @param cause
+     * the underlying exception
+     */
     public PolicyEvaluationException(String message, Throwable cause) {
         super(message, cause);
     }

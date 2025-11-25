@@ -30,6 +30,19 @@ import reactor.core.publisher.Flux;
 
 import java.util.List;
 
+/**
+ * Main entry point for compiling SAPL documents into executable policies.
+ * <p>
+ * Compiles SAPL policies and policy sets into {@link CompiledPolicy} instances
+ * that can be evaluated by combining
+ * algorithms. Validates target expressions, compiles match and decision
+ * expressions, and handles schema validation.
+ * <p>
+ * Limitations: Target expressions must not contain attribute finders
+ * ({@code <>}) or unresolved relative references
+ * ({@code @}). Target expressions that always evaluate to false or non-boolean
+ * values cause compilation to fail.
+ */
 @UtilityClass
 public class SaplCompiler {
 
@@ -45,6 +58,19 @@ public class SaplCompiler {
 
     private static final String ENVIRONMENT_VARIABLE_WITH_SCHEMAS = "SCHEMAS";
 
+    /**
+     * Compiles a SAPL document into an executable policy.
+     *
+     * @param document
+     * the parsed SAPL document (policy or policy set)
+     * @param context
+     * the compilation context (reused across documents)
+     *
+     * @return the compiled policy ready for evaluation
+     *
+     * @throws SaplCompilerException
+     * if the document contains invalid constructs
+     */
     public CompiledPolicy compileDocument(SAPL document, CompilationContext context) {
         context.resetForNextDocument();
         context.addAllImports(document.getImports());
@@ -253,11 +279,11 @@ public class SaplCompiler {
     }
 
     private static Value buildIndeterminateDecision() {
-        return buildDecisionObject(Decision.INDETERMINATE, List.of(), List.of(), Value.UNDEFINED);
+        return AuthorizationDecisionUtil.INDETERMINATE;
     }
 
     private static Value buildNotApplicableDecision() {
-        return buildDecisionObject(Decision.NOT_APPLICABLE, List.of(), List.of(), Value.UNDEFINED);
+        return AuthorizationDecisionUtil.NOT_APPLICABLE;
     }
 
     private static CompiledExpression compilePureBodyWithMixedConstraints(Decision entitlement, PureExpression bodyPure,
@@ -342,10 +368,23 @@ public class SaplCompiler {
         return buildDecisionObject(entitlement, obligations, advice, resource);
     }
 
+    /**
+     * Builds a decision object containing the authorization decision and associated
+     * constraints.
+     *
+     * @param decision
+     * the authorization decision (PERMIT, DENY, INDETERMINATE, NOT_APPLICABLE)
+     * @param obligations
+     * obligations that must be fulfilled for the decision to be valid
+     * @param advice
+     * advice that should be considered but is not mandatory
+     * @param resource
+     * optional resource transformation result, or UNDEFINED if no transformation
+     *
+     * @return an ObjectValue with fields: decision, obligations, advice, resource
+     */
     static Value buildDecisionObject(Decision decision, List<Value> obligations, List<Value> advice, Value resource) {
-        return ObjectValue.builder().put("decision", new TextValue(decision.name(), false))
-                .put("obligations", new ArrayValue(obligations, false)).put("advice", new ArrayValue(advice, false))
-                .put("resource", resource).build();
+        return AuthorizationDecisionUtil.buildDecision(decision, obligations, advice, resource);
     }
 
     private static Flux<List<Value>> evaluateExpressionListToFlux(List<CompiledExpression> expressions) {

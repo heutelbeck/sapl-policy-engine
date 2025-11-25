@@ -110,141 +110,135 @@ public class ExpressionCompiler {
      * when the left operand is false, enabling efficient attribute resolution and
      * avoiding unnecessary PIP
      * subscriptions.
-     *
-     * @param or
-     * the OR operator AST node
-     * @param context
-     * the compilation context
-     *
-     * @return the compiled lazy OR expression with short-circuit semantics
      */
     private CompiledExpression compileLazyOr(Or or, CompilationContext context) {
-        val left = compileExpression(or.getLeft(), context);
-        if (Value.TRUE.equals(left)) {
-            return left;
+        val left      = compileExpression(or.getLeft(), context);
+        val leftCheck = checkShortCircuitLeft(left, Value.TRUE);
+        if (leftCheck != null) {
+            return leftCheck;
         }
-        if (left instanceof ErrorValue) {
+        val right = compileExpression(or.getRight(), context);
+        if (Value.TRUE.equals(right) || right instanceof ErrorValue) {
+            return right;
+        }
+        return assembleLazyBoolean(left, right, Value.TRUE, BooleanOperators::or);
+    }
+
+    /**
+     * Checks if the left operand should short-circuit the lazy boolean operation.
+     * Returns early for short-circuit
+     * value, errors, or type mismatches.
+     */
+    private CompiledExpression checkShortCircuitLeft(CompiledExpression left, Value shortCircuitValue) {
+        if (shortCircuitValue.equals(left) || left instanceof ErrorValue) {
             return left;
         }
         if (left instanceof Value && !(left instanceof BooleanValue)) {
             return Value.error(TYPE_MISMATCH_BOOLEAN_EXPECTED_ERROR, left);
         }
-        val right = compileExpression(or.getRight(), context);
-        if (Value.TRUE.equals(right)) {
-            return right;
-        }
-        if (right instanceof ErrorValue) {
-            return right;
-        }
-        if (left instanceof Value leftVal && right instanceof Value rightVal) {
-            return BooleanOperators.or(leftVal, rightVal);
-        }
-        if (left instanceof PureExpression pureLeft && right instanceof PureExpression pureRight) {
-            return new PureExpression(ctx -> evaluatePureLazyOr(pureLeft, pureRight, ctx),
-                    pureRight.isSubscriptionScoped() || pureLeft.isSubscriptionScoped());
-        }
-        if (left instanceof Value leftVal && right instanceof PureExpression pureRight) {
-            return new PureExpression(ctx -> BooleanOperators.or(leftVal, pureRight.evaluate(ctx)),
-                    pureRight.isSubscriptionScoped());
-        }
-        if (left instanceof PureExpression pureLeft && right instanceof Value rightVal) {
-            return new PureExpression(ctx -> {
-                val leftValue = pureLeft.evaluate(ctx);
-                if (Value.TRUE.equals(leftValue)) {
-                    return leftValue;
-                }
-                if (leftValue instanceof ErrorValue) {
-                    return leftValue;
-                }
-                if (!(leftValue instanceof BooleanValue)) {
-                    return Value.error(TYPE_MISMATCH_BOOLEAN_EXPECTED_ERROR, leftValue);
-                }
-                return BooleanOperators.or(leftValue, rightVal);
-            }, pureLeft.isSubscriptionScoped());
-        }
-        return new StreamExpression(evaluateLazyOrWithStreamExpressions(left, right));
+        return null;
     }
 
     /**
-     * Evaluates a lazy OR operation with stream expressions using short-circuit
-     * semantics. Uses switchMap to cancel
-     * previous right subscriptions when left emits new values. Only subscribes to
-     * the right stream when the left value
-     * is false, implementing true lazy evaluation for streaming attribute
-     * resolution. Propagates secret flags from both
-     * operands when both are evaluated.
-     *
-     * @param left
-     * the left compiled expression
-     * @param right
-     * the right compiled expression
-     *
-     * @return a Flux that emits boolean values with lazy OR semantics
+     * Assembles a lazy boolean operation from compiled operands. Dispatches to the
+     * appropriate handler based on operand
+     * types (Value, Pure, Stream).
      */
-    private static Flux<Value> evaluateLazyOrWithStreamExpressions(CompiledExpression left, CompiledExpression right) {
+    private CompiledExpression assembleLazyBoolean(CompiledExpression left, CompiledExpression right,
+            Value shortCircuitValue, java.util.function.BinaryOperator<Value> operator) {
+        if (left instanceof Value leftVal && right instanceof Value rightVal) {
+            return operator.apply(leftVal, rightVal);
+        }
+        if (left instanceof PureExpression pureLeft && right instanceof PureExpression pureRight) {
+            return new PureExpression(ctx -> evaluatePureLazyBoolean(pureLeft, pureRight, ctx, shortCircuitValue),
+                    pureLeft.isSubscriptionScoped() || pureRight.isSubscriptionScoped());
+        }
+        if (left instanceof Value leftVal && right instanceof PureExpression pureRight) {
+            return new PureExpression(ctx -> operator.apply(leftVal, pureRight.evaluate(ctx)),
+                    pureRight.isSubscriptionScoped());
+        }
+        if (left instanceof PureExpression pureLeft && right instanceof Value rightVal) {
+            return new PureExpression(ctx -> evaluatePureLazyBooleanWithConstantRight(pureLeft, rightVal, ctx,
+                    shortCircuitValue, operator), pureLeft.isSubscriptionScoped());
+        }
+        return new StreamExpression(evaluateLazyBooleanWithStreams(left, right, shortCircuitValue));
+    }
+
+    /**
+     * Evaluates pure left operand with constant right operand, applying
+     * short-circuit logic.
+     */
+    private static Value evaluatePureLazyBooleanWithConstantRight(PureExpression pureLeft, Value rightVal,
+            EvaluationContext ctx, Value shortCircuitValue, java.util.function.BinaryOperator<Value> operator) {
+        val leftValue = pureLeft.evaluate(ctx);
+        if (shortCircuitValue.equals(leftValue) || leftValue instanceof ErrorValue) {
+            return leftValue;
+        }
+        if (!(leftValue instanceof BooleanValue)) {
+            return Value.error(TYPE_MISMATCH_BOOLEAN_EXPECTED_ERROR, leftValue);
+        }
+        return operator.apply(leftValue, rightVal);
+    }
+
+    /**
+     * Evaluates lazy boolean with stream expressions using switchMap for
+     * short-circuit semantics.
+     */
+    private static Flux<Value> evaluateLazyBooleanWithStreams(CompiledExpression left, CompiledExpression right,
+            Value shortCircuitValue) {
         val leftFlux  = compiledExpressionToFlux(left);
         val rightFlux = compiledExpressionToFlux(right);
         return leftFlux.switchMap(leftValue -> {
-            if (Value.TRUE.equals(leftValue)) {
-                return Flux.just(leftValue);
-            }
-            if (leftValue instanceof ErrorValue) {
+            if (shortCircuitValue.equals(leftValue) || leftValue instanceof ErrorValue) {
                 return Flux.just(leftValue);
             }
             if (!(leftValue instanceof BooleanValue)) {
                 return Flux.just(Value.error(TYPE_MISMATCH_BOOLEAN_EXPECTED_ERROR, leftValue));
             }
-            return rightFlux.map(rightValue -> {
-                if (rightValue instanceof ErrorValue) {
-                    return rightValue;
-                }
-                if (!(rightValue instanceof BooleanValue)) {
-                    return Value.error(TYPE_MISMATCH_BOOLEAN_EXPECTED_ERROR, rightValue);
-                }
-                return new BooleanValue(((BooleanValue) rightValue).value(), rightValue.secret() || leftValue.secret());
-            });
+            return rightFlux.map(rightValue -> combineBooleanResult(leftValue, rightValue, shortCircuitValue));
         });
     }
 
     /**
-     * Evaluates a lazy OR operation with pure expressions using short-circuit
-     * semantics. Evaluates the left operand
-     * first, and only evaluates the right operand if the left is false. Properly
-     * propagates secret flags from both
-     * operands when both are evaluated, or only from the evaluated operand when
-     * short-circuiting occurs.
-     *
-     * @param pureLeft
-     * the left pure expression
-     * @param pureRight
-     * the right pure expression
-     * @param ctx
-     * the evaluation context
-     *
-     * @return the boolean result with appropriate secret flag
+     * Combines boolean result from right operand with left operand's secret flag.
      */
-    private static Value evaluatePureLazyOr(PureExpression pureLeft, PureExpression pureRight, EvaluationContext ctx) {
-        val left = pureLeft.evaluate(ctx);
-        if (Value.TRUE.equals(left)) {
-            return left;
+    private static Value combineBooleanResult(Value leftValue, Value rightValue, Value shortCircuitValue) {
+        if (rightValue instanceof ErrorValue) {
+            return rightValue;
         }
-        if (left instanceof ErrorValue) {
+        if (!(rightValue instanceof BooleanValue rightBool)) {
+            return Value.error(TYPE_MISMATCH_BOOLEAN_EXPECTED_ERROR, rightValue);
+        }
+        val resultValue = shortCircuitValue.equals(Value.TRUE) ? rightBool.value()
+                : rightBool.value() && ((BooleanValue) leftValue).value();
+        return new BooleanValue(resultValue, rightValue.secret() || leftValue.secret());
+    }
+
+    /**
+     * Evaluates lazy boolean operation with pure expressions using short-circuit
+     * semantics.
+     */
+    private static Value evaluatePureLazyBoolean(PureExpression pureLeft, PureExpression pureRight,
+            EvaluationContext ctx, Value shortCircuitValue) {
+        val left = pureLeft.evaluate(ctx);
+        if (shortCircuitValue.equals(left) || left instanceof ErrorValue) {
             return left;
         }
         if (!(left instanceof BooleanValue)) {
             return Value.error(TYPE_MISMATCH_BOOLEAN_EXPECTED_ERROR, left);
         }
         val right = pureRight.evaluate(ctx);
-        if (Value.TRUE.equals(right)) {
-            return new BooleanValue(true, right.secret() || left.secret());
+        if (shortCircuitValue.equals(right)) {
+            return new BooleanValue(shortCircuitValue.equals(Value.TRUE), right.secret() || left.secret());
         }
         if (right instanceof ErrorValue) {
             return right;
         }
-        if (!(right instanceof BooleanValue)) {
+        if (!(right instanceof BooleanValue rightBool)) {
             return Value.error(TYPE_MISMATCH_BOOLEAN_EXPECTED_ERROR, right);
         }
-        return new BooleanValue(false, right.secret() || left.secret());
+        val resultValue = shortCircuitValue.equals(Value.TRUE) ? false : rightBool.value();
+        return new BooleanValue(resultValue, right.secret() || left.secret());
     }
 
     /**
@@ -255,149 +249,30 @@ public class ExpressionCompiler {
      * operand when the left operand is true, enabling efficient attribute
      * resolution and avoiding unnecessary PIP
      * subscriptions.
-     *
-     * @param and
-     * the AND operator AST node
-     * @param context
-     * the compilation context
-     *
-     * @return the compiled lazy AND expression with short-circuit semantics
      */
     private CompiledExpression compileLazyAnd(And and, CompilationContext context) {
         return compileLazyAnd(compileExpression(and.getLeft(), context), and.getRight(), context);
     }
 
+    /**
+     * Compiles a lazy AND with pre-compiled left operand. Used for target
+     * expression compilation where match expression
+     * is combined with target.
+     */
     public CompiledExpression compileLazyAnd(CompiledExpression left, Expression rightArgument,
             CompilationContext context) {
-        if (Value.FALSE.equals(left)) {
-            return left;
-        }
-        if (left instanceof ErrorValue) {
-            return left;
-        }
-        if (left instanceof Value && !(left instanceof BooleanValue)) {
-            return Value.error(TYPE_MISMATCH_BOOLEAN_EXPECTED_ERROR, left);
+        val leftCheck = checkShortCircuitLeft(left, Value.FALSE);
+        if (leftCheck != null) {
+            return leftCheck;
         }
         val right = compileExpression(rightArgument, context);
         if (right == null) {
-            // No right side (e.g., no target expression), just return left
             return left;
         }
-        if (Value.FALSE.equals(right)) {
+        if (Value.FALSE.equals(right) || right instanceof ErrorValue) {
             return right;
         }
-        if (right instanceof ErrorValue) {
-            return right;
-        }
-        if (left instanceof Value leftVal && right instanceof Value rightVal) {
-            return BooleanOperators.and(leftVal, rightVal);
-        }
-        if (left instanceof PureExpression pureLeft && right instanceof PureExpression pureRight) {
-            return new PureExpression(ctx -> evaluatePureLazyAnd(pureLeft, pureRight, ctx),
-                    pureRight.isSubscriptionScoped() || pureLeft.isSubscriptionScoped());
-        }
-        if (left instanceof Value leftVal && right instanceof PureExpression pureRight) {
-            return new PureExpression(ctx -> BooleanOperators.and(leftVal, pureRight.evaluate(ctx)),
-                    pureRight.isSubscriptionScoped());
-        }
-        if (left instanceof PureExpression pureLeft && right instanceof Value rightVal) {
-            return new PureExpression(ctx -> {
-                val leftValue = pureLeft.evaluate(ctx);
-                if (Value.FALSE.equals(leftValue)) {
-                    return leftValue;
-                }
-                if (leftValue instanceof ErrorValue) {
-                    return leftValue;
-                }
-                if (!(leftValue instanceof BooleanValue)) {
-                    return Value.error(TYPE_MISMATCH_BOOLEAN_EXPECTED_ERROR, leftValue);
-                }
-                return BooleanOperators.and(leftValue, rightVal);
-            }, pureLeft.isSubscriptionScoped());
-        }
-        return new StreamExpression(evaluateLazyAndWithStreamExpressions(left, right));
-    }
-
-    /**
-     * Evaluates a lazy AND operation with stream expressions using short-circuit
-     * semantics. Uses switchMap to cancel
-     * previous right subscriptions when left emits new values. Only subscribes to
-     * the right stream when the left value
-     * is true, implementing true lazy evaluation for streaming attribute
-     * resolution. Propagates secret flags from both
-     * operands when both are evaluated.
-     *
-     * @param left
-     * the left compiled expression
-     * @param right
-     * the right compiled expression
-     *
-     * @return a Flux that emits boolean values with lazy AND semantics
-     */
-    private static Flux<Value> evaluateLazyAndWithStreamExpressions(CompiledExpression left, CompiledExpression right) {
-        val leftFlux  = compiledExpressionToFlux(left);
-        val rightFlux = compiledExpressionToFlux(right);
-        return leftFlux.switchMap(leftValue -> {
-            if (Value.FALSE.equals(leftValue)) {
-                return Flux.just(leftValue);
-            }
-            if (leftValue instanceof ErrorValue) {
-                return Flux.just(leftValue);
-            }
-            if (!(leftValue instanceof BooleanValue)) {
-                return Flux.just(Value.error(TYPE_MISMATCH_BOOLEAN_EXPECTED_ERROR, leftValue));
-            }
-            return rightFlux.map(rightValue -> {
-                if (rightValue instanceof ErrorValue) {
-                    return rightValue;
-                }
-                if (!(rightValue instanceof BooleanValue)) {
-                    return Value.error(TYPE_MISMATCH_BOOLEAN_EXPECTED_ERROR, rightValue);
-                }
-                return new BooleanValue(((BooleanValue) rightValue).value(), rightValue.secret() || leftValue.secret());
-            });
-        });
-    }
-
-    /**
-     * Evaluates a lazy AND operation with pure expressions using short-circuit
-     * semantics. Evaluates the left operand
-     * first, and only evaluates the right operand if the left is true. Properly
-     * propagates secret flags from both
-     * operands when both are evaluated, or only from the evaluated operand when
-     * short-circuiting occurs.
-     *
-     * @param pureLeft
-     * the left pure expression
-     * @param pureRight
-     * the right pure expression
-     * @param ctx
-     * the evaluation context
-     *
-     * @return the boolean result with appropriate secret flag
-     */
-    private static Value evaluatePureLazyAnd(PureExpression pureLeft, PureExpression pureRight, EvaluationContext ctx) {
-        val left = pureLeft.evaluate(ctx);
-        if (Value.FALSE.equals(left)) {
-            return left;
-        }
-        if (left instanceof ErrorValue) {
-            return left;
-        }
-        if (!(left instanceof BooleanValue)) {
-            return Value.error(TYPE_MISMATCH_BOOLEAN_EXPECTED_ERROR, left);
-        }
-        val right = pureRight.evaluate(ctx);
-        if (Value.FALSE.equals(right)) {
-            return new BooleanValue(false, right.secret() || left.secret());
-        }
-        if (right instanceof ErrorValue) {
-            return right;
-        }
-        if (!(right instanceof BooleanValue)) {
-            return Value.error(TYPE_MISMATCH_BOOLEAN_EXPECTED_ERROR, right);
-        }
-        return new BooleanValue(true, right.secret() || left.secret());
+        return assembleLazyBoolean(left, right, Value.FALSE, BooleanOperators::and);
     }
 
     /**

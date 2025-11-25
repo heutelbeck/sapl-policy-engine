@@ -26,22 +26,24 @@ import reactor.core.publisher.Flux;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Compiles SAPL combining algorithms into executable expressions.
+ * <p>
+ * Supports six combining algorithms: deny-unless-permit, deny-overrides,
+ * permit-overrides, permit-unless-deny,
+ * only-one-applicable, and first-applicable. Each algorithm determines how
+ * multiple policy decisions are combined into
+ * a single authorization decision.
+ * <p>
+ * The compiler produces either a {@link PureExpression} (when all policy
+ * decisions are pure/constant) or a
+ * {@link StreamExpression} (when any policy decision is reactive). Pure
+ * expressions evaluate synchronously; stream
+ * expressions use {@code Flux.combineLatest} to react to changes in any
+ * policy's decision.
+ */
 @UtilityClass
 public class CombiningAlgorithmCompiler {
-
-    // ========== Constants for Common Decision Objects ==========
-
-    private static final Value NOT_APPLICABLE_DECISION = SaplCompiler.buildDecisionObject(Decision.NOT_APPLICABLE,
-            List.of(), List.of(), Value.UNDEFINED);
-
-    private static final Value INDETERMINATE_DECISION = SaplCompiler.buildDecisionObject(Decision.INDETERMINATE,
-            List.of(), List.of(), Value.UNDEFINED);
-
-    private static final Value DENY_DECISION = SaplCompiler.buildDecisionObject(Decision.DENY, List.of(), List.of(),
-            Value.UNDEFINED);
-
-    private static final Value PERMIT_DECISION = SaplCompiler.buildDecisionObject(Decision.PERMIT, List.of(), List.of(),
-            Value.UNDEFINED);
 
     // ========== Common Data Structures ==========
 
@@ -101,7 +103,7 @@ public class CombiningAlgorithmCompiler {
         Value buildFinalDecision() {
             val finalObligations = selectObligationsAdvice(entitlement, permitObligations, denyObligations);
             val finalAdvice      = selectObligationsAdvice(entitlement, permitAdvice, denyAdvice);
-            return SaplCompiler.buildDecisionObject(entitlement, finalObligations, finalAdvice, resource);
+            return AuthorizationDecisionUtil.buildDecision(entitlement, finalObligations, finalAdvice, resource);
         }
 
         private List<Value> selectObligationsAdvice(Decision decision, List<Value> permitList, List<Value> denyList) {
@@ -224,7 +226,7 @@ public class CombiningAlgorithmCompiler {
             return PolicyEvaluation.notApplicable();
         }
 
-        val decisionAttr = decisionObj.get("decision");
+        val decisionAttr = decisionObj.get(AuthorizationDecisionUtil.FIELD_DECISION);
         if (!(decisionAttr instanceof TextValue decisionText)) {
             return PolicyEvaluation.notApplicable();
         }
@@ -236,9 +238,9 @@ public class CombiningAlgorithmCompiler {
             return PolicyEvaluation.notApplicable();
         }
 
-        val resource    = decisionObj.get("resource");
-        val obligations = decisionObj.get("obligations");
-        val advice      = decisionObj.get("advice");
+        val resource    = decisionObj.get(AuthorizationDecisionUtil.FIELD_RESOURCE);
+        val obligations = decisionObj.get(AuthorizationDecisionUtil.FIELD_OBLIGATIONS);
+        val advice      = decisionObj.get(AuthorizationDecisionUtil.FIELD_ADVICE);
 
         val obligationsArray = obligations instanceof ArrayValue arr ? arr : new ArrayValue(List.of(), false);
         val adviceArray      = advice instanceof ArrayValue arr ? arr : new ArrayValue(List.of(), false);
@@ -297,10 +299,10 @@ public class CombiningAlgorithmCompiler {
 
     private static Value getDefaultDecisionConstant(Decision decision) {
         return switch (decision) {
-        case NOT_APPLICABLE -> NOT_APPLICABLE_DECISION;
-        case INDETERMINATE  -> INDETERMINATE_DECISION;
-        case DENY           -> DENY_DECISION;
-        case PERMIT         -> PERMIT_DECISION;
+        case NOT_APPLICABLE -> AuthorizationDecisionUtil.NOT_APPLICABLE;
+        case INDETERMINATE  -> AuthorizationDecisionUtil.INDETERMINATE;
+        case DENY           -> AuthorizationDecisionUtil.DENY;
+        case PERMIT         -> AuthorizationDecisionUtil.PERMIT;
         };
     }
 
@@ -339,171 +341,210 @@ public class CombiningAlgorithmCompiler {
         });
     }
 
-    // ========== Public API: Combining Algorithms ==========
-
+    /**
+     * Compiles deny-unless-permit algorithm. Default: DENY. Any PERMIT yields
+     * PERMIT. Multiple resource transformations
+     * yield DENY.
+     *
+     * @param compiledPolicies
+     * policies to combine
+     *
+     * @return compiled expression producing the combined decision
+     */
     public static CompiledExpression denyUnlessPermit(List<CompiledPolicy> compiledPolicies) {
         return genericCombiningAlgorithm(compiledPolicies, DENY_UNLESS_PERMIT);
     }
 
+    /**
+     * Compiles deny-overrides algorithm. Default: NOT_APPLICABLE. DENY overrides
+     * all. INDETERMINATE propagates unless
+     * DENY present. Multiple resource transformations yield INDETERMINATE (unless
+     * already DENY).
+     *
+     * @param compiledPolicies
+     * policies to combine
+     *
+     * @return compiled expression producing the combined decision
+     */
     public static CompiledExpression denyOverrides(List<CompiledPolicy> compiledPolicies) {
         return genericCombiningAlgorithm(compiledPolicies, DENY_OVERRIDES);
     }
 
+    /**
+     * Compiles permit-overrides algorithm. Default: NOT_APPLICABLE. PERMIT
+     * overrides all. INDETERMINATE propagates
+     * unless PERMIT present. Multiple resource transformations yield INDETERMINATE.
+     *
+     * @param compiledPolicies
+     * policies to combine
+     *
+     * @return compiled expression producing the combined decision
+     */
     public static CompiledExpression permitOverrides(List<CompiledPolicy> compiledPolicies) {
         return genericCombiningAlgorithm(compiledPolicies, PERMIT_OVERRIDES);
     }
 
+    /**
+     * Compiles permit-unless-deny algorithm. Default: PERMIT. Any DENY yields DENY.
+     * Multiple resource transformations
+     * yield DENY.
+     *
+     * @param compiledPolicies
+     * policies to combine
+     *
+     * @return compiled expression producing the combined decision
+     */
     public static CompiledExpression permitUnlessDeny(List<CompiledPolicy> compiledPolicies) {
         return genericCombiningAlgorithm(compiledPolicies, PERMIT_UNLESS_DENY);
     }
 
+    /**
+     * Compiles only-one-applicable algorithm. Returns the single applicable
+     * policy's decision. If zero applicable:
+     * NOT_APPLICABLE. If multiple applicable or any INDETERMINATE: INDETERMINATE.
+     *
+     * @param compiledPolicies
+     * policies to combine
+     *
+     * @return compiled expression producing the combined decision
+     */
     public static CompiledExpression onlyOneApplicable(List<CompiledPolicy> compiledPolicies) {
         if (compiledPolicies.isEmpty()) {
-            return NOT_APPLICABLE_DECISION;
+            return AuthorizationDecisionUtil.NOT_APPLICABLE;
         }
 
         if (allPureOrConstant(compiledPolicies)) {
             return new PureExpression(ctx -> evaluateOnlyOneApplicablePure(compiledPolicies, ctx), true);
-        } else {
-            return new StreamExpression(buildOnlyOneApplicableStream(compiledPolicies));
         }
+        return new StreamExpression(buildOnlyOneApplicableStream(compiledPolicies));
     }
 
     private static Value evaluateOnlyOneApplicablePure(List<CompiledPolicy> compiledPolicies, EvaluationContext ctx) {
-        var   applicableCount    = 0;
-        var   hasIndeterminate   = false;
-        Value applicableDecision = null;
-
+        val accumulator = new OnlyOneApplicableAccumulator();
         for (val policy : compiledPolicies) {
-            if (!evaluateMatch(policy, ctx)) {
-                continue;
-            }
-
-            val evaluation = evaluatePolicyDecision(policy, ctx);
-            if (evaluation.decision != Decision.NOT_APPLICABLE) {
-                applicableCount++;
-                if (evaluation.decision == Decision.INDETERMINATE) {
-                    hasIndeterminate = true;
-                }
-                if (applicableDecision == null) {
-                    applicableDecision = SaplCompiler.buildDecisionObject(evaluation.decision,
-                            List.copyOf(evaluation.obligations), List.copyOf(evaluation.advice), evaluation.resource);
-                }
+            if (evaluateMatch(policy, ctx)) {
+                accumulator.addEvaluation(evaluatePolicyDecision(policy, ctx));
             }
         }
-
-        if (hasIndeterminate || applicableCount > 1) {
-            return INDETERMINATE_DECISION;
-        }
-
-        return applicableCount == 1 ? applicableDecision : NOT_APPLICABLE_DECISION;
+        return accumulator.buildFinalDecision();
     }
 
     private static Flux<Value> buildOnlyOneApplicableStream(List<CompiledPolicy> compiledPolicies) {
         val policyFluxes = compiledPolicies.stream().map(CombiningAlgorithmCompiler::createPolicyFlux).toList();
-
         return Flux.combineLatest(policyFluxes, evaluations -> {
-            var   applicableCount    = 0;
-            var   hasIndeterminate   = false;
-            Value applicableDecision = null;
-
+            val accumulator = new OnlyOneApplicableAccumulator();
             for (val evaluation : evaluations) {
-                val policyEval = (PolicyEvaluation) evaluation;
-                if (policyEval.decision != Decision.NOT_APPLICABLE) {
-                    applicableCount++;
-                    if (policyEval.decision == Decision.INDETERMINATE) {
-                        hasIndeterminate = true;
-                    }
-                    if (applicableDecision == null) {
-                        applicableDecision = SaplCompiler.buildDecisionObject(policyEval.decision,
-                                List.copyOf(policyEval.obligations), List.copyOf(policyEval.advice),
-                                policyEval.resource);
-                    }
-                }
+                accumulator.addEvaluation((PolicyEvaluation) evaluation);
             }
-
-            if (hasIndeterminate || applicableCount > 1) {
-                return INDETERMINATE_DECISION;
-            }
-
-            return applicableCount == 1 ? applicableDecision : NOT_APPLICABLE_DECISION;
+            return accumulator.buildFinalDecision();
         });
     }
 
-    // ========== First-Applicable (Special Case) ==========
+    private static class OnlyOneApplicableAccumulator {
+        private int     applicableCount;
+        private boolean hasIndeterminate;
+        private Value   applicableDecision;
 
+        void addEvaluation(PolicyEvaluation evaluation) {
+            if (evaluation.decision == Decision.NOT_APPLICABLE) {
+                return;
+            }
+            applicableCount++;
+            if (evaluation.decision == Decision.INDETERMINATE) {
+                hasIndeterminate = true;
+            }
+            if (applicableDecision == null) {
+                applicableDecision = AuthorizationDecisionUtil.buildDecision(evaluation.decision,
+                        List.copyOf(evaluation.obligations), List.copyOf(evaluation.advice), evaluation.resource);
+            }
+        }
+
+        Value buildFinalDecision() {
+            if (hasIndeterminate || applicableCount > 1) {
+                return AuthorizationDecisionUtil.INDETERMINATE;
+            }
+            return applicableCount == 1 ? applicableDecision : AuthorizationDecisionUtil.NOT_APPLICABLE;
+        }
+    }
+
+    /**
+     * Compiles first-applicable algorithm. Returns the decision of the first
+     * applicable policy (in document order) that
+     * is not NOT_APPLICABLE. If no applicable policy found: NOT_APPLICABLE. Invalid
+     * decision structures yield
+     * INDETERMINATE.
+     *
+     * @param compiledPolicies
+     * policies to combine, evaluated in order
+     *
+     * @return compiled expression producing the combined decision
+     */
     public static CompiledExpression firstApplicable(List<CompiledPolicy> compiledPolicies) {
         if (compiledPolicies.isEmpty()) {
-            return NOT_APPLICABLE_DECISION;
+            return AuthorizationDecisionUtil.NOT_APPLICABLE;
         }
 
-        val allPureOrConstant = compiledPolicies.stream().allMatch(
-                p -> p.decisionExpression() instanceof Value || p.decisionExpression() instanceof PureExpression);
-
-        if (allPureOrConstant) {
-            return new PureExpression(ctx -> {
-                for (val policy : compiledPolicies) {
-                    if (!evaluateMatch(policy, ctx)) {
-                        continue;
-                    }
-
-                    val decision = evalValueOrPure(policy.decisionExpression(), ctx);
-                    if (!(decision instanceof ObjectValue objectValue)) {
-                        return INDETERMINATE_DECISION;
-                    }
-
-                    val decisionAttribute = objectValue.get("decision");
-                    if (!(decisionAttribute instanceof TextValue textValue)) {
-                        return INDETERMINATE_DECISION;
-                    }
-
-                    try {
-                        val d = Decision.valueOf(textValue.value());
-                        if (d == Decision.NOT_APPLICABLE) {
-                            continue;
-                        }
-                        return decision;
-                    } catch (IllegalArgumentException e) {
-                        return INDETERMINATE_DECISION;
-                    }
-                }
-                return NOT_APPLICABLE_DECISION;
-            }, true);
+        if (allPureOrConstant(compiledPolicies)) {
+            return new PureExpression(ctx -> evaluateFirstApplicablePure(compiledPolicies, ctx), true);
         }
+        return new StreamExpression(buildFirstApplicableStream(compiledPolicies));
+    }
 
-        var decisionStream = Flux.just(NOT_APPLICABLE_DECISION);
+    private static Value evaluateFirstApplicablePure(List<CompiledPolicy> compiledPolicies, EvaluationContext ctx) {
+        for (val policy : compiledPolicies) {
+            if (!evaluateMatch(policy, ctx)) {
+                continue;
+            }
+            val decision       = evalValueOrPure(policy.decisionExpression(), ctx);
+            val decisionResult = processFirstApplicableDecision(decision);
+            if (decisionResult != null) {
+                return decisionResult;
+            }
+        }
+        return AuthorizationDecisionUtil.NOT_APPLICABLE;
+    }
+
+    private static Value processFirstApplicableDecision(Value decision) {
+        val decisionEnum = AuthorizationDecisionUtil.extractDecision(decision);
+        if (decisionEnum == null) {
+            return AuthorizationDecisionUtil.INDETERMINATE;
+        }
+        if (decisionEnum == Decision.NOT_APPLICABLE) {
+            return null;
+        }
+        return decision;
+    }
+
+    private static Flux<Value> buildFirstApplicableStream(List<CompiledPolicy> compiledPolicies) {
+        var decisionStream = Flux.just(AuthorizationDecisionUtil.NOT_APPLICABLE);
         for (var i = compiledPolicies.size() - 1; i >= 0; i--) {
-            val compiledPolicy = compiledPolicies.get(i);
-            val matchFlux      = ExpressionCompiler.compiledExpressionToFlux(compiledPolicy.matchExpression());
-            val previousStream = decisionStream;
-            decisionStream = matchFlux.switchMap(matches -> {
-                if (!(matches instanceof BooleanValue matchesBool)) {
-                    return Flux.just(INDETERMINATE_DECISION);
-                }
-                if (matchesBool.value()) {
-                    return ExpressionCompiler.compiledExpressionToFlux(compiledPolicy.decisionExpression())
-                            .switchMap(decision -> {
-                                if (!(decision instanceof ObjectValue objectValue)) {
-                                    return Flux.just(INDETERMINATE_DECISION);
-                                }
-                                val decisionAttribute = objectValue.get("decision");
-                                if (!(decisionAttribute instanceof TextValue textValue)) {
-                                    return Flux.just(INDETERMINATE_DECISION);
-                                }
-                                try {
-                                    val d = Decision.valueOf(textValue.value());
-                                    if (d == Decision.NOT_APPLICABLE) {
-                                        return previousStream;
-                                    }
-                                    return Flux.just(decision);
-                                } catch (IllegalArgumentException e) {
-                                    return Flux.just(INDETERMINATE_DECISION);
-                                }
-                            });
-                }
-                return previousStream;
-            });
+            decisionStream = buildFirstApplicablePolicyStream(compiledPolicies.get(i), decisionStream);
         }
-        return new StreamExpression(decisionStream);
+        return decisionStream;
+    }
+
+    private static Flux<Value> buildFirstApplicablePolicyStream(CompiledPolicy policy, Flux<Value> fallbackStream) {
+        val matchFlux = ExpressionCompiler.compiledExpressionToFlux(policy.matchExpression());
+        return matchFlux.switchMap(matches -> {
+            if (!(matches instanceof BooleanValue matchesBool)) {
+                return Flux.just(AuthorizationDecisionUtil.INDETERMINATE);
+            }
+            if (!matchesBool.value()) {
+                return fallbackStream;
+            }
+            return ExpressionCompiler.compiledExpressionToFlux(policy.decisionExpression())
+                    .switchMap(decision -> mapFirstApplicableDecision(decision, fallbackStream));
+        });
+    }
+
+    private static Flux<Value> mapFirstApplicableDecision(Value decision, Flux<Value> fallbackStream) {
+        val decisionEnum = AuthorizationDecisionUtil.extractDecision(decision);
+        if (decisionEnum == null) {
+            return Flux.just(AuthorizationDecisionUtil.INDETERMINATE);
+        }
+        if (decisionEnum == Decision.NOT_APPLICABLE) {
+            return fallbackStream;
+        }
+        return Flux.just(decision);
     }
 }

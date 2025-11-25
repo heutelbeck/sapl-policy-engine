@@ -17,8 +17,19 @@
  */
 package io.sapl.compiler;
 
+/**
+ * Classification of compiled expression evaluation behavior.
+ * <p>
+ * Used to determine optimal compilation strategy: VALUE expressions can be
+ * folded at compile time, PURE expressions
+ * require evaluation context but produce single values, STREAM expressions
+ * require reactive subscription.
+ */
 enum Nature {
+    /** Compile-time constant. Can be evaluated immediately without context. */
     VALUE,
+    /** Requires evaluation context but produces a single value synchronously. */
     PURE,
+    /** Requires reactive subscription. Produces zero or more values over time. */
     STREAM
 }

@@ -23,9 +23,28 @@ import io.sapl.grammar.sapl.SAPL;
 import lombok.experimental.UtilityClass;
 import org.eclipse.emf.ecore.EObject;
 
+/**
+ * Resolves function and attribute identifiers using SAPL import declarations.
+ * <p>
+ * Short names (without dots) are resolved against imports in the containing
+ * SAPL document. Fully qualified names (with
+ * dots) pass through unchanged. Traverses the AST upward to find the containing
+ * SAPL document.
+ */
 @UtilityClass
 public class ImportResolver {
 
+    /**
+     * Resolves a function identifier to its fully qualified name using imports.
+     *
+     * @param source
+     * AST node used to locate the containing SAPL document
+     * @param identifier
+     * the function identifier to resolve
+     *
+     * @return the fully qualified function name, or the short name if no matching
+     * import found
+     */
     public String resolveFunctionIdentifierByImports(EObject source, FunctionIdentifier identifier) {
         return resolveFunctionReferenceByImports(source, functionIdentifierToReference(identifier));
     }

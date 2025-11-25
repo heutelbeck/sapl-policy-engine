@@ -21,6 +21,19 @@ import io.sapl.api.model.CompiledExpression;
 
 import java.util.Map;
 
+/**
+ * Compiled object literal attributes (key-value pairs) with their evaluation
+ * nature.
+ *
+ * @param nature
+ * indicates if all values are constants (VALUE), contain pure expressions
+ * (PURE), or contain streams
+ * (STREAM)
+ * @param isSubscriptionScoped
+ * true if any attribute value depends on subscription variables
+ * @param attributes
+ * map of attribute names to compiled value expressions
+ */
 public record CompiledObjectAttributes(
         Nature nature,
         boolean isSubscriptionScoped,

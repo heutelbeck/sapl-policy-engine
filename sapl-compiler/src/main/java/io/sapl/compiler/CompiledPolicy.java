@@ -19,4 +19,17 @@ package io.sapl.compiler;
 
 import io.sapl.api.model.CompiledExpression;
 
+/**
+ * A compiled SAPL policy ready for evaluation by combining algorithms.
+ *
+ * @param name
+ * the policy name for debugging and logging
+ * @param matchExpression
+ * evaluates to Boolean indicating if policy applies to the request; includes
+ * target expression ANDed with
+ * where clause conditions
+ * @param decisionExpression
+ * evaluates to an ObjectValue containing decision, obligations, advice, and
+ * resource transformation
+ */
 public record CompiledPolicy(String name, CompiledExpression matchExpression, CompiledExpression decisionExpression) {}

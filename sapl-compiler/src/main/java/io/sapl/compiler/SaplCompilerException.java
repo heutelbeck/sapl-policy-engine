@@ -19,6 +19,11 @@ package io.sapl.compiler;
 
 import lombok.experimental.StandardException;
 
+/**
+ * Thrown when SAPL compilation fails due to invalid policy structure or
+ * unsupported constructs. Indicates a bug in the
+ * policy document or compiler implementation.
+ */
 @StandardException
 public class SaplCompilerException extends RuntimeException {
 }

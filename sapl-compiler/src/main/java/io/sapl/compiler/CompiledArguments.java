@@ -19,6 +19,18 @@ package io.sapl.compiler;
 
 import io.sapl.api.model.CompiledExpression;
 
+/**
+ * Compiled function or array arguments with their evaluation nature.
+ *
+ * @param nature
+ * indicates if arguments are all constants (VALUE), contain pure expressions
+ * (PURE), or contain streams
+ * (STREAM)
+ * @param isSubscriptionScoped
+ * true if any argument depends on subscription variables
+ * @param arguments
+ * the compiled argument expressions
+ */
 public record CompiledArguments(Nature nature, boolean isSubscriptionScoped, CompiledExpression[] arguments) {
     public static final CompiledArguments EMPTY_ARGUMENTS = new CompiledArguments(Nature.VALUE, false,
             new CompiledExpression[0]);

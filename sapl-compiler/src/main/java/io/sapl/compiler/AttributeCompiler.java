@@ -77,6 +77,15 @@ public class AttributeCompiler {
      * Compiles attribute finder step (e.g., {@code entity.<pip.attr>}). Entity
      * becomes first parameter. UNDEFINED
      * entity rejected at runtime.
+     *
+     * @param entity
+     * the compiled entity expression (left-hand side)
+     * @param attributeFinderStep
+     * the AST node for the attribute finder step
+     * @param context
+     * the compilation context
+     *
+     * @return a {@link StreamExpression} that invokes the PIP
      */
     public static CompiledExpression compileAttributeFinderStep(CompiledExpression entity,
             AttributeFinderStep attributeFinderStep, CompilationContext context) {
@@ -88,6 +97,13 @@ public class AttributeCompiler {
      * Compiles environment attribute (e.g., {@code <time.now>}). Entity set to
      * UNDEFINED, which is allowed for
      * environment attributes.
+     *
+     * @param envAttribute
+     * the AST node for the environment attribute
+     * @param context
+     * the compilation context
+     *
+     * @return a {@link StreamExpression} that invokes the PIP
      */
     public static CompiledExpression compileEnvironmentAttribute(BasicEnvironmentAttribute envAttribute,
             CompilationContext context) {
@@ -99,8 +115,18 @@ public class AttributeCompiler {
 
     /**
      * Compiles head attribute finder step (e.g., {@code entity.<pip.attr>|}).
-     * Applies {@code take(1)} - upstream may
-     * not cancel immediately.
+     * Applies {@code take(1)} to return only
+     * the first value. Upstream may not cancel immediately due to reactive
+     * backpressure.
+     *
+     * @param entity
+     * the compiled entity expression (left-hand side)
+     * @param attributeFinderStep
+     * the AST node for the head attribute finder step
+     * @param context
+     * the compilation context
+     *
+     * @return a {@link StreamExpression} that emits only the first PIP value
      */
     public static CompiledExpression compileHeadAttributeFinderStep(CompiledExpression entity,
             HeadAttributeFinderStep attributeFinderStep, CompilationContext context) {
@@ -110,7 +136,16 @@ public class AttributeCompiler {
     }
 
     /**
-     * Compiles head environment attribute (e.g., {@code <time.now>|}).
+     * Compiles head environment attribute (e.g., {@code <time.now>|}). Applies
+     * {@code take(1)} to return only the first
+     * value.
+     *
+     * @param envAttribute
+     * the AST node for the head environment attribute
+     * @param context
+     * the compilation context
+     *
+     * @return a {@link StreamExpression} that emits only the first PIP value
      */
     public static CompiledExpression compileHeadEnvironmentAttribute(BasicEnvironmentHeadAttribute envAttribute,
             CompilationContext context) {
@@ -258,26 +293,26 @@ public class AttributeCompiler {
     }
 
     /** BigDecimal to long - truncates fractional, may overflow. */
-    private Long extractLong(Value v) {
+    private Optional<Long> extractLong(Value v) {
         if (v instanceof NumberValue number) {
-            return number.value().longValue();
+            return Optional.of(number.value().longValue());
         }
-        return null;
+        return Optional.empty();
     }
 
     /** BigDecimal to int - truncates fractional, may overflow. */
-    private Integer extractInteger(Value v) {
+    private Optional<Integer> extractInteger(Value v) {
         if (v instanceof NumberValue number) {
-            return number.value().intValue();
+            return Optional.of(number.value().intValue());
         }
-        return null;
+        return Optional.empty();
     }
 
-    private Boolean extractBoolean(Value v) {
+    private Optional<Boolean> extractBoolean(Value v) {
         if (v instanceof BooleanValue bool) {
-            return bool.value();
+            return Optional.of(bool.value());
         }
-        return null;
+        return Optional.empty();
     }
 
     /**
@@ -285,13 +320,14 @@ public class AttributeCompiler {
      * to next level.
      */
     private static <T> @NonNull T optionValue(String fieldName, Map<String, Value> variables, Value options,
-            @NonNull T defaultValue, Function<Value, T> extractor) {
+            @NonNull T defaultValue, Function<Value, Optional<T>> extractor) {
         if (options instanceof ObjectValue optionsObject) {
             val node = optionsObject.get(fieldName);
             if (node != null) {
                 val value = extractor.apply(node);
-                if (value != null)
-                    return value;
+                if (value.isPresent()) {
+                    return value.get();
+                }
             }
         }
 
@@ -300,8 +336,9 @@ public class AttributeCompiler {
             val globalNode = maybeGlobal.get().get(fieldName);
             if (globalNode != null) {
                 val value = extractor.apply(globalNode);
-                if (value != null)
-                    return value;
+                if (value.isPresent()) {
+                    return value.get();
+                }
             }
         }
 

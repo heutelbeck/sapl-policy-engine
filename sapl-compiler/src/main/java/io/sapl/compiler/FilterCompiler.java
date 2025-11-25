@@ -18,36 +18,15 @@
 package io.sapl.compiler;
 
 import io.sapl.api.functions.FunctionInvocation;
-import io.sapl.api.model.ArrayValue;
-import io.sapl.api.model.CompiledExpression;
-import io.sapl.api.model.ErrorValue;
-import io.sapl.api.model.ObjectValue;
-import io.sapl.api.model.PureExpression;
-import io.sapl.api.model.StreamExpression;
-import io.sapl.api.model.UndefinedValue;
+import io.sapl.api.model.*;
 import io.sapl.api.model.Value;
-import io.sapl.grammar.sapl.ArraySlicingStep;
-import io.sapl.grammar.sapl.AttributeFinderStep;
-import io.sapl.grammar.sapl.AttributeUnionStep;
-import io.sapl.grammar.sapl.ConditionStep;
-import io.sapl.grammar.sapl.ExpressionStep;
-import io.sapl.grammar.sapl.FilterComponent;
-import io.sapl.grammar.sapl.FilterExtended;
-import io.sapl.grammar.sapl.FilterSimple;
-import io.sapl.grammar.sapl.HeadAttributeFinderStep;
-import io.sapl.grammar.sapl.IndexStep;
-import io.sapl.grammar.sapl.IndexUnionStep;
-import io.sapl.grammar.sapl.KeyStep;
-import io.sapl.grammar.sapl.RecursiveIndexStep;
-import io.sapl.grammar.sapl.RecursiveKeyStep;
-import io.sapl.grammar.sapl.RecursiveWildcardStep;
-import io.sapl.grammar.sapl.Step;
-import io.sapl.grammar.sapl.WildcardStep;
+import io.sapl.grammar.sapl.*;
 import lombok.experimental.UtilityClass;
 import lombok.val;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.function.UnaryOperator;
 
 /**
  * Compiles SAPL filter expressions (|- operator) and subtemplates (:: operator)
@@ -188,7 +167,7 @@ public class FilterCompiler {
      * @return the wrapped filter result
      */
     private CompiledExpression wrapFilterOperation(CompiledExpression parent,
-            java.util.function.UnaryOperator<CompiledExpression> filterOperation) {
+            UnaryOperator<CompiledExpression> filterOperation) {
         if (parent instanceof ErrorValue || parent instanceof UndefinedValue) {
             return parent;
         }
