@@ -216,29 +216,36 @@ public class TemporalFunctionLibrary {
             The expression ```time.timeBetween("2001-01-01", "2002-01-01", "YEARS")``` returns ```1```.""")
     public static Value timeBetween(TextValue timeA, TextValue timeB, TextValue chronoUnit) {
         try {
-            val unitStr = chronoUnit.value().trim().toUpperCase();
-            if (unitStr.isBlank()) {
-                return Value.error("ChronoUnit parameter cannot be blank.");
-            }
-            ChronoUnit unit;
-            try {
-                unit = ChronoUnit.valueOf(unitStr);
-            } catch (IllegalArgumentException e) {
-                return Value.error("Invalid ChronoUnit: '" + unitStr
-                        + "'. Valid values are: NANOS, MICROS, MILLIS, SECONDS, MINUTES, HOURS, HALF_DAYS, DAYS, WEEKS, MONTHS, YEARS, DECADES, CENTURIES, MILLENNIA.",
-                        e);
-            }
+            val unit        = parseChronoUnit(chronoUnit);
             val instantFrom = instantOf(timeA);
             val instantTo   = instantOf(timeB);
-            try {
-                return Value.of(unit.between(instantFrom, instantTo));
-            } catch (UnsupportedTemporalTypeException e) {
-                val dateFrom = LocalDate.ofInstant(instantFrom, ZoneId.systemDefault());
-                val dateTo   = LocalDate.ofInstant(instantTo, ZoneId.systemDefault());
-                return Value.of(unit.between(dateFrom, dateTo));
-            }
+            return Value.of(calculateTimeBetween(instantFrom, instantTo, unit));
         } catch (Exception e) {
             return Value.error("Failed to execute timeBetween.", e);
+        }
+    }
+
+    private static ChronoUnit parseChronoUnit(TextValue chronoUnit) {
+        val unitStr = chronoUnit.value().trim().toUpperCase();
+        if (unitStr.isBlank()) {
+            throw new IllegalArgumentException("ChronoUnit parameter cannot be blank.");
+        }
+        try {
+            return ChronoUnit.valueOf(unitStr);
+        } catch (IllegalArgumentException e) {
+            throw new IllegalArgumentException("Invalid ChronoUnit: '" + unitStr
+                    + "'. Valid values are: NANOS, MICROS, MILLIS, SECONDS, MINUTES, HOURS, HALF_DAYS, DAYS, WEEKS, MONTHS, YEARS, DECADES, CENTURIES, MILLENNIA.",
+                    e);
+        }
+    }
+
+    private static long calculateTimeBetween(Instant instantFrom, Instant instantTo, ChronoUnit unit) {
+        try {
+            return unit.between(instantFrom, instantTo);
+        } catch (UnsupportedTemporalTypeException e) {
+            val dateFrom = LocalDate.ofInstant(instantFrom, ZoneId.systemDefault());
+            val dateTo   = LocalDate.ofInstant(instantTo, ZoneId.systemDefault());
+            return unit.between(dateFrom, dateTo);
         }
     }
 
@@ -1306,17 +1313,24 @@ public class TemporalFunctionLibrary {
         if (text.isBlank()) {
             throw new IllegalArgumentException("Time parameter cannot be blank.");
         }
+        return parseInstantOrDate(text);
+    }
 
+    private static Instant parseInstantOrDate(String text) {
         try {
             return Instant.parse(text);
         } catch (DateTimeParseException instantException) {
-            try {
-                return LocalDate.parse(text).atStartOfDay().toInstant(ZoneOffset.UTC);
-            } catch (DateTimeParseException dateException) {
-                throw new IllegalArgumentException(
-                        "Unable to parse time parameter '" + text + "'. Expected ISO 8601 instant or date format.",
-                        instantException);
-            }
+            return parseAsDateFallback(text, instantException);
+        }
+    }
+
+    private static Instant parseAsDateFallback(String text, DateTimeParseException originalException) {
+        try {
+            return LocalDate.parse(text).atStartOfDay().toInstant(ZoneOffset.UTC);
+        } catch (DateTimeParseException dateException) {
+            throw new IllegalArgumentException(
+                    "Unable to parse time parameter '" + text + "'. Expected ISO 8601 instant or date format.",
+                    originalException);
         }
     }
 

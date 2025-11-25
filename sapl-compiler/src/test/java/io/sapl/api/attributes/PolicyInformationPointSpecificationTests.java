@@ -60,8 +60,7 @@ class PolicyInformationPointSpecificationTests {
         var spec1 = new PolicyInformationPointSpecification("test", Set.of(finder));
         var spec2 = new PolicyInformationPointSpecification("test", Set.of(finder));
 
-        assertThat(spec1).isEqualTo(spec2);
-        assertThat(spec1.hashCode()).isEqualTo(spec2.hashCode());
+        assertThat(spec1).isEqualTo(spec2).hasSameHashCodeAs(spec2);
     }
 
     @Test

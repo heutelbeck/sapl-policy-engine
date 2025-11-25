@@ -391,13 +391,8 @@ public class ArrayFunctionLibrary {
             ```
             """, schema = RETURNS_BOOLEAN)
     public static Value containsAny(ArrayValue array, ArrayValue elements) {
-        if (!(array instanceof ArrayValue arrayValue && elements instanceof ArrayValue elementsValue)) {
-            return Value.error("Arguments must be arrays.");
-        }
-
-        val arraySet = new HashSet<>(arrayValue);
-
-        for (val element : elementsValue) {
+        val arraySet = new HashSet<>(array);
+        for (val element : elements) {
             if (arraySet.contains(element)) {
                 return Value.TRUE;
             }
@@ -729,12 +724,8 @@ public class ArrayFunctionLibrary {
             ```
             """, schema = RETURNS_BOOLEAN)
     public static Value isSet(ArrayValue array) {
-        if (!(array instanceof ArrayValue arrayValue)) {
-            return Value.error("Argument must be an array.");
-        }
-
         val seen = new HashSet<Value>();
-        for (val element : arrayValue) {
+        for (val element : array) {
             if (!seen.add(element)) {
                 return Value.FALSE;
             }
@@ -1202,18 +1193,13 @@ public class ArrayFunctionLibrary {
             ```
             """, schema = RETURNS_ARRAY)
     public static Value rangeStepped(NumberValue from, NumberValue to, NumberValue step) {
-        if (!(from instanceof NumberValue fromNumber && to instanceof NumberValue toNumber
-                && step instanceof NumberValue stepNumber)) {
-            return Value.error("Arguments must be numbers.");
-        }
-
-        if (isNonLongValue(fromNumber) || isNonLongValue(toNumber) || isNonLongValue(stepNumber)) {
+        if (isNonLongValue(from) || isNonLongValue(to) || isNonLongValue(step)) {
             return Value.error(ERROR_PARAMETERS_MUST_BE_INTEGERS);
         }
 
-        val fromValue = fromNumber.value().longValue();
-        val toValue   = toNumber.value().longValue();
-        val stepValue = stepNumber.value().longValue();
+        val fromValue = from.value().longValue();
+        val toValue   = to.value().longValue();
+        val stepValue = step.value().longValue();
 
         if (stepValue == 0) {
             return Value.error(ERROR_STEP_MUST_NOT_BE_ZERO);

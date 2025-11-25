@@ -27,6 +27,7 @@ import io.sapl.api.model.Value;
 import io.sapl.api.model.ValueJsonMarshaller;
 import io.sapl.compiler.PolicyEvaluationException;
 import io.sapl.functions.libraries.crypto.CertificateUtils;
+import io.sapl.functions.libraries.crypto.SubjectAlternativeName;
 import lombok.experimental.UtilityClass;
 import lombok.val;
 
@@ -354,16 +355,11 @@ public class X509FunctionLibrary {
                 val subjectAltNames      = CertificateUtils.extractSubjectAlternativeNames(certificate);
                 val subjectAltNamesArray = JSON.arrayNode();
 
-                if (subjectAltNames != null) {
-                    for (List<?> subjectAltName : subjectAltNames) {
-                        val sanObject = JSON.objectNode();
-                        val sanType   = (Integer) subjectAltName.get(0);
-                        val sanValue  = subjectAltName.get(1).toString();
-
-                        sanObject.put("type", getSanTypeName(sanType));
-                        sanObject.put("value", sanValue);
-                        subjectAltNamesArray.add(sanObject);
-                    }
+                for (var subjectAltName : subjectAltNames) {
+                    val sanObject = JSON.objectNode();
+                    sanObject.put("type", getSanTypeName(subjectAltName.type()));
+                    sanObject.put("value", subjectAltName.value());
+                    subjectAltNamesArray.add(sanObject);
                 }
 
                 return ValueJsonMarshaller.fromJsonNode(subjectAltNamesArray);
@@ -399,13 +395,9 @@ public class X509FunctionLibrary {
 
             try {
                 val subjectAltNames = CertificateUtils.extractSubjectAlternativeNames(certificate);
-                if (subjectAltNames != null) {
-                    for (List<?> san : subjectAltNames) {
-                        val sanType  = (Integer) san.get(0);
-                        val sanValue = san.get(1).toString();
-                        if (sanType == SAN_TYPE_DNS_NAME && matchesDnsName(sanValue, targetDnsName)) {
-                            return Value.of(true);
-                        }
+                for (var san : subjectAltNames) {
+                    if (san.type() == SAN_TYPE_DNS_NAME && matchesDnsName(san.value(), targetDnsName)) {
+                        return Value.of(true);
                     }
                 }
             } catch (CertificateParsingException exception) {
@@ -447,28 +439,18 @@ public class X509FunctionLibrary {
      * Checks if the given Subject Alternative Names contain a specific IP address.
      *
      * @param subjectAltNames
-     * the collection of SANs from a certificate
+     * the list of SANs from a certificate
      * @param targetIp
      * the target IP address to search for
      *
      * @return true if the IP address is found in the SANs
      */
-    private static boolean containsIpAddress(java.util.Collection<List<?>> subjectAltNames, String targetIp) {
-        if (subjectAltNames == null) {
-            return false;
-        }
-
-        for (List<?> san : subjectAltNames) {
-            val sanType = (Integer) san.get(0);
-            if (sanType == SAN_TYPE_IP_ADDRESS) {
-                val sanValue     = san.get(1);
-                val normalizedIp = extractIpAddress(sanValue);
-                if (normalizedIp != null && normalizedIp.equals(targetIp)) {
-                    return true;
-                }
+    private static boolean containsIpAddress(List<SubjectAlternativeName> subjectAltNames, String targetIp) {
+        for (var san : subjectAltNames) {
+            if (san.type() == SAN_TYPE_IP_ADDRESS && targetIp.equals(san.value())) {
+                return true;
             }
         }
-
         return false;
     }
     /* Validity Checks */

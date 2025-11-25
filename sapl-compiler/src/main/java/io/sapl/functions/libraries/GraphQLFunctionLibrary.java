@@ -885,8 +885,9 @@ public class GraphQLFunctionLibrary {
         val referencedFragments = findFragmentSpreads(fragment.getSelectionSet());
         for (String refName : referencedFragments) {
             // Recursively check each referenced fragment for cycles
-            if (allFragments.containsKey(refName)
-                    && hasCircularReference(refName, allFragments.get(refName), allFragments, visited)) {
+            val referencedFragment = allFragments.get(refName);
+            if (referencedFragment != null
+                    && hasCircularReference(refName, referencedFragment, allFragments, visited)) {
                 return true;
             }
         }

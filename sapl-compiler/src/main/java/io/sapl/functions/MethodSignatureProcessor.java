@@ -98,15 +98,11 @@ public class MethodSignatureProcessor {
 
             if (Value.class.isAssignableFrom(parameterType)) {
                 parameterTypes.add(asValueClass(parameterType));
-                continue;
-            }
-
-            if (isLastParameter && parameterType.isArray()) {
+            } else if (isLastParameter && parameterType.isArray()) {
                 varArgsParameterType = extractVarArgsType(parameterType);
-                continue;
+            } else {
+                throw new InitializationException(BAD_PARAMETER_TYPE_ERROR.formatted(parameterType.getSimpleName()));
             }
-
-            throw new InitializationException(BAD_PARAMETER_TYPE_ERROR.formatted(parameterType.getSimpleName()));
         }
 
         return new ParameterInfo(parameterTypes, varArgsParameterType);

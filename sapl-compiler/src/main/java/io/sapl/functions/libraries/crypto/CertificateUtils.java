@@ -24,6 +24,7 @@ import lombok.val;
 import java.io.ByteArrayInputStream;
 import java.security.cert.*;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 
 import static io.sapl.functions.libraries.crypto.CryptoConstants.CERTIFICATE_TYPE_X509;
@@ -75,16 +76,24 @@ public class CertificateUtils {
      * @param certificate
      * the X509Certificate to extract SANs from
      *
-     * @return collection of SANs where each entry is a list with type (Integer) at
-     * index 0 and value (String) at index
-     * 1, or null if no SANs present
+     * @return list of SubjectAlternativeName records, empty if no SANs present
      *
-     * @throws PolicyEvaluationException
+     * @throws CertificateParsingException
      * if extraction fails
      */
-    public static Collection<List<?>> extractSubjectAlternativeNames(X509Certificate certificate)
+    public static List<SubjectAlternativeName> extractSubjectAlternativeNames(X509Certificate certificate)
             throws CertificateParsingException {
-        return certificate.getSubjectAlternativeNames();
+        val rawSans = certificate.getSubjectAlternativeNames();
+        if (rawSans == null) {
+            return Collections.emptyList();
+        }
+        return rawSans.stream().map(CertificateUtils::toSubjectAlternativeName).toList();
+    }
+
+    private static SubjectAlternativeName toSubjectAlternativeName(List<?> rawSan) {
+        val type  = (Integer) rawSan.get(0);
+        val value = rawSan.get(1).toString();
+        return new SubjectAlternativeName(type, value);
     }
 
     /**

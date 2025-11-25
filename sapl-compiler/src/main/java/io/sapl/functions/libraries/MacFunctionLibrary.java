@@ -213,7 +213,7 @@ public class MacFunctionLibrary {
             val bytes2 = hexToBytes(mac2.value());
 
             if (bytes1.length != bytes2.length) {
-                return BooleanValue.FALSE;
+                return Value.FALSE;
             }
 
             val areEqual = MessageDigest.isEqual(bytes1, bytes2);

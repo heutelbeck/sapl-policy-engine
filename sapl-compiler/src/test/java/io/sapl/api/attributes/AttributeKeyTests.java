@@ -39,9 +39,11 @@ class AttributeKeyTests {
 
         var key = AttributeKey.of(invocation);
 
-        assertThat(key.entity()).isEqualTo(Value.of("user123"));
-        assertThat(key.attributeName()).isEqualTo("test.attr");
-        assertThat(key.arguments()).containsExactly(Value.of("arg1"), Value.of("arg2"));
+        assertThat(key).satisfies(k -> {
+            assertThat(k.entity()).isEqualTo(Value.of("user123"));
+            assertThat(k.attributeName()).isEqualTo("test.attr");
+            assertThat(k.arguments()).containsExactly(Value.of("arg1"), Value.of("arg2"));
+        });
     }
 
     @Test
@@ -52,8 +54,10 @@ class AttributeKeyTests {
 
         var key = AttributeKey.of(invocation);
 
-        assertThat(key.entity()).isNull();
-        assertThat(key.attributeName()).isEqualTo("time.now");
+        assertThat(key).satisfies(k -> {
+            assertThat(k.entity()).isNull();
+            assertThat(k.attributeName()).isEqualTo("time.now");
+        });
     }
 
     @Test
@@ -61,8 +65,7 @@ class AttributeKeyTests {
         var key1 = new AttributeKey(Value.of("entity"), "test.attr", List.of(Value.of("arg")));
         var key2 = new AttributeKey(Value.of("entity"), "test.attr", List.of(Value.of("arg")));
 
-        assertThat(key1).isEqualTo(key2);
-        assertThat(key1).hasSameHashCodeAs(key2);
+        assertThat(key1).isEqualTo(key2).hasSameHashCodeAs(key2);
     }
 
     @Test
@@ -102,6 +105,6 @@ class AttributeKeyTests {
         var key1 = new AttributeKey(null, "test.attr", List.of());
         var key2 = new AttributeKey(null, "test.attr", List.of());
 
-        assertThat(key1).isEqualTo(key2);
+        assertThat(key1).isEqualTo(key2).hasSameHashCodeAs(key2);
     }
 }

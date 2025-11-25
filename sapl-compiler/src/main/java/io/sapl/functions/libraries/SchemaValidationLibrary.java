@@ -51,7 +51,9 @@ public class SchemaValidationLibrary {
     private static final String FIELD_SCHEMA_PATH = "schemaPath";
     private static final String FIELD_TYPE        = "type";
 
-    private static final String ERROR_FAILED_TO_CONVERT_VALUE_TO_JSON_S = "Failed to convert value to JSON: %s.";
+    // Error messages
+    private static final String ERROR_FAILED_TO_CONVERT_VALUE_TO_JSON = "Failed to convert value to JSON: %s.";
+    private static final String ERROR_UNEXPECTED_VALIDATION_RESULT    = "Unexpected validation result data.";
 
     // Return type schemas for IDE support
     private static final String RETURNS_BOOLEAN = """
@@ -134,9 +136,12 @@ public class SchemaValidationLibrary {
             return result;
         }
         if (result instanceof ObjectValue obj) {
-            return Value.of(((BooleanValue) obj.get(FIELD_VALID)).value());
+            val validField = obj.get(FIELD_VALID);
+            if (validField instanceof BooleanValue booleanValue) {
+                return booleanValue;
+            }
         }
-        return Value.error("Unexpected validation result type");
+        return Value.error(ERROR_UNEXPECTED_VALIDATION_RESULT);
     }
 
     @Function(docs = """
@@ -200,9 +205,12 @@ public class SchemaValidationLibrary {
             return result;
         }
         if (result instanceof ObjectValue obj) {
-            return Value.of(((BooleanValue) obj.get(FIELD_VALID)).value());
+            val validField = obj.get(FIELD_VALID);
+            if (validField instanceof BooleanValue booleanValue) {
+                return booleanValue;
+            }
         }
-        return Value.error("Unexpected validation result type");
+        return Value.error(ERROR_UNEXPECTED_VALIDATION_RESULT);
     }
 
     @Function(docs = """
@@ -312,7 +320,7 @@ public class SchemaValidationLibrary {
         } catch (JsonSchemaException e) {
             return createValidationResult(false, Set.of());
         } catch (IllegalArgumentException e) {
-            return Value.error(ERROR_FAILED_TO_CONVERT_VALUE_TO_JSON_S, e);
+            return Value.error(ERROR_FAILED_TO_CONVERT_VALUE_TO_JSON, e);
         }
     }
 
