@@ -120,18 +120,19 @@ class ReactiveWebClientTests {
                 """;
         val httpTestRequest = (ObjectValue) ValueJsonMarshaller
                 .fromJsonNode(MAPPER.readTree(String.format(template, baseUrl, MediaType.APPLICATION_JSON_VALUE)));
-        clientUnderTest.httpRequest(HttpMethod.GET, httpTestRequest).map(v -> {
+        clientUnderTest.httpRequest(HttpMethod.GET, httpTestRequest).<String>handle((v, sink) -> {
             try {
-                return toJsonString(v);
+                sink.next(toJsonString(v));
             } catch (JsonProcessingException e) {
-                throw new RuntimeException(e);
+                sink.error(new RuntimeException(e));
             }
         }).blockFirst();
         val recordedRequest = mockBackEnd.takeRequest(1, TimeUnit.SECONDS);
 
         assertThat(recordedRequest).isNotNull();
-        assertThat(recordedRequest.getRequestUrl()).isNotNull();
-        val url     = recordedRequest.getRequestUrl().toString();
+        val requestUrl = recordedRequest.getRequestUrl();
+        assertThat(requestUrl).isNotNull();
+        val url     = requestUrl.toString();
         val headers = recordedRequest.getHeaders().toMultimap();
 
         assertThat(url).contains("willi=wurst", "h%C3%A4nschen=klein", "rainbow?");
