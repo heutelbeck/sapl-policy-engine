@@ -64,7 +64,7 @@ import java.time.Clock;
  * AuthorizationDecision</li>
  * </ul>
  */
-public class SingleDocumentPolicyDecisionPoint implements PolicyDecisionPoint {
+public final class SingleDocumentPolicyDecisionPoint implements PolicyDecisionPoint {
 
     private static final SAPLInterpreter PARSER = new DefaultSAPLInterpreter();
 

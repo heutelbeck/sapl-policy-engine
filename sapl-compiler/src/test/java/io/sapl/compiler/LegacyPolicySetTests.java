@@ -18,8 +18,8 @@
 package io.sapl.compiler;
 
 import io.sapl.api.model.ArrayValue;
-import io.sapl.api.model.BooleanValue;
 import io.sapl.api.model.ObjectValue;
+import io.sapl.api.model.Value;
 import io.sapl.api.pdp.Decision;
 import lombok.val;
 import org.junit.jupiter.api.Test;
@@ -27,7 +27,6 @@ import org.junit.jupiter.api.Test;
 import static io.sapl.util.CombiningAlgorithmTestUtil.assertDecision;
 import static io.sapl.util.CombiningAlgorithmTestUtil.evaluatePolicySet;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 
 /**
  * Legacy tests for policy sets, replicating tests from sapl-lang's
@@ -293,11 +292,11 @@ class LegacyPolicySetTests {
                 """);
         assertDecision(result, Decision.PERMIT);
 
-        assertInstanceOf(ObjectValue.class, result);
-        val obligationsField = ((ObjectValue) result).get("obligations");
-        assertInstanceOf(ArrayValue.class, obligationsField);
-        val obligations = (ArrayValue) obligationsField;
-        assertThat(obligations).hasSize(1);
+        assertThat(result).isInstanceOf(ObjectValue.class);
+        val resultObject = (ObjectValue) result;
+        assertThat(resultObject).containsKey("obligations");
+        assertThat(resultObject.get("obligations")).isInstanceOf(ArrayValue.class)
+                .asInstanceOf(org.assertj.core.api.InstanceOfAssertFactories.list(Value.class)).hasSize(1);
     }
 
     @Test
@@ -308,11 +307,11 @@ class LegacyPolicySetTests {
                 """);
         assertDecision(result, Decision.PERMIT);
 
-        assertInstanceOf(ObjectValue.class, result);
-        val adviceField = ((ObjectValue) result).get("advice");
-        assertInstanceOf(ArrayValue.class, adviceField);
-        val advice = (ArrayValue) adviceField;
-        assertThat(advice).hasSize(1);
+        assertThat(result).isInstanceOf(ObjectValue.class);
+        val resultObject = (ObjectValue) result;
+        assertThat(resultObject).containsKey("advice");
+        assertThat(resultObject.get("advice")).isInstanceOf(ArrayValue.class)
+                .asInstanceOf(org.assertj.core.api.InstanceOfAssertFactories.list(Value.class)).hasSize(1);
     }
 
     @Test
@@ -323,12 +322,12 @@ class LegacyPolicySetTests {
                 """);
         assertDecision(result, Decision.PERMIT);
 
-        assertInstanceOf(ObjectValue.class, result);
-        val resourceField = ((ObjectValue) result).get("resource");
-        assertInstanceOf(ObjectValue.class, resourceField);
-        val modified = ((ObjectValue) resourceField).get("modified");
-        assertInstanceOf(BooleanValue.class, modified);
-        assertThat(((BooleanValue) modified).value()).isTrue();
+        assertThat(result).isInstanceOf(ObjectValue.class);
+        val resultObject = (ObjectValue) result;
+        assertThat(resultObject).containsKey("resource");
+        assertThat(resultObject.get("resource")).isInstanceOf(ObjectValue.class);
+        val resource = (ObjectValue) resultObject.get("resource");
+        assertThat(resource).containsEntry("modified", Value.TRUE);
     }
 
     @Test

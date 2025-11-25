@@ -265,9 +265,10 @@ class KeysFunctionLibraryTests {
 
         assertThat(result).isNotInstanceOf(ErrorValue.class);
         val jwk = (ObjectValue) result;
-        assertThat(jwk).containsEntry("kty", Value.of("RSA")).containsKey("n").containsKey("e");
-        assertThat(getTextFieldValue(jwk, "n")).isNotEmpty();
-        assertThat(getTextFieldValue(jwk, "e")).isNotEmpty();
+        assertThat(jwk).containsEntry("kty", Value.of("RSA")).containsKey("n").containsKey("e").satisfies(j -> {
+            assertThat(getTextFieldValue((ObjectValue) j, "n")).isNotEmpty();
+            assertThat(getTextFieldValue((ObjectValue) j, "e")).isNotEmpty();
+        });
     }
 
     static Stream<Arguments> ecJwkTestCases() {
@@ -283,9 +284,10 @@ class KeysFunctionLibraryTests {
         assertThat(result).isNotInstanceOf(ErrorValue.class);
         val jwk = (ObjectValue) result;
         assertThat(jwk).containsEntry("kty", Value.of("EC")).containsEntry("crv", Value.of(expectedCurve))
-                .containsKey("x").containsKey("y");
-        assertThat(getTextFieldValue(jwk, "x")).isNotEmpty();
-        assertThat(getTextFieldValue(jwk, "y")).isNotEmpty();
+                .containsKey("x").containsKey("y").satisfies(j -> {
+                    assertThat(getTextFieldValue((ObjectValue) j, "x")).isNotEmpty();
+                    assertThat(getTextFieldValue((ObjectValue) j, "y")).isNotEmpty();
+                });
     }
 
     @Test
@@ -294,14 +296,13 @@ class KeysFunctionLibraryTests {
 
         assertThat(result).isNotInstanceOf(ErrorValue.class);
         val jwk = (ObjectValue) result;
-        assertThat(jwk).containsEntry("kty", Value.of("OKP")).containsEntry("crv", Value.of("Ed25519"))
-                .containsKey("x");
-        val xValue = getTextFieldValue(jwk, "x");
-        assertThat(xValue).isNotEmpty();
-
-        // Verify x parameter is 32 bytes when decoded
-        val xBytes = Base64.getUrlDecoder().decode(xValue);
-        assertThat(xBytes).hasSize(32);
+        assertThat(jwk).containsEntry("kty", Value.of("OKP")).containsEntry("crv", Value.of("Ed25519")).containsKey("x")
+                .satisfies(j -> {
+                    val xValue = getTextFieldValue((ObjectValue) j, "x");
+                    assertThat(xValue).isNotEmpty();
+                    // Verify x parameter is 32 bytes when decoded
+                    assertThat(Base64.getUrlDecoder().decode(xValue)).hasSize(32);
+                });
     }
 
     /* JWK Conversion Tests - JWK to PEM */
@@ -406,10 +407,9 @@ class KeysFunctionLibraryTests {
 
         assertThat(originalJwkValue).isNotInstanceOf(ErrorValue.class);
         assertThat(convertedPem).isNotInstanceOf(ErrorValue.class);
-        assertThat(finalJwkValue).isNotInstanceOf(ErrorValue.class);
+        assertThat(finalJwkValue).isNotInstanceOf(ErrorValue.class).containsEntry("kty", Value.of(keyType));
 
         // Verify key material is preserved
-        assertThat(finalJwkValue).containsEntry("kty", Value.of(keyType));
         assertThat(finalJwkValue.get(param1)).isEqualTo(originalJwkValue.get(param1));
         if (param2 != null) {
             assertThat(finalJwkValue.get(param2)).isEqualTo(originalJwkValue.get(param2));
@@ -432,8 +432,10 @@ class KeysFunctionLibraryTests {
         val finalJwk    = (ObjectValue) KeysFunctionLibrary.jwkFromPublicKey(Value.of(currentPem));
         val originalJwk = (ObjectValue) KeysFunctionLibrary.jwkFromPublicKey(Value.of(rsa2048PublicKeyPem));
 
-        assertThat(finalJwk.get("n")).isEqualTo(originalJwk.get("n"));
-        assertThat(finalJwk.get("e")).isEqualTo(originalJwk.get("e"));
+        assertThat(finalJwk).satisfies(jwk -> {
+            assertThat(jwk.get("n")).isEqualTo(originalJwk.get("n"));
+            assertThat(jwk.get("e")).isEqualTo(originalJwk.get("e"));
+        });
     }
 
     /* Integration Tests */
@@ -463,22 +465,17 @@ class KeysFunctionLibraryTests {
         assertThat(size).isEqualTo(Value.of(256));
         assertThat(curve).isEqualTo(Value.of("secp256r1"));
 
-        // Convert to JWK
-        val jwk = (ObjectValue) KeysFunctionLibrary.jwkFromPublicKey(Value.of(ecP256PublicKeyPem));
-        assertThat(jwk).containsEntry("kty", Value.of("EC")).containsEntry("crv", Value.of("P-256"));
-
-        // Convert back to PEM
+        // Convert to JWK and back to PEM
+        val jwk       = (ObjectValue) KeysFunctionLibrary.jwkFromPublicKey(Value.of(ecP256PublicKeyPem));
         val converted = (TextValue) KeysFunctionLibrary.publicKeyFromJwk(jwk);
+
+        assertThat(jwk).containsEntry("kty", Value.of("EC")).containsEntry("crv", Value.of("P-256"));
         assertThat(converted).isNotInstanceOf(ErrorValue.class);
 
         // Verify converted key has same properties
-        val convertedAlgorithm = KeysFunctionLibrary.algorithmFromKey(converted);
-        val convertedSize      = KeysFunctionLibrary.sizeFromKey(converted);
-        val convertedCurve     = KeysFunctionLibrary.curveFromKey(converted);
-
-        assertThat(convertedAlgorithm).isEqualTo(algorithm);
-        assertThat(convertedSize).isEqualTo(size);
-        assertThat(convertedCurve).isEqualTo(curve);
+        assertThat(KeysFunctionLibrary.algorithmFromKey(converted)).isEqualTo(algorithm);
+        assertThat(KeysFunctionLibrary.sizeFromKey(converted)).isEqualTo(size);
+        assertThat(KeysFunctionLibrary.curveFromKey(converted)).isEqualTo(curve);
     }
 
     @Test
@@ -496,41 +493,31 @@ class KeysFunctionLibraryTests {
     void edgeCase_ecCoordinates_handleLeadingZeros() {
         // EC coordinates should handle leading zeros properly (no sign byte issues)
         val jwk = (ObjectValue) KeysFunctionLibrary.jwkFromPublicKey(Value.of(ecP256PublicKeyPem));
-        val x   = getTextFieldValue(jwk, "x");
-        val y   = getTextFieldValue(jwk, "y");
 
-        // Decode and verify proper unsigned representation
-        val xBytes = Base64.getUrlDecoder().decode(x);
-        val yBytes = Base64.getUrlDecoder().decode(y);
-
-        // P-256 coordinates should be 32 bytes each
-        assertThat(xBytes.length).isLessThanOrEqualTo(32);
-        assertThat(yBytes.length).isLessThanOrEqualTo(32);
+        // Decode and verify proper unsigned representation - P-256 coordinates should
+        // be 32 bytes each
+        assertThat(Base64.getUrlDecoder().decode(getTextFieldValue(jwk, "x")).length).isLessThanOrEqualTo(32);
+        assertThat(Base64.getUrlDecoder().decode(getTextFieldValue(jwk, "y")).length).isLessThanOrEqualTo(32);
     }
 
     @Test
     void edgeCase_ed25519RawKey_isExactly32Bytes() {
         val jwk = (ObjectValue) KeysFunctionLibrary.jwkFromPublicKey(Value.of(ed25519PublicKeyPem));
-        val x   = getTextFieldValue(jwk, "x");
 
-        val xBytes = Base64.getUrlDecoder().decode(x);
-        assertThat(xBytes).as("Ed25519 raw key must be exactly 32 bytes").hasSize(32);
+        assertThat(Base64.getUrlDecoder().decode(getTextFieldValue(jwk, "x")))
+                .as("Ed25519 raw key must be exactly 32 bytes").hasSize(32);
     }
 
     /* Error Message Quality Tests */
 
     @Test
     void errorMessages_endWithPeriod() {
-        val invalidKey   = KeysFunctionLibrary.publicKeyFromPem(Value.of("invalid"));
-        val invalidCert  = KeysFunctionLibrary.publicKeyFromCertificate(Value.of("invalid"));
-        val invalidJwk   = KeysFunctionLibrary
-                .publicKeyFromJwk((ObjectValue) ValueJsonMarshaller.fromJsonNode(JSON.objectNode()));
-        val wrongKeyType = KeysFunctionLibrary.curveFromKey(Value.of(rsa2048PublicKeyPem));
+        var errors = Stream.of(KeysFunctionLibrary.publicKeyFromPem(Value.of("invalid")),
+                KeysFunctionLibrary.publicKeyFromCertificate(Value.of("invalid")),
+                KeysFunctionLibrary.publicKeyFromJwk((ObjectValue) ValueJsonMarshaller.fromJsonNode(JSON.objectNode())),
+                KeysFunctionLibrary.curveFromKey(Value.of(rsa2048PublicKeyPem)));
 
-        assertThat(((ErrorValue) invalidKey).message()).endsWith(".");
-        assertThat(((ErrorValue) invalidCert).message()).endsWith(".");
-        assertThat(((ErrorValue) invalidJwk).message()).endsWith(".");
-        assertThat(((ErrorValue) wrongKeyType).message()).endsWith(".");
+        errors.forEach(error -> assertThat(((ErrorValue) error).message()).endsWith("."));
     }
 
     @Test
@@ -538,8 +525,8 @@ class KeysFunctionLibraryTests {
         val missingModulus = KeysFunctionLibrary
                 .publicKeyFromJwk((ObjectValue) ValueJsonMarshaller.fromJsonNode(JSON.objectNode().put("kty", "RSA")));
 
-        assertThat(((ErrorValue) missingModulus).message()).containsIgnoringCase("missing")
-                .containsIgnoringCase("modulus");
+        assertThat(missingModulus).isInstanceOf(ErrorValue.class).extracting(v -> ((ErrorValue) v).message()).asString()
+                .containsIgnoringCase("missing").containsIgnoringCase("modulus");
     }
 
     /* Helper Methods */

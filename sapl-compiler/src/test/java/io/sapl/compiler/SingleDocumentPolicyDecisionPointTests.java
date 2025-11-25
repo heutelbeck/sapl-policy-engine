@@ -30,7 +30,7 @@ import reactor.test.StepVerifier;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-final class SingleDocumentPolicyDecisionPointTests {
+class SingleDocumentPolicyDecisionPointTests {
 
     private SingleDocumentPolicyDecisionPoint pdp;
 
