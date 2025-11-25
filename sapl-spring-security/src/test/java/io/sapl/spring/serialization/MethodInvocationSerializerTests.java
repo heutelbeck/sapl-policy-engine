@@ -26,6 +26,7 @@ import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.empty;
 
 import java.io.IOException;
+import java.io.Serial;
 import java.io.Serializable;
 import java.util.Collection;
 
@@ -53,11 +54,13 @@ class MethodInvocationSerializerTests {
         return new ObjectMapper().readTree(jsonGenerator.asParser());
     }
 
-    /// Adapts an Iterable matcher to a Collection matcher for Eclipse compiler
-    /// compatibility.
-    ///
-    /// @param matcher the iterable matcher to adapt
-    /// @return a collection matcher wrapping the iterable matcher
+    /**
+     * Adapts an Iterable matcher to a Collection matcher for Eclipse compiler
+     * compatibility.
+     *
+     * @param matcher the iterable matcher to adapt
+     * @return a collection matcher wrapping the iterable matcher
+     */
     @SuppressWarnings("unchecked")
     private static Matcher<Collection<? extends JsonNode>> asCollectionMatcher(
             Matcher<Iterable<? extends JsonNode>> matcher) {
@@ -193,6 +196,7 @@ class MethodInvocationSerializerTests {
 
     public static class TestClass extends AbstractTestClass implements Serializable {
 
+        @Serial
         private static final long serialVersionUID = SaplVersion.VERSION_UID;
 
         public void publicVoid() {
