@@ -34,8 +34,8 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
 
-import static io.sapl.compiler.operators.StepOperators.*;
 import static io.sapl.api.model.ValueJsonMarshaller.json;
+import static io.sapl.compiler.operators.StepOperators.*;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 

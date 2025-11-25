@@ -142,7 +142,7 @@ class AttributeStreamRaceConditionTests {
         subscription.dispose();
 
         // Wait 90% of grace period to test reconnection during grace period
-        await().pollDelay(90, MILLISECONDS).during(Duration.ofMillis(5)).atMost(95, MILLISECONDS);
+        await().pollDelay(90, MILLISECONDS).atMost(100, MILLISECONDS).until(() -> true);
 
         val newPip = (AttributeFinder) inv -> Flux.just(Value.of("reconnected"));
         stream.connectToPolicyInformationPoint(newPip);
@@ -300,7 +300,7 @@ class AttributeStreamRaceConditionTests {
                 .anyMatch(value -> value instanceof ErrorValue ev && ev.message().contains("disconnected")));
 
         // Verify count has stabilized (no additional errors appear)
-        await().pollDelay(50, MILLISECONDS).during(Duration.ofMillis(50)).atMost(150, MILLISECONDS);
+        await().pollDelay(100, MILLISECONDS).atMost(150, MILLISECONDS).until(() -> true);
 
         val disconnectErrors = results.stream()
                 .filter(value -> value instanceof ErrorValue ev && ev.message().contains("disconnected")).count();
@@ -484,7 +484,7 @@ class AttributeStreamRaceConditionTests {
         await().pollDelay(200, MILLISECONDS).atMost(Duration.ofSeconds(2)).until(() -> received.get() > 10);
 
         // Allow additional time for buffered values to process
-        await().pollDelay(100, MILLISECONDS).during(Duration.ofMillis(100)).atMost(500, MILLISECONDS);
+        await().pollDelay(200, MILLISECONDS).atMost(300, MILLISECONDS).until(() -> true);
 
         val receivedCount = received.get();
         assertThat(receivedCount).as("Should receive some values but drop some under backpressure").isBetween(1, 999);

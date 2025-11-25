@@ -23,8 +23,10 @@ import io.sapl.api.model.*;
 import lombok.val;
 import okhttp3.mockwebserver.MockResponse;
 import okhttp3.mockwebserver.MockWebServer;
-import org.assertj.core.api.SoftAssertions;
-import org.junit.jupiter.api.*;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import reactor.test.StepVerifier;
@@ -32,6 +34,7 @@ import reactor.test.StepVerifier;
 import java.io.IOException;
 import java.util.concurrent.TimeUnit;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class ReactiveWebClientTests {
@@ -125,18 +128,16 @@ class ReactiveWebClientTests {
             }
         }).blockFirst();
         val recordedRequest = mockBackEnd.takeRequest(1, TimeUnit.SECONDS);
-        Assertions.assertNotNull(recordedRequest);
-        Assertions.assertNotNull(recordedRequest.getRequestUrl());
+
+        assertThat(recordedRequest).isNotNull();
+        assertThat(recordedRequest.getRequestUrl()).isNotNull();
         val url     = recordedRequest.getRequestUrl().toString();
         val headers = recordedRequest.getHeaders().toMultimap();
 
-        val sa = new SoftAssertions();
-        sa.assertThat(url).contains("willi=wurst");
-        sa.assertThat(url).contains("h%C3%A4nschen=klein");
-        sa.assertThat(url).contains("rainbow?");
-        sa.assertThat(headers.get("X-A")).contains("einmal");
-        sa.assertThat(headers.get("X-B")).contains("a", "b", "c");
-        sa.assertAll();
+        assertThat(url).contains("willi=wurst", "h%C3%A4nschen=klein", "rainbow?");
+        assertThat(headers).containsKey("X-A").containsKey("X-B");
+        assertThat(headers.get("X-A")).contains("einmal");
+        assertThat(headers.get("X-B")).contains("a", "b", "c");
     }
 
     @Test
@@ -155,8 +156,11 @@ class ReactiveWebClientTests {
         // @formatter:on
     }
 
-    private boolean isServerError(Value v) {
-        return (v instanceof ErrorValue) && ((ErrorValue) v).message().contains("500 Internal");
+    private boolean isServerError(Value value) {
+        if (!(value instanceof ErrorValue errorValue)) {
+            return false;
+        }
+        return errorValue.message().contains("500 Internal");
     }
 
     @Test
@@ -185,9 +189,11 @@ class ReactiveWebClientTests {
                 .expectNextMatches(this::isContentTypeError).verifyComplete();
     }
 
-    private boolean isContentTypeError(Value v) {
-        return (v instanceof ErrorValue)
-                && ((ErrorValue) v).message().contains("Content type 'application/xml' not supported");
+    private boolean isContentTypeError(Value value) {
+        if (!(value instanceof ErrorValue errorValue)) {
+            return false;
+        }
+        return errorValue.message().contains("Content type 'application/xml' not supported");
     }
 
     @Test
@@ -340,11 +346,11 @@ class ReactiveWebClientTests {
         val httpTestRequest = (ObjectValue) ValueJsonMarshaller
                 .fromJsonNode(MAPPER.readTree(String.format(template, baseUrl)));
 
-        val response = clientUnderTest.httpRequest(HttpMethod.GET, httpTestRequest).map(v -> {
+        val response = clientUnderTest.httpRequest(HttpMethod.GET, httpTestRequest).<String>handle((v, sink) -> {
             try {
-                return toJsonString(v);
+                sink.next(toJsonString(v));
             } catch (JsonProcessingException e) {
-                throw new RuntimeException(e);
+                sink.error(new RuntimeException(e));
             }
         });
         StepVerifier.create(response).expectNext(DEFAULT_BODY).expectNext(DEFAULT_BODY).expectNext(DEFAULT_BODY)
