@@ -35,15 +35,15 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
 
 import static io.sapl.compiler.operators.StepOperators.*;
-import static io.sapl.util.TestUtil.json;
+import static io.sapl.api.model.ValueJsonMarshaller.json;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 class StepOperatorsTests {
 
-    private static final ArrayValue  NECRONOMICON_CHAPTERS = json(
+    private static final ArrayValue  NECRONOMICON_CHAPTERS = (ArrayValue) json(
             "[\"Al Azif\", \"Cultus Maleficarum\", \"Rites of Yog-Sothoth\", \"Forbidden Summonings\", \"The Key and the Gate\"]");
-    private static final ArrayValue  ELDER_SIGNS           = json("[0, 1, 2, 3, 4, 5, 6, 7, 8, 9]");
+    private static final ArrayValue  ELDER_SIGNS           = (ArrayValue) json("[0, 1, 2, 3, 4, 5, 6, 7, 8, 9]");
     private static final ObjectValue CULTIST_RECORD        = ObjectValue.builder()
             .put("name", Value.of("Wilbur Whateley")).put("ritualKnowledge", Value.of(85)).put("sanity", Value.of(12))
             .build();
@@ -644,7 +644,7 @@ class StepOperatorsTests {
 
     private ObjectValue createDeeplyNestedObject(int depth) {
         if (depth == 0) {
-            return json("{\"key\": \"At the threshold of madness\"}");
+            return (ObjectValue) json("{\"key\": \"At the threshold of madness\"}");
         }
         val builder = ObjectValue.builder();
         builder.put("descent", createDeeplyNestedObject(depth - 1));
@@ -653,7 +653,7 @@ class StepOperatorsTests {
 
     private ArrayValue createDeeplyNestedArray(int depth) {
         if (depth == 0) {
-            return json("[\"The darkness speaks\"]");
+            return (ArrayValue) json("[\"The darkness speaks\"]");
         }
         val builder = ArrayValue.builder();
         builder.add(createDeeplyNestedArray(depth - 1));

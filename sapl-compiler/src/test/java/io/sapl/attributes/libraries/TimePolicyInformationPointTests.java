@@ -54,14 +54,14 @@ class TimePolicyInformationPointTests {
     void now_zeroDelay_Fails() {
         val clock = mock(Clock.class);
         val sut   = new TimePolicyInformationPoint(clock);
-        StepVerifier.<Value>withVirtualTime(() -> sut.now(Value.of(0L))).expectNextMatches(v -> v instanceof ErrorValue)
+        StepVerifier.<Value>withVirtualTime(() -> sut.now(Value.of(0L))).expectNextMatches(ErrorValue.class::isInstance)
                 .verifyComplete();
     }
 
     @Test
     void systemTimeZone_isRetrieved() {
         val sut = new TimePolicyInformationPoint(mock(Clock.class)).systemTimeZone().next();
-        StepVerifier.create(sut).expectNextMatches(n -> n instanceof TextValue).verifyComplete();
+        StepVerifier.create(sut).expectNextMatches(TextValue.class::isInstance).verifyComplete();
     }
 
     @Test

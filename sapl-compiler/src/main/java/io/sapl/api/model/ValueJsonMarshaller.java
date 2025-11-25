@@ -17,7 +17,9 @@
  */
 package io.sapl.api.model;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import io.sapl.api.SaplVersion;
 import lombok.experimental.UtilityClass;
@@ -27,48 +29,25 @@ import java.math.BigDecimal;
 import java.util.ArrayList;
 
 /**
- * Marshalling between SAPL Value types and Jackson JsonNode.
+ * Marshalling between SAPL Value types and JSON.
  * <p>
- * Provides bidirectional conversion for integration with JSON-based libraries.
- * UndefinedValue and ErrorValue cannot be
- * marshalled. Secret flags are not preserved. Recursion depth is limited to
- * prevent stack overflow from malicious
- * input.
+ * UndefinedValue and ErrorValue cannot be marshalled. Secret flags are not
+ * preserved. Nesting depth limited to 500 levels.
  */
 @UtilityClass
 public class ValueJsonMarshaller {
 
-    private static final JsonNodeFactory FACTORY   = JsonNodeFactory.instance;
-    static final int                     MAX_DEPTH = 500;
+    private static final JsonNodeFactory FACTORY       = JsonNodeFactory.instance;
+    private static final ObjectMapper    OBJECT_MAPPER = new ObjectMapper();
+    static final int                     MAX_DEPTH     = 500;
 
     /**
-     * Checks whether a Value can be marshalled to JSON.
-     * <p>
-     * A Value is JSON-compatible if it is not null, not UndefinedValue, not
-     * ErrorValue, and does not exceed the maximum
-     * nesting depth. This method performs a non-throwing validation check without
-     * actually creating the JsonNode.
-     * <p>
-     * Use this method in tests and validation logic where you need to verify that a
-     * computed Value can be serialized to
-     * JSON, without extracting and comparing the JSON structure.
-     *
-     * <pre>{@code
-     * // In access control policy evaluation, verify the decision can be serialized:
-     * Value decision = policyEngine.evaluate(authorizationRequest);
-     * if (ValueJsonMarshaller.isJsonCompatible(decision)) {
-     *     // Safe to send as JSON response to the client
-     *     return ValueJsonMarshaller.toJsonNode(decision);
-     * }
-     *
-     * // In tests, assert JSON compatibility without extracting primitives:
-     * assertThat(ValueJsonMarshaller.isJsonCompatible(result)).isTrue();
-     * }</pre>
+     * Checks whether a Value can be marshalled to JSON without throwing.
      *
      * @param value
      * the value to check
      *
-     * @return true if the value can be converted to JsonNode, false otherwise
+     * @return true if the value can be converted to JSON, false otherwise
      */
     public static boolean isJsonCompatible(Value value) {
         return isJsonCompatible(value, 0);
@@ -89,8 +68,6 @@ public class ValueJsonMarshaller {
 
     /**
      * Converts a Value to a Jackson JsonNode.
-     * <p>
-     * Secret flags are ignored during marshalling.
      *
      * @param value
      * the value to convert
@@ -108,11 +85,25 @@ public class ValueJsonMarshaller {
     }
 
     /**
+     * Converts a Value to a JSON string.
+     *
+     * @param value
+     * the value to convert
+     *
+     * @return JSON string representation
+     *
+     * @throws IllegalArgumentException
+     * if value is null, UndefinedValue, ErrorValue, or depth exceeds limit
+     */
+    public static String toJsonString(Value value) {
+        return toJsonNode(value).toString();
+    }
+
+    /**
      * Converts a Jackson JsonNode to a Value.
      * <p>
-     * NullNode and null map to Value.NULL. Values are created without secret flag.
-     * BINARY, POJO, and MISSING nodes
-     * return ErrorValue. Nesting exceeding 500 levels returns ErrorValue.
+     * NullNode and null map to Value.NULL. BINARY, POJO, and MISSING nodes return
+     * ErrorValue.
      *
      * @param node
      * the JsonNode to convert
@@ -125,6 +116,24 @@ public class ValueJsonMarshaller {
             return fromJsonNode(node, 0);
         } catch (DepthLimitExceededException e) {
             return Value.error(e.getMessage());
+        }
+    }
+
+    /**
+     * Parses a JSON string and converts it to a Value.
+     * <p>
+     * Returns ErrorValue if parsing fails.
+     *
+     * @param json
+     * the JSON string to parse
+     *
+     * @return the parsed Value, or ErrorValue if parsing fails
+     */
+    public static Value json(String json) {
+        try {
+            return fromJsonNode(OBJECT_MAPPER.readTree(json));
+        } catch (JsonProcessingException e) {
+            return Value.error("Failed to parse JSON: %s".formatted(e.getMessage()));
         }
     }
 

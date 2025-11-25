@@ -25,7 +25,7 @@ import lombok.val;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
-@Disabled
+@Disabled("Only run on demand. This is a quick performance assessment utility.")
 class PerformanceBenchmarkTest {
 
     private static final int ITERATIONS      = 50_000_000;
@@ -124,6 +124,15 @@ class PerformanceBenchmarkTest {
         return sum / values.length;
     }
 
+    private void printColdStartResults(double[] results) {
+        System.out.println("Cold start (" + results.length + " runs without warmup):");
+        for (int runNumber = 0; runNumber < results.length; runNumber++) {
+            System.out.printf("  Run %d: %.3f µs%n", runNumber + 1, results[runNumber]);
+        }
+        System.out.printf("  Average: %.3f µs%n", average(results));
+        System.out.println();
+    }
+
     @Test
     void comparePerformance() throws InitializationException {
         System.out.println("\n" + "=".repeat(80));
@@ -137,14 +146,7 @@ class PerformanceBenchmarkTest {
         System.out.println();
 
         val simpleCold = runColdStart(SIMPLE_POLICY, createSimpleSubscription());
-        System.out.println("Cold start (5 runs without warmup):");
-        System.out.println("  Run 1: " + String.format("%.3f", simpleCold[0]) + " µs");
-        System.out.println("  Run 2: " + String.format("%.3f", simpleCold[1]) + " µs");
-        System.out.println("  Run 3: " + String.format("%.3f", simpleCold[2]) + " µs");
-        System.out.println("  Run 4: " + String.format("%.3f", simpleCold[3]) + " µs");
-        System.out.println("  Run 5: " + String.format("%.3f", simpleCold[4]) + " µs");
-        System.out.println("  Average: " + String.format("%.3f", average(simpleCold)) + " µs");
-        System.out.println();
+        printColdStartResults(simpleCold);
 
         val simpleWarm = runWarmedUp(SIMPLE_POLICY, createSimpleSubscription());
         System.out.println("Warmed up (" + ITERATIONS + " iterations):");
@@ -159,14 +161,7 @@ class PerformanceBenchmarkTest {
         System.out.println();
 
         val simple2Cold = runColdStart(SIMPLE_POLICY_2, createSimple2Subscription());
-        System.out.println("Cold start (5 runs without warmup):");
-        System.out.println("  Run 1: " + String.format("%.3f", simple2Cold[0]) + " µs");
-        System.out.println("  Run 2: " + String.format("%.3f", simple2Cold[1]) + " µs");
-        System.out.println("  Run 3: " + String.format("%.3f", simple2Cold[2]) + " µs");
-        System.out.println("  Run 4: " + String.format("%.3f", simple2Cold[3]) + " µs");
-        System.out.println("  Run 5: " + String.format("%.3f", simple2Cold[4]) + " µs");
-        System.out.println("  Average: " + String.format("%.3f", average(simple2Cold)) + " µs");
-        System.out.println();
+        printColdStartResults(simple2Cold);
 
         val simple2Warm = runWarmedUp(SIMPLE_POLICY_2, createSimple2Subscription());
         System.out.println("Warmed up (" + ITERATIONS + " iterations):");
@@ -180,14 +175,7 @@ class PerformanceBenchmarkTest {
         System.out.println();
 
         val complexCold = runColdStart(COMPLEX_POLICY, createComplexSubscription());
-        System.out.println("Cold start (5 runs without warmup):");
-        System.out.println("  Run 1: " + String.format("%.3f", complexCold[0]) + " µs");
-        System.out.println("  Run 2: " + String.format("%.3f", complexCold[1]) + " µs");
-        System.out.println("  Run 3: " + String.format("%.3f", complexCold[2]) + " µs");
-        System.out.println("  Run 4: " + String.format("%.3f", complexCold[3]) + " µs");
-        System.out.println("  Run 5: " + String.format("%.3f", complexCold[4]) + " µs");
-        System.out.println("  Average: " + String.format("%.3f", average(complexCold)) + " µs");
-        System.out.println();
+        printColdStartResults(complexCold);
 
         val complexWarm = runWarmedUp(COMPLEX_POLICY, createComplexSubscription());
         System.out.println("Warmed up (" + ITERATIONS + " iterations):");

@@ -68,7 +68,7 @@ class ReactiveWebClientTests {
         return MAPPER.writeValueAsString(ValueJsonMarshaller.toJsonNode(v));
     }
 
-    private ObjectValue defaultRequest(String mimeType) throws JsonProcessingException {
+    private ObjectValue defaultRequest(String mimeType) {
         val template = """
                 {
                     "baseUrl" : "%s",
@@ -77,8 +77,7 @@ class ReactiveWebClientTests {
                     "repetitions" : 2
                 }
                 """;
-        return (ObjectValue) ValueJsonMarshaller
-                .fromJsonNode(MAPPER.readTree(String.format(template, baseUrl, mimeType)));
+        return (ObjectValue) ValueJsonMarshaller.json(template.formatted(baseUrl, mimeType));
     }
 
     @Test

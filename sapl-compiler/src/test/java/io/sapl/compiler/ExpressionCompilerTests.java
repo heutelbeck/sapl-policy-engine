@@ -743,13 +743,14 @@ class ExpressionCompilerTests {
 
     @ParameterizedTest
     @MethodSource
-    void attributeFinderWithSteps(String expression) {
-        // Attribute finders with steps applied
+    void attributeFinderWithStepsAndFunctionCalls(String expression) {
+        // Attribute finders with steps or as function arguments produce non-error
+        // streams
         val evaluated = TestUtil.evaluateExpression(expression);
         StepVerifier.create(evaluated.take(1)).expectNextMatches(v -> !(v instanceof ErrorValue)).verifyComplete();
     }
 
-    private static Stream<Arguments> attributeFinderWithSteps() {
+    private static Stream<Arguments> attributeFinderWithStepsAndFunctionCalls() {
         return Stream.of(
                 // Key access on attribute result
                 arguments("{\"weapon\": \"Stormbringer\"}.<test.echo>.weapon"),
@@ -767,7 +768,13 @@ class ExpressionCompilerTests {
                 arguments("{\"a\": 1, \"b\": 2}.<test.echo>.*"),
 
                 // Recursive descent on attribute result
-                arguments("{\"level1\": {\"value\": 42}}.<test.echo>..value"));
+                arguments("{\"level1\": {\"value\": 42}}.<test.echo>..value"),
+
+                // Time functions with attribute finder arguments
+                arguments("time.hourOf(\"2021-11-08T13:00:00Z\".<test.echo>)"),
+                // Workaround: Use (60) instead of 60 due to lexer ambiguity
+                arguments("time.durationOfSeconds((60).<test.echo>)"),
+                arguments("time.validUTC(\"2021-11-08T13:00:00Z\".<test.echo>)"));
     }
 
     @ParameterizedTest
@@ -787,23 +794,6 @@ class ExpressionCompilerTests {
                 // In object construction
                 arguments("{\"dynamic\": \"Moonglum\".<test.echo>, \"static\": \"value\"}"),
                 arguments("{\"s\": subject.<test.echo>, \"a\": action}"));
-    }
-
-    @ParameterizedTest
-    @MethodSource
-    void attributeFinderInFunctionCalls(String expression) {
-        // Attribute finders as function arguments create StreamExpressions
-        val evaluated = TestUtil.evaluateExpression(expression);
-        StepVerifier.create(evaluated.take(1)).expectNextMatches(v -> !(v instanceof ErrorValue)).verifyComplete();
-    }
-
-    private static Stream<Arguments> attributeFinderInFunctionCalls() {
-        return Stream.of(
-                // Time functions with attribute finder arguments
-                arguments("time.hourOf(\"2021-11-08T13:00:00Z\".<test.echo>)"),
-                // Workaround: Use (60) instead of 60 due to lexer ambiguity
-                arguments("time.durationOfSeconds((60).<test.echo>)"),
-                arguments("time.validUTC(\"2021-11-08T13:00:00Z\".<test.echo>)"));
     }
 
     @ParameterizedTest

@@ -17,7 +17,6 @@
  */
 package io.sapl.attributes.libraries;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.sapl.api.model.ErrorValue;
 import io.sapl.api.model.ObjectValue;
@@ -56,30 +55,28 @@ class ReactiveWebClientWebSocketTests {
     private Integer port;
 
     @Test
-    void when_sendBodyToEcho_then_receiveEcho() throws JsonProcessingException {
+    void when_sendBodyToEcho_then_receiveEcho() {
         val template        = """
                 {
-                    "baseUrl" : "%s",
+                    "baseUrl" : "ws://localhost:%d/echo",
                     "body" : "\\"hello\\""
                 }
                 """;
-        val httpTestRequest = (ObjectValue) ValueJsonMarshaller
-                .fromJsonNode(new ObjectMapper().readTree(String.format(template, "ws://localhost:" + port + "/echo")));
+        val httpTestRequest = (ObjectValue) ValueJsonMarshaller.json(template.formatted(port));
         val streamUnderTest = new ReactiveWebClient(new ObjectMapper()).consumeWebSocket(httpTestRequest).next();
         StepVerifier.create(streamUnderTest).expectNext(Value.of("hello")).expectComplete()
                 .verify(Duration.ofSeconds(5L));
     }
 
     @Test
-    void when_sendBodyNonJSONToEcho_then_receiveEchoButError() throws JsonProcessingException {
+    void when_sendBodyNonJSONToEcho_then_receiveEchoButError() {
         val template        = """
                 {
-                    "baseUrl" : "%s",
+                    "baseUrl" : "ws://localhost:%d/echo",
                     "body" : "hello"
                 }
                 """;
-        val httpTestRequest = (ObjectValue) ValueJsonMarshaller
-                .fromJsonNode(new ObjectMapper().readTree(String.format(template, "ws://localhost:" + port + "/echo")));
+        val httpTestRequest = (ObjectValue) ValueJsonMarshaller.json(template.formatted(port));
         val streamUnderTest = new ReactiveWebClient(new ObjectMapper()).consumeWebSocket(httpTestRequest).next();
         StepVerifier.create(streamUnderTest).expectNextMatches(
                 val -> (val instanceof ErrorValue) && ((ErrorValue) val).message().contains("Unrecognized token"))
@@ -87,14 +84,13 @@ class ReactiveWebClientWebSocketTests {
     }
 
     @Test
-    void when_sendNoBodyToCounter_then_receiveStreamOfNumbers() throws JsonProcessingException {
+    void when_sendNoBodyToCounter_then_receiveStreamOfNumbers() {
         val template        = """
                 {
-                    "baseUrl" : "%s"
+                    "baseUrl" : "ws://localhost:%d/counter"
                 }
                 """;
-        val httpTestRequest = (ObjectValue) ValueJsonMarshaller.fromJsonNode(
-                new ObjectMapper().readTree(String.format(template, "ws://localhost:" + port + "/counter")));
+        val httpTestRequest = (ObjectValue) ValueJsonMarshaller.json(template.formatted(port));
         val streamUnderTest = new ReactiveWebClient(new ObjectMapper()).consumeWebSocket(httpTestRequest).take(3);
         StepVerifier.create(streamUnderTest).expectNext(Value.of(0)).expectNext(Value.of(1)).expectNext(Value.of(2))
                 .expectComplete().verify(Duration.ofSeconds(5L));

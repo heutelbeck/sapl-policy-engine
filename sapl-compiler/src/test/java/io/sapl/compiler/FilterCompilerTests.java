@@ -383,8 +383,7 @@ class FilterCompilerTests {
         var allCs        = objectResult.get("allCs");
         assertThat(allCs).isInstanceOf(ArrayValue.class);
         var allCsArray = (ArrayValue) allCs;
-        assertThat(allCsArray).hasSize(2);
-        assertThat(allCsArray).contains(Value.of(42), Value.of(99));
+        assertThat(allCsArray).hasSize(2).contains(Value.of(42), Value.of(99));
     }
 
     // ========================================================================

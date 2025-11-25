@@ -40,7 +40,7 @@ import reactor.test.StepVerifier;
 import java.time.Clock;
 import java.util.stream.Stream;
 
-import static io.sapl.util.TestUtil.json;
+import static io.sapl.api.model.ValueJsonMarshaller.json;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.params.provider.Arguments.arguments;

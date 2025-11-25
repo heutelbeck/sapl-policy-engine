@@ -17,7 +17,6 @@
  */
 package io.sapl.util;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.sapl.api.model.*;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pip.Attribute;
@@ -40,11 +39,11 @@ import reactor.test.StepVerifier;
 
 import java.time.Clock;
 
+import static io.sapl.api.model.ValueJsonMarshaller.json;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @UtilityClass
 public class TestUtil {
-    private static final ObjectMapper MAPPER = new ObjectMapper();
 
     @Slf4j
     @PolicyInformationPoint(name = "test")
@@ -147,27 +146,6 @@ public class TestUtil {
         val compiledExpression = compileExpression(expression);
         val evaluated          = evaluateExpression(compiledExpression, createEvaluationContext());
         StepVerifier.create(evaluated).expectNext(expected).thenCancel();
-    }
-
-    /**
-     * Parses a JSON string into a Value object.
-     * <p>
-     * Convenience method for creating expected values in tests without using the
-     * compiler.
-     *
-     * @param jsonString
-     * the JSON string to parse
-     * @param <T>
-     * the expected Value type
-     *
-     * @return the parsed Value
-     */
-    @SneakyThrows
-    @SuppressWarnings("unchecked")
-    public static <T extends Value> T json(String jsonString) {
-        val node  = MAPPER.readTree(jsonString);
-        val value = ValueJsonMarshaller.fromJsonNode(node);
-        return (T) value;
     }
 
     /**

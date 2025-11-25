@@ -45,8 +45,7 @@ class SingleDocumentPolicyDecisionPointTests {
         val action       = Value.of("read");
         val resource     = Value.of("resource");
         val subscription = new AuthorizationSubscription(subject, action, resource, Value.UNDEFINED);
-
-        assertThatThrownBy(() -> pdp.decide(subscription).blockFirst()).isInstanceOf(IllegalStateException.class)
+        assertThatThrownBy(() -> pdp.decide(subscription)).isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("No policy document loaded");
     }
 
@@ -127,7 +126,7 @@ class SingleDocumentPolicyDecisionPointTests {
 
         StepVerifier.create(pdp.decide(subscription)).expectNextMatches(decision -> {
             return decision.decision() == Decision.PERMIT && decision.obligations().size() == 1
-                    && decision.obligations().get(0).equals(Value.of("log"));
+                    && decision.obligations().getFirst().equals(Value.of("log"));
         }).verifyComplete();
     }
 
@@ -140,7 +139,7 @@ class SingleDocumentPolicyDecisionPointTests {
 
         StepVerifier.create(pdp.decide(subscription)).expectNextMatches(decision -> {
             return decision.decision() == Decision.PERMIT && decision.advice().size() == 1
-                    && decision.advice().get(0).equals(Value.of("notify"));
+                    && decision.advice().getFirst().equals(Value.of("notify"));
         }).verifyComplete();
     }
 
@@ -250,7 +249,7 @@ class SingleDocumentPolicyDecisionPointTests {
     }
 
     @Test
-    @Disabled
+    @Disabled("For experiments. Also would slow down testsuite too much to keep active.")
     void decide_policySet() {
         val source = """
                 set "test"
@@ -275,7 +274,7 @@ class SingleDocumentPolicyDecisionPointTests {
     }
 
     @Test
-    @Disabled
+    @Disabled("For experiments. Also would slow down testsuite too much to keep active.")
     void decide_policySet2() {
         val source = """
                 set "test"
@@ -299,7 +298,7 @@ class SingleDocumentPolicyDecisionPointTests {
     }
 
     @Test
-    @Disabled
+    @Disabled("For experiments. Also would slow down testsuite too much to keep active.")
     void decide_shouldUsePolicyInformationPointsTimeTest() {
         pdp.loadDocument("""
                 policy "test"
@@ -320,7 +319,7 @@ class SingleDocumentPolicyDecisionPointTests {
     }
 
     @Test
-    @Disabled
+    @Disabled("For experiments. Also would slow down testsuite too much to keep active.")
     void decide_shouldUsePolicyInformationPointsTimeTest2() throws InterruptedException {
         pdp.loadDocument("""
                 policy "test"

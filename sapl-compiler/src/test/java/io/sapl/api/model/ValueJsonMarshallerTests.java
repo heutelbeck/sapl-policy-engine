@@ -412,6 +412,103 @@ class ValueJsonMarshallerTests {
     }
 
     // ============================================================
+    // ofJson Tests
+    // ============================================================
+
+    @ParameterizedTest(name = "ofJson parses: {0}")
+    @MethodSource("validJsonStrings")
+    void whenValidJson_thenJsonReturnsExpectedValue(String description, String json, Value expected) {
+        var result = ValueJsonMarshaller.json(json);
+
+        assertThat(result).isEqualTo(expected);
+    }
+
+    static Stream<Arguments> validJsonStrings() {
+        return Stream.of(arguments("null", "null", Value.NULL), arguments("true", "true", Value.TRUE),
+                arguments("false", "false", Value.FALSE), arguments("integer", "42", Value.of(42)),
+                arguments("negative", "-17", Value.of(-17)),
+                arguments("decimal", "3.14159", Value.of(new BigDecimal("3.14159"))),
+                arguments("empty string", "\"\"", Value.EMPTY_TEXT),
+                arguments("simple string", "\"Cthulhu\"", Value.of(ENTITY_CTHULHU)),
+                arguments("empty array", "[]", Value.EMPTY_ARRAY), arguments("empty object", "{}", Value.EMPTY_OBJECT),
+                arguments("simple array", "[1, 2, 3]", Value.ofArray(Value.of(1), Value.of(2), Value.of(3))),
+                arguments("simple object", "{\"entity\": \"Cthulhu\", \"sanity\": 0}",
+                        Value.ofObject(Map.of("entity", Value.of(ENTITY_CTHULHU), "sanity", Value.of(0)))),
+                arguments("nested structure", "{\"location\": {\"name\": \"R'lyeh\", \"sunken\": true}}",
+                        Value.ofObject(Map.of("location",
+                                Value.ofObject(Map.of("name", Value.of(LOCATION_RLYEH), "sunken", Value.TRUE))))),
+                arguments("access control subject", "{\"role\": \"admin\", \"clearance\": 5}",
+                        Value.ofObject(Map.of("role", Value.of("admin"), "clearance", Value.of(5)))));
+    }
+
+    @ParameterizedTest(name = "ofJson returns error for: {0}")
+    @MethodSource("invalidJsonStrings")
+    void whenInvalidJson_thenJsonReturnsErrorValue(String description, String json) {
+        var result = ValueJsonMarshaller.json(json);
+
+        assertThat(result).isInstanceOf(ErrorValue.class);
+        assertThat(((ErrorValue) result).message()).contains("Failed to parse JSON");
+    }
+
+    static Stream<Arguments> invalidJsonStrings() {
+        return Stream.of(arguments("unquoted string", "hello"), arguments("trailing comma in array", "[1, 2, 3,]"),
+                arguments("trailing comma in object", "{\"key\": \"value\",}"),
+                arguments("single quotes", "{'key': 'value'}"), arguments("unclosed brace", "{\"key\": \"value\""),
+                arguments("unclosed bracket", "[1, 2, 3"), arguments("unclosed string", "\"unterminated"),
+                arguments("invalid escape", "\"bad\\x\""));
+    }
+
+    @Test
+    void whenEmptyString_thenJsonReturnsErrorForMissingNode() {
+        var result = ValueJsonMarshaller.json("");
+
+        assertThat(result).isInstanceOf(ErrorValue.class);
+        assertThat(((ErrorValue) result).message()).contains("Unknown JsonNode type: MISSING");
+    }
+
+    // ============================================================
+    // toJsonString Tests
+    // ============================================================
+
+    @ParameterizedTest(name = "toJsonString serializes: {0}")
+    @MethodSource("valuesToJsonStrings")
+    void whenValue_thenToJsonStringReturnsExpectedJson(String description, Value value, String expectedJson) {
+        var result = ValueJsonMarshaller.toJsonString(value);
+
+        assertThat(result).isEqualTo(expectedJson);
+    }
+
+    static Stream<Arguments> valuesToJsonStrings() {
+        return Stream.of(arguments("null", Value.NULL, "null"), arguments("true", Value.TRUE, "true"),
+                arguments("false", Value.FALSE, "false"), arguments("integer", Value.of(42), "42"),
+                arguments("negative", Value.of(-17), "-17"), arguments("text", Value.of(ENTITY_CTHULHU), "\"Cthulhu\""),
+                arguments("empty array", Value.EMPTY_ARRAY, "[]"), arguments("empty object", Value.EMPTY_OBJECT, "{}"),
+                arguments("simple array", Value.ofArray(Value.of(1), Value.of(2), Value.of(3)), "[1,2,3]"),
+                arguments("nested object", Value.ofObject(Map.of("entity", Value.of(ENTITY_CTHULHU))),
+                        "{\"entity\":\"Cthulhu\"}"));
+    }
+
+    @Test
+    void whenToJsonStringCalledOnNull_thenThrows() {
+        assertThatThrownBy(() -> ValueJsonMarshaller.toJsonString(null)).isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("Cannot marshall null to JsonNode.");
+    }
+
+    @Test
+    void whenToJsonStringCalledOnUndefined_thenThrows() {
+        assertThatThrownBy(() -> ValueJsonMarshaller.toJsonString(Value.UNDEFINED))
+                .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("UndefinedValue");
+    }
+
+    @Test
+    void whenToJsonStringCalledOnError_thenThrows() {
+        var error = Value.error("Eldritch horror");
+
+        assertThatThrownBy(() -> ValueJsonMarshaller.toJsonString(error)).isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("ErrorValue").hasMessageContaining("Eldritch horror");
+    }
+
+    // ============================================================
     // Edge Cases
     // ============================================================
 
