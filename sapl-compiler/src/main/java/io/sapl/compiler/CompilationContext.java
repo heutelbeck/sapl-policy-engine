@@ -106,6 +106,7 @@ public class CompilationContext {
             return false;
         }
         documentVariablesInScope.put(variableName, value);
+        localVariableNames.add(variableName);
         return true;
     }
 
