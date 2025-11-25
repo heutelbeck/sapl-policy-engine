@@ -94,7 +94,7 @@
 		<jupiter.version>5.11.3</jupiter.version>
 		<assertj.version>3.26.3</assertj.version>
 		<flexmark.version>0.64.8</flexmark.version>
-		<springboot.version>3.5.7</springboot.version>
+		<springboot.version>3.5.8</springboot.version>
         <commons-lang.version>3.19.0</commons-lang.version>
 		<reactor-netty.version>1.2.0</reactor-netty.version>
         <nimbus-jose-jwt.version>9.37.4</nimbus-jose-jwt.version>
