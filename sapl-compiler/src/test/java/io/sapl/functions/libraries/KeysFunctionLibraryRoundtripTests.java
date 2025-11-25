@@ -119,8 +119,7 @@ class KeysFunctionLibraryRoundtripTests {
             String javaCurve) {
         // Convert to JWK
         val jwk = (ObjectValue) KeysFunctionLibrary.jwkFromPublicKey(Value.of(pemKey));
-        assertThat(jwk).isNotInstanceOf(ErrorValue.class);
-        assertThat(jwk.get("crv")).isEqualTo(Value.of(jwkCurve));
+        assertThat(jwk).isNotInstanceOf(ErrorValue.class).containsEntry("crv", Value.of(jwkCurve));
 
         // Convert back to PEM
         val pemResult = KeysFunctionLibrary.publicKeyFromJwk(jwk);
@@ -141,14 +140,9 @@ class KeysFunctionLibraryRoundtripTests {
 
     @Test
     void ed25519Key_roundTripConversion_producesEquivalentKey() {
-        // Convert to JWK
         val jwk = (ObjectValue) KeysFunctionLibrary.jwkFromPublicKey(Value.of(ed25519PublicKeyPem));
-        assertThat(jwk).isNotInstanceOf(ErrorValue.class);
-
-        // Verify JWK structure
-        assertThat(jwk).containsKey("x");
-        assertThat(jwk.get("kty")).isEqualTo(Value.of("OKP"));
-        assertThat(jwk.get("crv")).isEqualTo(Value.of("Ed25519"));
+        assertThat(jwk).isNotInstanceOf(ErrorValue.class).containsKey("x").containsEntry("kty", Value.of("OKP"))
+                .containsEntry("crv", Value.of("Ed25519"));
 
         // Verify x parameter is 32 bytes (raw Ed25519 key)
         val xBytes = Base64.getUrlDecoder().decode(getTextFieldValue(jwk, "x"));
@@ -228,8 +222,7 @@ class KeysFunctionLibraryRoundtripTests {
         // Verify required fields per RFC 7517 and RSA-specific fields per RFC 7518
         // Section 6.3
         assertThat(jwk).as("RSA JWK must have 'kty', 'n', and 'e' fields").containsKey("kty").containsKey("n")
-                .containsKey("e");
-        assertThat(jwk.get("kty")).isEqualTo(Value.of("RSA"));
+                .containsKey("e").containsEntry("kty", Value.of("RSA"));
 
         // Verify base64url encoding (no padding)
         val nValue = getTextFieldValue(jwk, "n");
@@ -256,10 +249,8 @@ class KeysFunctionLibraryRoundtripTests {
         // Verify required fields per RFC 7517 and EC-specific fields per RFC 7518
         // Section 6.2
         assertThat(jwk).as("EC JWK must have 'kty', 'crv', 'x', and 'y' fields").containsKey("kty").containsKey("crv")
-                .containsKey("x").containsKey("y");
-        assertThat(jwk.get("kty")).isEqualTo(Value.of("EC"));
-        // Verify curve name follows RFC 7518 (P-256, not secp256r1)
-        assertThat(jwk.get("crv")).isEqualTo(Value.of("P-256"));
+                .containsKey("x").containsKey("y").containsEntry("kty", Value.of("EC"))
+                .containsEntry("crv", Value.of("P-256")); // RFC 7518 curve name (not secp256r1)
 
         // Verify base64url encoding (no padding)
         val xValue = getTextFieldValue(jwk, "x");
@@ -284,9 +275,7 @@ class KeysFunctionLibraryRoundtripTests {
 
         // Verify required fields per RFC 8037 Section 2
         assertThat(jwk).as("OKP JWK must have 'kty', 'crv', and 'x' fields").containsKey("kty").containsKey("crv")
-                .containsKey("x");
-        assertThat(jwk.get("kty")).isEqualTo(Value.of("OKP"));
-        assertThat(jwk.get("crv")).isEqualTo(Value.of("Ed25519"));
+                .containsKey("x").containsEntry("kty", Value.of("OKP")).containsEntry("crv", Value.of("Ed25519"));
 
         // Verify base64url encoding (no padding)
         val xValue = getTextFieldValue(jwk, "x");

@@ -85,11 +85,9 @@ class PerformanceBenchmarkTest {
         return new AuthorizationSubscription(subject, Value.of("read"), resource, Value.UNDEFINED);
     }
 
-    private double[] runColdStart(String policyDoc, AuthorizationSubscription subscription)
+    private void runColdStart(String policyDoc, AuthorizationSubscription subscription, double[] results)
             throws InitializationException {
-        double[] results = new double[COLD_START_RUNS];
-
-        for (int run = 0; run < COLD_START_RUNS; run++) {
+        for (int run = 0; run < results.length; run++) {
             val pdp = new SingleDocumentPolicyDecisionPoint();
             pdp.loadDocument(policyDoc);
 
@@ -99,8 +97,6 @@ class PerformanceBenchmarkTest {
 
             results[run] = (endTime - startTime) / 1000.0; // microseconds
         }
-
-        return results;
     }
 
     private double runWarmedUp(String policyDoc, AuthorizationSubscription subscription)
@@ -145,7 +141,8 @@ class PerformanceBenchmarkTest {
         System.out.println("Policy: permit action == \"read\" where subject.role == \"admin\";");
         System.out.println();
 
-        val simpleCold = runColdStart(SIMPLE_POLICY, createSimpleSubscription());
+        val simpleCold = new double[COLD_START_RUNS];
+        runColdStart(SIMPLE_POLICY, createSimpleSubscription(), simpleCold);
         printColdStartResults(simpleCold);
 
         val simpleWarm = runWarmedUp(SIMPLE_POLICY, createSimpleSubscription());
@@ -160,7 +157,8 @@ class PerformanceBenchmarkTest {
                 .println("Policy: 3 conditions (resource.account.state, subject.risk_score in array, amount <= 1000)");
         System.out.println();
 
-        val simple2Cold = runColdStart(SIMPLE_POLICY_2, createSimple2Subscription());
+        val simple2Cold = new double[COLD_START_RUNS];
+        runColdStart(SIMPLE_POLICY_2, createSimple2Subscription(), simple2Cold);
         printColdStartResults(simple2Cold);
 
         val simple2Warm = runWarmedUp(SIMPLE_POLICY_2, createSimple2Subscription());
@@ -174,7 +172,8 @@ class PerformanceBenchmarkTest {
         System.out.println("Policy: 7 conditions + variable + function call + obligations + advice + transform");
         System.out.println();
 
-        val complexCold = runColdStart(COMPLEX_POLICY, createComplexSubscription());
+        val complexCold = new double[COLD_START_RUNS];
+        runColdStart(COMPLEX_POLICY, createComplexSubscription(), complexCold);
         printColdStartResults(complexCold);
 
         val complexWarm = runWarmedUp(COMPLEX_POLICY, createComplexSubscription());

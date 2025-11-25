@@ -57,21 +57,6 @@ class ComparisonOperatorsTests {
 
     @ParameterizedTest(name = "{0}")
     @MethodSource
-    void when_equals_withSecrets_then_preservesSecretFlag(String description, Value a, Value b,
-            boolean expectedSecret) {
-        val actual = ComparisonOperators.equals(a, b);
-        assertThat(actual.secret()).isEqualTo(expectedSecret);
-    }
-
-    private static Stream<Arguments> when_equals_withSecrets_then_preservesSecretFlag() {
-        return Stream.of(arguments("both public", Value.of(5), Value.of(5), false),
-                arguments("left secret", Value.of(5).asSecret(), Value.of(5), true),
-                arguments("right secret", Value.of(5), Value.of(5).asSecret(), true),
-                arguments("both secret", Value.of(5).asSecret(), Value.of(5).asSecret(), true));
-    }
-
-    @ParameterizedTest(name = "{0}")
-    @MethodSource
     void when_notEquals_then_returnsExpectedValue(String description, Value a, Value b, boolean expected) {
         val actual = ComparisonOperators.notEquals(a, b);
         assertThat(actual).isEqualTo(Value.of(expected));
@@ -87,60 +72,27 @@ class ComparisonOperatorsTests {
 
     @ParameterizedTest(name = "{0}")
     @MethodSource
-    void when_notEquals_withSecrets_then_preservesSecretFlag(String description, Value a, Value b,
-            boolean expectedSecret) {
-        val actual = ComparisonOperators.notEquals(a, b);
-        assertThat(actual.secret()).isEqualTo(expectedSecret);
-    }
-
-    private static Stream<Arguments> when_notEquals_withSecrets_then_preservesSecretFlag() {
-        return Stream.of(arguments("both public", Value.of(5), Value.of(3), false),
-                arguments("left secret", Value.of(5).asSecret(), Value.of(3), true),
-                arguments("right secret", Value.of(5), Value.of(3).asSecret(), true),
-                arguments("both secret", Value.of(5).asSecret(), Value.of(3).asSecret(), true));
-    }
-
-    @ParameterizedTest(name = "{0}")
-    @MethodSource
-    void when_isContainedIn_withArray_then_returnsExpectedValue(String description, Value needle, Value haystack,
+    void when_isContainedIn_then_returnsExpectedValue(String description, Value needle, Value haystack,
             boolean expected) {
         val actual = ComparisonOperators.isContainedIn(needle, haystack);
         assertThat(actual).isEqualTo(Value.of(expected));
     }
 
-    private static Stream<Arguments> when_isContainedIn_withArray_then_returnsExpectedValue() {
-        val array = Value.ofArray(Value.of(1), Value.of(2), Value.of(3));
-        return Stream.of(arguments("value in array", Value.of(2), array, true),
-                arguments("value not in array", Value.of(5), array, false),
-                arguments("empty array", Value.of(1), Value.EMPTY_ARRAY, false));
-    }
-
-    @ParameterizedTest(name = "{0}")
-    @MethodSource
-    void when_isContainedIn_withObject_then_returnsExpectedValue(String description, Value needle, Value haystack,
-            boolean expected) {
-        val actual = ComparisonOperators.isContainedIn(needle, haystack);
-        assertThat(actual).isEqualTo(Value.of(expected));
-    }
-
-    private static Stream<Arguments> when_isContainedIn_withObject_then_returnsExpectedValue() {
+    private static Stream<Arguments> when_isContainedIn_then_returnsExpectedValue() {
+        val array  = Value.ofArray(Value.of(1), Value.of(2), Value.of(3));
         val object = Value.ofObject(java.util.Map.of("key1", Value.of("value1"), "key2", Value.of("value2")));
-        return Stream.of(arguments("value in object", Value.of("value1"), object, true),
+        return Stream.of(
+                // Array cases
+                arguments("value in array", Value.of(2), array, true),
+                arguments("value not in array", Value.of(5), array, false),
+                arguments("empty array", Value.of(1), Value.EMPTY_ARRAY, false),
+                // Object cases
+                arguments("value in object", Value.of("value1"), object, true),
                 arguments("value not in object", Value.of("value3"), object, false),
                 arguments("key not treated as value", Value.of("key1"), object, false),
-                arguments("empty object", Value.of("value"), Value.EMPTY_OBJECT, false));
-    }
-
-    @ParameterizedTest(name = "{0}")
-    @MethodSource
-    void when_isContainedIn_withStrings_then_returnsExpectedValue(String description, Value needle, Value haystack,
-            boolean expected) {
-        val actual = ComparisonOperators.isContainedIn(needle, haystack);
-        assertThat(actual).isEqualTo(Value.of(expected));
-    }
-
-    private static Stream<Arguments> when_isContainedIn_withStrings_then_returnsExpectedValue() {
-        return Stream.of(arguments("substring present", Value.of("world"), Value.of("hello world"), true),
+                arguments("empty object", Value.of("value"), Value.EMPTY_OBJECT, false),
+                // String cases
+                arguments("substring present", Value.of("world"), Value.of("hello world"), true),
                 arguments("substring not present", Value.of("foo"), Value.of("hello world"), false),
                 arguments("empty needle in string", Value.of(""), Value.of("text"), true),
                 arguments("exact match", Value.of("text"), Value.of("text"), true));
@@ -159,22 +111,6 @@ class ComparisonOperatorsTests {
                 arguments("haystack is boolean", Value.of("text"), Value.TRUE),
                 arguments("needle is string but haystack is number", Value.of("5"), Value.of(5)),
                 arguments("needle is number but haystack is string", Value.of(5), Value.of("text")));
-    }
-
-    @ParameterizedTest(name = "{0}")
-    @MethodSource
-    void when_isContainedIn_withSecrets_then_preservesSecretFlag(String description, Value needle, Value haystack,
-            boolean expectedSecret) {
-        val actual = ComparisonOperators.isContainedIn(needle, haystack);
-        assertThat(actual.secret()).isEqualTo(expectedSecret);
-    }
-
-    private static Stream<Arguments> when_isContainedIn_withSecrets_then_preservesSecretFlag() {
-        val array = Value.ofArray(Value.of(1), Value.of(2), Value.of(3));
-        return Stream.of(arguments("both public", Value.of(2), array, false),
-                arguments("needle secret", Value.of(2).asSecret(), array, true),
-                arguments("haystack secret", Value.of(2), array.asSecret(), true),
-                arguments("both secret", Value.of(2).asSecret(), array.asSecret(), true));
     }
 
     @ParameterizedTest(name = "{0}")
@@ -217,21 +153,6 @@ class ComparisonOperatorsTests {
                 arguments("regex not string", Value.of("text"), Value.of(5), "must be strings"));
     }
 
-    @ParameterizedTest(name = "{0}")
-    @MethodSource
-    void when_matchesRegularExpression_withSecrets_then_preservesSecretFlag(String description, Value input,
-            Value regex, boolean expectedSecret) {
-        val actual = ComparisonOperators.matchesRegularExpression(input, regex);
-        assertThat(actual.secret()).isEqualTo(expectedSecret);
-    }
-
-    private static Stream<Arguments> when_matchesRegularExpression_withSecrets_then_preservesSecretFlag() {
-        return Stream.of(arguments("both public", Value.of("test"), Value.of("test"), false),
-                arguments("input secret", Value.of("test").asSecret(), Value.of("test"), true),
-                arguments("regex secret", Value.of("test"), Value.of("test").asSecret(), true),
-                arguments("both secret", Value.of("test").asSecret(), Value.of("test").asSecret(), true));
-    }
-
     @Test
     void when_compileRegularExpressionOperator_withValidPattern_then_returnsOperator() {
         val operator = ComparisonOperators.compileRegularExpressionOperator(Value.of("\\d+"));
@@ -243,8 +164,42 @@ class ComparisonOperatorsTests {
         assertThat(noMatchResult).isEqualTo(Value.FALSE);
     }
 
-    @ParameterizedTest(name = "{0}")
-    @MethodSource
+    /* Secret Flag Preservation Tests */
+
+    @ParameterizedTest(name = "equals: {0}")
+    @MethodSource("secretFlagTestCases")
+    void when_equals_withSecrets_then_preservesSecretFlag(String description, Value a, Value b,
+            boolean expectedSecret) {
+        val actual = ComparisonOperators.equals(a, b);
+        assertThat(actual.secret()).isEqualTo(expectedSecret);
+    }
+
+    @ParameterizedTest(name = "notEquals: {0}")
+    @MethodSource("secretFlagTestCases")
+    void when_notEquals_withSecrets_then_preservesSecretFlag(String description, Value a, Value b,
+            boolean expectedSecret) {
+        val actual = ComparisonOperators.notEquals(a, b);
+        assertThat(actual.secret()).isEqualTo(expectedSecret);
+    }
+
+    @ParameterizedTest(name = "isContainedIn: {0}")
+    @MethodSource("secretFlagTestCasesForContainedIn")
+    void when_isContainedIn_withSecrets_then_preservesSecretFlag(String description, Value needle, Value haystack,
+            boolean expectedSecret) {
+        val actual = ComparisonOperators.isContainedIn(needle, haystack);
+        assertThat(actual.secret()).isEqualTo(expectedSecret);
+    }
+
+    @ParameterizedTest(name = "matchesRegex: {0}")
+    @MethodSource("secretFlagTestCases")
+    void when_matchesRegularExpression_withSecrets_then_preservesSecretFlag(String description, Value input,
+            Value regex, boolean expectedSecret) {
+        val actual = ComparisonOperators.matchesRegularExpression(input, regex);
+        assertThat(actual.secret()).isEqualTo(expectedSecret);
+    }
+
+    @ParameterizedTest(name = "compiledRegex: {0}")
+    @MethodSource("secretFlagTestCases")
     void when_compileRegularExpressionOperator_withSecrets_then_preservesSecretFlag(String description, Value regex,
             Value input, boolean expectedSecret) {
         val operator = ComparisonOperators.compileRegularExpressionOperator(regex);
@@ -252,11 +207,19 @@ class ComparisonOperatorsTests {
         assertThat(result.secret()).isEqualTo(expectedSecret);
     }
 
-    private static Stream<Arguments> when_compileRegularExpressionOperator_withSecrets_then_preservesSecretFlag() {
+    private static Stream<Arguments> secretFlagTestCases() {
         return Stream.of(arguments("both public", Value.of("test"), Value.of("test"), false),
-                arguments("regex secret", Value.of("test").asSecret(), Value.of("test"), true),
-                arguments("input secret", Value.of("test"), Value.of("test").asSecret(), true),
+                arguments("left secret", Value.of("test").asSecret(), Value.of("test"), true),
+                arguments("right secret", Value.of("test"), Value.of("test").asSecret(), true),
                 arguments("both secret", Value.of("test").asSecret(), Value.of("test").asSecret(), true));
+    }
+
+    private static Stream<Arguments> secretFlagTestCasesForContainedIn() {
+        val array = Value.ofArray(Value.of(1), Value.of(2), Value.of(3));
+        return Stream.of(arguments("both public", Value.of(2), array, false),
+                arguments("needle secret", Value.of(2).asSecret(), array, true),
+                arguments("haystack secret", Value.of(2), array.asSecret(), true),
+                arguments("both secret", Value.of(2).asSecret(), array.asSecret(), true));
     }
 
     @ParameterizedTest(name = "{0}")
