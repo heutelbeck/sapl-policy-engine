@@ -268,7 +268,7 @@ class X509FunctionLibraryTests {
         val result = X509FunctionLibrary.extractSubjectAltNames(Value.of(certWithSansPem));
 
         assertThat(result).isNotInstanceOf(ErrorValue.class).isInstanceOf(ArrayValue.class);
-        assertThat(((ArrayValue) result).isEmpty()).isFalse();
+        assertThat(((ArrayValue) result)).isNotEmpty();
 
         val firstSan = (ObjectValue) ((ArrayValue) result).getFirst();
         assertThat(firstSan.containsKey("type")).isTrue();

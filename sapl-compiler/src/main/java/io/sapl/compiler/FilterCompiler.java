@@ -175,15 +175,24 @@ public class FilterCompiler {
         case Value value                  -> filterOperation.apply(value);
         case StreamExpression(var stream) -> new StreamExpression(
                 stream.flatMap(v -> ExpressionCompiler.compiledExpressionToFlux(filterOperation.apply(v))));
-        case PureExpression pureParent    -> new PureExpression(ctx -> {
-                                          val     evaluatedParent = pureParent.evaluate(ctx);
-                                          val     result          = filterOperation.apply(evaluatedParent);
-                                          return (result instanceof Value v) ? v
-                                                  : (result instanceof PureExpression pe) ? pe.evaluate(ctx)
-                                                          : Value.error(ERROR_UNEXPECTED_FILTER_RESULT_TYPE);
-                                      },
-                pureParent.isSubscriptionScoped());
+        case PureExpression pureParent    ->
+            new PureExpression(ctx -> evaluateFilterResult(filterOperation.apply(pureParent.evaluate(ctx)), ctx),
+                    pureParent.isSubscriptionScoped());
         };
+    }
+
+    /**
+     * Evaluates a filter result to a Value, handling Value, PureExpression, or
+     * error cases.
+     */
+    private static Value evaluateFilterResult(CompiledExpression result, EvaluationContext ctx) {
+        if (result instanceof Value value) {
+            return value;
+        }
+        if (result instanceof PureExpression pureExpression) {
+            return pureExpression.evaluate(ctx);
+        }
+        return Value.error(ERROR_UNEXPECTED_FILTER_RESULT_TYPE);
     }
 
     /**

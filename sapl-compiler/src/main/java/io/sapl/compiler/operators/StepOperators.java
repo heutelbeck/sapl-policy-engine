@@ -236,74 +236,78 @@ public class StepOperators {
      * zero
      */
     public static Value sliceArray(Value parent, BigDecimal bigIndex, BigDecimal bigTo, BigDecimal bigStep) {
-        Integer index = null;
-        Integer to    = null;
-        Integer step  = null;
-        try {
-            if (bigIndex != null) {
-                index = bigIndex.intValueExact();
-            }
-            if (bigTo != null) {
-                to = bigTo.intValueExact();
-            }
-            if (bigStep != null) {
-                step = bigStep.intValueExact();
-            }
-        } catch (ArithmeticException exception) {
-            return Value.error(exception);
-        }
-
         if (!(parent instanceof ArrayValue arrayValue)) {
             return Value.error(ERROR_SLICING_REQUIRES_ARRAY, parent);
         }
 
-        val arraySize  = arrayValue.size();
-        val actualStep = step == null ? 1 : step;
-
-        if (actualStep == 0) {
-            return Value.error(ERROR_SLICING_STEP_ZERO);
+        val parameters = convertSliceParameters(bigIndex, bigTo, bigStep);
+        if (parameters instanceof ErrorValue error) {
+            return error;
         }
 
-        // SAPL always uses same defaults regardless of step direction
-        var from  = index == null ? 0 : index;
-        var until = to == null ? arraySize : to;
+        val params = (int[]) parameters;
+        return sliceArrayWithParameters(arrayValue, params[0], params[1], params[2]);
+    }
 
-        // Normalize negative indices
-        if (from < 0) {
-            from += arraySize;
-        }
-        if (until < 0) {
-            until += arraySize;
-        }
+    /**
+     * Converts BigDecimal slice parameters to int array, returning ErrorValue on
+     * conversion failure.
+     *
+     * @return int[3] with {index, to, step} or ErrorValue
+     */
+    private static Object convertSliceParameters(BigDecimal bigIndex, BigDecimal bigTo, BigDecimal bigStep) {
+        try {
+            val index = bigIndex == null ? null : bigIndex.intValueExact();
+            val to    = bigTo == null ? null : bigTo.intValueExact();
+            val step  = bigStep == null ? 1 : bigStep.intValueExact();
 
-        // Clamp to valid range
-        from  = Math.clamp(from, 0, arraySize);
-        until = Math.clamp(until, 0, arraySize);
+            if (step == 0) {
+                return Value.error(ERROR_SLICING_STEP_ZERO);
+            }
+
+            return new int[] { index == null ? Integer.MIN_VALUE : index, to == null ? Integer.MAX_VALUE : to, step };
+        } catch (ArithmeticException exception) {
+            return Value.error(exception);
+        }
+    }
+
+    /**
+     * Performs the actual slicing on an array with validated integer parameters.
+     */
+    private static Value sliceArrayWithParameters(ArrayValue arrayValue, int rawFrom, int rawTo, int step) {
+        val arraySize = arrayValue.size();
+
+        var from  = rawFrom == Integer.MIN_VALUE ? 0 : rawFrom;
+        var until = rawTo == Integer.MAX_VALUE ? arraySize : rawTo;
+
+        from  = normalizeAndClampIndex(from, arraySize);
+        until = normalizeAndClampIndex(until, arraySize);
 
         val resultBuilder = ArrayValue.builder();
-
-        // SAPL semantics: always iterate forward, use modulo for selection
-        for (int i = 0; i < arraySize; i++) {
-            // Range check: assumes from < until
-            if (i < from || i >= until) {
-                continue;
-            }
-
-            // Selection based on step direction
-            boolean selected;
-            if (actualStep > 0) {
-                selected = (i - from) % actualStep == 0;
-            } else {
-                // Negative step uses (until - i) % step for selection
-                selected = (until - i) % actualStep == 0;
-            }
-
-            if (selected) {
+        for (int i = from; i < until; i++) {
+            if (isSelectedByStep(i, from, until, step)) {
                 resultBuilder.add(arrayValue.get(i));
             }
         }
 
         return resultBuilder.build();
+    }
+
+    /**
+     * Normalizes negative indices and clamps to valid array bounds.
+     */
+    private static int normalizeAndClampIndex(int index, int arraySize) {
+        val normalized = index < 0 ? index + arraySize : index;
+        return Math.clamp(normalized, 0, arraySize);
+    }
+
+    /**
+     * Determines if an index is selected based on SAPL step semantics.
+     * Positive step: select if (i - from) % step == 0.
+     * Negative step: select if (until - i) % step == 0.
+     */
+    private static boolean isSelectedByStep(int index, int from, int until, int step) {
+        return step > 0 ? (index - from) % step == 0 : (until - index) % step == 0;
     }
 
     /**

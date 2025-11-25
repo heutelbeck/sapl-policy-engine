@@ -157,10 +157,10 @@ class AttributeCompilerTests {
 
         @Attribute
         public Flux<Value> city(Value entity) {
-            if (entity instanceof TextValue text && text.value().equals("Ridcully")) {
+            if (entity instanceof TextValue text && "Ridcully".equals(text.value())) {
                 return Flux.just(Value.of("Ankh-Morpork"));
             }
-            if (entity instanceof TextValue text && text.value().equals("Rincewind")) {
+            if (entity instanceof TextValue text && "Rincewind".equals(text.value())) {
                 return Flux.just(Value.of("The Disc"));
             }
             return Flux.just(Value.of("Unknown"));
@@ -168,10 +168,10 @@ class AttributeCompilerTests {
 
         @Attribute
         public Flux<Value> companion(Value entity) {
-            if (entity instanceof TextValue text && text.value().equals("Rincewind")) {
+            if (entity instanceof TextValue text && "Rincewind".equals(text.value())) {
                 return Flux.just(Value.of("The Luggage"));
             }
-            if (entity instanceof TextValue text && text.value().equals("Ridcully")) {
+            if (entity instanceof TextValue text && "Ridcully".equals(text.value())) {
                 return Flux.just(Value.of("Staff"));
             }
             return Flux.just(Value.UNDEFINED);

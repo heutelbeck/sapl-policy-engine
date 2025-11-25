@@ -33,18 +33,48 @@ import java.util.List;
 /**
  * Main entry point for compiling SAPL documents into executable policies.
  * <p>
- * Compiles SAPL policies and policy sets into {@link CompiledPolicy} instances
- * that can be evaluated by combining
- * algorithms. Validates target expressions, compiles match and decision
- * expressions, and handles schema validation.
+ * Transforms parsed SAPL documents (policies and policy sets) into
+ * {@link CompiledPolicy} instances
+ * that can be evaluated by combining algorithms. The compilation process:
+ * <ul>
+ * <li>Validates and compiles target expressions into match expressions</li>
+ * <li>Compiles policy bodies with conditions and value definitions</li>
+ * <li>Compiles obligations, advice, and resource transformations</li>
+ * <li>Handles schema validation against subscription elements</li>
+ * <li>Resolves combining algorithms for policy sets</li>
+ * </ul>
  * <p>
- * Limitations: Target expressions must not contain attribute finders
- * ({@code <>}) or unresolved relative references
- * ({@code @}). Target expressions that always evaluate to false or non-boolean
- * values cause compilation to fail.
+ * The compiler produces three expression types based on the nature of the
+ * compiled code:
+ * <ul>
+ * <li>{@link Value} - Constant expressions that can be evaluated at compile
+ * time</li>
+ * <li>{@link PureExpression} - Expressions requiring runtime evaluation but no
+ * streaming</li>
+ * <li>{@link StreamExpression} - Reactive expressions that may emit multiple
+ * values over time</li>
+ * </ul>
+ * <p>
+ * Target expression constraints:
+ * <ul>
+ * <li>Must not contain attribute finders ({@code <>}) - these require
+ * streaming</li>
+ * <li>Must not contain unresolved relative references ({@code @})</li>
+ * <li>Must not always evaluate to false (policy would never apply)</li>
+ * <li>Must evaluate to boolean values</li>
+ * </ul>
+ *
+ * @see CompiledPolicy
+ * @see ExpressionCompiler
+ * @see CombiningAlgorithmCompiler
  */
 @UtilityClass
 public class SaplCompiler {
+
+    private static final String ENV_SCHEMAS = "SCHEMAS";
+
+    private static final String EXPRESSION_TARGET              = "Target";
+    private static final String EXPRESSION_VARIABLE_DEFINITION = "variable definition for %s";
 
     private static final String ERROR_POLICY_ALWAYS_FALSE                 = "Error compiling policy: %s expression always returns false. These rules will never be applicable.";
     private static final String ERROR_POLICY_ALWAYS_NON_BOOLEAN           = "Error compiling policy: %s expression always returns a non Boolean value: %s.";
@@ -53,10 +83,13 @@ public class SaplCompiler {
     private static final String ERROR_POLICY_UNRESOLVED_RELATIVE          = "Error compiling policy: %s expression contains an unresolved relative reference (e.g., @) and can never be evaluated correctly.";
     private static final String ERROR_SCHEMA_INVALID_SUBSCRIPTION_ELEMENT = "Schema must reference one of the four subscription identifiers: subject, action, resource, environment, but was: %s.";
     private static final String ERROR_SCHEMA_NOT_OBJECT_VALUE             = "Schema must evaluate to an ObjectValue, but was: %s";
+    private static final String ERROR_TARGET_EXPECTED_BOOLEAN             = "Expected a Boolean value to be returned from the target expression, found %s";
+    private static final String ERROR_UNEXPECTED_ENTITLEMENT              = "Unexpected entitlement: %s";
     private static final String ERROR_UNEXPECTED_POLICY_ELEMENT           = "Unexpected policy element: %s";
+    private static final String ERROR_UNEXPECTED_TARGET_TYPE              = "Unexpected target expression type: %s";
+    private static final String ERROR_VARIABLE_ALREADY_DEFINED            = "Variable already defined: %s.";
     private static final String ERROR_VARIABLE_ALREADY_EXISTS             = "Variable already exists: %s";
-
-    private static final String ENVIRONMENT_VARIABLE_WITH_SCHEMAS = "SCHEMAS";
+    private static final String ERROR_VARIABLE_NAME_MISSING               = "Variable name missing.";
 
     /**
      * Compiles a SAPL document into an executable policy.
@@ -103,7 +136,7 @@ public class SaplCompiler {
         case PureExpression pureExpression -> compileTargetExpressionToMatchExpression(pureExpression);
         case Value value                   -> booleanValueOrErrorInTarget(value);
         default                            ->
-            throw new SaplCompilerException("Unexpected target expression type: " + targetExpression.getClass());
+            throw new SaplCompilerException(ERROR_UNEXPECTED_TARGET_TYPE.formatted(targetExpression.getClass()));
         };
     }
 
@@ -149,7 +182,7 @@ public class SaplCompiler {
 
     private static CompiledExpression compileConstantBodyDecision(Decision entitlement, Value bodyValue,
             List<CompiledExpression> obligations, List<CompiledExpression> advice, CompiledExpression transformation) {
-        if (!isValidBooleanBody(bodyValue)) {
+        if (isInvalidBooleanBody(bodyValue)) {
             return buildIndeterminateDecision();
         }
 
@@ -167,8 +200,8 @@ public class SaplCompiler {
         return compileStreamingBodyDecision(entitlement, bodyValue, obligations, advice, transformation);
     }
 
-    private static boolean isValidBooleanBody(Value bodyValue) {
-        return bodyValue instanceof BooleanValue;
+    private static boolean isInvalidBooleanBody(Value bodyValue) {
+        return !(bodyValue instanceof BooleanValue);
     }
 
     private static boolean isFalseBody(Value bodyValue) {
@@ -199,7 +232,7 @@ public class SaplCompiler {
     }
 
     private static List<Value> extractValues(List<CompiledExpression> expressions) {
-        return expressions.stream().map(expression -> (Value) expression).toList();
+        return expressions.stream().map(Value.class::cast).toList();
     }
 
     private static Value extractTransformationValue(CompiledExpression transformation) {
@@ -233,7 +266,7 @@ public class SaplCompiler {
             EvaluationContext evaluationContext) {
         val bodyResult = bodyPure.evaluate(evaluationContext);
 
-        if (!isValidBooleanBody(bodyResult)) {
+        if (isInvalidBooleanBody(bodyResult)) {
             return buildIndeterminateDecision();
         }
 
@@ -261,21 +294,8 @@ public class SaplCompiler {
             List<CompiledExpression> obligations, List<CompiledExpression> advice, CompiledExpression transformation) {
         val bodyFlux = ExpressionCompiler.compiledExpressionToFlux(body);
         val stream   = bodyFlux.switchMap(
-                bodyResult -> evaluateStreamingDecision(entitlement, bodyResult, obligations, advice, transformation));
+                bodyResult -> bodyResultToDecisionFlux(entitlement, bodyResult, obligations, advice, transformation));
         return new StreamExpression(stream);
-    }
-
-    private static Flux<Value> evaluateStreamingDecision(Decision entitlement, Value bodyResult,
-            List<CompiledExpression> obligations, List<CompiledExpression> advice, CompiledExpression transformation) {
-        if (!isValidBooleanBody(bodyResult)) {
-            return Flux.just(buildIndeterminateDecision());
-        }
-
-        if (isFalseBody(bodyResult)) {
-            return Flux.just(buildNotApplicableDecision());
-        }
-
-        return evaluateConstraintsAndBuildDecision(entitlement, obligations, advice, transformation);
     }
 
     private static Value buildIndeterminateDecision() {
@@ -288,42 +308,57 @@ public class SaplCompiler {
 
     private static CompiledExpression compilePureBodyWithMixedConstraints(Decision entitlement, PureExpression bodyPure,
             List<CompiledExpression> obligations, List<CompiledExpression> advice, CompiledExpression transformation) {
-        // Check if all constraints are Values (can be evaluated immediately when body
-        // is true)
-        if (allAreValues(obligations) && allAreValues(advice)
-                && (transformation == null || transformation instanceof Value)) {
-            val oblValues = obligations.stream().map(o -> (Value) o).toList();
-            val advValues = advice.stream().map(a -> (Value) a).toList();
-            val resource  = transformation != null ? (Value) transformation : Value.UNDEFINED;
-            if (containsError(oblValues) || containsError(advValues) || resource instanceof ErrorValue) {
-                return buildDecisionObject(Decision.INDETERMINATE, List.of(), List.of(), Value.UNDEFINED);
-            }
-            // Pure body + constant constraints = PureExpression
-            return new PureExpression(ctx -> {
-                val bodyResult = bodyPure.evaluate(ctx);
-                if (!(bodyResult instanceof BooleanValue)) {
-                    return buildDecisionObject(Decision.INDETERMINATE, List.of(), List.of(), Value.UNDEFINED);
-                }
-                if (Value.FALSE.equals(bodyResult)) {
-                    return buildDecisionObject(Decision.NOT_APPLICABLE, List.of(), List.of(), Value.UNDEFINED);
-                }
-                return buildDecisionObject(entitlement, oblValues, advValues, resource);
-            }, true);
+        if (areAllConstantValues(obligations, advice, transformation)) {
+            return compilePureBodyWithConstantConstraints(entitlement, bodyPure, obligations, advice, transformation);
         }
-        // Fall back to streaming for mixed pure/stream constraints
+        return compilePureBodyWithStreamingConstraints(entitlement, bodyPure, obligations, advice, transformation);
+    }
+
+    private static CompiledExpression compilePureBodyWithConstantConstraints(Decision entitlement,
+            PureExpression bodyPure, List<CompiledExpression> obligations, List<CompiledExpression> advice,
+            CompiledExpression transformation) {
+        val obligationValues    = extractValues(obligations);
+        val adviceValues        = extractValues(advice);
+        val transformationValue = extractTransformationValue(transformation);
+
+        if (containsError(obligationValues) || containsError(adviceValues)
+                || transformationValue instanceof ErrorValue) {
+            return buildIndeterminateDecision();
+        }
+
+        return new PureExpression(ctx -> evaluateBodyAndBuildDecision(entitlement, bodyPure.evaluate(ctx),
+                obligationValues, adviceValues, transformationValue), true);
+    }
+
+    private static CompiledExpression compilePureBodyWithStreamingConstraints(Decision entitlement,
+            PureExpression bodyPure, List<CompiledExpression> obligations, List<CompiledExpression> advice,
+            CompiledExpression transformation) {
         val bodyFlux = ExpressionCompiler.compiledExpressionToFlux(bodyPure);
-        val stream   = bodyFlux.switchMap(bodyResult -> {
-                         if (!(bodyResult instanceof BooleanValue)) {
-                             return Flux.just(buildDecisionObject(Decision.INDETERMINATE, List.of(), List.of(),
-                                     Value.UNDEFINED));
-                         }
-                         if (Value.FALSE.equals(bodyResult)) {
-                             return Flux.just(buildDecisionObject(Decision.NOT_APPLICABLE, List.of(), List.of(),
-                                     Value.UNDEFINED));
-                         }
-                         return evaluateConstraintsAndBuildDecision(entitlement, obligations, advice, transformation);
-                     });
+        val stream   = bodyFlux.switchMap(
+                bodyResult -> bodyResultToDecisionFlux(entitlement, bodyResult, obligations, advice, transformation));
         return new StreamExpression(stream);
+    }
+
+    private static Value evaluateBodyAndBuildDecision(Decision entitlement, Value bodyResult,
+            List<Value> obligationValues, List<Value> adviceValues, Value transformationValue) {
+        if (isInvalidBooleanBody(bodyResult)) {
+            return buildIndeterminateDecision();
+        }
+        if (isFalseBody(bodyResult)) {
+            return buildNotApplicableDecision();
+        }
+        return buildDecisionObject(entitlement, obligationValues, adviceValues, transformationValue);
+    }
+
+    private static Flux<Value> bodyResultToDecisionFlux(Decision entitlement, Value bodyResult,
+            List<CompiledExpression> obligations, List<CompiledExpression> advice, CompiledExpression transformation) {
+        if (isInvalidBooleanBody(bodyResult)) {
+            return Flux.just(buildIndeterminateDecision());
+        }
+        if (isFalseBody(bodyResult)) {
+            return Flux.just(buildNotApplicableDecision());
+        }
+        return evaluateConstraintsAndBuildDecision(entitlement, obligations, advice, transformation);
     }
 
     private static boolean allAreValues(List<CompiledExpression> expressions) {
@@ -406,17 +441,28 @@ public class SaplCompiler {
     }
 
     private static boolean containsError(List<Value> values) {
-        return values.stream().anyMatch(v -> v instanceof ErrorValue);
+        return values.stream().anyMatch(ErrorValue.class::isInstance);
     }
 
+    /**
+     * Validates that a target expression result is a boolean value.
+     *
+     * @param targetExpression the evaluated target expression result
+     * @return the value if boolean, or an error value if not
+     */
     public Value booleanValueOrErrorInTarget(Value targetExpression) {
         if (targetExpression instanceof BooleanValue) {
             return targetExpression;
         }
-        return Value.error("Expected a Boolean value to be returned from the target expression, found %s",
-                targetExpression);
+        return Value.error(ERROR_TARGET_EXPECTED_BOOLEAN, targetExpression);
     }
 
+    /**
+     * Wraps a pure target expression to validate its result is boolean at runtime.
+     *
+     * @param targetExpression the pure expression to wrap
+     * @return a pure expression that validates the result is boolean
+     */
     public PureExpression compileTargetExpressionToMatchExpression(PureExpression targetExpression) {
         return new PureExpression(
                 evaluationContext -> booleanValueOrErrorInTarget(targetExpression.evaluate(evaluationContext)),
@@ -425,23 +471,30 @@ public class SaplCompiler {
 
     private void assertExpressionSuitableForTarget(CompiledExpression expression) {
         if (expression instanceof StreamExpression) {
-            throw new SaplCompilerException(ERROR_POLICY_CONTAINS_ATTRIBUTE_FINDERS.formatted("Target"));
+            throw new SaplCompilerException(ERROR_POLICY_CONTAINS_ATTRIBUTE_FINDERS.formatted(EXPRESSION_TARGET));
         } else if (expression instanceof ErrorValue error) {
-            throw new SaplCompilerException(ERROR_POLICY_COMPILE_TIME_ERROR.formatted("Target", error));
+            throw new SaplCompilerException(ERROR_POLICY_COMPILE_TIME_ERROR.formatted(EXPRESSION_TARGET, error));
         } else if (expression instanceof Value && !(expression instanceof BooleanValue)) {
-            throw new SaplCompilerException(ERROR_POLICY_ALWAYS_NON_BOOLEAN.formatted("Target", expression));
+            throw new SaplCompilerException(ERROR_POLICY_ALWAYS_NON_BOOLEAN.formatted(EXPRESSION_TARGET, expression));
         } else if (expression instanceof BooleanValue booleanValue && booleanValue.equals(Value.FALSE)) {
-            throw new SaplCompilerException(ERROR_POLICY_ALWAYS_FALSE.formatted("Target"));
+            throw new SaplCompilerException(ERROR_POLICY_ALWAYS_FALSE.formatted(EXPRESSION_TARGET));
         } else if (expression instanceof PureExpression pureExpression && !pureExpression.isSubscriptionScoped()) {
-            throw new SaplCompilerException(ERROR_POLICY_UNRESOLVED_RELATIVE.formatted("Target"));
+            throw new SaplCompilerException(ERROR_POLICY_UNRESOLVED_RELATIVE.formatted(EXPRESSION_TARGET));
         }
     }
 
+    /**
+     * Converts a SAPL entitlement to a PDP decision.
+     *
+     * @param entitlement the SAPL entitlement (permit or deny)
+     * @return the corresponding Decision enum value
+     * @throws IllegalArgumentException if entitlement is neither Permit nor Deny
+     */
     public static Decision decisionOf(Entitlement entitlement) {
         return switch (entitlement) {
         case Permit p -> Decision.PERMIT;
         case Deny d   -> Decision.DENY;
-        default       -> throw new IllegalArgumentException("Unexpected value: " + entitlement);
+        default       -> throw new IllegalArgumentException(ERROR_UNEXPECTED_ENTITLEMENT.formatted(entitlement));
         };
     }
 
@@ -518,14 +571,14 @@ public class SaplCompiler {
             val variableName            = valueDefinition.getName();
             val compiledValueDefinition = ExpressionCompiler.compileExpression(valueDefinition.getEval(), context);
             if (variableName == null || variableName.isBlank()) {
-                throw new SaplCompilerException("Variable name missing.");
+                throw new SaplCompilerException(ERROR_VARIABLE_NAME_MISSING);
             }
             if (compiledValueDefinition instanceof ErrorValue error) {
-                throw new SaplCompilerException(
-                        ERROR_POLICY_COMPILE_TIME_ERROR.formatted("variable definition for " + variableName, error));
+                throw new SaplCompilerException(ERROR_POLICY_COMPILE_TIME_ERROR
+                        .formatted(EXPRESSION_VARIABLE_DEFINITION.formatted(variableName), error));
             }
             if (!context.addGlobalPolicySetVariable(variableName, compiledValueDefinition)) {
-                throw new SaplCompilerException("Variable already defined: %s.".formatted(variableName));
+                throw new SaplCompilerException(ERROR_VARIABLE_ALREADY_DEFINED.formatted(variableName));
             }
         }
         val combiningAlgorithm = policySet.getAlgorithm();
@@ -581,7 +634,7 @@ public class SaplCompiler {
         }
 
         return new PureExpression(ctx -> {
-            val externalSchemas = ctx.get(ENVIRONMENT_VARIABLE_WITH_SCHEMAS);
+            val externalSchemas = ctx.get(ENV_SCHEMAS);
             if (!(externalSchemas instanceof ArrayValue)) {
                 return Value.TRUE;
             }

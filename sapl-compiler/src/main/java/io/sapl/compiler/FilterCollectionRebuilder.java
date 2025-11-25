@@ -17,18 +17,11 @@
  */
 package io.sapl.compiler;
 
-import io.sapl.api.model.ArrayValue;
-import io.sapl.api.model.ErrorValue;
-import io.sapl.api.model.ObjectValue;
-import io.sapl.api.model.UndefinedValue;
-import io.sapl.api.model.Value;
+import io.sapl.api.model.*;
 import lombok.experimental.UtilityClass;
 import lombok.val;
 
-import java.util.function.Function;
-import java.util.function.IntFunction;
-import java.util.function.IntPredicate;
-import java.util.function.Predicate;
+import java.util.function.*;
 
 /**
  * Utility class for rebuilding arrays and objects after filter operations.
@@ -155,7 +148,7 @@ class FilterCollectionRebuilder {
      *
      * @return rebuilt array or error if any transformation fails
      */
-    static Value traverseArray(ArrayValue array, Function<Value, Value> transformer) {
+    static Value traverseArray(ArrayValue array, UnaryOperator<Value> transformer) {
         val builder = ArrayValue.builder();
         for (val element : array) {
             val transformed = transformer.apply(element);
@@ -181,7 +174,7 @@ class FilterCollectionRebuilder {
      *
      * @return rebuilt object or error if any transformation fails
      */
-    static Value traverseObject(ObjectValue object, Function<Value, Value> transformer) {
+    static Value traverseObject(ObjectValue object, UnaryOperator<Value> transformer) {
         val builder = ObjectValue.builder();
         for (val entry : object.entrySet()) {
             val transformed = transformer.apply(entry.getValue());
@@ -243,7 +236,7 @@ class FilterCollectionRebuilder {
      */
     static Value traverseObjectSelective(ObjectValue object, Predicate<String> selector,
             Function<String, Value> transformer) {
-        return traverseObjectSelective(object, selector, transformer, key -> object.get(key));
+        return traverseObjectSelective(object, selector, transformer, object::get);
     }
 
     /**

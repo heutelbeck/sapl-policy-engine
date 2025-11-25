@@ -21,6 +21,7 @@ import io.sapl.api.model.*;
 import io.sapl.grammar.sapl.Expression;
 import lombok.experimental.UtilityClass;
 import lombok.val;
+import reactor.core.publisher.Flux;
 
 /**
  * Compiles SAPL subtemplate expressions (:: operator) into optimized executable
@@ -187,48 +188,59 @@ public class SubtemplateCompiler {
      */
     private CompiledExpression applySubtemplateToStreamExpression(StreamExpression streamParent,
             CompiledExpression compiledTemplate) {
-        val resultStream = streamParent.stream().flatMap(parentValue -> {
-            // Propagate errors/undefined
-            if (parentValue instanceof ErrorValue || parentValue instanceof UndefinedValue) {
-                return reactor.core.publisher.Flux.just(parentValue);
-            }
-
-            // Handle arrays
-            if (parentValue instanceof ArrayValue arrayValue) {
-                if (arrayValue.isEmpty()) {
-                    return reactor.core.publisher.Flux.just(arrayValue);
-                }
-
-                // Map template over each element
-                return reactor.core.publisher.Flux.deferContextual(ctx -> {
-                    val evaluationContext = ctx.get(EvaluationContext.class);
-                    val builder           = ArrayValue.builder();
-
-                    for (val element : arrayValue) {
-                        val result = evaluateTemplateWithRelativeNodeInContext(element, compiledTemplate,
-                                evaluationContext);
-
-                        if (result instanceof ErrorValue) {
-                            return reactor.core.publisher.Flux.just(result);
-                        }
-
-                        builder.add(result);
-                    }
-
-                    return reactor.core.publisher.Flux.just(builder.build());
-                });
-            }
-
-            // Non-array
-            return reactor.core.publisher.Flux.deferContextual(ctx -> {
-                val evaluationContext = ctx.get(EvaluationContext.class);
-                val result            = evaluateTemplateWithRelativeNodeInContext(parentValue, compiledTemplate,
-                        evaluationContext);
-                return reactor.core.publisher.Flux.just(result);
-            });
-        });
-
+        val resultStream = streamParent.stream()
+                .flatMap(parentValue -> applyTemplateToValueInStream(parentValue, compiledTemplate));
         return new StreamExpression(resultStream);
+    }
+
+    /**
+     * Applies a template to a value within a stream context.
+     * Handles error/undefined propagation, empty arrays, array mapping, and
+     * non-array values.
+     */
+    private Flux<Value> applyTemplateToValueInStream(Value parentValue, CompiledExpression compiledTemplate) {
+        if (parentValue instanceof ErrorValue || parentValue instanceof UndefinedValue) {
+            return Flux.just(parentValue);
+        }
+
+        if (parentValue instanceof ArrayValue arrayValue) {
+            return arrayValue.isEmpty() ? Flux.just(arrayValue)
+                    : mapTemplateOverArrayInStream(arrayValue, compiledTemplate);
+        }
+
+        return evaluateTemplateInStreamContext(parentValue, compiledTemplate);
+    }
+
+    /**
+     * Maps a template over each element of an array within a stream context.
+     */
+    private Flux<Value> mapTemplateOverArrayInStream(ArrayValue arrayValue, CompiledExpression compiledTemplate) {
+        return Flux.deferContextual(ctx -> {
+            val evaluationContext = ctx.get(EvaluationContext.class);
+            val builder           = ArrayValue.builder();
+
+            for (val element : arrayValue) {
+                val result = evaluateTemplateWithRelativeNodeInContext(element, compiledTemplate, evaluationContext);
+                if (result instanceof ErrorValue) {
+                    return Flux.just(result);
+                }
+                builder.add(result);
+            }
+
+            return Flux.just(builder.build());
+        });
+    }
+
+    /**
+     * Evaluates a template with a non-array value in a stream context.
+     */
+    private Flux<Value> evaluateTemplateInStreamContext(Value parentValue, CompiledExpression compiledTemplate) {
+        return Flux.deferContextual(ctx -> {
+            val evaluationContext = ctx.get(EvaluationContext.class);
+            val result            = evaluateTemplateWithRelativeNodeInContext(parentValue, compiledTemplate,
+                    evaluationContext);
+            return Flux.just(result);
+        });
     }
 
     /**

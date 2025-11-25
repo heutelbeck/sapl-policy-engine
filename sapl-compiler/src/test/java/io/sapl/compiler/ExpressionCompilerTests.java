@@ -44,16 +44,16 @@ class ExpressionCompilerTests {
 
     @ParameterizedTest
     @MethodSource
-    void expressionsThatCompileToConstants(String expression, Value expected) {
+    void whenExpressionCompiledToConstant_thenResultMatchesExpected(String expression, Value expected) {
         assertExpressionCompilesToValue(expression, expected);
     }
 
-    private static Stream<Arguments> expressionsThatCompileToConstants() {
+    private static Stream<Arguments> whenExpressionCompiledToConstant_thenResultMatchesExpected() {
         return Stream.of(
                 // Literals fold to constants
                 arguments("true", Value.TRUE), arguments("false", Value.FALSE), arguments("null", Value.NULL),
                 arguments("undefined", Value.UNDEFINED), arguments("42", Value.of(42)), arguments("-17", Value.of(-17)),
-                arguments("3.14159", Value.of(3.14159)), arguments("\"Stormbringer\"", Value.of("Stormbringer")),
+                arguments("5.14159", Value.of(5.14159)), arguments("\"Stormbringer\"", Value.of("Stormbringer")),
                 arguments("\"\"", Value.EMPTY_TEXT),
 
                 // Empty collections
@@ -172,16 +172,66 @@ class ExpressionCompilerTests {
 
                 // Mixed operations with steps and operators
                 arguments("[1, 2, 3][0] + 10", Value.of(11)), arguments("{\"value\": 100}.value / 4", Value.of(25)),
-                arguments("([1, 2, 3][1] * 5) > 9", Value.TRUE), arguments("[5, 10, 15][?(@ > 7)][0]", Value.of(10)));
+                arguments("([1, 2, 3][1] * 5) > 9", Value.TRUE), arguments("[5, 10, 15][?(@ > 7)][0]", Value.of(10)),
+
+                // Duration conversion functions with constant parameters fold
+                arguments("time.durationOfSeconds(60)", Value.of(60000)),
+                arguments("time.durationOfMinutes(5)", Value.of(300000)),
+                arguments("time.durationOfHours(2)", Value.of(7200000)),
+                arguments("time.durationOfDays(1)", Value.of(86400000)),
+
+                // Epoch conversion functions with constant parameters fold
+                arguments("time.ofEpochSecond(0)", Value.of("1970-01-01T00:00:00Z")),
+                arguments("time.ofEpochMilli(0)", Value.of("1970-01-01T00:00:00Z")),
+
+                // Date/time extraction functions with constant parameters fold
+                arguments("time.hourOf(\"2021-11-08T13:17:23Z\")", Value.of(13)),
+                arguments("time.minuteOf(\"2021-11-08T13:17:23Z\")", Value.of(17)),
+                arguments("time.secondOf(\"2021-11-08T13:00:23Z\")", Value.of(23)),
+                arguments("time.dayOfYear(\"2021-11-08T13:00:00Z\")", Value.of(312)),
+                arguments("time.weekOfYear(\"2021-11-08T13:00:00Z\")", Value.of(45)),
+
+                // Date arithmetic functions with constant parameters fold
+                arguments("time.plusDays(\"2021-11-08T13:00:00Z\", 5)", Value.of("2021-11-13T13:00:00Z")),
+                arguments("time.minusDays(\"2021-11-08T13:00:00Z\", 5)", Value.of("2021-11-03T13:00:00Z")),
+                arguments("time.plusSeconds(\"2021-11-08T13:00:00Z\", 10)", Value.of("2021-11-08T13:00:10Z")),
+                arguments("time.minusSeconds(\"2021-11-08T13:00:00Z\", 10)", Value.of("2021-11-08T12:59:50Z")),
+
+                // Date comparison functions with constant parameters fold
+                arguments("time.before(\"2021-11-08T13:00:00Z\", \"2021-11-08T13:00:01Z\")", Value.TRUE),
+                arguments("time.after(\"2021-11-08T13:00:01Z\", \"2021-11-08T13:00:00Z\")", Value.TRUE),
+                arguments("time.between(\"2021-11-08T13:00:00Z\", \"2021-11-07T13:00:00Z\", \"2021-11-09T13:00:00Z\")",
+                        Value.TRUE),
+
+                // Temporal bounds functions with constant parameters fold
+                arguments("time.startOfDay(\"2021-11-08T13:45:30Z\")", Value.of("2021-11-08T00:00:00Z")),
+                arguments("time.endOfDay(\"2021-11-08T13:45:30Z\")", Value.of("2021-11-08T23:59:59.999999999Z")),
+                arguments("time.startOfMonth(\"2021-11-08T13:45:30Z\")", Value.of("2021-11-01T00:00:00Z")),
+                arguments("time.endOfMonth(\"2021-11-08T13:45:30Z\")", Value.of("2021-11-30T23:59:59.999999999Z")),
+                arguments("time.startOfYear(\"2021-11-08T13:45:30Z\")", Value.of("2021-01-01T00:00:00Z")),
+
+                // Validation functions with constant parameters fold
+                arguments("time.validUTC(\"2021-11-08T13:00:00Z\")", Value.TRUE),
+                arguments("time.validUTC(\"20111-000:00Z\")", Value.FALSE),
+                arguments("time.validRFC3339(\"2021-11-08T13:00:00Z\")", Value.TRUE),
+                arguments("time.validRFC3339(\"2021-11-08T13:00:00\")", Value.FALSE),
+
+                // Age calculation functions with constant parameters fold
+                arguments("time.ageInYears(\"1990-05-15\", \"2021-11-08\")", Value.of(31)),
+                arguments("time.ageInMonths(\"1990-05-15\", \"1990-08-20\")", Value.of(3)),
+
+                // Nested function calls with constant parameters fold
+                arguments("time.hourOf(time.plusDays(\"2021-11-08T13:00:00Z\", 1))", Value.of(13)),
+                arguments("time.durationOfMinutes(time.hourOf(\"2021-11-08T02:00:00Z\"))", Value.of(120000)));
     }
 
     @ParameterizedTest
     @MethodSource
-    void expressionsThatCompileToPureExpressions(String expression, Value expectedResult) {
+    void whenPureExpressionEvaluated_thenResultMatchesExpected(String expression, Value expectedResult) {
         assertCompiledExpressionEvaluatesTo(expression, expectedResult);
     }
 
-    private static Stream<Arguments> expressionsThatCompileToPureExpressions() {
+    private static Stream<Arguments> whenPureExpressionEvaluated_thenResultMatchesExpected() {
         return Stream.of(
                 // Subscription elements require runtime evaluation
                 arguments("subject", Value.of("Elric")), arguments("action", Value.of("slay")),
@@ -341,62 +391,8 @@ class ExpressionCompilerTests {
                 // Complex mixed operand combinations
                 arguments("(true && (subject == \"Elric\")) || (false && (action == \"read\"))", Value.TRUE),
                 arguments("((subject == \"Elric\") && true) && (action == \"slay\")", Value.TRUE),
-                arguments("(false || (subject == \"Elric\")) && (true || (action == \"betray\"))", Value.TRUE));
-    }
+                arguments("(false || (subject == \"Elric\")) && (true || (action == \"betray\"))", Value.TRUE),
 
-    @ParameterizedTest
-    @MethodSource
-    void errorConditionsHandledCorrectly(String expression, String expectedErrorSubstring) {
-        assertCompiledExpressionEvaluatesToErrorContaining(expression, expectedErrorSubstring);
-    }
-
-    private static Stream<Arguments> errorConditionsHandledCorrectly() {
-        return Stream.of(
-                // Condition steps with non-boolean conditions on scalars
-                arguments("42[?(@ + 1)]", "Condition"), arguments("\"text\"[?(123)]", "Condition"),
-
-                // Condition steps with non-boolean conditions on arrays
-                arguments("[1, 2, 3][?(@ * 2)]", "Condition"),
-
-                // Condition steps with non-boolean conditions on objects
-                arguments("{\"a\": 1, \"b\": 2}[?(@ + 5)]", "Condition"),
-
-                // Lazy OR type errors - left operand
-                arguments("\"Stormbringer\" || true", "type mismatch"), arguments("999 || false", "type mismatch"),
-                arguments("null || true", "type mismatch"),
-                arguments("[\"Imrryr\", \"Tanelorn\"] || false", "type mismatch"),
-                arguments("{\"lord\": \"Arioch\"} || true", "type mismatch"),
-
-                // Lazy OR type errors - right operand
-                arguments("false || \"Mournblade\"", "type mismatch"), arguments("false || 666", "type mismatch"),
-                arguments("false || null", "type mismatch"), arguments("false || [\"Melniboné\"]", "type mismatch"),
-                arguments("false || {\"city\": \"Nadsokor\"}", "type mismatch"),
-
-                // Lazy AND type errors - left operand
-                arguments("\"Xiombarg\" && true", "type mismatch"), arguments("777 && false", "type mismatch"),
-                arguments("null && true", "type mismatch"),
-                arguments("[\"Pyaray\", \"Mabelode\"] && false", "type mismatch"),
-                arguments("{\"sword\": \"Stormbringer\"} && true", "type mismatch"),
-
-                // Lazy AND type errors - right operand
-                arguments("true && \"Young Kingdoms\"", "type mismatch"), arguments("true && 888", "type mismatch"),
-                arguments("true && null", "type mismatch"), arguments("true && [\"Dragon Lords\"]", "type mismatch"),
-                arguments("true && {\"emperor\": \"Elric\"}", "type mismatch"),
-
-                // Lazy operators with compile-time type errors
-                arguments("\"Elric\" || true", "type mismatch"), arguments("false || \"Moonglum\"", "type mismatch"),
-                arguments("\"Dyvim Tvar\" && false", "type mismatch"),
-                arguments("true && \"Tanelorn\"", "type mismatch"));
-    }
-
-    @ParameterizedTest
-    @MethodSource
-    void edgeCasesHandledCorrectly(String expression, Value expected) {
-        assertCompiledExpressionEvaluatesTo(expression, expected);
-    }
-
-    private static Stream<Arguments> edgeCasesHandledCorrectly() {
-        return Stream.of(
                 // Empty condition results
                 arguments("[1, 2, 3][?(@ > 10)]", Value.EMPTY_ARRAY),
                 arguments("{\"a\": 1, \"b\": 2}[?(@ > 10)]", Value.EMPTY_OBJECT),
@@ -460,76 +456,8 @@ class ExpressionCompilerTests {
                 arguments("(true && (false || true))", Value.TRUE),
                 arguments("(false || (true && false))", Value.FALSE),
                 arguments("((true || false) && (true || false))", Value.TRUE),
-                arguments("((false && true) || (false && true))", Value.FALSE));
-    }
+                arguments("((false && true) || (false && true))", Value.FALSE),
 
-    @ParameterizedTest
-    @MethodSource
-    void functionCallsWithConstantParameters(String expression, Value expected) {
-        assertExpressionCompilesToValue(expression, expected);
-    }
-
-    private static Stream<Arguments> functionCallsWithConstantParameters() {
-        return Stream.of(
-                // Duration conversion functions with constant parameters fold
-                arguments("time.durationOfSeconds(60)", Value.of(60000)),
-                arguments("time.durationOfMinutes(5)", Value.of(300000)),
-                arguments("time.durationOfHours(2)", Value.of(7200000)),
-                arguments("time.durationOfDays(1)", Value.of(86400000)),
-
-                // Epoch conversion functions with constant parameters fold
-                arguments("time.ofEpochSecond(0)", Value.of("1970-01-01T00:00:00Z")),
-                arguments("time.ofEpochMilli(0)", Value.of("1970-01-01T00:00:00Z")),
-
-                // Date/time extraction functions with constant parameters fold
-                arguments("time.hourOf(\"2021-11-08T13:17:23Z\")", Value.of(13)),
-                arguments("time.minuteOf(\"2021-11-08T13:17:23Z\")", Value.of(17)),
-                arguments("time.secondOf(\"2021-11-08T13:00:23Z\")", Value.of(23)),
-                arguments("time.dayOfYear(\"2021-11-08T13:00:00Z\")", Value.of(312)),
-                arguments("time.weekOfYear(\"2021-11-08T13:00:00Z\")", Value.of(45)),
-
-                // Date arithmetic functions with constant parameters fold
-                arguments("time.plusDays(\"2021-11-08T13:00:00Z\", 5)", Value.of("2021-11-13T13:00:00Z")),
-                arguments("time.minusDays(\"2021-11-08T13:00:00Z\", 5)", Value.of("2021-11-03T13:00:00Z")),
-                arguments("time.plusSeconds(\"2021-11-08T13:00:00Z\", 10)", Value.of("2021-11-08T13:00:10Z")),
-                arguments("time.minusSeconds(\"2021-11-08T13:00:00Z\", 10)", Value.of("2021-11-08T12:59:50Z")),
-
-                // Date comparison functions with constant parameters fold
-                arguments("time.before(\"2021-11-08T13:00:00Z\", \"2021-11-08T13:00:01Z\")", Value.TRUE),
-                arguments("time.after(\"2021-11-08T13:00:01Z\", \"2021-11-08T13:00:00Z\")", Value.TRUE),
-                arguments("time.between(\"2021-11-08T13:00:00Z\", \"2021-11-07T13:00:00Z\", \"2021-11-09T13:00:00Z\")",
-                        Value.TRUE),
-
-                // Temporal bounds functions with constant parameters fold
-                arguments("time.startOfDay(\"2021-11-08T13:45:30Z\")", Value.of("2021-11-08T00:00:00Z")),
-                arguments("time.endOfDay(\"2021-11-08T13:45:30Z\")", Value.of("2021-11-08T23:59:59.999999999Z")),
-                arguments("time.startOfMonth(\"2021-11-08T13:45:30Z\")", Value.of("2021-11-01T00:00:00Z")),
-                arguments("time.endOfMonth(\"2021-11-08T13:45:30Z\")", Value.of("2021-11-30T23:59:59.999999999Z")),
-                arguments("time.startOfYear(\"2021-11-08T13:45:30Z\")", Value.of("2021-01-01T00:00:00Z")),
-
-                // Validation functions with constant parameters fold
-                arguments("time.validUTC(\"2021-11-08T13:00:00Z\")", Value.TRUE),
-                arguments("time.validUTC(\"20111-000:00Z\")", Value.FALSE),
-                arguments("time.validRFC3339(\"2021-11-08T13:00:00Z\")", Value.TRUE),
-                arguments("time.validRFC3339(\"2021-11-08T13:00:00\")", Value.FALSE),
-
-                // Age calculation functions with constant parameters fold
-                arguments("time.ageInYears(\"1990-05-15\", \"2021-11-08\")", Value.of(31)),
-                arguments("time.ageInMonths(\"1990-05-15\", \"1990-08-20\")", Value.of(3)),
-
-                // Nested function calls with constant parameters fold
-                arguments("time.hourOf(time.plusDays(\"2021-11-08T13:00:00Z\", 1))", Value.of(13)),
-                arguments("time.durationOfMinutes(time.hourOf(\"2021-11-08T02:00:00Z\"))", Value.of(120000)));
-    }
-
-    @ParameterizedTest
-    @MethodSource
-    void functionCallsWithPureParameters(String expression, Value expected) {
-        assertCompiledExpressionEvaluatesTo(expression, expected);
-    }
-
-    private static Stream<Arguments> functionCallsWithPureParameters() {
-        return Stream.of(
                 // Function calls with subscription elements
                 arguments("time.hourOf({\"time\": \"2021-11-08T13:00:00Z\"}.time)", Value.of(13)),
                 arguments("time.durationOfSeconds({\"duration\": 60}.duration)", Value.of(60000)),
@@ -559,17 +487,98 @@ class ExpressionCompilerTests {
                 // Functions with mixed constant and pure parameters
                 arguments(
                         "time.timeBetween(\"2021-01-01T00:00:00Z\", \"2022-01-01T00:00:00Z\", {\"unit\": \"YEARS\"}.unit)",
-                        Value.of(1)));
+                        Value.of(1)),
+
+                // Index unions automatically de-duplicate
+                arguments("[10, 20, 30][0, 1, 2]", Value.ofArray(Value.of(10), Value.of(20), Value.of(30))),
+                arguments("[\"Arioch\", \"Xiombarg\", \"Pyaray\"][0, 2]",
+                        Value.ofArray(Value.of("Arioch"), Value.of("Pyaray"))),
+
+                // Attribute unions automatically de-duplicate
+                arguments("{\"realm\": \"Chaos\", \"lord\": \"Arioch\"}[\"realm\", \"lord\"]",
+                        Value.ofArray(Value.of("Chaos"), Value.of("Arioch"))),
+
+                // Attribute unions with non-existent keys (only returns existing values, skips
+                // missing)
+                arguments("{\"weapon\": \"Stormbringer\"}[\"weapon\", \"missing\", \"nothere\"]",
+                        Value.ofArray(Value.of("Stormbringer"))),
+
+                // Multiple condition steps chained on arrays
+                arguments("[1, 2, 3, 4, 5, 6, 7, 8][?(@ > 2)][?(@ < 7)]",
+                        Value.ofArray(Value.of(3), Value.of(4), Value.of(5), Value.of(6))),
+                arguments("[10, 20, 30, 40, 50][?(@ >= 20)][?(@ <= 40)]",
+                        Value.ofArray(Value.of(20), Value.of(30), Value.of(40))),
+
+                // Slicing followed by condition step on non-edge values
+                arguments("[10, 20, 30, 40, 50, 60][1:5][?(@ < 40)]", Value.ofArray(Value.of(20), Value.of(30))),
+
+                // Condition step followed by slicing
+                arguments("[1, 2, 3, 4, 5, 6, 7, 8, 9, 10][?(@ > 3)][0:3]",
+                        Value.ofArray(Value.of(4), Value.of(5), Value.of(6))),
+
+                // Null in comparisons
+                arguments("null == null", Value.TRUE), arguments("null != null", Value.FALSE),
+                arguments("null == 42", Value.FALSE), arguments("null == \"Elric\"", Value.FALSE),
+
+                // Undefined in comparisons
+                arguments("undefined == undefined", Value.TRUE), arguments("undefined != undefined", Value.FALSE),
+                arguments("undefined == null", Value.FALSE), arguments("undefined == 42", Value.FALSE),
+
+                // Null and undefined with 'in' operator
+                arguments("null in [null, 1, 2]", Value.TRUE), arguments("null in [1, 2, 3]", Value.FALSE),
+                // undefined values are filtered from arrays before 'in' check
+                arguments("undefined in [undefined, 1, 2]", Value.FALSE),
+                arguments("undefined in [1, 2, 3]", Value.FALSE),
+
+                // Null in boolean contexts (type errors handled elsewhere)
+                arguments("null == null && true", Value.TRUE), arguments("(null == null) || false", Value.TRUE));
     }
 
     @ParameterizedTest
     @MethodSource
-    void arithmeticErrorConditions(String expression, String expectedErrorSubstring) {
+    void whenExpressionEvaluationProducesError_thenErrorMessageContainsExpected(String expression,
+            String expectedErrorSubstring) {
         assertCompiledExpressionEvaluatesToErrorContaining(expression, expectedErrorSubstring);
     }
 
-    private static Stream<Arguments> arithmeticErrorConditions() {
+    private static Stream<Arguments> whenExpressionEvaluationProducesError_thenErrorMessageContainsExpected() {
         return Stream.of(
+                // Condition steps with non-boolean conditions on scalars
+                arguments("42[?(@ + 1)]", "Condition"), arguments("\"text\"[?(123)]", "Condition"),
+
+                // Condition steps with non-boolean conditions on arrays
+                arguments("[1, 2, 3][?(@ * 2)]", "Condition"),
+
+                // Condition steps with non-boolean conditions on objects
+                arguments("{\"a\": 1, \"b\": 2}[?(@ + 5)]", "Condition"),
+
+                // Lazy OR type errors - left operand
+                arguments("\"Stormbringer\" || true", "type mismatch"), arguments("999 || false", "type mismatch"),
+                arguments("null || true", "type mismatch"),
+                arguments("[\"Imrryr\", \"Tanelorn\"] || false", "type mismatch"),
+                arguments("{\"lord\": \"Arioch\"} || true", "type mismatch"),
+
+                // Lazy OR type errors - right operand
+                arguments("false || \"Mournblade\"", "type mismatch"), arguments("false || 666", "type mismatch"),
+                arguments("false || null", "type mismatch"), arguments("false || [\"Melniboné\"]", "type mismatch"),
+                arguments("false || {\"city\": \"Nadsokor\"}", "type mismatch"),
+
+                // Lazy AND type errors - left operand
+                arguments("\"Xiombarg\" && true", "type mismatch"), arguments("777 && false", "type mismatch"),
+                arguments("null && true", "type mismatch"),
+                arguments("[\"Pyaray\", \"Mabelode\"] && false", "type mismatch"),
+                arguments("{\"sword\": \"Stormbringer\"} && true", "type mismatch"),
+
+                // Lazy AND type errors - right operand
+                arguments("true && \"Young Kingdoms\"", "type mismatch"), arguments("true && 888", "type mismatch"),
+                arguments("true && null", "type mismatch"), arguments("true && [\"Dragon Lords\"]", "type mismatch"),
+                arguments("true && {\"emperor\": \"Elric\"}", "type mismatch"),
+
+                // Lazy operators with compile-time type errors
+                arguments("\"Elric\" || true", "type mismatch"), arguments("false || \"Moonglum\"", "type mismatch"),
+                arguments("\"Dyvim Tvar\" && false", "type mismatch"),
+                arguments("true && \"Tanelorn\"", "type mismatch"),
+
                 // Division by zero
                 arguments("10 / 0", "divis"), arguments("100 / 0", "divis"), arguments("42 / (5 - 5)", "divis"),
 
@@ -577,17 +586,7 @@ class ExpressionCompilerTests {
                 arguments("10 % 0", "divis"), arguments("17 % (3 - 3)", "divis"),
 
                 // Division/modulo by zero in complex expressions
-                arguments("(100 / 0) + 5", "divis"), arguments("{\"value\": (10 % 0)}.value", "divis"));
-    }
-
-    @ParameterizedTest
-    @MethodSource
-    void invalidStepOperations(String expression, String expectedErrorSubstring) {
-        assertCompiledExpressionEvaluatesToErrorContaining(expression, expectedErrorSubstring);
-    }
-
-    private static Stream<Arguments> invalidStepOperations() {
-        return Stream.of(
+                arguments("(100 / 0) + 5", "divis"), arguments("{\"value\": (10 % 0)}.value", "divis"),
                 // Key step on non-objects (returns error)
                 arguments("\"Stormbringer\".weapon", "non-object"), arguments("true.realm", "non-object"),
                 arguments("[1, 2, 3].key", "non-object"),

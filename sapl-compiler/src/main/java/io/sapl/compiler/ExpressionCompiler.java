@@ -237,7 +237,7 @@ public class ExpressionCompiler {
         if (!(right instanceof BooleanValue rightBool)) {
             return Value.error(TYPE_MISMATCH_BOOLEAN_EXPECTED_ERROR, right);
         }
-        val resultValue = shortCircuitValue.equals(Value.TRUE) ? false : rightBool.value();
+        val resultValue = !shortCircuitValue.equals(Value.TRUE) && rightBool.value();
         return new BooleanValue(resultValue, right.secret() || left.secret());
     }
 
