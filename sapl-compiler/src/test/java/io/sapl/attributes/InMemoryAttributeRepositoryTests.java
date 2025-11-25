@@ -722,7 +722,7 @@ class InMemoryAttributeRepositoryTests {
 
             new Thread(() -> {
                 try {
-                    repository.publishAttribute("battle.power" + index, Value.of(index * 2)).block();
+                    repository.publishAttribute("battle.power" + index, Value.of(index * 2L)).block();
                 } catch (Exception e) {
                     errors.add(e);
                 } finally {

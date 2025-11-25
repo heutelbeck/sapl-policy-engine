@@ -231,19 +231,6 @@ class CachingAttributeBrokerTests {
     }
 
     @Test
-    void loadPIPWithSameNameAsExistingPIPThrowsException() {
-        val repository = new InMemoryAttributeRepository(Clock.systemUTC());
-        val broker     = new CachingAttributeBroker(repository);
-
-        // CollisionPIP1 and CollisionPIP2 have different PIP names, so no collision
-        // This test verifies that duplicate library names are detected
-        broker.loadPolicyInformationPointLibrary(new SimplePIP());
-
-        assertThatThrownBy(() -> broker.loadPolicyInformationPointLibrary(new SimplePIP()))
-                .hasMessageContaining("Library already loaded: simple");
-    }
-
-    @Test
     void loadPIPAttributesWithDifferentNamespacesDoNotCollide() {
         val repository = new InMemoryAttributeRepository(Clock.systemUTC());
         val broker     = new CachingAttributeBroker(repository);

@@ -438,7 +438,7 @@ class AttributeStreamTests {
 
         await().pollDelay(AWAIT_POLL_DELAY, MILLISECONDS).pollInterval(AWAIT_POLL_INTERVAL, MILLISECONDS)
                 .atMost(FAST_OPERATION_TIMEOUT, MILLISECONDS)
-                .until(() -> results.stream().anyMatch(v -> v instanceof ErrorValue));
+                .until(() -> results.stream().anyMatch(ErrorValue.class::isInstance));
 
         for (var i = 0; i < results.size(); i++) {
             if (results.get(i) instanceof ErrorValue) {
@@ -482,9 +482,9 @@ class AttributeStreamTests {
 
         await().pollDelay(AWAIT_POLL_DELAY, MILLISECONDS).pollInterval(AWAIT_POLL_INTERVAL, MILLISECONDS)
                 .atMost(FAST_OPERATION_TIMEOUT, MILLISECONDS)
-                .until(() -> results.stream().anyMatch(v -> v instanceof ErrorValue));
+                .until(() -> results.stream().anyMatch(ErrorValue.class::isInstance));
 
-        val errors = results.stream().filter(v -> v instanceof ErrorValue).map(v -> (ErrorValue) v).toList();
+        val errors = results.stream().filter(ErrorValue.class::isInstance).map(v -> (ErrorValue) v).toList();
 
         subscription.dispose();
         assertThat(errors).hasSize(1);

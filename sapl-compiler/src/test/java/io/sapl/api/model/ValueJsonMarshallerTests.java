@@ -512,16 +512,17 @@ class ValueJsonMarshallerTests {
     // Edge Cases
     // ============================================================
 
-    @ParameterizedTest(name = "round-trip large: {0}")
-    @MethodSource("largeStructures")
-    void roundTripLargeStructures(String description, Value original) {
+    @ParameterizedTest(name = "round-trip edge case: {0}")
+    @MethodSource("edgeCaseStructures")
+    void roundTripEdgeCases(String description, Value original) {
         var node   = ValueJsonMarshaller.toJsonNode(original);
         var result = ValueJsonMarshaller.fromJsonNode(node);
 
         assertThat(result).isEqualTo(original);
     }
 
-    static Stream<Arguments> largeStructures() {
+    static Stream<Arguments> edgeCaseStructures() {
+        // Large structures
         var largeArray = new Value[10000];
         for (int i = 0; i < largeArray.length; i++) {
             largeArray[i] = Value.of("investigator-" + i);
@@ -532,20 +533,24 @@ class ValueJsonMarshallerTests {
             largeObjectBuilder.put("cultist-" + i, Value.of("investigator-" + i));
         }
 
-        return Stream.of(arguments("array", Value.ofArray(largeArray)), arguments("object", largeObjectBuilder.build()),
-                arguments("string", Value.of("Ph'nglui mglw'nafh Cthulhu R'lyeh wgah'nagl fhtagn ".repeat(1000))),
-                arguments("number", Value.of(new BigDecimal("9".repeat(1000) + "." + "9".repeat(1000)))));
-    }
+        // Special keys object
+        var specialKeysObject = Value
+                .ofObject(Map.of("", Value.of("empty key"), " ", Value.of("space key"), "key with spaces",
+                        Value.of("spaces in key"), "key-with-dashes", Value.of("dashes"), "key_with_underscores",
+                        Value.of("underscores"), "キー", Value.of("unicode key"), "🔑", Value.of("emoji key")));
 
-    @Test
-    void roundTripObjectWithSpecialKeys() {
-        var original = Value.ofObject(Map.of("", Value.of("empty key"), " ", Value.of("space key"), "key with spaces",
-                Value.of("spaces in key"), "key-with-dashes", Value.of("dashes"), "key_with_underscores",
-                Value.of("underscores"), "キー", Value.of("unicode key"), "🔑", Value.of("emoji key")));
-        var node     = ValueJsonMarshaller.toJsonNode(original);
-        var result   = ValueJsonMarshaller.fromJsonNode(node);
-
-        assertThat(result).isEqualTo(original);
+        return Stream.of(
+                // Large structures
+                arguments("large array", Value.ofArray(largeArray)),
+                arguments("large object", largeObjectBuilder.build()),
+                arguments("large string", Value.of("Ph'nglui mglw'nafh Cthulhu R'lyeh wgah'nagl fhtagn ".repeat(1000))),
+                arguments("large number", Value.of(new BigDecimal("9".repeat(1000) + "." + "9".repeat(1000)))),
+                // Special keys
+                arguments("special keys", specialKeysObject),
+                // All null collections
+                arguments("all null array", Value.ofArray(Value.NULL, Value.NULL, Value.NULL)),
+                arguments("all null object",
+                        Value.ofObject(Map.of("entity", Value.NULL, "location", Value.NULL, "status", Value.NULL))));
     }
 
     @Test
@@ -562,20 +567,6 @@ class ValueJsonMarshallerTests {
         assertThat(Objects.requireNonNull(((ObjectValue) original).get("secret")).secret()).isTrue();
 
         assertThat(result.toString()).isNotEqualTo(original.toString());
-    }
-
-    @ParameterizedTest(name = "round-trip all null: {0}")
-    @MethodSource("allNullCollections")
-    void roundTripAllNull(String description, Value original) {
-        var node   = ValueJsonMarshaller.toJsonNode(original);
-        var result = ValueJsonMarshaller.fromJsonNode(node);
-
-        assertThat(result).isEqualTo(original);
-    }
-
-    static Stream<Arguments> allNullCollections() {
-        return Stream.of(arguments("array", Value.ofArray(Value.NULL, Value.NULL, Value.NULL)), arguments("object",
-                Value.ofObject(Map.of("entity", Value.NULL, "location", Value.NULL, "status", Value.NULL))));
     }
 
     // ============================================================
