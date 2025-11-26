@@ -56,7 +56,7 @@ class SaplJacksonModuleTests {
 
     static Stream<Arguments> valueSerializationCases() {
         return Stream.of(arguments(Value.NULL, "null"), arguments(Value.TRUE, "true"), arguments(Value.FALSE, "false"),
-                arguments(Value.of(42), "42"), arguments(Value.of(3.14), "3.14"),
+                arguments(Value.of(42), "42"), arguments(Value.of(4.13), "4.13"),
                 arguments(Value.of("eldritch"), "\"eldritch\""), arguments(Value.EMPTY_ARRAY, "[]"),
                 arguments(Value.EMPTY_OBJECT, "{}"),
                 arguments(Value.ofArray(Value.of(1), Value.of(2), Value.of(3)), "[1,2,3]"),
@@ -73,7 +73,7 @@ class SaplJacksonModuleTests {
 
     static Stream<Arguments> valueDeserializationCases() {
         return Stream.of(arguments("null", Value.NULL), arguments("true", Value.TRUE), arguments("false", Value.FALSE),
-                arguments("42", Value.of(42)), arguments("3.14", Value.of(3.14)),
+                arguments("42", Value.of(42)), arguments("4.13", Value.of(4.13)),
                 arguments("\"necronomicon\"", Value.of("necronomicon")), arguments("[]", Value.EMPTY_ARRAY),
                 arguments("{}", Value.EMPTY_OBJECT),
                 arguments("[1,2,3]", Value.ofArray(Value.of(1), Value.of(2), Value.of(3))),
