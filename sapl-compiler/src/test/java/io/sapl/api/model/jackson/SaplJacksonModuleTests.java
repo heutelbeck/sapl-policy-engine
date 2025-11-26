@@ -328,4 +328,51 @@ class SaplJacksonModuleTests {
         assertThat(restored.getDecision("guarded-action").obligations()).hasSize(1);
         assertThat(restored.getDecision("guarded-action").obligations().getFirst()).isEqualTo(obligation);
     }
+
+    @ParameterizedTest
+    @MethodSource("combiningAlgorithmSerializationCases")
+    void whenSerializingCombiningAlgorithm_thenProducesEnumName(CombiningAlgorithm algorithm, String expectedJson)
+            throws JsonProcessingException {
+        val json = mapper.writeValueAsString(algorithm);
+        assertThat(json).isEqualTo(expectedJson);
+    }
+
+    static Stream<Arguments> combiningAlgorithmSerializationCases() {
+        return Stream.of(arguments(CombiningAlgorithm.DENY_OVERRIDES, "\"DENY_OVERRIDES\""),
+                arguments(CombiningAlgorithm.PERMIT_OVERRIDES, "\"PERMIT_OVERRIDES\""),
+                arguments(CombiningAlgorithm.DENY_UNLESS_PERMIT, "\"DENY_UNLESS_PERMIT\""),
+                arguments(CombiningAlgorithm.PERMIT_UNLESS_DENY, "\"PERMIT_UNLESS_DENY\""),
+                arguments(CombiningAlgorithm.ONLY_ONE_APPLICABLE, "\"ONLY_ONE_APPLICABLE\""));
+    }
+
+    @ParameterizedTest
+    @MethodSource("combiningAlgorithmDeserializationCases")
+    void whenDeserializingCombiningAlgorithm_thenSupportsCaseInsensitive(String json, CombiningAlgorithm expected)
+            throws JsonProcessingException {
+        val algorithm = mapper.readValue(json, CombiningAlgorithm.class);
+        assertThat(algorithm).isEqualTo(expected);
+    }
+
+    static Stream<Arguments> combiningAlgorithmDeserializationCases() {
+        return Stream.of(arguments("\"DENY_OVERRIDES\"", CombiningAlgorithm.DENY_OVERRIDES),
+                arguments("\"deny_overrides\"", CombiningAlgorithm.DENY_OVERRIDES),
+                arguments("\"Deny_Overrides\"", CombiningAlgorithm.DENY_OVERRIDES),
+                arguments("\"deny-overrides\"", CombiningAlgorithm.DENY_OVERRIDES),
+                arguments("\"DENY-OVERRIDES\"", CombiningAlgorithm.DENY_OVERRIDES),
+                arguments("\"PERMIT_OVERRIDES\"", CombiningAlgorithm.PERMIT_OVERRIDES),
+                arguments("\"permit_overrides\"", CombiningAlgorithm.PERMIT_OVERRIDES),
+                arguments("\"permit-overrides\"", CombiningAlgorithm.PERMIT_OVERRIDES),
+                arguments("\"DENY_UNLESS_PERMIT\"", CombiningAlgorithm.DENY_UNLESS_PERMIT),
+                arguments("\"deny-unless-permit\"", CombiningAlgorithm.DENY_UNLESS_PERMIT),
+                arguments("\"PERMIT_UNLESS_DENY\"", CombiningAlgorithm.PERMIT_UNLESS_DENY),
+                arguments("\"permit-unless-deny\"", CombiningAlgorithm.PERMIT_UNLESS_DENY),
+                arguments("\"ONLY_ONE_APPLICABLE\"", CombiningAlgorithm.ONLY_ONE_APPLICABLE),
+                arguments("\"only-one-applicable\"", CombiningAlgorithm.ONLY_ONE_APPLICABLE));
+    }
+
+    @Test
+    void whenDeserializingInvalidCombiningAlgorithm_thenThrowsException() {
+        assertThatThrownBy(() -> mapper.readValue("\"INVALID_ALGORITHM\"", CombiningAlgorithm.class))
+                .isInstanceOf(IllegalArgumentException.class);
+    }
 }

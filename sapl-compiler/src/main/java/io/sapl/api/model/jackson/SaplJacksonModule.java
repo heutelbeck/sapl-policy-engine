@@ -22,6 +22,7 @@ import io.sapl.api.SaplVersion;
 import io.sapl.api.model.Value;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.AuthorizationSubscription;
+import io.sapl.api.pdp.CombiningAlgorithm;
 import io.sapl.api.pdp.IdentifiableAuthorizationDecision;
 import io.sapl.api.pdp.IdentifiableAuthorizationSubscription;
 import io.sapl.api.pdp.MultiAuthorizationDecision;
@@ -92,5 +93,8 @@ public class SaplJacksonModule extends SimpleModule {
         // MultiAuthorizationDecision
         addSerializer(MultiAuthorizationDecision.class, new MultiAuthorizationDecisionSerializer());
         addDeserializer(MultiAuthorizationDecision.class, new MultiAuthorizationDecisionDeserializer());
+
+        // CombiningAlgorithm (case-insensitive deserialization)
+        addDeserializer(CombiningAlgorithm.class, new CombiningAlgorithmDeserializer());
     }
 }
