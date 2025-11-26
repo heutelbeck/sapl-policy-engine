@@ -145,7 +145,7 @@ public class TestUtil {
     public static void assertCompiledExpressionEvaluatesTo(String expression, Value expected) {
         val compiledExpression = compileExpression(expression);
         val evaluated          = evaluateExpression(compiledExpression, createEvaluationContext());
-        StepVerifier.create(evaluated).expectNext(expected).thenCancel();
+        StepVerifier.create(evaluated).expectNext(expected).thenCancel().verify();
     }
 
     /**
@@ -222,7 +222,7 @@ public class TestUtil {
         val evaluated          = evaluateExpression(compiledExpression, createEvaluationContext());
         StepVerifier.create(evaluated).expectNextMatches(
                 e -> e instanceof ErrorValue error && error.message().toLowerCase().contains(message.toLowerCase()))
-                .thenCancel();
+                .thenCancel().verify();
     }
 
     public static void assertExpressionCompilesToValue(String expression, Value expected) {

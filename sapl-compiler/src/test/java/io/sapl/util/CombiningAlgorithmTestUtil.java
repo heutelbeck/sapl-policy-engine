@@ -105,7 +105,7 @@ public class CombiningAlgorithmTestUtil {
             val compiledPolicy = SaplCompiler.compileDocument(sapl, context);
             val decisionExpr   = compiledPolicy.decisionExpression();
 
-            val evalContext = new EvaluationContext("testConfig", "testSub", subscription, functionBroker,
+            val evalContext = new EvaluationContext("pdpId", "testConfig", "testSub", subscription, functionBroker,
                     attributeBroker);
 
             return switch (decisionExpr) {

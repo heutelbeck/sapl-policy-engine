@@ -75,7 +75,7 @@ class AttributeCompilerTests {
      */
     private EvaluationContext createEvaluationContext(AuthorizationSubscription authorizationSubscription) {
         val brokers = createBrokers();
-        return new EvaluationContext("ankh_morpork", "subscription_001", authorizationSubscription,
+        return new EvaluationContext("id", "ankh_morpork", "subscription_001", authorizationSubscription,
                 brokers.functionBroker(), brokers.attributeBroker());
     }
 

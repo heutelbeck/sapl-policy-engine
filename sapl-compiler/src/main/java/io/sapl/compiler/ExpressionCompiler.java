@@ -17,7 +17,6 @@
  */
 package io.sapl.compiler;
 
-import com.google.common.collect.Maps;
 import io.sapl.api.functions.FunctionInvocation;
 import io.sapl.api.model.*;
 import io.sapl.api.model.Value;
@@ -908,7 +907,7 @@ public class ExpressionCompiler {
      * @return an evaluation context for compile-time folding
      */
     private EvaluationContext temporaryRelativeFoldingEvaluationContext(CompilationContext compilationContext) {
-        return new EvaluationContext("", "", null, compilationContext.getFunctionBroker(),
+        return new EvaluationContext("", "", "", null, compilationContext.getFunctionBroker(),
                 compilationContext.getAttributeBroker());
     }
 

@@ -23,6 +23,8 @@ import io.sapl.api.pdp.Decision;
 import io.sapl.compiler.operators.BooleanOperators;
 import io.sapl.functions.libraries.SchemaValidationLibrary;
 import io.sapl.grammar.sapl.*;
+import io.sapl.interpreter.DefaultSAPLInterpreter;
+import io.sapl.interpreter.SAPLInterpreter;
 import lombok.experimental.UtilityClass;
 import lombok.val;
 import org.eclipse.emf.common.util.EList;
@@ -90,6 +92,16 @@ public class SaplCompiler {
     private static final String ERROR_VARIABLE_ALREADY_DEFINED            = "Variable already defined: %s.";
     private static final String ERROR_VARIABLE_ALREADY_EXISTS             = "Variable already exists: %s";
     private static final String ERROR_VARIABLE_NAME_MISSING               = "Variable name missing.";
+
+    private static final SAPLInterpreter PARSER = new DefaultSAPLInterpreter();
+
+    public CompiledPolicy compile(String source, CompilationContext context) {
+        val document = PARSER.parseDocument(source);
+        if (document.isInvalid()) {
+            throw new SaplCompilerException("Unable to parse document. %s".formatted(document.errorMessage()));
+        }
+        return compileDocument(document.sapl(), context);
+    }
 
     /**
      * Compiles a SAPL document into an executable policy.

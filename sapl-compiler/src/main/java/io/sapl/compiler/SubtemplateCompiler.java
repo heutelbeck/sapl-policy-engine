@@ -45,6 +45,7 @@ public class SubtemplateCompiler {
 
     private static final String ERROR_SUBTEMPLATE_STREAMING_COMPILE_TIME = "Subtemplate contains streaming operations, cannot be evaluated at compile time.";
     private static final String ERROR_SUBTEMPLATE_STREAMING_RUNTIME      = "Subtemplate contains streaming operations, cannot be evaluated in this context.";
+    public static final String  COMPILE_TIME_ID_PLACEHOLDER              = "compile-time";
 
     /**
      * Compiles a subtemplate expression (:: operator).
@@ -262,8 +263,8 @@ public class SubtemplateCompiler {
         case Value value                 -> value; // Template is constant, ignore relative node
         case PureExpression pureTemplate -> {
             // Create a minimal evaluation context with the relative node
-            val evaluationContext = new EvaluationContext("compile-time", "compile-time", null, null, null)
-                    .withRelativeValue(relativeNode);
+            val evaluationContext = new EvaluationContext(COMPILE_TIME_ID_PLACEHOLDER, COMPILE_TIME_ID_PLACEHOLDER,
+                    COMPILE_TIME_ID_PLACEHOLDER, null, null, null).withRelativeValue(relativeNode);
             yield pureTemplate.evaluate(evaluationContext);
         }
         case StreamExpression ignored    -> Value.error(ERROR_SUBTEMPLATE_STREAMING_COMPILE_TIME);

@@ -240,7 +240,7 @@ class AttributeMethodSignatureProcessorTests {
     }
 
     private EvaluationContext createEvaluationContext(Map<String, Value> variables) {
-        return new EvaluationContext("test-config", "test-subscription", null, variables, null, null);
+        return new EvaluationContext("id", "test-config", "test-subscription", null, variables, null, null);
     }
 
     static class TestPIP {

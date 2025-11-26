@@ -29,6 +29,7 @@ import java.util.Map;
 import static io.sapl.api.model.ReservedIdentifiers.*;
 
 public record EvaluationContext(
+        String pdpId,
         String configurationId,
         String subscriptionId,
         AuthorizationSubscription authorizationSubscription,
@@ -36,36 +37,46 @@ public record EvaluationContext(
         FunctionBroker functionBroker,
         AttributeBroker attributeBroker) {
 
+    public EvaluationContext(String pdpId,
+            String configurationId,
+            String subscriptionId,
+            AuthorizationSubscription authorizationSubscription,
+            FunctionBroker functionBroker,
+            AttributeBroker attributeBroker) {
+        this(pdpId, configurationId, subscriptionId, authorizationSubscription,
+                subscriptionVariables(authorizationSubscription), functionBroker, attributeBroker);
+    }
+
     public EvaluationContext(String configurationId,
             String subscriptionId,
             AuthorizationSubscription authorizationSubscription,
             FunctionBroker functionBroker,
             AttributeBroker attributeBroker) {
-        this(configurationId, subscriptionId, authorizationSubscription, new HashMap<>(), functionBroker,
-                attributeBroker);
-        if (authorizationSubscription != null) {
-            this.variables.put(SUBJECT, authorizationSubscription.subject());
-            this.variables.put(ACTION, authorizationSubscription.action());
-            this.variables.put(RESOURCE, authorizationSubscription.resource());
-            this.variables.put(ENVIRONMENT, authorizationSubscription.environment());
+        this(null, configurationId, subscriptionId, authorizationSubscription, functionBroker, attributeBroker);
+    }
+
+    private EvaluationContext(EvaluationContext originalContext, Map<String, Value> additionalVariables) {
+        this(originalContext.pdpId, originalContext.configurationId, originalContext.subscriptionId,
+                originalContext.authorizationSubscription,
+                copyWithAdditions(originalContext.variables, additionalVariables), originalContext.functionBroker,
+                originalContext.attributeBroker);
+    }
+
+    private static Map<String, Value> subscriptionVariables(AuthorizationSubscription subscription) {
+        var variables = new HashMap<String, Value>();
+        if (subscription != null) {
+            variables.put(SUBJECT, subscription.subject());
+            variables.put(ACTION, subscription.action());
+            variables.put(RESOURCE, subscription.resource());
+            variables.put(ENVIRONMENT, subscription.environment());
         }
+        return variables;
     }
 
-    private EvaluationContext(EvaluationContext originalContext) {
-        this(originalContext.configurationId, originalContext.subscriptionId, originalContext.authorizationSubscription,
-                new HashMap<>(), originalContext.functionBroker, originalContext.attributeBroker);
-        variables.putAll(originalContext.variables);
-    }
-
-    private EvaluationContext(EvaluationContext originalContext, String identifier, Value value) {
-        this(originalContext);
-        variables.put(identifier, value);
-    }
-
-    private EvaluationContext(EvaluationContext originalContext, Value relativeValue, Value relativeLocation) {
-        this(originalContext);
-        variables.put(RELATIVE_VALUE, relativeValue);
-        variables.put(RELATIVE_LOCATION, relativeLocation);
+    private static Map<String, Value> copyWithAdditions(Map<String, Value> original, Map<String, Value> additions) {
+        var copy = new HashMap<>(original);
+        copy.putAll(additions);
+        return copy;
     }
 
     public Value subject() {
@@ -93,18 +104,18 @@ public record EvaluationContext(
     }
 
     public EvaluationContext withRelativeValue(Value relativeValue, Value relativeLocation) {
-        return new EvaluationContext(this, relativeValue, relativeLocation);
+        return new EvaluationContext(this, Map.of(RELATIVE_VALUE, relativeValue, RELATIVE_LOCATION, relativeLocation));
     }
 
     public EvaluationContext withRelativeValue(Value relativeValue) {
-        return new EvaluationContext(this, relativeValue, Value.UNDEFINED);
+        return new EvaluationContext(this, Map.of(RELATIVE_VALUE, relativeValue, RELATIVE_LOCATION, Value.UNDEFINED));
     }
 
     public EvaluationContext with(String identifier, Value value) {
         if (RESERVED_IDENTIFIERS.contains(identifier)) {
             throw new PolicyEvaluationException("Identifier " + identifier + " is reserved.");
         }
-        return new EvaluationContext(this, identifier, value);
+        return new EvaluationContext(this, Map.of(identifier, value));
     }
 
 }

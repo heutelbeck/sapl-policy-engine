@@ -148,7 +148,7 @@ public final class SingleDocumentPolicyDecisionPoint implements PolicyDecisionPo
             throw new IllegalStateException("No policy document loaded. Call loadDocument() first.");
         }
 
-        val evaluationContext = new EvaluationContext(null, null, authorizationSubscription,
+        val evaluationContext = new EvaluationContext("", "", "", authorizationSubscription,
                 compilationContext.getFunctionBroker(), compilationContext.getAttributeBroker());
 
         // Evaluate match expression
