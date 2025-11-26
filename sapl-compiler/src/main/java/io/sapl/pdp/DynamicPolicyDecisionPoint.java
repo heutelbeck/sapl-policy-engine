@@ -17,15 +17,22 @@
  */
 package io.sapl.pdp;
 
+import io.sapl.api.model.CompiledExpression;
 import io.sapl.api.model.EvaluationContext;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.PolicyDecisionPoint;
+import io.sapl.api.prp.MatchingDocuments;
+import io.sapl.api.prp.RetrievalError;
+import io.sapl.compiler.CombiningAlgorithmCompiler;
+import io.sapl.compiler.CompiledPolicy;
+import io.sapl.compiler.ExpressionCompiler;
 import lombok.val;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.util.context.ContextView;
 
+import java.util.List;
 import java.util.function.Function;
 
 public class DynamicPolicyDecisionPoint implements PolicyDecisionPoint {
@@ -72,27 +79,53 @@ public class DynamicPolicyDecisionPoint implements PolicyDecisionPoint {
 
     private Flux<AuthorizationDecision> decideOnlyOneApplicable(CompiledPDPConfiguration pdpConfiguration,
             EvaluationContext evaluationContext) {
-        return Flux.just(AuthorizationDecision.INDETERMINATE);
+        return evaluateCombiningAlgorithm(pdpConfiguration, evaluationContext,
+                CombiningAlgorithmCompiler::onlyOneApplicable);
     }
 
     private Flux<AuthorizationDecision> decidePermitUnlessDeny(CompiledPDPConfiguration pdpConfiguration,
             EvaluationContext evaluationContext) {
-        return Flux.just(AuthorizationDecision.INDETERMINATE);
+        return evaluateCombiningAlgorithm(pdpConfiguration, evaluationContext,
+                CombiningAlgorithmCompiler::permitUnlessDeny);
     }
 
     private Flux<AuthorizationDecision> decideDenyUnlessPermit(CompiledPDPConfiguration pdpConfiguration,
             EvaluationContext evaluationContext) {
-        return Flux.just(AuthorizationDecision.INDETERMINATE);
+        return evaluateCombiningAlgorithm(pdpConfiguration, evaluationContext,
+                CombiningAlgorithmCompiler::denyUnlessPermit);
     }
 
     private Flux<AuthorizationDecision> decidePermitOverrides(CompiledPDPConfiguration pdpConfiguration,
             EvaluationContext evaluationContext) {
-        return Flux.just(AuthorizationDecision.INDETERMINATE);
+        return evaluateCombiningAlgorithm(pdpConfiguration, evaluationContext,
+                CombiningAlgorithmCompiler::permitOverrides);
     }
 
     private Flux<AuthorizationDecision> decideDenyOverrides(CompiledPDPConfiguration pdpConfiguration,
             EvaluationContext evaluationContext) {
-        return Flux.just(AuthorizationDecision.INDETERMINATE);
+        return evaluateCombiningAlgorithm(pdpConfiguration, evaluationContext,
+                CombiningAlgorithmCompiler::denyOverrides);
+    }
+
+    private Flux<AuthorizationDecision> evaluateCombiningAlgorithm(CompiledPDPConfiguration pdpConfiguration,
+            EvaluationContext evaluationContext,
+            Function<List<CompiledPolicy>, CompiledExpression> combiningAlgorithm) {
+        val retrievalResult = pdpConfiguration.policyRetrievalPoint()
+                .getMatchingDocuments(evaluationContext.authorizationSubscription(), evaluationContext);
+        return switch (retrievalResult) {
+        case RetrievalError error                -> Flux.just(AuthorizationDecision.INDETERMINATE);
+        case MatchingDocuments matchingDocuments ->
+            evaluateMatchingPolicies(matchingDocuments.matches(), evaluationContext, combiningAlgorithm);
+        };
+    }
+
+    private Flux<AuthorizationDecision> evaluateMatchingPolicies(List<CompiledPolicy> policies,
+            EvaluationContext evaluationContext,
+            Function<List<CompiledPolicy>, CompiledExpression> combiningAlgorithm) {
+        val combinedExpression = combiningAlgorithm.apply(policies);
+        return ExpressionCompiler.compiledExpressionToFlux(combinedExpression)
+                .contextWrite(context -> context.put(EvaluationContext.class, evaluationContext))
+                .map(AuthorizationDecision::of);
     }
 
     private EvaluationContext evaluationContext(AuthorizationSubscription authorizationSubscription,

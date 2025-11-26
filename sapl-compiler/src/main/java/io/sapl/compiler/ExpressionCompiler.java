@@ -1665,7 +1665,7 @@ public class ExpressionCompiler {
      *
      * @return a Flux stream emitting the expression's values
      */
-    Flux<Value> compiledExpressionToFlux(CompiledExpression expression) {
+    public Flux<Value> compiledExpressionToFlux(CompiledExpression expression) {
         return switch (expression) {
         case Value value                          -> Flux.just(value);
         case StreamExpression(Flux<Value> stream) -> stream;

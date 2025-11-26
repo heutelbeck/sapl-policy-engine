@@ -43,8 +43,7 @@ public class ConfigurationRegister implements CompiledPDPConfigurationSource {
     private final FunctionBroker  functionBroker;
     private final AttributeBroker attributeBroker;
 
-    private final Map<String, CompiledPDPConfiguration>                       configurations = new ConcurrentHashMap<>();
-    private final Map<String, Sinks.Many<Optional<CompiledPDPConfiguration>>> sinks          = new ConcurrentHashMap<>();
+    private final Map<String, Sinks.Many<Optional<CompiledPDPConfiguration>>> sinks = new ConcurrentHashMap<>();
 
     public void loadConfiguration(PDPConfiguration pdpConfiguration, boolean keepOldConfigOnError) {
         val namesInUse                = new HashSet<String>();
@@ -80,12 +79,10 @@ public class ConfigurationRegister implements CompiledPDPConfigurationSource {
         val newConfiguration     = new CompiledPDPConfiguration(pdpConfiguration.pdpId(),
                 pdpConfiguration.configurationId(), pdpConfiguration.combiningAlgorithm(), pdpConfiguration.variables(),
                 functionBroker, attributeBroker, policyRetrievalPoint);
-        configurations.put(pdpConfiguration.pdpId(), newConfiguration);
         getSink(pdpConfiguration.pdpId()).tryEmitNext(Optional.of(newConfiguration));
     }
 
     public void removeConfigurationForPdp(String pdpId) {
-        configurations.remove(pdpId);
         getSink(pdpId).tryEmitNext(Optional.empty());
     }
 
