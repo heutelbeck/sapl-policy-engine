@@ -47,6 +47,14 @@ public record EvaluationContext(
                 subscriptionVariables(authorizationSubscription), functionBroker, attributeBroker);
     }
 
+    public static EvaluationContext of(String pdpId, String configurationId, String subscriptionId,
+            AuthorizationSubscription authorizationSubscription, Map<String, Value> pdpVariables,
+            FunctionBroker functionBroker, AttributeBroker attributeBroker) {
+        return new EvaluationContext(pdpId, configurationId, subscriptionId, authorizationSubscription,
+                subscriptionVariablesWithAdditions(authorizationSubscription, pdpVariables), functionBroker,
+                attributeBroker);
+    }
+
     public EvaluationContext(String configurationId,
             String subscriptionId,
             AuthorizationSubscription authorizationSubscription,
@@ -69,6 +77,15 @@ public record EvaluationContext(
             variables.put(ACTION, subscription.action());
             variables.put(RESOURCE, subscription.resource());
             variables.put(ENVIRONMENT, subscription.environment());
+        }
+        return variables;
+    }
+
+    private static Map<String, Value> subscriptionVariablesWithAdditions(AuthorizationSubscription subscription,
+            Map<String, Value> additions) {
+        var variables = subscriptionVariables(subscription);
+        if (additions != null) {
+            variables.putAll(additions);
         }
         return variables;
     }

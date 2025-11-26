@@ -62,7 +62,7 @@ public class DynamicPolicyDecisionPoint implements PolicyDecisionPoint {
         return pdpId().flatMapMany(pdpConfigurationSource::getPDPConfigurations)
                 .switchMap(optionalConfig -> optionalConfig
                         .map(config -> decide(authorizationSubscription, config, subscriptionId))
-                        .orElse(Flux.just(AuthorizationDecision.INDETERMINATE)));
+                        .orElseGet(()->Flux.just(AuthorizationDecision.INDETERMINATE)));
     }
 
     private Flux<AuthorizationDecision> decide(AuthorizationSubscription authorizationSubscription,
@@ -80,31 +80,31 @@ public class DynamicPolicyDecisionPoint implements PolicyDecisionPoint {
     private Flux<AuthorizationDecision> decideOnlyOneApplicable(CompiledPDPConfiguration pdpConfiguration,
             EvaluationContext evaluationContext) {
         return evaluateCombiningAlgorithm(pdpConfiguration, evaluationContext,
-                CombiningAlgorithmCompiler::onlyOneApplicable);
+                CombiningAlgorithmCompiler::onlyOneApplicablePreMatched);
     }
 
     private Flux<AuthorizationDecision> decidePermitUnlessDeny(CompiledPDPConfiguration pdpConfiguration,
             EvaluationContext evaluationContext) {
         return evaluateCombiningAlgorithm(pdpConfiguration, evaluationContext,
-                CombiningAlgorithmCompiler::permitUnlessDeny);
+                CombiningAlgorithmCompiler::permitUnlessDenyPreMatched);
     }
 
     private Flux<AuthorizationDecision> decideDenyUnlessPermit(CompiledPDPConfiguration pdpConfiguration,
             EvaluationContext evaluationContext) {
         return evaluateCombiningAlgorithm(pdpConfiguration, evaluationContext,
-                CombiningAlgorithmCompiler::denyUnlessPermit);
+                CombiningAlgorithmCompiler::denyUnlessPermitPreMatched);
     }
 
     private Flux<AuthorizationDecision> decidePermitOverrides(CompiledPDPConfiguration pdpConfiguration,
             EvaluationContext evaluationContext) {
         return evaluateCombiningAlgorithm(pdpConfiguration, evaluationContext,
-                CombiningAlgorithmCompiler::permitOverrides);
+                CombiningAlgorithmCompiler::permitOverridesPreMatched);
     }
 
     private Flux<AuthorizationDecision> decideDenyOverrides(CompiledPDPConfiguration pdpConfiguration,
             EvaluationContext evaluationContext) {
         return evaluateCombiningAlgorithm(pdpConfiguration, evaluationContext,
-                CombiningAlgorithmCompiler::denyOverrides);
+                CombiningAlgorithmCompiler::denyOverridesPreMatched);
     }
 
     private Flux<AuthorizationDecision> evaluateCombiningAlgorithm(CompiledPDPConfiguration pdpConfiguration,
@@ -113,9 +113,9 @@ public class DynamicPolicyDecisionPoint implements PolicyDecisionPoint {
         val retrievalResult = pdpConfiguration.policyRetrievalPoint()
                 .getMatchingDocuments(evaluationContext.authorizationSubscription(), evaluationContext);
         return switch (retrievalResult) {
-        case RetrievalError error                -> Flux.just(AuthorizationDecision.INDETERMINATE);
-        case MatchingDocuments matchingDocuments ->
-            evaluateMatchingPolicies(matchingDocuments.matches(), evaluationContext, combiningAlgorithm);
+        case RetrievalError error                            -> Flux.just(AuthorizationDecision.INDETERMINATE);
+        case MatchingDocuments(List<CompiledPolicy> matches) ->
+            evaluateMatchingPolicies(matches, evaluationContext, combiningAlgorithm);
         };
     }
 
@@ -130,7 +130,7 @@ public class DynamicPolicyDecisionPoint implements PolicyDecisionPoint {
 
     private EvaluationContext evaluationContext(AuthorizationSubscription authorizationSubscription,
             CompiledPDPConfiguration pdpConfiguration, String subscriptionId) {
-        return new EvaluationContext(pdpConfiguration.pdpId(), pdpConfiguration.configurationId(), subscriptionId,
+        return EvaluationContext.of(pdpConfiguration.pdpId(), pdpConfiguration.configurationId(), subscriptionId,
                 authorizationSubscription, pdpConfiguration.variables(), pdpConfiguration.functionBroker(),
                 pdpConfiguration.attributeBroker());
     }

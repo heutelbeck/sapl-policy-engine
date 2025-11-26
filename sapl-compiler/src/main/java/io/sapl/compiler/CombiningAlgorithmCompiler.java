@@ -266,7 +266,11 @@ public class CombiningAlgorithmCompiler {
     /**
      * Creates a Flux that evaluates a single policy and returns PolicyEvaluation.
      */
-    private static Flux<PolicyEvaluation> createPolicyFlux(CompiledPolicy policy) {
+    private static Flux<PolicyEvaluation> createPolicyFlux(CompiledPolicy policy, boolean preMatched) {
+        if (preMatched) {
+            return ExpressionCompiler.compiledExpressionToFlux(policy.decisionExpression())
+                    .map(CombiningAlgorithmCompiler::extractPolicyEvaluation);
+        }
         val matchFlux = ExpressionCompiler.compiledExpressionToFlux(policy.matchExpression());
         return matchFlux.switchMap(matches -> {
             if (!(matches instanceof BooleanValue matchesBool) || !matchesBool.value()) {
@@ -282,18 +286,23 @@ public class CombiningAlgorithmCompiler {
     /**
      * Generic implementation for combining algorithms that follow the standard
      * pattern.
+     *
+     * @param compiledPolicies policies to combine
+     * @param logic algorithm-specific combining logic
+     * @param preMatched if true, skip match expression evaluation (policies already
+     * matched by PRP)
      */
     private static CompiledExpression genericCombiningAlgorithm(List<CompiledPolicy> compiledPolicies,
-            CombiningAlgorithmLogic logic) {
+            CombiningAlgorithmLogic logic, boolean preMatched) {
 
         if (compiledPolicies.isEmpty()) {
             return getDefaultDecisionConstant(logic.getDefaultDecision());
         }
 
         if (allPureOrConstant(compiledPolicies)) {
-            return new PureExpression(ctx -> evaluateGenericPure(compiledPolicies, logic, ctx), true);
+            return new PureExpression(ctx -> evaluateGenericPure(compiledPolicies, logic, ctx, preMatched), true);
         } else {
-            return new StreamExpression(buildGenericStream(compiledPolicies, logic));
+            return new StreamExpression(buildGenericStream(compiledPolicies, logic, preMatched));
         }
     }
 
@@ -307,12 +316,12 @@ public class CombiningAlgorithmCompiler {
     }
 
     private static Value evaluateGenericPure(List<CompiledPolicy> compiledPolicies, CombiningAlgorithmLogic logic,
-            EvaluationContext ctx) {
+            EvaluationContext ctx, boolean preMatched) {
 
         val accumulator = new DecisionAccumulator(logic.getDefaultDecision());
 
         for (val policy : compiledPolicies) {
-            if (!evaluateMatch(policy, ctx)) {
+            if (!preMatched && !evaluateMatch(policy, ctx)) {
                 continue;
             }
             val evaluation = evaluatePolicyDecision(policy, ctx);
@@ -322,10 +331,10 @@ public class CombiningAlgorithmCompiler {
         return accumulator.buildFinalDecision();
     }
 
-    private static Flux<Value> buildGenericStream(List<CompiledPolicy> compiledPolicies,
-            CombiningAlgorithmLogic logic) {
+    private static Flux<Value> buildGenericStream(List<CompiledPolicy> compiledPolicies, CombiningAlgorithmLogic logic,
+            boolean preMatched) {
 
-        val policyFluxes = compiledPolicies.stream().map(CombiningAlgorithmCompiler::createPolicyFlux).toList();
+        val policyFluxes = compiledPolicies.stream().map(policy -> createPolicyFlux(policy, preMatched)).toList();
 
         return Flux.combineLatest(policyFluxes, evaluations -> {
             val accumulator = new DecisionAccumulator(logic.getDefaultDecision());
@@ -343,94 +352,142 @@ public class CombiningAlgorithmCompiler {
 
     /**
      * Compiles deny-unless-permit algorithm. Default: DENY. Any PERMIT yields
-     * PERMIT. Multiple resource transformations
-     * yield DENY.
+     * PERMIT. Multiple resource transformations yield DENY.
      *
-     * @param compiledPolicies
-     * policies to combine
-     *
+     * @param compiledPolicies policies to combine
      * @return compiled expression producing the combined decision
      */
     public static CompiledExpression denyUnlessPermit(List<CompiledPolicy> compiledPolicies) {
-        return genericCombiningAlgorithm(compiledPolicies, DENY_UNLESS_PERMIT);
+        return genericCombiningAlgorithm(compiledPolicies, DENY_UNLESS_PERMIT, false);
+    }
+
+    /**
+     * Compiles deny-unless-permit algorithm for pre-matched policies.
+     * Use when policies have already been filtered by the PRP.
+     *
+     * @param compiledPolicies policies to combine (already matched)
+     * @return compiled expression producing the combined decision
+     */
+    public static CompiledExpression denyUnlessPermitPreMatched(List<CompiledPolicy> compiledPolicies) {
+        return genericCombiningAlgorithm(compiledPolicies, DENY_UNLESS_PERMIT, true);
     }
 
     /**
      * Compiles deny-overrides algorithm. Default: NOT_APPLICABLE. DENY overrides
-     * all. INDETERMINATE propagates unless
-     * DENY present. Multiple resource transformations yield INDETERMINATE (unless
-     * already DENY).
+     * all. INDETERMINATE propagates unless DENY present. Multiple resource
+     * transformations yield INDETERMINATE (unless already DENY).
      *
-     * @param compiledPolicies
-     * policies to combine
-     *
+     * @param compiledPolicies policies to combine
      * @return compiled expression producing the combined decision
      */
     public static CompiledExpression denyOverrides(List<CompiledPolicy> compiledPolicies) {
-        return genericCombiningAlgorithm(compiledPolicies, DENY_OVERRIDES);
+        return genericCombiningAlgorithm(compiledPolicies, DENY_OVERRIDES, false);
+    }
+
+    /**
+     * Compiles deny-overrides algorithm for pre-matched policies.
+     * Use when policies have already been filtered by the PRP.
+     *
+     * @param compiledPolicies policies to combine (already matched)
+     * @return compiled expression producing the combined decision
+     */
+    public static CompiledExpression denyOverridesPreMatched(List<CompiledPolicy> compiledPolicies) {
+        return genericCombiningAlgorithm(compiledPolicies, DENY_OVERRIDES, true);
     }
 
     /**
      * Compiles permit-overrides algorithm. Default: NOT_APPLICABLE. PERMIT
-     * overrides all. INDETERMINATE propagates
-     * unless PERMIT present. Multiple resource transformations yield INDETERMINATE.
+     * overrides all. INDETERMINATE propagates unless PERMIT present. Multiple
+     * resource transformations yield INDETERMINATE.
      *
-     * @param compiledPolicies
-     * policies to combine
-     *
+     * @param compiledPolicies policies to combine
      * @return compiled expression producing the combined decision
      */
     public static CompiledExpression permitOverrides(List<CompiledPolicy> compiledPolicies) {
-        return genericCombiningAlgorithm(compiledPolicies, PERMIT_OVERRIDES);
+        return genericCombiningAlgorithm(compiledPolicies, PERMIT_OVERRIDES, false);
+    }
+
+    /**
+     * Compiles permit-overrides algorithm for pre-matched policies.
+     * Use when policies have already been filtered by the PRP.
+     *
+     * @param compiledPolicies policies to combine (already matched)
+     * @return compiled expression producing the combined decision
+     */
+    public static CompiledExpression permitOverridesPreMatched(List<CompiledPolicy> compiledPolicies) {
+        return genericCombiningAlgorithm(compiledPolicies, PERMIT_OVERRIDES, true);
     }
 
     /**
      * Compiles permit-unless-deny algorithm. Default: PERMIT. Any DENY yields DENY.
-     * Multiple resource transformations
-     * yield DENY.
+     * Multiple resource transformations yield DENY.
      *
-     * @param compiledPolicies
-     * policies to combine
-     *
+     * @param compiledPolicies policies to combine
      * @return compiled expression producing the combined decision
      */
     public static CompiledExpression permitUnlessDeny(List<CompiledPolicy> compiledPolicies) {
-        return genericCombiningAlgorithm(compiledPolicies, PERMIT_UNLESS_DENY);
+        return genericCombiningAlgorithm(compiledPolicies, PERMIT_UNLESS_DENY, false);
+    }
+
+    /**
+     * Compiles permit-unless-deny algorithm for pre-matched policies.
+     * Use when policies have already been filtered by the PRP.
+     *
+     * @param compiledPolicies policies to combine (already matched)
+     * @return compiled expression producing the combined decision
+     */
+    public static CompiledExpression permitUnlessDenyPreMatched(List<CompiledPolicy> compiledPolicies) {
+        return genericCombiningAlgorithm(compiledPolicies, PERMIT_UNLESS_DENY, true);
     }
 
     /**
      * Compiles only-one-applicable algorithm. Returns the single applicable
-     * policy's decision. If zero applicable:
-     * NOT_APPLICABLE. If multiple applicable or any INDETERMINATE: INDETERMINATE.
+     * policy's decision. If zero applicable: NOT_APPLICABLE. If multiple
+     * applicable or any INDETERMINATE: INDETERMINATE.
      *
-     * @param compiledPolicies
-     * policies to combine
-     *
+     * @param compiledPolicies policies to combine
      * @return compiled expression producing the combined decision
      */
     public static CompiledExpression onlyOneApplicable(List<CompiledPolicy> compiledPolicies) {
+        return onlyOneApplicableInternal(compiledPolicies, false);
+    }
+
+    /**
+     * Compiles only-one-applicable algorithm for pre-matched policies.
+     * Use when policies have already been filtered by the PRP.
+     *
+     * @param compiledPolicies policies to combine (already matched)
+     * @return compiled expression producing the combined decision
+     */
+    public static CompiledExpression onlyOneApplicablePreMatched(List<CompiledPolicy> compiledPolicies) {
+        return onlyOneApplicableInternal(compiledPolicies, true);
+    }
+
+    private static CompiledExpression onlyOneApplicableInternal(List<CompiledPolicy> compiledPolicies,
+            boolean preMatched) {
         if (compiledPolicies.isEmpty()) {
             return AuthorizationDecisionUtil.NOT_APPLICABLE;
         }
 
         if (allPureOrConstant(compiledPolicies)) {
-            return new PureExpression(ctx -> evaluateOnlyOneApplicablePure(compiledPolicies, ctx), true);
+            return new PureExpression(ctx -> evaluateOnlyOneApplicablePure(compiledPolicies, ctx, preMatched), true);
         }
-        return new StreamExpression(buildOnlyOneApplicableStream(compiledPolicies));
+        return new StreamExpression(buildOnlyOneApplicableStream(compiledPolicies, preMatched));
     }
 
-    private static Value evaluateOnlyOneApplicablePure(List<CompiledPolicy> compiledPolicies, EvaluationContext ctx) {
+    private static Value evaluateOnlyOneApplicablePure(List<CompiledPolicy> compiledPolicies, EvaluationContext ctx,
+            boolean preMatched) {
         val accumulator = new OnlyOneApplicableAccumulator();
         for (val policy : compiledPolicies) {
-            if (evaluateMatch(policy, ctx)) {
+            if (preMatched || evaluateMatch(policy, ctx)) {
                 accumulator.addEvaluation(evaluatePolicyDecision(policy, ctx));
             }
         }
         return accumulator.buildFinalDecision();
     }
 
-    private static Flux<Value> buildOnlyOneApplicableStream(List<CompiledPolicy> compiledPolicies) {
-        val policyFluxes = compiledPolicies.stream().map(CombiningAlgorithmCompiler::createPolicyFlux).toList();
+    private static Flux<Value> buildOnlyOneApplicableStream(List<CompiledPolicy> compiledPolicies, boolean preMatched) {
+        val policyFluxes = compiledPolicies.stream().map(policy -> createPolicyFlux(policy, preMatched)).toList();
         return Flux.combineLatest(policyFluxes, evaluations -> {
             val accumulator = new OnlyOneApplicableAccumulator();
             for (val evaluation : evaluations) {
