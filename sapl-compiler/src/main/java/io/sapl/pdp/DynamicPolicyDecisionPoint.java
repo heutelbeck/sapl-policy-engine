@@ -62,7 +62,7 @@ public class DynamicPolicyDecisionPoint implements PolicyDecisionPoint {
         return pdpId().flatMapMany(pdpConfigurationSource::getPDPConfigurations)
                 .switchMap(optionalConfig -> optionalConfig
                         .map(config -> decide(authorizationSubscription, config, subscriptionId))
-                        .orElseGet(()->Flux.just(AuthorizationDecision.INDETERMINATE)));
+                        .orElseGet(() -> Flux.just(AuthorizationDecision.INDETERMINATE)));
     }
 
     private Flux<AuthorizationDecision> decide(AuthorizationSubscription authorizationSubscription,

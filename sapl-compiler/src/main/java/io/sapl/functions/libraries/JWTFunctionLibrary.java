@@ -66,6 +66,9 @@ import java.time.Instant;
 @FunctionLibrary(name = JWTFunctionLibrary.NAME, description = JWTFunctionLibrary.DESCRIPTION, libraryDocumentation = JWTFunctionLibrary.LIBRARY_DOCUMENTATION)
 public class JWTFunctionLibrary {
 
+    private static final JsonNodeFactory JSON = JsonNodeFactory.instance;
+    private final ObjectMapper           mapper;
+
     static final String NAME        = "jwt";
     static final String DESCRIPTION = "Functions for parsing JSON Web Tokens. Contents are returned without validation.";
 
@@ -109,7 +112,7 @@ public class JWTFunctionLibrary {
             * `<jwt.validity>`: Validity state (VALID, EXPIRED, IMMATURE, UNTRUSTED, etc.)
 
             PIP attributes are reactive streams that automatically trigger policy re-evaluation when
-            tokens transition between states (immature → valid → expired).
+            tokens transition between states (immature -> valid -> expired).
 
             See JWT PIP documentation for configuration of public key servers and trusted key whitelists.
 
@@ -128,10 +131,6 @@ public class JWTFunctionLibrary {
             The target expression quickly filters relevant policies by checking scopes without validation.
             The policy body then validates the token signature and time claims before granting access.
             """;
-
-    private static final JsonNodeFactory JSON = JsonNodeFactory.instance;
-
-    private final ObjectMapper mapper;
 
     /**
      * Parses a JWT and returns its decoded header and payload without validation.

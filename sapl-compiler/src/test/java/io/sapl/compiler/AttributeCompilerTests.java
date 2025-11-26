@@ -17,16 +17,13 @@
  */
 package io.sapl.compiler;
 
-import io.sapl.api.attributes.AttributeBroker;
-import io.sapl.api.functions.FunctionBroker;
 import io.sapl.api.model.*;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pip.Attribute;
 import io.sapl.api.pip.EnvironmentAttribute;
 import io.sapl.api.pip.PolicyInformationPoint;
-import io.sapl.attributes.CachingAttributeBroker;
-import io.sapl.attributes.InMemoryAttributeRepository;
-import io.sapl.functions.DefaultFunctionBroker;
+import io.sapl.pdp.PolicyDecisionPointBuilder;
+import io.sapl.pdp.PolicyDecisionPointBuilder.PDPComponents;
 import io.sapl.util.ParserUtil;
 import lombok.SneakyThrows;
 import lombok.val;
@@ -37,7 +34,6 @@ import org.junit.jupiter.params.provider.MethodSource;
 import reactor.core.publisher.Flux;
 import reactor.test.StepVerifier;
 
-import java.time.Clock;
 import java.util.stream.Stream;
 
 import static io.sapl.api.model.ValueJsonMarshaller.json;
@@ -47,36 +43,20 @@ import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 class AttributeCompilerTests {
 
-    private record Brokers(FunctionBroker functionBroker, AttributeBroker attributeBroker) {}
-
-    /**
-     * Creates fresh broker instances for test isolation.
-     */
-    private Brokers createBrokers() {
-        val functionBroker      = new DefaultFunctionBroker();
-        val attributeRepository = new InMemoryAttributeRepository(Clock.systemUTC());
-        val attributeBroker     = new CachingAttributeBroker(attributeRepository);
-        attributeBroker.loadPolicyInformationPointLibrary(new DiscworldPip());
-        return new Brokers(functionBroker, attributeBroker);
+    @SneakyThrows
+    private PDPComponents createComponents() {
+        return PolicyDecisionPointBuilder.withoutDefaults().withPolicyInformationPoint(new DiscworldPip()).build();
     }
 
-    /**
-     * Creates a fresh CompilationContext with new broker instances for test
-     * isolation.
-     */
     private CompilationContext createCompilationContext() {
-        val brokers = createBrokers();
-        return new CompilationContext(brokers.functionBroker(), brokers.attributeBroker());
+        val components = createComponents();
+        return new CompilationContext(components.functionBroker(), components.attributeBroker());
     }
 
-    /**
-     * Creates a fresh EvaluationContext with new broker instances for test
-     * isolation.
-     */
     private EvaluationContext createEvaluationContext(AuthorizationSubscription authorizationSubscription) {
-        val brokers = createBrokers();
+        val components = createComponents();
         return new EvaluationContext("id", "ankh_morpork", "subscription_001", authorizationSubscription,
-                brokers.functionBroker(), brokers.attributeBroker());
+                components.functionBroker(), components.attributeBroker());
     }
 
     private EvaluationContext createEvaluationContext() {

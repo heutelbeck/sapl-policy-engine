@@ -58,9 +58,9 @@ import java.time.Clock;
  * <p>
  * Evaluation logic:
  * <ul>
- * <li>Check match expression - if error → INDETERMINATE</li>
- * <li>If match returns false → NOT_APPLICABLE</li>
- * <li>If match returns true → evaluate decision expression and convert to
+ * <li>Check match expression - if error -> INDETERMINATE</li>
+ * <li>If match returns false -> NOT_APPLICABLE</li>
+ * <li>If match returns true -> evaluate decision expression and convert to
  * AuthorizationDecision</li>
  * </ul>
  */
@@ -128,9 +128,9 @@ public final class SingleDocumentPolicyDecisionPoint implements PolicyDecisionPo
      * Evaluation flow:
      * <ol>
      * <li>Check if policy matches (evaluate match expression)</li>
-     * <li>If match expression produces error → return INDETERMINATE</li>
-     * <li>If match returns false → return NOT_APPLICABLE</li>
-     * <li>If match returns true → evaluate decision expression and convert to
+     * <li>If match expression produces error -> return INDETERMINATE</li>
+     * <li>If match returns false -> return NOT_APPLICABLE</li>
+     * <li>If match returns true -> evaluate decision expression and convert to
      * AuthorizationDecision</li>
      * </ol>
      *

@@ -31,6 +31,10 @@ public record AuthorizationDecision(
         @NonNull List<Value> obligations,
         @NonNull List<Value> advice,
         @NonNull Value resource) {
+    public static final AuthorizationDecision PERMIT = new AuthorizationDecision(Decision.PERMIT, List.of(), List.of(),
+            Value.UNDEFINED);
+    public static final AuthorizationDecision DENY = new AuthorizationDecision(Decision.DENY, List.of(), List.of(),
+            Value.UNDEFINED);
     public static final AuthorizationDecision INDETERMINATE = new AuthorizationDecision(Decision.INDETERMINATE,
             List.of(), List.of(), Value.UNDEFINED);
     public static final AuthorizationDecision NOT_APPLICABLE = new AuthorizationDecision(Decision.NOT_APPLICABLE,

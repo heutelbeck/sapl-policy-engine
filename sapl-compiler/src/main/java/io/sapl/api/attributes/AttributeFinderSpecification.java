@@ -102,10 +102,10 @@ public record AttributeFinderSpecification(
      * <p>
      * Collision conditions:
      * <ul>
-     * <li>Different names or entity types → no collision</li>
-     * <li>Both have varargs → collision (can't disambiguate)</li>
-     * <li>Same parameter count → collision (same signature)</li>
-     * <li>Different parameter counts without varargs → no collision</li>
+     * <li>Different names or entity types -> no collision</li>
+     * <li>Both have varargs -> collision (can't disambiguate)</li>
+     * <li>Same parameter count -> collision (same signature)</li>
+     * <li>Different parameter counts without varargs -> no collision</li>
      * </ul>
      *
      * @param other

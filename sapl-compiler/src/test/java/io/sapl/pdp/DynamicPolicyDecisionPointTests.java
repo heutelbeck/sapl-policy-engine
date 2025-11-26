@@ -20,9 +20,6 @@ package io.sapl.pdp;
 import io.sapl.api.model.ObjectValue;
 import io.sapl.api.model.Value;
 import io.sapl.api.pdp.*;
-import io.sapl.attributes.CachingAttributeBroker;
-import io.sapl.attributes.InMemoryAttributeRepository;
-import io.sapl.functions.DefaultFunctionBroker;
 import lombok.val;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -31,7 +28,6 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import reactor.test.StepVerifier;
 
-import java.time.Clock;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
@@ -52,12 +48,10 @@ class DynamicPolicyDecisionPointTests {
     private DynamicPolicyDecisionPoint pdp;
 
     @BeforeEach
-    void setUp() {
-        val functionBroker  = new DefaultFunctionBroker();
-        val attributeRepo   = new InMemoryAttributeRepository(Clock.systemUTC());
-        val attributeBroker = new CachingAttributeBroker(attributeRepo);
-        configurationRegister = new ConfigurationRegister(functionBroker, attributeBroker);
-        pdp                   = new DynamicPolicyDecisionPoint(configurationRegister, new UUIDFactory());
+    void setUp() throws Exception {
+        val components = PolicyDecisionPointBuilder.withoutDefaults().build();
+        configurationRegister = components.configurationRegister();
+        pdp                   = (DynamicPolicyDecisionPoint) components.pdp();
     }
 
     @Test

@@ -139,8 +139,8 @@ public final class AttributeStream {
     /**
      * Creates the multicast stream with unified reactive chain structure.
      * <p>
-     * Chain structure: sink → [optional PIP start] → [grace period hooks] →
-     * replay(1) → refCount(grace period) →
+     * Chain structure: sink -> [optional PIP start] -> [grace period hooks] ->
+     * replay(1) -> refCount(grace period) ->
      * subscribers
      * <p>
      * The hooks capture when refCount drops to zero after grace period expiration:

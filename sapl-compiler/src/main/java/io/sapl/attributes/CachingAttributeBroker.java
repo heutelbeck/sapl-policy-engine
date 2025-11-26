@@ -486,7 +486,7 @@ public class CachingAttributeBroker implements AttributeBroker {
                 }
 
             } catch (InitializationException e) {
-                // Any method fails → entire library fails
+                // Any method fails -> entire library fails
                 throw new AttributeBrokerException("Failed to process method '" + method.getName() + "' in PIP '"
                         + pipName + "': " + e.getMessage(), e);
             }

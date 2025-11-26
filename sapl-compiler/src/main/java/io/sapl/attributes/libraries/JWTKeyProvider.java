@@ -28,6 +28,7 @@ import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.reactive.function.client.WebClient.ResponseSpec;
 import reactor.core.publisher.Mono;
 
+import java.io.Serial;
 import java.security.interfaces.RSAPublicKey;
 import java.time.Instant;
 import java.util.Map;
@@ -56,6 +57,7 @@ public class JWTKeyProvider {
      */
     @StandardException
     public static class CachingException extends Exception {
+        @Serial
         private static final long serialVersionUID = SaplVersion.VERSION_UID;
     }
 
