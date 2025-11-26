@@ -20,13 +20,7 @@ package io.sapl.api.model.jackson;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.sapl.api.model.Value;
-import io.sapl.api.pdp.AuthorizationDecision;
-import io.sapl.api.pdp.AuthorizationSubscription;
-import io.sapl.api.pdp.Decision;
-import io.sapl.api.pdp.IdentifiableAuthorizationDecision;
-import io.sapl.api.pdp.IdentifiableAuthorizationSubscription;
-import io.sapl.api.pdp.MultiAuthorizationDecision;
-import io.sapl.api.pdp.MultiAuthorizationSubscription;
+import io.sapl.api.pdp.*;
 import lombok.val;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -86,18 +80,16 @@ class SaplJacksonModuleTests {
                 arguments("{\"tome\":\"forbidden\"}", Value.ofObject(Map.of("tome", Value.of("forbidden")))));
     }
 
-    @Test
-    void whenSerializingUndefinedValue_thenThrowsException() {
-        val undefined = Value.UNDEFINED;
-        assertThatThrownBy(() -> mapper.writeValueAsString(undefined))
-                .hasCauseInstanceOf(IllegalArgumentException.class).hasMessageContaining("UndefinedValue");
+    @ParameterizedTest
+    @MethodSource("nonSerializableValueCases")
+    void whenSerializingNonSerializableValue_thenThrowsException(Value value, String expectedMessage) {
+        assertThatThrownBy(() -> mapper.writeValueAsString(value)).hasCauseInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining(expectedMessage);
     }
 
-    @Test
-    void whenSerializingErrorValue_thenThrowsException() {
-        val error = Value.error("The stars are not right.");
-        assertThatThrownBy(() -> mapper.writeValueAsString(error)).hasCauseInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("ErrorValue");
+    static Stream<Arguments> nonSerializableValueCases() {
+        return Stream.of(arguments(Value.UNDEFINED, "UndefinedValue"),
+                arguments(Value.error("The stars are not right."), "ErrorValue"));
     }
 
     @Test
@@ -125,58 +117,46 @@ class SaplJacksonModuleTests {
         assertThat(restored).isEqualTo(original);
     }
 
-    @Test
-    void whenSerializingSimplePermitDecision_thenOnlyDecisionFieldIncluded() throws JsonProcessingException {
-        val json = mapper.writeValueAsString(AuthorizationDecision.PERMIT);
-        assertThat(json).isEqualTo("{\"decision\":\"PERMIT\"}");
+    @ParameterizedTest
+    @MethodSource("simpleDecisionSerializationCases")
+    void whenSerializingSimpleDecision_thenOnlyDecisionFieldIncluded(AuthorizationDecision decision,
+            String expectedJson) throws JsonProcessingException {
+        val json = mapper.writeValueAsString(decision);
+        assertThat(json).isEqualTo(expectedJson);
     }
 
-    @Test
-    void whenSerializingSimpleDenyDecision_thenOnlyDecisionFieldIncluded() throws JsonProcessingException {
-        val json = mapper.writeValueAsString(AuthorizationDecision.DENY);
-        assertThat(json).isEqualTo("{\"decision\":\"DENY\"}");
+    static Stream<Arguments> simpleDecisionSerializationCases() {
+        return Stream.of(arguments(AuthorizationDecision.PERMIT, "{\"decision\":\"PERMIT\"}"),
+                arguments(AuthorizationDecision.DENY, "{\"decision\":\"DENY\"}"),
+                arguments(AuthorizationDecision.INDETERMINATE, "{\"decision\":\"INDETERMINATE\"}"),
+                arguments(AuthorizationDecision.NOT_APPLICABLE, "{\"decision\":\"NOT_APPLICABLE\"}"));
     }
 
-    @Test
-    void whenSerializingDecisionWithObligations_thenObligationsIncluded() throws JsonProcessingException {
-        val obligation = Value.ofObject(Map.of("type", Value.of("log"), "message", Value.of("Access granted")));
-        val decision   = new AuthorizationDecision(Decision.PERMIT, List.of(obligation), List.of(), Value.UNDEFINED);
-        val json       = mapper.writeValueAsString(decision);
+    @ParameterizedTest
+    @MethodSource("decisionWithOptionalFieldsCases")
+    void whenSerializingDecisionWithOptionalFields_thenOnlyPresentFieldsIncluded(AuthorizationDecision decision,
+            List<String> expectedPresent, List<String> expectedAbsent) throws JsonProcessingException {
+        val json = mapper.writeValueAsString(decision);
 
-        assertThat(json).contains("\"decision\":\"PERMIT\"").contains("\"obligations\"").contains("\"type\":\"log\"")
-                .doesNotContain("\"advice\"").doesNotContain("\"resource\"");
+        assertThat(json).contains("\"decision\":\"PERMIT\"");
+        expectedPresent.forEach(field -> assertThat(json).contains(field));
+        expectedAbsent.forEach(field -> assertThat(json).doesNotContain(field));
     }
 
-    @Test
-    void whenSerializingDecisionWithAdvice_thenAdviceIncluded() throws JsonProcessingException {
-        val advice   = Value.ofObject(Map.of("recommendation", Value.of("Consider two-factor authentication")));
-        val decision = new AuthorizationDecision(Decision.PERMIT, List.of(), List.of(advice), Value.UNDEFINED);
-        val json     = mapper.writeValueAsString(decision);
+    static Stream<Arguments> decisionWithOptionalFieldsCases() {
+        val obligation = Value.ofObject(Map.of("type", Value.of("log")));
+        val advice     = Value.ofObject(Map.of("recommendation", Value.of("enable_2fa")));
+        val resource   = Value.ofObject(Map.of("filtered", Value.TRUE));
 
-        assertThat(json).contains("\"decision\":\"PERMIT\"").contains("\"advice\"").contains("\"recommendation\"")
-                .doesNotContain("\"obligations\"").doesNotContain("\"resource\"");
-    }
-
-    @Test
-    void whenSerializingDecisionWithResource_thenResourceIncluded() throws JsonProcessingException {
-        val resource = Value.ofObject(Map.of("filtered", Value.TRUE, "originalSize", Value.of(100)));
-        val decision = new AuthorizationDecision(Decision.PERMIT, List.of(), List.of(), resource);
-        val json     = mapper.writeValueAsString(decision);
-
-        assertThat(json).contains("\"decision\":\"PERMIT\"").contains("\"resource\"").contains("\"filtered\":true")
-                .doesNotContain("\"obligations\"").doesNotContain("\"advice\"");
-    }
-
-    @Test
-    void whenSerializingFullDecision_thenAllFieldsIncluded() throws JsonProcessingException {
-        val obligation = Value.ofObject(Map.of("action", Value.of("audit")));
-        val advice     = Value.ofObject(Map.of("hint", Value.of("Check permissions")));
-        val resource   = Value.ofObject(Map.of("redacted", Value.TRUE));
-        val decision   = new AuthorizationDecision(Decision.PERMIT, List.of(obligation), List.of(advice), resource);
-        val json       = mapper.writeValueAsString(decision);
-
-        assertThat(json).contains("\"decision\":\"PERMIT\"").contains("\"obligations\"").contains("\"advice\"")
-                .contains("\"resource\"");
+        return Stream.of(
+                arguments(new AuthorizationDecision(Decision.PERMIT, List.of(obligation), List.of(), Value.UNDEFINED),
+                        List.of("\"obligations\"", "\"type\":\"log\""), List.of("\"advice\"", "\"resource\"")),
+                arguments(new AuthorizationDecision(Decision.PERMIT, List.of(), List.of(advice), Value.UNDEFINED),
+                        List.of("\"advice\"", "\"recommendation\""), List.of("\"obligations\"", "\"resource\"")),
+                arguments(new AuthorizationDecision(Decision.PERMIT, List.of(), List.of(), resource),
+                        List.of("\"resource\"", "\"filtered\":true"), List.of("\"obligations\"", "\"advice\"")),
+                arguments(new AuthorizationDecision(Decision.PERMIT, List.of(obligation), List.of(advice), resource),
+                        List.of("\"obligations\"", "\"advice\"", "\"resource\""), List.of()));
     }
 
     @Test
@@ -209,6 +189,8 @@ class SaplJacksonModuleTests {
         val json     = mapper.writeValueAsString(original);
         val restored = mapper.readValue(json, AuthorizationSubscription.class);
 
+        // Environment becomes UNDEFINED after round-trip (not serialized), so compare
+        // relevant fields
         assertThat(restored.subject()).isEqualTo(original.subject());
         assertThat(restored.action()).isEqualTo(original.action());
         assertThat(restored.resource()).isEqualTo(original.resource());

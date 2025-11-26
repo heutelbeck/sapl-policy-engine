@@ -36,9 +36,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 /**
- * End-to-end tests for the DynamicPolicyDecisionPoint.
- * These tests set up a complete PDP with all dependencies, load policies,
- * and verify authorization decisions.
+ * End-to-end tests for the DynamicPolicyDecisionPoint. These tests set up a
+ * complete PDP with all dependencies, load
+ * policies, and verify authorization decisions.
  */
 class DynamicPolicyDecisionPointTests {
 

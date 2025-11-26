@@ -39,9 +39,8 @@ import java.util.List;
 
 /**
  * Provides the default set of function libraries available in the SAPL
- * compiler.
- * These libraries are automatically registered when creating a PDP with default
- * configuration.
+ * compiler. These libraries are automatically
+ * registered when creating a PDP with default configuration.
  */
 @UtilityClass
 public class DefaultLibraries {

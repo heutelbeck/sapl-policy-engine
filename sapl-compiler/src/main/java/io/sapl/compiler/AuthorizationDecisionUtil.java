@@ -53,13 +53,15 @@ public class AuthorizationDecisionUtil {
      * Builds a decision object containing the authorization decision and associated
      * constraints.
      *
-     * @param decision the authorization decision (PERMIT, DENY, INDETERMINATE,
-     * NOT_APPLICABLE)
-     * @param obligations obligations that must be fulfilled for the decision to be
-     * valid
-     * @param advice advice that should be considered but is not mandatory
-     * @param resource optional resource transformation result, or UNDEFINED if no
-     * transformation
+     * @param decision
+     * the authorization decision (PERMIT, DENY, INDETERMINATE, NOT_APPLICABLE)
+     * @param obligations
+     * obligations that must be fulfilled for the decision to be valid
+     * @param advice
+     * advice that should be considered but is not mandatory
+     * @param resource
+     * optional resource transformation result, or UNDEFINED if no transformation
+     *
      * @return an ObjectValue with fields: decision, obligations, advice, resource
      */
     public static Value buildDecision(Decision decision, List<Value> obligations, List<Value> advice, Value resource) {
@@ -72,7 +74,9 @@ public class AuthorizationDecisionUtil {
      * Extracts the Decision enum from a decision object. Returns null if the value
      * is not a valid decision object.
      *
-     * @param decisionValue the value to extract the decision from
+     * @param decisionValue
+     * the value to extract the decision from
+     *
      * @return the Decision enum, or null if invalid structure or unknown decision
      */
     public static Decision extractDecision(Value decisionValue) {

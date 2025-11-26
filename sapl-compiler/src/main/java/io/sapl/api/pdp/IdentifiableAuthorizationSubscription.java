@@ -21,11 +21,13 @@ import lombok.NonNull;
 
 /**
  * Pairs an authorization subscription with a unique identifier, enabling
- * correlation between subscriptions and their corresponding decisions in
- * multi-subscription scenarios.
+ * correlation between subscriptions and their
+ * corresponding decisions in multi-subscription scenarios.
  *
- * @param subscriptionId the unique identifier for this subscription
- * @param subscription the authorization subscription
+ * @param subscriptionId
+ * the unique identifier for this subscription
+ * @param subscription
+ * the authorization subscription
  */
 public record IdentifiableAuthorizationSubscription(
         @NonNull String subscriptionId,

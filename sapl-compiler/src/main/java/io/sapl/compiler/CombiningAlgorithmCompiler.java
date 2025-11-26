@@ -287,10 +287,12 @@ public class CombiningAlgorithmCompiler {
      * Generic implementation for combining algorithms that follow the standard
      * pattern.
      *
-     * @param compiledPolicies policies to combine
-     * @param logic algorithm-specific combining logic
-     * @param preMatched if true, skip match expression evaluation (policies already
-     * matched by PRP)
+     * @param compiledPolicies
+     * policies to combine
+     * @param logic
+     * algorithm-specific combining logic
+     * @param preMatched
+     * if true, skip match expression evaluation (policies already matched by PRP)
      */
     private static CompiledExpression genericCombiningAlgorithm(List<CompiledPolicy> compiledPolicies,
             CombiningAlgorithmLogic logic, boolean preMatched) {
@@ -352,9 +354,12 @@ public class CombiningAlgorithmCompiler {
 
     /**
      * Compiles deny-unless-permit algorithm. Default: DENY. Any PERMIT yields
-     * PERMIT. Multiple resource transformations yield DENY.
+     * PERMIT. Multiple resource transformations
+     * yield DENY.
      *
-     * @param compiledPolicies policies to combine
+     * @param compiledPolicies
+     * policies to combine
+     *
      * @return compiled expression producing the combined decision
      */
     public static CompiledExpression denyUnlessPermit(List<CompiledPolicy> compiledPolicies) {
@@ -362,10 +367,13 @@ public class CombiningAlgorithmCompiler {
     }
 
     /**
-     * Compiles deny-unless-permit algorithm for pre-matched policies.
-     * Use when policies have already been filtered by the PRP.
+     * Compiles deny-unless-permit algorithm for pre-matched policies. Use when
+     * policies have already been filtered by
+     * the PRP.
      *
-     * @param compiledPolicies policies to combine (already matched)
+     * @param compiledPolicies
+     * policies to combine (already matched)
+     *
      * @return compiled expression producing the combined decision
      */
     public static CompiledExpression denyUnlessPermitPreMatched(List<CompiledPolicy> compiledPolicies) {
@@ -374,10 +382,13 @@ public class CombiningAlgorithmCompiler {
 
     /**
      * Compiles deny-overrides algorithm. Default: NOT_APPLICABLE. DENY overrides
-     * all. INDETERMINATE propagates unless DENY present. Multiple resource
-     * transformations yield INDETERMINATE (unless already DENY).
+     * all. INDETERMINATE propagates unless
+     * DENY present. Multiple resource transformations yield INDETERMINATE (unless
+     * already DENY).
      *
-     * @param compiledPolicies policies to combine
+     * @param compiledPolicies
+     * policies to combine
+     *
      * @return compiled expression producing the combined decision
      */
     public static CompiledExpression denyOverrides(List<CompiledPolicy> compiledPolicies) {
@@ -385,10 +396,13 @@ public class CombiningAlgorithmCompiler {
     }
 
     /**
-     * Compiles deny-overrides algorithm for pre-matched policies.
-     * Use when policies have already been filtered by the PRP.
+     * Compiles deny-overrides algorithm for pre-matched policies. Use when policies
+     * have already been filtered by the
+     * PRP.
      *
-     * @param compiledPolicies policies to combine (already matched)
+     * @param compiledPolicies
+     * policies to combine (already matched)
+     *
      * @return compiled expression producing the combined decision
      */
     public static CompiledExpression denyOverridesPreMatched(List<CompiledPolicy> compiledPolicies) {
@@ -397,10 +411,12 @@ public class CombiningAlgorithmCompiler {
 
     /**
      * Compiles permit-overrides algorithm. Default: NOT_APPLICABLE. PERMIT
-     * overrides all. INDETERMINATE propagates unless PERMIT present. Multiple
-     * resource transformations yield INDETERMINATE.
+     * overrides all. INDETERMINATE propagates
+     * unless PERMIT present. Multiple resource transformations yield INDETERMINATE.
      *
-     * @param compiledPolicies policies to combine
+     * @param compiledPolicies
+     * policies to combine
+     *
      * @return compiled expression producing the combined decision
      */
     public static CompiledExpression permitOverrides(List<CompiledPolicy> compiledPolicies) {
@@ -408,10 +424,13 @@ public class CombiningAlgorithmCompiler {
     }
 
     /**
-     * Compiles permit-overrides algorithm for pre-matched policies.
-     * Use when policies have already been filtered by the PRP.
+     * Compiles permit-overrides algorithm for pre-matched policies. Use when
+     * policies have already been filtered by the
+     * PRP.
      *
-     * @param compiledPolicies policies to combine (already matched)
+     * @param compiledPolicies
+     * policies to combine (already matched)
+     *
      * @return compiled expression producing the combined decision
      */
     public static CompiledExpression permitOverridesPreMatched(List<CompiledPolicy> compiledPolicies) {
@@ -420,9 +439,12 @@ public class CombiningAlgorithmCompiler {
 
     /**
      * Compiles permit-unless-deny algorithm. Default: PERMIT. Any DENY yields DENY.
-     * Multiple resource transformations yield DENY.
+     * Multiple resource transformations
+     * yield DENY.
      *
-     * @param compiledPolicies policies to combine
+     * @param compiledPolicies
+     * policies to combine
+     *
      * @return compiled expression producing the combined decision
      */
     public static CompiledExpression permitUnlessDeny(List<CompiledPolicy> compiledPolicies) {
@@ -430,10 +452,13 @@ public class CombiningAlgorithmCompiler {
     }
 
     /**
-     * Compiles permit-unless-deny algorithm for pre-matched policies.
-     * Use when policies have already been filtered by the PRP.
+     * Compiles permit-unless-deny algorithm for pre-matched policies. Use when
+     * policies have already been filtered by
+     * the PRP.
      *
-     * @param compiledPolicies policies to combine (already matched)
+     * @param compiledPolicies
+     * policies to combine (already matched)
+     *
      * @return compiled expression producing the combined decision
      */
     public static CompiledExpression permitUnlessDenyPreMatched(List<CompiledPolicy> compiledPolicies) {
@@ -442,10 +467,12 @@ public class CombiningAlgorithmCompiler {
 
     /**
      * Compiles only-one-applicable algorithm. Returns the single applicable
-     * policy's decision. If zero applicable: NOT_APPLICABLE. If multiple
-     * applicable or any INDETERMINATE: INDETERMINATE.
+     * policy's decision. If zero applicable:
+     * NOT_APPLICABLE. If multiple applicable or any INDETERMINATE: INDETERMINATE.
      *
-     * @param compiledPolicies policies to combine
+     * @param compiledPolicies
+     * policies to combine
+     *
      * @return compiled expression producing the combined decision
      */
     public static CompiledExpression onlyOneApplicable(List<CompiledPolicy> compiledPolicies) {
@@ -453,10 +480,13 @@ public class CombiningAlgorithmCompiler {
     }
 
     /**
-     * Compiles only-one-applicable algorithm for pre-matched policies.
-     * Use when policies have already been filtered by the PRP.
+     * Compiles only-one-applicable algorithm for pre-matched policies. Use when
+     * policies have already been filtered by
+     * the PRP.
      *
-     * @param compiledPolicies policies to combine (already matched)
+     * @param compiledPolicies
+     * policies to combine (already matched)
+     *
      * @return compiled expression producing the combined decision
      */
     public static CompiledExpression onlyOneApplicablePreMatched(List<CompiledPolicy> compiledPolicies) {

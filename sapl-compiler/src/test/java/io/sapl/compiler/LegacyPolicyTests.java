@@ -40,7 +40,8 @@ import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 /**
  * Comprehensive test suite for all legacy SAPL policies found across modules.
- * Tests that existing policies compile successfully with the new compiler.
+ * Tests that existing policies compile
+ * successfully with the new compiler.
  */
 class LegacyPolicyTests {
     private static final SAPLInterpreter PARSER = new DefaultSAPLInterpreter();

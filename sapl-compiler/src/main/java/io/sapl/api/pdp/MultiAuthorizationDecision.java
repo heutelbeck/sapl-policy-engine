@@ -25,11 +25,9 @@ import java.util.Map;
 
 /**
  * A container for multiple authorization decisions, each keyed by the
- * subscription ID.
- * This is the response type for batch authorization requests, providing
- * decisions
- * for all subscriptions in a {@link MultiAuthorizationSubscription}.
- *
+ * subscription ID. This is the response type for
+ * batch authorization requests, providing decisions for all subscriptions in a
+ * {@link MultiAuthorizationSubscription}.
  * <p>
  * Example usage:
  *
@@ -62,8 +60,10 @@ public class MultiAuthorizationDecision implements Iterable<IdentifiableAuthoriz
     /**
      * Sets the authorization decision for a subscription.
      *
-     * @param subscriptionId the subscription ID
-     * @param decision the authorization decision
+     * @param subscriptionId
+     * the subscription ID
+     * @param decision
+     * the authorization decision
      */
     public void setDecision(@NonNull String subscriptionId, @NonNull AuthorizationDecision decision) {
         decisions.put(subscriptionId, decision);
@@ -72,7 +72,9 @@ public class MultiAuthorizationDecision implements Iterable<IdentifiableAuthoriz
     /**
      * Gets the authorization decision for a subscription.
      *
-     * @param subscriptionId the subscription ID
+     * @param subscriptionId
+     * the subscription ID
+     *
      * @return the authorization decision, or null if not found
      */
     public AuthorizationDecision getDecision(String subscriptionId) {
@@ -82,7 +84,9 @@ public class MultiAuthorizationDecision implements Iterable<IdentifiableAuthoriz
     /**
      * Gets the decision type for a subscription.
      *
-     * @param subscriptionId the subscription ID
+     * @param subscriptionId
+     * the subscription ID
+     *
      * @return the decision type, or null if not found
      */
     public Decision getDecisionType(String subscriptionId) {
@@ -93,7 +97,9 @@ public class MultiAuthorizationDecision implements Iterable<IdentifiableAuthoriz
     /**
      * Checks if the decision for a subscription is PERMIT.
      *
-     * @param subscriptionId the subscription ID
+     * @param subscriptionId
+     * the subscription ID
+     *
      * @return true if the decision is PERMIT, false otherwise
      */
     public boolean isPermitted(String subscriptionId) {

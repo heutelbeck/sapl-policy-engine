@@ -21,19 +21,22 @@ import lombok.NonNull;
 
 /**
  * Pairs an authorization decision with the identifier of the corresponding
- * subscription, enabling correlation between subscriptions and decisions
- * in multi-subscription scenarios.
+ * subscription, enabling correlation between
+ * subscriptions and decisions in multi-subscription scenarios.
  *
- * @param subscriptionId the unique identifier of the corresponding subscription
- * @param decision the authorization decision
+ * @param subscriptionId
+ * the unique identifier of the corresponding subscription
+ * @param decision
+ * the authorization decision
  */
 public record IdentifiableAuthorizationDecision(
         @NonNull String subscriptionId,
         @NonNull AuthorizationDecision decision) {
 
     /**
-     * An indeterminate decision without a subscription ID.
-     * Used when the PDP cannot determine which subscription caused the error.
+     * An indeterminate decision without a subscription ID. Used when the PDP cannot
+     * determine which subscription caused
+     * the error.
      */
     public static final IdentifiableAuthorizationDecision INDETERMINATE = new IdentifiableAuthorizationDecision("",
             AuthorizationDecision.INDETERMINATE);

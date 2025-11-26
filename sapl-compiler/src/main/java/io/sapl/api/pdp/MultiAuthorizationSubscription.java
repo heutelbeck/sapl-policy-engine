@@ -26,11 +26,10 @@ import java.util.Map;
 
 /**
  * A container for multiple authorization subscriptions, each identified by a
- * unique ID.
- * This enables batch authorization requests where multiple access control
- * decisions
- * can be requested and correlated with their subscriptions.
- *
+ * unique ID. This enables batch
+ * authorization requests where multiple access control decisions can be
+ * requested and correlated with their
+ * subscriptions.
  * <p>
  * Example usage:
  *
@@ -51,11 +50,15 @@ public class MultiAuthorizationSubscription implements Iterable<IdentifiableAuth
     /**
      * Adds an authorization subscription with the given ID.
      *
-     * @param subscriptionId unique identifier for this subscription
-     * @param subscription the authorization subscription
+     * @param subscriptionId
+     * unique identifier for this subscription
+     * @param subscription
+     * the authorization subscription
+     *
      * @return this instance for method chaining
-     * @throws IllegalArgumentException if a subscription with the same ID already
-     * exists
+     *
+     * @throws IllegalArgumentException
+     * if a subscription with the same ID already exists
      */
     public MultiAuthorizationSubscription addSubscription(@NonNull String subscriptionId,
             @NonNull AuthorizationSubscription subscription) {
@@ -70,14 +73,21 @@ public class MultiAuthorizationSubscription implements Iterable<IdentifiableAuth
      * Adds an authorization subscription with the given ID, constructed from
      * individual components.
      *
-     * @param subscriptionId unique identifier for this subscription
-     * @param subject the subject requesting access
-     * @param action the action being requested
-     * @param resource the resource being accessed
-     * @param environment contextual environment data
+     * @param subscriptionId
+     * unique identifier for this subscription
+     * @param subject
+     * the subject requesting access
+     * @param action
+     * the action being requested
+     * @param resource
+     * the resource being accessed
+     * @param environment
+     * contextual environment data
+     *
      * @return this instance for method chaining
-     * @throws IllegalArgumentException if a subscription with the same ID already
-     * exists
+     *
+     * @throws IllegalArgumentException
+     * if a subscription with the same ID already exists
      */
     public MultiAuthorizationSubscription addSubscription(@NonNull String subscriptionId, @NonNull Value subject,
             @NonNull Value action, @NonNull Value resource, @NonNull Value environment) {
@@ -87,7 +97,9 @@ public class MultiAuthorizationSubscription implements Iterable<IdentifiableAuth
     /**
      * Returns the subscription with the given ID, or null if not found.
      *
-     * @param subscriptionId the subscription ID
+     * @param subscriptionId
+     * the subscription ID
+     *
      * @return the subscription or null
      */
     public AuthorizationSubscription getSubscription(String subscriptionId) {

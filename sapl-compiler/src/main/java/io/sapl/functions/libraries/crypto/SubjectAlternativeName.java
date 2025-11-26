@@ -20,7 +20,9 @@ package io.sapl.functions.libraries.crypto;
 /**
  * Represents a Subject Alternative Name (SAN) entry from an X.509 certificate.
  *
- * @param type the SAN type identifier (e.g., 2 for DNS name, 7 for IP address)
- * @param value the SAN value as a string representation
+ * @param type
+ * the SAN type identifier (e.g., 2 for DNS name, 7 for IP address)
+ * @param value
+ * the SAN value as a string representation
  */
 public record SubjectAlternativeName(int type, String value) {}

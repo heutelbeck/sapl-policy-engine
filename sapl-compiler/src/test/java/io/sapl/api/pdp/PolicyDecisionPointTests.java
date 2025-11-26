@@ -30,8 +30,9 @@ import java.util.concurrent.ConcurrentHashMap;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * Tests for the default methods in the PolicyDecisionPoint interface.
- * Uses a simple mock PDP that returns configurable decisions per subscription.
+ * Tests for the default methods in the PolicyDecisionPoint interface. Uses a
+ * simple mock PDP that returns configurable
+ * decisions per subscription.
  */
 class PolicyDecisionPointTests {
 
@@ -174,8 +175,9 @@ class PolicyDecisionPointTests {
     }
 
     /**
-     * Mock PDP that returns different decisions based on subscription ID.
-     * The subscription ID is derived from the resource field for simplicity.
+     * Mock PDP that returns different decisions based on subscription ID. The
+     * subscription ID is derived from the
+     * resource field for simplicity.
      */
     private static class ConfigurableMockPDP implements PolicyDecisionPoint {
         private final Map<String, AuthorizationDecision> decisions = new ConcurrentHashMap<>();

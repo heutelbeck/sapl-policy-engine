@@ -195,9 +195,9 @@ public class SubtemplateCompiler {
     }
 
     /**
-     * Applies a template to a value within a stream context.
-     * Handles error/undefined propagation, empty arrays, array mapping, and
-     * non-array values.
+     * Applies a template to a value within a stream context. Handles
+     * error/undefined propagation, empty arrays, array
+     * mapping, and non-array values.
      */
     private Flux<Value> applyTemplateToValueInStream(Value parentValue, CompiledExpression compiledTemplate) {
         if (parentValue instanceof ErrorValue || parentValue instanceof UndefinedValue) {

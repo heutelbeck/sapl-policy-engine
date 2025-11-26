@@ -25,26 +25,26 @@ import java.util.List;
 
 /**
  * The Policy Decision Point (PDP) is the central component for authorization
- * decisions.
- * It evaluates authorization subscriptions against policies and returns
- * decisions.
- *
+ * decisions. It evaluates authorization
+ * subscriptions against policies and returns decisions.
  * <p>
  * The PDP supports both single subscriptions and multi-subscriptions for batch
- * authorization scenarios. Implementations only need to provide the core
- * {@link #decide(AuthorizationSubscription)} method; multi-subscription support
- * is provided via default methods.
+ * authorization scenarios. Implementations
+ * only need to provide the core {@link #decide(AuthorizationSubscription)}
+ * method; multi-subscription support is
+ * provided via default methods.
  */
 public interface PolicyDecisionPoint {
 
     /**
      * Evaluates an authorization subscription and returns a continuous stream of
-     * decisions.
-     * New decisions are emitted whenever the authorization context changes (e.g.,
-     * due to
-     * attribute updates or policy changes).
+     * decisions. New decisions are emitted
+     * whenever the authorization context changes (e.g., due to attribute updates or
+     * policy changes).
      *
-     * @param authorizationSubscription the authorization subscription to evaluate
+     * @param authorizationSubscription
+     * the authorization subscription to evaluate
+     *
      * @return a flux of authorization decisions
      */
     Flux<AuthorizationDecision> decide(AuthorizationSubscription authorizationSubscription);
@@ -52,7 +52,9 @@ public interface PolicyDecisionPoint {
     /**
      * Evaluates an authorization subscription and returns only the first decision.
      *
-     * @param authorizationSubscription the authorization subscription to evaluate
+     * @param authorizationSubscription
+     * the authorization subscription to evaluate
+     *
      * @return the first authorization decision
      */
     default Mono<AuthorizationDecision> decideOnce(AuthorizationSubscription authorizationSubscription) {
@@ -61,16 +63,16 @@ public interface PolicyDecisionPoint {
 
     /**
      * Evaluates multiple authorization subscriptions and returns decisions as they
-     * become available.
-     * Each decision is tagged with the subscription ID for correlation.
-     *
+     * become available. Each decision is
+     * tagged with the subscription ID for correlation.
      * <p>
      * This default implementation iterates over all subscriptions, calls
-     * {@link #decide(AuthorizationSubscription)}
-     * for each, and merges the results into a single stream.
+     * {@link #decide(AuthorizationSubscription)} for
+     * each, and merges the results into a single stream.
      *
-     * @param multiSubscription the multi-subscription containing multiple
-     * subscriptions
+     * @param multiSubscription
+     * the multi-subscription containing multiple subscriptions
+     *
      * @return a flux of identifiable authorization decisions
      */
     default Flux<IdentifiableAuthorizationDecision> decide(MultiAuthorizationSubscription multiSubscription) {
@@ -82,17 +84,18 @@ public interface PolicyDecisionPoint {
 
     /**
      * Evaluates multiple authorization subscriptions and returns bundled decisions.
-     * Waits until all subscriptions have at least one decision before emitting.
-     * Subsequent emissions occur when any decision changes.
-     *
+     * Waits until all subscriptions have
+     * at least one decision before emitting. Subsequent emissions occur when any
+     * decision changes.
      * <p>
      * This default implementation iterates over all subscriptions, calls
-     * {@link #decide(AuthorizationSubscription)}
-     * for each, and combines the latest decisions into a
+     * {@link #decide(AuthorizationSubscription)} for
+     * each, and combines the latest decisions into a
      * {@link MultiAuthorizationDecision}.
      *
-     * @param multiSubscription the multi-subscription containing multiple
-     * subscriptions
+     * @param multiSubscription
+     * the multi-subscription containing multiple subscriptions
+     *
      * @return a flux of multi-authorization decisions containing all subscription
      * decisions
      */

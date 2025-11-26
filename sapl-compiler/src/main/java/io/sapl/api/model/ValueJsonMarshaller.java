@@ -32,7 +32,8 @@ import java.util.ArrayList;
  * Marshalling between SAPL Value types and JSON.
  * <p>
  * UndefinedValue and ErrorValue cannot be marshalled. Secret flags are not
- * preserved. Nesting depth limited to 500 levels.
+ * preserved. Nesting depth limited to 500
+ * levels.
  */
 @UtilityClass
 public class ValueJsonMarshaller {

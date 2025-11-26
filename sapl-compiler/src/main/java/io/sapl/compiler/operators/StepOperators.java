@@ -302,8 +302,8 @@ public class StepOperators {
     }
 
     /**
-     * Determines if an index is selected based on SAPL step semantics.
-     * Positive step: select if (i - from) % step == 0.
+     * Determines if an index is selected based on SAPL step semantics. Positive
+     * step: select if (i - from) % step == 0.
      * Negative step: select if (until - i) % step == 0.
      */
     private static boolean isSelectedByStep(int index, int from, int until, int step) {

@@ -36,8 +36,8 @@ import java.util.List;
  * Main entry point for compiling SAPL documents into executable policies.
  * <p>
  * Transforms parsed SAPL documents (policies and policy sets) into
- * {@link CompiledPolicy} instances
- * that can be evaluated by combining algorithms. The compilation process:
+ * {@link CompiledPolicy} instances that can be
+ * evaluated by combining algorithms. The compilation process:
  * <ul>
  * <li>Validates and compiles target expressions into match expressions</li>
  * <li>Compiles policy bodies with conditions and value definitions</li>
@@ -459,7 +459,9 @@ public class SaplCompiler {
     /**
      * Validates that a target expression result is a boolean value.
      *
-     * @param targetExpression the evaluated target expression result
+     * @param targetExpression
+     * the evaluated target expression result
+     *
      * @return the value if boolean, or an error value if not
      */
     public Value booleanValueOrErrorInTarget(Value targetExpression) {
@@ -472,7 +474,9 @@ public class SaplCompiler {
     /**
      * Wraps a pure target expression to validate its result is boolean at runtime.
      *
-     * @param targetExpression the pure expression to wrap
+     * @param targetExpression
+     * the pure expression to wrap
+     *
      * @return a pure expression that validates the result is boolean
      */
     public PureExpression compileTargetExpressionToMatchExpression(PureExpression targetExpression) {
@@ -498,9 +502,13 @@ public class SaplCompiler {
     /**
      * Converts a SAPL entitlement to a PDP decision.
      *
-     * @param entitlement the SAPL entitlement (permit or deny)
+     * @param entitlement
+     * the SAPL entitlement (permit or deny)
+     *
      * @return the corresponding Decision enum value
-     * @throws IllegalArgumentException if entitlement is neither Permit nor Deny
+     *
+     * @throws IllegalArgumentException
+     * if entitlement is neither Permit nor Deny
      */
     public static Decision decisionOf(Entitlement entitlement) {
         return switch (entitlement) {

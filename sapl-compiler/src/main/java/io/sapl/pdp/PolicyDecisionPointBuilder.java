@@ -44,9 +44,8 @@ import java.util.List;
 
 /**
  * Fluent builder for creating a Policy Decision Point with configurable
- * function
- * libraries and policy information points.
- *
+ * function libraries and policy information
+ * points.
  * <p>
  * Example usage:
  *
@@ -83,7 +82,8 @@ public class PolicyDecisionPointBuilder {
 
     /**
      * Creates a builder with default function libraries and policy information
-     * points enabled, using a new ObjectMapper and system UTC clock.
+     * points enabled, using a new ObjectMapper
+     * and system UTC clock.
      *
      * @return a new builder instance
      */
@@ -95,8 +95,11 @@ public class PolicyDecisionPointBuilder {
      * Creates a builder with default function libraries and policy information
      * points enabled.
      *
-     * @param mapper the ObjectMapper for JSON processing
-     * @param clock the clock for time-based operations
+     * @param mapper
+     * the ObjectMapper for JSON processing
+     * @param clock
+     * the clock for time-based operations
+     *
      * @return a new builder instance
      */
     public static PolicyDecisionPointBuilder withDefaults(ObjectMapper mapper, Clock clock) {
@@ -104,8 +107,8 @@ public class PolicyDecisionPointBuilder {
     }
 
     /**
-     * Creates a builder without any default libraries or PIPs,
-     * using a new ObjectMapper and system UTC clock.
+     * Creates a builder without any default libraries or PIPs, using a new
+     * ObjectMapper and system UTC clock.
      *
      * @return a new builder instance with defaults disabled
      */
@@ -114,11 +117,14 @@ public class PolicyDecisionPointBuilder {
     }
 
     /**
-     * Creates a builder without any default libraries or PIPs.
-     * Use this for minimal configurations or testing.
+     * Creates a builder without any default libraries or PIPs. Use this for minimal
+     * configurations or testing.
      *
-     * @param mapper the ObjectMapper for JSON processing
-     * @param clock the clock for time-based operations
+     * @param mapper
+     * the ObjectMapper for JSON processing
+     * @param clock
+     * the clock for time-based operations
+     *
      * @return a new builder instance with defaults disabled
      */
     public static PolicyDecisionPointBuilder withoutDefaults(ObjectMapper mapper, Clock clock) {
@@ -147,10 +153,12 @@ public class PolicyDecisionPointBuilder {
     }
 
     /**
-     * Adds a static function library class. The library will be instantiated
-     * using its no-arg constructor.
+     * Adds a static function library class. The library will be instantiated using
+     * its no-arg constructor.
      *
-     * @param libraryClass the function library class
+     * @param libraryClass
+     * the function library class
+     *
      * @return this builder
      */
     public PolicyDecisionPointBuilder withFunctionLibrary(Class<?> libraryClass) {
@@ -159,10 +167,12 @@ public class PolicyDecisionPointBuilder {
     }
 
     /**
-     * Adds an already instantiated function library. Use this for libraries
-     * that require constructor dependencies.
+     * Adds an already instantiated function library. Use this for libraries that
+     * require constructor dependencies.
      *
-     * @param libraryInstance the function library instance
+     * @param libraryInstance
+     * the function library instance
+     *
      * @return this builder
      */
     public PolicyDecisionPointBuilder withFunctionLibraryInstance(Object libraryInstance) {
@@ -173,7 +183,9 @@ public class PolicyDecisionPointBuilder {
     /**
      * Adds a policy information point instance.
      *
-     * @param pip the policy information point
+     * @param pip
+     * the policy information point
+     *
      * @return this builder
      */
     public PolicyDecisionPointBuilder withPolicyInformationPoint(Object pip) {
@@ -182,10 +194,12 @@ public class PolicyDecisionPointBuilder {
     }
 
     /**
-     * Sets the attribute storage implementation. If not set, a heap-based
-     * in-memory storage will be used.
+     * Sets the attribute storage implementation. If not set, a heap-based in-memory
+     * storage will be used.
      *
-     * @param attributeStorage the attribute storage
+     * @param attributeStorage
+     * the attribute storage
+     *
      * @return this builder
      */
     public PolicyDecisionPointBuilder withAttributeStorage(AttributeStorage attributeStorage) {
@@ -194,10 +208,12 @@ public class PolicyDecisionPointBuilder {
     }
 
     /**
-     * Sets a custom ID factory for generating subscription IDs.
-     * If not set, a UUID-based factory will be used.
+     * Sets a custom ID factory for generating subscription IDs. If not set, a
+     * UUID-based factory will be used.
      *
-     * @param idFactory the ID factory
+     * @param idFactory
+     * the ID factory
+     *
      * @return this builder
      */
     public PolicyDecisionPointBuilder withIdFactory(IdFactory idFactory) {
@@ -206,10 +222,12 @@ public class PolicyDecisionPointBuilder {
     }
 
     /**
-     * Sets a custom WebClient builder for HTTP-based PIPs.
-     * If not set, the default WebClient.builder() will be used.
+     * Sets a custom WebClient builder for HTTP-based PIPs. If not set, the default
+     * WebClient.builder() will be used.
      *
-     * @param webClientBuilder the WebClient builder
+     * @param webClientBuilder
+     * the WebClient builder
+     *
      * @return this builder
      */
     public PolicyDecisionPointBuilder withWebClientBuilder(WebClient.Builder webClientBuilder) {
@@ -221,8 +239,11 @@ public class PolicyDecisionPointBuilder {
      * Builds the PDP and all related components.
      *
      * @return the PDP components including the PDP and configuration register
-     * @throws InitializationException if function library initialization fails
-     * @throws AttributeBrokerException if PIP initialization fails
+     *
+     * @throws InitializationException
+     * if function library initialization fails
+     * @throws AttributeBrokerException
+     * if PIP initialization fails
      */
     public PDPComponents build() throws InitializationException, AttributeBrokerException {
         val functionBroker        = buildFunctionBroker();
@@ -287,10 +308,14 @@ public class PolicyDecisionPointBuilder {
     /**
      * Contains all components created by the PDP builder.
      *
-     * @param pdp the policy decision point
-     * @param configurationRegister the configuration register for loading policies
-     * @param functionBroker the function broker with loaded libraries
-     * @param attributeBroker the attribute broker with loaded PIPs
+     * @param pdp
+     * the policy decision point
+     * @param configurationRegister
+     * the configuration register for loading policies
+     * @param functionBroker
+     * the function broker with loaded libraries
+     * @param attributeBroker
+     * the attribute broker with loaded PIPs
      */
     public record PDPComponents(
             PolicyDecisionPoint pdp,
