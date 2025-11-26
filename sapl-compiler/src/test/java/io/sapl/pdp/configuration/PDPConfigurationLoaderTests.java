@@ -92,10 +92,15 @@ class PDPConfigurationLoaderTests {
     static Stream<Arguments> algorithmCases() {
         return Stream.of(arguments("DENY_OVERRIDES", CombiningAlgorithm.DENY_OVERRIDES),
                 arguments("deny_overrides", CombiningAlgorithm.DENY_OVERRIDES),
+                arguments("deny-overrides", CombiningAlgorithm.DENY_OVERRIDES),
                 arguments("PERMIT_OVERRIDES", CombiningAlgorithm.PERMIT_OVERRIDES),
+                arguments("permit-overrides", CombiningAlgorithm.PERMIT_OVERRIDES),
                 arguments("DENY_UNLESS_PERMIT", CombiningAlgorithm.DENY_UNLESS_PERMIT),
+                arguments("deny-unless-permit", CombiningAlgorithm.DENY_UNLESS_PERMIT),
                 arguments("PERMIT_UNLESS_DENY", CombiningAlgorithm.PERMIT_UNLESS_DENY),
-                arguments("ONLY_ONE_APPLICABLE", CombiningAlgorithm.ONLY_ONE_APPLICABLE));
+                arguments("permit-unless-deny", CombiningAlgorithm.PERMIT_UNLESS_DENY),
+                arguments("ONLY_ONE_APPLICABLE", CombiningAlgorithm.ONLY_ONE_APPLICABLE),
+                arguments("only-one-applicable", CombiningAlgorithm.ONLY_ONE_APPLICABLE));
     }
 
     @Test

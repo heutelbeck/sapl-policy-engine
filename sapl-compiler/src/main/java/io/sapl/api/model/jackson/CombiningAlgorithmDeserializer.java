@@ -26,7 +26,8 @@ import java.io.IOException;
 
 /**
  * Deserializer for {@link CombiningAlgorithm} that supports case-insensitive
- * parsing and kebab-case format (e.g., "deny-overrides" maps to DENY_OVERRIDES).
+ * parsing and kebab-case format (e.g., "deny-overrides" maps to
+ * DENY_OVERRIDES).
  */
 public class CombiningAlgorithmDeserializer extends JsonDeserializer<CombiningAlgorithm> {
 
