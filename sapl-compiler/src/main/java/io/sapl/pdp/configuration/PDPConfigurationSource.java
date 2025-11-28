@@ -17,54 +17,96 @@
  */
 package io.sapl.pdp.configuration;
 
-import io.sapl.api.pdp.PDPConfiguration;
-import reactor.core.publisher.Flux;
+import reactor.core.Disposable;
 
-import java.util.Set;
+import java.util.regex.Pattern;
 
 /**
- * Source of PDP configurations. Implementations handle the specifics of where
- * configurations come from (filesystem directories, ZIP bundles, classpath
- * resources, push-based mechanisms) and when they change.
+ * Source of PDP configurations that notifies a callback when configurations
+ * change.
+ * <p>
+ * Implementations handle the specifics of where configurations come from
+ * (filesystem directories, ZIP bundles,
+ * classpath resources) and monitor for changes. When a configuration is loaded
+ * or updated, the implementation invokes
+ * the callback provided at construction time.
+ * <p>
+ * The callback-based design provides several benefits:
+ * <ul>
+ * <li><b>Simple lifecycle:</b> No subscription management - dispose stops
+ * watching</li>
+ * <li><b>Spring-friendly:</b> Sources are beans with standard destroy
+ * methods</li>
+ * <li><b>Testable:</b> Callbacks are easy to mock and verify</li>
+ * <li><b>Clear dependencies:</b> Source depends on consumer (via callback), not
+ * vice versa</li>
+ * </ul>
+ * <p>
+ * Example usage:
+ *
+ * <pre>{@code
+ * // Create source with callback to configuration register
+ * var source = new DirectoryPDPConfigurationSource(Path.of("/policies"), "default",
+ *         config -> register.loadConfiguration(config, true));
+ *
+ * // Source automatically loads initial configuration and watches for changes
+ * // When done, dispose to stop file watching
+ * source.dispose();
+ * }</pre>
+ * <p>
+ * Thread Safety: Implementations must be thread-safe. The callback may be
+ * invoked from background threads (e.g., file
+ * watcher threads).
  */
-public interface PDPConfigurationSource {
+public interface PDPConfigurationSource extends Disposable {
 
     String DEFAULT_PDP_ID = "default";
 
     /**
-     * Configuration stream for the default PDP.
-     *
-     * @return stream of configurations for the default PDP
+     * Maximum allowed length for PDP identifiers.
      */
-    default Flux<PDPConfiguration> configurations() {
-        return configurations(DEFAULT_PDP_ID);
+    int MAX_PDP_ID_LENGTH = 255;
+
+    /**
+     * Pattern for valid PDP identifiers: alphanumeric, hyphens, underscores, and
+     * dots.
+     */
+    Pattern VALID_PDP_ID_PATTERN = Pattern.compile("^[a-zA-Z0-9._-]+$");
+
+    /**
+     * Validates a PDP identifier.
+     *
+     * @param pdpId
+     * the PDP identifier to validate
+     *
+     * @throws PDPConfigurationException
+     * if the pdpId is invalid
+     */
+    static void validatePdpId(String pdpId) {
+        if (pdpId == null || pdpId.isEmpty()) {
+            throw new PDPConfigurationException("PDP identifier must not be null or empty.");
+        }
+        if (pdpId.length() > MAX_PDP_ID_LENGTH) {
+            throw new PDPConfigurationException(
+                    "PDP identifier exceeds maximum length of %d characters.".formatted(MAX_PDP_ID_LENGTH));
+        }
+        if (!VALID_PDP_ID_PATTERN.matcher(pdpId).matches()) {
+            throw new PDPConfigurationException(
+                    "PDP identifier contains invalid characters. Only alphanumeric characters, hyphens, underscores, and dots are allowed.");
+        }
     }
 
     /**
-     * Configuration stream for a specific PDP ID. Emits whenever configuration
-     * changes for this PDP. For directory/resource sources, pdpId maps to
-     * subdirectory name. For bundle sources, pdpId maps to bundle filename (minus
-     * extension).
+     * Checks if a PDP identifier is valid without throwing an exception.
      *
-     * @param pdpId the PDP identifier
-     * @return stream of configurations, empty flux if pdpId is unknown
-     */
-    Flux<PDPConfiguration> configurations(String pdpId);
-
-    /**
-     * Stream of available PDP IDs from this source. Emits whenever PDPs are added
-     * or removed (e.g., bundle file added/deleted, subdirectory created/removed).
-     * For static sources like classpath resources, emits once and completes.
+     * @param pdpId
+     * the PDP identifier to check
      *
-     * @return stream of available PDP ID sets
+     * @return true if valid, false otherwise
      */
-    Flux<Set<String>> availablePdpIds();
-
-    /**
-     * Releases resources held by this source (stops file watchers, closes
-     * connections).
-     */
-    default void dispose() {
+    static boolean isValidPdpId(String pdpId) {
+        return pdpId != null && !pdpId.isEmpty() && pdpId.length() <= MAX_PDP_ID_LENGTH
+                && VALID_PDP_ID_PATTERN.matcher(pdpId).matches();
     }
 
 }

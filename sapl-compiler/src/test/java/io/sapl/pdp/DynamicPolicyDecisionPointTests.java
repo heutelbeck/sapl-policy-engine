@@ -19,7 +19,10 @@ package io.sapl.pdp;
 
 import io.sapl.api.model.ObjectValue;
 import io.sapl.api.model.Value;
-import io.sapl.api.pdp.*;
+import io.sapl.api.pdp.AuthorizationDecision;
+import io.sapl.api.pdp.AuthorizationSubscription;
+import io.sapl.api.pdp.CombiningAlgorithm;
+import io.sapl.api.pdp.Decision;
 import lombok.val;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -29,9 +32,10 @@ import org.junit.jupiter.params.provider.MethodSource;
 import reactor.test.StepVerifier;
 
 import java.util.List;
-import java.util.Map;
 import java.util.stream.Stream;
 
+import static io.sapl.pdp.PdpTestHelper.configuration;
+import static io.sapl.pdp.PdpTestHelper.subscription;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
@@ -337,12 +341,6 @@ class DynamicPolicyDecisionPointTests {
     }
 
     private void loadConfiguration(CombiningAlgorithm algorithm, String... policies) {
-        val configuration = new PDPConfiguration(DEFAULT_PDP_ID, "test-config-" + System.currentTimeMillis(), algorithm,
-                List.of(policies), Map.of());
-        configurationRegister.loadConfiguration(configuration, false);
-    }
-
-    private static AuthorizationSubscription subscription(String subject, String action, String resource) {
-        return new AuthorizationSubscription(Value.of(subject), Value.of(action), Value.of(resource), Value.UNDEFINED);
+        configurationRegister.loadConfiguration(configuration(algorithm, policies), false);
     }
 }

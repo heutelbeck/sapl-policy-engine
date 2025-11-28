@@ -1,0 +1,6 @@
+{
+  "algorithm": "PERMIT_OVERRIDES",
+  "variables": {
+    "realm": "miskatonic"
+  }
+}

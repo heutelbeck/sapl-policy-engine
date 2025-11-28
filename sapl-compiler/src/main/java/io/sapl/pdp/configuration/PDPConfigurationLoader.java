@@ -23,6 +23,7 @@ import io.sapl.api.model.jackson.SaplJacksonModule;
 import io.sapl.api.pdp.CombiningAlgorithm;
 import io.sapl.api.pdp.PDPConfiguration;
 import lombok.experimental.UtilityClass;
+import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 
 import java.io.IOException;
@@ -38,6 +39,7 @@ import java.util.stream.Stream;
 /**
  * Utility for loading PDP configurations from filesystem paths.
  */
+@Slf4j
 @UtilityClass
 public class PDPConfigurationLoader {
 
@@ -54,11 +56,17 @@ public class PDPConfigurationLoader {
     /**
      * Loads a PDP configuration from a directory path.
      *
-     * @param path the directory containing pdp.json and *.sapl files
-     * @param pdpId the PDP identifier to use
-     * @param configurationId the configuration identifier (metadata)
+     * @param path
+     * the directory containing pdp.json and *.sapl files
+     * @param pdpId
+     * the PDP identifier to use
+     * @param configurationId
+     * the configuration identifier (metadata)
+     *
      * @return the loaded configuration
-     * @throws PDPConfigurationException if loading fails
+     *
+     * @throws PDPConfigurationException
+     * if loading fails
      */
     public static PDPConfiguration loadFromDirectory(Path path, String pdpId, String configurationId) {
         val pdpJsonPath = path.resolve(PDP_JSON);
@@ -71,12 +79,19 @@ public class PDPConfigurationLoader {
     /**
      * Loads a PDP configuration from raw content (for bundle extraction).
      *
-     * @param pdpJsonContent the content of pdp.json, or null if not present
-     * @param saplDocuments map of filename to SAPL document content
-     * @param pdpId the PDP identifier to use
-     * @param configurationId the configuration identifier (metadata)
+     * @param pdpJsonContent
+     * the content of pdp.json, or null if not present
+     * @param saplDocuments
+     * map of filename to SAPL document content
+     * @param pdpId
+     * the PDP identifier to use
+     * @param configurationId
+     * the configuration identifier (metadata)
+     *
      * @return the loaded configuration
-     * @throws PDPConfigurationException if loading fails
+     *
+     * @throws PDPConfigurationException
+     * if loading fails
      */
     public static PDPConfiguration loadFromContent(String pdpJsonContent, Map<String, String> saplDocuments,
             String pdpId, String configurationId) {
@@ -94,12 +109,15 @@ public class PDPConfigurationLoader {
             val content = Files.readString(pdpJsonPath, StandardCharsets.UTF_8);
             return parsePdpJson(content);
         } catch (IOException e) {
-            throw new PDPConfigurationException("Failed to read pdp.json from " + pdpJsonPath, e);
+            throw new PDPConfigurationException("Failed to read pdp.json from %s.".formatted(pdpJsonPath), e);
         }
     }
 
     private static PdpJsonContent parsePdpJson(String content) {
         if (content == null || content.isBlank()) {
+            if (content != null) {
+                log.warn("Empty or whitespace-only pdp.json content, using defaults.");
+            }
             return PdpJsonContent.defaults();
         }
         try {
@@ -126,12 +144,16 @@ public class PDPConfigurationLoader {
     }
 
     private static List<String> loadSaplDocuments(Path directory) {
-        val documents = new ArrayList<String>();
+        List<Path> saplPaths;
         try (Stream<Path> paths = Files.list(directory)) {
-            paths.filter(p -> p.toString().endsWith(SAPL_EXTENSION)).filter(Files::isRegularFile)
-                    .forEach(p -> documents.add(readSaplDocument(p)));
+            saplPaths = paths.filter(p -> p.toString().endsWith(SAPL_EXTENSION)).filter(Files::isRegularFile).toList();
         } catch (IOException e) {
-            throw new PDPConfigurationException("Failed to list SAPL files in " + directory, e);
+            throw new PDPConfigurationException("Failed to list SAPL files in directory.", e);
+        }
+
+        val documents = new ArrayList<String>(saplPaths.size());
+        for (val path : saplPaths) {
+            documents.add(readSaplDocument(path));
         }
         return documents;
     }
@@ -140,7 +162,7 @@ public class PDPConfigurationLoader {
         try {
             return Files.readString(path, StandardCharsets.UTF_8);
         } catch (IOException e) {
-            throw new PDPConfigurationException("Failed to read SAPL document " + path, e);
+            throw new PDPConfigurationException("Failed to read SAPL document.", e);
         }
     }
 

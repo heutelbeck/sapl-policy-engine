@@ -82,6 +82,11 @@
             <artifactId>ipaddress</artifactId>
             <version>5.5.1</version>
         </dependency>
+        <!-- Classpath scanning for resource loading -->
+        <dependency>
+            <groupId>io.github.classgraph</groupId>
+            <artifactId>classgraph</artifactId>
+        </dependency>
         <dependency>
 			<groupId>org.projectlombok</groupId>
 			<artifactId>lombok</artifactId>
@@ -103,9 +108,15 @@
             <artifactId>assertj-core</artifactId>
             <scope>test</scope>
         </dependency>
-        <dependency>
+<!--        <dependency>
             <groupId>com.github.valfirst</groupId>
             <artifactId>slf4j-test</artifactId>
+            <scope>test</scope>
+        </dependency>-->
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-simple</artifactId>
+            <version>2.0.17</version>
             <scope>test</scope>
         </dependency>
         <dependency>

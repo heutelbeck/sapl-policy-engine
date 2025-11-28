@@ -21,9 +21,9 @@ import io.sapl.api.pdp.PDPConfiguration;
 
 /**
  * Extension of {@link PDPConfigurationSource} that accepts pushed
- * configurations. Typically used with REST endpoints or webhook integrations
- * where configurations are pushed from external systems rather than loaded from
- * files.
+ * configurations. Typically used with REST endpoints or
+ * webhook integrations where configurations are pushed from external systems
+ * rather than loaded from files.
  */
 public interface PushablePDPConfigurationSource extends PDPConfigurationSource {
 
@@ -31,24 +31,28 @@ public interface PushablePDPConfigurationSource extends PDPConfigurationSource {
      * Push a configuration update. The configuration stream for the corresponding
      * pdpId will emit this configuration.
      *
-     * @param configuration the configuration to push
+     * @param configuration
+     * the configuration to push
      */
     void pushConfiguration(PDPConfiguration configuration);
 
     /**
      * Remove configuration for a PDP. Subscribers to the configuration stream for
-     * this pdpId will receive appropriate notification.
+     * this pdpId will receive appropriate
+     * notification.
      *
-     * @param pdpId the PDP identifier to remove
+     * @param pdpId
+     * the PDP identifier to remove
      */
     void removeConfiguration(String pdpId);
 
     /**
      * Trigger reload from underlying source for a specific PDP. Useful for
-     * pull-based scenarios where a webhook notification triggers fetching updated
-     * configuration from a remote source.
+     * pull-based scenarios where a webhook
+     * notification triggers fetching updated configuration from a remote source.
      *
-     * @param pdpId the PDP identifier to reload
+     * @param pdpId
+     * the PDP identifier to reload
      */
     default void triggerReload(String pdpId) {
     }

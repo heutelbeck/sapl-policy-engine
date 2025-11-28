@@ -375,4 +375,165 @@ class SaplJacksonModuleTests {
         assertThatThrownBy(() -> mapper.readValue("\"INVALID_ALGORITHM\"", CombiningAlgorithm.class))
                 .isInstanceOf(IllegalArgumentException.class);
     }
+
+    @Test
+    void whenSerializingPDPConfiguration_thenAllFieldsSerialized() throws JsonProcessingException {
+        val configuration = new PDPConfiguration("arkham-pdp", "v1.0", CombiningAlgorithm.DENY_OVERRIDES,
+                List.of("policy access-control permit", "policy audit-log deny"),
+                Map.of("serverUrl", Value.of("https://miskatonic.edu"), "maxRetries", Value.of(3)));
+        val json          = mapper.writeValueAsString(configuration);
+
+        assertThat(json).contains("\"pdpId\":\"arkham-pdp\"").contains("\"configurationId\":\"v1.0\"")
+                .contains("\"combiningAlgorithm\":\"DENY_OVERRIDES\"")
+                .contains("\"saplDocuments\":[\"policy access-control permit\",\"policy audit-log deny\"]")
+                .contains("\"variables\"").contains("\"serverUrl\":\"https://miskatonic.edu\"")
+                .contains("\"maxRetries\":3");
+    }
+
+    @Test
+    void whenDeserializingPDPConfiguration_thenAllFieldsRestored() throws JsonProcessingException {
+        val json          = """
+                {
+                    "pdpId": "innsmouth-pdp",
+                    "configurationId": "ritual-config",
+                    "combiningAlgorithm": "PERMIT_OVERRIDES",
+                    "saplDocuments": ["policy deep-ones permit"],
+                    "variables": {"depth": 100, "location": "reef"}
+                }""";
+        val configuration = mapper.readValue(json, PDPConfiguration.class);
+
+        assertThat(configuration.pdpId()).isEqualTo("innsmouth-pdp");
+        assertThat(configuration.configurationId()).isEqualTo("ritual-config");
+        assertThat(configuration.combiningAlgorithm()).isEqualTo(CombiningAlgorithm.PERMIT_OVERRIDES);
+        assertThat(configuration.saplDocuments()).containsExactly("policy deep-ones permit");
+        assertThat(configuration.variables()).containsEntry("depth", Value.of(100)).containsEntry("location",
+                Value.of("reef"));
+    }
+
+    @Test
+    void whenRoundTrippingPDPConfiguration_thenConfigurationPreserved() throws JsonProcessingException {
+        val original = new PDPConfiguration("dunwich-pdp", "elder-config", CombiningAlgorithm.ONLY_ONE_APPLICABLE,
+                List.of("policy whateley-access permit where action == \"read\"",
+                        "policy stone-circles deny where subject.sanity < 50"),
+                Map.of("threshold", Value.of(42), "location", Value.of("standing stones"), "active", Value.TRUE));
+
+        val json     = mapper.writeValueAsString(original);
+        val restored = mapper.readValue(json, PDPConfiguration.class);
+
+        assertThat(restored).isEqualTo(original);
+    }
+
+    @Test
+    void whenDeserializingPDPConfigurationWithKebabCaseAlgorithm_thenParsesCorrectly() throws JsonProcessingException {
+        val json          = """
+                {
+                    "pdpId": "test-pdp",
+                    "configurationId": "test-config",
+                    "combiningAlgorithm": "deny-unless-permit",
+                    "saplDocuments": [],
+                    "variables": {}
+                }""";
+        val configuration = mapper.readValue(json, PDPConfiguration.class);
+
+        assertThat(configuration.combiningAlgorithm()).isEqualTo(CombiningAlgorithm.DENY_UNLESS_PERMIT);
+    }
+
+    @Test
+    void whenDeserializingPDPConfigurationWithComplexVariables_thenVariablesPreserved() throws JsonProcessingException {
+        val json          = """
+                {
+                    "pdpId": "complex-pdp",
+                    "configurationId": "complex-config",
+                    "combiningAlgorithm": "PERMIT_UNLESS_DENY",
+                    "saplDocuments": [],
+                    "variables": {
+                        "nested": {"inner": "value", "count": 5},
+                        "array": [1, 2, 3],
+                        "bool": true,
+                        "nullable": null
+                    }
+                }""";
+        val configuration = mapper.readValue(json, PDPConfiguration.class);
+
+        assertThat(configuration.variables()).hasSize(4);
+        assertThat(configuration.variables().get("nested")).isInstanceOf(io.sapl.api.model.ObjectValue.class);
+        assertThat(configuration.variables().get("array")).isInstanceOf(io.sapl.api.model.ArrayValue.class);
+        assertThat(configuration.variables().get("bool")).isEqualTo(Value.TRUE);
+        assertThat(configuration.variables().get("nullable")).isEqualTo(Value.NULL);
+    }
+
+    @Test
+    void whenDeserializingPDPConfigurationWithoutPdpId_thenThrowsException() {
+        val json = """
+                {
+                    "configurationId": "test-config",
+                    "combiningAlgorithm": "DENY_OVERRIDES",
+                    "saplDocuments": [],
+                    "variables": {}
+                }""";
+        assertThatThrownBy(() -> mapper.readValue(json, PDPConfiguration.class)).hasMessageContaining("pdpId");
+    }
+
+    @Test
+    void whenDeserializingPDPConfigurationWithoutConfigurationId_thenThrowsException() {
+        val json = """
+                {
+                    "pdpId": "test-pdp",
+                    "combiningAlgorithm": "DENY_OVERRIDES",
+                    "saplDocuments": [],
+                    "variables": {}
+                }""";
+        assertThatThrownBy(() -> mapper.readValue(json, PDPConfiguration.class))
+                .hasMessageContaining("configurationId");
+    }
+
+    @Test
+    void whenDeserializingPDPConfigurationWithoutAlgorithm_thenThrowsException() {
+        val json = """
+                {
+                    "pdpId": "test-pdp",
+                    "configurationId": "test-config",
+                    "saplDocuments": [],
+                    "variables": {}
+                }""";
+        assertThatThrownBy(() -> mapper.readValue(json, PDPConfiguration.class))
+                .hasMessageContaining("combiningAlgorithm");
+    }
+
+    @Test
+    void whenDeserializingPDPConfigurationWithEmptyDocumentsAndVariables_thenDefaultsToEmptyCollections()
+            throws JsonProcessingException {
+        val json          = """
+                {
+                    "pdpId": "empty-pdp",
+                    "configurationId": "empty-config",
+                    "combiningAlgorithm": "DENY_OVERRIDES"
+                }""";
+        val configuration = mapper.readValue(json, PDPConfiguration.class);
+
+        assertThat(configuration.saplDocuments()).isEmpty();
+        assertThat(configuration.variables()).isEmpty();
+    }
+
+    @Test
+    void whenRoundTrippingPDPConfigurationWithMultilineDocuments_thenNewlinesPreserved()
+            throws JsonProcessingException {
+        val multilinePolicy = """
+                policy "elder-sign-access"
+                permit
+                where
+                    subject.role == "investigator";
+                    action == "read";
+                    resource.classification != "restricted";
+                """;
+        val original        = new PDPConfiguration("arkham-pdp", "v1.0", CombiningAlgorithm.DENY_OVERRIDES,
+                List.of(multilinePolicy), Map.of());
+
+        val json     = mapper.writeValueAsString(original);
+        val restored = mapper.readValue(json, PDPConfiguration.class);
+
+        assertThat(restored.saplDocuments()).hasSize(1);
+        assertThat(restored.saplDocuments().getFirst()).isEqualTo(multilinePolicy);
+        assertThat(restored.saplDocuments().getFirst()).contains("\n");
+    }
 }
