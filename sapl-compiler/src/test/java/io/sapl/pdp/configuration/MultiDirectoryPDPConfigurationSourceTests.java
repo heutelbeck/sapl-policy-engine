@@ -297,10 +297,11 @@ class MultiDirectoryPDPConfigurationSourceTests {
     }
 
     @Test
-    void whenSymlinkSubdirectoryPresent_thenItIsSkipped() throws IOException {
+    void whenSymlinkSubdirectoryPresent_thenItIsSkipped(@TempDir Path externalDir) throws IOException {
         createSubdirectoryWithPolicy("real", "DENY_OVERRIDES", "policy.sapl", "policy \"real\" permit true;");
 
-        val target = tempDir.resolve("target");
+        // Create target directory OUTSIDE the watched directory
+        val target = externalDir.resolve("target");
         Files.createDirectory(target);
         createFile(target.resolve("policy.sapl"), "policy \"target\" deny true;");
 
