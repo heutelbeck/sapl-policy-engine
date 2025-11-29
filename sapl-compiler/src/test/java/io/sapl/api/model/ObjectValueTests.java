@@ -38,7 +38,7 @@ class ObjectValueTests {
     class ConstructionTests {
         @Test
         @DisplayName("Constructor with null map throws NullPointerException")
-        void constructorNullMapThrows() {
+        void when_constructedWithNullMap_then_throwsNullPointerException() {
             assertThatThrownBy(() -> new ObjectValue(null, false)).isInstanceOf(NullPointerException.class);
         }
     }
@@ -49,7 +49,7 @@ class ObjectValueTests {
 
         @Test
         @DisplayName("Empty builder returns EMPTY_OBJECT singleton")
-        void emptyBuilderReturnsSingleton() {
+        void when_emptyBuilder_then_returnsEmptyObjectSingleton() {
             var result = ObjectValue.builder().build();
 
             assertThat(result).isSameAs(Value.EMPTY_OBJECT);
@@ -57,7 +57,7 @@ class ObjectValueTests {
 
         @Test
         @DisplayName("Empty secret builder returns new instance")
-        void emptySecretBuilderReturnsNewInstance() {
+        void when_emptySecretBuilder_then_returnsNewInstance() {
             var result = ObjectValue.builder().secret().build();
 
             assertThat(result).isNotSameAs(Value.EMPTY_OBJECT).isEmpty();
@@ -66,7 +66,7 @@ class ObjectValueTests {
 
         @Test
         @DisplayName("Builder put() chains fluently")
-        void builderPutChains() {
+        void when_builderPutCalled_then_chainsFluently() {
             var result = ObjectValue.builder().put("name", Value.of("Alice")).put("age", Value.of(30)).build();
 
             assertThat(result).hasSize(2).containsEntry("name", Value.of("Alice")).containsEntry("age", Value.of(30));
@@ -74,7 +74,7 @@ class ObjectValueTests {
 
         @Test
         @DisplayName("Builder putAll() works")
-        void builderPutAll() {
+        void when_builderPutAllCalled_then_addsAllEntries() {
             var map    = Map.<String, Value>of("key1", Value.of("value1"), "key2", Value.of("value2"));
             var result = ObjectValue.builder().putAll(map).build();
 
@@ -83,7 +83,7 @@ class ObjectValueTests {
 
         @Test
         @DisplayName("Builder secret() marks as secret")
-        void builderSecret() {
+        void when_builderSecretCalled_then_marksAsSecret() {
             var result = ObjectValue.builder().put("key", Value.of("value")).secret().build();
 
             assertThat(result.secret()).isTrue();
@@ -91,7 +91,7 @@ class ObjectValueTests {
 
         @Test
         @DisplayName("Builder secret() called before put() marks subsequent entries as secret")
-        void secretBeforePutMarksEntriesSecret() {
+        void when_secretCalledBeforePut_then_marksEntriesAsSecret() {
             val grimoire = ObjectValue.builder().secret().put("ritual", Value.of("Summon Yog-Sothoth"))
                     .put("location", Value.of("Miskatonic University")).build();
 
@@ -106,7 +106,7 @@ class ObjectValueTests {
 
         @Test
         @DisplayName("Builder secret() called after put() marks existing entries as secret")
-        void secretAfterPutMarksEntriesSecret() {
+        void when_secretCalledAfterPut_then_marksExistingEntriesAsSecret() {
             val forbiddenKnowledge = ObjectValue.builder().put("incantation", Value.of("Ph'nglui mglw'nafh"))
                     .put("deity", Value.of("Cthulhu")).secret().build();
 
@@ -121,7 +121,7 @@ class ObjectValueTests {
 
         @Test
         @DisplayName("Builder putAll() with secret builder marks all entries as secret")
-        void putAllWithSecretBuilderMarksSecret() {
+        void when_putAllWithSecretBuilder_then_marksAllEntriesAsSecret() {
             val elderSigns = Map.<String, Value>of("pentagram", Value.of("Protective ward"), "eye",
                     Value.of("All-seeing symbol"), "star", Value.of("Gateway marker"));
 
@@ -141,7 +141,7 @@ class ObjectValueTests {
 
         @Test
         @DisplayName("Builder putAll() then secret() marks all entries as secret")
-        void putAllThenSecretMarksSecret() {
+        void when_putAllThenSecret_then_marksAllEntriesAsSecret() {
             val cultMembers = Map.<String, Value>of("highPriest", Value.of("Wilbur Whateley"), "acolyte",
                     Value.of("Lavinia Whateley"), "witness", Value.of("Henry Armitage"));
 
@@ -161,7 +161,7 @@ class ObjectValueTests {
 
         @Test
         @DisplayName("Builder secret() is idempotent")
-        void secretIdempotency() {
+        void when_secretCalledMultipleTimes_then_isIdempotent() {
             val necronomicon = ObjectValue.builder().put("chapter", Value.of("The Dunwich Horror")).secret().secret()
                     .put("page", Value.of(731)).secret().build();
 
@@ -176,7 +176,7 @@ class ObjectValueTests {
 
         @Test
         @DisplayName("Builder mixed operations maintain secret consistency")
-        void mixedOperationsMaintainSecretConsistency() {
+        void when_mixedOperationsUsed_then_maintainsSecretConsistency() {
             val ritualComponents = Map.<String, Value>of("candles", Value.of(13), "incense", Value.of("sandalwood"));
 
             val ritual = ObjectValue.builder().put("tome", Value.of("De Vermis Mysteriis")).secret()
@@ -189,7 +189,7 @@ class ObjectValueTests {
 
         @Test
         @DisplayName("Builder with non-secret putAll preserves individual entry states")
-        void nonSecretPutAllPreservesStates() {
+        void when_nonSecretPutAll_then_preservesEntryStates() {
             val publicRecords = Map.<String, Value>of("town", Value.of("Arkham"), "population", Value.of(15000));
 
             val records = ObjectValue.builder().putAll(publicRecords).build();
@@ -210,7 +210,7 @@ class ObjectValueTests {
 
         @Test
         @DisplayName("Non-secret object is not secret")
-        void nonSecretObject() {
+        void when_nonSecretObject_then_secretIsFalse() {
             var obj = new ObjectValue(Map.of("key", Value.of(1)), false);
 
             assertThat(obj.secret()).isFalse();
@@ -218,7 +218,7 @@ class ObjectValueTests {
 
         @Test
         @DisplayName("Secret object is secret")
-        void secretObject() {
+        void when_secretObject_then_secretIsTrue() {
             var obj = new ObjectValue(Map.of("key", Value.of(1)), true);
 
             assertThat(obj.secret()).isTrue();
@@ -226,7 +226,7 @@ class ObjectValueTests {
 
         @Test
         @DisplayName("asSecret() on non-secret returns secret copy")
-        void asSecretReturnsSecretCopy() {
+        void when_asSecretOnNonSecret_then_returnsSecretCopy() {
             var original = new ObjectValue(Map.of("key", Value.of(1)), false);
             var secret   = original.asSecret();
 
@@ -237,7 +237,7 @@ class ObjectValueTests {
 
         @Test
         @DisplayName("asSecret() on secret returns same instance")
-        void asSecretOnSecretReturnsSame() {
+        void when_asSecretOnSecret_then_returnsSameInstance() {
             var original = new ObjectValue(Map.of("key", Value.of(1)), true);
             var secret   = original.asSecret();
 
@@ -246,7 +246,7 @@ class ObjectValueTests {
 
         @Test
         @DisplayName("get() on secret object returns secret value")
-        void getOnSecretObjectReturnsSecret() {
+        void when_getOnSecretObject_then_returnsSecretValue() {
             var obj   = new ObjectValue(Map.of("key", Value.of(1)), true);
             var value = obj.get("key");
 
@@ -256,7 +256,7 @@ class ObjectValueTests {
 
         @Test
         @DisplayName("values() on secret object returns secret values")
-        void valuesOnSecretObjectReturnsSecret() {
+        void when_valuesOnSecretObject_then_returnsSecretValues() {
             var obj = new ObjectValue(Map.of("key", Value.of(1)), true);
 
             obj.values().forEach(v -> assertThat(v.secret()).isTrue());
@@ -264,7 +264,7 @@ class ObjectValueTests {
 
         @Test
         @DisplayName("entrySet() on secret object returns secret values")
-        void entrySetOnSecretObjectReturnsSecret() {
+        void when_entrySetOnSecretObject_then_returnsSecretValues() {
             var obj = new ObjectValue(Map.of("key", Value.of(1)), true);
 
             obj.forEach((key, value) -> assertThat(value.secret()).isTrue());
@@ -272,7 +272,7 @@ class ObjectValueTests {
 
         @Test
         @DisplayName("forEach() on secret object provides secret values")
-        void forEachOnSecretObjectProvidesSecret() {
+        void when_forEachOnSecretObject_then_providesSecretValues() {
             var obj = new ObjectValue(Map.of("key", Value.of(1)), true);
 
             obj.forEach((k, v) -> assertThat(v.secret()).isTrue());
@@ -285,7 +285,7 @@ class ObjectValueTests {
 
         @Test
         @DisplayName("get(null) returns ErrorValue")
-        void getNullReturnsError() {
+        void when_getNull_then_returnsErrorValue() {
             var obj    = new ObjectValue(Map.of("key", Value.of(1)), false);
             var result = obj.get(null);
 
@@ -297,7 +297,7 @@ class ObjectValueTests {
 
         @Test
         @DisplayName("get(non-String) returns ErrorValue")
-        void getNonStringReturnsError() {
+        void when_getNonString_then_returnsErrorValue() {
             var obj    = new ObjectValue(Map.of("key", Value.of(1)), false);
             var result = obj.get(123);
 
@@ -309,7 +309,7 @@ class ObjectValueTests {
 
         @Test
         @DisplayName("get(absent key) returns null")
-        void getAbsentKeyReturnsNull() {
+        void when_getAbsentKey_then_returnsNull() {
             var obj    = new ObjectValue(Map.of("key", Value.of(1)), false);
             var result = obj.get("absent");
 
@@ -318,7 +318,7 @@ class ObjectValueTests {
 
         @Test
         @DisplayName("get(present key) returns value")
-        void getPresentKeyReturnsValue() {
+        void when_getPresentKey_then_returnsValue() {
             var obj    = new ObjectValue(Map.of("key", Value.of(1)), false);
             var result = obj.get("key");
 
@@ -327,7 +327,7 @@ class ObjectValueTests {
 
         @Test
         @DisplayName("getOrDefault(null) returns ErrorValue")
-        void getOrDefaultNullReturnsError() {
+        void when_getOrDefaultNull_then_returnsErrorValue() {
             var obj    = new ObjectValue(Map.of("key", Value.of(1)), false);
             var result = obj.getOrDefault(null, Value.of(99));
 
@@ -336,7 +336,7 @@ class ObjectValueTests {
 
         @Test
         @DisplayName("getOrDefault(non-String) returns ErrorValue")
-        void getOrDefaultNonStringReturnsError() {
+        void when_getOrDefaultNonString_then_returnsErrorValue() {
             var obj    = new ObjectValue(Map.of("key", Value.of(1)), false);
             var result = obj.getOrDefault(123, Value.of(99));
 
@@ -345,7 +345,7 @@ class ObjectValueTests {
 
         @Test
         @DisplayName("getOrDefault(absent key) returns default")
-        void getOrDefaultAbsentKeyReturnsDefault() {
+        void when_getOrDefaultAbsentKey_then_returnsDefault() {
             var obj    = new ObjectValue(Map.of("key", Value.of(1)), false);
             var result = obj.getOrDefault("absent", Value.of(99));
 
@@ -354,7 +354,7 @@ class ObjectValueTests {
 
         @Test
         @DisplayName("getOrDefault(present key) returns value")
-        void getOrDefaultPresentKeyReturnsValue() {
+        void when_getOrDefaultPresentKey_then_returnsValue() {
             var obj    = new ObjectValue(Map.of("key", Value.of(1)), false);
             var result = obj.getOrDefault("key", Value.of(99));
 
@@ -363,7 +363,7 @@ class ObjectValueTests {
 
         @Test
         @DisplayName("ErrorValue from secret object is secret")
-        void errorFromSecretObjectIsSecret() {
+        void when_errorFromSecretObject_then_errorIsSecret() {
             var obj    = new ObjectValue(Map.of("key", Value.of(1)), true);
             var result = obj.get(null);
 
@@ -378,7 +378,7 @@ class ObjectValueTests {
 
         @Test
         @DisplayName("equals() accepts HashMap with same content")
-        void equalsAcceptsHashMap() {
+        void when_equalsComparedWithHashMap_then_acceptsIt() {
             var content     = Map.<String, Value>of("key", Value.of(1));
             var objectValue = new ObjectValue(content, false);
             var hashMap     = new HashMap<>(content);
@@ -389,7 +389,7 @@ class ObjectValueTests {
 
         @Test
         @DisplayName("equals() accepts Map.of() with same content")
-        void equalsAcceptsMapOf() {
+        void when_equalsComparedWithMapOf_then_acceptsIt() {
             var content     = Map.<String, Value>of("key", Value.of(1));
             var objectValue = new ObjectValue(content, false);
 
@@ -399,7 +399,7 @@ class ObjectValueTests {
 
         @Test
         @DisplayName("hashCode() matches HashMap hashCode")
-        void hashCodeMatchesHashMap() {
+        void when_hashCodeComputed_then_matchesHashMap() {
             var content     = Map.<String, Value>of("key", Value.of(1));
             var objectValue = new ObjectValue(content, false);
             var hashMap     = new HashMap<>(content);
@@ -409,7 +409,7 @@ class ObjectValueTests {
 
         @Test
         @DisplayName("Can be used in HashSet with plain Maps")
-        void canBeUsedInHashSet() {
+        void when_usedInHashSet_then_worksWithPlainMaps() {
             var set = new HashSet<>();
             set.add(Map.of("key", Value.of(1)));
 
@@ -420,7 +420,7 @@ class ObjectValueTests {
 
         @Test
         @DisplayName("Can be used as HashMap key with plain Maps")
-        void canBeUsedAsHashMapKey() {
+        void when_usedAsHashMapKey_then_worksWithPlainMaps() {
             var map = new HashMap<>();
             map.put(Map.of("key", Value.of(1)), "test");
 
@@ -431,7 +431,7 @@ class ObjectValueTests {
 
         @Test
         @DisplayName("containsKey() returns false for non-String key")
-        void containsKeyForNonStringReturnsFalse() {
+        void when_containsKeyWithNonString_then_returnsFalse() {
             var obj = new ObjectValue(Map.of("key", Value.of(1)), false);
 
             assertThat(obj.containsKey(123)).isFalse();
@@ -440,7 +440,7 @@ class ObjectValueTests {
 
         @Test
         @DisplayName("containsKey() returns true for present String key")
-        void containsKeyForPresentKey() {
+        void when_containsKeyWithPresentKey_then_returnsTrue() {
             var obj = new ObjectValue(Map.of("key", Value.of(1)), false);
 
             assertThat(obj).containsKey("key");
@@ -448,7 +448,7 @@ class ObjectValueTests {
 
         @Test
         @DisplayName("containsKey() returns false for absent String key")
-        void containsKeyForAbsentKey() {
+        void when_containsKeyWithAbsentKey_then_returnsFalse() {
             var obj = new ObjectValue(Map.of("key", Value.of(1)), false);
 
             assertThat(obj).doesNotContainKey("absent");
@@ -461,7 +461,7 @@ class ObjectValueTests {
 
         @Test
         @DisplayName("put() throws UnsupportedOperationException")
-        void putThrows() {
+        void when_putCalled_then_throwsUnsupportedOperationException() {
             var obj      = new ObjectValue(Map.of("key", Value.of(1)), false);
             var newValue = Value.of(2);
 
@@ -470,7 +470,7 @@ class ObjectValueTests {
 
         @Test
         @DisplayName("remove() throws UnsupportedOperationException")
-        void removeThrows() {
+        void when_removeCalled_then_throwsUnsupportedOperationException() {
             var obj = new ObjectValue(Map.of("key", Value.of(1)), false);
 
             assertThatThrownBy(() -> obj.remove("key")).isInstanceOf(UnsupportedOperationException.class);
@@ -478,7 +478,7 @@ class ObjectValueTests {
 
         @Test
         @DisplayName("clear() throws UnsupportedOperationException")
-        void clearThrows() {
+        void when_clearCalled_then_throwsUnsupportedOperationException() {
             var obj = new ObjectValue(Map.of("key", Value.of(1)), false);
 
             assertThatThrownBy(obj::clear).isInstanceOf(UnsupportedOperationException.class);
@@ -486,7 +486,7 @@ class ObjectValueTests {
 
         @Test
         @DisplayName("putAll() throws UnsupportedOperationException")
-        void putAllThrows() {
+        void when_putAllCalled_then_throwsUnsupportedOperationException() {
             var obj    = new ObjectValue(Map.of("key", Value.of(1)), false);
             var newMap = Map.of("newKey", Value.of(2));
 
@@ -500,7 +500,7 @@ class ObjectValueTests {
 
         @Test
         @DisplayName("size() returns correct size")
-        void sizeReturnsCorrectSize() {
+        void when_sizeCalled_then_returnsCorrectSize() {
             var obj = new ObjectValue(Map.of("k1", Value.of(1), "k2", Value.of(2)), false);
 
             assertThat(obj).hasSize(2);
@@ -508,7 +508,7 @@ class ObjectValueTests {
 
         @Test
         @DisplayName("isEmpty() returns true for empty object")
-        void isEmptyForEmpty() {
+        void when_isEmptyOnEmpty_then_returnsTrue() {
             var obj = new ObjectValue(Map.of(), false);
 
             assertThat(obj).isEmpty();
@@ -516,7 +516,7 @@ class ObjectValueTests {
 
         @Test
         @DisplayName("isEmpty() returns false for non-empty object")
-        void isEmptyForNonEmpty() {
+        void when_isEmptyOnNonEmpty_then_returnsFalse() {
             var obj = new ObjectValue(Map.of("key", Value.of(1)), false);
 
             assertThat(obj).isNotEmpty();
@@ -524,7 +524,7 @@ class ObjectValueTests {
 
         @Test
         @DisplayName("containsValue() returns true for present value")
-        void containsValueForPresent() {
+        void when_containsValueForPresent_then_returnsTrue() {
             var obj = new ObjectValue(Map.of("key", Value.of(1)), false);
 
             assertThat(obj).containsValue(Value.of(1));
@@ -532,7 +532,7 @@ class ObjectValueTests {
 
         @Test
         @DisplayName("containsValue() returns false for absent value")
-        void containsValueForAbsent() {
+        void when_containsValueForAbsent_then_returnsFalse() {
             var obj = new ObjectValue(Map.of("key", Value.of(1)), false);
 
             assertThat(obj.containsValue(Value.of(2))).isFalse();
@@ -540,7 +540,7 @@ class ObjectValueTests {
 
         @Test
         @DisplayName("keySet() returns all keys")
-        void keySetReturnsAllKeys() {
+        void when_keySetCalled_then_returnsAllKeys() {
             var obj = new ObjectValue(Map.of("k1", Value.of(1), "k2", Value.of(2)), false);
 
             assertThat(obj.keySet()).containsExactlyInAnyOrder("k1", "k2");
@@ -548,7 +548,7 @@ class ObjectValueTests {
 
         @Test
         @DisplayName("values() returns all values")
-        void valuesReturnsAllValues() {
+        void when_valuesCalled_then_returnsAllValues() {
             var obj = new ObjectValue(Map.of("k1", Value.of(1), "k2", Value.of(2)), false);
 
             assertThat(obj.values()).containsExactlyInAnyOrder(Value.of(1), Value.of(2));
@@ -556,7 +556,7 @@ class ObjectValueTests {
 
         @Test
         @DisplayName("entrySet() returns all entries")
-        void entrySetReturnsAllEntries() {
+        void when_entrySetCalled_then_returnsAllEntries() {
             var obj = new ObjectValue(Map.of("key", Value.of(1)), false);
 
             assertThat(obj.entrySet()).hasSize(1);
@@ -572,7 +572,7 @@ class ObjectValueTests {
 
         @Test
         @DisplayName("equals() is reflexive")
-        void equalsIsReflexive() {
+        void when_equalsChecked_then_isReflexive() {
             var obj = new ObjectValue(Map.of("key", Value.of(1)), false);
 
             assertThat(obj).isEqualTo(obj);
@@ -580,7 +580,7 @@ class ObjectValueTests {
 
         @Test
         @DisplayName("equals() is symmetric")
-        void equalsIsSymmetric() {
+        void when_equalsChecked_then_isSymmetric() {
             var obj1 = new ObjectValue(Map.of("key", Value.of(1)), false);
             var obj2 = new ObjectValue(Map.of("key", Value.of(1)), false);
 
@@ -590,7 +590,7 @@ class ObjectValueTests {
 
         @Test
         @DisplayName("equals() is transitive")
-        void equalsIsTransitive() {
+        void when_equalsChecked_then_isTransitive() {
             var obj1 = new ObjectValue(Map.of("key", Value.of(1)), false);
             var obj2 = new ObjectValue(Map.of("key", Value.of(1)), false);
             var obj3 = new ObjectValue(Map.of("key", Value.of(1)), false);
@@ -602,7 +602,7 @@ class ObjectValueTests {
 
         @Test
         @DisplayName("equals() ignores secret flag")
-        void equalsIgnoresSecretFlag() {
+        void when_equalsChecked_then_ignoresSecretFlag() {
             var regular = new ObjectValue(Map.of("key", Value.of(1)), false);
             var secret  = new ObjectValue(Map.of("key", Value.of(1)), true);
 
@@ -612,7 +612,7 @@ class ObjectValueTests {
 
         @Test
         @DisplayName("hashCode() is consistent with equals()")
-        void hashCodeConsistentWithEquals() {
+        void when_hashCodeComputed_then_consistentWithEquals() {
             var obj1 = new ObjectValue(Map.of("key", Value.of(1)), false);
             var obj2 = new ObjectValue(Map.of("key", Value.of(1)), false);
 
@@ -621,7 +621,7 @@ class ObjectValueTests {
 
         @Test
         @DisplayName("hashCode() ignores secret flag")
-        void hashCodeIgnoresSecretFlag() {
+        void when_hashCodeComputed_then_ignoresSecretFlag() {
             var regular = new ObjectValue(Map.of("key", Value.of(1)), false);
             var secret  = new ObjectValue(Map.of("key", Value.of(1)), true);
 
@@ -630,7 +630,7 @@ class ObjectValueTests {
 
         @Test
         @DisplayName("equals() returns false for different content")
-        void equalsReturnsFalseForDifferentContent() {
+        void when_equalsComparedWithDifferentContent_then_returnsFalse() {
             var obj1 = new ObjectValue(Map.of("key", Value.of(1)), false);
             var obj2 = new ObjectValue(Map.of("key", Value.of(2)), false);
 
@@ -639,7 +639,7 @@ class ObjectValueTests {
 
         @Test
         @DisplayName("equals() returns false for different keys")
-        void equalsReturnsFalseForDifferentKeys() {
+        void when_equalsComparedWithDifferentKeys_then_returnsFalse() {
             var obj1 = new ObjectValue(Map.of("key1", Value.of(1)), false);
             var obj2 = new ObjectValue(Map.of("key2", Value.of(1)), false);
 
@@ -648,7 +648,7 @@ class ObjectValueTests {
 
         @Test
         @DisplayName("equals() returns false for null")
-        void equalsReturnsFalseForNull() {
+        void when_equalsComparedWithNull_then_returnsFalse() {
             var obj = new ObjectValue(Map.of("key", Value.of(1)), false);
 
             assertThat(obj).isNotEqualTo(null);
@@ -656,7 +656,7 @@ class ObjectValueTests {
 
         @Test
         @DisplayName("equals() returns false for non-Map object")
-        void equalsReturnsFalseForNonMap() {
+        void when_equalsComparedWithNonMap_then_returnsFalse() {
             var obj = new ObjectValue(Map.of("key", Value.of(1)), false);
 
             assertThat(obj).isNotEqualTo("not a map");
@@ -669,7 +669,7 @@ class ObjectValueTests {
 
         @Test
         @DisplayName("toString() for non-secret shows content")
-        void toStringNonSecretShowsContent() {
+        void when_toStringOnNonSecret_then_showsContent() {
             var obj    = new ObjectValue(Map.of("name", Value.of("Alice")), false);
             var result = obj.toString();
 
@@ -678,7 +678,7 @@ class ObjectValueTests {
 
         @Test
         @DisplayName("toString() for secret shows placeholder")
-        void toStringSecretShowsPlaceholder() {
+        void when_toStringOnSecret_then_showsPlaceholder() {
             var obj = new ObjectValue(Map.of("key", Value.of(1)), true);
 
             assertThat(obj).hasToString("***SECRET***");
@@ -686,7 +686,7 @@ class ObjectValueTests {
 
         @Test
         @DisplayName("toString() for empty non-secret shows {}")
-        void toStringEmptyShowsBraces() {
+        void when_toStringOnEmpty_then_showsBraces() {
             var obj = new ObjectValue(Map.of(), false);
 
             assertThat(obj).hasToString("{}");
@@ -699,7 +699,7 @@ class ObjectValueTests {
 
         @Test
         @DisplayName("Builder with elements and secret propagates secret to accessed elements")
-        void builderSecretPropagatesOnAccess() {
+        void when_builderWithSecretPropagates_then_accessedElementsAreSecret() {
             var obj = ObjectValue.builder().put("key1", Value.of(1)).put("key2", Value.of(2)).secret().build();
 
             assertThat(obj.secret()).isTrue();
@@ -713,7 +713,7 @@ class ObjectValueTests {
 
         @Test
         @DisplayName("Builder cannot be reused after build()")
-        void builderCannotBeReused() {
+        void when_builderReusedAfterBuild_then_throwsException() {
             var builder = ObjectValue.builder();
             var first   = builder.put("k1", Value.of(1)).build();
 
@@ -725,7 +725,7 @@ class ObjectValueTests {
 
         @Test
         @DisplayName("Builder throws on put after build()")
-        void builderThrowsOnPutAfterBuild() {
+        void when_putCalledAfterBuild_then_throwsException() {
             var builder = ObjectValue.builder().put("cultist", Value.of("Wilbur Whateley"));
             builder.build();
 
@@ -736,7 +736,7 @@ class ObjectValueTests {
 
         @Test
         @DisplayName("Builder throws on putAll after build()")
-        void builderThrowsOnPutAllAfterBuild() {
+        void when_putAllCalledAfterBuild_then_throwsException() {
             var builder = ObjectValue.builder().put("tome", Value.of("Necronomicon"));
             builder.build();
 
@@ -747,7 +747,7 @@ class ObjectValueTests {
 
         @Test
         @DisplayName("Builder throws on secret after build()")
-        void builderThrowsOnSecretAfterBuild() {
+        void when_secretCalledAfterBuild_then_throwsException() {
             var builder = ObjectValue.builder().put("incantation", Value.of("Ph'nglui mglw'nafh"));
             builder.build();
 
@@ -757,7 +757,7 @@ class ObjectValueTests {
 
         @Test
         @DisplayName("Builder throws on multiple build() calls")
-        void builderThrowsOnMultipleBuildCalls() {
+        void when_buildCalledMultipleTimes_then_throwsException() {
             var builder = ObjectValue.builder().put("elder", Value.of("Cthulhu"));
             builder.build();
 
@@ -767,7 +767,7 @@ class ObjectValueTests {
 
         @Test
         @DisplayName("Builder secret can be set before or after adding properties")
-        void builderSecretOrdering() {
+        void when_secretSetBeforeOrAfterProperties_then_bothWork() {
             var secretFirst = ObjectValue.builder().secret().put("key", Value.of(1)).build();
             var secretLast  = ObjectValue.builder().put("key", Value.of(1)).secret().build();
 
@@ -783,7 +783,7 @@ class ObjectValueTests {
 
         @Test
         @DisplayName("Builder with mixed types creates heterogeneous object")
-        void builderMixedTypes() {
+        void when_builderWithMixedTypes_then_createsHeterogeneousObject() {
             var result = ObjectValue.builder().put("number", Value.of(1)).put("text", Value.of("hello"))
                     .put("bool", Value.of(true)).put("null", Value.NULL).build();
 
@@ -796,7 +796,7 @@ class ObjectValueTests {
 
         @Test
         @DisplayName("Builder chaining returns same instance")
-        void builderChainingReturnsSameInstance() {
+        void when_builderChained_then_returnsSameInstance() {
             var builder     = ObjectValue.builder();
             var afterPut    = builder.put("k1", Value.of(1));
             var afterSecret = afterPut.secret();
@@ -809,7 +809,7 @@ class ObjectValueTests {
 
         @Test
         @DisplayName("Builder putAll with empty map works")
-        void builderPutAllEmptyMap() {
+        void when_builderPutAllWithEmptyMap_then_works() {
             var result = ObjectValue.builder().putAll(Map.of()).build();
 
             assertThat(result).isEmpty();
@@ -817,7 +817,7 @@ class ObjectValueTests {
 
         @Test
         @DisplayName("Builder with properties already marked as secret")
-        void builderWithSecretProperties() {
+        void when_builderWithSecretProperties_then_maintainsSecret() {
             var secretValue  = Value.of(1).asSecret();
             var nonSecretObj = ObjectValue.builder().put("key", secretValue).build();
 
@@ -836,7 +836,7 @@ class ObjectValueTests {
 
         @Test
         @DisplayName("Secret flag semantics: additive, not overriding")
-        void secretFlagSemantics() {
+        void when_secretFlagUsed_then_additiveNotOverriding() {
             var nonSecretValue = Value.of(1);
             var secretValue    = Value.of(2).asSecret();
 
@@ -868,7 +868,7 @@ class ObjectValueTests {
 
         @Test
         @DisplayName("ErrorValue from get(null) inherits secret flag")
-        void errorFromGetNullInheritsSecret() {
+        void when_getWithNullOnSecret_then_errorInheritsSecret() {
             var secret = new ObjectValue(Map.of("key", Value.of(1)), true);
             var error  = secret.get(null);
 
@@ -878,7 +878,7 @@ class ObjectValueTests {
 
         @Test
         @DisplayName("ErrorValue from get(non-String) inherits secret flag")
-        void errorFromGetNonStringInheritsSecret() {
+        void when_getWithNonStringOnSecret_then_errorInheritsSecret() {
             var secret = new ObjectValue(Map.of("key", Value.of(1)), true);
             var error  = secret.get(123);
 
@@ -889,7 +889,7 @@ class ObjectValueTests {
 
         @Test
         @DisplayName("ErrorValue from getOrDefault(null) inherits secret flag")
-        void errorFromGetOrDefaultNullInheritsSecret() {
+        void when_getOrDefaultWithNullOnSecret_then_errorInheritsSecret() {
             var secret = new ObjectValue(Map.of("key", Value.of(1)), true);
             var error  = secret.getOrDefault(null, Value.of(999));
 
@@ -899,7 +899,7 @@ class ObjectValueTests {
 
         @Test
         @DisplayName("ErrorValue from getOrDefault(non-String) inherits secret flag")
-        void errorFromGetOrDefaultNonStringInheritsSecret() {
+        void when_getOrDefaultWithNonStringOnSecret_then_errorInheritsSecret() {
             var secret = new ObjectValue(Map.of("key", Value.of(1)), true);
             var error  = secret.getOrDefault(456, Value.of(999));
 
@@ -914,7 +914,7 @@ class ObjectValueTests {
 
         @Test
         @DisplayName("getOrDefault() propagates secret for found values")
-        void getOrDefaultPropagatesSecretForFound() {
+        void when_getOrDefaultOnSecretWithFoundValue_then_propagatesSecret() {
             var secret = new ObjectValue(Map.of("key", Value.of(1)), true);
             var result = secret.getOrDefault("key", Value.of(999));
 
@@ -924,7 +924,7 @@ class ObjectValueTests {
 
         @Test
         @DisplayName("getOrDefault() propagates secret for default values")
-        void getOrDefaultPropagatesSecretForDefault() {
+        void when_getOrDefaultOnSecretWithMissingKey_then_propagatesSecret() {
             var secret = new ObjectValue(Map.of("key", Value.of(1)), true);
             var result = secret.getOrDefault("missing", Value.of(999));
 
@@ -934,7 +934,7 @@ class ObjectValueTests {
 
         @Test
         @DisplayName("containsKey(null) returns false instead of throwing")
-        void containsKeyNullReturnsFalse() {
+        void when_containsKeyWithNull_then_returnsFalse() {
             var obj = new ObjectValue(Map.of("key", Value.of(1)), false);
 
             assertThat(obj.containsKey(null)).isFalse();
@@ -942,7 +942,7 @@ class ObjectValueTests {
 
         @Test
         @DisplayName("containsKey(non-String) returns false instead of throwing")
-        void containsKeyNonStringReturnsFalse() {
+        void when_containsKeyWithNonString_then_returnsFalse() {
             var obj = new ObjectValue(Map.of("key", Value.of(1)), false);
 
             assertThat(obj.containsKey(123)).isFalse();
@@ -955,7 +955,7 @@ class ObjectValueTests {
 
         @Test
         @DisplayName("toString() with nested objects shows structure")
-        void toStringNestedObjects() {
+        void when_toStringWithNestedObjects_then_showsStructure() {
             var inner = new ObjectValue(Map.of("a", Value.of(1), "b", Value.of(2)), false);
             var outer = new ObjectValue(Map.of("inner", inner, "c", Value.of(3)), false);
 
@@ -966,7 +966,7 @@ class ObjectValueTests {
 
         @Test
         @DisplayName("toString() with secret nested objects hides inner content")
-        void toStringSecretNestedObjects() {
+        void when_toStringWithSecretNestedObjects_then_hidesInnerContent() {
             var inner = new ObjectValue(Map.of("a", Value.of(1)), true);
             var outer = new ObjectValue(Map.of("inner", inner, "c", Value.of(3)), false);
 
@@ -977,7 +977,7 @@ class ObjectValueTests {
 
         @Test
         @DisplayName("toString() handles all value types")
-        void toStringMixedTypes() {
+        void when_toStringWithMixedTypes_then_handlesAllTypes() {
             var obj = new ObjectValue(Map.of("number", Value.of(1), "text", Value.of("hello"), "bool", Value.of(true),
                     "null", Value.NULL, "undefined", Value.UNDEFINED, "error", Value.error("test")), false);
 
@@ -989,7 +989,7 @@ class ObjectValueTests {
 
         @Test
         @DisplayName("toString() with many properties is readable")
-        void toStringManyProperties() {
+        void when_toStringWithManyProperties_then_isReadable() {
             var builder = ObjectValue.builder();
             for (int i = 0; i < 10; i++) {
                 builder.put("key" + i, Value.of(i));
@@ -1008,7 +1008,7 @@ class ObjectValueTests {
 
         @Test
         @DisplayName("Empty keySet iteration")
-        void emptyKeySetIteration() {
+        void when_iteratingEmptyKeySet_then_noElementsVisited() {
             var empty = new ObjectValue(Map.of(), false);
 
             assertThat(empty.keySet()).isEmpty();
@@ -1019,7 +1019,7 @@ class ObjectValueTests {
 
         @Test
         @DisplayName("Empty values iteration")
-        void emptyValuesIteration() {
+        void when_iteratingEmptyValues_then_noElementsVisited() {
             var empty = new ObjectValue(Map.of(), false);
 
             assertThat(empty.values()).isEmpty();
@@ -1030,7 +1030,7 @@ class ObjectValueTests {
 
         @Test
         @DisplayName("Empty entrySet iteration")
-        void emptyEntrySetIteration() {
+        void when_iteratingEmptyEntrySet_then_noElementsVisited() {
             var empty = new ObjectValue(Map.of(), false);
 
             assertThat(empty.entrySet()).isEmpty();
@@ -1041,7 +1041,7 @@ class ObjectValueTests {
 
         @Test
         @DisplayName("forEach on empty object")
-        void forEachOnEmpty() {
+        void when_forEachOnEmpty_then_noElementsVisited() {
             var empty   = new ObjectValue(Map.of(), false);
             var visited = new ArrayList<>();
 
@@ -1052,7 +1052,7 @@ class ObjectValueTests {
 
         @Test
         @DisplayName("get() on empty object returns null")
-        void getOnEmptyReturnsNull() {
+        void when_getOnEmpty_then_returnsNull() {
             var empty = new ObjectValue(Map.of(), false);
 
             assertThat(empty.get("anything")).isNull();
@@ -1060,7 +1060,7 @@ class ObjectValueTests {
 
         @Test
         @DisplayName("getOrDefault() on empty object returns default")
-        void getOrDefaultOnEmptyReturnsDefault() {
+        void when_getOrDefaultOnEmpty_then_returnsDefault() {
             var empty        = new ObjectValue(Map.of(), false);
             var defaultValue = Value.of(999);
 
@@ -1076,7 +1076,7 @@ class ObjectValueTests {
 
         @Test
         @DisplayName("Pattern matching for resource access control")
-        void patternMatchingResourceAccess() {
+        void when_patternMatchingForResourceAccess_then_grantsCorrectAccess() {
             var resourceData = Value.ofObject(Map.of("resourceId", Value.of("doc-123"), "owner", Value.of("alice")));
 
             var decision = switch (resourceData) {
@@ -1095,7 +1095,7 @@ class ObjectValueTests {
 
         @Test
         @DisplayName("Pattern matching with null handling")
-        void patternMatchingNullHandling() {
+        void when_patternMatchingWithNullHandling_then_detectsNull() {
             var userData = Value.ofObject(Map.of("username", Value.of("bob"), "email", Value.NULL));
 
             boolean hasEmail = switch (userData) {

@@ -29,6 +29,9 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Consumer;
+
+import io.sapl.api.pdp.PDPConfiguration;
 
 /**
  * PDP configuration source that loads configurations from classpath resources.
@@ -79,6 +82,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * Since resources are static, this source invokes the callback once per
  * configuration during construction. There is no
  * hot-reloading from classpath resources.
+ * </p>
  * <h2>Thread Safety</h2>
  * <p>
  * This class is thread-safe. All configurations are loaded during construction
@@ -96,8 +100,21 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * <li><b>Sanitized error messages:</b> Exceptions do not expose internal
  * classpath details or system paths.</li>
  * </ul>
+ * <h2>Spring Integration</h2>
+ * <p>
+ * This class implements {@link reactor.core.Disposable} but Spring does not
+ * automatically call {@code dispose()} on
+ * Reactor's Disposable interface. When exposing as a Spring bean, explicitly
+ * specify the destroy method:
+ * </p>
  *
- * @see ConfigurationUpdateCallback
+ * <pre>{@code
+ * @Bean(destroyMethod = "dispose")
+ * public ResourcesPDPConfigurationSource resourcesSource() {
+ *     return new ResourcesPDPConfigurationSource("/policies",
+ *             config -> configRegister.loadConfiguration(config, false));
+ * }
+ * }</pre>
  */
 @Slf4j
 public class ResourcesPDPConfigurationSource implements PDPConfigurationSource {
@@ -115,39 +132,25 @@ public class ResourcesPDPConfigurationSource implements PDPConfigurationSource {
      * @param callback
      * called for each configuration found in the resources
      */
-    public ResourcesPDPConfigurationSource(@NonNull ConfigurationUpdateCallback callback) {
+    public ResourcesPDPConfigurationSource(@NonNull Consumer<PDPConfiguration> callback) {
         this(DEFAULT_RESOURCE_PATH, callback);
     }
 
     /**
      * Creates a source loading from a custom resource path.
+     * <p>
+     * The configuration ID is determined from pdp.json if present, otherwise
+     * auto-generated in the format: {@code res:<path>@sha256:<hash>}
+     * </p>
      *
      * @param resourcePath
      * the classpath resource path (e.g., "/policies" or "/custom/config")
      * @param callback
      * called for each configuration found in the resources
      */
-    public ResourcesPDPConfigurationSource(@NonNull String resourcePath,
-            @NonNull ConfigurationUpdateCallback callback) {
-        this(resourcePath, "resource-config", callback);
-    }
-
-    /**
-     * Creates a source loading from a custom resource path with a custom
-     * configurationId.
-     *
-     * @param resourcePath
-     * the classpath resource path
-     * @param configurationId
-     * the configuration identifier for all loaded configurations
-     * @param callback
-     * called for each configuration found in the resources
-     */
-    public ResourcesPDPConfigurationSource(@NonNull String resourcePath,
-            @NonNull String configurationId,
-            @NonNull ConfigurationUpdateCallback callback) {
+    public ResourcesPDPConfigurationSource(@NonNull String resourcePath, @NonNull Consumer<PDPConfiguration> callback) {
         log.info("Loading PDP configurations from classpath resources: '{}'.", resourcePath);
-        loadConfigurations(resourcePath, configurationId, callback);
+        loadConfigurations(resourcePath, callback);
     }
 
     @Override
@@ -162,7 +165,7 @@ public class ResourcesPDPConfigurationSource implements PDPConfigurationSource {
         return disposed.get();
     }
 
-    private void loadConfigurations(String resourcePath, String configurationId, ConfigurationUpdateCallback callback) {
+    private void loadConfigurations(String resourcePath, Consumer<PDPConfiguration> callback) {
         val    normalizedPath       = normalizeResourcePath(resourcePath);
         val    rootSaplFiles        = new HashMap<String, String>();
         val    subdirectories       = new HashSet<String>();
@@ -198,9 +201,10 @@ public class ResourcesPDPConfigurationSource implements PDPConfigurationSource {
         }
 
         if (rootPdpJson != null || !rootSaplFiles.isEmpty()) {
+            val sourcePath    = "/" + normalizedPath;
             val defaultConfig = PDPConfigurationLoader.loadFromContent(rootPdpJson, rootSaplFiles, DEFAULT_PDP_ID,
-                    configurationId);
-            callback.onConfigurationUpdate(defaultConfig);
+                    sourcePath);
+            callback.accept(defaultConfig);
             configurationsLoaded++;
             log.debug("Loaded default PDP configuration with {} SAPL documents.", rootSaplFiles.size());
         }
@@ -216,8 +220,9 @@ public class ResourcesPDPConfigurationSource implements PDPConfigurationSource {
             val saplFiles = extractSaplFiles(data);
 
             if (pdpJson != null || !saplFiles.isEmpty()) {
-                val config = PDPConfigurationLoader.loadFromContent(pdpJson, saplFiles, subdirName, configurationId);
-                callback.onConfigurationUpdate(config);
+                val sourcePath = "/" + normalizedPath + "/" + subdirName;
+                val config     = PDPConfigurationLoader.loadFromContent(pdpJson, saplFiles, subdirName, sourcePath);
+                callback.accept(config);
                 configurationsLoaded++;
                 log.debug("Loaded PDP configuration '{}' with {} SAPL documents.", subdirName, saplFiles.size());
             }

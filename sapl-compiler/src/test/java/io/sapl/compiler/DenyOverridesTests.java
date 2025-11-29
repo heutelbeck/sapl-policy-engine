@@ -33,11 +33,11 @@ class DenyOverridesTests {
 
     @ParameterizedTest(name = "{0}")
     @MethodSource
-    void denyOverridesDecisionTests(String description, String policySet, Decision expectedDecision) {
+    void when_decisionEvaluated_then_matchesExpected(String description, String policySet, Decision expectedDecision) {
         assertDecision(policySet, expectedDecision);
     }
 
-    private static Stream<Arguments> denyOverridesDecisionTests() {
+    private static Stream<Arguments> when_decisionEvaluated_then_matchesExpected() {
         return Stream.of(
                 // Basic scenarios
                 arguments("No policies match returns NOT_APPLICABLE", """
@@ -123,8 +123,8 @@ class DenyOverridesTests {
 
     @ParameterizedTest(name = "{0}")
     @MethodSource
-    void denyOverridesResourceTests(String description, String policySet, Decision expectedDecision, String fieldName,
-            Object expectedValue) {
+    void when_resourceTransformed_then_matchesExpected(String description, String policySet, Decision expectedDecision,
+            String fieldName, Object expectedValue) {
         val result = evaluatePolicySet(policySet);
         assertDecision(result, expectedDecision);
         if (expectedValue instanceof Boolean) {
@@ -134,7 +134,7 @@ class DenyOverridesTests {
         }
     }
 
-    private static Stream<Arguments> denyOverridesResourceTests() {
+    private static Stream<Arguments> when_resourceTransformed_then_matchesExpected() {
         return Stream.of(arguments("Single permit transformation returns PERMIT with resource", """
                 set "test" deny-overrides
                 policy "p" permit transform { "value": true }
@@ -149,8 +149,8 @@ class DenyOverridesTests {
 
     @ParameterizedTest(name = "{0}")
     @MethodSource
-    void denyOverridesObligationsAdviceTests(String description, String policySet, Decision expectedDecision,
-            List<String> expectedObligations, List<String> expectedAdvice) {
+    void when_obligationsAndAdviceEvaluated_then_matchesExpected(String description, String policySet,
+            Decision expectedDecision, List<String> expectedObligations, List<String> expectedAdvice) {
         val result = evaluatePolicySet(policySet);
         assertDecision(result, expectedDecision);
         if (expectedObligations != null) {
@@ -161,7 +161,7 @@ class DenyOverridesTests {
         }
     }
 
-    private static Stream<Arguments> denyOverridesObligationsAdviceTests() {
+    private static Stream<Arguments> when_obligationsAndAdviceEvaluated_then_matchesExpected() {
         return Stream.of(arguments("Collect obligations from deny", """
                 set "test" deny-overrides
                 policy "d1" deny obligation { "type": "obligation1" } advice { "type": "advice1" }

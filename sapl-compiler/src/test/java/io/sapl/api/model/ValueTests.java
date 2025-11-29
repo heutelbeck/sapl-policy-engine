@@ -42,7 +42,7 @@ class ValueTests {
 
         @Test
         @DisplayName("of(true) returns TRUE singleton")
-        void ofTrueReturnsSingleton() {
+        void when_ofTrue_then_returnsSingleton() {
             var result = Value.of(true);
 
             assertThat(result).isSameAs(Value.TRUE).isInstanceOf(BooleanValue.class);
@@ -50,7 +50,7 @@ class ValueTests {
 
         @Test
         @DisplayName("of(false) returns FALSE singleton")
-        void ofFalseReturnsSingleton() {
+        void when_ofFalse_then_returnsSingleton() {
             var result = Value.of(false);
 
             assertThat(result).isSameAs(Value.FALSE).isInstanceOf(BooleanValue.class);
@@ -58,7 +58,7 @@ class ValueTests {
 
         @Test
         @DisplayName("Multiple calls return same singleton")
-        void multipleCalls() {
+        void when_multipleCalls_then_returnSameSingleton() {
             assertThat(Value.of(true)).isSameAs(Value.of(true));
             assertThat(Value.of(false)).isSameAs(Value.of(false));
         }
@@ -70,7 +70,7 @@ class ValueTests {
 
         @Test
         @DisplayName("of(0L) returns ZERO singleton")
-        void ofZeroReturnsSingleton() {
+        void when_ofZero_then_returnsSingleton() {
             var result = Value.of(0L);
 
             assertThat(result).isSameAs(Value.ZERO);
@@ -78,7 +78,7 @@ class ValueTests {
 
         @Test
         @DisplayName("of(1L) returns ONE singleton")
-        void ofOneReturnsSingleton() {
+        void when_ofOne_then_returnsSingleton() {
             var result = Value.of(1L);
 
             assertThat(result).isSameAs(Value.ONE);
@@ -86,7 +86,7 @@ class ValueTests {
 
         @Test
         @DisplayName("of(10L) returns TEN singleton")
-        void ofTenReturnsSingleton() {
+        void when_ofTen_then_returnsSingleton() {
             var result = Value.of(10L);
 
             assertThat(result).isSameAs(Value.TEN);
@@ -95,7 +95,7 @@ class ValueTests {
         @ParameterizedTest
         @ValueSource(longs = { 2L, 5L, 42L, 100L, 1000L, -1L, -10L, -100L })
         @DisplayName("of(other values) creates new NumberValue")
-        void ofOtherValues(long value) {
+        void when_ofOtherValues_then_createsNumberValue(long value) {
             var result = Value.of(value);
 
             assertThat(result).isInstanceOf(NumberValue.class);
@@ -104,7 +104,7 @@ class ValueTests {
 
         @Test
         @DisplayName("of(Long.MAX_VALUE) does not overflow")
-        void ofMaxValue() {
+        void when_ofMaxValue_then_doesNotOverflow() {
             var result = Value.of(Long.MAX_VALUE);
 
             assertThat(result).isInstanceOf(NumberValue.class);
@@ -113,7 +113,7 @@ class ValueTests {
 
         @Test
         @DisplayName("of(Long.MIN_VALUE) does not overflow")
-        void ofMinValue() {
+        void when_ofMinValue_then_doesNotOverflow() {
             var result = Value.of(Long.MIN_VALUE);
 
             assertThat(result).isInstanceOf(NumberValue.class);
@@ -122,7 +122,7 @@ class ValueTests {
 
         @Test
         @DisplayName("of(4294967296L) does not truncate to 0")
-        void ofLargeValueDoesNotTruncate() {
+        void when_ofLargeValue_then_doesNotTruncate() {
             long value  = 4_294_967_296L; // 2^32, would truncate to 0 with (int) cast
             var  result = Value.of(value);
 
@@ -132,7 +132,7 @@ class ValueTests {
 
         @Test
         @DisplayName("of(4294967297L) does not truncate to 1")
-        void ofLargeValuePlusOneDoesNotTruncate() {
+        void when_ofLargeValuePlusOne_then_doesNotTruncate() {
             long value  = 4_294_967_297L; // 2^32 + 1, would truncate to 1 with (int) cast
             var  result = Value.of(value);
 
@@ -148,7 +148,7 @@ class ValueTests {
         @ParameterizedTest
         @ValueSource(doubles = { 0.0, -0.0 })
         @DisplayName("of(0.0 variants) returns ZERO singleton")
-        void ofZeroReturnsSingleton(double value) {
+        void when_ofZero_then_returnsSingleton(double value) {
             var result = Value.of(value);
 
             assertThat(result).isSameAs(Value.ZERO);
@@ -156,7 +156,7 @@ class ValueTests {
 
         @Test
         @DisplayName("of(1.0) returns ONE singleton")
-        void ofOneReturnsSingleton() {
+        void when_ofOne_then_returnsSingleton() {
             var result = Value.of(1.0);
 
             assertThat(result).isSameAs(Value.ONE);
@@ -164,7 +164,7 @@ class ValueTests {
 
         @Test
         @DisplayName("of(10.0) returns TEN singleton")
-        void ofTenReturnsSingleton() {
+        void when_ofTen_then_returnsSingleton() {
             var result = Value.of(10.0);
 
             assertThat(result).isSameAs(Value.TEN);
@@ -173,7 +173,7 @@ class ValueTests {
         @ParameterizedTest
         @ValueSource(doubles = { 1.5, 3.14159, 2.71828, -1.0, 0.001, 1e10, 1e-10 })
         @DisplayName("of(other values) creates new NumberValue")
-        void ofOtherValues(double value) {
+        void when_ofOtherValues_then_createsNumberValue(double value) {
             var result = Value.of(value);
 
             assertThat(result).isInstanceOf(NumberValue.class);
@@ -182,14 +182,14 @@ class ValueTests {
 
         @Test
         @DisplayName("of(NaN) throws IllegalArgumentException")
-        void ofNaNThrows() {
+        void when_ofNaN_then_throws() {
             assertThatThrownBy(() -> Value.of(Double.NaN)).isInstanceOf(IllegalArgumentException.class)
                     .hasMessageContaining("Cannot create Value from NaN").hasMessageContaining("Use Value.error()");
         }
 
         @Test
         @DisplayName("of(POSITIVE_INFINITY) throws IllegalArgumentException")
-        void ofPositiveInfinityThrows() {
+        void when_ofPositiveInfinity_then_throws() {
             assertThatThrownBy(() -> Value.of(Double.POSITIVE_INFINITY)).isInstanceOf(IllegalArgumentException.class)
                     .hasMessageContaining("Cannot create Value from infinite double")
                     .hasMessageContaining("Use Value.error()");
@@ -197,7 +197,7 @@ class ValueTests {
 
         @Test
         @DisplayName("of(NEGATIVE_INFINITY) throws IllegalArgumentException")
-        void ofNegativeInfinityThrows() {
+        void when_ofNegativeInfinity_then_throws() {
             assertThatThrownBy(() -> Value.of(Double.NEGATIVE_INFINITY)).isInstanceOf(IllegalArgumentException.class)
                     .hasMessageContaining("Cannot create Value from infinite double")
                     .hasMessageContaining("Use Value.error()");
@@ -210,7 +210,7 @@ class ValueTests {
 
         @Test
         @DisplayName("of(BigDecimal.ZERO) returns ZERO singleton")
-        void ofZeroReturnsSingleton() {
+        void when_ofZero_then_returnsSingleton() {
             var result = Value.of(BigDecimal.ZERO);
 
             assertThat(result).isSameAs(Value.ZERO);
@@ -218,7 +218,7 @@ class ValueTests {
 
         @Test
         @DisplayName("of(BigDecimal.ONE) returns ONE singleton")
-        void ofOneReturnsSingleton() {
+        void when_ofOne_then_returnsSingleton() {
             var result = Value.of(BigDecimal.ONE);
 
             assertThat(result).isSameAs(Value.ONE);
@@ -226,7 +226,7 @@ class ValueTests {
 
         @Test
         @DisplayName("of(BigDecimal.TEN) returns TEN singleton")
-        void ofTenReturnsSingleton() {
+        void when_ofTen_then_returnsSingleton() {
             var result = Value.of(BigDecimal.TEN);
 
             assertThat(result).isSameAs(Value.TEN);
@@ -234,7 +234,7 @@ class ValueTests {
 
         @Test
         @DisplayName("of(new BigDecimal(0)) returns ZERO singleton")
-        void ofNewZeroReturnsSingleton() {
+        void when_ofNewZero_then_returnsSingleton() {
             var result = Value.of(new BigDecimal("0"));
 
             assertThat(result).isSameAs(Value.ZERO);
@@ -242,7 +242,7 @@ class ValueTests {
 
         @Test
         @DisplayName("of(new BigDecimal(0.00)) returns ZERO singleton")
-        void ofZeroWithScaleReturnsSingleton() {
+        void when_ofZeroWithScale_then_returnsSingleton() {
             var result = Value.of(new BigDecimal("0.00"));
 
             assertThat(result).isSameAs(Value.ZERO);
@@ -251,7 +251,7 @@ class ValueTests {
         @ParameterizedTest
         @MethodSource("provideBigDecimalValues")
         @DisplayName("of(other values) creates new NumberValue")
-        void ofOtherValues(BigDecimal value) {
+        void when_ofOtherValues_then_createsNumberValue(BigDecimal value) {
             var result = Value.of(value);
 
             assertThat(result).isInstanceOf(NumberValue.class);
@@ -265,7 +265,7 @@ class ValueTests {
 
         @Test
         @DisplayName("of(null) throws NullPointerException")
-        void ofNullThrows() {
+        void when_ofNull_then_throws() {
             assertThatThrownBy(() -> Value.of((BigDecimal) null)).isInstanceOf(NullPointerException.class);
         }
     }
@@ -276,7 +276,7 @@ class ValueTests {
 
         @Test
         @DisplayName("of(empty string) returns EMPTY_TEXT singleton")
-        void ofEmptyStringReturnsSingleton() {
+        void when_ofEmptyString_then_returnsSingleton() {
             var result = Value.of("");
 
             assertThat(result).isSameAs(Value.EMPTY_TEXT);
@@ -285,7 +285,7 @@ class ValueTests {
         @ParameterizedTest
         @ValueSource(strings = { "hello", "world", "test", " ", "  ", "\t", "\n" })
         @DisplayName("of(non-empty strings) creates new TextValue")
-        void ofNonEmptyStrings(String value) {
+        void when_ofNonEmptyStrings_then_createsTextValue(String value) {
             var result = Value.of(value);
 
             assertThat(result).isInstanceOf(TextValue.class);
@@ -294,7 +294,7 @@ class ValueTests {
 
         @Test
         @DisplayName("of(null) throws NullPointerException")
-        void ofNullThrows() {
+        void when_ofNull_then_throws() {
             assertThatThrownBy(() -> Value.of((String) null)).isInstanceOf(NullPointerException.class);
         }
     }
@@ -305,7 +305,7 @@ class ValueTests {
 
         @Test
         @DisplayName("ofArray() with no args returns EMPTY_ARRAY singleton")
-        void ofArrayNoArgsReturnsSingleton() {
+        void when_ofArrayNoArgs_then_returnsSingleton() {
             var result = Value.ofArray();
 
             assertThat(result).isSameAs(Value.EMPTY_ARRAY);
@@ -313,7 +313,7 @@ class ValueTests {
 
         @Test
         @DisplayName("ofArray(empty list) returns EMPTY_ARRAY singleton")
-        void ofArrayEmptyListReturnsSingleton() {
+        void when_ofArrayEmptyList_then_returnsSingleton() {
             var result = Value.ofArray(List.of());
 
             assertThat(result).isSameAs(Value.EMPTY_ARRAY);
@@ -321,7 +321,7 @@ class ValueTests {
 
         @Test
         @DisplayName("ofArray(varargs) creates ArrayValue")
-        void ofArrayVarargs() {
+        void when_ofArrayVarargs_then_createsArrayValue() {
             var result = Value.ofArray(Value.of(1), Value.of(2), Value.of(3));
 
             assertThat(result).isInstanceOf(ArrayValue.class);
@@ -334,7 +334,7 @@ class ValueTests {
 
         @Test
         @DisplayName("ofArray(list) creates ArrayValue")
-        void ofArrayList() {
+        void when_ofArrayList_then_createsArrayValue() {
             var list   = List.<Value>of(Value.<Value>of("a"), Value.of("b"));
             var result = Value.ofArray(list);
 
@@ -347,7 +347,7 @@ class ValueTests {
 
         @Test
         @DisplayName("ofArray(null list) throws NullPointerException")
-        void ofArrayNullListThrows() {
+        void when_ofArrayNullList_then_throws() {
             assertThatThrownBy(() -> Value.ofArray((List<Value>) null)).isInstanceOf(NullPointerException.class);
         }
     }
@@ -358,7 +358,7 @@ class ValueTests {
 
         @Test
         @DisplayName("ofObject(empty map) returns EMPTY_OBJECT singleton")
-        void ofObjectEmptyMapReturnsSingleton() {
+        void when_ofObjectEmptyMap_then_returnsSingleton() {
             var result = Value.ofObject(Map.of());
 
             assertThat(result).isSameAs(Value.EMPTY_OBJECT);
@@ -366,7 +366,7 @@ class ValueTests {
 
         @Test
         @DisplayName("ofObject(map) creates ObjectValue")
-        void ofObjectMap() {
+        void when_ofObjectMap_then_createsObjectValue() {
             var map    = Map.<String, Value>of("name", Value.of("Alice"), "age", Value.of(30));
             var result = Value.ofObject(map);
 
@@ -377,7 +377,7 @@ class ValueTests {
 
         @Test
         @DisplayName("ofObject(null) throws NullPointerException")
-        void ofObjectNullThrows() {
+        void when_ofObjectNull_then_throws() {
             assertThatThrownBy(() -> Value.ofObject(null)).isInstanceOf(NullPointerException.class);
         }
     }
@@ -388,7 +388,7 @@ class ValueTests {
 
         @Test
         @DisplayName("error(message) creates ErrorValue")
-        void errorWithMessage() {
+        void when_errorWithMessage_then_createsErrorValue() {
             var result = Value.error("Test error");
 
             assertThat(result).isInstanceOf(ErrorValue.class);
@@ -400,7 +400,7 @@ class ValueTests {
 
         @Test
         @DisplayName("error(message, cause) creates ErrorValue")
-        void errorWithMessageAndCause() {
+        void when_errorWithMessageAndCause_then_createsErrorValue() {
             var cause  = new RuntimeException("Cause");
             var result = Value.error("Test error", cause);
 
@@ -413,7 +413,7 @@ class ValueTests {
 
         @Test
         @DisplayName("error(cause) creates ErrorValue with cause message")
-        void errorWithCause() {
+        void when_errorWithCause_then_createsErrorValue() {
             var cause  = new RuntimeException("Cause message");
             var result = Value.error(cause);
 
@@ -426,13 +426,13 @@ class ValueTests {
 
         @Test
         @DisplayName("error(null message) throws NullPointerException")
-        void errorNullMessageThrows() {
+        void when_errorNullMessage_then_throws() {
             assertThatThrownBy(() -> Value.error((String) null)).isInstanceOf(NullPointerException.class);
         }
 
         @Test
         @DisplayName("error(null cause) throws NullPointerException")
-        void errorNullCauseThrows() {
+        void when_errorNullCause_then_throws() {
             assertThatThrownBy(() -> Value.error((Throwable) null)).isInstanceOf(NullPointerException.class);
         }
     }
@@ -443,7 +443,7 @@ class ValueTests {
 
         @Test
         @DisplayName("TRUE is BooleanValue(true)")
-        void trueConstant() {
+        void when_trueConstant_then_isBooleanValue() {
             assertThat(Value.TRUE).isInstanceOf(BooleanValue.class);
             assertThat(((BooleanValue) Value.TRUE).value()).isTrue();
             assertThat(Value.TRUE.secret()).isFalse();
@@ -451,7 +451,7 @@ class ValueTests {
 
         @Test
         @DisplayName("FALSE is BooleanValue(false)")
-        void falseConstant() {
+        void when_falseConstant_then_isBooleanValue() {
             assertThat(Value.FALSE).isInstanceOf(BooleanValue.class);
             assertThat(((BooleanValue) Value.FALSE).value()).isFalse();
             assertThat(Value.FALSE.secret()).isFalse();
@@ -459,21 +459,21 @@ class ValueTests {
 
         @Test
         @DisplayName("NULL is NullValue")
-        void nullConstant() {
+        void when_nullConstant_then_isNullValue() {
             assertThat(Value.NULL).isInstanceOf(NullValue.class);
             assertThat(Value.NULL.secret()).isFalse();
         }
 
         @Test
         @DisplayName("UNDEFINED is UndefinedValue")
-        void undefinedConstant() {
+        void when_undefinedConstant_then_isUndefinedValue() {
             assertThat(Value.UNDEFINED).isInstanceOf(UndefinedValue.class);
             assertThat(Value.UNDEFINED.secret()).isFalse();
         }
 
         @Test
         @DisplayName("ZERO is NumberValue(0)")
-        void zeroConstant() {
+        void when_zeroConstant_then_isNumberValue() {
             assertThat(Value.ZERO).isInstanceOf(NumberValue.class);
             assertThat(((NumberValue) Value.ZERO).value()).isEqualByComparingTo(BigDecimal.ZERO);
             assertThat(Value.ZERO.secret()).isFalse();
@@ -481,7 +481,7 @@ class ValueTests {
 
         @Test
         @DisplayName("ONE is NumberValue(1)")
-        void oneConstant() {
+        void when_oneConstant_then_isNumberValue() {
             assertThat(Value.ONE).isInstanceOf(NumberValue.class);
             assertThat(((NumberValue) Value.ONE).value()).isEqualByComparingTo(BigDecimal.ONE);
             assertThat(Value.ONE.secret()).isFalse();
@@ -489,7 +489,7 @@ class ValueTests {
 
         @Test
         @DisplayName("TEN is NumberValue(10)")
-        void tenConstant() {
+        void when_tenConstant_then_isNumberValue() {
             assertThat(Value.TEN).isInstanceOf(NumberValue.class);
             assertThat(((NumberValue) Value.TEN).value()).isEqualByComparingTo(BigDecimal.TEN);
             assertThat(Value.TEN.secret()).isFalse();
@@ -497,21 +497,21 @@ class ValueTests {
 
         @Test
         @DisplayName("EMPTY_ARRAY is empty ArrayValue")
-        void emptyArrayConstant() {
+        void when_emptyArrayConstant_then_isEmptyArrayValue() {
             assertThat(Value.EMPTY_ARRAY).isInstanceOf(ArrayValue.class).isEmpty();
             assertThat(Value.EMPTY_ARRAY.secret()).isFalse();
         }
 
         @Test
         @DisplayName("EMPTY_OBJECT is empty ObjectValue")
-        void emptyObjectConstant() {
+        void when_emptyObjectConstant_then_isEmptyObjectValue() {
             assertThat(Value.EMPTY_OBJECT).isInstanceOf(ObjectValue.class).isEmpty();
             assertThat(Value.EMPTY_OBJECT.secret()).isFalse();
         }
 
         @Test
         @DisplayName("EMPTY_TEXT is empty TextValue")
-        void emptyTextConstant() {
+        void when_emptyTextConstant_then_isEmptyTextValue() {
             assertThat(Value.EMPTY_TEXT).isInstanceOf(TextValue.class);
             assertThat(((TextValue) Value.EMPTY_TEXT).value()).isEmpty();
             assertThat(Value.EMPTY_TEXT.secret()).isFalse();
@@ -519,7 +519,7 @@ class ValueTests {
 
         @Test
         @DisplayName("All constants are not secret")
-        void constantsAreNotSecret() {
+        void when_allConstants_then_notSecret() {
             assertThat(Value.TRUE.secret()).isFalse();
             assertThat(Value.FALSE.secret()).isFalse();
             assertThat(Value.NULL.secret()).isFalse();
@@ -539,7 +539,7 @@ class ValueTests {
 
         @Test
         @DisplayName("Pattern matching for policy decision")
-        void patternMatchingPolicyDecision() {
+        void when_patternMatchingPolicyDecision_then_returnsCorrectDecision() {
             Value policyResult = Value.of(true);
 
             var decision = switch (policyResult) {
@@ -554,7 +554,7 @@ class ValueTests {
 
         @Test
         @DisplayName("Pattern matching with guards for access control")
-        void patternMatchingWithGuards() {
+        void when_patternMatchingWithGuards_then_returnsCorrectAccess() {
             var clearanceLevel = Value.of(7);
 
             var access = switch (clearanceLevel) {
@@ -573,7 +573,7 @@ class ValueTests {
 
         @Test
         @DisplayName("Pattern matching for attribute extraction")
-        void patternMatchingAttributeExtraction() {
+        void when_patternMatchingAttributeExtraction_then_extractsCorrectly() {
             Value user = Value.ofObject(Map.of("name", Value.of("alice"), "role", Value.of("admin")));
 
             boolean isAdmin = switch (user) {
@@ -594,7 +594,7 @@ class ValueTests {
 
         @Test
         @DisplayName("ofArray with varargs consistency")
-        void ofArrayVarargsConsistency() {
+        void when_ofArrayVarargs_then_consistentEquality() {
             var v1 = Value.ofArray(Value.of(1), Value.of(2));
             var v2 = Value.ofArray(Value.of(1), Value.of(2));
 
@@ -603,7 +603,7 @@ class ValueTests {
 
         @Test
         @DisplayName("ofObject creates defensive copy")
-        void ofObjectDefensiveCopy() {
+        void when_ofObject_then_createsDefensiveCopy() {
             var mutableMap = new HashMap<String, Value>();
             mutableMap.put("key", Value.of(1));
 
@@ -615,7 +615,7 @@ class ValueTests {
 
         @Test
         @DisplayName("Factory methods return appropriate types")
-        void factoryMethodTypes() {
+        void when_factoryMethods_then_returnAppropriateTypes() {
             assertThat(Value.of(true)).isInstanceOf(BooleanValue.class);
             assertThat(Value.of(1L)).isInstanceOf(NumberValue.class);
             assertThat(Value.of(1.5)).isInstanceOf(NumberValue.class);
@@ -628,7 +628,7 @@ class ValueTests {
 
         @Test
         @DisplayName("Singleton constants are consistent")
-        void singletonConsistency() {
+        void when_singletonConstants_then_consistent() {
             assertThat(Value.of(true)).isSameAs(Value.TRUE);
             assertThat(Value.of(false)).isSameAs(Value.FALSE);
             assertThat(Value.of(0L)).isSameAs(Value.ZERO);
@@ -641,14 +641,14 @@ class ValueTests {
 
         @Test
         @DisplayName("Double zero variants return same singleton")
-        void doubleZeroVariants() {
+        void when_doubleZeroVariants_then_returnSameSingleton() {
             assertThat(Value.of(0.0)).isSameAs(Value.ZERO);
             assertThat(Value.of(-0.0)).isSameAs(Value.ZERO);
         }
 
         @Test
         @DisplayName("BigDecimal with different scales but same value are equal")
-        void bigDecimalScaleEquality() {
+        void when_bigDecimalDifferentScales_then_equal() {
             var v1 = Value.of(new BigDecimal("1.0"));
             var v2 = Value.of(new BigDecimal("1.00"));
 
@@ -657,7 +657,7 @@ class ValueTests {
 
         @Test
         @DisplayName("Long values beyond int range")
-        void longValuesBeyondIntRange() {
+        void when_longValuesBeyondIntRange_then_handledCorrectly() {
             long large = 10_000_000_000L; // Beyond int range
             var  value = Value.of(large);
 
@@ -668,7 +668,7 @@ class ValueTests {
 
         @Test
         @DisplayName("Array with mixed value types")
-        void arrayWithMixedTypes() {
+        void when_arrayWithMixedTypes_then_createsCorrectly() {
             var array = Value.ofArray(Value.of(1), Value.of("text"), Value.of(true), Value.NULL, Value.UNDEFINED);
 
             assertThat(array).isInstanceOf(ArrayValue.class);
@@ -677,7 +677,7 @@ class ValueTests {
 
         @Test
         @DisplayName("Object with all value types")
-        void objectWithAllTypes() {
+        void when_objectWithAllTypes_then_createsCorrectly() {
             var obj = Value.ofObject(Map.of("number", Value.of(1), "text", Value.of("hello"), "bool", Value.of(true),
                     "null", Value.NULL));
 
@@ -687,7 +687,7 @@ class ValueTests {
 
         @Test
         @DisplayName("Error factory with null cause is allowed")
-        void errorFactoryNullCause() {
+        void when_errorFactoryNullCause_then_allowed() {
             var error = Value.error("message", (Throwable) null);
 
             assertThat(error).isInstanceOf(ErrorValue.class);

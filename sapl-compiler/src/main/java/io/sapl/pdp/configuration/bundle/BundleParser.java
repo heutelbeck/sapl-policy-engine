@@ -15,9 +15,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.pdp.configuration;
+package io.sapl.pdp.configuration.bundle;
 
 import io.sapl.api.pdp.PDPConfiguration;
+import io.sapl.pdp.configuration.PDPConfigurationException;
+import io.sapl.pdp.configuration.PDPConfigurationLoader;
 import lombok.experimental.UtilityClass;
 import lombok.val;
 
@@ -28,9 +30,11 @@ import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Instant;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeMap;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
@@ -42,20 +46,29 @@ import java.util.zip.ZipInputStream;
  * extracts bundle contents from various input sources while enforcing security
  * constraints.
  * </p>
+ * <h2>Security Model</h2>
+ * <p>
+ * This parser enforces a <b>secure-by-default</b> approach. All parse methods
+ * require a {@link BundleSecurityPolicy}
+ * that defines how signature verification should be handled. There are no
+ * convenience methods that skip security
+ * checks.
+ * </p>
  * <h2>Bundle Structure</h2>
  *
  * <pre>
  * my-policies.saplbundle (ZIP archive):
- * ├── pdp.json           (optional configuration)
- * ├── access-control.sapl
- * ├── audit.sapl
- * └── logging.sapl
+ * +-- .sapl-manifest.json  (signature and file hashes)
+ * +-- pdp.json             (optional configuration)
+ * +-- access-control.sapl
+ * +-- audit.sapl
+ * +-- logging.sapl
  * </pre>
  * <p>
  * Subdirectories inside bundles are ignored. Only root-level files are
  * processed.
  * </p>
- * <h2>Security</h2>
+ * <h2>Archive Security</h2>
  * <p>
  * This parser enforces multiple layers of protection against malicious
  * archives:
@@ -70,24 +83,58 @@ import java.util.zip.ZipInputStream;
  * .saplbundle are rejected to prevent
  * recursive decompression attacks.</li>
  * </ul>
+ * <h2>Signature Verification</h2>
+ * <p>
+ * Bundles should be cryptographically signed using Ed25519 signatures. When a
+ * bundle contains a
+ * {@code .sapl-manifest.json} file, its signature is verified to ensure
+ * authenticity and integrity:
+ * </p>
+ * <ul>
+ * <li><b>Authenticity:</b> Confirms the bundle was signed by a trusted
+ * key.</li>
+ * <li><b>Integrity:</b> Verifies no files were added, removed, or
+ * modified.</li>
+ * <li><b>Expiration:</b> Optionally enforces signature expiration times.</li>
+ * </ul>
  * <h2>Usage</h2>
+ * <h3>Production (Recommended)</h3>
  *
  * <pre>{@code
- * // From file
- * PDPConfiguration config = BundleParser.parse(bundlePath, "production", "v1.0");
+ * // Load trusted public key
+ * PublicKey trustedKey = loadFromKeyStore();
  *
- * // From HTTP upload
- * PDPConfiguration config = BundleParser.parse(request.getInputStream(), "production", "v1.0");
+ * // Create security policy requiring signatures
+ * BundleSecurityPolicy policy = BundleSecurityPolicy.requireSignature(trustedKey);
  *
- * // From byte array (e.g., from database or message queue)
- * PDPConfiguration config = BundleParser.parse(bundleBytes, "production", "v1.0");
+ * // Parse bundle with signature verification
+ * PDPConfiguration config = BundleParser.parse(bundlePath, "production", "v1.0", policy);
+ *
+ * // With expiration checking
+ * BundleSecurityPolicy policy = BundleSecurityPolicy.builder(trustedKey).withExpirationCheck().build();
+ * PDPConfiguration config = BundleParser.parse(bundleBytes, "production", "v1.0", policy);
  * }</pre>
+ *
+ * <h3>Development Only (Requires Explicit Risk Acceptance)</h3>
+ *
+ * <pre>{@code
+ * // DANGER: Only for isolated development environments
+ * BundleSecurityPolicy policy = BundleSecurityPolicy.builder().disableSignatureVerification()
+ *         .acceptUnsignedBundleRisks().build();
+ *
+ * PDPConfiguration config = BundleParser.parse(bundlePath, "dev", "local", policy);
+ * }</pre>
+ *
+ * @see BundleBuilder
+ * @see BundleSecurityPolicy
+ * @see BundleManifest
  */
 @UtilityClass
 public class BundleParser {
 
-    private static final String PDP_JSON       = "pdp.json";
-    private static final String SAPL_EXTENSION = ".sapl";
+    private static final String PDP_JSON          = "pdp.json";
+    private static final String SAPL_EXTENSION    = ".sapl";
+    private static final String MANIFEST_FILENAME = BundleManifest.MANIFEST_FILENAME;
 
     private static final Set<String> NESTED_ARCHIVE_EXTENSIONS = Set.of(".zip", ".saplbundle", ".jar", ".war");
 
@@ -101,26 +148,31 @@ public class BundleParser {
     private static final int READ_BUFFER_SIZE = 4096;
 
     /**
-     * Parses a bundle from a filesystem path.
+     * Parses a bundle from a filesystem path with security policy enforcement.
+     * <p>
+     * The bundle must contain a pdp.json file with a {@code configurationId} field.
+     * </p>
      *
      * @param bundlePath
      * the path to the .saplbundle file
      * @param pdpId
      * the PDP identifier
-     * @param configurationId
-     * the configuration version identifier
+     * @param securityPolicy
+     * the security policy defining signature verification requirements
      *
      * @return the PDP configuration
      *
      * @throws PDPConfigurationException
-     * if parsing fails or security constraints are violated
+     * if parsing fails, pdp.json is missing, or configurationId is not specified
+     * @throws BundleSignatureException
+     * if signature verification fails or security policy is violated
      */
-    public PDPConfiguration parse(Path bundlePath, String pdpId, String configurationId) {
+    public PDPConfiguration parse(Path bundlePath, String pdpId, BundleSecurityPolicy securityPolicy) {
         try {
             val compressedSize = Files.size(bundlePath);
             try (val inputStream = Files.newInputStream(bundlePath)) {
                 return parseInternal(inputStream, compressedSize, bundlePath.toString()).toPDPConfiguration(pdpId,
-                        configurationId);
+                        securityPolicy);
             }
         } catch (IOException e) {
             throw new PDPConfigurationException("Failed to read bundle file.", e);
@@ -128,34 +180,42 @@ public class BundleParser {
     }
 
     /**
-     * Parses a bundle from an input stream.
+     * Parses a bundle from an input stream with security policy enforcement.
      * <p>
      * When the compressed size is unknown, compression ratio validation is skipped
-     * but all other security checks remain
-     * active.
+     * but all other security checks remain active.
+     * </p>
+     * <p>
+     * The bundle must contain a pdp.json file with a {@code configurationId} field.
      * </p>
      *
      * @param inputStream
      * the input stream containing bundle data
      * @param pdpId
      * the PDP identifier
-     * @param configurationId
-     * the configuration version identifier
+     * @param securityPolicy
+     * the security policy defining signature verification requirements
      *
      * @return the PDP configuration
      *
      * @throws PDPConfigurationException
-     * if parsing fails or security constraints are violated
+     * if parsing fails, pdp.json is missing, or configurationId is not specified
+     * @throws BundleSignatureException
+     * if signature verification fails or security policy is violated
      */
-    public PDPConfiguration parse(InputStream inputStream, String pdpId, String configurationId) {
-        return parseInternal(inputStream, -1, "stream").toPDPConfiguration(pdpId, configurationId);
+    public PDPConfiguration parse(InputStream inputStream, String pdpId, BundleSecurityPolicy securityPolicy) {
+        return parseInternal(inputStream, -1, "stream").toPDPConfiguration(pdpId, securityPolicy);
     }
 
     /**
-     * Parses a bundle from an input stream with known compressed size.
+     * Parses a bundle from an input stream with known compressed size and security
+     * policy enforcement.
      * <p>
      * Providing the compressed size enables compression ratio validation for better
      * ZIP bomb protection.
+     * </p>
+     * <p>
+     * The bundle must contain a pdp.json file with a {@code configurationId} field.
      * </p>
      *
      * @param inputStream
@@ -164,36 +224,44 @@ public class BundleParser {
      * the size of the compressed data in bytes
      * @param pdpId
      * the PDP identifier
-     * @param configurationId
-     * the configuration version identifier
+     * @param securityPolicy
+     * the security policy defining signature verification requirements
      *
      * @return the PDP configuration
      *
      * @throws PDPConfigurationException
-     * if parsing fails or security constraints are violated
+     * if parsing fails, pdp.json is missing, or configurationId is not specified
+     * @throws BundleSignatureException
+     * if signature verification fails or security policy is violated
      */
-    public PDPConfiguration parse(InputStream inputStream, long compressedSize, String pdpId, String configurationId) {
-        return parseInternal(inputStream, compressedSize, "stream").toPDPConfiguration(pdpId, configurationId);
+    public PDPConfiguration parse(InputStream inputStream, long compressedSize, String pdpId,
+            BundleSecurityPolicy securityPolicy) {
+        return parseInternal(inputStream, compressedSize, "stream").toPDPConfiguration(pdpId, securityPolicy);
     }
 
     /**
-     * Parses a bundle from a byte array.
+     * Parses a bundle from a byte array with security policy enforcement.
+     * <p>
+     * The bundle must contain a pdp.json file with a {@code configurationId} field.
+     * </p>
      *
      * @param bundleBytes
      * the bundle data as byte array
      * @param pdpId
      * the PDP identifier
-     * @param configurationId
-     * the configuration version identifier
+     * @param securityPolicy
+     * the security policy defining signature verification requirements
      *
      * @return the PDP configuration
      *
      * @throws PDPConfigurationException
-     * if parsing fails or security constraints are violated
+     * if parsing fails, pdp.json is missing, or configurationId is not specified
+     * @throws BundleSignatureException
+     * if signature verification fails or security policy is violated
      */
-    public PDPConfiguration parse(byte[] bundleBytes, String pdpId, String configurationId) {
+    public PDPConfiguration parse(byte[] bundleBytes, String pdpId, BundleSecurityPolicy securityPolicy) {
         return parseInternal(new ByteArrayInputStream(bundleBytes), bundleBytes.length, "byte array")
-                .toPDPConfiguration(pdpId, configurationId);
+                .toPDPConfiguration(pdpId, securityPolicy);
     }
 
     private BundleContent parseInternal(InputStream inputStream, long compressedSize, String sourceDescription) {
@@ -230,8 +298,9 @@ public class BundleParser {
     }
 
     private BundleContent toBundleContent(HashMap<String, String> content) {
-        val pdpJson   = content.remove(PDP_JSON);
-        val saplFiles = new HashMap<String, String>();
+        val manifestJson = content.remove(MANIFEST_FILENAME);
+        val pdpJson      = content.remove(PDP_JSON);
+        val saplFiles    = new HashMap<String, String>();
 
         for (val entry : content.entrySet()) {
             if (entry.getKey().endsWith(SAPL_EXTENSION)) {
@@ -239,7 +308,12 @@ public class BundleParser {
             }
         }
 
-        return new BundleContent(pdpJson, saplFiles);
+        BundleManifest manifest = null;
+        if (manifestJson != null) {
+            manifest = BundleManifest.fromJson(manifestJson);
+        }
+
+        return new BundleContent(pdpJson, saplFiles, manifest);
     }
 
     private boolean isSkippableEntry(ZipEntry entry, String normalizedName) {
@@ -342,11 +416,62 @@ public class BundleParser {
         return (double) uncompressedSize / compressedSize > MAX_COMPRESSION_RATIO;
     }
 
-    /** Intermediate representation of extracted bundle content. */
-    private record BundleContent(String pdpJson, Map<String, String> saplDocuments) {
+    /**
+     * Intermediate representation of extracted bundle content.
+     *
+     * @param pdpJson
+     * the pdp.json content, or null if not present
+     * @param saplDocuments
+     * map of SAPL document names to content
+     * @param manifest
+     * the bundle manifest, or null if bundle is unsigned
+     */
+    private record BundleContent(String pdpJson, Map<String, String> saplDocuments, BundleManifest manifest) {
 
-        PDPConfiguration toPDPConfiguration(String pdpId, String configurationId) {
-            return PDPConfigurationLoader.loadFromContent(pdpJson, saplDocuments, pdpId, configurationId);
+        PDPConfiguration toPDPConfiguration(String pdpId, BundleSecurityPolicy securityPolicy) {
+            verifySignature(pdpId, securityPolicy);
+            return PDPConfigurationLoader.loadFromBundle(pdpJson, saplDocuments, pdpId);
+        }
+
+        private void verifySignature(String pdpId, BundleSecurityPolicy securityPolicy) {
+            if (securityPolicy == null) {
+                throw new BundleSignatureException(
+                        "Security policy is required. Use BundleSecurityPolicy.requireSignature(publicKey) "
+                                + "for production or explicitly disable verification with risk acceptance for development.");
+            }
+
+            val isSigned = manifest != null && BundleSigner.isSigned(manifest);
+
+            if (!isSigned) {
+                // Delegate to security policy - it will throw if not allowed
+                securityPolicy.checkUnsignedBundleAllowed(pdpId);
+                return;
+            }
+
+            // Bundle is signed - verify it
+            val publicKey = securityPolicy.publicKey();
+            if (publicKey == null) {
+                throw new BundleSignatureException(
+                        "Bundle '%s' is signed but no public key is configured for verification. "
+                                + "Configure a public key or explicitly accept unsigned bundle risks."
+                                        .formatted(pdpId));
+            }
+
+            val filesForVerification = buildVerificationMap();
+            val currentTime          = securityPolicy.checkExpiration() ? Instant.now() : null;
+
+            BundleSigner.verify(manifest, filesForVerification, publicKey, currentTime);
+        }
+
+        private Map<String, String> buildVerificationMap() {
+            val files = new TreeMap<String, String>();
+
+            if (pdpJson != null) {
+                files.put(PDP_JSON, pdpJson);
+            }
+
+            files.putAll(saplDocuments);
+            return files;
         }
     }
 }

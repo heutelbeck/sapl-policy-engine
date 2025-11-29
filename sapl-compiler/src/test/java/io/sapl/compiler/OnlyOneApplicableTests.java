@@ -31,11 +31,11 @@ class OnlyOneApplicableTests {
 
     @ParameterizedTest(name = "{0}")
     @MethodSource
-    void onlyOneApplicableTests(String description, String policySet, Decision expectedDecision) {
+    void when_decisionEvaluated_then_matchesExpected(String description, String policySet, Decision expectedDecision) {
         assertDecision(policySet, expectedDecision);
     }
 
-    private static Stream<Arguments> onlyOneApplicableTests() {
+    private static Stream<Arguments> when_decisionEvaluated_then_matchesExpected() {
         return Stream.of(arguments("No policies match returns NOT_APPLICABLE", """
                 set "test" only-one-applicable
                 policy "never matches 1" permit subject == "non-matching1"

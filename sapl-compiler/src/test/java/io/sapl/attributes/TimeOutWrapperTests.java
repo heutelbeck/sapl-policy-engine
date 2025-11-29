@@ -30,35 +30,35 @@ class TimeOutWrapperTests {
     private static final Value EMPTY    = Value.error("empty");
 
     @Test
-    void whenEmptyFluxThenEmpty() {
+    void when_emptyFlux_then_emptyValueEmitted() {
         final var source  = Flux.<Value>empty();
         final var wrapped = TimeOutWrapper.wrap(source, Duration.ofMillis(2500L), TIME_OUT, EMPTY);
         StepVerifier.create(wrapped).thenAwait(Duration.ofMillis(100L)).expectNext(EMPTY).verifyComplete();
     }
 
     @Test
-    void whenFirstElementsAfterTimeOutThenSendTimeOutAndThenTheRestOfTheFlux() {
+    void when_firstElementsAfterTimeOut_then_sendTimeOutAndThenRestOfFlux() {
         var source  = Flux.<Value>just(Value.of(1), Value.of(2), Value.of(3)).delayElements(Duration.ofMillis(20L));
         var wrapped = TimeOutWrapper.wrap(source, Duration.ofMillis(1L), TIME_OUT, EMPTY);
         StepVerifier.create(wrapped).expectNext(TIME_OUT, Value.of(1), Value.of(2), Value.of(3)).verifyComplete();
     }
 
     @Test
-    void whenEmptyAfterTimeoutThenSendTimeOutAndEmpty() {
+    void when_emptyAfterTimeout_then_sendTimeOutAndEmpty() {
         var source  = Flux.<Value>just(Value.of(1)).delayElements(Duration.ofMillis(300L)).filter(v -> false);
         var wrapped = TimeOutWrapper.wrap(source, Duration.ofMillis(100L), TIME_OUT, EMPTY);
         StepVerifier.create(wrapped).expectNext(TIME_OUT, EMPTY).verifyComplete();
     }
 
     @Test
-    void whenElementAndClosedThenNoDelayTillWrappedClosed() {
+    void when_elementAndClosed_then_noDelayTillWrappedClosed() {
         var source  = Flux.<Value>just(Value.of(0));
         var wrapped = TimeOutWrapper.wrap(source, Duration.ofMinutes(1L), TIME_OUT, EMPTY);
         StepVerifier.create(wrapped).expectNext(Value.of(0)).expectComplete().verify(Duration.ofMillis(20L));
     }
 
     @Test
-    void whenErrorThenNoDelayTillWrappedClosed() {
+    void when_error_then_noDelayTillWrappedClosed() {
         var source  = Flux.<Value>error(new IllegalStateException("testing"));
         var wrapped = TimeOutWrapper.wrap(source, Duration.ofMinutes(1L), TIME_OUT, EMPTY);
         StepVerifier.create(wrapped).expectError().verify(Duration.ofMillis(20L));

@@ -68,7 +68,7 @@ class PatternsFunctionLibraryTests {
             "**.github.com, api.cdn.github.com, true", "api.*.com, api.github.com, true",
             "api.*.*.com, api.cdn.github.com, true", "*, anything, true", "*, with.dot, false", "**, with.dot, true",
             "'', '', true", "'', anything, false" })
-    void globMatchingWithDefaultDelimiter(String pattern, String value, boolean expected) {
+    void when_matchingGlobWithDefaultDelimiter_then_matchesAsExpected(String pattern, String value, boolean expected) {
         assertMatch(pattern, value, expected);
     }
 
@@ -76,14 +76,15 @@ class PatternsFunctionLibraryTests {
     @CsvSource(delimiter = '|', value = { "user:*:read | user:admin:read | true",
             "user:*:read | user:admin:data:read | false", "user:**:read | user:admin:data:read | true",
             "a*c | abc | true", "a*c | a.b:c | false" })
-    void globMatchingWithCustomDelimiters(String pattern, String value, boolean expected) {
+    void when_matchingGlobWithCustomDelimiters_then_matchesAsExpected(String pattern, String value, boolean expected) {
         assertMatch(pattern, value, expected, ":");
     }
 
     @ParameterizedTest
     @CsvSource({ "c?t, cat, true", "c?t, ct, false", "c?t, coat, false", "file-[0-9]??.txt, file-5xy.txt, true",
             "a?c, abc, true" })
-    void singleCharacterWildcard(String pattern, String value, boolean expected) {
+    void when_usingSingleCharacterWildcard_then_matchesExactlyOneCharacter(String pattern, String value,
+            boolean expected) {
         assertMatch(pattern, value, expected);
     }
 
@@ -91,7 +92,7 @@ class PatternsFunctionLibraryTests {
     @CsvSource({ "[abc]at, bat, true", "[abc]at, lat, false", "[!abc]at, lat, true", "[!abc]at, bat, false",
             "[a-c]at, bat, true", "[a-c]at, lat, false", "[!a-c]at, lat, true", "[0-9]*.txt, 5file.txt, true",
             "[0-9]*.txt, file.txt, false", "[!0-9]*.txt, file.txt, true" })
-    void characterClasses(String pattern, String value, boolean expected) {
+    void when_usingCharacterClasses_then_matchesCorrectly(String pattern, String value, boolean expected) {
         assertMatch(pattern, value, expected);
     }
 
@@ -99,7 +100,7 @@ class PatternsFunctionLibraryTests {
     @CsvSource({ "'{cat,bat,[fr]at}', cat, true", "'{cat,bat,[fr]at}', rat, true", "'{cat,bat,[fr]at}', mat, false",
             "'*.{jpg,png,gif}', photo.jpg, true", "'*.{jpg,png,gif}', file.txt, false", "'{a,{b,c}}', b, true",
             "'{test}', test, true", "'{*.jpg,*.png}', photo.jpg, true" })
-    void alternatives(String pattern, String value, boolean expected) {
+    void when_usingAlternatives_then_matchesAnyOption(String pattern, String value, boolean expected) {
         assertMatch(pattern, value, expected);
     }
 
@@ -107,14 +108,15 @@ class PatternsFunctionLibraryTests {
     @CsvSource({ "'file\\*.txt', 'file*.txt', true", "'file\\*.txt', file123.txt, false",
             "'test\\?mark', 'test?mark', true", "'data\\[1\\]', 'data[1]', true", "'\\d+', 'd+', true",
             "'\\w*', w, true" })
-    void escapingSpecialCharacters(String pattern, String value, boolean expected) {
+    void when_escapingSpecialCharacters_then_matchesLiterally(String pattern, String value, boolean expected) {
         assertMatch(pattern, value, expected);
     }
 
     @ParameterizedTest
     @CsvSource({ "'[\\*]', '*', true", "'[\\?]', '?', true", "'[\\[]', '[', true", "'[\\]]', ']', true",
             "'[-abc]', '-', true", "'[abc-]', '-', true" })
-    void escapedMetacharactersInCharacterClass(String pattern, String value, boolean expected) {
+    void when_escapingMetacharactersInCharacterClass_then_matchesLiterally(String pattern, String value,
+            boolean expected) {
         assertMatch(pattern, value, expected);
     }
 
@@ -122,19 +124,19 @@ class PatternsFunctionLibraryTests {
     @CsvSource({ "*hub.com, api.cdn.github.com", "*.github.com, api.github.com",
             "user:*:read, user:admin:data:extra:read", "file-[0-9]??.txt, file-5xy.txt", "[0-9]*, 123",
             "'{*.jpg,*.png}', photo.jpg" })
-    void globMatchingWithoutDelimitersAllowsCrossingBoundaries(String pattern, String value) {
+    void when_matchingGlobWithoutDelimiters_then_allowsCrossingBoundaries(String pattern, String value) {
         assertMatchWithoutDelimiters(pattern, value);
     }
 
     @ParameterizedTest
     @CsvSource({ "café*, café-file.txt", "日本*, 日本語.txt", "🎉*, 🎉party.txt", "*é*, café" })
-    void unicodeCharactersHandledCorrectly(String pattern, String value) {
+    void when_usingUnicodeCharacters_then_handledCorrectly(String pattern, String value) {
         assertMatchWithoutDelimiters(pattern, value);
     }
 
     @ParameterizedTest
     @ValueSource(strings = { "\u0000", "\n", "\r", "\t", "\u0001", "\u001F" })
-    void controlCharactersDoNotBypassValidation(String controlChar) {
+    void when_usingControlCharacters_then_doesNotBypassValidation(String controlChar) {
         val pattern = "test" + controlChar + "pattern";
         val result  = PatternsFunctionLibrary.matchGlob((TextValue) Value.of(pattern), (TextValue) Value.of(pattern),
                 ArrayValue.builder().build());
@@ -144,14 +146,15 @@ class PatternsFunctionLibraryTests {
 
     @ParameterizedTest
     @CsvSource({ "., a.b.c, false", "$, a$b$c, false", "^, a^b^c, false", "(, a(b)c, false", "[, a[b]c, false" })
-    void delimiterWithRegexSpecialCharactersEscapedProperly(String delimiter, String value, boolean expected) {
+    void when_delimiterHasRegexSpecialCharacters_then_escapedProperly(String delimiter, String value,
+            boolean expected) {
         assertMatch("a*c", value, expected, delimiter);
         assertMatch("a**c", value, true, delimiter);
     }
 
     @ParameterizedTest
     @CsvSource({ "'', a.b.c, true", "::, a::b::c, false" })
-    void emptyAndMultiCharDelimiters(String delimiter, String value, boolean expected) {
+    void when_usingEmptyOrMultiCharDelimiters_then_handledCorrectly(String delimiter, String value, boolean expected) {
         assertMatch("a*c", value, expected, delimiter);
         if (!delimiter.isEmpty()) {
             assertMatch("a**c", value, true, delimiter);
@@ -159,13 +162,13 @@ class PatternsFunctionLibraryTests {
     }
 
     @Test
-    void multipleDelimitersInGlob() {
+    void when_usingMultipleDelimitersInGlob_then_allRespected() {
         assertMatch("a*c", "a.b:c", false, ".", ":");
         assertMatch("a**c", "a.b:c", true, ".", ":");
     }
 
     @Test
-    void emptyDelimitersArrayUsesDefault() {
+    void when_emptyDelimitersArray_then_usesDefault() {
         val emptyArray = ArrayValue.builder().build();
         val result     = PatternsFunctionLibrary.matchGlob((TextValue) Value.of("*.com"),
                 (TextValue) Value.of("example.com"), emptyArray);
@@ -173,41 +176,41 @@ class PatternsFunctionLibraryTests {
     }
 
     @Test
-    void undefinedDelimitersUsesDefault() {
+    void when_undefinedDelimiters_then_usesDefault() {
         val result = PatternsFunctionLibrary.matchGlob((TextValue) Value.of("*.com"),
                 (TextValue) Value.of("example.com"), ArrayValue.builder().build());
         assertThat(result).isInstanceOf(BooleanValue.class).isEqualTo(Value.TRUE);
     }
 
     @Test
-    void emptyPatternMatchesOnlyEmptyValue() {
+    void when_emptyPattern_then_matchesOnlyEmptyValue() {
         assertMatch("", "", true);
         assertMatch("", "anything", false);
     }
 
     @Test
-    void singleWildcardMatchesEmptyString() {
+    void when_singleWildcard_then_matchesEmptyString() {
         assertMatch("*", "", true);
         assertMatch("file*", "file", true);
         assertMatch("*file", "file", true);
     }
 
     @Test
-    void wildcardDoesNotCrossDelimiters() {
+    void when_wildcardEncountersDelimiter_then_doesNotCross() {
         assertMatch("*", "a.b", false, ".");
         assertMatch("*.*", "a.b", true, ".");
         assertMatch("*.*.*", "a.b.c", true, ".");
     }
 
     @Test
-    void doubleWildcardCrossesDelimiters() {
+    void when_doubleWildcard_then_crossesDelimiters() {
         assertMatch("**", "a.b.c", true, ".");
         assertMatch("a**c", "a.b.c", true, ".");
         assertMatch("a**b**c", "a.x.b.y.c", true, ".");
     }
 
     @Test
-    void dashInCharacterClassHandledCorrectly() {
+    void when_dashInCharacterClass_then_handledCorrectly() {
         assertMatch("[-abc]", "-", true);
         assertMatch("[-abc]", "a", true);
         assertMatch("[abc-]", "-", true);
@@ -216,14 +219,14 @@ class PatternsFunctionLibraryTests {
     }
 
     @Test
-    void emptyAlternativesMatchEmptyString() {
+    void when_emptyAlternatives_then_matchEmptyString() {
         assertMatch("{}", "", true);
         assertMatch("{,}", "", true);
         assertMatch("{,,}", "", true);
     }
 
     @Test
-    void alternativesWithComplexPatterns() {
+    void when_alternativesWithComplexPatterns_then_allEvaluated() {
         assertMatch("{[a-z]*,[0-9]*,test?.txt}", "abc", true);
         assertMatch("{[a-z]*,[0-9]*,test?.txt}", "123", true);
         assertMatch("{[a-z]*,[0-9]*,test?.txt}", "testX.txt", true);
@@ -233,12 +236,12 @@ class PatternsFunctionLibraryTests {
     }
 
     @Test
-    void escapeAtEndOfPattern() {
+    void when_escapeAtEndOfPattern_then_matchesBackslash() {
         assertMatch("test\\", "test\\", true);
     }
 
     @Test
-    void regexValidationChecksPatternSyntax() {
+    void when_validatingRegex_then_checksPatternSyntax() {
         val validPattern   = PatternsFunctionLibrary.isValidRegex(Value.of("[a-z]+"));
         val invalidPattern = PatternsFunctionLibrary.isValidRegex(Value.of("[a-z"));
         val tooLong        = PatternsFunctionLibrary.isValidRegex(Value.of("a".repeat(1001)));
@@ -249,7 +252,7 @@ class PatternsFunctionLibraryTests {
     }
 
     @Test
-    void findMatchesExtractsAllMatches() {
+    void when_findMatches_then_extractsAllMatches() {
         val result = PatternsFunctionLibrary.findMatches(Value.of("\\d+"), Value.of("abc 123 def 456 ghi 789"));
         assertThat(result).isInstanceOf(ArrayValue.class);
         val array = (ArrayValue) result;
@@ -258,14 +261,14 @@ class PatternsFunctionLibraryTests {
     }
 
     @Test
-    void findMatchesLimitedRespectsLimit() {
+    void when_findMatchesLimited_then_respectsLimit() {
         val result = PatternsFunctionLibrary.findMatchesLimited(Value.of("\\d+"), Value.of("123 456 789"), Value.of(2));
         assertThat(result).isInstanceOf(ArrayValue.class);
         assertThat((ArrayValue) result).hasSize(2);
     }
 
     @Test
-    void findAllSubmatchExtractsGroups() {
+    void when_findAllSubmatch_then_extractsGroups() {
         val result = PatternsFunctionLibrary.findAllSubmatch(Value.of("(\\d+)-(\\d+)"), Value.of("123-456 789-012"));
         assertThat(result).isInstanceOf(ArrayValue.class);
         val array       = (ArrayValue) result;
@@ -280,7 +283,7 @@ class PatternsFunctionLibraryTests {
     }
 
     @Test
-    void findAllSubmatchHandlesNullGroups() {
+    void when_findAllSubmatchWithNullGroups_then_handledCorrectly() {
         val result = PatternsFunctionLibrary.findAllSubmatch(Value.of("(a)?(b)"), Value.of("b ab"));
         assertThat(result).isInstanceOf(ArrayValue.class);
         val array  = (ArrayValue) result;
@@ -292,20 +295,20 @@ class PatternsFunctionLibraryTests {
     }
 
     @Test
-    void replaceAllSubstitutesMatches() {
+    void when_replaceAll_then_substitutesMatches() {
         val result = PatternsFunctionLibrary.replaceAll(Value.of("123 456 789"), Value.of("\\d+"), Value.of("X"));
         assertThat(result).isInstanceOf(TextValue.class).isEqualTo(Value.of("X X X"));
     }
 
     @Test
-    void replaceAllSupportsBackreferences() {
+    void when_replaceAllWithBackreferences_then_supportsGroupReferences() {
         val result = PatternsFunctionLibrary.replaceAll(Value.of("John Doe"), Value.of("(\\w+) (\\w+)"),
                 Value.of("$2, $1"));
         assertThat(result).isInstanceOf(TextValue.class).isEqualTo(Value.of("Doe, John"));
     }
 
     @Test
-    void splitDividesTextByPattern() {
+    void when_split_then_dividesTextByPattern() {
         val result = PatternsFunctionLibrary.split(Value.of(","), Value.of("a,b,c,d"));
         assertThat(result).isInstanceOf(ArrayValue.class);
         val array = (ArrayValue) result;
@@ -314,7 +317,7 @@ class PatternsFunctionLibraryTests {
     }
 
     @Test
-    void splitHandlesComplexPatterns() {
+    void when_splitWithComplexPattern_then_handlesCorrectly() {
         val result = PatternsFunctionLibrary.split(Value.of("\\s+"), Value.of("word1  word2    word3"));
         assertThat(result).isInstanceOf(ArrayValue.class);
         val array = (ArrayValue) result;
@@ -323,28 +326,28 @@ class PatternsFunctionLibraryTests {
     }
 
     @Test
-    void escapeGlobEscapesMetacharacters() {
+    void when_escapeGlob_then_escapesMetacharacters() {
         val result = PatternsFunctionLibrary.escapeGlob(Value.of("file*.txt"));
         assertThat(result).isInstanceOf(TextValue.class).isEqualTo(Value.of("file\\*.txt"));
         assertMatch(((TextValue) result).value(), "file*.txt", true);
     }
 
     @Test
-    void matchTemplateWithLiteralAndPatterns() {
+    void when_matchTemplateWithLiteralAndPatterns_then_matchesCorrectly() {
         val result = PatternsFunctionLibrary.matchTemplate(Value.of("user-{{\\d+}}-file"), Value.of("user-123-file"),
                 Value.of("{{"), Value.of("}}"));
         assertThat(result).isInstanceOf(BooleanValue.class).isEqualTo(Value.TRUE);
     }
 
     @Test
-    void matchTemplateHandlesEscapedLiterals() {
+    void when_matchTemplateWithEscapedLiterals_then_handlesCorrectly() {
         val result = PatternsFunctionLibrary.matchTemplate(Value.of("file\\*{{\\d+}}"), Value.of("file*42"),
                 Value.of("{{"), Value.of("}}"));
         assertThat(result).isInstanceOf(BooleanValue.class).isEqualTo(Value.TRUE);
     }
 
     @Test
-    void templateWithEmptyDelimitersReturnsError() {
+    void when_templateHasEmptyDelimiters_then_returnsError() {
         val result1 = PatternsFunctionLibrary.matchTemplate(Value.of("test{{pattern}}"), Value.of("test123"),
                 Value.of(""), Value.of("}}"));
         assertThat(result1).isInstanceOf(ErrorValue.class);
@@ -357,7 +360,7 @@ class PatternsFunctionLibraryTests {
     }
 
     @Test
-    void unclosedDelimitersInTemplateReturnError() {
+    void when_templateHasUnclosedDelimiters_then_returnsError() {
         val error = PatternsFunctionLibrary.matchTemplate(Value.of("test{pattern"), Value.of("test123"), Value.of("{"),
                 Value.of("}"));
         assertThat(error).isInstanceOf(ErrorValue.class);
@@ -365,19 +368,19 @@ class PatternsFunctionLibraryTests {
     }
 
     @Test
-    void patternTooLongRejected() {
+    void when_patternTooLong_then_rejected() {
         val longPattern = "*".repeat(1001);
         assertError(longPattern, "test", "Pattern too long");
     }
 
     @Test
-    void inputTooLongRejected() {
+    void when_inputTooLong_then_rejected() {
         val longValue = "a".repeat(100001);
         assertError("*", longValue, "Input too long");
     }
 
     @Test
-    void regexInputTooLongRejected() {
+    void when_regexInputTooLong_then_rejected() {
         val longRegex   = "a".repeat(1001);
         val regexResult = PatternsFunctionLibrary.findMatches(Value.of(longRegex), Value.of("test"));
         assertThat(regexResult).isInstanceOf(ErrorValue.class);
@@ -386,7 +389,7 @@ class PatternsFunctionLibraryTests {
     @ParameterizedTest
     @ValueSource(strings = { "(a+)+", "(a*)*", "(a|a)*", "(a|ab)*" })
     @Timeout(value = 1, unit = TimeUnit.SECONDS)
-    void dangerousRegexPatternsRejected(String pattern) {
+    void when_usingDangerousRegexPatterns_then_rejected(String pattern) {
         val result = PatternsFunctionLibrary.findMatches(Value.of(pattern), Value.of("aaaaaaaaaaaaaaaaaaaaX"));
         assertThat(result).isInstanceOf(ErrorValue.class);
         assertThat(((ErrorValue) result).message()).contains("dangerous");
@@ -394,7 +397,7 @@ class PatternsFunctionLibraryTests {
 
     @Test
     @Timeout(value = 1, unit = TimeUnit.SECONDS)
-    void excessiveAlternationsRejected() {
+    void when_excessiveAlternations_then_rejected() {
         val manyAlternations = "(" + "a|".repeat(101) + "b)";
         val altResult        = PatternsFunctionLibrary.findMatches(Value.of(manyAlternations), Value.of("test"));
         assertThat(altResult).isInstanceOf(ErrorValue.class);
@@ -402,7 +405,7 @@ class PatternsFunctionLibraryTests {
 
     @Test
     @Timeout(value = 2, unit = TimeUnit.SECONDS)
-    void catastrophicBacktrackingDetectedOrCompletes() {
+    void when_catastrophicBacktrackingPattern_then_detectedOrCompletes() {
         val catastrophicPattern = "a.*a.*a.*a.*x";
         val input               = "a".repeat(30) + "X";
         val result              = PatternsFunctionLibrary.findMatches(Value.of(catastrophicPattern), Value.of(input));
@@ -413,7 +416,7 @@ class PatternsFunctionLibraryTests {
 
     @Test
     @Timeout(value = 2, unit = TimeUnit.SECONDS)
-    void complexGlobPatternsCompleteQuickly() {
+    void when_complexGlobPatterns_then_completesQuickly() {
         val complexPattern = "{a,b,c,d,e,f,g,h,i,j,k,l,m,n,o,p}*{1,2,3,4,5}";
         val result         = PatternsFunctionLibrary.matchGlob((TextValue) Value.of(complexPattern),
                 (TextValue) Value.of("test"), ArrayValue.builder().build());
@@ -426,7 +429,7 @@ class PatternsFunctionLibraryTests {
     }
 
     @Test
-    void patternCacheImprovePerformance() {
+    void when_patternCacheUsed_then_improvesPerformance() {
         val pattern = "[a-z]+@[a-z]+\\.com";
         val value1  = "alice@example.com";
         val value2  = "bob@test.com";
@@ -443,7 +446,7 @@ class PatternsFunctionLibraryTests {
 
     @ParameterizedTest
     @ValueSource(ints = { -1, -100 })
-    void negativeLimitsRejected(int limit) {
+    void when_negativeLimits_then_rejected(int limit) {
         val result = PatternsFunctionLibrary.findMatchesLimited((TextValue) Value.of("\\d+"),
                 (TextValue) Value.of("123"), (NumberValue) Value.of(limit));
         assertThat(result).isInstanceOf(ErrorValue.class);
@@ -451,7 +454,7 @@ class PatternsFunctionLibraryTests {
     }
 
     @Test
-    void errorMessagesIncludePositionInformation() {
+    void when_errorOccurs_then_messageIncludesPositionInformation() {
         val result = PatternsFunctionLibrary.matchGlob((TextValue) Value.of("test[unclosed"),
                 (TextValue) Value.of("test"), ArrayValue.builder().build());
 
@@ -461,14 +464,14 @@ class PatternsFunctionLibraryTests {
 
     @ParameterizedTest
     @ValueSource(strings = { "(a+)+", "(a*)*", "(.*)*", "(a+)+b", "{5,10}{5,10}", ".*.*test" })
-    void improvedRedosDetectionCatchesMorePatterns(String pattern) {
+    void when_improvedRedosDetection_then_catchesMorePatterns(String pattern) {
         val result = PatternsFunctionLibrary.findMatches(Value.of(pattern), Value.of("test"));
         assertThat(result).withFailMessage("Pattern '%s' should be detected as dangerous", pattern)
                 .isInstanceOf(ErrorValue.class);
     }
 
     @Test
-    void realWorldUseCases() {
+    void when_realWorldUseCases_then_workCorrectly() {
         assertMatch("api.*.read", "api.users.read", true, ".");
         assertMatch("api.**.read", "api.v1.users.read", true, ".");
 

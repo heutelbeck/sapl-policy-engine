@@ -34,7 +34,7 @@ class AttributeFinderSpecificationTests {
     private static final AttributeFinder MOCK_FINDER = inv -> Flux.just(Value.UNDEFINED);
 
     @Test
-    void whenConstructionOfPolicyInformationPointSpecificationHasBadParametersThenThrowElseDoNotThrow() {
+    void when_constructingWithBadParameters_then_throws() {
         val validName = "a";
         val emptyList = List.<Class<? extends Value>>of();
         assertThatThrownBy(() -> new AttributeFinderSpecification(null, validName, true, emptyList, null, MOCK_FINDER))
@@ -44,7 +44,7 @@ class AttributeFinderSpecificationTests {
     }
 
     @Test
-    void whenVarArgsCheckedThenVarArgsCorrectlyDetected() {
+    void when_varArgsChecked_then_varArgsCorrectlyDetected() {
         var withVarArgs    = new AttributeFinderSpecification("abc", "def", true, List.of(), Value.class, MOCK_FINDER);
         var notWithVarArgs = new AttributeFinderSpecification("abc", "def", true, List.of(), null, MOCK_FINDER);
         assertThat(withVarArgs.hasVariableNumberOfArguments()).isTrue();

@@ -28,7 +28,6 @@ import io.sapl.interpreter.DefaultSAPLInterpreter;
 import io.sapl.interpreter.InitializationException;
 import io.sapl.interpreter.SAPLInterpreter;
 import io.sapl.util.TestUtil;
-import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
@@ -38,7 +37,6 @@ import java.time.Duration;
 
 import static io.sapl.util.TestUtil.assertExpressionCompilesToValue;
 
-@Slf4j
 class ExperimentalSaplCompilerTests {
     private static final SAPLInterpreter PARSER = new DefaultSAPLInterpreter();
 

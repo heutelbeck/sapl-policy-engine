@@ -107,16 +107,18 @@ class AttributeStreamTests {
                 pollInterval, backoff, retries, false);
     }
 
-    /* ========== Basic Functionality Tests ========== */
+    // ========================================================================
+    // Basic Functionality Tests
+    // ========================================================================
 
     /**
-     * Valueidates that the invocation configuration is accessible via getter.
+     * Validates that the invocation configuration is accessible via getter.
      * <p>
      * Use case: Debugging, logging, and stream identification in the broker's
      * registry.
      */
     @Test
-    void whenCreatedThenInvocationIsAccessible() {
+    void when_created_then_invocationIsAccessible() {
         val invocation = createInvocation();
         val stream     = new AttributeStream(invocation, s -> {}, GRACE_PERIOD);
 
@@ -124,14 +126,14 @@ class AttributeStreamTests {
     }
 
     /**
-     * Valueidates that the reactive stream is accessible and ready for
+     * Validates that the reactive stream is accessible and ready for
      * subscription.
      * <p>
      * Use case: Multiple policy evaluations subscribing to the same attribute
      * stream.
      */
     @Test
-    void whenCreatedThenStreamIsAccessible() {
+    void when_created_then_streamIsAccessible() {
         val invocation = createInvocation();
         val stream     = new AttributeStream(invocation, s -> {}, GRACE_PERIOD);
 
@@ -145,7 +147,7 @@ class AttributeStreamTests {
      * Use case: Single policy evaluation subscribing to an attribute value.
      */
     @Test
-    void whenPipEmitsValueThenSubscriberReceivesValue() {
+    void when_pipEmitsValue_then_subscriberReceivesValue() {
         val invocation = createInvocation();
         val testPip    = (AttributeFinder) inv -> Flux.just(Value.of("test-value"));
         val stream     = new AttributeStream(invocation, s -> {}, GRACE_PERIOD, testPip);
@@ -159,7 +161,7 @@ class AttributeStreamTests {
      * Use case: Streaming attributes that emit multiple values over time.
      */
     @Test
-    void whenPipEmitsMultipleValuesThenSubscriberReceivesAll() {
+    void when_pipEmitsMultipleValues_then_subscriberReceivesAll() {
         val invocation = createInvocation();
         val testPip    = (AttributeFinder) inv -> Flux.just(Value.of(1), Value.of(2), Value.of(3));
         val stream     = new AttributeStream(invocation, s -> {}, GRACE_PERIOD, testPip);
@@ -168,7 +170,9 @@ class AttributeStreamTests {
                 .verifyComplete();
     }
 
-    /* ========== Multicast and Caching Tests ========== */
+    // ========================================================================
+    // Multicast and Caching Tests
+    // ========================================================================
 
     /**
      * Tests multicast semantics where multiple subscribers receive the same values
@@ -177,11 +181,11 @@ class AttributeStreamTests {
      * Use case: Multiple policy rules evaluating the same attribute simultaneously
      * without redundant PIP invocations.
      * <p>
-     * Valueidates that the replay() operator caches and multicasts values to all
+     * Validates that the replay() operator caches and multicasts values to all
      * active subscribers efficiently.
      */
     @Test
-    void whenMultipleSubscribersThenAllReceiveSameValues() {
+    void when_multipleSubscribers_then_allReceiveSameValues() {
         val invocation = createInvocation();
         val testPip    = (AttributeFinder) inv -> Flux.just(Value.of("shared"));
         val stream     = new AttributeStream(invocation, s -> {}, GRACE_PERIOD, testPip);
@@ -198,12 +202,12 @@ class AttributeStreamTests {
      * state without waiting for the next
      * emission.
      * <p>
-     * Valueidates that replay(1) caches the most recent value and replays it to new
+     * Validates that replay(1) caches the most recent value and replays it to new
      * subscribers, ensuring consistent
      * policy evaluation state.
      */
     @Test
-    void whenNewSubscriberAfterValueThenReceivesCachedLastValue() {
+    void when_newSubscriberAfterValue_then_receivesCachedLastValue() {
         val invocation = createInvocation();
         val testPip    = (AttributeFinder) inv -> Flux.just(Value.of("cached"));
         val stream     = new AttributeStream(invocation, s -> {}, GRACE_PERIOD, testPip);
@@ -215,7 +219,9 @@ class AttributeStreamTests {
         assertThat(secondValue).isEqualTo(Value.of("cached"));
     }
 
-    /* ========== Grace Period and Cleanup Tests ========== */
+    // ========================================================================
+    // Grace Period and Cleanup Tests
+    // ========================================================================
 
     /**
      * Tests that cleanup is deferred by the grace period after the last subscriber
@@ -227,7 +233,7 @@ class AttributeStreamTests {
      * <p>
      * The grace period prevents expensive PIP reconnection overhead by keeping the
      * stream alive briefly after
-     * cancellation. Valueidates that:
+     * cancellation. Validates that:
      * <ul>
      * <li>Cleanup is not immediate upon cancellation</li>
      * <li>Cleanup executes after grace period expires</li>
@@ -235,7 +241,7 @@ class AttributeStreamTests {
      * </ul>
      */
     @Test
-    void whenLastSubscriberCancelsThenCleanupCalledAfterGracePeriod() {
+    void when_lastSubscriberCancels_then_cleanupCalledAfterGracePeriod() {
         val cleanupCalled = new AtomicInteger(0);
         val invocation    = createInvocation();
         val testPip       = (AttributeFinder) inv -> Flux.just(Value.of("test"));
@@ -257,12 +263,12 @@ class AttributeStreamTests {
      * retries and re-subscribes to the same
      * attribute.
      * <p>
-     * Valueidates that the refCount operator resets the grace period timer when a
+     * Validates that the refCount operator resets the grace period timer when a
      * new subscriber arrives, avoiding
      * unnecessary cleanup and PIP reconnection overhead.
      */
     @Test
-    void whenNewSubscriberWithinGracePeriodThenCleanupNotCalled() {
+    void when_newSubscriberWithinGracePeriod_then_cleanupNotCalled() {
         val cleanupCalled = new AtomicInteger(0);
         val invocation    = createInvocation();
         val testPip       = (AttributeFinder) inv -> Flux.just(Value.of("test"));
@@ -279,7 +285,9 @@ class AttributeStreamTests {
                 .atMost(GRACE_PERIOD_TIMEOUT, MILLISECONDS).until(() -> cleanupCalled.get() == 1);
     }
 
-    /* ========== PIP Connection and Disconnection Tests ========== */
+    // ========================================================================
+    // PIP Connection and Disconnection Tests
+    // ========================================================================
 
     /**
      * Tests that disconnection publishes an error value and stops further
@@ -289,7 +297,7 @@ class AttributeStreamTests {
      * configuration) during active stream
      * usage.
      * <p>
-     * Valueidates that:
+     * Validates that:
      * <ul>
      * <li>Values before disconnection are received normally</li>
      * <li>Disconnection triggers publication of a "PIP disconnected" error</li>
@@ -298,7 +306,7 @@ class AttributeStreamTests {
      * </ul>
      */
     @Test
-    void whenPipDisconnectedThenErrorValueEmitted() {
+    void when_pipDisconnected_then_errorValueEmitted() {
         val invocation = createInvocation();
         val testPip    = (AttributeFinder) inv -> Flux.just(Value.of("before-disconnect"));
         val stream     = new AttributeStream(invocation, s -> {}, GRACE_PERIOD, testPip);
@@ -327,7 +335,7 @@ class AttributeStreamTests {
      * changes but the stream continues
      * operating.
      * <p>
-     * Valueidates that:
+     * Validates that:
      * <ul>
      * <li>First PIP's values are received before disconnection</li>
      * <li>Disconnection error is published</li>
@@ -337,7 +345,7 @@ class AttributeStreamTests {
      * </ul>
      */
     @Test
-    void whenPipReconnectedThenNewValuesEmitted() {
+    void when_pipReconnected_then_newValuesEmitted() {
         val invocation = createInvocation();
         val pip1       = (AttributeFinder) inv -> Flux.just(Value.of("pip1"));
         val pip2       = (AttributeFinder) inv -> Flux.just(Value.of("pip2"));
@@ -371,7 +379,7 @@ class AttributeStreamTests {
      * Use case: Hot-swapping PIPs without explicit disconnection call (atomic
      * replacement).
      * <p>
-     * Valueidates that:
+     * Validates that:
      * <ul>
      * <li>The old PIP's subscription is disposed automatically</li>
      * <li>No values from the old PIP appear after the new PIP connection</li>
@@ -380,7 +388,7 @@ class AttributeStreamTests {
      * </ul>
      */
     @Test
-    void whenConnectingWhileAlreadyConnectedThenOldSubscriptionDisposed() {
+    void when_connectingWhileAlreadyConnected_then_oldSubscriptionDisposed() {
         val invocation = createInvocation();
         val pip1       = (AttributeFinder) inv -> Flux.interval(Duration.ofMillis(10)).map(i -> Value.of("pip1-" + i));
         val pip2       = (AttributeFinder) inv -> Flux.just(Value.of("pip2"));
@@ -405,7 +413,9 @@ class AttributeStreamTests {
         assertThat(valuesAfterPip2).noneMatch(v -> v instanceof TextValue tv && tv.value().startsWith("pip1"));
     }
 
-    /* ========== Race Condition Prevention Tests ========== */
+    // ========================================================================
+    // Race Condition Prevention Tests
+    // ========================================================================
 
     /**
      * Tests that disconnection properly prevents late-arriving values from a
@@ -423,7 +433,7 @@ class AttributeStreamTests {
      * </ul>
      */
     @Test
-    void whenDisconnectDuringAsyncEmissionThenNoValuesAfterDisconnectError() {
+    void when_disconnectDuringAsyncEmission_then_noValuesAfterDisconnectError() {
         val invocation = createInvocation();
         val slowPip    = (AttributeFinder) inv -> Flux.interval(Duration.ofMillis(10)).take(50).map(Value::of);
         val stream     = new AttributeStream(invocation, s -> {}, Duration.ofSeconds(10), slowPip);
@@ -466,7 +476,7 @@ class AttributeStreamTests {
      * </ul>
      */
     @Test
-    void whenPipThrowsErrorAfterDisconnectThenErrorNotPublished() {
+    void when_pipThrowsErrorAfterDisconnect_then_errorNotPublished() {
         val invocation = createInvocation();
         val faultyPip  = (AttributeFinder) inv -> Flux.concat(Flux.just(Value.of("before-error")),
                 Flux.<Value>error(new RuntimeException("async-error")).delaySubscription(Duration.ofMillis(50)));
@@ -491,7 +501,9 @@ class AttributeStreamTests {
         assertThat(errors.getFirst().message()).contains("PIP disconnected");
     }
 
-    /* ========== Timeout Behavior Tests ========== */
+    // ========================================================================
+    // Timeout Behavior Tests
+    // ========================================================================
 
     /**
      * Tests initial timeout handling when a PIP is slow to emit its first value.
@@ -500,7 +512,7 @@ class AttributeStreamTests {
      * evaluation needs a timely result
      * (even if UNDEFINED).
      * <p>
-     * Valueidates that:
+     * Validates that:
      * <ul>
      * <li>UNDEFINED is emitted if the first value doesn't arrive within
      * initialTimeout</li>
@@ -511,7 +523,7 @@ class AttributeStreamTests {
      * </ul>
      */
     @Test
-    void whenPipSlowThenInitialTimeoutEmitsUndefined() {
+    void when_pipSlow_then_initialTimeoutEmitsUndefined() {
         val invocation = createInvocation(SHORT_TIMEOUT);
         val slowPip    = (AttributeFinder) inv -> Flux.<Value>just(Value.of("slow")).delayElements(MEDIUM_TIMEOUT);
         val stream     = new AttributeStream(invocation, s -> {}, GRACE_PERIOD, slowPip);
@@ -525,7 +537,7 @@ class AttributeStreamTests {
      * <p>
      * Use case: Local or cached attribute sources that respond quickly.
      * <p>
-     * Valueidates that:
+     * Validates that:
      * <ul>
      * <li>Values arriving before initialTimeout are published immediately</li>
      * <li>No UNDEFINED placeholder is emitted</li>
@@ -533,7 +545,7 @@ class AttributeStreamTests {
      * </ul>
      */
     @Test
-    void whenPipFastThenNoTimeoutEmitted() {
+    void when_pipFast_then_noTimeoutEmitted() {
         val invocation = createInvocation(MEDIUM_TIMEOUT);
         val fastPip    = (AttributeFinder) inv -> Flux.<Value>just(Value.of("fast")).delayElements(SHORT_TIMEOUT);
         val stream     = new AttributeStream(invocation, s -> {}, GRACE_PERIOD, fastPip);
@@ -541,7 +553,9 @@ class AttributeStreamTests {
         StepVerifier.create(stream.getStream().take(1)).expectNext(Value.of("fast")).verifyComplete();
     }
 
-    /* ========== Polling Behavior Tests ========== */
+    // ========================================================================
+    // Polling Behavior Tests
+    // ========================================================================
 
     /**
      * Tests the polling mechanism for attributes that complete early but require
@@ -557,7 +571,7 @@ class AttributeStreamTests {
      * each subscription, not just once at lambda creation time.
      */
     @Test
-    void whenPipCompletesEarlyThenPollingRepeatsRequest() {
+    void when_pipCompletesEarly_then_pollingRepeatsRequest() {
         val pollInterval = Duration.ofMillis(50);
         val invocation   = createInvocation(Duration.ofMillis(10), pollInterval, Duration.ofMillis(10), 0);
         val counter      = new AtomicInteger(0);
@@ -568,7 +582,9 @@ class AttributeStreamTests {
                 .expectNext(Value.of(2)).expectNext(Value.of(3)).verifyComplete();
     }
 
-    /* ========== Retry Behavior Tests ========== */
+    // ========================================================================
+    // Retry Behavior Tests
+    // ========================================================================
 
     /**
      * Tests the retry mechanism with exponential backoff for transient PIP
@@ -595,7 +611,7 @@ class AttributeStreamTests {
      */
     @ParameterizedTest
     @ValueSource(longs = { 1, 2, 3 })
-    void whenPipFailsThenRetryUpToConfiguredLimit(long retries) {
+    void when_pipFails_then_retryUpToConfiguredLimit(long retries) {
         val invocation = createInvocation(Duration.ofMillis(10), Duration.ofSeconds(10), Duration.ofMillis(1), retries);
         val attempts   = new AtomicInteger(0);
         val failingPip = (AttributeFinder) inv -> Flux.defer(() -> {
@@ -612,7 +628,9 @@ class AttributeStreamTests {
         assertThat(attempts.get()).isEqualTo((int) retries + 1);
     }
 
-    /* ========== Empty Flux Handling Tests ========== */
+    // ========================================================================
+    // Empty Flux Handling Tests
+    // ========================================================================
 
     /**
      * Tests handling of PIPs that emit no values (empty Flux).
@@ -620,7 +638,7 @@ class AttributeStreamTests {
      * Use case: Attribute queries that return no results or optional attributes
      * that may not exist.
      * <p>
-     * Valueidates that:
+     * Validates that:
      * <ul>
      * <li>Empty streams are converted to UNDEFINED via defaultIfEmpty operator</li>
      * <li>Policy evaluation receives a defined value (not hanging
@@ -629,7 +647,7 @@ class AttributeStreamTests {
      * </ul>
      */
     @Test
-    void whenPipEmitsEmptyFluxThenUndefinedEmitted() {
+    void when_pipEmitsEmptyFlux_then_undefinedEmitted() {
         val invocation = createInvocation();
         val emptyPip   = (AttributeFinder) inv -> Flux.empty();
         val stream     = new AttributeStream(invocation, s -> {}, GRACE_PERIOD, emptyPip);
@@ -637,7 +655,9 @@ class AttributeStreamTests {
         StepVerifier.create(stream.getStream().take(1)).expectNext(Value.UNDEFINED).verifyComplete();
     }
 
-    /* ========== Error Handling Tests ========== */
+    // ========================================================================
+    // Error Handling Tests
+    // ========================================================================
 
     /**
      * Tests error propagation when a PIP fails immediately with retries disabled.
@@ -659,7 +679,7 @@ class AttributeStreamTests {
      * diagnosis.
      */
     @Test
-    void whenPipEmitsErrorThenErrorValuePublished() {
+    void when_pipEmitsError_then_errorValuePublished() {
         val invocation = createInvocation(Duration.ofMillis(10), Duration.ofSeconds(10), Duration.ofMillis(10), 0);
         val errorPip   = (AttributeFinder) inv -> Flux.error(new RuntimeException("test-error"));
         val stream     = new AttributeStream(invocation, s -> {}, GRACE_PERIOD, errorPip);
@@ -669,7 +689,9 @@ class AttributeStreamTests {
                 .verifyComplete();
     }
 
-    /* ========== Complex Scenario Tests ========== */
+    // ========================================================================
+    // Complex Scenario Tests
+    // ========================================================================
 
     /**
      * Tests PIP hot-swapping under high-frequency emission load.
@@ -678,7 +700,7 @@ class AttributeStreamTests {
      * with minimal disruption to ongoing
      * policy evaluations.
      * <p>
-     * Valueidates that:
+     * Validates that:
      * <ul>
      * <li>Hot-swapping works correctly even with rapid emissions</li>
      * <li>No race conditions occur between old PIP disposal and new PIP
@@ -693,7 +715,7 @@ class AttributeStreamTests {
      * realistic load conditions.
      */
     @Test
-    void whenHotSwappingUnderLoadThenStreamRemainsStable() {
+    void when_hotSwappingUnderLoad_then_streamRemainsStable() {
         val invocation = createInvocation();
         val pip1       = (AttributeFinder) inv -> Flux.interval(Duration.ofMillis(5)).take(100)
                 .map(i -> Value.of("pip1-" + i));

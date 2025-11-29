@@ -44,14 +44,14 @@ class AttributeFinderSpecificationTests {
     }
 
     @Test
-    void hasVariableNumberOfArguments_withVarArgs_returnsTrue() {
+    void when_hasVariableNumberOfArguments_withVarArgs_then_returnsTrue() {
         var spec = new AttributeFinderSpecification("test", "attr", false, List.of(), TextValue.class, DUMMY_FINDER);
 
         assertThat(spec.hasVariableNumberOfArguments()).isTrue();
     }
 
     @Test
-    void hasVariableNumberOfArguments_withoutVarArgs_returnsFalse() {
+    void when_hasVariableNumberOfArguments_withoutVarArgs_then_returnsFalse() {
         var spec = new AttributeFinderSpecification("test", "attr", false,
                 List.<Class<? extends Value>>of(TextValue.class), null, DUMMY_FINDER);
 
@@ -59,7 +59,7 @@ class AttributeFinderSpecificationTests {
     }
 
     @Test
-    void fullyQualifiedName_concatenatesNamespaceAndAttribute() {
+    void when_fullyQualifiedName_called_then_concatenatesNamespaceAndAttribute() {
         var spec = new AttributeFinderSpecification("time", "now", true, List.of(), null, DUMMY_FINDER);
 
         assertThat(spec.fullyQualifiedName()).isEqualTo("time.now");
@@ -68,7 +68,7 @@ class AttributeFinderSpecificationTests {
     // === Collision Detection Tests ===
 
     @Test
-    void collidesWith_differentNames_noCollision() {
+    void when_collidesWith_differentNames_then_noCollision() {
         var spec1 = new AttributeFinderSpecification("time", "now", true, List.of(), null, DUMMY_FINDER);
         var spec2 = new AttributeFinderSpecification("time", "dayOfWeek", true, List.of(), null, DUMMY_FINDER);
 
@@ -76,7 +76,7 @@ class AttributeFinderSpecificationTests {
     }
 
     @Test
-    void collidesWith_differentEntityTypes_noCollision() {
+    void when_collidesWith_differentEntityTypes_then_noCollision() {
         var spec1 = new AttributeFinderSpecification("test", "attr", true, List.of(), null, DUMMY_FINDER); // env
                                                                                                            // attribute
         var spec2 = new AttributeFinderSpecification("test", "attr", false, List.of(), null, DUMMY_FINDER); // entity
@@ -86,7 +86,7 @@ class AttributeFinderSpecificationTests {
     }
 
     @Test
-    void collidesWith_bothHaveVarArgs_collision() {
+    void when_collidesWith_bothHaveVarArgs_then_collision() {
         var spec1 = new AttributeFinderSpecification("test", "attr", false, List.of(), TextValue.class, DUMMY_FINDER);
         var spec2 = new AttributeFinderSpecification("test", "attr", false, List.of(), NumberValue.class, DUMMY_FINDER);
 
@@ -94,7 +94,7 @@ class AttributeFinderSpecificationTests {
     }
 
     @Test
-    void collidesWith_sameParameterCount_collision() {
+    void when_collidesWith_sameParameterCount_then_collision() {
         var spec1 = new AttributeFinderSpecification("test", "attr", false,
                 List.<Class<? extends Value>>of(TextValue.class), null, DUMMY_FINDER);
         var spec2 = new AttributeFinderSpecification("test", "attr", false,
@@ -104,7 +104,7 @@ class AttributeFinderSpecificationTests {
     }
 
     @Test
-    void collidesWith_differentParameterCounts_noCollision() {
+    void when_collidesWith_differentParameterCounts_then_noCollision() {
         var spec1 = new AttributeFinderSpecification("test", "attr", false,
                 List.<Class<? extends Value>>of(TextValue.class), null, DUMMY_FINDER);
         var spec2 = new AttributeFinderSpecification("test", "attr", false,
@@ -116,7 +116,7 @@ class AttributeFinderSpecificationTests {
     // === Matching Tests ===
 
     @Test
-    void matches_differentName_noMatch() {
+    void when_matches_differentName_then_noMatch() {
         var spec       = new AttributeFinderSpecification("test", "attr", false, List.of(), null, DUMMY_FINDER);
         var invocation = createInvocation("other.attr", false, 0);
 
@@ -124,7 +124,7 @@ class AttributeFinderSpecificationTests {
     }
 
     @Test
-    void matches_differentEntityType_noMatch() {
+    void when_matches_differentEntityType_then_noMatch() {
         var spec       = new AttributeFinderSpecification("test", "attr", true, List.of(), null, DUMMY_FINDER); // env
                                                                                                                 // attribute
         var invocation = createInvocation("test.attr", false, 0); // entity attribute
@@ -133,7 +133,7 @@ class AttributeFinderSpecificationTests {
     }
 
     @Test
-    void matches_exactParameterCount_exactMatch() {
+    void when_matches_exactParameterCount_then_exactMatch() {
         var spec       = new AttributeFinderSpecification("test", "attr", false,
                 List.<Class<? extends Value>>of(TextValue.class), null, DUMMY_FINDER);
         var invocation = createInvocation("test.attr", false, 1);
@@ -142,7 +142,7 @@ class AttributeFinderSpecificationTests {
     }
 
     @Test
-    void matches_varArgsWithEnoughArguments_varArgsMatch() {
+    void when_matches_varArgsWithEnoughArguments_then_varArgsMatch() {
         var spec       = new AttributeFinderSpecification("test", "attr", false,
                 List.<Class<? extends Value>>of(TextValue.class), TextValue.class, DUMMY_FINDER);
         var invocation = new AttributeFinderInvocation("test-config", "test.attr", Value.of("entity"),
@@ -153,7 +153,7 @@ class AttributeFinderSpecificationTests {
     }
 
     @Test
-    void matches_varArgsWithTooFewArguments_noMatch() {
+    void when_matches_varArgsWithTooFewArguments_then_noMatch() {
         var spec       = new AttributeFinderSpecification("test", "attr", false,
                 List.<Class<? extends Value>>of(TextValue.class, NumberValue.class), // requires 2 fixed params
                 TextValue.class, DUMMY_FINDER);
@@ -163,7 +163,7 @@ class AttributeFinderSpecificationTests {
     }
 
     @Test
-    void matches_wrongParameterCount_noMatch() {
+    void when_matches_wrongParameterCount_then_noMatch() {
         var spec       = new AttributeFinderSpecification("test", "attr", false,
                 List.<Class<? extends Value>>of(TextValue.class), null, DUMMY_FINDER);
         var invocation = createInvocation("test.attr", false, 0); // no args

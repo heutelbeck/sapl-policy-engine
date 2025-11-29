@@ -17,7 +17,6 @@
  */
 package io.sapl.api.model;
 
-import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -28,21 +27,22 @@ import java.util.stream.Stream;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
-@DisplayName("UndefinedValue Tests")
 class UndefinedValueTests {
 
     @ParameterizedTest(name = "UndefinedValue(secret={0}) construction")
-    @MethodSource("provideSecretFlags")
-    @DisplayName("Constructor creates UndefinedValue")
-    void constructorCreatesValue(boolean secret) {
+    @MethodSource
+    void when_constructedWithSecretFlag_then_createsValue(boolean secret) {
         var value = new UndefinedValue(secret);
 
         assertThat(value.secret()).isEqualTo(secret);
     }
 
+    static Stream<Arguments> when_constructedWithSecretFlag_then_createsValue() {
+        return Stream.of(arguments(false), arguments(true));
+    }
+
     @Test
-    @DisplayName("asSecret() returns SECRET_UNDEFINED singleton")
-    void asSecretReturnsSingleton() {
+    void when_asSecretCalled_then_returnsSecretUndefinedSingleton() {
         var regular = new UndefinedValue(false);
 
         assertThat(regular.asSecret()).isSameAs(UndefinedValue.SECRET_UNDEFINED)
@@ -50,15 +50,20 @@ class UndefinedValueTests {
     }
 
     @ParameterizedTest(name = "{0}={1}, equal={2}")
-    @MethodSource("provideEqualityHashCodeCases")
-    @DisplayName("All UndefinedValues are equal regardless of secret flag")
-    void equalsAndHashCode(UndefinedValue value1, UndefinedValue value2, boolean shouldBeEqual) {
+    @MethodSource
+    void when_equalsAndHashCodeCompared_then_allUndefinedValuesAreEqual(UndefinedValue value1, UndefinedValue value2,
+            boolean shouldBeEqual) {
         assertThat(value1).isEqualTo(value2).hasSameHashCodeAs(value2);
     }
 
+    static Stream<Arguments> when_equalsAndHashCodeCompared_then_allUndefinedValuesAreEqual() {
+        return Stream.of(arguments(new UndefinedValue(false), new UndefinedValue(false), true),
+                arguments(new UndefinedValue(false), new UndefinedValue(true), true),
+                arguments(new UndefinedValue(true), new UndefinedValue(true), true));
+    }
+
     @Test
-    @DisplayName("UndefinedValue not equal to other Value types")
-    void notEqualToOtherValueTypes() {
+    void when_comparedToOtherValueTypes_then_notEqual() {
         var undefinedValue = new UndefinedValue(false);
 
         assertThat(undefinedValue).isNotEqualTo(Value.NULL).isNotEqualTo(Value.of(0))
@@ -66,36 +71,24 @@ class UndefinedValueTests {
     }
 
     @ParameterizedTest(name = "secret={0} toString()={1}")
-    @MethodSource("provideToStringCases")
-    @DisplayName("toString() shows undefined or placeholder")
-    void toStringShowsUndefinedOrPlaceholder(boolean secret, String expected) {
+    @MethodSource
+    void when_toStringCalled_then_showsUndefinedOrPlaceholder(boolean secret, String expected) {
         var value = new UndefinedValue(secret);
 
         assertThat(value).hasToString(expected);
     }
 
-    @ParameterizedTest(name = "{0}")
-    @MethodSource("provideConstantCases")
-    @DisplayName("Constants have expected secret flag")
-    void constantsHaveExpectedSecretFlag(String description, Value constant, boolean expectedSecret) {
-        assertThat(constant.secret()).isEqualTo(expectedSecret);
-    }
-
-    static Stream<Arguments> provideSecretFlags() {
-        return Stream.of(arguments(false), arguments(true));
-    }
-
-    static Stream<Arguments> provideEqualityHashCodeCases() {
-        return Stream.of(arguments(new UndefinedValue(false), new UndefinedValue(false), true),
-                arguments(new UndefinedValue(false), new UndefinedValue(true), true),
-                arguments(new UndefinedValue(true), new UndefinedValue(true), true));
-    }
-
-    static Stream<Arguments> provideToStringCases() {
+    static Stream<Arguments> when_toStringCalled_then_showsUndefinedOrPlaceholder() {
         return Stream.of(arguments(false, "undefined"), arguments(true, "***SECRET***"));
     }
 
-    static Stream<Arguments> provideConstantCases() {
+    @ParameterizedTest(name = "{0}")
+    @MethodSource
+    void when_constantsChecked_then_haveExpectedSecretFlag(String description, Value constant, boolean expectedSecret) {
+        assertThat(constant.secret()).isEqualTo(expectedSecret);
+    }
+
+    static Stream<Arguments> when_constantsChecked_then_haveExpectedSecretFlag() {
         return Stream.of(arguments("Value.UNDEFINED is not secret", Value.UNDEFINED, false),
                 arguments("UndefinedValue.SECRET_UNDEFINED is secret", UndefinedValue.SECRET_UNDEFINED, true));
     }

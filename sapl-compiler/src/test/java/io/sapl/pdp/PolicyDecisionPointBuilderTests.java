@@ -22,7 +22,10 @@ import io.sapl.api.functions.FunctionBroker;
 import io.sapl.api.pdp.CombiningAlgorithm;
 import io.sapl.api.pdp.Decision;
 import io.sapl.api.pdp.PDPConfiguration;
+import io.sapl.pdp.PolicyDecisionPointBuilder.PDPComponents;
+import io.sapl.pdp.configuration.bundle.BundleSecurityPolicy;
 import lombok.val;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import reactor.test.StepVerifier;
@@ -36,6 +39,7 @@ import java.util.Map;
 import static io.sapl.pdp.PdpTestHelper.createBundle;
 import static io.sapl.pdp.PdpTestHelper.subscription;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.awaitility.Awaitility.await;
 import static org.mockito.Mockito.mock;
 
@@ -43,8 +47,16 @@ class PolicyDecisionPointBuilderTests {
 
     private static final String DEFAULT_PDP_ID = "default";
 
+    private static BundleSecurityPolicy developmentPolicy;
+
     @TempDir
     Path tempDir;
+
+    @BeforeAll
+    static void setupSecurityPolicy() {
+        developmentPolicy = BundleSecurityPolicy.builder().disableSignatureVerification().acceptUnsignedBundleRisks()
+                .build();
+    }
 
     @Test
     void whenBuildingWithDefaults_thenPdpIsCreated() throws Exception {
@@ -54,8 +66,9 @@ class PolicyDecisionPointBuilderTests {
         assertThat(components.configurationRegister()).isNotNull();
         assertThat(components.functionBroker()).isNotNull();
         assertThat(components.attributeBroker()).isNotNull();
+        assertThat(components.source()).isNull();
 
-        components.dispose();
+        disposeSource(components);
     }
 
     @Test
@@ -64,8 +77,9 @@ class PolicyDecisionPointBuilderTests {
 
         assertThat(components.pdp()).isNotNull();
         assertThat(components.configurationRegister()).isNotNull();
+        assertThat(components.source()).isNull();
 
-        components.dispose();
+        disposeSource(components);
     }
 
     @Test
@@ -79,20 +93,20 @@ class PolicyDecisionPointBuilderTests {
         StepVerifier.create(components.pdp().decide(subscription("subject", "action", "resource")).take(1))
                 .assertNext(decision -> assertThat(decision.decision()).isEqualTo(Decision.PERMIT)).verifyComplete();
 
-        components.dispose();
+        disposeSource(components);
     }
 
     @Test
     void whenBuildingWithBundle_thenConfigurationIsLoaded() throws Exception {
         val bundleBytes = createBundle("policy \"deny-all\" deny");
 
-        val components = PolicyDecisionPointBuilder.withoutDefaults().withBundle(bundleBytes, DEFAULT_PDP_ID, "v1")
-                .build();
+        val components = PolicyDecisionPointBuilder.withoutDefaults()
+                .withBundle(bundleBytes, DEFAULT_PDP_ID, developmentPolicy).build();
 
         StepVerifier.create(components.pdp().decide(subscription("subject", "action", "resource")).take(1))
                 .assertNext(decision -> assertThat(decision.decision()).isEqualTo(Decision.DENY)).verifyComplete();
 
-        components.dispose();
+        disposeSource(components);
     }
 
     @Test
@@ -104,11 +118,13 @@ class PolicyDecisionPointBuilderTests {
         val components = PolicyDecisionPointBuilder.withoutDefaults().withDirectorySource(policyDir, DEFAULT_PDP_ID)
                 .build();
 
+        assertThat(components.source()).isNotNull();
+
         await().atMost(Duration.ofSeconds(5)).untilAsserted(() -> StepVerifier
                 .create(components.pdp().decide(subscription("subject", "action", "resource")).take(1))
                 .assertNext(decision -> assertThat(decision.decision()).isEqualTo(Decision.PERMIT)).verifyComplete());
 
-        components.dispose();
+        disposeSource(components);
     }
 
     @Test
@@ -118,17 +134,20 @@ class PolicyDecisionPointBuilderTests {
         // Bundle filename (minus extension) becomes pdpId
         Files.write(bundleDir.resolve("default.saplbundle"), createBundle("policy \"permit\" permit"));
 
-        val components = PolicyDecisionPointBuilder.withoutDefaults().withBundleDirectorySource(bundleDir).build();
+        val components = PolicyDecisionPointBuilder.withoutDefaults()
+                .withBundleDirectorySource(bundleDir, developmentPolicy).build();
+
+        assertThat(components.source()).isNotNull();
 
         await().atMost(Duration.ofSeconds(5)).untilAsserted(() -> StepVerifier
                 .create(components.pdp().decide(subscription("subject", "action", "resource")).take(1))
                 .assertNext(decision -> assertThat(decision.decision()).isEqualTo(Decision.PERMIT)).verifyComplete());
 
-        components.dispose();
+        disposeSource(components);
     }
 
     @Test
-    void whenDispose_thenResourcesAreReleased() throws Exception {
+    void whenDisposeSource_thenResourcesAreReleased() throws Exception {
         val policyDir = tempDir.resolve("dispose-test");
         Files.createDirectories(policyDir);
         Files.writeString(policyDir.resolve("test.sapl"), "policy \"test\" permit");
@@ -136,12 +155,13 @@ class PolicyDecisionPointBuilderTests {
         val components = PolicyDecisionPointBuilder.withoutDefaults().withDirectorySource(policyDir, DEFAULT_PDP_ID)
                 .build();
 
-        assertThat(components.disposable()).isNotNull();
-        assertThat(components.disposable().isDisposed()).isFalse();
+        val source = components.source();
+        assertThat(source).isNotNull();
+        assertThat(source.isDisposed()).isFalse();
 
-        components.dispose();
+        source.dispose();
 
-        assertThat(components.disposable().isDisposed()).isTrue();
+        assertThat(source.isDisposed()).isTrue();
     }
 
     @Test
@@ -157,7 +177,61 @@ class PolicyDecisionPointBuilderTests {
         // Both configurations should be loaded
         assertThat(components.configurationRegister()).isNotNull();
 
-        components.dispose();
+        disposeSource(components);
+    }
+
+    @Test
+    void whenRegisteringDirectorySourceTwice_thenExceptionIsThrown() {
+        val policyDir1 = tempDir.resolve("policies1");
+        val policyDir2 = tempDir.resolve("policies2");
+
+        val builder = PolicyDecisionPointBuilder.withoutDefaults().withDirectorySource(policyDir1);
+
+        assertThatThrownBy(() -> builder.withDirectorySource(policyDir2)).isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("configuration source has already been registered");
+    }
+
+    @Test
+    void whenRegisteringBundleSourceAfterDirectorySource_thenExceptionIsThrown() {
+        val policyDir = tempDir.resolve("policies");
+        val bundleDir = tempDir.resolve("bundles");
+
+        val builder = PolicyDecisionPointBuilder.withoutDefaults().withDirectorySource(policyDir);
+
+        assertThatThrownBy(() -> builder.withBundleDirectorySource(bundleDir, developmentPolicy))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("configuration source has already been registered");
+    }
+
+    @Test
+    void whenRegisteringResourcesSourceAfterDirectorySource_thenExceptionIsThrown() {
+        val policyDir = tempDir.resolve("policies");
+
+        val builder = PolicyDecisionPointBuilder.withoutDefaults().withDirectorySource(policyDir);
+
+        assertThatThrownBy(() -> builder.withResourcesSource("/policies")).isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("configuration source has already been registered");
+    }
+
+    @Test
+    void whenRegisteringMultiDirectorySourceAfterBundleSource_thenExceptionIsThrown() {
+        val bundleDir = tempDir.resolve("bundles");
+        val multiDir  = tempDir.resolve("multi");
+
+        val builder = PolicyDecisionPointBuilder.withoutDefaults().withBundleDirectorySource(bundleDir,
+                developmentPolicy);
+
+        assertThatThrownBy(() -> builder.withMultiDirectorySource(multiDir)).isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("configuration source has already been registered");
+    }
+
+    @Test
+    void whenRegisteringCustomSourceAfterResourcesSource_thenExceptionIsThrown() {
+        val builder = PolicyDecisionPointBuilder.withoutDefaults().withResourcesSource();
+
+        assertThatThrownBy(() -> builder.withConfigurationSource(callback -> null))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("configuration source has already been registered");
     }
 
     @Test
@@ -168,7 +242,7 @@ class PolicyDecisionPointBuilderTests {
 
         assertThat(components.functionBroker()).isSameAs(externalBroker);
 
-        components.dispose();
+        disposeSource(components);
     }
 
     @Test
@@ -179,7 +253,7 @@ class PolicyDecisionPointBuilderTests {
 
         assertThat(components.attributeBroker()).isSameAs(externalBroker);
 
-        components.dispose();
+        disposeSource(components);
     }
 
     @Test
@@ -196,7 +270,7 @@ class PolicyDecisionPointBuilderTests {
         assertThat(components.functionBroker()).isSameAs(externalFunctionBroker);
         assertThat(components.attributeBroker()).isSameAs(externalAttributeBroker);
 
-        components.dispose();
+        disposeSource(components);
     }
 
     @Test
@@ -213,6 +287,13 @@ class PolicyDecisionPointBuilderTests {
         val components = builder.build();
         assertThat(components.pdp()).isNotNull();
 
-        components.dispose();
+        disposeSource(components);
+    }
+
+    private void disposeSource(PDPComponents components) {
+        val source = components.source();
+        if (source != null) {
+            source.dispose();
+        }
     }
 }

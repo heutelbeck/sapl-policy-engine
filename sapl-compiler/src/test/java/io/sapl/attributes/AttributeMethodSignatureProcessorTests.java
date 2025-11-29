@@ -42,14 +42,14 @@ class AttributeMethodSignatureProcessorTests {
     private static final String NAMESPACE = "test";
 
     @Test
-    void whenMethodIsNotAnnotatedWithAttributeThenReturnsNull() throws Exception {
+    void when_methodIsNotAnnotatedWithAttribute_then_returnsNull() throws Exception {
         var method = TestPIP.class.getMethod("notAnAttribute");
         var result = AttributeMethodSignatureProcessor.processAttributeMethod(null, NAMESPACE, method);
         assertThat(result).isNull();
     }
 
     @Test
-    void whenStaticMethodWithNoParametersThenProcessSuccessfully() throws Exception {
+    void when_staticMethodWithNoParameters_then_processSuccessfully() throws Exception {
         var method = TestPIP.class.getMethod("staticNoParams");
         var result = AttributeMethodSignatureProcessor.processAttributeMethod(null, NAMESPACE, method);
 
@@ -62,7 +62,7 @@ class AttributeMethodSignatureProcessorTests {
     }
 
     @Test
-    void whenInstanceMethodAndPipInstanceIsNullThenThrowsException() throws Exception {
+    void when_instanceMethodAndPipInstanceIsNull_then_throwsException() throws Exception {
         var method = TestPIP.class.getMethod("instanceMethod");
 
         assertThatThrownBy(() -> AttributeMethodSignatureProcessor.processAttributeMethod(null, NAMESPACE, method))
@@ -70,7 +70,7 @@ class AttributeMethodSignatureProcessorTests {
     }
 
     @Test
-    void whenInstanceMethodWithPipInstanceThenProcessSuccessfully() throws Exception {
+    void when_instanceMethodWithPipInstance_then_processSuccessfully() throws Exception {
         var pipInstance = new TestPIP();
         var method      = TestPIP.class.getMethod("instanceMethod");
         var result      = AttributeMethodSignatureProcessor.processAttributeMethod(pipInstance, NAMESPACE, method);
@@ -80,7 +80,7 @@ class AttributeMethodSignatureProcessorTests {
     }
 
     @Test
-    void whenMethodReturnsNonReactiveTypeThenThrowsException() throws Exception {
+    void when_methodReturnsNonReactiveType_then_throwsException() throws Exception {
         var method = TestPIP.class.getMethod("returnsString");
 
         assertThatThrownBy(() -> AttributeMethodSignatureProcessor.processAttributeMethod(null, NAMESPACE, method))
@@ -89,7 +89,7 @@ class AttributeMethodSignatureProcessorTests {
     }
 
     @Test
-    void whenMethodReturnsFluxOfNonValueThenThrowsException() throws Exception {
+    void when_methodReturnsFluxOfNonValue_then_throwsException() throws Exception {
         var method = TestPIP.class.getMethod("returnsFluxOfString");
 
         assertThatThrownBy(() -> AttributeMethodSignatureProcessor.processAttributeMethod(null, NAMESPACE, method))
@@ -98,7 +98,7 @@ class AttributeMethodSignatureProcessorTests {
     }
 
     @Test
-    void whenMethodReturnsMonoThenProcessSuccessfully() throws Exception {
+    void when_methodReturnsMono_then_processSuccessfully() throws Exception {
         var method = TestPIP.class.getMethod("returnsMono");
         var result = AttributeMethodSignatureProcessor.processAttributeMethod(null, NAMESPACE, method);
 
@@ -107,7 +107,7 @@ class AttributeMethodSignatureProcessorTests {
     }
 
     @Test
-    void whenMethodHasEntityParameterThenDetectsIt() throws Exception {
+    void when_methodHasEntityParameter_then_detectsIt() throws Exception {
         var method = TestPIP.class.getMethod("withEntity", Value.class);
         var result = AttributeMethodSignatureProcessor.processAttributeMethod(null, NAMESPACE, method);
 
@@ -116,7 +116,7 @@ class AttributeMethodSignatureProcessorTests {
     }
 
     @Test
-    void whenMethodHasEnvironmentAttributeAnnotationThenMarkedAsEnvironment() throws Exception {
+    void when_methodHasEnvironmentAttributeAnnotation_then_markedAsEnvironment() throws Exception {
         var method = TestPIP.class.getMethod("environmentAttribute");
         var result = AttributeMethodSignatureProcessor.processAttributeMethod(null, NAMESPACE, method);
 
@@ -125,7 +125,7 @@ class AttributeMethodSignatureProcessorTests {
     }
 
     @Test
-    void whenMethodHasVariablesParameterThenStrippedFromSignature() throws Exception {
+    void when_methodHasVariablesParameter_then_strippedFromSignature() throws Exception {
         var method = TestPIP.class.getMethod("withVariables", Value.class, Map.class);
         var result = AttributeMethodSignatureProcessor.processAttributeMethod(null, NAMESPACE, method);
 
@@ -134,7 +134,7 @@ class AttributeMethodSignatureProcessorTests {
     }
 
     @Test
-    void whenMethodHasValueParametersThenIncludedInSignature() throws Exception {
+    void when_methodHasValueParameters_then_includedInSignature() throws Exception {
         var method = TestPIP.class.getMethod("withArguments", Value.class, Value.class, Value.class);
         var result = AttributeMethodSignatureProcessor.processAttributeMethod(null, NAMESPACE, method);
 
@@ -144,7 +144,7 @@ class AttributeMethodSignatureProcessorTests {
     }
 
     @Test
-    void whenMethodHasVarArgsThenDetectedInSignature() throws Exception {
+    void when_methodHasVarArgs_then_detectedInSignature() throws Exception {
         var method = TestPIP.class.getMethod("withVarArgs", Value.class, Value[].class);
         var result = AttributeMethodSignatureProcessor.processAttributeMethod(null, NAMESPACE, method);
 
@@ -154,7 +154,7 @@ class AttributeMethodSignatureProcessorTests {
     }
 
     @Test
-    void whenMethodHasInvalidParameterTypeThenThrowsException() throws Exception {
+    void when_methodHasInvalidParameterType_then_throwsException() throws Exception {
         var method = TestPIP.class.getMethod("invalidParameterType", Value.class, String.class);
 
         assertThatThrownBy(() -> AttributeMethodSignatureProcessor.processAttributeMethod(null, NAMESPACE, method))
@@ -162,7 +162,7 @@ class AttributeMethodSignatureProcessorTests {
     }
 
     @Test
-    void whenAttributeNameProvidedInAnnotationThenUsed() throws Exception {
+    void when_attributeNameProvidedInAnnotation_then_used() throws Exception {
         var method = TestPIP.class.getMethod("customName");
         var result = AttributeMethodSignatureProcessor.processAttributeMethod(null, NAMESPACE, method);
 
@@ -171,7 +171,7 @@ class AttributeMethodSignatureProcessorTests {
     }
 
     @Test
-    void whenInvokingAttributeFinderWithCorrectArgsThenExecutesSuccessfully() throws Exception {
+    void when_invokingAttributeFinderWithCorrectArgs_then_executesSuccessfully() throws Exception {
         var method = TestPIP.class.getMethod("withArguments", Value.class, Value.class, Value.class);
         var result = AttributeMethodSignatureProcessor.processAttributeMethod(null, NAMESPACE, method);
 
@@ -186,7 +186,7 @@ class AttributeMethodSignatureProcessorTests {
     }
 
     @Test
-    void whenInvokingAttributeFinderWithWrongArgCountThenReturnsError() throws Exception {
+    void when_invokingAttributeFinderWithWrongArgCount_then_returnsError() throws Exception {
         var method = TestPIP.class.getMethod("withArguments", Value.class, Value.class, Value.class);
         var result = AttributeMethodSignatureProcessor.processAttributeMethod(null, NAMESPACE, method);
 
@@ -203,7 +203,7 @@ class AttributeMethodSignatureProcessorTests {
     }
 
     @Test
-    void whenInvokingAttributeFinderWithVarArgsThenExecutesSuccessfully() throws Exception {
+    void when_invokingAttributeFinderWithVarArgs_then_executesSuccessfully() throws Exception {
         var method = TestPIP.class.getMethod("withVarArgs", Value.class, Value[].class);
         var result = AttributeMethodSignatureProcessor.processAttributeMethod(null, NAMESPACE, method);
 
@@ -218,7 +218,7 @@ class AttributeMethodSignatureProcessorTests {
     }
 
     @Test
-    void whenAttributeThrowsExceptionThenReturnsError() throws Exception {
+    void when_attributeThrowsException_then_returnsError() throws Exception {
         var method = TestPIP.class.getMethod("throwsException", Value.class);
         var result = AttributeMethodSignatureProcessor.processAttributeMethod(null, NAMESPACE, method);
 

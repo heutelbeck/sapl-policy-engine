@@ -37,7 +37,11 @@ import io.sapl.api.model.Value;
 import lombok.experimental.UtilityClass;
 import lombok.val;
 
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.*;
+import java.util.HexFormat;
 
 /**
  * GraphQL query parsing and analysis for authorization policies.
@@ -237,7 +241,8 @@ public class GraphQLFunctionLibrary {
     public static final int DEPTH_COMPLEXITY_FACTOR = 2;
 
     // Schema cache configuration
-    private static final int     MAX_SCHEMA_CACHE_SIZE = 100;
+    private static final int     MAX_SCHEMA_CACHE_SIZE = 20;
+    private static final int     MAX_SCHEMA_SIZE_BYTES = 512 * 1024;
     private static final float   CACHE_LOAD_FACTOR     = 0.75f;
     private static final boolean CACHE_ACCESS_ORDER    = true;
 
@@ -245,6 +250,7 @@ public class GraphQLFunctionLibrary {
     private static final String ERROR_SCHEMA_PARSE_FAILED = "Schema parsing failed";
     private static final String ERROR_QUERY_PARSE_FAILED  = "Failed to parse GraphQL query";
     private static final String ERROR_NO_OPERATION_FOUND  = "No operation definition found.";
+    private static final String ERROR_SCHEMA_TOO_LARGE    = "Schema exceeds maximum size of %d bytes.";
 
     // JSON field names - common fields
     private static final String FIELD_VALID       = "valid";
@@ -281,7 +287,7 @@ public class GraphQLFunctionLibrary {
     private static final String FIELD_NAME      = "name";
     private static final String FIELD_TYPE_NAME = "typeName";
 
-    // Schema cache - LRU with size limit
+    // Schema cache - LRU with size limit, keyed by SHA-256 hash to bound key memory
     private static final Map<String, GraphQLSchema> SCHEMA_CACHE = Collections
             .synchronizedMap(new LinkedHashMap<>(MAX_SCHEMA_CACHE_SIZE, CACHE_LOAD_FACTOR, CACHE_ACCESS_ORDER) {
                 @Override
@@ -1058,21 +1064,43 @@ public class GraphQLFunctionLibrary {
 
     /**
      * Parses a GraphQL schema from a string and creates an executable schema with
-     * caching.
+     * caching. Uses SHA-256 hash as cache key to bound memory usage.
      *
      * @param schemaString
      * the schema definition string
      *
      * @return executable GraphQLSchema
+     *
+     * @throws IllegalArgumentException
+     * if schema exceeds maximum size
      */
     private static GraphQLSchema parseSchemaWithCache(String schemaString) {
-        return SCHEMA_CACHE.computeIfAbsent(schemaString, key -> {
+        if (schemaString.length() > MAX_SCHEMA_SIZE_BYTES) {
+            throw new IllegalArgumentException(ERROR_SCHEMA_TOO_LARGE.formatted(MAX_SCHEMA_SIZE_BYTES));
+        }
+
+        val cacheKey = computeSchemaHash(schemaString);
+        return SCHEMA_CACHE.computeIfAbsent(cacheKey, key -> {
             val schemaParser           = new SchemaParser();
-            val typeDefinitionRegistry = schemaParser.parse(key);
+            val typeDefinitionRegistry = schemaParser.parse(schemaString);
             val runtimeWiring          = RuntimeWiring.newRuntimeWiring().build();
             val schemaGenerator        = new SchemaGenerator();
             return schemaGenerator.makeExecutableSchema(typeDefinitionRegistry, runtimeWiring);
         });
+    }
+
+    /**
+     * Computes SHA-256 hash of schema string for use as cache key.
+     */
+    private static String computeSchemaHash(String schemaString) {
+        try {
+            val digest    = MessageDigest.getInstance("SHA-256");
+            val hashBytes = digest.digest(schemaString.getBytes(StandardCharsets.UTF_8));
+            return HexFormat.of().formatHex(hashBytes);
+        } catch (NoSuchAlgorithmException exception) {
+            // SHA-256 is guaranteed to be available
+            throw new IllegalStateException("SHA-256 algorithm not available.", exception);
+        }
     }
 
     /**

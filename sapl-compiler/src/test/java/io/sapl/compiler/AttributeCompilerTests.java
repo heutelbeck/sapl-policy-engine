@@ -185,11 +185,11 @@ class AttributeCompilerTests {
 
     @ParameterizedTest(name = "[{index}] {0}")
     @MethodSource
-    void attributeFindersCompileToStreamExpressions(String description, String expression) {
+    void when_attributeFindersCompile_then_streamExpressions(String description, String expression) {
         assertCompilesToStreamExpression(expression);
     }
 
-    private static Stream<Arguments> attributeFindersCompileToStreamExpressions() {
+    private static Stream<Arguments> when_attributeFindersCompile_then_streamExpressions() {
         return Stream.of(
                 arguments("Basic attribute finder compiles to StreamExpression", "\"Ridcully\".<discworld.city>"),
                 arguments("Environment attribute compiles to StreamExpression", "<discworld.famousLocations>"),
@@ -202,11 +202,12 @@ class AttributeCompilerTests {
 
     @ParameterizedTest(name = "[{index}] {0}")
     @MethodSource
-    void attributeFinderBasicEvaluations(String description, String expression, String expectedJson) {
+    void when_attributeFinderBasicEvaluation_then_correctValue(String description, String expression,
+            String expectedJson) {
         assertEvaluatesToValue(expression, json(expectedJson));
     }
 
-    private static Stream<Arguments> attributeFinderBasicEvaluations() {
+    private static Stream<Arguments> when_attributeFinderBasicEvaluation_then_correctValue() {
         return Stream.of(
                 arguments("Attribute finder evaluates to correct value", "\"Ridcully\".<discworld.city>",
                         "\"Ankh-Morpork\""),
@@ -234,11 +235,11 @@ class AttributeCompilerTests {
 
     @ParameterizedTest(name = "[{index}] {0}")
     @MethodSource
-    void attributeFinderErrorConditions(String description, String expression, String errorFragment) {
+    void when_attributeFinderErrorCondition_then_error(String description, String expression, String errorFragment) {
         assertEvaluatesToError(expression, errorFragment);
     }
 
-    private static Stream<Arguments> attributeFinderErrorConditions() {
+    private static Stream<Arguments> when_attributeFinderErrorCondition_then_error() {
         return Stream.of(
                 arguments("Attribute finder on error entity propagates error", "(1/0).<discworld.city>",
                         "division by zero"),
@@ -256,11 +257,11 @@ class AttributeCompilerTests {
 
     @ParameterizedTest(name = "[{index}] {0}")
     @MethodSource
-    void attributeFinderCompileTimeErrors(String description, String expression) {
+    void when_attributeFinderCompileTimeError_then_throws(String description, String expression) {
         assertThrowsCompileTimeError(expression);
     }
 
-    private static Stream<Arguments> attributeFinderCompileTimeErrors() {
+    private static Stream<Arguments> when_attributeFinderCompileTimeError_then_throws() {
         return Stream.of(
                 arguments("Attribute finder on undefined produces compile-time error", "undefined.<discworld.city>"),
                 arguments("Attribute finder on undefined entity produces compile-time error",
@@ -273,11 +274,12 @@ class AttributeCompilerTests {
 
     @ParameterizedTest(name = "[{index}] {0}")
     @MethodSource
-    void headOperatorCompletionTests(String description, String expression, String expectedJson) {
+    void when_headOperatorCompletion_then_completesWithValue(String description, String expression,
+            String expectedJson) {
         assertHeadCompletesWithValue(expression, json(expectedJson));
     }
 
-    private static Stream<Arguments> headOperatorCompletionTests() {
+    private static Stream<Arguments> when_headOperatorCompletion_then_completesWithValue() {
         return Stream.of(
                 arguments("Head attribute finder takes only first value", "|<discworld.famousLocations>",
                         "\"Unseen University\""),
@@ -298,7 +300,7 @@ class AttributeCompilerTests {
 
     @ParameterizedTest(name = "[{index}] {0}")
     @MethodSource
-    void multiValueStreamTests(String description, String expression, String... expectedJson) {
+    void when_multiValueStream_then_emitsAllValues(String description, String expression, String... expectedJson) {
         val expectedValues = new Value[expectedJson.length];
         for (int i = 0; i < expectedJson.length; i++) {
             expectedValues[i] = json(expectedJson[i]);
@@ -306,7 +308,7 @@ class AttributeCompilerTests {
         assertStreamEmitsValues(expression, expectedValues);
     }
 
-    private static Stream<Arguments> multiValueStreamTests() {
+    private static Stream<Arguments> when_multiValueStream_then_emitsAllValues() {
         return Stream.of(
                 arguments("Environment attribute evaluates to stream", "<discworld.famousLocations>",
                         new String[] { "\"Unseen University\"", "\"The Patrician's Palace\"", "\"The Mended Drum\"" }),
@@ -319,20 +321,20 @@ class AttributeCompilerTests {
     // =========================================================================
 
     @Test
-    void attributeFinderStepOnVariable_evaluatesCorrectly() {
+    void when_attributeFinderStepOnVariable_then_evaluatesCorrectly() {
         val ctx = createEvaluationContext().with("wizard", Value.of("Rincewind"));
         assertEvaluatesToValueWithContext("wizard.<discworld.companion>", Value.of("The Luggage"), ctx);
     }
 
     @Test
-    void globalOptions_overrideDefaultsButNotInline() {
+    void when_globalOptions_then_overrideDefaultsButNotInline() {
         val globalOptions = (ObjectValue) json("{\"fresh\": true, \"retries\": 5}");
         val ctx           = createEvaluationContextWithGlobalOptions(globalOptions);
         assertEvaluatesToValueWithContext("\"Ridcully\".<discworld.city>", Value.of("Ankh-Morpork"), ctx);
     }
 
     @Test
-    void inlineOptions_takePrecedenceOverGlobal() {
+    void when_inlineOptions_then_takePrecedenceOverGlobal() {
         val globalOptions = (ObjectValue) json("{\"retries\": 10}");
         val ctx           = createEvaluationContextWithGlobalOptions(globalOptions);
         assertEvaluatesToValueWithContext("\"Rincewind\".<discworld.companion [{\"retries\": 1}]>",
@@ -340,7 +342,7 @@ class AttributeCompilerTests {
     }
 
     @Test
-    void entityFromStream_triggersResubscription() {
+    void when_entityFromStream_then_triggersResubscription() {
         val ctx       = createEvaluationContext().with("wizards", json("[\"Rincewind\", \"Ridcully\"]"));
         val compiled  = compileExpression("wizards[0].|<discworld.companion>");
         val evaluated = evaluateExpression(compiled, ctx);
@@ -348,7 +350,7 @@ class AttributeCompilerTests {
     }
 
     @Test
-    void attributeOnArray_eachElementProcessed() {
+    void when_attributeOnArray_then_eachElementProcessed() {
         val ctx       = createEvaluationContext().with("wizards", json("[\"Rincewind\", \"Ridcully\"]"));
         val compiled  = compileExpression("wizards.|<discworld.echo>");
         val evaluated = evaluateExpression(compiled, ctx);
@@ -356,7 +358,7 @@ class AttributeCompilerTests {
     }
 
     @Test
-    void attributeOnObject_passedAsEntity() {
+    void when_attributeOnObject_then_passedAsEntity() {
         val ctx       = createEvaluationContext().with("being", json("{\"name\": \"Rincewind\"}"));
         val compiled  = compileExpression("being.|<discworld.echo>");
         val evaluated = evaluateExpression(compiled, ctx);
@@ -368,7 +370,7 @@ class AttributeCompilerTests {
     // =========================================================================
 
     @Test
-    void defaultOptions_areUsedWhenNoOthersSpecified() {
+    void when_defaultOptions_then_usedWhenNoOthersSpecified() {
         val compiled = compileExpression("\"Ridcully\".<discworld.city>");
         assertThat(compiled).isInstanceOf(StreamExpression.class);
         // Default options: 3s timeout, 30s poll, 1s backoff, 3 retries
@@ -378,7 +380,7 @@ class AttributeCompilerTests {
     }
 
     @Test
-    void errorInArgument_passedToAttributeInArray() {
+    void when_errorInArgument_then_passedToAttributeInArray() {
         // Error is passed as part of the argument array, not propagated immediately
         val compiled  = compileExpression("\"Ridcully\".<discworld.withArguments((1/0), \"valid\")>");
         val evaluated = evaluateExpression(compiled, createEvaluationContext());

@@ -1,0 +1,418 @@
+/*
+ * Copyright (C) 2017-2025 Dominic Heutelbeck (dominic@heutelbeck.com)
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package io.sapl.pdp.configuration.bundle;
+
+import io.sapl.api.pdp.CombiningAlgorithm;
+import io.sapl.pdp.configuration.PDPConfigurationException;
+import lombok.val;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
+import org.junit.jupiter.params.provider.NullAndEmptySource;
+import org.junit.jupiter.params.provider.ValueSource;
+
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.security.KeyPair;
+import java.security.KeyPairGenerator;
+import java.security.NoSuchAlgorithmException;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.zip.ZipInputStream;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
+class BundleBuilderTests {
+
+    @TempDir
+    Path tempDir;
+
+    private static KeyPair cultKeyPair;
+    private static KeyPair rsaKeyPair;
+
+    private static BundleSecurityPolicy developmentPolicy;
+    private static BundleSecurityPolicy signedPolicy;
+
+    @BeforeAll
+    static void setupKeys() throws NoSuchAlgorithmException {
+        val ed25519Generator = KeyPairGenerator.getInstance("Ed25519");
+        cultKeyPair = ed25519Generator.generateKeyPair();
+
+        val rsaGenerator = KeyPairGenerator.getInstance("RSA");
+        rsaGenerator.initialize(2048);
+        rsaKeyPair = rsaGenerator.generateKeyPair();
+
+        developmentPolicy = BundleSecurityPolicy.builder().disableSignatureVerification().acceptUnsignedBundleRisks()
+                .build();
+
+        signedPolicy = BundleSecurityPolicy.requireSignature(cultKeyPair.getPublic());
+    }
+
+    @Test
+    void whenBuildingEmptyBundle_thenCreatesValidZip() throws IOException {
+        val bundle = BundleBuilder.create().build();
+
+        assertThat(bundle).isNotEmpty();
+        assertThat(extractEntryNames(bundle)).isEmpty();
+    }
+
+    @Test
+    void whenAddingPdpJson_thenBundleContainsPdpJson() throws IOException {
+        val pdpJsonContent = """
+                { "algorithm": "DENY_OVERRIDES" }
+                """;
+        val bundle         = BundleBuilder.create().withPdpJson(pdpJsonContent).build();
+
+        val entries = extractEntries(bundle);
+        assertThat(entries).containsKey("pdp.json");
+        assertThat(entries.get("pdp.json")).contains("DENY_OVERRIDES");
+    }
+
+    @ParameterizedTest
+    @EnumSource(CombiningAlgorithm.class)
+    void whenSettingCombiningAlgorithm_thenPdpJsonContainsAlgorithm(CombiningAlgorithm algorithm) throws IOException {
+        val bundle = BundleBuilder.create().withCombiningAlgorithm(algorithm).build();
+
+        val entries = extractEntries(bundle);
+        assertThat(entries).containsKey("pdp.json");
+        assertThat(entries.get("pdp.json")).contains(algorithm.name());
+    }
+
+    @Test
+    void whenAddingPolicy_thenBundleContainsPolicy() throws IOException {
+        val policyContent = """
+                policy "elder-access"
+                permit subject.cultRank == "elder"
+                """;
+        val bundle        = BundleBuilder.create().withPolicy("access.sapl", policyContent).build();
+
+        val entries = extractEntries(bundle);
+        assertThat(entries).containsKey("access.sapl");
+        assertThat(entries.get("access.sapl")).contains("elder-access");
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = { "ritual", "ritual.sapl" })
+    void whenAddingPolicyWithOrWithoutExtension_thenExtensionIsNormalized(String filename) throws IOException {
+        val bundle = BundleBuilder.create().withPolicy(filename, "policy \"ritual\" permit true").build();
+
+        val entries = extractEntries(bundle);
+        assertThat(entries).containsKey("ritual.sapl");
+    }
+
+    @Test
+    void whenAddingMultiplePolicies_thenBundleContainsAll() throws IOException {
+        val bundle = BundleBuilder.create().withPolicy("forbidden-tome.sapl", "policy \"tome\" deny true")
+                .withPolicy("altar-access.sapl", "policy \"altar\" permit subject.initiated == true")
+                .withPolicy("deep-one-greeting.sapl", "policy \"greeting\" permit resource.location == \"Innsmouth\"")
+                .build();
+
+        val entries = extractEntries(bundle);
+        assertThat(entries).hasSize(3).containsKeys("forbidden-tome.sapl", "altar-access.sapl",
+                "deep-one-greeting.sapl");
+    }
+
+    @Test
+    void whenAddingPoliciesAsMap_thenBundleContainsAll() throws IOException {
+        val policies = new LinkedHashMap<String, String>();
+        policies.put("shoggoth-containment.sapl", "policy \"containment\" deny subject.sanity < 20");
+        policies.put("mi-go-trade.sapl", "policy \"trade\" permit resource.type == \"brain_cylinder\"");
+
+        val bundle = BundleBuilder.create().withPolicies(policies).build();
+
+        val entries = extractEntries(bundle);
+        assertThat(entries).hasSize(2).containsKeys("shoggoth-containment.sapl", "mi-go-trade.sapl");
+    }
+
+    @Test
+    void whenBuildingCompletBundle_thenContainsPdpJsonAndPolicies() throws IOException {
+        val bundle = BundleBuilder.create().withCombiningAlgorithm(CombiningAlgorithm.DENY_UNLESS_PERMIT)
+                .withPolicy("necronomicon-access.sapl", """
+                        policy "necronomicon"
+                        deny subject.sanity < 50
+                        obligation { "action": "summon_librarian" }
+                        """).withPolicy("miskatonic-library.sapl", """
+                        policy "library"
+                        permit subject.affiliation == "Miskatonic University"
+                        """).build();
+
+        val entries = extractEntries(bundle);
+        assertThat(entries).hasSize(3).containsKeys("pdp.json", "necronomicon-access.sapl", "miskatonic-library.sapl");
+        assertThat(entries.get("pdp.json")).contains("DENY_UNLESS_PERMIT");
+    }
+
+    @Test
+    void whenWritingToPath_thenFileIsCreated() throws IOException {
+        val bundlePath = tempDir.resolve("cthulhu-cult.saplbundle");
+
+        BundleBuilder.create().withCombiningAlgorithm(CombiningAlgorithm.PERMIT_OVERRIDES)
+                .withPolicy("summoning.sapl", "policy \"summon\" permit subject.stars == \"right\"")
+                .writeTo(bundlePath);
+
+        assertThat(bundlePath).exists();
+
+        val content = Files.readAllBytes(bundlePath);
+        val entries = extractEntries(content);
+        assertThat(entries).hasSize(2).containsKeys("pdp.json", "summoning.sapl");
+    }
+
+    @Test
+    void whenWritingToOutputStream_thenStreamContainsBundle() throws IOException {
+        val outputStream = new ByteArrayOutputStream();
+
+        BundleBuilder.create().withCombiningAlgorithm(CombiningAlgorithm.ONLY_ONE_APPLICABLE)
+                .withPolicy("yog-sothoth.sapl", "policy \"gate\" permit resource.dimension == \"outer\"")
+                .writeTo(outputStream);
+
+        val entries = extractEntries(outputStream.toByteArray());
+        assertThat(entries).hasSize(2).containsKeys("pdp.json", "yog-sothoth.sapl");
+    }
+
+    @ParameterizedTest
+    @NullAndEmptySource
+    @ValueSource(strings = { "   ", "\t", "\n" })
+    void whenAddingPolicyWithInvalidFilename_thenThrowsException(String filename) {
+        val builder = BundleBuilder.create();
+
+        assertThatThrownBy(() -> builder.withPolicy(filename, "policy \"test\" permit true"))
+                .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("filename");
+    }
+
+    @Test
+    void whenAddingPolicyWithNullContent_thenEmptyPolicyIsAdded() throws IOException {
+        val bundle = BundleBuilder.create().withPolicy("empty.sapl", null).build();
+
+        val entries = extractEntries(bundle);
+        assertThat(entries).containsKey("empty.sapl");
+        assertThat(entries.get("empty.sapl")).isEmpty();
+    }
+
+    @Test
+    void whenWritingToInvalidPath_thenThrowsException() {
+        val invalidPath = tempDir.resolve("non-existent-dir/bundle.saplbundle");
+
+        val builder = BundleBuilder.create().withPolicy("test.sapl", "policy \"test\" permit true");
+
+        assertThatThrownBy(() -> builder.writeTo(invalidPath)).isInstanceOf(PDPConfigurationException.class)
+                .hasMessageContaining("Failed to write bundle");
+    }
+
+    @Test
+    void whenBuildingWithConfiguration_thenPdpJsonContainsVariables() throws IOException {
+        val variables = new LinkedHashMap<String, String>();
+        variables.put("maxSanity", "100");
+        variables.put("cultName", "\"Esoteric Order of Dagon\"");
+
+        val bundle = BundleBuilder.create().withConfiguration(CombiningAlgorithm.DENY_OVERRIDES, variables).build();
+
+        val entries = extractEntries(bundle);
+        assertThat(entries).containsKey("pdp.json");
+        assertThat(entries.get("pdp.json")).contains("DENY_OVERRIDES").contains("variables").contains("maxSanity")
+                .contains("cultName");
+    }
+
+    @Test
+    void whenBuildingAndParsing_thenRoundtripPreservesContent() {
+        val originalPolicy = """
+                policy "arkham-asylum"
+                permit subject.role == "doctor"
+                where resource.ward != "forbidden"
+                """;
+
+        val bundle = BundleBuilder.create().withCombiningAlgorithm(CombiningAlgorithm.DENY_UNLESS_PERMIT)
+                .withPolicy("arkham.sapl", originalPolicy).build();
+
+        val config = BundleParser.parse(bundle, "arkham-pdp", developmentPolicy);
+
+        assertThat(config.pdpId()).isEqualTo("arkham-pdp");
+        assertThat(config.configurationId()).startsWith("bundle-");
+        assertThat(config.combiningAlgorithm()).isEqualTo(CombiningAlgorithm.DENY_UNLESS_PERMIT);
+        assertThat(config.saplDocuments()).hasSize(1).first().asString().contains("arkham-asylum");
+    }
+
+    @Test
+    void whenBuildingWithEmptyVariablesMap_thenPdpJsonContainsEmptyObject() throws IOException {
+        val bundle = BundleBuilder.create().withConfiguration(CombiningAlgorithm.PERMIT_OVERRIDES, Map.of()).build();
+
+        val entries = extractEntries(bundle);
+        assertThat(entries.get("pdp.json")).contains("\"variables\":").containsPattern("\\{\\s*\\}"); // Match empty
+                                                                                                      // object with any
+                                                                                                      // whitespace
+    }
+
+    @Test
+    void whenOverwritingPdpJson_thenLastValueWins() throws IOException {
+        val bundle = BundleBuilder.create().withCombiningAlgorithm(CombiningAlgorithm.DENY_OVERRIDES).withPdpJson("""
+                { "algorithm": "PERMIT_UNLESS_DENY" }
+                """).build();
+
+        val entries = extractEntries(bundle);
+        assertThat(entries.get("pdp.json")).contains("PERMIT_UNLESS_DENY");
+    }
+
+    @Test
+    void whenAddingSamePolicyTwice_thenLastContentWins() throws IOException {
+        val bundle = BundleBuilder.create().withPolicy("duplicate.sapl", "policy \"first\" permit true")
+                .withPolicy("duplicate.sapl", "policy \"second\" deny true").build();
+
+        val entries = extractEntries(bundle);
+        assertThat(entries).containsKey("duplicate.sapl");
+        assertThat(entries.get("duplicate.sapl")).contains("second");
+    }
+
+    @Test
+    void whenSigningBundle_thenManifestIsIncluded() throws IOException {
+        val bundle = BundleBuilder.create().withCombiningAlgorithm(CombiningAlgorithm.DENY_OVERRIDES)
+                .withPolicy("elder-ritual.sapl", "policy \"ritual\" permit subject.initiated == true")
+                .signWith(cultKeyPair.getPrivate(), "necronomicon-key").build();
+
+        val entries = extractEntries(bundle);
+        assertThat(entries).containsKey(BundleManifest.MANIFEST_FILENAME).containsKey("pdp.json")
+                .containsKey("elder-ritual.sapl");
+    }
+
+    @Test
+    void whenSigningBundle_thenManifestContainsValidSignature() throws IOException {
+        val bundle = BundleBuilder.create().withCombiningAlgorithm(CombiningAlgorithm.PERMIT_OVERRIDES)
+                .withPolicy("deep-one.sapl", "policy \"greeting\" permit resource.location == \"Innsmouth\"")
+                .signWith(cultKeyPair.getPrivate(), "dagon-key").build();
+
+        val entries      = extractEntries(bundle);
+        val manifestJson = entries.get(BundleManifest.MANIFEST_FILENAME);
+        val manifest     = BundleManifest.fromJson(manifestJson);
+
+        assertThat(manifest.signature()).isNotNull();
+        assertThat(manifest.signature().algorithm()).isEqualTo("Ed25519");
+        assertThat(manifest.signature().keyId()).isEqualTo("dagon-key");
+        assertThat(manifest.files()).hasSize(2);
+    }
+
+    @Test
+    void whenSigningBundleWithExpiration_thenManifestContainsExpiration() throws IOException {
+        val expirationTime = Instant.now().plus(30, ChronoUnit.DAYS);
+        val bundle         = BundleBuilder.create().withCombiningAlgorithm(CombiningAlgorithm.DENY_UNLESS_PERMIT)
+                .withPolicy("shoggoth.sapl", "policy \"containment\" deny subject.sanity < 20")
+                .signWith(cultKeyPair.getPrivate(), "arkham-key").expiresAt(expirationTime).build();
+
+        val entries      = extractEntries(bundle);
+        val manifestJson = entries.get(BundleManifest.MANIFEST_FILENAME);
+        val manifest     = BundleManifest.fromJson(manifestJson);
+
+        assertThat(manifest.expires()).isEqualTo(expirationTime);
+    }
+
+    @Test
+    void whenSigningWithNullKey_thenThrowsException() {
+        val builder = BundleBuilder.create().withPolicy("forbidden.sapl", "policy \"forbidden\" deny true");
+
+        assertThatThrownBy(() -> builder.signWith(null, "null-key")).isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Private key must not be null");
+    }
+
+    @Test
+    void whenSigningWithNonEd25519Key_thenThrowsException() {
+        val builder = BundleBuilder.create().withPolicy("wrong-key.sapl", "policy \"wrong\" deny true");
+
+        assertThatThrownBy(() -> builder.signWith(rsaKeyPair.getPrivate(), "rsa-key"))
+                .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("Ed25519");
+    }
+
+    @Test
+    void whenSigningWithNullKeyId_thenDefaultKeyIdIsUsed() throws IOException {
+        val bundle = BundleBuilder.create().withPolicy("default-key.sapl", "policy \"default\" permit true")
+                .signWith(cultKeyPair.getPrivate(), null).build();
+
+        val entries      = extractEntries(bundle);
+        val manifestJson = entries.get(BundleManifest.MANIFEST_FILENAME);
+        val manifest     = BundleManifest.fromJson(manifestJson);
+
+        assertThat(manifest.signature().keyId()).isEqualTo("default");
+    }
+
+    @Test
+    void whenCheckingIfBuilderIsSigned_thenReturnsCorrectly() {
+        val unsignedBuilder = BundleBuilder.create().withPolicy("unsigned.sapl", "policy \"unsigned\" permit true");
+
+        val signedBuilder = BundleBuilder.create().withPolicy("signed.sapl", "policy \"signed\" permit true")
+                .signWith(cultKeyPair.getPrivate(), "test-key");
+
+        assertThat(unsignedBuilder.isSigned()).isFalse();
+        assertThat(signedBuilder.isSigned()).isTrue();
+    }
+
+    @Test
+    void whenSigningAndParsing_thenVerificationSucceeds() {
+        val bundle = BundleBuilder.create().withCombiningAlgorithm(CombiningAlgorithm.ONLY_ONE_APPLICABLE)
+                .withPolicy("mi-go.sapl", "policy \"brain-cylinder\" permit resource.type == \"specimen\"")
+                .signWith(cultKeyPair.getPrivate(), "yuggoth-key").build();
+
+        val config = BundleParser.parse(bundle, "cult-pdp", signedPolicy);
+
+        assertThat(config.pdpId()).isEqualTo("cult-pdp");
+        assertThat(config.combiningAlgorithm()).isEqualTo(CombiningAlgorithm.ONLY_ONE_APPLICABLE);
+    }
+
+    @Test
+    void whenSigningAndParsingWithWrongKey_thenVerificationFails() {
+        val bundle = BundleBuilder.create().withCombiningAlgorithm(CombiningAlgorithm.DENY_OVERRIDES)
+                .withPolicy("cthulhu.sapl", "policy \"awakening\" deny subject.stars != \"right\"")
+                .signWith(cultKeyPair.getPrivate(), "rlyeh-key").build();
+
+        val wrongKeyPair = generateEd25519KeyPair();
+        val wrongPolicy  = BundleSecurityPolicy.requireSignature(wrongKeyPair.getPublic());
+
+        assertThatThrownBy(() -> BundleParser.parse(bundle, "cult-pdp", wrongPolicy))
+                .isInstanceOf(BundleSignatureException.class);
+    }
+
+    private Map<String, String> extractEntries(byte[] bundle) throws IOException {
+        val entries = new HashMap<String, String>();
+        try (val zipStream = new ZipInputStream(new ByteArrayInputStream(bundle))) {
+            java.util.zip.ZipEntry entry;
+            while ((entry = zipStream.getNextEntry()) != null) {
+                val content = new String(zipStream.readAllBytes(), StandardCharsets.UTF_8);
+                entries.put(entry.getName(), content);
+            }
+        }
+        return entries;
+    }
+
+    private java.util.Set<String> extractEntryNames(byte[] bundle) throws IOException {
+        return extractEntries(bundle).keySet();
+    }
+
+    private KeyPair generateEd25519KeyPair() {
+        try {
+            val generator = KeyPairGenerator.getInstance("Ed25519");
+            return generator.generateKeyPair();
+        } catch (NoSuchAlgorithmException e) {
+            throw new IllegalStateException("Ed25519 not available.", e);
+        }
+    }
+
+}

@@ -31,11 +31,11 @@ class PermitUnlessDenyTests {
 
     @ParameterizedTest(name = "{0}")
     @MethodSource
-    void permitUnlessDenyTests(String description, String policySet, Decision expectedDecision) {
+    void when_decisionEvaluated_then_matchesExpected(String description, String policySet, Decision expectedDecision) {
         assertDecision(policySet, expectedDecision);
     }
 
-    private static Stream<Arguments> permitUnlessDenyTests() {
+    private static Stream<Arguments> when_decisionEvaluated_then_matchesExpected() {
         return Stream.of(arguments("No policies match returns PERMIT", """
                 set "test" permit-unless-deny
                 policy "never matches" permit subject == "non-matching"

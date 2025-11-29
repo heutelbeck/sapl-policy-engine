@@ -26,6 +26,8 @@ import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.NullAndEmptySource;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -44,10 +46,10 @@ class PDPConfigurationLoaderTests {
 
     @Test
     void whenLoadingFromEmptyDirectory_thenUsesDefaults() {
-        val config = PDPConfigurationLoader.loadFromDirectory(tempDir, "arkham-pdp", "config-1");
+        val config = PDPConfigurationLoader.loadFromDirectory(tempDir, "arkham-pdp");
 
         assertThat(config.pdpId()).isEqualTo("arkham-pdp");
-        assertThat(config.configurationId()).isEqualTo("config-1");
+        assertThat(config.configurationId()).startsWith("dir:").contains("@sha256:");
         assertThat(config.combiningAlgorithm()).isEqualTo(CombiningAlgorithm.DENY_OVERRIDES);
         assertThat(config.variables()).isEmpty();
         assertThat(config.saplDocuments()).isEmpty();
@@ -58,6 +60,7 @@ class PDPConfigurationLoaderTests {
         val pdpJson = """
                 {
                   "algorithm": "PERMIT_UNLESS_DENY",
+                  "configurationId": "innsmouth-v1",
                   "variables": {
                     "cultName": "Esoteric Order of Dagon",
                     "memberCount": 42,
@@ -67,24 +70,23 @@ class PDPConfigurationLoaderTests {
                 """;
         Files.writeString(tempDir.resolve("pdp.json"), pdpJson);
 
-        val config = PDPConfigurationLoader.loadFromDirectory(tempDir, "innsmouth-pdp", "v1.0");
+        val config = PDPConfigurationLoader.loadFromDirectory(tempDir, "innsmouth-pdp");
 
         assertThat(config.combiningAlgorithm()).isEqualTo(CombiningAlgorithm.PERMIT_UNLESS_DENY);
-        assertThat(config.variables()).containsEntry("cultName", Value.of("Esoteric Order of Dagon"));
-        assertThat(config.variables()).containsEntry("memberCount", Value.of(42));
-        assertThat(config.variables()).containsEntry("isActive", Value.TRUE);
+        assertThat(config.configurationId()).isEqualTo("innsmouth-v1");
+        assertThat(config.variables()).containsEntry("cultName", Value.of("Esoteric Order of Dagon"))
+                .containsEntry("memberCount", Value.of(42)).containsEntry("isActive", Value.TRUE);
     }
 
     @ParameterizedTest
     @MethodSource("algorithmCases")
     void whenLoadingWithDifferentAlgorithms_thenParsesCorrectly(String algorithmJson, CombiningAlgorithm expected)
             throws IOException {
-        val pdpJson = """
+        Files.writeString(tempDir.resolve("pdp.json"), """
                 {"algorithm": "%s"}
-                """.formatted(algorithmJson);
-        Files.writeString(tempDir.resolve("pdp.json"), pdpJson);
+                """.formatted(algorithmJson));
 
-        val config = PDPConfigurationLoader.loadFromDirectory(tempDir, "test-pdp", "test-config");
+        val config = PDPConfigurationLoader.loadFromDirectory(tempDir, "test-pdp");
 
         assertThat(config.combiningAlgorithm()).isEqualTo(expected);
     }
@@ -105,24 +107,19 @@ class PDPConfigurationLoaderTests {
 
     @Test
     void whenLoadingWithSaplFiles_thenLoadsAllDocuments() throws IOException {
-        val policy1 = """
+        Files.writeString(tempDir.resolve("access.sapl"), """
                 policy "grant access to deep ones"
-                permit
-                    subject.species == "deep_one"
-                """;
-        val policy2 = """
+                permit subject.species == "deep_one"
+                """);
+        Files.writeString(tempDir.resolve("deny.sapl"), """
                 policy "deny outsiders"
-                deny
-                    subject.origin != "innsmouth"
-                """;
-        Files.writeString(tempDir.resolve("access.sapl"), policy1);
-        Files.writeString(tempDir.resolve("deny.sapl"), policy2);
+                deny subject.origin != "innsmouth"
+                """);
 
-        val config = PDPConfigurationLoader.loadFromDirectory(tempDir, "test-pdp", "test-config");
+        val config = PDPConfigurationLoader.loadFromDirectory(tempDir, "test-pdp");
 
-        assertThat(config.saplDocuments()).hasSize(2);
-        assertThat(config.saplDocuments()).anyMatch(doc -> doc.contains("grant access to deep ones"));
-        assertThat(config.saplDocuments()).anyMatch(doc -> doc.contains("deny outsiders"));
+        assertThat(config.saplDocuments()).hasSize(2).anyMatch(doc -> doc.contains("grant access to deep ones"))
+                .anyMatch(doc -> doc.contains("deny outsiders"));
     }
 
     @Test
@@ -132,15 +129,14 @@ class PDPConfigurationLoaderTests {
         Files.writeString(tempDir.resolve("config.json"), "{}");
         Files.writeString(tempDir.resolve("pdp.json"), "{}");
 
-        val config = PDPConfigurationLoader.loadFromDirectory(tempDir, "test-pdp", "test-config");
+        val config = PDPConfigurationLoader.loadFromDirectory(tempDir, "test-pdp");
 
-        assertThat(config.saplDocuments()).hasSize(1);
-        assertThat(config.saplDocuments().getFirst()).contains("valid");
+        assertThat(config.saplDocuments()).hasSize(1).first().asString().contains("valid");
     }
 
     @Test
     void whenLoadingWithNestedVariables_thenParsesCorrectly() throws IOException {
-        val pdpJson = """
+        Files.writeString(tempDir.resolve("pdp.json"), """
                 {
                   "variables": {
                     "shrine": {
@@ -150,21 +146,19 @@ class PDPConfigurationLoaderTests {
                     }
                   }
                 }
-                """;
-        Files.writeString(tempDir.resolve("pdp.json"), pdpJson);
+                """);
 
-        val config = PDPConfigurationLoader.loadFromDirectory(tempDir, "test-pdp", "test-config");
+        val config = PDPConfigurationLoader.loadFromDirectory(tempDir, "test-pdp");
 
         assertThat(config.variables()).containsKey("shrine");
-        val shrine = config.variables().get("shrine");
-        assertThat(shrine).isInstanceOf(ObjectValue.class);
+        assertThat(config.variables().get("shrine")).isInstanceOf(ObjectValue.class);
     }
 
     @Test
     void whenLoadingWithInvalidJson_thenThrowsException() throws IOException {
         Files.writeString(tempDir.resolve("pdp.json"), "{ invalid json }");
 
-        assertThatThrownBy(() -> PDPConfigurationLoader.loadFromDirectory(tempDir, "test-pdp", "test-config"))
+        assertThatThrownBy(() -> PDPConfigurationLoader.loadFromDirectory(tempDir, "test-pdp"))
                 .isInstanceOf(PDPConfigurationException.class).hasMessageContaining("Failed to parse pdp.json");
     }
 
@@ -172,7 +166,7 @@ class PDPConfigurationLoaderTests {
     void whenLoadingWithInvalidAlgorithm_thenThrowsException() throws IOException {
         Files.writeString(tempDir.resolve("pdp.json"), "{\"algorithm\": \"UNKNOWN_ALGORITHM\"}");
 
-        assertThatThrownBy(() -> PDPConfigurationLoader.loadFromDirectory(tempDir, "test-pdp", "test-config"))
+        assertThatThrownBy(() -> PDPConfigurationLoader.loadFromDirectory(tempDir, "test-pdp"))
                 .isInstanceOf(IllegalArgumentException.class);
     }
 
@@ -181,40 +175,94 @@ class PDPConfigurationLoaderTests {
         val pdpJsonContent = """
                 {
                   "algorithm": "ONLY_ONE_APPLICABLE",
+                  "configurationId": "ritual-v2",
                   "variables": {"ritual": "summoning"}
                 }
                 """;
         val saplDocuments  = Map.of("summon.sapl", "policy \"summon\" permit action == \"summon\"", "banish.sapl",
                 "policy \"banish\" permit action == \"banish\"");
 
-        val config = PDPConfigurationLoader.loadFromContent(pdpJsonContent, saplDocuments, "ritual-pdp", "v2");
+        val config = PDPConfigurationLoader.loadFromContent(pdpJsonContent, saplDocuments, "ritual-pdp",
+                "/policies/rituals");
 
         assertThat(config.pdpId()).isEqualTo("ritual-pdp");
-        assertThat(config.configurationId()).isEqualTo("v2");
+        assertThat(config.configurationId()).isEqualTo("ritual-v2");
         assertThat(config.combiningAlgorithm()).isEqualTo(CombiningAlgorithm.ONLY_ONE_APPLICABLE);
         assertThat(config.variables()).containsEntry("ritual", Value.of("summoning"));
         assertThat(config.saplDocuments()).hasSize(2);
     }
 
-    @Test
-    void whenLoadingFromContentWithNullPdpJson_thenUsesDefaults() {
+    @ParameterizedTest(name = "pdpJson = \"{0}\" should use defaults")
+    @NullAndEmptySource
+    @ValueSource(strings = { "   \n\t  ", "{}" })
+    void whenLoadingFromContentWithAbsentOrEmptyPdpJson_thenUsesDefaults(String pdpJson) {
         val saplDocuments = Map.of("test.sapl", "policy \"test\" permit");
 
-        val config = PDPConfigurationLoader.loadFromContent(null, saplDocuments, "test-pdp", "config-1");
+        val config = PDPConfigurationLoader.loadFromContent(pdpJson, saplDocuments, "test-pdp", "/test/policies");
 
         assertThat(config.combiningAlgorithm()).isEqualTo(CombiningAlgorithm.DENY_OVERRIDES);
         assertThat(config.variables()).isEmpty();
-        assertThat(config.saplDocuments()).hasSize(1);
+        assertThat(config.configurationId()).startsWith("res:").contains("@sha256:");
     }
 
     @Test
-    void whenLoadingFromContentWithEmptyPdpJson_thenUsesDefaults() {
-        val saplDocuments = Map.of("test.sapl", "policy \"test\" permit");
+    void whenLoadingFromContentWithOnlyAlgorithm_thenVariablesAreEmpty() {
+        val config = PDPConfigurationLoader.loadFromContent("""
+                { "algorithm": "PERMIT_OVERRIDES" }
+                """, Map.of(), "test-pdp", "/policies/test");
 
-        val config = PDPConfigurationLoader.loadFromContent("", saplDocuments, "test-pdp", "config-1");
+        assertThat(config.combiningAlgorithm()).isEqualTo(CombiningAlgorithm.PERMIT_OVERRIDES);
+        assertThat(config.variables()).isEmpty();
+        assertThat(config.configurationId()).startsWith("res:").contains("@sha256:");
+    }
+
+    @Test
+    void whenLoadingFromContentWithOnlyVariables_thenUsesDefaultAlgorithm() {
+        val config = PDPConfigurationLoader.loadFromContent("""
+                { "variables": { "realm": "arkham" } }
+                """, Map.of(), "test-pdp", "/policies/arkham");
 
         assertThat(config.combiningAlgorithm()).isEqualTo(CombiningAlgorithm.DENY_OVERRIDES);
-        assertThat(config.variables()).isEmpty();
+        assertThat(config.variables()).containsEntry("realm", Value.of("arkham"));
+    }
+
+    @Test
+    void whenLoadingFromContentWithInvalidJson_thenThrowsException() {
+        assertThatThrownBy(
+                () -> PDPConfigurationLoader.loadFromContent("not valid {{{", Map.of(), "test-pdp", "/invalid"))
+                .isInstanceOf(PDPConfigurationException.class).hasMessageContaining("Failed to parse pdp.json");
+    }
+
+    @Test
+    void whenLoadingWithSubdirectory_thenSubdirectoryIsIgnored() throws IOException {
+        Files.writeString(tempDir.resolve("root.sapl"), "policy \"root\" permit true;");
+        val subdir = tempDir.resolve("subdir");
+        Files.createDirectory(subdir);
+        Files.writeString(subdir.resolve("nested.sapl"), "policy \"nested\" deny true;");
+
+        val config = PDPConfigurationLoader.loadFromDirectory(tempDir, "test-pdp");
+
+        assertThat(config.saplDocuments()).hasSize(1).first().asString().contains("root");
+    }
+
+    @Test
+    void whenPdpJsonContainsNullAndArrayValues_thenTheyAreHandled() throws IOException {
+        Files.writeString(tempDir.resolve("pdp.json"), """
+                {
+                  "algorithm": "DENY_OVERRIDES",
+                  "variables": {
+                    "nullValue": null,
+                    "realValue": "test",
+                    "roles": ["admin", "user", "guest"],
+                    "permissions": [1, 2, 3]
+                  }
+                }
+                """);
+
+        val config = PDPConfigurationLoader.loadFromDirectory(tempDir, "test-pdp");
+
+        assertThat(config.variables()).containsKey("nullValue").containsEntry("realValue", Value.of("test"))
+                .containsKey("roles").containsKey("permissions");
     }
 
 }

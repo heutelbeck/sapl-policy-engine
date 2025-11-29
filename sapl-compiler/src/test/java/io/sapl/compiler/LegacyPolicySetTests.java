@@ -35,10 +35,12 @@ import static org.assertj.core.api.Assertions.assertThat;
  */
 class LegacyPolicySetTests {
 
-    // ========== Basic Policy Set Tests ==========
+    // ========================================================================
+    // Basic Policy Set Tests
+    // ========================================================================
 
     @Test
-    void setPermit() {
+    void when_policySetWithPermitPolicy_then_permit() {
         assertDecision("""
                 set "tests" deny-overrides
                 policy "testp" permit
@@ -46,7 +48,7 @@ class LegacyPolicySetTests {
     }
 
     @Test
-    void setDeny() {
+    void when_policySetWithDenyPolicy_then_deny() {
         assertDecision("""
                 set "tests" deny-overrides
                 policy "testp" deny
@@ -54,7 +56,7 @@ class LegacyPolicySetTests {
     }
 
     @Test
-    void setNotApplicable_viaTargetMismatch() {
+    void when_policySetWithTargetMismatch_then_notApplicable() {
         assertDecision("""
                 set "tests" deny-overrides
                 policy "testp" deny subject == "non-matching"
@@ -62,7 +64,7 @@ class LegacyPolicySetTests {
     }
 
     @Test
-    void noApplicablePolicies() {
+    void when_noApplicablePoliciesInSet_then_notApplicable() {
         assertDecision("""
                 set "tests" deny-overrides
                 for true
@@ -71,17 +73,19 @@ class LegacyPolicySetTests {
     }
 
     @Test
-    void setIndeterminate() {
+    void when_policySetWithError_then_indeterminate() {
         assertDecision("""
                 set "tests" deny-overrides
                 policy "testp" permit where "a" > 4;
                 """, Decision.INDETERMINATE);
     }
 
-    // ========== Deny-Overrides Algorithm Tests ==========
+    // ========================================================================
+    // Deny-Overrides Algorithm Tests
+    // ========================================================================
 
     @Test
-    void denyOverridesPermitAndDeny() {
+    void when_denyOverridesWithPermitAndDeny_then_deny() {
         assertDecision("""
                 set "tests" deny-overrides
                 policy "testp1" permit
@@ -90,7 +94,7 @@ class LegacyPolicySetTests {
     }
 
     @Test
-    void denyOverridesPermitAndNotApplicableAndDeny() {
+    void when_denyOverridesWithPermitNotApplicableAndDeny_then_deny() {
         assertDecision("""
                 set "tests" deny-overrides
                 policy "testp1" permit
@@ -100,7 +104,7 @@ class LegacyPolicySetTests {
     }
 
     @Test
-    void denyOverridesPermitAndIndeterminateAndDeny() {
+    void when_denyOverridesWithPermitIndeterminateAndDeny_then_deny() {
         assertDecision("""
                 set "tests" deny-overrides
                 policy "testp1" permit
@@ -109,10 +113,12 @@ class LegacyPolicySetTests {
                 """, Decision.DENY);
     }
 
-    // ========== Import Tests ==========
+    // ========================================================================
+    // Import Tests
+    // ========================================================================
 
     @Test
-    void importsDuplicatesByPolicySetIgnored() {
+    void when_duplicateImportsInPolicySet_then_ignored() {
         assertDecision("""
                 import filter.replace
                 import filter.replace
@@ -122,7 +128,7 @@ class LegacyPolicySetTests {
     }
 
     @Test
-    void importsInSetAvailableInPolicy() {
+    void when_importsInSet_then_availableInPolicy() {
         assertDecision("""
                 import simple.append
                 set "tests" deny-overrides
@@ -130,10 +136,12 @@ class LegacyPolicySetTests {
                 """, Decision.PERMIT);
     }
 
-    // ========== Variable Scoping Tests ==========
+    // ========================================================================
+    // Variable Scoping Tests
+    // ========================================================================
 
     @Test
-    void variablesOnSetLevel() {
+    void when_variablesOnSetLevel_then_availableInPolicy() {
         assertDecision("""
                 set "tests" deny-overrides
                 var var1 = true;
@@ -142,7 +150,7 @@ class LegacyPolicySetTests {
     }
 
     @Test
-    void variablesOnSetLevelError() {
+    void when_variablesOnSetLevelWithError_then_indeterminate() {
         assertDecision("""
                 set "tests" deny-overrides
                 policy "testp1" deny where var var1 = true / null; var1;
@@ -150,7 +158,7 @@ class LegacyPolicySetTests {
     }
 
     @Test
-    void variablesOverwriteInPolicy() {
+    void when_variablesOverwrittenInPolicy_then_policyVariableTakesPrecedence() {
         assertDecision("""
                 set "tests" deny-overrides
                 var var1 = true;
@@ -160,7 +168,7 @@ class LegacyPolicySetTests {
     }
 
     @Test
-    void shadowingSubjectWithNull() {
+    void when_shadowingSubjectWithNull_then_notApplicable() {
         assertDecision("""
                 set "test" deny-overrides
                 policy "test" deny where subject == null;
@@ -168,7 +176,7 @@ class LegacyPolicySetTests {
     }
 
     @Test
-    void variablesInPolicyMustNotLeakIntoNextPolicy() {
+    void when_variablesInPolicy_then_mustNotLeakIntoNextPolicy() {
         assertDecision("""
                 set "test" deny-overrides
                 var ps1 = true;
@@ -177,10 +185,12 @@ class LegacyPolicySetTests {
                 """, Decision.DENY);
     }
 
-    // ========== Additional Combining Algorithm Tests ==========
+    // ========================================================================
+    // Additional Combining Algorithm Tests
+    // ========================================================================
 
     @Test
-    void permitOverridesAlgorithm() {
+    void when_permitOverridesAlgorithm_then_permitWins() {
         assertDecision("""
                 set "test" permit-overrides
                 policy "deny policy" deny
@@ -189,7 +199,7 @@ class LegacyPolicySetTests {
     }
 
     @Test
-    void denyUnlessPermitAlgorithm() {
+    void when_denyUnlessPermitAlgorithm_then_denyByDefault() {
         assertDecision("""
                 set "test" deny-unless-permit
                 policy "not applicable" permit subject == "non-matching"
@@ -197,7 +207,7 @@ class LegacyPolicySetTests {
     }
 
     @Test
-    void permitUnlessDenyAlgorithm() {
+    void when_permitUnlessDenyAlgorithm_then_permitByDefault() {
         assertDecision("""
                 set "test" permit-unless-deny
                 policy "not applicable" deny subject == "non-matching"
@@ -205,7 +215,7 @@ class LegacyPolicySetTests {
     }
 
     @Test
-    void onlyOneApplicableAlgorithm() {
+    void when_onlyOneApplicableAlgorithmWithMultipleApplicable_then_indeterminate() {
         assertDecision("""
                 set "test" only-one-applicable
                 policy "permit policy" permit
@@ -214,7 +224,7 @@ class LegacyPolicySetTests {
     }
 
     @Test
-    void firstApplicableAlgorithm() {
+    void when_firstApplicableAlgorithm_then_firstApplicablePolicyWins() {
         assertDecision("""
                 set "test" first-applicable
                 policy "not applicable" permit subject == "non-matching"
@@ -223,10 +233,12 @@ class LegacyPolicySetTests {
                 """, Decision.PERMIT);
     }
 
-    // ========== Target Expression (for clause) Tests ==========
+    // ========================================================================
+    // Target Expression (for clause) Tests
+    // ========================================================================
 
     @Test
-    void targetExpressionTrue() {
+    void when_targetExpressionTrue_then_policySetApplies() {
         assertDecision("""
                 set "test" deny-overrides
                 for true
@@ -235,7 +247,7 @@ class LegacyPolicySetTests {
     }
 
     @Test
-    void targetExpressionFalse_viaPolicyTarget() {
+    void when_targetExpressionFalseViaPolicyTarget_then_notApplicable() {
         assertDecision("""
                 set "test" deny-overrides
                 policy "permit policy" permit subject == "non-matching"
@@ -243,7 +255,7 @@ class LegacyPolicySetTests {
     }
 
     @Test
-    void targetExpressionWithVariables() {
+    void when_targetExpressionWithVariables_then_variablesEvaluated() {
         assertDecision("""
                 set "test" deny-overrides
                 policy "permit policy" permit where var shouldApply = true; shouldApply;
@@ -251,17 +263,19 @@ class LegacyPolicySetTests {
     }
 
     @Test
-    void targetExpressionError() {
+    void when_targetExpressionWithError_then_indeterminate() {
         assertDecision("""
                 set "test" deny-overrides
                 policy "permit policy" permit where "invalid" > 5;
                 """, Decision.INDETERMINATE);
     }
 
-    // ========== Complex Policy Set Tests ==========
+    // ========================================================================
+    // Complex Policy Set Tests
+    // ========================================================================
 
     @Test
-    void multiplePoliciesWithMixedDecisions() {
+    void when_multiplePoliciesWithMixedDecisions_then_combiningAlgorithmApplied() {
         assertDecision("""
                 set "test" deny-overrides
                 policy "not applicable 1" permit subject == "non-matching"
@@ -271,7 +285,7 @@ class LegacyPolicySetTests {
     }
 
     @Test
-    void nestedConditionsInPolicies() {
+    void when_nestedConditionsInPolicies_then_allConditionsEvaluated() {
         assertDecision("""
                 set "test" deny-overrides
                 var setVar = true;
@@ -285,7 +299,7 @@ class LegacyPolicySetTests {
     }
 
     @Test
-    void policySetWithObligations() {
+    void when_policySetWithObligations_then_obligationsIncluded() {
         val result = evaluatePolicySet("""
                 set "test" deny-overrides
                 policy "permit with obligation" permit obligation { "type": "log" }
@@ -300,7 +314,7 @@ class LegacyPolicySetTests {
     }
 
     @Test
-    void policySetWithAdvice() {
+    void when_policySetWithAdvice_then_adviceIncluded() {
         val result = evaluatePolicySet("""
                 set "test" deny-overrides
                 policy "permit with advice" permit advice { "type": "info" }
@@ -315,7 +329,7 @@ class LegacyPolicySetTests {
     }
 
     @Test
-    void policySetWithTransformation() {
+    void when_policySetWithTransformation_then_resourceTransformed() {
         val result = evaluatePolicySet("""
                 set "test" deny-overrides
                 policy "permit with transform" permit transform { "modified": true }
@@ -331,7 +345,7 @@ class LegacyPolicySetTests {
     }
 
     @Test
-    void policySetWithMultipleTransformations_returnsIndeterminateOrDeny() {
+    void when_policySetWithMultipleTransformations_then_indeterminate() {
         val result = evaluatePolicySet("""
                 set "test" deny-overrides
                 policy "permit with transform 1" permit transform { "version": 1 }

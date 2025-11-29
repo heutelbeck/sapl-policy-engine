@@ -60,6 +60,9 @@ public class HttpPolicyInformationPoint {
             If the accepted media type is ```application/json```, the PIP will attempt to parse it and map
             the response body to a SAPL value. Else, the response body is returned as a text value.
 
+            Connection timeout is 10 seconds, read timeout is 30 seconds. Unresponsive endpoints will
+            result in an error value.
+
             Example:
             ```json
             {

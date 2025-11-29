@@ -21,6 +21,8 @@ import io.sapl.api.pdp.CombiningAlgorithm;
 import io.sapl.api.pdp.PDPConfiguration;
 import lombok.val;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import java.util.concurrent.CopyOnWriteArrayList;
 
@@ -34,10 +36,11 @@ class ResourcesPDPConfigurationSourceTests {
 
         val source = new ResourcesPDPConfigurationSource("/single-pdp-policies", configs::add);
 
-        assertThat(configs).hasSize(1);
-        assertThat(configs.getFirst().pdpId()).isEqualTo("default");
-        assertThat(configs.getFirst().combiningAlgorithm()).isEqualTo(CombiningAlgorithm.PERMIT_OVERRIDES);
-        assertThat(configs.getFirst().saplDocuments()).hasSize(1);
+        assertThat(configs).hasSize(1).first().satisfies(config -> {
+            assertThat(config.pdpId()).isEqualTo("default");
+            assertThat(config.combiningAlgorithm()).isEqualTo(CombiningAlgorithm.PERMIT_OVERRIDES);
+            assertThat(config.saplDocuments()).hasSize(1);
+        });
 
         source.dispose();
     }
@@ -85,46 +88,43 @@ class ResourcesPDPConfigurationSourceTests {
     }
 
     @Test
-    void whenLoadingFromEmptyResourcePath_thenCallbackIsNotInvoked() {
-        val configs = new CopyOnWriteArrayList<PDPConfiguration>();
+    void whenLoadingFromEmptyOrNonExistentPath_thenCallbackIsNotInvoked() {
+        val emptyConfigs       = new CopyOnWriteArrayList<PDPConfiguration>();
+        val nonExistentConfigs = new CopyOnWriteArrayList<PDPConfiguration>();
 
-        val source = new ResourcesPDPConfigurationSource("/empty-policies", configs::add);
+        val emptySource       = new ResourcesPDPConfigurationSource("/empty-policies", emptyConfigs::add);
+        val nonExistentSource = new ResourcesPDPConfigurationSource("/non-existent-path", nonExistentConfigs::add);
 
-        assertThat(configs).isEmpty();
+        assertThat(emptyConfigs).isEmpty();
+        assertThat(nonExistentConfigs).isEmpty();
 
-        source.dispose();
+        emptySource.dispose();
+        nonExistentSource.dispose();
     }
 
     @Test
-    void whenProvidingCustomConfigurationId_thenConfigurationsHaveCorrectId() {
-        val configs = new CopyOnWriteArrayList<PDPConfiguration>();
-
-        val source = new ResourcesPDPConfigurationSource("/single-pdp-policies", "eldritch-config", configs::add);
-
-        assertThat(configs).hasSize(1);
-        assertThat(configs.getFirst().configurationId()).isEqualTo("eldritch-config");
-
-        source.dispose();
-    }
-
-    @Test
-    void whenResourcePathHasLeadingSlash_thenNormalizationHandlesIt() {
+    void whenNoPdpJsonConfigurationId_thenAutoGeneratesResourceId() {
         val configs = new CopyOnWriteArrayList<PDPConfiguration>();
 
         val source = new ResourcesPDPConfigurationSource("/single-pdp-policies", configs::add);
 
-        assertThat(configs).isNotEmpty();
+        assertThat(configs).hasSize(1);
+        // Auto-generated format: res:<path>@sha256:<hash>
+        assertThat(configs.getFirst().configurationId()).startsWith("res:");
+        assertThat(configs.getFirst().configurationId()).contains("@sha256:");
 
         source.dispose();
     }
 
-    @Test
-    void whenResourcePathHasNoLeadingSlash_thenNormalizationHandlesIt() {
+    @ParameterizedTest(name = "path \"{0}\" should load single-pdp-policies")
+    @ValueSource(strings = { "/single-pdp-policies", "single-pdp-policies", "/single-pdp-policies/",
+            "single-pdp-policies/" })
+    void whenResourcePathHasVariousSlashFormats_thenNormalizationHandlesIt(String resourcePath) {
         val configs = new CopyOnWriteArrayList<PDPConfiguration>();
 
-        val source = new ResourcesPDPConfigurationSource("single-pdp-policies", configs::add);
+        val source = new ResourcesPDPConfigurationSource(resourcePath, configs::add);
 
-        assertThat(configs).isNotEmpty();
+        assertThat(configs).isNotEmpty().first().extracting(PDPConfiguration::pdpId).isEqualTo("default");
 
         source.dispose();
     }

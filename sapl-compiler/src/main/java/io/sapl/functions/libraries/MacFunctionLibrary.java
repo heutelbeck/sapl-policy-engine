@@ -212,10 +212,7 @@ public class MacFunctionLibrary {
             val bytes1 = hexToBytes(mac1.value());
             val bytes2 = hexToBytes(mac2.value());
 
-            if (bytes1.length != bytes2.length) {
-                return Value.FALSE;
-            }
-
+            // MessageDigest.isEqual handles different lengths in constant time
             val areEqual = MessageDigest.isEqual(bytes1, bytes2);
             return Value.of(areEqual);
         } catch (IllegalArgumentException exception) {

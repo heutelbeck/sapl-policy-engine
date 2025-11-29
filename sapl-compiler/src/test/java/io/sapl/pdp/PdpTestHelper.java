@@ -126,6 +126,7 @@ public class PdpTestHelper {
 
     /**
      * Creates a SAPL bundle (zip file) containing the given policy content.
+     * The bundle includes a pdp.json with a generated configurationId.
      *
      * @param policyContent
      * the policy document text
@@ -136,17 +137,12 @@ public class PdpTestHelper {
      * if bundle creation fails
      */
     public static byte[] createBundle(String policyContent) throws IOException {
-        val baos = new ByteArrayOutputStream();
-        try (val zos = new ZipOutputStream(baos)) {
-            zos.putNextEntry(new ZipEntry("policy.sapl"));
-            zos.write(policyContent.getBytes(StandardCharsets.UTF_8));
-            zos.closeEntry();
-        }
-        return baos.toByteArray();
+        return createBundle(new String[] { policyContent });
     }
 
     /**
      * Creates a SAPL bundle containing multiple policies.
+     * The bundle includes a pdp.json with a generated configurationId.
      *
      * @param policies
      * the policy documents
@@ -157,8 +153,33 @@ public class PdpTestHelper {
      * if bundle creation fails
      */
     public static byte[] createBundle(String... policies) throws IOException {
+        return createBundleWithConfigurationId("test-bundle-" + System.currentTimeMillis(), policies);
+    }
+
+    /**
+     * Creates a SAPL bundle with a specific configurationId.
+     *
+     * @param configurationId
+     * the configuration identifier
+     * @param policies
+     * the policy documents
+     *
+     * @return the bundle bytes
+     *
+     * @throws IOException
+     * if bundle creation fails
+     */
+    public static byte[] createBundleWithConfigurationId(String configurationId, String... policies)
+            throws IOException {
         val baos = new ByteArrayOutputStream();
         try (val zos = new ZipOutputStream(baos)) {
+            // Add pdp.json with configurationId (required for bundles)
+            val pdpJson = "{\"configurationId\":\"%s\",\"algorithm\":\"DENY_OVERRIDES\"}".formatted(configurationId);
+            zos.putNextEntry(new ZipEntry("pdp.json"));
+            zos.write(pdpJson.getBytes(StandardCharsets.UTF_8));
+            zos.closeEntry();
+
+            // Add policy files
             for (int i = 0; i < policies.length; i++) {
                 zos.putNextEntry(new ZipEntry("policy" + i + ".sapl"));
                 zos.write(policies[i].getBytes(StandardCharsets.UTF_8));

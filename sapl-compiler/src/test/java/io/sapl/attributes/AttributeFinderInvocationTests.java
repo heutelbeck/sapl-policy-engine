@@ -37,7 +37,7 @@ class AttributeFinderInvocationTests {
     private static final Map<String, Value> EMPTY_VARS         = Map.of();
 
     @Test
-    void whenConstructionOfPolicyInformationPointInvocationHasBadParametersThenThrowElseDoNotThrow() {
+    void when_constructingWithBadParameters_then_throws() {
         // Null configurationId
         assertThatThrownBy(() -> new AttributeFinderInvocation(null, "abc.def", Value.TRUE, EMPTY_ARGS, EMPTY_VARS,
                 ONE_SECOND, ONE_SECOND, FIFTY_MILLISECONDS, 20L, false)).isInstanceOf(NullPointerException.class);
@@ -80,7 +80,7 @@ class AttributeFinderInvocationTests {
     }
 
     @Test
-    void whenConstructingWithEnvironmentAttributeConstructorThenEntityIsNull() {
+    void when_constructingWithEnvironmentAttributeConstructor_then_entityIsNull() {
         val invocation = new AttributeFinderInvocation(CONFIG_ID, "abc.def", EMPTY_ARGS, EMPTY_VARS, ONE_SECOND,
                 ONE_SECOND, FIFTY_MILLISECONDS, 3L, false);
 
@@ -89,7 +89,7 @@ class AttributeFinderInvocationTests {
     }
 
     @Test
-    void whenConstructingWithEntityThenIsNotEnvironmentAttribute() {
+    void when_constructingWithEntity_then_isNotEnvironmentAttribute() {
         val invocation = new AttributeFinderInvocation(CONFIG_ID, "abc.def", Value.TRUE, EMPTY_ARGS, EMPTY_VARS,
                 ONE_SECOND, ONE_SECOND, FIFTY_MILLISECONDS, 3L, false);
 
@@ -98,7 +98,7 @@ class AttributeFinderInvocationTests {
     }
 
     @Test
-    void whenConstructingInvocationThenAllFieldsAreCorrectlySet() {
+    void when_constructingInvocation_then_allFieldsCorrectlySet() {
         val                entity    = Value.of("test-entity");
         List<Value>        arguments = List.of(Value.of(1), Value.of("arg2"));
         Map<String, Value> variables = Map.of("var1", Value.of("value1"));
@@ -122,7 +122,7 @@ class AttributeFinderInvocationTests {
     }
 
     @Test
-    void whenConstructingTwoEqualInvocationsThenEqualsAndHashCodeMatch() {
+    void when_constructingTwoEqualInvocations_then_equalsAndHashCodeMatch() {
         val invocation1 = new AttributeFinderInvocation(CONFIG_ID, "test.attr", Value.TRUE, EMPTY_ARGS, EMPTY_VARS,
                 ONE_SECOND, FIFTY_MILLISECONDS, Duration.ofMillis(100L), 3L, false);
         val invocation2 = new AttributeFinderInvocation(CONFIG_ID, "test.attr", Value.TRUE, EMPTY_ARGS, EMPTY_VARS,

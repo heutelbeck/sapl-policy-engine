@@ -38,7 +38,7 @@ import static org.junit.jupiter.params.provider.Arguments.arguments;
 class ArrayValueTests {
     @Test
     @DisplayName("Constructor with array creates immutable list")
-    void constructorWithArray() {
+    void when_constructedWithArray_then_createsImmutableList() {
         var values = new Value[] { Value.of(1), Value.of(2), Value.of(3) };
         var array  = new ArrayValue(values, false);
 
@@ -48,7 +48,7 @@ class ArrayValueTests {
     @ParameterizedTest(name = "Constructor with null {0} throws NPE")
     @MethodSource("provideNullConstructorCases")
     @DisplayName("Constructor with null arguments throws NullPointerException")
-    void constructorNullThrows(String description, Runnable constructor) {
+    void when_constructedWithNull_then_throwsNullPointerException(String description, Runnable constructor) {
         assertThatThrownBy(constructor::run).isInstanceOf(NullPointerException.class);
     }
 
@@ -58,7 +58,7 @@ class ArrayValueTests {
 
         @Test
         @DisplayName("Empty builder returns EMPTY_ARRAY singleton")
-        void emptyBuilderReturnsSingleton() {
+        void when_emptyBuilder_then_returnsEmptyArraySingleton() {
             var result = ArrayValue.builder().build();
 
             assertThat(result).isSameAs(Value.EMPTY_ARRAY);
@@ -66,7 +66,7 @@ class ArrayValueTests {
 
         @Test
         @DisplayName("Empty secret builder creates new instance")
-        void emptySecretBuilderCreatesNewInstance() {
+        void when_emptySecretBuilder_then_createsNewInstance() {
             var result = ArrayValue.builder().secret().build();
 
             assertThat(result).isNotSameAs(Value.EMPTY_ARRAY).isEmpty();
@@ -76,7 +76,7 @@ class ArrayValueTests {
         @ParameterizedTest(name = "Builder {0}")
         @MethodSource("io.sapl.api.model.ArrayValueTests#provideBuilderCases")
         @DisplayName("Builder methods chain fluently")
-        void builderMethodsChain(String description, Iterable<Value> expected) {
+        void when_builderMethodsCalled_then_chainFluently(String description, Iterable<Value> expected) {
             ArrayValue result;
 
             switch (description) {
@@ -94,7 +94,7 @@ class ArrayValueTests {
 
         @Test
         @DisplayName("Builder secret() marks array as secret")
-        void builderSecretMarksAsSecret() {
+        void when_builderSecretCalled_then_marksArrayAsSecret() {
             var result = ArrayValue.builder().add(Value.of(1)).secret().build();
 
             assertThat(result.secret()).isTrue();
@@ -102,7 +102,7 @@ class ArrayValueTests {
 
         @Test
         @DisplayName("Builder cannot be reused after build()")
-        void builderCannotBeReused() {
+        void when_builderReused_then_throwsIllegalStateException() {
             var builder = ArrayValue.builder();
             var first   = builder.add(Value.of(1)).build();
 
@@ -114,7 +114,7 @@ class ArrayValueTests {
 
         @Test
         @DisplayName("Builder throws on add after build()")
-        void builderThrowsOnAddAfterBuild() {
+        void when_addCalledAfterBuild_then_throwsIllegalStateException() {
             var builder = ArrayValue.builder().add(Value.of("Necronomicon"));
             builder.build();
 
@@ -125,7 +125,7 @@ class ArrayValueTests {
 
         @Test
         @DisplayName("Builder throws on addAll(varargs) after build()")
-        void builderThrowsOnAddAllVarargsAfterBuild() {
+        void when_addAllVarargsCalledAfterBuild_then_throwsIllegalStateException() {
             var builder = ArrayValue.builder().add(Value.of("Cthulhu"));
             builder.build();
 
@@ -137,7 +137,7 @@ class ArrayValueTests {
 
         @Test
         @DisplayName("Builder throws on addAll(collection) after build()")
-        void builderThrowsOnAddAllCollectionAfterBuild() {
+        void when_addAllCollectionCalledAfterBuild_then_throwsIllegalStateException() {
             var builder = ArrayValue.builder().add(Value.of("R'lyeh"));
             builder.build();
 
@@ -148,7 +148,7 @@ class ArrayValueTests {
 
         @Test
         @DisplayName("Builder throws on secret after build()")
-        void builderThrowsOnSecretAfterBuild() {
+        void when_secretCalledAfterBuild_then_throwsIllegalStateException() {
             var builder = ArrayValue.builder().add(Value.of("forbidden knowledge"));
             builder.build();
 
@@ -158,7 +158,7 @@ class ArrayValueTests {
 
         @Test
         @DisplayName("Builder throws on multiple build() calls")
-        void builderThrowsOnMultipleBuildCalls() {
+        void when_buildCalledMultipleTimes_then_throwsIllegalStateException() {
             var builder = ArrayValue.builder().add(Value.of("elder sign"));
             builder.build();
 
@@ -168,7 +168,7 @@ class ArrayValueTests {
 
         @Test
         @DisplayName("Builder secret() before add() marks subsequent elements as secret")
-        void secretBeforeAddMarksElementsSecret() {
+        void when_secretCalledBeforeAdd_then_marksElementsAsSecret() {
             var grimoire = ArrayValue.builder().secret().add(Value.of("Ritual of Summoning"))
                     .add(Value.of("Rites of Protection")).build();
 
@@ -183,7 +183,7 @@ class ArrayValueTests {
 
         @Test
         @DisplayName("Builder secret() after add() marks existing elements as secret")
-        void secretAfterAddMarksElementsSecret() {
+        void when_secretCalledAfterAdd_then_marksExistingElementsAsSecret() {
             var cultists = ArrayValue.builder().add(Value.of("Wilbur Whateley")).add(Value.of("Lavinia Whateley"))
                     .secret().build();
 
@@ -198,7 +198,7 @@ class ArrayValueTests {
 
         @Test
         @DisplayName("Builder addAll(varargs) with secret builder marks all elements as secret")
-        void addAllVarargsWithSecretBuilderMarksSecret() {
+        void when_addAllVarargsWithSecretBuilder_then_marksAllElementsAsSecret() {
             var elderSigns = ArrayValue.builder().secret()
                     .addAll(Value.of("Pentagram"), Value.of("Eye"), Value.of("Star")).build();
 
@@ -211,7 +211,7 @@ class ArrayValueTests {
 
         @Test
         @DisplayName("Builder addAll(collection) then secret() marks all elements as secret")
-        void addAllCollectionThenSecretMarksSecret() {
+        void when_addAllCollectionThenSecret_then_marksAllElementsAsSecret() {
             var tomes   = List.of(Value.of("Necronomicon"), Value.of("Pnakotic Manuscripts"),
                     Value.of("Book of Eibon"));
             var library = ArrayValue.builder().addAll(tomes).secret().build();
@@ -225,7 +225,7 @@ class ArrayValueTests {
 
         @Test
         @DisplayName("Builder secret() is idempotent")
-        void secretIdempotency() {
+        void when_secretCalledMultipleTimes_then_isIdempotent() {
             var incantations = ArrayValue.builder().add(Value.of("Ph'nglui mglw'nafh")).secret().secret()
                     .add(Value.of("Cthulhu R'lyeh")).secret().build();
 
@@ -238,7 +238,7 @@ class ArrayValueTests {
 
         @Test
         @DisplayName("Builder mixed operations maintain secret consistency")
-        void mixedOperationsMaintainSecretConsistency() {
+        void when_mixedOperationsUsed_then_maintainsSecretConsistency() {
             var ritualItems = ArrayValue.builder().add(Value.of("candles")).secret()
                     .addAll(Value.of("incense"), Value.of("chalice")).add(Value.of("dagger")).build();
 
@@ -252,7 +252,7 @@ class ArrayValueTests {
 
         @Test
         @DisplayName("Builder with non-secret addAll preserves element states")
-        void nonSecretAddAllPreservesStates() {
+        void when_nonSecretAddAll_then_preservesElementStates() {
             var locations = List.of(Value.of("Arkham"), Value.of("Innsmouth"), Value.of("Dunwich"));
             var places    = ArrayValue.builder().addAll(locations).build();
 
@@ -270,7 +270,7 @@ class ArrayValueTests {
 
     @Test
     @DisplayName("asSecret() on non-secret creates secret copy")
-    void asSecretCreatesSecretCopy() {
+    void when_asSecretOnNonSecret_then_createsSecretCopy() {
         var original = new ArrayValue(List.of(Value.of(1)), false);
         var secret   = original.asSecret();
 
@@ -281,7 +281,7 @@ class ArrayValueTests {
 
     @Test
     @DisplayName("asSecret() on secret returns same instance")
-    void asSecretOnSecretReturnsSame() {
+    void when_asSecretOnSecret_then_returnsSameInstance() {
         var original = new ArrayValue(List.of(Value.of(1)), true);
 
         assertThat(original.asSecret()).isSameAs(original);
@@ -290,7 +290,8 @@ class ArrayValueTests {
     @ParameterizedTest(name = "{0} propagates secret flag")
     @MethodSource("provideSecretPropagationMethods")
     @DisplayName("Secret flag propagates through all access methods")
-    void secretFlagPropagates(String method, java.util.function.Function<ArrayValue, Stream<Value>> accessor) {
+    void when_accessMethodCalled_then_propagatesSecretFlag(String method,
+            java.util.function.Function<ArrayValue, Stream<Value>> accessor) {
         var secretArray = new ArrayValue(List.of(Value.of(1), Value.of(2)), true);
 
         var values = accessor.apply(secretArray).toList();
@@ -300,7 +301,7 @@ class ArrayValueTests {
 
     @Test
     @DisplayName("ErrorValue from secret array operations inherit secret flag")
-    void errorValuesInheritSecretFlag() {
+    void when_errorFromSecretArray_then_inheritsSecretFlag() {
         var secret = new ArrayValue(List.of(), true);
 
         var errorFromGet      = secret.get(0);
@@ -319,7 +320,8 @@ class ArrayValueTests {
     @ParameterizedTest(name = "{0} returns ErrorValue")
     @MethodSource("provideErrorAsValueCases")
     @DisplayName("Invalid operations return ErrorValue instead of throwing exceptions")
-    void invalidOperationsReturnError(String operation, java.util.function.Function<ArrayValue, Value> accessor) {
+    void when_invalidOperationPerformed_then_returnsErrorValue(String operation,
+            java.util.function.Function<ArrayValue, Value> accessor) {
         var array = new ArrayValue(List.of(Value.of(1)), false);
         var empty = new ArrayValue(List.of(), false);
 
@@ -337,7 +339,8 @@ class ArrayValueTests {
     @ParameterizedTest(name = "{0} throws UnsupportedOperationException")
     @MethodSource("provideMutationAttempts")
     @DisplayName("All mutation operations throw UnsupportedOperationException")
-    void allMutationOperationsThrow(String operation, java.util.function.Consumer<ArrayValue> mutator) {
+    void when_mutationAttempted_then_throwsUnsupportedOperationException(String operation,
+            java.util.function.Consumer<ArrayValue> mutator) {
         var array = new ArrayValue(List.of(Value.of(1), Value.of(2)), false);
 
         assertThatThrownBy(() -> mutator.accept(array)).isInstanceOf(UnsupportedOperationException.class);
@@ -349,7 +352,7 @@ class ArrayValueTests {
 
     @Test
     @DisplayName("List interface methods work correctly")
-    void listInterfaceMethodsWork() {
+    void when_listInterfaceMethodsCalled_then_workCorrectly() {
         var array = new ArrayValue(List.of(Value.of(1), Value.of(2), Value.of(3)), false);
 
         assertThat(array).isNotEmpty().hasSize(3).contains(Value.of(2));
@@ -358,7 +361,7 @@ class ArrayValueTests {
 
     @Test
     @DisplayName("subList propagates secret flag")
-    void subListPropagatesSecretFlag() {
+    void when_subListCalled_then_propagatesSecretFlag() {
         var secret = new ArrayValue(List.of(Value.of(1), Value.of(2), Value.of(3)), true);
 
         var subList = secret.subList(1, 3);
@@ -370,7 +373,7 @@ class ArrayValueTests {
 
     @Test
     @DisplayName("Iterators work correctly with secret propagation")
-    void iteratorsWorkWithSecretPropagation() {
+    void when_iteratorsUsed_then_propagateSecretFlag() {
         var secret = new ArrayValue(List.of(Value.of(1), Value.of(2)), true);
 
         // Test iterator
@@ -395,7 +398,7 @@ class ArrayValueTests {
 
     @Test
     @DisplayName("equals() compares by List equality")
-    void equalsComparesByListEquality() {
+    void when_equalsCalled_then_comparesByListEquality() {
         var array1    = new ArrayValue(List.of(Value.of(1), Value.of(2)), false);
         var array2    = new ArrayValue(List.of(Value.of(1), Value.of(2)), true);
         var array3    = new ArrayValue(List.of(Value.of(1), Value.of(3)), false);
@@ -407,7 +410,7 @@ class ArrayValueTests {
     @ParameterizedTest(name = "{2}")
     @MethodSource("provideToStringCases")
     @DisplayName("toString() formats appropriately")
-    void toStringFormatting(ArrayValue array, String expected, String description) {
+    void when_toStringCalled_then_formatsAppropriately(ArrayValue array, String expected, String description) {
         var result = array.toString();
 
         if (array.secret()) {

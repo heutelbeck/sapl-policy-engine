@@ -23,7 +23,6 @@ import io.sapl.api.attributes.AttributeRepository.TimeOutStrategy;
 import io.sapl.api.attributes.AttributeStorage;
 import io.sapl.api.attributes.PersistedAttribute;
 import io.sapl.api.model.Value;
-import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import org.awaitility.Awaitility;
 import org.junit.jupiter.api.BeforeEach;
@@ -63,7 +62,6 @@ import static org.junit.jupiter.params.provider.Arguments.arguments;
  * City and the balance between Law and
  * Chaos.
  */
-@Slf4j
 @Timeout(30)
 class InMemoryAttributeRepositoryTests {
 
@@ -369,7 +367,6 @@ class InMemoryAttributeRepositoryTests {
             try {
                 val sorcerer = Value.of("sorcerer-" + i);
                 val power    = Value.of(50 + i);
-                log.error("-> {}", sorcerer);
                 repository.publishAttribute(sorcerer, SORCERY_LEVEL, power).block();
             } catch (Exception e) {
                 errors.add(e);
@@ -377,11 +374,9 @@ class InMemoryAttributeRepositoryTests {
                 latch.countDown();
             }
         })).toList();
-        log.error("*****");
         threads.forEach(Thread::start);
         assertThat(latch.await(5, TimeUnit.SECONDS)).isTrue();
         assertThat(errors).isEmpty();
-        log.error("<<<<<<");
 
         for (var i = 0; i < threadCount; i++) {
             val sorcerer   = Value.of("sorcerer-" + i);

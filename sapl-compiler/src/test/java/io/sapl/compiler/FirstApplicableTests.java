@@ -41,11 +41,11 @@ class FirstApplicableTests {
 
     @ParameterizedTest(name = "{0}")
     @MethodSource
-    void firstApplicableDecisionTests(String description, String policySet, Decision expectedDecision) {
+    void when_decisionEvaluated_then_matchesExpected(String description, String policySet, Decision expectedDecision) {
         assertDecision(policySet, expectedDecision);
     }
 
-    private static Stream<Arguments> firstApplicableDecisionTests() {
+    private static Stream<Arguments> when_decisionEvaluated_then_matchesExpected() {
         return Stream.of(arguments("Empty policy set returns NOT_APPLICABLE", """
                 set "empty" first-applicable
                 policy "never matches" permit where false;
@@ -192,13 +192,13 @@ class FirstApplicableTests {
 
     @ParameterizedTest(name = "{0}")
     @MethodSource
-    void firstApplicableSubscriptionTests(String description, AuthorizationSubscription subscription, String policySet,
-            Decision expectedDecision) {
+    void when_subscriptionUsed_then_matchesExpected(String description, AuthorizationSubscription subscription,
+            String policySet, Decision expectedDecision) {
         val result = evaluatePolicySet(policySet, subscription);
         assertDecision(result, expectedDecision);
     }
 
-    private static Stream<Arguments> firstApplicableSubscriptionTests() {
+    private static Stream<Arguments> when_subscriptionUsed_then_matchesExpected() {
         return Stream
                 .of(arguments("Target expression with object field access",
                         new AuthorizationSubscription(ObjectValue.builder().put("name", Value.of("Alice")).build(),
@@ -240,7 +240,7 @@ class FirstApplicableTests {
 
     @ParameterizedTest(name = "{0}")
     @MethodSource
-    void firstApplicableObligationTests(String description, String policySet) {
+    void when_obligationIncluded_then_presentInResult(String description, String policySet) {
         val result = evaluatePolicySet(policySet);
         assertDecision(result, Decision.PERMIT);
         val obj         = (ObjectValue) result;
@@ -249,7 +249,7 @@ class FirstApplicableTests {
         assertThat(obligations.get(0)).isEqualTo(Value.of("log_access"));
     }
 
-    private static Stream<Arguments> firstApplicableObligationTests() {
+    private static Stream<Arguments> when_obligationIncluded_then_presentInResult() {
         return Stream.of(arguments("Obligation included in result", """
                 set "test" first-applicable
                 policy "with obligation" permit obligation "log_access"
@@ -258,7 +258,7 @@ class FirstApplicableTests {
 
     @ParameterizedTest(name = "{0}")
     @MethodSource
-    void firstApplicableTransformationTests(String description, String policySet) {
+    void when_transformationApplied_then_resourceModified(String description, String policySet) {
         val result = evaluatePolicySet(policySet);
         assertDecision(result, Decision.PERMIT);
         val obj      = (ObjectValue) result;
@@ -266,7 +266,7 @@ class FirstApplicableTests {
         assertThat(resource).isEqualTo(Value.of("transformed_value"));
     }
 
-    private static Stream<Arguments> firstApplicableTransformationTests() {
+    private static Stream<Arguments> when_transformationApplied_then_resourceModified() {
         return Stream.of(arguments("Transformation applied to resource", """
                 set "test" first-applicable
                 policy "with transformation" permit transform "transformed_value"
@@ -275,7 +275,7 @@ class FirstApplicableTests {
 
     @ParameterizedTest(name = "{0}")
     @MethodSource
-    void firstApplicableTransformationExpressionTests(String description, String policySet) {
+    void when_transformationExpressionUsed_then_evaluatedCorrectly(String description, String policySet) {
         val result   = evaluatePolicySet(policySet);
         val obj      = (ObjectValue) result;
         val resource = (ObjectValue) obj.get("resource");
@@ -283,7 +283,7 @@ class FirstApplicableTests {
         assertThat(resource.get("squared")).isEqualTo(Value.of(1764));
     }
 
-    private static Stream<Arguments> firstApplicableTransformationExpressionTests() {
+    private static Stream<Arguments> when_transformationExpressionUsed_then_evaluatedCorrectly() {
         return Stream.of(arguments("Transformation expression evaluated", """
                 set "test" first-applicable
                 policy "transformation with expression" permit transform { "value": 42, "squared": 42 * 42 }
@@ -292,11 +292,12 @@ class FirstApplicableTests {
 
     @ParameterizedTest(name = "{0}")
     @MethodSource
-    void firstApplicableLargeSetTests(String description, String policySet, Decision expectedDecision) {
+    void when_largePolicySetUsed_then_evaluatedCorrectly(String description, String policySet,
+            Decision expectedDecision) {
         assertDecision(policySet, expectedDecision);
     }
 
-    private static Stream<Arguments> firstApplicableLargeSetTests() {
+    private static Stream<Arguments> when_largePolicySetUsed_then_evaluatedCorrectly() {
         val policies1 = new StringBuilder();
         for (int i = 1; i <= 100; i++) {
             policies1.append(String.format("""

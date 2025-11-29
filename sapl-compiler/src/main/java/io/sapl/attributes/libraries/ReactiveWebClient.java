@@ -23,6 +23,8 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.TextNode;
+import io.netty.channel.ChannelOption;
+import io.netty.handler.timeout.ReadTimeoutHandler;
 import io.sapl.api.model.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.core.ParameterizedTypeReference;
@@ -30,6 +32,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.MediaType;
+import org.springframework.http.client.reactive.ReactorClientHttpConnector;
 import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.reactive.function.client.WebClient.RequestHeadersSpec;
@@ -42,6 +45,7 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.publisher.Sinks;
 import reactor.core.publisher.Sinks.Many;
+import reactor.netty.http.client.HttpClient;
 import reactor.retry.Repeat;
 
 import java.net.URI;
@@ -49,8 +53,18 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
+/**
+ * Reactive HTTP and WebSocket client for policy information point attribute
+ * retrieval.
+ * <p>
+ * Security: Connection and read timeouts are enforced to prevent resource
+ * exhaustion from slow or unresponsive servers. The AttributeBroker provides
+ * an additional timeout layer, but this client ensures TCP connections are
+ * properly closed when timeouts occur.
+ */
 @RequiredArgsConstructor
 public class ReactiveWebClient {
 
@@ -66,6 +80,9 @@ public class ReactiveWebClient {
     public static final String CONTENT_MEDIATYPE                           = "contentType";
     static final long          DEFAULT_POLLING_INTERVALL_MS                = 1000L;
     static final long          DEFAULT_REPETITIONS                         = Long.MAX_VALUE;
+
+    private static final int CONNECTION_TIMEOUT_SECONDS = 10;
+    private static final int READ_TIMEOUT_SECONDS       = 30;
 
     private static final JsonNodeFactory JSON             = JsonNodeFactory.instance;
     private static final TextNode        APPLICATION_JSON = JSON.textNode(MediaType.APPLICATION_JSON.toString());
@@ -99,7 +116,13 @@ public class ReactiveWebClient {
         final var body               = getFieldAsJsonNodeOrDefault(requestSettings, BODY, null);
 
         // @formatter:off
+        final var httpClient = HttpClient.create()
+                .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, CONNECTION_TIMEOUT_SECONDS * 1000)
+                .doOnConnected(conn -> conn
+                        .addHandlerLast(new ReadTimeoutHandler(READ_TIMEOUT_SECONDS, TimeUnit.SECONDS)));
+
         final var spec = WebClient.builder()
+                            .clientConnector(new ReactorClientHttpConnector(httpClient))
                             .baseUrl(baseUrl).build()
                             .method(method)
                             .uri(u -> setUrlParams(u, urlParameters).path(path).build())

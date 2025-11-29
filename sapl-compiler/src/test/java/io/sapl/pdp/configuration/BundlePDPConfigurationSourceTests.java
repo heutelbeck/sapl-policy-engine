@@ -19,8 +19,12 @@ package io.sapl.pdp.configuration;
 
 import io.sapl.api.pdp.CombiningAlgorithm;
 import io.sapl.api.pdp.PDPConfiguration;
+import io.sapl.pdp.configuration.bundle.BundleBuilder;
+import io.sapl.pdp.configuration.bundle.BundleSecurityPolicy;
+import io.sapl.pdp.configuration.bundle.BundleSignatureException;
 import lombok.val;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -29,6 +33,9 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.security.KeyPair;
+import java.security.KeyPairGenerator;
+import java.security.NoSuchAlgorithmException;
 import java.time.Duration;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.zip.ZipEntry;
@@ -40,10 +47,25 @@ import static org.awaitility.Awaitility.await;
 
 class BundlePDPConfigurationSourceTests {
 
+    private static KeyPair              elderKeyPair;
+    private static BundleSecurityPolicy developmentPolicy;
+    private static BundleSecurityPolicy signedPolicy;
+
     @TempDir
     Path tempDir;
 
     private BundlePDPConfigurationSource source;
+
+    @BeforeAll
+    static void setupSecurityPolicies() throws NoSuchAlgorithmException {
+        val generator = KeyPairGenerator.getInstance("Ed25519");
+        elderKeyPair = generator.generateKeyPair();
+
+        developmentPolicy = BundleSecurityPolicy.builder().disableSignatureVerification().acceptUnsignedBundleRisks()
+                .build();
+
+        signedPolicy = BundleSecurityPolicy.requireSignature(elderKeyPair.getPublic());
+    }
 
     @AfterEach
     void tearDown() {
@@ -55,12 +77,12 @@ class BundlePDPConfigurationSourceTests {
     @Test
     void whenLoadingSingleBundle_thenCallbackIsInvokedWithDerivedPdpId() throws IOException {
         createBundle(tempDir.resolve("necronomicon.saplbundle"), """
-                { "algorithm": "PERMIT_OVERRIDES" }
+                { "algorithm": "PERMIT_OVERRIDES", "configurationId": "necronomicon-v1" }
                 """, "forbidden.sapl", "policy \"forbidden\" deny true;");
 
         val configs = new CopyOnWriteArrayList<PDPConfiguration>();
 
-        source = new BundlePDPConfigurationSource(tempDir, configs::add);
+        source = new BundlePDPConfigurationSource(tempDir, developmentPolicy, configs::add);
 
         assertThat(configs).hasSize(1);
         assertThat(configs.getFirst().pdpId()).isEqualTo("necronomicon");
@@ -71,16 +93,16 @@ class BundlePDPConfigurationSourceTests {
     @Test
     void whenLoadingMultipleBundles_thenCallbackIsInvokedForEach() throws IOException {
         createBundle(tempDir.resolve("rlyeh.saplbundle"), """
-                { "algorithm": "DENY_OVERRIDES" }
+                { "algorithm": "DENY_OVERRIDES", "configurationId": "rlyeh-v1" }
                 """, "cthulhu.sapl", "policy \"cthulhu\" deny true;");
 
         createBundle(tempDir.resolve("yuggoth.saplbundle"), """
-                { "algorithm": "PERMIT_UNLESS_DENY" }
+                { "algorithm": "PERMIT_UNLESS_DENY", "configurationId": "yuggoth-v1" }
                 """, "migo.sapl", "policy \"migo\" permit true;");
 
         val configs = new CopyOnWriteArrayList<PDPConfiguration>();
 
-        source = new BundlePDPConfigurationSource(tempDir, configs::add);
+        source = new BundlePDPConfigurationSource(tempDir, developmentPolicy, configs::add);
 
         assertThat(configs).hasSize(2);
 
@@ -98,7 +120,7 @@ class BundlePDPConfigurationSourceTests {
     void whenDirectoryDoesNotExist_thenThrowsException() {
         val nonExistentPath = tempDir.resolve("non-existent");
 
-        assertThatThrownBy(() -> new BundlePDPConfigurationSource(nonExistentPath, config -> {}))
+        assertThatThrownBy(() -> new BundlePDPConfigurationSource(nonExistentPath, developmentPolicy, config -> {}))
                 .isInstanceOf(PDPConfigurationException.class).hasMessageContaining("does not exist");
     }
 
@@ -107,7 +129,7 @@ class BundlePDPConfigurationSourceTests {
         val file = tempDir.resolve("not-a-directory.txt");
         Files.writeString(file, "content");
 
-        assertThatThrownBy(() -> new BundlePDPConfigurationSource(file, config -> {}))
+        assertThatThrownBy(() -> new BundlePDPConfigurationSource(file, developmentPolicy, config -> {}))
                 .isInstanceOf(PDPConfigurationException.class).hasMessageContaining("not a directory");
     }
 
@@ -115,50 +137,53 @@ class BundlePDPConfigurationSourceTests {
     void whenEmptyDirectory_thenCallbackIsNotInvoked() {
         val configs = new CopyOnWriteArrayList<PDPConfiguration>();
 
-        source = new BundlePDPConfigurationSource(tempDir, configs::add);
+        source = new BundlePDPConfigurationSource(tempDir, developmentPolicy, configs::add);
 
         assertThat(configs).isEmpty();
     }
 
     @Test
-    void whenProvidingCustomConfigurationId_thenConfigurationIdIsSet() throws IOException {
-        createBundle(tempDir.resolve("arkham.saplbundle"), null, "policy.sapl", "policy \"test\" permit true;");
+    void whenBundleHasExplicitConfigurationId_thenConfigurationIdIsUsed() throws IOException {
+        createBundle(tempDir.resolve("arkham.saplbundle"), """
+                { "algorithm": "DENY_OVERRIDES", "configurationId": "eldritch-bundle-v1" }
+                """, "policy.sapl", "policy \"test\" permit true;");
 
         val configs = new CopyOnWriteArrayList<PDPConfiguration>();
 
-        source = new BundlePDPConfigurationSource(tempDir, "eldritch-bundle-v1", configs::add);
+        source = new BundlePDPConfigurationSource(tempDir, developmentPolicy, configs::add);
 
         assertThat(configs).hasSize(1);
         assertThat(configs.getFirst().configurationId()).isEqualTo("eldritch-bundle-v1");
     }
 
     @Test
-    void whenNoPdpJsonInBundle_thenUsesDefaultAlgorithm() throws IOException {
-        createBundle(tempDir.resolve("miskatonic.saplbundle"), null, "policy.sapl", "policy \"test\" permit true;");
+    void whenNoPdpJsonInBundle_thenBundleIsSkipped() throws IOException {
+        createBundleWithoutPdpJson(tempDir.resolve("miskatonic.saplbundle"), "policy.sapl",
+                "policy \"test\" permit true;");
 
         val configs = new CopyOnWriteArrayList<PDPConfiguration>();
 
-        source = new BundlePDPConfigurationSource(tempDir, configs::add);
+        source = new BundlePDPConfigurationSource(tempDir, developmentPolicy, configs::add);
 
-        assertThat(configs).hasSize(1);
-        assertThat(configs.getFirst().combiningAlgorithm()).isEqualTo(CombiningAlgorithm.DENY_OVERRIDES);
+        // Bundles without pdp.json are now skipped (they're invalid)
+        assertThat(configs).isEmpty();
     }
 
     @Test
     void whenBundleIsModified_thenCallbackIsInvokedAgain() throws IOException {
         createBundle(tempDir.resolve("innsmouth.saplbundle"), """
-                { "algorithm": "DENY_OVERRIDES" }
+                { "algorithm": "DENY_OVERRIDES", "configurationId": "innsmouth-v1" }
                 """, "policy.sapl", "policy \"test\" permit true;");
 
         val configs = new CopyOnWriteArrayList<PDPConfiguration>();
 
-        source = new BundlePDPConfigurationSource(tempDir, configs::add);
+        source = new BundlePDPConfigurationSource(tempDir, developmentPolicy, configs::add);
 
         assertThat(configs).hasSize(1);
         assertThat(configs.getFirst().combiningAlgorithm()).isEqualTo(CombiningAlgorithm.DENY_OVERRIDES);
 
         createBundle(tempDir.resolve("innsmouth.saplbundle"), """
-                { "algorithm": "PERMIT_OVERRIDES" }
+                { "algorithm": "PERMIT_OVERRIDES", "configurationId": "innsmouth-v2" }
                 """, "policy.sapl", "policy \"updated\" deny true;");
 
         await().atMost(Duration.ofSeconds(5)).untilAsserted(() -> {
@@ -176,7 +201,7 @@ class BundlePDPConfigurationSourceTests {
 
         // Malicious bundles are logged but don't throw - this allows other bundles to
         // load
-        source = new BundlePDPConfigurationSource(tempDir, configs::add);
+        source = new BundlePDPConfigurationSource(tempDir, developmentPolicy, configs::add);
 
         // No valid configurations should be loaded from the malicious bundle
         assertThat(configs).isEmpty();
@@ -191,7 +216,7 @@ class BundlePDPConfigurationSourceTests {
 
         // Malicious bundles are logged but don't throw - this allows other bundles to
         // load
-        source = new BundlePDPConfigurationSource(tempDir, configs::add);
+        source = new BundlePDPConfigurationSource(tempDir, developmentPolicy, configs::add);
 
         // No valid configurations should be loaded from the malicious bundle
         assertThat(configs).isEmpty();
@@ -204,7 +229,7 @@ class BundlePDPConfigurationSourceTests {
 
         val configs = new CopyOnWriteArrayList<PDPConfiguration>();
 
-        source = new BundlePDPConfigurationSource(tempDir, configs::add);
+        source = new BundlePDPConfigurationSource(tempDir, developmentPolicy, configs::add);
 
         assertThat(configs).hasSize(1);
         assertThat(configs.getFirst().saplDocuments()).hasSize(1);
@@ -213,9 +238,11 @@ class BundlePDPConfigurationSourceTests {
 
     @Test
     void whenDisposeIsCalled_thenIsDisposedReturnsTrue() throws IOException {
-        createBundle(tempDir.resolve("disposable.saplbundle"), null, "policy.sapl", "policy \"test\" permit true;");
+        createBundle(tempDir.resolve("disposable.saplbundle"), """
+                { "algorithm": "DENY_OVERRIDES", "configurationId": "disposable-v1" }
+                """, "policy.sapl", "policy \"test\" permit true;");
 
-        source = new BundlePDPConfigurationSource(tempDir, config -> {});
+        source = new BundlePDPConfigurationSource(tempDir, developmentPolicy, config -> {});
 
         assertThat(source.isDisposed()).isFalse();
 
@@ -226,9 +253,11 @@ class BundlePDPConfigurationSourceTests {
 
     @Test
     void whenDisposeIsCalledTwice_thenIsIdempotent() throws IOException {
-        createBundle(tempDir.resolve("disposable.saplbundle"), null, "policy.sapl", "policy \"test\" permit true;");
+        createBundle(tempDir.resolve("disposable.saplbundle"), """
+                { "algorithm": "DENY_OVERRIDES", "configurationId": "disposable-v2" }
+                """, "policy.sapl", "policy \"test\" permit true;");
 
-        source = new BundlePDPConfigurationSource(tempDir, config -> {});
+        source = new BundlePDPConfigurationSource(tempDir, developmentPolicy, config -> {});
 
         source.dispose();
         source.dispose();
@@ -236,16 +265,157 @@ class BundlePDPConfigurationSourceTests {
         assertThat(source.isDisposed()).isTrue();
     }
 
+    @Test
+    void whenSymlinkDirectoryProvided_thenThrowsException() throws IOException {
+        val realDir = tempDir.resolve("real");
+        Files.createDirectory(realDir);
+
+        val linkDir = tempDir.resolve("link");
+        try {
+            Files.createSymbolicLink(linkDir, realDir);
+        } catch (IOException | UnsupportedOperationException e) {
+            // Skip test on systems that don't support symlinks
+            return;
+        }
+
+        assertThatThrownBy(() -> new BundlePDPConfigurationSource(linkDir, developmentPolicy, config -> {}))
+                .isInstanceOf(PDPConfigurationException.class).hasMessageContaining("symbolic link");
+    }
+
+    @Test
+    void whenSymlinkBundleFilePresent_thenItIsSkipped() throws IOException {
+        createBundle(tempDir.resolve("real.saplbundle"), """
+                { "algorithm": "DENY_OVERRIDES", "configurationId": "real-v1" }
+                """, "policy.sapl", "policy \"real\" permit true;");
+
+        val target = tempDir.resolve("real.saplbundle");
+        val link   = tempDir.resolve("link.saplbundle");
+        try {
+            Files.createSymbolicLink(link, target);
+        } catch (IOException | UnsupportedOperationException e) {
+            // Skip test on systems that don't support symlinks
+            return;
+        }
+
+        val configs = new CopyOnWriteArrayList<PDPConfiguration>();
+
+        source = new BundlePDPConfigurationSource(tempDir, developmentPolicy, configs::add);
+
+        // Only the real bundle should be loaded, symlink should be skipped
+        assertThat(configs).hasSize(1);
+        assertThat(configs.getFirst().pdpId()).isEqualTo("real");
+    }
+
+    @Test
+    void whenNewBundleIsAdded_thenCallbackIsInvoked() throws IOException {
+        createBundle(tempDir.resolve("initial.saplbundle"), """
+                { "algorithm": "DENY_OVERRIDES", "configurationId": "initial-v1" }
+                """, "policy.sapl", "policy \"initial\" permit true;");
+
+        val configs = new CopyOnWriteArrayList<PDPConfiguration>();
+
+        source = new BundlePDPConfigurationSource(tempDir, developmentPolicy, configs::add);
+
+        assertThat(configs).hasSize(1);
+
+        createBundle(tempDir.resolve("added.saplbundle"), """
+                { "algorithm": "PERMIT_OVERRIDES", "configurationId": "added-v1" }
+                """, "policy.sapl", "policy \"added\" deny true;");
+
+        await().atMost(Duration.ofSeconds(5)).untilAsserted(() -> {
+            assertThat(configs).hasSizeGreaterThanOrEqualTo(2);
+            val pdpIds = configs.stream().map(PDPConfiguration::pdpId).toList();
+            assertThat(pdpIds).contains("added");
+        });
+    }
+
+    @Test
+    void whenBundleIsDeleted_thenNoExceptionIsThrown() throws IOException {
+        val bundlePath = tempDir.resolve("deletable.saplbundle");
+        createBundle(bundlePath, """
+                { "algorithm": "DENY_OVERRIDES", "configurationId": "deletable-v1" }
+                """, "policy.sapl", "policy \"deletable\" permit true;");
+
+        val configs = new CopyOnWriteArrayList<PDPConfiguration>();
+
+        source = new BundlePDPConfigurationSource(tempDir, developmentPolicy, configs::add);
+
+        assertThat(configs).hasSize(1);
+
+        Files.delete(bundlePath);
+
+        // Wait and verify the source is still operational
+        await().atMost(Duration.ofSeconds(5)).pollDelay(Duration.ofMillis(600)).untilAsserted(() -> {
+            assertThat(source.isDisposed()).isFalse();
+        });
+    }
+
+    @Test
+    void whenNonBundleFilesPresent_thenTheyAreIgnored() throws IOException {
+        createBundle(tempDir.resolve("valid.saplbundle"), """
+                { "algorithm": "DENY_OVERRIDES", "configurationId": "valid-v1" }
+                """, "policy.sapl", "policy \"valid\" permit true;");
+
+        Files.writeString(tempDir.resolve("readme.txt"), "This should be ignored.");
+        Files.writeString(tempDir.resolve("config.json"), "{}");
+        Files.writeString(tempDir.resolve("bundle.zip"), "Not a real zip");
+
+        val configs = new CopyOnWriteArrayList<PDPConfiguration>();
+
+        source = new BundlePDPConfigurationSource(tempDir, developmentPolicy, configs::add);
+
+        assertThat(configs).hasSize(1);
+        assertThat(configs.getFirst().pdpId()).isEqualTo("valid");
+    }
+
+    @Test
+    void whenBundleWithVariables_thenVariablesAreLoaded() throws IOException {
+        createBundleWithVariables(tempDir.resolve("cultist.saplbundle"));
+
+        val configs = new CopyOnWriteArrayList<PDPConfiguration>();
+
+        source = new BundlePDPConfigurationSource(tempDir, developmentPolicy, configs::add);
+
+        assertThat(configs).hasSize(1);
+        assertThat(configs.getFirst().variables()).containsKey("realm");
+        assertThat(configs.getFirst().variables()).containsKey("accessLevel");
+    }
+
+    @Test
+    void whenManyBundles_thenAllAreLoaded() throws IOException {
+        for (int i = 0; i < 10; i++) {
+            createBundle(tempDir.resolve("tenant" + i + ".saplbundle"), """
+                    { "algorithm": "DENY_OVERRIDES", "configurationId": "tenant%d-v1" }
+                    """.formatted(i), "policy.sapl",
+                    "policy \"tenant%d\" permit subject.tenant == %d;".formatted(i, i));
+        }
+
+        val configs = new CopyOnWriteArrayList<PDPConfiguration>();
+
+        source = new BundlePDPConfigurationSource(tempDir, developmentPolicy, configs::add);
+
+        assertThat(configs).hasSize(10);
+    }
+
     private void createBundle(Path bundlePath, String pdpJson, String saplFileName, String saplContent)
             throws IOException {
         val baos = new ByteArrayOutputStream();
         try (val zos = new ZipOutputStream(baos)) {
-            if (pdpJson != null) {
-                zos.putNextEntry(new ZipEntry("pdp.json"));
-                zos.write(pdpJson.getBytes(StandardCharsets.UTF_8));
-                zos.closeEntry();
-            }
+            zos.putNextEntry(new ZipEntry("pdp.json"));
+            zos.write(pdpJson.getBytes(StandardCharsets.UTF_8));
+            zos.closeEntry();
 
+            zos.putNextEntry(new ZipEntry(saplFileName));
+            zos.write(saplContent.getBytes(StandardCharsets.UTF_8));
+            zos.closeEntry();
+        }
+        Files.write(bundlePath, baos.toByteArray());
+    }
+
+    private void createBundleWithoutPdpJson(Path bundlePath, String saplFileName, String saplContent)
+            throws IOException {
+        val baos = new ByteArrayOutputStream();
+        try (val zos = new ZipOutputStream(baos)) {
             zos.putNextEntry(new ZipEntry(saplFileName));
             zos.write(saplContent.getBytes(StandardCharsets.UTF_8));
             zos.closeEntry();
@@ -276,6 +446,11 @@ class BundlePDPConfigurationSourceTests {
     private void createBundleWithNestedDirectory(Path bundlePath) throws IOException {
         val baos = new ByteArrayOutputStream();
         try (val zos = new ZipOutputStream(baos)) {
+            zos.putNextEntry(new ZipEntry("pdp.json"));
+            zos.write("{\"algorithm\":\"DENY_OVERRIDES\",\"configurationId\":\"nested-v1\"}"
+                    .getBytes(StandardCharsets.UTF_8));
+            zos.closeEntry();
+
             zos.putNextEntry(new ZipEntry("root.sapl"));
             zos.write("policy \"root-policy\" permit true;".getBytes(StandardCharsets.UTF_8));
             zos.closeEntry();
@@ -285,6 +460,178 @@ class BundlePDPConfigurationSourceTests {
 
             zos.putNextEntry(new ZipEntry("subdir/nested.sapl"));
             zos.write("policy \"nested-policy\" deny true;".getBytes(StandardCharsets.UTF_8));
+            zos.closeEntry();
+        }
+        Files.write(bundlePath, baos.toByteArray());
+    }
+
+    @Test
+    void whenBundleChangesAfterDispose_thenTheyAreIgnored() throws IOException {
+        val bundlePath = tempDir.resolve("disposable.saplbundle");
+        createBundle(bundlePath, """
+                { "algorithm": "DENY_OVERRIDES", "configurationId": "disposable-v3" }
+                """, "policy.sapl", "policy \"original\" permit true;");
+
+        val configs = new CopyOnWriteArrayList<PDPConfiguration>();
+
+        source = new BundlePDPConfigurationSource(tempDir, developmentPolicy, configs::add);
+
+        assertThat(configs).hasSize(1);
+
+        source.dispose();
+
+        // Modify existing bundle and add new bundle after dispose
+        createBundle(bundlePath, """
+                { "algorithm": "PERMIT_OVERRIDES", "configurationId": "disposable-v4" }
+                """, "policy.sapl", "policy \"modified\" deny true;");
+        createBundle(tempDir.resolve("new.saplbundle"), """
+                { "algorithm": "PERMIT_OVERRIDES", "configurationId": "new-v1" }
+                """, "policy.sapl", "policy \"new\" deny true;");
+
+        // Wait - changes should be ignored
+        await().during(Duration.ofMillis(800)).atMost(Duration.ofSeconds(2)).untilAsserted(() -> {
+            assertThat(configs).hasSize(1);
+        });
+    }
+
+    @Test
+    void whenBundleHasInvalidName_thenItIsSkipped() throws IOException {
+        // Create bundle with valid name
+        createBundle(tempDir.resolve("valid.saplbundle"), """
+                { "algorithm": "DENY_OVERRIDES", "configurationId": "valid-v2" }
+                """, "policy.sapl", "policy \"valid\" permit true;");
+
+        // Create bundle with invalid name (spaces)
+        createBundle(tempDir.resolve("invalid name.saplbundle"), """
+                { "algorithm": "PERMIT_OVERRIDES", "configurationId": "invalid-v1" }
+                """, "policy.sapl", "policy \"invalid\" deny true;");
+
+        val configs = new CopyOnWriteArrayList<PDPConfiguration>();
+
+        source = new BundlePDPConfigurationSource(tempDir, developmentPolicy, configs::add);
+
+        // Only valid bundle should be loaded
+        assertThat(configs).hasSize(1);
+        assertThat(configs.getFirst().pdpId()).isEqualTo("valid");
+    }
+
+    @Test
+    void whenBundleIsCorrupt_thenItIsSkipped() throws IOException {
+        createBundle(tempDir.resolve("valid.saplbundle"), """
+                { "algorithm": "DENY_OVERRIDES", "configurationId": "valid-v3" }
+                """, "policy.sapl", "policy \"valid\" permit true;");
+
+        // Create corrupt "bundle" that's not a valid ZIP
+        Files.writeString(tempDir.resolve("corrupt.saplbundle"), "This is not a ZIP file!");
+
+        val configs = new CopyOnWriteArrayList<PDPConfiguration>();
+
+        source = new BundlePDPConfigurationSource(tempDir, developmentPolicy, configs::add);
+
+        // Only valid bundle is loaded - corrupt one is skipped because it has no
+        // pdp.json
+        assertThat(configs).hasSize(1);
+        assertThat(configs.getFirst().pdpId()).isEqualTo("valid");
+        assertThat(configs.getFirst().saplDocuments()).hasSize(1);
+    }
+
+    @Test
+    void whenSymlinkBundleAddedAfterStart_thenItIsIgnored(@TempDir Path externalDir) throws IOException {
+        createBundle(tempDir.resolve("initial.saplbundle"), """
+                { "algorithm": "DENY_OVERRIDES", "configurationId": "initial-v2" }
+                """, "policy.sapl", "policy \"initial\" permit true;");
+
+        // Create target bundle OUTSIDE the watched directory
+        val targetBundle = externalDir.resolve("target.saplbundle");
+        createBundle(targetBundle, """
+                { "algorithm": "PERMIT_OVERRIDES", "configurationId": "target-v1" }
+                """, "policy.sapl", "policy \"target\" deny true;");
+
+        val configs = new CopyOnWriteArrayList<PDPConfiguration>();
+
+        source = new BundlePDPConfigurationSource(tempDir, developmentPolicy, configs::add);
+
+        assertThat(configs).hasSize(1);
+        assertThat(configs.getFirst().pdpId()).isEqualTo("initial");
+
+        // Try to add a symlink bundle pointing to the external target
+        val link = tempDir.resolve("link.saplbundle");
+        try {
+            Files.createSymbolicLink(link, targetBundle);
+        } catch (IOException | UnsupportedOperationException e) {
+            // Skip test on systems that don't support symlinks
+            return;
+        }
+
+        // Wait for file watcher - symlink should be detected but ignored
+        await().atMost(Duration.ofSeconds(5)).pollDelay(Duration.ofMillis(600)).untilAsserted(() -> {
+            val pdpIds = configs.stream().map(PDPConfiguration::pdpId).distinct().toList();
+            assertThat(pdpIds).doesNotContain("link");
+        });
+    }
+
+    @Test
+    void whenSecurityPolicyIsNull_thenThrowsException() {
+        assertThatThrownBy(() -> new BundlePDPConfigurationSource(tempDir, null, config -> {}))
+                .isInstanceOf(NullPointerException.class).hasMessageContaining("Security policy");
+    }
+
+    @Test
+    void whenSecurityPolicyDisabledWithoutRiskAcceptance_thenThrowsException() {
+        val invalidPolicy = BundleSecurityPolicy.builder().disableSignatureVerification().build();
+
+        assertThatThrownBy(() -> new BundlePDPConfigurationSource(tempDir, invalidPolicy, config -> {}))
+                .isInstanceOf(BundleSignatureException.class).hasMessageContaining("risk acceptance");
+    }
+
+    @Test
+    void whenLoadingSignedBundleWithCorrectKey_thenSucceeds() throws IOException {
+        val signedBundle = BundleBuilder.create().withCombiningAlgorithm(CombiningAlgorithm.DENY_OVERRIDES)
+                .withPolicy("signed.sapl", "policy \"signed\" permit true")
+                .signWith(elderKeyPair.getPrivate(), "test-key").build();
+
+        Files.write(tempDir.resolve("signed.saplbundle"), signedBundle);
+
+        val configs = new CopyOnWriteArrayList<PDPConfiguration>();
+
+        source = new BundlePDPConfigurationSource(tempDir, signedPolicy, configs::add);
+
+        assertThat(configs).hasSize(1);
+        assertThat(configs.getFirst().pdpId()).isEqualTo("signed");
+    }
+
+    @Test
+    void whenLoadingUnsignedBundleWithRequiredSignature_thenBundleIsSkipped() throws IOException {
+        createBundle(tempDir.resolve("unsigned.saplbundle"), """
+                { "algorithm": "DENY_OVERRIDES", "configurationId": "unsigned-v1" }
+                """, "policy.sapl", "policy \"unsigned\" permit true;");
+
+        val configs = new CopyOnWriteArrayList<PDPConfiguration>();
+
+        source = new BundlePDPConfigurationSource(tempDir, signedPolicy, configs::add);
+
+        // Unsigned bundle should be skipped when signature is required
+        assertThat(configs).isEmpty();
+    }
+
+    private void createBundleWithVariables(Path bundlePath) throws IOException {
+        val baos = new ByteArrayOutputStream();
+        try (val zos = new ZipOutputStream(baos)) {
+            zos.putNextEntry(new ZipEntry("pdp.json"));
+            zos.write("""
+                    {
+                      "algorithm": "DENY_OVERRIDES",
+                      "configurationId": "cultist-v1",
+                      "variables": {
+                        "realm": "arkham",
+                        "accessLevel": 5
+                      }
+                    }
+                    """.getBytes(StandardCharsets.UTF_8));
+            zos.closeEntry();
+
+            zos.putNextEntry(new ZipEntry("policy.sapl"));
+            zos.write("policy \"cultist\" permit subject.realm == realm;".getBytes(StandardCharsets.UTF_8));
             zos.closeEntry();
         }
         Files.write(bundlePath, baos.toByteArray());

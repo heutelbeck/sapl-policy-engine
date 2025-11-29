@@ -28,7 +28,14 @@ import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.LinkOption;
 import java.nio.file.Path;
+import java.util.Objects;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Consumer;
+
+import io.sapl.api.pdp.PDPConfiguration;
+import io.sapl.pdp.configuration.bundle.BundleParser;
+import io.sapl.pdp.configuration.bundle.BundleSecurityPolicy;
+import io.sapl.pdp.configuration.bundle.BundleSignatureException;
 
 /**
  * PDP configuration source that loads configurations from .saplbundle files in
@@ -38,8 +45,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * Each bundle file represents a single PDP configuration. The PDP ID is derived
  * from the filename (minus the
  * .saplbundle extension). Bundle parsing is delegated to {@link BundleParser}.
- * <p>
- * Directory layout:
+ * </p>
+ * <h2>Directory Layout</h2>
  *
  * <pre>
  * /bundles/
@@ -47,8 +54,26 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * ├── staging.saplbundle        # pdpId = "staging"
  * └── development.saplbundle    # pdpId = "development"
  * </pre>
+ *
+ * <h2>Security Model</h2>
+ * <p>
+ * This source requires a {@link BundleSecurityPolicy} that determines how
+ * bundle signatures are verified. In production
+ * environments, use
+ * {@link BundleSecurityPolicy#requireSignature(java.security.PublicKey)} to
+ * enforce that all bundles
+ * are cryptographically signed.
+ * </p>
+ * <p>
+ * For development environments where signature verification needs to be
+ * disabled, a two-factor opt-out is required:
+ * both signature verification must be disabled AND the associated risks must be
+ * explicitly accepted.
+ * </p>
+ * <h2>Callback Invocation</h2>
  * <p>
  * The callback is invoked:
+ * </p>
  * <ul>
  * <li>Once per bundle during construction with initial configurations</li>
  * <li>On each bundle file change (create, modify) after debouncing</li>
@@ -56,15 +81,31 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * <p>
  * For bundle content security (ZIP bomb protection, path traversal prevention),
  * see {@link BundleParser}.
+ * </p>
  * <h2>Thread Safety</h2>
  * <p>
  * This class is thread-safe. The file monitoring thread runs independently and
  * invokes the callback directly. The
  * callback implementation must handle thread safety for its own state.
  * </p>
+ * <h2>Spring Integration</h2>
+ * <p>
+ * This class implements {@link reactor.core.Disposable} but Spring does not
+ * automatically call {@code dispose()} on
+ * Reactor's Disposable interface. When exposing as a Spring bean, explicitly
+ * specify the destroy method:
+ * </p>
+ *
+ * <pre>{@code
+ * @Bean(destroyMethod = "dispose")
+ * public BundlePDPConfigurationSource bundleSource(BundleSecurityPolicy policy) {
+ *     return new BundlePDPConfigurationSource(Path.of("/bundles"), policy,
+ *             config -> configRegister.loadConfiguration(config, false));
+ * }
+ * }</pre>
  *
  * @see BundleParser
- * @see ConfigurationUpdateCallback
+ * @see BundleSecurityPolicy
  */
 @Slf4j
 public class BundlePDPConfigurationSource implements PDPConfigurationSource {
@@ -74,41 +115,47 @@ public class BundlePDPConfigurationSource implements PDPConfigurationSource {
     private static final long POLL_INTERVAL_MS        = 500;
     private static final long MONITOR_STOP_TIMEOUT_MS = 5000;
 
-    private final Path                        directoryPath;
-    private final String                      configurationId;
-    private final ConfigurationUpdateCallback callback;
-    private final FileAlterationMonitor       monitor;
-    private final AtomicBoolean               disposed = new AtomicBoolean(false);
+    private final Path                       directoryPath;
+    private final BundleSecurityPolicy       securityPolicy;
+    private final Consumer<PDPConfiguration> callback;
+    private final FileAlterationMonitor      monitor;
+    private final AtomicBoolean              disposed = new AtomicBoolean(false);
 
     /**
      * Creates a source loading bundles from the specified directory.
+     * <p>
+     * The security policy is validated during construction. If signature
+     * verification is disabled without risk acceptance, construction will fail.
+     * </p>
+     * <p>
+     * Each bundle must contain a pdp.json file with a {@code configurationId}
+     * field.
+     * The PDP ID is derived from the bundle filename (minus the .saplbundle
+     * extension).
+     * </p>
      *
      * @param directoryPath
      * the filesystem directory containing .saplbundle files
+     * @param securityPolicy
+     * the security policy for bundle signature verification
      * @param callback
      * called when a configuration is loaded or updated
-     */
-    public BundlePDPConfigurationSource(@NonNull Path directoryPath, @NonNull ConfigurationUpdateCallback callback) {
-        this(directoryPath, "bundle-config", callback);
-    }
-
-    /**
-     * Creates a source loading bundles with a custom configuration ID.
      *
-     * @param directoryPath
-     * the filesystem directory containing .saplbundle files
-     * @param configurationId
-     * the configuration identifier for all loaded configurations
-     * @param callback
-     * called when a configuration is loaded or updated
+     * @throws NullPointerException
+     * if any parameter is null
+     * @throws BundleSignatureException
+     * if the security policy is invalid
      */
     public BundlePDPConfigurationSource(@NonNull Path directoryPath,
-            @NonNull String configurationId,
-            @NonNull ConfigurationUpdateCallback callback) {
-        this.directoryPath   = directoryPath.toAbsolutePath().normalize();
-        this.configurationId = configurationId;
-        this.callback        = callback;
-        this.monitor         = new FileAlterationMonitor(POLL_INTERVAL_MS);
+            @NonNull BundleSecurityPolicy securityPolicy,
+            @NonNull Consumer<PDPConfiguration> callback) {
+        Objects.requireNonNull(securityPolicy, "Security policy must not be null.");
+        securityPolicy.validate();
+
+        this.directoryPath  = directoryPath.toAbsolutePath().normalize();
+        this.securityPolicy = securityPolicy;
+        this.callback       = callback;
+        this.monitor        = new FileAlterationMonitor(POLL_INTERVAL_MS);
 
         log.info("Loading PDP configurations from bundle directory: '{}'.", this.directoryPath);
         validateDirectory();
@@ -173,8 +220,8 @@ public class BundlePDPConfigurationSource implements PDPConfigurationSource {
         log.debug("Loading bundle '{}' from: {}.", pdpId, bundlePath);
 
         try {
-            val config = BundleParser.parse(bundlePath, pdpId, configurationId);
-            callback.onConfigurationUpdate(config);
+            val config = BundleParser.parse(bundlePath, pdpId, securityPolicy);
+            callback.accept(config);
             log.debug("Loaded bundle '{}' with {} SAPL documents.", pdpId, config.saplDocuments().size());
         } catch (Exception e) {
             log.error("Failed to load bundle '{}': {}.", pdpId, e.getMessage(), e);

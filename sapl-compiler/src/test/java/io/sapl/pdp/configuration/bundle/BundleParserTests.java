@@ -15,15 +15,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.pdp.configuration;
+package io.sapl.pdp.configuration.bundle;
 
 import io.sapl.api.pdp.CombiningAlgorithm;
+import io.sapl.pdp.configuration.PDPConfigurationException;
 import lombok.val;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -42,18 +45,26 @@ import static org.junit.jupiter.params.provider.Arguments.arguments;
 class BundleParserTests {
 
     private static final String TEST_PDP_ID    = "cthulhu-pdp";
-    private static final String TEST_CONFIG_ID = "v1.0";
+    private static final String TEST_CONFIG_ID = "eldritch-v1";
+
+    private static BundleSecurityPolicy developmentPolicy;
 
     @TempDir
     Path tempDir;
 
+    @BeforeAll
+    static void setupSecurityPolicy() {
+        developmentPolicy = BundleSecurityPolicy.builder().disableSignatureVerification().acceptUnsignedBundleRisks()
+                .build();
+    }
+
     @Test
     void whenParsingValidBundle_thenExtractsAllContent() throws IOException {
-        val bundleBytes = createBundle("""
-                { "algorithm": "PERMIT_OVERRIDES" }
-                """, "elder-sign.sapl", "policy \"elder-sign\" permit true;");
+        val bundleBytes = createBundleWithConfigId("""
+                { "algorithm": "PERMIT_OVERRIDES", "configurationId": "%s" }
+                """.formatted(TEST_CONFIG_ID), "elder-sign.sapl", "policy \"elder-sign\" permit true;");
 
-        val config = BundleParser.parse(bundleBytes, TEST_PDP_ID, TEST_CONFIG_ID);
+        val config = BundleParser.parse(bundleBytes, TEST_PDP_ID, developmentPolicy);
 
         assertThat(config.pdpId()).isEqualTo(TEST_PDP_ID);
         assertThat(config.configurationId()).isEqualTo(TEST_CONFIG_ID);
@@ -62,20 +73,28 @@ class BundleParserTests {
     }
 
     @Test
-    void whenParsingBundleWithoutPdpJson_thenUsesDefaultAlgorithm() throws IOException {
-        val bundleBytes = createBundle(null, "cultist.sapl", "policy \"cultist\" deny true;");
+    void whenParsingBundleWithoutPdpJson_thenThrowsException() throws IOException {
+        val bundleBytes = createBundleWithoutPdpJson("cultist.sapl", "policy \"cultist\" deny true;");
 
-        val config = BundleParser.parse(bundleBytes, TEST_PDP_ID, TEST_CONFIG_ID);
+        assertThatThrownBy(() -> BundleParser.parse(bundleBytes, TEST_PDP_ID, developmentPolicy))
+                .isInstanceOf(PDPConfigurationException.class).hasMessageContaining("pdp.json");
+    }
 
-        assertThat(config.combiningAlgorithm()).isEqualTo(CombiningAlgorithm.DENY_OVERRIDES);
-        assertThat(config.saplDocuments()).hasSize(1);
+    @Test
+    void whenParsingBundleWithoutConfigurationId_thenThrowsException() throws IOException {
+        val bundleBytes = createBundleWithConfigId("""
+                { "algorithm": "DENY_OVERRIDES" }
+                """, "cultist.sapl", "policy \"cultist\" deny true;");
+
+        assertThatThrownBy(() -> BundleParser.parse(bundleBytes, TEST_PDP_ID, developmentPolicy))
+                .isInstanceOf(PDPConfigurationException.class).hasMessageContaining("configurationId");
     }
 
     @Test
     void whenParsingBundleWithMultiplePolicies_thenAllPoliciesExtracted() throws IOException {
         val bundleBytes = createBundleWithMultiplePolicies();
 
-        val config = BundleParser.parse(bundleBytes, TEST_PDP_ID, TEST_CONFIG_ID);
+        val config = BundleParser.parse(bundleBytes, TEST_PDP_ID, developmentPolicy);
 
         assertThat(config.saplDocuments()).hasSize(3);
     }
@@ -83,47 +102,27 @@ class BundleParserTests {
     @Test
     void whenParsingFromPath_thenConfigurationIsExtracted() throws IOException {
         val bundlePath = tempDir.resolve("test.saplbundle");
-        Files.write(bundlePath, createBundle("""
-                { "algorithm": "DENY_OVERRIDES" }
-                """, "shoggoth.sapl", "policy \"shoggoth\" deny true;"));
+        Files.write(bundlePath, createBundleWithConfigId("""
+                { "algorithm": "DENY_OVERRIDES", "configurationId": "%s" }
+                """.formatted(TEST_CONFIG_ID), "shoggoth.sapl", "policy \"shoggoth\" deny true;"));
 
-        val config = BundleParser.parse(bundlePath, TEST_PDP_ID, TEST_CONFIG_ID);
+        val config = BundleParser.parse(bundlePath, TEST_PDP_ID, developmentPolicy);
 
         assertThat(config.combiningAlgorithm()).isEqualTo(CombiningAlgorithm.DENY_OVERRIDES);
         assertThat(config.saplDocuments()).hasSize(1);
     }
 
-    @Test
-    void whenParsingFromInputStream_thenConfigurationIsExtracted() throws IOException {
-        val bundleBytes = createBundle(null, "dagon.sapl", "policy \"dagon\" permit true;");
+    @ParameterizedTest(name = "parse from InputStream with size known = {0}")
+    @ValueSource(booleans = { true, false })
+    void whenParsingFromInputStream_thenConfigurationIsExtracted(boolean sizeKnown) throws IOException {
+        val bundleBytes = createBundleWithConfigId("""
+                { "configurationId": "%s" }
+                """.formatted(TEST_CONFIG_ID), "dagon.sapl", "policy \"dagon\" permit true;");
         val inputStream = new ByteArrayInputStream(bundleBytes);
 
-        val config = BundleParser.parse(inputStream, TEST_PDP_ID, TEST_CONFIG_ID);
+        val config = sizeKnown ? BundleParser.parse(inputStream, bundleBytes.length, TEST_PDP_ID, developmentPolicy)
+                : BundleParser.parse(inputStream, TEST_PDP_ID, developmentPolicy);
 
-        assertThat(config.saplDocuments()).hasSize(1);
-    }
-
-    @Test
-    void whenParsingFromInputStreamWithSize_thenConfigurationIsExtracted() throws IOException {
-        val bundleBytes = createBundle(null, "nyarlathotep.sapl", "policy \"nyarlathotep\" deny true;");
-        val inputStream = new ByteArrayInputStream(bundleBytes);
-
-        val config = BundleParser.parse(inputStream, bundleBytes.length, TEST_PDP_ID, TEST_CONFIG_ID);
-
-        assertThat(config.saplDocuments()).hasSize(1);
-    }
-
-    @Test
-    void whenParsingBundleWithAlgorithm_thenAlgorithmIsApplied() throws IOException {
-        val bundleBytes = createBundle("""
-                { "algorithm": "ONLY_ONE_APPLICABLE" }
-                """, "yog-sothoth.sapl", "policy \"yog-sothoth\" permit true;");
-
-        val config = BundleParser.parse(bundleBytes, "outer-gods", "v1.0");
-
-        assertThat(config.pdpId()).isEqualTo("outer-gods");
-        assertThat(config.configurationId()).isEqualTo("v1.0");
-        assertThat(config.combiningAlgorithm()).isEqualTo(CombiningAlgorithm.ONLY_ONE_APPLICABLE);
         assertThat(config.saplDocuments()).hasSize(1);
     }
 
@@ -131,7 +130,7 @@ class BundleParserTests {
     void whenBundleContainsNestedDirectories_thenNestedFilesAreSkipped() throws IOException {
         val bundleBytes = createBundleWithNestedDirectory();
 
-        val config = BundleParser.parse(bundleBytes, TEST_PDP_ID, TEST_CONFIG_ID);
+        val config = BundleParser.parse(bundleBytes, TEST_PDP_ID, developmentPolicy);
 
         assertThat(config.saplDocuments()).hasSize(1);
     }
@@ -139,9 +138,9 @@ class BundleParserTests {
     @ParameterizedTest
     @MethodSource("pathTraversalAttempts")
     void whenBundleContainsPathTraversal_thenThrowsException(String maliciousPath) throws IOException {
-        val bundleBytes = createBundleWithEntry(maliciousPath, "malicious content");
+        val bundleBytes = createBundleWithEntryAndConfig(maliciousPath, "malicious content");
 
-        assertThatThrownBy(() -> BundleParser.parse(bundleBytes, TEST_PDP_ID, TEST_CONFIG_ID))
+        assertThatThrownBy(() -> BundleParser.parse(bundleBytes, TEST_PDP_ID, developmentPolicy))
                 .isInstanceOf(PDPConfigurationException.class).hasMessageContaining("Path traversal");
     }
 
@@ -153,9 +152,9 @@ class BundleParserTests {
     @ParameterizedTest
     @MethodSource("nestedArchiveExtensions")
     void whenBundleContainsNestedArchive_thenThrowsException(String archiveName) throws IOException {
-        val bundleBytes = createBundleWithEntry(archiveName, "PK\003\004");
+        val bundleBytes = createBundleWithEntryAndConfig(archiveName, "PK\003\004");
 
-        assertThatThrownBy(() -> BundleParser.parse(bundleBytes, TEST_PDP_ID, TEST_CONFIG_ID))
+        assertThatThrownBy(() -> BundleParser.parse(bundleBytes, TEST_PDP_ID, developmentPolicy))
                 .isInstanceOf(PDPConfigurationException.class).hasMessageContaining("Nested archive");
     }
 
@@ -168,49 +167,62 @@ class BundleParserTests {
     void whenBundleHasTooManyEntries_thenThrowsException() throws IOException {
         val bundleBytes = createBundleWithManyEntries(1001);
 
-        assertThatThrownBy(() -> BundleParser.parse(bundleBytes, TEST_PDP_ID, TEST_CONFIG_ID))
+        assertThatThrownBy(() -> BundleParser.parse(bundleBytes, TEST_PDP_ID, developmentPolicy))
                 .isInstanceOf(PDPConfigurationException.class).hasMessageContaining("Too many entries");
+    }
+
+    @Test
+    void whenBundleExceedsCompressionRatio_thenThrowsException() throws IOException {
+        val largeRepetitiveContent = "A".repeat(50_000);
+        val bundleBytes            = createBundleWithConfigId("""
+                { "configurationId": "%s" }
+                """.formatted(TEST_CONFIG_ID), "eldritch-tome.sapl",
+                "policy \"forbidden-knowledge\" permit true; /* " + largeRepetitiveContent + " */");
+
+        assertThatThrownBy(() -> BundleParser.parse(bundleBytes, TEST_PDP_ID, developmentPolicy))
+                .isInstanceOf(PDPConfigurationException.class).hasMessageContaining("Compression ratio");
+    }
+
+    @Test
+    void whenUncompressedSizeExceedsLimit_thenThrowsException() throws IOException {
+        val hugeContent = "X".repeat(11 * 1024 * 1024);
+        val bundleBytes = createBundleWithEntryAndConfig("necronomicon.sapl", hugeContent);
+
+        assertThatThrownBy(() -> BundleParser.parse(bundleBytes, TEST_PDP_ID, developmentPolicy))
+                .isInstanceOf(PDPConfigurationException.class).hasMessageContaining("exceeds");
     }
 
     @Test
     void whenBundleHasEntryWithLongName_thenThrowsException() throws IOException {
         val longName    = "a".repeat(256) + ".sapl";
-        val bundleBytes = createBundleWithEntry(longName, "policy \"test\" permit true;");
+        val bundleBytes = createBundleWithEntryAndConfig(longName, "policy \"test\" permit true;");
 
-        assertThatThrownBy(() -> BundleParser.parse(bundleBytes, TEST_PDP_ID, TEST_CONFIG_ID))
+        assertThatThrownBy(() -> BundleParser.parse(bundleBytes, TEST_PDP_ID, developmentPolicy))
                 .isInstanceOf(PDPConfigurationException.class).hasMessageContaining("Entry name too long");
     }
 
     @Test
-    void whenBundleContentIsEmpty_thenReturnsEmptyConfiguration() throws IOException {
-        val bundleBytes = createEmptyBundle();
+    void whenBundleContainsOnlyPdpJson_thenReturnsEmptyDocuments() throws IOException {
+        val pdpJsonBundle = createBundleWithOnlyPdpJson();
 
-        val config = BundleParser.parse(bundleBytes, TEST_PDP_ID, TEST_CONFIG_ID);
+        val pdpJsonConfig = BundleParser.parse(pdpJsonBundle, TEST_PDP_ID, developmentPolicy);
 
-        assertThat(config.saplDocuments()).isEmpty();
-        assertThat(config.combiningAlgorithm()).isEqualTo(CombiningAlgorithm.DENY_OVERRIDES);
-    }
-
-    @Test
-    void whenBundleContainsOnlyPdpJson_thenReturnsConfigurationWithNoDocuments() throws IOException {
-        val bundleBytes = createBundleWithOnlyPdpJson();
-
-        val config = BundleParser.parse(bundleBytes, TEST_PDP_ID, TEST_CONFIG_ID);
-
-        assertThat(config.saplDocuments()).isEmpty();
-        assertThat(config.combiningAlgorithm()).isEqualTo(CombiningAlgorithm.DENY_OVERRIDES);
+        assertThat(pdpJsonConfig.saplDocuments()).isEmpty();
+        assertThat(pdpJsonConfig.combiningAlgorithm()).isEqualTo(CombiningAlgorithm.DENY_OVERRIDES);
     }
 
     @Test
     void whenBundleHasWindowsStylePaths_thenNestedPathsAreSkipped() throws IOException {
         val baos = new ByteArrayOutputStream();
         try (val zos = new ZipOutputStream(baos)) {
+            addPdpJsonEntry(zos);
+
             zos.putNextEntry(new ZipEntry("windows\\style\\path.sapl"));
             zos.write("policy \"test\" permit true;".getBytes(StandardCharsets.UTF_8));
             zos.closeEntry();
         }
 
-        val config = BundleParser.parse(baos.toByteArray(), TEST_PDP_ID, TEST_CONFIG_ID);
+        val config = BundleParser.parse(baos.toByteArray(), TEST_PDP_ID, developmentPolicy);
 
         assertThat(config.saplDocuments()).isEmpty();
     }
@@ -219,23 +231,24 @@ class BundleParserTests {
     void whenParsingNonExistentFile_thenThrowsException() {
         val nonExistentPath = tempDir.resolve("non-existent.saplbundle");
 
-        assertThatThrownBy(() -> BundleParser.parse(nonExistentPath, TEST_PDP_ID, TEST_CONFIG_ID))
+        assertThatThrownBy(() -> BundleParser.parse(nonExistentPath, TEST_PDP_ID, developmentPolicy))
                 .isInstanceOf(PDPConfigurationException.class).hasMessageContaining("Failed to read bundle file");
     }
 
     @Test
-    void whenParsingInvalidZipData_thenReturnsEmptyConfiguration() {
+    void whenParsingInvalidZipData_thenThrowsExceptionForMissingPdpJson() {
         val invalidData = "This is not a ZIP file".getBytes(StandardCharsets.UTF_8);
 
-        val config = BundleParser.parse(invalidData, TEST_PDP_ID, TEST_CONFIG_ID);
-
-        assertThat(config.saplDocuments()).isEmpty();
+        assertThatThrownBy(() -> BundleParser.parse(invalidData, TEST_PDP_ID, developmentPolicy))
+                .isInstanceOf(PDPConfigurationException.class).hasMessageContaining("pdp.json");
     }
 
     @Test
     void whenBundleContainsNonSaplFiles_thenTheyAreIgnored() throws IOException {
         val baos = new ByteArrayOutputStream();
         try (val zos = new ZipOutputStream(baos)) {
+            addPdpJsonEntry(zos);
+
             zos.putNextEntry(new ZipEntry("policy.sapl"));
             zos.write("policy \"test\" permit true;".getBytes(StandardCharsets.UTF_8));
             zos.closeEntry();
@@ -249,19 +262,18 @@ class BundleParserTests {
             zos.closeEntry();
         }
 
-        val config = BundleParser.parse(baos.toByteArray(), TEST_PDP_ID, TEST_CONFIG_ID);
+        val config = BundleParser.parse(baos.toByteArray(), TEST_PDP_ID, developmentPolicy);
 
         assertThat(config.saplDocuments()).hasSize(1);
     }
 
-    private byte[] createBundle(String pdpJson, String saplFileName, String saplContent) throws IOException {
+    private byte[] createBundleWithConfigId(String pdpJson, String saplFileName, String saplContent)
+            throws IOException {
         val baos = new ByteArrayOutputStream();
         try (val zos = new ZipOutputStream(baos)) {
-            if (pdpJson != null) {
-                zos.putNextEntry(new ZipEntry("pdp.json"));
-                zos.write(pdpJson.getBytes(StandardCharsets.UTF_8));
-                zos.closeEntry();
-            }
+            zos.putNextEntry(new ZipEntry("pdp.json"));
+            zos.write(pdpJson.getBytes(StandardCharsets.UTF_8));
+            zos.closeEntry();
 
             zos.putNextEntry(new ZipEntry(saplFileName));
             zos.write(saplContent.getBytes(StandardCharsets.UTF_8));
@@ -270,9 +282,28 @@ class BundleParserTests {
         return baos.toByteArray();
     }
 
+    private byte[] createBundleWithoutPdpJson(String saplFileName, String saplContent) throws IOException {
+        val baos = new ByteArrayOutputStream();
+        try (val zos = new ZipOutputStream(baos)) {
+            zos.putNextEntry(new ZipEntry(saplFileName));
+            zos.write(saplContent.getBytes(StandardCharsets.UTF_8));
+            zos.closeEntry();
+        }
+        return baos.toByteArray();
+    }
+
+    private void addPdpJsonEntry(ZipOutputStream zos) throws IOException {
+        val pdpJson = "{\"configurationId\":\"%s\"}".formatted(TEST_CONFIG_ID);
+        zos.putNextEntry(new ZipEntry("pdp.json"));
+        zos.write(pdpJson.getBytes(StandardCharsets.UTF_8));
+        zos.closeEntry();
+    }
+
     private byte[] createBundleWithMultiplePolicies() throws IOException {
         val baos = new ByteArrayOutputStream();
         try (val zos = new ZipOutputStream(baos)) {
+            addPdpJsonEntry(zos);
+
             for (String name : new String[] { "access.sapl", "audit.sapl", "logging.sapl" }) {
                 zos.putNextEntry(new ZipEntry(name));
                 zos.write(("policy \"" + name + "\" permit true;").getBytes(StandardCharsets.UTF_8));
@@ -285,6 +316,8 @@ class BundleParserTests {
     private byte[] createBundleWithNestedDirectory() throws IOException {
         val baos = new ByteArrayOutputStream();
         try (val zos = new ZipOutputStream(baos)) {
+            addPdpJsonEntry(zos);
+
             zos.putNextEntry(new ZipEntry("root.sapl"));
             zos.write("policy \"root\" permit true;".getBytes(StandardCharsets.UTF_8));
             zos.closeEntry();
@@ -299,9 +332,11 @@ class BundleParserTests {
         return baos.toByteArray();
     }
 
-    private byte[] createBundleWithEntry(String entryName, String content) throws IOException {
+    private byte[] createBundleWithEntryAndConfig(String entryName, String content) throws IOException {
         val baos = new ByteArrayOutputStream();
         try (val zos = new ZipOutputStream(baos)) {
+            addPdpJsonEntry(zos);
+
             zos.putNextEntry(new ZipEntry(entryName));
             zos.write(content.getBytes(StandardCharsets.UTF_8));
             zos.closeEntry();
@@ -312,6 +347,8 @@ class BundleParserTests {
     private byte[] createBundleWithManyEntries(int count) throws IOException {
         val baos = new ByteArrayOutputStream();
         try (val zos = new ZipOutputStream(baos)) {
+            addPdpJsonEntry(zos);
+
             for (int i = 0; i < count; i++) {
                 zos.putNextEntry(new ZipEntry("policy" + i + ".sapl"));
                 zos.write(("policy \"p" + i + "\" permit true;").getBytes(StandardCharsets.UTF_8));
@@ -321,21 +358,15 @@ class BundleParserTests {
         return baos.toByteArray();
     }
 
-    private byte[] createEmptyBundle() throws IOException {
-        val baos = new ByteArrayOutputStream();
-        try (val zos = new ZipOutputStream(baos)) {
-            // Empty ZIP
-        }
-        return baos.toByteArray();
-    }
-
     private byte[] createBundleWithOnlyPdpJson() throws IOException {
         val baos = new ByteArrayOutputStream();
         try (val zos = new ZipOutputStream(baos)) {
+            val pdpJson = "{\"algorithm\":\"DENY_OVERRIDES\",\"configurationId\":\"%s\"}".formatted(TEST_CONFIG_ID);
             zos.putNextEntry(new ZipEntry("pdp.json"));
-            zos.write("{ \"algorithm\": \"DENY_OVERRIDES\" }".getBytes(StandardCharsets.UTF_8));
+            zos.write(pdpJson.getBytes(StandardCharsets.UTF_8));
             zos.closeEntry();
         }
         return baos.toByteArray();
     }
+
 }

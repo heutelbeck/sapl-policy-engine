@@ -25,52 +25,77 @@ import org.apache.commons.io.monitor.FileAlterationMonitor;
 import org.apache.commons.io.monitor.FileAlterationObserver;
 
 import java.io.File;
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.LinkOption;
 import java.nio.file.Path;
-import java.util.HashMap;
-import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.stream.Stream;
+import java.util.function.Consumer;
+
+import io.sapl.api.pdp.PDPConfiguration;
 
 /**
  * PDP configuration source that loads configurations from a filesystem
  * directory with file watching for hot-reload.
  * <p>
  * The source monitors a directory for .sapl policy files and an optional
- * pdp.json configuration file. When files
- * change, the callback is invoked with the updated configuration.
- * <p>
- * Directory layout:
+ * pdp.json configuration file. When files change, the callback is invoked with
+ * the updated configuration.
+ * </p>
+ *
+ * <h2>Directory Layout</h2>
  *
  * <pre>
  * /policies/
- * ├── pdp.json        (optional - combining algorithm config)
+ * ├── pdp.json        (optional - combining algorithm and configurationId)
  * ├── access.sapl
  * └── audit.sapl
  * </pre>
+ *
+ * <h2>Configuration ID</h2>
+ * <p>
+ * The configuration ID is used for audit and correlation of authorization
+ * decisions with the exact policy set. If pdp.json contains a
+ * {@code configurationId} field, that value is used. Otherwise, an ID is
+ * auto-generated in the format:
+ * {@code dir:<path>@<timestamp>@sha256:<hash>}
+ * </p>
+ *
+ * <h2>Callback Invocation</h2>
  * <p>
  * The callback is invoked:
+ * </p>
  * <ul>
  * <li>Once during construction with the initial configuration</li>
- * <li>On each file change (create, modify, delete) after debouncing</li>
+ * <li>On each file change (create, modify, delete)</li>
  * </ul>
+ *
  * <h2>Thread Safety</h2>
  * <p>
  * This class is thread-safe. The file monitoring thread runs independently and
- * invokes the callback directly. The
- * callback implementation must handle thread safety for its own state.
+ * invokes the callback directly. The callback implementation must handle thread
+ * safety for its own state.
  * </p>
+ *
  * <h2>Security Measures</h2>
  * <ul>
  * <li><b>Symlink protection:</b> Symbolic links are rejected.</li>
- * <li><b>Resource limits:</b> Total size limited to 10 MB, max 1000 files.</li>
  * <li><b>PDP ID validation:</b> Validated against strict pattern.</li>
  * </ul>
  *
- * @see ConfigurationUpdateCallback
+ * <h2>Spring Integration</h2>
+ * <p>
+ * This class implements {@link reactor.core.Disposable} but Spring does not
+ * automatically call {@code dispose()} on Reactor's Disposable interface. When
+ * exposing as a Spring bean, explicitly specify the destroy method:
+ * </p>
+ *
+ * <pre>{@code
+ * @Bean(destroyMethod = "dispose")
+ * public DirectoryPDPConfigurationSource directorySource() {
+ *     return new DirectoryPDPConfigurationSource(Path.of("/policies"),
+ *             config -> configRegister.loadConfiguration(config, false));
+ * }
+ * }</pre>
  */
 @Slf4j
 public class DirectoryPDPConfigurationSource implements PDPConfigurationSource {
@@ -81,15 +106,11 @@ public class DirectoryPDPConfigurationSource implements PDPConfigurationSource {
     private static final long POLL_INTERVAL_MS        = 500;
     private static final long MONITOR_STOP_TIMEOUT_MS = 5000;
 
-    private static final long MAX_TOTAL_SIZE_BYTES = 10L * 1024 * 1024;
-    private static final int  MAX_FILE_COUNT       = 1000;
-
-    private final Path                        directoryPath;
-    private final String                      pdpId;
-    private final String                      configurationId;
-    private final ConfigurationUpdateCallback callback;
-    private final FileAlterationMonitor       monitor;
-    private final AtomicBoolean               disposed = new AtomicBoolean(false);
+    private final Path                       directoryPath;
+    private final String                     pdpId;
+    private final Consumer<PDPConfiguration> callback;
+    private final FileAlterationMonitor      monitor;
+    private final AtomicBoolean              disposed = new AtomicBoolean(false);
 
     /**
      * Creates a source loading from the specified directory with default PDP ID.
@@ -99,7 +120,7 @@ public class DirectoryPDPConfigurationSource implements PDPConfigurationSource {
      * @param callback
      * called when configuration is loaded or updated
      */
-    public DirectoryPDPConfigurationSource(@NonNull Path directoryPath, @NonNull ConfigurationUpdateCallback callback) {
+    public DirectoryPDPConfigurationSource(@NonNull Path directoryPath, @NonNull Consumer<PDPConfiguration> callback) {
         this(directoryPath, DEFAULT_PDP_ID, callback);
     }
 
@@ -115,32 +136,12 @@ public class DirectoryPDPConfigurationSource implements PDPConfigurationSource {
      */
     public DirectoryPDPConfigurationSource(@NonNull Path directoryPath,
             @NonNull String pdpId,
-            @NonNull ConfigurationUpdateCallback callback) {
-        this(directoryPath, pdpId, "directory-config", callback);
-    }
-
-    /**
-     * Creates a source with full configuration options.
-     *
-     * @param directoryPath
-     * the filesystem directory containing policy files
-     * @param pdpId
-     * the PDP identifier for loaded configurations
-     * @param configurationId
-     * the configuration version identifier
-     * @param callback
-     * called when configuration is loaded or updated
-     */
-    public DirectoryPDPConfigurationSource(@NonNull Path directoryPath,
-            @NonNull String pdpId,
-            @NonNull String configurationId,
-            @NonNull ConfigurationUpdateCallback callback) {
+            @NonNull Consumer<PDPConfiguration> callback) {
         PDPConfigurationSource.validatePdpId(pdpId);
-        this.directoryPath   = directoryPath.toAbsolutePath().normalize();
-        this.pdpId           = pdpId;
-        this.configurationId = configurationId;
-        this.callback        = callback;
-        this.monitor         = new FileAlterationMonitor(POLL_INTERVAL_MS);
+        this.directoryPath = directoryPath.toAbsolutePath().normalize();
+        this.pdpId         = pdpId;
+        this.callback      = callback;
+        this.monitor       = new FileAlterationMonitor(POLL_INTERVAL_MS);
 
         log.info("Loading PDP configuration '{}' from directory: '{}'.", pdpId, this.directoryPath);
         validateDirectory();
@@ -174,61 +175,9 @@ public class DirectoryPDPConfigurationSource implements PDPConfigurationSource {
     }
 
     private void loadAndNotify() {
-        val    saplFiles = new HashMap<String, String>();
-        String pdpJson   = null;
-        var    totalSize = 0L;
-        var    fileCount = 0;
-
-        try {
-            val files = listFiles(directoryPath);
-            for (val file : files) {
-                val fileName = file.getFileName().toString();
-
-                if (Files.isSymbolicLink(file)) {
-                    log.warn("Skipping symbolic link: {}.", fileName);
-                    continue;
-                }
-
-                if (Files.isDirectory(file, LinkOption.NOFOLLOW_LINKS)) {
-                    continue;
-                }
-
-                if (PDP_JSON.equals(fileName)) {
-                    totalSize = validateAndTrackSize(file, totalSize);
-                    pdpJson   = readFile(file);
-                    fileCount++;
-                } else if (fileName.endsWith(SAPL_EXTENSION)) {
-                    totalSize = validateAndTrackSize(file, totalSize);
-                    saplFiles.put(fileName, readFile(file));
-                    fileCount++;
-                }
-
-                validateFileCount(fileCount);
-            }
-
-            val config = PDPConfigurationLoader.loadFromContent(pdpJson, saplFiles, pdpId, configurationId);
-            callback.onConfigurationUpdate(config);
-            log.debug("Loaded PDP configuration '{}' with {} SAPL documents.", pdpId, saplFiles.size());
-
-        } catch (IOException e) {
-            throw new PDPConfigurationException("Failed to load configuration from directory.", e);
-        }
-    }
-
-    private long validateAndTrackSize(Path file, long currentTotal) throws IOException {
-        val fileSize = Files.size(file);
-        val newTotal = currentTotal + fileSize;
-        if (newTotal > MAX_TOTAL_SIZE_BYTES) {
-            throw new PDPConfigurationException(
-                    "Total configuration size exceeds maximum of %d MB.".formatted(MAX_TOTAL_SIZE_BYTES / 1024 / 1024));
-        }
-        return newTotal;
-    }
-
-    private void validateFileCount(int count) {
-        if (count > MAX_FILE_COUNT) {
-            throw new PDPConfigurationException("File count exceeds maximum of %d files.".formatted(MAX_FILE_COUNT));
-        }
+        val config = PDPConfigurationLoader.loadFromDirectory(directoryPath, pdpId);
+        callback.accept(config);
+        log.debug("Loaded PDP configuration '{}' with {} SAPL documents.", pdpId, config.saplDocuments().size());
     }
 
     private void startFileMonitor() {
@@ -265,16 +214,6 @@ public class DirectoryPDPConfigurationSource implements PDPConfigurationSource {
                 log.error("Failed to force stop file monitor.", e2);
             }
         }
-    }
-
-    private List<Path> listFiles(Path directory) throws IOException {
-        try (Stream<Path> stream = Files.list(directory)) {
-            return stream.toList();
-        }
-    }
-
-    private String readFile(Path file) throws IOException {
-        return Files.readString(file, StandardCharsets.UTF_8);
     }
 
     /**

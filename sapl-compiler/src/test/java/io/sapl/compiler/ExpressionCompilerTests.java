@@ -44,11 +44,11 @@ class ExpressionCompilerTests {
 
     @ParameterizedTest
     @MethodSource
-    void whenExpressionCompiledToConstant_thenResultMatchesExpected(String expression, Value expected) {
+    void when_expressionCompiledToConstant_then_resultMatchesExpected(String expression, Value expected) {
         assertExpressionCompilesToValue(expression, expected);
     }
 
-    private static Stream<Arguments> whenExpressionCompiledToConstant_thenResultMatchesExpected() {
+    private static Stream<Arguments> when_expressionCompiledToConstant_then_resultMatchesExpected() {
         return Stream.of(
                 // Literals fold to constants
                 arguments("true", Value.TRUE), arguments("false", Value.FALSE), arguments("null", Value.NULL),
@@ -227,11 +227,11 @@ class ExpressionCompilerTests {
 
     @ParameterizedTest
     @MethodSource
-    void whenPureExpressionEvaluated_thenResultMatchesExpected(String expression, Value expectedResult) {
+    void when_pureExpressionEvaluated_then_resultMatchesExpected(String expression, Value expectedResult) {
         assertCompiledExpressionEvaluatesTo(expression, expectedResult);
     }
 
-    private static Stream<Arguments> whenPureExpressionEvaluated_thenResultMatchesExpected() {
+    private static Stream<Arguments> when_pureExpressionEvaluated_then_resultMatchesExpected() {
         return Stream.of(
                 // Subscription elements require runtime evaluation
                 arguments("subject", Value.of("Elric")), arguments("action", Value.of("slay")),
@@ -536,12 +536,12 @@ class ExpressionCompilerTests {
 
     @ParameterizedTest
     @MethodSource
-    void whenExpressionEvaluationProducesError_thenErrorMessageContainsExpected(String expression,
+    void when_expressionEvaluationProducesError_then_errorMessageContainsExpected(String expression,
             String expectedErrorSubstring) {
         assertCompiledExpressionEvaluatesToErrorContaining(expression, expectedErrorSubstring);
     }
 
-    private static Stream<Arguments> whenExpressionEvaluationProducesError_thenErrorMessageContainsExpected() {
+    private static Stream<Arguments> when_expressionEvaluationProducesError_then_errorMessageContainsExpected() {
         return Stream.of(
                 // Condition steps with non-boolean conditions on scalars
                 arguments("42[?(@ + 1)]", "Condition"), arguments("\"text\"[?(123)]", "Condition"),
@@ -613,11 +613,11 @@ class ExpressionCompilerTests {
 
     @ParameterizedTest
     @MethodSource
-    void indexAndAttributeUnionEdgeCases(String expression, Value expected) {
+    void when_indexAndAttributeUnionEdgeCases_then_correctResult(String expression, Value expected) {
         assertCompiledExpressionEvaluatesTo(expression, expected);
     }
 
-    private static Stream<Arguments> indexAndAttributeUnionEdgeCases() {
+    private static Stream<Arguments> when_indexAndAttributeUnionEdgeCases_then_correctResult() {
         return Stream.of(
                 // Index unions automatically de-duplicate
                 arguments("[10, 20, 30][0, 1, 2]", Value.ofArray(Value.of(10), Value.of(20), Value.of(30))),
@@ -636,11 +636,11 @@ class ExpressionCompilerTests {
 
     @ParameterizedTest
     @MethodSource
-    void indexUnionWithOutOfBoundsError(String expression, String expectedErrorSubstring) {
+    void when_indexUnionWithOutOfBounds_then_error(String expression, String expectedErrorSubstring) {
         assertCompiledExpressionEvaluatesToErrorContaining(expression, expectedErrorSubstring);
     }
 
-    private static Stream<Arguments> indexUnionWithOutOfBoundsError() {
+    private static Stream<Arguments> when_indexUnionWithOutOfBounds_then_error() {
         return Stream.of(
                 // Out-of-bounds indices cause errors
                 arguments("[10, 20, 30][0, 10, 1]", "out of bounds"),
@@ -649,11 +649,11 @@ class ExpressionCompilerTests {
 
     @ParameterizedTest
     @MethodSource
-    void chainedConditionSteps(String expression, Value expected) {
+    void when_chainedConditionSteps_then_correctResult(String expression, Value expected) {
         assertCompiledExpressionEvaluatesTo(expression, expected);
     }
 
-    private static Stream<Arguments> chainedConditionSteps() {
+    private static Stream<Arguments> when_chainedConditionSteps_then_correctResult() {
         return Stream.of(
                 // Multiple condition steps chained on arrays
                 arguments("[1, 2, 3, 4, 5, 6, 7, 8][?(@ > 2)][?(@ < 7)]",
@@ -671,11 +671,11 @@ class ExpressionCompilerTests {
 
     @ParameterizedTest
     @MethodSource
-    void nullAndUndefinedPropagation(String expression, Value expected) {
+    void when_nullAndUndefinedPropagation_then_correctResult(String expression, Value expected) {
         assertCompiledExpressionEvaluatesTo(expression, expected);
     }
 
-    private static Stream<Arguments> nullAndUndefinedPropagation() {
+    private static Stream<Arguments> when_nullAndUndefinedPropagation_then_correctResult() {
         return Stream.of(
                 // Null in comparisons
                 arguments("null == null", Value.TRUE), arguments("null != null", Value.FALSE),
@@ -699,13 +699,13 @@ class ExpressionCompilerTests {
 
     @ParameterizedTest
     @MethodSource
-    void attributeFinderBasicUsage(String expression, int expectedStreamCount) {
+    void when_attributeFinderBasicUsage_then_emitsValues(String expression, int expectedStreamCount) {
         // Attribute finders create StreamExpressions that emit multiple values
         val evaluated = TestUtil.evaluateExpression(expression);
         StepVerifier.create(evaluated.take(expectedStreamCount)).expectNextCount(expectedStreamCount).verifyComplete();
     }
 
-    private static Stream<Arguments> attributeFinderBasicUsage() {
+    private static Stream<Arguments> when_attributeFinderBasicUsage_then_emitsValues() {
         return Stream.of(
                 // TestPip.echo returns Flux.just(entity) - 1 value
                 arguments("\"Elric\".<test.echo[{\"fresh\":true}]>", 1),
@@ -717,13 +717,13 @@ class ExpressionCompilerTests {
 
     @ParameterizedTest
     @MethodSource
-    void attributeFinderInExpressions(String expression) {
+    void when_attributeFinderInExpressions_then_streams(String expression) {
         // Attribute finders in expressions create StreamExpressions - verify it streams
         val evaluated = TestUtil.evaluateExpression(expression);
         StepVerifier.create(evaluated.take(1).log()).expectNextCount(1).verifyComplete();
     }
 
-    private static Stream<Arguments> attributeFinderInExpressions() {
+    private static Stream<Arguments> when_attributeFinderInExpressions_then_streams() {
         return Stream.of(
                 // Attribute finders in comparisons
                 arguments("\"Elric\".<test.echo[{\"fresh\":true}]> == \"Elric\""), // arguments("subject.<test.echo[{fresh=true}]>
@@ -743,14 +743,14 @@ class ExpressionCompilerTests {
 
     @ParameterizedTest
     @MethodSource
-    void attributeFinderWithStepsAndFunctionCalls(String expression) {
+    void when_attributeFinderWithStepsAndFunctionCalls_then_noErrors(String expression) {
         // Attribute finders with steps or as function arguments produce non-error
         // streams
         val evaluated = TestUtil.evaluateExpression(expression);
         StepVerifier.create(evaluated.take(1)).expectNextMatches(v -> !(v instanceof ErrorValue)).verifyComplete();
     }
 
-    private static Stream<Arguments> attributeFinderWithStepsAndFunctionCalls() {
+    private static Stream<Arguments> when_attributeFinderWithStepsAndFunctionCalls_then_noErrors() {
         return Stream.of(
                 // Key access on attribute result
                 arguments("{\"weapon\": \"Stormbringer\"}.<test.echo>.weapon"),
@@ -779,14 +779,14 @@ class ExpressionCompilerTests {
 
     @ParameterizedTest
     @MethodSource
-    void attributeFinderInDataStructures(String expression) {
+    void when_attributeFinderInDataStructures_then_createsStructures(String expression) {
         // Attribute finders in arrays and objects
         val evaluated = TestUtil.evaluateExpression(expression);
         StepVerifier.create(evaluated.take(1))
                 .expectNextMatches(v -> v instanceof ArrayValue || v instanceof ObjectValue).verifyComplete();
     }
 
-    private static Stream<Arguments> attributeFinderInDataStructures() {
+    private static Stream<Arguments> when_attributeFinderInDataStructures_then_createsStructures() {
         return Stream.of(
                 // In array construction
                 arguments("[\"Elric\".<test.echo>, \"static\"]"), arguments("[subject.<test.echo>, action]"),
@@ -798,7 +798,7 @@ class ExpressionCompilerTests {
 
     @ParameterizedTest
     @MethodSource
-    void chainedAttributeFinderOperations(String expression) {
+    void when_chainedAttributeFinderOperations_then_emitsValues(String expression) {
         // Multiple attribute finders chained
         // Filter errors because TestPip emits 2 values and chained operations
         // on "hello world" may produce errors (e.g., .key on a string)
@@ -807,7 +807,7 @@ class ExpressionCompilerTests {
                 .verifyComplete();
     }
 
-    private static Stream<Arguments> chainedAttributeFinderOperations() {
+    private static Stream<Arguments> when_chainedAttributeFinderOperations_then_emitsValues() {
         return Stream.of(
                 // Attribute finder on attribute finder result
                 arguments("\"Elric\".<test.echo>.<test.echo>"), arguments("subject.<test.echo>.<test.echo>"),

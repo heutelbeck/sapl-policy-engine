@@ -38,15 +38,15 @@ import io.sapl.functions.DefaultLibraries;
 import io.sapl.functions.libraries.JWTFunctionLibrary;
 import io.sapl.interpreter.InitializationException;
 import io.sapl.pdp.configuration.BundlePDPConfigurationSource;
-import io.sapl.pdp.configuration.BundleParser;
-import io.sapl.pdp.configuration.ConfigurationUpdateCallback;
 import io.sapl.pdp.configuration.DirectoryPDPConfigurationSource;
+import io.sapl.pdp.configuration.bundle.BundleParser;
+import io.sapl.pdp.configuration.bundle.BundleSecurityPolicy;
+import io.sapl.pdp.configuration.MultiDirectoryPDPConfigurationSource;
 import io.sapl.pdp.configuration.PDPConfigurationSource;
 import io.sapl.pdp.configuration.ResourcesPDPConfigurationSource;
 import lombok.val;
+import org.jspecify.annotations.Nullable;
 import org.springframework.web.reactive.function.client.WebClient;
-import reactor.core.Disposable;
-import reactor.core.Disposables;
 
 import java.io.InputStream;
 import java.nio.file.Path;
@@ -55,14 +55,14 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Consumer;
 import java.util.function.Function;
 
 /**
  * Fluent builder for creating a Policy Decision Point with configurable
  * function libraries, policy information points,
  * and configuration sources.
- * <p>
- * Example usage with manual configuration:
+ * <h2>Basic Usage</h2>
  *
  * <pre>{@code
  * var pdpComponents = PolicyDecisionPointBuilder.withDefaults().withFunctionLibrary(MyCustomLibrary.class)
@@ -71,22 +71,85 @@ import java.util.function.Function;
  * var pdp = pdpComponents.pdp();
  * pdpComponents.configurationRegister().loadConfiguration(pdpConfiguration, false);
  * }</pre>
- * <p>
- * Example usage with automatic configuration from sources:
+ *
+ * <h2>Configuration Sources</h2>
  *
  * <pre>{@code
  * // From filesystem directory
  * var pdpComponents = PolicyDecisionPointBuilder.withDefaults().withDirectorySource(Path.of("/policies")).build();
  *
  * // From bundle files
- * var pdpComponents = PolicyDecisionPointBuilder.withDefaults().withBundleDirectorySource(Path.of("/bundles")).build();
+ * var securityPolicy = BundleSecurityPolicy.requireSignature(publicKey);
+ * var pdpComponents = PolicyDecisionPointBuilder.withDefaults()
+ *         .withBundleDirectorySource(Path.of("/bundles"), securityPolicy).build();
  *
  * // From classpath resources
  * var pdpComponents = PolicyDecisionPointBuilder.withDefaults().withResourcesSource("/policies").build();
- *
- * // From a single bundle (e.g., HTTP upload)
- * var pdpComponents = PolicyDecisionPointBuilder.withDefaults().withBundle(bundleBytes, "my-pdp", "v1.0").build();
  * }</pre>
+ *
+ * <h2>Spring Integration</h2>
+ * <p>
+ * When using a configuration source that monitors directories for changes,
+ * ensure the source is disposed when the
+ * application shuts down. The {@link PDPComponents#source()} method returns the
+ * source (if any) which can be disposed
+ * directly.
+ * </p>
+ * <p>
+ * Spring does not automatically call {@code dispose()} on Reactor's
+ * {@link reactor.core.Disposable} interface. When
+ * exposing a configuration source as a Spring bean, explicitly specify the
+ * destroy method:
+ * </p>
+ *
+ * <pre>
+ * {
+ *     &#64;code
+ *     &#64;Configuration
+ *     public class PdpConfiguration {
+ *
+ *         &#64;Bean
+ *         public PDPComponents pdpComponents(PDPConfigurationSource source) {
+ *             return PolicyDecisionPointBuilder.withDefaults().build();
+ *         }
+ *
+ *         @Bean(destroyMethod = "dispose")
+ *         public PDPConfigurationSource policySource(ConfigurationRegister register) {
+ *             return new DirectoryPDPConfigurationSource(Path.of("/policies"),
+ *                     config -> register.loadConfiguration(config, true));
+ *         }
+ *     }
+ * }
+ * </pre>
+ * <p>
+ * Alternatively, use {@code @PreDestroy} to dispose the source:
+ * </p>
+ *
+ * <pre>
+ * {@code
+ * &#64;Component
+ * public class PdpLifecycle {
+ *
+ *     private final PDPComponents components;
+ *
+ *     public PdpLifecycle() {
+ *         this.components = PolicyDecisionPointBuilder.withDefaults()
+ *                 .withDirectorySource(Path.of("/policies"))
+ *                 .build();
+ * }
+ *
+ * @PreDestroy
+ * public void cleanup() {
+ * var source = components.source();
+ * if (source != null) {
+ * source.dispose();
+ * }
+ * }
+ * }
+ * }
+ * </pre>
+ *
+ * @see PDPComponents
  */
 public class PolicyDecisionPointBuilder {
 
@@ -107,8 +170,8 @@ public class PolicyDecisionPointBuilder {
     private FunctionBroker  externalFunctionBroker;
     private AttributeBroker externalAttributeBroker;
 
-    private final List<Function<ConfigurationUpdateCallback, PDPConfigurationSource>> sourceFactories       = new ArrayList<>();
-    private final List<PDPConfiguration>                                              initialConfigurations = new ArrayList<>();
+    private Function<Consumer<PDPConfiguration>, PDPConfigurationSource> sourceFactory;
+    private final List<PDPConfiguration>                                 initialConfigurations = new ArrayList<>();
 
     private PolicyDecisionPointBuilder(ObjectMapper mapper, Clock clock) {
         this.mapper = mapper;
@@ -364,22 +427,32 @@ public class PolicyDecisionPointBuilder {
     // === Configuration Source Methods ===
 
     /**
-     * Adds a custom configuration source factory. The factory receives a callback
+     * Sets a custom configuration source factory. The factory receives a consumer
      * and must return a source that will
-     * notify the callback when configurations are loaded or updated.
+     * invoke the consumer when configurations are loaded or updated.
      * <p>
-     * The source is created during build. The callback is connected to the
+     * The source is created during build. The consumer is connected to the
      * configuration register so configurations are
      * automatically loaded into the PDP.
+     * <p>
+     * Only one configuration source can be registered. Attempting to register
+     * multiple sources will throw an exception.
      *
      * @param sourceFactory
-     * factory that creates the configuration source given a callback
+     * factory that creates the configuration source given a consumer
      *
      * @return this builder
+     *
+     * @throws IllegalStateException
+     * if a configuration source has already been registered
      */
     public PolicyDecisionPointBuilder withConfigurationSource(
-            Function<ConfigurationUpdateCallback, PDPConfigurationSource> sourceFactory) {
-        this.sourceFactories.add(sourceFactory);
+            Function<Consumer<PDPConfiguration>, PDPConfigurationSource> sourceFactory) {
+        if (this.sourceFactory != null) {
+            throw new IllegalStateException(
+                    "A configuration source has already been registered. Only one source is allowed.");
+        }
+        this.sourceFactory = sourceFactory;
         return this;
     }
 
@@ -399,6 +472,10 @@ public class PolicyDecisionPointBuilder {
 
     /**
      * Loads policies from a filesystem directory with a custom PDP ID.
+     * <p>
+     * The configuration ID is determined from pdp.json if present, otherwise
+     * auto-generated in the format: {@code dir:<path>@<timestamp>@sha256:<hash>}
+     * </p>
      *
      * @param directoryPath
      * the path to the policy directory
@@ -412,17 +489,72 @@ public class PolicyDecisionPointBuilder {
     }
 
     /**
-     * Loads policies from bundle files (.saplbundle) in a directory. Each bundle
-     * represents a separate PDP
-     * configuration. Changes are monitored and hot-reloaded.
+     * Loads policies from multiple subdirectories, where each subdirectory
+     * represents a separate PDP configuration. The subdirectory name becomes the
+     * PDP ID.
+     * Changes are monitored and hot-reloaded.
+     * <p>
+     * Configuration IDs are determined from pdp.json in each subdirectory, or
+     * auto-generated if not present.
+     * </p>
      *
-     * @param bundleDirectoryPath
-     * the path to the directory containing .saplbundle files
+     * @param directoryPath
+     * the root directory containing PDP subdirectories
      *
      * @return this builder
      */
-    public PolicyDecisionPointBuilder withBundleDirectorySource(Path bundleDirectoryPath) {
-        return withConfigurationSource(callback -> new BundlePDPConfigurationSource(bundleDirectoryPath, callback));
+    public PolicyDecisionPointBuilder withMultiDirectorySource(Path directoryPath) {
+        return withConfigurationSource(callback -> new MultiDirectoryPDPConfigurationSource(directoryPath, callback));
+    }
+
+    /**
+     * Loads policies from multiple subdirectories, with optional root-level files
+     * as "default" PDP.
+     * <p>
+     * Configuration IDs are determined from pdp.json in each subdirectory (or
+     * root),
+     * or auto-generated if not present.
+     * </p>
+     *
+     * @param directoryPath
+     * the root directory containing PDP subdirectories
+     * @param includeRootFiles
+     * if true, root-level .sapl and pdp.json files are loaded as "default" PDP
+     *
+     * @return this builder
+     */
+    public PolicyDecisionPointBuilder withMultiDirectorySource(Path directoryPath, boolean includeRootFiles) {
+        return withConfigurationSource(
+                callback -> new MultiDirectoryPDPConfigurationSource(directoryPath, includeRootFiles, callback));
+    }
+
+    /**
+     * Loads policies from bundle files (.saplbundle) in a directory. Each bundle
+     * represents a separate PDP configuration. Changes are monitored and
+     * hot-reloaded.
+     * <p>
+     * The security policy determines how bundle signatures are verified. Use
+     * {@link BundleSecurityPolicy#requireSignature(java.security.PublicKey)} for
+     * production environments.
+     * </p>
+     * <p>
+     * Each bundle must contain a pdp.json file with a {@code configurationId}
+     * field.
+     * The PDP ID is derived from the bundle filename (minus the .saplbundle
+     * extension).
+     * </p>
+     *
+     * @param bundleDirectoryPath
+     * the path to the directory containing .saplbundle files
+     * @param securityPolicy
+     * the security policy for bundle signature verification
+     *
+     * @return this builder
+     */
+    public PolicyDecisionPointBuilder withBundleDirectorySource(Path bundleDirectoryPath,
+            BundleSecurityPolicy securityPolicy) {
+        return withConfigurationSource(
+                callback -> new BundlePDPConfigurationSource(bundleDirectoryPath, securityPolicy, callback));
     }
 
     /**
@@ -430,6 +562,10 @@ public class PolicyDecisionPointBuilder {
      * shipped with your application.
      * Supports both single-PDP (root-level files) and multi-PDP (subdirectories)
      * layouts.
+     * <p>
+     * Configuration IDs are determined from pdp.json if present, otherwise
+     * auto-generated in the format: {@code res:<path>@sha256:<hash>}
+     * </p>
      *
      * @param resourcePath
      * the classpath resource path (e.g., "/policies")
@@ -441,56 +577,94 @@ public class PolicyDecisionPointBuilder {
     }
 
     /**
+     * Loads policies from the default classpath resource path "/policies".
+     * <p>
+     * Configuration IDs are determined from pdp.json if present, otherwise
+     * auto-generated in the format: {@code res:<path>@sha256:<hash>}
+     * </p>
+     *
+     * @return this builder
+     */
+    public PolicyDecisionPointBuilder withResourcesSource() {
+        return withConfigurationSource(ResourcesPDPConfigurationSource::new);
+    }
+
+    /**
      * Loads a configuration from a bundle byte array. This is useful for receiving
-     * bundles via HTTP uploads or message
-     * queues.
+     * bundles via HTTP uploads or message queues.
+     * <p>
+     * The security policy determines how bundle signatures are verified. Use
+     * {@link BundleSecurityPolicy#requireSignature(java.security.PublicKey)} for
+     * production environments.
+     * </p>
+     * <p>
+     * The bundle must contain a pdp.json file with a {@code configurationId} field.
+     * </p>
      *
      * @param bundleBytes
      * the bundle data
      * @param pdpId
      * the PDP identifier
-     * @param configurationId
-     * the configuration version identifier
+     * @param securityPolicy
+     * the security policy for bundle signature verification
      *
      * @return this builder
      */
-    public PolicyDecisionPointBuilder withBundle(byte[] bundleBytes, String pdpId, String configurationId) {
-        this.initialConfigurations.add(BundleParser.parse(bundleBytes, pdpId, configurationId));
+    public PolicyDecisionPointBuilder withBundle(byte[] bundleBytes, String pdpId,
+            BundleSecurityPolicy securityPolicy) {
+        this.initialConfigurations.add(BundleParser.parse(bundleBytes, pdpId, securityPolicy));
         return this;
     }
 
     /**
      * Loads a configuration from a bundle input stream. This is useful for
      * receiving bundles via HTTP uploads.
+     * <p>
+     * The security policy determines how bundle signatures are verified. Use
+     * {@link BundleSecurityPolicy#requireSignature(java.security.PublicKey)} for
+     * production environments.
+     * </p>
+     * <p>
+     * The bundle must contain a pdp.json file with a {@code configurationId} field.
+     * </p>
      *
      * @param bundleStream
      * the bundle input stream
      * @param pdpId
      * the PDP identifier
-     * @param configurationId
-     * the configuration version identifier
+     * @param securityPolicy
+     * the security policy for bundle signature verification
      *
      * @return this builder
      */
-    public PolicyDecisionPointBuilder withBundle(InputStream bundleStream, String pdpId, String configurationId) {
-        this.initialConfigurations.add(BundleParser.parse(bundleStream, pdpId, configurationId));
+    public PolicyDecisionPointBuilder withBundle(InputStream bundleStream, String pdpId,
+            BundleSecurityPolicy securityPolicy) {
+        this.initialConfigurations.add(BundleParser.parse(bundleStream, pdpId, securityPolicy));
         return this;
     }
 
     /**
      * Loads a configuration from a bundle file path.
+     * <p>
+     * The security policy determines how bundle signatures are verified. Use
+     * {@link BundleSecurityPolicy#requireSignature(java.security.PublicKey)} for
+     * production environments.
+     * </p>
+     * <p>
+     * The bundle must contain a pdp.json file with a {@code configurationId} field.
+     * </p>
      *
      * @param bundlePath
      * the path to the .saplbundle file
      * @param pdpId
      * the PDP identifier
-     * @param configurationId
-     * the configuration version identifier
+     * @param securityPolicy
+     * the security policy for bundle signature verification
      *
      * @return this builder
      */
-    public PolicyDecisionPointBuilder withBundle(Path bundlePath, String pdpId, String configurationId) {
-        this.initialConfigurations.add(BundleParser.parse(bundlePath, pdpId, configurationId));
+    public PolicyDecisionPointBuilder withBundle(Path bundlePath, String pdpId, BundleSecurityPolicy securityPolicy) {
+        this.initialConfigurations.add(BundleParser.parse(bundlePath, pdpId, securityPolicy));
         return this;
     }
 
@@ -577,18 +751,16 @@ public class PolicyDecisionPointBuilder {
             configurationRegister.loadConfiguration(config, false);
         }
 
-        // Create configuration sources with callback to register
-        // Sources call the callback during construction with initial configs
-        // and continue calling it when files change (for directory/bundle sources)
-        val                         disposables = Disposables.composite();
-        ConfigurationUpdateCallback callback    = config -> configurationRegister.loadConfiguration(config, true);
-
-        for (val sourceFactory : sourceFactories) {
-            val source = sourceFactory.apply(callback);
-            disposables.add(source);
+        // Create configuration source with callback to register
+        // Source calls the callback during construction with initial configs
+        // and continues calling it when files change (for directory/bundle sources)
+        PDPConfigurationSource source = null;
+        if (sourceFactory != null) {
+            Consumer<PDPConfiguration> callback = config -> configurationRegister.loadConfiguration(config, true);
+            source = sourceFactory.apply(callback);
         }
 
-        return new PDPComponents(pdp, configurationRegister, functionBroker, attributeBroker, disposables);
+        return new PDPComponents(pdp, configurationRegister, functionBroker, attributeBroker, source);
     }
 
     private FunctionBroker resolveFunctionBroker() throws InitializationException {
@@ -659,9 +831,29 @@ public class PolicyDecisionPointBuilder {
     /**
      * Contains all components created by the PDP builder.
      * <p>
-     * The components manage their own internal state. Call {@link #dispose()} to
-     * release all resources when the PDP is
-     * no longer needed.
+     * This is a simple data carrier (tuple) providing access to the built
+     * components. If a configuration source was
+     * registered, it is available via {@link #source()} and should be disposed when
+     * the PDP is no longer needed.
+     * </p>
+     * <h2>Resource Management</h2>
+     * <p>
+     * The source (if present) holds resources such as file watchers that must be
+     * disposed when the PDP is shut down.
+     * Call {@code source().dispose()} directly:
+     * </p>
+     *
+     * <pre>{@code
+     * var components = PolicyDecisionPointBuilder.withDefaults().withDirectorySource(Path.of("/policies")).build();
+     *
+     * // ... use the PDP ...
+     *
+     * // Cleanup
+     * var source = components.source();
+     * if (source != null) {
+     *     source.dispose();
+     * }
+     * }</pre>
      *
      * @param pdp
      * the policy decision point
@@ -671,22 +863,13 @@ public class PolicyDecisionPointBuilder {
      * the function broker with loaded libraries
      * @param attributeBroker
      * the attribute broker with loaded PIPs
-     * @param disposable
-     * internal resource management (subscriptions and sources)
+     * @param source
+     * the configuration source, or null if none was registered
      */
     public record PDPComponents(
             PolicyDecisionPoint pdp,
             ConfigurationRegister configurationRegister,
             FunctionBroker functionBroker,
             AttributeBroker attributeBroker,
-            Disposable disposable) {
-
-        /**
-         * Disposes all resources: cancels subscriptions and disposes configuration
-         * sources.
-         */
-        public void dispose() {
-            disposable.dispose();
-        }
-    }
+            @Nullable PDPConfigurationSource source) {}
 }

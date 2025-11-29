@@ -36,11 +36,11 @@ class DenyUnlessPermitTests {
 
     @ParameterizedTest(name = "{0}")
     @MethodSource
-    void denyUnlessPermitDecisionTests(String description, String policySet, Decision expectedDecision) {
+    void when_decisionEvaluated_then_matchesExpected(String description, String policySet, Decision expectedDecision) {
         assertDecision(policySet, expectedDecision);
     }
 
-    private static Stream<Arguments> denyUnlessPermitDecisionTests() {
+    private static Stream<Arguments> when_decisionEvaluated_then_matchesExpected() {
         return Stream.of(arguments("Single policy permit returns PERMIT", """
                 set "test" deny-unless-permit
                 policy "permit policy" permit
@@ -67,7 +67,7 @@ class DenyUnlessPermitTests {
 
     @ParameterizedTest(name = "{0}")
     @MethodSource
-    void denyUnlessPermitDecisionTestsWithCustomSubscription(String description, String policySet,
+    void when_decisionEvaluatedWithCustomSubscription_then_matchesExpected(String description, String policySet,
             Decision expectedDecision) {
         val subscription = new AuthorizationSubscription(Value.of("actual_subject"), Value.of("action"),
                 Value.of("resource"), Value.UNDEFINED);
@@ -75,7 +75,7 @@ class DenyUnlessPermitTests {
         assertDecision(result, expectedDecision);
     }
 
-    private static Stream<Arguments> denyUnlessPermitDecisionTestsWithCustomSubscription() {
+    private static Stream<Arguments> when_decisionEvaluatedWithCustomSubscription_then_matchesExpected() {
         return Stream.of(arguments("No policies match returns DENY", """
                 set "test" deny-unless-permit
                 policy "never matches" permit subject == "non-matching"
@@ -101,8 +101,8 @@ class DenyUnlessPermitTests {
 
     @ParameterizedTest(name = "{0}")
     @MethodSource
-    void denyUnlessPermitObligationsAdviceTests(String description, String policySet, Decision expectedDecision,
-            List<String> expectedObligations, List<String> expectedAdvice) {
+    void when_obligationsAndAdviceEvaluated_then_matchesExpected(String description, String policySet,
+            Decision expectedDecision, List<String> expectedObligations, List<String> expectedAdvice) {
         val result = evaluatePolicySet(policySet);
         assertDecision(result, expectedDecision);
         if (expectedObligations != null) {
@@ -113,7 +113,7 @@ class DenyUnlessPermitTests {
         }
     }
 
-    private static Stream<Arguments> denyUnlessPermitObligationsAdviceTests() {
+    private static Stream<Arguments> when_obligationsAndAdviceEvaluated_then_matchesExpected() {
         return Stream.of(arguments("Permit decision includes permit obligations", """
                 set "test" deny-unless-permit
                 policy "permit with obligation" permit obligation {"type": "log"}
@@ -135,7 +135,7 @@ class DenyUnlessPermitTests {
 
     @ParameterizedTest(name = "{0}")
     @MethodSource
-    void denyUnlessPermitObligationsTestsWithCustomSubscription(String description, String policySet,
+    void when_obligationsEvaluatedWithCustomSubscription_then_matchesExpected(String description, String policySet,
             Decision expectedDecision, List<String> expectedObligations) {
         val subscription = new AuthorizationSubscription(Value.of("actual_subject"), Value.of("action"),
                 Value.of("resource"), Value.UNDEFINED);
@@ -144,7 +144,7 @@ class DenyUnlessPermitTests {
         assertObligations(result, expectedObligations);
     }
 
-    private static Stream<Arguments> denyUnlessPermitObligationsTestsWithCustomSubscription() {
+    private static Stream<Arguments> when_obligationsEvaluatedWithCustomSubscription_then_matchesExpected() {
         return Stream.of(arguments("Deny decision includes deny obligations", """
                 set "test" deny-unless-permit
                 policy "permit with obligation" permit subject == "non-matching" obligation {"type": "permit_log"}
@@ -154,12 +154,12 @@ class DenyUnlessPermitTests {
 
     @ParameterizedTest(name = "{0}")
     @MethodSource
-    void denyUnlessPermitResourceTests(String description, String policySet, Decision expectedDecision,
+    void when_resourceTransformed_then_matchesExpected(String description, String policySet, Decision expectedDecision,
             Value expectedResource) {
         assertDecisionWithResource(policySet, expectedDecision, expectedResource);
     }
 
-    private static Stream<Arguments> denyUnlessPermitResourceTests() {
+    private static Stream<Arguments> when_resourceTransformed_then_matchesExpected() {
         return Stream.of(arguments("Single permit with transformation returns PERMIT with resource", """
                 set "test" deny-unless-permit
                 policy "permit with transformation" permit transform "modified_resource"
@@ -174,13 +174,13 @@ class DenyUnlessPermitTests {
 
     @ParameterizedTest(name = "{0}")
     @MethodSource
-    void denyUnlessPermitSubscriptionFieldTests(String description, AuthorizationSubscription subscription,
+    void when_subscriptionFieldsUsed_then_matchesExpected(String description, AuthorizationSubscription subscription,
             String policySet, Decision expectedDecision) {
         val result = evaluatePolicySet(policySet, subscription);
         assertDecision(result, expectedDecision);
     }
 
-    private static Stream<Arguments> denyUnlessPermitSubscriptionFieldTests() {
+    private static Stream<Arguments> when_subscriptionFieldsUsed_then_matchesExpected() {
         return Stream.of(
                 arguments("Target expression with subscription fields",
                         new AuthorizationSubscription(Value.of("Alice"), Value.of("read"), Value.of("document"),
@@ -203,14 +203,15 @@ class DenyUnlessPermitTests {
 
     @ParameterizedTest(name = "{0}")
     @MethodSource
-    void denyUnlessPermitSubscriptionResourceTests(String description, AuthorizationSubscription subscription,
-            String policySet, Decision expectedDecision, Value expectedResource) {
+    void when_subscriptionResourceTransformed_then_matchesExpected(String description,
+            AuthorizationSubscription subscription, String policySet, Decision expectedDecision,
+            Value expectedResource) {
         val result = evaluatePolicySet(policySet, subscription);
         assertDecision(result, expectedDecision);
         assertResource(result, expectedResource);
     }
 
-    private static Stream<Arguments> denyUnlessPermitSubscriptionResourceTests() {
+    private static Stream<Arguments> when_subscriptionResourceTransformed_then_matchesExpected() {
         return Stream.of(arguments("Decision expression with subscription reference",
                 new AuthorizationSubscription(ObjectValue.builder().put("name", Value.of("Alice")).build(),
                         Value.of("read"), Value.of("document"), Value.UNDEFINED),
@@ -222,7 +223,7 @@ class DenyUnlessPermitTests {
 
     @ParameterizedTest(name = "{0}")
     @MethodSource
-    void denyUnlessPermitComplexScenarioTests(String description, String policySet, Decision expectedDecision,
+    void when_complexScenario_then_matchesExpected(String description, String policySet, Decision expectedDecision,
             List<String> expectedObligations, List<String> expectedAdvice, Value expectedResource) {
         val result = evaluatePolicySet(policySet);
         assertDecision(result, expectedDecision);
@@ -237,7 +238,7 @@ class DenyUnlessPermitTests {
         }
     }
 
-    private static Stream<Arguments> denyUnlessPermitComplexScenarioTests() {
+    private static Stream<Arguments> when_complexScenario_then_matchesExpected() {
         return Stream.of(arguments("Permit with obligations advice and transformation", """
                 set "test" deny-unless-permit
                 policy "permit with everything" permit

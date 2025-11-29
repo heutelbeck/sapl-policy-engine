@@ -34,7 +34,7 @@ class PolicyInformationPointSpecificationTests {
     private static final AttributeFinder DUMMY_FINDER = inv -> null;
 
     @Test
-    void construction_storesNameAndFinders() {
+    void when_construction_then_storesNameAndFinders() {
         var finder1 = new AttributeFinderSpecification("test", "attr1", false, List.of(), null, DUMMY_FINDER);
         var finder2 = new AttributeFinderSpecification("test", "attr2", false,
                 List.<Class<? extends Value>>of(TextValue.class), null, DUMMY_FINDER);
@@ -46,7 +46,7 @@ class PolicyInformationPointSpecificationTests {
     }
 
     @Test
-    void construction_emptyFinders() {
+    void when_construction_withEmptyFinders_then_emptySet() {
         var spec = new PolicyInformationPointSpecification("test", Set.of());
 
         assertThat(spec.name()).isEqualTo("test");
@@ -54,7 +54,7 @@ class PolicyInformationPointSpecificationTests {
     }
 
     @Test
-    void equals_sameNameAndFinders_areEqual() {
+    void when_equals_sameNameAndFinders_then_areEqual() {
         var finder = new AttributeFinderSpecification("test", "attr", false, List.of(), null, DUMMY_FINDER);
 
         var spec1 = new PolicyInformationPointSpecification("test", Set.of(finder));
@@ -64,7 +64,7 @@ class PolicyInformationPointSpecificationTests {
     }
 
     @Test
-    void equals_differentNames_notEqual() {
+    void when_equals_differentNames_then_notEqual() {
         var finder = new AttributeFinderSpecification("test", "attr", false, List.of(), null, DUMMY_FINDER);
 
         var spec1 = new PolicyInformationPointSpecification("test1", Set.of(finder));

@@ -30,10 +30,8 @@ import java.time.format.DateTimeFormatter;
  * loading.
  * <p>
  * This demo sets up a PDP that monitors {@code C:\devkit\sapl} for policy files
- * and
- * subscribes to authorization decisions. When policies change, new decisions
- * are
- * automatically emitted.
+ * and subscribes to authorization
+ * decisions. When policies change, new decisions are automatically emitted.
  * <p>
  * Usage:
  * <ol>
@@ -87,6 +85,9 @@ public class EmbeddedPDPDemo {
         }).doOnError(error -> log.info("ERROR: " + error.getMessage()))
                 .doOnComplete(() -> log.info("Stream completed (unexpected).")).blockLast();
 
-        components.dispose();
+        var source = components.source();
+        if (source != null) {
+            source.dispose();
+        }
     }
 }

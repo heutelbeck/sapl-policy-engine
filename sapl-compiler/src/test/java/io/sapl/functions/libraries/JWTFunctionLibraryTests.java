@@ -17,9 +17,14 @@
  */
 package io.sapl.functions.libraries;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
-import io.sapl.api.model.*;
+import io.sapl.api.model.ArrayValue;
+import io.sapl.api.model.ErrorValue;
+import io.sapl.api.model.ObjectValue;
+import io.sapl.api.model.TextValue;
+import io.sapl.api.model.Value;
 import lombok.val;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -27,6 +32,7 @@ import org.junit.jupiter.params.provider.ValueSource;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -42,7 +48,7 @@ class JWTFunctionLibraryTests {
     }
 
     @Test
-    void wellFormedTokenIsParsed() {
+    void when_parsingWellFormedToken_then_headerAndPayloadExtracted() {
         val result = createLibrary().parseJwt(Value.of(WELL_FORMED_TOKEN));
 
         assertThat(result).isNotInstanceOf(ErrorValue.class);
@@ -57,7 +63,7 @@ class JWTFunctionLibraryTests {
     }
 
     @Test
-    void wellFormedTokenConvertsEpochTimestampsToIso() {
+    void when_parsingWellFormedToken_then_epochTimestampsConvertedToIso() {
         val result = createLibrary().parseJwt(Value.of(WELL_FORMED_TOKEN));
 
         assertThat(result).isNotInstanceOf(ErrorValue.class);
@@ -70,7 +76,7 @@ class JWTFunctionLibraryTests {
     }
 
     @Test
-    void wellFormedTokenExtractsScopes() {
+    void when_parsingWellFormedToken_then_scopesExtracted() {
         val result = createLibrary().parseJwt(Value.of(WELL_FORMED_TOKEN));
 
         assertThat(result).isNotInstanceOf(ErrorValue.class);
@@ -85,7 +91,7 @@ class JWTFunctionLibraryTests {
     @ParameterizedTest
     @ValueSource(strings = { "This is not a JWT token at all", "eyJhbGciOiJSUzI1NiJ9.incomplete",
             "eyJhbGciOiJSUzI1NiJ9eyJzdWIiOiJ0ZXN0In0", "", "...", "a.b.c.d", "header.payload", "x" })
-    void malformedTokensReturnError(String malformedToken) {
+    void when_parsingMalformedToken_then_returnsError(String malformedToken) {
         var result = createLibrary().parseJwt(Value.of(malformedToken));
 
         assertThat(result).isInstanceOf(ErrorValue.class).extracting(v -> ((ErrorValue) v).message())
@@ -93,10 +99,10 @@ class JWTFunctionLibraryTests {
     }
 
     @Test
-    @SuppressWarnings("unchecked")
-    void payloadNotAnObjectWorks() {
+    void when_payloadIsNotAnObject_then_parsesSuccessfully() {
         val mapper = mock(ObjectMapper.class);
-        when(mapper.convertValue(any(), any(Class.class))).thenReturn(JSON.textNode("SOL command structure"));
+        when(mapper.convertValue(any(Object.class), eq(JsonNode.class)))
+                .thenReturn(JSON.textNode("SOL command structure"));
         val library = new JWTFunctionLibrary(mapper);
         val result  = library.parseJwt(Value.of(WELL_FORMED_TOKEN));
 
@@ -109,13 +115,12 @@ class JWTFunctionLibraryTests {
     }
 
     @Test
-    @SuppressWarnings("unchecked")
-    void payloadWithoutTimeClaimsWorks() {
+    void when_payloadHasNoTimeClaims_then_parsesSuccessfully() {
         val mapper  = mock(ObjectMapper.class);
         val payload = JSON.objectNode();
         payload.put("sub", "perry.rhodan");
         payload.put("role", "commander");
-        when(mapper.convertValue(any(), any(Class.class))).thenReturn(payload);
+        when(mapper.convertValue(any(Object.class), eq(JsonNode.class))).thenReturn(payload);
 
         val library = new JWTFunctionLibrary(mapper);
         val result  = library.parseJwt(Value.of(WELL_FORMED_TOKEN));
@@ -128,13 +133,12 @@ class JWTFunctionLibraryTests {
     }
 
     @Test
-    @SuppressWarnings("unchecked")
-    void payloadWithNonNumericTimeClaimsWorks() {
+    void when_payloadHasNonNumericTimeClaims_then_preservesOriginalValue() {
         val mapper  = mock(ObjectMapper.class);
         val payload = JSON.objectNode();
         payload.put("sub", "atlan");
         payload.set("nbf", JSON.textNode("not a number"));
-        when(mapper.convertValue(any(), any(Class.class))).thenReturn(payload);
+        when(mapper.convertValue(any(Object.class), eq(JsonNode.class))).thenReturn(payload);
 
         val library = new JWTFunctionLibrary(mapper);
         val result  = library.parseJwt(Value.of(WELL_FORMED_TOKEN));
@@ -147,13 +151,12 @@ class JWTFunctionLibraryTests {
     }
 
     @ParameterizedTest
-    @SuppressWarnings("unchecked")
     @ValueSource(strings = { "nbf", "exp", "iat" })
-    void timeClaimsAreConvertedFromEpochToIso(String claimName) {
+    void when_parsingTimeClaim_then_convertedFromEpochToIso(String claimName) {
         val mapper  = mock(ObjectMapper.class);
         val payload = JSON.objectNode();
         payload.set(claimName, JSON.numberNode(0L));
-        when(mapper.convertValue(any(), any(Class.class))).thenReturn(payload);
+        when(mapper.convertValue(any(Object.class), eq(JsonNode.class))).thenReturn(payload);
 
         val library = new JWTFunctionLibrary(mapper);
         val result  = library.parseJwt(Value.of(WELL_FORMED_TOKEN));
@@ -166,14 +169,13 @@ class JWTFunctionLibraryTests {
     }
 
     @Test
-    @SuppressWarnings("unchecked")
-    void allTimeClaimsConvertedTogether() {
+    void when_parsingMultipleTimeClaims_then_allConvertedToIso() {
         val mapper  = mock(ObjectMapper.class);
         val payload = JSON.objectNode();
         payload.set("nbf", JSON.numberNode(1000000000L));
         payload.set("exp", JSON.numberNode(2000000000L));
         payload.set("iat", JSON.numberNode(1500000000L));
-        when(mapper.convertValue(any(), any(Class.class))).thenReturn(payload);
+        when(mapper.convertValue(any(Object.class), eq(JsonNode.class))).thenReturn(payload);
 
         val library = new JWTFunctionLibrary(mapper);
         val result  = library.parseJwt(Value.of(WELL_FORMED_TOKEN));
@@ -188,8 +190,7 @@ class JWTFunctionLibraryTests {
     }
 
     @Test
-    @SuppressWarnings("unchecked")
-    void payloadWithMixedClaimsWorks() {
+    void when_payloadHasMixedClaims_then_allHandledCorrectly() {
         val mapper  = mock(ObjectMapper.class);
         val payload = JSON.objectNode();
         payload.put("sub", "gucky");
@@ -197,7 +198,7 @@ class JWTFunctionLibraryTests {
         payload.put("cellActivator", true);
         payload.set("nbf", JSON.numberNode(1635251415L));
         payload.set("exp", JSON.numberNode(1635251715L));
-        when(mapper.convertValue(any(), any(Class.class))).thenReturn(payload);
+        when(mapper.convertValue(any(Object.class), eq(JsonNode.class))).thenReturn(payload);
 
         val library = new JWTFunctionLibrary(mapper);
         val result  = library.parseJwt(Value.of(WELL_FORMED_TOKEN));

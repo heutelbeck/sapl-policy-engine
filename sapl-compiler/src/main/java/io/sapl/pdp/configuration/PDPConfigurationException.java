@@ -17,22 +17,16 @@
  */
 package io.sapl.pdp.configuration;
 
+import io.sapl.api.SaplVersion;
+import lombok.experimental.StandardException;
+
 import java.io.Serial;
 
 /**
  * Exception thrown when PDP configuration loading fails.
  */
+@StandardException
 public class PDPConfigurationException extends RuntimeException {
-
     @Serial
-    private static final long serialVersionUID = 1L;
-
-    public PDPConfigurationException(String message) {
-        super(message);
-    }
-
-    public PDPConfigurationException(String message, Throwable cause) {
-        super(message, cause);
-    }
-
+    private static final long serialVersionUID = SaplVersion.VERSION_UID;
 }

@@ -39,7 +39,7 @@ import static org.mockito.Mockito.when;
 class TimePolicyInformationPointTests {
 
     @Test
-    void now_EmitsUpdates() {
+    void when_now_then_emitsUpdates() {
         val now        = Instant.parse("2021-11-08T13:00:00Z");
         val nowPlusOne = Instant.parse("2021-11-08T13:00:01Z");
         val nowPlusTwo = Instant.parse("2021-11-08T13:00:02Z");
@@ -51,7 +51,7 @@ class TimePolicyInformationPointTests {
     }
 
     @Test
-    void now_zeroDelay_Fails() {
+    void when_nowWithZeroDelay_then_fails() {
         val clock = mock(Clock.class);
         val sut   = new TimePolicyInformationPoint(clock);
         StepVerifier.<Value>withVirtualTime(() -> sut.now(Value.of(0L))).expectNextMatches(ErrorValue.class::isInstance)
@@ -59,13 +59,13 @@ class TimePolicyInformationPointTests {
     }
 
     @Test
-    void systemTimeZone_isRetrieved() {
+    void when_systemTimeZone_then_isRetrieved() {
         val sut = new TimePolicyInformationPoint(mock(Clock.class)).systemTimeZone().next();
         StepVerifier.create(sut).expectNextMatches(TextValue.class::isInstance).verifyComplete();
     }
 
     @Test
-    void nowIsAfterTest() {
+    void when_nowIsAfter_then_emitsCorrectValues() {
         val startingTime = Instant.parse("2021-11-08T13:00:00Z");
         val checkpoint   = Value.of("2021-11-08T14:30:00Z");
         val clock        = mock(Clock.class);
@@ -76,7 +76,7 @@ class TimePolicyInformationPointTests {
     }
 
     @Test
-    void localTimeIsAlwaysAfterMidnightTest() {
+    void when_localTimeIsAfterMidnight_then_alwaysTrue() {
         val startingTime = Instant.parse("2021-11-08T13:00:00Z");
         val checkpoint   = Value.of(LocalTime.MIN.toString());
         val clock        = mock(Clock.class);
@@ -87,7 +87,7 @@ class TimePolicyInformationPointTests {
     }
 
     @Test
-    void localTimeIsNeverAfterMaxTimeTest() {
+    void when_localTimeIsAfterMaxTime_then_neverTrue() {
         val startingTime = Instant.parse("2021-11-08T13:00:00Z");
         val checkpoint   = Value.of(LocalTime.MAX.toString());
         val clock        = mock(Clock.class);
@@ -98,7 +98,7 @@ class TimePolicyInformationPointTests {
     }
 
     @Test
-    void localTimeIsNeverBetweenForNullSizeIntervalTest() {
+    void when_localTimeIsBetweenNullSizeInterval_then_neverTrue() {
         val startingTime = Instant.parse("2021-11-08T13:00:00Z");
         val start        = Value.of("12:00");
         val end          = Value.of("12:00");
@@ -110,7 +110,7 @@ class TimePolicyInformationPointTests {
     }
 
     @Test
-    void localTimeIsAlwaysBetweenForMinMaxIntervalTest() {
+    void when_localTimeIsBetweenMinMaxInterval_then_alwaysTrue() {
         val startingTime = Instant.parse("2021-11-08T13:00:00Z");
         val start        = Value.of(LocalTime.MIN.toString());
         val end          = Value.of(LocalTime.MAX.toString());
@@ -122,7 +122,7 @@ class TimePolicyInformationPointTests {
     }
 
     @Test
-    void localTimeIntervalStartsAtMinButNotTillMaxTest() {
+    void when_localTimeIntervalStartsAtMinButNotTillMax_then_returnsTrue() {
         val startingTime = Instant.parse("2021-11-08T13:00:00Z");
         val start        = Value.of(LocalTime.MIN.toString());
         val end          = Value.of("22:00");
@@ -134,7 +134,7 @@ class TimePolicyInformationPointTests {
     }
 
     @Test
-    void localTimeIntervalStartsAtMaxButNotTillMinTest() {
+    void when_localTimeIntervalStartsAtMaxButNotTillMin_then_returnsTrue() {
         val startingTime = Instant.parse("2021-11-08T13:00:00Z");
         val start        = Value.of(LocalTime.MAX.toString());
         val end          = Value.of("14:00");
@@ -146,7 +146,7 @@ class TimePolicyInformationPointTests {
     }
 
     @Test
-    void localTimeIsAlwaysBetweenForMaxMinIntervalTest() {
+    void when_localTimeIsBetweenMaxMinInterval_then_alwaysTrue() {
         val startingTime = Instant.parse("2021-11-08T13:00:00Z");
         val start        = Value.of(LocalTime.MAX.toString());
         val end          = Value.of(LocalTime.MIN.toString());
@@ -158,7 +158,7 @@ class TimePolicyInformationPointTests {
     }
 
     @Test
-    void localTimeBetweenStartingBeforeIntervalTest() {
+    void when_localTimeBetweenStartingBeforeInterval_then_emitsCorrectSequence() {
         val startingTime = Instant.parse("2021-11-08T13:00:00Z");
         val start        = Value.of("14:00:00");
         val end          = Value.of("15:00");
@@ -180,7 +180,7 @@ class TimePolicyInformationPointTests {
     }
 
     @Test
-    void localTimeBetweenStartingBeforeIntervalReversedTest() {
+    void when_localTimeBetweenStartingBeforeIntervalReversed_then_emitsCorrectSequence() {
         val startingTime = Instant.parse("2021-11-08T13:00:00Z");
         val start        = Value.of("15:00");
         val end          = Value.of("14:00:00");
@@ -202,7 +202,7 @@ class TimePolicyInformationPointTests {
     }
 
     @Test
-    void localTimeBetweenStartingInsideOfIntervalTest() {
+    void when_localTimeBetweenStartingInsideOfInterval_then_emitsCorrectSequence() {
         val startingTime = Instant.parse("2021-11-08T15:00:00Z");
         val start        = Value.of("14:00:00");
         val end          = Value.of("16:00");
@@ -223,7 +223,7 @@ class TimePolicyInformationPointTests {
     }
 
     @Test
-    void localTimeBetweenStartingAfterIntervalTest() {
+    void when_localTimeBetweenStartingAfterInterval_then_emitsCorrectSequence() {
         val startingTime = Instant.parse("2021-11-08T18:00:00Z");
         val start        = Value.of("14:00:00");
         val end          = Value.of("16:00");
@@ -245,7 +245,7 @@ class TimePolicyInformationPointTests {
     }
 
     @Test
-    void startingTimeIsAfterStartingAfterTest() {
+    void when_startingTimeIsAfterCheckpoint_then_emitsCorrectSequence() {
         val startingTime = Instant.parse("2021-11-08T13:00:00Z");
         val checkpoint   = Value.of("12:00");
         val clock        = mock(Clock.class);
@@ -264,7 +264,7 @@ class TimePolicyInformationPointTests {
     }
 
     @Test
-    void startingTimeIsBeforeStartingAfterTest() {
+    void when_startingTimeIsBeforeCheckpoint_then_emitsCorrectSequence() {
         val startingTime = Instant.parse("2021-11-08T11:00:00Z");
         val checkpoint   = Value.of("12:00");
         val clock        = mock(Clock.class);
@@ -284,7 +284,7 @@ class TimePolicyInformationPointTests {
     }
 
     @Test
-    void startingTimeIBeforeStartingBeforeTest() {
+    void when_startingTimeIBeforeStartingBefore_then_emitsCorrectSequence() {
         val startingTime = Instant.parse("2021-11-08T11:00:00Z");
         val checkpoint   = Value.of("12:00");
         val clock        = mock(Clock.class);
@@ -304,7 +304,7 @@ class TimePolicyInformationPointTests {
     }
 
     @Test
-    void nowIsBetweenStartAfterIntervalTest() {
+    void when_nowIsBetweenStartAfterInterval_then_returnsFalse() {
         val startingTime  = Instant.parse("2021-11-08T13:00:40Z");
         val intervalStart = Value.of("2021-11-08T13:00:05Z");
         val intervalEnd   = Value.of("2021-11-08T13:00:10Z");
@@ -318,7 +318,7 @@ class TimePolicyInformationPointTests {
     }
 
     @Test
-    void nowIsBetweenStartBetweenTest() {
+    void when_nowIsBetweenStartBetween_then_transitionsCorrectly() {
         val startingTime  = Instant.parse("2021-11-08T13:00:05Z");
         val intervalStart = Value.of("2021-11-08T13:00:00Z");
         val intervalEnd   = Value.of("2021-11-08T13:00:10Z");
@@ -331,7 +331,7 @@ class TimePolicyInformationPointTests {
     }
 
     @Test
-    void nowIsBetweenStartBeforeTest() {
+    void when_nowIsBetweenStartBefore_then_transitionsCorrectly() {
         val startingTime  = Instant.parse("2021-11-08T13:00:00Z");
         val intervalStart = Value.of("2021-11-08T13:00:05Z");
         val intervalEnd   = Value.of("2021-11-08T13:00:10Z");
@@ -345,7 +345,7 @@ class TimePolicyInformationPointTests {
     }
 
     @Test
-    void nowIsAfterTestAlwaysAfter() {
+    void when_nowIsAlwaysAfterCheckpoint_then_returnsTrue() {
         val now        = Instant.parse("2021-11-08T13:00:00Z");
         val checkpoint = Value.of("2021-11-01T14:30:00Z");
         val clock      = mock(Clock.class);
@@ -355,7 +355,7 @@ class TimePolicyInformationPointTests {
     }
 
     @Test
-    void nowIsBeforeTest() {
+    void when_nowIsBefore_then_transitionsCorrectly() {
         val now        = Instant.parse("2021-11-08T13:00:00Z");
         val checkpoint = Value.of("2021-11-08T14:30:00Z");
         val clock      = mock(Clock.class);
@@ -366,7 +366,7 @@ class TimePolicyInformationPointTests {
     }
 
     @Test
-    void toggleTest() {
+    void when_toggle_then_alternatesCorrectly() {
         val sut = new TimePolicyInformationPoint(mock(Clock.class));
         StepVerifier.<Value>withVirtualTime(() -> sut.toggle(Value.of(5_000L), Value.of(1_000L))).expectNext(Value.TRUE)
                 .thenAwait(Duration.ofMillis(5_0000L)).expectNext(Value.FALSE).thenAwait(Duration.ofMillis(1_000L))
@@ -374,7 +374,7 @@ class TimePolicyInformationPointTests {
     }
 
     @Test
-    void brokerCanLoadTimePolicyInformationPointLibrary() {
+    void when_brokerLoadsTimePip_then_libraryIsAvailable() {
         val repository = new InMemoryAttributeRepository(Clock.systemUTC());
         val broker     = new CachingAttributeBroker(repository);
         val pip        = new TimePolicyInformationPoint(Clock.systemUTC());
@@ -385,7 +385,7 @@ class TimePolicyInformationPointTests {
     }
 
     @Test
-    void loadLibraryWithoutAnnotationThrowsException() {
+    void when_loadLibraryWithoutAnnotation_then_throwsException() {
         val repository = new InMemoryAttributeRepository(Clock.systemUTC());
         val broker     = new CachingAttributeBroker(repository);
 
@@ -400,7 +400,7 @@ class TimePolicyInformationPointTests {
     }
 
     @Test
-    void loadDuplicateLibraryThrowsException() {
+    void when_loadDuplicateLibrary_then_throwsException() {
         val repository = new InMemoryAttributeRepository(Clock.systemUTC());
         val broker     = new CachingAttributeBroker(repository);
         val pip        = new TimePolicyInformationPoint(Clock.systemUTC());

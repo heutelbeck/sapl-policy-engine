@@ -67,12 +67,12 @@ class StepOperatorsTests {
 
     @ParameterizedTest(name = "[{index}] keyStep: {3}")
     @MethodSource("keyStepCases")
-    void keyStepReturnsCorrectValue(ObjectValue object, String key, Value expected, String description) {
+    void when_keyStep_then_returnsCorrectValue(ObjectValue object, String key, Value expected, String description) {
         assertThat(keyStep(object, key)).isEqualTo(expected);
     }
 
     @Test
-    void keyStepReturnsErrorForNonObject() {
+    void when_keyStepOnNonObject_then_returnsError() {
         val result = keyStep(NECRONOMICON_CHAPTERS, "forbidden");
         assertThat(result).isInstanceOf(ErrorValue.class);
         assertThat(result.toString()).contains("Expected an ObjectValue");
@@ -93,7 +93,7 @@ class StepOperatorsTests {
 
     @ParameterizedTest(name = "[{index}] indexStep valid: {3}")
     @MethodSource("indexStepValidCases")
-    void indexStepReturnsCorrectElement(ArrayValue array, int index, Value expected, String description) {
+    void when_indexStep_then_returnsCorrectElement(ArrayValue array, int index, Value expected, String description) {
         assertThat(indexStep(array, BigDecimal.valueOf(index))).isEqualTo(expected);
     }
 
@@ -107,14 +107,14 @@ class StepOperatorsTests {
 
     @ParameterizedTest(name = "[{index}] indexStep error: {2}")
     @MethodSource("indexStepErrorCases")
-    void indexStepReturnsErrorForOutOfBounds(ArrayValue array, int index, String description) {
+    void when_indexStepOutOfBounds_then_returnsError(ArrayValue array, int index, String description) {
         val result = indexStep(array, BigDecimal.valueOf(index));
         assertThat(result).isInstanceOf(ErrorValue.class);
         assertThat(result.toString()).contains("out of bounds");
     }
 
     @Test
-    void indexStepReturnsErrorForNonArray() {
+    void when_indexStepOnNonArray_then_returnsError() {
         val result = indexStep(CULTIST_RECORD, BigDecimal.ZERO);
         assertThat(result).isInstanceOf(ErrorValue.class);
         assertThat(result.toString()).contains("Expected an Array");
@@ -123,12 +123,12 @@ class StepOperatorsTests {
     // ========== wildcardStep Tests ==========
 
     @Test
-    void wildcardStepReturnsArrayIdentity() {
+    void when_wildcardStepOnArray_then_returnsArrayIdentity() {
         assertThat(wildcardStep(NECRONOMICON_CHAPTERS)).isSameAs(NECRONOMICON_CHAPTERS);
     }
 
     @Test
-    void wildcardStepConvertsObjectValuesToArray() {
+    void when_wildcardStepOnObject_then_convertsValuesToArray() {
         val result = wildcardStep(CULTIST_RECORD);
         assertThat(result).isInstanceOf(ArrayValue.class);
         val arrayResult = (ArrayValue) result;
@@ -136,7 +136,7 @@ class StepOperatorsTests {
     }
 
     @Test
-    void wildcardStepPreservesObjectInsertionOrder() {
+    void when_wildcardStepOnObject_then_preservesInsertionOrder() {
         val cthulhuPriests = ObjectValue.builder().put("rlyeh", Value.of("Cthulhu"))
                 .put("yuggoth", Value.of("Shub-Niggurath")).put("kadath", Value.of("Nyarlathotep")).build();
         val result         = (ArrayValue) wildcardStep(cthulhuPriests);
@@ -146,7 +146,7 @@ class StepOperatorsTests {
     }
 
     @Test
-    void wildcardStepReturnsErrorForNonContainer() {
+    void when_wildcardStepOnNonContainer_then_returnsError() {
         val result = wildcardStep(Value.of(42));
         assertThat(result).isInstanceOf(ErrorValue.class);
         assertThat(result.toString()).contains("can only be applied to arrays or objects");
@@ -155,14 +155,14 @@ class StepOperatorsTests {
     // ========== recursiveKeyStep Tests ==========
 
     @Test
-    void recursiveKeyStepFindsShallowKey() {
+    void when_recursiveKeyStepWithShallowKey_then_findsKey() {
         val array = (ArrayValue) recursiveKeyStep(CULTIST_RECORD, "name");
         assertThat(array).hasSize(1);
         assertThat(array.getFirst()).isEqualTo(WILBUR_WHATELEY);
     }
 
     @Test
-    void recursiveKeyStepFindsNestedKeys() {
+    void when_recursiveKeyStepWithNestedKeys_then_findsAllKeys() {
         val nestedCults = json("""
                 {
                     "power": 100,
@@ -180,12 +180,12 @@ class StepOperatorsTests {
     }
 
     @Test
-    void recursiveKeyStepReturnsEmptyForMissingKey() {
+    void when_recursiveKeyStepWithMissingKey_then_returnsEmpty() {
         assertThat(recursiveKeyStep(CULTIST_RECORD, "unknownOldOne")).isEqualTo(Value.EMPTY_ARRAY);
     }
 
     @Test
-    void recursiveKeyStepSearchesArraysForNestedObjects() {
+    void when_recursiveKeyStepOnArrayWithNestedObjects_then_searchesArrays() {
         val arrayOfObjects = json("""
                 [
                     {"ritual": "summoning"},
@@ -199,7 +199,7 @@ class StepOperatorsTests {
 
     @Test
     @Timeout(value = 5, unit = TimeUnit.SECONDS)
-    void recursiveKeyStepHandlesMaxDepth() {
+    void when_recursiveKeyStepExceedsMaxDepth_then_returnsError() {
         // Creates 501 levels which will process 500 before hitting depth limit
         val abyssalDepth = createDeeplyNestedObject(501);
         val result       = recursiveKeyStep(abyssalDepth, "key");
@@ -212,14 +212,14 @@ class StepOperatorsTests {
     // ========== recursiveIndexStep Tests ==========
 
     @Test
-    void recursiveIndexStepFindsShallowIndex() {
+    void when_recursiveIndexStepWithShallowIndex_then_findsIndex() {
         val array = (ArrayValue) recursiveIndexStep(NECRONOMICON_CHAPTERS, BigDecimal.valueOf(0));
         assertThat(array).hasSize(1);
         assertThat(array.getFirst()).isEqualTo(AL_AZIF);
     }
 
     @Test
-    void recursiveIndexStepFindsNestedIndices() {
+    void when_recursiveIndexStepWithNestedIndices_then_findsAllIndices() {
         val nestedChants = json("""
                 [
                     ["Ia! Ia!", "Ph'nglui"],
@@ -233,7 +233,7 @@ class StepOperatorsTests {
     }
 
     @Test
-    void recursiveIndexStepHandlesNegativeIndex() {
+    void when_recursiveIndexStepWithNegativeIndex_then_handlesNegativeIndex() {
         val rituals = json("""
                 [
                     ["Summoning", "Binding", "Banishment"],
@@ -246,7 +246,7 @@ class StepOperatorsTests {
     }
 
     @Test
-    void recursiveIndexStepSkipsOutOfBoundsIndices() {
+    void when_recursiveIndexStepWithOutOfBoundsIndices_then_skipsOutOfBounds() {
         val unevenDepths = json("""
                 [
                     ["shallow"],
@@ -259,7 +259,7 @@ class StepOperatorsTests {
     }
 
     @Test
-    void recursiveIndexStepSearchesObjectValuesForNestedArrays() {
+    void when_recursiveIndexStepOnObjectWithNestedArrays_then_searchesObjectValues() {
         val objectWithArrays = json("""
                 {
                     "incantations": ["Ia", "Cthulhu", "fhtagn"],
@@ -274,7 +274,7 @@ class StepOperatorsTests {
 
     @Test
     @Timeout(value = 5, unit = TimeUnit.SECONDS)
-    void recursiveIndexStepHandlesMaxDepth() {
+    void when_recursiveIndexStepExceedsMaxDepth_then_returnsError() {
         // Creates 501 levels which will process 500 before hitting depth limit
         val endlessVoid = createDeeplyNestedArray(501);
         val result      = recursiveIndexStep(endlessVoid, BigDecimal.valueOf(0));
@@ -287,7 +287,7 @@ class StepOperatorsTests {
     // ========== recursiveWildcardStep Tests ==========
 
     @Test
-    void recursiveWildcardStepReturnsEmptyForPrimitives() {
+    void when_recursiveWildcardStepOnPrimitives_then_returnsEmpty() {
         assertThat(recursiveWildcardStep(Value.of(42))).isEqualTo(Value.EMPTY_ARRAY);
         assertThat(recursiveWildcardStep(Value.of("Azathoth"))).isEqualTo(Value.EMPTY_ARRAY);
         assertThat(recursiveWildcardStep(Value.TRUE)).isEqualTo(Value.EMPTY_ARRAY);
@@ -296,20 +296,20 @@ class StepOperatorsTests {
     }
 
     @Test
-    void recursiveWildcardStepCollectsAllArrayElements() {
+    void when_recursiveWildcardStepOnArray_then_collectsAllElements() {
         val result = (ArrayValue) recursiveWildcardStep(NECRONOMICON_CHAPTERS);
         assertThat(result).hasSize(5).contains(AL_AZIF, CULTUS_MALEFICARUM, RITES_OF_YOG_SOTHOTH, FORBIDDEN_SUMMONINGS,
                 THE_KEY_AND_THE_GATE);
     }
 
     @Test
-    void recursiveWildcardStepCollectsAllObjectValues() {
+    void when_recursiveWildcardStepOnObject_then_collectsAllValues() {
         val result = (ArrayValue) recursiveWildcardStep(CULTIST_RECORD);
         assertThat(result).hasSize(3).contains(WILBUR_WHATELEY, Value.of(85), Value.of(12));
     }
 
     @Test
-    void recursiveWildcardStepCollectsNestedArrayElements() {
+    void when_recursiveWildcardStepOnNestedArrays_then_collectsNestedElements() {
         val nestedChants = json("""
                 [
                     ["Ia! Ia!", "Ph'nglui"],
@@ -324,7 +324,7 @@ class StepOperatorsTests {
     }
 
     @Test
-    void recursiveWildcardStepCollectsNestedObjectValues() {
+    void when_recursiveWildcardStepOnNestedObjects_then_collectsNestedValues() {
         val nestedCults = json("""
                 {
                     "outerCult": {
@@ -346,7 +346,7 @@ class StepOperatorsTests {
     }
 
     @Test
-    void recursiveWildcardStepCollectsMixedNestedStructures() {
+    void when_recursiveWildcardStepOnMixedNested_then_collectsAllStructures() {
         val complexStructure = json("""
                 {
                     "tomes": ["Necronomicon", "Unaussprechlichen Kulten"],
@@ -366,13 +366,13 @@ class StepOperatorsTests {
     }
 
     @Test
-    void recursiveWildcardStepReturnsEmptyForEmptyContainers() {
+    void when_recursiveWildcardStepOnEmptyContainers_then_returnsEmpty() {
         assertThat(recursiveWildcardStep(Value.EMPTY_ARRAY)).isEqualTo(Value.EMPTY_ARRAY);
         assertThat(recursiveWildcardStep(Value.EMPTY_OBJECT)).isEqualTo(Value.EMPTY_ARRAY);
     }
 
     @Test
-    void recursiveWildcardStepIncludesNullAndUndefinedValues() {
+    void when_recursiveWildcardStepWithNullAndUndefined_then_includesSpecialValues() {
         val withSpecialValues = ObjectValue.builder().put("void", Value.NULL).put("madness", Value.UNDEFINED)
                 .put("real", Value.of("Cthulhu")).build();
         val result            = (ArrayValue) recursiveWildcardStep(withSpecialValues);
@@ -380,7 +380,7 @@ class StepOperatorsTests {
     }
 
     @Test
-    void recursiveWildcardStepIncludesErrorValues() {
+    void when_recursiveWildcardStepWithErrorValues_then_includesErrors() {
         val builder = ArrayValue.builder();
         builder.add(Value.of("Elder Sign"));
         builder.add(Value.error("The void gazes back"));
@@ -393,7 +393,7 @@ class StepOperatorsTests {
     }
 
     @Test
-    void recursiveWildcardStepTraversesDepthFirst() {
+    void when_recursiveWildcardStep_then_traversesDepthFirst() {
         val structure = json("""
                 [
                     "first",
@@ -411,7 +411,7 @@ class StepOperatorsTests {
     }
 
     @Test
-    void recursiveWildcardStepMatchesIntegrationTestBehavior() {
+    void when_recursiveWildcardStep_then_matchesIntegrationTestBehavior() {
         val structure = json("""
                 {
                     "key": "value1",
@@ -428,7 +428,7 @@ class StepOperatorsTests {
 
     @Test
     @Timeout(value = 5, unit = TimeUnit.SECONDS)
-    void recursiveWildcardStepHandlesMaxDepth() {
+    void when_recursiveWildcardStepExceedsMaxDepth_then_returnsError() {
         // Creates 501 levels which will process 500 before hitting depth limit
         val abyssalDepth = createDeeplyNestedArray(501);
         val result       = recursiveWildcardStep(abyssalDepth);
@@ -447,8 +447,8 @@ class StepOperatorsTests {
             "2,, 1, '[2, 3, 4, 5, 6, 7, 8, 9]', 'from third onward'", ", 5, 1, '[0, 1, 2, 3, 4]', 'first five signs'",
             "-3,, 1, '[7, 8, 9]', 'last three signs'", ", -2, 1, '[0, 1, 2, 3, 4, 5, 6, 7]', 'all but last two'",
             "7, -1, 1, '[7, 8]', 'from seventh to penultimate'" })
-    void sliceArrayForwardCases(BigDecimal start, BigDecimal end, BigDecimal step, String expectedJson,
-            String description) {
+    void when_sliceArrayForward_then_returnsSlice(BigDecimal start, BigDecimal end, BigDecimal step,
+            String expectedJson, String description) {
         assertThat(sliceArray(ELDER_SIGNS, start, end, step)).isEqualTo(json(expectedJson));
     }
 
@@ -456,34 +456,34 @@ class StepOperatorsTests {
     @CsvSource({ ",, -1, '[0, 1, 2, 3, 4, 5, 6, 7, 8, 9]', 'step -1 yields all signs'",
             ",, -3, '[1, 4, 7]', 'step -3 pattern'", "1, 5, -1, '[1, 2, 3, 4]', 'negative step in range'",
             "-2, 6, -1, '[]', 'reversed range yields void'", "-2, -5, -1, '[]', 'negative reversed range'" })
-    void sliceArraySAPLNegativeStepSemantics(BigDecimal start, BigDecimal end, BigDecimal step, String expectedJson,
-            String description) {
+    void when_sliceArrayNegativeStep_then_followsSaplSemantics(BigDecimal start, BigDecimal end, BigDecimal step,
+            String expectedJson, String description) {
         assertThat(sliceArray(ELDER_SIGNS, start, end, step)).isEqualTo(json(expectedJson));
     }
 
     @Test
-    void sliceArrayReturnsErrorForNonArray() {
+    void when_sliceArrayOnNonArray_then_returnsError() {
         val result = sliceArray(CULTIST_RECORD, BigDecimal.valueOf(0), BigDecimal.valueOf(3), BigDecimal.valueOf(1));
         assertThat(result).isInstanceOf(ErrorValue.class);
         assertThat(result.toString()).contains("Expected an Array");
     }
 
     @Test
-    void sliceArrayReturnsErrorForZeroStep() {
+    void when_sliceArrayWithZeroStep_then_returnsError() {
         val result = sliceArray(ELDER_SIGNS, BigDecimal.valueOf(0), BigDecimal.valueOf(5), BigDecimal.valueOf(0));
         assertThat(result).isInstanceOf(ErrorValue.class);
         assertThat(result.toString()).contains("Step must not be zero");
     }
 
     @Test
-    void sliceArrayHandlesEmptyArray() {
+    void when_sliceArrayOnEmpty_then_returnsEmpty() {
         assertThat(sliceArray(Value.EMPTY_ARRAY, null, null, null)).isEqualTo(Value.EMPTY_ARRAY);
     }
 
     // ========== indexUnion Tests ==========
 
     @Test
-    void indexUnionSelectsMultipleIndices() {
+    void when_indexUnionWithMultipleIndices_then_selectsMultiple() {
         val array = (ArrayValue) indexUnion(NECRONOMICON_CHAPTERS, bigDecimals(0, 2, 4));
         assertThat(array).hasSize(3);
         assertThat(array.getFirst()).isEqualTo(AL_AZIF);
@@ -492,7 +492,7 @@ class StepOperatorsTests {
     }
 
     @Test
-    void indexUnionPreservesArrayOrder() {
+    void when_indexUnion_then_preservesArrayOrder() {
         val array = (ArrayValue) indexUnion(NECRONOMICON_CHAPTERS, bigDecimals(4, 1, 3, 0));
         assertThat(array.getFirst()).isEqualTo(AL_AZIF);
         assertThat(array.get(1)).isEqualTo(CULTUS_MALEFICARUM);
@@ -501,7 +501,7 @@ class StepOperatorsTests {
     }
 
     @Test
-    void indexUnionDeduplicatesIndices() {
+    void when_indexUnionWithDuplicates_then_deduplicatesIndices() {
         val array = (ArrayValue) indexUnion(NECRONOMICON_CHAPTERS, bigDecimals(1, 2, 1, 2, 1));
         assertThat(array).hasSize(2);
         assertThat(array.getFirst()).isEqualTo(CULTUS_MALEFICARUM);
@@ -509,7 +509,7 @@ class StepOperatorsTests {
     }
 
     @Test
-    void indexUnionHandlesNegativeIndices() {
+    void when_indexUnionWithNegativeIndices_then_handlesNegatives() {
         val array = (ArrayValue) indexUnion(NECRONOMICON_CHAPTERS, bigDecimals(-1, 0, -2));
         assertThat(array).hasSize(3);
         assertThat(array.getFirst()).isEqualTo(AL_AZIF);
@@ -518,7 +518,7 @@ class StepOperatorsTests {
     }
 
     @Test
-    void indexUnionHandlesMixedPositiveNegativeIndices() {
+    void when_indexUnionWithMixedIndices_then_handlesMixedPositiveNegative() {
         val array = (ArrayValue) indexUnion(ELDER_SIGNS, bigDecimals(3, -2, 1));
         assertThat(array).hasSize(3);
         assertThat(array.getFirst()).isEqualTo(Value.of(1));
@@ -527,26 +527,26 @@ class StepOperatorsTests {
     }
 
     @Test
-    void indexUnionReturnsEmptyForEmptyIndices() {
+    void when_indexUnionWithEmptyIndices_then_returnsEmpty() {
         assertThat(indexUnion(NECRONOMICON_CHAPTERS, bigDecimals())).isEqualTo(Value.EMPTY_ARRAY);
     }
 
     @Test
-    void indexUnionReturnsErrorWithOriginalIndexForPositiveOutOfBounds() {
+    void when_indexUnionPositiveOutOfBounds_then_returnsErrorWithOriginalIndex() {
         val result = indexUnion(NECRONOMICON_CHAPTERS, bigDecimals(1, 10, 2));
         assertThat(result).isInstanceOf(ErrorValue.class);
         assertThat(result.toString()).contains("Index 10 out of bounds");
     }
 
     @Test
-    void indexUnionReturnsErrorWithOriginalIndexForNegativeOutOfBounds() {
+    void when_indexUnionNegativeOutOfBounds_then_returnsErrorWithOriginalIndex() {
         val result = indexUnion(NECRONOMICON_CHAPTERS, bigDecimals(1, -10, 2));
         assertThat(result).isInstanceOf(ErrorValue.class);
         assertThat(result.toString()).contains("Index -10 out of bounds");
     }
 
     @Test
-    void indexUnionReturnsErrorForNonArray() {
+    void when_indexUnionOnNonArray_then_returnsError() {
         val result = indexUnion(CULTIST_RECORD, bigDecimals(0));
         assertThat(result).isInstanceOf(ErrorValue.class);
         assertThat(result.toString()).contains("can only be applied to arrays");
@@ -555,7 +555,7 @@ class StepOperatorsTests {
     // ========== keyUnion Tests ==========
 
     @Test
-    void attributeUnionSelectsMultipleKeys() {
+    void when_attributeUnionWithMultipleKeys_then_selectsMultiple() {
         val array = (ArrayValue) attributeUnion(CULTIST_RECORD, List.of("name", "sanity"));
         assertThat(array).hasSize(2);
         assertThat(array.getFirst()).isEqualTo(WILBUR_WHATELEY);
@@ -563,7 +563,7 @@ class StepOperatorsTests {
     }
 
     @Test
-    void attributeUnionPreservesObjectInsertionOrder() {
+    void when_attributeUnion_then_preservesObjectInsertionOrder() {
         val eldritchLocations = ObjectValue.builder().put("yuggoth", Value.of("Pluto"))
                 .put("rlyeh", Value.of("Pacific")).put("kadath", Value.of("Dreamlands")).build();
         val array             = (ArrayValue) attributeUnion(eldritchLocations, List.of("kadath", "yuggoth", "rlyeh"));
@@ -573,7 +573,7 @@ class StepOperatorsTests {
     }
 
     @Test
-    void attributeUnionDeduplicatesKeys() {
+    void when_attributeUnionWithDuplicates_then_deduplicatesKeys() {
         val array = (ArrayValue) attributeUnion(CULTIST_RECORD,
                 List.of("name", "ritualKnowledge", "name", "ritualKnowledge", "name"));
         assertThat(array).hasSize(2);
@@ -582,7 +582,7 @@ class StepOperatorsTests {
     }
 
     @Test
-    void attributeUnionSkipsMissingKeys() {
+    void when_attributeUnionWithMissingKeys_then_skipsMissingKeys() {
         val array = (ArrayValue) attributeUnion(CULTIST_RECORD,
                 List.of("name", "unknownOldOne", "sanity", "forbiddenKnowledge"));
         assertThat(array).hasSize(2);
@@ -591,7 +591,7 @@ class StepOperatorsTests {
     }
 
     @Test
-    void attributeUnionIncludesErrorValues() {
+    void when_attributeUnionWithErrorValues_then_includesErrors() {
         val builder = ObjectValue.builder();
         builder.put("readable", Value.of("Elder Sign"));
         builder.put("corrupted", Value.error("Maddening whispers beyond comprehension"));
@@ -606,18 +606,18 @@ class StepOperatorsTests {
     }
 
     @Test
-    void attributeUnionReturnsEmptyForEmptyKeys() {
+    void when_attributeUnionWithEmptyKeys_then_returnsEmpty() {
         assertThat(attributeUnion(CULTIST_RECORD, List.of())).isEqualTo(Value.EMPTY_ARRAY);
     }
 
     @Test
-    void attributeUnionReturnsEmptyForAllMissingKeys() {
+    void when_attributeUnionWithAllMissingKeys_then_returnsEmpty() {
         assertThat(attributeUnion(CULTIST_RECORD, List.of("azathoth", "nyarlathotep", "yogSothoth")))
                 .isEqualTo(Value.EMPTY_ARRAY);
     }
 
     @Test
-    void attributeUnionEarlyExitsAfterFindingAllKeys() {
+    void when_attributeUnionFindsAllKeys_then_earlyExits() {
         val extensiveGrimoire = ObjectValue.builder().put("chant1", Value.of("Ia")).put("chant2", Value.of("Cthulhu"))
                 .put("chant3", Value.of("fhtagn")).put("chant4", Value.of("Ph'nglui"))
                 .put("chant5", Value.of("mglw'nafh")).put("chant6", Value.of("R'lyeh"))
@@ -630,7 +630,7 @@ class StepOperatorsTests {
     }
 
     @Test
-    void attributeUnionReturnsErrorForNonObject() {
+    void when_attributeUnionOnNonObject_then_returnsError() {
         val result = attributeUnion(NECRONOMICON_CHAPTERS, List.of("name"));
         assertThat(result).isInstanceOf(ErrorValue.class);
         assertThat(result.toString()).contains("can only be applied to objects");

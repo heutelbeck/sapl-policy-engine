@@ -105,7 +105,7 @@ class HttpPolicyInformationPointTests {
     }
 
     @Test
-    void webSocket() throws JsonProcessingException {
+    void when_webSocketCalledWithUrl_then_consumesWebSocketWithModifiedRequest() throws JsonProcessingException {
         val mockClient       = mockClient();
         val request          = (ObjectValue) ValueJsonMarshaller.fromJsonNode(MAPPER.readTree(DEFAULT_REQUEST));
         val expectedRequest  = (ObjectValue) ValueJsonMarshaller.fromJsonNode(MAPPER.readTree(ALTERED_REQUEST));
@@ -115,7 +115,7 @@ class HttpPolicyInformationPointTests {
     }
 
     @Test
-    void environmentGet() throws JsonProcessingException {
+    void when_environmentGetCalled_then_executesGetRequest() throws JsonProcessingException {
         val mockClient       = mockClient();
         val request          = (ObjectValue) ValueJsonMarshaller.fromJsonNode(MAPPER.readTree(DEFAULT_REQUEST));
         val httpPipUnderTest = new HttpPolicyInformationPoint(mockClient);
@@ -124,7 +124,7 @@ class HttpPolicyInformationPointTests {
     }
 
     @Test
-    void environmentPost() throws JsonProcessingException {
+    void when_environmentPostCalled_then_executesPostRequest() throws JsonProcessingException {
         val mockClient       = mockClient();
         val request          = (ObjectValue) ValueJsonMarshaller.fromJsonNode(MAPPER.readTree(DEFAULT_REQUEST));
         val httpPipUnderTest = new HttpPolicyInformationPoint(mockClient);
@@ -133,7 +133,7 @@ class HttpPolicyInformationPointTests {
     }
 
     @Test
-    void environmentPut() throws JsonProcessingException {
+    void when_environmentPutCalled_then_executesPutRequest() throws JsonProcessingException {
         val mockClient       = mockClient();
         val request          = (ObjectValue) ValueJsonMarshaller.fromJsonNode(MAPPER.readTree(DEFAULT_REQUEST));
         val httpPipUnderTest = new HttpPolicyInformationPoint(mockClient);
@@ -142,7 +142,7 @@ class HttpPolicyInformationPointTests {
     }
 
     @Test
-    void environmentPatch() throws JsonProcessingException {
+    void when_environmentPatchCalled_then_executesPatchRequest() throws JsonProcessingException {
         val mockClient       = mockClient();
         val request          = (ObjectValue) ValueJsonMarshaller.fromJsonNode(MAPPER.readTree(DEFAULT_REQUEST));
         val httpPipUnderTest = new HttpPolicyInformationPoint(mockClient);
@@ -151,7 +151,7 @@ class HttpPolicyInformationPointTests {
     }
 
     @Test
-    void environmentDelete() throws JsonProcessingException {
+    void when_environmentDeleteCalled_then_executesDeleteRequest() throws JsonProcessingException {
         val mockClient       = mockClient();
         val request          = (ObjectValue) ValueJsonMarshaller.fromJsonNode(MAPPER.readTree(DEFAULT_REQUEST));
         val httpPipUnderTest = new HttpPolicyInformationPoint(mockClient);
@@ -160,7 +160,7 @@ class HttpPolicyInformationPointTests {
     }
 
     @Test
-    void environmentWebSocket() throws JsonProcessingException {
+    void when_environmentWebSocketCalled_then_consumesWebSocket() throws JsonProcessingException {
         val mockClient       = mockClient();
         val request          = (ObjectValue) ValueJsonMarshaller.fromJsonNode(MAPPER.readTree(DEFAULT_REQUEST));
         val httpPipUnderTest = new HttpPolicyInformationPoint(mockClient);
@@ -176,7 +176,7 @@ class HttpPolicyInformationPointTests {
     }
 
     @Test
-    void brokerCanLoadHttpPolicyInformationPointLibrary() {
+    void when_brokerLoadsHttpPip_then_libraryIsAvailable() {
         val repository = new InMemoryAttributeRepository(Clock.systemUTC());
         val broker     = new CachingAttributeBroker(repository);
         val pip        = new HttpPolicyInformationPoint(mockClient());
@@ -187,7 +187,7 @@ class HttpPolicyInformationPointTests {
     }
 
     @Test
-    void loadLibraryWithoutAnnotationThrowsException() {
+    void when_loadLibraryWithoutAnnotation_then_throwsException() {
         val repository = new InMemoryAttributeRepository(Clock.systemUTC());
         val broker     = new CachingAttributeBroker(repository);
 
@@ -202,7 +202,7 @@ class HttpPolicyInformationPointTests {
     }
 
     @Test
-    void loadDuplicateLibraryThrowsException() {
+    void when_loadDuplicateLibrary_then_throwsException() {
         val repository = new InMemoryAttributeRepository(Clock.systemUTC());
         val broker     = new CachingAttributeBroker(repository);
         val pip        = new HttpPolicyInformationPoint(mockClient());

@@ -37,11 +37,12 @@ class FilterCompilerTests {
 
     @ParameterizedTest(name = "[{index}] {0}")
     @MethodSource
-    void basicFilters(String description, String expression, String... expectedValues) {
+    void when_basicFilterApplied_then_producesExpectedResult(String description, String expression,
+            String... expectedValues) {
         assertExpressionAsStreamEmits(expression, expectedValues);
     }
 
-    private static Stream<Object[]> basicFilters() {
+    private static Stream<Object[]> when_basicFilterApplied_then_producesExpectedResult() {
         return Stream.of(
                 testCase("Blacken filter on string returns blackened", "\"secret\" |- filter.blacken", "\"XXXXXX\""),
                 testCase("Blacken filter on longer string returns blackened", "\"password\" |- filter.blacken",
@@ -56,22 +57,22 @@ class FilterCompilerTests {
     }
 
     @Test
-    void removeFilterOnObject_returnsUndefined() {
+    void when_removeFilterAppliedToObject_then_returnsUndefined() {
         assertExpressionEvaluatesTo("{} |- filter.remove", Value.UNDEFINED);
     }
 
     @Test
-    void removeFilterOnNull_returnsUndefined() {
+    void when_removeFilterAppliedToNull_then_returnsUndefined() {
         assertExpressionEvaluatesTo("null |- filter.remove", Value.UNDEFINED);
     }
 
     @Test
-    void extendedFilterWithRootRemove_returnsUndefined() {
+    void when_extendedFilterWithRootRemove_then_returnsUndefined() {
         assertExpressionEvaluatesTo("{} |- { @ : filter.remove }", Value.UNDEFINED);
     }
 
     @Test
-    void subtemplateOnUndefined_returnsUndefined() {
+    void when_subtemplateAppliedToUndefined_then_returnsUndefined() {
         assertExpressionEvaluatesTo("undefined :: { \"name\": \"foo\" }", Value.UNDEFINED);
     }
 
@@ -81,11 +82,12 @@ class FilterCompilerTests {
 
     @ParameterizedTest(name = "[{index}] {0}")
     @MethodSource
-    void eachFilters(String description, String expression, String... expectedValues) {
+    void when_eachFilterApplied_then_producesExpectedResult(String description, String expression,
+            String... expectedValues) {
         assertExpressionAsStreamEmits(expression, expectedValues);
     }
 
-    private static Stream<Object[]> eachFilters() {
+    private static Stream<Object[]> when_eachFilterApplied_then_producesExpectedResult() {
         return Stream.of(
                 testCase("Each removes all elements when filtering all", "[null, 5] |- each filter.remove", "[]"),
                 testCase("Each applies function to transform elements", "[\"a\", \"b\"] |- each simple.append(\"!\")",
@@ -113,11 +115,12 @@ class FilterCompilerTests {
 
     @ParameterizedTest(name = "[{index}] {0}")
     @MethodSource
-    void extendedFilters(String description, String expression, String... expectedValues) {
+    void when_extendedFilterApplied_then_producesExpectedResult(String description, String expression,
+            String... expectedValues) {
         assertExpressionAsStreamEmits(expression, expectedValues);
     }
 
-    private static Stream<Object[]> extendedFilters() {
+    private static Stream<Object[]> when_extendedFilterApplied_then_producesExpectedResult() {
         return Stream.of(
                 testCase("Extended filter with single statement applies function", "\"test\" |- { : filter.blacken }",
                         "\"XXXX\""),
@@ -277,11 +280,12 @@ class FilterCompilerTests {
 
     @ParameterizedTest(name = "[{index}] {0}")
     @MethodSource
-    void wildcardAndRecursiveFilters(String description, String expression, String... expectedValues) {
+    void when_wildcardOrRecursiveFilterApplied_then_producesExpectedResult(String description, String expression,
+            String... expectedValues) {
         assertExpressionAsStreamEmits(expression, expectedValues);
     }
 
-    private static Stream<Object[]> wildcardAndRecursiveFilters() {
+    private static Stream<Object[]> when_wildcardOrRecursiveFilterApplied_then_producesExpectedResult() {
         return Stream.of(
                 testCase("Wildcard filter on object applies to all fields",
                         "{ \"a\": 10, \"b\": 20 } |- { @.* : simple.double }", "{ \"a\": 20, \"b\": 40 }"),
@@ -307,11 +311,12 @@ class FilterCompilerTests {
 
     @ParameterizedTest(name = "[{index}] {0}")
     @MethodSource
-    void conditionStepFilters(String description, String expression, String... expectedValues) {
+    void when_conditionStepFilterApplied_then_producesExpectedResult(String description, String expression,
+            String... expectedValues) {
         assertExpressionAsStreamEmits(expression, expectedValues);
     }
 
-    private static Stream<Object[]> conditionStepFilters() {
+    private static Stream<Object[]> when_conditionStepFilterApplied_then_producesExpectedResult() {
         return Stream.of(
                 testCase("Condition step in filter with constant true condition applies filter to all elements",
                         "[1, 2, 3, 4, 5] |- { @[?(true)] : simple.double }", "[2, 4, 6, 8, 10]"),
@@ -330,11 +335,12 @@ class FilterCompilerTests {
 
     @ParameterizedTest(name = "[{index}] {0}")
     @MethodSource
-    void subtemplates(String description, String expression, String... expectedValues) {
+    void when_subtemplateApplied_then_producesExpectedResult(String description, String expression,
+            String... expectedValues) {
         assertExpressionAsStreamEmits(expression, expectedValues);
     }
 
-    private static Stream<Object[]> subtemplates() {
+    private static Stream<Object[]> when_subtemplateApplied_then_producesExpectedResult() {
         return Stream.of(
                 testCase("Subtemplate on simple value wraps in object", "42 :: { \"value\": @ }", "{ \"value\": 42 }"),
                 testCase("Subtemplate with multiple fields", "5 :: { \"original\": @, \"doubled\": @ * 2 }",
@@ -375,7 +381,7 @@ class FilterCompilerTests {
     }
 
     @Test
-    void subtemplate_withRecursiveDescentStep() {
+    void when_subtemplateWithRecursiveDescentStep_then_collectsAllMatchingValues() {
         var result = evaluate(
                 "{ \"a\": { \"b\": { \"c\": 42 } }, \"x\": { \"b\": { \"c\": 99 } } } :: { \"allCs\": @..c }");
         assertThat(result).isNotNull().isInstanceOf(ObjectValue.class);
@@ -392,11 +398,12 @@ class FilterCompilerTests {
 
     @ParameterizedTest(name = "[{index}] {0}")
     @MethodSource
-    void streamingSingleEmission(String description, String expression, String... expectedValues) {
+    void when_streamingPipWithSingleEmission_then_producesExpectedResult(String description, String expression,
+            String... expectedValues) {
         assertExpressionAsStreamEmits(expression, expectedValues);
     }
 
-    private static Stream<Object[]> streamingSingleEmission() {
+    private static Stream<Object[]> when_streamingPipWithSingleEmission_then_producesExpectedResult() {
         return Stream.of(
                 testCase("Simple filter with attribute finder applies filter to stream values",
                         "\"test\".<test.echo> |- filter.blacken", "\"XXXX\""),
@@ -430,11 +437,12 @@ class FilterCompilerTests {
 
     @ParameterizedTest(name = "[{index}] {0}")
     @MethodSource
-    void streamingMultipleEmissions(String description, String expression, String... expectedValues) {
+    void when_streamingPipWithMultipleEmissions_then_producesExpectedResults(String description, String expression,
+            String... expectedValues) {
         assertExpressionAsStreamEmits(expression, expectedValues);
     }
 
-    private static Stream<Object[]> streamingMultipleEmissions() {
+    private static Stream<Object[]> when_streamingPipWithMultipleEmissions_then_producesExpectedResults() {
         return Stream.of(
                 testCase("Simple filter with sequence PIP applies filter to all emitted values",
                         "<test.sequence> |- simple.double", "2", "4", "6"),
@@ -460,11 +468,11 @@ class FilterCompilerTests {
 
     @ParameterizedTest(name = "[{index}] {0}")
     @MethodSource
-    void errorCases(String description, String expression, String errorFragment) {
+    void when_errorCondition_then_producesError(String description, String expression, String errorFragment) {
         assertEvaluatesToError(expression, errorFragment);
     }
 
-    private static Stream<Object[]> errorCases() {
+    private static Stream<Object[]> when_errorCondition_then_producesError() {
         return Stream.of(errorCase("Error propagates from parent", "(10/0) |- filter.remove", "Division by zero"),
                 errorCase("Undefined parent returns error", "undefined |- filter.remove",
                         "Filters cannot be applied to undefined"),

@@ -17,7 +17,6 @@
  */
 package io.sapl.api.model;
 
-import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -29,13 +28,12 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
-@DisplayName("ErrorValue Tests")
 class ErrorValueTests {
 
     @ParameterizedTest(name = "Constructor: message={0}, cause={1}, secret={2}")
-    @MethodSource("provideConstructorCases")
-    @DisplayName("Constructors create ErrorValue correctly")
-    void constructorsCreateValue(String message, Throwable cause, boolean secret, boolean useCanonical) {
+    @MethodSource
+    void when_constructorsInvoked_then_createErrorValueCorrectly(String message, Throwable cause, boolean secret,
+            boolean useCanonical) {
         ErrorValue error;
 
         if (useCanonical) {
@@ -57,29 +55,34 @@ class ErrorValueTests {
         assertThat(error.secret()).isEqualTo(secret);
     }
 
+    static Stream<Arguments> when_constructorsInvoked_then_createErrorValueCorrectly() {
+        var cause = new RuntimeException("cause message");
+        return Stream.of(arguments("message", null, false, true), arguments("message", null, true, true),
+                arguments("message", cause, false, true), arguments("message", cause, true, true),
+                arguments(null, cause, false, true), arguments(null, cause, true, true),
+                arguments("message", null, false, false), arguments("message", null, true, false),
+                arguments("cause message", cause, false, false), arguments("cause message", cause, true, false));
+    }
+
     @Test
-    @DisplayName("Constructor with null message in canonical form allows null")
-    void canonicalConstructorAllowsNullMessage() {
+    void when_canonicalConstructorCalledWithNullMessage_then_allowsNull() {
         var error = new ErrorValue(null, new RuntimeException(), false);
 
         assertThat(error.message()).isNull();
     }
 
     @Test
-    @DisplayName("Convenience constructor with null message throws NullPointerException")
-    void convenienceConstructorNullMessageThrows() {
+    void when_convenienceConstructorCalledWithNullMessage_then_throws() {
         assertThatThrownBy(() -> new ErrorValue((String) null)).isInstanceOf(NullPointerException.class);
     }
 
     @Test
-    @DisplayName("Convenience constructor with null cause throws NullPointerException")
-    void convenienceConstructorNullCauseThrows() {
+    void when_convenienceConstructorCalledWithNullCause_then_throws() {
         assertThatThrownBy(() -> new ErrorValue((Throwable) null)).isInstanceOf(NullPointerException.class);
     }
 
     @Test
-    @DisplayName("Value.error() factory methods create ErrorValue")
-    void factoryMethodsCreateErrorValue() {
+    void when_factoryMethodsInvoked_then_createErrorValue() {
         var errorFromMessage = (ErrorValue) Value.error("test");
         var cause            = new RuntimeException("cause");
         var errorFromCause   = (ErrorValue) Value.error(cause);
@@ -99,8 +102,7 @@ class ErrorValueTests {
     }
 
     @Test
-    @DisplayName("asSecret() creates secret copy or returns same instance")
-    void asSecretBehavior() {
+    void when_asSecretCalled_then_createsSecretCopyOrReturnsSameInstance() {
         var cause         = new RuntimeException();
         var original      = new ErrorValue("message", cause, false);
         var alreadySecret = new ErrorValue("message", cause, true);
@@ -113,9 +115,9 @@ class ErrorValueTests {
     }
 
     @ParameterizedTest(name = "{0} equals {1}: {2}")
-    @MethodSource("provideEqualityCases")
-    @DisplayName("equals() and hashCode() compare by message and cause type, ignoring secret flag and cause instance")
-    void equalsAndHashCode(ErrorValue error1, ErrorValue error2, boolean shouldBeEqual) {
+    @MethodSource
+    void when_equalsAndHashCodeCompared_then_comparesByMessageAndCauseType(ErrorValue error1, ErrorValue error2,
+            boolean shouldBeEqual) {
         if (shouldBeEqual) {
             assertThat(error1).isEqualTo(error2).hasSameHashCodeAs(error2);
         } else {
@@ -123,10 +125,24 @@ class ErrorValueTests {
         }
     }
 
+    static Stream<Arguments> when_equalsAndHashCodeCompared_then_comparesByMessageAndCauseType() {
+        return Stream.of(arguments(new ErrorValue("msg", false), new ErrorValue("msg", true), true),
+                arguments(new ErrorValue("msg", new RuntimeException(), false),
+                        new ErrorValue("msg", new RuntimeException(), false), true),
+                arguments(new ErrorValue("msg1", false), new ErrorValue("msg2", false), false),
+                arguments(new ErrorValue("msg", new RuntimeException(), false),
+                        new ErrorValue("msg", new IllegalArgumentException(), false), false),
+                arguments(new ErrorValue("msg", new RuntimeException(), false), new ErrorValue("msg", false), false),
+                arguments(new ErrorValue(null, new RuntimeException(), false),
+                        new ErrorValue(null, new RuntimeException(), false), true),
+                arguments(new ErrorValue(null, new RuntimeException(), false),
+                        new ErrorValue("msg", new RuntimeException(), false), false));
+    }
+
     @ParameterizedTest(name = "{3}")
-    @MethodSource("provideToStringCases")
-    @DisplayName("toString() formats appropriately")
-    void toStringFormatting(String message, Throwable cause, boolean secret, String testDescription) {
+    @MethodSource
+    void when_toStringCalled_then_formatsAppropriately(String message, Throwable cause, boolean secret,
+            String testDescription) {
         var error  = new ErrorValue(message, cause, secret);
         var result = error.toString();
 
@@ -145,9 +161,16 @@ class ErrorValueTests {
         }
     }
 
+    static Stream<Arguments> when_toStringCalled_then_formatsAppropriately() {
+        return Stream.of(arguments("test error", null, false, "message only"),
+                arguments("test error", new RuntimeException(), false, "message and cause"),
+                arguments("secret error", null, true, "secret"),
+                arguments(null, new RuntimeException(), false, "null message with cause"),
+                arguments("long error: " + "x".repeat(100), null, false, "long message"));
+    }
+
     @Test
-    @DisplayName("Pattern matching for error recovery")
-    void patternMatchingErrorRecovery() {
+    void when_patternMatchingUsedForErrorRecovery_then_matchesCorrectly() {
         Value result = Value.error("Database connection failed");
 
         var recovery = switch (result) {
@@ -167,8 +190,7 @@ class ErrorValueTests {
     }
 
     @Test
-    @DisplayName("Pattern matching with cause inspection")
-    void patternMatchingWithCause() {
+    void when_patternMatchingUsedWithCauseInspection_then_matchesCorrectly() {
         Value result = Value.error("Failed", new IllegalArgumentException());
 
         var isValidationError = switch (result) {
@@ -183,34 +205,4 @@ class ErrorValueTests {
         assertThat(isValidationError).isTrue();
     }
 
-    static Stream<Arguments> provideConstructorCases() {
-        var cause = new RuntimeException("cause message");
-        return Stream.of(arguments("message", null, false, true), arguments("message", null, true, true),
-                arguments("message", cause, false, true), arguments("message", cause, true, true),
-                arguments(null, cause, false, true), arguments(null, cause, true, true),
-                arguments("message", null, false, false), arguments("message", null, true, false),
-                arguments("cause message", cause, false, false), arguments("cause message", cause, true, false));
-    }
-
-    static Stream<Arguments> provideEqualityCases() {
-        return Stream.of(arguments(new ErrorValue("msg", false), new ErrorValue("msg", true), true),
-                arguments(new ErrorValue("msg", new RuntimeException(), false),
-                        new ErrorValue("msg", new RuntimeException(), false), true),
-                arguments(new ErrorValue("msg1", false), new ErrorValue("msg2", false), false),
-                arguments(new ErrorValue("msg", new RuntimeException(), false),
-                        new ErrorValue("msg", new IllegalArgumentException(), false), false),
-                arguments(new ErrorValue("msg", new RuntimeException(), false), new ErrorValue("msg", false), false),
-                arguments(new ErrorValue(null, new RuntimeException(), false),
-                        new ErrorValue(null, new RuntimeException(), false), true),
-                arguments(new ErrorValue(null, new RuntimeException(), false),
-                        new ErrorValue("msg", new RuntimeException(), false), false));
-    }
-
-    static Stream<Arguments> provideToStringCases() {
-        return Stream.of(arguments("test error", null, false, "message only"),
-                arguments("test error", new RuntimeException(), false, "message and cause"),
-                arguments("secret error", null, true, "secret"),
-                arguments(null, new RuntimeException(), false, "null message with cause"),
-                arguments("long error: " + "x".repeat(100), null, false, "long message"));
-    }
 }

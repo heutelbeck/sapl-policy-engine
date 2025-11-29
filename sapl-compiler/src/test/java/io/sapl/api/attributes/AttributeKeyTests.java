@@ -32,7 +32,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 class AttributeKeyTests {
 
     @Test
-    void of_createsKeyFromInvocation() {
+    void when_of_createsKeyFromInvocation_then_extractsCorrectComponents() {
         var invocation = new AttributeFinderInvocation("test-config", "test.attr", Value.of("user123"),
                 List.of(Value.of("arg1"), Value.of("arg2")), Map.of(), Duration.ofSeconds(1), Duration.ofSeconds(30),
                 Duration.ofSeconds(1), 0, false);
@@ -47,7 +47,7 @@ class AttributeKeyTests {
     }
 
     @Test
-    void of_environmentAttribute_entityIsNull() {
+    void when_of_environmentAttribute_then_entityIsNull() {
         var invocation = new AttributeFinderInvocation("test-config", "time.now", List.of(), // environment attribute -
                                                                                              // no entity
                 Map.of(), Duration.ofSeconds(1), Duration.ofSeconds(30), Duration.ofSeconds(1), 0, false);
@@ -61,7 +61,7 @@ class AttributeKeyTests {
     }
 
     @Test
-    void equals_sameComponents_areEqual() {
+    void when_equals_sameComponents_then_areEqual() {
         var key1 = new AttributeKey(Value.of("entity"), "test.attr", List.of(Value.of("arg")));
         var key2 = new AttributeKey(Value.of("entity"), "test.attr", List.of(Value.of("arg")));
 
@@ -69,7 +69,7 @@ class AttributeKeyTests {
     }
 
     @Test
-    void equals_differentEntity_notEqual() {
+    void when_equals_differentEntity_then_notEqual() {
         var key1 = new AttributeKey(Value.of("entity1"), "test.attr", List.of());
         var key2 = new AttributeKey(Value.of("entity2"), "test.attr", List.of());
 
@@ -77,7 +77,7 @@ class AttributeKeyTests {
     }
 
     @Test
-    void equals_differentAttributeName_notEqual() {
+    void when_equals_differentAttributeName_then_notEqual() {
         var key1 = new AttributeKey(Value.of("entity"), "test.attr1", List.of());
         var key2 = new AttributeKey(Value.of("entity"), "test.attr2", List.of());
 
@@ -85,7 +85,7 @@ class AttributeKeyTests {
     }
 
     @Test
-    void equals_differentArguments_notEqual() {
+    void when_equals_differentArguments_then_notEqual() {
         var key1 = new AttributeKey(Value.of("entity"), "test.attr", List.of(Value.of("arg1")));
         var key2 = new AttributeKey(Value.of("entity"), "test.attr", List.of(Value.of("arg2")));
 
@@ -93,7 +93,7 @@ class AttributeKeyTests {
     }
 
     @Test
-    void equals_nullEntityVsNonNull_notEqual() {
+    void when_equals_nullEntityVsNonNull_then_notEqual() {
         var key1 = new AttributeKey(null, "test.attr", List.of());
         var key2 = new AttributeKey(Value.of("entity"), "test.attr", List.of());
 
@@ -101,7 +101,7 @@ class AttributeKeyTests {
     }
 
     @Test
-    void equals_bothNullEntity_areEqual() {
+    void when_equals_bothNullEntity_then_areEqual() {
         var key1 = new AttributeKey(null, "test.attr", List.of());
         var key2 = new AttributeKey(null, "test.attr", List.of());
 

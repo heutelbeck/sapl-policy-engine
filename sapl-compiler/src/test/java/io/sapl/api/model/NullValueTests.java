@@ -17,7 +17,6 @@
  */
 package io.sapl.api.model;
 
-import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -28,72 +27,66 @@ import java.util.stream.Stream;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
-@DisplayName("NullValue Tests")
 class NullValueTests {
 
     @ParameterizedTest(name = "NullValue(secret={0}) construction")
-    @MethodSource("provideSecretFlags")
-    @DisplayName("Constructor creates NullValue")
-    void constructorCreatesValue(boolean secret) {
+    @MethodSource
+    void when_constructedWithSecretFlag_then_createsValue(boolean secret) {
         var value = new NullValue(secret);
 
         assertThat(value.secret()).isEqualTo(secret);
     }
 
+    static Stream<Arguments> when_constructedWithSecretFlag_then_createsValue() {
+        return Stream.of(arguments(false), arguments(true));
+    }
+
     @Test
-    @DisplayName("asSecret() returns SECRET_NULL singleton")
-    void asSecretReturnsSingleton() {
+    void when_asSecretCalled_then_returnsSecretNullSingleton() {
         var regular = new NullValue(false);
 
         assertThat(regular.asSecret()).isSameAs(NullValue.SECRET_NULL).isSameAs(NullValue.SECRET_NULL.asSecret());
     }
 
     @ParameterizedTest(name = "{0}={1}, equal={2}")
-    @MethodSource("provideEqualityHashCodeCases")
-    @DisplayName("All NullValues are equal regardless of secret flag")
-    void equalsAndHashCode(NullValue value1, NullValue value2, boolean shouldBeEqual) {
+    @MethodSource
+    void when_equalsAndHashCodeCompared_then_allNullValuesAreEqual(NullValue value1, NullValue value2,
+            boolean shouldBeEqual) {
         assertThat(value1).isEqualTo(value2).hasSameHashCodeAs(value2);
     }
 
+    static Stream<Arguments> when_equalsAndHashCodeCompared_then_allNullValuesAreEqual() {
+        return Stream.of(arguments(new NullValue(false), new NullValue(false), true),
+                arguments(new NullValue(false), new NullValue(true), true),
+                arguments(new NullValue(true), new NullValue(true), true));
+    }
+
     @Test
-    @DisplayName("NullValue not equal to other Value types")
-    void notEqualToOtherValueTypes() {
+    void when_comparedToOtherValueTypes_then_notEqual() {
         var nullValue = new NullValue(false);
 
         assertThat(nullValue).isNotEqualTo(Value.UNDEFINED).isNotEqualTo(Value.of(0)).isNotEqualTo(Value.of("null"));
     }
 
     @ParameterizedTest(name = "secret={0} toString()={1}")
-    @MethodSource("provideToStringCases")
-    @DisplayName("toString() shows null or placeholder")
-    void toStringShowsNullOrPlaceholder(boolean secret, String expected) {
+    @MethodSource
+    void when_toStringCalled_then_showsNullOrPlaceholder(boolean secret, String expected) {
         var value = new NullValue(secret);
 
         assertThat(value).hasToString(expected);
     }
 
-    @ParameterizedTest(name = "{0}")
-    @MethodSource("provideConstantCases")
-    @DisplayName("Constants have expected secret flag")
-    void constantsHaveExpectedSecretFlag(String description, Value constant, boolean expectedSecret) {
-        assertThat(constant.secret()).isEqualTo(expectedSecret);
-    }
-
-    static Stream<Arguments> provideSecretFlags() {
-        return Stream.of(arguments(false), arguments(true));
-    }
-
-    static Stream<Arguments> provideEqualityHashCodeCases() {
-        return Stream.of(arguments(new NullValue(false), new NullValue(false), true),
-                arguments(new NullValue(false), new NullValue(true), true),
-                arguments(new NullValue(true), new NullValue(true), true));
-    }
-
-    static Stream<Arguments> provideToStringCases() {
+    static Stream<Arguments> when_toStringCalled_then_showsNullOrPlaceholder() {
         return Stream.of(arguments(false, "null"), arguments(true, "***SECRET***"));
     }
 
-    static Stream<Arguments> provideConstantCases() {
+    @ParameterizedTest(name = "{0}")
+    @MethodSource
+    void when_constantsChecked_then_haveExpectedSecretFlag(String description, Value constant, boolean expectedSecret) {
+        assertThat(constant.secret()).isEqualTo(expectedSecret);
+    }
+
+    static Stream<Arguments> when_constantsChecked_then_haveExpectedSecretFlag() {
         return Stream.of(arguments("Value.NULL is not secret", Value.NULL, false),
                 arguments("NullValue.SECRET_NULL is secret", NullValue.SECRET_NULL, true));
     }

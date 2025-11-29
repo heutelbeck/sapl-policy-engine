@@ -33,11 +33,11 @@ class PermitOverridesTests {
 
     @ParameterizedTest(name = "{0}")
     @MethodSource
-    void permitOverridesDecisionTests(String description, String policySet, Decision expectedDecision) {
+    void when_decisionEvaluated_then_matchesExpected(String description, String policySet, Decision expectedDecision) {
         assertDecision(policySet, expectedDecision);
     }
 
-    private static Stream<Arguments> permitOverridesDecisionTests() {
+    private static Stream<Arguments> when_decisionEvaluated_then_matchesExpected() {
         return Stream.of(arguments("No policies match returns NOT_APPLICABLE", """
                 set "test" permit-overrides
                 policy "never matches" permit subject == "non-matching"
@@ -106,13 +106,14 @@ class PermitOverridesTests {
 
     @ParameterizedTest(name = "{0}")
     @MethodSource
-    void permitOverridesResourceTests(String description, String policySet, Decision expectedDecision) {
+    void when_resourceTransformed_then_matchesExpected(String description, String policySet,
+            Decision expectedDecision) {
         val result = evaluatePolicySet(policySet);
         assertDecision(result, expectedDecision);
         assertResourceBoolean(result, "value", true);
     }
 
-    private static Stream<Arguments> permitOverridesResourceTests() {
+    private static Stream<Arguments> when_resourceTransformed_then_matchesExpected() {
         return Stream.of(arguments("Single permit transformation resource verifies resource", """
                 set "test" permit-overrides
                 policy "testp" permit transform { "value": true }
@@ -121,8 +122,8 @@ class PermitOverridesTests {
 
     @ParameterizedTest(name = "{0}")
     @MethodSource
-    void permitOverridesObligationsAdviceTests(String description, String policySet, Decision expectedDecision,
-            List<String> expectedObligations, List<String> expectedAdvice) {
+    void when_obligationsAndAdviceEvaluated_then_matchesExpected(String description, String policySet,
+            Decision expectedDecision, List<String> expectedObligations, List<String> expectedAdvice) {
         val result = evaluatePolicySet(policySet);
         assertDecision(result, expectedDecision);
         if (expectedObligations != null) {
@@ -133,7 +134,7 @@ class PermitOverridesTests {
         }
     }
 
-    private static Stream<Arguments> permitOverridesObligationsAdviceTests() {
+    private static Stream<Arguments> when_obligationsAndAdviceEvaluated_then_matchesExpected() {
         return Stream.of(
                 arguments("Collect obligations from deny",
                         """
