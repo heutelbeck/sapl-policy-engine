@@ -43,7 +43,7 @@ class StandardFunctionLibraryTests {
 
     @ParameterizedTest
     @MethodSource("emptyCollections")
-    void lengthOfEmptyCollectionsIsZero(Value emptyCollection) {
+    void when_lengthOfEmptyCollections_then_isZero(Value emptyCollection) {
         assertThat(StandardFunctionLibrary.length(emptyCollection)).isEqualTo(Value.of(0));
     }
 
@@ -52,13 +52,13 @@ class StandardFunctionLibraryTests {
     }
 
     @Test
-    void lengthOfArrayWithElements() {
+    void when_lengthOfArrayWithElements_then_returnsCorrectCount() {
         val array = Value.ofArray(Value.FALSE, Value.FALSE, Value.FALSE, Value.FALSE);
         assertThat(StandardFunctionLibrary.length(array)).isEqualTo(Value.of(4));
     }
 
     @Test
-    void lengthOfObjectWithElements() {
+    void when_lengthOfObjectWithElements_then_returnsCorrectCount() {
         val map = new HashMap<String, Value>();
         map.put("key1", Value.FALSE);
         map.put("key2", Value.FALSE);
@@ -71,7 +71,7 @@ class StandardFunctionLibraryTests {
 
     @ParameterizedTest
     @MethodSource("textAndLengths")
-    void lengthOfText(String text, int expectedLength) {
+    void when_lengthOfText_then_returnsExpectedLength(String text, int expectedLength) {
         assertThat(StandardFunctionLibrary.length(Value.of(text))).isEqualTo(Value.of(expectedLength));
     }
 
@@ -82,7 +82,7 @@ class StandardFunctionLibraryTests {
 
     @ParameterizedTest
     @MethodSource("valuesAndStringRepresentations")
-    void asStringConvertsValuesToStrings(Value value, String expected) {
+    void when_asString_then_convertsValuesToStrings(Value value, String expected) {
         assertThat(StandardFunctionLibrary.asString(value)).isEqualTo(Value.of(expected));
     }
 
@@ -93,19 +93,19 @@ class StandardFunctionLibraryTests {
     }
 
     @Test
-    void onErrorMapReturnsOriginalValueWhenNoError() {
+    void when_onErrorMapWithNoError_then_returnsOriginalValue() {
         assertThat(StandardFunctionLibrary.onErrorMap(Value.of("ORIGINAL"), Value.of("FALLBACK")))
                 .isEqualTo(Value.of("ORIGINAL"));
     }
 
     @Test
-    void onErrorMapReturnsFallbackValueWhenError() {
+    void when_onErrorMapWithError_then_returnsFallbackValue() {
         assertThat(StandardFunctionLibrary.onErrorMap(Value.error(""), Value.of("FALLBACK")))
                 .isEqualTo(Value.of("FALLBACK"));
     }
 
     @Test
-    void onErrorMapReturnsFallbackForErrorWithMessage() {
+    void when_onErrorMapWithErrorMessage_then_returnsFallback() {
         assertThat(StandardFunctionLibrary.onErrorMap(Value.error("Something went wrong"), Value.of(999)))
                 .isEqualTo(Value.of(999));
     }

@@ -84,7 +84,7 @@ class ReactiveWebClientTests {
     }
 
     @Test
-    void testGet() throws JsonProcessingException {
+    void when_httpGet_then_returnsExpectedResponse() throws JsonProcessingException {
         mockBackEnd.enqueue(DEFAULT_RESPONSE);
         mockBackEnd.enqueue(DEFAULT_RESPONSE);
         val httpTestRequest = defaultRequest(MediaType.APPLICATION_JSON_VALUE);
@@ -221,7 +221,7 @@ class ReactiveWebClientTests {
     }
 
     @Test
-    void testPost() throws JsonProcessingException {
+    void when_httpPost_then_returnsExpectedResponse() throws JsonProcessingException {
         mockBackEnd.enqueue(DEFAULT_RESPONSE);
         mockBackEnd.enqueue(DEFAULT_RESPONSE);
         val httpTestRequest = defaultRequest(MediaType.APPLICATION_JSON_VALUE);
@@ -236,7 +236,7 @@ class ReactiveWebClientTests {
     }
 
     @Test
-    void testPostWithBody() throws JsonProcessingException {
+    void when_httpPostWithBody_then_returnsExpectedResponse() throws JsonProcessingException {
         mockBackEnd.enqueue(DEFAULT_RESPONSE);
         mockBackEnd.enqueue(DEFAULT_RESPONSE);
         val template        = """
@@ -286,7 +286,7 @@ class ReactiveWebClientTests {
     }
 
     @Test
-    void testPut() throws JsonProcessingException {
+    void when_httpPut_then_returnsExpectedResponse() throws JsonProcessingException {
         mockBackEnd.enqueue(DEFAULT_RESPONSE);
         mockBackEnd.enqueue(DEFAULT_RESPONSE);
         val httpTestRequest = defaultRequest(MediaType.APPLICATION_JSON_VALUE);
@@ -301,7 +301,7 @@ class ReactiveWebClientTests {
     }
 
     @Test
-    void testPatch() throws JsonProcessingException {
+    void when_httpPatch_then_returnsExpectedResponse() throws JsonProcessingException {
         mockBackEnd.enqueue(DEFAULT_RESPONSE);
         mockBackEnd.enqueue(DEFAULT_RESPONSE);
         val httpTestRequest = defaultRequest(MediaType.APPLICATION_JSON_VALUE);
@@ -316,7 +316,7 @@ class ReactiveWebClientTests {
     }
 
     @Test
-    void testDelete() throws JsonProcessingException {
+    void when_httpDelete_then_returnsExpectedResponse() throws JsonProcessingException {
         mockBackEnd.enqueue(DEFAULT_RESPONSE);
         mockBackEnd.enqueue(DEFAULT_RESPONSE);
         val httpTestRequest = defaultRequest(MediaType.APPLICATION_JSON_VALUE);
@@ -331,7 +331,7 @@ class ReactiveWebClientTests {
     }
 
     @Test
-    void testSSE() throws JsonProcessingException {
+    void when_serverSentEvents_then_receivesEventStream() throws JsonProcessingException {
         val eventStream = "id:id1\nevent:event1\ndata:" + DEFAULT_BODY + "\n\n" + "id:id2\nevent:event2\ndata:"
                 + DEFAULT_BODY + "\n\n" + "id:id3\nevent:event3\ndata:" + DEFAULT_BODY + "\n\n";
         mockBackEnd.enqueue(new MockResponse().setBody(eventStream).addHeader("Content-Type", "text/event-stream"));

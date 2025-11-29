@@ -52,7 +52,7 @@ class ExperimentalSaplCompilerTests {
     }
 
     @Test
-    void experimentWithCompiler() throws InitializationException {
+    void when_experimentWithCompiler_then_compilesPolicy() throws InitializationException {
         val source  = """
                 policy "test policy"
                 permit 7[?(@>subscription.age)]
@@ -70,7 +70,7 @@ class ExperimentalSaplCompilerTests {
     }
 
     @Test
-    void experimentWithCompiler2() throws InitializationException {
+    void when_experimentWithPolicySet_then_compilesPolicySet() throws InitializationException {
         val source  = """
                 set "test"
                 first-applicable
@@ -90,7 +90,7 @@ class ExperimentalSaplCompilerTests {
     }
 
     @Test
-    void constantFoldingWorks() {
+    void when_constantFolding_then_optimizesCorrectly() {
         val expression = """
                 { "key1": 123 }
                 """;
@@ -100,7 +100,7 @@ class ExperimentalSaplCompilerTests {
 
     @Test
     @Timeout(5)
-    void constantAttributesWorks() {
+    void when_constantAttributes_then_evaluatesCorrectly() {
         val expression = """
                 "123".<test.echo> == "123"
                 """;

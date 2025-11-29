@@ -94,7 +94,7 @@ class JWTPolicyInformationPointTests {
     }
 
     @Test
-    void brokerCanLoadJWTPolicyInformationPointLibrary() {
+    void when_brokerLoadsLibrary_then_jwtLibraryIsAvailable() {
         val repository = new InMemoryAttributeRepository(Clock.systemUTC());
         val broker     = new CachingAttributeBroker(repository);
         val pip        = new JWTPolicyInformationPoint(provider);
@@ -105,7 +105,7 @@ class JWTPolicyInformationPointTests {
     }
 
     @Test
-    void loadLibraryWithoutAnnotationThrowsException() {
+    void when_loadLibraryWithoutAnnotation_then_throwsException() {
         val repository = new InMemoryAttributeRepository(Clock.systemUTC());
         val broker     = new CachingAttributeBroker(repository);
 
@@ -120,7 +120,7 @@ class JWTPolicyInformationPointTests {
     }
 
     @Test
-    void loadDuplicateLibraryThrowsException() {
+    void when_loadDuplicateLibrary_then_throwsException() {
         val repository = new InMemoryAttributeRepository(Clock.systemUTC());
         val broker     = new CachingAttributeBroker(repository);
         val pip        = new JWTPolicyInformationPoint(provider);

@@ -33,12 +33,12 @@ class ReflectionFunctionLibraryTests {
 
     @ParameterizedTest(name = "{0}")
     @MethodSource
-    void isArrayTests(String description, Value input, boolean expected) {
+    void when_isArray_then_returnsExpectedResult(String description, Value input, boolean expected) {
         val actual = ReflectionFunctionLibrary.isArray(input);
         assertThat(actual).isEqualTo(Value.of(expected));
     }
 
-    private static Stream<Arguments> isArrayTests() {
+    private static Stream<Arguments> when_isArray_then_returnsExpectedResult() {
         return Stream.of(
                 arguments("Array with elements returns true", Value.ofArray(Value.of(1), Value.of(2), Value.of(3)),
                         true),
@@ -54,12 +54,12 @@ class ReflectionFunctionLibraryTests {
 
     @ParameterizedTest(name = "{0}")
     @MethodSource
-    void isObjectTests(String description, Value input, boolean expected) {
+    void when_isObject_then_returnsExpectedResult(String description, Value input, boolean expected) {
         val actual = ReflectionFunctionLibrary.isObject(input);
         assertThat(actual).isEqualTo(Value.of(expected));
     }
 
-    private static Stream<Arguments> isObjectTests() {
+    private static Stream<Arguments> when_isObject_then_returnsExpectedResult() {
         return Stream.of(
                 arguments("Object with fields returns true", Value.ofObject(java.util.Map.of("key", Value.of("val"))),
                         true),
@@ -73,12 +73,12 @@ class ReflectionFunctionLibraryTests {
 
     @ParameterizedTest(name = "{0}")
     @MethodSource
-    void isTextTests(String description, Value input, boolean expected) {
+    void when_isText_then_returnsExpectedResult(String description, Value input, boolean expected) {
         val actual = ReflectionFunctionLibrary.isText(input);
         assertThat(actual).isEqualTo(Value.of(expected));
     }
 
-    private static Stream<Arguments> isTextTests() {
+    private static Stream<Arguments> when_isText_then_returnsExpectedResult() {
         return Stream.of(arguments("Non-empty string returns true", Value.of("hello"), true),
                 arguments("Empty string returns true", Value.of(""), true),
                 arguments("Number returns false", Value.of(123), false),
@@ -89,12 +89,12 @@ class ReflectionFunctionLibraryTests {
 
     @ParameterizedTest(name = "{0}")
     @MethodSource
-    void isNumberTests(String description, Value input, boolean expected) {
+    void when_isNumber_then_returnsExpectedResult(String description, Value input, boolean expected) {
         val actual = ReflectionFunctionLibrary.isNumber(input);
         assertThat(actual).isEqualTo(Value.of(expected));
     }
 
-    private static Stream<Arguments> isNumberTests() {
+    private static Stream<Arguments> when_isNumber_then_returnsExpectedResult() {
         return Stream.of(arguments("Integer returns true", Value.of(15), true),
                 arguments("Float 2.7 returns true", Value.of(2.7), true),
                 arguments("Float 5.0 returns true", Value.of(5.0), true),
@@ -107,12 +107,12 @@ class ReflectionFunctionLibraryTests {
 
     @ParameterizedTest(name = "{0}")
     @MethodSource
-    void isIntegerTests(String description, Value input, boolean expected) {
+    void when_isInteger_then_returnsExpectedResult(String description, Value input, boolean expected) {
         val actual = ReflectionFunctionLibrary.isInteger(input);
         assertThat(actual).isEqualTo(Value.of(expected));
     }
 
-    private static Stream<Arguments> isIntegerTests() {
+    private static Stream<Arguments> when_isInteger_then_returnsExpectedResult() {
         return Stream.of(arguments("Integer 7 returns true", Value.of(7), true),
                 arguments("Integer -5 returns true", Value.of(-5), true),
                 arguments("Zero returns true", Value.of(0), true),
@@ -129,12 +129,12 @@ class ReflectionFunctionLibraryTests {
 
     @ParameterizedTest(name = "{0}")
     @MethodSource
-    void isBooleanTests(String description, Value input, boolean expected) {
+    void when_isBoolean_then_returnsExpectedResult(String description, Value input, boolean expected) {
         val actual = ReflectionFunctionLibrary.isBoolean(input);
         assertThat(actual).isEqualTo(Value.of(expected));
     }
 
-    private static Stream<Arguments> isBooleanTests() {
+    private static Stream<Arguments> when_isBoolean_then_returnsExpectedResult() {
         return Stream.of(arguments("TRUE returns true", Value.TRUE, true),
                 arguments("FALSE returns true", Value.FALSE, true),
                 arguments("Number 1 returns false", Value.of(1), false),
@@ -145,12 +145,12 @@ class ReflectionFunctionLibraryTests {
 
     @ParameterizedTest(name = "{0}")
     @MethodSource
-    void isNullTests(String description, Value input, boolean expected) {
+    void when_isNull_then_returnsExpectedResult(String description, Value input, boolean expected) {
         val actual = ReflectionFunctionLibrary.isNull(input);
         assertThat(actual).isEqualTo(Value.of(expected));
     }
 
-    private static Stream<Arguments> isNullTests() {
+    private static Stream<Arguments> when_isNull_then_returnsExpectedResult() {
         return Stream.of(arguments("NULL returns true", Value.NULL, true),
                 arguments("Undefined returns false", Value.UNDEFINED, false),
                 arguments("Number 0 returns false", Value.of(0), false),
@@ -160,12 +160,12 @@ class ReflectionFunctionLibraryTests {
 
     @ParameterizedTest(name = "{0}")
     @MethodSource
-    void isUndefinedTests(String description, Value input, boolean expected) {
+    void when_isUndefined_then_returnsExpectedResult(String description, Value input, boolean expected) {
         val actual = ReflectionFunctionLibrary.isUndefined(input);
         assertThat(actual).isEqualTo(Value.of(expected));
     }
 
-    private static Stream<Arguments> isUndefinedTests() {
+    private static Stream<Arguments> when_isUndefined_then_returnsExpectedResult() {
         return Stream.of(arguments("UNDEFINED returns true", Value.UNDEFINED, true),
                 arguments("NULL returns false", Value.NULL, false),
                 arguments("Number 0 returns false", Value.of(0), false),
@@ -175,12 +175,12 @@ class ReflectionFunctionLibraryTests {
 
     @ParameterizedTest(name = "{0}")
     @MethodSource
-    void isDefinedTests(String description, Value input, boolean expected) {
+    void when_isDefined_then_returnsExpectedResult(String description, Value input, boolean expected) {
         val actual = ReflectionFunctionLibrary.isDefined(input);
         assertThat(actual).isEqualTo(Value.of(expected));
     }
 
-    private static Stream<Arguments> isDefinedTests() {
+    private static Stream<Arguments> when_isDefined_then_returnsExpectedResult() {
         return Stream.of(arguments("Number returns true", Value.of(42), true),
                 arguments("NULL returns true", Value.NULL, true), arguments("FALSE returns true", Value.FALSE, true),
                 arguments("Empty array returns true", Value.EMPTY_ARRAY, true),
@@ -198,12 +198,12 @@ class ReflectionFunctionLibraryTests {
 
     @ParameterizedTest(name = "{0}")
     @MethodSource
-    void isErrorTests(String description, Value input, boolean expected) {
+    void when_isError_then_returnsExpectedResult(String description, Value input, boolean expected) {
         val actual = ReflectionFunctionLibrary.isError(input);
         assertThat(actual).isEqualTo(Value.of(expected));
     }
 
-    private static Stream<Arguments> isErrorTests() {
+    private static Stream<Arguments> when_isError_then_returnsExpectedResult() {
         return Stream.of(arguments("Number returns false", Value.of(42), false),
                 arguments("Undefined returns false", Value.UNDEFINED, false),
                 arguments("NULL returns false", Value.NULL, false),
@@ -226,12 +226,12 @@ class ReflectionFunctionLibraryTests {
 
     @ParameterizedTest(name = "{0}")
     @MethodSource
-    void isEmptyTests(String description, Value input, boolean expected) {
+    void when_isEmpty_then_returnsExpectedResult(String description, Value input, boolean expected) {
         val actual = ReflectionFunctionLibrary.isEmpty(input);
         assertThat(actual).isEqualTo(Value.of(expected));
     }
 
-    private static Stream<Arguments> isEmptyTests() {
+    private static Stream<Arguments> when_isEmpty_then_returnsExpectedResult() {
         return Stream.of(arguments("Empty array returns true", Value.EMPTY_ARRAY, true),
                 arguments("Empty object returns true", Value.EMPTY_OBJECT, true),
                 arguments("Array with elements returns false", Value.ofArray(Value.of(1), Value.of(2)), false),
@@ -244,12 +244,12 @@ class ReflectionFunctionLibraryTests {
 
     @ParameterizedTest(name = "{0}")
     @MethodSource
-    void typeOfTests(String description, Value input, String expectedType) {
+    void when_typeOf_then_returnsExpectedType(String description, Value input, String expectedType) {
         val actual = ReflectionFunctionLibrary.typeOf(input);
         assertThat(actual).isEqualTo(Value.of(expectedType));
     }
 
-    private static Stream<Arguments> typeOfTests() {
+    private static Stream<Arguments> when_typeOf_then_returnsExpectedType() {
         return Stream
                 .of(arguments("Array returns ARRAY", Value.ofArray(Value.of(1), Value.of(2), Value.of(3)), "ARRAY"),
                         arguments("Object returns OBJECT", Value.ofObject(java.util.Map.of("key", Value.of("val"))),

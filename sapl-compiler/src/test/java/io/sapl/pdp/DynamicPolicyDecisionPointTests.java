@@ -94,15 +94,15 @@ class DynamicPolicyDecisionPointTests {
 
     @ParameterizedTest(name = "{0}")
     @MethodSource
-    void combiningAlgorithmTests(String description, CombiningAlgorithm algorithm, List<String> policies,
-            AuthorizationSubscription subscription, Decision expectedDecision) {
+    void when_combiningAlgorithm_then_returnsExpectedDecision(String description, CombiningAlgorithm algorithm,
+            List<String> policies, AuthorizationSubscription subscription, Decision expectedDecision) {
         loadConfiguration(algorithm, policies.toArray(new String[0]));
 
         StepVerifier.create(pdp.decide(subscription).take(1))
                 .assertNext(decision -> assertThat(decision.decision()).isEqualTo(expectedDecision)).verifyComplete();
     }
 
-    private static Stream<Arguments> combiningAlgorithmTests() {
+    private static Stream<Arguments> when_combiningAlgorithm_then_returnsExpectedDecision() {
         val cultistSubscription      = subscription("cultist", "summon", "deep_one");
         val investigatorSubscription = subscription("investigator", "investigate", "innsmouth");
 

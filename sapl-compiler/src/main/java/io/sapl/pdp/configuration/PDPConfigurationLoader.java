@@ -28,6 +28,7 @@ import lombok.val;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.nio.file.LinkOption;
 import java.nio.file.Path;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -305,7 +306,8 @@ public class PDPConfigurationLoader {
     private static Map<String, String> loadSaplDocumentsAsMap(Path directory) {
         List<Path> saplPaths;
         try (Stream<Path> paths = Files.list(directory)) {
-            saplPaths = paths.filter(p -> p.toString().endsWith(SAPL_EXTENSION)).filter(Files::isRegularFile).toList();
+            saplPaths = paths.filter(p -> p.toString().endsWith(SAPL_EXTENSION))
+                    .filter(p -> Files.isRegularFile(p, LinkOption.NOFOLLOW_LINKS)).toList();
         } catch (IOException e) {
             throw new PDPConfigurationException("Failed to list SAPL files in directory.", e);
         }
