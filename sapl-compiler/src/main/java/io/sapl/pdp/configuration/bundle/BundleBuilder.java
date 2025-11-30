@@ -18,6 +18,7 @@
 package io.sapl.pdp.configuration.bundle;
 
 import io.sapl.api.pdp.CombiningAlgorithm;
+import io.sapl.pdp.configuration.BundlePDPConfigurationSource;
 import io.sapl.pdp.configuration.PDPConfigurationException;
 import lombok.val;
 

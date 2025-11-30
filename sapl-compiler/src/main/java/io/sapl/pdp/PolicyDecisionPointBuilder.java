@@ -113,7 +113,7 @@ import java.util.function.Function;
  *             return PolicyDecisionPointBuilder.withDefaults().build();
  *         }
  *
- *         @Bean(destroyMethod = "dispose")
+ *         &#64;Bean(destroyMethod = "dispose")
  *         public PDPConfigurationSource policySource(ConfigurationRegister register) {
  *             return new DirectoryPDPConfigurationSource(Path.of("/policies"),
  *                     config -> register.loadConfiguration(config, true));
