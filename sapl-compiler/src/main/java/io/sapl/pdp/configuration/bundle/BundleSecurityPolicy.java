@@ -85,7 +85,7 @@ import lombok.extern.slf4j.Slf4j;
  *     &#64;Configuration
  *     public class BundleSecurityConfig {
  *
- *         @Bean
+ *         &#64;Bean
  *         public BundleSecurityPolicy bundleSecurityPolicy(BundleSecurityProperties props,
  *                 AcceptedRisksProperties risks) {
  *
