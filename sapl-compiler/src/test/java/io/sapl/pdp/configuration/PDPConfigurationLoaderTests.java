@@ -228,8 +228,9 @@ class PDPConfigurationLoaderTests {
 
     @Test
     void whenLoadingFromContentWithInvalidJson_thenThrowsException() {
+        val emptyMap = Map.<String, String>of();
         assertThatThrownBy(
-                () -> PDPConfigurationLoader.loadFromContent("not valid {{{", Map.of(), "test-pdp", "/invalid"))
+                () -> PDPConfigurationLoader.loadFromContent("not valid {{{", emptyMap, "test-pdp", "/invalid"))
                 .isInstanceOf(PDPConfigurationException.class).hasMessageContaining("Failed to parse pdp.json");
     }
 

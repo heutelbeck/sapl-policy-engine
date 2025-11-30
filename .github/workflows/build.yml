@@ -122,7 +122,7 @@ jobs:
         # fork and workflows triggered by other events.
       - name: Run Unit Tests, Analysis, and Integration Tests
         if: env.RUN_ANALYSIS == 'true'
-        run: mvn -B verify javadoc:jar spotbugs:spotbugs -pl '!sapl-bom,!sapl-code-style' -Pcoverage,it,spotbugs
+        run: mvn -B verify javadoc:jar spotbugs:spotbugs -pl '!sapl-bom,!sapl-code-style' -Pcoverage,it,spotbugs -T 1.5C
 
       - name: Cache Sonar Packages
         if: ${{ (env.RUN_ANALYSIS == 'true') && (env.IS_FORK == 'false') }}

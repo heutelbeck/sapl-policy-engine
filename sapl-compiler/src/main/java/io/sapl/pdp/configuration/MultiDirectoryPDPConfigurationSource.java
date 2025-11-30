@@ -244,14 +244,6 @@ public final class MultiDirectoryPDPConfigurationSource implements PDPConfigurat
         }
     }
 
-    private void removeChildSource(String pdpId) {
-        val source = childSources.remove(pdpId);
-        if (source != null) {
-            source.dispose();
-            log.debug("Removed and disposed child source for PDP '{}'.", pdpId);
-        }
-    }
-
     private void startDirectoryMonitor() {
         try {
             val observer = FileAlterationObserver.builder().setFile(directoryPath.toFile())
@@ -317,6 +309,14 @@ public final class MultiDirectoryPDPConfigurationSource implements PDPConfigurat
             val pdpId = directory.getName();
             log.debug("Detected subdirectory removal: {}.", pdpId);
             removeChildSource(pdpId);
+        }
+
+        private void removeChildSource(String pdpId) {
+            val source = childSources.remove(pdpId);
+            if (source != null) {
+                source.dispose();
+                log.debug("Removed and disposed child source for PDP '{}'.", pdpId);
+            }
         }
     }
 

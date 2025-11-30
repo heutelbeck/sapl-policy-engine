@@ -34,9 +34,7 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.security.KeyPair;
-import java.security.KeyPairGenerator;
-import java.security.NoSuchAlgorithmException;
+import java.security.*;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.HashMap;
@@ -53,7 +51,8 @@ class BundleBuilderTests {
     Path tempDir;
 
     private static KeyPair cultKeyPair;
-    private static KeyPair rsaKeyPair;
+
+    private static PrivateKey rsaPrivate;
 
     private static BundleSecurityPolicy developmentPolicy;
     private static BundleSecurityPolicy signedPolicy;
@@ -65,7 +64,8 @@ class BundleBuilderTests {
 
         val rsaGenerator = KeyPairGenerator.getInstance("RSA");
         rsaGenerator.initialize(2048);
-        rsaKeyPair = rsaGenerator.generateKeyPair();
+        val rsaKeyPair = rsaGenerator.generateKeyPair();
+        rsaPrivate = rsaKeyPair.getPrivate();
 
         developmentPolicy = BundleSecurityPolicy.builder().disableSignatureVerification().acceptUnsignedBundleRisks()
                 .build();
@@ -260,9 +260,7 @@ class BundleBuilderTests {
         val bundle = BundleBuilder.create().withConfiguration(CombiningAlgorithm.PERMIT_OVERRIDES, Map.of()).build();
 
         val entries = extractEntries(bundle);
-        assertThat(entries.get("pdp.json")).contains("\"variables\":").containsPattern("\\{\\s*\\}"); // Match empty
-                                                                                                      // object with any
-                                                                                                      // whitespace
+        assertThat(entries.get("pdp.json")).contains("\"variables\":").containsPattern("\\{\\s*}");
     }
 
     @Test
@@ -338,8 +336,8 @@ class BundleBuilderTests {
     void whenSigningWithNonEd25519Key_thenThrowsException() {
         val builder = BundleBuilder.create().withPolicy("wrong-key.sapl", "policy \"wrong\" deny true");
 
-        assertThatThrownBy(() -> builder.signWith(rsaKeyPair.getPrivate(), "rsa-key"))
-                .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("Ed25519");
+        assertThatThrownBy(() -> builder.signWith(rsaPrivate, "rsa-key")).isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Ed25519");
     }
 
     @Test

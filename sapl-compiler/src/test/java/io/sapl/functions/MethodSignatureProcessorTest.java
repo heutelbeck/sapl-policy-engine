@@ -23,61 +23,57 @@ import io.sapl.api.model.*;
 import io.sapl.interpreter.InitializationException;
 import lombok.val;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 
+import java.lang.reflect.Method;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.*;
+import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 class MethodSignatureProcessorTest {
 
     // ========================================================================
-    // Static Method Handling
+    // Static/Instance Method Handling
     // ========================================================================
 
-    @Test
-    void when_staticMethodWithNullInstance_then_accepted() throws Exception {
-        val method = StormbringerLibrary.class.getMethod("conjureSword", TextValue.class);
+    @ParameterizedTest(name = "{0}")
+    @MethodSource("staticInstanceMethodCases")
+    void whenMethodWithInstanceConfiguration_thenHandledCorrectly(String description, Object instance,
+            String methodName, Class<?>[] paramTypes, boolean shouldSucceed, String expectedNameSuffix)
+            throws Exception {
+        val method = StormbringerLibrary.class.getMethod(methodName, paramTypes);
 
-        val spec = MethodSignatureProcessor.functionSpecification(null, "chaos", method);
-
-        assertThat(spec).isNotNull();
-        assertThat(spec.functionName()).isEqualTo("chaos.conjureSword");
+        if (shouldSucceed) {
+            val spec = MethodSignatureProcessor.functionSpecification(instance, "chaos", method);
+            assertThat(spec).isNotNull();
+            assertThat(spec.functionName()).isEqualTo("chaos." + expectedNameSuffix);
+        } else {
+            assertThatThrownBy(() -> MethodSignatureProcessor.functionSpecification(instance, "chaos", method))
+                    .isInstanceOf(InitializationException.class).hasMessageContaining("must be static");
+        }
     }
 
-    @Test
-    void when_instanceMethodWithNullInstance_then_rejected() throws Exception {
-        val method = StormbringerLibrary.class.getMethod("drainSoul", TextValue.class);
-
-        assertThatThrownBy(() -> MethodSignatureProcessor.functionSpecification(null, "chaos", method))
-                .isInstanceOf(InitializationException.class).hasMessageContaining("must be static");
-    }
-
-    @Test
-    void when_instanceMethodWithInstance_then_accepted() throws Exception {
+    static Stream<Arguments> staticInstanceMethodCases() {
         val library = new StormbringerLibrary();
-        val method  = StormbringerLibrary.class.getMethod("drainSoul", TextValue.class);
-
-        val spec = MethodSignatureProcessor.functionSpecification(library, "chaos", method);
-
-        assertThat(spec).isNotNull();
-        assertThat(spec.functionName()).isEqualTo("chaos.drainSoul");
+        return Stream.of(
+                arguments("static method with null instance accepted", null, "conjureSword",
+                        new Class<?>[] { TextValue.class }, true, "conjureSword"),
+                arguments("instance method with null instance rejected", null, "drainSoul",
+                        new Class<?>[] { TextValue.class }, false, null),
+                arguments("instance method with instance accepted", library, "drainSoul",
+                        new Class<?>[] { TextValue.class }, true, "drainSoul"),
+                arguments("static method with instance accepted", library, "conjureSword",
+                        new Class<?>[] { TextValue.class }, true, "conjureSword"));
     }
 
     @Test
-    void when_staticMethodWithInstance_then_accepted() throws Exception {
-        val library = new StormbringerLibrary();
-        val method  = StormbringerLibrary.class.getMethod("conjureSword", TextValue.class);
-
-        val spec = MethodSignatureProcessor.functionSpecification(library, "chaos", method);
-
-        assertThat(spec).isNotNull();
-        assertThat(spec.functionName()).isEqualTo("chaos.conjureSword");
-    }
-
-    @Test
-    void when_mixedStaticAndInstanceMethodsInInstanceLibrary_then_bothWork() throws Exception {
+    void whenMixedStaticAndInstanceMethods_thenBothExecuteCorrectly() throws Exception {
         val library        = new StormbringerLibrary();
         val staticMethod   = StormbringerLibrary.class.getMethod("conjureSword", TextValue.class);
         val instanceMethod = StormbringerLibrary.class.getMethod("drainSoul", TextValue.class);
@@ -88,24 +84,39 @@ class MethodSignatureProcessorTest {
         assertThat(staticSpec).isNotNull();
         assertThat(instanceSpec).isNotNull();
 
-        val staticInvocation   = new FunctionInvocation("chaos.conjureSword", List.of(Value.of("Elric")));
-        val instanceInvocation = new FunctionInvocation("chaos.drainSoul", List.of(Value.of("Victim")));
+        val staticResult   = staticSpec.function().apply(invocation("chaos.conjureSword", Value.of("Elric")));
+        val instanceResult = instanceSpec.function().apply(invocation("chaos.drainSoul", Value.of("Victim")));
 
-        val staticResult   = staticSpec.function().apply(staticInvocation);
-        val instanceResult = instanceSpec.function().apply(instanceInvocation);
-
-        assertThat(staticResult).isInstanceOf(TextValue.class);
-        assertThat(((TextValue) staticResult).value()).isEqualTo("Stormbringer bound to Elric");
-        assertThat(instanceResult).isInstanceOf(TextValue.class);
-        assertThat(((TextValue) instanceResult).value()).isEqualTo("Soul of Victim drained");
+        assertThat(staticResult).isEqualTo(Value.of("Stormbringer bound to Elric"));
+        assertThat(instanceResult).isEqualTo(Value.of("Soul of Victim drained"));
     }
 
     // ========================================================================
-    // Annotation Processing
+    // Function Name Resolution
     // ========================================================================
 
+    @ParameterizedTest(name = "{0}")
+    @MethodSource("functionNameResolutionCases")
+    void whenResolvingFunctionName_thenCorrectNameUsed(String description, String methodName, Class<?>[] paramTypes,
+            String expectedFunctionName) throws Exception {
+        val method = StormbringerLibrary.class.getMethod(methodName, paramTypes);
+
+        val spec = MethodSignatureProcessor.functionSpecification(null, "chaos", method);
+
+        assertThat(spec).isNotNull();
+        assertThat(spec.functionName()).isEqualTo(expectedFunctionName);
+    }
+
+    static Stream<Arguments> functionNameResolutionCases() {
+        return Stream.of(
+                arguments("annotation name provided uses annotation name", "summonArioch",
+                        new Class<?>[] { TextValue.class }, "chaos.summonChaosLord"),
+                arguments("empty annotation name uses method name", "conjureSword", new Class<?>[] { TextValue.class },
+                        "chaos.conjureSword"));
+    }
+
     @Test
-    void when_methodWithoutAnnotation_then_returnsNull() throws Exception {
+    void whenMethodWithoutAnnotation_thenReturnsNull() throws Exception {
         val method = StormbringerLibrary.class.getMethod("notAFunction");
 
         val spec = MethodSignatureProcessor.functionSpecification(null, "chaos", method);
@@ -113,350 +124,216 @@ class MethodSignatureProcessorTest {
         assertThat(spec).isNull();
     }
 
-    @Test
-    void when_annotationNameProvided_then_usesAnnotationName() throws Exception {
-        val method = StormbringerLibrary.class.getMethod("summonArioch", TextValue.class);
-
-        val spec = MethodSignatureProcessor.functionSpecification(null, "chaos", method);
-
-        assertThat(spec).isNotNull();
-        assertThat(spec.functionName()).isEqualTo("chaos.summonChaosLord");
-    }
-
-    @Test
-    void when_annotationNameEmpty_then_usesMethodName() throws Exception {
-        val method = StormbringerLibrary.class.getMethod("conjureSword", TextValue.class);
-
-        val spec = MethodSignatureProcessor.functionSpecification(null, "chaos", method);
-
-        assertThat(spec).isNotNull();
-        assertThat(spec.functionName()).isEqualTo("chaos.conjureSword");
-    }
-
     // ========================================================================
-    // Return Type Validation
+    // Signature Validation
     // ========================================================================
 
-    @Test
-    void when_valueReturnType_then_accepted() throws Exception {
-        val method = StormbringerLibrary.class.getMethod("conjureSword", TextValue.class);
+    @ParameterizedTest(name = "{0}")
+    @MethodSource("validSignatureCases")
+    void whenValidSignature_thenAccepted(String description, Class<?> libraryClass, String methodName,
+            Class<?>[] paramTypes, String libraryName, int expectedArgCount, boolean hasVarArgs) throws Exception {
+        val method = libraryClass.getMethod(methodName, paramTypes);
 
-        assertThatCode(() -> MethodSignatureProcessor.functionSpecification(null, "chaos", method))
-                .doesNotThrowAnyException();
+        val spec = MethodSignatureProcessor.functionSpecification(null, libraryName, method);
+
+        assertThat(spec).isNotNull();
+        assertThat(spec.numberOfArguments()).isEqualTo(expectedArgCount);
+        assertThat(spec.hasVariableNumberOfArguments()).isEqualTo(hasVarArgs);
     }
 
-    @Test
-    void when_valueSubtypeReturnType_then_accepted() throws Exception {
-        val method = DragonLibrary.class.getMethod("summonDragons", TextValue.class);
-
-        assertThatCode(() -> MethodSignatureProcessor.functionSpecification(null, "imrryr", method))
-                .doesNotThrowAnyException();
+    static Stream<Arguments> validSignatureCases() {
+        return Stream.of(
+                arguments("single Value parameter", StormbringerLibrary.class, "conjureSword",
+                        new Class<?>[] { TextValue.class }, "chaos", 1, false),
+                arguments("multiple Value parameters", ElementalLibrary.class, "bindElemental",
+                        new Class<?>[] { TextValue.class, TextValue.class, NumberValue.class }, "sorcery", 3, false),
+                arguments("varargs as last parameter", DreamingCityLibrary.class, "awakeTower",
+                        new Class<?>[] { TextValue.class, TextValue[].class }, "imrryr", 1, true),
+                arguments("Value return type", StormbringerLibrary.class, "conjureSword",
+                        new Class<?>[] { TextValue.class }, "chaos", 1, false),
+                arguments("Value subtype return type", DragonLibrary.class, "summonDragons",
+                        new Class<?>[] { TextValue.class }, "imrryr", 1, false));
     }
 
-    @Test
-    void when_nonValueReturnType_then_rejected() throws Exception {
-        val method = BrokenLibrary.class.getMethod("invalidReturn", TextValue.class);
+    @ParameterizedTest(name = "{0}")
+    @MethodSource("invalidSignatureCases")
+    void whenInvalidSignature_thenRejected(String description, Class<?> libraryClass, String methodName,
+            Class<?>[] paramTypes, Class<? extends Exception> expectedException, String expectedMessage)
+            throws Exception {
+        val method = libraryClass.getMethod(methodName, paramTypes);
 
         assertThatThrownBy(() -> MethodSignatureProcessor.functionSpecification(null, "broken", method))
-                .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("must return Value");
+                .isInstanceOf(expectedException).hasMessageContaining(expectedMessage);
     }
 
-    // ========================================================================
-    // Parameter Type Validation
-    // ========================================================================
-
-    @Test
-    void when_valueParameters_then_accepted() throws Exception {
-        val method = StormbringerLibrary.class.getMethod("conjureSword", TextValue.class);
-
-        val spec = MethodSignatureProcessor.functionSpecification(null, "chaos", method);
-
-        assertThat(spec).isNotNull();
-        assertThat(spec.numberOfArguments()).isEqualTo(1);
-    }
-
-    @Test
-    void when_multipleValueParameters_then_accepted() throws Exception {
-        val method = ElementalLibrary.class.getMethod("bindElemental", TextValue.class, TextValue.class,
-                NumberValue.class);
-
-        val spec = MethodSignatureProcessor.functionSpecification(null, "sorcery", method);
-
-        assertThat(spec).isNotNull();
-        assertThat(spec.numberOfArguments()).isEqualTo(3);
-    }
-
-    @Test
-    void when_varArgsAsLastParameter_then_accepted() throws Exception {
-        val method = DreamingCityLibrary.class.getMethod("awakeTower", TextValue.class, TextValue[].class);
-
-        val spec = MethodSignatureProcessor.functionSpecification(null, "imrryr", method);
-
-        assertThat(spec).isNotNull();
-        assertThat(spec.hasVariableNumberOfArguments()).isTrue();
-    }
-
-    @Test
-    void when_nonValueParameter_then_rejected() throws Exception {
-        val method = BrokenLibrary.class.getMethod("invalidParam", String.class);
-
-        assertThatThrownBy(() -> MethodSignatureProcessor.functionSpecification(null, "broken", method))
-                .isInstanceOf(InitializationException.class).hasMessageContaining("must only have Value");
-    }
-
-    @Test
-    void when_varArgsNotAsLastParameter_then_rejected() throws Exception {
-        val method = BrokenLibrary.class.getMethod("varArgsNotLast", TextValue[].class, TextValue.class);
-
-        assertThatThrownBy(() -> MethodSignatureProcessor.functionSpecification(null, "broken", method))
-                .isInstanceOf(InitializationException.class);
+    static Stream<Arguments> invalidSignatureCases() {
+        return Stream.of(
+                arguments("non-Value return type rejected", BrokenLibrary.class, "invalidReturn",
+                        new Class<?>[] { TextValue.class }, IllegalArgumentException.class, "must return Value"),
+                arguments("non-Value parameter rejected", BrokenLibrary.class, "invalidParam",
+                        new Class<?>[] { String.class }, InitializationException.class, "must only have Value"),
+                arguments("varargs not as last parameter rejected", BrokenLibrary.class, "varArgsNotLast",
+                        new Class<?>[] { TextValue[].class, TextValue.class }, InitializationException.class, ""));
     }
 
     // ========================================================================
     // Method Execution
     // ========================================================================
 
-    @Test
-    void when_invokingStaticMethod_then_executesCorrectly() throws Exception {
-        val method = StormbringerLibrary.class.getMethod("conjureSword", TextValue.class);
-        val spec   = MethodSignatureProcessor.functionSpecification(null, "chaos", method);
+    @ParameterizedTest(name = "{0}")
+    @MethodSource("methodExecutionCases")
+    void whenInvokingMethod_thenExecutesCorrectly(String description, MethodReference methodRef, Object instance,
+            List<Value> arguments, String expectedResultContains) throws Exception {
+        val method = methodRef.resolve();
+        val spec   = MethodSignatureProcessor.functionSpecification(instance, methodRef.libraryName(), method);
         assertThat(spec).isNotNull();
 
-        val invocation = new FunctionInvocation("chaos.conjureSword", List.of(Value.of("Elric")));
+        val result = spec.function().apply(invocation(spec.functionName(), arguments));
 
-        val result = spec.function().apply(invocation);
-
-        assertThat(result).isNotNull().isInstanceOf(TextValue.class);
-        val textResult = (TextValue) result;
-        assertThat(textResult.value()).isEqualTo("Stormbringer bound to Elric");
+        assertThat(result).isInstanceOf(TextValue.class);
+        assertThat(((TextValue) result).value()).contains(expectedResultContains);
     }
 
-    @Test
-    void when_invokingInstanceMethod_then_executesCorrectly() throws Exception {
-        val library = new StormbringerLibrary();
-        val method  = StormbringerLibrary.class.getMethod("drainSoul", TextValue.class);
-        val spec    = MethodSignatureProcessor.functionSpecification(library, "chaos", method);
-        assertThat(spec).isNotNull();
-
-        val invocation = new FunctionInvocation("chaos.drainSoul", List.of(Value.of("victim")));
-
-        val result = spec.function().apply(invocation);
-
-        assertThat(result).isNotNull().isInstanceOf(TextValue.class);
-        val textResult = (TextValue) result;
-        assertThat(textResult.value()).contains("drained");
+    static Stream<Arguments> methodExecutionCases() {
+        return Stream.of(
+                arguments("static method execution",
+                        methodRef(StormbringerLibrary.class, "conjureSword", "chaos", TextValue.class), null,
+                        List.of(Value.of("Elric")), "Stormbringer bound to Elric"),
+                arguments("instance method execution",
+                        methodRef(StormbringerLibrary.class, "drainSoul", "chaos", TextValue.class),
+                        new StormbringerLibrary(), List.of(Value.of("victim")), "drained"),
+                arguments("multi-parameter method execution",
+                        methodRef(ElementalLibrary.class, "bindElemental", "sorcery", TextValue.class, TextValue.class,
+                                NumberValue.class),
+                        null, List.of(Value.of("Elric"), Value.of("fire"), Value.of(9)), "Elric binds fire"),
+                arguments("ArrayValue parameter execution",
+                        methodRef(ChaosLibrary.class, "summonLords", "chaos", ArrayValue.class), null,
+                        List.of(Value.ofArray(Value.of("Arioch"), Value.of("Xiombarg"), Value.of("Mabelode"))),
+                        "Summoned 3 Chaos Lords"),
+                arguments("ObjectValue parameter execution",
+                        methodRef(RuneLibrary.class, "inscribeRune", "sorcery", ObjectValue.class), null,
+                        List.of(Value.ofObject(Map.of("symbol", Value.of("Actorios"), "power", Value.of(8)))),
+                        "Actorios"));
     }
 
-    @Test
-    void when_invokingMultiParameterMethod_then_executesCorrectly() throws Exception {
-        val method = ElementalLibrary.class.getMethod("bindElemental", TextValue.class, TextValue.class,
-                NumberValue.class);
-        val spec   = MethodSignatureProcessor.functionSpecification(null, "sorcery", method);
-        assertThat(spec).isNotNull();
-
-        val invocation = new FunctionInvocation("sorcery.bindElemental",
-                List.of(Value.of("Elric"), Value.of("fire"), Value.of(9)));
-
-        val result = spec.function().apply(invocation);
-
-        assertThat(result).isNotNull().isInstanceOf(TextValue.class);
-        val textResult = (TextValue) result;
-        assertThat(textResult.value()).contains("Elric").contains("fire").contains("9");
-    }
-
-    @Test
-    void when_invokingVarArgsMethodWithNoVarArgs_then_executesCorrectly() throws Exception {
+    @ParameterizedTest(name = "{0}")
+    @MethodSource("varArgsExecutionCases")
+    void whenInvokingVarArgsMethod_thenExecutesCorrectly(String description, List<Value> arguments,
+            String expectedResult) throws Exception {
         val method = DreamingCityLibrary.class.getMethod("awakeTower", TextValue.class, TextValue[].class);
         val spec   = MethodSignatureProcessor.functionSpecification(null, "imrryr", method);
-        assertThat(spec).isNotNull();
 
-        val invocation = new FunctionInvocation("imrryr.awakeTower", List.of(Value.of("Elric")));
+        val result = spec.function().apply(invocation("imrryr.awakeTower", arguments));
 
-        val result = spec.function().apply(invocation);
-
-        assertThat(result).isNotNull().isInstanceOf(TextValue.class);
-        val textResult = (TextValue) result;
-        assertThat(textResult.value()).contains("Elric awakens 0 towers");
+        assertThat(result).isEqualTo(Value.of(expectedResult));
     }
 
-    @Test
-    void when_invokingVarArgsMethodWithSingleVarArg_then_executesCorrectly() throws Exception {
-        val method = DreamingCityLibrary.class.getMethod("awakeTower", TextValue.class, TextValue[].class);
-        val spec   = MethodSignatureProcessor.functionSpecification(null, "imrryr", method);
-        assertThat(spec).isNotNull();
-
-        val invocation = new FunctionInvocation("imrryr.awakeTower", List.of(Value.of("Elric"), Value.of("Bronze")));
-
-        val result = spec.function().apply(invocation);
-
-        assertThat(result).isNotNull().isInstanceOf(TextValue.class);
-        val textResult = (TextValue) result;
-        assertThat(textResult.value()).contains("Elric awakens 1 towers");
-    }
-
-    @Test
-    void when_invokingVarArgsMethodWithMultipleVarArgs_then_executesCorrectly() throws Exception {
-        val method = DreamingCityLibrary.class.getMethod("awakeTower", TextValue.class, TextValue[].class);
-        val spec   = MethodSignatureProcessor.functionSpecification(null, "imrryr", method);
-        assertThat(spec).isNotNull();
-
-        val invocation = new FunctionInvocation("imrryr.awakeTower",
-                List.of(Value.of("Elric"), Value.of("Bronze"), Value.of("Jade"), Value.of("Silver")));
-
-        val result = spec.function().apply(invocation);
-
-        assertThat(result).isNotNull().isInstanceOf(TextValue.class);
-        val textResult = (TextValue) result;
-        assertThat(textResult.value()).contains("Elric awakens 3 towers");
-    }
-
-    @Test
-    void when_invokingArrayParameterMethod_then_executesCorrectly() throws Exception {
-        val method = ChaosLibrary.class.getMethod("summonLords", ArrayValue.class);
-        val spec   = MethodSignatureProcessor.functionSpecification(null, "chaos", method);
-        assertThat(spec).isNotNull();
-
-        val lords      = Value.ofArray(Value.of("Arioch"), Value.of("Xiombarg"), Value.of("Mabelode"));
-        val invocation = new FunctionInvocation("chaos.summonLords", List.of(lords));
-
-        val result = spec.function().apply(invocation);
-
-        assertThat(result).isNotNull().isInstanceOf(TextValue.class);
-        val textResult = (TextValue) result;
-        assertThat(textResult.value()).contains("Summoned 3 Chaos Lords");
-    }
-
-    @Test
-    void when_invokingObjectParameterMethod_then_executesCorrectly() throws Exception {
-        val method = RuneLibrary.class.getMethod("inscribeRune", ObjectValue.class);
-        val spec   = MethodSignatureProcessor.functionSpecification(null, "sorcery", method);
-        assertThat(spec).isNotNull();
-
-        val rune       = Value.ofObject(Map.of("symbol", Value.of("Actorios"), "power", Value.of(8)));
-        val invocation = new FunctionInvocation("sorcery.inscribeRune", List.of(rune));
-
-        val result = spec.function().apply(invocation);
-
-        assertThat(result).isNotNull().isInstanceOf(TextValue.class);
-        val textResult = (TextValue) result;
-        assertThat(textResult.value()).contains("Actorios").contains("8");
+    static Stream<Arguments> varArgsExecutionCases() {
+        return Stream.of(
+                arguments("zero varargs", List.of(Value.of("Elric")), "Elric awakens 0 towers in the Dreaming City"),
+                arguments("single vararg", List.of(Value.of("Elric"), Value.of("Bronze")),
+                        "Elric awakens 1 towers in the Dreaming City"),
+                arguments("multiple varargs",
+                        List.of(Value.of("Elric"), Value.of("Bronze"), Value.of("Jade"), Value.of("Silver")),
+                        "Elric awakens 3 towers in the Dreaming City"));
     }
 
     // ========================================================================
-    // Argument Validation
+    // Argument Validation Errors
     // ========================================================================
 
-    @Test
-    void when_tooFewArguments_then_rejected() throws Exception {
-        val method = ElementalLibrary.class.getMethod("bindElemental", TextValue.class, TextValue.class,
-                NumberValue.class);
-        val spec   = MethodSignatureProcessor.functionSpecification(null, "sorcery", method);
-        assertThat(spec).isNotNull();
+    @ParameterizedTest(name = "{0}")
+    @MethodSource("argumentCountErrorCases")
+    void whenWrongArgumentCount_thenReturnsError(String description, MethodReference methodRef, List<Value> arguments,
+            String expectedErrorContains) throws Exception {
+        val method = methodRef.resolve();
+        val spec   = MethodSignatureProcessor.functionSpecification(null, methodRef.libraryName(), method);
 
-        val invocation = new FunctionInvocation("sorcery.bindElemental", List.of(Value.of("Elric")));
+        val result = spec.function().apply(invocation(spec.functionName(), arguments));
 
-        val result = spec.function().apply(invocation);
-
-        assertThat(result).isNotNull().isInstanceOf(ErrorValue.class);
-        val error = (ErrorValue) result;
-        assertThat(error.message()).contains("requires exactly 3 arguments").contains("received 1");
+        assertThat(result).isInstanceOf(ErrorValue.class);
+        assertThat(((ErrorValue) result).message()).contains(expectedErrorContains);
     }
 
-    @Test
-    void when_tooManyArguments_then_rejected() throws Exception {
-        val method = StormbringerLibrary.class.getMethod("conjureSword", TextValue.class);
-        val spec   = MethodSignatureProcessor.functionSpecification(null, "chaos", method);
-        assertThat(spec).isNotNull();
-
-        val invocation = new FunctionInvocation("chaos.conjureSword", List.of(Value.of("Elric"), Value.of("Extra")));
-
-        val result = spec.function().apply(invocation);
-
-        assertThat(result).isNotNull().isInstanceOf(ErrorValue.class);
-        val error = (ErrorValue) result;
-        assertThat(error.message()).contains("requires exactly 1 arguments").contains("received 2");
+    static Stream<Arguments> argumentCountErrorCases() {
+        return Stream.of(
+                arguments("too few arguments for fixed params",
+                        methodRef(ElementalLibrary.class, "bindElemental", "sorcery", TextValue.class, TextValue.class,
+                                NumberValue.class),
+                        List.of(Value.of("Elric")), "requires exactly 3 arguments"),
+                arguments("too many arguments for fixed params",
+                        methodRef(StormbringerLibrary.class, "conjureSword", "chaos", TextValue.class),
+                        List.of(Value.of("Elric"), Value.of("Extra")), "requires exactly 1 arguments"),
+                arguments(
+                        "too few arguments for varargs method", methodRef(DreamingCityLibrary.class, "awakeTower",
+                                "imrryr", TextValue.class, TextValue[].class),
+                        List.of(), "requires at least 1 arguments"));
     }
 
-    @Test
-    void when_tooFewArgumentsForVarArgs_then_rejected() throws Exception {
-        val method = DreamingCityLibrary.class.getMethod("awakeTower", TextValue.class, TextValue[].class);
-        val spec   = MethodSignatureProcessor.functionSpecification(null, "imrryr", method);
-        assertThat(spec).isNotNull();
+    @ParameterizedTest(name = "{0}")
+    @MethodSource("argumentTypeErrorCases")
+    void whenWrongArgumentType_thenReturnsError(String description, MethodReference methodRef, List<Value> arguments,
+            String expectedErrorContains) throws Exception {
+        val method = methodRef.resolve();
+        val spec   = MethodSignatureProcessor.functionSpecification(null, methodRef.libraryName(), method);
 
-        val invocation = new FunctionInvocation("imrryr.awakeTower", List.of());
+        val result = spec.function().apply(invocation(spec.functionName(), arguments));
 
-        val result = spec.function().apply(invocation);
-
-        assertThat(result).isNotNull().isInstanceOf(ErrorValue.class);
-        val error = (ErrorValue) result;
-        assertThat(error.message()).contains("requires at least 1 arguments").contains("received 0");
+        assertThat(result).isInstanceOf(ErrorValue.class);
+        assertThat(((ErrorValue) result).message()).contains(expectedErrorContains);
     }
 
-    @Test
-    void when_wrongParameterType_then_rejected() throws Exception {
-        val method = StormbringerLibrary.class.getMethod("conjureSword", TextValue.class);
-        val spec   = MethodSignatureProcessor.functionSpecification(null, "chaos", method);
-        assertThat(spec).isNotNull();
-
-        val invocation = new FunctionInvocation("chaos.conjureSword", List.of(Value.of(666)));
-
-        val result = spec.function().apply(invocation);
-
-        assertThat(result).isNotNull().isInstanceOf(ErrorValue.class);
-        val error = (ErrorValue) result;
-        assertThat(error.message()).contains("argument 0").contains("expected TextValue")
-                .contains("received NumberValue");
-    }
-
-    @Test
-    void when_wrongTypeInVarArgs_then_rejected() throws Exception {
-        val method = DreamingCityLibrary.class.getMethod("awakeTower", TextValue.class, TextValue[].class);
-        val spec   = MethodSignatureProcessor.functionSpecification(null, "imrryr", method);
-        assertThat(spec).isNotNull();
-
-        val invocation = new FunctionInvocation("imrryr.awakeTower", List.of(Value.of("Elric"), Value.of(true)));
-
-        val result = spec.function().apply(invocation);
-
-        assertThat(result).isNotNull().isInstanceOf(ErrorValue.class);
-        val error = (ErrorValue) result;
-        assertThat(error.message()).contains("varargs argument 0").contains("expected TextValue")
-                .contains("received BooleanValue");
-    }
-
-    @Test
-    void when_wrongTypeInSecondVarArg_then_rejected() throws Exception {
-        val method = DreamingCityLibrary.class.getMethod("awakeTower", TextValue.class, TextValue[].class);
-        val spec   = MethodSignatureProcessor.functionSpecification(null, "imrryr", method);
-        assertThat(spec).isNotNull();
-
-        val invocation = new FunctionInvocation("imrryr.awakeTower",
-                List.of(Value.of("Elric"), Value.of("Bronze"), Value.of(42)));
-
-        val result = spec.function().apply(invocation);
-
-        assertThat(result).isNotNull().isInstanceOf(ErrorValue.class);
-        val error = (ErrorValue) result;
-        assertThat(error.message()).contains("varargs argument 1");
+    static Stream<Arguments> argumentTypeErrorCases() {
+        return Stream.of(
+                arguments("wrong type in fixed parameter",
+                        methodRef(StormbringerLibrary.class, "conjureSword", "chaos", TextValue.class),
+                        List.of(Value.of(666)), "expected TextValue"),
+                arguments("wrong type in first vararg",
+                        methodRef(DreamingCityLibrary.class, "awakeTower", "imrryr", TextValue.class,
+                                TextValue[].class),
+                        List.of(Value.of("Elric"), Value.of(true)), "varargs argument 0"),
+                arguments("wrong type in second vararg",
+                        methodRef(DreamingCityLibrary.class, "awakeTower", "imrryr", TextValue.class,
+                                TextValue[].class),
+                        List.of(Value.of("Elric"), Value.of("Bronze"), Value.of(42)), "varargs argument 1"));
     }
 
     // ========================================================================
-    // Error Handling
+    // Exception Handling
     // ========================================================================
 
     @Test
-    void when_methodThrowsException_then_capturesAsError() throws Exception {
+    void whenMethodThrowsException_thenCapturedAsError() throws Exception {
         val method = StormbringerLibrary.class.getMethod("throwsException", TextValue.class);
         val spec   = MethodSignatureProcessor.functionSpecification(null, "chaos", method);
-        assertThat(spec).isNotNull();
 
-        val invocation = new FunctionInvocation("chaos.throwsException", List.of(Value.of("test")));
+        val result = spec.function().apply(invocation("chaos.throwsException", Value.of("test")));
 
-        val result = spec.function().apply(invocation);
+        assertThat(result).isInstanceOf(ErrorValue.class);
+        assertThat(((ErrorValue) result).message()).contains("execution failed").contains("Stormbringer rebels");
+    }
 
-        assertThat(result).isNotNull().isInstanceOf(ErrorValue.class);
-        val error = (ErrorValue) result;
-        assertThat(error.message()).contains("execution failed").contains("Stormbringer rebels");
+    // ========================================================================
+    // Helper Methods and Records
+    // ========================================================================
+
+    private static FunctionInvocation invocation(String name, Value... args) {
+        return new FunctionInvocation(name, List.of(args));
+    }
+
+    private static FunctionInvocation invocation(String name, List<Value> args) {
+        return new FunctionInvocation(name, args);
+    }
+
+    private static MethodReference methodRef(Class<?> clazz, String methodName, String libraryName,
+            Class<?>... paramTypes) {
+        return new MethodReference(clazz, methodName, libraryName, paramTypes);
+    }
+
+    private record MethodReference(Class<?> clazz, String methodName, String libraryName, Class<?>[] paramTypes) {
+        Method resolve() throws NoSuchMethodException {
+            return clazz.getMethod(methodName, paramTypes);
+        }
     }
 
     // ========================================================================
