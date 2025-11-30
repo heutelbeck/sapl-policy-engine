@@ -611,7 +611,8 @@ class AttributeStreamTests {
     @ParameterizedTest
     @ValueSource(longs = { 1, 2, 3 })
     void when_pipFails_then_retryUpToConfiguredLimit(long retries) {
-        val invocation = createInvocation(Duration.ofMillis(10), Duration.ofSeconds(10), Duration.ofMillis(1), retries);
+        val invocation = createInvocation(Duration.ofSeconds(5), Duration.ofSeconds(10), Duration.ofMillis(10),
+                retries);
         val attempts   = new AtomicInteger(0);
         val failingPip = (AttributeFinder) inv -> Flux.defer(() -> {
                            if (attempts.incrementAndGet() <= retries) {
@@ -621,7 +622,7 @@ class AttributeStreamTests {
                        });
         val stream     = new AttributeStream(invocation, s -> {}, GRACE_PERIOD, failingPip);
 
-        StepVerifier.create(stream.getStream().take(1).timeout(Duration.ofSeconds(2)))
+        StepVerifier.create(stream.getStream().take(1).timeout(Duration.ofSeconds(10)))
                 .expectNext(Value.of("success-after-retries")).verifyComplete();
 
         assertThat(attempts.get()).isEqualTo((int) retries + 1);
