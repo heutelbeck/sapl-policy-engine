@@ -44,7 +44,7 @@ body:
     id: sapl-version
     attributes:
       label: "Which SAPL version is used?"
-      description: "e.g. 3.0.0 / 3.1.0-SNAPSHOT ({DATE}) ..."
+      description: "e.g. 3.0.0 / 4.0.0-SNAPSHOT / 5.0.0-SNAPSHOT ({DATE}) ..."
     validations:
       required: false
 

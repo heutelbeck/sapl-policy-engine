@@ -36,7 +36,7 @@ For a quickstart, we provide a simple pre-configuration to use which can be drop
 4. Download the two files `application.yml` and `keystore.p12` to `C:\sapl`. [Download here](https://github.com/heutelbeck/sapl-policy-engine/tree/master/sapl-documentation/configs) You can inspect the `.yml` file for the documentation of the different configuration parameters.
 5. Start the SAPL Server LT container, mounting `C:\sapl` to the container folder `/pdp/data`:
 ```powershell
-docker run -d --name sapl-server-lt -e SERVER_ADDRESS=0.0.0.0 -p 8443:8443 --expose=7000 -v C:\sapl:/pdp/data ghcr.io/heutelbeck/sapl-server-lt:3.1.0-SNAPSHOT
+docker run -d --name sapl-server-lt -e SERVER_ADDRESS=0.0.0.0 -p 8443:8443 --expose=7000 -v C:\sapl:/pdp/data ghcr.io/heutelbeck/sapl-server-lt:4.0.0-SNAPSHOT
 ```
 If everything worked as expected, you should now see a line like `Started SAPLServerLTApplication in 4.729 seconds (process running for 5.227)` in the container logs.
 6. Send the following authorization request to the server:
@@ -131,7 +131,7 @@ Add the SAPL embedded PDP dependency:
 <dependency>
   <groupId>io.sapl</groupId>
   <artifactId>sapl-pdp-embedded</artifactId>
-  <version>3.1.0-SNAPSHOT</version>
+  <version>4.0.0-SNAPSHOT</version>
 </dependency>
 ```
 
@@ -161,7 +161,7 @@ For projects using multiple SAPL dependencies, use the bill of materials POM:
     <dependency>
       <groupId>io.sapl</groupId>
       <artifactId>sapl-bom</artifactId>
-      <version>3.1.0-SNAPSHOT</version>
+      <version>4.0.0-SNAPSHOT</version>
       <type>pom</type>
       <scope>import</scope>
     </dependency>

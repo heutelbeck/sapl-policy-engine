@@ -3,7 +3,7 @@ Automatic-Module-Name: sapl-test-eclipse-ui
 Bundle-ManifestVersion: 2
 Bundle-Name: sapl-test-ui
 Bundle-Vendor: Dominic Heutelbeck
-Bundle-Version: 3.1.0.qualifier
+Bundle-Version: 4.0.0.qualifier
 Comment: Add '.qualifier' to Bundle-Version for -SNAPSHOT ! -->
 Bundle-SymbolicName: sapl-test-eclipse-ui; singleton:=true
 Bundle-ActivationPolicy: lazy

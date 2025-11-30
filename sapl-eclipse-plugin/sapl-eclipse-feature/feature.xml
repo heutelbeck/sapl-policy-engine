@@ -20,7 +20,7 @@
 -->
 <feature id="io.sapl.eclipse.feature"
 	label="SAPL"
-	version="3.1.0.qualifier">
+	version="4.0.0.qualifier">
 	<!-- add '.qualifier' for -SNAPSHOT ! -->
 	<copyright>
 		Copyright 2017-2025 Dominic Heutelbeck

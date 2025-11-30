@@ -5,7 +5,7 @@ An interactive web environment for testing and experimenting with SAPL authoriza
 ## Quick Start
 
 ```bash
-docker run -d -p 8080:8080 ghcr.io/heutelbeck/sapl-playground:3.1.0-SNAPSHOT
+docker run -d -p 8080:8080 ghcr.io/heutelbeck/sapl-playground:4.0.0-SNAPSHOT
 ```
 
 Access at http://localhost:8080
@@ -19,7 +19,7 @@ Set the base URL for shareable permalinks using the `SAPL_PLAYGROUND_BASEURL` en
 ```bash
 docker run -d -p 8080:8080 \
   -e SAPL_PLAYGROUND_BASEURL=https://playground.example.com \
-  ghcr.io/heutelbeck/sapl-playground:3.1.0-SNAPSHOT
+  ghcr.io/heutelbeck/sapl-playground:4.0.0-SNAPSHOT
 ```
 
 **Format**: Include protocol, no trailing slash (e.g., `http://localhost:8080` or `https://playground.example.com`)
@@ -30,7 +30,7 @@ docker run -d -p 8080:8080 \
 version: '3.8'
 services:
   sapl-playground:
-    image: ghcr.io/heutelbeck/sapl-playground:3.1.0-SNAPSHOT
+    image: ghcr.io/heutelbeck/sapl-playground:4.0.0-SNAPSHOT
     ports:
       - "8080:8080"
     environment:
