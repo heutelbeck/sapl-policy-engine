@@ -93,7 +93,7 @@ class ReactiveWebClientWebSocketTests {
         val httpTestRequest = (ObjectValue) ValueJsonMarshaller.json(template.formatted(port));
         val streamUnderTest = new ReactiveWebClient(new ObjectMapper()).consumeWebSocket(httpTestRequest).take(3);
         StepVerifier.create(streamUnderTest).expectNext(Value.of(0)).expectNext(Value.of(1)).expectNext(Value.of(2))
-                .expectComplete().verify(Duration.ofSeconds(5L));
+                .expectComplete().verify(Duration.ofSeconds(15L));
     }
 
     public static class EchoHandler implements WebSocketHandler {
@@ -108,7 +108,7 @@ class ReactiveWebClientWebSocketTests {
         @Override
         public @NotNull Mono<Void> handle(WebSocketSession webSocketSession) {
             return webSocketSession
-                    .send(Flux.interval(Duration.ofMillis(1000)).map(Object::toString)
+                    .send(Flux.interval(Duration.ofMillis(100)).map(Object::toString)
                             .map(webSocketSession::textMessage))
                     .and(webSocketSession.receive().map(WebSocketMessage::getPayloadAsText));
         }
