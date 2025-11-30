@@ -125,8 +125,9 @@ public class PdpTestHelper {
     }
 
     /**
-     * Creates a SAPL bundle (zip file) containing the given policy content.
-     * The bundle includes a pdp.json with a generated configurationId.
+     * Creates a SAPL bundle (zip file) containing the given policy content. The
+     * bundle includes a pdp.json with a
+     * generated configurationId.
      *
      * @param policyContent
      * the policy document text
@@ -141,8 +142,9 @@ public class PdpTestHelper {
     }
 
     /**
-     * Creates a SAPL bundle containing multiple policies.
-     * The bundle includes a pdp.json with a generated configurationId.
+     * Creates a SAPL bundle containing multiple policies. The bundle includes a
+     * pdp.json with a generated
+     * configurationId.
      *
      * @param policies
      * the policy documents

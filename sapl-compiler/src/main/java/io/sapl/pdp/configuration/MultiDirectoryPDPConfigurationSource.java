@@ -97,7 +97,7 @@ import io.sapl.api.pdp.PDPConfiguration;
  * @see DirectoryPDPConfigurationSource
  */
 @Slf4j
-public class MultiDirectoryPDPConfigurationSource implements PDPConfigurationSource {
+public final class MultiDirectoryPDPConfigurationSource implements PDPConfigurationSource {
 
     private static final long POLL_INTERVAL_MS        = 500;
     private static final long MONITOR_STOP_TIMEOUT_MS = 5000;
@@ -113,9 +113,9 @@ public class MultiDirectoryPDPConfigurationSource implements PDPConfigurationSou
      * Creates a source loading from subdirectories, excluding root-level files.
      * <p>
      * Each subdirectory represents a separate PDP configuration with the
-     * subdirectory
-     * name as the PDP ID. Configuration IDs are determined from pdp.json in each
-     * subdirectory, or auto-generated if not present.
+     * subdirectory name as the PDP ID. Configuration
+     * IDs are determined from pdp.json in each subdirectory, or auto-generated if
+     * not present.
      * </p>
      *
      * @param directoryPath
@@ -132,8 +132,7 @@ public class MultiDirectoryPDPConfigurationSource implements PDPConfigurationSou
      * Creates a source with control over root-level file handling.
      * <p>
      * Configuration IDs are determined from pdp.json in each subdirectory (or
-     * root),
-     * or auto-generated if not present.
+     * root), or auto-generated if not present.
      * </p>
      *
      * @param directoryPath

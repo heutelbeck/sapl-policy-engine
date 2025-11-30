@@ -66,8 +66,7 @@ import java.util.TreeMap;
 @UtilityClass
 public class BundleSigner {
 
-    private static final String      ED25519_ALGORITHM       = "Ed25519";
-    private static final Set<String> ED25519_ALGORITHM_NAMES = Set.of("Ed25519", "EdDSA");
+    private static final Set<String> ED25519_ALGORITHM_NAMES = Set.of(BundleManifest.SIGNATURE_ALGORITHM, "EdDSA");
 
     /**
      * Signs bundle contents and creates a manifest with embedded signature.
@@ -293,7 +292,7 @@ public class BundleSigner {
 
     private byte[] createSignature(byte[] data, PrivateKey privateKey) {
         try {
-            val signature = Signature.getInstance(ED25519_ALGORITHM);
+            val signature = Signature.getInstance(BundleManifest.SIGNATURE_ALGORITHM);
             signature.initSign(privateKey);
             signature.update(data);
             return signature.sign();
@@ -308,7 +307,7 @@ public class BundleSigner {
 
     private boolean verifySignatureBytes(byte[] data, byte[] signatureBytes, PublicKey publicKey) {
         try {
-            val signature = Signature.getInstance(ED25519_ALGORITHM);
+            val signature = Signature.getInstance(BundleManifest.SIGNATURE_ALGORITHM);
             signature.initVerify(publicKey);
             signature.update(data);
             return signature.verify(signatureBytes);

@@ -1064,7 +1064,8 @@ public class GraphQLFunctionLibrary {
 
     /**
      * Parses a GraphQL schema from a string and creates an executable schema with
-     * caching. Uses SHA-256 hash as cache key to bound memory usage.
+     * caching. Uses SHA-256 hash as cache
+     * key to bound memory usage.
      *
      * @param schemaString
      * the schema definition string

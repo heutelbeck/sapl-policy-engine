@@ -77,9 +77,7 @@ class LegacyPolicyTests {
     @MethodSource("invalidPolicies")
     void whenInvalidPolicy_thenThrowsCompilerException(String description, String policy) {
         val sapl = PARSER.parse(policy);
-        assertThatThrownBy(() -> {
-            SaplCompiler.compileDocument(sapl, context);
-        }).isInstanceOf(SaplCompilerException.class);
+        assertThatThrownBy(() -> SaplCompiler.compileDocument(sapl, context)).isInstanceOf(SaplCompilerException.class);
     }
 
     @Test

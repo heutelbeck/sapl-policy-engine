@@ -38,10 +38,9 @@ import io.sapl.api.pdp.PDPConfiguration;
  * directory with file watching for hot-reload.
  * <p>
  * The source monitors a directory for .sapl policy files and an optional
- * pdp.json configuration file. When files change, the callback is invoked with
- * the updated configuration.
+ * pdp.json configuration file. When files
+ * change, the callback is invoked with the updated configuration.
  * </p>
- *
  * <h2>Directory Layout</h2>
  *
  * <pre>
@@ -54,12 +53,11 @@ import io.sapl.api.pdp.PDPConfiguration;
  * <h2>Configuration ID</h2>
  * <p>
  * The configuration ID is used for audit and correlation of authorization
- * decisions with the exact policy set. If pdp.json contains a
- * {@code configurationId} field, that value is used. Otherwise, an ID is
- * auto-generated in the format:
- * {@code dir:<path>@<timestamp>@sha256:<hash>}
+ * decisions with the exact policy set. If
+ * pdp.json contains a {@code configurationId} field, that value is used.
+ * Otherwise, an ID is auto-generated in the
+ * format: {@code dir:<path>@<timestamp>@sha256:<hash>}
  * </p>
- *
  * <h2>Callback Invocation</h2>
  * <p>
  * The callback is invoked:
@@ -68,25 +66,23 @@ import io.sapl.api.pdp.PDPConfiguration;
  * <li>Once during construction with the initial configuration</li>
  * <li>On each file change (create, modify, delete)</li>
  * </ul>
- *
  * <h2>Thread Safety</h2>
  * <p>
  * This class is thread-safe. The file monitoring thread runs independently and
- * invokes the callback directly. The callback implementation must handle thread
- * safety for its own state.
+ * invokes the callback directly. The
+ * callback implementation must handle thread safety for its own state.
  * </p>
- *
  * <h2>Security Measures</h2>
  * <ul>
  * <li><b>Symlink protection:</b> Symbolic links are rejected.</li>
  * <li><b>PDP ID validation:</b> Validated against strict pattern.</li>
  * </ul>
- *
  * <h2>Spring Integration</h2>
  * <p>
  * This class implements {@link reactor.core.Disposable} but Spring does not
- * automatically call {@code dispose()} on Reactor's Disposable interface. When
- * exposing as a Spring bean, explicitly specify the destroy method:
+ * automatically call {@code dispose()} on
+ * Reactor's Disposable interface. When exposing as a Spring bean, explicitly
+ * specify the destroy method:
  * </p>
  *
  * <pre>{@code
@@ -98,7 +94,7 @@ import io.sapl.api.pdp.PDPConfiguration;
  * }</pre>
  */
 @Slf4j
-public class DirectoryPDPConfigurationSource implements PDPConfigurationSource {
+public final class DirectoryPDPConfigurationSource implements PDPConfigurationSource {
 
     private static final String PDP_JSON       = "pdp.json";
     private static final String SAPL_EXTENSION = ".sapl";

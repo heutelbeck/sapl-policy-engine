@@ -22,6 +22,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
+import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Map;
@@ -75,7 +76,7 @@ class BundleManifestTests {
 
     @Test
     void whenAddingFileBytes_thenHashIsComputed() {
-        val content  = "policy \"byte-test\" permit true".getBytes();
+        val content  = "policy \"byte-test\" permit true".getBytes(StandardCharsets.UTF_8);
         val manifest = BundleManifest.builder().addFile("byte-policy.sapl", content).buildUnsigned();
 
         assertThat(manifest.files()).containsKey("byte-policy.sapl");
@@ -190,7 +191,7 @@ class BundleManifestTests {
     void whenComputingHashFromBytes_thenSameAsString() {
         val content    = "policy \"byte-equality\" permit true";
         val stringHash = BundleManifest.computeHash(content);
-        val bytesHash  = BundleManifest.computeHash(content.getBytes());
+        val bytesHash  = BundleManifest.computeHash(content.getBytes(StandardCharsets.UTF_8));
 
         assertThat(stringHash).isEqualTo(bytesHash);
     }
@@ -221,7 +222,7 @@ class BundleManifestTests {
         val manifest = BundleManifest.builder().addFile("zeta.sapl", "z").addFile("alpha.sapl", "a")
                 .addFile("beta.sapl", "b").buildUnsigned();
 
-        val json = new String(manifest.toCanonicalBytes());
+        val json = new String(manifest.toCanonicalBytes(), StandardCharsets.UTF_8);
 
         val alphaIndex = json.indexOf("alpha.sapl");
         val betaIndex  = json.indexOf("beta.sapl");

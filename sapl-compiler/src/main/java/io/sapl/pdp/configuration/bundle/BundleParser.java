@@ -183,7 +183,8 @@ public class BundleParser {
      * Parses a bundle from an input stream with security policy enforcement.
      * <p>
      * When the compressed size is unknown, compression ratio validation is skipped
-     * but all other security checks remain active.
+     * but all other security checks remain
+     * active.
      * </p>
      * <p>
      * The bundle must contain a pdp.json file with a {@code configurationId} field.
@@ -452,9 +453,9 @@ public class BundleParser {
             val publicKey = securityPolicy.publicKey();
             if (publicKey == null) {
                 throw new BundleSignatureException(
-                        "Bundle '%s' is signed but no public key is configured for verification. "
-                                + "Configure a public key or explicitly accept unsigned bundle risks."
-                                        .formatted(pdpId));
+                        ("Bundle '%s' is signed but no public key is configured for verification. "
+                                + "Configure a public key or explicitly accept unsigned bundle risks.")
+                                .formatted(pdpId));
             }
 
             val filesForVerification = buildVerificationMap();

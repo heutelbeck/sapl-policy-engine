@@ -108,7 +108,7 @@ import io.sapl.pdp.configuration.bundle.BundleSignatureException;
  * @see BundleSecurityPolicy
  */
 @Slf4j
-public class BundlePDPConfigurationSource implements PDPConfigurationSource {
+public final class BundlePDPConfigurationSource implements PDPConfigurationSource {
 
     private static final String BUNDLE_EXTENSION = ".saplbundle";
 
@@ -125,13 +125,13 @@ public class BundlePDPConfigurationSource implements PDPConfigurationSource {
      * Creates a source loading bundles from the specified directory.
      * <p>
      * The security policy is validated during construction. If signature
-     * verification is disabled without risk acceptance, construction will fail.
+     * verification is disabled without risk
+     * acceptance, construction will fail.
      * </p>
      * <p>
      * Each bundle must contain a pdp.json file with a {@code configurationId}
-     * field.
-     * The PDP ID is derived from the bundle filename (minus the .saplbundle
-     * extension).
+     * field. The PDP ID is derived from the
+     * bundle filename (minus the .saplbundle extension).
      * </p>
      *
      * @param directoryPath

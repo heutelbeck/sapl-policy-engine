@@ -154,11 +154,11 @@ public record BundleManifest(
      */
     public static String computeHash(byte[] bytes) {
         try {
-            val digest = MessageDigest.getInstance("SHA-256");
+            val digest = MessageDigest.getInstance(HASH_ALGORITHM);
             val hash   = digest.digest(bytes);
             return "sha256:" + Base64.getEncoder().encodeToString(hash);
         } catch (NoSuchAlgorithmException e) {
-            throw new IllegalStateException("SHA-256 not available.", e);
+            throw new IllegalStateException(HASH_ALGORITHM + " not available.", e);
         }
     }
 

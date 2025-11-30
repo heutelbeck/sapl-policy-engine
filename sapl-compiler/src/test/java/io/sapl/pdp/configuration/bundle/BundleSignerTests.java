@@ -240,7 +240,6 @@ class BundleSignerTests {
 
     @Test
     void whenVerifyingWithInvalidBase64Signature_thenThrowsException() {
-        val files       = createTestFiles();
         val invalidSig  = new BundleManifest.Signature("Ed25519", "bad-key", "not-valid-base64!!!");
         val badManifest = new BundleManifest(BundleManifest.MANIFEST_VERSION, BundleManifest.HASH_ALGORITHM,
                 Instant.now(), null, Map.of("test.sapl", BundleManifest.computeHash("test")), invalidSig);
@@ -251,7 +250,6 @@ class BundleSignerTests {
 
     @Test
     void whenVerifyingWithWrongAlgorithm_thenThrowsException() {
-        val files       = createTestFiles();
         val wrongAlgSig = new BundleManifest.Signature("RSA", "wrong-alg-key", "abc123");
         val badManifest = new BundleManifest(BundleManifest.MANIFEST_VERSION, BundleManifest.HASH_ALGORITHM,
                 Instant.now(), null, Map.of("test.sapl", BundleManifest.computeHash("test")), wrongAlgSig);

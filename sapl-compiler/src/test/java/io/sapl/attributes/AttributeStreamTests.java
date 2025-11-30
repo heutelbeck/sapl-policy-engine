@@ -126,8 +126,7 @@ class AttributeStreamTests {
     }
 
     /**
-     * Validates that the reactive stream is accessible and ready for
-     * subscription.
+     * Validates that the reactive stream is accessible and ready for subscription.
      * <p>
      * Use case: Multiple policy evaluations subscribing to the same attribute
      * stream.
@@ -263,8 +262,8 @@ class AttributeStreamTests {
      * retries and re-subscribes to the same
      * attribute.
      * <p>
-     * Validates that the refCount operator resets the grace period timer when a
-     * new subscriber arrives, avoiding
+     * Validates that the refCount operator resets the grace period timer when a new
+     * subscriber arrives, avoiding
      * unnecessary cleanup and PIP reconnection overhead.
      */
     @Test

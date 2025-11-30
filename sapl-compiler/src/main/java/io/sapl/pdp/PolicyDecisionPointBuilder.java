@@ -133,18 +133,17 @@ import java.util.function.Function;
  *     private final PDPComponents components;
  *
  *     public PdpLifecycle() {
- *         this.components = PolicyDecisionPointBuilder.withDefaults()
- *                 .withDirectorySource(Path.of("/policies"))
+ *         this.components = PolicyDecisionPointBuilder.withDefaults().withDirectorySource(Path.of("/policies"))
  *                 .build();
- * }
+ *     }
  *
- * @PreDestroy
- * public void cleanup() {
- * var source = components.source();
- * if (source != null) {
- * source.dispose();
- * }
- * }
+ *     @PreDestroy
+ *     public void cleanup() {
+ *         var source = components.source();
+ *         if (source != null) {
+ *             source.dispose();
+ *         }
+ *     }
  * }
  * }
  * </pre>
@@ -474,7 +473,8 @@ public class PolicyDecisionPointBuilder {
      * Loads policies from a filesystem directory with a custom PDP ID.
      * <p>
      * The configuration ID is determined from pdp.json if present, otherwise
-     * auto-generated in the format: {@code dir:<path>@<timestamp>@sha256:<hash>}
+     * auto-generated in the format:
+     * {@code dir:<path>@<timestamp>@sha256:<hash>}
      * </p>
      *
      * @param directoryPath
@@ -490,9 +490,8 @@ public class PolicyDecisionPointBuilder {
 
     /**
      * Loads policies from multiple subdirectories, where each subdirectory
-     * represents a separate PDP configuration. The subdirectory name becomes the
-     * PDP ID.
-     * Changes are monitored and hot-reloaded.
+     * represents a separate PDP configuration. The
+     * subdirectory name becomes the PDP ID. Changes are monitored and hot-reloaded.
      * <p>
      * Configuration IDs are determined from pdp.json in each subdirectory, or
      * auto-generated if not present.
@@ -512,8 +511,7 @@ public class PolicyDecisionPointBuilder {
      * as "default" PDP.
      * <p>
      * Configuration IDs are determined from pdp.json in each subdirectory (or
-     * root),
-     * or auto-generated if not present.
+     * root), or auto-generated if not present.
      * </p>
      *
      * @param directoryPath
@@ -530,8 +528,8 @@ public class PolicyDecisionPointBuilder {
 
     /**
      * Loads policies from bundle files (.saplbundle) in a directory. Each bundle
-     * represents a separate PDP configuration. Changes are monitored and
-     * hot-reloaded.
+     * represents a separate PDP
+     * configuration. Changes are monitored and hot-reloaded.
      * <p>
      * The security policy determines how bundle signatures are verified. Use
      * {@link BundleSecurityPolicy#requireSignature(java.security.PublicKey)} for
@@ -539,9 +537,8 @@ public class PolicyDecisionPointBuilder {
      * </p>
      * <p>
      * Each bundle must contain a pdp.json file with a {@code configurationId}
-     * field.
-     * The PDP ID is derived from the bundle filename (minus the .saplbundle
-     * extension).
+     * field. The PDP ID is derived from the
+     * bundle filename (minus the .saplbundle extension).
      * </p>
      *
      * @param bundleDirectoryPath
@@ -564,7 +561,8 @@ public class PolicyDecisionPointBuilder {
      * layouts.
      * <p>
      * Configuration IDs are determined from pdp.json if present, otherwise
-     * auto-generated in the format: {@code res:<path>@sha256:<hash>}
+     * auto-generated in the format:
+     * {@code res:<path>@sha256:<hash>}
      * </p>
      *
      * @param resourcePath
@@ -580,7 +578,8 @@ public class PolicyDecisionPointBuilder {
      * Loads policies from the default classpath resource path "/policies".
      * <p>
      * Configuration IDs are determined from pdp.json if present, otherwise
-     * auto-generated in the format: {@code res:<path>@sha256:<hash>}
+     * auto-generated in the format:
+     * {@code res:<path>@sha256:<hash>}
      * </p>
      *
      * @return this builder
@@ -591,7 +590,8 @@ public class PolicyDecisionPointBuilder {
 
     /**
      * Loads a configuration from a bundle byte array. This is useful for receiving
-     * bundles via HTTP uploads or message queues.
+     * bundles via HTTP uploads or message
+     * queues.
      * <p>
      * The security policy determines how bundle signatures are verified. Use
      * {@link BundleSecurityPolicy#requireSignature(java.security.PublicKey)} for

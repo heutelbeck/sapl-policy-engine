@@ -45,26 +45,25 @@ import java.util.stream.Stream;
  * Utility for loading PDP configurations from filesystem paths and raw content.
  * <p>
  * This loader handles the parsing of pdp.json configuration files and SAPL
- * policy documents. It also manages the generation of configuration IDs for
- * audit and correlation purposes.
+ * policy documents. It also manages the
+ * generation of configuration IDs for audit and correlation purposes.
  * </p>
- *
  * <h2>Configuration ID Strategy</h2>
  * <p>
  * The configuration ID uniquely identifies a specific version of a PDP
- * configuration. This ID is available during policy evaluation and enables
- * correlation of authorization decisions with the exact policy set that
- * produced them.
+ * configuration. This ID is available during
+ * policy evaluation and enables correlation of authorization decisions with the
+ * exact policy set that produced them.
  * </p>
  * <ul>
  * <li><b>Explicit ID:</b> If pdp.json contains a {@code configurationId} field,
- * that value is used. This is the recommended approach for Policy
- * Administration Points (PAPs) that manage their own versioning.</li>
+ * that value is used. This is the
+ * recommended approach for Policy Administration Points (PAPs) that manage
+ * their own versioning.</li>
  * <li><b>Auto-generated ID:</b> If no explicit ID is provided, an ID is
- * generated from the source path, timestamp (for mutable sources), and content
- * hash.</li>
+ * generated from the source path, timestamp (for
+ * mutable sources), and content hash.</li>
  * </ul>
- *
  * <h2>Auto-generated ID Format</h2>
  * <ul>
  * <li>Directory sources: {@code dir:<path>@<timestamp>@sha256:<hash>}</li>
@@ -72,15 +71,15 @@ import java.util.stream.Stream;
  * </ul>
  * <p>
  * The hash component enables integrity verification - an auditor can recompute
- * the hash from policy files and verify it matches the logged configuration ID.
+ * the hash from policy files and verify it
+ * matches the logged configuration ID.
  * </p>
- *
  * <h2>Security: TOCTOU Mitigation</h2>
  * <p>
- * Directory loading validates size limits on actual file content, not
- * pre-read metadata. This prevents time-of-check to time-of-use attacks
- * where an attacker replaces a small file with a large one between size
- * check and content read.
+ * Directory loading validates size limits on actual file content, not pre-read
+ * metadata. This prevents time-of-check to
+ * time-of-use attacks where an attacker replaces a small file with a large one
+ * between size check and content read.
  * </p>
  */
 @UtilityClass
@@ -135,7 +134,8 @@ public class PDPConfigurationLoader {
      * Loads a PDP configuration from raw content.
      * <p>
      * If pdpJsonContent contains a {@code configurationId}, it is used. Otherwise,
-     * an ID is auto-generated in the format: {@code res:<path>@sha256:<hash>}
+     * an ID is auto-generated in the
+     * format: {@code res:<path>@sha256:<hash>}
      * </p>
      *
      * @param pdpJsonContent
@@ -145,8 +145,7 @@ public class PDPConfigurationLoader {
      * @param pdpId
      * the PDP identifier to use
      * @param sourcePath
-     * the source path for auto-generated ID (e.g., classpath resource
-     * path)
+     * the source path for auto-generated ID (e.g., classpath resource path)
      *
      * @return the loaded configuration
      *

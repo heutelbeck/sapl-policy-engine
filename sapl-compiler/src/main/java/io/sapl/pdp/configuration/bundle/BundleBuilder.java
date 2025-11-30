@@ -156,9 +156,10 @@ public final class BundleBuilder {
      * configurationId.
      * <p>
      * This is a convenience method that generates a pdp.json with the algorithm and
-     * an auto-generated configurationId. If you need to include custom
-     * configurationId,
-     * variables, or other settings, use {@link #withPdpJson(String)} instead.
+     * an auto-generated configurationId.
+     * If you need to include custom configurationId, variables, or other settings,
+     * use {@link #withPdpJson(String)}
+     * instead.
      * </p>
      *
      * @param algorithm
@@ -192,8 +193,8 @@ public final class BundleBuilder {
      * auto-generated configurationId.
      * <p>
      * This method generates a pdp.json with algorithm, configurationId, and
-     * variables settings.
-     * The variables map is serialized as a JSON object.
+     * variables settings. The variables map is
+     * serialized as a JSON object.
      * </p>
      *
      * @param algorithm

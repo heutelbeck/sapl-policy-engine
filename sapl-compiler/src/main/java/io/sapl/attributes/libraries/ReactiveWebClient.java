@@ -61,9 +61,10 @@ import java.util.concurrent.atomic.AtomicReference;
  * retrieval.
  * <p>
  * Security: Connection and read timeouts are enforced to prevent resource
- * exhaustion from slow or unresponsive servers. The AttributeBroker provides
- * an additional timeout layer, but this client ensures TCP connections are
- * properly closed when timeouts occur.
+ * exhaustion from slow or unresponsive servers.
+ * The AttributeBroker provides an additional timeout layer, but this client
+ * ensures TCP connections are properly closed
+ * when timeouts occur.
  */
 @RequiredArgsConstructor
 public class ReactiveWebClient {

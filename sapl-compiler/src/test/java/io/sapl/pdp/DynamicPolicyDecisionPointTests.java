@@ -46,8 +46,6 @@ import static org.junit.jupiter.params.provider.Arguments.arguments;
  */
 class DynamicPolicyDecisionPointTests {
 
-    private static final String DEFAULT_PDP_ID = "default";
-
     private ConfigurationRegister      configurationRegister;
     private DynamicPolicyDecisionPoint pdp;
 

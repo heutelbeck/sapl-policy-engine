@@ -23,40 +23,40 @@ import io.sapl.pdp.PolicyDecisionPointBuilder;
 import lombok.extern.slf4j.Slf4j;
 
 import java.nio.file.Path;
-import java.time.format.DateTimeFormatter;
 
 /**
  * Demonstration application for the embedded PDP with directory-based policy
  * loading.
  * <p>
- * This demo sets up a PDP that monitors {@code C:\devkit\sapl} for policy files
- * and subscribes to authorization
- * decisions. When policies change, new decisions are automatically emitted.
+ * This demo sets up a PDP that monitors a policy directory for policy files and
+ * subscribes to authorization decisions.
+ * When policies change, new decisions are automatically emitted.
  * <p>
  * Usage:
  * <ol>
- * <li>Ensure {@code C:\devkit\sapl} exists with .sapl policy files</li>
- * <li>Run this main method</li>
- * <li>Modify policies in the directory to see decisions update</li>
+ * <li>Run with optional path argument: {@code java EmbeddedPDPDemo [path]}</li>
+ * <li>If no path provided, defaults to {@code ./policies}</li>
+ * <li>Modify .sapl files in the directory to see decisions update</li>
  * <li>Press Ctrl+C to stop</li>
  * </ol>
  */
 @Slf4j
 public class EmbeddedPDPDemo {
 
-    private static final Path              POLICY_DIRECTORY = Path.of("C:/devkit/sapl");
-    private static final DateTimeFormatter TIME_FORMAT      = DateTimeFormatter.ofPattern("HH:mm:ss.SSS");
+    private static final String DEFAULT_POLICY_DIRECTORY = "./policies";
 
     public static void main(String[] args) throws Exception {
+        var policyDirectory = Path.of(args.length > 0 ? args[0] : DEFAULT_POLICY_DIRECTORY);
+
         log.info("=".repeat(70));
         log.info("SAPL Embedded PDP Demo");
         log.info("=".repeat(70));
-        log.info("Policy directory: " + POLICY_DIRECTORY.toAbsolutePath());
+        log.info("Policy directory: " + policyDirectory.toAbsolutePath());
         log.info("Modify .sapl files in this directory to see decisions change.");
         log.info("Press Ctrl+C to stop.");
         log.info("=".repeat(70));
 
-        var components = PolicyDecisionPointBuilder.withDefaults().withDirectorySource(POLICY_DIRECTORY).build();
+        var components = PolicyDecisionPointBuilder.withDefaults().withDirectorySource(policyDirectory).build();
 
         var pdp = components.pdp();
 
