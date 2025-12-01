@@ -22,11 +22,7 @@ import inet.ipaddr.IPAddress;
 import inet.ipaddr.IPAddressString;
 import io.sapl.api.functions.Function;
 import io.sapl.api.functions.FunctionLibrary;
-import io.sapl.api.model.ArrayValue;
-import io.sapl.api.model.ErrorValue;
-import io.sapl.api.model.NumberValue;
-import io.sapl.api.model.TextValue;
-import io.sapl.api.model.Value;
+import io.sapl.api.model.*;
 import lombok.experimental.UtilityClass;
 import lombok.val;
 
@@ -43,8 +39,9 @@ import java.util.function.UnaryOperator;
  * CIDR network operations for authorization policies.
  * <p>
  * Uses the IPAddress library for RFC-compliant IPv4 and IPv6 operations. All
- * IPv6 addresses use RFC 5952 canonical form (compressed, lowercase). Address
- * family mixing returns false rather than error for cleaner policy logic.
+ * IPv6 addresses use RFC 5952 canonical form
+ * (compressed, lowercase). Address family mixing returns false rather than
+ * error for cleaner policy logic.
  */
 @UtilityClass
 @FunctionLibrary(name = CidrFunctionLibrary.NAME, description = CidrFunctionLibrary.DESCRIPTION, libraryDocumentation = CidrFunctionLibrary.DOCUMENTATION)
@@ -150,8 +147,11 @@ public class CidrFunctionLibrary {
     /**
      * Tests if an IP address or CIDR range falls within another CIDR.
      *
-     * @param cidr the containing CIDR range
-     * @param cidrOrIp IP address or CIDR to test
+     * @param cidr
+     * the containing CIDR range
+     * @param cidrOrIp
+     * IP address or CIDR to test
+     *
      * @return Value.TRUE if contained, Value.FALSE otherwise, or ErrorValue on
      * invalid input
      */
@@ -193,8 +193,11 @@ public class CidrFunctionLibrary {
     /**
      * Batch containment checking across multiple CIDRs and IPs.
      *
-     * @param cidrs array of CIDR strings to check against
-     * @param cidrsOrIps array of IP addresses or CIDRs to test
+     * @param cidrs
+     * array of CIDR strings to check against
+     * @param cidrsOrIps
+     * array of IP addresses or CIDRs to test
+     *
      * @return ArrayValue of [cidrIndex, ipIndex] tuples for each match, or
      * ErrorValue on invalid input
      */
@@ -249,7 +252,9 @@ public class CidrFunctionLibrary {
     /**
      * Enumerates all IP addresses in a CIDR range.
      *
-     * @param cidr CIDR range to expand
+     * @param cidr
+     * CIDR range to expand
+     *
      * @return ArrayValue of IP address strings, or ErrorValue on invalid input or
      * if range is too large
      */
@@ -287,8 +292,11 @@ public class CidrFunctionLibrary {
     /**
      * Tests whether two CIDR ranges share any addresses.
      *
-     * @param cidr1 first CIDR range
-     * @param cidr2 second CIDR range
+     * @param cidr1
+     * first CIDR range
+     * @param cidr2
+     * second CIDR range
+     *
      * @return Value.TRUE if overlapping, Value.FALSE otherwise, or ErrorValue on
      * invalid input
      */
@@ -324,7 +332,9 @@ public class CidrFunctionLibrary {
     /**
      * Validates CIDR notation or IP address syntax.
      *
-     * @param cidr string to validate
+     * @param cidr
+     * string to validate
+     *
      * @return Value.TRUE if valid, Value.FALSE otherwise
      */
     @Function(docs = """
@@ -345,7 +355,9 @@ public class CidrFunctionLibrary {
      * Consolidates IP addresses and subnets into the minimal set of non-overlapping
      * CIDRs.
      *
-     * @param addresses array of IP addresses and CIDR strings
+     * @param addresses
+     * array of IP addresses and CIDR strings
+     *
      * @return ArrayValue of minimal CIDR strings, or ErrorValue on invalid input
      */
     @Function(docs = """
@@ -391,7 +403,9 @@ public class CidrFunctionLibrary {
     /**
      * Tests if an IPv4 address falls in RFC 1918 private ranges.
      *
-     * @param ipAddress IP address to test
+     * @param ipAddress
+     * IP address to test
+     *
      * @return Value.TRUE if private, Value.FALSE otherwise, or ErrorValue on
      * invalid input
      */
@@ -413,7 +427,9 @@ public class CidrFunctionLibrary {
     /**
      * Tests for loopback addresses.
      *
-     * @param ipAddress IP address to test
+     * @param ipAddress
+     * IP address to test
+     *
      * @return Value.TRUE if loopback, Value.FALSE otherwise, or ErrorValue on
      * invalid input
      */
@@ -434,7 +450,9 @@ public class CidrFunctionLibrary {
     /**
      * Tests for link-local addresses.
      *
-     * @param ipAddress IP address to test
+     * @param ipAddress
+     * IP address to test
+     *
      * @return Value.TRUE if link-local, Value.FALSE otherwise, or ErrorValue on
      * invalid input
      */
@@ -456,7 +474,9 @@ public class CidrFunctionLibrary {
     /**
      * Tests for multicast addresses.
      *
-     * @param ipAddress IP address to test
+     * @param ipAddress
+     * IP address to test
+     *
      * @return Value.TRUE if multicast, Value.FALSE otherwise, or ErrorValue on
      * invalid input
      */
@@ -477,7 +497,9 @@ public class CidrFunctionLibrary {
     /**
      * Tests if an address is in documentation ranges.
      *
-     * @param ipAddress IP address to test
+     * @param ipAddress
+     * IP address to test
+     *
      * @return Value.TRUE if documentation range, Value.FALSE otherwise, or
      * ErrorValue on invalid input
      */
@@ -500,7 +522,9 @@ public class CidrFunctionLibrary {
     /**
      * Tests if an IPv4 address is in the Carrier-Grade NAT range.
      *
-     * @param ipAddress IP address to test
+     * @param ipAddress
+     * IP address to test
+     *
      * @return Value.TRUE if CGNAT range, Value.FALSE otherwise, or ErrorValue on
      * invalid input
      */
@@ -522,7 +546,9 @@ public class CidrFunctionLibrary {
     /**
      * Tests if an IPv4 address is in the benchmarking range.
      *
-     * @param ipAddress IP address to test
+     * @param ipAddress
+     * IP address to test
+     *
      * @return Value.TRUE if benchmark range, Value.FALSE otherwise, or ErrorValue
      * on invalid input
      */
@@ -544,7 +570,9 @@ public class CidrFunctionLibrary {
     /**
      * Tests if an address is in reserved ranges.
      *
-     * @param ipAddress IP address to test
+     * @param ipAddress
+     * IP address to test
+     *
      * @return Value.TRUE if reserved range, Value.FALSE otherwise, or ErrorValue on
      * invalid input
      */
@@ -570,7 +598,9 @@ public class CidrFunctionLibrary {
     /**
      * Tests if an IPv4 address is the broadcast address.
      *
-     * @param ipAddress IP address to test
+     * @param ipAddress
+     * IP address to test
+     *
      * @return Value.TRUE if broadcast, Value.FALSE otherwise, or ErrorValue on
      * invalid input
      */
@@ -592,7 +622,9 @@ public class CidrFunctionLibrary {
     /**
      * Tests if an address is publicly routable.
      *
-     * @param ipAddress IP address to test
+     * @param ipAddress
+     * IP address to test
+     *
      * @return Value.TRUE if publicly routable, Value.FALSE otherwise, or ErrorValue
      * on invalid input
      */
@@ -624,8 +656,11 @@ public class CidrFunctionLibrary {
     /**
      * Anonymizes an IP by zeroing host bits beyond the prefix length.
      *
-     * @param ipAddress IP address to anonymize
-     * @param prefixLength network bits to preserve
+     * @param ipAddress
+     * IP address to anonymize
+     * @param prefixLength
+     * network bits to preserve
+     *
      * @return TextValue with anonymized IP address, or ErrorValue on invalid input
      */
     @Function(docs = """
@@ -677,9 +712,13 @@ public class CidrFunctionLibrary {
     /**
      * Hashes an IP prefix with a salt for privacy-preserving analytics.
      *
-     * @param ipAddress IP address to hash
-     * @param prefixLength network bits to include
-     * @param salt secret salt string
+     * @param ipAddress
+     * IP address to hash
+     * @param prefixLength
+     * network bits to include
+     * @param salt
+     * secret salt string
+     *
      * @return TextValue with hexadecimal SHA-256 hash, or ErrorValue on failure
      */
     @Function(docs = """
@@ -736,7 +775,9 @@ public class CidrFunctionLibrary {
     /**
      * Returns the first address in a CIDR range (network address).
      *
-     * @param cidr CIDR range
+     * @param cidr
+     * CIDR range
+     *
      * @return TextValue with network address, or ErrorValue on invalid input
      */
     @Function(docs = """
@@ -756,7 +797,9 @@ public class CidrFunctionLibrary {
     /**
      * Returns the last address in a CIDR range (broadcast address for IPv4).
      *
-     * @param cidr CIDR range
+     * @param cidr
+     * CIDR range
+     *
      * @return TextValue with broadcast address, or ErrorValue on invalid input
      */
     @Function(docs = """
@@ -776,7 +819,9 @@ public class CidrFunctionLibrary {
     /**
      * Returns total addresses in a CIDR range as a string.
      *
-     * @param cidr CIDR range
+     * @param cidr
+     * CIDR range
+     *
      * @return TextValue with address count, or ErrorValue on invalid input
      */
     @Function(docs = """
@@ -802,7 +847,9 @@ public class CidrFunctionLibrary {
     /**
      * Returns usable host addresses in a CIDR range.
      *
-     * @param cidr CIDR range
+     * @param cidr
+     * CIDR range
+     *
      * @return TextValue with usable host count, or ErrorValue on invalid input
      */
     @Function(docs = """
@@ -842,7 +889,9 @@ public class CidrFunctionLibrary {
     /**
      * Returns the first usable host address.
      *
-     * @param cidr CIDR range
+     * @param cidr
+     * CIDR range
+     *
      * @return TextValue with first usable address, or ErrorValue on invalid input
      */
     @Function(docs = """
@@ -869,7 +918,9 @@ public class CidrFunctionLibrary {
     /**
      * Returns the last usable host address.
      *
-     * @param cidr CIDR range
+     * @param cidr
+     * CIDR range
+     *
      * @return TextValue with last usable address, or ErrorValue on invalid input
      */
     @Function(docs = """
@@ -902,9 +953,13 @@ public class CidrFunctionLibrary {
     /**
      * Tests whether two IP addresses belong to the same subnet.
      *
-     * @param ip1 first IP address
-     * @param ip2 second IP address
-     * @param prefixLength subnet mask length
+     * @param ip1
+     * first IP address
+     * @param ip2
+     * second IP address
+     * @param prefixLength
+     * subnet mask length
+     *
      * @return Value.TRUE if same subnet, Value.FALSE otherwise, or ErrorValue on
      * invalid input
      */
@@ -952,8 +1007,11 @@ public class CidrFunctionLibrary {
     /**
      * Calculates how many leading bits are identical between two IP addresses.
      *
-     * @param ip1 first IP address
-     * @param ip2 second IP address
+     * @param ip1
+     * first IP address
+     * @param ip2
+     * second IP address
+     *
      * @return NumberValue with common prefix bits, or ErrorValue on invalid input
      */
     @Function(docs = """
@@ -1011,8 +1069,11 @@ public class CidrFunctionLibrary {
     /**
      * Tests whether a CIDR can be evenly subdivided into smaller subnets.
      *
-     * @param cidr CIDR range to subdivide
-     * @param targetPrefixLength desired subdivision prefix
+     * @param cidr
+     * CIDR range to subdivide
+     * @param targetPrefixLength
+     * desired subdivision prefix
+     *
      * @return Value.TRUE if can subdivide, Value.FALSE otherwise, or ErrorValue on
      * invalid input
      */
@@ -1060,7 +1121,9 @@ public class CidrFunctionLibrary {
     /**
      * Parses an IP address or CIDR string.
      *
-     * @param addressString string to parse
+     * @param addressString
+     * string to parse
+     *
      * @return parsed IPAddress or null if invalid
      */
     private static IPAddress parseAddress(String addressString) {
@@ -1074,9 +1137,13 @@ public class CidrFunctionLibrary {
     /**
      * Parses an array of IP address or CIDR strings.
      *
-     * @param addresses ArrayValue containing address strings
+     * @param addresses
+     * ArrayValue containing address strings
+     *
      * @return list of parsed IPAddress objects
-     * @throws IllegalArgumentException if input is invalid
+     *
+     * @throws IllegalArgumentException
+     * if input is invalid
      */
     private static List<IPAddress> parseAddressArray(ArrayValue addresses) {
         val result = new ArrayList<IPAddress>();
@@ -1098,8 +1165,11 @@ public class CidrFunctionLibrary {
     /**
      * Extracts an address from a prefix block using the provided function.
      *
-     * @param cidrString CIDR string
-     * @param extractor function to extract address from prefix block
+     * @param cidrString
+     * CIDR string
+     * @param extractor
+     * function to extract address from prefix block
+     *
      * @return Value containing address string or error
      */
     private static Value extractPrefixBlockAddress(String cidrString, UnaryOperator<IPAddress> extractor) {
@@ -1116,8 +1186,10 @@ public class CidrFunctionLibrary {
     /**
      * Adds merged addresses to result builder.
      *
-     * @param resultBuilder builder to add to
-     * @param addresses addresses to merge
+     * @param resultBuilder
+     * builder to add to
+     * @param addresses
+     * addresses to merge
      */
     private static void addMergedAddresses(ArrayValue.Builder resultBuilder, List<IPAddress> addresses) {
         if (!addresses.isEmpty()) {
@@ -1131,7 +1203,9 @@ public class CidrFunctionLibrary {
     /**
      * Merges address list into minimal prefix blocks.
      *
-     * @param addresses list of addresses (same family)
+     * @param addresses
+     * list of addresses (same family)
+     *
      * @return list of merged prefix blocks
      */
     private static List<IPAddress> mergeAddressList(List<IPAddress> addresses) {
@@ -1176,9 +1250,12 @@ public class CidrFunctionLibrary {
     /**
      * Adds prefix blocks spanning the range to result list.
      *
-     * @param result list to add to
-     * @param lower lower bound
-     * @param upper upper bound
+     * @param result
+     * list to add to
+     * @param lower
+     * lower bound
+     * @param upper
+     * upper bound
      */
     private static void addSpannedBlocks(List<IPAddress> result, IPAddress lower, IPAddress upper) {
         val range = lower.spanWithRange(upper);
@@ -1188,7 +1265,9 @@ public class CidrFunctionLibrary {
     /**
      * Removes addresses contained within other addresses.
      *
-     * @param addresses list of addresses
+     * @param addresses
+     * list of addresses
+     *
      * @return list with contained addresses removed
      */
     private static List<IPAddress> removeContainedAddresses(List<IPAddress> addresses) {
@@ -1209,8 +1288,11 @@ public class CidrFunctionLibrary {
     /**
      * Checks if an IP is in specified ranges.
      *
-     * @param ipAddressString IP to check
-     * @param ranges CIDR ranges to check against
+     * @param ipAddressString
+     * IP to check
+     * @param ranges
+     * CIDR ranges to check against
+     *
      * @return Value with boolean result or error
      */
     private static Value checkInRanges(String ipAddressString, List<String> ranges) {
@@ -1236,9 +1318,13 @@ public class CidrFunctionLibrary {
     /**
      * Checks if an IP is in family-specific ranges.
      *
-     * @param ipAddressString IP to check
-     * @param ipv4Ranges IPv4 ranges
-     * @param ipv6Ranges IPv6 ranges
+     * @param ipAddressString
+     * IP to check
+     * @param ipv4Ranges
+     * IPv4 ranges
+     * @param ipv6Ranges
+     * IPv6 ranges
+     *
      * @return Value with boolean result or error
      */
     private static Value checkInRangesByFamily(String ipAddressString, List<String> ipv4Ranges,
@@ -1263,8 +1349,11 @@ public class CidrFunctionLibrary {
     /**
      * Builds an error message for prefix out of range.
      *
-     * @param prefix the invalid prefix value
-     * @param isIpv4 true if IPv4, false if IPv6
+     * @param prefix
+     * the invalid prefix value
+     * @param isIpv4
+     * true if IPv4, false if IPv6
+     *
      * @return error message string
      */
     private static String buildPrefixRangeError(int prefix, boolean isIpv4) {
@@ -1275,7 +1364,9 @@ public class CidrFunctionLibrary {
     /**
      * Converts byte array to hexadecimal string.
      *
-     * @param bytes bytes to convert
+     * @param bytes
+     * bytes to convert
+     *
      * @return hexadecimal string
      */
     private static String bytesToHex(byte[] bytes) {

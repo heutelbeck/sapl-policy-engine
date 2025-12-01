@@ -23,7 +23,6 @@ import lombok.val;
 
 import java.io.ByteArrayInputStream;
 import java.security.cert.*;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 

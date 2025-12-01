@@ -23,6 +23,7 @@ import io.sapl.api.model.jackson.SaplJacksonModule;
 import io.sapl.api.pdp.CombiningAlgorithm;
 import io.sapl.api.pdp.PDPConfiguration;
 import lombok.experimental.UtilityClass;
+import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 
 import java.io.IOException;
@@ -82,6 +83,7 @@ import java.util.stream.Stream;
  * between size check and content read.
  * </p>
  */
+@Slf4j
 @UtilityClass
 public class PDPConfigurationLoader {
 
@@ -327,8 +329,12 @@ public class PDPConfigurationLoader {
                 throw new PDPConfigurationException(
                         "Total size of SAPL documents exceeds maximum of %d MB.".formatted(MAX_TOTAL_SIZE_MEGABYTES));
             }
-            val filename = path.getFileName().toString();
-            documents.put(filename, content);
+            val fileNamePath = path.getFileName();
+            if (fileNamePath == null) {
+                log.warn("Skipping SAPL document with no filename: {}.", path);
+                continue;
+            }
+            documents.put(fileNamePath.toString(), content);
         }
         return documents;
     }

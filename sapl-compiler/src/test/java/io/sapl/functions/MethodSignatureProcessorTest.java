@@ -33,7 +33,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
 
-import static org.assertj.core.api.Assertions.*;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 class MethodSignatureProcessorTest {
@@ -243,8 +244,8 @@ class MethodSignatureProcessorTest {
     // ========================================================================
 
     @ParameterizedTest(name = "{0}")
-    @MethodSource("argumentCountErrorCases")
-    void whenWrongArgumentCount_thenReturnsError(String description, MethodReference methodRef, List<Value> arguments,
+    @MethodSource("argumentValidationErrorCases")
+    void whenInvalidArguments_thenReturnsError(String description, MethodReference methodRef, List<Value> arguments,
             String expectedErrorContains) throws Exception {
         val method = methodRef.resolve();
         val spec   = MethodSignatureProcessor.functionSpecification(null, methodRef.libraryName(), method);
@@ -255,8 +256,9 @@ class MethodSignatureProcessorTest {
         assertThat(((ErrorValue) result).message()).contains(expectedErrorContains);
     }
 
-    static Stream<Arguments> argumentCountErrorCases() {
+    static Stream<Arguments> argumentValidationErrorCases() {
         return Stream.of(
+                // Argument count errors
                 arguments("too few arguments for fixed params",
                         methodRef(ElementalLibrary.class, "bindElemental", "sorcery", TextValue.class, TextValue.class,
                                 NumberValue.class),
@@ -264,27 +266,12 @@ class MethodSignatureProcessorTest {
                 arguments("too many arguments for fixed params",
                         methodRef(StormbringerLibrary.class, "conjureSword", "chaos", TextValue.class),
                         List.of(Value.of("Elric"), Value.of("Extra")), "requires exactly 1 arguments"),
-                arguments(
-                        "too few arguments for varargs method", methodRef(DreamingCityLibrary.class, "awakeTower",
-                                "imrryr", TextValue.class, TextValue[].class),
-                        List.of(), "requires at least 1 arguments"));
-    }
+                arguments("too few arguments for varargs method",
+                        methodRef(DreamingCityLibrary.class, "awakeTower", "imrryr", TextValue.class,
+                                TextValue[].class),
+                        List.of(), "requires at least 1 arguments"),
 
-    @ParameterizedTest(name = "{0}")
-    @MethodSource("argumentTypeErrorCases")
-    void whenWrongArgumentType_thenReturnsError(String description, MethodReference methodRef, List<Value> arguments,
-            String expectedErrorContains) throws Exception {
-        val method = methodRef.resolve();
-        val spec   = MethodSignatureProcessor.functionSpecification(null, methodRef.libraryName(), method);
-
-        val result = spec.function().apply(invocation(spec.functionName(), arguments));
-
-        assertThat(result).isInstanceOf(ErrorValue.class);
-        assertThat(((ErrorValue) result).message()).contains(expectedErrorContains);
-    }
-
-    static Stream<Arguments> argumentTypeErrorCases() {
-        return Stream.of(
+                // Argument type errors
                 arguments("wrong type in fixed parameter",
                         methodRef(StormbringerLibrary.class, "conjureSword", "chaos", TextValue.class),
                         List.of(Value.of(666)), "expected TextValue"),

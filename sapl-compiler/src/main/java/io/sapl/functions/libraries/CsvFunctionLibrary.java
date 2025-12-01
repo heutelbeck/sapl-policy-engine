@@ -23,11 +23,7 @@ import com.fasterxml.jackson.dataformat.csv.CsvMapper;
 import com.fasterxml.jackson.dataformat.csv.CsvSchema;
 import io.sapl.api.functions.Function;
 import io.sapl.api.functions.FunctionLibrary;
-import io.sapl.api.model.ArrayValue;
-import io.sapl.api.model.ObjectValue;
-import io.sapl.api.model.TextValue;
-import io.sapl.api.model.Value;
-import io.sapl.api.model.ValueJsonMarshaller;
+import io.sapl.api.model.*;
 import lombok.experimental.UtilityClass;
 import lombok.val;
 
@@ -38,8 +34,8 @@ import java.util.Map;
  * CSV parsing and generation for authorization policies.
  * <p>
  * Note: CSV parsing loads the entire document into memory. For very large CSV
- * files (100,000+ rows), consider processing in chunks or using external data
- * sources.
+ * files (100,000+ rows), consider
+ * processing in chunks or using external data sources.
  */
 @UtilityClass
 @FunctionLibrary(name = CsvFunctionLibrary.NAME, description = CsvFunctionLibrary.DESCRIPTION, libraryDocumentation = CsvFunctionLibrary.DOCUMENTATION)
@@ -170,7 +166,9 @@ public class CsvFunctionLibrary {
     /**
      * Parses a CSV document with headers into a SAPL array of objects.
      *
-     * @param csv CSV text with headers in first row
+     * @param csv
+     * CSV text with headers in first row
+     *
      * @return Array of objects, one per data row, or an ErrorValue if parsing fails
      */
     @Function(docs = """
@@ -222,7 +220,9 @@ public class CsvFunctionLibrary {
     /**
      * Converts a SAPL array of objects into a CSV string with headers.
      *
-     * @param array Array of objects to convert
+     * @param array
+     * Array of objects to convert
+     *
      * @return CSV string with headers, or an ErrorValue if conversion fails
      */
     @Function(docs = """

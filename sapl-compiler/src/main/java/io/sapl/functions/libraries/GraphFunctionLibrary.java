@@ -122,10 +122,11 @@ public class GraphFunctionLibrary {
      * Computes the set of nodes reachable from the initial roots in a directed
      * graph.
      *
-     * @param graph JSON object mapping node identifiers to arrays of neighbor
-     * identifiers
-     * @param initial a single node identifier or an array of identifiers to seed
-     * the search
+     * @param graph
+     * JSON object mapping node identifiers to arrays of neighbor identifiers
+     * @param initial
+     * a single node identifier or an array of identifiers to seed the search
+     *
      * @return array of unique node identifiers in discovery order
      */
     @Function(name = "reachable", docs = """
@@ -187,12 +188,14 @@ public class GraphFunctionLibrary {
 
     /**
      * Computes one shortest path per reachable node starting from the given roots.
-     * The path for a root is the single-element array containing just the root.
+     * The path for a root is the
+     * single-element array containing just the root.
      *
-     * @param graph JSON object mapping node identifiers to arrays of neighbor
-     * identifiers
-     * @param initial a single node identifier or an array of identifiers to seed
-     * the search
+     * @param graph
+     * JSON object mapping node identifiers to arrays of neighbor identifiers
+     * @param initial
+     * a single node identifier or an array of identifiers to seed the search
+     *
      * @return array of paths; each path is an array of node identifiers from a root
      * to a node
      */

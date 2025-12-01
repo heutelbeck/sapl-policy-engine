@@ -211,6 +211,10 @@ public final class BundlePDPConfigurationSource implements PDPConfigurationSourc
         }
 
         val pdpId = derivePdpIdFromBundleName(bundlePath);
+        if (pdpId == null) {
+            log.warn("Skipping bundle with no filename: {}.", bundlePath);
+            return;
+        }
 
         if (!PDPConfigurationSource.isValidPdpId(pdpId)) {
             log.warn("Skipping bundle with invalid name: {}.", bundlePath.getFileName());
@@ -229,7 +233,11 @@ public final class BundlePDPConfigurationSource implements PDPConfigurationSourc
     }
 
     private String derivePdpIdFromBundleName(Path bundlePath) {
-        val fileName = bundlePath.getFileName().toString();
+        val fileNamePath = bundlePath.getFileName();
+        if (fileNamePath == null) {
+            return null;
+        }
+        val fileName = fileNamePath.toString();
         return fileName.substring(0, fileName.length() - BUNDLE_EXTENSION.length());
     }
 

@@ -31,8 +31,9 @@ import java.util.regex.Pattern;
  * Detects SQL injection attempts in policy information point parameters.
  * <p>
  * Based on OWASP SQL Injection Prevention guidelines. OWASP recommends
- * parameterized queries as the primary defense and input validation as
- * secondary defense. This library provides the input validation component.
+ * parameterized queries as the primary defense and
+ * input validation as secondary defense. This library provides the input
+ * validation component.
  */
 @UtilityClass
 @FunctionLibrary(name = SanitizationFunctionLibrary.NAME, description = SanitizationFunctionLibrary.DESCRIPTION_MD, libraryDocumentation = SanitizationFunctionLibrary.DOCUMENTATION_MD)
@@ -217,7 +218,9 @@ public class SanitizationFunctionLibrary {
     /**
      * Checks text for SQL injection patterns using balanced detection.
      *
-     * @param inputToSanitize the text to validate
+     * @param inputToSanitize
+     * the text to validate
+     *
      * @return the input unchanged if clean, or an ErrorValue if injection patterns
      * are detected
      */
@@ -278,7 +281,9 @@ public class SanitizationFunctionLibrary {
     /**
      * Checks text using strict detection.
      *
-     * @param inputToSanitize the text to validate
+     * @param inputToSanitize
+     * the text to validate
+     *
      * @return the input unchanged if clean, or an ErrorValue if any SQL syntax is
      * found
      */

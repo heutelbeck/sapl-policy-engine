@@ -208,7 +208,12 @@ public final class MultiDirectoryPDPConfigurationSource implements PDPConfigurat
     }
 
     private void createChildSource(Path subdirectory) {
-        val pdpId = subdirectory.getFileName().toString();
+        val fileNamePath = subdirectory.getFileName();
+        if (fileNamePath == null) {
+            log.warn("Skipping subdirectory with no name: {}.", subdirectory);
+            return;
+        }
+        val pdpId = fileNamePath.toString();
 
         if (!PDPConfigurationSource.isValidPdpId(pdpId)) {
             log.warn("Skipping subdirectory with invalid name: {}.", pdpId);

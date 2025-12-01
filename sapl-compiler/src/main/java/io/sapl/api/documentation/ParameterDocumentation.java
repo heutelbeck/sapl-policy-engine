@@ -22,22 +22,29 @@ import java.util.List;
 /**
  * Documentation for a single parameter of a function or attribute finder.
  *
- * @param name the parameter name as declared in the method signature
- * @param allowedTypes list of allowed SAPL types for this parameter, derived
- * from
- * validation annotations such as {@code @Text}, {@code @Number},
- * {@code @Bool}, {@code @Array}, {@code @Object}. An empty list
- * indicates any Value type is accepted.
- * @param varArgs true if this parameter accepts variable arguments
- * @param schema JSON schema constraining the parameter value, or null if no
- * schema constraint exists. Stored as a JSON string.
+ * @param name
+ * the parameter name as declared in the method signature
+ * @param allowedTypes
+ * list of allowed SAPL types for this parameter, derived from validation
+ * annotations such as {@code @Text},
+ * {@code @Number}, {@code @Bool}, {@code @Array}, {@code @Object}. An empty
+ * list indicates any Value type is
+ * accepted.
+ * @param varArgs
+ * true if this parameter accepts variable arguments
+ * @param schema
+ * JSON schema constraining the parameter value, or null if no schema constraint
+ * exists. Stored as a JSON
+ * string.
  */
 public record ParameterDocumentation(String name, List<String> allowedTypes, boolean varArgs, String schema) {
 
     /**
      * Creates parameter documentation with no type constraints or schema.
      *
-     * @param name the parameter name
+     * @param name
+     * the parameter name
+     *
      * @return parameter documentation accepting any value type
      */
     public static ParameterDocumentation untyped(String name) {
@@ -47,8 +54,11 @@ public record ParameterDocumentation(String name, List<String> allowedTypes, boo
     /**
      * Creates varargs parameter documentation.
      *
-     * @param name the parameter name
-     * @param allowedTypes the allowed types for each vararg element
+     * @param name
+     * the parameter name
+     * @param allowedTypes
+     * the allowed types for each vararg element
+     *
      * @return varargs parameter documentation
      */
     public static ParameterDocumentation varArgs(String name, List<String> allowedTypes) {

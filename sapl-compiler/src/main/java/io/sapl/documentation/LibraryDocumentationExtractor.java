@@ -41,17 +41,17 @@ import java.io.IOException;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
 /**
  * Extracts documentation from annotated SAPL extension library classes.
- *
  * <p>
  * This utility processes {@link FunctionLibrary} and
- * {@link PolicyInformationPoint} annotated classes, extracting documentation
- * metadata into serializable DTOs.
+ * {@link PolicyInformationPoint} annotated classes, extracting
+ * documentation metadata into serializable DTOs.
  */
 @UtilityClass
 public class LibraryDocumentationExtractor {
@@ -66,10 +66,13 @@ public class LibraryDocumentationExtractor {
     /**
      * Extracts documentation from a function library class.
      *
-     * @param libraryClass the class annotated with {@link FunctionLibrary}
+     * @param libraryClass
+     * the class annotated with {@link FunctionLibrary}
+     *
      * @return the extracted library documentation
-     * @throws IllegalArgumentException if the class is not annotated with
-     * {@link FunctionLibrary}
+     *
+     * @throws IllegalArgumentException
+     * if the class is not annotated with {@link FunctionLibrary}
      */
     public static LibraryDocumentation extractFunctionLibrary(Class<?> libraryClass) {
         val annotation = libraryClass.getAnnotation(FunctionLibrary.class);
@@ -95,10 +98,13 @@ public class LibraryDocumentationExtractor {
     /**
      * Extracts documentation from a Policy Information Point class.
      *
-     * @param pipClass the class annotated with {@link PolicyInformationPoint}
+     * @param pipClass
+     * the class annotated with {@link PolicyInformationPoint}
+     *
      * @return the extracted library documentation
-     * @throws IllegalArgumentException if the class is not annotated with
-     * {@link PolicyInformationPoint}
+     *
+     * @throws IllegalArgumentException
+     * if the class is not annotated with {@link PolicyInformationPoint}
      */
     public static LibraryDocumentation extractPolicyInformationPoint(Class<?> pipClass) {
         val annotation = pipClass.getAnnotation(PolicyInformationPoint.class);
@@ -232,7 +238,7 @@ public class LibraryDocumentationExtractor {
             if (inputStream == null) {
                 return null;
             }
-            return new String(inputStream.readAllBytes());
+            return new String(inputStream.readAllBytes(), StandardCharsets.UTF_8);
         } catch (IOException e) {
             return null;
         }

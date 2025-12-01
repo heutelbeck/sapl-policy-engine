@@ -23,10 +23,13 @@ import java.util.stream.Collectors;
 
 /**
  * A bundle containing documentation for multiple libraries, suitable for JSON
- * serialization and transfer between PAP and IDE.
+ * serialization and transfer between PAP
+ * and IDE.
  *
- * @param version the SAPL version that generated this documentation
- * @param libraries documentation for all included libraries
+ * @param version
+ * the SAPL version that generated this documentation
+ * @param libraries
+ * documentation for all included libraries
  */
 public record DocumentationBundle(String version, List<LibraryDocumentation> libraries) {
 
@@ -51,7 +54,9 @@ public record DocumentationBundle(String version, List<LibraryDocumentation> lib
     /**
      * Finds a library by its namespace.
      *
-     * @param namespace the library namespace
+     * @param namespace
+     * the library namespace
+     *
      * @return the library documentation, or null if not found
      */
     public LibraryDocumentation findLibrary(String namespace) {

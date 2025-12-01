@@ -30,8 +30,8 @@ import org.semver4j.SemverException;
 
 /**
  * Functions for semantic version comparison and validation in authorization
- * policies. Supports version-based access control, API compatibility checks,
- * and feature gating.
+ * policies. Supports version-based access
+ * control, API compatibility checks, and feature gating.
  */
 @UtilityClass
 @FunctionLibrary(name = SemVerFunctionLibrary.NAME, description = SemVerFunctionLibrary.DESCRIPTION, libraryDocumentation = SemVerFunctionLibrary.DOCUMENTATION)
@@ -214,7 +214,9 @@ public class SemVerFunctionLibrary {
     /**
      * Parses a semantic version string into components.
      *
-     * @param versionString the version string to parse
+     * @param versionString
+     * the version string to parse
+     *
      * @return ObjectValue with version parts, or ErrorValue if parsing fails
      */
     @Function(docs = """
@@ -271,7 +273,9 @@ public class SemVerFunctionLibrary {
     /**
      * Validates semantic version format.
      *
-     * @param versionString the version string to validate
+     * @param versionString
+     * the version string to validate
+     *
      * @return Value.TRUE if valid, Value.FALSE otherwise
      */
     @Function(docs = """
@@ -293,8 +297,11 @@ public class SemVerFunctionLibrary {
     /**
      * Compares two semantic versions.
      *
-     * @param version1 the first version
-     * @param version2 the second version
+     * @param version1
+     * the first version
+     * @param version2
+     * the second version
+     *
      * @return NumberValue -1, 0, or 1, or ErrorValue if parsing fails
      */
     @Function(docs = """
@@ -323,8 +330,11 @@ public class SemVerFunctionLibrary {
     /**
      * Checks version equality.
      *
-     * @param version1 the first version
-     * @param version2 the second version
+     * @param version1
+     * the first version
+     * @param version2
+     * the second version
+     *
      * @return Value.TRUE if equal, or ErrorValue if parsing fails
      */
     @Function(docs = """
@@ -352,8 +362,11 @@ public class SemVerFunctionLibrary {
     /**
      * Tests if version1 is lower than version2.
      *
-     * @param version1 the first version
-     * @param version2 the second version
+     * @param version1
+     * the first version
+     * @param version2
+     * the second version
+     *
      * @return Value.TRUE if version1 is lower, Value.FALSE otherwise, or ErrorValue
      * if parsing fails
      */
@@ -380,8 +393,11 @@ public class SemVerFunctionLibrary {
     /**
      * Tests if version1 is higher than version2.
      *
-     * @param version1 the first version
-     * @param version2 the second version
+     * @param version1
+     * the first version
+     * @param version2
+     * the second version
+     *
      * @return Value.TRUE if version1 is higher, Value.FALSE otherwise, or
      * ErrorValue if parsing fails
      */
@@ -408,8 +424,11 @@ public class SemVerFunctionLibrary {
     /**
      * Tests if version1 is lower than or equal to version2.
      *
-     * @param version1 the first version
-     * @param version2 the second version
+     * @param version1
+     * the first version
+     * @param version2
+     * the second version
+     *
      * @return Value.TRUE if version1 is lower or equal, Value.FALSE otherwise, or
      * ErrorValue if parsing fails
      */
@@ -436,8 +455,11 @@ public class SemVerFunctionLibrary {
     /**
      * Tests if version1 is higher than or equal to version2.
      *
-     * @param version1 the first version
-     * @param version2 the second version
+     * @param version1
+     * the first version
+     * @param version2
+     * the second version
+     *
      * @return Value.TRUE if version1 is higher or equal, Value.FALSE otherwise, or
      * ErrorValue if parsing fails
      */
@@ -465,8 +487,11 @@ public class SemVerFunctionLibrary {
     /**
      * Tests for matching major version.
      *
-     * @param version1 the first version
-     * @param version2 the second version
+     * @param version1
+     * the first version
+     * @param version2
+     * the second version
+     *
      * @return Value.TRUE if major versions match, Value.FALSE otherwise, or
      * ErrorValue if parsing fails
      */
@@ -493,8 +518,11 @@ public class SemVerFunctionLibrary {
     /**
      * Tests for matching major and minor version.
      *
-     * @param version1 the first version
-     * @param version2 the second version
+     * @param version1
+     * the first version
+     * @param version2
+     * the second version
+     *
      * @return Value.TRUE if major and minor versions match, Value.FALSE otherwise,
      * or ErrorValue if parsing fails
      */
@@ -521,8 +549,11 @@ public class SemVerFunctionLibrary {
     /**
      * Tests for matching major, minor, and patch version.
      *
-     * @param version1 the first version
-     * @param version2 the second version
+     * @param version1
+     * the first version
+     * @param version2
+     * the second version
+     *
      * @return Value.TRUE if all version components match, Value.FALSE otherwise, or
      * ErrorValue if parsing fails
      */
@@ -550,8 +581,11 @@ public class SemVerFunctionLibrary {
     /**
      * Tests API compatibility.
      *
-     * @param version1 the first version
-     * @param version2 the second version
+     * @param version1
+     * the first version
+     * @param version2
+     * the second version
+     *
      * @return Value.TRUE if compatible, Value.FALSE otherwise, or ErrorValue if
      * parsing fails
      */
@@ -587,8 +621,11 @@ public class SemVerFunctionLibrary {
     /**
      * Tests if version meets minimum.
      *
-     * @param version the version to check
-     * @param minimum the minimum version
+     * @param version
+     * the version to check
+     * @param minimum
+     * the minimum version
+     *
      * @return Value.TRUE if version meets minimum, Value.FALSE otherwise, or
      * ErrorValue if parsing fails
      */
@@ -611,8 +648,11 @@ public class SemVerFunctionLibrary {
     /**
      * Tests if version is at or below maximum.
      *
-     * @param version the version to check
-     * @param maximum the maximum version
+     * @param version
+     * the version to check
+     * @param maximum
+     * the maximum version
+     *
      * @return Value.TRUE if version is at or below maximum, Value.FALSE otherwise,
      * or ErrorValue if parsing fails
      */
@@ -635,9 +675,13 @@ public class SemVerFunctionLibrary {
     /**
      * Tests if version is in range.
      *
-     * @param version the version to check
-     * @param minimum the minimum version (inclusive)
-     * @param maximum the maximum version (inclusive)
+     * @param version
+     * the version to check
+     * @param minimum
+     * the minimum version (inclusive)
+     * @param maximum
+     * the maximum version (inclusive)
+     *
      * @return Value.TRUE if version is in range, Value.FALSE otherwise, or
      * ErrorValue if parsing fails
      */
@@ -669,7 +713,9 @@ public class SemVerFunctionLibrary {
     /**
      * Tests if version is pre-release.
      *
-     * @param version the version to check
+     * @param version
+     * the version to check
+     *
      * @return Value.TRUE if pre-release, Value.FALSE if stable, or ErrorValue if
      * parsing fails
      */
@@ -697,7 +743,9 @@ public class SemVerFunctionLibrary {
     /**
      * Tests if version is stable release.
      *
-     * @param version the version to check
+     * @param version
+     * the version to check
+     *
      * @return Value.TRUE if stable, Value.FALSE if pre-release, or ErrorValue if
      * parsing fails
      */
@@ -726,7 +774,9 @@ public class SemVerFunctionLibrary {
     /**
      * Extracts major version number.
      *
-     * @param version the version to parse
+     * @param version
+     * the version to parse
+     *
      * @return NumberValue, or ErrorValue if parsing fails
      */
     @Function(docs = """
@@ -751,7 +801,9 @@ public class SemVerFunctionLibrary {
     /**
      * Extracts minor version number.
      *
-     * @param version the version to parse
+     * @param version
+     * the version to parse
+     *
      * @return NumberValue, or ErrorValue if parsing fails
      */
     @Function(docs = """
@@ -777,7 +829,9 @@ public class SemVerFunctionLibrary {
     /**
      * Extracts patch version number.
      *
-     * @param version the version to parse
+     * @param version
+     * the version to parse
+     *
      * @return NumberValue, or ErrorValue if parsing fails
      */
     @Function(docs = """
@@ -804,8 +858,11 @@ public class SemVerFunctionLibrary {
     /**
      * Tests if version satisfies range expression.
      *
-     * @param version the version to test
-     * @param range the range expression
+     * @param version
+     * the version to test
+     * @param range
+     * the range expression
+     *
      * @return Value.TRUE if satisfies, Value.FALSE otherwise, or ErrorValue if
      * version is invalid
      */
@@ -835,8 +892,11 @@ public class SemVerFunctionLibrary {
     /**
      * Finds highest version matching range.
      *
-     * @param versions array of version strings
-     * @param range the range expression
+     * @param versions
+     * array of version strings
+     * @param range
+     * the range expression
+     *
      * @return TextValue with highest matching version, NullValue if none match, or
      * ErrorValue on parse failure
      */
@@ -877,8 +937,11 @@ public class SemVerFunctionLibrary {
     /**
      * Finds lowest version matching range.
      *
-     * @param versions array of version strings
-     * @param range the range expression
+     * @param versions
+     * array of version strings
+     * @param range
+     * the range expression
+     *
      * @return TextValue with lowest matching version, NullValue if none match, or
      * ErrorValue on parse failure
      */
@@ -919,7 +982,9 @@ public class SemVerFunctionLibrary {
     /**
      * Coerces string to valid semantic version.
      *
-     * @param value the string to coerce
+     * @param value
+     * the string to coerce
+     *
      * @return TextValue with normalized version, or ErrorValue if coercion fails
      */
     @Function(docs = """
@@ -953,8 +1018,11 @@ public class SemVerFunctionLibrary {
     /**
      * Determines version change type.
      *
-     * @param version1 the first version
-     * @param version2 the second version
+     * @param version1
+     * the first version
+     * @param version2
+     * the second version
+     *
      * @return TextValue with change type, or ErrorValue if parsing fails
      */
     @Function(docs = """

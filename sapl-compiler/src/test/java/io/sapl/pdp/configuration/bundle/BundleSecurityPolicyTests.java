@@ -108,7 +108,8 @@ class BundleSecurityPolicyTests {
 
     @Test
     void whenSignatureRequiredButNoKey_thenBuildFails() {
-        assertThatThrownBy(() -> BundleSecurityPolicy.builder().build()).isInstanceOf(IllegalStateException.class)
+        val builder = BundleSecurityPolicy.builder();
+        assertThatThrownBy(builder::build).isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("requires a public key");
     }
 
@@ -270,8 +271,8 @@ class BundleSecurityPolicyTests {
     void whenRequireSignatureWithNonEd25519Key_thenThrowsException(String algorithm) throws Exception {
         val keyPairGenerator = KeyPairGenerator.getInstance(algorithm);
         val keyPair          = keyPairGenerator.generateKeyPair();
-
-        assertThatThrownBy(() -> BundleSecurityPolicy.requireSignature(keyPair.getPublic()))
+        val publicKey        = keyPair.getPublic();
+        assertThatThrownBy(() -> BundleSecurityPolicy.requireSignature(publicKey))
                 .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("Ed25519");
     }
 

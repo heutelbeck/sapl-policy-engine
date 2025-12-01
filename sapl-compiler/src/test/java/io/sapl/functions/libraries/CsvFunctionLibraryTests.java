@@ -17,11 +17,7 @@
  */
 package io.sapl.functions.libraries;
 
-import io.sapl.api.model.ArrayValue;
-import io.sapl.api.model.ErrorValue;
-import io.sapl.api.model.ObjectValue;
-import io.sapl.api.model.TextValue;
-import io.sapl.api.model.Value;
+import io.sapl.api.model.*;
 import lombok.val;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -50,13 +46,12 @@ class CsvFunctionLibraryTests {
         assertThat(array).hasSize(2);
 
         val firstRow = (ObjectValue) array.getFirst();
-        assertThat(firstRow.get("cultist")).isEqualTo(Value.of("Cthulhu"));
-        assertThat(firstRow.get("city")).isEqualTo(Value.of("R'lyeh"));
-        assertThat(firstRow.get("sanity")).isEqualTo(Value.of("0"));
+        assertThat(firstRow).containsEntry("cultist", Value.of("Cthulhu")).containsEntry("city", Value.of("R'lyeh"))
+                .containsEntry("sanity", Value.of("0"));
 
         val secondRow = (ObjectValue) array.get(1);
-        assertThat(secondRow.get("cultist")).isEqualTo(Value.of("Nyarlathotep"));
-        assertThat(secondRow.get("city")).isEqualTo(Value.of("Egypt"));
+        assertThat(secondRow).containsEntry("cultist", Value.of("Nyarlathotep")).containsEntry("city",
+                Value.of("Egypt"));
     }
 
     @Test
@@ -71,8 +66,8 @@ class CsvFunctionLibraryTests {
         assertThat(result).isInstanceOf(ArrayValue.class);
         val array = (ArrayValue) result;
         assertThat(array).hasSize(1);
-        assertThat(((ObjectValue) array.getFirst()).get("entity")).isEqualTo(Value.of("Azathoth"));
-        assertThat(((ObjectValue) array.getFirst()).get("power")).isEqualTo(Value.of("999"));
+        assertThat((ObjectValue) array.getFirst()).containsEntry("entity", Value.of("Azathoth")).containsEntry("power",
+                Value.of("999"));
     }
 
     @Test
@@ -89,9 +84,9 @@ class CsvFunctionLibraryTests {
         assertThat(result).isInstanceOf(ArrayValue.class);
         val array = (ArrayValue) result;
         assertThat(array).hasSize(3);
-        assertThat(((ObjectValue) array.get(0)).get("location")).isEqualTo(Value.of("Arkham"));
-        assertThat(((ObjectValue) array.get(1)).get("location")).isEqualTo(Value.of("Innsmouth"));
-        assertThat(((ObjectValue) array.get(2)).get("location")).isEqualTo(Value.of("Dunwich"));
+        assertThat((ObjectValue) array.get(0)).containsEntry("location", Value.of("Arkham"));
+        assertThat((ObjectValue) array.get(1)).containsEntry("location", Value.of("Innsmouth"));
+        assertThat((ObjectValue) array.get(2)).containsEntry("location", Value.of("Dunwich"));
     }
 
     @Test
@@ -107,8 +102,8 @@ class CsvFunctionLibraryTests {
         assertThat(result).isInstanceOf(ArrayValue.class);
         val array = (ArrayValue) result;
         assertThat(array).hasSize(2);
-        assertThat(((ObjectValue) array.get(0)).get("cost")).isEqualTo(Value.of(""));
-        assertThat(((ObjectValue) array.get(1)).get("ritual")).isEqualTo(Value.of(""));
+        assertThat((ObjectValue) array.get(0)).containsEntry("cost", Value.of(""));
+        assertThat((ObjectValue) array.get(1)).containsEntry("ritual", Value.of(""));
     }
 
     @Test
@@ -123,8 +118,8 @@ class CsvFunctionLibraryTests {
 
         assertThat(result).isInstanceOf(ArrayValue.class);
         val array = (ArrayValue) result;
-        assertThat(((ObjectValue) array.get(0)).get("cultist")).isEqualTo(Value.of("Wilbur, Whateley"));
-        assertThat(((ObjectValue) array.get(0)).get("chant")).isEqualTo(Value.of("Ph'nglui mglw'nafh"));
+        assertThat((ObjectValue) array.get(0)).containsEntry("cultist", Value.of("Wilbur, Whateley"))
+                .containsEntry("chant", Value.of("Ph'nglui mglw'nafh"));
     }
 
     @Test
@@ -149,8 +144,8 @@ class CsvFunctionLibraryTests {
         assertThat(result).isInstanceOf(ArrayValue.class);
         val array = (ArrayValue) result;
         assertThat(array).hasSize(100);
-        assertThat(((ObjectValue) array.get(0)).get("cultistId")).isEqualTo(Value.of("0"));
-        assertThat(((ObjectValue) array.get(99)).get("cultistId")).isEqualTo(Value.of("99"));
+        assertThat((ObjectValue) array.get(0)).containsEntry("cultistId", Value.of("0"));
+        assertThat((ObjectValue) array.get(99)).containsEntry("cultistId", Value.of("99"));
     }
 
     @ParameterizedTest(name = "Line endings: {0}")
@@ -161,8 +156,8 @@ class CsvFunctionLibraryTests {
         assertThat(result).isInstanceOf(ArrayValue.class);
         val array = (ArrayValue) result;
         assertThat(array).hasSize(2);
-        assertThat(((ObjectValue) array.get(0)).get("entity")).isEqualTo(Value.of("Cthulhu"));
-        assertThat(((ObjectValue) array.get(1)).get("entity")).isEqualTo(Value.of("Dagon"));
+        assertThat((ObjectValue) array.get(0)).containsEntry("entity", Value.of("Cthulhu"));
+        assertThat((ObjectValue) array.get(1)).containsEntry("entity", Value.of("Dagon"));
     }
 
     private static Stream<Arguments> lineEndingTestCases() {
@@ -198,7 +193,7 @@ class CsvFunctionLibraryTests {
 
         assertThat(result).isInstanceOf(ArrayValue.class);
         val array = (ArrayValue) result;
-        assertThat(((ObjectValue) array.get(0)).get(fieldName)).isEqualTo(Value.of(expectedValue));
+        assertThat((ObjectValue) array.get(0)).containsEntry(fieldName, Value.of(expectedValue));
     }
 
     private static Stream<Arguments> unicodeTestCases() {
@@ -304,9 +299,9 @@ class CsvFunctionLibraryTests {
         assertThat(restored).isInstanceOf(ArrayValue.class);
         val array = (ArrayValue) restored;
         assertThat(array).hasSize(2);
-        assertThat(((ObjectValue) array.get(0)).get("cultist")).isEqualTo(Value.of("Cthulhu"));
-        assertThat(((ObjectValue) array.get(0)).get("city")).isEqualTo(Value.of("R'lyeh"));
-        assertThat(((ObjectValue) array.get(1)).get("cultist")).isEqualTo(Value.of("Nyarlathotep"));
+        assertThat((ObjectValue) array.get(0)).containsEntry("cultist", Value.of("Cthulhu")).containsEntry("city",
+                Value.of("R'lyeh"));
+        assertThat((ObjectValue) array.get(1)).containsEntry("cultist", Value.of("Nyarlathotep"));
     }
 
     @Test
@@ -322,9 +317,9 @@ class CsvFunctionLibraryTests {
         assertThat(restored).isInstanceOf(ArrayValue.class);
         val array = (ArrayValue) restored;
         assertThat(array).hasSize(2);
-        assertThat(((ObjectValue) array.get(0)).get("entity")).isEqualTo(Value.of("克苏鲁"));
-        assertThat(((ObjectValue) array.get(0)).get("symbol")).isEqualTo(Value.of("🐙"));
-        assertThat(((ObjectValue) array.get(1)).get("entity")).isEqualTo(Value.of("ナイアーラトテップ"));
+        assertThat((ObjectValue) array.get(0)).containsEntry("entity", Value.of("克苏鲁")).containsEntry("symbol",
+                Value.of("🐙"));
+        assertThat((ObjectValue) array.get(1)).containsEntry("entity", Value.of("ナイアーラトテップ"));
     }
 
     @Test
@@ -342,7 +337,7 @@ class CsvFunctionLibraryTests {
         assertThat(restored).isInstanceOf(ArrayValue.class);
         val array = (ArrayValue) restored;
         assertThat(array).hasSize(2);
-        assertThat(((ObjectValue) array.get(0)).get("ritual")).isEqualTo(Value.of(""));
-        assertThat(((ObjectValue) array.get(1)).get("entity")).isEqualTo(Value.of(""));
+        assertThat((ObjectValue) array.get(0)).containsEntry("ritual", Value.of(""));
+        assertThat((ObjectValue) array.get(1)).containsEntry("entity", Value.of(""));
     }
 }

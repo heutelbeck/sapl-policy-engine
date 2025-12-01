@@ -23,20 +23,20 @@ package io.sapl.api.documentation;
 public enum EntryType {
 
     /**
-     * A pure function that takes parameters and returns a value.
-     * Invoked using {@code namespace.functionName(args)}.
+     * A pure function that takes parameters and returns a value. Invoked using
+     * {@code namespace.functionName(args)}.
      */
     FUNCTION,
 
     /**
-     * An attribute finder that operates on an entity value.
-     * Invoked using {@code entity.<namespace.attributeName(args)>}.
+     * An attribute finder that operates on an entity value. Invoked using
+     * {@code entity.<namespace.attributeName(args)>}.
      */
     ATTRIBUTE,
 
     /**
-     * An attribute finder that does not require an entity.
-     * Invoked using {@code <namespace.attributeName(args)>}.
+     * An attribute finder that does not require an entity. Invoked using
+     * {@code <namespace.attributeName(args)>}.
      */
     ENVIRONMENT_ATTRIBUTE
 

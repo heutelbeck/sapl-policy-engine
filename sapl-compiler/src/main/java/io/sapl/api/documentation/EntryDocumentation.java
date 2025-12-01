@@ -23,13 +23,17 @@ import java.util.stream.Collectors;
 /**
  * Documentation for a single function or attribute finder within a library.
  *
- * @param type the entry type (function, attribute, or environment attribute)
- * @param name the function or attribute name
- * @param documentation markdown documentation describing the entry's purpose
- * and usage
- * @param schema JSON schema for the return value, or null if not specified.
- * Stored as a JSON string.
- * @param parameters documentation for each parameter
+ * @param type
+ * the entry type (function, attribute, or environment attribute)
+ * @param name
+ * the function or attribute name
+ * @param documentation
+ * markdown documentation describing the entry's purpose and usage
+ * @param schema
+ * JSON schema for the return value, or null if not specified. Stored as a JSON
+ * string.
+ * @param parameters
+ * documentation for each parameter
  */
 public record EntryDocumentation(
         EntryType type,
@@ -39,11 +43,13 @@ public record EntryDocumentation(
         List<ParameterDocumentation> parameters) {
 
     /**
-     * Generates a code template for IDE autocompletion.
-     * For functions: {@code functionName(param1, param2)}
-     * For attributes: {@code <attributeName(param1, param2)>}
+     * Generates a code template for IDE autocompletion. For functions:
+     * {@code functionName(param1, param2)} For
+     * attributes: {@code <attributeName(param1, param2)>}
      *
-     * @param namespace the library namespace
+     * @param namespace
+     * the library namespace
+     *
      * @return the code template string
      */
     public String codeTemplate(String namespace) {
@@ -71,7 +77,9 @@ public record EntryDocumentation(
     /**
      * Generates a code template using an alias instead of the fully qualified name.
      *
-     * @param alias the import alias to use
+     * @param alias
+     * the import alias to use
+     *
      * @return the code template string with alias
      */
     public String codeTemplateWithAlias(String alias) {

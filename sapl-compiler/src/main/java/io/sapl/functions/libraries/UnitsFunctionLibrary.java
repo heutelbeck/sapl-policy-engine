@@ -40,15 +40,16 @@ public class UnitsFunctionLibrary {
 
     /**
      * Maximum length for entire input string to prevent DoS via extremely long
-     * inputs. 110 characters allows 100 digits plus sign, decimal, exponent
-     * notation, and short unit.
+     * inputs. 110 characters allows 100 digits
+     * plus sign, decimal, exponent notation, and short unit.
      */
     private static final int MAX_INPUT_LENGTH = 110;
 
     /**
      * Unified multiplier map for both general and byte units. Empty string entry
-     * handles byte-only context (no unit = bytes). Normalized keys: 'm' (lowercase
-     * milli), uppercase letters, 'I' suffix for binary units.
+     * handles byte-only context (no unit =
+     * bytes). Normalized keys: 'm' (lowercase milli), uppercase letters, 'I' suffix
+     * for binary units.
      */
     private static final Map<String, BigDecimal> MULTIPLIERS = Map.ofEntries(Map.entry("", BigDecimal.ONE),
             Map.entry("m", new BigDecimal("0.001")), Map.entry("K", new BigDecimal("1000")),
@@ -80,10 +81,13 @@ public class UnitsFunctionLibrary {
 
     /**
      * Transforms a human-readable unit string into its numeric equivalent. Supports
-     * standard metric prefixes including both decimal SI units (m, K, M, G, T, P,
-     * E) and binary SI units (Ki, Mi, Gi, Ti, Pi, Ei).
+     * standard metric prefixes including
+     * both decimal SI units (m, K, M, G, T, P, E) and binary SI units (Ki, Mi, Gi,
+     * Ti, Pi, Ei).
      *
-     * @param unitString the human-readable unit expression to transform
+     * @param unitString
+     * the human-readable unit expression to transform
+     *
      * @return a Value containing the computed numeric value, or an ErrorValue if
      * parsing fails
      */
@@ -146,10 +150,12 @@ public class UnitsFunctionLibrary {
 
     /**
      * Converts human-readable byte size strings into their numeric byte count
-     * equivalents. Handles both decimal byte units (KB, MB, GB, TB) and binary byte
-     * units (KiB, MiB, GiB, TiB).
+     * equivalents. Handles both decimal byte
+     * units (KB, MB, GB, TB) and binary byte units (KiB, MiB, GiB, TiB).
      *
-     * @param byteString the byte size string to convert
+     * @param byteString
+     * the byte size string to convert
+     *
      * @return a Value containing the byte count as a numeric value, or an
      * ErrorValue if parsing fails
      */
@@ -225,7 +231,8 @@ public class UnitsFunctionLibrary {
 
     /**
      * Core parsing logic shared by both parse and parseBytes functions. Uses manual
-     * string parsing instead of regex to avoid ReDoS vulnerabilities.
+     * string parsing instead of regex to
+     * avoid ReDoS vulnerabilities.
      */
     private static Value parseWithContext(String input, boolean isByteContext) {
         val text = input.trim();

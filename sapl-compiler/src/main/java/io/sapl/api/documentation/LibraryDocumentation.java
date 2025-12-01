@@ -25,11 +25,16 @@ import java.util.stream.Collectors;
  * Complete documentation for a SAPL extension library (function library or
  * PIP).
  *
- * @param type the library type
- * @param name the library namespace used in SAPL expressions
- * @param description short description of the library's purpose
- * @param documentation detailed markdown documentation for the library
- * @param entries documentation for all functions or attributes in this library
+ * @param type
+ * the library type
+ * @param name
+ * the library namespace used in SAPL expressions
+ * @param description
+ * short description of the library's purpose
+ * @param documentation
+ * detailed markdown documentation for the library
+ * @param entries
+ * documentation for all functions or attributes in this library
  */
 public record LibraryDocumentation(
         LibraryType type,
@@ -39,8 +44,8 @@ public record LibraryDocumentation(
         List<EntryDocumentation> entries) {
 
     /**
-     * Returns a map of code templates to their documentation strings.
-     * Useful for IDE hover documentation.
+     * Returns a map of code templates to their documentation strings. Useful for
+     * IDE hover documentation.
      *
      * @return map from code template to documentation
      */
@@ -61,7 +66,9 @@ public record LibraryDocumentation(
     /**
      * Finds documentation for a specific entry by name.
      *
-     * @param entryName the function or attribute name
+     * @param entryName
+     * the function or attribute name
+     *
      * @return the entry documentation, or null if not found
      */
     public EntryDocumentation findEntry(String entryName) {
