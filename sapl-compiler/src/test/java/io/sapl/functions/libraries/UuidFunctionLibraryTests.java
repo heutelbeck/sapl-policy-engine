@@ -18,6 +18,7 @@
 package io.sapl.functions.libraries;
 
 import io.sapl.api.model.*;
+import io.sapl.functions.DefaultFunctionBroker;
 import lombok.val;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -26,8 +27,16 @@ import org.junit.jupiter.params.provider.ValueSource;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 
 class UuidFunctionLibraryTests {
+
+    @Test
+    void when_loadedIntoBroker_then_noError() {
+        val functionBroker = new DefaultFunctionBroker();
+        assertThatCode(() -> functionBroker.loadStaticFunctionLibrary(UuidFunctionLibrary.class))
+                .doesNotThrowAnyException();
+    }
 
     private static final String VALID_UUID_V4 = "550e8400-e29b-41d4-a716-446655440000";
     private static final String VALID_UUID_V1 = "c232ab00-9414-11ec-b3c8-9f6bdeced846";

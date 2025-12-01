@@ -18,6 +18,7 @@
 package io.sapl.functions.libraries;
 
 import io.sapl.api.model.*;
+import io.sapl.functions.DefaultFunctionBroker;
 import lombok.val;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -30,9 +31,17 @@ import java.util.ArrayList;
 import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 class CidrFunctionLibraryTests {
+
+    @Test
+    void when_loadedIntoBroker_then_noError() {
+        val functionBroker = new DefaultFunctionBroker();
+        assertThatCode(() -> functionBroker.loadStaticFunctionLibrary(CidrFunctionLibrary.class))
+                .doesNotThrowAnyException();
+    }
 
     @ParameterizedTest(name = "{0} contains {1} = {2}")
     @CsvSource(delimiterString = "|", textBlock = """

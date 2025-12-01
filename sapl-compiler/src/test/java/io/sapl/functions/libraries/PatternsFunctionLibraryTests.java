@@ -18,6 +18,7 @@
 package io.sapl.functions.libraries;
 
 import io.sapl.api.model.*;
+import io.sapl.functions.DefaultFunctionBroker;
 import lombok.val;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
@@ -28,8 +29,16 @@ import org.junit.jupiter.params.provider.ValueSource;
 import java.util.concurrent.TimeUnit;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 
 class PatternsFunctionLibraryTests {
+
+    @Test
+    void when_loadedIntoBroker_then_noError() {
+        val functionBroker = new DefaultFunctionBroker();
+        assertThatCode(() -> functionBroker.loadStaticFunctionLibrary(PatternsFunctionLibrary.class))
+                .doesNotThrowAnyException();
+    }
 
     private static ArrayValue createDelimitersArray(String... delimiters) {
         if (delimiters.length == 0) {

@@ -18,6 +18,7 @@
 package io.sapl.functions.libraries;
 
 import io.sapl.api.model.*;
+import io.sapl.functions.DefaultFunctionBroker;
 import lombok.val;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -27,9 +28,17 @@ import org.junit.jupiter.params.provider.MethodSource;
 import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 class CsvFunctionLibraryTests {
+
+    @Test
+    void when_loadedIntoBroker_then_noError() {
+        val functionBroker = new DefaultFunctionBroker();
+        assertThatCode(() -> functionBroker.loadStaticFunctionLibrary(CsvFunctionLibrary.class))
+                .doesNotThrowAnyException();
+    }
 
     @Test
     void csvToVal_whenSimpleCsv_thenParsesCorrectly() {
@@ -118,7 +127,7 @@ class CsvFunctionLibraryTests {
 
         assertThat(result).isInstanceOf(ArrayValue.class);
         val array = (ArrayValue) result;
-        assertThat((ObjectValue) array.get(0)).containsEntry("cultist", Value.of("Wilbur, Whateley"))
+        assertThat((ObjectValue) array.getFirst()).containsEntry("cultist", Value.of("Wilbur, Whateley"))
                 .containsEntry("chant", Value.of("Ph'nglui mglw'nafh"));
     }
 
@@ -144,7 +153,7 @@ class CsvFunctionLibraryTests {
         assertThat(result).isInstanceOf(ArrayValue.class);
         val array = (ArrayValue) result;
         assertThat(array).hasSize(100);
-        assertThat((ObjectValue) array.get(0)).containsEntry("cultistId", Value.of("0"));
+        assertThat((ObjectValue) array.getFirst()).containsEntry("cultistId", Value.of("0"));
         assertThat((ObjectValue) array.get(99)).containsEntry("cultistId", Value.of("99"));
     }
 
@@ -193,7 +202,7 @@ class CsvFunctionLibraryTests {
 
         assertThat(result).isInstanceOf(ArrayValue.class);
         val array = (ArrayValue) result;
-        assertThat((ObjectValue) array.get(0)).containsEntry(fieldName, Value.of(expectedValue));
+        assertThat((ObjectValue) array.getFirst()).containsEntry(fieldName, Value.of(expectedValue));
     }
 
     private static Stream<Arguments> unicodeTestCases() {
@@ -217,8 +226,8 @@ class CsvFunctionLibraryTests {
 
         assertThat(result).isInstanceOf(TextValue.class);
         val csvText = ((TextValue) result).value();
-        assertThat(csvText).contains("cultist").contains("city").contains("sanity");
-        assertThat(csvText).contains("Cthulhu").contains("R'lyeh");
+        assertThat(csvText).contains("cultist").contains("city").contains("sanity").contains("Cthulhu")
+                .contains("R'lyeh");
     }
 
     @Test

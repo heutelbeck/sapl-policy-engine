@@ -18,13 +18,22 @@
 package io.sapl.functions.libraries;
 
 import io.sapl.api.model.*;
+import io.sapl.functions.DefaultFunctionBroker;
 import lombok.val;
 import org.junit.jupiter.api.Test;
 
 import static io.sapl.functions.libraries.SchemaValidationLibrary.*;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 
 class SchemaValidationLibraryTests {
+
+    @Test
+    void when_loadedIntoBroker_then_noError() {
+        val functionBroker = new DefaultFunctionBroker();
+        assertThatCode(() -> functionBroker.loadStaticFunctionLibrary(SchemaValidationLibrary.class))
+                .doesNotThrowAnyException();
+    }
 
     @Test
     void when_validatingCompliantValue_then_returnsTrue() {

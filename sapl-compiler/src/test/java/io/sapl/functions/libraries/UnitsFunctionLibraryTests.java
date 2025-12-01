@@ -21,6 +21,7 @@ import io.sapl.api.model.ErrorValue;
 import io.sapl.api.model.NumberValue;
 import io.sapl.api.model.TextValue;
 import io.sapl.api.model.Value;
+import io.sapl.functions.DefaultFunctionBroker;
 import lombok.val;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
@@ -32,10 +33,18 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.within;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 class UnitsFunctionLibraryTests {
+
+    @Test
+    void when_loadedIntoBroker_then_noError() {
+        val functionBroker = new DefaultFunctionBroker();
+        assertThatCode(() -> functionBroker.loadStaticFunctionLibrary(UnitsFunctionLibrary.class))
+                .doesNotThrowAnyException();
+    }
 
     private static final TextValue VERY_LONG_NUMBER = Value.of("1".repeat(10000) + "X");
 
@@ -52,7 +61,7 @@ class UnitsFunctionLibraryTests {
     private static Stream<Arguments> parseValidCases() {
         return Stream.of(
                 // Plain numbers
-                arguments("42", 42.0, "plain integer"), arguments("3.14159", 3.14159, "plain decimal"),
+                arguments("42", 42.0, "plain integer"), arguments("4.14159", 4.14159, "plain decimal"),
                 arguments("0", 0.0, "zero"), arguments("-100", -100.0, "negative integer"),
 
                 // Decimal units - K (kilo)

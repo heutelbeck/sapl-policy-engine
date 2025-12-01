@@ -33,11 +33,14 @@ import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
+import io.sapl.functions.DefaultFunctionBroker;
+
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 /**
@@ -47,6 +50,13 @@ import static org.junit.jupiter.params.provider.Arguments.arguments;
  * using Lovecraftian-themed test data.
  */
 class GraphQLFunctionLibraryTests {
+
+    @Test
+    void when_loadedIntoBroker_then_noError() {
+        val functionBroker = new DefaultFunctionBroker();
+        assertThatCode(() -> functionBroker.loadStaticFunctionLibrary(GraphQLFunctionLibrary.class))
+                .doesNotThrowAnyException();
+    }
 
     public static final String  MULTI_QUERY  = """
             query {

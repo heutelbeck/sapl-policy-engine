@@ -42,15 +42,25 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Base64;
 import java.util.Date;
+import io.sapl.functions.DefaultFunctionBroker;
+
 import java.util.Objects;
 import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 class KeysFunctionLibraryTests {
 
     private static final JsonNodeFactory JSON = JsonNodeFactory.instance;
+
+    @Test
+    void when_loadedIntoBroker_then_noError() {
+        val functionBroker = new DefaultFunctionBroker();
+        assertThatCode(() -> functionBroker.loadStaticFunctionLibrary(KeysFunctionLibrary.class))
+                .doesNotThrowAnyException();
+    }
 
     private static String rsa2048PublicKeyPem;
     private static String rsa4096PublicKeyPem;

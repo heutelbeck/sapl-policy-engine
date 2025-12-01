@@ -21,18 +21,27 @@ import io.sapl.api.model.ErrorValue;
 import io.sapl.api.model.TextValue;
 import io.sapl.api.model.UndefinedValue;
 import io.sapl.api.model.Value;
+import io.sapl.functions.DefaultFunctionBroker;
 import lombok.val;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /**
  * Tests for FilterFunctionLibrary using new Value model.
  */
 class FilterFunctionLibraryTests {
+
+    @Test
+    void when_loadedIntoBroker_then_noError() {
+        val functionBroker = new DefaultFunctionBroker();
+        assertThatCode(() -> functionBroker.loadStaticFunctionLibrary(FilterFunctionLibrary.class))
+                .doesNotThrowAnyException();
+    }
 
     // ============================================================================
     // BLACKEN FUNCTION TESTS

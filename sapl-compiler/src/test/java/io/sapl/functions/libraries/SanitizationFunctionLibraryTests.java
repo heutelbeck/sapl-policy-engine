@@ -19,6 +19,7 @@ package io.sapl.functions.libraries;
 
 import io.sapl.api.model.ErrorValue;
 import io.sapl.api.model.Value;
+import io.sapl.functions.DefaultFunctionBroker;
 import lombok.val;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -29,9 +30,17 @@ import java.util.stream.Stream;
 
 import static io.sapl.functions.libraries.SanitizationFunctionLibrary.POTENTIAL_SQL_INJECTION_DETECTED;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 class SanitizationFunctionLibraryTests {
+
+    @Test
+    void when_loadedIntoBroker_then_noError() {
+        val functionBroker = new DefaultFunctionBroker();
+        assertThatCode(() -> functionBroker.loadStaticFunctionLibrary(SanitizationFunctionLibrary.class))
+                .doesNotThrowAnyException();
+    }
 
     @ParameterizedTest(name = "[{index}] {1}: {0}")
     @MethodSource("balancedModeLegitimateInputs")
