@@ -21,49 +21,20 @@ import io.sapl.api.pdp.internal.TracedDecision;
 import reactor.core.publisher.Flux;
 
 /**
- * Extension of {@link PolicyDecisionPoint} that provides access to traced
- * decisions with full evaluation metadata.
+ * Extension of {@link PolicyDecisionPoint} providing traced decisions with
+ * evaluation metadata for debugging and auditing.
  *
  * <p>
- * This interface is intended for internal tooling that needs access to trace
- * information, such as:
- * <ul>
- * <li>The SAPL Playground for interactive policy debugging</li>
- * <li>Audit logging systems that need complete decision context</li>
- * <li>Testing frameworks that verify policy behavior</li>
- * </ul>
- *
- * <p>
- * <strong>Security Warning:</strong> The traced decision contains sensitive
- * information including:
- * <ul>
- * <li>Policy document names and structure</li>
- * <li>Attribute values retrieved from PIPs</li>
- * <li>Detailed error messages that may reveal implementation details</li>
- * </ul>
- *
- * <p>
- * Consumers of this interface must ensure that trace information is not exposed
- * to untrusted parties. For external authorization requests, use the standard
- * {@link PolicyDecisionPoint#decide} method which returns only
- * {@link AuthorizationDecision} without trace information.
- *
- * @see PolicyDecisionPoint
- * @see TracedDecision
+ * <strong>Security:</strong> Traced decisions expose policy structure and
+ * attribute values. Do not expose to untrusted parties.
  */
 public interface TracedPolicyDecisionPoint extends PolicyDecisionPoint {
 
     /**
-     * Evaluates an authorization subscription and returns a continuous stream of
-     * traced decisions. Each traced decision includes both the authorization
-     * decision and complete evaluation metadata.
+     * Evaluates a subscription returning traced decisions with evaluation metadata.
      *
-     * <p>
-     * New traced decisions are emitted whenever the authorization context changes
-     * (e.g., due to attribute updates or policy changes).
-     *
-     * @param authorizationSubscription the authorization subscription to evaluate
-     * @return a flux of traced decisions with full metadata
+     * @param authorizationSubscription the subscription to evaluate
+     * @return stream of traced decisions
      */
     Flux<TracedDecision> decideTraced(AuthorizationSubscription authorizationSubscription);
 }

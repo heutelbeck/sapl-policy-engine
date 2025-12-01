@@ -30,49 +30,18 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Complete metadata for a policy decision, including all information needed for
- * auditing, debugging, and compliance reporting.
+ * Complete metadata for a policy decision for auditing and debugging.
  *
- * <p>
- * This record captures the full context of how an authorization decision was
- * made:
- * <ul>
- * <li>The subscription that triggered the decision</li>
- * <li>All attribute values that were retrieved during evaluation</li>
- * <li>Any errors that occurred during evaluation</li>
- * <li>Which policy documents matched and contributed to the decision</li>
- * <li>The combining algorithm used to combine multiple policy results</li>
- * </ul>
- *
- * <p>
- * For streaming decisions where values update over time, each decision emission
- * includes ALL attribute values that were active at decision time. This avoids
- * the need for historical lookups when debugging a specific decision.
- *
- * <p>
- * This is an internal API for use by PDP implementations and trusted tooling.
- * External consumers should use {@link io.sapl.api.pdp.AuthorizationDecision}
- * which does not expose trace information.
- *
- * @param pdpId identifier of the PDP instance that produced this decision,
- * useful in clustered deployments for debugging
- * @param configurationId identifier of the PDP configuration (policy set
- * version) active when this decision was made
- * @param subscriptionId a unique identifier for correlating decisions with
- * subscriptions in streaming scenarios
- * @param subscription the authorization subscription that was evaluated
+ * @param pdpId PDP instance identifier (for clustered deployments)
+ * @param configurationId policy configuration version identifier
+ * @param subscriptionId identifier for correlating streaming decisions
+ * @param subscription the evaluated authorization subscription
  * @param timestamp when this decision was produced
- * @param attributes all attribute invocations that contributed to this
- * decision
- * @param errors any errors that occurred during evaluation (these
- * are also present in the decision if they caused
- * INDETERMINATE, but collected here for convenience)
+ * @param attributes all attribute invocations that contributed to this decision
+ * @param errors errors that occurred during evaluation
  * @param documentDecisions map from document name to its intermediate decision
- * object (before combining). The Value is the decision
- * object with decision, obligations, advice, and resource
- * fields. Documents that did not match are not included.
- * @param combiningAlgorithm the algorithm used to combine results from multiple
- * policies (e.g., "deny-overrides", "permit-overrides")
+ * (before combining)
+ * @param combiningAlgorithm algorithm used to combine policy results
  */
 public record DecisionMetadata(
         @NonNull String pdpId,

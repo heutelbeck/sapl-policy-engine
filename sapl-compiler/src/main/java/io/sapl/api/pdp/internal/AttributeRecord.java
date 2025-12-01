@@ -30,35 +30,13 @@ import java.util.List;
 /**
  * Records a single attribute invocation for auditing and debugging.
  *
- * <p>
- * Each record captures the complete context of an attribute lookup: what
- * attribute was called, with what arguments, what value was returned, and where
- * in the policy source the invocation occurred. This enables reconstruction of
- * the exact data used for any authorization decision.
- *
- * <p>
- * Attribute records are captured per call-site, without deduplication. If the
- * same attribute is called at two different locations in a policy, two separate
- * records are created. This provides better debugging context than
- * deduplicating
- * by attribute name.
- *
- * <p>
- * This is an internal API for use by PDP implementations and trusted tooling
- * (such as the SAPL Playground). External consumers should use
- * {@link io.sapl.api.pdp.AuthorizationDecision} which does not expose trace
- * information.
- *
- * @param attributeName the fully qualified name of the attribute (e.g.,
- * "user.role" or "time.now")
- * @param entity the entity value passed to the attribute finder (the
- * left-hand side of the {@code <>} operator), or
- * {@link Value#UNDEFINED} for environment attributes
- * @param arguments the argument values passed to the attribute finder
- * @param value the value returned by the attribute finder
- * @param retrievedAt the timestamp when the attribute value was retrieved
- * @param location the source location of the attribute invocation in the
- * policy (may be null for programmatic invocations)
+ * @param attributeName fully qualified attribute name (e.g., "user.role")
+ * @param entity left-hand side of {@code <>}, or UNDEFINED for environment
+ * attributes
+ * @param arguments argument values passed to the attribute finder
+ * @param value the returned value
+ * @param retrievedAt when the value was retrieved
+ * @param location source location of the invocation (may be null)
  */
 public record AttributeRecord(
         @NonNull String attributeName,

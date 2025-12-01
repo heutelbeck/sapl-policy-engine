@@ -21,73 +21,19 @@ import java.util.function.UnaryOperator;
 
 /**
  * Intercepts traced decisions for logging, auditing, or modification.
- *
- * <p>
- * Interceptors form a chain that processes every traced decision before it is
- * returned to external consumers. Each interceptor can:
- * <ul>
- * <li>Log the decision and its metadata for audit purposes</li>
- * <li>Transform the decision (adding obligations, changing the verdict)</li>
- * <li>Pass through unchanged (for observation-only interceptors)</li>
- * </ul>
- *
- * <p>
- * Interceptors are ordered by priority (lower values execute first). This
- * allows, for example, logging interceptors to run before modification
- * interceptors, capturing the original decision.
- *
- * <p>
- * <strong>Security Note:</strong> Interceptors see full trace data including
- * attribute values and policy names. They are trusted code running within the
- * PDP deployment and should not expose this information to untrusted parties.
- *
- * <p>
- * Example implementation:
- *
- * <pre>
- * {
- *     &#64;code
- *     public class AuditLogInterceptor implements TracedDecisionInterceptor {
- *         &#64;Override
- *         public TracedDecision apply(TracedDecision decision) {
- *             auditLogger.log(decision.getMetadata());
- *             return decision; // pass through unchanged
- *         }
- *
- *         @Override
- *         public Integer getPriority() {
- *             return -100; // run early to capture original decision
- *         }
- *     }
- * }
- * </pre>
- *
- * @see TracedDecision
+ * Ordered by priority (lower values execute first).
  */
 @FunctionalInterface
 public interface TracedDecisionInterceptor
         extends UnaryOperator<TracedDecision>, Comparable<TracedDecisionInterceptor> {
 
     /**
-     * Returns the priority of this interceptor.
-     *
-     * <p>
-     * Interceptors with lower priority values execute first. The default
-     * priority is 0. Use negative values to run before default interceptors,
-     * positive values to run after.
-     *
-     * @return the interceptor priority
+     * @return the interceptor priority (lower executes first, default 0)
      */
     default Integer getPriority() {
         return 0;
     }
 
-    /**
-     * Compares interceptors by priority for ordering.
-     *
-     * @param other the other interceptor
-     * @return comparison result based on priority
-     */
     @Override
     default int compareTo(TracedDecisionInterceptor other) {
         return getPriority().compareTo(other.getPriority());

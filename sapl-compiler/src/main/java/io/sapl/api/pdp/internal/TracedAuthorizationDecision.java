@@ -28,17 +28,11 @@ import java.util.Collections;
 import java.util.List;
 
 /**
- * Default implementation of {@link TracedDecision} that holds an authorization
- * decision along with its evaluation metadata and modification history.
- *
- * <p>
- * This implementation is immutable. The {@link #modified} method returns a new
- * instance with the updated decision and appended modification explanation.
+ * Immutable implementation of {@link TracedDecision}.
  *
  * @param authorizationDecision the authorization decision
  * @param metadata the decision metadata
- * @param modifications list of modification explanations (empty if
- * decision was not modified by interceptors)
+ * @param modifications modification explanations from interceptors
  */
 public record TracedAuthorizationDecision(
         @NonNull AuthorizationDecision authorizationDecision,
@@ -48,12 +42,6 @@ public record TracedAuthorizationDecision(
     @Serial
     private static final long serialVersionUID = SaplVersion.VERSION_UID;
 
-    /**
-     * Creates a new traced authorization decision with no modifications.
-     *
-     * @param authorizationDecision the authorization decision
-     * @param metadata the decision metadata
-     */
     public TracedAuthorizationDecision(AuthorizationDecision authorizationDecision, DecisionMetadata metadata) {
         this(authorizationDecision, metadata, List.of());
     }
