@@ -137,7 +137,7 @@ class AttributeStreamRaceConditionTests {
         val initialPip    = (AttributeFinder) inv -> Flux.just(Value.of("initial"));
         stream.connectToPolicyInformationPoint(initialPip);
 
-        val subscription = stream.getStream().subscribe(System.err::println);
+        val subscription = stream.getStream().subscribe();
         subscription.dispose();
         // Wait test reconnection during grace period
         await().pollDelay(50, MILLISECONDS).atMost(90, MILLISECONDS).until(() -> true);
@@ -145,7 +145,7 @@ class AttributeStreamRaceConditionTests {
         val newPip = (AttributeFinder) inv -> Flux.just(Value.of("reconnected"));
         stream.connectToPolicyInformationPoint(newPip);
 
-        val result = stream.getStream().doOnNext(System.err::println).blockFirst(Duration.ofSeconds(1));
+        val result = stream.getStream().blockFirst(Duration.ofSeconds(1));
 
         assertThat(result).as("Stream should emit value from new PIP").isNotNull()
                 .matches(value -> value instanceof TextValue tv && "reconnected".equals(tv.value()));

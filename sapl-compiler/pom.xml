@@ -82,6 +82,11 @@
             <artifactId>ipaddress</artifactId>
             <version>5.5.1</version>
         </dependency>
+        <!-- CSV Support -->
+        <dependency>
+            <groupId>com.fasterxml.jackson.dataformat</groupId>
+            <artifactId>jackson-dataformat-csv</artifactId>
+        </dependency>
         <!-- Classpath scanning for resource loading -->
         <dependency>
             <groupId>io.github.classgraph</groupId>
