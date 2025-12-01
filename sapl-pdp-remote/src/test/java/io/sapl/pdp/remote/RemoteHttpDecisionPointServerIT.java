@@ -46,7 +46,7 @@ import javax.net.ssl.SSLException;
 @ActiveProfiles(profiles = "quiet")
 class RemoteHttpDecisionPointServerIT {
     private static final int    SAPL_SERVER_PORT = 8443;
-    private static final String SAPL_SERVER_LT   = "ghcr.io/heutelbeck/sapl-server-lt:3.1.0-SNAPSHOT";
+    private static final String SAPL_SERVER_LT   = "ghcr.io/heutelbeck/sapl-server-lt:4.0.0-SNAPSHOT";
 
     final AuthorizationSubscription permittedSubscription = AuthorizationSubscription.of("Willi", "eat", "apple");
 

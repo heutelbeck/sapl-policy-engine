@@ -45,7 +45,7 @@ import java.time.Duration;
 @ActiveProfiles(profiles = "quiet")
 class RemoteRsocketDecisionPointServerIT {
     private static final int    SAPL_SERVER_RSOCKET_PORT = 7000;
-    private static final String CONTAINER_IMAGE          = "ghcr.io/heutelbeck/sapl-server-lt:3.1.0-SNAPSHOT";
+    private static final String CONTAINER_IMAGE          = "ghcr.io/heutelbeck/sapl-server-lt:4.0.0-SNAPSHOT";
 
     final AuthorizationSubscription permittedSubscription = AuthorizationSubscription.of("Willi", "eat", "apple");
 
