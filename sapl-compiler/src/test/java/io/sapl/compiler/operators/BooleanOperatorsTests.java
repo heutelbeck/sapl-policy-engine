@@ -34,7 +34,7 @@ class BooleanOperatorsTests {
     @ParameterizedTest(name = "{0}")
     @MethodSource
     void when_and_then_returnsExpectedValue(String description, Value a, Value b, Value expected) {
-        val actual = BooleanOperators.and(a, b);
+        val actual = BooleanOperators.and(null, a, b);
         assertThat(actual).isEqualTo(expected);
     }
 
@@ -48,7 +48,7 @@ class BooleanOperatorsTests {
     @ParameterizedTest(name = "{0}")
     @MethodSource
     void when_and_withTypeMismatch_then_returnsError(String description, Value a, Value b) {
-        val actual = BooleanOperators.and(a, b);
+        val actual = BooleanOperators.and(null, a, b);
         assertThat(actual).isInstanceOf(ErrorValue.class).extracting(v -> ((ErrorValue) v).message()).asString()
                 .contains("Boolean operation requires Boolean values");
     }
@@ -68,7 +68,7 @@ class BooleanOperatorsTests {
     @ParameterizedTest(name = "{0}")
     @MethodSource
     void when_and_withSecrets_then_preservesSecretFlag(String description, Value a, Value b, boolean expectedSecret) {
-        val actual = BooleanOperators.and(a, b);
+        val actual = BooleanOperators.and(null, a, b);
         assertThat(actual.secret()).isEqualTo(expectedSecret);
     }
 
@@ -82,7 +82,7 @@ class BooleanOperatorsTests {
     @ParameterizedTest(name = "{0}")
     @MethodSource
     void when_or_then_returnsExpectedValue(String description, Value a, Value b, Value expected) {
-        val actual = BooleanOperators.or(a, b);
+        val actual = BooleanOperators.or(null, a, b);
         assertThat(actual).isEqualTo(expected);
     }
 
@@ -96,7 +96,7 @@ class BooleanOperatorsTests {
     @ParameterizedTest(name = "{0}")
     @MethodSource
     void when_or_withTypeMismatch_then_returnsError(String description, Value a, Value b) {
-        val actual = BooleanOperators.or(a, b);
+        val actual = BooleanOperators.or(null, a, b);
         assertThat(actual).isInstanceOf(ErrorValue.class).extracting(v -> ((ErrorValue) v).message()).asString()
                 .contains("Boolean operation requires Boolean values");
     }
@@ -111,7 +111,7 @@ class BooleanOperatorsTests {
     @ParameterizedTest(name = "{0}")
     @MethodSource
     void when_or_withSecrets_then_preservesSecretFlag(String description, Value a, Value b, boolean expectedSecret) {
-        val actual = BooleanOperators.or(a, b);
+        val actual = BooleanOperators.or(null, a, b);
         assertThat(actual.secret()).isEqualTo(expectedSecret);
     }
 
@@ -125,7 +125,7 @@ class BooleanOperatorsTests {
     @ParameterizedTest(name = "{0}")
     @MethodSource
     void when_xor_then_returnsExpectedValue(String description, Value a, Value b, Value expected) {
-        val actual = BooleanOperators.xor(a, b);
+        val actual = BooleanOperators.xor(null, a, b);
         assertThat(actual).isEqualTo(expected);
     }
 
@@ -139,7 +139,7 @@ class BooleanOperatorsTests {
     @ParameterizedTest(name = "{0}")
     @MethodSource
     void when_xor_withTypeMismatch_then_returnsError(String description, Value a, Value b) {
-        val actual = BooleanOperators.xor(a, b);
+        val actual = BooleanOperators.xor(null, a, b);
         assertThat(actual).isInstanceOf(ErrorValue.class).extracting(v -> ((ErrorValue) v).message()).asString()
                 .contains("Boolean operation requires Boolean values");
     }
@@ -154,7 +154,7 @@ class BooleanOperatorsTests {
     @ParameterizedTest(name = "{0}")
     @MethodSource
     void when_xor_withSecrets_then_preservesSecretFlag(String description, Value a, Value b, boolean expectedSecret) {
-        val actual = BooleanOperators.xor(a, b);
+        val actual = BooleanOperators.xor(null, a, b);
         assertThat(actual.secret()).isEqualTo(expectedSecret);
     }
 
@@ -168,7 +168,7 @@ class BooleanOperatorsTests {
     @ParameterizedTest(name = "{0}")
     @MethodSource
     void when_not_then_returnsExpectedValue(String description, Value input, Value expected) {
-        val actual = BooleanOperators.not(input);
+        val actual = BooleanOperators.not(null, input);
         assertThat(actual).isEqualTo(expected);
     }
 
@@ -180,7 +180,7 @@ class BooleanOperatorsTests {
     @ParameterizedTest(name = "{0}")
     @MethodSource
     void when_not_withTypeMismatch_then_returnsError(String description, Value input) {
-        val actual = BooleanOperators.not(input);
+        val actual = BooleanOperators.not(null, input);
         assertThat(actual).isInstanceOf(ErrorValue.class).extracting(v -> ((ErrorValue) v).message()).asString()
                 .contains("Boolean operation requires Boolean values");
     }
@@ -194,7 +194,7 @@ class BooleanOperatorsTests {
     @ParameterizedTest(name = "{0}")
     @MethodSource
     void when_not_withSecret_then_preservesSecretFlag(String description, Value input, boolean expectedSecret) {
-        val actual = BooleanOperators.not(input);
+        val actual = BooleanOperators.not(null, input);
         assertThat(actual.secret()).isEqualTo(expectedSecret);
     }
 

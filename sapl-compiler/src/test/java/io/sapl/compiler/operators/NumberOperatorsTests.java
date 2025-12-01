@@ -37,7 +37,7 @@ class NumberOperatorsTests {
     @ParameterizedTest(name = "{0}")
     @MethodSource
     void when_add_withNumbers_then_returnsSum(String description, Value a, Value b, Value expected) {
-        val actual = NumberOperators.add(a, b);
+        val actual = NumberOperators.add(null, a, b);
         assertThat(actual).isEqualTo(expected);
     }
 
@@ -51,19 +51,19 @@ class NumberOperatorsTests {
 
     @Test
     void when_add_withStrings_then_concatenates() {
-        val actual = NumberOperators.add(Value.of("hello"), Value.of("world"));
+        val actual = NumberOperators.add(null, Value.of("hello"), Value.of("world"));
         assertThat(actual).isEqualTo(Value.of("helloworld"));
     }
 
     @Test
     void when_add_withStringAndNumber_then_concatenatesUsingToString() {
-        val actual = NumberOperators.add(Value.of("value:"), Value.of(5));
+        val actual = NumberOperators.add(null, Value.of("value:"), Value.of(5));
         assertThat(actual).isEqualTo(Value.of("value:5"));
     }
 
     @Test
     void when_add_withNumberAndNonNumber_then_returnsError() {
-        val actual = NumberOperators.add(Value.of(5), Value.of("text"));
+        val actual = NumberOperators.add(null, Value.of(5), Value.of("text"));
         assertThat(actual).isInstanceOf(ErrorValue.class);
         assertThat(((ErrorValue) actual).message()).contains("Numeric operation requires number values");
     }
@@ -71,7 +71,7 @@ class NumberOperatorsTests {
     @ParameterizedTest(name = "{0}")
     @MethodSource
     void when_add_withSecrets_then_preservesSecretFlag(String description, Value a, Value b, boolean expectedSecret) {
-        val actual = NumberOperators.add(a, b);
+        val actual = NumberOperators.add(null, a, b);
         assertThat(actual.secret()).isEqualTo(expectedSecret);
     }
 
@@ -89,7 +89,7 @@ class NumberOperatorsTests {
     @ParameterizedTest(name = "{0}")
     @MethodSource
     void when_subtract_then_returnsDifference(String description, Value a, Value b, Value expected) {
-        val actual = NumberOperators.subtract(a, b);
+        val actual = NumberOperators.subtract(null, a, b);
         assertThat(actual).isEqualTo(expected);
     }
 
@@ -103,7 +103,7 @@ class NumberOperatorsTests {
 
     @Test
     void when_subtract_withNonNumber_then_returnsError() {
-        val actual = NumberOperators.subtract(Value.of(5), Value.of("text"));
+        val actual = NumberOperators.subtract(null, Value.of(5), Value.of("text"));
         assertThat(actual).isInstanceOf(ErrorValue.class);
     }
 
@@ -112,7 +112,7 @@ class NumberOperatorsTests {
     @ParameterizedTest(name = "{0}")
     @MethodSource
     void when_multiply_then_returnsProduct(String description, Value a, Value b, Value expected) {
-        val actual = NumberOperators.multiply(a, b);
+        val actual = NumberOperators.multiply(null, a, b);
         assertThat(actual).isEqualTo(expected);
     }
 
@@ -126,7 +126,7 @@ class NumberOperatorsTests {
 
     @Test
     void when_multiply_withNonNumber_then_returnsError() {
-        val actual = NumberOperators.multiply(Value.of(5), Value.of("text"));
+        val actual = NumberOperators.multiply(null, Value.of(5), Value.of("text"));
         assertThat(actual).isInstanceOf(ErrorValue.class);
     }
 
@@ -135,7 +135,7 @@ class NumberOperatorsTests {
     @ParameterizedTest(name = "{0}")
     @MethodSource
     void when_divide_then_returnsQuotient(String description, Value a, Value b, Value expected) {
-        val actual = NumberOperators.divide(a, b);
+        val actual = NumberOperators.divide(null, a, b);
         assertThat(actual).isEqualTo(expected);
     }
 
@@ -148,19 +148,19 @@ class NumberOperatorsTests {
 
     @Test
     void when_divide_byZero_then_returnsError() {
-        val actual = NumberOperators.divide(Value.of(5), Value.of(0));
+        val actual = NumberOperators.divide(null, Value.of(5), Value.of(0));
         assertThat(actual).isInstanceOf(ErrorValue.class);
     }
 
     @Test
     void when_divide_nonTerminating_then_returnsError() {
-        val actual = NumberOperators.divide(Value.of(10), Value.of(3));
+        val actual = NumberOperators.divide(null, Value.of(10), Value.of(3));
         assertThat(actual).isInstanceOf(ErrorValue.class);
     }
 
     @Test
     void when_divide_withNonNumber_then_returnsError() {
-        val actual = NumberOperators.divide(Value.of(5), Value.of("text"));
+        val actual = NumberOperators.divide(null, Value.of(5), Value.of("text"));
         assertThat(actual).isInstanceOf(ErrorValue.class);
     }
 
@@ -169,7 +169,7 @@ class NumberOperatorsTests {
     @ParameterizedTest(name = "{0}")
     @MethodSource
     void when_modulo_then_returnsRemainder(String description, Value dividend, Value divisor, Value expected) {
-        val actual = NumberOperators.modulo(dividend, divisor);
+        val actual = NumberOperators.modulo(null, dividend, divisor);
         assertThat(actual).isEqualTo(expected);
     }
 
@@ -183,14 +183,14 @@ class NumberOperatorsTests {
 
     @Test
     void when_modulo_byZero_then_returnsError() {
-        val actual = NumberOperators.modulo(Value.of(5), Value.of(0));
+        val actual = NumberOperators.modulo(null, Value.of(5), Value.of(0));
         assertThat(actual).isInstanceOf(ErrorValue.class);
         assertThat(((ErrorValue) actual).message()).contains("Division by zero");
     }
 
     @Test
     void when_modulo_withNonNumber_then_returnsError() {
-        val actual = NumberOperators.modulo(Value.of(5), Value.of("text"));
+        val actual = NumberOperators.modulo(null, Value.of(5), Value.of("text"));
         assertThat(actual).isInstanceOf(ErrorValue.class);
     }
 
@@ -198,19 +198,19 @@ class NumberOperatorsTests {
 
     @Test
     void when_unaryPlus_withNumber_then_returnsUnchanged() {
-        val actual = NumberOperators.unaryPlus(Value.of(5));
+        val actual = NumberOperators.unaryPlus(null, Value.of(5));
         assertThat(actual).isEqualTo(Value.of(5));
     }
 
     @Test
     void when_unaryPlus_withNegativeNumber_then_returnsUnchanged() {
-        val actual = NumberOperators.unaryPlus(Value.of(-5));
+        val actual = NumberOperators.unaryPlus(null, Value.of(-5));
         assertThat(actual).isEqualTo(Value.of(-5));
     }
 
     @Test
     void when_unaryPlus_withNonNumber_then_returnsError() {
-        val actual = NumberOperators.unaryPlus(Value.of("text"));
+        val actual = NumberOperators.unaryPlus(null, Value.of("text"));
         assertThat(actual).isInstanceOf(ErrorValue.class);
     }
 
@@ -219,7 +219,7 @@ class NumberOperatorsTests {
     @ParameterizedTest(name = "{0}")
     @MethodSource
     void when_unaryMinus_then_returnsNegated(String description, Value input, Value expected) {
-        val actual = NumberOperators.unaryMinus(input);
+        val actual = NumberOperators.unaryMinus(null, input);
         assertThat(actual).isEqualTo(expected);
     }
 
@@ -232,13 +232,13 @@ class NumberOperatorsTests {
 
     @Test
     void when_unaryMinus_withNonNumber_then_returnsError() {
-        val actual = NumberOperators.unaryMinus(Value.of("text"));
+        val actual = NumberOperators.unaryMinus(null, Value.of("text"));
         assertThat(actual).isInstanceOf(ErrorValue.class);
     }
 
     @Test
     void when_unaryMinus_withSecret_then_preservesSecretFlag() {
-        val actual = NumberOperators.unaryMinus(Value.of(5).asSecret());
+        val actual = NumberOperators.unaryMinus(null, Value.of(5).asSecret());
         assertThat(actual).isEqualTo(Value.of(-5));
         assertThat(actual.secret()).isTrue();
     }
@@ -248,7 +248,7 @@ class NumberOperatorsTests {
     @ParameterizedTest(name = "{0}")
     @MethodSource
     void when_lessThan_then_returnsComparison(String description, Value a, Value b, boolean expected) {
-        val actual = NumberOperators.lessThan(a, b);
+        val actual = NumberOperators.lessThan(null, a, b);
         assertThat(actual).isEqualTo(Value.of(expected));
     }
 
@@ -262,7 +262,7 @@ class NumberOperatorsTests {
 
     @Test
     void when_lessThan_withNonNumber_then_returnsError() {
-        val actual = NumberOperators.lessThan(Value.of(5), Value.of("text"));
+        val actual = NumberOperators.lessThan(null, Value.of(5), Value.of("text"));
         assertThat(actual).isInstanceOf(ErrorValue.class);
     }
 
@@ -271,7 +271,7 @@ class NumberOperatorsTests {
     @ParameterizedTest(name = "{0}")
     @MethodSource
     void when_lessThanOrEqual_then_returnsComparison(String description, Value a, Value b, boolean expected) {
-        val actual = NumberOperators.lessThanOrEqual(a, b);
+        val actual = NumberOperators.lessThanOrEqual(null, a, b);
         assertThat(actual).isEqualTo(Value.of(expected));
     }
 
@@ -284,7 +284,7 @@ class NumberOperatorsTests {
 
     @Test
     void when_lessThanOrEqual_withNonNumber_then_returnsError() {
-        val actual = NumberOperators.lessThanOrEqual(Value.of(5), Value.of("text"));
+        val actual = NumberOperators.lessThanOrEqual(null, Value.of(5), Value.of("text"));
         assertThat(actual).isInstanceOf(ErrorValue.class);
     }
 
@@ -293,7 +293,7 @@ class NumberOperatorsTests {
     @ParameterizedTest(name = "{0}")
     @MethodSource
     void when_greaterThan_then_returnsComparison(String description, Value a, Value b, boolean expected) {
-        val actual = NumberOperators.greaterThan(a, b);
+        val actual = NumberOperators.greaterThan(null, a, b);
         assertThat(actual).isEqualTo(Value.of(expected));
     }
 
@@ -307,7 +307,7 @@ class NumberOperatorsTests {
 
     @Test
     void when_greaterThan_withNonNumber_then_returnsError() {
-        val actual = NumberOperators.greaterThan(Value.of(5), Value.of("text"));
+        val actual = NumberOperators.greaterThan(null, Value.of(5), Value.of("text"));
         assertThat(actual).isInstanceOf(ErrorValue.class);
     }
 
@@ -316,7 +316,7 @@ class NumberOperatorsTests {
     @ParameterizedTest(name = "{0}")
     @MethodSource
     void when_greaterThanOrEqual_then_returnsComparison(String description, Value a, Value b, boolean expected) {
-        val actual = NumberOperators.greaterThanOrEqual(a, b);
+        val actual = NumberOperators.greaterThanOrEqual(null, a, b);
         assertThat(actual).isEqualTo(Value.of(expected));
     }
 
@@ -329,7 +329,7 @@ class NumberOperatorsTests {
 
     @Test
     void when_greaterThanOrEqual_withNonNumber_then_returnsError() {
-        val actual = NumberOperators.greaterThanOrEqual(Value.of(5), Value.of("text"));
+        val actual = NumberOperators.greaterThanOrEqual(null, Value.of(5), Value.of("text"));
         assertThat(actual).isInstanceOf(ErrorValue.class);
     }
 
@@ -339,9 +339,9 @@ class NumberOperatorsTests {
     @MethodSource
     void when_arithmeticOperations_withSecrets_then_preservesSecretFlag(String description, Value a, Value b,
             boolean expectedSecret) {
-        val subtractResult = NumberOperators.subtract(a, b);
-        val multiplyResult = NumberOperators.multiply(a, b);
-        val moduloResult   = NumberOperators.modulo(a, b);
+        val subtractResult = NumberOperators.subtract(null, a, b);
+        val multiplyResult = NumberOperators.multiply(null, a, b);
+        val moduloResult   = NumberOperators.modulo(null, a, b);
         assertThat(subtractResult.secret()).isEqualTo(expectedSecret);
         assertThat(multiplyResult.secret()).isEqualTo(expectedSecret);
         assertThat(moduloResult.secret()).isEqualTo(expectedSecret);
@@ -358,10 +358,10 @@ class NumberOperatorsTests {
     @MethodSource
     void when_comparisonOperations_withSecrets_then_preservesSecretFlag(String description, Value a, Value b,
             boolean expectedSecret) {
-        val lessThanResult           = NumberOperators.lessThan(a, b);
-        val lessThanOrEqualResult    = NumberOperators.lessThanOrEqual(a, b);
-        val greaterThanResult        = NumberOperators.greaterThan(a, b);
-        val greaterThanOrEqualResult = NumberOperators.greaterThanOrEqual(a, b);
+        val lessThanResult           = NumberOperators.lessThan(null, a, b);
+        val lessThanOrEqualResult    = NumberOperators.lessThanOrEqual(null, a, b);
+        val greaterThanResult        = NumberOperators.greaterThan(null, a, b);
+        val greaterThanOrEqualResult = NumberOperators.greaterThanOrEqual(null, a, b);
         assertThat(lessThanResult.secret()).isEqualTo(expectedSecret);
         assertThat(lessThanOrEqualResult.secret()).isEqualTo(expectedSecret);
         assertThat(greaterThanResult.secret()).isEqualTo(expectedSecret);

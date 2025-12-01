@@ -364,6 +364,66 @@ public sealed interface Value extends Serializable, CompiledExpression
     }
 
     /**
+     * Creates an error value with a message and source location.
+     *
+     * @param message
+     * the error message (must not be null)
+     * @param location
+     * the source location where the error occurred (may be null)
+     *
+     * @return an ErrorValue with location information
+     */
+    static ErrorValue error(@NonNull String message, SourceLocation location) {
+        return new ErrorValue(message, null, false, location);
+    }
+
+    /**
+     * Creates an error value with a formatted message and source location.
+     *
+     * @param location
+     * the source location where the error occurred (may be null)
+     * @param message
+     * the format string (must not be null)
+     * @param args
+     * the arguments for the format string
+     *
+     * @return an ErrorValue with the formatted message and location
+     */
+    static ErrorValue errorAt(SourceLocation location, @NonNull String message, Object... args) {
+        return new ErrorValue(String.format(message, args), null, false, location);
+    }
+
+    /**
+     * Creates an error value with a message, cause, and source location.
+     *
+     * @param message
+     * the error message (must not be null)
+     * @param cause
+     * the exception (may be null)
+     * @param location
+     * the source location where the error occurred (may be null)
+     *
+     * @return an ErrorValue with cause and location information
+     */
+    static ErrorValue error(@NonNull String message, Throwable cause, SourceLocation location) {
+        return new ErrorValue(message, cause, false, location);
+    }
+
+    /**
+     * Creates an error value from an exception with source location.
+     *
+     * @param cause
+     * the exception (must not be null)
+     * @param location
+     * the source location where the error occurred (may be null)
+     *
+     * @return an ErrorValue with cause and location information
+     */
+    static ErrorValue error(@NonNull Throwable cause, SourceLocation location) {
+        return new ErrorValue(cause.getMessage(), cause, false, location);
+    }
+
+    /**
      * Marks this value as secret. Secret values display as "***SECRET***" in
      * toString() to prevent exposure. The secret
      * flag does not affect equality or evaluation.

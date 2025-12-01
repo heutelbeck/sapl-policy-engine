@@ -17,12 +17,10 @@
  */
 package io.sapl.compiler;
 
-import io.sapl.api.model.ErrorValue;
-import io.sapl.api.model.PureExpression;
-import io.sapl.api.model.StreamExpression;
-import io.sapl.api.model.Value;
+import io.sapl.api.model.*;
 import lombok.experimental.UtilityClass;
 import lombok.val;
+import org.eclipse.emf.ecore.EObject;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -79,8 +77,8 @@ class FilterArgumentEvaluator {
      *
      * @return list of evaluated Value arguments
      */
-    static List<Value> evaluatePureArguments(CompiledArguments arguments, Value leftHandArg,
-            io.sapl.api.model.EvaluationContext ctx) {
+    static List<Value> evaluatePureArguments(EObject astNode, CompiledArguments arguments, Value leftHandArg,
+            EvaluationContext ctx) {
         val valueArguments = new ArrayList<Value>(arguments.arguments().length + 1);
         valueArguments.add(leftHandArg);
 
@@ -88,7 +86,8 @@ class FilterArgumentEvaluator {
             switch (argument) {
             case Value value                   -> valueArguments.add(value);
             case PureExpression pureExpression -> valueArguments.add(pureExpression.evaluate(ctx));
-            case StreamExpression ignored      -> throw new SaplCompilerException(ERROR_STREAM_IN_PURE_FILTER_ARGS);
+            case StreamExpression ignored      ->
+                throw new SaplCompilerException(ERROR_STREAM_IN_PURE_FILTER_ARGS, astNode);
             }
         }
 

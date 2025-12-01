@@ -15,14 +15,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.interpreter;
+package io.sapl.compiler.operators;
 
-import lombok.experimental.UtilityClass;
+import io.sapl.api.model.Value;
+import org.eclipse.emf.ecore.EObject;
 
-import java.time.Duration;
-
-@UtilityClass
-public class DefaultTimeouts {
-    public static final Duration DEFAULT_GRACE_PERIOD      = Duration.ofSeconds(1L);
-    public static final Duration DEFAULT_ATTRIBUTE_TIMEOUT = Duration.ofSeconds(1L);
+@FunctionalInterface
+public interface BiOperator {
+    Value apply(EObject astNode, Value left, Value right);
 }

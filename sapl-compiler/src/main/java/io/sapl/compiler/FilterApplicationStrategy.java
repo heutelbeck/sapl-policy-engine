@@ -18,15 +18,12 @@
 package io.sapl.compiler;
 
 import io.sapl.api.functions.FunctionInvocation;
-import io.sapl.api.model.ArrayValue;
-import io.sapl.api.model.CompiledExpression;
-import io.sapl.api.model.ObjectValue;
-import io.sapl.api.model.PureExpression;
-import io.sapl.api.model.StreamExpression;
-import io.sapl.api.model.Value;
+import io.sapl.api.model.*;
 import lombok.experimental.UtilityClass;
 import lombok.val;
+import org.eclipse.emf.ecore.EObject;
 
+import java.util.ArrayList;
 import java.util.function.IntPredicate;
 import java.util.function.Predicate;
 
@@ -64,11 +61,11 @@ class FilterApplicationStrategy {
      *
      * @return the filtered result
      */
-    public CompiledExpression applyFilterToValue(Value targetValue, String functionIdentifier,
+    public CompiledExpression applyFilterToValue(EObject astNode, Value targetValue, String functionIdentifier,
             CompiledArguments arguments, CompilationContext context) {
         return switch (arguments.nature()) {
         case VALUE  -> applyValueFilterToValue(targetValue, functionIdentifier, arguments, context);
-        case PURE   -> applyPureFilterToValue(targetValue, functionIdentifier, arguments);
+        case PURE   -> applyPureFilterToValue(astNode, targetValue, functionIdentifier, arguments);
         case STREAM -> applyStreamFilterToValue(targetValue, functionIdentifier, arguments);
         };
     }
@@ -89,12 +86,13 @@ class FilterApplicationStrategy {
      *
      * @return the filtered array
      */
-    public CompiledExpression applyFilterToArrayElements(ArrayValue arrayValue, IntPredicate indexMatcher,
-            String functionIdentifier, CompiledArguments arguments, CompilationContext context) {
+    public CompiledExpression applyFilterToArrayElements(EObject astNode, ArrayValue arrayValue,
+            IntPredicate indexMatcher, String functionIdentifier, CompiledArguments arguments,
+            CompilationContext context) {
         return switch (arguments.nature()) {
         case VALUE  ->
-            applyValueFilterToArrayElements(arrayValue, indexMatcher, functionIdentifier, arguments, context);
-        case PURE   -> applyPureFilterToArrayElements(arrayValue, indexMatcher, functionIdentifier, arguments);
+            applyValueFilterToArrayElements(astNode, arrayValue, indexMatcher, functionIdentifier, arguments, context);
+        case PURE   -> applyPureFilterToArrayElements(astNode, arrayValue, indexMatcher, functionIdentifier, arguments);
         case STREAM ->
             applyStreamFilterToArrayElements(arrayValue, indexMatcher, functionIdentifier, arguments, context);
         };
@@ -114,9 +112,9 @@ class FilterApplicationStrategy {
      *
      * @return the filtered array
      */
-    public CompiledExpression applyFilterToAllArrayElements(ArrayValue arrayValue, String functionIdentifier,
-            CompiledArguments arguments, CompilationContext context) {
-        return applyFilterToArrayElements(arrayValue, i -> true, functionIdentifier, arguments, context);
+    public CompiledExpression applyFilterToAllArrayElements(EObject astNode, ArrayValue arrayValue,
+            String functionIdentifier, CompiledArguments arguments, CompilationContext context) {
+        return applyFilterToArrayElements(astNode, arrayValue, i -> true, functionIdentifier, arguments, context);
     }
 
     /**
@@ -135,11 +133,13 @@ class FilterApplicationStrategy {
      *
      * @return the filtered object
      */
-    public CompiledExpression applyFilterToObjectFields(ObjectValue objectValue, Predicate<String> keyMatcher,
-            String functionIdentifier, CompiledArguments arguments, CompilationContext context) {
+    public CompiledExpression applyFilterToObjectFields(EObject astNode, ObjectValue objectValue,
+            Predicate<String> keyMatcher, String functionIdentifier, CompiledArguments arguments,
+            CompilationContext context) {
         return switch (arguments.nature()) {
-        case VALUE  -> applyValueFilterToObjectFields(objectValue, keyMatcher, functionIdentifier, arguments, context);
-        case PURE   -> applyPureFilterToObjectFields(objectValue, keyMatcher, functionIdentifier, arguments);
+        case VALUE  ->
+            applyValueFilterToObjectFields(astNode, objectValue, keyMatcher, functionIdentifier, arguments, context);
+        case PURE   -> applyPureFilterToObjectFields(astNode, objectValue, keyMatcher, functionIdentifier, arguments);
         case STREAM -> applyStreamFilterToObjectFields(objectValue, keyMatcher, functionIdentifier, arguments, context);
         };
     }
@@ -158,9 +158,9 @@ class FilterApplicationStrategy {
      *
      * @return the filtered object
      */
-    public CompiledExpression applyFilterToAllObjectFields(ObjectValue objectValue, String functionIdentifier,
-            CompiledArguments arguments, CompilationContext context) {
-        return applyFilterToObjectFields(objectValue, key -> true, functionIdentifier, arguments, context);
+    public CompiledExpression applyFilterToAllObjectFields(EObject astNode, ObjectValue objectValue,
+            String functionIdentifier, CompiledArguments arguments, CompilationContext context) {
+        return applyFilterToObjectFields(astNode, objectValue, key -> true, functionIdentifier, arguments, context);
     }
 
     // =========================================================================
@@ -176,7 +176,7 @@ class FilterApplicationStrategy {
     private CompiledExpression applyValueFilterToValue(Value targetValue, String functionIdentifier,
             CompiledArguments arguments, CompilationContext context) {
         val valueArguments = FilterArgumentEvaluator.extractValueArguments(arguments, targetValue);
-        if (valueArguments.size() == 1 && valueArguments.get(0) instanceof io.sapl.api.model.ErrorValue error) {
+        if (valueArguments.size() == 1 && valueArguments.getFirst() instanceof ErrorValue error) {
             return error;
         }
 
@@ -189,11 +189,12 @@ class FilterApplicationStrategy {
      * <p>
      * Rebuilds array with filtered elements, filtering out undefined values.
      */
-    private CompiledExpression applyValueFilterToArrayElements(ArrayValue arrayValue, IntPredicate indexMatcher,
-            String functionIdentifier, CompiledArguments arguments, CompilationContext context) {
+    private CompiledExpression applyValueFilterToArrayElements(EObject astNode, ArrayValue arrayValue,
+            IntPredicate indexMatcher, String functionIdentifier, CompiledArguments arguments,
+            CompilationContext context) {
         return FilterCollectionRebuilder.rebuildArray(arrayValue, indexMatcher, i -> {
             val result = applyValueFilterToValue(arrayValue.get(i), functionIdentifier, arguments, context);
-            return (result instanceof Value v) ? v : Value.error(ERROR_UNEXPECTED_NON_VALUE_CONSTANT_ARGS);
+            return (result instanceof Value v) ? v : Error.at(astNode, ERROR_UNEXPECTED_NON_VALUE_CONSTANT_ARGS);
         });
     }
 
@@ -202,11 +203,12 @@ class FilterApplicationStrategy {
      * <p>
      * Rebuilds object with filtered fields, filtering out undefined values.
      */
-    private CompiledExpression applyValueFilterToObjectFields(ObjectValue objectValue, Predicate<String> keyMatcher,
-            String functionIdentifier, CompiledArguments arguments, CompilationContext context) {
+    private CompiledExpression applyValueFilterToObjectFields(EObject astNode, ObjectValue objectValue,
+            Predicate<String> keyMatcher, String functionIdentifier, CompiledArguments arguments,
+            CompilationContext context) {
         return FilterCollectionRebuilder.rebuildObject(objectValue, keyMatcher, key -> {
             val result = applyValueFilterToValue(objectValue.get(key), functionIdentifier, arguments, context);
-            return (result instanceof Value v) ? v : Value.error(ERROR_UNEXPECTED_NON_VALUE_CONSTANT_ARGS);
+            return (result instanceof Value v) ? v : Error.at(astNode, ERROR_UNEXPECTED_NON_VALUE_CONSTANT_ARGS);
         });
     }
 
@@ -219,10 +221,10 @@ class FilterApplicationStrategy {
      * <p>
      * Creates a PureExpression that evaluates arguments at runtime.
      */
-    private CompiledExpression applyPureFilterToValue(Value targetValue, String functionIdentifier,
+    private CompiledExpression applyPureFilterToValue(EObject astNode, Value targetValue, String functionIdentifier,
             CompiledArguments arguments) {
         return new PureExpression(ctx -> {
-            val valueArguments = FilterArgumentEvaluator.evaluatePureArguments(arguments, targetValue, ctx);
+            val valueArguments = FilterArgumentEvaluator.evaluatePureArguments(astNode, arguments, targetValue, ctx);
             val invocation     = new FunctionInvocation(functionIdentifier, valueArguments);
             return ctx.functionBroker().evaluateFunction(invocation);
         }, arguments.isSubscriptionScoped());
@@ -233,10 +235,11 @@ class FilterApplicationStrategy {
      * <p>
      * Creates a PureExpression that rebuilds the array at runtime.
      */
-    private CompiledExpression applyPureFilterToArrayElements(ArrayValue arrayValue, IntPredicate indexMatcher,
-            String functionIdentifier, CompiledArguments arguments) {
+    private CompiledExpression applyPureFilterToArrayElements(EObject astNode, ArrayValue arrayValue,
+            IntPredicate indexMatcher, String functionIdentifier, CompiledArguments arguments) {
         return new PureExpression(ctx -> FilterCollectionRebuilder.rebuildArray(arrayValue, indexMatcher, i -> {
-            val valueArguments = FilterArgumentEvaluator.evaluatePureArguments(arguments, arrayValue.get(i), ctx);
+            val valueArguments = FilterArgumentEvaluator.evaluatePureArguments(astNode, arguments, arrayValue.get(i),
+                    ctx);
             val invocation     = new FunctionInvocation(functionIdentifier, valueArguments);
             return ctx.functionBroker().evaluateFunction(invocation);
         }), arguments.isSubscriptionScoped());
@@ -247,10 +250,11 @@ class FilterApplicationStrategy {
      * <p>
      * Creates a PureExpression that rebuilds the object at runtime.
      */
-    private CompiledExpression applyPureFilterToObjectFields(ObjectValue objectValue, Predicate<String> keyMatcher,
-            String functionIdentifier, CompiledArguments arguments) {
+    private CompiledExpression applyPureFilterToObjectFields(EObject astNode, ObjectValue objectValue,
+            Predicate<String> keyMatcher, String functionIdentifier, CompiledArguments arguments) {
         return new PureExpression(ctx -> FilterCollectionRebuilder.rebuildObject(objectValue, keyMatcher, key -> {
-            val valueArguments = FilterArgumentEvaluator.evaluatePureArguments(arguments, objectValue.get(key), ctx);
+            val valueArguments = FilterArgumentEvaluator.evaluatePureArguments(astNode, arguments, objectValue.get(key),
+                    ctx);
             val invocation     = new FunctionInvocation(functionIdentifier, valueArguments);
             return ctx.functionBroker().evaluateFunction(invocation);
         }), arguments.isSubscriptionScoped());
@@ -291,7 +295,7 @@ class FilterApplicationStrategy {
         val stream = argumentFlux
                 .map(argValues -> (Value) FilterCollectionRebuilder.rebuildArray(arrayValue, indexMatcher, i -> {
                     // Rebuild arguments with current element as left-hand arg
-                    val valueArguments = new java.util.ArrayList<Value>(argValues.size());
+                    val valueArguments = new ArrayList<Value>(argValues.size());
                     valueArguments.add(arrayValue.get(i));
                     valueArguments.addAll(argValues.subList(1, argValues.size()));
 
@@ -315,7 +319,7 @@ class FilterApplicationStrategy {
         val stream = argumentFlux
                 .map(argValues -> (Value) FilterCollectionRebuilder.rebuildObject(objectValue, keyMatcher, key -> {
                     // Rebuild arguments with current field value as left-hand arg
-                    val valueArguments = new java.util.ArrayList<Value>(argValues.size());
+                    val valueArguments = new ArrayList<Value>(argValues.size());
                     valueArguments.add(objectValue.get(key));
                     valueArguments.addAll(argValues.subList(1, argValues.size()));
 

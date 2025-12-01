@@ -17,12 +17,14 @@
  */
 package io.sapl.compiler;
 
+import io.sapl.api.functions.FunctionBroker;
 import io.sapl.api.functions.FunctionInvocation;
 import io.sapl.api.model.*;
 import io.sapl.api.model.Value;
 import io.sapl.grammar.sapl.*;
 import lombok.experimental.UtilityClass;
 import lombok.val;
+import org.eclipse.emf.ecore.EObject;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -42,40 +44,43 @@ import java.util.function.UnaryOperator;
 @UtilityClass
 public class FilterCompiler {
 
-    private static final String ERROR_ARRAY_ACCESS_TYPE_MISMATCH                 = "Array access type mismatch. Expect an integer, was: %s.";
-    private static final String ERROR_ARRAY_INDEX_OUT_OF_BOUNDS                  = "Array index out of bounds: %d (size: %d).";
-    private static final String ERROR_ATTRIBUTE_FINDER_NOT_PERMITTED             = "AttributeFinderStep not permitted in filter selection steps.";
-    private static final String ERROR_ATTRIBUTE_UNION_REQUIRES_OBJECT            = "Cannot apply attribute union to non-object value.";
-    private static final String ERROR_CONDITION_TYPE_MISMATCH                    = "Type mismatch. Expected the condition expression to return a Boolean, but was '%s'.";
-    private static final String ERROR_DYNAMIC_ARGS_NOT_SUPPORTED_EXTENDED        = "Dynamic filter arguments not yet supported in path-based extended filters.";
-    private static final String ERROR_DYNAMIC_ARGS_NOT_SUPPORTED_RECURSIVE_INDEX = "Dynamic filter arguments not yet supported in recursive index filters.";
-    private static final String ERROR_DYNAMIC_ARGS_NOT_SUPPORTED_RECURSIVE_KEY   = "Dynamic filter arguments not yet supported in recursive key filters.";
-    private static final String ERROR_EACH_REQUIRES_ARRAY                        = "Cannot use 'each' keyword with non-array values.";
-    private static final String ERROR_EXPRESSION_STEP_REQUIRES_ARRAY             = "Cannot access array index on non-array value.";
-    private static final String ERROR_EXTENDED_FILTER_REQUIRES_VALUE             = "Extended filter operations require Value inputs.";
-    private static final String ERROR_EXTENDED_FILTER_UNSUPPORTED_NON_VALUE      = "Non-value results in extended filter statements not yet supported.";
-    private static final String ERROR_FIELD_NOT_FOUND_IN_OBJECT                  = "Field '%s' not found in object.";
-    private static final String ERROR_FIELD_REQUIRES_OBJECT                      = "Cannot access field '%s' on non-object value.";
-    private static final String ERROR_FILTER_REQUIRES_VALUE                      = "Filter operations require Value inputs.";
-    private static final String ERROR_FILTERS_CANNOT_BE_APPLIED_TO_UNDEFINED     = "Filters cannot be applied to undefined values.";
-    private static final String ERROR_INDEX_OUT_OF_BOUNDS                        = "Index out of bounds. Index must be between 0 and %d (inclusive), but got: %d.";
-    private static final String ERROR_INDEX_STEP_REQUIRES_ARRAY                  = "Cannot apply index step to non-array value.";
-    private static final String ERROR_INDEX_UNION_REQUIRES_ARRAY                 = "Cannot apply index union to non-array value.";
-    private static final String ERROR_KEY_STEP_REQUIRES_OBJECT                   = "Cannot apply key step to non-object value.";
-    private static final String ERROR_KEY_STEP_REQUIRES_OBJECT_ARRAY_ELEMENT     = "Cannot apply key step to non-object array element.";
-    private static final String ERROR_SLICING_REQUIRES_ARRAY                     = "Cannot apply slicing step to non-array value.";
-    private static final String ERROR_SLICING_STEP_ZERO                          = "Step must not be zero.";
-    private static final String ERROR_STEP_TYPE_NOT_SUPPORTED                    = "Step type not supported: %s";
-    private static final String ERROR_UNEXPECTED_FILTER_RESULT_TYPE              = "Unexpected filter result type";
-    private static final String ERROR_UNEXPECTED_NON_VALUE_ARRAY_MAPPING         = "Unexpected non-value result in array mapping with constant arguments.";
-    private static final String ERROR_UNEXPECTED_NON_VALUE_CONSTANT_ARGS         = "Unexpected non-value result with constant arguments.";
-    private static final String ERROR_UNEXPECTED_NON_VALUE_EXPRESSION_STEP       = "Unexpected non-value result in expression step filter.";
-    private static final String ERROR_UNEXPECTED_NON_VALUE_RECURSIVE_INDEX       = "Unexpected non-value result in recursive index filter.";
-    private static final String ERROR_UNEXPECTED_NON_VALUE_RECURSIVE_KEY         = "Unexpected non-value result in recursive key filter.";
-    private static final String ERROR_UNKNOWN_FILTER_TYPE                        = "Unknown filter type: %s";
-    private static final String ERROR_WILDCARD_REQUIRES_ARRAY_OR_OBJECT          = "Cannot apply wildcard step to non-array/non-object value.";
-    private static final String ERROR_DYNAMIC_EXPRESSION_NOT_SUPPORTED           = "Dynamic expressions in filter expression steps are not supported. The expression must evaluate to a constant value.";
-    private static final String ERROR_OBJECT_ACCESS_TYPE_MISMATCH                = "Object access type mismatch. Expect a string, was: %s.";
+    private static final String ERROR_ARRAY_ACCESS_TYPE_MISMATCH                           = "Array access type mismatch. Expect an integer, was: %s.";
+    private static final String ERROR_ARRAY_INDEX_OUT_OF_BOUNDS                            = "Array index out of bounds: %d (size: %d).";
+    private static final String ERROR_ATTRIBUTE_FINDER_NOT_PERMITTED                       = "AttributeFinderStep not permitted in filter selection steps.";
+    private static final String ERROR_ATTRIBUTE_UNION_REQUIRES_OBJECT                      = "Cannot apply attribute union to non-object value.";
+    private static final String ERROR_CONDITION_TYPE_MISMATCH                              = "Type mismatch. Expected the condition expression to return a Boolean, but was '%s'.";
+    private static final String ERROR_DYNAMIC_ARGS_NOT_SUPPORTED_EXTENDED                  = "Dynamic filter arguments not yet supported in path-based extended filters.";
+    private static final String ERROR_DYNAMIC_ARGS_NOT_SUPPORTED_RECURSIVE_INDEX           = "Dynamic filter arguments not yet supported in recursive index filters.";
+    private static final String ERROR_DYNAMIC_ARGS_NOT_SUPPORTED_RECURSIVE_KEY             = "Dynamic filter arguments not yet supported in recursive key filters.";
+    private static final String ERROR_EACH_REQUIRES_ARRAY                                  = "Cannot use 'each' keyword with non-array values.";
+    private static final String ERROR_EXPRESSION_STEP_REQUIRES_ARRAY                       = "Cannot access array index on non-array value.";
+    private static final String ERROR_EXTENDED_FILTER_REQUIRES_VALUE                       = "Extended filter operations require Value inputs.";
+    private static final String ERROR_EXTENDED_FILTER_UNSUPPORTED_NON_VALUE                = "Non-value results in extended filter statements not yet supported.";
+    private static final String ERROR_FIELD_NOT_FOUND_IN_OBJECT                            = "Field '%s' not found in object.";
+    private static final String ERROR_FIELD_REQUIRES_OBJECT                                = "Cannot access field '%s' on non-object value.";
+    private static final String ERROR_FILTER_REQUIRES_VALUE                                = "Filter operations require Value inputs.";
+    private static final String ERROR_FILTERS_CANNOT_BE_APPLIED_TO_UNDEFINED               = "Filters cannot be applied to undefined values.";
+    private static final String ERROR_INDEX_OUT_OF_BOUNDS                                  = "Index out of bounds. Index must be between 0 and %d (inclusive), but got: %d.";
+    private static final String ERROR_INDEX_STEP_REQUIRES_ARRAY                            = "Cannot apply index step to non-array value.";
+    private static final String ERROR_INDEX_UNION_REQUIRES_ARRAY                           = "Cannot apply index union to non-array value.";
+    private static final String ERROR_KEY_STEP_REQUIRES_OBJECT                             = "Cannot apply key step to non-object value.";
+    private static final String ERROR_KEY_STEP_REQUIRES_OBJECT_ARRAY_ELEMENT               = "Cannot apply key step to non-object array element.";
+    private static final String ERROR_SLICING_REQUIRES_ARRAY                               = "Cannot apply slicing step to non-array value.";
+    private static final String ERROR_SLICING_STEP_ZERO                                    = "Step must not be zero.";
+    private static final String ERROR_STEP_TYPE_NOT_SUPPORTED                              = "Step type not supported: %s";
+    private static final String ERROR_UNEXPECTED_FILTER_RESULT_TYPE                        = "Unexpected filter result type";
+    private static final String ERROR_UNEXPECTED_NON_VALUE_ARRAY_MAPPING                   = "Unexpected non-value result in array mapping with constant arguments.";
+    private static final String ERROR_UNEXPECTED_NON_VALUE_CONSTANT_ARGS                   = "Unexpected non-value result with constant arguments.";
+    private static final String ERROR_UNEXPECTED_NON_VALUE_EXPRESSION_STEP                 = "Unexpected non-value result in expression step filter.";
+    private static final String ERROR_UNEXPECTED_NON_VALUE_RECURSIVE_INDEX                 = "Unexpected non-value result in recursive index filter.";
+    private static final String ERROR_UNEXPECTED_NON_VALUE_RECURSIVE_KEY                   = "Unexpected non-value result in recursive key filter.";
+    private static final String ERROR_UNKNOWN_FILTER_TYPE                                  = "Unknown filter type: %s";
+    private static final String ERROR_WILDCARD_REQUIRES_ARRAY_OR_OBJECT                    = "Cannot apply wildcard step to non-array/non-object value.";
+    private static final String ERROR_DYNAMIC_EXPRESSION_NOT_SUPPORTED                     = "Dynamic expressions in filter expression steps are not supported. The expression must evaluate to a constant value.";
+    private static final String ERROR_OBJECT_ACCESS_TYPE_MISMATCH                          = "Object access type mismatch. Expect a string, was: %s.";
+    public static final String  ERROR_DYNAMIC_CONDITION_UNSUPPORTED                        = "Dynamic conditions in filter condition steps are not supported. The condition must evaluate to a constant boolean value.";
+    public static final String  ERROR_STREAM_EXPRESSION_IN_PURE_FILTER                     = "Stream expression in pure filter arguments. Should not be possible.";
+    public static final String  ERROR_NO_DYNAMIC_FILTER_ARGUMENTS_IN_EXTENDED_EACH_FILTERS = "Dynamic filter arguments are not supported in extended 'each' filters.";
 
     /**
      * Compiles a filter expression (|- operator).
@@ -99,13 +104,13 @@ public class FilterCompiler {
             return parent;
         }
         if (parent instanceof UndefinedValue) {
-            return Value.error(ERROR_FILTERS_CANNOT_BE_APPLIED_TO_UNDEFINED);
+            return Error.at(filter, ERROR_FILTERS_CANNOT_BE_APPLIED_TO_UNDEFINED);
         }
         return switch (filter) {
         case FilterSimple simple     -> compileSimpleFilter(parent, simple, context);
         case FilterExtended extended -> compileExtendedFilter(parent, extended, context);
         default                      -> throw new SaplCompilerException(
-                String.format(ERROR_UNKNOWN_FILTER_TYPE, filter.getClass().getSimpleName()));
+                String.format(ERROR_UNKNOWN_FILTER_TYPE, filter.getClass().getSimpleName()), filter);
         };
     }
 
@@ -138,7 +143,7 @@ public class FilterCompiler {
         // Define the filter operation that works on Values
         java.util.function.UnaryOperator<CompiledExpression> filterOp = parentValue -> {
             if (!(parentValue instanceof Value value)) {
-                return Value.error(ERROR_FILTER_REQUIRES_VALUE);
+                return Error.at(filter, ERROR_FILTER_REQUIRES_VALUE);
             }
 
             // Handle 'each' keyword - map function over array elements
@@ -147,11 +152,11 @@ public class FilterCompiler {
             }
 
             // Apply filter function with parent as left-hand argument
-            return applyFilterFunctionToValue(value, functionIdentifier, finalArguments, context);
+            return applyFilterFunctionToValue(filter, value, functionIdentifier, finalArguments, context);
         };
 
         // Wrap the operation to handle PureExpression/StreamExpression parents
-        return wrapFilterOperation(parent, filterOp);
+        return wrapFilterOperation(filter, parent, filterOp);
     }
 
     /**
@@ -169,7 +174,7 @@ public class FilterCompiler {
      *
      * @return the wrapped filter result
      */
-    private CompiledExpression wrapFilterOperation(CompiledExpression parent,
+    private CompiledExpression wrapFilterOperation(EObject astNode, CompiledExpression parent,
             UnaryOperator<CompiledExpression> filterOperation) {
         if (parent instanceof ErrorValue || parent instanceof UndefinedValue) {
             return parent;
@@ -178,9 +183,9 @@ public class FilterCompiler {
         case Value value                  -> filterOperation.apply(value);
         case StreamExpression(var stream) -> new StreamExpression(
                 stream.flatMap(v -> ExpressionCompiler.compiledExpressionToFlux(filterOperation.apply(v))));
-        case PureExpression pureParent    ->
-            new PureExpression(ctx -> evaluateFilterResult(filterOperation.apply(pureParent.evaluate(ctx)), ctx),
-                    pureParent.isSubscriptionScoped());
+        case PureExpression pureParent    -> new PureExpression(
+                ctx -> evaluateFilterResult(astNode, filterOperation.apply(pureParent.evaluate(ctx)), ctx),
+                pureParent.isSubscriptionScoped());
         };
     }
 
@@ -188,14 +193,14 @@ public class FilterCompiler {
      * Evaluates a filter result to a Value, handling Value, PureExpression, or
      * error cases.
      */
-    private static Value evaluateFilterResult(CompiledExpression result, EvaluationContext ctx) {
+    private static Value evaluateFilterResult(EObject astNode, CompiledExpression result, EvaluationContext ctx) {
         if (result instanceof Value value) {
             return value;
         }
         if (result instanceof PureExpression pureExpression) {
             return pureExpression.evaluate(ctx);
         }
-        return Value.error(ERROR_UNEXPECTED_FILTER_RESULT_TYPE);
+        return Error.at(astNode, ERROR_UNEXPECTED_FILTER_RESULT_TYPE);
     }
 
     /**
@@ -220,7 +225,7 @@ public class FilterCompiler {
             CompiledArguments arguments, CompilationContext context) {
         // Validate parent is an array
         if (!(parentValue instanceof ArrayValue arrayValue)) {
-            return Value.error(ERROR_EACH_REQUIRES_ARRAY);
+            return Error.at(filter, ERROR_EACH_REQUIRES_ARRAY);
         }
 
         val functionIdentifier = ImportResolver.resolveFunctionIdentifierByImports(filter, filter.getIdentifier());
@@ -231,7 +236,7 @@ public class FilterCompiler {
             // Constant folding: map function over each element
             val builder = ArrayValue.builder();
             for (val element : arrayValue) {
-                val result = applyFilterFunctionToValue(element, functionIdentifier, arguments, context);
+                val result = applyFilterFunctionToValue(filter, element, functionIdentifier, arguments, context);
 
                 // For constant folding, we get a Value back
                 if (result instanceof Value resultValue) {
@@ -241,13 +246,14 @@ public class FilterCompiler {
                     }
                 } else {
                     // Should not happen with VALUE arguments, but handle defensively
-                    yield createEachRuntimeExpression(arrayValue, functionIdentifier, arguments, context, false);
+                    yield createEachRuntimeExpression(filter, arrayValue, functionIdentifier, arguments, context,
+                            false);
                 }
             }
             yield builder.build();
         }
-        case PURE   -> createEachRuntimeExpression(arrayValue, functionIdentifier, arguments, context, false);
-        case STREAM -> createEachRuntimeExpression(arrayValue, functionIdentifier, arguments, context, true);
+        case PURE   -> createEachRuntimeExpression(filter, arrayValue, functionIdentifier, arguments, context, false);
+        case STREAM -> createEachRuntimeExpression(filter, arrayValue, functionIdentifier, arguments, context, true);
         };
     }
 
@@ -256,12 +262,12 @@ public class FilterCompiler {
      * <p>
      * This is used when filter arguments contain dynamic expressions.
      */
-    private CompiledExpression createEachRuntimeExpression(ArrayValue arrayValue, String functionIdentifier,
-            CompiledArguments arguments, CompilationContext context, boolean isStream) {
+    private CompiledExpression createEachRuntimeExpression(EObject astNode, ArrayValue arrayValue,
+            String functionIdentifier, CompiledArguments arguments, CompilationContext context, boolean isStream) {
         if (isStream) {
             return createStreamEachExpression(arrayValue, functionIdentifier, arguments, context);
         }
-        return createPureEachExpression(arrayValue, functionIdentifier, arguments);
+        return createPureEachExpression(astNode, arrayValue, functionIdentifier, arguments);
     }
 
     private CompiledExpression createStreamEachExpression(ArrayValue arrayValue, String functionIdentifier,
@@ -273,16 +279,16 @@ public class FilterCompiler {
         return new StreamExpression(stream);
     }
 
-    private CompiledExpression createPureEachExpression(ArrayValue arrayValue, String functionIdentifier,
-            CompiledArguments arguments) {
+    private CompiledExpression createPureEachExpression(EObject astNode, ArrayValue arrayValue,
+            String functionIdentifier, CompiledArguments arguments) {
         return new PureExpression(
                 ctx -> applyFilterToEachElement(arrayValue, functionIdentifier,
-                        resolveArgumentsToValues(arguments.arguments(), ctx), ctx.functionBroker()),
+                        resolveArgumentsToValues(astNode, arguments.arguments(), ctx), ctx.functionBroker()),
                 arguments.isSubscriptionScoped());
     }
 
     private Value applyFilterToEachElement(ArrayValue arrayValue, String functionIdentifier,
-            List<Value> resolvedArguments, io.sapl.api.functions.FunctionBroker functionBroker) {
+            List<Value> resolvedArguments, FunctionBroker functionBroker) {
         val builder = ArrayValue.builder();
         for (val element : arrayValue) {
             val valueArguments = new ArrayList<Value>(resolvedArguments.size() + 1);
@@ -310,7 +316,7 @@ public class FilterCompiler {
             CompilationContext context) {
         UnaryOperator<CompiledExpression> filterOp = parentExpr -> {
             if (!(parentExpr instanceof Value currentValue)) {
-                return Value.error(ERROR_EXTENDED_FILTER_REQUIRES_VALUE);
+                return Error.at(filter, ERROR_EXTENDED_FILTER_REQUIRES_VALUE);
             }
             for (val statement : filter.getStatements()) {
                 currentValue = applyFilterStatement(currentValue, statement, context);
@@ -320,7 +326,7 @@ public class FilterCompiler {
             }
             return currentValue;
         };
-        return wrapFilterOperation(parent, filterOp);
+        return wrapFilterOperation(filter, parent, filterOp);
     }
 
     private Value applyFilterStatement(Value currentValue, FilterStatement statement, CompilationContext context) {
@@ -329,16 +335,16 @@ public class FilterCompiler {
                 statement.getIdentifier());
 
         if (statement.isEach()) {
-            return applyEachFilterStatement(currentValue, statement.getTarget(), functionIdentifier, arguments,
-                    context);
-        }
-
-        if (hasTargetPath(statement)) {
-            return applyFilterFunctionToPath(currentValue, statement.getTarget().getSteps(), functionIdentifier,
+            return applyEachFilterStatement(statement, currentValue, statement.getTarget(), functionIdentifier,
                     arguments, context);
         }
 
-        return applyDirectFilterToValue(currentValue, functionIdentifier, arguments, context);
+        if (hasTargetPath(statement)) {
+            return applyFilterFunctionToPath(statement, currentValue, statement.getTarget().getSteps(),
+                    functionIdentifier, arguments, context);
+        }
+
+        return applyDirectFilterToValue(statement, currentValue, functionIdentifier, arguments, context);
     }
 
     private CompiledArguments compileStatementArguments(FilterStatement statement, CompilationContext context) {
@@ -352,13 +358,13 @@ public class FilterCompiler {
         return statement.getTarget() != null && !statement.getTarget().getSteps().isEmpty();
     }
 
-    private Value applyDirectFilterToValue(Value currentValue, String functionIdentifier, CompiledArguments arguments,
-            CompilationContext context) {
-        val result = applyFilterFunctionToValue(currentValue, functionIdentifier, arguments, context);
+    private Value applyDirectFilterToValue(EObject astNode, Value currentValue, String functionIdentifier,
+            CompiledArguments arguments, CompilationContext context) {
+        val result = applyFilterFunctionToValue(astNode, currentValue, functionIdentifier, arguments, context);
         if (result instanceof Value resultValue) {
             return resultValue;
         }
-        return Value.error(ERROR_EXTENDED_FILTER_UNSUPPORTED_NON_VALUE);
+        return Error.at(astNode, ERROR_EXTENDED_FILTER_UNSUPPORTED_NON_VALUE);
     }
 
     /**
@@ -375,9 +381,10 @@ public class FilterCompiler {
      *
      * @return the result of applying the filter function
      */
-    private CompiledExpression applyFilterFunctionToValue(Value parentValue, String functionIdentifier,
+    private CompiledExpression applyFilterFunctionToValue(EObject astNode, Value parentValue, String functionIdentifier,
             CompiledArguments arguments, CompilationContext context) {
-        return FilterApplicationStrategy.applyFilterToValue(parentValue, functionIdentifier, arguments, context);
+        return FilterApplicationStrategy.applyFilterToValue(astNode, parentValue, functionIdentifier, arguments,
+                context);
     }
 
     /**
@@ -399,17 +406,18 @@ public class FilterCompiler {
      *
      * @return the updated parent value with the filter applied at the path
      */
-    private Value applyFilterFunctionToPath(Value parentValue, List<Step> steps, String functionIdentifier,
-            CompiledArguments arguments, CompilationContext context) {
-        return applyFilterFunctionToPathRecursive(parentValue, steps, 0, functionIdentifier, arguments, context);
+    private Value applyFilterFunctionToPath(EObject astNode, Value parentValue, List<Step> steps,
+            String functionIdentifier, CompiledArguments arguments, CompilationContext context) {
+        return applyFilterFunctionToPathRecursive(astNode, parentValue, steps, 0, functionIdentifier, arguments,
+                context);
     }
 
-    private Value applyFilterFunctionToPathRecursive(Value parentValue, List<Step> steps, int stepIndex,
-            String functionIdentifier, CompiledArguments arguments, CompilationContext context) {
+    private Value applyFilterFunctionToPathRecursive(EObject astNode, Value parentValue, List<Step> steps,
+            int stepIndex, String functionIdentifier, CompiledArguments arguments, CompilationContext context) {
         // Check for dynamic arguments - not yet supported in path-based extended
         // filters
         if (arguments.nature() != Nature.VALUE) {
-            return Value.error(ERROR_DYNAMIC_ARGS_NOT_SUPPORTED_EXTENDED);
+            return Error.at(astNode, ERROR_DYNAMIC_ARGS_NOT_SUPPORTED_EXTENDED);
         }
 
         if (stepIndex == steps.size() - 1) {
@@ -417,7 +425,7 @@ public class FilterCompiler {
                     context);
             // With VALUE arguments, result should always be a Value
             if (!(result instanceof Value resultValue)) {
-                return Value.error(ERROR_UNEXPECTED_NON_VALUE_CONSTANT_ARGS);
+                return Error.at(astNode, ERROR_UNEXPECTED_NON_VALUE_CONSTANT_ARGS);
             }
             return resultValue;
         }
@@ -425,32 +433,32 @@ public class FilterCompiler {
         val currentStep = steps.get(stepIndex);
 
         return switch (currentStep) {
-        case KeyStep keyStep                       -> applyFilterToNestedPath(parentValue, keyStep.getId(), steps,
-                stepIndex + 1, functionIdentifier, arguments, context);
-        case IndexStep indexStep                   -> applyFilterToNestedArrayElement(parentValue,
+        case KeyStep keyStep                       -> applyFilterToNestedPath(currentStep, parentValue, keyStep.getId(),
+                steps, stepIndex + 1, functionIdentifier, arguments, context);
+        case IndexStep indexStep                   -> applyFilterToNestedArrayElement(currentStep, parentValue,
                 indexStep.getIndex().intValue(), steps, stepIndex + 1, functionIdentifier, arguments, context);
         case ArraySlicingStep slicingStep          -> applyFilterToNestedArraySlice(parentValue, slicingStep, steps,
                 stepIndex + 1, functionIdentifier, arguments, context);
-        case WildcardStep ignored                  ->
-            applyFilterToNestedWildcard(parentValue, steps, stepIndex + 1, functionIdentifier, arguments, context);
-        case RecursiveKeyStep recursiveKeyStep     -> applyFilterToNestedRecursiveKey(parentValue,
+        case WildcardStep ignored                  -> applyFilterToNestedWildcard(currentStep, parentValue, steps,
+                stepIndex + 1, functionIdentifier, arguments, context);
+        case RecursiveKeyStep recursiveKeyStep     -> applyFilterToNestedRecursiveKey(currentStep, parentValue,
                 recursiveKeyStep.getId(), steps, stepIndex + 1, functionIdentifier, arguments, context);
-        case RecursiveWildcardStep ignored         -> applyFilterToNestedRecursiveWildcard(parentValue, steps,
-                stepIndex + 1, functionIdentifier, arguments, context);
-        case RecursiveIndexStep recursiveIndexStep -> applyFilterToNestedRecursiveIndex(parentValue,
+        case RecursiveWildcardStep ignored         -> applyFilterToNestedRecursiveWildcard(currentStep, parentValue,
+                steps, stepIndex + 1, functionIdentifier, arguments, context);
+        case RecursiveIndexStep recursiveIndexStep -> applyFilterToNestedRecursiveIndex(currentStep, parentValue,
                 recursiveIndexStep.getIndex().intValue(), steps, stepIndex + 1, functionIdentifier, arguments, context);
-        case AttributeUnionStep attributeUnionStep -> applyFilterToNestedAttributeUnion(parentValue,
+        case AttributeUnionStep attributeUnionStep -> applyFilterToNestedAttributeUnion(currentStep, parentValue,
                 attributeUnionStep.getAttributes(), steps, stepIndex + 1, functionIdentifier, arguments, context);
-        case IndexUnionStep indexUnionStep         -> applyFilterToNestedIndexUnion(parentValue,
+        case IndexUnionStep indexUnionStep         -> applyFilterToNestedIndexUnion(currentStep, parentValue,
                 indexUnionStep.getIndices(), steps, stepIndex + 1, functionIdentifier, arguments, context);
-        case AttributeFinderStep ignored           -> Value.error(ERROR_ATTRIBUTE_FINDER_NOT_PERMITTED);
-        case HeadAttributeFinderStep ignored       -> Value.error(ERROR_ATTRIBUTE_FINDER_NOT_PERMITTED);
-        case ConditionStep conditionStep           -> applyFilterToNestedCondition(parentValue, conditionStep, steps,
-                stepIndex + 1, functionIdentifier, arguments, context);
-        case ExpressionStep expressionStep         -> applyFilterToNestedExpression(parentValue, expressionStep, steps,
-                stepIndex + 1, functionIdentifier, arguments, context);
+        case AttributeFinderStep ignored           -> Error.at(currentStep, ERROR_ATTRIBUTE_FINDER_NOT_PERMITTED);
+        case HeadAttributeFinderStep ignored       -> Error.at(currentStep, ERROR_ATTRIBUTE_FINDER_NOT_PERMITTED);
+        case ConditionStep conditionStep           -> applyFilterToNestedCondition(currentStep, parentValue,
+                conditionStep, steps, stepIndex + 1, functionIdentifier, arguments, context);
+        case ExpressionStep expressionStep         -> applyFilterToNestedExpression(currentStep, parentValue,
+                expressionStep, steps, stepIndex + 1, functionIdentifier, arguments, context);
         default                                    -> throw new SaplCompilerException(
-                "Step type not supported in multi-step path: " + currentStep.getClass().getSimpleName());
+                ERROR_STEP_TYPE_NOT_SUPPORTED.formatted(currentStep.getClass().getSimpleName()), currentStep);
         };
     }
 
@@ -475,31 +483,31 @@ public class FilterCompiler {
             CompiledArguments arguments, CompilationContext context) {
         return switch (step) {
         case KeyStep keyStep                       ->
-            applyKeyStepFilter(parentValue, keyStep.getId(), functionIdentifier, arguments, context);
-        case IndexStep indexStep                   ->
-            applyIndexStepFilter(parentValue, indexStep.getIndex().intValue(), functionIdentifier, arguments, context);
+            applyKeyStepFilter(step, parentValue, keyStep.getId(), functionIdentifier, arguments, context);
+        case IndexStep indexStep                   -> applyIndexStepFilter(step, parentValue,
+                indexStep.getIndex().intValue(), functionIdentifier, arguments, context);
         case ArraySlicingStep slicingStep          ->
-            applySlicingStepFilter(parentValue, slicingStep, functionIdentifier, arguments, context);
+            applySlicingStepFilter(step, parentValue, slicingStep, functionIdentifier, arguments, context);
         case WildcardStep ignored                  ->
-            applyWildcardStepFilter(parentValue, functionIdentifier, arguments, context);
-        case RecursiveKeyStep recursiveKeyStep     ->
-            applyRecursiveKeyStepFilter(parentValue, recursiveKeyStep.getId(), functionIdentifier, arguments, context);
+            applyWildcardStepFilter(step, parentValue, functionIdentifier, arguments, context);
+        case RecursiveKeyStep recursiveKeyStep     -> applyRecursiveKeyStepFilter(step, parentValue,
+                recursiveKeyStep.getId(), functionIdentifier, arguments, context);
         case RecursiveWildcardStep ignored         ->
-            applyRecursiveWildcardStepFilter(parentValue, functionIdentifier, arguments, context);
-        case RecursiveIndexStep recursiveIndexStep -> applyRecursiveIndexStepFilter(parentValue,
+            applyRecursiveWildcardStepFilter(step, parentValue, functionIdentifier, arguments, context);
+        case RecursiveIndexStep recursiveIndexStep -> applyRecursiveIndexStepFilter(step, parentValue,
                 recursiveIndexStep.getIndex().intValue(), functionIdentifier, arguments, context);
-        case AttributeUnionStep attributeUnionStep -> applyAttributeUnionStepFilter(parentValue,
+        case AttributeUnionStep attributeUnionStep -> applyAttributeUnionStepFilter(step, parentValue,
                 attributeUnionStep.getAttributes(), functionIdentifier, arguments, context);
-        case IndexUnionStep indexUnionStep         ->
-            applyIndexUnionStepFilter(parentValue, indexUnionStep.getIndices(), functionIdentifier, arguments, context);
-        case AttributeFinderStep ignored           -> Value.error(ERROR_ATTRIBUTE_FINDER_NOT_PERMITTED);
-        case HeadAttributeFinderStep ignored       -> Value.error(ERROR_ATTRIBUTE_FINDER_NOT_PERMITTED);
+        case IndexUnionStep indexUnionStep         -> applyIndexUnionStepFilter(step, parentValue,
+                indexUnionStep.getIndices(), functionIdentifier, arguments, context);
+        case AttributeFinderStep ignored           -> Error.at(step, ERROR_ATTRIBUTE_FINDER_NOT_PERMITTED);
+        case HeadAttributeFinderStep ignored       -> Error.at(step, ERROR_ATTRIBUTE_FINDER_NOT_PERMITTED);
         case ConditionStep conditionStep           ->
-            applyConditionStepFilter(parentValue, conditionStep, functionIdentifier, arguments, context);
+            applyConditionStepFilter(step, parentValue, conditionStep, functionIdentifier, arguments, context);
         case ExpressionStep expressionStep         ->
-            applyExpressionStepFilter(parentValue, expressionStep, functionIdentifier, arguments, context);
+            applyExpressionStepFilter(step, parentValue, expressionStep, functionIdentifier, arguments, context);
         default                                    -> throw new SaplCompilerException(
-                String.format(ERROR_STEP_TYPE_NOT_SUPPORTED, step.getClass().getSimpleName()));
+                ERROR_STEP_TYPE_NOT_SUPPORTED.formatted(step.getClass().getSimpleName()), step);
         };
     }
 
@@ -523,15 +531,15 @@ public class FilterCompiler {
      *
      * @return the updated object/array with the filtered field(s)
      */
-    private CompiledExpression applyKeyStepFilter(Value parentValue, String key, String functionIdentifier,
-            CompiledArguments arguments, CompilationContext context) {
+    private CompiledExpression applyKeyStepFilter(EObject astNode, Value parentValue, String key,
+            String functionIdentifier, CompiledArguments arguments, CompilationContext context) {
         // Handle implicit array mapping: apply key step to each element
         if (parentValue instanceof ArrayValue arrayValue) {
             // Check if we can fold a constant (all arguments are values)
             if (arguments.nature() == Nature.VALUE) {
                 val builder = ArrayValue.builder();
                 for (val element : arrayValue) {
-                    val result = applyKeyStepFilter(element, key, functionIdentifier, arguments, context);
+                    val result = applyKeyStepFilter(astNode, element, key, functionIdentifier, arguments, context);
 
                     if (result instanceof ErrorValue) {
                         return result;
@@ -539,7 +547,7 @@ public class FilterCompiler {
 
                     if (!(result instanceof Value resultValue)) {
                         // Should not happen with VALUE arguments, but be defensive
-                        return Value.error(ERROR_UNEXPECTED_NON_VALUE_ARRAY_MAPPING);
+                        return Error.at(astNode, ERROR_UNEXPECTED_NON_VALUE_ARRAY_MAPPING);
                     }
 
                     builder.add(resultValue);
@@ -547,21 +555,22 @@ public class FilterCompiler {
                 return builder.build();
             } else {
                 // Dynamic arguments: need runtime expression for array mapping
-                return createKeyStepArrayMappingExpression(arrayValue, key, functionIdentifier, arguments, context);
+                return createKeyStepArrayMappingExpression(astNode, arrayValue, key, functionIdentifier, arguments,
+                        context);
             }
         }
 
         if (!(parentValue instanceof ObjectValue objectValue)) {
-            return Value.error(ERROR_KEY_STEP_REQUIRES_OBJECT);
+            return Error.at(astNode, ERROR_KEY_STEP_REQUIRES_OBJECT);
         }
 
         val fieldValue = objectValue.get(key);
         if (fieldValue == null) {
-            return Value.error(ERROR_FIELD_NOT_FOUND_IN_OBJECT, key);
+            return Error.at(astNode, ERROR_FIELD_NOT_FOUND_IN_OBJECT.formatted(key));
         }
 
-        return FilterApplicationStrategy.applyFilterToObjectFields(objectValue, k -> k.equals(key), functionIdentifier,
-                arguments, context);
+        return FilterApplicationStrategy.applyFilterToObjectFields(astNode, objectValue, k -> k.equals(key),
+                functionIdentifier, arguments, context);
     }
 
     /**
@@ -583,37 +592,38 @@ public class FilterCompiler {
      *
      * @return a PureExpression or StreamExpression
      */
-    private CompiledExpression createKeyStepArrayMappingExpression(ArrayValue arrayValue, String key,
+    private CompiledExpression createKeyStepArrayMappingExpression(EObject astNode, ArrayValue arrayValue, String key,
             String functionIdentifier, CompiledArguments arguments, CompilationContext context) {
         if (arguments.nature() == Nature.STREAM) {
-            return createStreamKeyStepArrayMapping(arrayValue, key, functionIdentifier, arguments, context);
+            return createStreamKeyStepArrayMapping(astNode, arrayValue, key, functionIdentifier, arguments, context);
         }
-        return createPureKeyStepArrayMapping(arrayValue, key, functionIdentifier, arguments);
+        return createPureKeyStepArrayMapping(astNode, arrayValue, key, functionIdentifier, arguments);
     }
 
-    private CompiledExpression createStreamKeyStepArrayMapping(ArrayValue arrayValue, String key,
+    private CompiledExpression createStreamKeyStepArrayMapping(EObject astNode, ArrayValue arrayValue, String key,
             String functionIdentifier, CompiledArguments arguments, CompilationContext context) {
         val sources = Arrays.stream(arguments.arguments()).map(ExpressionCompiler::compiledExpressionToFlux).toList();
         val stream  = reactor.core.publisher.Flux.combineLatest(sources,
-                argValues -> applyKeyFilterToArrayElements(arrayValue, key, functionIdentifier,
+                argValues -> applyKeyFilterToArrayElements(astNode, arrayValue, key, functionIdentifier,
                         valueArrayFrom(argValues), context.getFunctionBroker()));
         return new StreamExpression(stream);
     }
 
-    private CompiledExpression createPureKeyStepArrayMapping(ArrayValue arrayValue, String key,
+    private CompiledExpression createPureKeyStepArrayMapping(EObject astNode, ArrayValue arrayValue, String key,
             String functionIdentifier, CompiledArguments arguments) {
         return new PureExpression(
-                ctx -> applyKeyFilterToArrayElements(arrayValue, key, functionIdentifier,
-                        resolveArgumentsToValues(arguments.arguments(), ctx), ctx.functionBroker()),
+                ctx -> applyKeyFilterToArrayElements(astNode, arrayValue, key, functionIdentifier,
+                        resolveArgumentsToValues(astNode, arguments.arguments(), ctx), ctx.functionBroker()),
                 arguments.isSubscriptionScoped());
     }
 
-    private Value applyKeyFilterToArrayElements(ArrayValue arrayValue, String key, String functionIdentifier,
-            java.util.List<Value> resolvedArguments, io.sapl.api.functions.FunctionBroker functionBroker) {
+    private Value applyKeyFilterToArrayElements(EObject astNode, ArrayValue arrayValue, String key,
+            String functionIdentifier, List<Value> resolvedArguments,
+            io.sapl.api.functions.FunctionBroker functionBroker) {
         val builder = ArrayValue.builder();
         for (val element : arrayValue) {
             if (!(element instanceof ObjectValue elementObj)) {
-                return Value.error(ERROR_KEY_STEP_REQUIRES_OBJECT_ARRAY_ELEMENT);
+                return Error.at(astNode, ERROR_KEY_STEP_REQUIRES_OBJECT_ARRAY_ELEMENT);
             }
 
             val fieldValue = elementObj.get(key);
@@ -647,7 +657,7 @@ public class FilterCompiler {
         return builder.build();
     }
 
-    private java.util.List<Value> valueArrayFrom(java.lang.Object[] argValues) {
+    private List<Value> valueArrayFrom(java.lang.Object[] argValues) {
         val result = new ArrayList<Value>(argValues.length);
         for (var argValue : argValues) {
             result.add((Value) argValue);
@@ -655,14 +665,15 @@ public class FilterCompiler {
         return result;
     }
 
-    private java.util.List<Value> resolveArgumentsToValues(CompiledExpression[] arguments, EvaluationContext ctx) {
+    private List<Value> resolveArgumentsToValues(EObject astNode, CompiledExpression[] arguments,
+            EvaluationContext ctx) {
         val result = new ArrayList<Value>(arguments.length);
         for (val argument : arguments) {
             switch (argument) {
             case Value value                   -> result.add(value);
             case PureExpression pureExpression -> result.add(pureExpression.evaluate(ctx));
             case StreamExpression ignored      ->
-                throw new SaplCompilerException("Stream expression in pure filter arguments. Should not be possible.");
+                throw new SaplCompilerException(ERROR_STREAM_EXPRESSION_IN_PURE_FILTER, astNode);
             }
         }
         return result;
@@ -684,18 +695,18 @@ public class FilterCompiler {
      *
      * @return the updated array with the filtered element
      */
-    private CompiledExpression applyIndexStepFilter(Value parentValue, int index, String functionIdentifier,
-            CompiledArguments arguments, CompilationContext context) {
+    private CompiledExpression applyIndexStepFilter(EObject astNode, Value parentValue, int index,
+            String functionIdentifier, CompiledArguments arguments, CompilationContext context) {
         if (!(parentValue instanceof ArrayValue arrayValue)) {
-            return Value.error(ERROR_INDEX_STEP_REQUIRES_ARRAY);
+            return Error.at(astNode, ERROR_INDEX_STEP_REQUIRES_ARRAY);
         }
 
         val normalizedIndex = FilterCollectionRebuilder.normalizeIndex(index, arrayValue.size());
         if (normalizedIndex < 0 || normalizedIndex >= arrayValue.size()) {
-            return Value.error(ERROR_ARRAY_INDEX_OUT_OF_BOUNDS, index, arrayValue.size());
+            return Error.at(astNode, ERROR_ARRAY_INDEX_OUT_OF_BOUNDS, index, arrayValue.size());
         }
 
-        return FilterApplicationStrategy.applyFilterToArrayElements(arrayValue, i -> i == normalizedIndex,
+        return FilterApplicationStrategy.applyFilterToArrayElements(astNode, arrayValue, i -> i == normalizedIndex,
                 functionIdentifier, arguments, context);
     }
 
@@ -715,17 +726,17 @@ public class FilterCompiler {
      *
      * @return the updated array with filtered slice elements
      */
-    private CompiledExpression applySlicingStepFilter(Value parentValue, ArraySlicingStep slicingStep,
+    private CompiledExpression applySlicingStepFilter(EObject astNode, Value parentValue, ArraySlicingStep slicingStep,
             String functionIdentifier, CompiledArguments arguments, CompilationContext context) {
         if (!(parentValue instanceof ArrayValue arrayValue)) {
-            return Value.error(ERROR_SLICING_REQUIRES_ARRAY);
+            return Error.at(astNode, ERROR_SLICING_REQUIRES_ARRAY);
         }
 
         val arraySize = arrayValue.size();
         val step      = slicingStep.getStep() != null ? slicingStep.getStep().intValue() : 1;
 
         if (step == 0) {
-            return Value.error(ERROR_SLICING_STEP_ZERO);
+            return Error.at(astNode, ERROR_SLICING_STEP_ZERO);
         }
 
         var index = slicingStep.getIndex() != null ? slicingStep.getIndex().intValue() : 0;
@@ -741,7 +752,7 @@ public class FilterCompiler {
         val finalIndex = index;
         val finalTo    = to;
 
-        return FilterApplicationStrategy.applyFilterToArrayElements(arrayValue,
+        return FilterApplicationStrategy.applyFilterToArrayElements(astNode, arrayValue,
                 i -> isInNormalizedSlice(i, finalIndex, finalTo, step), functionIdentifier, arguments, context);
     }
 
@@ -779,16 +790,16 @@ public class FilterCompiler {
      *
      * @return the updated parent object/array
      */
-    private Value applyFilterToNestedPath(Value parentValue, String fieldName, List<Step> steps, int stepIndex,
-            String functionIdentifier, CompiledArguments arguments, CompilationContext context) {
+    private Value applyFilterToNestedPath(EObject astNode, Value parentValue, String fieldName, List<Step> steps,
+            int stepIndex, String functionIdentifier, CompiledArguments arguments, CompilationContext context) {
         // Handle implicit array mapping: apply nested path to each element
         if (parentValue instanceof ArrayValue arrayValue) {
-            return FilterCollectionRebuilder.traverseArray(arrayValue, element -> applyFilterToNestedPath(element,
-                    fieldName, steps, stepIndex, functionIdentifier, arguments, context));
+            return FilterCollectionRebuilder.traverseArray(arrayValue, element -> applyFilterToNestedPath(astNode,
+                    element, fieldName, steps, stepIndex, functionIdentifier, arguments, context));
         }
 
         if (!(parentValue instanceof ObjectValue objectValue)) {
-            return Value.error(ERROR_FIELD_REQUIRES_OBJECT, fieldName);
+            return Error.at(astNode, ERROR_FIELD_REQUIRES_OBJECT, fieldName);
         }
 
         val fieldValue = objectValue.get(fieldName);
@@ -796,8 +807,8 @@ public class FilterCompiler {
             return parentValue;
         }
 
-        val updatedFieldValue = applyFilterFunctionToPathRecursive(fieldValue, steps, stepIndex, functionIdentifier,
-                arguments, context);
+        val updatedFieldValue = applyFilterFunctionToPathRecursive(astNode, fieldValue, steps, stepIndex,
+                functionIdentifier, arguments, context);
         if (updatedFieldValue instanceof ErrorValue) {
             return updatedFieldValue;
         }
@@ -826,10 +837,10 @@ public class FilterCompiler {
      *
      * @return the updated parent array
      */
-    private Value applyFilterToNestedArrayElement(Value parentValue, int index, List<Step> steps, int stepIndex,
-            String functionIdentifier, CompiledArguments arguments, CompilationContext context) {
+    private Value applyFilterToNestedArrayElement(EObject astNode, Value parentValue, int index, List<Step> steps,
+            int stepIndex, String functionIdentifier, CompiledArguments arguments, CompilationContext context) {
         if (!(parentValue instanceof ArrayValue arrayValue)) {
-            return Value.error(ERROR_EXPRESSION_STEP_REQUIRES_ARRAY);
+            return Error.at(astNode, ERROR_EXPRESSION_STEP_REQUIRES_ARRAY);
         }
 
         val normalizedIndex = FilterCollectionRebuilder.normalizeIndex(index, arrayValue.size());
@@ -838,8 +849,8 @@ public class FilterCompiler {
         }
 
         val elementValue        = arrayValue.get(normalizedIndex);
-        val updatedElementValue = applyFilterFunctionToPathRecursive(elementValue, steps, stepIndex, functionIdentifier,
-                arguments, context);
+        val updatedElementValue = applyFilterFunctionToPathRecursive(astNode, elementValue, steps, stepIndex,
+                functionIdentifier, arguments, context);
         if (updatedElementValue instanceof ErrorValue) {
             return updatedElementValue;
         }
@@ -871,14 +882,14 @@ public class FilterCompiler {
     private Value applyFilterToNestedArraySlice(Value parentValue, ArraySlicingStep slicingStep, List<Step> steps,
             int stepIndex, String functionIdentifier, CompiledArguments arguments, CompilationContext context) {
         if (!(parentValue instanceof ArrayValue arrayValue)) {
-            return Value.error(ERROR_SLICING_REQUIRES_ARRAY);
+            return Error.at(slicingStep, ERROR_SLICING_REQUIRES_ARRAY);
         }
 
         val arraySize = arrayValue.size();
         val step      = slicingStep.getStep() != null ? slicingStep.getStep().intValue() : 1;
 
         if (step == 0) {
-            return Value.error(ERROR_SLICING_STEP_ZERO);
+            return Error.at(slicingStep, ERROR_SLICING_STEP_ZERO);
         }
 
         val from = FilterCollectionRebuilder
@@ -887,8 +898,8 @@ public class FilterCompiler {
                 .normalizeIndex(slicingStep.getTo() != null ? slicingStep.getTo().intValue() : arraySize, arraySize);
 
         return FilterCollectionRebuilder.traverseArraySelective(arrayValue, i -> isInNormalizedSlice(i, from, to, step),
-                i -> applyFilterFunctionToPathRecursive(arrayValue.get(i), steps, stepIndex, functionIdentifier,
-                        arguments, context));
+                i -> applyFilterFunctionToPathRecursive(slicingStep, arrayValue.get(i), steps, stepIndex,
+                        functionIdentifier, arguments, context));
     }
 
     /**
@@ -911,10 +922,11 @@ public class FilterCompiler {
      *
      * @return the filtered array
      */
-    private Value applyEachFilterStatement(Value parentValue, io.sapl.grammar.sapl.BasicRelative target,
-            String functionIdentifier, CompiledArguments arguments, CompilationContext context) {
+    private Value applyEachFilterStatement(EObject astNode, Value parentValue,
+            io.sapl.grammar.sapl.BasicRelative target, String functionIdentifier, CompiledArguments arguments,
+            CompilationContext context) {
         if (!(parentValue instanceof ArrayValue arrayValue)) {
-            return Value.error(ERROR_EACH_REQUIRES_ARRAY);
+            return Error.at(astNode, ERROR_EACH_REQUIRES_ARRAY);
         }
 
         val builder = ArrayValue.builder();
@@ -922,12 +934,13 @@ public class FilterCompiler {
             Value result;
 
             if (target != null && !target.getSteps().isEmpty()) {
-                result = applyFilterFunctionToPath(element, target.getSteps(), functionIdentifier, arguments, context);
+                result = applyFilterFunctionToPath(astNode, element, target.getSteps(), functionIdentifier, arguments,
+                        context);
             } else {
-                val filterResult = applyFilterFunctionToValue(element, functionIdentifier, arguments, context);
+                val filterResult = applyFilterFunctionToValue(target, element, functionIdentifier, arguments, context);
                 if (!(filterResult instanceof Value)) {
-                    throw new SaplCompilerException(
-                            "Dynamic filter arguments are not supported in extended 'each' filters.");
+                    throw new SaplCompilerException(ERROR_NO_DYNAMIC_FILTER_ARGUMENTS_IN_EXTENDED_EACH_FILTERS,
+                            astNode);
                 }
                 result = (Value) filterResult;
             }
@@ -962,29 +975,29 @@ public class FilterCompiler {
      *
      * @return the filtered value with all elements/fields transformed
      */
-    private CompiledExpression applyWildcardStepFilter(Value parentValue, String functionIdentifier,
+    private CompiledExpression applyWildcardStepFilter(EObject astNode, Value parentValue, String functionIdentifier,
             CompiledArguments arguments, CompilationContext context) {
         if (parentValue instanceof ArrayValue arrayValue) {
-            return applyWildcardToArray(arrayValue, functionIdentifier, arguments, context);
+            return applyWildcardToArray(astNode, arrayValue, functionIdentifier, arguments, context);
         }
 
         if (parentValue instanceof ObjectValue objectValue) {
-            return applyWildcardToObject(objectValue, functionIdentifier, arguments, context);
+            return applyWildcardToObject(astNode, objectValue, functionIdentifier, arguments, context);
         }
 
-        return Value.error(ERROR_WILDCARD_REQUIRES_ARRAY_OR_OBJECT);
+        return Error.at(astNode, ERROR_WILDCARD_REQUIRES_ARRAY_OR_OBJECT);
     }
 
-    private CompiledExpression applyWildcardToArray(ArrayValue arrayValue, String functionIdentifier,
+    private CompiledExpression applyWildcardToArray(EObject astNode, ArrayValue arrayValue, String functionIdentifier,
             CompiledArguments arguments, CompilationContext context) {
-        return FilterApplicationStrategy.applyFilterToAllArrayElements(arrayValue, functionIdentifier, arguments,
-                context);
+        return FilterApplicationStrategy.applyFilterToAllArrayElements(astNode, arrayValue, functionIdentifier,
+                arguments, context);
     }
 
-    private CompiledExpression applyWildcardToObject(ObjectValue objectValue, String functionIdentifier,
-            CompiledArguments arguments, CompilationContext context) {
-        return FilterApplicationStrategy.applyFilterToAllObjectFields(objectValue, functionIdentifier, arguments,
-                context);
+    private CompiledExpression applyWildcardToObject(EObject astNode, ObjectValue objectValue,
+            String functionIdentifier, CompiledArguments arguments, CompilationContext context) {
+        return FilterApplicationStrategy.applyFilterToAllObjectFields(astNode, objectValue, functionIdentifier,
+                arguments, context);
     }
 
     /**
@@ -1005,21 +1018,21 @@ public class FilterCompiler {
      *
      * @return the updated parent value
      */
-    private Value applyFilterToNestedWildcard(Value parentValue, List<Step> steps, int stepIndex,
+    private Value applyFilterToNestedWildcard(EObject astNode, Value parentValue, List<Step> steps, int stepIndex,
             String functionIdentifier, CompiledArguments arguments, CompilationContext context) {
         if (parentValue instanceof ArrayValue arrayValue) {
             return FilterCollectionRebuilder.traverseArray(arrayValue,
-                    element -> applyFilterFunctionToPathRecursive(element, steps, stepIndex, functionIdentifier,
-                            arguments, context));
+                    element -> applyFilterFunctionToPathRecursive(astNode, element, steps, stepIndex,
+                            functionIdentifier, arguments, context));
         }
 
         if (parentValue instanceof ObjectValue objectValue) {
             return FilterCollectionRebuilder.traverseObject(objectValue,
-                    fieldValue -> applyFilterFunctionToPathRecursive(fieldValue, steps, stepIndex, functionIdentifier,
-                            arguments, context));
+                    fieldValue -> applyFilterFunctionToPathRecursive(astNode, fieldValue, steps, stepIndex,
+                            functionIdentifier, arguments, context));
         }
 
-        return Value.error(ERROR_WILDCARD_REQUIRES_ARRAY_OR_OBJECT);
+        return Error.at(astNode, ERROR_WILDCARD_REQUIRES_ARRAY_OR_OBJECT);
     }
 
     /**
@@ -1042,33 +1055,34 @@ public class FilterCompiler {
      *
      * @return the updated value with filters applied to all matching keys
      */
-    private CompiledExpression applyRecursiveKeyStepFilter(Value parentValue, String key, String functionIdentifier,
-            CompiledArguments arguments, CompilationContext context) {
+    private CompiledExpression applyRecursiveKeyStepFilter(EObject astNode, Value parentValue, String key,
+            String functionIdentifier, CompiledArguments arguments, CompilationContext context) {
         // Check for dynamic arguments - not yet supported in recursive filters
         if (arguments.nature() != Nature.VALUE) {
-            return Value.error(ERROR_DYNAMIC_ARGS_NOT_SUPPORTED_RECURSIVE_KEY);
+            return Error.at(astNode, ERROR_DYNAMIC_ARGS_NOT_SUPPORTED_RECURSIVE_KEY);
         }
 
         if (parentValue instanceof ObjectValue objectValue) {
-            return applyRecursiveKeyToObject(objectValue, key, functionIdentifier, arguments, context);
+            return applyRecursiveKeyToObject(astNode, objectValue, key, functionIdentifier, arguments, context);
         }
 
         if (parentValue instanceof ArrayValue arrayValue) {
-            return applyRecursiveKeyToArray(arrayValue, key, functionIdentifier, arguments, context);
+            return applyRecursiveKeyToArray(astNode, arrayValue, key, functionIdentifier, arguments, context);
         }
 
         // Non-array/non-object: no matches, return unchanged
         return parentValue;
     }
 
-    private Value applyRecursiveKeyToObject(ObjectValue objectValue, String key, String functionIdentifier,
-            CompiledArguments arguments, CompilationContext context) {
+    private Value applyRecursiveKeyToObject(EObject astNode, ObjectValue objectValue, String key,
+            String functionIdentifier, CompiledArguments arguments, CompilationContext context) {
         val builder = ObjectValue.builder();
 
         for (val entry : objectValue.entrySet()) {
             val processedValue = entry.getKey().equals(key)
-                    ? applyFilterToMatchingKey(entry.getValue(), functionIdentifier, arguments, context)
-                    : applyFilterToNonMatchingKey(entry.getValue(), key, functionIdentifier, arguments, context);
+                    ? applyFilterToMatchingKey(astNode, entry.getValue(), functionIdentifier, arguments, context)
+                    : applyFilterToNonMatchingKey(astNode, entry.getValue(), key, functionIdentifier, arguments,
+                            context);
 
             if (processedValue instanceof ErrorValue) {
                 return processedValue;
@@ -1082,31 +1096,33 @@ public class FilterCompiler {
         return builder.build();
     }
 
-    private Value applyFilterToMatchingKey(Value fieldValue, String functionIdentifier, CompiledArguments arguments,
-            CompilationContext context) {
-        val result = applyFilterFunctionToValue(fieldValue, functionIdentifier, arguments, context);
+    private Value applyFilterToMatchingKey(EObject astNode, Value fieldValue, String functionIdentifier,
+            CompiledArguments arguments, CompilationContext context) {
+        val result = applyFilterFunctionToValue(astNode, fieldValue, functionIdentifier, arguments, context);
         if (!(result instanceof Value filteredValue)) {
-            return Value.error(ERROR_UNEXPECTED_NON_VALUE_CONSTANT_ARGS);
+            return Error.at(astNode, ERROR_UNEXPECTED_NON_VALUE_CONSTANT_ARGS);
         }
         return filteredValue;
     }
 
-    private Value applyFilterToNonMatchingKey(Value fieldValue, String key, String functionIdentifier,
+    private Value applyFilterToNonMatchingKey(EObject astNode, Value fieldValue, String key, String functionIdentifier,
             CompiledArguments arguments, CompilationContext context) {
-        val recursedResult = applyRecursiveKeyStepFilter(fieldValue, key, functionIdentifier, arguments, context);
+        val recursedResult = applyRecursiveKeyStepFilter(astNode, fieldValue, key, functionIdentifier, arguments,
+                context);
         if (!(recursedResult instanceof Value recursedValue)) {
-            return Value.error(ERROR_UNEXPECTED_NON_VALUE_RECURSIVE_KEY);
+            return Error.at(astNode, ERROR_UNEXPECTED_NON_VALUE_RECURSIVE_KEY);
         }
         return recursedValue;
     }
 
-    private Value applyRecursiveKeyToArray(ArrayValue arrayValue, String key, String functionIdentifier,
-            CompiledArguments arguments, CompilationContext context) {
+    private Value applyRecursiveKeyToArray(EObject astNode, ArrayValue arrayValue, String key,
+            String functionIdentifier, CompiledArguments arguments, CompilationContext context) {
         // Arrays don't have keys, so just recurse into each element
         return FilterCollectionRebuilder.traverseArray(arrayValue, element -> {
-            val recursedResult = applyRecursiveKeyStepFilter(element, key, functionIdentifier, arguments, context);
+            val recursedResult = applyRecursiveKeyStepFilter(astNode, element, key, functionIdentifier, arguments,
+                    context);
             if (!(recursedResult instanceof Value recursedValue)) {
-                return Value.error(ERROR_UNEXPECTED_NON_VALUE_RECURSIVE_KEY);
+                return Error.at(astNode, ERROR_UNEXPECTED_NON_VALUE_RECURSIVE_KEY);
             }
             return recursedValue;
         });
@@ -1132,12 +1148,12 @@ public class FilterCompiler {
      *
      * @return the updated value with filters applied recursively
      */
-    private CompiledExpression applyRecursiveWildcardStepFilter(Value parentValue, String functionIdentifier,
-            CompiledArguments arguments, CompilationContext context) {
+    private CompiledExpression applyRecursiveWildcardStepFilter(EObject astNode, Value parentValue,
+            String functionIdentifier, CompiledArguments arguments, CompilationContext context) {
         // For filtering, @..* is treated as @.* (regular wildcard)
         // This matches the original implementation where recursive descent doesn't
         // translate well to filtering
-        return applyWildcardStepFilter(parentValue, functionIdentifier, arguments, context);
+        return applyWildcardStepFilter(astNode, parentValue, functionIdentifier, arguments, context);
     }
 
     /**
@@ -1160,43 +1176,44 @@ public class FilterCompiler {
      *
      * @return the updated value with filters applied to all matching indices
      */
-    private CompiledExpression applyRecursiveIndexStepFilter(Value parentValue, int index, String functionIdentifier,
-            CompiledArguments arguments, CompilationContext context) {
+    private CompiledExpression applyRecursiveIndexStepFilter(EObject astNode, Value parentValue, int index,
+            String functionIdentifier, CompiledArguments arguments, CompilationContext context) {
         // Check for dynamic arguments - not yet supported in recursive filters
         if (arguments.nature() != Nature.VALUE) {
-            return Value.error(ERROR_DYNAMIC_ARGS_NOT_SUPPORTED_RECURSIVE_INDEX);
+            return Error.at(astNode, ERROR_DYNAMIC_ARGS_NOT_SUPPORTED_RECURSIVE_INDEX);
         }
 
         if (parentValue instanceof ArrayValue arrayValue) {
-            return applyRecursiveIndexToArray(arrayValue, index, functionIdentifier, arguments, context);
+            return applyRecursiveIndexToArray(astNode, arrayValue, index, functionIdentifier, arguments, context);
         }
 
         if (parentValue instanceof ObjectValue objectValue) {
-            return applyRecursiveIndexToObject(objectValue, index, functionIdentifier, arguments, context);
+            return applyRecursiveIndexToObject(astNode, objectValue, index, functionIdentifier, arguments, context);
         }
 
         // Non-array/non-object: no matches, return unchanged
         return parentValue;
     }
 
-    private Value applyRecursiveIndexToArray(ArrayValue arrayValue, int index, String functionIdentifier,
-            CompiledArguments arguments, CompilationContext context) {
+    private Value applyRecursiveIndexToArray(EObject astNode, ArrayValue arrayValue, int index,
+            String functionIdentifier, CompiledArguments arguments, CompilationContext context) {
         val builder         = ArrayValue.builder();
         val normalizedIndex = FilterCollectionRebuilder.normalizeIndex(index, arrayValue.size());
 
         for (int elementIndex = 0; elementIndex < arrayValue.size(); elementIndex++) {
             val element        = arrayValue.get(elementIndex);
-            val recursedResult = applyRecursiveIndexStepFilter(element, index, functionIdentifier, arguments, context);
+            val recursedResult = applyRecursiveIndexStepFilter(astNode, element, index, functionIdentifier, arguments,
+                    context);
 
             if (!(recursedResult instanceof Value recursedValue)) {
-                return Value.error(ERROR_UNEXPECTED_NON_VALUE_RECURSIVE_INDEX);
+                return Error.at(astNode, ERROR_UNEXPECTED_NON_VALUE_RECURSIVE_INDEX);
             }
             if (recursedValue instanceof ErrorValue) {
                 return recursedValue;
             }
 
             val processedValue = (elementIndex == normalizedIndex)
-                    ? applyFilterToMatchingIndex(recursedValue, functionIdentifier, arguments, context)
+                    ? applyFilterToMatchingIndex(astNode, recursedValue, functionIdentifier, arguments, context)
                     : recursedValue;
 
             if (processedValue instanceof ErrorValue) {
@@ -1210,23 +1227,23 @@ public class FilterCompiler {
         return builder.build();
     }
 
-    private Value applyFilterToMatchingIndex(Value value, String functionIdentifier, CompiledArguments arguments,
-            CompilationContext context) {
-        val result = applyFilterFunctionToValue(value, functionIdentifier, arguments, context);
+    private Value applyFilterToMatchingIndex(EObject astNode, Value value, String functionIdentifier,
+            CompiledArguments arguments, CompilationContext context) {
+        val result = applyFilterFunctionToValue(astNode, value, functionIdentifier, arguments, context);
         if (!(result instanceof Value filteredValue)) {
-            return Value.error(ERROR_UNEXPECTED_NON_VALUE_CONSTANT_ARGS);
+            return Error.at(astNode, ERROR_UNEXPECTED_NON_VALUE_CONSTANT_ARGS);
         }
         return filteredValue;
     }
 
-    private Value applyRecursiveIndexToObject(ObjectValue objectValue, int index, String functionIdentifier,
-            CompiledArguments arguments, CompilationContext context) {
+    private Value applyRecursiveIndexToObject(EObject astNode, ObjectValue objectValue, int index,
+            String functionIdentifier, CompiledArguments arguments, CompilationContext context) {
         // Objects don't have indices, so just recurse into each field value
         return FilterCollectionRebuilder.traverseObject(objectValue, fieldValue -> {
-            val recursedResult = applyRecursiveIndexStepFilter(fieldValue, index, functionIdentifier, arguments,
-                    context);
+            val recursedResult = applyRecursiveIndexStepFilter(astNode, fieldValue, index, functionIdentifier,
+                    arguments, context);
             if (!(recursedResult instanceof Value recursedValue)) {
-                return Value.error(ERROR_UNEXPECTED_NON_VALUE_RECURSIVE_INDEX);
+                return Error.at(astNode, ERROR_UNEXPECTED_NON_VALUE_RECURSIVE_INDEX);
             }
             return recursedValue;
         });
@@ -1250,13 +1267,14 @@ public class FilterCompiler {
      *
      * @return the updated object with filtered attributes
      */
-    private CompiledExpression applyAttributeUnionStepFilter(Value parentValue, List<String> attributes,
-            String functionIdentifier, CompiledArguments arguments, CompilationContext context) {
+    private CompiledExpression applyAttributeUnionStepFilter(EObject astNode, Value parentValue,
+            List<String> attributes, String functionIdentifier, CompiledArguments arguments,
+            CompilationContext context) {
         if (!(parentValue instanceof ObjectValue objectValue)) {
-            return Value.error(ERROR_ATTRIBUTE_UNION_REQUIRES_OBJECT);
+            return Error.at(astNode, ERROR_ATTRIBUTE_UNION_REQUIRES_OBJECT);
         }
 
-        return FilterApplicationStrategy.applyFilterToObjectFields(objectValue, attributes::contains,
+        return FilterApplicationStrategy.applyFilterToObjectFields(astNode, objectValue, attributes::contains,
                 functionIdentifier, arguments, context);
     }
 
@@ -1279,10 +1297,11 @@ public class FilterCompiler {
      *
      * @return the updated array with filtered elements
      */
-    private CompiledExpression applyIndexUnionStepFilter(Value parentValue, List<java.math.BigDecimal> indices,
-            String functionIdentifier, CompiledArguments arguments, CompilationContext context) {
+    private CompiledExpression applyIndexUnionStepFilter(EObject astNode, Value parentValue,
+            List<java.math.BigDecimal> indices, String functionIdentifier, CompiledArguments arguments,
+            CompilationContext context) {
         if (!(parentValue instanceof ArrayValue arrayValue)) {
-            return Value.error(ERROR_INDEX_UNION_REQUIRES_ARRAY);
+            return Error.at(astNode, ERROR_INDEX_UNION_REQUIRES_ARRAY);
         }
 
         val arraySize         = arrayValue.size();
@@ -1290,7 +1309,7 @@ public class FilterCompiler {
                 .map(index -> FilterCollectionRebuilder.normalizeIndex(index.intValue(), arraySize))
                 .filter(index -> index >= 0 && index < arraySize).toList();
 
-        return FilterApplicationStrategy.applyFilterToArrayElements(arrayValue, normalizedIndices::contains,
+        return FilterApplicationStrategy.applyFilterToArrayElements(astNode, arrayValue, normalizedIndices::contains,
                 functionIdentifier, arguments, context);
     }
 
@@ -1314,20 +1333,20 @@ public class FilterCompiler {
      *
      * @return the updated parent value
      */
-    private Value applyFilterToNestedRecursiveKey(Value parentValue, String key, List<Step> steps, int stepIndex,
-            String functionIdentifier, CompiledArguments arguments, CompilationContext context) {
+    private Value applyFilterToNestedRecursiveKey(EObject astNode, Value parentValue, String key, List<Step> steps,
+            int stepIndex, String functionIdentifier, CompiledArguments arguments, CompilationContext context) {
         if (parentValue instanceof ObjectValue objectValue) {
             return FilterCollectionRebuilder.traverseObjectSelective(objectValue, fieldKey -> fieldKey.equals(key),
-                    fieldKey -> applyFilterFunctionToPathRecursive(objectValue.get(fieldKey), steps, stepIndex,
+                    fieldKey -> applyFilterFunctionToPathRecursive(astNode, objectValue.get(fieldKey), steps, stepIndex,
                             functionIdentifier, arguments, context),
-                    fieldKey -> applyFilterToNestedRecursiveKey(objectValue.get(fieldKey), key, steps, stepIndex,
-                            functionIdentifier, arguments, context));
+                    fieldKey -> applyFilterToNestedRecursiveKey(astNode, objectValue.get(fieldKey), key, steps,
+                            stepIndex, functionIdentifier, arguments, context));
         }
 
         if (parentValue instanceof ArrayValue arrayValue) {
             return FilterCollectionRebuilder.traverseArray(arrayValue,
-                    element -> applyFilterToNestedRecursiveKey(element, key, steps, stepIndex, functionIdentifier,
-                            arguments, context));
+                    element -> applyFilterToNestedRecursiveKey(astNode, element, key, steps, stepIndex,
+                            functionIdentifier, arguments, context));
         }
 
         return parentValue;
@@ -1351,12 +1370,13 @@ public class FilterCompiler {
      *
      * @return the updated parent value
      */
-    private Value applyFilterToNestedRecursiveWildcard(Value parentValue, List<Step> steps, int stepIndex,
-            String functionIdentifier, CompiledArguments arguments, CompilationContext context) {
+    private Value applyFilterToNestedRecursiveWildcard(EObject astNode, Value parentValue, List<Step> steps,
+            int stepIndex, String functionIdentifier, CompiledArguments arguments, CompilationContext context) {
         // For nested recursive wildcard, treat it like regular wildcard at current
         // level
         // This matches the original implementation behavior
-        return applyFilterToNestedWildcard(parentValue, steps, stepIndex, functionIdentifier, arguments, context);
+        return applyFilterToNestedWildcard(astNode, parentValue, steps, stepIndex, functionIdentifier, arguments,
+                context);
     }
 
     /**
@@ -1379,38 +1399,38 @@ public class FilterCompiler {
      *
      * @return the updated parent value
      */
-    private Value applyFilterToNestedRecursiveIndex(Value parentValue, int index, List<Step> steps, int stepIndex,
-            String functionIdentifier, CompiledArguments arguments, CompilationContext context) {
+    private Value applyFilterToNestedRecursiveIndex(EObject astNode, Value parentValue, int index, List<Step> steps,
+            int stepIndex, String functionIdentifier, CompiledArguments arguments, CompilationContext context) {
         if (parentValue instanceof ArrayValue arrayValue) {
             val normalizedIndex = FilterCollectionRebuilder.normalizeIndex(index, arrayValue.size());
-            return applyRecursiveIndexToArrayNested(arrayValue, index, normalizedIndex, steps, stepIndex,
+            return applyRecursiveIndexToArrayNested(astNode, arrayValue, index, normalizedIndex, steps, stepIndex,
                     functionIdentifier, arguments, context);
         }
 
         if (parentValue instanceof ObjectValue objectValue) {
             return FilterCollectionRebuilder.traverseObject(objectValue,
-                    fieldValue -> applyFilterToNestedRecursiveIndex(fieldValue, index, steps, stepIndex,
+                    fieldValue -> applyFilterToNestedRecursiveIndex(astNode, fieldValue, index, steps, stepIndex,
                             functionIdentifier, arguments, context));
         }
 
         return parentValue;
     }
 
-    private Value applyRecursiveIndexToArrayNested(ArrayValue arrayValue, int rawIndex, int normalizedIndex,
-            List<Step> steps, int stepIndex, String functionIdentifier, CompiledArguments arguments,
-            CompilationContext context) {
+    private Value applyRecursiveIndexToArrayNested(EObject astNode, ArrayValue arrayValue, int rawIndex,
+            int normalizedIndex, List<Step> steps, int stepIndex, String functionIdentifier,
+            CompiledArguments arguments, CompilationContext context) {
         val builder = ArrayValue.builder();
         for (int i = 0; i < arrayValue.size(); i++) {
             // First recurse into element
-            val recursedValue = applyFilterToNestedRecursiveIndex(arrayValue.get(i), rawIndex, steps, stepIndex,
-                    functionIdentifier, arguments, context);
+            val recursedValue = applyFilterToNestedRecursiveIndex(astNode, arrayValue.get(i), rawIndex, steps,
+                    stepIndex, functionIdentifier, arguments, context);
             if (recursedValue instanceof ErrorValue) {
                 return recursedValue;
             }
 
             // Then apply remaining steps if matching index
             if (i == normalizedIndex) {
-                val updatedValue = applyFilterFunctionToPathRecursive(recursedValue, steps, stepIndex,
+                val updatedValue = applyFilterFunctionToPathRecursive(astNode, recursedValue, steps, stepIndex,
                         functionIdentifier, arguments, context);
                 if (updatedValue instanceof ErrorValue) {
                     return updatedValue;
@@ -1443,14 +1463,15 @@ public class FilterCompiler {
      *
      * @return the updated parent object
      */
-    private Value applyFilterToNestedAttributeUnion(Value parentValue, List<String> attributes, List<Step> steps,
-            int stepIndex, String functionIdentifier, CompiledArguments arguments, CompilationContext context) {
+    private Value applyFilterToNestedAttributeUnion(EObject astNode, Value parentValue, List<String> attributes,
+            List<Step> steps, int stepIndex, String functionIdentifier, CompiledArguments arguments,
+            CompilationContext context) {
         if (!(parentValue instanceof ObjectValue objectValue)) {
-            return Value.error(ERROR_ATTRIBUTE_UNION_REQUIRES_OBJECT);
+            return Error.at(astNode, ERROR_ATTRIBUTE_UNION_REQUIRES_OBJECT);
         }
 
         return FilterCollectionRebuilder.traverseObjectSelective(objectValue, attributes::contains,
-                fieldKey -> applyFilterFunctionToPathRecursive(objectValue.get(fieldKey), steps, stepIndex,
+                fieldKey -> applyFilterFunctionToPathRecursive(astNode, objectValue.get(fieldKey), steps, stepIndex,
                         functionIdentifier, arguments, context));
     }
 
@@ -1474,10 +1495,11 @@ public class FilterCompiler {
      *
      * @return the updated parent array
      */
-    private Value applyFilterToNestedIndexUnion(Value parentValue, List<java.math.BigDecimal> indices, List<Step> steps,
-            int stepIndex, String functionIdentifier, CompiledArguments arguments, CompilationContext context) {
+    private Value applyFilterToNestedIndexUnion(EObject astNode, Value parentValue, List<java.math.BigDecimal> indices,
+            List<Step> steps, int stepIndex, String functionIdentifier, CompiledArguments arguments,
+            CompilationContext context) {
         if (!(parentValue instanceof ArrayValue arrayValue)) {
-            return Value.error(ERROR_INDEX_UNION_REQUIRES_ARRAY);
+            return Error.at(astNode, ERROR_INDEX_UNION_REQUIRES_ARRAY);
         }
 
         val arraySize         = arrayValue.size();
@@ -1486,8 +1508,8 @@ public class FilterCompiler {
                 .filter(index -> index >= 0 && index < arraySize).toList();
 
         return FilterCollectionRebuilder.traverseArraySelective(arrayValue, normalizedIndices::contains,
-                i -> applyFilterFunctionToPathRecursive(arrayValue.get(i), steps, stepIndex, functionIdentifier,
-                        arguments, context));
+                i -> applyFilterFunctionToPathRecursive(astNode, arrayValue.get(i), steps, stepIndex,
+                        functionIdentifier, arguments, context));
     }
 
     /**
@@ -1511,7 +1533,7 @@ public class FilterCompiler {
      *
      * @return the filtered value
      */
-    private CompiledExpression applyConditionStepFilter(Value parentValue, ConditionStep conditionStep,
+    private CompiledExpression applyConditionStepFilter(EObject astNode, Value parentValue, ConditionStep conditionStep,
             String functionIdentifier, CompiledArguments arguments, CompilationContext context) {
         // Non-array/non-object: no elements to match condition, return unchanged
         if (!(parentValue instanceof ArrayValue) && !(parentValue instanceof ObjectValue)) {
@@ -1523,8 +1545,7 @@ public class FilterCompiler {
 
         // Check if condition is static (constant value)
         if (!(conditionExpr instanceof Value conditionValue)) {
-            return Value.error(
-                    "Dynamic conditions in filter condition steps are not supported. The condition must evaluate to a constant boolean value.");
+            return Error.at(astNode, ERROR_DYNAMIC_CONDITION_UNSUPPORTED);
         }
 
         if (conditionValue instanceof ErrorValue) {
@@ -1532,7 +1553,7 @@ public class FilterCompiler {
         }
 
         if (!(conditionValue instanceof io.sapl.api.model.BooleanValue booleanResult)) {
-            return Value.error(ERROR_CONDITION_TYPE_MISMATCH, conditionValue.getClass().getSimpleName());
+            return Error.at(astNode, ERROR_CONDITION_TYPE_MISMATCH, conditionValue.getClass().getSimpleName());
         }
 
         // With constant condition: if false, return unchanged; if true, apply to all
@@ -1542,7 +1563,7 @@ public class FilterCompiler {
         }
 
         // Condition is constant true - apply filter like wildcard
-        return applyWildcardStepFilter(parentValue, functionIdentifier, arguments, context);
+        return applyWildcardStepFilter(astNode, parentValue, functionIdentifier, arguments, context);
     }
 
     /**
@@ -1566,8 +1587,9 @@ public class FilterCompiler {
      *
      * @return the updated parent value
      */
-    private Value applyFilterToNestedCondition(Value parentValue, ConditionStep conditionStep, List<Step> steps,
-            int stepIndex, String functionIdentifier, CompiledArguments arguments, CompilationContext context) {
+    private Value applyFilterToNestedCondition(EObject astNode, Value parentValue, ConditionStep conditionStep,
+            List<Step> steps, int stepIndex, String functionIdentifier, CompiledArguments arguments,
+            CompilationContext context) {
         // Non-array/non-object: no elements to match condition, return unchanged
         if (!(parentValue instanceof ArrayValue) && !(parentValue instanceof ObjectValue)) {
             return parentValue;
@@ -1578,8 +1600,7 @@ public class FilterCompiler {
 
         // Check if condition is static (constant value)
         if (!(conditionExpr instanceof Value conditionValue)) {
-            return Value.error(
-                    "Dynamic conditions in filter condition steps are not supported. The condition must evaluate to a constant boolean value.");
+            return Error.at(astNode, ERROR_DYNAMIC_CONDITION_UNSUPPORTED);
         }
 
         if (conditionValue instanceof ErrorValue) {
@@ -1587,7 +1608,7 @@ public class FilterCompiler {
         }
 
         if (!(conditionValue instanceof io.sapl.api.model.BooleanValue booleanResult)) {
-            return Value.error(ERROR_CONDITION_TYPE_MISMATCH, conditionValue.getClass().getSimpleName());
+            return Error.at(astNode, ERROR_CONDITION_TYPE_MISMATCH, conditionValue.getClass().getSimpleName());
         }
 
         // With constant condition: if false, return unchanged; if true, descend like
@@ -1597,7 +1618,8 @@ public class FilterCompiler {
         }
 
         // Condition is constant true - descend into all elements/fields
-        return applyFilterToNestedWildcard(parentValue, steps, stepIndex, functionIdentifier, arguments, context);
+        return applyFilterToNestedWildcard(astNode, parentValue, steps, stepIndex, functionIdentifier, arguments,
+                context);
     }
 
     /**
@@ -1608,8 +1630,9 @@ public class FilterCompiler {
      * For arrays: expression must evaluate to a number (index) For objects:
      * expression must evaluate to a string (key)
      */
-    private CompiledExpression applyExpressionStepFilter(Value parentValue, ExpressionStep expressionStep,
-            String functionIdentifier, CompiledArguments arguments, CompilationContext context) {
+    private CompiledExpression applyExpressionStepFilter(EObject astNode, Value parentValue,
+            ExpressionStep expressionStep, String functionIdentifier, CompiledArguments arguments,
+            CompilationContext context) {
         if (isNotArrayOrObject(parentValue)) {
             return parentValue;
         }
@@ -1620,38 +1643,39 @@ public class FilterCompiler {
         }
 
         if (parentValue instanceof ArrayValue arrayValue) {
-            return applyExpressionFilterToArray(arrayValue, keyOrIndexValue, functionIdentifier, arguments, context);
+            return applyExpressionFilterToArray(astNode, arrayValue, keyOrIndexValue, functionIdentifier, arguments,
+                    context);
         }
 
-        return applyExpressionFilterToObject((ObjectValue) parentValue, keyOrIndexValue, functionIdentifier, arguments,
-                context);
+        return applyExpressionFilterToObject(astNode, (ObjectValue) parentValue, keyOrIndexValue, functionIdentifier,
+                arguments, context);
     }
 
-    private CompiledExpression applyExpressionFilterToArray(ArrayValue arrayValue, Value keyOrIndexValue,
-            String functionIdentifier, CompiledArguments arguments, CompilationContext context) {
+    private CompiledExpression applyExpressionFilterToArray(EObject astNode, ArrayValue arrayValue,
+            Value keyOrIndexValue, String functionIdentifier, CompiledArguments arguments, CompilationContext context) {
         if (!(keyOrIndexValue instanceof io.sapl.api.model.NumberValue numberValue)) {
-            return Value.error(ERROR_ARRAY_ACCESS_TYPE_MISMATCH, keyOrIndexValue.getClass().getSimpleName());
+            return Error.at(astNode, ERROR_ARRAY_ACCESS_TYPE_MISMATCH, keyOrIndexValue.getClass().getSimpleName());
         }
-        val result = applyIndexStepFilter(arrayValue, numberValue.value().intValue(), functionIdentifier, arguments,
-                context);
+        val result = applyIndexStepFilter(astNode, arrayValue, numberValue.value().intValue(), functionIdentifier,
+                arguments, context);
         if (!(result instanceof Value resultValue)) {
-            return Value.error(ERROR_UNEXPECTED_NON_VALUE_EXPRESSION_STEP);
+            return Error.at(astNode, ERROR_UNEXPECTED_NON_VALUE_EXPRESSION_STEP);
         }
         return resultValue;
     }
 
-    private CompiledExpression applyExpressionFilterToObject(ObjectValue objectValue, Value keyOrIndexValue,
-            String functionIdentifier, CompiledArguments arguments, CompilationContext context) {
+    private CompiledExpression applyExpressionFilterToObject(EObject astNode, ObjectValue objectValue,
+            Value keyOrIndexValue, String functionIdentifier, CompiledArguments arguments, CompilationContext context) {
         if (!(keyOrIndexValue instanceof io.sapl.api.model.TextValue textValue)) {
-            return Value.error(ERROR_OBJECT_ACCESS_TYPE_MISMATCH, keyOrIndexValue.getClass().getSimpleName());
+            return Error.at(astNode, ERROR_OBJECT_ACCESS_TYPE_MISMATCH, keyOrIndexValue.getClass().getSimpleName());
         }
         val key = textValue.value();
         if (!objectValue.containsKey(key)) {
             return objectValue;
         }
-        val result = applyKeyStepFilter(objectValue, key, functionIdentifier, arguments, context);
+        val result = applyKeyStepFilter(astNode, objectValue, key, functionIdentifier, arguments, context);
         if (!(result instanceof Value resultValue)) {
-            return Value.error(ERROR_UNEXPECTED_NON_VALUE_EXPRESSION_STEP);
+            return Error.at(astNode, ERROR_UNEXPECTED_NON_VALUE_EXPRESSION_STEP);
         }
         return resultValue;
     }
@@ -1660,8 +1684,9 @@ public class FilterCompiler {
      * Applies a filter function to nested paths through an expression-selected
      * element/field.
      */
-    private Value applyFilterToNestedExpression(Value parentValue, ExpressionStep expressionStep, List<Step> steps,
-            int stepIndex, String functionIdentifier, CompiledArguments arguments, CompilationContext context) {
+    private Value applyFilterToNestedExpression(EObject astNode, Value parentValue, ExpressionStep expressionStep,
+            List<Step> steps, int stepIndex, String functionIdentifier, CompiledArguments arguments,
+            CompilationContext context) {
         if (isNotArrayOrObject(parentValue)) {
             return parentValue;
         }
@@ -1672,37 +1697,40 @@ public class FilterCompiler {
         }
 
         if (parentValue instanceof ArrayValue arrayValue) {
-            return applyNestedExpressionToArray(arrayValue, keyOrIndexValue, steps, stepIndex, functionIdentifier,
-                    arguments, context);
+            return applyNestedExpressionToArray(astNode, arrayValue, keyOrIndexValue, steps, stepIndex,
+                    functionIdentifier, arguments, context);
         }
 
-        return applyNestedExpressionToObject((ObjectValue) parentValue, keyOrIndexValue, steps, stepIndex,
+        return applyNestedExpressionToObject(astNode, (ObjectValue) parentValue, keyOrIndexValue, steps, stepIndex,
                 functionIdentifier, arguments, context);
     }
 
-    private Value applyNestedExpressionToArray(ArrayValue arrayValue, Value keyOrIndexValue, List<Step> steps,
-            int stepIndex, String functionIdentifier, CompiledArguments arguments, CompilationContext context) {
+    private Value applyNestedExpressionToArray(EObject astNode, ArrayValue arrayValue, Value keyOrIndexValue,
+            List<Step> steps, int stepIndex, String functionIdentifier, CompiledArguments arguments,
+            CompilationContext context) {
         if (!(keyOrIndexValue instanceof io.sapl.api.model.NumberValue numberValue)) {
-            return Value.error(ERROR_ARRAY_ACCESS_TYPE_MISMATCH, keyOrIndexValue.getClass().getSimpleName());
+            return Error.at(astNode, ERROR_ARRAY_ACCESS_TYPE_MISMATCH, keyOrIndexValue.getClass().getSimpleName());
         }
         int index = numberValue.value().intValue();
         if (index < 0 || index >= arrayValue.size()) {
-            return Value.error(ERROR_INDEX_OUT_OF_BOUNDS, arrayValue.size() - 1, index);
+            return Error.at(astNode, ERROR_INDEX_OUT_OF_BOUNDS, arrayValue.size() - 1, index);
         }
-        return applyFilterToNestedArrayElement(arrayValue, index, steps, stepIndex, functionIdentifier, arguments,
-                context);
+        return applyFilterToNestedArrayElement(astNode, arrayValue, index, steps, stepIndex, functionIdentifier,
+                arguments, context);
     }
 
-    private Value applyNestedExpressionToObject(ObjectValue objectValue, Value keyOrIndexValue, List<Step> steps,
-            int stepIndex, String functionIdentifier, CompiledArguments arguments, CompilationContext context) {
+    private Value applyNestedExpressionToObject(EObject astNode, ObjectValue objectValue, Value keyOrIndexValue,
+            List<Step> steps, int stepIndex, String functionIdentifier, CompiledArguments arguments,
+            CompilationContext context) {
         if (!(keyOrIndexValue instanceof io.sapl.api.model.TextValue textValue)) {
-            return Value.error(ERROR_OBJECT_ACCESS_TYPE_MISMATCH, keyOrIndexValue.getClass().getSimpleName());
+            return Error.at(astNode, ERROR_OBJECT_ACCESS_TYPE_MISMATCH, keyOrIndexValue.getClass().getSimpleName());
         }
         val key = textValue.value();
         if (!objectValue.containsKey(key)) {
             return objectValue;
         }
-        return applyFilterToNestedPath(objectValue, key, steps, stepIndex, functionIdentifier, arguments, context);
+        return applyFilterToNestedPath(astNode, objectValue, key, steps, stepIndex, functionIdentifier, arguments,
+                context);
     }
 
     private boolean isNotArrayOrObject(Value value) {
@@ -1712,7 +1740,7 @@ public class FilterCompiler {
     private Value compileExpressionStepValue(ExpressionStep expressionStep, CompilationContext context) {
         val keyOrIndexExpr = ExpressionCompiler.compileExpression(expressionStep.getExpression(), context);
         if (!(keyOrIndexExpr instanceof Value keyOrIndexValue)) {
-            return Value.error(ERROR_DYNAMIC_EXPRESSION_NOT_SUPPORTED);
+            return Error.at(expressionStep, ERROR_DYNAMIC_EXPRESSION_NOT_SUPPORTED);
         }
         return keyOrIndexValue;
     }

@@ -20,18 +20,17 @@ package io.sapl.compiler;
 import io.sapl.api.functions.FunctionInvocation;
 import io.sapl.api.model.*;
 import io.sapl.api.model.Value;
-import io.sapl.compiler.operators.BooleanOperators;
-import io.sapl.compiler.operators.ComparisonOperators;
-import io.sapl.compiler.operators.NumberOperators;
-import io.sapl.compiler.operators.StepOperators;
+import io.sapl.compiler.operators.*;
 import io.sapl.grammar.sapl.*;
 import io.sapl.grammar.sapl.Object;
 import lombok.experimental.UtilityClass;
 import lombok.val;
+import org.eclipse.emf.ecore.EObject;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.util.*;
+import java.util.function.BiFunction;
 
 import static io.sapl.compiler.operators.BooleanOperators.TYPE_MISMATCH_BOOLEAN_EXPECTED_ERROR;
 
@@ -44,14 +43,11 @@ import static io.sapl.compiler.operators.BooleanOperators.TYPE_MISMATCH_BOOLEAN_
 @UtilityClass
 public class ExpressionCompiler {
 
-    private static final String ERROR_ASSEMBLE_OBJECT_NON_VALUE_NATURE = "assembleObjectValue called with non-VALUE nature: %s";
-    private static final String ERROR_LEFT_OPERAND_MISSING             = "Left operand of %s missing";
-    private static final String ERROR_RIGHT_OPERAND_MISSING            = "Right operand of %s missing";
-    private static final String ERROR_UNEXPECTED_EXPRESSION            = "unexpected expression: %s.";
-    private static final String ERROR_UNEXPECTED_VALUE                 = "unexpected value: %s.";
-    private static final String ERROR_UNIMPLEMENTED                    = "unimplemented";
-
-    private static final Value UNIMPLEMENTED = Value.error(ERROR_UNIMPLEMENTED);
+    private static final String ERROR_ASSEMBLE_OBJECT_NON_VALUE_NATURE = "AssembleObjectValue called with non-VALUE nature: %s.";
+    private static final String ERROR_LEFT_OPERAND_MISSING             = "Left operand of %s missing.";
+    private static final String ERROR_RIGHT_OPERAND_MISSING            = "Right operand of %s missing.";
+    private static final String ERROR_UNEXPECTED_EXPRESSION            = "Unexpected expression: %s.";
+    private static final String ERROR_UNEXPECTED_VALUE                 = "Unexpected value: %s.";
 
     /**
      * Compiles a SAPL expression from the abstract syntax tree into an optimized
@@ -97,7 +93,7 @@ public class ExpressionCompiler {
             compileBinaryOperator(regex, ComparisonOperators::matchesRegularExpression, context);
         case BasicExpression basic -> compileBasicExpression(basic, context);
         default                    ->
-            throw new SaplCompilerException(String.format(ERROR_UNEXPECTED_EXPRESSION, expression));
+            throw new SaplCompilerException(String.format(ERROR_UNEXPECTED_EXPRESSION, expression), expression);
         };
     }
 
@@ -112,7 +108,7 @@ public class ExpressionCompiler {
      */
     private CompiledExpression compileLazyOr(Or or, CompilationContext context) {
         val left      = compileExpression(or.getLeft(), context);
-        val leftCheck = checkShortCircuitLeft(left, Value.TRUE);
+        val leftCheck = checkShortCircuitLeft(or, left, Value.TRUE);
         if (leftCheck != null) {
             return leftCheck;
         }
@@ -120,7 +116,7 @@ public class ExpressionCompiler {
         if (Value.TRUE.equals(right) || right instanceof ErrorValue) {
             return right;
         }
-        return assembleLazyBoolean(left, right, Value.TRUE, BooleanOperators::or);
+        return assembleLazyBoolean(or, left, right, Value.TRUE, BooleanOperators::or);
     }
 
     /**
@@ -128,12 +124,13 @@ public class ExpressionCompiler {
      * Returns early for short-circuit
      * value, errors, or type mismatches.
      */
-    private CompiledExpression checkShortCircuitLeft(CompiledExpression left, Value shortCircuitValue) {
+    private CompiledExpression checkShortCircuitLeft(EObject astNode, CompiledExpression left,
+            Value shortCircuitValue) {
         if (shortCircuitValue.equals(left) || left instanceof ErrorValue) {
             return left;
         }
         if (left instanceof Value && !(left instanceof BooleanValue)) {
-            return Value.error(TYPE_MISMATCH_BOOLEAN_EXPECTED_ERROR, left);
+            return Error.at(astNode, TYPE_MISMATCH_BOOLEAN_EXPECTED_ERROR, left);
         }
         return null;
     }
@@ -143,48 +140,49 @@ public class ExpressionCompiler {
      * appropriate handler based on operand
      * types (Value, Pure, Stream).
      */
-    private CompiledExpression assembleLazyBoolean(CompiledExpression left, CompiledExpression right,
-            Value shortCircuitValue, java.util.function.BinaryOperator<Value> operator) {
+    private CompiledExpression assembleLazyBoolean(EObject astNode, CompiledExpression left, CompiledExpression right,
+            Value shortCircuitValue, BiOperator operator) {
         if (left instanceof Value leftVal && right instanceof Value rightVal) {
-            return operator.apply(leftVal, rightVal);
+            return operator.apply(astNode, leftVal, rightVal);
         }
         if (left instanceof PureExpression pureLeft && right instanceof PureExpression pureRight) {
-            return new PureExpression(ctx -> evaluatePureLazyBoolean(pureLeft, pureRight, ctx, shortCircuitValue),
+            return new PureExpression(
+                    ctx -> evaluatePureLazyBoolean(astNode, pureLeft, pureRight, ctx, shortCircuitValue),
                     pureLeft.isSubscriptionScoped() || pureRight.isSubscriptionScoped());
         }
         if (left instanceof Value leftVal && right instanceof PureExpression pureRight) {
-            return new PureExpression(ctx -> operator.apply(leftVal, pureRight.evaluate(ctx)),
+            return new PureExpression(ctx -> operator.apply(astNode, leftVal, pureRight.evaluate(ctx)),
                     pureRight.isSubscriptionScoped());
         }
         if (left instanceof PureExpression pureLeft && right instanceof Value rightVal) {
-            return new PureExpression(ctx -> evaluatePureLazyBooleanWithConstantRight(pureLeft, rightVal, ctx,
+            return new PureExpression(ctx -> evaluatePureLazyBooleanWithConstantRight(astNode, pureLeft, rightVal, ctx,
                     shortCircuitValue, operator), pureLeft.isSubscriptionScoped());
         }
-        return new StreamExpression(evaluateLazyBooleanWithStreams(left, right, shortCircuitValue));
+        return new StreamExpression(evaluateLazyBooleanWithStreams(astNode, left, right, shortCircuitValue));
     }
 
     /**
      * Evaluates pure left operand with constant right operand, applying
      * short-circuit logic.
      */
-    private static Value evaluatePureLazyBooleanWithConstantRight(PureExpression pureLeft, Value rightVal,
-            EvaluationContext ctx, Value shortCircuitValue, java.util.function.BinaryOperator<Value> operator) {
+    private static Value evaluatePureLazyBooleanWithConstantRight(EObject astNode, PureExpression pureLeft,
+            Value rightVal, EvaluationContext ctx, Value shortCircuitValue, BiOperator operator) {
         val leftValue = pureLeft.evaluate(ctx);
         if (shortCircuitValue.equals(leftValue) || leftValue instanceof ErrorValue) {
             return leftValue;
         }
         if (!(leftValue instanceof BooleanValue)) {
-            return Value.error(TYPE_MISMATCH_BOOLEAN_EXPECTED_ERROR, leftValue);
+            return Error.at(astNode, TYPE_MISMATCH_BOOLEAN_EXPECTED_ERROR, leftValue);
         }
-        return operator.apply(leftValue, rightVal);
+        return operator.apply(astNode, leftValue, rightVal);
     }
 
     /**
      * Evaluates lazy boolean with stream expressions using switchMap for
      * short-circuit semantics.
      */
-    private static Flux<Value> evaluateLazyBooleanWithStreams(CompiledExpression left, CompiledExpression right,
-            Value shortCircuitValue) {
+    private static Flux<Value> evaluateLazyBooleanWithStreams(EObject astNode, CompiledExpression left,
+            CompiledExpression right, Value shortCircuitValue) {
         val leftFlux  = compiledExpressionToFlux(left);
         val rightFlux = compiledExpressionToFlux(right);
         return leftFlux.switchMap(leftValue -> {
@@ -192,21 +190,22 @@ public class ExpressionCompiler {
                 return Flux.just(leftValue);
             }
             if (!(leftValue instanceof BooleanValue)) {
-                return Flux.just(Value.error(TYPE_MISMATCH_BOOLEAN_EXPECTED_ERROR, leftValue));
+                return Flux.just(Error.at(astNode, TYPE_MISMATCH_BOOLEAN_EXPECTED_ERROR, leftValue));
             }
-            return rightFlux.map(rightValue -> combineBooleanResult(leftValue, rightValue, shortCircuitValue));
+            return rightFlux.map(rightValue -> combineBooleanResult(astNode, leftValue, rightValue, shortCircuitValue));
         });
     }
 
     /**
      * Combines boolean result from right operand with left operand's secret flag.
      */
-    private static Value combineBooleanResult(Value leftValue, Value rightValue, Value shortCircuitValue) {
+    private static Value combineBooleanResult(EObject astNode, Value leftValue, Value rightValue,
+            Value shortCircuitValue) {
         if (rightValue instanceof ErrorValue) {
             return rightValue;
         }
         if (!(rightValue instanceof BooleanValue rightBool)) {
-            return Value.error(TYPE_MISMATCH_BOOLEAN_EXPECTED_ERROR, rightValue);
+            return Error.at(astNode, TYPE_MISMATCH_BOOLEAN_EXPECTED_ERROR, rightValue);
         }
         val resultValue = shortCircuitValue.equals(Value.TRUE) ? rightBool.value()
                 : rightBool.value() && ((BooleanValue) leftValue).value();
@@ -217,14 +216,14 @@ public class ExpressionCompiler {
      * Evaluates lazy boolean operation with pure expressions using short-circuit
      * semantics.
      */
-    private static Value evaluatePureLazyBoolean(PureExpression pureLeft, PureExpression pureRight,
+    private static Value evaluatePureLazyBoolean(EObject astNode, PureExpression pureLeft, PureExpression pureRight,
             EvaluationContext ctx, Value shortCircuitValue) {
         val left = pureLeft.evaluate(ctx);
         if (shortCircuitValue.equals(left) || left instanceof ErrorValue) {
             return left;
         }
         if (!(left instanceof BooleanValue)) {
-            return Value.error(TYPE_MISMATCH_BOOLEAN_EXPECTED_ERROR, left);
+            return Error.at(astNode, TYPE_MISMATCH_BOOLEAN_EXPECTED_ERROR, left);
         }
         val right = pureRight.evaluate(ctx);
         if (shortCircuitValue.equals(right)) {
@@ -234,7 +233,7 @@ public class ExpressionCompiler {
             return right;
         }
         if (!(right instanceof BooleanValue rightBool)) {
-            return Value.error(TYPE_MISMATCH_BOOLEAN_EXPECTED_ERROR, right);
+            return Error.at(astNode, TYPE_MISMATCH_BOOLEAN_EXPECTED_ERROR, right);
         }
         val resultValue = !shortCircuitValue.equals(Value.TRUE) && rightBool.value();
         return new BooleanValue(resultValue, right.secret() || left.secret());
@@ -250,7 +249,7 @@ public class ExpressionCompiler {
      * subscriptions.
      */
     private CompiledExpression compileLazyAnd(And and, CompilationContext context) {
-        return compileLazyAnd(compileExpression(and.getLeft(), context), and.getRight(), context);
+        return compileLazyAnd(and, compileExpression(and.getLeft(), context), and.getRight(), context);
     }
 
     /**
@@ -258,9 +257,9 @@ public class ExpressionCompiler {
      * expression compilation where match expression
      * is combined with target.
      */
-    public CompiledExpression compileLazyAnd(CompiledExpression left, Expression rightArgument,
+    public CompiledExpression compileLazyAnd(EObject astNode, CompiledExpression left, Expression rightArgument,
             CompilationContext context) {
-        val leftCheck = checkShortCircuitLeft(left, Value.FALSE);
+        val leftCheck = checkShortCircuitLeft(astNode, left, Value.FALSE);
         if (leftCheck != null) {
             return leftCheck;
         }
@@ -271,7 +270,7 @@ public class ExpressionCompiler {
         if (Value.FALSE.equals(right) || right instanceof ErrorValue) {
             return right;
         }
-        return assembleLazyBoolean(left, right, Value.FALSE, BooleanOperators::and);
+        return assembleLazyBoolean(astNode, left, right, Value.FALSE, BooleanOperators::and);
     }
 
     /**
@@ -288,16 +287,16 @@ public class ExpressionCompiler {
      *
      * @return the compiled binary operation expression
      */
-    private CompiledExpression compileBinaryOperator(BinaryOperator astOperator,
-            java.util.function.BinaryOperator<Value> operator, CompilationContext context) {
+    private CompiledExpression compileBinaryOperator(BinaryOperator astOperator, BiOperator operator,
+            CompilationContext context) {
 
         val left  = compileExpression(astOperator.getLeft(), context);
         val right = compileExpression(astOperator.getRight(), context);
         if (left == null) {
-            return Value.error(ERROR_LEFT_OPERAND_MISSING, astOperator.getClass().getSimpleName());
+            return Error.at(astOperator, ERROR_LEFT_OPERAND_MISSING, astOperator.getClass().getSimpleName());
         }
         if (right == null) {
-            return Value.error(ERROR_RIGHT_OPERAND_MISSING, astOperator.getClass().getSimpleName());
+            return Error.at(astOperator, ERROR_RIGHT_OPERAND_MISSING, astOperator.getClass().getSimpleName());
         }
         // Special case for regex. Here if the right side is a text constant, we can
         // immediately pre-compile the expression and do not need to do it at policy
@@ -306,10 +305,10 @@ public class ExpressionCompiler {
         // re-used for assembling special cases of steps as well without repeating
         // 99% of the logic.
         if (right instanceof Value valRight && astOperator instanceof Regex) {
-            val compiledRegex = ComparisonOperators.compileRegularExpressionOperator(valRight);
-            operator = (l, ignoredBecauseWeUseTheCompiledRegex) -> compiledRegex.apply(l);
+            val compiledRegex = ComparisonOperators.compileRegularExpressionOperator(astOperator, valRight);
+            operator = (astNode, l, ignoredBecauseWeUseTheCompiledRegex) -> compiledRegex.apply(l);
         }
-        return assembleBinaryOperation(left, right, operator);
+        return assembleBinaryOperation(astOperator, left, right, operator);
     }
 
     /**
@@ -327,8 +326,8 @@ public class ExpressionCompiler {
      *
      * @return the assembled binary operation expression
      */
-    private CompiledExpression assembleBinaryOperation(CompiledExpression left, CompiledExpression right,
-            java.util.function.BinaryOperator<Value> operation) {
+    private CompiledExpression assembleBinaryOperation(EObject astNode, CompiledExpression left,
+            CompiledExpression right, BiOperator operation) {
         if (left instanceof ErrorValue) {
             return left;
         }
@@ -336,26 +335,27 @@ public class ExpressionCompiler {
             return right;
         }
         if (left instanceof Value leftValue && right instanceof Value rightValue) {
-            return operation.apply(leftValue, rightValue);
+            return operation.apply(astNode, leftValue, rightValue);
         }
         if (left instanceof StreamExpression || right instanceof StreamExpression) {
-            return assembleBinaryStreamOperator(left, right, operation);
+            return assembleBinaryStreamOperator(astNode, left, right, operation);
         }
         if (left instanceof PureExpression subLeft && right instanceof PureExpression subRight) {
-            return new PureExpression(ctx -> operation.apply(subLeft.evaluate(ctx), subRight.evaluate(ctx)),
+            return new PureExpression(ctx -> operation.apply(astNode, subLeft.evaluate(ctx), subRight.evaluate(ctx)),
                     subLeft.isSubscriptionScoped() || subRight.isSubscriptionScoped());
         }
         if (left instanceof PureExpression subLeft && right instanceof Value valRight) {
-            return new PureExpression(ctx -> operation.apply(subLeft.evaluate(ctx), valRight),
+            return new PureExpression(ctx -> operation.apply(astNode, subLeft.evaluate(ctx), valRight),
                     subLeft.isSubscriptionScoped());
         }
         if (left instanceof Value valLeft && right instanceof PureExpression subRight) {
-            return new PureExpression(ctx -> operation.apply(valLeft, subRight.evaluate(ctx)),
+            return new PureExpression(ctx -> operation.apply(astNode, valLeft, subRight.evaluate(ctx)),
                     subRight.isSubscriptionScoped());
         }
         throw new SaplCompilerException(
                 "Unexpected expression types. Should not be possible: " + left.getClass().getSimpleName() + " and "
-                        + right.getClass().getSimpleName() + ". This indicates an implementation bug.");
+                        + right.getClass().getSimpleName() + ". This indicates an implementation bug.",
+                astNode);
     }
 
     /**
@@ -372,10 +372,10 @@ public class ExpressionCompiler {
      *
      * @return a stream expression that combines the operand streams
      */
-    private StreamExpression assembleBinaryStreamOperator(CompiledExpression leftExpression,
-            CompiledExpression rightExpression, java.util.function.BinaryOperator<Value> operation) {
+    private StreamExpression assembleBinaryStreamOperator(EObject astNode, CompiledExpression leftExpression,
+            CompiledExpression rightExpression, BiOperator operation) {
         val stream = Flux.combineLatest(compiledExpressionToFlux(leftExpression),
-                compiledExpressionToFlux(rightExpression), operation);
+                compiledExpressionToFlux(rightExpression), (l, r) -> operation.apply(astNode, l, r));
         return new StreamExpression(stream);
     }
 
@@ -394,14 +394,15 @@ public class ExpressionCompiler {
      *
      * @return the compiled unary operation expression
      */
-    private CompiledExpression compileUnaryOperator(UnaryOperator operator,
-            java.util.function.UnaryOperator<Value> operation, CompilationContext context) {
+    private CompiledExpression compileUnaryOperator(UnaryOperator operator, BiFunction<EObject, Value, Value> operation,
+            CompilationContext context) {
         val expression = compileExpression(operator.getExpression(), context);
         return switch (expression) {
-        case Value value                          -> operation.apply(value);
+        case Value value                          -> operation.apply(operator, value);
         case PureExpression pureExpression        -> new PureExpression(
-                ctx -> operation.apply(pureExpression.evaluate(ctx)), pureExpression.isSubscriptionScoped());
-        case StreamExpression(Flux<Value> stream) -> new StreamExpression(stream.map(operation));
+                ctx -> operation.apply(operator, pureExpression.evaluate(ctx)), pureExpression.isSubscriptionScoped());
+        case StreamExpression(Flux<Value> stream) ->
+            new StreamExpression(stream.map(v -> operation.apply(operator, v)));
         };
     }
 
@@ -436,7 +437,7 @@ public class ExpressionCompiler {
         case BasicIdentifier identifier                     -> compileIdentifier(identifier, context);
         case BasicRelative relativeValue                    -> compileBasicRelative(relativeValue, context);
         default                                             ->
-            throw new SaplCompilerException(String.format(ERROR_UNEXPECTED_EXPRESSION, expression));
+            throw new SaplCompilerException(String.format(ERROR_UNEXPECTED_EXPRESSION, expression), expression);
         };
 
         // Then apply filter or subtemplate if present
@@ -554,10 +555,14 @@ public class ExpressionCompiler {
                         "Encountered a stream expression during pure compilation path. Should not be possible.");
                 }
             }
-            val invocation = new FunctionInvocation(
+            val invocation     = new FunctionInvocation(
                     ImportResolver.resolveFunctionIdentifierByImports(function, function.getIdentifier()),
                     valueArguments);
-            return context.getFunctionBroker().evaluateFunction(invocation);
+            val functionResult = context.getFunctionBroker().evaluateFunction(invocation);
+            if (functionResult instanceof ErrorValue error && error.location() == null) {
+                return error.withLocation(SourceLocationUtil.fromAstNode(function));
+            }
+            return functionResult;
         }, arguments.isSubscriptionScoped());
     }
 
@@ -698,31 +703,33 @@ public class ExpressionCompiler {
     private CompiledExpression compileStep(CompiledExpression parent, Step step, CompilationContext context) {
         return switch (step) {
         case KeyStep keyStep                                 ->
-            compileStep(parent, p -> StepOperators.keyStep(p, keyStep.getId()));
+            compileStep(parent, p -> StepOperators.keyStep(step, p, keyStep.getId()));
         case EscapedKeyStep escapedKeyStep                   ->
-            compileStep(parent, p -> StepOperators.keyStep(p, escapedKeyStep.getId()));
-        case WildcardStep wildcardStep                       -> compileStep(parent, StepOperators::wildcardStep);
+            compileStep(parent, p -> StepOperators.keyStep(step, p, escapedKeyStep.getId()));
+        case WildcardStep wildcardStep                       ->
+            compileStep(parent, p -> StepOperators.wildcardStep(step, p));
         case AttributeFinderStep attributeFinderStep         ->
             AttributeCompiler.compileAttributeFinderStep(parent, attributeFinderStep, context);
         case HeadAttributeFinderStep headAttributeFinderStep ->
             AttributeCompiler.compileHeadAttributeFinderStep(parent, headAttributeFinderStep, context);
         case RecursiveKeyStep recursiveKeyStep               ->
-            compileStep(parent, p -> StepOperators.recursiveKeyStep(p, recursiveKeyStep.getId()));
+            compileStep(parent, p -> StepOperators.recursiveKeyStep(step, p, recursiveKeyStep.getId()));
         case RecursiveWildcardStep recursiveWildcardStep     ->
-            compileStep(parent, StepOperators::recursiveWildcardStep);
+            compileStep(parent, p -> StepOperators.recursiveWildcardStep(step, p));
         case RecursiveIndexStep recursiveIndexStep           ->
-            compileStep(parent, p -> StepOperators.recursiveIndexStep(p, recursiveIndexStep.getIndex()));
+            compileStep(parent, p -> StepOperators.recursiveIndexStep(step, p, recursiveIndexStep.getIndex()));
         case IndexStep indexStep                             ->
-            compileStep(parent, p -> StepOperators.indexStep(p, indexStep.getIndex()));
-        case ArraySlicingStep arraySlicingStep               -> compileStep(parent, p -> StepOperators.sliceArray(p,
-                arraySlicingStep.getIndex(), arraySlicingStep.getTo(), arraySlicingStep.getStep()));
+            compileStep(parent, p -> StepOperators.indexStep(step, p, indexStep.getIndex()));
+        case ArraySlicingStep arraySlicingStep               -> compileStep(parent, p -> StepOperators.sliceArray(step,
+                p, arraySlicingStep.getIndex(), arraySlicingStep.getTo(), arraySlicingStep.getStep()));
         case ExpressionStep expressionStep                   -> compileExpressionStep(parent, expressionStep, context);
         case ConditionStep conditionStep                     -> compileConditionStep(parent, conditionStep, context);
         case IndexUnionStep indexUnionStep                   ->
-            compileStep(parent, p -> StepOperators.indexUnion(p, indexUnionStep.getIndices()));
+            compileStep(parent, p -> StepOperators.indexUnion(step, p, indexUnionStep.getIndices()));
         case AttributeUnionStep attributeUnionStep           ->
-            compileStep(parent, p -> StepOperators.attributeUnion(p, attributeUnionStep.getAttributes()));
-        default                                              -> UNIMPLEMENTED;
+            compileStep(parent, p -> StepOperators.attributeUnion(step, p, attributeUnionStep.getAttributes()));
+        default                                              ->
+            throw new SaplCompilerException("Unexpected step: %s.".formatted(step.getClass().getSimpleName()), step);
         };
     }
 
@@ -742,8 +749,9 @@ public class ExpressionCompiler {
      */
     private CompiledExpression compileExpressionStep(CompiledExpression parentExpression, ExpressionStep expressionStep,
             CompilationContext context) {
-        val expressionStepExpression = compileExpression(expressionStep.getExpression(), context);
-        return assembleBinaryOperation(parentExpression, expressionStepExpression, StepOperators::indexOrKeyStep);
+        val compiledExpressionStepExpression = compileExpression(expressionStep.getExpression(), context);
+        return assembleBinaryOperation(expressionStep, parentExpression, compiledExpressionStepExpression,
+                StepOperators::indexOrKeyStep);
     }
 
     /**
@@ -800,30 +808,34 @@ public class ExpressionCompiler {
             }
             yield switch (compiledConditionExpression) {
             case Value valueCondition             ->
-                evaluateConditionOnValueParentWithConstantValueCondition(valueParent, valueCondition);
+                evaluateConditionOnValueParentWithConstantValueCondition(expressionStep, valueParent, valueCondition);
             case PureExpression pureCondition     ->
-                compileConditionOnValueParentWithPureCondition(valueParent, pureCondition, context);
+                compileConditionOnValueParentWithPureCondition(expressionStep, valueParent, pureCondition, context);
             case StreamExpression streamCondition ->
-                compileConditionOnValueParentWithStreamCondition(valueParent, streamCondition);
+                compileConditionOnValueParentWithStreamCondition(expressionStep, valueParent, streamCondition);
             };
         }
         case PureExpression pureParent     -> switch (compiledConditionExpression) {
                                        case Value valueCondition                 ->
-                                           compileConditionOnPureParentWithValueCondition(pureParent, valueCondition);
+                                           compileConditionOnPureParentWithValueCondition(expressionStep, pureParent,
+                                                   valueCondition);
                                        case PureExpression pureCondition         ->
-                                           compileConditionOnPureParentWithPureCondition(pureParent, pureCondition);
+                                           compileConditionOnPureParentWithPureCondition(expressionStep, pureParent,
+                                                   pureCondition);
                                        case StreamExpression streamCondition     ->
-                                           compileConditionOnPureParentWithStreamCondition(pureParent, streamCondition);
+                                           compileConditionOnPureParentWithStreamCondition(expressionStep, pureParent,
+                                                   streamCondition);
                                        };
         case StreamExpression streamParent -> switch (compiledConditionExpression) {
                                        case Value valueCondition                 ->
-                                           compileConditionOnStreamParentWithValueCondition(streamParent,
-                                                   valueCondition);
+                                           compileConditionOnStreamParentWithValueCondition(expressionStep,
+                                                   streamParent, valueCondition);
                                        case PureExpression pureCondition         ->
-                                           compileConditionOnStreamParentWithPureCondition(streamParent, pureCondition);
+                                           compileConditionOnStreamParentWithPureCondition(expressionStep, streamParent,
+                                                   pureCondition);
                                        case StreamExpression streamCondition     ->
-                                           compileConditionOnStreamParentWithStreamCondition(streamParent,
-                                                   streamCondition);
+                                           compileConditionOnStreamParentWithStreamCondition(expressionStep,
+                                                   streamParent, streamCondition);
                                        };
         };
     }
@@ -846,12 +858,13 @@ public class ExpressionCompiler {
      *
      * @return the filtered value or error if condition is not boolean
      */
-    private Value evaluateConditionOnValueParentWithConstantValueCondition(Value valueParent, Value valueCondition) {
+    private Value evaluateConditionOnValueParentWithConstantValueCondition(EObject astNode, Value valueParent,
+            Value valueCondition) {
         if (valueParent instanceof ErrorValue || valueParent instanceof UndefinedValue) {
             return valueParent;
         }
         if (!(valueCondition instanceof BooleanValue)) {
-            return Value.error(
+            return Error.at(astNode,
                     "Condition in condition step must evaluate to a Boolean, but got: %s.".formatted(valueCondition));
         }
         if (valueCondition.equals(Value.TRUE)) {
@@ -880,15 +893,15 @@ public class ExpressionCompiler {
      *
      * @return the compiled filtered expression
      */
-    private CompiledExpression compileConditionOnValueParentWithPureCondition(Value valueParent,
+    private CompiledExpression compileConditionOnValueParentWithPureCondition(EObject astNode, Value valueParent,
             PureExpression pureCondition, CompilationContext context) {
         val pureResult = switch (valueParent) {
         case ArrayValue arrayParent   ->
-            compileConditionStepOnArrayValueConstantWithPureCondition(arrayParent, pureCondition);
+            compileConditionStepOnArrayValueConstantWithPureCondition(astNode, arrayParent, pureCondition);
         case ObjectValue objectParent ->
-            compileConditionStepOnObjectValueConstantWithPureCondition(objectParent, pureCondition);
+            compileConditionStepOnObjectValueConstantWithPureCondition(astNode, objectParent, pureCondition);
         case Value scalarValue        ->
-            compileConditionStepOnScalarValueConstantWithPureCondition(scalarValue, pureCondition);
+            compileConditionStepOnScalarValueConstantWithPureCondition(astNode, scalarValue, pureCondition);
         };
         if (pureResult.isSubscriptionScoped()) {
             return pureResult;
@@ -923,10 +936,10 @@ public class ExpressionCompiler {
      *
      * @return a pure expression evaluating the filtered scalar
      */
-    private PureExpression compileConditionStepOnScalarValueConstantWithPureCondition(Value scalarParent,
-            PureExpression pureCondition) {
+    private PureExpression compileConditionStepOnScalarValueConstantWithPureCondition(EObject astNode,
+            Value scalarParent, PureExpression pureCondition) {
         return new PureExpression(
-                ctx -> returnValueIfConditionMetElseUndefined(scalarParent,
+                ctx -> returnValueIfConditionMetElseUndefined(astNode, scalarParent,
                         pureCondition.evaluate(ctx.withRelativeValue(scalarParent))),
                 pureCondition.isSubscriptionScoped());
     }
@@ -944,12 +957,12 @@ public class ExpressionCompiler {
      * @return the value if condition is true, undefined if false, or error if
      * condition is not boolean
      */
-    private Value returnValueIfConditionMetElseUndefined(Value value, Value condition) {
+    private Value returnValueIfConditionMetElseUndefined(EObject astNode, Value value, Value condition) {
         if (value instanceof ErrorValue || value instanceof UndefinedValue) {
             return value;
         }
         if (!(condition instanceof BooleanValue booleanConstant)) {
-            return Value.error(
+            return Error.at(astNode,
                     "Type mismatch error. Conditions in condition steps must evaluate to a boolean value, but got: %s."
                             .formatted(condition));
         }
@@ -968,11 +981,10 @@ public class ExpressionCompiler {
      *
      * @return a pure expression building the filtered array
      */
-    private PureExpression compileConditionStepOnArrayValueConstantWithPureCondition(ArrayValue arrayParent,
-            PureExpression pureCondition) {
-        return new PureExpression(
-                ctx -> evaluateConditionStepOnArrayValueConstantWithPureCondition(ctx, arrayParent, pureCondition),
-                pureCondition.isSubscriptionScoped());
+    private PureExpression compileConditionStepOnArrayValueConstantWithPureCondition(EObject astNode,
+            ArrayValue arrayParent, PureExpression pureCondition) {
+        return new PureExpression(ctx -> evaluateConditionStepOnArrayValueConstantWithPureCondition(astNode, ctx,
+                arrayParent, pureCondition), pureCondition.isSubscriptionScoped());
     }
 
     /**
@@ -989,13 +1001,13 @@ public class ExpressionCompiler {
      *
      * @return the filtered array or error if condition evaluation fails
      */
-    private Value evaluateConditionStepOnArrayValueConstantWithPureCondition(EvaluationContext ctx,
+    private Value evaluateConditionStepOnArrayValueConstantWithPureCondition(EObject astNode, EvaluationContext ctx,
             ArrayValue arrayParent, PureExpression pureCondition) {
         val array = ArrayValue.builder();
         for (int i = 0; i < arrayParent.size(); i++) {
             val originalValue = arrayParent.get(i);
             val condition     = pureCondition.evaluate(ctx.withRelativeValue(originalValue, Value.of(i)));
-            val newEntry      = returnValueIfConditionMetElseUndefined(originalValue, condition);
+            val newEntry      = returnValueIfConditionMetElseUndefined(astNode, originalValue, condition);
             if (newEntry instanceof ErrorValue) {
                 return newEntry;
             }
@@ -1018,11 +1030,10 @@ public class ExpressionCompiler {
      *
      * @return a pure expression building the filtered object
      */
-    private PureExpression compileConditionStepOnObjectValueConstantWithPureCondition(ObjectValue objectParent,
-            PureExpression pureCondition) {
-        return new PureExpression(
-                ctx -> evaluateConditionStepOnObjectValueConstantWithPureCondition(ctx, objectParent, pureCondition),
-                pureCondition.isSubscriptionScoped());
+    private PureExpression compileConditionStepOnObjectValueConstantWithPureCondition(EObject astNode,
+            ObjectValue objectParent, PureExpression pureCondition) {
+        return new PureExpression(ctx -> evaluateConditionStepOnObjectValueConstantWithPureCondition(astNode, ctx,
+                objectParent, pureCondition), pureCondition.isSubscriptionScoped());
     }
 
     /**
@@ -1040,14 +1051,14 @@ public class ExpressionCompiler {
      *
      * @return the filtered object or error if condition evaluation fails
      */
-    private Value evaluateConditionStepOnObjectValueConstantWithPureCondition(EvaluationContext ctx,
+    private Value evaluateConditionStepOnObjectValueConstantWithPureCondition(EObject astNode, EvaluationContext ctx,
             ObjectValue objectParent, PureExpression pureCondition) {
         val object = ObjectValue.builder();
         for (val entry : objectParent.entrySet()) {
             val key           = entry.getKey();
             val originalValue = entry.getValue();
             val condition     = pureCondition.evaluate(ctx.withRelativeValue(originalValue, Value.of(key)));
-            val newEntry      = returnValueIfConditionMetElseUndefined(originalValue, condition);
+            val newEntry      = returnValueIfConditionMetElseUndefined(astNode, originalValue, condition);
             if (newEntry instanceof ErrorValue) {
                 return newEntry;
             }
@@ -1072,10 +1083,11 @@ public class ExpressionCompiler {
      *
      * @return a stream expression with the filtered value
      */
-    private CompiledExpression compileConditionOnValueParentWithStreamCondition(Value valueParent,
+    private CompiledExpression compileConditionOnValueParentWithStreamCondition(EObject astNode, Value valueParent,
             StreamExpression streamCondition) {
-        return new StreamExpression(Flux.just(valueParent).flatMap(
-                value -> evaluateConditionStepWithStreamConditionOnConstantValue(value, streamCondition.stream())));
+        return new StreamExpression(
+                Flux.just(valueParent).flatMap(value -> evaluateConditionStepWithStreamConditionOnConstantValue(astNode,
+                        value, streamCondition.stream())));
     }
 
     /**
@@ -1090,16 +1102,17 @@ public class ExpressionCompiler {
      *
      * @return a flux emitting filtered results
      */
-    private Flux<Value> evaluateConditionStepWithStreamConditionOnConstantValue(Value parentValue,
+    private Flux<Value> evaluateConditionStepWithStreamConditionOnConstantValue(EObject astNode, Value parentValue,
             Flux<Value> conditionStream) {
         if (parentValue instanceof ErrorValue || parentValue instanceof UndefinedValue) {
             return Flux.just(parentValue);
         }
         return switch (parentValue) {
-        case ObjectValue objectParent -> evaluateStreamConditionStepOnObjectValue(objectParent, conditionStream);
-        case ArrayValue arrayParent   -> evaluateStreamConditionStepOnArrayValue(arrayParent, conditionStream);
+        case ObjectValue objectParent ->
+            evaluateStreamConditionStepOnObjectValue(astNode, objectParent, conditionStream);
+        case ArrayValue arrayParent   -> evaluateStreamConditionStepOnArrayValue(astNode, arrayParent, conditionStream);
         case Value scalarValue        -> setRelativeValueContext(conditionStream, scalarValue)
-                .map(conditionValue -> returnValueIfConditionMetElseUndefined(scalarValue, conditionValue));
+                .map(conditionValue -> returnValueIfConditionMetElseUndefined(astNode, scalarValue, conditionValue));
         };
     }
 
@@ -1115,15 +1128,15 @@ public class ExpressionCompiler {
      *
      * @return a flux of filtered objects
      */
-    private Flux<Value> evaluateStreamConditionStepOnObjectValue(ObjectValue objectParent,
+    private Flux<Value> evaluateStreamConditionStepOnObjectValue(EObject astNode, ObjectValue objectParent,
             Flux<Value> conditionStream) {
         val sources = new ArrayList<Flux<ObjectEntry>>(objectParent.size());
         for (val entry : objectParent.entrySet()) {
             val key               = entry.getKey();
             val relativeLocation  = Value.of(key);
             val relativeValue     = entry.getValue();
-            val objectEntryStream = setRelativeValueContext(conditionStream, relativeValue, relativeLocation)
-                    .map(conditionValue -> returnValueIfConditionMetElseUndefined(relativeValue, conditionValue))
+            val objectEntryStream = setRelativeValueContext(conditionStream, relativeValue, relativeLocation).map(
+                    conditionValue -> returnValueIfConditionMetElseUndefined(astNode, relativeValue, conditionValue))
                     .map(filteredValue -> new ObjectEntry(key, filteredValue));
             sources.add(objectEntryStream);
         }
@@ -1142,13 +1155,14 @@ public class ExpressionCompiler {
      *
      * @return a flux of filtered arrays
      */
-    private Flux<Value> evaluateStreamConditionStepOnArrayValue(ArrayValue arrayParent, Flux<Value> conditionStream) {
+    private Flux<Value> evaluateStreamConditionStepOnArrayValue(EObject astNode, ArrayValue arrayParent,
+            Flux<Value> conditionStream) {
         val sources = new ArrayList<Flux<Value>>(arrayParent.size());
         for (var i = 0; i < arrayParent.size(); i++) {
             val relativeLocation = Value.of(i);
             val relativeValue    = arrayParent.get(i);
-            val elementStream    = setRelativeValueContext(conditionStream, relativeValue, relativeLocation)
-                    .map(conditionValue -> returnValueIfConditionMetElseUndefined(relativeValue, conditionValue));
+            val elementStream    = setRelativeValueContext(conditionStream, relativeValue, relativeLocation).map(
+                    conditionValue -> returnValueIfConditionMetElseUndefined(astNode, relativeValue, conditionValue));
             sources.add(elementStream);
         }
         return Flux.combineLatest(sources, ExpressionCompiler::assembleArrayValue);
@@ -1172,9 +1186,9 @@ public class ExpressionCompiler {
      *
      * @return a pure expression evaluating the filtered parent
      */
-    private CompiledExpression compileConditionOnPureParentWithValueCondition(PureExpression pureParent,
-            Value valueCondition) {
-        return new PureExpression(ctx -> evaluateConditionOnValueParentWithConstantValueCondition(
+    private CompiledExpression compileConditionOnPureParentWithValueCondition(EObject astNode,
+            PureExpression pureParent, Value valueCondition) {
+        return new PureExpression(ctx -> evaluateConditionOnValueParentWithConstantValueCondition(astNode,
                 pureParent.evaluate(ctx), valueCondition), pureParent.isSubscriptionScoped());
     }
 
@@ -1192,7 +1206,7 @@ public class ExpressionCompiler {
      *
      * @return a pure expression evaluating the filtered result
      */
-    private CompiledExpression compileConditionOnPureParentWithPureCondition(PureExpression pureParent,
+    private CompiledExpression compileConditionOnPureParentWithPureCondition(EObject astNode, PureExpression pureParent,
             PureExpression pureCondition) {
 
         return new PureExpression(ctx -> {
@@ -1202,10 +1216,10 @@ public class ExpressionCompiler {
             }
             return switch (valueParent) {
             case ArrayValue arrayParent   ->
-                evaluateConditionStepOnArrayValueConstantWithPureCondition(ctx, arrayParent, pureCondition);
+                evaluateConditionStepOnArrayValueConstantWithPureCondition(astNode, ctx, arrayParent, pureCondition);
             case ObjectValue objectParent ->
-                evaluateConditionStepOnObjectValueConstantWithPureCondition(ctx, objectParent, pureCondition);
-            case Value scalarValue        -> returnValueIfConditionMetElseUndefined(scalarValue,
+                evaluateConditionStepOnObjectValueConstantWithPureCondition(astNode, ctx, objectParent, pureCondition);
+            case Value scalarValue        -> returnValueIfConditionMetElseUndefined(astNode, scalarValue,
                     pureCondition.evaluate(ctx.withRelativeValue(scalarValue)));
             };
         }, pureParent.isSubscriptionScoped() || pureCondition.isSubscriptionScoped());
@@ -1225,10 +1239,10 @@ public class ExpressionCompiler {
      *
      * @return a stream expression with filtered results
      */
-    private CompiledExpression compileConditionOnPureParentWithStreamCondition(PureExpression pureParent,
-            StreamExpression streamCondition) {
+    private CompiledExpression compileConditionOnPureParentWithStreamCondition(EObject astNode,
+            PureExpression pureParent, StreamExpression streamCondition) {
         return new StreamExpression(pureParent.flux()
-                .flatMap(parentValue -> evaluateConditionStepWithStreamConditionOnConstantValue(parentValue,
+                .flatMap(parentValue -> evaluateConditionStepWithStreamConditionOnConstantValue(astNode, parentValue,
                         streamCondition.stream())));
     }
 
@@ -1250,10 +1264,11 @@ public class ExpressionCompiler {
      *
      * @return a stream expression with filtered values
      */
-    private CompiledExpression compileConditionOnStreamParentWithValueCondition(StreamExpression streamParent,
-            Value valueCondition) {
-        return new StreamExpression(streamParent.stream().map(
-                parentValue -> evaluateConditionOnValueParentWithConstantValueCondition(parentValue, valueCondition)));
+    private CompiledExpression compileConditionOnStreamParentWithValueCondition(EObject astNode,
+            StreamExpression streamParent, Value valueCondition) {
+        return new StreamExpression(streamParent.stream()
+                .map(parentValue -> evaluateConditionOnValueParentWithConstantValueCondition(astNode, parentValue,
+                        valueCondition)));
     }
 
     // Stream parent - Pure condition
@@ -1270,8 +1285,8 @@ public class ExpressionCompiler {
      *
      * @return a stream expression with filtered values
      */
-    private CompiledExpression compileConditionOnStreamParentWithPureCondition(StreamExpression streamParent,
-            PureExpression pureCondition) {
+    private CompiledExpression compileConditionOnStreamParentWithPureCondition(EObject astNode,
+            StreamExpression streamParent, PureExpression pureCondition) {
         return new StreamExpression(streamParent.stream().flatMap(valueParent -> {
             if (valueParent instanceof ErrorValue || valueParent instanceof UndefinedValue) {
                 return Mono.just(valueParent);
@@ -1280,10 +1295,10 @@ public class ExpressionCompiler {
                 val ctx    = reactiveCtx.get(EvaluationContext.class);
                 val result = switch (valueParent) {
                            case ArrayValue arrayParent   -> evaluateConditionStepOnArrayValueConstantWithPureCondition(
-                                   ctx, arrayParent, pureCondition);
+                                   astNode, ctx, arrayParent, pureCondition);
                            case ObjectValue objectParent -> evaluateConditionStepOnObjectValueConstantWithPureCondition(
-                                   ctx, objectParent, pureCondition);
-                           case Value scalarValue        -> returnValueIfConditionMetElseUndefined(scalarValue,
+                                   astNode, ctx, objectParent, pureCondition);
+                           case Value scalarValue        -> returnValueIfConditionMetElseUndefined(astNode, scalarValue,
                                    pureCondition.evaluate(ctx.withRelativeValue(scalarValue)));
                            };
                 return Mono.just(result);
@@ -1305,10 +1320,10 @@ public class ExpressionCompiler {
      *
      * @return a stream expression with filtered values
      */
-    private CompiledExpression compileConditionOnStreamParentWithStreamCondition(StreamExpression streamParent,
-            StreamExpression streamCondition) {
+    private CompiledExpression compileConditionOnStreamParentWithStreamCondition(EObject astNode,
+            StreamExpression streamParent, StreamExpression streamCondition) {
         return new StreamExpression(streamParent.stream()
-                .flatMap(parentValue -> evaluateConditionStepWithStreamConditionOnConstantValue(parentValue,
+                .flatMap(parentValue -> evaluateConditionStepWithStreamConditionOnConstantValue(astNode, parentValue,
                         streamCondition.stream())));
     }
 

@@ -28,6 +28,7 @@ import io.sapl.interpreter.SAPLInterpreter;
 import lombok.experimental.UtilityClass;
 import lombok.val;
 import org.eclipse.emf.common.util.EList;
+import org.eclipse.emf.ecore.EObject;
 import reactor.core.publisher.Flux;
 
 import java.util.List;
@@ -100,7 +101,12 @@ public class SaplCompiler {
         if (document.isInvalid()) {
             throw new SaplCompilerException("Unable to parse document. %s".formatted(document.errorMessage()));
         }
-        return compileDocument(document.sapl(), context);
+        context.setDocumentSource(source);
+        context.setDocument(document);
+        val compiledPolicy = compileDocument(document.sapl(), context);
+        context.setDocument(null);
+        context.setDocumentSource(null);
+        return compiledPolicy;
     }
 
     /**
@@ -125,7 +131,7 @@ public class SaplCompiler {
         case Policy policy       -> compilePolicy(policy, schemaCheckingExpression, context);
         case PolicySet policySet -> compilePolicySet(policySet, schemaCheckingExpression, context);
         default                  ->
-            throw new SaplCompilerException(ERROR_UNEXPECTED_POLICY_ELEMENT.formatted(policyElement));
+            throw new SaplCompilerException(ERROR_UNEXPECTED_POLICY_ELEMENT.formatted(policyElement), policyElement);
         };
     }
 
@@ -141,14 +147,15 @@ public class SaplCompiler {
 
     private CompiledExpression compileMatchExpression(Expression targetExpression,
             CompiledExpression schemaCheckingExpression, CompilationContext context) {
-        val compiledTargetExpression = ExpressionCompiler.compileLazyAnd(schemaCheckingExpression, targetExpression,
-                context);
-        assertExpressionSuitableForTarget(compiledTargetExpression);
+        val compiledTargetExpression = ExpressionCompiler.compileLazyAnd(targetExpression, schemaCheckingExpression,
+                targetExpression, context);
+        assertExpressionSuitableForTarget(targetExpression, compiledTargetExpression);
         return switch (compiledTargetExpression) {
-        case PureExpression pureExpression -> compileTargetExpressionToMatchExpression(pureExpression);
-        case Value value                   -> booleanValueOrErrorInTarget(value);
-        default                            ->
-            throw new SaplCompilerException(ERROR_UNEXPECTED_TARGET_TYPE.formatted(targetExpression.getClass()));
+        case PureExpression pureExpression ->
+            compileTargetExpressionToMatchExpression(targetExpression, pureExpression);
+        case Value value                   -> booleanValueOrErrorInTarget(targetExpression, value);
+        default                            -> throw new SaplCompilerException(
+                ERROR_UNEXPECTED_TARGET_TYPE.formatted(targetExpression.getClass()), targetExpression);
         };
     }
 
@@ -464,11 +471,11 @@ public class SaplCompiler {
      *
      * @return the value if boolean, or an error value if not
      */
-    public Value booleanValueOrErrorInTarget(Value targetExpression) {
+    public Value booleanValueOrErrorInTarget(EObject astNode, Value targetExpression) {
         if (targetExpression instanceof BooleanValue) {
             return targetExpression;
         }
-        return Value.error(ERROR_TARGET_EXPECTED_BOOLEAN, targetExpression);
+        return Error.at(astNode, ERROR_TARGET_EXPECTED_BOOLEAN, targetExpression);
     }
 
     /**
@@ -479,23 +486,27 @@ public class SaplCompiler {
      *
      * @return a pure expression that validates the result is boolean
      */
-    public PureExpression compileTargetExpressionToMatchExpression(PureExpression targetExpression) {
+    public PureExpression compileTargetExpressionToMatchExpression(EObject astNode, PureExpression targetExpression) {
         return new PureExpression(
-                evaluationContext -> booleanValueOrErrorInTarget(targetExpression.evaluate(evaluationContext)),
+                evaluationContext -> booleanValueOrErrorInTarget(astNode, targetExpression.evaluate(evaluationContext)),
                 targetExpression.isSubscriptionScoped());
     }
 
-    private void assertExpressionSuitableForTarget(CompiledExpression expression) {
+    private void assertExpressionSuitableForTarget(EObject targetExpression, CompiledExpression expression) {
         if (expression instanceof StreamExpression) {
-            throw new SaplCompilerException(ERROR_POLICY_CONTAINS_ATTRIBUTE_FINDERS.formatted(EXPRESSION_TARGET));
+            throw new SaplCompilerException(ERROR_POLICY_CONTAINS_ATTRIBUTE_FINDERS.formatted(EXPRESSION_TARGET),
+                    targetExpression);
         } else if (expression instanceof ErrorValue error) {
-            throw new SaplCompilerException(ERROR_POLICY_COMPILE_TIME_ERROR.formatted(EXPRESSION_TARGET, error));
+            throw new SaplCompilerException(ERROR_POLICY_COMPILE_TIME_ERROR.formatted(EXPRESSION_TARGET, error),
+                    targetExpression);
         } else if (expression instanceof Value && !(expression instanceof BooleanValue)) {
-            throw new SaplCompilerException(ERROR_POLICY_ALWAYS_NON_BOOLEAN.formatted(EXPRESSION_TARGET, expression));
+            throw new SaplCompilerException(ERROR_POLICY_ALWAYS_NON_BOOLEAN.formatted(EXPRESSION_TARGET, expression),
+                    targetExpression);
         } else if (expression instanceof BooleanValue booleanValue && booleanValue.equals(Value.FALSE)) {
-            throw new SaplCompilerException(ERROR_POLICY_ALWAYS_FALSE.formatted(EXPRESSION_TARGET));
+            throw new SaplCompilerException(ERROR_POLICY_ALWAYS_FALSE.formatted(EXPRESSION_TARGET), targetExpression);
         } else if (expression instanceof PureExpression pureExpression && !pureExpression.isSubscriptionScoped()) {
-            throw new SaplCompilerException(ERROR_POLICY_UNRESOLVED_RELATIVE.formatted(EXPRESSION_TARGET));
+            throw new SaplCompilerException(ERROR_POLICY_UNRESOLVED_RELATIVE.formatted(EXPRESSION_TARGET),
+                    targetExpression);
         }
     }
 
@@ -532,12 +543,14 @@ public class SaplCompiler {
                 if (compiledBody == null) {
                     compiledBody = ExpressionCompiler.compileExpression(condition.getExpression(), context);
                 } else {
-                    compiledBody = ExpressionCompiler.compileLazyAnd(compiledBody, condition.getExpression(), context);
+                    compiledBody = ExpressionCompiler.compileLazyAnd(statement, compiledBody, condition.getExpression(),
+                            context);
                 }
             } else if (statement instanceof ValueDefinition valueDefinition) {
                 val variableName = valueDefinition.getName();
                 if (context.containsVariable(variableName)) {
-                    throw new SaplCompilerException(ERROR_VARIABLE_ALREADY_EXISTS.formatted(variableName));
+                    throw new SaplCompilerException(ERROR_VARIABLE_ALREADY_EXISTS.formatted(variableName),
+                            valueDefinition);
                 }
                 var compiledValueDefinition = ExpressionCompiler.compileExpression(valueDefinition.getEval(), context);
                 if (compiledValueDefinition instanceof StreamExpression streamExpression) {
@@ -591,14 +604,15 @@ public class SaplCompiler {
             val variableName            = valueDefinition.getName();
             val compiledValueDefinition = ExpressionCompiler.compileExpression(valueDefinition.getEval(), context);
             if (variableName == null || variableName.isBlank()) {
-                throw new SaplCompilerException(ERROR_VARIABLE_NAME_MISSING);
+                throw new SaplCompilerException(ERROR_VARIABLE_NAME_MISSING, valueDefinition);
             }
             if (compiledValueDefinition instanceof ErrorValue error) {
                 throw new SaplCompilerException(ERROR_POLICY_COMPILE_TIME_ERROR
-                        .formatted(EXPRESSION_VARIABLE_DEFINITION.formatted(variableName), error));
+                        .formatted(EXPRESSION_VARIABLE_DEFINITION.formatted(variableName), error), valueDefinition);
             }
             if (!context.addGlobalPolicySetVariable(variableName, compiledValueDefinition)) {
-                throw new SaplCompilerException(ERROR_VARIABLE_ALREADY_DEFINED.formatted(variableName));
+                throw new SaplCompilerException(ERROR_VARIABLE_ALREADY_DEFINED.formatted(variableName),
+                        valueDefinition);
             }
         }
         val combiningAlgorithm = policySet.getAlgorithm();
@@ -636,8 +650,8 @@ public class SaplCompiler {
                 schemaValidationExpression = schemaValidation;
             } else {
                 val finalSchemaValidationExpression = schemaValidationExpression;
-                schemaValidationExpression = new PureExpression(ctx -> BooleanOperators
-                        .and(finalSchemaValidationExpression.evaluate(ctx), schemaValidation.evaluate(ctx)), true);
+                schemaValidationExpression = new PureExpression(ctx -> BooleanOperators.and(schema,
+                        finalSchemaValidationExpression.evaluate(ctx), schemaValidation.evaluate(ctx)), true);
             }
         }
         return schemaValidationExpression == null ? Value.TRUE : schemaValidationExpression;
@@ -646,11 +660,12 @@ public class SaplCompiler {
     private PureExpression compileSchema(Schema schema, CompilationContext context) {
         val schemaValue = ExpressionCompiler.compileExpression(schema.getSchemaExpression(), context);
         if (!(schemaValue instanceof ObjectValue schemaObjectValue)) {
-            throw new SaplCompilerException(ERROR_SCHEMA_NOT_OBJECT_VALUE.formatted(schemaValue));
+            throw new SaplCompilerException(ERROR_SCHEMA_NOT_OBJECT_VALUE.formatted(schemaValue), schema);
         }
         val subscriptionElement = schema.getSubscriptionElement();
         if (!ReservedIdentifiers.SUBSCRIPTION_IDENTIFIERS.contains(subscriptionElement)) {
-            throw new SaplCompilerException(ERROR_SCHEMA_INVALID_SUBSCRIPTION_ELEMENT.formatted(subscriptionElement));
+            throw new SaplCompilerException(ERROR_SCHEMA_INVALID_SUBSCRIPTION_ELEMENT.formatted(subscriptionElement),
+                    schema);
         }
 
         return new PureExpression(ctx -> {

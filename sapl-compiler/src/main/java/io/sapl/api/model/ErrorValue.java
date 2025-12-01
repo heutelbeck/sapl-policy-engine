@@ -27,65 +27,95 @@ import java.util.Objects;
 
 /**
  * Error value representing a failure during policy evaluation. Errors are
- * values, not exceptions, enabling functional
- * error handling.
+ * values, not exceptions, enabling functional error handling.
+ *
+ * <p>
+ * Errors can optionally carry a {@link SourceLocation} indicating where in the
+ * SAPL source code the error occurred. This is invaluable for debugging policy
+ * evaluation failures.
+ *
+ * @param message the error message describing what went wrong
+ * @param cause the underlying exception, if any (may be null)
+ * @param secret whether this error contains sensitive information
+ * @param location the source location where the error occurred (may be null)
  */
-public record ErrorValue(String message, Throwable cause, boolean secret) implements Value {
+public record ErrorValue(String message, Throwable cause, boolean secret, SourceLocation location) implements Value {
 
     @Serial
     private static final long serialVersionUID = SaplVersion.VERSION_UID;
 
-    public ErrorValue(@NonNull String message, @NonNull Throwable cause) {
-        this(message, cause, false);
+    /**
+     * Creates an error with message, cause, and secret flag but no location.
+     *
+     * @param message the error message (must not be null)
+     * @param cause the exception (may be null)
+     * @param secret whether secret
+     */
+    public ErrorValue(@NonNull String message, Throwable cause, boolean secret) {
+        this(message, cause, secret, null);
     }
 
     /**
-     * Creates an error from an exception.
+     * Creates an error with message and cause, not secret, no location.
      *
-     * @param cause
-     * the exception (must not be null)
-     * @param secret
-     * whether secret
+     * @param message the error message (must not be null)
+     * @param cause the exception (must not be null)
+     */
+    public ErrorValue(@NonNull String message, @NonNull Throwable cause) {
+        this(message, cause, false, null);
+    }
+
+    /**
+     * Creates an error from an exception with secret flag, no location.
+     *
+     * @param cause the exception (must not be null)
+     * @param secret whether secret
      */
     public ErrorValue(@NonNull Throwable cause, boolean secret) {
-        this(cause.getMessage(), cause, secret);
+        this(cause.getMessage(), cause, secret, null);
     }
 
     /**
-     * Creates an error from an exception (not secret).
+     * Creates an error from an exception, not secret, no location.
      *
-     * @param cause
-     * the exception (must not be null)
+     * @param cause the exception (must not be null)
      */
     public ErrorValue(@NonNull Throwable cause) {
-        this(cause.getMessage(), cause, false);
+        this(cause.getMessage(), cause, false, null);
     }
 
     /**
-     * Creates an error with a message.
+     * Creates an error with a message and secret flag, no cause, no location.
      *
-     * @param message
-     * the error message (must not be null)
-     * @param secret
-     * whether secret
+     * @param message the error message (must not be null)
+     * @param secret whether secret
      */
     public ErrorValue(@NonNull String message, boolean secret) {
-        this(message, null, secret);
+        this(message, null, secret, null);
     }
 
     /**
-     * Creates an error with a message (not secret).
+     * Creates an error with a message only, not secret, no cause, no location.
      *
-     * @param message
-     * the error message (must not be null)
+     * @param message the error message (must not be null)
      */
     public ErrorValue(@NonNull String message) {
-        this(message, null, false);
+        this(message, null, false, null);
     }
 
     @Override
     public Value asSecret() {
-        return secret ? this : new ErrorValue(message, cause, true);
+        return secret ? this : new ErrorValue(message, cause, true, location);
+    }
+
+    /**
+     * Creates a copy of this error with the specified source location.
+     *
+     * @param newLocation the source location to attach
+     * @return a new ErrorValue with the location set
+     */
+    public ErrorValue withLocation(SourceLocation newLocation) {
+        return new ErrorValue(message, cause, secret, newLocation);
     }
 
     @Override
@@ -94,10 +124,15 @@ public record ErrorValue(String message, Throwable cause, boolean secret) implem
             return SECRET_PLACEHOLDER;
         }
         val printMessage = message == null ? "unknown error" : message;
+        var result       = new StringBuilder("ERROR[message=\"").append(printMessage).append("\"");
         if (cause != null) {
-            return "ERROR[message=\"" + printMessage + "\", cause=" + cause.getClass().getSimpleName() + "]";
+            result.append(", cause=").append(cause.getClass().getSimpleName());
         }
-        return "ERROR[message=\"" + printMessage + "\"]";
+        if (location != null) {
+            result.append(", at=").append(location);
+        }
+        result.append("]");
+        return result.toString();
     }
 
     @Override
@@ -106,7 +141,8 @@ public record ErrorValue(String message, Throwable cause, boolean secret) implem
             return true;
         if (!(that instanceof ErrorValue thatError))
             return false;
-        // Equality based on message and cause type (not cause instance).
+        // Equality based on message and cause type (not cause instance or location).
+        // Location is diagnostic information and should not affect equality.
         return Objects.equals(message, thatError.message) && Objects.equals(getCauseClass(), thatError.getCauseClass());
     }
 

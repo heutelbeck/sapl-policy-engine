@@ -22,6 +22,7 @@ import io.sapl.api.functions.FunctionBroker;
 import io.sapl.api.model.CompiledExpression;
 import io.sapl.api.model.Value;
 import io.sapl.grammar.sapl.Import;
+import io.sapl.prp.Document;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.Setter;
@@ -50,9 +51,10 @@ import java.util.function.Function;
 @ToString
 @RequiredArgsConstructor
 public class CompilationContext {
+    Document                                document;
+    String                                  documentSource;
     final FunctionBroker                    functionBroker;
     final AttributeBroker                   attributeBroker;
-    final boolean                           debugInformationEnabled  = false;
     List<Import>                            imports                  = new ArrayList<>();
     private Map<String, CompiledExpression> documentVariablesInScope = new HashMap<>();
     Map<Value, Value>                       constantsCache           = new HashMap<>();
@@ -141,9 +143,6 @@ public class CompilationContext {
      * @return the canonical instance of this constant
      */
     public CompiledExpression dedupe(Value constantValue) {
-        if (debugInformationEnabled) {
-            return constantValue;
-        }
         return constantsCache.computeIfAbsent(constantValue, Function.identity());
     }
 

@@ -17,13 +17,63 @@
  */
 package io.sapl.compiler;
 
-import lombok.experimental.StandardException;
+import io.sapl.api.SaplVersion;
+import io.sapl.api.model.SourceLocation;
+import lombok.Getter;
+import org.eclipse.emf.ecore.EObject;
+
+import java.io.Serial;
 
 /**
  * Thrown when SAPL compilation fails due to invalid policy structure or
- * unsupported constructs. Indicates a bug in the
- * policy document or compiler implementation.
+ * unsupported constructs. Indicates a bug in the policy document or compiler
+ * implementation.
  */
-@StandardException
+@Getter
 public class SaplCompilerException extends RuntimeException {
+
+    @Serial
+    private static final long serialVersionUID = SaplVersion.VERSION_UID;
+
+    private final SourceLocation location;
+
+    public SaplCompilerException() {
+        super();
+        this.location = null;
+    }
+
+    public SaplCompilerException(String message) {
+        super(message);
+        this.location = null;
+    }
+
+    public SaplCompilerException(String message, Throwable cause) {
+        super(message, cause);
+        this.location = null;
+    }
+
+    public SaplCompilerException(Throwable cause) {
+        super(cause);
+        this.location = null;
+    }
+
+    public SaplCompilerException(String message, SourceLocation location) {
+        super(message);
+        this.location = location;
+    }
+
+    public SaplCompilerException(String message, Throwable cause, SourceLocation location) {
+        super(message, cause);
+        this.location = location;
+    }
+
+    public SaplCompilerException(String message, EObject astNode) {
+        super(message);
+        this.location = SourceLocationUtil.fromAstNode(astNode);
+    }
+
+    public SaplCompilerException(String message, Throwable cause, EObject astNode) {
+        super(message, cause);
+        this.location = SourceLocationUtil.fromAstNode(astNode);
+    }
 }

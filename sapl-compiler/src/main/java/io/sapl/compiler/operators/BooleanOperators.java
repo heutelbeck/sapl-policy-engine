@@ -19,7 +19,9 @@ package io.sapl.compiler.operators;
 
 import io.sapl.api.model.BooleanValue;
 import io.sapl.api.model.Value;
+import io.sapl.compiler.Error;
 import lombok.experimental.UtilityClass;
+import org.eclipse.emf.ecore.EObject;
 
 import java.util.function.BinaryOperator;
 
@@ -46,8 +48,8 @@ public class BooleanOperators {
      * if either operand is not a
      * BooleanValue
      */
-    public static Value and(Value a, Value b) {
-        return applyBooleanOperation(a, b, (left, right) -> left && right);
+    public static Value and(EObject astNode, Value a, Value b) {
+        return applyBooleanOperation(astNode, a, b, (left, right) -> left && right);
     }
 
     /**
@@ -62,8 +64,8 @@ public class BooleanOperators {
      * error if either operand is not a
      * BooleanValue
      */
-    public static Value or(Value a, Value b) {
-        return applyBooleanOperation(a, b, (left, right) -> left || right);
+    public static Value or(EObject astNode, Value a, Value b) {
+        return applyBooleanOperation(astNode, a, b, (left, right) -> left || right);
     }
 
     /**
@@ -78,8 +80,8 @@ public class BooleanOperators {
      * error if either operand is not a
      * BooleanValue
      */
-    public static Value xor(Value a, Value b) {
-        return applyBooleanOperation(a, b, (left, right) -> left ^ right);
+    public static Value xor(EObject astNode, Value a, Value b) {
+        return applyBooleanOperation(astNode, a, b, (left, right) -> left ^ right);
     }
 
     /**
@@ -96,12 +98,13 @@ public class BooleanOperators {
      * @return result of the operation with combined secret flag, or error if type
      * mismatch
      */
-    private static Value applyBooleanOperation(Value left, Value right, BinaryOperator<Boolean> operation) {
+    private static Value applyBooleanOperation(EObject astNode, Value left, Value right,
+            BinaryOperator<Boolean> operation) {
         if (!(left instanceof BooleanValue boolLeft)) {
-            return Value.error(TYPE_MISMATCH_BOOLEAN_EXPECTED_ERROR, left);
+            return Error.at(astNode, TYPE_MISMATCH_BOOLEAN_EXPECTED_ERROR, left);
         }
         if (!(right instanceof BooleanValue boolRight)) {
-            return Value.error(TYPE_MISMATCH_BOOLEAN_EXPECTED_ERROR, right);
+            return Error.at(astNode, TYPE_MISMATCH_BOOLEAN_EXPECTED_ERROR, right);
         }
         return preserveSecret(operation.apply(boolLeft.value(), boolRight.value()), left.secret() || right.secret());
     }
@@ -115,9 +118,9 @@ public class BooleanOperators {
      * @return negated boolean value preserving secret flag, or error if operand is
      * not a BooleanValue
      */
-    public static Value not(Value value) {
+    public static Value not(EObject astNode, Value value) {
         if (!(value instanceof BooleanValue(boolean bool, boolean secret))) {
-            return Value.error(TYPE_MISMATCH_BOOLEAN_EXPECTED_ERROR, value);
+            return Error.at(astNode, TYPE_MISMATCH_BOOLEAN_EXPECTED_ERROR, value);
         }
         return preserveSecret(!bool, secret);
     }

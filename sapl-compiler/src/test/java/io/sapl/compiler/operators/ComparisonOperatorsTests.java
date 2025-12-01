@@ -37,7 +37,7 @@ class ComparisonOperatorsTests {
     @ParameterizedTest(name = "{0}")
     @MethodSource
     void when_equals_then_returnsExpectedValue(String description, Value a, Value b, boolean expected) {
-        val actual = ComparisonOperators.equals(a, b);
+        val actual = ComparisonOperators.equals(null, a, b);
         assertThat(actual).isEqualTo(Value.of(expected));
     }
 
@@ -58,7 +58,7 @@ class ComparisonOperatorsTests {
     @ParameterizedTest(name = "{0}")
     @MethodSource
     void when_notEquals_then_returnsExpectedValue(String description, Value a, Value b, boolean expected) {
-        val actual = ComparisonOperators.notEquals(a, b);
+        val actual = ComparisonOperators.notEquals(null, a, b);
         assertThat(actual).isEqualTo(Value.of(expected));
     }
 
@@ -74,7 +74,7 @@ class ComparisonOperatorsTests {
     @MethodSource
     void when_isContainedIn_then_returnsExpectedValue(String description, Value needle, Value haystack,
             boolean expected) {
-        val actual = ComparisonOperators.isContainedIn(needle, haystack);
+        val actual = ComparisonOperators.isContainedIn(null, needle, haystack);
         assertThat(actual).isEqualTo(Value.of(expected));
     }
 
@@ -101,7 +101,7 @@ class ComparisonOperatorsTests {
     @ParameterizedTest(name = "{0}")
     @MethodSource
     void when_isContainedIn_withTypeMismatch_then_returnsError(String description, Value needle, Value haystack) {
-        val actual = ComparisonOperators.isContainedIn(needle, haystack);
+        val actual = ComparisonOperators.isContainedIn(null, needle, haystack);
         assertThat(actual).isInstanceOf(ErrorValue.class).extracting(v -> ((ErrorValue) v).message()).asString()
                 .contains("'in' operator");
     }
@@ -117,7 +117,7 @@ class ComparisonOperatorsTests {
     @MethodSource
     void when_matchesRegularExpression_then_returnsExpectedValue(String description, Value input, Value regex,
             boolean expected) {
-        val actual = ComparisonOperators.matchesRegularExpression(input, regex);
+        val actual = ComparisonOperators.matchesRegularExpression(null, input, regex);
         assertThat(actual).isEqualTo(Value.of(expected));
     }
 
@@ -133,7 +133,7 @@ class ComparisonOperatorsTests {
 
     @Test
     void when_matchesRegularExpression_withInvalidPattern_then_returnsError() {
-        val actual = ComparisonOperators.matchesRegularExpression(Value.of("text"), Value.of("[invalid"));
+        val actual = ComparisonOperators.matchesRegularExpression(null, Value.of("text"), Value.of("[invalid"));
         assertThat(actual).isInstanceOf(ErrorValue.class).extracting(v -> ((ErrorValue) v).message()).asString()
                 .contains("Invalid regular expression");
     }
@@ -142,7 +142,7 @@ class ComparisonOperatorsTests {
     @MethodSource
     void when_matchesRegularExpression_withTypeMismatch_then_returnsError(String description, Value input, Value regex,
             String expectedErrorFragment) {
-        val actual = ComparisonOperators.matchesRegularExpression(input, regex);
+        val actual = ComparisonOperators.matchesRegularExpression(null, input, regex);
         assertThat(actual).isInstanceOf(ErrorValue.class).extracting(v -> ((ErrorValue) v).message()).asString()
                 .contains(expectedErrorFragment);
     }
@@ -155,7 +155,7 @@ class ComparisonOperatorsTests {
 
     @Test
     void when_compileRegularExpressionOperator_withValidPattern_then_returnsOperator() {
-        val operator = ComparisonOperators.compileRegularExpressionOperator(Value.of("\\d+"));
+        val operator = ComparisonOperators.compileRegularExpressionOperator(null, Value.of("\\d+"));
 
         val matchResult = operator.apply(Value.of("123"));
         assertThat(matchResult).isEqualTo(Value.TRUE);
@@ -170,7 +170,7 @@ class ComparisonOperatorsTests {
     @MethodSource("secretFlagTestCases")
     void when_equals_withSecrets_then_preservesSecretFlag(String description, Value a, Value b,
             boolean expectedSecret) {
-        val actual = ComparisonOperators.equals(a, b);
+        val actual = ComparisonOperators.equals(null, a, b);
         assertThat(actual.secret()).isEqualTo(expectedSecret);
     }
 
@@ -178,7 +178,7 @@ class ComparisonOperatorsTests {
     @MethodSource("secretFlagTestCases")
     void when_notEquals_withSecrets_then_preservesSecretFlag(String description, Value a, Value b,
             boolean expectedSecret) {
-        val actual = ComparisonOperators.notEquals(a, b);
+        val actual = ComparisonOperators.notEquals(null, a, b);
         assertThat(actual.secret()).isEqualTo(expectedSecret);
     }
 
@@ -186,7 +186,7 @@ class ComparisonOperatorsTests {
     @MethodSource("secretFlagTestCasesForContainedIn")
     void when_isContainedIn_withSecrets_then_preservesSecretFlag(String description, Value needle, Value haystack,
             boolean expectedSecret) {
-        val actual = ComparisonOperators.isContainedIn(needle, haystack);
+        val actual = ComparisonOperators.isContainedIn(null, needle, haystack);
         assertThat(actual.secret()).isEqualTo(expectedSecret);
     }
 
@@ -194,7 +194,7 @@ class ComparisonOperatorsTests {
     @MethodSource("secretFlagTestCases")
     void when_matchesRegularExpression_withSecrets_then_preservesSecretFlag(String description, Value input,
             Value regex, boolean expectedSecret) {
-        val actual = ComparisonOperators.matchesRegularExpression(input, regex);
+        val actual = ComparisonOperators.matchesRegularExpression(null, input, regex);
         assertThat(actual.secret()).isEqualTo(expectedSecret);
     }
 
@@ -202,7 +202,7 @@ class ComparisonOperatorsTests {
     @MethodSource("secretFlagTestCases")
     void when_compileRegularExpressionOperator_withSecrets_then_preservesSecretFlag(String description, Value regex,
             Value input, boolean expectedSecret) {
-        val operator = ComparisonOperators.compileRegularExpressionOperator(regex);
+        val operator = ComparisonOperators.compileRegularExpressionOperator(null, regex);
         val result   = operator.apply(input);
         assertThat(result.secret()).isEqualTo(expectedSecret);
     }
@@ -226,7 +226,7 @@ class ComparisonOperatorsTests {
     @MethodSource
     void when_compileRegularExpressionOperator_withInvalidInput_then_throwsException(String description, Value regex,
             String expectedErrorFragment) {
-        assertThatThrownBy(() -> ComparisonOperators.compileRegularExpressionOperator(regex))
+        assertThatThrownBy(() -> ComparisonOperators.compileRegularExpressionOperator(null, regex))
                 .isInstanceOf(SaplCompilerException.class).hasMessageContaining(expectedErrorFragment);
     }
 
@@ -237,7 +237,7 @@ class ComparisonOperatorsTests {
 
     @Test
     void when_compiledOperator_withNonTextInput_then_returnsError() {
-        val operator = ComparisonOperators.compileRegularExpressionOperator(Value.of("test"));
+        val operator = ComparisonOperators.compileRegularExpressionOperator(null, Value.of("test"));
 
         val result = operator.apply(Value.of(5));
         assertThat(result).isInstanceOf(ErrorValue.class).extracting(v -> ((ErrorValue) v).message()).asString()

@@ -18,7 +18,10 @@
 package io.sapl.compiler.operators;
 
 import io.sapl.api.model.*;
+import io.sapl.compiler.Error;
+import io.sapl.compiler.SourceLocationUtil;
 import lombok.experimental.UtilityClass;
+import org.eclipse.emf.ecore.EObject;
 
 import java.math.BigDecimal;
 import java.util.function.BiPredicate;
@@ -51,14 +54,14 @@ public class NumberOperators {
      * @return sum of two numbers, or concatenated string if left operand is text,
      * or error if type mismatch
      */
-    public static Value add(Value a, Value b) {
+    public static Value add(EObject astOperator, Value a, Value b) {
         if (a instanceof TextValue leftText) {
             if (!(b instanceof TextValue rightText)) {
                 return new TextValue(leftText.value() + b.toString(), a.secret() || b.secret());
             }
             return new TextValue(leftText.value() + rightText.value(), a.secret() || b.secret());
         }
-        return applyNumericOperation(a, b, BigDecimal::add);
+        return applyNumericOperation(astOperator, a, b, BigDecimal::add);
     }
 
     /**
@@ -72,8 +75,8 @@ public class NumberOperators {
      * @return difference of the two numbers, or error if either operand is not a
      * NumberValue
      */
-    public static Value subtract(Value a, Value b) {
-        return applyNumericOperation(a, b, BigDecimal::subtract);
+    public static Value subtract(EObject astOperator, Value a, Value b) {
+        return applyNumericOperation(astOperator, a, b, BigDecimal::subtract);
     }
 
     /**
@@ -87,8 +90,8 @@ public class NumberOperators {
      * @return product of the two numbers, or error if either operand is not a
      * NumberValue
      */
-    public static Value multiply(Value a, Value b) {
-        return applyNumericOperation(a, b, BigDecimal::multiply);
+    public static Value multiply(EObject astOperator, Value a, Value b) {
+        return applyNumericOperation(astOperator, a, b, BigDecimal::multiply);
     }
 
     /**
@@ -102,11 +105,12 @@ public class NumberOperators {
      * @return quotient of the division, or error if either operand is not a
      * NumberValue or division is not exact
      */
-    public static Value divide(Value a, Value b) {
+    public static Value divide(EObject astOperator, Value a, Value b) {
         try {
-            return applyNumericOperation(a, b, BigDecimal::divide);
+            return applyNumericOperation(astOperator, a, b, BigDecimal::divide);
         } catch (ArithmeticException e) {
-            return new ErrorValue(e, a.secret() || b.secret());
+            return new ErrorValue(e.getMessage(), e, a.secret() || b.secret(),
+                    SourceLocationUtil.fromAstNode(astOperator));
         }
     }
 
@@ -124,15 +128,16 @@ public class NumberOperators {
      * is secret, or an ErrorValue if the
      * divisor is zero
      */
-    public static Value modulo(Value dividend, Value divisor) {
+    public static Value modulo(EObject astOperator, Value dividend, Value divisor) {
         if (!(dividend instanceof NumberValue(BigDecimal dividendValue, boolean dividendSecret))) {
-            return Value.error(TYPE_MISMATCH_NUMBER_EXPECTED_ERROR, dividend);
+            return Error.at(astOperator, TYPE_MISMATCH_NUMBER_EXPECTED_ERROR, dividend);
         }
         if (!(divisor instanceof NumberValue(BigDecimal divisorValue, boolean divisorSecret))) {
-            return Value.error(TYPE_MISMATCH_NUMBER_EXPECTED_ERROR, dividend);
+            return Error.at(astOperator, TYPE_MISMATCH_NUMBER_EXPECTED_ERROR, dividend);
         }
         if (divisorValue.signum() == 0) {
-            return new ErrorValue("Division by zero.", dividendSecret || divisorSecret);
+            return new ErrorValue("Division by zero.", null, dividendSecret || divisorSecret,
+                    SourceLocationUtil.fromAstNode(astOperator));
         }
         var result = dividendValue.remainder(divisorValue);
         // Adjust to mathematical modulo: ensure non-negative result for positive
@@ -151,9 +156,9 @@ public class NumberOperators {
      *
      * @return the value itself if it is a NumberValue, or error if not
      */
-    public static Value unaryPlus(Value v) {
+    public static Value unaryPlus(EObject astOperator, Value v) {
         if (!(v instanceof NumberValue)) {
-            return Value.error(TYPE_MISMATCH_NUMBER_EXPECTED_ERROR, v);
+            return Error.at(astOperator, TYPE_MISMATCH_NUMBER_EXPECTED_ERROR, v);
         }
         return v;
     }
@@ -166,9 +171,9 @@ public class NumberOperators {
      *
      * @return negated number preserving secret flag, or error if not a NumberValue
      */
-    public static Value unaryMinus(Value v) {
+    public static Value unaryMinus(EObject astOperator, Value v) {
         if (!(v instanceof NumberValue(BigDecimal number, boolean secret))) {
-            return Value.error(TYPE_MISMATCH_NUMBER_EXPECTED_ERROR, v);
+            return Error.at(astOperator, TYPE_MISMATCH_NUMBER_EXPECTED_ERROR, v);
         }
         return new NumberValue(number.negate(), secret);
     }
@@ -184,8 +189,8 @@ public class NumberOperators {
      * @return Value.TRUE if a &lt; b, Value.FALSE otherwise, or error if either
      * operand is not a NumberValue
      */
-    public static Value lessThan(Value a, Value b) {
-        return applyNumericComparison(a, b, (left, right) -> left.compareTo(right) < 0);
+    public static Value lessThan(EObject astOperator, Value a, Value b) {
+        return applyNumericComparison(astOperator, a, b, (left, right) -> left.compareTo(right) < 0);
     }
 
     /**
@@ -199,8 +204,8 @@ public class NumberOperators {
      * @return Value.TRUE if a &lt;= b, Value.FALSE otherwise, or error if either
      * operand is not a NumberValue
      */
-    public static Value lessThanOrEqual(Value a, Value b) {
-        return applyNumericComparison(a, b, (left, right) -> left.compareTo(right) <= 0);
+    public static Value lessThanOrEqual(EObject astOperator, Value a, Value b) {
+        return applyNumericComparison(astOperator, a, b, (left, right) -> left.compareTo(right) <= 0);
     }
 
     /**
@@ -214,8 +219,8 @@ public class NumberOperators {
      * @return Value.TRUE if a &gt; b, Value.FALSE otherwise, or error if either
      * operand is not a NumberValue
      */
-    public static Value greaterThan(Value a, Value b) {
-        return applyNumericComparison(a, b, (left, right) -> left.compareTo(right) > 0);
+    public static Value greaterThan(EObject astOperator, Value a, Value b) {
+        return applyNumericComparison(astOperator, a, b, (left, right) -> left.compareTo(right) > 0);
     }
 
     /**
@@ -229,8 +234,8 @@ public class NumberOperators {
      * @return Value.TRUE if a &gt;= b, Value.FALSE otherwise, or error if either
      * operand is not a NumberValue
      */
-    public static Value greaterThanOrEqual(Value a, Value b) {
-        return applyNumericComparison(a, b, (left, right) -> left.compareTo(right) >= 0);
+    public static Value greaterThanOrEqual(EObject astOperator, Value a, Value b) {
+        return applyNumericComparison(astOperator, a, b, (left, right) -> left.compareTo(right) >= 0);
     }
 
     /**
@@ -247,13 +252,13 @@ public class NumberOperators {
      * @return result of the comparison with combined secret flag, or error if type
      * mismatch
      */
-    private static Value applyNumericComparison(Value left, Value right,
+    private static Value applyNumericComparison(EObject astOperator, Value left, Value right,
             BiPredicate<BigDecimal, BigDecimal> comparison) {
         if (!(left instanceof NumberValue(BigDecimal leftValue, boolean leftSecret))) {
-            return Value.error(TYPE_MISMATCH_NUMBER_EXPECTED_ERROR, left);
+            return Error.at(astOperator, TYPE_MISMATCH_NUMBER_EXPECTED_ERROR, left);
         }
         if (!(right instanceof NumberValue(BigDecimal rightValue, boolean rightSecret))) {
-            return Value.error(TYPE_MISMATCH_NUMBER_EXPECTED_ERROR, right);
+            return Error.at(astOperator, TYPE_MISMATCH_NUMBER_EXPECTED_ERROR, right);
         }
         return preserveSecret(comparison.test(leftValue, rightValue), leftSecret || rightSecret);
     }
@@ -289,12 +294,13 @@ public class NumberOperators {
      * @return result of the operation with combined secret flag, or error if type
      * mismatch
      */
-    private static Value applyNumericOperation(Value left, Value right, BinaryOperator<BigDecimal> operation) {
+    private static Value applyNumericOperation(EObject astOperator, Value left, Value right,
+            BinaryOperator<BigDecimal> operation) {
         if (!(left instanceof NumberValue(BigDecimal leftValue, boolean leftSecret))) {
-            return Value.error(TYPE_MISMATCH_NUMBER_EXPECTED_ERROR, left);
+            return Error.at(astOperator, TYPE_MISMATCH_NUMBER_EXPECTED_ERROR, left);
         }
         if (!(right instanceof NumberValue(BigDecimal rightValue, boolean rightSecret))) {
-            return Value.error(TYPE_MISMATCH_NUMBER_EXPECTED_ERROR, right);
+            return Error.at(astOperator, TYPE_MISMATCH_NUMBER_EXPECTED_ERROR, right);
         }
         return new NumberValue(operation.apply(leftValue, rightValue), leftSecret || rightSecret);
     }

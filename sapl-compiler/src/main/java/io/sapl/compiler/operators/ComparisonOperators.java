@@ -18,9 +18,11 @@
 package io.sapl.compiler.operators;
 
 import io.sapl.api.model.*;
+import io.sapl.compiler.Error;
 import io.sapl.compiler.SaplCompilerException;
 import lombok.experimental.UtilityClass;
 import lombok.val;
+import org.eclipse.emf.ecore.EObject;
 
 import java.util.function.UnaryOperator;
 import java.util.regex.Pattern;
@@ -37,7 +39,7 @@ import java.util.regex.PatternSyntaxException;
 public class ComparisonOperators {
 
     private static final String ERROR_IN_OPERATOR_TYPE_MISMATCH   = "'in' operator supports value lookup in arrays or objects, as well as substring matching with two strings. But I got: %s in %s.";
-    private static final String ERROR_REGEX_INVALID               = "Invalid regular expression: %s";
+    private static final String ERROR_REGEX_INVALID               = "Invalid regular expression: %s - %s.";
     private static final String ERROR_REGEX_MUST_BE_STRING        = "Regular expressions must be strings, but got: %s.";
     private static final String ERROR_REGEX_TARGET_MUST_BE_STRING = "Regular expressions can only be matched against strings, but got: %s.";
 
@@ -52,7 +54,7 @@ public class ComparisonOperators {
      * @return Value.TRUE if values are equal, Value.FALSE otherwise, with combined
      * secret flag
      */
-    public static Value equals(Value a, Value b) {
+    public static Value equals(EObject ignored, Value a, Value b) {
         return preserveSecret(a.equals(b), a.secret() || b.secret());
     }
 
@@ -67,7 +69,7 @@ public class ComparisonOperators {
      * @return Value.TRUE if values are not equal, Value.FALSE otherwise, with
      * combined secret flag
      */
-    public static Value notEquals(Value a, Value b) {
+    public static Value notEquals(EObject ignored, Value a, Value b) {
         return preserveSecret(!a.equals(b), a.secret() || b.secret());
     }
 
@@ -89,7 +91,7 @@ public class ComparisonOperators {
      * @return Value.TRUE if needle is found, Value.FALSE otherwise, or error if
      * type mismatch
      */
-    public static Value isContainedIn(Value needle, Value haystack) {
+    public static Value isContainedIn(EObject astNode, Value needle, Value haystack) {
         val secret = needle.secret() || haystack.secret();
         if (haystack instanceof ArrayValue array) {
             return preserveSecret(array.contains(needle), secret);
@@ -100,7 +102,7 @@ public class ComparisonOperators {
         if (haystack instanceof TextValue textHaystack && needle instanceof TextValue textNeedle) {
             return preserveSecret(textHaystack.value().contains(textNeedle.value()), secret);
         }
-        return Value.error(ERROR_IN_OPERATOR_TYPE_MISMATCH, needle, haystack);
+        return Error.at(astNode, ERROR_IN_OPERATOR_TYPE_MISMATCH, needle, haystack);
     }
 
     /**
@@ -115,18 +117,18 @@ public class ComparisonOperators {
      * or error if types are invalid or
      * pattern is malformed
      */
-    public static Value matchesRegularExpression(Value input, Value regex) {
+    public static Value matchesRegularExpression(EObject astNode, Value input, Value regex) {
         if (!(input instanceof TextValue inputText)) {
-            return Value.error(ERROR_REGEX_TARGET_MUST_BE_STRING, input);
+            return Error.at(astNode, ERROR_REGEX_TARGET_MUST_BE_STRING, input);
         }
         if (!(regex instanceof TextValue regexText)) {
-            return Value.error(ERROR_REGEX_MUST_BE_STRING, regex);
+            return Error.at(astNode, ERROR_REGEX_MUST_BE_STRING, regex);
         }
         val secret = input.secret() || regex.secret();
         try {
             return preserveSecret(Pattern.matches(regexText.value(), inputText.value()), secret);
         } catch (PatternSyntaxException e) {
-            return Value.error(ERROR_REGEX_INVALID, regex);
+            return Error.at(astNode, ERROR_REGEX_INVALID, regex, e.getMessage());
         }
     }
 
@@ -144,22 +146,22 @@ public class ComparisonOperators {
      * @throws SaplCompilerException
      * if regex is not a TextValue or pattern is malformed
      */
-    public UnaryOperator<Value> compileRegularExpressionOperator(Value regex) {
+    public UnaryOperator<Value> compileRegularExpressionOperator(EObject astNode, Value regex) {
         if (!(regex instanceof TextValue regexText)) {
-            throw new SaplCompilerException(String.format(ERROR_REGEX_MUST_BE_STRING, regex));
+            throw new SaplCompilerException(String.format(ERROR_REGEX_MUST_BE_STRING, regex), astNode);
         }
         try {
             val pattern     = Pattern.compile(regexText.value()).asMatchPredicate();
             val regexSecret = regex.secret();
             return input -> {
                 if (!(input instanceof TextValue inputText)) {
-                    return Value.error(ERROR_REGEX_TARGET_MUST_BE_STRING, input);
+                    return Error.at(astNode, ERROR_REGEX_TARGET_MUST_BE_STRING, input);
                 }
                 val secret = input.secret() || regexSecret;
                 return preserveSecret(pattern.test(inputText.value()), secret);
             };
         } catch (IllegalArgumentException e) {
-            throw new SaplCompilerException(String.format(ERROR_REGEX_INVALID, regex), e);
+            throw new SaplCompilerException(String.format(ERROR_REGEX_INVALID, regex, e.getMessage()), astNode);
         }
     }
 

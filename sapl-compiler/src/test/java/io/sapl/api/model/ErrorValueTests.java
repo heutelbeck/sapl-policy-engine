@@ -37,7 +37,8 @@ class ErrorValueTests {
         ErrorValue error;
 
         if (useCanonical) {
-            error = new ErrorValue(message, cause, secret);
+            // Use canonical 4-arg constructor which allows null message
+            error = new ErrorValue(message, cause, secret, null);
         } else if (cause != null && message != null) {
             error = secret ? new ErrorValue(cause, true) : new ErrorValue(cause);
         } else if (cause != null) {
@@ -66,7 +67,7 @@ class ErrorValueTests {
 
     @Test
     void when_canonicalConstructorCalledWithNullMessage_then_allowsNull() {
-        var error = new ErrorValue(null, new RuntimeException(), false);
+        var error = new ErrorValue(null, new RuntimeException(), false, null);
 
         assertThat(error.message()).isNull();
     }
@@ -133,9 +134,10 @@ class ErrorValueTests {
                 arguments(new ErrorValue("msg", new RuntimeException(), false),
                         new ErrorValue("msg", new IllegalArgumentException(), false), false),
                 arguments(new ErrorValue("msg", new RuntimeException(), false), new ErrorValue("msg", false), false),
-                arguments(new ErrorValue(null, new RuntimeException(), false),
-                        new ErrorValue(null, new RuntimeException(), false), true),
-                arguments(new ErrorValue(null, new RuntimeException(), false),
+                // Use canonical 4-arg constructor for null message test cases
+                arguments(new ErrorValue(null, new RuntimeException(), false, null),
+                        new ErrorValue(null, new RuntimeException(), false, null), true),
+                arguments(new ErrorValue(null, new RuntimeException(), false, null),
                         new ErrorValue("msg", new RuntimeException(), false), false));
     }
 
@@ -143,7 +145,8 @@ class ErrorValueTests {
     @MethodSource
     void when_toStringCalled_then_formatsAppropriately(String message, Throwable cause, boolean secret,
             String testDescription) {
-        var error  = new ErrorValue(message, cause, secret);
+        // Use canonical 4-arg constructor to allow null message in test cases
+        var error  = new ErrorValue(message, cause, secret, null);
         var result = error.toString();
 
         if (secret) {
@@ -174,15 +177,17 @@ class ErrorValueTests {
         Value result = Value.error("Database connection failed");
 
         var recovery = switch (result) {
-        case ErrorValue(String msg, Throwable ignore, boolean ignoreSecret) when msg != null && msg.contains(
-                "Database")                                                                                              ->
+        case ErrorValue(String msg, Throwable ignore, boolean ignoreSecret, SourceLocation ignoreLoc) when msg != null
+                && msg.contains(
+                        "Database")                                                                                                                ->
             "Retry with backup";
-        case ErrorValue(String msg, Throwable ignore, boolean ignoreSecret) when msg != null && msg.contains(
-                "Network")                                                                                               ->
+        case ErrorValue(String msg, Throwable ignore, boolean ignoreSecret, SourceLocation ignoreLoc) when msg != null
+                && msg.contains(
+                        "Network")                                                                                                                 ->
             "Check connectivity";
-        case ErrorValue e                                                                                                ->
+        case ErrorValue e                                                                                                                          ->
             "Generic recovery";
-        default                                                                                                          ->
+        default                                                                                                                                    ->
             "No recovery needed";
         };
 
@@ -194,11 +199,11 @@ class ErrorValueTests {
         Value result = Value.error("Failed", new IllegalArgumentException());
 
         var isValidationError = switch (result) {
-        case ErrorValue(String ignore, Throwable cause, boolean ignoreToo) when cause instanceof IllegalArgumentException ->
+        case ErrorValue(String ignore, Throwable cause, boolean ignoreToo, SourceLocation ignoreLoc) when cause instanceof IllegalArgumentException ->
             true;
-        case ErrorValue e                                                                                                 ->
+        case ErrorValue e                                                                                                                           ->
             false;
-        default                                                                                                           ->
+        default                                                                                                                                     ->
             false;
         };
 

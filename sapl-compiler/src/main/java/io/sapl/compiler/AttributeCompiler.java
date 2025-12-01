@@ -132,7 +132,7 @@ public class AttributeCompiler {
             HeadAttributeFinderStep attributeFinderStep, CompilationContext context) {
         val fullStream = compileAttributeFinderStep(attributeFinderStep, entity, attributeFinderStep.getIdentifier(),
                 attributeFinderStep.getArguments(), attributeFinderStep.getAttributeFinderOptions(), context);
-        return fullStreamToHead(fullStream);
+        return fullStreamToHead(attributeFinderStep, fullStream);
     }
 
     /**
@@ -151,19 +151,19 @@ public class AttributeCompiler {
             CompilationContext context) {
         val fullStream = compileAttributeFinderStep(envAttribute, null, envAttribute.getIdentifier(),
                 envAttribute.getArguments(), envAttribute.getAttributeFinderOptions(), context);
-        return fullStreamToHead(fullStream);
+        return fullStreamToHead(envAttribute, fullStream);
     }
 
     /**
      * Applies {@code take(1)} to stream. Throws if not {@link StreamExpression}
      * (implementation bug).
      */
-    private CompiledExpression fullStreamToHead(CompiledExpression fullStream) {
+    private CompiledExpression fullStreamToHead(EObject astNode, CompiledExpression fullStream) {
         return switch (fullStream) {
         case ErrorValue error                     -> error;
-        case Value ignored                        -> throw new SaplCompilerException(ERROR_PIP_RETURNED_VALUE);
+        case Value ignored                        -> throw new SaplCompilerException(ERROR_PIP_RETURNED_VALUE, astNode);
         case PureExpression ignored               ->
-            throw new SaplCompilerException(ERROR_PIP_RETURNED_PURE_EXPRESSION);
+            throw new SaplCompilerException(ERROR_PIP_RETURNED_PURE_EXPRESSION, astNode);
         case StreamExpression(Flux<Value> stream) -> new StreamExpression(stream.take(1));
         };
     }
@@ -174,7 +174,7 @@ public class AttributeCompiler {
      * deferred via {@code deferContextual}. Parameter array: [entity, options,
      * args...].
      */
-    private static CompiledExpression compileAttributeFinderStep(EObject source, CompiledExpression entity,
+    private static CompiledExpression compileAttributeFinderStep(EObject astNode, CompiledExpression entity,
             FunctionIdentifier identifier, Arguments stepArguments, Expression attributeFinderOptions,
             CompilationContext context) {
         log.debug("Compiling attribute finder step for: '{}' with entity {}", identifier, entity);
@@ -186,7 +186,7 @@ public class AttributeCompiler {
             compiledOptions = Value.EMPTY_OBJECT;
         }
         if (entity instanceof UndefinedValue) {
-            throw new SaplCompilerException(ERROR_UNDEFINED_VALUE_LEFT_HAND);
+            throw new SaplCompilerException(ERROR_UNDEFINED_VALUE_LEFT_HAND, astNode);
         }
         val entityFlux           = entity == null ? Flux.just(Value.NULL)
                 : ExpressionCompiler.compiledExpressionToFlux(entity);
@@ -206,10 +206,10 @@ public class AttributeCompiler {
             attributeFinderParameterSources.add(ExpressionCompiler.compiledExpressionToFlux(argument));
         }
 
-        val resolvedAttributeName = ImportResolver.resolveFunctionIdentifierByImports(source, identifier);
+        val resolvedAttributeName = ImportResolver.resolveFunctionIdentifierByImports(astNode, identifier);
 
-        val attributeStream = Flux.combineLatest(attributeFinderParameterSources, Function.identity())
-                .switchMap(combined -> evaluatedAttributeFinder(combined, resolvedAttributeName, entity == null));
+        val attributeStream = Flux.combineLatest(attributeFinderParameterSources, Function.identity()).switchMap(
+                combined -> evaluatedAttributeFinder(astNode, combined, resolvedAttributeName, entity == null));
         return new StreamExpression(attributeStream);
     }
 
@@ -219,11 +219,12 @@ public class AttributeCompiler {
      * pass entity as null (not UNDEFINED). Unchecked casts - ClassCastException if
      * compilation bug.
      */
-    private static Flux<Value> evaluatedAttributeFinder(java.lang.Object[] evaluatedAttributeFinderParameters,
-            String attributeName, boolean isEnvironmentAttribute) {
+    private static Flux<Value> evaluatedAttributeFinder(EObject astNode,
+            java.lang.Object[] evaluatedAttributeFinderParameters, String attributeName,
+            boolean isEnvironmentAttribute) {
         if (evaluatedAttributeFinderParameters.length < 2) {
-            return Flux.just(Value.error(
-                    String.format(ERROR_ATTRIBUTE_PARAMETERS_INSUFFICIENT, evaluatedAttributeFinderParameters.length)));
+            return Flux.just(Error.at(astNode,
+                    ERROR_ATTRIBUTE_PARAMETERS_INSUFFICIENT.formatted(evaluatedAttributeFinderParameters.length)));
         }
         val entity = (Value) evaluatedAttributeFinderParameters[0];
 
@@ -231,7 +232,7 @@ public class AttributeCompiler {
             return Flux.just(entity);
         }
         if (!isEnvironmentAttribute && entity instanceof UndefinedValue) {
-            return Flux.just(Value.error(ERROR_UNDEFINED_VALUE_LEFT_HAND));
+            return Flux.just(Error.at(astNode, ERROR_UNDEFINED_VALUE_LEFT_HAND));
         }
         val maybeOptions = (Options) evaluatedAttributeFinderParameters[1];
         if (maybeOptions instanceof OptionsError(ErrorValue error)) {
@@ -240,7 +241,7 @@ public class AttributeCompiler {
 
         val options = (AttributeFinderOptions) maybeOptions;
         if (options.attributeBroker == null) {
-            return Flux.just(Value.error(ERROR_ATTRIBUTE_BROKER_NOT_CONFIGURED));
+            return Flux.just(Error.at(astNode, ERROR_ATTRIBUTE_BROKER_NOT_CONFIGURED));
         }
 
         var values     = Arrays.stream(evaluatedAttributeFinderParameters, 2, evaluatedAttributeFinderParameters.length)
@@ -248,7 +249,12 @@ public class AttributeCompiler {
         val invocation = new AttributeFinderInvocation(options.configurationId, attributeName,
                 isEnvironmentAttribute ? null : entity, values, options.variables, options.initialTimeOutDuration(),
                 options.pollIntervalDuration(), options.backoffDuration(), options.retries, options.fresh);
-        return options.attributeBroker.attributeStream(invocation);
+        return options.attributeBroker.attributeStream(invocation).map(attribute -> {
+            if (attribute instanceof ErrorValue error && error.location() == null) {
+                return error.withLocation(SourceLocationUtil.fromAstNode(astNode));
+            }
+            return attribute;
+        });
     }
 
     /**

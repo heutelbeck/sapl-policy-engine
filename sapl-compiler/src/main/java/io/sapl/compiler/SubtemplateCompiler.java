@@ -21,6 +21,7 @@ import io.sapl.api.model.*;
 import io.sapl.grammar.sapl.Expression;
 import lombok.experimental.UtilityClass;
 import lombok.val;
+import org.eclipse.emf.ecore.EObject;
 import reactor.core.publisher.Flux;
 
 /**
@@ -80,9 +81,11 @@ public class SubtemplateCompiler {
 
         // Handle different parent expression types
         return switch (parent) {
-        case Value value                   -> applySubtemplateToValue(value, compiledTemplate);
-        case PureExpression pureParent     -> applySubtemplateToPureExpression(pureParent, compiledTemplate);
-        case StreamExpression streamParent -> applySubtemplateToStreamExpression(streamParent, compiledTemplate);
+        case Value value                   -> applySubtemplateToValue(subtemplateExpression, value, compiledTemplate);
+        case PureExpression pureParent     ->
+            applySubtemplateToPureExpression(subtemplateExpression, pureParent, compiledTemplate);
+        case StreamExpression streamParent ->
+            applySubtemplateToStreamExpression(subtemplateExpression, streamParent, compiledTemplate);
         };
     }
 
@@ -98,7 +101,8 @@ public class SubtemplateCompiler {
      *
      * @return the result of applying the template
      */
-    private CompiledExpression applySubtemplateToValue(Value parentValue, CompiledExpression compiledTemplate) {
+    private CompiledExpression applySubtemplateToValue(EObject astNode, Value parentValue,
+            CompiledExpression compiledTemplate) {
         // Error/Undefined: already handled at top level
         if (parentValue instanceof ErrorValue || parentValue instanceof UndefinedValue) {
             return parentValue;
@@ -114,7 +118,7 @@ public class SubtemplateCompiler {
             // Map template over each element
             val builder = ArrayValue.builder();
             for (val element : arrayValue) {
-                val result = evaluateTemplateWithRelativeNode(element, compiledTemplate);
+                val result = evaluateTemplateWithRelativeNode(astNode, element, compiledTemplate);
 
                 if (result instanceof ErrorValue) {
                     return result; // Propagate errors
@@ -126,7 +130,7 @@ public class SubtemplateCompiler {
         }
 
         // Non-array: apply template directly
-        return evaluateTemplateWithRelativeNode(parentValue, compiledTemplate);
+        return evaluateTemplateWithRelativeNode(astNode, parentValue, compiledTemplate);
     }
 
     /**
@@ -141,7 +145,7 @@ public class SubtemplateCompiler {
      *
      * @return a PureExpression applying the subtemplate
      */
-    private CompiledExpression applySubtemplateToPureExpression(PureExpression pureParent,
+    private CompiledExpression applySubtemplateToPureExpression(EObject astNode, PureExpression pureParent,
             CompiledExpression compiledTemplate) {
         return new PureExpression(ctx -> {
             val parentValue = pureParent.evaluate(ctx);
@@ -159,7 +163,7 @@ public class SubtemplateCompiler {
 
                 val builder = ArrayValue.builder();
                 for (val element : arrayValue) {
-                    val result = evaluateTemplateWithRelativeNodeInContext(element, compiledTemplate, ctx);
+                    val result = evaluateTemplateWithRelativeNodeInContext(astNode, element, compiledTemplate, ctx);
 
                     if (result instanceof ErrorValue) {
                         return result;
@@ -171,7 +175,7 @@ public class SubtemplateCompiler {
             }
 
             // Non-array
-            return evaluateTemplateWithRelativeNodeInContext(parentValue, compiledTemplate, ctx);
+            return evaluateTemplateWithRelativeNodeInContext(astNode, parentValue, compiledTemplate, ctx);
         }, pureParent.isSubscriptionScoped());
     }
 
@@ -187,10 +191,10 @@ public class SubtemplateCompiler {
      *
      * @return a StreamExpression applying the subtemplate
      */
-    private CompiledExpression applySubtemplateToStreamExpression(StreamExpression streamParent,
+    private CompiledExpression applySubtemplateToStreamExpression(EObject astNode, StreamExpression streamParent,
             CompiledExpression compiledTemplate) {
         val resultStream = streamParent.stream()
-                .flatMap(parentValue -> applyTemplateToValueInStream(parentValue, compiledTemplate));
+                .flatMap(parentValue -> applyTemplateToValueInStream(astNode, parentValue, compiledTemplate));
         return new StreamExpression(resultStream);
     }
 
@@ -199,29 +203,32 @@ public class SubtemplateCompiler {
      * error/undefined propagation, empty arrays, array
      * mapping, and non-array values.
      */
-    private Flux<Value> applyTemplateToValueInStream(Value parentValue, CompiledExpression compiledTemplate) {
+    private Flux<Value> applyTemplateToValueInStream(EObject astNode, Value parentValue,
+            CompiledExpression compiledTemplate) {
         if (parentValue instanceof ErrorValue || parentValue instanceof UndefinedValue) {
             return Flux.just(parentValue);
         }
 
         if (parentValue instanceof ArrayValue arrayValue) {
             return arrayValue.isEmpty() ? Flux.just(arrayValue)
-                    : mapTemplateOverArrayInStream(arrayValue, compiledTemplate);
+                    : mapTemplateOverArrayInStream(astNode, arrayValue, compiledTemplate);
         }
 
-        return evaluateTemplateInStreamContext(parentValue, compiledTemplate);
+        return evaluateTemplateInStreamContext(astNode, parentValue, compiledTemplate);
     }
 
     /**
      * Maps a template over each element of an array within a stream context.
      */
-    private Flux<Value> mapTemplateOverArrayInStream(ArrayValue arrayValue, CompiledExpression compiledTemplate) {
+    private Flux<Value> mapTemplateOverArrayInStream(EObject astNode, ArrayValue arrayValue,
+            CompiledExpression compiledTemplate) {
         return Flux.deferContextual(ctx -> {
             val evaluationContext = ctx.get(EvaluationContext.class);
             val builder           = ArrayValue.builder();
 
             for (val element : arrayValue) {
-                val result = evaluateTemplateWithRelativeNodeInContext(element, compiledTemplate, evaluationContext);
+                val result = evaluateTemplateWithRelativeNodeInContext(astNode, element, compiledTemplate,
+                        evaluationContext);
                 if (result instanceof ErrorValue) {
                     return Flux.just(result);
                 }
@@ -235,10 +242,11 @@ public class SubtemplateCompiler {
     /**
      * Evaluates a template with a non-array value in a stream context.
      */
-    private Flux<Value> evaluateTemplateInStreamContext(Value parentValue, CompiledExpression compiledTemplate) {
+    private Flux<Value> evaluateTemplateInStreamContext(EObject astNode, Value parentValue,
+            CompiledExpression compiledTemplate) {
         return Flux.deferContextual(ctx -> {
             val evaluationContext = ctx.get(EvaluationContext.class);
-            val result            = evaluateTemplateWithRelativeNodeInContext(parentValue, compiledTemplate,
+            val result            = evaluateTemplateWithRelativeNodeInContext(astNode, parentValue, compiledTemplate,
                     evaluationContext);
             return Flux.just(result);
         });
@@ -258,7 +266,8 @@ public class SubtemplateCompiler {
      *
      * @return the evaluated result
      */
-    private Value evaluateTemplateWithRelativeNode(Value relativeNode, CompiledExpression compiledTemplate) {
+    private Value evaluateTemplateWithRelativeNode(EObject astNode, Value relativeNode,
+            CompiledExpression compiledTemplate) {
         return switch (compiledTemplate) {
         case Value value                 -> value; // Template is constant, ignore relative node
         case PureExpression pureTemplate -> {
@@ -267,7 +276,7 @@ public class SubtemplateCompiler {
                     COMPILE_TIME_ID_PLACEHOLDER, null, null, null).withRelativeValue(relativeNode);
             yield pureTemplate.evaluate(evaluationContext);
         }
-        case StreamExpression ignored    -> Value.error(ERROR_SUBTEMPLATE_STREAMING_COMPILE_TIME);
+        case StreamExpression ignored    -> Error.at(astNode, ERROR_SUBTEMPLATE_STREAMING_COMPILE_TIME);
         };
     }
 
@@ -286,8 +295,8 @@ public class SubtemplateCompiler {
      *
      * @return the evaluated result
      */
-    private Value evaluateTemplateWithRelativeNodeInContext(Value relativeNode, CompiledExpression compiledTemplate,
-            EvaluationContext ctx) {
+    private Value evaluateTemplateWithRelativeNodeInContext(EObject astNode, Value relativeNode,
+            CompiledExpression compiledTemplate, EvaluationContext ctx) {
         return switch (compiledTemplate) {
         case Value value                 -> value; // Template is constant, ignore relative node
         case PureExpression pureTemplate -> {
@@ -295,7 +304,7 @@ public class SubtemplateCompiler {
             val contextWithRelativeNode = ctx.withRelativeValue(relativeNode);
             yield pureTemplate.evaluate(contextWithRelativeNode);
         }
-        case StreamExpression ignored    -> Value.error(ERROR_SUBTEMPLATE_STREAMING_RUNTIME);
+        case StreamExpression ignored    -> Error.at(astNode, ERROR_SUBTEMPLATE_STREAMING_RUNTIME);
         };
     }
 }
