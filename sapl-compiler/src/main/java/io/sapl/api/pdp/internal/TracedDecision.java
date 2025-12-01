@@ -17,22 +17,34 @@
  */
 package io.sapl.api.pdp.internal;
 
+import io.sapl.api.SaplVersion;
 import io.sapl.api.pdp.AuthorizationDecision;
+import lombok.NonNull;
+
+import java.io.Serial;
+import java.io.Serializable;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 
 /**
  * A policy decision with trace metadata for debugging and auditing.
+ *
+ * @param authorizationDecision the authorization decision
+ * @param metadata the decision metadata
+ * @param modifications modification explanations from interceptors
  */
-public interface TracedDecision {
+public record TracedDecision(
+        @NonNull AuthorizationDecision authorizationDecision,
+        @NonNull DecisionMetadata metadata,
+        @NonNull List<String> modifications) implements Serializable {
 
-    /**
-     * @return the authorization decision
-     */
-    AuthorizationDecision getAuthorizationDecision();
+    @Serial
+    private static final long serialVersionUID = SaplVersion.VERSION_UID;
 
-    /**
-     * @return the decision metadata
-     */
-    DecisionMetadata getMetadata();
+    public TracedDecision(AuthorizationDecision authorizationDecision, DecisionMetadata metadata) {
+        this(authorizationDecision, metadata, List.of());
+    }
 
     /**
      * Creates a modified traced decision with an explanation for audit purposes.
@@ -41,5 +53,9 @@ public interface TracedDecision {
      * @param explanation why the decision was modified
      * @return a new TracedDecision with the modified decision
      */
-    TracedDecision modified(AuthorizationDecision decision, String explanation);
+    public TracedDecision modified(AuthorizationDecision decision, String explanation) {
+        var newModifications = new ArrayList<>(modifications);
+        newModifications.add(explanation);
+        return new TracedDecision(decision, metadata, Collections.unmodifiableList(newModifications));
+    }
 }
