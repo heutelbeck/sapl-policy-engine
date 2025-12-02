@@ -34,10 +34,11 @@ class TextValueTests {
     @ParameterizedTest(name = "TextValue(\"{0}\", {1}) construction")
     @MethodSource
     void when_constructedWithTextAndSecretFlag_then_createsValue(String text, boolean secret) {
-        var value = new TextValue(text, secret);
+        var metadata = secret ? ValueMetadata.SECRET_EMPTY : ValueMetadata.EMPTY;
+        var value    = new TextValue(text, metadata);
 
         assertThat(value.value()).isEqualTo(text);
-        assertThat(value.secret()).isEqualTo(secret);
+        assertThat(value.isSecret()).isEqualTo(secret);
     }
 
     static Stream<Arguments> when_constructedWithTextAndSecretFlag_then_createsValue() {
@@ -47,7 +48,7 @@ class TextValueTests {
 
     @Test
     void when_constructedWithNullValue_then_throws() {
-        assertThatThrownBy(() -> new TextValue(null, false)).isInstanceOf(NullPointerException.class);
+        assertThatThrownBy(() -> new TextValue(null, ValueMetadata.EMPTY)).isInstanceOf(NullPointerException.class);
     }
 
     @Test
@@ -66,11 +67,11 @@ class TextValueTests {
     @ParameterizedTest(name = "asSecret() on \"{0}\"")
     @ValueSource(strings = { "test", "", "very long text string with lots of characters" })
     void when_asSecretCalled_then_createsSecretCopyOrReturnsSameInstance(String text) {
-        var original      = new TextValue(text, false);
-        var alreadySecret = new TextValue(text, true);
+        var original      = new TextValue(text, ValueMetadata.EMPTY);
+        var alreadySecret = new TextValue(text, ValueMetadata.SECRET_EMPTY);
 
         var secretCopy = original.asSecret();
-        assertThat(secretCopy.secret()).isTrue();
+        assertThat(secretCopy.isSecret()).isTrue();
         assertThat(((TextValue) secretCopy).value()).isEqualTo(text);
         assertThat(alreadySecret.asSecret()).isSameAs(alreadySecret);
     }
@@ -87,16 +88,21 @@ class TextValueTests {
     }
 
     static Stream<Arguments> when_equalsAndHashCodeCompared_then_comparesByValueIgnoringSecretFlag() {
-        return Stream.of(arguments(new TextValue("test", false), new TextValue("test", true), true),
-                arguments(new TextValue("", false), new TextValue("", true), true),
-                arguments(new TextValue("test", false), new TextValue("other", false), false),
-                arguments(new TextValue("test", true), new TextValue("other", true), false));
+        return Stream.of(
+                arguments(new TextValue("test", ValueMetadata.EMPTY), new TextValue("test", ValueMetadata.SECRET_EMPTY),
+                        true),
+                arguments(new TextValue("", ValueMetadata.EMPTY), new TextValue("", ValueMetadata.SECRET_EMPTY), true),
+                arguments(new TextValue("test", ValueMetadata.EMPTY), new TextValue("other", ValueMetadata.EMPTY),
+                        false),
+                arguments(new TextValue("test", ValueMetadata.SECRET_EMPTY),
+                        new TextValue("other", ValueMetadata.SECRET_EMPTY), false));
     }
 
     @ParameterizedTest(name = "{0} with secret={1} toString()={2}")
     @MethodSource
     void when_toStringCalled_then_showsQuotedValueOrPlaceholder(String text, boolean secret, String expected) {
-        var value = new TextValue(text, secret);
+        var metadata = secret ? ValueMetadata.SECRET_EMPTY : ValueMetadata.EMPTY;
+        var value    = new TextValue(text, metadata);
 
         assertThat(value).hasToString(expected);
     }
@@ -111,7 +117,7 @@ class TextValueTests {
             "Unicode: ä¸–ç•Œ ðŸŒ", "Quotes: \"nested\"", "x" // single character
     })
     void when_variousTextContent_then_handledCorrectly(String text) {
-        var value = new TextValue(text, false);
+        var value = new TextValue(text, ValueMetadata.EMPTY);
 
         assertThat(value.value()).isEqualTo(text);
         assertThat(value).hasToString("\"" + text + "\"");
@@ -120,7 +126,7 @@ class TextValueTests {
     @Test
     void when_veryLongStringUsed_then_supported() {
         var longString = "a".repeat(10000);
-        var value      = new TextValue(longString, false);
+        var value      = new TextValue(longString, ValueMetadata.EMPTY);
 
         assertThat(value.value()).hasSize(10000);
     }
@@ -130,14 +136,14 @@ class TextValueTests {
         Value username = Value.of("admin");
 
         assertThat(username).isInstanceOf(TextValue.class);
-        if (username instanceof TextValue(String name, boolean ignored)) {
+        if (username instanceof TextValue(String name, ValueMetadata ignored)) {
             assertThat(name).isEqualTo("admin");
         }
     }
 
     @Test
     void when_emptyTextConstantChecked_then_notSecretAndEmpty() {
-        assertThat(Value.EMPTY_TEXT.secret()).isFalse();
+        assertThat(Value.EMPTY_TEXT.isSecret()).isFalse();
         assertThat(((TextValue) Value.EMPTY_TEXT).value()).isEmpty();
     }
 

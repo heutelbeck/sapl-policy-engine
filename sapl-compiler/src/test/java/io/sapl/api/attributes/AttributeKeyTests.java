@@ -48,9 +48,8 @@ class AttributeKeyTests {
 
     @Test
     void when_of_environmentAttribute_then_entityIsNull() {
-        var invocation = new AttributeFinderInvocation("test-config", "time.now", List.of(), // environment attribute -
-                                                                                             // no entity
-                Map.of(), Duration.ofSeconds(1), Duration.ofSeconds(30), Duration.ofSeconds(1), 0, false);
+        var invocation = new AttributeFinderInvocation("test-config", "time.now", List.of(), Map.of(),
+                Duration.ofSeconds(1), Duration.ofSeconds(30), Duration.ofSeconds(1), 0, false);
 
         var key = AttributeKey.of(invocation);
 

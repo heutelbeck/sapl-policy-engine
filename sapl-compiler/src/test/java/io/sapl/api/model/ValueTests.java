@@ -395,7 +395,7 @@ class ValueTests {
             var error = (ErrorValue) result;
             assertThat(error.message()).isEqualTo("Test error");
             assertThat(error.cause()).isNull();
-            assertThat(error.secret()).isFalse();
+            assertThat(error.isSecret()).isFalse();
         }
 
         @Test
@@ -408,7 +408,7 @@ class ValueTests {
             var error = (ErrorValue) result;
             assertThat(error.message()).isEqualTo("Test error");
             assertThat(error.cause()).isSameAs(cause);
-            assertThat(error.secret()).isFalse();
+            assertThat(error.isSecret()).isFalse();
         }
 
         @Test
@@ -421,7 +421,7 @@ class ValueTests {
             var error = (ErrorValue) result;
             assertThat(error.message()).isEqualTo("Cause message");
             assertThat(error.cause()).isSameAs(cause);
-            assertThat(error.secret()).isFalse();
+            assertThat(error.isSecret()).isFalse();
         }
 
         @Test
@@ -446,7 +446,7 @@ class ValueTests {
         void when_trueConstant_then_isBooleanValue() {
             assertThat(Value.TRUE).isInstanceOf(BooleanValue.class);
             assertThat(((BooleanValue) Value.TRUE).value()).isTrue();
-            assertThat(Value.TRUE.secret()).isFalse();
+            assertThat(Value.TRUE.isSecret()).isFalse();
         }
 
         @Test
@@ -454,21 +454,21 @@ class ValueTests {
         void when_falseConstant_then_isBooleanValue() {
             assertThat(Value.FALSE).isInstanceOf(BooleanValue.class);
             assertThat(((BooleanValue) Value.FALSE).value()).isFalse();
-            assertThat(Value.FALSE.secret()).isFalse();
+            assertThat(Value.FALSE.isSecret()).isFalse();
         }
 
         @Test
         @DisplayName("NULL is NullValue")
         void when_nullConstant_then_isNullValue() {
             assertThat(Value.NULL).isInstanceOf(NullValue.class);
-            assertThat(Value.NULL.secret()).isFalse();
+            assertThat(Value.NULL.isSecret()).isFalse();
         }
 
         @Test
         @DisplayName("UNDEFINED is UndefinedValue")
         void when_undefinedConstant_then_isUndefinedValue() {
             assertThat(Value.UNDEFINED).isInstanceOf(UndefinedValue.class);
-            assertThat(Value.UNDEFINED.secret()).isFalse();
+            assertThat(Value.UNDEFINED.isSecret()).isFalse();
         }
 
         @Test
@@ -476,7 +476,7 @@ class ValueTests {
         void when_zeroConstant_then_isNumberValue() {
             assertThat(Value.ZERO).isInstanceOf(NumberValue.class);
             assertThat(((NumberValue) Value.ZERO).value()).isEqualByComparingTo(BigDecimal.ZERO);
-            assertThat(Value.ZERO.secret()).isFalse();
+            assertThat(Value.ZERO.isSecret()).isFalse();
         }
 
         @Test
@@ -484,7 +484,7 @@ class ValueTests {
         void when_oneConstant_then_isNumberValue() {
             assertThat(Value.ONE).isInstanceOf(NumberValue.class);
             assertThat(((NumberValue) Value.ONE).value()).isEqualByComparingTo(BigDecimal.ONE);
-            assertThat(Value.ONE.secret()).isFalse();
+            assertThat(Value.ONE.isSecret()).isFalse();
         }
 
         @Test
@@ -492,21 +492,21 @@ class ValueTests {
         void when_tenConstant_then_isNumberValue() {
             assertThat(Value.TEN).isInstanceOf(NumberValue.class);
             assertThat(((NumberValue) Value.TEN).value()).isEqualByComparingTo(BigDecimal.TEN);
-            assertThat(Value.TEN.secret()).isFalse();
+            assertThat(Value.TEN.isSecret()).isFalse();
         }
 
         @Test
         @DisplayName("EMPTY_ARRAY is empty ArrayValue")
         void when_emptyArrayConstant_then_isEmptyArrayValue() {
             assertThat(Value.EMPTY_ARRAY).isInstanceOf(ArrayValue.class).isEmpty();
-            assertThat(Value.EMPTY_ARRAY.secret()).isFalse();
+            assertThat(Value.EMPTY_ARRAY.isSecret()).isFalse();
         }
 
         @Test
         @DisplayName("EMPTY_OBJECT is empty ObjectValue")
         void when_emptyObjectConstant_then_isEmptyObjectValue() {
             assertThat(Value.EMPTY_OBJECT).isInstanceOf(ObjectValue.class).isEmpty();
-            assertThat(Value.EMPTY_OBJECT.secret()).isFalse();
+            assertThat(Value.EMPTY_OBJECT.isSecret()).isFalse();
         }
 
         @Test
@@ -514,22 +514,22 @@ class ValueTests {
         void when_emptyTextConstant_then_isEmptyTextValue() {
             assertThat(Value.EMPTY_TEXT).isInstanceOf(TextValue.class);
             assertThat(((TextValue) Value.EMPTY_TEXT).value()).isEmpty();
-            assertThat(Value.EMPTY_TEXT.secret()).isFalse();
+            assertThat(Value.EMPTY_TEXT.isSecret()).isFalse();
         }
 
         @Test
         @DisplayName("All constants are not secret")
         void when_allConstants_then_notSecret() {
-            assertThat(Value.TRUE.secret()).isFalse();
-            assertThat(Value.FALSE.secret()).isFalse();
-            assertThat(Value.NULL.secret()).isFalse();
-            assertThat(Value.UNDEFINED.secret()).isFalse();
-            assertThat(Value.ZERO.secret()).isFalse();
-            assertThat(Value.ONE.secret()).isFalse();
-            assertThat(Value.TEN.secret()).isFalse();
-            assertThat(Value.EMPTY_ARRAY.secret()).isFalse();
-            assertThat(Value.EMPTY_OBJECT.secret()).isFalse();
-            assertThat(Value.EMPTY_TEXT.secret()).isFalse();
+            assertThat(Value.TRUE.isSecret()).isFalse();
+            assertThat(Value.FALSE.isSecret()).isFalse();
+            assertThat(Value.NULL.isSecret()).isFalse();
+            assertThat(Value.UNDEFINED.isSecret()).isFalse();
+            assertThat(Value.ZERO.isSecret()).isFalse();
+            assertThat(Value.ONE.isSecret()).isFalse();
+            assertThat(Value.TEN.isSecret()).isFalse();
+            assertThat(Value.EMPTY_ARRAY.isSecret()).isFalse();
+            assertThat(Value.EMPTY_OBJECT.isSecret()).isFalse();
+            assertThat(Value.EMPTY_TEXT.isSecret()).isFalse();
         }
     }
 
@@ -543,10 +543,10 @@ class ValueTests {
             Value policyResult = Value.of(true);
 
             var decision = switch (policyResult) {
-            case BooleanValue(boolean allowed, boolean ignore) -> allowed ? "PERMIT" : "DENY";
-            case ErrorValue ignore                             -> "INDETERMINATE";
-            case UndefinedValue ignore                         -> "NOT_APPLICABLE";
-            default                                            -> "INDETERMINATE";
+            case BooleanValue(boolean allowed, ValueMetadata ignore) -> allowed ? "PERMIT" : "DENY";
+            case ErrorValue ignore                                   -> "INDETERMINATE";
+            case UndefinedValue ignore                               -> "NOT_APPLICABLE";
+            default                                                  -> "INDETERMINATE";
             };
 
             assertThat(decision).isEqualTo("PERMIT");
@@ -558,13 +558,16 @@ class ValueTests {
             var clearanceLevel = Value.of(7);
 
             var access = switch (clearanceLevel) {
-            case NumberValue(BigDecimal level, boolean ignore) when level.compareTo(BigDecimal.valueOf(10)) >= 0 ->
+            case NumberValue(BigDecimal level, ValueMetadata ignore) when level.compareTo(BigDecimal.valueOf(
+                    10)) >= 0                                                                                          ->
                 "TOP SECRET";
-            case NumberValue(BigDecimal level, boolean ignore) when level.compareTo(BigDecimal.valueOf(5)) >= 0  ->
+            case NumberValue(BigDecimal level, ValueMetadata ignore) when level.compareTo(BigDecimal.valueOf(
+                    5)) >= 0                                                                                           ->
                 "SECRET";
-            case NumberValue(BigDecimal level, boolean ignore) when level.compareTo(BigDecimal.ZERO) > 0         ->
+            case NumberValue(BigDecimal level, ValueMetadata ignore) when level.compareTo(
+                    BigDecimal.ZERO) > 0                                                                               ->
                 "CONFIDENTIAL";
-            default                                                                                              ->
+            default                                                                                                    ->
                 "PUBLIC";
             };
 
@@ -579,7 +582,7 @@ class ValueTests {
             boolean isAdmin = switch (user) {
             case ObjectValue obj -> {
                 var role = obj.get("role");
-                yield role instanceof TextValue(String r, boolean ignore) && "admin".equals(r);
+                yield role instanceof TextValue(String r, ValueMetadata ignore) && "admin".equals(r);
             }
             default              -> false;
             };

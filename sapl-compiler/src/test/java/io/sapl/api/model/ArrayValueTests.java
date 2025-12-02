@@ -40,7 +40,7 @@ class ArrayValueTests {
     @DisplayName("Constructor with array creates immutable list")
     void when_constructedWithArray_then_createsImmutableList() {
         var values = new Value[] { Value.of(1), Value.of(2), Value.of(3) };
-        var array  = new ArrayValue(values, false);
+        var array  = new ArrayValue(values, ValueMetadata.EMPTY);
 
         assertThat(array).hasSize(3).containsExactly(Value.of(1), Value.of(2), Value.of(3));
     }
@@ -70,7 +70,7 @@ class ArrayValueTests {
             var result = ArrayValue.builder().secret().build();
 
             assertThat(result).isNotSameAs(Value.EMPTY_ARRAY).isEmpty();
-            assertThat(result.secret()).isTrue();
+            assertThat(result.isSecret()).isTrue();
         }
 
         @ParameterizedTest(name = "Builder {0}")
@@ -97,7 +97,7 @@ class ArrayValueTests {
         void when_builderSecretCalled_then_marksArrayAsSecret() {
             var result = ArrayValue.builder().add(Value.of(1)).secret().build();
 
-            assertThat(result.secret()).isTrue();
+            assertThat(result.isSecret()).isTrue();
         }
 
         @Test
@@ -172,13 +172,13 @@ class ArrayValueTests {
             var grimoire = ArrayValue.builder().secret().add(Value.of("Ritual of Summoning"))
                     .add(Value.of("Rites of Protection")).build();
 
-            assertThat(grimoire.secret()).isTrue();
+            assertThat(grimoire.isSecret()).isTrue();
             var element0 = grimoire.getFirst();
             assertThat(element0).isNotNull();
-            assertThat(element0.secret()).isTrue();
+            assertThat(element0.isSecret()).isTrue();
             var element1 = grimoire.get(1);
             assertThat(element1).isNotNull();
-            assertThat(element1.secret()).isTrue();
+            assertThat(element1.isSecret()).isTrue();
         }
 
         @Test
@@ -187,13 +187,13 @@ class ArrayValueTests {
             var cultists = ArrayValue.builder().add(Value.of("Wilbur Whateley")).add(Value.of("Lavinia Whateley"))
                     .secret().build();
 
-            assertThat(cultists.secret()).isTrue();
+            assertThat(cultists.isSecret()).isTrue();
             var element0 = cultists.getFirst();
             assertThat(element0).isNotNull();
-            assertThat(element0.secret()).isTrue();
+            assertThat(element0.isSecret()).isTrue();
             var element1 = cultists.get(1);
             assertThat(element1).isNotNull();
-            assertThat(element1.secret()).isTrue();
+            assertThat(element1.isSecret()).isTrue();
         }
 
         @Test
@@ -202,10 +202,10 @@ class ArrayValueTests {
             var elderSigns = ArrayValue.builder().secret()
                     .addAll(Value.of("Pentagram"), Value.of("Eye"), Value.of("Star")).build();
 
-            assertThat(elderSigns.secret()).isTrue();
+            assertThat(elderSigns.isSecret()).isTrue();
             elderSigns.forEach(element -> {
                 assertThat(element).isNotNull();
-                assertThat(element.secret()).isTrue();
+                assertThat(element.isSecret()).isTrue();
             });
         }
 
@@ -216,10 +216,10 @@ class ArrayValueTests {
                     Value.of("Book of Eibon"));
             var library = ArrayValue.builder().addAll(tomes).secret().build();
 
-            assertThat(library.secret()).isTrue();
+            assertThat(library.isSecret()).isTrue();
             library.forEach(element -> {
                 assertThat(element).isNotNull();
-                assertThat(element.secret()).isTrue();
+                assertThat(element.isSecret()).isTrue();
             });
         }
 
@@ -229,10 +229,10 @@ class ArrayValueTests {
             var incantations = ArrayValue.builder().add(Value.of("Ph'nglui mglw'nafh")).secret().secret()
                     .add(Value.of("Cthulhu R'lyeh")).secret().build();
 
-            assertThat(incantations.secret()).isTrue();
+            assertThat(incantations.isSecret()).isTrue();
             incantations.forEach(element -> {
                 assertThat(element).isNotNull();
-                assertThat(element.secret()).isTrue();
+                assertThat(element.isSecret()).isTrue();
             });
         }
 
@@ -242,12 +242,72 @@ class ArrayValueTests {
             var ritualItems = ArrayValue.builder().add(Value.of("candles")).secret()
                     .addAll(Value.of("incense"), Value.of("chalice")).add(Value.of("dagger")).build();
 
-            assertThat(ritualItems.secret()).isTrue();
+            assertThat(ritualItems.isSecret()).isTrue();
             assertThat(ritualItems).hasSize(4);
             ritualItems.forEach(element -> {
                 assertThat(element).isNotNull();
-                assertThat(element.secret()).isTrue();
+                assertThat(element.isSecret()).isTrue();
             });
+        }
+
+        @Test
+        @DisplayName("Builder withMetadata() merges attribute trace")
+        void when_withMetadataCalled_then_mergesAttributeTrace() {
+            var invocation      = new io.sapl.api.attributes.AttributeFinderInvocation("test-config", "test.attr",
+                    List.of(), java.util.Map.of(), java.time.Duration.ofSeconds(5), java.time.Duration.ofSeconds(1),
+                    java.time.Duration.ofMillis(100), 3, false);
+            var attributeRecord = new io.sapl.api.pdp.internal.AttributeRecord(invocation, Value.of("result"),
+                    java.time.Instant.now(), null);
+            var metadata        = ValueMetadata.ofAttribute(attributeRecord);
+
+            var result = ArrayValue.builder().withMetadata(metadata).add(Value.of("element")).build();
+
+            assertThat(result.metadata().attributeTrace()).containsExactly(attributeRecord);
+            assertThat(result.getFirst().metadata().attributeTrace()).containsExactly(attributeRecord);
+        }
+
+        @Test
+        @DisplayName("Builder withMetadata() throws after build()")
+        void when_withMetadataCalledAfterBuild_then_throwsIllegalStateException() {
+            var builder = ArrayValue.builder().add(Value.of("element"));
+            builder.build();
+
+            var metadata = ValueMetadata.SECRET_EMPTY;
+            assertThatThrownBy(() -> builder.withMetadata(metadata)).isInstanceOf(IllegalStateException.class)
+                    .hasMessageContaining("already been used");
+        }
+
+        @Test
+        @DisplayName("Builder withMetadata() combines with element metadata")
+        void when_withMetadataAndElementMetadata_then_bothMerged() {
+            var invocation1      = new io.sapl.api.attributes.AttributeFinderInvocation("test-config", "test.attr1",
+                    List.of(), java.util.Map.of(), java.time.Duration.ofSeconds(5), java.time.Duration.ofSeconds(1),
+                    java.time.Duration.ofMillis(100), 3, false);
+            var attributeRecord1 = new io.sapl.api.pdp.internal.AttributeRecord(invocation1, Value.of("result1"),
+                    java.time.Instant.now(), null);
+            var invocation2      = new io.sapl.api.attributes.AttributeFinderInvocation("test-config", "test.attr2",
+                    List.of(), java.util.Map.of(), java.time.Duration.ofSeconds(5), java.time.Duration.ofSeconds(1),
+                    java.time.Duration.ofMillis(100), 3, false);
+            var attributeRecord2 = new io.sapl.api.pdp.internal.AttributeRecord(invocation2, Value.of("result2"),
+                    java.time.Instant.now(), null);
+
+            var containerMetadata = ValueMetadata.ofAttribute(attributeRecord1);
+            var elementMetadata   = ValueMetadata.ofAttribute(attributeRecord2);
+            var elementWithMeta   = Value.of("element").withMetadata(elementMetadata);
+
+            var result = ArrayValue.builder().withMetadata(containerMetadata).add(elementWithMeta).build();
+
+            assertThat(result.metadata().attributeTrace()).containsExactly(attributeRecord1, attributeRecord2);
+        }
+
+        @Test
+        @DisplayName("Builder withMetadata() preserves secret flag")
+        void when_withMetadataWithSecret_then_preservesSecretFlag() {
+            var result = ArrayValue.builder().withMetadata(ValueMetadata.SECRET_EMPTY).add(Value.of("sensitive"))
+                    .build();
+
+            assertThat(result.isSecret()).isTrue();
+            assertThat(result.getFirst().isSecret()).isTrue();
         }
 
         @Test
@@ -256,10 +316,10 @@ class ArrayValueTests {
             var locations = List.of(Value.of("Arkham"), Value.of("Innsmouth"), Value.of("Dunwich"));
             var places    = ArrayValue.builder().addAll(locations).build();
 
-            assertThat(places.secret()).isFalse();
+            assertThat(places.isSecret()).isFalse();
             places.forEach(element -> {
                 assertThat(element).isNotNull();
-                assertThat(element.secret()).isFalse();
+                assertThat(element.isSecret()).isFalse();
             });
         }
     }
@@ -271,18 +331,18 @@ class ArrayValueTests {
     @Test
     @DisplayName("asSecret() on non-secret creates secret copy")
     void when_asSecretOnNonSecret_then_createsSecretCopy() {
-        var original = new ArrayValue(List.of(Value.of(1)), false);
+        var original = new ArrayValue(List.of(Value.of(1)), ValueMetadata.EMPTY);
         var secret   = original.asSecret();
 
         assertThat(secret).isInstanceOf(ArrayValue.class);
-        assertThat(secret.secret()).isTrue();
-        assertThat(original.secret()).isFalse();
+        assertThat(secret.isSecret()).isTrue();
+        assertThat(original.isSecret()).isFalse();
     }
 
     @Test
     @DisplayName("asSecret() on secret returns same instance")
     void when_asSecretOnSecret_then_returnsSameInstance() {
-        var original = new ArrayValue(List.of(Value.of(1)), true);
+        var original = new ArrayValue(List.of(Value.of(1)), ValueMetadata.SECRET_EMPTY);
 
         assertThat(original.asSecret()).isSameAs(original);
     }
@@ -292,25 +352,25 @@ class ArrayValueTests {
     @DisplayName("Secret flag propagates through all access methods")
     void when_accessMethodCalled_then_propagatesSecretFlag(String method,
             java.util.function.Function<ArrayValue, Stream<Value>> accessor) {
-        var secretArray = new ArrayValue(List.of(Value.of(1), Value.of(2)), true);
+        var secretArray = new ArrayValue(List.of(Value.of(1), Value.of(2)), ValueMetadata.SECRET_EMPTY);
 
         var values = accessor.apply(secretArray).toList();
 
-        assertThat(values).isNotEmpty().allMatch(Value::secret);
+        assertThat(values).isNotEmpty().allMatch(Value::isSecret);
     }
 
     @Test
     @DisplayName("ErrorValue from secret array operations inherit secret flag")
     void when_errorFromSecretArray_then_inheritsSecretFlag() {
-        var secret = new ArrayValue(List.of(), true);
+        var secret = new ArrayValue(List.of(), ValueMetadata.SECRET_EMPTY);
 
         var errorFromGet      = secret.get(0);
         var errorFromGetFirst = secret.getFirst();
         var errorFromGetLast  = secret.getLast();
 
-        assertThat(errorFromGet).isInstanceOf(ErrorValue.class).matches(Value::secret);
-        assertThat(errorFromGetFirst).isInstanceOf(ErrorValue.class).matches(Value::secret);
-        assertThat(errorFromGetLast).isInstanceOf(ErrorValue.class).matches(Value::secret);
+        assertThat(errorFromGet).isInstanceOf(ErrorValue.class).matches(Value::isSecret);
+        assertThat(errorFromGetFirst).isInstanceOf(ErrorValue.class).matches(Value::isSecret);
+        assertThat(errorFromGetLast).isInstanceOf(ErrorValue.class).matches(Value::isSecret);
     }
 
     // ============================================================================
@@ -322,8 +382,8 @@ class ArrayValueTests {
     @DisplayName("Invalid operations return ErrorValue instead of throwing exceptions")
     void when_invalidOperationPerformed_then_returnsErrorValue(String operation,
             java.util.function.Function<ArrayValue, Value> accessor) {
-        var array = new ArrayValue(List.of(Value.of(1)), false);
-        var empty = new ArrayValue(List.of(), false);
+        var array = new ArrayValue(List.of(Value.of(1)), ValueMetadata.EMPTY);
+        var empty = new ArrayValue(List.of(), ValueMetadata.EMPTY);
 
         var result = accessor.apply(operation.contains("empty") ? empty : array);
 
@@ -341,7 +401,7 @@ class ArrayValueTests {
     @DisplayName("All mutation operations throw UnsupportedOperationException")
     void when_mutationAttempted_then_throwsUnsupportedOperationException(String operation,
             java.util.function.Consumer<ArrayValue> mutator) {
-        var array = new ArrayValue(List.of(Value.of(1), Value.of(2)), false);
+        var array = new ArrayValue(List.of(Value.of(1), Value.of(2)), ValueMetadata.EMPTY);
 
         assertThatThrownBy(() -> mutator.accept(array)).isInstanceOf(UnsupportedOperationException.class);
     }
@@ -353,7 +413,7 @@ class ArrayValueTests {
     @Test
     @DisplayName("List interface methods work correctly")
     void when_listInterfaceMethodsCalled_then_workCorrectly() {
-        var array = new ArrayValue(List.of(Value.of(1), Value.of(2), Value.of(3)), false);
+        var array = new ArrayValue(List.of(Value.of(1), Value.of(2), Value.of(3)), ValueMetadata.EMPTY);
 
         assertThat(array).isNotEmpty().hasSize(3).contains(Value.of(2));
         assertThat(array.indexOf(Value.of(2))).isEqualTo(array.lastIndexOf(Value.of(2))).isEqualTo(1);
@@ -362,34 +422,34 @@ class ArrayValueTests {
     @Test
     @DisplayName("subList propagates secret flag")
     void when_subListCalled_then_propagatesSecretFlag() {
-        var secret = new ArrayValue(List.of(Value.of(1), Value.of(2), Value.of(3)), true);
+        var secret = new ArrayValue(List.of(Value.of(1), Value.of(2), Value.of(3)), ValueMetadata.SECRET_EMPTY);
 
         var subList = secret.subList(1, 3);
 
         assertThat(subList).isInstanceOf(ArrayValue.class);
-        assertThat(((ArrayValue) subList).secret()).isTrue();
+        assertThat(((ArrayValue) subList).isSecret()).isTrue();
         assertThat(subList).containsExactly(Value.of(2), Value.of(3));
     }
 
     @Test
     @DisplayName("Iterators work correctly with secret propagation")
     void when_iteratorsUsed_then_propagateSecretFlag() {
-        var secret = new ArrayValue(List.of(Value.of(1), Value.of(2)), true);
+        var secret = new ArrayValue(List.of(Value.of(1), Value.of(2)), ValueMetadata.SECRET_EMPTY);
 
         // Test iterator
         var iterator = secret.iterator();
         assertThat(iterator.hasNext()).isTrue();
-        assertThat(iterator.next().secret()).isTrue();
+        assertThat(iterator.next().isSecret()).isTrue();
 
         // Test listIterator
         var listIterator = secret.listIterator();
         assertThat(listIterator.hasNext()).isTrue();
-        assertThat(listIterator.next().secret()).isTrue();
+        assertThat(listIterator.next().isSecret()).isTrue();
 
         // Test listIterator with index
         var listIteratorAtIndex = secret.listIterator(1);
         assertThat(listIteratorAtIndex.hasNext()).isTrue();
-        assertThat(listIteratorAtIndex.next().secret()).isTrue();
+        assertThat(listIteratorAtIndex.next().isSecret()).isTrue();
     }
 
     // ============================================================================
@@ -399,9 +459,9 @@ class ArrayValueTests {
     @Test
     @DisplayName("equals() compares by List equality")
     void when_equalsCalled_then_comparesByListEquality() {
-        var array1    = new ArrayValue(List.of(Value.of(1), Value.of(2)), false);
-        var array2    = new ArrayValue(List.of(Value.of(1), Value.of(2)), true);
-        var array3    = new ArrayValue(List.of(Value.of(1), Value.of(3)), false);
+        var array1    = new ArrayValue(List.of(Value.of(1), Value.of(2)), ValueMetadata.EMPTY);
+        var array2    = new ArrayValue(List.of(Value.of(1), Value.of(2)), ValueMetadata.SECRET_EMPTY);
+        var array3    = new ArrayValue(List.of(Value.of(1), Value.of(3)), ValueMetadata.EMPTY);
         var plainList = List.of(Value.of(1), Value.of(2));
 
         assertThat(array1).isEqualTo(array2).isEqualTo(plainList).isNotEqualTo(array3).hasSameHashCodeAs(array2);
@@ -413,7 +473,7 @@ class ArrayValueTests {
     void when_toStringCalled_then_formatsAppropriately(ArrayValue array, String expected, String description) {
         var result = array.toString();
 
-        if (array.secret()) {
+        if (array.isSecret()) {
             assertThat(result).isEqualTo("***SECRET***");
         } else {
             assertThat(result).contains(expected);
@@ -425,8 +485,8 @@ class ArrayValueTests {
     // ============================================================================
 
     static Stream<Arguments> provideNullConstructorCases() {
-        return Stream.of(arguments("list", (Runnable) () -> new ArrayValue((List<Value>) null, false)),
-                arguments("array", (Runnable) () -> new ArrayValue((Value[]) null, false)));
+        return Stream.of(arguments("list", (Runnable) () -> new ArrayValue((List<Value>) null, ValueMetadata.EMPTY)),
+                arguments("array", (Runnable) () -> new ArrayValue((Value[]) null, ValueMetadata.EMPTY)));
     }
 
     static Stream<Arguments> provideBuilderCases() {
@@ -486,12 +546,15 @@ class ArrayValueTests {
     }
 
     static Stream<Arguments> provideToStringCases() {
-        return Stream.of(arguments(new ArrayValue(List.of(), false), "[]", "empty array"),
-                arguments(new ArrayValue(List.of(Value.of(1), Value.of(2)), false), "1, 2", "simple values"),
-                arguments(new ArrayValue(List.of(Value.of(1)), true), "***SECRET***", "secret array"),
-                arguments(new ArrayValue(List.of(new ArrayValue(List.of(Value.of(1), Value.of(2)), false), Value.of(3)),
-                        false), "[1, 2]", "nested arrays"),
+        return Stream.of(arguments(new ArrayValue(List.of(), ValueMetadata.EMPTY), "[]", "empty array"),
+                arguments(new ArrayValue(List.of(Value.of(1), Value.of(2)), ValueMetadata.EMPTY), "1, 2",
+                        "simple values"),
+                arguments(new ArrayValue(List.of(Value.of(1)), ValueMetadata.SECRET_EMPTY), "***SECRET***",
+                        "secret array"),
+                arguments(new ArrayValue(
+                        List.of(new ArrayValue(List.of(Value.of(1), Value.of(2)), ValueMetadata.EMPTY), Value.of(3)),
+                        ValueMetadata.EMPTY), "[1, 2]", "nested arrays"),
                 arguments(new ArrayValue(List.of(Value.of(1), Value.of("text"), Value.of(true), Value.NULL,
-                        Value.UNDEFINED, Value.error("test")), false), "ERROR", "mixed types"));
+                        Value.UNDEFINED, Value.error("test")), ValueMetadata.EMPTY), "ERROR", "mixed types"));
     }
 }

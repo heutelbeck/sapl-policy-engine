@@ -65,8 +65,9 @@ class ValueJsonMarshallerTests {
     }
 
     static Stream<Arguments> nullValues() {
-        return Stream.of(arguments("singleton", Value.NULL), arguments("non-secret", new NullValue(false)),
-                arguments("secret", new NullValue(true)));
+        return Stream.of(arguments("singleton", Value.NULL),
+                arguments("non-secret", new NullValue(ValueMetadata.EMPTY)),
+                arguments("secret", new NullValue(ValueMetadata.SECRET_EMPTY)));
     }
 
     @ParameterizedTest(name = "round-trip boolean: {0}")
@@ -144,7 +145,7 @@ class ValueJsonMarshallerTests {
         var result   = ValueJsonMarshaller.fromJsonNode(node);
 
         assertThat(result).isEqualTo(Value.TRUE).isNotSameAs(original);
-        assertThat(result.secret()).isFalse();
+        assertThat(result.isSecret()).isFalse();
     }
 
     // ============================================================
@@ -563,8 +564,8 @@ class ValueJsonMarshallerTests {
         assertThat(result).isEqualTo(original);
 
         var resultObj = (ObjectValue) result;
-        assertThat(Objects.requireNonNull(resultObj.get("secret")).secret()).isFalse();
-        assertThat(Objects.requireNonNull(((ObjectValue) original).get("secret")).secret()).isTrue();
+        assertThat(Objects.requireNonNull(resultObj.get("secret")).isSecret()).isFalse();
+        assertThat(Objects.requireNonNull(((ObjectValue) original).get("secret")).isSecret()).isTrue();
 
         assertThat(result.toString()).isNotEqualTo(original.toString());
     }

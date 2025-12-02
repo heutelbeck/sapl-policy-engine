@@ -21,6 +21,7 @@ import io.sapl.api.model.ArrayValue;
 import io.sapl.api.model.ObjectValue;
 import io.sapl.api.model.TextValue;
 import io.sapl.api.model.Value;
+import io.sapl.api.model.ValueMetadata;
 import lombok.val;
 import org.junit.jupiter.api.Test;
 
@@ -33,10 +34,10 @@ class AuthorizationDecisionTests {
 
     @Test
     void of_shouldCreatePermitDecision() {
-        val decisionObj = ObjectValue.builder().put("decision", new TextValue("PERMIT", false))
-                .put("obligations", new ArrayValue(List.of(Value.of("log")), false))
-                .put("advice", new ArrayValue(List.of(Value.of("notify")), false)).put("resource", Value.of(42))
-                .build();
+        val decisionObj = ObjectValue.builder().put("decision", new TextValue("PERMIT", ValueMetadata.EMPTY))
+                .put("obligations", new ArrayValue(List.of(Value.of("log")), ValueMetadata.EMPTY))
+                .put("advice", new ArrayValue(List.of(Value.of("notify")), ValueMetadata.EMPTY))
+                .put("resource", Value.of(42)).build();
 
         val decision = AuthorizationDecision.of(decisionObj);
 
@@ -48,9 +49,9 @@ class AuthorizationDecisionTests {
 
     @Test
     void of_shouldCreateDenyDecision() {
-        val decisionObj = ObjectValue.builder().put("decision", new TextValue("DENY", false))
-                .put("obligations", new ArrayValue(List.of(), false)).put("advice", new ArrayValue(List.of(), false))
-                .put("resource", Value.UNDEFINED).build();
+        val decisionObj = ObjectValue.builder().put("decision", new TextValue("DENY", ValueMetadata.EMPTY))
+                .put("obligations", new ArrayValue(List.of(), ValueMetadata.EMPTY))
+                .put("advice", new ArrayValue(List.of(), ValueMetadata.EMPTY)).put("resource", Value.UNDEFINED).build();
 
         val decision = AuthorizationDecision.of(decisionObj);
 
@@ -62,9 +63,9 @@ class AuthorizationDecisionTests {
 
     @Test
     void of_shouldCreateIndeterminateDecision() {
-        val decisionObj = ObjectValue.builder().put("decision", new TextValue("INDETERMINATE", false))
-                .put("obligations", new ArrayValue(List.of(), false)).put("advice", new ArrayValue(List.of(), false))
-                .put("resource", Value.UNDEFINED).build();
+        val decisionObj = ObjectValue.builder().put("decision", new TextValue("INDETERMINATE", ValueMetadata.EMPTY))
+                .put("obligations", new ArrayValue(List.of(), ValueMetadata.EMPTY))
+                .put("advice", new ArrayValue(List.of(), ValueMetadata.EMPTY)).put("resource", Value.UNDEFINED).build();
 
         val decision = AuthorizationDecision.of(decisionObj);
 
@@ -73,9 +74,9 @@ class AuthorizationDecisionTests {
 
     @Test
     void of_shouldCreateNotApplicableDecision() {
-        val decisionObj = ObjectValue.builder().put("decision", new TextValue("NOT_APPLICABLE", false))
-                .put("obligations", new ArrayValue(List.of(), false)).put("advice", new ArrayValue(List.of(), false))
-                .put("resource", Value.UNDEFINED).build();
+        val decisionObj = ObjectValue.builder().put("decision", new TextValue("NOT_APPLICABLE", ValueMetadata.EMPTY))
+                .put("obligations", new ArrayValue(List.of(), ValueMetadata.EMPTY))
+                .put("advice", new ArrayValue(List.of(), ValueMetadata.EMPTY)).put("resource", Value.UNDEFINED).build();
 
         val decision = AuthorizationDecision.of(decisionObj);
 
@@ -93,8 +94,8 @@ class AuthorizationDecisionTests {
     @Test
     void of_shouldThrowWhenDecisionFieldNotTextValue() {
         val invalidDecisionObj = ObjectValue.builder().put("decision", Value.of(123))
-                .put("obligations", new ArrayValue(List.of(), false)).put("advice", new ArrayValue(List.of(), false))
-                .put("resource", Value.UNDEFINED).build();
+                .put("obligations", new ArrayValue(List.of(), ValueMetadata.EMPTY))
+                .put("advice", new ArrayValue(List.of(), ValueMetadata.EMPTY)).put("resource", Value.UNDEFINED).build();
 
         assertThatThrownBy(() -> AuthorizationDecision.of(invalidDecisionObj))
                 .isInstanceOf(IllegalArgumentException.class)
@@ -103,9 +104,9 @@ class AuthorizationDecisionTests {
 
     @Test
     void of_shouldThrowWhenObligationsNotArrayValue() {
-        val invalidDecisionObj = ObjectValue.builder().put("decision", new TextValue("PERMIT", false))
-                .put("obligations", Value.of("not an array")).put("advice", new ArrayValue(List.of(), false))
-                .put("resource", Value.UNDEFINED).build();
+        val invalidDecisionObj = ObjectValue.builder().put("decision", new TextValue("PERMIT", ValueMetadata.EMPTY))
+                .put("obligations", Value.of("not an array"))
+                .put("advice", new ArrayValue(List.of(), ValueMetadata.EMPTY)).put("resource", Value.UNDEFINED).build();
 
         assertThatThrownBy(() -> AuthorizationDecision.of(invalidDecisionObj))
                 .isInstanceOf(IllegalArgumentException.class)
@@ -114,9 +115,9 @@ class AuthorizationDecisionTests {
 
     @Test
     void of_shouldThrowWhenAdviceNotArrayValue() {
-        val invalidDecisionObj = ObjectValue.builder().put("decision", new TextValue("PERMIT", false))
-                .put("obligations", new ArrayValue(List.of(), false)).put("advice", Value.of("not an array"))
-                .put("resource", Value.UNDEFINED).build();
+        val invalidDecisionObj = ObjectValue.builder().put("decision", new TextValue("PERMIT", ValueMetadata.EMPTY))
+                .put("obligations", new ArrayValue(List.of(), ValueMetadata.EMPTY))
+                .put("advice", Value.of("not an array")).put("resource", Value.UNDEFINED).build();
 
         assertThatThrownBy(() -> AuthorizationDecision.of(invalidDecisionObj))
                 .isInstanceOf(IllegalArgumentException.class)
@@ -125,9 +126,9 @@ class AuthorizationDecisionTests {
 
     @Test
     void of_shouldDefaultToUndefinedWhenResourceMissing() {
-        val decisionObj = ObjectValue.builder().put("decision", new TextValue("PERMIT", false))
-                .put("obligations", new ArrayValue(List.of(), false)).put("advice", new ArrayValue(List.of(), false))
-                .build();
+        val decisionObj = ObjectValue.builder().put("decision", new TextValue("PERMIT", ValueMetadata.EMPTY))
+                .put("obligations", new ArrayValue(List.of(), ValueMetadata.EMPTY))
+                .put("advice", new ArrayValue(List.of(), ValueMetadata.EMPTY)).build();
 
         val decision = AuthorizationDecision.of(decisionObj);
 
@@ -136,8 +137,8 @@ class AuthorizationDecisionTests {
 
     @Test
     void of_shouldDefaultToEmptyArrayWhenObligationsMissing() {
-        val decisionObj = ObjectValue.builder().put("decision", new TextValue("PERMIT", false))
-                .put("advice", new ArrayValue(List.of(), false)).put("resource", Value.UNDEFINED).build();
+        val decisionObj = ObjectValue.builder().put("decision", new TextValue("PERMIT", ValueMetadata.EMPTY))
+                .put("advice", new ArrayValue(List.of(), ValueMetadata.EMPTY)).put("resource", Value.UNDEFINED).build();
 
         val decision = AuthorizationDecision.of(decisionObj);
 
@@ -146,8 +147,9 @@ class AuthorizationDecisionTests {
 
     @Test
     void of_shouldDefaultToEmptyArrayWhenAdviceMissing() {
-        val decisionObj = ObjectValue.builder().put("decision", new TextValue("PERMIT", false))
-                .put("obligations", new ArrayValue(List.of(), false)).put("resource", Value.UNDEFINED).build();
+        val decisionObj = ObjectValue.builder().put("decision", new TextValue("PERMIT", ValueMetadata.EMPTY))
+                .put("obligations", new ArrayValue(List.of(), ValueMetadata.EMPTY)).put("resource", Value.UNDEFINED)
+                .build();
 
         val decision = AuthorizationDecision.of(decisionObj);
 
@@ -156,7 +158,7 @@ class AuthorizationDecisionTests {
 
     @Test
     void of_shouldDefaultAllMissingFields() {
-        val decisionObj = ObjectValue.builder().put("decision", new TextValue("DENY", false)).build();
+        val decisionObj = ObjectValue.builder().put("decision", new TextValue("DENY", ValueMetadata.EMPTY)).build();
 
         val decision = AuthorizationDecision.of(decisionObj);
 
@@ -168,10 +170,11 @@ class AuthorizationDecisionTests {
 
     @Test
     void of_shouldHandleMultipleObligationsAndAdvice() {
-        val decisionObj = ObjectValue.builder().put("decision", new TextValue("PERMIT", false))
+        val decisionObj = ObjectValue.builder().put("decision", new TextValue("PERMIT", ValueMetadata.EMPTY))
                 .put("obligations",
-                        new ArrayValue(List.of(Value.of("obl1"), Value.of("obl2"), Value.of("obl3")), false))
-                .put("advice", new ArrayValue(List.of(Value.of("adv1"), Value.of("adv2")), false))
+                        new ArrayValue(List.of(Value.of("obl1"), Value.of("obl2"), Value.of("obl3")),
+                                ValueMetadata.EMPTY))
+                .put("advice", new ArrayValue(List.of(Value.of("adv1"), Value.of("adv2")), ValueMetadata.EMPTY))
                 .put("resource", Value.of("transformed")).build();
 
         val decision = AuthorizationDecision.of(decisionObj);

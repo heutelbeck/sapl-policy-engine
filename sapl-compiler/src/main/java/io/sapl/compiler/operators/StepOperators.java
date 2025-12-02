@@ -62,10 +62,12 @@ public class StepOperators {
      * number or text
      */
     public static Value indexOrKeyStep(EObject astNode, Value value, Value expressionResult) {
+        val metadata = ValueMetadata.merge(value, expressionResult);
         return switch (expressionResult) {
-        case NumberValue numberValue -> StepOperators.indexStep(astNode, value, numberValue.value());
-        case TextValue textValue     -> StepOperators.keyStep(astNode, value, textValue.value());
-        default                      -> Error.at(astNode, ERROR_EXPRESSION_STEP_TYPE_MISMATCH, expressionResult);
+        case NumberValue numberValue -> StepOperators.indexStep(astNode, value, numberValue.value(), metadata);
+        case TextValue textValue     -> StepOperators.keyStep(astNode, value, textValue.value()).withMetadata(metadata);
+        default                      ->
+            Error.at(astNode, metadata, ERROR_EXPRESSION_STEP_TYPE_MISMATCH, expressionResult);
         };
     }
 
@@ -80,13 +82,13 @@ public class StepOperators {
      */
     public static Value keyStep(EObject astNode, Value parent, String key) {
         if (!(parent instanceof ObjectValue objectValue)) {
-            return Error.at(astNode,
+            return Error.at(astNode, parent.metadata(),
                     "Cannot access contents of a non-object value using a key. Expected an ObjectValue but got %s.",
                     parent);
         }
         val content = objectValue.get(key);
         if (content == null) {
-            return Value.UNDEFINED;
+            return Value.UNDEFINED.withMetadata(parent.metadata());
         }
         return content;
     }
@@ -101,23 +103,23 @@ public class StepOperators {
      * @return the array element, or error if parent is not an array or index out of
      * bounds
      */
-    public static Value indexStep(EObject astNode, Value parent, @NonNull BigDecimal bigIndex) {
+    public static Value indexStep(EObject astNode, Value parent, @NonNull BigDecimal bigIndex, ValueMetadata metadata) {
         int index;
         try {
             index = bigIndex.intValueExact();
         } catch (ArithmeticException e) {
-            return Error.at(astNode, e.getMessage());
+            return Error.at(astNode, metadata, e.getMessage());
         }
         if (!(parent instanceof ArrayValue arrayValue)) {
-            return Error.at(astNode,
+            return Error.at(astNode, metadata,
                     "Cannot access contents of a non-array value using an index. Expected an Array but got %s.",
                     parent);
         }
         var normalizedIndex = index < 0 ? index + arrayValue.size() : index;
         if (normalizedIndex < 0 || normalizedIndex >= arrayValue.size()) {
-            return Error.at(astNode, ERROR_INDEX_OUT_OF_BOUNDS, index, arrayValue.size());
+            return Error.at(astNode, metadata, ERROR_INDEX_OUT_OF_BOUNDS, index, arrayValue.size());
         }
-        return arrayValue.get(normalizedIndex);
+        return arrayValue.get(normalizedIndex).withMetadata(metadata);
     }
 
     /**
@@ -140,7 +142,8 @@ public class StepOperators {
             }
             return arrayBuilder.build();
         }
-        return Error.at(astNode, "Wildcard steps '.*' can only be applied to arrays or objects but got %s.", parent);
+        return Error.at(astNode, parent.metadata(),
+                "Wildcard steps '.*' can only be applied to arrays or objects but got %s.", parent);
     }
 
     /**
@@ -155,13 +158,13 @@ public class StepOperators {
      * @return array of all found values, or error if maximum recursion depth
      * exceeded
      */
-    public static Value recursiveKeyStep(EObject astNode, Value parent, String key) {
+    public static Value recursiveKeyStep(EObject astNode, Value parent, String key, ValueMetadata metadata) {
         val arrayBuilder = ArrayValue.builder();
         try {
             recursiveKeyStep(parent, key, 0, arrayBuilder);
-            return arrayBuilder.build();
+            return arrayBuilder.build().withMetadata(metadata);
         } catch (MaxRecursionDepthException e) {
-            return Error.at(astNode, ERROR_MAX_RECURSION_DEPTH_KEY);
+            return Error.at(astNode, metadata, ERROR_MAX_RECURSION_DEPTH_KEY);
         }
     }
 
@@ -235,7 +238,7 @@ public class StepOperators {
     public static Value sliceArray(EObject astNode, Value parent, BigDecimal bigIndex, BigDecimal bigTo,
             BigDecimal bigStep) {
         if (!(parent instanceof ArrayValue arrayValue)) {
-            return Error.at(astNode, ERROR_SLICING_REQUIRES_ARRAY, parent);
+            return Error.at(astNode, parent.metadata(), ERROR_SLICING_REQUIRES_ARRAY, parent);
         }
 
         val parameters = convertSliceParameters(astNode, bigIndex, bigTo, bigStep);
@@ -261,12 +264,12 @@ public class StepOperators {
             val step  = bigStep == null ? 1 : bigStep.intValueExact();
 
             if (step == 0) {
-                return Error.at(astNode, ERROR_SLICING_STEP_ZERO);
+                return Error.at(astNode, ValueMetadata.EMPTY, ERROR_SLICING_STEP_ZERO);
             }
 
             return new int[] { index == null ? Integer.MIN_VALUE : index, to == null ? Integer.MAX_VALUE : to, step };
         } catch (ArithmeticException exception) {
-            return Error.at(astNode, exception.getMessage());
+            return Error.at(astNode, ValueMetadata.EMPTY, exception.getMessage());
         }
     }
 
@@ -329,11 +332,11 @@ public class StepOperators {
             try {
                 indexes[i] = bigIndexes.get(i).intValueExact();
             } catch (ArithmeticException exception) {
-                return Error.at(astNode, exception.getMessage());
+                return Error.at(astNode, parent.metadata(), exception.getMessage());
             }
         }
         if (!(parent instanceof ArrayValue arrayValue)) {
-            return Error.at(astNode, ERROR_INDEX_UNION_REQUIRES_ARRAY, parent);
+            return Error.at(astNode, parent.metadata(), ERROR_INDEX_UNION_REQUIRES_ARRAY, parent);
         }
         val size  = arrayValue.size();
         val pairs = new int[indexes.length][2];
@@ -346,7 +349,7 @@ public class StepOperators {
         int lastIndex    = -1;
         for (val pair : pairs) {
             if (pair[1] < 0 || pair[1] >= size) {
-                return Error.at(astNode, ERROR_INDEX_OUT_OF_BOUNDS, pair[0], size);
+                return Error.at(astNode, parent.metadata(), ERROR_INDEX_OUT_OF_BOUNDS, pair[0], size);
             }
 
             if (pair[1] != lastIndex) {
@@ -372,7 +375,7 @@ public class StepOperators {
      */
     public static Value attributeUnion(EObject astNode, Value parent, List<String> keys) {
         if (!(parent instanceof ObjectValue objectValue)) {
-            return Error.at(astNode, ERROR_KEY_UNION_REQUIRES_OBJECT, parent);
+            return Error.at(astNode, parent.metadata(), ERROR_KEY_UNION_REQUIRES_OBJECT, parent);
         }
         val requestedKeys = new HashSet<>(keys);
         val arrayBuilder  = ArrayValue.builder();
@@ -405,7 +408,7 @@ public class StepOperators {
             recursiveWildcardStep(parent, 0, arrayBuilder);
             return arrayBuilder.build();
         } catch (MaxRecursionDepthException e) {
-            return Error.at(astNode, ERROR_MAX_RECURSION_DEPTH_WILDCARD);
+            return Error.at(astNode, parent.metadata(), ERROR_MAX_RECURSION_DEPTH_WILDCARD);
         }
     }
 
@@ -447,9 +450,9 @@ public class StepOperators {
             recursiveIndexStep(parent, intIndex, 0, arrayBuilder);
             return arrayBuilder.build();
         } catch (ArithmeticException exception) {
-            return Error.at(astNode, exception.getMessage());
+            return Error.at(astNode, parent.metadata(), exception.getMessage());
         } catch (MaxRecursionDepthException e) {
-            return Error.at(astNode, ERROR_MAX_RECURSION_DEPTH_INDEX);
+            return Error.at(astNode, parent.metadata(), ERROR_MAX_RECURSION_DEPTH_INDEX);
         }
     }
 

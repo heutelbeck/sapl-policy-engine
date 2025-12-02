@@ -18,9 +18,12 @@
 package io.sapl.compiler.operators;
 
 import io.sapl.api.model.BooleanValue;
+import io.sapl.api.model.ErrorValue;
 import io.sapl.api.model.Value;
+import io.sapl.api.model.ValueMetadata;
 import io.sapl.compiler.Error;
 import lombok.experimental.UtilityClass;
+import lombok.val;
 import org.eclipse.emf.ecore.EObject;
 
 import java.util.function.BinaryOperator;
@@ -100,13 +103,20 @@ public class BooleanOperators {
      */
     private static Value applyBooleanOperation(EObject astNode, Value left, Value right,
             BinaryOperator<Boolean> operation) {
+        val metadata = left.metadata().merge(right.metadata());
+        if (left instanceof ErrorValue error) {
+            return error.withMetadata(metadata);
+        }
+        if (right instanceof ErrorValue error) {
+            return error.withMetadata(metadata);
+        }
         if (!(left instanceof BooleanValue boolLeft)) {
-            return Error.at(astNode, TYPE_MISMATCH_BOOLEAN_EXPECTED_ERROR, left);
+            return Error.at(astNode, metadata, TYPE_MISMATCH_BOOLEAN_EXPECTED_ERROR, left);
         }
         if (!(right instanceof BooleanValue boolRight)) {
-            return Error.at(astNode, TYPE_MISMATCH_BOOLEAN_EXPECTED_ERROR, right);
+            return Error.at(astNode, metadata, TYPE_MISMATCH_BOOLEAN_EXPECTED_ERROR, right);
         }
-        return preserveSecret(operation.apply(boolLeft.value(), boolRight.value()), left.secret() || right.secret());
+        return withMetadata(operation.apply(boolLeft.value(), boolRight.value()), left, right);
     }
 
     /**
@@ -119,27 +129,21 @@ public class BooleanOperators {
      * not a BooleanValue
      */
     public static Value not(EObject astNode, Value value) {
-        if (!(value instanceof BooleanValue(boolean bool, boolean secret))) {
-            return Error.at(astNode, TYPE_MISMATCH_BOOLEAN_EXPECTED_ERROR, value);
+        if (value instanceof ErrorValue error) {
+            return error;
         }
-        return preserveSecret(!bool, secret);
+        if (!(value instanceof BooleanValue(boolean bool, ValueMetadata ignored))) {
+            return Error.at(astNode, value.metadata(), TYPE_MISMATCH_BOOLEAN_EXPECTED_ERROR, value);
+        }
+        return withMetadata(!bool, value);
     }
 
-    /**
-     * Creates a BooleanValue with secret handling, reusing constants.
-     *
-     * @param value
-     * the boolean value
-     * @param secret
-     * whether the value should be marked as secret
-     *
-     * @return a BooleanValue with the specified value and secret flag
-     */
-    private static BooleanValue preserveSecret(boolean value, boolean secret) {
-        if (secret) {
-            return value ? BooleanValue.SECRET_TRUE : BooleanValue.SECRET_FALSE;
-        } else {
-            return value ? Value.TRUE : Value.FALSE;
-        }
+    private static BooleanValue withMetadata(boolean value, Value original) {
+        return new BooleanValue(value, original.metadata());
+    }
+
+    private static BooleanValue withMetadata(boolean value, Value left, Value right) {
+        val metadata = left.metadata().merge(right.metadata());
+        return new BooleanValue(value, metadata);
     }
 }

@@ -144,15 +144,15 @@ public class ValueJsonMarshaller {
         }
 
         return switch (value) {
-        case NullValue n                            -> FACTORY.nullNode();
-        case BooleanValue(boolean b, boolean s)     -> FACTORY.booleanNode(b);
-        case NumberValue(BigDecimal num, boolean s) -> FACTORY.numberNode(num);
-        case TextValue(String text, boolean s)      -> FACTORY.textNode(text);
-        case ArrayValue array                       -> toJsonArray(array, depth + 1);
-        case ObjectValue object                     -> toJsonObject(object, depth + 1);
-        case UndefinedValue u                       ->
+        case NullValue n                                        -> FACTORY.nullNode();
+        case BooleanValue(boolean b, ValueMetadata ignored)     -> FACTORY.booleanNode(b);
+        case NumberValue(BigDecimal num, ValueMetadata ignored) -> FACTORY.numberNode(num);
+        case TextValue(String text, ValueMetadata ignored)      -> FACTORY.textNode(text);
+        case ArrayValue array                                   -> toJsonArray(array, depth + 1);
+        case ObjectValue object                                 -> toJsonObject(object, depth + 1);
+        case UndefinedValue u                                   ->
             throw new IllegalArgumentException("Cannot marshall UndefinedValue to JSON.");
-        case ErrorValue e                           ->
+        case ErrorValue e                                       ->
             throw new IllegalArgumentException("Cannot marshall ErrorValue to JSON: " + e.message() + ".");
         };
     }

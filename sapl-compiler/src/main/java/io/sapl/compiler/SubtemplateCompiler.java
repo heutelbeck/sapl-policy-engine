@@ -276,7 +276,8 @@ public class SubtemplateCompiler {
                     COMPILE_TIME_ID_PLACEHOLDER, null, null, null).withRelativeValue(relativeNode);
             yield pureTemplate.evaluate(evaluationContext);
         }
-        case StreamExpression ignored    -> Error.at(astNode, ERROR_SUBTEMPLATE_STREAMING_COMPILE_TIME);
+        case StreamExpression ignored    ->
+            Error.at(astNode, relativeNode.metadata(), ERROR_SUBTEMPLATE_STREAMING_COMPILE_TIME);
         };
     }
 
@@ -304,7 +305,8 @@ public class SubtemplateCompiler {
             val contextWithRelativeNode = ctx.withRelativeValue(relativeNode);
             yield pureTemplate.evaluate(contextWithRelativeNode);
         }
-        case StreamExpression ignored    -> Error.at(astNode, ERROR_SUBTEMPLATE_STREAMING_RUNTIME);
+        case StreamExpression ignored    ->
+            Error.at(astNode, relativeNode.metadata(), ERROR_SUBTEMPLATE_STREAMING_RUNTIME);
         };
     }
 }

@@ -29,26 +29,26 @@ import java.math.BigDecimal;
  * scale-sensitive equality). For example,
  * Value.of(1.0) equals Value.of(1.00).
  */
-public record NumberValue(@NonNull BigDecimal value, boolean secret) implements Value {
+public record NumberValue(@NonNull BigDecimal value, @NonNull ValueMetadata metadata) implements Value {
 
     @Serial
     private static final long serialVersionUID = SaplVersion.VERSION_UID;
 
     @Override
-    public Value asSecret() {
-        return secret ? this : new NumberValue(value, true);
+    public Value withMetadata(ValueMetadata newMetadata) {
+        return new NumberValue(value, newMetadata);
     }
 
     @Override
     public @NotNull String toString() {
-        return secret ? SECRET_PLACEHOLDER : value.toString();
+        return isSecret() ? SECRET_PLACEHOLDER : value.toString();
     }
 
     @Override
     public boolean equals(Object that) {
         if (this == that)
             return true;
-        if (!(that instanceof NumberValue(BigDecimal thatValue, boolean thatSecret)))
+        if (!(that instanceof NumberValue(BigDecimal thatValue, ValueMetadata thatMetadata)))
             return false;
         // Uses numerical equality, not BigDecimal equality.
         // Makes Value.of(1.0).equals(Value.of(1.00)) return true.

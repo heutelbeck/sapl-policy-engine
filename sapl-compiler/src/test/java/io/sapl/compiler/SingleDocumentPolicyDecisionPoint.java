@@ -180,6 +180,61 @@ public final class SingleDocumentPolicyDecisionPoint implements PolicyDecisionPo
         return ((PureExpression) e).evaluate(ctx);
     }
 
+    /**
+     * Synchronous pure evaluation - bypasses Reactor entirely.
+     * Only works for pure policies (no attribute streams).
+     * For policies with obligations/advice/transform, falls back to blocking.
+     *
+     * @param authorizationSubscription
+     * the authorization subscription
+     *
+     * @return the authorization decision directly (no Flux)
+     *
+     * @throws IllegalStateException
+     * if no document has been loaded or policy is not pure
+     */
+    public AuthorizationDecision decidePure(AuthorizationSubscription authorizationSubscription) {
+        if (compiledPolicy == null) {
+            throw new IllegalStateException("No policy document loaded. Call loadDocument() first.");
+        }
+
+        val evaluationContext = new EvaluationContext("", "", "", authorizationSubscription,
+                compilationContext.getFunctionBroker(), compilationContext.getAttributeBroker());
+
+        // Evaluate match expression
+        val matchResult = evalValueOrPure(compiledPolicy.matchExpression(), evaluationContext);
+
+        // Handle match errors
+        if (matchResult instanceof ErrorValue) {
+            return AuthorizationDecision.INDETERMINATE;
+        }
+
+        // Handle non-boolean match results
+        if (!(matchResult instanceof BooleanValue matchBool)) {
+            return AuthorizationDecision.INDETERMINATE;
+        }
+
+        // Policy does not match
+        if (BooleanValue.FALSE.equals(matchBool)) {
+            return AuthorizationDecision.NOT_APPLICABLE;
+        }
+
+        // Policy matches - evaluate decision expression
+        val decisionExpression = compiledPolicy.decisionExpression();
+
+        return switch (decisionExpression) {
+        case Value decisionValue         -> AuthorizationDecision.of(decisionValue);
+        case PureExpression pureExpr     -> AuthorizationDecision.of(pureExpr.evaluate(evaluationContext));
+        case StreamExpression streamExpr -> {
+            // For stream expressions (policies with obligations/advice/transform),
+            // we need to use blocking - but avoid Flux.just() overhead
+            val stream = streamExpr.stream().contextWrite(ctx -> ctx.put(EvaluationContext.class, evaluationContext));
+            yield AuthorizationDecision.of(stream.blockFirst());
+        }
+        default                          -> AuthorizationDecision.INDETERMINATE;
+        };
+    }
+
     private Flux<AuthorizationDecision> evaluateDecisionExpression(EvaluationContext evaluationContext) {
         val decisionExpression = compiledPolicy.decisionExpression();
 

@@ -32,9 +32,10 @@ class UndefinedValueTests {
     @ParameterizedTest(name = "UndefinedValue(secret={0}) construction")
     @MethodSource
     void when_constructedWithSecretFlag_then_createsValue(boolean secret) {
-        var value = new UndefinedValue(secret);
+        var metadata = secret ? ValueMetadata.SECRET_EMPTY : ValueMetadata.EMPTY;
+        var value    = new UndefinedValue(metadata);
 
-        assertThat(value.secret()).isEqualTo(secret);
+        assertThat(value.isSecret()).isEqualTo(secret);
     }
 
     static Stream<Arguments> when_constructedWithSecretFlag_then_createsValue() {
@@ -42,11 +43,12 @@ class UndefinedValueTests {
     }
 
     @Test
-    void when_asSecretCalled_then_returnsSecretUndefinedSingleton() {
-        var regular = new UndefinedValue(false);
+    void when_asSecretCalled_then_returnsSecretUndefined() {
+        var regular = new UndefinedValue(ValueMetadata.EMPTY);
 
-        assertThat(regular.asSecret()).isSameAs(UndefinedValue.SECRET_UNDEFINED)
-                .isSameAs(UndefinedValue.SECRET_UNDEFINED.asSecret());
+        assertThat(regular.asSecret().isSecret()).isTrue();
+        assertThat(regular.asSecret()).isEqualTo(UndefinedValue.SECRET_UNDEFINED);
+        assertThat(UndefinedValue.SECRET_UNDEFINED.asSecret()).isSameAs(UndefinedValue.SECRET_UNDEFINED);
     }
 
     @ParameterizedTest(name = "{0}={1}, equal={2}")
@@ -57,14 +59,17 @@ class UndefinedValueTests {
     }
 
     static Stream<Arguments> when_equalsAndHashCodeCompared_then_allUndefinedValuesAreEqual() {
-        return Stream.of(arguments(new UndefinedValue(false), new UndefinedValue(false), true),
-                arguments(new UndefinedValue(false), new UndefinedValue(true), true),
-                arguments(new UndefinedValue(true), new UndefinedValue(true), true));
+        return Stream.of(
+                arguments(new UndefinedValue(ValueMetadata.EMPTY), new UndefinedValue(ValueMetadata.EMPTY), true),
+                arguments(new UndefinedValue(ValueMetadata.EMPTY), new UndefinedValue(ValueMetadata.SECRET_EMPTY),
+                        true),
+                arguments(new UndefinedValue(ValueMetadata.SECRET_EMPTY),
+                        new UndefinedValue(ValueMetadata.SECRET_EMPTY), true));
     }
 
     @Test
     void when_comparedToOtherValueTypes_then_notEqual() {
-        var undefinedValue = new UndefinedValue(false);
+        var undefinedValue = new UndefinedValue(ValueMetadata.EMPTY);
 
         assertThat(undefinedValue).isNotEqualTo(Value.NULL).isNotEqualTo(Value.of(0))
                 .isNotEqualTo(Value.of("undefined"));
@@ -73,7 +78,8 @@ class UndefinedValueTests {
     @ParameterizedTest(name = "secret={0} toString()={1}")
     @MethodSource
     void when_toStringCalled_then_showsUndefinedOrPlaceholder(boolean secret, String expected) {
-        var value = new UndefinedValue(secret);
+        var metadata = secret ? ValueMetadata.SECRET_EMPTY : ValueMetadata.EMPTY;
+        var value    = new UndefinedValue(metadata);
 
         assertThat(value).hasToString(expected);
     }
@@ -85,7 +91,7 @@ class UndefinedValueTests {
     @ParameterizedTest(name = "{0}")
     @MethodSource
     void when_constantsChecked_then_haveExpectedSecretFlag(String description, Value constant, boolean expectedSecret) {
-        assertThat(constant.secret()).isEqualTo(expectedSecret);
+        assertThat(constant.isSecret()).isEqualTo(expectedSecret);
     }
 
     static Stream<Arguments> when_constantsChecked_then_haveExpectedSecretFlag() {

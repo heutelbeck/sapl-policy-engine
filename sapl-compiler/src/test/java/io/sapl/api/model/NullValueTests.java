@@ -32,9 +32,10 @@ class NullValueTests {
     @ParameterizedTest(name = "NullValue(secret={0}) construction")
     @MethodSource
     void when_constructedWithSecretFlag_then_createsValue(boolean secret) {
-        var value = new NullValue(secret);
+        var metadata = secret ? ValueMetadata.SECRET_EMPTY : ValueMetadata.EMPTY;
+        var value    = new NullValue(metadata);
 
-        assertThat(value.secret()).isEqualTo(secret);
+        assertThat(value.isSecret()).isEqualTo(secret);
     }
 
     static Stream<Arguments> when_constructedWithSecretFlag_then_createsValue() {
@@ -42,10 +43,19 @@ class NullValueTests {
     }
 
     @Test
-    void when_asSecretCalled_then_returnsSecretNullSingleton() {
-        var regular = new NullValue(false);
+    void when_asSecretCalled_then_returnsSecretNullValue() {
+        var regular = new NullValue(ValueMetadata.EMPTY);
+        var secret  = regular.asSecret();
 
-        assertThat(regular.asSecret()).isSameAs(NullValue.SECRET_NULL).isSameAs(NullValue.SECRET_NULL.asSecret());
+        assertThat(secret.isSecret()).isTrue();
+        assertThat(secret).isEqualTo(regular);
+    }
+
+    @Test
+    void when_asSecretCalledOnSecretValue_then_returnsSameInstance() {
+        var secretOriginal = new NullValue(ValueMetadata.SECRET_EMPTY);
+
+        assertThat(secretOriginal.asSecret()).isSameAs(secretOriginal);
     }
 
     @ParameterizedTest(name = "{0}={1}, equal={2}")
@@ -56,14 +66,14 @@ class NullValueTests {
     }
 
     static Stream<Arguments> when_equalsAndHashCodeCompared_then_allNullValuesAreEqual() {
-        return Stream.of(arguments(new NullValue(false), new NullValue(false), true),
-                arguments(new NullValue(false), new NullValue(true), true),
-                arguments(new NullValue(true), new NullValue(true), true));
+        return Stream.of(arguments(new NullValue(ValueMetadata.EMPTY), new NullValue(ValueMetadata.EMPTY), true),
+                arguments(new NullValue(ValueMetadata.EMPTY), new NullValue(ValueMetadata.SECRET_EMPTY), true),
+                arguments(new NullValue(ValueMetadata.SECRET_EMPTY), new NullValue(ValueMetadata.SECRET_EMPTY), true));
     }
 
     @Test
     void when_comparedToOtherValueTypes_then_notEqual() {
-        var nullValue = new NullValue(false);
+        var nullValue = new NullValue(ValueMetadata.EMPTY);
 
         assertThat(nullValue).isNotEqualTo(Value.UNDEFINED).isNotEqualTo(Value.of(0)).isNotEqualTo(Value.of("null"));
     }
@@ -71,7 +81,8 @@ class NullValueTests {
     @ParameterizedTest(name = "secret={0} toString()={1}")
     @MethodSource
     void when_toStringCalled_then_showsNullOrPlaceholder(boolean secret, String expected) {
-        var value = new NullValue(secret);
+        var metadata = secret ? ValueMetadata.SECRET_EMPTY : ValueMetadata.EMPTY;
+        var value    = new NullValue(metadata);
 
         assertThat(value).hasToString(expected);
     }
@@ -83,7 +94,7 @@ class NullValueTests {
     @ParameterizedTest(name = "{0}")
     @MethodSource
     void when_constantsChecked_then_haveExpectedSecretFlag(String description, Value constant, boolean expectedSecret) {
-        assertThat(constant.secret()).isEqualTo(expectedSecret);
+        assertThat(constant.isSecret()).isEqualTo(expectedSecret);
     }
 
     static Stream<Arguments> when_constantsChecked_then_haveExpectedSecretFlag() {

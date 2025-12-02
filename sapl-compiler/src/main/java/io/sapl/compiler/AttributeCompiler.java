@@ -21,7 +21,9 @@ import io.sapl.api.attributes.AttributeBroker;
 import io.sapl.api.attributes.AttributeFinderInvocation;
 import io.sapl.api.model.*;
 import io.sapl.api.model.Value;
+import io.sapl.api.pdp.internal.AttributeRecord;
 import io.sapl.grammar.sapl.*;
+import io.sapl.interpreter.pip.AttributeFinderMetadata;
 import lombok.NonNull;
 import lombok.experimental.UtilityClass;
 import lombok.extern.slf4j.Slf4j;
@@ -31,10 +33,8 @@ import reactor.core.publisher.Flux;
 import reactor.util.context.ContextView;
 
 import java.time.Duration;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Map;
-import java.util.Optional;
+import java.time.Instant;
+import java.util.*;
 import java.util.function.Function;
 
 /**
@@ -222,38 +222,46 @@ public class AttributeCompiler {
     private static Flux<Value> evaluatedAttributeFinder(EObject astNode,
             java.lang.Object[] evaluatedAttributeFinderParameters, String attributeName,
             boolean isEnvironmentAttribute) {
+        var metadata = mergeMetadataFromAttributeParameters(evaluatedAttributeFinderParameters);
         if (evaluatedAttributeFinderParameters.length < 2) {
-            return Flux.just(Error.at(astNode,
+            return Flux.just(Error.at(astNode, metadata,
                     ERROR_ATTRIBUTE_PARAMETERS_INSUFFICIENT.formatted(evaluatedAttributeFinderParameters.length)));
         }
         val entity = (Value) evaluatedAttributeFinderParameters[0];
 
         if (entity instanceof ErrorValue) {
-            return Flux.just(entity);
+            return Flux.just(entity.withMetadata(metadata));
         }
         if (!isEnvironmentAttribute && entity instanceof UndefinedValue) {
-            return Flux.just(Error.at(astNode, ERROR_UNDEFINED_VALUE_LEFT_HAND));
+            return Flux.just(Error.at(astNode, metadata, ERROR_UNDEFINED_VALUE_LEFT_HAND));
         }
         val maybeOptions = (Options) evaluatedAttributeFinderParameters[1];
         if (maybeOptions instanceof OptionsError(ErrorValue error)) {
-            return Flux.just(error);
+            return Flux.just(error.withMetadata(metadata));
         }
 
         val options = (AttributeFinderOptions) maybeOptions;
         if (options.attributeBroker == null) {
-            return Flux.just(Error.at(astNode, ERROR_ATTRIBUTE_BROKER_NOT_CONFIGURED));
+            return Flux.just(Error.at(astNode, metadata, ERROR_ATTRIBUTE_BROKER_NOT_CONFIGURED));
         }
 
-        var values     = Arrays.stream(evaluatedAttributeFinderParameters, 2, evaluatedAttributeFinderParameters.length)
+        var values        = Arrays
+                .stream(evaluatedAttributeFinderParameters, 2, evaluatedAttributeFinderParameters.length)
                 .map(Value.class::cast).toList();
-        val invocation = new AttributeFinderInvocation(options.configurationId, attributeName,
+        val invocation    = new AttributeFinderInvocation(options.configurationId, attributeName,
                 isEnvironmentAttribute ? null : entity, values, options.variables, options.initialTimeOutDuration(),
                 options.pollIntervalDuration(), options.backoffDuration(), options.retries, options.fresh);
+        val inputMetadata = metadata;
         return options.attributeBroker.attributeStream(invocation).map(attribute -> {
-            if (attribute instanceof ErrorValue error && error.location() == null) {
-                return error.withLocation(SourceLocationUtil.fromAstNode(astNode));
+            val location = SourceLocationUtil.fromAstNode(astNode);
+            if (attribute instanceof ErrorValue error) {
+                if (error.location() == null) {
+                    attribute = error.withLocation(location);
+                }
             }
-            return attribute;
+            val attributeRecord   = new AttributeRecord(invocation, attribute, Instant.now(), location);
+            val attributeMetadata = inputMetadata.merge(ValueMetadata.ofAttribute(attributeRecord));
+            return attribute.withMetadata(attributeMetadata);
         });
     }
 
@@ -387,6 +395,25 @@ public class AttributeCompiler {
         public @NonNull Duration pollIntervalDuration() {
             return Duration.ofMillis(pollIntervalMs);
         }
+    }
+
+    /**
+     * Merges metadata from Value elements in an attribute finder parameter array.
+     * Array structure: [entity (Value), options (Options), args... (Value)].
+     * Skips index 1 (options) since it's not a Value.
+     */
+    private static ValueMetadata mergeMetadataFromAttributeParameters(java.lang.Object[] elements) {
+        if (elements.length == 0) {
+            return ValueMetadata.EMPTY;
+        }
+        // Index 0 is entity (Value)
+        var result = ((Value) elements[0]).metadata();
+        // Index 1 is options (not a Value), skip it
+        // Index 2+ are args (Value)
+        for (int i = 2; i < elements.length; i++) {
+            result = result.merge(((Value) elements[i]).metadata());
+        }
+        return result;
     }
 
 }

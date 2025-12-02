@@ -45,6 +45,12 @@ public class ConfigurationRegister implements CompiledPDPConfigurationSource {
 
     private final Map<String, Sinks.Many<Optional<CompiledPDPConfiguration>>> sinks = new ConcurrentHashMap<>();
 
+    /**
+     * Lock-free cache for synchronous configuration access. ConcurrentHashMap.get()
+     * is a volatile read with no locking, making it ideal for read-heavy workloads.
+     */
+    private final Map<String, Optional<CompiledPDPConfiguration>> currentConfigs = new ConcurrentHashMap<>();
+
     public void loadConfiguration(PDPConfiguration pdpConfiguration, boolean keepOldConfigOnError) {
         val namesInUse                = new HashSet<String>();
         val alwaysApplicableDocuments = new ArrayList<CompiledPolicy>();
@@ -79,16 +85,26 @@ public class ConfigurationRegister implements CompiledPDPConfigurationSource {
         val newConfiguration     = new CompiledPDPConfiguration(pdpConfiguration.pdpId(),
                 pdpConfiguration.configurationId(), pdpConfiguration.combiningAlgorithm(), pdpConfiguration.variables(),
                 functionBroker, attributeBroker, policyRetrievalPoint);
-        getSink(pdpConfiguration.pdpId()).tryEmitNext(Optional.of(newConfiguration));
+        val optionalConfig       = Optional.of(newConfiguration);
+        // Update cache first (lock-free write), then notify reactive subscribers
+        currentConfigs.put(pdpConfiguration.pdpId(), optionalConfig);
+        getSink(pdpConfiguration.pdpId()).tryEmitNext(optionalConfig);
     }
 
     public void removeConfigurationForPdp(String pdpId) {
+        // Update cache first (lock-free write), then notify reactive subscribers
+        currentConfigs.put(pdpId, Optional.empty());
         getSink(pdpId).tryEmitNext(Optional.empty());
     }
 
     @Override
     public Flux<Optional<CompiledPDPConfiguration>> getPDPConfigurations(String pdpId) {
         return getSink(pdpId).asFlux();
+    }
+
+    @Override
+    public Optional<CompiledPDPConfiguration> getCurrentConfiguration(String pdpId) {
+        return currentConfigs.getOrDefault(pdpId, Optional.empty());
     }
 
     private Sinks.Many<Optional<CompiledPDPConfiguration>> getSink(String pdpId) {

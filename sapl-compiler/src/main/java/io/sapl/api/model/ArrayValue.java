@@ -20,6 +20,7 @@ package io.sapl.api.model;
 import io.sapl.api.SaplVersion;
 import lombok.NonNull;
 import lombok.experimental.Delegate;
+import lombok.val;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.Serial;
@@ -32,9 +33,15 @@ import java.util.stream.Collectors;
 /**
  * Array value implementing List semantics. The underlying list is immutable.
  * <p>
- * Secret containers eagerly apply the secret flag to all contained values at
- * construction time, enabling zero-overhead
- * reads and optimal performance for recursive operations.
+ * Metadata (including secret flag and attribute traces) is aggregated from all
+ * elements
+ * at construction time and propagated back to all elements. This enables:
+ * <ul>
+ * <li>Zero-overhead reads - elements already have merged metadata</li>
+ * <li>Audit completeness - filter operations preserve all source traces</li>
+ * <li>Consistent secret handling - if any element is secret, all become
+ * secret</li>
+ * </ul>
  * <p>
  * Direct list usage:
  *
@@ -76,76 +83,77 @@ public final class ArrayValue implements Value, List<Value> {
     /**
      * Singleton for secret empty array.
      */
-    public static final ArrayValue SECRET_EMPTY_ARRAY = new ArrayValue(List.of(), true);
+    public static final ArrayValue SECRET_EMPTY_ARRAY = new ArrayValue(List.of(), ValueMetadata.SECRET_EMPTY);
 
     @Delegate(excludes = ExcludedMethods.class)
-    private final List<Value> value;
-    private final boolean     secret;
+    private final List<Value>   value;
+    private final ValueMetadata metadata;
 
     /**
-     * Creates an ArrayValue.
+     * Creates an ArrayValue with specified metadata.
      * <p>
-     * If secret is true, applies the secret flag to all elements at construction
-     * time for optimal read performance.
+     * Aggregates metadata from all elements and merges with the provided metadata,
+     * then propagates the merged result back to all elements. This ensures filter
+     * operations preserve all source attribute traces.
      * <p>
      * Note: This does a defensive copy of the supplied List. For better performance
-     * without the need to copy use the
-     * Builder!
+     * without the need to copy use the Builder!
      *
-     * @param elements
-     * the list elements (defensively copied, must not be null)
-     * @param secret
-     * whether this value is secret
+     * @param elements the list elements (defensively copied, must not be null)
+     * @param metadata the container metadata to merge with element metadata
      */
-    public ArrayValue(@NonNull List<Value> elements, boolean secret) {
-        if (secret) {
-            var secretList = new ArrayList<Value>();
-            for (Value element : elements) {
-                secretList.add(element.asSecret());
-            }
-            this.value = Collections.unmodifiableList(secretList);
-        } else {
-            this.value = List.copyOf(elements);
-        }
-        this.secret = secret;
+    public ArrayValue(@NonNull List<Value> elements, @NonNull ValueMetadata metadata) {
+        val mergedMetadata = aggregateAndMerge(elements, metadata);
+        this.value    = propagateMetadata(elements, mergedMetadata);
+        this.metadata = mergedMetadata;
     }
 
     /**
-     * Creates an ArrayValue.
+     * Creates an ArrayValue with specified metadata.
      * <p>
-     * If secret is true, applies the secret flag to all elements at construction
-     * time for optimal read performance.
+     * Aggregates metadata from all elements and merges with the provided metadata,
+     * then propagates the merged result back to all elements.
      *
-     * @param elements
-     * the list elements (defensively copied, must not be null)
-     * @param secret
-     * whether this value is secret
+     * @param elements the array elements (must not be null)
+     * @param metadata the container metadata to merge with element metadata
      */
-    public ArrayValue(@NonNull Value[] elements, boolean secret) {
-        if (secret) {
-            var secretList = new ArrayList<Value>();
-            for (Value element : elements) {
-                secretList.add(element.asSecret());
-            }
-            this.value = Collections.unmodifiableList(secretList);
-        } else {
-            this.value = List.of(elements);
-        }
-        this.secret = secret;
+    public ArrayValue(@NonNull Value[] elements, @NonNull ValueMetadata metadata) {
+        this(List.of(elements), metadata);
     }
 
     /**
      * Zero-copy constructor for builder use only. The supplied list is used
-     * directly without copying.
+     * directly without copying. Assumes metadata already propagated to elements.
      *
-     * @param secret
-     * whether this value is secret
-     * @param elements
-     * the list elements (used directly, must be mutable until wrapped)
+     * @param metadata the pre-computed container metadata
+     * @param elements the list elements (used directly, must be mutable until
+     * wrapped)
      */
-    private ArrayValue(boolean secret, List<Value> elements) {
-        this.value  = Collections.unmodifiableList(elements);
-        this.secret = secret;
+    private ArrayValue(ValueMetadata metadata, List<Value> elements) {
+        this.value    = Collections.unmodifiableList(elements);
+        this.metadata = metadata;
+    }
+
+    private static ValueMetadata aggregateAndMerge(List<Value> elements, ValueMetadata containerMetadata) {
+        if (elements.isEmpty()) {
+            return containerMetadata;
+        }
+        var merged = containerMetadata;
+        for (Value element : elements) {
+            merged = merged.merge(element.metadata());
+        }
+        return merged;
+    }
+
+    private static List<Value> propagateMetadata(List<Value> elements, ValueMetadata targetMetadata) {
+        if (elements.isEmpty()) {
+            return List.of();
+        }
+        var result = new ArrayList<Value>(elements.size());
+        for (Value element : elements) {
+            result.add(element.withMetadata(targetMetadata));
+        }
+        return Collections.unmodifiableList(result);
     }
 
     /**
@@ -161,31 +169,28 @@ public final class ArrayValue implements Value, List<Value> {
      * Builder for fluent ArrayValue construction.
      * <p>
      * Builders are single-use only. After calling build(), the builder cannot be
-     * reused. This prevents immutability
-     * violations from the zero-copy optimization.
+     * reused. This prevents immutability violations from the zero-copy
+     * optimization.
+     * <p>
+     * The builder aggregates metadata from all added elements. At build time, the
+     * merged metadata is propagated back to all elements for consistent access.
      */
     public static final class Builder {
         private ArrayList<Value> elements = new ArrayList<>();
-        private boolean          secret   = false;
+        private ValueMetadata    metadata = ValueMetadata.EMPTY;
 
         /**
          * Adds a value to the array.
          *
-         * @param value
-         * the value to add
-         *
+         * @param value the value to add
          * @return this builder
-         *
-         * @throws IllegalStateException
-         * if builder has already been used
+         * @throws IllegalStateException if builder has already been used
          */
         public Builder add(Value value) {
             if (elements == null) {
                 throw new IllegalStateException("Builder has already been used.");
             }
-            if (secret) {
-                value = value.asSecret();
-            }
+            metadata = metadata.merge(value.metadata());
             elements.add(value);
             return this;
         }
@@ -193,13 +198,9 @@ public final class ArrayValue implements Value, List<Value> {
         /**
          * Adds multiple values to the array.
          *
-         * @param values
-         * the values to add
-         *
+         * @param values the values to add
          * @return this builder
-         *
-         * @throws IllegalStateException
-         * if builder has already been used
+         * @throws IllegalStateException if builder has already been used
          */
         public Builder addAll(Value... values) {
             if (elements == null) {
@@ -214,13 +215,9 @@ public final class ArrayValue implements Value, List<Value> {
         /**
          * Adds multiple values to the array.
          *
-         * @param values
-         * the values to add
-         *
+         * @param values the values to add
          * @return this builder
-         *
-         * @throws IllegalStateException
-         * if builder has already been used
+         * @throws IllegalStateException if builder has already been used
          */
         public Builder addAll(Collection<? extends Value> values) {
             if (elements == null) {
@@ -233,25 +230,34 @@ public final class ArrayValue implements Value, List<Value> {
         }
 
         /**
-         * Marks the array as secret. Elements will have the secret flag applied at
-         * construction.
+         * Marks the array as secret.
          * <p>
          * Note: For performance reasons, if possible call this method as early as
          * possible in the building process.
          *
          * @return this builder
-         *
-         * @throws IllegalStateException
-         * if builder has already been used
+         * @throws IllegalStateException if builder has already been used
          */
         public Builder secret() {
             if (elements == null) {
                 throw new IllegalStateException("Builder has already been used.");
             }
-            if (!this.secret) {
-                this.secret = true;
-                elements.replaceAll(Value::asSecret);
+            metadata = metadata.asSecret();
+            return this;
+        }
+
+        /**
+         * Merges additional metadata into the builder.
+         *
+         * @param additionalMetadata the metadata to merge
+         * @return this builder
+         * @throws IllegalStateException if builder has already been used
+         */
+        public Builder withMetadata(ValueMetadata additionalMetadata) {
+            if (elements == null) {
+                throw new IllegalStateException("Builder has already been used.");
             }
+            metadata = metadata.merge(additionalMetadata);
             return this;
         }
 
@@ -259,46 +265,52 @@ public final class ArrayValue implements Value, List<Value> {
          * Builds the immutable ArrayValue. Returns singleton for empty non-secret
          * arrays.
          * <p>
-         * After calling this method, the builder cannot be reused. Attempting to call
-         * any builder methods after build()
-         * will throw IllegalStateException.
+         * At build time, the aggregated metadata is propagated to all elements for
+         * consistent access. After calling this method, the builder cannot be reused.
          *
          * @return the constructed ArrayValue
-         *
-         * @throws IllegalStateException
-         * if builder has already been used
+         * @throws IllegalStateException if builder has already been used
          */
         public ArrayValue build() {
             if (elements == null) {
                 throw new IllegalStateException("Builder has already been used.");
             }
-            if (elements.isEmpty() && !secret) {
+            if (elements.isEmpty() && metadata == ValueMetadata.EMPTY) {
                 elements = null;
                 return Value.EMPTY_ARRAY;
             }
-            if (elements.isEmpty()) {
+            if (elements.isEmpty() && metadata.secret() && metadata.attributeTrace().isEmpty()) {
                 elements = null;
                 return SECRET_EMPTY_ARRAY;
             }
-            var result = new ArrayValue(secret, elements);
+            if (elements.isEmpty()) {
+                elements = null;
+                return new ArrayValue(metadata, List.of());
+            }
+            // Propagate merged metadata to all elements
+            elements.replaceAll(e -> e.withMetadata(metadata));
+            val result = new ArrayValue(metadata, elements);
             elements = null;
             return result;
         }
     }
 
     @Override
-    public boolean secret() {
-        return secret;
+    public ValueMetadata metadata() {
+        return metadata;
     }
 
     @Override
-    public Value asSecret() {
-        return secret ? this : new ArrayValue(value, true);
+    public Value withMetadata(ValueMetadata newMetadata) {
+        if (newMetadata == metadata) {
+            return this;
+        }
+        return new ArrayValue(value, newMetadata);
     }
 
     @Override
     public @NotNull String toString() {
-        if (secret) {
+        if (isSecret()) {
             return SECRET_PLACEHOLDER;
         }
         return '[' + value.stream().map(Value::toString).collect(Collectors.joining(", ")) + ']';
@@ -322,19 +334,16 @@ public final class ArrayValue implements Value, List<Value> {
      * Returns the element at the specified position.
      * <p>
      * Returns ErrorValue for invalid indices instead of throwing
-     * IndexOutOfBoundsException, consistent with SAPL's
-     * error-as-value model. Elements already have the secret flag applied if
-     * container is secret.
+     * IndexOutOfBoundsException, consistent with SAPL's error-as-value model.
+     * Elements already have the container's metadata applied.
      *
-     * @param index
-     * index of the element
-     *
+     * @param index index of the element
      * @return the element, or ErrorValue if index is out of bounds
      */
     @Override
     public @NotNull Value get(int index) {
         if (index < 0 || index >= value.size()) {
-            return new ErrorValue("Array index out of bounds: " + index + " (size: " + value.size() + ").", secret);
+            return new ErrorValue("Array index out of bounds: %d (size: %d).".formatted(index, value.size()), metadata);
         }
         return value.get(index);
     }
@@ -343,16 +352,15 @@ public final class ArrayValue implements Value, List<Value> {
      * Returns the first element.
      * <p>
      * Returns ErrorValue if the array is empty instead of throwing
-     * NoSuchElementException, consistent with SAPL's
-     * error-as-value model. Elements already have the secret flag applied if
-     * container is secret.
+     * NoSuchElementException, consistent with SAPL's error-as-value model.
+     * Elements already have the container's metadata applied.
      *
      * @return the first element, or ErrorValue if array is empty
      */
     @Override
     public @NotNull Value getFirst() {
         if (value.isEmpty()) {
-            return new ErrorValue("Cannot get first element of empty array.", secret);
+            return new ErrorValue("Cannot get first element of empty array.", metadata);
         }
         return value.getFirst();
     }
@@ -361,34 +369,30 @@ public final class ArrayValue implements Value, List<Value> {
      * Returns the last element.
      * <p>
      * Returns ErrorValue if the array is empty instead of throwing
-     * NoSuchElementException, consistent with SAPL's
-     * error-as-value model. Elements already have the secret flag applied if
-     * container is secret.
+     * NoSuchElementException, consistent with SAPL's error-as-value model.
+     * Elements already have the container's metadata applied.
      *
      * @return the last element, or ErrorValue if array is empty
      */
     @Override
     public @NotNull Value getLast() {
         if (value.isEmpty()) {
-            return new ErrorValue("Cannot get last element of empty array.", secret);
+            return new ErrorValue("Cannot get last element of empty array.", metadata);
         }
         return value.getLast();
     }
 
     /**
-     * Returns a view of the portion between the specified indices. The returned
-     * sublist propagates the secret flag.
+     * Returns a view of the portion between the specified indices.
+     * The returned sublist preserves the container's metadata.
      *
-     * @param fromIndex
-     * low endpoint (inclusive)
-     * @param toIndex
-     * high endpoint (exclusive)
-     *
-     * @return a sublist as ArrayValue with secret flag propagated
+     * @param fromIndex low endpoint (inclusive)
+     * @param toIndex high endpoint (exclusive)
+     * @return a sublist as ArrayValue with metadata propagated
      */
     @Override
     public @NotNull List<Value> subList(int fromIndex, int toIndex) {
-        return new ArrayValue(value.subList(fromIndex, toIndex), secret);
+        return new ArrayValue(value.subList(fromIndex, toIndex), metadata);
     }
 
     /**

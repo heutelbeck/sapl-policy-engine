@@ -33,10 +33,11 @@ class BooleanValueTests {
     @ParameterizedTest(name = "BooleanValue({0}, {1}) construction")
     @MethodSource
     void when_constructedWithValueAndSecretFlag_then_createsValue(boolean value, boolean secret) {
-        var boolValue = new BooleanValue(value, secret);
+        var metadata  = secret ? ValueMetadata.SECRET_EMPTY : ValueMetadata.EMPTY;
+        var boolValue = new BooleanValue(value, metadata);
 
         assertThat(boolValue.value()).isEqualTo(value);
-        assertThat(boolValue.secret()).isEqualTo(secret);
+        assertThat(boolValue.isSecret()).isEqualTo(secret);
     }
 
     static Stream<Arguments> when_constructedWithValueAndSecretFlag_then_createsValue() {
@@ -52,13 +53,22 @@ class BooleanValueTests {
         assertThat(Value.of(value)).isSameAs(expected);
     }
 
-    @ParameterizedTest(name = "asSecret() on {0} returns singleton")
+    @ParameterizedTest(name = "asSecret() on {0} returns secret value")
     @ValueSource(booleans = { true, false })
-    void when_asSecretCalled_then_returnsAppropiateSingleton(boolean value) {
-        var original = new BooleanValue(value, false);
-        var expected = value ? BooleanValue.SECRET_TRUE : BooleanValue.SECRET_FALSE;
+    void when_asSecretCalled_then_returnsSecretValueWithSameBooleanValue(boolean value) {
+        var original = new BooleanValue(value, ValueMetadata.EMPTY);
+        var secret   = original.asSecret();
 
-        assertThat(original.asSecret()).isSameAs(expected).isSameAs(expected.asSecret());
+        assertThat(secret.isSecret()).isTrue();
+        assertThat(secret).isEqualTo(original);
+    }
+
+    @ParameterizedTest(name = "asSecret() on already secret {0} returns same instance")
+    @ValueSource(booleans = { true, false })
+    void when_asSecretCalledOnSecretValue_then_returnsSameInstance(boolean value) {
+        var secretOriginal = new BooleanValue(value, ValueMetadata.SECRET_EMPTY);
+
+        assertThat(secretOriginal.asSecret()).isSameAs(secretOriginal);
     }
 
     @ParameterizedTest(name = "{0}={1}, equal={2}")
@@ -73,16 +83,22 @@ class BooleanValueTests {
     }
 
     static Stream<Arguments> when_equalsAndHashCodeCompared_then_comparesByValueIgnoringSecretFlag() {
-        return Stream.of(arguments(new BooleanValue(true, false), new BooleanValue(true, true), true),
-                arguments(new BooleanValue(false, false), new BooleanValue(false, true), true),
-                arguments(new BooleanValue(true, false), new BooleanValue(false, false), false),
-                arguments(new BooleanValue(true, true), new BooleanValue(false, true), false));
+        return Stream.of(
+                arguments(new BooleanValue(true, ValueMetadata.EMPTY),
+                        new BooleanValue(true, ValueMetadata.SECRET_EMPTY), true),
+                arguments(new BooleanValue(false, ValueMetadata.EMPTY),
+                        new BooleanValue(false, ValueMetadata.SECRET_EMPTY), true),
+                arguments(new BooleanValue(true, ValueMetadata.EMPTY), new BooleanValue(false, ValueMetadata.EMPTY),
+                        false),
+                arguments(new BooleanValue(true, ValueMetadata.SECRET_EMPTY),
+                        new BooleanValue(false, ValueMetadata.SECRET_EMPTY), false));
     }
 
     @ParameterizedTest(name = "{0} with secret={1} toString()={2}")
     @MethodSource
     void when_toStringCalled_then_showsValueOrPlaceholder(boolean value, boolean secret, String expected) {
-        var boolValue = new BooleanValue(value, secret);
+        var metadata  = secret ? ValueMetadata.SECRET_EMPTY : ValueMetadata.EMPTY;
+        var boolValue = new BooleanValue(value, metadata);
 
         assertThat(boolValue).hasToString(expected);
     }
@@ -100,10 +116,10 @@ class BooleanValueTests {
         assertThat(granted).isInstanceOf(BooleanValue.class);
         assertThat(denied).isInstanceOf(BooleanValue.class);
 
-        if (granted instanceof BooleanValue(boolean allowed, boolean ignored)) {
+        if (granted instanceof BooleanValue(boolean allowed, ValueMetadata ignored)) {
             assertThat(allowed).isTrue();
         }
-        if (denied instanceof BooleanValue(boolean allowed, boolean ignored)) {
+        if (denied instanceof BooleanValue(boolean allowed, ValueMetadata ignored)) {
             assertThat(allowed).isFalse();
         }
     }
@@ -111,7 +127,7 @@ class BooleanValueTests {
     @ParameterizedTest(name = "{0}")
     @MethodSource
     void when_constantsChecked_then_haveExpectedSecretFlag(String description, Value constant, boolean expectedSecret) {
-        assertThat(constant.secret()).isEqualTo(expectedSecret);
+        assertThat(constant.isSecret()).isEqualTo(expectedSecret);
     }
 
     static Stream<Arguments> when_constantsChecked_then_haveExpectedSecretFlag() {

@@ -18,6 +18,7 @@
 package io.sapl.api.pdp.internal;
 
 import io.sapl.api.SaplVersion;
+import io.sapl.api.attributes.AttributeFinderInvocation;
 import io.sapl.api.model.SourceLocation;
 import io.sapl.api.model.Value;
 import lombok.NonNull;
@@ -25,24 +26,10 @@ import lombok.NonNull;
 import java.io.Serial;
 import java.io.Serializable;
 import java.time.Instant;
-import java.util.List;
 
-/**
- * Records a single attribute invocation for auditing and debugging.
- *
- * @param attributeName fully qualified attribute name (e.g., "user.role")
- * @param entity left-hand side of {@code <>}, or UNDEFINED for environment
- * attributes
- * @param arguments argument values passed to the attribute finder
- * @param value the returned value
- * @param retrievedAt when the value was retrieved
- * @param location source location of the invocation (may be null)
- */
 public record AttributeRecord(
-        @NonNull String attributeName,
-        @NonNull Value entity,
-        @NonNull List<Value> arguments,
-        @NonNull Value value,
+        @NonNull AttributeFinderInvocation invocation,
+        @NonNull Value attributeValue,
         @NonNull Instant retrievedAt,
         SourceLocation location) implements Serializable {
 

@@ -69,7 +69,7 @@ class BooleanOperatorsTests {
     @MethodSource
     void when_and_withSecrets_then_preservesSecretFlag(String description, Value a, Value b, boolean expectedSecret) {
         val actual = BooleanOperators.and(null, a, b);
-        assertThat(actual.secret()).isEqualTo(expectedSecret);
+        assertThat(actual.isSecret()).isEqualTo(expectedSecret);
     }
 
     private static Stream<Arguments> when_and_withSecrets_then_preservesSecretFlag() {
@@ -112,7 +112,7 @@ class BooleanOperatorsTests {
     @MethodSource
     void when_or_withSecrets_then_preservesSecretFlag(String description, Value a, Value b, boolean expectedSecret) {
         val actual = BooleanOperators.or(null, a, b);
-        assertThat(actual.secret()).isEqualTo(expectedSecret);
+        assertThat(actual.isSecret()).isEqualTo(expectedSecret);
     }
 
     private static Stream<Arguments> when_or_withSecrets_then_preservesSecretFlag() {
@@ -155,7 +155,7 @@ class BooleanOperatorsTests {
     @MethodSource
     void when_xor_withSecrets_then_preservesSecretFlag(String description, Value a, Value b, boolean expectedSecret) {
         val actual = BooleanOperators.xor(null, a, b);
-        assertThat(actual.secret()).isEqualTo(expectedSecret);
+        assertThat(actual.isSecret()).isEqualTo(expectedSecret);
     }
 
     private static Stream<Arguments> when_xor_withSecrets_then_preservesSecretFlag() {
@@ -195,7 +195,7 @@ class BooleanOperatorsTests {
     @MethodSource
     void when_not_withSecret_then_preservesSecretFlag(String description, Value input, boolean expectedSecret) {
         val actual = BooleanOperators.not(null, input);
-        assertThat(actual.secret()).isEqualTo(expectedSecret);
+        assertThat(actual.isSecret()).isEqualTo(expectedSecret);
     }
 
     private static Stream<Arguments> when_not_withSecret_then_preservesSecretFlag() {

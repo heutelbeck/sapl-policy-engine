@@ -72,7 +72,7 @@ class NumberOperatorsTests {
     @MethodSource
     void when_add_withSecrets_then_preservesSecretFlag(String description, Value a, Value b, boolean expectedSecret) {
         val actual = NumberOperators.add(null, a, b);
-        assertThat(actual.secret()).isEqualTo(expectedSecret);
+        assertThat(actual.isSecret()).isEqualTo(expectedSecret);
     }
 
     private static Stream<Arguments> when_add_withSecrets_then_preservesSecretFlag() {
@@ -240,7 +240,7 @@ class NumberOperatorsTests {
     void when_unaryMinus_withSecret_then_preservesSecretFlag() {
         val actual = NumberOperators.unaryMinus(null, Value.of(5).asSecret());
         assertThat(actual).isEqualTo(Value.of(-5));
-        assertThat(actual.secret()).isTrue();
+        assertThat(actual.isSecret()).isTrue();
     }
 
     // ========== Less Than ==========
@@ -342,9 +342,9 @@ class NumberOperatorsTests {
         val subtractResult = NumberOperators.subtract(null, a, b);
         val multiplyResult = NumberOperators.multiply(null, a, b);
         val moduloResult   = NumberOperators.modulo(null, a, b);
-        assertThat(subtractResult.secret()).isEqualTo(expectedSecret);
-        assertThat(multiplyResult.secret()).isEqualTo(expectedSecret);
-        assertThat(moduloResult.secret()).isEqualTo(expectedSecret);
+        assertThat(subtractResult.isSecret()).isEqualTo(expectedSecret);
+        assertThat(multiplyResult.isSecret()).isEqualTo(expectedSecret);
+        assertThat(moduloResult.isSecret()).isEqualTo(expectedSecret);
     }
 
     private static Stream<Arguments> when_arithmeticOperations_withSecrets_then_preservesSecretFlag() {
@@ -362,10 +362,10 @@ class NumberOperatorsTests {
         val lessThanOrEqualResult    = NumberOperators.lessThanOrEqual(null, a, b);
         val greaterThanResult        = NumberOperators.greaterThan(null, a, b);
         val greaterThanOrEqualResult = NumberOperators.greaterThanOrEqual(null, a, b);
-        assertThat(lessThanResult.secret()).isEqualTo(expectedSecret);
-        assertThat(lessThanOrEqualResult.secret()).isEqualTo(expectedSecret);
-        assertThat(greaterThanResult.secret()).isEqualTo(expectedSecret);
-        assertThat(greaterThanOrEqualResult.secret()).isEqualTo(expectedSecret);
+        assertThat(lessThanResult.isSecret()).isEqualTo(expectedSecret);
+        assertThat(lessThanOrEqualResult.isSecret()).isEqualTo(expectedSecret);
+        assertThat(greaterThanResult.isSecret()).isEqualTo(expectedSecret);
+        assertThat(greaterThanOrEqualResult.isSecret()).isEqualTo(expectedSecret);
     }
 
     private static Stream<Arguments> when_comparisonOperations_withSecrets_then_preservesSecretFlag() {

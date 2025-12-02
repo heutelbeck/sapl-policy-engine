@@ -21,6 +21,7 @@ import io.sapl.api.model.*;
 import io.sapl.compiler.Error;
 import io.sapl.compiler.SourceLocationUtil;
 import lombok.experimental.UtilityClass;
+import lombok.val;
 import org.eclipse.emf.ecore.EObject;
 
 import java.math.BigDecimal;
@@ -55,13 +56,14 @@ public class NumberOperators {
      * or error if type mismatch
      */
     public static Value add(EObject astOperator, Value a, Value b) {
+        val metadata = a.metadata().merge(b.metadata());
         if (a instanceof TextValue leftText) {
             if (!(b instanceof TextValue rightText)) {
-                return new TextValue(leftText.value() + b.toString(), a.secret() || b.secret());
+                return new TextValue(leftText.value() + b.toString(), metadata);
             }
-            return new TextValue(leftText.value() + rightText.value(), a.secret() || b.secret());
+            return new TextValue(leftText.value() + rightText.value(), metadata);
         }
-        return applyNumericOperation(astOperator, a, b, BigDecimal::add);
+        return applyNumericOperation(astOperator, a, b, BigDecimal::add, metadata);
     }
 
     /**
@@ -106,11 +108,11 @@ public class NumberOperators {
      * NumberValue or division is not exact
      */
     public static Value divide(EObject astOperator, Value a, Value b) {
+        val metadata = a.metadata().merge(b.metadata());
         try {
-            return applyNumericOperation(astOperator, a, b, BigDecimal::divide);
+            return applyNumericOperation(astOperator, a, b, BigDecimal::divide, metadata);
         } catch (ArithmeticException e) {
-            return new ErrorValue(e.getMessage(), e, a.secret() || b.secret(),
-                    SourceLocationUtil.fromAstNode(astOperator));
+            return Error.at(astOperator, metadata, e.getMessage());
         }
     }
 
@@ -129,15 +131,15 @@ public class NumberOperators {
      * divisor is zero
      */
     public static Value modulo(EObject astOperator, Value dividend, Value divisor) {
-        if (!(dividend instanceof NumberValue(BigDecimal dividendValue, boolean dividendSecret))) {
-            return Error.at(astOperator, TYPE_MISMATCH_NUMBER_EXPECTED_ERROR, dividend);
+        val metadata = dividend.metadata().merge(divisor.metadata());
+        if (!(dividend instanceof NumberValue(BigDecimal dividendValue, ValueMetadata ignore))) {
+            return Error.at(astOperator, metadata, TYPE_MISMATCH_NUMBER_EXPECTED_ERROR, dividend);
         }
-        if (!(divisor instanceof NumberValue(BigDecimal divisorValue, boolean divisorSecret))) {
-            return Error.at(astOperator, TYPE_MISMATCH_NUMBER_EXPECTED_ERROR, dividend);
+        if (!(divisor instanceof NumberValue(BigDecimal divisorValue, ValueMetadata ignore2))) {
+            return Error.at(astOperator, metadata, TYPE_MISMATCH_NUMBER_EXPECTED_ERROR, dividend);
         }
         if (divisorValue.signum() == 0) {
-            return new ErrorValue("Division by zero.", null, dividendSecret || divisorSecret,
-                    SourceLocationUtil.fromAstNode(astOperator));
+            return Error.at(astOperator, metadata, "Division by zero.", dividend);
         }
         var result = dividendValue.remainder(divisorValue);
         // Adjust to mathematical modulo: ensure non-negative result for positive
@@ -145,7 +147,7 @@ public class NumberOperators {
         if (result.signum() < 0 && divisorValue.signum() > 0) {
             result = result.add(divisorValue);
         }
-        return new NumberValue(result, dividendSecret || divisorSecret);
+        return new NumberValue(result, metadata);
     }
 
     /**
@@ -158,7 +160,7 @@ public class NumberOperators {
      */
     public static Value unaryPlus(EObject astOperator, Value v) {
         if (!(v instanceof NumberValue)) {
-            return Error.at(astOperator, TYPE_MISMATCH_NUMBER_EXPECTED_ERROR, v);
+            return Error.at(astOperator, v.metadata(), TYPE_MISMATCH_NUMBER_EXPECTED_ERROR, v);
         }
         return v;
     }
@@ -172,10 +174,10 @@ public class NumberOperators {
      * @return negated number preserving secret flag, or error if not a NumberValue
      */
     public static Value unaryMinus(EObject astOperator, Value v) {
-        if (!(v instanceof NumberValue(BigDecimal number, boolean secret))) {
-            return Error.at(astOperator, TYPE_MISMATCH_NUMBER_EXPECTED_ERROR, v);
+        if (!(v instanceof NumberValue(BigDecimal number, ValueMetadata ignored))) {
+            return Error.at(astOperator, v.metadata(), TYPE_MISMATCH_NUMBER_EXPECTED_ERROR, v);
         }
-        return new NumberValue(number.negate(), secret);
+        return new NumberValue(number.negate(), v.metadata());
     }
 
     /**
@@ -254,31 +256,18 @@ public class NumberOperators {
      */
     private static Value applyNumericComparison(EObject astOperator, Value left, Value right,
             BiPredicate<BigDecimal, BigDecimal> comparison) {
-        if (!(left instanceof NumberValue(BigDecimal leftValue, boolean leftSecret))) {
-            return Error.at(astOperator, TYPE_MISMATCH_NUMBER_EXPECTED_ERROR, left);
+        val metadata = left.metadata().merge(right.metadata());
+        if (!(left instanceof NumberValue(BigDecimal leftValue, ValueMetadata ignored))) {
+            return Error.at(astOperator, metadata, TYPE_MISMATCH_NUMBER_EXPECTED_ERROR, left);
         }
-        if (!(right instanceof NumberValue(BigDecimal rightValue, boolean rightSecret))) {
-            return Error.at(astOperator, TYPE_MISMATCH_NUMBER_EXPECTED_ERROR, right);
+        if (!(right instanceof NumberValue(BigDecimal rightValue, ValueMetadata ignored2))) {
+            return Error.at(astOperator, metadata, TYPE_MISMATCH_NUMBER_EXPECTED_ERROR, right);
         }
-        return preserveSecret(comparison.test(leftValue, rightValue), leftSecret || rightSecret);
+        return preserveSecret(comparison.test(leftValue, rightValue), metadata);
     }
 
-    /**
-     * Creates a BooleanValue with secret handling, reusing constants.
-     *
-     * @param value
-     * the boolean value
-     * @param secret
-     * whether the value should be marked as secret
-     *
-     * @return a BooleanValue with the specified value and secret flag
-     */
-    private static BooleanValue preserveSecret(boolean value, boolean secret) {
-        if (secret) {
-            return value ? BooleanValue.SECRET_TRUE : BooleanValue.SECRET_FALSE;
-        } else {
-            return value ? Value.TRUE : Value.FALSE;
-        }
+    private static BooleanValue preserveSecret(boolean value, ValueMetadata metadata) {
+        return new BooleanValue(value, metadata);
     }
 
     /**
@@ -295,14 +284,25 @@ public class NumberOperators {
      * mismatch
      */
     private static Value applyNumericOperation(EObject astOperator, Value left, Value right,
-            BinaryOperator<BigDecimal> operation) {
-        if (!(left instanceof NumberValue(BigDecimal leftValue, boolean leftSecret))) {
-            return Error.at(astOperator, TYPE_MISMATCH_NUMBER_EXPECTED_ERROR, left);
+            BinaryOperator<BigDecimal> operation, ValueMetadata metadata) {
+        if (left instanceof ErrorValue error) {
+            return error.withMetadata(metadata);
         }
-        if (!(right instanceof NumberValue(BigDecimal rightValue, boolean rightSecret))) {
-            return Error.at(astOperator, TYPE_MISMATCH_NUMBER_EXPECTED_ERROR, right);
+        if (right instanceof ErrorValue error) {
+            return error.withMetadata(metadata);
         }
-        return new NumberValue(operation.apply(leftValue, rightValue), leftSecret || rightSecret);
+        if (!(left instanceof NumberValue(BigDecimal leftValue, ValueMetadata ignored))) {
+            return Error.at(astOperator, metadata, TYPE_MISMATCH_NUMBER_EXPECTED_ERROR, left);
+        }
+        if (!(right instanceof NumberValue(BigDecimal rightValue, ValueMetadata ignored2))) {
+            return Error.at(astOperator, metadata, TYPE_MISMATCH_NUMBER_EXPECTED_ERROR, right);
+        }
+        return new NumberValue(operation.apply(leftValue, rightValue), metadata);
     }
 
+    private static Value applyNumericOperation(EObject astOperator, Value left, Value right,
+            BinaryOperator<BigDecimal> operation) {
+        val metadata = left.metadata().merge(right.metadata());
+        return applyNumericOperation(astOperator, left, right, operation, metadata);
+    }
 }

@@ -351,7 +351,7 @@ public class ReflectionFunctionLibrary {
             ```
             """, schema = SCHEMA_BOOLEAN)
     public static Value isSecret(Value value) {
-        return Value.of(value.secret());
+        return Value.of(value.isSecret());
     }
 
     /**

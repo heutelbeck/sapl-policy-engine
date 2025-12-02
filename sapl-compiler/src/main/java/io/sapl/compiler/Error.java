@@ -18,13 +18,19 @@
 package io.sapl.compiler;
 
 import io.sapl.api.model.ErrorValue;
+import io.sapl.api.model.ValueMetadata;
 import lombok.NonNull;
 import lombok.experimental.UtilityClass;
 import org.eclipse.emf.ecore.EObject;
 
 @UtilityClass
 public class Error {
-    public ErrorValue at(EObject astNode, @NonNull String message, Object... args) {
-        return new ErrorValue(String.format(message, args), null, false, SourceLocationUtil.fromAstNode(astNode));
+    public ErrorValue ats(EObject astNode, @NonNull String message, Object... args) {
+        return new ErrorValue(String.format(message, args), null, ValueMetadata.EMPTY,
+                SourceLocationUtil.fromAstNode(astNode));
+    }
+
+    public ErrorValue at(EObject astNode, ValueMetadata metadata, @NonNull String message, Object... args) {
+        return new ErrorValue(String.format(message, args), null, metadata, SourceLocationUtil.fromAstNode(astNode));
     }
 }

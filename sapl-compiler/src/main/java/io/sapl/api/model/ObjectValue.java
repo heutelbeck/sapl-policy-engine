@@ -33,9 +33,15 @@ import java.util.stream.Collectors;
 /**
  * Object value implementing Map semantics. The underlying map is immutable.
  * <p>
- * Secret containers eagerly apply the secret flag to all contained values at
- * construction time, enabling zero-overhead
- * reads and optimal performance for recursive operations.
+ * Metadata (including secret flag and attribute traces) is aggregated from all
+ * values
+ * at construction time and propagated back to all values. This ensures:
+ * <ul>
+ * <li>Zero-overhead reads - values already have merged metadata</li>
+ * <li>Audit completeness - operations preserve all source attribute traces</li>
+ * <li>Consistent secret handling - if any value is secret, all become
+ * secret</li>
+ * </ul>
  * <p>
  * Direct map usage:
  *
@@ -77,54 +83,65 @@ public final class ObjectValue implements Value, Map<String, Value> {
     /**
      * Singleton for secret empty object.
      */
-    public static final ObjectValue SECRET_EMPTY_OBJECT = new ObjectValue(Map.of(), true);
+    public static final ObjectValue SECRET_EMPTY_OBJECT = new ObjectValue(Map.of(), ValueMetadata.SECRET_EMPTY);
 
     @Delegate(excludes = ExcludedMethods.class)
     private final Map<String, Value> value;
-    private final boolean            secret;
+    private final ValueMetadata      metadata;
 
     /**
-     * Creates an ObjectValue.
+     * Creates an ObjectValue with specified metadata.
      * <p>
-     * If secret is true, applies the secret flag to all values at construction time
-     * for optimal read performance.
+     * Aggregates metadata from all values and merges with the provided metadata,
+     * then propagates the merged result back to all values. This ensures operations
+     * preserve all source attribute traces.
      * <p>
      * Note: This does a defensive copy of the supplied Map. For better performance
-     * without the need to copy use the
-     * Builder!
+     * without the need to copy use the Builder!
      *
-     * @param properties
-     * the map properties (defensively copied, must not be null)
-     * @param secret
-     * whether this value is secret
+     * @param properties the map properties (defensively copied, must not be null)
+     * @param metadata the container metadata to merge with value metadata
      */
-    public ObjectValue(@NonNull Map<String, Value> properties, boolean secret) {
-        if (secret) {
-            var secretMap = new LinkedHashMap<String, Value>();
-            for (var entry : properties.entrySet()) {
-                secretMap.put(entry.getKey(), entry.getValue().asSecret());
-            }
-            this.value = Collections.unmodifiableMap(secretMap);
-        } else {
-            // Preserve insertion order by using LinkedHashMap
-            // Map.copyOf() does NOT guarantee order preservation
-            this.value = Collections.unmodifiableMap(new LinkedHashMap<>(properties));
-        }
-        this.secret = secret;
+    public ObjectValue(@NonNull Map<String, Value> properties, @NonNull ValueMetadata metadata) {
+        val mergedMetadata = aggregateAndMerge(properties, metadata);
+        this.value    = propagateMetadata(properties, mergedMetadata);
+        this.metadata = mergedMetadata;
     }
 
     /**
      * Zero-copy constructor for builder use only. The supplied map is used directly
-     * without copying.
+     * without copying. Assumes metadata already propagated to values.
      *
-     * @param secret
-     * whether this value is secret
-     * @param properties
-     * the map properties (used directly, must be mutable until wrapped)
+     * @param metadata the pre-computed container metadata
+     * @param properties the map properties (used directly, must be mutable until
+     * wrapped)
      */
-    private ObjectValue(boolean secret, Map<String, Value> properties) {
-        this.value  = Collections.unmodifiableMap(properties);
-        this.secret = secret;
+    private ObjectValue(ValueMetadata metadata, Map<String, Value> properties) {
+        this.value    = Collections.unmodifiableMap(properties);
+        this.metadata = metadata;
+    }
+
+    private static ValueMetadata aggregateAndMerge(Map<String, Value> properties, ValueMetadata containerMetadata) {
+        if (properties.isEmpty()) {
+            return containerMetadata;
+        }
+        var merged = containerMetadata;
+        for (Value propertyValue : properties.values()) {
+            merged = merged.merge(propertyValue.metadata());
+        }
+        return merged;
+    }
+
+    private static Map<String, Value> propagateMetadata(Map<String, Value> properties, ValueMetadata targetMetadata) {
+        if (properties.isEmpty()) {
+            return Map.of();
+        }
+        // Preserve insertion order
+        var result = new LinkedHashMap<String, Value>();
+        for (var entry : properties.entrySet()) {
+            result.put(entry.getKey(), entry.getValue().withMetadata(targetMetadata));
+        }
+        return Collections.unmodifiableMap(result);
     }
 
     /**
@@ -140,33 +157,29 @@ public final class ObjectValue implements Value, Map<String, Value> {
      * Builder for fluent ObjectValue construction.
      * <p>
      * Builders are single-use only. After calling build(), the builder cannot be
-     * reused. This prevents immutability
-     * violations from the zero-copy optimization.
+     * reused. This prevents immutability violations from the zero-copy
+     * optimization.
+     * <p>
+     * The builder aggregates metadata from all added values. At build time, the
+     * merged metadata is propagated back to all values for consistent access.
      */
     public static final class Builder {
         private LinkedHashMap<String, Value> properties = new LinkedHashMap<>();
-        private boolean                      secret     = false;
+        private ValueMetadata                metadata   = ValueMetadata.EMPTY;
 
         /**
          * Adds a property to the object.
          *
-         * @param key
-         * the property key
-         * @param value
-         * the property value
-         *
+         * @param key the property key
+         * @param value the property value
          * @return this builder
-         *
-         * @throws IllegalStateException
-         * if builder has already been used
+         * @throws IllegalStateException if builder has already been used
          */
         public Builder put(String key, Value value) {
             if (properties == null) {
                 throw new IllegalStateException("Builder has already been used.");
             }
-            if (secret) {
-                value = value.asSecret();
-            }
+            metadata = metadata.merge(value.metadata());
             properties.put(key, value);
             return this;
         }
@@ -174,13 +187,9 @@ public final class ObjectValue implements Value, Map<String, Value> {
         /**
          * Adds multiple properties to the object.
          *
-         * @param entries
-         * the properties to add
-         *
+         * @param entries the properties to add
          * @return this builder
-         *
-         * @throws IllegalStateException
-         * if builder has already been used
+         * @throws IllegalStateException if builder has already been used
          */
         public Builder putAll(Map<String, Value> entries) {
             if (properties == null) {
@@ -193,25 +202,34 @@ public final class ObjectValue implements Value, Map<String, Value> {
         }
 
         /**
-         * Marks the object as secret. Values from secret objects will have the secret
-         * flag applied at construction.
+         * Marks the object as secret.
          * <p>
          * Note: For performance reasons, if possible call this method as early as
          * possible in the building process.
          *
          * @return this builder
-         *
-         * @throws IllegalStateException
-         * if builder has already been used
+         * @throws IllegalStateException if builder has already been used
          */
         public Builder secret() {
             if (properties == null) {
                 throw new IllegalStateException("Builder has already been used.");
             }
-            if (!this.secret) {
-                this.secret = true;
-                properties.replaceAll((k, v) -> v.asSecret());
+            metadata = metadata.asSecret();
+            return this;
+        }
+
+        /**
+         * Merges additional metadata into the builder.
+         *
+         * @param additionalMetadata the metadata to merge
+         * @return this builder
+         * @throws IllegalStateException if builder has already been used
+         */
+        public Builder withMetadata(ValueMetadata additionalMetadata) {
+            if (properties == null) {
+                throw new IllegalStateException("Builder has already been used.");
             }
+            metadata = metadata.merge(additionalMetadata);
             return this;
         }
 
@@ -219,47 +237,52 @@ public final class ObjectValue implements Value, Map<String, Value> {
          * Builds the immutable ObjectValue. Returns singleton for empty non-secret
          * objects.
          * <p>
-         * After calling this method, the builder cannot be reused. Attempting to call
-         * any builder methods after build()
-         * will throw IllegalStateException.
+         * At build time, the aggregated metadata is propagated to all values for
+         * consistent access. After calling this method, the builder cannot be reused.
          *
          * @return the constructed ObjectValue
-         *
-         * @throws IllegalStateException
-         * if builder has already been used
+         * @throws IllegalStateException if builder has already been used
          */
         public ObjectValue build() {
             if (properties == null) {
                 throw new IllegalStateException("Builder has already been used.");
             }
-            if (properties.isEmpty() && !secret) {
+            if (properties.isEmpty() && metadata == ValueMetadata.EMPTY) {
                 properties = null;
                 return Value.EMPTY_OBJECT;
             }
-            if (properties.isEmpty()) {
+            if (properties.isEmpty() && metadata.secret() && metadata.attributeTrace().isEmpty()) {
                 properties = null;
                 return SECRET_EMPTY_OBJECT;
             }
-
-            val result = new ObjectValue(secret, properties);
+            if (properties.isEmpty()) {
+                properties = null;
+                return new ObjectValue(metadata, Map.of());
+            }
+            // Propagate merged metadata to all values
+            properties.replaceAll((key, propertyValue) -> propertyValue.withMetadata(metadata));
+            val result = new ObjectValue(metadata, properties);
             properties = null;
             return result;
         }
     }
 
     @Override
-    public boolean secret() {
-        return secret;
+    public ValueMetadata metadata() {
+        return metadata;
     }
 
     @Override
-    public Value asSecret() {
-        return secret ? this : new ObjectValue(value, true);
+    public Value withMetadata(ValueMetadata newMetadata) {
+        if (newMetadata == metadata) {
+            return this;
+        }
+        return new ObjectValue(value, newMetadata);
     }
 
     @Override
     public @NotNull String toString() {
-        if (secret) {
+        if (isSecret()) {
             return SECRET_PLACEHOLDER;
         }
         if (value.isEmpty()) {
@@ -287,24 +310,21 @@ public final class ObjectValue implements Value, Map<String, Value> {
      * Returns the value for the specified key.
      * <p>
      * Returns ErrorValue for invalid key types instead of throwing
-     * ClassCastException, consistent with SAPL's
-     * error-as-value model. Values already have the secret flag applied if
-     * container is secret.
+     * ClassCastException, consistent with SAPL's error-as-value model.
+     * Values already have the container's metadata applied.
      *
-     * @param key
-     * the key (must be a String)
-     *
+     * @param key the key (must be a String)
      * @return the value, null if key not found, or ErrorValue if key is null or not
      * a String
      */
     @Override
     public @Nullable Value get(Object key) {
         if (key == null) {
-            return new ErrorValue("Object key cannot be null.", secret);
+            return new ErrorValue("Object key cannot be null.", metadata);
         }
         if (!(key instanceof String)) {
-            return new ErrorValue("Invalid key type: expected String, got " + key.getClass().getSimpleName() + ".",
-                    secret);
+            return new ErrorValue(
+                    "Invalid key type: expected String, got %s.".formatted(key.getClass().getSimpleName()), metadata);
         }
         return value.get(key);
     }
@@ -313,29 +333,26 @@ public final class ObjectValue implements Value, Map<String, Value> {
      * Returns the value for the specified key, or defaultValue if not found.
      * <p>
      * Returns ErrorValue for invalid key types instead of throwing
-     * ClassCastException. Values already have the secret
-     * flag applied if container is secret.
+     * ClassCastException.
+     * Values already have the container's metadata applied.
      *
-     * @param key
-     * the key (must be a String)
-     * @param defaultValue
-     * the default value if key not found
-     *
+     * @param key the key (must be a String)
+     * @param defaultValue the default value if key not found
      * @return the value, defaultValue if key not found, or ErrorValue if key is
      * null or not a String
      */
     @Override
     public @NotNull Value getOrDefault(Object key, Value defaultValue) {
         if (key == null) {
-            return new ErrorValue("Object key cannot be null.", secret);
+            return new ErrorValue("Object key cannot be null.", metadata);
         }
         if (!(key instanceof String)) {
-            return new ErrorValue("Invalid key type: expected String, got " + key.getClass().getSimpleName() + ".",
-                    secret);
+            return new ErrorValue(
+                    "Invalid key type: expected String, got %s.".formatted(key.getClass().getSimpleName()), metadata);
         }
         val valueForKey = value.get(key);
         if (valueForKey == null) {
-            return secret ? defaultValue.asSecret() : defaultValue;
+            return defaultValue.withMetadata(metadata);
         }
         return valueForKey;
     }

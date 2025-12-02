@@ -15,18 +15,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.compiler;
+package io.sapl.pdp.demo;
 
 import io.sapl.api.model.ObjectValue;
 import io.sapl.api.model.Value;
 import io.sapl.api.pdp.AuthorizationSubscription;
+import io.sapl.compiler.SingleDocumentPolicyDecisionPoint;
 import io.sapl.interpreter.InitializationException;
 import lombok.val;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 @Disabled("Only run on demand. This is a quick performance assessment utility.")
-class PerformanceBenchmarkTest {
+class PerformanceBenchmarkInitialTest {
 
     private static final int ITERATIONS      = 50_000_000;
     private static final int COLD_START_RUNS = 5;

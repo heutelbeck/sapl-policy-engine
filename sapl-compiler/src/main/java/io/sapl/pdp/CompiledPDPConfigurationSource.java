@@ -22,5 +22,27 @@ import reactor.core.publisher.Flux;
 import java.util.Optional;
 
 public interface CompiledPDPConfigurationSource {
+    /**
+     * Returns a reactive stream of configuration updates for the specified PDP.
+     * Use this for long-lived streaming subscriptions that need to react to
+     * configuration changes in real-time.
+     *
+     * @param pdpId
+     * the PDP identifier
+     *
+     * @return a Flux emitting configuration updates
+     */
     Flux<Optional<CompiledPDPConfiguration>> getPDPConfigurations(String pdpId);
+
+    /**
+     * Returns the current configuration for the specified PDP synchronously.
+     * This is a lock-free read operation optimized for high-throughput
+     * scenarios where configuration changes are rare but reads are frequent.
+     *
+     * @param pdpId
+     * the PDP identifier
+     *
+     * @return the current configuration, or empty if no configuration is loaded
+     */
+    Optional<CompiledPDPConfiguration> getCurrentConfiguration(String pdpId);
 }

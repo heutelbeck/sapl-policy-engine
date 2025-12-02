@@ -62,6 +62,28 @@ public interface PolicyDecisionPoint {
     }
 
     /**
+     * Synchronous authorization decision for high-throughput scenarios.
+     * <p>
+     * This method is optimized for high-volume one-shot authorization decisions
+     * where
+     * configuration changes are rare. Implementations may bypass reactive
+     * subscription
+     * overhead for improved performance.
+     * <p>
+     * The default implementation falls back to blocking on the reactive stream.
+     * Optimized implementations (like {@code DynamicPolicyDecisionPoint}) override
+     * this to provide lock-free configuration access.
+     *
+     * @param authorizationSubscription
+     * the authorization subscription to evaluate
+     *
+     * @return the authorization decision
+     */
+    default AuthorizationDecision decidePure(AuthorizationSubscription authorizationSubscription) {
+        return decide(authorizationSubscription).blockFirst();
+    }
+
+    /**
      * Evaluates multiple authorization subscriptions and returns decisions as they
      * become available. Each decision is
      * tagged with the subscription ID for correlation.

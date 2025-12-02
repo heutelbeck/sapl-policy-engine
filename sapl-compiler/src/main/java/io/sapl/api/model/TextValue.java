@@ -27,19 +27,19 @@ import java.util.Objects;
 /**
  * Text value implementation.
  */
-public record TextValue(@NonNull String value, boolean secret) implements Value {
+public record TextValue(@NonNull String value, @NonNull ValueMetadata metadata) implements Value {
 
     @Serial
     private static final long serialVersionUID = SaplVersion.VERSION_UID;
 
     @Override
-    public Value asSecret() {
-        return secret ? this : new TextValue(value, true);
+    public Value withMetadata(ValueMetadata newMetadata) {
+        return new TextValue(value, newMetadata);
     }
 
     @Override
     public @NotNull String toString() {
-        return secret ? SECRET_PLACEHOLDER : "\"" + value + "\"";
+        return isSecret() ? SECRET_PLACEHOLDER : "\"" + value + "\"";
     }
 
     @Override

@@ -20,7 +20,6 @@ package io.sapl.compiler;
 import io.sapl.api.attributes.AttributeBroker;
 import io.sapl.api.functions.FunctionBroker;
 import io.sapl.api.model.CompiledExpression;
-import io.sapl.api.model.Value;
 import io.sapl.grammar.sapl.Import;
 import io.sapl.prp.Document;
 import lombok.Getter;
@@ -29,7 +28,6 @@ import lombok.Setter;
 import lombok.ToString;
 
 import java.util.*;
-import java.util.function.Function;
 
 /**
  * Mutable context for SAPL compilation. Tracks imports, variable scopes, and
@@ -57,7 +55,6 @@ public class CompilationContext {
     final AttributeBroker                   attributeBroker;
     List<Import>                            imports                  = new ArrayList<>();
     private Map<String, CompiledExpression> documentVariablesInScope = new HashMap<>();
-    Map<Value, Value>                       constantsCache           = new HashMap<>();
     private Set<String>                     localVariableNames       = new HashSet<>();
 
     /**
@@ -131,19 +128,6 @@ public class CompilationContext {
             documentVariablesInScope.remove(localVariable);
         }
         localVariableNames.clear();
-    }
-
-    /**
-     * Returns a deduplicated constant value. Identical constants share the same
-     * object instance.
-     *
-     * @param constantValue
-     * the constant to deduplicate
-     *
-     * @return the canonical instance of this constant
-     */
-    public CompiledExpression dedupe(Value constantValue) {
-        return constantsCache.computeIfAbsent(constantValue, Function.identity());
     }
 
     /**

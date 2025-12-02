@@ -21,6 +21,7 @@ import io.sapl.api.model.ArrayValue;
 import io.sapl.api.model.ErrorValue;
 import io.sapl.api.model.ObjectValue;
 import io.sapl.api.model.Value;
+import io.sapl.api.model.ValueMetadata;
 import lombok.val;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
@@ -94,7 +95,7 @@ class StepOperatorsTests {
     @ParameterizedTest(name = "[{index}] indexStep valid: {3}")
     @MethodSource("indexStepValidCases")
     void when_indexStep_then_returnsCorrectElement(ArrayValue array, int index, Value expected, String description) {
-        assertThat(indexStep(null, array, BigDecimal.valueOf(index))).isEqualTo(expected);
+        assertThat(indexStep(null, array, BigDecimal.valueOf(index), ValueMetadata.EMPTY)).isEqualTo(expected);
     }
 
     private static Stream<Arguments> indexStepErrorCases() {
@@ -108,14 +109,14 @@ class StepOperatorsTests {
     @ParameterizedTest(name = "[{index}] indexStep error: {2}")
     @MethodSource("indexStepErrorCases")
     void when_indexStepOutOfBounds_then_returnsError(ArrayValue array, int index, String description) {
-        val result = indexStep(null, array, BigDecimal.valueOf(index));
+        val result = indexStep(null, array, BigDecimal.valueOf(index), ValueMetadata.EMPTY);
         assertThat(result).isInstanceOf(ErrorValue.class);
         assertThat(result.toString()).contains("out of bounds");
     }
 
     @Test
     void when_indexStepOnNonArray_then_returnsError() {
-        val result = indexStep(null, CULTIST_RECORD, BigDecimal.ZERO);
+        val result = indexStep(null, CULTIST_RECORD, BigDecimal.ZERO, ValueMetadata.EMPTY);
         assertThat(result).isInstanceOf(ErrorValue.class);
         assertThat(result.toString()).contains("Expected an Array");
     }
@@ -156,7 +157,7 @@ class StepOperatorsTests {
 
     @Test
     void when_recursiveKeyStepWithShallowKey_then_findsKey() {
-        val array = (ArrayValue) recursiveKeyStep(null, CULTIST_RECORD, "name");
+        val array = (ArrayValue) recursiveKeyStep(null, CULTIST_RECORD, "name", ValueMetadata.EMPTY);
         assertThat(array).hasSize(1);
         assertThat(array.getFirst()).isEqualTo(WILBUR_WHATELEY);
     }
@@ -175,13 +176,14 @@ class StepOperatorsTests {
                     ]
                 }
                 """);
-        val array       = (ArrayValue) recursiveKeyStep(null, nestedCults, "power");
+        val array       = (ArrayValue) recursiveKeyStep(null, nestedCults, "power", ValueMetadata.EMPTY);
         assertThat(array).hasSize(3).contains(Value.of(100), Value.of(200), Value.of(50));
     }
 
     @Test
     void when_recursiveKeyStepWithMissingKey_then_returnsEmpty() {
-        assertThat(recursiveKeyStep(null, CULTIST_RECORD, "unknownOldOne")).isEqualTo(Value.EMPTY_ARRAY);
+        assertThat(recursiveKeyStep(null, CULTIST_RECORD, "unknownOldOne", ValueMetadata.EMPTY))
+                .isEqualTo(Value.EMPTY_ARRAY);
     }
 
     @Test
@@ -193,7 +195,7 @@ class StepOperatorsTests {
                     [{"ritual": "banishment"}]
                 ]
                 """);
-        val array          = (ArrayValue) recursiveKeyStep(null, arrayOfObjects, "ritual");
+        val array          = (ArrayValue) recursiveKeyStep(null, arrayOfObjects, "ritual", ValueMetadata.EMPTY);
         assertThat(array).hasSize(3).contains(Value.of("summoning"), Value.of("binding"), Value.of("banishment"));
     }
 
@@ -202,7 +204,7 @@ class StepOperatorsTests {
     void when_recursiveKeyStepExceedsMaxDepth_then_returnsError() {
         // Creates 501 levels which will process 500 before hitting depth limit
         val abyssalDepth = createDeeplyNestedObject(501);
-        val result       = recursiveKeyStep(null, abyssalDepth, "key");
+        val result       = recursiveKeyStep(null, abyssalDepth, "key", ValueMetadata.EMPTY);
 
         // Use boolean check to avoid AssertJ inspection overhead
         assertThat(result instanceof ErrorValue).isTrue();

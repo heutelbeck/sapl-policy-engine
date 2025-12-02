@@ -171,7 +171,7 @@ class ComparisonOperatorsTests {
     void when_equals_withSecrets_then_preservesSecretFlag(String description, Value a, Value b,
             boolean expectedSecret) {
         val actual = ComparisonOperators.equals(null, a, b);
-        assertThat(actual.secret()).isEqualTo(expectedSecret);
+        assertThat(actual.isSecret()).isEqualTo(expectedSecret);
     }
 
     @ParameterizedTest(name = "notEquals: {0}")
@@ -179,7 +179,7 @@ class ComparisonOperatorsTests {
     void when_notEquals_withSecrets_then_preservesSecretFlag(String description, Value a, Value b,
             boolean expectedSecret) {
         val actual = ComparisonOperators.notEquals(null, a, b);
-        assertThat(actual.secret()).isEqualTo(expectedSecret);
+        assertThat(actual.isSecret()).isEqualTo(expectedSecret);
     }
 
     @ParameterizedTest(name = "isContainedIn: {0}")
@@ -187,7 +187,7 @@ class ComparisonOperatorsTests {
     void when_isContainedIn_withSecrets_then_preservesSecretFlag(String description, Value needle, Value haystack,
             boolean expectedSecret) {
         val actual = ComparisonOperators.isContainedIn(null, needle, haystack);
-        assertThat(actual.secret()).isEqualTo(expectedSecret);
+        assertThat(actual.isSecret()).isEqualTo(expectedSecret);
     }
 
     @ParameterizedTest(name = "matchesRegex: {0}")
@@ -195,7 +195,7 @@ class ComparisonOperatorsTests {
     void when_matchesRegularExpression_withSecrets_then_preservesSecretFlag(String description, Value input,
             Value regex, boolean expectedSecret) {
         val actual = ComparisonOperators.matchesRegularExpression(null, input, regex);
-        assertThat(actual.secret()).isEqualTo(expectedSecret);
+        assertThat(actual.isSecret()).isEqualTo(expectedSecret);
     }
 
     @ParameterizedTest(name = "compiledRegex: {0}")
@@ -204,7 +204,7 @@ class ComparisonOperatorsTests {
             Value input, boolean expectedSecret) {
         val operator = ComparisonOperators.compileRegularExpressionOperator(null, regex);
         val result   = operator.apply(input);
-        assertThat(result.secret()).isEqualTo(expectedSecret);
+        assertThat(result.isSecret()).isEqualTo(expectedSecret);
     }
 
     private static Stream<Arguments> secretFlagTestCases() {

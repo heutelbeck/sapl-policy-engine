@@ -35,10 +35,11 @@ class NumberValueTests {
     @ParameterizedTest(name = "NumberValue({0}, {1}) construction")
     @MethodSource
     void when_constructedWithNumberAndSecretFlag_then_valuesAreSet(BigDecimal number, boolean secret) {
-        var value = new NumberValue(number, secret);
+        var metadata = secret ? ValueMetadata.SECRET_EMPTY : ValueMetadata.EMPTY;
+        var value    = new NumberValue(number, metadata);
 
         assertThat(value.value()).isEqualByComparingTo(number);
-        assertThat(value.secret()).isEqualTo(secret);
+        assertThat(value.isSecret()).isEqualTo(secret);
     }
 
     static Stream<Arguments> when_constructedWithNumberAndSecretFlag_then_valuesAreSet() {
@@ -48,7 +49,7 @@ class NumberValueTests {
 
     @Test
     void when_constructedWithNullValue_then_throws() {
-        assertThatThrownBy(() -> new NumberValue(null, false)).isInstanceOf(NullPointerException.class);
+        assertThatThrownBy(() -> new NumberValue(null, ValueMetadata.EMPTY)).isInstanceOf(NullPointerException.class);
     }
 
     @ParameterizedTest(name = "Value.of({0}L) returns singleton")
@@ -101,11 +102,11 @@ class NumberValueTests {
     @ValueSource(strings = { "0", "1", "10", "3.14", "-5", "1000000" })
     void when_asSecretCalled_then_createsSecretCopyOrReturnsSameInstance(String numberStr) {
         var number        = new BigDecimal(numberStr);
-        var original      = new NumberValue(number, false);
-        var alreadySecret = new NumberValue(number, true);
+        var original      = new NumberValue(number, ValueMetadata.EMPTY);
+        var alreadySecret = new NumberValue(number, ValueMetadata.SECRET_EMPTY);
 
         var secretCopy = original.asSecret();
-        assertThat(secretCopy.secret()).isTrue();
+        assertThat(secretCopy.isSecret()).isTrue();
         assertThat(((NumberValue) secretCopy).value()).isEqualByComparingTo(number);
         assertThat(alreadySecret.asSecret()).isSameAs(alreadySecret);
     }
@@ -113,8 +114,8 @@ class NumberValueTests {
     @ParameterizedTest(name = "{0} equals {1} numerically")
     @MethodSource
     void when_comparedNumerically_then_equalValuesAreEqual(BigDecimal value1, BigDecimal value2) {
-        var num1 = new NumberValue(value1, false);
-        var num2 = new NumberValue(value2, false);
+        var num1 = new NumberValue(value1, ValueMetadata.EMPTY);
+        var num2 = new NumberValue(value2, ValueMetadata.EMPTY);
 
         assertThat(num1).isEqualTo(num2).hasSameHashCodeAs(num2);
     }
@@ -130,16 +131,16 @@ class NumberValueTests {
 
     @Test
     void when_equalsAndHashCodeCompared_then_secretFlagIsIgnored() {
-        var regular = new NumberValue(BigDecimal.TEN, false);
-        var secret  = new NumberValue(BigDecimal.TEN, true);
+        var regular = new NumberValue(BigDecimal.TEN, ValueMetadata.EMPTY);
+        var secret  = new NumberValue(BigDecimal.TEN, ValueMetadata.SECRET_EMPTY);
 
         assertThat(regular).isEqualTo(secret).hasSameHashCodeAs(secret);
     }
 
     @Test
     void when_equalsAndHashCodeCompared_then_differForDifferentValues() {
-        var one = new NumberValue(BigDecimal.ONE, false);
-        var ten = new NumberValue(BigDecimal.TEN, false);
+        var one = new NumberValue(BigDecimal.ONE, ValueMetadata.EMPTY);
+        var ten = new NumberValue(BigDecimal.TEN, ValueMetadata.EMPTY);
 
         assertThat(one).isNotEqualTo(ten).doesNotHaveSameHashCodeAs(ten);
     }
@@ -147,7 +148,8 @@ class NumberValueTests {
     @ParameterizedTest(name = "{0} with secret={1} toString()={2}")
     @MethodSource
     void when_toStringCalled_then_showsValueOrPlaceholder(BigDecimal number, boolean secret, String expected) {
-        var value = new NumberValue(number, secret);
+        var metadata = secret ? ValueMetadata.SECRET_EMPTY : ValueMetadata.EMPTY;
+        var value    = new NumberValue(number, metadata);
 
         assertThat(value).hasToString(expected);
     }
@@ -161,7 +163,7 @@ class NumberValueTests {
     @Test
     void when_veryLargeBigDecimalUsed_then_handlesCorrectly() {
         var huge  = new BigDecimal("1" + "0".repeat(1000));
-        var value = new NumberValue(huge, false);
+        var value = new NumberValue(huge, ValueMetadata.EMPTY);
 
         assertThat(value.value()).isEqualByComparingTo(huge);
     }
@@ -169,7 +171,7 @@ class NumberValueTests {
     @Test
     void when_verySmallBigDecimalUsed_then_handlesCorrectly() {
         var tiny  = new BigDecimal("0." + "0".repeat(1000) + "1");
-        var value = new NumberValue(tiny, false);
+        var value = new NumberValue(tiny, ValueMetadata.EMPTY);
 
         assertThat(value.value()).isEqualByComparingTo(tiny);
     }
@@ -179,7 +181,7 @@ class NumberValueTests {
         Value accessLevel = Value.of(3);
 
         assertThat(accessLevel).isInstanceOf(NumberValue.class);
-        if (accessLevel instanceof NumberValue(BigDecimal level, boolean ignored)) {
+        if (accessLevel instanceof NumberValue(BigDecimal level, ValueMetadata ignored)) {
             assertThat(level).isEqualByComparingTo(BigDecimal.valueOf(3));
         }
     }
@@ -187,7 +189,7 @@ class NumberValueTests {
     @ParameterizedTest(name = "{0}")
     @MethodSource
     void when_constantsChecked_then_haveExpectedSecretFlag(String description, Value constant, boolean expectedSecret) {
-        assertThat(constant.secret()).isEqualTo(expectedSecret);
+        assertThat(constant.isSecret()).isEqualTo(expectedSecret);
     }
 
     static Stream<Arguments> when_constantsChecked_then_haveExpectedSecretFlag() {
@@ -203,9 +205,9 @@ class NumberValueTests {
     @ParameterizedTest(name = "Zero with scale {0} hashes identically")
     @MethodSource
     void when_zeroWithDifferentScale_then_hashesIdentically(int scale) {
-        var zero1 = new NumberValue(BigDecimal.ZERO, false);
-        var zero2 = new NumberValue(BigDecimal.ZERO.setScale(scale), false);
-        var zero3 = new NumberValue(new BigDecimal(BigInteger.ZERO, scale), false);
+        var zero1 = new NumberValue(BigDecimal.ZERO, ValueMetadata.EMPTY);
+        var zero2 = new NumberValue(BigDecimal.ZERO.setScale(scale), ValueMetadata.EMPTY);
+        var zero3 = new NumberValue(new BigDecimal(BigInteger.ZERO, scale), ValueMetadata.EMPTY);
 
         assertThat(zero1).isEqualTo(zero2).isEqualTo(zero3);
         assertThat(zero1.hashCode()).isEqualTo(zero2.hashCode()).isEqualTo(zero3.hashCode());
@@ -219,7 +221,7 @@ class NumberValueTests {
     @MethodSource
     void when_extremeScaleUsed_then_handledGracefully(BigDecimal value, String description) {
         assertThatCode(() -> {
-            var num  = new NumberValue(value, false);
+            var num  = new NumberValue(value, ValueMetadata.EMPTY);
             var hash = num.hashCode();
             assertThat(num.hashCode()).isEqualTo(hash);
         }).doesNotThrowAnyException();
@@ -241,7 +243,7 @@ class NumberValueTests {
         var value        = new BigDecimal(BigInteger.valueOf(100), extremeScale);
 
         assertThatCode(() -> {
-            var num = new NumberValue(value, false);
+            var num = new NumberValue(value, ValueMetadata.EMPTY);
             num.hashCode();
         }).doesNotThrowAnyException();
     }
@@ -251,7 +253,7 @@ class NumberValueTests {
         var values = Stream
                 .of(BigDecimal.ZERO, BigDecimal.ONE, BigDecimal.TEN, new BigDecimal("0.1"), new BigDecimal("0.01"),
                         new BigDecimal("-1"), new BigDecimal("100"), new BigDecimal("1000"))
-                .map(v -> new NumberValue(v, false)).toList();
+                .map(v -> new NumberValue(v, ValueMetadata.EMPTY)).toList();
 
         var hashes = values.stream().map(NumberValue::hashCode).distinct().count();
 
@@ -261,8 +263,8 @@ class NumberValueTests {
     @ParameterizedTest(name = "Powers of 10: {0} equals {1}")
     @MethodSource
     void when_powersOfTen_then_hashConsistently(String decimalNotation, String exponentialNotation) {
-        var decimal     = new NumberValue(new BigDecimal(decimalNotation), false);
-        var exponential = new NumberValue(new BigDecimal(exponentialNotation), false);
+        var decimal     = new NumberValue(new BigDecimal(decimalNotation), ValueMetadata.EMPTY);
+        var exponential = new NumberValue(new BigDecimal(exponentialNotation), ValueMetadata.EMPTY);
 
         assertThat(decimal).isEqualTo(exponential).hasSameHashCodeAs(exponential);
     }
@@ -274,7 +276,7 @@ class NumberValueTests {
 
     @Test
     void when_zeroHashed_then_usesFastPath() {
-        var zero         = new NumberValue(BigDecimal.ZERO, false);
+        var zero         = new NumberValue(BigDecimal.ZERO, ValueMetadata.EMPTY);
         var expectedHash = BigDecimal.ZERO.hashCode();
 
         assertThat(zero.hashCode()).isEqualTo(expectedHash);
@@ -283,8 +285,8 @@ class NumberValueTests {
     @ParameterizedTest(name = "JSON number: {0}")
     @MethodSource
     void when_typicalJsonNumbersHashed_then_hashCorrectly(String jsonValue) {
-        var value1 = new NumberValue(new BigDecimal(jsonValue), false);
-        var value2 = new NumberValue(new BigDecimal(jsonValue), false);
+        var value1 = new NumberValue(new BigDecimal(jsonValue), ValueMetadata.EMPTY);
+        var value2 = new NumberValue(new BigDecimal(jsonValue), ValueMetadata.EMPTY);
 
         assertThat(value1).hasSameHashCodeAs(value2);
     }
@@ -299,8 +301,8 @@ class NumberValueTests {
         var highPrecision = new BigDecimal("1.23456789012345678901234567890");
         var rounded       = new BigDecimal("1.23456789012345678901234567891");
 
-        var num1 = new NumberValue(highPrecision, false);
-        var num2 = new NumberValue(rounded, false);
+        var num1 = new NumberValue(highPrecision, ValueMetadata.EMPTY);
+        var num2 = new NumberValue(rounded, ValueMetadata.EMPTY);
 
         assertThat(num1).isNotEqualTo(num2);
     }

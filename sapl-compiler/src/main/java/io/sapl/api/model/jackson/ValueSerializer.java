@@ -20,15 +20,7 @@ package io.sapl.api.model.jackson;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.JsonSerializer;
 import com.fasterxml.jackson.databind.SerializerProvider;
-import io.sapl.api.model.ArrayValue;
-import io.sapl.api.model.BooleanValue;
-import io.sapl.api.model.ErrorValue;
-import io.sapl.api.model.NullValue;
-import io.sapl.api.model.NumberValue;
-import io.sapl.api.model.ObjectValue;
-import io.sapl.api.model.TextValue;
-import io.sapl.api.model.UndefinedValue;
-import io.sapl.api.model.Value;
+import io.sapl.api.model.*;
 
 import java.io.IOException;
 
@@ -60,18 +52,21 @@ public class ValueSerializer extends JsonSerializer<Value> {
 
     private void serializeValue(Value value, JsonGenerator generator, boolean topLevel) throws IOException {
         switch (value) {
-        case NullValue nullValue                                           -> generator.writeNull();
-        case BooleanValue(boolean booleanValue, boolean secret)            -> generator.writeBoolean(booleanValue);
-        case NumberValue(java.math.BigDecimal numberValue, boolean secret) -> generator.writeNumber(numberValue);
-        case TextValue(String textValue, boolean secret)                   -> generator.writeString(textValue);
-        case ArrayValue arrayValue                                         -> serializeArray(arrayValue, generator);
-        case ObjectValue objectValue                                       -> serializeObject(objectValue, generator);
-        case UndefinedValue undefinedValue                                 -> {
+        case NullValue nullValue                                                  -> generator.writeNull();
+        case BooleanValue(boolean booleanValue, ValueMetadata ignored)            ->
+            generator.writeBoolean(booleanValue);
+        case NumberValue(java.math.BigDecimal numberValue, ValueMetadata ignored) -> generator.writeNumber(numberValue);
+        case TextValue(String textValue, ValueMetadata ignored)                   -> generator.writeString(textValue);
+        case ArrayValue arrayValue                                                ->
+            serializeArray(arrayValue, generator);
+        case ObjectValue objectValue                                              ->
+            serializeObject(objectValue, generator);
+        case UndefinedValue undefinedValue                                        -> {
             if (topLevel) {
                 throw new IllegalArgumentException("Cannot serialize UndefinedValue to JSON.");
             }
         }
-        case ErrorValue errorValue                                         ->
+        case ErrorValue errorValue                                                ->
             throw new IllegalArgumentException("Cannot serialize ErrorValue to JSON: " + errorValue.message());
         }
     }

@@ -53,8 +53,7 @@ public class CombiningAlgorithmCompiler {
      */
     private record PolicyEvaluation(Decision decision, Value resource, ArrayValue obligations, ArrayValue advice) {
         static PolicyEvaluation notApplicable() {
-            return new PolicyEvaluation(Decision.NOT_APPLICABLE, Value.UNDEFINED, new ArrayValue(List.of(), false),
-                    new ArrayValue(List.of(), false));
+            return new PolicyEvaluation(Decision.NOT_APPLICABLE, Value.UNDEFINED, Value.EMPTY_ARRAY, Value.EMPTY_ARRAY);
         }
     }
 
@@ -242,8 +241,8 @@ public class CombiningAlgorithmCompiler {
         val obligations = decisionObj.get(AuthorizationDecisionUtil.FIELD_OBLIGATIONS);
         val advice      = decisionObj.get(AuthorizationDecisionUtil.FIELD_ADVICE);
 
-        val obligationsArray = obligations instanceof ArrayValue arr ? arr : new ArrayValue(List.of(), false);
-        val adviceArray      = advice instanceof ArrayValue arr ? arr : new ArrayValue(List.of(), false);
+        val obligationsArray = obligations instanceof ArrayValue arr ? arr : Value.EMPTY_ARRAY;
+        val adviceArray      = advice instanceof ArrayValue arr ? arr : Value.EMPTY_ARRAY;
 
         return new PolicyEvaluation(policyDecision, resource, obligationsArray, adviceArray);
     }

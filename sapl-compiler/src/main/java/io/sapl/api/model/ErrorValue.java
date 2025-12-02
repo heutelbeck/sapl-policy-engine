@@ -36,76 +36,77 @@ import java.util.Objects;
  *
  * @param message the error message describing what went wrong
  * @param cause the underlying exception, if any (may be null)
- * @param secret whether this error contains sensitive information
+ * @param metadata the value metadata
  * @param location the source location where the error occurred (may be null)
  */
-public record ErrorValue(String message, Throwable cause, boolean secret, SourceLocation location) implements Value {
+public record ErrorValue(String message, Throwable cause, @NonNull ValueMetadata metadata, SourceLocation location)
+        implements Value {
 
     @Serial
     private static final long serialVersionUID = SaplVersion.VERSION_UID;
 
     /**
-     * Creates an error with message, cause, and secret flag but no location.
+     * Creates an error with message, cause, and metadata but no location.
      *
      * @param message the error message (must not be null)
      * @param cause the exception (may be null)
-     * @param secret whether secret
+     * @param metadata the value metadata
      */
-    public ErrorValue(@NonNull String message, Throwable cause, boolean secret) {
-        this(message, cause, secret, null);
+    public ErrorValue(@NonNull String message, Throwable cause, @NonNull ValueMetadata metadata) {
+        this(message, cause, metadata, null);
     }
 
     /**
-     * Creates an error with message and cause, not secret, no location.
+     * Creates an error with message and cause, empty metadata, no location.
      *
      * @param message the error message (must not be null)
      * @param cause the exception (must not be null)
      */
     public ErrorValue(@NonNull String message, @NonNull Throwable cause) {
-        this(message, cause, false, null);
+        this(message, cause, ValueMetadata.EMPTY, null);
     }
 
     /**
-     * Creates an error from an exception with secret flag, no location.
+     * Creates an error from an exception with metadata, no location.
      *
      * @param cause the exception (must not be null)
-     * @param secret whether secret
+     * @param metadata the value metadata
      */
-    public ErrorValue(@NonNull Throwable cause, boolean secret) {
-        this(cause.getMessage(), cause, secret, null);
+    public ErrorValue(@NonNull Throwable cause, @NonNull ValueMetadata metadata) {
+        this(cause.getMessage(), cause, metadata, null);
     }
 
     /**
-     * Creates an error from an exception, not secret, no location.
+     * Creates an error from an exception, empty metadata, no location.
      *
      * @param cause the exception (must not be null)
      */
     public ErrorValue(@NonNull Throwable cause) {
-        this(cause.getMessage(), cause, false, null);
+        this(cause.getMessage(), cause, ValueMetadata.EMPTY, null);
     }
 
     /**
-     * Creates an error with a message and secret flag, no cause, no location.
+     * Creates an error with a message and metadata, no cause, no location.
      *
      * @param message the error message (must not be null)
-     * @param secret whether secret
+     * @param metadata the value metadata
      */
-    public ErrorValue(@NonNull String message, boolean secret) {
-        this(message, null, secret, null);
+    public ErrorValue(@NonNull String message, @NonNull ValueMetadata metadata) {
+        this(message, null, metadata, null);
     }
 
     /**
-     * Creates an error with a message only, not secret, no cause, no location.
+     * Creates an error with a message only, empty metadata, no cause, no location.
      *
      * @param message the error message (must not be null)
      */
     public ErrorValue(@NonNull String message) {
-        this(message, null, false, null);
+        this(message, null, ValueMetadata.EMPTY, null);
     }
 
     @Override
-    public Value asSecret() {
-        return secret ? this : new ErrorValue(message, cause, true, location);
+    public Value withMetadata(ValueMetadata newMetadata) {
+        return new ErrorValue(message, cause, newMetadata, location);
     }
 
     /**
@@ -115,23 +116,23 @@ public record ErrorValue(String message, Throwable cause, boolean secret, Source
      * @return a new ErrorValue with the location set
      */
     public ErrorValue withLocation(SourceLocation newLocation) {
-        return new ErrorValue(message, cause, secret, newLocation);
+        return new ErrorValue(message, cause, metadata, newLocation);
     }
 
     @Override
     public @NotNull String toString() {
-        if (secret) {
+        if (isSecret()) {
             return SECRET_PLACEHOLDER;
         }
         val printMessage = message == null ? "unknown error" : message;
-        var result       = new StringBuilder("ERROR[message=\"").append(printMessage).append("\"");
+        var result       = new StringBuilder("ERROR[message=\"").append(printMessage).append('"');
         if (cause != null) {
             result.append(", cause=").append(cause.getClass().getSimpleName());
         }
         if (location != null) {
             result.append(", at=").append(location);
         }
-        result.append("]");
+        result.append(']');
         return result.toString();
     }
 

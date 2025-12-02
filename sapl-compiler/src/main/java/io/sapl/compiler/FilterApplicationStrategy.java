@@ -194,7 +194,8 @@ class FilterApplicationStrategy {
             CompilationContext context) {
         return FilterCollectionRebuilder.rebuildArray(arrayValue, indexMatcher, i -> {
             val result = applyValueFilterToValue(arrayValue.get(i), functionIdentifier, arguments, context);
-            return (result instanceof Value v) ? v : Error.at(astNode, ERROR_UNEXPECTED_NON_VALUE_CONSTANT_ARGS);
+            return (result instanceof Value v) ? v
+                    : Error.at(astNode, arrayValue.metadata(), ERROR_UNEXPECTED_NON_VALUE_CONSTANT_ARGS);
         });
     }
 
@@ -208,7 +209,8 @@ class FilterApplicationStrategy {
             CompilationContext context) {
         return FilterCollectionRebuilder.rebuildObject(objectValue, keyMatcher, key -> {
             val result = applyValueFilterToValue(objectValue.get(key), functionIdentifier, arguments, context);
-            return (result instanceof Value v) ? v : Error.at(astNode, ERROR_UNEXPECTED_NON_VALUE_CONSTANT_ARGS);
+            return (result instanceof Value v) ? v
+                    : Error.at(astNode, objectValue.metadata(), ERROR_UNEXPECTED_NON_VALUE_CONSTANT_ARGS);
         });
     }
 

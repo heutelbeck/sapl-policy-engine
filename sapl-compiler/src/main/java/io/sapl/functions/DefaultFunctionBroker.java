@@ -22,6 +22,7 @@ import io.sapl.api.functions.FunctionInvocation;
 import io.sapl.api.functions.FunctionLibrary;
 import io.sapl.api.functions.FunctionSpecification;
 import io.sapl.api.model.Value;
+import io.sapl.api.model.ValueMetadata;
 import io.sapl.api.shared.Match;
 import io.sapl.interpreter.InitializationException;
 import lombok.val;
@@ -182,7 +183,8 @@ public class DefaultFunctionBroker implements FunctionBroker {
             throw new IllegalArgumentException(INVOCATION_NULL_ERROR);
         }
 
-        val specs = functionIndex.get(invocation.functionName());
+        val inputMetadata = ValueMetadata.merge(invocation.arguments());
+        val specs         = functionIndex.get(invocation.functionName());
 
         if (specs != null) {
             FunctionSpecification bestMatch = null;
@@ -197,7 +199,8 @@ public class DefaultFunctionBroker implements FunctionBroker {
             }
 
             if (bestMatch != null) {
-                return bestMatch.function().apply(invocation);
+                val result = bestMatch.function().apply(invocation);
+                return result.withMetadata(result.metadata().merge(inputMetadata));
             }
         }
 

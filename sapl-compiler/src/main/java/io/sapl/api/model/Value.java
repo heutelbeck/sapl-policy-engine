@@ -113,52 +113,52 @@ public sealed interface Value extends Serializable, CompiledExpression
     /**
      * Singleton for boolean true.
      */
-    BooleanValue TRUE = new BooleanValue(true, false);
+    BooleanValue TRUE = new BooleanValue(true, ValueMetadata.EMPTY);
 
     /**
      * Singleton for boolean false.
      */
-    BooleanValue FALSE = new BooleanValue(false, false);
+    BooleanValue FALSE = new BooleanValue(false, ValueMetadata.EMPTY);
 
     /**
      * Singleton for undefined values.
      */
-    UndefinedValue UNDEFINED = new UndefinedValue(false);
+    UndefinedValue UNDEFINED = new UndefinedValue(ValueMetadata.EMPTY);
 
     /**
      * Singleton for null values.
      */
-    NullValue NULL = new NullValue(false);
+    NullValue NULL = new NullValue(ValueMetadata.EMPTY);
 
     /**
      * Constant for numeric zero.
      */
-    NumberValue ZERO = new NumberValue(BigDecimal.ZERO, false);
+    NumberValue ZERO = new NumberValue(BigDecimal.ZERO, ValueMetadata.EMPTY);
 
     /**
      * Constant for numeric one.
      */
-    NumberValue ONE = new NumberValue(BigDecimal.ONE, false);
+    NumberValue ONE = new NumberValue(BigDecimal.ONE, ValueMetadata.EMPTY);
 
     /**
      * Constant for numeric ten.
      */
-    NumberValue TEN = new NumberValue(BigDecimal.TEN, false);
+    NumberValue TEN = new NumberValue(BigDecimal.TEN, ValueMetadata.EMPTY);
 
     /**
      * Constant for empty array.
      */
-    ArrayValue EMPTY_ARRAY = new ArrayValue(List.of(), false);
+    ArrayValue EMPTY_ARRAY = new ArrayValue(List.of(), ValueMetadata.EMPTY);
 
     /**
      * Constant for empty object.
      */
-    ObjectValue EMPTY_OBJECT = new ObjectValue(Map.of(), false);
+    ObjectValue EMPTY_OBJECT = new ObjectValue(Map.of(), ValueMetadata.EMPTY);
 
     /**
      * Constant for empty text.
      */
-    TextValue EMPTY_TEXT = new TextValue("", false);
+    TextValue EMPTY_TEXT = new TextValue("", ValueMetadata.EMPTY);
 
     /**
      * Creates a boolean value.
@@ -187,7 +187,7 @@ public sealed interface Value extends Serializable, CompiledExpression
             return ONE;
         if (value == 10L)
             return TEN;
-        return new NumberValue(BigDecimal.valueOf(value), false);
+        return new NumberValue(BigDecimal.valueOf(value), ValueMetadata.EMPTY);
     }
 
     /**
@@ -220,7 +220,7 @@ public sealed interface Value extends Serializable, CompiledExpression
             return ONE;
         if (value == 10.0)
             return TEN;
-        return new NumberValue(BigDecimal.valueOf(value), false);
+        return new NumberValue(BigDecimal.valueOf(value), ValueMetadata.EMPTY);
     }
 
     /**
@@ -238,7 +238,7 @@ public sealed interface Value extends Serializable, CompiledExpression
             return ONE;
         if (value.compareTo(BigDecimal.TEN) == 0)
             return TEN;
-        return new NumberValue(value, false);
+        return new NumberValue(value, ValueMetadata.EMPTY);
     }
 
     /**
@@ -252,7 +252,7 @@ public sealed interface Value extends Serializable, CompiledExpression
     static TextValue of(@NonNull String value) {
         if (value.isEmpty())
             return EMPTY_TEXT;
-        return new TextValue(value, false);
+        return new TextValue(value, ValueMetadata.EMPTY);
     }
 
     /**
@@ -266,7 +266,7 @@ public sealed interface Value extends Serializable, CompiledExpression
     static ArrayValue ofArray(Value... values) {
         if (values.length == 0)
             return EMPTY_ARRAY;
-        return new ArrayValue(values, false);
+        return new ArrayValue(values, ValueMetadata.EMPTY);
     }
 
     /**
@@ -280,7 +280,7 @@ public sealed interface Value extends Serializable, CompiledExpression
     static ArrayValue ofArray(@NonNull List<Value> values) {
         if (values.isEmpty())
             return EMPTY_ARRAY;
-        return new ArrayValue(values, false);
+        return new ArrayValue(values, ValueMetadata.EMPTY);
     }
 
     /**
@@ -294,7 +294,7 @@ public sealed interface Value extends Serializable, CompiledExpression
     static ObjectValue ofObject(@NonNull Map<String, Value> properties) {
         if (properties.isEmpty())
             return EMPTY_OBJECT;
-        return new ObjectValue(Map.copyOf(properties), false);
+        return new ObjectValue(Map.copyOf(properties), ValueMetadata.EMPTY);
     }
 
     /**
@@ -306,7 +306,7 @@ public sealed interface Value extends Serializable, CompiledExpression
      * @return an ErrorValue
      */
     static ErrorValue error(@NonNull String message) {
-        return new ErrorValue(message, null, false);
+        return new ErrorValue(message, null, ValueMetadata.EMPTY);
     }
 
     /**
@@ -334,7 +334,7 @@ public sealed interface Value extends Serializable, CompiledExpression
      * if the format string is invalid
      */
     static ErrorValue error(@NonNull String message, Object... args) {
-        return new ErrorValue(String.format(message, args), null, false);
+        return new ErrorValue(String.format(message, args), null, ValueMetadata.EMPTY);
     }
 
     /**
@@ -348,7 +348,7 @@ public sealed interface Value extends Serializable, CompiledExpression
      * @return an ErrorValue
      */
     static ErrorValue error(@NonNull String message, Throwable cause) {
-        return new ErrorValue(message, cause, false);
+        return new ErrorValue(message, cause, ValueMetadata.EMPTY);
     }
 
     /**
@@ -360,7 +360,7 @@ public sealed interface Value extends Serializable, CompiledExpression
      * @return an ErrorValue
      */
     static ErrorValue error(@NonNull Throwable cause) {
-        return new ErrorValue(cause, false);
+        return new ErrorValue(cause, ValueMetadata.EMPTY);
     }
 
     /**
@@ -374,7 +374,7 @@ public sealed interface Value extends Serializable, CompiledExpression
      * @return an ErrorValue with location information
      */
     static ErrorValue error(@NonNull String message, SourceLocation location) {
-        return new ErrorValue(message, null, false, location);
+        return new ErrorValue(message, null, ValueMetadata.EMPTY, location);
     }
 
     /**
@@ -390,7 +390,7 @@ public sealed interface Value extends Serializable, CompiledExpression
      * @return an ErrorValue with the formatted message and location
      */
     static ErrorValue errorAt(SourceLocation location, @NonNull String message, Object... args) {
-        return new ErrorValue(String.format(message, args), null, false, location);
+        return new ErrorValue(String.format(message, args), null, ValueMetadata.EMPTY, location);
     }
 
     /**
@@ -406,7 +406,7 @@ public sealed interface Value extends Serializable, CompiledExpression
      * @return an ErrorValue with cause and location information
      */
     static ErrorValue error(@NonNull String message, Throwable cause, SourceLocation location) {
-        return new ErrorValue(message, cause, false, location);
+        return new ErrorValue(message, cause, ValueMetadata.EMPTY, location);
     }
 
     /**
@@ -420,7 +420,31 @@ public sealed interface Value extends Serializable, CompiledExpression
      * @return an ErrorValue with cause and location information
      */
     static ErrorValue error(@NonNull Throwable cause, SourceLocation location) {
-        return new ErrorValue(cause.getMessage(), cause, false, location);
+        return new ErrorValue(cause.getMessage(), cause, ValueMetadata.EMPTY, location);
+    }
+
+    /**
+     * Returns the metadata for this value.
+     *
+     * @return the value metadata
+     */
+    ValueMetadata metadata();
+
+    /**
+     * Creates a copy of this value with the specified metadata.
+     *
+     * @param metadata the new metadata
+     * @return a value with the new metadata
+     */
+    Value withMetadata(ValueMetadata metadata);
+
+    /**
+     * Returns whether this value is marked as secret.
+     *
+     * @return true if secret
+     */
+    default boolean isSecret() {
+        return metadata().secret();
     }
 
     /**
@@ -432,12 +456,7 @@ public sealed interface Value extends Serializable, CompiledExpression
      *
      * @return a secret value (or this instance if already secret)
      */
-    Value asSecret();
-
-    /**
-     * Returns whether this value is marked as secret.
-     *
-     * @return true if secret
-     */
-    boolean secret();
+    default Value asSecret() {
+        return isSecret() ? this : withMetadata(metadata().asSecret());
+    }
 }

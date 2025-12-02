@@ -55,7 +55,7 @@ public class ComparisonOperators {
      * secret flag
      */
     public static Value equals(EObject ignored, Value a, Value b) {
-        return preserveSecret(a.equals(b), a.secret() || b.secret());
+        return preserveSecret(a.equals(b), a.metadata().merge(b.metadata()));
     }
 
     /**
@@ -70,7 +70,7 @@ public class ComparisonOperators {
      * combined secret flag
      */
     public static Value notEquals(EObject ignored, Value a, Value b) {
-        return preserveSecret(!a.equals(b), a.secret() || b.secret());
+        return preserveSecret(!a.equals(b), a.metadata().merge(b.metadata()));
     }
 
     /**
@@ -92,17 +92,17 @@ public class ComparisonOperators {
      * type mismatch
      */
     public static Value isContainedIn(EObject astNode, Value needle, Value haystack) {
-        val secret = needle.secret() || haystack.secret();
+        val metadata = needle.metadata().merge(haystack.metadata());
         if (haystack instanceof ArrayValue array) {
-            return preserveSecret(array.contains(needle), secret);
+            return preserveSecret(array.contains(needle), metadata);
         }
         if (haystack instanceof ObjectValue object) {
-            return preserveSecret(object.containsValue(needle), secret);
+            return preserveSecret(object.containsValue(needle), metadata);
         }
         if (haystack instanceof TextValue textHaystack && needle instanceof TextValue textNeedle) {
-            return preserveSecret(textHaystack.value().contains(textNeedle.value()), secret);
+            return preserveSecret(textHaystack.value().contains(textNeedle.value()), metadata);
         }
-        return Error.at(astNode, ERROR_IN_OPERATOR_TYPE_MISMATCH, needle, haystack);
+        return Error.at(astNode, metadata, ERROR_IN_OPERATOR_TYPE_MISMATCH, needle, haystack);
     }
 
     /**
@@ -118,17 +118,17 @@ public class ComparisonOperators {
      * pattern is malformed
      */
     public static Value matchesRegularExpression(EObject astNode, Value input, Value regex) {
+        val metadata = input.metadata().merge(regex.metadata());
         if (!(input instanceof TextValue inputText)) {
-            return Error.at(astNode, ERROR_REGEX_TARGET_MUST_BE_STRING, input);
+            return Error.at(astNode, metadata, ERROR_REGEX_TARGET_MUST_BE_STRING, input);
         }
         if (!(regex instanceof TextValue regexText)) {
-            return Error.at(astNode, ERROR_REGEX_MUST_BE_STRING, regex);
+            return Error.at(astNode, metadata, ERROR_REGEX_MUST_BE_STRING, regex);
         }
-        val secret = input.secret() || regex.secret();
         try {
-            return preserveSecret(Pattern.matches(regexText.value(), inputText.value()), secret);
+            return preserveSecret(Pattern.matches(regexText.value(), inputText.value()), metadata);
         } catch (PatternSyntaxException e) {
-            return Error.at(astNode, ERROR_REGEX_INVALID, regex, e.getMessage());
+            return Error.at(astNode, metadata, ERROR_REGEX_INVALID, regex, e.getMessage());
         }
     }
 
@@ -151,35 +151,21 @@ public class ComparisonOperators {
             throw new SaplCompilerException(String.format(ERROR_REGEX_MUST_BE_STRING, regex), astNode);
         }
         try {
-            val pattern     = Pattern.compile(regexText.value()).asMatchPredicate();
-            val regexSecret = regex.secret();
+            val pattern       = Pattern.compile(regexText.value()).asMatchPredicate();
+            val regexMetadata = regex.metadata();
             return input -> {
+                val metadata = input.metadata().merge(regexMetadata);
                 if (!(input instanceof TextValue inputText)) {
-                    return Error.at(astNode, ERROR_REGEX_TARGET_MUST_BE_STRING, input);
+                    return Error.at(astNode, metadata, ERROR_REGEX_TARGET_MUST_BE_STRING, input);
                 }
-                val secret = input.secret() || regexSecret;
-                return preserveSecret(pattern.test(inputText.value()), secret);
+                return preserveSecret(pattern.test(inputText.value()), metadata);
             };
         } catch (IllegalArgumentException e) {
             throw new SaplCompilerException(String.format(ERROR_REGEX_INVALID, regex, e.getMessage()), astNode);
         }
     }
 
-    /**
-     * Creates a BooleanValue with secret handling, reusing constants.
-     *
-     * @param value
-     * the boolean value
-     * @param secret
-     * whether the value should be marked as secret
-     *
-     * @return a BooleanValue with the specified value and secret flag
-     */
-    private static BooleanValue preserveSecret(boolean value, boolean secret) {
-        if (secret) {
-            return value ? BooleanValue.SECRET_TRUE : BooleanValue.SECRET_FALSE;
-        } else {
-            return value ? Value.TRUE : Value.FALSE;
-        }
+    private static BooleanValue preserveSecret(boolean value, ValueMetadata metadata) {
+        return new BooleanValue(value, metadata);
     }
 }

@@ -475,7 +475,7 @@ public class SaplCompiler {
         if (targetExpression instanceof BooleanValue) {
             return targetExpression;
         }
-        return Error.at(astNode, ERROR_TARGET_EXPECTED_BOOLEAN, targetExpression);
+        return Error.at(astNode, targetExpression.metadata(), ERROR_TARGET_EXPECTED_BOOLEAN, targetExpression);
     }
 
     /**

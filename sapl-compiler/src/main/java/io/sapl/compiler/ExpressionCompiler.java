@@ -127,10 +127,11 @@ public class ExpressionCompiler {
     private CompiledExpression checkShortCircuitLeft(EObject astNode, CompiledExpression left,
             Value shortCircuitValue) {
         if (shortCircuitValue.equals(left) || left instanceof ErrorValue) {
-            return left;
+            val leftValue = (Value) left;
+            return leftValue.withMetadata(leftValue.metadata().merge(shortCircuitValue.metadata()));
         }
-        if (left instanceof Value && !(left instanceof BooleanValue)) {
-            return Error.at(astNode, TYPE_MISMATCH_BOOLEAN_EXPECTED_ERROR, left);
+        if (left instanceof Value leftValue && !(left instanceof BooleanValue)) {
+            return Error.at(astNode, leftValue.metadata(), TYPE_MISMATCH_BOOLEAN_EXPECTED_ERROR, left);
         }
         return null;
     }
@@ -172,7 +173,7 @@ public class ExpressionCompiler {
             return leftValue;
         }
         if (!(leftValue instanceof BooleanValue)) {
-            return Error.at(astNode, TYPE_MISMATCH_BOOLEAN_EXPECTED_ERROR, leftValue);
+            return Error.at(astNode, leftValue.metadata(), TYPE_MISMATCH_BOOLEAN_EXPECTED_ERROR, leftValue);
         }
         return operator.apply(astNode, leftValue, rightVal);
     }
@@ -190,7 +191,8 @@ public class ExpressionCompiler {
                 return Flux.just(leftValue);
             }
             if (!(leftValue instanceof BooleanValue)) {
-                return Flux.just(Error.at(astNode, TYPE_MISMATCH_BOOLEAN_EXPECTED_ERROR, leftValue));
+                return Flux.just(Error.at(astNode, leftValue.metadata().merge(shortCircuitValue.metadata()),
+                        TYPE_MISMATCH_BOOLEAN_EXPECTED_ERROR, leftValue));
             }
             return rightFlux.map(rightValue -> combineBooleanResult(astNode, leftValue, rightValue, shortCircuitValue));
         });
@@ -201,15 +203,16 @@ public class ExpressionCompiler {
      */
     private static Value combineBooleanResult(EObject astNode, Value leftValue, Value rightValue,
             Value shortCircuitValue) {
+        val metadata = ValueMetadata.merge(leftValue, shortCircuitValue, rightValue);
         if (rightValue instanceof ErrorValue) {
-            return rightValue;
+            return rightValue.withMetadata(metadata);
         }
         if (!(rightValue instanceof BooleanValue rightBool)) {
-            return Error.at(astNode, TYPE_MISMATCH_BOOLEAN_EXPECTED_ERROR, rightValue);
+            return Error.at(astNode, metadata, TYPE_MISMATCH_BOOLEAN_EXPECTED_ERROR, rightValue);
         }
         val resultValue = shortCircuitValue.equals(Value.TRUE) ? rightBool.value()
                 : rightBool.value() && ((BooleanValue) leftValue).value();
-        return new BooleanValue(resultValue, rightValue.secret() || leftValue.secret());
+        return new BooleanValue(resultValue, metadata);
     }
 
     /**
@@ -218,25 +221,27 @@ public class ExpressionCompiler {
      */
     private static Value evaluatePureLazyBoolean(EObject astNode, PureExpression pureLeft, PureExpression pureRight,
             EvaluationContext ctx, Value shortCircuitValue) {
-        val left = pureLeft.evaluate(ctx);
+        val left     = pureLeft.evaluate(ctx);
+        var metadata = ValueMetadata.merge(left, shortCircuitValue);
         if (shortCircuitValue.equals(left) || left instanceof ErrorValue) {
-            return left;
+            return left.withMetadata(metadata);
         }
         if (!(left instanceof BooleanValue)) {
-            return Error.at(astNode, TYPE_MISMATCH_BOOLEAN_EXPECTED_ERROR, left);
+            return Error.at(astNode, metadata, TYPE_MISMATCH_BOOLEAN_EXPECTED_ERROR, left);
         }
         val right = pureRight.evaluate(ctx);
+        metadata = metadata.merge(right.metadata());
         if (shortCircuitValue.equals(right)) {
-            return new BooleanValue(shortCircuitValue.equals(Value.TRUE), right.secret() || left.secret());
+            return new BooleanValue(shortCircuitValue.equals(Value.TRUE), metadata);
         }
         if (right instanceof ErrorValue) {
             return right;
         }
         if (!(right instanceof BooleanValue rightBool)) {
-            return Error.at(astNode, TYPE_MISMATCH_BOOLEAN_EXPECTED_ERROR, right);
+            return Error.at(astNode, metadata, TYPE_MISMATCH_BOOLEAN_EXPECTED_ERROR, right);
         }
         val resultValue = !shortCircuitValue.equals(Value.TRUE) && rightBool.value();
-        return new BooleanValue(resultValue, right.secret() || left.secret());
+        return new BooleanValue(resultValue, metadata);
     }
 
     /**
@@ -293,10 +298,12 @@ public class ExpressionCompiler {
         val left  = compileExpression(astOperator.getLeft(), context);
         val right = compileExpression(astOperator.getRight(), context);
         if (left == null) {
-            return Error.at(astOperator, ERROR_LEFT_OPERAND_MISSING, astOperator.getClass().getSimpleName());
+            return Error.at(astOperator, ValueMetadata.EMPTY, ERROR_LEFT_OPERAND_MISSING,
+                    astOperator.getClass().getSimpleName());
         }
         if (right == null) {
-            return Error.at(astOperator, ERROR_RIGHT_OPERAND_MISSING, astOperator.getClass().getSimpleName());
+            return Error.at(astOperator, ValueMetadata.EMPTY, ERROR_RIGHT_OPERAND_MISSING,
+                    astOperator.getClass().getSimpleName());
         }
         // Special case for regex. Here if the right side is a text constant, we can
         // immediately pre-compile the expression and do not need to do it at policy
@@ -430,10 +437,11 @@ public class ExpressionCompiler {
             compileSteps(compileExpression(group.getExpression(), context), group.getSteps(), context);
         case BasicValue value                               -> compileValue(value, context);
         case BasicFunction function                         -> compileBasicFunction(function, context);
-        case BasicEnvironmentAttribute envAttribute         ->
-            AttributeCompiler.compileEnvironmentAttribute(envAttribute, context);
+        case BasicEnvironmentAttribute envAttribute         -> compileSteps(
+                AttributeCompiler.compileEnvironmentAttribute(envAttribute, context), envAttribute.getSteps(), context);
         case BasicEnvironmentHeadAttribute envHeadAttribute ->
-            AttributeCompiler.compileHeadEnvironmentAttribute(envHeadAttribute, context);
+            compileSteps(AttributeCompiler.compileHeadEnvironmentAttribute(envHeadAttribute, context),
+                    envHeadAttribute.getSteps(), context);
         case BasicIdentifier identifier                     -> compileIdentifier(identifier, context);
         case BasicRelative relativeValue                    -> compileBasicRelative(relativeValue, context);
         default                                             ->
@@ -681,9 +689,6 @@ public class ExpressionCompiler {
         for (val step : steps) {
             expression = compileStep(expression, step, context);
         }
-        if (expression instanceof Value constantValue) {
-            return context.dedupe(constantValue);
-        }
         return expression;
     }
 
@@ -713,13 +718,13 @@ public class ExpressionCompiler {
         case HeadAttributeFinderStep headAttributeFinderStep ->
             AttributeCompiler.compileHeadAttributeFinderStep(parent, headAttributeFinderStep, context);
         case RecursiveKeyStep recursiveKeyStep               ->
-            compileStep(parent, p -> StepOperators.recursiveKeyStep(step, p, recursiveKeyStep.getId()));
+            compileStep(parent, p -> StepOperators.recursiveKeyStep(step, p, recursiveKeyStep.getId(), p.metadata()));
         case RecursiveWildcardStep recursiveWildcardStep     ->
             compileStep(parent, p -> StepOperators.recursiveWildcardStep(step, p));
         case RecursiveIndexStep recursiveIndexStep           ->
             compileStep(parent, p -> StepOperators.recursiveIndexStep(step, p, recursiveIndexStep.getIndex()));
         case IndexStep indexStep                             ->
-            compileStep(parent, p -> StepOperators.indexStep(step, p, indexStep.getIndex()));
+            compileStep(parent, p -> StepOperators.indexStep(step, p, indexStep.getIndex(), p.metadata()));
         case ArraySlicingStep arraySlicingStep               -> compileStep(parent, p -> StepOperators.sliceArray(step,
                 p, arraySlicingStep.getIndex(), arraySlicingStep.getTo(), arraySlicingStep.getStep()));
         case ExpressionStep expressionStep                   -> compileExpressionStep(parent, expressionStep, context);
@@ -860,20 +865,21 @@ public class ExpressionCompiler {
      */
     private Value evaluateConditionOnValueParentWithConstantValueCondition(EObject astNode, Value valueParent,
             Value valueCondition) {
+        val metadata = ValueMetadata.merge(valueParent, valueCondition);
         if (valueParent instanceof ErrorValue || valueParent instanceof UndefinedValue) {
-            return valueParent;
+            return valueParent.withMetadata(metadata);
         }
         if (!(valueCondition instanceof BooleanValue)) {
-            return Error.at(astNode,
+            return Error.at(astNode, metadata,
                     "Condition in condition step must evaluate to a Boolean, but got: %s.".formatted(valueCondition));
         }
         if (valueCondition.equals(Value.TRUE)) {
-            return valueParent;
+            return valueParent.withMetadata(metadata);
         }
         return switch (valueParent) {
-        case ObjectValue o -> Value.EMPTY_OBJECT;
-        case ArrayValue a  -> Value.EMPTY_ARRAY;
-        default            -> Value.UNDEFINED;
+        case ObjectValue o -> Value.EMPTY_OBJECT.withMetadata(metadata);
+        case ArrayValue a  -> Value.EMPTY_ARRAY.withMetadata(metadata);
+        default            -> Value.UNDEFINED.withMetadata(metadata);
         };
     }
 
@@ -958,15 +964,16 @@ public class ExpressionCompiler {
      * condition is not boolean
      */
     private Value returnValueIfConditionMetElseUndefined(EObject astNode, Value value, Value condition) {
+        val metadata = ValueMetadata.merge(value, condition);
         if (value instanceof ErrorValue || value instanceof UndefinedValue) {
-            return value;
+            return value.withMetadata(metadata);
         }
         if (!(condition instanceof BooleanValue booleanConstant)) {
-            return Error.at(astNode,
+            return Error.at(astNode, metadata,
                     "Type mismatch error. Conditions in condition steps must evaluate to a boolean value, but got: %s."
                             .formatted(condition));
         }
-        return booleanConstant.equals(Value.TRUE) ? value : Value.UNDEFINED;
+        return (booleanConstant.equals(Value.TRUE) ? value : Value.UNDEFINED).withMetadata(metadata);
     }
 
     /**

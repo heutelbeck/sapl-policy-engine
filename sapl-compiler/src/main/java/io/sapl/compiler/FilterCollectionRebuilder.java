@@ -39,6 +39,8 @@ class FilterCollectionRebuilder {
      * Elements at matching indices are transformed. Undefined results are filtered
      * out. Elements at non-matching
      * indices are preserved unchanged.
+     * <p>
+     * The original array's metadata is preserved in the rebuilt array.
      *
      * @param original
      * the original array
@@ -51,7 +53,7 @@ class FilterCollectionRebuilder {
      */
     static ArrayValue rebuildArray(ArrayValue original, IntPredicate matcher,
             java.util.function.IntFunction<Value> transformer) {
-        val builder = ArrayValue.builder();
+        val builder = ArrayValue.builder().withMetadata(original.metadata());
 
         for (int i = 0; i < original.size(); i++) {
             if (matcher.test(i)) {
@@ -89,6 +91,8 @@ class FilterCollectionRebuilder {
      * Fields with matching keys are transformed. Undefined results are filtered out
      * (field removed). Fields with
      * non-matching keys are preserved unchanged.
+     * <p>
+     * The original object's metadata is preserved in the rebuilt object.
      *
      * @param original
      * the original object
@@ -101,7 +105,7 @@ class FilterCollectionRebuilder {
      */
     static ObjectValue rebuildObject(ObjectValue original, Predicate<String> matcher,
             java.util.function.Function<String, Value> transformer) {
-        val builder = ObjectValue.builder();
+        val builder = ObjectValue.builder().withMetadata(original.metadata());
 
         for (val entry : original.entrySet()) {
             if (matcher.test(entry.getKey())) {
@@ -140,6 +144,8 @@ class FilterCollectionRebuilder {
      * Applies transformer to each element, returning early if an error is
      * encountered. Does not filter undefined
      * values.
+     * <p>
+     * The original array's metadata is preserved in the rebuilt array.
      *
      * @param array
      * source array
@@ -149,7 +155,7 @@ class FilterCollectionRebuilder {
      * @return rebuilt array or error if any transformation fails
      */
     static Value traverseArray(ArrayValue array, UnaryOperator<Value> transformer) {
-        val builder = ArrayValue.builder();
+        val builder = ArrayValue.builder().withMetadata(array.metadata());
         for (val element : array) {
             val transformed = transformer.apply(element);
             if (transformed instanceof ErrorValue) {
@@ -166,6 +172,8 @@ class FilterCollectionRebuilder {
      * Applies transformer to each field value, returning early if an error is
      * encountered. Does not filter undefined
      * values.
+     * <p>
+     * The original object's metadata is preserved in the rebuilt object.
      *
      * @param object
      * source object
@@ -175,7 +183,7 @@ class FilterCollectionRebuilder {
      * @return rebuilt object or error if any transformation fails
      */
     static Value traverseObject(ObjectValue object, UnaryOperator<Value> transformer) {
-        val builder = ObjectValue.builder();
+        val builder = ObjectValue.builder().withMetadata(object.metadata());
         for (val entry : object.entrySet()) {
             val transformed = transformer.apply(entry.getValue());
             if (transformed instanceof ErrorValue) {
@@ -192,6 +200,8 @@ class FilterCollectionRebuilder {
      * Applies transformer to matching elements, preserving non-matching elements
      * unchanged. Does not filter undefined
      * values.
+     * <p>
+     * The original array's metadata is preserved in the rebuilt array.
      *
      * @param array
      * source array
@@ -203,7 +213,7 @@ class FilterCollectionRebuilder {
      * @return rebuilt array or error if any transformation fails
      */
     static Value traverseArraySelective(ArrayValue array, IntPredicate selector, IntFunction<Value> transformer) {
-        val builder = ArrayValue.builder();
+        val builder = ArrayValue.builder().withMetadata(array.metadata());
         for (int index = 0; index < array.size(); index++) {
             if (selector.test(index)) {
                 val transformed = transformer.apply(index);
@@ -246,6 +256,8 @@ class FilterCollectionRebuilder {
      * Applies matchingTransformer to fields matching the selector, and
      * nonMatchingTransformer to other fields. Returns
      * early on error from either transformer.
+     * <p>
+     * The original object's metadata is preserved in the rebuilt object.
      *
      * @param object
      * source object
@@ -260,7 +272,7 @@ class FilterCollectionRebuilder {
      */
     static Value traverseObjectSelective(ObjectValue object, Predicate<String> selector,
             Function<String, Value> matchingTransformer, Function<String, Value> nonMatchingTransformer) {
-        val builder = ObjectValue.builder();
+        val builder = ObjectValue.builder().withMetadata(object.metadata());
         for (val entry : object.entrySet()) {
             val transformer = selector.test(entry.getKey()) ? matchingTransformer : nonMatchingTransformer;
             val transformed = transformer.apply(entry.getKey());

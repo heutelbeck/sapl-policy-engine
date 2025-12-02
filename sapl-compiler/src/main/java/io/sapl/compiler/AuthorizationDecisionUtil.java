@@ -65,9 +65,9 @@ public class AuthorizationDecisionUtil {
      * @return an ObjectValue with fields: decision, obligations, advice, resource
      */
     public static Value buildDecision(Decision decision, List<Value> obligations, List<Value> advice, Value resource) {
-        return ObjectValue.builder().put(FIELD_DECISION, new TextValue(decision.name(), false))
-                .put(FIELD_OBLIGATIONS, new ArrayValue(obligations, false))
-                .put(FIELD_ADVICE, new ArrayValue(advice, false)).put(FIELD_RESOURCE, resource).build();
+        return ObjectValue.builder().put(FIELD_DECISION, Value.of(decision.name()))
+                .put(FIELD_OBLIGATIONS, ArrayValue.builder().addAll(obligations).build())
+                .put(FIELD_ADVICE, ArrayValue.builder().addAll(advice).build()).put(FIELD_RESOURCE, resource).build();
     }
 
     /**

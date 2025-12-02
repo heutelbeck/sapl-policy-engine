@@ -58,7 +58,7 @@ class SingleDocumentPolicyDecisionPointTests {
 
         StepVerifier.create(pdp.decide(subscription)).expectNextMatches(decision -> {
             return decision.decision() == Decision.PERMIT && decision.obligations().isEmpty()
-                    && decision.advice().isEmpty() && decision.resource() == Value.UNDEFINED;
+                    && decision.advice().isEmpty() && Value.UNDEFINED.equals(decision.resource());
         }).verifyComplete();
     }
 

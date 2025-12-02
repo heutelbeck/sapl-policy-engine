@@ -20,6 +20,7 @@ package io.sapl.api.model;
 import io.sapl.api.SaplVersion;
 import io.sapl.api.pdp.internal.AttributeRecord;
 import lombok.NonNull;
+import lombok.val;
 
 import java.io.Serial;
 import java.io.Serializable;
@@ -116,20 +117,27 @@ public record ValueMetadata(boolean secret, @NonNull List<AttributeRecord> attri
         return result;
     }
 
-    /**
-     * Merges metadata from a collection of sources.
-     *
-     * @param sources the metadata instances to merge
-     * @return merged metadata
-     */
-    public static ValueMetadata merge(Collection<ValueMetadata> sources) {
+    public static ValueMetadata merge(Collection<Value> sources) {
         if (sources.isEmpty()) {
             return EMPTY;
         }
-        var iterator = sources.iterator();
-        var result   = iterator.next();
-        while (iterator.hasNext()) {
-            result = result.merge(iterator.next());
+        var result = EMPTY;
+        for (val s : sources) {
+            result = result.merge(s.metadata());
+        }
+        return result;
+    }
+
+    public static ValueMetadata merge(Value... sources) {
+        if (sources.length == 0) {
+            return EMPTY;
+        }
+        if (sources.length == 1) {
+            return sources[0].metadata();
+        }
+        var result = sources[0].metadata();
+        for (int i = 1; i < sources.length; i++) {
+            result = result.merge(sources[i].metadata());
         }
         return result;
     }

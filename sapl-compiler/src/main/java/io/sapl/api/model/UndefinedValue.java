@@ -18,6 +18,7 @@
 package io.sapl.api.model;
 
 import io.sapl.api.SaplVersion;
+import lombok.NonNull;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.Serial;
@@ -25,7 +26,7 @@ import java.io.Serial;
 /**
  * Undefined value implementation.
  */
-public record UndefinedValue(boolean secret) implements Value {
+public record UndefinedValue(@NonNull ValueMetadata metadata) implements Value {
 
     @Serial
     private static final long serialVersionUID = SaplVersion.VERSION_UID;
@@ -33,16 +34,16 @@ public record UndefinedValue(boolean secret) implements Value {
     /**
      * Singleton for secret undefined value.
      */
-    public static final Value SECRET_UNDEFINED = new UndefinedValue(true);
+    public static final Value SECRET_UNDEFINED = new UndefinedValue(ValueMetadata.SECRET_EMPTY);
 
     @Override
-    public Value asSecret() {
-        return SECRET_UNDEFINED;
+    public Value withMetadata(ValueMetadata newMetadata) {
+        return new UndefinedValue(newMetadata);
     }
 
     @Override
     public @NotNull String toString() {
-        return secret ? SECRET_PLACEHOLDER : "undefined";
+        return isSecret() ? SECRET_PLACEHOLDER : "undefined";
     }
 
     @Override

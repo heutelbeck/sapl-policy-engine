@@ -17,14 +17,17 @@
  */
 package io.sapl.api.model;
 
+import io.sapl.api.attributes.AttributeFinderInvocation;
 import io.sapl.api.pdp.internal.AttributeRecord;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -32,13 +35,25 @@ import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 class ValueMetadataTests {
 
-    static final AttributeRecord SUBJECT_ROLE = new AttributeRecord("subject.role", Value.UNDEFINED, List.of(),
-            Value.of("admin"), Instant.now(), null);
+    static final AttributeFinderInvocation SUBJECT_ROLE_INVOCATION = new AttributeFinderInvocation("test-config",
+            "subject.role", List.of(), Map.of(), Duration.ofSeconds(5), Duration.ofSeconds(1), Duration.ofMillis(100),
+            3, false);
 
-    static final AttributeRecord RESOURCE_OWNER = new AttributeRecord("resource.owner", Value.UNDEFINED, List.of(),
-            Value.of("alice"), Instant.now(), null);
+    static final AttributeFinderInvocation RESOURCE_OWNER_INVOCATION = new AttributeFinderInvocation("test-config",
+            "resource.owner", List.of(), Map.of(), Duration.ofSeconds(5), Duration.ofSeconds(1), Duration.ofMillis(100),
+            3, false);
 
-    static final AttributeRecord ENVIRONMENT_TIME = new AttributeRecord("environment.time", Value.UNDEFINED, List.of(),
+    static final AttributeFinderInvocation ENVIRONMENT_TIME_INVOCATION = new AttributeFinderInvocation("test-config",
+            "environment.time", List.of(), Map.of(), Duration.ofSeconds(5), Duration.ofSeconds(1),
+            Duration.ofMillis(100), 3, false);
+
+    static final AttributeRecord SUBJECT_ROLE = new AttributeRecord(SUBJECT_ROLE_INVOCATION, Value.of("admin"),
+            Instant.now(), null);
+
+    static final AttributeRecord RESOURCE_OWNER = new AttributeRecord(RESOURCE_OWNER_INVOCATION, Value.of("alice"),
+            Instant.now(), null);
+
+    static final AttributeRecord ENVIRONMENT_TIME = new AttributeRecord(ENVIRONMENT_TIME_INVOCATION,
             Value.of("2025-01-01"), Instant.now(), null);
 
     @Test
@@ -197,20 +212,23 @@ class ValueMetadataTests {
     }
 
     @Test
-    void mergeCollectionEmptyReturnsEmpty() {
-        assertThat(ValueMetadata.merge(List.of())).isSameAs(ValueMetadata.EMPTY);
+    void mergeValueCollectionEmptyReturnsEmpty() {
+        assertThat(ValueMetadata.merge(List.<Value>of())).isSameAs(ValueMetadata.EMPTY);
     }
 
     @Test
-    void mergeCollectionSingleReturnsElement() {
-        var single = ValueMetadata.ofAttribute(SUBJECT_ROLE);
-        assertThat(ValueMetadata.merge(List.of(single))).isSameAs(single);
+    void mergeValueCollectionSingleReturnsMetadataOfElement() {
+        var value  = Value.of("test").withMetadata(ValueMetadata.ofAttribute(SUBJECT_ROLE));
+        var result = ValueMetadata.merge(List.of(value));
+
+        assertThat(result.secret()).isFalse();
+        assertThat(result.attributeTrace()).containsExactly(SUBJECT_ROLE);
     }
 
     @Test
-    void mergeCollectionCombinesMultiple() {
-        var first  = ValueMetadata.ofAttribute(SUBJECT_ROLE);
-        var second = ValueMetadata.ofSecretAttribute(RESOURCE_OWNER);
+    void mergeValueCollectionCombinesMetadataFromAllElements() {
+        var first  = Value.of("a").withMetadata(ValueMetadata.ofAttribute(SUBJECT_ROLE));
+        var second = Value.of("b").withMetadata(ValueMetadata.ofSecretAttribute(RESOURCE_OWNER));
         var result = ValueMetadata.merge(List.of(first, second));
 
         assertThat(result.secret()).isTrue();

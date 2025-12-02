@@ -170,6 +170,13 @@
             <artifactId>spring-boot-starter-webflux</artifactId>
             <scope>test</scope>
         </dependency>
+        <!-- Old PDP for benchmark comparison -->
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>sapl-pdp-embedded</artifactId>
+            <version>${project.version}</version>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
     <build>
         <resources>

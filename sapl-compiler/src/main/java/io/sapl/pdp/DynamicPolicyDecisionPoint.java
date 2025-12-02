@@ -19,6 +19,9 @@ package io.sapl.pdp;
 
 import io.sapl.api.model.CompiledExpression;
 import io.sapl.api.model.EvaluationContext;
+import io.sapl.api.model.PureExpression;
+import io.sapl.api.model.StreamExpression;
+import io.sapl.api.model.Value;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.TracedPolicyDecisionPoint;
@@ -70,6 +73,142 @@ public class DynamicPolicyDecisionPoint implements TracedPolicyDecisionPoint {
     @Override
     public Flux<AuthorizationDecision> decide(AuthorizationSubscription authorizationSubscription) {
         return decideTraced(authorizationSubscription).map(TracedDecision::authorizationDecision);
+    }
+
+    /**
+     * Synchronous authorization decision for high-throughput scenarios.
+     * <p>
+     * This method bypasses Reactor's subscription overhead by reading the
+     * configuration
+     * directly from a lock-free cache. For pure policies (no attribute streams),
+     * the
+     * entire evaluation is synchronous. For policies with attribute access, it
+     * falls
+     * back to blocking on the attribute streams while still avoiding configuration
+     * subscription overhead.
+     * <p>
+     * Use this method when:
+     * <ul>
+     * <li>Making many one-shot authorization decisions</li>
+     * <li>Configuration changes are rare</li>
+     * <li>You need maximum throughput rather than reactive updates</li>
+     * </ul>
+     *
+     * @param authorizationSubscription
+     * the authorization subscription to evaluate
+     *
+     * @return the authorization decision
+     */
+    public AuthorizationDecision decidePure(AuthorizationSubscription authorizationSubscription) {
+        return decidePure(authorizationSubscription, "default");
+    }
+
+    /**
+     * Synchronous authorization decision for a specific PDP configuration.
+     *
+     * @param authorizationSubscription
+     * the authorization subscription to evaluate
+     * @param pdpId
+     * the PDP identifier for configuration lookup
+     *
+     * @return the authorization decision
+     */
+    public AuthorizationDecision decidePure(AuthorizationSubscription authorizationSubscription, String pdpId) {
+        val configOpt = pdpConfigurationSource.getCurrentConfiguration(pdpId);
+        if (configOpt.isEmpty()) {
+            return AuthorizationDecision.INDETERMINATE;
+        }
+        return evaluatePure(authorizationSubscription, configOpt.get());
+    }
+
+    /**
+     * Minimal overhead decision path for benchmarking - skips subscription ID
+     * generation.
+     * <p>
+     * This method is intended for performance testing to isolate the cost of
+     * UUID generation. It uses a static subscription ID which means tracing
+     * will not work correctly. Do not use in production.
+     *
+     * @param authorizationSubscription
+     * the authorization subscription to evaluate
+     *
+     * @return the authorization decision
+     */
+    public AuthorizationDecision decidePureMinimal(AuthorizationSubscription authorizationSubscription) {
+        val configOpt = pdpConfigurationSource.getCurrentConfiguration("default");
+        if (configOpt.isEmpty()) {
+            return AuthorizationDecision.INDETERMINATE;
+        }
+        return evaluatePureMinimal(authorizationSubscription, configOpt.get());
+    }
+
+    private AuthorizationDecision evaluatePureMinimal(AuthorizationSubscription authorizationSubscription,
+            CompiledPDPConfiguration config) {
+        // Static subscription ID - avoids UUID.randomUUID() contention
+        val evaluationContext = EvaluationContext.of(config.pdpId(), config.configurationId(), "benchmark",
+                authorizationSubscription, config.variables(), config.functionBroker(), config.attributeBroker());
+        val retrievalResult   = config.policyRetrievalPoint().getMatchingDocuments(authorizationSubscription,
+                evaluationContext);
+
+        if (retrievalResult instanceof RetrievalError) {
+            return AuthorizationDecision.INDETERMINATE;
+        }
+
+        val policies     = ((MatchingDocuments) retrievalResult).matches();
+        val combinedExpr = getCombinedExpression(config.combiningAlgorithm(), policies);
+
+        if (combinedExpr instanceof Value value) {
+            return AuthorizationDecision.of(value);
+        }
+        if (combinedExpr instanceof PureExpression pureExpr) {
+            return AuthorizationDecision.of(pureExpr.evaluate(evaluationContext));
+        }
+        if (combinedExpr instanceof StreamExpression stream) {
+            return stream.stream().contextWrite(ctx -> ctx.put(EvaluationContext.class, evaluationContext))
+                    .map(AuthorizationDecision::of).blockFirst();
+        }
+        return AuthorizationDecision.INDETERMINATE;
+    }
+
+    private AuthorizationDecision evaluatePure(AuthorizationSubscription authorizationSubscription,
+            CompiledPDPConfiguration config) {
+        val subscriptionId    = idFactory.newRandom();
+        val evaluationContext = evaluationContext(authorizationSubscription, config, subscriptionId);
+        val retrievalResult   = config.policyRetrievalPoint().getMatchingDocuments(authorizationSubscription,
+                evaluationContext);
+
+        if (retrievalResult instanceof RetrievalError) {
+            return AuthorizationDecision.INDETERMINATE;
+        }
+
+        val policies     = ((MatchingDocuments) retrievalResult).matches();
+        val combinedExpr = getCombinedExpression(config.combiningAlgorithm(), policies);
+
+        // Value extends CompiledExpression, so check more specific types first
+        if (combinedExpr instanceof Value value) {
+            return AuthorizationDecision.of(value);
+        }
+        if (combinedExpr instanceof PureExpression pureExpr) {
+            return AuthorizationDecision.of(pureExpr.evaluate(evaluationContext));
+        }
+        if (combinedExpr instanceof StreamExpression stream) {
+            // Fallback for policies with attribute access - minimal reactive overhead
+            // Still faster than full reactive path (no configuration sink subscription)
+            return stream.stream().contextWrite(ctx -> ctx.put(EvaluationContext.class, evaluationContext))
+                    .map(AuthorizationDecision::of).blockFirst();
+        }
+        return AuthorizationDecision.INDETERMINATE;
+    }
+
+    private CompiledExpression getCombinedExpression(io.sapl.api.pdp.CombiningAlgorithm algorithm,
+            List<CompiledPolicy> policies) {
+        return switch (algorithm) {
+        case DENY_OVERRIDES      -> CombiningAlgorithmCompiler.denyOverridesPreMatched(policies);
+        case PERMIT_OVERRIDES    -> CombiningAlgorithmCompiler.permitOverridesPreMatched(policies);
+        case DENY_UNLESS_PERMIT  -> CombiningAlgorithmCompiler.denyUnlessPermitPreMatched(policies);
+        case PERMIT_UNLESS_DENY  -> CombiningAlgorithmCompiler.permitUnlessDenyPreMatched(policies);
+        case ONLY_ONE_APPLICABLE -> CombiningAlgorithmCompiler.onlyOneApplicablePreMatched(policies);
+        };
     }
 
     private Flux<TracedDecision> decide(AuthorizationSubscription authorizationSubscription,
