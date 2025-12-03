@@ -37,6 +37,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.LongAdder;
 
 /**
@@ -68,6 +69,13 @@ public final class EmbeddedPdpBenchmark {
 
     private static final ThreadLocal<Object> BLACKHOLE = new ThreadLocal<>();
     private static final ObjectMapper        MAPPER    = new ObjectMapper();
+
+    private static final String[] ROLES           = { "admin", "manager", "engineer", "employee", "contractor" };
+    private static final String[] DEPARTMENTS     = { "engineering", "finance", "operations", "hr" };
+    private static final String[] ACTIONS         = { "read", "write", "update", "delete", "export", "execute" };
+    private static final String[] RESOURCE_TYPES  = { "document", "dataset", "code", "image", "internal_doc" };
+    private static final String[] CLASSIFICATIONS = { "public", "internal", "confidential", "top_secret" };
+    private static final String[] CLEARANCES      = { "none", "confidential", "secret", "top_secret" };
 
     /**
      * Multiple policies simulating a realistic policy set for an enterprise
@@ -227,8 +235,12 @@ public final class EmbeddedPdpBenchmark {
                     counter.increment();
                 }).take(1)).sequential().doOnComplete(latch::countDown).subscribe();
 
-        latch.await(Duration.ofMinutes(10).toMillis(), TimeUnit.MILLISECONDS);
-        var elapsed = System.nanoTime() - start;
+        var completed = latch.await(Duration.ofMinutes(10).toMillis(), TimeUnit.MILLISECONDS);
+        var elapsed   = System.nanoTime() - start;
+
+        if (!completed) {
+            System.err.println("Warning: Reactor parallel benchmark timed out.");
+        }
 
         printThroughput("Reactor parallel", counter.sum(), elapsed);
     }
@@ -382,9 +394,8 @@ public final class EmbeddedPdpBenchmark {
             }
 
             var executor     = Executors.newFixedThreadPool(concurrency);
-            var allLatencies = new ArrayList<Long>(samplesPerLevel);
+            var allLatencies = new ConcurrentLinkedQueue<Long>();
             var latch        = new CountDownLatch(samplesPerLevel);
-            var latencyLock  = new Object();
 
             for (int i = 0; i < samplesPerLevel; i++) {
                 var idx = i;
@@ -392,17 +403,18 @@ public final class EmbeddedPdpBenchmark {
                     var start = System.nanoTime();
                     BLACKHOLE.set(pdp.decide(subscriptions[idx % subscriptions.length]).blockFirst());
                     var latency = System.nanoTime() - start;
-
-                    synchronized (latencyLock) {
-                        allLatencies.add(latency);
-                    }
+                    allLatencies.add(latency);
                     latch.countDown();
                 });
             }
 
-            latch.await(5, TimeUnit.MINUTES);
+            var completed = latch.await(5, TimeUnit.MINUTES);
             executor.shutdown();
             executor.awaitTermination(1, TimeUnit.MINUTES);
+
+            if (!completed) {
+                System.err.printf("Warning: Latency benchmark at concurrency %d timed out.%n", concurrency);
+            }
 
             var sorted = allLatencies.stream().mapToLong(Long::longValue).sorted().toArray();
 
@@ -419,53 +431,15 @@ public final class EmbeddedPdpBenchmark {
     }
 
     private AuthorizationSubscription createSubscription(int seed) {
-        var random = ThreadLocalRandom.current();
+        var random  = ThreadLocalRandom.current();
+        var absSeed = Math.abs(seed);
 
-        var role = switch (Math.abs(seed) % 5) {
-        case 0  -> "admin";
-        case 1  -> "manager";
-        case 2  -> "engineer";
-        case 3  -> "employee";
-        default -> "contractor";
-        };
-
-        var department = switch (Math.abs(seed) % 4) {
-        case 0  -> "engineering";
-        case 1  -> "finance";
-        case 2  -> "operations";
-        default -> "hr";
-        };
-
-        var action = switch (Math.abs(seed) % 6) {
-        case 0  -> "read";
-        case 1  -> "write";
-        case 2  -> "update";
-        case 3  -> "delete";
-        case 4  -> "export";
-        default -> "execute";
-        };
-
-        var resourceType = switch (Math.abs(seed) % 5) {
-        case 0  -> "document";
-        case 1  -> "dataset";
-        case 2  -> "code";
-        case 3  -> "image";
-        default -> "internal_doc";
-        };
-
-        var classification = switch (Math.abs(seed) % 4) {
-        case 0  -> "public";
-        case 1  -> "internal";
-        case 2  -> "confidential";
-        default -> "top_secret";
-        };
-
-        var clearance = switch (Math.abs(seed) % 4) {
-        case 0  -> "none";
-        case 1  -> "confidential";
-        case 2  -> "secret";
-        default -> "top_secret";
-        };
+        var role           = ROLES[absSeed % ROLES.length];
+        var department     = DEPARTMENTS[absSeed % DEPARTMENTS.length];
+        var action         = ACTIONS[absSeed % ACTIONS.length];
+        var resourceType   = RESOURCE_TYPES[absSeed % RESOURCE_TYPES.length];
+        var classification = CLASSIFICATIONS[absSeed % CLASSIFICATIONS.length];
+        var clearance      = CLEARANCES[absSeed % CLEARANCES.length];
 
         var subjectJson = """
                 {
@@ -476,7 +450,7 @@ public final class EmbeddedPdpBenchmark {
                     "clearanceLevel": "%s",
                     "collaborationEnabled": %s
                 }
-                """.formatted(Math.abs(seed), role, department, 18 + Math.abs(seed % 50), clearance, seed % 3 == 0);
+                """.formatted(absSeed, role, department, 18 + absSeed % 50, clearance, seed % 3 == 0);
 
         var resourceDept = seed % 2 == 0 ? department : "other_dept";
         var resourceJson = """

@@ -19,10 +19,15 @@ package io.sapl.documentation;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 import java.util.Map;
+import java.util.stream.Stream;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import io.sapl.api.documentation.EntryType;
 import io.sapl.api.documentation.LibraryType;
@@ -79,70 +84,34 @@ class LibraryDocumentationExtractorTests {
                 .hasMessageContaining("not annotated with @PolicyInformationPoint");
     }
 
+    @ParameterizedTest
+    @MethodSource("parameterTypeDerivationCases")
+    void whenExtractingFunctionParameter_thenTypeIsDerivedFromValueClass(String functionName, String expectedType) {
+        val documentation = LibraryDocumentationExtractor.extractFunctionLibrary(TestFunctionLibrary.class);
+        val entry         = documentation.findEntry(functionName);
+
+        assertThat(entry).isNotNull();
+        assertThat(entry.parameters()).hasSize(1);
+        assertThat(entry.parameters().getFirst().allowedTypes()).containsExactly(expectedType);
+    }
+
+    static Stream<Arguments> parameterTypeDerivationCases() {
+        return Stream.of(arguments("textFunction", "Text"), arguments("numberFunction", "Number"),
+                arguments("boolFunction", "Bool"), arguments("arrayFunction", "Array"),
+                arguments("objectFunction", "Object"), arguments("genericFunction", "Value"));
+    }
+
     @Test
-    void whenExtractingFunctionWithTextValueParameter_thenTextTypeIsDerived() {
-        val documentation = LibraryDocumentationExtractor.extractFunctionLibrary(TypedParameterLibrary.class);
+    void whenExtractingFunctionWithNamedParameter_thenParameterNameIsExtracted() {
+        val documentation = LibraryDocumentationExtractor.extractFunctionLibrary(TestFunctionLibrary.class);
         val entry         = documentation.findEntry("textFunction");
 
-        assertThat(entry).isNotNull();
-        assertThat(entry.parameters()).hasSize(1);
         assertThat(entry.parameters().getFirst().name()).isEqualTo("incantation");
-        assertThat(entry.parameters().getFirst().allowedTypes()).containsExactly("Text");
-    }
-
-    @Test
-    void whenExtractingFunctionWithNumberValueParameter_thenNumberTypeIsDerived() {
-        val documentation = LibraryDocumentationExtractor.extractFunctionLibrary(TypedParameterLibrary.class);
-        val entry         = documentation.findEntry("numberFunction");
-
-        assertThat(entry).isNotNull();
-        assertThat(entry.parameters()).hasSize(1);
-        assertThat(entry.parameters().getFirst().allowedTypes()).containsExactly("Number");
-    }
-
-    @Test
-    void whenExtractingFunctionWithBooleanValueParameter_thenBoolTypeIsDerived() {
-        val documentation = LibraryDocumentationExtractor.extractFunctionLibrary(TypedParameterLibrary.class);
-        val entry         = documentation.findEntry("boolFunction");
-
-        assertThat(entry).isNotNull();
-        assertThat(entry.parameters()).hasSize(1);
-        assertThat(entry.parameters().getFirst().allowedTypes()).containsExactly("Bool");
-    }
-
-    @Test
-    void whenExtractingFunctionWithArrayValueParameter_thenArrayTypeIsDerived() {
-        val documentation = LibraryDocumentationExtractor.extractFunctionLibrary(TypedParameterLibrary.class);
-        val entry         = documentation.findEntry("arrayFunction");
-
-        assertThat(entry).isNotNull();
-        assertThat(entry.parameters()).hasSize(1);
-        assertThat(entry.parameters().getFirst().allowedTypes()).containsExactly("Array");
-    }
-
-    @Test
-    void whenExtractingFunctionWithObjectValueParameter_thenObjectTypeIsDerived() {
-        val documentation = LibraryDocumentationExtractor.extractFunctionLibrary(TypedParameterLibrary.class);
-        val entry         = documentation.findEntry("objectFunction");
-
-        assertThat(entry).isNotNull();
-        assertThat(entry.parameters()).hasSize(1);
-        assertThat(entry.parameters().getFirst().allowedTypes()).containsExactly("Object");
-    }
-
-    @Test
-    void whenExtractingFunctionWithGenericValueParameter_thenValueTypeIsDerived() {
-        val documentation = LibraryDocumentationExtractor.extractFunctionLibrary(TypedParameterLibrary.class);
-        val entry         = documentation.findEntry("genericFunction");
-
-        assertThat(entry).isNotNull();
-        assertThat(entry.parameters()).hasSize(1);
-        assertThat(entry.parameters().getFirst().allowedTypes()).containsExactly("Value");
     }
 
     @Test
     void whenExtractingFunctionWithMixedParameters_thenEachTypeIsDerived() {
-        val documentation = LibraryDocumentationExtractor.extractFunctionLibrary(TypedParameterLibrary.class);
+        val documentation = LibraryDocumentationExtractor.extractFunctionLibrary(TestFunctionLibrary.class);
         val entry         = documentation.findEntry("mixedFunction");
 
         assertThat(entry).isNotNull();
@@ -152,26 +121,21 @@ class LibraryDocumentationExtractorTests {
         assertThat(entry.parameters().get(2).allowedTypes()).containsExactly("Bool");
     }
 
-    @Test
-    void whenExtractingFunctionWithVarArgs_thenVarArgsIsDetectedAndTypeIsDerived() {
-        val documentation = LibraryDocumentationExtractor.extractFunctionLibrary(VarArgsLibrary.class);
-        val entry         = documentation.findEntry("varArgsFunction");
+    @ParameterizedTest
+    @MethodSource("varArgsCases")
+    void whenExtractingFunctionWithVarArgs_thenVarArgsIsDetectedAndTypeIsDerived(String functionName,
+            String expectedType) {
+        val documentation = LibraryDocumentationExtractor.extractFunctionLibrary(TestFunctionLibrary.class);
+        val entry         = documentation.findEntry(functionName);
 
         assertThat(entry).isNotNull();
         assertThat(entry.parameters()).hasSize(1);
         assertThat(entry.parameters().getFirst().varArgs()).isTrue();
-        assertThat(entry.parameters().getFirst().allowedTypes()).containsExactly("Text");
+        assertThat(entry.parameters().getFirst().allowedTypes()).containsExactly(expectedType);
     }
 
-    @Test
-    void whenExtractingFunctionWithGenericVarArgs_thenValueTypeIsDerived() {
-        val documentation = LibraryDocumentationExtractor.extractFunctionLibrary(VarArgsLibrary.class);
-        val entry         = documentation.findEntry("genericVarArgsFunction");
-
-        assertThat(entry).isNotNull();
-        assertThat(entry.parameters()).hasSize(1);
-        assertThat(entry.parameters().getFirst().varArgs()).isTrue();
-        assertThat(entry.parameters().getFirst().allowedTypes()).containsExactly("Value");
+    static Stream<Arguments> varArgsCases() {
+        return Stream.of(arguments("typedVarArgs", "Text"), arguments("genericVarArgs", "Value"));
     }
 
     @Test
@@ -226,11 +190,11 @@ class LibraryDocumentationExtractorTests {
     }
 
     @Test
-    void whenGeneratingCodeTemplate_thenTemplateIsCorrect() {
-        val documentation = LibraryDocumentationExtractor.extractFunctionLibrary(TypedParameterLibrary.class);
+    void whenGeneratingFunctionCodeTemplate_thenTemplateIsCorrect() {
+        val documentation = LibraryDocumentationExtractor.extractFunctionLibrary(TestFunctionLibrary.class);
         val entry         = documentation.findEntry("mixedFunction");
 
-        assertThat(entry.codeTemplate("typed")).isEqualTo("typed.mixedFunction(name, power, isActive)");
+        assertThat(entry.codeTemplate("test")).isEqualTo("test.mixedFunction(name, power, isActive)");
     }
 
     @Test
@@ -251,22 +215,20 @@ class LibraryDocumentationExtractorTests {
     @Test
     void whenExtractingFunctionWithDefaultName_thenMethodNameIsUsed() {
         val documentation = LibraryDocumentationExtractor.extractFunctionLibrary(DefaultNameLibrary.class);
-        val entry         = documentation.findEntry("defaultNameFunction");
 
-        assertThat(entry).isNotNull();
+        assertThat(documentation.findEntry("defaultNameFunction")).isNotNull();
     }
 
     @Test
     void whenExtractingFunctionWithCustomName_thenCustomNameIsUsed() {
-        val documentation = LibraryDocumentationExtractor.extractFunctionLibrary(TypedParameterLibrary.class);
-        val entry         = documentation.findEntry("chant");
+        val documentation = LibraryDocumentationExtractor.extractFunctionLibrary(TestFunctionLibrary.class);
 
-        assertThat(entry).isNotNull();
+        assertThat(documentation.findEntry("chant")).isNotNull();
     }
 
     @Test
     void whenExtractingFunctionWithSchema_thenSchemaIsIncluded() {
-        val documentation = LibraryDocumentationExtractor.extractFunctionLibrary(SchemaLibrary.class);
+        val documentation = LibraryDocumentationExtractor.extractFunctionLibrary(TestFunctionLibrary.class);
         val entry         = documentation.findEntry("schemaFunction");
 
         assertThat(entry).isNotNull();
@@ -275,61 +237,62 @@ class LibraryDocumentationExtractorTests {
 
     // Test fixtures
 
-    @FunctionLibrary(name = "typed", description = "Library with typed parameters")
-    static class TypedParameterLibrary {
+    @FunctionLibrary(name = "test", description = "Test function library")
+    static class TestFunctionLibrary {
 
-        @Function(docs = "Summons text from the void")
+        @Function(docs = "Text parameter function")
         public static TextValue textFunction(TextValue incantation) {
-            return incantation;
+            throw new UnsupportedOperationException();
         }
 
-        @Function(docs = "Calculates tentacle count")
+        @Function(docs = "Number parameter function")
         public static NumberValue numberFunction(NumberValue count) {
-            return count;
+            throw new UnsupportedOperationException();
         }
 
-        @Function(docs = "Checks portal status")
+        @Function(docs = "Boolean parameter function")
         public static BooleanValue boolFunction(BooleanValue isOpen) {
-            return isOpen;
+            throw new UnsupportedOperationException();
         }
 
-        @Function(docs = "Lists elder signs")
+        @Function(docs = "Array parameter function")
         public static ArrayValue arrayFunction(ArrayValue signs) {
-            return signs;
+            throw new UnsupportedOperationException();
         }
 
-        @Function(docs = "Retrieves tome metadata")
+        @Function(docs = "Object parameter function")
         public static ObjectValue objectFunction(ObjectValue metadata) {
-            return metadata;
+            throw new UnsupportedOperationException();
         }
 
-        @Function(docs = "Accepts any offering")
+        @Function(docs = "Generic parameter function")
         public static Value genericFunction(Value offering) {
-            return offering;
+            throw new UnsupportedOperationException();
         }
 
-        @Function(docs = "Combines multiple elements")
+        @Function(docs = "Mixed parameter function")
         public static Value mixedFunction(TextValue name, NumberValue power, BooleanValue isActive) {
-            return name;
+            throw new UnsupportedOperationException();
         }
 
-        @Function(name = "chant", docs = "Performs ritual chant")
+        @Function(name = "chant", docs = "Custom named function")
         public static TextValue ritualChant(TextValue... components) {
-            return components[0];
-        }
-    }
-
-    @FunctionLibrary(name = "varargs", description = "Library with varargs")
-    static class VarArgsLibrary {
-
-        @Function(docs = "A function with typed varargs")
-        public static TextValue varArgsFunction(TextValue... incantations) {
-            return incantations[0];
+            throw new UnsupportedOperationException();
         }
 
-        @Function(docs = "A function with generic varargs")
-        public static Value genericVarArgsFunction(Value... offerings) {
-            return offerings[0];
+        @Function(docs = "Typed varargs function")
+        public static TextValue typedVarArgs(TextValue... incantations) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Function(docs = "Generic varargs function")
+        public static Value genericVarArgs(Value... offerings) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Function(docs = "Function with schema", schema = "{\"type\":\"string\"}")
+        public static Value schemaFunction() {
+            throw new UnsupportedOperationException();
         }
     }
 
@@ -362,16 +325,7 @@ class LibraryDocumentationExtractorTests {
 
         @Function
         public static Value defaultNameFunction() {
-            return Value.UNDEFINED;
-        }
-    }
-
-    @FunctionLibrary(name = "schema", description = "Library with schema")
-    static class SchemaLibrary {
-
-        @Function(docs = "Function with schema", schema = "{\"type\":\"string\"}")
-        public static Value schemaFunction() {
-            return Value.UNDEFINED;
+            throw new UnsupportedOperationException();
         }
     }
 

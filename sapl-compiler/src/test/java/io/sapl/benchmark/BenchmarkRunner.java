@@ -169,12 +169,12 @@ public final class BenchmarkRunner {
         report.append("|----------|-------|\n");
         report.append("| Java Version | ").append(System.getProperty("java.version")).append(" |\n");
         report.append("| Java Vendor | ").append(System.getProperty("java.vendor")).append(" |\n");
-        report.append("| OS | ").append(System.getProperty("os.name")).append(" ")
+        report.append("| OS | ").append(System.getProperty("os.name")).append(' ')
                 .append(System.getProperty("os.version")).append(" |\n");
         report.append("| Architecture | ").append(System.getProperty("os.arch")).append(" |\n");
         report.append("| CPU Cores | ").append(Runtime.getRuntime().availableProcessors()).append(" |\n");
         report.append("| Max Heap | ").append(formatBytes(Runtime.getRuntime().maxMemory())).append(" |\n");
-        report.append("\n");
+        report.append('\n');
     }
 
     private void appendBenchmarkConfig(StringBuilder report) {
@@ -187,7 +187,7 @@ public final class BenchmarkRunner {
                 .append("s |\n");
         report.append("| Measurement | ").append(profile.measurementIterations).append(" x ")
                 .append(profile.measurementSeconds).append("s |\n");
-        report.append("\n");
+        report.append('\n');
     }
 
     private void appendResultsSummary(StringBuilder report, Collection<RunResult> results) {
@@ -208,10 +208,10 @@ public final class BenchmarkRunner {
 
         if (best != null) {
             report.append("**Best Configuration:**\n");
-            report.append("- Benchmark: ").append(extractMethodName(best)).append("\n");
-            report.append("- Path: ").append(best.getParams().getParam("evaluationPath")).append("\n");
-            report.append("- Policies: ").append(best.getParams().getParam("policyCount")).append("\n");
-            report.append("- Algorithm: ").append(best.getParams().getParam("combiningAlgorithm")).append("\n");
+            report.append("- Benchmark: ").append(extractMethodName(best)).append('\n');
+            report.append("- Path: ").append(best.getParams().getParam("evaluationPath")).append('\n');
+            report.append("- Policies: ").append(best.getParams().getParam("policyCount")).append('\n');
+            report.append("- Algorithm: ").append(best.getParams().getParam("combiningAlgorithm")).append('\n');
             report.append("- Throughput: ").append(formatNumber(best.getPrimaryResult().getScore()))
                     .append(" ops/sec\n\n");
         }
@@ -238,7 +238,7 @@ public final class BenchmarkRunner {
                 }
             }
         }
-        report.append("\n");
+        report.append('\n');
     }
 
     private void appendDetailedResults(StringBuilder report, Collection<RunResult> results) {
@@ -254,8 +254,8 @@ public final class BenchmarkRunner {
             report.append("| Threads | Policies | Algorithm | Throughput | Error |\n");
             report.append("|---------|----------|-----------|------------|-------|\n");
 
-            var sorted = entry.getValue().stream().sorted(Comparator.comparing(this::extractThreadCount)
-                    .thenComparing(r -> Integer.parseInt(r.getParams().getParam("policyCount")))).toList();
+            var sorted = entry.getValue().stream().sorted(Comparator.comparingInt(this::extractThreadCount)
+                    .thenComparingInt(r -> Integer.parseInt(r.getParams().getParam("policyCount")))).toList();
 
             for (var result : sorted) {
                 var threads   = extractThreadCount(result);
@@ -268,7 +268,7 @@ public final class BenchmarkRunner {
                         .append(" | ").append(formatNumber(score)).append(" | +/- ").append(formatNumber(error))
                         .append(" |\n");
             }
-            report.append("\n");
+            report.append('\n');
         }
     }
 
@@ -309,7 +309,7 @@ public final class BenchmarkRunner {
             report.append("| ").append(threads).append(" | ").append(formatNumber(reactive)).append(" | ")
                     .append(formatNumber(pure)).append(" | ").append(String.format("%.2fx", speedup)).append(" |\n");
         }
-        report.append("\n");
+        report.append('\n');
     }
 
     private void appendLatencyAnalysis(StringBuilder report, Collection<RunResult> results) {
@@ -344,7 +344,7 @@ public final class BenchmarkRunner {
                     .append(" | ").append(String.format("%.1f", p99)).append(" | ").append(String.format("%.1f", p999))
                     .append(" |\n");
         }
-        report.append("\n");
+        report.append('\n');
     }
 
     private String extractMethodName(RunResult result) {

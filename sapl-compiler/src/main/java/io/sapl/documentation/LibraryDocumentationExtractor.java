@@ -55,8 +55,9 @@ import java.util.Map;
 @UtilityClass
 public class LibraryDocumentationExtractor {
 
+    public static final String                 VALUE      = "Value";
     private static final Map<Class<?>, String> TYPE_NAMES = Map.of(TextValue.class, "Text", NumberValue.class, "Number",
-            BooleanValue.class, "Bool", ArrayValue.class, "Array", ObjectValue.class, "Object", Value.class, "Value");
+            BooleanValue.class, "Bool", ArrayValue.class, "Array", ObjectValue.class, "Object", Value.class, VALUE);
 
     /**
      * Extracts documentation from a function library class.
@@ -114,7 +115,7 @@ public class LibraryDocumentationExtractor {
         for (Method method : pipClass.getDeclaredMethods()) {
             val attributeAnnotation = method.getAnnotation(Attribute.class);
             if (attributeAnnotation != null) {
-                entries.add(extractAttributeEntry(method, attributeAnnotation, false));
+                entries.add(extractAttributeEntry(method, attributeAnnotation));
                 continue;
             }
 
@@ -136,11 +137,10 @@ public class LibraryDocumentationExtractor {
         return new EntryDocumentation(EntryType.FUNCTION, name, annotation.docs(), schema, parameters);
     }
 
-    private static EntryDocumentation extractAttributeEntry(Method method, Attribute annotation,
-            boolean isEnvironment) {
+    private static EntryDocumentation extractAttributeEntry(Method method, Attribute annotation) {
         val name       = annotation.name().isEmpty() ? method.getName() : annotation.name();
         val schema     = loadSchema(method, annotation.schema(), annotation.pathToSchema());
-        val startIndex = determineParameterStartIndex(method, isEnvironment);
+        val startIndex = determineParameterStartIndex(method, false);
         val parameters = extractParameters(method.getParameters(), startIndex);
 
         return new EntryDocumentation(EntryType.ATTRIBUTE, name, annotation.docs(), schema, parameters);
@@ -164,9 +164,9 @@ public class LibraryDocumentationExtractor {
         int index = 0;
 
         // Entity parameter for non-environment attributes
-        if (!isEnvironmentAttribute && parameters.length > 0) {
+        if (!isEnvironmentAttribute) {
             val firstType = parameters[0].getType().getSimpleName();
-            if ("Value".equals(firstType) || firstType.endsWith("Value")) {
+            if (VALUE.equals(firstType) || firstType.endsWith(VALUE)) {
                 index++;
             }
         }
