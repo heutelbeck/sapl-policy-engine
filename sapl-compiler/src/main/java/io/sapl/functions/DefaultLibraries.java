@@ -29,6 +29,7 @@ import io.sapl.functions.libraries.JsonFunctionLibrary;
 import io.sapl.functions.libraries.KeysFunctionLibrary;
 import io.sapl.functions.libraries.MacFunctionLibrary;
 import io.sapl.functions.libraries.MathFunctionLibrary;
+import io.sapl.functions.libraries.NumeralFunctionLibrary;
 import io.sapl.functions.libraries.ObjectFunctionLibrary;
 import io.sapl.functions.libraries.PatternsFunctionLibrary;
 import io.sapl.functions.libraries.PermissionsFunctionLibrary;
