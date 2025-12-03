@@ -254,11 +254,10 @@ public class AttributeCompiler {
         val inputMetadata = metadata;
         return options.attributeBroker.attributeStream(invocation).map(attribute -> {
             val location = SourceLocationUtil.fromAstNode(astNode);
-            if (attribute instanceof ErrorValue error) {
-                if (error.location() == null) {
-                    attribute = error.withLocation(location);
-                }
+            if (attribute instanceof ErrorValue error && error.location() == null) {
+                attribute = error.withLocation(location);
             }
+
             val attributeRecord   = new AttributeRecord(invocation, attribute, Instant.now(), location);
             val attributeMetadata = inputMetadata.merge(ValueMetadata.ofAttribute(attributeRecord));
             return attribute.withMetadata(attributeMetadata);

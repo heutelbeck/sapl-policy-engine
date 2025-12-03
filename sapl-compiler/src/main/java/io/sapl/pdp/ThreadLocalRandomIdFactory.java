@@ -40,7 +40,7 @@ import java.util.concurrent.ThreadLocalRandom;
  * <li>FastIdFactory: ~300K ops/sec single-threaded, scales to millions</li>
  * </ul>
  */
-public class FastIdFactory implements IdFactory {
+public class ThreadLocalRandomIdFactory implements IdFactory {
 
     private static final char[] HEX_CHARS = "0123456789abcdef".toCharArray();
 

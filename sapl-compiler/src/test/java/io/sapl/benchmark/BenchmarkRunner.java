@@ -31,12 +31,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Comparator;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -200,7 +195,7 @@ public final class BenchmarkRunner {
 
         // Group by benchmark method (throughput tests)
         var throughputResults = results.stream().filter(r -> r.getParams().getBenchmark().contains("throughput"))
-                .collect(Collectors.toList());
+                .toList();
 
         if (throughputResults.isEmpty()) {
             report.append("No throughput results available.\n\n");
@@ -259,10 +254,8 @@ public final class BenchmarkRunner {
             report.append("| Threads | Policies | Algorithm | Throughput | Error |\n");
             report.append("|---------|----------|-----------|------------|-------|\n");
 
-            var sorted = entry.getValue().stream()
-                    .sorted(Comparator.comparing((RunResult r) -> extractThreadCount(r))
-                            .thenComparing(r -> Integer.parseInt(r.getParams().getParam("policyCount"))))
-                    .collect(Collectors.toList());
+            var sorted = entry.getValue().stream().sorted(Comparator.comparing(this::extractThreadCount)
+                    .thenComparing(r -> Integer.parseInt(r.getParams().getParam("policyCount")))).toList();
 
             for (var result : sorted) {
                 var threads   = extractThreadCount(result);
@@ -322,8 +315,7 @@ public final class BenchmarkRunner {
     private void appendLatencyAnalysis(StringBuilder report, Collection<RunResult> results) {
         report.append("## Latency Analysis\n\n");
 
-        var latencyResults = results.stream().filter(r -> r.getParams().getBenchmark().contains("latency"))
-                .collect(Collectors.toList());
+        var latencyResults = results.stream().filter(r -> r.getParams().getBenchmark().contains("latency")).toList();
 
         if (latencyResults.isEmpty()) {
             report.append("No latency results available.\n\n");

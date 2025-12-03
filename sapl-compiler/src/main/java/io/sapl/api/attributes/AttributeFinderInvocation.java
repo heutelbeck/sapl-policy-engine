@@ -17,7 +17,6 @@
  */
 package io.sapl.api.attributes;
 
-import io.sapl.api.model.SourceLocation;
 import io.sapl.api.model.Value;
 import lombok.NonNull;
 

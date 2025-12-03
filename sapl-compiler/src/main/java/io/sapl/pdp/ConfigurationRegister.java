@@ -78,7 +78,6 @@ import java.util.concurrent.atomic.AtomicReference;
  * <li>Full reactive semantics - configuration updates propagate correctly</li>
  * </ul>
  *
- * @see ReplayLatestConfigurationRegister for the traditional implementation
  */
 @RequiredArgsConstructor
 public class ConfigurationRegister implements CompiledPDPConfigurationSource {

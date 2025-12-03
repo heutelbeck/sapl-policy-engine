@@ -48,7 +48,7 @@ public record NumberValue(@NonNull BigDecimal value, @NonNull ValueMetadata meta
     public boolean equals(Object that) {
         if (this == that)
             return true;
-        if (!(that instanceof NumberValue(BigDecimal thatValue, ValueMetadata thatMetadata)))
+        if (!(that instanceof NumberValue(BigDecimal thatValue, ValueMetadata ignored)))
             return false;
         // Uses numerical equality, not BigDecimal equality.
         // Makes Value.of(1.0).equals(Value.of(1.00)) return true.

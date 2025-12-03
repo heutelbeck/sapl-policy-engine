@@ -24,21 +24,20 @@ import io.sapl.api.documentation.LibraryType;
 import io.sapl.api.documentation.ParameterDocumentation;
 import io.sapl.api.functions.Function;
 import io.sapl.api.functions.FunctionLibrary;
+import io.sapl.api.model.ArrayValue;
+import io.sapl.api.model.BooleanValue;
+import io.sapl.api.model.NumberValue;
+import io.sapl.api.model.ObjectValue;
+import io.sapl.api.model.TextValue;
+import io.sapl.api.model.Value;
 import io.sapl.api.pip.Attribute;
 import io.sapl.api.pip.EnvironmentAttribute;
 import io.sapl.api.pip.PolicyInformationPoint;
-import io.sapl.api.validation.Array;
-import io.sapl.api.validation.Bool;
-import io.sapl.api.validation.Int;
-import io.sapl.api.validation.JsonObject;
-import io.sapl.api.validation.Number;
 import io.sapl.api.validation.Schema;
-import io.sapl.api.validation.Text;
 import lombok.experimental.UtilityClass;
 import lombok.val;
 
 import java.io.IOException;
-import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
 import java.nio.charset.StandardCharsets;
@@ -56,12 +55,8 @@ import java.util.Map;
 @UtilityClass
 public class LibraryDocumentationExtractor {
 
-    private static final Class<?>[] TYPE_ANNOTATIONS = { Text.class, Number.class, Int.class,
-            io.sapl.api.validation.Long.class, Bool.class, Array.class, JsonObject.class };
-
-    private static final Map<Class<?>, String> TYPE_NAMES = Map.of(Text.class, "Text", Number.class, "Number",
-            Int.class, "Int", io.sapl.api.validation.Long.class, "Long", Bool.class, "Bool", Array.class, "Array",
-            JsonObject.class, "Object");
+    private static final Map<Class<?>, String> TYPE_NAMES = Map.of(TextValue.class, "Text", NumberValue.class, "Number",
+            BooleanValue.class, "Bool", ArrayValue.class, "Array", ObjectValue.class, "Object", Value.class, "Value");
 
     /**
      * Extracts documentation from a function library class.
@@ -202,15 +197,20 @@ public class LibraryDocumentationExtractor {
     }
 
     private static List<String> extractAllowedTypes(Parameter parameter) {
-        val types = new ArrayList<String>();
+        var paramType = parameter.getType();
 
-        for (Class<?> annotationType : TYPE_ANNOTATIONS) {
-            if (parameter.isAnnotationPresent((Class<? extends Annotation>) annotationType)) {
-                types.add(TYPE_NAMES.get(annotationType));
-            }
+        // Handle array types (varargs)
+        if (paramType.isArray()) {
+            paramType = paramType.getComponentType();
         }
 
-        return List.copyOf(types);
+        val typeName = TYPE_NAMES.get(paramType);
+        if (typeName != null) {
+            return List.of(typeName);
+        }
+
+        // Fallback for unknown types
+        return List.of();
     }
 
     private static String extractParameterSchema(Parameter parameter) {

@@ -54,21 +54,20 @@ class DocumentationSerializationTests {
 
     @Test
     void whenSerializingDocumentationBundle_thenJsonIsValid() throws Exception {
-        val bundle = new DocumentationBundle("3.1.0", List.of(createSampleLibraryDocumentation()));
+        val bundle = new DocumentationBundle(List.of(createSampleLibraryDocumentation()));
 
         val json = objectMapper.writeValueAsString(bundle);
 
-        assertThat(json).contains("\"version\":\"3.1.0\"").contains("\"libraries\":");
+        assertThat(json).contains("\"libraries\":");
     }
 
     @Test
     void whenDeserializingDocumentationBundle_thenObjectIsRestored() throws Exception {
-        val original = new DocumentationBundle("3.1.0", List.of(createSampleLibraryDocumentation()));
+        val original = new DocumentationBundle(List.of(createSampleLibraryDocumentation()));
         val json     = objectMapper.writeValueAsString(original);
 
         val restored = objectMapper.readValue(json, DocumentationBundle.class);
 
-        assertThat(restored.version()).isEqualTo("3.1.0");
         assertThat(restored.libraries()).hasSize(1);
         assertThat(restored.libraries().getFirst().name()).isEqualTo("filter");
     }

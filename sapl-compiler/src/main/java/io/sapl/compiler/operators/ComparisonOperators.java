@@ -93,16 +93,16 @@ public class ComparisonOperators {
      */
     public static Value isContainedIn(EObject astNode, Value needle, Value haystack) {
         val metadata = needle.metadata().merge(haystack.metadata());
-        if (haystack instanceof ArrayValue array) {
-            return preserveSecret(array.contains(needle), metadata);
-        }
-        if (haystack instanceof ObjectValue object) {
-            return preserveSecret(object.containsValue(needle), metadata);
-        }
-        if (haystack instanceof TextValue textHaystack && needle instanceof TextValue textNeedle) {
-            return preserveSecret(textHaystack.value().contains(textNeedle.value()), metadata);
-        }
-        return Error.at(astNode, metadata, ERROR_IN_OPERATOR_TYPE_MISMATCH, needle, haystack);
+        return switch (haystack) {
+        case ArrayValue array                                                   ->
+            preserveSecret(array.contains(needle), metadata);
+        case ObjectValue object                                                 ->
+            preserveSecret(object.containsValue(needle), metadata);
+        case TextValue textHaystack when needle instanceof TextValue textNeedle ->
+            preserveSecret(textHaystack.value().contains(textNeedle.value()), metadata);
+        default                                                                 ->
+            Error.at(astNode, metadata, ERROR_IN_OPERATOR_TYPE_MISMATCH, needle, haystack);
+        };
     }
 
     /**
@@ -161,7 +161,7 @@ public class ComparisonOperators {
                 return preserveSecret(pattern.test(inputText.value()), metadata);
             };
         } catch (IllegalArgumentException e) {
-            throw new SaplCompilerException(String.format(ERROR_REGEX_INVALID, regex, e.getMessage()), astNode);
+            throw new SaplCompilerException(String.format(ERROR_REGEX_INVALID, regex, e.getMessage()), e, astNode);
         }
     }
 

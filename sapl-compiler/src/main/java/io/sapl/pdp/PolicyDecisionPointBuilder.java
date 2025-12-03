@@ -825,7 +825,7 @@ public class PolicyDecisionPointBuilder {
     }
 
     private IdFactory resolveIdFactory() {
-        return idFactory != null ? idFactory : new FastIdFactory();
+        return idFactory != null ? idFactory : new ThreadLocalRandomIdFactory();
     }
 
     /**

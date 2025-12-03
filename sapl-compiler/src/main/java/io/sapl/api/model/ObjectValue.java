@@ -83,7 +83,7 @@ public final class ObjectValue implements Value, Map<String, Value> {
     /**
      * Singleton for secret empty object.
      */
-    public static final ObjectValue SECRET_EMPTY_OBJECT = new ObjectValue(Map.of(), ValueMetadata.SECRET_EMPTY);
+    private static final ObjectValue SECRET_EMPTY_OBJECT = new ObjectValue(Map.of(), ValueMetadata.SECRET_EMPTY);
 
     @Delegate(excludes = ExcludedMethods.class)
     private final Map<String, Value> value;

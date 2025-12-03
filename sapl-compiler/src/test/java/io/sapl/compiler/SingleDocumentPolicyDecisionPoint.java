@@ -193,6 +193,7 @@ public final class SingleDocumentPolicyDecisionPoint implements PolicyDecisionPo
      * @throws IllegalStateException
      * if no document has been loaded or policy is not pure
      */
+    @Override
     public AuthorizationDecision decidePure(AuthorizationSubscription authorizationSubscription) {
         if (compiledPolicy == null) {
             throw new IllegalStateException("No policy document loaded. Call loadDocument() first.");

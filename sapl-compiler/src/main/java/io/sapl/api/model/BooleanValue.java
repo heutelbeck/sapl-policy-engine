@@ -55,7 +55,7 @@ public record BooleanValue(boolean value, @NonNull ValueMetadata metadata) imple
     public boolean equals(Object that) {
         if (this == that)
             return true;
-        if (!(that instanceof BooleanValue(boolean thatValue, ValueMetadata thatMetadata)))
+        if (!(that instanceof BooleanValue(boolean thatValue, ValueMetadata ignored)))
             return false;
         return value == thatValue;
     }

@@ -241,36 +241,22 @@ public class StepOperators {
             return Error.at(astNode, parent.metadata(), ERROR_SLICING_REQUIRES_ARRAY, parent);
         }
 
-        val parameters = convertSliceParameters(astNode, bigIndex, bigTo, bigStep);
-        if (parameters instanceof ErrorValue error) {
-            return error;
-        }
-
-        val params = (int[]) parameters;
-        return sliceArrayWithParameters(arrayValue, params[0], params[1], params[2]);
-    }
-
-    /**
-     * Converts BigDecimal slice parameters to int array, returning ErrorValue on
-     * conversion failure.
-     *
-     * @return int[3] with {index, to, step} or ErrorValue
-     */
-    private static Object convertSliceParameters(EObject astNode, BigDecimal bigIndex, BigDecimal bigTo,
-            BigDecimal bigStep) {
+        int from;
+        int to;
+        int step;
         try {
-            val index = bigIndex == null ? null : bigIndex.intValueExact();
-            val to    = bigTo == null ? null : bigTo.intValueExact();
-            val step  = bigStep == null ? 1 : bigStep.intValueExact();
-
-            if (step == 0) {
-                return Error.at(astNode, ValueMetadata.EMPTY, ERROR_SLICING_STEP_ZERO);
-            }
-
-            return new int[] { index == null ? Integer.MIN_VALUE : index, to == null ? Integer.MAX_VALUE : to, step };
+            from = bigIndex == null ? Integer.MIN_VALUE : bigIndex.intValueExact();
+            to   = bigTo == null ? Integer.MAX_VALUE : bigTo.intValueExact();
+            step = bigStep == null ? 1 : bigStep.intValueExact();
         } catch (ArithmeticException exception) {
             return Error.at(astNode, ValueMetadata.EMPTY, exception.getMessage());
         }
+
+        if (step == 0) {
+            return Error.at(astNode, ValueMetadata.EMPTY, ERROR_SLICING_STEP_ZERO);
+        }
+
+        return sliceArrayWithParameters(arrayValue, from, to, step);
     }
 
     /**

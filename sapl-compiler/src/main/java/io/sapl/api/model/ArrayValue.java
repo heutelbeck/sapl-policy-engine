@@ -83,7 +83,7 @@ public final class ArrayValue implements Value, List<Value> {
     /**
      * Singleton for secret empty array.
      */
-    public static final ArrayValue SECRET_EMPTY_ARRAY = new ArrayValue(List.of(), ValueMetadata.SECRET_EMPTY);
+    private static final ArrayValue SECRET_EMPTY_ARRAY = new ArrayValue(List.of(), ValueMetadata.SECRET_EMPTY);
 
     @Delegate(excludes = ExcludedMethods.class)
     private final List<Value>   value;

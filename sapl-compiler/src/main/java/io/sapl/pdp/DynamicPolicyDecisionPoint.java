@@ -43,6 +43,9 @@ import java.util.Map;
 import java.util.function.Function;
 
 public class DynamicPolicyDecisionPoint implements TracedPolicyDecisionPoint {
+
+    public static final String DEFAULT_PDP_ID = "default";
+
     private final CompiledPDPConfigurationSource      pdpConfigurationSource;
     private final IdFactory                           idFactory;
     private final Function<ContextView, Mono<String>> pdpIdExtractor;
@@ -50,7 +53,7 @@ public class DynamicPolicyDecisionPoint implements TracedPolicyDecisionPoint {
     public DynamicPolicyDecisionPoint(CompiledPDPConfigurationSource pdpConfigurationSource, IdFactory idFactory) {
         this.pdpConfigurationSource = pdpConfigurationSource;
         this.idFactory              = idFactory;
-        this.pdpIdExtractor         = context -> Mono.just("default");
+        this.pdpIdExtractor         = context -> Mono.just(DEFAULT_PDP_ID);
     }
 
     public DynamicPolicyDecisionPoint(CompiledPDPConfigurationSource pdpConfigurationSource,
@@ -99,8 +102,9 @@ public class DynamicPolicyDecisionPoint implements TracedPolicyDecisionPoint {
      *
      * @return the authorization decision
      */
+    @Override
     public AuthorizationDecision decidePure(AuthorizationSubscription authorizationSubscription) {
-        return decidePure(authorizationSubscription, "default");
+        return decidePure(authorizationSubscription, DEFAULT_PDP_ID);
     }
 
     /**
@@ -119,55 +123,6 @@ public class DynamicPolicyDecisionPoint implements TracedPolicyDecisionPoint {
             return AuthorizationDecision.INDETERMINATE;
         }
         return evaluatePure(authorizationSubscription, configOpt.get());
-    }
-
-    /**
-     * Minimal overhead decision path for benchmarking - skips subscription ID
-     * generation.
-     * <p>
-     * This method is intended for performance testing to isolate the cost of
-     * UUID generation. It uses a static subscription ID which means tracing
-     * will not work correctly. Do not use in production.
-     *
-     * @param authorizationSubscription
-     * the authorization subscription to evaluate
-     *
-     * @return the authorization decision
-     */
-    public AuthorizationDecision decidePureMinimal(AuthorizationSubscription authorizationSubscription) {
-        val configOpt = pdpConfigurationSource.getCurrentConfiguration("default");
-        if (configOpt.isEmpty()) {
-            return AuthorizationDecision.INDETERMINATE;
-        }
-        return evaluatePureMinimal(authorizationSubscription, configOpt.get());
-    }
-
-    private AuthorizationDecision evaluatePureMinimal(AuthorizationSubscription authorizationSubscription,
-            CompiledPDPConfiguration config) {
-        // Static subscription ID - avoids UUID.randomUUID() contention
-        val evaluationContext = EvaluationContext.of(config.pdpId(), config.configurationId(), "benchmark",
-                authorizationSubscription, config.variables(), config.functionBroker(), config.attributeBroker());
-        val retrievalResult   = config.policyRetrievalPoint().getMatchingDocuments(authorizationSubscription,
-                evaluationContext);
-
-        if (retrievalResult instanceof RetrievalError) {
-            return AuthorizationDecision.INDETERMINATE;
-        }
-
-        val policies     = ((MatchingDocuments) retrievalResult).matches();
-        val combinedExpr = getCombinedExpression(config.combiningAlgorithm(), policies);
-
-        if (combinedExpr instanceof Value value) {
-            return AuthorizationDecision.of(value);
-        }
-        if (combinedExpr instanceof PureExpression pureExpr) {
-            return AuthorizationDecision.of(pureExpr.evaluate(evaluationContext));
-        }
-        if (combinedExpr instanceof StreamExpression stream) {
-            return stream.stream().contextWrite(ctx -> ctx.put(EvaluationContext.class, evaluationContext))
-                    .map(AuthorizationDecision::of).blockFirst();
-        }
-        return AuthorizationDecision.INDETERMINATE;
     }
 
     private AuthorizationDecision evaluatePure(AuthorizationSubscription authorizationSubscription,
@@ -191,10 +146,10 @@ public class DynamicPolicyDecisionPoint implements TracedPolicyDecisionPoint {
         if (combinedExpr instanceof PureExpression pureExpr) {
             return AuthorizationDecision.of(pureExpr.evaluate(evaluationContext));
         }
-        if (combinedExpr instanceof StreamExpression stream) {
+        if (combinedExpr instanceof StreamExpression(Flux<Value> stream)) {
             // Fallback for policies with attribute access - minimal reactive overhead
             // Still faster than full reactive path (no configuration sink subscription)
-            return stream.stream().contextWrite(ctx -> ctx.put(EvaluationContext.class, evaluationContext))
+            return stream.contextWrite(ctx -> ctx.put(EvaluationContext.class, evaluationContext))
                     .map(AuthorizationDecision::of).blockFirst();
         }
         return AuthorizationDecision.INDETERMINATE;
@@ -301,8 +256,7 @@ public class DynamicPolicyDecisionPoint implements TracedPolicyDecisionPoint {
 
     private TracedDecision toTracedDecision(AuthorizationDecision decision, EvaluationContext evaluationContext,
             String combiningAlgorithmName) {
-        // TODO: Extract attributes and errors from Value metadata once Phase 3 is
-        // implemented
+        // TODO: Extract attributes and errors from Value metadata
         val metadata = new DecisionMetadata(evaluationContext.pdpId(), evaluationContext.configurationId(),
                 evaluationContext.subscriptionId(), evaluationContext.authorizationSubscription(), Instant.now(),
                 List.of(),  // attributes - to be populated from Value metadata

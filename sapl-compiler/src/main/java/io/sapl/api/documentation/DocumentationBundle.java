@@ -23,15 +23,12 @@ import java.util.stream.Collectors;
 
 /**
  * A bundle containing documentation for multiple libraries, suitable for JSON
- * serialization and transfer between PAP
- * and IDE.
+ * serialization and transfer between PAP and IDE.
  *
- * @param version
- * the SAPL version that generated this documentation
  * @param libraries
  * documentation for all included libraries
  */
-public record DocumentationBundle(String version, List<LibraryDocumentation> libraries) {
+public record DocumentationBundle(List<LibraryDocumentation> libraries) {
 
     /**
      * Returns all function libraries in this bundle.

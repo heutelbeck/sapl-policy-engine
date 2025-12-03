@@ -51,7 +51,7 @@ import java.util.concurrent.TimeUnit;
  * Compares REACTIVE (Flux-based) and PURE (synchronous) evaluation paths.
  * <p>
  * For OLD PDP (Val-based) benchmarks, run EmbeddedPdpBenchmark from the
- * sapl-pdp-embedded module instead, which avoids the split package issue.
+ * sapl-pdp-embedded module instead.
  * <p>
  * Measures throughput and latency across:
  * <ul>

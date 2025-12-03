@@ -68,33 +68,26 @@ public record ValueMetadata(boolean secret, @NonNull List<AttributeRecord> attri
 
     /**
      * Merges this metadata with another, combining secret flags and attribute
-     * traces.
-     * Deduplicates attribute records by reference identity.
+     * traces. Deduplicates attribute records by reference identity.
      *
      * @param other the metadata to merge with
      * @return merged metadata, or one of the inputs if the other is empty
      */
     public ValueMetadata merge(ValueMetadata other) {
-        if (this == EMPTY && !other.secret) {
-            return other;
+        val mergedSecret = secret || other.secret;
+        val thisEmpty    = attributeTrace.isEmpty();
+        val otherEmpty   = other.attributeTrace.isEmpty();
+
+        if (thisEmpty && otherEmpty) {
+            return mergedSecret ? SECRET_EMPTY : EMPTY;
         }
-        if (other == EMPTY && !this.secret) {
-            return this;
+        if (thisEmpty) {
+            return mergedSecret == other.secret ? other : new ValueMetadata(mergedSecret, other.attributeTrace);
         }
-        if (attributeTrace.isEmpty() && other.attributeTrace.isEmpty()) {
-            return secret || other.secret ? SECRET_EMPTY : EMPTY;
+        if (otherEmpty) {
+            return mergedSecret == secret ? this : new ValueMetadata(mergedSecret, attributeTrace);
         }
-        if (attributeTrace.isEmpty()) {
-            // Result needs secret || other.secret and other's trace.
-            // Return other directly unless this.secret would change the result.
-            return secret && !other.secret ? new ValueMetadata(true, other.attributeTrace) : other;
-        }
-        if (other.attributeTrace.isEmpty()) {
-            // Result needs secret || other.secret and this trace.
-            // Return this directly unless other.secret would change the result.
-            return other.secret && !secret ? new ValueMetadata(true, attributeTrace) : this;
-        }
-        return new ValueMetadata(secret || other.secret, deduplicatedConcat(attributeTrace, other.attributeTrace));
+        return new ValueMetadata(mergedSecret, deduplicatedConcat(attributeTrace, other.attributeTrace));
     }
 
     /**
@@ -160,21 +153,21 @@ public record ValueMetadata(boolean secret, @NonNull List<AttributeRecord> attri
     /**
      * Creates metadata for a single attribute invocation.
      *
-     * @param record the attribute record
+     * @param attributeRecord the attribute attributeRecord
      * @return metadata containing just this attribute
      */
-    public static ValueMetadata ofAttribute(AttributeRecord record) {
-        return new ValueMetadata(false, List.of(record));
+    public static ValueMetadata ofAttribute(AttributeRecord attributeRecord) {
+        return new ValueMetadata(false, List.of(attributeRecord));
     }
 
     /**
      * Creates secret metadata for a single attribute invocation.
      *
-     * @param record the attribute record
+     * @param attributeRecord the attribute attributeRecord
      * @return secret metadata containing just this attribute
      */
-    public static ValueMetadata ofSecretAttribute(AttributeRecord record) {
-        return new ValueMetadata(true, List.of(record));
+    public static ValueMetadata ofSecretAttribute(AttributeRecord attributeRecord) {
+        return new ValueMetadata(true, List.of(attributeRecord));
     }
 
     /**
