@@ -71,6 +71,7 @@ public class DefaultLibraries {
             KeysFunctionLibrary.class,
             MacFunctionLibrary.class,
             MathFunctionLibrary.class,
+            NumeralFunctionLibrary.class,
             ObjectFunctionLibrary.class,
             PatternsFunctionLibrary.class,
             PermissionsFunctionLibrary.class,

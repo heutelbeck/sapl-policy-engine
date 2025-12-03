@@ -22,7 +22,7 @@ import java.util.concurrent.ThreadLocalRandom;
 /**
  * High-performance ID factory using ThreadLocalRandom for subscription IDs.
  * <p>
- * Unlike {@link UUIDFactory} which uses {@link java.util.UUID#randomUUID()}
+ * This does explicitly not use {@link java.util.UUID#randomUUID()}
  * (backed by SecureRandom with internal synchronization), this implementation
  * uses {@link ThreadLocalRandom} which is lock-free and scales linearly with
  * thread count.
