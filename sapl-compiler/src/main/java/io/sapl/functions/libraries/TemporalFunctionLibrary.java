@@ -90,6 +90,10 @@ public class TemporalFunctionLibrary {
     private static final DateTimeFormatter US_TIME_FORMATTER       = new DateTimeFormatterBuilder()
             .parseCaseInsensitive().appendPattern("hh:mm:ss a").toFormatter(Locale.US);
 
+    private static final String ERROR_FAILED_TO_COMPARE_TIMESTAMPS = "Failed to compare timestamps.";
+    private static final String ERROR_FAILED_TO_EXECUTE            = "Failed to execute %s.";
+    private static final String ERROR_ISO_DURATION_PARAMETER_BLANK = "ISO duration parameter cannot be blank.";
+
     /* ######## DURATION ######## */
 
     @Function(docs = """
@@ -155,7 +159,7 @@ public class TemporalFunctionLibrary {
         try {
             return Value.of(instantOf(timeA).isBefore(instantOf(timeB)));
         } catch (Exception e) {
-            return Value.error("Failed to compare timestamps.", e);
+            return Value.error(ERROR_FAILED_TO_COMPARE_TIMESTAMPS, e);
         }
     }
 
@@ -171,7 +175,7 @@ public class TemporalFunctionLibrary {
         try {
             return Value.of(instantOf(timeA).isAfter(instantOf(timeB)));
         } catch (Exception e) {
-            return Value.error("Failed to execute after.", e);
+            return Value.error(ERROR_FAILED_TO_EXECUTE.formatted("after"), e);
         }
     }
 
@@ -198,7 +202,7 @@ public class TemporalFunctionLibrary {
             else
                 return Value.of((t.isBefore(end) && t.isAfter(start)));
         } catch (Exception e) {
-            return Value.error("Failed to execute between.", e);
+            return Value.error(ERROR_FAILED_TO_EXECUTE.formatted("between"), e);
         }
     }
 
@@ -221,7 +225,7 @@ public class TemporalFunctionLibrary {
             val instantTo   = instantOf(timeB);
             return Value.of(calculateTimeBetween(instantFrom, instantTo, unit));
         } catch (Exception e) {
-            return Value.error("Failed to execute timeBetween.", e);
+            return Value.error(ERROR_FAILED_TO_EXECUTE.formatted("timeBetween"), e);
         }
     }
 
@@ -266,7 +270,7 @@ public class TemporalFunctionLibrary {
             validateTemporalBounds(instant, days.value().longValue(), ChronoUnit.DAYS, true);
             return Value.of(instant.plus(days.value().longValue(), ChronoUnit.DAYS).toString());
         } catch (Exception e) {
-            return Value.error("Failed to execute plusDays.", e);
+            return Value.error(ERROR_FAILED_TO_EXECUTE.formatted("plusDays"), e);
         }
     }
 
@@ -286,7 +290,7 @@ public class TemporalFunctionLibrary {
             val zdt     = instant.atZone(ZoneOffset.UTC);
             return Value.of(zdt.plusMonths(months.value().longValue()).toInstant().toString());
         } catch (Exception e) {
-            return Value.error("Failed to execute plusMonths.", e);
+            return Value.error(ERROR_FAILED_TO_EXECUTE.formatted("plusMonths"), e);
         }
     }
 
@@ -306,7 +310,7 @@ public class TemporalFunctionLibrary {
             val zdt     = instant.atZone(ZoneOffset.UTC);
             return Value.of(zdt.plusYears(years.value().longValue()).toInstant().toString());
         } catch (Exception e) {
-            return Value.error("Failed to execute plusYears.", e);
+            return Value.error(ERROR_FAILED_TO_EXECUTE.formatted("plusYears"), e);
         }
     }
 
@@ -325,7 +329,7 @@ public class TemporalFunctionLibrary {
             validateTemporalBounds(instant, days.value().longValue(), ChronoUnit.DAYS, false);
             return Value.of(instant.minus(days.value().longValue(), ChronoUnit.DAYS).toString());
         } catch (Exception e) {
-            return Value.error("Failed to execute minusDays.", e);
+            return Value.error(ERROR_FAILED_TO_EXECUTE.formatted("minusDays"), e);
         }
     }
 
@@ -345,7 +349,7 @@ public class TemporalFunctionLibrary {
             val zdt     = instant.atZone(ZoneOffset.UTC);
             return Value.of(zdt.minusMonths(months.value().longValue()).toInstant().toString());
         } catch (Exception e) {
-            return Value.error("Failed to execute minusMonths.", e);
+            return Value.error(ERROR_FAILED_TO_EXECUTE.formatted("minusMonths"), e);
         }
     }
 
@@ -365,7 +369,7 @@ public class TemporalFunctionLibrary {
             val zdt     = instant.atZone(ZoneOffset.UTC);
             return Value.of(zdt.minusYears(years.value().longValue()).toInstant().toString());
         } catch (Exception e) {
-            return Value.error("Failed to execute minusYears.", e);
+            return Value.error(ERROR_FAILED_TO_EXECUTE.formatted("minusYears"), e);
         }
     }
 
@@ -386,7 +390,7 @@ public class TemporalFunctionLibrary {
             validateTemporalBounds(instant, nanos.value().longValue(), ChronoUnit.NANOS, true);
             return Value.of(instant.plusNanos(nanos.value().longValue()).toString());
         } catch (Exception e) {
-            return Value.error("Failed to execute plusNanos.", e);
+            return Value.error(ERROR_FAILED_TO_EXECUTE.formatted("plusNanos"), e);
         }
     }
 
@@ -405,7 +409,7 @@ public class TemporalFunctionLibrary {
             validateTemporalBounds(instant, millis.value().longValue(), ChronoUnit.MILLIS, true);
             return Value.of(instant.plusMillis(millis.value().longValue()).toString());
         } catch (Exception e) {
-            return Value.error("Failed to execute plusMillis.", e);
+            return Value.error(ERROR_FAILED_TO_EXECUTE.formatted("plusMillis"), e);
         }
     }
 
@@ -424,7 +428,7 @@ public class TemporalFunctionLibrary {
             validateTemporalBounds(instant, seconds.value().longValue(), ChronoUnit.SECONDS, true);
             return Value.of(instant.plusSeconds(seconds.value().longValue()).toString());
         } catch (Exception e) {
-            return Value.error("Failed to execute plusSeconds.", e);
+            return Value.error(ERROR_FAILED_TO_EXECUTE.formatted("plusSeconds"), e);
         }
     }
 
@@ -443,7 +447,7 @@ public class TemporalFunctionLibrary {
             validateTemporalBounds(instant, nanos.value().longValue(), ChronoUnit.NANOS, false);
             return Value.of(instant.minusNanos(nanos.value().longValue()).toString());
         } catch (Exception e) {
-            return Value.error("Failed to execute minusNanos.", e);
+            return Value.error(ERROR_FAILED_TO_EXECUTE.formatted("minusNanos"), e);
         }
     }
 
@@ -462,7 +466,7 @@ public class TemporalFunctionLibrary {
             validateTemporalBounds(instant, millis.value().longValue(), ChronoUnit.MILLIS, false);
             return Value.of(instant.minusMillis(millis.value().longValue()).toString());
         } catch (Exception e) {
-            return Value.error("Failed to execute minusMillis.", e);
+            return Value.error(ERROR_FAILED_TO_EXECUTE.formatted("minusMillis"), e);
         }
     }
 
@@ -481,7 +485,7 @@ public class TemporalFunctionLibrary {
             validateTemporalBounds(instant, seconds.value().longValue(), ChronoUnit.SECONDS, false);
             return Value.of(instant.minusSeconds(seconds.value().longValue()).toString());
         } catch (Exception e) {
-            return Value.error("Failed to execute minusSeconds.", e);
+            return Value.error(ERROR_FAILED_TO_EXECUTE.formatted("minusSeconds"), e);
         }
     }
 
@@ -498,7 +502,7 @@ public class TemporalFunctionLibrary {
         try {
             return Value.of(instantOf(utcDateTime).getEpochSecond());
         } catch (Exception e) {
-            return Value.error("Failed to execute epochSecond.", e);
+            return Value.error(ERROR_FAILED_TO_EXECUTE.formatted("epochSecond"), e);
         }
     }
 
@@ -513,7 +517,7 @@ public class TemporalFunctionLibrary {
         try {
             return Value.of(instantOf(utcDateTime).toEpochMilli());
         } catch (Exception e) {
-            return Value.error("Failed to execute epochMilli.", e);
+            return Value.error(ERROR_FAILED_TO_EXECUTE.formatted("epochMilli"), e);
         }
     }
 
@@ -527,7 +531,7 @@ public class TemporalFunctionLibrary {
         try {
             return Value.of(Instant.ofEpochSecond(epochSeconds.value().longValue()).toString());
         } catch (Exception e) {
-            return Value.error("Failed to execute ofEpochSecond.", e);
+            return Value.error(ERROR_FAILED_TO_EXECUTE.formatted("ofEpochSecond"), e);
         }
     }
 
@@ -541,7 +545,7 @@ public class TemporalFunctionLibrary {
         try {
             return Value.of(Instant.ofEpochMilli(epochMillis.value().longValue()).toString());
         } catch (Exception e) {
-            return Value.error("Failed to execute ofEpochMilli.", e);
+            return Value.error(ERROR_FAILED_TO_EXECUTE.formatted("ofEpochMilli"), e);
         }
     }
 
@@ -560,7 +564,7 @@ public class TemporalFunctionLibrary {
             return Value.of(
                     DateTimeFormatter.ISO_DATE_TIME.parse(isoDateTime.value()).get(ChronoField.ALIGNED_WEEK_OF_YEAR));
         } catch (Exception e) {
-            return Value.error("Failed to execute weekOfYear.", e);
+            return Value.error(ERROR_FAILED_TO_EXECUTE.formatted("weekOfYear"), e);
         }
     }
 
@@ -576,7 +580,7 @@ public class TemporalFunctionLibrary {
         try {
             return Value.of(DateTimeFormatter.ISO_DATE_TIME.parse(isoDateTime.value()).get(ChronoField.DAY_OF_YEAR));
         } catch (Exception e) {
-            return Value.error("Failed to execute dayOfYear.", e);
+            return Value.error(ERROR_FAILED_TO_EXECUTE.formatted("dayOfYear"), e);
         }
     }
 
@@ -594,7 +598,7 @@ public class TemporalFunctionLibrary {
             return Value.of(DayOfWeek
                     .from(DateTimeFormatter.ISO_DATE_TIME.parse(isoDateTime.value(), LocalDateTime::from)).toString());
         } catch (Exception e) {
-            return Value.error("Failed to execute dayOfWeek.", e);
+            return Value.error(ERROR_FAILED_TO_EXECUTE.formatted("dayOfWeek"), e);
         }
     }
 
@@ -664,7 +668,7 @@ public class TemporalFunctionLibrary {
             val date    = LocalDate.ofInstant(instant, ZoneOffset.UTC);
             return Value.of(date.atStartOfDay(ZoneOffset.UTC).toInstant().toString());
         } catch (Exception e) {
-            return Value.error("Failed to execute startOfDay.", e);
+            return Value.error(ERROR_FAILED_TO_EXECUTE.formatted("startOfDay"), e);
         }
     }
 
@@ -1114,7 +1118,7 @@ public class TemporalFunctionLibrary {
     public static Value durationFromISO(TextValue isoDuration) {
         try {
             if (isoDuration.value().isBlank()) {
-                return Value.error("ISO duration parameter cannot be blank.");
+                return Value.error(ERROR_ISO_DURATION_PARAMETER_BLANK);
             }
 
             val durationStr = isoDuration.value();

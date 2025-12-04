@@ -80,6 +80,14 @@ public class PermissionsFunctionLibrary {
     private static final Value NONE = Value.of(0x0L);
     private static final Value ALL  = Value.of(-1L);
 
+    private static final String ERROR_BIT_POSITION_INVALID       = "Bit position must be between 0 and 63.";
+    private static final String ERROR_CANNOT_COMBINE_EMPTY_ARRAY = "Cannot combine empty array with AND.";
+    private static final String ERROR_GROUP_PERMISSIONS_INVALID  = "Group permissions must be between 0 and 7.";
+    private static final String ERROR_MASKS_MUST_BE_INTEGERS     = "All permission masks must be integers.";
+    private static final String ERROR_MASKS_MUST_BE_NUMBERS      = "All permission masks must be numbers.";
+    private static final String ERROR_OTHER_PERMISSIONS_INVALID  = "Other permissions must be between 0 and 7.";
+    private static final String ERROR_OWNER_PERMISSIONS_INVALID  = "Owner permissions must be between 0 and 7.";
+
     /* Core Permission Semantics */
 
     @Function(docs = """
@@ -395,13 +403,13 @@ public class PermissionsFunctionLibrary {
         val otherNumber = other.value().longValue();
 
         if (ownerNumber < 0 || ownerNumber > 7) {
-            return Value.error("Owner permissions must be between 0 and 7");
+            return Value.error(ERROR_OWNER_PERMISSIONS_INVALID);
         }
         if (groupNumber < 0 || groupNumber > 7) {
-            return Value.error("Group permissions must be between 0 and 7");
+            return Value.error(ERROR_GROUP_PERMISSIONS_INVALID);
         }
         if (otherNumber < 0 || otherNumber > 7) {
-            return Value.error("Other permissions must be between 0 and 7");
+            return Value.error(ERROR_OTHER_PERMISSIONS_INVALID);
         }
 
         return Value.of((ownerNumber << 6) | (groupNumber << 3) | otherNumber);
@@ -840,7 +848,7 @@ public class PermissionsFunctionLibrary {
     public static Value bit(NumberValue position) {
         val positionNumber = position.value().longValue();
         if (positionNumber < 0 || positionNumber >= 64) {
-            return Value.error("Bit position must be between 0 and 63");
+            return Value.error(ERROR_BIT_POSITION_INVALID);
         }
         return Value.of(1L << positionNumber);
     }
@@ -857,10 +865,10 @@ public class PermissionsFunctionLibrary {
         var result = 0L;
         for (var element : masks) {
             if (!(element instanceof NumberValue numberValue)) {
-                return Value.error("All permission masks must be numbers");
+                return Value.error(ERROR_MASKS_MUST_BE_NUMBERS);
             }
             if (!isIntegral(numberValue.value())) {
-                return Value.error("All permission masks must be integers");
+                return Value.error(ERROR_MASKS_MUST_BE_INTEGERS);
             }
             result |= numberValue.value().longValue();
         }
@@ -878,16 +886,16 @@ public class PermissionsFunctionLibrary {
      */
     private static Value combineWithAnd(ArrayValue masks) {
         if (masks.isEmpty()) {
-            return Value.error("Cannot combine empty array with AND");
+            return Value.error(ERROR_CANNOT_COMBINE_EMPTY_ARRAY);
         }
 
         var result = -1L;
         for (var element : masks) {
             if (!(element instanceof NumberValue numberValue)) {
-                return Value.error("All permission masks must be numbers");
+                return Value.error(ERROR_MASKS_MUST_BE_NUMBERS);
             }
             if (!isIntegral(numberValue.value())) {
-                return Value.error("All permission masks must be integers");
+                return Value.error(ERROR_MASKS_MUST_BE_INTEGERS);
             }
             result &= numberValue.value().longValue();
         }

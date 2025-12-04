@@ -134,7 +134,10 @@ public class NumeralFunctionLibrary {
             ```
             """;
 
-    private static final String ERROR_NUMBER_VALUE_OUT_OF_RANGE = "NumberValue out of range";
+    private static final String ERROR_CANNOT_PARSE_EMPTY_STRING = "Cannot parse empty %s string.";
+    private static final String ERROR_INVALID_STRING            = "Invalid %s string: %s";
+    private static final String ERROR_NUMBER_VALUE_OUT_OF_RANGE = "NumberValue out of range.";
+    private static final String ERROR_WIDTH_MUST_BE_POSITIVE    = "Width must be positive.";
 
     final BigDecimal minLong = BigDecimal.valueOf(Long.MIN_VALUE);
     final BigDecimal maxLong = BigDecimal.valueOf(Long.MAX_VALUE);
@@ -641,7 +644,7 @@ public class NumeralFunctionLibrary {
      */
     private static Value parseWithBase(String input, int radix, String baseName) {
         if (input == null || input.isBlank()) {
-            return Value.error("Cannot parse empty " + baseName + " string");
+            return Value.error(ERROR_CANNOT_PARSE_EMPTY_STRING.formatted(baseName));
         }
 
         var cleanedInput = input.strip();
@@ -654,14 +657,14 @@ public class NumeralFunctionLibrary {
         cleanedInput = stripPrefix(cleanedInput, radix);
         cleanedInput = cleanedInput.replace("_", "");
         if (cleanedInput.isEmpty()) {
-            return Value.error("Invalid " + baseName + " string: " + input);
+            return Value.error(ERROR_INVALID_STRING.formatted(baseName, input));
         }
 
         try {
             val parsedValue = Long.parseUnsignedLong(cleanedInput, radix);
             return Value.of(isNegative ? -parsedValue : parsedValue);
         } catch (NumberFormatException exception) {
-            return Value.error("Invalid " + baseName + " string: " + input);
+            return Value.error(ERROR_INVALID_STRING.formatted(baseName, input));
         }
     }
 
@@ -723,7 +726,7 @@ public class NumeralFunctionLibrary {
     private static Value validatePositiveWidth(NumberValue width) {
         val w = width.value();
         if (w.compareTo(BigDecimal.valueOf(1)) < 0) {
-            return Value.error("Width must be positive");
+            return Value.error(ERROR_WIDTH_MUST_BE_POSITIVE);
         }
         return null;
     }

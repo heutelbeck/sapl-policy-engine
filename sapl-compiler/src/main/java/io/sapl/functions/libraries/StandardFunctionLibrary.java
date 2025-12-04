@@ -30,6 +30,8 @@ public class StandardFunctionLibrary {
     public static final String NAME        = "standard";
     public static final String DESCRIPTION = "This the standard function library for SAPL.";
 
+    private static final String ERROR_ARGUMENT_MUST_BE_TEXT_ARRAY_OR_OBJECT = "Argument must be a text, array, or object.";
+
     @Function(docs = """
             ```length(ARRAY|TEXT|JSON value)```: For TEXT it returns the length of the text string.
             For ARRAY, it returns the number of elements in the array.
@@ -54,7 +56,7 @@ public class StandardFunctionLibrary {
         case TextValue text     -> Value.of(text.toString().length() - 2L);
         case ObjectValue object -> Value.of(object.size());
         case ArrayValue array   -> Value.of(array.size());
-        default                 -> Value.error("Argument must be a text, array, or object.");
+        default                 -> Value.error(ERROR_ARGUMENT_MUST_BE_TEXT_ARRAY_OR_OBJECT);
         };
 
     }
