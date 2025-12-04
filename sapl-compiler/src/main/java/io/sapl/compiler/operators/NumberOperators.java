@@ -39,7 +39,8 @@ import java.util.function.BinaryOperator;
 @UtilityClass
 public class NumberOperators {
 
-    public static final String TYPE_MISMATCH_NUMBER_EXPECTED_ERROR = "Numeric operation requires number values, but found: %s";
+    private static final String RUNTIME_ERROR_DIVISION_BY_ZERO              = "Division by zero.";
+    public static final String  RUNTIME_ERROR_TYPE_MISMATCH_NUMBER_EXPECTED = "Numeric operation requires number values, but found: %s.";
 
     /**
      * Adds two values.
@@ -133,13 +134,13 @@ public class NumberOperators {
     public static Value modulo(EObject astOperator, Value dividend, Value divisor) {
         val metadata = dividend.metadata().merge(divisor.metadata());
         if (!(dividend instanceof NumberValue(BigDecimal dividendValue, ValueMetadata ignore))) {
-            return Error.at(astOperator, metadata, TYPE_MISMATCH_NUMBER_EXPECTED_ERROR, dividend);
+            return Error.at(astOperator, metadata, RUNTIME_ERROR_TYPE_MISMATCH_NUMBER_EXPECTED, dividend);
         }
         if (!(divisor instanceof NumberValue(BigDecimal divisorValue, ValueMetadata ignore2))) {
-            return Error.at(astOperator, metadata, TYPE_MISMATCH_NUMBER_EXPECTED_ERROR, dividend);
+            return Error.at(astOperator, metadata, RUNTIME_ERROR_TYPE_MISMATCH_NUMBER_EXPECTED, dividend);
         }
         if (divisorValue.signum() == 0) {
-            return Error.at(astOperator, metadata, "Division by zero.", dividend);
+            return Error.at(astOperator, metadata, RUNTIME_ERROR_DIVISION_BY_ZERO, dividend);
         }
         var result = dividendValue.remainder(divisorValue);
         // Adjust to mathematical modulo: ensure non-negative result for positive
@@ -160,7 +161,7 @@ public class NumberOperators {
      */
     public static Value unaryPlus(EObject astOperator, Value v) {
         if (!(v instanceof NumberValue)) {
-            return Error.at(astOperator, v.metadata(), TYPE_MISMATCH_NUMBER_EXPECTED_ERROR, v);
+            return Error.at(astOperator, v.metadata(), RUNTIME_ERROR_TYPE_MISMATCH_NUMBER_EXPECTED, v);
         }
         return v;
     }
@@ -175,7 +176,7 @@ public class NumberOperators {
      */
     public static Value unaryMinus(EObject astOperator, Value v) {
         if (!(v instanceof NumberValue(BigDecimal number, ValueMetadata ignored))) {
-            return Error.at(astOperator, v.metadata(), TYPE_MISMATCH_NUMBER_EXPECTED_ERROR, v);
+            return Error.at(astOperator, v.metadata(), RUNTIME_ERROR_TYPE_MISMATCH_NUMBER_EXPECTED, v);
         }
         return new NumberValue(number.negate(), v.metadata());
     }
@@ -258,10 +259,10 @@ public class NumberOperators {
             BiPredicate<BigDecimal, BigDecimal> comparison) {
         val metadata = left.metadata().merge(right.metadata());
         if (!(left instanceof NumberValue(BigDecimal leftValue, ValueMetadata ignored))) {
-            return Error.at(astOperator, metadata, TYPE_MISMATCH_NUMBER_EXPECTED_ERROR, left);
+            return Error.at(astOperator, metadata, RUNTIME_ERROR_TYPE_MISMATCH_NUMBER_EXPECTED, left);
         }
         if (!(right instanceof NumberValue(BigDecimal rightValue, ValueMetadata ignored2))) {
-            return Error.at(astOperator, metadata, TYPE_MISMATCH_NUMBER_EXPECTED_ERROR, right);
+            return Error.at(astOperator, metadata, RUNTIME_ERROR_TYPE_MISMATCH_NUMBER_EXPECTED, right);
         }
         return preserveSecret(comparison.test(leftValue, rightValue), metadata);
     }
@@ -292,10 +293,10 @@ public class NumberOperators {
             return error.withMetadata(metadata);
         }
         if (!(left instanceof NumberValue(BigDecimal leftValue, ValueMetadata ignored))) {
-            return Error.at(astOperator, metadata, TYPE_MISMATCH_NUMBER_EXPECTED_ERROR, left);
+            return Error.at(astOperator, metadata, RUNTIME_ERROR_TYPE_MISMATCH_NUMBER_EXPECTED, left);
         }
         if (!(right instanceof NumberValue(BigDecimal rightValue, ValueMetadata ignored2))) {
-            return Error.at(astOperator, metadata, TYPE_MISMATCH_NUMBER_EXPECTED_ERROR, right);
+            return Error.at(astOperator, metadata, RUNTIME_ERROR_TYPE_MISMATCH_NUMBER_EXPECTED, right);
         }
         return new NumberValue(operation.apply(leftValue, rightValue), metadata);
     }

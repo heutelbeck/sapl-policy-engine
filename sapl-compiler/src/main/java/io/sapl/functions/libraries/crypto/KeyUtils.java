@@ -17,7 +17,6 @@
  */
 package io.sapl.functions.libraries.crypto;
 
-import io.sapl.compiler.PolicyEvaluationException;
 import lombok.experimental.UtilityClass;
 import lombok.val;
 
@@ -50,7 +49,7 @@ public class KeyUtils {
      *
      * @return the parsed PublicKey
      *
-     * @throws PolicyEvaluationException
+     * @throws CryptoException
      * if parsing fails
      */
     public static PublicKey parsePublicKey(String pemKey, String keyAlgorithm)
@@ -71,7 +70,7 @@ public class KeyUtils {
      *
      * @return the parsed PublicKey
      *
-     * @throws PolicyEvaluationException
+     * @throws CryptoException
      * if all algorithms fail
      */
     public static PublicKey parsePublicKeyWithAlgorithmDetection(String pemKey) {
@@ -91,7 +90,7 @@ public class KeyUtils {
      *
      * @return the decoded PublicKey
      *
-     * @throws PolicyEvaluationException
+     * @throws CryptoException
      * if all algorithms fail
      */
     public static PublicKey tryParseWithMultipleAlgorithms(X509EncodedKeySpec keySpec, String... algorithms) {
@@ -103,7 +102,7 @@ public class KeyUtils {
             }
         }
 
-        throw new PolicyEvaluationException(
+        throw new CryptoException(
                 "Unsupported key type or invalid key format. Tried algorithms: " + String.join(", ", algorithms) + ".");
     }
 

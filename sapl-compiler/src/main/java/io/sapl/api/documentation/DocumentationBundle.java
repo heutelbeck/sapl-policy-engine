@@ -23,7 +23,8 @@ import java.util.stream.Collectors;
 
 /**
  * A bundle containing documentation for multiple libraries, suitable for JSON
- * serialization and transfer between PAP and IDE.
+ * serialization and transfer between PAP
+ * and IDE.
  *
  * @param libraries
  * documentation for all included libraries

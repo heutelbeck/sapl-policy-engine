@@ -32,7 +32,7 @@ import reactor.core.publisher.Mono;
 import java.util.*;
 import java.util.function.BiFunction;
 
-import static io.sapl.compiler.operators.BooleanOperators.TYPE_MISMATCH_BOOLEAN_EXPECTED_ERROR;
+import static io.sapl.compiler.operators.BooleanOperators.RUNTIME_ERROR_TYPE_MISMATCH_BOOLEAN_EXPECTED;
 
 /**
  * Compiles SAPL abstract syntax tree expressions into optimized executable
@@ -43,11 +43,14 @@ import static io.sapl.compiler.operators.BooleanOperators.TYPE_MISMATCH_BOOLEAN_
 @UtilityClass
 public class ExpressionCompiler {
 
-    private static final String ERROR_ASSEMBLE_OBJECT_NON_VALUE_NATURE = "AssembleObjectValue called with non-VALUE nature: %s.";
-    private static final String ERROR_LEFT_OPERAND_MISSING             = "Left operand of %s missing.";
-    private static final String ERROR_RIGHT_OPERAND_MISSING            = "Right operand of %s missing.";
-    private static final String ERROR_UNEXPECTED_EXPRESSION            = "Unexpected expression: %s.";
-    private static final String ERROR_UNEXPECTED_VALUE                 = "Unexpected value: %s.";
+    // Compile-time errors (thrown as SaplCompilerException)
+    private static final String COMPILE_ERROR_NON_VALUE_NATURE      = "Compilation failed. AssembleObjectValue called with non-VALUE nature: %s.";
+    private static final String COMPILE_ERROR_UNEXPECTED_EXPRESSION = "Compilation failed. Unexpected expression: %s.";
+    private static final String COMPILE_ERROR_UNEXPECTED_VALUE      = "Compilation failed. Unexpected value: %s.";
+
+    // Runtime errors (used in Error.at() calls)
+    private static final String RUNTIME_ERROR_LEFT_OPERAND_MISSING  = "Left operand of %s missing.";
+    private static final String RUNTIME_ERROR_RIGHT_OPERAND_MISSING = "Right operand of %s missing.";
 
     /**
      * Compiles a SAPL expression from the abstract syntax tree into an optimized
@@ -93,7 +96,7 @@ public class ExpressionCompiler {
             compileBinaryOperator(regex, ComparisonOperators::matchesRegularExpression, context);
         case BasicExpression basic -> compileBasicExpression(basic, context);
         default                    ->
-            throw new SaplCompilerException(String.format(ERROR_UNEXPECTED_EXPRESSION, expression), expression);
+            throw new SaplCompilerException(String.format(COMPILE_ERROR_UNEXPECTED_EXPRESSION, expression), expression);
         };
     }
 
@@ -131,7 +134,7 @@ public class ExpressionCompiler {
             return leftValue.withMetadata(leftValue.metadata().merge(shortCircuitValue.metadata()));
         }
         if (left instanceof Value leftValue && !(left instanceof BooleanValue)) {
-            return Error.at(astNode, leftValue.metadata(), TYPE_MISMATCH_BOOLEAN_EXPECTED_ERROR, left);
+            return Error.at(astNode, leftValue.metadata(), RUNTIME_ERROR_TYPE_MISMATCH_BOOLEAN_EXPECTED, left);
         }
         return null;
     }
@@ -173,7 +176,7 @@ public class ExpressionCompiler {
             return leftValue;
         }
         if (!(leftValue instanceof BooleanValue)) {
-            return Error.at(astNode, leftValue.metadata(), TYPE_MISMATCH_BOOLEAN_EXPECTED_ERROR, leftValue);
+            return Error.at(astNode, leftValue.metadata(), RUNTIME_ERROR_TYPE_MISMATCH_BOOLEAN_EXPECTED, leftValue);
         }
         return operator.apply(astNode, leftValue, rightVal);
     }
@@ -192,7 +195,7 @@ public class ExpressionCompiler {
             }
             if (!(leftValue instanceof BooleanValue)) {
                 return Flux.just(Error.at(astNode, leftValue.metadata().merge(shortCircuitValue.metadata()),
-                        TYPE_MISMATCH_BOOLEAN_EXPECTED_ERROR, leftValue));
+                        RUNTIME_ERROR_TYPE_MISMATCH_BOOLEAN_EXPECTED, leftValue));
             }
             return rightFlux.map(rightValue -> combineBooleanResult(astNode, leftValue, rightValue, shortCircuitValue));
         });
@@ -208,7 +211,7 @@ public class ExpressionCompiler {
             return rightValue.withMetadata(metadata);
         }
         if (!(rightValue instanceof BooleanValue rightBool)) {
-            return Error.at(astNode, metadata, TYPE_MISMATCH_BOOLEAN_EXPECTED_ERROR, rightValue);
+            return Error.at(astNode, metadata, RUNTIME_ERROR_TYPE_MISMATCH_BOOLEAN_EXPECTED, rightValue);
         }
         val resultValue = shortCircuitValue.equals(Value.TRUE) ? rightBool.value()
                 : rightBool.value() && ((BooleanValue) leftValue).value();
@@ -227,7 +230,7 @@ public class ExpressionCompiler {
             return left.withMetadata(metadata);
         }
         if (!(left instanceof BooleanValue)) {
-            return Error.at(astNode, metadata, TYPE_MISMATCH_BOOLEAN_EXPECTED_ERROR, left);
+            return Error.at(astNode, metadata, RUNTIME_ERROR_TYPE_MISMATCH_BOOLEAN_EXPECTED, left);
         }
         val right = pureRight.evaluate(ctx);
         metadata = metadata.merge(right.metadata());
@@ -238,7 +241,7 @@ public class ExpressionCompiler {
             return right;
         }
         if (!(right instanceof BooleanValue rightBool)) {
-            return Error.at(astNode, metadata, TYPE_MISMATCH_BOOLEAN_EXPECTED_ERROR, right);
+            return Error.at(astNode, metadata, RUNTIME_ERROR_TYPE_MISMATCH_BOOLEAN_EXPECTED, right);
         }
         val resultValue = !shortCircuitValue.equals(Value.TRUE) && rightBool.value();
         return new BooleanValue(resultValue, metadata);
@@ -298,11 +301,11 @@ public class ExpressionCompiler {
         val left  = compileExpression(astOperator.getLeft(), context);
         val right = compileExpression(astOperator.getRight(), context);
         if (left == null) {
-            return Error.at(astOperator, ValueMetadata.EMPTY, ERROR_LEFT_OPERAND_MISSING,
+            return Error.at(astOperator, ValueMetadata.EMPTY, RUNTIME_ERROR_LEFT_OPERAND_MISSING,
                     astOperator.getClass().getSimpleName());
         }
         if (right == null) {
-            return Error.at(astOperator, ValueMetadata.EMPTY, ERROR_RIGHT_OPERAND_MISSING,
+            return Error.at(astOperator, ValueMetadata.EMPTY, RUNTIME_ERROR_RIGHT_OPERAND_MISSING,
                     astOperator.getClass().getSimpleName());
         }
         // Special case for regex. Here if the right side is a text constant, we can
@@ -445,7 +448,7 @@ public class ExpressionCompiler {
         case BasicIdentifier identifier                     -> compileIdentifier(identifier, context);
         case BasicRelative relativeValue                    -> compileBasicRelative(relativeValue, context);
         default                                             ->
-            throw new SaplCompilerException(String.format(ERROR_UNEXPECTED_EXPRESSION, expression), expression);
+            throw new SaplCompilerException(String.format(COMPILE_ERROR_UNEXPECTED_EXPRESSION, expression), expression);
         };
 
         // Then apply filter or subtemplate if present
@@ -663,7 +666,7 @@ public class ExpressionCompiler {
                           case NullLiteral nil      -> Value.NULL;
                           case UndefinedLiteral u   -> Value.UNDEFINED;
                           default                   ->
-                              throw new SaplCompilerException(String.format(ERROR_UNEXPECTED_VALUE, value));
+                              throw new SaplCompilerException(String.format(COMPILE_ERROR_UNEXPECTED_VALUE, value));
                           };
         return compileSteps(compiledValue, basic.getSteps(), context);
     }
@@ -1616,7 +1619,7 @@ public class ExpressionCompiler {
      */
     private Value assembleObjectValue(CompiledObjectAttributes attributes) {
         if (attributes.nature() != Nature.VALUE) {
-            throw new SaplCompilerException(String.format(ERROR_ASSEMBLE_OBJECT_NON_VALUE_NATURE, attributes.nature()));
+            throw new SaplCompilerException(String.format(COMPILE_ERROR_NON_VALUE_NATURE, attributes.nature()));
         }
         val objectBuilder = ObjectValue.builder();
         for (val attribute : attributes.attributes().entrySet()) {

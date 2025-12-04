@@ -39,7 +39,7 @@ public class ReservedIdentifiers {
     /**
      * All reserved identifiers that cannot be used as variable names in policies.
      * Attempting to define a variable with
-     * any of these names will result in a PolicyEvaluationException.
+     * any of these names will result in a compilation error.
      */
     public static final Set<String> RESERVED_IDENTIFIERS = Set.of(ACTION, ENVIRONMENT, RESOURCE, SUBJECT,
             RELATIVE_VALUE, RELATIVE_LOCATION);

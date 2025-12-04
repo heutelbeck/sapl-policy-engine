@@ -35,8 +35,8 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 /**
- * Programmatic runner for SAPL PDP benchmarks using JMH.
- * Executes benchmarks and generates comprehensive reports.
+ * Programmatic runner for SAPL PDP benchmarks using JMH. Executes benchmarks
+ * and generates comprehensive reports.
  *
  * <pre>
  *   mvn test-compile exec:java -Dexec.mainClass="io.sapl.benchmark.BenchmarkRunner" \
@@ -46,9 +46,9 @@ import java.util.stream.Collectors;
 public final class BenchmarkRunner {
 
     /**
-     * Benchmark profiles with different levels of rigor.
-     * Note: forks=0 required when running via exec:java since forked JVMs
-     * cannot access Maven's test classpath. For forked runs, use the JMH Maven
+     * Benchmark profiles with different levels of rigor. Note: forks=0 required
+     * when running via exec:java since forked
+     * JVMs cannot access Maven's test classpath. For forked runs, use the JMH Maven
      * Plugin.
      */
     public enum Profile {

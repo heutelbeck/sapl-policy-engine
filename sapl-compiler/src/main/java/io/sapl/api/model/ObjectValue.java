@@ -34,8 +34,8 @@ import java.util.stream.Collectors;
  * Object value implementing Map semantics. The underlying map is immutable.
  * <p>
  * Metadata (including secret flag and attribute traces) is aggregated from all
- * values
- * at construction time and propagated back to all values. This ensures:
+ * values at construction time and
+ * propagated back to all values. This ensures:
  * <ul>
  * <li>Zero-overhead reads - values already have merged metadata</li>
  * <li>Audit completeness - operations preserve all source attribute traces</li>
@@ -93,14 +93,17 @@ public final class ObjectValue implements Value, Map<String, Value> {
      * Creates an ObjectValue with specified metadata.
      * <p>
      * Aggregates metadata from all values and merges with the provided metadata,
-     * then propagates the merged result back to all values. This ensures operations
-     * preserve all source attribute traces.
+     * then propagates the merged result back
+     * to all values. This ensures operations preserve all source attribute traces.
      * <p>
      * Note: This does a defensive copy of the supplied Map. For better performance
-     * without the need to copy use the Builder!
+     * without the need to copy use the
+     * Builder!
      *
-     * @param properties the map properties (defensively copied, must not be null)
-     * @param metadata the container metadata to merge with value metadata
+     * @param properties
+     * the map properties (defensively copied, must not be null)
+     * @param metadata
+     * the container metadata to merge with value metadata
      */
     public ObjectValue(@NonNull Map<String, Value> properties, @NonNull ValueMetadata metadata) {
         val mergedMetadata = aggregateAndMerge(properties, metadata);
@@ -110,11 +113,13 @@ public final class ObjectValue implements Value, Map<String, Value> {
 
     /**
      * Zero-copy constructor for builder use only. The supplied map is used directly
-     * without copying. Assumes metadata already propagated to values.
+     * without copying. Assumes metadata
+     * already propagated to values.
      *
-     * @param metadata the pre-computed container metadata
-     * @param properties the map properties (used directly, must be mutable until
-     * wrapped)
+     * @param metadata
+     * the pre-computed container metadata
+     * @param properties
+     * the map properties (used directly, must be mutable until wrapped)
      */
     private ObjectValue(ValueMetadata metadata, Map<String, Value> properties) {
         this.value    = Collections.unmodifiableMap(properties);
@@ -157,11 +162,12 @@ public final class ObjectValue implements Value, Map<String, Value> {
      * Builder for fluent ObjectValue construction.
      * <p>
      * Builders are single-use only. After calling build(), the builder cannot be
-     * reused. This prevents immutability violations from the zero-copy
-     * optimization.
+     * reused. This prevents immutability
+     * violations from the zero-copy optimization.
      * <p>
      * The builder aggregates metadata from all added values. At build time, the
-     * merged metadata is propagated back to all values for consistent access.
+     * merged metadata is propagated back to
+     * all values for consistent access.
      */
     public static final class Builder {
         private LinkedHashMap<String, Value> properties = new LinkedHashMap<>();
@@ -170,10 +176,15 @@ public final class ObjectValue implements Value, Map<String, Value> {
         /**
          * Adds a property to the object.
          *
-         * @param key the property key
-         * @param value the property value
+         * @param key
+         * the property key
+         * @param value
+         * the property value
+         *
          * @return this builder
-         * @throws IllegalStateException if builder has already been used
+         *
+         * @throws IllegalStateException
+         * if builder has already been used
          */
         public Builder put(String key, Value value) {
             if (properties == null) {
@@ -187,9 +198,13 @@ public final class ObjectValue implements Value, Map<String, Value> {
         /**
          * Adds multiple properties to the object.
          *
-         * @param entries the properties to add
+         * @param entries
+         * the properties to add
+         *
          * @return this builder
-         * @throws IllegalStateException if builder has already been used
+         *
+         * @throws IllegalStateException
+         * if builder has already been used
          */
         public Builder putAll(Map<String, Value> entries) {
             if (properties == null) {
@@ -208,7 +223,9 @@ public final class ObjectValue implements Value, Map<String, Value> {
          * possible in the building process.
          *
          * @return this builder
-         * @throws IllegalStateException if builder has already been used
+         *
+         * @throws IllegalStateException
+         * if builder has already been used
          */
         public Builder secret() {
             if (properties == null) {
@@ -221,9 +238,13 @@ public final class ObjectValue implements Value, Map<String, Value> {
         /**
          * Merges additional metadata into the builder.
          *
-         * @param additionalMetadata the metadata to merge
+         * @param additionalMetadata
+         * the metadata to merge
+         *
          * @return this builder
-         * @throws IllegalStateException if builder has already been used
+         *
+         * @throws IllegalStateException
+         * if builder has already been used
          */
         public Builder withMetadata(ValueMetadata additionalMetadata) {
             if (properties == null) {
@@ -238,10 +259,13 @@ public final class ObjectValue implements Value, Map<String, Value> {
          * objects.
          * <p>
          * At build time, the aggregated metadata is propagated to all values for
-         * consistent access. After calling this method, the builder cannot be reused.
+         * consistent access. After calling this
+         * method, the builder cannot be reused.
          *
          * @return the constructed ObjectValue
-         * @throws IllegalStateException if builder has already been used
+         *
+         * @throws IllegalStateException
+         * if builder has already been used
          */
         public ObjectValue build() {
             if (properties == null) {
@@ -310,10 +334,12 @@ public final class ObjectValue implements Value, Map<String, Value> {
      * Returns the value for the specified key.
      * <p>
      * Returns ErrorValue for invalid key types instead of throwing
-     * ClassCastException, consistent with SAPL's error-as-value model.
-     * Values already have the container's metadata applied.
+     * ClassCastException, consistent with SAPL's
+     * error-as-value model. Values already have the container's metadata applied.
      *
-     * @param key the key (must be a String)
+     * @param key
+     * the key (must be a String)
+     *
      * @return the value, null if key not found, or ErrorValue if key is null or not
      * a String
      */
@@ -333,11 +359,14 @@ public final class ObjectValue implements Value, Map<String, Value> {
      * Returns the value for the specified key, or defaultValue if not found.
      * <p>
      * Returns ErrorValue for invalid key types instead of throwing
-     * ClassCastException.
-     * Values already have the container's metadata applied.
+     * ClassCastException. Values already have the
+     * container's metadata applied.
      *
-     * @param key the key (must be a String)
-     * @param defaultValue the default value if key not found
+     * @param key
+     * the key (must be a String)
+     * @param defaultValue
+     * the default value if key not found
+     *
      * @return the value, defaultValue if key not found, or ErrorValue if key is
      * null or not a String
      */

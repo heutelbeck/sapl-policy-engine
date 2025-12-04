@@ -137,25 +137,21 @@ public class ArrayFunctionLibrary {
             }
             """;
 
-    private static final String ERROR_EMPTY_ARRAY_AVERAGE = "Cannot calculate average of an empty array.";
-    private static final String ERROR_EMPTY_ARRAY_HEAD    = "Cannot get head of an empty array.";
-    private static final String ERROR_EMPTY_ARRAY_LAST    = "Cannot get last of an empty array.";
-    private static final String ERROR_EMPTY_ARRAY_MEDIAN  = "Cannot calculate median of an empty array.";
-
-    private static final String ERROR_MIXED_TYPE_NON_NUMERIC = "All array elements must be numeric. Found non-numeric element: ";
-    private static final String ERROR_MIXED_TYPE_NON_TEXT    = "All array elements must be text. Found non-text element: ";
-
+    private static final String ERROR_EMPTY_ARRAY_AVERAGE         = "Cannot calculate average of an empty array.";
+    private static final String ERROR_EMPTY_ARRAY_HEAD            = "Cannot get head of an empty array.";
+    private static final String ERROR_EMPTY_ARRAY_LAST            = "Cannot get last of an empty array.";
+    private static final String ERROR_EMPTY_ARRAY_MEDIAN          = "Cannot calculate median of an empty array.";
+    private static final String ERROR_MIXED_TYPE_NON_NUMERIC      = "All array elements must be numeric. Found non-numeric element: ";
+    private static final String ERROR_MIXED_TYPE_NON_TEXT         = "All array elements must be text. Found non-text element: ";
+    private static final String ERROR_PARAMETERS_MUST_BE_INTEGERS = "All parameters must be integers.";
     private static final String ERROR_PREFIX_ALL_ELEMENTS_MUST_BE = "All array elements must be ";
     private static final String ERROR_PREFIX_CANNOT_FIND          = "Cannot find ";
     private static final String ERROR_PREFIX_ELEMENTS_MUST_BE     = "Array elements must be numeric or text. First element is: ";
     private static final String ERROR_PREFIX_FOUND_NON            = ". Found non-";
-
-    private static final String ERROR_PARAMETERS_MUST_BE_INTEGERS = "All parameters must be integers.";
     private static final String ERROR_STEP_MUST_NOT_BE_ZERO       = "Step must not be zero.";
-
-    private static final String ERROR_SUFFIX_ELEMENT     = " element: ";
-    private static final String ERROR_SUFFIX_EMPTY_ARRAY = " of an empty array.";
-    private static final String ERROR_SUFFIX_PERIOD      = ".";
+    private static final String ERROR_SUFFIX_ELEMENT              = " element: ";
+    private static final String ERROR_SUFFIX_EMPTY_ARRAY          = " of an empty array.";
+    private static final String ERROR_SUFFIX_PERIOD               = ".";
 
     private static final String TYPE_NAME_NUMERIC = "numeric";
     private static final String TYPE_NAME_TEXT    = "text";

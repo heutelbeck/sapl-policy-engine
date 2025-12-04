@@ -33,7 +33,7 @@ import java.util.List;
 @UtilityClass
 class FilterArgumentEvaluator {
 
-    private static final String ERROR_STREAM_IN_PURE_FILTER_ARGS = "Stream expression in pure filter arguments. Should not be possible.";
+    private static final String COMPILE_ERROR_STREAM_IN_PURE_FILTER_ARGS = "Compilation failed. Stream expression in pure filter arguments. Should not be possible.";
 
     /**
      * Extracts value arguments for constant folding (Nature.VALUE).
@@ -87,7 +87,7 @@ class FilterArgumentEvaluator {
             case Value value                   -> valueArguments.add(value);
             case PureExpression pureExpression -> valueArguments.add(pureExpression.evaluate(ctx));
             case StreamExpression ignored      ->
-                throw new SaplCompilerException(ERROR_STREAM_IN_PURE_FILTER_ARGS, astNode);
+                throw new SaplCompilerException(COMPILE_ERROR_STREAM_IN_PURE_FILTER_ARGS, astNode);
             }
         }
 

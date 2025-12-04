@@ -24,14 +24,19 @@ import java.io.Serializable;
 
 /**
  * Represents a location in SAPL source code with full context for error
- * highlighting. Used for error reporting and debugging to indicate where in a
- * policy document an error occurred.
+ * highlighting. Used for error reporting and
+ * debugging to indicate where in a policy document an error occurred.
  *
- * @param documentName the name or identifier of the SAPL document (may be null)
- * @param documentSource the full source text of the document (may be null)
- * @param start the start offset in the document
- * @param end the end offset in the document
- * @param line the line number (1-based)
+ * @param documentName
+ * the name or identifier of the SAPL document (may be null)
+ * @param documentSource
+ * the full source text of the document (may be null)
+ * @param start
+ * the start offset in the document
+ * @param end
+ * the end offset in the document
+ * @param line
+ * the line number (1-based)
  */
 public record SourceLocation(String documentName, String documentSource, int start, int end, int line)
         implements Serializable {

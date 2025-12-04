@@ -77,30 +77,34 @@ public class SaplCompiler {
 
     private static final String ENV_SCHEMAS = "SCHEMAS";
 
-    private static final String EXPRESSION_TARGET              = "Target";
-    private static final String EXPRESSION_VARIABLE_DEFINITION = "variable definition for %s";
+    private static final String EXPRESSION_TARGET              = "target";
+    private static final String EXPRESSION_VARIABLE_DEFINITION = "variable definition '%s'";
 
-    private static final String ERROR_POLICY_ALWAYS_FALSE                 = "Error compiling policy: %s expression always returns false. These rules will never be applicable.";
-    private static final String ERROR_POLICY_ALWAYS_NON_BOOLEAN           = "Error compiling policy: %s expression always returns a non Boolean value: %s.";
-    private static final String ERROR_POLICY_COMPILE_TIME_ERROR           = "Error compiling policy: %s expression yielded a compile time error: %s.";
-    private static final String ERROR_POLICY_CONTAINS_ATTRIBUTE_FINDERS   = "Error compiling policy: %s expression must not contain access to any <> attribute finders.";
-    private static final String ERROR_POLICY_UNRESOLVED_RELATIVE          = "Error compiling policy: %s expression contains an unresolved relative reference (e.g., @) and can never be evaluated correctly.";
-    private static final String ERROR_SCHEMA_INVALID_SUBSCRIPTION_ELEMENT = "Schema must reference one of the four subscription identifiers: subject, action, resource, environment, but was: %s.";
-    private static final String ERROR_SCHEMA_NOT_OBJECT_VALUE             = "Schema must evaluate to an ObjectValue, but was: %s";
-    private static final String ERROR_TARGET_EXPECTED_BOOLEAN             = "Expected a Boolean value to be returned from the target expression, found %s";
-    private static final String ERROR_UNEXPECTED_ENTITLEMENT              = "Unexpected entitlement: %s";
-    private static final String ERROR_UNEXPECTED_POLICY_ELEMENT           = "Unexpected policy element: %s";
-    private static final String ERROR_UNEXPECTED_TARGET_TYPE              = "Unexpected target expression type: %s";
-    private static final String ERROR_VARIABLE_ALREADY_DEFINED            = "Variable already defined: %s.";
-    private static final String ERROR_VARIABLE_ALREADY_EXISTS             = "Variable already exists: %s";
-    private static final String ERROR_VARIABLE_NAME_MISSING               = "Variable name missing.";
+    private static final String COMPILE_ERROR_BODY_NON_BOOLEAN            = "Compilation failed. Policy body always evaluates to non-Boolean value: %s.";
+    private static final String COMPILE_ERROR_CONSTRAINT_ALWAYS_ERROR     = "Compilation failed. Constraint always evaluates to error: %s.";
+    private static final String COMPILE_ERROR_EXPRESSION_ALWAYS_ERROR     = "Compilation failed. Expression in %s always evaluates to error: %s.";
+    private static final String COMPILE_ERROR_EXPRESSION_ALWAYS_FALSE     = "Compilation failed. Expression in %s always evaluates to false. Policy will never be applicable.";
+    private static final String COMPILE_ERROR_EXPRESSION_NON_BOOLEAN      = "Compilation failed. Expression in %s always evaluates to non-Boolean value: %s.";
+    private static final String COMPILE_ERROR_EXPRESSION_STREAMING        = "Compilation failed. Expression in %s must not contain attribute finders (<>).";
+    private static final String COMPILE_ERROR_EXPRESSION_UNRESOLVED       = "Compilation failed. Expression in %s contains unresolved relative reference (@).";
+    private static final String COMPILE_ERROR_PARSE_FAILED                = "Compilation failed. Unable to parse document: %s.";
+    private static final String COMPILE_ERROR_SCHEMA_INVALID_ELEMENT      = "Compilation failed. Schema must reference subject, action, resource, or environment, but was: %s.";
+    private static final String COMPILE_ERROR_SCHEMA_NOT_OBJECT           = "Compilation failed. Schema must evaluate to ObjectValue, but was: %s.";
+    private static final String COMPILE_ERROR_TRANSFORMATION_ALWAYS_ERROR = "Compilation failed. Transformation always evaluates to error: %s.";
+    private static final String COMPILE_ERROR_UNEXPECTED_ENTITLEMENT      = "Compilation failed. Unexpected entitlement: %s.";
+    private static final String COMPILE_ERROR_UNEXPECTED_POLICY_ELEMENT   = "Compilation failed. Unexpected policy element: %s.";
+    private static final String COMPILE_ERROR_UNEXPECTED_TARGET_TYPE      = "Compilation failed. Unexpected target expression type: %s.";
+    private static final String COMPILE_ERROR_VARIABLE_ALREADY_DEFINED    = "Compilation failed. Variable '%s' already defined.";
+    private static final String COMPILE_ERROR_VARIABLE_NAME_MISSING       = "Compilation failed. Variable name is missing.";
+
+    private static final String RUNTIME_ERROR_TARGET_NON_BOOLEAN = "Target expression must return Boolean, but found: %s.";
 
     private static final SAPLInterpreter PARSER = new DefaultSAPLInterpreter();
 
     public CompiledPolicy compile(String source, CompilationContext context) {
         val document = PARSER.parseDocument(source);
         if (document.isInvalid()) {
-            throw new SaplCompilerException("Unable to parse document. %s".formatted(document.errorMessage()));
+            throw new SaplCompilerException(COMPILE_ERROR_PARSE_FAILED.formatted(document.errorMessage()));
         }
         context.setDocumentSource(source);
         context.setDocument(document);
@@ -131,8 +135,8 @@ public class SaplCompiler {
         return switch (policyElement) {
         case Policy policy       -> compilePolicy(policy, schemaCheckingExpression, context);
         case PolicySet policySet -> compilePolicySet(policySet, schemaCheckingExpression, context);
-        default                  ->
-            throw new SaplCompilerException(ERROR_UNEXPECTED_POLICY_ELEMENT.formatted(policyElement), policyElement);
+        default                  -> throw new SaplCompilerException(
+                COMPILE_ERROR_UNEXPECTED_POLICY_ELEMENT.formatted(policyElement), policyElement);
         };
     }
 
@@ -156,7 +160,7 @@ public class SaplCompiler {
             compileTargetExpressionToMatchExpression(targetExpression, pureExpression);
         case Value value                   -> ensureBooleanValueInTarget(targetExpression, value);
         default                            -> throw new SaplCompilerException(
-                ERROR_UNEXPECTED_TARGET_TYPE.formatted(targetExpression.getClass()), targetExpression);
+                COMPILE_ERROR_UNEXPECTED_TARGET_TYPE.formatted(targetExpression.getClass()), targetExpression);
         };
     }
 
@@ -165,8 +169,7 @@ public class SaplCompiler {
             return constantTargetEvaluationResult;
         }
         throw new SaplCompilerException(
-                "Compile error. Target expression never returns a Boolean value and always evaluates to: %s."
-                        .formatted(constantTargetEvaluationResult),
+                COMPILE_ERROR_EXPRESSION_NON_BOOLEAN.formatted(EXPRESSION_TARGET, constantTargetEvaluationResult),
                 astNode);
     }
 
@@ -191,8 +194,7 @@ public class SaplCompiler {
     private CompiledExpression compileTransformation(Expression transformationExpression, CompilationContext context) {
         val compiledExpression = ExpressionCompiler.compileExpression(transformationExpression, context);
         if (compiledExpression instanceof ErrorValue) {
-            throw new SaplCompilerException(
-                    "Compile error. Transformation expression is always an error: %s.".formatted(compiledExpression),
+            throw new SaplCompilerException(COMPILE_ERROR_TRANSFORMATION_ALWAYS_ERROR.formatted(compiledExpression),
                     transformationExpression);
         }
         return compiledExpression;
@@ -474,7 +476,7 @@ public class SaplCompiler {
         if (targetExpression instanceof BooleanValue) {
             return targetExpression;
         }
-        return Error.at(astNode, targetExpression.metadata(), ERROR_TARGET_EXPECTED_BOOLEAN, targetExpression);
+        return Error.at(astNode, targetExpression.metadata(), RUNTIME_ERROR_TARGET_NON_BOOLEAN, targetExpression);
     }
 
     /**
@@ -493,18 +495,19 @@ public class SaplCompiler {
 
     private void assertExpressionSuitableForTarget(EObject targetExpression, CompiledExpression expression) {
         if (expression instanceof StreamExpression) {
-            throw new SaplCompilerException(ERROR_POLICY_CONTAINS_ATTRIBUTE_FINDERS.formatted(EXPRESSION_TARGET),
+            throw new SaplCompilerException(COMPILE_ERROR_EXPRESSION_STREAMING.formatted(EXPRESSION_TARGET),
                     targetExpression);
         } else if (expression instanceof ErrorValue error) {
-            throw new SaplCompilerException(ERROR_POLICY_COMPILE_TIME_ERROR.formatted(EXPRESSION_TARGET, error),
+            throw new SaplCompilerException(COMPILE_ERROR_EXPRESSION_ALWAYS_ERROR.formatted(EXPRESSION_TARGET, error),
                     targetExpression);
         } else if (expression instanceof Value && !(expression instanceof BooleanValue)) {
-            throw new SaplCompilerException(ERROR_POLICY_ALWAYS_NON_BOOLEAN.formatted(EXPRESSION_TARGET, expression),
-                    targetExpression);
+            throw new SaplCompilerException(
+                    COMPILE_ERROR_EXPRESSION_NON_BOOLEAN.formatted(EXPRESSION_TARGET, expression), targetExpression);
         } else if (expression instanceof BooleanValue booleanValue && booleanValue.equals(Value.FALSE)) {
-            throw new SaplCompilerException(ERROR_POLICY_ALWAYS_FALSE.formatted(EXPRESSION_TARGET), targetExpression);
+            throw new SaplCompilerException(COMPILE_ERROR_EXPRESSION_ALWAYS_FALSE.formatted(EXPRESSION_TARGET),
+                    targetExpression);
         } else if (expression instanceof PureExpression pureExpression && !pureExpression.isSubscriptionScoped()) {
-            throw new SaplCompilerException(ERROR_POLICY_UNRESOLVED_RELATIVE.formatted(EXPRESSION_TARGET),
+            throw new SaplCompilerException(COMPILE_ERROR_EXPRESSION_UNRESOLVED.formatted(EXPRESSION_TARGET),
                     targetExpression);
         }
     }
@@ -524,7 +527,8 @@ public class SaplCompiler {
         return switch (entitlement) {
         case Permit p -> Decision.PERMIT;
         case Deny d   -> Decision.DENY;
-        default       -> throw new IllegalArgumentException(ERROR_UNEXPECTED_ENTITLEMENT.formatted(entitlement));
+        default       ->
+            throw new IllegalArgumentException(COMPILE_ERROR_UNEXPECTED_ENTITLEMENT.formatted(entitlement));
         };
     }
 
@@ -548,7 +552,7 @@ public class SaplCompiler {
             } else if (statement instanceof ValueDefinition valueDefinition) {
                 val variableName = valueDefinition.getName();
                 if (context.containsVariable(variableName)) {
-                    throw new SaplCompilerException(ERROR_VARIABLE_ALREADY_EXISTS.formatted(variableName),
+                    throw new SaplCompilerException(COMPILE_ERROR_VARIABLE_ALREADY_DEFINED.formatted(variableName),
                             valueDefinition);
                 }
                 var compiledValueDefinition = ExpressionCompiler.compileExpression(valueDefinition.getEval(), context);
@@ -564,10 +568,7 @@ public class SaplCompiler {
         }
 
         if (compiledBody instanceof Value && !(compiledBody instanceof BooleanValue)) {
-            throw new SaplCompilerException(
-                    "Compile time type mismatch. Policy body always evaluates to a non-Boolean value %s."
-                            .formatted(compiledBody),
-                    body);
+            throw new SaplCompilerException(COMPILE_ERROR_BODY_NON_BOOLEAN.formatted(compiledBody), body);
         }
         return compiledBody;
     }
@@ -602,9 +603,7 @@ public class SaplCompiler {
         for (val constraint : constraintExpressions) {
             val compiledConstraint = ExpressionCompiler.compileExpression(constraint, context);
             if (compiledConstraint instanceof ErrorValue) {
-                throw new SaplCompilerException(
-                        "Error compiling constraint. Constraint always returns an error and will always yield an INDETERMINATE decision. Error: %s."
-                                .formatted(compiledConstraint),
+                throw new SaplCompilerException(COMPILE_ERROR_CONSTRAINT_ALWAYS_ERROR.formatted(compiledConstraint),
                         constraint);
             }
             compiledConstraints.add(compiledConstraint);
@@ -622,14 +621,14 @@ public class SaplCompiler {
             val variableName            = valueDefinition.getName();
             val compiledValueDefinition = ExpressionCompiler.compileExpression(valueDefinition.getEval(), context);
             if (variableName == null || variableName.isBlank()) {
-                throw new SaplCompilerException(ERROR_VARIABLE_NAME_MISSING, valueDefinition);
+                throw new SaplCompilerException(COMPILE_ERROR_VARIABLE_NAME_MISSING, valueDefinition);
             }
             if (compiledValueDefinition instanceof ErrorValue error) {
-                throw new SaplCompilerException(ERROR_POLICY_COMPILE_TIME_ERROR
+                throw new SaplCompilerException(COMPILE_ERROR_EXPRESSION_ALWAYS_ERROR
                         .formatted(EXPRESSION_VARIABLE_DEFINITION.formatted(variableName), error), valueDefinition);
             }
             if (!context.addGlobalPolicySetVariable(variableName, compiledValueDefinition)) {
-                throw new SaplCompilerException(ERROR_VARIABLE_ALREADY_DEFINED.formatted(variableName),
+                throw new SaplCompilerException(COMPILE_ERROR_VARIABLE_ALREADY_DEFINED.formatted(variableName),
                         valueDefinition);
             }
         }
@@ -678,11 +677,11 @@ public class SaplCompiler {
     private PureExpression compileSchema(Schema schema, CompilationContext context) {
         val schemaValue = ExpressionCompiler.compileExpression(schema.getSchemaExpression(), context);
         if (!(schemaValue instanceof ObjectValue schemaObjectValue)) {
-            throw new SaplCompilerException(ERROR_SCHEMA_NOT_OBJECT_VALUE.formatted(schemaValue), schema);
+            throw new SaplCompilerException(COMPILE_ERROR_SCHEMA_NOT_OBJECT.formatted(schemaValue), schema);
         }
         val subscriptionElement = schema.getSubscriptionElement();
         if (!ReservedIdentifiers.SUBSCRIPTION_IDENTIFIERS.contains(subscriptionElement)) {
-            throw new SaplCompilerException(ERROR_SCHEMA_INVALID_SUBSCRIPTION_ELEMENT.formatted(subscriptionElement),
+            throw new SaplCompilerException(COMPILE_ERROR_SCHEMA_INVALID_ELEMENT.formatted(subscriptionElement),
                     schema);
         }
 

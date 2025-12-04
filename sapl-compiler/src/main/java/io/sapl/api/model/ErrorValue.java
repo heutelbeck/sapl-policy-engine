@@ -27,17 +27,21 @@ import java.util.Objects;
 
 /**
  * Error value representing a failure during policy evaluation. Errors are
- * values, not exceptions, enabling functional error handling.
- *
+ * values, not exceptions, enabling functional
+ * error handling.
  * <p>
  * Errors can optionally carry a {@link SourceLocation} indicating where in the
- * SAPL source code the error occurred. This is invaluable for debugging policy
- * evaluation failures.
+ * SAPL source code the error occurred.
+ * This is invaluable for debugging policy evaluation failures.
  *
- * @param message the error message describing what went wrong
- * @param cause the underlying exception, if any (may be null)
- * @param metadata the value metadata
- * @param location the source location where the error occurred (may be null)
+ * @param message
+ * the error message describing what went wrong
+ * @param cause
+ * the underlying exception, if any (may be null)
+ * @param metadata
+ * the value metadata
+ * @param location
+ * the source location where the error occurred (may be null)
  */
 public record ErrorValue(String message, Throwable cause, @NonNull ValueMetadata metadata, SourceLocation location)
         implements Value {
@@ -48,9 +52,12 @@ public record ErrorValue(String message, Throwable cause, @NonNull ValueMetadata
     /**
      * Creates an error with message, cause, and metadata but no location.
      *
-     * @param message the error message (must not be null)
-     * @param cause the exception (may be null)
-     * @param metadata the value metadata
+     * @param message
+     * the error message (must not be null)
+     * @param cause
+     * the exception (may be null)
+     * @param metadata
+     * the value metadata
      */
     public ErrorValue(@NonNull String message, Throwable cause, @NonNull ValueMetadata metadata) {
         this(message, cause, metadata, null);
@@ -59,8 +66,10 @@ public record ErrorValue(String message, Throwable cause, @NonNull ValueMetadata
     /**
      * Creates an error with message and cause, empty metadata, no location.
      *
-     * @param message the error message (must not be null)
-     * @param cause the exception (must not be null)
+     * @param message
+     * the error message (must not be null)
+     * @param cause
+     * the exception (must not be null)
      */
     public ErrorValue(@NonNull String message, @NonNull Throwable cause) {
         this(message, cause, ValueMetadata.EMPTY, null);
@@ -69,8 +78,10 @@ public record ErrorValue(String message, Throwable cause, @NonNull ValueMetadata
     /**
      * Creates an error from an exception with metadata, no location.
      *
-     * @param cause the exception (must not be null)
-     * @param metadata the value metadata
+     * @param cause
+     * the exception (must not be null)
+     * @param metadata
+     * the value metadata
      */
     public ErrorValue(@NonNull Throwable cause, @NonNull ValueMetadata metadata) {
         this(cause.getMessage(), cause, metadata, null);
@@ -79,7 +90,8 @@ public record ErrorValue(String message, Throwable cause, @NonNull ValueMetadata
     /**
      * Creates an error from an exception, empty metadata, no location.
      *
-     * @param cause the exception (must not be null)
+     * @param cause
+     * the exception (must not be null)
      */
     public ErrorValue(@NonNull Throwable cause) {
         this(cause.getMessage(), cause, ValueMetadata.EMPTY, null);
@@ -88,8 +100,10 @@ public record ErrorValue(String message, Throwable cause, @NonNull ValueMetadata
     /**
      * Creates an error with a message and metadata, no cause, no location.
      *
-     * @param message the error message (must not be null)
-     * @param metadata the value metadata
+     * @param message
+     * the error message (must not be null)
+     * @param metadata
+     * the value metadata
      */
     public ErrorValue(@NonNull String message, @NonNull ValueMetadata metadata) {
         this(message, null, metadata, null);
@@ -98,7 +112,8 @@ public record ErrorValue(String message, Throwable cause, @NonNull ValueMetadata
     /**
      * Creates an error with a message only, empty metadata, no cause, no location.
      *
-     * @param message the error message (must not be null)
+     * @param message
+     * the error message (must not be null)
      */
     public ErrorValue(@NonNull String message) {
         this(message, null, ValueMetadata.EMPTY, null);
@@ -112,7 +127,9 @@ public record ErrorValue(String message, Throwable cause, @NonNull ValueMetadata
     /**
      * Creates a copy of this error with the specified source location.
      *
-     * @param newLocation the source location to attach
+     * @param newLocation
+     * the source location to attach
+     *
      * @return a new ErrorValue with the location set
      */
     public ErrorValue withLocation(SourceLocation newLocation) {

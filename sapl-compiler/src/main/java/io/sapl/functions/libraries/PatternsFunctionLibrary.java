@@ -126,24 +126,24 @@ public class PatternsFunctionLibrary {
     private static final String CHAR_CLASS_SPECIAL_CHARS  = "\\]^-[";
     private static final String GLOB_METACHARACTERS       = "*?[]{}\\-!";
 
-    private static final String ERROR_PATTERN_TOO_LONG    = "Pattern too long (max %d characters).";
-    private static final String ERROR_INPUT_TOO_LONG      = "Input too long (max %d characters).";
-    private static final String ERROR_LIMIT_NEGATIVE      = "Limit must be non-negative.";
-    private static final String ERROR_DELIMITERS_EMPTY    = "Delimiters cannot be empty.";
-    private static final String ERROR_DELIMITERS_TEXT     = "All delimiters must be text values.";
-    private static final String ERROR_TEMPLATE_LENGTH     = "Template or value exceeds maximum length.";
-    private static final String ERROR_TEMPLATE_FORMAT     = "Invalid template format: mismatched or nested delimiters.";
     private static final String ERROR_DANGEROUS_PATTERN   = "Invalid or dangerous regex pattern.";
     private static final String ERROR_DANGEROUS_TEMPLATE  = "Template contains dangerous regex patterns.";
+    private static final String ERROR_DELIMITERS_EMPTY    = "Delimiters cannot be empty.";
+    private static final String ERROR_DELIMITERS_TEXT     = "All delimiters must be text values.";
+    private static final String ERROR_GLOB_TOO_NESTED     = "Glob pattern too deeply nested (max %d levels).";
+    private static final String ERROR_INPUT_TOO_LONG      = "Input too long (max %d characters).";
     private static final String ERROR_INVALID_GLOB        = "Invalid glob pattern: %s";
     private static final String ERROR_INVALID_TEMPLATE    = "Invalid regex in template: %s";
+    private static final String ERROR_LIMIT_NEGATIVE      = "Limit must be non-negative.";
+    private static final String ERROR_MATCHING_FAILED     = "Pattern matching failed: %s";
+    private static final String ERROR_PATTERN_TOO_LONG    = "Pattern too long (max %d characters).";
     private static final String ERROR_REPLACEMENT_FAILED  = "Replacement failed: %s";
     private static final String ERROR_SPLIT_FAILED        = "Split failed: %s";
-    private static final String ERROR_MATCHING_FAILED     = "Pattern matching failed: %s";
-    private static final String ERROR_UNCLOSED_CHAR_CLASS = "Unclosed character class starting at position %d.";
-    private static final String ERROR_UNCLOSED_ALT_GROUP  = "Unclosed alternative group starting at position %d.";
-    private static final String ERROR_GLOB_TOO_NESTED     = "Glob pattern too deeply nested (max %d levels).";
+    private static final String ERROR_TEMPLATE_FORMAT     = "Invalid template format: mismatched or nested delimiters.";
+    private static final String ERROR_TEMPLATE_LENGTH     = "Template or value exceeds maximum length.";
     private static final String ERROR_TOO_MANY_ALT_GROUPS = "Too many alternative groups (max %d groups).";
+    private static final String ERROR_UNCLOSED_ALT_GROUP  = "Unclosed alternative group starting at position %d.";
+    private static final String ERROR_UNCLOSED_CHAR_CLASS = "Unclosed character class starting at position %d.";
 
     private static final char   REGEX_ANCHOR_START      = '^';
     private static final char   REGEX_ANCHOR_END        = '$';

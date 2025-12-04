@@ -33,7 +33,9 @@ public class SourceLocationUtil {
     /**
      * Extracts the source location from an EMF/Xtext AST node.
      *
-     * @param astNode the AST node to extract location from (may be null)
+     * @param astNode
+     * the AST node to extract location from (may be null)
+     *
      * @return the source location, or null if the node is null or has no location
      * information
      */

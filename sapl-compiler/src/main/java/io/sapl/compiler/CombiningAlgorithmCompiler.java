@@ -264,7 +264,8 @@ public class CombiningAlgorithmCompiler {
 
     /**
      * Checks if all policies have pure or constant match and decision expressions.
-     * Both must be checked to ensure the pure evaluation path can be used safely.
+     * Both must be checked to ensure the
+     * pure evaluation path can be used safely.
      */
     private static boolean allPureOrConstant(List<CompiledPolicy> policies) {
         return policies.stream()

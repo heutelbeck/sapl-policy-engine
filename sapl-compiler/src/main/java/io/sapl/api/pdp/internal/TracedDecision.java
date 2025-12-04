@@ -30,9 +30,12 @@ import java.util.List;
 /**
  * A policy decision with trace metadata for debugging and auditing.
  *
- * @param authorizationDecision the authorization decision
- * @param metadata the decision metadata
- * @param modifications modification explanations from interceptors
+ * @param authorizationDecision
+ * the authorization decision
+ * @param metadata
+ * the decision metadata
+ * @param modifications
+ * modification explanations from interceptors
  */
 public record TracedDecision(
         @NonNull AuthorizationDecision authorizationDecision,
@@ -49,8 +52,11 @@ public record TracedDecision(
     /**
      * Creates a modified traced decision with an explanation for audit purposes.
      *
-     * @param decision the new authorization decision
-     * @param explanation why the decision was modified
+     * @param decision
+     * the new authorization decision
+     * @param explanation
+     * why the decision was modified
+     *
      * @return a new TracedDecision with the modified decision
      */
     public TracedDecision modified(AuthorizationDecision decision, String explanation) {

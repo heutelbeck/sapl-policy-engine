@@ -22,18 +22,21 @@ import reactor.core.publisher.Flux;
 
 /**
  * Extension of {@link PolicyDecisionPoint} providing traced decisions with
- * evaluation metadata for debugging and auditing.
- *
+ * evaluation metadata for debugging and
+ * auditing.
  * <p>
  * <strong>Security:</strong> Traced decisions expose policy structure and
- * attribute values. Do not expose to untrusted parties.
+ * attribute values. Do not expose to untrusted
+ * parties.
  */
 public interface TracedPolicyDecisionPoint extends PolicyDecisionPoint {
 
     /**
      * Evaluates a subscription returning traced decisions with evaluation metadata.
      *
-     * @param authorizationSubscription the subscription to evaluate
+     * @param authorizationSubscription
+     * the subscription to evaluate
+     *
      * @return stream of traced decisions
      */
     Flux<TracedDecision> decideTraced(AuthorizationSubscription authorizationSubscription);

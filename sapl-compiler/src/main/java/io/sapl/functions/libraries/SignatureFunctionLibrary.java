@@ -22,7 +22,7 @@ import io.sapl.api.functions.FunctionLibrary;
 import io.sapl.api.model.ErrorValue;
 import io.sapl.api.model.TextValue;
 import io.sapl.api.model.Value;
-import io.sapl.compiler.PolicyEvaluationException;
+import io.sapl.functions.libraries.crypto.CryptoException;
 import io.sapl.functions.libraries.crypto.KeyUtils;
 import lombok.experimental.UtilityClass;
 import lombok.val;
@@ -77,6 +77,12 @@ public class SignatureFunctionLibrary {
                 "type": "boolean"
             }
             """;
+
+    private static final String ERROR_ALGORITHM_NOT_SUPPORTED  = "Signature algorithm not supported: ";
+    private static final String ERROR_FAILED_TO_VERIFY         = "Failed to verify signature: ";
+    private static final String ERROR_INVALID_PUBLIC_KEY       = "Invalid public key: ";
+    private static final String ERROR_SIGNATURE_FORMAT_INVALID = "Signature must be in hexadecimal or Base64 format. Hex parsing failed: %s. Base64 parsing failed: %s";
+    private static final String ERROR_VERIFICATION_FAILED      = "Signature verification failed: ";
 
     /* RSA Signature Verification */
 
@@ -295,16 +301,16 @@ public class SignatureFunctionLibrary {
 
             val isValid = signature.verify(signatureBytes);
             return Value.of(isValid);
-        } catch (PolicyEvaluationException exception) {
+        } catch (CryptoException exception) {
             return new ErrorValue(exception.getMessage());
         } catch (NoSuchAlgorithmException exception) {
-            return new ErrorValue("Signature algorithm not supported: " + signatureAlgorithm);
+            return new ErrorValue(ERROR_ALGORITHM_NOT_SUPPORTED + signatureAlgorithm);
         } catch (InvalidKeyException exception) {
-            return new ErrorValue("Invalid public key: " + exception.getMessage());
+            return new ErrorValue(ERROR_INVALID_PUBLIC_KEY + exception.getMessage());
         } catch (SignatureException exception) {
-            return new ErrorValue("Signature verification failed: " + exception.getMessage());
+            return new ErrorValue(ERROR_VERIFICATION_FAILED + exception.getMessage());
         } catch (Exception exception) {
-            return new ErrorValue("Failed to verify signature: " + exception.getMessage());
+            return new ErrorValue(ERROR_FAILED_TO_VERIFY + exception.getMessage());
         }
     }
 
@@ -321,7 +327,7 @@ public class SignatureFunctionLibrary {
      *
      * @return the decoded signature bytes
      *
-     * @throws PolicyEvaluationException
+     * @throws CryptoException
      * if both hex and Base64 parsing fail
      */
     private static byte[] parseSignature(String signatureString) {
@@ -333,11 +339,8 @@ public class SignatureFunctionLibrary {
             try {
                 return Base64.getDecoder().decode(cleanedSignature);
             } catch (IllegalArgumentException base64ParsingFailed) {
-                throw new PolicyEvaluationException(
-                        "Signature must be in hexadecimal or Base64 format. Hex parsing failed: "
-                                + hexParsingFailed.getMessage() + ". Base64 parsing failed: "
-                                + base64ParsingFailed.getMessage(),
-                        base64ParsingFailed);
+                throw new CryptoException(ERROR_SIGNATURE_FORMAT_INVALID.formatted(hexParsingFailed.getMessage(),
+                        base64ParsingFailed.getMessage()), base64ParsingFailed);
             }
         }
     }

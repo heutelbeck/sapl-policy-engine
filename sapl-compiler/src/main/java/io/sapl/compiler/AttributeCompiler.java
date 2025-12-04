@@ -23,10 +23,8 @@ import io.sapl.api.model.*;
 import io.sapl.api.model.Value;
 import io.sapl.api.pdp.internal.AttributeRecord;
 import io.sapl.grammar.sapl.*;
-import io.sapl.interpreter.pip.AttributeFinderMetadata;
 import lombok.NonNull;
 import lombok.experimental.UtilityClass;
-import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import org.eclipse.emf.ecore.EObject;
 import reactor.core.publisher.Flux;
@@ -34,7 +32,10 @@ import reactor.util.context.ContextView;
 
 import java.time.Duration;
 import java.time.Instant;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Map;
+import java.util.Optional;
 import java.util.function.Function;
 
 /**
@@ -51,7 +52,6 @@ import java.util.function.Function;
  * attributes. {@link AttributeBroker} must be present in reactor context
  * (runtime requirement).
  */
-@Slf4j
 @UtilityClass
 public class AttributeCompiler {
 
@@ -59,11 +59,13 @@ public class AttributeCompiler {
     private static final AttributeFinderOptions DEFAULT_OPTIONS = new AttributeFinderOptions("none", 3000L, 30000L,
             1000L, 3, false, null, null);
 
-    private static final String ERROR_ATTRIBUTE_BROKER_NOT_CONFIGURED   = "Internal PDP Error. AttributeBroker not configured in evaluation context.";
-    private static final String ERROR_ATTRIBUTE_PARAMETERS_INSUFFICIENT = "Internal PDP Error. Attribute evaluation must have at least two parameters, but got %d.";
-    private static final String ERROR_PIP_RETURNED_PURE_EXPRESSION      = "Compilation error. Got PureExpression from PIP. Indicates implementation bug.";
-    private static final String ERROR_PIP_RETURNED_VALUE                = "Compilation error. Got Value from PIP. Indicates implementation bug.";
-    private static final String ERROR_UNDEFINED_VALUE_LEFT_HAND         = "Undefined value handed over as left-hand parameter to policy information point";
+    private static final String COMPILE_ERROR_PIP_RETURNED_PURE_EXPRESSION = "Compilation failed. Got PureExpression from PIP. Indicates implementation bug.";
+    private static final String COMPILE_ERROR_PIP_RETURNED_VALUE           = "Compilation failed. Got Value from PIP. Indicates implementation bug.";
+    private static final String COMPILE_ERROR_UNDEFINED_VALUE_LEFT_HAND    = "Compilation failed. Undefined value handed over as left-hand parameter to policy information point.";
+
+    private static final String RUNTIME_ERROR_ATTRIBUTE_BROKER_NOT_CONFIGURED   = "Internal PDP Error. AttributeBroker not configured in evaluation context.";
+    private static final String RUNTIME_ERROR_ATTRIBUTE_PARAMETERS_INSUFFICIENT = "Internal PDP Error. Attribute evaluation must have at least two parameters, but got %d.";
+    private static final String RUNTIME_ERROR_UNDEFINED_VALUE_LEFT_HAND         = "Undefined value handed over as left-hand parameter to policy information point.";
 
     private static final String OPTION_FIELD_ATTRIBUTE_FINDER_OPTIONS = "attributeFinderOptions";
     private static final String OPTION_FIELD_BACKOFF                  = "backoffMs";
@@ -107,7 +109,6 @@ public class AttributeCompiler {
      */
     public static CompiledExpression compileEnvironmentAttribute(BasicEnvironmentAttribute envAttribute,
             CompilationContext context) {
-        log.debug("Compiling environment attribute: '{}'", envAttribute.getIdentifier());
         return compileAttributeFinderStep(envAttribute, null, envAttribute.getIdentifier(), envAttribute.getArguments(),
                 envAttribute.getAttributeFinderOptions(), context);
 
@@ -161,9 +162,10 @@ public class AttributeCompiler {
     private CompiledExpression fullStreamToHead(EObject astNode, CompiledExpression fullStream) {
         return switch (fullStream) {
         case ErrorValue error                     -> error;
-        case Value ignored                        -> throw new SaplCompilerException(ERROR_PIP_RETURNED_VALUE, astNode);
+        case Value ignored                        ->
+            throw new SaplCompilerException(COMPILE_ERROR_PIP_RETURNED_VALUE, astNode);
         case PureExpression ignored               ->
-            throw new SaplCompilerException(ERROR_PIP_RETURNED_PURE_EXPRESSION, astNode);
+            throw new SaplCompilerException(COMPILE_ERROR_PIP_RETURNED_PURE_EXPRESSION, astNode);
         case StreamExpression(Flux<Value> stream) -> new StreamExpression(stream.take(1));
         };
     }
@@ -177,7 +179,6 @@ public class AttributeCompiler {
     private static CompiledExpression compileAttributeFinderStep(EObject astNode, CompiledExpression entity,
             FunctionIdentifier identifier, Arguments stepArguments, Expression attributeFinderOptions,
             CompilationContext context) {
-        log.debug("Compiling attribute finder step for: '{}' with entity {}", identifier, entity);
         if (entity instanceof ErrorValue) {
             return entity;
         }
@@ -186,7 +187,7 @@ public class AttributeCompiler {
             compiledOptions = Value.EMPTY_OBJECT;
         }
         if (entity instanceof UndefinedValue) {
-            throw new SaplCompilerException(ERROR_UNDEFINED_VALUE_LEFT_HAND, astNode);
+            throw new SaplCompilerException(COMPILE_ERROR_UNDEFINED_VALUE_LEFT_HAND, astNode);
         }
         val entityFlux           = entity == null ? Flux.just(Value.NULL)
                 : ExpressionCompiler.compiledExpressionToFlux(entity);
@@ -224,8 +225,8 @@ public class AttributeCompiler {
             boolean isEnvironmentAttribute) {
         var metadata = mergeMetadataFromAttributeParameters(evaluatedAttributeFinderParameters);
         if (evaluatedAttributeFinderParameters.length < 2) {
-            return Flux.just(Error.at(astNode, metadata,
-                    ERROR_ATTRIBUTE_PARAMETERS_INSUFFICIENT.formatted(evaluatedAttributeFinderParameters.length)));
+            return Flux.just(Error.at(astNode, metadata, RUNTIME_ERROR_ATTRIBUTE_PARAMETERS_INSUFFICIENT
+                    .formatted(evaluatedAttributeFinderParameters.length)));
         }
         val entity = (Value) evaluatedAttributeFinderParameters[0];
 
@@ -233,7 +234,7 @@ public class AttributeCompiler {
             return Flux.just(entity.withMetadata(metadata));
         }
         if (!isEnvironmentAttribute && entity instanceof UndefinedValue) {
-            return Flux.just(Error.at(astNode, metadata, ERROR_UNDEFINED_VALUE_LEFT_HAND));
+            return Flux.just(Error.at(astNode, metadata, RUNTIME_ERROR_UNDEFINED_VALUE_LEFT_HAND));
         }
         val maybeOptions = (Options) evaluatedAttributeFinderParameters[1];
         if (maybeOptions instanceof OptionsError(ErrorValue error)) {
@@ -242,7 +243,7 @@ public class AttributeCompiler {
 
         val options = (AttributeFinderOptions) maybeOptions;
         if (options.attributeBroker == null) {
-            return Flux.just(Error.at(astNode, metadata, ERROR_ATTRIBUTE_BROKER_NOT_CONFIGURED));
+            return Flux.just(Error.at(astNode, metadata, RUNTIME_ERROR_ATTRIBUTE_BROKER_NOT_CONFIGURED));
         }
 
         var values        = Arrays
@@ -398,8 +399,9 @@ public class AttributeCompiler {
 
     /**
      * Merges metadata from Value elements in an attribute finder parameter array.
-     * Array structure: [entity (Value), options (Options), args... (Value)].
-     * Skips index 1 (options) since it's not a Value.
+     * Array structure: [entity (Value),
+     * options (Options), args... (Value)]. Skips index 1 (options) since it's not a
+     * Value.
      */
     private static ValueMetadata mergeMetadataFromAttributeParameters(java.lang.Object[] elements) {
         if (elements.length == 0) {

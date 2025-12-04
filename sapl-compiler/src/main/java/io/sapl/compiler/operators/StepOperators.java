@@ -38,15 +38,19 @@ public class StepOperators {
 
     private static final int MAX_RECURSION_DEPTH = 500;
 
-    private static final String ERROR_EXPRESSION_STEP_TYPE_MISMATCH = "Expression in expression step must return a number or text, but got %s.";
-    private static final String ERROR_INDEX_OUT_OF_BOUNDS           = "Index %d out of bounds for array of size %d.";
-    private static final String ERROR_INDEX_UNION_REQUIRES_ARRAY    = "Index union steps can only be applied to arrays but got %s.";
-    private static final String ERROR_KEY_UNION_REQUIRES_OBJECT     = "Key union steps can only be applied to objects but got %s.";
-    private static final String ERROR_MAX_RECURSION_DEPTH_INDEX     = "Maximum nesting depth exceeded during recursive index step.";
-    private static final String ERROR_MAX_RECURSION_DEPTH_KEY       = "Maximum nesting depth exceeded during recursive key step.";
-    private static final String ERROR_MAX_RECURSION_DEPTH_WILDCARD  = "Maximum nesting depth exceeded during recursive wildcard step.";
-    private static final String ERROR_SLICING_REQUIRES_ARRAY        = "Cannot slice a non-array value. Expected an Array but got %s.";
-    private static final String ERROR_SLICING_STEP_ZERO             = "Step must not be zero.";
+    // Runtime errors (used in Error.at() calls)
+    private static final String RUNTIME_ERROR_EXPRESSION_STEP_TYPE_MISMATCH = "Expression in expression step must return a number or text, but got %s.";
+    private static final String RUNTIME_ERROR_INDEX_ACCESS_TYPE_MISMATCH    = "Cannot access contents of a non-array value using an index. Expected an Array but got %s.";
+    private static final String RUNTIME_ERROR_INDEX_OUT_OF_BOUNDS           = "Index %d out of bounds for array of size %d.";
+    private static final String RUNTIME_ERROR_INDEX_UNION_REQUIRES_ARRAY    = "Index union steps can only be applied to arrays but got %s.";
+    private static final String RUNTIME_ERROR_KEY_ACCESS_TYPE_MISMATCH      = "Cannot access contents of a non-object value using a key. Expected an ObjectValue but got %s.";
+    private static final String RUNTIME_ERROR_KEY_UNION_REQUIRES_OBJECT     = "Key union steps can only be applied to objects but got %s.";
+    private static final String RUNTIME_ERROR_MAX_RECURSION_DEPTH_INDEX     = "Maximum nesting depth exceeded during recursive index step.";
+    private static final String RUNTIME_ERROR_MAX_RECURSION_DEPTH_KEY       = "Maximum nesting depth exceeded during recursive key step.";
+    private static final String RUNTIME_ERROR_MAX_RECURSION_DEPTH_WILDCARD  = "Maximum nesting depth exceeded during recursive wildcard step.";
+    private static final String RUNTIME_ERROR_SLICING_REQUIRES_ARRAY        = "Cannot slice a non-array value. Expected an Array but got %s.";
+    private static final String RUNTIME_ERROR_SLICING_STEP_ZERO             = "Step must not be zero.";
+    private static final String RUNTIME_ERROR_WILDCARD_TYPE_MISMATCH        = "Wildcard steps '.*' can only be applied to arrays or objects but got %s.";
 
     /**
      * Performs an index or key step based on the expression result type. Uses the
@@ -67,24 +71,26 @@ public class StepOperators {
         case NumberValue numberValue -> StepOperators.indexStep(astNode, value, numberValue.value(), metadata);
         case TextValue textValue     -> StepOperators.keyStep(astNode, value, textValue.value()).withMetadata(metadata);
         default                      ->
-            Error.at(astNode, metadata, ERROR_EXPRESSION_STEP_TYPE_MISMATCH, expressionResult);
+            Error.at(astNode, metadata, RUNTIME_ERROR_EXPRESSION_STEP_TYPE_MISMATCH, expressionResult);
         };
     }
 
     /**
      * Accesses an object property by key.
      *
-     * @param astNode call site in the document
-     * @param parent the object value
-     * @param key the property key
+     * @param astNode
+     * call site in the document
+     * @param parent
+     * the object value
+     * @param key
+     * the property key
+     *
      * @return the property value, UNDEFINED if key not found, or error if parent is
      * not an object
      */
     public static Value keyStep(EObject astNode, Value parent, String key) {
         if (!(parent instanceof ObjectValue objectValue)) {
-            return Error.at(astNode, parent.metadata(),
-                    "Cannot access contents of a non-object value using a key. Expected an ObjectValue but got %s.",
-                    parent);
+            return Error.at(astNode, parent.metadata(), RUNTIME_ERROR_KEY_ACCESS_TYPE_MISMATCH, parent);
         }
         val content = objectValue.get(key);
         if (content == null) {
@@ -97,9 +103,13 @@ public class StepOperators {
      * Accesses an array element by index. Supports negative indices counting from
      * the end.
      *
-     * @param astNode call site in the document
-     * @param parent the array value
-     * @param bigIndex the element index (negative values count from end)
+     * @param astNode
+     * call site in the document
+     * @param parent
+     * the array value
+     * @param bigIndex
+     * the element index (negative values count from end)
+     *
      * @return the array element, or error if parent is not an array or index out of
      * bounds
      */
@@ -111,13 +121,11 @@ public class StepOperators {
             return Error.at(astNode, metadata, e.getMessage());
         }
         if (!(parent instanceof ArrayValue arrayValue)) {
-            return Error.at(astNode, metadata,
-                    "Cannot access contents of a non-array value using an index. Expected an Array but got %s.",
-                    parent);
+            return Error.at(astNode, metadata, RUNTIME_ERROR_INDEX_ACCESS_TYPE_MISMATCH, parent);
         }
         var normalizedIndex = index < 0 ? index + arrayValue.size() : index;
         if (normalizedIndex < 0 || normalizedIndex >= arrayValue.size()) {
-            return Error.at(astNode, metadata, ERROR_INDEX_OUT_OF_BOUNDS, index, arrayValue.size());
+            return Error.at(astNode, metadata, RUNTIME_ERROR_INDEX_OUT_OF_BOUNDS, index, arrayValue.size());
         }
         return arrayValue.get(normalizedIndex).withMetadata(metadata);
     }
@@ -142,8 +150,7 @@ public class StepOperators {
             }
             return arrayBuilder.build();
         }
-        return Error.at(astNode, parent.metadata(),
-                "Wildcard steps '.*' can only be applied to arrays or objects but got %s.", parent);
+        return Error.at(astNode, parent.metadata(), RUNTIME_ERROR_WILDCARD_TYPE_MISMATCH, parent);
     }
 
     /**
@@ -164,7 +171,7 @@ public class StepOperators {
             recursiveKeyStep(parent, key, 0, arrayBuilder);
             return arrayBuilder.build().withMetadata(metadata);
         } catch (MaxRecursionDepthException e) {
-            return Error.at(astNode, metadata, ERROR_MAX_RECURSION_DEPTH_KEY);
+            return Error.at(astNode, metadata, RUNTIME_ERROR_MAX_RECURSION_DEPTH_KEY);
         }
     }
 
@@ -238,7 +245,7 @@ public class StepOperators {
     public static Value sliceArray(EObject astNode, Value parent, BigDecimal bigIndex, BigDecimal bigTo,
             BigDecimal bigStep) {
         if (!(parent instanceof ArrayValue arrayValue)) {
-            return Error.at(astNode, parent.metadata(), ERROR_SLICING_REQUIRES_ARRAY, parent);
+            return Error.at(astNode, parent.metadata(), RUNTIME_ERROR_SLICING_REQUIRES_ARRAY, parent);
         }
 
         int from;
@@ -253,7 +260,7 @@ public class StepOperators {
         }
 
         if (step == 0) {
-            return Error.at(astNode, ValueMetadata.EMPTY, ERROR_SLICING_STEP_ZERO);
+            return Error.at(astNode, ValueMetadata.EMPTY, RUNTIME_ERROR_SLICING_STEP_ZERO);
         }
 
         return sliceArrayWithParameters(arrayValue, from, to, step);
@@ -322,7 +329,7 @@ public class StepOperators {
             }
         }
         if (!(parent instanceof ArrayValue arrayValue)) {
-            return Error.at(astNode, parent.metadata(), ERROR_INDEX_UNION_REQUIRES_ARRAY, parent);
+            return Error.at(astNode, parent.metadata(), RUNTIME_ERROR_INDEX_UNION_REQUIRES_ARRAY, parent);
         }
         val size  = arrayValue.size();
         val pairs = new int[indexes.length][2];
@@ -335,7 +342,7 @@ public class StepOperators {
         int lastIndex    = -1;
         for (val pair : pairs) {
             if (pair[1] < 0 || pair[1] >= size) {
-                return Error.at(astNode, parent.metadata(), ERROR_INDEX_OUT_OF_BOUNDS, pair[0], size);
+                return Error.at(astNode, parent.metadata(), RUNTIME_ERROR_INDEX_OUT_OF_BOUNDS, pair[0], size);
             }
 
             if (pair[1] != lastIndex) {
@@ -361,7 +368,7 @@ public class StepOperators {
      */
     public static Value attributeUnion(EObject astNode, Value parent, List<String> keys) {
         if (!(parent instanceof ObjectValue objectValue)) {
-            return Error.at(astNode, parent.metadata(), ERROR_KEY_UNION_REQUIRES_OBJECT, parent);
+            return Error.at(astNode, parent.metadata(), RUNTIME_ERROR_KEY_UNION_REQUIRES_OBJECT, parent);
         }
         val requestedKeys = new HashSet<>(keys);
         val arrayBuilder  = ArrayValue.builder();
@@ -394,7 +401,7 @@ public class StepOperators {
             recursiveWildcardStep(parent, 0, arrayBuilder);
             return arrayBuilder.build();
         } catch (MaxRecursionDepthException e) {
-            return Error.at(astNode, parent.metadata(), ERROR_MAX_RECURSION_DEPTH_WILDCARD);
+            return Error.at(astNode, parent.metadata(), RUNTIME_ERROR_MAX_RECURSION_DEPTH_WILDCARD);
         }
     }
 
@@ -438,7 +445,7 @@ public class StepOperators {
         } catch (ArithmeticException exception) {
             return Error.at(astNode, parent.metadata(), exception.getMessage());
         } catch (MaxRecursionDepthException e) {
-            return Error.at(astNode, parent.metadata(), ERROR_MAX_RECURSION_DEPTH_INDEX);
+            return Error.at(astNode, parent.metadata(), RUNTIME_ERROR_MAX_RECURSION_DEPTH_INDEX);
         }
     }
 

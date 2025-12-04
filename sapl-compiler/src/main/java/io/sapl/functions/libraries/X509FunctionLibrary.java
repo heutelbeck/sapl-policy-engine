@@ -25,8 +25,8 @@ import io.sapl.api.model.ErrorValue;
 import io.sapl.api.model.TextValue;
 import io.sapl.api.model.Value;
 import io.sapl.api.model.ValueJsonMarshaller;
-import io.sapl.compiler.PolicyEvaluationException;
 import io.sapl.functions.libraries.crypto.CertificateUtils;
+import io.sapl.functions.libraries.crypto.CryptoException;
 import io.sapl.functions.libraries.crypto.SubjectAlternativeName;
 import lombok.experimental.UtilityClass;
 import lombok.val;
@@ -103,6 +103,15 @@ public class X509FunctionLibrary {
                 "type": "array"
             }
             """;
+
+    private static final String ERROR_FAILED_TO_CHECK_DNS_NAMES  = "Failed to check DNS names: %s.";
+    private static final String ERROR_FAILED_TO_CHECK_IP_ADDRS   = "Failed to check IP addresses: %s.";
+    private static final String ERROR_FAILED_TO_ENCODE_CERT      = "Failed to encode certificate: %s.";
+    private static final String ERROR_FAILED_TO_EXTRACT_SANS     = "Failed to extract subject alternative names: %s.";
+    private static final String ERROR_HASH_ALGORITHM_UNSUPPORTED = "Hash algorithm not supported: %s.";
+    private static final String ERROR_INVALID_ISO8601_FORMAT     = "Invalid ISO 8601 timestamp format: %s";
+    private static final String ERROR_INVALID_TIMESTAMP          = "Invalid timestamp: %s.";
+    private static final String ERROR_NO_COMMON_NAME             = "Certificate subject does not contain a Common Name.";
 
     private static final JsonNodeFactory JSON = JsonNodeFactory.instance;
 
@@ -207,7 +216,7 @@ public class X509FunctionLibrary {
             val subjectDn  = certificate.getSubjectX500Principal().getName();
             val commonName = extractCnFromDn(subjectDn);
             if (commonName == null) {
-                return new ErrorValue("Certificate subject does not contain a Common Name.");
+                return new ErrorValue(ERROR_NO_COMMON_NAME);
             }
             return Value.of(commonName);
         }, "Failed to extract common name");
@@ -364,7 +373,7 @@ public class X509FunctionLibrary {
 
                 return ValueJsonMarshaller.fromJsonNode(subjectAltNamesArray);
             } catch (CertificateParsingException exception) {
-                return new ErrorValue("Failed to extract subject alternative names: " + exception.getMessage() + ".");
+                return new ErrorValue(ERROR_FAILED_TO_EXTRACT_SANS.formatted(exception.getMessage()));
             }
         }, "Failed to extract subject alternative names");
     }
@@ -401,7 +410,7 @@ public class X509FunctionLibrary {
                     }
                 }
             } catch (CertificateParsingException exception) {
-                return new ErrorValue("Failed to check DNS names: " + exception.getMessage() + ".");
+                return new ErrorValue(ERROR_FAILED_TO_CHECK_DNS_NAMES.formatted(exception.getMessage()));
             }
 
             return Value.of(false);
@@ -430,7 +439,7 @@ public class X509FunctionLibrary {
                 val subjectAltNames = CertificateUtils.extractSubjectAlternativeNames(certificate);
                 return Value.of(containsIpAddress(subjectAltNames, targetIp));
             } catch (CertificateParsingException exception) {
-                return new ErrorValue("Failed to check IP addresses: " + exception.getMessage() + ".");
+                return new ErrorValue(ERROR_FAILED_TO_CHECK_IP_ADDRS.formatted(exception.getMessage()));
             }
         }, "Failed to check IP address");
     }
@@ -500,8 +509,8 @@ public class X509FunctionLibrary {
                 val isValid   = !timestamp.before(certificate.getNotBefore())
                         && !timestamp.after(certificate.getNotAfter());
                 return Value.of(isValid);
-            } catch (PolicyEvaluationException exception) {
-                return new ErrorValue("Invalid timestamp: " + exception.getMessage() + ".");
+            } catch (CryptoException exception) {
+                return new ErrorValue(ERROR_INVALID_TIMESTAMP.formatted(exception.getMessage()));
             }
         }, "Failed to check validity");
     }
@@ -561,7 +570,7 @@ public class X509FunctionLibrary {
         try {
             val certificate = CertificateUtils.parseCertificate(certificateString);
             return operation.apply(certificate);
-        } catch (CertificateException | PolicyEvaluationException exception) {
+        } catch (CertificateException | CryptoException exception) {
             val message      = exception.getMessage();
             val errorMessage = message != null && message.endsWith(".") ? errorPrefix + ": " + message
                     : errorPrefix + ": " + message + ".";
@@ -587,9 +596,9 @@ public class X509FunctionLibrary {
             val fingerprintHex   = HexFormat.of().formatHex(fingerprintBytes);
             return Value.of(fingerprintHex);
         } catch (NoSuchAlgorithmException exception) {
-            return new ErrorValue("Hash algorithm not supported: " + algorithm + ".");
+            return new ErrorValue(ERROR_HASH_ALGORITHM_UNSUPPORTED.formatted(algorithm));
         } catch (CertificateEncodingException exception) {
-            return new ErrorValue("Failed to encode certificate: " + exception.getMessage() + ".");
+            return new ErrorValue(ERROR_FAILED_TO_ENCODE_CERT.formatted(exception.getMessage()));
         }
     }
 
@@ -601,14 +610,14 @@ public class X509FunctionLibrary {
      *
      * @return the parsed Date
      *
-     * @throws PolicyEvaluationException
+     * @throws CryptoException
      * if the timestamp format is invalid
      */
     private static Date parseTimestamp(String isoTimestamp) {
         try {
             return Date.from(Instant.parse(isoTimestamp));
         } catch (DateTimeParseException exception) {
-            throw new PolicyEvaluationException("Invalid ISO 8601 timestamp format: " + isoTimestamp, exception);
+            throw new CryptoException(ERROR_INVALID_ISO8601_FORMAT.formatted(isoTimestamp), exception);
         }
     }
 

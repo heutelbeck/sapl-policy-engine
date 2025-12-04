@@ -57,8 +57,9 @@ import reactor.core.publisher.Flux;
 
 /**
  * Tests for metadata propagation through expression evaluation. Validates that
- * ValueMetadata (secret flags and attribute traces) correctly propagates
- * through operators, functions, attribute finders, containers, and filters.
+ * ValueMetadata (secret flags and
+ * attribute traces) correctly propagates through operators, functions,
+ * attribute finders, containers, and filters.
  */
 @DisplayName("Metadata Propagation")
 class MetadataPropagationTests {

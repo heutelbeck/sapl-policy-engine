@@ -82,12 +82,11 @@ public class DynamicPolicyDecisionPoint implements TracedPolicyDecisionPoint {
      * Synchronous authorization decision for high-throughput scenarios.
      * <p>
      * This method bypasses Reactor's subscription overhead by reading the
-     * configuration
-     * directly from a lock-free cache. For pure policies (no attribute streams),
-     * the
-     * entire evaluation is synchronous. For policies with attribute access, it
-     * falls
-     * back to blocking on the attribute streams while still avoiding configuration
+     * configuration directly from a lock-free
+     * cache. For pure policies (no attribute streams), the entire evaluation is
+     * synchronous. For policies with
+     * attribute access, it falls back to blocking on the attribute streams while
+     * still avoiding configuration
      * subscription overhead.
      * <p>
      * Use this method when:
@@ -259,9 +258,9 @@ public class DynamicPolicyDecisionPoint implements TracedPolicyDecisionPoint {
         // TODO: Extract attributes and errors from Value metadata
         val metadata = new DecisionMetadata(evaluationContext.pdpId(), evaluationContext.configurationId(),
                 evaluationContext.subscriptionId(), evaluationContext.authorizationSubscription(), Instant.now(),
-                List.of(),  // attributes - to be populated from Value metadata
-                List.of(),  // errors - to be populated from Value metadata
-                Map.of(),   // documentDecisions - to be populated from combining algorithm
+                List.of(), // attributes - to be populated from Value metadata
+                List.of(), // errors - to be populated from Value metadata
+                Map.of(), // documentDecisions - to be populated from combining algorithm
                 combiningAlgorithmName);
         return new TracedDecision(decision, metadata);
     }

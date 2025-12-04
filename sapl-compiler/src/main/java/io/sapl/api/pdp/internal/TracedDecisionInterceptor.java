@@ -20,8 +20,8 @@ package io.sapl.api.pdp.internal;
 import java.util.function.UnaryOperator;
 
 /**
- * Intercepts traced decisions for logging, auditing, or modification.
- * Ordered by priority (lower values execute first).
+ * Intercepts traced decisions for logging, auditing, or modification. Ordered
+ * by priority (lower values execute first).
  */
 @FunctionalInterface
 public interface TracedDecisionInterceptor

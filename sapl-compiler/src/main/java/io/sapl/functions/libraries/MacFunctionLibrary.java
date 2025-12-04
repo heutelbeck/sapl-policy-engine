@@ -115,6 +115,12 @@ public class MacFunctionLibrary {
             }
             """;
 
+    private static final String ERROR_FAILED_TO_COMPARE_MACS = "Failed to compare MACs: ";
+    private static final String ERROR_FAILED_TO_COMPUTE_HMAC = "Failed to compute HMAC: ";
+    private static final String ERROR_HMAC_ALGORITHM_UNAVAIL = "HMAC algorithm not available: ";
+    private static final String ERROR_INVALID_HEX_MAC_FORMAT = "Invalid hexadecimal MAC format: ";
+    private static final String ERROR_INVALID_HMAC_KEY       = "Invalid key for HMAC: ";
+
     /* HMAC Functions */
 
     @Function(docs = """
@@ -215,9 +221,9 @@ public class MacFunctionLibrary {
             val areEqual = MessageDigest.isEqual(bytes1, bytes2);
             return Value.of(areEqual);
         } catch (IllegalArgumentException exception) {
-            return new ErrorValue("Invalid hexadecimal MAC format: " + exception.getMessage());
+            return new ErrorValue(ERROR_INVALID_HEX_MAC_FORMAT + exception.getMessage());
         } catch (Exception exception) {
-            return new ErrorValue("Failed to compare MACs: " + exception.getMessage());
+            return new ErrorValue(ERROR_FAILED_TO_COMPARE_MACS + exception.getMessage());
         }
     }
 
@@ -271,11 +277,11 @@ public class MacFunctionLibrary {
             val hexHmac   = HexFormat.of().formatHex(hmacBytes);
             return Value.of(hexHmac);
         } catch (NoSuchAlgorithmException exception) {
-            return new ErrorValue("HMAC algorithm not available: " + algorithm);
+            return new ErrorValue(ERROR_HMAC_ALGORITHM_UNAVAIL + algorithm);
         } catch (InvalidKeyException exception) {
-            return new ErrorValue("Invalid key for HMAC: " + exception.getMessage());
+            return new ErrorValue(ERROR_INVALID_HMAC_KEY + exception.getMessage());
         } catch (Exception exception) {
-            return new ErrorValue("Failed to compute HMAC: " + exception.getMessage());
+            return new ErrorValue(ERROR_FAILED_TO_COMPUTE_HMAC + exception.getMessage());
         }
     }
 

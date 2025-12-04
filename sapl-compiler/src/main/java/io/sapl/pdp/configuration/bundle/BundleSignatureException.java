@@ -17,6 +17,9 @@
  */
 package io.sapl.pdp.configuration.bundle;
 
+import io.sapl.api.SaplVersion;
+import lombok.experimental.StandardException;
+
 import java.io.Serial;
 
 /**
@@ -38,30 +41,8 @@ import java.io.Serial;
  * @see BundleManifest
  * @see BundleParser
  */
+@StandardException
 public class BundleSignatureException extends RuntimeException {
-
     @Serial
-    private static final long serialVersionUID = 1L;
-
-    /**
-     * Constructs a new exception with the specified message.
-     *
-     * @param message
-     * the detail message
-     */
-    public BundleSignatureException(String message) {
-        super(message);
-    }
-
-    /**
-     * Constructs a new exception with the specified message and cause.
-     *
-     * @param message
-     * the detail message
-     * @param cause
-     * the underlying cause
-     */
-    public BundleSignatureException(String message, Throwable cause) {
-        super(message, cause);
-    }
+    private static final long serialVersionUID = SaplVersion.VERSION_UID;
 }

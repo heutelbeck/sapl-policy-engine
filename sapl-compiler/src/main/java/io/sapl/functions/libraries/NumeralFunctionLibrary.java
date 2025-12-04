@@ -17,8 +17,6 @@
  */
 package io.sapl.functions.libraries;
 
-import java.math.BigDecimal;
-
 import io.sapl.api.functions.Function;
 import io.sapl.api.functions.FunctionLibrary;
 import io.sapl.api.model.ErrorValue;
@@ -28,18 +26,14 @@ import io.sapl.api.model.Value;
 import lombok.experimental.UtilityClass;
 import lombok.val;
 
+import java.math.BigDecimal;
+
 /**
  * Numeric base conversion for authorization policies.
  */
 @UtilityClass
 @FunctionLibrary(name = NumeralFunctionLibrary.NAME, description = NumeralFunctionLibrary.DESCRIPTION, libraryDocumentation = NumeralFunctionLibrary.DOCUMENTATION)
 public class NumeralFunctionLibrary {
-
-    private static final String NUMBER_VALUE_OUT_OF_RANGE = "NumberValue out of range";
-    final BigDecimal            minLong                   = BigDecimal.valueOf(java.lang.Long.MIN_VALUE);
-    final BigDecimal            maxLong                   = BigDecimal.valueOf(java.lang.Long.MAX_VALUE);
-    final BigDecimal            minInt                    = BigDecimal.valueOf(java.lang.Integer.MIN_VALUE);
-    final BigDecimal            maxInt                    = BigDecimal.valueOf(java.lang.Integer.MAX_VALUE);
 
     public static final String NAME          = "numeral";
     public static final String DESCRIPTION   = "Numeric base conversion for authorization policies.";
@@ -139,6 +133,13 @@ public class NumeralFunctionLibrary {
                 bitwise.bitwiseAnd(permissions, 4) == 4;
             ```
             """;
+
+    private static final String ERROR_NUMBER_VALUE_OUT_OF_RANGE = "NumberValue out of range";
+
+    final BigDecimal minLong = BigDecimal.valueOf(Long.MIN_VALUE);
+    final BigDecimal maxLong = BigDecimal.valueOf(Long.MAX_VALUE);
+    final BigDecimal minInt  = BigDecimal.valueOf(Integer.MIN_VALUE);
+    final BigDecimal maxInt  = BigDecimal.valueOf(Integer.MAX_VALUE);
 
     private static final String RETURNS_NUMBER = """
             {
@@ -262,10 +263,10 @@ public class NumeralFunctionLibrary {
         val number = value.value();
 
         if (number.compareTo(minLong) < 0 || number.compareTo(maxLong) > 0) {
-            return new ErrorValue(NUMBER_VALUE_OUT_OF_RANGE);
+            return new ErrorValue(ERROR_NUMBER_VALUE_OUT_OF_RANGE);
         }
 
-        return Value.of(java.lang.Long.toHexString(number.longValueExact()).toUpperCase());
+        return Value.of(Long.toHexString(number.longValueExact()).toUpperCase());
     }
 
     @Function(docs = """
@@ -293,10 +294,10 @@ public class NumeralFunctionLibrary {
         val number = value.value();
 
         if (number.compareTo(minLong) < 0 || number.compareTo(maxLong) > 0) {
-            return new ErrorValue(NUMBER_VALUE_OUT_OF_RANGE);
+            return new ErrorValue(ERROR_NUMBER_VALUE_OUT_OF_RANGE);
         }
 
-        return Value.of(java.lang.Long.toBinaryString(number.longValueExact()));
+        return Value.of(Long.toBinaryString(number.longValueExact()));
     }
 
     @Function(docs = """
@@ -324,10 +325,10 @@ public class NumeralFunctionLibrary {
         val number = value.value();
 
         if (value.value().compareTo(minLong) < 0 || value.value().compareTo(maxLong) > 0) {
-            return new ErrorValue(NUMBER_VALUE_OUT_OF_RANGE);
+            return new ErrorValue(ERROR_NUMBER_VALUE_OUT_OF_RANGE);
         }
 
-        return Value.of(java.lang.Long.toOctalString(number.longValueExact()));
+        return Value.of(Long.toOctalString(number.longValueExact()));
     }
 
     @Function(docs = """
@@ -357,10 +358,10 @@ public class NumeralFunctionLibrary {
         val number = value.value();
 
         if (number.compareTo(minLong) < 0 || number.compareTo(maxLong) > 0) {
-            return new ErrorValue(NUMBER_VALUE_OUT_OF_RANGE);
+            return new ErrorValue(ERROR_NUMBER_VALUE_OUT_OF_RANGE);
         }
 
-        return Value.of("0x" + java.lang.Long.toHexString(number.longValueExact()).toUpperCase());
+        return Value.of("0x" + Long.toHexString(number.longValueExact()).toUpperCase());
     }
 
     @Function(docs = """
@@ -387,10 +388,10 @@ public class NumeralFunctionLibrary {
         val number = value.value();
 
         if (number.compareTo(minLong) < 0 || number.compareTo(maxLong) > 0) {
-            return new ErrorValue(NUMBER_VALUE_OUT_OF_RANGE);
+            return new ErrorValue(ERROR_NUMBER_VALUE_OUT_OF_RANGE);
         }
 
-        return Value.of("0b" + java.lang.Long.toBinaryString(number.longValueExact()));
+        return Value.of("0b" + Long.toBinaryString(number.longValueExact()));
     }
 
     @Function(docs = """
@@ -417,10 +418,10 @@ public class NumeralFunctionLibrary {
         val number = value.value();
 
         if (number.compareTo(minLong) < 0 || number.compareTo(maxLong) > 0) {
-            return new ErrorValue(NUMBER_VALUE_OUT_OF_RANGE);
+            return new ErrorValue(ERROR_NUMBER_VALUE_OUT_OF_RANGE);
         }
 
-        return Value.of("0o" + java.lang.Long.toOctalString(number.longValueExact()));
+        return Value.of("0o" + Long.toOctalString(number.longValueExact()));
     }
 
     @Function(docs = """
@@ -453,12 +454,12 @@ public class NumeralFunctionLibrary {
         val number = value.value();
 
         if (number.compareTo(minLong) < 0 || number.compareTo(maxLong) > 0) {
-            return new ErrorValue(NUMBER_VALUE_OUT_OF_RANGE);
+            return new ErrorValue(ERROR_NUMBER_VALUE_OUT_OF_RANGE);
         }
 
-        val hexString = java.lang.Long.toHexString(number.longValueExact()).toUpperCase();
+        val hexString = Long.toHexString(number.longValueExact()).toUpperCase();
         if (width.value().compareTo(minInt) < 0 || width.value().compareTo(maxInt) > 0) {
-            return new ErrorValue(NUMBER_VALUE_OUT_OF_RANGE);
+            return new ErrorValue(ERROR_NUMBER_VALUE_OUT_OF_RANGE);
         }
         val minWidth = width.value().intValueExact();
 
@@ -495,13 +496,13 @@ public class NumeralFunctionLibrary {
         val number = value.value();
 
         if (number.compareTo(minLong) < 0 || number.compareTo(maxLong) > 0) {
-            return new ErrorValue(NUMBER_VALUE_OUT_OF_RANGE);
+            return new ErrorValue(ERROR_NUMBER_VALUE_OUT_OF_RANGE);
         }
 
-        val binaryString = java.lang.Long.toBinaryString(number.longValueExact());
+        val binaryString = Long.toBinaryString(number.longValueExact());
 
         if (width.value().compareTo(minInt) < 0 || width.value().compareTo(maxInt) > 0) {
-            return new ErrorValue(NUMBER_VALUE_OUT_OF_RANGE);
+            return new ErrorValue(ERROR_NUMBER_VALUE_OUT_OF_RANGE);
         }
         val minWidth = width.value().intValueExact();
         return Value.of(padToWidth(binaryString, minWidth));
@@ -537,13 +538,13 @@ public class NumeralFunctionLibrary {
         val number = value.value();
 
         if (number.compareTo(minLong) < 0 || number.compareTo(maxLong) > 0) {
-            return new ErrorValue(NUMBER_VALUE_OUT_OF_RANGE);
+            return new ErrorValue(ERROR_NUMBER_VALUE_OUT_OF_RANGE);
         }
 
-        val octalString = java.lang.Long.toOctalString(number.longValueExact());
+        val octalString = Long.toOctalString(number.longValueExact());
 
         if (width.value().compareTo(minInt) < 0 || width.value().compareTo(maxInt) > 0) {
-            return new ErrorValue(NUMBER_VALUE_OUT_OF_RANGE);
+            return new ErrorValue(ERROR_NUMBER_VALUE_OUT_OF_RANGE);
         }
         val minWidth = width.value().intValueExact();
 
@@ -629,9 +630,13 @@ public class NumeralFunctionLibrary {
      * Parses a string in the specified base, handling prefixes, signs, and
      * underscores.
      *
-     * @param input the string to parse
-     * @param radix the base (2, 8, or 16)
-     * @param baseName the name of the base for error messages
+     * @param input
+     * the string to parse
+     * @param radix
+     * the base (2, 8, or 16)
+     * @param baseName
+     * the name of the base for error messages
+     *
      * @return a Value containing the parsed number or an error
      */
     private static Value parseWithBase(String input, int radix, String baseName) {
@@ -653,7 +658,7 @@ public class NumeralFunctionLibrary {
         }
 
         try {
-            val parsedValue = java.lang.Long.parseUnsignedLong(cleanedInput, radix);
+            val parsedValue = Long.parseUnsignedLong(cleanedInput, radix);
             return Value.of(isNegative ? -parsedValue : parsedValue);
         } catch (NumberFormatException exception) {
             return Value.error("Invalid " + baseName + " string: " + input);
@@ -675,8 +680,8 @@ public class NumeralFunctionLibrary {
 
     /**
      * Pads a string with leading zeros to reach the specified width. Does not
-     * truncate if
-     * the string is already longer than the width.
+     * truncate if the string is already longer
+     * than the width.
      */
     private static String padToWidth(String value, int width) {
         if (value.length() >= width) {
@@ -705,7 +710,7 @@ public class NumeralFunctionLibrary {
         }
 
         try {
-            java.lang.Long.parseUnsignedLong(cleanedInput, radix);
+            Long.parseUnsignedLong(cleanedInput, radix);
             return true;
         } catch (NumberFormatException exception) {
             return false;

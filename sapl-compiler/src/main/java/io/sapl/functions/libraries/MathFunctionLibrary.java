@@ -67,8 +67,11 @@ public class MathFunctionLibrary {
     /**
      * Returns the smaller of two numbers.
      *
-     * @param a first number
-     * @param b second number
+     * @param a
+     * first number
+     * @param b
+     * second number
+     *
      * @return the smaller of a and b
      */
     @Function(docs = """
@@ -91,8 +94,11 @@ public class MathFunctionLibrary {
     /**
      * Returns the larger of two numbers.
      *
-     * @param a first number
-     * @param b second number
+     * @param a
+     * first number
+     * @param b
+     * second number
+     *
      * @return the larger of a and b
      */
     @Function(docs = """
@@ -115,7 +121,9 @@ public class MathFunctionLibrary {
     /**
      * Returns the absolute value of a number.
      *
-     * @param value the number
+     * @param value
+     * the number
+     *
      * @return the absolute value
      */
     @Function(docs = """
@@ -138,7 +146,9 @@ public class MathFunctionLibrary {
     /**
      * Returns the smallest integer greater than or equal to the value (rounds up).
      *
-     * @param value the number to round up
+     * @param value
+     * the number to round up
+     *
      * @return the ceiling value
      */
     @Function(docs = """
@@ -162,7 +172,9 @@ public class MathFunctionLibrary {
     /**
      * Returns the largest integer less than or equal to the value (rounds down).
      *
-     * @param value the number to round down
+     * @param value
+     * the number to round down
+     *
      * @return the floor value
      */
     @Function(docs = """
@@ -186,7 +198,9 @@ public class MathFunctionLibrary {
     /**
      * Returns the value rounded to the nearest integer.
      *
-     * @param value the number to round
+     * @param value
+     * the number to round
+     *
      * @return the rounded value
      */
     @Function(docs = """
@@ -211,8 +225,11 @@ public class MathFunctionLibrary {
     /**
      * Returns the value of the base raised to the power of the exponent.
      *
-     * @param base the base value
-     * @param exponent the exponent
+     * @param base
+     * the base value
+     * @param exponent
+     * the exponent
+     *
      * @return base raised to the power of exponent, or ErrorValue if result is NaN
      */
     @Function(docs = """
@@ -240,7 +257,9 @@ public class MathFunctionLibrary {
     /**
      * Returns the square root of a number.
      *
-     * @param value the number
+     * @param value
+     * the number
+     *
      * @return the square root, or ErrorValue if value is negative
      */
     @Function(docs = """
@@ -267,7 +286,9 @@ public class MathFunctionLibrary {
     /**
      * Returns the sign of a number.
      *
-     * @param value the number
+     * @param value
+     * the number
+     *
      * @return -1 for negative, 0 for zero, 1 for positive
      */
     @Function(docs = """
@@ -291,9 +312,13 @@ public class MathFunctionLibrary {
     /**
      * Constrains a value to lie within a specified range.
      *
-     * @param value the value to clamp
-     * @param minimum the minimum bound
-     * @param maximum the maximum bound
+     * @param value
+     * the value to clamp
+     * @param minimum
+     * the minimum bound
+     * @param maximum
+     * the maximum bound
+     *
      * @return the clamped value, or ErrorValue if minimum greater than maximum
      */
     @Function(docs = """
@@ -327,7 +352,9 @@ public class MathFunctionLibrary {
     /**
      * Returns a cryptographically secure random integer in the range [0, bound).
      *
-     * @param bound the upper bound (exclusive)
+     * @param bound
+     * the upper bound (exclusive)
+     *
      * @return a random integer, or ErrorValue if bound is invalid
      */
     @Function(docs = """
@@ -358,8 +385,11 @@ public class MathFunctionLibrary {
     /**
      * Returns a seeded random integer in the range [0, bound).
      *
-     * @param bound the upper bound (exclusive)
-     * @param seed the seed for the random number generator
+     * @param bound
+     * the upper bound (exclusive)
+     * @param seed
+     * the seed for the random number generator
+     *
      * @return a random integer, or ErrorValue if bound or seed is invalid
      */
     @Function(docs = """
@@ -424,7 +454,9 @@ public class MathFunctionLibrary {
     /**
      * Returns a seeded random floating-point number in the range [0.0, 1.0).
      *
-     * @param seed the seed for the random number generator
+     * @param seed
+     * the seed for the random number generator
+     *
      * @return a random double, or ErrorValue if seed is invalid
      */
     @Function(docs = """
@@ -502,7 +534,9 @@ public class MathFunctionLibrary {
     /**
      * Returns the natural logarithm (base e) of a number.
      *
-     * @param value the number
+     * @param value
+     * the number
+     *
      * @return the natural logarithm, or ErrorValue if value is not positive
      */
     @Function(docs = """
@@ -531,7 +565,9 @@ public class MathFunctionLibrary {
     /**
      * Returns the base-10 logarithm of a number.
      *
-     * @param value the number
+     * @param value
+     * the number
+     *
      * @return the base-10 logarithm, or ErrorValue if value is not positive
      */
     @Function(docs = """
@@ -559,8 +595,11 @@ public class MathFunctionLibrary {
     /**
      * Returns the logarithm of a value with an arbitrary base.
      *
-     * @param value the number
-     * @param base the logarithm base
+     * @param value
+     * the number
+     * @param base
+     * the logarithm base
+     *
      * @return the logarithm, or ErrorValue if value or base is invalid
      */
     @Function(docs = """

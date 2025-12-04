@@ -29,15 +29,14 @@ import java.util.LinkedHashSet;
 import java.util.List;
 
 /**
- * Metadata carried by every Value during policy evaluation.
- * Tracks whether the value is secret (should not be logged) and which
- * attribute invocations contributed to producing this value.
- *
+ * Metadata carried by every Value during policy evaluation. Tracks whether the
+ * value is secret (should not be logged)
+ * and which attribute invocations contributed to producing this value.
  * <p>
  * Metadata propagates through operators analogous to how secrets propagate:
- * binary operators merge metadata from both operands, containers aggregate
- * metadata from all elements then propagate the merged result back to elements.
- *
+ * binary operators merge metadata from both
+ * operands, containers aggregate metadata from all elements then propagate the
+ * merged result back to elements.
  * <p>
  * Example flow:
  *
@@ -47,9 +46,10 @@ import java.util.List;
  * var result = a == b;        // metadata: [subject.role, resource.owner]
  * }</pre>
  *
- * @param secret whether this value contains sensitive data that should not be
- * logged
- * @param attributeTrace attribute invocations that contributed to this value
+ * @param secret
+ * whether this value contains sensitive data that should not be logged
+ * @param attributeTrace
+ * attribute invocations that contributed to this value
  */
 public record ValueMetadata(boolean secret, @NonNull List<AttributeRecord> attributeTrace) implements Serializable {
 
@@ -68,9 +68,12 @@ public record ValueMetadata(boolean secret, @NonNull List<AttributeRecord> attri
 
     /**
      * Merges this metadata with another, combining secret flags and attribute
-     * traces. Deduplicates attribute records by reference identity.
+     * traces. Deduplicates attribute records by
+     * reference identity.
      *
-     * @param other the metadata to merge with
+     * @param other
+     * the metadata to merge with
+     *
      * @return merged metadata, or one of the inputs if the other is empty
      */
     public ValueMetadata merge(ValueMetadata other) {
@@ -93,7 +96,9 @@ public record ValueMetadata(boolean secret, @NonNull List<AttributeRecord> attri
     /**
      * Merges multiple metadata instances.
      *
-     * @param sources the metadata instances to merge
+     * @param sources
+     * the metadata instances to merge
+     *
      * @return merged metadata
      */
     public static ValueMetadata merge(ValueMetadata... sources) {
@@ -153,7 +158,9 @@ public record ValueMetadata(boolean secret, @NonNull List<AttributeRecord> attri
     /**
      * Creates metadata for a single attribute invocation.
      *
-     * @param attributeRecord the attribute attributeRecord
+     * @param attributeRecord
+     * the attribute attributeRecord
+     *
      * @return metadata containing just this attribute
      */
     public static ValueMetadata ofAttribute(AttributeRecord attributeRecord) {
@@ -163,7 +170,9 @@ public record ValueMetadata(boolean secret, @NonNull List<AttributeRecord> attri
     /**
      * Creates secret metadata for a single attribute invocation.
      *
-     * @param attributeRecord the attribute attributeRecord
+     * @param attributeRecord
+     * the attribute attributeRecord
+     *
      * @return secret metadata containing just this attribute
      */
     public static ValueMetadata ofSecretAttribute(AttributeRecord attributeRecord) {

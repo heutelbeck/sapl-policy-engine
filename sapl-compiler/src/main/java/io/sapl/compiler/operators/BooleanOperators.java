@@ -37,7 +37,7 @@ import java.util.function.BinaryOperator;
 @UtilityClass
 public class BooleanOperators {
 
-    public static final String TYPE_MISMATCH_BOOLEAN_EXPECTED_ERROR = "Type mismatch error. Boolean operation requires Boolean values, but found: %s";
+    public static final String RUNTIME_ERROR_TYPE_MISMATCH_BOOLEAN_EXPECTED = "Type mismatch error. Boolean operation requires Boolean values, but found: %s.";
 
     /**
      * Performs logical AND operation on two boolean values.
@@ -111,10 +111,10 @@ public class BooleanOperators {
             return error.withMetadata(metadata);
         }
         if (!(left instanceof BooleanValue boolLeft)) {
-            return Error.at(astNode, metadata, TYPE_MISMATCH_BOOLEAN_EXPECTED_ERROR, left);
+            return Error.at(astNode, metadata, RUNTIME_ERROR_TYPE_MISMATCH_BOOLEAN_EXPECTED, left);
         }
         if (!(right instanceof BooleanValue boolRight)) {
-            return Error.at(astNode, metadata, TYPE_MISMATCH_BOOLEAN_EXPECTED_ERROR, right);
+            return Error.at(astNode, metadata, RUNTIME_ERROR_TYPE_MISMATCH_BOOLEAN_EXPECTED, right);
         }
         return withMetadata(operation.apply(boolLeft.value(), boolRight.value()), left, right);
     }
@@ -133,7 +133,7 @@ public class BooleanOperators {
             return error;
         }
         if (!(value instanceof BooleanValue(boolean bool, ValueMetadata ignored))) {
-            return Error.at(astNode, value.metadata(), TYPE_MISMATCH_BOOLEAN_EXPECTED_ERROR, value);
+            return Error.at(astNode, value.metadata(), RUNTIME_ERROR_TYPE_MISMATCH_BOOLEAN_EXPECTED, value);
         }
         return withMetadata(!bool, value);
     }

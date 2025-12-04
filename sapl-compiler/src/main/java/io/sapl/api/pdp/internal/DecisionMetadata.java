@@ -32,16 +32,24 @@ import java.util.Map;
 /**
  * Complete metadata for a policy decision for auditing and debugging.
  *
- * @param pdpId PDP instance identifier (for clustered deployments)
- * @param configurationId policy configuration version identifier
- * @param subscriptionId identifier for correlating streaming decisions
- * @param subscription the evaluated authorization subscription
- * @param timestamp when this decision was produced
- * @param attributes all attribute invocations that contributed to this decision
- * @param errors errors that occurred during evaluation
- * @param documentDecisions map from document name to its intermediate decision
- * (before combining)
- * @param combiningAlgorithm algorithm used to combine policy results
+ * @param pdpId
+ * PDP instance identifier (for clustered deployments)
+ * @param configurationId
+ * policy configuration version identifier
+ * @param subscriptionId
+ * identifier for correlating streaming decisions
+ * @param subscription
+ * the evaluated authorization subscription
+ * @param timestamp
+ * when this decision was produced
+ * @param attributes
+ * all attribute invocations that contributed to this decision
+ * @param errors
+ * errors that occurred during evaluation
+ * @param documentDecisions
+ * map from document name to its intermediate decision (before combining)
+ * @param combiningAlgorithm
+ * algorithm used to combine policy results
  */
 public record DecisionMetadata(
         @NonNull String pdpId,

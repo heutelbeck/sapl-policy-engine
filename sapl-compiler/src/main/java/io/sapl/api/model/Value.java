@@ -433,7 +433,9 @@ public sealed interface Value extends Serializable, CompiledExpression
     /**
      * Creates a copy of this value with the specified metadata.
      *
-     * @param metadata the new metadata
+     * @param metadata
+     * the new metadata
+     *
      * @return a value with the new metadata
      */
     Value withMetadata(ValueMetadata metadata);

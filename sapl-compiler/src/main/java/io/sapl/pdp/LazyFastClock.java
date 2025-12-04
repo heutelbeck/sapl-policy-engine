@@ -28,14 +28,16 @@ import java.util.concurrent.atomic.AtomicReference;
  * system time polling at high throughput.
  * <p>
  * Instead of calling {@link System#currentTimeMillis()} and formatting on every
- * request, this clock maintains a cached timestamp string that is updated at a
- * configurable interval (default: 10ms). This trades timestamp precision for
+ * request, this clock maintains a cached
+ * timestamp string that is updated at a configurable interval (default: 10ms).
+ * This trades timestamp precision for
  * throughput - suitable for scenarios where millions of timestamps per second
- * are needed and 10ms precision is acceptable.
+ * are needed and 10ms precision is
+ * acceptable.
  * <p>
- * The {@link #now()} method is a simple atomic read with no allocation,
- * making it ideal for hot paths in policy evaluation where timestamps are
- * needed for tracing or logging.
+ * The {@link #now()} method is a simple atomic read with no allocation, making
+ * it ideal for hot paths in policy
+ * evaluation where timestamps are needed for tracing or logging.
  * <p>
  * Thread-safe for concurrent access. Implements {@link AutoCloseable} for
  * proper resource cleanup.
@@ -68,9 +70,10 @@ public final class LazyFastClock implements AutoCloseable {
     /**
      * Creates a clock with a custom update interval.
      *
-     * @param updateIntervalMilliseconds the interval between timestamp updates in
-     * milliseconds; lower values increase
-     * precision but add CPU overhead
+     * @param updateIntervalMilliseconds
+     * the interval between timestamp updates in milliseconds; lower values increase
+     * precision but add CPU
+     * overhead
      */
     public LazyFastClock(long updateIntervalMilliseconds) {
         cachedTimestamp.set(Instant.ofEpochMilli(System.currentTimeMillis()).toString());
@@ -87,7 +90,8 @@ public final class LazyFastClock implements AutoCloseable {
      * Returns the current cached UTC ISO timestamp.
      * <p>
      * The timestamp is in ISO-8601 format (e.g., "2025-12-03T14:30:00.123Z").
-     * Precision is limited by the configured update interval.
+     * Precision is limited by the configured
+     * update interval.
      * <p>
      * This is a very cheap operation - just an atomic reference read with no
      * allocation or system calls.
@@ -106,7 +110,8 @@ public final class LazyFastClock implements AutoCloseable {
      * Shuts down the background update thread.
      * <p>
      * After calling this method, the cached timestamp will no longer be updated,
-     * but {@link #now()} will continue to return the last cached value.
+     * but {@link #now()} will continue to
+     * return the last cached value.
      */
     @Override
     public void close() {

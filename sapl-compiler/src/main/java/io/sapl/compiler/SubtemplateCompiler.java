@@ -44,9 +44,10 @@ import reactor.core.publisher.Flux;
 @UtilityClass
 public class SubtemplateCompiler {
 
-    private static final String ERROR_SUBTEMPLATE_STREAMING_COMPILE_TIME = "Subtemplate contains streaming operations, cannot be evaluated at compile time.";
-    private static final String ERROR_SUBTEMPLATE_STREAMING_RUNTIME      = "Subtemplate contains streaming operations, cannot be evaluated in this context.";
-    public static final String  COMPILE_TIME_ID_PLACEHOLDER              = "compile-time";
+    private static final String RUNTIME_ERROR_SUBTEMPLATE_STREAMING_COMPILE_TIME = "Subtemplate contains streaming operations, cannot be evaluated at compile time.";
+    private static final String RUNTIME_ERROR_SUBTEMPLATE_STREAMING_RUNTIME      = "Subtemplate contains streaming operations, cannot be evaluated in this context.";
+
+    public static final String COMPILE_TIME_ID_PLACEHOLDER = "compile-time";
 
     /**
      * Compiles a subtemplate expression (:: operator).
@@ -277,7 +278,7 @@ public class SubtemplateCompiler {
             yield pureTemplate.evaluate(evaluationContext);
         }
         case StreamExpression ignored    ->
-            Error.at(astNode, relativeNode.metadata(), ERROR_SUBTEMPLATE_STREAMING_COMPILE_TIME);
+            Error.at(astNode, relativeNode.metadata(), RUNTIME_ERROR_SUBTEMPLATE_STREAMING_COMPILE_TIME);
         };
     }
 
@@ -306,7 +307,7 @@ public class SubtemplateCompiler {
             yield pureTemplate.evaluate(contextWithRelativeNode);
         }
         case StreamExpression ignored    ->
-            Error.at(astNode, relativeNode.metadata(), ERROR_SUBTEMPLATE_STREAMING_RUNTIME);
+            Error.at(astNode, relativeNode.metadata(), RUNTIME_ERROR_SUBTEMPLATE_STREAMING_RUNTIME);
         };
     }
 }

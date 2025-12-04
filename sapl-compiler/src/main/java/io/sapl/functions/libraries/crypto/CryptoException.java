@@ -15,40 +15,25 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.compiler;
+package io.sapl.functions.libraries.crypto;
 
 import io.sapl.api.SaplVersion;
+import lombok.experimental.StandardException;
 
 import java.io.Serial;
 
 /**
- * Thrown when policy evaluation fails at runtime. Typically wraps PIP or
- * function invocation failures that cannot be
- * handled gracefully as error values.
+ * Exception for signaling errors during cryptographic operations. This
+ * exception is used within the crypto function
+ * libraries for internal error flow control. All instances are caught at the
+ * public API boundary and converted to
+ * ErrorValue before returning to callers.
+ * <p>
+ * This is an internal API and should not be used outside the SAPL function
+ * libraries.
  */
-public class PolicyEvaluationException extends RuntimeException {
+@StandardException
+public class CryptoException extends RuntimeException {
     @Serial
     private static final long serialVersionUID = SaplVersion.VERSION_UID;
-
-    /**
-     * Creates an exception with the specified message.
-     *
-     * @param message
-     * description of the evaluation failure
-     */
-    public PolicyEvaluationException(String message) {
-        super(message);
-    }
-
-    /**
-     * Creates an exception with the specified message and cause.
-     *
-     * @param message
-     * description of the evaluation failure
-     * @param cause
-     * the underlying exception
-     */
-    public PolicyEvaluationException(String message, Throwable cause) {
-        super(message, cause);
-    }
 }

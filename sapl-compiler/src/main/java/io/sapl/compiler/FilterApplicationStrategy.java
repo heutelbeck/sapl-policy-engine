@@ -45,7 +45,7 @@ import java.util.function.Predicate;
 @UtilityClass
 class FilterApplicationStrategy {
 
-    private static final String ERROR_UNEXPECTED_NON_VALUE_CONSTANT_ARGS = "Unexpected non-value result with constant arguments.";
+    private static final String RUNTIME_ERROR_UNEXPECTED_NON_VALUE_CONSTANT_ARGS = "Unexpected non-value result with constant arguments.";
 
     /**
      * Applies a filter function to a single value.
@@ -195,7 +195,7 @@ class FilterApplicationStrategy {
         return FilterCollectionRebuilder.rebuildArray(arrayValue, indexMatcher, i -> {
             val result = applyValueFilterToValue(arrayValue.get(i), functionIdentifier, arguments, context);
             return (result instanceof Value v) ? v
-                    : Error.at(astNode, arrayValue.metadata(), ERROR_UNEXPECTED_NON_VALUE_CONSTANT_ARGS);
+                    : Error.at(astNode, arrayValue.metadata(), RUNTIME_ERROR_UNEXPECTED_NON_VALUE_CONSTANT_ARGS);
         });
     }
 
@@ -210,7 +210,7 @@ class FilterApplicationStrategy {
         return FilterCollectionRebuilder.rebuildObject(objectValue, keyMatcher, key -> {
             val result = applyValueFilterToValue(objectValue.get(key), functionIdentifier, arguments, context);
             return (result instanceof Value v) ? v
-                    : Error.at(astNode, objectValue.metadata(), ERROR_UNEXPECTED_NON_VALUE_CONSTANT_ARGS);
+                    : Error.at(astNode, objectValue.metadata(), RUNTIME_ERROR_UNEXPECTED_NON_VALUE_CONSTANT_ARGS);
         });
     }
 

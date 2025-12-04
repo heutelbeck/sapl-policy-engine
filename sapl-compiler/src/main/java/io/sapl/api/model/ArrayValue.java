@@ -34,8 +34,8 @@ import java.util.stream.Collectors;
  * Array value implementing List semantics. The underlying list is immutable.
  * <p>
  * Metadata (including secret flag and attribute traces) is aggregated from all
- * elements
- * at construction time and propagated back to all elements. This enables:
+ * elements at construction time and
+ * propagated back to all elements. This enables:
  * <ul>
  * <li>Zero-overhead reads - elements already have merged metadata</li>
  * <li>Audit completeness - filter operations preserve all source traces</li>
@@ -93,14 +93,18 @@ public final class ArrayValue implements Value, List<Value> {
      * Creates an ArrayValue with specified metadata.
      * <p>
      * Aggregates metadata from all elements and merges with the provided metadata,
-     * then propagates the merged result back to all elements. This ensures filter
-     * operations preserve all source attribute traces.
+     * then propagates the merged result
+     * back to all elements. This ensures filter operations preserve all source
+     * attribute traces.
      * <p>
      * Note: This does a defensive copy of the supplied List. For better performance
-     * without the need to copy use the Builder!
+     * without the need to copy use the
+     * Builder!
      *
-     * @param elements the list elements (defensively copied, must not be null)
-     * @param metadata the container metadata to merge with element metadata
+     * @param elements
+     * the list elements (defensively copied, must not be null)
+     * @param metadata
+     * the container metadata to merge with element metadata
      */
     public ArrayValue(@NonNull List<Value> elements, @NonNull ValueMetadata metadata) {
         val mergedMetadata = aggregateAndMerge(elements, metadata);
@@ -112,10 +116,13 @@ public final class ArrayValue implements Value, List<Value> {
      * Creates an ArrayValue with specified metadata.
      * <p>
      * Aggregates metadata from all elements and merges with the provided metadata,
-     * then propagates the merged result back to all elements.
+     * then propagates the merged result
+     * back to all elements.
      *
-     * @param elements the array elements (must not be null)
-     * @param metadata the container metadata to merge with element metadata
+     * @param elements
+     * the array elements (must not be null)
+     * @param metadata
+     * the container metadata to merge with element metadata
      */
     public ArrayValue(@NonNull Value[] elements, @NonNull ValueMetadata metadata) {
         this(List.of(elements), metadata);
@@ -123,11 +130,13 @@ public final class ArrayValue implements Value, List<Value> {
 
     /**
      * Zero-copy constructor for builder use only. The supplied list is used
-     * directly without copying. Assumes metadata already propagated to elements.
+     * directly without copying. Assumes metadata
+     * already propagated to elements.
      *
-     * @param metadata the pre-computed container metadata
-     * @param elements the list elements (used directly, must be mutable until
-     * wrapped)
+     * @param metadata
+     * the pre-computed container metadata
+     * @param elements
+     * the list elements (used directly, must be mutable until wrapped)
      */
     private ArrayValue(ValueMetadata metadata, List<Value> elements) {
         this.value    = Collections.unmodifiableList(elements);
@@ -169,11 +178,12 @@ public final class ArrayValue implements Value, List<Value> {
      * Builder for fluent ArrayValue construction.
      * <p>
      * Builders are single-use only. After calling build(), the builder cannot be
-     * reused. This prevents immutability violations from the zero-copy
-     * optimization.
+     * reused. This prevents immutability
+     * violations from the zero-copy optimization.
      * <p>
      * The builder aggregates metadata from all added elements. At build time, the
-     * merged metadata is propagated back to all elements for consistent access.
+     * merged metadata is propagated back to
+     * all elements for consistent access.
      */
     public static final class Builder {
         private ArrayList<Value> elements = new ArrayList<>();
@@ -182,9 +192,13 @@ public final class ArrayValue implements Value, List<Value> {
         /**
          * Adds a value to the array.
          *
-         * @param value the value to add
+         * @param value
+         * the value to add
+         *
          * @return this builder
-         * @throws IllegalStateException if builder has already been used
+         *
+         * @throws IllegalStateException
+         * if builder has already been used
          */
         public Builder add(Value value) {
             if (elements == null) {
@@ -198,9 +212,13 @@ public final class ArrayValue implements Value, List<Value> {
         /**
          * Adds multiple values to the array.
          *
-         * @param values the values to add
+         * @param values
+         * the values to add
+         *
          * @return this builder
-         * @throws IllegalStateException if builder has already been used
+         *
+         * @throws IllegalStateException
+         * if builder has already been used
          */
         public Builder addAll(Value... values) {
             if (elements == null) {
@@ -215,9 +233,13 @@ public final class ArrayValue implements Value, List<Value> {
         /**
          * Adds multiple values to the array.
          *
-         * @param values the values to add
+         * @param values
+         * the values to add
+         *
          * @return this builder
-         * @throws IllegalStateException if builder has already been used
+         *
+         * @throws IllegalStateException
+         * if builder has already been used
          */
         public Builder addAll(Collection<? extends Value> values) {
             if (elements == null) {
@@ -236,7 +258,9 @@ public final class ArrayValue implements Value, List<Value> {
          * possible in the building process.
          *
          * @return this builder
-         * @throws IllegalStateException if builder has already been used
+         *
+         * @throws IllegalStateException
+         * if builder has already been used
          */
         public Builder secret() {
             if (elements == null) {
@@ -249,9 +273,13 @@ public final class ArrayValue implements Value, List<Value> {
         /**
          * Merges additional metadata into the builder.
          *
-         * @param additionalMetadata the metadata to merge
+         * @param additionalMetadata
+         * the metadata to merge
+         *
          * @return this builder
-         * @throws IllegalStateException if builder has already been used
+         *
+         * @throws IllegalStateException
+         * if builder has already been used
          */
         public Builder withMetadata(ValueMetadata additionalMetadata) {
             if (elements == null) {
@@ -266,10 +294,13 @@ public final class ArrayValue implements Value, List<Value> {
          * arrays.
          * <p>
          * At build time, the aggregated metadata is propagated to all elements for
-         * consistent access. After calling this method, the builder cannot be reused.
+         * consistent access. After calling
+         * this method, the builder cannot be reused.
          *
          * @return the constructed ArrayValue
-         * @throws IllegalStateException if builder has already been used
+         *
+         * @throws IllegalStateException
+         * if builder has already been used
          */
         public ArrayValue build() {
             if (elements == null) {
@@ -334,10 +365,12 @@ public final class ArrayValue implements Value, List<Value> {
      * Returns the element at the specified position.
      * <p>
      * Returns ErrorValue for invalid indices instead of throwing
-     * IndexOutOfBoundsException, consistent with SAPL's error-as-value model.
-     * Elements already have the container's metadata applied.
+     * IndexOutOfBoundsException, consistent with SAPL's
+     * error-as-value model. Elements already have the container's metadata applied.
      *
-     * @param index index of the element
+     * @param index
+     * index of the element
+     *
      * @return the element, or ErrorValue if index is out of bounds
      */
     @Override
@@ -352,8 +385,8 @@ public final class ArrayValue implements Value, List<Value> {
      * Returns the first element.
      * <p>
      * Returns ErrorValue if the array is empty instead of throwing
-     * NoSuchElementException, consistent with SAPL's error-as-value model.
-     * Elements already have the container's metadata applied.
+     * NoSuchElementException, consistent with SAPL's
+     * error-as-value model. Elements already have the container's metadata applied.
      *
      * @return the first element, or ErrorValue if array is empty
      */
@@ -369,8 +402,8 @@ public final class ArrayValue implements Value, List<Value> {
      * Returns the last element.
      * <p>
      * Returns ErrorValue if the array is empty instead of throwing
-     * NoSuchElementException, consistent with SAPL's error-as-value model.
-     * Elements already have the container's metadata applied.
+     * NoSuchElementException, consistent with SAPL's
+     * error-as-value model. Elements already have the container's metadata applied.
      *
      * @return the last element, or ErrorValue if array is empty
      */
@@ -383,11 +416,15 @@ public final class ArrayValue implements Value, List<Value> {
     }
 
     /**
-     * Returns a view of the portion between the specified indices.
-     * The returned sublist preserves the container's metadata.
+     * Returns a view of the portion between the specified indices. The returned
+     * sublist preserves the container's
+     * metadata.
      *
-     * @param fromIndex low endpoint (inclusive)
-     * @param toIndex high endpoint (exclusive)
+     * @param fromIndex
+     * low endpoint (inclusive)
+     * @param toIndex
+     * high endpoint (exclusive)
+     *
      * @return a sublist as ArrayValue with metadata propagated
      */
     @Override

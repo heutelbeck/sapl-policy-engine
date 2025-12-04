@@ -17,7 +17,6 @@
  */
 package io.sapl.functions.libraries.crypto;
 
-import io.sapl.compiler.PolicyEvaluationException;
 import lombok.experimental.UtilityClass;
 import lombok.val;
 
@@ -44,8 +43,10 @@ public class CertificateUtils {
      *
      * @return the parsed X509Certificate
      *
-     * @throws PolicyEvaluationException
-     * if parsing fails
+     * @throws CryptoException
+     * if PEM decoding fails
+     * @throws CertificateException
+     * if certificate parsing fails
      */
     public static X509Certificate parseCertificate(String certificateString) throws CertificateException {
         val certificateFactory = getCertificateFactory();
@@ -62,7 +63,7 @@ public class CertificateUtils {
      *
      * @return the encoded certificate bytes
      *
-     * @throws PolicyEvaluationException
+     * @throws CertificateEncodingException
      * if encoding fails
      */
     public static byte[] encodeCertificate(X509Certificate certificate) throws CertificateEncodingException {
@@ -100,7 +101,7 @@ public class CertificateUtils {
      *
      * @return the CertificateFactory for X.509 certificates
      *
-     * @throws PolicyEvaluationException
+     * @throws CertificateException
      * if X.509 certificate factory is not available
      */
     public static CertificateFactory getCertificateFactory() throws CertificateException {

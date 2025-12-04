@@ -72,6 +72,9 @@ public class JWTFunctionLibrary {
     static final String NAME        = "jwt";
     static final String DESCRIPTION = "Functions for parsing JSON Web Tokens. Contents are returned without validation.";
 
+    private static final String ERROR_FAILED_TO_PARSE_JWT   = "Failed to parse JWT: ";
+    private static final String ERROR_PROCESSING_JWT_FAILED = "Error processing JWT: ";
+
     static final String LIBRARY_DOCUMENTATION = """
             # JWT Function Library
 
@@ -179,9 +182,9 @@ public class JWTFunctionLibrary {
 
             return ValueJsonMarshaller.fromJsonNode(jsonToken);
         } catch (ParseException exception) {
-            return new ErrorValue("Failed to parse JWT: " + exception.getMessage());
+            return new ErrorValue(ERROR_FAILED_TO_PARSE_JWT + exception.getMessage());
         } catch (Exception exception) {
-            return new ErrorValue("Error processing JWT: " + exception.getMessage());
+            return new ErrorValue(ERROR_PROCESSING_JWT_FAILED + exception.getMessage());
         }
     }
 

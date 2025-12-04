@@ -17,7 +17,6 @@
  */
 package io.sapl.functions.libraries.crypto;
 
-import io.sapl.compiler.PolicyEvaluationException;
 import lombok.experimental.UtilityClass;
 import lombok.val;
 
@@ -59,7 +58,7 @@ public class PemUtils {
      *
      * @return the decoded key bytes
      *
-     * @throws PolicyEvaluationException
+     * @throws CryptoException
      * if Base64 decoding fails
      */
     public static byte[] decodePublicKeyPem(String pemKey) {
@@ -77,7 +76,7 @@ public class PemUtils {
      *
      * @return the decoded certificate bytes
      *
-     * @throws PolicyEvaluationException
+     * @throws CryptoException
      * if Base64 decoding fails
      */
     public static byte[] decodeCertificatePem(String certificateString) {
@@ -112,15 +111,15 @@ public class PemUtils {
      *
      * @return the decoded bytes
      *
-     * @throws PolicyEvaluationException
+     * @throws CryptoException
      * if decoding fails
      */
     private static byte[] decodeBase64(String content, String context) {
         try {
             return Base64.getDecoder().decode(content);
         } catch (IllegalArgumentException exception) {
-            throw new PolicyEvaluationException(
-                    ERROR_INVALID_BASE64 + " in " + context + ": " + exception.getMessage() + ".", exception);
+            throw new CryptoException(ERROR_INVALID_BASE64 + " in " + context + ": " + exception.getMessage() + ".",
+                    exception);
         }
     }
 }

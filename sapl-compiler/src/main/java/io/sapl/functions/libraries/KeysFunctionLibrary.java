@@ -22,8 +22,8 @@ import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import io.sapl.api.functions.Function;
 import io.sapl.api.functions.FunctionLibrary;
 import io.sapl.api.model.*;
-import io.sapl.compiler.PolicyEvaluationException;
 import io.sapl.functions.libraries.crypto.CertificateUtils;
+import io.sapl.functions.libraries.crypto.CryptoException;
 import io.sapl.functions.libraries.crypto.KeyUtils;
 import io.sapl.functions.libraries.crypto.PemUtils;
 import lombok.experimental.UtilityClass;
@@ -240,6 +240,30 @@ public class KeysFunctionLibrary {
     private static final int ED25519_X509_HEADER_SIZE = 12;
     private static final int ED25519_X509_TOTAL_SIZE  = 44;
 
+    private static final String ERROR_EC_JWK_MISSING_CURVE            = "EC JWK missing required 'crv' (curve) field.";
+    private static final String ERROR_EC_JWK_MISSING_X                = "EC JWK missing required 'x' field.";
+    private static final String ERROR_EC_JWK_MISSING_Y                = "EC JWK missing required 'y' field.";
+    private static final String ERROR_FAILED_TO_CONVERT_FROM_JWK      = "Failed to convert JWK to public key: ";
+    private static final String ERROR_FAILED_TO_CONVERT_TO_JWK        = "Failed to convert key to JWK: ";
+    private static final String ERROR_FAILED_TO_EXTRACT_ALGORITHM     = "Failed to extract key algorithm: ";
+    private static final String ERROR_FAILED_TO_EXTRACT_EC_CURVE      = "Failed to extract EC curve: ";
+    private static final String ERROR_FAILED_TO_EXTRACT_KEY_FROM_CERT = "Failed to extract public key from certificate: ";
+    private static final String ERROR_FAILED_TO_EXTRACT_KEY_SIZE      = "Failed to extract key size: ";
+    private static final String ERROR_FAILED_TO_PARSE_PUBLIC_KEY      = "Failed to parse public key: ";
+    private static final String ERROR_INVALID_BASE64URL               = "Invalid Base64 URL encoding: ";
+    private static final String ERROR_INVALID_ED25519_KEY_LENGTH      = "Invalid Ed25519 key length: expected %d bytes, got %d.";
+    private static final String ERROR_INVALID_ED25519_X509_SIZE       = "Invalid Ed25519 X.509 encoding: expected %d bytes, got %d.";
+    private static final String ERROR_JWK_MISSING_KTY                 = "JWK missing required 'kty' field.";
+    private static final String ERROR_KEY_NOT_EC                      = "Key is not an EC key.";
+    private static final String ERROR_OKP_JWK_MISSING_CURVE           = "OKP JWK missing required 'crv' (curve) field.";
+    private static final String ERROR_OKP_JWK_MISSING_X               = "OKP JWK missing required 'x' field.";
+    private static final String ERROR_RSA_JWK_MISSING_EXPONENT        = "RSA JWK missing required 'e' (exponent) field.";
+    private static final String ERROR_RSA_JWK_MISSING_MODULUS         = "RSA JWK missing required 'n' (modulus) field.";
+    private static final String ERROR_UNSUPPORTED_EC_CURVE            = "Unsupported EC curve: ";
+    private static final String ERROR_UNSUPPORTED_JWK_KEY_TYPE        = "Unsupported JWK key type: ";
+    private static final String ERROR_UNSUPPORTED_KEY_TYPE_FOR_JWK    = "Unsupported key type for JWK conversion: ";
+    private static final String ERROR_UNSUPPORTED_OKP_CURVE           = "Unsupported OKP curve: %s (only Ed25519 supported)";
+
     /* Key Parsing */
 
     @Function(docs = """
@@ -263,8 +287,8 @@ public class KeysFunctionLibrary {
             val publicKey = KeyUtils.parsePublicKeyWithAlgorithmDetection(keyPem.value());
             val keyObject = buildKeyObject(publicKey);
             return ValueJsonMarshaller.fromJsonNode(keyObject);
-        } catch (PolicyEvaluationException exception) {
-            return new ErrorValue("Failed to parse public key: " + exception.getMessage());
+        } catch (CryptoException exception) {
+            return new ErrorValue(ERROR_FAILED_TO_PARSE_PUBLIC_KEY + exception.getMessage());
         }
     }
 
@@ -289,10 +313,10 @@ public class KeysFunctionLibrary {
             val publicKey   = certificate.getPublicKey();
             val keyPem      = PemUtils.encodePublicKeyPem(publicKey.getEncoded());
             return Value.of(keyPem);
-        } catch (PolicyEvaluationException exception) {
-            return new ErrorValue("Failed to extract public key from certificate: " + exception.getMessage());
+        } catch (CryptoException exception) {
+            return new ErrorValue(ERROR_FAILED_TO_EXTRACT_KEY_FROM_CERT + exception.getMessage());
         } catch (CertificateException exception) {
-            return new ErrorValue("Failed to extract public key from certificate: " + exception.getMessage() + ".");
+            return new ErrorValue(ERROR_FAILED_TO_EXTRACT_KEY_FROM_CERT + exception.getMessage() + ".");
         }
     }
 
@@ -315,8 +339,8 @@ public class KeysFunctionLibrary {
         try {
             val publicKey = KeyUtils.parsePublicKeyWithAlgorithmDetection(keyPem.value());
             return Value.of(publicKey.getAlgorithm());
-        } catch (PolicyEvaluationException exception) {
-            return new ErrorValue("Failed to extract key algorithm: " + exception.getMessage());
+        } catch (CryptoException exception) {
+            return new ErrorValue(ERROR_FAILED_TO_EXTRACT_ALGORITHM + exception.getMessage());
         }
     }
 
@@ -339,8 +363,8 @@ public class KeysFunctionLibrary {
             val publicKey = KeyUtils.parsePublicKeyWithAlgorithmDetection(keyPem.value());
             val keySize   = KeyUtils.getKeySize(publicKey);
             return Value.of(keySize);
-        } catch (PolicyEvaluationException exception) {
-            return new ErrorValue("Failed to extract key size: " + exception.getMessage());
+        } catch (CryptoException exception) {
+            return new ErrorValue(ERROR_FAILED_TO_EXTRACT_KEY_SIZE + exception.getMessage());
         }
     }
 
@@ -363,13 +387,13 @@ public class KeysFunctionLibrary {
             val publicKey = KeyUtils.parsePublicKeyWithAlgorithmDetection(keyPem.value());
 
             if (!(publicKey instanceof ECPublicKey ecKey)) {
-                return new ErrorValue("Key is not an EC key.");
+                return new ErrorValue(ERROR_KEY_NOT_EC);
             }
 
             val curveName = KeyUtils.extractEcCurveName(ecKey);
             return Value.of(curveName);
-        } catch (PolicyEvaluationException exception) {
-            return new ErrorValue("Failed to extract EC curve: " + exception.getMessage());
+        } catch (CryptoException exception) {
+            return new ErrorValue(ERROR_FAILED_TO_EXTRACT_EC_CURVE + exception.getMessage());
         }
     }
 
@@ -399,8 +423,8 @@ public class KeysFunctionLibrary {
             val publicKey = KeyUtils.parsePublicKeyWithAlgorithmDetection(publicKeyPem.value());
             val jwk       = convertPublicKeyToJwk(publicKey);
             return ValueJsonMarshaller.fromJsonNode(jwk);
-        } catch (PolicyEvaluationException exception) {
-            return new ErrorValue("Failed to convert key to JWK: " + exception.getMessage());
+        } catch (CryptoException exception) {
+            return new ErrorValue(ERROR_FAILED_TO_CONVERT_TO_JWK + exception.getMessage());
         }
     }
 
@@ -437,10 +461,10 @@ public class KeysFunctionLibrary {
             val publicKey = convertJwkToPublicKey(jwkNode);
             val keyPem    = PemUtils.encodePublicKeyPem(publicKey.getEncoded());
             return Value.of(keyPem);
-        } catch (PolicyEvaluationException exception) {
-            return new ErrorValue("Failed to convert JWK to public key: " + exception.getMessage());
+        } catch (CryptoException exception) {
+            return new ErrorValue(ERROR_FAILED_TO_CONVERT_FROM_JWK + exception.getMessage());
         } catch (NoSuchAlgorithmException | InvalidKeySpecException | InvalidAlgorithmParameterException exception) {
-            return new ErrorValue("Failed to convert JWK to public key: " + exception.getMessage() + ".");
+            return new ErrorValue(ERROR_FAILED_TO_CONVERT_FROM_JWK + exception.getMessage() + ".");
         }
     }
 
@@ -468,8 +492,8 @@ public class KeysFunctionLibrary {
         case RSAPublicKey rsaKey   -> convertRsaPublicKeyToJwk(rsaKey);
         case ECPublicKey ecKey     -> convertEcPublicKeyToJwk(ecKey);
         case EdECPublicKey edEcKey -> convertEdEcPublicKeyToJwk(edEcKey);
-        default                    -> throw new PolicyEvaluationException(
-                "Unsupported key type for JWK conversion: " + publicKey.getClass().getName());
+        default                    ->
+            throw new CryptoException(ERROR_UNSUPPORTED_KEY_TYPE_FOR_JWK + publicKey.getClass().getName());
         };
     }
 
@@ -524,8 +548,8 @@ public class KeysFunctionLibrary {
         // Ed25519 X.509 format: fixed header followed by 32-byte key
         // Total length is 44 bytes, raw key is the last 32 bytes
         if (x509Encoded.length != ED25519_X509_TOTAL_SIZE) {
-            throw new PolicyEvaluationException("Invalid Ed25519 X.509 encoding: expected " + ED25519_X509_TOTAL_SIZE
-                    + " bytes, got " + x509Encoded.length + ".");
+            throw new CryptoException(
+                    ERROR_INVALID_ED25519_X509_SIZE.formatted(ED25519_X509_TOTAL_SIZE, x509Encoded.length));
         }
         return Arrays.copyOfRange(x509Encoded, ED25519_X509_HEADER_SIZE, ED25519_X509_TOTAL_SIZE);
     }
@@ -537,7 +561,7 @@ public class KeysFunctionLibrary {
             throws NoSuchAlgorithmException, InvalidKeySpecException, InvalidAlgorithmParameterException {
         val keyTypeNode = jwkNode.get("kty");
         if (keyTypeNode == null || !keyTypeNode.isTextual()) {
-            throw new PolicyEvaluationException("JWK missing required 'kty' field.");
+            throw new CryptoException(ERROR_JWK_MISSING_KTY);
         }
 
         val keyType = keyTypeNode.asText();
@@ -546,7 +570,7 @@ public class KeysFunctionLibrary {
         case JWK_KEY_TYPE_RSA -> convertRsaJwkToPublicKey(jwkNode);
         case JWK_KEY_TYPE_EC  -> convertEcJwkToPublicKey(jwkNode);
         case JWK_KEY_TYPE_OKP -> convertOkpJwkToPublicKey(jwkNode);
-        default               -> throw new PolicyEvaluationException("Unsupported JWK key type: " + keyType);
+        default               -> throw new CryptoException(ERROR_UNSUPPORTED_JWK_KEY_TYPE + keyType);
         };
     }
 
@@ -559,10 +583,10 @@ public class KeysFunctionLibrary {
         val exponentNode = jwkNode.get("e");
 
         if (modulusNode == null || !modulusNode.isTextual()) {
-            throw new PolicyEvaluationException("RSA JWK missing required 'n' (modulus) field.");
+            throw new CryptoException(ERROR_RSA_JWK_MISSING_MODULUS);
         }
         if (exponentNode == null || !exponentNode.isTextual()) {
-            throw new PolicyEvaluationException("RSA JWK missing required 'e' (exponent) field.");
+            throw new CryptoException(ERROR_RSA_JWK_MISSING_EXPONENT);
         }
 
         val modulusBytes  = base64UrlDecode(modulusNode.asText());
@@ -584,13 +608,13 @@ public class KeysFunctionLibrary {
         val yNode     = jwkNode.get("y");
 
         if (curveNode == null || !curveNode.isTextual()) {
-            throw new PolicyEvaluationException("EC JWK missing required 'crv' (curve) field.");
+            throw new CryptoException(ERROR_EC_JWK_MISSING_CURVE);
         }
         if (xNode == null || !xNode.isTextual()) {
-            throw new PolicyEvaluationException("EC JWK missing required 'x' field.");
+            throw new CryptoException(ERROR_EC_JWK_MISSING_X);
         }
         if (yNode == null || !yNode.isTextual()) {
-            throw new PolicyEvaluationException("EC JWK missing required 'y' field.");
+            throw new CryptoException(ERROR_EC_JWK_MISSING_Y);
         }
 
         val curveName = curveNode.asText();
@@ -602,7 +626,7 @@ public class KeysFunctionLibrary {
         case "P-256" -> "secp256r1";
         case "P-384" -> "secp384r1";
         case "P-521" -> "secp521r1";
-        default      -> throw new PolicyEvaluationException("Unsupported EC curve: " + curveName);
+        default      -> throw new CryptoException(ERROR_UNSUPPORTED_EC_CURVE + curveName);
         };
 
         // Build EC point and key spec
@@ -632,15 +656,15 @@ public class KeysFunctionLibrary {
         val xNode     = jwkNode.get("x");
 
         if (curveNode == null || !curveNode.isTextual()) {
-            throw new PolicyEvaluationException("OKP JWK missing required 'crv' (curve) field.");
+            throw new CryptoException(ERROR_OKP_JWK_MISSING_CURVE);
         }
         if (xNode == null || !xNode.isTextual()) {
-            throw new PolicyEvaluationException("OKP JWK missing required 'x' field.");
+            throw new CryptoException(ERROR_OKP_JWK_MISSING_X);
         }
 
         val curveName = curveNode.asText();
         if (!CURVE_ED25519.equals(curveName)) {
-            throw new PolicyEvaluationException("Unsupported OKP curve: " + curveName + " (only Ed25519 supported)");
+            throw new CryptoException(ERROR_UNSUPPORTED_OKP_CURVE.formatted(curveName));
         }
 
         val rawKeyBytes = base64UrlDecode(xNode.asText());
@@ -659,8 +683,7 @@ public class KeysFunctionLibrary {
      */
     private static byte[] reconstructEdEcX509Encoding(byte[] rawKey) {
         if (rawKey.length != ED25519_RAW_KEY_SIZE) {
-            throw new PolicyEvaluationException("Invalid Ed25519 key length: expected " + ED25519_RAW_KEY_SIZE
-                    + " bytes, got " + rawKey.length + ".");
+            throw new CryptoException(ERROR_INVALID_ED25519_KEY_LENGTH.formatted(ED25519_RAW_KEY_SIZE, rawKey.length));
         }
 
         // X.509 header for Ed25519: 30 2a 30 05 06 03 2b 65 70 03 21 00
@@ -692,7 +715,7 @@ public class KeysFunctionLibrary {
         try {
             return Base64.getUrlDecoder().decode(encoded);
         } catch (IllegalArgumentException exception) {
-            throw new PolicyEvaluationException("Invalid Base64 URL encoding: " + exception.getMessage(), exception);
+            throw new CryptoException(ERROR_INVALID_BASE64URL + exception.getMessage(), exception);
         }
     }
 }

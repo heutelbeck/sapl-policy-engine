@@ -41,10 +41,10 @@ import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * Optimized configuration register using the HybridMono pattern for
- * high-throughput
- * reactive access. This implementation uses AtomicReference for lock-free reads
- * combined with Mono.fromSupplier() for minimal reactive overhead.
- *
+ * high-throughput reactive access. This
+ * implementation uses AtomicReference for lock-free reads combined with
+ * Mono.fromSupplier() for minimal reactive
+ * overhead.
  * <p>
  * <b>Performance characteristics:</b>
  * </p>
@@ -54,20 +54,16 @@ import java.util.concurrent.atomic.AtomicReference;
  * <li>Improvement over ReplayLatestConfigurationRegister: ~45x at high
  * concurrency</li>
  * </ul>
- *
  * <p>
  * <b>Design rationale:</b>
  * </p>
  * <p>
  * The traditional approach of using {@code Sinks.many().replay().latest()}
- * incurs
- * significant subscription overhead when callers use
- * {@code flux.next().block()}.
- * This implementation optimizes for the common case where configuration reads
- * are
- * frequent but configuration changes are rare.
+ * incurs significant subscription overhead
+ * when callers use {@code flux.next().block()}. This implementation optimizes
+ * for the common case where configuration
+ * reads are frequent but configuration changes are rare.
  * </p>
- *
  * <p>
  * The HybridMono pattern provides:
  * </p>
@@ -77,7 +73,6 @@ import java.util.concurrent.atomic.AtomicReference;
  * <li>Reactive updates for streaming subscribers via directBestEffort sink</li>
  * <li>Full reactive semantics - configuration updates propagate correctly</li>
  * </ul>
- *
  */
 @RequiredArgsConstructor
 public class ConfigurationRegister implements CompiledPDPConfigurationSource {
@@ -87,30 +82,31 @@ public class ConfigurationRegister implements CompiledPDPConfigurationSource {
 
     /**
      * Per-PDP configuration cache using AtomicReference for lock-free volatile
-     * reads.
-     * This provides better performance than ConcurrentHashMap for single-value
-     * access
-     * patterns where the key is known.
+     * reads. This provides better performance
+     * than ConcurrentHashMap for single-value access patterns where the key is
+     * known.
      */
     private final Map<String, AtomicReference<Optional<CompiledPDPConfiguration>>> configCache = new ConcurrentHashMap<>();
 
     /**
      * DirectBestEffort sinks for notifying streaming subscribers of configuration
-     * changes.
-     * These are only used for true streaming use cases, not for one-shot reads.
+     * changes. These are only used for true
+     * streaming use cases, not for one-shot reads.
      */
     private final Map<String, Sinks.Many<Optional<CompiledPDPConfiguration>>> updateSinks = new ConcurrentHashMap<>();
 
     /**
      * Loads a new configuration for a PDP, compiling all SAPL documents and making
-     * the configuration immediately available to both synchronous and reactive
-     * readers.
+     * the configuration immediately
+     * available to both synchronous and reactive readers.
      *
-     * @param pdpConfiguration the configuration to load
-     * @param keepOldConfigOnError if true, retains existing config on compilation
-     * errors
-     * @throws IllegalArgumentException if compilation fails or document names
-     * collide
+     * @param pdpConfiguration
+     * the configuration to load
+     * @param keepOldConfigOnError
+     * if true, retains existing config on compilation errors
+     *
+     * @throws IllegalArgumentException
+     * if compilation fails or document names collide
      */
     public void loadConfiguration(PDPConfiguration pdpConfiguration, boolean keepOldConfigOnError) {
         val namesInUse                = new HashSet<String>();
@@ -157,7 +153,8 @@ public class ConfigurationRegister implements CompiledPDPConfigurationSource {
     /**
      * Removes the configuration for a PDP, notifying all subscribers.
      *
-     * @param pdpId the PDP identifier
+     * @param pdpId
+     * the PDP identifier
      */
     public void removeConfigurationForPdp(String pdpId) {
         val emptyConfig = Optional.<CompiledPDPConfiguration>empty();
@@ -167,22 +164,23 @@ public class ConfigurationRegister implements CompiledPDPConfigurationSource {
 
     /**
      * Returns a reactive stream of configuration updates for the specified PDP.
-     *
      * <p>
      * This implementation uses the HybridMono pattern: the first element is
-     * delivered
-     * immediately via {@link Mono#fromSupplier} reading from the AtomicReference
-     * cache,
-     * avoiding Reactor's subscription overhead. Subsequent elements come from the
-     * directBestEffort sink for streaming subscribers.
+     * delivered immediately via
+     * {@link Mono#fromSupplier} reading from the AtomicReference cache, avoiding
+     * Reactor's subscription overhead.
+     * Subsequent elements come from the directBestEffort sink for streaming
+     * subscribers.
      * </p>
-     *
      * <p>
      * For one-shot reads using {@code flux.next().block()}, this approach is ~45x
-     * faster than the traditional replay().latest() pattern at high concurrency.
+     * faster than the traditional
+     * replay().latest() pattern at high concurrency.
      * </p>
      *
-     * @param pdpId the PDP identifier
+     * @param pdpId
+     * the PDP identifier
+     *
      * @return a Flux emitting the current configuration immediately, then any
      * updates
      */
@@ -199,9 +197,12 @@ public class ConfigurationRegister implements CompiledPDPConfigurationSource {
 
     /**
      * Returns the current configuration synchronously. This is the fastest path for
-     * one-shot reads, using a simple volatile read from AtomicReference.
+     * one-shot reads, using a simple
+     * volatile read from AtomicReference.
      *
-     * @param pdpId the PDP identifier
+     * @param pdpId
+     * the PDP identifier
+     *
      * @return the current configuration, or empty if none is loaded
      */
     @Override
@@ -217,8 +218,9 @@ public class ConfigurationRegister implements CompiledPDPConfigurationSource {
     }
 
     /**
-     * Gets or creates the update sink for a PDP. Uses directBestEffort for
-     * minimal overhead - updates are delivered best-effort without backpressure.
+     * Gets or creates the update sink for a PDP. Uses directBestEffort for minimal
+     * overhead - updates are delivered
+     * best-effort without backpressure.
      */
     private Sinks.Many<Optional<CompiledPDPConfiguration>> getUpdateSink(String pdpId) {
         return updateSinks.computeIfAbsent(pdpId, id -> Sinks.many().multicast().directBestEffort());

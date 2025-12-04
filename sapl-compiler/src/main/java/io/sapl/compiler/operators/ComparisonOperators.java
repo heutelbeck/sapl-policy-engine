@@ -38,10 +38,15 @@ import java.util.regex.PatternSyntaxException;
 @UtilityClass
 public class ComparisonOperators {
 
-    private static final String ERROR_IN_OPERATOR_TYPE_MISMATCH   = "'in' operator supports value lookup in arrays or objects, as well as substring matching with two strings. But I got: %s in %s.";
-    private static final String ERROR_REGEX_INVALID               = "Invalid regular expression: %s - %s.";
-    private static final String ERROR_REGEX_MUST_BE_STRING        = "Regular expressions must be strings, but got: %s.";
-    private static final String ERROR_REGEX_TARGET_MUST_BE_STRING = "Regular expressions can only be matched against strings, but got: %s.";
+    // Compile-time errors (thrown as SaplCompilerException)
+    private static final String COMPILE_ERROR_REGEX_INVALID        = "Compilation failed. Invalid regular expression: %s - %s.";
+    private static final String COMPILE_ERROR_REGEX_MUST_BE_STRING = "Compilation failed. Regular expressions must be strings, but got: %s.";
+
+    // Runtime errors (used in Error.at() calls)
+    private static final String RUNTIME_ERROR_IN_OPERATOR_TYPE_MISMATCH   = "'in' operator supports value lookup in arrays or objects, as well as substring matching with two strings. But I got: %s in %s.";
+    private static final String RUNTIME_ERROR_REGEX_INVALID               = "Invalid regular expression: %s - %s.";
+    private static final String RUNTIME_ERROR_REGEX_MUST_BE_STRING        = "Regular expressions must be strings, but got: %s.";
+    private static final String RUNTIME_ERROR_REGEX_TARGET_MUST_BE_STRING = "Regular expressions can only be matched against strings, but got: %s.";
 
     /**
      * Tests two values for equality using Value.equals() semantics.
@@ -55,7 +60,8 @@ public class ComparisonOperators {
      * the second value
      *
      * @return Value.TRUE if values are equal, Value.FALSE otherwise, with combined
-     * secret flag, or ErrorValue if either operand is an error
+     * secret flag, or ErrorValue if either
+     * operand is an error
      */
     public static Value equals(EObject ignored, Value a, Value b) {
         val metadata = a.metadata().merge(b.metadata());
@@ -80,7 +86,8 @@ public class ComparisonOperators {
      * the second value
      *
      * @return Value.TRUE if values are not equal, Value.FALSE otherwise, with
-     * combined secret flag, or ErrorValue if either operand is an error
+     * combined secret flag, or ErrorValue if
+     * either operand is an error
      */
     public static Value notEquals(EObject ignored, Value a, Value b) {
         val metadata = a.metadata().merge(b.metadata());
@@ -121,7 +128,7 @@ public class ComparisonOperators {
         case TextValue textHaystack when needle instanceof TextValue textNeedle ->
             preserveSecret(textHaystack.value().contains(textNeedle.value()), metadata);
         default                                                                 ->
-            Error.at(astNode, metadata, ERROR_IN_OPERATOR_TYPE_MISMATCH, needle, haystack);
+            Error.at(astNode, metadata, RUNTIME_ERROR_IN_OPERATOR_TYPE_MISMATCH, needle, haystack);
         };
     }
 
@@ -140,15 +147,15 @@ public class ComparisonOperators {
     public static Value matchesRegularExpression(EObject astNode, Value input, Value regex) {
         val metadata = input.metadata().merge(regex.metadata());
         if (!(input instanceof TextValue inputText)) {
-            return Error.at(astNode, metadata, ERROR_REGEX_TARGET_MUST_BE_STRING, input);
+            return Error.at(astNode, metadata, RUNTIME_ERROR_REGEX_TARGET_MUST_BE_STRING, input);
         }
         if (!(regex instanceof TextValue regexText)) {
-            return Error.at(astNode, metadata, ERROR_REGEX_MUST_BE_STRING, regex);
+            return Error.at(astNode, metadata, RUNTIME_ERROR_REGEX_MUST_BE_STRING, regex);
         }
         try {
             return preserveSecret(Pattern.matches(regexText.value(), inputText.value()), metadata);
         } catch (PatternSyntaxException e) {
-            return Error.at(astNode, metadata, ERROR_REGEX_INVALID, regex, e.getMessage());
+            return Error.at(astNode, metadata, RUNTIME_ERROR_REGEX_INVALID, regex, e.getMessage());
         }
     }
 
@@ -168,7 +175,7 @@ public class ComparisonOperators {
      */
     public UnaryOperator<Value> compileRegularExpressionOperator(EObject astNode, Value regex) {
         if (!(regex instanceof TextValue regexText)) {
-            throw new SaplCompilerException(String.format(ERROR_REGEX_MUST_BE_STRING, regex), astNode);
+            throw new SaplCompilerException(COMPILE_ERROR_REGEX_MUST_BE_STRING.formatted(regex), astNode);
         }
         try {
             val pattern       = Pattern.compile(regexText.value()).asMatchPredicate();
@@ -176,12 +183,12 @@ public class ComparisonOperators {
             return input -> {
                 val metadata = input.metadata().merge(regexMetadata);
                 if (!(input instanceof TextValue inputText)) {
-                    return Error.at(astNode, metadata, ERROR_REGEX_TARGET_MUST_BE_STRING, input);
+                    return Error.at(astNode, metadata, RUNTIME_ERROR_REGEX_TARGET_MUST_BE_STRING, input);
                 }
                 return preserveSecret(pattern.test(inputText.value()), metadata);
             };
         } catch (IllegalArgumentException e) {
-            throw new SaplCompilerException(String.format(ERROR_REGEX_INVALID, regex, e.getMessage()), e, astNode);
+            throw new SaplCompilerException(COMPILE_ERROR_REGEX_INVALID.formatted(regex, e.getMessage()), e, astNode);
         }
     }
 

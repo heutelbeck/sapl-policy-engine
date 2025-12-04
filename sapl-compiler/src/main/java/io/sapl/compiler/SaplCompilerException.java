@@ -26,8 +26,8 @@ import java.io.Serial;
 
 /**
  * Thrown when SAPL compilation fails due to invalid policy structure or
- * unsupported constructs. Indicates a bug in the policy document or compiler
- * implementation.
+ * unsupported constructs. Indicates a bug in the
+ * policy document or compiler implementation.
  */
 @Getter
 public class SaplCompilerException extends RuntimeException {
