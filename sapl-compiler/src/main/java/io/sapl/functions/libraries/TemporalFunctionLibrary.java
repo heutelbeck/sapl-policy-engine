@@ -90,8 +90,6 @@ public class TemporalFunctionLibrary {
     private static final DateTimeFormatter US_TIME_FORMATTER       = new DateTimeFormatterBuilder()
             .parseCaseInsensitive().appendPattern("hh:mm:ss a").toFormatter(Locale.US);
 
-    /* Error message constants - categorized by input type */
-
     // Timestamp parsing (ISO 8601 instant format)
     private static final String ERROR_INVALID_TIMESTAMP       = "Invalid timestamp: %s.";
     private static final String ERROR_INVALID_TIMESTAMPS      = "Invalid timestamp(s) in comparison: %s, %s.";
