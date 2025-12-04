@@ -64,7 +64,10 @@ import java.util.function.Consumer;
  */
 @Slf4j
 public final class AttributeStream {
-    public static final int                 BUFFER_SIZE = 128;
+    public static final int BUFFER_SIZE = 128;
+
+    private static final String             ERROR_NO_UNIQUE_PIP_FOUND = "No unique policy information point found for %s.";
+    private static final String             ERROR_PIP_DISCONNECTED    = "No policy information point found for %s. PIP disconnected.";
     @Getter
     private final AttributeFinderInvocation invocation;
 
@@ -223,7 +226,7 @@ public final class AttributeStream {
             }
         } else {
             log.debug("No PIP configured for {}, publishing error", this);
-            publish(Value.error("No unique policy information point found for " + invocation));
+            publish(Value.error(ERROR_NO_UNIQUE_PIP_FOUND.formatted(invocation)));
         }
     }
 
@@ -300,7 +303,7 @@ public final class AttributeStream {
 
             if (!disconnectErrorAlreadyPublished) {
                 disconnectErrorAlreadyPublished = true;
-                publish(Value.error("No policy information point found for " + invocation + " PIP disconnected."));
+                publish(Value.error(ERROR_PIP_DISCONNECTED.formatted(invocation)));
             } else {
                 log.debug("Disconnect error already published for {}, skipping duplicate", this);
             }

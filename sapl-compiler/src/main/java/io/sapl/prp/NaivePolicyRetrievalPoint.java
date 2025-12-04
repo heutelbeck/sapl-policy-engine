@@ -35,6 +35,8 @@ import java.util.List;
 
 public class NaivePolicyRetrievalPoint implements PolicyRetrievalPoint {
 
+    private static final String ERROR_UNEXPECTED_TARGET_EXPRESSION_TYPE = "Unexpected target expression type in %s.";
+
     private final List<CompiledPolicy> alwaysApplicableDocuments;
     private final List<CompiledPolicy> maybeApplicableDocuments;
 
@@ -59,7 +61,7 @@ public class NaivePolicyRetrievalPoint implements PolicyRetrievalPoint {
                 }
             } else {
                 return new RetrievalError(
-                        Value.error("Unexpected target expression type in %s.".formatted(candidate.name())));
+                        Value.error(ERROR_UNEXPECTED_TARGET_EXPRESSION_TYPE.formatted(candidate.name())));
             }
         }
         return new MatchingDocuments(Collections.unmodifiableList(result));

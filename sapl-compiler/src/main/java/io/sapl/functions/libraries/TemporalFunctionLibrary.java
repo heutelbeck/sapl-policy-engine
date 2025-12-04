@@ -90,9 +90,45 @@ public class TemporalFunctionLibrary {
     private static final DateTimeFormatter US_TIME_FORMATTER       = new DateTimeFormatterBuilder()
             .parseCaseInsensitive().appendPattern("hh:mm:ss a").toFormatter(Locale.US);
 
-    private static final String ERROR_FAILED_TO_COMPARE_TIMESTAMPS = "Failed to compare timestamps.";
-    private static final String ERROR_FAILED_TO_EXECUTE            = "Failed to execute %s.";
-    private static final String ERROR_ISO_DURATION_PARAMETER_BLANK = "ISO duration parameter cannot be blank.";
+    /* Error message constants - categorized by input type */
+
+    // Timestamp parsing (ISO 8601 instant format)
+    private static final String ERROR_INVALID_TIMESTAMP       = "Invalid timestamp: %s.";
+    private static final String ERROR_INVALID_TIMESTAMPS      = "Invalid timestamp(s) in comparison: %s, %s.";
+    private static final String ERROR_INVALID_TIMESTAMP_RANGE = "Invalid timestamp(s) in range check: %s in [%s, %s].";
+    private static final String ERROR_INVALID_CHRONO_UNIT     = "Invalid timestamps or chrono unit: %s, %s, %s.";
+
+    // Temporal arithmetic (timestamp + amount)
+    private static final String ERROR_TEMPORAL_ARITHMETIC = "Temporal arithmetic failed for %s with amount %s.";
+
+    // ISO datetime parsing (with time component)
+    private static final String ERROR_INVALID_ISO_DATETIME = "Invalid ISO datetime: %s.";
+
+    // Local datetime parsing (without timezone)
+    private static final String ERROR_INVALID_LOCAL_DATETIME = "Invalid local datetime: %s.";
+    private static final String ERROR_INVALID_DIN_DATETIME   = "Invalid DIN datetime (expected dd.MM.yyyy HH:mm:ss): %s.";
+
+    // Time format parsing
+    private static final String ERROR_INVALID_TIME      = "Invalid time: %s.";
+    private static final String ERROR_INVALID_AMPM_TIME = "Invalid AM/PM time (expected hh:mm:ss AM/PM): %s.";
+
+    // Date format parsing
+    private static final String ERROR_INVALID_DATES = "Invalid date(s): %s, %s.";
+
+    // Timezone and offset errors
+    private static final String ERROR_INVALID_TIMEZONE    = "Invalid timezone %s for datetime %s.";
+    private static final String ERROR_INVALID_OFFSET      = "Invalid offset %s for datetime %s.";
+    private static final String ERROR_INVALID_OFFSET_TIME = "Invalid offset %s for time %s.";
+    private static final String ERROR_INVALID_ZONE_TIME   = "Invalid timezone %s for time %s on date %s.";
+
+    // Duration errors
+    private static final String ERROR_ISO_DURATION_BLANK      = "ISO duration parameter cannot be blank.";
+    private static final String ERROR_INVALID_ISO_DURATION    = "Invalid ISO duration: %s.";
+    private static final String ERROR_INVALID_DURATION_MILLIS = "Invalid duration milliseconds: %s.";
+
+    // Epoch conversion
+    private static final String ERROR_INVALID_EPOCH_SECONDS = "Invalid epoch seconds: %s.";
+    private static final String ERROR_INVALID_EPOCH_MILLIS  = "Invalid epoch milliseconds: %s.";
 
     /* ######## DURATION ######## */
 
@@ -159,7 +195,7 @@ public class TemporalFunctionLibrary {
         try {
             return Value.of(instantOf(timeA).isBefore(instantOf(timeB)));
         } catch (Exception e) {
-            return Value.error(ERROR_FAILED_TO_COMPARE_TIMESTAMPS, e);
+            return Value.error(ERROR_INVALID_TIMESTAMPS.formatted(timeA, timeB), e);
         }
     }
 
@@ -175,7 +211,7 @@ public class TemporalFunctionLibrary {
         try {
             return Value.of(instantOf(timeA).isAfter(instantOf(timeB)));
         } catch (Exception e) {
-            return Value.error(ERROR_FAILED_TO_EXECUTE.formatted("after"), e);
+            return Value.error(ERROR_INVALID_TIMESTAMPS.formatted(timeA, timeB), e);
         }
     }
 
@@ -202,7 +238,7 @@ public class TemporalFunctionLibrary {
             else
                 return Value.of((t.isBefore(end) && t.isAfter(start)));
         } catch (Exception e) {
-            return Value.error(ERROR_FAILED_TO_EXECUTE.formatted("between"), e);
+            return Value.error(ERROR_INVALID_TIMESTAMP_RANGE.formatted(time, intervalStart, intervalEnd), e);
         }
     }
 
@@ -225,7 +261,7 @@ public class TemporalFunctionLibrary {
             val instantTo   = instantOf(timeB);
             return Value.of(calculateTimeBetween(instantFrom, instantTo, unit));
         } catch (Exception e) {
-            return Value.error(ERROR_FAILED_TO_EXECUTE.formatted("timeBetween"), e);
+            return Value.error(ERROR_INVALID_CHRONO_UNIT.formatted(timeA, timeB, chronoUnit), e);
         }
     }
 
@@ -270,7 +306,7 @@ public class TemporalFunctionLibrary {
             validateTemporalBounds(instant, days.value().longValue(), ChronoUnit.DAYS, true);
             return Value.of(instant.plus(days.value().longValue(), ChronoUnit.DAYS).toString());
         } catch (Exception e) {
-            return Value.error(ERROR_FAILED_TO_EXECUTE.formatted("plusDays"), e);
+            return Value.error(ERROR_TEMPORAL_ARITHMETIC.formatted(startTime, days), e);
         }
     }
 
@@ -290,7 +326,7 @@ public class TemporalFunctionLibrary {
             val zdt     = instant.atZone(ZoneOffset.UTC);
             return Value.of(zdt.plusMonths(months.value().longValue()).toInstant().toString());
         } catch (Exception e) {
-            return Value.error(ERROR_FAILED_TO_EXECUTE.formatted("plusMonths"), e);
+            return Value.error(ERROR_TEMPORAL_ARITHMETIC.formatted(startTime, months), e);
         }
     }
 
@@ -310,7 +346,7 @@ public class TemporalFunctionLibrary {
             val zdt     = instant.atZone(ZoneOffset.UTC);
             return Value.of(zdt.plusYears(years.value().longValue()).toInstant().toString());
         } catch (Exception e) {
-            return Value.error(ERROR_FAILED_TO_EXECUTE.formatted("plusYears"), e);
+            return Value.error(ERROR_TEMPORAL_ARITHMETIC.formatted(startTime, years), e);
         }
     }
 
@@ -329,7 +365,7 @@ public class TemporalFunctionLibrary {
             validateTemporalBounds(instant, days.value().longValue(), ChronoUnit.DAYS, false);
             return Value.of(instant.minus(days.value().longValue(), ChronoUnit.DAYS).toString());
         } catch (Exception e) {
-            return Value.error(ERROR_FAILED_TO_EXECUTE.formatted("minusDays"), e);
+            return Value.error(ERROR_TEMPORAL_ARITHMETIC.formatted(startTime, days), e);
         }
     }
 
@@ -349,7 +385,7 @@ public class TemporalFunctionLibrary {
             val zdt     = instant.atZone(ZoneOffset.UTC);
             return Value.of(zdt.minusMonths(months.value().longValue()).toInstant().toString());
         } catch (Exception e) {
-            return Value.error(ERROR_FAILED_TO_EXECUTE.formatted("minusMonths"), e);
+            return Value.error(ERROR_TEMPORAL_ARITHMETIC.formatted(startTime, months), e);
         }
     }
 
@@ -369,7 +405,7 @@ public class TemporalFunctionLibrary {
             val zdt     = instant.atZone(ZoneOffset.UTC);
             return Value.of(zdt.minusYears(years.value().longValue()).toInstant().toString());
         } catch (Exception e) {
-            return Value.error(ERROR_FAILED_TO_EXECUTE.formatted("minusYears"), e);
+            return Value.error(ERROR_TEMPORAL_ARITHMETIC.formatted(startTime, years), e);
         }
     }
 
@@ -390,7 +426,7 @@ public class TemporalFunctionLibrary {
             validateTemporalBounds(instant, nanos.value().longValue(), ChronoUnit.NANOS, true);
             return Value.of(instant.plusNanos(nanos.value().longValue()).toString());
         } catch (Exception e) {
-            return Value.error(ERROR_FAILED_TO_EXECUTE.formatted("plusNanos"), e);
+            return Value.error(ERROR_TEMPORAL_ARITHMETIC.formatted(startTime, nanos), e);
         }
     }
 
@@ -409,7 +445,7 @@ public class TemporalFunctionLibrary {
             validateTemporalBounds(instant, millis.value().longValue(), ChronoUnit.MILLIS, true);
             return Value.of(instant.plusMillis(millis.value().longValue()).toString());
         } catch (Exception e) {
-            return Value.error(ERROR_FAILED_TO_EXECUTE.formatted("plusMillis"), e);
+            return Value.error(ERROR_TEMPORAL_ARITHMETIC.formatted(startTime, millis), e);
         }
     }
 
@@ -428,7 +464,7 @@ public class TemporalFunctionLibrary {
             validateTemporalBounds(instant, seconds.value().longValue(), ChronoUnit.SECONDS, true);
             return Value.of(instant.plusSeconds(seconds.value().longValue()).toString());
         } catch (Exception e) {
-            return Value.error(ERROR_FAILED_TO_EXECUTE.formatted("plusSeconds"), e);
+            return Value.error(ERROR_TEMPORAL_ARITHMETIC.formatted(startTime, seconds), e);
         }
     }
 
@@ -447,7 +483,7 @@ public class TemporalFunctionLibrary {
             validateTemporalBounds(instant, nanos.value().longValue(), ChronoUnit.NANOS, false);
             return Value.of(instant.minusNanos(nanos.value().longValue()).toString());
         } catch (Exception e) {
-            return Value.error(ERROR_FAILED_TO_EXECUTE.formatted("minusNanos"), e);
+            return Value.error(ERROR_TEMPORAL_ARITHMETIC.formatted(startTime, nanos), e);
         }
     }
 
@@ -466,7 +502,7 @@ public class TemporalFunctionLibrary {
             validateTemporalBounds(instant, millis.value().longValue(), ChronoUnit.MILLIS, false);
             return Value.of(instant.minusMillis(millis.value().longValue()).toString());
         } catch (Exception e) {
-            return Value.error(ERROR_FAILED_TO_EXECUTE.formatted("minusMillis"), e);
+            return Value.error(ERROR_TEMPORAL_ARITHMETIC.formatted(startTime, millis), e);
         }
     }
 
@@ -485,7 +521,7 @@ public class TemporalFunctionLibrary {
             validateTemporalBounds(instant, seconds.value().longValue(), ChronoUnit.SECONDS, false);
             return Value.of(instant.minusSeconds(seconds.value().longValue()).toString());
         } catch (Exception e) {
-            return Value.error(ERROR_FAILED_TO_EXECUTE.formatted("minusSeconds"), e);
+            return Value.error(ERROR_TEMPORAL_ARITHMETIC.formatted(startTime, seconds), e);
         }
     }
 
@@ -502,7 +538,7 @@ public class TemporalFunctionLibrary {
         try {
             return Value.of(instantOf(utcDateTime).getEpochSecond());
         } catch (Exception e) {
-            return Value.error(ERROR_FAILED_TO_EXECUTE.formatted("epochSecond"), e);
+            return Value.error(ERROR_INVALID_TIMESTAMP.formatted(utcDateTime), e);
         }
     }
 
@@ -517,7 +553,7 @@ public class TemporalFunctionLibrary {
         try {
             return Value.of(instantOf(utcDateTime).toEpochMilli());
         } catch (Exception e) {
-            return Value.error(ERROR_FAILED_TO_EXECUTE.formatted("epochMilli"), e);
+            return Value.error(ERROR_INVALID_TIMESTAMP.formatted(utcDateTime), e);
         }
     }
 
@@ -531,7 +567,7 @@ public class TemporalFunctionLibrary {
         try {
             return Value.of(Instant.ofEpochSecond(epochSeconds.value().longValue()).toString());
         } catch (Exception e) {
-            return Value.error(ERROR_FAILED_TO_EXECUTE.formatted("ofEpochSecond"), e);
+            return Value.error(ERROR_INVALID_EPOCH_SECONDS.formatted(epochSeconds), e);
         }
     }
 
@@ -545,7 +581,7 @@ public class TemporalFunctionLibrary {
         try {
             return Value.of(Instant.ofEpochMilli(epochMillis.value().longValue()).toString());
         } catch (Exception e) {
-            return Value.error(ERROR_FAILED_TO_EXECUTE.formatted("ofEpochMilli"), e);
+            return Value.error(ERROR_INVALID_EPOCH_MILLIS.formatted(epochMillis), e);
         }
     }
 
@@ -564,7 +600,7 @@ public class TemporalFunctionLibrary {
             return Value.of(
                     DateTimeFormatter.ISO_DATE_TIME.parse(isoDateTime.value()).get(ChronoField.ALIGNED_WEEK_OF_YEAR));
         } catch (Exception e) {
-            return Value.error(ERROR_FAILED_TO_EXECUTE.formatted("weekOfYear"), e);
+            return Value.error(ERROR_INVALID_ISO_DATETIME.formatted(isoDateTime), e);
         }
     }
 
@@ -580,7 +616,7 @@ public class TemporalFunctionLibrary {
         try {
             return Value.of(DateTimeFormatter.ISO_DATE_TIME.parse(isoDateTime.value()).get(ChronoField.DAY_OF_YEAR));
         } catch (Exception e) {
-            return Value.error(ERROR_FAILED_TO_EXECUTE.formatted("dayOfYear"), e);
+            return Value.error(ERROR_INVALID_ISO_DATETIME.formatted(isoDateTime), e);
         }
     }
 
@@ -598,7 +634,7 @@ public class TemporalFunctionLibrary {
             return Value.of(DayOfWeek
                     .from(DateTimeFormatter.ISO_DATE_TIME.parse(isoDateTime.value(), LocalDateTime::from)).toString());
         } catch (Exception e) {
-            return Value.error(ERROR_FAILED_TO_EXECUTE.formatted("dayOfWeek"), e);
+            return Value.error(ERROR_INVALID_ISO_DATETIME.formatted(isoDateTime), e);
         }
     }
 
@@ -668,7 +704,7 @@ public class TemporalFunctionLibrary {
             val date    = LocalDate.ofInstant(instant, ZoneOffset.UTC);
             return Value.of(date.atStartOfDay(ZoneOffset.UTC).toInstant().toString());
         } catch (Exception e) {
-            return Value.error(ERROR_FAILED_TO_EXECUTE.formatted("startOfDay"), e);
+            return Value.error(ERROR_INVALID_TIMESTAMP.formatted(dateTime), e);
         }
     }
 
@@ -684,7 +720,7 @@ public class TemporalFunctionLibrary {
             val date    = LocalDate.ofInstant(instant, ZoneOffset.UTC);
             return Value.of(date.atTime(LocalTime.MAX).atZone(ZoneOffset.UTC).toInstant().toString());
         } catch (Exception e) {
-            return Value.error("Failed to execute endOfDay.", e);
+            return Value.error(ERROR_INVALID_TIMESTAMP.formatted(dateTime), e);
         }
     }
 
@@ -704,7 +740,7 @@ public class TemporalFunctionLibrary {
             val monday  = date.with(java.time.temporal.TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
             return Value.of(monday.atStartOfDay(ZoneOffset.UTC).toInstant().toString());
         } catch (Exception e) {
-            return Value.error("Failed to execute startOfWeek.", e);
+            return Value.error(ERROR_INVALID_TIMESTAMP.formatted(dateTime), e);
         }
     }
 
@@ -723,7 +759,7 @@ public class TemporalFunctionLibrary {
             val sunday  = date.with(java.time.temporal.TemporalAdjusters.nextOrSame(DayOfWeek.SUNDAY));
             return Value.of(sunday.atTime(LocalTime.MAX).atZone(ZoneOffset.UTC).toInstant().toString());
         } catch (Exception e) {
-            return Value.error("Failed to execute endOfWeek.", e);
+            return Value.error(ERROR_INVALID_TIMESTAMP.formatted(dateTime), e);
         }
     }
 
@@ -739,7 +775,7 @@ public class TemporalFunctionLibrary {
             val date    = LocalDate.ofInstant(instant, ZoneOffset.UTC);
             return Value.of(date.withDayOfMonth(1).atStartOfDay(ZoneOffset.UTC).toInstant().toString());
         } catch (Exception e) {
-            return Value.error("Failed to execute startOfMonth.", e);
+            return Value.error(ERROR_INVALID_TIMESTAMP.formatted(dateTime), e);
         }
     }
 
@@ -756,7 +792,7 @@ public class TemporalFunctionLibrary {
             val lastDay = date.withDayOfMonth(date.lengthOfMonth());
             return Value.of(lastDay.atTime(LocalTime.MAX).atZone(ZoneOffset.UTC).toInstant().toString());
         } catch (Exception e) {
-            return Value.error("Failed to execute endOfMonth.", e);
+            return Value.error(ERROR_INVALID_TIMESTAMP.formatted(dateTime), e);
         }
     }
 
@@ -772,7 +808,7 @@ public class TemporalFunctionLibrary {
             val date    = LocalDate.ofInstant(instant, ZoneOffset.UTC);
             return Value.of(date.withDayOfYear(1).atStartOfDay(ZoneOffset.UTC).toInstant().toString());
         } catch (Exception e) {
-            return Value.error("Failed to execute startOfYear.", e);
+            return Value.error(ERROR_INVALID_TIMESTAMP.formatted(dateTime), e);
         }
     }
 
@@ -789,7 +825,7 @@ public class TemporalFunctionLibrary {
             val lastDay = date.withDayOfYear(date.lengthOfYear());
             return Value.of(lastDay.atTime(LocalTime.MAX).atZone(ZoneOffset.UTC).toInstant().toString());
         } catch (Exception e) {
-            return Value.error("Failed to execute endOfYear.", e);
+            return Value.error(ERROR_INVALID_TIMESTAMP.formatted(dateTime), e);
         }
     }
 
@@ -806,7 +842,7 @@ public class TemporalFunctionLibrary {
             val instant = instantOf(dateTime);
             return Value.of(instant.truncatedTo(ChronoUnit.HOURS).toString());
         } catch (Exception e) {
-            return Value.error("Failed to execute truncateToHour.", e);
+            return Value.error(ERROR_INVALID_TIMESTAMP.formatted(dateTime), e);
         }
     }
 
@@ -820,7 +856,7 @@ public class TemporalFunctionLibrary {
         try {
             return startOfDay(dateTime);
         } catch (Exception e) {
-            return Value.error("Failed to execute truncateToDay.", e);
+            return Value.error(ERROR_INVALID_TIMESTAMP.formatted(dateTime), e);
         }
     }
 
@@ -834,7 +870,7 @@ public class TemporalFunctionLibrary {
         try {
             return startOfWeek(dateTime);
         } catch (Exception e) {
-            return Value.error("Failed to execute truncateToWeek.", e);
+            return Value.error(ERROR_INVALID_TIMESTAMP.formatted(dateTime), e);
         }
     }
 
@@ -848,7 +884,7 @@ public class TemporalFunctionLibrary {
         try {
             return startOfMonth(dateTime);
         } catch (Exception e) {
-            return Value.error("Failed to execute truncateToMonth.", e);
+            return Value.error(ERROR_INVALID_TIMESTAMP.formatted(dateTime), e);
         }
     }
 
@@ -862,7 +898,7 @@ public class TemporalFunctionLibrary {
         try {
             return startOfYear(dateTime);
         } catch (Exception e) {
-            return Value.error("Failed to execute truncateToYear.", e);
+            return Value.error(ERROR_INVALID_TIMESTAMP.formatted(dateTime), e);
         }
     }
 
@@ -882,7 +918,7 @@ public class TemporalFunctionLibrary {
                     parseLocalDateTime(localDateTime.value(), DateTimeFormatter.ISO_LOCAL_DATE_TIME),
                     ZoneId.systemDefault()).toString());
         } catch (Exception e) {
-            return Value.error("Failed to execute localIso.", e);
+            return Value.error(ERROR_INVALID_LOCAL_DATETIME.formatted(localDateTime), e);
         }
     }
 
@@ -899,7 +935,7 @@ public class TemporalFunctionLibrary {
             return Value.of(localDateTimeToInstant(parseLocalDateTime(dinDateTime.value(), DIN_DATE_TIME_FORMATTER),
                     ZoneId.systemDefault()).toString());
         } catch (Exception e) {
-            return Value.error("Failed to execute localDin.", e);
+            return Value.error(ERROR_INVALID_DIN_DATETIME.formatted(dinDateTime), e);
         }
     }
 
@@ -917,7 +953,7 @@ public class TemporalFunctionLibrary {
             val odt = OffsetDateTime.of(ldt, parseZoneOffset(offsetId));
             return Value.of(odt.withOffsetSameInstant(ZoneOffset.UTC).toInstant().toString());
         } catch (Exception e) {
-            return Value.error("Failed to execute dateTimeAtOffset.", e);
+            return Value.error(ERROR_INVALID_OFFSET.formatted(offsetId, localDateTime), e);
         }
     }
 
@@ -938,7 +974,7 @@ public class TemporalFunctionLibrary {
             val zdt = ZonedDateTime.of(ldt, zoneIdOf(zoneId));
             return Value.of(zdt.withZoneSameInstant(ZoneId.of("UTC")).toInstant().toString());
         } catch (Exception e) {
-            return Value.error("Failed to execute dateTimeAtZone.", e);
+            return Value.error(ERROR_INVALID_TIMEZONE.formatted(zoneId, localDateTime), e);
         }
     }
 
@@ -955,7 +991,7 @@ public class TemporalFunctionLibrary {
             val offsetDateTime = DateTimeFormatter.ISO_DATE_TIME.parse(isoDateTime.value(), OffsetDateTime::from);
             return Value.of(offsetDateTime.withOffsetSameInstant(ZoneOffset.UTC).toInstant().toString());
         } catch (Exception e) {
-            return Value.error("Failed to execute offsetDateTime.", e);
+            return Value.error(ERROR_INVALID_ISO_DATETIME.formatted(isoDateTime), e);
         }
     }
 
@@ -973,7 +1009,7 @@ public class TemporalFunctionLibrary {
             val offsetTime = DateTimeFormatter.ISO_TIME.parse(isoTime.value(), OffsetTime::from);
             return Value.of(offsetTime.withOffsetSameInstant(ZoneOffset.UTC).toLocalTime().toString());
         } catch (Exception e) {
-            return Value.error("Failed to execute offsetTime.", e);
+            return Value.error(ERROR_INVALID_TIME.formatted(isoTime), e);
         }
     }
 
@@ -990,7 +1026,7 @@ public class TemporalFunctionLibrary {
             val offset = parseZoneOffset(offsetId);
             return Value.of(OffsetTime.of(lt, offset).withOffsetSameInstant(ZoneOffset.UTC).toLocalTime().toString());
         } catch (Exception e) {
-            return Value.error("Failed to execute timeAtOffset.", e);
+            return Value.error(ERROR_INVALID_OFFSET_TIME.formatted(offsetId, localTime), e);
         }
     }
 
@@ -1008,7 +1044,7 @@ public class TemporalFunctionLibrary {
             val zonedDateTime = ZonedDateTime.of(lt.atDate(LocalDate.parse(localDate.value())), zone);
             return Value.of(zonedDateTime.withZoneSameInstant(ZoneId.of("UTC")).toLocalTime().toString());
         } catch (Exception e) {
-            return Value.error("Failed to execute timeInZone.", e);
+            return Value.error(ERROR_INVALID_ZONE_TIME.formatted(zoneId, localTime, localDate), e);
         }
     }
 
@@ -1023,7 +1059,7 @@ public class TemporalFunctionLibrary {
             val lt = US_TIME_FORMATTER.parse(timeInAMPM.value(), LocalTime::from);
             return Value.of(lt.toString());
         } catch (Exception e) {
-            return Value.error("Failed to execute timeAMPM.", e);
+            return Value.error(ERROR_INVALID_AMPM_TIME.formatted(timeInAMPM), e);
         }
     }
 
@@ -1039,7 +1075,7 @@ public class TemporalFunctionLibrary {
         try {
             return Value.of(DateTimeFormatter.ISO_DATE_TIME.parse(isoDateTime.value(), LocalDate::from).toString());
         } catch (Exception e) {
-            return Value.error("Failed to execute dateOf.", e);
+            return Value.error(ERROR_INVALID_ISO_DATETIME.formatted(isoDateTime), e);
         }
     }
 
@@ -1055,7 +1091,7 @@ public class TemporalFunctionLibrary {
                     .truncatedTo(ChronoUnit.SECONDS);
             return Value.of(time.format(DateTimeFormatter.ISO_LOCAL_TIME));
         } catch (Exception e) {
-            return Value.error("Failed to execute timeOf.", e);
+            return Value.error(ERROR_INVALID_ISO_DATETIME.formatted(isoDateTime), e);
         }
     }
 
@@ -1069,7 +1105,7 @@ public class TemporalFunctionLibrary {
         try {
             return Value.of(DateTimeFormatter.ISO_DATE_TIME.parse(isoDateTime.value(), LocalTime::from).getHour());
         } catch (Exception e) {
-            return Value.error("Failed to execute hourOf.", e);
+            return Value.error(ERROR_INVALID_ISO_DATETIME.formatted(isoDateTime), e);
         }
     }
 
@@ -1083,7 +1119,7 @@ public class TemporalFunctionLibrary {
         try {
             return Value.of(DateTimeFormatter.ISO_DATE_TIME.parse(isoDateTime.value(), LocalTime::from).getMinute());
         } catch (Exception e) {
-            return Value.error("Failed to execute minuteOf.", e);
+            return Value.error(ERROR_INVALID_ISO_DATETIME.formatted(isoDateTime), e);
         }
     }
 
@@ -1097,7 +1133,7 @@ public class TemporalFunctionLibrary {
         try {
             return Value.of(DateTimeFormatter.ISO_DATE_TIME.parse(isoDateTime.value(), LocalTime::from).getSecond());
         } catch (Exception e) {
-            return Value.error("Failed to execute secondOf.", e);
+            return Value.error(ERROR_INVALID_ISO_DATETIME.formatted(isoDateTime), e);
         }
     }
 
@@ -1118,7 +1154,7 @@ public class TemporalFunctionLibrary {
     public static Value durationFromISO(TextValue isoDuration) {
         try {
             if (isoDuration.value().isBlank()) {
-                return Value.error(ERROR_ISO_DURATION_PARAMETER_BLANK);
+                return Value.error(ERROR_ISO_DURATION_BLANK);
             }
 
             val durationStr = isoDuration.value();
@@ -1146,7 +1182,7 @@ public class TemporalFunctionLibrary {
 
             return Value.of(totalMillis);
         } catch (Exception e) {
-            return Value.error("Failed to execute durationFromISO.", e);
+            return Value.error(ERROR_INVALID_ISO_DURATION.formatted(isoDuration), e);
         }
     }
 
@@ -1166,7 +1202,7 @@ public class TemporalFunctionLibrary {
             val duration = Duration.ofMillis(milliseconds.value().longValue());
             return Value.of(duration.toString());
         } catch (Exception e) {
-            return Value.error("Failed to execute durationToISOCompact.", e);
+            return Value.error(ERROR_INVALID_DURATION_MILLIS.formatted(milliseconds), e);
         }
     }
 
@@ -1222,7 +1258,7 @@ public class TemporalFunctionLibrary {
 
             return Value.of(result.toString());
         } catch (Exception e) {
-            return Value.error("Failed to execute durationToISOVerbose.", e);
+            return Value.error(ERROR_INVALID_DURATION_MILLIS.formatted(milliseconds), e);
         }
     }
 
@@ -1243,7 +1279,7 @@ public class TemporalFunctionLibrary {
             val zdt     = instant.atZone(zone);
             return Value.of(zdt.format(DateTimeFormatter.ISO_OFFSET_DATE_TIME));
         } catch (Exception e) {
-            return Value.error("Failed to execute toZone.", e);
+            return Value.error(ERROR_INVALID_TIMEZONE.formatted(zoneId, utcTime), e);
         }
     }
 
@@ -1262,7 +1298,7 @@ public class TemporalFunctionLibrary {
             val odt     = instant.atOffset(offset);
             return Value.of(odt.format(DateTimeFormatter.ISO_OFFSET_DATE_TIME));
         } catch (Exception e) {
-            return Value.error("Failed to execute toOffset.", e);
+            return Value.error(ERROR_INVALID_OFFSET.formatted(offsetId, utcTime), e);
         }
     }
 
@@ -1283,7 +1319,7 @@ public class TemporalFunctionLibrary {
             val current = LocalDate.ofInstant(instantOf(currentDate), ZoneOffset.UTC);
             return Value.of(Period.between(birth, current).getYears());
         } catch (Exception e) {
-            return Value.error("Failed to execute ageInYears.", e);
+            return Value.error(ERROR_INVALID_DATES.formatted(birthDate, currentDate), e);
         }
     }
 
@@ -1303,7 +1339,7 @@ public class TemporalFunctionLibrary {
             val period  = Period.between(birth, current);
             return Value.of(period.getYears() * 12L + period.getMonths());
         } catch (Exception e) {
-            return Value.error("Failed to execute ageInMonths.", e);
+            return Value.error(ERROR_INVALID_DATES.formatted(birthDate, currentDate), e);
         }
     }
 

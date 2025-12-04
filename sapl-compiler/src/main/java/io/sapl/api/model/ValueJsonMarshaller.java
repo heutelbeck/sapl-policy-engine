@@ -42,6 +42,9 @@ public class ValueJsonMarshaller {
     private static final ObjectMapper    OBJECT_MAPPER = new ObjectMapper();
     static final int                     MAX_DEPTH     = 500;
 
+    private static final String ERROR_FAILED_TO_PARSE_JSON   = "Failed to parse JSON: %s";
+    private static final String ERROR_UNKNOWN_JSON_NODE_TYPE = "Unknown JsonNode type: %s.";
+
     /**
      * Checks whether a Value can be marshalled to JSON without throwing.
      *
@@ -134,7 +137,7 @@ public class ValueJsonMarshaller {
         try {
             return fromJsonNode(OBJECT_MAPPER.readTree(json));
         } catch (JsonProcessingException e) {
-            return Value.error("Failed to parse JSON: %s".formatted(e.getMessage()));
+            return Value.error(ERROR_FAILED_TO_PARSE_JSON.formatted(e.getMessage()));
         }
     }
 
@@ -172,7 +175,7 @@ public class ValueJsonMarshaller {
         case STRING  -> Value.of(node.asText());
         case ARRAY   -> fromJsonArray(node, depth + 1);
         case OBJECT  -> fromJsonObject(node, depth + 1);
-        default      -> Value.error("Unknown JsonNode type: " + node.getNodeType() + ".");
+        default      -> Value.error(ERROR_UNKNOWN_JSON_NODE_TYPE.formatted(node.getNodeType()));
         };
     }
 
