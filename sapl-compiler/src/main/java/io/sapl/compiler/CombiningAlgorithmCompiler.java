@@ -202,11 +202,26 @@ public class CombiningAlgorithmCompiler {
     // ========== Common Helper Methods ==========
 
     /**
-     * Evaluates a match expression (pure or constant).
+     * Result of evaluating a match expression.
      */
-    private static boolean evaluateMatch(CompiledPolicy policy, EvaluationContext ctx) {
+    private enum MatchResult {
+        /** Target evaluated to true - policy applies */
+        MATCH,
+        /** Target evaluated to false - policy does not apply (NOT_APPLICABLE) */
+        NO_MATCH,
+        /** Target evaluated to error or non-boolean - INDETERMINATE */
+        ERROR
+    }
+
+    /**
+     * Evaluates a match expression and returns the tri-state result.
+     */
+    private static MatchResult evaluateMatch(CompiledPolicy policy, EvaluationContext ctx) {
         val matches = evalValueOrPure(policy.matchExpression(), ctx);
-        return matches instanceof BooleanValue boolValue && boolValue.value();
+        if (matches instanceof BooleanValue boolValue) {
+            return boolValue.value() ? MatchResult.MATCH : MatchResult.NO_MATCH;
+        }
+        return MatchResult.ERROR;
     }
 
     /**
@@ -248,11 +263,16 @@ public class CombiningAlgorithmCompiler {
     }
 
     /**
-     * Checks if all policies have pure or constant decision expressions.
+     * Checks if all policies have pure or constant match and decision expressions.
+     * Both must be checked to ensure the pure evaluation path can be used safely.
      */
     private static boolean allPureOrConstant(List<CompiledPolicy> policies) {
-        return policies.stream().allMatch(
-                p -> p.decisionExpression() instanceof Value || p.decisionExpression() instanceof PureExpression);
+        return policies.stream()
+                .allMatch(p -> isPureOrConstant(p.decisionExpression()) && isPureOrConstant(p.matchExpression()));
+    }
+
+    private static boolean isPureOrConstant(CompiledExpression expression) {
+        return expression instanceof Value || expression instanceof PureExpression;
     }
 
     private static Value evalValueOrPure(CompiledExpression e, EvaluationContext ctx) {
@@ -272,7 +292,12 @@ public class CombiningAlgorithmCompiler {
         }
         val matchFlux = ExpressionCompiler.compiledExpressionToFlux(policy.matchExpression());
         return matchFlux.switchMap(matches -> {
-            if (!(matches instanceof BooleanValue matchesBool) || !matchesBool.value()) {
+            if (!(matches instanceof BooleanValue matchesBool)) {
+                // Non-boolean target result is INDETERMINATE
+                return Flux.just(new PolicyEvaluation(Decision.INDETERMINATE, Value.UNDEFINED, Value.EMPTY_ARRAY,
+                        Value.EMPTY_ARRAY));
+            }
+            if (!matchesBool.value()) {
                 return Flux.just(PolicyEvaluation.notApplicable());
             }
             return ExpressionCompiler.compiledExpressionToFlux(policy.decisionExpression())
@@ -322,8 +347,16 @@ public class CombiningAlgorithmCompiler {
         val accumulator = new DecisionAccumulator(logic.getDefaultDecision());
 
         for (val policy : compiledPolicies) {
-            if (!preMatched && !evaluateMatch(policy, ctx)) {
-                continue;
+            if (!preMatched) {
+                val matchResult = evaluateMatch(policy, ctx);
+                if (matchResult == MatchResult.ERROR) {
+                    accumulator.addPolicyEvaluation(new PolicyEvaluation(Decision.INDETERMINATE, Value.UNDEFINED,
+                            Value.EMPTY_ARRAY, Value.EMPTY_ARRAY), logic);
+                    continue;
+                }
+                if (matchResult == MatchResult.NO_MATCH) {
+                    continue;
+                }
             }
             val evaluation = evaluatePolicyDecision(policy, ctx);
             accumulator.addPolicyEvaluation(evaluation, logic);
@@ -508,8 +541,17 @@ public class CombiningAlgorithmCompiler {
             boolean preMatched) {
         val accumulator = new OnlyOneApplicableAccumulator();
         for (val policy : compiledPolicies) {
-            if (preMatched || evaluateMatch(policy, ctx)) {
+            if (preMatched) {
                 accumulator.addEvaluation(evaluatePolicyDecision(policy, ctx));
+            } else {
+                val matchResult = evaluateMatch(policy, ctx);
+                if (matchResult == MatchResult.ERROR) {
+                    accumulator.addEvaluation(new PolicyEvaluation(Decision.INDETERMINATE, Value.UNDEFINED,
+                            Value.EMPTY_ARRAY, Value.EMPTY_ARRAY));
+                } else if (matchResult == MatchResult.MATCH) {
+                    accumulator.addEvaluation(evaluatePolicyDecision(policy, ctx));
+                }
+                // NO_MATCH: skip
             }
         }
         return accumulator.buildFinalDecision();
@@ -578,7 +620,11 @@ public class CombiningAlgorithmCompiler {
 
     private static Value evaluateFirstApplicablePure(List<CompiledPolicy> compiledPolicies, EvaluationContext ctx) {
         for (val policy : compiledPolicies) {
-            if (!evaluateMatch(policy, ctx)) {
+            val matchResult = evaluateMatch(policy, ctx);
+            if (matchResult == MatchResult.ERROR) {
+                return AuthorizationDecisionUtil.INDETERMINATE;
+            }
+            if (matchResult == MatchResult.NO_MATCH) {
                 continue;
             }
             val decision       = evalValueOrPure(policy.decisionExpression(), ctx);

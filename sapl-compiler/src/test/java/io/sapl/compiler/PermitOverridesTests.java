@@ -87,13 +87,13 @@ class PermitOverridesTests {
                 arguments("Permit with indeterminate returns PERMIT", """
                         set "test" permit-overrides
                         policy "permit policy" permit
-                        policy "indeterminate policy" permit where "a" > 5;
+                        policy "indeterminate policy" permit where subject / 0 == 0;
                         """, Decision.PERMIT),
 
                 arguments("Deny indeterminate not applicable returns INDETERMINATE", """
                         set "test" permit-overrides
                         policy "deny policy" deny
-                        policy "indeterminate policy" permit where "a" < 5;
+                        policy "indeterminate policy" permit where subject / 0 == 0;
                         policy "not applicable policy" permit subject == "non-matching"
                         """, Decision.INDETERMINATE),
 

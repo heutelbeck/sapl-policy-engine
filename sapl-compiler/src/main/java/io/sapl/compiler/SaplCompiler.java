@@ -31,6 +31,7 @@ import org.eclipse.emf.common.util.EList;
 import org.eclipse.emf.ecore.EObject;
 import reactor.core.publisher.Flux;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -153,22 +154,28 @@ public class SaplCompiler {
         return switch (compiledTargetExpression) {
         case PureExpression pureExpression ->
             compileTargetExpressionToMatchExpression(targetExpression, pureExpression);
-        case Value value                   -> booleanValueOrErrorInTarget(targetExpression, value);
+        case Value value                   -> ensureBooleanValueInTarget(targetExpression, value);
         default                            -> throw new SaplCompilerException(
                 ERROR_UNEXPECTED_TARGET_TYPE.formatted(targetExpression.getClass()), targetExpression);
         };
     }
 
+    private Value ensureBooleanValueInTarget(EObject astNode, Value constantTargetEvaluationResult) {
+        if (constantTargetEvaluationResult instanceof BooleanValue) {
+            return constantTargetEvaluationResult;
+        }
+        throw new SaplCompilerException(
+                "Compile error. Target expression never returns a Boolean value and always evaluates to: %s."
+                        .formatted(constantTargetEvaluationResult),
+                astNode);
+    }
+
     private CompiledExpression compileDecisionExpression(Policy policy, CompilationContext context) {
         val entitlement    = decisionOf(policy.getEntitlement());
         val body           = compileBody(policy.getBody(), context);
-        val obligations    = compileListOfExpressions(policy.getObligations(), context);
-        val advice         = compileListOfExpressions(policy.getAdvice(), context);
-        val transformation = ExpressionCompiler.compileExpression(policy.getTransformation(), context);
-
-        if (hasCompileTimeErrors(body, obligations, advice, transformation)) {
-            return buildIndeterminateDecision();
-        }
+        val obligations    = compileListOfConstraints(policy.getObligations(), context);
+        val advice         = compileListOfConstraints(policy.getAdvice(), context);
+        val transformation = compileTransformation(policy.getTransformation(), context);
 
         if (body instanceof Value bodyValue) {
             return compileConstantBodyDecision(entitlement, bodyValue, obligations, advice, transformation);
@@ -181,22 +188,14 @@ public class SaplCompiler {
         return compileStreamingBodyDecision(entitlement, body, obligations, advice, transformation);
     }
 
-    private static boolean hasCompileTimeErrors(CompiledExpression body, List<CompiledExpression> obligations,
-            List<CompiledExpression> advice, CompiledExpression transformation) {
-        if (body instanceof ErrorValue) {
-            return true;
+    private CompiledExpression compileTransformation(Expression transformationExpression, CompilationContext context) {
+        val compiledExpression = ExpressionCompiler.compileExpression(transformationExpression, context);
+        if (compiledExpression instanceof ErrorValue) {
+            throw new SaplCompilerException(
+                    "Compile error. Transformation expression is always an error: %s.".formatted(compiledExpression),
+                    transformationExpression);
         }
-        if (containsAnyError(obligations)) {
-            return true;
-        }
-        if (containsAnyError(advice)) {
-            return true;
-        }
-        return transformation instanceof ErrorValue;
-    }
-
-    private static boolean containsAnyError(List<CompiledExpression> expressions) {
-        return expressions.stream().anyMatch(ErrorValue.class::isInstance);
+        return compiledExpression;
     }
 
     private static CompiledExpression compileConstantBodyDecision(Decision entitlement, Value bodyValue,
@@ -559,10 +558,17 @@ public class SaplCompiler {
                 context.addLocalPolicyVariable(variableName, compiledValueDefinition);
             }
         }
+
         if (compiledBody == null) {
-            compiledBody = Value.TRUE;
+            return Value.TRUE;
         }
 
+        if (compiledBody instanceof Value && !(compiledBody instanceof BooleanValue)) {
+            throw new SaplCompilerException(
+                    "Compile time type mismatch. Policy body always evaluates to a non-Boolean value %s."
+                            .formatted(compiledBody),
+                    body);
+        }
         return compiledBody;
     }
 
@@ -587,11 +593,23 @@ public class SaplCompiler {
         return new StreamExpression(streamExpression.stream().replay(1).refCount());
     }
 
-    private List<CompiledExpression> compileListOfExpressions(List<Expression> expressions,
+    private List<CompiledExpression> compileListOfConstraints(List<Expression> constraintExpressions,
             CompilationContext context) {
-        return expressions == null ? List.of()
-                : expressions.stream().map(expression -> ExpressionCompiler.compileExpression(expression, context))
-                        .toList();
+        if (constraintExpressions == null) {
+            return List.of();
+        }
+        val compiledConstraints = new ArrayList<CompiledExpression>(constraintExpressions.size());
+        for (val constraint : constraintExpressions) {
+            val compiledConstraint = ExpressionCompiler.compileExpression(constraint, context);
+            if (compiledConstraint instanceof ErrorValue) {
+                throw new SaplCompilerException(
+                        "Error compiling constraint. Constraint always returns an error and will always yield an INDETERMINATE decision. Error: %s."
+                                .formatted(compiledConstraint),
+                        constraint);
+            }
+            compiledConstraints.add(compiledConstraint);
+        }
+        return compiledConstraints;
     }
 
     private CompiledPolicy compilePolicySet(PolicySet policySet, CompiledExpression schemaCheckingExpression,

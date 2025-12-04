@@ -390,7 +390,7 @@ class LegacyPolicyTests {
                         policy "p"
                         permit
                         where
-                            (1/10);
+                            true && true;
                         transform
                             "aaa"
                         """), arguments("multiple obligations", """

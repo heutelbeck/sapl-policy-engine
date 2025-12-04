@@ -23,6 +23,7 @@ import io.sapl.api.model.Value;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.Decision;
 import lombok.val;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -114,9 +115,9 @@ class FirstApplicableTests {
                         policy "fallback" deny
                         """, Decision.DENY),
 
-                arguments("Match expression non-boolean returns INDETERMINATE", """
+                arguments("Match expression non-boolean at runtime returns INDETERMINATE", """
                         set "test" first-applicable
-                        policy "invalid match" permit where "not a boolean";
+                        policy "invalid match" permit ""+subject where true;
                         """, Decision.INDETERMINATE),
 
                 arguments("Target expression matches subject", """
@@ -158,12 +159,12 @@ class FirstApplicableTests {
 
                 arguments("Error in where clause returns INDETERMINATE", """
                         set "test" first-applicable
-                        policy "error in where" permit where (1 / 0) == 0;
+                        policy "error in where" permit where subject.x / 0 == 0;
                         """, Decision.INDETERMINATE),
 
-                arguments("Error in first policy continues evaluation", """
+                arguments("Error in first policy stops evaluation", """
                         set "test" first-applicable
-                        policy "error policy" permit where (1 / 0) == 0;
+                        policy "error policy" deny where subject / 0 == 0;
                         policy "valid permit" permit
                         """, Decision.INDETERMINATE),
 
@@ -245,8 +246,9 @@ class FirstApplicableTests {
         assertDecision(result, Decision.PERMIT);
         val obj         = (ObjectValue) result;
         val obligations = (ArrayValue) obj.get("obligations");
+        Assertions.assertNotNull(obligations);
         assertThat(obligations.size()).isEqualTo(1);
-        assertThat(obligations.get(0)).isEqualTo(Value.of("log_access"));
+        assertThat(obligations.getFirst()).isEqualTo(Value.of("log_access"));
     }
 
     private static Stream<Arguments> when_obligationIncluded_then_presentInResult() {
@@ -279,6 +281,7 @@ class FirstApplicableTests {
         val result   = evaluatePolicySet(policySet);
         val obj      = (ObjectValue) result;
         val resource = (ObjectValue) obj.get("resource");
+        Assertions.assertNotNull(resource);
         assertThat(resource.get("value")).isEqualTo(Value.of(42));
         assertThat(resource.get("squared")).isEqualTo(Value.of(1764));
     }
@@ -310,7 +313,7 @@ class FirstApplicableTests {
         val policies2 = new StringBuilder();
         policies2.append("policy \"first matches\" permit\n");
         for (int i = 2; i <= 100; i++) {
-            policies2.append(String.format("policy \"policy %d\" deny\n", i));
+            policies2.append(String.format("policy \"policy %d\" deny%n", i));
         }
         val source2 = "set \"test\" first-applicable\n" + policies2;
 

@@ -76,7 +76,7 @@ class LegacyPolicySetTests {
     void when_policySetWithError_then_indeterminate() {
         assertDecision("""
                 set "tests" deny-overrides
-                policy "testp" permit where "a" > 4;
+                policy "testp" permit where subject / 0 == 0;
                 """, Decision.INDETERMINATE);
     }
 
@@ -108,7 +108,7 @@ class LegacyPolicySetTests {
         assertDecision("""
                 set "tests" deny-overrides
                 policy "testp1" permit
-                policy "testp2" permit where "a" < 5;
+                policy "testp2" permit where subject / 0 == 0;
                 policy "testp3" deny
                 """, Decision.DENY);
     }
@@ -153,7 +153,7 @@ class LegacyPolicySetTests {
     void when_variablesOnSetLevelWithError_then_indeterminate() {
         assertDecision("""
                 set "tests" deny-overrides
-                policy "testp1" deny where var var1 = true / null; var1;
+                policy "testp1" deny where var var1 = subject / 0; var1 == 0;
                 """, Decision.INDETERMINATE);
     }
 
@@ -266,7 +266,7 @@ class LegacyPolicySetTests {
     void when_targetExpressionWithError_then_indeterminate() {
         assertDecision("""
                 set "test" deny-overrides
-                policy "permit policy" permit where "invalid" > 5;
+                policy "permit policy" permit where subject / 0 == 0;
                 """, Decision.INDETERMINATE);
     }
 

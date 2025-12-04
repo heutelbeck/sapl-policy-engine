@@ -21,9 +21,12 @@ import io.sapl.api.model.Value;
 import io.sapl.attributes.CachingAttributeBroker;
 import io.sapl.attributes.InMemoryAttributeRepository;
 import io.sapl.functions.DefaultFunctionBroker;
+import io.sapl.functions.libraries.FilterFunctionLibrary;
 import io.sapl.interpreter.DefaultSAPLInterpreter;
+import io.sapl.interpreter.InitializationException;
 import lombok.val;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -32,6 +35,7 @@ import java.time.Clock;
 import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 /**
@@ -45,8 +49,9 @@ class SaplCompilerDecisionExpressionTests {
     private CompilationContext context;
 
     @BeforeEach
-    void setup() {
-        val functionBroker      = new DefaultFunctionBroker();
+    void setup() throws InitializationException {
+        val functionBroker = new DefaultFunctionBroker();
+        functionBroker.loadStaticFunctionLibrary(FilterFunctionLibrary.class);
         val attributeRepository = new InMemoryAttributeRepository(Clock.systemUTC());
         val attributeBroker     = new CachingAttributeBroker(attributeRepository);
         context = new CompilationContext(functionBroker, attributeBroker);
@@ -75,21 +80,18 @@ class SaplCompilerDecisionExpressionTests {
                 policy "error in transformation"
                 permit
                 transform undefined.field
-                """), arguments("constant non-boolean body yields indeterminate", """
-                policy "non-boolean body"
-                permit where "text";
                 """), arguments("constant false body yields not applicable", """
                 policy "false body"
                 permit where false;
                 """), arguments("constant body with error in obligation yields indeterminate", """
                 policy "constant with error"
                 permit where true;
-                obligation {"error": 1/0}
+                obligation {"error": subject.x/0}
                 """), arguments("pure body with pure constraints yields pure expression", """
                 policy "pure expressions"
                 permit where subscription.age > 18;
                 obligation {"user": subscription.name}
-                advice {"timestamp": time.now()}
+                advice {"timestamp": filter.blacken("abc")}
                 transform {"allowed": true}
                 """), arguments("pure body with mixed constraints yields stream expression", """
                 policy "mixed expressions"
@@ -132,6 +134,17 @@ class SaplCompilerDecisionExpressionTests {
                 advice "consider rate limiting"
                 transform {"sanitized": true}
                 """));
+    }
+
+    @Test
+    void whenConstantNonBooleanBody_thenCompilerThrowsException() {
+        val policyText = """
+                policy "non-boolean body"
+                permit where "text";
+                """;
+        val sapl       = PARSER.parse(policyText);
+        assertThatThrownBy(() -> SaplCompiler.compileDocument(sapl, context)).isInstanceOf(SaplCompilerException.class)
+                .hasMessageContaining("body");
     }
 
     private CompiledPolicy compilePolicy(String policyText) {

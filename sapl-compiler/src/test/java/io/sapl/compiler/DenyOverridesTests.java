@@ -98,19 +98,19 @@ class DenyOverridesTests {
                 // Additional tests from legacy
                 arguments("Indeterminate condition returns INDETERMINATE", """
                         set "test" deny-overrides
-                        policy "p" permit where "a" < 5;
+                        policy "p" permit where subject / 0 == 0;
                         """, Decision.INDETERMINATE),
 
                 arguments("Deny with indeterminate returns DENY", """
                         set "test" deny-overrides
                         policy "deny" deny
-                        policy "indet" deny where "a" > 5;
+                        policy "indet" deny where subject / 0 == 0;
                         """, Decision.DENY),
 
                 arguments("Permit indeterminate not applicable without deny returns INDETERMINATE", """
                         set "test" deny-overrides
                         policy "permit" permit
-                        policy "indet" deny where "a" < 5;
+                        policy "indet" deny where subject / 0 == 0;
                         policy "na" deny subject == "non-matching"
                         """, Decision.INDETERMINATE),
 

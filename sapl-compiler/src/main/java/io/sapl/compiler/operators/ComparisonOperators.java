@@ -45,6 +45,9 @@ public class ComparisonOperators {
 
     /**
      * Tests two values for equality using Value.equals() semantics.
+     * <p>
+     * Propagates errors: if either operand is an ErrorValue, the error is returned
+     * instead of a boolean result.
      *
      * @param a
      * the first value
@@ -52,14 +55,24 @@ public class ComparisonOperators {
      * the second value
      *
      * @return Value.TRUE if values are equal, Value.FALSE otherwise, with combined
-     * secret flag
+     * secret flag, or ErrorValue if either operand is an error
      */
     public static Value equals(EObject ignored, Value a, Value b) {
-        return preserveSecret(a.equals(b), a.metadata().merge(b.metadata()));
+        val metadata = a.metadata().merge(b.metadata());
+        if (a instanceof ErrorValue error) {
+            return error.withMetadata(metadata);
+        }
+        if (b instanceof ErrorValue error) {
+            return error.withMetadata(metadata);
+        }
+        return preserveSecret(a.equals(b), metadata);
     }
 
     /**
      * Tests two values for inequality.
+     * <p>
+     * Propagates errors: if either operand is an ErrorValue, the error is returned
+     * instead of a boolean result.
      *
      * @param a
      * the first value
@@ -67,10 +80,17 @@ public class ComparisonOperators {
      * the second value
      *
      * @return Value.TRUE if values are not equal, Value.FALSE otherwise, with
-     * combined secret flag
+     * combined secret flag, or ErrorValue if either operand is an error
      */
     public static Value notEquals(EObject ignored, Value a, Value b) {
-        return preserveSecret(!a.equals(b), a.metadata().merge(b.metadata()));
+        val metadata = a.metadata().merge(b.metadata());
+        if (a instanceof ErrorValue error) {
+            return error.withMetadata(metadata);
+        }
+        if (b instanceof ErrorValue error) {
+            return error.withMetadata(metadata);
+        }
+        return preserveSecret(!a.equals(b), metadata);
     }
 
     /**
