@@ -23,7 +23,6 @@ import io.sapl.api.model.Value;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.Decision;
 import lombok.val;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -246,9 +245,7 @@ class FirstApplicableTests {
         assertDecision(result, Decision.PERMIT);
         val obj         = (ObjectValue) result;
         val obligations = (ArrayValue) obj.get("obligations");
-        Assertions.assertNotNull(obligations);
-        assertThat(obligations.size()).isEqualTo(1);
-        assertThat(obligations.getFirst()).isEqualTo(Value.of("log_access"));
+        assertThat(obligations).isNotNull().hasSize(1).first().isEqualTo(Value.of("log_access"));
     }
 
     private static Stream<Arguments> when_obligationIncluded_then_presentInResult() {
@@ -281,9 +278,7 @@ class FirstApplicableTests {
         val result   = evaluatePolicySet(policySet);
         val obj      = (ObjectValue) result;
         val resource = (ObjectValue) obj.get("resource");
-        Assertions.assertNotNull(resource);
-        assertThat(resource.get("value")).isEqualTo(Value.of(42));
-        assertThat(resource.get("squared")).isEqualTo(Value.of(1764));
+        assertThat(resource).isNotNull().containsEntry("value", Value.of(42)).containsEntry("squared", Value.of(1764));
     }
 
     private static Stream<Arguments> when_transformationExpressionUsed_then_evaluatedCorrectly() {

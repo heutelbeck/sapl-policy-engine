@@ -18,7 +18,6 @@
 package io.sapl.api.model;
 
 import lombok.val;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -960,8 +959,7 @@ class ObjectValueTests {
             var secret = new ObjectValue(Map.of("key", Value.of(1)), ValueMetadata.SECRET_EMPTY);
             var error  = secret.get(123);
 
-            assertThat(error).isInstanceOf(ErrorValue.class);
-            Assertions.assertNotNull(error);
+            assertThat(error).isNotNull().isInstanceOf(ErrorValue.class);
             assertThat(error.isSecret()).isTrue();
         }
 

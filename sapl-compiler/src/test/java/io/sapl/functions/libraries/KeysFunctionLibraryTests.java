@@ -43,7 +43,6 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Base64;
 import java.util.Date;
-import java.util.Objects;
 import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -541,7 +540,9 @@ class KeysFunctionLibraryTests {
     /* Helper Methods */
 
     private static String getTextFieldValue(ObjectValue object, String field) {
-        return ((TextValue) Objects.requireNonNull(object.get(field))).value();
+        val value = object.get(field);
+        assertThat(value).as("Field '%s' should not be null", field).isNotNull().isInstanceOf(TextValue.class);
+        return ((TextValue) value).value();
     }
 
     private static String toPem(PublicKey publicKey) {

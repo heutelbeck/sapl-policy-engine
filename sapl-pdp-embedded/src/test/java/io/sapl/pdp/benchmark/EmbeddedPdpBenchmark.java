@@ -58,18 +58,18 @@ import java.util.concurrent.atomic.LongAdder;
  */
 public final class EmbeddedPdpBenchmark {
 
-    private static final int DEFAULT_ITERATIONS = 500_000;
+    private static final int DEFAULT_ITERATIONS    = 500_000;
     private static final int DEFAULT_WARMUP_ROUNDS = 50_000;
 
     private static final ThreadLocal<Object> BLACKHOLE = new ThreadLocal<>();
-    private static final ObjectMapper MAPPER = new ObjectMapper();
+    private static final ObjectMapper        MAPPER    = new ObjectMapper();
 
-    private static final String[] ROLES = {"admin", "manager", "engineer", "employee", "contractor"};
-    private static final String[] DEPARTMENTS = {"engineering", "finance", "operations", "hr"};
-    private static final String[] ACTIONS = {"read", "write", "update", "delete", "export", "execute"};
-    private static final String[] RESOURCE_TYPES = {"document", "dataset", "code", "image", "internal_doc"};
-    private static final String[] CLASSIFICATIONS = {"public", "internal", "confidential", "top_secret"};
-    private static final String[] CLEARANCES = {"none", "confidential", "secret", "top_secret"};
+    private static final String[] ROLES           = { "admin", "manager", "engineer", "employee", "contractor" };
+    private static final String[] DEPARTMENTS     = { "engineering", "finance", "operations", "hr" };
+    private static final String[] ACTIONS         = { "read", "write", "update", "delete", "export", "execute" };
+    private static final String[] RESOURCE_TYPES  = { "document", "dataset", "code", "image", "internal_doc" };
+    private static final String[] CLASSIFICATIONS = { "public", "internal", "confidential", "top_secret" };
+    private static final String[] CLEARANCES      = { "none", "confidential", "secret", "top_secret" };
 
     /**
      * Multiple policies simulating a realistic policy set for an enterprise
@@ -91,36 +91,36 @@ public final class EmbeddedPdpBenchmark {
     private final int distributionSize;
     private final int cores;
 
-    private PolicyDecisionPoint pdp;
+    private PolicyDecisionPoint         pdp;
     private AuthorizationSubscription[] subscriptions;
 
     public EmbeddedPdpBenchmark(int iterations, int warmupRounds) {
-        this.iterations = iterations;
-        this.warmupRounds = warmupRounds;
+        this.iterations       = iterations;
+        this.warmupRounds     = warmupRounds;
         this.distributionSize = Math.min(100_000, iterations / 10);
-        this.cores = Runtime.getRuntime().availableProcessors();
+        this.cores            = Runtime.getRuntime().availableProcessors();
     }
 
     public static void main(String[] args) throws Exception {
-        var mode = args.length > 0 ? args[0].toLowerCase() : "all";
+        var mode       = args.length > 0 ? args[0].toLowerCase() : "all";
         var iterations = args.length > 1 ? Integer.parseInt(args[1]) : DEFAULT_ITERATIONS;
-        var warmup = args.length > 2 ? Integer.parseInt(args[2]) : DEFAULT_WARMUP_ROUNDS;
+        var warmup     = args.length > 2 ? Integer.parseInt(args[2]) : DEFAULT_WARMUP_ROUNDS;
 
         var benchmark = new EmbeddedPdpBenchmark(iterations, warmup);
         benchmark.initialize();
 
         switch (mode) {
-            case "single" -> benchmark.runSingleThreaded();
-            case "reactor" -> benchmark.runReactorParallel();
-            case "executor" -> benchmark.runExecutorParallel();
-            case "scaling" -> benchmark.runScalingAnalysisChunked();
-            case "latency" -> benchmark.runLatencyUnderLoad();
-            case "all" -> benchmark.runAll();
-            default -> {
-                System.err.println("Unknown mode: " + mode);
-                System.err.println("Available modes: single, reactor, executor, scaling, latency, all");
-                System.exit(1);
-            }
+        case "single"   -> benchmark.runSingleThreaded();
+        case "reactor"  -> benchmark.runReactorParallel();
+        case "executor" -> benchmark.runExecutorParallel();
+        case "scaling"  -> benchmark.runScalingAnalysisChunked();
+        case "latency"  -> benchmark.runLatencyUnderLoad();
+        case "all"      -> benchmark.runAll();
+        default         -> {
+            System.err.println("Unknown mode: " + mode);
+            System.err.println("Available modes: single, reactor, executor, scaling, latency, all");
+            System.exit(1);
+        }
         }
     }
 
@@ -150,7 +150,7 @@ public final class EmbeddedPdpBenchmark {
         var decisionCounts = new java.util.HashMap<String, AtomicLong>();
         for (int i = 0; i < 1000; i++) {
             var decision = pdp.decide(subscriptions[i]).blockFirst();
-            var key = decision != null ? decision.getDecision().name() : "NULL";
+            var key      = decision != null ? decision.getDecision().name() : "NULL";
             decisionCounts.computeIfAbsent(key, k -> new AtomicLong()).incrementAndGet();
         }
         decisionCounts.forEach(
@@ -218,7 +218,7 @@ public final class EmbeddedPdpBenchmark {
         System.out.println("Warmup complete.\n");
 
         System.out.println("Measuring throughput...");
-        var latch = new CountDownLatch(1);
+        var latch   = new CountDownLatch(1);
         var counter = new LongAdder();
 
         var start = System.nanoTime();
@@ -230,7 +230,7 @@ public final class EmbeddedPdpBenchmark {
                 }).take(1)).sequential().doOnComplete(latch::countDown).subscribe();
 
         var completed = latch.await(Duration.ofMinutes(10).toMillis(), TimeUnit.MILLISECONDS);
-        var elapsed = System.nanoTime() - start;
+        var elapsed   = System.nanoTime() - start;
 
         if (!completed) {
             System.err.println("Warning: Reactor parallel benchmark timed out.");
@@ -247,12 +247,12 @@ public final class EmbeddedPdpBenchmark {
 
         System.out.println("Warming up on all cores...");
         var warmupExecutor = Executors.newWorkStealingPool(cores);
-        var warmupChunk = warmupRounds / cores;
-        var warmupFutures = new Future<?>[cores];
+        var warmupChunk    = warmupRounds / cores;
+        var warmupFutures  = new Future<?>[cores];
 
         for (int t = 0; t < cores; t++) {
             var startIdx = t * warmupChunk;
-            var endIdx = (t == cores - 1) ? warmupRounds : startIdx + warmupChunk;
+            var endIdx   = (t == cores - 1) ? warmupRounds : startIdx + warmupChunk;
             warmupFutures[t] = warmupExecutor.submit(() -> {
                 for (int i = startIdx; i < endIdx; i++) {
                     BLACKHOLE.set(pdp.decide(subscriptions[i % subscriptions.length]).blockFirst());
@@ -267,16 +267,16 @@ public final class EmbeddedPdpBenchmark {
         System.out.println("Warmup complete.\n");
 
         System.out.println("Measuring throughput...");
-        var executor = Executors.newWorkStealingPool(cores);
-        var counter = new LongAdder();
+        var executor  = Executors.newWorkStealingPool(cores);
+        var counter   = new LongAdder();
         var chunkSize = iterations / cores;
-        var futures = new Future<?>[cores];
+        var futures   = new Future<?>[cores];
 
         var start = System.nanoTime();
 
         for (int t = 0; t < cores; t++) {
             var startIndex = t * chunkSize;
-            var endIndex = (t == cores - 1) ? iterations : startIndex + chunkSize;
+            var endIndex   = (t == cores - 1) ? iterations : startIndex + chunkSize;
 
             futures[t] = executor.submit(() -> {
                 for (int i = startIndex; i < endIndex; i++) {
@@ -304,8 +304,8 @@ public final class EmbeddedPdpBenchmark {
     private void runScalingAnalysisChunked() throws Exception {
         printHeader("SCALING ANALYSIS - CHUNKED (Throughput vs Concurrency)");
 
-        var testIterations = Math.min(iterations, 500_000);
-        var concurrencyLevels = new int[]{1, 2, 3, 4, 5, 6, 7, 8, 10, 12, 14, 16, 20, 24, 32, 40, 48};
+        var testIterations    = Math.min(iterations, 500_000);
+        var concurrencyLevels = new int[] { 1, 2, 3, 4, 5, 6, 7, 8, 10, 12, 14, 16, 20, 24, 32, 40, 48 };
 
         // Global warmup first to ensure JIT is fully warmed
         System.out.println("Global warmup (single-threaded)...");
@@ -325,16 +325,16 @@ public final class EmbeddedPdpBenchmark {
                 continue;
             }
 
-            var executor = Executors.newFixedThreadPool(concurrency);
-            var counter = new LongAdder();
+            var executor  = Executors.newFixedThreadPool(concurrency);
+            var counter   = new LongAdder();
             var chunkSize = testIterations / concurrency;
-            var futures = new Future<?>[concurrency];
+            var futures   = new Future<?>[concurrency];
 
             var start = System.nanoTime();
 
             for (int t = 0; t < concurrency; t++) {
                 var startIndex = t * chunkSize;
-                var endIndex = (t == concurrency - 1) ? testIterations : startIndex + chunkSize;
+                var endIndex   = (t == concurrency - 1) ? testIterations : startIndex + chunkSize;
 
                 futures[t] = executor.submit(() -> {
                     for (int i = startIndex; i < endIndex; i++) {
@@ -353,7 +353,7 @@ public final class EmbeddedPdpBenchmark {
             executor.awaitTermination(1, TimeUnit.MINUTES);
 
             var throughput = (long) (counter.sum() / (elapsed / 1_000_000_000.0));
-            var perThread = throughput / concurrency;
+            var perThread  = throughput / concurrency;
 
             if (concurrency == 1) {
                 baselineThroughput = throughput;
@@ -374,8 +374,8 @@ public final class EmbeddedPdpBenchmark {
     private void runLatencyUnderLoad() throws Exception {
         printHeader("LATENCY UNDER LOAD (Latency vs Concurrent Requests)");
 
-        var concurrencyLevels = new int[]{1, 4, 8, 16, 32, 64};
-        var samplesPerLevel = 10_000;
+        var concurrencyLevels = new int[] { 1, 4, 8, 16, 32, 64 };
+        var samplesPerLevel   = 10_000;
 
         System.out.println("Measuring latency distribution at different load levels...\n");
         System.out.printf("%-12s %12s %12s %12s %12s %12s%n", "Concurrency", "p50 (us)", "p90 (us)", "p99 (us)",
@@ -387,9 +387,9 @@ public final class EmbeddedPdpBenchmark {
                 continue;
             }
 
-            var executor = Executors.newFixedThreadPool(concurrency);
+            var executor     = Executors.newFixedThreadPool(concurrency);
             var allLatencies = new ConcurrentLinkedQueue<Long>();
-            var latch = new CountDownLatch(samplesPerLevel);
+            var latch        = new CountDownLatch(samplesPerLevel);
 
             for (int i = 0; i < samplesPerLevel; i++) {
                 var idx = i;
@@ -412,11 +412,11 @@ public final class EmbeddedPdpBenchmark {
 
             var sorted = allLatencies.stream().mapToLong(Long::longValue).sorted().toArray();
 
-            var p50 = sorted[(int) (sorted.length * 0.50)] / 1000;
-            var p90 = sorted[(int) (sorted.length * 0.90)] / 1000;
-            var p99 = sorted[(int) (sorted.length * 0.99)] / 1000;
+            var p50  = sorted[(int) (sorted.length * 0.50)] / 1000;
+            var p90  = sorted[(int) (sorted.length * 0.90)] / 1000;
+            var p99  = sorted[(int) (sorted.length * 0.99)] / 1000;
             var p999 = sorted[(int) (sorted.length * 0.999)] / 1000;
-            var max = sorted[sorted.length - 1] / 1000;
+            var max  = sorted[sorted.length - 1] / 1000;
 
             System.out.printf("%-12d %,12d %,12d %,12d %,12d %,12d%n", concurrency, p50, p90, p99, p999, max);
         }
@@ -425,15 +425,15 @@ public final class EmbeddedPdpBenchmark {
     }
 
     private AuthorizationSubscription createSubscription(int seed) {
-        var random = ThreadLocalRandom.current();
+        var random  = ThreadLocalRandom.current();
         var absSeed = Math.abs(seed);
 
-        var role = ROLES[absSeed % ROLES.length];
-        var department = DEPARTMENTS[absSeed % DEPARTMENTS.length];
-        var action = ACTIONS[absSeed % ACTIONS.length];
-        var resourceType = RESOURCE_TYPES[absSeed % RESOURCE_TYPES.length];
+        var role           = ROLES[absSeed % ROLES.length];
+        var department     = DEPARTMENTS[absSeed % DEPARTMENTS.length];
+        var action         = ACTIONS[absSeed % ACTIONS.length];
+        var resourceType   = RESOURCE_TYPES[absSeed % RESOURCE_TYPES.length];
         var classification = CLASSIFICATIONS[absSeed % CLASSIFICATIONS.length];
-        var clearance = CLEARANCES[absSeed % CLEARANCES.length];
+        var clearance      = CLEARANCES[absSeed % CLEARANCES.length];
 
         var subjectJson = """
                 {
@@ -461,7 +461,7 @@ public final class EmbeddedPdpBenchmark {
                 seed % 5 == 0, department);
 
         try {
-            var subjectNode = MAPPER.readTree(subjectJson);
+            var subjectNode  = MAPPER.readTree(subjectJson);
             var resourceNode = MAPPER.readTree(resourceJson);
             return new AuthorizationSubscription(subjectNode, MAPPER.valueToTree(action), resourceNode, null);
         } catch (JsonProcessingException e) {
@@ -479,12 +479,12 @@ public final class EmbeddedPdpBenchmark {
         var sorted = samples.clone();
         Arrays.sort(sorted);
 
-        var p50 = sorted[(int) (sorted.length * 0.50)];
-        var p90 = sorted[(int) (sorted.length * 0.90)];
-        var p99 = sorted[(int) (sorted.length * 0.99)];
+        var p50  = sorted[(int) (sorted.length * 0.50)];
+        var p90  = sorted[(int) (sorted.length * 0.90)];
+        var p99  = sorted[(int) (sorted.length * 0.99)];
         var p999 = sorted[Math.min((int) (sorted.length * 0.999), sorted.length - 1)];
-        var max = sorted[sorted.length - 1];
-        var min = sorted[0];
+        var max  = sorted[sorted.length - 1];
+        var min  = sorted[0];
 
         var sum = 0L;
         for (var s : sorted) {
@@ -504,8 +504,8 @@ public final class EmbeddedPdpBenchmark {
     }
 
     private void printThroughput(String label, long count, long elapsedNanos) {
-        var seconds = elapsedNanos / 1_000_000_000.0;
-        var opsPerSec = (long) (count / seconds);
+        var seconds      = elapsedNanos / 1_000_000_000.0;
+        var opsPerSec    = (long) (count / seconds);
         var avgLatencyNs = elapsedNanos / count;
         var avgLatencyUs = avgLatencyNs / 1000.0;
 

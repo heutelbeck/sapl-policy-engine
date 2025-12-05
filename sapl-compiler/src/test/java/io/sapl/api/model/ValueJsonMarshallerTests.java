@@ -27,7 +27,6 @@ import org.junit.jupiter.params.provider.ValueSource;
 
 import java.math.BigDecimal;
 import java.util.Map;
-import java.util.Objects;
 import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.*;
@@ -306,7 +305,7 @@ class ValueJsonMarshallerTests {
     void when_fromJsonNodeWithUnsupportedType_then_returnsError(String description, JsonNode node) {
         var result = ValueJsonMarshaller.fromJsonNode(node);
 
-        assertThat(result instanceof ErrorValue).isTrue();
+        assertThat(result).isInstanceOf(ErrorValue.class);
         assertThat(((ErrorValue) result).message()).contains("Unknown JsonNode type");
     }
 
@@ -395,7 +394,7 @@ class ValueJsonMarshallerTests {
     void when_fromJsonNodeWithExcessiveDepth_then_returnsError(String description, JsonNode deepNode) {
         var result = ValueJsonMarshaller.fromJsonNode(deepNode);
 
-        assertThat(result instanceof ErrorValue).isTrue();
+        assertThat(result).isInstanceOf(ErrorValue.class);
         assertThat(((ErrorValue) result).message()).isEqualTo("Maximum nesting depth exceeded.");
     }
 
@@ -409,7 +408,7 @@ class ValueJsonMarshallerTests {
         var deepNode = createDeeplyNestedJsonArray(ValueJsonMarshaller.MAX_DEPTH);
         var result   = ValueJsonMarshaller.fromJsonNode(deepNode);
 
-        assertThat(result instanceof ErrorValue).isFalse();
+        assertThat(result).isNotInstanceOf(ErrorValue.class);
     }
 
     // ============================================================
@@ -447,7 +446,7 @@ class ValueJsonMarshallerTests {
     void whenInvalidJson_thenJsonReturnsErrorValue(String description, String json) {
         var result = ValueJsonMarshaller.json(json);
 
-        assertThat(result).isInstanceOf(ErrorValue.class);
+        assertThat(result).isNotNull().isInstanceOf(ErrorValue.class);
         assertThat(((ErrorValue) result).message()).contains("Failed to parse JSON");
     }
 
@@ -463,7 +462,7 @@ class ValueJsonMarshallerTests {
     void when_jsonWithEmptyString_then_returnsErrorForMissingNode() {
         var result = ValueJsonMarshaller.json("");
 
-        assertThat(result).isInstanceOf(ErrorValue.class);
+        assertThat(result).isNotNull().isInstanceOf(ErrorValue.class);
         assertThat(((ErrorValue) result).message()).contains("Unknown JsonNode type: MISSING");
     }
 
@@ -561,12 +560,15 @@ class ValueJsonMarshallerTests {
         var node        = ValueJsonMarshaller.toJsonNode(original);
         var result      = ValueJsonMarshaller.fromJsonNode(node);
 
-        assertThat(result).isEqualTo(original);
+        assertThat(result).isNotNull().isEqualTo(original).isInstanceOf(ObjectValue.class);
 
-        var resultObj = (ObjectValue) result;
-        assertThat(Objects.requireNonNull(resultObj.get("secret")).isSecret()).isFalse();
-        assertThat(Objects.requireNonNull(((ObjectValue) original).get("secret")).isSecret()).isTrue();
-
+        var resultObj      = (ObjectValue) result;
+        var resultSecret   = resultObj.get("secret");
+        var originalSecret = original.get("secret");
+        assertThat(resultSecret).isNotNull();
+        assertThat(originalSecret).isNotNull();
+        assertThat(resultSecret.isSecret()).isFalse();
+        assertThat(originalSecret.isSecret()).isTrue();
         assertThat(result.toString()).isNotEqualTo(original.toString());
     }
 
@@ -656,15 +658,15 @@ class ValueJsonMarshallerTests {
 
     @Test
     void when_toPrettyStringWithEmptyCollections_then_formatsCompact() {
-        assertThat(ValueJsonMarshaller.toPrettyString(Value.EMPTY_ARRAY)).isEqualTo("[]");
-        assertThat(ValueJsonMarshaller.toPrettyString(Value.EMPTY_OBJECT)).isEqualTo("{}");
+        assertThat(ValueJsonMarshaller.toPrettyString(Value.EMPTY_ARRAY)).isNotNull().isEqualTo("[]");
+        assertThat(ValueJsonMarshaller.toPrettyString(Value.EMPTY_OBJECT)).isNotNull().isEqualTo("{}");
     }
 
     @Test
     void when_toPrettyStringWithSimpleArray_then_formatsOnOneLine() {
         var array = Value.ofArray(Value.of(1), Value.of(2), Value.of(3));
 
-        assertThat(ValueJsonMarshaller.toPrettyString(array)).isEqualTo("[1, 2, 3]");
+        assertThat(ValueJsonMarshaller.toPrettyString(array)).isNotNull().isEqualTo("[1, 2, 3]");
     }
 
     @Test
@@ -693,11 +695,8 @@ class ValueJsonMarshallerTests {
 
         var result = ValueJsonMarshaller.toPrettyString(object);
 
-        assertThat(result).contains("\"entity\": \"Cthulhu\"");
-        assertThat(result).contains("\"location\": \"R'lyeh\"");
-        assertThat(result).contains("\"sanity\": 42");
-        assertThat(result).startsWith("{\n");
-        assertThat(result).endsWith("\n}");
+        assertThat(result).isNotNull().contains("\"entity\": \"Cthulhu\"").contains("\"location\": \"R'lyeh\"")
+                .contains("\"sanity\": 42").startsWith("{\n").endsWith("\n}");
     }
 
     @Test
@@ -723,16 +722,16 @@ class ValueJsonMarshallerTests {
 
         var result = ValueJsonMarshaller.toPrettyString(decision);
 
-        assertThat(result).contains("\"decision\": \"PERMIT\"");
-        assertThat(result).contains("\"obligations\": [\"log\", \"notify\"]");
-        assertThat(result).contains("\"resource\": {\n    \"filtered\": true\n  }");
+        assertThat(result).isNotNull().contains("\"decision\": \"PERMIT\"")
+                .contains("\"obligations\": [\"log\", \"notify\"]")
+                .contains("\"resource\": {\n    \"filtered\": true\n  }");
     }
 
     @Test
     void when_toPrettyStringWithSecretObject_then_masksContent() {
         var secret = Value.ofObject(Map.of("password", Value.of("secret123"))).asSecret();
 
-        assertThat(ValueJsonMarshaller.toPrettyString(secret)).isEqualTo("\"<<SECRET>>\"");
+        assertThat(ValueJsonMarshaller.toPrettyString(secret)).isEqualTo("<<SECRET>>");
     }
 
     @Test
@@ -741,9 +740,8 @@ class ValueJsonMarshallerTests {
 
         var result = ValueJsonMarshaller.toPrettyString(error);
 
-        assertThat(result).contains("ERROR[");
-        assertThat(result).contains("message=\"Access denied\"");
-        assertThat(result).contains("at=policy.sapl:10 [5-20]");
+        assertThat(result).isNotNull().contains("ERROR[").contains("message=\"Access denied\"")
+                .contains("at=policy.sapl:10 [5-20]");
     }
 
     @Test
@@ -757,9 +755,7 @@ class ValueJsonMarshallerTests {
 
         var result = ValueJsonMarshaller.toPrettyString(traced);
 
-        assertThat(result).contains("\"name\": \"permit-all\"");
-        assertThat(result).contains("\"decision\": \"PERMIT\"");
-        assertThat(result).contains("\"resource\": undefined");
-        assertThat(result).contains("\"time.now\"");
+        assertThat(result).isNotNull().contains("\"name\": \"permit-all\"").contains("\"decision\": \"PERMIT\"")
+                .contains("\"resource\": undefined").contains("\"time.now\"");
     }
 }

@@ -184,7 +184,7 @@ public class ValueJsonMarshaller {
 
     private static String formatObject(ObjectValue object, int indent) {
         if (object.isSecret()) {
-            return "\"<<SECRET>>\"";
+            return "<<SECRET>>";
         }
         if (object.isEmpty()) {
             return "{}";

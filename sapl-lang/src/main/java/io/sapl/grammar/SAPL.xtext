@@ -226,7 +226,7 @@ Object returns Value:
 	{Object} '{' (members+=Pair (',' members+=Pair)*)? '}';
 
 Pair:
-	key=STRING ':' value=Expression;
+	key=(STRING | SaplID) ':' value=Expression;
 
 Array returns Value:
 	{Array} '[' (items+=Expression (',' items+=Expression)*)? ']';

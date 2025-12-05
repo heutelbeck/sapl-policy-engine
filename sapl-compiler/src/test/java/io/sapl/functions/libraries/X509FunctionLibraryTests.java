@@ -54,7 +54,6 @@ import java.time.temporal.ChronoUnit;
 import java.util.Base64;
 import java.util.Date;
 import java.util.HexFormat;
-import java.util.Objects;
 import java.util.function.Function;
 import java.util.stream.Stream;
 
@@ -119,7 +118,9 @@ class X509FunctionLibraryTests {
     }
 
     private static String getTextValue(ObjectValue obj) {
-        return ((TextValue) Objects.requireNonNull(obj.get("subject"))).value();
+        var subject = obj.get("subject");
+        assertThat(subject).as("subject field should not be null").isNotNull().isInstanceOf(TextValue.class);
+        return ((TextValue) subject).value();
     }
 
     static Stream<Arguments> validCertificates() throws OperatorCreationException, CertificateException, IOException {

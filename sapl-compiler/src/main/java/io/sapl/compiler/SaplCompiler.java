@@ -20,6 +20,7 @@ package io.sapl.compiler;
 import io.sapl.api.model.*;
 import io.sapl.api.model.Value;
 import io.sapl.api.pdp.Decision;
+import io.sapl.api.pdp.internal.TracedPolicyDecision;
 import io.sapl.compiler.operators.BooleanOperators;
 import io.sapl.functions.libraries.SchemaValidationLibrary;
 import io.sapl.grammar.sapl.*;
@@ -174,7 +175,14 @@ public class SaplCompiler {
     }
 
     private CompiledExpression compileDecisionExpression(Policy policy, CompilationContext context) {
-        val entitlement    = decisionOf(policy.getEntitlement());
+        val name         = policy.getSaplName();
+        val entitlement  = decisionOf(policy.getEntitlement());
+        val decisionExpr = compileDecisionExpressionInternal(policy, entitlement, context);
+        return wrapWithTrace(name, entitlement.name(), decisionExpr);
+    }
+
+    private CompiledExpression compileDecisionExpressionInternal(Policy policy, Decision entitlement,
+            CompilationContext context) {
         val body           = compileBody(policy.getBody(), context);
         val obligations    = compileListOfConstraints(policy.getObligations(), context);
         val advice         = compileListOfConstraints(policy.getAdvice(), context);
@@ -191,6 +199,30 @@ public class SaplCompiler {
         return compileStreamingBodyDecision(entitlement, body, obligations, advice, transformation);
     }
 
+    private static CompiledExpression wrapWithTrace(String name, String entitlement, CompiledExpression decisionExpr) {
+        if (decisionExpr instanceof Value decisionValue) {
+            return buildTracedPolicyDecision(name, entitlement, decisionValue);
+        }
+
+        if (decisionExpr instanceof PureExpression pureExpr) {
+            return new PureExpression(ctx -> buildTracedPolicyDecision(name, entitlement, pureExpr.evaluate(ctx)),
+                    pureExpr.isSubscriptionScoped());
+        }
+
+        if (decisionExpr instanceof StreamExpression(Flux<Value> stream)) {
+            return new StreamExpression(
+                    stream.map(decisionValue -> buildTracedPolicyDecision(name, entitlement, decisionValue)));
+        }
+
+        throw new IllegalStateException("Unexpected expression type: " + decisionExpr.getClass());
+    }
+
+    private static Value buildTracedPolicyDecision(String name, String entitlement, Value decisionValue) {
+        return TracedPolicyDecision.builder().name(name).entitlement(entitlement).fromDecisionValue(decisionValue)
+                .attributes(TracedPolicyDecision.convertAttributeRecords(decisionValue.metadata().attributeTrace()))
+                .errors(TracedPolicyDecision.extractErrors(decisionValue)).build();
+    }
+
     private CompiledExpression compileTransformation(Expression transformationExpression, CompilationContext context) {
         val compiledExpression = ExpressionCompiler.compileExpression(transformationExpression, context);
         if (compiledExpression instanceof ErrorValue) {
@@ -203,7 +235,7 @@ public class SaplCompiler {
     private static CompiledExpression compileConstantBodyDecision(Decision entitlement, Value bodyValue,
             List<CompiledExpression> obligations, List<CompiledExpression> advice, CompiledExpression transformation) {
         if (isInvalidBooleanBody(bodyValue)) {
-            return buildIndeterminateDecision();
+            return buildIndeterminateDecision(bodyValue);
         }
 
         if (isFalseBody(bodyValue)) {
@@ -239,7 +271,7 @@ public class SaplCompiler {
         val transformationValue = extractTransformationValue(transformation);
 
         if (containsError(obligationValues) || containsError(adviceValues)) {
-            return buildIndeterminateDecision();
+            return buildIndeterminateDecision(collectErrors(obligationValues, adviceValues, transformationValue));
         }
 
         return buildDecisionObject(entitlement, obligationValues, adviceValues, transformationValue);
@@ -287,11 +319,11 @@ public class SaplCompiler {
         val bodyResult = bodyPure.evaluate(evaluationContext);
 
         if (isInvalidBooleanBody(bodyResult)) {
-            return buildIndeterminateDecision();
+            return buildIndeterminateDecisionWithMetadata(bodyResult);
         }
 
         if (isFalseBody(bodyResult)) {
-            return buildNotApplicableDecision();
+            return buildNotApplicableDecisionWithMetadata(bodyResult);
         }
 
         val obligationValues    = evaluatePureExpressionList(obligations, evaluationContext);
@@ -299,15 +331,17 @@ public class SaplCompiler {
         val transformationValue = transformationPure != null ? transformationPure.evaluate(evaluationContext)
                 : Value.UNDEFINED;
 
-        if (hasAnyError(obligationValues, adviceValues, transformationValue)) {
-            return buildIndeterminateDecision();
-        }
-
-        return buildDecisionObject(entitlement, obligationValues, adviceValues, transformationValue);
+        return buildDecisionWithMetadata(entitlement, bodyResult, obligationValues, adviceValues, transformationValue);
     }
 
-    private static boolean hasAnyError(List<Value> obligations, List<Value> advice, Value transformation) {
-        return containsError(obligations) || containsError(advice) || transformation instanceof ErrorValue;
+    private static List<Value> collectErrors(List<Value> obligations, List<Value> advice, Value transformation) {
+        val errors = new ArrayList<Value>();
+        obligations.stream().filter(ErrorValue.class::isInstance).forEach(errors::add);
+        advice.stream().filter(ErrorValue.class::isInstance).forEach(errors::add);
+        if (transformation instanceof ErrorValue) {
+            errors.add(transformation);
+        }
+        return errors;
     }
 
     private static CompiledExpression compileStreamingBodyDecision(Decision entitlement, CompiledExpression body,
@@ -318,12 +352,43 @@ public class SaplCompiler {
         return new StreamExpression(stream);
     }
 
-    private static Value buildIndeterminateDecision() {
+    private static Value buildIndeterminateDecision(Value error) {
+        if (error instanceof ErrorValue) {
+            return AuthorizationDecisionUtil.buildIndeterminate(error);
+        }
         return AuthorizationDecisionUtil.INDETERMINATE;
+    }
+
+    private static Value buildIndeterminateDecision(List<Value> errors) {
+        if (errors.isEmpty()) {
+            return AuthorizationDecisionUtil.INDETERMINATE;
+        }
+        return AuthorizationDecisionUtil.buildIndeterminate(errors);
     }
 
     private static Value buildNotApplicableDecision() {
         return AuthorizationDecisionUtil.NOT_APPLICABLE;
+    }
+
+    private static Value buildIndeterminateDecisionWithMetadata(Value bodyResult) {
+        val base = bodyResult instanceof ErrorValue ? AuthorizationDecisionUtil.buildIndeterminate(bodyResult)
+                : AuthorizationDecisionUtil.INDETERMINATE;
+        return base.withMetadata(bodyResult.metadata());
+    }
+
+    private static Value buildDecisionWithMetadata(Decision entitlement, Value bodyResult, List<Value> obligations,
+            List<Value> advice, Value resource) {
+        val mergedMetadata = mergeAllMetadata(bodyResult, obligations, advice, resource);
+        val errors         = collectErrors(obligations, advice, resource);
+        if (!errors.isEmpty()) {
+            return AuthorizationDecisionUtil.buildIndeterminate(errors).withMetadata(mergedMetadata);
+        }
+        return AuthorizationDecisionUtil.buildDecision(entitlement, obligations, advice, resource, List.of())
+                .withMetadata(mergedMetadata);
+    }
+
+    private static Value buildNotApplicableDecisionWithMetadata(Value bodyResult) {
+        return AuthorizationDecisionUtil.NOT_APPLICABLE.withMetadata(bodyResult.metadata());
     }
 
     private static CompiledExpression compilePureBodyWithMixedConstraints(Decision entitlement, PureExpression bodyPure,
@@ -343,7 +408,7 @@ public class SaplCompiler {
 
         if (containsError(obligationValues) || containsError(adviceValues)
                 || transformationValue instanceof ErrorValue) {
-            return buildIndeterminateDecision();
+            return buildIndeterminateDecision(collectErrors(obligationValues, adviceValues, transformationValue));
         }
 
         return new PureExpression(ctx -> evaluateBodyAndBuildDecision(entitlement, bodyPure.evaluate(ctx),
@@ -362,23 +427,23 @@ public class SaplCompiler {
     private static Value evaluateBodyAndBuildDecision(Decision entitlement, Value bodyResult,
             List<Value> obligationValues, List<Value> adviceValues, Value transformationValue) {
         if (isInvalidBooleanBody(bodyResult)) {
-            return buildIndeterminateDecision();
+            return buildIndeterminateDecisionWithMetadata(bodyResult);
         }
         if (isFalseBody(bodyResult)) {
-            return buildNotApplicableDecision();
+            return buildNotApplicableDecisionWithMetadata(bodyResult);
         }
-        return buildDecisionObject(entitlement, obligationValues, adviceValues, transformationValue);
+        return buildDecisionWithMetadata(entitlement, bodyResult, obligationValues, adviceValues, transformationValue);
     }
 
     private static Flux<Value> bodyResultToDecisionFlux(Decision entitlement, Value bodyResult,
             List<CompiledExpression> obligations, List<CompiledExpression> advice, CompiledExpression transformation) {
         if (isInvalidBooleanBody(bodyResult)) {
-            return Flux.just(buildIndeterminateDecision());
+            return Flux.just(buildIndeterminateDecisionWithMetadata(bodyResult));
         }
         if (isFalseBody(bodyResult)) {
-            return Flux.just(buildNotApplicableDecision());
+            return Flux.just(buildNotApplicableDecisionWithMetadata(bodyResult));
         }
-        return evaluateConstraintsAndBuildDecision(entitlement, obligations, advice, transformation);
+        return evaluateConstraintsAndBuildDecision(entitlement, bodyResult, obligations, advice, transformation);
     }
 
     private static boolean allAreValues(List<CompiledExpression> expressions) {
@@ -399,7 +464,7 @@ public class SaplCompiler {
         return result;
     }
 
-    private static Flux<Value> evaluateConstraintsAndBuildDecision(Decision entitlement,
+    private static Flux<Value> evaluateConstraintsAndBuildDecision(Decision entitlement, Value bodyResult,
             List<CompiledExpression> obligations, List<CompiledExpression> advice, CompiledExpression transformation) {
         val obligationsFlux    = evaluateExpressionListToFlux(obligations);
         val adviceFlux         = evaluateExpressionListToFlux(advice);
@@ -407,20 +472,17 @@ public class SaplCompiler {
                 : Flux.just(Value.UNDEFINED);
 
         return Flux.combineLatest(obligationsFlux, adviceFlux, transformationFlux,
-                values -> assembleDecisionObject(entitlement, values));
+                values -> assembleDecisionObject(entitlement, bodyResult, values));
     }
 
-    private static Value assembleDecisionObject(Decision entitlement, java.lang.Object[] values) {
+    private static Value assembleDecisionObject(Decision entitlement, Value bodyResult, java.lang.Object[] values) {
         @SuppressWarnings("unchecked")
         val obligations = (List<Value>) values[0];
         @SuppressWarnings("unchecked")
         val advice      = (List<Value>) values[1];
         val resource    = (Value) values[2];
 
-        if (containsError(obligations) || containsError(advice) || resource instanceof ErrorValue) {
-            return buildDecisionObject(Decision.INDETERMINATE, List.of(), List.of(), Value.UNDEFINED);
-        }
-        return buildDecisionObject(entitlement, obligations, advice, resource);
+        return buildDecisionWithMetadata(entitlement, bodyResult, obligations, advice, resource);
     }
 
     /**
@@ -436,10 +498,22 @@ public class SaplCompiler {
      * @param resource
      * optional resource transformation result, or UNDEFINED if no transformation
      *
-     * @return an ObjectValue with fields: decision, obligations, advice, resource
+     * @return an ObjectValue with fields: decision, obligations, advice, resource,
+     * errors
      */
     static Value buildDecisionObject(Decision decision, List<Value> obligations, List<Value> advice, Value resource) {
-        return AuthorizationDecisionUtil.buildDecision(decision, obligations, advice, resource);
+        return AuthorizationDecisionUtil.buildDecision(decision, obligations, advice, resource, List.of());
+    }
+
+    private static ValueMetadata mergeAllMetadata(Value bodyResult, List<Value> obligations, List<Value> advice,
+            Value resource) {
+        var result = bodyResult != null ? bodyResult.metadata() : ValueMetadata.EMPTY;
+        result = result.merge(ValueMetadata.merge(obligations));
+        result = result.merge(ValueMetadata.merge(advice));
+        if (resource != null && !Value.UNDEFINED.equals(resource)) {
+            result = result.merge(resource.metadata());
+        }
+        return result;
     }
 
     private static Flux<List<Value>> evaluateExpressionListToFlux(List<CompiledExpression> expressions) {
