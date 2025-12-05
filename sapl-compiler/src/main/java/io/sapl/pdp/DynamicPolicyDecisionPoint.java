@@ -18,15 +18,17 @@
 package io.sapl.pdp;
 
 import io.sapl.api.model.CompiledExpression;
+import io.sapl.api.model.ErrorValue;
 import io.sapl.api.model.EvaluationContext;
 import io.sapl.api.model.PureExpression;
 import io.sapl.api.model.StreamExpression;
 import io.sapl.api.model.Value;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.AuthorizationSubscription;
-import io.sapl.api.pdp.TracedPolicyDecisionPoint;
-import io.sapl.api.pdp.internal.DecisionMetadata;
+import io.sapl.api.pdp.CombiningAlgorithm;
+import io.sapl.api.pdp.internal.TracedPolicyDecisionPoint;
 import io.sapl.api.pdp.internal.TracedDecision;
+import io.sapl.api.pdp.internal.TracedPdpDecision;
 import io.sapl.api.prp.MatchingDocuments;
 import io.sapl.api.prp.RetrievalError;
 import io.sapl.compiler.CombiningAlgorithmCompiler;
@@ -39,29 +41,44 @@ import reactor.util.context.ContextView;
 
 import java.time.Instant;
 import java.util.List;
-import java.util.Map;
 import java.util.function.Function;
+import java.util.function.Supplier;
 
 public class DynamicPolicyDecisionPoint implements TracedPolicyDecisionPoint {
 
     public static final String DEFAULT_PDP_ID = "default";
 
+    private static final Supplier<String> DEFAULT_TIMESTAMP_SUPPLIER = () -> Instant.now().toString();
+
     private final CompiledPDPConfigurationSource      pdpConfigurationSource;
     private final IdFactory                           idFactory;
     private final Function<ContextView, Mono<String>> pdpIdExtractor;
+    private final Supplier<String>                    timestampSupplier;
 
     public DynamicPolicyDecisionPoint(CompiledPDPConfigurationSource pdpConfigurationSource, IdFactory idFactory) {
-        this.pdpConfigurationSource = pdpConfigurationSource;
-        this.idFactory              = idFactory;
-        this.pdpIdExtractor         = context -> Mono.just(DEFAULT_PDP_ID);
+        this(pdpConfigurationSource, idFactory, context -> Mono.just(DEFAULT_PDP_ID), DEFAULT_TIMESTAMP_SUPPLIER);
     }
 
     public DynamicPolicyDecisionPoint(CompiledPDPConfigurationSource pdpConfigurationSource,
             IdFactory idFactory,
             Function<ContextView, Mono<String>> pdpIdExtractor) {
+        this(pdpConfigurationSource, idFactory, pdpIdExtractor, DEFAULT_TIMESTAMP_SUPPLIER);
+    }
+
+    public DynamicPolicyDecisionPoint(CompiledPDPConfigurationSource pdpConfigurationSource,
+            IdFactory idFactory,
+            Supplier<String> timestampSupplier) {
+        this(pdpConfigurationSource, idFactory, context -> Mono.just(DEFAULT_PDP_ID), timestampSupplier);
+    }
+
+    public DynamicPolicyDecisionPoint(CompiledPDPConfigurationSource pdpConfigurationSource,
+            IdFactory idFactory,
+            Function<ContextView, Mono<String>> pdpIdExtractor,
+            Supplier<String> timestampSupplier) {
         this.pdpConfigurationSource = pdpConfigurationSource;
         this.idFactory              = idFactory;
         this.pdpIdExtractor         = pdpIdExtractor;
+        this.timestampSupplier      = timestampSupplier;
     }
 
     @Override
@@ -79,56 +96,26 @@ public class DynamicPolicyDecisionPoint implements TracedPolicyDecisionPoint {
     }
 
     /**
-     * Synchronous authorization decision for high-throughput scenarios.
+     * Blocking decision for simple API access patterns.
      * <p>
-     * This method bypasses Reactor's subscription overhead by reading the
-     * configuration directly from a lock-free
-     * cache. For pure policies (no attribute streams), the entire evaluation is
-     * synchronous. For policies with
-     * attribute access, it falls back to blocking on the attribute streams while
-     * still avoiding configuration
-     * subscription overhead.
-     * <p>
-     * Use this method when:
-     * <ul>
-     * <li>Making many one-shot authorization decisions</li>
-     * <li>Configuration changes are rare</li>
-     * <li>You need maximum throughput rather than reactive updates</li>
-     * </ul>
+     * Uses a pre-evaluated expression path optimized for simple policies without
+     * attribute streaming. Falls back to
+     * reactive evaluation for policies with attribute access.
      *
      * @param authorizationSubscription
-     * the authorization subscription to evaluate
+     * the authorization request
      *
      * @return the authorization decision
      */
-    @Override
-    public AuthorizationDecision decidePure(AuthorizationSubscription authorizationSubscription) {
-        return decidePure(authorizationSubscription, DEFAULT_PDP_ID);
-    }
+    public AuthorizationDecision decideBlocking(AuthorizationSubscription authorizationSubscription) {
+        val pdpConfiguration = pdpConfigurationSource.getCurrentConfiguration(DEFAULT_PDP_ID)
+                .orElseThrow(() -> new IllegalStateException("No PDP configuration available"));
 
-    /**
-     * Synchronous authorization decision for a specific PDP configuration.
-     *
-     * @param authorizationSubscription
-     * the authorization subscription to evaluate
-     * @param pdpId
-     * the PDP identifier for configuration lookup
-     *
-     * @return the authorization decision
-     */
-    public AuthorizationDecision decidePure(AuthorizationSubscription authorizationSubscription, String pdpId) {
-        val configOpt = pdpConfigurationSource.getCurrentConfiguration(pdpId);
-        if (configOpt.isEmpty()) {
-            return AuthorizationDecision.INDETERMINATE;
-        }
-        return evaluatePure(authorizationSubscription, configOpt.get());
-    }
+        val evaluationContext = evaluationContext(authorizationSubscription, pdpConfiguration, idFactory.newRandom());
+        val algorithm         = pdpConfiguration.combiningAlgorithm();
+        val algorithmName     = toSaplSyntax(algorithm);
 
-    private AuthorizationDecision evaluatePure(AuthorizationSubscription authorizationSubscription,
-            CompiledPDPConfiguration config) {
-        val subscriptionId    = idFactory.newRandom();
-        val evaluationContext = evaluationContext(authorizationSubscription, config, subscriptionId);
-        val retrievalResult   = config.policyRetrievalPoint().getMatchingDocuments(authorizationSubscription,
+        val retrievalResult = pdpConfiguration.policyRetrievalPoint().getMatchingDocuments(authorizationSubscription,
                 evaluationContext);
 
         if (retrievalResult instanceof RetrievalError) {
@@ -136,9 +123,8 @@ public class DynamicPolicyDecisionPoint implements TracedPolicyDecisionPoint {
         }
 
         val policies     = ((MatchingDocuments) retrievalResult).matches();
-        val combinedExpr = getCombinedExpression(config.combiningAlgorithm(), policies);
+        val combinedExpr = getCombinedExpression(algorithmName, algorithm, policies);
 
-        // Value extends CompiledExpression, so check more specific types first
         if (combinedExpr instanceof Value value) {
             return AuthorizationDecision.of(value);
         }
@@ -146,97 +132,56 @@ public class DynamicPolicyDecisionPoint implements TracedPolicyDecisionPoint {
             return AuthorizationDecision.of(pureExpr.evaluate(evaluationContext));
         }
         if (combinedExpr instanceof StreamExpression(Flux<Value> stream)) {
-            // Fallback for policies with attribute access - minimal reactive overhead
-            // Still faster than full reactive path (no configuration sink subscription)
             return stream.contextWrite(ctx -> ctx.put(EvaluationContext.class, evaluationContext))
                     .map(AuthorizationDecision::of).blockFirst();
         }
         return AuthorizationDecision.INDETERMINATE;
     }
 
-    private CompiledExpression getCombinedExpression(io.sapl.api.pdp.CombiningAlgorithm algorithm,
+    private CompiledExpression getCombinedExpression(String algorithmName, CombiningAlgorithm algorithm,
             List<CompiledPolicy> policies) {
         return switch (algorithm) {
-        case DENY_OVERRIDES      -> CombiningAlgorithmCompiler.denyOverridesPreMatched(policies);
-        case PERMIT_OVERRIDES    -> CombiningAlgorithmCompiler.permitOverridesPreMatched(policies);
-        case DENY_UNLESS_PERMIT  -> CombiningAlgorithmCompiler.denyUnlessPermitPreMatched(policies);
-        case PERMIT_UNLESS_DENY  -> CombiningAlgorithmCompiler.permitUnlessDenyPreMatched(policies);
-        case ONLY_ONE_APPLICABLE -> CombiningAlgorithmCompiler.onlyOneApplicablePreMatched(policies);
+        case DENY_OVERRIDES      -> CombiningAlgorithmCompiler.denyOverridesPreMatched(algorithmName, policies);
+        case PERMIT_OVERRIDES    -> CombiningAlgorithmCompiler.permitOverridesPreMatched(algorithmName, policies);
+        case DENY_UNLESS_PERMIT  -> CombiningAlgorithmCompiler.denyUnlessPermitPreMatched(algorithmName, policies);
+        case PERMIT_UNLESS_DENY  -> CombiningAlgorithmCompiler.permitUnlessDenyPreMatched(algorithmName, policies);
+        case ONLY_ONE_APPLICABLE -> CombiningAlgorithmCompiler.onlyOneApplicablePreMatched(algorithmName, policies);
         };
     }
 
     private Flux<TracedDecision> decide(AuthorizationSubscription authorizationSubscription,
             CompiledPDPConfiguration pdpConfiguration, String subscriptionId) {
-        val evaluationContext      = evaluationContext(authorizationSubscription, pdpConfiguration, subscriptionId);
-        val combiningAlgorithmName = pdpConfiguration.combiningAlgorithm().name();
-        return switch (pdpConfiguration.combiningAlgorithm()) {
-        case DENY_OVERRIDES      -> decideDenyOverrides(pdpConfiguration, evaluationContext, combiningAlgorithmName);
-        case DENY_UNLESS_PERMIT  -> decideDenyUnlessPermit(pdpConfiguration, evaluationContext, combiningAlgorithmName);
-        case PERMIT_OVERRIDES    -> decidePermitOverrides(pdpConfiguration, evaluationContext, combiningAlgorithmName);
-        case PERMIT_UNLESS_DENY  -> decidePermitUnlessDeny(pdpConfiguration, evaluationContext, combiningAlgorithmName);
-        case ONLY_ONE_APPLICABLE ->
-            decideOnlyOneApplicable(pdpConfiguration, evaluationContext, combiningAlgorithmName);
-        };
+        val evaluationContext = evaluationContext(authorizationSubscription, pdpConfiguration, subscriptionId);
+        val algorithm         = pdpConfiguration.combiningAlgorithm();
+        val algorithmName     = toSaplSyntax(algorithm);
+        return decideCombining(pdpConfiguration, evaluationContext, algorithmName, algorithm);
     }
 
-    private Flux<TracedDecision> decideOnlyOneApplicable(CompiledPDPConfiguration pdpConfiguration,
-            EvaluationContext evaluationContext, String combiningAlgorithmName) {
-        return evaluateCombiningAlgorithm(pdpConfiguration, evaluationContext, combiningAlgorithmName,
-                CombiningAlgorithmCompiler::onlyOneApplicablePreMatched);
-    }
-
-    private Flux<TracedDecision> decidePermitUnlessDeny(CompiledPDPConfiguration pdpConfiguration,
-            EvaluationContext evaluationContext, String combiningAlgorithmName) {
-        return evaluateCombiningAlgorithm(pdpConfiguration, evaluationContext, combiningAlgorithmName,
-                CombiningAlgorithmCompiler::permitUnlessDenyPreMatched);
-    }
-
-    private Flux<TracedDecision> decideDenyUnlessPermit(CompiledPDPConfiguration pdpConfiguration,
-            EvaluationContext evaluationContext, String combiningAlgorithmName) {
-        return evaluateCombiningAlgorithm(pdpConfiguration, evaluationContext, combiningAlgorithmName,
-                CombiningAlgorithmCompiler::denyUnlessPermitPreMatched);
-    }
-
-    private Flux<TracedDecision> decidePermitOverrides(CompiledPDPConfiguration pdpConfiguration,
-            EvaluationContext evaluationContext, String combiningAlgorithmName) {
-        return evaluateCombiningAlgorithm(pdpConfiguration, evaluationContext, combiningAlgorithmName,
-                CombiningAlgorithmCompiler::permitOverridesPreMatched);
-    }
-
-    private Flux<TracedDecision> decideDenyOverrides(CompiledPDPConfiguration pdpConfiguration,
-            EvaluationContext evaluationContext, String combiningAlgorithmName) {
-        return evaluateCombiningAlgorithm(pdpConfiguration, evaluationContext, combiningAlgorithmName,
-                CombiningAlgorithmCompiler::denyOverridesPreMatched);
-    }
-
-    private Flux<TracedDecision> evaluateCombiningAlgorithm(CompiledPDPConfiguration pdpConfiguration,
-            EvaluationContext evaluationContext, String combiningAlgorithmName,
-            Function<List<CompiledPolicy>, CompiledExpression> combiningAlgorithm) {
+    private Flux<TracedDecision> decideCombining(CompiledPDPConfiguration pdpConfiguration,
+            EvaluationContext evaluationContext, String algorithmName, CombiningAlgorithm algorithm) {
         val retrievalResult = pdpConfiguration.policyRetrievalPoint()
                 .getMatchingDocuments(evaluationContext.authorizationSubscription(), evaluationContext);
         return switch (retrievalResult) {
-        case RetrievalError error                            ->
-            Flux.just(indeterminateDecision(evaluationContext, combiningAlgorithmName));
-        case MatchingDocuments(List<CompiledPolicy> matches) ->
-            evaluateMatchingPolicies(matches, evaluationContext, combiningAlgorithmName, combiningAlgorithm);
+        case RetrievalError(String documentName, ErrorValue error) ->
+            Flux.just(indeterminateDecisionWithRetrievalError(evaluationContext, algorithmName, documentName, error));
+        case MatchingDocuments(List<CompiledPolicy> matches)       ->
+            evaluateMatchingPolicies(matches, evaluationContext, algorithmName, algorithm);
         };
     }
 
     private Flux<TracedDecision> evaluateMatchingPolicies(List<CompiledPolicy> policies,
-            EvaluationContext evaluationContext, String combiningAlgorithmName,
-            Function<List<CompiledPolicy>, CompiledExpression> combiningAlgorithm) {
-        val combinedExpression = combiningAlgorithm.apply(policies);
+            EvaluationContext evaluationContext, String algorithmName, CombiningAlgorithm algorithm) {
+        val combinedExpression = getCombinedExpression(algorithmName, algorithm, policies);
         return ExpressionCompiler.compiledExpressionToFlux(combinedExpression)
                 .contextWrite(context -> context.put(EvaluationContext.class, evaluationContext))
-                .map(value -> toTracedDecision(AuthorizationDecision.of(value), evaluationContext,
-                        combiningAlgorithmName));
+                .map(TracedDecision::new);
     }
 
     private EvaluationContext evaluationContext(AuthorizationSubscription authorizationSubscription,
             CompiledPDPConfiguration pdpConfiguration, String subscriptionId) {
         return EvaluationContext.of(pdpConfiguration.pdpId(), pdpConfiguration.configurationId(), subscriptionId,
                 authorizationSubscription, pdpConfiguration.variables(), pdpConfiguration.functionBroker(),
-                pdpConfiguration.attributeBroker());
+                pdpConfiguration.attributeBroker(), timestampSupplier);
     }
 
     private Mono<String> pdpId() {
@@ -244,25 +189,32 @@ public class DynamicPolicyDecisionPoint implements TracedPolicyDecisionPoint {
     }
 
     private TracedDecision noConfigDecision(AuthorizationSubscription subscription, String subscriptionId) {
-        val metadata = new DecisionMetadata("unknown", "no-config", subscriptionId, subscription, Instant.now(),
-                List.of(), List.of(), Map.of(), "NONE");
-        return new TracedDecision(AuthorizationDecision.INDETERMINATE, metadata);
+        val trace = TracedPdpDecision.builder().pdpId("unknown").configurationId("no-config")
+                .subscriptionId(subscriptionId).subscription(subscription).timestamp("unknown").algorithm("none")
+                .decision(AuthorizationDecision.INDETERMINATE.decision()).build();
+        return new TracedDecision(trace);
     }
 
-    private TracedDecision indeterminateDecision(EvaluationContext evaluationContext, String combiningAlgorithmName) {
-        return toTracedDecision(AuthorizationDecision.INDETERMINATE, evaluationContext, combiningAlgorithmName);
+    private TracedDecision indeterminateDecision(EvaluationContext evaluationContext, String algorithmName) {
+        val trace = TracedPdpDecision.builder().pdpId(evaluationContext.pdpId())
+                .configurationId(evaluationContext.configurationId()).subscriptionId(evaluationContext.subscriptionId())
+                .subscription(evaluationContext.authorizationSubscription()).timestamp(evaluationContext.timestamp())
+                .algorithm(algorithmName).decision(AuthorizationDecision.INDETERMINATE.decision()).build();
+        return new TracedDecision(trace);
     }
 
-    private TracedDecision toTracedDecision(AuthorizationDecision decision, EvaluationContext evaluationContext,
-            String combiningAlgorithmName) {
-        // TODO: Extract attributes and errors from Value metadata
-        val metadata = new DecisionMetadata(evaluationContext.pdpId(), evaluationContext.configurationId(),
-                evaluationContext.subscriptionId(), evaluationContext.authorizationSubscription(), Instant.now(),
-                List.of(), // attributes - to be populated from Value metadata
-                List.of(), // errors - to be populated from Value metadata
-                Map.of(), // documentDecisions - to be populated from combining algorithm
-                combiningAlgorithmName);
-        return new TracedDecision(decision, metadata);
+    private TracedDecision indeterminateDecisionWithRetrievalError(EvaluationContext evaluationContext,
+            String algorithmName, String documentName, ErrorValue error) {
+        val trace = TracedPdpDecision.builder().pdpId(evaluationContext.pdpId())
+                .configurationId(evaluationContext.configurationId()).subscriptionId(evaluationContext.subscriptionId())
+                .subscription(evaluationContext.authorizationSubscription()).timestamp(evaluationContext.timestamp())
+                .algorithm(algorithmName).decision(AuthorizationDecision.INDETERMINATE.decision())
+                .addRetrievalError(documentName, error).build();
+        return new TracedDecision(trace);
+    }
+
+    private static String toSaplSyntax(CombiningAlgorithm algorithm) {
+        return algorithm.name().toLowerCase().replace('_', '-');
     }
 
 }

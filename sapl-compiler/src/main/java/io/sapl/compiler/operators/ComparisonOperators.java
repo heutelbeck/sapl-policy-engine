@@ -71,7 +71,7 @@ public class ComparisonOperators {
         if (b instanceof ErrorValue error) {
             return error.withMetadata(metadata);
         }
-        return preserveSecret(a.equals(b), metadata);
+        return new BooleanValue(a.equals(b), metadata);
     }
 
     /**
@@ -97,7 +97,7 @@ public class ComparisonOperators {
         if (b instanceof ErrorValue error) {
             return error.withMetadata(metadata);
         }
-        return preserveSecret(!a.equals(b), metadata);
+        return new BooleanValue(!a.equals(b), metadata);
     }
 
     /**
@@ -120,13 +120,19 @@ public class ComparisonOperators {
      */
     public static Value isContainedIn(EObject astNode, Value needle, Value haystack) {
         val metadata = needle.metadata().merge(haystack.metadata());
+        if (needle instanceof ErrorValue error) {
+            return error.withMetadata(metadata);
+        }
+        if (haystack instanceof ErrorValue error) {
+            return error.withMetadata(metadata);
+        }
         return switch (haystack) {
         case ArrayValue array                                                   ->
-            preserveSecret(array.contains(needle), metadata);
+            new BooleanValue(array.contains(needle), metadata);
         case ObjectValue object                                                 ->
-            preserveSecret(object.containsValue(needle), metadata);
+            new BooleanValue(object.containsValue(needle), metadata);
         case TextValue textHaystack when needle instanceof TextValue textNeedle ->
-            preserveSecret(textHaystack.value().contains(textNeedle.value()), metadata);
+            new BooleanValue(textHaystack.value().contains(textNeedle.value()), metadata);
         default                                                                 ->
             Error.at(astNode, metadata, RUNTIME_ERROR_IN_OPERATOR_TYPE_MISMATCH, needle, haystack);
         };
@@ -146,6 +152,12 @@ public class ComparisonOperators {
      */
     public static Value matchesRegularExpression(EObject astNode, Value input, Value regex) {
         val metadata = input.metadata().merge(regex.metadata());
+        if (input instanceof ErrorValue error) {
+            return error.withMetadata(metadata);
+        }
+        if (regex instanceof ErrorValue error) {
+            return error.withMetadata(metadata);
+        }
         if (!(input instanceof TextValue inputText)) {
             return Error.at(astNode, metadata, RUNTIME_ERROR_REGEX_TARGET_MUST_BE_STRING, input);
         }
@@ -153,7 +165,7 @@ public class ComparisonOperators {
             return Error.at(astNode, metadata, RUNTIME_ERROR_REGEX_MUST_BE_STRING, regex);
         }
         try {
-            return preserveSecret(Pattern.matches(regexText.value(), inputText.value()), metadata);
+            return new BooleanValue(Pattern.matches(regexText.value(), inputText.value()), metadata);
         } catch (PatternSyntaxException e) {
             return Error.at(astNode, metadata, RUNTIME_ERROR_REGEX_INVALID, regex, e.getMessage());
         }
@@ -182,17 +194,16 @@ public class ComparisonOperators {
             val regexMetadata = regex.metadata();
             return input -> {
                 val metadata = input.metadata().merge(regexMetadata);
+                if (input instanceof ErrorValue error) {
+                    return error.withMetadata(metadata);
+                }
                 if (!(input instanceof TextValue inputText)) {
                     return Error.at(astNode, metadata, RUNTIME_ERROR_REGEX_TARGET_MUST_BE_STRING, input);
                 }
-                return preserveSecret(pattern.test(inputText.value()), metadata);
+                return new BooleanValue(pattern.test(inputText.value()), metadata);
             };
         } catch (IllegalArgumentException e) {
             throw new SaplCompilerException(COMPILE_ERROR_REGEX_INVALID.formatted(regex, e.getMessage()), e, astNode);
         }
-    }
-
-    private static BooleanValue preserveSecret(boolean value, ValueMetadata metadata) {
-        return new BooleanValue(value, metadata);
     }
 }

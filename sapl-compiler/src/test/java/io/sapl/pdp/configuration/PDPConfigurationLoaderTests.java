@@ -20,6 +20,7 @@ package io.sapl.pdp.configuration;
 import io.sapl.api.model.ObjectValue;
 import io.sapl.api.model.Value;
 import io.sapl.api.pdp.CombiningAlgorithm;
+import io.sapl.api.pdp.TraceLevel;
 import lombok.val;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -51,6 +52,7 @@ class PDPConfigurationLoaderTests {
         assertThat(config.pdpId()).isEqualTo("arkham-pdp");
         assertThat(config.configurationId()).startsWith("dir:").contains("@sha256:");
         assertThat(config.combiningAlgorithm()).isEqualTo(CombiningAlgorithm.DENY_OVERRIDES);
+        assertThat(config.traceLevel()).isEqualTo(TraceLevel.STANDARD);
         assertThat(config.variables()).isEmpty();
         assertThat(config.saplDocuments()).isEmpty();
     }
@@ -103,6 +105,41 @@ class PDPConfigurationLoaderTests {
                 arguments("permit-unless-deny", CombiningAlgorithm.PERMIT_UNLESS_DENY),
                 arguments("ONLY_ONE_APPLICABLE", CombiningAlgorithm.ONLY_ONE_APPLICABLE),
                 arguments("only-one-applicable", CombiningAlgorithm.ONLY_ONE_APPLICABLE));
+    }
+
+    @Test
+    void whenLoadingFromEmptyDirectory_thenTraceLevelDefaultsToStandard() {
+        val config = PDPConfigurationLoader.loadFromDirectory(tempDir, "test-pdp");
+
+        assertThat(config.traceLevel()).isEqualTo(TraceLevel.STANDARD);
+    }
+
+    @ParameterizedTest
+    @MethodSource("traceLevelCases")
+    void whenLoadingWithDifferentTraceLevels_thenParsesCorrectly(String traceLevelJson, TraceLevel expected)
+            throws IOException {
+        Files.writeString(tempDir.resolve("pdp.json"), """
+                {"traceLevel": "%s"}
+                """.formatted(traceLevelJson));
+
+        val config = PDPConfigurationLoader.loadFromDirectory(tempDir, "test-pdp");
+
+        assertThat(config.traceLevel()).isEqualTo(expected);
+    }
+
+    static Stream<Arguments> traceLevelCases() {
+        return Stream.of(arguments("NONE", TraceLevel.NONE), arguments("none", TraceLevel.NONE),
+                arguments("STANDARD", TraceLevel.STANDARD), arguments("standard", TraceLevel.STANDARD),
+                arguments("AUDIT", TraceLevel.AUDIT), arguments("audit", TraceLevel.AUDIT),
+                arguments("COVERAGE", TraceLevel.COVERAGE), arguments("coverage", TraceLevel.COVERAGE));
+    }
+
+    @Test
+    void whenLoadingWithInvalidTraceLevel_thenThrowsException() throws IOException {
+        Files.writeString(tempDir.resolve("pdp.json"), "{\"traceLevel\": \"UNKNOWN_LEVEL\"}");
+
+        assertThatThrownBy(() -> PDPConfigurationLoader.loadFromDirectory(tempDir, "test-pdp"))
+                .isInstanceOf(IllegalArgumentException.class);
     }
 
     @Test
@@ -201,8 +238,24 @@ class PDPConfigurationLoaderTests {
         val config = PDPConfigurationLoader.loadFromContent(pdpJson, saplDocuments, "test-pdp", "/test/policies");
 
         assertThat(config.combiningAlgorithm()).isEqualTo(CombiningAlgorithm.DENY_OVERRIDES);
+        assertThat(config.traceLevel()).isEqualTo(TraceLevel.STANDARD);
         assertThat(config.variables()).isEmpty();
         assertThat(config.configurationId()).startsWith("res:").contains("@sha256:");
+    }
+
+    @Test
+    void whenLoadingFromContentWithTraceLevel_thenParsesCorrectly() {
+        val pdpJsonContent = """
+                {
+                  "algorithm": "DENY_OVERRIDES",
+                  "traceLevel": "COVERAGE",
+                  "configurationId": "test-v1"
+                }
+                """;
+
+        val config = PDPConfigurationLoader.loadFromContent(pdpJsonContent, Map.of(), "test-pdp", "/test/policies");
+
+        assertThat(config.traceLevel()).isEqualTo(TraceLevel.COVERAGE);
     }
 
     @Test

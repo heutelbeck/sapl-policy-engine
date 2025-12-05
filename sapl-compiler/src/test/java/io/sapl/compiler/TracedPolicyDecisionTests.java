@@ -23,23 +23,21 @@ import io.sapl.api.pdp.internal.TraceFields;
 import io.sapl.api.pip.Attribute;
 import io.sapl.api.pip.EnvironmentAttribute;
 import io.sapl.api.pip.PolicyInformationPoint;
-import io.sapl.attributes.CachingAttributeBroker;
-import io.sapl.attributes.InMemoryAttributeRepository;
-import io.sapl.functions.DefaultFunctionBroker;
 import io.sapl.functions.libraries.FilterFunctionLibrary;
 import io.sapl.interpreter.DefaultSAPLInterpreter;
-import io.sapl.interpreter.InitializationException;
 import io.sapl.pdp.PolicyDecisionPointBuilder;
 import lombok.SneakyThrows;
 import lombok.val;
-import org.junit.jupiter.api.*;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import reactor.core.publisher.Flux;
 import reactor.test.StepVerifier;
 
-import java.time.Clock;
 import java.time.Duration;
 import java.util.Map;
 import java.util.stream.Stream;
@@ -60,17 +58,15 @@ import static org.junit.jupiter.params.provider.Arguments.arguments;
 class TracedPolicyDecisionTests {
 
     private static final DefaultSAPLInterpreter PARSER = new DefaultSAPLInterpreter();
-    private static final boolean DEBUG = false;
-    
+    private static final boolean                DEBUG  = false;
+
     private CompilationContext context;
 
     @BeforeEach
-    void setup() throws InitializationException {
-        val functionBroker = new DefaultFunctionBroker();
-        functionBroker.loadStaticFunctionLibrary(FilterFunctionLibrary.class);
-        val attributeRepository = new InMemoryAttributeRepository(Clock.systemUTC());
-        val attributeBroker     = new CachingAttributeBroker(attributeRepository);
-        context = new CompilationContext(functionBroker, attributeBroker);
+    @SneakyThrows
+    void setup() {
+        context = PolicyDecisionPointBuilder.withoutDefaults().withFunctionLibrary(FilterFunctionLibrary.class).build()
+                .compilationContext();
     }
 
     @Nested
@@ -995,7 +991,7 @@ class TracedPolicyDecisionTests {
         }
 
         private EvaluationContext createEvaluationContextWithPip(Map<String, Value> variables) {
-            return new EvaluationContext("test-pdp", "test-config", "test-sub", null, variables,
+            return EvaluationContext.of("test-pdp", "test-config", "test-sub", null, variables,
                     pipContext.getFunctionBroker(), pipContext.getAttributeBroker());
         }
     }
@@ -1086,12 +1082,12 @@ class TracedPolicyDecisionTests {
     }
 
     private EvaluationContext createEvaluationContext(Map<String, Value> variables) {
-        return new EvaluationContext("test-pdp", "test-config", "test-sub", null, variables,
-                context.getFunctionBroker(), context.getAttributeBroker());
+        return EvaluationContext.of("test-pdp", "test-config", "test-sub", null, variables, context.getFunctionBroker(),
+                context.getAttributeBroker());
     }
 
     private static void printDecision(String testName, Value traced) {
-        if(DEBUG==false) {
+        if (!DEBUG) {
             return;
         }
         System.err.println("=== " + testName + " ===");

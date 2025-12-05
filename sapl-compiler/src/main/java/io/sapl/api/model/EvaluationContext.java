@@ -23,11 +23,26 @@ import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import lombok.NonNull;
 
+import java.time.Instant;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.function.Supplier;
 
 import static io.sapl.api.model.ReservedIdentifiers.*;
 
+/**
+ * Immutable context for policy evaluation containing all runtime dependencies.
+ * <p>
+ * Provides access to:
+ * <ul>
+ * <li>PDP and subscription identification</li>
+ * <li>Authorization subscription data (subject, action, resource,
+ * environment)</li>
+ * <li>Policy variables</li>
+ * <li>Function and attribute brokers for expression evaluation</li>
+ * <li>Timestamp supplier for traced decisions</li>
+ * </ul>
+ */
 public record EvaluationContext(
         String pdpId,
         String configurationId,
@@ -35,8 +50,15 @@ public record EvaluationContext(
         AuthorizationSubscription authorizationSubscription,
         @NonNull Map<String, Value> variables,
         FunctionBroker functionBroker,
-        AttributeBroker attributeBroker) {
+        AttributeBroker attributeBroker,
+        @NonNull Supplier<String> timestampSupplier) {
 
+    private static final Supplier<String> DEFAULT_TIMESTAMP_SUPPLIER = () -> Instant.now().toString();
+
+    /**
+     * Creates an evaluation context with default timestamp supplier
+     * (Instant.now()).
+     */
     public EvaluationContext(String pdpId,
             String configurationId,
             String subscriptionId,
@@ -44,17 +66,40 @@ public record EvaluationContext(
             FunctionBroker functionBroker,
             AttributeBroker attributeBroker) {
         this(pdpId, configurationId, subscriptionId, authorizationSubscription,
-                subscriptionVariables(authorizationSubscription), functionBroker, attributeBroker);
+                subscriptionVariables(authorizationSubscription), functionBroker, attributeBroker,
+                DEFAULT_TIMESTAMP_SUPPLIER);
     }
 
+    /**
+     * Creates an evaluation context with default timestamp supplier
+     * (Instant.now()).
+     */
     public static EvaluationContext of(String pdpId, String configurationId, String subscriptionId,
             AuthorizationSubscription authorizationSubscription, Map<String, Value> pdpVariables,
             FunctionBroker functionBroker, AttributeBroker attributeBroker) {
         return new EvaluationContext(pdpId, configurationId, subscriptionId, authorizationSubscription,
                 subscriptionVariablesWithAdditions(authorizationSubscription, pdpVariables), functionBroker,
-                attributeBroker);
+                attributeBroker, DEFAULT_TIMESTAMP_SUPPLIER);
     }
 
+    /**
+     * Creates an evaluation context with custom timestamp supplier.
+     * Use this with LazyFastClock for high-throughput scenarios.
+     *
+     * @param timestampSupplier
+     * supplies ISO-8601 formatted timestamps for traced decisions
+     */
+    public static EvaluationContext of(String pdpId, String configurationId, String subscriptionId,
+            AuthorizationSubscription authorizationSubscription, Map<String, Value> pdpVariables,
+            FunctionBroker functionBroker, AttributeBroker attributeBroker, Supplier<String> timestampSupplier) {
+        return new EvaluationContext(pdpId, configurationId, subscriptionId, authorizationSubscription,
+                subscriptionVariablesWithAdditions(authorizationSubscription, pdpVariables), functionBroker,
+                attributeBroker, timestampSupplier);
+    }
+
+    /**
+     * Creates an evaluation context without pdpId (legacy compatibility).
+     */
     public EvaluationContext(String configurationId,
             String subscriptionId,
             AuthorizationSubscription authorizationSubscription,
@@ -67,7 +112,17 @@ public record EvaluationContext(
         this(originalContext.pdpId, originalContext.configurationId, originalContext.subscriptionId,
                 originalContext.authorizationSubscription,
                 copyWithAdditions(originalContext.variables, additionalVariables), originalContext.functionBroker,
-                originalContext.attributeBroker);
+                originalContext.attributeBroker, originalContext.timestampSupplier);
+    }
+
+    /**
+     * Returns the current timestamp from the configured supplier.
+     * For traced decisions, this captures when the decision was finalized.
+     *
+     * @return ISO-8601 formatted timestamp string
+     */
+    public String timestamp() {
+        return timestampSupplier.get();
     }
 
     private static Map<String, Value> subscriptionVariables(AuthorizationSubscription subscription) {

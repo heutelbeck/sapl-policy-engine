@@ -379,7 +379,7 @@ class SaplJacksonModuleTests {
     @Test
     void when_serializingPDPConfiguration_then_allFieldsSerialized() throws JsonProcessingException {
         val configuration = new PDPConfiguration("arkham-pdp", "v1.0", CombiningAlgorithm.DENY_OVERRIDES,
-                List.of("policy access-control permit", "policy audit-log deny"),
+                TraceLevel.STANDARD, List.of("policy access-control permit", "policy audit-log deny"),
                 Map.of("serverUrl", Value.of("https://miskatonic.edu"), "maxRetries", Value.of(3)));
         val json          = mapper.writeValueAsString(configuration);
 
@@ -413,6 +413,7 @@ class SaplJacksonModuleTests {
     @Test
     void when_roundTrippingPDPConfiguration_then_configurationPreserved() throws JsonProcessingException {
         val original = new PDPConfiguration("dunwich-pdp", "elder-config", CombiningAlgorithm.ONLY_ONE_APPLICABLE,
+                TraceLevel.STANDARD,
                 List.of("policy whateley-access permit where action == \"read\"",
                         "policy stone-circles deny where subject.sanity < 50"),
                 Map.of("threshold", Value.of(42), "location", Value.of("standing stones"), "active", Value.TRUE));
@@ -529,7 +530,7 @@ class SaplJacksonModuleTests {
                     resource.classification != "restricted";
                 """;
         val original        = new PDPConfiguration("arkham-pdp", "v1.0", CombiningAlgorithm.DENY_OVERRIDES,
-                List.of(multilinePolicy), Map.of());
+                TraceLevel.STANDARD, List.of(multilinePolicy), Map.of());
 
         val json     = mapper.writeValueAsString(original);
         val restored = mapper.readValue(json, PDPConfiguration.class);

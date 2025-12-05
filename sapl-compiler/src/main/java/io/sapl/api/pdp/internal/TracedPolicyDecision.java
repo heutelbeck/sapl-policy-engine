@@ -78,6 +78,7 @@ public class TracedPolicyDecision {
         private Value       resource    = Value.UNDEFINED;
         private List<Value> attributes  = new ArrayList<>();
         private List<Value> errors      = new ArrayList<>();
+        private Value       targetError;
 
         /**
          * Sets the policy name.
@@ -214,6 +215,35 @@ public class TracedPolicyDecision {
         }
 
         /**
+         * Sets a target expression error that caused this policy to be INDETERMINATE.
+         * <p>
+         * When a target expression fails to evaluate (e.g., type error, division by
+         * zero), this captures the error details for audit and debugging purposes.
+         *
+         * @param error
+         * the ErrorValue from target expression evaluation
+         *
+         * @return this builder
+         */
+        public Builder targetError(ErrorValue error) {
+            if (error != null) {
+                this.targetError = convertTargetError(error);
+            }
+            return this;
+        }
+
+        private Value convertTargetError(ErrorValue error) {
+            val builder = ObjectValue.builder().put(TraceFields.MESSAGE, Value.of(error.message()));
+            if (error.location() != null) {
+                builder.put(TraceFields.LOCATION,
+                        ObjectValue.builder().put(TraceFields.LINE, Value.of(error.location().line()))
+                                .put(TraceFields.START, Value.of(error.location().start()))
+                                .put(TraceFields.END, Value.of(error.location().end())).build());
+            }
+            return builder.build();
+        }
+
+        /**
          * Extracts decision components from a raw decision Value and populates this
          * builder.
          * <p>
@@ -266,12 +296,19 @@ public class TracedPolicyDecision {
          * @return an immutable ObjectValue representing the traced policy decision
          */
         public Value build() {
-            return ObjectValue.builder().put(TraceFields.NAME, Value.of(name))
+            val builder = ObjectValue.builder().put(TraceFields.NAME, Value.of(name))
+                    .put(TraceFields.TYPE, Value.of(TraceFields.TYPE_POLICY))
                     .put(TraceFields.ENTITLEMENT, Value.of(entitlement))
                     .put(TraceFields.DECISION, Value.of(decision.name())).put(TraceFields.OBLIGATIONS, obligations)
                     .put(TraceFields.ADVICE, advice).put(TraceFields.RESOURCE, resource)
                     .put(TraceFields.ATTRIBUTES, ArrayValue.builder().addAll(attributes).build())
-                    .put(TraceFields.ERRORS, ArrayValue.builder().addAll(errors).build()).build();
+                    .put(TraceFields.ERRORS, ArrayValue.builder().addAll(errors).build());
+
+            if (targetError != null) {
+                builder.put(TraceFields.TARGET_ERROR, targetError);
+            }
+
+            return builder.build();
         }
     }
 
@@ -385,6 +422,36 @@ public class TracedPolicyDecision {
         return getArrayField(tracedPolicy, TraceFields.ERRORS);
     }
 
+    /**
+     * Extracts target error from a traced policy decision if present.
+     *
+     * @param tracedPolicy
+     * the traced policy decision Value
+     *
+     * @return the target error ObjectValue, or null if no target error occurred
+     */
+    public static ObjectValue getTargetError(Value tracedPolicy) {
+        if (tracedPolicy instanceof ObjectValue obj) {
+            val field = obj.get(TraceFields.TARGET_ERROR);
+            if (field instanceof ObjectValue targetErr) {
+                return targetErr;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Checks if this traced policy decision has a target error.
+     *
+     * @param tracedPolicy
+     * the traced policy decision Value
+     *
+     * @return true if a target error is present
+     */
+    public static boolean hasTargetError(Value tracedPolicy) {
+        return getTargetError(tracedPolicy) != null;
+    }
+
     private static String getTextField(Value value, String fieldName) {
         if (value instanceof ObjectValue obj) {
             val field = obj.get(fieldName);
@@ -410,18 +477,18 @@ public class TracedPolicyDecision {
     /**
      * Converts an AttributeRecord POJO to a Value for inclusion in the trace.
      *
-     * @param record
+     * @param attributeRecord
      * the AttributeRecord to convert
      *
-     * @return an ObjectValue representing the attribute record
+     * @return an ObjectValue representing the attribute attributeRecord
      */
-    public static Value convertAttributeRecord(AttributeRecord record) {
-        val builder = ObjectValue.builder().put(TraceFields.INVOCATION, convertInvocation(record.invocation()))
-                .put(TraceFields.VALUE, record.attributeValue())
-                .put(TraceFields.TIMESTAMP, Value.of(record.retrievedAt().toString()));
+    public static Value convertAttributeRecord(AttributeRecord attributeRecord) {
+        val builder = ObjectValue.builder().put(TraceFields.INVOCATION, convertInvocation(attributeRecord.invocation()))
+                .put(TraceFields.VALUE, attributeRecord.attributeValue())
+                .put(TraceFields.TIMESTAMP, Value.of(attributeRecord.retrievedAt().toString()));
 
-        if (record.location() != null) {
-            builder.put(TraceFields.LOCATION, convertSourceLocation(record.location()));
+        if (attributeRecord.location() != null) {
+            builder.put(TraceFields.LOCATION, convertSourceLocation(attributeRecord.location()));
         }
 
         return builder.build();

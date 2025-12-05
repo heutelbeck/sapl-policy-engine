@@ -116,7 +116,7 @@ public class BooleanOperators {
         if (!(right instanceof BooleanValue boolRight)) {
             return Error.at(astNode, metadata, RUNTIME_ERROR_TYPE_MISMATCH_BOOLEAN_EXPECTED, right);
         }
-        return withMetadata(operation.apply(boolLeft.value(), boolRight.value()), left, right);
+        return new BooleanValue(operation.apply(boolLeft.value(), boolRight.value()), metadata);
     }
 
     /**
@@ -135,15 +135,6 @@ public class BooleanOperators {
         if (!(value instanceof BooleanValue(boolean bool, ValueMetadata ignored))) {
             return Error.at(astNode, value.metadata(), RUNTIME_ERROR_TYPE_MISMATCH_BOOLEAN_EXPECTED, value);
         }
-        return withMetadata(!bool, value);
-    }
-
-    private static BooleanValue withMetadata(boolean value, Value original) {
-        return new BooleanValue(value, original.metadata());
-    }
-
-    private static BooleanValue withMetadata(boolean value, Value left, Value right) {
-        val metadata = left.metadata().merge(right.metadata());
-        return new BooleanValue(value, metadata);
+        return new BooleanValue(!bool, value.metadata());
     }
 }

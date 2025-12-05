@@ -20,19 +20,16 @@ package io.sapl.util;
 import io.sapl.api.model.*;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.Decision;
-import io.sapl.attributes.CachingAttributeBroker;
-import io.sapl.attributes.InMemoryAttributeRepository;
-import io.sapl.compiler.CompilationContext;
 import io.sapl.compiler.SaplCompiler;
 import io.sapl.compiler.SaplCompilerException;
-import io.sapl.functions.DefaultFunctionBroker;
 import io.sapl.interpreter.DefaultSAPLInterpreter;
-import io.sapl.interpreter.InitializationException;
 import io.sapl.interpreter.SAPLInterpreter;
+import io.sapl.pdp.PolicyDecisionPointBuilder;
+import io.sapl.pdp.PolicyDecisionPointBuilder.PDPComponents;
+import lombok.SneakyThrows;
 import lombok.experimental.UtilityClass;
 import lombok.val;
 
-import java.time.Clock;
 import java.time.Duration;
 import java.util.List;
 
@@ -91,22 +88,17 @@ public class CombiningAlgorithmTestUtil {
      * @throws RuntimeException
      * if compilation fails
      */
+    @SneakyThrows
     public static Value evaluatePolicySet(String policySet, AuthorizationSubscription subscription) {
         try {
-            val functionBroker = new DefaultFunctionBroker();
-            functionBroker.loadStaticFunctionLibrary(SimpleFunctionLibrary.class);
-
-            val attributeRepo   = new InMemoryAttributeRepository(Clock.systemUTC());
-            val attributeBroker = new CachingAttributeBroker(attributeRepo);
-            attributeBroker.loadPolicyInformationPointLibrary(new TestUtil.TestPip());
-
-            val context        = new CompilationContext(functionBroker, attributeBroker);
+            val components     = createComponents();
+            val context        = components.compilationContext();
             val sapl           = PARSER.parse(policySet);
             val compiledPolicy = SaplCompiler.compileDocument(sapl, context);
             val decisionExpr   = compiledPolicy.decisionExpression();
 
-            val evalContext = new EvaluationContext("pdpId", "testConfig", "testSub", subscription, functionBroker,
-                    attributeBroker);
+            val evalContext = new EvaluationContext("pdpId", "testConfig", "testSub", subscription,
+                    components.functionBroker(), components.attributeBroker());
 
             return switch (decisionExpr) {
             case Value value                       -> value;
@@ -115,9 +107,15 @@ public class CombiningAlgorithmTestUtil {
                 streamExpression.stream().contextWrite(ctx -> ctx.put(EvaluationContext.class, evalContext))
                         .blockFirst(Duration.ofSeconds(5));
             };
-        } catch (SaplCompilerException | InitializationException e) {
+        } catch (SaplCompilerException e) {
             throw new RuntimeException("Compilation failed: " + e.getMessage(), e);
         }
+    }
+
+    @SneakyThrows
+    private static PDPComponents createComponents() {
+        return PolicyDecisionPointBuilder.withoutDefaults().withFunctionLibrary(SimpleFunctionLibrary.class)
+                .withPolicyInformationPoint(new TestUtil.TestPip()).build();
     }
 
     /**

@@ -58,6 +58,12 @@ public class NumberOperators {
      */
     public static Value add(EObject astOperator, Value a, Value b) {
         val metadata = a.metadata().merge(b.metadata());
+        if (a instanceof ErrorValue error) {
+            return error.withMetadata(metadata);
+        }
+        if (b instanceof ErrorValue error) {
+            return error.withMetadata(metadata);
+        }
         if (a instanceof TextValue leftText) {
             if (!(b instanceof TextValue rightText)) {
                 return new TextValue(leftText.value() + b.toString(), metadata);
@@ -133,6 +139,12 @@ public class NumberOperators {
      */
     public static Value modulo(EObject astOperator, Value dividend, Value divisor) {
         val metadata = dividend.metadata().merge(divisor.metadata());
+        if (dividend instanceof ErrorValue error) {
+            return error.withMetadata(metadata);
+        }
+        if (divisor instanceof ErrorValue error) {
+            return error.withMetadata(metadata);
+        }
         if (!(dividend instanceof NumberValue(BigDecimal dividendValue, ValueMetadata ignore))) {
             return Error.at(astOperator, metadata, RUNTIME_ERROR_TYPE_MISMATCH_NUMBER_EXPECTED, dividend);
         }
@@ -160,6 +172,9 @@ public class NumberOperators {
      * @return the value itself if it is a NumberValue, or error if not
      */
     public static Value unaryPlus(EObject astOperator, Value v) {
+        if (v instanceof ErrorValue) {
+            return v;
+        }
         if (!(v instanceof NumberValue)) {
             return Error.at(astOperator, v.metadata(), RUNTIME_ERROR_TYPE_MISMATCH_NUMBER_EXPECTED, v);
         }
@@ -175,6 +190,9 @@ public class NumberOperators {
      * @return negated number preserving secret flag, or error if not a NumberValue
      */
     public static Value unaryMinus(EObject astOperator, Value v) {
+        if (v instanceof ErrorValue) {
+            return v;
+        }
         if (!(v instanceof NumberValue(BigDecimal number, ValueMetadata ignored))) {
             return Error.at(astOperator, v.metadata(), RUNTIME_ERROR_TYPE_MISMATCH_NUMBER_EXPECTED, v);
         }
@@ -258,17 +276,19 @@ public class NumberOperators {
     private static Value applyNumericComparison(EObject astOperator, Value left, Value right,
             BiPredicate<BigDecimal, BigDecimal> comparison) {
         val metadata = left.metadata().merge(right.metadata());
+        if (left instanceof ErrorValue error) {
+            return error.withMetadata(metadata);
+        }
+        if (right instanceof ErrorValue error) {
+            return error.withMetadata(metadata);
+        }
         if (!(left instanceof NumberValue(BigDecimal leftValue, ValueMetadata ignored))) {
             return Error.at(astOperator, metadata, RUNTIME_ERROR_TYPE_MISMATCH_NUMBER_EXPECTED, left);
         }
         if (!(right instanceof NumberValue(BigDecimal rightValue, ValueMetadata ignored2))) {
             return Error.at(astOperator, metadata, RUNTIME_ERROR_TYPE_MISMATCH_NUMBER_EXPECTED, right);
         }
-        return preserveSecret(comparison.test(leftValue, rightValue), metadata);
-    }
-
-    private static BooleanValue preserveSecret(boolean value, ValueMetadata metadata) {
-        return new BooleanValue(value, metadata);
+        return new BooleanValue(comparison.test(leftValue, rightValue), metadata);
     }
 
     /**

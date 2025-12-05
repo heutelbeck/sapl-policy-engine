@@ -22,6 +22,7 @@ import io.sapl.api.model.Value;
 import io.sapl.api.model.jackson.SaplJacksonModule;
 import io.sapl.api.pdp.CombiningAlgorithm;
 import io.sapl.api.pdp.PDPConfiguration;
+import io.sapl.api.pdp.TraceLevel;
 import lombok.experimental.UtilityClass;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
@@ -129,7 +130,8 @@ public class PDPConfigurationLoader {
         val configurationId = pdpJson.configurationId() != null ? pdpJson.configurationId()
                 : generateDirectoryConfigurationId(path, pdpJson, saplContents);
 
-        return new PDPConfiguration(pdpId, configurationId, pdpJson.algorithm(), documents, pdpJson.variables());
+        return new PDPConfiguration(pdpId, configurationId, pdpJson.algorithm(), pdpJson.traceLevel(), documents,
+                pdpJson.variables());
     }
 
     /**
@@ -162,7 +164,8 @@ public class PDPConfigurationLoader {
         val configurationId = pdpJson.configurationId() != null ? pdpJson.configurationId()
                 : generateResourceConfigurationId(sourcePath, pdpJson, saplDocuments);
 
-        return new PDPConfiguration(pdpId, configurationId, pdpJson.algorithm(), documents, pdpJson.variables());
+        return new PDPConfiguration(pdpId, configurationId, pdpJson.algorithm(), pdpJson.traceLevel(), documents,
+                pdpJson.variables());
     }
 
     /**
@@ -199,8 +202,8 @@ public class PDPConfigurationLoader {
         }
 
         val documents = new ArrayList<>(saplDocuments.values());
-        return new PDPConfiguration(pdpId, pdpJson.configurationId(), pdpJson.algorithm(), documents,
-                pdpJson.variables());
+        return new PDPConfiguration(pdpId, pdpJson.configurationId(), pdpJson.algorithm(), pdpJson.traceLevel(),
+                documents, pdpJson.variables());
     }
 
     private static String generateDirectoryConfigurationId(Path path, PdpJsonContent pdpJson,
@@ -281,6 +284,11 @@ public class PDPConfigurationLoader {
                 algorithm = MAPPER.treeToValue(node.get("algorithm"), CombiningAlgorithm.class);
             }
 
+            TraceLevel traceLevel = TraceLevel.STANDARD;
+            if (node.has("traceLevel")) {
+                traceLevel = MAPPER.treeToValue(node.get("traceLevel"), TraceLevel.class);
+            }
+
             String configurationId = null;
             if (node.has("configurationId")) {
                 val idNode = node.get("configurationId");
@@ -298,7 +306,7 @@ public class PDPConfigurationLoader {
                 }
             }
 
-            return new PdpJsonContent(algorithm, configurationId, variables);
+            return new PdpJsonContent(algorithm, traceLevel, configurationId, variables);
         } catch (IOException e) {
             throw new PDPConfigurationException("Failed to parse pdp.json content.", e);
         }
@@ -347,9 +355,13 @@ public class PDPConfigurationLoader {
         }
     }
 
-    private record PdpJsonContent(CombiningAlgorithm algorithm, String configurationId, Map<String, Value> variables) {
+    private record PdpJsonContent(
+            CombiningAlgorithm algorithm,
+            TraceLevel traceLevel,
+            String configurationId,
+            Map<String, Value> variables) {
         static PdpJsonContent defaults() {
-            return new PdpJsonContent(CombiningAlgorithm.DENY_OVERRIDES, null, Map.of());
+            return new PdpJsonContent(CombiningAlgorithm.DENY_OVERRIDES, TraceLevel.STANDARD, null, Map.of());
         }
     }
 

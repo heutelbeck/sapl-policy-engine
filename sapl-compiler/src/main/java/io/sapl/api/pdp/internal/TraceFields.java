@@ -89,9 +89,14 @@ public class TraceFields {
     public static final String LINE            = "line";
 
     // PDP-level trace fields
-    public static final String PDP_ID          = "pdpId";
-    public static final String SUBSCRIPTION_ID = "subscriptionId";
-    public static final String SUBSCRIPTION    = "subscription";
-    public static final String TRACE           = "trace";
-    public static final String MODIFICATIONS   = "modifications";
+    public static final String PDP_ID           = "pdpId";
+    public static final String SUBSCRIPTION_ID  = "subscriptionId";
+    public static final String SUBSCRIPTION     = "subscription";
+    public static final String TRACE            = "trace";
+    public static final String MODIFICATIONS    = "modifications";
+    public static final String RETRIEVAL_ERRORS = "retrievalErrors";
+
+    // Error tracking fields
+    public static final String TARGET_ERROR = "targetError";
+    public static final String MESSAGE      = "message";
 }

@@ -105,7 +105,7 @@ public class PdpTestHelper {
      */
     public static PDPConfiguration configuration(CombiningAlgorithm algorithm, String... policies) {
         return new PDPConfiguration("default", "test-config-" + System.currentTimeMillis(), algorithm,
-                List.of(policies), Map.of());
+                TraceLevel.STANDARD, List.of(policies), Map.of());
     }
 
     /**

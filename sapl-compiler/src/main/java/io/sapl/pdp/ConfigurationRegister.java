@@ -21,13 +21,14 @@ import io.sapl.api.attributes.AttributeBroker;
 import io.sapl.api.functions.FunctionBroker;
 import io.sapl.api.model.Value;
 import io.sapl.api.pdp.PDPConfiguration;
+import io.sapl.api.pdp.TraceLevel;
 import io.sapl.compiler.CompilationContext;
 import io.sapl.compiler.CompiledPolicy;
 import io.sapl.compiler.SaplCompiler;
 import io.sapl.compiler.SaplCompilerException;
 import io.sapl.prp.NaivePolicyRetrievalPoint;
-import lombok.RequiredArgsConstructor;
 import lombok.val;
+import org.jspecify.annotations.Nullable;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.publisher.Sinks;
@@ -74,11 +75,41 @@ import java.util.concurrent.atomic.AtomicReference;
  * <li>Full reactive semantics - configuration updates propagate correctly</li>
  * </ul>
  */
-@RequiredArgsConstructor
 public class ConfigurationRegister implements CompiledPDPConfigurationSource {
 
-    private final FunctionBroker  functionBroker;
-    private final AttributeBroker attributeBroker;
+    private final FunctionBroker       functionBroker;
+    private final AttributeBroker      attributeBroker;
+    private final @Nullable TraceLevel traceLevelOverride;
+
+    /**
+     * Creates a configuration register with explicit trace level override.
+     *
+     * @param functionBroker
+     * the function broker for policy evaluation
+     * @param attributeBroker
+     * the attribute broker for policy evaluation
+     * @param traceLevelOverride
+     * trace level override, or null to use pdp.json values
+     */
+    public ConfigurationRegister(FunctionBroker functionBroker,
+            AttributeBroker attributeBroker,
+            @Nullable TraceLevel traceLevelOverride) {
+        this.functionBroker     = functionBroker;
+        this.attributeBroker    = attributeBroker;
+        this.traceLevelOverride = traceLevelOverride;
+    }
+
+    /**
+     * Creates a configuration register using trace levels from pdp.json.
+     *
+     * @param functionBroker
+     * the function broker for policy evaluation
+     * @param attributeBroker
+     * the attribute broker for policy evaluation
+     */
+    public ConfigurationRegister(FunctionBroker functionBroker, AttributeBroker attributeBroker) {
+        this(functionBroker, attributeBroker, null);
+    }
 
     /**
      * Per-PDP configuration cache using AtomicReference for lock-free volatile
@@ -113,7 +144,8 @@ public class ConfigurationRegister implements CompiledPDPConfigurationSource {
         val alwaysApplicableDocuments = new ArrayList<CompiledPolicy>();
         val maybeApplicableDocuments  = new ArrayList<CompiledPolicy>();
 
-        val compilationContext = new CompilationContext(functionBroker, attributeBroker);
+        val effectiveTraceLevel = traceLevelOverride != null ? traceLevelOverride : pdpConfiguration.traceLevel();
+        val compilationContext  = new CompilationContext(functionBroker, attributeBroker, effectiveTraceLevel);
         for (String saplDocument : pdpConfiguration.saplDocuments()) {
             CompiledPolicy compiledDocument;
             try {

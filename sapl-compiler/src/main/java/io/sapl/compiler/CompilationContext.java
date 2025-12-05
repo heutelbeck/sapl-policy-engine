@@ -20,10 +20,10 @@ package io.sapl.compiler;
 import io.sapl.api.attributes.AttributeBroker;
 import io.sapl.api.functions.FunctionBroker;
 import io.sapl.api.model.CompiledExpression;
+import io.sapl.api.pdp.TraceLevel;
 import io.sapl.grammar.sapl.Import;
 import io.sapl.prp.Document;
 import lombok.Getter;
-import lombok.RequiredArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
 
@@ -31,31 +31,59 @@ import java.util.*;
 
 /**
  * Mutable context for SAPL compilation. Tracks imports, variable scopes, and
- * constant deduplication during document
- * compilation.
+ * constant deduplication during document compilation.
  * <p>
  * Variable scopes: Document-level variables persist across policies in a policy
- * set. Local policy variables are cleared
- * between policies via {@link #resetForNextPolicy()}. The context is reused
- * across documents via
+ * set. Local policy variables are cleared between policies via
+ * {@link #resetForNextPolicy()}. The context is reused across documents via
  * {@link #resetForNextDocument()}.
  * <p>
  * Constant deduplication: Identical constant values share the same object
- * instance to reduce memory usage. Disabled
- * when debug information is enabled.
+ * instance to reduce memory usage. Disabled when debug information is enabled.
+ * <p>
+ * Trace level: Controls granularity of trace information gathered during
+ * evaluation. This is a compile-time decision affecting generated expressions.
  */
 @Getter
 @Setter
 @ToString
-@RequiredArgsConstructor
 public class CompilationContext {
     Document                                document;
     String                                  documentSource;
     final FunctionBroker                    functionBroker;
     final AttributeBroker                   attributeBroker;
+    final TraceLevel                        traceLevel;
     List<Import>                            imports                  = new ArrayList<>();
     private Map<String, CompiledExpression> documentVariablesInScope = new HashMap<>();
     private Set<String>                     localVariableNames       = new HashSet<>();
+
+    /**
+     * Creates a compilation context with the specified trace level.
+     *
+     * @param functionBroker
+     * the function broker for resolving functions
+     * @param attributeBroker
+     * the attribute broker for resolving attributes
+     * @param traceLevel
+     * the trace level controlling trace granularity
+     */
+    public CompilationContext(FunctionBroker functionBroker, AttributeBroker attributeBroker, TraceLevel traceLevel) {
+        this.functionBroker  = functionBroker;
+        this.attributeBroker = attributeBroker;
+        this.traceLevel      = traceLevel;
+    }
+
+    /**
+     * Creates a compilation context with STANDARD trace level.
+     *
+     * @param functionBroker
+     * the function broker for resolving functions
+     * @param attributeBroker
+     * the attribute broker for resolving attributes
+     */
+    public CompilationContext(FunctionBroker functionBroker, AttributeBroker attributeBroker) {
+        this(functionBroker, attributeBroker, TraceLevel.STANDARD);
+    }
 
     /**
      * Adds all imports from a SAPL document to this context.

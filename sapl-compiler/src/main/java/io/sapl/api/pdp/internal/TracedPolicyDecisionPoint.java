@@ -15,9 +15,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.api.pdp;
+package io.sapl.api.pdp.internal;
 
-import io.sapl.api.pdp.internal.TracedDecision;
+import io.sapl.api.pdp.AuthorizationSubscription;
+import io.sapl.api.pdp.PolicyDecisionPoint;
 import reactor.core.publisher.Flux;
 
 /**

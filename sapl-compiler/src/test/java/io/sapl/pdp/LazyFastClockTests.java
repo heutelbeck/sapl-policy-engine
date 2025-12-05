@@ -17,14 +17,14 @@
  */
 package io.sapl.pdp;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.awaitility.Awaitility.await;
+import org.junit.jupiter.api.Test;
 
 import java.time.Duration;
 import java.time.Instant;
 import java.util.concurrent.TimeUnit;
 
-import org.junit.jupiter.api.Test;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.awaitility.Awaitility.await;
 
 class LazyFastClockTests {
 

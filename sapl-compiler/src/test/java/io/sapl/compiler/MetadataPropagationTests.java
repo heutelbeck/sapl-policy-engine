@@ -17,32 +17,9 @@
  */
 package io.sapl.compiler;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.params.provider.Arguments.arguments;
-
-import java.time.Clock;
-import java.util.stream.Stream;
-
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.Arguments;
-import org.junit.jupiter.params.provider.CsvSource;
-import org.junit.jupiter.params.provider.MethodSource;
-import org.junit.jupiter.params.provider.ValueSource;
-
 import io.sapl.api.functions.Function;
 import io.sapl.api.functions.FunctionLibrary;
-import io.sapl.api.model.ArrayValue;
-import io.sapl.api.model.CompiledExpression;
-import io.sapl.api.model.ErrorValue;
-import io.sapl.api.model.EvaluationContext;
-import io.sapl.api.model.ObjectValue;
-import io.sapl.api.model.PureExpression;
-import io.sapl.api.model.StreamExpression;
-import io.sapl.api.model.Value;
-import io.sapl.api.model.ValueMetadata;
+import io.sapl.api.model.*;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pip.Attribute;
 import io.sapl.api.pip.EnvironmentAttribute;
@@ -53,7 +30,21 @@ import io.sapl.functions.DefaultFunctionBroker;
 import io.sapl.util.ParserUtil;
 import lombok.SneakyThrows;
 import lombok.val;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import reactor.core.publisher.Flux;
+
+import java.time.Clock;
+import java.util.stream.Stream;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 /**
  * Tests for metadata propagation through expression evaluation. Validates that

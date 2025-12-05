@@ -19,4 +19,15 @@ package io.sapl.api.prp;
 
 import io.sapl.api.model.ErrorValue;
 
-public record RetrievalError(ErrorValue error) implements PolicyRetrievalResult {}
+/**
+ * Represents an error that occurred during policy retrieval.
+ * <p>
+ * This typically happens when a document's target expression fails to evaluate,
+ * preventing the document from being properly matched against the subscription.
+ *
+ * @param documentName
+ * the name of the document whose target expression failed
+ * @param error
+ * the error that occurred during target evaluation
+ */
+public record RetrievalError(String documentName, ErrorValue error) implements PolicyRetrievalResult {}

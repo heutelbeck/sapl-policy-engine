@@ -23,21 +23,10 @@ import io.sapl.api.model.jackson.SaplJacksonModule;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.CombiningAlgorithm;
 import io.sapl.api.pdp.PDPConfiguration;
+import io.sapl.api.pdp.TraceLevel;
 import io.sapl.pdp.DynamicPolicyDecisionPoint;
 import io.sapl.pdp.PolicyDecisionPointBuilder;
-import org.openjdk.jmh.annotations.Benchmark;
-import org.openjdk.jmh.annotations.BenchmarkMode;
-import org.openjdk.jmh.annotations.Level;
-import org.openjdk.jmh.annotations.Measurement;
-import org.openjdk.jmh.annotations.Mode;
-import org.openjdk.jmh.annotations.OutputTimeUnit;
-import org.openjdk.jmh.annotations.Param;
-import org.openjdk.jmh.annotations.Scope;
-import org.openjdk.jmh.annotations.Setup;
-import org.openjdk.jmh.annotations.State;
-import org.openjdk.jmh.annotations.TearDown;
-import org.openjdk.jmh.annotations.Threads;
-import org.openjdk.jmh.annotations.Warmup;
+import org.openjdk.jmh.annotations.*;
 import org.openjdk.jmh.infra.Blackhole;
 
 import java.util.ArrayList;
@@ -149,8 +138,8 @@ public class PdpBenchmark {
             var components            = PolicyDecisionPointBuilder.withoutDefaults().build();
             var configurationRegister = components.configurationRegister();
             var algorithm             = CombiningAlgorithm.valueOf(combiningAlgorithm);
-            var configuration         = new PDPConfiguration("default", "benchmark-config", algorithm, policies,
-                    Map.of());
+            var configuration         = new PDPConfiguration("default", "benchmark-config", algorithm,
+                    TraceLevel.STANDARD, policies, Map.of());
             configurationRegister.loadConfiguration(configuration, false);
             pdp = (DynamicPolicyDecisionPoint) components.pdp();
         } catch (Exception exception) {

@@ -25,6 +25,8 @@ import io.sapl.api.functions.FunctionBroker;
 import io.sapl.api.pdp.CombiningAlgorithm;
 import io.sapl.api.pdp.PDPConfiguration;
 import io.sapl.api.pdp.PolicyDecisionPoint;
+import io.sapl.api.pdp.TraceLevel;
+import io.sapl.compiler.CompilationContext;
 import io.sapl.attributes.CachingAttributeBroker;
 import io.sapl.attributes.HeapAttributeStorage;
 import io.sapl.attributes.InMemoryAttributeRepository;
@@ -168,6 +170,8 @@ public class PolicyDecisionPointBuilder {
 
     private FunctionBroker  externalFunctionBroker;
     private AttributeBroker externalAttributeBroker;
+
+    private TraceLevel traceLevelOverride;
 
     private Function<Consumer<PDPConfiguration>, PDPConfigurationSource> sourceFactory;
     private final List<PDPConfiguration>                                 initialConfigurations = new ArrayList<>();
@@ -420,6 +424,30 @@ public class PolicyDecisionPointBuilder {
      */
     public PolicyDecisionPointBuilder withWebClientBuilder(WebClient.Builder webClientBuilder) {
         this.webClientBuilder = webClientBuilder;
+        return this;
+    }
+
+    /**
+     * Sets a trace level that overrides the trace level specified in pdp.json.
+     * <p>
+     * When set, this trace level is used for all policy compilations regardless of
+     * what is configured in the pdp.json file. This is useful for:
+     * <ul>
+     * <li>Forcing audit-level tracing in production for compliance</li>
+     * <li>Enabling coverage tracing in test environments</li>
+     * <li>Disabling tracing for high-throughput scenarios</li>
+     * </ul>
+     * <p>
+     * If not set, the trace level from pdp.json is used (defaulting to STANDARD if
+     * not specified there either).
+     *
+     * @param traceLevel
+     * the trace level to use for all compilations
+     *
+     * @return this builder
+     */
+    public PolicyDecisionPointBuilder withTraceLevel(TraceLevel traceLevel) {
+        this.traceLevelOverride = traceLevel;
         return this;
     }
 
@@ -726,7 +754,7 @@ public class PolicyDecisionPointBuilder {
      */
     public PolicyDecisionPointBuilder withPolicies(CombiningAlgorithm algorithm, String... policyDocuments) {
         val configuration = new PDPConfiguration("default", "config-" + System.currentTimeMillis(), algorithm,
-                List.of(policyDocuments), Map.of());
+                TraceLevel.STANDARD, List.of(policyDocuments), Map.of());
         return withConfiguration(configuration);
     }
 
@@ -743,8 +771,10 @@ public class PolicyDecisionPointBuilder {
     public PDPComponents build() throws InitializationException, AttributeBrokerException {
         val functionBroker        = resolveFunctionBroker();
         val attributeBroker       = resolveAttributeBroker();
-        val configurationRegister = new ConfigurationRegister(functionBroker, attributeBroker);
-        val pdp                   = new DynamicPolicyDecisionPoint(configurationRegister, resolveIdFactory());
+        val configurationRegister = new ConfigurationRegister(functionBroker, attributeBroker, traceLevelOverride);
+        val timestampClock        = new LazyFastClock();
+        val pdp                   = new DynamicPolicyDecisionPoint(configurationRegister, resolveIdFactory(),
+                timestampClock::now);
 
         // Load initial configurations
         for (val config : initialConfigurations) {
@@ -760,7 +790,7 @@ public class PolicyDecisionPointBuilder {
             source = sourceFactory.apply(callback);
         }
 
-        return new PDPComponents(pdp, configurationRegister, functionBroker, attributeBroker, source);
+        return new PDPComponents(pdp, configurationRegister, functionBroker, attributeBroker, source, timestampClock);
     }
 
     private FunctionBroker resolveFunctionBroker() throws InitializationException {
@@ -832,15 +862,13 @@ public class PolicyDecisionPointBuilder {
      * Contains all components created by the PDP builder.
      * <p>
      * This is a simple data carrier (tuple) providing access to the built
-     * components. If a configuration source was
-     * registered, it is available via {@link #source()} and should be disposed when
-     * the PDP is no longer needed.
+     * components. Resources that require cleanup
+     * (configuration source and timestamp clock) should be disposed when the PDP is
+     * no longer needed.
      * </p>
      * <h2>Resource Management</h2>
      * <p>
-     * The source (if present) holds resources such as file watchers that must be
-     * disposed when the PDP is shut down.
-     * Call {@code source().dispose()} directly:
+     * Use the {@link #dispose()} method to clean up all disposable resources:
      * </p>
      *
      * <pre>{@code
@@ -848,11 +876,8 @@ public class PolicyDecisionPointBuilder {
      *
      * // ... use the PDP ...
      *
-     * // Cleanup
-     * var source = components.source();
-     * if (source != null) {
-     *     source.dispose();
-     * }
+     * // Cleanup all resources
+     * components.dispose();
      * }</pre>
      *
      * @param pdp
@@ -865,11 +890,44 @@ public class PolicyDecisionPointBuilder {
      * the attribute broker with loaded PIPs
      * @param source
      * the configuration source, or null if none was registered
+     * @param timestampClock
+     * the high-performance timestamp clock for traced decisions
      */
     public record PDPComponents(
             PolicyDecisionPoint pdp,
             ConfigurationRegister configurationRegister,
             FunctionBroker functionBroker,
             AttributeBroker attributeBroker,
-            @Nullable PDPConfigurationSource source) {}
+            @Nullable PDPConfigurationSource source,
+            LazyFastClock timestampClock) {
+
+        /**
+         * Creates a CompilationContext using this instance's function and attribute
+         * brokers.
+         * <p>
+         * Useful in tests that need to compile SAPL documents without setting up
+         * brokers manually.
+         *
+         * @return a new CompilationContext
+         */
+        public CompilationContext compilationContext() {
+            return new CompilationContext(functionBroker, attributeBroker);
+        }
+
+        /**
+         * Disposes all resources held by this PDP instance.
+         * <p>
+         * This method should be called when the PDP is no longer needed to ensure
+         * clean application shutdown. It closes the timestamp clock's background
+         * thread and disposes any configuration source file watchers.
+         */
+        public void dispose() {
+            if (timestampClock != null) {
+                timestampClock.close();
+            }
+            if (source != null) {
+                source.dispose();
+            }
+        }
+    }
 }

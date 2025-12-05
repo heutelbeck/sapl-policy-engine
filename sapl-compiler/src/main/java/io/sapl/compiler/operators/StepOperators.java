@@ -67,6 +67,12 @@ public class StepOperators {
      */
     public static Value indexOrKeyStep(EObject astNode, Value value, Value expressionResult) {
         val metadata = ValueMetadata.merge(value, expressionResult);
+        if (value instanceof ErrorValue error) {
+            return error.withMetadata(metadata);
+        }
+        if (expressionResult instanceof ErrorValue error) {
+            return error.withMetadata(metadata);
+        }
         return switch (expressionResult) {
         case NumberValue numberValue -> StepOperators.indexStep(astNode, value, numberValue.value(), metadata);
         case TextValue textValue     -> StepOperators.keyStep(astNode, value, textValue.value()).withMetadata(metadata);
@@ -89,6 +95,9 @@ public class StepOperators {
      * not an object
      */
     public static Value keyStep(EObject astNode, Value parent, String key) {
+        if (parent instanceof ErrorValue) {
+            return parent;
+        }
         if (!(parent instanceof ObjectValue objectValue)) {
             return Error.at(astNode, parent.metadata(), RUNTIME_ERROR_KEY_ACCESS_TYPE_MISMATCH, parent);
         }
@@ -114,6 +123,9 @@ public class StepOperators {
      * bounds
      */
     public static Value indexStep(EObject astNode, Value parent, @NonNull BigDecimal bigIndex, ValueMetadata metadata) {
+        if (parent instanceof ErrorValue error) {
+            return error.withMetadata(metadata);
+        }
         int index;
         try {
             index = bigIndex.intValueExact();
@@ -140,6 +152,9 @@ public class StepOperators {
      * is object, or error otherwise
      */
     public static Value wildcardStep(EObject astNode, Value parent) {
+        if (parent instanceof ErrorValue) {
+            return parent;
+        }
         if (parent instanceof ArrayValue) {
             return parent;
         }
@@ -166,6 +181,9 @@ public class StepOperators {
      * exceeded
      */
     public static Value recursiveKeyStep(EObject astNode, Value parent, String key, ValueMetadata metadata) {
+        if (parent instanceof ErrorValue error) {
+            return error.withMetadata(metadata);
+        }
         val arrayBuilder = ArrayValue.builder();
         try {
             recursiveKeyStep(parent, key, 0, arrayBuilder);
@@ -244,6 +262,9 @@ public class StepOperators {
      */
     public static Value sliceArray(EObject astNode, Value parent, BigDecimal bigIndex, BigDecimal bigTo,
             BigDecimal bigStep) {
+        if (parent instanceof ErrorValue) {
+            return parent;
+        }
         if (!(parent instanceof ArrayValue arrayValue)) {
             return Error.at(astNode, parent.metadata(), RUNTIME_ERROR_SLICING_REQUIRES_ARRAY, parent);
         }
@@ -320,6 +341,9 @@ public class StepOperators {
      * bounds
      */
     public static Value indexUnion(EObject astNode, Value parent, List<BigDecimal> bigIndexes) {
+        if (parent instanceof ErrorValue) {
+            return parent;
+        }
         int[] indexes = new int[bigIndexes.size()];
         for (int i = 0; i < bigIndexes.size(); i++) {
             try {
@@ -367,6 +391,9 @@ public class StepOperators {
      * error if parent is not an object
      */
     public static Value attributeUnion(EObject astNode, Value parent, List<String> keys) {
+        if (parent instanceof ErrorValue) {
+            return parent;
+        }
         if (!(parent instanceof ObjectValue objectValue)) {
             return Error.at(astNode, parent.metadata(), RUNTIME_ERROR_KEY_UNION_REQUIRES_OBJECT, parent);
         }
@@ -396,6 +423,9 @@ public class StepOperators {
      * recursion depth exceeded
      */
     public static Value recursiveWildcardStep(EObject astNode, Value parent) {
+        if (parent instanceof ErrorValue) {
+            return parent;
+        }
         val arrayBuilder = ArrayValue.builder();
         try {
             recursiveWildcardStep(parent, 0, arrayBuilder);
@@ -437,6 +467,9 @@ public class StepOperators {
      * exceeded
      */
     public static Value recursiveIndexStep(EObject astNode, Value parent, BigDecimal index) {
+        if (parent instanceof ErrorValue) {
+            return parent;
+        }
         try {
             int intIndex     = index.intValueExact();
             val arrayBuilder = ArrayValue.builder();

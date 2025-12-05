@@ -22,22 +22,18 @@ import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pip.Attribute;
 import io.sapl.api.pip.EnvironmentAttribute;
 import io.sapl.api.pip.PolicyInformationPoint;
-import io.sapl.attributes.CachingAttributeBroker;
-import io.sapl.attributes.InMemoryAttributeRepository;
-import io.sapl.attributes.libraries.TimePolicyInformationPoint;
 import io.sapl.compiler.CompilationContext;
 import io.sapl.compiler.ExpressionCompiler;
-import io.sapl.functions.DefaultFunctionBroker;
 import io.sapl.functions.libraries.FilterFunctionLibrary;
 import io.sapl.functions.libraries.TemporalFunctionLibrary;
+import io.sapl.pdp.PolicyDecisionPointBuilder;
+import io.sapl.pdp.PolicyDecisionPointBuilder.PDPComponents;
 import lombok.SneakyThrows;
 import lombok.experimental.UtilityClass;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import reactor.core.publisher.Flux;
 import reactor.test.StepVerifier;
-
-import java.time.Clock;
 
 import static io.sapl.api.model.ValueJsonMarshaller.json;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -85,44 +81,31 @@ public class TestUtil {
     }
 
     /**
+     * Creates PDP components with standard test libraries and PIPs.
+     */
+    @SneakyThrows
+    private PDPComponents createComponents() {
+        return PolicyDecisionPointBuilder.withoutDefaults().withFunctionLibrary(TemporalFunctionLibrary.class)
+                .withFunctionLibrary(SimpleFunctionLibrary.class).withFunctionLibrary(FilterFunctionLibrary.class)
+                .withFunctionLibrary(MockFunctionLibrary.class).withPolicyInformationPoint(new TestPip()).build();
+    }
+
+    /**
      * Creates a new CompilationContext with fresh broker instances for test
      * isolation.
      */
-    @SneakyThrows
     private CompilationContext createCompilationContext() {
-        val functionBroker = new DefaultFunctionBroker();
-        functionBroker.loadStaticFunctionLibrary(TemporalFunctionLibrary.class);
-        functionBroker.loadStaticFunctionLibrary(SimpleFunctionLibrary.class);
-        functionBroker.loadStaticFunctionLibrary(FilterFunctionLibrary.class);
-        functionBroker.loadStaticFunctionLibrary(MockFunctionLibrary.class);
-
-        val attributeRepository = new InMemoryAttributeRepository(Clock.systemUTC());
-        val attributeBroker     = new CachingAttributeBroker(attributeRepository);
-        attributeBroker.loadPolicyInformationPointLibrary(new TimePolicyInformationPoint(Clock.systemUTC()));
-        attributeBroker.loadPolicyInformationPointLibrary(new TestPip());
-
-        return new CompilationContext(functionBroker, attributeBroker);
+        return createComponents().compilationContext();
     }
 
     /**
      * Creates a new EvaluationContext with fresh broker instances for test
      * isolation.
      */
-    @SneakyThrows
     private EvaluationContext createEvaluationContext(AuthorizationSubscription authorizationSubscription) {
-        val functionBroker = new DefaultFunctionBroker();
-        functionBroker.loadStaticFunctionLibrary(TemporalFunctionLibrary.class);
-        functionBroker.loadStaticFunctionLibrary(SimpleFunctionLibrary.class);
-        functionBroker.loadStaticFunctionLibrary(FilterFunctionLibrary.class);
-        functionBroker.loadStaticFunctionLibrary(MockFunctionLibrary.class);
-
-        val attributeRepository = new InMemoryAttributeRepository(Clock.systemUTC());
-        val attributeBroker     = new CachingAttributeBroker(attributeRepository);
-        attributeBroker.loadPolicyInformationPointLibrary(new TimePolicyInformationPoint(Clock.systemUTC()));
-        attributeBroker.loadPolicyInformationPointLibrary(new TestPip());
-
+        val components = createComponents();
         return new EvaluationContext("testConfigurationId", "testSubscriptionId", authorizationSubscription,
-                functionBroker, attributeBroker);
+                components.functionBroker(), components.attributeBroker());
     }
 
     private EvaluationContext createEvaluationContext() {

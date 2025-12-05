@@ -54,13 +54,13 @@ public class NaivePolicyRetrievalPoint implements PolicyRetrievalPoint {
             if (candidate.matchExpression() instanceof PureExpression pureMatchExpression) {
                 val match = pureMatchExpression.evaluate(evaluationContext);
                 if (match instanceof ErrorValue error) {
-                    return new RetrievalError(error);
+                    return new RetrievalError(candidate.name(), error);
                 }
                 if (Value.TRUE.equals(match)) {
                     result.add(candidate);
                 }
             } else {
-                return new RetrievalError(
+                return new RetrievalError(candidate.name(),
                         Value.error(ERROR_UNEXPECTED_TARGET_EXPRESSION_TYPE.formatted(candidate.name())));
             }
         }

@@ -18,6 +18,7 @@
 package io.sapl.api.pdp.internal;
 
 import io.sapl.api.SaplVersion;
+import io.sapl.api.model.Value;
 import io.sapl.api.pdp.AuthorizationDecision;
 import lombok.NonNull;
 
@@ -28,29 +29,68 @@ import java.util.Collections;
 import java.util.List;
 
 /**
- * A policy decision with trace metadata for debugging and auditing.
+ * A policy decision with trace information for debugging, auditing, and
+ * interceptor processing.
+ * <p>
+ * This record holds three pieces of information:
+ * <ul>
+ * <li>{@code originalTrace} - The immutable TracedPdpDecision Value containing
+ * the complete trace of how the decision
+ * was derived, including PDP metadata, evaluated documents, and attribute
+ * accesses.</li>
+ * <li>{@code currentDecision} - The authorization decision that may be modified
+ * by interceptors. Extracted from the
+ * trace on creation, this value can be replaced when interceptors transform the
+ * decision.</li>
+ * <li>{@code modifications} - An audit trail of explanations from interceptors
+ * that have modified the decision.</li>
+ * </ul>
+ * <p>
+ * Example interceptor usage:
  *
- * @param authorizationDecision
- * the authorization decision
- * @param metadata
- * the decision metadata
+ * <pre>{@code
+ * TracedDecision original = pdp.decideTraced(subscription).blockFirst();
+ * if (someCondition) {
+ *     TracedDecision modified = original.modified(AuthorizationDecision.DENY,
+ *             "Override: resource access denied due to maintenance window");
+ * }
+ * }</pre>
+ *
+ * @param originalTrace
+ * the immutable TracedPdpDecision Value
+ * @param currentDecision
+ * the authorization decision (may be modified from original)
  * @param modifications
- * modification explanations from interceptors
+ * audit trail of interceptor modifications
  */
 public record TracedDecision(
-        @NonNull AuthorizationDecision authorizationDecision,
-        @NonNull DecisionMetadata metadata,
+        @NonNull Value originalTrace,
+        @NonNull AuthorizationDecision currentDecision,
         @NonNull List<String> modifications) implements Serializable {
 
     @Serial
     private static final long serialVersionUID = SaplVersion.VERSION_UID;
 
-    public TracedDecision(AuthorizationDecision authorizationDecision, DecisionMetadata metadata) {
-        this(authorizationDecision, metadata, List.of());
+    /**
+     * Creates a TracedDecision from a TracedPdpDecision Value.
+     * <p>
+     * The authorization decision is extracted from the trace using
+     * {@link TracedPdpDecision#toAuthorizationDecision(Value)}.
+     *
+     * @param trace
+     * the TracedPdpDecision Value
+     */
+    public TracedDecision(Value trace) {
+        this(trace, TracedPdpDecision.toAuthorizationDecision(trace), List.of());
     }
 
     /**
      * Creates a modified traced decision with an explanation for audit purposes.
+     * <p>
+     * The original trace is preserved unchanged - only the current decision and
+     * modifications list are updated. This
+     * allows interceptors to transform decisions while maintaining full
+     * traceability.
      *
      * @param decision
      * the new authorization decision
@@ -62,6 +102,18 @@ public record TracedDecision(
     public TracedDecision modified(AuthorizationDecision decision, String explanation) {
         var newModifications = new ArrayList<>(modifications);
         newModifications.add(explanation);
-        return new TracedDecision(decision, metadata, Collections.unmodifiableList(newModifications));
+        return new TracedDecision(originalTrace, decision, Collections.unmodifiableList(newModifications));
+    }
+
+    /**
+     * Returns the authorization decision.
+     * <p>
+     * This is an alias for {@link #currentDecision()} to maintain API
+     * compatibility.
+     *
+     * @return the current authorization decision
+     */
+    public AuthorizationDecision authorizationDecision() {
+        return currentDecision;
     }
 }

@@ -105,7 +105,8 @@ public class ValueJsonMarshaller {
 
     /**
      * Converts a Value to a pretty-printed string with meaningful indentation.
-     * Supports all Value types including UndefinedValue and ErrorValue.
+     * Supports all Value types including
+     * UndefinedValue and ErrorValue.
      *
      * @param value
      * the value to convert

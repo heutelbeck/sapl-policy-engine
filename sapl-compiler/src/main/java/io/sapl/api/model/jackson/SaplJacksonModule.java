@@ -28,6 +28,7 @@ import io.sapl.api.pdp.IdentifiableAuthorizationSubscription;
 import io.sapl.api.pdp.MultiAuthorizationDecision;
 import io.sapl.api.pdp.MultiAuthorizationSubscription;
 import io.sapl.api.pdp.PDPConfiguration;
+import io.sapl.api.pdp.TraceLevel;
 
 import java.io.Serial;
 
@@ -97,6 +98,9 @@ public class SaplJacksonModule extends SimpleModule {
 
         // CombiningAlgorithm (case-insensitive deserialization)
         addDeserializer(CombiningAlgorithm.class, new CombiningAlgorithmDeserializer());
+
+        // TraceLevel (case-insensitive deserialization)
+        addDeserializer(TraceLevel.class, new TraceLevelDeserializer());
 
         // PDPConfiguration
         addSerializer(PDPConfiguration.class, new PDPConfigurationSerializer());

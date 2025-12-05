@@ -547,7 +547,7 @@ public class SaplCompiler {
      * @return the value if boolean, or an error value if not
      */
     public Value booleanValueOrErrorInTarget(EObject astNode, Value targetExpression) {
-        if (targetExpression instanceof BooleanValue) {
+        if (targetExpression instanceof ErrorValue || targetExpression instanceof BooleanValue) {
             return targetExpression;
         }
         return Error.at(astNode, targetExpression.metadata(), RUNTIME_ERROR_TARGET_NON_BOOLEAN, targetExpression);
@@ -708,21 +708,32 @@ public class SaplCompiler {
         }
         val combiningAlgorithm = policySet.getAlgorithm();
         val policies           = policySet.getPolicies();
-        val decisionExpression = compilePolicySetPolicies(combiningAlgorithm, policies, context);
+        val decisionExpression = compilePolicySetPolicies(name, combiningAlgorithm, policies, context);
         return new CompiledPolicy(name, matchExpression, decisionExpression);
     }
 
-    private static CompiledExpression compilePolicySetPolicies(CombiningAlgorithm combiningAlgorithm,
+    private static CompiledExpression compilePolicySetPolicies(String setName, CombiningAlgorithm combiningAlgorithm,
             List<Policy> policies, CompilationContext context) {
         val compiledPolicies = policies.stream().map(p -> compilePolicy(p, Value.TRUE, context)).toList();
+        val algorithmName    = toSaplSyntax(combiningAlgorithm);
         return switch (combiningAlgorithm) {
-        case CombiningAlgorithm.DENY_OVERRIDES      -> CombiningAlgorithmCompiler.denyOverrides(compiledPolicies);
-        case CombiningAlgorithm.DENY_UNLESS_PERMIT  -> CombiningAlgorithmCompiler.denyUnlessPermit(compiledPolicies);
-        case CombiningAlgorithm.ONLY_ONE_APPLICABLE -> CombiningAlgorithmCompiler.onlyOneApplicable(compiledPolicies);
-        case CombiningAlgorithm.FIRST_APPLICABLE    -> CombiningAlgorithmCompiler.firstApplicable(compiledPolicies);
-        case CombiningAlgorithm.PERMIT_UNLESS_DENY  -> CombiningAlgorithmCompiler.permitUnlessDeny(compiledPolicies);
-        case CombiningAlgorithm.PERMIT_OVERRIDES    -> CombiningAlgorithmCompiler.permitOverrides(compiledPolicies);
+        case CombiningAlgorithm.DENY_OVERRIDES      ->
+            CombiningAlgorithmCompiler.denyOverrides(setName, algorithmName, compiledPolicies);
+        case CombiningAlgorithm.DENY_UNLESS_PERMIT  ->
+            CombiningAlgorithmCompiler.denyUnlessPermit(setName, algorithmName, compiledPolicies);
+        case CombiningAlgorithm.ONLY_ONE_APPLICABLE ->
+            CombiningAlgorithmCompiler.onlyOneApplicable(setName, algorithmName, compiledPolicies);
+        case CombiningAlgorithm.FIRST_APPLICABLE    ->
+            CombiningAlgorithmCompiler.firstApplicable(setName, algorithmName, compiledPolicies);
+        case CombiningAlgorithm.PERMIT_UNLESS_DENY  ->
+            CombiningAlgorithmCompiler.permitUnlessDeny(setName, algorithmName, compiledPolicies);
+        case CombiningAlgorithm.PERMIT_OVERRIDES    ->
+            CombiningAlgorithmCompiler.permitOverrides(setName, algorithmName, compiledPolicies);
         };
+    }
+
+    private static String toSaplSyntax(CombiningAlgorithm algorithm) {
+        return algorithm.getName().toLowerCase().replace('_', '-');
     }
 
     private CompiledExpression compileSchemas(EList<Schema> schemas, CompilationContext context) {
