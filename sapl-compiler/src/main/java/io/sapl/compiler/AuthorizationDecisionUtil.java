@@ -30,8 +30,8 @@ import java.util.List;
  * Utility for constructing and extracting authorization decision objects.
  * <p>
  * Decision objects are {@link ObjectValue} instances with fields: decision,
- * obligations, advice, resource. This class
- * centralizes field name constants and provides methods for building and
+ * obligations, advice, resource, errors. This
+ * class centralizes field name constants and provides methods for building and
  * extracting decision components.
  */
 @UtilityClass
@@ -39,15 +39,18 @@ public class AuthorizationDecisionUtil {
 
     public static final String FIELD_ADVICE      = "advice";
     public static final String FIELD_DECISION    = "decision";
+    public static final String FIELD_ERRORS      = "errors";
     public static final String FIELD_OBLIGATIONS = "obligations";
     public static final String FIELD_RESOURCE    = "resource";
 
     public static final Value NOT_APPLICABLE = buildDecision(Decision.NOT_APPLICABLE, List.of(), List.of(),
-            Value.UNDEFINED);
+            Value.UNDEFINED, List.of());
     public static final Value INDETERMINATE  = buildDecision(Decision.INDETERMINATE, List.of(), List.of(),
-            Value.UNDEFINED);
-    public static final Value DENY           = buildDecision(Decision.DENY, List.of(), List.of(), Value.UNDEFINED);
-    public static final Value PERMIT         = buildDecision(Decision.PERMIT, List.of(), List.of(), Value.UNDEFINED);
+            Value.UNDEFINED, List.of());
+    public static final Value DENY           = buildDecision(Decision.DENY, List.of(), List.of(), Value.UNDEFINED,
+            List.of());
+    public static final Value PERMIT         = buildDecision(Decision.PERMIT, List.of(), List.of(), Value.UNDEFINED,
+            List.of());
 
     /**
      * Builds a decision object containing the authorization decision and associated
@@ -61,13 +64,42 @@ public class AuthorizationDecisionUtil {
      * advice that should be considered but is not mandatory
      * @param resource
      * optional resource transformation result, or UNDEFINED if no transformation
+     * @param errors
+     * errors that occurred during policy evaluation
      *
-     * @return an ObjectValue with fields: decision, obligations, advice, resource
+     * @return an ObjectValue with fields: decision, obligations, advice, resource,
+     * errors
      */
-    public static Value buildDecision(Decision decision, List<Value> obligations, List<Value> advice, Value resource) {
+    public static Value buildDecision(Decision decision, List<Value> obligations, List<Value> advice, Value resource,
+            List<Value> errors) {
         return ObjectValue.builder().put(FIELD_DECISION, Value.of(decision.name()))
                 .put(FIELD_OBLIGATIONS, ArrayValue.builder().addAll(obligations).build())
-                .put(FIELD_ADVICE, ArrayValue.builder().addAll(advice).build()).put(FIELD_RESOURCE, resource).build();
+                .put(FIELD_ADVICE, ArrayValue.builder().addAll(advice).build()).put(FIELD_RESOURCE, resource)
+                .put(FIELD_ERRORS, ArrayValue.builder().addAll(errors).build()).build();
+    }
+
+    /**
+     * Builds an INDETERMINATE decision with the specified error.
+     *
+     * @param error
+     * the error that caused the indeterminate result
+     *
+     * @return an INDETERMINATE decision containing the error
+     */
+    public static Value buildIndeterminate(Value error) {
+        return buildDecision(Decision.INDETERMINATE, List.of(), List.of(), Value.UNDEFINED, List.of(error));
+    }
+
+    /**
+     * Builds an INDETERMINATE decision with the specified errors.
+     *
+     * @param errors
+     * the errors that caused the indeterminate result
+     *
+     * @return an INDETERMINATE decision containing the errors
+     */
+    public static Value buildIndeterminate(List<Value> errors) {
+        return buildDecision(Decision.INDETERMINATE, List.of(), List.of(), Value.UNDEFINED, errors);
     }
 
     /**

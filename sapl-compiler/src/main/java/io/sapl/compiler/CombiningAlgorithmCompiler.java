@@ -102,7 +102,8 @@ public class CombiningAlgorithmCompiler {
         Value buildFinalDecision() {
             val finalObligations = selectObligationsAdvice(entitlement, permitObligations, denyObligations);
             val finalAdvice      = selectObligationsAdvice(entitlement, permitAdvice, denyAdvice);
-            return AuthorizationDecisionUtil.buildDecision(entitlement, finalObligations, finalAdvice, resource);
+            return AuthorizationDecisionUtil.buildDecision(entitlement, finalObligations, finalAdvice, resource,
+                    List.of());
         }
 
         private List<Value> selectObligationsAdvice(Decision decision, List<Value> permitList, List<Value> denyList) {
@@ -584,7 +585,8 @@ public class CombiningAlgorithmCompiler {
             }
             if (applicableDecision == null) {
                 applicableDecision = AuthorizationDecisionUtil.buildDecision(evaluation.decision,
-                        List.copyOf(evaluation.obligations), List.copyOf(evaluation.advice), evaluation.resource);
+                        List.copyOf(evaluation.obligations), List.copyOf(evaluation.advice), evaluation.resource,
+                        List.of());
             }
         }
 

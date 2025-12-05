@@ -104,6 +104,118 @@ public class ValueJsonMarshaller {
     }
 
     /**
+     * Converts a Value to a pretty-printed string with meaningful indentation.
+     * Supports all Value types including UndefinedValue and ErrorValue.
+     *
+     * @param value
+     * the value to convert
+     *
+     * @return pretty-printed string representation
+     */
+    public static String toPrettyString(Value value) {
+        return toPrettyString(value, 0);
+    }
+
+    /**
+     * Converts a Value to a pretty-printed string with specified initial
+     * indentation.
+     *
+     * @param value
+     * the value to convert
+     * @param indent
+     * the initial indentation level
+     *
+     * @return pretty-printed string representation
+     */
+    public static String toPrettyString(Value value, int indent) {
+        if (value == null) {
+            return "null";
+        }
+        return switch (value) {
+        case NullValue n      -> "null";
+        case BooleanValue b   -> String.valueOf(b.value());
+        case NumberValue n    -> n.value().toPlainString();
+        case TextValue t      -> quoteString(t.value());
+        case UndefinedValue u -> "undefined";
+        case ErrorValue e     -> formatError(e);
+        case ArrayValue a     -> formatArray(a, indent);
+        case ObjectValue o    -> formatObject(o, indent);
+        };
+    }
+
+    private static String quoteString(String text) {
+        return "\"" + text.replace("\\", "\\\\").replace("\"", "\\\"").replace("\n", "\\n").replace("\r", "\\r")
+                .replace("\t", "\\t") + "\"";
+    }
+
+    private static String formatError(ErrorValue error) {
+        var result = new StringBuilder("ERROR[");
+        result.append("message=").append(quoteString(error.message()));
+        if (error.location() != null) {
+            result.append(", at=").append(error.location());
+        }
+        result.append(']');
+        return result.toString();
+    }
+
+    private static String formatArray(ArrayValue array, int indent) {
+        if (array.isEmpty()) {
+            return "[]";
+        }
+        if (isSimpleArray(array)) {
+            return "["
+                    + array.stream().map(v -> toPrettyString(v, 0)).collect(java.util.stream.Collectors.joining(", "))
+                    + "]";
+        }
+        var result      = new StringBuilder("[\n");
+        var childIndent = indent + 1;
+        var padding     = "  ".repeat(childIndent);
+        var first       = true;
+        for (var item : array) {
+            if (!first) {
+                result.append(",\n");
+            }
+            result.append(padding).append(toPrettyString(item, childIndent));
+            first = false;
+        }
+        result.append('\n').append("  ".repeat(indent)).append(']');
+        return result.toString();
+    }
+
+    private static String formatObject(ObjectValue object, int indent) {
+        if (object.isSecret()) {
+            return "\"<<SECRET>>\"";
+        }
+        if (object.isEmpty()) {
+            return "{}";
+        }
+        var result      = new StringBuilder("{\n");
+        var childIndent = indent + 1;
+        var padding     = "  ".repeat(childIndent);
+        var first       = true;
+        for (var entry : object.entrySet()) {
+            if (!first) {
+                result.append(",\n");
+            }
+            result.append(padding).append(quoteString(entry.getKey())).append(": ")
+                    .append(toPrettyString(entry.getValue(), childIndent));
+            first = false;
+        }
+        result.append('\n').append("  ".repeat(indent)).append('}');
+        return result.toString();
+    }
+
+    private static boolean isSimpleArray(ArrayValue array) {
+        return array.size() <= 3 && array.stream().allMatch(ValueJsonMarshaller::isSimpleValue);
+    }
+
+    private static boolean isSimpleValue(Value value) {
+        return value instanceof NullValue || value instanceof BooleanValue || value instanceof NumberValue
+                || value instanceof TextValue || (value instanceof ArrayValue a && a.isEmpty())
+                || (value instanceof ObjectValue o && o.isEmpty());
+    }
+
+    /**
      * Converts a Jackson JsonNode to a Value.
      * <p>
      * NullNode and null map to Value.NULL. BINARY, POJO, and MISSING nodes return

@@ -630,4 +630,136 @@ class ValueJsonMarshallerTests {
         return Value
                 .ofObject(Map.of("subject", current, "action", Value.of("exploit"), "resource", Value.of("system")));
     }
+
+    // ============================================================
+    // Pretty Printing Tests
+    // ============================================================
+
+    @ParameterizedTest(name = "toPrettyString primitive: {0}")
+    @MethodSource("primitivePrettyStringCases")
+    void when_toPrettyStringWithPrimitive_then_formatsCorrectly(String description, Value value, String expected) {
+        assertThat(ValueJsonMarshaller.toPrettyString(value)).isEqualTo(expected);
+    }
+
+    static Stream<Arguments> primitivePrettyStringCases() {
+        return Stream.of(arguments("null value", Value.NULL, "null"), arguments("true", Value.TRUE, "true"),
+                arguments("false", Value.FALSE, "false"), arguments("integer", Value.of(42), "42"),
+                arguments("negative", Value.of(-17), "-17"),
+                arguments("decimal", Value.of(new BigDecimal("3.14159")), "3.14159"),
+                arguments("simple text", Value.of(ENTITY_CTHULHU), "\"Cthulhu\""),
+                arguments("text with quotes", Value.of("He said \"Ph'nglui\""), "\"He said \\\"Ph'nglui\\\"\""),
+                arguments("text with newline", Value.of("line1\nline2"), "\"line1\\nline2\""),
+                arguments("undefined", Value.UNDEFINED, "undefined"),
+                arguments("error", Value.error("Eldritch horror"), "ERROR[message=\"Eldritch horror\"]"),
+                arguments("java null", null, "null"));
+    }
+
+    @Test
+    void when_toPrettyStringWithEmptyCollections_then_formatsCompact() {
+        assertThat(ValueJsonMarshaller.toPrettyString(Value.EMPTY_ARRAY)).isEqualTo("[]");
+        assertThat(ValueJsonMarshaller.toPrettyString(Value.EMPTY_OBJECT)).isEqualTo("{}");
+    }
+
+    @Test
+    void when_toPrettyStringWithSimpleArray_then_formatsOnOneLine() {
+        var array = Value.ofArray(Value.of(1), Value.of(2), Value.of(3));
+
+        assertThat(ValueJsonMarshaller.toPrettyString(array)).isEqualTo("[1, 2, 3]");
+    }
+
+    @Test
+    void when_toPrettyStringWithComplexArray_then_formatsWithIndentation() {
+        var array = Value.ofArray(Value.ofObject(Map.of("entity", Value.of(ENTITY_CTHULHU))),
+                Value.ofObject(Map.of("entity", Value.of(ENTITY_AZATHOTH))));
+
+        var result   = ValueJsonMarshaller.toPrettyString(array);
+        var expected = """
+                [
+                  {
+                    "entity": "Cthulhu"
+                  },
+                  {
+                    "entity": "Azathoth"
+                  }
+                ]""";
+
+        assertThat(result).isEqualTo(expected);
+    }
+
+    @Test
+    void when_toPrettyStringWithObject_then_formatsWithIndentation() {
+        var object = Value.ofObject(Map.of("entity", Value.of(ENTITY_CTHULHU), "location", Value.of(LOCATION_RLYEH),
+                "sanity", Value.of(SANITY_THRESHOLD)));
+
+        var result = ValueJsonMarshaller.toPrettyString(object);
+
+        assertThat(result).contains("\"entity\": \"Cthulhu\"");
+        assertThat(result).contains("\"location\": \"R'lyeh\"");
+        assertThat(result).contains("\"sanity\": 42");
+        assertThat(result).startsWith("{\n");
+        assertThat(result).endsWith("\n}");
+    }
+
+    @Test
+    void when_toPrettyStringWithNestedObject_then_formatsWithProperIndentation() {
+        var nested = Value.ofObject(Map.of("outer", Value.ofObject(Map.of("inner", Value.of("deep horror")))));
+
+        var result   = ValueJsonMarshaller.toPrettyString(nested);
+        var expected = """
+                {
+                  "outer": {
+                    "inner": "deep horror"
+                  }
+                }""";
+
+        assertThat(result).isEqualTo(expected);
+    }
+
+    @Test
+    void when_toPrettyStringWithMixedStructure_then_formatsCorrectly() {
+        var decision = Value.ofObject(Map.of("decision", Value.of("PERMIT"), "obligations",
+                Value.ofArray(Value.of("log"), Value.of("notify")), "resource",
+                Value.ofObject(Map.of("filtered", Value.TRUE))));
+
+        var result = ValueJsonMarshaller.toPrettyString(decision);
+
+        assertThat(result).contains("\"decision\": \"PERMIT\"");
+        assertThat(result).contains("\"obligations\": [\"log\", \"notify\"]");
+        assertThat(result).contains("\"resource\": {\n    \"filtered\": true\n  }");
+    }
+
+    @Test
+    void when_toPrettyStringWithSecretObject_then_masksContent() {
+        var secret = Value.ofObject(Map.of("password", Value.of("secret123"))).asSecret();
+
+        assertThat(ValueJsonMarshaller.toPrettyString(secret)).isEqualTo("\"<<SECRET>>\"");
+    }
+
+    @Test
+    void when_toPrettyStringWithErrorWithLocation_then_includesLocation() {
+        var error = new ErrorValue("Access denied").withLocation(new SourceLocation("policy.sapl", null, 5, 20, 10));
+
+        var result = ValueJsonMarshaller.toPrettyString(error);
+
+        assertThat(result).contains("ERROR[");
+        assertThat(result).contains("message=\"Access denied\"");
+        assertThat(result).contains("at=policy.sapl:10 [5-20]");
+    }
+
+    @Test
+    void when_toPrettyStringWithTracedDecision_then_producesReadableOutput() {
+        var traced = Value.ofObject(Map.of("name", Value.of("permit-all"), "entitlement", Value.of("PERMIT"),
+                "decision", Value.of("PERMIT"), "obligations", Value.EMPTY_ARRAY, "advice", Value.EMPTY_ARRAY,
+                "resource", Value.UNDEFINED, "attributes",
+                Value.ofArray(Value
+                        .ofObject(Map.of("name", Value.of("time.now"), "value", Value.of("2025-01-01T00:00:00Z")))),
+                "errors", Value.EMPTY_ARRAY));
+
+        var result = ValueJsonMarshaller.toPrettyString(traced);
+
+        assertThat(result).contains("\"name\": \"permit-all\"");
+        assertThat(result).contains("\"decision\": \"PERMIT\"");
+        assertThat(result).contains("\"resource\": undefined");
+        assertThat(result).contains("\"time.now\"");
+    }
 }
