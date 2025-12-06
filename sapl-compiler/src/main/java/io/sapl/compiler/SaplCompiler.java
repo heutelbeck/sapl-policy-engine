@@ -20,6 +20,7 @@ package io.sapl.compiler;
 import io.sapl.api.model.*;
 import io.sapl.api.model.Value;
 import io.sapl.api.pdp.Decision;
+import io.sapl.api.pdp.internal.ConditionHit;
 import io.sapl.api.pdp.internal.TracedPolicyDecision;
 import io.sapl.compiler.operators.BooleanOperators;
 import io.sapl.functions.libraries.SchemaValidationLibrary;
@@ -176,15 +177,16 @@ public class SaplCompiler {
     }
 
     private CompiledExpression compileDecisionExpression(Policy policy, CompilationContext context) {
-        val name         = policy.getSaplName();
-        val entitlement  = decisionOf(policy.getEntitlement());
-        val decisionExpr = compileDecisionExpressionInternal(policy, entitlement, context);
-        return wrapWithTrace(name, entitlement.name(), decisionExpr);
+        val name             = policy.getSaplName();
+        val entitlement      = decisionOf(policy.getEntitlement());
+        val coverageRecorder = context.isCoverageEnabled() ? new CoverageRecorder() : null;
+        val decisionExpr     = compileDecisionExpressionInternal(policy, entitlement, context, coverageRecorder);
+        return wrapWithTrace(name, entitlement.name(), decisionExpr, coverageRecorder);
     }
 
     private CompiledExpression compileDecisionExpressionInternal(Policy policy, Decision entitlement,
-            CompilationContext context) {
-        val body           = compileBody(policy.getBody(), context);
+            CompilationContext context, CoverageRecorder coverageRecorder) {
+        val body           = compileBody(policy.getBody(), context, coverageRecorder);
         val obligations    = compileListOfConstraints(policy.getObligations(), context);
         val advice         = compileListOfConstraints(policy.getAdvice(), context);
         val transformation = compileTransformation(policy.getTransformation(), context);
@@ -200,28 +202,51 @@ public class SaplCompiler {
         return compileStreamingDecision(entitlement, body, obligations, advice, transformation);
     }
 
-    private static CompiledExpression wrapWithTrace(String name, String entitlement, CompiledExpression decisionExpr) {
+    private static CompiledExpression wrapWithTrace(String name, String entitlement, CompiledExpression decisionExpr,
+            CoverageRecorder coverageRecorder) {
         if (decisionExpr instanceof Value decisionValue) {
-            return buildTracedPolicyDecision(name, entitlement, decisionValue);
+            return buildTracedPolicyDecision(name, entitlement, decisionValue, null);
         }
 
         if (decisionExpr instanceof PureExpression pureExpr) {
-            return new PureExpression(ctx -> buildTracedPolicyDecision(name, entitlement, pureExpr.evaluate(ctx)),
-                    pureExpr.isSubscriptionScoped());
+            return new PureExpression(ctx -> {
+                val result = pureExpr.evaluate(ctx);
+                val hits   = coverageRecorder != null ? coverageRecorder.collectAndClear() : null;
+                return buildTracedPolicyDecision(name, entitlement, result, hits);
+            }, pureExpr.isSubscriptionScoped());
         }
 
         if (decisionExpr instanceof StreamExpression(Flux<Value> stream)) {
+            // Note: For streaming expressions with coverage, hits are collected per
+            // emission.
+            // The recorder is cleared after each emission to capture fresh hits.
+            if (coverageRecorder != null) {
+                return new StreamExpression(stream.map(decisionValue -> {
+                    val hits = coverageRecorder.collectAndClear();
+                    return buildTracedPolicyDecision(name, entitlement, decisionValue, hits);
+                }));
+            }
             return new StreamExpression(
-                    stream.map(decisionValue -> buildTracedPolicyDecision(name, entitlement, decisionValue)));
+                    stream.map(decisionValue -> buildTracedPolicyDecision(name, entitlement, decisionValue, null)));
         }
 
         throw new IllegalStateException("Unexpected expression type: " + decisionExpr.getClass());
     }
 
-    private static Value buildTracedPolicyDecision(String name, String entitlement, Value decisionValue) {
-        return TracedPolicyDecision.builder().name(name).entitlement(entitlement).fromDecisionValue(decisionValue)
+    private static Value buildTracedPolicyDecision(String name, String entitlement, Value decisionValue,
+            List<ConditionHit> conditionHits) {
+        val builder = TracedPolicyDecision.builder().name(name).entitlement(entitlement)
+                .fromDecisionValue(decisionValue)
                 .attributes(TracedPolicyDecision.convertAttributeRecords(decisionValue.metadata().attributeTrace()))
-                .errors(TracedPolicyDecision.extractErrors(decisionValue)).build();
+                .errors(TracedPolicyDecision.extractErrors(decisionValue));
+
+        // Add coverage data if present
+        if (conditionHits != null) {
+            builder.conditions(conditionHits);
+            builder.targetResult(true); // Target matched (otherwise we wouldn't be here)
+        }
+
+        return builder.build();
     }
 
     private CompiledExpression compileTransformation(Expression transformationExpression, CompilationContext context) {
@@ -600,7 +625,8 @@ public class SaplCompiler {
         };
     }
 
-    private CompiledExpression compileBody(PolicyBody body, CompilationContext context) {
+    private CompiledExpression compileBody(PolicyBody body, CompilationContext context,
+            CoverageRecorder coverageRecorder) {
         if (body == null) {
             return Value.TRUE;
         }
@@ -608,14 +634,24 @@ public class SaplCompiler {
         if (statements == null || statements.isEmpty()) {
             return Value.TRUE;
         }
-        CompiledExpression compiledBody = null;
+        CompiledExpression compiledBody   = null;
+        int                conditionIndex = 0;
         for (val statement : statements) {
             if (statement instanceof Condition condition) {
+                var conditionExpr = ExpressionCompiler.compileExpression(condition.getExpression(), context);
+
+                // Wrap with coverage recording only when recorder is present
+                if (coverageRecorder != null) {
+                    val statementId = conditionIndex;
+                    val line        = getLineNumber(condition);
+                    conditionExpr = wrapWithCoverageRecording(conditionExpr, statementId, line, coverageRecorder);
+                }
+                conditionIndex++;
+
                 if (compiledBody == null) {
-                    compiledBody = ExpressionCompiler.compileExpression(condition.getExpression(), context);
+                    compiledBody = conditionExpr;
                 } else {
-                    compiledBody = ExpressionCompiler.compileLazyAnd(statement, compiledBody, condition.getExpression(),
-                            context);
+                    compiledBody = combineLazyAnd(statement, compiledBody, conditionExpr);
                 }
             } else if (statement instanceof ValueDefinition valueDefinition) {
                 val variableName = valueDefinition.getName();
@@ -639,6 +675,85 @@ public class SaplCompiler {
             throw new SaplCompilerException(COMPILE_ERROR_BODY_NON_BOOLEAN.formatted(compiledBody), body);
         }
         return compiledBody;
+    }
+
+    private static int getLineNumber(EObject astNode) {
+        val location = SourceLocationUtil.fromAstNode(astNode);
+        return location != null ? location.line() : 0;
+    }
+
+    private static CompiledExpression wrapWithCoverageRecording(CompiledExpression expression, int statementId,
+            int line, CoverageRecorder recorder) {
+        if (expression instanceof Value value) {
+            // For constant boolean values, we still need to record the hit at evaluation
+            // time
+            return new PureExpression(ctx -> {
+                if (value instanceof BooleanValue bv) {
+                    recorder.recordHit(statementId, bv.value(), line);
+                }
+                return value;
+            }, true);
+        }
+
+        if (expression instanceof PureExpression pureExpr) {
+            return new PureExpression(ctx -> {
+                val result = pureExpr.evaluate(ctx);
+                if (result instanceof BooleanValue bv) {
+                    recorder.recordHit(statementId, bv.value(), line);
+                }
+                return result;
+            }, pureExpr.isSubscriptionScoped());
+        }
+
+        if (expression instanceof StreamExpression streamExpr) {
+            // For streaming expressions, record hits when each value is emitted
+            return new StreamExpression(streamExpr.stream().doOnNext(result -> {
+                if (result instanceof BooleanValue bv) {
+                    recorder.recordHit(statementId, bv.value(), line);
+                }
+            }));
+        }
+
+        return expression;
+    }
+
+    private static CompiledExpression combineLazyAnd(EObject astNode, CompiledExpression left,
+            CompiledExpression right) {
+        // Simplified version of lazy AND for pre-compiled expressions
+        if (left instanceof BooleanValue bv) {
+            return bv.value() ? right : Value.FALSE;
+        }
+
+        if (left instanceof PureExpression leftPure) {
+            if (right instanceof Value rightValue) {
+                return new PureExpression(ctx -> {
+                    val leftResult = leftPure.evaluate(ctx);
+                    if (leftResult instanceof BooleanValue boolVal && boolVal.value()) {
+                        return rightValue;
+                    }
+                    return leftResult instanceof BooleanValue boolVal && !boolVal.value() ? Value.FALSE : leftResult;
+                }, leftPure.isSubscriptionScoped());
+            }
+            if (right instanceof PureExpression rightPure) {
+                return new PureExpression(ctx -> {
+                    val leftResult = leftPure.evaluate(ctx);
+                    if (leftResult instanceof BooleanValue boolVal && boolVal.value()) {
+                        return rightPure.evaluate(ctx);
+                    }
+                    return leftResult instanceof BooleanValue boolVal && !boolVal.value() ? Value.FALSE : leftResult;
+                }, leftPure.isSubscriptionScoped() && rightPure.isSubscriptionScoped());
+            }
+        }
+
+        // Fall back to streaming for complex cases
+        val leftFlux  = ExpressionCompiler.compiledExpressionToFlux(left);
+        val rightFlux = ExpressionCompiler.compiledExpressionToFlux(right);
+        return new StreamExpression(leftFlux.switchMap(leftVal -> {
+            if (leftVal instanceof BooleanValue bv && bv.value()) {
+                return rightFlux;
+            }
+            return Flux.just(leftVal instanceof BooleanValue bv && !bv.value() ? Value.FALSE : leftVal);
+        }));
     }
 
     /**

@@ -97,6 +97,8 @@ public class TracedPolicyDecision {
         private List<Value> attributes  = new ArrayList<>();
         private List<Value> errors      = new ArrayList<>();
         private Value       targetError;
+        private List<Value> conditions  = new ArrayList<>();
+        private Boolean     targetResult;
 
         /**
          * Sets the policy name.
@@ -263,6 +265,50 @@ public class TracedPolicyDecision {
         }
 
         /**
+         * Adds a condition hit for coverage tracking (COVERAGE trace level only).
+         *
+         * @param conditionHit
+         * the condition hit to add
+         *
+         * @return this builder
+         */
+        public Builder addCondition(ConditionHit conditionHit) {
+            this.conditions.add(conditionHit.toValue());
+            return this;
+        }
+
+        /**
+         * Adds all condition hits for coverage tracking (COVERAGE trace level only).
+         *
+         * @param conditionHits
+         * the condition hits to add
+         *
+         * @return this builder
+         */
+        public Builder conditions(List<ConditionHit> conditionHits) {
+            if (conditionHits != null) {
+                for (val hit : conditionHits) {
+                    this.conditions.add(hit.toValue());
+                }
+            }
+            return this;
+        }
+
+        /**
+         * Sets the target expression result for coverage tracking (COVERAGE trace level
+         * only).
+         *
+         * @param matched
+         * true if target matched, false if it did not
+         *
+         * @return this builder
+         */
+        public Builder targetResult(boolean matched) {
+            this.targetResult = matched;
+            return this;
+        }
+
+        /**
          * Extracts decision components from a raw decision Value and populates this
          * builder.
          * <p>
@@ -325,6 +371,14 @@ public class TracedPolicyDecision {
 
             if (targetError != null) {
                 builder.put(TraceFields.TARGET_ERROR, targetError);
+            }
+
+            // Coverage fields (only present when COVERAGE trace level enabled)
+            if (!conditions.isEmpty()) {
+                builder.put(TraceFields.CONDITIONS, ArrayValue.builder().addAll(conditions).build());
+            }
+            if (targetResult != null) {
+                builder.put(TraceFields.TARGET_RESULT, Value.of(targetResult));
             }
 
             return builder.build();
@@ -492,6 +546,66 @@ public class TracedPolicyDecision {
      */
     public static boolean isNoMatchTrace(Value tracedPolicy) {
         return Boolean.FALSE.equals(getTargetMatch(tracedPolicy));
+    }
+
+    // ========== Coverage Accessor Methods (COVERAGE trace level) ==========
+
+    /**
+     * Extracts condition hits from a traced policy decision.
+     * <p>
+     * Only present when COVERAGE trace level is enabled.
+     *
+     * @param tracedPolicy
+     * the traced policy decision Value
+     *
+     * @return the conditions array, or empty array if not present
+     */
+    public static ArrayValue getConditions(Value tracedPolicy) {
+        return getArrayField(tracedPolicy, TraceFields.CONDITIONS);
+    }
+
+    /**
+     * Checks if this traced policy decision has condition hits recorded.
+     *
+     * @param tracedPolicy
+     * the traced policy decision Value
+     *
+     * @return true if conditions are present
+     */
+    public static boolean hasConditions(Value tracedPolicy) {
+        return !getConditions(tracedPolicy).isEmpty();
+    }
+
+    /**
+     * Extracts the target result from a traced policy decision.
+     * <p>
+     * Only present when COVERAGE trace level is enabled.
+     *
+     * @param tracedPolicy
+     * the traced policy decision Value
+     *
+     * @return true if target matched, false if not, null if not recorded
+     */
+    public static Boolean getTargetResult(Value tracedPolicy) {
+        if (tracedPolicy instanceof ObjectValue obj) {
+            val field = obj.get(TraceFields.TARGET_RESULT);
+            if (field instanceof BooleanValue boolValue) {
+                return boolValue.value();
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Checks if this traced policy decision has target result recorded.
+     *
+     * @param tracedPolicy
+     * the traced policy decision Value
+     *
+     * @return true if target result is present
+     */
+    public static boolean hasTargetResult(Value tracedPolicy) {
+        return getTargetResult(tracedPolicy) != null;
     }
 
     private static String getTextField(Value value, String fieldName) {

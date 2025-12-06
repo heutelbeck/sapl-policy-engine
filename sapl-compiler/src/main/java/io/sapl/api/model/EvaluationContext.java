@@ -191,5 +191,4 @@ public record EvaluationContext(
         }
         return new EvaluationContext(this, Map.of(identifier, value));
     }
-
 }

@@ -106,4 +106,10 @@ public class TraceFields {
     // Aggregate counts for completeness proof
     public static final String TOTAL_POLICIES  = "totalPolicies";
     public static final String TOTAL_DOCUMENTS = "totalDocuments";
+
+    // Coverage tracking fields (COVERAGE trace level)
+    public static final String CONDITIONS    = "conditions";
+    public static final String STATEMENT_ID  = "statementId";
+    public static final String RESULT        = "result";
+    public static final String TARGET_RESULT = "targetResult";
 }

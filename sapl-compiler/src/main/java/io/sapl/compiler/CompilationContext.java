@@ -185,4 +185,17 @@ public class CompilationContext {
     public boolean containsVariable(String variableName) {
         return documentVariablesInScope.containsKey(variableName);
     }
+
+    /**
+     * Checks if coverage tracking is enabled for this compilation.
+     * <p>
+     * When true, condition expressions should be wrapped to record coverage hits.
+     * When false, no coverage overhead
+     * should be added.
+     *
+     * @return true if trace level is COVERAGE
+     */
+    public boolean isCoverageEnabled() {
+        return traceLevel == TraceLevel.COVERAGE;
+    }
 }

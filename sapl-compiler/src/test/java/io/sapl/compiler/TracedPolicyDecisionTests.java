@@ -1210,6 +1210,200 @@ class TracedPolicyDecisionTests {
         }
     }
 
+    @Nested
+    @DisplayName("Coverage Trace Level")
+    class CoverageTraceLevelTests {
+
+        @Test
+        @DisplayName("when coverage enabled, condition hit is recorded for true condition")
+        void whenCoverageEnabled_thenTrueConditionHitRecorded() {
+            val policy  = """
+                    policy "elder-sign-ritual"
+                    permit where subject.initiateLevel >= 3;
+                    """;
+            val subject = json("{\"initiateLevel\": 5}");
+
+            val traced = evaluatePolicyWithCoverage(policy, Map.of("subject", subject));
+
+            printDecision("coverage true condition", traced);
+
+            assertThat(getDecision(traced)).isEqualTo(Decision.PERMIT);
+            assertThat(hasConditions(traced)).isTrue();
+            assertThat(getConditions(traced)).hasSize(1);
+
+            val condition = (ObjectValue) getConditions(traced).getFirst();
+            assertThat(condition.get(TraceFields.STATEMENT_ID)).isEqualTo(Value.of(0));
+            assertThat(condition.get(TraceFields.RESULT)).isEqualTo(Value.TRUE);
+            assertThat(condition.get(TraceFields.LINE)).isInstanceOf(NumberValue.class);
+        }
+
+        @Test
+        @DisplayName("when coverage enabled, condition hit is recorded for false condition")
+        void whenCoverageEnabled_thenFalseConditionHitRecorded() {
+            val policy  = """
+                    policy "forbidden-archive-access"
+                    permit where subject.clearanceLevel >= 10;
+                    """;
+            val subject = json("{\"clearanceLevel\": 5}");
+
+            val traced = evaluatePolicyWithCoverage(policy, Map.of("subject", subject));
+
+            printDecision("coverage false condition", traced);
+
+            assertThat(getDecision(traced)).isEqualTo(Decision.NOT_APPLICABLE);
+            assertThat(hasConditions(traced)).isTrue();
+            assertThat(getConditions(traced)).hasSize(1);
+
+            val condition = (ObjectValue) getConditions(traced).getFirst();
+            assertThat(condition.get(TraceFields.STATEMENT_ID)).isEqualTo(Value.of(0));
+            assertThat(condition.get(TraceFields.RESULT)).isEqualTo(Value.FALSE);
+        }
+
+        @Test
+        @DisplayName("when coverage enabled, multiple condition hits are recorded")
+        void whenCoverageEnabled_thenMultipleConditionHitsRecorded() {
+            val policy  = """
+                    policy "ritual-chamber-access"
+                    permit
+                    where
+                        subject.role == "cultist";
+                        subject.sanityLevel > 30;
+                    """;
+            val subject = json("{\"role\": \"cultist\", \"sanityLevel\": 50}");
+
+            val traced = evaluatePolicyWithCoverage(policy, Map.of("subject", subject));
+
+            printDecision("coverage multiple conditions", traced);
+
+            assertThat(getDecision(traced)).isEqualTo(Decision.PERMIT);
+            assertThat(getConditions(traced)).hasSize(2);
+
+            val firstCondition = (ObjectValue) getConditions(traced).get(0);
+            assertThat(firstCondition.get(TraceFields.STATEMENT_ID)).isEqualTo(Value.of(0));
+            assertThat(firstCondition.get(TraceFields.RESULT)).isEqualTo(Value.TRUE);
+
+            val secondCondition = (ObjectValue) getConditions(traced).get(1);
+            assertThat(secondCondition.get(TraceFields.STATEMENT_ID)).isEqualTo(Value.of(1));
+            assertThat(secondCondition.get(TraceFields.RESULT)).isEqualTo(Value.TRUE);
+        }
+
+        @Test
+        @DisplayName("when coverage enabled, short-circuit stops at false condition")
+        void whenCoverageEnabled_thenShortCircuitPreservesSemantics() {
+            val policy  = """
+                    policy "deep-one-temple"
+                    permit
+                    where
+                        subject.isHybrid == true;
+                        subject.gills == true;
+                    """;
+            val subject = json("{\"isHybrid\": false, \"gills\": true}");
+
+            val traced = evaluatePolicyWithCoverage(policy, Map.of("subject", subject));
+
+            printDecision("coverage short-circuit", traced);
+
+            assertThat(getDecision(traced)).isEqualTo(Decision.NOT_APPLICABLE);
+            // Only first condition evaluated due to short-circuit
+            assertThat(getConditions(traced)).hasSize(1);
+
+            val condition = (ObjectValue) getConditions(traced).getFirst();
+            assertThat(condition.get(TraceFields.STATEMENT_ID)).isEqualTo(Value.of(0));
+            assertThat(condition.get(TraceFields.RESULT)).isEqualTo(Value.FALSE);
+        }
+
+        @Test
+        @DisplayName("when coverage enabled, target result is recorded for matching policy")
+        void whenCoverageEnabled_thenTargetResultRecorded() {
+            val policy  = """
+                    policy "necronomicon-access"
+                    permit where subject.clearance == "omega";
+                    """;
+            val subject = json("{\"clearance\": \"omega\"}");
+
+            val traced = evaluatePolicyWithCoverage(policy, Map.of("subject", subject));
+
+            printDecision("coverage target result", traced);
+
+            assertThat(getDecision(traced)).isEqualTo(Decision.PERMIT);
+            assertThat(hasTargetResult(traced)).isTrue();
+            assertThat(getTargetResult(traced)).isTrue();
+        }
+
+        @Test
+        @DisplayName("when coverage disabled, no condition hits in trace")
+        void whenCoverageDisabled_thenNoConditionHitsInTrace() {
+            val policy  = """
+                    policy "standard-evaluation"
+                    permit where subject.role == "investigator";
+                    """;
+            val subject = json("{\"role\": \"investigator\"}");
+
+            // Standard evaluation without coverage
+            val traced = evaluatePolicyWithVariables(policy, Map.of("subject", subject));
+
+            printDecision("standard (no coverage)", traced);
+
+            assertThat(getDecision(traced)).isEqualTo(Decision.PERMIT);
+            assertThat(hasConditions(traced)).isFalse();
+            assertThat(hasTargetResult(traced)).isFalse();
+        }
+
+        @Test
+        @DisplayName("when coverage enabled with constant true condition, hit is recorded")
+        void whenCoverageEnabled_thenConstantTrueConditionRecorded() {
+            val policy = """
+                    policy "always-permit-ritual"
+                    permit where true;
+                    """;
+
+            val traced = evaluatePolicyWithCoverage(policy, Map.of());
+
+            printDecision("coverage constant true", traced);
+
+            assertThat(getDecision(traced)).isEqualTo(Decision.PERMIT);
+            assertThat(getConditions(traced)).hasSize(1);
+
+            val condition = (ObjectValue) getConditions(traced).getFirst();
+            assertThat(condition.get(TraceFields.RESULT)).isEqualTo(Value.TRUE);
+        }
+
+        @Test
+        @DisplayName("when coverage enabled with constant false condition, hit is recorded")
+        void whenCoverageEnabled_thenConstantFalseConditionRecorded() {
+            val policy = """
+                    policy "never-permit-ritual"
+                    permit where false;
+                    """;
+
+            val traced = evaluatePolicyWithCoverage(policy, Map.of());
+
+            printDecision("coverage constant false", traced);
+
+            assertThat(getDecision(traced)).isEqualTo(Decision.NOT_APPLICABLE);
+            assertThat(getConditions(traced)).hasSize(1);
+
+            val condition = (ObjectValue) getConditions(traced).getFirst();
+            assertThat(condition.get(TraceFields.RESULT)).isEqualTo(Value.FALSE);
+        }
+
+        private Value evaluatePolicyWithCoverage(String policyText, Map<String, Value> variables) {
+            // Coverage is enabled at compile-time, not evaluation-time
+            val coverageContext = new CompilationContext(context.getFunctionBroker(), context.getAttributeBroker(),
+                    io.sapl.api.pdp.TraceLevel.COVERAGE);
+            val sapl            = PARSER.parse(policyText);
+            val compiled        = SaplCompiler.compileDocument(sapl, coverageContext);
+            val evalCtx         = createEvaluationContext(variables);
+            return evaluateExpression(compiled.decisionExpression(), evalCtx);
+        }
+
+        private EvaluationContext createEvaluationContext(Map<String, Value> variables) {
+            return EvaluationContext.of("test-pdp", "test-config", "test-sub", null, variables,
+                    context.getFunctionBroker(), context.getAttributeBroker(),
+                    () -> java.time.Instant.now().toString());
+        }
+    }
+
     /**
      * Test Policy Information Point with Lovecraftian/Miskatonic theme.
      */
