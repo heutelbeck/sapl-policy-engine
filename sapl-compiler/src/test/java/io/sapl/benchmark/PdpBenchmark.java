@@ -244,4 +244,16 @@ public class PdpBenchmark {
     public void latency(Blackhole blackhole) {
         blackhole.consume(executeDecision());
     }
+
+    /**
+     * Main method to run the benchmark programmatically.
+     */
+    public static void main(String[] args) throws Exception {
+        var options = new org.openjdk.jmh.runner.options.OptionsBuilder().include(PdpBenchmark.class.getSimpleName())
+                .warmupIterations(2).warmupTime(org.openjdk.jmh.runner.options.TimeValue.seconds(1))
+                .measurementIterations(3).measurementTime(org.openjdk.jmh.runner.options.TimeValue.seconds(2)).forks(0)
+                .build();
+
+        new org.openjdk.jmh.runner.Runner(options).run();
+    }
 }

@@ -65,7 +65,7 @@ import static org.junit.jupiter.params.provider.Arguments.arguments;
 class TracedPdpDecisionTests {
 
     private static final DefaultSAPLInterpreter PARSER = new DefaultSAPLInterpreter();
-    private static final boolean                DEBUG  = true;
+    private static final boolean                DEBUG  = false;
 
     private static final String TEST_PDP_ID          = "arkham-pdp";
     private static final String TEST_CONFIG_ID       = "necronomicon-config";
@@ -635,28 +635,27 @@ class TracedPdpDecisionTests {
         }
 
         @Test
-        @DisplayName("streaming policy produces StreamExpression at PDP level")
-        void whenStreamingPolicy_thenProducesStreamExpression() {
+        @DisplayName("subscription-based constraint policy produces PureExpression at PDP level")
+        void whenSubscriptionConstraintPolicy_thenProducesPureExpression() {
             val compiled = compilePolicy("""
                     policy "dynamic-permit" permit
                     obligation subject.dynamicObligation
                     """);
             val combined = CombiningAlgorithmCompiler.denyOverridesPreMatched("deny-overrides", List.of(compiled), 1);
 
-            assertThat(combined).isInstanceOf(StreamExpression.class);
+            assertThat(combined).isInstanceOf(PureExpression.class);
 
             val subject = json("{\"dynamicObligation\": \"maintain-sanity\"}");
             val evalCtx = EvaluationContext.of(TEST_PDP_ID, TEST_CONFIG_ID, TEST_SUBSCRIPTION_ID,
                     new AuthorizationSubscription(subject, Value.of("read"), Value.of("necronomicon"), Value.UNDEFINED),
                     Map.of(), context.getFunctionBroker(), context.getAttributeBroker());
 
-            val streamExpr = (StreamExpression) combined;
-            StepVerifier.create(streamExpr.stream().contextWrite(ctx -> ctx.put(EvaluationContext.class, evalCtx)))
-                    .assertNext(traced -> {
-                        printDecision("streaming policy (StreamExpression path)", traced);
-                        assertThat(getDecision(traced)).isEqualTo(Decision.PERMIT);
-                        assertThat(getObligations(traced)).hasSize(1).first().isEqualTo(Value.of("maintain-sanity"));
-                    }).thenCancel().verify();
+            val pureExpr = (PureExpression) combined;
+            val traced   = pureExpr.evaluate(evalCtx);
+
+            printDecision("subscription constraint policy (PureExpression path)", traced);
+            assertThat(getDecision(traced)).isEqualTo(Decision.PERMIT);
+            assertThat(getObligations(traced)).hasSize(1).first().isEqualTo(Value.of("maintain-sanity"));
         }
 
         private CompiledPolicy compilePolicy(String policyText) {

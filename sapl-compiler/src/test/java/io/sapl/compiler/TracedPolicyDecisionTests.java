@@ -223,10 +223,18 @@ class TracedPolicyDecisionTests {
                     arguments("resource access", "policy \"p\" permit where resource.classification != \"secret\";"),
                     arguments("environment access", "policy \"p\" permit where environment.time > 0;"),
 
-                    // Single simple constraints (without filter functions)
+                    // Single simple constraints
                     arguments("with string obligation", "policy \"p\" permit obligation \"log\""),
                     arguments("with string advice", "policy \"p\" deny advice \"notify\""),
                     arguments("with string transform", "policy \"p\" permit transform \"sanitized\""),
+
+                    // Multiple constraints (now correctly pure - was incorrectly StreamExpression)
+                    arguments("with multiple constraints",
+                            "policy \"p\" permit obligation \"audit\" advice \"warn\" transform resource.data"),
+
+                    // Transform with filter function (now correctly pure)
+                    arguments("filter expression",
+                            "policy \"p\" permit transform resource.items |- filter.blacken(\"secret\")"),
 
                     // Complex expressions without PIPs
                     arguments("nested object access",
@@ -241,22 +249,108 @@ class TracedPolicyDecisionTests {
                             """));
         }
 
-        @Test
-        @DisplayName("Constant policy compiles to Value (not even PureExpression)")
-        void whenFullyConstant_thenCompiledToValue() {
-            val compiled = compilePolicy("policy \"always-permit\" permit");
+        @ParameterizedTest(name = "{0}")
+        @MethodSource("fullyConstantPolicies")
+        @DisplayName("Fully constant policies compile to Value")
+        void whenFullyConstant_thenCompiledToValue(String description, String policy) {
+            val compiled = compilePolicy(policy);
 
             assertThat(compiled.decisionExpression())
-                    .as("Fully constant policy should compile to Value, not PureExpression").isInstanceOf(Value.class);
+                    .as("Fully constant policy '%s' should compile to Value", description).isInstanceOf(Value.class);
         }
 
-        @Test
-        @DisplayName("Policy with variable access compiles to PureExpression")
-        void whenVariableAccess_thenCompiledToPureExpression() {
-            val compiled = compilePolicy("policy \"check-role\" permit where subject.role == \"admin\";");
+        static Stream<Arguments> fullyConstantPolicies() {
+            return Stream.of(
+                    // Minimal
+                    arguments("minimal permit", "policy \"p\" permit"), arguments("minimal deny", "policy \"p\" deny"),
 
-            assertThat(compiled.decisionExpression()).as("Policy with variable access should compile to PureExpression")
+                    // With constant where clause
+                    arguments("constant true condition", "policy \"p\" permit where true;"),
+                    arguments("constant false condition", "policy \"p\" permit where false;"),
+                    arguments("constant arithmetic", "policy \"p\" permit where 2 + 2 == 4;"),
+                    arguments("constant string comparison", "policy \"p\" permit where \"admin\" == \"admin\";"),
+                    arguments("constant array membership",
+                            "policy \"p\" permit where \"read\" in [\"read\", \"write\"];"),
+
+                    // With constant constraints
+                    arguments("constant obligation", "policy \"p\" permit obligation \"log-access\""),
+                    arguments("constant advice", "policy \"p\" deny advice \"notify-admin\""),
+                    arguments("constant transform", "policy \"p\" permit transform \"sanitized-result\""),
+                    arguments("all constant constraints",
+                            "policy \"p\" permit obligation \"audit\" advice \"warn\" transform \"result\""),
+
+                    // Complex constant expressions
+                    arguments("nested constant object",
+                            "policy \"p\" permit transform {\"level\": 5, \"nested\": {\"value\": true}}"),
+                    arguments("constant array transform", "policy \"p\" permit transform [1, 2, 3, 4, 5]"));
+        }
+
+        @ParameterizedTest(name = "{0}")
+        @MethodSource("pureExpressionPolicies")
+        @DisplayName("Subscription-dependent policies compile to PureExpression")
+        void whenSubscriptionDependent_thenCompiledToPureExpression(String description, String policy) {
+            val compiled = compilePolicy(policy);
+
+            assertThat(compiled.decisionExpression())
+                    .as("Subscription-dependent policy '%s' should compile to PureExpression", description)
                     .isInstanceOf(PureExpression.class);
+        }
+
+        static Stream<Arguments> pureExpressionPolicies() {
+            return Stream.of(
+                    // Simple subscription access in where clause
+                    arguments("subject field access", "policy \"p\" permit where subject.role == \"admin\";"),
+                    arguments("action comparison", "policy \"p\" permit where action == \"read\";"),
+                    arguments("resource field access", "policy \"p\" permit where resource.public == true;"),
+                    arguments("environment access", "policy \"p\" permit where environment.time > 0;"),
+
+                    // Complex subscription access in where clause
+                    arguments("nested subject access",
+                            "policy \"p\" permit where subject.department.manager.clearanceLevel >= 5;"),
+                    arguments("array index on resource", "policy \"p\" permit where resource.tags[0] == \"public\";"),
+                    arguments("multiple subscription vars",
+                            "policy \"p\" permit where subject.role == \"admin\" && resource.owner == subject.id;"),
+
+                    // Subscription-dependent constraints
+                    arguments("subscription-based obligation", "policy \"p\" permit obligation subject.requiredAction"),
+                    arguments("subscription-based advice", "policy \"p\" deny advice resource.recommendedAction"),
+                    arguments("subscription-based transform", "policy \"p\" permit transform resource.sanitizedData"),
+
+                    // Mixed constant body + subscription constraints
+                    arguments("constant body with subscription obligation",
+                            "policy \"p\" permit where true; obligation subject.auditInfo"),
+                    arguments("constant body with subscription transform",
+                            "policy \"p\" permit transform resource.publicView"),
+
+                    // Multiple subscription-dependent constraints
+                    arguments("all subscription constraints", """
+                            policy "p" permit
+                            obligation subject.requiredObligation
+                            advice resource.suggestedAdvice
+                            transform environment.transformConfig
+                            """),
+
+                    // Filter with subscription data
+                    arguments("filter on subscription data",
+                            "policy \"p\" permit transform resource.items |- filter.blacken(subject.redactPattern)"),
+
+                    // Complex policy set with subscription access
+                    arguments("policy set with subscription access", """
+                            set "access-control" deny-overrides
+                            policy "owner-access" permit where resource.owner == subject.id;
+                            policy "admin-access" permit where subject.role == "admin";
+                            policy "public-read" permit where action == "read" && resource.public == true;
+                            policy "default-deny" deny
+                            """),
+
+                    // Policy set with subscription-dependent constraints
+                    arguments("policy set with subscription constraints", """
+                            set "audit-control" permit-overrides
+                            policy "permitted" permit
+                            obligation subject.auditLog
+                            advice resource.cacheHint
+                            transform resource.filteredView
+                            """));
         }
 
         @ParameterizedTest(name = "{0}")
@@ -401,14 +495,14 @@ class TracedPolicyDecisionTests {
     }
 
     @Nested
-    @DisplayName("Stream Expression Policies")
-    class StreamExpressionPolicyTests {
+    @DisplayName("Pure Expression Policies with Subscription Access")
+    class PureExpressionWithSubscriptionAccessTests {
 
         @Test
-        @DisplayName("policy with streaming obligation emits traced decision")
-        void whenStreamingObligation_thenEmitsTracedDecision() {
+        @DisplayName("policy with subscription-based obligation compiles to pure expression")
+        void whenSubscriptionObligation_thenPureExpression() {
             val policy  = """
-                    policy "stream-obligation"
+                    policy "subscription-obligation"
                     permit
                     obligation subject.dynamicValue
                     """;
@@ -419,24 +513,22 @@ class TracedPolicyDecisionTests {
 
             val compiled = compilePolicy(policy);
 
-            assertThat(compiled.decisionExpression()).isInstanceOf(StreamExpression.class);
+            assertThat(compiled.decisionExpression()).isInstanceOf(PureExpression.class);
 
-            val streamExpr = (StreamExpression) compiled.decisionExpression();
+            val pureExpr = (PureExpression) compiled.decisionExpression();
+            val traced   = pureExpr.evaluate(evalCtx);
 
-            StepVerifier.create(streamExpr.stream().contextWrite(ctx -> ctx.put(EvaluationContext.class, evalCtx)))
-                    .assertNext(traced -> {
-                        printDecision("streaming obligation", traced);
-                        assertThat(getName(traced)).isEqualTo("stream-obligation");
-                        assertThat(getDecision(traced)).isEqualTo(Decision.PERMIT);
-                        assertThat(getObligations(traced)).hasSize(1).first().isEqualTo(Value.of("first-value"));
-                    }).thenCancel().verify();
+            printDecision("subscription obligation", traced);
+            assertThat(getName(traced)).isEqualTo("subscription-obligation");
+            assertThat(getDecision(traced)).isEqualTo(Decision.PERMIT);
+            assertThat(getObligations(traced)).hasSize(1).first().isEqualTo(Value.of("first-value"));
         }
 
         @Test
-        @DisplayName("policy with streaming transform emits traced decision")
-        void whenStreamingTransform_thenEmitsTracedDecision() {
+        @DisplayName("policy with subscription-based transform compiles to pure expression")
+        void whenSubscriptionTransform_thenPureExpression() {
             val policy   = """
-                    policy "stream-transform"
+                    policy "subscription-transform"
                     permit
                     transform resource.content
                     """;
@@ -445,14 +537,15 @@ class TracedPolicyDecisionTests {
                     """);
             val evalCtx  = createEvaluationContext(Map.of("resource", resource));
 
-            val compiled   = compilePolicy(policy);
-            val streamExpr = (StreamExpression) compiled.decisionExpression();
+            val compiled = compilePolicy(policy);
 
-            StepVerifier.create(streamExpr.stream().contextWrite(ctx -> ctx.put(EvaluationContext.class, evalCtx)))
-                    .assertNext(traced -> {
-                        printDecision("streaming transform", traced);
-                        assertThat(getResource(traced)).isEqualTo(Value.of("streamed-content"));
-                    }).thenCancel().verify();
+            assertThat(compiled.decisionExpression()).isInstanceOf(PureExpression.class);
+
+            val pureExpr = (PureExpression) compiled.decisionExpression();
+            val traced   = pureExpr.evaluate(evalCtx);
+
+            printDecision("subscription transform", traced);
+            assertThat(getResource(traced)).isEqualTo(Value.of("streamed-content"));
         }
     }
 

@@ -197,7 +197,7 @@ public class SaplCompiler {
             return compilePureBodyDecision(entitlement, bodyPure, obligations, advice, transformation);
         }
 
-        return compileStreamingBodyDecision(entitlement, body, obligations, advice, transformation);
+        return compileStreamingDecision(entitlement, body, obligations, advice, transformation);
     }
 
     private static CompiledExpression wrapWithTrace(String name, String entitlement, CompiledExpression decisionExpr) {
@@ -243,14 +243,43 @@ public class SaplCompiler {
             return buildNotApplicableDecision();
         }
 
-        val fullyConstantDecision = tryCompileFullyConstantDecision(entitlement, obligations, advice, transformation);
-        return fullyConstantDecision != null ? fullyConstantDecision
-                : compileConstantBodyWithMixedConstraints(entitlement, bodyValue, obligations, advice, transformation);
+        return switch (determineConstraintsNature(obligations, advice, transformation)) {
+        case VALUE  -> compileFullyConstantDecision(entitlement, obligations, advice, transformation);
+        case PURE   -> compilePureConstraintsDecision(entitlement, bodyValue, obligations, advice, transformation);
+        case STREAM -> compileStreamingDecision(entitlement, bodyValue, obligations, advice, transformation);
+        };
     }
 
-    private static CompiledExpression compileConstantBodyWithMixedConstraints(Decision entitlement, Value bodyValue,
+    private static CompiledExpression compilePureConstraintsDecision(Decision entitlement, Value bodyValue,
             List<CompiledExpression> obligations, List<CompiledExpression> advice, CompiledExpression transformation) {
-        return compileStreamingBodyDecision(entitlement, bodyValue, obligations, advice, transformation);
+        return new PureExpression(ctx -> {
+            val obligationValues    = evaluateConstraintList(obligations, ctx);
+            val adviceValues        = evaluateConstraintList(advice, ctx);
+            val transformationValue = evaluateConstraint(transformation, ctx);
+            return buildDecisionWithMetadata(entitlement, bodyValue, obligationValues, adviceValues,
+                    transformationValue);
+        }, true);
+    }
+
+    private static List<Value> evaluateConstraintList(List<CompiledExpression> constraints, EvaluationContext ctx) {
+        val result = new java.util.ArrayList<Value>(constraints.size());
+        for (val constraint : constraints) {
+            result.add(evaluateConstraint(constraint, ctx));
+        }
+        return result;
+    }
+
+    private static Value evaluateConstraint(CompiledExpression constraint, EvaluationContext ctx) {
+        if (constraint == null) {
+            return Value.UNDEFINED;
+        }
+        if (constraint instanceof Value value) {
+            return value;
+        }
+        if (constraint instanceof PureExpression pureExpr) {
+            return pureExpr.evaluate(ctx);
+        }
+        throw new IllegalStateException("Unexpected constraint type in pure evaluation: " + constraint.getClass());
     }
 
     private static boolean isInvalidBooleanBody(Value bodyValue) {
@@ -261,12 +290,8 @@ public class SaplCompiler {
         return Value.FALSE.equals(bodyValue);
     }
 
-    private static CompiledExpression tryCompileFullyConstantDecision(Decision entitlement,
+    private static CompiledExpression compileFullyConstantDecision(Decision entitlement,
             List<CompiledExpression> obligations, List<CompiledExpression> advice, CompiledExpression transformation) {
-        if (!areAllConstantValues(obligations, advice, transformation)) {
-            return null;
-        }
-
         val obligationValues    = extractValues(obligations);
         val adviceValues        = extractValues(advice);
         val transformationValue = extractTransformationValue(transformation);
@@ -276,12 +301,6 @@ public class SaplCompiler {
         }
 
         return buildDecisionObject(entitlement, obligationValues, adviceValues, transformationValue);
-    }
-
-    private static boolean areAllConstantValues(List<CompiledExpression> obligations, List<CompiledExpression> advice,
-            CompiledExpression transformation) {
-        return allAreValues(obligations) && allAreValues(advice)
-                && (transformation == null || transformation instanceof Value);
     }
 
     private static List<Value> extractValues(List<CompiledExpression> expressions) {
@@ -294,45 +313,33 @@ public class SaplCompiler {
 
     private static CompiledExpression compilePureBodyDecision(Decision entitlement, PureExpression bodyPure,
             List<CompiledExpression> obligations, List<CompiledExpression> advice, CompiledExpression transformation) {
-        if (areAllPureExpressions(obligations, advice, transformation)) {
-            return compileFullyPureDecision(entitlement, bodyPure, obligations, advice, transformation);
-        }
-
-        return compilePureBodyWithMixedConstraints(entitlement, bodyPure, obligations, advice, transformation);
+        return switch (determineConstraintsNature(obligations, advice, transformation)) {
+        case VALUE, PURE ->
+            compilePureBodyWithPureConstraints(entitlement, bodyPure, obligations, advice, transformation);
+        case STREAM      -> compileStreamingDecision(entitlement, bodyPure, obligations, advice, transformation);
+        };
     }
 
-    private static boolean areAllPureExpressions(List<CompiledExpression> obligations, List<CompiledExpression> advice,
-            CompiledExpression transformation) {
-        return allArePureExpressions(obligations) && allArePureExpressions(advice)
-                && (transformation == null || transformation instanceof PureExpression);
-    }
-
-    private static CompiledExpression compileFullyPureDecision(Decision entitlement, PureExpression bodyPure,
+    private static CompiledExpression compilePureBodyWithPureConstraints(Decision entitlement, PureExpression bodyPure,
             List<CompiledExpression> obligations, List<CompiledExpression> advice, CompiledExpression transformation) {
-        val transformationPure = (PureExpression) transformation;
-        return new PureExpression(evaluationContext -> evaluatePureDecision(entitlement, bodyPure, transformationPure,
-                obligations, advice, evaluationContext), true);
-    }
+        return new PureExpression(ctx -> {
+            val bodyResult = bodyPure.evaluate(ctx);
 
-    private static Value evaluatePureDecision(Decision entitlement, PureExpression bodyPure,
-            PureExpression transformationPure, List<CompiledExpression> obligations, List<CompiledExpression> advice,
-            EvaluationContext evaluationContext) {
-        val bodyResult = bodyPure.evaluate(evaluationContext);
+            if (isInvalidBooleanBody(bodyResult)) {
+                return buildIndeterminateDecisionWithMetadata(bodyResult);
+            }
 
-        if (isInvalidBooleanBody(bodyResult)) {
-            return buildIndeterminateDecisionWithMetadata(bodyResult);
-        }
+            if (isFalseBody(bodyResult)) {
+                return buildNotApplicableDecisionWithMetadata(bodyResult);
+            }
 
-        if (isFalseBody(bodyResult)) {
-            return buildNotApplicableDecisionWithMetadata(bodyResult);
-        }
+            val obligationValues    = evaluateConstraintList(obligations, ctx);
+            val adviceValues        = evaluateConstraintList(advice, ctx);
+            val transformationValue = evaluateConstraint(transformation, ctx);
 
-        val obligationValues    = evaluatePureExpressionList(obligations, evaluationContext);
-        val adviceValues        = evaluatePureExpressionList(advice, evaluationContext);
-        val transformationValue = transformationPure != null ? transformationPure.evaluate(evaluationContext)
-                : Value.UNDEFINED;
-
-        return buildDecisionWithMetadata(entitlement, bodyResult, obligationValues, adviceValues, transformationValue);
+            return buildDecisionWithMetadata(entitlement, bodyResult, obligationValues, adviceValues,
+                    transformationValue);
+        }, true);
     }
 
     private static List<Value> collectErrors(List<Value> obligations, List<Value> advice, Value transformation) {
@@ -345,7 +352,7 @@ public class SaplCompiler {
         return errors;
     }
 
-    private static CompiledExpression compileStreamingBodyDecision(Decision entitlement, CompiledExpression body,
+    private static CompiledExpression compileStreamingDecision(Decision entitlement, CompiledExpression body,
             List<CompiledExpression> obligations, List<CompiledExpression> advice, CompiledExpression transformation) {
         val bodyFlux = ExpressionCompiler.compiledExpressionToFlux(body);
         val stream   = bodyFlux.switchMap(
@@ -392,50 +399,6 @@ public class SaplCompiler {
         return AuthorizationDecisionUtil.NOT_APPLICABLE.withMetadata(bodyResult.metadata());
     }
 
-    private static CompiledExpression compilePureBodyWithMixedConstraints(Decision entitlement, PureExpression bodyPure,
-            List<CompiledExpression> obligations, List<CompiledExpression> advice, CompiledExpression transformation) {
-        if (areAllConstantValues(obligations, advice, transformation)) {
-            return compilePureBodyWithConstantConstraints(entitlement, bodyPure, obligations, advice, transformation);
-        }
-        return compilePureBodyWithStreamingConstraints(entitlement, bodyPure, obligations, advice, transformation);
-    }
-
-    private static CompiledExpression compilePureBodyWithConstantConstraints(Decision entitlement,
-            PureExpression bodyPure, List<CompiledExpression> obligations, List<CompiledExpression> advice,
-            CompiledExpression transformation) {
-        val obligationValues    = extractValues(obligations);
-        val adviceValues        = extractValues(advice);
-        val transformationValue = extractTransformationValue(transformation);
-
-        if (containsError(obligationValues) || containsError(adviceValues)
-                || transformationValue instanceof ErrorValue) {
-            return buildIndeterminateDecision(collectErrors(obligationValues, adviceValues, transformationValue));
-        }
-
-        return new PureExpression(ctx -> evaluateBodyAndBuildDecision(entitlement, bodyPure.evaluate(ctx),
-                obligationValues, adviceValues, transformationValue), true);
-    }
-
-    private static CompiledExpression compilePureBodyWithStreamingConstraints(Decision entitlement,
-            PureExpression bodyPure, List<CompiledExpression> obligations, List<CompiledExpression> advice,
-            CompiledExpression transformation) {
-        val bodyFlux = ExpressionCompiler.compiledExpressionToFlux(bodyPure);
-        val stream   = bodyFlux.switchMap(
-                bodyResult -> bodyResultToDecisionFlux(entitlement, bodyResult, obligations, advice, transformation));
-        return new StreamExpression(stream);
-    }
-
-    private static Value evaluateBodyAndBuildDecision(Decision entitlement, Value bodyResult,
-            List<Value> obligationValues, List<Value> adviceValues, Value transformationValue) {
-        if (isInvalidBooleanBody(bodyResult)) {
-            return buildIndeterminateDecisionWithMetadata(bodyResult);
-        }
-        if (isFalseBody(bodyResult)) {
-            return buildNotApplicableDecisionWithMetadata(bodyResult);
-        }
-        return buildDecisionWithMetadata(entitlement, bodyResult, obligationValues, adviceValues, transformationValue);
-    }
-
     private static Flux<Value> bodyResultToDecisionFlux(Decision entitlement, Value bodyResult,
             List<CompiledExpression> obligations, List<CompiledExpression> advice, CompiledExpression transformation) {
         if (isInvalidBooleanBody(bodyResult)) {
@@ -447,22 +410,52 @@ public class SaplCompiler {
         return evaluateConstraintsAndBuildDecision(entitlement, bodyResult, obligations, advice, transformation);
     }
 
-    private static boolean allAreValues(List<CompiledExpression> expressions) {
-        return expressions.stream().allMatch(Value.class::isInstance);
-    }
-
-    private static boolean allArePureExpressions(List<CompiledExpression> expressions) {
-        return expressions.stream().allMatch(PureExpression.class::isInstance);
-    }
-
-    private static List<Value> evaluatePureExpressionList(List<CompiledExpression> expressions, EvaluationContext ctx) {
-        val result = new java.util.ArrayList<Value>(expressions.size());
+    /**
+     * Determines the combined nature of a list of expressions.
+     * Returns STREAM if any expression is a StreamExpression,
+     * PURE if any is a PureExpression (and none are streams),
+     * VALUE if all are Values (constants).
+     */
+    private static Nature determineNature(List<CompiledExpression> expressions) {
+        var result = Nature.VALUE;
         for (val expr : expressions) {
-            if (expr instanceof PureExpression pureExpr) {
-                result.add(pureExpr.evaluate(ctx));
+            if (expr instanceof StreamExpression) {
+                return Nature.STREAM;
+            }
+            if (expr instanceof PureExpression) {
+                result = Nature.PURE;
             }
         }
         return result;
+    }
+
+    /**
+     * Determines the combined nature of all constraints (obligations, advice,
+     * transformation).
+     * The result is the "highest" nature: STREAM > PURE > VALUE.
+     */
+    private static Nature determineConstraintsNature(List<CompiledExpression> obligations,
+            List<CompiledExpression> advice, CompiledExpression transformation) {
+        val obligationsNature = determineNature(obligations);
+        if (obligationsNature == Nature.STREAM) {
+            return Nature.STREAM;
+        }
+
+        val adviceNature = determineNature(advice);
+        if (adviceNature == Nature.STREAM) {
+            return Nature.STREAM;
+        }
+
+        if (transformation instanceof StreamExpression) {
+            return Nature.STREAM;
+        }
+
+        if (obligationsNature == Nature.PURE || adviceNature == Nature.PURE
+                || transformation instanceof PureExpression) {
+            return Nature.PURE;
+        }
+
+        return Nature.VALUE;
     }
 
     private static Flux<Value> evaluateConstraintsAndBuildDecision(Decision entitlement, Value bodyResult,

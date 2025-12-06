@@ -60,7 +60,7 @@ import static org.junit.jupiter.params.provider.Arguments.arguments;
 class TracedPolicySetDecisionTests {
 
     private static final DefaultSAPLInterpreter PARSER = new DefaultSAPLInterpreter();
-    private static final boolean                DEBUG  = true;
+    private static final boolean                DEBUG  = false;
 
     private CompilationContext context;
 
@@ -848,29 +848,28 @@ class TracedPolicySetDecisionTests {
         }
 
         @Test
-        @DisplayName("streaming policy set produces StreamExpression")
-        void whenStreamingPolicySet_thenProducesStreamExpression() {
+        @DisplayName("policy set with subscription-based constraints produces PureExpression")
+        void whenSubscriptionConstraintPolicySet_thenProducesPureExpression() {
             val policySet = """
-                    set "streaming-archive" deny-overrides
+                    set "subscription-archive" deny-overrides
                     policy "dynamic-permit" permit
                     obligation subject.dynamicObligation
                     """;
 
             val compiled = compilePolicy(policySet);
 
-            assertThat(compiled.decisionExpression()).isInstanceOf(StreamExpression.class);
+            assertThat(compiled.decisionExpression()).isInstanceOf(PureExpression.class);
 
             val subject = json("{\"dynamicObligation\": \"log-access\"}");
             val evalCtx = createEvaluationContext(Map.of("subject", subject));
 
-            val streamExpr = (StreamExpression) compiled.decisionExpression();
-            StepVerifier.create(streamExpr.stream().contextWrite(ctx -> ctx.put(EvaluationContext.class, evalCtx)))
-                    .assertNext(traced -> {
-                        printDecision("streaming policy set (StreamExpression path)", traced);
-                        assertThat(isPolicySet(traced)).isTrue();
-                        assertThat(getDecision(traced)).isEqualTo(Decision.PERMIT);
-                        assertThat(getObligations(traced)).hasSize(1).first().isEqualTo(Value.of("log-access"));
-                    }).thenCancel().verify();
+            val pureExpr = (PureExpression) compiled.decisionExpression();
+            val traced   = pureExpr.evaluate(evalCtx);
+
+            printDecision("subscription constraint policy set (PureExpression path)", traced);
+            assertThat(isPolicySet(traced)).isTrue();
+            assertThat(getDecision(traced)).isEqualTo(Decision.PERMIT);
+            assertThat(getObligations(traced)).hasSize(1).first().isEqualTo(Value.of("log-access"));
         }
     }
 
@@ -1006,32 +1005,31 @@ class TracedPolicySetDecisionTests {
         }
 
         @Test
-        @DisplayName("streaming path captures target errors")
-        void whenStreamingPolicyWithTargetError_thenErrorCaptured() {
+        @DisplayName("pure expression path captures target errors")
+        void whenPureExpressionPolicyWithTargetError_thenErrorCaptured() {
             val policySet = """
-                    set "streaming-archive" deny-overrides
-                    policy "broken-stream" permit 1 / subject.zero > 0
+                    set "pure-archive" deny-overrides
+                    policy "broken-target" permit 1 / subject.zero > 0
                     obligation subject.value
-                    policy "working-stream" deny
+                    policy "working-target" deny
                     """;
 
             val compiled = compilePolicy(policySet);
             val subject  = json("{\"zero\": 0, \"value\": \"test\"}");
             val evalCtx  = createEvaluationContext(Map.of("subject", subject));
 
-            assertThat(compiled.decisionExpression()).isInstanceOf(StreamExpression.class);
+            assertThat(compiled.decisionExpression()).isInstanceOf(PureExpression.class);
 
-            val streamExpr = (StreamExpression) compiled.decisionExpression();
-            StepVerifier.create(streamExpr.stream().contextWrite(ctx -> ctx.put(EvaluationContext.class, evalCtx)))
-                    .assertNext(traced -> {
-                        printDecision("streaming target error", traced);
-                        // deny-overrides: DENY beats INDETERMINATE from PERMIT-entitled policy
-                        assertThat(getDecision(traced)).isEqualTo(Decision.DENY);
+            val pureExpr = (PureExpression) compiled.decisionExpression();
+            val traced   = pureExpr.evaluate(evalCtx);
 
-                        val policies = getPolicies(traced);
-                        val brokenPolicy = policies.getFirst();
-                        assertThat(hasTargetError(brokenPolicy)).isTrue();
-                    }).thenCancel().verify();
+            printDecision("pure target error", traced);
+            // deny-overrides: DENY beats INDETERMINATE from PERMIT-entitled policy
+            assertThat(getDecision(traced)).isEqualTo(Decision.DENY);
+
+            val policies     = getPolicies(traced);
+            val brokenPolicy = policies.getFirst();
+            assertThat(hasTargetError(brokenPolicy)).isTrue();
         }
     }
 
