@@ -80,8 +80,8 @@ public class CombiningAlgorithmCompiler {
         }
 
         void addTracedPolicy(Value tracedPolicy) {
-            if (tracedPolicy == null) {
-                return;
+            if (tracedPolicy == null || tracedPolicy instanceof UndefinedValue) {
+                return; // Skip null and non-matching policies (UNDEFINED sentinel)
             }
 
             tracedPolicies.add(tracedPolicy);
@@ -130,18 +130,18 @@ public class CombiningAlgorithmCompiler {
             };
         }
 
-        Value buildSetDecision(String setName, String algorithm) {
+        Value buildSetDecision(String setName, String algorithm, int totalPolicies) {
             return TracedPolicySetDecision.builder().name(setName).algorithm(algorithm).decision(entitlement)
-                    .obligations(getFinalObligations()).advice(getFinalAdvice()).resource(resource)
-                    .policies(tracedPolicies).build();
+                    .totalPolicies(totalPolicies).obligations(getFinalObligations()).advice(getFinalAdvice())
+                    .resource(resource).policies(tracedPolicies).build();
         }
 
-        Value buildPdpDecision(EvaluationContext ctx, String algorithm) {
+        Value buildPdpDecision(EvaluationContext ctx, String algorithm, int totalDocuments) {
             return TracedPdpDecision.builder().pdpId(ctx.pdpId()).configurationId(ctx.configurationId())
                     .subscriptionId(ctx.subscriptionId()).subscription(ctx.authorizationSubscription())
                     .timestamp(ctx.timestamp()).algorithm(algorithm).decision(entitlement)
-                    .obligations(getFinalObligations()).advice(getFinalAdvice()).resource(resource)
-                    .documents(tracedPolicies).build();
+                    .totalDocuments(totalDocuments).obligations(getFinalObligations()).advice(getFinalAdvice())
+                    .resource(resource).documents(tracedPolicies).build();
         }
     }
 
@@ -269,13 +269,39 @@ public class CombiningAlgorithmCompiler {
     }
 
     /**
+     * Evaluates a policy and returns its traced decision, or UNDEFINED if the
+     * target doesn't match. This mirrors the semantics of
+     * {@link #createTracedPolicyFlux} for pure evaluation paths.
+     *
+     * @param policy
+     * the compiled policy to evaluate
+     * @param context
+     * the evaluation context
+     * @param preMatched
+     * true if target matching was already done at a higher level
+     *
+     * @return traced policy decision, or Value.UNDEFINED if target doesn't match
+     */
+    private static Value evaluateTracedPolicyOrSkip(CompiledPolicy policy, EvaluationContext context,
+            boolean preMatched) {
+        if (preMatched) {
+            return evaluateTracedPolicy(policy, context);
+        }
+        return switch (evaluateMatch(policy, context)) {
+        case MatchResult.Error error     ->
+            createIndeterminateTrace(policy.name(), policy.entitlement(), error.error());
+        case MatchResult.Match ignored   -> evaluateTracedPolicy(policy, context);
+        case MatchResult.NoMatch ignored -> Value.UNDEFINED;
+        };
+    }
+
+    /**
      * Creates an INDETERMINATE traced policy for target errors.
      *
      * @param policyName
      * the name of the policy whose target failed
      * @param entitlement
-     * the policy's declared entitlement (PERMIT or DENY), or "UNKNOWN" if not
-     * available
+     * the policy's declared entitlement (PERMIT or DENY)
      * @param error
      * the error that occurred during target evaluation
      *
@@ -318,7 +344,7 @@ public class CombiningAlgorithmCompiler {
             // Target evaluation failed - create trace with error details
             val error = matches instanceof ErrorValue err ? err
                     : Value.error("Target expression must return Boolean, but was: " + matches);
-            return Flux.just(createIndeterminateTrace(policy.name(), "UNKNOWN", error));
+            return Flux.just(createIndeterminateTrace(policy.name(), policy.entitlement(), error));
         });
     }
 
@@ -388,52 +414,33 @@ public class CombiningAlgorithmCompiler {
     }
 
     private static Value buildEmptySetDecision(String setName, String algorithm, Decision decision) {
-        return TracedPolicySetDecision.builder().name(setName).algorithm(algorithm).decision(decision).build();
+        return TracedPolicySetDecision.builder().name(setName).algorithm(algorithm).decision(decision).totalPolicies(0)
+                .build();
     }
 
     private static Value evaluateGenericSetPure(String setName, String algorithm, List<CompiledPolicy> compiledPolicies,
             CombiningAlgorithmLogic logic, EvaluationContext ctx, boolean preMatched) {
 
         val accumulator = new TracedDecisionAccumulator(logic);
-
         for (val policy : compiledPolicies) {
-            if (!preMatched) {
-                val matchResult = evaluateMatch(policy, ctx);
-                if (matchResult instanceof MatchResult.Error errorResult) {
-                    accumulator
-                            .addTracedPolicy(createIndeterminateTrace(policy.name(), "UNKNOWN", errorResult.error()));
-                    continue;
-                }
-                if (matchResult instanceof MatchResult.NoMatch) {
-                    continue;
-                }
-            }
-            val tracedPolicy = evaluateTracedPolicy(policy, ctx);
-            accumulator.addTracedPolicy(tracedPolicy);
+            accumulator.addTracedPolicy(evaluateTracedPolicyOrSkip(policy, ctx, preMatched));
         }
-
-        return accumulator.buildSetDecision(setName, algorithm);
+        return accumulator.buildSetDecision(setName, algorithm, compiledPolicies.size());
     }
 
     private static Flux<Value> buildGenericSetStream(String setName, String algorithm,
             List<CompiledPolicy> compiledPolicies, CombiningAlgorithmLogic logic, boolean preMatched) {
 
-        val policyFluxes = compiledPolicies.stream()
-                .map(policy -> createTracedPolicyFlux(policy, preMatched).defaultIfEmpty(Value.UNDEFINED)) // Placeholder
-                                                                                                           // for
-                                                                                                           // non-matching
-                .toList();
+        val policyFluxes  = compiledPolicies.stream()
+                .map(policy -> createTracedPolicyFlux(policy, preMatched).defaultIfEmpty(Value.UNDEFINED)).toList();
+        val totalPolicies = compiledPolicies.size();
 
         return Flux.combineLatest(policyFluxes, tracedPolicies -> {
             val accumulator = new TracedDecisionAccumulator(logic);
-
             for (val traced : tracedPolicies) {
-                if (traced instanceof Value v && !(v instanceof UndefinedValue)) {
-                    accumulator.addTracedPolicy(v);
-                }
+                accumulator.addTracedPolicy((Value) traced);
             }
-
-            return accumulator.buildSetDecision(setName, algorithm);
+            return accumulator.buildSetDecision(setName, algorithm, totalPolicies);
         });
     }
 
@@ -457,85 +464,80 @@ public class CombiningAlgorithmCompiler {
     private static Value evaluateOnlyOneApplicableSetPure(String setName, String algorithm,
             List<CompiledPolicy> compiledPolicies, EvaluationContext ctx, boolean preMatched) {
 
+        List<Value> evaluatedTraces  = new ArrayList<>();
         List<Value> applicableTraces = new ArrayList<>();
         boolean     hasIndeterminate = false;
 
         for (val policy : compiledPolicies) {
-            if (preMatched) {
-                val traced   = evaluateTracedPolicy(policy, ctx);
-                val decision = TracedPolicyDecision.getDecision(traced);
-                if (decision != Decision.NOT_APPLICABLE) {
-                    applicableTraces.add(traced);
-                    if (decision == Decision.INDETERMINATE) {
-                        hasIndeterminate = true;
-                    }
-                }
-            } else {
-                val matchResult = evaluateMatch(policy, ctx);
-                if (matchResult instanceof MatchResult.Error errorResult) {
-                    applicableTraces.add(createIndeterminateTrace(policy.name(), "UNKNOWN", errorResult.error()));
+            val traced = evaluateTracedPolicyOrSkip(policy, ctx, preMatched);
+            if (traced instanceof UndefinedValue) {
+                continue;
+            }
+            val decision = TracedPolicyDecision.getDecision(traced);
+            evaluatedTraces.add(traced);
+            if (decision != Decision.NOT_APPLICABLE) {
+                applicableTraces.add(traced);
+                if (decision == Decision.INDETERMINATE) {
                     hasIndeterminate = true;
-                } else if (matchResult instanceof MatchResult.Match) {
-                    val traced   = evaluateTracedPolicy(policy, ctx);
-                    val decision = TracedPolicyDecision.getDecision(traced);
-                    if (decision != Decision.NOT_APPLICABLE) {
-                        applicableTraces.add(traced);
-                        if (decision == Decision.INDETERMINATE) {
-                            hasIndeterminate = true;
-                        }
-                    }
                 }
             }
         }
 
-        return buildOnlyOneApplicableResult(setName, algorithm, applicableTraces, hasIndeterminate);
+        return buildOnlyOneApplicableResult(setName, algorithm, evaluatedTraces, applicableTraces, hasIndeterminate,
+                compiledPolicies.size());
     }
 
     private static Flux<Value> buildOnlyOneApplicableSetStream(String setName, String algorithm,
             List<CompiledPolicy> compiledPolicies, boolean preMatched) {
 
-        val policyFluxes = compiledPolicies.stream()
+        val policyFluxes  = compiledPolicies.stream()
                 .map(policy -> createTracedPolicyFlux(policy, preMatched).defaultIfEmpty(Value.UNDEFINED)).toList();
+        val totalPolicies = compiledPolicies.size();
 
         return Flux.combineLatest(policyFluxes, tracedPolicies -> {
+            List<Value> evaluatedTraces  = new ArrayList<>();
             List<Value> applicableTraces = new ArrayList<>();
             boolean     hasIndeterminate = false;
 
             for (val traced : tracedPolicies) {
-                if (traced instanceof Value v && !(v instanceof UndefinedValue)) {
-                    val decision = TracedPolicyDecision.getDecision(v);
-                    if (decision != Decision.NOT_APPLICABLE) {
-                        applicableTraces.add(v);
-                        if (decision == Decision.INDETERMINATE) {
-                            hasIndeterminate = true;
-                        }
+                if (traced instanceof UndefinedValue) {
+                    continue;
+                }
+                val v        = (Value) traced;
+                val decision = TracedPolicyDecision.getDecision(v);
+                evaluatedTraces.add(v);
+                if (decision != Decision.NOT_APPLICABLE) {
+                    applicableTraces.add(v);
+                    if (decision == Decision.INDETERMINATE) {
+                        hasIndeterminate = true;
                     }
                 }
             }
 
-            return buildOnlyOneApplicableResult(setName, algorithm, applicableTraces, hasIndeterminate);
+            return buildOnlyOneApplicableResult(setName, algorithm, evaluatedTraces, applicableTraces, hasIndeterminate,
+                    totalPolicies);
         });
     }
 
-    private static Value buildOnlyOneApplicableResult(String setName, String algorithm, List<Value> applicableTraces,
-            boolean hasIndeterminate) {
+    private static Value buildOnlyOneApplicableResult(String setName, String algorithm, List<Value> evaluatedTraces,
+            List<Value> applicableTraces, boolean hasIndeterminate, int totalPolicies) {
 
         if (hasIndeterminate || applicableTraces.size() > 1) {
             return TracedPolicySetDecision.builder().name(setName).algorithm(algorithm).decision(Decision.INDETERMINATE)
-                    .policies(applicableTraces).build();
+                    .totalPolicies(totalPolicies).policies(evaluatedTraces).build();
         }
 
         if (applicableTraces.size() == 1) {
             val traced = applicableTraces.getFirst();
             return TracedPolicySetDecision.builder().name(setName).algorithm(algorithm)
-                    .decision(TracedPolicyDecision.getDecision(traced))
+                    .decision(TracedPolicyDecision.getDecision(traced)).totalPolicies(totalPolicies)
                     .obligations(TracedPolicyDecision.getObligations(traced))
                     .advice(TracedPolicyDecision.getAdvice(traced)).resource(TracedPolicyDecision.getResource(traced))
-                    .policies(applicableTraces).build();
+                    .policies(evaluatedTraces).build();
         }
 
         return TracedPolicySetDecision.builder().name(setName).algorithm(algorithm).decision(Decision.NOT_APPLICABLE)
-                .build();
+                .totalPolicies(totalPolicies).policies(evaluatedTraces).build();
     }
 
     // ========== First-Applicable (Set Level) ==========
@@ -558,17 +560,20 @@ public class CombiningAlgorithmCompiler {
             List<CompiledPolicy> compiledPolicies, EvaluationContext ctx) {
 
         List<Value> evaluatedTraces = new ArrayList<>();
+        val         totalPolicies   = compiledPolicies.size();
 
         for (val policy : compiledPolicies) {
             val matchResult = evaluateMatch(policy, ctx);
 
             if (matchResult instanceof MatchResult.Error errorResult) {
-                evaluatedTraces.add(createIndeterminateTrace(policy.name(), "UNKNOWN", errorResult.error()));
+                evaluatedTraces.add(createIndeterminateTrace(policy.name(), policy.entitlement(), errorResult.error()));
                 return TracedPolicySetDecision.builder().name(setName).algorithm(algorithm)
-                        .decision(Decision.INDETERMINATE).policies(evaluatedTraces).build();
+                        .decision(Decision.INDETERMINATE).totalPolicies(totalPolicies).policies(evaluatedTraces)
+                        .build();
             }
 
             if (matchResult instanceof MatchResult.NoMatch) {
+                evaluatedTraces.add(TracedPolicyDecision.createNoMatchTrace(policy.name()));
                 continue;
             }
 
@@ -578,30 +583,33 @@ public class CombiningAlgorithmCompiler {
 
             if (decision != Decision.NOT_APPLICABLE) {
                 return TracedPolicySetDecision.builder().name(setName).algorithm(algorithm).decision(decision)
-                        .obligations(TracedPolicyDecision.getObligations(traced))
+                        .totalPolicies(totalPolicies).obligations(TracedPolicyDecision.getObligations(traced))
                         .advice(TracedPolicyDecision.getAdvice(traced))
                         .resource(TracedPolicyDecision.getResource(traced)).policies(evaluatedTraces).build();
             }
         }
 
         return TracedPolicySetDecision.builder().name(setName).algorithm(algorithm).decision(Decision.NOT_APPLICABLE)
-                .policies(evaluatedTraces).build();
+                .totalPolicies(totalPolicies).policies(evaluatedTraces).build();
     }
 
     private static Flux<Value> buildFirstApplicableSetStream(String setName, String algorithm,
             List<CompiledPolicy> compiledPolicies) {
 
         // Build from last to first, using switchMap chain
-        Flux<FirstApplicableState> stateFlux = Flux.just(new FirstApplicableState(Decision.NOT_APPLICABLE, List.of()));
+        Flux<FirstApplicableState> stateFlux     = Flux
+                .just(new FirstApplicableState(Decision.NOT_APPLICABLE, List.of()));
+        val                        totalPolicies = compiledPolicies.size();
 
         for (var i = compiledPolicies.size() - 1; i >= 0; i--) {
             val policy            = compiledPolicies.get(i);
             val fallbackStateFlux = stateFlux;
+            val noMatchTrace      = TracedPolicyDecision.createNoMatchTrace(policy.name());
 
             stateFlux = ExpressionCompiler.compiledExpressionToFlux(policy.matchExpression()).switchMap(matches -> {
                 if (matches instanceof BooleanValue matchesBool) {
                     if (!matchesBool.value()) {
-                        return fallbackStateFlux;
+                        return fallbackStateFlux.map(state -> state.prependTrace(noMatchTrace));
                     }
                     return ExpressionCompiler.compiledExpressionToFlux(policy.decisionExpression())
                             .switchMap(traced -> {
@@ -616,23 +624,23 @@ public class CombiningAlgorithmCompiler {
                 val traces = new ArrayList<Value>();
                 val error  = matches instanceof ErrorValue err ? err
                         : Value.error("Target expression must return Boolean, but was: " + matches);
-                traces.add(createIndeterminateTrace(policy.name(), "UNKNOWN", error));
+                traces.add(createIndeterminateTrace(policy.name(), policy.entitlement(), error));
                 return Flux.just(new FirstApplicableState(Decision.INDETERMINATE, traces));
             });
         }
 
-        return stateFlux.map(
-                state -> TracedPolicySetDecision.builder().name(setName).algorithm(algorithm).decision(state.decision())
-                        .obligations(state.decision() != Decision.NOT_APPLICABLE && !state.traces().isEmpty()
-                                ? TracedPolicyDecision.getObligations(state.traces().getFirst())
-                                : Value.EMPTY_ARRAY)
-                        .advice(state.decision() != Decision.NOT_APPLICABLE && !state.traces().isEmpty()
-                                ? TracedPolicyDecision.getAdvice(state.traces().getFirst())
-                                : Value.EMPTY_ARRAY)
-                        .resource(state.decision() != Decision.NOT_APPLICABLE && !state.traces().isEmpty()
-                                ? TracedPolicyDecision.getResource(state.traces().getFirst())
-                                : Value.UNDEFINED)
-                        .policies(state.traces()).build());
+        return stateFlux.map(state -> TracedPolicySetDecision.builder().name(setName).algorithm(algorithm)
+                .decision(state.decision()).totalPolicies(totalPolicies)
+                .obligations(state.decision() != Decision.NOT_APPLICABLE && !state.traces().isEmpty()
+                        ? TracedPolicyDecision.getObligations(state.traces().getFirst())
+                        : Value.EMPTY_ARRAY)
+                .advice(state.decision() != Decision.NOT_APPLICABLE && !state.traces().isEmpty()
+                        ? TracedPolicyDecision.getAdvice(state.traces().getFirst())
+                        : Value.EMPTY_ARRAY)
+                .resource(state.decision() != Decision.NOT_APPLICABLE && !state.traces().isEmpty()
+                        ? TracedPolicyDecision.getResource(state.traces().getFirst())
+                        : Value.UNDEFINED)
+                .policies(state.traces()).build());
     }
 
     private record FirstApplicableState(Decision decision, List<Value> traces) {
@@ -653,11 +661,14 @@ public class CombiningAlgorithmCompiler {
      * the algorithm name in SAPL syntax (e.g., "deny-unless-permit")
      * @param documents
      * pre-matched policy documents to combine
+     * @param totalDocuments
+     * total number of documents in the PRP for completeness proof
      *
      * @return compiled expression producing TracedPdpDecision
      */
-    public static CompiledExpression denyUnlessPermitPreMatched(String algorithm, List<CompiledPolicy> documents) {
-        return genericPdpCombining(algorithm, documents, DENY_UNLESS_PERMIT);
+    public static CompiledExpression denyUnlessPermitPreMatched(String algorithm, List<CompiledPolicy> documents,
+            int totalDocuments) {
+        return genericPdpCombining(algorithm, documents, DENY_UNLESS_PERMIT, totalDocuments);
     }
 
     /**
@@ -667,11 +678,14 @@ public class CombiningAlgorithmCompiler {
      * the algorithm name in SAPL syntax (e.g., "deny-overrides")
      * @param documents
      * pre-matched policy documents to combine
+     * @param totalDocuments
+     * total number of documents in the PRP for completeness proof
      *
      * @return compiled expression producing TracedPdpDecision
      */
-    public static CompiledExpression denyOverridesPreMatched(String algorithm, List<CompiledPolicy> documents) {
-        return genericPdpCombining(algorithm, documents, DENY_OVERRIDES);
+    public static CompiledExpression denyOverridesPreMatched(String algorithm, List<CompiledPolicy> documents,
+            int totalDocuments) {
+        return genericPdpCombining(algorithm, documents, DENY_OVERRIDES, totalDocuments);
     }
 
     /**
@@ -681,11 +695,14 @@ public class CombiningAlgorithmCompiler {
      * the algorithm name in SAPL syntax (e.g., "permit-overrides")
      * @param documents
      * pre-matched policy documents to combine
+     * @param totalDocuments
+     * total number of documents in the PRP for completeness proof
      *
      * @return compiled expression producing TracedPdpDecision
      */
-    public static CompiledExpression permitOverridesPreMatched(String algorithm, List<CompiledPolicy> documents) {
-        return genericPdpCombining(algorithm, documents, PERMIT_OVERRIDES);
+    public static CompiledExpression permitOverridesPreMatched(String algorithm, List<CompiledPolicy> documents,
+            int totalDocuments) {
+        return genericPdpCombining(algorithm, documents, PERMIT_OVERRIDES, totalDocuments);
     }
 
     /**
@@ -695,11 +712,14 @@ public class CombiningAlgorithmCompiler {
      * the algorithm name in SAPL syntax (e.g., "permit-unless-deny")
      * @param documents
      * pre-matched policy documents to combine
+     * @param totalDocuments
+     * total number of documents in the PRP for completeness proof
      *
      * @return compiled expression producing TracedPdpDecision
      */
-    public static CompiledExpression permitUnlessDenyPreMatched(String algorithm, List<CompiledPolicy> documents) {
-        return genericPdpCombining(algorithm, documents, PERMIT_UNLESS_DENY);
+    public static CompiledExpression permitUnlessDenyPreMatched(String algorithm, List<CompiledPolicy> documents,
+            int totalDocuments) {
+        return genericPdpCombining(algorithm, documents, PERMIT_UNLESS_DENY, totalDocuments);
     }
 
     /**
@@ -709,35 +729,42 @@ public class CombiningAlgorithmCompiler {
      * the algorithm name in SAPL syntax (e.g., "only-one-applicable")
      * @param documents
      * pre-matched policy documents to combine
+     * @param totalDocuments
+     * total number of documents in the PRP for completeness proof
      *
      * @return compiled expression producing TracedPdpDecision
      */
-    public static CompiledExpression onlyOneApplicablePreMatched(String algorithm, List<CompiledPolicy> documents) {
-        return onlyOneApplicablePdp(algorithm, documents);
+    public static CompiledExpression onlyOneApplicablePreMatched(String algorithm, List<CompiledPolicy> documents,
+            int totalDocuments) {
+        return onlyOneApplicablePdp(algorithm, documents, totalDocuments);
     }
 
     private static CompiledExpression genericPdpCombining(String algorithm, List<CompiledPolicy> documents,
-            CombiningAlgorithmLogic logic) {
+            CombiningAlgorithmLogic logic, int totalDocuments) {
 
         if (documents.isEmpty()) {
-            return new PureExpression(ctx -> buildEmptyPdpDecision(ctx, algorithm, logic.getDefaultDecision()), true);
+            return new PureExpression(
+                    ctx -> buildEmptyPdpDecision(ctx, algorithm, logic.getDefaultDecision(), totalDocuments), true);
         }
 
         if (allPureOrConstant(documents)) {
-            return new PureExpression(ctx -> evaluateGenericPdpPure(algorithm, documents, logic, ctx), true);
+            return new PureExpression(ctx -> evaluateGenericPdpPure(algorithm, documents, logic, ctx, totalDocuments),
+                    true);
         } else {
-            return new StreamExpression(buildGenericPdpStream(algorithm, documents, logic));
+            return new StreamExpression(buildGenericPdpStream(algorithm, documents, logic, totalDocuments));
         }
     }
 
-    private static Value buildEmptyPdpDecision(EvaluationContext ctx, String algorithm, Decision decision) {
+    private static Value buildEmptyPdpDecision(EvaluationContext ctx, String algorithm, Decision decision,
+            int totalDocuments) {
         return TracedPdpDecision.builder().pdpId(ctx.pdpId()).configurationId(ctx.configurationId())
                 .subscriptionId(ctx.subscriptionId()).subscription(ctx.authorizationSubscription())
-                .timestamp(ctx.timestamp()).algorithm(algorithm).decision(decision).build();
+                .timestamp(ctx.timestamp()).algorithm(algorithm).decision(decision).totalDocuments(totalDocuments)
+                .build();
     }
 
     private static Value evaluateGenericPdpPure(String algorithm, List<CompiledPolicy> documents,
-            CombiningAlgorithmLogic logic, EvaluationContext ctx) {
+            CombiningAlgorithmLogic logic, EvaluationContext ctx, int totalDocuments) {
 
         val accumulator = new TracedDecisionAccumulator(logic);
 
@@ -747,11 +774,11 @@ public class CombiningAlgorithmCompiler {
             accumulator.addTracedPolicy(tracedDocument);
         }
 
-        return accumulator.buildPdpDecision(ctx, algorithm);
+        return accumulator.buildPdpDecision(ctx, algorithm, totalDocuments);
     }
 
     private static Flux<Value> buildGenericPdpStream(String algorithm, List<CompiledPolicy> documents,
-            CombiningAlgorithmLogic logic) {
+            CombiningAlgorithmLogic logic, int totalDocuments) {
 
         val documentFluxes = documents.stream()
                 .map(doc -> ExpressionCompiler.compiledExpressionToFlux(doc.decisionExpression())).toList();
@@ -767,33 +794,38 @@ public class CombiningAlgorithmCompiler {
                         }
                     }
 
-                    return Mono.just(accumulator.buildPdpDecision(ctx, algorithm));
+                    return Mono.just(accumulator.buildPdpDecision(ctx, algorithm, totalDocuments));
                 }));
     }
 
     // ========== Only-One-Applicable (PDP Level) ==========
 
-    private static CompiledExpression onlyOneApplicablePdp(String algorithm, List<CompiledPolicy> documents) {
+    private static CompiledExpression onlyOneApplicablePdp(String algorithm, List<CompiledPolicy> documents,
+            int totalDocuments) {
 
         if (documents.isEmpty()) {
-            return new PureExpression(ctx -> buildEmptyPdpDecision(ctx, algorithm, Decision.NOT_APPLICABLE), true);
+            return new PureExpression(
+                    ctx -> buildEmptyPdpDecision(ctx, algorithm, Decision.NOT_APPLICABLE, totalDocuments), true);
         }
 
         if (allPureOrConstant(documents)) {
-            return new PureExpression(ctx -> evaluateOnlyOneApplicablePdpPure(algorithm, documents, ctx), true);
+            return new PureExpression(
+                    ctx -> evaluateOnlyOneApplicablePdpPure(algorithm, documents, ctx, totalDocuments), true);
         }
-        return new StreamExpression(buildOnlyOneApplicablePdpStream(algorithm, documents));
+        return new StreamExpression(buildOnlyOneApplicablePdpStream(algorithm, documents, totalDocuments));
     }
 
     private static Value evaluateOnlyOneApplicablePdpPure(String algorithm, List<CompiledPolicy> documents,
-            EvaluationContext ctx) {
+            EvaluationContext ctx, int totalDocuments) {
 
+        List<Value> evaluatedTraces  = new ArrayList<>();
         List<Value> applicableTraces = new ArrayList<>();
         boolean     hasIndeterminate = false;
 
         for (val document : documents) {
             val traced   = evaluateTracedPolicy(document, ctx);
             val decision = TracedPolicyDecision.getDecision(traced);
+            evaluatedTraces.add(traced);
 
             if (decision != Decision.NOT_APPLICABLE) {
                 applicableTraces.add(traced);
@@ -803,10 +835,12 @@ public class CombiningAlgorithmCompiler {
             }
         }
 
-        return buildOnlyOneApplicablePdpResult(ctx, algorithm, applicableTraces, hasIndeterminate);
+        return buildOnlyOneApplicablePdpResult(ctx, algorithm, evaluatedTraces, applicableTraces, hasIndeterminate,
+                totalDocuments);
     }
 
-    private static Flux<Value> buildOnlyOneApplicablePdpStream(String algorithm, List<CompiledPolicy> documents) {
+    private static Flux<Value> buildOnlyOneApplicablePdpStream(String algorithm, List<CompiledPolicy> documents,
+            int totalDocuments) {
 
         val documentFluxes = documents.stream()
                 .map(doc -> ExpressionCompiler.compiledExpressionToFlux(doc.decisionExpression())).toList();
@@ -814,12 +848,14 @@ public class CombiningAlgorithmCompiler {
         return Flux.combineLatest(documentFluxes, tracedDocuments -> tracedDocuments)
                 .flatMap(tracedDocuments -> Mono.deferContextual(reactorCtx -> {
                     val ctx              = reactorCtx.get(EvaluationContext.class);
+                    List<Value> evaluatedTraces = new ArrayList<>();
                     List<Value> applicableTraces = new ArrayList<>();
                     boolean hasIndeterminate = false;
 
                     for (val traced : tracedDocuments) {
                         if (traced instanceof Value v) {
                             val decision = TracedPolicyDecision.getDecision(v);
+                            evaluatedTraces.add(v);
                             if (decision != Decision.NOT_APPLICABLE) {
                                 applicableTraces.add(v);
                                 if (decision == Decision.INDETERMINATE) {
@@ -829,19 +865,19 @@ public class CombiningAlgorithmCompiler {
                         }
                     }
 
-                    return Mono
-                            .just(buildOnlyOneApplicablePdpResult(ctx, algorithm, applicableTraces, hasIndeterminate));
+                    return Mono.just(buildOnlyOneApplicablePdpResult(ctx, algorithm, evaluatedTraces, applicableTraces,
+                            hasIndeterminate, totalDocuments));
                 }));
     }
 
     private static Value buildOnlyOneApplicablePdpResult(EvaluationContext ctx, String algorithm,
-            List<Value> applicableTraces, boolean hasIndeterminate) {
+            List<Value> evaluatedTraces, List<Value> applicableTraces, boolean hasIndeterminate, int totalDocuments) {
 
         if (hasIndeterminate || applicableTraces.size() > 1) {
             return TracedPdpDecision.builder().pdpId(ctx.pdpId()).configurationId(ctx.configurationId())
                     .subscriptionId(ctx.subscriptionId()).subscription(ctx.authorizationSubscription())
                     .timestamp(ctx.timestamp()).algorithm(algorithm).decision(Decision.INDETERMINATE)
-                    .documents(applicableTraces).build();
+                    .totalDocuments(totalDocuments).documents(evaluatedTraces).build();
         }
 
         if (applicableTraces.size() == 1) {
@@ -849,13 +885,14 @@ public class CombiningAlgorithmCompiler {
             return TracedPdpDecision.builder().pdpId(ctx.pdpId()).configurationId(ctx.configurationId())
                     .subscriptionId(ctx.subscriptionId()).subscription(ctx.authorizationSubscription())
                     .timestamp(ctx.timestamp()).algorithm(algorithm).decision(TracedPolicyDecision.getDecision(traced))
-                    .obligations(TracedPolicyDecision.getObligations(traced))
+                    .totalDocuments(totalDocuments).obligations(TracedPolicyDecision.getObligations(traced))
                     .advice(TracedPolicyDecision.getAdvice(traced)).resource(TracedPolicyDecision.getResource(traced))
-                    .documents(applicableTraces).build();
+                    .documents(evaluatedTraces).build();
         }
 
         return TracedPdpDecision.builder().pdpId(ctx.pdpId()).configurationId(ctx.configurationId())
                 .subscriptionId(ctx.subscriptionId()).subscription(ctx.authorizationSubscription())
-                .timestamp(ctx.timestamp()).algorithm(algorithm).decision(Decision.NOT_APPLICABLE).build();
+                .timestamp(ctx.timestamp()).algorithm(algorithm).decision(Decision.NOT_APPLICABLE)
+                .totalDocuments(totalDocuments).documents(evaluatedTraces).build();
     }
 }

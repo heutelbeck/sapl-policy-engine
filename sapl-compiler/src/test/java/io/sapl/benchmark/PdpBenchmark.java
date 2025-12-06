@@ -37,15 +37,15 @@ import java.util.concurrent.TimeUnit;
 
 /**
  * JMH benchmark for NEW SAPL PDP (Value-based) performance measurement.
- * Compares REACTIVE (Flux-based) and PURE
- * (synchronous) evaluation paths.
+ * Compares REACTIVE (Flux-based) and BLOCKING (synchronous) evaluation paths.
  * <p>
  * For OLD PDP (Val-based) benchmarks, run EmbeddedPdpBenchmark from the
  * sapl-pdp-embedded module instead.
  * <p>
  * Measures throughput and latency across:
  * <ul>
- * <li>Evaluation path: REACTIVE (Flux), PURE (sync)</li>
+ * <li>Evaluation path: REACTIVE (Flux.next().block()), BLOCKING
+ * (decideOnceBlocking)</li>
  * <li>Policy set size: 1, 5, 9 policies</li>
  * <li>Combining algorithm: DENY_OVERRIDES</li>
  * <li>Concurrency: 1 to 48 threads</li>
@@ -104,7 +104,7 @@ public class PdpBenchmark {
 
     private static final ObjectMapper MAPPER = new ObjectMapper().registerModule(new SaplJacksonModule());
 
-    @Param({ "REACTIVE", "PURE" })
+    @Param({ "REACTIVE", "BLOCKING" })
     private String evaluationPath;
 
     @Param({ "1", "5", "9" })
@@ -173,7 +173,7 @@ public class PdpBenchmark {
 
     private Object executeDecision() {
         var index = ThreadLocalRandom.current().nextInt(subscriptions.length);
-        return "PURE".equals(evaluationPath) ? pdp.decidePure(subscriptions[index])
+        return "BLOCKING".equals(evaluationPath) ? pdp.decideOnceBlocking(subscriptions[index])
                 : pdp.decide(subscriptions[index]).next().block();
     }
 

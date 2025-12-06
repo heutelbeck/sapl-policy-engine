@@ -128,9 +128,7 @@ class PDPConfigurationLoaderTests {
     }
 
     static Stream<Arguments> traceLevelCases() {
-        return Stream.of(arguments("NONE", TraceLevel.NONE), arguments("none", TraceLevel.NONE),
-                arguments("STANDARD", TraceLevel.STANDARD), arguments("standard", TraceLevel.STANDARD),
-                arguments("AUDIT", TraceLevel.AUDIT), arguments("audit", TraceLevel.AUDIT),
+        return Stream.of(arguments("STANDARD", TraceLevel.STANDARD), arguments("standard", TraceLevel.STANDARD),
                 arguments("COVERAGE", TraceLevel.COVERAGE), arguments("coverage", TraceLevel.COVERAGE));
     }
 

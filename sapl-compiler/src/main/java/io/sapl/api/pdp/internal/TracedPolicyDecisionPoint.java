@@ -20,6 +20,7 @@ package io.sapl.api.pdp.internal;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.PolicyDecisionPoint;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 /**
  * Extension of {@link PolicyDecisionPoint} providing traced decisions with
@@ -41,4 +42,33 @@ public interface TracedPolicyDecisionPoint extends PolicyDecisionPoint {
      * @return stream of traced decisions
      */
     Flux<TracedDecision> decideTraced(AuthorizationSubscription authorizationSubscription);
+
+    /**
+     * Evaluates a subscription and returns only the first traced decision.
+     *
+     * @param authorizationSubscription
+     * the subscription to evaluate
+     *
+     * @return the first traced decision
+     */
+    default Mono<TracedDecision> decideOnceTraced(AuthorizationSubscription authorizationSubscription) {
+        return decideTraced(authorizationSubscription).next();
+    }
+
+    /**
+     * Synchronous, blocking authorization decision with full trace information.
+     * <p>
+     * This method combines the synchronous API of
+     * {@link PolicyDecisionPoint#decideOnceBlocking(AuthorizationSubscription)}
+     * with the trace information of
+     * {@link #decideTraced(AuthorizationSubscription)}.
+     *
+     * @param authorizationSubscription
+     * the subscription to evaluate
+     *
+     * @return the traced decision
+     */
+    default TracedDecision decideOnceBlockingTraced(AuthorizationSubscription authorizationSubscription) {
+        return decideOnceTraced(authorizationSubscription).block();
+    }
 }

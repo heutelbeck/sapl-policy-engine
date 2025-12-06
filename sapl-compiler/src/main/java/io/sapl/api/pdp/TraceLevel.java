@@ -22,22 +22,13 @@ package io.sapl.api.pdp;
  * evaluation.
  * <p>
  * Trace level is a compile-time decision that affects the generated evaluation
- * expressions. Higher levels provide more detailed tracing at the cost of
- * increased memory allocation and processing overhead.
+ * expressions. COVERAGE level provides additional data for test analysis at the
+ * cost of increased memory allocation and processing overhead.
  * <p>
  * To change trace level, push a new PDP configuration which triggers
  * recompilation of policies with the new level.
  */
 public enum TraceLevel {
-
-    /**
-     * No trace metadata gathered. Returns TracedDecision with empty trace.
-     * <p>
-     * Use for high-throughput production scenarios where tracing is handled by
-     * external systems or not required. The API remains consistent
-     * (TracedDecision), but trace data is empty.
-     */
-    NONE,
 
     /**
      * Standard tracing of evaluated policies. Default behavior.
@@ -49,30 +40,19 @@ public enum TraceLevel {
      * <li>Policies that errored during evaluation</li>
      * <li>Attribute access records</li>
      * <li>Error details including target expression errors</li>
+     * <li>Aggregate counts (totalPolicies/totalDocuments) for completeness
+     * proof</li>
      * </ul>
      * <p>
-     * Non-matching policies (target evaluated to false) are not included.
+     * Non-matching policies (target evaluated to false) are not individually
+     * listed, but their count is included in the aggregate totals.
      */
     STANDARD,
 
     /**
-     * Audit-level tracing includes all policies, even non-matching ones.
-     * <p>
-     * In addition to STANDARD tracing, includes:
-     * <ul>
-     * <li>Non-matching policy names with {@code matched: false}</li>
-     * <li>Summary counts of evaluated vs matched policies</li>
-     * </ul>
-     * <p>
-     * Use for compliance audits requiring proof that all policies were considered.
-     * Non-matching policies appear with minimal footprint (name only).
-     */
-    AUDIT,
-
-    /**
      * Full expression-level coverage tracking for test analysis.
      * <p>
-     * In addition to AUDIT tracing, records per-evaluation coverage data:
+     * In addition to STANDARD tracing, records per-evaluation coverage data:
      * <ul>
      * <li>Expression evaluation records with source locations</li>
      * <li>Branch coverage for conditional expressions</li>
@@ -88,29 +68,11 @@ public enum TraceLevel {
     COVERAGE;
 
     /**
-     * Returns whether this trace level includes non-matching policies.
-     *
-     * @return true for AUDIT and COVERAGE levels
-     */
-    public boolean includesNonMatching() {
-        return this == AUDIT || this == COVERAGE;
-    }
-
-    /**
      * Returns whether this trace level includes coverage data.
      *
      * @return true for COVERAGE level only
      */
     public boolean includesCoverage() {
         return this == COVERAGE;
-    }
-
-    /**
-     * Returns whether this trace level produces any trace data.
-     *
-     * @return false for NONE, true for all other levels
-     */
-    public boolean producesTrace() {
-        return this != NONE;
     }
 }

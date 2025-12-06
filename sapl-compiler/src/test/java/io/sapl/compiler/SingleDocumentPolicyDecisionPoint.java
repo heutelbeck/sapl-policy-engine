@@ -181,9 +181,10 @@ public final class SingleDocumentPolicyDecisionPoint implements PolicyDecisionPo
     }
 
     /**
-     * Synchronous pure evaluation - bypasses Reactor entirely. Only works for pure
-     * policies (no attribute streams). For
-     * policies with obligations/advice/transform, falls back to blocking.
+     * Synchronous blocking evaluation - bypasses Reactor entirely for pure
+     * policies.
+     * Only works for policies without attribute streams. For policies with
+     * obligations/advice/transform, falls back to blocking on the stream.
      *
      * @param authorizationSubscription
      * the authorization subscription
@@ -194,7 +195,7 @@ public final class SingleDocumentPolicyDecisionPoint implements PolicyDecisionPo
      * if no document has been loaded or policy is not pure
      */
     @Override
-    public AuthorizationDecision decidePure(AuthorizationSubscription authorizationSubscription) {
+    public AuthorizationDecision decideOnceBlocking(AuthorizationSubscription authorizationSubscription) {
         if (compiledPolicy == null) {
             throw new IllegalStateException("No policy document loaded. Call loadDocument() first.");
         }

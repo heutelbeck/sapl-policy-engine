@@ -145,10 +145,11 @@ public class SaplCompiler {
             CompilationContext context) {
         context.resetForNextPolicy();
         val name               = policy.getSaplName();
+        val entitlement        = decisionOf(policy.getEntitlement()).name();
         val matchExpression    = compileMatchExpression(policy.getTargetExpression(), schemaCheckingExpression,
                 context);
         val decisionExpression = compileDecisionExpression(policy, context);
-        return new CompiledPolicy(name, matchExpression, decisionExpression);
+        return new CompiledPolicy(name, entitlement, matchExpression, decisionExpression);
     }
 
     private CompiledExpression compileMatchExpression(Expression targetExpression,
@@ -709,7 +710,7 @@ public class SaplCompiler {
         val combiningAlgorithm = policySet.getAlgorithm();
         val policies           = policySet.getPolicies();
         val decisionExpression = compilePolicySetPolicies(name, combiningAlgorithm, policies, context);
-        return new CompiledPolicy(name, matchExpression, decisionExpression);
+        return new CompiledPolicy(name, null, matchExpression, decisionExpression);
     }
 
     private static CompiledExpression compilePolicySetPolicies(String setName, CombiningAlgorithm combiningAlgorithm,

@@ -64,6 +64,23 @@ public class TracedPolicyDecision {
     }
 
     /**
+     * Creates a minimal trace for a policy whose target did not match.
+     * <p>
+     * Used by first-applicable algorithm to provide order evidence. The trace
+     * contains only the policy name, type, and targetMatch=false indicator.
+     *
+     * @param policyName
+     * the name of the policy that did not match
+     *
+     * @return a minimal ObjectValue trace
+     */
+    public static Value createNoMatchTrace(String policyName) {
+        return ObjectValue.builder().put(TraceFields.NAME, Value.of(policyName))
+                .put(TraceFields.TYPE, Value.of(TraceFields.TYPE_POLICY)).put(TraceFields.TARGET_MATCH, Value.FALSE)
+                .build();
+    }
+
+    /**
      * Builder for fluent TracedPolicyDecision construction.
      * <p>
      * Supports constant folding: when all inputs are known at compile time, the
@@ -450,6 +467,40 @@ public class TracedPolicyDecision {
      */
     public static boolean hasTargetError(Value tracedPolicy) {
         return getTargetError(tracedPolicy) != null;
+    }
+
+    /**
+     * Gets the targetMatch field value from a traced policy decision.
+     * <p>
+     * For policies that matched, this returns null (field not present).
+     * For policies created via createNoMatchTrace(), this returns false.
+     *
+     * @param tracedPolicy
+     * the traced policy decision Value
+     *
+     * @return Boolean.FALSE if target did not match, null if field not present
+     */
+    public static Boolean getTargetMatch(Value tracedPolicy) {
+        if (tracedPolicy instanceof ObjectValue obj) {
+            val field = obj.get(TraceFields.TARGET_MATCH);
+            if (field instanceof BooleanValue boolValue) {
+                return boolValue.value();
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Checks if this is a non-matching policy trace (created via
+     * createNoMatchTrace).
+     *
+     * @param tracedPolicy
+     * the traced policy decision Value
+     *
+     * @return true if this is a non-matching policy trace
+     */
+    public static boolean isNoMatchTrace(Value tracedPolicy) {
+        return Boolean.FALSE.equals(getTargetMatch(tracedPolicy));
     }
 
     private static String getTextField(Value value, String fieldName) {

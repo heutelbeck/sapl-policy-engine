@@ -24,6 +24,8 @@ import io.sapl.api.model.CompiledExpression;
  *
  * @param name
  * the policy name for debugging and logging
+ * @param entitlement
+ * the policy's declared entitlement (PERMIT or DENY), or null for policy sets
  * @param matchExpression
  * evaluates to Boolean indicating if policy applies to the request; includes
  * target expression ANDed with
@@ -32,4 +34,8 @@ import io.sapl.api.model.CompiledExpression;
  * evaluates to an ObjectValue containing decision, obligations, advice, and
  * resource transformation
  */
-public record CompiledPolicy(String name, CompiledExpression matchExpression, CompiledExpression decisionExpression) {}
+public record CompiledPolicy(
+        String name,
+        String entitlement,
+        CompiledExpression matchExpression,
+        CompiledExpression decisionExpression) {}

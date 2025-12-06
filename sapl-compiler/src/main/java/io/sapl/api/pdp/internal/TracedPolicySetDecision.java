@@ -18,6 +18,7 @@
 package io.sapl.api.pdp.internal;
 
 import io.sapl.api.model.ArrayValue;
+import io.sapl.api.model.NumberValue;
 import io.sapl.api.model.ObjectValue;
 import io.sapl.api.model.TextValue;
 import io.sapl.api.model.Value;
@@ -33,8 +34,8 @@ import java.util.List;
  * results.
  * <p>
  * A TracedPolicySetDecision captures the result of combining multiple policies
- * within a policy set, including the
- * combined authorization decision, merged constraints, and the individual
+ * within a policy set, including the combined authorization decision, merged
+ * constraints, aggregate counts for completeness proof, and the individual
  * policy traces.
  * <p>
  * Structure:
@@ -45,6 +46,7 @@ import java.util.List;
  *   "type": "set",
  *   "algorithm": "deny-overrides",
  *   "decision": "PERMIT",
+ *   "totalPolicies": 10,
  *   "obligations": [...],
  *   "advice": [...],
  *   "resource": ...,
@@ -74,6 +76,7 @@ public class TracedPolicySetDecision {
         private String      name;
         private String      algorithm;
         private Decision    decision;
+        private int         totalPolicies;
         private ArrayValue  obligations = Value.EMPTY_ARRAY;
         private ArrayValue  advice      = Value.EMPTY_ARRAY;
         private Value       resource    = Value.UNDEFINED;
@@ -115,6 +118,22 @@ public class TracedPolicySetDecision {
          */
         public Builder decision(Decision decision) {
             this.decision = decision;
+            return this;
+        }
+
+        /**
+         * Sets the total number of policies in the set for completeness proof.
+         * <p>
+         * This count includes all policies regardless of whether they matched,
+         * allowing auditors to verify that all policies were considered.
+         *
+         * @param totalPolicies
+         * the total number of policies in the policy set
+         *
+         * @return this builder
+         */
+        public Builder totalPolicies(int totalPolicies) {
+            this.totalPolicies = totalPolicies;
             return this;
         }
 
@@ -225,7 +244,8 @@ public class TracedPolicySetDecision {
             return ObjectValue.builder().put(TraceFields.NAME, Value.of(name))
                     .put(TraceFields.TYPE, Value.of(TraceFields.TYPE_SET))
                     .put(TraceFields.ALGORITHM, Value.of(algorithm))
-                    .put(TraceFields.DECISION, Value.of(decision.name())).put(TraceFields.OBLIGATIONS, obligations)
+                    .put(TraceFields.DECISION, Value.of(decision.name()))
+                    .put(TraceFields.TOTAL_POLICIES, Value.of(totalPolicies)).put(TraceFields.OBLIGATIONS, obligations)
                     .put(TraceFields.ADVICE, advice).put(TraceFields.RESOURCE, resource)
                     .put(TraceFields.POLICIES, ArrayValue.builder().addAll(policies).build()).build();
         }
@@ -327,6 +347,27 @@ public class TracedPolicySetDecision {
      */
     public static ArrayValue getPolicies(Value tracedSet) {
         return getArrayField(tracedSet, TraceFields.POLICIES);
+    }
+
+    /**
+     * Extracts the total policies count from a traced set decision.
+     * <p>
+     * This count represents all policies in the set, regardless of whether they
+     * matched. Used for completeness proof in auditing.
+     *
+     * @param tracedSet
+     * the traced policy set decision Value
+     *
+     * @return the total number of policies, or 0 if not present
+     */
+    public static int getTotalPolicies(Value tracedSet) {
+        if (tracedSet instanceof ObjectValue obj) {
+            val field = obj.get(TraceFields.TOTAL_POLICIES);
+            if (field instanceof NumberValue numberValue) {
+                return numberValue.value().intValue();
+            }
+        }
+        return 0;
     }
 
     /**

@@ -147,6 +147,39 @@ class TracedPdpDecisionTests {
 
             assertThat(getAlgorithm(traced)).isEqualTo("deny-overrides");
         }
+
+        @Test
+        @DisplayName("trace contains totalDocuments for completeness proof")
+        void whenPdpDecision_thenTraceContainsTotalDocuments() {
+            val subscription = subscriptionOf("archivist", "catalog", "eldritch-texts");
+            val traced       = evaluateWithPolicies(List.of("""
+                    policy "catalog-permit" permit subject == "archivist"
+                    """, """
+                    policy "outsider-deny" deny subject != "archivist"
+                    """), subscription, DENY_OVERRIDES);
+
+            printDecision("totalDocuments in trace", traced);
+
+            assertThat(getTotalDocuments(traced)).isEqualTo(2);
+        }
+
+        @Test
+        @DisplayName("totalDocuments includes non-matching policies")
+        void whenSomePoliciesDontMatch_thenTotalDocumentsIncludesAll() {
+            val subscription = subscriptionOf("deep-one", "access", "reef-temple");
+            val traced       = evaluateWithPolicies(List.of("""
+                    policy "human-only" permit subject == "human"
+                    """, """
+                    policy "deep-one-access" permit subject == "deep-one"
+                    """, """
+                    policy "elder-thing-only" permit subject == "elder-thing"
+                    """), subscription, DENY_OVERRIDES);
+
+            printDecision("totalDocuments with non-matching", traced);
+
+            // totalDocuments should be 3 (all policies), even though only one matches
+            assertThat(getTotalDocuments(traced)).isEqualTo(3);
+        }
     }
 
     @Nested
@@ -244,6 +277,43 @@ class TracedPdpDecisionTests {
 
             val firstPolicy = (ObjectValue) policies.get(0);
             assertThat(firstPolicy.get(TraceFields.NAME)).isEqualTo(Value.of("researcher-permit"));
+        }
+
+        @Test
+        @DisplayName("policy set contains totalPolicies for completeness proof")
+        void whenPolicySet_thenContainsTotalPolicies() {
+            val subscription = subscriptionOf("acolyte", "perform", "ritual");
+            val traced       = evaluateWithSinglePolicy("""
+                    set "ritual-permissions" deny-overrides
+                    policy "acolyte-permit" permit subject == "acolyte"
+                    policy "initiate-permit" permit subject == "initiate"
+                    policy "outsider-deny" deny true
+                    """, subscription);
+
+            printDecision("totalPolicies in set", traced);
+
+            val document = (ObjectValue) getDocuments(traced).getFirst();
+            assertThat(TracedPolicySetDecision.getTotalPolicies(document)).isEqualTo(3);
+        }
+
+        @Test
+        @DisplayName("totalPolicies includes non-matching policies within set")
+        void whenSomePoliciesDontMatchInSet_thenTotalPoliciesIncludesAll() {
+            val subscription = subscriptionOf("shoggoth", "enter", "elder-temple");
+            val traced       = evaluateWithSinglePolicy("""
+                    set "temple-access" deny-overrides
+                    policy "human-entry" permit subject == "human"
+                    policy "shoggoth-entry" permit subject == "shoggoth"
+                    policy "mi-go-entry" permit subject == "mi-go"
+                    policy "elder-thing-entry" permit subject == "elder-thing"
+                    """, subscription);
+
+            printDecision("totalPolicies with non-matching in set", traced);
+
+            val document = (ObjectValue) getDocuments(traced).getFirst();
+            // totalPolicies should be 4 (all policies in set), regardless of how many
+            // matched
+            assertThat(TracedPolicySetDecision.getTotalPolicies(document)).isEqualTo(4);
         }
     }
 
@@ -530,7 +600,7 @@ class TracedPdpDecisionTests {
             // PDP decision requires access to EvaluationContext for pdpId, configurationId,
             // subscriptionId, timestamp, etc.
             val subscription = subscriptionOf("cultist", "summon", "shoggoth");
-            val combined     = CombiningAlgorithmCompiler.denyOverridesPreMatched("deny-overrides", List.of());
+            val combined     = CombiningAlgorithmCompiler.denyOverridesPreMatched("deny-overrides", List.of(), 0);
 
             assertThat(combined).isInstanceOf(PureExpression.class);
 
@@ -552,7 +622,7 @@ class TracedPdpDecisionTests {
             val compiled = compilePolicy("""
                     policy "constant-deny" deny
                     """);
-            val combined = CombiningAlgorithmCompiler.denyOverridesPreMatched("deny-overrides", List.of(compiled));
+            val combined = CombiningAlgorithmCompiler.denyOverridesPreMatched("deny-overrides", List.of(compiled), 1);
 
             assertThat(combined).isInstanceOf(PureExpression.class);
 
@@ -571,7 +641,7 @@ class TracedPdpDecisionTests {
                     policy "dynamic-permit" permit
                     obligation subject.dynamicObligation
                     """);
-            val combined = CombiningAlgorithmCompiler.denyOverridesPreMatched("deny-overrides", List.of(compiled));
+            val combined = CombiningAlgorithmCompiler.denyOverridesPreMatched("deny-overrides", List.of(compiled), 1);
 
             assertThat(combined).isInstanceOf(StreamExpression.class);
 
@@ -606,18 +676,20 @@ class TracedPdpDecisionTests {
         val compiledPolicies = policyTexts.stream().map(PARSER::parse)
                 .map(sapl -> SaplCompiler.compileDocument(sapl, context)).toList();
 
-        val algorithmName = toSaplSyntax(algorithm);
+        val algorithmName  = toSaplSyntax(algorithm);
+        val totalDocuments = compiledPolicies.size();
 
         val combinedExpression = switch (algorithm) {
-        case DENY_OVERRIDES      -> CombiningAlgorithmCompiler.denyOverridesPreMatched(algorithmName, compiledPolicies);
+        case DENY_OVERRIDES      ->
+            CombiningAlgorithmCompiler.denyOverridesPreMatched(algorithmName, compiledPolicies, totalDocuments);
         case PERMIT_OVERRIDES    ->
-            CombiningAlgorithmCompiler.permitOverridesPreMatched(algorithmName, compiledPolicies);
+            CombiningAlgorithmCompiler.permitOverridesPreMatched(algorithmName, compiledPolicies, totalDocuments);
         case DENY_UNLESS_PERMIT  ->
-            CombiningAlgorithmCompiler.denyUnlessPermitPreMatched(algorithmName, compiledPolicies);
+            CombiningAlgorithmCompiler.denyUnlessPermitPreMatched(algorithmName, compiledPolicies, totalDocuments);
         case PERMIT_UNLESS_DENY  ->
-            CombiningAlgorithmCompiler.permitUnlessDenyPreMatched(algorithmName, compiledPolicies);
+            CombiningAlgorithmCompiler.permitUnlessDenyPreMatched(algorithmName, compiledPolicies, totalDocuments);
         case ONLY_ONE_APPLICABLE ->
-            CombiningAlgorithmCompiler.onlyOneApplicablePreMatched(algorithmName, compiledPolicies);
+            CombiningAlgorithmCompiler.onlyOneApplicablePreMatched(algorithmName, compiledPolicies, totalDocuments);
         };
 
         val evaluationContext = createEvaluationContext(subscription);
@@ -672,7 +744,7 @@ class TracedPdpDecisionTests {
         @Override
         public io.sapl.api.prp.PolicyRetrievalResult getMatchingDocuments(AuthorizationSubscription subscription,
                 io.sapl.api.model.EvaluationContext context) {
-            return new MatchingDocuments(List.of(policy));
+            return new MatchingDocuments(List.of(policy), 1);
         }
     }
 

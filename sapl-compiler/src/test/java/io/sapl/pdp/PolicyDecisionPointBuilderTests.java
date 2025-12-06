@@ -308,8 +308,8 @@ class PolicyDecisionPointBuilderTests {
     }
 
     @Test
-    void whenBuildingWithTraceLevelAudit_thenPdpBuildsSuccessfully() throws Exception {
-        val components = PolicyDecisionPointBuilder.withoutDefaults().withTraceLevel(TraceLevel.AUDIT)
+    void whenBuildingWithTraceLevelCoverage_thenPdpBuildsSuccessfully() throws Exception {
+        val components = PolicyDecisionPointBuilder.withoutDefaults().withTraceLevel(TraceLevel.COVERAGE)
                 .withPolicies(CombiningAlgorithm.PERMIT_OVERRIDES, "policy \"test\" permit").build();
 
         assertThat(components.pdp()).isNotNull();

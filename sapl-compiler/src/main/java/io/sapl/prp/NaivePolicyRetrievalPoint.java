@@ -49,7 +49,8 @@ public class NaivePolicyRetrievalPoint implements PolicyRetrievalPoint {
     @Override
     public PolicyRetrievalResult getMatchingDocuments(AuthorizationSubscription authorizationSubscription,
             EvaluationContext evaluationContext) {
-        val result = new ArrayList<CompiledPolicy>(alwaysApplicableDocuments);
+        val result         = new ArrayList<CompiledPolicy>(alwaysApplicableDocuments);
+        val totalDocuments = alwaysApplicableDocuments.size() + maybeApplicableDocuments.size();
         for (var candidate : maybeApplicableDocuments) {
             if (candidate.matchExpression() instanceof PureExpression pureMatchExpression) {
                 val match = pureMatchExpression.evaluate(evaluationContext);
@@ -64,6 +65,6 @@ public class NaivePolicyRetrievalPoint implements PolicyRetrievalPoint {
                         Value.error(ERROR_UNEXPECTED_TARGET_EXPRESSION_TYPE.formatted(candidate.name())));
             }
         }
-        return new MatchingDocuments(Collections.unmodifiableList(result));
+        return new MatchingDocuments(Collections.unmodifiableList(result), totalDocuments);
     }
 }

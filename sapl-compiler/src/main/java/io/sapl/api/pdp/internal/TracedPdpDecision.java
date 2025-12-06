@@ -19,6 +19,7 @@ package io.sapl.api.pdp.internal;
 
 import io.sapl.api.model.ArrayValue;
 import io.sapl.api.model.ErrorValue;
+import io.sapl.api.model.NumberValue;
 import io.sapl.api.model.ObjectValue;
 import io.sapl.api.model.TextValue;
 import io.sapl.api.model.Value;
@@ -35,9 +36,9 @@ import java.util.List;
  * results.
  * <p>
  * A TracedPdpDecision captures the complete result of evaluating an
- * authorization subscription at the PDP level,
- * including PDP metadata, the combined authorization decision, and traces of
- * all evaluated documents.
+ * authorization subscription at the PDP level, including PDP metadata, the
+ * combined authorization decision, aggregate counts for completeness proof,
+ * and traces of all evaluated documents.
  * <p>
  * Structure:
  *
@@ -54,6 +55,7 @@ import java.util.List;
  *     "subscription": { "subject": ..., "action": ..., "resource": ..., "environment": ... },
  *     "timestamp": "...",
  *     "algorithm": "deny-overrides",
+ *     "totalDocuments": 50,
  *     "documents": [
  *       { TracedPolicyDecision or TracedPolicySetDecision }
  *     ]
@@ -89,6 +91,7 @@ public class TracedPdpDecision {
         private String                    timestamp;
         private String                    algorithm;
         private Decision                  decision;
+        private int                       totalDocuments;
         private ArrayValue                obligations     = Value.EMPTY_ARRAY;
         private ArrayValue                advice          = Value.EMPTY_ARRAY;
         private Value                     resource        = Value.UNDEFINED;
@@ -183,6 +186,22 @@ public class TracedPdpDecision {
          */
         public Builder decision(Decision decision) {
             this.decision = decision;
+            return this;
+        }
+
+        /**
+         * Sets the total number of documents in the PRP for completeness proof.
+         * <p>
+         * This count includes all documents regardless of whether they matched,
+         * allowing auditors to verify that all documents were considered.
+         *
+         * @param totalDocuments
+         * the total number of documents in the policy repository
+         *
+         * @return this builder
+         */
+        public Builder totalDocuments(int totalDocuments) {
+            this.totalDocuments = totalDocuments;
             return this;
         }
 
@@ -332,6 +351,7 @@ public class TracedPdpDecision {
                     .put(TraceFields.SUBSCRIPTION_ID, Value.of(subscriptionId))
                     .put(TraceFields.SUBSCRIPTION, convertSubscription(subscription))
                     .put(TraceFields.TIMESTAMP, Value.of(timestamp)).put(TraceFields.ALGORITHM, Value.of(algorithm))
+                    .put(TraceFields.TOTAL_DOCUMENTS, Value.of(totalDocuments))
                     .put(TraceFields.DOCUMENTS, ArrayValue.builder().addAll(documents).build());
 
             if (!retrievalErrors.isEmpty()) {
@@ -448,6 +468,26 @@ public class TracedPdpDecision {
             return arr;
         }
         return Value.EMPTY_ARRAY;
+    }
+
+    /**
+     * Extracts the total documents count from a traced PDP decision.
+     * <p>
+     * This count represents all documents in the PRP, regardless of whether they
+     * matched. Used for completeness proof in auditing.
+     *
+     * @param tracedPdp
+     * the traced PDP decision Value
+     *
+     * @return the total number of documents, or 0 if not present
+     */
+    public static int getTotalDocuments(Value tracedPdp) {
+        val trace = getTrace(tracedPdp);
+        val total = trace.get(TraceFields.TOTAL_DOCUMENTS);
+        if (total instanceof NumberValue numberValue) {
+            return numberValue.value().intValue();
+        }
+        return 0;
     }
 
     /**

@@ -99,4 +99,11 @@ public class TraceFields {
     // Error tracking fields
     public static final String TARGET_ERROR = "targetError";
     public static final String MESSAGE      = "message";
+
+    // Target matching (for first-applicable order evidence)
+    public static final String TARGET_MATCH = "targetMatch";
+
+    // Aggregate counts for completeness proof
+    public static final String TOTAL_POLICIES  = "totalPolicies";
+    public static final String TOTAL_DOCUMENTS = "totalDocuments";
 }

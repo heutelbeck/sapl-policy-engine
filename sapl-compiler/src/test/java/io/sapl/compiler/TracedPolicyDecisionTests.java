@@ -184,6 +184,127 @@ class TracedPolicyDecisionTests {
     }
 
     @Nested
+    @DisplayName("Pure Expression Compilation")
+    class PureExpressionCompilationTests {
+
+        @ParameterizedTest(name = "{0}")
+        @MethodSource("pipFreePolicies")
+        @DisplayName("PIP-free policies never compile to StreamExpression")
+        void whenNoPipAccess_thenExpressionIsNeverStream(String description, String policy) {
+            val compiled = compilePolicy(policy);
+
+            assertThat(compiled.decisionExpression())
+                    .as("PIP-free policy '%s' should compile to Value or PureExpression, not StreamExpression",
+                            description)
+                    .isNotInstanceOf(StreamExpression.class);
+        }
+
+        static Stream<Arguments> pipFreePolicies() {
+            return Stream.of(
+                    // Minimal policies
+                    arguments("minimal permit", "policy \"p\" permit"), arguments("minimal deny", "policy \"p\" deny"),
+
+                    // Boolean conditions
+                    arguments("true condition", "policy \"p\" permit where true;"),
+                    arguments("false condition", "policy \"p\" permit where false;"),
+                    arguments("complex boolean", "policy \"p\" permit where true && (false || true);"),
+
+                    // Arithmetic expressions
+                    arguments("arithmetic condition", "policy \"p\" permit where 2 + 2 == 4;"),
+                    arguments("complex arithmetic", "policy \"p\" permit where (10 * 5) / 2 > 20;"),
+
+                    // String operations
+                    arguments("string equality", "policy \"p\" permit where \"admin\" == \"admin\";"),
+                    arguments("string in array", "policy \"p\" permit where \"read\" in [\"read\", \"write\"];"),
+
+                    // Subject/action/resource access (no PIPs)
+                    arguments("subject access", "policy \"p\" permit where subject.role == \"admin\";"),
+                    arguments("action access", "policy \"p\" permit where action == \"read\";"),
+                    arguments("resource access", "policy \"p\" permit where resource.classification != \"secret\";"),
+                    arguments("environment access", "policy \"p\" permit where environment.time > 0;"),
+
+                    // Single simple constraints (without filter functions)
+                    arguments("with string obligation", "policy \"p\" permit obligation \"log\""),
+                    arguments("with string advice", "policy \"p\" deny advice \"notify\""),
+                    arguments("with string transform", "policy \"p\" permit transform \"sanitized\""),
+
+                    // Complex expressions without PIPs
+                    arguments("nested object access",
+                            "policy \"p\" permit where subject.department.manager.level > 3;"),
+                    arguments("array indexing", "policy \"p\" permit where resource.tags[0] == \"public\";"),
+
+                    // Policy sets without PIPs
+                    arguments("policy set", """
+                            set "access-control" deny-overrides
+                            policy "admin" permit where subject.role == "admin";
+                            policy "default" deny
+                            """));
+        }
+
+        @Test
+        @DisplayName("Constant policy compiles to Value (not even PureExpression)")
+        void whenFullyConstant_thenCompiledToValue() {
+            val compiled = compilePolicy("policy \"always-permit\" permit");
+
+            assertThat(compiled.decisionExpression())
+                    .as("Fully constant policy should compile to Value, not PureExpression").isInstanceOf(Value.class);
+        }
+
+        @Test
+        @DisplayName("Policy with variable access compiles to PureExpression")
+        void whenVariableAccess_thenCompiledToPureExpression() {
+            val compiled = compilePolicy("policy \"check-role\" permit where subject.role == \"admin\";");
+
+            assertThat(compiled.decisionExpression()).as("Policy with variable access should compile to PureExpression")
+                    .isInstanceOf(PureExpression.class);
+        }
+
+        @ParameterizedTest(name = "{0}")
+        @MethodSource("combiningAlgorithmPolicySets")
+        @DisplayName("All combining algorithms produce pure expressions when no PIPs accessed")
+        void whenCombiningAlgorithmWithoutPips_thenExpressionIsNeverStream(String algorithm, String policySet) {
+            val compiled = compilePolicy(policySet);
+
+            assertThat(compiled.decisionExpression())
+                    .as("Policy set with %s algorithm and no PIPs should not produce StreamExpression", algorithm)
+                    .isNotInstanceOf(StreamExpression.class);
+        }
+
+        static Stream<Arguments> combiningAlgorithmPolicySets() {
+            return Stream.of(arguments("deny-overrides", """
+                    set "access" deny-overrides
+                    policy "admin" permit where subject.role == "admin";
+                    policy "user" permit where subject.role == "user" && action == "read";
+                    policy "default" deny
+                    """), arguments("permit-overrides", """
+                    set "access" permit-overrides
+                    policy "blocked" deny where resource.blocked == true;
+                    policy "admin" permit where subject.role == "admin";
+                    policy "default" deny
+                    """), arguments("deny-unless-permit", """
+                    set "access" deny-unless-permit
+                    policy "admin" permit where subject.role == "admin";
+                    policy "readonly" permit where action == "read";
+                    """), arguments("permit-unless-deny", """
+                    set "access" permit-unless-deny
+                    policy "secret" deny where resource.classification == "secret";
+                    policy "blocked" deny where subject.blocked == true;
+                    """), arguments("only-one-applicable", """
+                    set "access" only-one-applicable
+                    policy "admin" permit where subject.role == "admin";
+                    policy "user" permit where action == "read";
+                    policy "contractor" deny where subject.role == "contractor";
+                    """), arguments("first-applicable", """
+                    set "access" first-applicable
+                    policy "admin" permit where subject.role == "admin";
+                    policy "blocked" deny where subject.blocked == true;
+                    policy "default" permit
+                    """));
+        }
+
+    }
+
+    @Nested
     @DisplayName("Pure Expression Policies")
     class PureExpressionPolicyTests {
 

@@ -96,10 +96,12 @@ public class DynamicPolicyDecisionPoint implements TracedPolicyDecisionPoint {
     }
 
     /**
-     * Blocking decision for simple API access patterns.
+     * Synchronous, blocking authorization decision using the pure evaluation path.
      * <p>
-     * Uses a pre-evaluated expression path optimized for simple policies without
-     * attribute streaming. Falls back to
+     * This method is optimized for high-throughput one-shot authorization
+     * decisions.
+     * It uses a pre-evaluated expression path that avoids reactive subscription
+     * overhead for simple policies without attribute streaming. Falls back to
      * reactive evaluation for policies with attribute access.
      *
      * @param authorizationSubscription
@@ -107,7 +109,8 @@ public class DynamicPolicyDecisionPoint implements TracedPolicyDecisionPoint {
      *
      * @return the authorization decision
      */
-    public AuthorizationDecision decideBlocking(AuthorizationSubscription authorizationSubscription) {
+    @Override
+    public AuthorizationDecision decideOnceBlocking(AuthorizationSubscription authorizationSubscription) {
         val pdpConfiguration = pdpConfigurationSource.getCurrentConfiguration(DEFAULT_PDP_ID)
                 .orElseThrow(() -> new IllegalStateException("No PDP configuration available"));
 
@@ -122,8 +125,10 @@ public class DynamicPolicyDecisionPoint implements TracedPolicyDecisionPoint {
             return AuthorizationDecision.INDETERMINATE;
         }
 
-        val policies     = ((MatchingDocuments) retrievalResult).matches();
-        val combinedExpr = getCombinedExpression(algorithmName, algorithm, policies);
+        val matchingDocs   = (MatchingDocuments) retrievalResult;
+        val policies       = matchingDocs.matches();
+        val totalDocuments = matchingDocs.totalDocuments();
+        val combinedExpr   = getCombinedExpression(algorithmName, algorithm, policies, totalDocuments);
 
         if (combinedExpr instanceof Value value) {
             return AuthorizationDecision.of(value);
@@ -138,14 +143,67 @@ public class DynamicPolicyDecisionPoint implements TracedPolicyDecisionPoint {
         return AuthorizationDecision.INDETERMINATE;
     }
 
+    /**
+     * Synchronous, blocking authorization decision with full trace information
+     * using the pure evaluation path.
+     * <p>
+     * This method combines the performance benefits of the pure evaluation path
+     * with comprehensive tracing for debugging and auditing.
+     *
+     * @param authorizationSubscription
+     * the authorization request
+     *
+     * @return the traced decision containing both the authorization result and
+     * evaluation trace
+     */
+    @Override
+    public TracedDecision decideOnceBlockingTraced(AuthorizationSubscription authorizationSubscription) {
+        val pdpConfiguration = pdpConfigurationSource.getCurrentConfiguration(DEFAULT_PDP_ID)
+                .orElseThrow(() -> new IllegalStateException("No PDP configuration available"));
+
+        val subscriptionId    = idFactory.newRandom();
+        val evaluationContext = evaluationContext(authorizationSubscription, pdpConfiguration, subscriptionId);
+        val algorithm         = pdpConfiguration.combiningAlgorithm();
+        val algorithmName     = toSaplSyntax(algorithm);
+
+        val retrievalResult = pdpConfiguration.policyRetrievalPoint().getMatchingDocuments(authorizationSubscription,
+                evaluationContext);
+
+        if (retrievalResult instanceof RetrievalError(String documentName, ErrorValue error)) {
+            return indeterminateDecisionWithRetrievalError(evaluationContext, algorithmName, documentName, error);
+        }
+
+        val matchingDocs   = (MatchingDocuments) retrievalResult;
+        val policies       = matchingDocs.matches();
+        val totalDocuments = matchingDocs.totalDocuments();
+        val combinedExpr   = getCombinedExpression(algorithmName, algorithm, policies, totalDocuments);
+
+        if (combinedExpr instanceof Value value) {
+            return new TracedDecision(value);
+        }
+        if (combinedExpr instanceof PureExpression pureExpr) {
+            return new TracedDecision(pureExpr.evaluate(evaluationContext));
+        }
+        if (combinedExpr instanceof StreamExpression(Flux<Value> stream)) {
+            return stream.contextWrite(ctx -> ctx.put(EvaluationContext.class, evaluationContext))
+                    .map(TracedDecision::new).blockFirst();
+        }
+        return noConfigDecision(authorizationSubscription, subscriptionId);
+    }
+
     private CompiledExpression getCombinedExpression(String algorithmName, CombiningAlgorithm algorithm,
-            List<CompiledPolicy> policies) {
+            List<CompiledPolicy> policies, int totalDocuments) {
         return switch (algorithm) {
-        case DENY_OVERRIDES      -> CombiningAlgorithmCompiler.denyOverridesPreMatched(algorithmName, policies);
-        case PERMIT_OVERRIDES    -> CombiningAlgorithmCompiler.permitOverridesPreMatched(algorithmName, policies);
-        case DENY_UNLESS_PERMIT  -> CombiningAlgorithmCompiler.denyUnlessPermitPreMatched(algorithmName, policies);
-        case PERMIT_UNLESS_DENY  -> CombiningAlgorithmCompiler.permitUnlessDenyPreMatched(algorithmName, policies);
-        case ONLY_ONE_APPLICABLE -> CombiningAlgorithmCompiler.onlyOneApplicablePreMatched(algorithmName, policies);
+        case DENY_OVERRIDES      ->
+            CombiningAlgorithmCompiler.denyOverridesPreMatched(algorithmName, policies, totalDocuments);
+        case PERMIT_OVERRIDES    ->
+            CombiningAlgorithmCompiler.permitOverridesPreMatched(algorithmName, policies, totalDocuments);
+        case DENY_UNLESS_PERMIT  ->
+            CombiningAlgorithmCompiler.denyUnlessPermitPreMatched(algorithmName, policies, totalDocuments);
+        case PERMIT_UNLESS_DENY  ->
+            CombiningAlgorithmCompiler.permitUnlessDenyPreMatched(algorithmName, policies, totalDocuments);
+        case ONLY_ONE_APPLICABLE ->
+            CombiningAlgorithmCompiler.onlyOneApplicablePreMatched(algorithmName, policies, totalDocuments);
         };
     }
 
@@ -162,16 +220,16 @@ public class DynamicPolicyDecisionPoint implements TracedPolicyDecisionPoint {
         val retrievalResult = pdpConfiguration.policyRetrievalPoint()
                 .getMatchingDocuments(evaluationContext.authorizationSubscription(), evaluationContext);
         return switch (retrievalResult) {
-        case RetrievalError(String documentName, ErrorValue error) ->
+        case RetrievalError(String documentName, ErrorValue error)               ->
             Flux.just(indeterminateDecisionWithRetrievalError(evaluationContext, algorithmName, documentName, error));
-        case MatchingDocuments(List<CompiledPolicy> matches)       ->
-            evaluateMatchingPolicies(matches, evaluationContext, algorithmName, algorithm);
+        case MatchingDocuments(List<CompiledPolicy> matches, int totalDocuments) ->
+            evaluateMatchingPolicies(matches, totalDocuments, evaluationContext, algorithmName, algorithm);
         };
     }
 
-    private Flux<TracedDecision> evaluateMatchingPolicies(List<CompiledPolicy> policies,
+    private Flux<TracedDecision> evaluateMatchingPolicies(List<CompiledPolicy> policies, int totalDocuments,
             EvaluationContext evaluationContext, String algorithmName, CombiningAlgorithm algorithm) {
-        val combinedExpression = getCombinedExpression(algorithmName, algorithm, policies);
+        val combinedExpression = getCombinedExpression(algorithmName, algorithm, policies, totalDocuments);
         return ExpressionCompiler.compiledExpressionToFlux(combinedExpression)
                 .contextWrite(context -> context.put(EvaluationContext.class, evaluationContext))
                 .map(TracedDecision::new);
@@ -192,14 +250,6 @@ public class DynamicPolicyDecisionPoint implements TracedPolicyDecisionPoint {
         val trace = TracedPdpDecision.builder().pdpId("unknown").configurationId("no-config")
                 .subscriptionId(subscriptionId).subscription(subscription).timestamp("unknown").algorithm("none")
                 .decision(AuthorizationDecision.INDETERMINATE.decision()).build();
-        return new TracedDecision(trace);
-    }
-
-    private TracedDecision indeterminateDecision(EvaluationContext evaluationContext, String algorithmName) {
-        val trace = TracedPdpDecision.builder().pdpId(evaluationContext.pdpId())
-                .configurationId(evaluationContext.configurationId()).subscriptionId(evaluationContext.subscriptionId())
-                .subscription(evaluationContext.authorizationSubscription()).timestamp(evaluationContext.timestamp())
-                .algorithm(algorithmName).decision(AuthorizationDecision.INDETERMINATE.decision()).build();
         return new TracedDecision(trace);
     }
 

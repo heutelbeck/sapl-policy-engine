@@ -42,7 +42,10 @@ import static io.sapl.api.model.ValueJsonMarshaller.json;
 import static io.sapl.api.model.ValueJsonMarshaller.toPrettyString;
 import static io.sapl.api.pdp.internal.TracedPolicyDecision.getTargetError;
 import static io.sapl.api.pdp.internal.TracedPolicyDecision.hasTargetError;
+import static io.sapl.api.pdp.internal.TracedPolicyDecision.isNoMatchTrace;
 import static io.sapl.api.pdp.internal.TracedPolicySetDecision.*;
+
+import io.sapl.api.pdp.internal.TracedPolicyDecision;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
@@ -239,8 +242,8 @@ class TracedPolicySetDecisionTests {
         }
 
         @Test
-        @DisplayName("trace shows only evaluated policies for short-circuit")
-        void whenFirstApplicableShortCircuits_thenOnlyEvaluatedPoliciesTraced() {
+        @DisplayName("trace shows evaluated policies including non-matching for order evidence")
+        void whenFirstApplicableShortCircuits_thenEvaluatedPoliciesIncludeNonMatching() {
             val policySet = """
                     set "eldritch-gate" first-applicable
                     policy "key-holder" permit where subject.hasKey == true;
@@ -250,13 +253,257 @@ class TracedPolicySetDecisionTests {
 
             val traced = evaluatePolicySet(policySet, Map.of("subject", json("{\"hasKey\": true}")));
 
-            printDecision("short-circuit trace", traced);
+            printDecision("short-circuit trace with order evidence", traced);
 
             val policies = getPolicies(traced);
             assertThat(policies).hasSize(1);
 
-            val onlyPolicy = (ObjectValue) policies.getFirst();
-            assertThat(onlyPolicy.get(TraceFields.NAME)).isEqualTo(Value.of("key-holder"));
+            val matchingPolicy = (ObjectValue) policies.getFirst();
+            assertThat(matchingPolicy.get(TraceFields.NAME)).isEqualTo(Value.of("key-holder"));
+            assertThat(isNoMatchTrace(matchingPolicy)).isFalse();
+        }
+    }
+
+    @Nested
+    @DisplayName("First-Applicable Order Evidence")
+    class FirstApplicableOrderEvidenceTests {
+
+        @Test
+        @DisplayName("non-matching policies appear in trace with targetMatch=false")
+        void whenPoliciesDoNotMatch_thenAppearInTraceWithTargetMatchFalse() {
+            val policySet = """
+                    set "cursed-library" first-applicable
+                    policy "elder-only" permit subject.age > 1000
+                    policy "initiate-only" permit subject.isInitiate == true
+                    policy "default-deny" deny
+                    """;
+
+            val traced = evaluatePolicySet(policySet, Map.of("subject", json("{\"age\": 30, \"isInitiate\": false}")));
+
+            printDecision("non-matching policies in trace", traced);
+
+            assertThat(getDecision(traced)).isEqualTo(Decision.DENY);
+
+            val policies = getPolicies(traced);
+            assertThat(policies).hasSize(3);
+
+            val elderPolicy = (ObjectValue) policies.get(0);
+            assertThat(elderPolicy.get(TraceFields.NAME)).isEqualTo(Value.of("elder-only"));
+            assertThat(isNoMatchTrace(elderPolicy)).isTrue();
+            assertThat(elderPolicy.get(TraceFields.TARGET_MATCH)).isEqualTo(Value.FALSE);
+
+            val initiatePolicy = (ObjectValue) policies.get(1);
+            assertThat(initiatePolicy.get(TraceFields.NAME)).isEqualTo(Value.of("initiate-only"));
+            assertThat(isNoMatchTrace(initiatePolicy)).isTrue();
+
+            val denyPolicy = (ObjectValue) policies.get(2);
+            assertThat(denyPolicy.get(TraceFields.NAME)).isEqualTo(Value.of("default-deny"));
+            assertThat(isNoMatchTrace(denyPolicy)).isFalse();
+            assertThat(denyPolicy.get(TraceFields.DECISION)).isEqualTo(Value.of("DENY"));
+        }
+
+        @Test
+        @DisplayName("trace order matches evaluation order")
+        void whenPoliciesEvaluated_thenTraceOrderMatchesEvaluationOrder() {
+            val policySet = """
+                    set "ritual-sequence" first-applicable
+                    policy "first-check" permit subject.level >= 5
+                    policy "second-check" permit subject.level >= 3
+                    policy "third-check" permit subject.level >= 1
+                    policy "fallback" deny
+                    """;
+
+            val traced = evaluatePolicySet(policySet, Map.of("subject", json("{\"level\": 2}")));
+
+            printDecision("evaluation order trace", traced);
+
+            assertThat(getDecision(traced)).isEqualTo(Decision.PERMIT);
+
+            val policies = getPolicies(traced);
+            assertThat(policies).hasSize(3);
+
+            assertThat(TracedPolicyDecision.getName(policies.get(0))).isEqualTo("first-check");
+            assertThat(isNoMatchTrace(policies.get(0))).isTrue();
+
+            assertThat(TracedPolicyDecision.getName(policies.get(1))).isEqualTo("second-check");
+            assertThat(isNoMatchTrace(policies.get(1))).isTrue();
+
+            assertThat(TracedPolicyDecision.getName(policies.get(2))).isEqualTo("third-check");
+            assertThat(isNoMatchTrace(policies.get(2))).isFalse();
+            assertThat(TracedPolicyDecision.getDecision(policies.get(2))).isEqualTo(Decision.PERMIT);
+        }
+
+        @Test
+        @DisplayName("short-circuit excludes policies after winning decision")
+        void whenDecisionReached_thenSubsequentPoliciesNotInTrace() {
+            val policySet = """
+                    set "gate-sequence" first-applicable
+                    policy "no-match-first" permit subject.x == "impossible"
+                    policy "winner" permit
+                    policy "never-reached-1" deny
+                    policy "never-reached-2" permit
+                    """;
+
+            val traced = evaluatePolicySet(policySet, Map.of("subject", json("{\"x\": \"normal\"}")));
+
+            printDecision("short-circuit exclusion", traced);
+
+            assertThat(getDecision(traced)).isEqualTo(Decision.PERMIT);
+
+            val policies = getPolicies(traced);
+            assertThat(policies).hasSize(2);
+
+            assertThat(TracedPolicyDecision.getName(policies.get(0))).isEqualTo("no-match-first");
+            assertThat(isNoMatchTrace(policies.get(0))).isTrue();
+
+            assertThat(TracedPolicyDecision.getName(policies.get(1))).isEqualTo("winner");
+            assertThat(TracedPolicyDecision.getDecision(policies.get(1))).isEqualTo(Decision.PERMIT);
+
+            assertThat(getTotalPolicies(traced)).isEqualTo(4);
+        }
+
+        @Test
+        @DisplayName("NOT_APPLICABLE policies appear in trace with full details")
+        void whenPolicyNotApplicable_thenFullTraceIncluded() {
+            val policySet = """
+                    set "conditional-access" first-applicable
+                    policy "no-target-match" permit subject.role == "admin"
+                    policy "body-false" permit where subject.clearance > 5;
+                    policy "winner" deny
+                    """;
+
+            val traced = evaluatePolicySet(policySet,
+                    Map.of("subject", json("{\"role\": \"user\", \"clearance\": 2}")));
+
+            printDecision("NOT_APPLICABLE in trace", traced);
+
+            assertThat(getDecision(traced)).isEqualTo(Decision.DENY);
+
+            val policies = getPolicies(traced);
+            assertThat(policies).hasSize(3);
+
+            val noTargetMatch = (ObjectValue) policies.get(0);
+            assertThat(noTargetMatch.get(TraceFields.NAME)).isEqualTo(Value.of("no-target-match"));
+            assertThat(isNoMatchTrace(noTargetMatch)).isTrue();
+
+            val bodyFalse = (ObjectValue) policies.get(1);
+            assertThat(bodyFalse.get(TraceFields.NAME)).isEqualTo(Value.of("body-false"));
+            assertThat(isNoMatchTrace(bodyFalse)).isFalse();
+            assertThat(bodyFalse.get(TraceFields.DECISION)).isEqualTo(Value.of("NOT_APPLICABLE"));
+
+            val winner = (ObjectValue) policies.get(2);
+            assertThat(winner.get(TraceFields.NAME)).isEqualTo(Value.of("winner"));
+            assertThat(winner.get(TraceFields.DECISION)).isEqualTo(Value.of("DENY"));
+        }
+
+        @Test
+        @DisplayName("totalPolicies combined with trace proves completeness")
+        void whenAllPoliciesTracked_thenCompletenessProvable() {
+            val policySet = """
+                    set "completeness-test" first-applicable
+                    policy "A" permit subject.x == 1
+                    policy "B" permit subject.x == 2
+                    policy "C" permit subject.x == 3
+                    policy "D" deny
+                    policy "E" permit
+                    """;
+
+            val traced = evaluatePolicySet(policySet, Map.of("subject", json("{\"x\": 3}")));
+
+            printDecision("completeness proof", traced);
+
+            assertThat(getDecision(traced)).isEqualTo(Decision.PERMIT);
+            assertThat(getTotalPolicies(traced)).isEqualTo(5);
+
+            val policies = getPolicies(traced);
+            assertThat(policies).hasSize(3);
+
+            assertThat(TracedPolicyDecision.getName(policies.get(0))).isEqualTo("A");
+            assertThat(isNoMatchTrace(policies.get(0))).isTrue();
+
+            assertThat(TracedPolicyDecision.getName(policies.get(1))).isEqualTo("B");
+            assertThat(isNoMatchTrace(policies.get(1))).isTrue();
+
+            assertThat(TracedPolicyDecision.getName(policies.get(2))).isEqualTo("C");
+            assertThat(TracedPolicyDecision.getDecision(policies.get(2))).isEqualTo(Decision.PERMIT);
+        }
+
+        @Test
+        @DisplayName("error in target still includes preceding non-matching policies")
+        void whenTargetErrors_thenPrecedingNonMatchingPoliciesIncluded() {
+            val policySet = """
+                    set "error-sequence" first-applicable
+                    policy "no-match-before-error" permit subject.x == "impossible"
+                    policy "error-target" permit 1 / subject.zero > 0
+                    policy "never-reached" deny
+                    """;
+
+            val traced = evaluatePolicySet(policySet, Map.of("subject", json("{\"x\": \"normal\", \"zero\": 0}")));
+
+            printDecision("error with preceding non-match", traced);
+
+            assertThat(getDecision(traced)).isEqualTo(Decision.INDETERMINATE);
+
+            val policies = getPolicies(traced);
+            assertThat(policies).hasSize(2);
+
+            assertThat(TracedPolicyDecision.getName(policies.get(0))).isEqualTo("no-match-before-error");
+            assertThat(isNoMatchTrace(policies.get(0))).isTrue();
+
+            assertThat(TracedPolicyDecision.getName(policies.get(1))).isEqualTo("error-target");
+            assertThat(hasTargetError(policies.get(1))).isTrue();
+        }
+
+        @Test
+        @DisplayName("all policies non-matching yields NOT_APPLICABLE with all in trace")
+        void whenAllPoliciesNonMatching_thenAllInTraceWithNotApplicable() {
+            val policySet = """
+                    set "no-matches" first-applicable
+                    policy "check-1" permit subject.a == true
+                    policy "check-2" permit subject.b == true
+                    policy "check-3" deny subject.c == true
+                    """;
+
+            val traced = evaluatePolicySet(policySet,
+                    Map.of("subject", json("{\"a\": false, \"b\": false, \"c\": false}")));
+
+            printDecision("all non-matching", traced);
+
+            assertThat(getDecision(traced)).isEqualTo(Decision.NOT_APPLICABLE);
+            assertThat(getTotalPolicies(traced)).isEqualTo(3);
+
+            val policies = getPolicies(traced);
+            assertThat(policies).hasSize(3);
+
+            for (val policy : policies) {
+                assertThat(isNoMatchTrace(policy)).isTrue();
+            }
+        }
+
+        @Test
+        @DisplayName("no-match trace contains minimal fields only")
+        void whenNoMatch_thenTraceIsMinimal() {
+            val policySet = """
+                    set "minimal-trace" first-applicable
+                    policy "no-match" permit subject.x == "impossible"
+                    policy "winner" deny
+                    """;
+
+            val traced = evaluatePolicySet(policySet, Map.of("subject", json("{\"x\": \"normal\"}")));
+
+            printDecision("minimal no-match trace", traced);
+
+            val policies      = getPolicies(traced);
+            val noMatchPolicy = (ObjectValue) policies.get(0);
+
+            assertThat(noMatchPolicy.get(TraceFields.NAME)).isEqualTo(Value.of("no-match"));
+            assertThat(noMatchPolicy.get(TraceFields.TYPE)).isEqualTo(Value.of(TraceFields.TYPE_POLICY));
+            assertThat(noMatchPolicy.get(TraceFields.TARGET_MATCH)).isEqualTo(Value.FALSE);
+
+            assertThat(noMatchPolicy.containsKey(TraceFields.DECISION)).isFalse();
+            assertThat(noMatchPolicy.containsKey(TraceFields.ENTITLEMENT)).isFalse();
+            assertThat(noMatchPolicy.containsKey(TraceFields.OBLIGATIONS)).isFalse();
+            assertThat(noMatchPolicy.containsKey(TraceFields.ADVICE)).isFalse();
         }
     }
 
