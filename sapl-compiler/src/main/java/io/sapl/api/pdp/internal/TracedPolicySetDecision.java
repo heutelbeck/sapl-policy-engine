@@ -34,8 +34,9 @@ import java.util.List;
  * results.
  * <p>
  * A TracedPolicySetDecision captures the result of combining multiple policies
- * within a policy set, including the combined authorization decision, merged
- * constraints, aggregate counts for completeness proof, and the individual
+ * within a policy set, including the
+ * combined authorization decision, merged constraints, aggregate counts for
+ * completeness proof, and the individual
  * policy traces.
  * <p>
  * Structure:
@@ -124,8 +125,9 @@ public class TracedPolicySetDecision {
         /**
          * Sets the total number of policies in the set for completeness proof.
          * <p>
-         * This count includes all policies regardless of whether they matched,
-         * allowing auditors to verify that all policies were considered.
+         * This count includes all policies regardless of whether they matched, allowing
+         * auditors to verify that all
+         * policies were considered.
          *
          * @param totalPolicies
          * the total number of policies in the policy set
@@ -353,7 +355,8 @@ public class TracedPolicySetDecision {
      * Extracts the total policies count from a traced set decision.
      * <p>
      * This count represents all policies in the set, regardless of whether they
-     * matched. Used for completeness proof in auditing.
+     * matched. Used for completeness proof in
+     * auditing.
      *
      * @param tracedSet
      * the traced policy set decision Value

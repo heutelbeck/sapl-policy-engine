@@ -83,8 +83,9 @@ public record EvaluationContext(
     }
 
     /**
-     * Creates an evaluation context with custom timestamp supplier.
-     * Use this with LazyFastClock for high-throughput scenarios.
+     * Creates an evaluation context with custom timestamp supplier. Use this with
+     * LazyFastClock for high-throughput
+     * scenarios.
      *
      * @param timestampSupplier
      * supplies ISO-8601 formatted timestamps for traced decisions
@@ -116,8 +117,9 @@ public record EvaluationContext(
     }
 
     /**
-     * Returns the current timestamp from the configured supplier.
-     * For traced decisions, this captures when the decision was finalized.
+     * Returns the current timestamp from the configured supplier. For traced
+     * decisions, this captures when the decision
+     * was finalized.
      *
      * @return ISO-8601 formatted timestamp string
      */

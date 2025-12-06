@@ -431,7 +431,8 @@ public class PolicyDecisionPointBuilder {
      * Sets a trace level that overrides the trace level specified in pdp.json.
      * <p>
      * When set, this trace level is used for all policy compilations regardless of
-     * what is configured in the pdp.json file. This is useful for:
+     * what is configured in the pdp.json
+     * file. This is useful for:
      * <ul>
      * <li>Forcing audit-level tracing in production for compliance</li>
      * <li>Enabling coverage tracing in test environments</li>
@@ -917,9 +918,10 @@ public class PolicyDecisionPointBuilder {
         /**
          * Disposes all resources held by this PDP instance.
          * <p>
-         * This method should be called when the PDP is no longer needed to ensure
-         * clean application shutdown. It closes the timestamp clock's background
-         * thread and disposes any configuration source file watchers.
+         * This method should be called when the PDP is no longer needed to ensure clean
+         * application shutdown. It closes
+         * the timestamp clock's background thread and disposes any configuration source
+         * file watchers.
          */
         public void dispose() {
             if (timestampClock != null) {

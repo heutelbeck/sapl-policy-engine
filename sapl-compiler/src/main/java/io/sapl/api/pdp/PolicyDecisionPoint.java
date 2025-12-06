@@ -65,12 +65,13 @@ public interface PolicyDecisionPoint {
      * Synchronous, blocking authorization decision for high-throughput scenarios.
      * <p>
      * This method is optimized for high-volume one-shot authorization decisions
-     * where configuration changes are rare. It provides a synchronous API for
-     * applications that do not use reactive streams.
+     * where configuration changes are rare.
+     * It provides a synchronous API for applications that do not use reactive
+     * streams.
      * <p>
      * Implementations may use an optimized pure evaluation path that bypasses
-     * reactive subscription overhead entirely. The default implementation falls
-     * back to blocking on the reactive stream.
+     * reactive subscription overhead entirely.
+     * The default implementation falls back to blocking on the reactive stream.
      *
      * @param authorizationSubscription
      * the authorization subscription to evaluate

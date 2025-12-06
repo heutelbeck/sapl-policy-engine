@@ -22,8 +22,9 @@ package io.sapl.api.pdp;
  * evaluation.
  * <p>
  * Trace level is a compile-time decision that affects the generated evaluation
- * expressions. COVERAGE level provides additional data for test analysis at the
- * cost of increased memory allocation and processing overhead.
+ * expressions. COVERAGE level provides
+ * additional data for test analysis at the cost of increased memory allocation
+ * and processing overhead.
  * <p>
  * To change trace level, push a new PDP configuration which triggers
  * recompilation of policies with the new level.
@@ -45,7 +46,8 @@ public enum TraceLevel {
      * </ul>
      * <p>
      * Non-matching policies (target evaluated to false) are not individually
-     * listed, but their count is included in the aggregate totals.
+     * listed, but their count is included in the
+     * aggregate totals.
      */
     STANDARD,
 
@@ -61,7 +63,8 @@ public enum TraceLevel {
      * </ul>
      * <p>
      * Coverage data is emitted per-evaluation. Aggregation across evaluations is
-     * the responsibility of the coverage collector (separation of concerns).
+     * the responsibility of the coverage
+     * collector (separation of concerns).
      * <p>
      * Significant overhead - intended for test frameworks, not production.
      */

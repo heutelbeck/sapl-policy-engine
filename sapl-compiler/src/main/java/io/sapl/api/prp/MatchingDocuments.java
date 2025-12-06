@@ -25,10 +25,9 @@ import java.util.List;
  * Result of policy retrieval containing matching documents and the total count.
  * <p>
  * The {@code totalDocuments} field represents the total number of documents in
- * the PRP,
- * regardless of whether they matched. This enables auditors to verify that all
- * documents
- * were considered during policy retrieval.
+ * the PRP, regardless of whether they
+ * matched. This enables auditors to verify that all documents were considered
+ * during policy retrieval.
  *
  * @param matches
  * the list of documents whose targets matched the subscription

@@ -26,7 +26,8 @@ import java.io.IOException;
 
 /**
  * Deserializer for {@link TraceLevel} that supports case-insensitive parsing
- * and kebab-case format (e.g., "standard" or "STANDARD" both map to STANDARD).
+ * and kebab-case format (e.g., "standard" or
+ * "STANDARD" both map to STANDARD).
  */
 public class TraceLevelDeserializer extends JsonDeserializer<TraceLevel> {
 

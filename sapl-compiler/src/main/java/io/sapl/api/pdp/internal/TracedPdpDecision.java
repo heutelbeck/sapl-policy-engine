@@ -36,9 +36,10 @@ import java.util.List;
  * results.
  * <p>
  * A TracedPdpDecision captures the complete result of evaluating an
- * authorization subscription at the PDP level, including PDP metadata, the
- * combined authorization decision, aggregate counts for completeness proof,
- * and traces of all evaluated documents.
+ * authorization subscription at the PDP level,
+ * including PDP metadata, the combined authorization decision, aggregate counts
+ * for completeness proof, and traces of
+ * all evaluated documents.
  * <p>
  * Structure:
  *
@@ -193,7 +194,8 @@ public class TracedPdpDecision {
          * Sets the total number of documents in the PRP for completeness proof.
          * <p>
          * This count includes all documents regardless of whether they matched,
-         * allowing auditors to verify that all documents were considered.
+         * allowing auditors to verify that all
+         * documents were considered.
          *
          * @param totalDocuments
          * the total number of documents in the policy repository
@@ -307,7 +309,8 @@ public class TracedPdpDecision {
          * Adds a retrieval error that occurred during policy retrieval.
          * <p>
          * Retrieval errors occur when a document's target expression fails to evaluate,
-         * preventing the document from being properly matched against the subscription.
+         * preventing the document from
+         * being properly matched against the subscription.
          *
          * @param documentName
          * the name of the document whose target failed
@@ -474,7 +477,8 @@ public class TracedPdpDecision {
      * Extracts the total documents count from a traced PDP decision.
      * <p>
      * This count represents all documents in the PRP, regardless of whether they
-     * matched. Used for completeness proof in auditing.
+     * matched. Used for completeness proof
+     * in auditing.
      *
      * @param tracedPdp
      * the traced PDP decision Value

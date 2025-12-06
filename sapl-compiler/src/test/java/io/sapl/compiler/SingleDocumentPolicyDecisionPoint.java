@@ -182,9 +182,9 @@ public final class SingleDocumentPolicyDecisionPoint implements PolicyDecisionPo
 
     /**
      * Synchronous blocking evaluation - bypasses Reactor entirely for pure
-     * policies.
-     * Only works for policies without attribute streams. For policies with
-     * obligations/advice/transform, falls back to blocking on the stream.
+     * policies. Only works for policies without
+     * attribute streams. For policies with obligations/advice/transform, falls back
+     * to blocking on the stream.
      *
      * @param authorizationSubscription
      * the authorization subscription

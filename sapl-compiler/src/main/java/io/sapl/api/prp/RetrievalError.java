@@ -23,7 +23,8 @@ import io.sapl.api.model.ErrorValue;
  * Represents an error that occurred during policy retrieval.
  * <p>
  * This typically happens when a document's target expression fails to evaluate,
- * preventing the document from being properly matched against the subscription.
+ * preventing the document from being
+ * properly matched against the subscription.
  *
  * @param documentName
  * the name of the document whose target expression failed

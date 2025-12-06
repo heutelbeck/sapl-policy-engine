@@ -37,7 +37,8 @@ import java.util.concurrent.TimeUnit;
 
 /**
  * JMH benchmark for NEW SAPL PDP (Value-based) performance measurement.
- * Compares REACTIVE (Flux-based) and BLOCKING (synchronous) evaluation paths.
+ * Compares REACTIVE (Flux-based) and BLOCKING
+ * (synchronous) evaluation paths.
  * <p>
  * For OLD PDP (Val-based) benchmarks, run EmbeddedPdpBenchmark from the
  * sapl-pdp-embedded module instead.

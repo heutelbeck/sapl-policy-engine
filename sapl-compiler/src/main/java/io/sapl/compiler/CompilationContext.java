@@ -31,18 +31,22 @@ import java.util.*;
 
 /**
  * Mutable context for SAPL compilation. Tracks imports, variable scopes, and
- * constant deduplication during document compilation.
+ * constant deduplication during document
+ * compilation.
  * <p>
  * Variable scopes: Document-level variables persist across policies in a policy
- * set. Local policy variables are cleared between policies via
- * {@link #resetForNextPolicy()}. The context is reused across documents via
+ * set. Local policy variables are cleared
+ * between policies via {@link #resetForNextPolicy()}. The context is reused
+ * across documents via
  * {@link #resetForNextDocument()}.
  * <p>
  * Constant deduplication: Identical constant values share the same object
- * instance to reduce memory usage. Disabled when debug information is enabled.
+ * instance to reduce memory usage. Disabled
+ * when debug information is enabled.
  * <p>
  * Trace level: Controls granularity of trace information gathered during
- * evaluation. This is a compile-time decision affecting generated expressions.
+ * evaluation. This is a compile-time decision
+ * affecting generated expressions.
  */
 @Getter
 @Setter

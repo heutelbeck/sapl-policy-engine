@@ -99,9 +99,9 @@ public class DynamicPolicyDecisionPoint implements TracedPolicyDecisionPoint {
      * Synchronous, blocking authorization decision using the pure evaluation path.
      * <p>
      * This method is optimized for high-throughput one-shot authorization
-     * decisions.
-     * It uses a pre-evaluated expression path that avoids reactive subscription
-     * overhead for simple policies without attribute streaming. Falls back to
+     * decisions. It uses a pre-evaluated expression
+     * path that avoids reactive subscription overhead for simple policies without
+     * attribute streaming. Falls back to
      * reactive evaluation for policies with attribute access.
      *
      * @param authorizationSubscription
@@ -148,7 +148,8 @@ public class DynamicPolicyDecisionPoint implements TracedPolicyDecisionPoint {
      * using the pure evaluation path.
      * <p>
      * This method combines the performance benefits of the pure evaluation path
-     * with comprehensive tracing for debugging and auditing.
+     * with comprehensive tracing for
+     * debugging and auditing.
      *
      * @param authorizationSubscription
      * the authorization request

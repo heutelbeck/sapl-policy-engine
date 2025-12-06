@@ -270,8 +270,8 @@ public class CombiningAlgorithmCompiler {
 
     /**
      * Evaluates a policy and returns its traced decision, or UNDEFINED if the
-     * target doesn't match. This mirrors the semantics of
-     * {@link #createTracedPolicyFlux} for pure evaluation paths.
+     * target doesn't match. This mirrors the
+     * semantics of {@link #createTracedPolicyFlux} for pure evaluation paths.
      *
      * @param policy
      * the compiled policy to evaluate

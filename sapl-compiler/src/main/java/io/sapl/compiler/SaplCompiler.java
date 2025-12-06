@@ -411,10 +411,10 @@ public class SaplCompiler {
     }
 
     /**
-     * Determines the combined nature of a list of expressions.
-     * Returns STREAM if any expression is a StreamExpression,
-     * PURE if any is a PureExpression (and none are streams),
-     * VALUE if all are Values (constants).
+     * Determines the combined nature of a list of expressions. Returns STREAM if
+     * any expression is a StreamExpression,
+     * PURE if any is a PureExpression (and none are streams), VALUE if all are
+     * Values (constants).
      */
     private static Nature determineNature(List<CompiledExpression> expressions) {
         var result = Nature.VALUE;
@@ -431,8 +431,8 @@ public class SaplCompiler {
 
     /**
      * Determines the combined nature of all constraints (obligations, advice,
-     * transformation).
-     * The result is the "highest" nature: STREAM > PURE > VALUE.
+     * transformation). The result is the
+     * "highest" nature: STREAM > PURE > VALUE.
      */
     private static Nature determineConstraintsNature(List<CompiledExpression> obligations,
             List<CompiledExpression> advice, CompiledExpression transformation) {

@@ -67,7 +67,8 @@ public class TracedPolicyDecision {
      * Creates a minimal trace for a policy whose target did not match.
      * <p>
      * Used by first-applicable algorithm to provide order evidence. The trace
-     * contains only the policy name, type, and targetMatch=false indicator.
+     * contains only the policy name, type, and
+     * targetMatch=false indicator.
      *
      * @param policyName
      * the name of the policy that did not match
@@ -235,7 +236,8 @@ public class TracedPolicyDecision {
          * Sets a target expression error that caused this policy to be INDETERMINATE.
          * <p>
          * When a target expression fails to evaluate (e.g., type error, division by
-         * zero), this captures the error details for audit and debugging purposes.
+         * zero), this captures the error
+         * details for audit and debugging purposes.
          *
          * @param error
          * the ErrorValue from target expression evaluation
@@ -472,8 +474,9 @@ public class TracedPolicyDecision {
     /**
      * Gets the targetMatch field value from a traced policy decision.
      * <p>
-     * For policies that matched, this returns null (field not present).
-     * For policies created via createNoMatchTrace(), this returns false.
+     * For policies that matched, this returns null (field not present). For
+     * policies created via createNoMatchTrace(),
+     * this returns false.
      *
      * @param tracedPolicy
      * the traced policy decision Value

@@ -21,13 +21,18 @@ import lombok.val;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.*;
+import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 @DisplayName("ObjectValue Tests")
 class ObjectValueTests {
@@ -96,12 +101,8 @@ class ObjectValueTests {
                     .put("location", Value.of("Miskatonic University")).build();
 
             assertThat(grimoire.isSecret()).isTrue();
-            val ritual = grimoire.get("ritual");
-            assertThat(ritual).isNotNull();
-            assertThat(ritual.isSecret()).isTrue();
-            val location = grimoire.get("location");
-            assertThat(location).isNotNull();
-            assertThat(location.isSecret()).isTrue();
+            assertThat(grimoire.get("ritual")).isNotNull().satisfies(r -> assertThat(r.isSecret()).isTrue());
+            assertThat(grimoire.get("location")).isNotNull().satisfies(l -> assertThat(l.isSecret()).isTrue());
         }
 
         @Test
@@ -111,12 +112,9 @@ class ObjectValueTests {
                     .put("deity", Value.of("Cthulhu")).secret().build();
 
             assertThat(forbiddenKnowledge.isSecret()).isTrue();
-            val incantation = forbiddenKnowledge.get("incantation");
-            assertThat(incantation).isNotNull();
-            assertThat(incantation.isSecret()).isTrue();
-            val deity = forbiddenKnowledge.get("deity");
-            assertThat(deity).isNotNull();
-            assertThat(deity.isSecret()).isTrue();
+            assertThat(forbiddenKnowledge.get("incantation")).isNotNull()
+                    .satisfies(i -> assertThat(i.isSecret()).isTrue());
+            assertThat(forbiddenKnowledge.get("deity")).isNotNull().satisfies(d -> assertThat(d.isSecret()).isTrue());
         }
 
         @Test
@@ -128,15 +126,9 @@ class ObjectValueTests {
             val secretGrimoire = ObjectValue.builder().secret().putAll(elderSigns).build();
 
             assertThat(secretGrimoire.isSecret()).isTrue();
-            val pentagram = secretGrimoire.get("pentagram");
-            assertThat(pentagram).isNotNull();
-            assertThat(pentagram.isSecret()).isTrue();
-            val eye = secretGrimoire.get("eye");
-            assertThat(eye).isNotNull();
-            assertThat(eye.isSecret()).isTrue();
-            val star = secretGrimoire.get("star");
-            assertThat(star).isNotNull();
-            assertThat(star.isSecret()).isTrue();
+            assertThat(secretGrimoire.get("pentagram")).isNotNull().satisfies(p -> assertThat(p.isSecret()).isTrue());
+            assertThat(secretGrimoire.get("eye")).isNotNull().satisfies(e -> assertThat(e.isSecret()).isTrue());
+            assertThat(secretGrimoire.get("star")).isNotNull().satisfies(s -> assertThat(s.isSecret()).isTrue());
         }
 
         @Test
@@ -148,15 +140,9 @@ class ObjectValueTests {
             val memberRegistry = ObjectValue.builder().putAll(cultMembers).secret().build();
 
             assertThat(memberRegistry.isSecret()).isTrue();
-            val highPriest = memberRegistry.get("highPriest");
-            assertThat(highPriest).isNotNull();
-            assertThat(highPriest.isSecret()).isTrue();
-            val acolyte = memberRegistry.get("acolyte");
-            assertThat(acolyte).isNotNull();
-            assertThat(acolyte.isSecret()).isTrue();
-            val witness = memberRegistry.get("witness");
-            assertThat(witness).isNotNull();
-            assertThat(witness.isSecret()).isTrue();
+            assertThat(memberRegistry.get("highPriest")).isNotNull().satisfies(h -> assertThat(h.isSecret()).isTrue());
+            assertThat(memberRegistry.get("acolyte")).isNotNull().satisfies(a -> assertThat(a.isSecret()).isTrue());
+            assertThat(memberRegistry.get("witness")).isNotNull().satisfies(w -> assertThat(w.isSecret()).isTrue());
         }
 
         @Test
@@ -166,12 +152,8 @@ class ObjectValueTests {
                     .put("page", Value.of(731)).secret().build();
 
             assertThat(necronomicon.isSecret()).isTrue();
-            val chapter = necronomicon.get("chapter");
-            assertThat(chapter).isNotNull();
-            assertThat(chapter.isSecret()).isTrue();
-            val page = necronomicon.get("page");
-            assertThat(page).isNotNull();
-            assertThat(page.isSecret()).isTrue();
+            assertThat(necronomicon.get("chapter")).isNotNull().satisfies(c -> assertThat(c.isSecret()).isTrue());
+            assertThat(necronomicon.get("page")).isNotNull().satisfies(p -> assertThat(p.isSecret()).isTrue());
         }
 
         @Test
@@ -195,12 +177,8 @@ class ObjectValueTests {
             val records = ObjectValue.builder().putAll(publicRecords).build();
 
             assertThat(records.isSecret()).isFalse();
-            val town = records.get("town");
-            assertThat(town).isNotNull();
-            assertThat(town.isSecret()).isFalse();
-            val population = records.get("population");
-            assertThat(population).isNotNull();
-            assertThat(population.isSecret()).isFalse();
+            assertThat(records.get("town")).isNotNull().satisfies(t -> assertThat(t.isSecret()).isFalse());
+            assertThat(records.get("population")).isNotNull().satisfies(p -> assertThat(p.isSecret()).isFalse());
         }
 
         @Test
@@ -216,9 +194,8 @@ class ObjectValueTests {
             var result = ObjectValue.builder().withMetadata(metadata).put("key", Value.of("value")).build();
 
             assertThat(result.metadata().attributeTrace()).containsExactly(attributeRecord);
-            val retrievedKey = result.get("key");
-            assertThat(retrievedKey).isNotNull();
-            assertThat(retrievedKey.metadata().attributeTrace()).containsExactly(attributeRecord);
+            assertThat(result.get("key")).isNotNull()
+                    .satisfies(k -> assertThat(k.metadata().attributeTrace()).containsExactly(attributeRecord));
         }
 
         @Test
@@ -262,9 +239,7 @@ class ObjectValueTests {
                     .put("key", Value.of("sensitive")).build();
 
             assertThat(result.isSecret()).isTrue();
-            val retrievedKey = result.get("key");
-            assertThat(retrievedKey).isNotNull();
-            assertThat(retrievedKey.isSecret()).isTrue();
+            assertThat(result.get("key")).isNotNull().satisfies(k -> assertThat(k.isSecret()).isTrue());
         }
     }
 
@@ -767,12 +742,8 @@ class ObjectValueTests {
             var obj = ObjectValue.builder().put("key1", Value.of(1)).put("key2", Value.of(2)).secret().build();
 
             assertThat(obj.isSecret()).isTrue();
-            val key1 = obj.get("key1");
-            assertThat(key1).isNotNull();
-            assertThat(key1.isSecret()).isTrue();
-            val key2 = obj.get("key2");
-            assertThat(key2).isNotNull();
-            assertThat(key2.isSecret()).isTrue();
+            assertThat(obj.get("key1")).isNotNull().satisfies(k -> assertThat(k.isSecret()).isTrue());
+            assertThat(obj.get("key2")).isNotNull().satisfies(k -> assertThat(k.isSecret()).isTrue());
         }
 
         @Test
@@ -837,12 +808,8 @@ class ObjectValueTests {
 
             assertThat(secretFirst.isSecret()).isTrue();
             assertThat(secretLast.isSecret()).isTrue();
-            val firstKey = secretFirst.get("key");
-            assertThat(firstKey).isNotNull();
-            assertThat(firstKey.isSecret()).isTrue();
-            val lastKey = secretLast.get("key");
-            assertThat(lastKey).isNotNull();
-            assertThat(lastKey.isSecret()).isTrue();
+            assertThat(secretFirst.get("key")).isNotNull().satisfies(k -> assertThat(k.isSecret()).isTrue());
+            assertThat(secretLast.get("key")).isNotNull().satisfies(k -> assertThat(k.isSecret()).isTrue());
         }
 
         @Test
@@ -889,18 +856,14 @@ class ObjectValueTests {
 
             // Container is secret because it contains a secret value
             assertThat(objWithSecret.isSecret()).isTrue();
-            val retrievedKey = objWithSecret.get("key");
-            assertThat(retrievedKey).isNotNull();
-            assertThat(retrievedKey.isSecret()).isTrue();
+            assertThat(objWithSecret.get("key")).isNotNull().satisfies(k -> assertThat(k.isSecret()).isTrue());
 
             // Explicitly marking as secret on already-secret container doesn't change
             // anything
             var explicitlySecretObj = ObjectValue.builder().put("key", secretValue).secret().build();
 
             assertThat(explicitlySecretObj.isSecret()).isTrue();
-            val secretKey = explicitlySecretObj.get("key");
-            assertThat(secretKey).isNotNull();
-            assertThat(secretKey.isSecret()).isTrue();
+            assertThat(explicitlySecretObj.get("key")).isNotNull().satisfies(k -> assertThat(k.isSecret()).isTrue());
         }
 
         @Test
@@ -912,30 +875,22 @@ class ObjectValueTests {
             // Non-secret value in non-secret container stays non-secret
             var nonSecretContainer = ObjectValue.builder().put("key", nonSecretValue).build();
             assertThat(nonSecretContainer.isSecret()).isFalse();
-            val value1 = nonSecretContainer.get("key");
-            assertThat(value1).isNotNull();
-            assertThat(value1.isSecret()).isFalse();
+            assertThat(nonSecretContainer.get("key")).isNotNull().satisfies(v -> assertThat(v.isSecret()).isFalse());
 
             // Secret value propagates to container (metadata aggregation)
             var containerWithSecret = ObjectValue.builder().put("key", secretValue).build();
             assertThat(containerWithSecret.isSecret()).isTrue();
-            val value2 = containerWithSecret.get("key");
-            assertThat(value2).isNotNull();
-            assertThat(value2.isSecret()).isTrue();
+            assertThat(containerWithSecret.get("key")).isNotNull().satisfies(v -> assertThat(v.isSecret()).isTrue());
 
             // Secret container propagates to non-secret value
             var secretContainer = ObjectValue.builder().put("key", nonSecretValue).secret().build();
             assertThat(secretContainer.isSecret()).isTrue();
-            val value3 = secretContainer.get("key");
-            assertThat(value3).isNotNull();
-            assertThat(value3.isSecret()).isTrue();
+            assertThat(secretContainer.get("key")).isNotNull().satisfies(v -> assertThat(v.isSecret()).isTrue());
 
             // Both secret container and secret value - all secret
             var allSecretContainer = ObjectValue.builder().put("key", secretValue).secret().build();
             assertThat(allSecretContainer.isSecret()).isTrue();
-            val value4 = allSecretContainer.get("key");
-            assertThat(value4).isNotNull();
-            assertThat(value4.isSecret()).isTrue();
+            assertThat(allSecretContainer.get("key")).isNotNull().satisfies(v -> assertThat(v.isSecret()).isTrue());
         }
     }
 
@@ -943,45 +898,21 @@ class ObjectValueTests {
     @DisplayName("ErrorValue Secret Inheritance - CRITICAL")
     class ErrorValueSecretInheritanceTests {
 
-        @Test
-        @DisplayName("ErrorValue from get(null) inherits secret flag")
-        void when_getWithNullOnSecret_then_errorInheritsSecret() {
+        @ParameterizedTest(name = "{0}({1}) on secret ObjectValue returns secret ErrorValue")
+        @MethodSource("io.sapl.api.model.ObjectValueTests#errorValueSecretInheritanceCases")
+        @DisplayName("ErrorValue inherits secret flag from secret ObjectValue")
+        void when_operationOnSecretWithInvalidKey_then_errorInheritsSecret(String operation, Object key) {
             var secret = new ObjectValue(Map.of("key", Value.of(1)), ValueMetadata.SECRET_EMPTY);
-            var error  = secret.get(null);
+            var error  = "get".equals(operation) ? secret.get(key) : secret.getOrDefault(key, Value.of(999));
 
             assertThat(error).isInstanceOf(ErrorValue.class);
             assertThat(error.isSecret()).isTrue();
         }
+    }
 
-        @Test
-        @DisplayName("ErrorValue from get(non-String) inherits secret flag")
-        void when_getWithNonStringOnSecret_then_errorInheritsSecret() {
-            var secret = new ObjectValue(Map.of("key", Value.of(1)), ValueMetadata.SECRET_EMPTY);
-            var error  = secret.get(123);
-
-            assertThat(error).isNotNull().isInstanceOf(ErrorValue.class);
-            assertThat(error.isSecret()).isTrue();
-        }
-
-        @Test
-        @DisplayName("ErrorValue from getOrDefault(null) inherits secret flag")
-        void when_getOrDefaultWithNullOnSecret_then_errorInheritsSecret() {
-            var secret = new ObjectValue(Map.of("key", Value.of(1)), ValueMetadata.SECRET_EMPTY);
-            var error  = secret.getOrDefault(null, Value.of(999));
-
-            assertThat(error).isInstanceOf(ErrorValue.class);
-            assertThat(error.isSecret()).isTrue();
-        }
-
-        @Test
-        @DisplayName("ErrorValue from getOrDefault(non-String) inherits secret flag")
-        void when_getOrDefaultWithNonStringOnSecret_then_errorInheritsSecret() {
-            var secret = new ObjectValue(Map.of("key", Value.of(1)), ValueMetadata.SECRET_EMPTY);
-            var error  = secret.getOrDefault(456, Value.of(999));
-
-            assertThat(error).isInstanceOf(ErrorValue.class);
-            assertThat(error.isSecret()).isTrue();
-        }
+    static Stream<Arguments> errorValueSecretInheritanceCases() {
+        return Stream.of(arguments("get", null), arguments("get", 123), arguments("getOrDefault", null),
+                arguments("getOrDefault", 456));
     }
 
     @Nested
