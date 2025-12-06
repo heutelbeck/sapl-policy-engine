@@ -565,7 +565,7 @@ class TracedPolicyDecisionTests {
 
             assertThat(traced).isNotNull().isInstanceOf(ObjectValue.class);
             val obj = (ObjectValue) traced;
-            assertThat(obj.get(TraceFields.DECISION)).isEqualTo(Value.of(expectedDecision.name()));
+            assertThat(obj).containsEntry(TraceFields.DECISION, Value.of(expectedDecision.name()));
         }
 
         static Stream<Arguments> combiningAlgorithmCases() {
@@ -1139,7 +1139,7 @@ class TracedPolicyDecisionTests {
             assertThat(getAttributes(traced)).isNotEmpty();
 
             val firstAttribute = (ObjectValue) getAttributes(traced).getFirst();
-            assertThat(firstAttribute.get(TraceFields.VALUE)).isEqualTo(Value.of(13));
+            assertThat(firstAttribute).containsEntry(TraceFields.VALUE, Value.of(13));
         }
 
         @ParameterizedTest(name = "{0}")

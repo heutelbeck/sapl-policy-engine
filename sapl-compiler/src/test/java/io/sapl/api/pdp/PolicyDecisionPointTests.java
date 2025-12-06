@@ -89,8 +89,8 @@ class PolicyDecisionPointTests {
             assertThat(decisions).hasSize(2);
             val decisionMap = decisions.stream().collect(java.util.stream.Collectors.toMap(
                     IdentifiableAuthorizationDecision::subscriptionId, IdentifiableAuthorizationDecision::decision));
-            assertThat(decisionMap.get("read-tome")).isEqualTo(AuthorizationDecision.PERMIT);
-            assertThat(decisionMap.get("write-tome")).isEqualTo(AuthorizationDecision.DENY);
+            assertThat(decisionMap).containsEntry("read-tome", AuthorizationDecision.PERMIT).containsEntry("write-tome",
+                    AuthorizationDecision.DENY);
         }).verifyComplete();
     }
 

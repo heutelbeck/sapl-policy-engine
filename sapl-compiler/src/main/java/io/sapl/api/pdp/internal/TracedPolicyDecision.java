@@ -471,19 +471,7 @@ public class TracedPolicyDecision {
         return getTargetError(tracedPolicy) != null;
     }
 
-    /**
-     * Gets the targetMatch field value from a traced policy decision.
-     * <p>
-     * For policies that matched, this returns null (field not present). For
-     * policies created via createNoMatchTrace(),
-     * this returns false.
-     *
-     * @param tracedPolicy
-     * the traced policy decision Value
-     *
-     * @return Boolean.FALSE if target did not match, null if field not present
-     */
-    public static Boolean getTargetMatch(Value tracedPolicy) {
+    private static Boolean getTargetMatch(Value tracedPolicy) {
         if (tracedPolicy instanceof ObjectValue obj) {
             val field = obj.get(TraceFields.TARGET_MATCH);
             if (field instanceof BooleanValue boolValue) {

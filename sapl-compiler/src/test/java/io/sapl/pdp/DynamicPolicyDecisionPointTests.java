@@ -171,8 +171,8 @@ class DynamicPolicyDecisionPointTests {
             assertThat(decision.decision()).isEqualTo(Decision.PERMIT);
             assertThat(decision.obligations()).hasSize(1);
             val obligation = (ObjectValue) decision.obligations().getFirst();
-            assertThat(obligation.get("type")).isEqualTo(Value.of("log_access"));
-            assertThat(obligation.get("entity")).isEqualTo(Value.of("shoggoth"));
+            assertThat(obligation).containsEntry("type", Value.of("log_access")).containsEntry("entity",
+                    Value.of("shoggoth"));
         }).verifyComplete();
     }
 
@@ -190,7 +190,7 @@ class DynamicPolicyDecisionPointTests {
             assertThat(decision.decision()).isEqualTo(Decision.PERMIT);
             assertThat(decision.advice()).hasSize(1);
             val advice = (ObjectValue) decision.advice().getFirst();
-            assertThat(advice.get("warning")).isEqualTo(Value.of("sanity_check_recommended"));
+            assertThat(advice).containsEntry("warning", Value.of("sanity_check_recommended"));
         }).verifyComplete();
     }
 
@@ -208,8 +208,8 @@ class DynamicPolicyDecisionPointTests {
             assertThat(decision.decision()).isEqualTo(Decision.PERMIT);
             assertThat(decision.resource()).isInstanceOf(ObjectValue.class);
             val resource = (ObjectValue) decision.resource();
-            assertThat(resource.get("sanitized")).isEqualTo(Value.TRUE);
-            assertThat(resource.get("original_resource")).isEqualTo(Value.of("cursed_artifact"));
+            assertThat(resource).containsEntry("sanitized", Value.TRUE).containsEntry("original_resource",
+                    Value.of("cursed_artifact"));
         }).verifyComplete();
     }
 
@@ -310,7 +310,7 @@ class DynamicPolicyDecisionPointTests {
         StepVerifier.create(pdp.decide(subscription).take(1)).assertNext(decision -> {
             assertThat(decision.decision()).isEqualTo(Decision.PERMIT);
             val resource = (ObjectValue) decision.resource();
-            assertThat(resource.get("threshold_used")).isEqualTo(Value.of(5));
+            assertThat(resource).containsEntry("threshold_used", Value.of(5));
         }).verifyComplete();
     }
 

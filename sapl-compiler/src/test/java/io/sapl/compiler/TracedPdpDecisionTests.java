@@ -97,9 +97,9 @@ class TracedPdpDecisionTests {
             printDecision("PDP metadata", traced);
 
             val trace = getTrace(traced);
-            assertThat(trace.get(TraceFields.PDP_ID)).isEqualTo(Value.of(TEST_PDP_ID));
-            assertThat(trace.get(TraceFields.CONFIGURATION_ID)).isEqualTo(Value.of(TEST_CONFIG_ID));
-            assertThat(trace.get(TraceFields.SUBSCRIPTION_ID)).isEqualTo(Value.of(TEST_SUBSCRIPTION_ID));
+            assertThat(trace).containsEntry(TraceFields.PDP_ID, Value.of(TEST_PDP_ID))
+                    .containsEntry(TraceFields.CONFIGURATION_ID, Value.of(TEST_CONFIG_ID))
+                    .containsEntry(TraceFields.SUBSCRIPTION_ID, Value.of(TEST_SUBSCRIPTION_ID));
         }
 
         @Test
@@ -114,9 +114,8 @@ class TracedPdpDecisionTests {
 
             val trace = getTrace(traced);
             val sub   = (ObjectValue) trace.get(TraceFields.SUBSCRIPTION);
-            assertThat(sub.get("subject")).isEqualTo(Value.of("cultist"));
-            assertThat(sub.get("action")).isEqualTo(Value.of("summon"));
-            assertThat(sub.get("resource")).isEqualTo(Value.of("shoggoth"));
+            assertThat(sub).isNotNull().containsEntry("subject", Value.of("cultist"))
+                    .containsEntry("action", Value.of("summon")).containsEntry("resource", Value.of("shoggoth"));
         }
 
         @Test
@@ -131,8 +130,7 @@ class TracedPdpDecisionTests {
 
             val trace     = getTrace(traced);
             val timestamp = trace.get(TraceFields.TIMESTAMP);
-            assertThat(timestamp).isInstanceOf(Value.class);
-            assertThat(timestamp).isNotEqualTo(Value.UNDEFINED);
+            assertThat(timestamp).isInstanceOf(Value.class).isNotEqualTo(Value.UNDEFINED);
         }
 
         @Test
@@ -200,7 +198,7 @@ class TracedPdpDecisionTests {
             assertThat(getDocuments(traced)).hasSize(1);
 
             val document = (ObjectValue) getDocuments(traced).getFirst();
-            assertThat(document.get(TraceFields.TYPE)).isEqualTo(Value.of(TraceFields.TYPE_POLICY));
+            assertThat(document).containsEntry(TraceFields.TYPE, Value.of(TraceFields.TYPE_POLICY));
         }
 
         static Stream<Arguments> singlePolicyCases() {
@@ -232,9 +230,9 @@ class TracedPdpDecisionTests {
             printDecision("policy details in document", traced);
 
             val document = (ObjectValue) getDocuments(traced).getFirst();
-            assertThat(document.get(TraceFields.NAME)).isEqualTo(Value.of("librarian-duties"));
-            assertThat(document.get(TraceFields.ENTITLEMENT)).isEqualTo(Value.of("PERMIT"));
-            assertThat(document.get(TraceFields.DECISION)).isEqualTo(Value.of("PERMIT"));
+            assertThat(document).containsEntry(TraceFields.NAME, Value.of("librarian-duties"))
+                    .containsEntry(TraceFields.ENTITLEMENT, Value.of("PERMIT"))
+                    .containsEntry(TraceFields.DECISION, Value.of("PERMIT"));
         }
     }
 
@@ -256,7 +254,7 @@ class TracedPdpDecisionTests {
 
             val document = (ObjectValue) getDocuments(traced).getFirst();
             assertThat(TracedPolicySetDecision.isPolicySet(document)).isTrue();
-            assertThat(document.get(TraceFields.TYPE)).isEqualTo(Value.of(TraceFields.TYPE_SET));
+            assertThat(document).containsEntry(TraceFields.TYPE, Value.of(TraceFields.TYPE_SET));
         }
 
         @Test
@@ -275,8 +273,8 @@ class TracedPdpDecisionTests {
             val policies = TracedPolicySetDecision.getPolicies(document);
             assertThat(policies).hasSize(2);
 
-            val firstPolicy = (ObjectValue) policies.get(0);
-            assertThat(firstPolicy.get(TraceFields.NAME)).isEqualTo(Value.of("researcher-permit"));
+            val firstPolicy = (ObjectValue) policies.getFirst();
+            assertThat(firstPolicy).containsEntry(TraceFields.NAME, Value.of("researcher-permit"));
         }
 
         @Test
@@ -356,7 +354,7 @@ class TracedPdpDecisionTests {
             assertThat(documents).hasSize(2);
 
             val policy = (ObjectValue) documents.get(0);
-            assertThat(policy.get(TraceFields.TYPE)).isEqualTo(Value.of(TraceFields.TYPE_POLICY));
+            assertThat(policy).containsEntry(TraceFields.TYPE, Value.of(TraceFields.TYPE_POLICY));
 
             val policySet = (ObjectValue) documents.get(1);
             assertThat(TracedPolicySetDecision.isPolicySet(policySet)).isTrue();
@@ -687,8 +685,8 @@ class TracedPdpDecisionTests {
             assertThat(errors).hasSize(1);
 
             val error = (ObjectValue) errors.getFirst();
-            assertThat(error.get(TraceFields.NAME)).isEqualTo(Value.of(documentName));
-            assertThat(error.get(TraceFields.MESSAGE)).isEqualTo(Value.of(errorMessage));
+            assertThat(error).containsEntry(TraceFields.NAME, Value.of(documentName)).containsEntry(TraceFields.MESSAGE,
+                    Value.of(errorMessage));
         }
 
         @Test
@@ -709,8 +707,8 @@ class TracedPdpDecisionTests {
                 assertThat(errors).hasSize(1);
 
                 val error = (ObjectValue) errors.getFirst();
-                assertThat(error.get(TraceFields.NAME)).isEqualTo(Value.of(documentName));
-                assertThat(error.get(TraceFields.MESSAGE)).isEqualTo(Value.of(errorMessage));
+                assertThat(error).containsEntry(TraceFields.NAME, Value.of(documentName))
+                        .containsEntry(TraceFields.MESSAGE, Value.of(errorMessage));
             }).verifyComplete();
         }
 
@@ -736,10 +734,10 @@ class TracedPdpDecisionTests {
 
             printDecision("retrieval error with metadata", traced.originalTrace());
 
-            assertThat(trace.get(TraceFields.PDP_ID)).isEqualTo(Value.of(TEST_PDP_ID));
-            assertThat(trace.get(TraceFields.CONFIGURATION_ID)).isEqualTo(Value.of(TEST_CONFIG_ID));
-            assertThat(trace.get(TraceFields.SUBSCRIPTION_ID)).isEqualTo(Value.of(TEST_SUBSCRIPTION_ID));
-            assertThat(trace.get(TraceFields.ALGORITHM)).isEqualTo(Value.of("deny-overrides"));
+            assertThat(trace).containsEntry(TraceFields.PDP_ID, Value.of(TEST_PDP_ID))
+                    .containsEntry(TraceFields.CONFIGURATION_ID, Value.of(TEST_CONFIG_ID))
+                    .containsEntry(TraceFields.SUBSCRIPTION_ID, Value.of(TEST_SUBSCRIPTION_ID))
+                    .containsEntry(TraceFields.ALGORITHM, Value.of("deny-overrides"));
         }
 
         @Test

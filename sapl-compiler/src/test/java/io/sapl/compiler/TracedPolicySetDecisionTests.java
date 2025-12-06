@@ -141,14 +141,14 @@ class TracedPolicySetDecisionTests {
             assertThat(policies).hasSize(2);
 
             val permitPolicy = (ObjectValue) policies.get(0);
-            assertThat(permitPolicy.get(TraceFields.NAME)).isEqualTo(Value.of("elder-sign-check"));
-            assertThat(permitPolicy.get(TraceFields.ENTITLEMENT)).isEqualTo(Value.of("PERMIT"));
-            assertThat(permitPolicy.get(TraceFields.DECISION)).isEqualTo(Value.of("PERMIT"));
+            assertThat(permitPolicy).containsEntry(TraceFields.NAME, Value.of("elder-sign-check"))
+                    .containsEntry(TraceFields.ENTITLEMENT, Value.of("PERMIT"))
+                    .containsEntry(TraceFields.DECISION, Value.of("PERMIT"));
 
             val denyPolicy = (ObjectValue) policies.get(1);
-            assertThat(denyPolicy.get(TraceFields.NAME)).isEqualTo(Value.of("shoggoth-alert"));
-            assertThat(denyPolicy.get(TraceFields.ENTITLEMENT)).isEqualTo(Value.of("DENY"));
-            assertThat(denyPolicy.get(TraceFields.DECISION)).isEqualTo(Value.of("DENY"));
+            assertThat(denyPolicy).containsEntry(TraceFields.NAME, Value.of("shoggoth-alert"))
+                    .containsEntry(TraceFields.ENTITLEMENT, Value.of("DENY"))
+                    .containsEntry(TraceFields.DECISION, Value.of("DENY"));
         }
     }
 
@@ -259,7 +259,7 @@ class TracedPolicySetDecisionTests {
             assertThat(policies).hasSize(1);
 
             val matchingPolicy = (ObjectValue) policies.getFirst();
-            assertThat(matchingPolicy.get(TraceFields.NAME)).isEqualTo(Value.of("key-holder"));
+            assertThat(matchingPolicy).containsEntry(TraceFields.NAME, Value.of("key-holder"));
             assertThat(isNoMatchTrace(matchingPolicy)).isFalse();
         }
     }
@@ -288,18 +288,18 @@ class TracedPolicySetDecisionTests {
             assertThat(policies).hasSize(3);
 
             val elderPolicy = (ObjectValue) policies.get(0);
-            assertThat(elderPolicy.get(TraceFields.NAME)).isEqualTo(Value.of("elder-only"));
+            assertThat(elderPolicy).containsEntry(TraceFields.NAME, Value.of("elder-only"))
+                    .containsEntry(TraceFields.TARGET_MATCH, Value.FALSE);
             assertThat(isNoMatchTrace(elderPolicy)).isTrue();
-            assertThat(elderPolicy.get(TraceFields.TARGET_MATCH)).isEqualTo(Value.FALSE);
 
             val initiatePolicy = (ObjectValue) policies.get(1);
-            assertThat(initiatePolicy.get(TraceFields.NAME)).isEqualTo(Value.of("initiate-only"));
+            assertThat(initiatePolicy).containsEntry(TraceFields.NAME, Value.of("initiate-only"));
             assertThat(isNoMatchTrace(initiatePolicy)).isTrue();
 
             val denyPolicy = (ObjectValue) policies.get(2);
-            assertThat(denyPolicy.get(TraceFields.NAME)).isEqualTo(Value.of("default-deny"));
+            assertThat(denyPolicy).containsEntry(TraceFields.NAME, Value.of("default-deny"))
+                    .containsEntry(TraceFields.DECISION, Value.of("DENY"));
             assertThat(isNoMatchTrace(denyPolicy)).isFalse();
-            assertThat(denyPolicy.get(TraceFields.DECISION)).isEqualTo(Value.of("DENY"));
         }
 
         @Test
@@ -383,17 +383,17 @@ class TracedPolicySetDecisionTests {
             assertThat(policies).hasSize(3);
 
             val noTargetMatch = (ObjectValue) policies.get(0);
-            assertThat(noTargetMatch.get(TraceFields.NAME)).isEqualTo(Value.of("no-target-match"));
+            assertThat(noTargetMatch).containsEntry(TraceFields.NAME, Value.of("no-target-match"));
             assertThat(isNoMatchTrace(noTargetMatch)).isTrue();
 
             val bodyFalse = (ObjectValue) policies.get(1);
-            assertThat(bodyFalse.get(TraceFields.NAME)).isEqualTo(Value.of("body-false"));
+            assertThat(bodyFalse).containsEntry(TraceFields.NAME, Value.of("body-false"))
+                    .containsEntry(TraceFields.DECISION, Value.of("NOT_APPLICABLE"));
             assertThat(isNoMatchTrace(bodyFalse)).isFalse();
-            assertThat(bodyFalse.get(TraceFields.DECISION)).isEqualTo(Value.of("NOT_APPLICABLE"));
 
             val winner = (ObjectValue) policies.get(2);
-            assertThat(winner.get(TraceFields.NAME)).isEqualTo(Value.of("winner"));
-            assertThat(winner.get(TraceFields.DECISION)).isEqualTo(Value.of("DENY"));
+            assertThat(winner).containsEntry(TraceFields.NAME, Value.of("winner")).containsEntry(TraceFields.DECISION,
+                    Value.of("DENY"));
         }
 
         @Test
@@ -496,14 +496,11 @@ class TracedPolicySetDecisionTests {
             val policies      = getPolicies(traced);
             val noMatchPolicy = (ObjectValue) policies.get(0);
 
-            assertThat(noMatchPolicy.get(TraceFields.NAME)).isEqualTo(Value.of("no-match"));
-            assertThat(noMatchPolicy.get(TraceFields.TYPE)).isEqualTo(Value.of(TraceFields.TYPE_POLICY));
-            assertThat(noMatchPolicy.get(TraceFields.TARGET_MATCH)).isEqualTo(Value.FALSE);
-
-            assertThat(noMatchPolicy.containsKey(TraceFields.DECISION)).isFalse();
-            assertThat(noMatchPolicy.containsKey(TraceFields.ENTITLEMENT)).isFalse();
-            assertThat(noMatchPolicy.containsKey(TraceFields.OBLIGATIONS)).isFalse();
-            assertThat(noMatchPolicy.containsKey(TraceFields.ADVICE)).isFalse();
+            assertThat(noMatchPolicy).containsEntry(TraceFields.NAME, Value.of("no-match"))
+                    .containsEntry(TraceFields.TYPE, Value.of(TraceFields.TYPE_POLICY))
+                    .containsEntry(TraceFields.TARGET_MATCH, Value.FALSE).doesNotContainKey(TraceFields.DECISION)
+                    .doesNotContainKey(TraceFields.ENTITLEMENT).doesNotContainKey(TraceFields.OBLIGATIONS)
+                    .doesNotContainKey(TraceFields.ADVICE);
         }
     }
 
@@ -778,7 +775,7 @@ class TracedPolicySetDecisionTests {
 
             assertThat(isPolicySet(traced)).isTrue();
             val obj = (ObjectValue) traced;
-            assertThat(obj.get(TraceFields.TYPE)).isEqualTo(Value.of(TraceFields.TYPE_SET));
+            assertThat(obj).containsEntry(TraceFields.TYPE, Value.of(TraceFields.TYPE_SET));
         }
 
         @Test
@@ -797,7 +794,7 @@ class TracedPolicySetDecisionTests {
             val policies = getPolicies(traced);
             for (val policy : policies) {
                 val policyObj = (ObjectValue) policy;
-                assertThat(policyObj.get(TraceFields.TYPE)).isEqualTo(Value.of(TraceFields.TYPE_POLICY));
+                assertThat(policyObj).containsEntry(TraceFields.TYPE, Value.of(TraceFields.TYPE_POLICY));
             }
         }
     }
@@ -903,7 +900,7 @@ class TracedPolicySetDecisionTests {
             assertThat(targetError.get(TraceFields.MESSAGE)).isInstanceOf(TextValue.class);
             assertThat(((TextValue) targetError.get(TraceFields.MESSAGE)).value()).contains("Division by zero");
 
-            assertThat(brokenPolicyObj.get(TraceFields.DECISION)).isEqualTo(Value.of("INDETERMINATE"));
+            assertThat(brokenPolicyObj).containsEntry(TraceFields.DECISION, Value.of("INDETERMINATE"));
         }
 
         @Test
@@ -979,7 +976,7 @@ class TracedPolicySetDecisionTests {
             assertThat(hasTargetError(workingPolicy)).isFalse();
 
             val workingPolicyObj = (ObjectValue) workingPolicy;
-            assertThat(workingPolicyObj.get(TraceFields.DECISION)).isEqualTo(Value.of("DENY"));
+            assertThat(workingPolicyObj).containsEntry(TraceFields.DECISION, Value.of("DENY"));
         }
 
         @Test
