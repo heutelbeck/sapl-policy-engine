@@ -664,6 +664,98 @@ class TracedPdpDecisionTests {
         }
     }
 
+    @Nested
+    @DisplayName("Retrieval Errors")
+    class RetrievalErrorTests {
+
+        @Test
+        @DisplayName("blocking traced API includes retrieval error in trace")
+        void whenRetrievalErrorOccurs_thenBlockingTracedApiIncludesErrorInTrace() {
+            val documentName = "corrupted-grimoire";
+            val errorMessage = "Target expression references undefined attribute.";
+            val pdp          = createPdpWithRetrievalError(documentName, errorMessage);
+            val subscription = subscriptionOf("scholar", "translate", "elder-scroll");
+
+            val traced = pdp.decideOnceBlockingTraced(subscription);
+
+            printDecision("retrieval error (blocking traced)", traced.originalTrace());
+
+            assertThat(getDecision(traced.originalTrace())).isEqualTo(Decision.INDETERMINATE);
+            assertThat(hasRetrievalErrors(traced.originalTrace())).isTrue();
+
+            val errors = getRetrievalErrors(traced.originalTrace());
+            assertThat(errors).hasSize(1);
+
+            val error = (ObjectValue) errors.getFirst();
+            assertThat(error.get(TraceFields.NAME)).isEqualTo(Value.of(documentName));
+            assertThat(error.get(TraceFields.MESSAGE)).isEqualTo(Value.of(errorMessage));
+        }
+
+        @Test
+        @DisplayName("reactive traced API includes retrieval error in trace")
+        void whenRetrievalErrorOccurs_thenReactiveTracedApiIncludesErrorInTrace() {
+            val documentName = "eldritch-manuscript";
+            val errorMessage = "Division by zero in target expression.";
+            val pdp          = createPdpWithRetrievalError(documentName, errorMessage);
+            val subscription = subscriptionOf("archivist", "catalog", "forbidden-text");
+
+            StepVerifier.create(pdp.decideTraced(subscription).next()).assertNext(traced -> {
+                printDecision("retrieval error (reactive traced)", traced.originalTrace());
+
+                assertThat(getDecision(traced.originalTrace())).isEqualTo(Decision.INDETERMINATE);
+                assertThat(hasRetrievalErrors(traced.originalTrace())).isTrue();
+
+                val errors = getRetrievalErrors(traced.originalTrace());
+                assertThat(errors).hasSize(1);
+
+                val error = (ObjectValue) errors.getFirst();
+                assertThat(error.get(TraceFields.NAME)).isEqualTo(Value.of(documentName));
+                assertThat(error.get(TraceFields.MESSAGE)).isEqualTo(Value.of(errorMessage));
+            }).verifyComplete();
+        }
+
+        @Test
+        @DisplayName("non-traced blocking API returns INDETERMINATE without trace")
+        void whenRetrievalErrorOccurs_thenNonTracedBlockingApiReturnsIndeterminate() {
+            val pdp          = createPdpWithRetrievalError("broken-policy", "Syntax error.");
+            val subscription = subscriptionOf("visitor", "enter", "restricted-vault");
+
+            val decision = pdp.decideOnceBlocking(subscription);
+
+            assertThat(decision.decision()).isEqualTo(Decision.INDETERMINATE);
+        }
+
+        @Test
+        @DisplayName("retrieval error trace includes PDP metadata")
+        void whenRetrievalErrorOccurs_thenTraceIncludesPdpMetadata() {
+            val pdp          = createPdpWithRetrievalError("failed-document", "Attribute lookup failed.");
+            val subscription = subscriptionOf("initiate", "study", "arcane-tome");
+
+            val traced = pdp.decideOnceBlockingTraced(subscription);
+            val trace  = getTrace(traced.originalTrace());
+
+            printDecision("retrieval error with metadata", traced.originalTrace());
+
+            assertThat(trace.get(TraceFields.PDP_ID)).isEqualTo(Value.of(TEST_PDP_ID));
+            assertThat(trace.get(TraceFields.CONFIGURATION_ID)).isEqualTo(Value.of(TEST_CONFIG_ID));
+            assertThat(trace.get(TraceFields.SUBSCRIPTION_ID)).isEqualTo(Value.of(TEST_SUBSCRIPTION_ID));
+            assertThat(trace.get(TraceFields.ALGORITHM)).isEqualTo(Value.of("deny-overrides"));
+        }
+
+        @Test
+        @DisplayName("retrieval error results in empty documents array")
+        void whenRetrievalErrorOccurs_thenDocumentsArrayIsEmpty() {
+            val pdp          = createPdpWithRetrievalError("error-source", "Unknown error.");
+            val subscription = subscriptionOf("researcher", "access", "sealed-archive");
+
+            val traced = pdp.decideOnceBlockingTraced(subscription);
+
+            printDecision("retrieval error with empty documents", traced.originalTrace());
+
+            assertThat(getDocuments(traced.originalTrace())).isEmpty();
+        }
+    }
+
     // ========== Helper Methods ==========
 
     private Value evaluateWithSinglePolicy(String policyText, AuthorizationSubscription subscription) {
@@ -719,6 +811,14 @@ class TracedPdpDecisionTests {
         return new DynamicPolicyDecisionPoint(configSource, idFactory);
     }
 
+    private DynamicPolicyDecisionPoint createPdpWithRetrievalError(String documentName, String errorMessage) {
+        val retrievalPoint = new ErrorRetrievalPoint(documentName, errorMessage);
+        val config         = new CompiledPDPConfiguration(TEST_PDP_ID, TEST_CONFIG_ID, DENY_OVERRIDES, Map.of(),
+                context.getFunctionBroker(), context.getAttributeBroker(), retrievalPoint);
+        val configSource   = new TestConfigurationSource(config);
+        return new DynamicPolicyDecisionPoint(configSource, idFactory);
+    }
+
     private static AuthorizationSubscription subscriptionOf(String subject, String action, String resource) {
         return new AuthorizationSubscription(Value.of(subject), Value.of(action), Value.of(resource), Value.UNDEFINED);
     }
@@ -744,6 +844,16 @@ class TracedPdpDecisionTests {
         public io.sapl.api.prp.PolicyRetrievalResult getMatchingDocuments(AuthorizationSubscription subscription,
                 io.sapl.api.model.EvaluationContext context) {
             return new MatchingDocuments(List.of(policy), 1);
+        }
+    }
+
+    private record ErrorRetrievalPoint(String documentName, String errorMessage)
+            implements io.sapl.api.prp.PolicyRetrievalPoint {
+
+        @Override
+        public io.sapl.api.prp.PolicyRetrievalResult getMatchingDocuments(AuthorizationSubscription subscription,
+                io.sapl.api.model.EvaluationContext context) {
+            return new io.sapl.api.prp.RetrievalError(documentName, Value.error(errorMessage));
         }
     }
 
