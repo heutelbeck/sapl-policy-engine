@@ -28,7 +28,7 @@ import lombok.Getter;
 @Getter
 @EqualsAndHashCode
 @AllArgsConstructor
-public class . PolicyConditionHit {
+public class PolicyConditionHit {
 
     /**
      * Identifier of {@link io.sapl.grammar.sapl.PolicySet} of hit
