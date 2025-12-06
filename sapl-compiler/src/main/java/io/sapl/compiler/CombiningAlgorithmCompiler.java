@@ -785,7 +785,7 @@ public class CombiningAlgorithmCompiler {
     private static Value combinePdpDocuments(EvaluationContext ctx, String algorithm, List<Object> tracedDocuments,
             CombiningAlgorithmLogic logic, int totalDocuments) {
         val accumulator = new TracedDecisionAccumulator(logic);
-        for (val traced : tracedDocuments) {
+        for (var traced : tracedDocuments) {
             accumulator.addTracedPolicy((Value) traced);
         }
         return accumulator.buildPdpDecision(ctx, algorithm, totalDocuments);
@@ -846,18 +846,18 @@ public class CombiningAlgorithmCompiler {
 
     private static Value combineOnlyOneApplicable(EvaluationContext ctx, String algorithm, List<Object> tracedDocuments,
             int totalDocuments) {
-        val evaluatedTraces  = new ArrayList<Value>();
-        val applicableTraces = new ArrayList<Value>();
+        val evaluatedTraces  = new ArrayList<Value>(tracedDocuments.size());
+        val applicableTraces = new ArrayList<Value>(tracedDocuments.size());
         var hasIndeterminate = false;
 
-        for (val traced : tracedDocuments) {
-            val v        = (Value) traced;
-            val decision = getDecision(v);
-            evaluatedTraces.add(v);
+        for (var traced : tracedDocuments) {
+            val value    = (Value) traced;
+            val decision = getDecision(value);
+            evaluatedTraces.add(value);
             if (decision == Decision.NOT_APPLICABLE) {
                 continue;
             }
-            applicableTraces.add(v);
+            applicableTraces.add(value);
             hasIndeterminate = hasIndeterminate || decision == Decision.INDETERMINATE;
         }
 
