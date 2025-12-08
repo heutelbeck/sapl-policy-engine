@@ -17,10 +17,10 @@
  */
 package io.sapl.spring.constraints.api;
 
-import com.fasterxml.jackson.databind.JsonNode;
+import io.sapl.api.model.Value;
 
 public interface Responsible {
 
-    boolean isResponsible(JsonNode constraint);
+    boolean isResponsible(Value constraint);
 
 }

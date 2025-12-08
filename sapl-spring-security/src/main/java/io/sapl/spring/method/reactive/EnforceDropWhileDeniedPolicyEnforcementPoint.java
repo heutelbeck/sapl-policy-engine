@@ -18,10 +18,12 @@
 package io.sapl.spring.method.reactive;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import io.sapl.api.model.UndefinedValue;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.Decision;
 import io.sapl.spring.constraints.ConstraintEnforcementService;
 import io.sapl.spring.constraints.ReactiveConstraintHandlerBundle;
+import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import org.reactivestreams.Subscription;
 import org.springframework.security.access.AccessDeniedException;
@@ -94,7 +96,7 @@ public class EnforceDropWhileDeniedPolicyEnforcementPoint<T> extends Flux<T> {
     }
 
     @Override
-    public void subscribe(CoreSubscriber<? super T> actual) {
+    public void subscribe(@NonNull CoreSubscriber<? super T> actual) {
         if (sink != null)
             throw new IllegalStateException("Operator may only be subscribed once.");
         ContextView context = actual.currentContext();
@@ -126,15 +128,16 @@ public class EnforceDropWhileDeniedPolicyEnforcementPoint<T> extends Flux<T> {
 
         latestDecision.set(implicitDecision);
 
-        implicitDecision.getResource().ifPresent(resource -> {
+        var resource = implicitDecision.resource();
+        if (!(resource instanceof UndefinedValue)) {
             try {
                 sink.next(constraintsService.unmarshallResource(resource, clazz));
             } catch (JsonProcessingException | IllegalArgumentException e) {
-                log.warn("Cannot unmarshall resource from decision: " + resource, e);
+                log.warn("Cannot unmarshall resource from decision: {}", resource, e);
             }
-        });
+        }
 
-        if (implicitDecision.getDecision() == Decision.PERMIT && dataSubscription.get() == null)
+        if (implicitDecision.decision() == Decision.PERMIT && dataSubscription.get() == null)
             dataSubscription.set(wrapResourceAccessPointAndSubscribe());
     }
 
@@ -162,11 +165,11 @@ public class EnforceDropWhileDeniedPolicyEnforcementPoint<T> extends Flux<T> {
 
         final var decision = latestDecision.get();
 
-        if (decision.getDecision() != Decision.PERMIT)
+        if (decision.decision() != Decision.PERMIT)
             return;
 
         // drop elements while the last decision replaced data with resource
-        if (decision.getResource().isPresent())
+        if (!(decision.resource() instanceof UndefinedValue))
             return;
 
         try {

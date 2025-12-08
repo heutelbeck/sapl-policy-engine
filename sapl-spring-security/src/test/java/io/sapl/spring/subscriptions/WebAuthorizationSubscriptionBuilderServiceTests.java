@@ -67,6 +67,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 
 import io.sapl.api.SaplVersion;
+import io.sapl.api.model.Value;
+import io.sapl.api.model.ValueJsonMarshaller;
 import io.sapl.spring.method.metadata.PreEnforce;
 import io.sapl.spring.method.metadata.SaplAttribute;
 import io.sapl.spring.serialization.HttpServletRequestSerializer;
@@ -118,6 +120,10 @@ class WebAuthorizationSubscriptionBuilderServiceTests {
     private static Matcher<Collection<? extends JsonNode>> asCollectionMatcher(
             Matcher<Iterable<? extends JsonNode>> matcher) {
         return (Matcher<Collection<? extends JsonNode>>) (Matcher<?>) matcher;
+    }
+
+    private static JsonNode toJson(Value value) {
+        return ValueJsonMarshaller.toJsonNode(value);
     }
 
     private static class Provider<T> implements ObjectProvider<T> {
@@ -175,10 +181,10 @@ class WebAuthorizationSubscriptionBuilderServiceTests {
         val attribute    = attribute("'a subject'", "'an action'", "'a resource'", "'an environment'", Object.class);
         val subscription = defaultWebBuilderUnderTest.constructAuthorizationSubscription(authentication, invocation,
                 attribute);
-        assertAll(() -> assertThat(subscription.getSubject(), is(jsonText("a subject"))),
-                () -> assertThat(subscription.getAction(), is(jsonText("an action"))),
-                () -> assertThat(subscription.getResource(), is(jsonText("a resource"))),
-                () -> assertThat(subscription.getEnvironment(), is(jsonText("an environment"))));
+        assertAll(() -> assertThat(toJson(subscription.subject()), is(jsonText("a subject"))),
+                () -> assertThat(toJson(subscription.action()), is(jsonText("an action"))),
+                () -> assertThat(toJson(subscription.resource()), is(jsonText("a resource"))),
+                () -> assertThat(toJson(subscription.environment()), is(jsonText("an environment"))));
     }
 
     @Test
@@ -209,17 +215,17 @@ class WebAuthorizationSubscriptionBuilderServiceTests {
         val attribute    = attribute(null, null, null, null, Object.class);
         val subscription = defaultWebBuilderUnderTest.constructAuthorizationSubscription(user, invocation, attribute);
         // @formatter:off
-        assertAll(() -> assertThat(subscription.getSubject(),
+        assertAll(() -> assertThat(toJson(subscription.subject()),
                           is(jsonObject()
                                   .where("name", is(jsonText("anonymous")))
                                   .where("credentials", is(jsonMissing()))
                                   .where("principal", is(jsonText("anonymous"))))),
-                  () -> assertThat(subscription.getAction(),
+                  () -> assertThat(toJson(subscription.action()),
                           is(jsonObject()
                                   .where("java", is(jsonObject()
                                         .where("name", jsonText("publicVoid"))))
                                   .where("http", is(jsonMissing())))),
-                  () -> assertThat(subscription.getResource(),
+                  () -> assertThat(toJson(subscription.resource()),
                           is(jsonObject()
                                   .where("http", is(jsonMissing()))
                                   .where("java", is(jsonObject()
@@ -227,7 +233,7 @@ class WebAuthorizationSubscriptionBuilderServiceTests {
                                             is(jsonArray(asCollectionMatcher(containsInAnyOrder(
                                                 jsonObject().where("simpleName",is(jsonText("TestClass"))),
                                                 jsonObject().where("simpleName",is(jsonText("Object")))))))))))),
-                  () -> assertThat(subscription.getEnvironment(), is(jsonNull())));
+                  () -> assertThat(toJson(subscription.environment()), is(jsonNull())));
         // @formatter:on
     }
 
@@ -243,17 +249,17 @@ class WebAuthorizationSubscriptionBuilderServiceTests {
             val subscription = defaultWebBuilderUnderTest.constructAuthorizationSubscription(authentication, invocation,
                     attribute);
             // @formatter:off
-            assertAll(() -> assertThat(subscription.getSubject(),
+            assertAll(() -> assertThat(toJson(subscription.subject()),
                     is(jsonObject()
                             .where("name", is(jsonText("the username")))
                             .where("credentials", is(jsonMissing()))
                             .where("principal", is(jsonObject()
                                     .where("password", is(jsonMissing())))))),
-                    () -> assertThat(subscription.getAction(),
+                    () -> assertThat(toJson(subscription.action()),
                             is(jsonObject()
                                     .where("http", is(jsonObject())
                                             ))),
-                    () -> assertThat(subscription.getResource(),
+                    () -> assertThat(toJson(subscription.resource()),
                             is(jsonObject()
                                     .where("http", is(jsonObject()))
                                       .where("java", is(jsonObject()
@@ -261,7 +267,7 @@ class WebAuthorizationSubscriptionBuilderServiceTests {
                                                     is(jsonArray(asCollectionMatcher(containsInAnyOrder(
                                                         jsonObject().where("simpleName",is(jsonText("TestClass"))),
                                                         jsonObject().where("simpleName",is(jsonText("Object")))))))))))),
-                    () -> assertThat(subscription.getEnvironment(), is(jsonNull())));
+                    () -> assertThat(toJson(subscription.environment()), is(jsonNull())));
             // @formatter:on
         }
     }
@@ -273,25 +279,25 @@ class WebAuthorizationSubscriptionBuilderServiceTests {
         val subscription       = defaultWebBuilderUnderTest.constructAuthorizationSubscription(authentication,
                 invocationWithArgs, attribute);
         // @formatter:off
-        assertAll(() -> assertThat(subscription.getSubject(),
+        assertAll(() -> assertThat(toJson(subscription.subject()),
                 is(jsonObject()
                         .where("name", is(jsonText("the username")))
                         .where("credentials", is(jsonMissing()))
                         .where("principal", is(jsonObject()
                                 .where("password", is(jsonMissing())))))),
-                () -> assertThat(subscription.getAction(),
+                () -> assertThat(toJson(subscription.action()),
                         is(jsonObject()
                                 .where("java", is(jsonObject()
                                         .where("arguments", is(jsonArray()))
                                         .where("name", jsonText("publicVoidArgs")))))),
-                () -> assertThat(subscription.getResource(),
+                () -> assertThat(toJson(subscription.resource()),
                         is(jsonObject()
                                   .where("java", is(jsonObject()
                                         .where("instanceof",
                                             is(jsonArray(asCollectionMatcher(containsInAnyOrder(
                                                 jsonObject().where("simpleName",is(jsonText("TestClass"))),
                                                 jsonObject().where("simpleName",is(jsonText("Object")))))))))))),
-                () -> assertThat(subscription.getEnvironment(), is(jsonNull())));
+                () -> assertThat(toJson(subscription.environment()), is(jsonNull())));
         // @formatter:on
 
     }
@@ -304,25 +310,25 @@ class WebAuthorizationSubscriptionBuilderServiceTests {
         val subscription          = defaultWebBuilderUnderTest.constructAuthorizationSubscription(authentication,
                 invocationWithBadArgs, attribute);
         // @formatter:off
-        assertAll(() -> assertThat(subscription.getSubject(),
+        assertAll(() -> assertThat(toJson(subscription.subject()),
                 is(jsonObject()
                         .where("name", is(jsonText("the username")))
                         .where("credentials", is(jsonMissing()))
                         .where("principal", is(jsonObject()
                                 .where("password", is(jsonMissing())))))),
-                () -> assertThat(subscription.getAction(),
+                () -> assertThat(toJson(subscription.action()),
                         is(jsonObject()
                                 .where("java", is(jsonObject()
                                         .where("arguments", is(jsonMissing()))
                                         .where("name", jsonText("publicVoidProblemArg")))))),
-                () -> assertThat(subscription.getResource(),
+                () -> assertThat(toJson(subscription.resource()),
                         is(jsonObject()
                                   .where("java", is(jsonObject()
                                         .where("instanceof",
                                             is(jsonArray(asCollectionMatcher(containsInAnyOrder(
                                                 jsonObject().where("simpleName",is(jsonText("TestClass"))),
                                                 jsonObject().where("simpleName",is(jsonText("Object")))))))))))),
-                () -> assertThat(subscription.getEnvironment(), is(jsonNull())));
+                () -> assertThat(toJson(subscription.environment()), is(jsonNull())));
         // @formatter:on
     }
 

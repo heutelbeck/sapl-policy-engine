@@ -44,10 +44,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.node.JsonNodeFactory;
-
+import io.sapl.api.model.TextValue;
+import io.sapl.api.model.Value;
 import io.sapl.api.pdp.AuthorizationDecision;
+import io.sapl.api.pdp.Decision;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.PolicyDecisionPoint;
 import io.sapl.spring.config.EnableSaplMethodSecurity;
@@ -75,7 +75,24 @@ class PreEnforcementConstraintsTests {
     private static final String SUCCESSFUL_METHOD_INVOCATION_CONSTRAINT = "successful method invocation constraint";
     private static final String FAILING_METHOD_INVOCATION_CONSTRAINT    = "failing method invocation constraint";
 
-    public static final JsonNodeFactory JSON = JsonNodeFactory.instance;
+    private static AuthorizationDecision permitWithObligations(Value... obligations) {
+        return new AuthorizationDecision(Decision.PERMIT, java.util.List.of(obligations), java.util.List.of(),
+                Value.UNDEFINED);
+    }
+
+    private static AuthorizationDecision denyWithObligations(Value... obligations) {
+        return new AuthorizationDecision(Decision.DENY, java.util.List.of(obligations), java.util.List.of(),
+                Value.UNDEFINED);
+    }
+
+    private static AuthorizationDecision permitWithAdvice(Value... advice) {
+        return new AuthorizationDecision(Decision.PERMIT, java.util.List.of(), java.util.List.of(advice),
+                Value.UNDEFINED);
+    }
+
+    private static AuthorizationDecision permitWithResource(Value resource) {
+        return new AuthorizationDecision(Decision.PERMIT, java.util.List.of(), java.util.List.of(), resource);
+    }
 
     @MockitoBean
     PolicyDecisionPoint pdp;
@@ -105,8 +122,8 @@ class PreEnforcementConstraintsTests {
     public static class ConstraintHandlerOne implements RunnableConstraintHandlerProvider {
 
         @Override
-        public boolean isResponsible(JsonNode constraint) {
-            return constraint != null && constraint.isTextual() && KNOWN_CONSTRAINT.equals(constraint.textValue());
+        public boolean isResponsible(Value constraint) {
+            return constraint instanceof TextValue text && KNOWN_CONSTRAINT.equals(text.value());
         }
 
         @Override
@@ -115,7 +132,7 @@ class PreEnforcementConstraintsTests {
         }
 
         @Override
-        public Runnable getHandler(JsonNode constraint) {
+        public Runnable getHandler(Value constraint) {
             return this::run;
         }
 
@@ -129,8 +146,8 @@ class PreEnforcementConstraintsTests {
     public static class ConstraintHandlerTwo implements RunnableConstraintHandlerProvider {
 
         @Override
-        public boolean isResponsible(JsonNode constraint) {
-            return constraint != null && constraint.isTextual() && KNOWN_CONSTRAINT.equals(constraint.textValue());
+        public boolean isResponsible(Value constraint) {
+            return constraint instanceof TextValue text && KNOWN_CONSTRAINT.equals(text.value());
         }
 
         @Override
@@ -139,7 +156,7 @@ class PreEnforcementConstraintsTests {
         }
 
         @Override
-        public Runnable getHandler(JsonNode constraint) {
+        public Runnable getHandler(Value constraint) {
             return this::run;
         }
 
@@ -153,8 +170,8 @@ class PreEnforcementConstraintsTests {
     public static class FailingConstraintHandler implements RunnableConstraintHandlerProvider {
 
         @Override
-        public boolean isResponsible(JsonNode constraint) {
-            return constraint != null && constraint.isTextual() && FAILING_CONSTRAINT.equals(constraint.textValue());
+        public boolean isResponsible(Value constraint) {
+            return constraint instanceof TextValue text && FAILING_CONSTRAINT.equals(text.value());
         }
 
         @Override
@@ -163,7 +180,7 @@ class PreEnforcementConstraintsTests {
         }
 
         @Override
-        public Runnable getHandler(JsonNode constraint) {
+        public Runnable getHandler(Value constraint) {
             return this::run;
         }
 
@@ -176,13 +193,12 @@ class PreEnforcementConstraintsTests {
     public static class FailingMethodInvocationConstraintHandler implements MethodInvocationConstraintHandlerProvider {
 
         @Override
-        public boolean isResponsible(JsonNode constraint) {
-            return constraint != null && constraint.isTextual()
-                    && FAILING_METHOD_INVOCATION_CONSTRAINT.equals(constraint.textValue());
+        public boolean isResponsible(Value constraint) {
+            return constraint instanceof TextValue text && FAILING_METHOD_INVOCATION_CONSTRAINT.equals(text.value());
         }
 
         @Override
-        public Consumer<ReflectiveMethodInvocation> getHandler(JsonNode constraint) {
+        public Consumer<ReflectiveMethodInvocation> getHandler(Value constraint) {
             return this::accept;
         }
 
@@ -197,13 +213,12 @@ class PreEnforcementConstraintsTests {
             implements MethodInvocationConstraintHandlerProvider {
 
         @Override
-        public boolean isResponsible(JsonNode constraint) {
-            return constraint != null && constraint.isTextual()
-                    && SUCCESSFUL_METHOD_INVOCATION_CONSTRAINT.equals(constraint.textValue());
+        public boolean isResponsible(Value constraint) {
+            return constraint instanceof TextValue text && SUCCESSFUL_METHOD_INVOCATION_CONSTRAINT.equals(text.value());
         }
 
         @Override
-        public Consumer<ReflectiveMethodInvocation> getHandler(JsonNode constraint) {
+        public Consumer<ReflectiveMethodInvocation> getHandler(Value constraint) {
             return this::accept;
         }
 
@@ -294,9 +309,7 @@ class PreEnforcementConstraintsTests {
     @Test
     @WithMockUser()
     void when_testServiceCalledAndDecisionContainsUnenforceableObligation_then_pdpMethodThrowsAccessDenied() {
-        final var obligations = JSON.arrayNode();
-        obligations.add(JSON.textNode(UNKNOWN_CONSTRAINT));
-        final var decision = AuthorizationDecision.PERMIT.withObligations(obligations);
+        final var decision = permitWithObligations(Value.of(UNKNOWN_CONSTRAINT));
         when(pdp.decide(any(AuthorizationSubscription.class))).thenReturn(Flux.just(decision));
         assertThrows(AccessDeniedException.class, () -> service.execute("test"));
         verify(service, times(0)).execute(any());
@@ -305,10 +318,7 @@ class PreEnforcementConstraintsTests {
     @Test
     @WithMockUser()
     void when_testServiceCalledAndDecisionContainsFailingObligation_then_pdpMethodThrowsAccessDenied() {
-        final var obligations = JSON.arrayNode();
-        obligations.add(JSON.textNode(FAILING_CONSTRAINT));
-        obligations.add(JSON.textNode(KNOWN_CONSTRAINT));
-        final var decision = AuthorizationDecision.PERMIT.withObligations(obligations);
+        final var decision = permitWithObligations(Value.of(FAILING_CONSTRAINT), Value.of(KNOWN_CONSTRAINT));
         when(pdp.decide(any(AuthorizationSubscription.class))).thenReturn(Flux.just(decision));
         assertThrows(AccessDeniedException.class, () -> service.execute("test"));
         verify(service, times(0)).execute(any());
@@ -317,9 +327,7 @@ class PreEnforcementConstraintsTests {
     @Test
     @WithMockUser()
     void when_testServiceCalledAndDecisionContainsUnenforceableAdvice_then_pdpMethodInvoked() {
-        final var advice = JSON.arrayNode();
-        advice.add(JSON.textNode(UNKNOWN_CONSTRAINT));
-        final var decision = AuthorizationDecision.PERMIT.withAdvice(advice);
+        final var decision = permitWithAdvice(Value.of(UNKNOWN_CONSTRAINT));
         when(pdp.decide(any(AuthorizationSubscription.class))).thenReturn(Flux.just(decision));
         assertEquals("Argument: test", service.execute("test"));
     }
@@ -327,9 +335,7 @@ class PreEnforcementConstraintsTests {
     @Test
     @WithMockUser()
     void when_testServiceCalledAndDecisionContainsFailingAdvice_then_normalAccessGranted() {
-        final var advice = JSON.arrayNode();
-        advice.add(JSON.textNode(FAILING_CONSTRAINT));
-        final var decision = AuthorizationDecision.PERMIT.withAdvice(advice);
+        final var decision = permitWithAdvice(Value.of(FAILING_CONSTRAINT));
         when(pdp.decide(any(AuthorizationSubscription.class))).thenReturn(Flux.just(decision));
         assertEquals("Argument: test", service.execute("test"));
     }
@@ -337,9 +343,7 @@ class PreEnforcementConstraintsTests {
     @Test
     @WithMockUser()
     void when_testServiceCalledAndDecisionContainsEnforceableObligation_then_pdpMethodReturnsNormallyAndHandlersAreInvoked() {
-        final var obligations = JSON.arrayNode();
-        obligations.add(JSON.textNode(KNOWN_CONSTRAINT));
-        final var decision = AuthorizationDecision.PERMIT.withObligations(obligations);
+        final var decision = permitWithObligations(Value.of(KNOWN_CONSTRAINT));
         when(pdp.decide(any(AuthorizationSubscription.class))).thenReturn(Flux.just(decision));
         assertEquals("Argument: test", service.execute("test"));
         verify(constraintHandlerTwo).run();
@@ -349,9 +353,7 @@ class PreEnforcementConstraintsTests {
     @Test
     @WithMockUser()
     void when_testServiceCalledAndDecisionDenyContainsEnforceableObligation_then_accessDeniedButConstraintsHandled() {
-        final var obligations = JSON.arrayNode();
-        obligations.add(JSON.textNode(KNOWN_CONSTRAINT));
-        final var decision = AuthorizationDecision.DENY.withObligations(obligations);
+        final var decision = denyWithObligations(Value.of(KNOWN_CONSTRAINT));
         when(pdp.decide(any(AuthorizationSubscription.class))).thenReturn(Flux.just(decision));
         assertThrows(AccessDeniedException.class, () -> service.execute("test"));
         verify(constraintHandlerTwo).run();
@@ -362,9 +364,7 @@ class PreEnforcementConstraintsTests {
     @Test
     @WithMockUser()
     void when_testServiceCalledAndDecisionContainsEnforceableAdvice_then_pdpMethodReturnsNormallyAndHandlersAreInvoked() {
-        final var advice = JSON.arrayNode();
-        advice.add(JSON.textNode(KNOWN_CONSTRAINT));
-        final var decision = AuthorizationDecision.PERMIT.withAdvice(advice);
+        final var decision = permitWithAdvice(Value.of(KNOWN_CONSTRAINT));
         when(pdp.decide(any(AuthorizationSubscription.class))).thenReturn(Flux.just(decision));
         InOrder inOrder = inOrder(constraintHandlerOne, constraintHandlerTwo);
         assertEquals("Argument: test", service.execute("test"));
@@ -375,11 +375,9 @@ class PreEnforcementConstraintsTests {
     @Test
     @WithMockUser()
     void when_testServiceCalledAndDecisionContainsEnforceableObligationsAndAdvice_then_pdpMethodReturnsNormallyAndHandlersAreInvoked() {
-        final var advice = JSON.arrayNode();
-        advice.add(JSON.textNode(KNOWN_CONSTRAINT));
-        final var obligations = JSON.arrayNode();
-        obligations.add(JSON.textNode(KNOWN_CONSTRAINT));
-        final var decision = AuthorizationDecision.PERMIT.withObligations(obligations).withAdvice(advice);
+        final var knownConstraint = Value.of(KNOWN_CONSTRAINT);
+        final var decision        = new AuthorizationDecision(Decision.PERMIT, java.util.List.of(knownConstraint),
+                java.util.List.of(knownConstraint), Value.UNDEFINED);
         when(pdp.decide(any(AuthorizationSubscription.class))).thenReturn(Flux.just(decision));
         assertEquals("Argument: test", service.execute("test"));
         verify(constraintHandlerOne, times(2)).run();
@@ -389,9 +387,7 @@ class PreEnforcementConstraintsTests {
     @Test
     @WithMockUser()
     void when_testServiceCalledAndDecisionContainsEnforceableMethodInvocationManipulatingObligation_then_pdpMethodReturnsNormallyWithModifiedArgument() {
-        final var obligations = JSON.arrayNode();
-        obligations.add(JSON.textNode(SUCCESSFUL_METHOD_INVOCATION_CONSTRAINT));
-        final var decision = AuthorizationDecision.PERMIT.withObligations(obligations);
+        final var decision = permitWithObligations(Value.of(SUCCESSFUL_METHOD_INVOCATION_CONSTRAINT));
         when(pdp.decide(any(AuthorizationSubscription.class))).thenReturn(Flux.just(decision));
         assertEquals("Argument: replaced", service.execute("test"));
         verify(service, times(1)).execute("replaced");
@@ -400,9 +396,7 @@ class PreEnforcementConstraintsTests {
     @Test
     @WithMockUser()
     void when_testServiceCalledAndDecisionContainsFailingMethodInvocationManipulatingObligation_then_accessDenied() {
-        final var obligations = JSON.arrayNode();
-        obligations.add(JSON.textNode(FAILING_METHOD_INVOCATION_CONSTRAINT));
-        final var decision = AuthorizationDecision.PERMIT.withObligations(obligations);
+        final var decision = permitWithObligations(Value.of(FAILING_METHOD_INVOCATION_CONSTRAINT));
         when(pdp.decide(any(AuthorizationSubscription.class))).thenReturn(Flux.just(decision));
         assertThrows(AccessDeniedException.class, () -> service.execute("test"));
         verify(service, times(0)).execute(any());
@@ -411,7 +405,7 @@ class PreEnforcementConstraintsTests {
     @Test
     @WithMockUser()
     void when_testDecisionHasResource_then_replaced() {
-        final var decision = AuthorizationDecision.PERMIT.withResource(JSON.textNode("replacement"));
+        final var decision = permitWithResource(Value.of("replacement"));
         when(pdp.decide(any(AuthorizationSubscription.class))).thenReturn(Flux.just(decision));
         assertEquals("replacement", service.execute("test"));
         verify(service, times(1)).execute(any());

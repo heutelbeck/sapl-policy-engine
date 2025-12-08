@@ -17,12 +17,12 @@
  */
 package io.sapl.spring.constraints.api;
 
-import com.fasterxml.jackson.databind.JsonNode;
+import io.sapl.api.model.Value;
 
 import java.util.function.Consumer;
 
 public interface ConsumerConstraintHandlerProvider<T> extends Responsible, TypeSupport<T> {
 
-    Consumer<T> getHandler(JsonNode constraint);
+    Consumer<T> getHandler(Value constraint);
 
 }

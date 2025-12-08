@@ -194,7 +194,7 @@ class AttributeProposalTests extends CompletionTests {
                 import temperature.mean as zzean
                 policy "test" deny where
                 <z§""";
-        final var expected = List.of("zzean(a1,a2)>");
+        final var expected = List.of("zzean(a1, a2)>");
         assertProposalsContain(document, expected);
     }
 

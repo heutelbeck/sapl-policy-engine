@@ -51,7 +51,7 @@ io.sapl:
 # print-json-report: true|false This is a JSON report summarizing the applied algorithms
 #                               and results of each evaluated policy (set) in the
 #                               decision-making process. It includes lists of all errors
-#                               and values of policy information point attributes
+#                               and values of policy information point policyInformationPoints
 #                               encountered during the evaluation of each policy (set).
       print-json-report: true
 # print-text-report: true|false This will log a human-readable textual report based on the

@@ -18,10 +18,12 @@
 package io.sapl.spring.method.reactive;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import io.sapl.api.model.UndefinedValue;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.Decision;
 import io.sapl.spring.constraints.ConstraintEnforcementService;
 import io.sapl.spring.constraints.ReactiveConstraintHandlerBundle;
+import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import org.reactivestreams.Subscription;
 import org.springframework.security.access.AccessDeniedException;
@@ -98,7 +100,7 @@ public class EnforceTillDeniedPolicyEnforcementPoint<T> extends Flux<T> {
     }
 
     @Override
-    public void subscribe(CoreSubscriber<? super T> subscriber) {
+    public void subscribe(@NonNull CoreSubscriber<? super T> subscriber) {
         if (sink != null)
             throw new IllegalStateException("Operator may only be subscribed once.");
         final var context = subscriber.currentContext();
@@ -122,16 +124,16 @@ public class EnforceTillDeniedPolicyEnforcementPoint<T> extends Flux<T> {
         }
         constraintHandler.get().handleOnDecisionConstraints();
 
-        if (decision.getDecision() != Decision.PERMIT) {
+        if (decision.decision() != Decision.PERMIT) {
             sink.error(new AccessDeniedException("Access Denied by PDP"));
             disposeDecisionsAndResourceAccessPoint();
             return;
         }
 
-        final var resource = decision.getResource();
-        if (resource.isPresent()) {
+        var resource = decision.resource();
+        if (!(resource instanceof UndefinedValue)) {
             try {
-                sink.next(constraintsService.unmarshallResource(resource.get(), clazz));
+                sink.next(constraintsService.unmarshallResource(resource, clazz));
             } catch (JsonProcessingException | IllegalArgumentException e) {
                 sink.error(new AccessDeniedException("Error replacing stream with resource. Ending Stream.", e));
             }

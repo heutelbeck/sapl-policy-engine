@@ -18,6 +18,7 @@
 package io.sapl.spring.manager;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.sapl.api.model.UndefinedValue;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.Decision;
@@ -94,7 +95,7 @@ public class ReactiveSaplAuthorizationManager implements ReactiveAuthorizationMa
     }
 
     private boolean enforceDecision(AuthorizationDecision authzDecision) {
-        if (authzDecision.getResource().isPresent())
+        if (!(authzDecision.resource() instanceof UndefinedValue))
             return false;
 
         try {
@@ -103,7 +104,7 @@ public class ReactiveSaplAuthorizationManager implements ReactiveAuthorizationMa
             return false;
         }
 
-        return authzDecision.getDecision() == Decision.PERMIT;
+        return authzDecision.decision() == Decision.PERMIT;
     }
 
     private Mono<AuthorizationSubscription> reactiveConstructAuthorizationSubscription(

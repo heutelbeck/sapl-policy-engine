@@ -314,9 +314,9 @@ class QueryEnforceAuthorizationSubscriptionServiceTests {
     }
 
     private void compareTwoAuthSubs(AuthorizationSubscription first, AuthorizationSubscription second) {
-        assertEquals(first.getSubject(), second.getSubject());
-        assertEquals(first.getAction(), second.getAction());
-        assertEquals(first.getResource(), second.getResource());
-        assertEquals(first.getEnvironment(), second.getEnvironment());
+        assertEquals(first.subject(), second.subject());
+        assertEquals(first.action(), second.action());
+        assertEquals(first.resource(), second.resource());
+        assertEquals(first.environment(), second.environment());
     }
 }

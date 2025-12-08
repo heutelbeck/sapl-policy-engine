@@ -21,6 +21,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import io.sapl.api.model.ValueJsonMarshaller;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.spring.method.metadata.SaplAttribute;
 import lombok.RequiredArgsConstructor;
@@ -91,8 +92,10 @@ public class WebfluxAuthorizationSubscriptionBuilderService {
         final var action      = retrieveAction(methodInvocation, attribute, evaluationCtx, serverHttpRequest);
         final var resource    = retrieveResource(methodInvocation, attribute, evaluationCtx, serverHttpRequest);
         final var environment = retrieveEnvironment(attribute, evaluationCtx);
-        return new AuthorizationSubscription(mapper.valueToTree(subject), mapper.valueToTree(action),
-                mapper.valueToTree(resource), mapper.valueToTree(environment));
+        return new AuthorizationSubscription(ValueJsonMarshaller.fromJsonNode(mapper.valueToTree(subject)),
+                ValueJsonMarshaller.fromJsonNode(mapper.valueToTree(action)),
+                ValueJsonMarshaller.fromJsonNode(mapper.valueToTree(resource)),
+                ValueJsonMarshaller.fromJsonNode(mapper.valueToTree(environment)));
     }
 
     private JsonNode retrieveSubject(Authentication authentication, SaplAttribute attr, EvaluationContext ctx) {

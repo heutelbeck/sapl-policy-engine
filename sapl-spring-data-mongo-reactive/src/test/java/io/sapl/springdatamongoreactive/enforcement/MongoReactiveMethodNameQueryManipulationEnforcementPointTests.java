@@ -20,18 +20,18 @@ package io.sapl.springdatamongoreactive.enforcement;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
+import io.sapl.api.model.Value;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.PolicyDecisionPoint;
-import io.sapl.interpreter.InitializationException;
-import io.sapl.pdp.EmbeddedPolicyDecisionPoint;
-import io.sapl.pdp.PolicyDecisionPointFactory;
+import io.sapl.pdp.PolicyDecisionPointBuilder;
 import io.sapl.spring.constraints.ConstraintEnforcementService;
 import io.sapl.spring.constraints.ReactiveConstraintHandlerBundle;
 import io.sapl.springdatacommon.services.ConstraintQueryEnforcementService;
 import io.sapl.springdatacommon.services.QueryManipulationConstraintHandlerService;
 import io.sapl.springdatamongoreactive.queries.QueryCreation;
 import io.sapl.springdatamongoreactive.sapl.database.TestUser;
+import lombok.val;
 import org.aopalliance.intercept.MethodInvocation;
 import org.bson.types.ObjectId;
 import org.junit.jupiter.api.AfterEach;
@@ -48,6 +48,10 @@ import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.security.access.AccessDeniedException;
 import reactor.core.publisher.Flux;
 import reactor.test.StepVerifier;
+
+import java.net.URISyntaxException;
+import java.nio.file.Paths;
+import java.util.Objects;
 
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
@@ -88,10 +92,12 @@ class MongoReactiveMethodNameQueryManipulationEnforcementPointTests {
             ConstraintEnforcementService.class);
     MockedStatic<QueryCreation>               queryCreationMock;
     PolicyDecisionPoint                       pdp;
+    PolicyDecisionPointBuilder.PDPComponents  components;
 
     @BeforeEach
-    void beforeEach() throws InitializationException {
-        pdp = buildPdp();
+    void beforeEach() throws URISyntaxException {
+        components = buildPdp();
+        pdp        = components.pdp();
         lenient().when(objectProviderPolicyDecisionPointMock.getObject()).thenReturn(pdp);
         lenient().when(objectProviderBeanFactoryMock.getObject()).thenReturn(beanFactoryMock);
         lenient().when(objectProviderConstraintQueryEnforcementServiceMock.getObject())
@@ -128,7 +134,7 @@ class MongoReactiveMethodNameQueryManipulationEnforcementPointTests {
         when(methodInvocationMock.getMethod().getName()).thenReturn("findAllById");
         when(methodInvocationMock.getArguments()).thenReturn(args);
         when(constraintEnforcementServiceMock.reactiveTypeBundleFor(any(AuthorizationDecision.class),
-                eq(TestUser.class), any(JsonNode[].class))).thenReturn(reactiveConstraintHandlerBundleMock);
+                eq(TestUser.class), any(Value[].class))).thenReturn(reactiveConstraintHandlerBundleMock);
         doNothing().when(reactiveConstraintHandlerBundleMock)
                 .handleMethodInvocationHandlers(any(MethodInvocation.class));
         when(constraintEnforcementServiceMock.replaceIfResourcePresent(any(), any(), eq(TestUser.class)))
@@ -178,7 +184,12 @@ class MongoReactiveMethodNameQueryManipulationEnforcementPointTests {
         verify(reactiveMongoTemplateMock, times(0)).find(any(Query.class), any());
     }
 
-    private static EmbeddedPolicyDecisionPoint buildPdp() throws InitializationException {
-        return PolicyDecisionPointFactory.filesystemPolicyDecisionPoint("src/test/resources/policies");
+    private static PolicyDecisionPointBuilder.PDPComponents buildPdp() throws URISyntaxException {
+        val policiesPath = Paths
+                .get(Objects
+                        .requireNonNull(MongoReactiveMethodNameQueryManipulationEnforcementPointTests.class
+                                .getClassLoader().getResource("policies"), "Classpath resource 'policies' not found")
+                        .toURI());
+        return PolicyDecisionPointBuilder.withDefaults().withDirectorySource(policiesPath).build();
     }
 }

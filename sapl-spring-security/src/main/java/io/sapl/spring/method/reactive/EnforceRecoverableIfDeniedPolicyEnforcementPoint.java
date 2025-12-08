@@ -18,10 +18,12 @@
 package io.sapl.spring.method.reactive;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import io.sapl.api.model.UndefinedValue;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.Decision;
 import io.sapl.spring.constraints.ConstraintEnforcementService;
 import io.sapl.spring.constraints.ReactiveConstraintHandlerBundle;
+import lombok.NonNull;
 import org.reactivestreams.Subscription;
 import org.springframework.security.access.AccessDeniedException;
 import reactor.core.CoreSubscriber;
@@ -92,7 +94,7 @@ public class EnforceRecoverableIfDeniedPolicyEnforcementPoint<T> extends Flux<Pr
     }
 
     @Override
-    public void subscribe(CoreSubscriber<? super ProtectedPayload<T>> actual) {
+    public void subscribe(@NonNull CoreSubscriber<? super ProtectedPayload<T>> actual) {
         if (sink != null)
             throw new IllegalStateException("Operator may only be subscribed once.");
         final var context = actual.currentContext();
@@ -103,7 +105,7 @@ public class EnforceRecoverableIfDeniedPolicyEnforcementPoint<T> extends Flux<Pr
     }
 
     private void handleNextDecision(AuthorizationDecision decision) {
-        if (decision.getDecision() == Decision.INDETERMINATE) {
+        if (decision.decision() == Decision.INDETERMINATE) {
             sink.error(new AccessDeniedException(
                     "The PDP encountered an error during decision making and returned INDETERMINATE."));
             latestDecision.set(decision);
@@ -111,7 +113,7 @@ public class EnforceRecoverableIfDeniedPolicyEnforcementPoint<T> extends Flux<Pr
             return;
         }
 
-        if (decision.getDecision() == Decision.NOT_APPLICABLE) {
+        if (decision.decision() == Decision.NOT_APPLICABLE) {
             sink.error(new AccessDeniedException(
                     "The PDP has no applicable rules answering the authorization subscription and returned NOT_APPLICABLE."));
             latestDecision.set(decision);
@@ -143,7 +145,7 @@ public class EnforceRecoverableIfDeniedPolicyEnforcementPoint<T> extends Flux<Pr
             return;
         }
 
-        if (decision.getDecision() == Decision.DENY) {
+        if (decision.decision() == Decision.DENY) {
             sink.error(new AccessDeniedException("PDP decided to deny access."));
             latestDecision.set(decision);
             return;
@@ -152,10 +154,10 @@ public class EnforceRecoverableIfDeniedPolicyEnforcementPoint<T> extends Flux<Pr
         // decision == Decision.PERMIT from here on
 
         latestDecision.set(decision);
-        final var potentialResource = decision.getResource();
-        if (potentialResource.isPresent()) {
+        var resource = decision.resource();
+        if (!(resource instanceof UndefinedValue)) {
             try {
-                sink.next(constraintsService.unmarshallResource(potentialResource.get(), clazz));
+                sink.next(constraintsService.unmarshallResource(resource, clazz));
             } catch (JsonProcessingException | IllegalArgumentException e) {
                 sink.error(new AccessDeniedException(
                         "The PEP failed to replace stream with decision's resource object. Will be handled like an INDETERMINATE decision",
@@ -200,11 +202,11 @@ public class EnforceRecoverableIfDeniedPolicyEnforcementPoint<T> extends Flux<Pr
 
         final var decision = latestDecision.get();
 
-        if (decision.getDecision() != Decision.PERMIT)
+        if (decision.decision() != Decision.PERMIT)
             return;
 
         // drop elements while the last decision replaced data with resource
-        if (decision.getResource().isPresent())
+        if (!(decision.resource() instanceof UndefinedValue))
             return;
 
         try {

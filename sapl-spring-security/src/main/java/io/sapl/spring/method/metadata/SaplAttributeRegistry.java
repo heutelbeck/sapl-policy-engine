@@ -142,35 +142,29 @@ public final class SaplAttributeRegistry {
     public <T extends Annotation> SaplAttribute resolveAttribute(Method method, Class<?> targetClass,
             Class<T> annotationType) {
         final var annotation = findAnnotation(method, targetClass, annotationType);
-        if (annotation == null) {
-            return SaplAttribute.NULL_ATTRIBUTE;
-        }
-        if (annotation instanceof PreEnforce saplAnnotation) {
-            return new SaplAttribute(annotationType, parseExpression(saplAnnotation.subject()),
+        return switch (annotation) {
+        case PreEnforce saplAnnotation                 ->
+            new SaplAttribute(annotationType, parseExpression(saplAnnotation.subject()),
                     parseExpression(saplAnnotation.action()), parseExpression(saplAnnotation.resource()),
                     parseExpression(saplAnnotation.environment()), saplAnnotation.genericsType());
-        }
-        if (annotation instanceof PostEnforce saplAnnotation) {
-            return new SaplAttribute(annotationType, parseExpression(saplAnnotation.subject()),
+        case PostEnforce saplAnnotation                ->
+            new SaplAttribute(annotationType, parseExpression(saplAnnotation.subject()),
                     parseExpression(saplAnnotation.action()), parseExpression(saplAnnotation.resource()),
                     parseExpression(saplAnnotation.environment()), saplAnnotation.genericsType());
-        }
-        if (annotation instanceof EnforceRecoverableIfDenied saplAnnotation) {
-            return new SaplAttribute(annotationType, parseExpression(saplAnnotation.subject()),
+        case EnforceRecoverableIfDenied saplAnnotation ->
+            new SaplAttribute(annotationType, parseExpression(saplAnnotation.subject()),
                     parseExpression(saplAnnotation.action()), parseExpression(saplAnnotation.resource()),
                     parseExpression(saplAnnotation.environment()), saplAnnotation.genericsType());
-        }
-        if (annotation instanceof EnforceTillDenied saplAnnotation) {
-            return new SaplAttribute(annotationType, parseExpression(saplAnnotation.subject()),
+        case EnforceTillDenied saplAnnotation          ->
+            new SaplAttribute(annotationType, parseExpression(saplAnnotation.subject()),
                     parseExpression(saplAnnotation.action()), parseExpression(saplAnnotation.resource()),
                     parseExpression(saplAnnotation.environment()), saplAnnotation.genericsType());
-        }
-        if (annotation instanceof EnforceDropWhileDenied saplAnnotation) {
-            return new SaplAttribute(annotationType, parseExpression(saplAnnotation.subject()),
+        case EnforceDropWhileDenied saplAnnotation     ->
+            new SaplAttribute(annotationType, parseExpression(saplAnnotation.subject()),
                     parseExpression(saplAnnotation.action()), parseExpression(saplAnnotation.resource()),
                     parseExpression(saplAnnotation.environment()), saplAnnotation.genericsType());
-        }
-        return SaplAttribute.NULL_ATTRIBUTE;
+        case null, default                             -> SaplAttribute.NULL_ATTRIBUTE;
+        };
     }
 
     private Expression parseExpression(String source) {

@@ -45,7 +45,7 @@ public class PreEnforcePolicyEnforcementPoint {
 
             Flux<T> resourceAccessPoint;
 
-            final var decisionIsPermit = Decision.PERMIT != decision.getDecision();
+            final var decisionIsPermit = Decision.PERMIT != decision.decision();
             if (decisionIsPermit) {
                 resourceAccessPoint = Flux.error(new AccessDeniedException("Access Denied by PDP"));
             } else {
@@ -58,7 +58,7 @@ public class PreEnforcePolicyEnforcementPoint {
             }
 
             resourceAccessPoint = constraintEnforcementService.replaceIfResourcePresent(resourceAccessPoint,
-                    decision.getResource(), clazz);
+                    decision.resource(), clazz);
 
             // onErrorStop is required to counter an onErrorContinue attack on the PEP/RAP.
             return constraintHandlerBundle.wrap(resourceAccessPoint).onErrorStop();

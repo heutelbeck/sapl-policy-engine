@@ -17,7 +17,9 @@
  */
 package io.sapl.spring.constraints.providers;
 
-import com.fasterxml.jackson.databind.JsonNode;
+import io.sapl.api.model.ObjectValue;
+import io.sapl.api.model.TextValue;
+import io.sapl.api.model.Value;
 import lombok.experimental.UtilityClass;
 
 import java.util.Objects;
@@ -26,15 +28,15 @@ import java.util.Objects;
 public class ConstraintResponsibility {
     private static final String TYPE = "type";
 
-    public static boolean isResponsible(JsonNode constraint, String requiredType) {
-        if (constraint == null || !constraint.isObject())
+    public static boolean isResponsible(Value constraint, String requiredType) {
+        if (!(constraint instanceof ObjectValue objectConstraint))
             return false;
 
-        final var type = constraint.get(TYPE);
+        var type = objectConstraint.get(TYPE);
 
-        if (Objects.isNull(type) || !type.isTextual())
+        if (!(type instanceof TextValue textType))
             return false;
 
-        return Objects.equals(type.asText(), requiredType);
+        return Objects.equals(textType.value(), requiredType);
     }
 }

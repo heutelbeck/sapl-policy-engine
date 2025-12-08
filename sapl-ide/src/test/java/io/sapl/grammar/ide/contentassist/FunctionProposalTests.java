@@ -139,8 +139,8 @@ class FunctionProposalTests extends CompletionTests {
         final var document = """
                 policy "test" deny where
                 final var foo = schemaTest§""";
-        final var expected = List.of("schemaTest.dog(dogRegistryRecord)", "schemaTest.food(species)",
-                "schemaTest.foodPrice(food)", "schemaTest.location()", "schemaTest.person(name, nationality, age)");
+        final var expected = List.of(".dog(dogRegistryRecord)", ".food(species)", ".foodPrice(food)", ".location()",
+                ".person(name, nationality, age)");
         assertProposalsContain(document, expected);
     }
 
@@ -159,7 +159,7 @@ class FunctionProposalTests extends CompletionTests {
         final var document = """
                 policy "test" deny where
                 final var foo = schemaTest.dog§""";
-        final var expected = List.of("(dogRegistryRecord)", "dog(dogRegistryRecord)");
+        final var expected = List.of("dog(dogRegistryRecord)");
         assertProposalsContain(document, expected);
     }
 
@@ -177,8 +177,8 @@ class FunctionProposalTests extends CompletionTests {
         final var document = """
                 policy "test" deny where
                 schemaTest§""";
-        final var expected = List.of("schemaTest.dog(dogRegistryRecord)", "schemaTest.food(species)",
-                "schemaTest.foodPrice(food)", "schemaTest.location()", "schemaTest.person(name, nationality, age)");
+        final var expected = List.of(".dog(dogRegistryRecord)", ".food(species)", ".foodPrice(food)", ".location()",
+                ".person(name, nationality, age)");
         assertProposalsContain(document, expected);
     }
 

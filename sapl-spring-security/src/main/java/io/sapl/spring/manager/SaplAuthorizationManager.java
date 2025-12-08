@@ -18,6 +18,7 @@
 package io.sapl.spring.manager;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.sapl.api.model.UndefinedValue;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.Decision;
 import io.sapl.api.pdp.PolicyDecisionPoint;
@@ -53,7 +54,7 @@ public class SaplAuthorizationManager implements AuthorizationManager<RequestAut
         final var subscription   = AuthorizationSubscription.of(authentication, request, request, mapper);
         final var authzDecision  = pdp.decide(subscription).blockFirst();
 
-        if (authzDecision == null || authzDecision.getResource().isPresent())
+        if (authzDecision == null || !(authzDecision.resource() instanceof UndefinedValue))
             return new AuthorizationDecision(false);
 
         try {
@@ -62,7 +63,7 @@ public class SaplAuthorizationManager implements AuthorizationManager<RequestAut
             return new AuthorizationDecision(false);
         }
 
-        if (authzDecision.getDecision() != Decision.PERMIT)
+        if (authzDecision.decision() != Decision.PERMIT)
             return new AuthorizationDecision(false);
 
         return new AuthorizationDecision(true);

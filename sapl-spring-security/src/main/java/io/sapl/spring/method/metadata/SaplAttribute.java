@@ -17,6 +17,7 @@
  */
 package io.sapl.spring.method.metadata;
 
+import lombok.NonNull;
 import org.springframework.expression.Expression;
 
 public record SaplAttribute(
@@ -30,7 +31,7 @@ public record SaplAttribute(
     public static final SaplAttribute NULL_ATTRIBUTE = new SaplAttribute(null, null, null, null, null, null);
 
     @Override
-    public String toString() {
+    public @NonNull String toString() {
         return "@" + (annotationType() == null ? "null" : annotationType().getSimpleName()) + "(subject="
                 + expressionStringOrNull(subjectExpression()) + ", action=" + expressionStringOrNull(actionExpression())
                 + ", resource=" + expressionStringOrNull(resourceExpression()) + ", environment="

@@ -29,7 +29,7 @@ class EnvironmentAttributeIdentifierTests extends CompletionTests {
     void testCompletion_PolicyBody_environmentattribute_without_import() {
         final var document = """
                 policy "test" deny where <t§""";
-        final var expected = List.of("temperature.mean(a1,a2)>", "temperature.now>", "temperature.predicted(a1)>");
+        final var expected = List.of("temperature.mean(a1, a2)>", "temperature.now>", "temperature.predicted(a1)>");
         assertProposalsContain(document, expected);
     }
 
@@ -69,7 +69,7 @@ class EnvironmentAttributeIdentifierTests extends CompletionTests {
     void testCompletion_PolicyBody_environmentheadattribute_without_import() {
         final var document = """
                 policy "test" deny where |<t§""";
-        final var expected = List.of("temperature.now>", "temperature.mean(a1,a2)>", "temperature.predicted(a1)>");
+        final var expected = List.of("temperature.now>", "temperature.mean(a1, a2)>", "temperature.predicted(a1)>");
         assertProposalsContain(document, expected);
     }
 

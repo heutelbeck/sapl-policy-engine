@@ -18,9 +18,10 @@
 package io.sapl.grammar.ide.contentassist;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.node.JsonNodeFactory;
-import io.sapl.api.interpreter.Val;
-import io.sapl.grammar.sapl.impl.util.ErrorFactory;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import io.sapl.api.model.ArrayValue;
+import io.sapl.api.model.Value;
+import io.sapl.api.model.ValueJsonMarshaller;
 import lombok.SneakyThrows;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -849,13 +850,14 @@ class SchemaProposalGeneratorTests {
     void when_givenSchemaAndVariables_then_GeneratorReturnsExpectedProposals(String test, List<String> variables,
             String schema, String[] expectedProposals) {
         assertThat(test).isNotEmpty();
-        final var schemaJson   = Val.ofJson(schema).get();
-        final var variablesMap = new HashMap<String, Val>();
-        final var schemasArray = JsonNodeFactory.instance.arrayNode();
+        final var mapper       = new ObjectMapper();
+        final var schemaJson   = mapper.readTree(schema);
+        final var variablesMap = new HashMap<String, Value>();
+        final var schemasArray = ArrayValue.builder();
         for (var variable : variables) {
-            schemasArray.add(Val.ofJson(variable).get());
+            schemasArray.add(ValueJsonMarshaller.json(variable));
         }
-        variablesMap.put("SCHEMAS", Val.of(schemasArray));
+        variablesMap.put("SCHEMAS", schemasArray.build());
         final var actualProposals = SchemaProposalsGenerator.getCodeTemplates("", schemaJson, variablesMap);
         assertThat(actualProposals).containsExactlyInAnyOrder(expectedProposals);
     }
@@ -868,7 +870,7 @@ class SchemaProposalGeneratorTests {
 
     @Test
     void when_undefinedSchema_then_proposalsEmpty() {
-        final var proposals = SchemaProposalsGenerator.getCodeTemplates("", ErrorFactory.error(""), Map.of());
+        final var proposals = SchemaProposalsGenerator.getCodeTemplates("", Value.error(""), Map.of());
         assertThat(proposals).isEmpty();
     }
 

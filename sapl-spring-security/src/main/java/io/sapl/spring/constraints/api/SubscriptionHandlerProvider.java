@@ -17,13 +17,13 @@
  */
 package io.sapl.spring.constraints.api;
 
-import com.fasterxml.jackson.databind.JsonNode;
+import io.sapl.api.model.Value;
 import org.reactivestreams.Subscription;
 
 import java.util.function.Consumer;
 
 public interface SubscriptionHandlerProvider extends Responsible {
 
-    Consumer<Subscription> getHandler(JsonNode constraint);
+    Consumer<Subscription> getHandler(Value constraint);
 
 }

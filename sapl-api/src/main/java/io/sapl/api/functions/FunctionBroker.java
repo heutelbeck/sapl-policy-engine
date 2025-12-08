@@ -19,6 +19,10 @@ package io.sapl.api.functions;
 
 import io.sapl.api.model.Value;
 
+import java.util.List;
+
 public interface FunctionBroker {
     Value evaluateFunction(FunctionInvocation invocation);
+
+    List<Class<?>> getRegisteredLibraries();
 }

@@ -17,8 +17,9 @@
  */
 package io.sapl.spring.constraints.providers;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.sapl.api.model.Value;
+import io.sapl.api.model.ValueJsonMarshaller;
 import io.sapl.spring.constraints.api.FilterPredicateConstraintHandlerProvider;
 import lombok.RequiredArgsConstructor;
 
@@ -32,12 +33,13 @@ public class ContentFilterPredicateProvider implements FilterPredicateConstraint
     private final ObjectMapper objectMapper;
 
     @Override
-    public boolean isResponsible(JsonNode constraint) {
+    public boolean isResponsible(Value constraint) {
         return ConstraintResponsibility.isResponsible(constraint, CONSTRAINT_TYPE);
     }
 
     @Override
-    public Predicate<Object> getHandler(JsonNode constraint) {
-        return ContentFilter.predicateFromConditions(constraint, objectMapper);
+    public Predicate<Object> getHandler(Value constraint) {
+        var jsonNode = ValueJsonMarshaller.toJsonNode(constraint);
+        return ContentFilter.predicateFromConditions(jsonNode, objectMapper);
     }
 }

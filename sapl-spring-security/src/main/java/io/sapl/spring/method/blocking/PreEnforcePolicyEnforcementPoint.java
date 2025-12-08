@@ -88,7 +88,7 @@ public final class PreEnforcePolicyEnforcementPoint implements MethodInterceptor
         try {
             blockingPreEnforceBundle.handleOnDecisionConstraints();
 
-            final var notGranted = authzDecision.getDecision() != Decision.PERMIT;
+            final var notGranted = authzDecision.decision() != Decision.PERMIT;
             if (notGranted)
                 throw new AccessDeniedException("Access Denied. Action not permitted.");
 

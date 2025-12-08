@@ -20,9 +20,10 @@ package io.sapl.grammar.ide.contentassist;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import io.sapl.api.interpreter.Val;
+import io.sapl.api.model.ArrayValue;
+import io.sapl.api.model.Value;
+import io.sapl.api.model.ValueJsonMarshaller;
 import io.sapl.grammar.sapl.Expression;
-import io.sapl.interpreter.context.AuthorizationContext;
 import lombok.experimental.UtilityClass;
 
 import java.net.URI;
@@ -46,22 +47,27 @@ public class SchemaProposalsGenerator {
 
     private static final Collection<String> KEYWORDS_INDICATING_TYPE_ARRAY = Set.of("allOf", "anyOf", "oneOf", TYPE);
 
-    public static List<String> getCodeTemplates(String prefix, Expression expression, Map<String, Val> variables) {
+    public static List<String> getCodeTemplates(String prefix, Expression expression,
+            ContentAssistPDPConfiguration pdpConfiguration) {
         if (null == expression) {
             return List.of();
         }
-        return expression.evaluate().contextWrite(ctx -> AuthorizationContext.setVariables(ctx, variables))
-                .map(schema -> SchemaProposalsGenerator.getCodeTemplates(prefix, schema, variables)).blockFirst();
-    }
-
-    public static List<String> getCodeTemplates(String prefix, Val schema, Map<String, Val> variables) {
-        if (!schema.isDefined()) {
+        final var maybeSchema = ExpressionEvaluator.evaluateExpressionToJsonNode(expression, pdpConfiguration);
+        if (maybeSchema.isEmpty()) {
             return List.of();
         }
-        return getCodeTemplates(prefix, schema.get(), variables);
+        return SchemaProposalsGenerator.getCodeTemplates(prefix, maybeSchema.get(), pdpConfiguration.variables());
     }
 
-    public static List<String> getCodeTemplates(String prefix, JsonNode schema, Map<String, Val> variables) {
+    public static List<String> getCodeTemplates(String prefix, Value schema, Map<String, Value> variables) {
+        try {
+            return getCodeTemplates(prefix, ValueJsonMarshaller.toJsonNode(schema), variables);
+        } catch (IllegalArgumentException e) {
+            return List.of();
+        }
+    }
+
+    public static List<String> getCodeTemplates(String prefix, JsonNode schema, Map<String, Value> variables) {
         final var proposals = new ArrayList<String>();
         if (null == schema) {
             return proposals;
@@ -77,13 +83,17 @@ public class SchemaProposalsGenerator {
         return proposals;
     }
 
-    private static void loadSchemasFromVariables(Map<String, Val> variables, Map<String, JsonNode> definitions) {
-        final var schemaArray = variables.getOrDefault("SCHEMAS", Val.ofEmptyArray());
-        if (!schemaArray.isArray()) {
+    private static void loadSchemasFromVariables(Map<String, Value> variables, Map<String, JsonNode> definitions) {
+        final var schemaArray = variables.getOrDefault("SCHEMAS", Value.EMPTY_ARRAY);
+        if (!(schemaArray instanceof ArrayValue actualArray)) {
             return;
         }
-        for (var variable : schemaArray.getArrayNode()) {
-            loadSchema(variable, definitions);
+        for (var variable : actualArray) {
+            try {
+                loadSchema(ValueJsonMarshaller.toJsonNode(variable), definitions);
+            } catch (IllegalArgumentException e) {
+                /* silently ignore errors */
+            }
         }
     }
 

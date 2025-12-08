@@ -17,7 +17,7 @@
  */
 package io.sapl.spring.constraints.api;
 
-import com.fasterxml.jackson.databind.JsonNode;
+import io.sapl.api.model.Value;
 
 public interface RunnableConstraintHandlerProvider extends Responsible {
 
@@ -31,6 +31,6 @@ public interface RunnableConstraintHandlerProvider extends Responsible {
 
     RunnableConstraintHandlerProvider.Signal getSignal();
 
-    Runnable getHandler(JsonNode constraint);
+    Runnable getHandler(Value constraint);
 
 }

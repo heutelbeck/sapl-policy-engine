@@ -43,12 +43,11 @@ import org.reactivestreams.Subscription;
 import org.springframework.aop.framework.ReflectiveMethodInvocation;
 import org.springframework.security.access.AccessDeniedException;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 
+import io.sapl.api.model.Value;
 import io.sapl.api.pdp.AuthorizationDecision;
+import io.sapl.api.pdp.Decision;
 import io.sapl.spring.constraints.api.ConsumerConstraintHandlerProvider;
 import io.sapl.spring.constraints.api.ErrorHandlerProvider;
 import io.sapl.spring.constraints.api.ErrorMappingConstraintHandlerProvider;
@@ -63,15 +62,19 @@ import reactor.test.StepVerifier;
 
 class ConstraintEnforcementServiceTests {
 
-    private static final ObjectMapper    MAPPER = new ObjectMapper();
-    private static final JsonNodeFactory JSON   = JsonNodeFactory.instance;
-    private static final JsonNode        CONSTRAINT;
-    private static final ArrayNode       ONE_CONSTRAINT;
+    private static final ObjectMapper MAPPER     = new ObjectMapper();
+    private static final Value        CONSTRAINT = Value.of("a constraint");
 
-    static {
-        CONSTRAINT     = JSON.textNode("a constraint");
-        ONE_CONSTRAINT = JSON.arrayNode();
-        ONE_CONSTRAINT.add(CONSTRAINT);
+    private static AuthorizationDecision permitWithObligation() {
+        return new AuthorizationDecision(Decision.PERMIT, List.of(CONSTRAINT), List.of(), Value.UNDEFINED);
+    }
+
+    private static AuthorizationDecision permitWithAdvice() {
+        return new AuthorizationDecision(Decision.PERMIT, List.of(), List.of(CONSTRAINT), Value.UNDEFINED);
+    }
+
+    private static AuthorizationDecision permitWithResource(Value resource) {
+        return new AuthorizationDecision(Decision.PERMIT, List.of(), List.of(), resource);
     }
 
     List<RunnableConstraintHandlerProvider> globalRunnableProviders;
@@ -126,7 +129,7 @@ class ConstraintEnforcementServiceTests {
     void when_resource_then_AccessIsGranted_and_valueIsReplaced() {
         final var service             = buildConstraintHandlerService();
         final var expected            = 69;
-        final var decision            = AuthorizationDecision.PERMIT.withResource(JSON.numberNode(expected));
+        final var decision            = permitWithResource(Value.of(expected));
         final var resourceAccessPoint = Flux.just(1, 2, 3);
         final var wrapped             = service.enforceConstraintsOfDecisionOnResourceAccessPoint(decision,
                 resourceAccessPoint, Integer.class);
@@ -136,7 +139,7 @@ class ConstraintEnforcementServiceTests {
     @Test
     void when_resource_and_typeMismatch_then_AccessIsDenied() {
         final var service             = buildConstraintHandlerService();
-        final var decision            = AuthorizationDecision.PERMIT.withResource(JSON.textNode("not a number"));
+        final var decision            = permitWithResource(Value.of("not a number"));
         final var resourceAccessPoint = Flux.just(1, 2, 3);
         final var wrapped             = service.enforceConstraintsOfDecisionOnResourceAccessPoint(decision,
                 resourceAccessPoint, Integer.class);
@@ -146,7 +149,7 @@ class ConstraintEnforcementServiceTests {
     @Test
     void when_obligation_and_noHandler_then_AccessIsDenied() {
         final var service             = buildConstraintHandlerService();
-        final var decision            = AuthorizationDecision.PERMIT.withObligations(ONE_CONSTRAINT);
+        final var decision            = permitWithObligation();
         final var resourceAccessPoint = Flux.just(1, 2, 3);
         final var wrapped             = service.enforceConstraintsOfDecisionOnResourceAccessPoint(decision,
                 resourceAccessPoint, Integer.class);
@@ -156,7 +159,7 @@ class ConstraintEnforcementServiceTests {
     @Test
     void when_obligation_and_noHandler_then_bundleBuildThrowsAccessIsDenied() {
         final var service  = buildConstraintHandlerService();
-        final var decision = AuthorizationDecision.PERMIT.withObligations(ONE_CONSTRAINT);
+        final var decision = permitWithObligation();
         assertThatThrownBy(() -> service.reactiveTypeBundleFor(decision, Integer.class))
                 .isInstanceOf(AccessDeniedException.class);
     }
@@ -164,7 +167,7 @@ class ConstraintEnforcementServiceTests {
     @Test
     void when_obligation_and_noHandler_but_ignored_then_bundleBuildDoesNotThrow() {
         final var service  = buildConstraintHandlerService();
-        final var decision = AuthorizationDecision.PERMIT.withObligations(ONE_CONSTRAINT);
+        final var decision = permitWithObligation();
         assertThatCode(() -> service.reactiveTypeBundleFor(decision, Integer.class, CONSTRAINT))
                 .doesNotThrowAnyException();
     }
@@ -174,7 +177,7 @@ class ConstraintEnforcementServiceTests {
         final var provider = spy(new RunnableConstraintHandlerProvider() {
 
             @Override
-            public boolean isResponsible(JsonNode constraint) {
+            public boolean isResponsible(Value constraint) {
                 return true;
             }
 
@@ -184,7 +187,7 @@ class ConstraintEnforcementServiceTests {
             }
 
             @Override
-            public Runnable getHandler(JsonNode constraint) {
+            public Runnable getHandler(Value constraint) {
                 return this::run;
             }
 
@@ -194,7 +197,7 @@ class ConstraintEnforcementServiceTests {
         });
         globalRunnableProviders.add(provider);
         final var service             = buildConstraintHandlerService();
-        final var decision            = AuthorizationDecision.PERMIT.withObligations(ONE_CONSTRAINT);
+        final var decision            = permitWithObligation();
         final var resourceAccessPoint = Flux.just(1, 2, 3);
         final var wrapped             = service.enforceConstraintsOfDecisionOnResourceAccessPoint(decision,
                 resourceAccessPoint, Integer.class);
@@ -207,7 +210,7 @@ class ConstraintEnforcementServiceTests {
         final var provider      = spy(new RunnableConstraintHandlerProvider() {
 
                                     @Override
-                                    public boolean isResponsible(JsonNode constraint) {
+                                    public boolean isResponsible(Value constraint) {
                                         return true;
                                     }
 
@@ -217,7 +220,7 @@ class ConstraintEnforcementServiceTests {
                                     }
 
                                     @Override
-                                    public Runnable getHandler(JsonNode constraint) {
+                                    public Runnable getHandler(Value constraint) {
                                         return this::run;
                                     }
 
@@ -228,7 +231,7 @@ class ConstraintEnforcementServiceTests {
         final var providerNoRun = spy(new RunnableConstraintHandlerProvider() {
 
                                     @Override
-                                    public boolean isResponsible(JsonNode constraint) {
+                                    public boolean isResponsible(Value constraint) {
                                         return true;
                                     }
 
@@ -238,7 +241,7 @@ class ConstraintEnforcementServiceTests {
                                     }
 
                                     @Override
-                                    public Runnable getHandler(JsonNode constraint) {
+                                    public Runnable getHandler(Value constraint) {
                                         return this::run;
                                     }
 
@@ -249,7 +252,7 @@ class ConstraintEnforcementServiceTests {
         globalRunnableProviders.add(provider);
         globalRunnableProviders.add(providerNoRun);
         final var service  = buildConstraintHandlerService();
-        final var decision = AuthorizationDecision.PERMIT.withObligations(ONE_CONSTRAINT);
+        final var decision = permitWithObligation();
         final var bundle   = service.accessManagerBundleFor(decision);
         bundle.handleOnDecisionConstraints();
         verify(provider, times(1)).run();
@@ -262,7 +265,7 @@ class ConstraintEnforcementServiceTests {
         final var providerNoRun = spy(new RunnableConstraintHandlerProvider() {
 
             @Override
-            public boolean isResponsible(JsonNode constraint) {
+            public boolean isResponsible(Value constraint) {
                 return true;
             }
 
@@ -272,7 +275,7 @@ class ConstraintEnforcementServiceTests {
             }
 
             @Override
-            public Runnable getHandler(JsonNode constraint) {
+            public Runnable getHandler(Value constraint) {
                 return this::run;
             }
 
@@ -282,7 +285,7 @@ class ConstraintEnforcementServiceTests {
         });
         globalRunnableProviders.add(providerNoRun);
         final var service  = buildConstraintHandlerService();
-        final var decision = AuthorizationDecision.PERMIT.withObligations(ONE_CONSTRAINT);
+        final var decision = permitWithObligation();
         assertThatThrownBy(() -> service.accessManagerBundleFor(decision)).isInstanceOf(AccessDeniedException.class);
         verify(providerNoRun, times(0)).run();
     }
@@ -292,7 +295,7 @@ class ConstraintEnforcementServiceTests {
         final var provider = spy(new RunnableConstraintHandlerProvider() {
 
             @Override
-            public boolean isResponsible(JsonNode constraint) {
+            public boolean isResponsible(Value constraint) {
                 return true;
             }
 
@@ -302,7 +305,7 @@ class ConstraintEnforcementServiceTests {
             }
 
             @Override
-            public Runnable getHandler(JsonNode constraint) {
+            public Runnable getHandler(Value constraint) {
                 return this::run;
             }
 
@@ -312,7 +315,7 @@ class ConstraintEnforcementServiceTests {
         });
         globalRunnableProviders.add(provider);
         final var service             = buildConstraintHandlerService();
-        final var decision            = AuthorizationDecision.PERMIT.withObligations(ONE_CONSTRAINT);
+        final var decision            = permitWithObligation();
         final var resourceAccessPoint = Flux.just(1, 2, 3);
         final var wrapped             = service.enforceConstraintsOfDecisionOnResourceAccessPoint(decision,
                 resourceAccessPoint, Integer.class);
@@ -325,7 +328,7 @@ class ConstraintEnforcementServiceTests {
         final var provider = spy(new RunnableConstraintHandlerProvider() {
 
             @Override
-            public boolean isResponsible(JsonNode constraint) {
+            public boolean isResponsible(Value constraint) {
                 return true;
             }
 
@@ -335,7 +338,7 @@ class ConstraintEnforcementServiceTests {
             }
 
             @Override
-            public Runnable getHandler(JsonNode constraint) {
+            public Runnable getHandler(Value constraint) {
                 return this::run;
             }
 
@@ -345,7 +348,7 @@ class ConstraintEnforcementServiceTests {
         });
         globalRunnableProviders.add(provider);
         final var service             = buildConstraintHandlerService();
-        final var decision            = AuthorizationDecision.PERMIT.withAdvice(ONE_CONSTRAINT);
+        final var decision            = permitWithAdvice();
         final var resourceAccessPoint = Flux.just(1, 2, 3);
         final var wrapped             = service.enforceConstraintsOfDecisionOnResourceAccessPoint(decision,
                 resourceAccessPoint, Integer.class);
@@ -358,7 +361,7 @@ class ConstraintEnforcementServiceTests {
         final var provider = spy(new RunnableConstraintHandlerProvider() {
 
             @Override
-            public boolean isResponsible(JsonNode constraint) {
+            public boolean isResponsible(Value constraint) {
                 return true;
             }
 
@@ -368,7 +371,7 @@ class ConstraintEnforcementServiceTests {
             }
 
             @Override
-            public Runnable getHandler(JsonNode constraint) {
+            public Runnable getHandler(Value constraint) {
                 return this::run;
             }
 
@@ -378,7 +381,7 @@ class ConstraintEnforcementServiceTests {
         });
         globalRunnableProviders.add(provider);
         final var service             = buildConstraintHandlerService();
-        final var decision            = AuthorizationDecision.PERMIT.withObligations(ONE_CONSTRAINT);
+        final var decision            = permitWithObligation();
         final var resourceAccessPoint = Flux.just(1, 2, 3);
         final var wrapped             = service.enforceConstraintsOfDecisionOnResourceAccessPoint(decision,
                 resourceAccessPoint, Integer.class);
@@ -391,7 +394,7 @@ class ConstraintEnforcementServiceTests {
         final var provider = spy(new RunnableConstraintHandlerProvider() {
 
             @Override
-            public boolean isResponsible(JsonNode constraint) {
+            public boolean isResponsible(Value constraint) {
                 return true;
             }
 
@@ -401,7 +404,7 @@ class ConstraintEnforcementServiceTests {
             }
 
             @Override
-            public Runnable getHandler(JsonNode constraint) {
+            public Runnable getHandler(Value constraint) {
                 return this::run;
             }
 
@@ -411,7 +414,7 @@ class ConstraintEnforcementServiceTests {
         });
         globalRunnableProviders.add(provider);
         final var service             = buildConstraintHandlerService();
-        final var decision            = AuthorizationDecision.PERMIT.withObligations(ONE_CONSTRAINT);
+        final var decision            = permitWithObligation();
         final var resourceAccessPoint = Flux.just(1, 2, 3);
         final var wrapped             = service.enforceConstraintsOfDecisionOnResourceAccessPoint(decision,
                 resourceAccessPoint, Integer.class);
@@ -424,7 +427,7 @@ class ConstraintEnforcementServiceTests {
         final var provider = spy(new RunnableConstraintHandlerProvider() {
 
             @Override
-            public boolean isResponsible(JsonNode constraint) {
+            public boolean isResponsible(Value constraint) {
                 return true;
             }
 
@@ -434,7 +437,7 @@ class ConstraintEnforcementServiceTests {
             }
 
             @Override
-            public Runnable getHandler(JsonNode constraint) {
+            public Runnable getHandler(Value constraint) {
                 return this::run;
             }
 
@@ -444,7 +447,7 @@ class ConstraintEnforcementServiceTests {
         });
         globalRunnableProviders.add(provider);
         final var service             = buildConstraintHandlerService();
-        final var decision            = AuthorizationDecision.PERMIT.withObligations(ONE_CONSTRAINT);
+        final var decision            = permitWithObligation();
         final var resourceAccessPoint = Flux.just(1, 2, 3);
         final var wrapped             = service.enforceConstraintsOfDecisionOnResourceAccessPoint(decision,
                 resourceAccessPoint, Integer.class);
@@ -457,7 +460,7 @@ class ConstraintEnforcementServiceTests {
         final var provider = spy(new RunnableConstraintHandlerProvider() {
 
             @Override
-            public boolean isResponsible(JsonNode constraint) {
+            public boolean isResponsible(Value constraint) {
                 return true;
             }
 
@@ -467,7 +470,7 @@ class ConstraintEnforcementServiceTests {
             }
 
             @Override
-            public Runnable getHandler(JsonNode constraint) {
+            public Runnable getHandler(Value constraint) {
                 return this::run;
             }
 
@@ -477,7 +480,7 @@ class ConstraintEnforcementServiceTests {
         });
         globalRunnableProviders.add(provider);
         final var service             = buildConstraintHandlerService();
-        final var decision            = AuthorizationDecision.PERMIT.withObligations(ONE_CONSTRAINT);
+        final var decision            = permitWithObligation();
         final var resourceAccessPoint = Flux.just(1, 2, 3);
         final var wrapped             = service.enforceConstraintsOfDecisionOnResourceAccessPoint(decision,
                 resourceAccessPoint, Integer.class);
@@ -490,7 +493,7 @@ class ConstraintEnforcementServiceTests {
         final var provider = spy(new ConsumerConstraintHandlerProvider<Integer>() {
 
             @Override
-            public boolean isResponsible(JsonNode constraint) {
+            public boolean isResponsible(Value constraint) {
                 return true;
             }
 
@@ -500,7 +503,7 @@ class ConstraintEnforcementServiceTests {
             }
 
             @Override
-            public Consumer<Integer> getHandler(JsonNode constraint) {
+            public Consumer<Integer> getHandler(Value constraint) {
                 return this::accept;
             }
 
@@ -511,7 +514,7 @@ class ConstraintEnforcementServiceTests {
         });
         globalConsumerProviders.add(provider);
         final var service             = buildConstraintHandlerService();
-        final var decision            = AuthorizationDecision.PERMIT.withObligations(ONE_CONSTRAINT);
+        final var decision            = permitWithObligation();
         final var resourceAccessPoint = Flux.just(1, 2, 3);
         final var wrapped             = service.enforceConstraintsOfDecisionOnResourceAccessPoint(decision,
                 resourceAccessPoint, Integer.class);
@@ -524,7 +527,7 @@ class ConstraintEnforcementServiceTests {
         final var provider = spy(new ConsumerConstraintHandlerProvider<Integer>() {
 
             @Override
-            public boolean isResponsible(JsonNode constraint) {
+            public boolean isResponsible(Value constraint) {
                 return true;
             }
 
@@ -534,7 +537,7 @@ class ConstraintEnforcementServiceTests {
             }
 
             @Override
-            public Consumer<Integer> getHandler(JsonNode constraint) {
+            public Consumer<Integer> getHandler(Value constraint) {
                 return this::accept;
             }
 
@@ -546,7 +549,7 @@ class ConstraintEnforcementServiceTests {
         });
         globalConsumerProviders.add(provider);
         final var service             = buildConstraintHandlerService();
-        final var decision            = AuthorizationDecision.PERMIT.withObligations(ONE_CONSTRAINT);
+        final var decision            = permitWithObligation();
         final var resourceAccessPoint = Flux.just(1, 2, 3);
         final var wrapped             = service.enforceConstraintsOfDecisionOnResourceAccessPoint(decision,
                 resourceAccessPoint, Integer.class);
@@ -559,7 +562,7 @@ class ConstraintEnforcementServiceTests {
         final var provider = spy(new ConsumerConstraintHandlerProvider<Integer>() {
 
             @Override
-            public boolean isResponsible(JsonNode constraint) {
+            public boolean isResponsible(Value constraint) {
                 return true;
             }
 
@@ -569,7 +572,7 @@ class ConstraintEnforcementServiceTests {
             }
 
             @Override
-            public Consumer<Integer> getHandler(JsonNode constraint) {
+            public Consumer<Integer> getHandler(Value constraint) {
                 return this::accept;
             }
 
@@ -581,7 +584,7 @@ class ConstraintEnforcementServiceTests {
         });
         globalConsumerProviders.add(provider);
         final var service             = buildConstraintHandlerService();
-        final var decision            = AuthorizationDecision.PERMIT.withAdvice(ONE_CONSTRAINT);
+        final var decision            = permitWithAdvice();
         final var resourceAccessPoint = Flux.just(1, 2, 3);
         final var wrapped             = service.enforceConstraintsOfDecisionOnResourceAccessPoint(decision,
                 resourceAccessPoint, Integer.class);
@@ -594,7 +597,7 @@ class ConstraintEnforcementServiceTests {
         final var provider = spy(new MappingConstraintHandlerProvider<String>() {
 
             @Override
-            public boolean isResponsible(JsonNode constraint) {
+            public boolean isResponsible(Value constraint) {
                 return true;
             }
 
@@ -604,7 +607,7 @@ class ConstraintEnforcementServiceTests {
             }
 
             @Override
-            public UnaryOperator<String> getHandler(JsonNode constraint) {
+            public UnaryOperator<String> getHandler(Value constraint) {
                 return this::apply;
             }
 
@@ -615,7 +618,7 @@ class ConstraintEnforcementServiceTests {
         });
         globalMappingHandlerProviders.add(provider);
         final var service             = buildConstraintHandlerService();
-        final var decision            = AuthorizationDecision.PERMIT.withObligations(ONE_CONSTRAINT);
+        final var decision            = permitWithObligation();
         final var resourceAccessPoint = Flux.just("+", "-", "#");
         final var wrapped             = service.enforceConstraintsOfDecisionOnResourceAccessPoint(decision,
                 resourceAccessPoint, String.class);
@@ -632,7 +635,7 @@ class ConstraintEnforcementServiceTests {
                                 }
 
                                 @Override
-                                public boolean isResponsible(JsonNode constraint) {
+                                public boolean isResponsible(Value constraint) {
                                     return true;
                                 }
 
@@ -642,7 +645,7 @@ class ConstraintEnforcementServiceTests {
                                 }
 
                                 @Override
-                                public UnaryOperator<String> getHandler(JsonNode constraint) {
+                                public UnaryOperator<String> getHandler(Value constraint) {
                                     return this::apply;
                                 }
 
@@ -658,7 +661,7 @@ class ConstraintEnforcementServiceTests {
                                 }
 
                                 @Override
-                                public boolean isResponsible(JsonNode constraint) {
+                                public boolean isResponsible(Value constraint) {
                                     return true;
                                 }
 
@@ -668,7 +671,7 @@ class ConstraintEnforcementServiceTests {
                                 }
 
                                 @Override
-                                public UnaryOperator<String> getHandler(JsonNode constraint) {
+                                public UnaryOperator<String> getHandler(Value constraint) {
                                     return this::apply;
                                 }
 
@@ -683,7 +686,7 @@ class ConstraintEnforcementServiceTests {
         globalMappingHandlerProviders.add(provider1);
 
         final var service             = buildConstraintHandlerService();
-        final var decision            = AuthorizationDecision.PERMIT.withObligations(ONE_CONSTRAINT);
+        final var decision            = permitWithObligation();
         final var resourceAccessPoint = Flux.just("+", "-", "#");
         final var wrapped             = service.enforceConstraintsOfDecisionOnResourceAccessPoint(decision,
                 resourceAccessPoint, String.class);
@@ -703,7 +706,7 @@ class ConstraintEnforcementServiceTests {
                                 }
 
                                 @Override
-                                public boolean isResponsible(JsonNode constraint) {
+                                public boolean isResponsible(Value constraint) {
                                     return true;
                                 }
 
@@ -713,7 +716,7 @@ class ConstraintEnforcementServiceTests {
                                 }
 
                                 @Override
-                                public UnaryOperator<String> getHandler(JsonNode constraint) {
+                                public UnaryOperator<String> getHandler(Value constraint) {
                                     return this::apply;
                                 }
 
@@ -729,7 +732,7 @@ class ConstraintEnforcementServiceTests {
                                 }
 
                                 @Override
-                                public boolean isResponsible(JsonNode constraint) {
+                                public boolean isResponsible(Value constraint) {
                                     return true;
                                 }
 
@@ -739,7 +742,7 @@ class ConstraintEnforcementServiceTests {
                                 }
 
                                 @Override
-                                public UnaryOperator<String> getHandler(JsonNode constraint) {
+                                public UnaryOperator<String> getHandler(Value constraint) {
                                     return this::apply;
                                 }
 
@@ -754,7 +757,7 @@ class ConstraintEnforcementServiceTests {
         globalMappingHandlerProviders.add(provider1);
 
         final var service             = buildConstraintHandlerService();
-        final var decision            = AuthorizationDecision.PERMIT.withAdvice(ONE_CONSTRAINT);
+        final var decision            = permitWithAdvice();
         final var resourceAccessPoint = Flux.just("+", "-", "#");
         final var wrapped             = service.enforceConstraintsOfDecisionOnResourceAccessPoint(decision,
                 resourceAccessPoint, String.class);
@@ -774,7 +777,7 @@ class ConstraintEnforcementServiceTests {
                                 }
 
                                 @Override
-                                public boolean isResponsible(JsonNode constraint) {
+                                public boolean isResponsible(Value constraint) {
                                     return true;
                                 }
 
@@ -784,7 +787,7 @@ class ConstraintEnforcementServiceTests {
                                 }
 
                                 @Override
-                                public UnaryOperator<String> getHandler(JsonNode constraint) {
+                                public UnaryOperator<String> getHandler(Value constraint) {
                                     return this::apply;
                                 }
 
@@ -802,7 +805,7 @@ class ConstraintEnforcementServiceTests {
                                 }
 
                                 @Override
-                                public boolean isResponsible(JsonNode constraint) {
+                                public boolean isResponsible(Value constraint) {
                                     return true;
                                 }
 
@@ -812,7 +815,7 @@ class ConstraintEnforcementServiceTests {
                                 }
 
                                 @Override
-                                public UnaryOperator<String> getHandler(JsonNode constraint) {
+                                public UnaryOperator<String> getHandler(Value constraint) {
                                     return this::apply;
                                 }
 
@@ -827,7 +830,7 @@ class ConstraintEnforcementServiceTests {
         globalMappingHandlerProviders.add(provider1);
 
         final var service             = buildConstraintHandlerService();
-        final var decision            = AuthorizationDecision.PERMIT.withObligations(ONE_CONSTRAINT);
+        final var decision            = permitWithObligation();
         final var resourceAccessPoint = Flux.just("+", "-", "#");
         final var wrapped             = service.enforceConstraintsOfDecisionOnResourceAccessPoint(decision,
                 resourceAccessPoint, String.class);
@@ -843,12 +846,12 @@ class ConstraintEnforcementServiceTests {
         final var provider = spy(new ErrorHandlerProvider() {
 
             @Override
-            public boolean isResponsible(JsonNode constraint) {
+            public boolean isResponsible(Value constraint) {
                 return true;
             }
 
             @Override
-            public Consumer<Throwable> getHandler(JsonNode constraint) {
+            public Consumer<Throwable> getHandler(Value constraint) {
                 return this::accept;
             }
 
@@ -859,7 +862,7 @@ class ConstraintEnforcementServiceTests {
         });
         globalErrorHandlerProviders.add(provider);
         final var service             = buildConstraintHandlerService();
-        final var decision            = AuthorizationDecision.PERMIT.withObligations(ONE_CONSTRAINT);
+        final var decision            = permitWithObligation();
         final var resourceAccessPoint = Flux.concat(Flux.just(1),
                 Flux.error(new IOException("I AM A FAILURE OF THE RAP")), Flux.just(3));
         final var wrapped             = service.enforceConstraintsOfDecisionOnResourceAccessPoint(decision,
@@ -873,12 +876,12 @@ class ConstraintEnforcementServiceTests {
         final var provider = spy(new ErrorHandlerProvider() {
 
             @Override
-            public boolean isResponsible(JsonNode constraint) {
+            public boolean isResponsible(Value constraint) {
                 return true;
             }
 
             @Override
-            public Consumer<Throwable> getHandler(JsonNode constraint) {
+            public Consumer<Throwable> getHandler(Value constraint) {
                 return this::accept;
             }
 
@@ -889,7 +892,7 @@ class ConstraintEnforcementServiceTests {
         });
         globalErrorHandlerProviders.add(provider);
         final var service             = buildConstraintHandlerService();
-        final var decision            = AuthorizationDecision.PERMIT.withObligations(ONE_CONSTRAINT);
+        final var decision            = permitWithObligation();
         final var resourceAccessPoint = Flux.concat(Flux.just(1),
                 Flux.error(new IOException("I AM A FAILURE OF THE RAP")), Flux.just(3));
         final var wrapped             = service.enforceConstraintsOfDecisionOnResourceAccessPoint(decision,
@@ -903,12 +906,12 @@ class ConstraintEnforcementServiceTests {
         final var provider = spy(new ErrorMappingConstraintHandlerProvider() {
 
             @Override
-            public boolean isResponsible(JsonNode constraint) {
+            public boolean isResponsible(Value constraint) {
                 return true;
             }
 
             @Override
-            public UnaryOperator<Throwable> getHandler(JsonNode constraint) {
+            public UnaryOperator<Throwable> getHandler(Value constraint) {
                 return this::apply;
             }
 
@@ -919,7 +922,7 @@ class ConstraintEnforcementServiceTests {
         });
         globalErrorMappingHandlerProviders.add(provider);
         final var service             = buildConstraintHandlerService();
-        final var decision            = AuthorizationDecision.PERMIT.withObligations(ONE_CONSTRAINT);
+        final var decision            = permitWithObligation();
         final var resourceAccessPoint = Flux.concat(Flux.just(1),
                 Flux.error(new IOException("I AM A FAILURE OF THE RAP")), Flux.just(3));
         final var wrapped             = service.enforceConstraintsOfDecisionOnResourceAccessPoint(decision,
@@ -933,12 +936,12 @@ class ConstraintEnforcementServiceTests {
         final var provider = spy(new SubscriptionHandlerProvider() {
 
             @Override
-            public boolean isResponsible(JsonNode constraint) {
+            public boolean isResponsible(Value constraint) {
                 return true;
             }
 
             @Override
-            public Consumer<Subscription> getHandler(JsonNode constraint) {
+            public Consumer<Subscription> getHandler(Value constraint) {
                 return this::accept;
             }
 
@@ -949,7 +952,7 @@ class ConstraintEnforcementServiceTests {
         });
         globalSubscriptionHandlerProviders.add(provider);
         final var service             = buildConstraintHandlerService();
-        final var decision            = AuthorizationDecision.PERMIT.withObligations(ONE_CONSTRAINT);
+        final var decision            = permitWithObligation();
         final var resourceAccessPoint = Flux.just(1, 2, 3);
         final var wrapped             = service.enforceConstraintsOfDecisionOnResourceAccessPoint(decision,
                 resourceAccessPoint, Integer.class);
@@ -962,12 +965,12 @@ class ConstraintEnforcementServiceTests {
         final var provider = spy(new SubscriptionHandlerProvider() {
 
             @Override
-            public boolean isResponsible(JsonNode constraint) {
+            public boolean isResponsible(Value constraint) {
                 return true;
             }
 
             @Override
-            public Consumer<Subscription> getHandler(JsonNode constraint) {
+            public Consumer<Subscription> getHandler(Value constraint) {
                 return this::accept;
             }
 
@@ -978,7 +981,7 @@ class ConstraintEnforcementServiceTests {
         });
         globalSubscriptionHandlerProviders.add(provider);
         final var service             = buildConstraintHandlerService();
-        final var decision            = AuthorizationDecision.PERMIT.withObligations(ONE_CONSTRAINT);
+        final var decision            = permitWithObligation();
         final var resourceAccessPoint = Flux.just(1, 2, 3);
         final var wrapped             = service.enforceConstraintsOfDecisionOnResourceAccessPoint(decision,
                 resourceAccessPoint, Integer.class);
@@ -991,12 +994,12 @@ class ConstraintEnforcementServiceTests {
         final var provider = spy(new RequestHandlerProvider() {
 
             @Override
-            public boolean isResponsible(JsonNode constraint) {
+            public boolean isResponsible(Value constraint) {
                 return true;
             }
 
             @Override
-            public LongConsumer getHandler(JsonNode constraint) {
+            public LongConsumer getHandler(Value constraint) {
                 return this::accept;
             }
 
@@ -1007,7 +1010,7 @@ class ConstraintEnforcementServiceTests {
         });
         globalRequestHandlerProviders.add(provider);
         final var service             = buildConstraintHandlerService();
-        final var decision            = AuthorizationDecision.PERMIT.withObligations(ONE_CONSTRAINT);
+        final var decision            = permitWithObligation();
         final var resourceAccessPoint = Flux.just(1, 2, 3);
         final var wrapped             = service.enforceConstraintsOfDecisionOnResourceAccessPoint(decision,
                 resourceAccessPoint, Integer.class);
@@ -1020,12 +1023,12 @@ class ConstraintEnforcementServiceTests {
         final var provider = spy(new FilterPredicateConstraintHandlerProvider() {
 
             @Override
-            public boolean isResponsible(JsonNode constraint) {
+            public boolean isResponsible(Value constraint) {
                 return true;
             }
 
             @Override
-            public Predicate<Object> getHandler(JsonNode constraint) {
+            public Predicate<Object> getHandler(Value constraint) {
                 return this::test;
             }
 
@@ -1036,7 +1039,7 @@ class ConstraintEnforcementServiceTests {
         });
         globalFilterPredicateProviders.add(provider);
         final var service             = buildConstraintHandlerService();
-        final var decision            = AuthorizationDecision.PERMIT.withObligations(ONE_CONSTRAINT);
+        final var decision            = permitWithObligation();
         final var resourceAccessPoint = Flux.just(1, 2, 3, 4, 5);
         final var wrapped             = service.enforceConstraintsOfDecisionOnResourceAccessPoint(decision,
                 resourceAccessPoint, Integer.class);
@@ -1049,12 +1052,12 @@ class ConstraintEnforcementServiceTests {
         final var provider = spy(new RequestHandlerProvider() {
 
             @Override
-            public boolean isResponsible(JsonNode constraint) {
+            public boolean isResponsible(Value constraint) {
                 return true;
             }
 
             @Override
-            public LongConsumer getHandler(JsonNode constraint) {
+            public LongConsumer getHandler(Value constraint) {
                 return this::accept;
             }
 
@@ -1065,7 +1068,7 @@ class ConstraintEnforcementServiceTests {
         });
         globalRequestHandlerProviders.add(provider);
         final var service             = buildConstraintHandlerService();
-        final var decision            = AuthorizationDecision.PERMIT.withObligations(ONE_CONSTRAINT);
+        final var decision            = permitWithObligation();
         final var resourceAccessPoint = Flux.just(1, 2, 3);
         final var wrapped             = service.enforceConstraintsOfDecisionOnResourceAccessPoint(decision,
                 resourceAccessPoint, Integer.class);
@@ -1077,12 +1080,12 @@ class ConstraintEnforcementServiceTests {
         final var provider = spy(new RequestHandlerProvider() {
 
             @Override
-            public boolean isResponsible(JsonNode constraint) {
+            public boolean isResponsible(Value constraint) {
                 return true;
             }
 
             @Override
-            public LongConsumer getHandler(JsonNode constraint) {
+            public LongConsumer getHandler(Value constraint) {
                 return this::accept;
             }
 
@@ -1093,7 +1096,7 @@ class ConstraintEnforcementServiceTests {
         });
         globalRequestHandlerProviders.add(provider);
         final var service             = buildConstraintHandlerService();
-        final var decision            = AuthorizationDecision.PERMIT.withAdvice(ONE_CONSTRAINT);
+        final var decision            = permitWithAdvice();
         final var resourceAccessPoint = Flux.just(1, 2, 3);
         final var wrapped             = service.enforceConstraintsOfDecisionOnResourceAccessPoint(decision,
                 resourceAccessPoint, Integer.class);
@@ -1106,12 +1109,12 @@ class ConstraintEnforcementServiceTests {
         final var provider = spy(new MethodInvocationConstraintHandlerProvider() {
 
             @Override
-            public boolean isResponsible(JsonNode constraint) {
+            public boolean isResponsible(Value constraint) {
                 return true;
             }
 
             @Override
-            public Consumer<ReflectiveMethodInvocation> getHandler(JsonNode constraint) {
+            public Consumer<ReflectiveMethodInvocation> getHandler(Value constraint) {
                 return this::accept;
             }
 
@@ -1122,7 +1125,7 @@ class ConstraintEnforcementServiceTests {
         });
         globalInvocationHandlerProviders.add(provider);
         final var service  = buildConstraintHandlerService();
-        final var decision = AuthorizationDecision.PERMIT.withObligations(ONE_CONSTRAINT);
+        final var decision = permitWithObligation();
         final var bundle   = service.blockingPreEnforceBundleFor(decision, Object.class);
         assertThrows(AccessDeniedException.class,
                 () -> bundle.handleMethodInvocationHandlers(mock(MethodInvocation.class)));

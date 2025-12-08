@@ -18,6 +18,8 @@
 package io.sapl.springdatamongoreactive.enforcement;
 
 import com.fasterxml.jackson.databind.node.ArrayNode;
+import io.sapl.api.model.Value;
+import io.sapl.api.model.ValueJsonMarshaller;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.Decision;
@@ -80,26 +82,28 @@ public class MongoReactiveMethodNameQueryManipulationEnforcementPoint<T> {
 
             Flux<T> resourceAccessPoint;
 
-            final var decisionIsPermit = Decision.PERMIT == decision.getDecision();
+            var decisionIsPermit = Decision.PERMIT == decision.decision();
 
             if (!decisionIsPermit) {
                 resourceAccessPoint = Flux.error(new AccessDeniedException("Access Denied by PDP"));
             } else {
-                final var queryManipulationHandler = constraintQueryEnforcementServiceProvider.getObject()
+                var queryManipulationHandler = constraintQueryEnforcementServiceProvider.getObject()
                         .queryManipulationForMongoReactive(decision);
 
-                final var obligations = queryManipulationHandler.getQueryManipulationObligations();
-                final var conditions  = queryManipulationHandler.getConditions();
-                final var selections  = queryManipulationHandler.getSelections();
+                var jsonObligations = queryManipulationHandler.getQueryManipulationObligations();
+                var conditions      = queryManipulationHandler.getConditions();
+                var selections      = queryManipulationHandler.getSelections();
 
-                final var constraintHandlerBundle = constraintEnforcementService.reactiveTypeBundleFor(decision,
-                        domainType, obligations);
+                var obligations             = java.util.Arrays.stream(jsonObligations)
+                        .map(ValueJsonMarshaller::fromJsonNode).toArray(Value[]::new);
+                var constraintHandlerBundle = constraintEnforcementService.reactiveTypeBundleFor(decision, domainType,
+                        obligations);
 
                 constraintHandlerBundle.handleMethodInvocationHandlers(invocation);
                 resourceAccessPoint = retrieveDataFromDatabase(conditions, selections, invocation, domainType);
 
                 resourceAccessPoint = constraintEnforcementService.replaceIfResourcePresent(resourceAccessPoint,
-                        decision.getResource(), domainType);
+                        decision.resource(), domainType);
 
                 return resourceAccessPoint;
             }

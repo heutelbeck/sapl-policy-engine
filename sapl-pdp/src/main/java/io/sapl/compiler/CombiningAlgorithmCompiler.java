@@ -17,7 +17,7 @@
  */
 package io.sapl.compiler;
 
-import static io.sapl.api.pdp.internal.TracedPolicyDecision.*;
+import static io.sapl.compiler.TracedPolicyDecision.*;
 
 import io.sapl.api.model.*;
 import io.sapl.api.pdp.Decision;

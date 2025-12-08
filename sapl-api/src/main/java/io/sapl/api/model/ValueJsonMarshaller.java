@@ -254,11 +254,20 @@ public class ValueJsonMarshaller {
         }
     }
 
-    private static JsonNode toJsonNode(Value value, int depth) {
+    private static void checkDepthForMarshalling(int depth) {
         if (depth >= MAX_DEPTH) {
             throw new IllegalArgumentException("Maximum nesting depth exceeded.");
         }
+    }
 
+    private static void checkDepthForUnmarshalling(int depth) {
+        if (depth >= MAX_DEPTH) {
+            throw new DepthLimitExceededException();
+        }
+    }
+
+    private static JsonNode toJsonNode(Value value, int depth) {
+        checkDepthForMarshalling(depth);
         return switch (value) {
         case NullValue n                                        -> FACTORY.nullNode();
         case BooleanValue(boolean b, ValueMetadata ignored)     -> FACTORY.booleanNode(b);
@@ -274,14 +283,10 @@ public class ValueJsonMarshaller {
     }
 
     private static Value fromJsonNode(JsonNode node, int depth) {
-        if (depth >= MAX_DEPTH) {
-            throw new DepthLimitExceededException();
-        }
-
+        checkDepthForUnmarshalling(depth);
         if (node == null || node.isNull()) {
             return Value.NULL;
         }
-
         return switch (node.getNodeType()) {
         case BOOLEAN -> Value.of(node.asBoolean());
         case NUMBER  -> Value.of(node.decimalValue());
@@ -293,20 +298,16 @@ public class ValueJsonMarshaller {
     }
 
     private static JsonNode toJsonArray(ArrayValue array, int depth) {
-        if (depth >= MAX_DEPTH) {
-            throw new IllegalArgumentException("Maximum nesting depth exceeded.");
-        }
+        checkDepthForMarshalling(depth);
         var arrayNode = FACTORY.arrayNode();
-        for (Value item : array) {
+        for (var item : array) {
             arrayNode.add(toJsonNode(item, depth));
         }
         return arrayNode;
     }
 
     private static JsonNode toJsonObject(ObjectValue object, int depth) {
-        if (depth >= MAX_DEPTH) {
-            throw new IllegalArgumentException("Maximum nesting depth exceeded.");
-        }
+        checkDepthForMarshalling(depth);
         var objectNode = FACTORY.objectNode();
         for (var entry : object.entrySet()) {
             objectNode.set(entry.getKey(), toJsonNode(entry.getValue(), depth));
@@ -315,18 +316,14 @@ public class ValueJsonMarshaller {
     }
 
     private static Value fromJsonArray(JsonNode arrayNode, int depth) {
-        if (depth >= MAX_DEPTH) {
-            throw new DepthLimitExceededException();
-        }
+        checkDepthForUnmarshalling(depth);
         var items = new ArrayList<Value>();
         arrayNode.forEach(item -> items.add(fromJsonNode(item, depth)));
         return Value.ofArray(items);
     }
 
     private static Value fromJsonObject(JsonNode objectNode, int depth) {
-        if (depth >= MAX_DEPTH) {
-            throw new DepthLimitExceededException();
-        }
+        checkDepthForUnmarshalling(depth);
         var builder = ObjectValue.builder();
         objectNode.properties().forEach(entry -> builder.put(entry.getKey(), fromJsonNode(entry.getValue(), depth)));
         return builder.build();

@@ -34,7 +34,6 @@ import io.sapl.extensions.mqtt.MqttFunctionLibrary;
 import io.sapl.extensions.mqtt.MqttPolicyInformationPoint;
 import io.sapl.extensions.mqtt.SaplMqttClient;
 import io.sapl.functions.DefaultLibraries;
-import io.sapl.functions.JWTFunctionLibrary;
 import io.sapl.functions.geo.GeographicFunctionLibrary;
 import io.sapl.functions.geo.traccar.TraccarFunctionLibrary;
 import io.sapl.functions.util.jwt.JWTKeyProvider;
@@ -97,7 +96,7 @@ public class PlaygroundConfiguration {
         val staticLibraries = new ArrayList<Class<?>>(DefaultLibraries.STATIC_LIBRARIES);
         staticLibraries.addAll(
                 List.of(GeographicFunctionLibrary.class, MqttFunctionLibrary.class, TraccarFunctionLibrary.class));
-        return new AnnotationFunctionContext(() -> List.of(new JWTFunctionLibrary(mapper)), () -> staticLibraries);
+        return new AnnotationFunctionContext(() -> List.of(), () -> staticLibraries);
     }
 
     @Bean

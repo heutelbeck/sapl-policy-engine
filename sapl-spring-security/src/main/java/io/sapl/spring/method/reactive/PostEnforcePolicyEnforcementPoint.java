@@ -45,7 +45,7 @@ public class PostEnforcePolicyEnforcementPoint {
             Mono<AuthorizationDecision> dec = postEnforceDecision(invocation, postEnforceAttribute, result);
             return dec.flatMap(decision -> {
                 var finalResourceAccessPoint = Flux.just(result);
-                if (Decision.PERMIT != decision.getDecision())
+                if (Decision.PERMIT != decision.decision())
                     finalResourceAccessPoint = Flux.error(new AccessDeniedException("Access Denied by PDP"));
 
                 return constraintHandlerService.enforceConstraintsOfDecisionOnResourceAccessPoint(decision,

@@ -18,6 +18,8 @@
 package io.sapl.springdatar2dbc.enforcement;
 
 import com.fasterxml.jackson.databind.node.ArrayNode;
+import io.sapl.api.model.Value;
+import io.sapl.api.model.ValueJsonMarshaller;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.Decision;
@@ -79,7 +81,7 @@ public class R2dbcMethodNameQueryManipulationEnforcementPoint<T> {
 
             Flux<T> resourceAccessPoint;
 
-            final var decisionIsPermit = Decision.PERMIT == decision.getDecision();
+            var decisionIsPermit = Decision.PERMIT == decision.decision();
 
             if (!decisionIsPermit) {
                 resourceAccessPoint = Flux.error(new AccessDeniedException("Access Denied by PDP"));
@@ -87,20 +89,22 @@ public class R2dbcMethodNameQueryManipulationEnforcementPoint<T> {
                 final var queryManipulationHandler = constraintQueryEnforcementServiceProvider.getObject()
                         .queryManipulationForR2dbc(decision);
 
-                final var obligations     = queryManipulationHandler.getQueryManipulationObligations();
-                final var conditions      = queryManipulationHandler.getConditions();
-                final var selections      = queryManipulationHandler.getSelections();
-                final var transformations = queryManipulationHandler.getTransformations();
+                var jsonObligations = queryManipulationHandler.getQueryManipulationObligations();
+                var conditions      = queryManipulationHandler.getConditions();
+                var selections      = queryManipulationHandler.getSelections();
+                var transformations = queryManipulationHandler.getTransformations();
 
-                final var constraintHandlerBundle = constraintEnforcementService.reactiveTypeBundleFor(decision,
-                        domainType, obligations);
+                var obligations             = java.util.Arrays.stream(jsonObligations)
+                        .map(ValueJsonMarshaller::fromJsonNode).toArray(Value[]::new);
+                var constraintHandlerBundle = constraintEnforcementService.reactiveTypeBundleFor(decision, domainType,
+                        obligations);
 
                 constraintHandlerBundle.handleMethodInvocationHandlers(invocation);
                 resourceAccessPoint = enforceQueryManipulation(conditions, selections, transformations, domainType,
                         baseQuery);
 
                 resourceAccessPoint = constraintEnforcementService.replaceIfResourcePresent(resourceAccessPoint,
-                        decision.getResource(), domainType);
+                        decision.resource(), domainType);
 
                 return resourceAccessPoint;
             }

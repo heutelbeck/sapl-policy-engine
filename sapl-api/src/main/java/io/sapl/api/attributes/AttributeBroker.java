@@ -20,6 +20,8 @@ package io.sapl.api.attributes;
 import io.sapl.api.model.Value;
 import reactor.core.publisher.Flux;
 
+import java.util.List;
+
 /**
  * Central broker for attribute finder invocations in the SAPL policy evaluation
  * process.
@@ -72,4 +74,6 @@ public interface AttributeBroker {
      * @return a Flux emitting attribute values from a PIP, repository, or error
      */
     Flux<Value> attributeStream(AttributeFinderInvocation invocation);
+
+    List<Class<?>> getRegisteredLibraries();
 }

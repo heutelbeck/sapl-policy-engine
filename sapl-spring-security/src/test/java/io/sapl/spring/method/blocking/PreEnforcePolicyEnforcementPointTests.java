@@ -23,6 +23,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.function.UnaryOperator;
 
@@ -37,10 +38,10 @@ import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.stereotype.Service;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
-import com.fasterxml.jackson.databind.node.JsonNodeFactory;
-
+import io.sapl.api.model.Value;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.AuthorizationSubscription;
+import io.sapl.api.pdp.Decision;
 import io.sapl.api.pdp.PolicyDecisionPoint;
 import io.sapl.spring.config.EnableSaplMethodSecurity;
 import io.sapl.spring.constraints.BlockingConstraintHandlerBundle;
@@ -56,9 +57,8 @@ import reactor.core.publisher.Flux;
         "spring.main.web-application-type=servlet" })
 class PreEnforcePolicyEnforcementPointTests {
 
-    private static final JsonNodeFactory JSON                   = JsonNodeFactory.instance;
-    private static final String          ORIGINAL_RETURN_OBJECT = "original return object";
-    private static final String          CHANGED_RETURN_OBJECT  = "changed return object";
+    private static final String ORIGINAL_RETURN_OBJECT = "original return object";
+    private static final String CHANGED_RETURN_OBJECT  = "changed return object";
 
     @MockitoBean
     private PolicyDecisionPoint pdp;
@@ -183,8 +183,8 @@ class PreEnforcePolicyEnforcementPointTests {
                 UnaryOperator.identity(), FunctionUtil.all(), x -> CHANGED_RETURN_OBJECT);
 
         when(constraintEnforcementService.blockingPreEnforceBundleFor(any(), any())).thenReturn(replaceBundle);
-        when(pdp.decide(any(AuthorizationSubscription.class)))
-                .thenReturn(Flux.just(AuthorizationDecision.PERMIT.withResource(JSON.textNode(CHANGED_RETURN_OBJECT))));
+        when(pdp.decide(any(AuthorizationSubscription.class))).thenReturn(Flux.just(
+                new AuthorizationDecision(Decision.PERMIT, List.of(), List.of(), Value.of(CHANGED_RETURN_OBJECT))));
         assertThat(testService.doSomethingOptional(), is(Optional.of(CHANGED_RETURN_OBJECT)));
     }
 

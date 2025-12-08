@@ -20,6 +20,7 @@ package io.sapl.attributes;
 import io.sapl.api.attributes.*;
 import io.sapl.api.model.Value;
 import io.sapl.api.shared.Match;
+import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
@@ -52,6 +53,9 @@ public class CachingAttributeBroker implements AttributeBroker {
     private final Object lock = new Object();
 
     private final AttributeRepository attributeRepository;
+
+    @Getter
+    private final List<Class<?>> registeredLibraries = new CopyOnWriteArrayList<>();
 
     @Override
     public Flux<Value> attributeStream(AttributeFinderInvocation invocation) {
@@ -458,7 +462,7 @@ public class CachingAttributeBroker implements AttributeBroker {
     private PolicyInformationPointImplementation processPipClass(Object pipInstance) {
 
         Class<?> pipClass = pipInstance.getClass();
-
+        registeredLibraries.add(pipClass);
         // Get @PolicyInformationPoint annotation
         PolicyInformationPoint annotation = pipClass.getAnnotation(PolicyInformationPoint.class);
         if (annotation == null) {

@@ -92,14 +92,14 @@ public final class ReactiveSaplMethodSecurityConfiguration {
 
     @Bean
     @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
-    protected PreEnforcePolicyEnforcementPoint preEnforcePolicyEnforcementPoint(
+    PreEnforcePolicyEnforcementPoint preEnforcePolicyEnforcementPoint(
             ConstraintEnforcementService constraintHandlerService) {
         return new PreEnforcePolicyEnforcementPoint(constraintHandlerService);
     }
 
     @Bean
     @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
-    protected PostEnforcePolicyEnforcementPoint postEnforcePolicyEnforcementPoint(PolicyDecisionPoint pdp,
+    PostEnforcePolicyEnforcementPoint postEnforcePolicyEnforcementPoint(PolicyDecisionPoint pdp,
             ConstraintEnforcementService constraintHandlerService,
             WebfluxAuthorizationSubscriptionBuilderService subscriptionBuilder) {
         return new PostEnforcePolicyEnforcementPoint(pdp, constraintHandlerService, subscriptionBuilder);
@@ -107,7 +107,7 @@ public final class ReactiveSaplMethodSecurityConfiguration {
 
     @Bean
     @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
-    protected WebfluxAuthorizationSubscriptionBuilderService authorizationSubscriptionBuilderService(
+    WebfluxAuthorizationSubscriptionBuilderService authorizationSubscriptionBuilderService(
             MethodSecurityExpressionHandler methodSecurityHandler) {
         return new WebfluxAuthorizationSubscriptionBuilderService(methodSecurityHandler, mapper);
     }

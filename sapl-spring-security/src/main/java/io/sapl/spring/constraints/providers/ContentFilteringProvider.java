@@ -17,8 +17,9 @@
  */
 package io.sapl.spring.constraints.providers;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.sapl.api.model.Value;
+import io.sapl.api.model.ValueJsonMarshaller;
 import io.sapl.spring.constraints.api.MappingConstraintHandlerProvider;
 import lombok.RequiredArgsConstructor;
 
@@ -32,7 +33,7 @@ public class ContentFilteringProvider implements MappingConstraintHandlerProvide
     private final ObjectMapper objectMapper;
 
     @Override
-    public boolean isResponsible(JsonNode constraint) {
+    public boolean isResponsible(Value constraint) {
         return ConstraintResponsibility.isResponsible(constraint, CONSTRAINT_TYPE);
     }
 
@@ -42,8 +43,12 @@ public class ContentFilteringProvider implements MappingConstraintHandlerProvide
     }
 
     @Override
-    public UnaryOperator<Object> getHandler(JsonNode constraint) {
-        return ContentFilter.getHandler(constraint, objectMapper);
+    public UnaryOperator<Object> getHandler(Value constraint) {
+        if (constraint == null) {
+            throw new AccessConstraintViolationException("Not a valid constraint. Expected a non-null Value");
+        }
+        var jsonNode = ValueJsonMarshaller.toJsonNode(constraint);
+        return ContentFilter.getHandler(jsonNode, objectMapper);
     }
 
 }

@@ -17,12 +17,12 @@
  */
 package io.sapl.spring.constraints.api;
 
-import com.fasterxml.jackson.databind.JsonNode;
+import io.sapl.api.model.Value;
 
 import java.util.function.UnaryOperator;
 
 public interface MappingConstraintHandlerProvider<T> extends Responsible, HasPriority, TypeSupport<T> {
 
-    UnaryOperator<T> getHandler(JsonNode constraint);
+    UnaryOperator<T> getHandler(Value constraint);
 
 }

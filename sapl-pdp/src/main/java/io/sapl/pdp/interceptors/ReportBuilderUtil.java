@@ -24,7 +24,7 @@ import io.sapl.api.model.Value;
 import io.sapl.api.pdp.internal.TraceFields;
 import io.sapl.api.pdp.internal.TracedDecision;
 import io.sapl.api.pdp.internal.TracedPdpDecision;
-import io.sapl.api.pdp.internal.TracedPolicyDecision;
+import io.sapl.compiler.TracedPolicyDecision;
 import lombok.experimental.UtilityClass;
 import lombok.val;
 

@@ -17,36 +17,7 @@
  */
 package io.sapl.functions;
 
-import io.sapl.functions.libraries.ArrayFunctionLibrary;
-import io.sapl.functions.libraries.BitwiseFunctionLibrary;
-import io.sapl.functions.libraries.CidrFunctionLibrary;
-import io.sapl.functions.libraries.CsvFunctionLibrary;
-import io.sapl.functions.libraries.DigestFunctionLibrary;
-import io.sapl.functions.libraries.FilterFunctionLibrary;
-import io.sapl.functions.libraries.GraphFunctionLibrary;
-import io.sapl.functions.libraries.GraphQLFunctionLibrary;
-import io.sapl.functions.libraries.JsonFunctionLibrary;
-import io.sapl.functions.libraries.KeysFunctionLibrary;
-import io.sapl.functions.libraries.MacFunctionLibrary;
-import io.sapl.functions.libraries.MathFunctionLibrary;
-import io.sapl.functions.libraries.NumeralFunctionLibrary;
-import io.sapl.functions.libraries.ObjectFunctionLibrary;
-import io.sapl.functions.libraries.PatternsFunctionLibrary;
-import io.sapl.functions.libraries.PermissionsFunctionLibrary;
-import io.sapl.functions.libraries.ReflectionFunctionLibrary;
-import io.sapl.functions.libraries.SanitizationFunctionLibrary;
-import io.sapl.functions.libraries.SaplFunctionLibrary;
-import io.sapl.functions.libraries.SchemaValidationLibrary;
-import io.sapl.functions.libraries.SemVerFunctionLibrary;
-import io.sapl.functions.libraries.SignatureFunctionLibrary;
-import io.sapl.functions.libraries.StandardFunctionLibrary;
-import io.sapl.functions.libraries.TemporalFunctionLibrary;
-import io.sapl.functions.libraries.TomlFunctionLibrary;
-import io.sapl.functions.libraries.UnitsFunctionLibrary;
-import io.sapl.functions.libraries.UuidFunctionLibrary;
-import io.sapl.functions.libraries.X509FunctionLibrary;
-import io.sapl.functions.libraries.XmlFunctionLibrary;
-import io.sapl.functions.libraries.YamlFunctionLibrary;
+import io.sapl.functions.libraries.*;
 import lombok.experimental.UtilityClass;
 
 import java.util.List;
@@ -69,6 +40,7 @@ public class DefaultLibraries {
             GraphFunctionLibrary.class,
             GraphQLFunctionLibrary.class,
             JsonFunctionLibrary.class,
+            JWTFunctionLibrary.class,
             KeysFunctionLibrary.class,
             MacFunctionLibrary.class,
             MathFunctionLibrary.class,

@@ -141,7 +141,7 @@ public class LoggingSetupView extends VerticalLayout {
         printJsonReportLayout.add(new Text("This is a JSON report summarizing the applied algorithms "
                 + "and results of each evaluated policy (set) in the "
                 + "decision-making process. It includes lists of all errors and values "
-                + "of policy information point attributes encountered "
+                + "of policy information point policyInformationPoints encountered "
                 + "during the evaluation of each policy (set)."));
 
         HorizontalLayout printTextReportLayout = new HorizontalLayout();

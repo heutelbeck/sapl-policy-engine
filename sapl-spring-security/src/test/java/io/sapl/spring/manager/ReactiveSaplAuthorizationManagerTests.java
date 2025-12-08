@@ -25,6 +25,8 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.util.List;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.server.reactive.ServerHttpRequest;
@@ -39,8 +41,11 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 
+import io.sapl.api.model.Value;
+import io.sapl.api.model.ValueJsonMarshaller;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.AuthorizationSubscription;
+import io.sapl.api.pdp.Decision;
 import io.sapl.api.pdp.PolicyDecisionPoint;
 import io.sapl.spring.constraints.BlockingConstraintHandlerBundle;
 import io.sapl.spring.constraints.ConstraintEnforcementService;
@@ -108,8 +113,10 @@ class ReactiveSaplAuthorizationManagerTests {
 
     @Test
     void when_PdpPermitWithResource_then_NotGranted() {
-        when(pdp.decide((AuthorizationSubscription) any()))
-                .thenReturn(Flux.just(AuthorizationDecision.PERMIT.withResource(mapper.createObjectNode())));
+        final var objectNode = mapper.createObjectNode();
+        final var decision   = new AuthorizationDecision(Decision.PERMIT, List.of(), List.of(),
+                ValueJsonMarshaller.fromJsonNode(objectNode));
+        when(pdp.decide((AuthorizationSubscription) any())).thenReturn(Flux.just(decision));
         StepVerifier.create(sut.check(AUTHENTICATION, ctx)).expectNextMatches(dec -> !dec.isGranted()).verifyComplete();
         verify(bundle, times(0)).handleOnDecisionConstraints();
     }

@@ -17,11 +17,10 @@
  */
 package io.sapl.springdatacommon.services;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.common.collect.Sets;
 import com.networknt.schema.JsonSchemaFactory;
 import com.networknt.schema.SpecVersion;
+import io.sapl.api.model.Value;
+import io.sapl.api.model.ValueJsonMarshaller;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.spring.constraints.providers.ConstraintResponsibility;
 import org.springframework.security.access.AccessDeniedException;
@@ -32,18 +31,15 @@ import java.util.List;
 
 public class ConstraintQueryEnforcementService {
 
-    private static final ObjectMapper      MAPPER         = new ObjectMapper();
     private static final JsonSchemaFactory SCHEMA_FACTORY = JsonSchemaFactory
             .getInstance(SpecVersion.VersionFlag.V201909);
 
     public QueryManipulationConstraintHandlerService queryManipulationForMongoReactive(AuthorizationDecision decision) {
 
-        final var                                 obligations        = Sets
-                .newHashSet(decision.getObligations().orElseGet(MAPPER::createArrayNode));
-        final var                                 handledObligations = new HashSet<JsonNode>();
-        QueryManipulationConstraintHandlerService bundle             = null;
+        var obligations        = new HashSet<>(decision.obligations());
+        var handledObligations = new HashSet<Value>();
 
-        bundle = new QueryManipulationConstraintHandlerService(
+        var bundle = new QueryManipulationConstraintHandlerService(
                 filterHandlerType(obligations, handledObligations, ConstraintHandlerType.MONGO_QUERY_MANIPULATION));
 
         obligations.removeIf(handledObligations::contains);
@@ -57,12 +53,10 @@ public class ConstraintQueryEnforcementService {
 
     public QueryManipulationConstraintHandlerService queryManipulationForR2dbc(AuthorizationDecision decision) {
 
-        final var                                 obligations        = Sets
-                .newHashSet(decision.getObligations().orElseGet(MAPPER::createArrayNode));
-        final var                                 handledObligations = new HashSet<JsonNode>();
-        QueryManipulationConstraintHandlerService bundle             = null;
+        var obligations        = new HashSet<>(decision.obligations());
+        var handledObligations = new HashSet<Value>();
 
-        bundle = new QueryManipulationConstraintHandlerService(
+        var bundle = new QueryManipulationConstraintHandlerService(
                 filterHandlerType(obligations, handledObligations, ConstraintHandlerType.R2DBC_QUERY_MANIPULATION));
 
         obligations.removeIf(handledObligations::contains);
@@ -74,19 +68,19 @@ public class ConstraintQueryEnforcementService {
         return bundle;
     }
 
-    private List<RecordConstraintData> filterHandlerType(HashSet<JsonNode> obligations,
-            HashSet<JsonNode> handledObligations, ConstraintHandlerType type) {
-        final var constraintDataRecords = new ArrayList<RecordConstraintData>();
+    private List<RecordConstraintData> filterHandlerType(HashSet<Value> obligations, HashSet<Value> handledObligations,
+            ConstraintHandlerType type) {
+        var constraintDataRecords = new ArrayList<RecordConstraintData>();
 
-        for (JsonNode obligation : obligations) {
+        for (var obligation : obligations) {
 
             if (ConstraintResponsibility.isResponsible(obligation, type.getType())) {
-
-                final var schema = SCHEMA_FACTORY.getSchema(type.getTemplate());
-                final var errors = schema.validate(obligation);
+                var jsonObligation = ValueJsonMarshaller.toJsonNode(obligation);
+                var schema         = SCHEMA_FACTORY.getSchema(type.getTemplate());
+                var errors         = schema.validate(jsonObligation);
 
                 if (errors.isEmpty()) {
-                    constraintDataRecords.add(new RecordConstraintData(type, obligation));
+                    constraintDataRecords.add(new RecordConstraintData(type, jsonObligation));
                     handledObligations.add(obligation);
                 }
             }
@@ -95,12 +89,13 @@ public class ConstraintQueryEnforcementService {
         return constraintDataRecords;
     }
 
-    private AccessDeniedException getAccessDeniedException(Iterable<JsonNode> unhandledObligations) {
+    private AccessDeniedException getAccessDeniedException(Iterable<Value> unhandledObligations) {
 
-        final var messageBuilder = new StringBuilder();
+        var messageBuilder = new StringBuilder();
 
-        for (JsonNode unhandableObligation : unhandledObligations) {
-            messageBuilder.append("Unhandable Obligation: ").append(unhandableObligation.toPrettyString()).append('\n');
+        for (var unhandableObligation : unhandledObligations) {
+            messageBuilder.append("Unhandable Obligation: ")
+                    .append(ValueJsonMarshaller.toPrettyString(unhandableObligation)).append('\n');
         }
 
         return new AccessDeniedException(messageBuilder.toString());

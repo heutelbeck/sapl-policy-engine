@@ -17,12 +17,12 @@
  */
 package io.sapl.spring.constraints.api;
 
-import com.fasterxml.jackson.databind.JsonNode;
+import io.sapl.api.model.Value;
 
 import java.util.function.Predicate;
 
 public interface FilterPredicateConstraintHandlerProvider extends Responsible {
 
-    Predicate<Object> getHandler(JsonNode constraint);
+    Predicate<Object> getHandler(Value constraint);
 
 }

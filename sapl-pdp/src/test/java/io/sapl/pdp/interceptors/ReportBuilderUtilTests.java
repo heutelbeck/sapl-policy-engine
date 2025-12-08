@@ -25,7 +25,7 @@ import io.sapl.api.pdp.Decision;
 import io.sapl.api.pdp.internal.TraceFields;
 import io.sapl.api.pdp.internal.TracedDecision;
 import io.sapl.api.pdp.internal.TracedPdpDecision;
-import io.sapl.api.pdp.internal.TracedPolicyDecision;
+import io.sapl.compiler.TracedPolicyDecision;
 import lombok.val;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

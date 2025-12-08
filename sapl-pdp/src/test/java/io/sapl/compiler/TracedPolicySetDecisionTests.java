@@ -39,12 +39,11 @@ import java.util.stream.Stream;
 
 import static io.sapl.api.model.ValueJsonMarshaller.json;
 import static io.sapl.api.model.ValueJsonMarshaller.toPrettyString;
-import static io.sapl.api.pdp.internal.TracedPolicyDecision.getTargetError;
-import static io.sapl.api.pdp.internal.TracedPolicyDecision.hasTargetError;
-import static io.sapl.api.pdp.internal.TracedPolicyDecision.isNoMatchTrace;
+import static io.sapl.compiler.TracedPolicyDecision.getTargetError;
+import static io.sapl.compiler.TracedPolicyDecision.hasTargetError;
+import static io.sapl.compiler.TracedPolicyDecision.isNoMatchTrace;
 import static io.sapl.api.pdp.internal.TracedPolicySetDecision.*;
 
-import io.sapl.api.pdp.internal.TracedPolicyDecision;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 

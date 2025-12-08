@@ -54,8 +54,8 @@ public class PostEnforcePolicyEnforcementPoint implements MethodInterceptor {
     private final ObjectProvider<ConstraintEnforcementService>               constraintEnforcementServiceProvider;
     private final ObjectProvider<WebAuthorizationSubscriptionBuilderService> subscriptionBuilderProvider;
 
-    @SuppressWarnings("unchecked")
     @Override
+    @SuppressWarnings("unchecked")
     public Object invoke(@NonNull MethodInvocation methodInvocation) throws Throwable {
         final var returnedObject = methodInvocation.proceed();
         final var attribute      = attributeRegistryProvider.getObject()
@@ -120,7 +120,7 @@ public class PostEnforcePolicyEnforcementPoint implements MethodInterceptor {
         try {
             blockingPostEnforceBundle.handleOnDecisionConstraints();
 
-            final var isNotPermit = authzDecision.getDecision() != Decision.PERMIT;
+            final var isNotPermit = authzDecision.decision() != Decision.PERMIT;
             if (isNotPermit)
                 throw new AccessDeniedException("Access Denied. Action not permitted.");
 

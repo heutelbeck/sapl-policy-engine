@@ -15,15 +15,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.spring.constraints.providers;
+package io.sapl.grammar.ide.contentassist;
 
-import io.sapl.api.SaplVersion;
-import lombok.experimental.StandardException;
+import java.util.Optional;
 
-import java.io.Serial;
-
-@StandardException
-public class AccessConstraintViolationException extends RuntimeException {
-    @Serial
-    private static final long serialVersionUID = SaplVersion.VERSION_UID;
+public interface ContentAssistConfigurationSource {
+    Optional<ContentAssistPDPConfiguration> getConfigById(String configurationId);
 }

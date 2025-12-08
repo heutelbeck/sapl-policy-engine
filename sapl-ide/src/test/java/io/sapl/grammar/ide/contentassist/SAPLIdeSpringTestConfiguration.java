@@ -17,28 +17,23 @@
  */
 package io.sapl.grammar.ide.contentassist;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
+import io.sapl.api.attributes.Attribute;
+import io.sapl.api.attributes.AttributeBroker;
+import io.sapl.api.attributes.AttributeFinderInvocation;
+import io.sapl.api.attributes.EnvironmentAttribute;
+import io.sapl.api.attributes.PolicyInformationPoint;
+import io.sapl.api.documentation.DocumentationBundle;
+import io.sapl.api.documentation.LibraryDocumentation;
 import io.sapl.api.functions.Function;
+import io.sapl.api.functions.FunctionBroker;
+import io.sapl.api.functions.FunctionInvocation;
 import io.sapl.api.functions.FunctionLibrary;
-import io.sapl.api.interpreter.Val;
-import io.sapl.api.pip.Attribute;
-import io.sapl.api.pip.EnvironmentAttribute;
-import io.sapl.api.pip.PolicyInformationPoint;
-import io.sapl.attributes.broker.impl.AnnotationPolicyInformationPointLoader;
-import io.sapl.attributes.broker.impl.CachingAttributeStreamBroker;
-import io.sapl.attributes.broker.impl.InMemoryAttributeRepository;
-import io.sapl.attributes.broker.impl.InMemoryPolicyInformationPointDocumentationProvider;
-import io.sapl.attributes.documentation.api.PolicyInformationPointDocumentationProvider;
-import io.sapl.interpreter.InitializationException;
-import io.sapl.interpreter.combinators.PolicyDocumentCombiningAlgorithm;
-import io.sapl.interpreter.functions.AnnotationFunctionContext;
-import io.sapl.pdp.config.PDPConfiguration;
-import io.sapl.pdp.config.PDPConfigurationProvider;
-import io.sapl.prp.PolicyRetrievalPoint;
-import io.sapl.validation.ValidatorFactory;
+import io.sapl.api.model.Value;
+import io.sapl.api.model.ValueJsonMarshaller;
+import io.sapl.documentation.LibraryDocumentationExtractor;
 import lombok.experimental.UtilityClass;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
@@ -46,13 +41,11 @@ import org.springframework.context.annotation.Configuration;
 import reactor.core.publisher.Flux;
 
 import java.io.IOException;
-import java.time.Clock;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.function.UnaryOperator;
-
-import static org.mockito.Mockito.mock;
+import java.util.Optional;
 
 @ComponentScan
 @Configuration
@@ -60,29 +53,8 @@ public class SAPLIdeSpringTestConfiguration {
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
     @Bean
-    PolicyInformationPointDocumentationProvider PolicyInformationPointDocumentationProvider() {
-        return new InMemoryPolicyInformationPointDocumentationProvider();
-    }
-
-    @Bean
-    PDPConfigurationProvider pdpConfiguration(PolicyInformationPointDocumentationProvider docsProvider)
-            throws IOException, InitializationException {
-        final var mapper                = new ObjectMapper();
-        final var validatorFactory      = new ValidatorFactory(mapper);
-        final var attributeRepository   = new InMemoryAttributeRepository(Clock.systemUTC());
-        final var attributeStreamBroker = new CachingAttributeStreamBroker(attributeRepository);
-        final var pipLoader             = new AnnotationPolicyInformationPointLoader(attributeStreamBroker,
-                docsProvider, validatorFactory);
-
-        pipLoader.loadStaticPolicyInformationPoint(TemperatureTestPip.class);
-        pipLoader.loadStaticPolicyInformationPoint(ClockTestPip.class);
-        pipLoader.loadStaticPolicyInformationPoint(PersonTestPip.class);
-
-        final var functionContext = new AnnotationFunctionContext();
-        functionContext.loadLibrary(SchemaTestFunctionLibrary.class);
-        functionContext.loadLibrary(TimeLibrary.class);
-
-        final var variables = new HashMap<String, Val>();
+    ContentAssistConfigurationSource contentAssistConfigurationSource() throws IOException {
+        var variables = new HashMap<String, Value>();
         load("action_schema", variables);
         load("address_schema", variables);
         load("calendar_schema", variables);
@@ -96,7 +68,7 @@ public class SAPLIdeSpringTestConfiguration {
                 "geographical_location_schema", "subject_schema", "vehicle_schema", "schema_with_additional_keywords"),
                 variables);
 
-        variables.put("abba", Val.ofJson("""
+        variables.put("abba", ValueJsonMarshaller.json("""
                 {
                   "a": {
                     "x": 0,
@@ -106,32 +78,70 @@ public class SAPLIdeSpringTestConfiguration {
                 }
                 """));
 
-        final var staticPlaygroundConfiguration = new PDPConfiguration("testConfig", attributeStreamBroker,
-                functionContext, variables, PolicyDocumentCombiningAlgorithm.DENY_OVERRIDES, UnaryOperator.identity(),
-                UnaryOperator.identity(), mock(PolicyRetrievalPoint.class));
-        return () -> Flux.just(staticPlaygroundConfiguration);
+        var functionLibraryDocs = new ArrayList<LibraryDocumentation>();
+        functionLibraryDocs.add(LibraryDocumentationExtractor.extractFunctionLibrary(SchemaTestFunctionLibrary.class));
+        functionLibraryDocs.add(LibraryDocumentationExtractor.extractFunctionLibrary(TimeLibrary.class));
+
+        var allDocs = new ArrayList<LibraryDocumentation>(functionLibraryDocs);
+        allDocs.add(LibraryDocumentationExtractor.extractPolicyInformationPoint(TemperatureTestPip.class));
+        allDocs.add(LibraryDocumentationExtractor.extractPolicyInformationPoint(ClockTestPip.class));
+        allDocs.add(LibraryDocumentationExtractor.extractPolicyInformationPoint(PersonTestPip.class));
+
+        var documentationBundle = new DocumentationBundle(List.copyOf(allDocs));
+
+        var functionBroker  = new TestFunctionBroker();
+        var attributeBroker = new TestAttributeBroker();
+
+        var configuration = new ContentAssistPDPConfiguration("testPdp", "testConfig", variables, documentationBundle,
+                functionBroker, attributeBroker);
+
+        return configId -> Optional.of(configuration);
     }
 
-    private void load(List<String> schemaFiles, Map<String, Val> variables) throws IOException {
-        final var schemasArray = JsonNodeFactory.instance.arrayNode();
-        for (final var schemaFile : schemaFiles) {
-            try (var is = this.getClass().getClassLoader().getResourceAsStream(schemaFile + ".json")) {
-                if (null == is) {
+    private void load(List<String> schemaFiles, Map<String, Value> variables) throws IOException {
+        var schemasArray = JsonNodeFactory.instance.arrayNode();
+        for (var schemaFile : schemaFiles) {
+            try (var inputStream = this.getClass().getClassLoader().getResourceAsStream(schemaFile + ".json")) {
+                if (null == inputStream) {
                     throw new RuntimeException(schemaFile + ".json not found");
                 }
-                schemasArray.add(MAPPER.readValue(is, JsonNode.class));
+                schemasArray.add(MAPPER.readValue(inputStream, JsonNode.class));
             }
         }
-        variables.put("SCHEMAS", Val.of(schemasArray));
+        variables.put("SCHEMAS", ValueJsonMarshaller.fromJsonNode(schemasArray));
     }
 
-    private void load(String schemaFile, Map<String, Val> variables) throws IOException {
-        try (var is = this.getClass().getClassLoader().getResourceAsStream(schemaFile + ".json")) {
-            if (null == is) {
+    private void load(String schemaFile, Map<String, Value> variables) throws IOException {
+        try (var inputStream = this.getClass().getClassLoader().getResourceAsStream(schemaFile + ".json")) {
+            if (null == inputStream) {
                 throw new RuntimeException(schemaFile + ".json not found");
             }
-            final var schema = MAPPER.readValue(is, JsonNode.class);
-            variables.put(schemaFile, Val.of(schema));
+            var schema = MAPPER.readValue(inputStream, JsonNode.class);
+            variables.put(schemaFile, ValueJsonMarshaller.fromJsonNode(schema));
+        }
+    }
+
+    static class TestFunctionBroker implements FunctionBroker {
+        @Override
+        public Value evaluateFunction(FunctionInvocation invocation) {
+            return Value.UNDEFINED;
+        }
+
+        @Override
+        public List<Class<?>> getRegisteredLibraries() {
+            return List.of(SchemaTestFunctionLibrary.class, TimeLibrary.class);
+        }
+    }
+
+    static class TestAttributeBroker implements AttributeBroker {
+        @Override
+        public Flux<Value> attributeStream(AttributeFinderInvocation invocation) {
+            return Flux.just(Value.UNDEFINED);
+        }
+
+        @Override
+        public List<Class<?>> getRegisteredLibraries() {
+            return List.of(TemperatureTestPip.class, ClockTestPip.class, PersonTestPip.class);
         }
     }
 
@@ -149,8 +159,8 @@ public class SAPLIdeSpringTestConfiguration {
                 """;
 
         @Attribute(docs = "age of person", schema = AGE_SCHEMA)
-        public Flux<Val> age(Val personLeftHand) {
-            return Flux.just(Val.UNDEFINED);
+        public Flux<Value> age(Value personLeftHand) {
+            return Flux.just(Value.UNDEFINED);
         }
     }
 
@@ -158,25 +168,25 @@ public class SAPLIdeSpringTestConfiguration {
     @PolicyInformationPoint(name = "clock")
     public static class ClockTestPip {
         @EnvironmentAttribute(docs = "current time")
-        public Flux<Val> now() {
-            return Flux.just(Val.of("NOW!"));
+        public Flux<Value> now() {
+            return Flux.just(Value.of("NOW!"));
         }
 
         @EnvironmentAttribute(docs = "current time in millis")
-        public Flux<Val> millis(Val personLeftHand) {
-            return Flux.just(Val.of("NOW MILLI!"));
+        public Flux<Value> millis(Value personLeftHand) {
+            return Flux.just(Value.of("NOW MILLI!"));
         }
 
         @EnvironmentAttribute(docs = "current time ticking")
-        public Flux<Val> ticker() {
-            return Flux.just(Val.of("TICK TOCK"));
+        public Flux<Value> ticker() {
+            return Flux.just(Value.of("TICK TOCK"));
         }
     }
 
     @UtilityClass
     @PolicyInformationPoint(name = "temperature")
     public static class TemperatureTestPip {
-        @EnvironmentAttribute(docs = "current temp", schema = """
+        @EnvironmentAttribute(docs = "current temperature reading", schema = """
                   {
                   "type": "object",
                   "properties": {
@@ -185,8 +195,8 @@ public class SAPLIdeSpringTestConfiguration {
                   }
                 }
                 """)
-        public Flux<Val> now() throws JsonProcessingException {
-            return Flux.just(Val.ofJson("""
+        public Flux<Value> now() {
+            return Flux.just(ValueJsonMarshaller.json("""
                     {
                       "value" : 500,
                       "unit" : "K"
@@ -194,7 +204,7 @@ public class SAPLIdeSpringTestConfiguration {
                     """));
         }
 
-        @EnvironmentAttribute(docs = "mean temp", schema = """
+        @EnvironmentAttribute(docs = "mean temperature over period", schema = """
                 {
                   "type": "object",
                   "properties": {
@@ -203,8 +213,8 @@ public class SAPLIdeSpringTestConfiguration {
                   }
                 }
                 """)
-        public Flux<Val> mean(Val a1, Val a2) throws JsonProcessingException {
-            return Flux.just(Val.ofJson("""
+        public Flux<Value> mean(Value a1, Value a2) {
+            return Flux.just(ValueJsonMarshaller.json("""
                     {
                       "value" : 666,
                       "period" : 999
@@ -212,12 +222,12 @@ public class SAPLIdeSpringTestConfiguration {
                     """));
         }
 
-        @EnvironmentAttribute(docs = "current temp")
-        public Flux<Val> predicted(Val a1) {
-            return Flux.just(Val.of(789));
+        @EnvironmentAttribute(docs = "predicted temperature forecast")
+        public Flux<Value> predicted(Value a1) {
+            return Flux.just(Value.of(789));
         }
 
-        @Attribute(docs = "temp at location", schema = """
+        @Attribute(docs = "temperature at geographic location", schema = """
                 {
                   "type": "object",
                   "properties": {
@@ -226,42 +236,42 @@ public class SAPLIdeSpringTestConfiguration {
                   }
                 }
                 """)
-        public Flux<Val> atLocation(Val leftHandLocation) {
-            return Flux.just(Val.of(123));
+        public Flux<Value> atLocation(Value leftHandLocation) {
+            return Flux.just(Value.of(123));
         }
 
-        @Attribute(docs = "temp at location", schema = """
+        @Attribute(docs = "temperature at specific time", schema = """
                 {
                   "value" : 500,
                   "unit" : "K"
                 }
                 """)
-        public Flux<Val> atTime(Val leftHandTime) {
-            return Flux.just(Val.of(123));
+        public Flux<Value> atTime(Value leftHandTime) {
+            return Flux.just(Value.of(123));
         }
     }
 
     @UtilityClass
     @FunctionLibrary(name = "time")
     public static class TimeLibrary {
-        @Function
-        public Val after(Val t1, Val t2) {
-            return Val.TRUE;
+        @Function(docs = "checks if first time is after second time")
+        public Value after(Value time1, Value time2) {
+            return Value.TRUE;
         }
 
-        @Function
-        public Val before(Val t1, Val t2) {
-            return Val.TRUE;
+        @Function(docs = "checks if first time is before second time")
+        public Value before(Value time1, Value time2) {
+            return Value.TRUE;
         }
 
-        @Function
-        public Val between(Val t1, Val t2) {
-            return Val.TRUE;
+        @Function(docs = "checks if time is between two times")
+        public Value between(Value time1, Value time2) {
+            return Value.TRUE;
         }
 
-        @Function
-        public Val hourOf(Val t1) {
-            return Val.of(10);
+        @Function(docs = "extracts hour from time value")
+        public Value hourOf(Value t1) {
+            return Value.of(10);
         }
     }
 
@@ -313,29 +323,29 @@ public class SAPLIdeSpringTestConfiguration {
                 }
                 """;
 
-        @Function(schema = PERSON_SCHEMA)
-        public Val person(Val name, Val nationality, Val age) {
-            return Val.UNDEFINED;
+        @Function(docs = "creates a person object", schema = PERSON_SCHEMA)
+        public Value person(Value name, Value nationality, Value age) {
+            return Value.UNDEFINED;
         }
 
-        @Function(schema = DOG_SCHEMA)
-        public Val dog(Val dogRegistryRecord) {
-            return Val.UNDEFINED;
+        @Function(docs = "creates a dog object", schema = DOG_SCHEMA)
+        public Value dog(Value dogRegistryRecord) {
+            return Value.UNDEFINED;
         }
 
-        @Function
-        public Val food(Val species) {
-            return Val.UNDEFINED;
+        @Function(docs = "gets food for species")
+        public Value food(Value species) {
+            return Value.UNDEFINED;
         }
 
-        @Function
-        public Val foodPrice(Val food) {
-            return Val.UNDEFINED;
+        @Function(docs = "gets price of food")
+        public Value foodPrice(Value food) {
+            return Value.UNDEFINED;
         }
 
-        @Function(schema = LOCATION_SCHEMA)
-        public Val location() {
-            return Val.UNDEFINED;
+        @Function(docs = "creates geographic location", schema = LOCATION_SCHEMA)
+        public Value location() {
+            return Value.UNDEFINED;
         }
 
     }

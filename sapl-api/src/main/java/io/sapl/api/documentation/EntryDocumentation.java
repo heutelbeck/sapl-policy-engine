@@ -61,13 +61,16 @@ public record EntryDocumentation(
 
         template.append(namespace).append('.').append(name);
 
-        if (!parameters.isEmpty()) {
+        if (type == EntryType.FUNCTION) {
             template.append('(');
             template.append(parameters.stream().map(this::parameterTemplate).collect(Collectors.joining(", ")));
             template.append(')');
-        }
-
-        if (type != EntryType.FUNCTION) {
+        } else if (!parameters.isEmpty()) {
+            template.append('(');
+            template.append(parameters.stream().map(this::parameterTemplate).collect(Collectors.joining(", ")));
+            template.append(')');
+            template.append('>');
+        } else {
             template.append('>');
         }
 
@@ -91,13 +94,16 @@ public record EntryDocumentation(
 
         template.append(alias);
 
-        if (!parameters.isEmpty()) {
+        if (type == EntryType.FUNCTION) {
             template.append('(');
             template.append(parameters.stream().map(this::parameterTemplate).collect(Collectors.joining(", ")));
             template.append(')');
-        }
-
-        if (type != EntryType.FUNCTION) {
+        } else if (!parameters.isEmpty()) {
+            template.append('(');
+            template.append(parameters.stream().map(this::parameterTemplate).collect(Collectors.joining(", ")));
+            template.append(')');
+            template.append('>');
+        } else {
             template.append('>');
         }
 

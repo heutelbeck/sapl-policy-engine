@@ -22,6 +22,7 @@ import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import io.sapl.api.model.jackson.SaplJacksonModule;
 import io.sapl.spring.serialization.HttpServletRequestSerializer;
 import io.sapl.spring.serialization.MethodInvocationSerializer;
 import io.sapl.spring.serialization.ServerHttpRequestSerializer;
@@ -39,8 +40,9 @@ import org.springframework.http.server.reactive.ServerHttpRequest;
 /**
  * This configuration provides a Jackson ObjectMapper bean, if missing.
  * <p>
- * In addition, the JDK8 Module is added for properly handling Optional and
- * serializers for HttpServletRequest and MethodInvocation are added.
+ * In addition, the SaplJacksonModule is registered for SAPL type serialization,
+ * the JDK8 Module for handling Optional, and serializers for HttpServletRequest
+ * and MethodInvocation are added.
  * <p>
  * These serializers are used in building authorization subscriptions, if no
  * explicit values for the fields of the subscription (e.g., action, resource)
@@ -68,6 +70,7 @@ public class ObjectMapperAutoConfiguration {
             final var module = new SimpleModule();
             module.addSerializer(MethodInvocation.class, new MethodInvocationSerializer());
             mapper.registerModule(module);
+            mapper.registerModule(new SaplJacksonModule());
             mapper.registerModule(new Jdk8Module());
             mapper.registerModule(new JavaTimeModule());
             mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);

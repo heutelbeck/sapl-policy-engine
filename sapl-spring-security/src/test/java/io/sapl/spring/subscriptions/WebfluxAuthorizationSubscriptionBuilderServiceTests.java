@@ -59,6 +59,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 
 import io.sapl.api.SaplVersion;
+import io.sapl.api.model.Value;
+import io.sapl.api.model.ValueJsonMarshaller;
 import io.sapl.spring.method.metadata.PreEnforce;
 import io.sapl.spring.method.metadata.SaplAttribute;
 import io.sapl.spring.serialization.HttpServletRequestSerializer;
@@ -112,6 +114,10 @@ class WebfluxAuthorizationSubscriptionBuilderServiceTests {
         return (Matcher<Collection<? extends JsonNode>>) (Matcher<?>) matcher;
     }
 
+    private static JsonNode toJson(Value value) {
+        return ValueJsonMarshaller.toJsonNode(value);
+    }
+
     @Test
     void when_multiArguments_then_methodIsInAction() {
         val serverWebExchange   = MockServerWebExchange.from(MockServerHttpRequest.get("/foo/bar"));
@@ -124,17 +130,17 @@ class WebfluxAuthorizationSubscriptionBuilderServiceTests {
                 .contextWrite(Context.of(ServerWebExchange.class, serverWebExchange))
                 .contextWrite(Context.of(SecurityContext.class, Mono.just(securityContext))).block();
         // @formatter:off
-        assertAll(() -> assertThat(subscription.getSubject(),
+        assertAll(() -> assertThat(toJson(subscription.subject()),
                 is(jsonObject()
                         .where("name", is(jsonText("the username")))
                         .where("credentials", is(jsonMissing()))
                         .where("principal", is(jsonObject()
                                 .where("password", is(jsonMissing())))))),
-                () -> assertThat(subscription.getAction(),
+                () -> assertThat(toJson(subscription.action()),
                         is(jsonObject()
                                 .where("java", is(jsonObject()
                                         .where("name", jsonText("publicSeveralArgs")))))),
-                () -> assertThat(subscription.getAction(),
+                () -> assertThat(toJson(subscription.action()),
                         is(jsonObject()
                                   .where("java", is(jsonObject()
                                         .where("arguments",
@@ -142,14 +148,14 @@ class WebfluxAuthorizationSubscriptionBuilderServiceTests {
                                                 jsonInt(1),
                                                 jsonText("X"))
                                             )))))))),
-                () -> assertThat(subscription.getResource(),
+                () -> assertThat(toJson(subscription.resource()),
                         is(jsonObject()
                                   .where("java", is(jsonObject()
                                         .where("instanceof",
                                             is(jsonArray(asCollectionMatcher(containsInAnyOrder(
                                                 jsonObject().where("simpleName",is(jsonText("TestClass"))),
                                                 jsonObject().where("simpleName",is(jsonText("Object")))))))))))),
-                () -> assertThat(subscription.getEnvironment(), is(jsonNull())));
+                () -> assertThat(toJson(subscription.environment()), is(jsonNull())));
         // @formatter:on
     }
 
@@ -175,22 +181,22 @@ class WebfluxAuthorizationSubscriptionBuilderServiceTests {
                 .contextWrite(Context.of(ServerWebExchange.class, serverWebExchange))
                 .contextWrite(Context.of(SecurityContext.class, Mono.just(securityContext))).block();
         // @formatter:off
-        assertAll(() -> assertThat(subscription.getSubject(),
+        assertAll(() -> assertThat(toJson(subscription.subject()),
                 is(jsonObject()
                         .where("name", is(jsonText("the username")))
                         .where("credentials", is(jsonMissing()))
                         .where("principal", is(jsonObject()
                                 .where("password", is(jsonMissing())))))),
-                () -> assertThat(subscription.getAction(),
+                () -> assertThat(toJson(subscription.action()),
                         is(jsonObject()
                                 .where("java", is(jsonObject()
                                         .where("name", jsonText("publicSeveralArgs")))))),
-                () -> assertThat(subscription.getAction(),
+                () -> assertThat(toJson(subscription.action()),
                         is(jsonObject()
                                   .where("java", is(jsonObject()
                                         .where("arguments",
                                             is(jsonMissing())))))),
-                () -> assertThat(subscription.getEnvironment(), is(jsonNull())));
+                () -> assertThat(toJson(subscription.environment()), is(jsonNull())));
         // @formatter:on
     }
 
@@ -216,24 +222,24 @@ class WebfluxAuthorizationSubscriptionBuilderServiceTests {
                 .contextWrite(Context.of(ServerWebExchange.class, serverWebExchange))
                 .contextWrite(Context.of(SecurityContext.class, Mono.just(securityContext))).block();
         // @formatter:off
-        assertAll(() -> assertThat(subscription.getSubject(),
+        assertAll(() -> assertThat(toJson(subscription.subject()),
                 is(jsonObject()
                         .where("name", is(jsonText("the username")))
                         .where("credentials", is(jsonMissing()))
                         .where("principal", is(jsonObject()
                                 .where("password", is(jsonMissing())))))),
-                () -> assertThat(subscription.getAction(),
+                () -> assertThat(toJson(subscription.action()),
                         is(jsonObject()
                                 .where("java", is(jsonObject()
                                         .where("name", jsonText("publicVoid")))))),
-                () -> assertThat(subscription.getResource(),
+                () -> assertThat(toJson(subscription.resource()),
                         is(jsonObject()
                                   .where("java", is(jsonObject()
                                         .where("instanceof",
                                             is(jsonArray(asCollectionMatcher(containsInAnyOrder(
                                                 jsonObject().where("simpleName",is(jsonText("TestClass"))),
                                                 jsonObject().where("simpleName",is(jsonText("Object")))))))))))),
-                () -> assertThat(subscription.getEnvironment(), is(jsonNull())));
+                () -> assertThat(toJson(subscription.environment()), is(jsonNull())));
         // @formatter:on
     }
 
@@ -243,17 +249,17 @@ class WebfluxAuthorizationSubscriptionBuilderServiceTests {
         val subscription = defaultWebfluxBuilderUnderTest
                 .reactiveConstructAuthorizationSubscription(invocation, attribute).block();
         // @formatter:off
-        assertAll(() -> assertThat(subscription.getSubject(),
+        assertAll(() -> assertThat(toJson(subscription.subject()),
                           is(jsonObject()
                                   .where("name", is(jsonText("anonymous")))
                                   .where("credentials", is(jsonMissing()))
                                   .where("principal", is(jsonText("anonymous"))))),
-                  () -> assertThat(subscription.getAction(),
+                  () -> assertThat(toJson(subscription.action()),
                           is(jsonObject()
                                   .where("java", is(jsonObject()
                                         .where("name", jsonText("publicVoid"))))
                                   .where("http", is(jsonMissing())))),
-                  () -> assertThat(subscription.getResource(),
+                  () -> assertThat(toJson(subscription.resource()),
                           is(jsonObject()
                                   .where("http", is(jsonMissing()))
                                   .where("java", is(jsonObject()
@@ -261,7 +267,7 @@ class WebfluxAuthorizationSubscriptionBuilderServiceTests {
                                             is(jsonArray(asCollectionMatcher(containsInAnyOrder(
                                                 jsonObject().where("simpleName",is(jsonText("TestClass"))),
                                                 jsonObject().where("simpleName",is(jsonText("Object")))))))))))),
-                  () -> assertThat(subscription.getEnvironment(), is(jsonNull())));
+                  () -> assertThat(toJson(subscription.environment()), is(jsonNull())));
         // @formatter:on
     }
 
@@ -271,19 +277,19 @@ class WebfluxAuthorizationSubscriptionBuilderServiceTests {
         val subscription = defaultWebfluxBuilderUnderTest
                 .reactiveConstructAuthorizationSubscription(invocation, attribute, "the returnObject").block();
         // @formatter:off
-        assertAll(() -> assertThat(subscription.getSubject(),
+        assertAll(() -> assertThat(toJson(subscription.subject()),
                           is(jsonObject()
                                   .where("name", is(jsonText("anonymous")))
                                   .where("credentials", is(jsonMissing()))
                                   .where("principal", is(jsonText("anonymous"))))),
-                  () -> assertThat(subscription.getAction(),
+                  () -> assertThat(toJson(subscription.action()),
                           is(jsonObject()
                                   .where("java", is(jsonObject()
                                         .where("name", jsonText("publicVoid"))))
                                   .where("http", is(jsonMissing())))),
-                  () -> assertThat(subscription.getResource(),
+                  () -> assertThat(toJson(subscription.resource()),
                           is(jsonText("the returnObject"))),
-                  () -> assertThat(subscription.getEnvironment(), is(jsonNull())));
+                  () -> assertThat(toJson(subscription.environment()), is(jsonNull())));
         // @formatter:on
     }
 

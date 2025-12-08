@@ -15,12 +15,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.api.pdp.internal;
+package io.sapl.compiler;
 
 import io.sapl.api.attributes.AttributeFinderInvocation;
 import io.sapl.api.model.*;
 import io.sapl.api.pdp.Decision;
-import io.sapl.compiler.AuthorizationDecisionUtil;
+import io.sapl.api.pdp.internal.AttributeRecord;
+import io.sapl.api.pdp.internal.ConditionHit;
+import io.sapl.api.pdp.internal.TraceFields;
 import lombok.experimental.UtilityClass;
 import lombok.val;
 

@@ -41,13 +41,15 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.access.expression.method.DefaultMethodSecurityExpressionHandler;
 import org.springframework.security.util.MethodInvocationUtils;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.module.SimpleModule;
-import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 
+import io.sapl.api.model.NumberValue;
+import io.sapl.api.model.TextValue;
+import io.sapl.api.model.Value;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.AuthorizationSubscription;
+import io.sapl.api.pdp.Decision;
 import io.sapl.api.pdp.PolicyDecisionPoint;
 import io.sapl.spring.constraints.ConstraintEnforcementService;
 import io.sapl.spring.constraints.api.ConsumerConstraintHandlerProvider;
@@ -72,8 +74,6 @@ import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
 class PostEnforcePolicyEnforcementPointTests {
-
-    private static final JsonNodeFactory JSON = JsonNodeFactory.instance;
 
     private WebfluxAuthorizationSubscriptionBuilderService subscriptionBuilderService;
 
@@ -175,12 +175,12 @@ class PostEnforcePolicyEnforcementPointTests {
         final var handler = spy(new SubscriptionHandlerProvider() {
 
             @Override
-            public boolean isResponsible(JsonNode constraint) {
+            public boolean isResponsible(Value constraint) {
                 return true;
             }
 
             @Override
-            public Consumer<Subscription> getHandler(JsonNode constraint) {
+            public Consumer<Subscription> getHandler(Value constraint) {
                 return this::accept;
             }
 
@@ -207,7 +207,7 @@ class PostEnforcePolicyEnforcementPointTests {
         final var handler = spy(new MappingConstraintHandlerProvider<Integer>() {
 
             @Override
-            public boolean isResponsible(JsonNode constraint) {
+            public boolean isResponsible(Value constraint) {
                 return true;
             }
 
@@ -217,8 +217,8 @@ class PostEnforcePolicyEnforcementPointTests {
             }
 
             @Override
-            public UnaryOperator<Integer> getHandler(JsonNode constraint) {
-                return s -> s + constraint.asInt();
+            public UnaryOperator<Integer> getHandler(Value constraint) {
+                return s -> s + ((NumberValue) constraint).value().intValue();
             }
         });
         this.globalMappingHandlerProviders.add(handler);
@@ -239,7 +239,7 @@ class PostEnforcePolicyEnforcementPointTests {
         final var handler = spy(new MappingConstraintHandlerProvider<Integer>() {
 
             @Override
-            public boolean isResponsible(JsonNode constraint) {
+            public boolean isResponsible(Value constraint) {
                 return true;
             }
 
@@ -249,7 +249,7 @@ class PostEnforcePolicyEnforcementPointTests {
             }
 
             @Override
-            public UnaryOperator<Integer> getHandler(JsonNode constraint) {
+            public UnaryOperator<Integer> getHandler(Value constraint) {
                 return s -> {
                     throw new IllegalArgumentException("I FAILED TO OBLIGE");
                 };
@@ -277,7 +277,7 @@ class PostEnforcePolicyEnforcementPointTests {
         final var handler = spy(new MappingConstraintHandlerProvider<Integer>() {
 
             @Override
-            public boolean isResponsible(JsonNode constraint) {
+            public boolean isResponsible(Value constraint) {
                 return true;
             }
 
@@ -287,18 +287,17 @@ class PostEnforcePolicyEnforcementPointTests {
             }
 
             @Override
-            public UnaryOperator<Integer> getHandler(JsonNode constraint) {
-                return s -> s + constraint.asInt();
+            public UnaryOperator<Integer> getHandler(Value constraint) {
+                return s -> s + ((NumberValue) constraint).value().intValue();
             }
         });
         this.globalMappingHandlerProviders.add(handler);
-        final var constraintsService = buildConstraintHandlerService();
-        final var obligations        = JSON.arrayNode();
-        obligations.add(JSON.numberNode(-69));
-        final var decisions       = Flux
-                .just(AuthorizationDecision.PERMIT.withObligations(obligations).withResource(JSON.numberNode(69)));
-        final var onErrorContinue = errorAndCauseConsumer();
-        final var doOnError       = errorConsumer();
+        final var         constraintsService = buildConstraintHandlerService();
+        final List<Value> obligations        = List.of(Value.of(-69));
+        final var         decisions          = Flux
+                .just(new AuthorizationDecision(Decision.PERMIT, obligations, List.of(), Value.of(69)));
+        final var         onErrorContinue    = errorAndCauseConsumer();
+        final var         doOnError          = errorConsumer();
 
         when(pdp.decide((AuthorizationSubscription) any())).thenReturn(decisions);
         final var sut = new PostEnforcePolicyEnforcementPoint(pdp, constraintsService, subscriptionBuilderService)
@@ -315,8 +314,8 @@ class PostEnforcePolicyEnforcementPointTests {
     void when_PermitWithResource_and_typeMismatch_thenAccessIsGrantedAndOnlyResourceFromPolicyInStream() {
 
         final var constraintsService = buildConstraintHandlerService();
-        final var decisions          = Flux
-                .just(AuthorizationDecision.PERMIT.withResource(JSON.textNode("I CAUSE A TYPE MISMATCH")));
+        final var decisions          = Flux.just(
+                new AuthorizationDecision(Decision.PERMIT, List.of(), List.of(), Value.of("I CAUSE A TYPE MISMATCH")));
         final var onErrorContinue    = errorAndCauseConsumer();
         final var doOnError          = errorConsumer();
 
@@ -332,10 +331,8 @@ class PostEnforcePolicyEnforcementPointTests {
     }
 
     public Flux<AuthorizationDecision> decisionFluxOnePermitWithObligation() {
-        final var plus10000  = JSON.numberNode(10000L);
-        final var obligation = JSON.arrayNode();
-        obligation.add(plus10000);
-        return Flux.just(AuthorizationDecision.PERMIT.withObligations(obligation));
+        return Flux
+                .just(new AuthorizationDecision(Decision.PERMIT, List.of(Value.of(10000)), List.of(), Value.UNDEFINED));
     }
 
     @SuppressWarnings("unchecked")

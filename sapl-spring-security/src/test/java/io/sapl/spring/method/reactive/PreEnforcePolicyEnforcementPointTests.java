@@ -37,11 +37,13 @@ import org.reactivestreams.Subscription;
 import org.springframework.aop.framework.ReflectiveMethodInvocation;
 import org.springframework.security.access.AccessDeniedException;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 
+import io.sapl.api.model.NumberValue;
+import io.sapl.api.model.TextValue;
+import io.sapl.api.model.Value;
 import io.sapl.api.pdp.AuthorizationDecision;
+import io.sapl.api.pdp.Decision;
 import io.sapl.spring.constraints.ConstraintEnforcementService;
 import io.sapl.spring.constraints.api.ConsumerConstraintHandlerProvider;
 import io.sapl.spring.constraints.api.ErrorHandlerProvider;
@@ -57,8 +59,7 @@ import reactor.test.StepVerifier;
 
 class PreEnforcePolicyEnforcementPointTests {
 
-    private static final JsonNodeFactory JSON   = JsonNodeFactory.instance;
-    private static final ObjectMapper    MAPPER = new ObjectMapper();
+    private static final ObjectMapper MAPPER = new ObjectMapper();
 
     List<RunnableConstraintHandlerProvider> globalRunnableProviders;
 
@@ -159,12 +160,12 @@ class PreEnforcePolicyEnforcementPointTests {
         final var failingHandler = new MethodInvocationConstraintHandlerProvider() {
 
             @Override
-            public boolean isResponsible(JsonNode constraint) {
+            public boolean isResponsible(Value constraint) {
                 return true;
             }
 
             @Override
-            public Consumer<ReflectiveMethodInvocation> getHandler(JsonNode constraint) {
+            public Consumer<ReflectiveMethodInvocation> getHandler(Value constraint) {
                 return invocation -> {
                     throw new IllegalArgumentException();
                 };
@@ -192,12 +193,12 @@ class PreEnforcePolicyEnforcementPointTests {
         final var failingHandler = new MethodInvocationConstraintHandlerProvider() {
 
             @Override
-            public boolean isResponsible(JsonNode constraint) {
+            public boolean isResponsible(Value constraint) {
                 return true;
             }
 
             @Override
-            public Consumer<ReflectiveMethodInvocation> getHandler(JsonNode constraint) {
+            public Consumer<ReflectiveMethodInvocation> getHandler(Value constraint) {
                 return invocation -> {
                     throw new IllegalArgumentException();
                 };
@@ -225,12 +226,12 @@ class PreEnforcePolicyEnforcementPointTests {
         final var handler = spy(new SubscriptionHandlerProvider() {
 
             @Override
-            public boolean isResponsible(JsonNode constraint) {
+            public boolean isResponsible(Value constraint) {
                 return true;
             }
 
             @Override
-            public Consumer<Subscription> getHandler(JsonNode constraint) {
+            public Consumer<Subscription> getHandler(Value constraint) {
                 return this::accept;
             }
 
@@ -262,7 +263,7 @@ class PreEnforcePolicyEnforcementPointTests {
         final var handler = spy(new MappingConstraintHandlerProvider<Integer>() {
 
             @Override
-            public boolean isResponsible(JsonNode constraint) {
+            public boolean isResponsible(Value constraint) {
                 return true;
             }
 
@@ -272,11 +273,11 @@ class PreEnforcePolicyEnforcementPointTests {
             }
 
             @Override
-            public UnaryOperator<Integer> getHandler(JsonNode constraint) {
+            public UnaryOperator<Integer> getHandler(Value constraint) {
                 return s -> {
                     if (s == 2)
                         throw new IllegalArgumentException("I FAILED TO OBLIGE");
-                    return s + constraint.asInt();
+                    return s + ((NumberValue) constraint).value().intValue();
                 };
             }
         });
@@ -301,7 +302,7 @@ class PreEnforcePolicyEnforcementPointTests {
         final var handler = spy(new MappingConstraintHandlerProvider<Integer>() {
 
             @Override
-            public boolean isResponsible(JsonNode constraint) {
+            public boolean isResponsible(Value constraint) {
                 return true;
             }
 
@@ -311,21 +312,20 @@ class PreEnforcePolicyEnforcementPointTests {
             }
 
             @Override
-            public UnaryOperator<Integer> getHandler(JsonNode constraint) {
-                return s -> s + constraint.asInt();
+            public UnaryOperator<Integer> getHandler(Value constraint) {
+                return s -> s + ((NumberValue) constraint).value().intValue();
             }
         });
         this.globalMappingHandlerProviders.add(handler);
-        final var constraintsService = buildConstraintHandlerService();
-        final var obligations        = JSON.arrayNode();
-        obligations.add(JSON.numberNode(420));
-        final var decisions           = Flux
-                .just(AuthorizationDecision.PERMIT.withObligations(obligations).withResource(JSON.numberNode(69)));
-        final var resourceAccessPoint = resourceAccessPointInvocation();
-        final var onErrorContinue     = errorAndCauseConsumer();
-        final var doOnError           = errorConsumer();
-        final var sut                 = new PreEnforcePolicyEnforcementPoint(constraintsService).enforce(decisions,
-                resourceAccessPoint, Integer.class);
+        final var         constraintsService  = buildConstraintHandlerService();
+        final List<Value> obligations         = List.of(Value.of(420));
+        final var         decisions           = Flux
+                .just(new AuthorizationDecision(Decision.PERMIT, obligations, List.of(), Value.of(69)));
+        final var         resourceAccessPoint = resourceAccessPointInvocation();
+        final var         onErrorContinue     = errorAndCauseConsumer();
+        final var         doOnError           = errorConsumer();
+        final var         sut                 = new PreEnforcePolicyEnforcementPoint(constraintsService)
+                .enforce(decisions, resourceAccessPoint, Integer.class);
 
         StepVerifier.create(sut.doOnError(doOnError).onErrorContinue(onErrorContinue)).expectNext(489).verifyComplete();
 
@@ -336,8 +336,8 @@ class PreEnforcePolicyEnforcementPointTests {
     @Test
     void when_PermitWithResource_and_typeMismatch_thenAccessIsDenied() throws Throwable {
         final var constraintsService  = buildConstraintHandlerService();
-        final var decisions           = Flux
-                .just(AuthorizationDecision.PERMIT.withResource(JSON.textNode("I CAUSE A TYPE MISMATCH")));
+        final var decisions           = Flux.just(
+                new AuthorizationDecision(Decision.PERMIT, List.of(), List.of(), Value.of("I CAUSE A TYPE MISMATCH")));
         final var resourceAccessPoint = resourceAccessPointInvocation();
         final var onErrorContinue     = errorAndCauseConsumer();
         final var doOnError           = errorConsumer();
@@ -352,17 +352,13 @@ class PreEnforcePolicyEnforcementPointTests {
     }
 
     public Flux<AuthorizationDecision> decisionFluxOnePermitWithObligation() {
-        final var plus10000  = JSON.numberNode(10000L);
-        final var obligation = JSON.arrayNode();
-        obligation.add(plus10000);
-        return Flux.just(AuthorizationDecision.PERMIT.withObligations(obligation));
+        return Flux
+                .just(new AuthorizationDecision(Decision.PERMIT, List.of(Value.of(10000)), List.of(), Value.UNDEFINED));
     }
 
     public Flux<AuthorizationDecision> decisionFluxOnePermitWithAdvice() {
-        final var plus10000 = JSON.numberNode(10000L);
-        final var advice    = JSON.arrayNode();
-        advice.add(plus10000);
-        return Flux.just(AuthorizationDecision.PERMIT.withAdvice(advice));
+        return Flux
+                .just(new AuthorizationDecision(Decision.PERMIT, List.of(), List.of(Value.of(10000)), Value.UNDEFINED));
     }
 
     @SuppressWarnings("unchecked")

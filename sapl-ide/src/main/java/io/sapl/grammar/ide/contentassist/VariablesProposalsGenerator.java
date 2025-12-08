@@ -17,16 +17,13 @@
  */
 package io.sapl.grammar.ide.contentassist;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.common.base.Strings;
-import io.sapl.api.interpreter.Val;
-import io.sapl.attributes.documentation.api.PolicyInformationPointDocumentationProvider;
+import io.sapl.api.model.ArrayValue;
+import io.sapl.api.model.ObjectValue;
+import io.sapl.api.model.Value;
 import io.sapl.grammar.ide.contentassist.ContextAnalyzer.ContextAnalysisResult;
 import io.sapl.grammar.ide.contentassist.ProposalCreator.Proposal;
 import io.sapl.grammar.sapl.*;
-import io.sapl.pdp.config.PDPConfiguration;
 import lombok.experimental.UtilityClass;
 import org.eclipse.xtext.ide.editor.contentassist.ContentAssistContext;
 
@@ -54,8 +51,7 @@ public class VariablesProposalsGenerator {
      * @return a List of proposals.
      */
     public static List<Proposal> variableProposalsForContext(ContextAnalysisResult analysis,
-            ContentAssistContext context, PDPConfiguration pdpConfiguration,
-            PolicyInformationPointDocumentationProvider policyInformationPointDocumentationProvider) {
+            ContentAssistContext context, ContentAssistPDPConfiguration pdpConfiguration) {
         /* first add environment variables and their expansions */
         final var proposals = createEnvironmentVariableProposals(pdpConfiguration);
         /*
@@ -69,10 +65,8 @@ public class VariablesProposalsGenerator {
              */
             proposals.addAll(AUTHORIZATION_SUBSCRIPTION_VARIABLES);
             proposals.addAll(createSubscriptionElementSchemaExpansionProposals(context, pdpConfiguration));
-            proposals.addAll(createPolicySetHeaderVariablesProposals(context, pdpConfiguration,
-                    policyInformationPointDocumentationProvider));
-            proposals.addAll(createPolicyBodyInScopeVariableProposals(context, pdpConfiguration,
-                    policyInformationPointDocumentationProvider));
+            proposals.addAll(createPolicySetHeaderVariablesProposals(context, pdpConfiguration));
+            proposals.addAll(createPolicyBodyInScopeVariableProposals(context, pdpConfiguration));
             /*
              * Potential extension here: evaluate all variables and values excluding
              * attribute access (or maybe include resulting schema if available) and add
@@ -96,12 +90,10 @@ public class VariablesProposalsGenerator {
      * @param pdpConfiguration configuration with environment variables
      * @return expanded proposals for environment variables
      */
-    private static List<String> createEnvironmentVariableProposals(PDPConfiguration pdpConfiguration) {
+    private static List<String> createEnvironmentVariableProposals(ContentAssistPDPConfiguration pdpConfiguration) {
         final var proposals = new ArrayList<String>();
-        pdpConfiguration.variables().entrySet().forEach(variableEntry -> {
-            final var name = variableEntry.getKey();
+        pdpConfiguration.variables().forEach((name, value) -> {
             proposals.add(name);
-            final var value = variableEntry.getValue();
             if (!value.isSecret()) {
                 generatePathProposalsForValue(value).forEach(suffix -> proposals.add(name + "." + suffix));
             }
@@ -114,14 +106,13 @@ public class VariablesProposalsGenerator {
      * variable names as well as schema expansions.
      */
     private ArrayList<String> createPolicySetHeaderVariablesProposals(ContentAssistContext context,
-            PDPConfiguration pdpConfiguration,
-            PolicyInformationPointDocumentationProvider policyInformationPointDocumentationProvider) {
+            ContentAssistPDPConfiguration pdpConfiguration) {
         final var proposals = new ArrayList<String>();
         if (context.getRootModel() instanceof final SAPL sapl
                 && sapl.getPolicyElement() instanceof final PolicySet policySet) {
             for (final var valueDefinition : policySet.getValueDefinitions()) {
-                proposals.addAll(createValueDefinitionProposalsWithSchemaExtensions(valueDefinition, pdpConfiguration,
-                        policyInformationPointDocumentationProvider, context));
+                proposals.addAll(
+                        createValueDefinitionProposalsWithSchemaExtensions(valueDefinition, pdpConfiguration, context));
             }
         }
         return proposals;
@@ -133,8 +124,7 @@ public class VariablesProposalsGenerator {
      * variable names on the way are returned.
      */
     private static List<String> createPolicyBodyInScopeVariableProposals(ContentAssistContext context,
-            PDPConfiguration pdpConfiguration,
-            PolicyInformationPointDocumentationProvider policyInformationPointDocumentationProvider) {
+            ContentAssistPDPConfiguration pdpConfiguration) {
         final var currentModel  = context.getCurrentModel();
         final var currentOffset = context.getOffset();
         final var policyBody    = TreeNavigationUtil.goToFirstParent(currentModel, PolicyBody.class);
@@ -149,8 +139,8 @@ public class VariablesProposalsGenerator {
                 break;
             }
             if (statement instanceof final ValueDefinition valueDefinition) {
-                proposals.addAll(createValueDefinitionProposalsWithSchemaExtensions(valueDefinition, pdpConfiguration,
-                        policyInformationPointDocumentationProvider, context));
+                proposals.addAll(
+                        createValueDefinitionProposalsWithSchemaExtensions(valueDefinition, pdpConfiguration, context));
             }
         }
         return proposals;
@@ -161,9 +151,7 @@ public class VariablesProposalsGenerator {
      * has an explicit schema declaration, the matching schema extensions are added.
      */
     private static List<String> createValueDefinitionProposalsWithSchemaExtensions(ValueDefinition valueDefinition,
-            PDPConfiguration pdpConfiguration,
-            PolicyInformationPointDocumentationProvider policyInformationPointDocumentationProvider,
-            ContentAssistContext context) {
+            ContentAssistPDPConfiguration pdpConfiguration, ContentAssistContext context) {
 
         final var proposals    = new ArrayList<String>();
         final var variableName = valueDefinition.getName();
@@ -172,7 +160,7 @@ public class VariablesProposalsGenerator {
         }
         proposals.add(variableName);
         final var schemas = ExpressionSchemaResolver.inferValueDefinitionSchemas(valueDefinition, context,
-                pdpConfiguration, policyInformationPointDocumentationProvider);
+                pdpConfiguration);
         for (final var schema : schemas) {
             proposals.addAll(
                     SchemaProposalsGenerator.getCodeTemplates(variableName, schema, pdpConfiguration.variables()));
@@ -181,40 +169,32 @@ public class VariablesProposalsGenerator {
     }
 
     private static List<String> createSubscriptionElementSchemaExpansionProposals(ContentAssistContext context,
-            PDPConfiguration pdpConfiguration) {
+            ContentAssistPDPConfiguration pdpConfiguration) {
         final var proposals = new ArrayList<String>();
         if (context.getRootModel() instanceof final SAPL sapl) {
             for (final var schema : sapl.getSchemas()) {
                 proposals.addAll(SchemaProposalsGenerator.getCodeTemplates(schema.getSubscriptionElement(),
-                        schema.getSchemaExpression(), pdpConfiguration.variables()));
+                        schema.getSchemaExpression(), pdpConfiguration));
             }
         }
         return proposals;
     }
 
-    private static List<String> generatePathProposalsForValue(Val value) {
-        if (value.isUndefined() || value.isError()) {
-            return List.of();
-        }
-        return generatePathProposalsForJsonNode(value.get());
-    }
-
-    private List<String> generatePathProposalsForJsonNode(JsonNode jsonNode) {
-        if (jsonNode instanceof final ObjectNode objectNode) {
-            return generatePathProposalsForObjectNode(objectNode);
-        } else if (jsonNode instanceof ArrayNode) {
+    private List<String> generatePathProposalsForValue(Value value) {
+        if (value instanceof ObjectValue objectNode) {
+            return generatePathProposalsForObjectValue(objectNode);
+        } else if (value instanceof ArrayValue) {
             return List.of("[?]");
         } else {
             return List.of();
         }
     }
 
-    private List<String> generatePathProposalsForObjectNode(ObjectNode objectNode) {
+    private List<String> generatePathProposalsForObjectValue(ObjectValue objectValue) {
         final var proposals = new ArrayList<String>();
-        objectNode.properties().forEach(entry -> {
-            final var key = entry.getKey();
+        objectValue.forEach((key, value) -> {
             proposals.add(key);
-            generatePathProposalsForJsonNode(entry.getValue()).forEach(suffix -> proposals.add(key + "." + suffix));
+            generatePathProposalsForValue(value).forEach(suffix -> proposals.add(key + "." + suffix));
         });
         return proposals;
     }

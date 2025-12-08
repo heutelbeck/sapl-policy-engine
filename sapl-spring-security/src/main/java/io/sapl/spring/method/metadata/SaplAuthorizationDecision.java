@@ -21,9 +21,12 @@ import io.sapl.api.SaplVersion;
 import lombok.Getter;
 import org.springframework.security.authorization.AuthorizationDecision;
 
+import java.io.Serial;
+
 @Getter
 public class SaplAuthorizationDecision extends AuthorizationDecision {
 
+    @Serial
     private static final long serialVersionUID = SaplVersion.VERSION_UID;
 
     transient SaplAttribute attribute;

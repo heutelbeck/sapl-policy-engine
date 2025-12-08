@@ -27,25 +27,16 @@ import io.sapl.api.pdp.PDPConfiguration;
 import io.sapl.api.pdp.PolicyDecisionPoint;
 import io.sapl.api.pdp.TraceLevel;
 import io.sapl.api.pdp.internal.TracedDecisionInterceptor;
-import io.sapl.compiler.CompilationContext;
 import io.sapl.attributes.CachingAttributeBroker;
 import io.sapl.attributes.HeapAttributeStorage;
 import io.sapl.attributes.InMemoryAttributeRepository;
-import io.sapl.attributes.libraries.HttpPolicyInformationPoint;
-import io.sapl.attributes.libraries.JWTKeyProvider;
-import io.sapl.attributes.libraries.JWTPolicyInformationPoint;
-import io.sapl.attributes.libraries.ReactiveWebClient;
-import io.sapl.attributes.libraries.TimePolicyInformationPoint;
+import io.sapl.attributes.libraries.*;
+import io.sapl.compiler.CompilationContext;
 import io.sapl.functions.DefaultFunctionBroker;
 import io.sapl.functions.DefaultLibraries;
-import io.sapl.functions.libraries.JWTFunctionLibrary;
-import io.sapl.pdp.configuration.BundlePDPConfigurationSource;
-import io.sapl.pdp.configuration.DirectoryPDPConfigurationSource;
+import io.sapl.pdp.configuration.*;
 import io.sapl.pdp.configuration.bundle.BundleParser;
 import io.sapl.pdp.configuration.bundle.BundleSecurityPolicy;
-import io.sapl.pdp.configuration.MultiDirectoryPDPConfigurationSource;
-import io.sapl.pdp.configuration.PDPConfigurationSource;
-import io.sapl.pdp.configuration.ResourcesPDPConfigurationSource;
 import lombok.val;
 import org.jspecify.annotations.Nullable;
 import org.springframework.web.reactive.function.client.WebClient;
@@ -860,7 +851,6 @@ public class PolicyDecisionPointBuilder {
             for (val lib : DefaultLibraries.STATIC_LIBRARIES) {
                 functionBroker.loadStaticFunctionLibrary(lib);
             }
-            functionBroker.loadInstantiatedFunctionLibrary(new JWTFunctionLibrary(mapper));
         }
 
         for (val lib : staticFunctionLibraries) {

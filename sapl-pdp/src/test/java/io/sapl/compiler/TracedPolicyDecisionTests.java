@@ -44,7 +44,7 @@ import java.util.stream.Stream;
 
 import static io.sapl.api.model.ValueJsonMarshaller.json;
 import static io.sapl.api.model.ValueJsonMarshaller.toPrettyString;
-import static io.sapl.api.pdp.internal.TracedPolicyDecision.*;
+import static io.sapl.compiler.TracedPolicyDecision.*;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 

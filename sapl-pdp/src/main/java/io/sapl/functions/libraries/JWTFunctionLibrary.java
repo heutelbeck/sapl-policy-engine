@@ -28,7 +28,7 @@ import io.sapl.api.model.ErrorValue;
 import io.sapl.api.model.TextValue;
 import io.sapl.api.model.Value;
 import io.sapl.api.model.ValueJsonMarshaller;
-import lombok.RequiredArgsConstructor;
+import lombok.experimental.UtilityClass;
 
 import java.text.ParseException;
 import java.time.Instant;
@@ -59,15 +59,13 @@ import java.time.Instant;
  * where
  *   subject.token.&lt;jwt.valid&gt;;
  * </pre>
- *
- * @see io.sapl.attributes.pips.jwt.JWTPolicyInformationPoint
  */
-@RequiredArgsConstructor
+@UtilityClass
 @FunctionLibrary(name = JWTFunctionLibrary.NAME, description = JWTFunctionLibrary.DESCRIPTION, libraryDocumentation = JWTFunctionLibrary.LIBRARY_DOCUMENTATION)
 public class JWTFunctionLibrary {
 
-    private static final JsonNodeFactory JSON = JsonNodeFactory.instance;
-    private final ObjectMapper           mapper;
+    private static final JsonNodeFactory JSON   = JsonNodeFactory.instance;
+    private static final ObjectMapper    MAPPER = new ObjectMapper();
 
     static final String NAME        = "jwt";
     static final String DESCRIPTION = "Functions for parsing JSON Web Tokens. Contents are returned without validation.";
@@ -171,13 +169,13 @@ public class JWTFunctionLibrary {
         try {
             var signedJwt = SignedJWT.parse(rawToken.value());
             var jsonToken = JSON.objectNode();
-            var payload   = mapper.convertValue(signedJwt.getPayload().toJSONObject(), JsonNode.class);
+            var payload   = MAPPER.convertValue(signedJwt.getPayload().toJSONObject(), JsonNode.class);
 
             ifPresentReplaceEpochFieldWithIsoTime(payload, "nbf");
             ifPresentReplaceEpochFieldWithIsoTime(payload, "exp");
             ifPresentReplaceEpochFieldWithIsoTime(payload, "iat");
 
-            jsonToken.set("header", mapper.convertValue(signedJwt.getHeader().toJSONObject(), JsonNode.class));
+            jsonToken.set("header", MAPPER.convertValue(signedJwt.getHeader().toJSONObject(), JsonNode.class));
             jsonToken.set("payload", payload);
 
             return ValueJsonMarshaller.fromJsonNode(jsonToken);

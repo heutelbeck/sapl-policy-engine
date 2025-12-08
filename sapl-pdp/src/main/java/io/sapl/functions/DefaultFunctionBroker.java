@@ -24,6 +24,7 @@ import io.sapl.api.functions.FunctionSpecification;
 import io.sapl.api.model.Value;
 import io.sapl.api.model.ValueMetadata;
 import io.sapl.api.shared.Match;
+import lombok.Getter;
 import lombok.val;
 
 import java.lang.reflect.Method;
@@ -31,6 +32,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 /**
  * Default implementation of function broker managing registration and
@@ -65,6 +67,9 @@ public class DefaultFunctionBroker implements FunctionBroker {
 
     private final Map<String, List<FunctionSpecification>> functionIndex = new ConcurrentHashMap<>();
 
+    @Getter
+    private final List<Class<?>> registeredLibraries = new CopyOnWriteArrayList<>();
+
     /**
      * Loads a static function library from the provided class.
      * <p>
@@ -88,6 +93,7 @@ public class DefaultFunctionBroker implements FunctionBroker {
             throw new IllegalArgumentException(LIBRARY_CLASS_NULL_ERROR);
         }
         loadLibrary(null, libraryClass);
+        registeredLibraries.add(libraryClass);
     }
 
     /**
@@ -114,6 +120,7 @@ public class DefaultFunctionBroker implements FunctionBroker {
             throw new IllegalArgumentException(LIBRARY_INSTANCE_NULL_ERROR);
         }
         loadLibrary(libraryInstance, libraryInstance.getClass());
+        registeredLibraries.add(libraryInstance.getClass());
     }
 
     private void loadLibrary(Object library, Class<?> libraryType) {
