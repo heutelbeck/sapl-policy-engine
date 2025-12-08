@@ -22,7 +22,6 @@ import io.sapl.grammar.sapl.Condition;
 import io.sapl.grammar.sapl.Policy;
 import io.sapl.grammar.sapl.PolicySet;
 import io.sapl.grammar.sapl.SaplPackage;
-import io.sapl.grammar.sapl.impl.PolicyBodyImplCustom;
 import io.sapl.test.coverage.api.CoverageHitRecorder;
 import io.sapl.test.coverage.api.model.PolicyConditionHit;
 import lombok.extern.slf4j.Slf4j;

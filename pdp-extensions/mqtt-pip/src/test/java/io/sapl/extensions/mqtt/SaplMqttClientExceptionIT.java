@@ -18,8 +18,9 @@
 package io.sapl.extensions.mqtt;
 
 import com.hivemq.embedded.EmbeddedHiveMQ;
-import io.sapl.api.interpreter.Val;
+import io.sapl.api.model.Value;
 import io.sapl.extensions.mqtt.util.DefaultResponseUtility;
+import lombok.val;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Disabled;
@@ -66,26 +67,26 @@ class SaplMqttClientExceptionIT {
     }
 
     @Test
-    void when_exceptionOccursWhileBuildingMessageFlux_then_returnFluxWithValOfError() {
+    void when_exceptionOccursWhileBuildingMessageFlux_then_returnFluxWithValueOfError() {
         // GIVEN
-        final var topics = "topic";
+        val topics = "topic";
 
         // WHEN
-        final var saplMqttMessageFlux = saplMqttClient.buildSaplMqttMessageFlux(Val.of(topics), null);
+        val saplMqttMessageFlux = saplMqttClient.buildSaplMqttMessageFlux(Value.of(topics), null);
 
         // THEN
         StepVerifier.create(saplMqttMessageFlux).thenAwait(Duration.ofMillis(DELAY_MS))
-                .expectNext(Val.error("Failed to build stream of messages.")).thenCancel().verify();
+                .expectNext(Value.error("Failed to build stream of messages.")).thenCancel().verify();
     }
 
     @Test
     @Disabled("This test causes side effects and makes SaplMqttClientSubscriptionsIT.when_oneFluxIsCancelledWhileSubscribingToMultipleTopics_then_getMessagesOfLeftTopics fail by timeout")
-    void when_exceptionOccursInTheMessageFlux_then_returnFluxWithValOfError() {
+    void when_exceptionOccursInTheMessageFlux_then_returnFluxWithValueOfError() {
         // GIVEN
-        final var topics = "topic";
+        val topics = "topic";
 
         // WHEN
-        final var saplMqttMessageFlux = saplMqttClient.buildSaplMqttMessageFlux(Val.of(topics), Map.of());
+        val saplMqttMessageFlux = saplMqttClient.buildSaplMqttMessageFlux(Value.of(topics), Map.of());
 
         try (MockedStatic<DefaultResponseUtility> defaultResponseUtilityMockedStatic = Mockito
                 .mockStatic(DefaultResponseUtility.class)) {
@@ -93,7 +94,7 @@ class SaplMqttClientExceptionIT {
                     .thenThrow(new RuntimeException("Error in stream"));
             // THEN
             StepVerifier.create(saplMqttMessageFlux).thenAwait(Duration.ofMillis(DELAY_MS))
-                    .expectNext(Val.error("Error in stream")).thenCancel().verify();
+                    .expectNext(Value.error("Error in stream")).thenCancel().verify();
         }
     }
 }

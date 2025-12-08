@@ -49,7 +49,7 @@
 		</dependency>
 		<dependency>
 			<groupId>io.sapl</groupId>
-			<artifactId>sapl-pdp-api</artifactId>
+			<artifactId>sapl-api</artifactId>
 			<version>${project.version}</version>
 		</dependency>
 		<dependency>

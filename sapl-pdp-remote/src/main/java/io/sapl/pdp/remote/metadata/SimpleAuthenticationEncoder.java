@@ -37,7 +37,7 @@ public class SimpleAuthenticationEncoder extends AbstractEncoder<UsernamePasswor
     private static final MimeType AUTHENTICATION_MIME_TYPE = MimeTypeUtils
             .parseMimeType("message/x.rsocket.authentication.v0");
 
-    private NettyDataBufferFactory defaultBufferFactory = new NettyDataBufferFactory(ByteBufAllocator.DEFAULT);
+    private final NettyDataBufferFactory defaultBufferFactory = new NettyDataBufferFactory(ByteBufAllocator.DEFAULT);
 
     public SimpleAuthenticationEncoder() {
         super(AUTHENTICATION_MIME_TYPE);

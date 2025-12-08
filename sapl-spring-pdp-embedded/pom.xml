@@ -54,7 +54,7 @@
 		<!-- The embedded PDP implementation -->
 		<dependency>
 			<groupId>${project.groupId}</groupId>
-			<artifactId>sapl-pdp-embedded</artifactId>
+			<artifactId>sapl-pdp</artifactId>
 			<version>${project.version}</version>
 		</dependency>
 
@@ -70,6 +70,12 @@
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-configuration-processor</artifactId>
 			<optional>true</optional>
+		</dependency>
+
+		<!-- Jackson for JSON processing -->
+		<dependency>
+			<groupId>com.fasterxml.jackson.core</groupId>
+			<artifactId>jackson-databind</artifactId>
 		</dependency>
 
 		<!-- Testing -->

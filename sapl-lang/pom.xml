@@ -33,20 +33,11 @@
 	
 	<properties>
 		<main.basedir>${project.basedir}/../</main.basedir>
+		<!-- Set to true to skip Xtext grammar generation for faster rebuilds -->
+		<skipXtextGeneration>false</skipXtextGeneration>
 	</properties>
 	
 	<dependencies>
-		<!-- SAPL APIs implemented or used by the SAPL language core -->
-		<dependency>
-			<groupId>io.sapl</groupId>
-			<artifactId>sapl-pdp-api</artifactId>
-			<version>${project.version}</version>
-		</dependency>
-		<dependency>
-			<groupId>io.sapl</groupId>
-			<artifactId>sapl-extensions-api</artifactId>
-			<version>${project.version}</version>
-		</dependency>
 		<dependency>
 			<groupId>io.sapl</groupId>
 			<artifactId>sapl-generator</artifactId>
@@ -64,7 +55,6 @@
 			<artifactId>org.eclipse.xtext.xbase</artifactId>
 			<version>${xtext.version}</version>
 		</dependency>
-
 		<dependency>
 			<groupId>org.eclipse.xtext</groupId>
 			<artifactId>org.eclipse.xtext.xtext.generator</artifactId>
@@ -102,95 +92,12 @@
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-api</artifactId>
         </dependency>
-        <dependency>
-            <groupId>com.github.valfirst</groupId>
-            <artifactId>slf4j-test</artifactId>
-            <version>3.0.3</version>
-            <scope>test</scope>
-        </dependency>
 		<!-- Utility -->
 		<dependency>
 			<groupId>org.projectlombok</groupId>
 			<artifactId>lombok</artifactId>
 			<scope>provided</scope>
 		</dependency>
-		<dependency>
-			<groupId>org.apache.commons</groupId>
-			<artifactId>commons-lang3</artifactId>
-        </dependency>
-		<dependency>
-			<groupId>commons-io</groupId>
-			<artifactId>commons-io</artifactId>
-			<!-- newer versions than 2.10.0 may break MQTT integration tests due to version
-			conflicts with dependencies used during testing -->
-			<version>2.18.0</version>
-		</dependency>
-		<dependency>
-			<groupId>com.fasterxml.jackson.dataformat</groupId>
-			<artifactId>jackson-dataformat-xml</artifactId>
-		</dependency>
-        <dependency>
-            <groupId>com.fasterxml.jackson.dataformat</groupId>
-            <artifactId>jackson-dataformat-yaml</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>com.fasterxml.jackson.dataformat</groupId>
-            <artifactId>jackson-dataformat-toml</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>com.fasterxml.jackson.dataformat</groupId>
-            <artifactId>jackson-dataformat-csv</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.semver4j</groupId>
-            <artifactId>semver4j</artifactId>
-            <version>6.0.0</version>
-        </dependency>
-        <dependency>
-            <groupId>com.github.seancfoley</groupId>
-            <artifactId>ipaddress</artifactId>
-            <version>5.5.1</version>
-        </dependency>
-		<!-- JSON schema validation -->
-		<dependency>
-			<groupId>com.networknt</groupId>
-			<artifactId>json-schema-validator</artifactId>
-		</dependency>
-        <!-- GraphQL Support -->
-        <dependency>
-            <groupId>com.graphql-java</groupId>
-            <artifactId>graphql-java</artifactId>
-        </dependency>
-		<!-- Webflux for the reactive WebClient -->
-		<dependency>
-			<groupId>org.springframework</groupId>
-			<artifactId>spring-webflux</artifactId>
-		</dependency>
-		<dependency>
-			<groupId>io.projectreactor.netty</groupId>
-			<artifactId>reactor-netty-http</artifactId>
-		</dependency>
-
-		<!-- Dependency for the Repeat and Back-Off -->
-		<dependency>
-			<groupId>io.projectreactor.addons</groupId>
-			<artifactId>reactor-extra</artifactId>
-		</dependency>
-
-        <!-- JSON Web Token Support -->
-        <dependency>
-            <groupId>com.nimbusds</groupId>
-            <artifactId>nimbus-jose-jwt</artifactId>
-        </dependency>
-
-        <!-- Crypto -->
-        <dependency>
-            <groupId>org.bouncycastle</groupId>
-            <artifactId>bcpkix-jdk18on</artifactId>
-            <version>1.82</version>
-            <scope>test</scope>
-        </dependency>
-
 		<!-- Testing -->
 		<dependency>
 			<groupId>org.junit.jupiter</groupId>
@@ -203,77 +110,8 @@
 			<scope>test</scope>
 		</dependency>
 		<dependency>
-			<groupId>io.sapl</groupId>
-			<artifactId>sapl-hamcrest</artifactId>
-			<version>${project.version}</version>
-			<scope>test</scope>
-		</dependency>
-		<dependency>
-			<groupId>io.sapl</groupId>
-			<artifactId>sapl-assertj</artifactId>
-			<version>${project.version}</version>
-			<scope>test</scope>
-		</dependency>
-		<dependency>
-			<groupId>com.squareup.okhttp3</groupId>
-			<artifactId>okhttp</artifactId>
-			<scope>test</scope>
-		</dependency>
-		<dependency>
-			<groupId>com.squareup.okhttp3</groupId>
-			<artifactId>mockwebserver</artifactId>
-			<scope>test</scope>
-		</dependency>
-		<dependency>
-			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter-test</artifactId>
-			<scope>test</scope>
-			<exclusions>
-				<exclusion>
-					<groupId>ch.qos.logback</groupId>
-					<artifactId>logback-classic</artifactId>
-				</exclusion>
-			</exclusions>
-		</dependency>
-		<dependency>
-			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter-websocket</artifactId>
-			<scope>test</scope>
-		</dependency>
-		<dependency>
-			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter-webflux</artifactId>
-			<scope>test</scope>
-		</dependency>
-
-		<dependency>
-			<groupId>io.projectreactor</groupId>
-			<artifactId>reactor-test</artifactId>
-			<scope>test</scope>
-		</dependency>
-		<dependency>
-			<groupId>org.hamcrest</groupId>
-			<artifactId>hamcrest</artifactId>
-			<scope>test</scope>
-		</dependency>
-		<dependency>
 			<groupId>org.assertj</groupId>
 			<artifactId>assertj-core</artifactId>
-			<scope>test</scope>
-		</dependency>
-		<dependency>
-			<groupId>com.spotify</groupId>
-			<artifactId>hamcrest-pojo</artifactId>
-			<scope>test</scope>
-		</dependency>
-		<dependency>
-			<groupId>com.spotify</groupId>
-			<artifactId>hamcrest-optional</artifactId>
-			<scope>test</scope>
-		</dependency>
-		<dependency>
-			<groupId>com.spotify</groupId>
-			<artifactId>hamcrest-jackson</artifactId>
 			<scope>test</scope>
 		</dependency>
 		<dependency>
@@ -297,12 +135,6 @@
 		<dependency>
 			<groupId>org.mockito</groupId>
 			<artifactId>mockito-core</artifactId>
-			<scope>test</scope>
-		</dependency>
-		<dependency>
-			<groupId>org.reflections</groupId>
-			<artifactId>reflections</artifactId>
-			<version>0.10.2</version>
 			<scope>test</scope>
 		</dependency>
         <dependency>
@@ -334,45 +166,6 @@
 				<version>3.1.0</version>
 				<executions>
 					<execution>
-						<!--
-							Attention: the ?m2e annotations may break validation of release packages
-							being pushed to maven central.
-						-->
-						<?m2e ignore?>
-						<id>mwe2GenerateEMFClasses</id>
-						<phase>generate-sources</phase>
-						<goals>
-							<goal>java</goal>
-						</goals>
-						<configuration>
-							<mainClass>
-								org.eclipse.emf.mwe2.launch.runtime.Mwe2Launcher</mainClass>
-							<arguments>
-								<argument>
-									/${project.basedir}/src/main/java/io/sapl/grammar/GenerateSAPLModel.mwe2
-								</argument>
-								<argument>-p</argument>
-								<argument>rootPath=/${project.basedir}/..</argument>
-							</arguments>
-							<classpathScope>compile</classpathScope>
-							<includePluginDependencies>true</includePluginDependencies>
-							<cleanupDaemonThreads>false
-							</cleanupDaemonThreads> <!-- see
-							https://bugs.eclipse.org/bugs/show_bug.cgi?id=475098#c3 -->
-							<systemProperties>
-								<!-- Use custom logger configuration to make
-								logs look like default
-									maven logs. Attention: Setting this here spills over into the mwe2Launcher
-									execution below. -->
-								<systemProperty>
-									<key>log4j.configuration</key>
-									<value>
-										file:${project.basedir}/plugin-log4j.properties</value>
-								</systemProperty>
-							</systemProperties>
-						</configuration>
-					</execution>
-					<execution>
 						<?m2e ignore?>
 						<id>mwe2Launcher</id>
 						<phase>generate-sources</phase>
@@ -380,6 +173,7 @@
 							<goal>java</goal>
 						</goals>
 						<configuration>
+							<skip>${skipXtextGeneration}</skip>
 							<mainClass>
 								org.eclipse.emf.mwe2.launch.runtime.Mwe2Launcher</mainClass>
 							<arguments>
@@ -400,7 +194,12 @@
 					<dependency>
 						<groupId>org.slf4j</groupId>
 						<artifactId>slf4j-nop</artifactId>
-    						<version>2.0.17</version>
+						<version>2.0.17</version>
+					</dependency>
+					<dependency>
+						<groupId>commons-logging</groupId>
+						<artifactId>commons-logging</artifactId>
+						<version>1.3.4</version>
 					</dependency>
 				</dependencies>
 			</plugin>
@@ -412,12 +211,6 @@
 						<fileset>
 							<directory>
 								${basedir}/../sapl-lang/src/main/xtext-gen/</directory>
-							<includes>
-								<include>**/*</include>
-							</includes>
-						</fileset>
-						<fileset>
-							<directory>${basedir}/../sapl-lang/src/main/emf-gen/</directory>
 							<includes>
 								<include>**/*</include>
 							</includes>
@@ -464,7 +257,6 @@
 						<configuration>
 							<sources>
 								<source>src/main/xtext-gen</source>
-								<source>src/main/emf-gen</source>
 							</sources>
 							<resources>
 								<resource>
@@ -519,10 +311,6 @@
 					removed when the
                     project uses a version of lombok which contains a fix for
                      https://github.com/projectlombok/lombok/issues/3601 -->
-					<bnd>
-						Import-Package: com.google.common.*;version="32",\
-						*
-					</bnd>
 				</configuration>
 			</plugin>
 			<plugin>
@@ -539,27 +327,19 @@
 				<groupId>net.ju-n.maven.plugins</groupId>
 				<artifactId>checksum-maven-plugin</artifactId>
 			</plugin>
-            <plugin>
-                <groupId>io.github.git-commit-id</groupId>
-                <artifactId>git-commit-id-maven-plugin</artifactId>
-                <version>9.0.2</version>
-                <executions>
-                    <execution>
-                        <goals>
-                            <goal>revision</goal>
-                        </goals>
-                    </execution>
-                </executions>
-                <configuration>
-                    <generateGitPropertiesFile>true</generateGitPropertiesFile>
-                    <generateGitPropertiesFilename>${project.build.outputDirectory}/git.properties</generateGitPropertiesFilename>
-                    <includeOnlyProperties>
-                        <includeOnlyProperty>^git.commit.id.abbrev$</includeOnlyProperty>
-                        <includeOnlyProperty>^git.branch$</includeOnlyProperty>
-                        <includeOnlyProperty>^git.build.time$</includeOnlyProperty>
-                    </includeOnlyProperties>
-                </configuration>
-            </plugin>
+			<plugin>
+				<groupId>com.mycila</groupId>
+				<artifactId>license-maven-plugin</artifactId>
+				<configuration>
+					<licenseSets>
+						<licenseSet>
+							<excludes combine.children="append">
+								<exclude>model/generated/**</exclude>
+							</excludes>
+						</licenseSet>
+					</licenseSets>
+				</configuration>
+			</plugin>
 		</plugins>
 	</build>
 </project>

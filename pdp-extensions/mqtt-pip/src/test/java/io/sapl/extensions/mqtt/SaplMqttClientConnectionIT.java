@@ -17,11 +17,14 @@
  */
 package io.sapl.extensions.mqtt;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.hivemq.client.mqtt.mqtt5.message.publish.Mqtt5Publish;
 import com.hivemq.embedded.EmbeddedHiveMQ;
-import io.sapl.api.interpreter.Val;
+import io.sapl.api.model.ErrorValue;
+import io.sapl.api.model.TextValue;
+import io.sapl.api.model.Value;
+import io.sapl.api.model.ValueJsonMarshaller;
+import lombok.val;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -35,6 +38,7 @@ import java.nio.file.Path;
 import java.time.Duration;
 import java.util.Map;
 
+import static io.sapl.api.model.ValueJsonMarshaller.json;
 import static io.sapl.extensions.mqtt.MqttTestUtility.*;
 
 class SaplMqttClientConnectionIT {
@@ -42,7 +46,7 @@ class SaplMqttClientConnectionIT {
     private static final ObjectMapper MAPPER   = new ObjectMapper();
     private static final long         DELAY_MS = 1000L;
     private static final Mqtt5Publish MESSAGE  = buildMqttPublishMessage("topic", "message", false);
-    private static final Val          TOPIC    = Val.of("topic");
+    private static final Value        TOPIC    = Value.of("topic");
 
     @TempDir
     Path configDir;
@@ -77,9 +81,9 @@ class SaplMqttClientConnectionIT {
     }
 
     @Test
-    void when_brokerConfigIsInvalid_then_returnValOfError() throws JsonProcessingException {
+    void when_brokerConfigIsInvalid_then_returnValueOfError() {
         // GIVEN
-        final var mqttPipConfigForUndefinedVal = """
+        val mqttPipConfigForUndefinedVal = json("""
                 {
                   "defaultBrokerConfigName" : "falseName",
                   "brokerConfig" : [ {
@@ -89,55 +93,53 @@ class SaplMqttClientConnectionIT {
                     "clientId" : "mqttPipDefault"
                   } ]
                 }
-                """;
+                """);
 
-        final var configForUndefinedVal = Map.of("action", Val.NULL, "environment", Val.NULL, "mqttPipConfig",
-                Val.ofJson(mqttPipConfigForUndefinedVal), "resource", Val.NULL, "subject", Val.NULL);
+        val configForUndefinedVal = Map.of("action", Value.NULL, "environment", Value.NULL, "mqttPipConfig",
+                mqttPipConfigForUndefinedVal, "resource", Value.NULL, "subject", Value.NULL);
 
         // WHEN
-        final var testSaplMqttClient  = new SaplMqttClient();
-        final var saplMqttMessageFlux = testSaplMqttClient.buildSaplMqttMessageFlux(TOPIC, configForUndefinedVal);
+        val testSaplMqttClient  = new SaplMqttClient();
+        val saplMqttMessageFlux = testSaplMqttClient.buildSaplMqttMessageFlux(TOPIC, configForUndefinedVal);
 
         // THEN
-        StepVerifier.create(saplMqttMessageFlux).thenAwait(Duration.ofMillis(DELAY_MS)).expectNextMatches(Val::isError)
-                .thenCancel().verify();
+        StepVerifier.create(saplMqttMessageFlux).thenAwait(Duration.ofMillis(DELAY_MS))
+                .expectNextMatches(value -> value instanceof ErrorValue).thenCancel().verify();
     }
 
     @Test
     @Timeout(45)
-    void when_noConfigIsSpecified_then_returnValOfError() {
+    void when_noConfigIsSpecified_then_returnValueOfError() {
         // WHEN
-        final var emptyPdpConfig      = Map.<String, Val>of();
-        final var testSaplMqttClient  = new SaplMqttClient();
-        final var saplMqttMessageFlux = testSaplMqttClient.buildSaplMqttMessageFlux(TOPIC, emptyPdpConfig);
+        val emptyPdpConfig      = Map.<String, Value>of();
+        val testSaplMqttClient  = new SaplMqttClient();
+        val saplMqttMessageFlux = testSaplMqttClient.buildSaplMqttMessageFlux(TOPIC, emptyPdpConfig);
 
         // THEN
-        StepVerifier.create(saplMqttMessageFlux).thenAwait(Duration.ofMillis(DELAY_MS)).expectNextMatches(Val::isError)
-                .thenCancel().verify();
+        StepVerifier.create(saplMqttMessageFlux).thenAwait(Duration.ofMillis(DELAY_MS))
+                .expectNextMatches(value -> value instanceof ErrorValue).thenCancel().verify();
     }
 
     @Test
     @Timeout(45)
     void when_connectionIsShared_then_bothMessageFluxWorking() {
         // GIVEN
-        final var saplMqttMessageFluxFirst  = saplMqttClient.buildSaplMqttMessageFlux(Val.of("topic1"),
-                buildVariables());
-        final var saplMqttMessageFluxSecond = saplMqttClient.buildSaplMqttMessageFlux(Val.of("topic2"),
-                buildVariables());
+        val saplMqttMessageFluxFirst  = saplMqttClient.buildSaplMqttMessageFlux(Value.of("topic1"), buildVariables());
+        val saplMqttMessageFluxSecond = saplMqttClient.buildSaplMqttMessageFlux(Value.of("topic2"), buildVariables());
 
         // WHEN
-        final var saplMqttMessageFluxMerge = Flux.merge(saplMqttMessageFluxFirst, saplMqttMessageFluxSecond);
-        final var mqttClient               = startClient();
+        val saplMqttMessageFluxMerge = Flux.merge(saplMqttMessageFluxFirst, saplMqttMessageFluxSecond);
+        val mqttClient               = startClient();
 
         // THEN
         StepVerifier.create(saplMqttMessageFluxMerge).thenAwait(Duration.ofMillis(DELAY_MS))
-                .expectNext(Val.UNDEFINED, Val.UNDEFINED)
+                .expectNext(Value.UNDEFINED, Value.UNDEFINED)
                 .then(() -> mqttClient.publish(buildMqttPublishMessage("topic1", "message1", false)))
-                .expectNext(Val.of("message1"))
+                .expectNext(Value.of("message1"))
                 .then(() -> mqttClient.publish(buildMqttPublishMessage("topic2", "message2", false)))
-                .expectNext(Val.of("message2"))
+                .expectNext(Value.of("message2"))
                 .then(() -> mqttClient.publish(buildMqttPublishMessage("topic1", "message1", false)))
-                .expectNext(Val.of("message1")).thenCancel().verify();
+                .expectNext(Value.of("message1")).thenCancel().verify();
         mqttClient.disconnect();
     }
 
@@ -145,29 +147,28 @@ class SaplMqttClientConnectionIT {
     @Timeout(45)
     void when_connectionIsNotSharedAnymore_then_singleFluxWorking() {
         // GIVEN
-        final var saplMqttMessageFluxFirst  = saplMqttClient.buildSaplMqttMessageFlux(Val.of("topic1"),
-                buildVariables());
-        final var saplMqttMessageFluxSecond = saplMqttClient
-                .buildSaplMqttMessageFlux(Val.of("topic2"), buildVariables())
-                .takeUntil(message -> "lastMessage".equals(message.getText()));
+        val saplMqttMessageFluxFirst  = saplMqttClient.buildSaplMqttMessageFlux(Value.of("topic1"), buildVariables());
+        val saplMqttMessageFluxSecond = saplMqttClient.buildSaplMqttMessageFlux(Value.of("topic2"), buildVariables())
+                .takeUntil(
+                        message -> message instanceof TextValue textValue && "lastMessage".equals(textValue.value()));
 
         // WHEN
-        final var saplMqttMessageFluxMerge = Flux.merge(saplMqttMessageFluxFirst, saplMqttMessageFluxSecond);
-        final var mqttClient               = startClient();
+        val saplMqttMessageFluxMerge = Flux.merge(saplMqttMessageFluxFirst, saplMqttMessageFluxSecond);
+        val mqttClient               = startClient();
 
         // THEN
         StepVerifier.create(saplMqttMessageFluxMerge).thenAwait(Duration.ofMillis(DELAY_MS))
-                .expectNext(Val.UNDEFINED, Val.UNDEFINED)
+                .expectNext(Value.UNDEFINED, Value.UNDEFINED)
                 .then(() -> mqttClient.publish(buildMqttPublishMessage("topic1", "message1", false)))
-                .expectNext(Val.of("message1"))
+                .expectNext(Value.of("message1"))
                 .then(() -> mqttClient.publish(buildMqttPublishMessage("topic2", "message2", false)))
-                .expectNext(Val.of("message2"))
+                .expectNext(Value.of("message2"))
                 .then(() -> mqttClient.publish(buildMqttPublishMessage("topic2", "lastMessage", false)))
-                .expectNext(Val.of("lastMessage")).thenAwait(Duration.ofMillis(DELAY_MS))
+                .expectNext(Value.of("lastMessage")).thenAwait(Duration.ofMillis(DELAY_MS))
                 .then(() -> mqttClient.publish(buildMqttPublishMessage("topic2", "message2", false)))
                 .expectNoEvent(Duration.ofMillis(DELAY_MS))
                 .then(() -> mqttClient.publish(buildMqttPublishMessage("topic1", "message1", false)))
-                .expectNext(Val.of("message1")).thenCancel().verify();
+                .expectNext(Value.of("message1")).thenCancel().verify();
         mqttClient.disconnect();
     }
 
@@ -175,33 +176,32 @@ class SaplMqttClientConnectionIT {
     @Timeout(45)
     void when_connectionIsNotSharedAnymoreAndThenSharedAgain_then_bothMessageFluxWorking() {
         // GIVEN
-        final var saplMqttMessageFluxFirst  = saplMqttClient.buildSaplMqttMessageFlux(Val.of("topic1"),
-                buildVariables());
-        final var saplMqttMessageFluxSecond = saplMqttClient
-                .buildSaplMqttMessageFlux(Val.of("topic2"), buildVariables())
-                .takeUntil(message -> "lastMessage".equals(message.getText()));
-        final var testPublisher             = TestPublisher.create();
+        val saplMqttMessageFluxFirst  = saplMqttClient.buildSaplMqttMessageFlux(Value.of("topic1"), buildVariables());
+        val saplMqttMessageFluxSecond = saplMqttClient.buildSaplMqttMessageFlux(Value.of("topic2"), buildVariables())
+                .takeUntil(
+                        message -> message instanceof TextValue textValue && "lastMessage".equals(textValue.value()));
+        val testPublisher             = TestPublisher.create();
 
         // WHEN
-        final var saplMqttMessageFluxMerge = Flux.merge(saplMqttMessageFluxFirst, saplMqttMessageFluxSecond,
+        val saplMqttMessageFluxMerge = Flux.merge(saplMqttMessageFluxFirst, saplMqttMessageFluxSecond,
                 saplMqttMessageFluxSecond.delaySubscription(testPublisher.flux()));
-        final var mqttClient               = startClient();
+        val mqttClient               = startClient();
 
         // THEN
-        StepVerifier.create(saplMqttMessageFluxMerge).expectNext(Val.UNDEFINED, Val.UNDEFINED)
+        StepVerifier.create(saplMqttMessageFluxMerge).expectNext(Value.UNDEFINED, Value.UNDEFINED)
                 .then(() -> mqttClient.publish(buildMqttPublishMessage("topic1", "message1", false)))
-                .expectNext(Val.of("message1"))
+                .expectNext(Value.of("message1"))
                 .then(() -> mqttClient.publish(buildMqttPublishMessage("topic2", "message2", false)))
-                .expectNext(Val.of("message2"))
+                .expectNext(Value.of("message2"))
                 .then(() -> mqttClient.publish(buildMqttPublishMessage("topic2", "lastMessage", false)))
-                .expectNext(Val.of("lastMessage")).thenAwait(Duration.ofMillis(DELAY_MS))
+                .expectNext(Value.of("lastMessage")).thenAwait(Duration.ofMillis(DELAY_MS))
                 .then(() -> mqttClient.publish(buildMqttPublishMessage("topic1", "message1", false)))
-                .expectNext(Val.of("message1")).then(() -> testPublisher.emit("subscribe"))
+                .expectNext(Value.of("message1")).then(() -> testPublisher.emit("subscribe"))
                 .thenAwait(Duration.ofMillis(DELAY_MS))
                 .then(() -> mqttClient.publish(buildMqttPublishMessage("topic2", "message2", false)))
-                .expectNext(Val.of("message2"))
+                .expectNext(Value.of("message2"))
                 .then(() -> mqttClient.publish(buildMqttPublishMessage("topic1", "message1", false)))
-                .expectNext(Val.of("message1")).thenCancel().verify();
+                .expectNext(Value.of("message1")).thenCancel().verify();
         mqttClient.disconnect();
     }
 
@@ -209,13 +209,13 @@ class SaplMqttClientConnectionIT {
     @Timeout(45)
     void when_brokerConnectionLost_then_reconnectToBroker() {
         // WHEN
-        final var secondaryBroker     = buildBroker(secondaryConfigDir, secondaryDataDir, secondaryExtensionsDir);
-        final var mqttClient          = startClient();
-        final var saplMqttMessageFlux = saplMqttClient.buildSaplMqttMessageFlux(TOPIC, buildVariables());
+        val secondaryBroker     = buildBroker(secondaryConfigDir, secondaryDataDir, secondaryExtensionsDir);
+        val mqttClient          = startClient();
+        val saplMqttMessageFlux = saplMqttClient.buildSaplMqttMessageFlux(TOPIC, buildVariables());
 
         // THEN
         StepVerifier.create(saplMqttMessageFlux).thenAwait(Duration.ofMillis(DELAY_MS))
-                .then(() -> mqttClient.publish(MESSAGE)).expectNext(Val.of("message"))
+                .then(() -> mqttClient.publish(MESSAGE)).expectNext(Value.of("message"))
 
                 .then(mqttClient::disconnect).thenAwait(Duration.ofMillis(DELAY_MS))
 
@@ -225,7 +225,7 @@ class SaplMqttClientConnectionIT {
                 .then(mqttClient::connect).thenAwait(Duration.ofMillis(5 * DELAY_MS))
 
                 .then(() -> mqttClient.publish(buildMqttPublishMessage("topic", "message", true)))
-                .expectNext(Val.of("message")).thenCancel().verify();
+                .expectNext(Value.of("message")).thenCancel().verify();
 
         mqttClient.disconnect();
         stopBroker(secondaryBroker);
@@ -235,23 +235,21 @@ class SaplMqttClientConnectionIT {
     @Timeout(45)
     void when_brokerConnectionLostWhileSharingConnection_then_reconnectToBroker() {
         // GIVEN
-        final var saplMqttMessageFluxFirst  = saplMqttClient.buildSaplMqttMessageFlux(Val.of("topic1"),
-                buildVariables());
-        final var saplMqttMessageFluxSecond = saplMqttClient.buildSaplMqttMessageFlux(Val.of("topic2"),
-                buildVariables());
+        val saplMqttMessageFluxFirst  = saplMqttClient.buildSaplMqttMessageFlux(Value.of("topic1"), buildVariables());
+        val saplMqttMessageFluxSecond = saplMqttClient.buildSaplMqttMessageFlux(Value.of("topic2"), buildVariables());
 
         // WHEN
-        final var saplMqttMessageFluxMerge = Flux.merge(saplMqttMessageFluxFirst, saplMqttMessageFluxSecond);
+        val saplMqttMessageFluxMerge = Flux.merge(saplMqttMessageFluxFirst, saplMqttMessageFluxSecond);
 
-        final var secondaryBroker = buildBroker(secondaryConfigDir, secondaryDataDir, secondaryExtensionsDir);
-        final var mqttClient      = startClient();
+        val secondaryBroker = buildBroker(secondaryConfigDir, secondaryDataDir, secondaryExtensionsDir);
+        val mqttClient      = startClient();
 
         // THEN
         StepVerifier.create(saplMqttMessageFluxMerge).thenAwait(Duration.ofMillis(DELAY_MS))
                 .then(() -> mqttClient.publish(buildMqttPublishMessage("topic1", "message1", false)))
-                .expectNext(Val.of("message1"))
+                .expectNext(Value.of("message1"))
                 .then(() -> mqttClient.publish(buildMqttPublishMessage("topic2", "message2", false)))
-                .expectNext(Val.of("message2"))
+                .expectNext(Value.of("message2"))
 
                 .then(mqttClient::disconnect).thenAwait(Duration.ofMillis(DELAY_MS))
 
@@ -262,8 +260,10 @@ class SaplMqttClientConnectionIT {
 
                 .then(() -> mqttClient.publish(buildMqttPublishMessage("topic2", "message2", true)))
                 .then(() -> mqttClient.publish(buildMqttPublishMessage("topic1", "message1", true)))
-                .expectNextMatches(value -> "message2".equals(value.getText()) || "message1".equals(value.getText()))
-                .expectNextMatches(value -> "message2".equals(value.getText()) || "message1".equals(value.getText()))
+                .expectNextMatches(value -> value instanceof TextValue textValue
+                        && ("message2".equals(textValue.value()) || "message1".equals(textValue.value())))
+                .expectNextMatches(value -> value instanceof TextValue textValue
+                        && ("message2".equals(textValue.value()) || "message1".equals(textValue.value())))
                 .thenCancel().verify();
 
         mqttClient.disconnect();
@@ -274,27 +274,27 @@ class SaplMqttClientConnectionIT {
     @Timeout(45)
     void when_sharedReconnectToBroker_then_getMessagesOfMultipleTopics() {
         // GIVEN
-        final var topicsFirstFlux  = MAPPER.createArrayNode().add("topic1").add("topic2");
-        final var topicsSecondFlux = MAPPER.createArrayNode().add("topic2").add("topic3");
+        val topicsFirstFlux  = MAPPER.createArrayNode().add("topic1").add("topic2");
+        val topicsSecondFlux = MAPPER.createArrayNode().add("topic2").add("topic3");
 
-        final var saplMqttMessageFluxFirst  = saplMqttClient.buildSaplMqttMessageFlux(Val.of(topicsFirstFlux),
-                buildVariables());
-        final var saplMqttMessageFluxSecond = saplMqttClient
-                .buildSaplMqttMessageFlux(Val.of(topicsSecondFlux), buildVariables())
-                .takeUntil(value -> "message2".equals(value.getText()));
+        val saplMqttMessageFluxFirst  = saplMqttClient
+                .buildSaplMqttMessageFlux(ValueJsonMarshaller.fromJsonNode(topicsFirstFlux), buildVariables());
+        val saplMqttMessageFluxSecond = saplMqttClient
+                .buildSaplMqttMessageFlux(ValueJsonMarshaller.fromJsonNode(topicsSecondFlux), buildVariables())
+                .takeUntil(value -> value instanceof TextValue textValue && "message2".equals(textValue.value()));
 
         // WHEN
-        final var saplMqttMessageFluxMerge = Flux.merge(saplMqttMessageFluxFirst, saplMqttMessageFluxSecond);
+        val saplMqttMessageFluxMerge = Flux.merge(saplMqttMessageFluxFirst, saplMqttMessageFluxSecond);
 
-        final var secondaryBroker = buildBroker(secondaryConfigDir, secondaryDataDir, secondaryExtensionsDir);
-        final var mqttClient      = startClient();
+        val secondaryBroker = buildBroker(secondaryConfigDir, secondaryDataDir, secondaryExtensionsDir);
+        val mqttClient      = startClient();
 
         // THEN
         StepVerifier.create(saplMqttMessageFluxMerge).thenAwait(Duration.ofMillis(DELAY_MS))
                 .then(() -> mqttClient.publish(buildMqttPublishMessage("topic1", "message1", false)))
-                .expectNext(Val.of("message1"))
+                .expectNext(Value.of("message1"))
                 .then(() -> mqttClient.publish(buildMqttPublishMessage("topic3", "message3", false)))
-                .expectNext(Val.of("message3"))
+                .expectNext(Value.of("message3"))
 
                 .then(mqttClient::disconnect).thenAwait(Duration.ofMillis(DELAY_MS))
 
@@ -304,15 +304,16 @@ class SaplMqttClientConnectionIT {
                 .then(mqttClient::connect).thenAwait(Duration.ofMillis(5 * DELAY_MS))
 
                 .then(() -> mqttClient.publish(buildMqttPublishMessage("topic3", "message3", true)))
-                .expectNext(Val.of("message3"))
+                .expectNext(Value.of("message3"))
                 .then(() -> mqttClient.publish(buildMqttPublishMessage("topic1", "message1", true)))
-                .expectNext(Val.of("message1"))
+                .expectNext(Value.of("message1"))
                 .then(() -> mqttClient.publish(buildMqttPublishMessage("topic2", "message2", true)))
-                .expectNext(Val.of("message2")).expectNext(Val.of("message2")).thenAwait(Duration.ofMillis(DELAY_MS))
+                .expectNext(Value.of("message2")).expectNext(Value.of("message2"))
+                .thenAwait(Duration.ofMillis(DELAY_MS))
                 .then(() -> mqttClient.publish(buildMqttPublishMessage("topic1", "message1", false)))
-                .expectNext(Val.of("message1"))
+                .expectNext(Value.of("message1"))
                 .then(() -> mqttClient.publish(buildMqttPublishMessage("topic2", "message2", false)))
-                .expectNext(Val.of("message2")).expectNoEvent(Duration.ofMillis(2 * DELAY_MS))
+                .expectNext(Value.of("message2")).expectNoEvent(Duration.ofMillis(2 * DELAY_MS))
                 .then(() -> mqttClient.publish(buildMqttPublishMessage("topic3", "message3", false)))
                 .expectNoEvent(Duration.ofMillis(2 * DELAY_MS)).thenCancel().verify();
         mqttClient.disconnect();
@@ -321,12 +322,10 @@ class SaplMqttClientConnectionIT {
 
     @Test
     @Timeout(45)
-    void when_emitValUndefinedActivatedAndBrokerConnectionLost_then_reconnectToBrokerAndEmitValUndefined()
-            throws JsonProcessingException {
+    void when_emitValueUndefinedActivatedAndBrokerConnectionLost_then_reconnectToBrokerAndEmitValueUndefined() {
         // GIVEN
-        final var secondaryBroker              = buildBroker(secondaryConfigDir, secondaryDataDir,
-                secondaryExtensionsDir);
-        final var mqttPipConfigForUndefinedVal = Val.ofJson("""
+        val secondaryBroker              = buildBroker(secondaryConfigDir, secondaryDataDir, secondaryExtensionsDir);
+        val mqttPipConfigForUndefinedVal = json("""
                 {
                   "defaultBrokerConfigName" : "production",
                   "brokerConfig" : [ {
@@ -337,16 +336,16 @@ class SaplMqttClientConnectionIT {
                   } ]
                 }
                 """);
-        final var configForUndefinedVal        = Map.of("action", Val.NULL, "environment", Val.NULL, "mqttPipConfig",
-                mqttPipConfigForUndefinedVal, "resource", Val.NULL, "subject", Val.NULL);
+        val configForUndefinedVal        = Map.of("action", Value.NULL, "environment", Value.NULL, "mqttPipConfig",
+                mqttPipConfigForUndefinedVal, "resource", Value.NULL, "subject", Value.NULL);
 
         // WHEN
-        final var mqttClient          = startClient();
-        final var saplMqttMessageFlux = saplMqttClient.buildSaplMqttMessageFlux(TOPIC, configForUndefinedVal);
+        val mqttClient          = startClient();
+        val saplMqttMessageFlux = saplMqttClient.buildSaplMqttMessageFlux(TOPIC, configForUndefinedVal);
 
         // THEN
         StepVerifier.create(saplMqttMessageFlux).thenAwait(Duration.ofMillis(DELAY_MS))
-                .then(() -> mqttClient.publish(MESSAGE)).expectNext(Val.of("message"))
+                .then(() -> mqttClient.publish(MESSAGE)).expectNext(Value.of("message"))
 
                 .then(mqttClient::disconnect).thenAwait(Duration.ofMillis(DELAY_MS))
 
@@ -355,9 +354,9 @@ class SaplMqttClientConnectionIT {
 
                 .then(mqttClient::connect).thenAwait(Duration.ofMillis(5 * DELAY_MS))
 
-                .expectNext(Val.UNDEFINED)
+                .expectNext(Value.UNDEFINED)
                 .then(() -> mqttClient.publish(buildMqttPublishMessage("topic", "message", true)))
-                .expectNext(Val.of("message"))
+                .expectNext(Value.of("message"))
 
                 .thenCancel().verify();
 

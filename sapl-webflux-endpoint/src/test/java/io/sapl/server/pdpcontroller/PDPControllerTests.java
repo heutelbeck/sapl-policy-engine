@@ -37,7 +37,7 @@ import static org.mockito.Mockito.*;
 
 @Import(PolicyDecisionPoint.class)
 @WebFluxTest(controllers = PDPController.class)
-@ContextConfiguration(classes = { PDPController.class })
+@ContextConfiguration(classes = { PDPController.class, SaplJacksonAutoConfiguration.class })
 class PDPControllerTests {
 
     private static final JsonNodeFactory JSON = JsonNodeFactory.instance;

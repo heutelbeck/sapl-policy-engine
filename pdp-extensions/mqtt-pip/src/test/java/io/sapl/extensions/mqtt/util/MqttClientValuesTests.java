@@ -21,6 +21,7 @@ import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.hivemq.client.internal.mqtt.reactor.MqttReactorClient;
 import com.hivemq.client.mqtt.mqtt5.message.connect.connack.Mqtt5ConnAck;
+import lombok.val;
 import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Mono;
 
@@ -32,12 +33,12 @@ class MqttClientValuesTests {
     @Test
     void when_extractingMqttBrokerConfig_then_getCopy() {
         // GIVEN
-        final var mqttReactorClientMock = mock(MqttReactorClient.class);
-        final var brokerConfig          = JsonNodeFactory.instance.objectNode();
+        val mqttReactorClientMock = mock(MqttReactorClient.class);
+        val brokerConfig          = JsonNodeFactory.instance.objectNode();
         brokerConfig.put("key", "value");
-        final var mqtt5ConnAckMock     = mock(Mqtt5ConnAck.class);
-        final var mqtt5ConnAckMonoMock = Mono.just(mqtt5ConnAckMock);
-        final var mqttClientValues     = new MqttClientValues("clientId", mqttReactorClientMock, brokerConfig,
+        val mqtt5ConnAckMock     = mock(Mqtt5ConnAck.class);
+        val mqtt5ConnAckMonoMock = Mono.just(mqtt5ConnAckMock);
+        val mqttClientValues     = new MqttClientValues("clientId", mqttReactorClientMock, brokerConfig,
                 mqtt5ConnAckMonoMock);
 
         // WHEN

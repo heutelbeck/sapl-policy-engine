@@ -17,14 +17,14 @@
  */
 package io.sapl.extensions.mqtt;
 
-import com.fasterxml.jackson.databind.node.JsonNodeFactory;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.hivemq.client.mqtt.mqtt5.Mqtt5BlockingClient;
 import com.hivemq.embedded.EmbeddedHiveMQ;
-import io.sapl.api.interpreter.Val;
+import io.sapl.api.model.ErrorValue;
+import io.sapl.api.model.UndefinedValue;
+import io.sapl.api.model.Value;
 import io.sapl.extensions.mqtt.util.DefaultResponseConfig;
 import io.sapl.extensions.mqtt.util.DefaultResponseUtility;
-import lombok.SneakyThrows;
+import lombok.val;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -36,16 +36,13 @@ import java.nio.file.Path;
 import java.time.Duration;
 import java.util.Map;
 
+import static io.sapl.api.model.ValueJsonMarshaller.json;
 import static io.sapl.extensions.mqtt.MqttTestUtility.*;
-import static io.sapl.extensions.mqtt.SaplMqttClient.*;
-import static io.sapl.extensions.mqtt.util.DefaultResponseUtility.ENVIRONMENT_DEFAULT_RESPONSE;
-import static io.sapl.extensions.mqtt.util.DefaultResponseUtility.ENVIRONMENT_DEFAULT_RESPONSE_TIMEOUT;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.assertj.core.api.Assertions.assertThat;
 
 class SaplMqttDefaultResponseIT {
 
-    private static final long            DELAY_MS = 1000L;
-    private static final JsonNodeFactory JSON     = JsonNodeFactory.instance;
+    private static final long DELAY_MS = 1000L;
 
     @TempDir
     Path configDir;
@@ -76,66 +73,72 @@ class SaplMqttDefaultResponseIT {
     @Test
     void when_subscribingWithDefaultConfigAndBrokerDoesNotSendMessage_then_getDefaultUndefined() {
         // GIVEN
-        final var topics = JSON.arrayNode().add("topic1").add("topic2");
+        val topics = json("[\"topic1\",\"topic2\"]");
 
         // WHEN
-        Flux<Val> saplMqttMessageFlux = saplMqttClient.buildSaplMqttMessageFlux(Val.of(topics), buildVariables());
+        Flux<Value> saplMqttMessageFlux = saplMqttClient.buildSaplMqttMessageFlux(topics, buildVariables());
 
         // THEN
-        StepVerifier.create(saplMqttMessageFlux).thenAwait(Duration.ofMillis(DELAY_MS)).expectNext(Val.UNDEFINED)
+        StepVerifier.create(saplMqttMessageFlux).thenAwait(Duration.ofMillis(DELAY_MS)).expectNext(Value.UNDEFINED)
                 .thenCancel().verify();
     }
 
     @Test
     void when_subscribingWithConfigDefaultResponseErrorAndBrokerDoesNotSendMessage_then_getDefaultError() {
         // GIVEN
-        final var topics = JSON.arrayNode().add("topic1").add("topic2");
+        val topics = json("[\"topic1\",\"topic2\"]");
 
         // WHEN
-        Flux<Val> saplMqttMessageFlux = saplMqttClient.buildSaplMqttMessageFlux(Val.of(topics), buildCustomConfig());
+        Flux<Value> saplMqttMessageFlux = saplMqttClient.buildSaplMqttMessageFlux(topics, buildCustomConfig());
 
         // THEN
-        StepVerifier.create(saplMqttMessageFlux).thenAwait(Duration.ofMillis(DELAY_MS)).expectNextMatches(Val::isError)
-                .thenCancel().verify();
+        StepVerifier.create(saplMqttMessageFlux).thenAwait(Duration.ofMillis(DELAY_MS))
+                .expectNextMatches(ErrorValue.class::isInstance).thenCancel().verify();
     }
 
     @Test
     void when_subscribingWithDefaultResponseTypeSpecifiedInAttributeFinderParams_then_useThisDefaultResponseType() {
         // GIVEN
-        final var  topics       = JSON.arrayNode().add("topic1").add("topic2");
-        ObjectNode configParams = JSON.objectNode();
-        configParams.put(ENVIRONMENT_BROKER_ADDRESS, "localhost");
-        configParams.put(ENVIRONMENT_BROKER_PORT, 1883);
-        configParams.put(ENVIRONMENT_CLIENT_ID, "clientId");
-        configParams.put(ENVIRONMENT_DEFAULT_RESPONSE, "error");
+        val topics       = json("[\"topic1\",\"topic2\"]");
+        val configParams = json("""
+                {
+                  "brokerAddress": "localhost",
+                  "brokerPort": 1883,
+                  "clientId": "clientId",
+                  "defaultResponse": "error"
+                }
+                """);
 
         // WHEN
-        Flux<Val> saplMqttMessageFlux = saplMqttClient.buildSaplMqttMessageFlux(Val.of(topics), buildVariables(),
-                Val.of(0), Val.of(configParams));
+        Flux<Value> saplMqttMessageFlux = saplMqttClient.buildSaplMqttMessageFlux(topics, buildVariables(), Value.of(0),
+                configParams);
 
         // THEN
-        StepVerifier.create(saplMqttMessageFlux).thenAwait(Duration.ofMillis(DELAY_MS)).expectNextMatches(Val::isError)
-                .thenCancel().verify();
+        StepVerifier.create(saplMqttMessageFlux).thenAwait(Duration.ofMillis(DELAY_MS))
+                .expectNextMatches(ErrorValue.class::isInstance).thenCancel().verify();
     }
 
     @Test
     void when_subscribingWithDefaultResponseTimeoutSpecifiedInAttributeFinderParams_then_useThisDefaultResponseTimeout() {
         // GIVEN
-        final var  topics       = JSON.arrayNode().add("topic1").add("topic2");
-        ObjectNode configParams = JSON.objectNode();
-        configParams.put(ENVIRONMENT_BROKER_ADDRESS, "localhost");
-        configParams.put(ENVIRONMENT_BROKER_PORT, 1883);
-        configParams.put(ENVIRONMENT_CLIENT_ID, "clientId");
-        configParams.put(ENVIRONMENT_DEFAULT_RESPONSE, "error");
-        configParams.put(ENVIRONMENT_DEFAULT_RESPONSE_TIMEOUT, 8 * DELAY_MS);
+        val topics       = json("[\"topic1\",\"topic2\"]");
+        val configParams = json("""
+                {
+                  "brokerAddress": "localhost",
+                  "brokerPort": 1883,
+                  "clientId": "clientId",
+                  "defaultResponse": "error",
+                  "timeoutDuration": %d
+                }
+                """.formatted(8 * DELAY_MS));
 
         // WHEN
-        Flux<Val> saplMqttMessageFlux = saplMqttClient.buildSaplMqttMessageFlux(Val.of(topics), buildVariables(),
-                Val.of(0), Val.of(configParams));
+        Flux<Value> saplMqttMessageFlux = saplMqttClient.buildSaplMqttMessageFlux(topics, buildVariables(), Value.of(0),
+                configParams);
 
         // THEN
         StepVerifier.create(saplMqttMessageFlux).thenAwait(Duration.ofMillis(10 * DELAY_MS))
-                .expectNextMatches(Val::isError).thenCancel().verify();
+                .expectNextMatches(ErrorValue.class::isInstance).thenCancel().verify();
     }
 
     @Test
@@ -144,15 +147,14 @@ class SaplMqttDefaultResponseIT {
         DefaultResponseConfig defaultResponseConfig = new DefaultResponseConfig(5000, "illegal");
 
         // WHEN
-        Val defaultVal = DefaultResponseUtility.getDefaultVal(defaultResponseConfig);
+        Value defaultValue = DefaultResponseUtility.getDefaultValue(defaultResponseConfig);
 
         // THEN
-        assertTrue(defaultVal.isUndefined());
+        assertThat(defaultValue).isInstanceOf(UndefinedValue.class);
     }
 
-    @SneakyThrows
-    private static Val customPipConfig() {
-        return Val.of("""
+    private static Value customPipConfig() {
+        return json("""
                 {
                   "defaultBrokerConfigName" : "production",
                   "emitAtRetry" : "false",
@@ -167,8 +169,8 @@ class SaplMqttDefaultResponseIT {
                 """);
     }
 
-    private static Map<String, Val> buildCustomConfig() {
-        return Map.of("action", Val.NULL, "environment", Val.NULL, "mqttPipConfig", customPipConfig(), "resource",
-                Val.NULL, "subject", Val.NULL);
+    private static Map<String, Value> buildCustomConfig() {
+        return Map.of("action", Value.NULL, "environment", Value.NULL, "mqttPipConfig", customPipConfig(), "resource",
+                Value.NULL, "subject", Value.NULL);
     }
 }

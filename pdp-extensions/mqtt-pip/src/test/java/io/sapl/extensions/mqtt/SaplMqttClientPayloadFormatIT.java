@@ -24,8 +24,8 @@ import com.hivemq.client.mqtt.mqtt5.Mqtt5BlockingClient;
 import com.hivemq.client.mqtt.mqtt5.message.publish.Mqtt5PayloadFormatIndicator;
 import com.hivemq.client.mqtt.mqtt5.message.publish.Mqtt5Publish;
 import com.hivemq.embedded.EmbeddedHiveMQ;
-import io.sapl.api.interpreter.Val;
-import org.eclipse.xtext.util.Strings;
+import io.sapl.api.model.*;
+import lombok.val;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -36,17 +36,17 @@ import reactor.test.StepVerifier;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.time.Duration;
-import java.util.Objects;
 
+import static io.sapl.api.model.ValueJsonMarshaller.json;
 import static io.sapl.extensions.mqtt.MqttTestUtility.*;
-import static io.sapl.extensions.mqtt.util.PayloadFormatUtility.convertBytesToArrayNode;
+import static io.sapl.extensions.mqtt.util.PayloadFormatUtility.convertBytesToArrayValue;
 
 class SaplMqttClientPayloadFormatIT {
 
     private static final String          BYTE_ARRAY_TOPIC = "byteArrayTopic";
     private static final String          JSON_TOPIC       = "jsonTopic";
     private static final long            DELAY_MS         = 1000L;
-    private static final JsonNodeFactory JSON             = JsonNodeFactory.instance;
+    private static final JsonNodeFactory JSON_FACTORY     = JsonNodeFactory.instance;
 
     @TempDir
     Path configDir;
@@ -76,39 +76,39 @@ class SaplMqttClientPayloadFormatIT {
 
     @Test
     @Timeout(15)
-    void when_mqttMessageContentTypeIsJson_then_getValOfJson() {
+    void when_mqttMessageContentTypeIsJson_then_getValueOfJson() {
         // GIVEN
-        final var topic       = JSON.arrayNode().add(JSON_TOPIC);
-        final var jsonMessage = JSON.arrayNode().add("message1").add(JSON.objectNode().put("key", "value"));
+        val topic       = ArrayValue.builder().add(Value.of(JSON_TOPIC)).build();
+        val jsonMessage = JSON_FACTORY.arrayNode().add("message1").add(JSON_FACTORY.objectNode().put("key", "value"));
 
         // WHEN
-        final var saplMqttMessageFlux = saplMqttClient.buildSaplMqttMessageFlux(Val.of(topic), buildVariables())
-                .filter(val -> !val.isUndefined());
+        val saplMqttMessageFlux = saplMqttClient.buildSaplMqttMessageFlux(topic, buildVariables())
+                .filter(value -> !(value instanceof UndefinedValue));
 
         // THEN
         StepVerifier.create(saplMqttMessageFlux).thenAwait(Duration.ofMillis(2 * DELAY_MS))
                 .then(() -> mqttClient.publish(buildMqttPublishJsonMessage(jsonMessage)))
-                .expectNextMatches(value -> value.get().equals(jsonMessage)).thenCancel().verify();
+                .expectNextMatches(value -> ValueJsonMarshaller.toJsonNode(value).equals(jsonMessage)).thenCancel()
+                .verify();
     }
 
     @Test
     @Timeout(10)
-    void when_inconsistentMqttMessageIsPublished_then_getValOfError() {
+    void when_inconsistentMqttMessageIsPublished_then_getValueOfError() {
         // GIVEN
-        final var topic       = JSON.arrayNode().add("topic");
-        final var jsonMessage = "{test}";
-        final var mqttMessage = Mqtt5Publish.builder().topic("topic").qos(MqttQos.AT_MOST_ONCE).retain(true)
+        val topic       = json("[\"topic\"]");
+        val jsonMessage = "{test}";
+        val mqttMessage = Mqtt5Publish.builder().topic("topic").qos(MqttQos.AT_MOST_ONCE).retain(true)
                 .payloadFormatIndicator(Mqtt5PayloadFormatIndicator.UTF_8)
                 .payload(jsonMessage.getBytes(StandardCharsets.UTF_8)).contentType("application/json").build();
 
         // WHEN
-        final var saplMqttMessageFlux = saplMqttClient.buildSaplMqttMessageFlux(Val.of(topic), buildVariables())
-                .filter(val -> !val.isUndefined());
+        val saplMqttMessageFlux = saplMqttClient.buildSaplMqttMessageFlux(topic, buildVariables())
+                .filter(value -> !(value instanceof UndefinedValue));
 
         // THEN
         StepVerifier.create(saplMqttMessageFlux).thenAwait(Duration.ofMillis(2 * DELAY_MS))
-                .then(() -> mqttClient.publish(mqttMessage))
-                .expectNextMatches(value -> Objects.equals(value.getValType(), Val.error((String) null).getValType()))
+                .then(() -> mqttClient.publish(mqttMessage)).expectNextMatches(ErrorValue.class::isInstance)
                 .thenCancel().verify();
     }
 
@@ -116,18 +116,18 @@ class SaplMqttClientPayloadFormatIT {
     @Timeout(10)
     void when_mqttMessagePayloadIsFormatIsByteArray_then_getArrayOfBytesAsIntegers() {
         // GIVEN
-        final var topic   = JSON.arrayNode().add(BYTE_ARRAY_TOPIC);
-        final var message = "byteArray";
+        val topic   = ArrayValue.builder().add(Value.of(BYTE_ARRAY_TOPIC)).build();
+        val message = "byteArray";
 
         // WHEN
-        final var saplMqttMessageFlux = saplMqttClient.buildSaplMqttMessageFlux(Val.of(topic), buildVariables())
-                .filter(val -> !val.isUndefined());
+        val saplMqttMessageFlux = saplMqttClient.buildSaplMqttMessageFlux(topic, buildVariables())
+                .filter(value -> !(value instanceof UndefinedValue));
 
         // THEN
         StepVerifier.create(saplMqttMessageFlux).thenAwait(Duration.ofMillis(2 * DELAY_MS))
                 .then(() -> mqttClient.publish(buildMqttPublishByteArrayMessageWithIndicator(message)))
-                .expectNextMatches(valueArray -> valueArray.get()
-                        .equals(convertBytesToArrayNode(message.getBytes(StandardCharsets.UTF_8))))
+                .expectNextMatches(valueArray -> valueArray
+                        .equals(convertBytesToArrayValue(message.getBytes(StandardCharsets.UTF_8))))
                 .thenCancel().verify();
     }
 
@@ -135,37 +135,37 @@ class SaplMqttClientPayloadFormatIT {
     @Timeout(10)
     void when_mqttMessagePayloadIsUtf8EncodedAndNoFormatIndicatorSet_then_getPayloadAsText() {
         // GIVEN
-        final var topic   = JSON.arrayNode().add(BYTE_ARRAY_TOPIC);
-        final var message = "byteArray";
+        val topic   = ArrayValue.builder().add(Value.of(BYTE_ARRAY_TOPIC)).build();
+        val message = "byteArray";
 
         // WHEN
-        final var saplMqttMessageFlux = saplMqttClient.buildSaplMqttMessageFlux(Val.of(topic), buildVariables())
-                .filter(val -> !val.isUndefined());
+        val saplMqttMessageFlux = saplMqttClient.buildSaplMqttMessageFlux(topic, buildVariables())
+                .filter(value -> !(value instanceof UndefinedValue));
 
         // THEN
         StepVerifier.create(saplMqttMessageFlux).thenAwait(Duration.ofMillis(1500))
                 .then(() -> mqttClient.publish(buildMqttPublishByteArrayMessageWithoutIndicator(message)))
-                .expectNextMatches(valueArray -> Strings.equal(valueArray.get().textValue(), message)).thenCancel()
-                .verify();
+                .expectNextMatches(value -> value instanceof TextValue textValue && message.equals(textValue.value()))
+                .thenCancel().verify();
     }
 
     @Test
     @Timeout(10)
     void when_mqttMessagePayloadIsNonValidUtf8EncodedAndNoFormatIndicatorSet_then_getPayloadAsBytes() {
         // GIVEN
-        final var topic   = JSON.arrayNode().add(BYTE_ARRAY_TOPIC);
-        final var message = "ßß";
+        val topic   = ArrayValue.builder().add(Value.of(BYTE_ARRAY_TOPIC)).build();
+        val message = "ßß";
 
         // WHEN
-        final var saplMqttMessageFlux = saplMqttClient.buildSaplMqttMessageFlux(Val.of(topic), buildVariables())
-                .filter(val -> !val.isUndefined());
+        val saplMqttMessageFlux = saplMqttClient.buildSaplMqttMessageFlux(topic, buildVariables())
+                .filter(value -> !(value instanceof UndefinedValue));
 
         // THEN
         StepVerifier.create(saplMqttMessageFlux).thenAwait(Duration.ofMillis(1500))
                 .then(() -> mqttClient
                         .publish(buildMqttPublishByteArrayMessageWithoutIndicatorAndNoValidEncoding(message)))
-                .expectNextMatches(valueArray -> valueArray.get()
-                        .equals(convertBytesToArrayNode(message.getBytes(StandardCharsets.UTF_16))))
+                .expectNextMatches(valueArray -> valueArray
+                        .equals(convertBytesToArrayValue(message.getBytes(StandardCharsets.UTF_16))))
                 .thenCancel().verify();
     }
 

@@ -1,2 +1,0 @@
-policy "policy 3"
-deny action == "write"

@@ -55,8 +55,7 @@
 		<!-- APIs to be implemented by this module -->
 		<dependency>
 			<groupId>${project.groupId}</groupId>
-			<artifactId>sapl-pdp-api</artifactId>
-			<version>${project.version}</version>
+			<artifactId>sapl-api</artifactId>
 		</dependency>
 		<!-- Dependency for the WebClient -->
 		<dependency>

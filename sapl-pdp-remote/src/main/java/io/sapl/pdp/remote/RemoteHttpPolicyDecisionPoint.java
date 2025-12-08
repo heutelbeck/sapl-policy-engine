@@ -17,11 +17,12 @@
  */
 package io.sapl.pdp.remote;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.netty.channel.ChannelOption;
 import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.SslContextBuilder;
 import io.netty.handler.ssl.util.InsecureTrustManagerFactory;
-import io.sapl.api.pdp.*;
+import io.sapl.api.model.jackson.SaplJacksonModule;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -30,10 +31,13 @@ import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.MediaType;
 import org.springframework.http.client.reactive.ReactorClientHttpConnector;
 import org.springframework.http.codec.ServerSentEvent;
+import org.springframework.http.codec.json.Jackson2JsonDecoder;
+import org.springframework.http.codec.json.Jackson2JsonEncoder;
 import org.springframework.security.oauth2.client.AuthorizedClientServiceReactiveOAuth2AuthorizedClientManager;
 import org.springframework.security.oauth2.client.InMemoryReactiveOAuth2AuthorizedClientService;
 import org.springframework.security.oauth2.client.registration.ReactiveClientRegistrationRepository;
 import org.springframework.security.oauth2.client.web.reactive.function.client.ServerOAuth2AuthorizedClientExchangeFilterFunction;
+import org.springframework.web.reactive.function.client.ExchangeStrategies;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -41,6 +45,12 @@ import reactor.netty.http.client.HttpClient;
 import reactor.retry.Backoff;
 import reactor.retry.Repeat;
 import reactor.util.annotation.Nullable;
+import io.sapl.api.pdp.AuthorizationDecision;
+import io.sapl.api.pdp.AuthorizationSubscription;
+import io.sapl.api.pdp.IdentifiableAuthorizationDecision;
+import io.sapl.api.pdp.MultiAuthorizationDecision;
+import io.sapl.api.pdp.MultiAuthorizationSubscription;
+import io.sapl.api.pdp.PolicyDecisionPoint;
 
 import javax.net.ssl.SSLException;
 import java.time.Duration;
@@ -213,7 +223,15 @@ public class RemoteHttpPolicyDecisionPoint implements PolicyDecisionPoint {
         }
 
         public RemoteHttpPolicyDecisionPoint build() {
-            WebClient.Builder builder = WebClient.builder()
+            var               mapper     = new ObjectMapper().registerModule(new SaplJacksonModule());
+            var               strategies = ExchangeStrategies.builder().codecs(configurer -> {
+                                             configurer.defaultCodecs()
+                                                     .jackson2JsonEncoder(new Jackson2JsonEncoder(mapper));
+                                             configurer.defaultCodecs()
+                                                     .jackson2JsonDecoder(new Jackson2JsonDecoder(mapper));
+                                         })
+                    .build();
+            WebClient.Builder builder    = WebClient.builder().exchangeStrategies(strategies)
                     .clientConnector(new ReactorClientHttpConnector(this.httpClient)).baseUrl(this.baseUrl);
 
             if (this.authenticationCustomizer != null) {

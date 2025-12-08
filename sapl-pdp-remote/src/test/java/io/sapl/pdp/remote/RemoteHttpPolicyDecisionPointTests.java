@@ -21,6 +21,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
+import io.sapl.api.model.jackson.SaplJacksonModule;
 import io.netty.handler.ssl.SslContextBuilder;
 import io.netty.handler.ssl.util.InsecureTrustManagerFactory;
 import io.sapl.api.pdp.*;
@@ -55,7 +56,8 @@ class RemoteHttpPolicyDecisionPointTests {
 
     private static final String SUBJECT = "subject";
 
-    private static final ObjectMapper    MAPPER = new ObjectMapper().registerModule(new Jdk8Module());
+    private static final ObjectMapper    MAPPER = new ObjectMapper().registerModule(new Jdk8Module())
+            .registerModule(new SaplJacksonModule());
     private static final JsonNodeFactory JSON   = JsonNodeFactory.instance;
 
     private MockWebServer server;
@@ -111,9 +113,9 @@ class RemoteHttpPolicyDecisionPointTests {
     @Test
     void whenSubscribingMultiDecideAll_thenGetResults() throws JsonProcessingException {
         final var decision1 = new MultiAuthorizationDecision();
-        decision1.setAuthorizationDecisionForSubscriptionWithId(ID, AuthorizationDecision.PERMIT);
+        decision1.setDecision(ID, AuthorizationDecision.PERMIT);
         final var decision2 = new MultiAuthorizationDecision();
-        decision2.setAuthorizationDecisionForSubscriptionWithId(ID, AuthorizationDecision.DENY);
+        decision2.setDecision(ID, AuthorizationDecision.DENY);
         final var indeterminate = MultiAuthorizationDecision.indeterminate();
 
         prepareDecisions(new MultiAuthorizationDecision[] { decision1, decision2, null });

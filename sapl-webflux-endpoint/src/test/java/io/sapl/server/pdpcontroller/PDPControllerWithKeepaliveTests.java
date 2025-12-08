@@ -36,7 +36,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 @Import(PolicyDecisionPoint.class)
-@ContextConfiguration(classes = { PDPController.class })
+@ContextConfiguration(classes = { PDPController.class, SaplJacksonAutoConfiguration.class })
 @WebFluxTest(controllers = PDPController.class, properties = "io.sapl.server.keep-alive=10")
 class PDPControllerWithKeepaliveTests {
 

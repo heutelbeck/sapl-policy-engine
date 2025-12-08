@@ -52,10 +52,10 @@
 	</dependencyManagement>
 
 	<dependencies>
-		<dependency>
-			<groupId>io.sapl</groupId>
-			<artifactId>sapl-extensions-api</artifactId>
-		</dependency>
+        <dependency>
+            <groupId>io.sapl</groupId>
+            <artifactId>sapl-api</artifactId>
+        </dependency>
 		<dependency>
 			<groupId>com.hivemq</groupId>
 			<artifactId>hivemq-mqtt-client</artifactId>
@@ -72,13 +72,18 @@
 			<scope>test</scope>
 		</dependency>
 		<dependency>
+			<groupId>org.assertj</groupId>
+			<artifactId>assertj-core</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
 			<groupId>io.projectreactor</groupId>
 			<artifactId>reactor-test</artifactId>
 			<scope>test</scope>
 		</dependency>
 		<dependency>
 			<groupId>io.sapl</groupId>
-			<artifactId>sapl-pdp-embedded</artifactId>
+			<artifactId>sapl-pdp</artifactId>
 			<scope>test</scope>
 		</dependency>
 		<dependency>

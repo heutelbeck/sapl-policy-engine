@@ -26,9 +26,9 @@ import com.hivemq.client.mqtt.mqtt5.message.publish.Mqtt5Publish;
 import com.hivemq.embedded.EmbeddedHiveMQ;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.Decision;
-import io.sapl.interpreter.InitializationException;
-import io.sapl.pdp.EmbeddedPolicyDecisionPoint;
-import io.sapl.pdp.PolicyDecisionPointFactory;
+import io.sapl.api.pdp.PolicyDecisionPoint;
+import io.sapl.pdp.PolicyDecisionPointBuilder;
+import lombok.val;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Timeout;
@@ -40,7 +40,6 @@ import reactor.test.StepVerifier;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.time.Duration;
-import java.util.List;
 
 import static io.sapl.extensions.mqtt.MqttTestUtility.*;
 
@@ -62,12 +61,12 @@ class MqttPolicyInformationPointIT {
     @TempDir
     Path extensionsDir;
 
-    private EmbeddedHiveMQ              mqttBroker;
-    private Mqtt5BlockingClient         mqttClient;
-    private EmbeddedPolicyDecisionPoint pdp;
+    private EmbeddedHiveMQ      mqttBroker;
+    private Mqtt5BlockingClient mqttClient;
+    private PolicyDecisionPoint pdp;
 
     @BeforeEach
-    void beforeEach() throws InitializationException {
+    void beforeEach() {
         this.mqttBroker = buildAndStartBroker(configDir, dataDir, extensionsDir);
         mqttClient      = startClient();
         this.pdp        = buildPdp();
@@ -75,7 +74,6 @@ class MqttPolicyInformationPointIT {
 
     @AfterEach
     void tearDown() {
-        pdp.destroy();
         mqttClient.disconnect();
         stopBroker(mqttBroker);
     }
@@ -88,18 +86,18 @@ class MqttPolicyInformationPointIT {
         AuthorizationSubscription authzSubscription = AuthorizationSubscription.of(SUBJECT, action, RESOURCE);
 
         // WHEN
-        final var pdpDecisionFlux = pdp.decide(authzSubscription);
+        val pdpDecisionFlux = pdp.decide(authzSubscription);
 
         // THEN
         StepVerifier.create(pdpDecisionFlux).thenAwait(Duration.ofMillis(1000))
                 .then(() -> mqttClient.publish(publishMessage))
-                .expectNextMatches(authzDecision -> authzDecision.getDecision() == Decision.PERMIT).thenCancel()
-                .verify();
+                .expectNextMatches(authzDecision -> authzDecision.decision() == Decision.PERMIT).thenCancel().verify();
     }
 
-    private static EmbeddedPolicyDecisionPoint buildPdp() throws InitializationException {
-        return PolicyDecisionPointFactory.filesystemPolicyDecisionPoint("src/test/resources/pipPolicies",
-                () -> List.of(new MqttPolicyInformationPoint(new SaplMqttClient())), List::of, List::of, List::of);
+    private static PolicyDecisionPoint buildPdp() {
+        return PolicyDecisionPointBuilder.withoutDefaults()
+                .withPolicyInformationPoint(new MqttPolicyInformationPoint(new SaplMqttClient()))
+                .withResourcesSource("/pipPolicies").build().pdp();
     }
 
     private static Mqtt5Publish buildMqttPublishMessage() {

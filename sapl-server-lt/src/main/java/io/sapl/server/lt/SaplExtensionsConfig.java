@@ -18,24 +18,28 @@
 package io.sapl.server.lt;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.sapl.api.functions.StaticFunctionLibrarySupplier;
-import io.sapl.attributes.pips.http.HttpPolicyInformationPoint;
-import io.sapl.attributes.pips.http.ReactiveWebClient;
+import io.sapl.api.functions.FunctionLibraryClassProvider;
+import io.sapl.attributes.libraries.ReactiveWebClient;
 import io.sapl.extensions.mqtt.MqttFunctionLibrary;
 import io.sapl.extensions.mqtt.MqttPolicyInformationPoint;
 import io.sapl.extensions.mqtt.SaplMqttClient;
 import io.sapl.functions.geo.GeographicFunctionLibrary;
 import io.sapl.functions.geo.traccar.TraccarFunctionLibrary;
 import io.sapl.pip.geo.traccar.TraccarPolicyInformationPoint;
-import org.springframework.beans.factory.config.BeanDefinition;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.autoconfigure.r2dbc.R2dbcAutoConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.Role;
 
 import java.util.List;
 
+/**
+ * Configuration for SAPL extensions including function libraries and policy
+ * information points (PIPs).
+ * <p>
+ * Note: HttpPolicyInformationPoint and TimePolicyInformationPoint are already
+ * included in the PDP defaults and should not be registered here.
+ */
 @Configuration
 @EnableAutoConfiguration(exclude = { R2dbcAutoConfiguration.class })
 public class SaplExtensionsConfig {
@@ -51,19 +55,13 @@ public class SaplExtensionsConfig {
     }
 
     @Bean
-    HttpPolicyInformationPoint httpPolicyInformationPoint(ReactiveWebClient reactiveWebClient) {
-        return new HttpPolicyInformationPoint(reactiveWebClient);
-    }
-
-    @Bean
     MqttPolicyInformationPoint mqttPolicyInformationPoint() {
         return new MqttPolicyInformationPoint(new SaplMqttClient());
     }
 
     @Bean
-    @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
-    StaticFunctionLibrarySupplier additionalStaticLibraries() {
-        return () -> List.of(MqttFunctionLibrary.class, GeographicFunctionLibrary.class, TraccarFunctionLibrary.class);
+    FunctionLibraryClassProvider extensionFunctionLibraries() {
+        return () -> List.of(GeographicFunctionLibrary.class, TraccarFunctionLibrary.class, MqttFunctionLibrary.class);
     }
 
 }

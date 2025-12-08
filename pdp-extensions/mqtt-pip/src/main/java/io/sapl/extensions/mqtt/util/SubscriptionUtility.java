@@ -20,8 +20,11 @@ package io.sapl.extensions.mqtt.util;
 import com.hivemq.client.mqtt.mqtt5.message.subscribe.Mqtt5Subscribe;
 import com.hivemq.client.mqtt.mqtt5.message.subscribe.Mqtt5Subscription;
 import com.hivemq.client.mqtt.mqtt5.message.subscribe.suback.Mqtt5SubAck;
-import io.sapl.api.interpreter.Val;
+import io.sapl.api.model.ArrayValue;
+import io.sapl.api.model.TextValue;
+import io.sapl.api.model.Value;
 import lombok.experimental.UtilityClass;
+import lombok.val;
 
 import java.util.LinkedList;
 import java.util.List;
@@ -37,28 +40,29 @@ public class SubscriptionUtility {
     /**
      * Builds a mqtt topic subscription containing one or multiple topics.
      *
-     * @param topic a {@link Val} of one or multiple topics
+     * @param topic a {@link Value} of one or multiple topics
      * @param qos the qos level for the mqtt topic subscription
      * @return returns the build mqtt topic subscription
      */
-    public static Mqtt5Subscribe buildTopicSubscription(Val topic, Val qos) {
-        if (topic.isArray()) {
-            return buildTopicSubscriptionOfArray(topic, qos);
+    public static Mqtt5Subscribe buildTopicSubscription(Value topic, Value qos) {
+        if (topic instanceof ArrayValue arrayTopics) {
+            return buildTopicSubscriptionOfArray(arrayTopics, qos);
         } else {
-            return buildTopicSubscriptionOfString(topic, qos);
+            return buildTopicSubscriptionOfString((TextValue) topic, qos);
         }
     }
 
-    private static Mqtt5Subscribe buildTopicSubscriptionOfArray(Val topics, Val qos) {
+    private static Mqtt5Subscribe buildTopicSubscriptionOfArray(ArrayValue topics, Value qos) {
         List<Mqtt5Subscription> topicSubscriptionList = new LinkedList<>();
-        for (var topic : topics.getArrayNode()) {
-            topicSubscriptionList.add(Mqtt5Subscription.builder().topicFilter(topic.asText()).qos(getQos(qos)).build());
+        for (Value topicValue : topics) {
+            var topicString = ((TextValue) topicValue).value();
+            topicSubscriptionList.add(Mqtt5Subscription.builder().topicFilter(topicString).qos(getQos(qos)).build());
         }
         return Mqtt5Subscribe.builder().addSubscriptions(topicSubscriptionList).build();
     }
 
-    private static Mqtt5Subscribe buildTopicSubscriptionOfString(Val topic, Val qos) {
-        return Mqtt5Subscribe.builder().topicFilter(topic.getText()).qos(getQos(qos)).build();
+    private static Mqtt5Subscribe buildTopicSubscriptionOfString(TextValue topic, Value qos) {
+        return Mqtt5Subscribe.builder().topicFilter(topic.value()).qos(getQos(qos)).build();
     }
 
     /**
@@ -73,8 +77,8 @@ public class SubscriptionUtility {
      */
     public static void addSubscriptionsCountToSubscriptionList(MqttClientValues clientValues, Mqtt5SubAck mqtt5SubAck,
             Mqtt5Subscribe topicSubscription) {
-        final var subscriptions = topicSubscription.getSubscriptions();
-        final var reasonCodes   = mqtt5SubAck.getReasonCodes();
+        val subscriptions = topicSubscription.getSubscriptions();
+        val reasonCodes   = mqtt5SubAck.getReasonCodes();
         for (var i = 0; i < subscriptions.size(); i++) {
             if (!reasonCodes.get(i).isError()) {
                 String subscription = subscriptions.get(i).getTopicFilter().toString();

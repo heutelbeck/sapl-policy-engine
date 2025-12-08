@@ -74,12 +74,12 @@
 		<dependencies>
 			<dependency>
 				<groupId>${project.groupId}</groupId>
-				<artifactId>sapl-pdp-api</artifactId>
+				<artifactId>sapl-api</artifactId>
 				<version>${project.version}</version>
 			</dependency>
 			<dependency>
 				<groupId>${project.groupId}</groupId>
-				<artifactId>sapl-extensions-api</artifactId>
+				<artifactId>sapl-pdp</artifactId>
 				<version>${project.version}</version>
 			</dependency>
 			<dependency>
@@ -90,16 +90,6 @@
 			<dependency>
 				<groupId>${project.groupId}</groupId>
 				<artifactId>sapl-ide</artifactId>
-				<version>${project.version}</version>
-			</dependency>
-			<dependency>
-				<groupId>${project.groupId}</groupId>
-				<artifactId>sapl-hamcrest</artifactId>
-				<version>${project.version}</version>
-			</dependency>
-			<dependency>
-				<groupId>${project.groupId}</groupId>
-				<artifactId>sapl-assertj</artifactId>
 				<version>${project.version}</version>
 			</dependency>
 			<dependency>
@@ -140,11 +130,6 @@
 			<dependency>
 				<groupId>${project.groupId}</groupId>
 				<artifactId>sapl-maven-plugin</artifactId>
-				<version>${project.version}</version>
-			</dependency>
-			<dependency>
-				<groupId>${project.groupId}</groupId>
-				<artifactId>sapl-pdp-embedded</artifactId>
 				<version>${project.version}</version>
 			</dependency>
 			<dependency>

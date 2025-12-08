@@ -27,14 +27,17 @@ import com.hivemq.client.mqtt.mqtt5.message.publish.Mqtt5Publish;
 import com.hivemq.configuration.service.InternalConfigurations;
 import com.hivemq.embedded.EmbeddedHiveMQ;
 import com.hivemq.migration.meta.PersistenceType;
-import io.sapl.api.interpreter.Val;
+import io.sapl.api.model.Value;
 import lombok.SneakyThrows;
 import lombok.experimental.UtilityClass;
+import lombok.val;
 
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
+
+import static io.sapl.api.model.ValueJsonMarshaller.json;
 
 @UtilityClass
 class MqttTestUtility {
@@ -76,9 +79,9 @@ class MqttTestUtility {
     }
 
     public static Mqtt5BlockingClient startClient() {
-        final var mqttClient     = Mqtt5Client.builder().identifier(CLIENT_ID).serverHost(BROKER_HOST)
-                .serverPort(BROKER_PORT).buildBlocking();
-        final var connAckMessage = mqttClient.connect();
+        val mqttClient     = Mqtt5Client.builder().identifier(CLIENT_ID).serverHost(BROKER_HOST).serverPort(BROKER_PORT)
+                .buildBlocking();
+        val connAckMessage = mqttClient.connect();
         if (connAckMessage.getReasonCode() != Mqtt5ConnAckReasonCode.SUCCESS) {
             throw new IllegalStateException(
                     "Connection to the mqtt broker couldn't be established:" + connAckMessage.getReasonCode());
@@ -86,9 +89,8 @@ class MqttTestUtility {
         return mqttClient;
     }
 
-    @SneakyThrows
-    public static Val defaultMqttPipConfig() {
-        return Val.ofJson("""
+    public static Value defaultMqttPipConfig() {
+        return json("""
                 {
                   "defaultBrokerConfigName" : "production",
                   "emitAtRetry" : "false",
@@ -102,9 +104,9 @@ class MqttTestUtility {
                 """);
     }
 
-    public static Map<String, Val> buildVariables() {
-        return Map.of("action", Val.NULL, "environment", Val.NULL, "mqttPipConfig", defaultMqttPipConfig(), "resource",
-                Val.NULL, "subject", Val.NULL);
+    public static Map<String, Value> buildVariables() {
+        return Map.of("action", Value.NULL, "environment", Value.NULL, "mqttPipConfig", defaultMqttPipConfig(),
+                "resource", Value.NULL, "subject", Value.NULL);
     }
 
     public static Mqtt5Publish buildMqttPublishMessage(String topic, String payload, boolean retain) {

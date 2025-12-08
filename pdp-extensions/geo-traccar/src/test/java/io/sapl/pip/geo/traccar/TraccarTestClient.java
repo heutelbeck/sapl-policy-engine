@@ -19,6 +19,7 @@ package io.sapl.pip.geo.traccar;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.github.dockerjava.zerodep.shaded.org.apache.commons.codec.Charsets;
+import lombok.val;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.web.reactive.function.client.WebClient;
@@ -34,7 +35,7 @@ public class TraccarTestClient {
     private final WebClient positioningClient;
 
     public TraccarTestClient(String host, int apiPort, int positioningPort, String email, String password) {
-        final var basicAuthValue = "Basic "
+        val basicAuthValue = "Basic "
                 + Base64.getEncoder().encodeToString((email + ":" + password).getBytes(Charsets.UTF_8));
         apiClient         = WebClient.builder().baseUrl(String.format(BASE_URL_TEMPLATE, host, apiPort))
                 .defaultHeader(HttpHeaders.AUTHORIZATION, basicAuthValue).build();
@@ -43,7 +44,7 @@ public class TraccarTestClient {
     }
 
     public String registerUser(String email, String password) {
-        final var userJson = String.format("""
+        val userJson = String.format("""
                 {\
                     "name": "testuser",\
                     "email": "%s",\
@@ -54,12 +55,12 @@ public class TraccarTestClient {
     }
 
     public String createDevice(String uniqueId) throws Exception {
-        final var body          = String.format("""
+        val body          = String.format("""
                 {\
                     "name": "Test Device",\
                     "uniqueId": "%s"\
                 }""", uniqueId);
-        final var createdDevice = apiClient.post().uri("/api/devices")
+        val createdDevice = apiClient.post().uri("/api/devices")
                 .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE).bodyValue(body).retrieve()
                 .bodyToMono(JsonNode.class).blockOptional();
         if (createdDevice.isPresent()) {
@@ -75,7 +76,7 @@ public class TraccarTestClient {
     }
 
     public String addTraccarPosition(String deviceId, Double lat, Double lon, Double altitude) {
-        final var queryParams = Map.of("id", deviceId, "lat", lat.toString(), "lon", lon.toString(), "altitude",
+        val queryParams = Map.of("id", deviceId, "lat", lat.toString(), "lon", lon.toString(), "altitude",
                 altitude.toString(), "speed", "0", "accuracy", "14.0", "timestamp", "2023-07-09 13:34:19");
         return positioningClient.get().uri(uriBuilder -> {
             queryParams.forEach(uriBuilder::queryParam);

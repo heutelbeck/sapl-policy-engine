@@ -17,17 +17,13 @@
  */
 package io.sapl.extensions.mqtt;
 
-import java.util.Map;
-
-import io.sapl.api.interpreter.Val;
-import io.sapl.api.pip.Attribute;
-import io.sapl.api.pip.PolicyInformationPoint;
-import io.sapl.api.validation.Array;
-import io.sapl.api.validation.Int;
-import io.sapl.api.validation.JsonObject;
-import io.sapl.api.validation.Text;
+import io.sapl.api.attributes.Attribute;
+import io.sapl.api.attributes.PolicyInformationPoint;
+import io.sapl.api.model.Value;
 import lombok.RequiredArgsConstructor;
 import reactor.core.publisher.Flux;
+
+import java.util.Map;
 
 /**
  * Policy Information Point for subscribing to MQTT topics and receiving
@@ -198,7 +194,7 @@ public class MqttPolicyInformationPoint {
               "building/#".<mqtt.messages>.alert == true;
             ```
             """)
-    public Flux<Val> messages(@Text @Array Val topic, Map<String, Val> variables) {
+    public Flux<Value> messages(Value topic, Map<String, Value> variables) {
         return saplMqttClient.buildSaplMqttMessageFlux(topic, variables);
     }
 
@@ -245,7 +241,7 @@ public class MqttPolicyInformationPoint {
               "sensors/motion/#".<mqtt.messages(0)> != undefined;
             ```
             """)
-    public Flux<Val> messages(@Text @Array Val topic, Map<String, Val> variables, @Int Val qos) {
+    public Flux<Value> messages(Value topic, Map<String, Value> variables, Value qos) {
         return saplMqttClient.buildSaplMqttMessageFlux(topic, variables, qos);
     }
 
@@ -321,8 +317,7 @@ public class MqttPolicyInformationPoint {
               "sensors/#".<mqtt.messages(2, brokers)>.status == "OK";
             ```
             """)
-    public Flux<Val> messages(@Text @Array Val topic, Map<String, Val> variables, @Int Val qos,
-            @Text @Array @JsonObject Val mqttPipConfig) {
+    public Flux<Value> messages(Value topic, Map<String, Value> variables, Value qos, Value mqttPipConfig) {
         return saplMqttClient.buildSaplMqttMessageFlux(topic, variables, qos, mqttPipConfig);
     }
 }

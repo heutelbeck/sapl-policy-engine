@@ -23,10 +23,12 @@ import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.SslContextBuilder;
 import io.netty.handler.ssl.util.InsecureTrustManagerFactory;
 import io.netty.util.CharsetUtil;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.rsocket.metadata.AuthMetadataCodec;
 import io.rsocket.metadata.WellKnownAuthType;
 import io.rsocket.metadata.WellKnownMimeType;
 import io.rsocket.transport.netty.client.TcpClientTransport;
+import io.sapl.api.model.jackson.SaplJacksonModule;
 import io.sapl.api.pdp.*;
 import io.sapl.pdp.remote.metadata.SimpleAuthenticationEncoder;
 import io.sapl.pdp.remote.metadata.UsernamePasswordMetadata;
@@ -243,8 +245,9 @@ public class RemoteRsocketPolicyDecisionPoint implements PolicyDecisionPoint {
         }
 
         public RemoteRsocketPolicyDecisionPoint build() {
-            RSocketStrategies rSocketStrategies = RSocketStrategies.builder().encoder(new Jackson2JsonEncoder())
-                    .encoder(new SimpleAuthenticationEncoder()).decoder(new Jackson2JsonDecoder()).build();
+            var               mapper            = new ObjectMapper().registerModule(new SaplJacksonModule());
+            RSocketStrategies rSocketStrategies = RSocketStrategies.builder().encoder(new Jackson2JsonEncoder(mapper))
+                    .encoder(new SimpleAuthenticationEncoder()).decoder(new Jackson2JsonDecoder(mapper)).build();
 
             var builder = RSocketRequester.builder().rsocketStrategies(rSocketStrategies);
             // apply auhentication settings if required

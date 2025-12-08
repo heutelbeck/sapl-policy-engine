@@ -17,10 +17,8 @@
  */
 package io.sapl.spring.pdp.embedded;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.sapl.api.pdp.PolicyDecisionPoint;
-import io.sapl.pdp.EmbeddedPolicyDecisionPoint;
-import io.sapl.pdp.config.PDPConfigurationProvider;
-import io.sapl.prp.PolicyRetrievalPoint;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
@@ -31,26 +29,22 @@ import static org.mockito.Mockito.mock;
 class PDPAutoConfigurationTests {
 
     private final ApplicationContextRunner contextRunner = new ApplicationContextRunner()
-            .withBean(PolicyRetrievalPoint.class, () -> mock(PolicyRetrievalPoint.class))
-            .withBean(PDPConfigurationProvider.class, () -> mock(PDPConfigurationProvider.class))
+            .withBean(ObjectMapper.class, ObjectMapper::new)
             .withConfiguration(AutoConfigurations.of(PDPAutoConfiguration.class));
 
     @Test
-    void whenContextLoads_thenOneIsCreated() {
-        contextRunner.run(context -> {
-            assertThat(context).hasNotFailed();
-            assertThat(context).hasSingleBean(PolicyDecisionPoint.class);
-            assertThat(context).hasSingleBean(EmbeddedPolicyDecisionPoint.class);
+    void whenContextLoads_thenPDPIsCreated() {
+        contextRunner.withPropertyValues("io.sapl.pdp.embedded.policiesPath=/policies").run(context -> {
+            assertThat(context).hasNotFailed().hasSingleBean(PolicyDecisionPoint.class);
         });
     }
 
     @Test
     void whenAnotherPDPIsAlreadyPresent_thenDoNotLoadANewOne() {
-        contextRunner.withBean(PolicyDecisionPoint.class, () -> mock(PolicyDecisionPoint.class)).run(context -> {
-            assertThat(context).hasNotFailed();
-            assertThat(context).hasSingleBean(PolicyDecisionPoint.class);
-            assertThat(context).doesNotHaveBean(EmbeddedPolicyDecisionPoint.class);
-        });
+        contextRunner.withBean(PolicyDecisionPoint.class, () -> mock(PolicyDecisionPoint.class))
+                .withPropertyValues("io.sapl.pdp.embedded.policiesPath=/policies").run(context -> {
+                    assertThat(context).hasNotFailed().hasSingleBean(PolicyDecisionPoint.class);
+                });
     }
 
 }

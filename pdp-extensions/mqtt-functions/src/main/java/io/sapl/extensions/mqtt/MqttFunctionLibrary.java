@@ -17,16 +17,13 @@
  */
 package io.sapl.extensions.mqtt;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.hivemq.client.mqtt.datatypes.MqttTopic;
 import com.hivemq.client.mqtt.datatypes.MqttTopicFilter;
 import io.sapl.api.functions.Function;
 import io.sapl.api.functions.FunctionLibrary;
-import io.sapl.api.interpreter.PolicyEvaluationException;
-import io.sapl.api.interpreter.Val;
-import io.sapl.api.validation.Array;
-import io.sapl.api.validation.Text;
+import io.sapl.api.model.ArrayValue;
+import io.sapl.api.model.TextValue;
+import io.sapl.api.model.Value;
 import lombok.experimental.UtilityClass;
 
 /**
@@ -41,6 +38,8 @@ public class MqttFunctionLibrary {
     static final String DESCRIPTION = "Functions for matching topics to mqtt topics which contain wildcards.";
 
     private static final String TOPIC_CONTAINS_WILDCARD_ERROR_MESSAGE = "The wildcard topic must not be matched against topics containing wildcards.";
+    private static final String WILDCARD_TOPIC_MUST_BE_TEXT           = "The wildcard topic must be a text value.";
+    private static final String TOPICS_MUST_BE_TEXT_OR_ARRAY          = "The topics must be a text value or an array of text values.";
 
     /**
      * This function checks whether all given mqtt topics are matching the wildcard
@@ -52,9 +51,9 @@ public class MqttFunctionLibrary {
      */
     @Function(name = "isMatchingAllTopics", docs = """
             ```isMatchingAllTopics(Text wildcardTopic, Text|Array topics)```:
-                        Checks whether all ```topics``` match the wildcard ```wildcardTopic```.
+            Checks whether all ```topics``` match the wildcard ```wildcardTopic```.
 
-            **Example:**
+            **Example with array:**
             ```sapl
             policy "allTopicsMatchMultilevelWildcardTopic"
             permit
@@ -62,15 +61,28 @@ public class MqttFunctionLibrary {
             where
               mqtt.isMatchingAllTopics(resource, ["first/second/third", "first/second/fourth"]);
             ```
-            """)
-    public Val isMatchingAllTopics(@Text Val wildcardTopic, @Text @Array Val topics) {
-        final var mqttTopicFilter = buildMqttTopicFilter(wildcardTopic);
 
-        if (topics.isTextual()) {
-            return isMatchingSingleTopic(mqttTopicFilter, topics);
+            **Example with single topic:**
+            ```sapl
+            policy "topicMatchesMultilevelWildcardTopic"
+            permit
+              subject == "firstSubject"
+            where
+              mqtt.isMatchingAllTopics(resource, "first/second/third");
+            ```
+            """)
+    public static Value isMatchingAllTopics(Value wildcardTopic, Value topics) {
+        if (!(wildcardTopic instanceof TextValue wildcardText)) {
+            return Value.error(WILDCARD_TOPIC_MUST_BE_TEXT);
+        }
+        var mqttTopicFilter = MqttTopicFilter.of(wildcardText.value());
+
+        if (topics instanceof ArrayValue arrayTopics) {
+            return isMatchingAllTopicsInArray(mqttTopicFilter, arrayTopics);
+        } else if (topics instanceof TextValue textTopic) {
+            return isMatchingSingleTopic(mqttTopicFilter, textTopic);
         } else {
-            final var topicsArray = topics.getArrayNode();
-            return isMatchingAllTopics(mqttTopicFilter, topicsArray);
+            return Value.error(TOPICS_MUST_BE_TEXT_OR_ARRAY);
         }
     }
 
@@ -80,13 +92,13 @@ public class MqttFunctionLibrary {
      *
      * @param wildcardTopic The mqtt topic containing the wildcard.
      * @param topics A single textual mqtt topic or an array of mqtt topics.
-     * @return Return true when all given topics are matching the wildcard topic.
+     * @return Return true when at least one topic is matching the wildcard topic.
      */
     @Function(name = "isMatchingAtLeastOneTopic", docs = """
             ```mqtt.isMatchingAtLeastOneTopic(Text wildcardTopic, Text|Array topics)```
             Checks whether at least one topic in ```topics``` matches the wildcard ```wildcardTopic```.
 
-            **Example:**
+            **Example with array:**
             ```sapl
             policy "atLeastOneTopicMatchesMultilevelWildcardTopic"
             permit
@@ -94,56 +106,68 @@ public class MqttFunctionLibrary {
             where
               mqtt.isMatchingAtLeastOneTopic(resource, ["first/second/third", "first/third"]);
             ```
+
+            **Example with single topic:**
+            ```sapl
+            policy "topicMatchesMultilevelWildcardTopic"
+            permit
+              subject == "secondSubject"
+            where
+              mqtt.isMatchingAtLeastOneTopic(resource, "first/second/third");
+            ```
             """)
-    public Val isMatchingAtLeastOneTopic(@Text Val wildcardTopic, @Text @Array Val topics) {
-        final var mqttTopicFilter = buildMqttTopicFilter(wildcardTopic);
+    public static Value isMatchingAtLeastOneTopic(Value wildcardTopic, Value topics) {
+        if (!(wildcardTopic instanceof TextValue wildcardText)) {
+            return Value.error(WILDCARD_TOPIC_MUST_BE_TEXT);
+        }
+        var mqttTopicFilter = MqttTopicFilter.of(wildcardText.value());
 
-        if (topics.isTextual()) {
-            return isMatchingSingleTopic(mqttTopicFilter, topics);
+        if (topics instanceof ArrayValue arrayTopics) {
+            return isMatchingAtLeastOneTopicInArray(mqttTopicFilter, arrayTopics);
+        } else if (topics instanceof TextValue textTopic) {
+            return isMatchingSingleTopic(mqttTopicFilter, textTopic);
         } else {
-            final var topicsArray = topics.getArrayNode();
-            return isMatchingAtLeastOneTopic(mqttTopicFilter, topicsArray);
+            return Value.error(TOPICS_MUST_BE_TEXT_OR_ARRAY);
         }
     }
 
-    private Val isMatchingSingleTopic(MqttTopicFilter mqttTopicFilter, Val topic) {
-        if (MqttTopicFilter.of(topic.getText()).containsWildcards()) {
-            throw new PolicyEvaluationException(TOPIC_CONTAINS_WILDCARD_ERROR_MESSAGE);
-        } else {
-            final var mqttTopic = MqttTopic.of(topic.getText());
-            return Val.of(mqttTopicFilter.matches(mqttTopic));
+    private static Value isMatchingSingleTopic(MqttTopicFilter mqttTopicFilter, TextValue topic) {
+        if (MqttTopicFilter.of(topic.value()).containsWildcards()) {
+            return Value.error(TOPIC_CONTAINS_WILDCARD_ERROR_MESSAGE);
         }
+        var mqttTopic = MqttTopic.of(topic.value());
+        return Value.of(mqttTopicFilter.matches(mqttTopic));
     }
 
-    private Val isMatchingAllTopics(MqttTopicFilter mqttTopicFilter, ArrayNode topicsArray) {
-        var isMatching = true;
-        for (JsonNode topic : topicsArray) {
-            if (MqttTopicFilter.of(topic.asText()).containsWildcards()) {
-                throw new PolicyEvaluationException(TOPIC_CONTAINS_WILDCARD_ERROR_MESSAGE);
+    private static Value isMatchingAllTopicsInArray(MqttTopicFilter mqttTopicFilter, ArrayValue topics) {
+        for (Value topicValue : topics) {
+            if (!(topicValue instanceof TextValue topic)) {
+                return Value.error("All topics must be text values.");
             }
-            final var mqttTopic = MqttTopic.of(topic.asText());
+            if (MqttTopicFilter.of(topic.value()).containsWildcards()) {
+                return Value.error(TOPIC_CONTAINS_WILDCARD_ERROR_MESSAGE);
+            }
+            var mqttTopic = MqttTopic.of(topic.value());
             if (!mqttTopicFilter.matches(mqttTopic)) {
-                isMatching = false;
+                return Value.FALSE;
             }
         }
-        return Val.of(isMatching);
+        return Value.TRUE;
     }
 
-    private Val isMatchingAtLeastOneTopic(MqttTopicFilter mqttTopicFilter, ArrayNode topicsArray) {
-        var isMatching = false;
-        for (JsonNode topic : topicsArray) {
-            if (MqttTopicFilter.of(topic.asText()).containsWildcards()) {
-                throw new PolicyEvaluationException(TOPIC_CONTAINS_WILDCARD_ERROR_MESSAGE);
+    private static Value isMatchingAtLeastOneTopicInArray(MqttTopicFilter mqttTopicFilter, ArrayValue topics) {
+        for (Value topicValue : topics) {
+            if (!(topicValue instanceof TextValue topic)) {
+                return Value.error("All topics must be text values.");
             }
-            final var mqttTopic = MqttTopic.of(topic.asText());
+            if (MqttTopicFilter.of(topic.value()).containsWildcards()) {
+                return Value.error(TOPIC_CONTAINS_WILDCARD_ERROR_MESSAGE);
+            }
+            var mqttTopic = MqttTopic.of(topic.value());
             if (mqttTopicFilter.matches(mqttTopic)) {
-                isMatching = true;
+                return Value.TRUE;
             }
         }
-        return Val.of(isMatching);
-    }
-
-    private MqttTopicFilter buildMqttTopicFilter(Val wildcardTopic) {
-        return MqttTopicFilter.of(wildcardTopic.getText());
+        return Value.FALSE;
     }
 }

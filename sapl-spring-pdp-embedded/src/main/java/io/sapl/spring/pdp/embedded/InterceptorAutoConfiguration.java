@@ -18,6 +18,7 @@
 package io.sapl.spring.pdp.embedded;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.sapl.api.pdp.internal.TracedDecisionInterceptor;
 import io.sapl.pdp.interceptors.ReportingDecisionInterceptor;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.config.BeanDefinition;
@@ -25,9 +26,28 @@ import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Conditional;
 import org.springframework.context.annotation.Role;
 
-@AutoConfiguration
+/**
+ * Auto-configuration for the {@link ReportingDecisionInterceptor}.
+ * <p>
+ * This interceptor logs authorization decisions in various formats based on
+ * configuration properties:
+ * <ul>
+ * <li>{@code io.sapl.pdp.embedded.print-trace} - Log the full JSON trace</li>
+ * <li>{@code io.sapl.pdp.embedded.print-json-report} - Log a condensed JSON
+ * report</li>
+ * <li>{@code io.sapl.pdp.embedded.print-text-report} - Log a human-readable
+ * text report</li>
+ * <li>{@code io.sapl.pdp.embedded.pretty-print-reports} - Pretty-print JSON
+ * output</li>
+ * </ul>
+ * <p>
+ * The interceptor is only created if at least one of the print options is
+ * enabled.
+ */
+@AutoConfiguration(before = PDPAutoConfiguration.class)
 @RequiredArgsConstructor
 @EnableConfigurationProperties(EmbeddedPDPProperties.class)
 public class InterceptorAutoConfiguration {
@@ -35,10 +55,19 @@ public class InterceptorAutoConfiguration {
     private final ObjectMapper          mapper;
     private final EmbeddedPDPProperties properties;
 
+    /**
+     * Creates the reporting decision interceptor if any reporting is enabled.
+     * <p>
+     * The interceptor uses {@code Integer.MAX_VALUE} priority to ensure it runs
+     * last and captures all modifications made by other interceptors.
+     *
+     * @return the reporting decision interceptor
+     */
     @Bean
-    @ConditionalOnMissingBean
+    @ConditionalOnMissingBean(ReportingDecisionInterceptor.class)
+    @Conditional(ReportingEnabledCondition.class)
     @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
-    ReportingDecisionInterceptor reportingDecisionInterceptor() {
+    TracedDecisionInterceptor reportingDecisionInterceptor() {
         return new ReportingDecisionInterceptor(mapper, properties.isPrettyPrintReports(), properties.isPrintTrace(),
                 properties.isPrintJsonReport(), properties.isPrintTextReport());
     }

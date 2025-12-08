@@ -18,6 +18,7 @@
 package io.sapl.spring.pdp.embedded;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.sapl.api.pdp.internal.TracedDecisionInterceptor;
 import io.sapl.pdp.interceptors.ReportingDecisionInterceptor;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
@@ -32,10 +33,33 @@ class InterceptorAutoConfigurationTests {
             .withConfiguration(AutoConfigurations.of(InterceptorAutoConfiguration.class));
 
     @Test
-    void whenLoading_thenAnInterceptorIsInitialized() {
+    void whenPrintTraceIsEnabled_thenReportingInterceptorIsCreated() {
+        contextRunner.withPropertyValues("io.sapl.pdp.embedded.print-trace=true").run(context -> {
+            assertThat(context).hasNotFailed().hasSingleBean(TracedDecisionInterceptor.class)
+                    .hasSingleBean(ReportingDecisionInterceptor.class);
+        });
+    }
+
+    @Test
+    void whenPrintJsonReportIsEnabled_thenReportingInterceptorIsCreated() {
+        contextRunner.withPropertyValues("io.sapl.pdp.embedded.print-json-report=true").run(context -> {
+            assertThat(context).hasNotFailed().hasSingleBean(TracedDecisionInterceptor.class)
+                    .hasSingleBean(ReportingDecisionInterceptor.class);
+        });
+    }
+
+    @Test
+    void whenPrintTextReportIsEnabled_thenReportingInterceptorIsCreated() {
+        contextRunner.withPropertyValues("io.sapl.pdp.embedded.print-text-report=true").run(context -> {
+            assertThat(context).hasNotFailed().hasSingleBean(TracedDecisionInterceptor.class)
+                    .hasSingleBean(ReportingDecisionInterceptor.class);
+        });
+    }
+
+    @Test
+    void whenNoPrintOptionsAreEnabled_thenNoInterceptorIsCreated() {
         contextRunner.run(context -> {
-            assertThat(context).hasNotFailed();
-            assertThat(context).hasSingleBean(ReportingDecisionInterceptor.class);
+            assertThat(context).hasNotFailed().doesNotHaveBean(ReportingDecisionInterceptor.class);
         });
     }
 

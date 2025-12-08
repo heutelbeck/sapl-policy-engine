@@ -17,6 +17,4 @@
  */
 package io.sapl.pdp.remote.metadata;
 
-public record UsernamePasswordMetadata(String username, String password) {
-
-}
+public record UsernamePasswordMetadata(String username, String password) {}

@@ -25,7 +25,7 @@ import com.hivemq.client.mqtt.exceptions.MqttClientStateException;
 import com.hivemq.client.mqtt.exceptions.MqttSessionExpiredException;
 import com.hivemq.client.mqtt.mqtt5.exceptions.Mqtt5DisconnectException;
 import com.hivemq.client.mqtt.mqtt5.message.Mqtt5MessageType;
-import io.sapl.api.interpreter.Val;
+import io.sapl.api.model.Value;
 import lombok.experimental.UtilityClass;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Sinks;
@@ -88,14 +88,13 @@ public class ErrorUtility {
      * @param emitterUndefined the emitter necessary to emit downstream
      * @param retrySignal containing specifics about the retry
      */
-    public static void emitValueOnRetry(JsonNode pipMqttClientConfig, Sinks.Many<Val> emitterUndefined,
+    public static void emitValueOnRetry(JsonNode pipMqttClientConfig, Sinks.Many<Value> emitterUndefined,
             Retry.RetrySignal retrySignal) {
         boolean isUndefinedAtRetryEnabled = getConfigValueOrDefault(pipMqttClientConfig, ENVIRONMENT_EMIT_AT_RETRY,
                 DEFAULT_EMIT_AT_RETRY);
         long    retryNumber               = retrySignal.totalRetriesInARow() + 1;
-        // emit Val.UNDEFINED when the first error in a row occurred
         if (isUndefinedAtRetryEnabled && retryNumber == 1) {
-            emitterUndefined.tryEmitNext(Val.UNDEFINED);
+            emitterUndefined.tryEmitNext(Value.UNDEFINED);
         }
     }
 

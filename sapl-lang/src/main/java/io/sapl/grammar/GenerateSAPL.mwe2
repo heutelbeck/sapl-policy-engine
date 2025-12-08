@@ -69,10 +69,6 @@ Workflow {
 		language = StandardLanguage {
 			name = "io.sapl.grammar.SAPL"
 			fileExtensions = "sapl"
-			
-			referencedResource = "platform:/resource/sapl-lang/src/main/resources/SAPL.genmodel"
-			
-			fragment = ecore2xtext.Ecore2XtextValueConverterServiceFragment2 auto-inject {}
 
 			serializer = {
 				generateStub = false

@@ -1,3 +1,0 @@
-policy "policy division by zero"
-permit
-    17 / 0

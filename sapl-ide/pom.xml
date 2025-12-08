@@ -37,7 +37,7 @@
 	<dependencies>
 		<dependency>
 			<groupId>${project.groupId}</groupId>
-			<artifactId>sapl-pdp-embedded</artifactId>
+			<artifactId>sapl-pdp</artifactId>
 			<version>${project.version}</version>
 		</dependency>
 		<dependency>

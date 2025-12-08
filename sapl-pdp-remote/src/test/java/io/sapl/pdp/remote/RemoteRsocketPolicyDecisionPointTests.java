@@ -17,7 +17,9 @@
  */
 package io.sapl.pdp.remote;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
+import io.sapl.api.model.jackson.SaplJacksonModule;
 import io.netty.handler.ssl.SslContextBuilder;
 import io.netty.handler.ssl.util.InsecureTrustManagerFactory;
 import io.rsocket.core.RSocketServer;
@@ -116,9 +118,9 @@ class RemoteRsocketPolicyDecisionPointTests {
     @Test
     void whenSubscribingMultiDecideAll_thenGetResults() {
         final var decision1 = new MultiAuthorizationDecision();
-        decision1.setAuthorizationDecisionForSubscriptionWithId(ID, AuthorizationDecision.PERMIT);
+        decision1.setDecision(ID, AuthorizationDecision.PERMIT);
         final var decision2 = new MultiAuthorizationDecision();
-        decision2.setAuthorizationDecisionForSubscriptionWithId(ID, AuthorizationDecision.DENY);
+        decision2.setDecision(ID, AuthorizationDecision.DENY);
         final var indeterminate = MultiAuthorizationDecision.indeterminate();
 
         prepareDecisions(new MultiAuthorizationDecision[] { decision1, decision2, null });
@@ -194,8 +196,9 @@ class RemoteRsocketPolicyDecisionPointTests {
         @Bean
         RSocketMessageHandler serverMessageHandler() {
             RSocketMessageHandler handler    = new RSocketMessageHandler();
-            final var             strategies = RSocketStrategies.builder().encoder(new Jackson2JsonEncoder())
-                    .encoder(new SimpleAuthenticationEncoder()).decoder(new Jackson2JsonDecoder()).build();
+            var                   mapper     = new ObjectMapper().registerModule(new SaplJacksonModule());
+            final var             strategies = RSocketStrategies.builder().encoder(new Jackson2JsonEncoder(mapper))
+                    .encoder(new SimpleAuthenticationEncoder()).decoder(new Jackson2JsonDecoder(mapper)).build();
             handler.setRSocketStrategies(strategies);
             return handler;
         }

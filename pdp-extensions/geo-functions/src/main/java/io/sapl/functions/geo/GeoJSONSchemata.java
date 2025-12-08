@@ -695,7 +695,7 @@ public class GeoJSONSchemata {
                  }
                ]
              }
-             """;
+            """;
 
     public static final String GEOMETRIES = """
             {

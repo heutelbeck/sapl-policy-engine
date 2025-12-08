@@ -19,9 +19,10 @@ package io.sapl.extensions.mqtt.util;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import io.sapl.api.interpreter.Val;
+import io.sapl.api.model.Value;
 import lombok.experimental.UtilityClass;
 import lombok.extern.slf4j.Slf4j;
+import lombok.val;
 
 import static io.sapl.extensions.mqtt.util.ConfigUtility.getConfigValueOrDefault;
 import static io.sapl.extensions.mqtt.util.ConfigUtility.getMqttBrokerConfig;
@@ -53,22 +54,21 @@ public class DefaultResponseUtility {
      * @param pipConfigParams the configuration provided in the attribute finder
      * @return returns the build {@link DefaultResponseConfig}
      */
-    public static DefaultResponseConfig getDefaultResponseConfig(JsonNode pipMqttClientConfig, Val pipConfigParams) {
-        // broker config from attribute finder or broker config in pdp.json
-        final var mqttBrokerConfig       = getMqttBrokerConfig(pipMqttClientConfig, pipConfigParams);
-        final var defaultResponseType    = getDefaultResponseType(pipMqttClientConfig, mqttBrokerConfig);
-        final var defaultResponseTimeout = getDefaultResponseTimeout(pipMqttClientConfig, mqttBrokerConfig);
+    public static DefaultResponseConfig getDefaultResponseConfig(JsonNode pipMqttClientConfig, Value pipConfigParams) {
+        val mqttBrokerConfig       = getMqttBrokerConfig(pipMqttClientConfig, pipConfigParams);
+        val defaultResponseType    = getDefaultResponseType(pipMqttClientConfig, mqttBrokerConfig);
+        val defaultResponseTimeout = getDefaultResponseTimeout(pipMqttClientConfig, mqttBrokerConfig);
 
         return new DefaultResponseConfig(defaultResponseTimeout, defaultResponseType);
     }
 
     /**
-     * Build the {@link Val} for the default response.
+     * Build the {@link Value} for the default response.
      *
      * @param defaultResponseConfig the provided configuration
-     * @return returns the {@link Val} for the default response
+     * @return returns the {@link Value} for the default response
      */
-    public static Val getDefaultVal(DefaultResponseConfig defaultResponseConfig) {
+    public static Value getDefaultValue(DefaultResponseConfig defaultResponseConfig) {
         String defaultResponseType = defaultResponseConfig.getDefaultResponseType();
 
         if (!(DEFAULT_RESPONSE_TYPE.equals(defaultResponseType) || "error".equals(defaultResponseType))) {
@@ -78,9 +78,9 @@ public class DefaultResponseUtility {
         }
 
         if (DEFAULT_RESPONSE_TYPE.equals(defaultResponseType)) {
-            return Val.UNDEFINED;
+            return Value.UNDEFINED;
         } else {
-            return Val.error("The sapl mqtt pip has not received any mqtt message yet.");
+            return Value.error("The sapl mqtt pip has not received any mqtt message yet.");
         }
     }
 

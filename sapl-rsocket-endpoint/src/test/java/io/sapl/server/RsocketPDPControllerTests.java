@@ -17,12 +17,14 @@
  */
 package io.sapl.server;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import io.rsocket.SocketAcceptor;
 import io.rsocket.core.RSocketServer;
 import io.rsocket.frame.decoder.PayloadDecoder;
 import io.rsocket.transport.netty.client.TcpClientTransport;
 import io.rsocket.transport.netty.server.TcpServerTransport;
+import io.sapl.api.model.jackson.SaplJacksonModule;
 import io.sapl.api.pdp.*;
 import io.sapl.server.pdpcontroller.RSocketPDPController;
 import org.junit.jupiter.api.AfterAll;
@@ -61,8 +63,10 @@ class RsocketPDPControllerTests {
     @MockitoBean
     private PolicyDecisionPoint pdp;
 
-    final RSocketStrategies  rSocketStrategies = RSocketStrategies.builder().encoder(new Jackson2JsonEncoder())
-            .decoder(new Jackson2JsonDecoder()).build();
+    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper().registerModule(new SaplJacksonModule());
+
+    final RSocketStrategies  rSocketStrategies = RSocketStrategies.builder()
+            .encoder(new Jackson2JsonEncoder(OBJECT_MAPPER)).decoder(new Jackson2JsonDecoder(OBJECT_MAPPER)).build();
     private RSocketRequester requester;
 
     @BeforeAll
