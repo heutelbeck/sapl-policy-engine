@@ -17,7 +17,7 @@
  */
 package io.sapl.test.verification;
 
-import io.sapl.api.interpreter.Val;
+import io.sapl.api.model.Value;
 import io.sapl.test.mocking.MockCall;
 import org.junit.jupiter.api.Test;
 
@@ -38,7 +38,7 @@ class FunctionMockRunInformationTests {
     @Test
     void test_increase() {
         final var fullName = "foo";
-        final var call     = new MockCall(Val.of("foo"));
+        final var call     = new MockCall(Value.of("foo"));
         final var mock     = new MockRunInformation(fullName);
 
         mock.saveCall(call);
@@ -46,7 +46,7 @@ class FunctionMockRunInformationTests {
         assertThat(mock.getTimesCalled()).isEqualTo(1);
         assertThat(mock.getCalls().get(0).isUsed()).isFalse();
         assertThat(mock.getCalls().get(0).getCall().getNumberOfArguments()).isEqualTo(1);
-        assertThat(mock.getCalls().get(0).getCall().getArgument(0)).isEqualTo(Val.of("foo"));
+        assertThat(mock.getCalls().get(0).getCall().getArgument(0)).isEqualTo(Value.of("foo"));
     }
 
 }

@@ -18,13 +18,27 @@
 package io.sapl.test.dsl.interpreter;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import io.sapl.api.model.Value;
+import io.sapl.api.model.ValueJsonMarshaller;
 import io.sapl.api.pdp.AuthorizationDecision;
+import io.sapl.api.pdp.Decision;
 import io.sapl.test.SaplTestException;
-import io.sapl.test.grammar.sapltest.*;
+import io.sapl.test.grammar.sapltest.AnyDecision;
+import io.sapl.test.grammar.sapltest.AuthorizationDecisionMatcher;
+import io.sapl.test.grammar.sapltest.AuthorizationDecisionMatcherType;
+import io.sapl.test.grammar.sapltest.DefaultObjectMatcher;
+import io.sapl.test.grammar.sapltest.ExtendedObjectMatcher;
+import io.sapl.test.grammar.sapltest.HasObligationOrAdvice;
+import io.sapl.test.grammar.sapltest.HasResource;
+import io.sapl.test.grammar.sapltest.IsDecision;
+import io.sapl.test.grammar.sapltest.ObjectWithExactMatch;
+import io.sapl.test.grammar.sapltest.ObjectWithKeyValueMatcher;
+import io.sapl.test.grammar.sapltest.ObjectWithMatcher;
 import lombok.RequiredArgsConstructor;
+import org.hamcrest.BaseMatcher;
+import org.hamcrest.Description;
 import org.hamcrest.Matcher;
 
-import static io.sapl.hamcrest.Matchers.*;
 import static org.hamcrest.Matchers.is;
 
 @RequiredArgsConstructor
@@ -34,14 +48,14 @@ class AuthorizationDecisionMatcherInterpreter {
     private final JsonNodeMatcherInterpreter jsonNodeMatcherInterpreter;
 
     public Matcher<AuthorizationDecision> getHamcrestAuthorizationDecisionMatcher(
-            final AuthorizationDecisionMatcher authorizationDecisionMatcher) {
+            AuthorizationDecisionMatcher authorizationDecisionMatcher) {
         if (authorizationDecisionMatcher instanceof AnyDecision) {
             return anyDecision();
         } else if (authorizationDecisionMatcher instanceof IsDecision isDecision) {
             return getIsDecisionMatcher(isDecision);
         } else if (authorizationDecisionMatcher instanceof HasObligationOrAdvice hasObligationOrAdvice) {
-            final var extendedObjectMatcher            = hasObligationOrAdvice.getMatcher();
-            final var authorizationDecisionMatcherType = hasObligationOrAdvice.getType();
+            var extendedObjectMatcher            = hasObligationOrAdvice.getMatcher();
+            var authorizationDecisionMatcherType = hasObligationOrAdvice.getType();
 
             if (extendedObjectMatcher == null) {
                 return switch (authorizationDecisionMatcherType) {
@@ -53,19 +67,19 @@ class AuthorizationDecisionMatcherInterpreter {
             return getAuthorizationDecisionMatcherFromObjectMatcher(extendedObjectMatcher,
                     authorizationDecisionMatcherType);
         } else if (authorizationDecisionMatcher instanceof HasResource hasResource) {
-            final var defaultObjectMatcher = hasResource.getMatcher();
+            var defaultObjectMatcher = hasResource.getMatcher();
 
             return getAuthorizationDecisionMatcherFromObjectMatcher(defaultObjectMatcher, null);
         }
 
-        throw new SaplTestException("Unknown type of AuthorizationDecisionMatcher");
+        throw new SaplTestException("Unknown type of AuthorizationDecisionMatcher.");
     }
 
-    private Matcher<AuthorizationDecision> getIsDecisionMatcher(final IsDecision isDecision) {
-        final var decision = isDecision.getDecision();
+    private Matcher<AuthorizationDecision> getIsDecisionMatcher(IsDecision isDecision) {
+        var decision = isDecision.getDecision();
 
         if (decision == null) {
-            throw new SaplTestException("Decision is null");
+            throw new SaplTestException("Decision is null.");
         }
 
         return switch (decision) {
@@ -77,35 +91,34 @@ class AuthorizationDecisionMatcherInterpreter {
     }
 
     private Matcher<AuthorizationDecision> getAuthorizationDecisionMatcherFromObjectMatcher(
-            final DefaultObjectMatcher defaultObjectMatcher,
-            final AuthorizationDecisionMatcherType authorizationDecisionMatcherType) {
+            DefaultObjectMatcher defaultObjectMatcher,
+            AuthorizationDecisionMatcherType authorizationDecisionMatcherType) {
         if (defaultObjectMatcher instanceof ObjectWithExactMatch objectWithExactMatch) {
-            final var valToMatch = valueInterpreter.getValFromValue(objectWithExactMatch.getEqualTo());
+            var valueToMatch = valueInterpreter.getValueFromDslValue(objectWithExactMatch.getEqualTo());
 
-            if (valToMatch == null) {
-                throw new SaplTestException("Val to match is null");
+            if (valueToMatch == null) {
+                throw new SaplTestException("Value to match is null.");
             }
 
-            final var matcher = is(valToMatch.get());
+            var matcher = is(ValueJsonMarshaller.toJsonNode(valueToMatch));
 
             return getMatcher(authorizationDecisionMatcherType, matcher);
         } else if (defaultObjectMatcher instanceof ObjectWithMatcher objectWithMatcher) {
-            final var jsonNodeMatcher = objectWithMatcher.getMatcher();
-            final var matcher         = jsonNodeMatcherInterpreter.getHamcrestJsonNodeMatcher(jsonNodeMatcher);
+            var jsonNodeMatcher = objectWithMatcher.getMatcher();
+            var matcher         = jsonNodeMatcherInterpreter.getHamcrestJsonNodeMatcher(jsonNodeMatcher);
 
             if (matcher == null) {
-                throw new SaplTestException("Matcher for JsonNode is null");
+                throw new SaplTestException("Matcher for JsonNode is null.");
             }
 
             return getMatcher(authorizationDecisionMatcherType, matcher);
         }
 
-        throw new SaplTestException("Unknown type of DefaultObjectMatcher");
+        throw new SaplTestException("Unknown type of DefaultObjectMatcher.");
     }
 
-    private Matcher<AuthorizationDecision> getMatcher(
-            final AuthorizationDecisionMatcherType authorizationDecisionMatcherType,
-            final Matcher<? super JsonNode> matcher) {
+    private Matcher<AuthorizationDecision> getMatcher(AuthorizationDecisionMatcherType authorizationDecisionMatcherType,
+            Matcher<? super JsonNode> matcher) {
         if (authorizationDecisionMatcherType == null) {
             return hasResource(matcher);
         }
@@ -117,8 +130,8 @@ class AuthorizationDecisionMatcherInterpreter {
     }
 
     private Matcher<AuthorizationDecision> getAuthorizationDecisionMatcherFromObjectMatcher(
-            final ExtendedObjectMatcher extendedObjectMatcher,
-            final AuthorizationDecisionMatcherType authorizationDecisionMatcherType) {
+            ExtendedObjectMatcher extendedObjectMatcher,
+            AuthorizationDecisionMatcherType authorizationDecisionMatcherType) {
 
         if (extendedObjectMatcher instanceof DefaultObjectMatcher defaultObjectMatcher) {
             return getAuthorizationDecisionMatcherFromObjectMatcher(defaultObjectMatcher,
@@ -126,8 +139,8 @@ class AuthorizationDecisionMatcherInterpreter {
         }
 
         if (extendedObjectMatcher instanceof ObjectWithKeyValueMatcher objectWithKeyValueMatcher) {
-            final var key     = objectWithKeyValueMatcher.getKey();
-            final var matcher = objectWithKeyValueMatcher.getMatcher();
+            var key     = objectWithKeyValueMatcher.getKey();
+            var matcher = objectWithKeyValueMatcher.getMatcher();
 
             if (matcher == null) {
                 return switch (authorizationDecisionMatcherType) {
@@ -136,11 +149,11 @@ class AuthorizationDecisionMatcherInterpreter {
                 };
             }
 
-            final var valueMatcher = jsonNodeMatcherInterpreter
+            var valueMatcher = jsonNodeMatcherInterpreter
                     .getHamcrestJsonNodeMatcher(objectWithKeyValueMatcher.getMatcher());
 
             if (valueMatcher == null) {
-                throw new SaplTestException("Matcher for JsonNode is null");
+                throw new SaplTestException("Matcher for JsonNode is null.");
             }
 
             return switch (authorizationDecisionMatcherType) {
@@ -149,6 +162,203 @@ class AuthorizationDecisionMatcherInterpreter {
             };
         }
 
-        throw new SaplTestException("Unknown type of ExtendedObjectMatcher");
+        throw new SaplTestException("Unknown type of ExtendedObjectMatcher.");
+    }
+
+    // Simple matchers for AuthorizationDecision
+
+    private static Matcher<AuthorizationDecision> anyDecision() {
+        return new BaseMatcher<>() {
+            @Override
+            public boolean matches(Object actual) {
+                return actual instanceof AuthorizationDecision;
+            }
+
+            @Override
+            public void describeTo(Description description) {
+                description.appendText("any authorization decision");
+            }
+        };
+    }
+
+    private static Matcher<AuthorizationDecision> isPermit() {
+        return isDecision(Decision.PERMIT);
+    }
+
+    private static Matcher<AuthorizationDecision> isDeny() {
+        return isDecision(Decision.DENY);
+    }
+
+    private static Matcher<AuthorizationDecision> isIndeterminate() {
+        return isDecision(Decision.INDETERMINATE);
+    }
+
+    private static Matcher<AuthorizationDecision> isNotApplicable() {
+        return isDecision(Decision.NOT_APPLICABLE);
+    }
+
+    private static Matcher<AuthorizationDecision> isDecision(Decision expected) {
+        return new BaseMatcher<>() {
+            @Override
+            public boolean matches(Object actual) {
+                if (actual instanceof AuthorizationDecision d) {
+                    return d.decision() == expected;
+                }
+                return false;
+            }
+
+            @Override
+            public void describeTo(Description description) {
+                description.appendText("decision is ").appendValue(expected);
+            }
+        };
+    }
+
+    private static Matcher<AuthorizationDecision> hasObligation() {
+        return new BaseMatcher<>() {
+            @Override
+            public boolean matches(Object actual) {
+                if (actual instanceof AuthorizationDecision d) {
+                    return !d.obligations().isEmpty();
+                }
+                return false;
+            }
+
+            @Override
+            public void describeTo(Description description) {
+                description.appendText("has obligations");
+            }
+        };
+    }
+
+    private static Matcher<AuthorizationDecision> hasAdvice() {
+        return new BaseMatcher<>() {
+            @Override
+            public boolean matches(Object actual) {
+                if (actual instanceof AuthorizationDecision d) {
+                    return !d.advice().isEmpty();
+                }
+                return false;
+            }
+
+            @Override
+            public void describeTo(Description description) {
+                description.appendText("has advice");
+            }
+        };
+    }
+
+    private static Matcher<AuthorizationDecision> hasObligation(Matcher<? super JsonNode> matcher) {
+        return new BaseMatcher<>() {
+            @Override
+            public boolean matches(Object actual) {
+                if (actual instanceof AuthorizationDecision d) {
+                    return d.obligations().stream().filter(ValueJsonMarshaller::isJsonCompatible)
+                            .map(ValueJsonMarshaller::toJsonNode).anyMatch(matcher::matches);
+                }
+                return false;
+            }
+
+            @Override
+            public void describeTo(Description description) {
+                description.appendText("has obligation matching ").appendDescriptionOf(matcher);
+            }
+        };
+    }
+
+    private static Matcher<AuthorizationDecision> hasAdvice(Matcher<? super JsonNode> matcher) {
+        return new BaseMatcher<>() {
+            @Override
+            public boolean matches(Object actual) {
+                if (actual instanceof AuthorizationDecision d) {
+                    return d.advice().stream().filter(ValueJsonMarshaller::isJsonCompatible)
+                            .map(ValueJsonMarshaller::toJsonNode).anyMatch(matcher::matches);
+                }
+                return false;
+            }
+
+            @Override
+            public void describeTo(Description description) {
+                description.appendText("has advice matching ").appendDescriptionOf(matcher);
+            }
+        };
+    }
+
+    private static Matcher<AuthorizationDecision> hasResource(Matcher<? super JsonNode> matcher) {
+        return new BaseMatcher<>() {
+            @Override
+            public boolean matches(Object actual) {
+                if (actual instanceof AuthorizationDecision d) {
+                    var resource = d.resource();
+                    if (ValueJsonMarshaller.isJsonCompatible(resource)) {
+                        return matcher.matches(ValueJsonMarshaller.toJsonNode(resource));
+                    }
+                }
+                return false;
+            }
+
+            @Override
+            public void describeTo(Description description) {
+                description.appendText("has resource matching ").appendDescriptionOf(matcher);
+            }
+        };
+    }
+
+    private static Matcher<AuthorizationDecision> hasObligationContainingKeyValue(String key) {
+        return hasObligationContainingKeyValue(key, null);
+    }
+
+    private static Matcher<AuthorizationDecision> hasAdviceContainingKeyValue(String key) {
+        return hasAdviceContainingKeyValue(key, null);
+    }
+
+    private static Matcher<AuthorizationDecision> hasObligationContainingKeyValue(String key,
+            Matcher<? super JsonNode> valueMatcher) {
+        return new BaseMatcher<>() {
+            @Override
+            public boolean matches(Object actual) {
+                if (actual instanceof AuthorizationDecision d) {
+                    return d.obligations().stream().filter(ValueJsonMarshaller::isJsonCompatible)
+                            .map(ValueJsonMarshaller::toJsonNode)
+                            .anyMatch(node -> nodeContainsKeyValue(node, key, valueMatcher));
+                }
+                return false;
+            }
+
+            @Override
+            public void describeTo(Description description) {
+                description.appendText("has obligation containing key ").appendValue(key);
+            }
+        };
+    }
+
+    private static Matcher<AuthorizationDecision> hasAdviceContainingKeyValue(String key,
+            Matcher<? super JsonNode> valueMatcher) {
+        return new BaseMatcher<>() {
+            @Override
+            public boolean matches(Object actual) {
+                if (actual instanceof AuthorizationDecision d) {
+                    return d.advice().stream().filter(ValueJsonMarshaller::isJsonCompatible)
+                            .map(ValueJsonMarshaller::toJsonNode)
+                            .anyMatch(node -> nodeContainsKeyValue(node, key, valueMatcher));
+                }
+                return false;
+            }
+
+            @Override
+            public void describeTo(Description description) {
+                description.appendText("has advice containing key ").appendValue(key);
+            }
+        };
+    }
+
+    private static boolean nodeContainsKeyValue(JsonNode node, String key, Matcher<? super JsonNode> valueMatcher) {
+        if (!node.has(key)) {
+            return false;
+        }
+        if (valueMatcher == null) {
+            return true;
+        }
+        return valueMatcher.matches(node.get(key));
     }
 }

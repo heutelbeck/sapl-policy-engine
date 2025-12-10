@@ -17,18 +17,29 @@
  */
 package io.sapl.test.unit;
 
-import io.sapl.interpreter.SAPLInterpreter;
-import io.sapl.prp.Document;
 import io.sapl.test.SaplTestException;
 import io.sapl.test.SaplTestFixtureTemplate;
-import io.sapl.test.coverage.api.CoverageAPIFactory;
-import io.sapl.test.lang.TestSaplInterpreter;
 import io.sapl.test.steps.GivenStep;
 import io.sapl.test.steps.WhenStep;
-import io.sapl.test.utils.DocumentHelper;
+import io.sapl.test.utils.ClasspathHelper;
 
 import java.util.function.Supplier;
 
+/**
+ * Fixture for constructing unit test cases for individual SAPL policies.
+ * <p>
+ * Provides a fluent API for building test cases that evaluate single SAPL
+ * documents against authorization subscriptions. Supports mocking of functions
+ * and attributes to isolate policy logic during testing.
+ * <p>
+ * Example usage:
+ *
+ * <pre>
+ * var fixture = new SaplUnitTestFixture("policies/accessControl.sapl");
+ * fixture.constructTestCaseWithMocks().givenFunction("time.now", Value.of("2025-01-15T10:00:00Z"))
+ *         .when(AuthorizationSubscription.of("alice", "read", "document")).expectPermit().verify();
+ * </pre>
+ */
 public class SaplUnitTestFixture extends SaplTestFixtureTemplate {
 
     private static final String ERROR_MESSAGE_MISSING_SAPL_DOCUMENT_NAME = """
@@ -36,10 +47,10 @@ public class SaplUnitTestFixture extends SaplTestFixtureTemplate {
 
             Probably you forgot to call ".setSaplDocumentName("")\"""";
 
-    private final Supplier<Document> documentRetriever;
+    private final Supplier<String> policySourceRetriever;
 
     /**
-     * Fixture for constructing a unit test case
+     * Creates a fixture for testing a policy loaded from the classpath.
      *
      * @param saplDocumentName path relative to your classpath to the sapl document.
      * If your policies are located at the root of the classpath or in the standard
@@ -48,34 +59,37 @@ public class SaplUnitTestFixture extends SaplTestFixtureTemplate {
      * special place you have to configure a relative path like
      * {@code "yourSpecialDirectory/policies/myPolicy.sapl"}
      */
-    public SaplUnitTestFixture(final String saplDocumentName) {
+    public SaplUnitTestFixture(String saplDocumentName) {
         this(saplDocumentName, true);
     }
 
-    public SaplUnitTestFixture(final String input, final boolean isFileInput) {
-        this.documentRetriever = () -> {
+    /**
+     * Creates a fixture for testing a policy from a file path or directly from
+     * source code.
+     *
+     * @param input the policy source code or file path
+     * @param isFileInput true if input is a file path, false if it is the actual
+     * policy source code
+     */
+    public SaplUnitTestFixture(String input, boolean isFileInput) {
+        this.policySourceRetriever = () -> {
             if (input == null || input.isEmpty()) {
                 throw new SaplTestException(ERROR_MESSAGE_MISSING_SAPL_DOCUMENT_NAME);
             }
-            return isFileInput ? DocumentHelper.readSaplDocument(input, getSaplInterpreter())
-                    : DocumentHelper.readSaplDocumentFromInputString(input, getSaplInterpreter());
+            return isFileInput ? ClasspathHelper.readPolicyFromClasspath(input) : input;
         };
     }
 
     @Override
     public GivenStep constructTestCaseWithMocks() {
-        return StepBuilder.newBuilderAtGivenStep(documentRetriever.get(), this.attributeStreamBroker, this.functionCtx,
-                this.variables);
+        return StepBuilder.newBuilderAtGivenStep(policySourceRetriever.get(), attributeBroker, functionBroker,
+                variables);
     }
 
     @Override
     public WhenStep constructTestCase() {
-        return StepBuilder.newBuilderAtWhenStep(documentRetriever.get(), this.attributeStreamBroker, this.functionCtx,
-                this.variables);
-    }
-
-    private SAPLInterpreter getSaplInterpreter() {
-        return new TestSaplInterpreter(CoverageAPIFactory.constructCoverageHitRecorder(resolveCoverageBaseDir()));
+        return StepBuilder.newBuilderAtWhenStep(policySourceRetriever.get(), attributeBroker, functionBroker,
+                variables);
     }
 
 }

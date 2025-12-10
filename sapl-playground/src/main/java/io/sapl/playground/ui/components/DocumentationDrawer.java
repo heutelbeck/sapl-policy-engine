@@ -100,7 +100,8 @@ public class DocumentationDrawer implements Serializable {
 
     /*
      * Provider for policy information point documentation.
-     * Supplies documentation about available PIPs and their policyInformationPoints.
+     * Supplies documentation about available PIPs and their
+     * policyInformationPoints.
      */
     private final transient PolicyInformationPointDocumentationProvider policyInformationPointDocumentationProvider;
 

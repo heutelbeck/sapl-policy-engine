@@ -17,7 +17,7 @@
  */
 package io.sapl.test.mocking;
 
-import io.sapl.api.interpreter.Val;
+import io.sapl.api.model.Value;
 import io.sapl.test.SaplTestException;
 import org.junit.jupiter.api.Test;
 
@@ -28,16 +28,16 @@ class MockCallTests {
 
     @Test
     void test() {
-        final var call = new MockCall(Val.of("foo"));
+        final var call = new MockCall(Value.of("foo"));
 
         assertThat(call.getNumberOfArguments()).isEqualTo(1);
-        assertThat(call.getArgument(0)).isEqualTo(Val.of("foo"));
+        assertThat(call.getArgument(0)).isEqualTo(Value.of("foo"));
         assertThat(call.getListOfArguments()).hasSize(1);
     }
 
     @Test
     void test_invalidIndex() {
-        final var call = new MockCall(Val.of("foo"));
+        final var call = new MockCall(Value.of("foo"));
 
         assertThat(call.getNumberOfArguments()).isEqualTo(1);
         assertThatExceptionOfType(SaplTestException.class).isThrownBy(() -> call.getArgument(1));

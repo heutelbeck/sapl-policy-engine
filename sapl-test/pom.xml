@@ -38,27 +38,12 @@
 	<dependencies>
 		<dependency>
 			<groupId>io.sapl</groupId>
-			<artifactId>sapl-lang</artifactId>
-			<version>${project.version}</version>
-		</dependency>
-		<dependency>
-			<groupId>io.sapl</groupId>
 			<artifactId>sapl-test-lang</artifactId>
 			<version>${project.version}</version>
 		</dependency>
 		<dependency>
 			<groupId>io.sapl</groupId>
-			<artifactId>sapl-hamcrest</artifactId>
-			<version>3.1.0-SNAPSHOT</version>
-		</dependency>
-		<dependency>
-			<groupId>io.sapl</groupId>
-			<artifactId>sapl-pdp-embedded</artifactId>
-            <version>3.1.0-SNAPSHOT</version>
-		</dependency>
-		<dependency>
-			<groupId>io.sapl</groupId>
-			<artifactId>sapl-coverage-api</artifactId>
+			<artifactId>sapl-pdp</artifactId>
 			<version>${project.version}</version>
 		</dependency>
 		<dependency>
@@ -67,31 +52,33 @@
 			<scope>provided</scope>
 		</dependency>
 		<dependency>
-			<groupId>org.assertj</groupId>
-			<artifactId>assertj-core</artifactId>
-			<scope>compile</scope>
-		</dependency>
-		<dependency>
-			<groupId>org.hamcrest</groupId>
-			<artifactId>hamcrest</artifactId>
-			<scope>compile</scope>
-		</dependency>
-		<dependency>
 			<groupId>io.projectreactor</groupId>
 			<artifactId>reactor-test</artifactId>
 		</dependency>
+        <dependency>
+            <groupId>org.hamcrest</groupId>
+            <artifactId>hamcrest</artifactId>
+        </dependency>
 		<dependency>
-			<groupId>com.spotify</groupId>
-			<artifactId>hamcrest-jackson</artifactId>
-			<scope>compile</scope>
+			<groupId>org.springframework</groupId>
+			<artifactId>spring-webflux</artifactId>
 		</dependency>
-
-		<!-- Logging -->
+		<dependency>
+			<groupId>org.springframework</groupId>
+			<artifactId>spring-context</artifactId>
+		</dependency>
 		<dependency>
 			<groupId>org.slf4j</groupId>
 			<artifactId>slf4j-api</artifactId>
 		</dependency>
-
+        <dependency>
+            <groupId>org.assertj</groupId>
+            <artifactId>assertj-core</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.spotify</groupId>
+            <artifactId>hamcrest-jackson</artifactId>
+        </dependency>
 		<!-- Test Dependencies -->
 		<dependency>
 			<groupId>org.junit.jupiter</groupId>
@@ -106,6 +93,11 @@
 		<dependency>
 			<groupId>org.slf4j</groupId>
 			<artifactId>slf4j-simple</artifactId>
+            <scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.awaitility</groupId>
+			<artifactId>awaitility</artifactId>
 			<scope>test</scope>
 		</dependency>
 	</dependencies>

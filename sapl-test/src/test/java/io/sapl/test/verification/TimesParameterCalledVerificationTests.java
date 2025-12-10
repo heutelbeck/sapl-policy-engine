@@ -17,7 +17,7 @@
  */
 package io.sapl.test.verification;
 
-import io.sapl.api.interpreter.Val;
+import io.sapl.api.model.Value;
 import io.sapl.test.SaplTestException;
 import io.sapl.test.mocking.MockCall;
 import org.hamcrest.Matcher;
@@ -30,8 +30,8 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.stream.Stream;
 
-import static io.sapl.hamcrest.Matchers.anyVal;
 import static org.assertj.core.api.Assertions.*;
+import static org.hamcrest.CoreMatchers.any;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.number.OrderingComparison.comparesEqualTo;
 
@@ -40,14 +40,16 @@ class TimesParameterCalledVerificationTests {
     @Test
     void test() {
         final var runInfo = new MockRunInformation("foo");
-        runInfo.saveCall(new MockCall(Val.of("bar"), Val.of(1)));
-        runInfo.saveCall(new MockCall(Val.of("xxx"), Val.of(2)));
-        runInfo.saveCall(new MockCall(Val.of("yyy"), Val.of(3)));
-        runInfo.saveCall(new MockCall(Val.of("xxx"), Val.of(2)));
+        runInfo.saveCall(new MockCall(Value.of("bar"), Value.of(1)));
+        runInfo.saveCall(new MockCall(Value.of("xxx"), Value.of(2)));
+        runInfo.saveCall(new MockCall(Value.of("yyy"), Value.of(3)));
+        runInfo.saveCall(new MockCall(Value.of("xxx"), Value.of(2)));
 
         final var matcher            = comparesEqualTo(2);
-        final var expectedParameters = List.of(is(Val.of("xxx")), is(Val.of(2)));
-        final var verification       = new TimesParameterCalledVerification(new TimesCalledVerification(matcher),
+        final var expectedParameters = new LinkedList<Matcher<Value>>();
+        expectedParameters.add(is(Value.of("xxx")));
+        expectedParameters.add(is(Value.of(2)));
+        final var verification = new TimesParameterCalledVerification(new TimesCalledVerification(matcher),
                 expectedParameters);
 
         assertThatNoException().isThrownBy(() -> verification.verify(runInfo));
@@ -62,15 +64,15 @@ class TimesParameterCalledVerificationTests {
     @Test
     void test_assertionError() {
         final var runInfo = new MockRunInformation("foo");
-        runInfo.saveCall(new MockCall(Val.of("bar"), Val.of(1)));
-        runInfo.saveCall(new MockCall(Val.of("xxx"), Val.of(2)));
-        runInfo.saveCall(new MockCall(Val.of("yyy"), Val.of(3)));
-        runInfo.saveCall(new MockCall(Val.of("xxx"), Val.of(3)));
+        runInfo.saveCall(new MockCall(Value.of("bar"), Value.of(1)));
+        runInfo.saveCall(new MockCall(Value.of("xxx"), Value.of(2)));
+        runInfo.saveCall(new MockCall(Value.of("yyy"), Value.of(3)));
+        runInfo.saveCall(new MockCall(Value.of("xxx"), Value.of(3)));
 
         final var matcher            = comparesEqualTo(2);
-        final var expectedParameters = new LinkedList<Matcher<Val>>();
-        expectedParameters.add(is(Val.of("xxx")));
-        expectedParameters.add(is(Val.of(2)));
+        final var expectedParameters = new LinkedList<Matcher<Value>>();
+        expectedParameters.add(is(Value.of("xxx")));
+        expectedParameters.add(is(Value.of(2)));
         final var verification = new TimesParameterCalledVerification(new TimesCalledVerification(matcher),
                 expectedParameters);
 
@@ -86,16 +88,16 @@ class TimesParameterCalledVerificationTests {
     @Test
     void test_assertionError_tooOftenCalled() {
         final var runInfo = new MockRunInformation("foo");
-        runInfo.saveCall(new MockCall(Val.of("bar"), Val.of(1)));
-        runInfo.saveCall(new MockCall(Val.of("xxx"), Val.of(2)));
-        runInfo.saveCall(new MockCall(Val.of("xxx"), Val.of(3)));
-        runInfo.saveCall(new MockCall(Val.of("xxx"), Val.of(3)));
+        runInfo.saveCall(new MockCall(Value.of("bar"), Value.of(1)));
+        runInfo.saveCall(new MockCall(Value.of("xxx"), Value.of(2)));
+        runInfo.saveCall(new MockCall(Value.of("xxx"), Value.of(3)));
+        runInfo.saveCall(new MockCall(Value.of("xxx"), Value.of(3)));
 
         final var matcher = comparesEqualTo(2);
 
-        final var expectedParameters = new LinkedList<Matcher<Val>>();
-        expectedParameters.add(is(Val.of("xxx")));
-        expectedParameters.add(anyVal());
+        final var expectedParameters = new LinkedList<Matcher<Value>>();
+        expectedParameters.add(is(Value.of("xxx")));
+        expectedParameters.add(any(Value.class));
         final var verification = new TimesParameterCalledVerification(new TimesCalledVerification(matcher),
                 expectedParameters);
 
@@ -111,15 +113,17 @@ class TimesParameterCalledVerificationTests {
     @Test
     void test_MultipleParameterTimesVerifications_WithAnyMatcher_OrderingMatters() {
         final var runInfo = new MockRunInformation("foo");
-        runInfo.saveCall(new MockCall(Val.of("bar"), Val.of(1)));
-        runInfo.saveCall(new MockCall(Val.of("xxx"), Val.of(2)));
-        runInfo.saveCall(new MockCall(Val.of("yyy"), Val.of(3)));
-        runInfo.saveCall(new MockCall(Val.of("xxx"), Val.of(3)));
+        runInfo.saveCall(new MockCall(Value.of("bar"), Value.of(1)));
+        runInfo.saveCall(new MockCall(Value.of("xxx"), Value.of(2)));
+        runInfo.saveCall(new MockCall(Value.of("yyy"), Value.of(3)));
+        runInfo.saveCall(new MockCall(Value.of("xxx"), Value.of(3)));
 
         final var matcher = comparesEqualTo(1);
 
-        final var expectedParameters = List.of(is(Val.of("xxx")), is(Val.of(2)));
-        final var verification       = new TimesParameterCalledVerification(new TimesCalledVerification(matcher),
+        final var expectedParameters = new LinkedList<Matcher<Value>>();
+        expectedParameters.add(is(Value.of("xxx")));
+        expectedParameters.add(is(Value.of(2)));
+        final var verification = new TimesParameterCalledVerification(new TimesCalledVerification(matcher),
                 expectedParameters);
 
         assertThatNoException().isThrownBy(() -> verification.verify(runInfo));
@@ -131,8 +135,10 @@ class TimesParameterCalledVerificationTests {
         assertThat(runInfo.getCalls().get(3).isUsed()).isFalse();
 
         final var matcher2            = comparesEqualTo(1);
-        final var expectedParameters2 = List.of(is(Val.of("xxx")), anyVal());
-        final var verification2       = new TimesParameterCalledVerification(new TimesCalledVerification(matcher2),
+        final var expectedParameters2 = new LinkedList<Matcher<Value>>();
+        expectedParameters2.add(is(Value.of("xxx")));
+        expectedParameters2.add(any(Value.class));
+        final var verification2 = new TimesParameterCalledVerification(new TimesCalledVerification(matcher2),
                 expectedParameters2);
 
         assertThatNoException().isThrownBy(() -> verification2.verify(runInfo));
@@ -161,16 +167,16 @@ class TimesParameterCalledVerificationTests {
     @MethodSource("provideTestCases")
     void verifyMessage(String given, String expected) {
         final var runInfo = new MockRunInformation("foo");
-        runInfo.saveCall(new MockCall(Val.of("bar"), Val.of(1)));
-        runInfo.saveCall(new MockCall(Val.of("xxx"), Val.of(2)));
-        runInfo.saveCall(new MockCall(Val.of("yyy"), Val.of(3)));
-        runInfo.saveCall(new MockCall(Val.of("xxx"), Val.of(3)));
+        runInfo.saveCall(new MockCall(Value.of("bar"), Value.of(1)));
+        runInfo.saveCall(new MockCall(Value.of("xxx"), Value.of(2)));
+        runInfo.saveCall(new MockCall(Value.of("yyy"), Value.of(3)));
+        runInfo.saveCall(new MockCall(Value.of("xxx"), Value.of(3)));
 
         final var matcher = comparesEqualTo(2);
 
-        final var expectedParameters = new LinkedList<Matcher<Val>>();
-        expectedParameters.add(is(Val.of("xxx")));
-        expectedParameters.add(is(Val.of(2)));
+        final var expectedParameters = new LinkedList<Matcher<Value>>();
+        expectedParameters.add(is(Value.of("xxx")));
+        expectedParameters.add(is(Value.of(2)));
         final var verification = new TimesParameterCalledVerification(new TimesCalledVerification(matcher),
                 expectedParameters);
 
@@ -187,14 +193,14 @@ class TimesParameterCalledVerificationTests {
     @Test
     void test_Exception_CountOfExpectedParameterNotEqualsFunctionCallParametersCount() {
         final var runInfo = new MockRunInformation("foo");
-        runInfo.saveCall(new MockCall(Val.of("bar"), Val.of(1)));
-        runInfo.saveCall(new MockCall(Val.of("xxx"), Val.of(2)));
-        runInfo.saveCall(new MockCall(Val.of("yyy"), Val.of(3)));
-        runInfo.saveCall(new MockCall(Val.of("xxx"), Val.of(3)));
+        runInfo.saveCall(new MockCall(Value.of("bar"), Value.of(1)));
+        runInfo.saveCall(new MockCall(Value.of("xxx"), Value.of(2)));
+        runInfo.saveCall(new MockCall(Value.of("yyy"), Value.of(3)));
+        runInfo.saveCall(new MockCall(Value.of("xxx"), Value.of(3)));
 
         final var matcher            = comparesEqualTo(2);
-        final var expectedParameters = new LinkedList<Matcher<Val>>();
-        expectedParameters.add(is(Val.of("xxx")));
+        final var expectedParameters = new LinkedList<Matcher<Value>>();
+        expectedParameters.add(is(Value.of("xxx")));
         final var verification = new TimesParameterCalledVerification(new TimesCalledVerification(matcher),
                 expectedParameters);
 

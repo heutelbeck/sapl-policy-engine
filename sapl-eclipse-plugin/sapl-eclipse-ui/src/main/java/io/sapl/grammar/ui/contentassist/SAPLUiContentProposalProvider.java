@@ -18,21 +18,25 @@
 package io.sapl.grammar.ui.contentassist;
 
 import com.google.inject.Inject;
+import io.sapl.grammar.ide.contentassist.ContentAssistConfigurationSource;
 import io.sapl.grammar.ide.contentassist.SAPLContentProposalProvider;
-import io.sapl.pdp.config.PDPConfigurationProvider;
 
+/**
+ * Eclipse UI adapter for content assist. Wires the injected configuration
+ * source into the base proposal provider.
+ */
 public class SAPLUiContentProposalProvider extends SAPLContentProposalProvider {
 
-    private PDPConfigurationProvider pdpConfigurationProvider;
+    private ContentAssistConfigurationSource contentAssistConfigurationSource;
 
     @Inject
-    public SAPLUiContentProposalProvider(PDPConfigurationProvider pdpConfigurationProvider) {
-        this.pdpConfigurationProvider = pdpConfigurationProvider;
+    public SAPLUiContentProposalProvider(ContentAssistConfigurationSource contentAssistConfigurationSource) {
+        this.contentAssistConfigurationSource = contentAssistConfigurationSource;
     }
 
     @Override
-    protected PDPConfigurationProvider getContentAssistConfigurationSource() {
-        return pdpConfigurationProvider;
+    protected ContentAssistConfigurationSource getContentAssistConfigurationSource() {
+        return contentAssistConfigurationSource;
     }
 
 }

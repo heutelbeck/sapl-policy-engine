@@ -17,15 +17,12 @@
  */
 package io.sapl.test.dsl.interpreter;
 
+import io.sapl.api.attributes.PolicyInformationPoint;
 import io.sapl.api.functions.FunctionLibrary;
-import io.sapl.api.pip.PolicyInformationPoint;
-import io.sapl.interpreter.InitializationException;
 import io.sapl.test.SaplTestException;
 import io.sapl.test.SaplTestFixture;
 import io.sapl.test.grammar.sapltest.*;
-import io.sapl.test.integration.SaplIntegrationTestFixture;
 import lombok.RequiredArgsConstructor;
-import lombok.SneakyThrows;
 
 import java.lang.Object;
 import java.lang.annotation.Annotation;
@@ -36,28 +33,22 @@ import java.util.Objects;
 @RequiredArgsConstructor
 class DefaultTestFixtureConstructor {
 
-    private final DocumentInterpreter     documentInterpreter;
-    private final PdpConfigurationHandler pdpConfigurationHandler;
+    private final DocumentInterpreter documentInterpreter;
 
-    SaplTestFixture constructTestFixture(final Document document, final PdpVariables pdpVariables,
-            final PdpCombiningAlgorithm pdpCombiningAlgorithm, final List<GivenStep> givenSteps,
+    SaplTestFixture constructTestFixture(final Document document, final PdpVariables ignoredPdpVariables,
+            final PdpCombiningAlgorithm ignoredPdpCombiningAlgorithm, final List<GivenStep> givenSteps,
             final Map<ImportType, Map<String, Object>> fixtureRegistrations) {
 
         var saplTestFixture = documentInterpreter.getFixtureFromDocument(document);
 
         if (saplTestFixture == null) {
-            throw new SaplTestException("TestFixture is null");
-        }
-
-        if (saplTestFixture instanceof SaplIntegrationTestFixture integrationTestFixture) {
-            saplTestFixture = pdpConfigurationHandler.applyPdpConfigurationToFixture(integrationTestFixture,
-                    pdpVariables, pdpCombiningAlgorithm);
+            throw new SaplTestException("TestFixture is null.");
         }
 
         if (givenSteps != null) {
 
             if (givenSteps.stream().anyMatch(Objects::isNull)) {
-                throw new SaplTestException("GivenStep is null");
+                throw new SaplTestException("GivenStep is null.");
             }
 
             final var imports = givenSteps.stream().filter(Import.class::isInstance).map(Import.class::cast).toList();
@@ -68,7 +59,6 @@ class DefaultTestFixtureConstructor {
         return saplTestFixture;
     }
 
-    @SneakyThrows
     private void handleFixtureRegistrations(final SaplTestFixture fixture, final List<Import> imports,
             final Map<ImportType, Map<String, Object>> fixtureRegistrations) {
         for (var specificImport : imports) {
@@ -91,30 +81,27 @@ class DefaultTestFixtureConstructor {
         }
     }
 
-    private void handlePip(final SaplTestFixture fixture, final Object registration, final String identifier)
-            throws InitializationException {
+    private void handlePip(final SaplTestFixture fixture, final Object registration, final String identifier) {
         checkForValidRegistration(registration, PolicyInformationPoint.class, identifier);
 
         fixture.registerPIP(registration);
     }
 
-    private void handleStaticPip(final SaplTestFixture fixture, final Object registration, final String identifier)
-            throws InitializationException {
-
+    private void handleStaticPip(final SaplTestFixture fixture, final Object registration, final String identifier) {
         final var pipClass = checkForClassTypeRegistration(registration, PolicyInformationPoint.class, identifier);
 
         fixture.registerPIP(pipClass);
     }
 
     private void handleFunctionLibrary(final SaplTestFixture fixture, final Object registration,
-            final String identifier) throws InitializationException {
+            final String identifier) {
         checkForValidRegistration(registration, FunctionLibrary.class, identifier);
 
         fixture.registerFunctionLibrary(registration);
     }
 
     private void handleStaticFunctionLibrary(final SaplTestFixture fixture, final Object registration,
-            final String identifier) throws InitializationException {
+            final String identifier) {
         final var functionLibraryClass = checkForClassTypeRegistration(registration, FunctionLibrary.class, identifier);
 
         fixture.registerFunctionLibrary(functionLibraryClass);

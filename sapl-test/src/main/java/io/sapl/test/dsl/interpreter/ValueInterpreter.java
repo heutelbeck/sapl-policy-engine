@@ -17,91 +17,94 @@
  */
 package io.sapl.test.dsl.interpreter;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import io.sapl.api.interpreter.Val;
+import io.sapl.api.model.ArrayValue;
+import io.sapl.api.model.ErrorValue;
+import io.sapl.api.model.ObjectValue;
+import io.sapl.api.model.Value;
 import io.sapl.test.SaplTestException;
-import io.sapl.test.grammar.sapltest.*;
-import lombok.RequiredArgsConstructor;
+import io.sapl.test.grammar.sapltest.Array;
+import io.sapl.test.grammar.sapltest.FalseLiteral;
+import io.sapl.test.grammar.sapltest.NullLiteral;
+import io.sapl.test.grammar.sapltest.NumberLiteral;
+import io.sapl.test.grammar.sapltest.Pair;
+import io.sapl.test.grammar.sapltest.StringLiteral;
+import io.sapl.test.grammar.sapltest.TrueLiteral;
+import io.sapl.test.grammar.sapltest.UndefinedLiteral;
 
 import java.util.Collections;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-@RequiredArgsConstructor
 class ValueInterpreter {
 
-    private final ObjectMapper objectMapper;
-
-    Val getValFromValue(final Value value) {
+    Value getValueFromDslValue(io.sapl.test.grammar.sapltest.Value value) {
         if (value instanceof NumberLiteral numberLiteral) {
-            final var number = numberLiteral.getNumber();
+            var number = numberLiteral.getNumber();
 
             if (number == null) {
-                throw new SaplTestException("Number is null");
+                throw new SaplTestException("Number is null.");
             }
 
-            return Val.of(number);
+            return Value.of(number);
         } else if (value instanceof StringLiteral stringLiteral) {
-            final var string = stringLiteral.getString();
+            var string = stringLiteral.getString();
 
             if (string == null) {
-                throw new SaplTestException("String is null");
+                throw new SaplTestException("String is null.");
             }
 
-            return Val.of(string);
+            return Value.of(string);
         } else if (value instanceof FalseLiteral) {
-            return Val.of(false);
+            return Value.FALSE;
         } else if (value instanceof TrueLiteral) {
-            return Val.of(true);
+            return Value.TRUE;
         } else if (value instanceof NullLiteral) {
-            return Val.NULL;
+            return Value.NULL;
         } else if (value instanceof UndefinedLiteral) {
-            return Val.UNDEFINED;
-        } else if (value instanceof ErrorValue errorValue) {
-            final var message = errorValue.getMessage();
-            return Val.error(message);
+            return Value.UNDEFINED;
+        } else if (value instanceof io.sapl.test.grammar.sapltest.ErrorValue errorValue) {
+            var message = errorValue.getMessage();
+            return new ErrorValue(message);
         } else if (value instanceof Array array) {
             return interpretArray(array);
         } else if (value instanceof io.sapl.test.grammar.sapltest.Object object) {
             return interpretObject(object);
         }
-        throw new SaplTestException("Unknown type of Value");
+        throw new SaplTestException("Unknown type of Value.");
     }
 
-    private Val interpretArray(final Array array) {
-        final var items = array.getItems();
+    private Value interpretArray(Array array) {
+        var items = array.getItems();
 
         if (items == null || items.isEmpty()) {
-            return Val.ofEmptyArray();
+            return Value.EMPTY_ARRAY;
         }
 
-        final var mappedItems = array.getItems().stream().map(item -> getValFromValue(item).get()).toList();
-
-        final var arrayNode = objectMapper.createArrayNode();
-        arrayNode.addAll(mappedItems);
-
-        return Val.of(arrayNode);
+        var builder = ArrayValue.builder();
+        for (var item : items) {
+            builder.add(getValueFromDslValue(item));
+        }
+        return builder.build();
     }
 
-    private Val interpretObject(final io.sapl.test.grammar.sapltest.Object object) {
-        final var objectProperties = destructureObject(object);
+    private Value interpretObject(io.sapl.test.grammar.sapltest.Object object) {
+        var objectProperties = destructureObject(object);
 
         if (objectProperties.isEmpty()) {
-            return Val.ofEmptyObject();
+            return Value.EMPTY_OBJECT;
         }
 
-        final var objectNode = objectMapper.createObjectNode();
-        objectNode.setAll(objectProperties);
-        return Val.of(objectNode);
+        var builder = ObjectValue.builder();
+        objectProperties.forEach(builder::put);
+        return builder.build();
     }
 
-    Map<String, JsonNode> destructureObject(final io.sapl.test.grammar.sapltest.Object object) {
+    Map<String, Value> destructureObject(io.sapl.test.grammar.sapltest.Object object) {
         if (object == null || object.getMembers() == null) {
             return Collections.emptyMap();
         }
 
         return object.getMembers().stream().collect(Collectors.toMap(Pair::getKey,
-                pair -> getValFromValue(pair.getValue()).get(), (oldVal, newVal) -> newVal));
+                pair -> getValueFromDslValue(pair.getValue()), (oldVal, newVal) -> newVal));
     }
 }

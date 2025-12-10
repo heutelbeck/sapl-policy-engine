@@ -19,98 +19,36 @@ package io.sapl.test.dsl.interpreter;
 
 import io.sapl.test.SaplTestException;
 import io.sapl.test.SaplTestFixture;
-import io.sapl.test.dsl.interfaces.IntegrationTestPolicyResolver;
 import io.sapl.test.dsl.interfaces.UnitTestPolicyResolver;
 import io.sapl.test.grammar.sapltest.Document;
-import io.sapl.test.grammar.sapltest.DocumentSet;
-import io.sapl.test.grammar.sapltest.DocumentSetWithSingleIdentifier;
 import io.sapl.test.grammar.sapltest.SingleDocument;
-import io.sapl.test.integration.SaplIntegrationTestFixture;
 import lombok.RequiredArgsConstructor;
 
 @RequiredArgsConstructor
 class DocumentInterpreter {
 
-    private final UnitTestPolicyResolver        customUnitTestPolicyResolver;
-    private final IntegrationTestPolicyResolver customIntegrationTestPolicyResolver;
+    private final UnitTestPolicyResolver customUnitTestPolicyResolver;
 
     SaplTestFixture getFixtureFromDocument(final Document document) {
-        SaplTestFixture saplTestFixture;
-
         if (document == null) {
             throw new SaplTestException("No Document available");
         }
 
         if (document instanceof SingleDocument singleDocument) {
-            saplTestFixture = getUnitTestFixtureFromSingleDocument(singleDocument);
-        } else {
-            saplTestFixture = getIntegrationTestFixtureFromSetOfDocuments(document);
+            return getUnitTestFixtureFromSingleDocument(singleDocument);
         }
 
-        return saplTestFixture;
+        // Integration tests are not yet supported in the new compiler API
+        throw new SaplTestException(
+                "Integration tests (multiple documents) are not yet supported. Please use unit tests with single documents.");
     }
 
     private SaplTestFixture getUnitTestFixtureFromSingleDocument(final SingleDocument singleDocument) {
         if (customUnitTestPolicyResolver == null) {
             return SaplUnitTestFixtureFactory.create(singleDocument.getIdentifier());
-        } else {
-            return SaplUnitTestFixtureFactory.createFromInputString(
-                    customUnitTestPolicyResolver.resolvePolicyByIdentifier(singleDocument.getIdentifier()));
         }
+        return SaplUnitTestFixtureFactory.createFromInputString(
+                customUnitTestPolicyResolver.resolvePolicyByIdentifier(singleDocument.getIdentifier()));
     }
 
-    private SaplTestFixture getIntegrationTestFixtureFromSetOfDocuments(final Document document) {
-        SaplIntegrationTestFixture integrationTestFixture;
-
-        switch (document) {
-        case DocumentSetWithSingleIdentifier documentSetWithSingleIdentifier ->
-            integrationTestFixture = handleDocumentSetWithSingleIdentifier(documentSetWithSingleIdentifier);
-        case DocumentSet documentSet                                         ->
-            integrationTestFixture = handleDocumentSet(documentSet);
-        default                                                              ->
-            throw new SaplTestException("Unknown type of Document");
-        }
-
-        return integrationTestFixture;
-    }
-
-    private SaplIntegrationTestFixture handleDocumentSetWithSingleIdentifier(
-            final DocumentSetWithSingleIdentifier documentSetWithSingleIdentifier) {
-        SaplIntegrationTestFixture integrationTestFixture;
-        final var                  identifier = documentSetWithSingleIdentifier.getIdentifier();
-
-        if (customIntegrationTestPolicyResolver == null) {
-            integrationTestFixture = SaplIntegrationTestFixtureFactory.create(identifier);
-        } else {
-            final var config = customIntegrationTestPolicyResolver.resolveConfigurationByIdentifier(identifier);
-
-            integrationTestFixture = SaplIntegrationTestFixtureFactory
-                    .createFromInputStrings(config.getDocumentInputStrings(), config.getPDPConfigurationInputString());
-        }
-        return integrationTestFixture;
-    }
-
-    private SaplIntegrationTestFixture handleDocumentSet(final DocumentSet documentSet) {
-        SaplIntegrationTestFixture integrationTestFixture;
-        var                        pdpConfig   = documentSet.getPdpConfigurationIdentifier();
-        final var                  identifiers = documentSet.getIdentifiers();
-
-        if (identifiers == null || identifiers.size() < 2) {
-            throw new SaplTestException("No policies to test integration for");
-        }
-
-        if (customIntegrationTestPolicyResolver == null) {
-            integrationTestFixture = SaplIntegrationTestFixtureFactory.create(pdpConfig, identifiers);
-        } else {
-            final var saplDocumentStrings = identifiers.stream()
-                    .map(customIntegrationTestPolicyResolver::resolvePolicyByIdentifier).toList();
-
-            if (pdpConfig != null) {
-                pdpConfig = customIntegrationTestPolicyResolver.resolvePDPConfigurationByIdentifier(pdpConfig);
-            }
-            integrationTestFixture = SaplIntegrationTestFixtureFactory.createFromInputStrings(saplDocumentStrings,
-                    pdpConfig);
-        }
-        return integrationTestFixture;
-    }
 }

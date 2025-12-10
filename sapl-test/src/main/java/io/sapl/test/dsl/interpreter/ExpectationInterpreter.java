@@ -139,7 +139,7 @@ class ExpectationInterpreter {
         for (var step : adjustSteps) {
             switch (step) {
             case AttributeAdjustment attributeAdjustment -> {
-                final var returnValue = valueInterpreter.getValFromValue(attributeAdjustment.getReturnValue());
+                var returnValue = valueInterpreter.getValueFromDslValue(attributeAdjustment.getReturnValue());
                 expectStep = expectStep.thenAttribute(attributeAdjustment.getAttribute(), returnValue);
             }
             case Await await                             -> {

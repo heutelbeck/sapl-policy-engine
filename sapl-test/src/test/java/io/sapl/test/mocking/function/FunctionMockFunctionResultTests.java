@@ -17,7 +17,8 @@
  */
 package io.sapl.test.mocking.function;
 
-import io.sapl.api.interpreter.Val;
+import io.sapl.api.model.NumberValue;
+import io.sapl.api.model.Value;
 import org.junit.jupiter.api.Test;
 
 import java.util.function.Function;
@@ -27,24 +28,24 @@ import static org.assertj.core.api.Assertions.*;
 
 class FunctionMockFunctionResultTests {
 
-    private final Function<Val[], Val> returns = call -> {
-        final var param0 = call[0].get().asDouble();
-        final var param1 = call[1].get().asDouble();
-        return param0 % param1 == 0 ? Val.of(true) : Val.of(false);
+    private final Function<Value[], Value> returns = call -> {
+        final var param0 = ((NumberValue) call[0]).value().doubleValue();
+        final var param1 = ((NumberValue) call[1]).value().doubleValue();
+        return param0 % param1 == 0 ? Value.of(true) : Value.of(false);
     };
 
     @Test
     void test() {
         final var mock = new FunctionMockFunctionResult("foo", returns, times(1));
-        assertThat(mock.evaluateFunctionCall(Val.of(4), Val.of(2))).isEqualTo(Val.of(true));
+        assertThat(mock.evaluateFunctionCall(Value.of(4), Value.of(2))).isEqualTo(Value.of(true));
     }
 
     @Test
     void test_multipleTimes() {
         final var mock = new FunctionMockFunctionResult("foo", returns, times(3));
-        assertThat(mock.evaluateFunctionCall(Val.of(4), Val.of(2))).isEqualTo(Val.of(true));
-        assertThat(mock.evaluateFunctionCall(Val.of(4), Val.of(3))).isEqualTo(Val.of(false));
-        assertThat(mock.evaluateFunctionCall(Val.of(4), Val.of(4))).isEqualTo(Val.of(true));
+        assertThat(mock.evaluateFunctionCall(Value.of(4), Value.of(2))).isEqualTo(Value.of(true));
+        assertThat(mock.evaluateFunctionCall(Value.of(4), Value.of(3))).isEqualTo(Value.of(false));
+        assertThat(mock.evaluateFunctionCall(Value.of(4), Value.of(4))).isEqualTo(Value.of(true));
 
         assertThatNoException().isThrownBy(mock::assertVerifications);
     }
@@ -57,7 +58,7 @@ class FunctionMockFunctionResultTests {
 
     @Test
     void test_invalidNumberParams_TooLess_Exception() {
-        final var val4 = Val.of(4);
+        final var val4 = Value.of(4);
         final var mock = new FunctionMockFunctionResult("foo", returns, times(1));
         assertThatExceptionOfType(IndexOutOfBoundsException.class).isThrownBy(() -> mock.evaluateFunctionCall(val4));
     }
@@ -65,7 +66,7 @@ class FunctionMockFunctionResultTests {
     @Test
     void test_invalidNumberParams_TooMuch_Ignored() {
         final var mock = new FunctionMockFunctionResult("foo", returns, times(1));
-        assertThat(mock.evaluateFunctionCall(Val.of(4), Val.of(2), Val.of("ignored"))).isEqualTo(Val.of(true));
+        assertThat(mock.evaluateFunctionCall(Value.of(4), Value.of(2), Value.of("ignored"))).isEqualTo(Value.of(true));
     }
 
 }

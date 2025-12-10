@@ -17,7 +17,7 @@
  */
 package io.sapl.test.mocking.function.models;
 
-import io.sapl.api.interpreter.Val;
+import io.sapl.api.model.Value;
 import org.hamcrest.Matcher;
 
 import java.util.Arrays;
@@ -25,14 +25,14 @@ import java.util.List;
 
 public class FunctionParameters {
 
-    private final List<Matcher<Val>> matchers;
+    private final List<Matcher<Value>> matchers;
 
     @SafeVarargs
-    public FunctionParameters(Matcher<Val>... matcher) {
+    public FunctionParameters(Matcher<Value>... matcher) {
         this.matchers = Arrays.asList(matcher);
     }
 
-    public List<Matcher<Val>> getParameterMatchers() {
+    public List<Matcher<Value>> getParameterMatchers() {
         return this.matchers;
     }
 

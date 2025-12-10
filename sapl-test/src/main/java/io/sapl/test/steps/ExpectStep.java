@@ -17,7 +17,7 @@
  */
 package io.sapl.test.steps;
 
-import io.sapl.api.interpreter.Val;
+import io.sapl.api.model.Value;
 import io.sapl.api.pdp.AuthorizationDecision;
 import org.hamcrest.Matcher;
 
@@ -208,7 +208,7 @@ public interface ExpectStep {
      * @return {@link ExpectOrVerifyStep} to define another {@link ExpectStep} or
      * {@link VerifyStep}
      */
-    ExpectOrVerifyStep thenAttribute(String importName, Val returns);
+    ExpectOrVerifyStep thenAttribute(String importName, Value returns);
 
     // handle virtual time
 

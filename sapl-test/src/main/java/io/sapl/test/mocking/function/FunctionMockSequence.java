@@ -17,25 +17,25 @@
  */
 package io.sapl.test.mocking.function;
 
-import io.sapl.api.interpreter.Val;
+import io.sapl.api.model.Value;
 import io.sapl.test.SaplTestException;
 import io.sapl.test.mocking.MockCall;
 import io.sapl.test.verification.MockRunInformation;
 
-import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.LinkedList;
 
 import static io.sapl.test.Imports.times;
 
 public class FunctionMockSequence implements FunctionMock {
 
-    private static final String ERROR_DUPLICATE_MOCK_REGISTRATION_SEQUENCE = "You already defined a Mock for %s which is returning a sequence of values";
+    private static final String ERROR_DUPLICATE_MOCK_REGISTRATION_SEQUENCE = "You already defined a Mock for %s which is returning a sequence of values.";
 
-    private static final String ERROR_SEQUENCE_EMPTY = "You defined a Mock for %s returning a sequence of Val's but was called more often than mock return values specified";
+    private static final String ERROR_SEQUENCE_EMPTY = "You defined a Mock for %s returning a sequence of Values but was called more often than mock return values specified.";
 
     private final String fullName;
 
-    private final LinkedList<Val> listMockReturnValues;
+    private final LinkedList<Value> listMockReturnValues;
 
     private final MockRunInformation mockRunInformation;
 
@@ -49,14 +49,14 @@ public class FunctionMockSequence implements FunctionMock {
     }
 
     @Override
-    public Val evaluateFunctionCall(Val... parameter) {
+    public Value evaluateFunctionCall(Value... parameter) {
         this.mockRunInformation.saveCall(new MockCall(parameter));
 
         if (!this.listMockReturnValues.isEmpty()) {
-            // if so, take the first element from the FIFO list and return this Val
+            // if so, take the first element from the FIFO list and return this Value
             return this.listMockReturnValues.removeFirst();
         } else {
-            throw new SaplTestException(String.format(ERROR_SEQUENCE_EMPTY, this.fullName));
+            throw new SaplTestException(ERROR_SEQUENCE_EMPTY.formatted(this.fullName));
         }
     }
 
@@ -65,18 +65,14 @@ public class FunctionMockSequence implements FunctionMock {
         times(this.numberOfReturnValues).verify(this.mockRunInformation);
     }
 
-    public void loadMockReturnValue(Val[] mockReturnValueSequence) {
-        final var tracedMockValues = new ArrayList<Val>(mockReturnValueSequence.length);
-        for (var val : mockReturnValueSequence) {
-            tracedMockValues.add(val.withTrace(FunctionMockSequence.class));
-        }
-        this.listMockReturnValues.addAll(tracedMockValues);
+    public void loadMockReturnValue(Value[] mockReturnValueSequence) {
+        this.listMockReturnValues.addAll(Arrays.asList(mockReturnValueSequence));
         this.numberOfReturnValues = this.numberOfReturnValues + mockReturnValueSequence.length;
     }
 
     @Override
     public String getErrorMessageForCurrentMode() {
-        return String.format(ERROR_DUPLICATE_MOCK_REGISTRATION_SEQUENCE, this.fullName);
+        return ERROR_DUPLICATE_MOCK_REGISTRATION_SEQUENCE.formatted(this.fullName);
     }
 
 }

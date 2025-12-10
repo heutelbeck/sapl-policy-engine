@@ -17,7 +17,7 @@
  */
 package io.sapl.test.dsl.setup;
 
-import io.sapl.interpreter.InputStreamHelper;
+import io.sapl.parser.InputStreamHelper;
 import io.sapl.test.SaplTestException;
 import io.sapl.test.dsl.interfaces.SaplTestInterpreter;
 import io.sapl.test.grammar.SAPLTestStandaloneSetup;

@@ -17,7 +17,7 @@
  */
 package io.sapl.test;
 
-import io.sapl.api.interpreter.Val;
+import io.sapl.api.model.Value;
 import io.sapl.test.mocking.MockCall;
 import io.sapl.test.verification.MockRunInformation;
 import org.junit.jupiter.api.Test;
@@ -34,8 +34,8 @@ class ImportsTests {
     @Test
     void test_times_specificNumber() {
         final var mockRunInformation = new MockRunInformation("test.test");
-        mockRunInformation.saveCall(new MockCall(Val.of(1)));
-        mockRunInformation.saveCall(new MockCall(Val.of(1)));
+        mockRunInformation.saveCall(new MockCall(Value.of(1)));
+        mockRunInformation.saveCall(new MockCall(Value.of(1)));
         final var verification = times(2);
 
         var isAssertionErrorThrown = false;
@@ -51,7 +51,7 @@ class ImportsTests {
     @Test
     void test_times_specificNumber_failure() {
         final var mockRunInformation = new MockRunInformation("test.test");
-        mockRunInformation.saveCall(new MockCall(Val.of(1)));
+        mockRunInformation.saveCall(new MockCall(Value.of(1)));
         final var verification = times(2);
 
         var isAssertionErrorThrown = false;
@@ -82,7 +82,7 @@ class ImportsTests {
     @Test
     void test_times_never_failure() {
         final var mockRunInformation = new MockRunInformation("test.test");
-        mockRunInformation.saveCall(new MockCall(Val.of(1)));
+        mockRunInformation.saveCall(new MockCall(Value.of(1)));
         final var verification = never();
 
         var isAssertionErrorThrown = false;
@@ -113,7 +113,7 @@ class ImportsTests {
     @Test
     void test_times_anyTimes_1() {
         final var mockRunInformation = new MockRunInformation("test.test");
-        mockRunInformation.saveCall(new MockCall(Val.of(1)));
+        mockRunInformation.saveCall(new MockCall(Value.of(1)));
         final var verification = anyTimes();
 
         var isAssertionErrorThrown = false;
@@ -129,10 +129,10 @@ class ImportsTests {
     @Test
     void test_times_anyTimes_N() {
         final var mockRunInformation = new MockRunInformation("test.test");
-        mockRunInformation.saveCall(new MockCall(Val.of(1)));
-        mockRunInformation.saveCall(new MockCall(Val.of(1)));
-        mockRunInformation.saveCall(new MockCall(Val.of(1)));
-        mockRunInformation.saveCall(new MockCall(Val.of(1)));
+        mockRunInformation.saveCall(new MockCall(Value.of(1)));
+        mockRunInformation.saveCall(new MockCall(Value.of(1)));
+        mockRunInformation.saveCall(new MockCall(Value.of(1)));
+        mockRunInformation.saveCall(new MockCall(Value.of(1)));
         final var verification = anyTimes();
 
         var isAssertionErrorThrown = false;

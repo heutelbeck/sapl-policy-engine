@@ -9,8 +9,7 @@ Bundle-SymbolicName: sapl-eclipse-ui; singleton:=true
 Bundle-ActivationPolicy: lazy
 Require-Bundle: sapl-lang,
  sapl-ide,
- sapl-pdp-embedded,
- sapl-extensions-api,
+ sapl-pdp,
  io.projectreactor.reactor-core,
  org.eclipse.xtext.ui,
  org.eclipse.xtext.ui.shared,
