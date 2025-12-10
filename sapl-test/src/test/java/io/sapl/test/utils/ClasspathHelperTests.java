@@ -17,7 +17,7 @@
  */
 package io.sapl.test.utils;
 
-import io.sapl.test.SaplTestException;
+import io.sapl.test.lang.SaplTestException;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 

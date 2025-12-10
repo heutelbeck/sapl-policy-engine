@@ -1,6 +1,0 @@
-policy "policy read"
-permit
-    1/0 == false
-
-
-

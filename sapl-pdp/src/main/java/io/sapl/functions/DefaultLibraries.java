@@ -36,6 +36,7 @@ public class DefaultLibraries {
             CidrFunctionLibrary.class,
             CsvFunctionLibrary.class,
             DigestFunctionLibrary.class,
+            EncodingFunctionLibrary.class,
             FilterFunctionLibrary.class,
             GraphFunctionLibrary.class,
             GraphQLFunctionLibrary.class,

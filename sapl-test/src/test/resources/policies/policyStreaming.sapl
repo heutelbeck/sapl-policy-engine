@@ -1,7 +1,0 @@
-policy "policyStreaming"
-permit
-  resource == "heartBeatData"
-where
-  subject == "ROLE_DOCTOR";
-  var interval = 2;
-  time.secondOf(<time.now(interval)>) > 4;

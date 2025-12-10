@@ -1,5 +1,0 @@
-policy "policy_A"
-deny
-    resource == "foo"
-where
-    "WILLI" == subject;

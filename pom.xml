@@ -142,9 +142,8 @@
         <module>sapl-pdp</module>
 
         <module>sapl-coverage-api</module>
+        <module>sapl-test-lang</module>
 		<module>sapl-test</module>
-		<module>sapl-test-junit</module>
-		<module>sapl-test-lang</module>
 		<module>sapl-test-ide</module>
 		<module>sapl-test-web</module>		
 		<module>sapl-maven-plugin</module>
