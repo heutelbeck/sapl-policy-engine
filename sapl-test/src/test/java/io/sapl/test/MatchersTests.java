@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.test.next;
+package io.sapl.test;
 
 import io.sapl.api.model.Value;
 import org.junit.jupiter.api.Test;
@@ -26,19 +26,19 @@ import org.junit.jupiter.params.provider.ValueSource;
 
 import java.util.stream.Stream;
 
-import static io.sapl.test.next.Matchers.any;
-import static io.sapl.test.next.Matchers.anyArray;
-import static io.sapl.test.next.Matchers.anyBoolean;
-import static io.sapl.test.next.Matchers.anyNumber;
-import static io.sapl.test.next.Matchers.anyObject;
-import static io.sapl.test.next.Matchers.anyText;
-import static io.sapl.test.next.Matchers.args;
-import static io.sapl.test.next.Matchers.eq;
-import static io.sapl.test.next.Matchers.greaterThan;
-import static io.sapl.test.next.Matchers.lessThan;
-import static io.sapl.test.next.Matchers.matching;
-import static io.sapl.test.next.Matchers.textContaining;
-import static io.sapl.test.next.Matchers.textMatching;
+import static io.sapl.test.Matchers.any;
+import static io.sapl.test.Matchers.anyArray;
+import static io.sapl.test.Matchers.anyBoolean;
+import static io.sapl.test.Matchers.anyNumber;
+import static io.sapl.test.Matchers.anyObject;
+import static io.sapl.test.Matchers.anyText;
+import static io.sapl.test.Matchers.args;
+import static io.sapl.test.Matchers.eq;
+import static io.sapl.test.Matchers.greaterThan;
+import static io.sapl.test.Matchers.lessThan;
+import static io.sapl.test.Matchers.matching;
+import static io.sapl.test.Matchers.textContaining;
+import static io.sapl.test.Matchers.textMatching;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 

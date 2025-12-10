@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.test.next;
+package io.sapl.test;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.sapl.api.model.Value;
@@ -27,8 +27,8 @@ import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
 
-import static io.sapl.test.next.Matchers.any;
-import static io.sapl.test.next.Matchers.args;
+import static io.sapl.test.Matchers.any;
+import static io.sapl.test.Matchers.args;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 

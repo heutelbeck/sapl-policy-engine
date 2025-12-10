@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.test.next;
+package io.sapl.test;
 
 import io.sapl.api.model.TextValue;
 import io.sapl.api.model.Value;
@@ -30,10 +30,10 @@ import org.junit.jupiter.params.provider.MethodSource;
 import java.util.List;
 import java.util.stream.Stream;
 
-import static io.sapl.test.next.DecisionMatchers.isDeny;
-import static io.sapl.test.next.DecisionMatchers.isIndeterminate;
-import static io.sapl.test.next.DecisionMatchers.isNotApplicable;
-import static io.sapl.test.next.DecisionMatchers.isPermit;
+import static io.sapl.test.DecisionMatchers.isDeny;
+import static io.sapl.test.DecisionMatchers.isIndeterminate;
+import static io.sapl.test.DecisionMatchers.isNotApplicable;
+import static io.sapl.test.DecisionMatchers.isPermit;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 

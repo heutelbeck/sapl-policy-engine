@@ -1,0 +1,114 @@
+/*
+ * Copyright (C) 2017-2025 Dominic Heutelbeck (dominic@heutelbeck.com)
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package io.sapl.test.lang;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
+import org.junit.jupiter.api.Test;
+
+class SaplTestParserTests {
+
+    @Test
+    void whenValidTestDefinition_thenParsesSuccessfully() {
+        var testDefinition = """
+                requirement "basic access control" {
+                    scenario "permit admin access"
+                        given
+                            - policy "policies/admin.sapl"
+                        when subject "admin" attempts action "read" on resource "document"
+                        expect permit;
+                }
+                """;
+
+        var result = SaplTestParser.parse(testDefinition);
+
+        assertThat(result).isNotNull();
+        assertThat(result.getRequirements()).hasSize(1);
+        assertThat(result.getRequirements().getFirst().getName()).isEqualTo("basic access control");
+        assertThat(result.getRequirements().getFirst().getScenarios()).hasSize(1);
+        assertThat(result.getRequirements().getFirst().getScenarios().getFirst().getName())
+                .isEqualTo("permit admin access");
+    }
+
+    @Test
+    void whenMultipleScenarios_thenAllAreParsed() {
+        var testDefinition = """
+                requirement "multi-scenario test" {
+                    scenario "scenario one"
+                        given
+                            - policy "policy.sapl"
+                        when subject "user" attempts action "read" on resource "data"
+                        expect permit;
+
+                    scenario "scenario two"
+                        when subject "guest" attempts action "write" on resource "data"
+                        expect deny;
+                }
+                """;
+
+        var result = SaplTestParser.parse(testDefinition);
+
+        assertThat(result.getRequirements().getFirst().getScenarios()).hasSize(2);
+    }
+
+    @Test
+    void whenInvalidSyntax_thenThrowsParseException() {
+        var invalidTestDefinition = """
+                requirement "broken" {
+                    scenario "missing when"
+                        given
+                            - policy "test.sapl"
+                        expect permit;
+                }
+                """;
+
+        assertThatThrownBy(() -> SaplTestParser.parse(invalidTestDefinition)).isInstanceOf(SaplTestException.class)
+                .hasMessageContaining("Parsing errors");
+    }
+
+    @Test
+    void whenEmptyInput_thenThrowsParseException() {
+        assertThatThrownBy(() -> SaplTestParser.parse("")).isInstanceOf(SaplTestException.class);
+    }
+
+    @Test
+    void whenComplexSubscription_thenParsesAllParts() {
+        var testDefinition = """
+                requirement "complex subscription" {
+                    scenario "with environment"
+                        given
+                            - policy "test.sapl"
+                        when subject {"name": "alice", "role": "admin"}
+                            attempts action "read"
+                            on resource {"id": 123, "type": "document"}
+                            in environment {"time": "morning"}
+                        expect permit;
+                }
+                """;
+
+        var result       = SaplTestParser.parse(testDefinition);
+        var scenario     = result.getRequirements().getFirst().getScenarios().getFirst();
+        var subscription = scenario.getWhenStep().getAuthorizationSubscription();
+
+        assertThat(subscription.getSubject()).isNotNull();
+        assertThat(subscription.getAction()).isNotNull();
+        assertThat(subscription.getResource()).isNotNull();
+        assertThat(subscription.getEnvironment()).isNotNull();
+    }
+}
