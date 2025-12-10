@@ -28,6 +28,7 @@ import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.CombiningAlgorithm;
 import io.sapl.api.pdp.PDPConfiguration;
 import io.sapl.api.pdp.TraceLevel;
+import io.sapl.functions.DefaultFunctionBroker;
 import io.sapl.pdp.PolicyDecisionPointBuilder;
 import io.sapl.pdp.configuration.PDPConfigurationLoader;
 import io.sapl.pdp.configuration.bundle.BundleParser;
@@ -35,8 +36,8 @@ import io.sapl.pdp.configuration.bundle.BundleSecurityPolicy;
 import io.sapl.test.next.MockingFunctionBroker.ArgumentMatcher;
 import lombok.Getter;
 import lombok.NonNull;
-import lombok.RequiredArgsConstructor;
 import reactor.core.publisher.Flux;
+import reactor.test.StepVerifier;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -44,6 +45,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Clock;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -596,9 +598,21 @@ public class SaplTestFixture {
         var effectiveClock  = clock != null ? clock : Clock.systemUTC();
         var pdpBuilder      = PolicyDecisionPointBuilder.withoutDefaults(effectiveMapper, effectiveClock);
 
-        // Set up function broker with mocking wrapper
-        if (customFunctionBroker != null) {
-            mockingFunctionBroker.setDelegate(customFunctionBroker);
+        // Build function broker delegate with registered libraries
+        var functionBrokerDelegate = customFunctionBroker;
+        if (functionBrokerDelegate == null
+                && (!staticFunctionLibraries.isEmpty() || !instantiatedFunctionLibraries.isEmpty())) {
+            var defaultBroker = new DefaultFunctionBroker();
+            for (var libraryClass : staticFunctionLibraries) {
+                defaultBroker.loadStaticFunctionLibrary(libraryClass);
+            }
+            for (var libraryInstance : instantiatedFunctionLibraries) {
+                defaultBroker.loadInstantiatedFunctionLibrary(libraryInstance);
+            }
+            functionBrokerDelegate = defaultBroker;
+        }
+        if (functionBrokerDelegate != null) {
+            mockingFunctionBroker.setDelegate(functionBrokerDelegate);
         }
 
         // Set up attribute broker with mocking wrapper
@@ -606,9 +620,7 @@ public class SaplTestFixture {
             mockingAttributeBroker.setDelegate(customAttributeBroker);
         }
 
-        // Register function libraries and PIPs
-        pdpBuilder.withFunctionLibraries(staticFunctionLibraries);
-        pdpBuilder.withFunctionLibraryInstances(instantiatedFunctionLibraries);
+        // Register PIPs on the builder (they don't conflict with external broker)
         pdpBuilder.withPolicyInformationPoints(policyInformationPoints);
 
         // Build the configuration
@@ -616,7 +628,7 @@ public class SaplTestFixture {
         var effectiveVariables = resolveVariables();
         var effectivePolicies  = resolvePolicies();
 
-        var configuration = new PDPConfiguration("test-pdp", "test-config-" + System.currentTimeMillis(),
+        var configuration = new PDPConfiguration("default", "test-config-" + System.currentTimeMillis(),
                 effectiveAlgorithm, TraceLevel.COVERAGE, effectivePolicies, effectiveVariables);
 
         // Build PDP with mocking brokers wrapping the real ones
@@ -777,39 +789,139 @@ public class SaplTestFixture {
     }
 
     /**
-     * Result of a policy decision, providing access to the decision flux and
-     * ability to emit values to mocked attribute streams.
+     * Result of a policy decision providing step-by-step verification using
+     * StepVerifier.
+     * <p>
+     * Each expect method adds a verification step, and terminal operations execute
+     * them:
+     *
+     * <pre>{@code
+     * fixture.whenDecide(subscription).expectPermit().thenEmit("timeMock", newValue).expectDeny().verify();
+     * }</pre>
      */
-    @RequiredArgsConstructor
     public static class DecisionResult {
 
-        @Getter
-        private final Flux<AuthorizationDecision>              decisionFlux;
+        private static final Duration DEFAULT_TIMEOUT = Duration.ofSeconds(10);
+
+        private StepVerifier.Step<AuthorizationDecision>       step;
         private final MockingAttributeBroker                   attributeBroker;
         private final PolicyDecisionPointBuilder.PDPComponents components;
 
+        DecisionResult(Flux<AuthorizationDecision> decisionFlux,
+                MockingAttributeBroker attributeBroker,
+                PolicyDecisionPointBuilder.PDPComponents components) {
+            this.step            = StepVerifier.create(decisionFlux);
+            this.attributeBroker = attributeBroker;
+            this.components      = components;
+        }
+
         /**
-         * Emits a value to a mocked attribute stream.
-         * <p>
-         * Use this to control when attribute values arrive during streaming tests.
+         * Expects the next decision to match the given decision exactly.
          *
-         * @param mockId the mock identifier provided during
-         * givenAttribute/givenEnvironmentAttribute
-         * @param value the value to emit
+         * @param expected the expected authorization decision
          * @return this result for chaining
          */
-        public DecisionResult emit(@NonNull String mockId, @NonNull Value value) {
-            attributeBroker.emit(mockId, value);
+        public DecisionResult expectDecision(@NonNull AuthorizationDecision expected) {
+            step = step.expectNextMatches(expected::equals);
             return this;
         }
 
         /**
-         * Disposes all PDP resources.
-         * <p>
-         * Call this after test completion to clean up background threads and file
-         * watchers.
+         * Expects the next decision to match the given matcher.
+         *
+         * @param matcher the decision matcher
+         * @return this result for chaining
          */
-        public void dispose() {
+        public DecisionResult expectDecisionMatches(@NonNull DecisionMatcher matcher) {
+            step = step.expectNextMatches(matcher);
+            return this;
+        }
+
+        /**
+         * Expects the next decision to be PERMIT.
+         *
+         * @return this result for chaining
+         */
+        public DecisionResult expectPermit() {
+            return expectDecisionMatches(DecisionMatchers.isPermit());
+        }
+
+        /**
+         * Expects the next decision to be DENY.
+         *
+         * @return this result for chaining
+         */
+        public DecisionResult expectDeny() {
+            return expectDecisionMatches(DecisionMatchers.isDeny());
+        }
+
+        /**
+         * Expects the next decision to be INDETERMINATE.
+         *
+         * @return this result for chaining
+         */
+        public DecisionResult expectIndeterminate() {
+            return expectDecisionMatches(DecisionMatchers.isIndeterminate());
+        }
+
+        /**
+         * Expects the next decision to be NOT_APPLICABLE.
+         *
+         * @return this result for chaining
+         */
+        public DecisionResult expectNotApplicable() {
+            return expectDecisionMatches(DecisionMatchers.isNotApplicable());
+        }
+
+        /**
+         * Emits a value to a mocked attribute stream.
+         *
+         * @param mockId the mock identifier from
+         * givenAttribute/givenEnvironmentAttribute
+         * @param value the value to emit
+         * @return this result for chaining
+         */
+        public DecisionResult thenEmit(@NonNull String mockId, @NonNull Value value) {
+            step = step.then(() -> attributeBroker.emit(mockId, value));
+            return this;
+        }
+
+        /**
+         * Waits for the specified duration before continuing.
+         *
+         * @param duration the duration to wait
+         * @return this result for chaining
+         */
+        public DecisionResult thenAwait(@NonNull Duration duration) {
+            step = step.thenAwait(duration);
+            return this;
+        }
+
+        /**
+         * Executes verification, cancels the subscription, and disposes resources.
+         *
+         * @throws AssertionError if any expectation is not met
+         */
+        public void verify() {
+            verify(DEFAULT_TIMEOUT);
+        }
+
+        /**
+         * Executes verification with timeout, cancels the subscription, and disposes
+         * resources.
+         *
+         * @param timeout maximum time to wait for decisions
+         * @throws AssertionError if any expectation is not met
+         */
+        public void verify(@NonNull Duration timeout) {
+            try {
+                step.thenCancel().verify(timeout);
+            } finally {
+                dispose();
+            }
+        }
+
+        private void dispose() {
             if (components != null) {
                 components.dispose();
             }
