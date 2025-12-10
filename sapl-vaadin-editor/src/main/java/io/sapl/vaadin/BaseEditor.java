@@ -24,6 +24,7 @@ import com.vaadin.flow.dom.ElementConstants;
 import io.sapl.api.SaplVersion;
 import lombok.Getter;
 
+import java.io.Serial;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -32,6 +33,7 @@ import java.util.List;
  */
 public class BaseEditor extends Component {
 
+    @Serial
     private static final long serialVersionUID = SaplVersion.VERSION_UID;
 
     private static final String IS_LINT             = "isLint";

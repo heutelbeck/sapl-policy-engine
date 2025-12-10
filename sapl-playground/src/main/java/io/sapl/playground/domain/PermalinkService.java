@@ -19,19 +19,18 @@ package io.sapl.playground.domain;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-
 import io.sapl.api.SaplVersion;
-import io.sapl.interpreter.combinators.PolicyDocumentCombiningAlgorithm;
+import io.sapl.api.pdp.CombiningAlgorithm;
 import lombok.RequiredArgsConstructor;
+import lombok.experimental.StandardException;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
-import lombok.experimental.StandardException;
-
 import org.springframework.stereotype.Service;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.Serial;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.Collection;
@@ -266,7 +265,7 @@ public class PermalinkService {
     /*
      * Validates combining algorithm is not null.
      */
-    private void validateCombiningAlgorithm(PolicyDocumentCombiningAlgorithm algorithm) throws PermalinkException {
+    private void validateCombiningAlgorithm(CombiningAlgorithm algorithm) throws PermalinkException {
         if (algorithm == null) {
             throw new PermalinkException("Combining algorithm is required");
         }
@@ -345,7 +344,7 @@ public class PermalinkService {
             List<String> policies,
             String subscription,
             String variables,
-            PolicyDocumentCombiningAlgorithm combiningAlgorithm,
+            CombiningAlgorithm combiningAlgorithm,
             Integer selectedPolicyIndex) {}
 
     /**
@@ -353,6 +352,7 @@ public class PermalinkService {
      */
     @StandardException
     public static class PermalinkException extends Exception {
+        @Serial
         private static final long serialVersionUID = SaplVersion.VERSION_UID;
     }
 }

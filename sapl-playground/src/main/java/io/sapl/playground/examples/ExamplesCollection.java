@@ -17,7 +17,7 @@
  */
 package io.sapl.playground.examples;
 
-import io.sapl.interpreter.combinators.PolicyDocumentCombiningAlgorithm;
+import io.sapl.api.pdp.CombiningAlgorithm;
 import lombok.experimental.UtilityClass;
 
 import java.util.List;
@@ -48,7 +48,7 @@ public class ExamplesCollection {
                         var now = <time.now>;
                         var hour = time.hourOf(now);
                         hour >= 9 && hour < 17;
-                    """), PolicyDocumentCombiningAlgorithm.DENY_OVERRIDES, """
+                    """), CombiningAlgorithm.DENY_OVERRIDES, """
                     {
                        "subject"     : { "username": "alice", "role": "employee" },
                        "action"      : "access",
@@ -77,7 +77,7 @@ public class ExamplesCollection {
                         subject.role == "doctor";
                         // And the patient record and the subject must both originate from the same department.
                         resource.department == subject.department;
-                    """), PolicyDocumentCombiningAlgorithm.DENY_OVERRIDES, """
+                    """), CombiningAlgorithm.DENY_OVERRIDES, """
                     {
                       "subject": {
                         "username": "alice",
@@ -126,7 +126,7 @@ public class ExamplesCollection {
                         // and does not require any polling. This is an example for a temporal
                         // logic policy.
                     """),
-            PolicyDocumentCombiningAlgorithm.DENY_OVERRIDES, """
+            CombiningAlgorithm.DENY_OVERRIDES, """
                     {
                        "subject"     : { "role": "doctor", "department": "cardiology"},
                        "action"      : "read",
@@ -137,7 +137,8 @@ public class ExamplesCollection {
 
     private static final Example DOCUMENTATION_DENY_OVERRIDES = new Example("deny-overrides-demo",
             "Deny Overrides Algorithm",
-            "Multiple policies where a single DENY blocks access despite PERMIT decisions being present.", List.of("""
+            "Multiple policies where a single DENY blocks access despite PERMIT decisions being present.",
+            List.of("""
                     policy "permit authenticated users"
                     permit
                         subject.authenticated == true
@@ -149,7 +150,7 @@ public class ExamplesCollection {
                     policy "permit regular users"
                     permit
                         subject.role == "user"
-                    """), PolicyDocumentCombiningAlgorithm.DENY_OVERRIDES, """
+                    """), CombiningAlgorithm.DENY_OVERRIDES, """
                     {
                        "subject"     : { "authenticated": true, "role": "user", "status": "suspended" },
                        "action"      : "access",
@@ -197,7 +198,7 @@ public class ExamplesCollection {
                                 subject.role == "doctor";
                                 resource.department == subject.department;
                             """),
-            PolicyDocumentCombiningAlgorithm.DENY_OVERRIDES, """
+            CombiningAlgorithm.DENY_OVERRIDES, """
                     {
                        "subject"     : { "username": "house", "position": "doctor", "department": "diagnostics" },
                        "action"      : "read",
@@ -221,7 +222,7 @@ public class ExamplesCollection {
                     where
                         // Containment check: subject.location âˆˆ resource.perimeter
                         geo.within(subject.location, resource.perimeter);
-                    """), PolicyDocumentCombiningAlgorithm.DENY_OVERRIDES, """
+                    """), CombiningAlgorithm.DENY_OVERRIDES, """
                     {
                       "subject"     : { "username": "alice",
                                         "location": { "type": "Point", "coordinates": [5, 5] } },
@@ -245,7 +246,7 @@ public class ExamplesCollection {
                     where
                         // Geodesic proximity check in meters (WGS84)
                         geo.isWithinGeodesicDistance(subject.location, resource.facility.location, 200);
-                    """), PolicyDocumentCombiningAlgorithm.DENY_OVERRIDES, """
+                    """), CombiningAlgorithm.DENY_OVERRIDES, """
                     {
                       "subject"     : { "username": "bob",
                                         "location": { "type": "Point",
@@ -268,7 +269,7 @@ public class ExamplesCollection {
                     where
                         // Block if there is any spatial overlap with restricted zones
                         geo.intersects(action.requestedArea, environment.restrictedArea);
-                    """), PolicyDocumentCombiningAlgorithm.DENY_OVERRIDES, """
+                    """), CombiningAlgorithm.DENY_OVERRIDES, """
                     {
                       "subject"     : { "username": "carol" },
                       "action"      : { "type": "export",
@@ -294,7 +295,7 @@ public class ExamplesCollection {
                     where
                         // All action.waypoints must be elements of subject.authorizedPoints
                         geo.subset(action.waypoints, subject.authorizedPoints);
-                    """), PolicyDocumentCombiningAlgorithm.DENY_OVERRIDES, """
+                    """), CombiningAlgorithm.DENY_OVERRIDES, """
                     {
                       "subject"     : { "username": "dave",
                                         "authorizedPoints": { "type": "GeometryCollection",
@@ -325,7 +326,7 @@ public class ExamplesCollection {
                     where
                         // Buffer width is in same units as coordinates; for planar toy data this is fine
                         geo.touches(geo.buffer(resource.assetFootprint, 10), action.inspectionPath);
-                    """), PolicyDocumentCombiningAlgorithm.DENY_OVERRIDES, """
+                    """), CombiningAlgorithm.DENY_OVERRIDES, """
                     {
                       "subject"     : { "username": "erin" },
                       "action"      : { "type": "inspect",
@@ -348,7 +349,7 @@ public class ExamplesCollection {
                     where
                         var geom = geo.wktToGeoJSON(action.geometryWkt);
                         geo.within(geom, resource.allowedZone);
-                    """), PolicyDocumentCombiningAlgorithm.DENY_OVERRIDES, """
+                    """), CombiningAlgorithm.DENY_OVERRIDES, """
                     {
                       "subject"     : { "username": "frank" },
                       "action"      : { "type": "ingest", "geometryWkt": "POINT (5 5)" },
@@ -396,7 +397,7 @@ public class ExamplesCollection {
                         // This implements "no write down" - cannot write below clearance level
                         // Prevents information from flowing downward to less secure levels
                         subject.clearance_level <= resource.classification_level;
-                    """), PolicyDocumentCombiningAlgorithm.DENY_OVERRIDES, """
+                    """), CombiningAlgorithm.DENY_OVERRIDES, """
                     {
                       "subject": {
                         "username": "alice",
@@ -456,7 +457,7 @@ public class ExamplesCollection {
 
                         // Compartment check for write operations
                         array.containsAny(subject.departments, resource.required_departments);
-                    """), PolicyDocumentCombiningAlgorithm.DENY_OVERRIDES, """
+                    """), CombiningAlgorithm.DENY_OVERRIDES, """
                     {
                       "subject": {
                         "username": "bob",
@@ -541,7 +542,7 @@ public class ExamplesCollection {
                         action == "read" & resource.type == "financial_report"
                     where
                         subject.role == "financial_analyst";
-                    """), PolicyDocumentCombiningAlgorithm.DENY_OVERRIDES, """
+                    """), CombiningAlgorithm.DENY_OVERRIDES, """
                     {
                       "subject": {
                         "username": "analyst_sarah",
@@ -639,7 +640,7 @@ public class ExamplesCollection {
                             "message": "Consultant " + subject.username + " accessed client " + resource.entity,
                             "audit": true
                         }
-                    """), PolicyDocumentCombiningAlgorithm.DENY_OVERRIDES, """
+                    """), CombiningAlgorithm.DENY_OVERRIDES, """
                     {
                       "subject": {
                         "username": "consultant_mike",
@@ -721,7 +722,7 @@ public class ExamplesCollection {
                         // "no write up" - prevents writing to more trustworthy data
                         // Low-integrity processes cannot corrupt high-integrity data
                         subject.integrity_level <= resource.integrity_level;
-                    """), PolicyDocumentCombiningAlgorithm.DENY_OVERRIDES, """
+                    """), CombiningAlgorithm.DENY_OVERRIDES, """
                     {
                       "subject": {
                         "username": "build_service",
@@ -779,7 +780,7 @@ public class ExamplesCollection {
                        // where
                        //   var permissions = { ... };
                        //   { "type" : resource.type, "action": action } in permissions[(subject.role)];
-                    """), PolicyDocumentCombiningAlgorithm.DENY_OVERRIDES, """
+                    """), CombiningAlgorithm.DENY_OVERRIDES, """
                     {
                        "subject"     : { "username": "alice", "role": "customer" },
                        "action"      : "read",
@@ -824,7 +825,7 @@ public class ExamplesCollection {
                       // Finally check if the required permission action is contained in the
                       // effectivePermission of the subject.
                       { "action" : action, "type" : resource.type } in effectivePermissions;
-                    """), PolicyDocumentCombiningAlgorithm.DENY_OVERRIDES, """
+                    """), CombiningAlgorithm.DENY_OVERRIDES, """
                     {
                        "subject"     : { "username": "alice", "roles": [ "cso", "market-analyst" ] },
                        "action"      : "read",

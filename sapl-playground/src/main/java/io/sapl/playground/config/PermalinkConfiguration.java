@@ -35,7 +35,8 @@ public class PermalinkConfiguration {
     /**
      * Base URL for generating permalinks.
      * Should include protocol and hostname, without trailing slash.
-     * Example: http://localhost:8080 or https://playground.sapl.io
+     * Example: <a href="http://localhost:8080">http://localhost:8080</a>
+     * or <a href="https://playground.sapl.io">https://playground.sapl.io</a>
      */
     private String baseUrl = "http://localhost:8080";
 }

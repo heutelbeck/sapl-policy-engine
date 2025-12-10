@@ -19,7 +19,7 @@ package io.sapl.server.ce.ui.views.librariesdocumentation;
 
 import com.vladsch.flexmark.html.HtmlRenderer;
 import com.vladsch.flexmark.parser.Parser;
-import io.sapl.interpreter.functions.LibraryDocumentation;
+import io.sapl.api.documentation.LibraryDocumentation;
 import lombok.NonNull;
 import lombok.experimental.UtilityClass;
 import lombok.extern.slf4j.Slf4j;

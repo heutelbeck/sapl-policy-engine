@@ -44,6 +44,7 @@ import lombok.RequiredArgsConstructor;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.Serial;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.UnrecoverableEntryException;
@@ -55,6 +56,7 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public abstract class EndpointSetupView extends VerticalLayout {
 
+    @Serial
     private static final long serialVersionUID = SaplVersion.VERSION_UID;
 
     public static final String  ROUTE         = "/setup/rsocket";

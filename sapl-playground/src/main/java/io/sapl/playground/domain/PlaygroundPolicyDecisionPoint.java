@@ -18,16 +18,13 @@
 package io.sapl.playground.domain;
 
 import com.vaadin.flow.spring.annotation.UIScope;
-import io.sapl.api.interpreter.Val;
+import io.sapl.api.attributes.AttributeBroker;
+import io.sapl.api.functions.FunctionBroker;
 import io.sapl.api.pdp.AuthorizationSubscription;
-import io.sapl.api.pdp.TracedDecision;
-import io.sapl.attributes.broker.api.AttributeStreamBroker;
-import io.sapl.interpreter.DefaultSAPLInterpreter;
-import io.sapl.interpreter.SAPLInterpreter;
-import io.sapl.interpreter.combinators.PolicyDocumentCombiningAlgorithm;
-import io.sapl.interpreter.functions.FunctionContext;
-import io.sapl.pdp.EmbeddedPolicyDecisionPoint;
-import io.sapl.pdp.config.fixed.FixedFunctionsAndAttributesPDPConfigurationProvider;
+import io.sapl.api.pdp.CombiningAlgorithm;
+import io.sapl.parser.DefaultSAPLParser;
+import io.sapl.parser.SAPLParser;
+import io.sapl.pdp.DynamicPolicyDecisionPoint;
 import jakarta.annotation.PreDestroy;
 import lombok.val;
 import org.springframework.stereotype.Component;
@@ -53,7 +50,7 @@ public class PlaygroundPolicyDecisionPoint {
      * SAPL interpreter for parsing policy documents.
      * Shared across all instances as it is stateless.
      */
-    private static final SAPLInterpreter INTERPRETER = new DefaultSAPLInterpreter();
+    private static final SAPLParser PARSER = new DefaultSAPLParser();
 
     /*
      * Source for variables and combining algorithm configuration.
@@ -69,23 +66,25 @@ public class PlaygroundPolicyDecisionPoint {
 
     /*
      * Embedded policy decision point instance.
-     * Evaluates authorization subscriptions against configured policies.
+     * Evaluates authorization subscriptions against configured
+     * policies.
      */
-    private final EmbeddedPolicyDecisionPoint policyDecisionPoint;
+    private final DynamicPolicyDecisionPoint policyDecisionPoint;
 
     /**
      * Creates a new playground policy decision point.
      * Initializes the embedded PDP with the provided attribute broker and function
      * context.
-     * Sets up reactive sources for policies, variables, and combining algorithms.
+     * Sets up reactive sources for policies, variables, and combining
+     * algorithms.
      *
      * @param attributeStreamBroker broker for attribute streams and policy
      * information points
      * @param functionContext context providing function libraries for policy
      * evaluation
      */
-    public PlaygroundPolicyDecisionPoint(AttributeStreamBroker attributeStreamBroker, FunctionContext functionContext) {
-        policyRetrievalPointSource = new PlaygroundPolicyRetrievalPointSource(INTERPRETER);
+    public PlaygroundPolicyDecisionPoint(AttributeBroker attributeStreamBroker, FunctionBroker functionContext) {
+        policyRetrievalPointSource = new PlaygroundPolicyRetrievalPointSource(PARSER);
         val policyDecisionPointConfigurationProvider = new FixedFunctionsAndAttributesPDPConfigurationProvider(
                 attributeStreamBroker, functionContext, variablesAndCombinatorSource, List.of(), List.of(),
                 policyRetrievalPointSource);
@@ -134,7 +133,7 @@ public class PlaygroundPolicyDecisionPoint {
      *
      * @param algorithm the combining algorithm to use
      */
-    public void setCombiningAlgorithm(PolicyDocumentCombiningAlgorithm algorithm) {
+    public void setCombiningAlgorithm(CombiningAlgorithm algorithm) {
         variablesAndCombinatorSource.setCombiningAlgorithm(algorithm);
     }
 

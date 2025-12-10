@@ -44,6 +44,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.context.annotation.Conditional;
 
 import java.io.IOException;
+import java.io.Serial;
 import java.sql.SQLException;
 import java.util.stream.Stream;
 
@@ -53,6 +54,7 @@ import java.util.stream.Stream;
 @Conditional(SetupNotFinishedCondition.class)
 public class DbmsSetupView extends VerticalLayout {
 
+    @Serial
     private static final long serialVersionUID = SaplVersion.VERSION_UID;
 
     public static final String                 ROUTE = "/setup/dbms";

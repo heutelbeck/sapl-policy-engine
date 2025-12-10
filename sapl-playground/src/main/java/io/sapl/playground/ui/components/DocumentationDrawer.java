@@ -36,6 +36,7 @@ import io.sapl.playground.domain.MarkdownGenerator;
 import lombok.Getter;
 import lombok.val;
 
+import java.io.Serial;
 import java.io.Serializable;
 import java.util.Collection;
 import java.util.function.Function;
@@ -55,6 +56,7 @@ import java.util.function.Function;
 @UIScope
 @SpringComponent
 public class DocumentationDrawer implements Serializable {
+    @Serial
     private static final long serialVersionUID = SaplVersion.VERSION_UID;
 
     private static final String CSS_BORDER_RADIUS = "border-radius";

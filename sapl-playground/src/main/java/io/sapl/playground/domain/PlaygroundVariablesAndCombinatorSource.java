@@ -18,7 +18,8 @@
 package io.sapl.playground.domain;
 
 import io.sapl.api.interpreter.Val;
-import io.sapl.interpreter.combinators.PolicyDocumentCombiningAlgorithm;
+import io.sapl.api.pdp.CombiningAlgorithm;
+import io.sapl.interpreter.combinators.CombiningAlgorithm;
 import io.sapl.pdp.config.VariablesAndCombinatorSource;
 import jakarta.annotation.PreDestroy;
 import reactor.core.publisher.Flux;
@@ -45,7 +46,7 @@ public class PlaygroundVariablesAndCombinatorSource implements VariablesAndCombi
      * Sink for emitting combining algorithm updates.
      * Configured to replay the latest value to new subscribers.
      */
-    private final Sinks.Many<Optional<PolicyDocumentCombiningAlgorithm>> combiningAlgorithmSink;
+    private final Sinks.Many<Optional<CombiningAlgorithm>> combiningAlgorithmSink;
 
     /*
      * Sink for emitting variables updates.
@@ -56,7 +57,7 @@ public class PlaygroundVariablesAndCombinatorSource implements VariablesAndCombi
     /*
      * Flux exposing the stream of combining algorithm updates.
      */
-    private final Flux<Optional<PolicyDocumentCombiningAlgorithm>> combiningAlgorithmFlux;
+    private final Flux<Optional<CombiningAlgorithm>> combiningAlgorithmFlux;
 
     /*
      * Flux exposing the stream of variables updates.
@@ -75,7 +76,7 @@ public class PlaygroundVariablesAndCombinatorSource implements VariablesAndCombi
 
         combiningAlgorithmFlux = combiningAlgorithmSink.asFlux();
         variablesFlux          = variablesSink.asFlux();
-        setCombiningAlgorithm(PolicyDocumentCombiningAlgorithm.DENY_OVERRIDES);
+        setCombiningAlgorithm(CombiningAlgorithm.DENY_OVERRIDES);
         setVariables(Map.of());
     }
 
@@ -86,7 +87,7 @@ public class PlaygroundVariablesAndCombinatorSource implements VariablesAndCombi
      *
      * @param algorithm the combining algorithm to use, or null for no algorithm
      */
-    public final void setCombiningAlgorithm(PolicyDocumentCombiningAlgorithm algorithm) {
+    public final void setCombiningAlgorithm(CombiningAlgorithm algorithm) {
         combiningAlgorithmSink.tryEmitNext(Optional.ofNullable(algorithm));
     }
 
@@ -109,7 +110,7 @@ public class PlaygroundVariablesAndCombinatorSource implements VariablesAndCombi
      * @return flux of optional combining algorithm values
      */
     @Override
-    public Flux<Optional<PolicyDocumentCombiningAlgorithm>> getCombiningAlgorithm() {
+    public Flux<Optional<CombiningAlgorithm>> getCombiningAlgorithm() {
         return combiningAlgorithmFlux;
     }
 

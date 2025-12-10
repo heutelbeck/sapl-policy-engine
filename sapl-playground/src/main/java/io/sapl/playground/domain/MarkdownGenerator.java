@@ -19,7 +19,7 @@ package io.sapl.playground.domain;
 
 import com.vladsch.flexmark.html.HtmlRenderer;
 import com.vladsch.flexmark.parser.Parser;
-import io.sapl.attributes.documentation.api.LibraryDocumentation;
+import io.sapl.api.documentation.LibraryDocumentation;
 import lombok.NonNull;
 import lombok.experimental.UtilityClass;
 import lombok.val;
@@ -60,7 +60,7 @@ public class MarkdownGenerator {
      * @param documentation the function library documentation object
      * @return markdown-formatted documentation string
      */
-    public String generateMarkdownForLibrary(io.sapl.interpreter.functions.LibraryDocumentation documentation) {
+    public String generateMarkdownForLibrary(LibraryDocumentation documentation) {
         val stringBuilder = new StringBuilder();
 
         appendHeader(stringBuilder, documentation.getName());

@@ -43,13 +43,14 @@ import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.context.annotation.Conditional;
 
 import java.io.IOException;
+import java.io.Serial;
 
 @AnonymousAllowed
 @PageTitle("Admin User Setup")
 @Route(value = AdminUserSetupView.ROUTE, layout = SetupLayout.class)
 @Conditional(SetupNotFinishedCondition.class)
 public class AdminUserSetupView extends VerticalLayout {
-
+    @Serial
     private static final long serialVersionUID = SaplVersion.VERSION_UID;
 
     public static final String ROUTE = "/setup/admin";

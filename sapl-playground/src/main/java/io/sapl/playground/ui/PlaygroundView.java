@@ -56,14 +56,9 @@ import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 
 import io.sapl.api.SaplVersion;
-import io.sapl.api.interpreter.Val;
 import io.sapl.api.pdp.AuthorizationSubscription;
-import io.sapl.api.pdp.TracedDecision;
-import io.sapl.interpreter.DefaultSAPLInterpreter;
-import io.sapl.interpreter.SAPLInterpreter;
-import io.sapl.interpreter.combinators.PolicyDocumentCombiningAlgorithm;
-import io.sapl.pdp.interceptors.ErrorReportGenerator;
-import io.sapl.pdp.interceptors.ErrorReportGenerator.OutputFormat;
+import io.sapl.api.pdp.CombiningAlgorithm;
+import io.sapl.api.pdp.internal.TracedDecision;
 import io.sapl.pdp.interceptors.ReportBuilderUtil;
 import io.sapl.pdp.interceptors.ReportTextRenderUtil;
 import io.sapl.playground.config.PermalinkConfiguration;
@@ -82,6 +77,7 @@ import lombok.val;
 import org.apache.commons.lang3.StringUtils;
 import reactor.core.Disposable;
 
+import java.io.Serial;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Supplier;
@@ -89,7 +85,8 @@ import java.util.stream.Collectors;
 
 /**
  * Interactive playground for testing SAPL policies.
- * Provides editors for policies, variables, and authorization subscriptions,
+ * Provides editors for policies, variables, and authorization
+ * subscriptions,
  * with real-time decision evaluation and visualization.
  */
 @Slf4j
@@ -98,6 +95,7 @@ import java.util.stream.Collectors;
 @JsModule("./copytoclipboard.js")
 @JavaScript("./fragment-reader.js")
 public class PlaygroundView extends Composite<VerticalLayout> {
+    @Serial
     private static final long serialVersionUID = SaplVersion.VERSION_UID;
 
     private static final int DEFAULT_BUFFER_SIZE     = 10;
@@ -315,7 +313,7 @@ public class PlaygroundView extends Composite<VerticalLayout> {
     private Div                    errorsDisplayArea;
     private TextArea               reportTextArea;
 
-    private ComboBox<PolicyDocumentCombiningAlgorithm> combiningAlgorithmComboBox;
+    private ComboBox<CombiningAlgorithm> combiningAlgorithmComboBox;
 
     private boolean              isScrollLockActive;
     private boolean              isFollowLatestDecisionActive;
@@ -1983,7 +1981,7 @@ public class PlaygroundView extends Composite<VerticalLayout> {
     /*
      * Sets combining algorithm without triggering change event.
      */
-    private void setCombiningAlgorithmQuietly(PolicyDocumentCombiningAlgorithm algorithm) {
+    private void setCombiningAlgorithmQuietly(CombiningAlgorithm algorithm) {
         if (combiningAlgorithmComboBox != null) {
             combiningAlgorithmComboBox.setValue(algorithm);
             policyDecisionPoint.setCombiningAlgorithm(algorithm);
@@ -2000,14 +1998,14 @@ public class PlaygroundView extends Composite<VerticalLayout> {
     /*
      * Handles combining algorithm change.
      */
-    private void handleAlgorithmChange(ValueChangeEvent<PolicyDocumentCombiningAlgorithm> event) {
+    private void handleAlgorithmChange(ValueChangeEvent<CombiningAlgorithm> event) {
         this.policyDecisionPoint.setCombiningAlgorithm(event.getValue());
     }
 
     /*
      * Formats algorithm name for display.
      */
-    private static String formatAlgorithmName(PolicyDocumentCombiningAlgorithm algorithm) {
+    private static String formatAlgorithmName(CombiningAlgorithm algorithm) {
         return StringUtils.capitalize(algorithm.toString().replace('_', ' ').toLowerCase());
     }
 

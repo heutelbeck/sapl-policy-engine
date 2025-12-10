@@ -43,6 +43,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.context.annotation.Conditional;
 
 import java.io.IOException;
+import java.io.Serial;
 import java.util.EnumSet;
 
 @AnonymousAllowed
@@ -51,6 +52,7 @@ import java.util.EnumSet;
 @Conditional(SetupNotFinishedCondition.class)
 public class LoggingSetupView extends VerticalLayout {
 
+    @Serial
     private static final long serialVersionUID = SaplVersion.VERSION_UID;
 
     public static final String ROUTE = "/setup/logging";

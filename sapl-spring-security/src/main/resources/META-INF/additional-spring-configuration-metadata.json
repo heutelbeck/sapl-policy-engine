@@ -1,5 +1,25 @@
 {"properties": [
   {
+    "name": "io.sapl.pdp.remote.enabled",
+    "type": "java.lang.Boolean",
+    "description": "Enable ot disable the remote PDP configuration."
+  },
+  {
+    "name": "io.sapl.pdp.remote.host",
+    "type": "java.lang.String",
+    "description": "Host of the PDP server. E.g.: https://pdp.example.org:8443 ."
+  },
+  {
+    "name": "io.sapl.pdp.remote.key",
+    "type": "java.lang.String",
+    "description": "PDP authentication key. By default a PDP server uses base authentication with a key as username and a secret as password."
+  },
+  {
+    "name": "io.sapl.pdp.remote.secret",
+    "type": "java.lang.String",
+    "description": "PDP authentication secret. By default a PDP server uses base authentication with a key as username and a secret as password."
+  },
+  {
     "name": "io.sapl.policyEnforcementFilter",
     "type": "java.lang.Boolean",
     "description": "Setting this property to TRUE will activate the SaplFilterPolicyEnforcementPoint FilterBean in the application context."

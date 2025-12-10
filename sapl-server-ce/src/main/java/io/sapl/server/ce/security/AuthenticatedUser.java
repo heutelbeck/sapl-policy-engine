@@ -35,6 +35,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
 
+import java.io.Serial;
 import java.io.Serializable;
 import java.util.Collection;
 import java.util.Optional;
@@ -44,7 +45,7 @@ import java.util.Optional;
 @RequiredArgsConstructor
 @Conditional(SetupFinishedCondition.class)
 public class AuthenticatedUser implements Serializable {
-
+    @Serial
     private static final long serialVersionUID = SaplVersion.VERSION_UID;
 
     // In a multi-provider scenario this parameter has to be replaced by a more

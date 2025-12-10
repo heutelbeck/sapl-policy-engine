@@ -40,12 +40,14 @@ import jakarta.annotation.PostConstruct;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.context.annotation.Conditional;
 
+import java.io.Serial;
+
 @AnonymousAllowed
 @PageTitle("Finish Setup")
 @Route(value = FinishSetupView.ROUTE, layout = SetupLayout.class)
 @Conditional(SetupNotFinishedCondition.class)
 public class FinishSetupView extends VerticalLayout {
-
+    @Serial
     private static final long serialVersionUID = SaplVersion.VERSION_UID;
 
     public static final String  ROUTE                  = "/setup/finish";

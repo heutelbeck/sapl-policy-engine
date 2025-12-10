@@ -30,11 +30,14 @@ import org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration;
 import org.springframework.cache.annotation.EnableCaching;
 import org.springframework.context.ConfigurableApplicationContext;
 
+import java.io.Serial;
+
 @EnableCaching
 @Theme(value = "sapl", variant = Lumo.DARK)
 @SpringBootApplication(exclude = { DataSourceAutoConfiguration.class })
 public class SaplServerCeApplication implements AppShellConfigurator {
 
+    @Serial
     private static final long serialVersionUID = SaplVersion.VERSION_UID;
 
     public static void main(String[] args) {

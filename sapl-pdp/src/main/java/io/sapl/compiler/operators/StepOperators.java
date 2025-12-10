@@ -43,7 +43,7 @@ public class StepOperators {
     private static final String RUNTIME_ERROR_INDEX_ACCESS_TYPE_MISMATCH    = "Cannot access contents of a non-array value using an index. Expected an Array but got %s.";
     private static final String RUNTIME_ERROR_INDEX_OUT_OF_BOUNDS           = "Index %d out of bounds for array of size %d.";
     private static final String RUNTIME_ERROR_INDEX_UNION_REQUIRES_ARRAY    = "Index union steps can only be applied to arrays but got %s.";
-    private static final String RUNTIME_ERROR_KEY_ACCESS_TYPE_MISMATCH      = "Cannot access contents of a non-object value using a key. Expected an ObjectValue but got %s.";
+    private static final String RUNTIME_ERROR_KEY_ACCESS_TYPE_MISMATCH      = "Cannot access contents of a non-object value using a key ('%s'). Expected an ObjectValue but got %s.";
     private static final String RUNTIME_ERROR_KEY_UNION_REQUIRES_OBJECT     = "Key union steps can only be applied to objects but got %s.";
     private static final String RUNTIME_ERROR_MAX_RECURSION_DEPTH_INDEX     = "Maximum nesting depth exceeded during recursive index step.";
     private static final String RUNTIME_ERROR_MAX_RECURSION_DEPTH_KEY       = "Maximum nesting depth exceeded during recursive key step.";
@@ -99,7 +99,7 @@ public class StepOperators {
             return parent;
         }
         if (!(parent instanceof ObjectValue objectValue)) {
-            return Error.at(astNode, parent.metadata(), RUNTIME_ERROR_KEY_ACCESS_TYPE_MISMATCH, parent);
+            return Error.at(astNode, parent.metadata(), RUNTIME_ERROR_KEY_ACCESS_TYPE_MISMATCH, key, parent);
         }
         val content = objectValue.get(key);
         if (content == null) {

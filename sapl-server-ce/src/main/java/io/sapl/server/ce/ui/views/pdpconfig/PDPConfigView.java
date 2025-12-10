@@ -39,13 +39,15 @@ import jakarta.annotation.security.RolesAllowed;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Conditional;
 
+import java.io.Serial;
+
 @Slf4j
 @RolesAllowed("ADMIN")
 @PageTitle("PDP Configuration")
 @Route(value = PDPConfigView.ROUTE, layout = MainLayout.class)
 @Conditional(SetupFinishedCondition.class)
 public class PDPConfigView extends VerticalLayout {
-
+    @Serial
     private static final long serialVersionUID = SaplVersion.VERSION_UID;
 
     public static final String ROUTE = "pdp-config";

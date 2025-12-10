@@ -28,6 +28,7 @@ import lombok.val;
 import org.eclipse.xtext.diagnostics.Severity;
 import org.springframework.stereotype.Service;
 
+import java.io.Serial;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -48,6 +49,7 @@ import java.util.stream.StreamSupport;
 @Service
 @RequiredArgsConstructor
 public class PlaygroundValidator implements Serializable {
+    @Serial
     private static final long serialVersionUID = SaplVersion.VERSION_UID;
 
     /*

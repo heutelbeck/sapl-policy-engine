@@ -18,10 +18,8 @@
 package io.sapl.server.ce.config;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.sapl.api.functions.StaticFunctionLibrarySupplier;
-import io.sapl.api.pip.StaticPolicyInformationPointSupplier;
-import io.sapl.attributes.pips.http.HttpPolicyInformationPoint;
-import io.sapl.attributes.pips.http.ReactiveWebClient;
+import io.sapl.attributes.libraries.HttpPolicyInformationPoint;
+import io.sapl.attributes.libraries.ReactiveWebClient;
 import io.sapl.extensions.mqtt.MqttFunctionLibrary;
 import io.sapl.extensions.mqtt.MqttPolicyInformationPoint;
 import io.sapl.extensions.mqtt.SaplMqttClient;

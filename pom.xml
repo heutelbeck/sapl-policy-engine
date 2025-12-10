@@ -152,12 +152,7 @@
 
 		<module>sapl-pdp-remote</module>
 
-		<module>sapl-spring-pdp-embedded</module>
-		<module>sapl-spring-pdp-remote</module>
 		<module>sapl-spring-security</module>
-		<module>sapl-spring-data-r2dbc</module>
-		<module>sapl-spring-data-mongo-reactive</module>
-		<module>sapl-spring-data-common</module>
 
 		<module>sapl-language-server</module>
 		<module>sapl-eclipse-plugin/sapl-eclipse-ui</module>

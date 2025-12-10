@@ -17,7 +17,8 @@
  */
 package io.sapl.server.ce.model.pdpconfiguration;
 
-import io.sapl.interpreter.combinators.PolicyDocumentCombiningAlgorithm;
+
+import io.sapl.api.pdp.CombiningAlgorithm;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -32,7 +33,7 @@ import lombok.*;
 @AllArgsConstructor
 @Table(name = "SelectedCombiningAlgorithm")
 public class SelectedCombiningAlgorithm {
-    public SelectedCombiningAlgorithm(@NonNull PolicyDocumentCombiningAlgorithm selection) {
+    public SelectedCombiningAlgorithm(@NonNull CombiningAlgorithm selection) {
         this.selection = selection;
     }
 
@@ -48,5 +49,5 @@ public class SelectedCombiningAlgorithm {
      * The selection.
      */
     @Column
-    private PolicyDocumentCombiningAlgorithm selection;
+    private CombiningAlgorithm selection;
 }

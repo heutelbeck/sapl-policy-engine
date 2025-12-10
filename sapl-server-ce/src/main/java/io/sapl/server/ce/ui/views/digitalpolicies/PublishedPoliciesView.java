@@ -40,6 +40,7 @@ import jakarta.annotation.security.RolesAllowed;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Conditional;
 
+import java.io.Serial;
 import java.util.Comparator;
 import java.util.Optional;
 import java.util.stream.Stream;
@@ -51,6 +52,7 @@ import java.util.stream.Stream;
 @Conditional(SetupFinishedCondition.class)
 public class PublishedPoliciesView extends VerticalLayout {
 
+    @Serial
     private static final long serialVersionUID = SaplVersion.VERSION_UID;
 
     public static final String ROUTE = "published";

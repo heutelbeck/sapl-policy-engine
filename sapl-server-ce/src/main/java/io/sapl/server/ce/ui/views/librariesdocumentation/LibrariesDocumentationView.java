@@ -32,6 +32,7 @@ import io.sapl.spring.pdp.embedded.PolicyInformationPointsDocumentation;
 import jakarta.annotation.security.RolesAllowed;
 import org.springframework.context.annotation.Conditional;
 
+import java.io.Serial;
 import java.util.Collection;
 
 @RolesAllowed("ADMIN")
@@ -40,6 +41,7 @@ import java.util.Collection;
 @Conditional(SetupFinishedCondition.class)
 public class LibrariesDocumentationView extends VerticalLayout {
 
+    @Serial
     private static final long serialVersionUID = SaplVersion.VERSION_UID;
 
     public static final String ROUTE = "libraries";

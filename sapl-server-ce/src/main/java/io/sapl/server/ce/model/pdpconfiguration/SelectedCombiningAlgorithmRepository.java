@@ -23,10 +23,6 @@ import org.springframework.data.repository.CrudRepository;
 import java.io.Serializable;
 import java.util.Collection;
 
-/**
- * Interface for a repository for accessing the selected
- * {@link PolicyDocumentCombiningAlgorithm}.
- */
 public interface SelectedCombiningAlgorithmRepository
         extends CrudRepository<SelectedCombiningAlgorithm, Long>, Serializable {
     /**
@@ -34,7 +30,7 @@ public interface SelectedCombiningAlgorithmRepository
      *
      * @return the instances
      */
-    @Override
     @NonNull
+    @Override
     Collection<SelectedCombiningAlgorithm> findAll();
 }

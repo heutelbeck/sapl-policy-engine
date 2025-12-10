@@ -20,11 +20,13 @@ package io.sapl.server.ce.model.pdpconfiguration;
 import io.sapl.api.SaplVersion;
 import lombok.NonNull;
 
+import java.io.Serial;
+
 /**
  * {@link Exception} for an invalid name of a {@link Variable}.
  */
 public class InvalidVariableNameException extends Exception {
-
+    @Serial
     private static final long serialVersionUID = SaplVersion.VERSION_UID;
 
     public InvalidVariableNameException(@NonNull String invalidName) {

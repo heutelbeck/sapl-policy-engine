@@ -45,6 +45,8 @@ import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Conditional;
 
+import java.io.Serial;
+
 /**
  * The main view is a top-level placeholder for other views.
  */
@@ -52,6 +54,7 @@ import org.springframework.context.annotation.Conditional;
 @Conditional(SetupFinishedCondition.class)
 public class MainLayout extends AppLayout {
 
+    @Serial
     private static final long serialVersionUID = SaplVersion.VERSION_UID;
 
     private H2 viewTitle;

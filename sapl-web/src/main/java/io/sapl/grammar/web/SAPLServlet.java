@@ -24,12 +24,15 @@ import lombok.SneakyThrows;
 import org.eclipse.xtext.util.DisposableRegistry;
 import org.eclipse.xtext.web.servlet.XtextServlet;
 
+import java.io.Serial;
+
 /**
  * Deploy this class into a servlet container to enable DSL-specific services.
  */
 @WebServlet(name = "XtextServices", urlPatterns = "/xtext-service/*")
 public class SAPLServlet extends XtextServlet {
 
+    @Serial
     private static final long serialVersionUID = SaplVersion.VERSION_UID;
 
     private transient DisposableRegistry disposableRegistry;

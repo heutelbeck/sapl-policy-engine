@@ -22,6 +22,7 @@ import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.Accessors;
 
+import java.io.Serial;
 import java.io.Serializable;
 
 /**
@@ -37,6 +38,7 @@ import java.io.Serializable;
 @Table(name = "Variable")
 public class Variable implements Serializable {
 
+    @Serial
     private static final long serialVersionUID = SaplVersion.VERSION_UID;
 
     /**

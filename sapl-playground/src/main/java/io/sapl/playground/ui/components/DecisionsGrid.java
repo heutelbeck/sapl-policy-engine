@@ -23,7 +23,12 @@ import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.data.renderer.ComponentRenderer;
 
 import io.sapl.api.SaplVersion;
-import io.sapl.api.pdp.TracedDecision;
+import io.sapl.api.model.ErrorValue;
+import io.sapl.api.model.UndefinedValue;
+import io.sapl.api.pdp.internal.TracedDecision;
+import lombok.val;
+
+import java.io.Serial;
 
 /**
  * Grid component for displaying authorization decisions in the playground.
@@ -32,6 +37,7 @@ import io.sapl.api.pdp.TracedDecision;
  * presence of optional fields.
  */
 public class DecisionsGrid extends Grid<TracedDecision> {
+    @Serial
     private static final long serialVersionUID = SaplVersion.VERSION_UID;
 
     /**
@@ -54,7 +60,7 @@ public class DecisionsGrid extends Grid<TracedDecision> {
      * Converts the decision enum to its string representation.
      */
     private String extractDecisionString(TracedDecision decision) {
-        return decision.getAuthorizationDecision().getDecision().toString();
+        return decision.authorizationDecision().decision().toString();
     }
 
     /*
@@ -62,7 +68,7 @@ public class DecisionsGrid extends Grid<TracedDecision> {
      * Shows "Obligations" badge if obligations are present, otherwise shows "-/-".
      */
     private ComponentRenderer<Span, TracedDecision> renderObligationsBadge() {
-        return Badger.badgeRenderer(decision -> decision.getAuthorizationDecision().getObligations().isPresent(),
+        return Badger.badgeRenderer(decision -> !decision.authorizationDecision().obligations().isEmpty(),
                 Badger.PRIMARY, Badger.SUCCESS, "Obligations", "-/-");
     }
 
@@ -71,7 +77,7 @@ public class DecisionsGrid extends Grid<TracedDecision> {
      * Shows "Advice" badge if advice is present, otherwise shows "-/-".
      */
     private ComponentRenderer<Span, TracedDecision> renderAdviceBadge() {
-        return Badger.badgeRenderer(decision -> decision.getAuthorizationDecision().getAdvice().isPresent(),
+        return Badger.badgeRenderer(decision -> !decision.authorizationDecision().advice().isEmpty(),
                 Badger.PRIMARY, Badger.SUCCESS, "Advice", "-/-");
     }
 
@@ -81,7 +87,10 @@ public class DecisionsGrid extends Grid<TracedDecision> {
      * "-/-".
      */
     private ComponentRenderer<Span, TracedDecision> renderResourceBadge() {
-        return Badger.badgeRenderer(decision -> decision.getAuthorizationDecision().getResource().isPresent(),
+        return Badger.badgeRenderer(decision -> {
+                    val resource = decision.authorizationDecision().resource();
+                    return !(resource instanceof UndefinedValue) && !(resource instanceof ErrorValue);
+                },
                 Badger.PRIMARY, Badger.SUCCESS, "Resource", "-/-");
     }
 }

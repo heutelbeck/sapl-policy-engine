@@ -28,13 +28,14 @@ import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.context.annotation.Conditional;
 
 import java.io.IOException;
+import java.io.Serial;
 
 @AnonymousAllowed
 @PageTitle("RSocket Endpoint Setup")
 @Route(value = RSocketEndpointSetupView.ROUTE, layout = SetupLayout.class)
 @Conditional(SetupNotFinishedCondition.class)
 public class RSocketEndpointSetupView extends EndpointSetupView {
-
+    @Serial
     private static final long serialVersionUID = SaplVersion.VERSION_UID;
 
     public static final String ROUTE = "/setup/rsocket";

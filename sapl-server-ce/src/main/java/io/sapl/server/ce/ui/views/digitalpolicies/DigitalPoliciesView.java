@@ -34,6 +34,8 @@ import io.sapl.server.ce.ui.views.MainLayout;
 import jakarta.annotation.security.RolesAllowed;
 import org.springframework.context.annotation.Conditional;
 
+import java.io.Serial;
+
 /**
  * View for listening and managing SAPL documents. A Designer generated
  * component for the list-sapl-documents template.
@@ -43,7 +45,7 @@ import org.springframework.context.annotation.Conditional;
 @Route(value = DigitalPoliciesView.ROUTE, layout = MainLayout.class)
 @Conditional(SetupFinishedCondition.class)
 public class DigitalPoliciesView extends VerticalLayout {
-
+    @Serial
     private static final long serialVersionUID = SaplVersion.VERSION_UID;
 
     public static final String ROUTE = "";

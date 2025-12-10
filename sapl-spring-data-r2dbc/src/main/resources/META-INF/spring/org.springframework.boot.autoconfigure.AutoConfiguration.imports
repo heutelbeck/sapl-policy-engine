@@ -1,1 +1,1 @@
-io.sapl.springdatar2dbc.config.SaplR2dbcAutoConfiguration
+io.sapl.spring.data.r2dbc.config.SaplR2dbcAutoConfiguration

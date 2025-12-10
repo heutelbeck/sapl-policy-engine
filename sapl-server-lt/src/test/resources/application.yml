@@ -55,7 +55,7 @@
 #            mitigated by such services. In any case this option will
 #            open up the server for malicious probing and exfiltration 
 #            attepts via the authorization endpoints, potentially 
-#            (depending on your policies) leading to unaothorized 
+#            (depending on your policies) leading to unaothorized
 #            access to your organizations' data.
 #  
 # This option is controlled by the property io.sapl.server-lt.allowNoAuth

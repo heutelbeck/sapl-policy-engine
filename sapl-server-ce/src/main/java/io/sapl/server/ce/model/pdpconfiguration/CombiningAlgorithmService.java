@@ -18,7 +18,7 @@
 package io.sapl.server.ce.model.pdpconfiguration;
 
 import com.google.common.collect.Iterables;
-import io.sapl.interpreter.combinators.PolicyDocumentCombiningAlgorithm;
+import io.sapl.api.pdp.CombiningAlgorithm;
 import io.sapl.server.ce.model.setup.condition.SetupFinishedCondition;
 import io.sapl.server.ce.pdp.PDPConfigurationPublisher;
 import jakarta.annotation.PostConstruct;
@@ -38,7 +38,7 @@ import java.util.Collection;
 @RequiredArgsConstructor
 @Conditional(SetupFinishedCondition.class)
 public class CombiningAlgorithmService {
-    public static final PolicyDocumentCombiningAlgorithm DEFAULT = PolicyDocumentCombiningAlgorithm.DENY_UNLESS_PERMIT;
+    public static final CombiningAlgorithm DEFAULT = CombiningAlgorithm.DENY_UNLESS_PERMIT;
 
     private final SelectedCombiningAlgorithmRepository selectedCombiningAlgorithmRepository;
     private final PDPConfigurationPublisher            pdpConfigurationPublisher;
@@ -53,7 +53,7 @@ public class CombiningAlgorithmService {
      *
      * @return the selected combining algorithm
      */
-    public PolicyDocumentCombiningAlgorithm getSelected() {
+    public CombiningAlgorithm getSelected() {
         Collection<SelectedCombiningAlgorithm> entities = selectedCombiningAlgorithmRepository.findAll();
         if (entities.isEmpty()) {
             selectedCombiningAlgorithmRepository
@@ -70,8 +70,8 @@ public class CombiningAlgorithmService {
      *
      * @return the algorithm types
      */
-    public PolicyDocumentCombiningAlgorithm[] getAvailable() {
-        return PolicyDocumentCombiningAlgorithm.values();
+    public CombiningAlgorithm[] getAvailable() {
+        return CombiningAlgorithm.values();
     }
 
     /**
@@ -79,7 +79,7 @@ public class CombiningAlgorithmService {
      *
      * @param combiningAlgorithm the combining algorithm to set
      */
-    public void setSelected(@NonNull PolicyDocumentCombiningAlgorithm combiningAlgorithm) {
+    public void setSelected(@NonNull CombiningAlgorithm combiningAlgorithm) {
         selectedCombiningAlgorithmRepository.deleteAll();
         selectedCombiningAlgorithmRepository.save(new SelectedCombiningAlgorithm(combiningAlgorithm));
         pdpConfigurationPublisher.publishCombiningAlgorithm(combiningAlgorithm);

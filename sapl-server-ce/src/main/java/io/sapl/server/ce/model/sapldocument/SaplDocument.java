@@ -23,6 +23,7 @@ import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.Accessors;
 
+import java.io.Serial;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -42,6 +43,7 @@ import java.util.Optional;
 @Table(name = "SaplDocument")
 public class SaplDocument implements Serializable {
 
+    @Serial
     private static final long serialVersionUID = SaplVersion.VERSION_UID;
 
     /**

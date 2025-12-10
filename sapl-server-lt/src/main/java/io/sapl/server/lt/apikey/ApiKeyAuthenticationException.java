@@ -21,7 +21,10 @@ import io.sapl.api.SaplVersion;
 import lombok.experimental.StandardException;
 import org.springframework.security.core.AuthenticationException;
 
+import java.io.Serial;
+
 @StandardException
 public class ApiKeyAuthenticationException extends AuthenticationException {
+    @Serial
     private static final long serialVersionUID = SaplVersion.VERSION_UID;
 }

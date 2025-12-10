@@ -30,8 +30,8 @@ import java.util.Collection;
  * {@link PublishedSaplDocument}.
  */
 public interface PublishedSaplDocumentRepository extends CrudRepository<PublishedSaplDocument, Long>, Serializable {
-    @Override
     @NonNull
+    @Override
     Collection<PublishedSaplDocument> findAll();
 
     @Query(value = "SELECT s FROM PublishedSaplDocument s WHERE s.documentName = :documentName")

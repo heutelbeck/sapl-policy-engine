@@ -20,12 +20,15 @@ package io.sapl.server.ce.model.sapldocument;
 import io.sapl.api.SaplVersion;
 import lombok.NonNull;
 
+import java.io.Serial;
+
 /**
  * Exception thrown if the name of a {@link SaplDocument} to publish is not
  * unique.
  */
 public class PublishedDocumentNameCollisionException extends Exception {
 
+    @Serial
     private static final long serialVersionUID = SaplVersion.VERSION_UID;
 
     /**

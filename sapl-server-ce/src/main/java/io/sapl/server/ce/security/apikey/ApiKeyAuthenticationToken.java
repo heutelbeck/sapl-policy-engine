@@ -24,6 +24,7 @@ import org.springframework.security.core.GrantedAuthority;
 
 import io.sapl.api.SaplVersion;
 
+import java.io.Serial;
 import java.util.Collection;
 
 /**
@@ -35,6 +36,7 @@ import java.util.Collection;
 @ToString
 @EqualsAndHashCode(callSuper = true)
 public final class ApiKeyAuthenticationToken extends AbstractAuthenticationToken {
+    @Serial
     private static final long serialVersionUID = SaplVersion.VERSION_UID;
 
     private String credentials;

@@ -28,10 +28,13 @@ import io.sapl.api.SaplVersion;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
+import java.io.Serial;
+
 @Push
 @SpringBootApplication
 @Theme(value = "sapl", variant = Lumo.DARK)
 public class PlaygroundApplication implements AppShellConfigurator {
+    @Serial
     private static final long serialVersionUID = SaplVersion.VERSION_UID;
 
     @Override

@@ -24,8 +24,11 @@ import com.vaadin.flow.component.textfield.TextField;
 import io.sapl.api.SaplVersion;
 import lombok.Setter;
 
+import java.io.Serial;
+
 public class CreateVariable extends VerticalLayout {
 
+    @Serial
     private static final long serialVersionUID = SaplVersion.VERSION_UID;
 
     private final TextField nameTextField = new TextField("Variable Name");

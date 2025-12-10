@@ -36,6 +36,8 @@ import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Conditional;
 
+import java.io.Serial;
+
 @Route("oauth2")
 @PageTitle("OAuth2 Login")
 @AnonymousAllowed
@@ -43,6 +45,7 @@ import org.springframework.context.annotation.Conditional;
 @Conditional(SetupFinishedCondition.class)
 public class OAuth2 extends VerticalLayout implements BeforeEnterObserver {
 
+    @Serial
     private static final long serialVersionUID = SaplVersion.VERSION_UID;
 
     private final AuthenticatedUser authenticatedUser;

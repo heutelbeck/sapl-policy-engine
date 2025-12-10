@@ -1,3 +1,0 @@
-org.springframework.boot.autoconfigure.EnableAutoConfiguration=\
-  io.sapl.spring.pdp.embedded.PDPAutoConfiguration,\
-  io.sapl.spring.pdp.embedded.InterceptorAutoConfiguration

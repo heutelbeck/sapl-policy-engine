@@ -44,6 +44,7 @@ import lombok.NonNull;
 import org.springframework.context.annotation.Conditional;
 import reactor.util.function.Tuple2;
 
+import java.io.Serial;
 import java.util.Comparator;
 import java.util.Optional;
 import java.util.stream.Stream;
@@ -54,6 +55,7 @@ import java.util.stream.Stream;
 @Conditional(SetupFinishedCondition.class)
 public class ClientCredentialsView extends VerticalLayout {
 
+    @Serial
     private static final long serialVersionUID = SaplVersion.VERSION_UID;
 
     public static final String ROUTE = "clients";

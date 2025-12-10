@@ -33,13 +33,15 @@ import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Conditional;
 
+import java.io.Serial;
+
 @AnonymousAllowed
 @PageTitle("Login")
 @Route(value = "login")
 @RequiredArgsConstructor
 @Conditional(SetupFinishedCondition.class)
 public class LoginView extends LoginOverlay implements BeforeEnterObserver {
-
+    @Serial
     private static final long serialVersionUID = SaplVersion.VERSION_UID;
 
     private final AuthenticatedUser authenticatedUser;

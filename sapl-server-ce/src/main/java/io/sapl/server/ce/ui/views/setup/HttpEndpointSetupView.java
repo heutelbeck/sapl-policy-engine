@@ -28,13 +28,14 @@ import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.context.annotation.Conditional;
 
 import java.io.IOException;
+import java.io.Serial;
 
 @AnonymousAllowed
 @PageTitle("HTTP Endpoint Setup")
 @Route(value = HttpEndpointSetupView.ROUTE, layout = SetupLayout.class)
 @Conditional(SetupNotFinishedCondition.class)
 public class HttpEndpointSetupView extends EndpointSetupView {
-
+    @Serial
     private static final long serialVersionUID = SaplVersion.VERSION_UID;
 
     public static final String ROUTE = "/setup/http";

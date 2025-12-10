@@ -17,11 +17,8 @@
  */
 package io.sapl.playground.domain;
 
-import io.sapl.interpreter.SAPLInterpreter;
-import io.sapl.prp.Document;
-import io.sapl.prp.DocumentMatch;
-import io.sapl.prp.PolicyRetrievalPoint;
-import io.sapl.prp.PolicyRetrievalResult;
+import io.sapl.api.prp.PolicyRetrievalPoint;
+import io.sapl.parser.Document;
 import lombok.Getter;
 import lombok.ToString;
 import reactor.core.publisher.Flux;
