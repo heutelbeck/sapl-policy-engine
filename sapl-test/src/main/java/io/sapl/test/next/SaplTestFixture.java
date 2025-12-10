@@ -23,6 +23,9 @@ import io.github.classgraph.Resource;
 import io.sapl.api.attributes.AttributeBroker;
 import io.sapl.api.functions.FunctionBroker;
 import io.sapl.api.model.Value;
+import io.sapl.attributes.CachingAttributeBroker;
+import io.sapl.attributes.HeapAttributeStorage;
+import io.sapl.attributes.InMemoryAttributeRepository;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.CombiningAlgorithm;
@@ -618,9 +621,20 @@ public class SaplTestFixture {
         // Set up attribute broker with mocking wrapper
         if (customAttributeBroker != null) {
             mockingAttributeBroker.setDelegate(customAttributeBroker);
+        } else if (!policyInformationPoints.isEmpty()) {
+            // Build an attribute broker from registered PIPs to use as delegate
+            var effectivePipClock   = clock != null ? clock : Clock.systemUTC();
+            var storage             = new HeapAttributeStorage();
+            var attributeRepository = new InMemoryAttributeRepository(effectivePipClock, storage);
+            var attributeBroker     = new CachingAttributeBroker(attributeRepository);
+            for (var pip : policyInformationPoints) {
+                attributeBroker.loadPolicyInformationPointLibrary(pip);
+            }
+            mockingAttributeBroker.setDelegate(attributeBroker);
         }
 
-        // Register PIPs on the builder (they don't conflict with external broker)
+        // Register PIPs on the builder (kept for potential direct access, though
+        // delegate handles them now)
         pdpBuilder.withPolicyInformationPoints(policyInformationPoints);
 
         // Build the configuration

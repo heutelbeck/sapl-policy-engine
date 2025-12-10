@@ -198,7 +198,7 @@ public class SaplCompiler {
             return compilePureBodyDecision(entitlement, bodyPure, obligations, advice, transformation);
         }
 
-        return compileStreamingDecision(entitlement, body, obligations, advice, transformation);
+        return compileStreamingDecision(entitlement, (StreamExpression) body, obligations, advice, transformation);
     }
 
     private static CompiledExpression wrapWithTrace(String name, String entitlement, CompiledExpression decisionExpr,
@@ -270,7 +270,8 @@ public class SaplCompiler {
         return switch (determineConstraintsNature(obligations, advice, transformation)) {
         case VALUE  -> compileFullyConstantDecision(entitlement, obligations, advice, transformation);
         case PURE   -> compilePureConstraintsDecision(entitlement, bodyValue, obligations, advice, transformation);
-        case STREAM -> compileStreamingDecision(entitlement, bodyValue, obligations, advice, transformation);
+        case STREAM -> compileStreamingDecision(entitlement, new StreamExpression(Flux.just(bodyValue)), obligations,
+                advice, transformation);
         };
     }
 
@@ -340,7 +341,8 @@ public class SaplCompiler {
         return switch (determineConstraintsNature(obligations, advice, transformation)) {
         case VALUE, PURE ->
             compilePureBodyWithPureConstraints(entitlement, bodyPure, obligations, advice, transformation);
-        case STREAM      -> compileStreamingDecision(entitlement, bodyPure, obligations, advice, transformation);
+        case STREAM      -> compileStreamingDecision(entitlement, new StreamExpression(bodyPure.flux()), obligations,
+                advice, transformation);
         };
     }
 
@@ -376,10 +378,9 @@ public class SaplCompiler {
         return errors;
     }
 
-    private static CompiledExpression compileStreamingDecision(Decision entitlement, CompiledExpression body,
+    private static CompiledExpression compileStreamingDecision(Decision entitlement, StreamExpression body,
             List<CompiledExpression> obligations, List<CompiledExpression> advice, CompiledExpression transformation) {
-        val bodyFlux = ExpressionCompiler.compiledExpressionToFlux(body);
-        val stream   = bodyFlux.switchMap(
+        val stream = body.stream().switchMap(
                 bodyResult -> bodyResultToDecisionFlux(entitlement, bodyResult, obligations, advice, transformation));
         return new StreamExpression(stream);
     }

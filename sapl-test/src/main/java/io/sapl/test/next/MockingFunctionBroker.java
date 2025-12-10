@@ -153,7 +153,7 @@ public class MockingFunctionBroker implements FunctionBroker {
         for (int i = 0; i < returnValues.length; i++) {
             Objects.requireNonNull(returnValues[i], "Return value at index %d must not be null.".formatted(i));
         }
-        if (!(arguments instanceof ArgumentMatchers matchers)) {
+        if (!(arguments instanceof ArgumentMatchers(List<ArgumentMatcher> matchers))) {
             throw new IllegalArgumentException("Arguments must be created via args().");
         }
 
@@ -162,15 +162,14 @@ public class MockingFunctionBroker implements FunctionBroker {
             var singleValue = returnValues[0];
             valueSupplier = () -> singleValue;
         } else {
-            var values = returnValues;
-            var index  = new AtomicInteger(0);
+            var index = new AtomicInteger(0);
             valueSupplier = () -> {
-                int currentIndex = index.getAndUpdate(i -> Math.min(i + 1, values.length - 1));
-                return values[currentIndex];
+                int currentIndex = index.getAndUpdate(i -> Math.min(i + 1, returnValues.length - 1));
+                return returnValues[currentIndex];
             };
         }
 
-        addMock(functionName, new FunctionMock(matchers.matchers(), valueSupplier));
+        addMock(functionName, new FunctionMock(matchers, valueSupplier));
     }
 
     /**

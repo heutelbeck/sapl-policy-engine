@@ -49,7 +49,8 @@ public class SAPLUiModule extends AbstractSAPLUiModule {
     /**
      * Provides content assist configuration for the Eclipse editor with all default
      * SAPL function libraries and Policy Information Points loaded.
-     * Uses the Factory pattern from DefaultContentAssistConfiguration for non-Spring contexts.
+     * Uses the Factory pattern from DefaultContentAssistConfiguration for
+     * non-Spring contexts.
      */
     public ContentAssistConfigurationSource bindContentAssistConfigurationSource() {
         return DefaultContentAssistConfiguration.Factory.create();

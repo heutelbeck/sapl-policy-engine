@@ -656,12 +656,14 @@ public class ExpressionCompiler {
      * @return the compiled identifier reference
      */
     private CompiledExpression compileIdentifier(BasicIdentifier identifier, CompilationContext context) {
-        val variableIdentifier = identifier.getIdentifier();
-        val maybeLocalVariable = context.getVariable(variableIdentifier);
+        val                variableIdentifier = identifier.getIdentifier();
+        val                maybeLocalVariable = context.getVariable(variableIdentifier);
+        CompiledExpression compiledValue;
         if (maybeLocalVariable != null) {
-            return maybeLocalVariable;
+            compiledValue = maybeLocalVariable;
+        } else {
+            compiledValue = new PureExpression(ctx -> ctx.get(variableIdentifier), true);
         }
-        CompiledExpression compiledValue = new PureExpression(ctx -> ctx.get(variableIdentifier), true);
         return compileSteps(compiledValue, identifier.getSteps(), context);
     }
 

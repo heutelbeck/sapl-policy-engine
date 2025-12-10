@@ -29,7 +29,7 @@ class SAPLUiContentProposalProviderTest {
     @Test
     void when_configurationSourceProvided_then_returnsItFromGetter() {
         ContentAssistConfigurationSource configSource = configId -> Optional.empty();
-        var sut = new SAPLUiContentProposalProvider(configSource);
+        var                              sut          = new SAPLUiContentProposalProvider(configSource);
         assertThat(sut.getContentAssistConfigurationSource()).isSameAs(configSource);
     }
 }

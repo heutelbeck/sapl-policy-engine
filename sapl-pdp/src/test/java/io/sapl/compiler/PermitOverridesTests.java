@@ -174,4 +174,129 @@ class PermitOverridesTests {
                                 """,
                         Decision.PERMIT, null, List.of("advice1", "advice2")));
     }
+
+    /*
+     * ========== Transformation Uncertainty Tests ==========
+     *
+     * When multiple policies provide transformations, the result should be
+     * INDETERMINATE due to transformation uncertainty.
+     */
+
+    @ParameterizedTest(name = "{0}")
+    @MethodSource
+    void when_transformationUncertainty_then_handledCorrectly(String description, String policySet,
+            Decision expectedDecision, String expectedResourceField, String expectedResourceValue) {
+        val result = evaluatePolicySet(policySet);
+        assertDecision(result, expectedDecision);
+        if (expectedResourceField != null) {
+            assertResourceText(result, expectedResourceField, expectedResourceValue);
+        }
+    }
+
+    private static Stream<Arguments> when_transformationUncertainty_then_handledCorrectly() {
+        return Stream.of(
+                // Single transformation - no uncertainty
+                arguments("Single permit transformation no uncertainty", """
+                        set "test" permit-overrides
+                        policy "p1" permit transform { "source": "p1" }
+                        policy "deny" deny
+                        """, Decision.PERMIT, "source", "p1"),
+
+                // Multiple transformations from same decision type - uncertainty
+                arguments("Multiple permit transformations cause INDETERMINATE", """
+                        set "test" permit-overrides
+                        policy "p1" permit transform { "source": "p1" }
+                        policy "p2" permit transform { "source": "p2" }
+                        """, Decision.INDETERMINATE, null, null),
+
+                // Multiple deny transformations - INDETERMINATE due to transformation
+                // uncertainty
+                arguments("Multiple deny transformations cause INDETERMINATE", """
+                        set "test" permit-overrides
+                        policy "d1" deny transform { "source": "d1" }
+                        policy "d2" deny transform { "source": "d2" }
+                        """, Decision.INDETERMINATE, null, null),
+
+                // Single deny transformation - no uncertainty
+                arguments("Single deny transformation no uncertainty", """
+                        set "test" permit-overrides
+                        policy "deny" deny transform { "source": "deny" }
+                        policy "na" permit subject == "non-matching"
+                        """, Decision.DENY, "source", "deny"),
+
+                // Permit overrides deny - permit transformation used
+                arguments("Permit with transformation overrides deny without transformation", """
+                        set "test" permit-overrides
+                        policy "deny" deny
+                        policy "permit" permit transform { "source": "permit" }
+                        """, Decision.PERMIT, "source", "permit"),
+
+                // Both permit and deny have transformations - INDETERMINATE due to
+                // transformation uncertainty
+                // permit-overrides returns INDETERMINATE for ANY transformation uncertainty
+                arguments("Both permit and deny with transformations cause INDETERMINATE", """
+                        set "test" permit-overrides
+                        policy "deny" deny transform { "source": "deny" }
+                        policy "permit" permit transform { "source": "permit" }
+                        """, Decision.INDETERMINATE, null, null));
+    }
+
+    /*
+     * ========== Comprehensive Constraint Merging Tests ==========
+     */
+
+    @ParameterizedTest(name = "{0}")
+    @MethodSource
+    void when_constraintsMerged_then_allWinningConstraintsIncluded(String description, String policySet,
+            Decision expectedDecision, List<String> expectedObligations, List<String> expectedAdvice,
+            String expectedResourceField, String expectedResourceValue) {
+        val result = evaluatePolicySet(policySet);
+        assertDecision(result, expectedDecision);
+        assertObligations(result, expectedObligations);
+        assertAdvice(result, expectedAdvice);
+        if (expectedResourceField != null) {
+            assertResourceText(result, expectedResourceField, expectedResourceValue);
+        }
+    }
+
+    private static Stream<Arguments> when_constraintsMerged_then_allWinningConstraintsIncluded() {
+        return Stream.of(
+                // All permit constraints merged
+                arguments("All permit constraints merged", """
+                        set "test" permit-overrides
+                        policy "p1" permit
+                            obligation { "type": "p1_obl" }
+                            advice { "type": "p1_adv" }
+                            transform { "source": "p1" }
+                        policy "p2" permit
+                            obligation { "type": "p2_obl" }
+                            advice { "type": "p2_adv" }
+                        policy "deny" deny
+                            obligation { "type": "deny_obl" }
+                        """, Decision.PERMIT, List.of("p1_obl", "p2_obl"), List.of("p1_adv", "p2_adv"), "source", "p1"),
+
+                // All deny constraints merged when no permit
+                arguments("All deny constraints merged when no permit", """
+                        set "test" permit-overrides
+                        policy "d1" deny
+                            obligation { "type": "d1_obl" }
+                            advice { "type": "d1_adv" }
+                            transform { "source": "d1" }
+                        policy "d2" deny
+                            obligation { "type": "d2_obl" }
+                            advice { "type": "d2_adv" }
+                        policy "na" permit subject == "non-matching"
+                            obligation { "type": "na_obl" }
+                        """, Decision.DENY, List.of("d1_obl", "d2_obl"), List.of("d1_adv", "d2_adv"), "source", "d1"),
+
+                // Deny constraints discarded when permit wins
+                arguments("Deny constraints discarded when permit wins", """
+                        set "test" permit-overrides
+                        policy "deny" deny
+                            obligation { "type": "deny_obl" }
+                            advice { "type": "deny_adv" }
+                        policy "permit" permit
+                            obligation { "type": "permit_obl" }
+                        """, Decision.PERMIT, List.of("permit_obl"), List.of(), null, null));
+    }
 }
