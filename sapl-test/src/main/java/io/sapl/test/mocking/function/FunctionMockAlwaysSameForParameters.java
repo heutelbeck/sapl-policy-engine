@@ -17,7 +17,7 @@
  */
 package io.sapl.test.mocking.function;
 
-import io.sapl.api.interpreter.Val;
+import io.sapl.api.model.Value;
 import io.sapl.test.SaplTestException;
 import io.sapl.test.mocking.MockCall;
 import io.sapl.test.mocking.function.models.FunctionParameters;
@@ -33,11 +33,11 @@ import java.util.Optional;
 
 public class FunctionMockAlwaysSameForParameters implements FunctionMock {
 
-    private static final String ERROR_DUPLICATE_MOCK_REGISTRATION_PARAMETERS = "You already defined a Mock for %s which is always returning a specified value depending on parameters";
+    private static final String ERROR_DUPLICATE_MOCK_REGISTRATION_PARAMETERS = "You already defined a Mock for %s which is always returning a specified value depending on parameters.";
 
-    private static final String ERROR_INVALID_NUMBER_PARAMETERS = "Test case has configured mocked function \"%s\" return value depending on %d parameters, but is called at runtime with %d parameters";
+    private static final String ERROR_INVALID_NUMBER_PARAMETERS = "Test case has configured mocked function \"%s\" return value depending on %d parameters, but is called at runtime with %d parameters.";
 
-    private static final String ERROR_NO_MATCHING_PARAMETERS = "Unable to find a mocked return value for this parameter combination";
+    private static final String ERROR_NO_MATCHING_PARAMETERS = "Unable to find a mocked return value for this parameter combination.";
 
     private final String fullName;
 
@@ -56,7 +56,7 @@ public class FunctionMockAlwaysSameForParameters implements FunctionMock {
     }
 
     @Override
-    public Val evaluateFunctionCall(Val... parameter) {
+    public Value evaluateFunctionCall(Value... parameter) {
         this.mockRunInformation.saveCall(new MockCall(parameter));
 
         Optional<ParameterSpecificMockReturnValue> matchingParameterSpecificMockReturnValue = findMatchingParameterSpecificMockReturnValue(
@@ -73,7 +73,7 @@ public class FunctionMockAlwaysSameForParameters implements FunctionMock {
         this.listMockingVerifications.forEach(verification -> verification.verify(this.mockRunInformation));
     }
 
-    public void loadParameterSpecificReturnValue(Val mockReturnValue, FunctionParameters parameter,
+    public void loadParameterSpecificReturnValue(Value mockReturnValue, FunctionParameters parameter,
             TimesCalledVerification verification) {
         this.listParameterSpecificMockReturnValues
                 .add(new ParameterSpecificMockReturnValue(parameter.getParameterMatchers(), mockReturnValue));
@@ -82,12 +82,13 @@ public class FunctionMockAlwaysSameForParameters implements FunctionMock {
                 .add(new TimesParameterCalledVerification(verification, parameter.getParameterMatchers()));
     }
 
-    private Optional<ParameterSpecificMockReturnValue> findMatchingParameterSpecificMockReturnValue(Val... parameter) {
+    private Optional<ParameterSpecificMockReturnValue> findMatchingParameterSpecificMockReturnValue(
+            Value... parameter) {
         return this.listParameterSpecificMockReturnValues.stream().filter((ParameterSpecificMockReturnValue mock) -> {
             // check number of matchers are equal to number of parameters of this function
             // call
             if (mock.getMatchers().size() != parameter.length) {
-                throw new SaplTestException(String.format(ERROR_INVALID_NUMBER_PARAMETERS, this.fullName,
+                throw new SaplTestException(ERROR_INVALID_NUMBER_PARAMETERS.formatted(this.fullName,
                         mock.getMatchers().size(), parameter.length));
             }
 
@@ -105,19 +106,19 @@ public class FunctionMockAlwaysSameForParameters implements FunctionMock {
 
     @Override
     public String getErrorMessageForCurrentMode() {
-        return String.format(ERROR_DUPLICATE_MOCK_REGISTRATION_PARAMETERS, this.fullName);
+        return ERROR_DUPLICATE_MOCK_REGISTRATION_PARAMETERS.formatted(this.fullName);
     }
 
     @Getter
     static class ParameterSpecificMockReturnValue {
 
-        private final List<Matcher<Val>> matchers;
+        private final List<Matcher<Value>> matchers;
 
-        private final Val alwaysMockReturnValue;
+        private final Value alwaysMockReturnValue;
 
-        public ParameterSpecificMockReturnValue(List<Matcher<Val>> matchers, Val alwaysMockReturnValue) {
+        public ParameterSpecificMockReturnValue(List<Matcher<Value>> matchers, Value alwaysMockReturnValue) {
             this.matchers              = matchers;
-            this.alwaysMockReturnValue = alwaysMockReturnValue.withTrace(FunctionMockAlwaysSameForParameters.class);
+            this.alwaysMockReturnValue = alwaysMockReturnValue;
         }
     }
 

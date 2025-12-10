@@ -462,6 +462,242 @@ class TracedPdpDecisionTests {
             assertThat(getDecision(traced)).isEqualTo(Decision.PERMIT);
             assertThat(getResource(traced)).isEqualTo(json("{\"content\": \"REDACTED\"}"));
         }
+
+        @ParameterizedTest(name = "{0}")
+        @MethodSource("constraintMergingCases")
+        @DisplayName("constraints merged correctly per algorithm")
+        void whenConstraintsMerged_thenCorrectPerAlgorithm(String description, List<String> documents,
+                io.sapl.api.pdp.CombiningAlgorithm algorithm, Decision expectedDecision,
+                List<String> expectedObligations, List<String> expectedAdvice) {
+            val subscription = subscriptionOf("test-subject", "test-action", "test-resource");
+            val traced       = evaluateWithPolicies(documents, subscription, algorithm);
+
+            printDecision(description, traced);
+
+            assertThat(getDecision(traced)).isEqualTo(expectedDecision);
+            if (expectedObligations != null) {
+                assertThat(getObligations(traced)).hasSize(expectedObligations.size());
+                expectedObligations.forEach(obl -> assertThat(getObligations(traced)).contains(Value.of(obl)));
+            }
+            if (expectedAdvice != null) {
+                assertThat(getAdvice(traced)).hasSize(expectedAdvice.size());
+                expectedAdvice.forEach(adv -> assertThat(getAdvice(traced)).contains(Value.of(adv)));
+            }
+        }
+
+        static Stream<Arguments> constraintMergingCases() {
+            return Stream.of(
+                    // Deny-overrides: deny obligations when deny wins
+                    arguments("deny-overrides merges deny obligations when deny wins", List.of("""
+                            policy "deny1" deny obligation "deny_obl_1"
+                            """, """
+                            policy "deny2" deny obligation "deny_obl_2"
+                            """, """
+                            policy "permit" permit obligation "permit_obl"
+                            """), DENY_OVERRIDES, Decision.DENY, List.of("deny_obl_1", "deny_obl_2"), List.of()),
+
+                    // Deny-overrides: permit obligations when permit wins
+                    arguments("deny-overrides merges permit obligations when no deny", List.of("""
+                            policy "permit1" permit obligation "permit_obl_1" advice "permit_adv_1"
+                            """, """
+                            policy "permit2" permit obligation "permit_obl_2" advice "permit_adv_2"
+                            """), DENY_OVERRIDES, Decision.PERMIT, List.of("permit_obl_1", "permit_obl_2"),
+                            List.of("permit_adv_1", "permit_adv_2")),
+
+                    // Permit-overrides: permit obligations when permit wins
+                    arguments("permit-overrides merges permit obligations when permit wins", List.of("""
+                            policy "permit1" permit obligation "permit_obl_1"
+                            """, """
+                            policy "permit2" permit obligation "permit_obl_2"
+                            """, """
+                            policy "deny" deny obligation "deny_obl"
+                            """), PERMIT_OVERRIDES, Decision.PERMIT, List.of("permit_obl_1", "permit_obl_2"),
+                            List.of()),
+
+                    // Permit-overrides: deny obligations when deny wins (no permit)
+                    arguments("permit-overrides merges deny obligations when no permit", List.of("""
+                            policy "deny1" deny obligation "deny_obl_1" advice "deny_adv_1"
+                            """, """
+                            policy "deny2" deny obligation "deny_obl_2" advice "deny_adv_2"
+                            """), PERMIT_OVERRIDES, Decision.DENY, List.of("deny_obl_1", "deny_obl_2"),
+                            List.of("deny_adv_1", "deny_adv_2")),
+
+                    // Deny-unless-permit: permit obligations when permit present
+                    arguments("deny-unless-permit merges permit obligations", List.of("""
+                            policy "permit1" permit obligation "permit_obl_1"
+                            """, """
+                            policy "permit2" permit obligation "permit_obl_2"
+                            """, """
+                            policy "deny" deny obligation "deny_obl"
+                            """), DENY_UNLESS_PERMIT, Decision.PERMIT, List.of("permit_obl_1", "permit_obl_2"),
+                            List.of()),
+
+                    // Deny-unless-permit: deny obligations when no permit
+                    arguments("deny-unless-permit merges deny obligations when no permit", List.of("""
+                            policy "deny1" deny obligation "deny_obl_1"
+                            """, """
+                            policy "deny2" deny obligation "deny_obl_2"
+                            """), DENY_UNLESS_PERMIT, Decision.DENY, List.of("deny_obl_1", "deny_obl_2"), List.of()),
+
+                    // Permit-unless-deny: deny obligations when deny present
+                    arguments("permit-unless-deny merges deny obligations when deny present", List.of("""
+                            policy "deny1" deny obligation "deny_obl_1"
+                            """, """
+                            policy "deny2" deny obligation "deny_obl_2"
+                            """, """
+                            policy "permit" permit obligation "permit_obl"
+                            """), PERMIT_UNLESS_DENY, Decision.DENY, List.of("deny_obl_1", "deny_obl_2"), List.of()),
+
+                    // Permit-unless-deny: permit obligations when no deny
+                    arguments("permit-unless-deny merges permit obligations when no deny", List.of("""
+                            policy "permit1" permit obligation "permit_obl_1" advice "permit_adv_1"
+                            """, """
+                            policy "permit2" permit obligation "permit_obl_2" advice "permit_adv_2"
+                            """), PERMIT_UNLESS_DENY, Decision.PERMIT, List.of("permit_obl_1", "permit_obl_2"),
+                            List.of("permit_adv_1", "permit_adv_2")),
+
+                    // Only-one-applicable: constraints from single applicable only
+                    arguments("only-one-applicable includes constraints from single applicable", List.of("""
+                            policy "matching" permit
+                            where subject == "test-subject";
+                            obligation "matching_obl"
+                            advice "matching_adv"
+                            """, """
+                            policy "non-matching" deny
+                            where subject == "other";
+                            obligation "non_matching_obl"
+                            """), ONLY_ONE_APPLICABLE, Decision.PERMIT, List.of("matching_obl"),
+                            List.of("matching_adv")));
+        }
+
+        @ParameterizedTest(name = "{0}")
+        @MethodSource("transformationUncertaintyCases")
+        @DisplayName("transformation uncertainty handled correctly per algorithm")
+        void whenTransformationUncertainty_thenHandledPerAlgorithm(String description, List<String> documents,
+                io.sapl.api.pdp.CombiningAlgorithm algorithm, Decision expectedDecision) {
+            val subscription = subscriptionOf("test-subject", "test-action", "test-resource");
+            val traced       = evaluateWithPolicies(documents, subscription, algorithm);
+
+            printDecision(description, traced);
+
+            assertThat(getDecision(traced)).isEqualTo(expectedDecision);
+        }
+
+        static Stream<Arguments> transformationUncertaintyCases() {
+            return Stream.of(
+                    // Deny-overrides: multiple permit transformations = INDETERMINATE
+                    arguments("deny-overrides INDETERMINATE on permit transformation uncertainty", List.of("""
+                            policy "p1" permit transform "resource1"
+                            """, """
+                            policy "p2" permit transform "resource2"
+                            """), DENY_OVERRIDES, Decision.INDETERMINATE),
+
+                    // Deny-overrides: deny overrides transformation uncertainty
+                    arguments("deny-overrides DENY overrides transformation uncertainty", List.of("""
+                            policy "p1" permit transform "resource1"
+                            """, """
+                            policy "p2" permit transform "resource2"
+                            """, """
+                            policy "deny" deny
+                            """), DENY_OVERRIDES, Decision.DENY),
+
+                    // Permit-overrides: always INDETERMINATE on transformation uncertainty
+                    arguments("permit-overrides INDETERMINATE on transformation uncertainty", List.of("""
+                            policy "p1" permit transform "resource1"
+                            """, """
+                            policy "p2" permit transform "resource2"
+                            """), PERMIT_OVERRIDES, Decision.INDETERMINATE),
+
+                    // Deny-unless-permit: DENY on transformation uncertainty
+                    arguments("deny-unless-permit DENY on transformation uncertainty", List.of("""
+                            policy "p1" permit transform "resource1"
+                            """, """
+                            policy "p2" permit transform "resource2"
+                            """), DENY_UNLESS_PERMIT, Decision.DENY),
+
+                    // Permit-unless-deny: DENY on transformation uncertainty
+                    arguments("permit-unless-deny DENY on transformation uncertainty", List.of("""
+                            policy "p1" permit transform "resource1"
+                            """, """
+                            policy "p2" permit transform "resource2"
+                            """), PERMIT_UNLESS_DENY, Decision.DENY),
+
+                    // Only-one-applicable: no transformation uncertainty (single source)
+                    arguments("only-one-applicable single transform no uncertainty", List.of("""
+                            policy "matching" permit
+                            where subject == "test-subject";
+                            transform "transformed"
+                            """, """
+                            policy "non-matching" permit
+                            where subject == "other";
+                            transform "other"
+                            """), ONLY_ONE_APPLICABLE, Decision.PERMIT));
+        }
+
+        @Test
+        @DisplayName("losing side constraints discarded at PDP level")
+        void whenDenyWins_thenPermitConstraintsDiscarded() {
+            val subscription = subscriptionOf("cultist", "summon", "outer-god");
+            val traced       = evaluateWithPolicies(List.of("""
+                    policy "permit-with-constraints" permit
+                    obligation "permit_obl"
+                    advice "permit_adv"
+                    """, """
+                    policy "deny-wins" deny
+                    obligation "deny_obl"
+                    """), subscription, DENY_OVERRIDES);
+
+            printDecision("losing side discarded", traced);
+
+            assertThat(getDecision(traced)).isEqualTo(Decision.DENY);
+            assertThat(getObligations(traced)).hasSize(1).first().isEqualTo(Value.of("deny_obl"));
+            assertThat(getAdvice(traced)).isEmpty();
+        }
+
+        @Test
+        @DisplayName("not applicable constraints not included at PDP level")
+        void whenNotApplicable_thenConstraintsNotIncluded() {
+            val subscription = subscriptionOf("test-subject", "test-action", "test-resource");
+            val traced       = evaluateWithPolicies(List.of("""
+                    policy "applicable" permit
+                    obligation "applicable_obl"
+                    """, """
+                    policy "not-applicable" deny
+                    where subject == "other";
+                    obligation "na_obl"
+                    advice "na_adv"
+                    """), subscription, DENY_OVERRIDES);
+
+            printDecision("not applicable excluded", traced);
+
+            assertThat(getDecision(traced)).isEqualTo(Decision.PERMIT);
+            assertThat(getObligations(traced)).hasSize(1).first().isEqualTo(Value.of("applicable_obl"));
+            assertThat(getAdvice(traced)).isEmpty();
+        }
+
+        @Test
+        @DisplayName("combined obligations advice and transformation from multiple documents")
+        void whenAllConstraintTypes_thenAllMerged() {
+            val subscription = subscriptionOf("elder-scholar", "study", "forbidden-lore");
+            val traced       = evaluateWithPolicies(List.of("""
+                    policy "lore-access" permit
+                    obligation "maintain-sanity"
+                    advice "take-breaks"
+                    transform { "classification": "restricted" }
+                    """, """
+                    policy "safety-protocol" permit
+                    obligation "wear-protective-runes"
+                    advice "have-backup-present"
+                    """), subscription, DENY_OVERRIDES);
+
+            printDecision("all constraint types", traced);
+
+            assertThat(getDecision(traced)).isEqualTo(Decision.PERMIT);
+            assertThat(getObligations(traced)).hasSize(2).contains(Value.of("maintain-sanity"),
+                    Value.of("wear-protective-runes"));
+            assertThat(getAdvice(traced)).hasSize(2).contains(Value.of("take-breaks"), Value.of("have-backup-present"));
+            assertThat(getResource(traced)).isEqualTo(json("{\"classification\": \"restricted\"}"));
+        }
     }
 
     @Nested

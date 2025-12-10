@@ -17,7 +17,7 @@
  */
 package io.sapl.test.mocking.function;
 
-import io.sapl.api.interpreter.Val;
+import io.sapl.api.model.Value;
 import io.sapl.test.SaplTestException;
 import org.junit.jupiter.api.Test;
 
@@ -31,24 +31,24 @@ class FunctionMockAlwaysSameForParametersTests {
     @Test
     void test() {
         final var mock = new FunctionMockAlwaysSameForParameters("foo");
-        mock.loadParameterSpecificReturnValue(Val.of("foo"), whenFunctionParams(is(Val.of(1))), times(1));
-        mock.loadParameterSpecificReturnValue(Val.of("bar"), whenFunctionParams(is(Val.of(2))), times(2));
+        mock.loadParameterSpecificReturnValue(Value.of("foo"), whenFunctionParams(is(Value.of(1))), times(1));
+        mock.loadParameterSpecificReturnValue(Value.of("bar"), whenFunctionParams(is(Value.of(2))), times(2));
 
-        assertThat(mock.evaluateFunctionCall(Val.of(1))).isEqualTo(Val.of("foo"));
-        assertThat(mock.evaluateFunctionCall(Val.of(2))).isEqualTo(Val.of("bar"));
-        assertThat(mock.evaluateFunctionCall(Val.of(2))).isEqualTo(Val.of("bar"));
+        assertThat(mock.evaluateFunctionCall(Value.of(1))).isEqualTo(Value.of("foo"));
+        assertThat(mock.evaluateFunctionCall(Value.of(2))).isEqualTo(Value.of("bar"));
+        assertThat(mock.evaluateFunctionCall(Value.of(2))).isEqualTo(Value.of("bar"));
 
         assertThatNoException().isThrownBy(mock::assertVerifications);
     }
 
     @Test
     void test_CallParameters_TooMuch() {
-        final var val1       = Val.of(1);
-        final var valTooMuch = Val.of("tooMuch");
+        final var val1       = Value.of(1);
+        final var valTooMuch = Value.of("tooMuch");
 
         final var mock = new FunctionMockAlwaysSameForParameters("foo");
-        mock.loadParameterSpecificReturnValue(Val.of("foo"), whenFunctionParams(is(Val.of(1))), times(1));
-        mock.loadParameterSpecificReturnValue(Val.of("bar"), whenFunctionParams(is(Val.of(2))), times(2));
+        mock.loadParameterSpecificReturnValue(Value.of("foo"), whenFunctionParams(is(Value.of(1))), times(1));
+        mock.loadParameterSpecificReturnValue(Value.of("bar"), whenFunctionParams(is(Value.of(2))), times(2));
         assertThatExceptionOfType(SaplTestException.class)
                 .isThrownBy(() -> mock.evaluateFunctionCall(val1, valTooMuch));
     }
@@ -56,37 +56,37 @@ class FunctionMockAlwaysSameForParametersTests {
     @Test
     void test_CallParameters_TooLess() {
         final var mock = new FunctionMockAlwaysSameForParameters("foo");
-        mock.loadParameterSpecificReturnValue(Val.of("foo"), whenFunctionParams(is(Val.of(1))), times(1));
-        mock.loadParameterSpecificReturnValue(Val.of("bar"), whenFunctionParams(is(Val.of(2))), times(1));
+        mock.loadParameterSpecificReturnValue(Value.of("foo"), whenFunctionParams(is(Value.of(1))), times(1));
+        mock.loadParameterSpecificReturnValue(Value.of("bar"), whenFunctionParams(is(Value.of(2))), times(1));
         assertThatExceptionOfType(SaplTestException.class).isThrownBy(mock::evaluateFunctionCall);
     }
 
     @Test
     void test_MatchingParameters_TooMuch() {
-        final var val1 = Val.of(1);
+        final var val1 = Value.of(1);
         final var mock = new FunctionMockAlwaysSameForParameters("foo");
-        mock.loadParameterSpecificReturnValue(Val.of("foo"), whenFunctionParams(is(Val.of(1)), is(Val.of("tooMuch"))),
-                times(1));
-        mock.loadParameterSpecificReturnValue(Val.of("bar"), whenFunctionParams(is(Val.of(2)), is(Val.of("tooMuch"))),
-                times(1));
+        mock.loadParameterSpecificReturnValue(Value.of("foo"),
+                whenFunctionParams(is(Value.of(1)), is(Value.of("tooMuch"))), times(1));
+        mock.loadParameterSpecificReturnValue(Value.of("bar"),
+                whenFunctionParams(is(Value.of(2)), is(Value.of("tooMuch"))), times(1));
         assertThatExceptionOfType(SaplTestException.class).isThrownBy(() -> mock.evaluateFunctionCall(val1));
     }
 
     @Test
     void test_MatchingParameters_TooLess() {
-        final var val1 = Val.of(1);
+        final var val1 = Value.of(1);
         final var mock = new FunctionMockAlwaysSameForParameters("foo");
-        mock.loadParameterSpecificReturnValue(Val.of("foo"), whenFunctionParams(), times(1));
-        mock.loadParameterSpecificReturnValue(Val.of("bar"), whenFunctionParams(), times(2));
+        mock.loadParameterSpecificReturnValue(Value.of("foo"), whenFunctionParams(), times(1));
+        mock.loadParameterSpecificReturnValue(Value.of("bar"), whenFunctionParams(), times(2));
         assertThatExceptionOfType(SaplTestException.class).isThrownBy(() -> mock.evaluateFunctionCall(val1));
     }
 
     @Test
     void test_Parameters_NotFound() {
-        final var val3 = Val.of(3);
+        final var val3 = Value.of(3);
         final var mock = new FunctionMockAlwaysSameForParameters("foo");
-        mock.loadParameterSpecificReturnValue(Val.of("foo"), whenFunctionParams(is(Val.of(1))), times(1));
-        mock.loadParameterSpecificReturnValue(Val.of("bar"), whenFunctionParams(is(Val.of(2))), times(2));
+        mock.loadParameterSpecificReturnValue(Value.of("foo"), whenFunctionParams(is(Value.of(1))), times(1));
+        mock.loadParameterSpecificReturnValue(Value.of("bar"), whenFunctionParams(is(Value.of(2))), times(2));
         assertThatExceptionOfType(SaplTestException.class).isThrownBy(() -> mock.evaluateFunctionCall(val3));
     }
 

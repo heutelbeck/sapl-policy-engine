@@ -17,7 +17,7 @@
  */
 package io.sapl.test.mocking.function;
 
-import io.sapl.api.interpreter.Val;
+import io.sapl.api.model.Value;
 import io.sapl.test.mocking.MockCall;
 import io.sapl.test.verification.MockRunInformation;
 import io.sapl.test.verification.TimesCalledVerification;
@@ -26,18 +26,18 @@ import java.util.function.Function;
 
 public class FunctionMockFunctionResult implements FunctionMock {
 
-    private static final String ERROR_DUPLICATE_MOCK_REGISTRATION_FUNCTION = "You already defined a Mock for %s which is always returning a specified value from your lambda-Expression";
+    private static final String ERROR_DUPLICATE_MOCK_REGISTRATION_FUNCTION = "You already defined a Mock for %s which is always returning a specified value from your lambda-Expression.";
 
     private final String fullName;
 
-    final Function<Val[], Val> returnValue;
+    final Function<Value[], Value> returnValue;
 
     private final TimesCalledVerification timesCalledVerification;
 
     private final MockRunInformation mockRunInformation;
 
     public FunctionMockFunctionResult(String fullName,
-            Function<Val[], Val> returns,
+            Function<Value[], Value> returns,
             TimesCalledVerification verification) {
         this.fullName                = fullName;
         this.returnValue             = returns;
@@ -47,9 +47,9 @@ public class FunctionMockFunctionResult implements FunctionMock {
     }
 
     @Override
-    public Val evaluateFunctionCall(Val... parameter) {
+    public Value evaluateFunctionCall(Value... parameter) {
         this.mockRunInformation.saveCall(new MockCall(parameter));
-        return this.returnValue.apply(parameter).withTrace(FunctionMockFunctionResult.class);
+        return this.returnValue.apply(parameter);
     }
 
     @Override
@@ -60,7 +60,7 @@ public class FunctionMockFunctionResult implements FunctionMock {
 
     @Override
     public String getErrorMessageForCurrentMode() {
-        return String.format(ERROR_DUPLICATE_MOCK_REGISTRATION_FUNCTION, this.fullName);
+        return ERROR_DUPLICATE_MOCK_REGISTRATION_FUNCTION.formatted(this.fullName);
     }
 
 }

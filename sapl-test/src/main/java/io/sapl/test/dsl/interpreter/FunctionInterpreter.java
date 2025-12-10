@@ -17,7 +17,7 @@
  */
 package io.sapl.test.dsl.interpreter;
 
-import io.sapl.api.interpreter.Val;
+import io.sapl.api.model.Value;
 import io.sapl.test.Imports;
 import io.sapl.test.SaplTestException;
 import io.sapl.test.grammar.sapltest.Function;
@@ -32,17 +32,17 @@ import org.hamcrest.Matcher;
 @RequiredArgsConstructor
 class FunctionInterpreter {
 
-    private final ValueInterpreter      valueInterpreter;
-    private final ValMatcherInterpreter matcherInterpreter;
-    private final MultipleInterpreter   multipleInterpreter;
+    private final ValueInterpreter        valueInterpreter;
+    private final ValueMatcherInterpreter matcherInterpreter;
+    private final MultipleInterpreter     multipleInterpreter;
 
-    GivenOrWhenStep interpretFunction(final GivenOrWhenStep givenOrWhenStep, final Function function) {
+    GivenOrWhenStep interpretFunction(GivenOrWhenStep givenOrWhenStep, Function function) {
         if (givenOrWhenStep == null || function == null) {
-            throw new SaplTestException("GivenOrWhenStep or function is null");
+            throw new SaplTestException("GivenOrWhenStep or function is null.");
         }
 
-        final var dslTimesCalled = function.getTimesCalled();
-        var       timesCalled    = 0;
+        var dslTimesCalled = function.getTimesCalled();
+        var timesCalled    = 0;
 
         if (dslTimesCalled instanceof Multiple multiple) {
             timesCalled = multipleInterpreter.getAmountFromMultiple(multiple);
@@ -50,9 +50,9 @@ class FunctionInterpreter {
             timesCalled = 1;
         }
 
-        final var parameters   = interpretFunctionParameters(function.getParameterMatchers());
-        final var returnValue  = valueInterpreter.getValFromValue(function.getReturnValue());
-        final var functionName = function.getName();
+        var parameters   = interpretFunctionParameters(function.getParameterMatchers());
+        var returnValue  = valueInterpreter.getValueFromDslValue(function.getReturnValue());
+        var functionName = function.getName();
 
         if (timesCalled == 0) {
             if (parameters != null) {
@@ -61,7 +61,7 @@ class FunctionInterpreter {
 
             return givenOrWhenStep.givenFunction(functionName, returnValue);
         } else {
-            final var timesCalledVerification = Imports.times(timesCalled);
+            var timesCalledVerification = Imports.times(timesCalled);
 
             if (parameters != null) {
                 return givenOrWhenStep.givenFunction(functionName, parameters, returnValue, timesCalledVerification);
@@ -71,21 +71,22 @@ class FunctionInterpreter {
         }
     }
 
-    GivenOrWhenStep interpretFunctionInvokedOnce(final GivenOrWhenStep givenOrWhenStep,
-            final FunctionInvokedOnce functionInvokedOnce) {
+    GivenOrWhenStep interpretFunctionInvokedOnce(GivenOrWhenStep givenOrWhenStep,
+            FunctionInvokedOnce functionInvokedOnce) {
         if (givenOrWhenStep == null || functionInvokedOnce == null) {
-            throw new SaplTestException("GivenOrWhenStep or functionInvokedOnce is null");
+            throw new SaplTestException("GivenOrWhenStep or functionInvokedOnce is null.");
         }
 
-        final var returnValues = functionInvokedOnce.getReturnValue();
+        var returnValues = functionInvokedOnce.getReturnValue();
 
         if (returnValues == null || returnValues.isEmpty()) {
-            throw new SaplTestException("No ReturnValue found");
+            throw new SaplTestException("No ReturnValue found.");
         }
 
-        final var mappedReturnValues = returnValues.stream().map(valueInterpreter::getValFromValue).toArray(Val[]::new);
+        var mappedReturnValues = returnValues.stream().map(valueInterpreter::getValueFromDslValue)
+                .toArray(Value[]::new);
 
-        final var name = functionInvokedOnce.getName();
+        var name = functionInvokedOnce.getName();
 
         if (mappedReturnValues.length == 1) {
             return givenOrWhenStep.givenFunctionOnce(name, mappedReturnValues[0]);
@@ -95,20 +96,20 @@ class FunctionInterpreter {
     }
 
     private FunctionParameters interpretFunctionParameters(
-            final io.sapl.test.grammar.sapltest.FunctionParameterMatchers parameterMatchers) {
+            io.sapl.test.grammar.sapltest.FunctionParameterMatchers parameterMatchers) {
         if (parameterMatchers == null) {
             return null;
         }
 
-        final var functionParameterMatchers = parameterMatchers.getMatchers();
+        var functionParameterMatchers = parameterMatchers.getMatchers();
 
         if (functionParameterMatchers == null || functionParameterMatchers.isEmpty()) {
-            throw new SaplTestException("No FunctionParameterMatcher found");
+            throw new SaplTestException("No FunctionParameterMatcher found.");
         }
 
-        final var valMatchers = functionParameterMatchers.stream().map(matcherInterpreter::getHamcrestValMatcher)
-                .<Matcher<Val>>toArray(Matcher[]::new);
+        var valueMatchers = functionParameterMatchers.stream().map(matcherInterpreter::getHamcrestValueMatcher)
+                .<Matcher<Value>>toArray(Matcher[]::new);
 
-        return new io.sapl.test.mocking.function.models.FunctionParameters(valMatchers);
+        return new FunctionParameters(valueMatchers);
     }
 }

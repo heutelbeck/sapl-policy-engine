@@ -17,138 +17,141 @@
  */
 package io.sapl.test.integration;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import io.sapl.api.interpreter.Val;
-import io.sapl.interpreter.SAPLInterpreter;
-import io.sapl.interpreter.combinators.PolicyDocumentCombiningAlgorithm;
-import io.sapl.pdp.config.VariablesAndCombinatorSource;
-import io.sapl.prp.PolicyRetrievalPoint;
+import io.sapl.api.model.Value;
+import io.sapl.api.pdp.PolicyDecisionPoint;
+import io.sapl.pdp.PolicyDecisionPointBuilder;
+import io.sapl.pdp.PolicyDecisionPointBuilder.PDPComponents;
 import io.sapl.test.SaplTestException;
-import io.sapl.test.SaplTestFixtureTemplate;
-import io.sapl.test.coverage.api.CoverageAPIFactory;
-import io.sapl.test.lang.TestSaplInterpreter;
+import io.sapl.test.SaplTestFixture;
 import io.sapl.test.steps.GivenStep;
 import io.sapl.test.steps.WhenStep;
+import lombok.val;
 
-import java.nio.file.Paths;
-import java.util.Collection;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
-import java.util.Objects;
-import java.util.function.Supplier;
 
-public class SaplIntegrationTestFixture extends SaplTestFixtureTemplate {
+/**
+ * Fixture for constructing integration test cases that evaluate policies using
+ * a full Policy Decision Point with combining algorithms.
+ * <p>
+ * Unlike unit tests that evaluate single policies in isolation, integration
+ * tests use a complete PDP configuration with multiple policies and the
+ * configured combining algorithm to determine decisions.
+ * <p>
+ * Example usage:
+ *
+ * <pre>
+ * var fixture = new SaplIntegrationTestFixture("policiesIT");
+ * fixture.constructTestCase().when(AuthorizationSubscription.of("alice", "read", "document")).expectPermit().verify();
+ * </pre>
+ */
+public class SaplIntegrationTestFixture implements SaplTestFixture {
 
-    private static final String ERROR_MESSAGE_POLICY_FOLDER_PATH_NULL              = "Null is not allowed for the Path pointing to the policies folder.";
-    private static final String ERROR_MESSAGE_POLICY_PATHS_NULL_OR_SINGLE_VALUE    = "List of policies paths needs to contain at least 2 values.";
-    private static final String ERROR_MESSAGE_INPUT_DOCUMENTS_NULL_OR_SINGLE_VALUE = "List input documents needs to contain at least 2 values.";
-    private final ObjectMapper  objectMapper                                       = new ObjectMapper();
+    private static final String ERROR_MOCKS_NOT_SUPPORTED = """
+            Integration tests do not support mocking.
+            Use SaplUnitTestFixture for unit tests with mocks, or register real PIPs/functions.""";
 
-    private PolicyDocumentCombiningAlgorithm pdpAlgorithm = null;
-    private Map<String, Val>                 pdpVariables = null;
+    private final String resourcePath;
 
-    private final Supplier<PolicyRetrievalPoint>         prpSupplier;
-    private final Supplier<VariablesAndCombinatorSource> variablesAndCombinatorSourceSupplier;
+    private final List<Object>       policyInformationPoints       = new ArrayList<>();
+    private final List<Class<?>>     staticFunctionLibraries       = new ArrayList<>();
+    private final List<Object>       instantiatedFunctionLibraries = new ArrayList<>();
+    private final Map<String, Value> variables                     = new HashMap<>();
 
-    /**
-     * Fixture for constructing an integration test case
-     *
-     * @param folderPath path relative to your class path (relative from
-     * src/main/resources, ...) to the folder containing the SAPL documents. If your
-     * policies are located at src/main/resources/yourSpecialDirectory you only have
-     * to specify "yourSpecialDirectory".
-     */
-    public SaplIntegrationTestFixture(final String folderPath) {
-        prpSupplier                          = () -> this.constructPRP(true, folderPath, null);
-        variablesAndCombinatorSourceSupplier = () -> this.constructPDPConfig(folderPath);
-    }
-
-    public SaplIntegrationTestFixture(final String pdpConfigPath, final Collection<String> policyPaths) {
-        prpSupplier                          = () -> this.constructPRP(false, null, policyPaths);
-        variablesAndCombinatorSourceSupplier = () -> this.constructPDPConfig(pdpConfigPath);
-    }
-
-    public SaplIntegrationTestFixture(final Collection<String> documentStrings, final String pdpConfig) {
-        prpSupplier                          = () -> this.constructInputStringPRP(documentStrings);
-        variablesAndCombinatorSourceSupplier = () -> this.constructInputStringPDPConfig(pdpConfig);
-    }
+    private PDPComponents pdpComponents;
 
     /**
-     * set {@link PolicyDocumentCombiningAlgorithm} for this policy integration test
+     * Creates a fixture for integration testing policies from a classpath resource
+     * directory.
      *
-     * @param alg the {@link PolicyDocumentCombiningAlgorithm} to be used
-     * @return the test fixture
+     * @param resourcePath the classpath path to the policy directory (e.g.,
+     * "policiesIT"). The directory should contain pdp.json and .sapl files.
      */
-    public SaplIntegrationTestFixture withPDPPolicyCombiningAlgorithm(PolicyDocumentCombiningAlgorithm alg) {
-        this.pdpAlgorithm = alg;
-        return this;
-    }
-
-    /**
-     * set the Variables-{@link Map} normally loaded from the pdp.json file
-     *
-     * @param variables a {@link Map} of variables
-     * @return the test fixture
-     */
-    public SaplIntegrationTestFixture withPDPVariables(Map<String, Val> variables) {
-        this.pdpVariables = variables;
-        return this;
+    public SaplIntegrationTestFixture(String resourcePath) {
+        this.resourcePath = resourcePath.startsWith("/") ? resourcePath : "/" + resourcePath;
     }
 
     @Override
     public GivenStep constructTestCaseWithMocks() {
-        return StepBuilder.newBuilderAtGivenStep(prpSupplier.get(), variablesAndCombinatorSourceSupplier.get(),
-                this.attributeStreamBroker, this.functionCtx, this.variables);
+        throw new SaplTestException(ERROR_MOCKS_NOT_SUPPORTED);
     }
 
     @Override
     public WhenStep constructTestCase() {
-        return StepBuilder.newBuilderAtWhenStep(prpSupplier.get(), variablesAndCombinatorSourceSupplier.get(),
-                this.attributeStreamBroker, this.functionCtx, this.variables);
+        return IntegrationTestStepBuilder.newBuilderAtWhenStep(buildPdp(), variables);
     }
 
-    private PolicyRetrievalPoint constructPRP(final boolean usePolicyFolder, final String pathToPoliciesFolder,
-            final Collection<String> policyPaths) {
-        final var interpreter = getSaplInterpreter();
+    @Override
+    public SaplTestFixture registerPIP(Object pip) {
+        policyInformationPoints.add(pip);
+        return this;
+    }
 
-        if (usePolicyFolder) {
-            if (pathToPoliciesFolder == null || pathToPoliciesFolder.isEmpty()) {
-                throw new SaplTestException(ERROR_MESSAGE_POLICY_FOLDER_PATH_NULL);
-            }
-            return new ClasspathPolicyRetrievalPoint(Paths.get(pathToPoliciesFolder), interpreter);
-        } else {
-            if (policyPaths == null || policyPaths.size() < 2) {
-                throw new SaplTestException(ERROR_MESSAGE_POLICY_PATHS_NULL_OR_SINGLE_VALUE);
-            }
-            return new ClasspathPolicyRetrievalPoint(policyPaths, interpreter);
+    @Override
+    public SaplTestFixture registerPIP(Class<?> pipClass) {
+        try {
+            var pipInstance = pipClass.getDeclaredConstructor().newInstance();
+            policyInformationPoints.add(pipInstance);
+        } catch (ReflectiveOperationException exception) {
+            throw new SaplTestException("Failed to instantiate PIP class: " + pipClass.getName(), exception);
         }
+        return this;
     }
 
-    private PolicyRetrievalPoint constructInputStringPRP(final Collection<String> documentStrings) {
-        final var interpreter = getSaplInterpreter();
+    @Override
+    public SaplTestFixture registerFunctionLibrary(Object library) {
+        instantiatedFunctionLibraries.add(library);
+        return this;
+    }
 
-        if (documentStrings == null || documentStrings.size() < 2) {
-            throw new SaplTestException(ERROR_MESSAGE_INPUT_DOCUMENTS_NULL_OR_SINGLE_VALUE);
+    @Override
+    public SaplTestFixture registerFunctionLibrary(Class<?> staticLibrary) {
+        staticFunctionLibraries.add(staticLibrary);
+        return this;
+    }
+
+    @Override
+    public SaplTestFixture registerVariable(String key, Value value) {
+        if (variables.containsKey(key)) {
+            throw new SaplTestException("The variable context already contains a key '%s'.".formatted(key));
+        }
+        variables.put(key, value);
+        return this;
+    }
+
+    private PolicyDecisionPoint buildPdp() {
+        if (pdpComponents != null) {
+            return pdpComponents.pdp();
         }
 
-        return new InputStringPolicyRetrievalPoint(documentStrings, interpreter);
+        val builder = PolicyDecisionPointBuilder.withDefaults().withResourcesSource(resourcePath);
+
+        for (val pip : policyInformationPoints) {
+            builder.withPolicyInformationPoint(pip);
+        }
+
+        for (val lib : staticFunctionLibraries) {
+            builder.withFunctionLibrary(lib);
+        }
+
+        for (val lib : instantiatedFunctionLibraries) {
+            builder.withFunctionLibraryInstance(lib);
+        }
+
+        pdpComponents = builder.build();
+        return pdpComponents.pdp();
     }
 
-    private SAPLInterpreter getSaplInterpreter() {
-        return new TestSaplInterpreter(CoverageAPIFactory.constructCoverageHitRecorder(resolveCoverageBaseDir()));
-    }
-
-    private VariablesAndCombinatorSource constructPDPConfig(final String pdpConfigPath) {
-        final var actualConfigPath = Objects.requireNonNullElse(pdpConfigPath, "");
-
-        return new ClasspathVariablesAndCombinatorSource(actualConfigPath, objectMapper, this.pdpAlgorithm,
-                this.pdpVariables);
-    }
-
-    private VariablesAndCombinatorSource constructInputStringPDPConfig(final String input) {
-        final var pdpConfig = (input == null || input.isEmpty()) ? "{}" : input;
-
-        return new InputStringVariablesAndCombinatorSource(pdpConfig, objectMapper, this.pdpAlgorithm,
-                this.pdpVariables);
+    /**
+     * Disposes resources held by this fixture. Call this method after tests
+     * complete to clean up file watchers and background threads.
+     */
+    public void dispose() {
+        if (pdpComponents != null) {
+            pdpComponents.dispose();
+        }
     }
 
 }

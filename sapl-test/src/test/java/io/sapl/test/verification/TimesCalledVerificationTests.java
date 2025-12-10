@@ -17,7 +17,7 @@
  */
 package io.sapl.test.verification;
 
-import io.sapl.api.interpreter.Val;
+import io.sapl.api.model.Value;
 import io.sapl.test.mocking.MockCall;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -37,7 +37,7 @@ class TimesCalledVerificationTests {
     @Test
     void test_is() {
         final var runInfo = new MockRunInformation("foo");
-        runInfo.saveCall(new MockCall(Val.of("bar")));
+        runInfo.saveCall(new MockCall(Value.of("bar")));
         final var matcher      = is(1);
         final var verification = new TimesCalledVerification(matcher);
 
@@ -48,7 +48,7 @@ class TimesCalledVerificationTests {
     @Test
     void test_comparesEqualTo() {
         final var runInfo = new MockRunInformation("foo");
-        runInfo.saveCall(new MockCall(Val.of("bar")));
+        runInfo.saveCall(new MockCall(Value.of("bar")));
         final var matcher      = comparesEqualTo(1);
         final var verification = new TimesCalledVerification(matcher);
 
@@ -58,8 +58,8 @@ class TimesCalledVerificationTests {
     @Test
     void test_comparesEqualTo_multipleCalls() {
         final var runInfo = new MockRunInformation("foo");
-        runInfo.saveCall(new MockCall(Val.of("bar")));
-        runInfo.saveCall(new MockCall(Val.of("xxx")));
+        runInfo.saveCall(new MockCall(Value.of("bar")));
+        runInfo.saveCall(new MockCall(Value.of("xxx")));
         final var matcher      = comparesEqualTo(2);
         final var verification = new TimesCalledVerification(matcher);
 
@@ -78,7 +78,7 @@ class TimesCalledVerificationTests {
     @Test
     void test_greaterThanOrEqualTo() {
         final var runInfo = new MockRunInformation("foo");
-        runInfo.saveCall(new MockCall(Val.of("bar")));
+        runInfo.saveCall(new MockCall(Value.of("bar")));
         final var matcher      = greaterThanOrEqualTo(1);
         final var verification = new TimesCalledVerification(matcher);
 
@@ -113,7 +113,7 @@ class TimesCalledVerificationTests {
     @MethodSource("provideTestCases")
     void checkVerificationMessage(String given, String expected) {
         final var runInfo = new MockRunInformation("foo");
-        runInfo.saveCall(new MockCall(Val.of("bar")));
+        runInfo.saveCall(new MockCall(Value.of("bar")));
         final var matcher      = is(2);
         final var verification = new TimesCalledVerification(matcher);
 

@@ -17,12 +17,11 @@
  */
 package io.sapl.test.steps;
 
-import io.sapl.api.interpreter.Val;
+import io.sapl.api.model.Value;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 
-import java.util.ArrayList;
 import java.util.List;
 
 @Data
@@ -31,11 +30,10 @@ public class AttributeMockReturnValues {
 
     private final String fullName;
 
-    private final List<Val> mockReturnValues;
+    private final List<Value> mockReturnValues;
 
-    public static AttributeMockReturnValues of(String fullName, List<Val> mockReturnValues) {
-        final var tracedMockValues = new ArrayList<Val>(mockReturnValues.size());
-        mockReturnValues.forEach(mockVal -> tracedMockValues.add(mockVal.withTrace(AttributeMockReturnValues.class)));
-        return new AttributeMockReturnValues(fullName, tracedMockValues);
+    public static AttributeMockReturnValues of(String fullName, List<Value> mockReturnValues) {
+        return new AttributeMockReturnValues(fullName, mockReturnValues);
     }
+
 }

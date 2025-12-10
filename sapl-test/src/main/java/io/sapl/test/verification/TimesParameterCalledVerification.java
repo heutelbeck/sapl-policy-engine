@@ -17,7 +17,7 @@
  */
 package io.sapl.test.verification;
 
-import io.sapl.api.interpreter.Val;
+import io.sapl.api.model.Value;
 import io.sapl.test.SaplTestException;
 import io.sapl.test.verification.MockRunInformation.CallWithMetadata;
 import org.hamcrest.Matcher;
@@ -28,15 +28,14 @@ import java.util.function.BiPredicate;
 
 /**
  * Verify that this mock was called n times with the specified list of Matcher.
- *
  */
 public class TimesParameterCalledVerification implements MockingVerification {
 
-    final List<Matcher<Val>> wantedArgs;
+    final List<Matcher<Value>> wantedArgs;
 
     final TimesCalledVerification verification;
 
-    public TimesParameterCalledVerification(TimesCalledVerification verification, List<Matcher<Val>> wantedArgs) {
+    public TimesParameterCalledVerification(TimesCalledVerification verification, List<Matcher<Value>> wantedArgs) {
         this.verification = verification;
         this.wantedArgs   = wantedArgs;
     }
@@ -74,16 +73,16 @@ public class TimesParameterCalledVerification implements MockingVerification {
     }
 
     private String constructErrorMessage(String verificationFailedMessage, MockRunInformation callsMatchingWantedArgs,
-            Iterable<Matcher<Val>> wantedArgs, TimesCalledVerification verification) {
+            Iterable<Matcher<Value>> wantedArgs, TimesCalledVerification verification) {
 
         if (verificationFailedMessage != null && !verificationFailedMessage.isEmpty()) {
             return verificationFailedMessage;
         }
 
-        StringBuilder builder = new StringBuilder("Error verifying the expected number of calls to the mock \""
+        var builder = new StringBuilder("Error verifying the expected number of calls to the mock \""
                 + callsMatchingWantedArgs.getFullName() + "\" for parameters [");
 
-        for (Matcher<Val> matcher : wantedArgs) {
+        for (Matcher<Value> matcher : wantedArgs) {
             builder.append(matcher).append(", ");
         }
 
@@ -101,10 +100,11 @@ public class TimesParameterCalledVerification implements MockingVerification {
                 .allMatch(Boolean::booleanValue);
     }
 
-    private List<Boolean> listCombiner(List<Matcher<Val>> list1, Val[] list2, BiPredicate<Matcher<Val>, Val> combiner) {
+    private List<Boolean> listCombiner(List<Matcher<Value>> list1, Value[] list2,
+            BiPredicate<Matcher<Value>, Value> combiner) {
         if (list1.size() != list2.length) {
             throw new SaplTestException(
-                    "Number of parameters in the mock call is not equals the number of provided parameter matcher!");
+                    "Number of parameters in the mock call is not equals the number of provided parameter matcher.");
         }
 
         List<Boolean> result = new ArrayList<>(list1.size());

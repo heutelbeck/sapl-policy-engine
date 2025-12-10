@@ -17,33 +17,33 @@
  */
 package io.sapl.test.mocking.function;
 
-import io.sapl.api.interpreter.Val;
+import io.sapl.api.model.Value;
 import io.sapl.test.mocking.MockCall;
 import io.sapl.test.verification.MockRunInformation;
 import io.sapl.test.verification.TimesCalledVerification;
 
 public class FunctionMockAlwaysSameValue implements FunctionMock {
 
-    private static final String ERROR_DUPLICATE_MOCK_REGISTRATION_ALWAYS_SAME_VALUE = "You already defined a Mock for %s which is always returning a specified value";
+    private static final String ERROR_DUPLICATE_MOCK_REGISTRATION_ALWAYS_SAME_VALUE = "You already defined a Mock for %s which is always returning a specified value.";
 
     private final String fullName;
 
-    private final Val alwaysMockReturnValue;
+    private final Value alwaysMockReturnValue;
 
     private final TimesCalledVerification timesCalledVerification;
 
     private final MockRunInformation mockRunInformation;
 
-    public FunctionMockAlwaysSameValue(String fullName, Val returnValue, TimesCalledVerification verification) {
+    public FunctionMockAlwaysSameValue(String fullName, Value returnValue, TimesCalledVerification verification) {
         this.fullName                = fullName;
-        this.alwaysMockReturnValue   = returnValue.withTrace(FunctionMockAlwaysSameValue.class);
+        this.alwaysMockReturnValue   = returnValue;
         this.timesCalledVerification = verification;
 
         this.mockRunInformation = new MockRunInformation(fullName);
     }
 
     @Override
-    public Val evaluateFunctionCall(Val... parameter) {
+    public Value evaluateFunctionCall(Value... parameter) {
         this.mockRunInformation.saveCall(new MockCall(parameter));
         return this.alwaysMockReturnValue;
     }
@@ -56,7 +56,7 @@ public class FunctionMockAlwaysSameValue implements FunctionMock {
 
     @Override
     public String getErrorMessageForCurrentMode() {
-        return String.format(ERROR_DUPLICATE_MOCK_REGISTRATION_ALWAYS_SAME_VALUE, this.fullName);
+        return ERROR_DUPLICATE_MOCK_REGISTRATION_ALWAYS_SAME_VALUE.formatted(this.fullName);
     }
 
 }

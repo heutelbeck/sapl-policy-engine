@@ -27,31 +27,31 @@ class AuthorizationSubscriptionInterpreter {
     private final ValueInterpreter valueInterpreter;
 
     AuthorizationSubscription constructAuthorizationSubscription(
-            final io.sapl.test.grammar.sapltest.AuthorizationSubscription authorizationSubscription) {
+            io.sapl.test.grammar.sapltest.AuthorizationSubscription authorizationSubscription) {
         if (authorizationSubscription == null) {
-            throw new SaplTestException("AuthorizationSubscription is null");
+            throw new SaplTestException("AuthorizationSubscription is null.");
         }
 
-        final var subject  = valueInterpreter.getValFromValue(authorizationSubscription.getSubject());
-        final var action   = valueInterpreter.getValFromValue(authorizationSubscription.getAction());
-        final var resource = valueInterpreter.getValFromValue(authorizationSubscription.getResource());
+        var subject  = valueInterpreter.getValueFromDslValue(authorizationSubscription.getSubject());
+        var action   = valueInterpreter.getValueFromDslValue(authorizationSubscription.getAction());
+        var resource = valueInterpreter.getValueFromDslValue(authorizationSubscription.getResource());
 
         if (subject == null || action == null || resource == null) {
-            throw new SaplTestException("subject or action or resource is null");
+            throw new SaplTestException("subject or action or resource is null.");
         }
 
-        final var environmentValue = authorizationSubscription.getEnvironment();
+        var environmentValue = authorizationSubscription.getEnvironment();
 
         if (environmentValue == null) {
-            return AuthorizationSubscription.of(subject.get(), action.get(), resource.get());
+            return AuthorizationSubscription.of(subject, action, resource);
         }
 
-        final var environment = valueInterpreter.getValFromValue(environmentValue);
+        var environment = valueInterpreter.getValueFromDslValue(environmentValue);
 
         if (environment == null) {
-            throw new SaplTestException("Environment is null");
+            throw new SaplTestException("Environment is null.");
         }
 
-        return AuthorizationSubscription.of(subject.get(), action.get(), resource.get(), environment.get());
+        return AuthorizationSubscription.of(subject, action, resource, environment);
     }
 }

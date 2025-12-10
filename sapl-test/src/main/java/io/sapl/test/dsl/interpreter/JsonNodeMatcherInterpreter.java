@@ -23,7 +23,7 @@ import io.sapl.test.grammar.sapltest.*;
 import lombok.RequiredArgsConstructor;
 import org.hamcrest.Matcher;
 
-import static com.spotify.hamcrest.jackson.JsonMatchers.*;
+import static io.sapl.test.dsl.interpreter.JsonMatchers.*;
 import static org.hamcrest.Matchers.is;
 
 @RequiredArgsConstructor
@@ -42,7 +42,7 @@ class JsonNodeMatcherInterpreter {
             return interpretJsonBoolean(isJsonBoolean);
         } else if (jsonNodeMatcher instanceof IsJsonArray isJsonArray) {
             return interpretJsonArray(isJsonArray);
-        } else if (jsonNodeMatcher instanceof IsJsonObject isJsonObject) {
+        } else if (jsonNodeMatcher instanceof io.sapl.test.grammar.sapltest.IsJsonObject isJsonObject) {
             return interpretJsonObject(isJsonObject);
         }
 
@@ -106,7 +106,7 @@ class JsonNodeMatcherInterpreter {
         return jsonArray(is(mappedMatchers));
     }
 
-    private Matcher<JsonNode> interpretJsonObject(final IsJsonObject isJsonObject) {
+    private Matcher<JsonNode> interpretJsonObject(final io.sapl.test.grammar.sapltest.IsJsonObject isJsonObject) {
         final var jsonObjectMatcher = isJsonObject.getMatcher();
 
         if (jsonObjectMatcher == null) {

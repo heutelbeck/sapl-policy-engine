@@ -17,7 +17,7 @@
  */
 package io.sapl.test.mocking.function;
 
-import io.sapl.api.interpreter.Val;
+import io.sapl.api.model.Value;
 import org.junit.jupiter.api.Test;
 
 import static io.sapl.test.Imports.times;
@@ -26,20 +26,20 @@ import static org.assertj.core.api.Assertions.assertThatNoException;
 
 class FunctionMockAlwaysSameValueTests {
 
-    private final Val alwaysReturnValue = Val.of("bar");
+    private final Value alwaysReturnValue = Value.of("bar");
 
     @Test
     void test() {
         final var mock = new FunctionMockAlwaysSameValue("foo", alwaysReturnValue, times(1));
-        assertThat(mock.evaluateFunctionCall(Val.of(1))).isEqualTo(alwaysReturnValue);
+        assertThat(mock.evaluateFunctionCall(Value.of(1))).isEqualTo(alwaysReturnValue);
     }
 
     @Test
     void test_multipleTimes() {
         final var mock = new FunctionMockAlwaysSameValue("foo", alwaysReturnValue, times(3));
-        assertThat(mock.evaluateFunctionCall(Val.of(1))).isEqualTo(alwaysReturnValue);
-        assertThat(mock.evaluateFunctionCall(Val.of(2))).isEqualTo(alwaysReturnValue);
-        assertThat(mock.evaluateFunctionCall(Val.of(3))).isEqualTo(alwaysReturnValue);
+        assertThat(mock.evaluateFunctionCall(Value.of(1))).isEqualTo(alwaysReturnValue);
+        assertThat(mock.evaluateFunctionCall(Value.of(2))).isEqualTo(alwaysReturnValue);
+        assertThat(mock.evaluateFunctionCall(Value.of(3))).isEqualTo(alwaysReturnValue);
 
         assertThatNoException().isThrownBy(mock::assertVerifications);
     }

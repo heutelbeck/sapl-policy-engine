@@ -17,7 +17,7 @@
  */
 package io.sapl.test.mocking.attribute.models;
 
-import io.sapl.api.interpreter.Val;
+import io.sapl.api.model.Value;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import org.hamcrest.Matcher;
@@ -26,6 +26,6 @@ import org.hamcrest.Matcher;
 @AllArgsConstructor
 public class AttributeArgumentMatchers {
 
-    private Matcher<Val>[] matchers;
+    private Matcher<Value>[] matchers;
 
 }

@@ -22,12 +22,10 @@ import io.sapl.test.grammar.sapltest.AuthorizationSubscription;
 import io.sapl.test.grammar.sapltest.Scenario;
 import io.sapl.test.steps.ExpectStep;
 import io.sapl.test.steps.WhenStep;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -44,14 +42,6 @@ class DefaultExpectStepConstructorTests {
     protected Scenario                             scenarioMock;
     @Mock
     protected WhenStep                             whenStepMock;
-
-    protected final MockedStatic<io.sapl.api.pdp.AuthorizationSubscription> authorizationSubscriptionMockedStatic = mockStatic(
-            io.sapl.api.pdp.AuthorizationSubscription.class);
-
-    @AfterEach
-    void tearDown() {
-        authorizationSubscriptionMockedStatic.close();
-    }
 
     @Test
     void constructExpectStep_handlesNullScenario_throwsSaplTestException() {
@@ -108,13 +98,14 @@ class DefaultExpectStepConstructorTests {
         final var authorizationSubscriptionMock = mock(AuthorizationSubscription.class);
         when(saplTestWhenStepMock.getAuthorizationSubscription()).thenReturn(authorizationSubscriptionMock);
 
-        final var saplAuthorizationSubscriptionMock = mock(io.sapl.api.pdp.AuthorizationSubscription.class);
+        final var saplAuthorizationSubscription = io.sapl.api.pdp.AuthorizationSubscription.of("testSubject",
+                "testAction", "testResource");
         when(authorizationSubscriptionInterpreterMock.constructAuthorizationSubscription(authorizationSubscriptionMock))
-                .thenReturn(saplAuthorizationSubscriptionMock);
+                .thenReturn(saplAuthorizationSubscription);
 
         final var aWhenStepMock  = mock(WhenStep.class);
         final var expectStepMock = mock(ExpectStep.class);
-        when(aWhenStepMock.when(saplAuthorizationSubscriptionMock)).thenReturn(expectStepMock);
+        when(aWhenStepMock.when(saplAuthorizationSubscription)).thenReturn(expectStepMock);
 
         final var result = defaultExpectStepConstructor.constructExpectStep(scenarioMock, aWhenStepMock);
         assertEquals(expectStepMock, result);

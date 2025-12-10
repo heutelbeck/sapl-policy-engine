@@ -17,7 +17,7 @@
  */
 package io.sapl.test.dsl.interpreter;
 
-import io.sapl.api.interpreter.Val;
+import io.sapl.api.model.Value;
 import io.sapl.test.SaplTestException;
 import io.sapl.test.grammar.sapltest.Attribute;
 import io.sapl.test.grammar.sapltest.AttributeWithParameters;
@@ -25,57 +25,58 @@ import io.sapl.test.steps.GivenOrWhenStep;
 import lombok.RequiredArgsConstructor;
 import org.hamcrest.Matcher;
 
-import static io.sapl.test.Imports.*;
+import static io.sapl.test.Imports.arguments;
+import static io.sapl.test.Imports.entityValue;
+import static io.sapl.test.Imports.whenAttributeParams;
+import static io.sapl.test.Imports.whenEntityValue;
 
 @RequiredArgsConstructor
 class AttributeInterpreter {
 
-    private final ValueInterpreter      valueInterpreter;
-    private final ValMatcherInterpreter matcherInterpreter;
-    private final DurationInterpreter   durationInterpreter;
+    private final ValueInterpreter        valueInterpreter;
+    private final ValueMatcherInterpreter matcherInterpreter;
+    private final DurationInterpreter     durationInterpreter;
 
-    GivenOrWhenStep interpretAttribute(final GivenOrWhenStep givenOrWhenStep, final Attribute attribute) {
-        final var importName  = attribute.getName();
-        final var returnValue = attribute.getReturnValue();
+    GivenOrWhenStep interpretAttribute(GivenOrWhenStep givenOrWhenStep, Attribute attribute) {
+        var importName  = attribute.getName();
+        var returnValue = attribute.getReturnValue();
 
         if (null == returnValue || returnValue.isEmpty()) {
-            throw new SaplTestException("Attribute has no return value");
+            throw new SaplTestException("Attribute has no return value.");
         } else {
-            final var values = returnValue.stream().map(valueInterpreter::getValFromValue).toArray(Val[]::new);
+            var values = returnValue.stream().map(valueInterpreter::getValueFromDslValue).toArray(Value[]::new);
 
-            final var dslTiming = attribute.getTiming();
+            var dslTiming = attribute.getTiming();
 
             if (null == dslTiming) {
                 return givenOrWhenStep.givenAttribute(importName, values);
             }
 
-            final var timing = durationInterpreter.getJavaDurationFromDuration(dslTiming);
+            var timing = durationInterpreter.getJavaDurationFromDuration(dslTiming);
 
             return givenOrWhenStep.givenAttribute(importName, timing, values);
         }
     }
 
-    GivenOrWhenStep interpretAttributeWithParameters(final GivenOrWhenStep givenOrWhenStep,
-            final AttributeWithParameters attributeWithParameters) {
-        final var importName = attributeWithParameters.getName();
+    GivenOrWhenStep interpretAttributeWithParameters(GivenOrWhenStep givenOrWhenStep,
+            AttributeWithParameters attributeWithParameters) {
+        var importName = attributeWithParameters.getName();
 
-        final var parentValueMatcher = matcherInterpreter
-                .getHamcrestValMatcher(attributeWithParameters.getParentMatcher());
-        final var returnValue        = valueInterpreter.getValFromValue(attributeWithParameters.getReturnValue());
+        var parentValueMatcher = matcherInterpreter.getHamcrestValueMatcher(attributeWithParameters.getParentMatcher());
+        var returnValue        = valueInterpreter.getValueFromDslValue(attributeWithParameters.getReturnValue());
 
-        final var parameterMatchers = attributeWithParameters.getParameterMatchers();
+        var parameterMatchers = attributeWithParameters.getParameterMatchers();
 
         if (parameterMatchers != null) {
 
-            final var matchers = parameterMatchers.getMatchers();
+            var matchers = parameterMatchers.getMatchers();
 
             if (matchers != null && !matchers.isEmpty()) {
-                final var arguments = matchers.stream().map(matcherInterpreter::getHamcrestValMatcher)
-                        .<Matcher<Val>>toArray(Matcher[]::new);
+                var argumentMatchers = matchers.stream().map(matcherInterpreter::getHamcrestValueMatcher)
+                        .<Matcher<Value>>toArray(Matcher[]::new);
 
                 return givenOrWhenStep.givenAttribute(importName,
-                        whenAttributeParams(entityValue(parentValueMatcher), arguments(arguments)), returnValue);
-
+                        whenAttributeParams(entityValue(parentValueMatcher), arguments(argumentMatchers)), returnValue);
             }
         }
         return givenOrWhenStep.givenAttribute(importName, whenEntityValue(parentValueMatcher), returnValue);

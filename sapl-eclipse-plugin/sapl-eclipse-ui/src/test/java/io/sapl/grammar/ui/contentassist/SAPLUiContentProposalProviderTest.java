@@ -17,18 +17,19 @@
  */
 package io.sapl.grammar.ui.contentassist;
 
-import io.sapl.pdp.config.PDPConfigurationProvider;
+import io.sapl.grammar.ide.contentassist.ContentAssistConfigurationSource;
 import org.junit.jupiter.api.Test;
 
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.is;
+import java.util.Optional;
+
+import static org.assertj.core.api.Assertions.assertThat;
 
 class SAPLUiContentProposalProviderTest {
 
     @Test
-    void getPDPConfigurationProvider() {
-        PDPConfigurationProvider pdpConfigurationProvider = () -> null;
-        final var                sut                      = new SAPLUiContentProposalProvider(pdpConfigurationProvider);
-        assertThat(sut.getContentAssistConfigurationSource(), is(pdpConfigurationProvider));
+    void when_configurationSourceProvided_then_returnsItFromGetter() {
+        ContentAssistConfigurationSource configSource = configId -> Optional.empty();
+        var                              sut          = new SAPLUiContentProposalProvider(configSource);
+        assertThat(sut.getContentAssistConfigurationSource()).isSameAs(configSource);
     }
 }

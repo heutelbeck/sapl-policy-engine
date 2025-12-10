@@ -17,7 +17,7 @@
  */
 package io.sapl.test;
 
-import io.sapl.api.interpreter.Val;
+import io.sapl.api.model.Value;
 import io.sapl.test.mocking.attribute.models.AttributeArgumentMatchers;
 import io.sapl.test.mocking.attribute.models.AttributeEntityValueMatcher;
 import io.sapl.test.mocking.attribute.models.AttributeParameters;
@@ -35,18 +35,18 @@ import static org.hamcrest.number.OrderingComparison.comparesEqualTo;
 public class Imports {
 
     /**
-     * specify Matchers for the arguments of a function mock
+     * Specify Matchers for the arguments of a function mock.
      *
      * @param matcher Varargs of {@link Matcher}
      * @return an {@link FunctionParameters} object required by the given step
      */
     @SafeVarargs
-    public static FunctionParameters whenFunctionParams(Matcher<Val>... matcher) {
+    public static FunctionParameters whenFunctionParams(Matcher<Value>... matcher) {
         return new FunctionParameters(matcher);
     }
 
     /**
-     * specify Matchers for the parent value and all arguments of an attribute mock
+     * Specify Matchers for the parent value and all arguments of an attribute mock.
      *
      * @param parentValueMatcher Matcher for the parent value. See
      * {@link #entityValue(Matcher)}
@@ -60,17 +60,22 @@ public class Imports {
     }
 
     /**
-     * specify Matchers for all arguments of an environment attribute mock
+     * Specify Matchers for all arguments of an environment attribute mock.
      *
      * @param argumentMatchers Matcher for the arguments. See
      * {@link #arguments(Matcher[])}
      * @return an {@link AttributeParameters} object required by the given step
      */
     public static AttributeParameters whenEnvironmentAttributeParams(AttributeArgumentMatchers argumentMatchers) {
-        return new AttributeParameters(new AttributeEntityValueMatcher(isNullpointerVal()), argumentMatchers);
+        return new AttributeParameters(new AttributeEntityValueMatcher(isNullValue()), argumentMatchers);
     }
 
-    public static Matcher<Val> isNullpointerVal() {
+    /**
+     * Returns a matcher that matches null values.
+     *
+     * @return a matcher for null values
+     */
+    public static Matcher<Value> isNullValue() {
         return new BaseMatcher<>() {
             @Override
             public boolean matches(Object item) {
@@ -79,38 +84,38 @@ public class Imports {
 
             @Override
             public void describeTo(Description description) {
-                description.appendText("a nullpointer Val");
+                description.appendText("a null Value");
             }
         };
     }
 
     /**
-     * specify Matcher for the parent value of an attribute mock
+     * Specify Matcher for the parent value of an attribute mock.
      *
      * @param matcher Matcher for the parent value
      * @return an {@link AttributeEntityValueMatcher} object required by the given
      * step
      */
-    public static AttributeEntityValueMatcher whenEntityValue(Matcher<Val> matcher) {
+    public static AttributeEntityValueMatcher whenEntityValue(Matcher<Value> matcher) {
         return new AttributeEntityValueMatcher(matcher);
     }
 
     /**
-     * specify a matcher for the parent value used in
-     * {@link #whenAttributeParams(AttributeEntityValueMatcher, AttributeArgumentMatchers)}
+     * Specify a matcher for the parent value used in
+     * {@link #whenAttributeParams(AttributeEntityValueMatcher, AttributeArgumentMatchers)}.
      *
      * @param matcher the matcher for the parent value
      * @return an {@link AttributeEntityValueMatcher} object required by the
      * {@link #whenAttributeParams(AttributeEntityValueMatcher, AttributeArgumentMatchers)}
      * method
      */
-    public static AttributeEntityValueMatcher entityValue(Matcher<Val> matcher) {
+    public static AttributeEntityValueMatcher entityValue(Matcher<Value> matcher) {
         return new AttributeEntityValueMatcher(matcher);
     }
 
     /**
-     * specify matchers for the arguments used in
-     * {@link #whenAttributeParams(AttributeEntityValueMatcher, AttributeArgumentMatchers)}
+     * Specify matchers for the arguments used in
+     * {@link #whenAttributeParams(AttributeEntityValueMatcher, AttributeArgumentMatchers)}.
      *
      * @param argumentMatcher the matchers for the arguments
      * @return an {@link AttributeArgumentMatchers} object required by the
@@ -118,18 +123,18 @@ public class Imports {
      * method
      */
     @SafeVarargs
-    public static AttributeArgumentMatchers arguments(Matcher<Val>... argumentMatcher) {
+    public static AttributeArgumentMatchers arguments(Matcher<Value>... argumentMatcher) {
         return new AttributeArgumentMatchers(argumentMatcher);
     }
 
     /**
-     * convenience method to improve readability in complex mock definitions
+     * Convenience method to improve readability in complex mock definitions.
      *
-     * @param val the {@link Val} to return
-     * @return the unmodified passed {@link Val}
+     * @param value the {@link Value} to return
+     * @return the unmodified passed {@link Value}
      */
-    public static Val thenReturn(Val val) {
-        return val;
+    public static Value thenReturn(Value value) {
+        return value;
     }
 
     /**

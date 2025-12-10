@@ -17,8 +17,7 @@
  */
 package io.sapl.test;
 
-import io.sapl.api.interpreter.Val;
-import io.sapl.interpreter.InitializationException;
+import io.sapl.api.model.Value;
 import io.sapl.test.steps.GivenStep;
 import io.sapl.test.steps.WhenStep;
 
@@ -26,29 +25,78 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Objects;
 
+/**
+ * Core interface for SAPL test fixtures.
+ * <p>
+ * Provides methods for constructing test cases, registering PIPs and function
+ * libraries, and setting up variables for policy evaluation.
+ */
 public interface SaplTestFixture {
 
+    /**
+     * Constructs a test case starting from the Given step, allowing mock
+     * definitions.
+     *
+     * @return a {@link GivenStep} for defining mocks before the When step
+     */
     GivenStep constructTestCaseWithMocks();
 
+    /**
+     * Constructs a test case starting directly from the When step.
+     *
+     * @return a {@link WhenStep} for defining the authorization subscription
+     */
     WhenStep constructTestCase();
 
-    SaplTestFixture registerPIP(Object pip) throws InitializationException;
+    /**
+     * Registers a Policy Information Point instance.
+     *
+     * @param pip the PIP instance to register
+     * @return this fixture for chaining
+     */
+    SaplTestFixture registerPIP(Object pip);
 
-    SaplTestFixture registerPIP(Class<?> pipClass) throws InitializationException;
+    /**
+     * Registers a Policy Information Point by class.
+     *
+     * @param pipClass the PIP class to instantiate and register
+     * @return this fixture for chaining
+     */
+    SaplTestFixture registerPIP(Class<?> pipClass);
 
-    SaplTestFixture registerFunctionLibrary(Object function) throws InitializationException;
+    /**
+     * Registers a function library instance.
+     *
+     * @param library the function library instance to register
+     * @return this fixture for chaining
+     */
+    SaplTestFixture registerFunctionLibrary(Object library);
 
-    SaplTestFixture registerFunctionLibrary(Class<?> staticLibrary) throws InitializationException;
+    /**
+     * Registers a function library by class.
+     *
+     * @param staticLibrary the function library class to register
+     * @return this fixture for chaining
+     */
+    SaplTestFixture registerFunctionLibrary(Class<?> staticLibrary);
 
-    SaplTestFixture registerVariable(String key, Val value);
+    /**
+     * Registers a variable for use during policy evaluation.
+     *
+     * @param key the variable name
+     * @param value the variable value
+     * @return this fixture for chaining
+     */
+    SaplTestFixture registerVariable(String key, Value value);
 
+    /**
+     * Resolves the base directory for coverage output.
+     *
+     * @return the path to the coverage output directory
+     */
     default Path resolveCoverageBaseDir() {
-        // if configured via system property because of custom path or custom maven
-        // build dir
-        String saplSpecificOutputDir = System.getProperty("io.sapl.test.outputDir");
+        var saplSpecificOutputDir = System.getProperty("io.sapl.test.outputDir");
         return Paths.get(Objects.requireNonNullElse(saplSpecificOutputDir, "target")).resolve("sapl-coverage");
-
-        // else use standard maven build dir
     }
 
 }

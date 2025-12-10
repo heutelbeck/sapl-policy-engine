@@ -19,6 +19,7 @@ package io.sapl.compiler;
 
 import io.sapl.api.model.ArrayValue;
 import io.sapl.api.model.ObjectValue;
+import io.sapl.api.model.UndefinedValue;
 import io.sapl.api.model.Value;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.Decision;
@@ -27,10 +28,10 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
+import java.util.List;
 import java.util.stream.Stream;
 
-import static io.sapl.util.CombiningAlgorithmTestUtil.assertDecision;
-import static io.sapl.util.CombiningAlgorithmTestUtil.evaluatePolicySet;
+import static io.sapl.util.CombiningAlgorithmTestUtil.*;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
@@ -314,5 +315,200 @@ class FirstApplicableTests {
 
         return Stream.of(arguments("Large number of policies first matches", source1, Decision.PERMIT),
                 arguments("Very first policy matches in large set", source2, Decision.PERMIT));
+    }
+
+    /*
+     * ========== Constraint Tests ==========
+     *
+     * First-applicable should only include obligations/advice/resource from the
+     * FIRST applicable policy. Subsequent policies are not evaluated.
+     */
+
+    @ParameterizedTest(name = "{0}")
+    @MethodSource
+    void when_constraintsEvaluated_then_onlyFirstApplicableConstraintsIncluded(String description, String policySet,
+            Decision expectedDecision, List<String> expectedObligations, List<String> expectedAdvice) {
+        val result = evaluatePolicySet(policySet);
+        assertDecision(result, expectedDecision);
+        if (expectedObligations != null) {
+            assertObligations(result, expectedObligations);
+        }
+        if (expectedAdvice != null) {
+            assertAdvice(result, expectedAdvice);
+        }
+    }
+
+    private static Stream<Arguments> when_constraintsEvaluated_then_onlyFirstApplicableConstraintsIncluded() {
+        return Stream.of(
+                // Obligations from first applicable only
+                arguments("First permit obligations only from first policy", """
+                        set "test" first-applicable
+                        policy "first" permit obligation { "type": "first_obl" }
+                        policy "second" permit obligation { "type": "second_obl" }
+                        policy "third" deny obligation { "type": "third_obl" }
+                        """, Decision.PERMIT, List.of("first_obl"), List.of()),
+
+                arguments("First deny obligations only from first policy", """
+                        set "test" first-applicable
+                        policy "first" deny obligation { "type": "first_obl" }
+                        policy "second" permit obligation { "type": "second_obl" }
+                        """, Decision.DENY, List.of("first_obl"), List.of()),
+
+                arguments("Skip not applicable takes obligations from first applicable", """
+                        set "test" first-applicable
+                        policy "not applicable" permit where false; obligation { "type": "na_obl" }
+                        policy "first applicable" permit obligation { "type": "applicable_obl" }
+                        policy "second applicable" permit obligation { "type": "second_obl" }
+                        """, Decision.PERMIT, List.of("applicable_obl"), List.of()),
+
+                // Advice from first applicable only
+                arguments("First permit advice only from first policy", """
+                        set "test" first-applicable
+                        policy "first" permit advice { "type": "first_adv" }
+                        policy "second" permit advice { "type": "second_adv" }
+                        """, Decision.PERMIT, List.of(), List.of("first_adv")),
+
+                arguments("First deny advice only from first policy", """
+                        set "test" first-applicable
+                        policy "first" deny advice { "type": "first_adv" }
+                        policy "second" permit advice { "type": "second_adv" }
+                        """, Decision.DENY, List.of(), List.of("first_adv")),
+
+                // Combined obligations and advice
+                arguments("First applicable has both obligations and advice", """
+                        set "test" first-applicable
+                        policy "first" permit obligation { "type": "obl1" } advice { "type": "adv1" }
+                        policy "second" permit obligation { "type": "obl2" } advice { "type": "adv2" }
+                        """, Decision.PERMIT, List.of("obl1"), List.of("adv1")),
+
+                // Multiple obligations/advice from same policy
+                arguments("Multiple obligations from first applicable", """
+                        set "test" first-applicable
+                        policy "first" permit
+                            obligation { "type": "obl1" }
+                            obligation { "type": "obl2" }
+                            advice { "type": "adv1" }
+                        policy "second" permit obligation { "type": "obl3" }
+                        """, Decision.PERMIT, List.of("obl1", "obl2"), List.of("adv1")),
+
+                // Empty constraints
+                arguments("No constraints when first applicable has none", """
+                        set "test" first-applicable
+                        policy "first" permit
+                        policy "second" permit obligation { "type": "obl" } advice { "type": "adv" }
+                        """, Decision.PERMIT, List.of(), List.of()),
+
+                // Not applicable result has no constraints
+                arguments("Not applicable has no constraints", """
+                        set "test" first-applicable
+                        policy "na1" permit where false; obligation { "type": "obl1" }
+                        policy "na2" deny where false; obligation { "type": "obl2" }
+                        """, Decision.NOT_APPLICABLE, List.of(), List.of()));
+    }
+
+    @ParameterizedTest(name = "{0}")
+    @MethodSource
+    void when_resourceTransformationEvaluated_then_onlyFirstApplicableResourceUsed(String description, String policySet,
+            Decision expectedDecision, String expectedResourceField, String expectedResourceValue) {
+        val result = evaluatePolicySet(policySet);
+        assertDecision(result, expectedDecision);
+        if (expectedResourceField != null) {
+            assertResourceText(result, expectedResourceField, expectedResourceValue);
+        } else {
+            // Verify resource is undefined
+            val obj      = (ObjectValue) result;
+            val resource = obj.get("resource");
+            assertThat(resource).satisfiesAnyOf(r -> assertThat(r).isNull(),
+                    r -> assertThat(r).isInstanceOf(UndefinedValue.class));
+        }
+    }
+
+    private static Stream<Arguments> when_resourceTransformationEvaluated_then_onlyFirstApplicableResourceUsed() {
+        return Stream.of(
+                // Resource from first applicable only
+                arguments("First applicable resource used", """
+                        set "test" first-applicable
+                        policy "first" permit transform { "source": "first" }
+                        policy "second" permit transform { "source": "second" }
+                        """, Decision.PERMIT, "source", "first"),
+
+                arguments("Skip not applicable takes resource from first applicable", """
+                        set "test" first-applicable
+                        policy "na" permit where false; transform { "source": "na" }
+                        policy "first" permit transform { "source": "first" }
+                        policy "second" permit transform { "source": "second" }
+                        """, Decision.PERMIT, "source", "first"),
+
+                arguments("Deny resource from first applicable", """
+                        set "test" first-applicable
+                        policy "first" deny transform { "source": "deny_first" }
+                        policy "second" permit transform { "source": "permit_second" }
+                        """, Decision.DENY, "source", "deny_first"),
+
+                // No transformation uncertainty in first-applicable (only one policy evaluated)
+                arguments("No transformation uncertainty single policy applies", """
+                        set "test" first-applicable
+                        policy "first" permit transform { "source": "first" }
+                        policy "second" permit transform { "source": "second" }
+                        policy "third" permit transform { "source": "third" }
+                        """, Decision.PERMIT, "source", "first"),
+
+                // No resource when first applicable has no transform
+                arguments("No resource when first applicable has no transform", """
+                        set "test" first-applicable
+                        policy "first" permit
+                        policy "second" permit transform { "source": "second" }
+                        """, Decision.PERMIT, null, null));
+    }
+
+    @ParameterizedTest(name = "{0}")
+    @MethodSource
+    void when_allConstraintsCombined_then_correctResult(String description, String policySet, Decision expectedDecision,
+            List<String> expectedObligations, List<String> expectedAdvice, String expectedResourceField,
+            String expectedResourceValue) {
+        val result = evaluatePolicySet(policySet);
+        assertDecision(result, expectedDecision);
+        assertObligations(result, expectedObligations);
+        assertAdvice(result, expectedAdvice);
+        if (expectedResourceField != null) {
+            assertResourceText(result, expectedResourceField, expectedResourceValue);
+        }
+    }
+
+    private static Stream<Arguments> when_allConstraintsCombined_then_correctResult() {
+        return Stream.of(arguments("All constraints from first applicable permit", """
+                set "test" first-applicable
+                policy "first" permit
+                    obligation { "type": "obl1" }
+                    obligation { "type": "obl2" }
+                    advice { "type": "adv1" }
+                    transform { "source": "first" }
+                policy "second" permit
+                    obligation { "type": "obl3" }
+                    advice { "type": "adv2" }
+                    transform { "source": "second" }
+                """, Decision.PERMIT, List.of("obl1", "obl2"), List.of("adv1"), "source", "first"),
+
+                arguments("All constraints from first applicable deny", """
+                        set "test" first-applicable
+                        policy "first" deny
+                            obligation { "type": "deny_obl" }
+                            advice { "type": "deny_adv" }
+                            transform { "source": "deny" }
+                        policy "second" permit
+                            obligation { "type": "permit_obl" }
+                        """, Decision.DENY, List.of("deny_obl"), List.of("deny_adv"), "source", "deny"),
+
+                arguments("Constraints from second when first not applicable", """
+                        set "test" first-applicable
+                        policy "na" permit where false;
+                            obligation { "type": "na_obl" }
+                            advice { "type": "na_adv" }
+                            transform { "source": "na" }
+                        policy "second" permit
+                            obligation { "type": "second_obl" }
+                            advice { "type": "second_adv" }
+                            transform { "source": "second" }
+                        """, Decision.PERMIT, List.of("second_obl"), List.of("second_adv"), "source", "second"));
     }
 }

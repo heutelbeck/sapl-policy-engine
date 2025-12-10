@@ -17,7 +17,6 @@
  */
 package io.sapl.test.dsl.interpreter;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.sapl.test.SaplTestFixture;
 import io.sapl.test.dsl.interfaces.IntegrationTestPolicyResolver;
 import io.sapl.test.dsl.interfaces.StepConstructor;
@@ -75,33 +74,31 @@ public final class DefaultStepConstructor implements StepConstructor {
 
     public static StepConstructor of(final UnitTestPolicyResolver customUnitTestPolicyResolver,
             final IntegrationTestPolicyResolver customIntegrationTestPolicyResolver) {
-        final var objectMapper   = new ObjectMapper();
-        final var valInterpreter = new ValueInterpreter(objectMapper);
+        final var valueInterpreter = new ValueInterpreter();
 
         final var stringMatcherInterpreter   = new StringMatcherInterpreter();
         final var jsonNodeMatcherInterpreter = new JsonNodeMatcherInterpreter(stringMatcherInterpreter);
 
-        final var matcherInterpreter = new ValMatcherInterpreter(valInterpreter, jsonNodeMatcherInterpreter);
+        final var matcherInterpreter = new ValueMatcherInterpreter(valueInterpreter, jsonNodeMatcherInterpreter);
 
         final var durationInterpreter                     = new DurationInterpreter();
-        final var attributeInterpreter                    = new AttributeInterpreter(valInterpreter, matcherInterpreter,
-                durationInterpreter);
+        final var attributeInterpreter                    = new AttributeInterpreter(valueInterpreter,
+                matcherInterpreter, durationInterpreter);
         final var multipleAmountInterpreter               = new MultipleInterpreter();
-        final var functionInterpreter                     = new FunctionInterpreter(valInterpreter, matcherInterpreter,
-                multipleAmountInterpreter);
-        final var authorizationDecisionInterpreter        = new AuthorizationDecisionInterpreter(valInterpreter,
-                objectMapper);
-        final var authorizationSubscriptionInterpreter    = new AuthorizationSubscriptionInterpreter(valInterpreter);
-        final var authorizationDecisionMatcherInterpreter = new AuthorizationDecisionMatcherInterpreter(valInterpreter,
-                jsonNodeMatcherInterpreter);
-        final var expectInterpreter                       = new ExpectationInterpreter(valInterpreter,
+        final var functionInterpreter                     = new FunctionInterpreter(valueInterpreter,
+                matcherInterpreter, multipleAmountInterpreter);
+        final var authorizationDecisionInterpreter        = new AuthorizationDecisionInterpreter(valueInterpreter);
+        final var authorizationSubscriptionInterpreter    = new AuthorizationSubscriptionInterpreter(valueInterpreter);
+        final var authorizationDecisionMatcherInterpreter = new AuthorizationDecisionMatcherInterpreter(
+                valueInterpreter, jsonNodeMatcherInterpreter);
+        final var expectInterpreter                       = new ExpectationInterpreter(valueInterpreter,
                 authorizationDecisionInterpreter, authorizationDecisionMatcherInterpreter, durationInterpreter,
                 multipleAmountInterpreter);
 
-        final var defaultTestFixtureConstructor = getTestFixtureConstructor(valInterpreter,
-                customUnitTestPolicyResolver, customIntegrationTestPolicyResolver);
+        final var defaultTestFixtureConstructor = getTestFixtureConstructor(customUnitTestPolicyResolver,
+                customIntegrationTestPolicyResolver);
 
-        final var defaultTestCaseConstructor = new DefaultTestCaseConstructor(valInterpreter);
+        final var defaultTestCaseConstructor = new DefaultTestCaseConstructor(valueInterpreter);
 
         final var defaultWhenStepConstructor   = new DefaultWhenStepConstructor(functionInterpreter,
                 attributeInterpreter);
@@ -112,16 +109,11 @@ public final class DefaultStepConstructor implements StepConstructor {
                 defaultWhenStepConstructor, defaultExpectStepConstructor, defaultVerifyStepConstructor);
     }
 
-    private static DefaultTestFixtureConstructor getTestFixtureConstructor(final ValueInterpreter valueInterpreter,
+    private static DefaultTestFixtureConstructor getTestFixtureConstructor(
             final UnitTestPolicyResolver customUnitTestPolicyResolver,
-            final IntegrationTestPolicyResolver customIntegrationTestPolicyResolver) {
-        final var combiningAlgorithmInterpreter = new CombiningAlgorithmInterpreter();
+            final IntegrationTestPolicyResolver ignoredIntegrationTestPolicyResolver) {
+        final var documentInterpreter = new DocumentInterpreter(customUnitTestPolicyResolver);
 
-        final var documentInterpreter     = new DocumentInterpreter(customUnitTestPolicyResolver,
-                customIntegrationTestPolicyResolver);
-        final var pdpConfigurationHandler = new PdpConfigurationHandler(valueInterpreter,
-                combiningAlgorithmInterpreter);
-
-        return new DefaultTestFixtureConstructor(documentInterpreter, pdpConfigurationHandler);
+        return new DefaultTestFixtureConstructor(documentInterpreter);
     }
 }

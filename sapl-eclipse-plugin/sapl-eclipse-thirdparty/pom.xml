@@ -41,6 +41,12 @@
 	<dependencies>
         <!-- If the other modules complain some dependency is missing add the artefact here -->
         <!-- Also add it below to: <Embed-Dependency> and <_exportcontents> BOTH are needed ! -->
+
+        <dependency>
+            <groupId>io.sapl</groupId>
+            <artifactId>sapl-pdp</artifactId>
+            <version>${project.version}</version>
+        </dependency>
         <dependency>
 			<groupId>org.springframework</groupId>
 			<artifactId>spring-core</artifactId>
@@ -121,19 +127,22 @@
                             nimbus-jose-jwt,
                             graphql-java,
                             semver4j,
-                            ipaddress
+                            ipaddress,
+                            sapl-pdp,
+                            sapl-api
 						</Embed-Dependency>
 						<Import-Package>
 							!groovy
 						</Import-Package>
-						<_exportcontents>
-							org.springframework.*;version="6.1.11",
+                        <_exportcontents>
+                            org.springframework.*;version="6.1.11",
                             net.jcip.annotations.*;version="1.0.0",
                             com.nimbusds.*;version="9.37.4",
                             graphql.*;version="24.3.0",
                             org.semver4j.*;version="6.0.0",
-                            com.github.seancfoley.*;version="5.5.1"
-						</_exportcontents>
+                            inet.ipaddr.*;version="5.5.1",
+                            io.sapl.*;version="4.0.0"
+                        </_exportcontents>
 						<Bundle-ClassPath>{maven-dependencies}</Bundle-ClassPath>
 						<Embed-Transitive>true</Embed-Transitive>
 						<Embed-Directory>jars</Embed-Directory>

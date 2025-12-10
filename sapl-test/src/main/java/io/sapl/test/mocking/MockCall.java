@@ -17,18 +17,18 @@
  */
 package io.sapl.test.mocking;
 
-import io.sapl.api.interpreter.Val;
+import io.sapl.api.model.Value;
 import io.sapl.test.SaplTestException;
 
 import java.util.Arrays;
 
 public class MockCall {
 
-    private static final String ERROR_INVALID_ARGUMENT_INDEX = "Requested index %d for function call parameters but there are only %d parameters. Did you forget to check with \"getNumberOfArguments()\"";
+    private static final String ERROR_INVALID_ARGUMENT_INDEX = "Requested index %d for function call parameters but there are only %d parameters. Did you forget to check with \"getNumberOfArguments()\"?";
 
-    private final Val[] parameter;
+    private final Value[] parameter;
 
-    public MockCall(Val... parameter) {
+    public MockCall(Value... parameter) {
         this.parameter = parameter;
     }
 
@@ -36,14 +36,14 @@ public class MockCall {
         return this.parameter.length;
     }
 
-    public Val getArgument(int index) {
+    public Value getArgument(int index) {
         if (index > this.parameter.length - 1) {
-            throw new SaplTestException(String.format(ERROR_INVALID_ARGUMENT_INDEX, index, getNumberOfArguments()));
+            throw new SaplTestException(ERROR_INVALID_ARGUMENT_INDEX.formatted(index, getNumberOfArguments()));
         }
         return this.parameter[index];
     }
 
-    public Val[] getListOfArguments() {
+    public Value[] getListOfArguments() {
         return Arrays.copyOf(this.parameter, this.parameter.length);
     }
 

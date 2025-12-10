@@ -17,7 +17,7 @@
  */
 package io.sapl.test.mocking.function;
 
-import io.sapl.api.interpreter.Val;
+import io.sapl.api.model.Value;
 import io.sapl.test.SaplTestException;
 import org.junit.jupiter.api.Test;
 
@@ -26,25 +26,25 @@ import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 
 class FunctionMockSequenceTests {
 
-    private final Val[] seq = new Val[] { Val.of(1), Val.of(2), Val.of(3) };
+    private final Value[] seq = new Value[] { Value.of(1), Value.of(2), Value.of(3) };
 
     @Test
     void test() {
         final var mock = new FunctionMockSequence("foo");
         mock.loadMockReturnValue(seq);
-        assertThat(mock.evaluateFunctionCall(Val.of("do"))).isEqualTo(seq[0]);
-        assertThat(mock.evaluateFunctionCall(Val.of("not"))).isEqualTo(seq[1]);
-        assertThat(mock.evaluateFunctionCall(Val.of("matter"))).isEqualTo(seq[2]);
+        assertThat(mock.evaluateFunctionCall(Value.of("do"))).isEqualTo(seq[0]);
+        assertThat(mock.evaluateFunctionCall(Value.of("not"))).isEqualTo(seq[1]);
+        assertThat(mock.evaluateFunctionCall(Value.of("matter"))).isEqualTo(seq[2]);
     }
 
     @Test
     void test_tooManyCalls() {
-        final var aVal = Val.of("returnValueUndefined");
+        final var aVal = Value.of("returnValueUndefined");
         final var mock = new FunctionMockSequence("foo");
         mock.loadMockReturnValue(seq);
-        assertThat(mock.evaluateFunctionCall(Val.of("do"))).isEqualTo(seq[0]);
-        assertThat(mock.evaluateFunctionCall(Val.of("not"))).isEqualTo(seq[1]);
-        assertThat(mock.evaluateFunctionCall(Val.of("matter"))).isEqualTo(seq[2]);
+        assertThat(mock.evaluateFunctionCall(Value.of("do"))).isEqualTo(seq[0]);
+        assertThat(mock.evaluateFunctionCall(Value.of("not"))).isEqualTo(seq[1]);
+        assertThat(mock.evaluateFunctionCall(Value.of("matter"))).isEqualTo(seq[2]);
         assertThatExceptionOfType(SaplTestException.class).isThrownBy(() -> mock.evaluateFunctionCall(aVal));
     }
 
@@ -52,8 +52,8 @@ class FunctionMockSequenceTests {
     void test_tooFewCalls() {
         final var mock = new FunctionMockSequence("foo");
         mock.loadMockReturnValue(seq);
-        assertThat(mock.evaluateFunctionCall(Val.of("do"))).isEqualTo(seq[0]);
-        assertThat(mock.evaluateFunctionCall(Val.of("not"))).isEqualTo(seq[1]);
+        assertThat(mock.evaluateFunctionCall(Value.of("do"))).isEqualTo(seq[0]);
+        assertThat(mock.evaluateFunctionCall(Value.of("not"))).isEqualTo(seq[1]);
 
         assertThatExceptionOfType(AssertionError.class).isThrownBy(mock::assertVerifications);
     }

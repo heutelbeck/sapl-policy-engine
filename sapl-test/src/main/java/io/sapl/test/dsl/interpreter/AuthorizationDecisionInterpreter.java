@@ -17,12 +17,11 @@
  */
 package io.sapl.test.dsl.interpreter;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ArrayNode;
+import io.sapl.api.model.Value;
 import io.sapl.api.pdp.AuthorizationDecision;
+import io.sapl.api.pdp.Decision;
 import io.sapl.test.SaplTestException;
 import io.sapl.test.grammar.sapltest.AuthorizationDecisionType;
-import io.sapl.test.grammar.sapltest.Value;
 import lombok.RequiredArgsConstructor;
 
 import java.util.List;
@@ -31,55 +30,37 @@ import java.util.List;
 class AuthorizationDecisionInterpreter {
 
     private final ValueInterpreter valueInterpreter;
-    private final ObjectMapper     objectMapper;
 
-    AuthorizationDecision constructAuthorizationDecision(final AuthorizationDecisionType decisionType,
-            final Value resource, final List<Value> obligations, final List<Value> advice) {
+    AuthorizationDecision constructAuthorizationDecision(AuthorizationDecisionType decisionType,
+            io.sapl.test.grammar.sapltest.Value resource, List<io.sapl.test.grammar.sapltest.Value> obligations,
+            List<io.sapl.test.grammar.sapltest.Value> advice) {
         if (null == decisionType) {
-            throw new SaplTestException("AuthorizationDecisionType is null");
+            throw new SaplTestException("AuthorizationDecisionType is null.");
         }
 
-        var authorizationDecision = getAuthorizationDecisionFromDSL(decisionType);
+        var decision = getDecisionFromDSL(decisionType);
 
-        if (resource != null) {
-            final var mappedResource = valueInterpreter.getValFromValue(resource);
-            authorizationDecision = authorizationDecision.withResource(mappedResource.get());
-        }
+        var resourceValue   = resource != null ? valueInterpreter.getValueFromDslValue(resource) : Value.UNDEFINED;
+        var obligationsList = getMappedValuesFromValues(obligations);
+        var adviceList      = getMappedValuesFromValues(advice);
 
-        final var obligationArray = getMappedValArrayFromValues(obligations);
-
-        if (obligationArray != null) {
-            authorizationDecision = authorizationDecision.withObligations(obligationArray);
-        }
-
-        final var adviceArray = getMappedValArrayFromValues(advice);
-
-        if (adviceArray != null) {
-            authorizationDecision = authorizationDecision.withAdvice(adviceArray);
-        }
-
-        return authorizationDecision;
+        return new AuthorizationDecision(decision, obligationsList, adviceList, resourceValue);
     }
 
-    private ArrayNode getMappedValArrayFromValues(final List<Value> values) {
+    private List<Value> getMappedValuesFromValues(List<io.sapl.test.grammar.sapltest.Value> values) {
         if (null == values || values.isEmpty()) {
-            return null;
+            return List.of();
         }
 
-        final var valArray = objectMapper.createArrayNode();
-
-        values.stream().map(valueInterpreter::getValFromValue).map(io.sapl.api.interpreter.Val::get)
-                .forEach(valArray::add);
-
-        return valArray;
+        return values.stream().map(valueInterpreter::getValueFromDslValue).toList();
     }
 
-    private AuthorizationDecision getAuthorizationDecisionFromDSL(final AuthorizationDecisionType decision) {
+    private Decision getDecisionFromDSL(AuthorizationDecisionType decision) {
         return switch (decision) {
-        case PERMIT         -> AuthorizationDecision.PERMIT;
-        case DENY           -> AuthorizationDecision.DENY;
-        case INDETERMINATE  -> AuthorizationDecision.INDETERMINATE;
-        case NOT_APPLICABLE -> AuthorizationDecision.NOT_APPLICABLE;
+        case PERMIT         -> Decision.PERMIT;
+        case DENY           -> Decision.DENY;
+        case INDETERMINATE  -> Decision.INDETERMINATE;
+        case NOT_APPLICABLE -> Decision.NOT_APPLICABLE;
         };
     }
 }

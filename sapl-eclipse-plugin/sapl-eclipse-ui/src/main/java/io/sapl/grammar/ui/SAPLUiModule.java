@@ -20,35 +20,13 @@
  */
 package io.sapl.grammar.ui;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import io.sapl.attributes.broker.impl.AnnotationPolicyInformationPointLoader;
-import io.sapl.attributes.broker.impl.CachingAttributeStreamBroker;
-import io.sapl.attributes.broker.impl.InMemoryAttributeRepository;
-import io.sapl.attributes.broker.impl.InMemoryPolicyInformationPointDocumentationProvider;
-import io.sapl.attributes.pips.time.TimePolicyInformationPoint;
-import io.sapl.functions.DefaultLibraries;
+import io.sapl.grammar.ide.contentassist.ContentAssistConfigurationSource;
+import io.sapl.grammar.ide.contentassist.DefaultContentAssistConfiguration;
 import io.sapl.grammar.ui.contentassist.SAPLUiContentProposalProvider;
-import io.sapl.interpreter.InitializationException;
-import io.sapl.interpreter.combinators.PolicyDocumentCombiningAlgorithm;
-import io.sapl.interpreter.functions.AnnotationFunctionContext;
-import io.sapl.pdp.config.PDPConfiguration;
-import io.sapl.pdp.config.PDPConfigurationProvider;
-import io.sapl.prp.Document;
-import io.sapl.prp.PolicyRetrievalPoint;
-import io.sapl.prp.PolicyRetrievalResult;
-import io.sapl.validation.ValidatorFactory;
 import org.eclipse.ui.plugin.AbstractUIPlugin;
 import org.eclipse.xtext.ide.editor.contentassist.IdeContentProposalProvider;
 import org.eclipse.xtext.ui.editor.contentassist.IContentProposalProvider;
 import org.eclipse.xtext.ui.editor.contentassist.UiToIdeContentProposalProvider;
-import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
-
-import java.time.Clock;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-import java.util.function.UnaryOperator;
 
 /**
  * Use this class to register components to be used within the Eclipse IDE.
@@ -68,38 +46,14 @@ public class SAPLUiModule extends AbstractSAPLUiModule {
         return SAPLUiContentProposalProvider.class;
     }
 
-    public PDPConfigurationProvider bindPDPConfigurationProvider() throws InitializationException {
-        final var attributeStreamBroker = new CachingAttributeStreamBroker(
-                new InMemoryAttributeRepository(Clock.systemUTC()));
-        final var docsProvider          = new InMemoryPolicyInformationPointDocumentationProvider();
-        final var loader                = new AnnotationPolicyInformationPointLoader(attributeStreamBroker,
-                docsProvider, new ValidatorFactory(new ObjectMapper()));
-        loader.loadPolicyInformationPoint(new TimePolicyInformationPoint(Clock.systemUTC()));
-
-        var functionContext = new AnnotationFunctionContext();
-        functionContext.loadLibraries(() -> DefaultLibraries.STATIC_LIBRARIES);
-        var dummyPrp = new PolicyRetrievalPoint() {
-
-            @Override
-            public Mono<PolicyRetrievalResult> retrievePolicies() {
-                return Mono.empty();
-            }
-
-            @Override
-            public Collection<Document> allDocuments() {
-                return List.of();
-            }
-
-            @Override
-            public boolean isConsistent() {
-                return true;
-            }
-
-        };
-
-        var pdpConfiguration = new PDPConfiguration("editorConfig", attributeStreamBroker, functionContext, Map.of(),
-                PolicyDocumentCombiningAlgorithm.DENY_OVERRIDES, UnaryOperator.identity(), UnaryOperator.identity(),
-                dummyPrp);
-        return () -> Flux.just(pdpConfiguration);
+    /**
+     * Provides content assist configuration for the Eclipse editor with all default
+     * SAPL function libraries and Policy Information Points loaded.
+     * Uses the Factory pattern from DefaultContentAssistConfiguration for
+     * non-Spring contexts.
+     */
+    public ContentAssistConfigurationSource bindContentAssistConfigurationSource() {
+        return DefaultContentAssistConfiguration.Factory.create();
     }
+
 }

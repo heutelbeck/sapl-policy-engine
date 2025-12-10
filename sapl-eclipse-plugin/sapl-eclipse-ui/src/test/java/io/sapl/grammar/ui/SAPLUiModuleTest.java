@@ -17,46 +17,44 @@
  */
 package io.sapl.grammar.ui;
 
-import io.sapl.functions.*;
 import io.sapl.grammar.ui.contentassist.SAPLUiContentProposalProvider;
-import io.sapl.interpreter.InitializationException;
-import io.sapl.interpreter.combinators.PolicyDocumentCombiningAlgorithm;
-import io.sapl.pdp.config.PDPConfiguration;
 import org.eclipse.xtext.ui.editor.contentassist.UiToIdeContentProposalProvider;
 import org.junit.jupiter.api.Test;
 
-import java.util.Map;
-import java.util.function.UnaryOperator;
-
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.*;
+import static org.assertj.core.api.Assertions.assertThat;
 
 class SAPLUiModuleTest {
 
     SAPLUiModule sut = new SAPLUiModule(null);
 
     @Test
-    void testBindIContentProposalProvider() {
-        assertThat(sut.bindIContentProposalProvider(), is(UiToIdeContentProposalProvider.class));
+    void when_bindIContentProposalProvider_then_returnsUiToIdeAdapter() {
+        assertThat(sut.bindIContentProposalProvider()).isEqualTo(UiToIdeContentProposalProvider.class);
     }
 
     @Test
-    void testBindIdeContentProposalProvider() {
-        assertThat(sut.bindIdeContentProposalProvider(), is(SAPLUiContentProposalProvider.class));
+    void when_bindIdeContentProposalProvider_then_returnsSAPLUiContentProposalProvider() {
+        assertThat(sut.bindIdeContentProposalProvider()).isEqualTo(SAPLUiContentProposalProvider.class);
     }
 
     @Test
-    void testBindPDPConfigurationProvider() throws InitializationException {
-        PDPConfiguration pdpConfiguration = sut.bindPDPConfigurationProvider().pdpConfiguration().blockFirst();
+    void when_bindContentAssistConfigurationSource_then_returnsNonNullSource() {
+        var configSource = sut.bindContentAssistConfigurationSource();
+        assertThat(configSource).isNotNull();
+    }
 
-        assertThat(pdpConfiguration, is(not(nullValue())));
-        assertThat(pdpConfiguration.isValid(), is(true));
-        assertThat(pdpConfiguration.functionContext().getAvailableLibraries(),
-                hasItems(FilterFunctionLibrary.NAME, StandardFunctionLibrary.NAME, TemporalFunctionLibrary.NAME,
-                        SchemaValidationLibrary.NAME, ArrayFunctionLibrary.NAME, GraphFunctionLibrary.NAME));
-        assertThat(pdpConfiguration.variables(), is(Map.of()));
-        assertThat(pdpConfiguration.documentsCombinator(), is(PolicyDocumentCombiningAlgorithm.DENY_OVERRIDES));
-        assertThat(pdpConfiguration.decisionInterceptorChain(), is(UnaryOperator.identity()));
-        assertThat(pdpConfiguration.subscriptionInterceptorChain(), is(UnaryOperator.identity()));
+    @Test
+    void when_getConfigById_then_returnsConfigurationWithLoadedLibraries() {
+        var configSource = sut.bindContentAssistConfigurationSource();
+        var config       = configSource.getConfigById("any-id");
+
+        assertThat(config).isPresent();
+        assertThat(config.get().pdpId()).isEqualTo("defaultPdp");
+        assertThat(config.get().configurationId()).isEqualTo("default");
+        assertThat(config.get().documentationBundle()).isNotNull();
+        assertThat(config.get().documentationBundle().functionLibraries()).isNotEmpty();
+        assertThat(config.get().documentationBundle().policyInformationPoints()).isNotEmpty();
+        assertThat(config.get().functionBroker()).isNotNull();
+        assertThat(config.get().attributeBroker()).isNotNull();
     }
 }

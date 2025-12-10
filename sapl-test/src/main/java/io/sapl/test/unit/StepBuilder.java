@@ -17,108 +17,125 @@
  */
 package io.sapl.test.unit;
 
-import io.sapl.api.interpreter.Val;
+import io.sapl.api.attributes.AttributeBroker;
+import io.sapl.api.functions.FunctionBroker;
+import io.sapl.api.model.Value;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.AuthorizationSubscription;
-import io.sapl.attributes.broker.api.AttributeStreamBroker;
-import io.sapl.interpreter.DocumentEvaluationResult;
-import io.sapl.interpreter.context.AuthorizationContext;
-import io.sapl.interpreter.functions.FunctionContext;
-import io.sapl.prp.Document;
-import io.sapl.test.mocking.attribute.MockingAttributeStreamBroker;
-import io.sapl.test.mocking.function.MockingFunctionContext;
+import io.sapl.api.pdp.CombiningAlgorithm;
+import io.sapl.api.pdp.PDPConfiguration;
+import io.sapl.api.pdp.TraceLevel;
+import io.sapl.api.pdp.internal.TracedDecision;
+import io.sapl.api.pdp.internal.TracedPdpDecision;
+import io.sapl.pdp.ConfigurationRegister;
+import io.sapl.pdp.DynamicPolicyDecisionPoint;
+import io.sapl.pdp.ThreadLocalRandomIdFactory;
+import io.sapl.test.mocking.attribute.MockingAttributeBroker;
+import io.sapl.test.mocking.function.MockingFunctionBroker;
 import io.sapl.test.steps.AttributeMockReturnValues;
 import io.sapl.test.steps.GivenStep;
 import io.sapl.test.steps.StepsDefaultImpl;
 import io.sapl.test.steps.WhenStep;
 import lombok.experimental.UtilityClass;
-import reactor.core.publisher.Flux;
+import lombok.val;
 import reactor.test.StepVerifier;
-import reactor.util.context.Context;
 
 import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
-import java.util.function.Function;
 
 /**
  * Implementing a Step Builder Pattern to construct test cases.
+ * <p>
+ * Uses a PDP with ONLY_ONE_APPLICABLE combining algorithm to evaluate single
+ * documents. This ensures proper context propagation, streaming attribute
+ * handling, and coverage tracking through the full PDP infrastructure.
  */
 @UtilityClass
 class StepBuilder {
 
+    private static final String DEFAULT_PDP_ID    = "test-pdp";
+    private static final String DEFAULT_CONFIG_ID = "test-config";
+
     /**
      * Create Builder starting at the Given-Step. Only for internal usage.
      *
-     * @param document containing the {@link io.sapl.grammar.sapl.SAPL} policy to
-     * evaluate
+     * @param policySource the SAPL policy source code to evaluate
+     * @param attributeBroker the attribute broker
+     * @param functionBroker the function broker
+     * @param variables the variables map
      * @return {@link GivenStep} to start constructing the test case.
      */
-    static GivenStep newBuilderAtGivenStep(Document document, AttributeStreamBroker attrCtx, FunctionContext funcCtx,
-            Map<String, Val> variables) {
-        return new Steps(document, attrCtx, funcCtx, variables);
+    static GivenStep newBuilderAtGivenStep(String policySource, AttributeBroker attributeBroker,
+            FunctionBroker functionBroker, Map<String, Value> variables) {
+        return new Steps(policySource, attributeBroker, functionBroker, variables);
     }
 
     /**
      * Create Builder starting at the When-Step. Only for internal usage.
      *
-     * @param document containing the {@link io.sapl.grammar.sapl.SAPL} policy to
-     * evaluate
+     * @param policySource the SAPL policy source code to evaluate
+     * @param attributeBroker the attribute broker
+     * @param functionBroker the function broker
+     * @param variables the variables map
      * @return {@link WhenStep} to start constructing the test case.
      */
-    static WhenStep newBuilderAtWhenStep(Document document, AttributeStreamBroker attrCtx, FunctionContext funcCtx,
-            Map<String, Val> variables) {
-        return new Steps(document, attrCtx, funcCtx, variables);
+    static WhenStep newBuilderAtWhenStep(String policySource, AttributeBroker attributeBroker,
+            FunctionBroker functionBroker, Map<String, Value> variables) {
+        return new Steps(policySource, attributeBroker, functionBroker, variables);
     }
 
     /**
-     * Implementing all step interfaces. Always returning \"this\" to enable
-     * Builder-Pattern but as a step interface
+     * Implementing all step interfaces. Always returning "this" to enable
+     * Builder-Pattern but as a step interface.
      */
     private static class Steps extends StepsDefaultImpl {
 
-        final Document document;
+        private final String               policySource;
+        private DynamicPolicyDecisionPoint pdp;
 
-        Steps(Document document, AttributeStreamBroker attrCtx, FunctionContext funcCtx, Map<String, Val> variables) {
-            this.document                     = document;
-            this.mockingFunctionContext       = new MockingFunctionContext(funcCtx);
-            this.mockingAttributeStreamBroker = new MockingAttributeStreamBroker(attrCtx);
-            this.variables                    = variables;
-            this.mockedAttributeValues        = new LinkedList<>();
+        Steps(String policySource,
+                AttributeBroker attributeBroker,
+                FunctionBroker functionBroker,
+                Map<String, Value> variables) {
+            this.policySource           = policySource;
+            this.mockingFunctionBroker  = new MockingFunctionBroker(functionBroker);
+            this.mockingAttributeBroker = new MockingAttributeBroker(attributeBroker);
+            this.variables              = variables;
+            this.mockedAttributeValues  = new LinkedList<>();
         }
 
         @Override
         protected void createStepVerifier(AuthorizationSubscription authzSub) {
-            Val matchResult = this.document.sapl().matches().contextWrite(setUpContext(authzSub)).block();
-            if (matchResult != null && matchResult.isBoolean() && matchResult.getBoolean()) {
-                if (this.withVirtualTime) {
-                    this.steps = StepVerifier.withVirtualTime(() -> this.document.sapl().evaluate()
-                            .map(DocumentEvaluationResult::getAuthorizationDecision)
-                            .contextWrite(setUpContext(authzSub)));
-                } else {
-                    this.steps = StepVerifier.create(
-                            this.document.sapl().evaluate().map(DocumentEvaluationResult::getAuthorizationDecision)
-                                    .contextWrite(setUpContext(authzSub)));
-                }
+            val configurationRegister = new ConfigurationRegister(mockingFunctionBroker, mockingAttributeBroker,
+                    TraceLevel.STANDARD);
 
-                for (AttributeMockReturnValues mock : this.mockedAttributeValues) {
-                    String fullName = mock.getFullName();
-                    for (Val val : mock.getMockReturnValues()) {
-                        this.steps = this.steps.then(() -> this.mockingAttributeStreamBroker.mockEmit(fullName, val));
-                    }
-                }
+            val pdpConfiguration = new PDPConfiguration(DEFAULT_PDP_ID, DEFAULT_CONFIG_ID,
+                    CombiningAlgorithm.ONLY_ONE_APPLICABLE, TraceLevel.STANDARD, List.of(policySource), variables);
+
+            configurationRegister.loadConfiguration(pdpConfiguration, false);
+
+            this.pdp = new DynamicPolicyDecisionPoint(configurationRegister, new ThreadLocalRandomIdFactory());
+
+            val decisionFlux = pdp.decideTraced(authzSub).map(TracedDecision::originalTrace)
+                    .map(this::valueToAuthorizationDecision);
+
+            if (this.withVirtualTime) {
+                this.steps = StepVerifier.withVirtualTime(() -> decisionFlux);
             } else {
-                this.steps = StepVerifier.create(Flux.just(AuthorizationDecision.NOT_APPLICABLE));
+                this.steps = StepVerifier.create(decisionFlux);
+            }
+
+            for (AttributeMockReturnValues mock : this.mockedAttributeValues) {
+                var fullName = mock.getFullName();
+                for (Value value : mock.getMockReturnValues()) {
+                    this.steps = this.steps.then(() -> this.mockingAttributeBroker.emitToAttribute(fullName, value));
+                }
             }
         }
 
-        private Function<Context, Context> setUpContext(AuthorizationSubscription authzSub) {
-            return ctx -> {
-                ctx = AuthorizationContext.setAttributeStreamBroker(ctx, this.mockingAttributeStreamBroker);
-                ctx = AuthorizationContext.setFunctionContext(ctx, this.mockingFunctionContext);
-                ctx = AuthorizationContext.setVariables(ctx, this.variables);
-                ctx = AuthorizationContext.setSubscriptionVariables(ctx, authzSub);
-                return ctx;
-            };
+        private AuthorizationDecision valueToAuthorizationDecision(Value value) {
+            return TracedPdpDecision.toAuthorizationDecision(value);
         }
 
     }

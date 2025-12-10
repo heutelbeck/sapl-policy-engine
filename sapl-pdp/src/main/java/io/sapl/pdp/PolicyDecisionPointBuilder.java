@@ -394,7 +394,7 @@ public class PolicyDecisionPointBuilder {
 
     /**
      * Sets a custom ID factory for generating subscription IDs. If not set, a
-     * UUID-based factory will be used.
+     * default factory will be used.
      *
      * @param idFactory
      * the ID factory

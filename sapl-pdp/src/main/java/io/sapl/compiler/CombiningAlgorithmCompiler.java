@@ -586,7 +586,7 @@ public class CombiningAlgorithmCompiler {
     private static Flux<Value> buildFirstApplicableSetStream(String setName, String algorithm,
             List<CompiledPolicy> compiledPolicies) {
 
-        var stateFlux     = Flux.just(new FirstApplicableState(Decision.NOT_APPLICABLE, List.of()));
+        var stateFlux     = Flux.just(FirstApplicableState.notApplicable());
         val totalPolicies = compiledPolicies.size();
 
         for (var i = compiledPolicies.size() - 1; i >= 0; i--) {
@@ -608,7 +608,7 @@ public class CombiningAlgorithmCompiler {
             val error = matches instanceof ErrorValue err ? err
                     : Value.error(TARGET_EXPRESSION_TYPE_ERROR.formatted(matches));
             val trace = createIndeterminateTrace(policy.name(), policy.entitlement(), error);
-            return Flux.just(new FirstApplicableState(Decision.INDETERMINATE, List.of(trace)));
+            return Flux.just(FirstApplicableState.fromTracedPolicy(trace));
         }
 
         if (!matchesBool.value()) {
@@ -620,28 +620,39 @@ public class CombiningAlgorithmCompiler {
             if (decision == Decision.NOT_APPLICABLE) {
                 return fallbackStateFlux.map(state -> state.prependTrace(traced));
             }
-            return Flux.just(new FirstApplicableState(decision, List.of(traced)));
+            return Flux.just(FirstApplicableState.fromTracedPolicy(traced));
         });
     }
 
     private static Value buildFirstApplicableSetResult(String setName, String algorithm, int totalPolicies,
             FirstApplicableState state) {
-        val hasApplicable = state.decision() != Decision.NOT_APPLICABLE && !state.traces().isEmpty();
-        val firstTrace    = hasApplicable ? state.traces().getFirst() : null;
-
         return TracedPolicySetDecision.builder().name(setName).algorithm(algorithm).decision(state.decision())
-                .totalPolicies(totalPolicies)
-                .obligations(hasApplicable ? getObligations(firstTrace) : Value.EMPTY_ARRAY)
-                .advice(hasApplicable ? getAdvice(firstTrace) : Value.EMPTY_ARRAY)
-                .resource(hasApplicable ? getResource(firstTrace) : Value.UNDEFINED).policies(state.traces()).build();
+                .totalPolicies(totalPolicies).obligations(state.obligations()).advice(state.advice())
+                .resource(state.resource()).policies(state.traces()).build();
     }
 
-    private record FirstApplicableState(Decision decision, List<Value> traces) {
+    private record FirstApplicableState(
+            Decision decision,
+            ArrayValue obligations,
+            ArrayValue advice,
+            Value resource,
+            List<Value> traces) {
+
+        static FirstApplicableState notApplicable() {
+            return new FirstApplicableState(Decision.NOT_APPLICABLE, Value.EMPTY_ARRAY, Value.EMPTY_ARRAY,
+                    Value.UNDEFINED, List.of());
+        }
+
+        static FirstApplicableState fromTracedPolicy(Value traced) {
+            return new FirstApplicableState(getDecision(traced), getObligations(traced), getAdvice(traced),
+                    getResource(traced), List.of(traced));
+        }
+
         FirstApplicableState prependTrace(Value trace) {
             val newTraces = new ArrayList<Value>();
             newTraces.add(trace);
             newTraces.addAll(traces);
-            return new FirstApplicableState(decision, newTraces);
+            return new FirstApplicableState(decision, obligations, advice, resource, newTraces);
         }
     }
 

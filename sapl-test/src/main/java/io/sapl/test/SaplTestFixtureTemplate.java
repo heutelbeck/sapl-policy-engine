@@ -17,62 +17,64 @@
  */
 package io.sapl.test;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import io.sapl.api.interpreter.Val;
-import io.sapl.attributes.broker.impl.AnnotationPolicyInformationPointLoader;
-import io.sapl.attributes.broker.impl.CachingAttributeStreamBroker;
-import io.sapl.attributes.broker.impl.InMemoryAttributeRepository;
-import io.sapl.attributes.broker.impl.InMemoryPolicyInformationPointDocumentationProvider;
-import io.sapl.attributes.documentation.api.PolicyInformationPointDocumentationProvider;
-import io.sapl.interpreter.InitializationException;
-import io.sapl.interpreter.functions.AnnotationFunctionContext;
-import io.sapl.validation.ValidatorFactory;
+import io.sapl.api.model.Value;
+import io.sapl.attributes.CachingAttributeBroker;
+import io.sapl.attributes.InMemoryAttributeRepository;
+import io.sapl.functions.DefaultFunctionBroker;
 
 import java.time.Clock;
 import java.util.HashMap;
 import java.util.Map;
 
+/**
+ * Base template for SAPL test fixtures providing common functionality for
+ * registering PIPs, function libraries, and variables.
+ */
 public abstract class SaplTestFixtureTemplate implements SaplTestFixture {
 
-    protected final Map<String, Val> variables = HashMap.newHashMap(1);
+    private static final String ERROR_DUPLICATE_VARIABLE = "The variable context already contains a key '%s'.";
 
-    protected final AnnotationFunctionContext                   functionCtx           = new AnnotationFunctionContext();
-    protected final CachingAttributeStreamBroker                attributeStreamBroker = new CachingAttributeStreamBroker(
+    protected final Map<String, Value> variables = HashMap.newHashMap(1);
+
+    protected final DefaultFunctionBroker  functionBroker  = new DefaultFunctionBroker();
+    protected final CachingAttributeBroker attributeBroker = new CachingAttributeBroker(
             new InMemoryAttributeRepository(Clock.systemUTC()));
-    protected final PolicyInformationPointDocumentationProvider docsProvider          = new InMemoryPolicyInformationPointDocumentationProvider();
-    protected final AnnotationPolicyInformationPointLoader      loader                = new AnnotationPolicyInformationPointLoader(
-            attributeStreamBroker, docsProvider, new ValidatorFactory(new ObjectMapper()));
 
     @Override
-    public SaplTestFixture registerPIP(Object pip) throws InitializationException {
-        this.loader.loadPolicyInformationPoint(pip);
+    public SaplTestFixture registerPIP(Object pip) {
+        attributeBroker.loadPolicyInformationPointLibrary(pip);
         return this;
     }
 
     @Override
-    public SaplTestFixture registerPIP(Class<?> pipClass) throws InitializationException {
-        this.loader.loadPolicyInformationPoint(pipClass);
-        return this;
-    }
-
-    @Override
-    public SaplTestFixture registerFunctionLibrary(Object library) throws InitializationException {
-        this.functionCtx.loadLibrary(library);
-        return this;
-    }
-
-    @Override
-    public SaplTestFixture registerFunctionLibrary(Class<?> staticLibrary) throws InitializationException {
-        this.functionCtx.loadLibrary(staticLibrary);
-        return this;
-    }
-
-    @Override
-    public SaplTestFixture registerVariable(String key, Val value) {
-        if (this.variables.containsKey(key)) {
-            throw new SaplTestException("The VariableContext already contains a key \"" + key + "\"");
+    public SaplTestFixture registerPIP(Class<?> pipClass) {
+        try {
+            var pipInstance = pipClass.getDeclaredConstructor().newInstance();
+            attributeBroker.loadPolicyInformationPointLibrary(pipInstance);
+        } catch (ReflectiveOperationException exception) {
+            throw new SaplTestException("Failed to instantiate PIP class: " + pipClass.getName(), exception);
         }
-        this.variables.put(key, value);
+        return this;
+    }
+
+    @Override
+    public SaplTestFixture registerFunctionLibrary(Object library) {
+        functionBroker.loadInstantiatedFunctionLibrary(library);
+        return this;
+    }
+
+    @Override
+    public SaplTestFixture registerFunctionLibrary(Class<?> staticLibrary) {
+        functionBroker.loadStaticFunctionLibrary(staticLibrary);
+        return this;
+    }
+
+    @Override
+    public SaplTestFixture registerVariable(String key, Value value) {
+        if (variables.containsKey(key)) {
+            throw new SaplTestException(ERROR_DUPLICATE_VARIABLE.formatted(key));
+        }
+        variables.put(key, value);
         return this;
     }
 

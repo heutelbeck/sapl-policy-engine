@@ -17,11 +17,11 @@
  */
 package io.sapl.test.mocking.function;
 
-import io.sapl.api.interpreter.Val;
+import io.sapl.api.model.Value;
 
 public interface FunctionMock {
 
-    Val evaluateFunctionCall(Val... parameter);
+    Value evaluateFunctionCall(Value... parameter);
 
     void assertVerifications();
 
