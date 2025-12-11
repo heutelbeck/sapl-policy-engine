@@ -79,9 +79,8 @@ class PermitUnlessDenyTests {
     }
 
     /*
-     * ========== Constraint Tests ==========
-     *
-     * Permit-unless-deny merges constraints from all policies of the winning
+     * ========== Constraint Tests ========== Permit-unless-deny merges constraints
+     * from all policies of the winning
      * decision type. Transformation uncertainty returns DENY.
      */
 

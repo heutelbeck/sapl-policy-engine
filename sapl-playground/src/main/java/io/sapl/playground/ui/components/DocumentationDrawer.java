@@ -40,16 +40,17 @@ import java.io.Serializable;
 import java.util.List;
 
 /**
- * Slide-in drawer component for displaying SAPL documentation.
- * Provides a floating action button that opens a side panel containing
- * documentation for function libraries and policy information points.
+ * Slide-in drawer component for displaying SAPL documentation. Provides a
+ * floating action button that opens a side
+ * panel containing documentation for function libraries and policy information
+ * points.
  * <p>
- * The drawer is displayed as a non-modal dialog positioned on the right
- * side of the screen. Documentation is organized in tabs, with markdown
- * content converted to HTML for display.
+ * The drawer is displayed as a non-modal dialog positioned on the right side of
+ * the screen. Documentation is organized
+ * in tabs, with markdown content converted to HTML for display.
  * <p>
- * Scoped to the UI session to maintain state during the user's interaction
- * with the playground.
+ * Scoped to the UI session to maintain state during the user's interaction with
+ * the playground.
  */
 @UIScope
 @SpringComponent
@@ -93,11 +94,12 @@ public class DocumentationDrawer implements Serializable {
     private final transient DocumentationBundle documentationBundle;
 
     /**
-     * Creates a new documentation drawer component.
-     * Initializes the drawer dialog and floating action button with
+     * Creates a new documentation drawer component. Initializes the drawer dialog
+     * and floating action button with
      * documentation from the provided documentation bundle.
      *
-     * @param documentationBundle bundle containing all library documentation
+     * @param documentationBundle
+     * bundle containing all library documentation
      */
     public DocumentationDrawer(DocumentationBundle documentationBundle) {
         this.documentationBundle = documentationBundle;

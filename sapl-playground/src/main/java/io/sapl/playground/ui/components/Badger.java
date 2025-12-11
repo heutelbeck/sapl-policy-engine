@@ -25,32 +25,33 @@ import lombok.val;
 import java.util.function.Predicate;
 
 /**
- * Utility class for creating badge components in Vaadin grids.
- * Provides factory methods for creating styled badge spans and
- * component renderers that conditionally display badges based
- * on data properties.
+ * Utility class for creating badge components in Vaadin grids. Provides factory
+ * methods for creating styled badge spans
+ * and component renderers that conditionally display badges based on data
+ * properties.
  * <p>
- * Badges are used to visually highlight status or boolean properties
- * in data grids, using Vaadin's theme variants (error, primary, success).
+ * Badges are used to visually highlight status or boolean properties in data
+ * grids, using Vaadin's theme variants
+ * (error, primary, success).
  */
 @UtilityClass
 public class Badger {
 
     /*
-     * Theme variant for error badges.
-     * Typically displayed in red to indicate negative status.
+     * Theme variant for error badges. Typically displayed in red to indicate
+     * negative status.
      */
     public static final String ERROR = "error";
 
     /*
-     * Theme variant for primary badges.
-     * Typically displayed in blue to indicate important or active status.
+     * Theme variant for primary badges. Typically displayed in blue to indicate
+     * important or active status.
      */
     public static final String PRIMARY = "primary";
 
     /*
-     * Theme variant for success badges.
-     * Typically displayed in green to indicate positive status.
+     * Theme variant for success badges. Typically displayed in green to indicate
+     * positive status.
      */
     public static final String SUCCESS = "success";
 
@@ -65,19 +66,26 @@ public class Badger {
     private static final String BADGE = "badge ";
 
     /**
-     * Creates a component renderer that displays conditional badges.
-     * Evaluates a predicate against grid items and displays different
-     * badges based on whether the condition is met.
+     * Creates a component renderer that displays conditional badges. Evaluates a
+     * predicate against grid items and
+     * displays different badges based on whether the condition is met.
      * <p>
-     * Commonly used in Vaadin grids to show boolean properties as
-     * styled badges instead of true/false text.
+     * Commonly used in Vaadin grids to show boolean properties as styled badges
+     * instead of true/false text.
      *
-     * @param <T> the type of items in the grid
-     * @param conditionPredicate predicate to evaluate against each item
-     * @param styleWhenTrue theme style when predicate returns true
-     * @param styleWhenFalse theme style when predicate returns false
-     * @param labelWhenTrue text to display when predicate returns true
-     * @param labelWhenFalse text to display when predicate returns false
+     * @param <T>
+     * the type of items in the grid
+     * @param conditionPredicate
+     * predicate to evaluate against each item
+     * @param styleWhenTrue
+     * theme style when predicate returns true
+     * @param styleWhenFalse
+     * theme style when predicate returns false
+     * @param labelWhenTrue
+     * text to display when predicate returns true
+     * @param labelWhenFalse
+     * text to display when predicate returns false
+     *
      * @return component renderer that creates badges based on the condition
      */
     public static <T> ComponentRenderer<Span, T> badgeRenderer(final Predicate<T> conditionPredicate,
@@ -91,11 +99,15 @@ public class Badger {
     }
 
     /**
-     * Creates a badge span with the specified label and style.
-     * Applies Vaadin badge theme with the provided style variant.
+     * Creates a badge span with the specified label and style. Applies Vaadin badge
+     * theme with the provided style
+     * variant.
      *
-     * @param label text to display in the badge
-     * @param style theme style variant (ERROR, PRIMARY, or SUCCESS)
+     * @param label
+     * text to display in the badge
+     * @param style
+     * theme style variant (ERROR, PRIMARY, or SUCCESS)
+     *
      * @return styled badge span component
      */
     public static Span createBadge(String label, String style) {

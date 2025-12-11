@@ -18,13 +18,16 @@
 package io.sapl.grammar.ide.contentassist;
 
 import io.sapl.grammar.ide.AbstractSaplLanguageServerTests;
+import org.eclipse.lsp4j.CompletionItem;
 import org.eclipse.lsp4j.CompletionList;
+import org.eclipse.lsp4j.Range;
 import org.eclipse.xtext.testing.TestCompletionConfiguration;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ContextConfiguration;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -111,6 +114,102 @@ public class CompletionTests extends AbstractSaplLanguageServerTests {
 
     protected List<String> toProposalsList(CompletionList cl) {
         return cl.getItems().stream().map(item -> item.getTextEdit().getLeft().getNewText()).toList();
+    }
+
+    /**
+     * Applies a completion item's TextEdit to the document and returns the
+     * resulting text.
+     * This simulates what happens when a user selects a completion.
+     */
+    protected String applyTextEdit(String document, CompletionItem item) {
+        var textEdit = item.getTextEdit().getLeft();
+        var range    = textEdit.getRange();
+        var newText  = textEdit.getNewText();
+        return applyEdit(document, range, newText);
+    }
+
+    /**
+     * Applies an edit (replacing a range with new text) to a document.
+     */
+    private String applyEdit(String document, Range range, String newText) {
+        var lines     = document.split("\n", -1);
+        var startLine = range.getStart().getLine();
+        var startChar = range.getStart().getCharacter();
+        var endLine   = range.getEnd().getLine();
+        var endChar   = range.getEnd().getCharacter();
+
+        var sb = new StringBuilder();
+
+        // Add all lines before start line
+        for (var i = 0; i < startLine; i++) {
+            sb.append(lines[i]).append('\n');
+        }
+
+        // Add text before the edit on the start line
+        sb.append(lines[startLine].substring(0, startChar));
+
+        // Add the new text
+        sb.append(newText);
+
+        // Add text after the edit on the end line
+        sb.append(lines[endLine].substring(endChar));
+
+        // Add remaining lines
+        for (var i = endLine + 1; i < lines.length; i++) {
+            sb.append('\n').append(lines[i]);
+        }
+
+        return sb.toString();
+    }
+
+    /**
+     * Finds a completion item by its label.
+     */
+    protected Optional<CompletionItem> findByLabel(CompletionList cl, String label) {
+        return cl.getItems().stream().filter(item -> label.equals(item.getLabel())).findFirst();
+    }
+
+    /**
+     * Asserts that a completion with the given label exists and when applied
+     * produces the expected
+     * document.
+     */
+    protected void assertCompletionProducesDocument(String documentWithCursor, String label,
+            String expectedDocumentAfterCompletion) {
+        var testCase = parseTestCase(documentWithCursor);
+        testCompletion((TestCompletionConfiguration it) -> {
+            it.setModel(testCase.document());
+            it.setLine(testCase.line());
+            it.setColumn(testCase.column());
+            it.setAssertCompletionList(completionList -> {
+                var item = findByLabel(completionList, label);
+                assertThat(item).as("Completion with label '%s' should exist", label).isPresent();
+                var result = applyTextEdit(testCase.document(), item.get());
+                assertThat(result).as("Document after applying completion '%s'", label)
+                        .isEqualTo(expectedDocumentAfterCompletion);
+            });
+        });
+    }
+
+    /**
+     * Asserts that completions with the given labels exist and verifies both
+     * display and insertion.
+     * Returns all labels that matched the given proposals (for further inspection).
+     */
+    protected void assertLabelsAndProposals(String documentWithCursor, List<String> expectedLabels,
+            List<String> expectedProposals) {
+        var testCase = parseTestCase(documentWithCursor);
+        testCompletion((TestCompletionConfiguration it) -> {
+            it.setModel(testCase.document());
+            it.setLine(testCase.line());
+            it.setColumn(testCase.column());
+            it.setAssertCompletionList(completionList -> {
+                var labels    = toLabelsList(completionList);
+                var proposals = toProposalsList(completionList);
+                assertThat(labels).as("Labels (what user sees)").containsAll(expectedLabels);
+                assertThat(proposals).as("Proposals (what gets inserted)").containsAll(expectedProposals);
+            });
+        });
     }
 
     private record DocumentAndCursor(String document, int line, int column) {}

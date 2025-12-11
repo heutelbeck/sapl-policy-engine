@@ -115,9 +115,10 @@ public interface PDPConfigurationSource extends Disposable {
     /**
      * Resolves the home folder marker (~) in a path string.
      * <p>
-     * If the path starts with ~ followed by the system file separator, the ~
-     * is replaced with the user's home directory (from the "user.home" system
-     * property). Otherwise, the path is returned as-is.
+     * If the path starts with ~ followed by the system file separator, the ~ is
+     * replaced with the user's home directory
+     * (from the "user.home" system property). Otherwise, the path is returned
+     * as-is.
      * </p>
      * <p>
      * This method normalizes forward slashes to the system file separator for

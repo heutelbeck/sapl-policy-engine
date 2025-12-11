@@ -34,7 +34,8 @@ import java.util.List;
 
 /**
  * An editor component for SAPLTest documents supporting code-completion,
- * syntax-highlighting, linting, and an optional merge view.
+ * syntax-highlighting, linting, and an optional
+ * merge view.
  */
 @Tag("sapl-test-editor")
 @JsModule("./sapl-test-editor.js")
@@ -74,12 +75,9 @@ public class SaplTestEditor extends BaseEditor implements HasSize {
     }
 
     /**
-     * Generic merge option setter. Supported keys:
-     * revertButtons (boolean),
-     * showDifferences (boolean),
-     * connect (null | "align"),
-     * collapseIdentical (boolean),
-     * allowEditingOriginals (boolean),
+     * Generic merge option setter. Supported keys: revertButtons (boolean),
+     * showDifferences (boolean), connect (null |
+     * "align"), collapseIdentical (boolean), allowEditingOriginals (boolean),
      * ignoreWhitespace (boolean)
      */
     public void setMergeOption(String key, Serializable value) {

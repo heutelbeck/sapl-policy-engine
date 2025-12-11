@@ -32,18 +32,19 @@ import java.io.Serial;
 
 /**
  * Grid component for displaying authorization decisions in the playground.
- * Shows decision results with columns for the decision itself, obligations,
- * advice, and resource transformations. Uses badges to visually indicate
- * presence of optional fields.
+ * Shows decision results with columns for the
+ * decision itself, obligations, advice, and resource transformations. Uses
+ * badges to visually indicate presence of
+ * optional fields.
  */
 public class DecisionsGrid extends Grid<TracedDecision> {
     @Serial
     private static final long serialVersionUID = SaplVersion.VERSION_UID;
 
     /**
-     * Creates a new decisions grid with configured columns.
-     * Sets up columns for decision, obligations, advice, and resource,
-     * with automatic width adjustment and borderless theme.
+     * Creates a new decisions grid with configured columns. Sets up columns for
+     * decision, obligations, advice, and
+     * resource, with automatic width adjustment and borderless theme.
      */
     public DecisionsGrid() {
         super();
@@ -56,16 +57,17 @@ public class DecisionsGrid extends Grid<TracedDecision> {
     }
 
     /*
-     * Extracts the decision string from a traced decision.
-     * Converts the decision enum to its string representation.
+     * Extracts the decision string from a traced decision. Converts the decision
+     * enum to its string representation.
      */
     private String extractDecisionString(TracedDecision decision) {
         return decision.authorizationDecision().decision().toString();
     }
 
     /*
-     * Creates renderer for obligations badge column.
-     * Shows "Obligations" badge if obligations are present, otherwise shows "-/-".
+     * Creates renderer for obligations badge column. Shows "Obligations" badge if
+     * obligations are present, otherwise
+     * shows "-/-".
      */
     private ComponentRenderer<Span, TracedDecision> renderObligationsBadge() {
         return Badger.badgeRenderer(decision -> !decision.authorizationDecision().obligations().isEmpty(),
@@ -73,8 +75,8 @@ public class DecisionsGrid extends Grid<TracedDecision> {
     }
 
     /*
-     * Creates renderer for advice badge column.
-     * Shows "Advice" badge if advice is present, otherwise shows "-/-".
+     * Creates renderer for advice badge column. Shows "Advice" badge if advice is
+     * present, otherwise shows "-/-".
      */
     private ComponentRenderer<Span, TracedDecision> renderAdviceBadge() {
         return Badger.badgeRenderer(decision -> !decision.authorizationDecision().advice().isEmpty(), Badger.PRIMARY,
@@ -82,9 +84,9 @@ public class DecisionsGrid extends Grid<TracedDecision> {
     }
 
     /*
-     * Creates renderer for resource badge column.
-     * Shows "Resource" badge if resource transformation is present, otherwise shows
-     * "-/-".
+     * Creates renderer for resource badge column. Shows "Resource" badge if
+     * resource transformation is present,
+     * otherwise shows "-/-".
      */
     private ComponentRenderer<Span, TracedDecision> renderResourceBadge() {
         return Badger.badgeRenderer(decision -> {

@@ -36,7 +36,8 @@ import lombok.val;
  * Utility class for rendering traced decisions as human-readable text reports.
  * <p>
  * Provides formatted output suitable for logging and console display, with
- * optional pretty-printing support using pure Value model formatting.
+ * optional pretty-printing support using pure
+ * Value model formatting.
  */
 @UtilityClass
 public class ReportTextRenderUtil {

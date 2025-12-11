@@ -87,7 +87,8 @@ public class BaseEditor extends Component {
     /**
      * Sets the current document for the editor.
      *
-     * @param document The current document.
+     * @param document
+     * The current document.
      */
     public void setDocument(String document) {
         this.document = document;
@@ -100,9 +101,11 @@ public class BaseEditor extends Component {
 
     /**
      * Registers a document changed listener. The document changed event will be
-     * raised when the document was changed in the editor.
+     * raised when the document was changed in
+     * the editor.
      *
-     * @param listener The listener that will be called upon event invocation.
+     * @param listener
+     * The listener that will be called upon event invocation.
      */
     public void addDocumentChangedListener(DocumentChangedListener listener) {
         this.documentChangedListeners.add(listener);
@@ -112,7 +115,8 @@ public class BaseEditor extends Component {
      * Registers an editor clicked listener. The editor clicked event will be raised
      * when the editor was clicked.
      *
-     * @param listener The listener that will be called upon event invocation.
+     * @param listener
+     * The listener that will be called upon event invocation.
      */
     public void addEditorClickedListener(EditorClickedListener listener) {
         this.editorClickedListeners.add(listener);
@@ -121,7 +125,8 @@ public class BaseEditor extends Component {
     /**
      * Removes a registered document changed listener.
      *
-     * @param listener The registered listener that should be removed.
+     * @param listener
+     * The registered listener that should be removed.
      */
     public void removeDocumentChangedListener(DocumentChangedListener listener) {
         this.documentChangedListeners.remove(listener);
@@ -130,7 +135,8 @@ public class BaseEditor extends Component {
     /**
      * Removes a registered editor clicked listener.
      *
-     * @param listener The registered listener that should be removed.
+     * @param listener
+     * The registered listener that should be removed.
      */
     public void removeEditorClickedListener(EditorClickedListener listener) {
         this.editorClickedListeners.remove(listener);
@@ -139,7 +145,8 @@ public class BaseEditor extends Component {
     /**
      * This function enables or disables the read-only mode of the editor.
      *
-     * @param isReadOnly set to true if editor should be read only
+     * @param isReadOnly
+     * set to true if editor should be read only
      */
     public void setReadOnly(Boolean isReadOnly) {
         Element element = getElement();
@@ -167,7 +174,8 @@ public class BaseEditor extends Component {
     /**
      * This function enables or disables the Dark Theme of the editor.
      *
-     * @param isDarkTheme set to true if editor should be in dark theme
+     * @param isDarkTheme
+     * set to true if editor should be in dark theme
      */
     public void setDarkTheme(Boolean isDarkTheme) {
         Element element = getElement();

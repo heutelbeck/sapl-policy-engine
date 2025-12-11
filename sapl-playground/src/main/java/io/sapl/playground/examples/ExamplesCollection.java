@@ -24,8 +24,9 @@ import java.util.List;
 import java.util.Optional;
 
 /**
- * Repository of playground examples organized by category.
- * Provides access to predefined policy scenarios for learning and testing.
+ * Repository of playground examples organized by category. Provides access to
+ * predefined policy scenarios for learning
+ * and testing.
  */
 @UtilityClass
 public class ExamplesCollection {
@@ -36,8 +37,8 @@ public class ExamplesCollection {
             """;
 
     /**
-     * Default settings loaded on application startup.
-     * Simple time-based policy demonstrating the time PIP.
+     * Default settings loaded on application startup. Simple time-based policy
+     * demonstrating the time PIP.
      */
     public static final Example DEFAULT_SETTINGS = new Example("default", "Default Time-Based Access",
             "Simple time-based access control using the time policy information point", List.of("""
@@ -956,7 +957,9 @@ public class ExamplesCollection {
     /**
      * Finds an example by its slug identifier.
      *
-     * @param slug the unique slug identifier
+     * @param slug
+     * the unique slug identifier
+     *
      * @return the example if found
      */
     public static Optional<Example> findBySlug(String slug) {

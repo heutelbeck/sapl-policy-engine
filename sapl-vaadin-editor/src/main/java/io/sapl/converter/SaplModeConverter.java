@@ -31,7 +31,9 @@ import java.util.regex.Pattern;
 public class SaplModeConverter {
 
     /**
-     * @param amdCode the AMD code
+     * @param amdCode
+     * the AMD code
+     *
      * @return code as ESM
      */
     public String convertToESM(String amdCode) {

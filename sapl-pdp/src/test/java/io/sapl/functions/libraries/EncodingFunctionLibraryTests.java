@@ -50,9 +50,9 @@ class EncodingFunctionLibraryTests {
     /* Encoding Tests */
 
     @ParameterizedTest
-    @CsvSource({ "Cthulhu,           Q3RodWxodQ==",       // "Cthulhu"
-            "Necronomicon,      TmVjcm9ub21pY29u",   // "Necronomicon"
-            "'',                ''"                  // empty string
+    @CsvSource({ "Cthulhu,           Q3RodWxodQ==", // "Cthulhu"
+            "Necronomicon,      TmVjcm9ub21pY29u", // "Necronomicon"
+            "'',                ''" // empty string
     })
     void base64Encode_whenVariousInputs_encodesCorrectly(String input, String expected) {
         TextValue result = (TextValue) EncodingFunctionLibrary.base64Encode(Value.of(input));
@@ -66,8 +66,8 @@ class EncodingFunctionLibraryTests {
     }
 
     @ParameterizedTest
-    @CsvSource({ "Azathoth,     QXphdGhvdGg=",    // "Azathoth"
-            "R'lyeh?data,  UidseWVoP2RhdGE="  // "R'lyeh?data"
+    @CsvSource({ "Azathoth,     QXphdGhvdGg=", // "Azathoth"
+            "R'lyeh?data,  UidseWVoP2RhdGE=" // "R'lyeh?data"
     })
     void base64UrlEncode_whenVariousInputs_encodesCorrectly(String input, String expected) {
         TextValue result = (TextValue) EncodingFunctionLibrary.base64UrlEncode(Value.of(input));
@@ -82,9 +82,9 @@ class EncodingFunctionLibraryTests {
     }
 
     @ParameterizedTest
-    @CsvSource({ "Yog-Sothoth,      596f672d536f74686f7468",  // "Yog-Sothoth"
-            "Y,                59",                      // "Y"
-            "'',               ''"                       // empty string
+    @CsvSource({ "Yog-Sothoth,      596f672d536f74686f7468", // "Yog-Sothoth"
+            "Y,                59", // "Y"
+            "'',               ''" // empty string
     })
     void hexEncode_whenVariousInputs_encodesCorrectly(String input, String expected) {
         TextValue result = (TextValue) EncodingFunctionLibrary.hexEncode(Value.of(input));
@@ -100,9 +100,9 @@ class EncodingFunctionLibraryTests {
     /* Decoding Tests - Lenient */
 
     @ParameterizedTest
-    @CsvSource({ "Q3RodWxodQ==,         Cthulhu",       // "Cthulhu" with padding
-            "TmVjcm9ub21pY29u,     Necronomicon",  // "Necronomicon" no padding needed
-            "Q3RodWxodQ,           Cthulhu"        // "Cthulhu" lenient accepts missing padding
+    @CsvSource({ "Q3RodWxodQ==,         Cthulhu", // "Cthulhu" with padding
+            "TmVjcm9ub21pY29u,     Necronomicon", // "Necronomicon" no padding needed
+            "Q3RodWxodQ,           Cthulhu" // "Cthulhu" lenient accepts missing padding
     })
     void base64Decode_whenValidInput_decodesCorrectly(String input, String expected) {
         TextValue result = (TextValue) EncodingFunctionLibrary.base64Decode(Value.of(input));
@@ -116,8 +116,8 @@ class EncodingFunctionLibraryTests {
     }
 
     @ParameterizedTest
-    @CsvSource({ "QXphdGhvdGg=,  Azathoth",  // "Azathoth" with padding
-            "QXphdGhvdGg,   Azathoth"   // "Azathoth" lenient accepts missing padding
+    @CsvSource({ "QXphdGhvdGg=,  Azathoth", // "Azathoth" with padding
+            "QXphdGhvdGg,   Azathoth" // "Azathoth" lenient accepts missing padding
     })
     void base64UrlDecode_whenValidInput_decodesCorrectly(String input, String expected) {
         TextValue result = (TextValue) EncodingFunctionLibrary.base64UrlDecode(Value.of(input));
@@ -131,10 +131,10 @@ class EncodingFunctionLibraryTests {
     }
 
     @ParameterizedTest
-    @CsvSource({ "59,                   Y",         // "Y"
-            "59_20_59,             Y Y",       // "Y Y" with underscore separators
-            "4e7963726172,         Nycrar",    // "Nycrar"
-            "4E7963726172,         Nycrar"     // "Nycrar" uppercase
+    @CsvSource({ "59,                   Y", // "Y"
+            "59_20_59,             Y Y", // "Y Y" with underscore separators
+            "4e7963726172,         Nycrar", // "Nycrar"
+            "4E7963726172,         Nycrar" // "Nycrar" uppercase
     })
     void hexDecode_whenValidInput_decodesCorrectly(String input, String expected) {
         TextValue result = (TextValue) EncodingFunctionLibrary.hexDecode(Value.of(input));
@@ -179,9 +179,9 @@ class EncodingFunctionLibraryTests {
     /* Validation Tests - Lenient */
 
     @ParameterizedTest
-    @CsvSource({ "Q3RodWxodQ==,     true",   // "Cthulhu" with padding
-            "Q3RodWxodQ,      true",    // "Cthulhu" without padding (lenient)
-            "Miskatonic!@#,   false"    // invalid characters
+    @CsvSource({ "Q3RodWxodQ==,     true", // "Cthulhu" with padding
+            "Q3RodWxodQ,      true", // "Cthulhu" without padding (lenient)
+            "Miskatonic!@#,   false" // invalid characters
     })
     void isValidBase64_whenVariousInputs_returnsExpectedResult(String input, boolean expected) {
         BooleanValue result = (BooleanValue) EncodingFunctionLibrary.isValidBase64(Value.of(input));
@@ -189,9 +189,9 @@ class EncodingFunctionLibraryTests {
     }
 
     @ParameterizedTest
-    @CsvSource({ "QXphdGhvdGg=,     true",   // "Azathoth" with padding
-            "QXphdGhvdGg,     true",    // "Azathoth" without padding (lenient)
-            "Elder+/==,       false"    // wrong alphabet (+ and /)
+    @CsvSource({ "QXphdGhvdGg=,     true", // "Azathoth" with padding
+            "QXphdGhvdGg,     true", // "Azathoth" without padding (lenient)
+            "Elder+/==,       false" // wrong alphabet (+ and /)
     })
     void isValidBase64Url_whenVariousInputs_returnsExpectedResult(String input, boolean expected) {
         BooleanValue result = (BooleanValue) EncodingFunctionLibrary.isValidBase64Url(Value.of(input));
@@ -199,12 +199,12 @@ class EncodingFunctionLibraryTests {
     }
 
     @ParameterizedTest
-    @CsvSource({ "59,                   true",   // "Y"
-            "4e7963726172,         true",   // "Nycrar"
-            "59_20_59,             true",   // "Y Y" with underscores
-            "Innsmouth,            false",  // non-hex characters
-            "123,                  false",  // odd length
-            "'',                   false"   // empty string
+    @CsvSource({ "59,                   true", // "Y"
+            "4e7963726172,         true", // "Nycrar"
+            "59_20_59,             true", // "Y Y" with underscores
+            "Innsmouth,            false", // non-hex characters
+            "123,                  false", // odd length
+            "'',                   false" // empty string
     })
     void isValidHex_whenVariousInputs_returnsExpectedResult(String input, boolean expected) {
         BooleanValue result = (BooleanValue) EncodingFunctionLibrary.isValidHex(Value.of(input));
@@ -214,11 +214,11 @@ class EncodingFunctionLibraryTests {
     /* Validation Tests - Strict */
 
     @ParameterizedTest
-    @CsvSource({ "Q3RodWxodQ==,     true",   // "Cthulhu" properly padded
-            "Q3RodWxodQ,      false",   // "Cthulhu" missing padding (strict rejects)
-            "Arkham!@#,       false",   // invalid characters
-            "abc,             false",   // wrong length
-            "Q3=RodWxodQ=,    false"    // padding in middle
+    @CsvSource({ "Q3RodWxodQ==,     true", // "Cthulhu" properly padded
+            "Q3RodWxodQ,      false", // "Cthulhu" missing padding (strict rejects)
+            "Arkham!@#,       false", // invalid characters
+            "abc,             false", // wrong length
+            "Q3=RodWxodQ=,    false" // padding in middle
     })
     void isValidBase64Strict_whenVariousInputs_returnsExpectedResult(String input, boolean expected) {
         BooleanValue result = (BooleanValue) EncodingFunctionLibrary.isValidBase64Strict(Value.of(input));
@@ -226,12 +226,12 @@ class EncodingFunctionLibraryTests {
     }
 
     @ParameterizedTest
-    @CsvSource({ "QXphdGhvdGg=,     true",   // "Azathoth" properly padded
-            "QXphdGhvdGg,     false",   // "Azathoth" missing padding (strict rejects)
-            "Dunwich!@#,      false",   // invalid characters
-            "abc,             false",   // wrong length
-            "Elder+/==,       false",   // wrong alphabet
-            "QX=pdGhvdGg=,    false"    // padding in middle
+    @CsvSource({ "QXphdGhvdGg=,     true", // "Azathoth" properly padded
+            "QXphdGhvdGg,     false", // "Azathoth" missing padding (strict rejects)
+            "Dunwich!@#,      false", // invalid characters
+            "abc,             false", // wrong length
+            "Elder+/==,       false", // wrong alphabet
+            "QX=pdGhvdGg=,    false" // padding in middle
     })
     void isValidBase64UrlStrict_whenVariousInputs_returnsExpectedResult(String input, boolean expected) {
         BooleanValue result = (BooleanValue) EncodingFunctionLibrary.isValidBase64UrlStrict(Value.of(input));
@@ -241,9 +241,9 @@ class EncodingFunctionLibraryTests {
     /* Lenient vs Strict Comparison Tests */
 
     @ParameterizedTest
-    @ValueSource(strings = { "Q3RodWxodQ",    // "Cthulhu" unpadded
-            "QXphdGhvdGg",   // "Azathoth" unpadded
-            "RGFnb24"        // "Dagon" unpadded
+    @ValueSource(strings = { "Q3RodWxodQ", // "Cthulhu" unpadded
+            "QXphdGhvdGg", // "Azathoth" unpadded
+            "RGFnb24" // "Dagon" unpadded
     })
     void lenientAcceptsUnpaddedButStrictRejects(String unpaddedInput) {
         var lenientResult = (BooleanValue) EncodingFunctionLibrary.isValidBase64(Value.of(unpaddedInput));
@@ -254,9 +254,9 @@ class EncodingFunctionLibraryTests {
     }
 
     @ParameterizedTest
-    @ValueSource(strings = { "Q3RodWxodQ",    // "Cthulhu" unpadded
-            "QXphdGhvdGg",   // "Azathoth" unpadded
-            "U2hvZ2dvdGg"    // "Shoggoth" unpadded
+    @ValueSource(strings = { "Q3RodWxodQ", // "Cthulhu" unpadded
+            "QXphdGhvdGg", // "Azathoth" unpadded
+            "U2hvZ2dvdGg" // "Shoggoth" unpadded
     })
     void lenientAcceptsUnpaddedUrlButStrictRejects(String unpaddedInput) {
         var lenientResult = (BooleanValue) EncodingFunctionLibrary.isValidBase64Url(Value.of(unpaddedInput));

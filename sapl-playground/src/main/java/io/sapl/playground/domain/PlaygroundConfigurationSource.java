@@ -25,6 +25,7 @@ import io.sapl.api.prp.PolicyRetrievalPoint;
 import io.sapl.compiler.CompilationContext;
 import io.sapl.compiler.CompiledPolicy;
 import io.sapl.compiler.SaplCompiler;
+import io.sapl.compiler.SaplCompilerException;
 import io.sapl.parser.DefaultSAPLParser;
 import io.sapl.parser.SAPLParser;
 import io.sapl.pdp.CompiledPDPConfiguration;
@@ -153,6 +154,24 @@ public class PlaygroundConfigurationSource implements CompiledPDPConfigurationSo
     @Override
     public Optional<CompiledPDPConfiguration> getCurrentConfiguration(String pdpId) {
         return currentConfiguration.get();
+    }
+
+    /**
+     * Attempts to compile a policy source and returns any compile errors.
+     *
+     * @param source the SAPL policy source to compile
+     * @return optional containing the exception if compilation failed, empty if
+     * successful
+     */
+    public Optional<SaplCompilerException> tryCompile(String source) {
+        val compilationContext = new CompilationContext(functionBroker, attributeBroker);
+        try {
+            compilationContext.resetForNextDocument();
+            SaplCompiler.compile(source, compilationContext);
+            return Optional.empty();
+        } catch (SaplCompilerException exception) {
+            return Optional.of(exception);
+        }
     }
 
     @PreDestroy

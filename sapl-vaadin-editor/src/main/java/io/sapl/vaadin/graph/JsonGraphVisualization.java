@@ -31,7 +31,6 @@ import lombok.val;
 
 /**
  * Interactive JSON graph visualization component with maximize capability.
- *
  * <p>
  * Displays JSON data as a hierarchical tree graph using D3.js. Features
  * include:
@@ -42,7 +41,6 @@ import lombok.val;
  * <li>Color-coded nodes by data type</li>
  * <li>Horizontal tree layout with orthogonal connections</li>
  * </ul>
- *
  * <p>
  * Example usage:
  *
@@ -52,11 +50,10 @@ import lombok.val;
  * graph.setJsonData("{\"name\": \"example\", \"value\": 42}");
  * add(graph);
  * }</pre>
- *
  * <p>
  * The component uses Vaadin's Dialog for maximize functionality, ensuring
- * proper
- * layout integration without affecting the parent layout's structure.
+ * proper layout integration without affecting
+ * the parent layout's structure.
  */
 @Tag("json-graph-visualization")
 @JsModule("./json-graph-component.ts")
@@ -76,11 +73,10 @@ public class JsonGraphVisualization extends Component implements HasSize, HasSty
 
     /**
      * Creates a new JSON graph visualization component.
-     *
      * <p>
-     * The component is initialized with full size and positioned relatively
-     * within its parent container. A maximize button is automatically added
-     * to the top-right corner.
+     * The component is initialized with full size and positioned relatively within
+     * its parent container. A maximize
+     * button is automatically added to the top-right corner.
      */
     public JsonGraphVisualization() {
         setSizeFull();
@@ -89,14 +85,16 @@ public class JsonGraphVisualization extends Component implements HasSize, HasSty
 
     /**
      * Sets the JSON data to visualize in the graph.
-     *
      * <p>
-     * The JSON string is parsed and rendered as a hierarchical tree structure.
-     * If the maximize dialog is currently open, the data is synchronized to both
-     * the main and maximized visualizations.
+     * The JSON string is parsed and rendered as a hierarchical tree structure. If
+     * the maximize dialog is currently
+     * open, the data is synchronized to both the main and maximized visualizations.
      *
-     * @param jsonData the JSON string to visualize, must be valid JSON
-     * @throws IllegalArgumentException if jsonData is null
+     * @param jsonData
+     * the JSON string to visualize, must be valid JSON
+     *
+     * @throws IllegalArgumentException
+     * if jsonData is null
      */
     public void setJsonData(String jsonData) {
         if (jsonData == null) {
@@ -124,11 +122,13 @@ public class JsonGraphVisualization extends Component implements HasSize, HasSty
      * Sets a SAPL Value to visualize in the graph.
      * <p>
      * This method enables value mode, which allows special rendering of
-     * UndefinedValue and ErrorValue types. The Value is converted to JSON
-     * using {@link ValueToGraphJsonMapper} which represents these special
-     * types as marker objects that the client-side renderer can interpret.
+     * UndefinedValue and ErrorValue types. The Value
+     * is converted to JSON using {@link ValueToGraphJsonMapper} which represents
+     * these special types as marker objects
+     * that the client-side renderer can interpret.
      *
-     * @param value the SAPL Value to visualize
+     * @param value
+     * the SAPL Value to visualize
      */
     public void setValueData(Value value) {
         setValueMode(true);
@@ -160,7 +160,8 @@ public class JsonGraphVisualization extends Component implements HasSize, HasSty
      * as an error node</li>
      * </ul>
      *
-     * @param valueMode true to enable value mode
+     * @param valueMode
+     * true to enable value mode
      */
     public void setValueMode(boolean valueMode) {
         this.valueMode = valueMode;
@@ -169,15 +170,14 @@ public class JsonGraphVisualization extends Component implements HasSize, HasSty
 
     /**
      * Opens the maximized view in a fullscreen dialog.
-     *
      * <p>
-     * This method is called from the client-side when the user clicks the
-     * maximize button. The current zoom and pan state is preserved and applied
-     * to the maximized view. The dialog is modal and non-resizable.
-     *
+     * This method is called from the client-side when the user clicks the maximize
+     * button. The current zoom and pan
+     * state is preserved and applied to the maximized view. The dialog is modal and
+     * non-resizable.
      * <p>
-     * This method must be annotated with {@link ClientCallable} to be invoked
-     * from JavaScript.
+     * This method must be annotated with {@link ClientCallable} to be invoked from
+     * JavaScript.
      */
     @ClientCallable
     public void showMaximized() {
@@ -188,7 +188,8 @@ public class JsonGraphVisualization extends Component implements HasSize, HasSty
     /**
      * Opens the maximize dialog with the given zoom transform.
      *
-     * @param transform the serialized D3 zoom transform to apply
+     * @param transform
+     * the serialized D3 zoom transform to apply
      */
     private void openMaximizedDialog(String transform) {
         if (maximizeDialog == null) {
@@ -238,7 +239,9 @@ public class JsonGraphVisualization extends Component implements HasSize, HasSty
     /**
      * Creates the close button for the dialog header.
      *
-     * @param dialog the dialog to close when button is clicked
+     * @param dialog
+     * the dialog to close when button is clicked
+     *
      * @return a configured Button with icon and styling
      */
     private Button createCloseButton(Dialog dialog) {
@@ -251,12 +254,13 @@ public class JsonGraphVisualization extends Component implements HasSize, HasSty
 
     /**
      * Handles dialog opened/closed state changes.
-     *
      * <p>
-     * When opened, hides the maximize button on the main visualization.
-     * When closed, restores the button and applies the saved zoom state.
+     * When opened, hides the maximize button on the main visualization. When
+     * closed, restores the button and applies
+     * the saved zoom state.
      *
-     * @param event the dialog opened change event
+     * @param event
+     * the dialog opened change event
      */
     private void handleDialogOpenedChange(Dialog.OpenedChangeEvent event) {
         if (event.isOpened()) {
@@ -268,10 +272,9 @@ public class JsonGraphVisualization extends Component implements HasSize, HasSty
 
     /**
      * Handles cleanup when the dialog is closed.
-     *
      * <p>
-     * Saves the zoom transform from the maximized view and restores it
-     * to the main visualization.
+     * Saves the zoom transform from the maximized view and restores it to the main
+     * visualization.
      */
     private void handleDialogClosed() {
         getElement().removeAttribute(DIALOG_OPEN_ATTRIBUTE);
@@ -286,7 +289,8 @@ public class JsonGraphVisualization extends Component implements HasSize, HasSty
     /**
      * Restores the zoom transform to the main visualization.
      *
-     * @param transform the serialized D3 zoom transform to restore
+     * @param transform
+     * the serialized D3 zoom transform to restore
      */
     private void restoreZoomTransform(String transform) {
         getElement().setProperty(INITIAL_TRANSFORM_PROPERTY, transform);
@@ -294,12 +298,12 @@ public class JsonGraphVisualization extends Component implements HasSize, HasSty
 
     /**
      * Registers client-side event listeners on component attach.
-     *
      * <p>
-     * Sets up a listener for the 'maximize-clicked' event dispatched
-     * from the TypeScript component.
+     * Sets up a listener for the 'maximize-clicked' event dispatched from the
+     * TypeScript component.
      *
-     * @param attachEvent the attach event
+     * @param attachEvent
+     * the attach event
      */
     @Override
     protected void onAttach(AttachEvent attachEvent) {

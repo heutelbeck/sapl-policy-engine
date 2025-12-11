@@ -26,7 +26,8 @@ import java.io.Serializable;
 public interface EditorClickedListener extends Serializable {
 
     /**
-     * @param event the click event
+     * @param event
+     * the click event
      */
     void onEditorClicked(EditorClickedEvent event);
 }

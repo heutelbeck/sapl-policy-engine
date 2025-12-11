@@ -176,10 +176,9 @@ class PermitOverridesTests {
     }
 
     /*
-     * ========== Transformation Uncertainty Tests ==========
-     *
-     * When multiple policies provide transformations, the result should be
-     * INDETERMINATE due to transformation uncertainty.
+     * ========== Transformation Uncertainty Tests ========== When multiple policies
+     * provide transformations, the result
+     * should be INDETERMINATE due to transformation uncertainty.
      */
 
     @ParameterizedTest(name = "{0}")

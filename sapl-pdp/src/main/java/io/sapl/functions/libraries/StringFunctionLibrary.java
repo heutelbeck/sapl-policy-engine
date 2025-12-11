@@ -31,11 +31,13 @@ import java.math.BigDecimal;
 import java.util.regex.Pattern;
 
 /**
- * Functions for string manipulation in authorization policies.
- * Provides simple, efficient operations for common string handling tasks like
- * case normalization, whitespace cleanup, substring extraction, and literal
- * replacements. These functions complement the patterns library by offering
- * straightforward alternatives for cases where pattern matching is unnecessary.
+ * Functions for string manipulation in authorization policies. Provides simple,
+ * efficient operations for common string
+ * handling tasks like case normalization, whitespace cleanup, substring
+ * extraction, and literal replacements. These
+ * functions complement the patterns library by offering straightforward
+ * alternatives for cases where pattern matching
+ * is unnecessary.
  */
 @UtilityClass
 @FunctionLibrary(name = StringFunctionLibrary.NAME, description = StringFunctionLibrary.DESCRIPTION)

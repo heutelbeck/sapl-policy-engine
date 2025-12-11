@@ -318,9 +318,8 @@ class FirstApplicableTests {
     }
 
     /*
-     * ========== Constraint Tests ==========
-     *
-     * First-applicable should only include obligations/advice/resource from the
+     * ========== Constraint Tests ========== First-applicable should only include
+     * obligations/advice/resource from the
      * FIRST applicable policy. Subsequent policies are not evaluated.
      */
 

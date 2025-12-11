@@ -37,7 +37,8 @@ import lombok.val;
  * </ul>
  * <p>
  * This interceptor executes with the lowest priority (last) to ensure all other
- * interceptors have had a chance to modify the decision before logging.
+ * interceptors have had a chance to
+ * modify the decision before logging.
  */
 @Slf4j
 @RequiredArgsConstructor

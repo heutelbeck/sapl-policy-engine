@@ -303,9 +303,10 @@ public class DynamicPolicyDecisionPoint implements TracedPolicyDecisionPoint {
      * Applies all registered interceptors to a traced decision in priority order.
      * <p>
      * Interceptors are applied sequentially, with each receiving the result of the
-     * previous interceptor. Lower priority values execute first (MIN_VALUE
-     * executes first, MAX_VALUE executes last). The ReportingDecisionInterceptor
-     * uses MAX_VALUE to ensure it runs last and captures all modifications.
+     * previous interceptor. Lower priority
+     * values execute first (MIN_VALUE executes first, MAX_VALUE executes last). The
+     * ReportingDecisionInterceptor uses
+     * MAX_VALUE to ensure it runs last and captures all modifications.
      *
      * @param decision
      * the traced decision to process

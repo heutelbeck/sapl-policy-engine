@@ -40,14 +40,14 @@ import java.util.zip.GZIPOutputStream;
 
 /**
  * Service for encoding and decoding playground state into shareable permalinks.
- * Handles compression, encoding, validation, and security checks.
+ * Handles compression, encoding,
+ * validation, and security checks.
  * <p/>
  * Current implementation uses conservative limits for cross-browser
- * compatibility:
- * - MAX_COMPRESSED_SIZE_BYTES = 100,000 (100KB compressed)
- * - After base64 encoding: approximately 133KB
- * - Well within all modern browser limits
- * - Provides substantial capacity for complex playground states
+ * compatibility: - MAX_COMPRESSED_SIZE_BYTES =
+ * 100,000 (100KB compressed) - After base64 encoding: approximately 133KB -
+ * Well within all modern browser limits -
+ * Provides substantial capacity for complex playground states
  */
 @Slf4j
 @Service
@@ -55,24 +55,24 @@ import java.util.zip.GZIPOutputStream;
 public class PermalinkService {
 
     /*
-     * Maximum uncompressed size in bytes before compression.
-     * Prevents excessive memory usage and DoS attacks.
+     * Maximum uncompressed size in bytes before compression. Prevents excessive
+     * memory usage and DoS attacks.
      */
     private static final int MAX_UNCOMPRESSED_SIZE_BYTES = 500_000;
 
     /*
-     * Maximum compressed size in bytes before base64 encoding.
-     * After base64 encoding, results in approximately 133KB.
-     * Conservative limit ensuring compatibility with all modern browsers.
-     * Modern Edge/Chrome can handle 2MB URLs, but 100KB provides
-     * excellent cross-browser compatibility while allowing substantial
-     * playground state sharing.
+     * Maximum compressed size in bytes before base64 encoding. After base64
+     * encoding, results in approximately 133KB.
+     * Conservative limit ensuring compatibility with all modern browsers. Modern
+     * Edge/Chrome can handle 2MB URLs, but
+     * 100KB provides excellent cross-browser compatibility while allowing
+     * substantial playground state sharing.
      */
     private static final int MAX_COMPRESSED_SIZE_BYTES = 100_000;
 
     /*
-     * Maximum number of policy documents allowed in a permalink.
-     * Prevents abuse and ensures reasonable state size.
+     * Maximum number of policy documents allowed in a permalink. Prevents abuse and
+     * ensures reasonable state size.
      */
     private static final int MAX_POLICIES_COUNT = 20;
 
@@ -82,9 +82,13 @@ public class PermalinkService {
     /**
      * Encodes playground state into a compressed, base64-encoded permalink.
      *
-     * @param state the playground state to encode
+     * @param state
+     * the playground state to encode
+     *
      * @return the encoded permalink string
-     * @throws PermalinkException if encoding fails or state is invalid
+     *
+     * @throws PermalinkException
+     * if encoding fails or state is invalid
      */
     public String encode(PlaygroundState state) throws PermalinkException {
         validateStateForEncoding(state);
@@ -113,9 +117,13 @@ public class PermalinkService {
     /**
      * Decodes a permalink string back into playground state.
      *
-     * @param encoded the encoded permalink string
+     * @param encoded
+     * the encoded permalink string
+     *
      * @return the decoded playground state
-     * @throws PermalinkException if decoding fails or data is invalid
+     *
+     * @throws PermalinkException
+     * if decoding fails or data is invalid
      */
     public PlaygroundState decode(String encoded) throws PermalinkException {
         validateEncodedString(encoded);
@@ -333,12 +341,16 @@ public class PermalinkService {
     /**
      * Represents the complete playground state for permalinks.
      *
-     * @param policies list of policy documents
-     * @param subscription authorization subscription JSON
-     * @param variables variables JSON
-     * @param combiningAlgorithm the combining algorithm to use
-     * @param selectedPolicyIndex the index of the selected policy tab (null if
-     * variables tab selected)
+     * @param policies
+     * list of policy documents
+     * @param subscription
+     * authorization subscription JSON
+     * @param variables
+     * variables JSON
+     * @param combiningAlgorithm
+     * the combining algorithm to use
+     * @param selectedPolicyIndex
+     * the index of the selected policy tab (null if variables tab selected)
      */
     public record PlaygroundState(
             List<String> policies,

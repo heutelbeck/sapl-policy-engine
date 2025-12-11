@@ -449,7 +449,8 @@ public class PolicyDecisionPointBuilder {
 
     /**
      * Adds a traced decision interceptor. Interceptors are applied to every
-     * authorization decision in priority order (lower values execute first).
+     * authorization decision in priority order
+     * (lower values execute first).
      * <p>
      * Common use cases:
      * <ul>
@@ -460,8 +461,9 @@ public class PolicyDecisionPointBuilder {
      * </ul>
      * <p>
      * The {@link io.sapl.pdp.interceptors.ReportingDecisionInterceptor} uses
-     * {@code Integer.MAX_VALUE} priority to ensure it runs last and captures
-     * all modifications made by other interceptors.
+     * {@code Integer.MAX_VALUE} priority to
+     * ensure it runs last and captures all modifications made by other
+     * interceptors.
      *
      * @param interceptor
      * the interceptor to add
@@ -477,7 +479,8 @@ public class PolicyDecisionPointBuilder {
 
     /**
      * Adds multiple traced decision interceptors. Interceptors are applied to every
-     * authorization decision in priority order (lower values execute first).
+     * authorization decision in priority
+     * order (lower values execute first).
      * <p>
      * This is useful for Spring integration where interceptors are collected as
      * beans.

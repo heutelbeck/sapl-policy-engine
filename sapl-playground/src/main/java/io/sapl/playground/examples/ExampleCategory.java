@@ -22,9 +22,13 @@ import java.util.List;
 /**
  * Represents a category of related examples with an icon for UI display.
  *
- * @param name category display name
- * @param iconName name of the Vaadin icon to display in menu
- * @param order sort order for category display
- * @param examples ordered list of examples in this category
+ * @param name
+ * category display name
+ * @param iconName
+ * name of the Vaadin icon to display in menu
+ * @param order
+ * sort order for category display
+ * @param examples
+ * ordered list of examples in this category
  */
 public record ExampleCategory(String name, String iconName, int order, List<Example> examples) {}

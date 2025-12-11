@@ -25,7 +25,8 @@ import java.io.Serializable;
 @FunctionalInterface
 public interface ValidationFinishedListener extends Serializable {
     /**
-     * @param event the validation event.
+     * @param event
+     * the validation event.
      */
     void onValidationFinished(ValidationFinishedEvent event);
 }

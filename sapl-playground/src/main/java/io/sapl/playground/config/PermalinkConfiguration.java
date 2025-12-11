@@ -23,8 +23,8 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Configuration;
 
 /**
- * Configuration properties for permalink generation.
- * Controls the base URL used when creating shareable links.
+ * Configuration properties for permalink generation. Controls the base URL used
+ * when creating shareable links.
  */
 @Getter
 @Setter
@@ -33,10 +33,10 @@ import org.springframework.context.annotation.Configuration;
 public class PermalinkConfiguration {
 
     /**
-     * Base URL for generating permalinks.
-     * Should include protocol and hostname, without trailing slash.
-     * Example: <a href="http://localhost:8080">http://localhost:8080</a>
-     * or <a href="https://playground.sapl.io">https://playground.sapl.io</a>
+     * Base URL for generating permalinks. Should include protocol and hostname,
+     * without trailing slash. Example:
+     * <a href="http://localhost:8080">http://localhost:8080</a> or
+     * <a href="https://playground.sapl.io">https://playground.sapl.io</a>
      */
     private String baseUrl = "http://localhost:8080";
 }

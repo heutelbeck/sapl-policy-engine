@@ -689,7 +689,27 @@ class TracedPolicyDecisionTests {
                     policy "cursed-obligation"
                     permit
                     obligation 1 / subject.divisor
-                    """, Map.of("subject", json("{\"divisor\": 0}")), "Division by zero"));
+                    """, Map.of("subject", json("{\"divisor\": 0}")), "Division by zero"),
+
+                    arguments("obligation error in string concatenation (emergency override)", """
+                            policy "emergency override"
+                            permit
+                                resource.type == "patient_record"
+                            where
+                                resource.department != subject.department;
+                                environment.location == "emergency room";
+                            obligation {
+                                         "type": "send email",
+                                         "to": "ethical_board@princeton-plainsboro.med",
+                                         "subject": "Emergency Access Detected",
+                                         "message": "The record of patient " + resource.id +
+                                                    " has been accessed from the emergency room by " +
+                                                    subject.username +". Please review the process!" + 1/subject.zero
+                                       }
+                            """, Map.of("subject",
+                            json("{\"username\": \"house\", \"department\": \"diagnostics\", \"zero\": 0}"), "resource",
+                            json("{\"type\": \"patient_record\", \"id\": 123, \"department\": \"cardiology\"}"),
+                            "environment", json("{\"location\": \"emergency room\"}")), "Division by zero"));
         }
 
         @ParameterizedTest(name = "{0}")

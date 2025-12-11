@@ -37,14 +37,14 @@ import java.util.regex.Pattern;
 import java.util.stream.StreamSupport;
 
 /**
- * Service for validating JSON documents in the SAPL playground.
- * Provides validation for variables documents and authorization subscriptions,
- * ensuring they conform to required structure and content rules.
+ * Service for validating JSON documents in the SAPL playground. Provides
+ * validation for variables documents and
+ * authorization subscriptions, ensuring they conform to required structure and
+ * content rules.
  * <p>
- * This service validates:
- * - JSON syntax and structure
- * - Variable names conform to identifier rules
- * - Authorization subscriptions contain mandatory fields
+ * This service validates: - JSON syntax and structure - Variable names conform
+ * to identifier rules - Authorization
+ * subscriptions contain mandatory fields
  */
 @Service
 @RequiredArgsConstructor
@@ -53,20 +53,20 @@ public class PlaygroundValidator implements Serializable {
     private static final long serialVersionUID = SaplVersion.VERSION_UID;
 
     /*
-     * Maximum length for variable names.
-     * Prevents excessively long identifiers.
+     * Maximum length for variable names. Prevents excessively long identifiers.
      */
     private static final int MAX_VARIABLE_NAME_LENGTH = 100;
 
     /*
-     * Pattern for valid variable names.
-     * Must start with letter or underscore, followed by word characters.
+     * Pattern for valid variable names. Must start with letter or underscore,
+     * followed by word characters.
      */
     private static final Pattern VALID_VARIABLE_NAME = Pattern.compile("[a-zA-Z_]\\w*");
 
     /*
-     * Mandatory fields required in authorization subscriptions.
-     * All authorization subscriptions must contain subject, action, and resource.
+     * Mandatory fields required in authorization subscriptions. All authorization
+     * subscriptions must contain subject,
+     * action, and resource.
      */
     private static final List<String> MANDATORY_SUBSCRIPTION_FIELDS = List.of("subject", "action", "resource");
 
@@ -76,12 +76,15 @@ public class PlaygroundValidator implements Serializable {
     private final ObjectMapper mapper;
 
     /**
-     * Validates variables JSON document structure and variable names.
-     * Ensures the document is a valid JSON object and all field names
-     * conform to identifier rules (start with letter/underscore, followed
-     * by word characters, max 100 characters length).
+     * Validates variables JSON document structure and variable names. Ensures the
+     * document is a valid JSON object and
+     * all field names conform to identifier rules (start with letter/underscore,
+     * followed by word characters, max 100
+     * characters length).
      *
-     * @param jsonContent the JSON string to validate
+     * @param jsonContent
+     * the JSON string to validate
+     *
      * @return validation result with status and descriptive message
      */
     public ValidationResult validateVariablesJson(String jsonContent) {
@@ -101,11 +104,13 @@ public class PlaygroundValidator implements Serializable {
 
     /**
      * Validates authorization subscription JSON document structure and mandatory
-     * fields.
-     * Ensures the document is a valid JSON object containing all required fields:
-     * subject, action, and resource.
+     * fields. Ensures the document is a
+     * valid JSON object containing all required fields: subject, action, and
+     * resource.
      *
-     * @param jsonContent the JSON string to validate
+     * @param jsonContent
+     * the JSON string to validate
+     *
      * @return validation result with status and descriptive message
      */
     public ValidationResult validateAuthorizationSubscription(String jsonContent) {
@@ -124,10 +129,13 @@ public class PlaygroundValidator implements Serializable {
     }
 
     /**
-     * Checks if any validation issues have ERROR severity.
-     * Filters through all issues and returns true if at least one error exists.
+     * Checks if any validation issues have ERROR severity. Filters through all
+     * issues and returns true if at least one
+     * error exists.
      *
-     * @param issues array of validation issues to check
+     * @param issues
+     * array of validation issues to check
+     *
      * @return true if any issue has ERROR severity, false otherwise
      */
     public static boolean hasErrorSeverityIssues(Issue[] issues) {
@@ -135,10 +143,12 @@ public class PlaygroundValidator implements Serializable {
     }
 
     /**
-     * Counts the number of validation issues with ERROR severity.
-     * Filters and counts all issues marked as errors.
+     * Counts the number of validation issues with ERROR severity. Filters and
+     * counts all issues marked as errors.
      *
-     * @param issues array of validation issues to count
+     * @param issues
+     * array of validation issues to count
+     *
      * @return count of issues with ERROR severity
      */
     public static long countErrorSeverityIssues(Issue[] issues) {
@@ -146,14 +156,15 @@ public class PlaygroundValidator implements Serializable {
     }
 
     /**
-     * Checks if a variable name is valid according to identifier rules.
-     * Valid names must:
-     * - Not be null or empty
-     * - Not exceed 100 characters
-     * - Start with letter or underscore
-     * - Contain only word characters (letters, digits, underscores)
+     * Checks if a variable name is valid according to identifier rules. Valid names
+     * must: - Not be null or empty - Not
+     * exceed 100 characters - Start with letter or underscore - Contain only word
+     * characters (letters, digits,
+     * underscores)
      *
-     * @param name the variable name to validate
+     * @param name
+     * the variable name to validate
+     *
      * @return true if the name is valid, false otherwise
      */
     public static boolean isValidVariableName(String name) {
@@ -167,8 +178,9 @@ public class PlaygroundValidator implements Serializable {
     }
 
     /*
-     * Parses JSON content and validates it is an object.
-     * Returns a wrapper containing either the parsed node or an error result.
+     * Parses JSON content and validates it is an object. Returns a wrapper
+     * containing either the parsed node or an
+     * error result.
      */
     private JsonNodeOrError parseAndValidateJsonObject(String jsonContent, String errorMessage) {
         try {
@@ -186,8 +198,9 @@ public class PlaygroundValidator implements Serializable {
     }
 
     /*
-     * Counts invalid variable names in a JSON object.
-     * A name is invalid if it exceeds maximum length or doesn't match the pattern.
+     * Counts invalid variable names in a JSON object. A name is invalid if it
+     * exceeds maximum length or doesn't match
+     * the pattern.
      */
     private int countInvalidVariableNames(JsonNode jsonNode) {
         return (int) StreamSupport.stream(((Iterable<String>) jsonNode::fieldNames).spliterator(), false).filter(
@@ -196,8 +209,9 @@ public class PlaygroundValidator implements Serializable {
     }
 
     /*
-     * Finds missing mandatory fields in an authorization subscription.
-     * Checks for presence of subject, action, and resource fields.
+     * Finds missing mandatory fields in an authorization subscription. Checks for
+     * presence of subject, action, and
+     * resource fields.
      */
     private List<String> findMissingMandatoryFields(JsonNode jsonNode) {
         val missingFields = new ArrayList<String>();
@@ -210,8 +224,9 @@ public class PlaygroundValidator implements Serializable {
     }
 
     /*
-     * Wrapper holding either a parsed JSON node or a validation error.
-     * Allows returning both success and error cases from parsing.
+     * Wrapper holding either a parsed JSON node or a validation error. Allows
+     * returning both success and error cases
+     * from parsing.
      */
     private record JsonNodeOrError(JsonNode node, ValidationResult error) {
 

@@ -57,7 +57,8 @@ public class JsonEditor extends BaseEditor implements HasSize {
     /**
      * Creates the editor component.
      *
-     * @param config the editor configuration
+     * @param config
+     * the editor configuration
      */
     public JsonEditor(JsonEditorConfiguration config) {
         applyBaseConfiguration(getElement(), config);
@@ -75,7 +76,8 @@ public class JsonEditor extends BaseEditor implements HasSize {
     /**
      * Appends text to the end of the editor contents.
      *
-     * @param text text to append
+     * @param text
+     * text to append
      */
     public void appendText(String text) {
         getElement().callJsFunction("appendText", text);
@@ -84,7 +86,8 @@ public class JsonEditor extends BaseEditor implements HasSize {
     /**
      * Toggles linting on or off.
      *
-     * @param isLint indicates if linting is to be activated
+     * @param isLint
+     * indicates if linting is to be activated
      */
     public void setLint(Boolean isLint) {
         getElement().setProperty("isLint", isLint);
@@ -93,7 +96,8 @@ public class JsonEditor extends BaseEditor implements HasSize {
     /**
      * Enables or disables the merge mode without changing the right side content.
      *
-     * @param enabled indicates whether merge mode is enabled
+     * @param enabled
+     * indicates whether merge mode is enabled
      */
     public void setMergeModeEnabled(boolean enabled) {
         this.mergeModeEnabled = enabled;
@@ -112,7 +116,8 @@ public class JsonEditor extends BaseEditor implements HasSize {
     /**
      * Sets the content on the right side in merge mode.
      *
-     * @param content content for the right side of the merge view
+     * @param content
+     * content for the right side of the merge view
      */
     public void setMergeRightContent(String content) {
         this.mergeRightContent = content == null ? "" : content;
@@ -131,20 +136,24 @@ public class JsonEditor extends BaseEditor implements HasSize {
     /**
      * Enables or disables display of custom change markers in both panes.
      *
-     * @param enabled indicates whether custom change markers should be shown
+     * @param enabled
+     * indicates whether custom change markers should be shown
      */
     public void setChangeMarkersEnabled(boolean enabled) {
         getElement().callJsFunction("enableChangeMarkers", enabled);
     }
 
     /**
-     * Sets a merge option that maps to CodeMirror MergeView options.
-     * Supported options: "revertButtons" (boolean), "showDifferences" (boolean),
-     * "connect" (null or "align"), "collapseIdentical" (boolean),
-     * "allowEditingOriginals" (boolean), "ignoreWhitespace" (boolean).
+     * Sets a merge option that maps to CodeMirror MergeView options. Supported
+     * options: "revertButtons" (boolean),
+     * "showDifferences" (boolean), "connect" (null or "align"), "collapseIdentical"
+     * (boolean), "allowEditingOriginals"
+     * (boolean), "ignoreWhitespace" (boolean).
      *
-     * @param option option name
-     * @param value option value
+     * @param option
+     * option name
+     * @param value
+     * option value
      */
     public void setMergeOption(String option, Serializable value) {
         getElement().callJsFunction("setMergeOption", option, value);

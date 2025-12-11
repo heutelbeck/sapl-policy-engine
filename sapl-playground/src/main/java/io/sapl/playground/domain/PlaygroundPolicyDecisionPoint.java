@@ -24,6 +24,7 @@ import io.sapl.api.model.Value;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.CombiningAlgorithm;
 import io.sapl.api.pdp.internal.TracedDecision;
+import io.sapl.compiler.SaplCompilerException;
 import io.sapl.pdp.DynamicPolicyDecisionPoint;
 import jakarta.annotation.PreDestroy;
 import org.springframework.stereotype.Component;
@@ -31,6 +32,7 @@ import reactor.core.publisher.Flux;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 
 /**
@@ -117,6 +119,18 @@ public class PlaygroundPolicyDecisionPoint {
      * leaks.
      * Called automatically by Spring when the UI scope is destroyed.
      */
+    /**
+     * Attempts to compile a policy source and returns any compile errors.
+     * Useful for validating policies in editors before they are applied.
+     *
+     * @param source the SAPL policy source to compile
+     * @return optional containing the exception if compilation failed, empty if
+     * successful
+     */
+    public Optional<SaplCompilerException> tryCompile(String source) {
+        return configurationSource.tryCompile(source);
+    }
+
     @PreDestroy
     private void destroy() {
         configurationSource.destroy();

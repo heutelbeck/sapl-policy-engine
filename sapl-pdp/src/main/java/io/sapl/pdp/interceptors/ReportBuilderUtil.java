@@ -35,7 +35,8 @@ import java.util.List;
  * Utility class for building concise reports from traced PDP decisions.
  * <p>
  * Extracts key information from the hierarchical trace structure into a flat
- * report structure suitable for logging and auditing.
+ * report structure suitable for logging and
+ * auditing.
  */
 @UtilityClass
 public class ReportBuilderUtil {
@@ -44,8 +45,8 @@ public class ReportBuilderUtil {
      * Extracts a concise report from a traced decision.
      * <p>
      * The report contains the essential information for understanding the decision:
-     * subscription, decision, timestamp, algorithm, document evaluations, and any
-     * modifications by interceptors.
+     * subscription, decision, timestamp,
+     * algorithm, document evaluations, and any modifications by interceptors.
      *
      * @param tracedDecision
      * the traced decision to extract the report from

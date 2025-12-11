@@ -237,4 +237,44 @@ class AttributeProposalTests extends CompletionTests {
         final var expected = List.of("unit", "value");
         assertProposalsContain(document, expected);
     }
+
+    /**
+     * Verifies that applying the completion for schema property at cursor position
+     * produces
+     * correct final document (no double dots).
+     */
+    @Test
+    void testCompletion_schema_extension_produces_correct_document() {
+        var documentWithCursor = """
+                policy "test" deny where
+                var foo = 1;
+                foo.<temperature.atLocation>.§""";
+
+        var expectedFinalDocument = """
+                policy "test" deny where
+                var foo = 1;
+                foo.<temperature.atLocation>.unit""";
+
+        assertCompletionProducesDocument(documentWithCursor, ".unit", expectedFinalDocument);
+    }
+
+    /**
+     * Verifies that at a position after a dot, the labels show what the user
+     * expects to see
+     * and the proposals insert correctly without duplicating the dot.
+     */
+    @Test
+    void testCompletion_schema_extension_labels_and_proposals() {
+        var document = """
+                policy "test" deny where
+                var foo = 1;
+                foo.<temperature.atLocation>.§""";
+
+        // User should see labels like ".unit" in the completion popup
+        var expectedLabels = List.of(".unit", ".value");
+        // Inserted text should also be ".unit" (replaces the existing ".")
+        var expectedProposals = List.of(".unit", ".value");
+
+        assertLabelsAndProposals(document, expectedLabels, expectedProposals);
+    }
 }

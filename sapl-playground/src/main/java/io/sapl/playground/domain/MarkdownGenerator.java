@@ -25,12 +25,13 @@ import lombok.experimental.UtilityClass;
 import lombok.val;
 
 /**
- * Utility class for generating and converting SAPL documentation.
- * Provides methods to generate markdown documentation from library
- * documentation objects, and to convert markdown content to HTML for display.
+ * Utility class for generating and converting SAPL documentation. Provides
+ * methods to generate markdown documentation
+ * from library documentation objects, and to convert markdown content to HTML
+ * for display.
  * <p>
- * Uses Flexmark for markdown parsing and HTML rendering.
- * All methods are static as this is a utility class.
+ * Uses Flexmark for markdown parsing and HTML rendering. All methods are static
+ * as this is a utility class.
  */
 @UtilityClass
 public class MarkdownGenerator {
@@ -45,11 +46,14 @@ public class MarkdownGenerator {
 
     /**
      * Generates markdown documentation for a library (function library or PIP).
-     * Creates a structured Markdown document with library name, description,
-     * library-level documentation, and individual entry documentation.
-     * Each entry is separated by horizontal rules.
+     * Creates a structured Markdown document
+     * with library name, description, library-level documentation, and individual
+     * entry documentation. Each entry is
+     * separated by horizontal rules.
      *
-     * @param documentation the library documentation object
+     * @param documentation
+     * the library documentation object
+     *
      * @return markdown-formatted documentation string
      */
     public String generateMarkdownForLibrary(LibraryDocumentation documentation) {
@@ -76,10 +80,12 @@ public class MarkdownGenerator {
     }
 
     /**
-     * Converts markdown content to HTML.
-     * Parses the markdown string and renders it as HTML using Flexmark.
+     * Converts markdown content to HTML. Parses the markdown string and renders it
+     * as HTML using Flexmark.
      *
-     * @param markdown the markdown string to convert
+     * @param markdown
+     * the markdown string to convert
+     *
      * @return HTML string representation of the markdown content
      */
     public String markdownToHtml(@NonNull String markdown) {
@@ -88,11 +94,13 @@ public class MarkdownGenerator {
     }
 
     /**
-     * Wraps HTML content in a div element.
-     * Adds a div container around the provided HTML content with
-     * proper line breaks for formatting.
+     * Wraps HTML content in a div element. Adds a div container around the provided
+     * HTML content with proper line
+     * breaks for formatting.
      *
-     * @param innerHtml the HTML content to wrap
+     * @param innerHtml
+     * the HTML content to wrap
+     *
      * @return the HTML content wrapped in a div element
      */
     public String wrapInDiv(String innerHtml) {

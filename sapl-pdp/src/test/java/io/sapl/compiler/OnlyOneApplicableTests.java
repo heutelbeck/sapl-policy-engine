@@ -86,10 +86,9 @@ class OnlyOneApplicableTests {
     }
 
     /*
-     * ========== Constraint Tests ==========
-     *
-     * Only-one-applicable should only include obligations/advice/resource from the
-     * SINGLE applicable policy. If multiple policies are applicable, result is
+     * ========== Constraint Tests ========== Only-one-applicable should only
+     * include obligations/advice/resource from
+     * the SINGLE applicable policy. If multiple policies are applicable, result is
      * INDETERMINATE with no constraints.
      */
 

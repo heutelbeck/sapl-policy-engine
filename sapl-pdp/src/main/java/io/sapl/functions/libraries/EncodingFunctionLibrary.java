@@ -34,16 +34,18 @@ import java.util.HexFormat;
 
 /**
  * Provides encoding and decoding functions for working with different data
- * representations commonly used in cryptographic operations.
+ * representations commonly used in
+ * cryptographic operations.
  * <p>
- * Supports Base64 (standard and URL-safe variants) and hexadecimal encoding
- * for converting between text and encoded representations. These functions
- * are essential for working with cryptographic data like signatures,
- * certificates, and message authentication codes.
+ * Supports Base64 (standard and URL-safe variants) and hexadecimal encoding for
+ * converting between text and encoded
+ * representations. These functions are essential for working with cryptographic
+ * data like signatures, certificates, and
+ * message authentication codes.
  * <p>
  * All decoding functions are lenient by default, accepting input with or
- * without proper padding. Strict variants are available for cases requiring
- * RFC-compliant validation with proper padding.
+ * without proper padding. Strict variants are
+ * available for cases requiring RFC-compliant validation with proper padding.
  * <p>
  * <strong>Security Considerations:</strong>
  * <ul>
@@ -67,8 +69,8 @@ public class EncodingFunctionLibrary {
 
     /**
      * Maximum allowed input length in characters to prevent resource exhaustion
-     * attacks.
-     * This limit applies to both encoded and decoded strings.
+     * attacks. This limit applies to both
+     * encoded and decoded strings.
      */
     private static final int MAX_INPUT_LENGTH = 10_000_000; // 10MB
 
@@ -532,13 +534,16 @@ public class EncodingFunctionLibrary {
      * Decodes a byte array as UTF-8 with strict validation.
      * <p>
      * This method ensures that the decoded string contains only valid UTF-8
-     * character
-     * sequences. Any malformed or unmappable characters will cause a
-     * CharacterCodingException to be thrown.
+     * character sequences. Any malformed or
+     * unmappable characters will cause a CharacterCodingException to be thrown.
      *
-     * @param bytes the bytes to decode as UTF-8
+     * @param bytes
+     * the bytes to decode as UTF-8
+     *
      * @return the decoded string
-     * @throws CharacterCodingException if the bytes do not represent valid UTF-8
+     *
+     * @throws CharacterCodingException
+     * if the bytes do not represent valid UTF-8
      */
     private static String decodeUtf8(byte[] bytes) throws CharacterCodingException {
         val decoder = StandardCharsets.UTF_8.newDecoder().onMalformedInput(CodingErrorAction.REPORT)
@@ -560,16 +565,19 @@ public class EncodingFunctionLibrary {
      * <li>Can be successfully decoded by the appropriate decoder
      * </ul>
      * <p>
-     * This method enforces strict RFC-compliant Base64 validation that the
-     * standard JDK Base64.Decoder does not provide, as the JDK decoder is
-     * lenient and accepts unpadded input.
+     * This method enforces strict RFC-compliant Base64 validation that the standard
+     * JDK Base64.Decoder does not
+     * provide, as the JDK decoder is lenient and accepts unpadded input.
      * <p>
      * <strong>Performance:</strong> Uses early rejection optimizations to quickly
-     * reject obviously invalid input before performing expensive validation.
+     * reject obviously invalid input before
+     * performing expensive validation.
      *
-     * @param input the Base64 string to validate
-     * @param urlSafe whether to validate using URL-safe alphabet (- and _ instead
-     * of + and /)
+     * @param input
+     * the Base64 string to validate
+     * @param urlSafe
+     * whether to validate using URL-safe alphabet (- and _ instead of + and /)
+     *
      * @return true if the input is properly formatted with correct padding, false
      * otherwise
      */
@@ -593,7 +601,9 @@ public class EncodingFunctionLibrary {
     /**
      * Checks basic format requirements for Base64 input.
      *
-     * @param input the string to validate
+     * @param input
+     * the string to validate
+     *
      * @return true if input is non-null, non-empty, within length limits, and has
      * length divisible by 4
      */
@@ -613,10 +623,12 @@ public class EncodingFunctionLibrary {
      * Performs early rejection check for characters outside valid Base64 range.
      * <p>
      * Checks if any character falls outside the ASCII range that could possibly
-     * contain Base64 characters ('+' to 'z'). This quick check avoids expensive
-     * validation for obviously invalid input.
+     * contain Base64 characters ('+' to 'z').
+     * This quick check avoids expensive validation for obviously invalid input.
      *
-     * @param input the string to check
+     * @param input
+     * the string to check
+     *
      * @return true if input contains characters that cannot be valid Base64, false
      * otherwise
      */
@@ -635,11 +647,14 @@ public class EncodingFunctionLibrary {
      * padding appears only at the end.
      * <p>
      * Ensures all characters belong to the specified Base64 alphabet and that
-     * padding characters ('=') only appear at the end of the string, never in the
-     * middle.
+     * padding characters ('=') only appear at
+     * the end of the string, never in the middle.
      *
-     * @param input the string to validate
-     * @param validAlphabet the Base64 alphabet to validate against
+     * @param input
+     * the string to validate
+     * @param validAlphabet
+     * the Base64 alphabet to validate against
+     *
      * @return true if all characters are valid and padding is correct, false
      * otherwise
      */
@@ -666,8 +681,11 @@ public class EncodingFunctionLibrary {
     /**
      * Attempts to decode the input to verify it is valid Base64.
      *
-     * @param input the Base64 string to decode
-     * @param urlSafe whether to use URL-safe Base64 decoder
+     * @param input
+     * the Base64 string to decode
+     * @param urlSafe
+     * whether to use URL-safe Base64 decoder
+     *
      * @return true if input can be successfully decoded, false otherwise
      */
     private static boolean canBeDecoded(String input, boolean urlSafe) {

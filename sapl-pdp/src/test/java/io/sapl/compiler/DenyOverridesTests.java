@@ -196,10 +196,10 @@ class DenyOverridesTests {
     }
 
     /*
-     * ========== Transformation Uncertainty Tests ==========
-     *
-     * When multiple policies provide transformations and no DENY overrides,
-     * the result should be INDETERMINATE due to transformation uncertainty.
+     * ========== Transformation Uncertainty Tests ========== When multiple policies
+     * provide transformations and no DENY
+     * overrides, the result should be INDETERMINATE due to transformation
+     * uncertainty.
      */
 
     @ParameterizedTest(name = "{0}")
@@ -253,10 +253,9 @@ class DenyOverridesTests {
     }
 
     /*
-     * ========== Comprehensive Constraint Merging Tests ==========
-     *
-     * Verify that constraints from all policies of the winning decision type
-     * are properly merged.
+     * ========== Comprehensive Constraint Merging Tests ========== Verify that
+     * constraints from all policies of the
+     * winning decision type are properly merged.
      */
 
     @ParameterizedTest(name = "{0}")

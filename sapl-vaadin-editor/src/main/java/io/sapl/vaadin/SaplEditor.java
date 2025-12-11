@@ -23,10 +23,13 @@ import com.vaadin.flow.component.dependency.NpmPackage;
 import elemental.json.JsonArray;
 import io.sapl.api.SaplVersion;
 
+import org.eclipse.xtext.diagnostics.Severity;
+
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.function.BiFunction;
 
 /**
  * SAPL editor with Xtext integration and optional two-pane merge view.
@@ -40,7 +43,8 @@ public class SaplEditor extends BaseEditor implements HasSize {
 
     private static final long serialVersionUID = SaplVersion.VERSION_UID;
 
-    private final List<ValidationFinishedListener> validationFinishedListeners = new ArrayList<>();
+    private final List<ValidationFinishedListener>  validationFinishedListeners = new ArrayList<>();
+    private BiFunction<String, String, List<Issue>> compileValidator;
 
     public SaplEditor() {
         final var element       = getElement();
@@ -51,7 +55,8 @@ public class SaplEditor extends BaseEditor implements HasSize {
     /**
      * Creates the editor.
      *
-     * @param config editor configuration
+     * @param config
+     * editor configuration
      */
     public SaplEditor(SaplEditorConfiguration config) {
         final var element = getElement();
@@ -60,14 +65,23 @@ public class SaplEditor extends BaseEditor implements HasSize {
 
     @ClientCallable
     protected void onValidation(JsonArray jsonIssues) {
-        final ArrayList<Object> issues = new ArrayList<>();
+        final var issues = new ArrayList<Issue>();
         for (int i = 0; jsonIssues != null && i < jsonIssues.length(); i++) {
-            final var jsonIssue = jsonIssues.getObject(i);
-            final var issue     = new Issue(jsonIssue);
-            issues.add(issue);
+            issues.add(new Issue(jsonIssues.getObject(i)));
         }
+
+        // Run compile validation only if no parse errors
+        var hasParseErrors = issues.stream().anyMatch(issue -> Severity.ERROR == issue.getSeverity());
+        if (!hasParseErrors && compileValidator != null) {
+            var configId      = getElement().getProperty("configurationId", "");
+            var compileIssues = compileValidator.apply(configId, getDocument());
+            if (compileIssues != null) {
+                issues.addAll(compileIssues);
+            }
+        }
+
         final var issueArray = issues.toArray(new Issue[0]);
-        for (ValidationFinishedListener listener : validationFinishedListeners) {
+        for (var listener : validationFinishedListeners) {
             listener.onValidationFinished(new ValidationFinishedEvent(issueArray));
         }
     }
@@ -81,9 +95,23 @@ public class SaplEditor extends BaseEditor implements HasSize {
     }
 
     /**
+     * Sets a compile validator that is called after Xtext validation completes
+     * without errors. The validator receives
+     * the configuration ID and document source, and returns any compile-time issues
+     * found.
+     *
+     * @param validator
+     * function taking (configurationId, source) and returning compile issues
+     */
+    public void setCompileValidator(BiFunction<String, String, List<Issue>> validator) {
+        this.compileValidator = validator;
+    }
+
+    /**
      * Sets the configuration id for code completion/validation context.
      *
-     * @param configurationId configuration id
+     * @param configurationId
+     * configuration id
      */
     public void setConfigurationId(String configurationId) {
         getElement().setProperty("configurationId", configurationId);
@@ -95,7 +123,8 @@ public class SaplEditor extends BaseEditor implements HasSize {
      * Enable or disable the two-pane merge view. When disabled, Xtext services are
      * active.
      *
-     * @param enabled true to enable merge mode
+     * @param enabled
+     * true to enable merge mode
      */
     public void setMergeModeEnabled(boolean enabled) {
         getElement().callJsFunction("setMergeModeEnabled", enabled);
@@ -104,7 +133,8 @@ public class SaplEditor extends BaseEditor implements HasSize {
     /**
      * Provide the right-hand document for the merge view.
      *
-     * @param content right-side text
+     * @param content
+     * right-side text
      */
     public void setMergeRightContent(String content) {
         getElement().callJsFunction("setMergeRightContent", content);
@@ -113,20 +143,23 @@ public class SaplEditor extends BaseEditor implements HasSize {
     /**
      * Toggle visual markers for changed blocks in both panes.
      *
-     * @param enabled true to enable markers
+     * @param enabled
+     * true to enable markers
      */
     public void setChangeMarkersEnabled(boolean enabled) {
         getElement().callJsFunction("enableChangeMarkers", enabled);
     }
 
     /**
-     * Set a merge option. Supported keys:
-     * "revertButtons" (Boolean), "showDifferences" (Boolean),
-     * "connect" (null or "align"), "collapseIdentical" (Boolean),
-     * "allowEditingOriginals" (Boolean), "ignoreWhitespace" (Boolean)
+     * Set a merge option. Supported keys: "revertButtons" (Boolean),
+     * "showDifferences" (Boolean), "connect" (null or
+     * "align"), "collapseIdentical" (Boolean), "allowEditingOriginals" (Boolean),
+     * "ignoreWhitespace" (Boolean)
      *
-     * @param option key
-     * @param value value
+     * @param option
+     * key
+     * @param value
+     * value
      */
     public void setMergeOption(String option, Serializable value) {
         getElement().callJsFunction("setMergeOption", option, value);

@@ -30,7 +30,9 @@ import java.util.regex.Pattern;
 public class XtextCodemirrorConverter {
 
     /**
-     * @param originalCode the original code
+     * @param originalCode
+     * the original code
+     *
      * @return code in ESM
      */
     public String convertToESM(String originalCode) {

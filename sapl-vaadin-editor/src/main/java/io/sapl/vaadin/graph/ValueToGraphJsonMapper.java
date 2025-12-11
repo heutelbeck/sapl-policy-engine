@@ -36,10 +36,11 @@ import lombok.experimental.UtilityClass;
 import java.math.BigDecimal;
 
 /**
- * Maps SAPL Value types to JSON for graph visualization.
- * Unlike {@link io.sapl.api.model.ValueJsonMarshaller}, this mapper handles
- * all Value types including UndefinedValue and ErrorValue by converting them
- * to special JSON marker objects that the graph visualization can interpret.
+ * Maps SAPL Value types to JSON for graph visualization. Unlike
+ * {@link io.sapl.api.model.ValueJsonMarshaller}, this
+ * mapper handles all Value types including UndefinedValue and ErrorValue by
+ * converting them to special JSON marker
+ * objects that the graph visualization can interpret.
  * <p>
  * Special markers used:
  * <ul>
@@ -49,7 +50,8 @@ import java.math.BigDecimal;
  * </ul>
  * <p>
  * The graph visualization component must be in "value mode" to properly render
- * these special markers with appropriate styling.
+ * these special markers with appropriate
+ * styling.
  */
 @UtilityClass
 public class ValueToGraphJsonMapper {
@@ -64,10 +66,13 @@ public class ValueToGraphJsonMapper {
     private static final String FIELD_LOCATION   = "location";
 
     /**
-     * Converts a Value to a JSON string suitable for graph visualization.
-     * All Value types are supported, including UndefinedValue and ErrorValue.
+     * Converts a Value to a JSON string suitable for graph visualization. All Value
+     * types are supported, including
+     * UndefinedValue and ErrorValue.
      *
-     * @param value the value to convert
+     * @param value
+     * the value to convert
+     *
      * @return JSON string representation
      */
     public static String toJsonString(Value value) {
@@ -76,10 +81,12 @@ public class ValueToGraphJsonMapper {
 
     /**
      * Converts a Value to a pretty-printed JSON string suitable for graph
-     * visualization.
-     * All Value types are supported, including UndefinedValue and ErrorValue.
+     * visualization. All Value types are supported,
+     * including UndefinedValue and ErrorValue.
      *
-     * @param value the value to convert
+     * @param value
+     * the value to convert
+     *
      * @return pretty-printed JSON string representation
      */
     public static String toPrettyJsonString(Value value) {
@@ -91,10 +98,13 @@ public class ValueToGraphJsonMapper {
     }
 
     /**
-     * Converts a Value to a Jackson JsonNode suitable for graph visualization.
-     * All Value types are supported, including UndefinedValue and ErrorValue.
+     * Converts a Value to a Jackson JsonNode suitable for graph visualization. All
+     * Value types are supported, including
+     * UndefinedValue and ErrorValue.
      *
-     * @param value the value to convert
+     * @param value
+     * the value to convert
+     *
      * @return JsonNode representation
      */
     public static JsonNode toJsonNode(Value value) {

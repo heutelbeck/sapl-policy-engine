@@ -45,8 +45,11 @@ public class TransformFiles {
     /**
      * Entry point for conversion.
      *
-     * @param args command line parameters
-     * @throws IOException in case of conversion errors
+     * @param args
+     * command line parameters
+     *
+     * @throws IOException
+     * in case of conversion errors
      */
     public void main(String[] args) throws IOException {
         final var classPathDir     = new File(TransformFiles.class.getResource("/").getPath());
