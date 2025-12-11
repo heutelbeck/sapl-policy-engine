@@ -130,7 +130,8 @@ class FunctionProposalTests extends CompletionTests {
         final var document = """
                 policy "test" deny where
                 final var foo = schemaTest.person().§""";
-        final var expected = List.of(".name", ".age", ".nationality");
+        // TextEdit inserts after the dot, so proposals don't include the leading dot
+        final var expected = List.of("name", "age", "nationality");
         assertProposalsContain(document, expected);
     }
 
@@ -168,7 +169,8 @@ class FunctionProposalTests extends CompletionTests {
         final var document = """
                 policy "test" deny where
                 final var foo = schemaTest.dog(dogRegistryRecord).§""";
-        final var expected = List.of(".age", ".fur_color", ".name", ".species");
+        // TextEdit inserts after the dot, so proposals don't include the leading dot
+        final var expected = List.of("age", "fur_color", "name", "species");
         assertProposalsContain(document, expected);
     }
 
@@ -197,7 +199,8 @@ class FunctionProposalTests extends CompletionTests {
         final var document = """
                 policy "test" deny where
                 final var foo = schemaTest.location().§""";
-        final var expected = List.of(".latitude");
+        // TextEdit inserts after the dot, so proposals don't include the leading dot
+        final var expected = List.of("latitude");
         assertProposalsContain(document, expected);
     }
 

@@ -46,7 +46,8 @@ class AttributeSchemaTests extends CompletionTests {
     void testCompletion_PolicyBody_attributeStep() {
         final var document = """
                 policy "test" deny where subject.<person.age>.§""";
-        final var expected = List.of(".years", ".days");
+        // TextEdit inserts after the dot, so proposals don't include the leading dot
+        final var expected = List.of("years", "days");
         assertProposalsContain(document, expected);
     }
 }

@@ -88,7 +88,8 @@ class AttributeProposalTests extends CompletionTests {
                 policy "test" deny where
                 var foo = 1;
                 foo.<temperature.atLocation>.§""";
-        final var expected = List.of(".unit");
+        // TextEdit inserts after the dot, so proposals don't include the leading dot
+        final var expected = List.of("unit");
         assertProposalsContain(document, expected);
     }
 
@@ -260,8 +261,11 @@ class AttributeProposalTests extends CompletionTests {
 
     /**
      * Verifies that at a position after a dot, the labels show what the user
-     * expects to see
-     * and the proposals insert correctly without duplicating the dot.
+     * expects to see and the proposals insert correctly without duplicating the
+     * dot.
+     * The labels include the leading dot for user clarity, but the inserted text
+     * does not include it since Xtext inserts at the cursor position (after the
+     * dot).
      */
     @Test
     void testCompletion_schema_extension_labels_and_proposals() {
@@ -272,9 +276,88 @@ class AttributeProposalTests extends CompletionTests {
 
         // User should see labels like ".unit" in the completion popup
         var expectedLabels = List.of(".unit", ".value");
-        // Inserted text should also be ".unit" (replaces the existing ".")
-        var expectedProposals = List.of(".unit", ".value");
+        // Inserted text is just "unit" - the dot is already in the document
+        var expectedProposals = List.of("unit", "value");
 
         assertLabelsAndProposals(document, expectedLabels, expectedProposals);
+    }
+
+    /**
+     * Verifies that at cursor position right after closing bracket (no dot), no
+     * schema extension
+     * proposals should be offered that would corrupt the document.
+     * Bug: at subject.&lt;demo.something&gt;§ accepting proposal incorrectly
+     * appends demo.something&gt;
+     */
+    @Test
+    void testCompletion_at_closing_bracket_should_not_offer_corrupting_proposals() {
+        var documentWithCursor = """
+                policy "test" deny where
+                subject.<temperature.atLocation>§""";
+
+        // At this position (right after >), we should NOT get proposals that would
+        // corrupt the document by appending attribute syntax without the leading <
+        var unwanted = List.of("temperature.atLocation>", "temperature.now>");
+        assertProposalsDoNotContain(documentWithCursor, unwanted);
+    }
+
+    /**
+     * Debug test to see what proposals are offered at closing bracket position.
+     */
+    @Test
+    void testCompletion_at_closing_bracket_debug() {
+        var documentWithCursor = """
+                policy "test" deny where
+                subject.<temperature.atLocation>§""";
+
+        var testCase = parseTestCaseLocal(documentWithCursor);
+        testCompletion((org.eclipse.xtext.testing.TestCompletionConfiguration it) -> {
+            it.setModel(testCase.document());
+            it.setLine(testCase.line());
+            it.setColumn(testCase.column());
+            it.setAssertCompletionList(completionList -> {
+                var proposals = toProposalsList(completionList);
+                var labels    = toLabelsList(completionList);
+                log.info("PROPOSALS at >§: {}", proposals);
+                log.info("LABELS at >§: {}", labels);
+                // Check for any proposals ending with > that don't start with <
+                for (var proposal : proposals) {
+                    if (proposal.endsWith(">") && !proposal.startsWith("<")) {
+                        throw new AssertionError("Found corrupting proposal without leading '<': " + proposal);
+                    }
+                }
+            });
+        });
+    }
+
+    private record TestCaseData(String document, int line, int column) {}
+
+    private TestCaseData parseTestCaseLocal(String testCase) {
+        var sb            = new StringBuilder();
+        var line          = 0;
+        var column        = 0;
+        var currentLine   = 0;
+        var currentColumn = 0;
+        var foundACursor  = false;
+        for (var i = 0; i < testCase.length(); i++) {
+            var c = testCase.charAt(i);
+            if (c == '§') {
+                line         = currentLine;
+                column       = currentColumn;
+                foundACursor = true;
+            } else {
+                sb.append(c);
+            }
+            if (c == '\n') {
+                currentColumn = 0;
+                currentLine++;
+            } else {
+                currentColumn++;
+            }
+        }
+        if (!foundACursor) {
+            throw new IllegalArgumentException("No cursor marker found");
+        }
+        return new TestCaseData(sb.toString(), line, column);
     }
 }

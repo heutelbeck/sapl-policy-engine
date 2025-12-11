@@ -42,8 +42,10 @@ import org.springframework.web.context.request.ServletRequestAttributes;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
+import java.util.TreeSet;
 
 import static io.sapl.grammar.ide.contentassist.ExpressionSchemaResolver.offsetOf;
 
@@ -407,7 +409,12 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
 
     private void addProposals(final Collection<Proposal> proposals, final ContentAssistContext context,
             final IIdeContentProposalAcceptor acceptor) {
-        proposals.forEach(p -> addProposal(p, context, acceptor));
+        // Deduplicate by label using TreeSet - proposals with the same label but
+        // different proposal/ctxPrefix values are considered duplicates
+        var deduplicated = new TreeSet<Proposal>(
+                Comparator.comparing(p -> p.label() != null ? p.label() : p.proposal()));
+        deduplicated.addAll(proposals);
+        deduplicated.forEach(p -> addProposal(p, context, acceptor));
     }
 
     private void addProposal(final Proposal proposal, final ContentAssistContext context,

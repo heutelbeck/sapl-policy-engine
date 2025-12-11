@@ -214,7 +214,8 @@ class SchemaCompletionTests extends CompletionTests {
                                              ]
                                           };
                   foo§""";
-        final var expected = List.of("foo[]");
+        // TextEdit inserts at cursor position, so prefix "foo" is already there
+        final var expected = List.of("[]");
         assertProposalsContain(document, expected);
     }
 
@@ -243,7 +244,9 @@ class SchemaCompletionTests extends CompletionTests {
     @Test
     void testCompletion_SuggestSchemaFromPDPScopedVariable_for_AuthzElement_with_idsteps() {
         final var document = "subject schema general_schema policy \"test\" permit where subject.name§";
-        final var expected = List.of(".firstname", "name.firstname");
+        // TextEdit appends after the prefix "name", so we get "name.firstname" not
+        // ".firstname"
+        final var expected = List.of("name.firstname");
         final var unwanted = List.of("var", "filter.blacken");
         assertProposalsContainWantedAndDoNotContainUnwanted(document, expected, unwanted);
     }
@@ -251,7 +254,8 @@ class SchemaCompletionTests extends CompletionTests {
     @Test
     void testCompletion_SuggestSchemaFromPDPScopedVariable_for_AuthzElement_with_idsteps_with_trailing_dot() {
         final var document = "subject schema general_schema policy \"test\" permit where subject.name.§";
-        final var expected = List.of(".firstname");
+        // TextEdit inserts after the dot, so proposals don't include the leading dot
+        final var expected = List.of("firstname");
         final var unwanted = List.of("var", "filter.blacken");
         assertProposalsContainWantedAndDoNotContainUnwanted(document, expected, unwanted);
     }
@@ -335,7 +339,8 @@ class SchemaCompletionTests extends CompletionTests {
                     }
                   }
                  policy "test" deny where subject.§""";
-        final var expected = List.of(".name", ".name.first_name", ".name.last_name");
+        // TextEdit inserts after the dot, so proposals don't include the leading dot
+        final var expected = List.of("name", "name.first_name", "name.last_name");
         assertProposalsContain(document, expected);
     }
 

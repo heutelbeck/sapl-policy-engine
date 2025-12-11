@@ -39,7 +39,7 @@ public class ProposalCreator {
     public static Optional<Proposal> createNormalizedEntry(String proposal, String prefix, String ctxPrefix,
             String documentation) {
         return normalize(proposal, prefix, ctxPrefix).map(normalizedProposal -> new Proposal(normalizedProposal,
-                ctxPrefix, proposal, documentation, ContentAssistEntry.KIND_METHOD));
+                ctxPrefix, documentation, proposal, ContentAssistEntry.KIND_METHOD));
     }
 
     public static Optional<String> normalize(String proposal, String prefix, String ctxPrefix) {
