@@ -69,10 +69,10 @@ class StepOperatorsTests {
     }
 
     @Test
-    void when_keyStepOnNonObject_then_returnsError() {
+    void when_keyStepOnNonObject_then_returnsUndefined() {
+        // Key step on non-object returns undefined for robust policy evaluation
         val result = keyStep(null, NECRONOMICON_CHAPTERS, "forbidden");
-        assertThat(result).isInstanceOf(ErrorValue.class);
-        assertThat(result.toString()).contains("Expected an ObjectValue");
+        assertThat(result).isEqualTo(Value.UNDEFINED);
     }
 
     // ========== indexStep Tests ==========
@@ -111,10 +111,10 @@ class StepOperatorsTests {
     }
 
     @Test
-    void when_indexStepOnNonArray_then_returnsError() {
+    void when_indexStepOnNonArray_then_returnsUndefined() {
+        // Index step on non-array returns undefined for robust policy evaluation
         val result = indexStep(null, CULTIST_RECORD, BigDecimal.ZERO, ValueMetadata.EMPTY);
-        assertThat(result).isInstanceOf(ErrorValue.class);
-        assertThat(result.toString()).contains("Expected an Array");
+        assertThat(result).isEqualTo(Value.UNDEFINED);
     }
 
     // ========== wildcardStep Tests ==========
@@ -460,11 +460,11 @@ class StepOperatorsTests {
     }
 
     @Test
-    void when_sliceArrayOnNonArray_then_returnsError() {
+    void when_sliceArrayOnNonArray_then_returnsUndefined() {
+        // Slicing non-array returns undefined for robust policy evaluation
         val result = sliceArray(null, CULTIST_RECORD, BigDecimal.valueOf(0), BigDecimal.valueOf(3),
                 BigDecimal.valueOf(1));
-        assertThat(result).isInstanceOf(ErrorValue.class);
-        assertThat(result.toString()).contains("Expected an Array");
+        assertThat(result).isEqualTo(Value.UNDEFINED);
     }
 
     @Test

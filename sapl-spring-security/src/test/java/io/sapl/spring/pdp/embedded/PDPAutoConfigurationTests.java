@@ -35,8 +35,9 @@ class PDPAutoConfigurationTests {
 
     @Test
     void whenContextLoads_thenPDPIsCreated() {
-        contextRunner.withPropertyValues("io.sapl.pdp.embedded.policiesPath=/policies",
-                "io.sapl.pdp.embedded.enabled=true").run(context -> {
+        contextRunner
+                .withPropertyValues("io.sapl.pdp.embedded.policiesPath=/policies", "io.sapl.pdp.embedded.enabled=true")
+                .run(context -> {
                     assertThat(context).hasNotFailed().hasSingleBean(DynamicPolicyDecisionPoint.class);
                 });
     }
@@ -44,8 +45,7 @@ class PDPAutoConfigurationTests {
     @Test
     void whenAnotherPDPIsAlreadyPresent_thenDoNotLoadANewOne() {
         contextRunner.withBean(PolicyDecisionPoint.class, () -> mock(PolicyDecisionPoint.class))
-                .withPropertyValues("io.sapl.pdp.embedded.policiesPath=/policies",
-                        "io.sapl.pdp.embedded.enabled=true")
+                .withPropertyValues("io.sapl.pdp.embedded.policiesPath=/policies", "io.sapl.pdp.embedded.enabled=true")
                 .run(context -> {
                     assertThat(context).hasNotFailed().hasSingleBean(PolicyDecisionPoint.class)
                             .doesNotHaveBean(DynamicPolicyDecisionPoint.class);

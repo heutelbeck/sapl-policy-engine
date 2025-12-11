@@ -81,10 +81,14 @@
 			<groupId>org.springframework.security</groupId>
 			<artifactId>spring-security-messaging</artifactId>
 		</dependency>
-		<dependency>
-			<groupId>io.sapl</groupId>
-			<artifactId>sapl-spring-pdp-embedded</artifactId>
-		</dependency>
+        <dependency>
+            <groupId>io.sapl</groupId>
+            <artifactId>sapl-spring-security</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.sapl</groupId>
+            <artifactId>sapl-pdp</artifactId>
+        </dependency>
 		<dependency>
 			<groupId>io.sapl</groupId>
 			<artifactId>sapl-webflux-endpoint</artifactId>

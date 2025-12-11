@@ -44,8 +44,8 @@ import java.util.Optional;
 @RequiredArgsConstructor
 public class CEVariablesAndCombinatorSource implements VariablesAndCombinatorSource, PDPConfigurationPublisher {
 
-    private Many<Collection<Variable>>             variablesProcessorSink = Sinks.many().replay().all();
-    private Many<CombiningAlgorithm> combiningAlgorithmSink = Sinks.many().replay().all();
+    private Many<Collection<Variable>> variablesProcessorSink = Sinks.many().replay().all();
+    private Many<CombiningAlgorithm>   combiningAlgorithmSink = Sinks.many().replay().all();
 
     @Override
     public Flux<Optional<Map<String, Value>>> getVariables() {
@@ -72,7 +72,7 @@ public class CEVariablesAndCombinatorSource implements VariablesAndCombinatorSou
         Map<String, Value> variablesAsMap = Maps.newHashMapWithExpectedSize(variables.size());
         for (val variable : variables) {
             val value = ValueJsonMarshaller.json(variable.getJsonValue());
-            if(value instanceof ErrorValue || value instanceof UndefinedValue) {
+            if (value instanceof ErrorValue || value instanceof UndefinedValue) {
                 log.error("Ignoring variable {} not valid JSON.", variable.getName());
             } else {
                 variablesAsMap.put(variable.getName(), value);

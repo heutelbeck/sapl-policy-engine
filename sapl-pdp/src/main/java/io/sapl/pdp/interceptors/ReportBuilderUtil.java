@@ -57,9 +57,12 @@ public class ReportBuilderUtil {
         val report = ObjectValue.builder();
 
         // Top-level decision fields
-        report.put(TraceFields.DECISION, Value.of(TracedPdpDecision.getDecision(trace).name()));
-        report.put(TraceFields.OBLIGATIONS, TracedPdpDecision.getObligations(trace));
-        report.put(TraceFields.ADVICE, TracedPdpDecision.getAdvice(trace));
+        val decision = TracedPdpDecision.getDecision(trace);
+        if (decision != null) {
+            report.put(TraceFields.DECISION, Value.of(decision.name()));
+        }
+        putIfNotNull(report, TraceFields.OBLIGATIONS, TracedPdpDecision.getObligations(trace));
+        putIfNotNull(report, TraceFields.ADVICE, TracedPdpDecision.getAdvice(trace));
 
         val resource = TracedPdpDecision.getResource(trace);
         if (resource != null && !(resource instanceof io.sapl.api.model.UndefinedValue)) {
@@ -69,12 +72,12 @@ public class ReportBuilderUtil {
         // Trace metadata
         val traceObj = TracedPdpDecision.getTrace(trace);
         if (!traceObj.isEmpty()) {
-            report.put(TraceFields.PDP_ID, traceObj.get(TraceFields.PDP_ID));
-            report.put(TraceFields.SUBSCRIPTION_ID, traceObj.get(TraceFields.SUBSCRIPTION_ID));
-            report.put(TraceFields.SUBSCRIPTION, traceObj.get(TraceFields.SUBSCRIPTION));
-            report.put(TraceFields.TIMESTAMP, traceObj.get(TraceFields.TIMESTAMP));
-            report.put(TraceFields.ALGORITHM, traceObj.get(TraceFields.ALGORITHM));
-            report.put(TraceFields.TOTAL_DOCUMENTS, traceObj.get(TraceFields.TOTAL_DOCUMENTS));
+            putIfNotNull(report, TraceFields.PDP_ID, traceObj.get(TraceFields.PDP_ID));
+            putIfNotNull(report, TraceFields.SUBSCRIPTION_ID, traceObj.get(TraceFields.SUBSCRIPTION_ID));
+            putIfNotNull(report, TraceFields.SUBSCRIPTION, traceObj.get(TraceFields.SUBSCRIPTION));
+            putIfNotNull(report, TraceFields.TIMESTAMP, traceObj.get(TraceFields.TIMESTAMP));
+            putIfNotNull(report, TraceFields.ALGORITHM, traceObj.get(TraceFields.ALGORITHM));
+            putIfNotNull(report, TraceFields.TOTAL_DOCUMENTS, traceObj.get(TraceFields.TOTAL_DOCUMENTS));
         }
 
         // Document reports
@@ -122,9 +125,9 @@ public class ReportBuilderUtil {
         val report = ObjectValue.builder();
 
         report.put(TraceFields.TYPE, Value.of(TraceFields.TYPE_POLICY));
-        report.put(TraceFields.NAME, policy.get(TraceFields.NAME));
-        report.put(TraceFields.ENTITLEMENT, policy.get(TraceFields.ENTITLEMENT));
-        report.put(TraceFields.DECISION, policy.get(TraceFields.DECISION));
+        putIfNotNull(report, TraceFields.NAME, policy.get(TraceFields.NAME));
+        putIfNotNull(report, TraceFields.ENTITLEMENT, policy.get(TraceFields.ENTITLEMENT));
+        putIfNotNull(report, TraceFields.DECISION, policy.get(TraceFields.DECISION));
 
         // Include errors if present
         val errors = TracedPolicyDecision.getErrors(policy);
@@ -140,7 +143,7 @@ public class ReportBuilderUtil {
 
         // Include target error if present
         if (TracedPolicyDecision.hasTargetError(policy)) {
-            report.put(TraceFields.TARGET_ERROR, TracedPolicyDecision.getTargetError(policy));
+            putIfNotNull(report, TraceFields.TARGET_ERROR, TracedPolicyDecision.getTargetError(policy));
         }
 
         return report.build();
@@ -150,9 +153,9 @@ public class ReportBuilderUtil {
         val report = ObjectValue.builder();
 
         report.put(TraceFields.TYPE, Value.of(TraceFields.TYPE_SET));
-        report.put(TraceFields.NAME, policySet.get(TraceFields.NAME));
-        report.put(TraceFields.DECISION, policySet.get(TraceFields.DECISION));
-        report.put(TraceFields.ALGORITHM, policySet.get(TraceFields.ALGORITHM));
+        putIfNotNull(report, TraceFields.NAME, policySet.get(TraceFields.NAME));
+        putIfNotNull(report, TraceFields.DECISION, policySet.get(TraceFields.DECISION));
+        putIfNotNull(report, TraceFields.ALGORITHM, policySet.get(TraceFields.ALGORITHM));
 
         // Include nested policies
         val policies = policySet.get(TraceFields.POLICIES);
@@ -172,5 +175,11 @@ public class ReportBuilderUtil {
             return textValue.value();
         }
         return null;
+    }
+
+    private static void putIfNotNull(ObjectValue.Builder builder, String key, Value value) {
+        if (value != null) {
+            builder.put(key, value);
+        }
     }
 }

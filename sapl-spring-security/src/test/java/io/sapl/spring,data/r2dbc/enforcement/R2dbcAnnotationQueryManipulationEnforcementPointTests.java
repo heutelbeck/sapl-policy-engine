@@ -181,8 +181,10 @@ class R2dbcAnnotationQueryManipulationEnforcementPointTests {
 
     private static PolicyDecisionPointBuilder.PDPComponents buildPdp() throws URISyntaxException {
         val policiesPath = Paths
-                .get(Objects.requireNonNull(R2dbcAnnotationQueryManipulationEnforcementPointTests.class.getClassLoader()
-                        .getResource("policies-r2dbc"), "Classpath resource 'policies-r2dbc' not found").toURI());
+                .get(Objects
+                        .requireNonNull(R2dbcAnnotationQueryManipulationEnforcementPointTests.class.getClassLoader()
+                                .getResource("policies-r2dbc"), "Classpath resource 'policies-r2dbc' not found")
+                        .toURI());
         return PolicyDecisionPointBuilder.withDefaults().withDirectorySource(policiesPath).build();
     }
 }

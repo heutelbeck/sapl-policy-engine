@@ -56,9 +56,16 @@ import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 
 import io.sapl.api.SaplVersion;
+import io.sapl.api.model.ObjectValue;
+import io.sapl.api.model.Value;
+import io.sapl.api.model.ValueJsonMarshaller;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.CombiningAlgorithm;
 import io.sapl.api.pdp.internal.TracedDecision;
+import io.sapl.api.pdp.internal.TracedPdpDecision;
+import io.sapl.compiler.TracedPolicyDecision;
+import io.sapl.parser.DefaultSAPLParser;
+import io.sapl.parser.SAPLParser;
 import io.sapl.pdp.interceptors.ReportBuilderUtil;
 import io.sapl.pdp.interceptors.ReportTextRenderUtil;
 import io.sapl.playground.config.PermalinkConfiguration;
@@ -279,7 +286,7 @@ public class PlaygroundView extends Composite<VerticalLayout> {
             permit false%n\
             """;
 
-    private static final SAPLInterpreter INTERPRETER = new DefaultSAPLInterpreter();
+    private static final SAPLParser PARSER = new DefaultSAPLParser();
 
     private final ObjectMapper                            mapper;
     private final transient PlaygroundValidator           validator;
@@ -984,7 +991,7 @@ public class PlaygroundView extends Composite<VerticalLayout> {
     private void displayDecisionJson(TracedDecision tracedDecision) {
         try {
             val prettyJson = mapper.writerWithDefaultPrettyPrinter()
-                    .writeValueAsString(tracedDecision.getAuthorizationDecision());
+                    .writeValueAsString(tracedDecision.authorizationDecision());
             decisionJsonEditor.setDocument(prettyJson);
         } catch (JsonProcessingException exception) {
             decisionJsonEditor.setDocument(MESSAGE_ERROR_READING_DECISION + tracedDecision);
@@ -995,19 +1002,19 @@ public class PlaygroundView extends Composite<VerticalLayout> {
      * Displays decision trace information.
      */
     private void displayDecisionTrace(TracedDecision tracedDecision) {
-        val trace = tracedDecision.getTrace();
-        decisionJsonTraceEditor.setDocument(trace.toPrettyString());
-        traceGraphVisualization.setJsonData(trace.toPrettyString());
+        val trace = tracedDecision.originalTrace();
+        decisionJsonTraceEditor.setDocument(ValueJsonMarshaller.toPrettyString(trace));
+        traceGraphVisualization.setValueData(trace);
     }
 
     /*
      * Displays decision report information.
      */
     private void displayDecisionReport(TracedDecision tracedDecision) {
-        val trace  = tracedDecision.getTrace();
-        val report = ReportBuilderUtil.reduceTraceToReport(trace);
+        val trace  = tracedDecision.originalTrace();
+        val report = ReportBuilderUtil.extractReport(tracedDecision);
 
-        decisionJsonReportEditor.setDocument(report.toPrettyString());
+        decisionJsonReportEditor.setDocument(ValueJsonMarshaller.toPrettyString(report));
         reportTextArea.setValue(ReportTextRenderUtil.textReport(report, false, mapper));
     }
 
@@ -1015,7 +1022,7 @@ public class PlaygroundView extends Composite<VerticalLayout> {
      * Displays errors from the decision.
      */
     private void displayDecisionErrors(TracedDecision tracedDecision) {
-        val errors          = tracedDecision.getErrorsFromTrace();
+        val errors          = extractErrorsFromTrace(tracedDecision.originalTrace());
         val plainTextReport = buildAggregatedErrorReport(errors);
 
         errorsDisplayArea.removeAll();
@@ -1027,6 +1034,27 @@ public class PlaygroundView extends Composite<VerticalLayout> {
         errorsDisplayArea.add(pre);
 
         currentErrorReportText = plainTextReport;
+    }
+
+    /*
+     * Extracts all errors from a trace Value by traversing documents.
+     */
+    private List<Value> extractErrorsFromTrace(Value trace) {
+        val errors    = new ArrayList<Value>();
+        val documents = TracedPdpDecision.getDocuments(trace);
+        for (val document : documents) {
+            if (document instanceof ObjectValue docObj) {
+                val docErrors = TracedPolicyDecision.getErrors(docObj);
+                for (val error : docErrors) {
+                    errors.add(error);
+                }
+            }
+        }
+        val retrievalErrors = TracedPdpDecision.getRetrievalErrors(trace);
+        for (val error : retrievalErrors) {
+            errors.add(error);
+        }
+        return errors;
     }
 
     /*
@@ -1045,14 +1073,14 @@ public class PlaygroundView extends Composite<VerticalLayout> {
     /*
      * Builds aggregated error report from collection of errors.
      */
-    private String buildAggregatedErrorReport(Collection<Val> errors) {
+    private String buildAggregatedErrorReport(List<Value> errors) {
         if (errors.isEmpty()) {
             return MESSAGE_NO_ERRORS;
         }
 
         val reportBuilder = new StringBuilder();
         for (var error : errors) {
-            reportBuilder.append(ErrorReportGenerator.errorReport(error, true, OutputFormat.PLAIN_TEXT));
+            reportBuilder.append("- ").append(error).append("\n");
         }
         return reportBuilder.toString();
     }
@@ -1275,17 +1303,17 @@ public class PlaygroundView extends Composite<VerticalLayout> {
     /*
      * Parses variables from JSON string.
      */
-    private Map<String, Val> parseVariablesFromJson(String variablesJson) {
+    private Map<String, Value> parseVariablesFromJson(String variablesJson) {
         try {
             val variablesObject = mapper.readTree(variablesJson);
-            val variables       = Maps.<String, Val>newHashMapWithExpectedSize(variablesObject.size());
+            val variables       = Maps.<String, Value>newHashMapWithExpectedSize(variablesObject.size());
 
             variablesObject.forEachEntry((name, value) -> {
                 if (!PlaygroundValidator.isValidVariableName(name)) {
                     log.warn("Invalid variable name, skipping: {}", name);
                     return;
                 }
-                variables.put(name, Val.of(value));
+                variables.put(name, ValueJsonMarshaller.fromJsonNode(value));
             });
 
             return variables;
@@ -1312,7 +1340,7 @@ public class PlaygroundView extends Composite<VerticalLayout> {
                 .addValidationFinishedListener(event -> handlePolicyValidation(components.context, event));
         components.context.editor.setDocument(policyDocument);
 
-        val parsedDocument = INTERPRETER.parseDocument(policyDocument);
+        val parsedDocument = PARSER.parseDocument(policyDocument);
         if (!parsedDocument.isInvalid()) {
             components.context.documentName = parsedDocument.name();
             components.context.titleLabel.setText(truncateTitle(parsedDocument.name()));
@@ -1442,7 +1470,7 @@ public class PlaygroundView extends Composite<VerticalLayout> {
 
         val issues         = event.getIssues();
         val hasErrors      = PlaygroundValidator.hasErrorSeverityIssues(issues);
-        val parsedDocument = INTERPRETER.parseDocument(document);
+        val parsedDocument = PARSER.parseDocument(document);
 
         updatePolicyDocumentName(context, parsedDocument);
         updatePolicyValidationState(context, hasErrors, issues);
@@ -1477,7 +1505,7 @@ public class PlaygroundView extends Composite<VerticalLayout> {
     /*
      * Updates policy document name in tab context.
      */
-    private void updatePolicyDocumentName(PolicyTabContext context, io.sapl.prp.Document parsedDocument) {
+    private void updatePolicyDocumentName(PolicyTabContext context, io.sapl.parser.Document parsedDocument) {
         if (!parsedDocument.isInvalid()) {
             context.documentName = parsedDocument.name();
         }
@@ -1564,7 +1592,7 @@ public class PlaygroundView extends Composite<VerticalLayout> {
      */
     private void restoreNormalValidationState(PolicyTabContext context) {
         val document       = context.editor.getDocument();
-        val parsedDocument = INTERPRETER.parseDocument(document);
+        val parsedDocument = PARSER.parseDocument(document);
         val hasErrors      = parsedDocument.isInvalid();
 
         if (hasErrors) {
@@ -1747,14 +1775,14 @@ public class PlaygroundView extends Composite<VerticalLayout> {
     /*
      * Creates combining algorithm selection combobox.
      */
-    private ComboBox<PolicyDocumentCombiningAlgorithm> createCombiningAlgorithmComboBox() {
-        val comboBox = new ComboBox<PolicyDocumentCombiningAlgorithm>();
+    private ComboBox<CombiningAlgorithm> createCombiningAlgorithmComboBox() {
+        val comboBox = new ComboBox<CombiningAlgorithm>();
         comboBox.setPlaceholder(LABEL_COMBINING_ALGORITHM);
-        comboBox.setItems(PolicyDocumentCombiningAlgorithm.values());
+        comboBox.setItems(CombiningAlgorithm.values());
         comboBox.setItemLabelGenerator(PlaygroundView::formatAlgorithmName);
         comboBox.addValueChangeListener(this::handleAlgorithmChange);
         comboBox.setWidth(CSS_VALUE_SIZE_16EM);
-        comboBox.setValue(PolicyDocumentCombiningAlgorithm.DENY_OVERRIDES);
+        comboBox.setValue(CombiningAlgorithm.DENY_OVERRIDES);
         return comboBox;
     }
 

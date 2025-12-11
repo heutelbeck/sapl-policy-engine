@@ -149,6 +149,7 @@ spring.security.oauth2:
 # Setup paths for PDP configuration and SAPL documents. I.e. policies and policy sets.
 #
 io.sapl.pdp.embedded:
+      enabled: true
       config-path: ~/sapl    # The server expects a pdp.json file in this folder
       policies-path: ~/sapl  # The server will monitor this folder for *.sapl files
 

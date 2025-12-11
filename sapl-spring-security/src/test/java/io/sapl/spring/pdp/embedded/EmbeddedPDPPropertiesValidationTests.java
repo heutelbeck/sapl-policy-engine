@@ -54,10 +54,8 @@ class EmbeddedPDPPropertiesValidationTests {
                 .withPropertyValues("io.sapl.pdp.embedded.pdpConfigType=FILESYSTEM", "io.sapl.pdp.embedded.index=NAIVE")
                 .run(context -> {
                     assertThat(context).hasNotFailed();
-                    assertThat(context.getBean(EmbeddedPDPProperties.class).getConfigPath())
-                            .isEqualTo("/policies");
-                    assertThat(context.getBean(EmbeddedPDPProperties.class).getPoliciesPath())
-                            .isEqualTo("/policies");
+                    assertThat(context.getBean(EmbeddedPDPProperties.class).getConfigPath()).isEqualTo("/policies");
+                    assertThat(context.getBean(EmbeddedPDPProperties.class).getPoliciesPath()).isEqualTo("/policies");
                 });
     }
 

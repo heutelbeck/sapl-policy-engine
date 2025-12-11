@@ -185,13 +185,10 @@ class MongoReactiveAnnotationQueryManipulationEnforcementPointTests {
     }
 
     private static PolicyDecisionPointBuilder.PDPComponents buildPdp() throws URISyntaxException {
-        val policiesPath = Paths
-                .get(Objects
-                        .requireNonNull(
-                                MongoReactiveAnnotationQueryManipulationEnforcementPointTests.class.getClassLoader()
-                                        .getResource("policies-mongo"),
-                                "Classpath resource 'policies-mongo' not found")
-                        .toURI());
+        val policiesPath = Paths.get(Objects
+                .requireNonNull(MongoReactiveAnnotationQueryManipulationEnforcementPointTests.class.getClassLoader()
+                        .getResource("policies-mongo"), "Classpath resource 'policies-mongo' not found")
+                .toURI());
         return PolicyDecisionPointBuilder.withDefaults().withDirectorySource(policiesPath).build();
     }
 }

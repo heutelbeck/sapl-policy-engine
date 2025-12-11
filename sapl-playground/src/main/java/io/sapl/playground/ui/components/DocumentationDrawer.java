@@ -29,17 +29,15 @@ import com.vaadin.flow.spring.annotation.SpringComponent;
 import com.vaadin.flow.spring.annotation.UIScope;
 
 import io.sapl.api.SaplVersion;
-import io.sapl.attributes.documentation.api.LibraryDocumentation;
-import io.sapl.attributes.documentation.api.PolicyInformationPointDocumentationProvider;
-import io.sapl.interpreter.functions.FunctionContext;
+import io.sapl.api.documentation.DocumentationBundle;
+import io.sapl.api.documentation.LibraryDocumentation;
 import io.sapl.playground.domain.MarkdownGenerator;
 import lombok.Getter;
 import lombok.val;
 
 import java.io.Serial;
 import java.io.Serializable;
-import java.util.Collection;
-import java.util.function.Function;
+import java.util.List;
 
 /**
  * Slide-in drawer component for displaying SAPL documentation.
@@ -87,54 +85,26 @@ public class DocumentationDrawer implements Serializable {
     private static final String TOOLTIP_CLOSE_DOCUMENTATION = "Close Documentation (Esc)";
     private static final String TOOLTIP_OPEN_DOCUMENTATION  = "Open Documentation (Ctrl+/)";
 
-    /*
-     * Dialog component serving as the slide-in drawer.
-     * Positioned on the right side of the screen, non-modal.
-     */
     private final Dialog drawer;
 
-    /**
-     * Floating action button that toggles the documentation drawer.
-     * Positioned in the bottom-right corner of the screen.
-     */
     @Getter
     private final Button toggleButton;
 
-    /*
-     * Provider for policy information point documentation.
-     * Supplies documentation about available PIPs and their
-     * policyInformationPoints.
-     */
-    private final transient PolicyInformationPointDocumentationProvider policyInformationPointDocumentationProvider;
-
-    /*
-     * Context providing function library documentation.
-     * Supplies documentation about available functions and their usage.
-     */
-    private final transient FunctionContext functionContext;
+    private final transient DocumentationBundle documentationBundle;
 
     /**
      * Creates a new documentation drawer component.
      * Initializes the drawer dialog and floating action button with
-     * documentation from the provided function context and PIP documentation
-     * provider.
+     * documentation from the provided documentation bundle.
      *
-     * @param policyInformationPointDocumentationProvider provider for PIP
-     * documentation
-     * @param functionContext context providing function library documentation
+     * @param documentationBundle bundle containing all library documentation
      */
-    public DocumentationDrawer(PolicyInformationPointDocumentationProvider policyInformationPointDocumentationProvider,
-            FunctionContext functionContext) {
-        this.policyInformationPointDocumentationProvider = policyInformationPointDocumentationProvider;
-        this.functionContext                             = functionContext;
-        this.drawer                                      = createDrawer();
-        this.toggleButton                                = createToggleButton();
+    public DocumentationDrawer(DocumentationBundle documentationBundle) {
+        this.documentationBundle = documentationBundle;
+        this.drawer              = createDrawer();
+        this.toggleButton        = createToggleButton();
     }
 
-    /*
-     * Creates the floating action button that toggles the drawer.
-     * Styled as a circular button in the bottom-right corner with a book icon.
-     */
     private Button createToggleButton() {
         val button = new Button(VaadinIcon.BOOK.create());
         button.addThemeVariants(ButtonVariant.LUMO_PRIMARY, ButtonVariant.LUMO_LARGE);
@@ -149,11 +119,6 @@ public class DocumentationDrawer implements Serializable {
         return button;
     }
 
-    /*
-     * Creates the drawer dialog component.
-     * Configured as a non-modal, fixed-position dialog on the right side of the
-     * screen.
-     */
     private Dialog createDrawer() {
         val dialog = new Dialog();
         dialog.setWidth(CSS_VALUE_SIZE_50PCT);
@@ -178,12 +143,6 @@ public class DocumentationDrawer implements Serializable {
         return dialog;
     }
 
-    /*
-     * Creates the main documentation content with tabs for different documentation
-     * types.
-     * Organizes documentation into function libraries and policy information
-     * points.
-     */
     private Component createDocumentationContent() {
         val layout = new VerticalLayout();
         layout.setSizeFull();
@@ -193,9 +152,9 @@ public class DocumentationDrawer implements Serializable {
         val tabSheet = new TabSheet();
         tabSheet.setSizeFull();
 
-        val functionLibrariesComponent       = createFunctionLibrariesComponent(functionContext.getDocumentation());
-        val policyInformationPointsComponent = createPolicyInformationPointsComponent(
-                policyInformationPointDocumentationProvider.getDocumentation());
+        val functionLibrariesComponent       = createDocumentationTabSheet(documentationBundle.functionLibraries());
+        val policyInformationPointsComponent = createDocumentationTabSheet(
+                documentationBundle.policyInformationPoints());
 
         tabSheet.add(LABEL_FUNCTION_LIBRARIES, functionLibrariesComponent);
         tabSheet.add(LABEL_POLICY_INFORMATION_POINTS, policyInformationPointsComponent);
@@ -204,39 +163,13 @@ public class DocumentationDrawer implements Serializable {
         return layout;
     }
 
-    /*
-     * Creates the function libraries documentation component.
-     * Builds a tab sheet with tabs for each function library.
-     */
-    private Component createFunctionLibrariesComponent(
-            Collection<io.sapl.interpreter.functions.LibraryDocumentation> libraryDocumentations) {
-        return createDocumentationTabSheet(libraryDocumentations,
-                io.sapl.interpreter.functions.LibraryDocumentation::getName,
-                MarkdownGenerator::generateMarkdownForLibrary);
-    }
-
-    /*
-     * Creates the policy information points documentation component.
-     * Builds a tab sheet with tabs for each policy information point.
-     */
-    private Component createPolicyInformationPointsComponent(
-            Collection<LibraryDocumentation> policyInformationPointDocumentations) {
-        return createDocumentationTabSheet(policyInformationPointDocumentations, LibraryDocumentation::namespace,
-                MarkdownGenerator::generateMarkdownForPolicyInformationPoint);
-    }
-
-    /*
-     * Generic method to create a tab sheet from documentation items.
-     * Converts markdown documentation to HTML and adds each as a tab.
-     */
-    private <T> Component createDocumentationTabSheet(Collection<T> documentations, Function<T, String> nameExtractor,
-            Function<T, String> markdownGenerator) {
+    private Component createDocumentationTabSheet(List<LibraryDocumentation> documentations) {
         val tabSheet = new TabSheet();
         tabSheet.setSizeFull();
 
         for (var documentation : documentations) {
-            val name          = nameExtractor.apply(documentation);
-            val markdown      = markdownGenerator.apply(documentation);
+            val name          = documentation.name();
+            val markdown      = MarkdownGenerator.generateMarkdownForLibrary(documentation);
             val htmlContent   = MarkdownGenerator.markdownToHtml(markdown);
             val htmlComponent = new Html(MarkdownGenerator.wrapInDiv(htmlContent));
             tabSheet.add(name, htmlComponent);
@@ -245,10 +178,6 @@ public class DocumentationDrawer implements Serializable {
         return tabSheet;
     }
 
-    /*
-     * Toggles the drawer between open and closed states.
-     * Opens the drawer if closed, closes it if open.
-     */
     private void toggleDrawer() {
         if (drawer.isOpened()) {
             drawer.close();

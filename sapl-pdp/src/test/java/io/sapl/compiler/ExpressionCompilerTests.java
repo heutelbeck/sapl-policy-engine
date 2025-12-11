@@ -531,7 +531,18 @@ class ExpressionCompilerTests {
                 arguments("undefined in [1, 2, 3]", Value.FALSE),
 
                 // Null in boolean contexts (type errors handled elsewhere)
-                arguments("null == null && true", Value.TRUE), arguments("(null == null) || false", Value.TRUE));
+                arguments("null == null && true", Value.TRUE), arguments("(null == null) || false", Value.TRUE),
+
+                // Key/index/slice on non-objects/arrays returns undefined (not error)
+                // This allows policies to safely handle subscriptions with missing fields
+                arguments("\"Stormbringer\".weapon", Value.UNDEFINED), arguments("true.realm", Value.UNDEFINED),
+                arguments("[1, 2, 3].key", Value.UNDEFINED), arguments("\"Stormbringer\"[0]", Value.UNDEFINED),
+                arguments("true[1]", Value.UNDEFINED), arguments("999[0]", Value.UNDEFINED),
+                arguments("{\"key\": \"value\"}[0]", Value.UNDEFINED), arguments("999[1:3]", Value.UNDEFINED),
+                arguments("{\"a\": 1}[0:2]", Value.UNDEFINED), arguments("{ \"key\" : true }[(5+2)]", Value.UNDEFINED),
+                arguments("undefined[(1 + 1)]", Value.UNDEFINED),
+                // Using string key on array returns undefined (string key on non-object)
+                arguments("[0,1,2,3,4,5,6,7,8,9][(\"key\")]", Value.UNDEFINED));
     }
 
     @ParameterizedTest
@@ -587,21 +598,8 @@ class ExpressionCompilerTests {
 
                 // Division/modulo by zero in complex expressions
                 arguments("(100 / 0) + 5", "divis"), arguments("{\"value\": (10 % 0)}.value", "divis"),
-                // Key step on non-objects (returns error)
-                arguments("\"Stormbringer\".weapon", "non-object"), arguments("true.realm", "non-object"),
-                arguments("[1, 2, 3].key", "non-object"),
 
-                // Index step on non-arrays (returns error)
-                arguments("\"Stormbringer\"[0]", "non-array"), arguments("true[1]", "non-array"),
-                arguments("999[0]", "non-array"), arguments("{\"key\": \"value\"}[0]", "non-array"),
-
-                // Slicing on non-arrays (returns error)
-                arguments("999[1:3]", "slice"), arguments("{\"a\": 1}[0:2]", "slice"),
-
-                // Expression step type errors
                 arguments("[1,2,3][(true)]", "but got true"),
-                arguments("[0,1,2,3,4,5,6,7,8,9][(\"key\")]", "using a key"),
-                arguments("{ \"key\" : true }[(5+2)]", "non-array"), arguments("undefined[(1 + 1)]", "non-array"),
 
                 // Expression step out of bounds errors
                 arguments("[1,2,3][(1+100)]", "out of bounds"), arguments("[1,2,3][(1 - 100)]", "out of bounds"),

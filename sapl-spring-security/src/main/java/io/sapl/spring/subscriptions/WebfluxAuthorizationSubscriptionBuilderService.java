@@ -133,13 +133,6 @@ public class WebfluxAuthorizationSubscriptionBuilderService {
 
     private Object retrieveAction(MethodInvocation mi, Optional<?> requestObject) {
         final var actionNode = mapper.createObjectNode();
-        System.err.println("########################");
-        System.err.println("########################");
-        System.err.println("########################");
-        System.err.println("->" + requestObject.orElse(null));
-        System.err.println("########################");
-        System.err.println("########################");
-        System.err.println("########################");
         requestObject.ifPresent(request -> actionNode.set("http", mapper.valueToTree(request)));
         final var java      = (ObjectNode) mapper.valueToTree(mi);
         final var arguments = mi.getArguments();

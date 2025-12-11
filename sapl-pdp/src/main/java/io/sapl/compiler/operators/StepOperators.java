@@ -20,6 +20,7 @@ package io.sapl.compiler.operators;
 import io.sapl.api.SaplVersion;
 import io.sapl.api.model.*;
 import io.sapl.compiler.Error;
+import io.sapl.functions.libraries.ObjectFunctionLibrary;
 import lombok.NonNull;
 import lombok.experimental.StandardException;
 import lombok.experimental.UtilityClass;
@@ -38,12 +39,9 @@ public class StepOperators {
 
     private static final int MAX_RECURSION_DEPTH = 500;
 
-    // Runtime errors (used in Error.at() calls)
     private static final String RUNTIME_ERROR_EXPRESSION_STEP_TYPE_MISMATCH = "Expression in expression step must return a number or text, but got %s.";
-    private static final String RUNTIME_ERROR_INDEX_ACCESS_TYPE_MISMATCH    = "Cannot access contents of a non-array value using an index. Expected an Array but got %s.";
     private static final String RUNTIME_ERROR_INDEX_OUT_OF_BOUNDS           = "Index %d out of bounds for array of size %d.";
     private static final String RUNTIME_ERROR_INDEX_UNION_REQUIRES_ARRAY    = "Index union steps can only be applied to arrays but got %s.";
-    private static final String RUNTIME_ERROR_KEY_ACCESS_TYPE_MISMATCH      = "Cannot access contents of a non-object value using a key ('%s'). Expected an ObjectValue but got %s.";
     private static final String RUNTIME_ERROR_KEY_UNION_REQUIRES_OBJECT     = "Key union steps can only be applied to objects but got %s.";
     private static final String RUNTIME_ERROR_MAX_RECURSION_DEPTH_INDEX     = "Maximum nesting depth exceeded during recursive index step.";
     private static final String RUNTIME_ERROR_MAX_RECURSION_DEPTH_KEY       = "Maximum nesting depth exceeded during recursive key step.";
@@ -99,7 +97,7 @@ public class StepOperators {
             return parent;
         }
         if (!(parent instanceof ObjectValue objectValue)) {
-            return Error.at(astNode, parent.metadata(), RUNTIME_ERROR_KEY_ACCESS_TYPE_MISMATCH, key, parent);
+            return Value.UNDEFINED.withMetadata(parent.metadata());
         }
         val content = objectValue.get(key);
         if (content == null) {
@@ -133,7 +131,7 @@ public class StepOperators {
             return Error.at(astNode, metadata, e.getMessage());
         }
         if (!(parent instanceof ArrayValue arrayValue)) {
-            return Error.at(astNode, metadata, RUNTIME_ERROR_INDEX_ACCESS_TYPE_MISMATCH, parent);
+            return Value.UNDEFINED.withMetadata(metadata);
         }
         var normalizedIndex = index < 0 ? index + arrayValue.size() : index;
         if (normalizedIndex < 0 || normalizedIndex >= arrayValue.size()) {
@@ -159,11 +157,7 @@ public class StepOperators {
             return parent;
         }
         if (parent instanceof ObjectValue objectValue) {
-            val arrayBuilder = ArrayValue.builder();
-            for (val value : objectValue.values()) {
-                arrayBuilder.add(value);
-            }
-            return arrayBuilder.build();
+            return ObjectFunctionLibrary.values(objectValue);
         }
         return Error.at(astNode, parent.metadata(), RUNTIME_ERROR_WILDCARD_TYPE_MISMATCH, parent);
     }
@@ -266,7 +260,8 @@ public class StepOperators {
             return parent;
         }
         if (!(parent instanceof ArrayValue arrayValue)) {
-            return Error.at(astNode, parent.metadata(), RUNTIME_ERROR_SLICING_REQUIRES_ARRAY, parent);
+            // Return undefined for non-array values to allow robust policy evaluation
+            return Value.UNDEFINED;
         }
 
         int from;

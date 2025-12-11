@@ -137,8 +137,7 @@ public class ExamplesCollection {
 
     private static final Example DOCUMENTATION_DENY_OVERRIDES = new Example("deny-overrides-demo",
             "Deny Overrides Algorithm",
-            "Multiple policies where a single DENY blocks access despite PERMIT decisions being present.",
-            List.of("""
+            "Multiple policies where a single DENY blocks access despite PERMIT decisions being present.", List.of("""
                     policy "permit authenticated users"
                     permit
                         subject.authenticated == true

@@ -41,11 +41,16 @@
 			<artifactId>sapl-ide</artifactId>
 			<version>${project.version}</version>
 		</dependency>
-		<dependency>
-			<groupId>io.sapl</groupId>
-			<artifactId>sapl-spring-pdp-embedded</artifactId>
-			<version>${project.version}</version>
-		</dependency>
+        <dependency>
+            <groupId>io.sapl</groupId>
+            <artifactId>sapl-spring-security</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.sapl</groupId>
+            <artifactId>sapl-pdp</artifactId>
+            <version>${project.version}</version>
+        </dependency>
 
 		<!-- Spring -->
 		<dependency>

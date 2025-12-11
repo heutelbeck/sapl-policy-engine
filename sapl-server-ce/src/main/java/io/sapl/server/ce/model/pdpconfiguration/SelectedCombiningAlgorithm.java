@@ -17,7 +17,6 @@
  */
 package io.sapl.server.ce.model.pdpconfiguration;
 
-
 import io.sapl.api.pdp.CombiningAlgorithm;
 import jakarta.persistence.*;
 import lombok.*;

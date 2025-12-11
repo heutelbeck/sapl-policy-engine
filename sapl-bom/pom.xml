@@ -124,11 +124,6 @@
 			</dependency>
 			<dependency>
 				<groupId>${project.groupId}</groupId>
-				<artifactId>sapl-test-junit</artifactId>
-				<version>${project.version}</version>
-			</dependency>
-			<dependency>
-				<groupId>${project.groupId}</groupId>
 				<artifactId>sapl-maven-plugin</artifactId>
 				<version>${project.version}</version>
 			</dependency>
@@ -145,16 +140,6 @@
 			<dependency>
 				<groupId>${project.groupId}</groupId>
 				<artifactId>sapl-pdp-remote</artifactId>
-				<version>${project.version}</version>
-			</dependency>
-			<dependency>
-				<groupId>${project.groupId}</groupId>
-				<artifactId>sapl-spring-pdp-embedded</artifactId>
-				<version>${project.version}</version>
-			</dependency>
-			<dependency>
-				<groupId>${project.groupId}</groupId>
-				<artifactId>sapl-spring-pdp-remote</artifactId>
 				<version>${project.version}</version>
 			</dependency>
 			<dependency>
@@ -195,11 +180,6 @@
             <dependency>
                 <groupId>${project.groupId}</groupId>
                 <artifactId>geo-traccar</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>${project.groupId}</groupId>
-                <artifactId>sapl-documentation-markdown</artifactId>
                 <version>${project.version}</version>
             </dependency>
 		</dependencies>

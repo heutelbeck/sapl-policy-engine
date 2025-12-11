@@ -82,6 +82,7 @@ management:
       show-details: always
 io.sapl:
   pdp.embedded:
+    enabled: true
     pdp-config-type: FILESYSTEM
   server-lt:
     allowNoAuth: false

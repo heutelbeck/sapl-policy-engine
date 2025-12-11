@@ -77,8 +77,8 @@ public class DecisionsGrid extends Grid<TracedDecision> {
      * Shows "Advice" badge if advice is present, otherwise shows "-/-".
      */
     private ComponentRenderer<Span, TracedDecision> renderAdviceBadge() {
-        return Badger.badgeRenderer(decision -> !decision.authorizationDecision().advice().isEmpty(),
-                Badger.PRIMARY, Badger.SUCCESS, "Advice", "-/-");
+        return Badger.badgeRenderer(decision -> !decision.authorizationDecision().advice().isEmpty(), Badger.PRIMARY,
+                Badger.SUCCESS, "Advice", "-/-");
     }
 
     /*
@@ -88,9 +88,8 @@ public class DecisionsGrid extends Grid<TracedDecision> {
      */
     private ComponentRenderer<Span, TracedDecision> renderResourceBadge() {
         return Badger.badgeRenderer(decision -> {
-                    val resource = decision.authorizationDecision().resource();
-                    return !(resource instanceof UndefinedValue) && !(resource instanceof ErrorValue);
-                },
-                Badger.PRIMARY, Badger.SUCCESS, "Resource", "-/-");
+            val resource = decision.authorizationDecision().resource();
+            return !(resource instanceof UndefinedValue) && !(resource instanceof ErrorValue);
+        }, Badger.PRIMARY, Badger.SUCCESS, "Resource", "-/-");
     }
 }

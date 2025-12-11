@@ -20,18 +20,18 @@ package io.sapl.playground.domain;
 import com.vaadin.flow.spring.annotation.UIScope;
 import io.sapl.api.attributes.AttributeBroker;
 import io.sapl.api.functions.FunctionBroker;
+import io.sapl.api.model.Value;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.CombiningAlgorithm;
-import io.sapl.parser.DefaultSAPLParser;
-import io.sapl.parser.SAPLParser;
+import io.sapl.api.pdp.internal.TracedDecision;
 import io.sapl.pdp.DynamicPolicyDecisionPoint;
 import jakarta.annotation.PreDestroy;
-import lombok.val;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Flux;
 
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 /**
  * UI-scoped Policy Decision Point for the SAPL playground.
@@ -46,49 +46,23 @@ import java.util.Map;
 @Component
 public class PlaygroundPolicyDecisionPoint {
 
-    /*
-     * SAPL interpreter for parsing policy documents.
-     * Shared across all instances as it is stateless.
-     */
-    private static final SAPLParser PARSER = new DefaultSAPLParser();
-
-    /*
-     * Source for variables and combining algorithm configuration.
-     * Provides reactive streams of configuration changes to the PDP.
-     */
-    private final PlaygroundVariablesAndCombinatorSource variablesAndCombinatorSource = new PlaygroundVariablesAndCombinatorSource();
-
-    /*
-     * Source for policy documents.
-     * Provides reactive stream of policy retrieval point updates.
-     */
-    private final PlaygroundPolicyRetrievalPointSource policyRetrievalPointSource;
-
-    /*
-     * Embedded policy decision point instance.
-     * Evaluates authorization subscriptions against configured
-     * policies.
-     */
-    private final DynamicPolicyDecisionPoint policyDecisionPoint;
+    private final PlaygroundConfigurationSource configurationSource;
+    private final DynamicPolicyDecisionPoint    policyDecisionPoint;
 
     /**
      * Creates a new playground policy decision point.
      * Initializes the embedded PDP with the provided attribute broker and function
-     * context.
-     * Sets up reactive sources for policies, variables, and combining
-     * algorithms.
+     * broker.
      *
-     * @param attributeStreamBroker broker for attribute streams and policy
-     * information points
-     * @param functionContext context providing function libraries for policy
+     * @param attributeBroker broker for attribute streams and policy information
+     * points
+     * @param functionBroker broker providing function libraries for policy
      * evaluation
      */
-    public PlaygroundPolicyDecisionPoint(AttributeBroker attributeStreamBroker, FunctionBroker functionContext) {
-        policyRetrievalPointSource = new PlaygroundPolicyRetrievalPointSource(PARSER);
-        val policyDecisionPointConfigurationProvider = new FixedFunctionsAndAttributesPDPConfigurationProvider(
-                attributeStreamBroker, functionContext, variablesAndCombinatorSource, List.of(), List.of(),
-                policyRetrievalPointSource);
-        policyDecisionPoint = new EmbeddedPolicyDecisionPoint(policyDecisionPointConfigurationProvider);
+    public PlaygroundPolicyDecisionPoint(AttributeBroker attributeBroker, FunctionBroker functionBroker) {
+        this.configurationSource = new PlaygroundConfigurationSource(functionBroker, attributeBroker);
+        this.policyDecisionPoint = new DynamicPolicyDecisionPoint(configurationSource,
+                () -> UUID.randomUUID().toString());
     }
 
     /**
@@ -108,10 +82,10 @@ public class PlaygroundPolicyDecisionPoint {
      * Variables can be referenced in policies using their names.
      * Changes trigger re-evaluation of active subscriptions.
      *
-     * @param variablesMap map of variable names to their values
+     * @param variables map of variable names to their values
      */
-    public void setVariables(Map<String, Val> variablesMap) {
-        variablesAndCombinatorSource.setVariables(variablesMap);
+    public void setVariables(Map<String, Value> variables) {
+        configurationSource.setVariables(variables);
     }
 
     /**
@@ -122,7 +96,7 @@ public class PlaygroundPolicyDecisionPoint {
      * @param documents list of SAPL policy document source strings
      */
     public void updatePolicyRetrievalPoint(List<String> documents) {
-        policyRetrievalPointSource.updatePolicyRetrievalPoint(documents);
+        configurationSource.setPolicies(documents);
     }
 
     /**
@@ -134,7 +108,7 @@ public class PlaygroundPolicyDecisionPoint {
      * @param algorithm the combining algorithm to use
      */
     public void setCombiningAlgorithm(CombiningAlgorithm algorithm) {
-        variablesAndCombinatorSource.setCombiningAlgorithm(algorithm);
+        configurationSource.setCombiningAlgorithm(algorithm);
     }
 
     /**
@@ -145,7 +119,6 @@ public class PlaygroundPolicyDecisionPoint {
      */
     @PreDestroy
     private void destroy() {
-        variablesAndCombinatorSource.destroy();
-        policyRetrievalPointSource.dispose();
+        configurationSource.destroy();
     }
 }

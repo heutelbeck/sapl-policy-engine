@@ -26,6 +26,7 @@ import com.vaadin.flow.component.dialog.Dialog;
 import com.vaadin.flow.component.icon.VaadinIcon;
 
 import io.sapl.api.SaplVersion;
+import io.sapl.api.model.Value;
 import lombok.val;
 
 /**
@@ -66,10 +67,12 @@ public class JsonGraphVisualization extends Component implements HasSize, HasSty
     private static final String DIALOG_OPEN_ATTRIBUTE      = "dialog-open";
     private static final String HIDE_BUTTON_ATTRIBUTE      = "hide-maximize-button";
     private static final String INITIAL_TRANSFORM_PROPERTY = "initialTransform";
+    private static final String VALUE_MODE_PROPERTY        = "valueMode";
 
     private Dialog                 maximizeDialog;
     private JsonGraphVisualization maximizedVisualization;
     private String                 currentJsonData = "{}";
+    private boolean                valueMode       = false;
 
     /**
      * Creates a new JSON graph visualization component.
@@ -115,6 +118,53 @@ public class JsonGraphVisualization extends Component implements HasSize, HasSty
      */
     public String getJsonData() {
         return currentJsonData;
+    }
+
+    /**
+     * Sets a SAPL Value to visualize in the graph.
+     * <p>
+     * This method enables value mode, which allows special rendering of
+     * UndefinedValue and ErrorValue types. The Value is converted to JSON
+     * using {@link ValueToGraphJsonMapper} which represents these special
+     * types as marker objects that the client-side renderer can interpret.
+     *
+     * @param value the SAPL Value to visualize
+     */
+    public void setValueData(Value value) {
+        setValueMode(true);
+        this.currentJsonData = ValueToGraphJsonMapper.toPrettyJsonString(value);
+        getElement().setProperty("jsonData", currentJsonData);
+
+        if (maximizedVisualization != null) {
+            maximizedVisualization.setValueMode(true);
+            maximizedVisualization.getElement().setProperty("jsonData", currentJsonData);
+        }
+    }
+
+    /**
+     * Checks if value mode is enabled.
+     *
+     * @return true if value mode is enabled
+     */
+    public boolean isValueMode() {
+        return valueMode;
+    }
+
+    /**
+     * Sets whether value mode is enabled.
+     * <p>
+     * When value mode is enabled, the component interprets special marker objects:
+     * <ul>
+     * <li>{@code {"$undefined": true}} - rendered as an undefined node</li>
+     * <li>{@code {"$error": true, "message": "...", "location": "..."}} - rendered
+     * as an error node</li>
+     * </ul>
+     *
+     * @param valueMode true to enable value mode
+     */
+    public void setValueMode(boolean valueMode) {
+        this.valueMode = valueMode;
+        getElement().setProperty(VALUE_MODE_PROPERTY, valueMode);
     }
 
     /**

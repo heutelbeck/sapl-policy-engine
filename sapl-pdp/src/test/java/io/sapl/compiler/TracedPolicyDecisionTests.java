@@ -666,12 +666,8 @@ class TracedPolicyDecisionTests {
                     arguments("division by zero", """
                             policy "divide-error"
                             permit where 10 / subject.divisor > 0;
-                            """, json("{\"divisor\": 0}")),
+                            """, json("{\"divisor\": 0}")));
 
-                    arguments("deep undefined access", """
-                            policy "broken-condition"
-                            permit where subject.nonexistent.deeply.nested == true;
-                            """, json("{\"name\": \"test\"}")));
         }
 
         @ParameterizedTest(name = "{0}")
@@ -693,19 +689,7 @@ class TracedPolicyDecisionTests {
                     policy "cursed-obligation"
                     permit
                     obligation 1 / subject.divisor
-                    """, Map.of("subject", json("{\"divisor\": 0}")), "Division by zero"),
-
-                    arguments("advice error (undefined access)", """
-                            policy "eldritch-advice"
-                            deny
-                            advice subject.forbidden.knowledge
-                            """, Map.of("subject", json("{\"name\": \"curious scholar\"}")), "Cannot access contents"),
-
-                    arguments("transform error (undefined access)", """
-                            policy "corrupted-transform"
-                            permit
-                            transform resource.secret.content
-                            """, Map.of("resource", json("{\"public\": \"visible\"}")), "Cannot access contents"));
+                    """, Map.of("subject", json("{\"divisor\": 0}")), "Division by zero"));
         }
 
         @ParameterizedTest(name = "{0}")
@@ -722,28 +706,31 @@ class TracedPolicyDecisionTests {
         }
 
         static Stream<Arguments> multipleErrorCases() {
+            // Note: Undefined access (e.g. subject.missing.field) no longer produces
+            // errors.
+            // Tests use division by zero to create actual errors.
             return Stream.of(arguments("multiple obligation errors", """
                     policy "multiple-cursed-obligations"
                     permit
                     obligation 1 / subject.zero
-                    obligation subject.missing.field
-                    """, Map.of("subject", json("{\"zero\": 0, \"name\": \"test\"}")), 2),
+                    obligation 1 / subject.anotherZero
+                    """, Map.of("subject", json("{\"zero\": 0, \"anotherZero\": 0}")), 2),
 
                     arguments("obligation and advice errors", """
                             policy "doubly-cursed"
                             permit
                             obligation 1 / subject.divisor
-                            advice subject.forbidden.knowledge
-                            """, Map.of("subject", json("{\"divisor\": 0, \"name\": \"test\"}")), 2),
+                            advice 1 / subject.anotherDivisor
+                            """, Map.of("subject", json("{\"divisor\": 0, \"anotherDivisor\": 0}")), 2),
 
                     arguments("obligation, advice and transform errors", """
                             policy "triply-cursed"
                             permit
                             obligation 1 / subject.zero
-                            advice subject.missing.field
-                            transform resource.secret.content
-                            """, Map.of("subject", json("{\"zero\": 0, \"name\": \"test\"}"), "resource",
-                            json("{\"public\": \"visible\"}")), 3));
+                            advice 1 / subject.anotherZero
+                            transform 1 / resource.transformDivisor
+                            """, Map.of("subject", json("{\"zero\": 0, \"anotherZero\": 0}"), "resource",
+                            json("{\"transformDivisor\": 0}")), 3));
         }
 
         @Test
