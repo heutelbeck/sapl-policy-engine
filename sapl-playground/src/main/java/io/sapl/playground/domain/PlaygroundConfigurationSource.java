@@ -171,6 +171,8 @@ public class PlaygroundConfigurationSource implements CompiledPDPConfigurationSo
             return Optional.empty();
         } catch (SaplCompilerException exception) {
             return Optional.of(exception);
+        } catch (Exception exception) {
+            return Optional.of(new SaplCompilerException(exception.getMessage(), exception));
         }
     }
 

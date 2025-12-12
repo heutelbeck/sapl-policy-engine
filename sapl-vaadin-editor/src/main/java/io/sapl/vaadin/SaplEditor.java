@@ -25,6 +25,8 @@ import io.sapl.api.SaplVersion;
 
 import org.eclipse.xtext.diagnostics.Severity;
 
+import lombok.extern.slf4j.Slf4j;
+
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -34,6 +36,7 @@ import java.util.function.BiFunction;
 /**
  * SAPL editor with Xtext integration and optional two-pane merge view.
  */
+@Slf4j
 @Tag("sapl-editor")
 @JsModule("./sapl-editor.js")
 @NpmPackage(value = "jquery", version = "3.7.1")
@@ -70,16 +73,29 @@ public class SaplEditor extends BaseEditor implements HasSize {
             issues.add(new Issue(jsonIssues.getObject(i)));
         }
 
+        log.debug("onValidation called with {} Xtext issues", issues.size());
+        for (var issue : issues) {
+            log.debug("  Xtext issue: {} (severity: {})", issue.getDescription(), issue.getSeverity());
+        }
+
         // Run compile validation only if no parse errors
         var hasParseErrors = issues.stream().anyMatch(issue -> Severity.ERROR == issue.getSeverity());
+        log.debug("hasParseErrors={}, compileValidator={}", hasParseErrors,
+                compileValidator != null ? "present" : "null");
         if (!hasParseErrors && compileValidator != null) {
-            var configId      = getElement().getProperty("configurationId", "");
+            var configId = getElement().getProperty("configurationId", "");
+            log.debug("Running compile validator with configId={}", configId);
             var compileIssues = compileValidator.apply(configId, getDocument());
+            log.debug("Compile validator returned {} issues", compileIssues != null ? compileIssues.size() : 0);
             if (compileIssues != null) {
+                for (var compileIssue : compileIssues) {
+                    log.debug("  Compile issue: {} (severity: {})", compileIssue.getDescription(),
+                            compileIssue.getSeverity());
+                }
                 issues.addAll(compileIssues);
             }
         }
-
+        log.debug("Total issues to send to listeners: {}", issues.size());
         final var issueArray = issues.toArray(new Issue[0]);
         for (var listener : validationFinishedListeners) {
             listener.onValidationFinished(new ValidationFinishedEvent(issueArray));

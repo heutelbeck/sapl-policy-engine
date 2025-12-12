@@ -72,7 +72,6 @@ import io.sapl.playground.config.PermalinkConfiguration;
 import io.sapl.playground.domain.PermalinkService;
 import io.sapl.playground.domain.PlaygroundPolicyDecisionPoint;
 import io.sapl.playground.domain.PlaygroundValidator;
-import io.sapl.playground.domain.ValidationResult;
 import io.sapl.playground.examples.Example;
 import io.sapl.playground.examples.ExamplesCollection;
 import io.sapl.playground.ui.components.DecisionsGrid;
@@ -297,13 +296,13 @@ public class PlaygroundView extends Composite<VerticalLayout> {
 
     private final transient ArrayList<TracedDecision> decisionBuffer = new ArrayList<>(MAX_BUFFER_SIZE);
 
-    private TabSheet   leftTabSheet;
-    private Tab        variablesTab;
-    private JsonEditor variablesEditor;
-    private TextField  variablesValidationField;
+    private TabSheet                leftTabSheet;
+    private Tab                     variablesTab;
+    private JsonEditor              variablesEditor;
+    private ValidationStatusDisplay variablesValidationDisplay;
 
-    private JsonEditor subscriptionEditor;
-    private TextField  subscriptionValidationField;
+    private JsonEditor              subscriptionEditor;
+    private ValidationStatusDisplay subscriptionValidationDisplay;
 
     private Button                           playStopButton;
     private Button                           scrollLockButton;
@@ -339,18 +338,25 @@ public class PlaygroundView extends Composite<VerticalLayout> {
      * display, and tab title.
      */
     private static class PolicyTabContext {
-        SaplEditor editor;
-        TextField  validationField;
-        Icon       statusIcon;
-        Span       titleLabel;
-        String     documentName;
+        SaplEditor              editor;
+        ValidationStatusDisplay validationDisplay;
+        Icon                    statusIcon;
+        Span                    titleLabel;
+        String                  documentName;
+        io.sapl.vaadin.Issue[]  lastValidationIssues;
+        boolean                 lastHasErrors;
 
-        PolicyTabContext(SaplEditor editor, TextField validationField, Icon statusIcon, Span titleLabel) {
-            this.editor          = editor;
-            this.validationField = validationField;
-            this.statusIcon      = statusIcon;
-            this.titleLabel      = titleLabel;
-            this.documentName    = POLICY_NAME_UNKNOWN;
+        PolicyTabContext(SaplEditor editor,
+                ValidationStatusDisplay validationDisplay,
+                Icon statusIcon,
+                Span titleLabel) {
+            this.editor               = editor;
+            this.validationDisplay    = validationDisplay;
+            this.statusIcon           = statusIcon;
+            this.titleLabel           = titleLabel;
+            this.documentName         = POLICY_NAME_UNKNOWN;
+            this.lastValidationIssues = new io.sapl.vaadin.Issue[0];
+            this.lastHasErrors        = false;
         }
     }
 
@@ -524,9 +530,8 @@ public class PlaygroundView extends Composite<VerticalLayout> {
         container.setSpacing(false);
         container.getStyle().set(CSS_PADDING, CSS_VALUE_SPACE_M);
 
-        subscriptionValidationField = new TextField();
-        subscriptionValidationField.setReadOnly(true);
-        subscriptionValidationField.setWidthFull();
+        subscriptionValidationDisplay = new ValidationStatusDisplay();
+        subscriptionValidationDisplay.setWidthFull();
 
         val header = new H5(LABEL_AUTHORIZATION_SUBSCRIPTION);
         header.getStyle().set(CSS_MARGIN, CSS_VALUE_ONE).set(CSS_PADDING, CSS_VALUE_PADDING_BOTTOM_XS)
@@ -548,11 +553,13 @@ public class PlaygroundView extends Composite<VerticalLayout> {
      * Creates controls layout for subscription editor.
      */
     private Component createSubscriptionControlsLayout() {
-        val layout = new HorizontalLayout();
+        val layout = new VerticalLayout();
         layout.setWidthFull();
+        layout.setPadding(false);
+        layout.setSpacing(true);
 
         val formatButton = createFormatJsonButton(() -> formatJsonEditor(subscriptionEditor));
-        layout.add(formatButton, subscriptionValidationField);
+        layout.add(formatButton, subscriptionValidationDisplay);
 
         return layout;
     }
@@ -617,13 +624,25 @@ public class PlaygroundView extends Composite<VerticalLayout> {
         }
 
         val validationResult = validator.validateAuthorizationSubscription(event.getNewValue());
-        updateValidationField(subscriptionValidationField, validationResult);
+        updateSubscriptionValidation(validationResult);
 
         if (Boolean.TRUE.equals(clearOnNewSubscriptionCheckBox.getValue())) {
             clearDecisionBuffer();
         }
 
         resubscribeIfActive();
+    }
+
+    /*
+     * Updates subscription validation display based on validation result.
+     */
+    private void updateSubscriptionValidation(io.sapl.playground.domain.ValidationResult result) {
+        if (result.isValid()) {
+            subscriptionValidationDisplay.setIssues(List.of());
+        } else {
+            val issue = new Issue(result.message(), Severity.ERROR, null, null, null, null);
+            subscriptionValidationDisplay.setIssues(List.of(issue));
+        }
     }
 
     /*
@@ -1248,10 +1267,8 @@ public class PlaygroundView extends Composite<VerticalLayout> {
         variablesEditor = createJsonEditor(true, 500);
         variablesEditor.setSizeFull();
 
-        variablesValidationField = new TextField();
-        variablesValidationField.setReadOnly(true);
-        variablesValidationField.setWidthFull();
-        variablesValidationField.getStyle().set(CSS_MARGIN_TOP, CSS_VALUE_SPACE_XS);
+        variablesValidationDisplay = new ValidationStatusDisplay();
+        variablesValidationDisplay.setWidthFull();
 
         val controlsLayout = createVariablesControlsLayout();
 
@@ -1266,11 +1283,17 @@ public class PlaygroundView extends Composite<VerticalLayout> {
      * Creates controls layout for variables editor.
      */
     private Component createVariablesControlsLayout() {
-        val layout = new HorizontalLayout();
-        layout.setWidthFull();
+        val buttonLayout = new HorizontalLayout();
+        buttonLayout.setWidthFull();
 
         val formatButton = createFormatJsonButton(() -> formatJsonEditor(variablesEditor));
-        layout.add(formatButton, variablesValidationField);
+        buttonLayout.add(formatButton);
+
+        val layout = new VerticalLayout();
+        layout.setWidthFull();
+        layout.setPadding(false);
+        layout.setSpacing(false);
+        layout.add(buttonLayout, variablesValidationDisplay);
 
         return layout;
     }
@@ -1295,10 +1318,22 @@ public class PlaygroundView extends Composite<VerticalLayout> {
         }
 
         val validationResult = validator.validateVariablesJson(event.getNewValue());
-        updateValidationField(variablesValidationField, validationResult);
+        updateVariablesValidation(validationResult);
 
         if (validationResult.isValid()) {
             this.policyDecisionPoint.setVariables(parseVariablesFromJson(event.getNewValue()));
+        }
+    }
+
+    /*
+     * Updates the variables validation display.
+     */
+    private void updateVariablesValidation(io.sapl.playground.domain.ValidationResult result) {
+        if (result.isValid()) {
+            variablesValidationDisplay.setIssues(List.of());
+        } else {
+            val issue = new Issue(result.message(), Severity.ERROR, null, null, null, null);
+            variablesValidationDisplay.setIssues(List.of(issue));
         }
     }
 
@@ -1377,8 +1412,9 @@ public class PlaygroundView extends Composite<VerticalLayout> {
      * Creates all components for a policy tab.
      */
     private PolicyTabComponents createPolicyTabComponents(String policyName) {
-        val editor          = createSaplEditor();
-        val validationField = createValidationTextField();
+        val editor            = createSaplEditor();
+        val validationDisplay = new ValidationStatusDisplay();
+        validationDisplay.setWidthFull();
 
         val editorLayout = new VerticalLayout();
         editorLayout.setSizeFull();
@@ -1386,8 +1422,8 @@ public class PlaygroundView extends Composite<VerticalLayout> {
         editorLayout.setSpacing(false);
         editorLayout.getStyle().set(CSS_PADDING, CSS_VALUE_SPACE_S);
 
-        validationField.getStyle().set(CSS_MARGIN_TOP, CSS_VALUE_SPACE_XS);
-        editorLayout.add(editor, validationField);
+        validationDisplay.getStyle().set(CSS_MARGIN_TOP, CSS_VALUE_SPACE_XS);
+        editorLayout.add(editor, validationDisplay);
 
         val statusIcon = createIcon(VaadinIcon.QUESTION_CIRCLE, COLOR_ORANGE);
         statusIcon.setSize(CSS_VALUE_SIZE_0_875EM);
@@ -1404,7 +1440,7 @@ public class PlaygroundView extends Composite<VerticalLayout> {
 
         val tab = new Tab(tabContent);
         tab.getStyle().set(CSS_PADDING, CSS_VALUE_TAB_PADDING);
-        val context = new PolicyTabContext(editor, validationField, statusIcon, titleLabel);
+        val context = new PolicyTabContext(editor, validationDisplay, statusIcon, titleLabel);
 
         policyTabContexts.put(tab, context);
         closeButton.addClickListener(event -> handlePolicyTabClose(tab));
@@ -1427,31 +1463,28 @@ public class PlaygroundView extends Composite<VerticalLayout> {
 
         // Add compile-time validation
         editor.setCompileValidator((configId, source) -> {
-            var compileError = policyDecisionPoint.tryCompile(source);
-            if (compileError.isEmpty()) {
-                return java.util.List.of();
+            log.debug("Compile validator called for source: {}", source);
+            try {
+                var compileError = policyDecisionPoint.tryCompile(source);
+                log.debug("Compile result: {}", compileError.isPresent() ? "error" : "success");
+                if (compileError.isEmpty()) {
+                    return java.util.List.of();
+                }
+                var exception = compileError.get();
+                log.debug("Compile error message: {}", exception.getMessage());
+                var location = exception.getLocation();
+                var length   = location != null ? location.end() - location.start() : null;
+                return java.util.List
+                        .of(new Issue(exception.getMessage(), Severity.ERROR, location != null ? location.line() : null,
+                                null, location != null ? location.start() : null, length));
+            } catch (Exception exception) {
+                log.error("Unexpected error during compile validation", exception);
+                return java.util.List.of(new Issue("Compilation error: " + exception.getMessage(), Severity.ERROR, null,
+                        null, null, null));
             }
-            var exception = compileError.get();
-            var location  = exception.getLocation();
-            var length    = location != null ? location.end() - location.start() : null;
-            return java.util.List.of(
-                    new Issue(exception.getMessage(), Severity.ERROR, location != null ? location.line() : null, null, // column
-                                                                                                                       // not
-                                                                                                                       // available
-                            location != null ? location.start() : null, length));
         });
 
         return editor;
-    }
-
-    /*
-     * Creates a validation text field.
-     */
-    private TextField createValidationTextField() {
-        val field = new TextField();
-        field.setReadOnly(true);
-        field.setWidthFull();
-        return field;
     }
 
     /*
@@ -1481,14 +1514,18 @@ public class PlaygroundView extends Composite<VerticalLayout> {
         val document = context.editor.getDocument();
 
         if (hasInvalidDocumentSize(document, "Policy")) {
-            val result = ValidationResult.error(MESSAGE_DOCUMENT_TOO_LARGE);
-            updateValidationField(context.validationField, result);
+            val issue = new Issue(MESSAGE_DOCUMENT_TOO_LARGE, Severity.ERROR, null, null, null, null);
+            context.validationDisplay.setIssues(List.of(issue));
             context.statusIcon.setIcon(VaadinIcon.CLOSE_CIRCLE);
             context.statusIcon.setColor(COLOR_RED);
             return;
         }
 
-        val issues         = event.getIssues();
+        val issues = event.getIssues();
+        log.debug("handlePolicyValidation received {} issues", issues.length);
+        for (var issue : issues) {
+            log.debug("  Issue: {} (severity: {})", issue.getDescription(), issue.getSeverity());
+        }
         val hasErrors      = PlaygroundValidator.hasErrorSeverityIssues(issues);
         val parsedDocument = PARSER.parseDocument(document);
 
@@ -1533,29 +1570,32 @@ public class PlaygroundView extends Composite<VerticalLayout> {
     }
 
     /*
-     * Updates validation state display for policy.
+     * Updates validation state display for policy and stores the validation state
+     * in context for later restoration after collision warnings.
      */
     private void updatePolicyValidationState(PolicyTabContext context, boolean hasErrors,
             io.sapl.vaadin.Issue[] issues) {
+        log.debug("updatePolicyValidationState: hasErrors={}, issues={}", hasErrors, issues.length);
+        context.lastValidationIssues = issues;
+        context.lastHasErrors        = hasErrors;
+        context.validationDisplay.setIssues(issues);
         if (hasErrors) {
-            val errorCount = PlaygroundValidator.countErrorSeverityIssues(issues);
-            val result     = ValidationResult.error(errorCount + MESSAGE_ERRORS_SUFFIX);
+            log.debug("Setting status icon to red error state");
             context.statusIcon.setIcon(VaadinIcon.CLOSE_CIRCLE);
             context.statusIcon.setColor(COLOR_RED);
-            updateValidationField(context.validationField, result);
         } else {
-            val result = ValidationResult.success();
+            log.debug("Setting status icon to green success state");
             context.statusIcon.setIcon(VaadinIcon.CHECK_CIRCLE);
             context.statusIcon.setColor(COLOR_GREEN);
-            updateValidationField(context.validationField, result);
         }
     }
 
     /*
      * Checks for and displays policy name collisions. Groups policies by document
      * name and identifies duplicates.
-     * Updates validation state for all tabs. Name collisions can cause ambiguity in
-     * policy evaluation.
+     * For tabs with collisions, shows a warning. For tabs without collisions,
+     * restores their stored validation state from the last Xtext/compile
+     * validation.
      */
     private void checkForPolicyNameCollisions() {
         val documentNamesToTabs = groupTabsByDocumentName();
@@ -1566,7 +1606,7 @@ public class PlaygroundView extends Composite<VerticalLayout> {
             if (duplicateNames.contains(context.documentName)) {
                 setCollisionWarningState(context);
             } else {
-                restoreNormalValidationState(context);
+                restoreStoredValidationState(context);
             }
         }
     }
@@ -1602,29 +1642,23 @@ public class PlaygroundView extends Composite<VerticalLayout> {
     private void setCollisionWarningState(PolicyTabContext context) {
         context.statusIcon.setIcon(VaadinIcon.WARNING);
         context.statusIcon.setColor(COLOR_ORANGE);
-        val result = ValidationResult
-                .warning(MESSAGE_NAME_COLLISION_PREFIX + context.documentName + MESSAGE_NAME_COLLISION_SUFFIX);
-        updateValidationField(context.validationField, result);
+        val warningMessage = MESSAGE_NAME_COLLISION_PREFIX + context.documentName + MESSAGE_NAME_COLLISION_SUFFIX;
+        val issue          = new Issue(warningMessage, Severity.WARNING, null, null, null, null);
+        context.validationDisplay.setIssues(List.of(issue));
     }
 
     /*
-     * Restores normal validation state after collision cleared.
+     * Restores the stored validation state after collision cleared.
+     * Uses the validation issues saved from the last Xtext/compile validation.
      */
-    private void restoreNormalValidationState(PolicyTabContext context) {
-        val document       = context.editor.getDocument();
-        val parsedDocument = PARSER.parseDocument(document);
-        val hasErrors      = parsedDocument.isInvalid();
-
-        if (hasErrors) {
+    private void restoreStoredValidationState(PolicyTabContext context) {
+        context.validationDisplay.setIssues(context.lastValidationIssues);
+        if (context.lastHasErrors) {
             context.statusIcon.setIcon(VaadinIcon.CLOSE_CIRCLE);
             context.statusIcon.setColor(COLOR_RED);
-            val result = ValidationResult.error(MESSAGE_SYNTAX_ERROR);
-            updateValidationField(context.validationField, result);
         } else {
             context.statusIcon.setIcon(VaadinIcon.CHECK_CIRCLE);
             context.statusIcon.setColor(COLOR_GREEN);
-            val result = ValidationResult.success();
-            updateValidationField(context.validationField, result);
         }
     }
 
@@ -2092,18 +2126,5 @@ public class PlaygroundView extends Composite<VerticalLayout> {
         val icon = iconType.create();
         icon.setColor(color);
         return icon;
-    }
-
-    /*
-     * Updates validation field with result.
-     */
-    private void updateValidationField(TextField field, ValidationResult result) {
-        val icon = switch (result.severity()) {
-        case SUCCESS -> createIcon(VaadinIcon.CHECK, COLOR_GREEN);
-        case ERROR   -> createIcon(VaadinIcon.CLOSE_CIRCLE, COLOR_RED);
-        case WARNING -> createIcon(VaadinIcon.WARNING, COLOR_ORANGE);
-        };
-        field.setPrefixComponent(icon);
-        field.setValue(result.message());
     }
 }
