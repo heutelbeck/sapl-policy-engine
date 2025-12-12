@@ -25,14 +25,8 @@ import org.springframework.context.annotation.ComponentScan;
 
 import static java.util.concurrent.Executors.newSingleThreadExecutor;
 
-/**
- * Spring boot CLI application which starts a language server for sapl policy
- * files. The language server uses standard input and output for communication.
- * Spring boot CLI application which starts a language server for sapl policy
- * files. The language server uses standard input and output for communication.
- */
 @SpringBootApplication
-@ComponentScan({ "io.sapl.grammar.ide.contentassist" })
+@ComponentScan({ "io.sapl.grammar.ide.contentassist", "io.sapl.languageserver" })
 public class SAPLLanguageServer {
     public static void main(String[] args) {
         SpringApplication.run(SAPLLanguageServer.class, args);

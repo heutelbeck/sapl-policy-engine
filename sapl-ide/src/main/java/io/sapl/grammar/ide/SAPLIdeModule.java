@@ -17,8 +17,11 @@
  */
 package io.sapl.grammar.ide;
 
-import io.sapl.grammar.ide.contentassist.SAPLContentProposalProvider;
 import org.eclipse.xtext.ide.editor.contentassist.IdeContentProposalProvider;
+import org.eclipse.xtext.ide.editor.syntaxcoloring.ISemanticHighlightingCalculator;
+
+import io.sapl.grammar.ide.contentassist.SAPLContentProposalProvider;
+import io.sapl.grammar.ide.highlighting.SAPLSemanticHighlightingCalculator;
 
 /**
  * Use this class to register IDE components.
@@ -30,6 +33,13 @@ public class SAPLIdeModule extends AbstractSAPLIdeModule {
      */
     public Class<? extends IdeContentProposalProvider> bindIdeContentProposalProvider() {
         return SAPLContentProposalProvider.class;
+    }
+
+    /**
+     * @return the ISemanticHighlightingCalculator for LSP semantic tokens
+     */
+    public Class<? extends ISemanticHighlightingCalculator> bindISemanticHighlightingCalculator() {
+        return SAPLSemanticHighlightingCalculator.class;
     }
 
 }
