@@ -43,18 +43,6 @@
 		<main.basedir>${project.basedir}/../</main.basedir>
 	</properties>
 	
-	<dependencyManagement>
-		<dependencies>
-			<dependency>
-				<groupId>io.sapl</groupId>
-				<artifactId>sapl-bom</artifactId>
-				<version>${project.version}</version>
-				<type>pom</type>
-				<scope>import</scope>
-			</dependency>
-		</dependencies>
-	</dependencyManagement>
-
 	<dependencies>
 		<!-- Keycloak -->
 		<dependency>
@@ -80,38 +68,47 @@
 		<dependency>
 			<groupId>io.sapl</groupId>
 			<artifactId>sapl-vaadin-editor</artifactId>
+			<version>${project.version}</version>
 		</dependency>
 		<dependency>
 			<groupId>io.sapl</groupId>
 			<artifactId>sapl-vaadin-theme</artifactId>
+			<version>${project.version}</version>
 		</dependency>
         <dependency>
             <groupId>io.sapl</groupId>
             <artifactId>sapl-spring-security</artifactId>
+            <version>${project.version}</version>
         </dependency>
         <dependency>
             <groupId>io.sapl</groupId>
             <artifactId>sapl-pdp</artifactId>
+            <version>${project.version}</version>
         </dependency>
 		<dependency>
 			<groupId>io.sapl</groupId>
 			<artifactId>sapl-webflux-endpoint</artifactId>
+			<version>${project.version}</version>
 		</dependency>
 		<dependency>
 			<groupId>io.sapl</groupId>
 			<artifactId>geo-functions</artifactId>
+			<version>${project.version}</version>
 		</dependency>
 		<dependency>
 			<groupId>io.sapl</groupId>
 			<artifactId>geo-traccar</artifactId>
+			<version>${project.version}</version>
 		</dependency>
 		<dependency>
 			<groupId>io.sapl</groupId>
 			<artifactId>mqtt-pip</artifactId>
+			<version>${project.version}</version>
 		</dependency>
 		<dependency>
 			<groupId>io.sapl</groupId>
 			<artifactId>mqtt-functions</artifactId>
+			<version>${project.version}</version>
 		</dependency>
 
 		<!-- Spring Boot -->
@@ -198,6 +195,7 @@
 		<dependency>
 			<groupId>io.sapl</groupId>
 			<artifactId>sapl-rsocket-endpoint</artifactId>
+			<version>${project.version}</version>
 		</dependency>
 
 		<!-- Oauth2 / JWT support -->

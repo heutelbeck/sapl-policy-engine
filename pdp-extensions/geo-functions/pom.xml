@@ -42,22 +42,26 @@
 		<main.basedir>${project.basedir}/../../</main.basedir>
 	</properties>
 
-	<dependencyManagement>
-		<dependencies>
-			<dependency>
-				<groupId>io.sapl</groupId>
-				<artifactId>sapl-bom</artifactId>
-				<version>${project.version}</version>
-				<type>pom</type>
-				<scope>import</scope>
-			</dependency>		
-		</dependencies>
-	</dependencyManagement>
+	<!-- OSGeo repository for GeoTools libraries - only needed in this module -->
+	<repositories>
+		<repository>
+			<id>geo</id>
+			<name>OSGeo Release Repository</name>
+			<url>https://repo.osgeo.org/repository/release/</url>
+			<releases>
+				<enabled>true</enabled>
+			</releases>
+			<snapshots>
+				<enabled>false</enabled>
+			</snapshots>
+		</repository>
+	</repositories>
 
 	<dependencies>
 		<dependency>
 			<groupId>io.sapl</groupId>
 			<artifactId>sapl-api</artifactId>
+			<version>${project.version}</version>
         </dependency>
     	<dependency>
         	<groupId>org.locationtech.jts</groupId>
@@ -131,6 +135,7 @@
 		<dependency>
 			<groupId>io.sapl</groupId>
 			<artifactId>sapl-pdp</artifactId>
+			<version>${project.version}</version>
 			<scope>test</scope>
 		</dependency>
 	</dependencies>

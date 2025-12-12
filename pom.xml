@@ -18,17 +18,35 @@
     limitations under the License.
 
 -->
-<!-- 
-	Utility goals supported by the POM:
-	
+<!--
+	Build Commands:
+
+	* Build core modules (default):
+	  mvn install
+
+	* Build Eclipse/Tycho modules only (requires core to be installed first, intended for local use):
+	  mvn install -Peclipse -DskipCore
+
+	* Build everything (core + Eclipse):
+	  mvn install -Peclipse
+
+	* Build with coverage:
+	  mvn install -Pcoverage
+
+	* Build Eclipse with coverage:
+	  mvn install -Peclipse,coverage -DskipCore
+
+	The 'core' profile is active by default (when skipCore property is absent).
+	Use -DskipCore to build only Eclipse modules without rebuilding core.
+
+	Utility Goals:
+
 	* Update the version of all modules:
-	  mvn versions:set -DnewVersion=3.0.0-RC1 -DprocessAllModules
-          -DgenerateBackupPoms=false
-	  
+	  mvn versions:set -DnewVersion=4.1.0-RC1 -DprocessAllModules -DgenerateBackupPoms=false
+
 	* Correct the license headers of all source files:
-	  mvn license:format -pl !sapl-bom,!sapl-code-style
-	  This command excludes the sapl-bom and sapl-code-style modules. 
-          Update the license there manually.
+	  mvn com.mycila:license-maven-plugin:format
+	  (sapl-bom and sapl-code-style are automatically skipped via license.skip property)
 -->
 <project xmlns="http://maven.apache.org/POM/4.0.0"
 	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
@@ -123,56 +141,13 @@
 		
 		<!-- Path to project/module with the license file -->
 		<main.basedir>${project.basedir}</main.basedir>
+		<!-- Used to skip core-only plugins when building eclipse modules -->
+		<skipCore>false</skipCore>
+		<!-- Standard skip properties - default to skipCore, modules can override -->
+		<license.skip>${skipCore}</license.skip>
+		<formatter.skip>${skipCore}</formatter.skip>
 	</properties>
 
-	<modules>
-		<module>sapl-code-style</module>
-		<module>sapl-api</module>
-
-		<module>pdp-extensions/geo-functions</module>
-		<module>pdp-extensions/geo-traccar</module>
-		<module>pdp-extensions/mqtt-functions</module>
-		<module>pdp-extensions/mqtt-pip</module>
-
-		<module>sapl-generator</module>
-		<module>sapl-lang</module>
-		<module>sapl-ide</module>
-		<module>sapl-web</module>
-
-        <module>sapl-pdp</module>
-
-        <module>sapl-coverage-api</module>
-        <module>sapl-test-lang</module>
-		<module>sapl-test</module>
-		<module>sapl-test-ide</module>
-		<module>sapl-test-web</module>		
-		<module>sapl-maven-plugin</module>
-
-		<module>sapl-bom</module>
-
-		<module>sapl-pdp-remote</module>
-
-		<module>sapl-spring-security</module>
-
-		<module>sapl-language-server</module>
-		<module>sapl-eclipse-plugin/sapl-eclipse-ui</module>
-		<module>sapl-eclipse-plugin/sapl-test-eclipse-ui</module>
-		<module>sapl-eclipse-plugin/sapl-eclipse-target</module>
-		<module>sapl-eclipse-plugin/sapl-eclipse-thirdparty</module>
-		<module>sapl-eclipse-plugin/sapl-eclipse-feature</module>
-		<module>sapl-eclipse-plugin/sapl-eclipse-repository</module>
-
-        <module>sapl-documentation-generator</module>
-
-		<module>sapl-webflux-endpoint</module>
-		<module>sapl-rsocket-endpoint</module>
-		<module>sapl-vaadin-theme</module>
-		<module>sapl-vaadin-editor</module>
-
-		<module>sapl-server-lt</module>
-        <module>sapl-server-ce</module>
-        <module>sapl-playground</module>
-    </modules>
 	<dependencyManagement>
 		<dependencies>
 			<!-- XText -->
@@ -341,6 +316,26 @@
             <dependency>
                 <groupId>${project.groupId}</groupId>
                 <artifactId>sapl-ide</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>${project.groupId}</groupId>
+                <artifactId>sapl-test-lang</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>${project.groupId}</groupId>
+                <artifactId>sapl-test</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>${project.groupId}</groupId>
+                <artifactId>sapl-test-ide</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>${project.groupId}</groupId>
+                <artifactId>sapl-coverage-api</artifactId>
                 <version>${project.version}</version>
             </dependency>
 		</dependencies>
@@ -599,11 +594,15 @@
 			<plugin>
 				<groupId>net.revelc.code.formatter</groupId>
 				<artifactId>formatter-maven-plugin</artifactId>
+				<configuration>
+					<skip>${formatter.skip}</skip>
+				</configuration>
 			</plugin>
 			<plugin>
 				<groupId>com.mycila</groupId>
 				<artifactId>license-maven-plugin</artifactId>
 				<configuration>
+					<skip>${license.skip}</skip>
 					<licenseSets>
 						<licenseSet>
 							<header>
@@ -674,73 +673,150 @@
 				<artifactId>sonar-maven-plugin</artifactId>
 				<version>${sonar-maven-plugin.version}</version>
 			</plugin>
-			<plugin>
-				<groupId>org.eclipse.tycho</groupId>
-				<artifactId>tycho-maven-plugin</artifactId>
-				<version>${tycho.version}</version>
-				<extensions>true</extensions>
-                <configuration>
-                    <p2Artifacts>
-                        <digestAlgorithms>
-                            <digestAlgorithm>SHA-512</digestAlgorithm>
-                            <digestAlgorithm>SHA-256</digestAlgorithm>
-                        </digestAlgorithms>
-                    </p2Artifacts>
-                    <includeProvidedScope>false</includeProvidedScope>
-                </configuration>
-			</plugin>
-			<plugin>
-				<groupId>org.eclipse.tycho</groupId>
-				<artifactId>target-platform-configuration</artifactId>
-				<version>${tycho.version}</version>
-				<configuration>
-					<target>
-						<artifact>
-							<groupId>io.sapl</groupId>
-							<artifactId>sapl-eclipse-target</artifactId>
-							<version>${project.version}</version>
-						</artifact>
-					</target>
-					<environments>
-						<environment>
-							<os>macosx</os>
-							<ws>cocoa</ws>
-							<arch>x86_64</arch>
-						</environment>
-						<environment>
-							<os>win32</os>
-							<ws>win32</ws>
-							<arch>x86_64</arch>
-						</environment>
-						<environment>
-							<os>linux</os>
-							<ws>gtk</ws>
-							<arch>x86_64</arch>
-						</environment>
-					</environments>
-					<dependency-resolution>
-						<extraRequirements>
-							<requirement>
-								<type>eclipse-plugin</type>
-								<id>org.eclipse.xtext.logging</id>
-								<versionRange>1.2.24</versionRange>
-							</requirement>
-							<!-- to get the org.eclipse.osgi.compatibility.state
-							plugin if the target
-								platform is Luna or later. (backward compatible with kepler and previous
-								versions) see https://bugs.eclipse.org/bugs/show_bug.cgi?id=492149 -->
-							<requirement>
-								<type>eclipse-feature</type>
-								<id>org.eclipse.rcp</id>
-								<versionRange>0.0.0</versionRange>
-							</requirement>
-						</extraRequirements>
-					</dependency-resolution>
-				</configuration>
-			</plugin>
 		</plugins>
 	</build>
 	<profiles>
+		<profile>
+			<!--
+				Core modules profile. Active by default unless skipCore property is set.
+				The eclipse profile sets skipCore, so -Peclipse builds only Eclipse modules.
+			-->
+			<id>core</id>
+			<activation>
+				<property>
+					<name>!skipCore</name>
+				</property>
+			</activation>
+			<modules>
+				<!-- Core modules without internal dependencies -->
+				<module>sapl-code-style</module>
+				<module>sapl-api</module>
+
+				<!-- Language modules (in dependency order) -->
+				<module>sapl-generator</module>
+				<module>sapl-lang</module>
+				<module>sapl-pdp</module>
+				<module>sapl-ide</module>
+				<module>sapl-web</module>
+
+				<!-- PDP extensions (depend on sapl-api) -->
+				<module>pdp-extensions/geo-functions</module>
+				<module>pdp-extensions/geo-traccar</module>
+				<module>pdp-extensions/mqtt-functions</module>
+				<module>pdp-extensions/mqtt-pip</module>
+
+				<!-- Testing modules -->
+				<module>sapl-coverage-api</module>
+				<module>sapl-test-lang</module>
+				<module>sapl-test</module>
+				<module>sapl-test-ide</module>
+				<module>sapl-test-web</module>
+				<module>sapl-maven-plugin</module>
+
+				<!-- Integration modules -->
+				<module>sapl-pdp-remote</module>
+				<module>sapl-spring-security</module>
+
+				<!-- IDE and tooling -->
+				<module>sapl-language-server</module>
+				<module>sapl-documentation-generator</module>
+
+				<!-- Web endpoints -->
+				<module>sapl-webflux-endpoint</module>
+				<module>sapl-rsocket-endpoint</module>
+				<module>sapl-vaadin-theme</module>
+				<module>sapl-vaadin-editor</module>
+
+				<!-- Server applications -->
+				<module>sapl-server-lt</module>
+				<module>sapl-server-ce</module>
+				<module>sapl-playground</module>
+
+				<!-- BOM (after all artifacts it references) -->
+				<module>sapl-bom</module>
+			</modules>
+		</profile>
+		<profile>
+			<!--
+				Eclipse plugin build profile.
+				Use with -DskipCore to build only Eclipse modules: mvn install -Peclipse -DskipCore
+				Requires core modules to be installed first.
+			-->
+			<id>eclipse</id>
+			<modules>
+				<module>sapl-eclipse-plugin/sapl-eclipse-target</module>
+				<module>sapl-eclipse-plugin/sapl-eclipse-thirdparty</module>
+				<module>sapl-eclipse-plugin/sapl-eclipse-ui</module>
+				<module>sapl-eclipse-plugin/sapl-test-eclipse-ui</module>
+				<module>sapl-eclipse-plugin/sapl-eclipse-feature</module>
+				<module>sapl-eclipse-plugin/sapl-eclipse-repository</module>
+			</modules>
+			<build>
+				<plugins>
+					<plugin>
+						<groupId>org.eclipse.tycho</groupId>
+						<artifactId>tycho-maven-plugin</artifactId>
+						<version>${tycho.version}</version>
+						<extensions>true</extensions>
+						<configuration>
+							<p2Artifacts>
+								<digestAlgorithms>
+									<digestAlgorithm>SHA-512</digestAlgorithm>
+									<digestAlgorithm>SHA-256</digestAlgorithm>
+								</digestAlgorithms>
+							</p2Artifacts>
+							<includeProvidedScope>false</includeProvidedScope>
+						</configuration>
+					</plugin>
+					<plugin>
+						<groupId>org.eclipse.tycho</groupId>
+						<artifactId>target-platform-configuration</artifactId>
+						<version>${tycho.version}</version>
+						<configuration>
+							<pomDependencies>consider</pomDependencies>
+							<target>
+								<artifact>
+									<groupId>io.sapl</groupId>
+									<artifactId>sapl-eclipse-target</artifactId>
+									<version>${project.version}</version>
+								</artifact>
+							</target>
+							<environments>
+								<environment>
+									<os>macosx</os>
+									<ws>cocoa</ws>
+									<arch>x86_64</arch>
+								</environment>
+								<environment>
+									<os>win32</os>
+									<ws>win32</ws>
+									<arch>x86_64</arch>
+								</environment>
+								<environment>
+									<os>linux</os>
+									<ws>gtk</ws>
+									<arch>x86_64</arch>
+								</environment>
+							</environments>
+							<dependency-resolution>
+								<extraRequirements>
+									<requirement>
+										<type>eclipse-plugin</type>
+										<id>org.eclipse.xtext.logging</id>
+										<versionRange>1.2.24</versionRange>
+									</requirement>
+									<requirement>
+										<type>eclipse-feature</type>
+										<id>org.eclipse.rcp</id>
+										<versionRange>0.0.0</versionRange>
+									</requirement>
+								</extraRequirements>
+							</dependency-resolution>
+						</configuration>
+					</plugin>
+				</plugins>
+			</build>
+		</profile>
 		<profile>
 			<id>it</id>
 			<build>
@@ -883,52 +959,29 @@
 	</profiles>
 
 	<repositories>
-		<!-- Central on top here makes sure it has the highest priority. -->
 		<repository>
-			<id>central</id>
-			<url>https://repo.maven.apache.org/maven2</url>
-			<snapshots>
-				<enabled>false</enabled>
-			</snapshots>
-		</repository>
-		<repository>
+			<id>central-portal-snapshots</id>
 			<name>Central Portal Snapshots</name>
-		    <id>central-portal-snapshots</id>
-		    <url>https://central.sonatype.com/repository/maven-snapshots/</url>
-		    <releases>
-		       <enabled>false</enabled>
-		    </releases>
-		    <snapshots>
-		      <enabled>true</enabled>
-			</snapshots>
-		</repository>
-		<repository>
-			<id>geo</id>
-			<url> https://repo.osgeo.org/repository/release/</url>
-			<snapshots>
+			<url>https://central.sonatype.com/repository/maven-snapshots/</url>
+			<releases>
 				<enabled>false</enabled>
+			</releases>
+			<snapshots>
+				<enabled>true</enabled>
 			</snapshots>
 		</repository>
 	</repositories>
 
 	<pluginRepositories>
-		<!-- Central on top here makes sure it has the highest priority. -->
 		<pluginRepository>
-			<id>central</id>
-			<url>https://repo.maven.apache.org/maven2</url>
-			<snapshots>
-				<enabled>false</enabled>
-			</snapshots>
-		</pluginRepository>
-		<pluginRepository>
+			<id>central-portal-snapshots</id>
 			<name>Central Portal Snapshots</name>
-		    <id>central-portal-snapshots</id>
-		    <url>https://central.sonatype.com/repository/maven-snapshots/</url>
-		    <releases>
-		       <enabled>false</enabled>
-		    </releases>
-		    <snapshots>
-		      <enabled>true</enabled>
+			<url>https://central.sonatype.com/repository/maven-snapshots/</url>
+			<releases>
+				<enabled>false</enabled>
+			</releases>
+			<snapshots>
+				<enabled>true</enabled>
 			</snapshots>
 		</pluginRepository>
 	</pluginRepositories>

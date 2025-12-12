@@ -278,7 +278,7 @@ jobs:
           MAVEN_GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
 
       - name: Build All for Server and Eclipse Plugin
-        run: mvn -U -B clean install -DskipTests -Psign -Pproduction -T 1.5C
+        run: mvn -U -B clean install -DskipTests -Peclipse,sign,production -T 1.5C
         env:
           MAVEN_USERNAME: ${{ secrets.NEXUS_USERNAME }}
           MAVEN_CENTRAL_TOKEN: ${{ secrets.NEXUS_PASSWORD }}
