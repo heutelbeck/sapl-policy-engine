@@ -139,43 +139,103 @@ LSP4IJ uses TextMate grammars for syntax highlighting. A pre-configured bundle i
 
 Restart IntelliJ for all changes to take effect. Open a `.sapl` file to verify syntax highlighting and language server features (content assist, diagnostics, hover).
 
-### Neovim (via nvim-lspconfig)
+### Neovim
 
-A complete Neovim configuration is available in `ide-support/nvim/`. It includes syntax highlighting,
-LSP integration, and code completion support.
+Two configuration variants are provided in `ide-support/`:
 
-#### Fresh Install
+| Variant | Directory | Features |
+|---------|-----------|----------|
+| **Full LSP** | `nvim-lsp/` | Content assist, diagnostics, hover, semantic highlighting via LSP |
+| **Syntax Only** | `nvim-highlighting-only/` | Vim syntax highlighting without LSP dependencies |
 
-Copy the entire `ide-support/nvim/` folder to your Neovim configuration directory:
-- **Linux/macOS**: `~/.config/nvim/`
-- **Windows**: `%LOCALAPPDATA%\nvim\`
+Choose based on your needs: the LSP variant provides full IDE features but requires Java and the language server JAR; the syntax-only variant provides highlighting with zero external dependencies.
 
-Then edit `lua/sapl_lspconfig.lua` and update the path to your `sapl-language-server-4.0.0-SNAPSHOT.jar`.
-On Windows, use forward slashes in the path (e.g., `C:/path/to/server.jar`).
+#### Option 1: Full LSP Integration (`nvim-lsp/`)
 
-On first launch, Neovim will automatically download the required plugins.
+The `ide-support/nvim-lsp/` directory contains a reference configuration demonstrating full SAPL LSP integration with semantic token highlighting.
 
-#### Basic Usage
+**Features:**
+- LSP client registration via nvim-lspconfig
+- Completion via nvim-cmp
+- Semantic highlighting from the language server
+- Markdown rendering in documentation popups via noice.nvim + treesitter
+- Filetype detection
 
-| Key | Action |
-|-----|--------|
-| `i` | Enter Insert mode (type text) |
-| `Esc` | Return to Normal mode |
-| `Ctrl+Space` | Trigger completion |
-| `Tab` / `Shift+Tab` | Navigate completion list |
-| `Enter` | Accept completion |
-| `:w` | Save file |
-| `:q` | Quit |
+**File Structure:**
+```
+nvim-lsp/
+├── init.lua              # Plugin setup (lazy.nvim, nvim-cmp, noice.nvim, semantic colors)
+├── filetype.lua          # Registers .sapl extension
+└── lua/
+    └── sapl_lspconfig.lua  # LSP server registration (update JAR path here)
+```
 
-#### Existing Configuration
+**Integration into Existing Config:**
 
-If you already have a Neovim configuration, merge the contents of these files:
-- `filetype.lua` - adds `.sapl` filetype detection
-- `syntax/sapl.vim` - syntax highlighting rules
-- `lua/sapl_lspconfig.lua` - registers the SAPL language server with nvim-lspconfig
+Extract the relevant parts:
 
-The `init.lua` includes `nvim-cmp` for completion UI. If you use a different completion plugin,
-adapt accordingly.
+1. **Required:** Copy `lua/sapl_lspconfig.lua` to your Lua path
+2. **Required:** Edit `sapl_lspconfig.lua` and update the JAR path on line 19:
+   ```lua
+   cmd = { 'java', '-jar', '/path/to/sapl-language-server-4.0.0-SNAPSHOT.jar' },
+   ```
+3. **Required:** Add filetype registration from `filetype.lua`
+4. **Optional:** Add semantic highlight colors from `init.lua` (the `setup_semantic_highlights()` function)
+5. **Optional:** Configure noice.nvim for proper markdown rendering in completion popups
+
+**Standalone Testing:**
+
+Before testing, update the JAR path in `lua/sapl_lspconfig.lua` (line 19).
+
+Test in isolation without affecting your main setup:
+
+```shell
+# Linux/macOS
+NVIM_APPNAME=sapl-test nvim -u ide-support/nvim-lsp/init.lua test.sapl
+
+# Windows (PowerShell)
+$env:NVIM_APPNAME="sapl-test"; nvim -u ide-support\nvim-lsp\init.lua test.sapl
+```
+
+Plugins install to `~/.local/share/sapl-test/` (Linux/macOS) or `%LOCALAPPDATA%\sapl-test\` (Windows).
+
+**Notes:**
+- On Windows, use forward slashes in paths (e.g., `C:/path/to/server.jar`)
+- The LSP disables vim syntax highlighting to avoid conflicts with semantic tokens
+- noice.nvim changes Neovim's UI significantly; you may only want to take it as inspiration on how to integrate it in your own custom setup
+
+#### Option 2: Syntax Highlighting Only (`nvim-highlighting-only/`)
+
+The `ide-support/nvim-highlighting-only/` directory provides standalone syntax highlighting without LSP dependencies. Use this when you want basic highlighting but don't need IDE features like completion or diagnostics.
+
+**Features:**
+- Vim syntax highlighting
+- Filetype detection
+- Zero external dependencies (no Java, no plugins required)
+
+**File Structure:**
+```
+nvim-highlighting-only/
+├── init.lua        # Basic editor settings
+├── filetype.lua    # Registers .sapl extension
+└── syntax/
+    └── sapl.vim    # Syntax highlighting rules and colors
+```
+
+**Integration into Existing Config:**
+
+1. Copy `syntax/sapl.vim` to `~/.config/nvim/syntax/` (or your runtime path)
+2. Add filetype registration from `filetype.lua` to your config
+
+**Standalone Testing:**
+
+```shell
+# Linux/macOS
+NVIM_APPNAME=sapl-syntax nvim -u ide-support/nvim-highlighting-only/init.lua test.sapl
+
+# Windows (PowerShell)
+$env:NVIM_APPNAME="sapl-syntax"; nvim -u ide-support\nvim-highlighting-only\init.lua test.sapl
+```
 
 ### Kate
 

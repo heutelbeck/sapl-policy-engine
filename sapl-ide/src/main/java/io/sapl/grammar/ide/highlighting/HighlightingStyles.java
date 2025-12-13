@@ -17,41 +17,67 @@
  */
 package io.sapl.grammar.ide.highlighting;
 
+import java.util.Set;
+
 /**
- * Defines semantic highlighting style identifiers for SAPL.
- * These map to standard LSP semantic token types where possible.
+ * Defines semantic highlighting style identifiers for SAPL. These map to
+ * standard LSP semantic token types for consistent highlighting across editors.
  */
 public final class HighlightingStyles {
 
     private HighlightingStyles() {
-        // Utility class
     }
 
-    /** Style for policy set names - maps to LSP 'namespace' */
-    public static final String POLICY_SET_NAME = "namespace";
+    /** Standard LSP token type for keywords. */
+    public static final String KEYWORD = "keyword";
 
-    /** Style for policy names - maps to LSP 'class' */
-    public static final String POLICY_NAME = "class";
+    /** Standard LSP token type for operators. */
+    public static final String OPERATOR = "operator";
 
-    /** Style for variable definitions - maps to LSP 'variable' */
+    /** Standard LSP token type for string literals. */
+    public static final String STRING = "string";
+
+    /** Standard LSP token type for number literals. */
+    public static final String NUMBER = "number";
+
+    /** Standard LSP token type for comments. */
+    public static final String COMMENT = "comment";
+
+    /** Standard LSP token type for namespaces (policy set names, imports). */
+    public static final String NAMESPACE = "namespace";
+
+    /** Standard LSP token type for classes (policy names). */
+    public static final String CLASS = "class";
+
+    /** Standard LSP token type for variables. */
     public static final String VARIABLE = "variable";
 
-    /** Style for function calls - maps to LSP 'function' */
+    /** Standard LSP token type for functions. */
     public static final String FUNCTION = "function";
 
-    /** Style for attribute finder references - maps to LSP 'property' */
-    public static final String ATTRIBUTE = "property";
+    /** Standard LSP token type for properties (attributes). */
+    public static final String PROPERTY = "property";
 
-    /** Style for import statements - maps to LSP 'namespace' */
-    public static final String IMPORT = "namespace";
-
-    /** Style for schema definitions - maps to LSP 'type' */
-    public static final String SCHEMA = "type";
+    /** Standard LSP token type for types (schemas). */
+    public static final String TYPE = "type";
 
     /**
-     * Style for authorization subscription parts (subject, action, resource,
-     * environment)
+     * Standard LSP token type for parameters (authorization subscription parts).
      */
-    public static final String AUTHORIZATION_SUBSCRIPTION = "parameter";
+    public static final String PARAMETER = "parameter";
+
+    /** All SAPL keywords for lexical highlighting. */
+    public static final Set<String> KEYWORDS = Set.of("import", "as", "schema", "enforced", "set", "for", "policy",
+            "permit", "deny", "where", "var", "obligation", "advice", "transform", "in", "each", "true", "false",
+            "null", "undefined", "deny-overrides", "permit-overrides", "first-applicable", "only-one-applicable",
+            "deny-unless-permit", "permit-unless-deny");
+
+    /** Entitlements and combining algorithms - get special macro styling. */
+    public static final Set<String> ENTITLEMENTS_AND_ALGORITHMS = Set.of("permit", "deny", "deny-overrides",
+            "permit-overrides", "first-applicable", "only-one-applicable", "deny-unless-permit", "permit-unless-deny");
+
+    /** All SAPL operators for lexical highlighting. */
+    public static final Set<String> OPERATORS = Set.of("||", "&&", "|", "^", "&", "==", "!=", "=~", "<", "<=", ">",
+            ">=", "+", "-", "*", "/", "%", "!", "|-", "::", "@", ".", "..", ":", ",", "|<");
 
 }

@@ -19,7 +19,11 @@ package io.sapl.grammar.ide;
 
 import org.eclipse.xtext.ide.editor.contentassist.IdeContentProposalProvider;
 import org.eclipse.xtext.ide.editor.syntaxcoloring.ISemanticHighlightingCalculator;
+import org.eclipse.xtext.ide.server.contentassist.ContentAssistService;
 
+import com.google.inject.Binder;
+
+import io.sapl.grammar.ide.contentassist.SAPLContentAssistService;
 import io.sapl.grammar.ide.contentassist.SAPLContentProposalProvider;
 import io.sapl.grammar.ide.highlighting.SAPLSemanticHighlightingCalculator;
 
@@ -27,6 +31,12 @@ import io.sapl.grammar.ide.highlighting.SAPLSemanticHighlightingCalculator;
  * Use this class to register IDE components.
  */
 public class SAPLIdeModule extends AbstractSAPLIdeModule {
+
+    @Override
+    public void configure(Binder binder) {
+        super.configure(binder);
+        binder.bind(ContentAssistService.class).to(SAPLContentAssistService.class);
+    }
 
     /**
      * @return the IdeContentProposalProvider

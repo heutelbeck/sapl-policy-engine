@@ -23,20 +23,76 @@ Eclipse IDE support for SAPL policy files and SAPL test files.
 
 ### From Local Build
 
-Build the plugin first:
+Build the plugin from the repository root:
 
 ```shell
-cd sapl-eclipse-plugin
-mvn clean install
+mvn clean install -Peclipse -DskipTests -DskipCore
 ```
 
 Then install in Eclipse:
 
 1. Open **Help** > **Install New Software...**
 2. Click **Add...** > **Local...**
-3. Browse to `sapl-eclipse-repository/target/repository`
+3. Browse to `sapl-eclipse-plugin/sapl-eclipse-repository/target/repository`
 4. Select **SAPL** from the list
 5. Complete the wizard, trust the artifacts when prompted, and restart Eclipse
+
+### Reinstalling During Development
+
+When reinstalling the plugin after rebuilding, Eclipse and p2 aggressively cache artifacts.
+If you encounter errors like `ClassNotFoundException` or artifact resolution failures after reinstalling,
+you must clear these caches before reinstalling:
+
+**Option A: Use the cleanup script**
+
+```shell
+# Windows (PowerShell)
+.\clean-caches.ps1
+
+# Linux/macOS
+./clean-caches.sh
+```
+
+**Option B: Manual cleanup**
+
+1. Clear Tycho/Maven caches (before rebuilding):
+
+```shell
+rm -rf ~/.m2/repository/.cache
+rm -rf ~/.m2/repository/.meta
+rm -rf ~/.m2/repository/p2
+rm -rf ~/.m2/repository/io/sapl/sapl-eclipse-thirdparty
+rm -rf ~/.m2/repository/org/eclipse/lsp4j
+```
+
+2. Clear Eclipse p2 caches (before reinstalling in Eclipse):
+
+```shell
+rm -rf ~/.p2/pool/plugins/io.sapl*
+rm -rf ~/.p2/pool/plugins/sapl*
+rm -rf ~/.p2/pool/features/io.sapl*
+rm -rf ~/.p2/org.eclipse.equinox.p2.repository
+rm -rf ~/.p2/org.eclipse.equinox.p2.core
+```
+
+3. Start Eclipse with clean flag:
+
+```shell
+eclipse -clean
+```
+
+4. Reinstall from local repository
+
+On Windows, replace `~` with `%USERPROFILE%` or `C:\Users\<username>`.
+
+### Common Build/Install Failures
+
+| Error | Cause | Solution |
+|-------|-------|----------|
+| `Ambiguous main artifact of the project for org.eclipse.lsp4j.jsonrpc` | Tycho p2 cache corruption with multiple artifact versions | Run `clean-caches` script, or add `-Dtycho.p2.transport.min-cache-minutes=0` to bypass cache |
+| `ClassNotFoundException` after reinstall | Old plugin JARs cached in Eclipse p2 pool | Clear `~/.p2/pool/plugins/io.sapl*` and `sapl*`, restart Eclipse with `-clean` |
+| `The artifact file for osgi.bundle,io.sapl.eclipse-thirdparty was not found` | p2 metadata references stale artifact | Clear all p2 caches and rebuild |
+| `Unknown packaging: eclipse-plugin` | Running Maven without Tycho (missing `-Peclipse` profile) | Use `mvn ... -Peclipse` or build from repository root |
 
 ## Module Structure
 

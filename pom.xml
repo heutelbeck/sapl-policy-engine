@@ -608,6 +608,7 @@
 							<header>
 								${main.basedir}/APACHE-2.txt</header>
 							<excludes>
+								<exclude>**/*.vim</exclude>
 								<exclude>**/*.xtendbin</exclude>
 								<exclude>**/*._trace</exclude>
 								<exclude>**/types.d.ts</exclude>

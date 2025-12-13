@@ -20,14 +20,20 @@
  */
 package io.sapl.grammar.ui;
 
-import com.google.inject.Binder;
-import io.sapl.grammar.ide.contentassist.ContentAssistConfigurationSource;
-import io.sapl.grammar.ide.contentassist.DefaultContentAssistConfiguration;
-import io.sapl.grammar.ui.contentassist.SAPLUiContentProposalProvider;
 import org.eclipse.ui.plugin.AbstractUIPlugin;
 import org.eclipse.xtext.ide.editor.contentassist.IdeContentProposalProvider;
 import org.eclipse.xtext.ui.editor.contentassist.IContentProposalProvider;
 import org.eclipse.xtext.ui.editor.contentassist.UiToIdeContentProposalProvider;
+import org.eclipse.xtext.ui.editor.syntaxcoloring.IHighlightingConfiguration;
+import org.eclipse.xtext.ui.editor.syntaxcoloring.ISemanticHighlightingCalculator;
+
+import com.google.inject.Binder;
+
+import io.sapl.grammar.ide.contentassist.ContentAssistConfigurationSource;
+import io.sapl.grammar.ide.contentassist.DefaultContentAssistConfiguration;
+import io.sapl.grammar.ui.contentassist.SAPLUiContentProposalProvider;
+import io.sapl.grammar.ui.highlighting.SAPLHighlightingConfiguration;
+import io.sapl.grammar.ui.highlighting.SAPLSemanticHighlightingCalculator;
 
 /**
  * Use this class to register components to be used within the Eclipse IDE.
@@ -52,6 +58,14 @@ public class SAPLUiModule extends AbstractSAPLUiModule {
 
     public Class<? extends IdeContentProposalProvider> bindIdeContentProposalProvider() {
         return SAPLUiContentProposalProvider.class;
+    }
+
+    public Class<? extends IHighlightingConfiguration> bindIHighlightingConfiguration() {
+        return SAPLHighlightingConfiguration.class;
+    }
+
+    public Class<? extends ISemanticHighlightingCalculator> bindISemanticHighlightingCalculator() {
+        return SAPLSemanticHighlightingCalculator.class;
     }
 
 }

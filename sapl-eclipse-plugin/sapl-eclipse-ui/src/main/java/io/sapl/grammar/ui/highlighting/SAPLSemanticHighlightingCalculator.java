@@ -15,58 +15,52 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.grammar.ide.highlighting;
+package io.sapl.grammar.ui.highlighting;
+
+import java.util.Set;
 
 import org.eclipse.emf.ecore.EObject;
 import org.eclipse.emf.ecore.EStructuralFeature;
 import org.eclipse.xtext.EnumLiteralDeclaration;
 import org.eclipse.xtext.Keyword;
-import org.eclipse.xtext.ide.editor.syntaxcoloring.IHighlightedPositionAcceptor;
-import org.eclipse.xtext.ide.editor.syntaxcoloring.ISemanticHighlightingCalculator;
 import org.eclipse.xtext.nodemodel.ILeafNode;
 import org.eclipse.xtext.nodemodel.util.NodeModelUtils;
 import org.eclipse.xtext.resource.XtextResource;
-import org.eclipse.xtext.util.CancelIndicator;
+import org.eclipse.xtext.ui.editor.syntaxcoloring.DefaultHighlightingConfiguration;
+import org.eclipse.xtext.ui.editor.syntaxcoloring.IHighlightedPositionAcceptor;
+import org.eclipse.xtext.ui.editor.syntaxcoloring.ISemanticHighlightingCalculator;
 
 import io.sapl.grammar.sapl.AttributeFinderStep;
 import io.sapl.grammar.sapl.BasicEnvironmentAttribute;
 import io.sapl.grammar.sapl.BasicEnvironmentHeadAttribute;
 import io.sapl.grammar.sapl.BasicFunction;
 import io.sapl.grammar.sapl.BasicIdentifier;
-import io.sapl.grammar.sapl.FalseLiteral;
 import io.sapl.grammar.sapl.FunctionIdentifier;
 import io.sapl.grammar.sapl.HeadAttributeFinderStep;
-import io.sapl.grammar.sapl.NullLiteral;
 import io.sapl.grammar.sapl.NumberLiteral;
 import io.sapl.grammar.sapl.Policy;
 import io.sapl.grammar.sapl.PolicySet;
 import io.sapl.grammar.sapl.SaplPackage;
-import io.sapl.grammar.sapl.TrueLiteral;
-import io.sapl.grammar.sapl.UndefinedLiteral;
 import io.sapl.grammar.sapl.ValueDefinition;
 
 /**
- * Provides comprehensive semantic highlighting for SAPL documents via LSP
- * semantic tokens.
+ * Provides semantic highlighting for SAPL documents in Eclipse.
+ * Matches the highlighting behavior of the LSP semantic tokens.
  */
 public class SAPLSemanticHighlightingCalculator implements ISemanticHighlightingCalculator {
 
-    private static final String STYLE_KEYWORD   = "keyword";
-    private static final String STYLE_OPERATOR  = "operator";
-    private static final String STYLE_STRING    = "string";
-    private static final String STYLE_NUMBER    = "number";
-    private static final String STYLE_COMMENT   = "comment";
-    private static final String STYLE_NAMESPACE = "namespace";
-    private static final String STYLE_CLASS     = "class";
-    private static final String STYLE_VARIABLE  = "variable";
-    private static final String STYLE_FUNCTION  = "function";
-    private static final String STYLE_PROPERTY  = "property";
-    private static final String STYLE_PARAMETER = "parameter";
-    private static final String STYLE_MACRO     = "macro";
+    private static final Set<String> KEYWORDS = Set.of("import", "as", "schema", "enforced", "set", "for", "policy",
+            "where", "var", "obligation", "advice", "transform", "in", "each", "true", "false", "null", "undefined");
+
+    private static final Set<String> ENTITLEMENTS_AND_ALGORITHMS = Set.of("permit", "deny", "deny-overrides",
+            "permit-overrides", "first-applicable", "only-one-applicable", "deny-unless-permit", "permit-unless-deny");
+
+    private static final Set<String> OPERATORS = Set.of("||", "&&", "|", "^", "&", "==", "!=", "=~", "<", "<=", ">",
+            ">=", "+", "-", "*", "/", "%", "!", "|-", "::", "@", ".", "..", ":", ",", "|<", "(", ")", "[", "]", "{",
+            "}");
 
     @Override
-    public void provideHighlightingFor(XtextResource resource, IHighlightedPositionAcceptor acceptor,
-            CancelIndicator cancelIndicator) {
+    public void provideHighlightingFor(XtextResource resource, IHighlightedPositionAcceptor acceptor) {
         if (resource == null || resource.getParseResult() == null) {
             return;
         }
@@ -76,18 +70,15 @@ public class SAPLSemanticHighlightingCalculator implements ISemanticHighlighting
             return;
         }
 
-        // Highlight all leaf nodes (keywords, operators, comments)
+        // Highlight leaf nodes (keywords, operators, strings)
         for (var leafNode : rootNode.getLeafNodes()) {
-            if (cancelIndicator.isCanceled()) {
-                return;
-            }
             highlightLeafNode(leafNode, acceptor);
         }
 
         // Highlight semantic elements from AST
         var rootElement = resource.getParseResult().getRootASTElement();
         if (rootElement != null) {
-            highlightSemanticElements(rootElement, acceptor, cancelIndicator);
+            highlightSemanticElements(rootElement, acceptor);
         }
     }
 
@@ -99,73 +90,68 @@ public class SAPLSemanticHighlightingCalculator implements ISemanticHighlighting
 
         var text = leafNode.getText();
 
-        // Hidden tokens (comments)
+        // Hidden tokens (comments) - handled by default configuration
         if (leafNode.isHidden()) {
-            if (text.startsWith("//") || text.startsWith("/*")) {
-                acceptor.addPosition(leafNode.getOffset(), leafNode.getLength(), STYLE_COMMENT);
-            }
             return;
         }
 
         // Entitlements and combining algorithms (permit, deny, first-applicable, etc.)
-        // Check by text since these can be Keywords or EnumLiteralDeclarations
-        if (HighlightingStyles.ENTITLEMENTS_AND_ALGORITHMS.contains(text)) {
-            acceptor.addPosition(leafNode.getOffset(), leafNode.getLength(), STYLE_MACRO);
+        if (ENTITLEMENTS_AND_ALGORITHMS.contains(text)) {
+            acceptor.addPosition(leafNode.getOffset(), leafNode.getLength(),
+                    SAPLHighlightingConfiguration.ENTITLEMENT_ID);
             return;
         }
 
         // Keywords
         if (grammarElement instanceof Keyword || grammarElement instanceof EnumLiteralDeclaration) {
-            if (HighlightingStyles.KEYWORDS.contains(text)) {
-                acceptor.addPosition(leafNode.getOffset(), leafNode.getLength(), STYLE_KEYWORD);
-            } else if (HighlightingStyles.OPERATORS.contains(text)) {
-                acceptor.addPosition(leafNode.getOffset(), leafNode.getLength(), STYLE_OPERATOR);
+            if (KEYWORDS.contains(text)) {
+                acceptor.addPosition(leafNode.getOffset(), leafNode.getLength(),
+                        DefaultHighlightingConfiguration.KEYWORD_ID);
+            } else if (OPERATORS.contains(text)) {
+                acceptor.addPosition(leafNode.getOffset(), leafNode.getLength(),
+                        SAPLHighlightingConfiguration.OPERATOR_ID);
             }
         }
 
-        // Strings - highlight all quoted strings uniformly (including object keys)
+        // Strings
         if (text.length() >= 2 && text.charAt(0) == '"' && text.charAt(text.length() - 1) == '"') {
-            acceptor.addPosition(leafNode.getOffset(), leafNode.getLength(), STYLE_STRING);
+            acceptor.addPosition(leafNode.getOffset(), leafNode.getLength(),
+                    DefaultHighlightingConfiguration.STRING_ID);
         }
     }
 
-    private void highlightSemanticElements(EObject element, IHighlightedPositionAcceptor acceptor,
-            CancelIndicator cancelIndicator) {
-        if (cancelIndicator.isCanceled()) {
-            return;
-        }
-
+    private void highlightSemanticElements(EObject element, IHighlightedPositionAcceptor acceptor) {
         highlightElement(element, acceptor);
-
         for (var child : element.eContents()) {
-            highlightSemanticElements(child, acceptor, cancelIndicator);
+            highlightSemanticElements(child, acceptor);
         }
     }
 
     private void highlightElement(EObject element, IHighlightedPositionAcceptor acceptor) {
         if (element instanceof PolicySet) {
-            highlightFeature(acceptor, element, SaplPackage.Literals.POLICY_ELEMENT__SAPL_NAME, STYLE_NAMESPACE);
+            highlightFeature(acceptor, element, SaplPackage.Literals.POLICY_ELEMENT__SAPL_NAME,
+                    SAPLHighlightingConfiguration.POLICY_NAME_ID);
         } else if (element instanceof Policy) {
-            highlightFeature(acceptor, element, SaplPackage.Literals.POLICY_ELEMENT__SAPL_NAME, STYLE_CLASS);
+            highlightFeature(acceptor, element, SaplPackage.Literals.POLICY_ELEMENT__SAPL_NAME,
+                    SAPLHighlightingConfiguration.POLICY_NAME_ID);
         } else if (element instanceof ValueDefinition) {
-            highlightFeature(acceptor, element, SaplPackage.Literals.VALUE_DEFINITION__NAME, STYLE_VARIABLE);
+            highlightFeature(acceptor, element, SaplPackage.Literals.VALUE_DEFINITION__NAME,
+                    SAPLHighlightingConfiguration.VARIABLE_ID);
         } else if (element instanceof BasicFunction basicFunction) {
-            highlightFunctionIdentifier(acceptor, basicFunction.getIdentifier(), STYLE_FUNCTION);
+            highlightFunctionIdentifier(acceptor, basicFunction.getIdentifier(),
+                    SAPLHighlightingConfiguration.FUNCTION_ID);
         } else if (element instanceof AttributeFinderStep step) {
-            highlightFunctionIdentifier(acceptor, step.getIdentifier(), STYLE_PROPERTY);
+            highlightFunctionIdentifier(acceptor, step.getIdentifier(), SAPLHighlightingConfiguration.ATTRIBUTE_ID);
         } else if (element instanceof HeadAttributeFinderStep step) {
-            highlightFunctionIdentifier(acceptor, step.getIdentifier(), STYLE_PROPERTY);
+            highlightFunctionIdentifier(acceptor, step.getIdentifier(), SAPLHighlightingConfiguration.ATTRIBUTE_ID);
         } else if (element instanceof BasicEnvironmentAttribute attr) {
-            highlightFunctionIdentifier(acceptor, attr.getIdentifier(), STYLE_PROPERTY);
+            highlightFunctionIdentifier(acceptor, attr.getIdentifier(), SAPLHighlightingConfiguration.ATTRIBUTE_ID);
         } else if (element instanceof BasicEnvironmentHeadAttribute attr) {
-            highlightFunctionIdentifier(acceptor, attr.getIdentifier(), STYLE_PROPERTY);
+            highlightFunctionIdentifier(acceptor, attr.getIdentifier(), SAPLHighlightingConfiguration.ATTRIBUTE_ID);
         } else if (element instanceof BasicIdentifier basicIdentifier) {
             highlightBasicIdentifier(acceptor, basicIdentifier);
         } else if (element instanceof NumberLiteral) {
-            highlightNode(acceptor, element, STYLE_NUMBER);
-        } else if (element instanceof TrueLiteral || element instanceof FalseLiteral || element instanceof NullLiteral
-                || element instanceof UndefinedLiteral) {
-            highlightNode(acceptor, element, STYLE_KEYWORD);
+            highlightNode(acceptor, element, DefaultHighlightingConfiguration.NUMBER_ID);
         }
     }
 
@@ -179,11 +165,10 @@ public class SAPLSemanticHighlightingCalculator implements ISemanticHighlighting
     private void highlightBasicIdentifier(IHighlightedPositionAcceptor acceptor, BasicIdentifier identifier) {
         var name = identifier.getIdentifier();
         if ("subject".equals(name) || "action".equals(name) || "resource".equals(name) || "environment".equals(name)) {
-            // Only highlight the identifier itself, not any steps
             var nodes = NodeModelUtils.findNodesForFeature(identifier,
                     SaplPackage.Literals.BASIC_IDENTIFIER__IDENTIFIER);
             for (var node : nodes) {
-                acceptor.addPosition(node.getOffset(), node.getLength(), STYLE_PARAMETER);
+                acceptor.addPosition(node.getOffset(), node.getLength(), SAPLHighlightingConfiguration.AUTHZ_VAR_ID);
             }
         }
     }

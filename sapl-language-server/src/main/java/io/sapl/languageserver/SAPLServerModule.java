@@ -17,23 +17,22 @@
  */
 package io.sapl.languageserver;
 
-import org.eclipse.xtext.ide.server.ServerLauncher;
 import org.eclipse.xtext.ide.server.ServerModule;
-import org.springframework.boot.SpringApplication;
-import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.context.annotation.ComponentScan;
+import org.eclipse.xtext.ide.server.contentassist.ContentAssistService;
 
-import static java.util.concurrent.Executors.newSingleThreadExecutor;
+import io.sapl.grammar.ide.contentassist.SAPLContentAssistService;
 
-@SpringBootApplication
-@ComponentScan({ "io.sapl.grammar.ide.contentassist", "io.sapl.languageserver" })
-public class SAPLLanguageServer {
+/**
+ * Custom Xtext ServerModule for the SAPL Language Server that provides markdown
+ * documentation support in content assist completions.
+ */
+public class SAPLServerModule extends ServerModule {
 
-    public static void main(String[] args) {
-        SpringApplication.run(SAPLLanguageServer.class, args);
-        var executorService = newSingleThreadExecutor();
-        executorService.submit(
-                () -> ServerLauncher.launch(SAPLLanguageServer.class.getName(), new String[] {}, new ServerModule()));
+    @Override
+    protected void configure() {
+        super.configure();
+        // Override the ContentAssistService binding to use our markdown-aware version
+        bind(ContentAssistService.class).to(SAPLContentAssistService.class);
     }
 
 }
