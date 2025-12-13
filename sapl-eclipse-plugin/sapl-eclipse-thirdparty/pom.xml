@@ -42,11 +42,14 @@
         <!-- If the other modules complain some dependency is missing add the artefact here -->
         <!-- Also add it below to: <Embed-Dependency> and <_exportcontents> BOTH are needed ! -->
 
+        <!-- SAPL core -->
         <dependency>
             <groupId>io.sapl</groupId>
             <artifactId>sapl-pdp</artifactId>
             <version>${project.version}</version>
         </dependency>
+
+        <!-- Spring Framework -->
         <dependency>
 			<groupId>org.springframework</groupId>
 			<artifactId>spring-core</artifactId>
@@ -67,6 +70,38 @@
 			<groupId>org.springframework</groupId>
 			<artifactId>spring-webflux</artifactId>
 		</dependency>
+
+        <!-- Jackson JSON processing -->
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.fasterxml.jackson.datatype</groupId>
+            <artifactId>jackson-datatype-jdk8</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.fasterxml.jackson.datatype</groupId>
+            <artifactId>jackson-datatype-jsr310</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.fasterxml.jackson.dataformat</groupId>
+            <artifactId>jackson-dataformat-xml</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.fasterxml.jackson.dataformat</groupId>
+            <artifactId>jackson-dataformat-yaml</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.fasterxml.jackson.dataformat</groupId>
+            <artifactId>jackson-dataformat-toml</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.fasterxml.jackson.dataformat</groupId>
+            <artifactId>jackson-dataformat-csv</artifactId>
+        </dependency>
+
+        <!-- Other dependencies -->
         <dependency>
             <groupId>net.jcip</groupId>
             <artifactId>jcip-annotations</artifactId>
@@ -89,6 +124,18 @@
             <groupId>com.github.seancfoley</groupId>
             <artifactId>ipaddress</artifactId>
             <version>5.5.1</version>
+        </dependency>
+        <dependency>
+            <groupId>commons-io</groupId>
+            <artifactId>commons-io</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.networknt</groupId>
+            <artifactId>json-schema-validator</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.github.classgraph</groupId>
+            <artifactId>classgraph</artifactId>
         </dependency>
 	</dependencies>
 
@@ -117,37 +164,39 @@
 				</executions>
 				<configuration>
 					<instructions>
-						<Embed-Dependency>
-							spring-beans,
-							spring-core,
-							spring-context,
-							spring-web,
-							spring-webflux,
-                            jcip-annotations,
-                            nimbus-jose-jwt,
-                            graphql-java,
-                            semver4j,
-                            ipaddress,
-                            sapl-pdp,
-                            sapl-api
-						</Embed-Dependency>
+						<!-- Use inline=true to unpack JAR contents directly into bundle.
+						     This fixes Multi-Release JAR loading issues with OSGi/Eclipse. -->
+						<Embed-Dependency>*;scope=compile|runtime;inline=true</Embed-Dependency>
+						<Embed-Transitive>true</Embed-Transitive>
 						<Import-Package>
-							!groovy
+							!groovy.*,
+							!groovy,
+							!kotlin.*,
+							!kotlinx.*,
+							!org.graalvm.*,
+							!org.codehaus.groovy.*,
+							!bsh.*,
+							!com.ctc.wstx.*,
+							!org.osgi.*,
+							!sun.misc,
+							!sun.reflect,
+							*;resolution:=optional
 						</Import-Package>
-                        <_exportcontents>
-                            org.springframework.*;version="6.1.11",
+						<Export-Package>
+                            org.springframework.*;version="6.2.14",
                             net.jcip.annotations.*;version="1.0.0",
                             com.nimbusds.*;version="9.37.4",
                             graphql.*;version="24.3.0",
                             org.semver4j.*;version="6.0.0",
                             inet.ipaddr.*;version="5.5.1",
+                            com.fasterxml.jackson.*;version="2.19.4",
+                            org.apache.commons.io.*;version="2.21.0",
+                            com.networknt.*;version="1.5.4",
+                            io.github.classgraph.*;version="4.8.180",
                             io.sapl.*;version="4.0.0"
-                        </_exportcontents>
-						<Bundle-ClassPath>{maven-dependencies}</Bundle-ClassPath>
-						<Embed-Transitive>true</Embed-Transitive>
-						<Embed-Directory>jars</Embed-Directory>
-						<_failok>true</_failok>
+                        </Export-Package>
 						<_nouses>true</_nouses>
+						<_nodefaultversion>true</_nodefaultversion>
 					</instructions>
 					<supportIncrementalBuild>true</supportIncrementalBuild>
 				</configuration>

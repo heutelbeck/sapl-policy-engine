@@ -1,18 +1,29 @@
-# SAPL Eclipse update site 
+# SAPL Eclipse Update Site
 
-This module contains an eclipse update site which can be used to install the io.sapl.eclipse.feature into Eclipse.
+P2 repository for distributing the SAPL Eclipse plugin.
 
-The following steps can be used to test a locally built version of the plugin in the Eclipse IDE:
-- Build the project with `mvn clean install`.
-- Open the "Install" dialog in Eclipse (Help -> Install New Software...).
-- Add the local update-site to Eclipse (Click on "Add...", then on "Local..." and select the local update-site).
-  It can be found in this module in the subdirectory [target/repository](target/repository).
-- Select the update-site in the dropdown after "Work with". Its name is "SAPL Eclipse update site".
-- Select "SAPL" in the table below.
-- Click on "Next".
-- Click on "Finish".
-- Trust all bundles for the sapl plugin in the "Trust Artifacts" dialog. ("Select All" and then "Trust Selected")
-- Restart eclipse from the "Software Updates" dialog. ("Restart Now")
-- Open a sapl file.
+## Installing from Local Build
 
-For more information about the term update site see [Eclipse Update Site](https://wiki.eclipse.org/PDE/User_Guide#Update_Site).
+1. Build the project:
+   ```shell
+   mvn clean install
+   ```
+
+2. In Eclipse, open **Help** > **Install New Software...**
+
+3. Click **Add...**, then **Local...** and select `target/repository` in this module
+
+4. Select the update site in the "Work with" dropdown (named "SAPL Eclipse update site")
+
+5. Check **SAPL** in the feature list
+
+6. Click **Next**, then **Finish**
+
+7. In the "Trust Artifacts" dialog, click **Select All**, then **Trust Selected**
+
+8. Click **Restart Now** when prompted
+
+9. Open a `.sapl` file to verify the plugin is working
+
+For more information about Eclipse update sites, see the
+[Eclipse PDE User Guide](https://wiki.eclipse.org/PDE/User_Guide#Update_Site).

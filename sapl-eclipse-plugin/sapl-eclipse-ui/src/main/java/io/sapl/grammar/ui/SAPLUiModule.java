@@ -20,6 +20,7 @@
  */
 package io.sapl.grammar.ui;
 
+import com.google.inject.Binder;
 import io.sapl.grammar.ide.contentassist.ContentAssistConfigurationSource;
 import io.sapl.grammar.ide.contentassist.DefaultContentAssistConfiguration;
 import io.sapl.grammar.ui.contentassist.SAPLUiContentProposalProvider;
@@ -38,22 +39,19 @@ public class SAPLUiModule extends AbstractSAPLUiModule {
     }
 
     @Override
+    public void configure(Binder binder) {
+        super.configure(binder);
+        binder.bind(ContentAssistConfigurationSource.class)
+                .toInstance(DefaultContentAssistConfiguration.Factory.create());
+    }
+
+    @Override
     public Class<? extends IContentProposalProvider> bindIContentProposalProvider() {
         return UiToIdeContentProposalProvider.class;
     }
 
     public Class<? extends IdeContentProposalProvider> bindIdeContentProposalProvider() {
         return SAPLUiContentProposalProvider.class;
-    }
-
-    /**
-     * Provides content assist configuration for the Eclipse editor with all default
-     * SAPL function libraries and Policy Information Points loaded.
-     * Uses the Factory pattern from DefaultContentAssistConfiguration for
-     * non-Spring contexts.
-     */
-    public ContentAssistConfigurationSource bindContentAssistConfigurationSource() {
-        return DefaultContentAssistConfiguration.Factory.create();
     }
 
 }

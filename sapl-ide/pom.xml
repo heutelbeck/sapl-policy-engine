@@ -167,7 +167,19 @@
                      https://github.com/projectlombok/lombok/issues/3601 -->
 					<bnd>
 						Import-Package: com.google.common.*;version="32",\
+						com.fasterxml.jackson.*;resolution:=optional,\
+						io.sapl.api.*;resolution:=optional,\
+						io.sapl.attributes.*;resolution:=optional,\
+						io.sapl.compiler.*;resolution:=optional,\
+						io.sapl.documentation.*;resolution:=optional,\
+						io.sapl.functions.*;resolution:=optional,\
+						org.springframework.*;resolution:=optional,\
 						*
+						Export-Package: io.sapl.grammar.ide,\
+						io.sapl.grammar.ide.highlighting,\
+						io.sapl.grammar.ide.contentassist,\
+						io.sapl.grammar.ide.contentassist.antlr,\
+						io.sapl.grammar.ide.contentassist.antlr.internal
 					</bnd>
 				</configuration>
 			</plugin>

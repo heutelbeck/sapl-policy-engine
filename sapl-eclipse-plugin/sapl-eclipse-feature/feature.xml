@@ -226,6 +226,13 @@ third-party archives.
 	</license>
 
 	<plugin
+			id="io.sapl.eclipse-thirdparty"
+			download-size="0"
+			install-size="0"
+			version="0.0.0"
+			unpack="false"/>
+
+	<plugin
 			id="sapl-eclipse-ui"
 			download-size="0"
 			install-size="0"
