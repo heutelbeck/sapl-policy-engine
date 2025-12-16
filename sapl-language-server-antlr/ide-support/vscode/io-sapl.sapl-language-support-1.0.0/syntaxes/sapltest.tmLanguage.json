@@ -1,0 +1,175 @@
+{
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "name": "SAPLTest",
+  "scopeName": "source.sapltest",
+  "fileTypes": ["sapltest"],
+  "patterns": [
+    { "include": "#comments" },
+    { "include": "#strings" },
+    { "include": "#numbers" },
+    { "include": "#decisions" },
+    { "include": "#algorithms" },
+    { "include": "#structureKeywords" },
+    { "include": "#authzKeywords" },
+    { "include": "#mockKeywords" },
+    { "include": "#importKeywords" },
+    { "include": "#pdpKeywords" },
+    { "include": "#matcherKeywords" },
+    { "include": "#typeKeywords" },
+    { "include": "#stringMatcherKeywords" },
+    { "include": "#expectKeywords" },
+    { "include": "#constants" },
+    { "include": "#operators" },
+    { "include": "#punctuation" }
+  ],
+  "repository": {
+    "comments": {
+      "patterns": [
+        {
+          "name": "comment.line.double-slash.sapltest",
+          "match": "//.*$"
+        },
+        {
+          "name": "comment.block.sapltest",
+          "begin": "/\\*",
+          "end": "\\*/"
+        }
+      ]
+    },
+    "strings": {
+      "patterns": [
+        {
+          "name": "string.quoted.double.sapltest",
+          "begin": "\"",
+          "end": "\"",
+          "patterns": [
+            {
+              "name": "constant.character.escape.sapltest",
+              "match": "\\\\."
+            }
+          ]
+        }
+      ]
+    },
+    "numbers": {
+      "patterns": [
+        {
+          "name": "constant.numeric.sapltest",
+          "match": "-?\\b\\d+(\\.\\d+)?([eE][+-]?\\d+)?\\b"
+        }
+      ]
+    },
+    "decisions": {
+      "patterns": [
+        {
+          "name": "storage.type.decision.sapltest",
+          "match": "\\b(permit|deny|indeterminate|not-applicable)\\b"
+        }
+      ]
+    },
+    "algorithms": {
+      "patterns": [
+        {
+          "name": "storage.type.algorithm.sapltest",
+          "match": "\\b(deny-overrides|permit-overrides|only-one-applicable|deny-unless-permit|permit-unless-deny)\\b"
+        }
+      ]
+    },
+    "structureKeywords": {
+      "patterns": [
+        {
+          "name": "keyword.control.structure.sapltest",
+          "match": "\\b(requirement|scenario|given|when|then|expect)\\b"
+        }
+      ]
+    },
+    "authzKeywords": {
+      "patterns": [
+        {
+          "name": "variable.language.authz.sapltest",
+          "match": "\\b(subject|action|resource|environment|attempts|on)\\b"
+        }
+      ]
+    },
+    "mockKeywords": {
+      "patterns": [
+        {
+          "name": "keyword.control.mock.sapltest",
+          "match": "\\b(function|attribute|maps|to|emits|stream|timing|of|is|called|virtual-time|error)\\b"
+        }
+      ]
+    },
+    "importKeywords": {
+      "patterns": [
+        {
+          "name": "keyword.control.import.sapltest",
+          "match": "\\b(pip|static-pip|function-library|static-function-library)\\b"
+        }
+      ]
+    },
+    "pdpKeywords": {
+      "patterns": [
+        {
+          "name": "keyword.control.pdp.sapltest",
+          "match": "\\b(pdp|variables|combining-algorithm|configuration|policy|set|policies)\\b"
+        }
+      ]
+    },
+    "matcherKeywords": {
+      "patterns": [
+        {
+          "name": "keyword.control.matcher.sapltest",
+          "match": "\\b(matching|any|equals|containing|key|value|where|with|decision|obligation|advice|obligations)\\b"
+        }
+      ]
+    },
+    "typeKeywords": {
+      "patterns": [
+        {
+          "name": "support.type.sapltest",
+          "match": "\\b(null|text|number|boolean|array|object)\\b"
+        }
+      ]
+    },
+    "stringMatcherKeywords": {
+      "patterns": [
+        {
+          "name": "keyword.control.string-matcher.sapltest",
+          "match": "\\b(blank|empty|null-or-empty|null-or-blank|equal|compressed|whitespace|case-insensitive|regex|starting|ending|length|order)\\b"
+        }
+      ]
+    },
+    "expectKeywords": {
+      "patterns": [
+        {
+          "name": "keyword.control.expect.sapltest",
+          "match": "\\b(no-event|for|wait|next|once|times)\\b"
+        }
+      ]
+    },
+    "constants": {
+      "patterns": [
+        {
+          "name": "constant.language.sapltest",
+          "match": "\\b(true|false|undefined)\\b"
+        }
+      ]
+    },
+    "operators": {
+      "patterns": [
+        {
+          "name": "keyword.operator.logical.sapltest",
+          "match": "\\b(and|in)\\b"
+        }
+      ]
+    },
+    "punctuation": {
+      "patterns": [
+        {
+          "name": "punctuation.definition.sapltest",
+          "match": "[\\[\\]{}().,;:\\-<>]"
+        }
+      ]
+    }
+  }
+}

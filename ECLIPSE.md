@@ -22,15 +22,6 @@ SAPL makes extensive use of Lombok to eliminate boilerplate code. Without the Lo
 
 The Lombok Plug-in cannot be downloaded via the Eclipse Marketplace. Please download it from the official [Project Lombok download page](https://projectlombok.org/download).
 
-### PDE Integration
-
-SAPL generates an Eclipse Plug-in. This requires the tycho tooling for building and packaging. Eclipse itself cannot deal with this out of the box.
-Install the "M2E - PDE Integration" from the update site [Eclipse IDE integration for Maven](https://download.eclipse.org/technology/m2e/releases/latest). Use the "Help -> Install New Software..." menu in Eclipse. The update site should already be present.
-
-Next, determine your Eclipse version. Go to Help->About Eclipse IDE. In the dialogue there will be a version indicated: `Version: 2025-06 (4.36.0)`. The important part is the version in the brackets. 
-Now, go to "Help -> Install New Software..." add the update site (https://download.eclipse.org/eclipse/updates/4.xx), where `xx` is the minor version as indicated in the version identified. In this case, 3.36. 
-Now install all modules under "Eclipse Plugin Development Tools".
-
 ### Xtext Eclipse Plug-In
 
 To get support for editing the Xtext grammar files, install the "Eclipse Xtext" plug-in. Use the "Help -> Eclipse Marketplace..." menu and search for "Xtext".

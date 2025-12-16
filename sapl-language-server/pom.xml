@@ -83,20 +83,6 @@
 					</execution>
 				</executions>
 			</plugin>
-			<plugin>
-				<groupId>com.mycila</groupId>
-				<artifactId>license-maven-plugin</artifactId>
-				<configuration>
-					<licenseSets>
-						<licenseSet>
-							<header>${main.basedir}/APACHE-2.txt</header>
-							<excludes>
-								<exclude>**/*.lua</exclude>
-							</excludes>
-						</licenseSet>
-					</licenseSets>
-				</configuration>
-			</plugin>
-		</plugins>
+			</plugins>
 	</build>
 </project>

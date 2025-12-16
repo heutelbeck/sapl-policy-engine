@@ -81,7 +81,7 @@
         </dependency>
         <dependency>
             <groupId>io.sapl</groupId>
-            <artifactId>sapl-pdp</artifactId>
+            <artifactId>sapl-pdp-antlr</artifactId>
             <version>${project.version}</version>
         </dependency>
 		<dependency>
@@ -250,6 +250,8 @@
 						</launchCache>
 						<applicationDirectory>/pdp</applicationDirectory>
 						<env>
+							<BP_JVM_JLINK_ENABLED>true</BP_JVM_JLINK_ENABLED>
+							<BP_JVM_JLINK_ARGS>--no-man-pages --no-header-files --strip-debug --compress zip-6</BP_JVM_JLINK_ARGS>
 							<BPE_SPRING_PROFILES_ACTIVE>docker</BPE_SPRING_PROFILES_ACTIVE>
 							<BPE_SPRING_CONFIG_ADDITIONAL_LOCATION>
 								optional:file:/pdp/data/</BPE_SPRING_CONFIG_ADDITIONAL_LOCATION>

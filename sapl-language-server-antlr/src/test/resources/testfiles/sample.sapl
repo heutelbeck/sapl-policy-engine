@@ -1,0 +1,8 @@
+/*
+ * Sample SAPL policy for testing
+ */
+policy "allow read access"
+permit
+    action == "read"
+where
+    subject.role == "user";

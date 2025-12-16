@@ -1,0 +1,12 @@
+/*
+ * Sample SAPLTest file for testing
+ */
+requirement "access control tests" {
+    scenario "user can read"
+        when "user" attempts "read" on "document"
+        expect permit;
+
+    scenario "guest denied write"
+        when "guest" attempts "write" on "document"
+        expect deny;
+}

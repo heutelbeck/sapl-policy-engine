@@ -1,0 +1,14 @@
+set "query_annotation_user_repository"
+first-applicable
+
+policy "permit query method (1)"
+permit
+where
+    action == "fetchingByQueryMethod";
+    subject.age > 18;
+obligation {
+               "type": "mongoQueryManipulation",
+               "conditions": [ "{'age': {'$gt': 18}}" ]
+             }
+
+

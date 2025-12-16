@@ -1,0 +1,71 @@
+import filter.blacken
+
+set "UIController"
+first-applicable
+
+
+/*
+ * This 'for' statement ensures, that the policies are only checked when they are actions, e.g., method calls,
+ * in the designated Java class.
+ * In this case, spring will indirectly implement the PatientRepository interface and it may not appear directly 
+ * in the method signatures, e.g. when using default methods from CrudRepositories. Thus we inspect the class 
+ * hierarchy and interfaces implemented by the class to scope the policy set. 
+ */
+for "UIController" in action.java.instanceof..simpleName
+
+/*
+ * This policy enables all authenticated users to see the patient list. The contents of the patient list 
+ * page especially the availability of the button to create new patients is controlled 
+ * by another policy.
+ */
+policy "all authenticated users may see patient list"
+permit action.java.name == "getPatients" & resource.http.requestedURI == "/patients"
+where
+	!("ROLE_ANONYMOUS" in subject..authority);
+
+/*
+ * This policy enables all authenticated users to see a patient list. The contents of the patient list 
+ * page especially the availability of the button to create new patients is controlled 
+ * by another policy.
+ */
+policy "all authenticated users may access patient records"
+permit action.java.name == "getPatient" & resource.http.requestedURI =~ "^/patients/[0-9]+$"
+where
+	!("ROLE_ANONYMOUS" in subject..authority);
+
+/*
+ * This policy enables all doctors and administrators to delete patients on the controller level
+ */
+policy "delete controller for doctors and administrators"
+permit action.java.name == "deletePatient" & resource.http.requestedURI =~ "^/patients/[0-9]+$"
+where
+	("ROLE_DOCTOR" in subject..authority) || ("ROLE_ADMIN" in subject..authority);
+
+/*
+ * Doctors may access the view for registering a new patient
+ */
+policy "doctors may register new patients"
+permit action.java.name == "newPatient" & resource.http.requestedURI =~ "^/patients/new.*"
+where
+	("ROLE_DOCTOR" in subject..authority);
+
+
+/*
+ * Doctors may access the POST controller for registering a new patient bound to the relative resource URI given
+ */
+policy "doctors may register new patients POST"
+permit action.http.method == "POST" & resource.http.requestedURI == "/patients"
+where
+	("ROLE_DOCTOR" in subject..authority);
+	
+/*
+ * All staff members can edit patients under certain conditions defined by other policies
+ */
+policy "staff may access update patient view"
+permit 
+			  action.java.name == "updatePatient" 
+		& (   resource.http.requestedURI =~ "^/patients/[0-9]+/update.*" 
+			| resource.http.requestedURI =~ "^/patients/[0-9]+$"
+		  )
+where
+	("ROLE_DOCTOR" in subject..authority) || ("ROLE_NURSE" in subject..authority) || ("ROLE_ADMIN" in subject..authority);

@@ -21,23 +21,11 @@
 <!--
 	Build Commands:
 
-	* Build core modules (default):
+	* Build all modules:
 	  mvn install
-
-	* Build Eclipse/Tycho modules only (requires core to be installed first, intended for local use):
-	  mvn install -Peclipse -DskipCore
-
-	* Build everything (core + Eclipse):
-	  mvn install -Peclipse
 
 	* Build with coverage:
 	  mvn install -Pcoverage
-
-	* Build Eclipse with coverage:
-	  mvn install -Peclipse,coverage -DskipCore
-
-	The 'core' profile is active by default (when skipCore property is absent).
-	Use -DskipCore to build only Eclipse modules without rebuilding core.
 
 	Utility Goals:
 
@@ -105,7 +93,7 @@
 		<junit.version>1.11.3</junit.version>
 		<xtext.version>2.40.0</xtext.version>
 		<jacoco.version>0.8.12</jacoco.version>
-		<vaadin.version>24.9.4</vaadin.version>
+		<vaadin.version>24.9.7</vaadin.version>
 		<okhttp.version>4.12.0</okhttp.version>
 		<rsocket.version>1.1.4</rsocket.version>
 		<lombok.version>1.18.42</lombok.version>
@@ -123,7 +111,6 @@
 		<jetbrains-annotations.version>26.0.2-1</jetbrains-annotations.version>
 
 		<!-- Maven Plug-Ins -->
-		<tycho.version>5.0.0</tycho.version>
 		<sb-contrib.version>7.6.14</sb-contrib.version>
 		<spdx-maven-plugin.version>1.0.3</spdx-maven-plugin.version>
         <maven-deploy-plugin.version>3.1.4</maven-deploy-plugin.version>
@@ -141,11 +128,6 @@
 		
 		<!-- Path to project/module with the license file -->
 		<main.basedir>${project.basedir}</main.basedir>
-		<!-- Used to skip core-only plugins when building eclipse modules -->
-		<skipCore>false</skipCore>
-		<!-- Standard skip properties - default to skipCore, modules can override -->
-		<license.skip>${skipCore}</license.skip>
-		<formatter.skip>${skipCore}</formatter.skip>
 	</properties>
 
 	<dependencyManagement>
@@ -439,6 +421,12 @@
 					<configuration>
 						<filesets>
 							<fileset>
+								<directory>${basedir}/gen</directory>
+								<includes>
+									<include>**/*</include>
+								</includes>
+							</fileset>
+							<fileset>
 								<directory>${basedir}/src/main/xtend-gen</directory>
 								<includes>
 									<include>**/*</include>
@@ -549,23 +537,6 @@
 						</tags>
 					</configuration>
 				</plugin>
-				<!-- This plugin adds checksums during the verify lifecycle
-				phase which is required
-				for some modules so
-				that tycho is able to verify the checksums -->
-				<plugin>
-					<groupId>net.ju-n.maven.plugins</groupId>
-					<artifactId>checksum-maven-plugin</artifactId>
-					<version>1.4</version>
-					<executions>
-						<execution>
-							<goals>
-								<goal>artifacts</goal>
-							</goals>
-							<phase>package</phase>
-						</execution>
-					</executions>
-				</plugin>
 				<plugin>
 					<groupId>net.revelc.code.formatter</groupId>
 					<artifactId>formatter-maven-plugin</artifactId>
@@ -609,6 +580,7 @@
 								${main.basedir}/APACHE-2.txt</header>
 							<excludes>
 								<exclude>**/*.vim</exclude>
+								<exclude>**/*.lua</exclude>
 								<exclude>**/*.xtendbin</exclude>
 								<exclude>**/*._trace</exclude>
 								<exclude>**/types.d.ts</exclude>
@@ -618,6 +590,7 @@
 								<exclude>**/.clusterfuzzlite/**</exclude>
 								<exclude>**/node_modules/**</exclude>
 								<exclude>**/frontend/**</exclude>
+								<exclude>**/gen/**</exclude>
 								<exclude>**/src/test/resources/**</exclude>
 								<exclude>**/src/test/xtend-gen/**</exclude>
 								<exclude>**/src/test/xtext-gen/**</exclude>
@@ -628,7 +601,6 @@
 								<exclude>src/main/resources/**</exclude>
 								<exclude>.gitattributes</exclude>
 								<exclude>.npmrc</exclude>
-								<exclude>.tycho-consumer-pom.xml</exclude>
 								<exclude>
 									src/main/java/io/sapl/grammar/web/SAPLWebSetup.java</exclude>
 								<exclude>
@@ -659,6 +631,7 @@
 						<xtext>SLASHSTAR_STYLE</xtext>
 						<config>SCRIPT_STYLE</config>
 						<target>XML_STYLE</target>
+						<g4>SLASHSTAR_STYLE</g4>
 					</mapping>
 				</configuration>
 				<executions>
@@ -676,148 +649,62 @@
 			</plugin>
 		</plugins>
 	</build>
+
+	<modules>
+		<!-- Core modules without internal dependencies -->
+		<module>sapl-code-style</module>
+		<module>sapl-api</module>
+
+		<!-- Language modules (in dependency order) -->
+		<module>sapl-generator</module>
+		<module>sapl-lang</module>
+		<module>sapl-parser</module>
+		<module>sapl-test-parser</module>
+		<module>sapl-pdp</module>
+		<module>sapl-pdp-antlr</module>
+		<module>sapl-ide</module>
+		<module>sapl-web</module>
+
+		<!-- PDP extensions (depend on sapl-api) -->
+		<module>pdp-extensions/geo-functions</module>
+		<module>pdp-extensions/geo-traccar</module>
+		<module>pdp-extensions/mqtt-functions</module>
+		<module>pdp-extensions/mqtt-pip</module>
+
+		<!-- Testing modules -->
+		<module>sapl-coverage-api</module>
+		<module>sapl-test-lang</module>
+		<module>sapl-test</module>
+		<module>sapl-test-ide</module>
+		<module>sapl-test-web</module>
+		<module>sapl-maven-plugin</module>
+
+		<!-- Integration modules -->
+		<module>sapl-pdp-remote</module>
+		<module>sapl-spring-security</module>
+
+		<!-- IDE and tooling -->
+		<module>sapl-language-server</module>
+		<module>sapl-language-server-antlr</module>
+		<module>sapl-documentation-generator</module>
+
+		<!-- Web endpoints -->
+		<module>sapl-webflux-endpoint</module>
+		<module>sapl-rsocket-endpoint</module>
+		<module>sapl-vaadin-theme</module>
+		<module>sapl-vaadin-editor</module>
+		<module>sapl-vaadin-editor-lsp</module>
+
+		<!-- Server applications -->
+		<module>sapl-server-lt</module>
+		<module>sapl-server-ce</module>
+		<module>sapl-playground</module>
+
+		<!-- BOM (after all artifacts it references) -->
+		<module>sapl-bom</module>
+	</modules>
+
 	<profiles>
-		<profile>
-			<!--
-				Core modules profile. Active by default unless skipCore property is set.
-				The eclipse profile sets skipCore, so -Peclipse builds only Eclipse modules.
-			-->
-			<id>core</id>
-			<activation>
-				<property>
-					<name>!skipCore</name>
-				</property>
-			</activation>
-			<modules>
-				<!-- Core modules without internal dependencies -->
-				<module>sapl-code-style</module>
-				<module>sapl-api</module>
-
-				<!-- Language modules (in dependency order) -->
-				<module>sapl-generator</module>
-				<module>sapl-lang</module>
-				<module>sapl-pdp</module>
-				<module>sapl-ide</module>
-				<module>sapl-web</module>
-
-				<!-- PDP extensions (depend on sapl-api) -->
-				<module>pdp-extensions/geo-functions</module>
-				<module>pdp-extensions/geo-traccar</module>
-				<module>pdp-extensions/mqtt-functions</module>
-				<module>pdp-extensions/mqtt-pip</module>
-
-				<!-- Testing modules -->
-				<module>sapl-coverage-api</module>
-				<module>sapl-test-lang</module>
-				<module>sapl-test</module>
-				<module>sapl-test-ide</module>
-				<module>sapl-test-web</module>
-				<module>sapl-maven-plugin</module>
-
-				<!-- Integration modules -->
-				<module>sapl-pdp-remote</module>
-				<module>sapl-spring-security</module>
-
-				<!-- IDE and tooling -->
-				<module>sapl-language-server</module>
-				<module>sapl-documentation-generator</module>
-
-				<!-- Web endpoints -->
-				<module>sapl-webflux-endpoint</module>
-				<module>sapl-rsocket-endpoint</module>
-				<module>sapl-vaadin-theme</module>
-				<module>sapl-vaadin-editor</module>
-
-				<!-- Server applications -->
-				<module>sapl-server-lt</module>
-				<module>sapl-server-ce</module>
-				<module>sapl-playground</module>
-
-				<!-- BOM (after all artifacts it references) -->
-				<module>sapl-bom</module>
-			</modules>
-		</profile>
-		<profile>
-			<!--
-				Eclipse plugin build profile.
-				Use with -DskipCore to build only Eclipse modules: mvn install -Peclipse -DskipCore
-				Requires core modules to be installed first.
-			-->
-			<id>eclipse</id>
-			<modules>
-				<module>sapl-eclipse-plugin/sapl-eclipse-target</module>
-				<module>sapl-eclipse-plugin/sapl-eclipse-thirdparty</module>
-				<module>sapl-eclipse-plugin/sapl-eclipse-ui</module>
-				<module>sapl-eclipse-plugin/sapl-test-eclipse-ui</module>
-				<module>sapl-eclipse-plugin/sapl-eclipse-feature</module>
-				<module>sapl-eclipse-plugin/sapl-eclipse-repository</module>
-			</modules>
-			<build>
-				<plugins>
-					<plugin>
-						<groupId>org.eclipse.tycho</groupId>
-						<artifactId>tycho-maven-plugin</artifactId>
-						<version>${tycho.version}</version>
-						<extensions>true</extensions>
-						<configuration>
-							<p2Artifacts>
-								<digestAlgorithms>
-									<digestAlgorithm>SHA-512</digestAlgorithm>
-									<digestAlgorithm>SHA-256</digestAlgorithm>
-								</digestAlgorithms>
-							</p2Artifacts>
-							<includeProvidedScope>false</includeProvidedScope>
-						</configuration>
-					</plugin>
-					<plugin>
-						<groupId>org.eclipse.tycho</groupId>
-						<artifactId>target-platform-configuration</artifactId>
-						<version>${tycho.version}</version>
-						<configuration>
-							<pomDependencies>consider</pomDependencies>
-							<target>
-								<artifact>
-									<groupId>io.sapl</groupId>
-									<artifactId>sapl-eclipse-target</artifactId>
-									<version>${project.version}</version>
-								</artifact>
-							</target>
-							<environments>
-								<environment>
-									<os>macosx</os>
-									<ws>cocoa</ws>
-									<arch>x86_64</arch>
-								</environment>
-								<environment>
-									<os>win32</os>
-									<ws>win32</ws>
-									<arch>x86_64</arch>
-								</environment>
-								<environment>
-									<os>linux</os>
-									<ws>gtk</ws>
-									<arch>x86_64</arch>
-								</environment>
-							</environments>
-							<dependency-resolution>
-								<extraRequirements>
-									<requirement>
-										<type>eclipse-plugin</type>
-										<id>org.eclipse.xtext.logging</id>
-										<versionRange>1.2.24</versionRange>
-									</requirement>
-									<requirement>
-										<type>eclipse-feature</type>
-										<id>org.eclipse.rcp</id>
-										<versionRange>0.0.0</versionRange>
-									</requirement>
-								</extraRequirements>
-							</dependency-resolution>
-						</configuration>
-					</plugin>
-				</plugins>
-			</build>
-		</profile>
 		<profile>
 			<id>it</id>
 			<build>

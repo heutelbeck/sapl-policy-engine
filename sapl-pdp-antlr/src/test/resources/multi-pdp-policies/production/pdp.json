@@ -1,0 +1,6 @@
+{
+  "algorithm": "DENY_OVERRIDES",
+  "variables": {
+    "environment": "production"
+  }
+}

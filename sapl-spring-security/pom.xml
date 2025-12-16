@@ -51,7 +51,7 @@
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>sapl-pdp</artifactId>
+            <artifactId>sapl-pdp-antlr</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
@@ -97,6 +97,10 @@
 			<groupId>jakarta.servlet</groupId>
 			<artifactId>jakarta.servlet-api</artifactId>
 			<scope>provided</scope>
+		</dependency>
+		<dependency>
+			<groupId>jakarta.annotation</groupId>
+			<artifactId>jakarta.annotation-api</artifactId>
 		</dependency>
 		<dependency>
 			<groupId>com.jayway.jsonpath</groupId>

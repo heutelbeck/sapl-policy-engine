@@ -1,0 +1,3 @@
+policy "tenant-a-policy"
+permit
+    subject.tenant == "tenant-a";

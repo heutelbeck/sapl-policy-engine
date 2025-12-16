@@ -171,8 +171,6 @@ jobs:
         # respective reports are needed.
         # To limit its analysis to the pull request that triggered this workflow, the pull
         # request's number is needed.
-        # To run the analysis on the module sapl-eclipse-plugin, information from the
-        # remaining files below is needed.
       - name: Upload Artifact
         if: ${{ (env.RUN_ANALYSIS == 'true') && (env.IS_FORK == 'true') }}
         uses: actions/upload-artifact@26f96dfa697d77e81fd5907df203aa23a56210a8 # v4.3.0
@@ -271,14 +269,14 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
 
       - name: Deploy Maven Artifacts
-        run: mvn -B --no-transfer-progress -pl !:sapl-server-lt,!:sapl-server-ce,!:sapl-playground,!:io.sapl.eclipse.feature,!:sapl-eclipse-repository,!:sapl-eclipse-target,!:sapl-eclipse-thirdparty,!:sapl-eclipse-ui,!:sapl-test-eclipse-ui,!:sapl-documentation-generator -PsonatypeDeploy -DskipTests clean deploy
+        run: mvn -B --no-transfer-progress -pl !:sapl-server-lt,!:sapl-server-ce,!:sapl-playground,!:sapl-documentation-generator -PsonatypeDeploy -DskipTests clean deploy
         env:
           MAVEN_USERNAME: ${{ secrets.NEXUS_USERNAME }}
           MAVEN_CENTRAL_TOKEN: ${{ secrets.NEXUS_PASSWORD }}
           MAVEN_GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
 
-      - name: Build All for Server and Eclipse Plugin
-        run: mvn -U -B clean install -DskipTests -Peclipse,sign,production -T 1.5C
+      - name: Build All for Server
+        run: mvn -U -B clean install -DskipTests -Psign,production -T 1.5C
         env:
           MAVEN_USERNAME: ${{ secrets.NEXUS_USERNAME }}
           MAVEN_CENTRAL_TOKEN: ${{ secrets.NEXUS_PASSWORD }}
@@ -405,17 +403,6 @@ jobs:
           IMAGE_DIGEST=$(docker inspect ${REGISTRY}/${IMAGE} --format '{{index .RepoDigests 0}}' | cut -d'@' -f2)
           echo "Digest of container: $IMAGE_DIGEST"
           echo "IMAGE_DIGEST=$IMAGE_DIGEST" >> $GITHUB_OUTPUT
-
-      - name: Push Eclipse Plugin to Website
-        uses: hpcodecraft/action-deploy-workspace-to-repo@1aa539ca78d3063db25aeb60124c034f6ba9a611 # v2.2
-        env:
-          GITHUB_ACCESS_TOKEN: ${{ secrets.GHUB_ACCESS_TOKEN }}
-          SRC_FOLDER: sapl-eclipse-plugin/sapl-eclipse-repository/target/repository
-          DEST_OWNER: heutelbeck
-          DEST_REPO: sapl-pages
-          DEST_BRANCH: master
-          DEST_FOLDER: sapl-eclipse-plugin
-          DEST_PREDEPLOY_CLEANUP: "rm -rf sapl-eclipse-plugin/*"
 
       # Upload the sapl-server-lt artifact and additional files
       - name: Upload artifact and signature
