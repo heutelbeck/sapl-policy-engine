@@ -1,6 +1,0 @@
-{
-  "algorithm": "DENY_OVERRIDES",
-  "variables": {
-    "tenant": "default"
-  }
-}

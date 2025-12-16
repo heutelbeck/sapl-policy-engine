@@ -77,8 +77,11 @@ import io.sapl.playground.examples.ExamplesCollection;
 import io.sapl.playground.ui.components.DecisionsGrid;
 import io.sapl.playground.ui.components.DocumentationDrawer;
 import io.sapl.vaadin.*;
-import org.eclipse.xtext.diagnostics.Severity;
-import io.sapl.vaadin.graph.JsonGraphVisualization;
+import io.sapl.vaadin.lsp.JsonEditorLsp;
+import io.sapl.vaadin.lsp.JsonEditorLspConfiguration;
+import io.sapl.vaadin.lsp.SaplEditorLsp;
+import io.sapl.vaadin.lsp.SaplEditorLspConfiguration;
+import io.sapl.vaadin.lsp.graph.JsonGraphVisualization;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import org.apache.commons.lang3.StringUtils;
@@ -298,10 +301,10 @@ public class PlaygroundView extends Composite<VerticalLayout> {
 
     private TabSheet                leftTabSheet;
     private Tab                     variablesTab;
-    private JsonEditor              variablesEditor;
+    private JsonEditorLsp           variablesEditor;
     private ValidationStatusDisplay variablesValidationDisplay;
 
-    private JsonEditor              subscriptionEditor;
+    private JsonEditorLsp           subscriptionEditor;
     private ValidationStatusDisplay subscriptionValidationDisplay;
 
     private Button                           playStopButton;
@@ -312,9 +315,9 @@ public class PlaygroundView extends Composite<VerticalLayout> {
     private Checkbox                         clearOnNewSubscriptionCheckBox;
     private Checkbox                         followLatestDecisionCheckbox;
 
-    private JsonEditor             decisionJsonEditor;
-    private JsonEditor             decisionJsonReportEditor;
-    private JsonEditor             decisionJsonTraceEditor;
+    private JsonEditorLsp          decisionJsonEditorLsp;
+    private JsonEditorLsp          decisionJsonReportEditor;
+    private JsonEditorLsp          decisionJsonTraceEditor;
     private JsonGraphVisualization traceGraphVisualization;
     private Div                    errorsDisplayArea;
     private TextArea               reportTextArea;
@@ -338,7 +341,7 @@ public class PlaygroundView extends Composite<VerticalLayout> {
      * display, and tab title.
      */
     private static class PolicyTabContext {
-        SaplEditor              editor;
+        SaplEditorLsp           editor;
         ValidationStatusDisplay validationDisplay;
         Icon                    statusIcon;
         Span                    titleLabel;
@@ -346,7 +349,7 @@ public class PlaygroundView extends Composite<VerticalLayout> {
         io.sapl.vaadin.Issue[]  lastValidationIssues;
         boolean                 lastHasErrors;
 
-        PolicyTabContext(SaplEditor editor,
+        PolicyTabContext(SaplEditorLsp editor,
                 ValidationStatusDisplay validationDisplay,
                 Icon statusIcon,
                 Span titleLabel) {
@@ -558,7 +561,7 @@ public class PlaygroundView extends Composite<VerticalLayout> {
         layout.setPadding(false);
         layout.setSpacing(true);
 
-        val formatButton = createFormatJsonButton(() -> formatJsonEditor(subscriptionEditor));
+        val formatButton = createFormatJsonButton(() -> formatJsonEditorLsp(subscriptionEditor));
         layout.add(formatButton, subscriptionValidationDisplay);
 
         return layout;
@@ -607,8 +610,8 @@ public class PlaygroundView extends Composite<VerticalLayout> {
     /*
      * Creates the subscription JSON editor.
      */
-    private JsonEditor createSubscriptionEditor() {
-        val editor = createJsonEditor(true, 500);
+    private JsonEditorLsp createSubscriptionEditor() {
+        val editor = createJsonEditorLsp(true);
         editor.setWidthFull();
         editor.setHeight(CSS_VALUE_SIZE_200PX);
         editor.addDocumentChangedListener(this::handleSubscriptionDocumentChanged);
@@ -640,7 +643,7 @@ public class PlaygroundView extends Composite<VerticalLayout> {
         if (result.isValid()) {
             subscriptionValidationDisplay.setIssues(List.of());
         } else {
-            val issue = new Issue(result.message(), Severity.ERROR, null, null, null, null);
+            val issue = new Issue(result.message(), IssueSeverity.ERROR, null, null, null, null);
             subscriptionValidationDisplay.setIssues(List.of(issue));
         }
     }
@@ -683,7 +686,7 @@ public class PlaygroundView extends Composite<VerticalLayout> {
     /*
      * Formats JSON content in an editor.
      */
-    private void formatJsonEditor(JsonEditor editor) {
+    private void formatJsonEditorLsp(JsonEditorLsp editor) {
         val jsonString = editor.getDocument();
         try {
             val json = mapper.readTree(jsonString);
@@ -1012,9 +1015,9 @@ public class PlaygroundView extends Composite<VerticalLayout> {
         try {
             val prettyJson = mapper.writerWithDefaultPrettyPrinter()
                     .writeValueAsString(tracedDecision.authorizationDecision());
-            decisionJsonEditor.setDocument(prettyJson);
+            decisionJsonEditorLsp.setDocument(prettyJson);
         } catch (JsonProcessingException exception) {
-            decisionJsonEditor.setDocument(MESSAGE_ERROR_READING_DECISION + tracedDecision);
+            decisionJsonEditorLsp.setDocument(MESSAGE_ERROR_READING_DECISION + tracedDecision);
         }
     }
 
@@ -1081,7 +1084,7 @@ public class PlaygroundView extends Composite<VerticalLayout> {
      * Clears all decision detail displays.
      */
     private void clearDecisionDetailsView() {
-        decisionJsonEditor.setDocument("");
+        decisionJsonEditorLsp.setDocument("");
         decisionJsonTraceEditor.setDocument("");
         decisionJsonReportEditor.setDocument("");
         reportTextArea.setValue("");
@@ -1149,15 +1152,15 @@ public class PlaygroundView extends Composite<VerticalLayout> {
      * Creates the decision JSON tab.
      */
     private Component createDecisionJsonTab() {
-        decisionJsonEditor = createReadOnlyJsonEditor();
-        return createLayoutWithClipboard(decisionJsonEditor, decisionJsonEditor::getDocument);
+        decisionJsonEditorLsp = createReadOnlyJsonEditorLsp();
+        return createLayoutWithClipboard(decisionJsonEditorLsp, decisionJsonEditorLsp::getDocument);
     }
 
     /*
      * Creates the decision JSON report tab.
      */
     private Component createDecisionJsonReportTab() {
-        decisionJsonReportEditor = createReadOnlyJsonEditor();
+        decisionJsonReportEditor = createReadOnlyJsonEditorLsp();
         return createLayoutWithClipboard(decisionJsonReportEditor, decisionJsonReportEditor::getDocument);
     }
 
@@ -1165,7 +1168,7 @@ public class PlaygroundView extends Composite<VerticalLayout> {
      * Creates the decision JSON trace tab.
      */
     private Component createDecisionJsonTraceTab() {
-        decisionJsonTraceEditor = createReadOnlyJsonEditor();
+        decisionJsonTraceEditor = createReadOnlyJsonEditorLsp();
         return createLayoutWithClipboard(decisionJsonTraceEditor, decisionJsonTraceEditor::getDocument);
     }
 
@@ -1264,7 +1267,7 @@ public class PlaygroundView extends Composite<VerticalLayout> {
         layout.setSpacing(false);
         layout.getStyle().set(CSS_PADDING, CSS_VALUE_SPACE_S);
 
-        variablesEditor = createJsonEditor(true, 500);
+        variablesEditor = createJsonEditorLsp(true);
         variablesEditor.setSizeFull();
 
         variablesValidationDisplay = new ValidationStatusDisplay();
@@ -1286,7 +1289,7 @@ public class PlaygroundView extends Composite<VerticalLayout> {
         val buttonLayout = new HorizontalLayout();
         buttonLayout.setWidthFull();
 
-        val formatButton = createFormatJsonButton(() -> formatJsonEditor(variablesEditor));
+        val formatButton = createFormatJsonButton(() -> formatJsonEditorLsp(variablesEditor));
         buttonLayout.add(formatButton);
 
         val layout = new VerticalLayout();
@@ -1332,7 +1335,7 @@ public class PlaygroundView extends Composite<VerticalLayout> {
         if (result.isValid()) {
             variablesValidationDisplay.setIssues(List.of());
         } else {
-            val issue = new Issue(result.message(), Severity.ERROR, null, null, null, null);
+            val issue = new Issue(result.message(), IssueSeverity.ERROR, null, null, null, null);
             variablesValidationDisplay.setIssues(List.of(issue));
         }
     }
@@ -1412,7 +1415,7 @@ public class PlaygroundView extends Composite<VerticalLayout> {
      * Creates all components for a policy tab.
      */
     private PolicyTabComponents createPolicyTabComponents(String policyName) {
-        val editor            = createSaplEditor();
+        val editor            = createSaplEditorLsp();
         val validationDisplay = new ValidationStatusDisplay();
         validationDisplay.setWidthFull();
 
@@ -1451,38 +1454,14 @@ public class PlaygroundView extends Composite<VerticalLayout> {
     /*
      * Creates a SAPL policy editor.
      */
-    private SaplEditor createSaplEditor() {
-        val config = new SaplEditorConfiguration();
+    private SaplEditorLsp createSaplEditorLsp() {
+        val config = new SaplEditorLspConfiguration();
         config.setHasLineNumbers(true);
-        config.setTextUpdateDelay(500);
         config.setDarkTheme(true);
 
-        val editor = new SaplEditor(config);
+        val editor = new SaplEditorLsp(config);
         editor.setConfigurationId(EDITOR_CONFIGURATION_ID);
         editor.setSizeFull();
-
-        // Add compile-time validation
-        editor.setCompileValidator((configId, source) -> {
-            log.debug("Compile validator called for source: {}", source);
-            try {
-                var compileError = policyDecisionPoint.tryCompile(source);
-                log.debug("Compile result: {}", compileError.isPresent() ? "error" : "success");
-                if (compileError.isEmpty()) {
-                    return java.util.List.of();
-                }
-                var exception = compileError.get();
-                log.debug("Compile error message: {}", exception.getMessage());
-                var location = exception.getLocation();
-                var length   = location != null ? location.end() - location.start() : null;
-                return java.util.List
-                        .of(new Issue(exception.getMessage(), Severity.ERROR, location != null ? location.line() : null,
-                                null, location != null ? location.start() : null, length));
-            } catch (Exception exception) {
-                log.error("Unexpected error during compile validation", exception);
-                return java.util.List.of(new Issue("Compilation error: " + exception.getMessage(), Severity.ERROR, null,
-                        null, null, null));
-            }
-        });
 
         return editor;
     }
@@ -1514,7 +1493,7 @@ public class PlaygroundView extends Composite<VerticalLayout> {
         val document = context.editor.getDocument();
 
         if (hasInvalidDocumentSize(document, "Policy")) {
-            val issue = new Issue(MESSAGE_DOCUMENT_TOO_LARGE, Severity.ERROR, null, null, null, null);
+            val issue = new Issue(MESSAGE_DOCUMENT_TOO_LARGE, IssueSeverity.ERROR, null, null, null, null);
             context.validationDisplay.setIssues(List.of(issue));
             context.statusIcon.setIcon(VaadinIcon.CLOSE_CIRCLE);
             context.statusIcon.setColor(COLOR_RED);
@@ -1643,7 +1622,7 @@ public class PlaygroundView extends Composite<VerticalLayout> {
         context.statusIcon.setIcon(VaadinIcon.WARNING);
         context.statusIcon.setColor(COLOR_ORANGE);
         val warningMessage = MESSAGE_NAME_COLLISION_PREFIX + context.documentName + MESSAGE_NAME_COLLISION_SUFFIX;
-        val issue          = new Issue(warningMessage, Severity.WARNING, null, null, null, null);
+        val issue          = new Issue(warningMessage, IssueSeverity.WARNING, null, null, null, null);
         context.validationDisplay.setIssues(List.of(issue));
     }
 
@@ -2100,8 +2079,8 @@ public class PlaygroundView extends Composite<VerticalLayout> {
     /*
      * Creates read-only JSON editor.
      */
-    private JsonEditor createReadOnlyJsonEditor() {
-        val editor = createJsonEditor(false, 0);
+    private JsonEditorLsp createReadOnlyJsonEditorLsp() {
+        val editor = createJsonEditorLsp(false);
         editor.getElement().getStyle().set(CSS_WIDTH, CSS_VALUE_SIZE_100PCT);
         return editor;
     }
@@ -2109,14 +2088,13 @@ public class PlaygroundView extends Composite<VerticalLayout> {
     /*
      * Creates JSON editor with specified configuration.
      */
-    private JsonEditor createJsonEditor(boolean hasLineNumbers, int textUpdateDelay) {
-        val config = new JsonEditorConfiguration();
+    private JsonEditorLsp createJsonEditorLsp(boolean hasLineNumbers) {
+        val config = new JsonEditorLspConfiguration();
         config.setHasLineNumbers(hasLineNumbers);
-        config.setTextUpdateDelay(textUpdateDelay);
         config.setDarkTheme(true);
         config.setReadOnly(!hasLineNumbers);
         config.setLint(hasLineNumbers);
-        return new JsonEditor(config);
+        return new JsonEditorLsp(config);
     }
 
     /*

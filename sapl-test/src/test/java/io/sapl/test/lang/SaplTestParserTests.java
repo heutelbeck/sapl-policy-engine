@@ -39,10 +39,11 @@ class SaplTestParserTests {
         var result = SaplTestParser.parse(testDefinition);
 
         assertThat(result).isNotNull();
-        assertThat(result.getRequirements()).hasSize(1);
-        assertThat(result.getRequirements().getFirst().getName()).isEqualTo("basic access control");
-        assertThat(result.getRequirements().getFirst().getScenarios()).hasSize(1);
-        assertThat(result.getRequirements().getFirst().getScenarios().getFirst().getName())
+        assertThat(result.requirement()).hasSize(1);
+        assertThat(SaplTestRunner.stripQuotes(result.requirement().getFirst().name.getText()))
+                .isEqualTo("basic access control");
+        assertThat(result.requirement().getFirst().scenario()).hasSize(1);
+        assertThat(SaplTestRunner.stripQuotes(result.requirement().getFirst().scenario().getFirst().name.getText()))
                 .isEqualTo("permit admin access");
     }
 
@@ -64,7 +65,7 @@ class SaplTestParserTests {
 
         var result = SaplTestParser.parse(testDefinition);
 
-        assertThat(result.getRequirements().getFirst().getScenarios()).hasSize(2);
+        assertThat(result.requirement().getFirst().scenario()).hasSize(2);
     }
 
     @Test
@@ -103,12 +104,13 @@ class SaplTestParserTests {
                 """;
 
         var result       = SaplTestParser.parse(testDefinition);
-        var scenario     = result.getRequirements().getFirst().getScenarios().getFirst();
-        var subscription = scenario.getWhenStep().getAuthorizationSubscription();
+        var scenario     = result.requirement().getFirst().scenario().getFirst();
+        var subscription = scenario.whenStep().authorizationSubscription();
 
-        assertThat(subscription.getSubject()).isNotNull();
-        assertThat(subscription.getAction()).isNotNull();
-        assertThat(subscription.getResource()).isNotNull();
-        assertThat(subscription.getEnvironment()).isNotNull();
+        assertThat(subscription.subject).isNotNull();
+        assertThat(subscription.action).isNotNull();
+        assertThat(subscription.resource).isNotNull();
+        assertThat(subscription.env).isNotNull();
     }
+
 }

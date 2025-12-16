@@ -31,7 +31,7 @@
 	<artifactId>sapl-language-server-antlr</artifactId>
 	<packaging>jar</packaging>
 
-	<name>SAPL Language Server (ANTLR-based)</name>
+	<name>SAPL Language Server</name>
 	<description>
 		Standalone SAPL Language Server based on ANTLR without Xtext or Spring Boot dependencies.
 		Provides LSP support for syntax highlighting, validation, and content assist.

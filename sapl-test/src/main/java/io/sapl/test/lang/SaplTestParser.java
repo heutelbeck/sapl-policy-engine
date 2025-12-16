@@ -17,22 +17,23 @@
  */
 package io.sapl.test.lang;
 
-import io.sapl.parser.InputStreamHelper;
-import io.sapl.test.grammar.SAPLTestStandaloneSetup;
-import io.sapl.test.grammar.sapltest.SAPLTest;
-import lombok.experimental.UtilityClass;
-import org.eclipse.emf.common.util.URI;
-import org.eclipse.xtext.resource.XtextResourceSet;
-
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 
+import org.antlr.v4.runtime.CharStreams;
+import org.antlr.v4.runtime.CommonTokenStream;
+
+import io.sapl.parser.InputStreamHelper;
+import io.sapl.test.grammar.antlr.SAPLTestLexer;
+import io.sapl.test.grammar.antlr.SAPLTestParser.SaplTestContext;
+import lombok.experimental.UtilityClass;
+
 /**
  * Parser for SAPL test files (.sapltest).
  * <p>
- * Parses test definitions into an AST that can be executed by
+ * Parses test definitions into an ANTLR parse tree that can be executed by
  * {@link SaplTestRunner}.
  * Includes protection against trojan source attacks via bidirectional Unicode
  * character detection.
@@ -40,17 +41,15 @@ import java.nio.charset.StandardCharsets;
 @UtilityClass
 public class SaplTestParser {
 
-    private static final String DUMMY_RESOURCE_URI = "test:/test.sapltest";
-
     /**
      * Parses a SAPL test definition from a string.
      *
      * @param testDefinition the test definition source code
-     * @return the parsed AST
+     * @return the parsed ANTLR parse tree
      * @throws SaplTestException if parsing fails or invalid characters are
      * detected
      */
-    public static SAPLTest parse(String testDefinition) {
+    public static SaplTestContext parse(String testDefinition) {
         return parse(new ByteArrayInputStream(testDefinition.getBytes(StandardCharsets.UTF_8)));
     }
 
@@ -61,14 +60,14 @@ public class SaplTestParser {
      * attacks.
      *
      * @param inputStream the input stream containing the test definition
-     * @return the parsed AST
+     * @return the parsed ANTLR parse tree
      * @throws SaplTestException if parsing fails or invalid characters are
      * detected
      */
-    public static SAPLTest parse(InputStream inputStream) {
+    public static SaplTestContext parse(InputStream inputStream) {
         try {
             var securedStream = secureInputStream(inputStream);
-            return loadResource(securedStream);
+            return parseStream(securedStream);
         } catch (IOException e) {
             throw new SaplTestException("Failed to read test definition.", e);
         }
@@ -79,23 +78,24 @@ public class SaplTestParser {
         return InputStreamHelper.convertToTrojanSourceSecureStream(converted);
     }
 
-    private static SAPLTest loadResource(InputStream inputStream) {
-        var injector    = SAPLTestStandaloneSetup.doSetupAndGetInjector();
-        var resourceSet = injector.getInstance(XtextResourceSet.class);
-        var resource    = resourceSet.createResource(URI.createFileURI(DUMMY_RESOURCE_URI));
+    private static SaplTestContext parseStream(InputStream inputStream) throws IOException {
+        var charStream  = CharStreams.fromStream(inputStream, StandardCharsets.UTF_8);
+        var lexer       = new SAPLTestLexer(charStream);
+        var tokenStream = new CommonTokenStream(lexer);
+        var parser      = new io.sapl.test.grammar.antlr.SAPLTestParser(tokenStream);
 
-        try {
-            resource.load(inputStream, resourceSet.getLoadOptions());
-        } catch (IOException e) {
-            throw new SaplTestException("Failed to load test resource.", e);
+        // Collect syntax errors
+        var errorListener = new SaplTestErrorListener();
+        parser.removeErrorListeners();
+        parser.addErrorListener(errorListener);
+
+        var parseTree = parser.saplTest();
+
+        if (errorListener.hasErrors()) {
+            throw new SaplTestException("Parsing errors: " + errorListener.getErrors());
         }
 
-        if (!resource.getErrors().isEmpty()) {
-            var errors = resource.getErrors().stream().map(error -> error.getMessage() + " at line " + error.getLine())
-                    .toList();
-            throw new SaplTestException("Parsing errors: " + errors);
-        }
-
-        return (SAPLTest) resource.getContents().getFirst();
+        return parseTree;
     }
+
 }

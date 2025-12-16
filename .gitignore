@@ -11,10 +11,7 @@ target/
 events/
 .factorypath
 **/gen/
-**/xtend-gen/
-**/xtext-gen/
 **/dev-bundle/
-**/emf-gen/
 **/node_modules/
 **/VAADIN/widgetsets/
 **/VAADIN/themes/**/addons.scss

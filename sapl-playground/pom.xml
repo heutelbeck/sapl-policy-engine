@@ -71,7 +71,7 @@
         </dependency>
         <dependency>
             <groupId>io.sapl</groupId>
-            <artifactId>sapl-vaadin-editor</artifactId>
+            <artifactId>sapl-vaadin-editor-lsp</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
@@ -114,14 +114,6 @@
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
-                <configuration>
-                    <requiresUnpack>
-                        <dependency>
-                            <groupId>io.sapl</groupId>
-                            <artifactId>sapl-lang</artifactId>
-                        </dependency>
-                    </requiresUnpack>
-                </configuration>
                 <executions>
                     <execution>
                         <goals>

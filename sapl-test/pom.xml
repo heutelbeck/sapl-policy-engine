@@ -38,12 +38,12 @@
 	<dependencies>
 		<dependency>
 			<groupId>io.sapl</groupId>
-			<artifactId>sapl-test-lang</artifactId>
+			<artifactId>sapl-test-parser</artifactId>
 			<version>${project.version}</version>
 		</dependency>
 		<dependency>
 			<groupId>io.sapl</groupId>
-			<artifactId>sapl-pdp</artifactId>
+			<artifactId>sapl-pdp-antlr</artifactId>
 			<version>${project.version}</version>
 		</dependency>
 		<dependency>

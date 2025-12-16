@@ -91,8 +91,7 @@
 		<!-- Dependencies -->
 		<guice.version>5.1.0</guice.version>
 		<junit.version>1.11.3</junit.version>
-		<xtext.version>2.40.0</xtext.version>
-		<jacoco.version>0.8.12</jacoco.version>
+		<jacoco.version>0.8.14</jacoco.version>
 		<vaadin.version>24.9.7</vaadin.version>
 		<okhttp.version>4.12.0</okhttp.version>
 		<rsocket.version>1.1.4</rsocket.version>
@@ -101,6 +100,7 @@
 		<assertj.version>3.26.3</assertj.version>
 		<flexmark.version>0.64.8</flexmark.version>
 		<springboot.version>3.5.8</springboot.version>
+		<classgraph.version>4.8.184</classgraph.version>
         <commons-io.version>2.21.0</commons-io.version>
         <commons-lang.version>3.19.0</commons-lang.version>
         <reactor-netty.version>1.2.0</reactor-netty.version>
@@ -121,7 +121,7 @@
 		<maven-surefire-plugin.version>3.5.4</maven-surefire-plugin.version>
 		<maven-compiler-plugin.version>3.14.1</maven-compiler-plugin.version>
 		<spotbugs-maven-plugin.version>4.9.8.1</spotbugs-maven-plugin.version>
-		<sonar.exclusions>**/xtext-gen/**/*,**/xtend-gen/**/*,**/emf-gen/**/*</sonar.exclusions>
+		<sonar.exclusions>**/gen/**/*</sonar.exclusions>
 
 		<!-- Base argLine for JDK21+ profiles -->
 		<argLine />
@@ -132,14 +132,6 @@
 
 	<dependencyManagement>
 		<dependencies>
-			<!-- XText -->
-			<dependency>
-				<groupId>org.eclipse.xtext</groupId>
-				<artifactId>xtext-dev-bom</artifactId>
-				<version>${xtext.version}</version>
-				<type>pom</type>
-				<scope>import</scope>
-			</dependency>
 			<dependency>
 				<groupId>com.google.inject</groupId>
 				<artifactId>guice</artifactId>
@@ -213,6 +205,11 @@
                 <artifactId>slf4j-test</artifactId>
                 <version>3.0.3</version>
             </dependency>
+			<dependency>
+				<groupId>io.github.classgraph</groupId>
+				<artifactId>classgraph</artifactId>
+				<version>${classgraph.version}</version>
+			</dependency>
             <!-- Spring-Boot -->
 			<dependency>
 				<groupId>org.springframework.boot</groupId>
@@ -278,47 +275,6 @@
                 <groupId>com.nimbusds</groupId>
                 <artifactId>nimbus-jose-jwt</artifactId>
                 <version>${nimbus-jose-jwt.version}</version>
-            </dependency>
-            <!-- Internal Project Dependencies -->
-            <dependency>
-                <groupId>${project.groupId}</groupId>
-                <artifactId>sapl-api</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>${project.groupId}</groupId>
-                <artifactId>sapl-pdp</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>${project.groupId}</groupId>
-                <artifactId>sapl-lang</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>${project.groupId}</groupId>
-                <artifactId>sapl-ide</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>${project.groupId}</groupId>
-                <artifactId>sapl-test-lang</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>${project.groupId}</groupId>
-                <artifactId>sapl-test</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>${project.groupId}</groupId>
-                <artifactId>sapl-test-ide</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>${project.groupId}</groupId>
-                <artifactId>sapl-coverage-api</artifactId>
-                <version>${project.version}</version>
             </dependency>
 		</dependencies>
 	</dependencyManagement>
@@ -392,27 +348,6 @@
 					<groupId>org.apache.maven.plugins</groupId>
 					<artifactId>maven-jar-plugin</artifactId>
 					<version>3.4.2</version>
-				</plugin>
-				<plugin>
-					<groupId>org.eclipse.xtext</groupId>
-					<artifactId>xtend-maven-plugin</artifactId>
-					<version>${xtext.version}</version>
-					<executions>
-						<execution>
-							<?m2e execute onConfiguration,onIncremental?>
-							<goals>
-								<goal>compile</goal>
-								<goal>xtend-install-debug-info</goal>
-								<goal>testCompile</goal>
-								<goal>xtend-test-install-debug-info</goal>
-							</goals>
-						</execution>
-					</executions>
-					<configuration>
-						<showEmptyDirWarning>false</showEmptyDirWarning>
-						<outputDirectory>${basedir}/src/main/xtend-gen</outputDirectory>
-						<testOutputDirectory>${basedir}/src/test/xtend-gen</testOutputDirectory>
-					</configuration>
 				</plugin>
 				<plugin>
 					<groupId>org.apache.maven.plugins</groupId>
@@ -592,26 +527,10 @@
 								<exclude>**/frontend/**</exclude>
 								<exclude>**/gen/**</exclude>
 								<exclude>**/src/test/resources/**</exclude>
-								<exclude>**/src/test/xtend-gen/**</exclude>
-								<exclude>**/src/test/xtext-gen/**</exclude>
-								<exclude>**/src/main/xtend-gen/**</exclude>
-								<exclude>**/src/main/xtext-gen/**</exclude>
-								<exclude>**/src/main/emf-gen/**</exclude>
 								<exclude>**/src/main/bundles/**</exclude>
 								<exclude>src/main/resources/**</exclude>
 								<exclude>.gitattributes</exclude>
 								<exclude>.npmrc</exclude>
-								<exclude>
-									src/main/java/io/sapl/grammar/web/SAPLWebSetup.java</exclude>
-								<exclude>
-									src/main/java/io/sapl/grammar/web/SAPLWebModule.java</exclude>
-								<exclude>
-									src/main/java/io/sapl/test/grammar/web/SAPLTestWebSetup.java</exclude>
-								<exclude>
-									src/main/java/io/sapl/test/grammar/web/SAPLTestWebModule.java</exclude>
-								<exclude>model/generated/SAPLTest.ecore</exclude>
-								<exclude>model/generated/SAPLTest.genmodel</exclude>
-								<exclude>src/asciidoc/sapl-grammar.ebnf</exclude>
 							</excludes>
 						</licenseSet>
 					</licenseSets>
@@ -628,7 +547,6 @@
 						<mwe2>SLASHSTAR_STYLE</mwe2>
 						<ecore>XML_STYLE</ecore>
 						<genmodel>XML_STYLE</genmodel>
-						<xtext>SLASHSTAR_STYLE</xtext>
 						<config>SCRIPT_STYLE</config>
 						<target>XML_STYLE</target>
 						<g4>SLASHSTAR_STYLE</g4>
@@ -656,14 +574,8 @@
 		<module>sapl-api</module>
 
 		<!-- Language modules (in dependency order) -->
-		<module>sapl-generator</module>
-		<module>sapl-lang</module>
 		<module>sapl-parser</module>
-		<module>sapl-test-parser</module>
-		<module>sapl-pdp</module>
 		<module>sapl-pdp-antlr</module>
-		<module>sapl-ide</module>
-		<module>sapl-web</module>
 
 		<!-- PDP extensions (depend on sapl-api) -->
 		<module>pdp-extensions/geo-functions</module>
@@ -672,11 +584,8 @@
 		<module>pdp-extensions/mqtt-pip</module>
 
 		<!-- Testing modules -->
-		<module>sapl-coverage-api</module>
-		<module>sapl-test-lang</module>
+		<module>sapl-test-parser</module>
 		<module>sapl-test</module>
-		<module>sapl-test-ide</module>
-		<module>sapl-test-web</module>
 		<module>sapl-maven-plugin</module>
 
 		<!-- Integration modules -->
@@ -684,7 +593,6 @@
 		<module>sapl-spring-security</module>
 
 		<!-- IDE and tooling -->
-		<module>sapl-language-server</module>
 		<module>sapl-language-server-antlr</module>
 		<module>sapl-documentation-generator</module>
 
@@ -692,7 +600,6 @@
 		<module>sapl-webflux-endpoint</module>
 		<module>sapl-rsocket-endpoint</module>
 		<module>sapl-vaadin-theme</module>
-		<module>sapl-vaadin-editor</module>
 		<module>sapl-vaadin-editor-lsp</module>
 
 		<!-- Server applications -->

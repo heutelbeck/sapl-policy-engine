@@ -23,9 +23,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.sapl.api.SaplVersion;
 import io.sapl.vaadin.Issue;
+import io.sapl.vaadin.IssueSeverity;
 import lombok.RequiredArgsConstructor;
 import lombok.val;
-import org.eclipse.xtext.diagnostics.Severity;
 import org.springframework.stereotype.Service;
 
 import java.io.Serial;
@@ -139,7 +139,7 @@ public class PlaygroundValidator implements Serializable {
      * @return true if any issue has ERROR severity, false otherwise
      */
     public static boolean hasErrorSeverityIssues(Issue[] issues) {
-        return Arrays.stream(issues).anyMatch(issue -> Severity.ERROR == issue.getSeverity());
+        return Arrays.stream(issues).anyMatch(issue -> IssueSeverity.ERROR == issue.getSeverity());
     }
 
     /**
@@ -152,7 +152,7 @@ public class PlaygroundValidator implements Serializable {
      * @return count of issues with ERROR severity
      */
     public static long countErrorSeverityIssues(Issue[] issues) {
-        return Arrays.stream(issues).filter(issue -> Severity.ERROR == issue.getSeverity()).count();
+        return Arrays.stream(issues).filter(issue -> IssueSeverity.ERROR == issue.getSeverity()).count();
     }
 
     /**

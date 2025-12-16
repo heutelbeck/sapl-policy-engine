@@ -38,16 +38,11 @@ import io.sapl.functions.DefaultLibraries;
 import io.sapl.functions.geo.GeographicFunctionLibrary;
 import io.sapl.functions.geo.traccar.TraccarFunctionLibrary;
 import io.sapl.api.documentation.DocumentationBundle;
+import io.sapl.api.documentation.LibraryDocumentation;
 import io.sapl.api.model.jackson.SaplJacksonModule;
-import io.sapl.grammar.ide.contentassist.ContentAssistConfigurationFactory;
-import io.sapl.grammar.ide.contentassist.ContentAssistConfigurationSource;
-import io.sapl.grammar.web.SAPLServlet;
+import io.sapl.documentation.LibraryDocumentationExtractor;
 import io.sapl.pip.geo.traccar.TraccarPolicyInformationPoint;
-import org.springframework.boot.web.servlet.FilterRegistrationBean;
-import org.springframework.boot.web.servlet.ServletRegistrationBean;
-import org.springframework.boot.web.servlet.filter.OrderedFormContentFilter;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
 import org.springframework.web.reactive.function.client.WebClient;
@@ -56,10 +51,11 @@ import reactor.core.publisher.Mono;
 
 import java.security.interfaces.RSAPublicKey;
 import java.time.Clock;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 
 @Configuration
-@ComponentScan("io.sapl.grammar.ide.contentassist")
 public class PlaygroundConfiguration {
 
     private static final Value PIP_CALL_BLOCKED = Value
@@ -68,21 +64,6 @@ public class PlaygroundConfiguration {
     @Bean
     SaplJacksonModule saplJacksonModule() {
         return new SaplJacksonModule();
-    }
-
-    @Bean
-    ServletRegistrationBean<SAPLServlet> xTextRegistrationBean() {
-        var registration = new ServletRegistrationBean<>(new SAPLServlet(), "/xtext-service/*");
-        registration.setName("XtextServices");
-        registration.setAsyncSupported(true);
-        return registration;
-    }
-
-    @Bean
-    FilterRegistrationBean<OrderedFormContentFilter> registration1(OrderedFormContentFilter filter) {
-        var registration = new FilterRegistrationBean<>(filter);
-        registration.setEnabled(false);
-        return registration;
     }
 
     @Bean
@@ -112,15 +93,20 @@ public class PlaygroundConfiguration {
     }
 
     @Bean
-    ContentAssistConfigurationSource contentAssistConfigurationSource(FunctionBroker functionBroker,
-            AttributeBroker attributeBroker) {
-        return ContentAssistConfigurationFactory.createSource("playground", "1", Map.of(), functionBroker,
-                attributeBroker);
-    }
-
-    @Bean
-    DocumentationBundle documentationBundle(FunctionBroker functionBroker, AttributeBroker attributeBroker) {
-        return ContentAssistConfigurationFactory.extractDocumentation(functionBroker, attributeBroker);
+    DocumentationBundle documentationBundle() {
+        var libraries = new ArrayList<LibraryDocumentation>();
+        for (var libraryClass : DefaultLibraries.STATIC_LIBRARIES) {
+            libraries.add(LibraryDocumentationExtractor.extractFunctionLibrary(libraryClass));
+        }
+        libraries.add(LibraryDocumentationExtractor.extractFunctionLibrary(GeographicFunctionLibrary.class));
+        libraries.add(LibraryDocumentationExtractor.extractFunctionLibrary(MqttFunctionLibrary.class));
+        libraries.add(LibraryDocumentationExtractor.extractFunctionLibrary(TraccarFunctionLibrary.class));
+        libraries.add(LibraryDocumentationExtractor.extractPolicyInformationPoint(TimePolicyInformationPoint.class));
+        libraries.add(LibraryDocumentationExtractor.extractPolicyInformationPoint(HttpPolicyInformationPoint.class));
+        libraries.add(LibraryDocumentationExtractor.extractPolicyInformationPoint(TraccarPolicyInformationPoint.class));
+        libraries.add(LibraryDocumentationExtractor.extractPolicyInformationPoint(JWTPolicyInformationPoint.class));
+        libraries.add(LibraryDocumentationExtractor.extractPolicyInformationPoint(MqttPolicyInformationPoint.class));
+        return new DocumentationBundle(libraries);
     }
 
     public static class DummyJWTKeyProvider extends JWTKeyProvider {

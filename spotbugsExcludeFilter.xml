@@ -26,9 +26,7 @@
 	<!-- The following generated classes are excluded from the spotbugs analysis. -->
 	<Match>
 		<Or>
-			<Source name="~.*xtend-gen.*"/>
-			<Source name="~.*emf-gen.*"/>
-			<Source name="~.*xtext-gen.*"/>
+			<Source name="~.*gen.*"/>
 		</Or>
 	</Match>
 	<!-- The following rules are excluded from the spotbugs analysis. -->

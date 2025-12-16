@@ -22,10 +22,6 @@ SAPL makes extensive use of Lombok to eliminate boilerplate code. Without the Lo
 
 The Lombok Plug-in cannot be downloaded via the Eclipse Marketplace. Please download it from the official [Project Lombok download page](https://projectlombok.org/download).
 
-### Xtext Eclipse Plug-In
-
-To get support for editing the Xtext grammar files, install the "Eclipse Xtext" plug-in. Use the "Help -> Eclipse Marketplace..." menu and search for "Xtext".
-
 ## Optional Plug-Ins
 
 ### Spring Tools 4

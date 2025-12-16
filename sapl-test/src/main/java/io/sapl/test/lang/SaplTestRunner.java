@@ -17,36 +17,21 @@
  */
 package io.sapl.test.lang;
 
-import io.sapl.api.model.Value;
-import io.sapl.api.pdp.AuthorizationSubscription;
-import io.sapl.test.SaplTestFixture;
-import io.sapl.test.grammar.sapltest.Array;
-import io.sapl.test.grammar.sapltest.Document;
-import io.sapl.test.grammar.sapltest.FalseLiteral;
-import io.sapl.test.grammar.sapltest.Given;
-import io.sapl.test.grammar.sapltest.NullLiteral;
-import io.sapl.test.grammar.sapltest.NumberLiteral;
-import io.sapl.test.grammar.sapltest.Pair;
-import io.sapl.test.grammar.sapltest.Requirement;
-import io.sapl.test.grammar.sapltest.SAPLTest;
-import io.sapl.test.grammar.sapltest.Scenario;
-import io.sapl.test.grammar.sapltest.SingleDocument;
-import io.sapl.test.grammar.sapltest.SingleExpect;
-import io.sapl.test.grammar.sapltest.StringLiteral;
-import io.sapl.test.grammar.sapltest.TrueLiteral;
-import io.sapl.test.grammar.sapltest.UndefinedLiteral;
-import io.sapl.test.grammar.sapltest.WhenStep;
-import io.sapl.test.utils.ClasspathHelper;
-import lombok.experimental.UtilityClass;
-
 import java.util.ArrayList;
 import java.util.List;
+
+import io.sapl.test.grammar.antlr.SAPLTestParser.RequirementContext;
+import io.sapl.test.grammar.antlr.SAPLTestParser.SaplTestContext;
+import io.sapl.test.grammar.antlr.SAPLTestParser.ScenarioContext;
+import lombok.experimental.UtilityClass;
 
 /**
  * Executes SAPL test definitions.
  * <p>
- * Each scenario is executed with a fresh {@link SaplTestFixture} instance for
- * proper test isolation.
+ * Each scenario is executed with a fresh test fixture instance for proper test
+ * isolation.
+ * <p>
+ * TODO: Full implementation pending migration to ANTLR-based execution.
  */
 @UtilityClass
 public class SaplTestRunner {
@@ -54,144 +39,53 @@ public class SaplTestRunner {
     /**
      * Runs all scenarios in a SAPL test definition.
      *
-     * @param test the parsed test AST
+     * @param test the parsed ANTLR parse tree
      * @return list of results, one per scenario
      */
-    public static List<TestResult> run(SAPLTest test) {
+    public static List<TestResult> run(SaplTestContext test) {
         var results = new ArrayList<TestResult>();
-        for (var requirement : test.getRequirements()) {
+        for (var requirement : test.requirement()) {
             results.addAll(runRequirement(requirement));
         }
         return results;
     }
 
-    private static List<TestResult> runRequirement(Requirement requirement) {
-        var requirementName  = requirement.getName();
-        var requirementGiven = requirement.getGiven();
-        var results          = new ArrayList<TestResult>();
+    private static List<TestResult> runRequirement(RequirementContext requirement) {
+        var requirementName = stripQuotes(requirement.name.getText());
+        var results         = new ArrayList<TestResult>();
 
-        for (var scenario : requirement.getScenarios()) {
-            results.add(runScenario(requirementName, requirementGiven, scenario));
+        for (var scenario : requirement.scenario()) {
+            results.add(runScenario(requirementName, scenario));
         }
         return results;
     }
 
-    private static TestResult runScenario(String requirementName, Given requirementGiven, Scenario scenario) {
-        var scenarioName = scenario.getName();
+    private static TestResult runScenario(String requirementName, ScenarioContext scenario) {
+        var scenarioName = stripQuotes(scenario.name.getText());
         try {
-            var fixture = buildFixture(requirementGiven, scenario.getGiven());
-            executeScenario(fixture, scenario);
-            return TestResult.passed(requirementName, scenarioName);
-        } catch (AssertionError e) {
-            return TestResult.failed(requirementName, scenarioName, e.getMessage());
-        } catch (Exception e) {
-            return TestResult.error(requirementName, scenarioName, e);
+            // TODO: Implement full scenario execution
+            // For now, mark as pending implementation
+            return TestResult.error(requirementName, scenarioName,
+                    new UnsupportedOperationException("Scenario execution not yet implemented for ANTLR parser."));
+        } catch (Exception exception) {
+            return TestResult.error(requirementName, scenarioName, exception);
         }
-    }
-
-    private static SaplTestFixture buildFixture(Given requirementGiven, Given scenarioGiven) {
-        var fixture = SaplTestFixture.createSingleTest();
-
-        // Apply requirement-level given
-        if (requirementGiven != null) {
-            applyGiven(fixture, requirementGiven);
-        }
-
-        // Apply scenario-level given (overrides requirement)
-        if (scenarioGiven != null) {
-            applyGiven(fixture, scenarioGiven);
-        }
-
-        return fixture;
-    }
-
-    private static void applyGiven(SaplTestFixture fixture, Given given) {
-        var document = given.getDocument();
-        if (document != null) {
-            applyDocument(fixture, document);
-        }
-
-        // TODO: Apply pdpVariables, pdpCombiningAlgorithm, environment, givenSteps
-    }
-
-    private static void applyDocument(SaplTestFixture fixture, Document document) {
-        if (document instanceof SingleDocument singleDoc) {
-            var identifier    = singleDoc.getIdentifier();
-            var policyContent = ClasspathHelper.readPolicyFromClasspath(identifier);
-            fixture.withPolicy(policyContent);
-        }
-        // TODO: Handle DocumentSetWithSingleIdentifier, DocumentSet
-    }
-
-    private static void executeScenario(SaplTestFixture fixture, Scenario scenario) {
-        var whenStep     = scenario.getWhenStep();
-        var subscription = buildSubscription(whenStep);
-
-        var expectation = scenario.getExpectation();
-        if (expectation instanceof SingleExpect singleExpect) {
-            var expectedDecision = singleExpect.getDecision();
-            var result           = fixture.whenDecide(subscription);
-
-            switch (expectedDecision.getDecision()) {
-            case PERMIT         -> result.expectPermit().verify();
-            case DENY           -> result.expectDeny().verify();
-            case INDETERMINATE  -> result.expectIndeterminate().verify();
-            case NOT_APPLICABLE -> result.expectNotApplicable().verify();
-            }
-        }
-        // TODO: Handle SingleExpectWithMatcher, RepeatedExpect
-    }
-
-    private static AuthorizationSubscription buildSubscription(WhenStep whenStep) {
-        var astSubscription = whenStep.getAuthorizationSubscription();
-
-        var subject  = toValue(astSubscription.getSubject());
-        var action   = toValue(astSubscription.getAction());
-        var resource = toValue(astSubscription.getResource());
-
-        var environment = astSubscription.getEnvironment();
-        if (environment != null) {
-            return AuthorizationSubscription.of(subject, action, resource, toValue(environment));
-        }
-        return AuthorizationSubscription.of(subject, action, resource);
     }
 
     /**
-     * Converts an AST Value node to a runtime Value.
+     * Strips surrounding quotes from a string token.
+     *
+     * @param text the string token (e.g., "\"value\"")
+     * @return the unquoted string (e.g., "value")
      */
-    static Value toValue(io.sapl.test.grammar.sapltest.Value astValue) {
-        return switch (astValue) {
-        case StringLiteral s                        -> Value.of(s.getString());
-        case NumberLiteral n                        -> Value.of(n.getNumber());
-        case TrueLiteral ignored                    -> Value.TRUE;
-        case FalseLiteral ignored                   -> Value.FALSE;
-        case NullLiteral ignored                    -> Value.NULL;
-        case UndefinedLiteral ignored               -> Value.UNDEFINED;
-        case Array a                                -> toArrayValue(a);
-        case io.sapl.test.grammar.sapltest.Object o -> toObjectValue(o);
-        default                                     ->
-            throw new IllegalArgumentException("Unsupported AST value type: " + astValue.getClass());
-        };
+    public static String stripQuotes(String text) {
+        if (text == null || text.length() < 2) {
+            return text;
+        }
+        if ((text.startsWith("\"") && text.endsWith("\"")) || (text.startsWith("'") && text.endsWith("'"))) {
+            return text.substring(1, text.length() - 1);
+        }
+        return text;
     }
 
-    private static Value toArrayValue(Array array) {
-        var items = array.getItems();
-        if (items == null || items.isEmpty()) {
-            return Value.EMPTY_ARRAY;
-        }
-        var values = items.stream().map(SaplTestRunner::toValue).toArray(Value[]::new);
-        return Value.ofArray(values);
-    }
-
-    private static Value toObjectValue(io.sapl.test.grammar.sapltest.Object object) {
-        var members = object.getMembers();
-        if (members == null || members.isEmpty()) {
-            return Value.EMPTY_OBJECT;
-        }
-        var properties = new java.util.HashMap<String, Value>();
-        for (Pair pair : members) {
-            properties.put(pair.getKey(), toValue(pair.getValue()));
-        }
-        return Value.ofObject(properties);
-    }
 }

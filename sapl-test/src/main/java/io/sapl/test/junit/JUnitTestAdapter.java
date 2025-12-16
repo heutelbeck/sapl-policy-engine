@@ -17,19 +17,24 @@
  */
 package io.sapl.test.junit;
 
-import io.sapl.test.grammar.sapltest.ImportType;
-import io.sapl.test.grammar.sapltest.Requirement;
-import io.sapl.test.grammar.sapltest.SAPLTest;
-import io.sapl.test.grammar.sapltest.Scenario;
-import io.sapl.test.lang.SaplTestParser;
-import org.junit.jupiter.api.*;
-
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
+
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.DynamicContainer;
+import org.junit.jupiter.api.DynamicNode;
+import org.junit.jupiter.api.DynamicTest;
+import org.junit.jupiter.api.TestFactory;
+
+import io.sapl.test.grammar.antlr.SAPLTestParser.RequirementContext;
+import io.sapl.test.grammar.antlr.SAPLTestParser.SaplTestContext;
+import io.sapl.test.grammar.antlr.SAPLTestParser.ScenarioContext;
+import io.sapl.test.lang.SaplTestParser;
+import io.sapl.test.lang.SaplTestRunner;
 
 /**
  * JUnit 5 test adapter for executing SAPL test definitions.
@@ -91,34 +96,35 @@ public class JUnitTestAdapter {
             var saplTest = SaplTestParser.parse(content);
             var tests    = buildDynamicTests(saplTest);
             return DynamicContainer.dynamicContainer(relativePath, uri, tests);
-        } catch (IOException e) {
+        } catch (IOException exception) {
             return DynamicContainer.dynamicContainer(relativePath, uri,
                     Stream.of(DynamicTest.dynamicTest("Parse Error", () -> {
-                        throw new RuntimeException("Failed to read test file: " + relativePath, e);
+                        throw new RuntimeException("Failed to read test file: " + relativePath, exception);
                     })));
-        } catch (Exception e) {
+        } catch (Exception exception) {
             return DynamicContainer.dynamicContainer(relativePath, uri,
                     Stream.of(DynamicTest.dynamicTest("Parse Error", () -> {
-                        throw e;
+                        throw exception;
                     })));
         }
     }
 
-    private Stream<DynamicNode> buildDynamicTests(SAPLTest saplTest) {
-        return saplTest.getRequirements().stream().map(this::buildRequirementContainer);
+    private Stream<DynamicNode> buildDynamicTests(SaplTestContext saplTest) {
+        return saplTest.requirement().stream().map(this::buildRequirementContainer);
     }
 
-    private DynamicContainer buildRequirementContainer(Requirement requirement) {
-        var name      = requirement.getName();
-        var scenarios = requirement.getScenarios().stream().map(this::buildScenarioTest);
+    private DynamicContainer buildRequirementContainer(RequirementContext requirement) {
+        var name      = SaplTestRunner.stripQuotes(requirement.name.getText());
+        var scenarios = requirement.scenario().stream().map(this::buildScenarioTest);
         return DynamicContainer.dynamicContainer(name, scenarios);
     }
 
-    private DynamicTest buildScenarioTest(Scenario scenario) {
-        var name = scenario.getName();
+    private DynamicTest buildScenarioTest(ScenarioContext scenario) {
+        var name = SaplTestRunner.stripQuotes(scenario.name.getText());
         // TODO: Actually execute the test via SaplTestRunner
         return DynamicTest.dynamicTest(name, () -> {
             // Hollow shell - just pass for now
         });
     }
+
 }

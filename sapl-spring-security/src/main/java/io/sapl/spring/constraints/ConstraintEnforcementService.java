@@ -19,9 +19,6 @@ package io.sapl.spring.constraints;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.common.collect.ArrayListMultimap;
-import com.google.common.collect.Multimap;
-import com.google.common.collect.Sets;
 import io.sapl.api.model.UndefinedValue;
 import io.sapl.api.model.Value;
 import io.sapl.api.model.ValueJsonMarshaller;
@@ -57,16 +54,16 @@ import java.util.function.UnaryOperator;
 @Service
 public class ConstraintEnforcementService {
 
-    private final List<ConsumerConstraintHandlerProvider<?>>          globalConsumerProviders;
-    private final List<SubscriptionHandlerProvider>                   globalSubscriptionHandlerProviders;
-    private final List<RequestHandlerProvider>                        globalRequestHandlerProviders;
-    private final List<MappingConstraintHandlerProvider<?>>           globalMappingHandlerProviders;
-    private final List<ErrorMappingConstraintHandlerProvider>         globalErrorMappingHandlerProviders;
-    private final List<ErrorHandlerProvider>                          globalErrorHandlerProviders;
-    private final List<FilterPredicateConstraintHandlerProvider>      filterPredicateProviders;
-    private final List<MethodInvocationConstraintHandlerProvider>     methodInvocationHandlerProviders;
-    private final ObjectMapper                                        mapper;
-    private final Multimap<Signal, RunnableConstraintHandlerProvider> globalRunnableIndex;
+    private final List<ConsumerConstraintHandlerProvider<?>>           globalConsumerProviders;
+    private final List<SubscriptionHandlerProvider>                    globalSubscriptionHandlerProviders;
+    private final List<RequestHandlerProvider>                         globalRequestHandlerProviders;
+    private final List<MappingConstraintHandlerProvider<?>>            globalMappingHandlerProviders;
+    private final List<ErrorMappingConstraintHandlerProvider>          globalErrorMappingHandlerProviders;
+    private final List<ErrorHandlerProvider>                           globalErrorHandlerProviders;
+    private final List<FilterPredicateConstraintHandlerProvider>       filterPredicateProviders;
+    private final List<MethodInvocationConstraintHandlerProvider>      methodInvocationHandlerProviders;
+    private final ObjectMapper                                         mapper;
+    private final Map<Signal, List<RunnableConstraintHandlerProvider>> globalRunnableIndex;
 
     /**
      * Constructor with dependency injection of all beans implementing handler
@@ -109,9 +106,9 @@ public class ConstraintEnforcementService {
         this.globalErrorMappingHandlerProviders = globalErrorMappingHandlerProviders;
         Collections.sort(this.globalErrorMappingHandlerProviders);
 
-        globalRunnableIndex = ArrayListMultimap.create();
+        globalRunnableIndex = new HashMap<>();
         for (var provider : globalRunnableProviders)
-            globalRunnableIndex.put(provider.getSignal(), provider);
+            globalRunnableIndex.computeIfAbsent(provider.getSignal(), k -> new ArrayList<>()).add(provider);
     }
 
     /**
@@ -151,7 +148,7 @@ public class ConstraintEnforcementService {
     public <T> ReactiveConstraintHandlerBundle<T> reactiveTypeBundleFor(AuthorizationDecision decision, Class<T> clazz,
             Value... ignoredObligations) {
 
-        final var unhandledObligations = Sets.newHashSet(decision.obligations());
+        final var unhandledObligations = new HashSet<>(decision.obligations());
 
         // @formatter:off
 		var bundle = new ReactiveConstraintHandlerBundle<>(
@@ -193,7 +190,7 @@ public class ConstraintEnforcementService {
     public <T> BlockingConstraintHandlerBundle<T> blockingPostEnforceBundleFor(AuthorizationDecision decision,
             Class<T> clazz) {
 
-        final var unhandledObligations = Sets.newHashSet(decision.obligations());
+        final var unhandledObligations = new HashSet<>(decision.obligations());
 
         // @formatter:off
 		var bundle = BlockingConstraintHandlerBundle.postEnforceConstraintHandlerBundle(
@@ -228,7 +225,7 @@ public class ConstraintEnforcementService {
      */
     public <T> BlockingConstraintHandlerBundle<T> blockingPreEnforceBundleFor(AuthorizationDecision decision,
             Class<T> clazz) {
-        final var unhandledObligations = Sets.newHashSet(decision.obligations());
+        final var unhandledObligations = new HashSet<>(decision.obligations());
         final var bundle               = BlockingConstraintHandlerBundle.preEnforceConstraintHandlerBundle(
                 runnableHandlersForSignal(Signal.ON_DECISION, decision, unhandledObligations),
                 onNextHandlers(decision, unhandledObligations, clazz),
@@ -253,7 +250,7 @@ public class ConstraintEnforcementService {
      * cannot be constructed.
      */
     public <T> BlockingConstraintHandlerBundle<T> accessManagerBundleFor(AuthorizationDecision decision) {
-        final var unhandledObligations = Sets.newHashSet(decision.obligations());
+        final var unhandledObligations = new HashSet<>(decision.obligations());
         final var bundle               = BlockingConstraintHandlerBundle.<T>accessManagerConstraintHandlerBundle(
                 runnableHandlersForSignal(Signal.ON_DECISION, decision, unhandledObligations));
         if (!unhandledObligations.isEmpty())
@@ -672,8 +669,8 @@ public class ConstraintEnforcementService {
             return handlers;
 
         for (var constraint : constraints) {
-            for (var provider : globalRunnableIndex.get(signal)) {
-                if (provider != null && provider.isResponsible(constraint)) {
+            for (var provider : globalRunnableIndex.getOrDefault(signal, List.of())) {
+                if (provider.isResponsible(constraint)) {
                     onHandlerFound.accept(constraint);
                     handlers = runBoth(handlers, provider.getHandler(constraint));
                 }

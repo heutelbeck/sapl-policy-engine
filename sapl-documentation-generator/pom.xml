@@ -88,14 +88,6 @@
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
-                <configuration>
-                    <requiresUnpack>
-                        <dependency>
-                            <groupId>io.sapl</groupId>
-                            <artifactId>sapl-lang</artifactId>
-                        </dependency>
-                    </requiresUnpack>
-                </configuration>
                 <executions>
                     <execution>
                         <goals>

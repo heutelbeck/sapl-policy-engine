@@ -1,6 +1,0 @@
-{
-  "algorithm": "PERMIT_OVERRIDES",
-  "variables": {
-    "tenant": "tenant-a"
-  }
-}

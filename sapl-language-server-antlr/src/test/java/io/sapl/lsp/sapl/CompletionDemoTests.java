@@ -21,6 +21,7 @@ import java.util.HashMap;
 import java.util.stream.Collectors;
 
 import org.eclipse.lsp4j.Position;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import io.sapl.api.model.ObjectValue;
@@ -32,6 +33,7 @@ import io.sapl.lsp.configuration.LSPConfiguration;
  * Demonstration of current LSP completion capabilities.
  * Run these tests to see what completions are offered in different contexts.
  */
+@Disabled("For internal demo purposed. Not real test.")
 class CompletionDemoTests {
 
     private final SAPLCompletionProvider provider = new SAPLCompletionProvider();
@@ -145,7 +147,7 @@ class CompletionDemoTests {
                 policy "test"
                 permit
                 where
-                  """;
+                """;
         var position = new Position(3, 2);
 
         System.out.println("=== DEMO 6: With Environment Variables ===");
