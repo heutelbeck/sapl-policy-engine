@@ -62,19 +62,6 @@
 			<artifactId>lombok</artifactId>
 			<scope>provided</scope>
 		</dependency>
-		<dependency>
-			<groupId>jakarta.xml.bind</groupId>
-			<artifactId>jakarta.xml.bind-api</artifactId>
-		</dependency>
-		<dependency>
-			<groupId>javax.activation</groupId>
-			<artifactId>activation</artifactId>
-			<version>1.1.1</version>
-		</dependency>
-		<dependency>
-			<groupId>org.glassfish.jaxb</groupId>
-			<artifactId>jaxb-runtime</artifactId>
-		</dependency>
 
 		<!-- SAPL -->
 		<dependency>
@@ -91,6 +78,28 @@
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-thymeleaf</artifactId>
+		</dependency>
+
+		<!-- WebJars for HTML report assets -->
+		<dependency>
+			<groupId>org.webjars.npm</groupId>
+			<artifactId>codemirror</artifactId>
+			<version>6.65.7</version>
+		</dependency>
+		<dependency>
+			<groupId>org.webjars</groupId>
+			<artifactId>bootstrap</artifactId>
+			<version>5.3.8</version>
+		</dependency>
+		<dependency>
+			<groupId>org.webjars.npm</groupId>
+			<artifactId>popperjs__core</artifactId>
+			<version>2.11.8</version>
+		</dependency>
+		<dependency>
+			<groupId>org.webjars</groupId>
+			<artifactId>requirejs</artifactId>
+			<version>2.3.7</version>
 		</dependency>
 
 		<!-- Testing -->
@@ -112,115 +121,6 @@
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-plugin-plugin</artifactId>
 				<version>3.10.2</version>
-			</plugin>
-
-			<plugin>
-				<groupId>org.eclipse.sisu</groupId>
-				<artifactId>sisu-maven-plugin</artifactId>
-				<version>0.3.5</version>
-				<executions>
-					<execution>
-						<id>generate-index</id>
-						<goals>
-							<goal>main-index</goal>
-						</goals>
-					</execution>
-				</executions>
-			</plugin>
-
-			<plugin>
-				<groupId>com.github.eirslett</groupId>
-				<artifactId>frontend-maven-plugin</artifactId>
-				<version>1.15.0</version>
-				<configuration>
-					<installDirectory>${project.build.directory}</installDirectory>
-				</configuration>
-				<executions>
-					<execution>
-						<phase>generate-resources</phase>
-						<id>install node and npm</id>
-						<goals>
-							<goal>install-node-and-npm</goal>
-						</goals>
-						<configuration>
-							<nodeVersion>v18.18.2</nodeVersion>
-							<npmVersion>9.8.1</npmVersion>
-						</configuration>
-					</execution>
-					<execution>
-						<id>npm install</id>
-						<goals>
-							<goal>npm</goal>
-						</goals>
-						<configuration>
-							<arguments>install</arguments>
-						</configuration>
-					</execution>
-				</executions>
-			</plugin>
-
-			<plugin>
-				<artifactId>maven-resources-plugin</artifactId>
-				<executions>
-					<execution>
-						<id>copy-files-coverage-report</id>
-						<phase>generate-resources</phase>
-						<goals>
-							<goal>copy-resources</goal>
-						</goals>
-						<configuration>
-							<outputDirectory>
-								${project.build.directory}/classes/dependency-resources</outputDirectory>
-							<resources>
-								<resource>
-									<directory>
-										${project.basedir}/node_modules</directory>
-									<filtering>true</filtering>
-									<includes>
-										<include>
-											**/@popperjs/core/dist/umd/popper.min.js</include>
-										<include>
-											**/bootstrap/dist/js/bootstrap.min.js</include>
-										<include>
-											**/bootstrap/dist/css/bootstrap.min.css</include>
-										<include>
-											**/codemirror/lib/codemirror.js</include>
-										<include>
-											**/codemirror/addon/mode/simple.js</include>
-										<include>
-											**/codemirror/lib/codemirror.css</include>
-										<include>
-											**/requirejs/require.js</include>
-									</includes>
-								</resource>
-							</resources>
-						</configuration>
-					</execution>
-				</executions>
-			</plugin>
-			<plugin>
-				<artifactId>maven-clean-plugin</artifactId>
-				<configuration>
-					<filesets>
-						<fileset>
-							<directory>${project.basedir}</directory>
-							<followSymlinks>false</followSymlinks>
-							<includes>
-								<include>node_modules/**</include>
-								<include>package-lock.json</include>
-							</includes>
-						</fileset>
-					</filesets>
-				</configuration>
-				<executions>
-					<execution>
-						<id>clean node modules</id>
-						<phase>clean</phase>
-						<goals>
-							<goal>clean</goal>
-						</goals>
-					</execution>
-				</executions>
 			</plugin>
 		</plugins>
 	</build>
