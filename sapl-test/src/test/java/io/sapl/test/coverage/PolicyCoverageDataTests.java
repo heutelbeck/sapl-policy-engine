@@ -1,0 +1,222 @@
+/*
+ * Copyright (C) 2017-2025 Dominic Heutelbeck (dominic@heutelbeck.com)
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package io.sapl.test.coverage;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+
+import lombok.val;
+
+@DisplayName("PolicyCoverageData tests")
+class PolicyCoverageDataTests {
+
+    private static final String CULTIST_POLICY = """
+            policy "cultist-access"
+            permit
+                subject.role == "cultist"
+            where
+                resource.artifact == "necronomicon";
+            """;
+
+    @Test
+    @DisplayName("initializes with document metadata")
+    void whenCreated_thenHasCorrectMetadata() {
+        val coverage = new PolicyCoverageData("elder-policy", CULTIST_POLICY, "policy");
+
+        assertThat(coverage.getDocumentName()).isEqualTo("elder-policy");
+        assertThat(coverage.getDocumentSource()).isEqualTo(CULTIST_POLICY);
+        assertThat(coverage.getDocumentType()).isEqualTo("policy");
+        assertThat(coverage.getTargetTrueHits()).isZero();
+        assertThat(coverage.getTargetFalseHits()).isZero();
+        assertThat(coverage.getConditionCount()).isZero();
+    }
+
+    @Test
+    @DisplayName("records target hit as true")
+    void whenRecordTargetHitTrue_thenTrueHitsIncremented() {
+        val coverage = new PolicyCoverageData("test", "", "policy");
+
+        coverage.recordTargetHit(true);
+        coverage.recordTargetHit(true);
+
+        assertThat(coverage.getTargetTrueHits()).isEqualTo(2);
+        assertThat(coverage.getTargetFalseHits()).isZero();
+        assertThat(coverage.wasTargetMatched()).isTrue();
+        assertThat(coverage.wasTargetEvaluated()).isTrue();
+    }
+
+    @Test
+    @DisplayName("records target hit as false")
+    void whenRecordTargetHitFalse_thenFalseHitsIncremented() {
+        val coverage = new PolicyCoverageData("test", "", "policy");
+
+        coverage.recordTargetHit(false);
+
+        assertThat(coverage.getTargetTrueHits()).isZero();
+        assertThat(coverage.getTargetFalseHits()).isOne();
+        assertThat(coverage.wasTargetMatched()).isFalse();
+        assertThat(coverage.wasTargetEvaluated()).isTrue();
+    }
+
+    @Test
+    @DisplayName("records condition hits and accumulates branches")
+    void whenRecordConditionHits_thenBranchesAccumulated() {
+        val coverage = new PolicyCoverageData("test", "", "policy");
+
+        coverage.recordConditionHit(0, 3, true);
+        coverage.recordConditionHit(0, 3, false);
+        coverage.recordConditionHit(1, 5, true);
+
+        assertThat(coverage.getConditionCount()).isEqualTo(2);
+        assertThat(coverage.getFullyCoveredConditionCount()).isOne();
+        assertThat(coverage.getPartiallyCoveredConditionCount()).isEqualTo(2);
+    }
+
+    @Test
+    @DisplayName("calculates branch coverage percentage")
+    void whenCalculateBranchCoverage_thenCorrectPercentage() {
+        val coverage = new PolicyCoverageData("test", "", "policy");
+
+        coverage.recordConditionHit(0, 3, true);
+        coverage.recordConditionHit(0, 3, false);
+        coverage.recordConditionHit(1, 5, true);
+
+        assertThat(coverage.getBranchCoveragePercent()).isEqualTo(75.0);
+    }
+
+    @Test
+    @DisplayName("returns zero branch coverage when no conditions")
+    void whenNoConditions_thenZeroBranchCoverage() {
+        val coverage = new PolicyCoverageData("test", "", "policy");
+
+        assertThat(coverage.getBranchCoveragePercent()).isZero();
+    }
+
+    @Test
+    @DisplayName("merges coverage from same document")
+    void whenMergeSameDocument_thenCombinesCoverage() {
+        val coverage1 = new PolicyCoverageData("ritual-policy", "", "policy");
+        coverage1.recordTargetHit(true);
+        coverage1.recordConditionHit(0, 3, true);
+
+        val coverage2 = new PolicyCoverageData("ritual-policy", "", "policy");
+        coverage2.recordTargetHit(false);
+        coverage2.recordConditionHit(0, 3, false);
+        coverage2.recordConditionHit(1, 5, true);
+
+        coverage1.merge(coverage2);
+
+        assertThat(coverage1.getTargetTrueHits()).isOne();
+        assertThat(coverage1.getTargetFalseHits()).isOne();
+        assertThat(coverage1.getConditionCount()).isEqualTo(2);
+        assertThat(coverage1.getFullyCoveredConditionCount()).isOne();
+    }
+
+    @Test
+    @DisplayName("merge throws on different document names")
+    void whenMergeDifferentDocuments_thenThrows() {
+        val coverage1 = new PolicyCoverageData("cthulhu-policy", "", "policy");
+        val coverage2 = new PolicyCoverageData("dagon-policy", "", "policy");
+
+        assertThatThrownBy(() -> coverage1.merge(coverage2)).isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Cannot merge coverage for different documents");
+    }
+
+    @Test
+    @DisplayName("returns branch hits as immutable list")
+    void whenGetBranchHits_thenReturnsImmutableList() {
+        val coverage = new PolicyCoverageData("test", "", "policy");
+        coverage.recordConditionHit(0, 3, true);
+        coverage.recordConditionHit(1, 5, false);
+
+        val hits = coverage.getBranchHits();
+
+        assertThat(hits).hasSize(2);
+        assertThatThrownBy(hits::clear).isInstanceOf(UnsupportedOperationException.class);
+    }
+
+    @Test
+    @DisplayName("calculates line count from source")
+    void whenGetLineCount_thenCountsSourceLines() {
+        val coverage = new PolicyCoverageData("test", CULTIST_POLICY, "policy");
+
+        assertThat(coverage.getLineCount()).isEqualTo(5);
+    }
+
+    @Test
+    @DisplayName("returns zero line count for empty source")
+    void whenEmptySource_thenZeroLineCount() {
+        val coverage = new PolicyCoverageData("test", "", "policy");
+
+        assertThat(coverage.getLineCount()).isZero();
+    }
+
+    @Test
+    @DisplayName("returns zero line count for null source")
+    void whenNullSource_thenZeroLineCount() {
+        val coverage = new PolicyCoverageData("test", null, "policy");
+
+        assertThat(coverage.getLineCount()).isZero();
+    }
+
+    @Test
+    @DisplayName("returns covered lines set")
+    void whenGetCoveredLines_thenReturnsCorrectLines() {
+        val coverage = new PolicyCoverageData("test", "", "policy");
+        coverage.recordTargetHit(true);
+        coverage.recordConditionHit(0, 3, true);
+        coverage.recordConditionHit(1, 5, false);
+
+        val coveredLines = coverage.getCoveredLines();
+
+        assertThat(coveredLines).containsExactlyInAnyOrder(1, 3, 5);
+    }
+
+    @Test
+    @DisplayName("covered lines excludes target when not matched")
+    void whenTargetNotMatched_thenLine1NotIncluded() {
+        val coverage = new PolicyCoverageData("test", "", "policy");
+        coverage.recordTargetHit(false);
+        coverage.recordConditionHit(0, 3, true);
+
+        val coveredLines = coverage.getCoveredLines();
+
+        assertThat(coveredLines).containsExactly(3);
+    }
+
+    @Test
+    @DisplayName("file path is null by default")
+    void whenCreated_thenFilePathIsNull() {
+        val coverage = new PolicyCoverageData("test", "", "policy");
+
+        assertThat(coverage.getFilePath()).isNull();
+    }
+
+    @Test
+    @DisplayName("file path can be set")
+    void whenSetFilePath_thenFilePathIsStored() {
+        val coverage = new PolicyCoverageData("arkham-access", "", "policy");
+
+        coverage.setFilePath("policies/arkham/access-control.sapl");
+
+        assertThat(coverage.getFilePath()).isEqualTo("policies/arkham/access-control.sapl");
+    }
+}

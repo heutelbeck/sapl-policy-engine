@@ -29,8 +29,12 @@ import com.vaadin.flow.data.provider.DataProvider;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 import io.sapl.api.SaplVersion;
-import io.sapl.interpreter.combinators.PolicyDocumentCombiningAlgorithm;
-import io.sapl.server.ce.model.pdpconfiguration.*;
+import io.sapl.api.pdp.CombiningAlgorithm;
+import io.sapl.server.ce.model.pdpconfiguration.CombiningAlgorithmService;
+import io.sapl.server.ce.model.pdpconfiguration.DuplicatedVariableNameException;
+import io.sapl.server.ce.model.pdpconfiguration.InvalidVariableNameException;
+import io.sapl.server.ce.model.pdpconfiguration.Variable;
+import io.sapl.server.ce.model.pdpconfiguration.VariablesService;
 import io.sapl.server.ce.model.setup.condition.SetupFinishedCondition;
 import io.sapl.server.ce.ui.utils.ConfirmUtils;
 import io.sapl.server.ce.ui.utils.ErrorNotificationUtils;
@@ -72,15 +76,14 @@ public class PDPConfigView extends VerticalLayout {
     }
 
     private void initUiForCombiningAlgorithm() {
-        PolicyDocumentCombiningAlgorithm[] availableCombiningAlgorithms          = combiningAlgorithmService
-                .getAvailable();
-        String[]                           availableCombiningAlgorithmsAsStrings = PolicyDocumentCombiningAlgorithmEncoding
+        CombiningAlgorithm[] availableCombiningAlgorithms          = combiningAlgorithmService.getAvailable();
+        String[]             availableCombiningAlgorithmsAsStrings = CombiningAlgorithmEncoding
                 .encode(availableCombiningAlgorithms);
 
         comboBoxCombAlgo.setItems(availableCombiningAlgorithmsAsStrings);
 
-        PolicyDocumentCombiningAlgorithm selectedCombiningAlgorithm = combiningAlgorithmService.getSelected();
-        comboBoxCombAlgo.setValue(PolicyDocumentCombiningAlgorithmEncoding.encode(selectedCombiningAlgorithm));
+        CombiningAlgorithm selectedCombiningAlgorithm = combiningAlgorithmService.getSelected();
+        comboBoxCombAlgo.setValue(CombiningAlgorithmEncoding.encode(selectedCombiningAlgorithm));
 
         comboBoxCombAlgo.addValueChangeListener(changedEvent -> {
             if (isIgnoringNextCombiningAlgorithmComboBoxChange) {
@@ -88,8 +91,8 @@ public class PDPConfigView extends VerticalLayout {
                 return;
             }
 
-            final var encodedEntry          = changedEvent.getValue();
-            final var newCombiningAlgorithm = PolicyDocumentCombiningAlgorithmEncoding.decode(encodedEntry);
+            var encodedEntry          = changedEvent.getValue();
+            var newCombiningAlgorithm = CombiningAlgorithmEncoding.decode(encodedEntry);
 
             ConfirmUtils.letConfirm("",
                     "The combining algorithm describes how to come to the final decision while evaluating all published policies.\n\nPlease consider the consequences and confirm the action.",
@@ -122,8 +125,8 @@ public class PDPConfigView extends VerticalLayout {
                     variablesService.create(name);
                 } catch (InvalidVariableNameException ex) {
                     log.error("cannot create variable due to invalid name", ex);
-                    ErrorNotificationUtils.show(String.format("The name is invalid (min length: %d, max length: %d).",
-                            VariablesService.MIN_NAME_LENGTH, VariablesService.MAX_NAME_LENGTH));
+                    ErrorNotificationUtils.show("The name is invalid (min length: %d, max length: %d)."
+                            .formatted(VariablesService.MIN_NAME_LENGTH, VariablesService.MAX_NAME_LENGTH));
                     return;
                 } catch (DuplicatedVariableNameException ex) {
                     log.error("cannot create variable due to duplicated name", ex);
@@ -148,7 +151,7 @@ public class PDPConfigView extends VerticalLayout {
         variablesGrid.addComponentColumn(variable -> {
             Button editButton = new Button("Edit", VaadinIcon.EDIT.create());
             editButton.addClickListener(clickEvent -> {
-                String uriToNavigateTo = String.format("%s/%d", EditVariableView.ROUTE, variable.getId());
+                String uriToNavigateTo = "%s/%d".formatted(EditVariableView.ROUTE, variable.getId());
                 editButton.getUI().ifPresent(ui -> ui.navigate(uriToNavigateTo));
             });
             editButton.setThemeName("primary");
@@ -162,7 +165,7 @@ public class PDPConfigView extends VerticalLayout {
             });
             deleteButton.setThemeName("primary");
 
-            HorizontalLayout componentsForEntry = new HorizontalLayout();
+            var componentsForEntry = new HorizontalLayout();
             componentsForEntry.add(editButton);
             componentsForEntry.add(deleteButton);
 

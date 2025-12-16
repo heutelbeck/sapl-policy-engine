@@ -34,8 +34,8 @@ import io.sapl.server.ce.model.setup.condition.SetupFinishedCondition;
 import io.sapl.server.ce.ui.utils.ConfirmUtils;
 import io.sapl.server.ce.ui.utils.ErrorNotificationUtils;
 import io.sapl.server.ce.ui.views.MainLayout;
-import io.sapl.vaadin.SaplEditor;
-import io.sapl.vaadin.SaplEditorConfiguration;
+import io.sapl.vaadin.lsp.SaplEditorLsp;
+import io.sapl.vaadin.lsp.SaplEditorLspConfiguration;
 import jakarta.annotation.security.RolesAllowed;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Conditional;
@@ -63,20 +63,21 @@ public class PublishedPoliciesView extends VerticalLayout {
     private final VerticalLayout              layoutForSelectedPublishedDocument = new VerticalLayout();
     private final TextField                   policyIdTextField                  = new TextField("Policy Identifier");
     private final TextField                   publishedVersionTextField          = new TextField("Published Version");
-    private SaplEditor                        saplEditor;
+    private SaplEditorLsp                     saplEditor;
 
     public PublishedPoliciesView(SaplDocumentService saplDocumentService) {
         this.saplDocumentService = saplDocumentService;
 
-        final var editorConfig = new SaplEditorConfiguration();
+        var editorConfig = new SaplEditorLspConfiguration();
         editorConfig.setDarkTheme(true);
-        saplEditor = new SaplEditor(editorConfig);
-        final var metadataLayout              = new HorizontalLayout(policyIdTextField, publishedVersionTextField);
-        final var openEditPageForPolicyButton = new Button("Manage Policy");
+        editorConfig.setReadOnly(true);
+        saplEditor = new SaplEditorLsp(editorConfig);
+        var metadataLayout              = new HorizontalLayout(policyIdTextField, publishedVersionTextField);
+        var openEditPageForPolicyButton = new Button("Manage Policy");
 
         layoutForSelectedPublishedDocument.add(metadataLayout, openEditPageForPolicyButton, saplEditor);
         layoutForSelectedPublishedDocument.setSizeFull();
-        final var mainLayout = new SplitLayout(grid, layoutForSelectedPublishedDocument);
+        var mainLayout = new SplitLayout(grid, layoutForSelectedPublishedDocument);
         mainLayout.setSizeFull();
         add(mainLayout);
 
@@ -84,11 +85,10 @@ public class PublishedPoliciesView extends VerticalLayout {
 
         layoutForSelectedPublishedDocument.setVisible(false);
 
-        saplEditor.setReadOnly(Boolean.TRUE);
         openEditPageForPolicyButton.addClickListener(e -> {
             PublishedSaplDocument selected = getSelected();
 
-            String uriToNavigateTo = String.format("%s/%s", EditSaplDocumentView.ROUTE, selected.getSaplDocumentId());
+            String uriToNavigateTo = "%s/%s".formatted(EditSaplDocumentView.ROUTE, selected.getSaplDocumentId());
             getUI().ifPresent(ui -> ui.navigate(uriToNavigateTo));
         });
     }
@@ -99,20 +99,21 @@ public class PublishedPoliciesView extends VerticalLayout {
         grid.setMultiSort(false);
         grid.addComponentColumn(publishedDocument -> {
             Button unpublishButton = new Button("Unpublish");
-            unpublishButton.addClickListener(clickEvent -> ConfirmUtils.letConfirm("Unpublish Document?", String.format(
-                    "Should the document \"%s\" really be unpublished?", publishedDocument.getDocumentName()), () -> {
+            unpublishButton.addClickListener(clickEvent -> ConfirmUtils.letConfirm("Unpublish Document?",
+                    "Should the document \"%s\" really be unpublished?".formatted(publishedDocument.getDocumentName()),
+                    () -> {
                         try {
                             saplDocumentService.unpublishPolicy(publishedDocument.getSaplDocumentId());
                         } catch (Exception throwable) {
                             ErrorNotificationUtils.show("The document could not be unpublished.");
-                            log.error(String.format("The document with id %s could not be unpublished.",
-                                    publishedDocument.getSaplDocumentId()), throwable);
+                            log.error("The document with id {} could not be unpublished.",
+                                    publishedDocument.getSaplDocumentId(), throwable);
                             return;
                         }
                         grid.getDataProvider().refreshAll();
                     }, () -> {}));
 
-            HorizontalLayout componentsForEntry = new HorizontalLayout();
+            var componentsForEntry = new HorizontalLayout();
             componentsForEntry.add(unpublishButton);
 
             return componentsForEntry;

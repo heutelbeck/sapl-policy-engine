@@ -17,19 +17,13 @@
  */
 package io.sapl.mavenplugin.test.coverage;
 
-import io.sapl.mavenplugin.test.coverage.helper.CoverageAPIHelper;
-import io.sapl.mavenplugin.test.coverage.helper.CoverageRatioCalculator;
-import io.sapl.mavenplugin.test.coverage.helper.CoverageTargetHelper;
-import io.sapl.mavenplugin.test.coverage.helper.SaplDocumentReader;
-import io.sapl.mavenplugin.test.coverage.model.CoverageTargets;
-import io.sapl.mavenplugin.test.coverage.model.SaplDocument;
-import io.sapl.mavenplugin.test.coverage.report.GenericCoverageReporter;
 import io.sapl.mavenplugin.test.coverage.report.html.HtmlLineCoverageReportGenerator;
-import io.sapl.mavenplugin.test.coverage.report.sonar.SonarLineCoverageReportGenerator;
-import io.sapl.test.coverage.api.model.PolicyConditionHit;
-import io.sapl.test.coverage.api.model.PolicyHit;
-import io.sapl.test.coverage.api.model.PolicySetHit;
+import io.sapl.test.coverage.AggregatedCoverageData;
+import io.sapl.test.coverage.CoverageReader;
+import io.sapl.test.coverage.PolicyCoverageData;
+import io.sapl.test.coverage.SonarQubeCoverageReportGenerator;
 import lombok.Setter;
+import lombok.val;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
@@ -38,13 +32,17 @@ import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.project.MavenProject;
 
-import javax.inject.Inject;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.Collection;
-import java.util.List;
-import java.util.Locale;
 
+/**
+ * Maven mojo for generating SAPL policy coverage reports.
+ * <p>
+ * Reads coverage data from NDJSON files written by sapl-test and generates
+ * coverage reports in HTML and SonarQube XML formats. Also validates coverage
+ * against configured thresholds.
+ */
 @Mojo(name = "report-coverage-information", defaultPhase = LifecyclePhase.VERIFY)
 public class ReportCoverageInformationMojo extends AbstractMojo {
 
@@ -57,9 +55,6 @@ public class ReportCoverageInformationMojo extends AbstractMojo {
     @Parameter
     private String outputDir;
 
-    @Parameter(defaultValue = "policies")
-    private String policyPath;
-
     @Parameter(defaultValue = "0")
     private float policySetHitRatio;
 
@@ -68,6 +63,9 @@ public class ReportCoverageInformationMojo extends AbstractMojo {
 
     @Parameter(defaultValue = "0")
     private float policyConditionHitRatio;
+
+    @Parameter(defaultValue = "0")
+    private float branchCoverageRatio;
 
     @Parameter(defaultValue = "false")
     private boolean enableSonarReport;
@@ -87,214 +85,269 @@ public class ReportCoverageInformationMojo extends AbstractMojo {
     @Parameter(property = "skipTests", defaultValue = "false")
     private boolean skipTests;
 
-    private final SaplDocumentReader saplDocumentReader;
-
-    private final CoverageTargetHelper coverageTargetHelper;
-
-    private final CoverageAPIHelper coverageAPIHelper;
-
-    private final CoverageRatioCalculator ratioCalculator;
-
-    private final GenericCoverageReporter reporter;
-
-    private final SonarLineCoverageReportGenerator sonarReporter;
-
-    private final HtmlLineCoverageReportGenerator htmlReporter;
-
-    @Inject
-    public ReportCoverageInformationMojo(SaplDocumentReader reader,
-            CoverageTargetHelper coverageTargetHelper,
-            CoverageAPIHelper coverageAPIHelper,
-            CoverageRatioCalculator calc,
-            GenericCoverageReporter reporter,
-            SonarLineCoverageReportGenerator sonarReporter,
-            HtmlLineCoverageReportGenerator htmlReporter) {
-        this.saplDocumentReader   = reader;
-        this.coverageTargetHelper = coverageTargetHelper;
-        this.coverageAPIHelper    = coverageAPIHelper;
-        this.ratioCalculator      = calc;
-        this.reporter             = reporter;
-        this.sonarReporter        = sonarReporter;
-        this.htmlReporter         = htmlReporter;
-    }
-
     @Override
     public void execute() throws MojoExecutionException, MojoFailureException {
-        if (!this.coverageEnabled) {
-            getLog().error("Policy coverage collection is disabled");
-            getLog().error(
-                    "This likely means, that in sapl-maven-plugin configuration in this modules pom.xml the executions block is misconfigured or missing.");
-            getLog().error("Please make sure to add the following to your plug-in configuration_");
-            getLog().error("<executions>");
-            getLog().error("    <execution>");
-            getLog().error("        <id>coverage</id>");
-            getLog().error("        <goals>");
-            getLog().error("            <goal>enable-coverage-collection</goal>");
-            getLog().error("            <goal>report-coverage-information</goal>");
-            getLog().error("        </goals>");
-            getLog().error("    </execution>");
-            getLog().error("</executions>");
+        if (!coverageEnabled) {
+            logCoverageDisabledError();
             throw new MojoFailureException(
-                    "Cannot report and validate SAPL code coverage requirements if coverage collection is disabled. For details, inspect build log.");
+                    "Cannot report and validate SAPL code coverage requirements if coverage collection is disabled.");
         }
 
-        final var buildConfiguredToSkipTests = mavenTestSkip || skipTests;
-
-        if (buildConfiguredToSkipTests) {
-            if (this.failOnDisabledTests) {
-                getLog().error(
-                        "Tests were skipped, but the sapl-maven-plugin is configured to enforce tests to be run.");
-                getLog().error(
-                        "This means, that the build has been run with '-Dmaven.test.skip=true' or '-DskipTests' and the sapl-maven-plugin configuration parameter 'failOnDisabledTests' was set to true. If this is not the intended behaviour, change this parameter to 'false'.");
-                throw new MojoFailureException(
-                        "SAPL test requirements not passed. Tests must be enabled for the build to complete. For details, inspect build log.");
-            } else {
-                getLog().info(
-                        "Tests disabled. Skipping coverage validation requirements validation. If you want the build to fail in this case, set the sapl-maven-plugin configuration parameter 'failOnDisabledTests' to true.");
-                return;
-            }
+        if (shouldSkipDueToDisabledTests()) {
+            return;
         }
 
-        final var documents = readSaplDocuments();
-        final var targets   = readAvailableTargets(documents);
+        var projectBuildDir = project != null ? project.getBuild().getDirectory() : null;
+        val baseDir         = PathHelper.resolveBaseDir(outputDir, projectBuildDir, getLog());
 
-        CoverageTargets hits;
+        AggregatedCoverageData coverage;
         try {
-            hits = readHits();
+            coverage = readCoverageData(baseDir);
         } catch (IOException e) {
-            getLog().error(
-                    String.format("Error test report data. %s: %s", e.getClass().getSimpleName(), e.getMessage()));
-            getLog().error("Probable causes for this error:");
-            getLog().error(" - There are not tests of SAPL policies in this module.");
-            getLog().error(" - The build has skipped tests but the sapl-maven-plugin is still executed.");
-            throw new MojoFailureException("Failed reading data from SAPL tests. For details, inspect build log.", e);
+            logCoverageReadError(e);
+            throw new MojoFailureException("Failed reading coverage data from SAPL tests.", e);
         }
 
-        final var actualPolicySetHitRatio       = this.ratioCalculator.calculateRatio(targets.getPolicySets(),
-                hits.getPolicySets());
-        final var actualPolicyHitRatio          = this.ratioCalculator.calculateRatio(targets.getPolicies(),
-                hits.getPolicies());
-        final var actualPolicyConditionHitRatio = this.ratioCalculator.calculateRatio(targets.getPolicyConditions(),
-                hits.getPolicyConditions());
+        logCoverageInfo(coverage);
+
+        val policySetOk = checkPolicySetRatio(coverage);
+        val policyOk    = checkPolicyRatio(coverage);
+        val conditionOk = checkConditionRatio(coverage);
+        val branchOk    = checkBranchCoverage(coverage);
 
         getLog().info("");
+        getLog().info("");
+
+        generateReports(coverage, baseDir);
+
+        getLog().info("");
+        getLog().info("");
+
+        validateAllThresholds(policySetOk, policyOk, conditionOk, branchOk);
+    }
+
+    private void logCoverageDisabledError() {
+        getLog().error("Policy coverage collection is disabled");
+        getLog().error("Probable cause: sapl-maven-plugin executions block is misconfigured.");
+        getLog().error("Please add the following to your plug-in configuration:");
+        getLog().error("<executions>");
+        getLog().error("    <execution>");
+        getLog().error("        <id>coverage</id>");
+        getLog().error("        <goals>");
+        getLog().error("            <goal>enable-coverage-collection</goal>");
+        getLog().error("            <goal>report-coverage-information</goal>");
+        getLog().error("        </goals>");
+        getLog().error("    </execution>");
+        getLog().error("</executions>");
+    }
+
+    private boolean shouldSkipDueToDisabledTests() throws MojoFailureException {
+        val testsSkipped = mavenTestSkip || skipTests;
+
+        if (testsSkipped) {
+            if (failOnDisabledTests) {
+                getLog().error(
+                        "Tests were skipped, but the sapl-maven-plugin is configured to enforce tests to be run.");
+                getLog().error("Build used '-Dmaven.test.skip=true' or '-DskipTests'. "
+                        + "Set 'failOnDisabledTests' to false to allow this.");
+                throw new MojoFailureException("SAPL test requirements not passed. Tests must be enabled.");
+            } else {
+                getLog().info("Tests disabled. Skipping coverage validation. "
+                        + "Set 'failOnDisabledTests' to true to fail the build in this case.");
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private AggregatedCoverageData readCoverageData(Path baseDir) throws IOException {
+        val reader = new CoverageReader(baseDir);
+        if (!reader.coverageFileExists()) {
+            throw new IOException("Coverage file not found: " + reader.getCoverageFilePath());
+        }
+        return reader.readAggregated();
+    }
+
+    private void logCoverageReadError(IOException e) {
+        getLog().error("Error reading coverage data: " + e.getMessage());
+        getLog().error("Probable causes:");
+        getLog().error(" - No tests of SAPL policies in this module.");
+        getLog().error(" - Build skipped tests but sapl-maven-plugin is still executed.");
+        getLog().error(" - The coverage.ndjson file was not created by sapl-test.");
+    }
+
+    private void logCoverageInfo(AggregatedCoverageData coverage) {
         getLog().info("");
         getLog().info("Measured SAPL coverage information:");
         getLog().info("");
-
-        boolean isPolicySetRatioFulfilled = checkPolicySetRatio(targets.getPolicySets(), actualPolicySetHitRatio);
-
-        boolean isPolicyRatioFulfilled = checkPolicyRatio(targets.getPolicies(), actualPolicyHitRatio);
-
-        boolean isPolicyConditionRatioFulfilled = checkPolicyConditionRatio(targets.getPolicyConditions(),
-                actualPolicyConditionHitRatio);
-
+        getLog().info("  Tests executed: " + coverage.getTestCount());
+        getLog().info("  Total evaluations: " + coverage.getTotalEvaluations());
+        getLog().info("  Policies covered: " + coverage.getPolicyCount());
         getLog().info("");
-        getLog().info("");
-
-        if (enableSonarReport || enableHtmlReport) {
-
-            final var genericDocumentCoverage = reporter.calcDocumentCoverage(documents, hits);
-
-            if (enableSonarReport) {
-                sonarReporter.generateSonarLineCoverageReport(genericDocumentCoverage, getLog(),
-                        PathHelper.resolveBaseDir(outputDir, project.getBuild().getDirectory(), getLog()),
-                        this.policyPath, this.project.getBasedir());
-            }
-
-            if (enableHtmlReport) {
-                Path indexHtml = htmlReporter.generateHtmlReport(genericDocumentCoverage,
-                        PathHelper.resolveBaseDir(outputDir, project.getBuild().getDirectory(), getLog()),
-                        actualPolicySetHitRatio, actualPolicyHitRatio, actualPolicyConditionHitRatio);
-                getLog().info("Open this file in a Browser to view the HTML coverage report: ");
-                getLog().info(indexHtml.toUri().toString());
-            }
-        }
-
-        getLog().info("");
-        getLog().info("");
-
-        breakLifecycleIfRatiosNotFulfilled(isPolicySetRatioFulfilled, isPolicyRatioFulfilled,
-                isPolicyConditionRatioFulfilled);
     }
 
-    private void breakLifecycleIfRatiosNotFulfilled(boolean isPolicySetRatioFulfilled, boolean isPolicyRatioFulfilled,
-            boolean isPolicyConditionRatioFulfilled) throws MojoFailureException {
-        if (isPolicySetRatioFulfilled && isPolicyRatioFulfilled && isPolicyConditionRatioFulfilled) {
+    private boolean checkPolicySetRatio(AggregatedCoverageData coverage) {
+        val setCount = coverage.getPolicySetCount();
+        if (setCount == 0) {
+            getLog().info("No policy sets to evaluate.");
+            return true;
+        }
+
+        val ratio = coverage.getPolicySetHitRatio();
+        getLog().info("Policy Set Hit Ratio: %.2f%% (%d of %d matched)".formatted(ratio,
+                coverage.getMatchedPolicySetCount(), setCount));
+
+        if (ratio < policySetHitRatio) {
+            getLog().error("Policy Set Hit Ratio not fulfilled. Required: %.2f%%, Actual: %.2f%%"
+                    .formatted(policySetHitRatio, ratio));
+            return false;
+        }
+        return true;
+    }
+
+    private boolean checkPolicyRatio(AggregatedCoverageData coverage) {
+        val policyCount = coverage.getStandalonePolicyCount();
+        if (policyCount == 0) {
+            getLog().info("No standalone policies to evaluate.");
+            return true;
+        }
+
+        val ratio = coverage.getPolicyHitRatio();
+        getLog().info("Policy Hit Ratio: %.2f%% (%d of %d matched)".formatted(ratio,
+                coverage.getMatchedStandalonePolicyCount(), policyCount));
+
+        if (ratio < policyHitRatio) {
+            getLog().error("Policy Hit Ratio not fulfilled. Required: %.2f%%, Actual: %.2f%%".formatted(policyHitRatio,
+                    ratio));
+            return false;
+        }
+        return true;
+    }
+
+    private boolean checkConditionRatio(AggregatedCoverageData coverage) {
+        val ratio = coverage.getConditionHitRatio();
+        getLog().info("Condition Hit Ratio: %.2f%%".formatted(ratio));
+
+        if (ratio < policyConditionHitRatio) {
+            getLog().error("Condition Hit Ratio not fulfilled. Required: %.2f%%, Actual: %.2f%%"
+                    .formatted(policyConditionHitRatio, ratio));
+            return false;
+        }
+        return true;
+    }
+
+    private boolean checkBranchCoverage(AggregatedCoverageData coverage) {
+        if (branchCoverageRatio <= 0) {
+            return true;
+        }
+
+        val ratio = coverage.getOverallBranchCoverage();
+        getLog().info("Branch Coverage: %.2f%%".formatted(ratio));
+
+        if (ratio < branchCoverageRatio) {
+            getLog().error("Branch Coverage not fulfilled. Required: %.2f%%, Actual: %.2f%%"
+                    .formatted(branchCoverageRatio, ratio));
+            return false;
+        }
+        return true;
+    }
+
+    private void generateReports(AggregatedCoverageData coverage, Path baseDir) throws MojoExecutionException {
+        if (!enableSonarReport && !enableHtmlReport) {
+            return;
+        }
+
+        if (enableSonarReport) {
+            generateSonarReport(baseDir);
+        }
+
+        if (enableHtmlReport) {
+            generateHtmlReport(coverage, baseDir);
+        }
+    }
+
+    private void generateSonarReport(Path baseDir) throws MojoExecutionException {
+        try {
+            val sonarOutputPath = baseDir.resolve("sonar").resolve("sonar-generic-coverage.xml");
+            val generator       = new SonarQubeCoverageReportGenerator(baseDir);
+            generator.generateToFile(sonarOutputPath);
+            getLog().info("SonarQube coverage report written to: " + sonarOutputPath);
+        } catch (IOException e) {
+            throw new MojoExecutionException("Error generating SonarQube coverage report", e);
+        }
+    }
+
+    private void generateHtmlReport(AggregatedCoverageData coverage, Path baseDir) throws MojoExecutionException {
+        val policies       = coverage.getPolicyCoverageList();
+        val projectBaseDir = project != null ? project.getBasedir().toPath() : Path.of(".");
+        populatePolicySources(policies, projectBaseDir);
+
+        val generator = new HtmlLineCoverageReportGenerator();
+        val indexHtml = generator.generateHtmlReport(policies, baseDir, coverage.getPolicySetHitRatio(),
+                coverage.getPolicyHitRatio(), coverage.getConditionHitRatio());
+        getLog().info("HTML coverage report: " + indexHtml.toUri());
+    }
+
+    /**
+     * Reads policy source files to populate documentSource for HTML report
+     * generation.
+     * <p>
+     * The NDJSON coverage format stores file paths relative to the classpath root.
+     * For HTML reports with syntax highlighting, we need to read the actual source
+     * from the src/main/resources or target/classes directories.
+     */
+    private void populatePolicySources(java.util.Collection<PolicyCoverageData> policies, Path projectBaseDir) {
+        for (val policy : policies) {
+            if (policy.getDocumentSource() != null && !policy.getDocumentSource().isEmpty()) {
+                continue;
+            }
+
+            val filePath = policy.getFilePath();
+            if (filePath == null || filePath.isEmpty()) {
+                getLog().debug("No file path for policy: " + policy.getDocumentName());
+                continue;
+            }
+
+            val source = tryReadPolicySource(projectBaseDir, filePath);
+            if (source != null) {
+                policy.setDocumentSource(source);
+                getLog().debug("Loaded source for: " + policy.getDocumentName());
+            } else {
+                getLog().debug("Source file not found for: " + policy.getDocumentName());
+            }
+        }
+    }
+
+    /**
+     * Tries to read policy source from multiple locations.
+     * <p>
+     * File paths in coverage data are relative to the classpath root, so we need
+     * to try src/main/resources first, then target/classes as a fallback.
+     */
+    private String tryReadPolicySource(Path projectBaseDir, String relativePath) {
+        val candidatePaths = new Path[] { projectBaseDir.resolve("src/main/resources").resolve(relativePath),
+                projectBaseDir.resolve("target/classes").resolve(relativePath), projectBaseDir.resolve(relativePath) };
+
+        for (val path : candidatePaths) {
+            if (Files.exists(path)) {
+                try {
+                    return Files.readString(path);
+                } catch (IOException e) {
+                    getLog().debug("Could not read: " + path + " - " + e.getMessage());
+                }
+            }
+        }
+        return null;
+    }
+
+    private void validateAllThresholds(boolean policySetOk, boolean policyOk, boolean conditionOk, boolean branchOk)
+            throws MojoFailureException {
+        if (policySetOk && policyOk && conditionOk && branchOk) {
             getLog().info("All coverage criteria passed.");
             getLog().info("");
             getLog().info("");
         } else {
-            throw new MojoFailureException(
-                    "One or more SAPL Coverage Ratios aren't fulfilled. For details, inspect build log.");
+            throw new MojoFailureException("One or more SAPL coverage thresholds not met. See build log for details.");
         }
     }
-
-    private List<SaplDocument> readSaplDocuments() throws MojoExecutionException {
-        return this.saplDocumentReader.retrievePolicyDocuments(getLog(), project, this.policyPath);
-    }
-
-    private CoverageTargets readAvailableTargets(Collection<SaplDocument> documents) {
-        return this.coverageTargetHelper.getCoverageTargets(documents);
-    }
-
-    private CoverageTargets readHits() throws IOException {
-        return this.coverageAPIHelper
-                .readHits(PathHelper.resolveBaseDir(outputDir, project.getBuild().getDirectory(), getLog()));
-    }
-
-    private boolean checkPolicySetRatio(Collection<PolicySetHit> targets, float ratio) {
-        if (targets.isEmpty()) {
-            getLog().info("There are no PolicySets to hit.");
-            return true;
-        }
-
-        getLog().info("Policy Set Hit Ratio is: " + ratio);
-
-        if (ratio < policySetHitRatio) {
-            getLog().error(String.format(Locale.US,
-                    "Policy Set Hit Ratio not fulfilled. Expected greater or equal %.2f but got %.2f",
-                    policySetHitRatio, ratio));
-            return false;
-        } else {
-            return true;
-        }
-    }
-
-    private boolean checkPolicyRatio(Collection<PolicyHit> targets, float ratio) {
-        if (targets.isEmpty()) {
-            getLog().info("There are no Policies to hit.");
-            return true;
-        }
-
-        getLog().info("Policy Hit Ratio is: " + ratio);
-
-        if (ratio < policyHitRatio) {
-            getLog().error(String.format(Locale.US,
-                    "Policy Hit Ratio not fulfilled. Expected greater or equal %.2f but got %.2f", policyHitRatio,
-                    ratio));
-            return false;
-        } else {
-            return true;
-        }
-    }
-
-    private boolean checkPolicyConditionRatio(Collection<PolicyConditionHit> targets, float ratio) {
-        if (targets.isEmpty()) {
-            getLog().info("There are no PolicyConditions to hit.");
-            return true;
-        }
-
-        getLog().info("Policy Condition Hit Ratio is: " + ratio);
-
-        if (ratio < policyConditionHitRatio) {
-            getLog().error(String.format(Locale.US,
-                    "Policy Condition Hit Ratio not fulfilled. Expected greater or equal %.2f but got %.2f",
-                    policyConditionHitRatio, ratio));
-            return false;
-        } else {
-            return true;
-        }
-    }
-
 }

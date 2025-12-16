@@ -17,26 +17,17 @@
  */
 package io.sapl.server.ce.model.sapldocument;
 
-import io.sapl.interpreter.DocumentType;
-import io.sapl.interpreter.SAPLInterpreter;
-import io.sapl.prp.Document;
-import io.sapl.prp.PrpUpdateEvent;
-import io.sapl.prp.PrpUpdateEvent.Update;
-import io.sapl.prp.PrpUpdateEventSource;
+import io.sapl.parser.DefaultSAPLParser;
+import io.sapl.parser.Document;
+import io.sapl.parser.DocumentType;
+import io.sapl.parser.SAPLParser;
 import io.sapl.server.ce.model.setup.condition.SetupFinishedCondition;
-import jakarta.annotation.PostConstruct;
 import lombok.NonNull;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Conditional;
 import org.springframework.dao.DataIntegrityViolationException;
-import org.springframework.data.util.Streamable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import reactor.core.publisher.Flux;
-import reactor.core.publisher.Sinks;
-import reactor.core.publisher.Sinks.EmitFailureHandler;
-import reactor.core.publisher.Sinks.Many;
 
 import java.time.Instant;
 import java.time.ZoneId;
@@ -46,39 +37,32 @@ import java.util.*;
 
 /**
  * Service for reading and managing {@link SaplDocument} instances.
+ * Uses the ANTLR-based parser for document validation.
  */
 @Slf4j
 @Service
-@RequiredArgsConstructor
 @Conditional(SetupFinishedCondition.class)
-public class SaplDocumentService implements PrpUpdateEventSource {
+public class SaplDocumentService {
     public static final String DEFAULT_DOCUMENT_VALUE = "policy \"all deny\"\ndeny";
 
     private final SaplDocumentsRepository         saplDocumentRepository;
     private final SaplDocumentsVersionRepository  saplDocumentVersionRepository;
     private final PublishedSaplDocumentRepository publishedSaplDocumentRepository;
-    private final SAPLInterpreter                 saplInterpreter;
+    private final SAPLParser                      saplParser;
+    private final List<PolicyChangeListener>      policyChangeListeners;
 
     private final DateTimeFormatter dateFormatter = DateTimeFormatter.ofLocalizedDateTime(FormatStyle.MEDIUM)
             .withLocale(Locale.GERMANY).withZone(ZoneId.systemDefault());
 
-    private Many<PrpUpdateEvent> prpUpdateEventSink = Sinks.many().replay().all();
-
-    @PostConstruct
-    public void init() {
-        // emit initial event
-        PrpUpdateEvent initialEvent = generateInitialPrpUpdateEvent();
-        prpUpdateEventSink.emitNext(initialEvent, EmitFailureHandler.FAIL_FAST);
-    }
-
-    @Override
-    public Flux<PrpUpdateEvent> getUpdates() {
-        return prpUpdateEventSink.asFlux();
-    }
-
-    @Override
-    public void dispose() {
-        // NOOP
+    public SaplDocumentService(SaplDocumentsRepository saplDocumentRepository,
+            SaplDocumentsVersionRepository saplDocumentVersionRepository,
+            PublishedSaplDocumentRepository publishedSaplDocumentRepository,
+            List<PolicyChangeListener> policyChangeListeners) {
+        this.saplDocumentRepository          = saplDocumentRepository;
+        this.saplDocumentVersionRepository   = saplDocumentVersionRepository;
+        this.publishedSaplDocumentRepository = publishedSaplDocumentRepository;
+        this.saplParser                      = new DefaultSAPLParser();
+        this.policyChangeListeners           = policyChangeListeners != null ? policyChangeListeners : List.of();
     }
 
     public Collection<SaplDocument> getAll() {
@@ -94,37 +78,37 @@ public class SaplDocumentService implements PrpUpdateEventSource {
     }
 
     public SaplDocument createDefault() {
-        String documentValue = DEFAULT_DOCUMENT_VALUE;
+        var documentValue = DEFAULT_DOCUMENT_VALUE;
 
-        Document documentAnalysisResult = saplInterpreter.parseDocument(documentValue);
+        var parsedDocument = saplParser.parseDocument(documentValue);
 
-        DocumentType type = documentAnalysisResult.type();
-        String       name = documentAnalysisResult.name();
+        var type = parsedDocument.type();
+        var name = parsedDocument.name();
 
-        SaplDocument saplDocumentToCreate = new SaplDocument().setLastModified(getCurrentTimestampAsString())
-                .setName(name).setCurrentVersionNumber(1).setType(type);
-        SaplDocument createdDocument      = saplDocumentRepository.save(saplDocumentToCreate);
+        var saplDocumentToCreate = new SaplDocument().setLastModified(getCurrentTimestampAsString()).setName(name)
+                .setCurrentVersionNumber(1).setType(type);
+        var createdDocument      = saplDocumentRepository.save(saplDocumentToCreate);
 
-        SaplDocumentVersion initialSaplDocumentVersion = new SaplDocumentVersion().setSaplDocument(createdDocument)
-                .setVersionNumber(1).setDocumentContent(documentValue).setName(name);
+        var initialSaplDocumentVersion = new SaplDocumentVersion().setSaplDocument(createdDocument).setVersionNumber(1)
+                .setDocumentContent(documentValue).setName(name);
         saplDocumentVersionRepository.save(initialSaplDocumentVersion);
 
         return createdDocument;
     }
 
     public SaplDocumentVersion createVersion(long saplDocumentId, @NonNull String documentValue) {
-        SaplDocument saplDocument = getExistingById(saplDocumentId);
+        var saplDocument = getExistingById(saplDocumentId);
 
-        Document documentAnalysisResult = saplInterpreter.parseDocument(documentValue);
-        if (documentAnalysisResult.isInvalid()) {
-            throw new IllegalArgumentException(String.format("document value is invalid (value: %s)", documentValue));
+        var parsedDocument = saplParser.parseDocument(documentValue);
+        if (parsedDocument.isInvalid()) {
+            throw new IllegalArgumentException("document value is invalid (value: %s)".formatted(documentValue));
         }
 
-        int          newVersionNumber = saplDocument.getCurrentVersionNumber() + 1;
-        DocumentType type             = documentAnalysisResult.type();
-        String       newName          = documentAnalysisResult.name();
+        var newVersionNumber = saplDocument.getCurrentVersionNumber() + 1;
+        var type             = parsedDocument.type();
+        var newName          = parsedDocument.name();
 
-        SaplDocumentVersion newSaplDocumentVersion = new SaplDocumentVersion().setSaplDocument(saplDocument)
+        var newSaplDocumentVersion = new SaplDocumentVersion().setSaplDocument(saplDocument)
                 .setVersionNumber(newVersionNumber).setDocumentContent(documentValue).setName(newName);
         saplDocumentVersionRepository.save(newSaplDocumentVersion);
 
@@ -138,22 +122,16 @@ public class SaplDocumentService implements PrpUpdateEventSource {
     @Transactional(rollbackFor = Throwable.class)
     public void publishPolicyVersion(long saplDocumentId, int versionToPublish)
             throws PublishedDocumentNameCollisionException {
-        SaplDocument saplDocument = getExistingById(saplDocumentId);
-        final var    updateEvents = new ArrayList<Update>(2);
+        var saplDocument = getExistingById(saplDocumentId);
 
         // unpublish other version if published
         if (saplDocument.getPublishedVersion() != null) {
-            SaplDocument saplDocumentToUnpublish = getExistingById(saplDocumentId);
+            var saplDocumentToUnpublish = getExistingById(saplDocumentId);
 
-            SaplDocumentVersion publishedVersion = saplDocumentToUnpublish.getPublishedVersion();
+            var publishedVersion = saplDocumentToUnpublish.getPublishedVersion();
             if (publishedVersion != null) {
-
                 // update persisted published documents
-                Iterable<PublishedSaplDocument> deletedPublishedSaplDocuments = deletePersistedPublishedSaplDocumentsByName(
-                        publishedVersion.getName());
-                for (var doc : deletedPublishedSaplDocuments) {
-                    updateEvents.add(convertSaplDocumentToUpdateOfPrpUpdateEvent(doc, PrpUpdateEvent.Type.WITHDRAW));
-                }
+                deletePersistedPublishedSaplDocumentsByName(publishedVersion.getName());
 
                 // update persisted document
                 saplDocumentToUnpublish.setPublishedVersion(null);
@@ -164,11 +142,10 @@ public class SaplDocumentService implements PrpUpdateEventSource {
             }
         }
 
-        SaplDocumentVersion saplDocumentVersionToPublish = saplDocument.getVersion(versionToPublish);
+        var saplDocumentVersionToPublish = saplDocument.getVersion(versionToPublish);
 
         // update persisted published documents
-        PublishedSaplDocument createdPublishedSaplDocument = createPersistedPublishedSaplDocument(
-                saplDocumentVersionToPublish);
+        createPersistedPublishedSaplDocument(saplDocumentVersionToPublish);
 
         // update persisted document
         saplDocument.setPublishedVersion(saplDocumentVersionToPublish).setLastModified(getCurrentTimestampAsString());
@@ -178,25 +155,20 @@ public class SaplDocumentService implements PrpUpdateEventSource {
                 saplDocumentVersionToPublish.getVersionNumber(), saplDocumentId,
                 saplDocumentVersionToPublish.getName());
 
-        updateEvents.add(
-                convertSaplDocumentToUpdateOfPrpUpdateEvent(createdPublishedSaplDocument, PrpUpdateEvent.Type.PUBLISH));
-
-        final var prpUpdateEvent = new PrpUpdateEvent(updateEvents);
-        prpUpdateEventSink.emitNext(prpUpdateEvent, EmitFailureHandler.FAIL_FAST);
+        notifyPolicyChangeListeners();
     }
 
     @Transactional
     public void unpublishPolicy(long saplDocumentId) {
-        SaplDocument saplDocumentToUnpublish = getExistingById(saplDocumentId);
+        var saplDocumentToUnpublish = getExistingById(saplDocumentId);
 
-        SaplDocumentVersion publishedVersion = saplDocumentToUnpublish.getPublishedVersion();
+        var publishedVersion = saplDocumentToUnpublish.getPublishedVersion();
         if (publishedVersion == null) {
             return;
         }
 
         // update persisted published documents
-        Iterable<PublishedSaplDocument> deletedPublishedSaplDocuments = deletePersistedPublishedSaplDocumentsByName(
-                publishedVersion.getName());
+        deletePersistedPublishedSaplDocumentsByName(publishedVersion.getName());
 
         // update persisted document
         saplDocumentToUnpublish.setPublishedVersion(null);
@@ -205,7 +177,7 @@ public class SaplDocumentService implements PrpUpdateEventSource {
         log.info("unpublish version {} of SAPL document with id {} (name: {})", publishedVersion.getVersionNumber(),
                 saplDocumentId, saplDocumentToUnpublish.getName());
 
-        notifyAboutChangedPublicationOfSaplDocument(PrpUpdateEvent.Type.WITHDRAW, deletedPublishedSaplDocuments);
+        notifyPolicyChangeListeners();
     }
 
     public Collection<PublishedSaplDocument> getPublishedSaplDocuments() {
@@ -230,35 +202,17 @@ public class SaplDocumentService implements PrpUpdateEventSource {
         return dateFormatter.format(Instant.now());
     }
 
-    private PrpUpdateEvent generateInitialPrpUpdateEvent() {
-        List<PrpUpdateEvent.Update> updates = publishedSaplDocumentRepository.findAll().stream()
-                .map(publishedSaplDocument -> convertSaplDocumentToUpdateOfPrpUpdateEvent(publishedSaplDocument,
-                        PrpUpdateEvent.Type.PUBLISH))
-                .toList();
-        return new PrpUpdateEvent(updates);
-    }
-
-    private PrpUpdateEvent.Update convertSaplDocumentToUpdateOfPrpUpdateEvent(
-            PublishedSaplDocument publishedSaplDocument, PrpUpdateEvent.Type prpUpdateEventType) {
-        Document document = saplInterpreter.parseDocument(publishedSaplDocument.getDocument());
-        return new Update(prpUpdateEventType, document);
-    }
-
-    private Iterable<PublishedSaplDocument> deletePersistedPublishedSaplDocumentsByName(String name) {
-        Collection<PublishedSaplDocument> publishedDocumentsWithName = publishedSaplDocumentRepository
-                .findByDocumentName(name);
+    private void deletePersistedPublishedSaplDocumentsByName(String name) {
+        var publishedDocumentsWithName = publishedSaplDocumentRepository.findByDocumentName(name);
         publishedSaplDocumentRepository.deleteAll(publishedDocumentsWithName);
-
-        return publishedDocumentsWithName;
     }
 
-    private PublishedSaplDocument createPersistedPublishedSaplDocument(SaplDocumentVersion saplDocumentVersion)
+    private void createPersistedPublishedSaplDocument(SaplDocumentVersion saplDocumentVersion)
             throws PublishedDocumentNameCollisionException {
-        PublishedSaplDocument publishedSaplDocument = new PublishedSaplDocument();
+        var publishedSaplDocument = new PublishedSaplDocument();
         publishedSaplDocument.importSaplDocumentVersion(saplDocumentVersion);
 
-        PublishedSaplDocument createdPublishedSaplDocument = publishedSaplDocumentRepository
-                .save(publishedSaplDocument);
+        publishedSaplDocumentRepository.save(publishedSaplDocument);
 
         // enforce checking constraints in transaction
         try {
@@ -266,18 +220,15 @@ public class SaplDocumentService implements PrpUpdateEventSource {
         } catch (DataIntegrityViolationException ex) {
             throw new PublishedDocumentNameCollisionException(saplDocumentVersion.getName(), ex);
         }
-
-        return createdPublishedSaplDocument;
     }
 
-    private void notifyAboutChangedPublicationOfSaplDocument(PrpUpdateEvent.Type prpUpdateEventType,
-            Iterable<PublishedSaplDocument> publishedSaplDocuments) {
-        List<PrpUpdateEvent.Update> updateEvents = Streamable.of(publishedSaplDocuments)
-                .map(publishedSaplDocument -> convertSaplDocumentToUpdateOfPrpUpdateEvent(publishedSaplDocument,
-                        prpUpdateEventType))
-                .toList();
-
-        PrpUpdateEvent prpUpdateEvent = new PrpUpdateEvent(updateEvents);
-        prpUpdateEventSink.emitNext(prpUpdateEvent, EmitFailureHandler.FAIL_FAST);
+    private void notifyPolicyChangeListeners() {
+        for (var listener : policyChangeListeners) {
+            try {
+                listener.onPoliciesChanged();
+            } catch (Exception exception) {
+                log.error("Error notifying policy change listener.", exception);
+            }
+        }
     }
 }

@@ -17,13 +17,14 @@
  */
 package io.sapl.test;
 
+import static io.sapl.test.Matchers.any;
+import static io.sapl.test.Matchers.args;
+
+import io.sapl.api.model.ObjectValue;
 import io.sapl.api.model.Value;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.functions.libraries.TemporalFunctionLibrary;
 import org.junit.jupiter.api.Test;
-
-import static io.sapl.test.Matchers.any;
-import static io.sapl.test.Matchers.args;
 
 /**
  * Ported tests from sapl-demo-testing A_ and B_ test classes.
@@ -48,6 +49,26 @@ class PortedDemoTests {
                 action == "read"
             where
                 time.dayOfWeek("2021-02-08T16:16:33.616Z") =~ "MONDAY|TUESDAY|WEDNESDAY|THURSDAY|FRIDAY|SATURDAY|SUNDAY";
+            """;
+
+    // Policy set with "for" clause to test target expression coverage
+    private static final String POLICY_SET_WITH_FOR = """
+            set "forbidden-tomes-access"
+            deny-unless-permit
+            for resource == "necronomicon"
+
+            policy "allow-cultist-access"
+            permit
+                action == "read"
+            where
+                subject.role == "cultist";
+
+            policy "allow-researcher-with-clearance"
+            permit
+                action == "read"
+            where
+                subject.role == "researcher";
+                subject.clearanceLevel > 3;
             """;
 
     /**
@@ -100,5 +121,64 @@ class PortedDemoTests {
     void whenActionIsNotRead_thenNotApplicable() {
         SaplTestFixture.createSingleTest().withPolicy(POLICY_SIMPLE)
                 .whenDecide(AuthorizationSubscription.of("willi", "write", "something")).expectNotApplicable().verify();
+    }
+
+    // Tests for policy set with "for" clause
+
+    /**
+     * Tests when "for" clause matches and inner policy conditions are satisfied.
+     * A cultist reading the necronomicon should be permitted.
+     */
+    @Test
+    void whenForClauseMatchesAndCultistReadsNecronomicon_thenPermit() {
+        var subject = ObjectValue.builder().put("role", Value.of("cultist")).build();
+        SaplTestFixture.createSingleTest().withPolicy(POLICY_SET_WITH_FOR)
+                .whenDecide(AuthorizationSubscription.of(subject, "read", "necronomicon")).expectPermit().verify();
+    }
+
+    /**
+     * Tests when "for" clause does not match.
+     * Any request for a different resource should be not applicable.
+     */
+    @Test
+    void whenForClauseDoesNotMatch_thenNotApplicable() {
+        var subject = ObjectValue.builder().put("role", Value.of("cultist")).build();
+        SaplTestFixture.createSingleTest().withPolicy(POLICY_SET_WITH_FOR)
+                .whenDecide(AuthorizationSubscription.of(subject, "read", "other-artifact")).expectNotApplicable()
+                .verify();
+    }
+
+    /**
+     * Tests when "for" clause matches but no inner policy permits.
+     * A regular person (not cultist or high-clearance researcher) should be denied
+     * due to deny-unless-permit combining algorithm.
+     */
+    @Test
+    void whenForClauseMatchesButNoInnerPolicyPermits_thenDeny() {
+        var subject = ObjectValue.builder().put("role", Value.of("visitor")).build();
+        SaplTestFixture.createSingleTest().withPolicy(POLICY_SET_WITH_FOR)
+                .whenDecide(AuthorizationSubscription.of(subject, "read", "necronomicon")).expectDeny().verify();
+    }
+
+    /**
+     * Tests second inner policy path - researcher with sufficient clearance.
+     */
+    @Test
+    void whenResearcherWithHighClearanceReadsNecronomicon_thenPermit() {
+        var subject = ObjectValue.builder().put("role", Value.of("researcher")).put("clearanceLevel", Value.of(5))
+                .build();
+        SaplTestFixture.createSingleTest().withPolicy(POLICY_SET_WITH_FOR)
+                .whenDecide(AuthorizationSubscription.of(subject, "read", "necronomicon")).expectPermit().verify();
+    }
+
+    /**
+     * Tests researcher with insufficient clearance.
+     */
+    @Test
+    void whenResearcherWithLowClearanceReadsNecronomicon_thenDeny() {
+        var subject = ObjectValue.builder().put("role", Value.of("researcher")).put("clearanceLevel", Value.of(2))
+                .build();
+        SaplTestFixture.createSingleTest().withPolicy(POLICY_SET_WITH_FOR)
+                .whenDecide(AuthorizationSubscription.of(subject, "read", "necronomicon")).expectDeny().verify();
     }
 }

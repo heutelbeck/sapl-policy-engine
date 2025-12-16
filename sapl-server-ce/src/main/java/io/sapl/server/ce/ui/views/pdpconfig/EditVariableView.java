@@ -26,12 +26,16 @@ import com.vaadin.flow.router.HasUrlParameter;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 import io.sapl.api.SaplVersion;
-import io.sapl.server.ce.model.pdpconfiguration.*;
+import io.sapl.server.ce.model.pdpconfiguration.DuplicatedVariableNameException;
+import io.sapl.server.ce.model.pdpconfiguration.InvalidJsonException;
+import io.sapl.server.ce.model.pdpconfiguration.InvalidVariableNameException;
+import io.sapl.server.ce.model.pdpconfiguration.Variable;
+import io.sapl.server.ce.model.pdpconfiguration.VariablesService;
 import io.sapl.server.ce.model.setup.condition.SetupFinishedCondition;
 import io.sapl.server.ce.ui.utils.ErrorNotificationUtils;
 import io.sapl.server.ce.ui.views.MainLayout;
-import io.sapl.vaadin.JsonEditor;
-import io.sapl.vaadin.JsonEditorConfiguration;
+import io.sapl.vaadin.lsp.JsonEditorLsp;
+import io.sapl.vaadin.lsp.JsonEditorLspConfiguration;
 import jakarta.annotation.security.RolesAllowed;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Conditional;
@@ -59,7 +63,7 @@ public class EditVariableView extends VerticalLayout implements HasUrlParameter<
     private final Button    saveButton    = new Button("Save");
     private final Button    cancelButton  = new Button("Cancel");
 
-    private JsonEditor jsonEditor;
+    private JsonEditorLsp jsonEditor;
 
     /**
      * The {@link Variable} to edit.
@@ -69,11 +73,11 @@ public class EditVariableView extends VerticalLayout implements HasUrlParameter<
     public EditVariableView(VariablesService variableService) {
         this.variableService = variableService;
 
-        final var jsonEditorConfig = new JsonEditorConfiguration();
+        var jsonEditorConfig = new JsonEditorLspConfiguration();
         jsonEditorConfig.setHasLineNumbers(true);
-        jsonEditorConfig.setTextUpdateDelay(500);
         jsonEditorConfig.setDarkTheme(true);
-        this.jsonEditor = new JsonEditor(jsonEditorConfig);
+        jsonEditorConfig.setLint(true);
+        this.jsonEditor = new JsonEditorLsp(jsonEditorConfig);
         add(nameTextField, jsonEditor, new HorizontalLayout(cancelButton, saveButton));
     }
 
@@ -126,8 +130,8 @@ public class EditVariableView extends VerticalLayout implements HasUrlParameter<
                 return;
             } catch (InvalidVariableNameException ex) {
                 log.error("cannot create variable due to invalid name", ex);
-                ErrorNotificationUtils.show(String.format("The name is invalid (min length: %d, max length: %d).",
-                        VariablesService.MIN_NAME_LENGTH, VariablesService.MAX_NAME_LENGTH));
+                ErrorNotificationUtils.show("The name is invalid (min length: %d, max length: %d)."
+                        .formatted(VariablesService.MIN_NAME_LENGTH, VariablesService.MAX_NAME_LENGTH));
                 return;
             } catch (DuplicatedVariableNameException ex) {
                 log.error("cannot edit variable due to duplicated name", ex);

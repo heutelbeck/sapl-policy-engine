@@ -84,7 +84,7 @@
 		</dependency>
 		<dependency>
 			<groupId>io.sapl</groupId>
-			<artifactId>sapl-web</artifactId>
+			<artifactId>sapl-test</artifactId>
 			<version>${project.version}</version>
 		</dependency>
 		<!-- Sapl Plugin Dependencies -->
@@ -100,18 +100,6 @@
 			<scope>test</scope>
 		</dependency>
 		<dependency>
-			<groupId>org.apache.maven.plugin-testing</groupId>
-			<artifactId>maven-plugin-testing-harness</artifactId>
-			<scope>test</scope>
-			<version>3.4.0</version>
-		</dependency>
-		<dependency>
-			<groupId>org.apache.maven</groupId>
-			<artifactId>maven-compat</artifactId>
-			<version>${maven.version}</version>
-			<scope>test</scope>
-		</dependency>
-		<dependency>
 			<groupId>org.mockito</groupId>
 			<artifactId>mockito-core</artifactId>
 			<scope>test</scope>
@@ -121,14 +109,12 @@
 	<build>
 		<plugins>
 			<plugin>
-				<?m2e ignore?>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-plugin-plugin</artifactId>
 				<version>3.10.2</version>
 			</plugin>
 
 			<plugin>
-				<?m2e ignore?>
 				<groupId>org.eclipse.sisu</groupId>
 				<artifactId>sisu-maven-plugin</artifactId>
 				<version>0.3.5</version>
@@ -138,40 +124,6 @@
 						<goals>
 							<goal>main-index</goal>
 						</goals>
-					</execution>
-				</executions>
-			</plugin>
-
-			<!-- 
-        		The CSS and JS resources of the xtext web dependency have to copied 
-				to the matching frontend folder CSS and images are hard coded into the HTML 
-				template of the web component JS file
-			 -->
-
-			<plugin>
-				<?m2e ignore?>
-				<groupId>org.apache.maven.plugins</groupId>
-				<artifactId>maven-dependency-plugin</artifactId>
-				<executions>
-					<execution>
-						<id>unpack-sapl</id>
-						<phase>generate-resources</phase>
-						<goals>
-							<goal>unpack</goal>
-						</goals>
-						<configuration>
-							<artifactItems>
-								<artifactItem>
-									<groupId>${project.groupId}</groupId>
-									<artifactId>sapl-web</artifactId>
-									<version>${project.version}</version>
-									<overWrite>true</overWrite>
-									<outputDirectory>
-										${project.build.directory}/sapl</outputDirectory>
-									<includes>static/**/*</includes>
-								</artifactItem>
-							</artifactItems>
-						</configuration>
 					</execution>
 				</executions>
 			</plugin>
@@ -210,27 +162,6 @@
 			<plugin>
 				<artifactId>maven-resources-plugin</artifactId>
 				<executions>
-					<execution>
-						<id>copy-resources-sapl</id>
-						<phase>generate-resources</phase>
-						<goals>
-							<goal>copy-resources</goal>
-						</goals>
-						<configuration>
-							<outputDirectory>
-								${project.build.directory}/classes/dependency-resources</outputDirectory>
-							<resources>
-								<resource>
-									<directory>
-										${project.build.directory}/sapl/static</directory>
-									<includes>
-										<include>sapl-mode.js</include>
-									</includes>
-									<filtering>false</filtering>
-								</resource>
-							</resources>
-						</configuration>
-					</execution>
 					<execution>
 						<id>copy-files-coverage-report</id>
 						<phase>generate-resources</phase>

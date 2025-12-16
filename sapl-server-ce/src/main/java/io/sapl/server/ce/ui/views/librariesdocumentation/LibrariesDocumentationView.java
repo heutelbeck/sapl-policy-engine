@@ -24,17 +24,20 @@ import com.vaadin.flow.component.tabs.TabSheet;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 import io.sapl.api.SaplVersion;
-import io.sapl.interpreter.functions.LibraryDocumentation;
+import io.sapl.api.documentation.DocumentationBundle;
+import io.sapl.api.documentation.LibraryDocumentation;
 import io.sapl.server.ce.model.setup.condition.SetupFinishedCondition;
 import io.sapl.server.ce.ui.views.MainLayout;
-import io.sapl.spring.pdp.embedded.FunctionLibrariesDocumentation;
-import io.sapl.spring.pdp.embedded.PolicyInformationPointsDocumentation;
 import jakarta.annotation.security.RolesAllowed;
 import org.springframework.context.annotation.Conditional;
 
 import java.io.Serial;
-import java.util.Collection;
+import java.util.List;
 
+/**
+ * View for displaying documentation of available function libraries and
+ * policy information points.
+ */
 @RolesAllowed("ADMIN")
 @PageTitle("Libraries Documentation")
 @Route(value = LibrariesDocumentationView.ROUTE, layout = MainLayout.class)
@@ -46,38 +49,22 @@ public class LibrariesDocumentationView extends VerticalLayout {
 
     public static final String ROUTE = "libraries";
 
-    public LibrariesDocumentationView(FunctionLibrariesDocumentation functionLibrariesDocumentation,
-            PolicyInformationPointsDocumentation policyInformationPointsDocumentation) {
+    public LibrariesDocumentationView(DocumentationBundle documentationBundle) {
         setSizeFull();
-        final var libsAndPipsTabSheet     = new TabSheet();
-        final var functionLibraries       = functionLibraries(functionLibrariesDocumentation.documentation());
-        final var policyInformationPoints = policyInformationPoints(
-                policyInformationPointsDocumentation.documentation());
-        libsAndPipsTabSheet.add("Function Libraries", functionLibraries);
-        libsAndPipsTabSheet.add("Policy Information Points", policyInformationPoints);
+        var libsAndPipsTabSheet = new TabSheet();
+        libsAndPipsTabSheet.add("Function Libraries", createLibraryTabs(documentationBundle.functionLibraries()));
+        libsAndPipsTabSheet.add("Policy Information Points",
+                createLibraryTabs(documentationBundle.policyInformationPoints()));
         add(libsAndPipsTabSheet);
     }
 
-    private Component policyInformationPoints(
-            Collection<io.sapl.attributes.documentation.api.LibraryDocumentation> pipDocumentations) {
-        final var sheet = new TabSheet();
-        for (var pip : pipDocumentations) {
-            final var name     = pip.namespace();
-            final var markdown = MarkdownGenerator.generateMarkdownForPolicyInformationPoint(pip);
-            final var content  = MarkdownGenerator.markdownToHtml(markdown);
-            final var html     = new Html(MarkdownGenerator.wrapInDiv(content));
-            sheet.add(name, html);
-        }
-        return sheet;
-    }
-
-    private Component functionLibraries(Collection<LibraryDocumentation> libaryDocumentations) {
-        final var sheet = new TabSheet();
-        for (var library : libaryDocumentations) {
-            final var name     = library.getName();
-            final var markdown = MarkdownGenerator.generateMarkdownForLibrary(library);
-            final var content  = MarkdownGenerator.markdownToHtml(markdown);
-            final var html     = new Html(MarkdownGenerator.wrapInDiv(content));
+    private Component createLibraryTabs(List<LibraryDocumentation> libraries) {
+        var sheet = new TabSheet();
+        for (var library : libraries) {
+            var name     = library.name();
+            var markdown = MarkdownGenerator.generateMarkdownForLibrary(library);
+            var content  = MarkdownGenerator.markdownToHtml(markdown);
+            var html     = new Html(MarkdownGenerator.wrapInDiv(content));
             sheet.add(name, html);
         }
         return sheet;

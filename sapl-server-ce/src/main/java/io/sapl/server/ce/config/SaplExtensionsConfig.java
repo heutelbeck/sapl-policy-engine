@@ -20,20 +20,13 @@ package io.sapl.server.ce.config;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.sapl.attributes.libraries.HttpPolicyInformationPoint;
 import io.sapl.attributes.libraries.ReactiveWebClient;
-import io.sapl.extensions.mqtt.MqttFunctionLibrary;
 import io.sapl.extensions.mqtt.MqttPolicyInformationPoint;
 import io.sapl.extensions.mqtt.SaplMqttClient;
-import io.sapl.functions.geo.GeographicFunctionLibrary;
-import io.sapl.functions.geo.traccar.TraccarFunctionLibrary;
 import io.sapl.pip.geo.traccar.TraccarPolicyInformationPoint;
-import org.springframework.beans.factory.config.BeanDefinition;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.autoconfigure.r2dbc.R2dbcAutoConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.Role;
-
-import java.util.List;
 
 @Configuration
 @EnableAutoConfiguration(exclude = { R2dbcAutoConfiguration.class })
@@ -57,17 +50,6 @@ public class SaplExtensionsConfig {
     @Bean
     MqttPolicyInformationPoint mqttPolicyInformationPoint() {
         return new MqttPolicyInformationPoint(new SaplMqttClient());
-    }
-
-    @Bean
-    StaticPolicyInformationPointSupplier staticPips() {
-        return List::of;
-    }
-
-    @Bean
-    @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
-    StaticFunctionLibrarySupplier additionalStaticLibraries() {
-        return () -> List.of(MqttFunctionLibrary.class, GeographicFunctionLibrary.class, TraccarFunctionLibrary.class);
     }
 
 }

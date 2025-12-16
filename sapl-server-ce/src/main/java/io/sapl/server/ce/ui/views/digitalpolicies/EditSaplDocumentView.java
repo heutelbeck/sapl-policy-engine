@@ -17,7 +17,6 @@
  */
 package io.sapl.server.ce.ui.views.digitalpolicies;
 
-import com.google.common.collect.Iterables;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.combobox.ComboBox;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
@@ -34,16 +33,17 @@ import io.sapl.server.ce.model.sapldocument.SaplDocumentService;
 import io.sapl.server.ce.model.sapldocument.SaplDocumentVersion;
 import io.sapl.server.ce.model.setup.condition.SetupFinishedCondition;
 import io.sapl.server.ce.ui.utils.ErrorNotificationUtils;
+import io.sapl.server.ce.ui.utils.LspUrlUtils;
 import io.sapl.server.ce.ui.views.MainLayout;
 import io.sapl.vaadin.Issue;
-import io.sapl.vaadin.SaplEditor;
-import io.sapl.vaadin.SaplEditorConfiguration;
+import io.sapl.vaadin.lsp.SaplEditorLsp;
+import io.sapl.vaadin.lsp.SaplEditorLspConfiguration;
 import jakarta.annotation.security.RolesAllowed;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Conditional;
 
 import java.io.Serial;
-import java.util.Collection;
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -72,7 +72,7 @@ public class EditSaplDocumentView extends VerticalLayout implements HasUrlParame
     private final TextField        lastModifiedField     = new TextField("Last Modified");
     private final TextField        publishedVersionField = new TextField("Published Version");
     private final TextField        publishedNameField    = new TextField("Published Name");
-    private SaplEditor             saplEditor;
+    private SaplEditorLsp          saplEditor;
     private final ComboBox<String> versionSelection      = new ComboBox<>("Version History");
     private final Button           saveVersionButton     = new Button("Save New Version");
     private final Button           cancelButton          = new Button("Cancel");
@@ -85,22 +85,25 @@ public class EditSaplDocumentView extends VerticalLayout implements HasUrlParame
 
     public EditSaplDocumentView(SaplDocumentService saplDocumentService) {
         this.saplDocumentService = saplDocumentService;
-        final var saplConfig = new SaplEditorConfiguration();
+        var saplConfig = new SaplEditorLspConfiguration();
         saplConfig.setHasLineNumbers(true);
-        saplConfig.setTextUpdateDelay(500);
         saplConfig.setDarkTheme(true);
-        this.saplEditor = new SaplEditor(saplConfig);
+        saplConfig.setAutocompleteTrigger(SaplEditorLspConfiguration.AutocompleteTrigger.ON_TYPING);
+        this.saplEditor = new SaplEditorLsp(saplConfig);
         this.saplEditor.addClassName("sapl-editor");
         this.setSizeFull();
         this.setHeightFull();
-        final var metadataRowOne   = new HorizontalLayout(policyIdField, currentVersionField, lastModifiedField);
-        final var metadataRowTwo   = new HorizontalLayout(publishedVersionField, publishedNameField);
-        final var metadataRowThree = new HorizontalLayout(versionSelection, publishButton, unpublishButton);
+        var metadataRowOne   = new HorizontalLayout(policyIdField, currentVersionField, lastModifiedField);
+        var metadataRowTwo   = new HorizontalLayout(publishedVersionField, publishedNameField);
+        var metadataRowThree = new HorizontalLayout(versionSelection, publishButton, unpublishButton);
         metadataRowThree.setAlignItems(Alignment.BASELINE);
-        final var editActionsRow = new HorizontalLayout(saveVersionButton, cancelButton);
+        var editActionsRow = new HorizontalLayout(saveVersionButton, cancelButton);
         editActionsRow.setWidthFull();
         editActionsRow.setJustifyContentMode(JustifyContentMode.END);
         add(metadataRowOne, metadataRowTwo, metadataRowThree, saplEditor, editActionsRow);
+
+        // Configure LSP WebSocket URL when view is attached to UI
+        addAttachListener(event -> event.getUI().access(() -> LspUrlUtils.configureLspUrl(event.getUI(), saplEditor)));
     }
 
     @Override
@@ -143,7 +146,7 @@ public class EditSaplDocumentView extends VerticalLayout implements HasUrlParame
                 return;
             }
 
-            final var document = saplEditor.getDocument();
+            var document = saplEditor.getDocument();
 
             if (selectedSaplDocumentVersion != null
                     && selectedSaplDocumentVersion.getDocumentContent().equals(document)) {
@@ -201,9 +204,9 @@ public class EditSaplDocumentView extends VerticalLayout implements HasUrlParame
         currentVersionField.setValue(Integer.toString(saplDocument.getCurrentVersionNumber()));
         currentVersionField.setReadOnly(true);
 
-        Collection<String> availableVersions = getAvailableVersions();
+        List<String> availableVersions = getAvailableVersions();
         versionSelection.setItems(availableVersions);
-        versionSelection.setValue(Iterables.getLast(availableVersions));
+        versionSelection.setValue(availableVersions.getLast());
 
         SaplDocumentVersion currentVersion = saplDocument.getCurrentVersion();
         saplEditor.setDocument(currentVersion.getDocumentContent());
@@ -247,12 +250,9 @@ public class EditSaplDocumentView extends VerticalLayout implements HasUrlParame
         publishedNameField.setReadOnly(true);
     }
 
-    private Collection<String> getAvailableVersions() {
-        // @formatter:off
-		return saplDocument.getVersions().stream()
-				.map(saplDocumentVersion -> Integer.toString(saplDocumentVersion.getVersionNumber()))
-				.toList();
-		// @formatter:on
+    private List<String> getAvailableVersions() {
+        return saplDocument.getVersions().stream()
+                .map(saplDocumentVersion -> Integer.toString(saplDocumentVersion.getVersionNumber())).toList();
     }
 
     private void updateSaplEditorBasedOnVersionSelection() {

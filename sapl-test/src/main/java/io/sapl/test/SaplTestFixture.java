@@ -24,6 +24,8 @@ import io.sapl.api.attributes.AttributeBroker;
 import io.sapl.api.functions.FunctionBroker;
 import io.sapl.api.model.Value;
 import io.sapl.api.pdp.*;
+import io.sapl.api.pdp.internal.TracedDecision;
+import io.sapl.api.pdp.internal.TracedPolicyDecisionPoint;
 import io.sapl.attributes.CachingAttributeBroker;
 import io.sapl.attributes.HeapAttributeStorage;
 import io.sapl.attributes.InMemoryAttributeRepository;
@@ -33,8 +35,13 @@ import io.sapl.pdp.configuration.PDPConfigurationLoader;
 import io.sapl.pdp.configuration.bundle.BundleParser;
 import io.sapl.pdp.configuration.bundle.BundleSecurityPolicy;
 import io.sapl.test.MockingFunctionBroker.ArgumentMatcher;
+import io.sapl.test.coverage.CoverageAccumulator;
+import io.sapl.test.coverage.CoverageExtractor;
+import io.sapl.test.coverage.CoverageWriter;
+import io.sapl.test.coverage.TestResult;
 import lombok.Getter;
 import lombok.NonNull;
+import lombok.val;
 import reactor.core.publisher.Flux;
 import reactor.test.StepVerifier;
 
@@ -92,10 +99,11 @@ public class SaplTestFixture {
 
     private final boolean singleTestMode;
 
-    private final List<String>       policyDocuments = new ArrayList<>();
-    private CombiningAlgorithm       combiningAlgorithm;
-    private final Map<String, Value> variables       = new HashMap<>();
-    private PDPConfiguration         loadedConfiguration;
+    private final List<String>        policyDocuments = new ArrayList<>();
+    private final Map<String, String> policyFilePaths = new HashMap<>();
+    private CombiningAlgorithm        combiningAlgorithm;
+    private final Map<String, Value>  variables       = new HashMap<>();
+    private PDPConfiguration          loadedConfiguration;
 
     private FunctionBroker  customFunctionBroker;
     private AttributeBroker customAttributeBroker;
@@ -111,6 +119,12 @@ public class SaplTestFixture {
 
     @Getter
     private final MockingAttributeBroker mockingAttributeBroker = new MockingAttributeBroker();
+
+    // Coverage configuration
+    private String  testIdentifier;
+    private Path    coverageOutputPath;
+    private boolean coverageEnabled          = true;
+    private boolean coverageFileWriteEnabled = true;
 
     private SaplTestFixture(boolean singleTestMode) {
         this.singleTestMode = singleTestMode;
@@ -180,7 +194,11 @@ public class SaplTestFixture {
      */
     public SaplTestFixture withPolicyFromFile(@NonNull String filePath) {
         try {
-            var content = Files.readString(Path.of(filePath));
+            var content    = Files.readString(Path.of(filePath));
+            var policyName = extractPolicyName(content);
+            if (policyName != null) {
+                policyFilePaths.put(policyName, filePath);
+            }
             return withPolicy(content);
         } catch (IOException e) {
             throw new IllegalStateException("Failed to read policy file: " + filePath, e);
@@ -201,7 +219,13 @@ public class SaplTestFixture {
             if (is == null) {
                 throw new IllegalStateException("Resource not found: " + resourcePath);
             }
-            var content = new String(is.readAllBytes());
+            var content    = new String(is.readAllBytes());
+            var policyName = extractPolicyName(content);
+            if (policyName != null) {
+                // Convert resource path to a reasonable file path for SonarQube
+                var filePath = resourcePath.startsWith("/") ? resourcePath.substring(1) : resourcePath;
+                policyFilePaths.put(policyName, filePath);
+            }
             return withPolicy(content);
         } catch (IOException e) {
             throw new IllegalStateException("Failed to read policy resource: " + resourcePath, e);
@@ -436,6 +460,63 @@ public class SaplTestFixture {
     }
 
     /**
+     * Sets an identifier for this test, used in coverage reports.
+     * <p>
+     * The identifier helps correlate coverage data with specific tests
+     * in reports. For DSL-based tests, this is typically set automatically
+     * to "requirementName &gt; scenarioName".
+     *
+     * @param identifier the test identifier (e.g.,
+     * "AdminAccessTests::testPermitForAdmin")
+     * @return this fixture for chaining
+     */
+    public SaplTestFixture withTestIdentifier(@NonNull String identifier) {
+        this.testIdentifier = identifier;
+        return this;
+    }
+
+    /**
+     * Sets the output directory for coverage data.
+     * <p>
+     * Coverage data is written as JSON Lines files to this directory.
+     * If not set, defaults to "target/sapl-coverage".
+     *
+     * @param outputPath the directory path for coverage files
+     * @return this fixture for chaining
+     */
+    public SaplTestFixture withCoverageOutput(@NonNull Path outputPath) {
+        this.coverageOutputPath = outputPath;
+        return this;
+    }
+
+    /**
+     * Disables coverage collection for this test.
+     * <p>
+     * Use this when coverage data is not needed or would interfere
+     * with specific testing scenarios.
+     *
+     * @return this fixture for chaining
+     */
+    public SaplTestFixture withCoverageDisabled() {
+        this.coverageEnabled = false;
+        return this;
+    }
+
+    /**
+     * Disables writing coverage data to files.
+     * <p>
+     * Coverage is still collected and returned from {@code verify()},
+     * but no files are written to disk. Use this for programmatic
+     * test execution where results are processed directly (e.g., PAP server).
+     *
+     * @return this fixture for chaining
+     */
+    public SaplTestFixture withCoverageFileWriteDisabled() {
+        this.coverageFileWriteEnabled = false;
+        return this;
+    }
+
+    /**
      * Registers a static function library class.
      * <p>
      * The library class must have a no-arg constructor and methods annotated with
@@ -638,17 +719,125 @@ public class SaplTestFixture {
         var effectiveVariables = resolveVariables();
         var effectivePolicies  = resolvePolicies();
 
+        // Determine trace level based on coverage setting
+        var traceLevel = coverageEnabled ? TraceLevel.COVERAGE : TraceLevel.STANDARD;
+
         var configuration = new PDPConfiguration("default", "test-config-" + System.currentTimeMillis(),
-                effectiveAlgorithm, TraceLevel.COVERAGE, effectivePolicies, effectiveVariables);
+                effectiveAlgorithm, traceLevel, effectivePolicies, effectiveVariables);
 
         // Build PDP with mocking brokers wrapping the real ones
         var components = pdpBuilder.withFunctionBroker(mockingFunctionBroker)
                 .withAttributeBroker(mockingAttributeBroker).withConfiguration(configuration).build();
 
-        // Subscribe and get the decision flux
-        var decisionFlux = components.pdp().decide(subscription);
+        // Set up coverage collection if enabled
+        CoverageAccumulator coverageAccumulator = null;
+        CoverageWriter      coverageWriter      = null;
+        if (coverageEnabled) {
+            val effectiveTestId = testIdentifier != null ? testIdentifier : generateTestIdentifier();
+            coverageAccumulator = new CoverageAccumulator(effectiveTestId);
 
-        return new DecisionResult(decisionFlux, mockingAttributeBroker, components);
+            // Register policy sources for HTML report generation
+            val policySources = buildPolicySourceMap(effectivePolicies);
+            coverageAccumulator.registerPolicySources(policySources);
+
+            // Register file paths for SonarQube coverage
+            coverageAccumulator.registerPolicyFilePaths(policyFilePaths);
+
+            // Create coverage writer
+            val outputPath = coverageOutputPath != null ? coverageOutputPath : Path.of("target", "sapl-coverage");
+            coverageWriter = new CoverageWriter(outputPath);
+        }
+
+        // Subscribe and get the decision flux
+        // Use decideTraced when coverage enabled to access trace information
+        Flux<AuthorizationDecision> decisionFlux;
+        Flux<TracedDecision>        tracedFlux = null;
+
+        if (coverageEnabled && components.pdp() instanceof TracedPolicyDecisionPoint tracedPdp) {
+            tracedFlux   = tracedPdp.decideTraced(subscription);
+            decisionFlux = tracedFlux.map(TracedDecision::authorizationDecision);
+        } else {
+            decisionFlux = components.pdp().decide(subscription);
+        }
+
+        return new DecisionResult(decisionFlux, tracedFlux, mockingAttributeBroker, components, coverageAccumulator,
+                coverageWriter, coverageFileWriteEnabled);
+    }
+
+    private String generateTestIdentifier() {
+        // Try to infer test identifier from call stack
+        // First pass: look for test classes (ending with Test or Tests)
+        val stackTrace = Thread.currentThread().getStackTrace();
+        for (val element : stackTrace) {
+            val className = element.getClassName();
+            if (isTestClass(className) && !isInternalMethod(element.getMethodName())) {
+                return getSimpleClassName(className) + "::" + element.getMethodName();
+            }
+        }
+        // Second pass: look for any non-internal class
+        for (val element : stackTrace) {
+            val className = element.getClassName();
+            if (!isInternalPackage(className) && !isInternalMethod(element.getMethodName())) {
+                return getSimpleClassName(className) + "::" + element.getMethodName();
+            }
+        }
+        return "test-" + System.currentTimeMillis();
+    }
+
+    private boolean isTestClass(String className) {
+        return className.endsWith("Test") || className.endsWith("Tests") || className.contains("Test$");
+    }
+
+    private boolean isInternalPackage(String className) {
+        return className.startsWith("io.sapl.test.") || className.startsWith("java.") || className.startsWith("jdk.")
+                || className.startsWith("sun.") || className.startsWith("reactor.")
+                || className.startsWith("org.junit.") || className.startsWith("org.mockito.");
+    }
+
+    private boolean isInternalMethod(String methodName) {
+        return "invoke".equals(methodName) || "invoke0".equals(methodName) || "invokeStatic".equals(methodName)
+                || "access$".equals(methodName.substring(0, Math.min(7, methodName.length())));
+    }
+
+    private String getSimpleClassName(String fullClassName) {
+        val lastDot = fullClassName.lastIndexOf('.');
+        return lastDot >= 0 ? fullClassName.substring(lastDot + 1) : fullClassName;
+    }
+
+    private Map<String, String> buildPolicySourceMap(List<String> policies) {
+        val sourceMap = new HashMap<String, String>();
+        for (val policySource : policies) {
+            val name = extractPolicyName(policySource);
+            if (name != null) {
+                sourceMap.put(name, policySource);
+            }
+        }
+        return sourceMap;
+    }
+
+    private String extractPolicyName(String policySource) {
+        // Simple regex-free extraction of policy/set name
+        val trimmed    = policySource.trim();
+        var startIndex = -1;
+        if (trimmed.startsWith("policy")) {
+            startIndex = 6;
+        } else if (trimmed.startsWith("set")) {
+            startIndex = 3;
+        }
+        if (startIndex < 0) {
+            return null;
+        }
+
+        // Find the quoted name
+        val quoteStart = trimmed.indexOf('"', startIndex);
+        if (quoteStart < 0) {
+            return null;
+        }
+        val quoteEnd = trimmed.indexOf('"', quoteStart + 1);
+        if (quoteEnd < 0) {
+            return null;
+        }
+        return trimmed.substring(quoteStart + 1, quoteEnd);
     }
 
     private void validatePolicyAddition() {
@@ -808,6 +997,9 @@ public class SaplTestFixture {
      * <pre>{@code
      * fixture.whenDecide(subscription).expectPermit().thenEmit("timeMock", newValue).expectDeny().verify();
      * }</pre>
+     * <p>
+     * Coverage data is automatically collected during verification and written
+     * to disk when {@link #verify()} completes.
      */
     public static class DecisionResult {
 
@@ -816,13 +1008,43 @@ public class SaplTestFixture {
         private StepVerifier.Step<AuthorizationDecision>       step;
         private final MockingAttributeBroker                   attributeBroker;
         private final PolicyDecisionPointBuilder.PDPComponents components;
+        private final CoverageAccumulator                      coverageAccumulator;
+        private final CoverageWriter                           coverageWriter;
+        private final boolean                                  coverageFileWriteEnabled;
 
         DecisionResult(Flux<AuthorizationDecision> decisionFlux,
+                Flux<TracedDecision> tracedFlux,
                 MockingAttributeBroker attributeBroker,
-                PolicyDecisionPointBuilder.PDPComponents components) {
-            this.step            = StepVerifier.create(decisionFlux);
-            this.attributeBroker = attributeBroker;
-            this.components      = components;
+                PolicyDecisionPointBuilder.PDPComponents components,
+                CoverageAccumulator coverageAccumulator,
+                CoverageWriter coverageWriter,
+                boolean coverageFileWriteEnabled) {
+            this.attributeBroker          = attributeBroker;
+            this.components               = components;
+            this.coverageAccumulator      = coverageAccumulator;
+            this.coverageWriter           = coverageWriter;
+            this.coverageFileWriteEnabled = coverageFileWriteEnabled;
+
+            // Use traced flux for coverage collection if available
+            Flux<AuthorizationDecision> wrappedFlux;
+            if (tracedFlux != null && coverageAccumulator != null) {
+                // Record coverage from traced decisions, then map to authorization decisions
+                wrappedFlux = tracedFlux.doOnNext(this::recordCoverage).map(TracedDecision::authorizationDecision);
+            } else if (coverageAccumulator != null) {
+                // Fallback: just record decision outcomes without coverage data
+                wrappedFlux = decisionFlux
+                        .doOnNext(decision -> coverageAccumulator.getRecord().recordDecision(decision.decision()));
+            } else {
+                wrappedFlux = decisionFlux;
+            }
+            this.step = StepVerifier.create(wrappedFlux);
+        }
+
+        private void recordCoverage(TracedDecision tracedDecision) {
+            if (coverageAccumulator == null) {
+                return;
+            }
+            coverageAccumulator.recordCoverage(tracedDecision);
         }
 
         /**
@@ -909,25 +1131,47 @@ public class SaplTestFixture {
 
         /**
          * Executes verification, cancels the subscription, and disposes resources.
+         * <p>
+         * Coverage data is written to disk after verification completes (unless
+         * file writing is disabled via {@code withCoverageFileWriteDisabled()}).
          *
-         * @throws AssertionError if any expectation is not met
+         * @return the test result containing pass/fail status and coverage data
          */
-        public void verify() {
-            verify(DEFAULT_TIMEOUT);
+        public TestResult verify() {
+            return verify(DEFAULT_TIMEOUT);
         }
 
         /**
          * Executes verification with timeout, cancels the subscription, and disposes
          * resources.
+         * <p>
+         * Coverage data is written to disk after verification completes (unless
+         * file writing is disabled via {@code withCoverageFileWriteDisabled()}).
          *
          * @param timeout maximum time to wait for decisions
-         * @throws AssertionError if any expectation is not met
+         * @return the test result containing pass/fail status and coverage data
          */
-        public void verify(@NonNull Duration timeout) {
+        public TestResult verify(@NonNull Duration timeout) {
+            var coverageRecord = coverageAccumulator != null ? coverageAccumulator.getRecord() : null;
             try {
                 step.thenCancel().verify(timeout);
+                writeCoverage();
+                return TestResult.success(coverageRecord);
+            } catch (AssertionError e) {
+                writeCoverage();
+                throw e;
+            } catch (Exception e) {
+                writeCoverage();
+                return TestResult.failure(e, coverageRecord);
             } finally {
                 dispose();
+            }
+        }
+
+        private void writeCoverage() {
+            if (coverageFileWriteEnabled && coverageAccumulator != null && coverageWriter != null
+                    && coverageAccumulator.hasCoverage()) {
+                coverageWriter.writeSilently(coverageAccumulator.getRecord());
             }
         }
 

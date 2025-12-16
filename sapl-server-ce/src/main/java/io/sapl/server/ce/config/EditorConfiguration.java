@@ -17,59 +17,47 @@
  */
 package io.sapl.server.ce.config;
 
-import io.sapl.grammar.web.SAPLServlet;
-import io.sapl.vaadin.JsonEditorConfiguration;
-import io.sapl.vaadin.SaplEditorConfiguration;
-import org.springframework.boot.web.servlet.ServletRegistrationBean;
+import io.sapl.vaadin.lsp.JsonEditorLspConfiguration;
+import io.sapl.vaadin.lsp.SaplEditorLspConfiguration;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
 
 /**
- * Collection of initialization methods for Spring beans for editors.
+ * Configuration for the SAPL and JSON LSP-based editors.
+ * The WebSocket URL for LSP is not set here as it must be determined
+ * dynamically
+ * based on the current request context in each view.
  */
 @Configuration
-@ComponentScan("io.sapl.grammar.ide.contentassist")
 class EditorConfiguration {
-    /**
-     * Registers the bean {@link ServletRegistrationBean} with generic type
-     * {@link SAPLServlet}.
-     *
-     * @return the value
-     */
-    @Bean
-    ServletRegistrationBean<SAPLServlet> registerXTextRegistrationBean() {
-        ServletRegistrationBean<SAPLServlet> registration = new ServletRegistrationBean<>(new SAPLServlet(),
-                "/xtext-service/*");
-        registration.setName("XtextServices");
-        registration.setAsyncSupported(true);
-        return registration;
-    }
 
     /**
-     * Registers the bean {@link SaplEditorConfiguration}.
+     * Registers the bean {@link SaplEditorLspConfiguration} for SAPL policy
+     * editing.
+     * Note: The wsUrl is intentionally not set here. Views must set it dynamically
+     * based on the current page URL to support deployment on any host/port.
      *
-     * @return the value
+     * @return the editor configuration
      */
     @Bean
-    SaplEditorConfiguration registerSaplEditorConfiguration() {
-        SaplEditorConfiguration saplEditorConfiguration = new SaplEditorConfiguration();
-        saplEditorConfiguration.setAutoCloseBrackets(true);
-        saplEditorConfiguration.setHasLineNumbers(true);
-        saplEditorConfiguration.setMatchBrackets(true);
-        saplEditorConfiguration.setTextUpdateDelay(1);
-
-        return saplEditorConfiguration;
-    }
-
-    @Bean
-    JsonEditorConfiguration registerJsonEditorConfiguration() {
-        JsonEditorConfiguration configuration = new JsonEditorConfiguration();
-        configuration.setAutoCloseBrackets(true);
+    SaplEditorLspConfiguration saplEditorLspConfiguration() {
+        var configuration = new SaplEditorLspConfiguration();
         configuration.setHasLineNumbers(true);
-        configuration.setMatchBrackets(true);
-        configuration.setTextUpdateDelay(1);
+        configuration.setAutocompleteTrigger(SaplEditorLspConfiguration.AutocompleteTrigger.ON_TYPING);
+        configuration.setAutocompleteDelay(300);
+        return configuration;
+    }
 
+    /**
+     * Registers the bean {@link JsonEditorLspConfiguration} for JSON editing.
+     *
+     * @return the editor configuration
+     */
+    @Bean
+    JsonEditorLspConfiguration jsonEditorLspConfiguration() {
+        var configuration = new JsonEditorLspConfiguration();
+        configuration.setHasLineNumbers(true);
+        configuration.setLint(true);
         return configuration;
     }
 }

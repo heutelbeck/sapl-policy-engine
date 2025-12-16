@@ -187,7 +187,8 @@ public class HttpSecurityConfiguration {
     /**
      * UI filter chain for Vaadin Flow application and remaining endpoints.
      * <p>
-     * Permits {@code /images/*.png}, ignores CSRF for {@code /xtext-service/**},
+     * Permits {@code /images/*.png}, ignores CSRF for {@code /sapl-lsp/**}
+     * WebSocket endpoint,
      * applies Vaadin integration, and configures form login or OAuth2 login.
      *
      * @param http the HttpSecurity to configure.
@@ -210,11 +211,13 @@ public class HttpSecurityConfiguration {
             }
         });
 
-        // Permit public images and ignore CSRF for Xtext services; remaining
+        // Permit public images and ignore CSRF for LSP WebSocket; remaining
         // authorization rules are
         // handled by Vaadin's integration and the login configuration below.
+        // Note: The /sapl-lsp/** WebSocket endpoint still requires authentication via
+        // the session.
         http.authorizeHttpRequests(authz -> authz.requestMatchers(mvc.matcher("/images/*.png")).permitAll())
-                .csrf(csrf -> csrf.ignoringRequestMatchers(mvc.matcher("/xtext-service/**")));
+                .csrf(csrf -> csrf.ignoringRequestMatchers(mvc.matcher("/sapl-lsp/**")));
 
         if (allowOAuth2Login) {
             log.info("Enabling OAuth2 Login for UI chain with explicit authorities mapper.");

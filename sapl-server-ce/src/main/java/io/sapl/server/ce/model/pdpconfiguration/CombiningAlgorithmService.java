@@ -17,7 +17,6 @@
  */
 package io.sapl.server.ce.model.pdpconfiguration;
 
-import com.google.common.collect.Iterables;
 import io.sapl.api.pdp.CombiningAlgorithm;
 import io.sapl.server.ce.model.setup.condition.SetupFinishedCondition;
 import io.sapl.server.ce.pdp.PDPConfigurationPublisher;
@@ -61,7 +60,7 @@ public class CombiningAlgorithmService {
             return CombiningAlgorithmService.DEFAULT;
         }
 
-        SelectedCombiningAlgorithm relevantEntity = Iterables.get(entities, 0);
+        var relevantEntity = entities.iterator().next();
         return relevantEntity.getSelection();
     }
 

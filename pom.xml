@@ -361,18 +361,6 @@
 									<include>**/*</include>
 								</includes>
 							</fileset>
-							<fileset>
-								<directory>${basedir}/src/main/xtend-gen</directory>
-								<includes>
-									<include>**/*</include>
-								</includes>
-							</fileset>
-							<fileset>
-								<directory>${basedir}/src/test/xtend-gen</directory>
-								<includes>
-									<include>**/*</include>
-								</includes>
-							</fileset>
 						</filesets>
 					</configuration>
 				</plugin>
@@ -516,8 +504,6 @@
 							<excludes>
 								<exclude>**/*.vim</exclude>
 								<exclude>**/*.lua</exclude>
-								<exclude>**/*.xtendbin</exclude>
-								<exclude>**/*._trace</exclude>
 								<exclude>**/types.d.ts</exclude>
 								<exclude>**/vite.config.ts</exclude>
 								<exclude>**/vite.generated.ts</exclude>
@@ -543,10 +529,6 @@
 						<java>SLASHSTAR_STYLE</java>
 						<adoc>DOUBLESLASH_STYLE</adoc>
 						<ad>DOUBLESLASH_STYLE</ad>
-						<xtend>SLASHSTAR_STYLE</xtend>
-						<mwe2>SLASHSTAR_STYLE</mwe2>
-						<ecore>XML_STYLE</ecore>
-						<genmodel>XML_STYLE</genmodel>
 						<config>SCRIPT_STYLE</config>
 						<target>XML_STYLE</target>
 						<g4>SLASHSTAR_STYLE</g4>
