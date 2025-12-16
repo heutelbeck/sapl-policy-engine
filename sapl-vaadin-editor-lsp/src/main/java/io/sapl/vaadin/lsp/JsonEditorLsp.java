@@ -50,7 +50,6 @@ public class JsonEditorLsp extends Component implements HasSize {
     @Serial
     private static final long serialVersionUID = SaplVersion.VERSION_UID;
 
-    private static final String PROP_DOCUMENT            = "document";
     private static final String PROP_IS_DARK_THEME       = "isDarkTheme";
     private static final String PROP_IS_READ_ONLY        = "isReadOnly";
     private static final String PROP_HAS_LINE_NUMBERS    = "hasLineNumbers";

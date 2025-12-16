@@ -17,197 +17,71 @@
  */
 package io.sapl.lsp.configuration;
 
-import java.util.Map;
-import java.util.Optional;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
-
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.gson.Gson;
-import com.google.gson.JsonElement;
-
 import java.net.URI;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 
-import io.sapl.api.attributes.AttributeBroker;
-import io.sapl.api.documentation.DocumentationBundle;
-import io.sapl.api.functions.FunctionBroker;
-import io.sapl.api.model.Value;
-import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 
 /**
- * Manages PDP configurations for the language server.
- * Supports multiple configurations identified by configuration IDs.
+ * Manages LSP configuration resolution for the language server.
+ * Delegates to a {@link ConfigurationProvider} for actual configuration lookup.
+ *
+ * <p>
+ * For standalone LSP usage, instantiate with
+ * {@link DefaultConfigurationProvider}.
+ * For embedded usage, provide a custom {@link ConfigurationProvider}
+ * implementation.
  */
 @Slf4j
 public class ConfigurationManager {
 
-    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
-    private static final Gson         GSON          = new Gson();
+    private static final String DEFAULT_CONFIG_ID = "default";
 
-    private final ConcurrentMap<String, LSPConfiguration> configurations = new ConcurrentHashMap<>();
-
-    @Getter
-    private String defaultConfigurationId = "";
+    private final ConfigurationProvider configurationProvider;
 
     /**
-     * Processes initialization options from the LSP initialize request.
-     *
-     * @param initializationOptions the initialization options (may be JsonElement
-     * or other)
+     * Creates a configuration manager with the default configuration provider.
+     * Suitable for standalone LSP server usage.
      */
-    public void processInitializationOptions(Object initializationOptions) {
-        if (initializationOptions == null) {
-            return;
-        }
-
-        try {
-            JsonNode options;
-            if (initializationOptions instanceof JsonElement jsonElement) {
-                // Convert Gson JsonElement to Jackson JsonNode
-                var jsonString = GSON.toJson(jsonElement);
-                options = OBJECT_MAPPER.readTree(jsonString);
-            } else {
-                options = OBJECT_MAPPER.valueToTree(initializationOptions);
-            }
-
-            // Extract configurationId if present
-            if (options.has("configurationId")) {
-                defaultConfigurationId = options.get("configurationId").asText("");
-                log.info("Using configuration ID from init options: {}", defaultConfigurationId);
-            }
-
-            // Extract configuration data if present
-            if (options.has("configuration")) {
-                var configNode = options.get("configuration");
-                processConfigurationNode(defaultConfigurationId, configNode);
-            }
-        } catch (Exception e) {
-            log.warn("Failed to process initialization options: {}", e.getMessage());
-        }
+    public ConfigurationManager() {
+        this(new DefaultConfigurationProvider());
     }
 
     /**
-     * Updates configuration from workspace/didChangeConfiguration.
+     * Creates a configuration manager with a custom configuration provider.
+     * Suitable for embedded usage where configurations come from an external
+     * source.
      *
-     * @param settings the new settings
+     * @param configurationProvider the provider for configuration resolution
      */
-    public void updateConfiguration(Object settings) {
-        if (settings == null) {
-            return;
-        }
-
-        try {
-            JsonNode settingsNode;
-            if (settings instanceof JsonElement jsonElement) {
-                var jsonString = GSON.toJson(jsonElement);
-                settingsNode = OBJECT_MAPPER.readTree(jsonString);
-            } else {
-                settingsNode = OBJECT_MAPPER.valueToTree(settings);
-            }
-
-            // Look for SAPL-specific settings
-            if (settingsNode.has("sapl")) {
-                var saplSettings = settingsNode.get("sapl");
-                if (saplSettings.has("configurationId")) {
-                    defaultConfigurationId = saplSettings.get("configurationId").asText("");
-                    log.info("Updated configuration ID: {}", defaultConfigurationId);
-                }
-            }
-        } catch (Exception e) {
-            log.warn("Failed to update configuration: {}", e.getMessage());
-        }
+    public ConfigurationManager(ConfigurationProvider configurationProvider) {
+        this.configurationProvider = configurationProvider;
+        log.info("ConfigurationManager initialized with provider: {}",
+                configurationProvider.getClass().getSimpleName());
     }
 
     /**
-     * Registers a configuration for a specific ID.
-     *
-     * @param configurationId the configuration ID
-     * @param configuration the configuration
-     */
-    public void registerConfiguration(String configurationId, LSPConfiguration configuration) {
-        configurations.put(configurationId, configuration);
-        log.info("Registered configuration: {}", configurationId);
-    }
-
-    /**
-     * Gets a configuration by ID.
-     *
-     * @param configurationId the configuration ID
-     * @return the configuration, or empty if not found
-     */
-    public Optional<LSPConfiguration> getConfiguration(String configurationId) {
-        return Optional.ofNullable(configurations.get(configurationId));
-    }
-
-    /**
-     * Gets the default configuration.
-     *
-     * @return the default configuration, or empty if not set
-     */
-    public Optional<LSPConfiguration> getDefaultConfiguration() {
-        return getConfiguration(defaultConfigurationId);
-    }
-
-    /**
-     * Gets a configuration by ID, falling back to the default configuration.
+     * Gets a configuration by ID, delegating to the configuration provider.
      *
      * @param configurationId the configuration ID (may be null or empty)
-     * @return the configuration, or a minimal default
+     * @return the configuration from the provider
      */
-    public LSPConfiguration getConfigurationOrDefault(String configurationId) {
-        if (configurationId != null && !configurationId.isEmpty()) {
-            var config = configurations.get(configurationId);
-            if (config != null) {
-                return config;
-            }
-        }
-
-        // Try default configuration
-        var defaultConfig = configurations.get(defaultConfigurationId);
-        if (defaultConfig != null) {
-            return defaultConfig;
-        }
-
-        // Return minimal configuration
-        return LSPConfiguration.minimal();
+    public LSPConfiguration getConfiguration(String configurationId) {
+        var effectiveId = (configurationId == null || configurationId.isEmpty()) ? DEFAULT_CONFIG_ID : configurationId;
+        return configurationProvider.getConfiguration(effectiveId);
     }
 
     /**
-     * Processes a configuration node and registers the configuration.
+     * Gets a configuration for a document URI, extracting the configurationId from
+     * the URI's query parameters.
      *
-     * @param configurationId the configuration ID
-     * @param configNode the configuration JSON node
+     * @param documentUri the document URI (may contain ?configurationId=xxx)
+     * @return the configuration
      */
-    private void processConfigurationNode(String configurationId, JsonNode configNode) {
-        try {
-            var config = OBJECT_MAPPER.treeToValue(configNode, LSPConfiguration.class);
-            registerConfiguration(configurationId, config);
-        } catch (Exception e) {
-            log.warn("Failed to parse configuration: {}", e.getMessage());
-        }
-    }
-
-    /**
-     * Creates a configuration from a documentation bundle, variables, and brokers.
-     * This is useful for embedding the LSP server with a known PDP configuration.
-     *
-     * @param configurationId the configuration ID
-     * @param documentationBundle the documentation bundle from the PDP
-     * @param variables the environment variables
-     * @param functionBroker the function broker for expression evaluation
-     * @param attributeBroker the attribute broker for expression evaluation
-     * @return the created configuration
-     */
-    public LSPConfiguration createConfiguration(String configurationId, DocumentationBundle documentationBundle,
-            Map<String, Value> variables, FunctionBroker functionBroker, AttributeBroker attributeBroker) {
-        var config = new LSPConfiguration(configurationId, documentationBundle, variables, functionBroker,
-                attributeBroker);
-        registerConfiguration(configurationId, config);
-        return config;
+    public LSPConfiguration getConfigurationForUri(String documentUri) {
+        var configurationId = extractConfigurationIdFromUri(documentUri);
+        return getConfiguration(configurationId);
     }
 
     /**
@@ -220,14 +94,14 @@ public class ConfigurationManager {
      */
     public static String extractConfigurationIdFromUri(String documentUri) {
         if (documentUri == null || documentUri.isEmpty()) {
-            return "default";
+            return DEFAULT_CONFIG_ID;
         }
 
         try {
             var uri   = URI.create(documentUri);
             var query = uri.getQuery();
             if (query == null || query.isEmpty()) {
-                return "default";
+                return DEFAULT_CONFIG_ID;
             }
 
             for (var param : query.split("&")) {
@@ -240,19 +114,7 @@ public class ConfigurationManager {
             log.debug("Failed to parse configurationId from URI: {}", documentUri);
         }
 
-        return "default";
-    }
-
-    /**
-     * Gets a configuration for a document URI, extracting the configurationId from
-     * the URI's query parameters and falling back to the default configuration.
-     *
-     * @param documentUri the document URI
-     * @return the configuration
-     */
-    public LSPConfiguration getConfigurationForUri(String documentUri) {
-        var configurationId = extractConfigurationIdFromUri(documentUri);
-        return getConfigurationOrDefault(configurationId);
+        return DEFAULT_CONFIG_ID;
     }
 
 }

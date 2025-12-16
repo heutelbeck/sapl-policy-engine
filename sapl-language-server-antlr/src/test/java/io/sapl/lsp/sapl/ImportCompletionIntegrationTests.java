@@ -140,9 +140,8 @@ class ImportCompletionIntegrationTests {
     }
 
     private static ConfigurationManager createConfigManager() {
-        var manager = new ConfigurationManager();
-        manager.registerConfiguration("", createConfiguration());
-        return manager;
+        var config = createConfiguration();
+        return new ConfigurationManager(id -> config);
     }
 
     private static LSPConfiguration createConfiguration() {

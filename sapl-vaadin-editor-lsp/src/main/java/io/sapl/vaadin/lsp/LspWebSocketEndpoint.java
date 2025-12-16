@@ -29,6 +29,7 @@ import java.util.concurrent.Executors;
 import org.eclipse.lsp4j.jsonrpc.Launcher;
 import org.eclipse.lsp4j.launch.LSPLauncher;
 import org.eclipse.lsp4j.services.LanguageClient;
+import org.jspecify.annotations.NonNull;
 import org.springframework.web.socket.CloseStatus;
 import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
@@ -65,7 +66,7 @@ public class LspWebSocketEndpoint extends TextWebSocketHandler {
     }
 
     @Override
-    protected void handleTextMessage(WebSocketSession session, TextMessage message) throws Exception {
+    protected void handleTextMessage(WebSocketSession session, @NonNull TextMessage message) throws Exception {
         var clientToServer = (PipedOutputStream) session.getAttributes().get("clientToServer");
         if (clientToServer == null) {
             log.warn("No LSP connection for session {}", session.getId());
@@ -85,7 +86,7 @@ public class LspWebSocketEndpoint extends TextWebSocketHandler {
     }
 
     @Override
-    public void afterConnectionClosed(WebSocketSession session, CloseStatus status) throws Exception {
+    public void afterConnectionClosed(WebSocketSession session, @NonNull CloseStatus status) throws Exception {
         log.info("LSP WebSocket connection closed: {} ({})", session.getId(), status);
 
         // Close pipes to shut down LSP server
@@ -109,7 +110,7 @@ public class LspWebSocketEndpoint extends TextWebSocketHandler {
     }
 
     @Override
-    public void handleTransportError(WebSocketSession session, Throwable exception) throws Exception {
+    public void handleTransportError(WebSocketSession session, @NonNull Throwable exception) throws Exception {
         log.error("LSP WebSocket transport error for session {}", session.getId(), exception);
     }
 
@@ -155,17 +156,17 @@ public class LspWebSocketEndpoint extends TextWebSocketHandler {
      * Output stream that writes LSP messages to a WebSocket session.
      * Parses the LSP wire format and sends JSON content as WebSocket text
      * messages.
+     * Uses byte array operations to avoid UTF-8 encoding issues with split writes.
      */
     private static class WebSocketOutputStream extends OutputStream {
 
-        private static final String HEADER_SEPARATOR    = "\r\n\r\n";
-        private static final String CONTENT_LENGTH_CRLF = "Content-Length:";
-        private static final int    SEPARATOR_LENGTH    = 4;
+        private static final byte[] HEADER_SEPARATOR = "\r\n\r\n".getBytes(StandardCharsets.UTF_8);
+        private static final int    SEPARATOR_LENGTH = 4;
 
-        private final WebSocketSession session;
-        private final StringBuilder    buffer         = new StringBuilder();
-        private int                    expectedLength = -1;
-        private int                    headerEndIndex = -1;
+        private final WebSocketSession              session;
+        private final java.io.ByteArrayOutputStream buffer         = new java.io.ByteArrayOutputStream();
+        private int                                 expectedLength = -1;
+        private int                                 headerEndIndex = -1;
 
         WebSocketOutputStream(WebSocketSession session) {
             this.session = session;
@@ -173,40 +174,48 @@ public class LspWebSocketEndpoint extends TextWebSocketHandler {
 
         @Override
         public synchronized void write(int b) throws IOException {
-            buffer.append((char) b);
+            buffer.write(b);
             processBuffer();
         }
 
         @Override
-        public synchronized void write(byte[] bytes, int off, int len) throws IOException {
-            buffer.append(new String(bytes, off, len, StandardCharsets.UTF_8));
+        public synchronized void write(byte @NonNull [] bytes, int off, int len) throws IOException {
+            log.info("WebSocketOutputStream received {} bytes", len);
+            buffer.write(bytes, off, len);
+            processBuffer();
+        }
+
+        @Override
+        public synchronized void flush() throws IOException {
+            log.info("WebSocketOutputStream flush called, buffer size: {}", buffer.size());
             processBuffer();
         }
 
         private void processBuffer() throws IOException {
-            while (buffer.length() > 0) {
+            log.info("processBuffer called, buffer.size={}, expectedLength={}, headerEndIndex={}", buffer.size(),
+                    expectedLength, headerEndIndex);
+
+            while (buffer.size() > 0) {
+                var data = buffer.toByteArray();
+
                 // Look for header separator
                 if (expectedLength < 0) {
-                    headerEndIndex = buffer.indexOf(HEADER_SEPARATOR);
+                    headerEndIndex = indexOf(data, HEADER_SEPARATOR);
                     if (headerEndIndex < 0) {
+                        log.info("Waiting for header separator, buffer.size={}", buffer.size());
                         return; // Need more data
                     }
 
-                    var header = buffer.substring(0, headerEndIndex);
+                    var header = new String(data, 0, headerEndIndex, StandardCharsets.UTF_8);
                     expectedLength = parseContentLength(header);
+                    log.info("Parsed header, expectedLength={}", expectedLength);
 
                     if (expectedLength < 0) {
-                        // Invalid header - try to recover by finding next Content-Length
-                        var nextHeader = findNextContentLength();
-                        if (nextHeader >= 0) {
-                            log.debug("Skipping invalid data, found next header at {}", nextHeader);
-                            buffer.delete(0, nextHeader);
-                            headerEndIndex = -1;
-                            continue;
-                        }
-                        // No valid header found, clear problematic data up to separator
-                        log.debug("Discarding invalid header data");
-                        buffer.delete(0, headerEndIndex + SEPARATOR_LENGTH);
+                        // Invalid header - discard up to separator and try again
+                        log.info("Discarding invalid header data");
+                        buffer.reset();
+                        buffer.write(data, headerEndIndex + SEPARATOR_LENGTH,
+                                data.length - headerEndIndex - SEPARATOR_LENGTH);
                         headerEndIndex = -1;
                         continue;
                     }
@@ -214,39 +223,50 @@ public class LspWebSocketEndpoint extends TextWebSocketHandler {
 
                 // Check if we have the full body
                 var bodyStart = headerEndIndex + SEPARATOR_LENGTH;
-                if (buffer.length() < bodyStart + expectedLength) {
+                if (data.length < bodyStart + expectedLength) {
+                    log.info("Waiting for body, have {} of {} bytes", data.length - bodyStart, expectedLength);
                     return; // Need more data
                 }
 
                 // Extract and send the JSON content
-                var jsonContent = buffer.substring(bodyStart, bodyStart + expectedLength);
+                var jsonContent = new String(data, bodyStart, expectedLength, StandardCharsets.UTF_8);
+                log.info("LSP response ready to send, size: {} bytes", jsonContent.length());
 
                 if (session.isOpen()) {
                     try {
                         session.sendMessage(new TextMessage(jsonContent));
+                        log.info("LSP response sent successfully, size: {} bytes", jsonContent.length());
                     } catch (IOException e) {
-                        log.error("Failed to send LSP response to WebSocket", e);
+                        log.error("Failed to send LSP response to WebSocket, size: {} bytes", jsonContent.length(), e);
                     }
+                } else {
+                    log.warn("Session closed, dropping LSP response of size: {} bytes", jsonContent.length());
                 }
 
                 // Remove processed message from buffer
-                buffer.delete(0, bodyStart + expectedLength);
+                var remaining = data.length - bodyStart - expectedLength;
+                buffer.reset();
+                if (remaining > 0) {
+                    buffer.write(data, bodyStart + expectedLength, remaining);
+                }
                 expectedLength = -1;
                 headerEndIndex = -1;
             }
         }
 
-        private int findNextContentLength() {
-            var index = buffer.indexOf(CONTENT_LENGTH_CRLF, 1);
-            if (index > 0) {
-                // Find start of line containing Content-Length
-                var lineStart = buffer.lastIndexOf("\r\n", index);
-                return lineStart >= 0 ? lineStart + 2 : index;
+        private static int indexOf(byte[] data, byte[] pattern) {
+            outer: for (int i = 0; i <= data.length - pattern.length; i++) {
+                for (int j = 0; j < pattern.length; j++) {
+                    if (data[i + j] != pattern[j]) {
+                        continue outer;
+                    }
+                }
+                return i;
             }
             return -1;
         }
 
-        private int parseContentLength(String header) {
+        private static int parseContentLength(String header) {
             for (var line : header.split("\r\n")) {
                 var trimmed = line.trim();
                 if (trimmed.toLowerCase().startsWith("content-length:")) {

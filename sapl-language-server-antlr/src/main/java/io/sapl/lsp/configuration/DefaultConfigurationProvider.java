@@ -15,18 +15,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.vaadin.lsp;
-
-import lombok.Data;
+package io.sapl.lsp.configuration;
 
 /**
- * Configuration object to initialize the JSON Editor.
+ * Default configuration provider for standalone LSP server usage.
+ * Returns the minimal configuration with standard SAPL libraries for any
+ * configuration ID.
+ *
+ * <p>
+ * The configuration is cached and reused across all calls, making this
+ * suitable for standalone LSP servers where all documents share the same
+ * standard library configuration.
  */
-@Data
-public class JsonEditorLspConfiguration {
-    private boolean darkTheme;
-    private boolean readOnly;
-    private boolean hasLineNumbers = true;
-    private boolean lint           = true;
+public class DefaultConfigurationProvider implements ConfigurationProvider {
+
+    @Override
+    public LSPConfiguration getConfiguration(String configurationId) {
+        return LSPConfiguration.minimal();
+    }
 
 }

@@ -44,7 +44,8 @@ public class SAPLWorkspaceService implements WorkspaceService {
     @Override
     public void didChangeConfiguration(DidChangeConfigurationParams params) {
         log.debug("Configuration changed: {}", params.getSettings());
-        configurationManager.updateConfiguration(params.getSettings());
+        // Custom ConfigurationProvider implementations handle their own cache
+        // invalidation
     }
 
     @Override

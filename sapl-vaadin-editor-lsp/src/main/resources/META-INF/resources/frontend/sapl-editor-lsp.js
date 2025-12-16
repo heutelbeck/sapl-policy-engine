@@ -8,8 +8,8 @@
  */
 import { LitElement, html, css } from 'lit';
 import { EditorView, basicSetup } from 'codemirror';
-import { EditorState, Compartment } from '@codemirror/state';
-import { keymap } from '@codemirror/view';
+import { EditorState, Compartment, StateField, StateEffect } from '@codemirror/state';
+import { keymap, Decoration } from '@codemirror/view';
 import { indentWithTab } from '@codemirror/commands';
 import { oneDark } from '@codemirror/theme-one-dark';
 import { StreamLanguage, bracketMatching } from '@codemirror/language';
@@ -28,6 +28,27 @@ const themeCompartment = new Compartment();
 const readOnlyCompartment = new Compartment();
 const bracketMatchingCompartment = new Compartment();
 const closeBracketsCompartment = new Compartment();
+
+// Coverage highlighting - StateEffect and StateField for line decorations
+const setCoverageEffect = StateEffect.define();
+const clearCoverageEffect = StateEffect.define();
+
+const coverageField = StateField.define({
+    create: () => Decoration.none,
+    update: (decorations, transaction) => {
+        for (const effect of transaction.effects) {
+            if (effect.is(setCoverageEffect)) {
+                return effect.value;
+            }
+            if (effect.is(clearCoverageEffect)) {
+                return Decoration.none;
+            }
+        }
+        // Map decorations through document changes
+        return decorations.map(transaction.changes);
+    },
+    provide: field => EditorView.decorations.from(field)
+});
 
 // Simple SAPL syntax highlighting (fallback when LSP not ready)
 const saplLanguage = StreamLanguage.define({
@@ -331,7 +352,10 @@ class SaplEditorLsp extends LitElement {
         this._requestId = 0;
         this._diagnostics = [];
         this._documentVersion = 0;
+        this._lastSentVersion = 0;  // Track version sent to server
+        this._lastDiagnosticsVersion = -1;  // Track version for diagnostics validation
         this._isInternalUpdate = false;
+        this._completionRequestId = 0;  // Track latest completion request for cancellation
 
         // CM6 MergeView options (real API)
         this._mergeOptions = {
@@ -346,11 +370,7 @@ class SaplEditorLsp extends LitElement {
         this._scrollSyncEnabled = false;
         this._scrollSyncing = false;
 
-        // Coverage data
-        this._coverageMarks = [];
-        this._coverageClasses = [];
-        this._coverageAutoClear = true;
-        this._coverageShowIgnored = false;
+        // Coverage data (auto-clear on edit)
         this._lastCoveragePayload = null;
 
         // Navigation state for diff chunks
@@ -451,6 +471,7 @@ class SaplEditorLsp extends LitElement {
     _initSingleEditor(container) {
         const extensions = [
             ...this._getBaseExtensions(true),
+            coverageField,
             EditorView.updateListener.of(update => {
                 if (update.docChanged && !this._isInternalUpdate) {
                     this._onDocumentChanged(update.state.doc.toString());
@@ -599,10 +620,8 @@ class SaplEditorLsp extends LitElement {
         this.document = newValue;
         this._documentVersion++;
 
-        // Auto-clear coverage on change
-        if (this._coverageAutoClear) {
-            this._clearCoverageInternal();
-        }
+        // Auto-clear coverage on edit (coverage data becomes stale)
+        this._clearCoverageInternal();
 
         // Notify LSP server of document change
         this._sendDidChange(newValue);
@@ -628,10 +647,17 @@ class SaplEditorLsp extends LitElement {
 
             this._ws.onmessage = (event) => {
                 try {
+                    const dataSize = event.data?.length || 0;
+                    console.log('[SAPL LSP] Received message, size:', dataSize);
+                    if (dataSize > 10000) {
+                        console.log('[SAPL LSP] Large message preview:', event.data.substring(0, 200) + '...');
+                    }
                     const message = JSON.parse(event.data);
+                    console.log('[SAPL LSP] Parsed message, id:', message.id, 'method:', message.method,
+                                'hasResult:', 'result' in message, 'hasError:', 'error' in message);
                     this._handleLspMessage(message);
                 } catch (e) {
-                    console.error('[SAPL LSP] Failed to parse message:', e);
+                    console.error('[SAPL LSP] Failed to parse message:', e, 'data preview:', event.data?.substring(0, 500));
                 }
             };
 
@@ -642,6 +668,11 @@ class SaplEditorLsp extends LitElement {
             this._ws.onclose = () => {
                 console.log('[SAPL LSP] Disconnected');
                 this._ws = null;
+                // Reject all pending requests
+                this._pendingRequests.forEach((pending, id) => {
+                    pending.reject(new Error('WebSocket closed'));
+                });
+                this._pendingRequests.clear();
                 // Attempt reconnect after delay
                 setTimeout(() => this._connectLsp(), 5000);
             };
@@ -652,12 +683,17 @@ class SaplEditorLsp extends LitElement {
 
     _disconnectLsp() {
         if (this._ws) {
+            // Reject all pending requests before closing
+            this._pendingRequests.forEach((pending, id) => {
+                pending.reject(new Error('LSP disconnected'));
+            });
+            this._pendingRequests.clear();
             this._ws.close();
             this._ws = null;
         }
     }
 
-    _sendLspRequest(method, params) {
+    _sendLspRequest(method, params, timeoutMs = 10000) {
         return new Promise((resolve, reject) => {
             if (!this._ws || this._ws.readyState !== WebSocket.OPEN) {
                 reject(new Error('LSP not connected'));
@@ -672,7 +708,27 @@ class SaplEditorLsp extends LitElement {
                 params
             };
 
-            this._pendingRequests.set(id, { resolve, reject });
+            // Set up timeout to prevent hanging requests
+            const timeoutId = setTimeout(() => {
+                if (this._pendingRequests.has(id)) {
+                    this._pendingRequests.delete(id);
+                    console.warn(`[SAPL LSP] Request ${method} timed out after ${timeoutMs}ms`);
+                    reject(new Error(`Request timed out: ${method}`));
+                }
+            }, timeoutMs);
+
+            this._pendingRequests.set(id, {
+                resolve: (result) => {
+                    clearTimeout(timeoutId);
+                    console.log('[SAPL LSP] Request', id, method, 'resolved');
+                    resolve(result);
+                },
+                reject: (error) => {
+                    clearTimeout(timeoutId);
+                    reject(error);
+                }
+            });
+            console.log('[SAPL LSP] Sending request', id, method);
             this._ws.send(JSON.stringify(message));
         });
     }
@@ -753,6 +809,8 @@ class SaplEditorLsp extends LitElement {
     }
 
     _sendDidChange(text) {
+        // Track the version we're sending for diagnostics validation
+        this._lastSentVersion = this._documentVersion;
         this._sendLspNotification('textDocument/didChange', {
             textDocument: {
                 uri: this._documentUri,
@@ -765,6 +823,13 @@ class SaplEditorLsp extends LitElement {
     _handleDiagnostics(params) {
         if (params.uri !== this._documentUri) return;
 
+        // Ignore diagnostics if document has changed since we sent the last update
+        // This prevents stale diagnostics from showing incorrect errors
+        if (this._lastSentVersion !== undefined && this._lastSentVersion !== this._documentVersion) {
+            console.debug('[SAPL LSP] Ignoring stale diagnostics (version mismatch)');
+            return;
+        }
+
         this._diagnostics = (params.diagnostics || []).map(d => ({
             from: this._positionToOffset(d.range.start),
             to: this._positionToOffset(d.range.end),
@@ -772,6 +837,9 @@ class SaplEditorLsp extends LitElement {
             message: d.message,
             source: d.source || 'sapl'
         }));
+
+        // Remember which version these diagnostics are for
+        this._lastDiagnosticsVersion = this._documentVersion;
 
         // Trigger lint update
         if (this._editor) {
@@ -793,6 +861,10 @@ class SaplEditorLsp extends LitElement {
     }
 
     _getLspDiagnostics() {
+        // Don't show diagnostics if they're for an older document version
+        if (this._lastDiagnosticsVersion !== this._documentVersion) {
+            return [];
+        }
         return this._diagnostics.map(d => ({
             from: d.from,
             to: d.to,
@@ -803,23 +875,47 @@ class SaplEditorLsp extends LitElement {
     }
 
     async _getCompletions(context) {
+        console.log('[SAPL LSP] _getCompletions called, explicit:', context.explicit);
         if (!this._ws || this._ws.readyState !== WebSocket.OPEN) {
+            console.log('[SAPL LSP] WebSocket not connected');
             return null;
         }
 
+        // Track this completion request to detect if it becomes stale
+        const requestVersion = this._documentVersion;
+        const thisRequestId = ++this._completionRequestId;
+
         try {
             const pos = this._offsetToPosition(context.pos);
+            console.log('[SAPL LSP] Requesting completions at', pos);
             const result = await this._sendLspRequest('textDocument/completion', {
                 textDocument: { uri: this._documentUri },
                 position: pos
-            });
+            }, 5000);  // 5 second timeout for completions
+
+            console.log('[SAPL LSP] Got completion result:', result ? (Array.isArray(result) ? result.length : result.items?.length) : 'null');
+
+            // Check if document changed while we were waiting - discard stale results
+            if (this._documentVersion !== requestVersion || this._completionRequestId !== thisRequestId) {
+                console.debug('[SAPL LSP] Discarding stale completion results');
+                return null;
+            }
 
             if (!result) return null;
 
             const wordMatch = context.matchBefore(/[\w.]*$/);
             const from = wordMatch ? wordMatch.from : context.pos;
+            const matchedText = wordMatch ? wordMatch.text : '';
 
             const items = Array.isArray(result) ? result : (result.items || []);
+            console.log('[SAPL LSP] Returning', items.length, 'completion options from position', from,
+                        'matchedText:', JSON.stringify(matchedText), 'cursorPos:', context.pos);
+
+            // Log first few items for debugging
+            if (items.length > 0) {
+                console.log('[SAPL LSP] First 5 items:', items.slice(0, 5).map(i => i.label));
+            }
+
             return {
                 from: from,
                 options: items.map(item => ({
@@ -831,10 +927,16 @@ class SaplEditorLsp extends LitElement {
                         from: this._positionToOffset(item.textEdit.range.start),
                         to: this._positionToOffset(item.textEdit.range.end)
                     })
-                }))
+                })),
+                filter: false  // Disable filtering - LSP already provides filtered results
             };
         } catch (e) {
-            console.error('[SAPL LSP] Completion failed:', e);
+            // Don't log timeout errors as errors - they're expected when user types quickly
+            if (e.message?.includes('timed out')) {
+                console.debug('[SAPL LSP] Completion request timed out');
+            } else {
+                console.error('[SAPL LSP] Completion failed:', e);
+            }
             return null;
         }
     }
@@ -895,28 +997,59 @@ class SaplEditorLsp extends LitElement {
     // --- Coverage API ---
 
     _clearCoverageInternal() {
-        // Clear coverage marks and classes
-        this._coverageMarks = [];
-        this._coverageClasses = [];
         this._lastCoveragePayload = null;
+        if (this._editor) {
+            this._editor.dispatch({
+                effects: clearCoverageEffect.of(null)
+            });
+        }
     }
 
     clearCoverage() {
         this._clearCoverageInternal();
     }
 
+    /**
+     * Sets coverage highlighting for the document.
+     * @param {Array} data - Array of {line, status, summary} objects
+     *   - line: 1-based line number
+     *   - status: 'covered' | 'partial' | 'uncovered' | 'ignored'
+     *   - summary: optional tooltip text (e.g., "2 of 4 branches covered")
+     */
     setCoverageData(data) {
         this._lastCoveragePayload = data;
-        // Apply coverage highlighting - simplified for now
-        // Full implementation would add line decorations
-    }
+        if (!this._editor || !data) return;
 
-    setCoverageAutoClear(enabled) {
-        this._coverageAutoClear = enabled;
-    }
+        const doc = this._editor.state.doc;
+        const decorations = [];
 
-    setCoverageShowIgnored(show) {
-        this._coverageShowIgnored = show;
+        for (const item of data) {
+            const lineNum = item.line;
+            if (lineNum < 1 || lineNum > doc.lines) continue;
+
+            // Skip 'ignored' status lines (no conditions to cover)
+            if (item.status === 'ignored') continue;
+
+            const line = doc.line(lineNum);
+            const cssClass = `coverage-${item.status}`;
+
+            // Create line decoration with optional tooltip
+            const spec = { class: cssClass };
+            if (item.summary) {
+                spec.attributes = { title: item.summary };
+            }
+
+            decorations.push(
+                Decoration.line(spec).range(line.from)
+            );
+        }
+
+        // Sort by position (required by CodeMirror)
+        decorations.sort((a, b) => a.from - b.from);
+
+        this._editor.dispatch({
+            effects: setCoverageEffect.of(Decoration.set(decorations))
+        });
     }
 
     // --- Public API (called from Vaadin) ---

@@ -34,7 +34,7 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
 import io.sapl.lsp.configuration.ConfigurationManager;
-import io.sapl.lsp.configuration.StandardLibrariesLoader;
+import io.sapl.lsp.configuration.LSPConfiguration;
 
 /**
  * Integration tests verifying that standard library functions and PIPs
@@ -48,8 +48,9 @@ class StandardLibraryCompletionIntegrationTests {
     @BeforeAll
     static void setup() {
         completionProvider = new SAPLCompletionProvider();
-        configManager      = new ConfigurationManager();
-        configManager.registerConfiguration("", StandardLibrariesLoader.loadStandardConfiguration(""));
+        // Default ConfigurationManager uses DefaultConfigurationProvider which loads
+        // standard libraries
+        configManager = new ConfigurationManager();
     }
 
     static Stream<Arguments> standardFunctionLibraryTestCases() {
@@ -137,7 +138,7 @@ class StandardLibraryCompletionIntegrationTests {
 
     @Test
     void whenInExpressionContext_thenStringLibraryHasManyFunctions() {
-        var config        = StandardLibrariesLoader.loadStandardConfiguration("test");
+        var config        = LSPConfiguration.minimal();
         var stringLibrary = config.documentationBundle().functionLibraries().stream()
                 .filter(lib -> "string".equals(lib.name())).findFirst();
 

@@ -273,9 +273,7 @@ class CompletionDemoTests {
     }
 
     private ConfigurationManager createConfigManager(LSPConfiguration config) {
-        var manager = new ConfigurationManager();
-        manager.registerConfiguration("", config);
-        return manager;
+        return new ConfigurationManager(id -> config);
     }
 
 }

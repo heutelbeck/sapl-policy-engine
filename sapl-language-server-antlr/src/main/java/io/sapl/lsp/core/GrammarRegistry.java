@@ -137,11 +137,21 @@ public class GrammarRegistry {
         if (uri == null) {
             return "";
         }
-        var lastDot = uri.lastIndexOf('.');
+        // Strip query string and fragment before extracting extension
+        var cleanUri   = uri;
+        var queryIndex = cleanUri.indexOf('?');
+        if (queryIndex >= 0) {
+            cleanUri = cleanUri.substring(0, queryIndex);
+        }
+        var fragmentIndex = cleanUri.indexOf('#');
+        if (fragmentIndex >= 0) {
+            cleanUri = cleanUri.substring(0, fragmentIndex);
+        }
+        var lastDot = cleanUri.lastIndexOf('.');
         if (lastDot < 0) {
             return "";
         }
-        return uri.substring(lastDot).toLowerCase();
+        return cleanUri.substring(lastDot).toLowerCase();
     }
 
 }

@@ -181,9 +181,10 @@ class SchemaFlowDemoTests {
     }
 
     private java.util.List<org.eclipse.lsp4j.CompletionItem> getCompletions(String content, Position position) {
-        var document      = new SAPLParsedDocument("file:///test.sapl", content);
+        var document = new SAPLParsedDocument("file:///test.sapl", content);
+        // Default ConfigurationManager uses DefaultConfigurationProvider which returns
+        // LSPConfiguration.minimal()
         var configManager = new ConfigurationManager();
-        configManager.registerConfiguration("", LSPConfiguration.minimal());
         return provider.provideCompletions(document, position, configManager);
     }
 

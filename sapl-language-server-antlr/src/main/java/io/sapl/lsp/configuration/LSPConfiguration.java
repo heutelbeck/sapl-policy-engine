@@ -52,13 +52,24 @@ public record LSPConfiguration(
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
+    /** Cached minimal configuration - loaded once on first access. */
+    private static volatile LSPConfiguration minimalInstance;
+
     /**
      * Creates a configuration with all standard SAPL libraries loaded.
+     * The configuration is cached and reused for subsequent calls.
      *
      * @return a configuration with all standard function libraries and PIPs
      */
     public static LSPConfiguration minimal() {
-        return StandardLibrariesLoader.loadStandardConfiguration("");
+        if (minimalInstance == null) {
+            synchronized (LSPConfiguration.class) {
+                if (minimalInstance == null) {
+                    minimalInstance = StandardLibrariesLoader.loadStandardConfiguration("");
+                }
+            }
+        }
+        return minimalInstance;
     }
 
     /**

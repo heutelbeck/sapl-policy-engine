@@ -30,9 +30,12 @@ import com.vaadin.flow.component.dependency.NpmPackage;
 import com.vaadin.flow.dom.Element;
 import com.vaadin.flow.dom.ElementConstants;
 
+import elemental.json.Json;
 import elemental.json.JsonArray;
 import elemental.json.JsonObject;
 import io.sapl.api.SaplVersion;
+import io.sapl.test.coverage.LineCoverageStatus;
+import io.sapl.test.coverage.PolicyCoverageData;
 import io.sapl.vaadin.DocumentChangedEvent;
 import io.sapl.vaadin.DocumentChangedListener;
 import io.sapl.vaadin.Issue;
@@ -418,6 +421,57 @@ public class SaplEditorLsp extends Component implements HasSize {
      */
     public void scrollToBottom() {
         getElement().callJsFunction("scrollToBottom");
+    }
+
+    /**
+     * Sets coverage highlighting for lines in the editor based on aggregated
+     * test coverage data.
+     * Coverage is automatically cleared when the document is edited.
+     *
+     * @param coverageData the aggregated policy coverage data from test execution
+     */
+    public void setCoverage(PolicyCoverageData coverageData) {
+        if (coverageData == null) {
+            clearCoverage();
+            return;
+        }
+        var lineCoverage = coverageData.getLineCoverage();
+        if (lineCoverage.isEmpty()) {
+            clearCoverage();
+            return;
+        }
+        var jsonArray = Json.createArray();
+        var index     = 0;
+        for (var item : lineCoverage) {
+            if (item.status() == LineCoverageStatus.IRRELEVANT) {
+                continue;
+            }
+            var jsonItem = Json.createObject();
+            jsonItem.put("line", item.line());
+            jsonItem.put("status", mapCoverageStatus(item.status()));
+            var summary = item.getSummary();
+            if (summary != null) {
+                jsonItem.put("summary", summary);
+            }
+            jsonArray.set(index++, jsonItem);
+        }
+        getElement().callJsFunction("setCoverageData", jsonArray);
+    }
+
+    private static String mapCoverageStatus(LineCoverageStatus status) {
+        return switch (status) {
+        case FULLY_COVERED     -> "covered";
+        case PARTIALLY_COVERED -> "partial";
+        case NOT_COVERED       -> "uncovered";
+        case IRRELEVANT        -> "ignored";
+        };
+    }
+
+    /**
+     * Clears all coverage highlighting from the editor.
+     */
+    public void clearCoverage() {
+        getElement().callJsFunction("clearCoverage");
     }
 
     /**

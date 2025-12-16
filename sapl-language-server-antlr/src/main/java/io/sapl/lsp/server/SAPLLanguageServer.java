@@ -97,12 +97,6 @@ public class SAPLLanguageServer implements LanguageServer, LanguageClientAware {
     public CompletableFuture<InitializeResult> initialize(InitializeParams params) {
         log.info("Initializing {} v{}", SERVER_NAME, SERVER_VERSION);
 
-        // Extract configuration ID from initialization options if present
-        var initOptions = params.getInitializationOptions();
-        if (initOptions != null) {
-            configurationManager.processInitializationOptions(initOptions);
-        }
-
         var capabilities = createServerCapabilities();
         var serverInfo   = new ServerInfo(SERVER_NAME, SERVER_VERSION);
         var result       = new InitializeResult(capabilities, serverInfo);

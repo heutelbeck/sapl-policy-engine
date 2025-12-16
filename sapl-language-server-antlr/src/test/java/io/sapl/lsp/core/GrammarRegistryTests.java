@@ -160,4 +160,28 @@ class GrammarRegistryTests {
         assertThat(saplTestGrammar.getGrammarId()).isEqualTo("sapltest");
     }
 
+    @Test
+    void whenGetGrammarForUriWithQueryString_thenIgnoresQueryAndReturnsCorrectGrammar() {
+        var saplGrammar = registry.getGrammarForUri("file:///policy.sapl?configurationId=default");
+        assertThat(saplGrammar.getGrammarId()).isEqualTo("sapl");
+
+        var saplTestGrammar = registry.getGrammarForUri("file:///test.sapltest?configurationId=production");
+        assertThat(saplTestGrammar.getGrammarId()).isEqualTo("sapltest");
+    }
+
+    @Test
+    void whenGetGrammarForUriWithFragment_thenIgnoresFragmentAndReturnsCorrectGrammar() {
+        var saplGrammar = registry.getGrammarForUri("file:///policy.sapl#line=10");
+        assertThat(saplGrammar.getGrammarId()).isEqualTo("sapl");
+
+        var saplTestGrammar = registry.getGrammarForUri("file:///test.sapltest#section");
+        assertThat(saplTestGrammar.getGrammarId()).isEqualTo("sapltest");
+    }
+
+    @Test
+    void whenGetGrammarForUriWithQueryAndFragment_thenIgnoresBothAndReturnsCorrectGrammar() {
+        var grammar = registry.getGrammarForUri("file:///policy.sapl?config=test#line=5");
+        assertThat(grammar.getGrammarId()).isEqualTo("sapl");
+    }
+
 }
