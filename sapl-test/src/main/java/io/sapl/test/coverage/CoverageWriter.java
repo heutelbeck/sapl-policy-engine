@@ -161,12 +161,15 @@ public class CoverageWriter {
         map.put("conditionCount", coverage.getConditionCount());
         map.put("fullyCoveredConditions", coverage.getFullyCoveredConditionCount());
 
-        // Branch hits
+        // Branch hits with full position data for distinguishing same-line conditions
         val branches = new ArrayList<Map<String, Object>>();
         for (val hit : coverage.getBranchHits()) {
             val branchMap = new LinkedHashMap<String, Object>();
             branchMap.put("statementId", hit.statementId());
-            branchMap.put("line", hit.line());
+            branchMap.put("startLine", hit.startLine());
+            branchMap.put("endLine", hit.endLine());
+            branchMap.put("startChar", hit.startChar());
+            branchMap.put("endChar", hit.endChar());
             branchMap.put("trueHits", hit.trueHits());
             branchMap.put("falseHits", hit.falseHits());
             branchMap.put("fullyCovered", hit.isFullyCovered());

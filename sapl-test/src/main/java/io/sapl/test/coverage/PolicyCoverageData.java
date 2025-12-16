@@ -34,14 +34,16 @@ import java.util.Map;
 @Getter
 public class PolicyCoverageData {
 
-    private final String                  documentName;
-    private String                        documentSource;
-    private final String                  documentType;
-    private String                        filePath;
-    private int                           sourceHash;
-    private int                           targetTrueHits;
-    private int                           targetFalseHits;
-    private final Map<Integer, BranchHit> branchHitsByLine = new HashMap<>();
+    private final String               documentName;
+    private String                     documentSource;
+    private final String               documentType;
+    private String                     filePath;
+    private int                        sourceHash;
+    private int                        targetTrueHits;
+    private int                        targetFalseHits;
+    private int                        targetStartLine;
+    private int                        targetEndLine;
+    private final Map<Long, BranchHit> branchHitsByPosition = new HashMap<>();
 
     /**
      * Creates coverage data for a policy document.
@@ -59,6 +61,15 @@ public class PolicyCoverageData {
     }
 
     /**
+     * Computes a unique position key for a condition based on its source location.
+     * The key combines line and character position to uniquely identify conditions
+     * even when multiple appear on the same line.
+     */
+    private static long positionKey(int startLine, int startChar) {
+        return (long) startLine * 100_000L + startChar;
+    }
+
+    /**
      * Records a target expression evaluation result.
      *
      * @param matched true if the target matched (policy applies), false otherwise
@@ -72,15 +83,67 @@ public class PolicyCoverageData {
     }
 
     /**
-     * Records a condition evaluation from a ConditionHit.
+     * Records a target expression evaluation result with position data.
+     * <p>
+     * For policy sets with multiple nested policies, each target expression
+     * is recorded as a branch hit keyed by its source position for unique
+     * identification.
+     *
+     * @param matched true if the target matched (policy applies), false otherwise
+     * @param startLine the 1-based start line of the target expression
+     * @param endLine the 1-based end line of the target expression
+     */
+    public void recordTargetHit(boolean matched, int startLine, int endLine) {
+        recordTargetHit(matched);
+        // Store the primary target position for backwards compatibility
+        if (this.targetStartLine == 0 && startLine > 0) {
+            this.targetStartLine = startLine;
+            this.targetEndLine   = endLine > 0 ? endLine : startLine;
+        }
+        // Record as branch hit keyed by position
+        // Use negative statementId to distinguish targets from where-clause conditions
+        if (startLine > 0) {
+            val actualEndLine     = endLine > 0 ? endLine : startLine;
+            val targetStatementId = -startLine;
+            val key               = positionKey(startLine, 0);
+            val newHit            = BranchHit.of(targetStatementId, startLine, actualEndLine, 0, 0, matched);
+            branchHitsByPosition.merge(key, newHit, BranchHit::mergeHitCounts);
+        }
+    }
+
+    /**
+     * Records a condition evaluation from a ConditionHit (legacy, line-only
+     * version).
      *
      * @param statementId the 0-based statement index
      * @param line the 1-based source line
      * @param result the evaluation result
      */
     public void recordConditionHit(int statementId, int line, boolean result) {
+        val key    = positionKey(line, 0);
         val newHit = BranchHit.of(statementId, line, result);
-        branchHitsByLine.merge(line, newHit, BranchHit::mergeByLine);
+        branchHitsByPosition.merge(key, newHit, BranchHit::mergeHitCounts);
+    }
+
+    /**
+     * Records a condition evaluation with full position data.
+     * <p>
+     * This overload captures precise character positions for highlighting
+     * multi-line expressions and distinguishing multiple conditions on the
+     * same line.
+     *
+     * @param statementId the 0-based statement index
+     * @param startLine the 1-based start line
+     * @param endLine the 1-based end line
+     * @param startChar character offset within start line (0-based)
+     * @param endChar character offset within end line (0-based)
+     * @param result the evaluation result
+     */
+    public void recordConditionHit(int statementId, int startLine, int endLine, int startChar, int endChar,
+            boolean result) {
+        val key    = positionKey(startLine, startChar);
+        val newHit = BranchHit.of(statementId, startLine, endLine, startChar, endChar, result);
+        branchHitsByPosition.merge(key, newHit, BranchHit::mergeHitCounts);
     }
 
     /**
@@ -101,8 +164,8 @@ public class PolicyCoverageData {
         if (this.filePath == null && other.filePath != null) {
             this.filePath = other.filePath;
         }
-        for (val entry : other.branchHitsByLine.entrySet()) {
-            branchHitsByLine.merge(entry.getKey(), entry.getValue(), BranchHit::mergeByLine);
+        for (val entry : other.branchHitsByPosition.entrySet()) {
+            branchHitsByPosition.merge(entry.getKey(), entry.getValue(), BranchHit::mergeHitCounts);
         }
     }
 
@@ -167,7 +230,7 @@ public class PolicyCoverageData {
      * @return count of distinct statements
      */
     public int getConditionCount() {
-        return branchHitsByLine.size();
+        return branchHitsByPosition.size();
     }
 
     /**
@@ -176,7 +239,7 @@ public class PolicyCoverageData {
      * @return count of fully covered conditions
      */
     public int getFullyCoveredConditionCount() {
-        return (int) branchHitsByLine.values().stream().filter(BranchHit::isFullyCovered).count();
+        return (int) branchHitsByPosition.values().stream().filter(BranchHit::isFullyCovered).count();
     }
 
     /**
@@ -185,7 +248,7 @@ public class PolicyCoverageData {
      * @return count of partially covered conditions
      */
     public int getPartiallyCoveredConditionCount() {
-        return (int) branchHitsByLine.values().stream().filter(BranchHit::isPartiallyCovered).count();
+        return (int) branchHitsByPosition.values().stream().filter(BranchHit::isPartiallyCovered).count();
     }
 
     /**
@@ -193,16 +256,17 @@ public class PolicyCoverageData {
      * <p>
      * Branch coverage = (covered branches / total branches) × 100
      * where each condition has 2 branches (true and false).
+     * This calculation is independent of source code layout.
      *
      * @return coverage percentage (0.0 to 100.0), or 0.0 if no conditions
      */
     public double getBranchCoveragePercent() {
-        if (branchHitsByLine.isEmpty()) {
+        if (branchHitsByPosition.isEmpty()) {
             return 0.0;
         }
         var coveredBranches = 0;
         var totalBranches   = 0;
-        for (val hit : branchHitsByLine.values()) {
+        for (val hit : branchHitsByPosition.values()) {
             coveredBranches += hit.coveredBranchCount();
             totalBranches   += hit.totalBranchCount();
         }
@@ -215,7 +279,7 @@ public class PolicyCoverageData {
      * @return list of branch hits
      */
     public List<BranchHit> getBranchHits() {
-        return List.copyOf(branchHitsByLine.values());
+        return List.copyOf(branchHitsByPosition.values());
     }
 
     /**
@@ -237,13 +301,21 @@ public class PolicyCoverageData {
      */
     public java.util.Set<Integer> getCoveredLines() {
         val lines = new java.util.HashSet<Integer>();
-        for (val hit : branchHitsByLine.values()) {
+        for (val hit : branchHitsByPosition.values()) {
             if (hit.isPartiallyCovered()) {
-                lines.add(hit.line());
+                // Add all lines spanned by this condition
+                for (int line = hit.startLine(); line <= hit.endLine(); line++) {
+                    lines.add(line);
+                }
             }
         }
         if (wasTargetMatched()) {
-            lines.add(1);
+            // Add all lines covered by the target expression
+            val startLine = targetStartLine > 0 ? targetStartLine : 1;
+            val endLine   = targetEndLine > 0 ? targetEndLine : startLine;
+            for (int line = startLine; line <= endLine; line++) {
+                lines.add(line);
+            }
         }
         return lines;
     }
@@ -251,8 +323,18 @@ public class PolicyCoverageData {
     /**
      * Computes line coverage information for all lines in this document.
      * <p>
-     * For each line, determines coverage status based on branch hits recorded
-     * for conditions on that line.
+     * Aggregates coverage from all statements that touch each line. When multiple
+     * conditions appear on the same line, their branch counts are summed to show
+     * the total coverage for that line.
+     * <p>
+     * Target expressions (negative statementId) use single-branch semantics: they
+     * are either "hit" (fully covered) or "not hit" (not covered). This reflects
+     * the architectural reality that we can only observe target matches, not
+     * mismatches, since non-matching policies are filtered by the PRP before
+     * reaching the PDP trace.
+     * <p>
+     * Where-clause conditions (non-negative statementId) use two-branch semantics:
+     * each condition has true and false branches that can be independently covered.
      *
      * @return list of LineCoverageInfo for each line (1-indexed, list index 0 =
      * line 1)
@@ -263,26 +345,46 @@ public class PolicyCoverageData {
             return List.of();
         }
 
+        // Aggregate branch counts per line from all statements
+        // Target expressions (negative statementId) have single-branch semantics
+        // Conditions (non-negative statementId) have two-branch semantics
         val branchesByLine = new HashMap<Integer, int[]>();
-        for (val hit : branchHitsByLine.values()) {
-            branchesByLine.compute(hit.line(), (line, counts) -> {
-                if (counts == null) {
-                    counts = new int[2];
-                }
-                counts[0] += hit.coveredBranchCount();
-                counts[1] += hit.totalBranchCount();
-                return counts;
-            });
+        for (val hit : branchHitsByPosition.values()) {
+            val isTarget = hit.statementId() < 0;
+            for (int line = hit.startLine(); line <= hit.endLine(); line++) {
+                branchesByLine.compute(line, (l, counts) -> {
+                    if (counts == null) {
+                        counts = new int[2];
+                    }
+                    if (isTarget) {
+                        // Target: single-branch - "hit" means fully covered
+                        counts[0] += hit.isPartiallyCovered() ? 1 : 0;
+                        counts[1] += 1;
+                    } else {
+                        // Condition: two-branch - true and false
+                        counts[0] += hit.coveredBranchCount();
+                        counts[1] += hit.totalBranchCount();
+                    }
+                    return counts;
+                });
+            }
         }
+
+        // Determine target expression line range for fallback (when not in
+        // branchHitsByPosition)
+        val targetStart = targetStartLine > 0 ? targetStartLine : 1;
+        val targetEnd   = targetEndLine > 0 ? targetEndLine : targetStart;
 
         val result = new java.util.ArrayList<LineCoverageInfo>(lineCount);
         for (int i = 1; i <= lineCount; i++) {
             val counts = branchesByLine.get(i);
             if (counts != null) {
                 result.add(LineCoverageInfo.withBranches(i, counts[0], counts[1]));
-            } else if (i == 1 && wasTargetMatched()) {
+            } else if (i >= targetStart && i <= targetEnd && wasTargetMatched()) {
+                // Target expression line - hit (single-branch: 1/1)
                 result.add(LineCoverageInfo.withBranches(i, 1, 1));
-            } else if (i == 1 && wasTargetEvaluated()) {
+            } else if (i >= targetStart && i <= targetEnd && wasTargetEvaluated()) {
+                // Target expression line - evaluated but not matched (0/1)
                 result.add(LineCoverageInfo.withBranches(i, 0, 1));
             } else {
                 result.add(LineCoverageInfo.irrelevant(i));

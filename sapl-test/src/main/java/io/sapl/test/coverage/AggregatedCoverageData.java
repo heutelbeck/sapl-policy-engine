@@ -247,10 +247,12 @@ public class AggregatedCoverageData {
 
         for (val hit : original.getBranchHits()) {
             for (int i = 0; i < hit.trueHits(); i++) {
-                clone.recordConditionHit(hit.statementId(), hit.line(), true);
+                clone.recordConditionHit(hit.statementId(), hit.startLine(), hit.endLine(), hit.startChar(),
+                        hit.endChar(), true);
             }
             for (int i = 0; i < hit.falseHits(); i++) {
-                clone.recordConditionHit(hit.statementId(), hit.line(), false);
+                clone.recordConditionHit(hit.statementId(), hit.startLine(), hit.endLine(), hit.startChar(),
+                        hit.endChar(), false);
             }
         }
 

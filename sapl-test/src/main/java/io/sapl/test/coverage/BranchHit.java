@@ -22,16 +22,52 @@ package io.sapl.test.coverage;
  * <p>
  * Each condition can evaluate to true or false, creating two branches.
  * Full branch coverage requires both branches to be executed at least once.
+ * <p>
+ * Position data (startLine, endLine, startChar, endChar) enables precise
+ * highlighting of multi-line expressions and multiple conditions on the same
+ * line.
  *
  * @param statementId the 0-based index of the statement in the policy body
- * @param line the 1-based source line number where this condition appears
+ * @param startLine the 1-based source line where this condition starts
+ * @param endLine the 1-based source line where this condition ends
+ * @param startChar character offset within the start line (0-based)
+ * @param endChar character offset within the end line (0-based)
  * @param trueHits count of evaluations resulting in true
  * @param falseHits count of evaluations resulting in false
  */
-public record BranchHit(int statementId, int line, int trueHits, int falseHits) {
+public record BranchHit(
+        int statementId,
+        int startLine,
+        int endLine,
+        int startChar,
+        int endChar,
+        int trueHits,
+        int falseHits) {
 
     /**
-     * Creates a new BranchHit with a single hit recorded.
+     * Backwards-compatible constructor for legacy code that only has line number.
+     *
+     * @param statementId the statement index
+     * @param line the source line
+     * @param trueHits count of true evaluations
+     * @param falseHits count of false evaluations
+     */
+    public BranchHit(int statementId, int line, int trueHits, int falseHits) {
+        this(statementId, line, line, 0, 0, trueHits, falseHits);
+    }
+
+    /**
+     * Returns the start line (alias for backwards compatibility).
+     *
+     * @return the start line number
+     */
+    public int line() {
+        return startLine;
+    }
+
+    /**
+     * Creates a new BranchHit with a single hit recorded (legacy, line-only
+     * version).
      *
      * @param statementId the statement index
      * @param line the source line
@@ -44,41 +80,75 @@ public record BranchHit(int statementId, int line, int trueHits, int falseHits) 
     }
 
     /**
-     * Merges another BranchHit into this one by summing hit counts.
-     * <p>
-     * Both BranchHits must have the same statementId and line.
+     * Creates a new BranchHit with full position data and a single hit recorded.
      *
-     * @param other the BranchHit to merge
-     * @return a new BranchHit with combined hit counts
-     * @throws IllegalArgumentException if statementId or line differ
+     * @param statementId the statement index
+     * @param startLine the 1-based start line
+     * @param endLine the 1-based end line
+     * @param startChar character offset within start line (0-based)
+     * @param endChar character offset within end line (0-based)
+     * @param result the evaluation result
+     * @return a new BranchHit with full position data
      */
-    public BranchHit merge(BranchHit other) {
-        if (this.statementId != other.statementId || this.line != other.line) {
-            throw new IllegalArgumentException(
-                    "Cannot merge BranchHits with different statementId or line: (%d, %d) vs (%d, %d)"
-                            .formatted(statementId, line, other.statementId, other.line));
-        }
-        return new BranchHit(statementId, line, trueHits + other.trueHits, falseHits + other.falseHits);
-
+    public static BranchHit of(int statementId, int startLine, int endLine, int startChar, int endChar,
+            boolean result) {
+        return result ? new BranchHit(statementId, startLine, endLine, startChar, endChar, 1, 0)
+                : new BranchHit(statementId, startLine, endLine, startChar, endChar, 0, 1);
     }
 
     /**
-     * Merges another BranchHit into this one by line number only.
+     * Merges another BranchHit into this one by summing hit counts.
+     * <p>
+     * Both BranchHits must have the same statementId. Position data is preserved
+     * from this BranchHit (the first one in the merge chain).
+     *
+     * @param other the BranchHit to merge
+     * @return a new BranchHit with combined hit counts
+     * @throws IllegalArgumentException if statementIds differ
+     */
+    public BranchHit merge(BranchHit other) {
+        if (this.statementId != other.statementId) {
+            throw new IllegalArgumentException("Cannot merge BranchHits with different statementId: %d vs %d"
+                    .formatted(statementId, other.statementId));
+        }
+        return new BranchHit(statementId, startLine, endLine, startChar, endChar, trueHits + other.trueHits,
+                falseHits + other.falseHits);
+    }
+
+    /**
+     * Merges another BranchHit into this one by summing hit counts only.
+     * <p>
+     * This method does not require matching statementIds or positions, making it
+     * suitable for merging hits that are keyed externally by position. Position
+     * data is preserved from this BranchHit.
+     *
+     * @param other the BranchHit to merge
+     * @return a new BranchHit with combined hit counts
+     */
+    public BranchHit mergeHitCounts(BranchHit other) {
+        return new BranchHit(statementId, startLine, endLine, startChar, endChar, trueHits + other.trueHits,
+                falseHits + other.falseHits);
+    }
+
+    /**
+     * Merges another BranchHit into this one by start line only.
      * <p>
      * This method is used when merging coverage from different policies that
      * share the same source file (e.g., inner policies within a policy set).
      * The statementId is ignored since it's only unique within each policy.
+     * Position data is preserved from the first hit.
      *
      * @param other the BranchHit to merge
      * @return a new BranchHit with combined hit counts
      * @throws IllegalArgumentException if lines differ
      */
     public BranchHit mergeByLine(BranchHit other) {
-        if (this.line != other.line) {
+        if (this.startLine != other.startLine) {
             throw new IllegalArgumentException(
-                    "Cannot merge BranchHits with different lines: %d vs %d".formatted(line, other.line));
+                    "Cannot merge BranchHits with different lines: %d vs %d".formatted(startLine, other.startLine));
         }
-        return new BranchHit(statementId, line, trueHits + other.trueHits, falseHits + other.falseHits);
+        return new BranchHit(statementId, startLine, endLine, startChar, endChar, trueHits + other.trueHits,
+                falseHits + other.falseHits);
     }
 
     /**

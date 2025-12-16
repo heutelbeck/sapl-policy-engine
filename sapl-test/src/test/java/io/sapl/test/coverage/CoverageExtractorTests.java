@@ -153,8 +153,8 @@ class CoverageExtractorTests {
     @Test
     @DisplayName("skips condition with missing statementId")
     void whenConditionMissingStatementId_thenSkipsCondition() {
-        val condition = ObjectValue.builder().put(TraceFields.RESULT, Value.of(true)).put(TraceFields.LINE, Value.of(3))
-                .build();
+        val condition = ObjectValue.builder().put(TraceFields.RESULT, Value.of(true))
+                .put(TraceFields.START_LINE, Value.of(3)).build();
 
         val document = ObjectValue.builder().put(TraceFields.NAME, Value.of("incomplete-policy"))
                 .put(TraceFields.TYPE, Value.of(TraceFields.TYPE_POLICY)).put(TraceFields.TARGET_RESULT, Value.of(true))
@@ -171,7 +171,7 @@ class CoverageExtractorTests {
     @DisplayName("skips condition with missing result")
     void whenConditionMissingResult_thenSkipsCondition() {
         val condition = ObjectValue.builder().put(TraceFields.STATEMENT_ID, Value.of(0))
-                .put(TraceFields.LINE, Value.of(3)).build();
+                .put(TraceFields.START_LINE, Value.of(3)).build();
 
         val document = ObjectValue.builder().put(TraceFields.NAME, Value.of("incomplete-policy"))
                 .put(TraceFields.TYPE, Value.of(TraceFields.TYPE_POLICY)).put(TraceFields.TARGET_RESULT, Value.of(true))
@@ -290,9 +290,12 @@ class CoverageExtractorTests {
     private Value buildDocumentObject(String name, String type, boolean targetResult, ConditionData... conditions) {
         val conditionsArray = ArrayValue.builder();
         for (val condition : conditions) {
+            // Use the new position fields (startLine, endLine, startChar, endChar)
             conditionsArray.add(ObjectValue.builder().put(TraceFields.STATEMENT_ID, Value.of(condition.statementId()))
                     .put(TraceFields.RESULT, Value.of(condition.result()))
-                    .put(TraceFields.LINE, Value.of(condition.line())).build());
+                    .put(TraceFields.START_LINE, Value.of(condition.line()))
+                    .put(TraceFields.END_LINE, Value.of(condition.line())).put(TraceFields.START_CHAR, Value.of(0))
+                    .put(TraceFields.END_CHAR, Value.of(0)).build());
         }
 
         return ObjectValue.builder().put(TraceFields.NAME, Value.of(name)).put(TraceFields.TYPE, Value.of(type))

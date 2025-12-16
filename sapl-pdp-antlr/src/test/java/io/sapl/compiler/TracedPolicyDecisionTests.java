@@ -1241,7 +1241,11 @@ class TracedPolicyDecisionTests {
             val condition = (ObjectValue) getConditions(traced).getFirst();
             assertThat(condition.get(TraceFields.STATEMENT_ID)).isEqualTo(Value.of(0));
             assertThat(condition.get(TraceFields.RESULT)).isEqualTo(Value.TRUE);
-            assertThat(condition.get(TraceFields.LINE)).isInstanceOf(NumberValue.class);
+            // Verify full position data is captured for coverage highlighting
+            assertThat(condition.get(TraceFields.START_LINE)).isInstanceOf(NumberValue.class);
+            assertThat(condition.get(TraceFields.END_LINE)).isInstanceOf(NumberValue.class);
+            assertThat(condition.get(TraceFields.START_CHAR)).isInstanceOf(NumberValue.class);
+            assertThat(condition.get(TraceFields.END_CHAR)).isInstanceOf(NumberValue.class);
         }
 
         @Test

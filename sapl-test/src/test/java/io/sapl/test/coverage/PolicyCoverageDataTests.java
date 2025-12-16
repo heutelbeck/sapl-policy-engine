@@ -219,4 +219,58 @@ class PolicyCoverageDataTests {
 
         assertThat(coverage.getFilePath()).isEqualTo("policies/arkham/access-control.sapl");
     }
+
+    @Test
+    @DisplayName("conditions on same line with different character positions are tracked separately")
+    void whenTwoConditionsOnSameLine_thenTrackedSeparately() {
+        val coverage = new PolicyCoverageData("test", "", "policy");
+
+        // Two conditions on line 5, at different character positions
+        coverage.recordConditionHit(0, 5, 5, 0, 20, true);   // condition at chars 0-20
+        coverage.recordConditionHit(1, 5, 5, 25, 50, false); // condition at chars 25-50
+
+        // Should be 2 separate conditions, not merged
+        assertThat(coverage.getConditionCount()).isEqualTo(2);
+        assertThat(coverage.getBranchCoveragePercent()).isEqualTo(50.0); // 2 of 4 branches
+    }
+
+    @Test
+    @DisplayName("coverage ratio is independent of code layout - same line vs separate lines")
+    void whenSameConditionsDifferentLayout_thenSameCoverageRatio() {
+        // Layout 1: conditions on separate lines
+        val coverageSeparateLines = new PolicyCoverageData("test", "", "policy");
+        coverageSeparateLines.recordConditionHit(0, 5, 5, 0, 20, true);   // line 5
+        coverageSeparateLines.recordConditionHit(1, 6, 6, 0, 30, false);  // line 6
+
+        // Layout 2: same conditions on same line
+        val coverageSameLine = new PolicyCoverageData("test", "", "policy");
+        coverageSameLine.recordConditionHit(0, 5, 5, 0, 20, true);   // line 5, chars 0-20
+        coverageSameLine.recordConditionHit(1, 5, 5, 25, 50, false); // line 5, chars 25-50
+
+        // Both should have same coverage ratio
+        assertThat(coverageSeparateLines.getConditionCount()).isEqualTo(coverageSameLine.getConditionCount());
+        assertThat(coverageSeparateLines.getBranchCoveragePercent())
+                .isEqualTo(coverageSameLine.getBranchCoveragePercent());
+    }
+
+    @Test
+    @DisplayName("line coverage shows aggregated branches for same-line conditions")
+    void whenTwoConditionsOnSameLine_thenLineCoverageShowsAggregatedBranches() {
+        val source   = "line1\nline2\nline3\nline4\nline5";
+        val coverage = new PolicyCoverageData("test", source, "policy");
+
+        // Condition 0: true hit only (1/2 branches)
+        coverage.recordConditionHit(0, 5, 5, 0, 10, true);
+        // Condition 1: both branches hit (2/2 branches)
+        coverage.recordConditionHit(1, 5, 5, 15, 25, true);
+        coverage.recordConditionHit(1, 5, 5, 15, 25, false);
+
+        val lineCoverage = coverage.getLineCoverage();
+        val line5Info    = lineCoverage.get(4); // 0-indexed
+
+        // Line 5 should show 3 of 4 branches covered (1+2 covered, 2+2 total)
+        assertThat(line5Info.coveredBranches()).isEqualTo(3);
+        assertThat(line5Info.totalBranches()).isEqualTo(4);
+        assertThat(line5Info.status()).isEqualTo(LineCoverageStatus.PARTIALLY_COVERED);
+    }
 }

@@ -736,7 +736,8 @@ class ValueJsonMarshallerTests {
 
     @Test
     void when_toPrettyStringWithErrorWithLocation_then_includesLocation() {
-        var error = new ErrorValue("Access denied").withLocation(new SourceLocation("policy.sapl", null, 5, 20, 10));
+        var error = new ErrorValue("Access denied")
+                .withLocation(new SourceLocation("policy.sapl", null, 5, 20, 10, 10));
 
         var result = ValueJsonMarshaller.toPrettyString(error);
 

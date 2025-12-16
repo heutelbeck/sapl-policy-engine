@@ -197,7 +197,7 @@ public class CoverageReader {
     }
 
     /**
-     * Parses branch hit data.
+     * Parses branch hit data with full position information.
      */
     private void parseBranches(JsonNode policyNode, PolicyCoverageData coverage) {
         val branches = policyNode.path("branches");
@@ -207,15 +207,20 @@ public class CoverageReader {
 
         for (val branch : branches) {
             val statementId = branch.path("statementId").asInt(0);
-            val line        = branch.path("line").asInt(1);
             val trueHits    = branch.path("trueHits").asInt(0);
             val falseHits   = branch.path("falseHits").asInt(0);
 
+            // Read full position data (new format) or fall back to line-only (legacy)
+            val startLine = branch.has("startLine") ? branch.path("startLine").asInt(1) : branch.path("line").asInt(1);
+            val endLine   = branch.has("endLine") ? branch.path("endLine").asInt(startLine) : startLine;
+            val startChar = branch.path("startChar").asInt(0);
+            val endChar   = branch.path("endChar").asInt(0);
+
             for (int i = 0; i < trueHits; i++) {
-                coverage.recordConditionHit(statementId, line, true);
+                coverage.recordConditionHit(statementId, startLine, endLine, startChar, endChar, true);
             }
             for (int i = 0; i < falseHits; i++) {
-                coverage.recordConditionHit(statementId, line, false);
+                coverage.recordConditionHit(statementId, startLine, endLine, startChar, endChar, false);
             }
         }
     }

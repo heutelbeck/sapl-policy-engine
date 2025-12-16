@@ -171,8 +171,11 @@ public class SaplCompiler {
         val entitlement        = decisionOf(policy.entitlement()).name();
         val matchExpression    = compileMatchExpression(policy.targetExpression, schemaCheckingExpression, policy,
                 context);
-        val decisionExpression = compileDecisionExpression(policy, context);
-        return new CompiledPolicy(name, entitlement, matchExpression, decisionExpression);
+        val targetLocation     = context.isCoverageEnabled() && policy.targetExpression != null
+                ? SourceLocationUtil.fromContext(policy.targetExpression)
+                : null;
+        val decisionExpression = compileDecisionExpression(policy, context, targetLocation);
+        return new CompiledPolicy(name, entitlement, matchExpression, decisionExpression, targetLocation);
     }
 
     private CompiledExpression compileMatchExpression(ExpressionContext targetExpression,
@@ -218,12 +221,13 @@ public class SaplCompiler {
                 astNode);
     }
 
-    private CompiledExpression compileDecisionExpression(PolicyContext policy, CompilationContext context) {
+    private CompiledExpression compileDecisionExpression(PolicyContext policy, CompilationContext context,
+            SourceLocation targetLocation) {
         val name             = unquoteString(policy.saplName.getText());
         val entitlement      = decisionOf(policy.entitlement());
         val coverageRecorder = context.isCoverageEnabled() ? new CoverageRecorder() : null;
         val decisionExpr     = compileDecisionExpressionInternal(policy, entitlement, context, coverageRecorder);
-        return wrapWithTrace(name, entitlement.name(), decisionExpr, coverageRecorder);
+        return wrapWithTrace(name, entitlement.name(), decisionExpr, coverageRecorder, targetLocation);
     }
 
     private CompiledExpression compileDecisionExpressionInternal(PolicyContext policy, Decision entitlement,
@@ -245,16 +249,16 @@ public class SaplCompiler {
     }
 
     private static CompiledExpression wrapWithTrace(String name, String entitlement, CompiledExpression decisionExpr,
-            CoverageRecorder coverageRecorder) {
+            CoverageRecorder coverageRecorder, SourceLocation targetLocation) {
         if (decisionExpr instanceof Value decisionValue) {
-            return buildTracedPolicyDecision(name, entitlement, decisionValue, null);
+            return buildTracedPolicyDecision(name, entitlement, decisionValue, null, null);
         }
 
         if (decisionExpr instanceof PureExpression pureExpr) {
             return new PureExpression(ctx -> {
                 val result = pureExpr.evaluate(ctx);
                 val hits   = coverageRecorder != null ? coverageRecorder.collectAndClear() : null;
-                return buildTracedPolicyDecision(name, entitlement, result, hits);
+                return buildTracedPolicyDecision(name, entitlement, result, hits, targetLocation);
             }, pureExpr.isSubscriptionScoped());
         }
 
@@ -265,27 +269,31 @@ public class SaplCompiler {
             if (coverageRecorder != null) {
                 return new StreamExpression(stream.map(decisionValue -> {
                     val hits = coverageRecorder.collectAndClear();
-                    return buildTracedPolicyDecision(name, entitlement, decisionValue, hits);
+                    return buildTracedPolicyDecision(name, entitlement, decisionValue, hits, targetLocation);
                 }));
             }
-            return new StreamExpression(
-                    stream.map(decisionValue -> buildTracedPolicyDecision(name, entitlement, decisionValue, null)));
+            return new StreamExpression(stream
+                    .map(decisionValue -> buildTracedPolicyDecision(name, entitlement, decisionValue, null, null)));
         }
 
         throw new IllegalStateException("Unexpected expression type: " + decisionExpr.getClass());
     }
 
     private static Value buildTracedPolicyDecision(String name, String entitlement, Value decisionValue,
-            List<ConditionHit> conditionHits) {
+            List<ConditionHit> conditionHits, SourceLocation targetLocation) {
         val builder = TracedPolicyDecision.builder().name(name).entitlement(entitlement)
                 .fromDecisionValue(decisionValue)
                 .attributes(TracedPolicyDecision.convertAttributeRecords(decisionValue.metadata().attributeTrace()))
                 .errors(TracedPolicyDecision.extractErrors(decisionValue));
 
-        // Add coverage data if present
-        if (conditionHits != null) {
-            builder.conditions(conditionHits);
+        // Add coverage data if present (coverage enabled when conditionHits or
+        // targetLocation is non-null)
+        if (conditionHits != null || targetLocation != null) {
+            if (conditionHits != null) {
+                builder.conditions(conditionHits);
+            }
             builder.targetResult(true); // Target matched (otherwise we wouldn't be here)
+            builder.targetLocation(targetLocation);
         }
 
         return builder.build();
@@ -688,8 +696,8 @@ public class SaplCompiler {
                 // Wrap with coverage recording only when recorder is present
                 if (coverageRecorder != null) {
                     val statementId = conditionIndex;
-                    val line        = getLineNumber(conditionStmt);
-                    conditionExpr = wrapWithCoverageRecording(conditionExpr, statementId, line, coverageRecorder);
+                    val location    = SourceLocationUtil.fromContext(conditionStmt);
+                    conditionExpr = wrapWithCoverageRecording(conditionExpr, statementId, location, coverageRecorder);
                 }
                 conditionIndex++;
 
@@ -729,13 +737,13 @@ public class SaplCompiler {
     }
 
     private static CompiledExpression wrapWithCoverageRecording(CompiledExpression expression, int statementId,
-            int line, CoverageRecorder recorder) {
+            SourceLocation location, CoverageRecorder recorder) {
         if (expression instanceof Value value) {
             // For constant boolean values, we still need to record the hit at evaluation
             // time
             return new PureExpression(ctx -> {
                 if (value instanceof BooleanValue bv) {
-                    recorder.recordHit(statementId, bv.value(), line);
+                    recorder.recordHit(statementId, bv.value(), location);
                 }
                 return value;
             }, true);
@@ -745,7 +753,7 @@ public class SaplCompiler {
             return new PureExpression(ctx -> {
                 val result = pureExpr.evaluate(ctx);
                 if (result instanceof BooleanValue bv) {
-                    recorder.recordHit(statementId, bv.value(), line);
+                    recorder.recordHit(statementId, bv.value(), location);
                 }
                 return result;
             }, pureExpr.isSubscriptionScoped());
@@ -755,7 +763,7 @@ public class SaplCompiler {
             // For streaming expressions, record hits when each value is emitted
             return new StreamExpression(streamExpr.stream().doOnNext(result -> {
                 if (result instanceof BooleanValue bv) {
-                    recorder.recordHit(statementId, bv.value(), line);
+                    recorder.recordHit(statementId, bv.value(), location);
                 }
             }));
         }
@@ -863,8 +871,11 @@ public class SaplCompiler {
         }
         val combiningAlgorithm = policySet.combiningAlgorithm();
         val policies           = policySet.policy();
+        val targetLocation     = context.isCoverageEnabled() && policySet.targetExpression != null
+                ? SourceLocationUtil.fromContext(policySet.targetExpression)
+                : null;
         val decisionExpression = compilePolicySetPolicies(name, combiningAlgorithm, policies, context);
-        return new CompiledPolicy(name, null, matchExpression, decisionExpression);
+        return new CompiledPolicy(name, null, matchExpression, decisionExpression, targetLocation);
     }
 
     private static CompiledExpression compilePolicySetPolicies(String setName,

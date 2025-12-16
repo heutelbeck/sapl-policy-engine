@@ -288,7 +288,12 @@ public class CombiningAlgorithmCompiler {
         case MatchResult.Error(ErrorValue error) ->
             createIndeterminateTrace(policy.name(), policy.entitlement(), error);
         case MatchResult.Match ignored           -> evaluateTracedPolicy(policy, context);
-        case MatchResult.NoMatch ignored         -> Value.UNDEFINED;
+        case MatchResult.NoMatch ignored         ->
+            // When coverage is enabled, targetLocation is non-null - return coverage trace
+            // When coverage is disabled, targetLocation is null - return UNDEFINED (zero
+            // overhead)
+            policy.targetLocation() != null ? createNoMatchCoverageTrace(policy.name(), policy.targetLocation())
+                    : Value.UNDEFINED;
         };
     }
 
@@ -564,7 +569,10 @@ public class CombiningAlgorithmCompiler {
             }
 
             if (matchResult instanceof MatchResult.NoMatch) {
-                evaluatedTraces.add(createNoMatchTrace(policy.name()));
+                // Use coverage trace when coverage is enabled (targetLocation non-null)
+                evaluatedTraces.add(policy.targetLocation() != null
+                        ? createNoMatchCoverageTrace(policy.name(), policy.targetLocation())
+                        : createNoMatchTrace(policy.name()));
                 continue;
             }
 
@@ -592,7 +600,10 @@ public class CombiningAlgorithmCompiler {
         for (var i = compiledPolicies.size() - 1; i >= 0; i--) {
             val policy            = compiledPolicies.get(i);
             val fallbackStateFlux = stateFlux;
-            val noMatchTrace      = createNoMatchTrace(policy.name());
+            // Use coverage trace when coverage is enabled (targetLocation non-null)
+            val noMatchTrace = policy.targetLocation() != null
+                    ? createNoMatchCoverageTrace(policy.name(), policy.targetLocation())
+                    : createNoMatchTrace(policy.name());
 
             stateFlux = CompiledExpressionUtil.compiledExpressionToFlux(policy.matchExpression())
                     .switchMap(matches -> evaluatePolicyMatch(matches, policy, fallbackStateFlux, noMatchTrace));

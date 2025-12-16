@@ -84,23 +84,51 @@ public class TracedPolicyDecision {
     }
 
     /**
+     * Creates a coverage-enabled trace for a policy whose target did not match.
+     * <p>
+     * Unlike createNoMatchTrace, this includes full position data for the target
+     * expression to enable precise coverage highlighting. Used when COVERAGE trace
+     * level is enabled.
+     *
+     * @param policyName
+     * the name of the policy that did not match
+     * @param targetLocation
+     * the source location of the target expression (may be null)
+     *
+     * @return an ObjectValue trace with position data for coverage
+     */
+    public static Value createNoMatchCoverageTrace(String policyName, SourceLocation targetLocation) {
+        val builder = ObjectValue.builder().put(TraceFields.NAME, Value.of(policyName))
+                .put(TraceFields.TYPE, Value.of(TraceFields.TYPE_POLICY)).put(TraceFields.TARGET_MATCH, Value.FALSE)
+                .put(TraceFields.TARGET_RESULT, Value.FALSE);
+        if (targetLocation != null) {
+            builder.put(TraceFields.TARGET_START_LINE, Value.of(targetLocation.line()))
+                    .put(TraceFields.TARGET_END_LINE, Value.of(targetLocation.endLine()))
+                    .put(TraceFields.TARGET_START_CHAR, Value.of(targetLocation.start()))
+                    .put(TraceFields.TARGET_END_CHAR, Value.of(targetLocation.end()));
+        }
+        return builder.build();
+    }
+
+    /**
      * Builder for fluent TracedPolicyDecision construction.
      * <p>
      * Supports constant folding: when all inputs are known at compile time, the
      * built Value can be used as a constant.
      */
     public static final class Builder {
-        private String      name;
-        private String      entitlement;
-        private Decision    decision;
-        private ArrayValue  obligations = Value.EMPTY_ARRAY;
-        private ArrayValue  advice      = Value.EMPTY_ARRAY;
-        private Value       resource    = Value.UNDEFINED;
-        private List<Value> attributes  = new ArrayList<>();
-        private List<Value> errors      = new ArrayList<>();
-        private Value       targetError;
-        private List<Value> conditions  = new ArrayList<>();
-        private Boolean     targetResult;
+        private String         name;
+        private String         entitlement;
+        private Decision       decision;
+        private ArrayValue     obligations = Value.EMPTY_ARRAY;
+        private ArrayValue     advice      = Value.EMPTY_ARRAY;
+        private Value          resource    = Value.UNDEFINED;
+        private List<Value>    attributes  = new ArrayList<>();
+        private List<Value>    errors      = new ArrayList<>();
+        private Value          targetError;
+        private List<Value>    conditions  = new ArrayList<>();
+        private Boolean        targetResult;
+        private SourceLocation targetLocation;
 
         /**
          * Sets the policy name.
@@ -311,6 +339,20 @@ public class TracedPolicyDecision {
         }
 
         /**
+         * Sets the target expression source location for coverage tracking (COVERAGE
+         * trace level only).
+         *
+         * @param location
+         * the source location of the target expression
+         *
+         * @return this builder
+         */
+        public Builder targetLocation(SourceLocation location) {
+            this.targetLocation = location;
+            return this;
+        }
+
+        /**
          * Extracts decision components from a raw decision Value and populates this
          * builder.
          * <p>
@@ -381,6 +423,12 @@ public class TracedPolicyDecision {
             }
             if (targetResult != null) {
                 builder.put(TraceFields.TARGET_RESULT, Value.of(targetResult));
+            }
+            if (targetLocation != null) {
+                builder.put(TraceFields.TARGET_START_LINE, Value.of(targetLocation.line()))
+                        .put(TraceFields.TARGET_END_LINE, Value.of(targetLocation.endLine()))
+                        .put(TraceFields.TARGET_START_CHAR, Value.of(targetLocation.start()))
+                        .put(TraceFields.TARGET_END_CHAR, Value.of(targetLocation.end()));
             }
 
             return builder.build();

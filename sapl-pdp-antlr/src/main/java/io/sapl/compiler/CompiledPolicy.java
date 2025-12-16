@@ -18,6 +18,7 @@
 package io.sapl.compiler;
 
 import io.sapl.api.model.CompiledExpression;
+import io.sapl.api.model.SourceLocation;
 
 /**
  * A compiled SAPL policy ready for evaluation by combining algorithms.
@@ -33,9 +34,13 @@ import io.sapl.api.model.CompiledExpression;
  * @param decisionExpression
  * evaluates to an ObjectValue containing decision, obligations, advice, and
  * resource transformation
+ * @param targetLocation
+ * the source location of the target expression (for coverage tracking); null
+ * if no target expression or coverage disabled
  */
 public record CompiledPolicy(
         String name,
         String entitlement,
         CompiledExpression matchExpression,
-        CompiledExpression decisionExpression) {}
+        CompiledExpression decisionExpression,
+        SourceLocation targetLocation) {}

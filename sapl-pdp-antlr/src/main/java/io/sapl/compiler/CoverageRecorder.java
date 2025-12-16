@@ -17,6 +17,7 @@
  */
 package io.sapl.compiler;
 
+import io.sapl.api.model.SourceLocation;
 import io.sapl.api.pdp.internal.ConditionHit;
 
 import java.util.ArrayList;
@@ -38,17 +39,21 @@ public class CoverageRecorder {
     private final List<ConditionHit> hits = new ArrayList<>();
 
     /**
-     * Records a condition hit.
+     * Records a condition hit with full position data.
      *
      * @param statementId
      * the 0-based index of the statement in the policy body
      * @param result
      * the boolean result of the condition evaluation
-     * @param line
-     * the 1-based source line number
+     * @param location
+     * the source location of the condition (may be null)
      */
-    public void recordHit(int statementId, boolean result, int line) {
-        hits.add(new ConditionHit(statementId, result, line));
+    public void recordHit(int statementId, boolean result, SourceLocation location) {
+        int startLine = location != null ? location.line() : 0;
+        int endLine   = location != null ? location.endLine() : 0;
+        int startChar = location != null ? location.start() : 0;
+        int endChar   = location != null ? location.end() : 0;
+        hits.add(new ConditionHit(statementId, result, startLine, endLine, startChar, endChar));
     }
 
     /**

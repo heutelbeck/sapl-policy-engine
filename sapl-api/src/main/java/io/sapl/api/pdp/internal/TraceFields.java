@@ -112,4 +112,16 @@ public class TraceFields {
     public static final String STATEMENT_ID  = "statementId";
     public static final String RESULT        = "result";
     public static final String TARGET_RESULT = "targetResult";
+
+    // Condition position fields (for precise coverage highlighting)
+    public static final String START_LINE = "startLine";
+    public static final String END_LINE   = "endLine";
+    public static final String START_CHAR = "startChar";
+    public static final String END_CHAR   = "endChar";
+
+    // Target expression position fields (for coverage highlighting)
+    public static final String TARGET_START_LINE = "targetStartLine";
+    public static final String TARGET_END_LINE   = "targetEndLine";
+    public static final String TARGET_START_CHAR = "targetStartChar";
+    public static final String TARGET_END_CHAR   = "targetEndChar";
 }

@@ -86,12 +86,12 @@ class BranchHitTests {
     }
 
     @Test
-    @DisplayName("merge throws on different line")
-    void whenMergeDifferentLine_thenThrows() {
+    @DisplayName("mergeByLine throws on different line")
+    void whenMergeByLineDifferentLine_thenThrows() {
         val hit1 = new BranchHit(0, 5, 1, 0);
         val hit2 = new BranchHit(0, 6, 0, 1);
 
-        assertThatThrownBy(() -> hit1.merge(hit2)).isInstanceOf(IllegalArgumentException.class)
+        assertThatThrownBy(() -> hit1.mergeByLine(hit2)).isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("Cannot merge BranchHits");
     }
 

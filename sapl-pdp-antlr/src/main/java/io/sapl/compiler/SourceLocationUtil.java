@@ -53,14 +53,15 @@ public class SourceLocationUtil {
             return null;
         }
 
-        val start = startToken.getStartIndex();
-        val end   = stopToken != null ? stopToken.getStopIndex() + 1 : start + startToken.getText().length();
-        val line  = startToken.getLine();
+        val start   = startToken.getStartIndex();
+        val end     = stopToken != null ? stopToken.getStopIndex() + 1 : start + startToken.getText().length();
+        val line    = startToken.getLine();
+        val endLine = stopToken != null ? stopToken.getLine() : line;
 
         val documentSource = getDocumentSource(context);
         val documentName   = getDocumentName(context);
 
-        return new SourceLocation(documentName, documentSource, start, end, line);
+        return new SourceLocation(documentName, documentSource, start, end, line, endLine);
     }
 
     /**
@@ -82,7 +83,7 @@ public class SourceLocationUtil {
         val documentSource = context != null ? getDocumentSource(context) : null;
         val documentName   = context != null ? getDocumentName(context) : null;
 
-        return new SourceLocation(documentName, documentSource, start, end, line);
+        return new SourceLocation(documentName, documentSource, start, end, line, line);
     }
 
     /**

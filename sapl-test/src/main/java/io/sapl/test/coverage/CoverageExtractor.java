@@ -93,15 +93,18 @@ public class CoverageExtractor {
 
         val coverage = new PolicyCoverageData(name, source, documentType);
 
-        // Extract target result for policies
+        // Extract target result and position for policies
+        val targetStartLine = getIntValue(docObj, TraceFields.TARGET_START_LINE);
+        val targetEndLine   = getIntValue(docObj, TraceFields.TARGET_END_LINE);
+
         val targetResult = docObj.get(TraceFields.TARGET_RESULT);
         if (targetResult instanceof BooleanValue targetBool) {
-            coverage.recordTargetHit(targetBool.value());
+            coverage.recordTargetHit(targetBool.value(), targetStartLine, targetEndLine);
         } else {
             // Check target_match field (used for non-matching traces)
             val targetMatch = docObj.get(TraceFields.TARGET_MATCH);
             if (targetMatch instanceof BooleanValue matchBool) {
-                coverage.recordTargetHit(matchBool.value());
+                coverage.recordTargetHit(matchBool.value(), targetStartLine, targetEndLine);
             }
         }
 
@@ -158,14 +161,25 @@ public class CoverageExtractor {
 
         var targetMatched = false;
 
-        // Check if target matched
+        // Extract target position for nested policy
+        val targetStartLine = getIntValue(policyObj, TraceFields.TARGET_START_LINE);
+        val targetEndLine   = getIntValue(policyObj, TraceFields.TARGET_END_LINE);
+
+        // Check if target matched and record with position
         val targetResult = policyObj.get(TraceFields.TARGET_RESULT);
         if (targetResult instanceof BooleanValue targetBool) {
             targetMatched = targetBool.value();
+            // Record nested policy target hit into set's coverage for highlighting
+            if (targetStartLine > 0) {
+                setCoverage.recordTargetHit(targetMatched, targetStartLine, targetEndLine);
+            }
         } else {
             val targetMatch = policyObj.get(TraceFields.TARGET_MATCH);
             if (targetMatch instanceof BooleanValue matchBool) {
                 targetMatched = matchBool.value();
+                if (targetStartLine > 0) {
+                    setCoverage.recordTargetHit(targetMatched, targetStartLine, targetEndLine);
+                }
             }
         }
 
@@ -187,7 +201,10 @@ public class CoverageExtractor {
 
         val statementIdValue = condObj.get(TraceFields.STATEMENT_ID);
         val resultValue      = condObj.get(TraceFields.RESULT);
-        val lineValue        = condObj.get(TraceFields.LINE);
+        val startLineValue   = condObj.get(TraceFields.START_LINE);
+        val endLineValue     = condObj.get(TraceFields.END_LINE);
+        val startCharValue   = condObj.get(TraceFields.START_CHAR);
+        val endCharValue     = condObj.get(TraceFields.END_CHAR);
 
         if (!(statementIdValue instanceof NumberValue statementIdNum)) {
             return;
@@ -198,9 +215,12 @@ public class CoverageExtractor {
 
         val statementId = statementIdNum.value().intValue();
         val result      = resultBool.value();
-        val line        = lineValue instanceof NumberValue lineNum ? lineNum.value().intValue() : 0;
+        val startLine   = startLineValue instanceof NumberValue n ? n.value().intValue() : 0;
+        val endLine     = endLineValue instanceof NumberValue n ? n.value().intValue() : startLine;
+        val startChar   = startCharValue instanceof NumberValue n ? n.value().intValue() : 0;
+        val endChar     = endCharValue instanceof NumberValue n ? n.value().intValue() : 0;
 
-        coverage.recordConditionHit(statementId, line, result);
+        coverage.recordConditionHit(statementId, startLine, endLine, startChar, endChar, result);
     }
 
     private static String getTextValue(ObjectValue obj, String field) {
@@ -209,6 +229,14 @@ public class CoverageExtractor {
             return textValue.value();
         }
         return null;
+    }
+
+    private static int getIntValue(ObjectValue obj, String field) {
+        val value = obj.get(field);
+        if (value instanceof NumberValue numberValue) {
+            return numberValue.value().intValue();
+        }
+        return 0;
     }
 
     /**
