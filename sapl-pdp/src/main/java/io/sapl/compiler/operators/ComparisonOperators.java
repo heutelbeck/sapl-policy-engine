@@ -159,7 +159,8 @@ public class ComparisonOperators {
             return error.withMetadata(metadata);
         }
         if (!(input instanceof TextValue inputText)) {
-            return Error.at(astNode, metadata, RUNTIME_ERROR_REGEX_TARGET_MUST_BE_STRING, input);
+            // Non-text input simply doesn't match - return false instead of error
+            return BooleanValue.FALSE.withMetadata(metadata);
         }
         if (!(regex instanceof TextValue regexText)) {
             return Error.at(astNode, metadata, RUNTIME_ERROR_REGEX_MUST_BE_STRING, regex);
@@ -198,7 +199,8 @@ public class ComparisonOperators {
                     return error.withMetadata(metadata);
                 }
                 if (!(input instanceof TextValue inputText)) {
-                    return Error.at(astNode, metadata, RUNTIME_ERROR_REGEX_TARGET_MUST_BE_STRING, input);
+                    // Non-text input simply doesn't match - return false instead of error
+                    return BooleanValue.FALSE.withMetadata(metadata);
                 }
                 return new BooleanValue(pattern.test(inputText.value()), metadata);
             };
