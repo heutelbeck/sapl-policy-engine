@@ -29,14 +29,58 @@ java -version
 
 ## Building
 
-Build the standalone JAR with all dependencies:
+Build both the library JAR and standalone executable:
 
 ```shell
 cd sapl-language-server-antlr
-mvn package -Pstandalone -DskipTests
+mvn install -DskipTests
 ```
 
-The JAR is created at `target/sapl-language-server-antlr-4.0.0-SNAPSHOT.jar`.
+This produces two artifacts:
+- `target/sapl-language-server-antlr-4.0.0-SNAPSHOT.jar` - Library JAR for Maven dependencies
+- `target/sapl-language-server-antlr-4.0.0-SNAPSHOT-standalone.jar` - Executable JAR with all dependencies
+
+### Native Image
+
+Build a native executable using GraalVM for significantly faster startup:
+
+**Prerequisites:**
+- GraalVM 21+ with `native-image` installed
+- Set `GRAALVM_HOME` environment variable
+- On Windows: Visual Studio Build Tools with C++ workload
+
+```shell
+# Linux/macOS
+GRAALVM_HOME=/path/to/graalvm mvn package -Pnative -DskipTests
+
+# Windows (from x64 Native Tools Command Prompt for VS 2022)
+set GRAALVM_HOME=C:\path\to\graalvm
+mvn package -Pnative -DskipTests
+```
+
+This produces `target/sapl-language-server` (or `.exe` on Windows), approximately 68MB.
+
+**Performance:**
+| Metric | Native | JAR (JVM) | Improvement |
+|--------|--------|-----------|-------------|
+| Time to first response | ~27ms | ~360ms | 13x faster |
+| Executable size | ~68MB | ~7MB JAR | Self-contained |
+
+**Benefits:**
+- Near-instant startup (no JVM warmup)
+- Single executable, no Java runtime required
+- Ideal for editor plugins requiring fast server startup
+
+**Updating Reflection Configuration:**
+
+If you encounter reflection errors at runtime, use the GraalVM tracing agent to capture required metadata:
+
+```shell
+java -agentlib:native-image-agent=config-output-dir=native-config \
+     -jar target/sapl-language-server-antlr-4.0.0-SNAPSHOT-standalone.jar
+```
+
+Then copy the generated configs to `src/main/resources/META-INF/native-image/io.sapl/sapl-language-server-antlr/`.
 
 ## Running
 
@@ -45,7 +89,7 @@ The JAR is created at `target/sapl-language-server-antlr-4.0.0-SNAPSHOT.jar`.
 Most LSP clients use stdio for communication:
 
 ```shell
-java -jar sapl-language-server-antlr-4.0.0-SNAPSHOT.jar
+java -jar sapl-language-server-antlr-4.0.0-SNAPSHOT-standalone.jar
 ```
 
 ### Socket Mode
@@ -53,7 +97,7 @@ java -jar sapl-language-server-antlr-4.0.0-SNAPSHOT.jar
 For debugging or testing, use socket mode:
 
 ```shell
-java -jar sapl-language-server-antlr-4.0.0-SNAPSHOT.jar --socket --port=5007
+java -jar sapl-language-server-antlr-4.0.0-SNAPSHOT-standalone.jar --socket --port=5007
 ```
 
 ## Editor Configuration
@@ -94,7 +138,7 @@ Extract the relevant parts:
 1. **Required:** Copy `lua/sapl_lspconfig.lua` to your Lua path
 2. **Required:** Edit `sapl_lspconfig.lua` and update the JAR path on line 19:
    ```lua
-   cmd = { 'java', '-jar', '/path/to/sapl-language-server-antlr-4.0.0-SNAPSHOT.jar' },
+   cmd = { 'java', '-jar', '/path/to/sapl-language-server-antlr-4.0.0-SNAPSHOT-standalone.jar' },
    ```
 3. **Required:** Add filetype registration from `filetype.lua`
 4. **Optional:** Add semantic highlight colors from `init.lua` (the `setup_semantic_highlights()` function)
@@ -162,7 +206,7 @@ Install [Generic LSP Client (v2)](https://marketplace.visualstudio.com/items?ite
 ```json
 {
   "glspc.server.command": "java",
-  "glspc.server.commandArguments": ["-jar", "/path/to/sapl-language-server-antlr-4.0.0-SNAPSHOT.jar"],
+  "glspc.server.commandArguments": ["-jar", "/path/to/sapl-language-server-antlr-4.0.0-SNAPSHOT-standalone.jar"],
   "glspc.server.languageId": ["sapl", "sapltest"]
 }
 ```
@@ -184,7 +228,7 @@ Use the **LSP4IJ** plugin for Language Server Protocol support.
 **Settings** > **Languages & Frameworks** > **Language Servers** > **+**
 
 - **Name**: SAPL
-- **Command**: `java -jar /path/to/sapl-language-server-antlr-4.0.0-SNAPSHOT.jar`
+- **Command**: `java -jar /path/to/sapl-language-server-antlr-4.0.0-SNAPSHOT-standalone.jar`
 - **Mappings**:
   - File pattern `*.sapl`, Language Id `SAPL`
   - File pattern `*.sapltest`, Language Id `SAPLTest`
@@ -198,7 +242,7 @@ Use the **LSP4IJ** plugin for Language Server Protocol support.
 - Right-click **Program** > **New Configuration**
 - **Name**: SAPL Language Server
 - **Location**: `java`
-- **Arguments**: `-jar /path/to/sapl-language-server-antlr-4.0.0-SNAPSHOT.jar`
+- **Arguments**: `-jar /path/to/sapl-language-server-antlr-4.0.0-SNAPSHOT-standalone.jar`
 
 #### Step 2: Create Content Type
 
@@ -244,7 +288,7 @@ Configure LSP in **Settings** > **Configure Kate...** > **LSP Client** > **User 
 {
   "servers": {
     "sapl": {
-      "command": ["java", "-jar", "/path/to/sapl-language-server-antlr-4.0.0-SNAPSHOT.jar"],
+      "command": ["java", "-jar", "/path/to/sapl-language-server-antlr-4.0.0-SNAPSHOT-standalone.jar"],
       "url": "https://github.com/heutelbeck/sapl-policy-engine",
       "highlightingModeRegex": "^SAPL.*$"
     }
@@ -264,7 +308,7 @@ Note: Kate uses the syntax highlighting definition name for language matching. B
    ```shell
    echo 'Content-Length: 119
 
-   {"jsonrpc":"2.0","id":1,"method":"initialize","params":{"capabilities":{},"processId":null,"rootUri":null}}' | java -jar sapl-language-server-antlr-4.0.0-SNAPSHOT.jar
+   {"jsonrpc":"2.0","id":1,"method":"initialize","params":{"capabilities":{},"processId":null,"rootUri":null}}' | java -jar sapl-language-server-antlr-4.0.0-SNAPSHOT-standalone.jar
    ```
    You should see a JSON response starting with `Content-Length:`.
 
@@ -273,7 +317,7 @@ Note: Kate uses the syntax highlighting definition name for language matching. B
 Set the system property to enable verbose logging:
 
 ```shell
-java -Dorg.slf4j.simpleLogger.defaultLogLevel=DEBUG -jar sapl-language-server-antlr-4.0.0-SNAPSHOT.jar
+java -Dorg.slf4j.simpleLogger.defaultLogLevel=DEBUG -jar sapl-language-server-antlr-4.0.0-SNAPSHOT-standalone.jar
 ```
 
 ### Neovim shows no highlighting

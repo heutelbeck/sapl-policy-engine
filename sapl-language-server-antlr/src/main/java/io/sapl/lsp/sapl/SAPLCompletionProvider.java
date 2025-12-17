@@ -99,8 +99,9 @@ public class SAPLCompletionProvider {
         var items   = new ArrayList<CompletionItem>();
         var context = analyzeContext(document, position);
         var config  = configurationManager.getConfigurationForUri(document.getUri());
+        var prefix  = extractPrefix(document.getContent(), position);
 
-        log.debug("Completion context: {}", context);
+        log.debug("Completion context: {}, prefix: '{}'", context, prefix);
 
         switch (context) {
         case DOCUMENT_START -> addKeywordCompletions(items, DOCUMENT_START_KEYWORDS);
@@ -151,7 +152,110 @@ public class SAPLCompletionProvider {
         }
         }
 
+        // Filter items by prefix for expression contexts only (not structural)
+        if (shouldFilterByPrefix(context, prefix)) {
+            return filterByPrefix(items, prefix);
+        }
         return items;
+    }
+
+    /**
+     * Determines if prefix filtering should be applied for the given context.
+     * Structural contexts (imports, keywords) should not filter by prefix
+     * since the prefix may be a keyword being typed.
+     */
+    private boolean shouldFilterByPrefix(CompletionContext context, String prefix) {
+        if (prefix.isEmpty()) {
+            return false;
+        }
+
+        // Don't filter in structural contexts where prefix might be a keyword
+        return switch (context) {
+        case DOCUMENT_START, AFTER_IMPORTS, IMPORT_PATH, COMBINING_ALGORITHM,
+                ENTITLEMENT                                                                                                                                         ->
+            false;
+        case EXPRESSION, FUNCTION_CALL, ENVIRONMENT_ATTRIBUTE, ATTRIBUTE, POLICY_SET_BODY, POLICY_AFTER_ENTITLEMENT,
+                POLICY_BODY_START,
+                POLICY_BODY_AFTER_STATEMENT                                                                                                                         ->
+            !isKeyword(prefix);
+        case UNKNOWN                                                                                                                                                ->
+            false;
+        };
+    }
+
+    /**
+     * Checks if a string is a SAPL keyword that should not be used for filtering.
+     */
+    private boolean isKeyword(String text) {
+        return DOCUMENT_START_KEYWORDS.contains(text) || AFTER_IMPORTS_KEYWORDS.contains(text)
+                || COMBINING_ALGORITHMS.contains(text) || POLICY_SET_BODY_KEYWORDS.contains(text)
+                || ENTITLEMENT_KEYWORDS.contains(text) || POLICY_STRUCTURE_KEYWORDS.contains(text)
+                || BODY_STATEMENT_KEYWORDS.contains(text) || EXPRESSION_KEYWORDS.contains(text);
+    }
+
+    /**
+     * Extracts the identifier prefix before the cursor position.
+     * Returns the word characters (including dots for qualified names) before the
+     * cursor, but only if it starts with a letter or underscore.
+     * A prefix that starts with a dot (like after time.now().) returns empty
+     * since the dot is a trigger character, not part of an identifier.
+     */
+    private String extractPrefix(String content, Position position) {
+        var lines = content.split("\n", -1);
+        if (position.getLine() >= lines.length) {
+            return "";
+        }
+
+        var line   = lines[position.getLine()];
+        var column = Math.min(position.getCharacter(), line.length());
+
+        // Scan backwards to find the start of the identifier
+        var start = column;
+        while (start > 0) {
+            var ch = line.charAt(start - 1);
+            if (Character.isLetterOrDigit(ch) || ch == '_' || ch == '.') {
+                start--;
+            } else {
+                break;
+            }
+        }
+
+        var prefix = line.substring(start, column);
+
+        // If prefix starts with a dot, it's a trigger character context, not a filter
+        // prefix
+        // For example, after "time.now()." the prefix should be empty
+        // But for "time.now().ye" the prefix should be "ye"
+        if (prefix.startsWith(".")) {
+            prefix = prefix.substring(1);
+        }
+
+        return prefix;
+    }
+
+    /**
+     * Filters completion items by prefix.
+     * Uses case-insensitive prefix matching on label or insertText.
+     */
+    private List<CompletionItem> filterByPrefix(List<CompletionItem> items, String prefix) {
+        if (prefix.isEmpty()) {
+            return items;
+        }
+
+        var lowerPrefix = prefix.toLowerCase();
+        return items.stream().filter(item -> {
+            var label = item.getLabel();
+            var text  = item.getInsertText();
+
+            // Match against label (primary) or insertText
+            if (label != null && label.toLowerCase().startsWith(lowerPrefix)) {
+                return true;
+            }
+            if (text != null && text.toLowerCase().startsWith(lowerPrefix)) {
+                return true;
+            }
+            return false;
+        }).toList();
     }
 
     /**
@@ -196,6 +300,7 @@ public class SAPLCompletionProvider {
             var item = new CompletionItem(proposal);
             item.setKind(CompletionItemKind.Property);
             item.setDetail("Schema property (from " + analysis.functionName() + ")");
+            item.setInsertText(proposal);
             items.add(item);
         }
     }
@@ -406,6 +511,10 @@ public class SAPLCompletionProvider {
     private ParseTree findDeepestContextAtPosition(ParseTree tree, int line, int column) {
         if (tree instanceof TerminalNode terminal) {
             var token = terminal.getSymbol();
+            // Skip EOF token - we want the actual content token before EOF
+            if (token.getType() == Token.EOF) {
+                return null;
+            }
             if (token.getLine() == line && token.getCharPositionInLine() <= column
                     && column <= token.getCharPositionInLine() + token.getText().length()) {
                 return tree;
@@ -628,6 +737,7 @@ public class SAPLCompletionProvider {
         for (var proposal : proposals) {
             var item = new CompletionItem(proposal);
             item.setKind(CompletionItemKind.Variable);
+            item.setInsertText(proposal);
 
             // Distinguish between base variables and schema expansions
             if (proposal.contains(".") || proposal.contains("[")) {
@@ -652,6 +762,7 @@ public class SAPLCompletionProvider {
             var item = new CompletionItem(variable);
             item.setKind(CompletionItemKind.Variable);
             item.setDetail("Authorization subscription element");
+            item.setInsertText(variable);
             items.add(item);
         }
 
@@ -659,6 +770,7 @@ public class SAPLCompletionProvider {
             var item = new CompletionItem(entry.getKey());
             item.setKind(CompletionItemKind.Variable);
             item.setDetail("Environment variable");
+            item.setInsertText(entry.getKey());
             items.add(item);
         }
     }
@@ -765,7 +877,9 @@ public class SAPLCompletionProvider {
 
                 var plainTemplate = entry.codeTemplate(pip.name());
                 var snippet       = SnippetConverter.toSnippet(entry, pip.name());
-                var item          = new CompletionItem(pip.name() + "." + entry.name());
+                // Label includes <> to match user typing pattern (e.g., <time.now>)
+                var label = "<" + pip.name() + "." + entry.name() + ">";
+                var item  = new CompletionItem(label);
                 item.setKind(CompletionItemKind.Property);
                 item.setDetail(plainTemplate);
                 item.setInsertText(snippet);
@@ -793,6 +907,7 @@ public class SAPLCompletionProvider {
             var item = new CompletionItem(library.name());
             item.setKind(CompletionItemKind.Module);
             item.setDetail("Function library");
+            item.setInsertText(library.name());
             items.add(item);
 
             for (var entry : library.entries()) {
@@ -800,6 +915,7 @@ public class SAPLCompletionProvider {
                 var fqnItem = new CompletionItem(fqn);
                 fqnItem.setKind(CompletionItemKind.Function);
                 fqnItem.setDetail(entry.codeTemplate(library.name()));
+                fqnItem.setInsertText(fqn);
                 items.add(fqnItem);
             }
         }
@@ -808,6 +924,7 @@ public class SAPLCompletionProvider {
             var item = new CompletionItem(pip.name());
             item.setKind(CompletionItemKind.Module);
             item.setDetail("Policy Information Point");
+            item.setInsertText(pip.name());
             items.add(item);
         }
     }

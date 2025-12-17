@@ -1,0 +1,117 @@
+#
+# Copyright (C) 2017-2025 Dominic Heutelbeck (dominic@heutelbeck.com)
+#
+# SPDX-License-Identifier: Apache-2.0
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+name: Build Native Language Server
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - master
+    paths:
+      - 'sapl-language-server-antlr/**'
+      - '.github/workflows/build_native_lsp.yml'
+  pull_request:
+    paths:
+      - 'sapl-language-server-antlr/**'
+      - '.github/workflows/build_native_lsp.yml'
+
+concurrency:
+  group: native-lsp-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  build-native:
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            artifact-name: sapl-language-server-linux-amd64
+            executable: sapl-language-server
+          - os: windows-latest
+            artifact-name: sapl-language-server-windows-amd64
+            executable: sapl-language-server.exe
+          - os: macos-latest
+            artifact-name: sapl-language-server-macos-amd64
+            executable: sapl-language-server
+      fail-fast: false
+
+    name: Native Build (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+
+    steps:
+      - name: Harden Runner
+        if: matrix.os == 'ubuntu-latest'
+        uses: step-security/harden-runner@63c24ba6bd7ba022e95695ff85de572c04a18142 # v2.7.0
+        with:
+          egress-policy: audit
+
+      - name: Check out
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+
+      # Linux: Install GCC and zlib development headers
+      - name: Install Native Build Tools (Linux)
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential zlib1g-dev
+
+      # Windows: Setup Visual Studio Build Tools (MSVC)
+      - name: Setup Visual Studio Build Tools (Windows)
+        if: matrix.os == 'windows-latest'
+        uses: ilammy/msvc-dev-cmd@0b201ec74fa43914dc39ae48a89fd1d8cb592756 # v1.13.0
+
+      # macOS: Xcode Command Line Tools are pre-installed on GitHub runners
+
+      - name: Set up GraalVM
+        uses: graalvm/setup-graalvm@22cc13fe88ef133134b3798e128fb208df55e1f5 # v1.2.3
+        with:
+          java-version: '21'
+          distribution: 'graalvm'
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          native-image-job-reports: 'true'
+
+      - name: Cache Maven packages
+        uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57 # v4.2.0
+        with:
+          path: ~/.m2/repository
+          key: ${{ runner.os }}-maven-native-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            ${{ runner.os }}-maven-native-
+            ${{ runner.os }}-maven-
+
+      - name: Build Dependencies
+        run: mvn -B install -pl sapl-language-server-antlr -am -DskipTests
+
+      - name: Build Native Image
+        run: mvn -B package -pl sapl-language-server-antlr -Pnative -DskipTests
+
+      - name: Upload Native Executable
+        uses: actions/upload-artifact@26f96dfa697d77e81fd5907df203aa23a56210a8 # v4.3.0
+        with:
+          name: ${{ matrix.artifact-name }}
+          path: sapl-language-server-antlr/target/${{ matrix.executable }}
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Clean up Local Repository before Caching
+        shell: bash
+        run: rm -rf ~/.m2/repository/io/sapl

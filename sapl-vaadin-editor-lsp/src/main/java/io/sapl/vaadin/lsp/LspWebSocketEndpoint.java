@@ -180,21 +180,16 @@ public class LspWebSocketEndpoint extends TextWebSocketHandler {
 
         @Override
         public synchronized void write(byte @NonNull [] bytes, int off, int len) throws IOException {
-            log.info("WebSocketOutputStream received {} bytes", len);
             buffer.write(bytes, off, len);
             processBuffer();
         }
 
         @Override
         public synchronized void flush() throws IOException {
-            log.info("WebSocketOutputStream flush called, buffer size: {}", buffer.size());
             processBuffer();
         }
 
         private void processBuffer() throws IOException {
-            log.info("processBuffer called, buffer.size={}, expectedLength={}, headerEndIndex={}", buffer.size(),
-                    expectedLength, headerEndIndex);
-
             while (buffer.size() > 0) {
                 var data = buffer.toByteArray();
 
@@ -202,17 +197,15 @@ public class LspWebSocketEndpoint extends TextWebSocketHandler {
                 if (expectedLength < 0) {
                     headerEndIndex = indexOf(data, HEADER_SEPARATOR);
                     if (headerEndIndex < 0) {
-                        log.info("Waiting for header separator, buffer.size={}", buffer.size());
                         return; // Need more data
                     }
 
                     var header = new String(data, 0, headerEndIndex, StandardCharsets.UTF_8);
                     expectedLength = parseContentLength(header);
-                    log.info("Parsed header, expectedLength={}", expectedLength);
 
                     if (expectedLength < 0) {
                         // Invalid header - discard up to separator and try again
-                        log.info("Discarding invalid header data");
+                        log.debug("Discarding invalid LSP header data");
                         buffer.reset();
                         buffer.write(data, headerEndIndex + SEPARATOR_LENGTH,
                                 data.length - headerEndIndex - SEPARATOR_LENGTH);
@@ -224,23 +217,20 @@ public class LspWebSocketEndpoint extends TextWebSocketHandler {
                 // Check if we have the full body
                 var bodyStart = headerEndIndex + SEPARATOR_LENGTH;
                 if (data.length < bodyStart + expectedLength) {
-                    log.info("Waiting for body, have {} of {} bytes", data.length - bodyStart, expectedLength);
                     return; // Need more data
                 }
 
                 // Extract and send the JSON content
                 var jsonContent = new String(data, bodyStart, expectedLength, StandardCharsets.UTF_8);
-                log.info("LSP response ready to send, size: {} bytes", jsonContent.length());
 
                 if (session.isOpen()) {
                     try {
                         session.sendMessage(new TextMessage(jsonContent));
-                        log.info("LSP response sent successfully, size: {} bytes", jsonContent.length());
                     } catch (IOException e) {
-                        log.error("Failed to send LSP response to WebSocket, size: {} bytes", jsonContent.length(), e);
+                        log.error("Failed to send LSP response to WebSocket", e);
                     }
                 } else {
-                    log.warn("Session closed, dropping LSP response of size: {} bytes", jsonContent.length());
+                    log.debug("Session closed, dropping LSP response");
                 }
 
                 // Remove processed message from buffer

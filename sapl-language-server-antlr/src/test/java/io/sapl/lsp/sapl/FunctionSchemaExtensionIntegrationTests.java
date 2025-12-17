@@ -93,8 +93,8 @@ class FunctionSchemaExtensionIntegrationTests {
         return Stream.of(
                 arguments("Function call - all time properties", "policy \"test\" permit where time.now().",
                         List.of("year", "month", "day", "hour", "minute", "second")),
-                arguments("Function call typing - partial match", "policy \"test\" permit where time.now().ye",
-                        List.of("year", "month", "day")),
+                arguments("Function call typing - filtered by prefix", "policy \"test\" permit where time.now().ye",
+                        List.of("year")),
                 arguments("Attribute - user properties with nested",
                         "policy \"test\" permit where subject.<auth.user>.",
                         List.of("username", "roles", "roles[]", "department", "profile", "profile.firstName",

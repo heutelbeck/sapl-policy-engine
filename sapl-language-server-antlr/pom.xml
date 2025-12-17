@@ -103,10 +103,12 @@
 			<artifactId>slf4j-api</artifactId>
 		</dependency>
 
-		<!-- SLF4J Simple implementation for runtime logging (outputs to stderr) -->
+		<!-- SLF4J Simple implementation for standalone mode (outputs to stderr) -->
+		<!-- Marked optional to avoid conflicts with Logback in consuming applications -->
 		<dependency>
 			<groupId>org.slf4j</groupId>
 			<artifactId>slf4j-simple</artifactId>
+			<optional>true</optional>
 		</dependency>
 
 		<!-- Testing -->
@@ -141,45 +143,76 @@
 					</archive>
 				</configuration>
 			</plugin>
+			<!-- Create standalone executable JAR with all dependencies -->
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-shade-plugin</artifactId>
+				<executions>
+					<execution>
+						<phase>package</phase>
+						<goals>
+							<goal>shade</goal>
+						</goals>
+						<configuration>
+							<transformers>
+								<transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
+									<mainClass>io.sapl.lsp.launcher.SAPLLanguageServerLauncher</mainClass>
+								</transformer>
+								<transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer"/>
+							</transformers>
+							<!-- Produce separate artifact with -standalone classifier -->
+							<shadedArtifactAttached>true</shadedArtifactAttached>
+							<shadedClassifierName>standalone</shadedClassifierName>
+							<filters>
+								<filter>
+									<artifact>*:*</artifact>
+									<excludes>
+										<exclude>META-INF/*.SF</exclude>
+										<exclude>META-INF/*.DSA</exclude>
+										<exclude>META-INF/*.RSA</exclude>
+									</excludes>
+								</filter>
+							</filters>
+						</configuration>
+					</execution>
+				</executions>
+			</plugin>
 		</plugins>
 	</build>
 
 	<profiles>
-		<!-- Profile for creating standalone executable JAR -->
+		<!-- Profile for building GraalVM native image -->
 		<profile>
-			<id>standalone</id>
+			<id>native</id>
 			<build>
 				<plugins>
 					<plugin>
-						<groupId>org.apache.maven.plugins</groupId>
-						<artifactId>maven-shade-plugin</artifactId>
+						<groupId>org.graalvm.buildtools</groupId>
+						<artifactId>native-maven-plugin</artifactId>
+						<version>0.10.6</version>
+						<extensions>true</extensions>
 						<executions>
 							<execution>
-								<phase>package</phase>
+								<id>build-native</id>
 								<goals>
-									<goal>shade</goal>
+									<goal>compile-no-fork</goal>
 								</goals>
-								<configuration>
-									<transformers>
-										<transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
-											<mainClass>io.sapl.lsp.launcher.SAPLLanguageServerLauncher</mainClass>
-										</transformer>
-										<transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer"/>
-									</transformers>
-									<shadedArtifactAttached>false</shadedArtifactAttached>
-									<filters>
-										<filter>
-											<artifact>*:*</artifact>
-											<excludes>
-												<exclude>META-INF/*.SF</exclude>
-												<exclude>META-INF/*.DSA</exclude>
-												<exclude>META-INF/*.RSA</exclude>
-											</excludes>
-										</filter>
-									</filters>
-								</configuration>
+								<phase>package</phase>
 							</execution>
 						</executions>
+						<configuration>
+							<mainClass>io.sapl.lsp.launcher.SAPLLanguageServerLauncher</mainClass>
+							<imageName>sapl-language-server</imageName>
+							<buildArgs>
+								<buildArg>--no-fallback</buildArg>
+								<buildArg>-H:+ReportExceptionStackTraces</buildArg>
+								<buildArg>--enable-url-protocols=http,https</buildArg>
+								<buildArg>--install-exit-handlers</buildArg>
+								<!-- Reduce image size -->
+								<buildArg>-march=compatibility</buildArg>
+							</buildArgs>
+							<quickBuild>false</quickBuild>
+						</configuration>
 					</plugin>
 				</plugins>
 			</build>

@@ -69,7 +69,7 @@ public class SAPLTextDocumentService implements TextDocumentService {
         var uri     = params.getTextDocument().getUri();
         var content = params.getTextDocument().getText();
 
-        log.info("Document opened: {} (content length: {})", uri, content != null ? content.length() : 0);
+        log.debug("Document opened: {}", uri);
         documentManager.openDocument(uri, content);
         validateAndPublishDiagnostics(uri);
     }
@@ -81,7 +81,7 @@ public class SAPLTextDocumentService implements TextDocumentService {
         // We use full sync, so take the full content from the first change
         if (!params.getContentChanges().isEmpty()) {
             var content = params.getContentChanges().getFirst().getText();
-            log.info("Document changed: {} (content length: {})", uri, content != null ? content.length() : 0);
+            log.debug("Document changed: {}", uri);
             documentManager.updateDocument(uri, content);
             validateAndPublishDiagnostics(uri);
         }
@@ -128,20 +128,18 @@ public class SAPLTextDocumentService implements TextDocumentService {
         var uri      = params.getTextDocument().getUri();
         var position = params.getPosition();
 
-        log.info("Completion requested at {}:{} in {}", position.getLine(), position.getCharacter(), uri);
+        log.debug("Completion requested at {}:{} in {}", position.getLine(), position.getCharacter(), uri);
 
         return CompletableFuture.supplyAsync(() -> {
             var document = documentManager.getDocument(uri);
             if (document == null) {
-                log.warn("Completion: document not found for URI: {}. Open documents: {}", uri,
-                        documentManager.isOpen(uri) ? "contains but null" : "not open");
+                log.warn("Completion: document not found for URI: {}", uri);
                 return Either.forLeft(List.of());
             }
 
             var grammarSupport = documentManager.getGrammarSupportForUri(uri);
-            log.debug("Completion: using grammar '{}' for URI: {}", grammarSupport.getGrammarId(), uri);
-            var items = grammarSupport.provideCompletions(document, position, configurationManager);
-            log.info("Completion: returning {} items", items.size());
+            var items          = grammarSupport.provideCompletions(document, position, configurationManager);
+            log.debug("Completion: returning {} items", items.size());
             return Either.forLeft(items);
         });
     }

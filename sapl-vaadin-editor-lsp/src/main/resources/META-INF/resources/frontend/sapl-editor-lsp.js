@@ -14,9 +14,10 @@ import { indentWithTab } from '@codemirror/commands';
 import { oneDark } from '@codemirror/theme-one-dark';
 import { StreamLanguage, bracketMatching } from '@codemirror/language';
 import { linter, Diagnostic } from '@codemirror/lint';
-import { autocompletion, CompletionContext, closeBrackets, completionKeymap } from '@codemirror/autocomplete';
+import { autocompletion, CompletionContext, closeBrackets, completionKeymap, snippet } from '@codemirror/autocomplete';
 import { MergeView } from '@codemirror/merge';
 import { unifiedMergeView } from '@codemirror/merge';
+import { marked } from 'marked';
 
 // Global configuration ID export (for cross-module access like in old editor)
 export { saplPdpConfigurationId };
@@ -323,6 +324,70 @@ class SaplEditorLsp extends LitElement {
         .coverage-uncovered { background: var(--sapl-cov-uncovered) !important; }
         .coverage-ignored { background: var(--sapl-cov-ignored) !important; }
 
+        /* Completion documentation styles */
+        .cm-completion-doc {
+            padding: 8px;
+            font-size: 13px;
+            line-height: 1.4;
+            max-width: 500px;
+        }
+        .cm-completion-doc code {
+            background: rgba(0, 0, 0, 0.1);
+            padding: 1px 4px;
+            border-radius: 3px;
+            font-family: monospace;
+            font-size: 12px;
+        }
+        .cm-completion-doc pre {
+            background: rgba(0, 0, 0, 0.08);
+            padding: 8px;
+            border-radius: 4px;
+            overflow-x: auto;
+            margin: 8px 0;
+        }
+        .cm-completion-doc pre code {
+            background: transparent;
+            padding: 0;
+        }
+        .cm-completion-doc strong {
+            font-weight: 600;
+        }
+        .cm-completion-doc ul {
+            margin: 4px 0;
+            padding-left: 20px;
+        }
+        .cm-completion-doc li {
+            margin: 2px 0;
+        }
+        .cm-completion-doc p {
+            margin: 4px 0;
+        }
+        .cm-completion-doc a {
+            color: var(--lumo-primary-color, #1976d2);
+        }
+
+        /* Completion icons for different types */
+        .cm-completionIcon-property::after {
+            content: "◈";
+            color: #9c27b0;
+        }
+        .cm-completionIcon-function::after {
+            content: "ƒ";
+            color: #2196f3;
+        }
+        .cm-completionIcon-keyword::after {
+            content: "⬢";
+            color: #ff9800;
+        }
+        .cm-completionIcon-variable::after {
+            content: "𝑥";
+            color: #4caf50;
+        }
+        .cm-completionIcon-module::after {
+            content: "◰";
+            color: #607d8b;
+        }
+
     `;
 
     constructor() {
@@ -440,12 +505,12 @@ class SaplEditorLsp extends LitElement {
 
         if (withLinting) {
             extensions.push(linter(() => this._getLspDiagnostics()));
-            // Configure autocompletion based on trigger mode
-            const activateOnTyping = this.autocompleteTrigger === 'on_typing';
+            // Configure autocompletion - always active to support LSP trigger characters
+            // LSP trigger characters: '.', '<', '|' are handled in _getCompletions
             extensions.push(autocompletion({
                 override: [context => this._getCompletions(context)],
-                activateOnTyping: activateOnTyping,
-                activateOnTypingDelay: activateOnTyping ? this.autocompleteDelay : 100
+                activateOnTyping: true,  // Always on to catch trigger characters
+                activateOnTypingDelay: this.autocompleteTrigger === 'on_typing' ? this.autocompleteDelay : 50
             }));
             // Add completion keymap for Ctrl+Space manual trigger
             extensions.push(keymap.of(completionKeymap));
@@ -541,11 +606,11 @@ class SaplEditorLsp extends LitElement {
                             }
                         }),
                         linter(() => this._getLspDiagnostics()),
-                        // Configure autocompletion based on trigger mode
+                        // Configure autocompletion - always active to support LSP trigger characters
                         autocompletion({
                             override: [context => this._getCompletions(context)],
-                            activateOnTyping: this.autocompleteTrigger === 'on_typing',
-                            activateOnTypingDelay: this.autocompleteTrigger === 'on_typing' ? this.autocompleteDelay : 100
+                            activateOnTyping: true,
+                            activateOnTypingDelay: this.autocompleteTrigger === 'on_typing' ? this.autocompleteDelay : 50
                         }),
                         keymap.of(completionKeymap)
                     ]
@@ -875,10 +940,29 @@ class SaplEditorLsp extends LitElement {
     }
 
     async _getCompletions(context) {
-        console.log('[SAPL LSP] _getCompletions called, explicit:', context.explicit);
         if (!this._ws || this._ws.readyState !== WebSocket.OPEN) {
-            console.log('[SAPL LSP] WebSocket not connected');
             return null;
+        }
+
+        // Check for LSP trigger characters and word patterns
+        // Trigger on: '.', '<', '|<', or word characters (for prefix matching)
+        const attrMatch = context.matchBefore(/\|?<[\w.]*$/);
+        const dotMatch = context.matchBefore(/\.[\w]*$/);
+        const wordMatch = context.matchBefore(/[\w]+$/);
+
+        // DEBUG: Log trigger detection
+        if (attrMatch) console.log('[SAPL] Attr trigger:', attrMatch.text);
+
+        // Only request completions if:
+        // 1. Explicit request (Ctrl+Space)
+        // 2. Attribute trigger (< or |<)
+        // 3. Dot trigger (.)
+        // 4. At least 1 character of word prefix
+        const isTrigger = attrMatch || dotMatch;
+        const hasWordPrefix = wordMatch && wordMatch.text.length >= 1;
+
+        if (!context.explicit && !isTrigger && !hasWordPrefix) {
+            return null;  // Skip completion for non-meaningful contexts
         }
 
         // Track this completion request to detect if it becomes stale
@@ -887,58 +971,166 @@ class SaplEditorLsp extends LitElement {
 
         try {
             const pos = this._offsetToPosition(context.pos);
-            console.log('[SAPL LSP] Requesting completions at', pos);
             const result = await this._sendLspRequest('textDocument/completion', {
                 textDocument: { uri: this._documentUri },
                 position: pos
             }, 5000);  // 5 second timeout for completions
 
-            console.log('[SAPL LSP] Got completion result:', result ? (Array.isArray(result) ? result.length : result.items?.length) : 'null');
-
             // Check if document changed while we were waiting - discard stale results
             if (this._documentVersion !== requestVersion || this._completionRequestId !== thisRequestId) {
-                console.debug('[SAPL LSP] Discarding stale completion results');
                 return null;
             }
 
             if (!result) return null;
 
-            const wordMatch = context.matchBefore(/[\w.]*$/);
-            const from = wordMatch ? wordMatch.from : context.pos;
-            const matchedText = wordMatch ? wordMatch.text : '';
+            // Determine 'from' position based on context
+            let from;
+            if (attrMatch) {
+                // Include the < or |< in replacement range
+                from = attrMatch.from;
+            } else if (dotMatch) {
+                // Start after the dot
+                from = dotMatch.from + 1;
+            } else {
+                // Use word match or cursor position
+                const generalWordMatch = context.matchBefore(/[\w.]*$/);
+                from = generalWordMatch ? generalWordMatch.from : context.pos;
+            }
 
             const items = Array.isArray(result) ? result : (result.items || []);
-            console.log('[SAPL LSP] Returning', items.length, 'completion options from position', from,
-                        'matchedText:', JSON.stringify(matchedText), 'cursorPos:', context.pos);
 
-            // Log first few items for debugging
-            if (items.length > 0) {
-                console.log('[SAPL LSP] First 5 items:', items.slice(0, 5).map(i => i.label));
-            }
+            console.log('[SAPL] Completion result:', { from, itemCount: items.length, pos: context.pos });
 
             return {
                 from: from,
-                options: items.map(item => ({
-                    label: item.label,
-                    detail: item.detail,
-                    info: item.documentation?.value || item.documentation,
-                    type: this._mapCompletionKind(item.kind),
-                    ...(item.textEdit?.range && {
-                        from: this._positionToOffset(item.textEdit.range.start),
-                        to: this._positionToOffset(item.textEdit.range.end)
-                    })
-                })),
-                filter: false  // Disable filtering - LSP already provides filtered results
+                options: items.map(item => {
+                    let insertText = item.insertText || item.label || '';
+
+                    // Check if this is an LSP snippet (has insertTextFormat = 2 or contains ${)
+                    const isSnippet = item.insertTextFormat === 2 || /\$\{\d+:/.test(insertText);
+
+                    if (isSnippet) {
+                        // Convert LSP snippet syntax to CodeMirror snippet syntax
+                        const cmSnippet = this._convertLspSnippet(insertText);
+                        return {
+                            label: item.label || '',
+                            apply: snippet(cmSnippet),
+                            detail: item.detail,
+                            info: this._renderDocumentation(item.documentation),
+                            type: this._mapCompletionKind(item.kind)
+                        };
+                    } else {
+                        return {
+                            label: item.label || '',
+                            apply: insertText,
+                            detail: item.detail,
+                            info: this._renderDocumentation(item.documentation),
+                            type: this._mapCompletionKind(item.kind)
+                        };
+                    }
+                })
             };
         } catch (e) {
-            // Don't log timeout errors as errors - they're expected when user types quickly
-            if (e.message?.includes('timed out')) {
-                console.debug('[SAPL LSP] Completion request timed out');
-            } else {
-                console.error('[SAPL LSP] Completion failed:', e);
-            }
+            console.error('[SAPL LSP] Completion failed:', e);
             return null;
         }
+    }
+
+    /**
+     * Converts LSP snippet syntax to CodeMirror snippet syntax.
+     * LSP: ${1:paramName}  -> CodeMirror: ${paramName}
+     * LSP: $1              -> CodeMirror: ${}
+     */
+    _convertLspSnippet(lspSnippet) {
+        // Convert ${n:name} to ${name} (CodeMirror uses named placeholders)
+        // Also handle $n without braces
+        return lspSnippet
+            .replace(/\$\{(\d+):([^}]+)\}/g, '${$2}')  // ${1:name} -> ${name}
+            .replace(/\$(\d+)/g, '${}');               // $1 -> ${}
+    }
+
+    /**
+     * Renders LSP documentation (markdown or plain text) for display.
+     * Returns a function that creates a DOM element for markdown content.
+     * Uses the 'marked' library for proper markdown parsing.
+     */
+    _renderDocumentation(documentation) {
+        if (!documentation) return undefined;
+
+        const content = documentation.value || documentation;
+        if (!content || typeof content !== 'string') return undefined;
+
+        // Detect markdown by kind or common patterns (bold, code fences, headers, lists)
+        const isMarkdown = documentation.kind === 'markdown' ||
+            content.includes('**') ||
+            content.includes('```') ||
+            content.includes('# ') ||
+            content.includes('- ');
+
+        if (isMarkdown) {
+            return () => {
+                const div = document.createElement('div');
+                div.className = 'cm-completion-doc';
+                try {
+                    if (typeof marked !== 'undefined' && marked.parse) {
+                        div.innerHTML = marked.parse(content, { breaks: true, gfm: true });
+                    } else {
+                        // Fallback: basic markdown conversion if marked library not available
+                        div.innerHTML = this._basicMarkdownToHtml(content);
+                    }
+                } catch (e) {
+                    console.error('[SAPL] Markdown parsing failed:', e);
+                    div.innerHTML = this._basicMarkdownToHtml(content);
+                }
+                return div;
+            };
+        }
+
+        return content;
+    }
+
+    /**
+     * Basic markdown to HTML conversion as fallback when marked library unavailable.
+     * Handles: code fences, inline code, bold, headers, lists, links, paragraphs.
+     */
+    _basicMarkdownToHtml(markdown) {
+        let html = markdown
+            // Escape HTML first
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            // Code fences with language specifier
+            .replace(/```(\w*)\n([\s\S]*?)```/g, '<pre><code class="language-$1">$2</code></pre>')
+            // Code fences without language
+            .replace(/```\n?([\s\S]*?)```/g, '<pre><code>$1</code></pre>')
+            // Inline code
+            .replace(/`([^`]+)`/g, '<code>$1</code>')
+            // Bold
+            .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+            // Italic
+            .replace(/\*([^*]+)\*/g, '<em>$1</em>')
+            // Headers
+            .replace(/^### (.+)$/gm, '<h4>$1</h4>')
+            .replace(/^## (.+)$/gm, '<h3>$1</h3>')
+            .replace(/^# (.+)$/gm, '<h2>$1</h2>')
+            // Links
+            .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2">$1</a>')
+            // List items
+            .replace(/^- (.+)$/gm, '<li>$1</li>')
+            // Paragraphs (double newlines)
+            .replace(/\n\n/g, '</p><p>')
+            // Single newlines to <br>
+            .replace(/\n/g, '<br>');
+
+        // Wrap in paragraph if not already structured
+        if (!html.startsWith('<')) {
+            html = '<p>' + html + '</p>';
+        }
+
+        // Clean up empty paragraphs
+        html = html.replace(/<p><\/p>/g, '').replace(/<p><br>/g, '<p>');
+
+        return html;
     }
 
     // --- Utility Methods ---

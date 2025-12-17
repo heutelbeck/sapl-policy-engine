@@ -102,6 +102,13 @@
             <version>${project.version}</version>
             <optional>true</optional>
         </dependency>
+
+        <!-- Marked - Markdown parser for documentation rendering -->
+        <dependency>
+            <groupId>org.webjars.npm</groupId>
+            <artifactId>marked</artifactId>
+            <version>17.0.1</version>
+        </dependency>
     </dependencies>
 
     <build>

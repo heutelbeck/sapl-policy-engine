@@ -7,7 +7,7 @@
   </parent>
   <modelVersion>4.0.0</modelVersion>
   <artifactId>sapl-language-server-antlr</artifactId>
-  <name>SAPL Language Server (ANTLR-based)</name>
+  <name>SAPL Language Server</name>
   <description>Standalone SAPL Language Server based on ANTLR without Xtext or Spring Boot dependencies.
 		Provides LSP support for syntax highlighting, validation, and content assist.</description>
   <licenses>
@@ -28,42 +28,70 @@
           </archive>
         </configuration>
       </plugin>
+      <plugin>
+        <artifactId>maven-shade-plugin</artifactId>
+        <executions>
+          <execution>
+            <phase>package</phase>
+            <goals>
+              <goal>shade</goal>
+            </goals>
+            <configuration>
+              <transformers>
+                <transformer>
+                  <mainClass>io.sapl.lsp.launcher.SAPLLanguageServerLauncher</mainClass>
+                </transformer>
+                <transformer />
+              </transformers>
+              <shadedArtifactAttached>true</shadedArtifactAttached>
+              <shadedClassifierName>standalone</shadedClassifierName>
+              <filters>
+                <filter>
+                  <artifact>*:*</artifact>
+                  <excludes>
+                    <exclude>META-INF/*.SF</exclude>
+                    <exclude>META-INF/*.DSA</exclude>
+                    <exclude>META-INF/*.RSA</exclude>
+                  </excludes>
+                </filter>
+              </filters>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
     </plugins>
   </build>
   <profiles>
     <profile>
-      <id>standalone</id>
+      <id>native</id>
       <build>
         <plugins>
           <plugin>
-            <artifactId>maven-shade-plugin</artifactId>
+            <groupId>org.graalvm.buildtools</groupId>
+            <artifactId>native-maven-plugin</artifactId>
+            <version>0.10.6</version>
+            <extensions>true</extensions>
             <executions>
               <execution>
+                <id>build-native</id>
                 <phase>package</phase>
                 <goals>
-                  <goal>shade</goal>
+                  <goal>compile-no-fork</goal>
                 </goals>
-                <configuration>
-                  <transformers>
-                    <transformer>
-                      <mainClass>io.sapl.lsp.launcher.SAPLLanguageServerLauncher</mainClass>
-                    </transformer>
-                    <transformer />
-                  </transformers>
-                  <shadedArtifactAttached>false</shadedArtifactAttached>
-                  <filters>
-                    <filter>
-                      <artifact>*:*</artifact>
-                      <excludes>
-                        <exclude>META-INF/*.SF</exclude>
-                        <exclude>META-INF/*.DSA</exclude>
-                        <exclude>META-INF/*.RSA</exclude>
-                      </excludes>
-                    </filter>
-                  </filters>
-                </configuration>
               </execution>
             </executions>
+            <configuration>
+              <mainClass>io.sapl.lsp.launcher.SAPLLanguageServerLauncher</mainClass>
+              <imageName>sapl-language-server</imageName>
+              <buildArgs>
+                <buildArg>--no-fallback</buildArg>
+                <buildArg>-H:+ReportExceptionStackTraces</buildArg>
+                <buildArg>--enable-url-protocols=http,https</buildArg>
+                <buildArg>--install-exit-handlers</buildArg>
+                <buildArg>-march=compatibility</buildArg>
+              </buildArgs>
+              <quickBuild>false</quickBuild>
+            </configuration>
           </plugin>
         </plugins>
       </build>

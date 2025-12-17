@@ -91,12 +91,12 @@ class StandardLibraryCompletionIntegrationTests {
     }
 
     static Stream<Arguments> pipAttributeTestCases() {
-        return Stream.of(arguments("time PIP - now", "time.now"),
-                arguments("time PIP - systemTimeZone", "time.systemTimeZone"),
-                arguments("time PIP - nowIsAfter", "time.nowIsAfter"),
-                arguments("time PIP - nowIsBefore", "time.nowIsBefore"),
-                arguments("time PIP - nowIsBetween", "time.nowIsBetween"),
-                arguments("time PIP - toggle", "time.toggle"));
+        return Stream.of(arguments("time PIP - now", "<time.now>"),
+                arguments("time PIP - systemTimeZone", "<time.systemTimeZone>"),
+                arguments("time PIP - nowIsAfter", "<time.nowIsAfter>"),
+                arguments("time PIP - nowIsBefore", "<time.nowIsBefore>"),
+                arguments("time PIP - nowIsBetween", "<time.nowIsBetween>"),
+                arguments("time PIP - toggle", "<time.toggle>"));
     }
 
     @ParameterizedTest(name = "{0}")
@@ -168,6 +168,36 @@ class StandardLibraryCompletionIntegrationTests {
                 .filter(item -> item.getInsertText() != null && item.getInsertText().contains("$")).findFirst();
 
         assertThat(withParams).isPresent();
+    }
+
+    @Test
+    void whenTypingQualifiedPrefix_thenCompletionsFilteredByPrefix() {
+        var document = "policy \"test\" permit where time.b";
+        var position = positionAtEnd(document);
+
+        var completions = getCompletions(document, position);
+        var labels      = extractLabels(completions);
+
+        // Should include time.* functions starting with 'b'
+        assertThat(labels).contains("time.before", "time.between");
+        // Should NOT include unrelated libraries
+        assertThat(labels).doesNotContain("bitwise.setBit");
+        assertThat(labels).doesNotContain("string.before");
+    }
+
+    @Test
+    void whenTypingLibraryPrefix_thenOnlyMatchingLibrariesShown() {
+        var document = "policy \"test\" permit where ti";
+        var position = positionAtEnd(document);
+
+        var completions = getCompletions(document, position);
+        var labels      = extractLabels(completions);
+
+        // Should include time.* functions
+        assertThat(labels.stream().anyMatch(label -> label.startsWith("time."))).isTrue();
+        // Should NOT include string.* or other non-matching libraries
+        assertThat(labels.stream().noneMatch(label -> label.startsWith("string."))).isTrue();
+        assertThat(labels.stream().noneMatch(label -> label.startsWith("array."))).isTrue();
     }
 
     private List<CompletionItem> getCompletions(String content, Position position) {
