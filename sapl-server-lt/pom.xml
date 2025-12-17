@@ -45,18 +45,6 @@
 		<main.basedir>${project.basedir}/../</main.basedir>
 	</properties>
 	
-	<dependencyManagement>
-		<dependencies>
-			<dependency>
-				<groupId>org.infinispan</groupId>
-				<artifactId>infinispan-bom</artifactId>
-				<version>15.0.11.Final</version>
-				<type>pom</type>
-				<scope>import</scope>
-			</dependency>
-		</dependencies>
-	</dependencyManagement>
-
 	<dependencies>
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
@@ -81,7 +69,7 @@
         </dependency>
         <dependency>
             <groupId>io.sapl</groupId>
-            <artifactId>sapl-pdp-antlr</artifactId>
+            <artifactId>sapl-pdp</artifactId>
             <version>${project.version}</version>
         </dependency>
 		<dependency>
@@ -130,23 +118,25 @@
 			<artifactId>bcpkix-jdk18on</artifactId>
 			<version>1.81</version>
 		</dependency>
+		<!-- Caching with Caffeine -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-cache</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>com.github.ben-manes.caffeine</groupId>
+			<artifactId>caffeine</artifactId>
+		</dependency>
+		<!-- Rate limiting with bucket4j -->
 		<dependency>
 			<groupId>com.giffing.bucket4j.spring.boot.starter</groupId>
 			<artifactId>bucket4j-spring-boot-starter</artifactId>
 			<version>0.12.8</version>
 		</dependency>
 		<dependency>
-			<groupId>javax.cache</groupId>
-			<artifactId>cache-api</artifactId>
-		</dependency>
-		<dependency>
 			<groupId>com.bucket4j</groupId>
-			<artifactId>bucket4j-infinispan</artifactId>
+			<artifactId>bucket4j-caffeine</artifactId>
 			<version>8.10.1</version>
-		</dependency>
-		<dependency>
-			<groupId>org.infinispan</groupId>
-			<artifactId>infinispan-spring-boot3-starter-embedded</artifactId>
 		</dependency>
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
@@ -193,13 +183,6 @@
 			<artifactId>reactor-test</artifactId>
 			<scope>test</scope>
 		</dependency>
-        <!-- Explicitly declare transitive annotation processor as optional to suppress SPDX warning -->
-        <dependency>
-            <groupId>org.infinispan.protostream</groupId>
-            <artifactId>protostream-processor</artifactId>
-            <scope>provided</scope>
-            <optional>true</optional>
-        </dependency>
 	</dependencies>
 
 	<build>
@@ -250,8 +233,7 @@
 						</launchCache>
 						<applicationDirectory>/pdp</applicationDirectory>
 						<env>
-							<BP_JVM_JLINK_ENABLED>true</BP_JVM_JLINK_ENABLED>
-							<BP_JVM_JLINK_ARGS>--no-man-pages --no-header-files --strip-debug --compress zip-6</BP_JVM_JLINK_ARGS>
+							<BP_JVM_JLINK_ENABLED>false</BP_JVM_JLINK_ENABLED>
 							<BPE_SPRING_PROFILES_ACTIVE>docker</BPE_SPRING_PROFILES_ACTIVE>
 							<BPE_SPRING_CONFIG_ADDITIONAL_LOCATION>
 								optional:file:/pdp/data/</BPE_SPRING_CONFIG_ADDITIONAL_LOCATION>

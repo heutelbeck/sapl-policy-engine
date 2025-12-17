@@ -231,10 +231,12 @@ spring.rsocket.server:
 
 spring:
   cache:
-    type: infinispan
-infinispan:
-  embedded:
-    config-xml: infinispan.xml
+    type: caffeine
+    caffeine:
+      spec: maximumSize=1000,expireAfterWrite=1h
+    cache-names:
+      - ApiKeyCache
+      - buckets
 bucket4j:
   enabled: false
   filters:
@@ -249,7 +251,7 @@ bucket4j:
             - capacity: 10000
               time: 1
               unit: seconds
-  cache-to-use: none # supported values: none, infinispan
+  cache-to-use: caffeine
 spring.main.banner-mode: OFF
 logging.level:
   root: OFF

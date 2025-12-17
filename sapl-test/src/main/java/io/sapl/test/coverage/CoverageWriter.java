@@ -19,6 +19,7 @@ package io.sapl.test.coverage;
 
 import io.sapl.api.coverage.BranchHit;
 import io.sapl.api.coverage.PolicyCoverageData;
+import lombok.extern.slf4j.Slf4j;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -42,6 +43,7 @@ import java.util.Map;
  * written as a single line of JSON to support concurrent appends from parallel
  * test execution.
  */
+@Slf4j
 public class CoverageWriter {
 
     private static final String       COVERAGE_FILENAME = "coverage.ndjson";
@@ -91,7 +93,7 @@ public class CoverageWriter {
             write(record);
             return true;
         } catch (IOException e) {
-            System.err.println("Failed to write coverage data: " + e.getMessage());
+            log.warn("Failed to write coverage data: {}", e.getMessage());
             return false;
         }
     }

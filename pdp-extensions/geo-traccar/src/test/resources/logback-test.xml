@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+    <logger name="org.testcontainers" level="WARN" />
+    <logger name="tc" level="WARN" />
+    <logger name="com.github.dockerjava" level="WARN" />
+    <logger name="io.sapl" level="WARN" />
+</configuration>

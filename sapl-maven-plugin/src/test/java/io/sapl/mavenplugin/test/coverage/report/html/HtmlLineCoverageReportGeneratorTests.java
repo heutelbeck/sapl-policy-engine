@@ -19,7 +19,6 @@ package io.sapl.mavenplugin.test.coverage.report.html;
 
 import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.condition.OS.WINDOWS;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -28,7 +27,6 @@ import java.nio.file.Path;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.condition.DisabledOnOs;
 import org.junit.jupiter.api.io.TempDir;
 
 import io.sapl.mavenplugin.test.coverage.report.SampleCoverageInformation;
@@ -52,7 +50,6 @@ class HtmlLineCoverageReportGeneratorTests {
     private final HtmlLineCoverageReportGenerator generator = new HtmlLineCoverageReportGenerator();
 
     @Test
-    @DisabledOnOs(WINDOWS)
     void whenGenerateHtmlReport_thenCreatesExpectedFiles(@TempDir Path tempDir) throws MojoExecutionException {
         generator.generateHtmlReport(SampleCoverageInformation.policies(), tempDir, POLICY_SET_HIT_RATIO,
                 POLICY_HIT_RATIO, POLICY_CONDITION_HIT_RATIO);
@@ -66,7 +63,6 @@ class HtmlLineCoverageReportGeneratorTests {
     }
 
     @Test
-    @DisabledOnOs(WINDOWS)
     void whenGenerateHtmlReport_thenReportContainsExpectedContent(@TempDir Path tempDir)
             throws MojoExecutionException, IOException {
         generator.generateHtmlReport(SampleCoverageInformation.policies(), tempDir, POLICY_SET_HIT_RATIO,

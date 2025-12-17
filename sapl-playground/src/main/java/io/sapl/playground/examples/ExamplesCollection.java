@@ -31,7 +31,7 @@ import java.util.Optional;
 @UtilityClass
 public class ExamplesCollection {
 
-    private static final String DEFAULT_VARIABLES = """
+    static final String DEFAULT_VARIABLES = """
             {
             }
             """;
@@ -60,7 +60,7 @@ public class ExamplesCollection {
 
     /* Documentation Examples */
 
-    private static final Example DOCUMENTATION_AT_A_GLANCE = new Example("at-a-glance", "Introduction Policy",
+    static final Example DOCUMENTATION_AT_A_GLANCE = new Example("at-a-glance", "Introduction Policy",
             "Compartmentalize read access by department", List.of("""
                     /* Example policy found in Section 1.1 of the SAPL Documentation.
                      *
@@ -97,7 +97,7 @@ public class ExamplesCollection {
                     }
                     """, DEFAULT_VARIABLES);
 
-    private static final Example DOCUMENTATION_BUSINESS_HOURS = new Example("business-hours",
+    static final Example DOCUMENTATION_BUSINESS_HOURS = new Example("business-hours",
             "Time-based policy to deny access", "A time-based denying policy.",
             List.of("""
                     // Time-based deny policy from Section 1.3 of the SAPL Documentation.
@@ -136,8 +136,7 @@ public class ExamplesCollection {
                     }
                     """, DEFAULT_VARIABLES);
 
-    private static final Example DOCUMENTATION_DENY_OVERRIDES = new Example("deny-overrides-demo",
-            "Deny Overrides Algorithm",
+    static final Example DOCUMENTATION_DENY_OVERRIDES = new Example("deny-overrides-demo", "Deny Overrides Algorithm",
             "Multiple policies where a single DENY blocks access despite PERMIT decisions being present.", List.of("""
                     policy "permit authenticated users"
                     permit
@@ -160,7 +159,7 @@ public class ExamplesCollection {
 
     /* Medical Examples */
 
-    private static final Example MEDICAL_EMERGENCY_OVERRIDE = new Example("emergency-override",
+    static final Example MEDICAL_EMERGENCY_OVERRIDE = new Example("emergency-override",
             "Emergency Access Override (Breaking the Glass)",
             "Emergency personnel can override normal access restrictions",
             List.of("""
@@ -209,7 +208,7 @@ public class ExamplesCollection {
 
     /* Geographic Examples */
 
-    private static final Example GEOGRAPHIC_INSIDE_PERIMETER = new Example("geo-permit-inside-perimeter",
+    static final Example GEOGRAPHIC_INSIDE_PERIMETER = new Example("geo-permit-inside-perimeter",
             "Geo-fence: inside perimeter", "Permit if a point is inside a polygon perimeter using GeoJSON.", List.of("""
                     // Grants access only when the subject location lies completely within the
                     // allowed perimeter supplied with the resource as a GeoJSON Polygon.
@@ -234,7 +233,7 @@ public class ExamplesCollection {
                     }
                     """, DEFAULT_VARIABLES);
 
-    private static final Example GEOGRAPHIC_NEAR_FACILITY = new Example("geo-permit-near-facility",
+    static final Example GEOGRAPHIC_NEAR_FACILITY = new Example("geo-permit-near-facility",
             "Proximity: geodesic distance â‰¤ 200 m",
             "Permit when the subject is within 200 meters (WGS84) of the facility.", List.of("""
                     // Grants access if the geodesic distance on WGS84 between the subject position and
@@ -257,7 +256,7 @@ public class ExamplesCollection {
                     }
                     """, DEFAULT_VARIABLES);
 
-    private static final Example GEOGRAPHIC_DENY_INTERSECTS_RESTRICTED = new Example("geo-deny-intersects-restricted",
+    static final Example GEOGRAPHIC_DENY_INTERSECTS_RESTRICTED = new Example("geo-deny-intersects-restricted",
             "Deny when requested area intersects restricted zone",
             "Deny access if a requested area overlaps any restricted area.", List.of("""
                     // Denies access when the requested area overlaps a restricted zone. Intersections of any
@@ -283,7 +282,7 @@ public class ExamplesCollection {
                     }
                     """, DEFAULT_VARIABLES);
 
-    private static final Example GEOGRAPHIC_WAYPOINTS_SUBSET = new Example("geo-permit-waypoints-subset",
+    static final Example GEOGRAPHIC_WAYPOINTS_SUBSET = new Example("geo-permit-waypoints-subset",
             "Waypoints must be subset of authorized set",
             "Permit only if all requested waypoints are contained in the authorized set.", List.of("""
                     // Ensures every requested waypoint is in the pre-authorized set. Uses subset over
@@ -314,9 +313,8 @@ public class ExamplesCollection {
                     }
                     """, DEFAULT_VARIABLES);
 
-    private static final Example GEOGRAPHIC_BUFFER_TOUCH = new Example("geo-permit-buffer-touch",
-            "Adjacency via buffer-touch", "Permit when a buffered asset footprint just touches the inspection path.",
-            List.of("""
+    static final Example GEOGRAPHIC_BUFFER_TOUCH = new Example("geo-permit-buffer-touch", "Adjacency via buffer-touch",
+            "Permit when a buffered asset footprint just touches the inspection path.", List.of("""
                     // Creates a buffer around the asset footprint and checks whether the buffer boundary
                     // touches the inspection path. This models strict adjacency without overlap.
 
@@ -337,7 +335,7 @@ public class ExamplesCollection {
                     }
                     """, DEFAULT_VARIABLES);
 
-    private static final Example GEOGRAPHIC_WKT_INSIDE_ZONE = new Example("geo-permit-wkt-inside-zone",
+    static final Example GEOGRAPHIC_WKT_INSIDE_ZONE = new Example("geo-permit-wkt-inside-zone",
             "Normalize WKT then check containment", "Convert WKT to GeoJSON and check within against an allowed zone.",
             List.of("""
                     // Converts a WKT point to GeoJSON using geo.wktToGeoJSON, then checks containment
@@ -363,7 +361,7 @@ public class ExamplesCollection {
 
     /* Access Control Examples */
 
-    private static final Example ACCESS_CONTROL_BELL_LAPADULA_BASIC = new Example("bell-lapadula-basic",
+    static final Example ACCESS_CONTROL_BELL_LAPADULA_BASIC = new Example("bell-lapadula-basic",
             "Bell-LaPadula: NATO Classification",
             "Confidentiality model with security clearances - no read up, no write down", List.of("""
                     // Bell-LaPadula Model: Basic Confidentiality Policy
@@ -423,7 +421,7 @@ public class ExamplesCollection {
                     }
                     """);
 
-    private static final Example ACCESS_CONTROL_BELL_LAPADULA_COMPARTMENTS = new Example("bell-lapadula-compartments",
+    static final Example ACCESS_CONTROL_BELL_LAPADULA_COMPARTMENTS = new Example("bell-lapadula-compartments",
             "Bell-LaPadula: Classification + Compartments",
             "Extended Bell-LaPadula with departmental compartmentalization", List.of("""
                     // Bell-LaPadula Model with Compartments (Departments)
@@ -485,7 +483,7 @@ public class ExamplesCollection {
                     }
                     """);
 
-    private static final Example ACCESS_CONTROL_BREWER_NASH_FINANCIAL = new Example("brewer-nash-financial",
+    static final Example ACCESS_CONTROL_BREWER_NASH_FINANCIAL = new Example("brewer-nash-financial",
             "Brewer-Nash: Financial Conflict of Interest",
             "Chinese Wall model preventing insider trading and conflicts of interest", List.of("""
                     // Brewer-Nash Model (Chinese Wall Policy) - Financial Sector
@@ -578,7 +576,7 @@ public class ExamplesCollection {
                     }
                     """);
 
-    private static final Example ACCESS_CONTROL_BREWER_NASH_CONSULTING = new Example("brewer-nash-consulting",
+    static final Example ACCESS_CONTROL_BREWER_NASH_CONSULTING = new Example("brewer-nash-consulting",
             "Brewer-Nash: Multi-Industry Consulting", "Chinese Wall with multiple conflict classes for consulting firm",
             List.of("""
                     // Brewer-Nash Model - Consulting Firm with Multiple COI Classes
@@ -680,7 +678,7 @@ public class ExamplesCollection {
                     }
                     """);
 
-    private static final Example ACCESS_CONTROL_BIBA_INTEGRITY = new Example("biba-integrity", "Biba Integrity Model",
+    static final Example ACCESS_CONTROL_BIBA_INTEGRITY = new Example("biba-integrity", "Biba Integrity Model",
             "Integrity protection with no read down, no write up", List.of("""
                     // Biba Integrity Model
                     //
@@ -754,7 +752,7 @@ public class ExamplesCollection {
                     }
                     """);
 
-    private static final Example ACCESS_CONTROL_RBAC = new Example("role-based-access-control",
+    static final Example ACCESS_CONTROL_RBAC = new Example("role-based-access-control",
             "A Role-based Access Control Model", "Demonstrates implementing RBAC in SAPL", List.of("""
                     // Implements RBAC in SAPL
 
@@ -808,9 +806,8 @@ public class ExamplesCollection {
                     }
                     """);
 
-    private static final Example ACCESS_CONTROL_HIERARCHICAL_RBAC = new Example(
-            "hierarchical-role-based-access-control", "Hierarchical RBAC",
-            "Hierarchical Demonstrates implementing RBAC in SAPL", List.of("""
+    static final Example ACCESS_CONTROL_HIERARCHICAL_RBAC = new Example("hierarchical-role-based-access-control",
+            "Hierarchical RBAC", "Hierarchical Demonstrates implementing RBAC in SAPL", List.of("""
                     policy "Hierarchical RBAC"
                     permit
                     where
@@ -927,23 +924,22 @@ public class ExamplesCollection {
 
     /* Category Definitions */
 
-    private static final ExampleCategory DOCUMENTATION = new ExampleCategory("Documentation", "BOOK", 1,
+    static final ExampleCategory DOCUMENTATION = new ExampleCategory("Documentation", "BOOK", 1,
             List.of(DOCUMENTATION_AT_A_GLANCE, DOCUMENTATION_BUSINESS_HOURS, DOCUMENTATION_DENY_OVERRIDES));
 
-    private static final ExampleCategory MEDICAL = new ExampleCategory("Medical", "HEART", 2,
+    static final ExampleCategory MEDICAL = new ExampleCategory("Medical", "HEART", 2,
             List.of(MEDICAL_EMERGENCY_OVERRIDE));
 
-    private static final ExampleCategory GEOGRAPHIC = new ExampleCategory("Geographic", "GLOBE", 4,
+    static final ExampleCategory GEOGRAPHIC = new ExampleCategory("Geographic", "GLOBE", 4,
             List.of(GEOGRAPHIC_INSIDE_PERIMETER, GEOGRAPHIC_NEAR_FACILITY, GEOGRAPHIC_DENY_INTERSECTS_RESTRICTED,
                     GEOGRAPHIC_WAYPOINTS_SUBSET, GEOGRAPHIC_BUFFER_TOUCH, GEOGRAPHIC_WKT_INSIDE_ZONE));
 
-    private static final ExampleCategory ACCESS_CONTROL = new ExampleCategory("Access Control", "LOCK", 5,
+    static final ExampleCategory ACCESS_CONTROL = new ExampleCategory("Access Control", "LOCK", 5,
             List.of(ACCESS_CONTROL_RBAC, ACCESS_CONTROL_HIERARCHICAL_RBAC, ACCESS_CONTROL_BELL_LAPADULA_BASIC,
                     ACCESS_CONTROL_BELL_LAPADULA_COMPARTMENTS, ACCESS_CONTROL_BREWER_NASH_FINANCIAL,
                     ACCESS_CONTROL_BREWER_NASH_CONSULTING, ACCESS_CONTROL_BIBA_INTEGRITY));
 
-    private static final List<ExampleCategory> ALL_CATEGORIES = List.of(ACCESS_CONTROL, DOCUMENTATION, MEDICAL,
-            GEOGRAPHIC);
+    static final List<ExampleCategory> ALL_CATEGORIES = List.of(ACCESS_CONTROL, DOCUMENTATION, MEDICAL, GEOGRAPHIC);
 
     /**
      * Gets all example categories in display order.

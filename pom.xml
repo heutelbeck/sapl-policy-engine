@@ -533,7 +533,7 @@
 
 		<!-- Language modules (in dependency order) -->
 		<module>sapl-parser</module>
-		<module>sapl-pdp-antlr</module>
+		<module>sapl-pdp</module>
 
 		<!-- PDP extensions (depend on sapl-api) -->
 		<module>pdp-extensions/geo-functions</module>
@@ -551,14 +551,14 @@
 		<module>sapl-spring-security</module>
 
 		<!-- IDE and tooling -->
-		<module>sapl-language-server-antlr</module>
+		<module>sapl-language-server</module>
 		<module>sapl-documentation-generator</module>
 
 		<!-- Web endpoints -->
 		<module>sapl-webflux-endpoint</module>
 		<module>sapl-rsocket-endpoint</module>
 		<module>sapl-vaadin-theme</module>
-		<module>sapl-vaadin-editor-lsp</module>
+		<module>sapl-vaadin-editor</module>
 
 		<!-- Server applications -->
 		<module>sapl-server-lt</module>

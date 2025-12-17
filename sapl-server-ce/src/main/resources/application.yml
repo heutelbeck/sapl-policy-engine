@@ -35,6 +35,10 @@ bucket4j:
 vaadin:
   allowed-packages: io/sapl
 
+io.sapl:
+  pdp.embedded:
+    enabled: true
+
 logging.level:
   "[org.atmosphere]": WARN
   web: INFO

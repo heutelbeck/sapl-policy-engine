@@ -144,13 +144,11 @@ If the SAPL server runs in a [Docker container](#running-directly-as-a-docker-co
 
 ### Configure Bucket4j
 
-To configure `Bucket4j` in your application, you'll need to adjust some properties in your configuration file. 
+To configure `Bucket4j` in your application, you'll need to adjust some properties in your configuration file.
 
 Firstly, set `bucket4j.enabled=true` to activate Bucket4j's autoconfiguration feature.
 
-Secondly, set `infinispan.embedded.enabled=true` to use the embedded cache by infinispan.
-
-Then set `bucket4j.cache-to-use=infinispan`.
+Then set `bucket4j.cache-to-use=caffeine` to use Caffeine as the cache provider.
 
 Use `bucket4j.filters.url` to define the path expression where the rate limit should be applied. The property `bucket4j.filters.strategy=first` ensures that the rate limit stops at the first matching configuration encountered.
 
@@ -230,7 +228,7 @@ To add the client, set the property `io.sapl.server-lt.key` to an arbitrary name
 If you do not have a tool at hand for Argon2 password hashing, the SAPL Server LT binary can be used to generate a new reasonably secure random key and secret pair:
 
 ```
- java -jar sapl-server-lt-3.0.0.jar -basicCredentials
+ java -jar sapl-server-lt-4.0.0-SNAPSHOT.jar -basicCredentials
 ```
 
 This will print the pair to the console. Doing so will not start up an instance of the server.
@@ -269,7 +267,7 @@ To add a client, create a random key with at least a length of 32 characters. An
 If you do not have a tool at hand to create a good random key, the SAPL Server LT binary can be used to generate a new reasonably secure random key:
 
 ```
- java -jar sapl-server-lt-3.0.0.jar -apiKey
+ java -jar sapl-server-lt-4.0.0-SNAPSHOT.jar -apiKey
 ```
 
 This will print the pair to the console. Doing so will not start up an instance of the server.
@@ -472,7 +470,7 @@ If you need to write the logs to a file, refer to the [Spring documentation](htt
 Once configured, start the server using the following command:
 
 ```shell
-java -jar sapl-server-lt-3.0.0.jar
+java -jar sapl-server-lt-4.0.0-SNAPSHOT.jar
 ```
 
 ### Running from Source

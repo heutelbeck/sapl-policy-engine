@@ -17,10 +17,13 @@
  */
 package io.sapl.pdp.remote;
 
-import io.sapl.api.pdp.AuthorizationDecision;
-import io.sapl.api.pdp.AuthorizationSubscription;
-import io.sapl.api.pdp.PolicyDecisionPoint;
+import java.time.Duration;
+import java.util.concurrent.TimeUnit;
+
+import javax.net.ssl.SSLException;
+
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 import org.springframework.boot.SpringBootConfiguration;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.security.oauth2.client.registration.ClientRegistration;
@@ -31,21 +34,25 @@ import org.springframework.test.context.ActiveProfiles;
 import org.testcontainers.containers.BindMode;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.wait.strategy.Wait;
+import org.testcontainers.images.ImagePullPolicy;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.DockerImageName;
+
+import io.sapl.api.pdp.AuthorizationDecision;
+import io.sapl.api.pdp.AuthorizationSubscription;
+import io.sapl.api.pdp.PolicyDecisionPoint;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
-import javax.net.ssl.SSLException;
-import java.time.Duration;
-
+@Timeout(value = 5, unit = TimeUnit.MINUTES)
 @DirtiesContext
 @Testcontainers
 @SpringBootTest
 @ActiveProfiles(profiles = "quiet")
 class RemoteRsocketDecisionPointServerIT {
-    private static final int    SAPL_SERVER_RSOCKET_PORT = 7000;
-    private static final String CONTAINER_IMAGE          = "ghcr.io/heutelbeck/sapl-server-lt:4.0.0-SNAPSHOT";
+    private static final int             SAPL_SERVER_RSOCKET_PORT = 7000;
+    private static final String          CONTAINER_IMAGE          = "ghcr.io/heutelbeck/sapl-server-lt:4.0.0-SNAPSHOT";
+    private static final ImagePullPolicy NEVER_PULL               = imageName -> false;
 
     final AuthorizationSubscription permittedSubscription = AuthorizationSubscription.of("Willi", "eat", "apple");
 
@@ -78,7 +85,7 @@ class RemoteRsocketDecisionPointServerIT {
 
     private GenericContainer<?> saplServerWithTls(GenericContainer<?> baseContainer) {
         // @formatter:off
-        return baseContainer.withImagePullPolicy(PullPolicy.neverPull())
+        return baseContainer.withImagePullPolicy(NEVER_PULL)
                 .withClasspathResourceMapping("test_policies.sapl", "/pdp/data/test_policies.sapl", BindMode.READ_ONLY)
                 .withClasspathResourceMapping("keystore.p12", "/pdp/data/keystore.p12", BindMode.READ_ONLY)
                 .withExposedPorts(SAPL_SERVER_RSOCKET_PORT)
@@ -100,7 +107,7 @@ class RemoteRsocketDecisionPointServerIT {
 
     private GenericContainer<?> saplServerWithRSocketNoTls(GenericContainer<?> baseContainer) {
         // @formatter:off
-        return baseContainer.withImagePullPolicy(PullPolicy.neverPull())
+        return baseContainer.withImagePullPolicy(NEVER_PULL)
                 .withClasspathResourceMapping("test_policies.sapl", "/pdp/data/test_policies.sapl", BindMode.READ_ONLY)
                 .withClasspathResourceMapping("keystore.p12", "/pdp/data/keystore.p12", BindMode.READ_ONLY)
                 .withExposedPorts(SAPL_SERVER_RSOCKET_PORT)
@@ -183,7 +190,7 @@ class RemoteRsocketDecisionPointServerIT {
         try (var oauthBaseContainer = new GenericContainer<>(
                 DockerImageName.parse("ghcr.io/navikt/mock-oauth2-server:2.1.0"));
                 final var oauth2Container = oauthBaseContainer.withExposedPorts(8080)
-                        .waitingFor(Wait.forListeningPort())) {
+                        .waitingFor(Wait.forListeningPort().withStartupTimeout(Duration.ofMinutes(2)))) {
             oauth2Container.start();
 
             try (var baseContainer = new GenericContainer<>(DockerImageName.parse(CONTAINER_IMAGE));

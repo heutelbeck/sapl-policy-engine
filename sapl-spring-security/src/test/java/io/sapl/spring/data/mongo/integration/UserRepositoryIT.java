@@ -24,12 +24,12 @@ import org.bson.types.ObjectId;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
-import org.springframework.boot.autoconfigure.domain.EntityScan;
 import org.springframework.boot.test.autoconfigure.data.mongo.AutoConfigureDataMongo;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.mongodb.repository.config.EnableReactiveMongoRepositories;
+
+import io.sapl.spring.data.mongo.integration.config.TestConfig;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.test.annotation.DirtiesContext;
 import reactor.core.publisher.Flux;
@@ -39,11 +39,12 @@ import java.io.IOException;
 import java.util.List;
 
 @AutoConfigureDataMongo
-@SpringBootTest(properties = "de.flapdoodle.mongodb.embedded.version=8.0.5")
-@EnableAutoConfiguration()
+@SpringBootTest(classes = { TestApplication.class }, properties = { "de.flapdoodle.mongodb.embedded.version=8.0.5",
+        "io.sapl.pdp.embedded.enabled=true", "io.sapl.pdp.embedded.pdp-config-type=RESOURCES",
+        "io.sapl.pdp.embedded.policies-path=policies-mongo",
+        "spring.autoconfigure.exclude=org.springframework.boot.autoconfigure.r2dbc.R2dbcAutoConfiguration" })
+@Import(TestConfig.class)
 @DirtiesContext
-@EntityScan(basePackages = "io.sapl.springdatamongoreactive.sapl.database")
-@EnableReactiveMongoRepositories(basePackages = "io.sapl.springdatamongoreactive.integration")
 class UserRepositoryIT {
 
     @Autowired

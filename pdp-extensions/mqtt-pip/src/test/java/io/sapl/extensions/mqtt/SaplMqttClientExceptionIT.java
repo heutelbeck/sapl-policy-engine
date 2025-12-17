@@ -23,7 +23,6 @@ import io.sapl.extensions.mqtt.util.DefaultResponseUtility;
 import lombok.val;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.mockito.MockedStatic;
@@ -32,13 +31,12 @@ import reactor.test.StepVerifier;
 
 import java.nio.file.Path;
 import java.time.Duration;
-import java.util.Map;
 
 import static io.sapl.extensions.mqtt.MqttTestUtility.buildAndStartBroker;
+import static io.sapl.extensions.mqtt.MqttTestUtility.buildVariables;
 import static io.sapl.extensions.mqtt.MqttTestUtility.stopBroker;
 import static org.mockito.ArgumentMatchers.any;
 
-//@Disabled // This one ?
 class SaplMqttClientExceptionIT {
 
     private static final long DELAY_MS = 500L;
@@ -63,6 +61,8 @@ class SaplMqttClientExceptionIT {
 
     @AfterEach
     void afterEach() {
+        SaplMqttClient.MQTT_CLIENT_CACHE.clear();
+        SaplMqttClient.DEFAULT_RESPONSE_CONFIG_CACHE.clear();
         stopBroker(mqttBroker);
     }
 
@@ -80,18 +80,18 @@ class SaplMqttClientExceptionIT {
     }
 
     @Test
-    @Disabled("This test causes side effects and makes SaplMqttClientSubscriptionsIT.when_oneFluxIsCancelledWhileSubscribingToMultipleTopics_then_getMessagesOfLeftTopics fail by timeout")
     void when_exceptionOccursInTheMessageFlux_then_returnFluxWithValueOfError() {
         // GIVEN
         val topics = "topic";
 
         // WHEN
-        val saplMqttMessageFlux = saplMqttClient.buildSaplMqttMessageFlux(Value.of(topics), Map.of());
-
         try (MockedStatic<DefaultResponseUtility> defaultResponseUtilityMockedStatic = Mockito
                 .mockStatic(DefaultResponseUtility.class)) {
             defaultResponseUtilityMockedStatic.when(() -> DefaultResponseUtility.getDefaultResponseConfig(any(), any()))
                     .thenThrow(new RuntimeException("Error in stream"));
+
+            val saplMqttMessageFlux = saplMqttClient.buildSaplMqttMessageFlux(Value.of(topics), buildVariables());
+
             // THEN
             StepVerifier.create(saplMqttMessageFlux).thenAwait(Duration.ofMillis(DELAY_MS))
                     .expectNext(Value.error("Error in stream")).thenCancel().verify();

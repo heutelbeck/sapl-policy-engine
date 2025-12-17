@@ -129,6 +129,7 @@ public class PlaygroundView extends Composite<VerticalLayout> {
     private static final double SUBSCRIPTION_SECTION_HEIGHT = 35.0D;
 
     private static final String EDITOR_CONFIGURATION_ID = "playground";
+    private static final String LSP_WEBSOCKET_URL       = "ws://localhost:8080/sapl-lsp";
 
     private static final String COLOR_GREEN  = "green";
     private static final String COLOR_ORANGE = "orange";
@@ -187,6 +188,7 @@ public class PlaygroundView extends Composite<VerticalLayout> {
     private static final String CSS_VALUE_SPACE_XS            = "var(--lumo-space-xs)";
     private static final String CSS_VALUE_TAB_PADDING         = "0.5em 0.75em";
     private static final String CSS_VALUE_WEIGHT_600          = "600";
+    private static final String CSS_VALUE_ZERO                = "0";
 
     private static final String FRAGMENT_PREFIX_EXAMPLE   = "example/";
     private static final String FRAGMENT_PREFIX_PERMALINK = "permalink/";
@@ -446,7 +448,7 @@ public class PlaygroundView extends Composite<VerticalLayout> {
      * Handles new authorization decisions from the PDP. Ensures UI updates occur on
      * the UI thread.
      */
-    private void interceptDecision(final TracedDecision tracedDecision) {
+    private void handleNewDecisionOnUiThread(final TracedDecision tracedDecision) {
         getUI().ifPresent(ui -> ui.access(() -> handleNewDecision(tracedDecision)));
     }
 
@@ -575,9 +577,17 @@ public class PlaygroundView extends Composite<VerticalLayout> {
         container.setSpacing(false);
         container.getStyle().set(CSS_PADDING, CSS_VALUE_SPACE_M);
 
-        val header = new H5(LABEL_DECISIONS);
-        header.getStyle().set(CSS_MARGIN, CSS_VALUE_ONE).set(CSS_PADDING, CSS_VALUE_PADDING_BOTTOM_XS)
+        val headerLayout = new HorizontalLayout();
+        headerLayout.setWidthFull();
+        headerLayout.setJustifyContentMode(FlexComponent.JustifyContentMode.BETWEEN);
+        headerLayout.setAlignItems(FlexComponent.Alignment.CENTER);
+        headerLayout.getStyle().set(CSS_MARGIN, CSS_VALUE_ONE).set(CSS_PADDING, CSS_VALUE_PADDING_BOTTOM_XS)
                 .set(CSS_BORDER_BOTTOM, CSS_VALUE_CONTRAST_10PCT_LINE);
+
+        val header = new H5(LABEL_DECISIONS);
+        header.getStyle().set(CSS_MARGIN, CSS_VALUE_ZERO);
+
+        headerLayout.add(header);
 
         decisionsGrid     = new DecisionsGrid();
         decisionsGridView = decisionsGrid.setItems(decisionBuffer);
@@ -601,7 +611,7 @@ public class PlaygroundView extends Composite<VerticalLayout> {
         splitLayout.setSplitterPosition(DECISIONS_PANEL_HEIGHT);
         splitLayout.setOrientation(Orientation.VERTICAL);
 
-        container.add(header, splitLayout);
+        container.add(headerLayout, splitLayout);
         return container;
     }
 
@@ -875,7 +885,7 @@ public class PlaygroundView extends Composite<VerticalLayout> {
 
         try {
             activeSubscription = policyDecisionPoint.decide(authorizationSubscription).subscribe(
-                    this::interceptDecision, this::handleSubscriptionError, this::handleSubscriptionComplete);
+                    this::handleNewDecisionOnUiThread, this::handleSubscriptionError, this::handleSubscriptionComplete);
         } catch (IllegalStateException | IllegalArgumentException exception) {
             log.error("Failed to create subscription", exception);
             stopSubscription();
@@ -1456,6 +1466,7 @@ public class PlaygroundView extends Composite<VerticalLayout> {
         val config = new SaplEditorLspConfiguration();
         config.setHasLineNumbers(true);
         config.setDarkTheme(true);
+        config.setWsUrl(LSP_WEBSOCKET_URL);
 
         val editor = new SaplEditorLsp(config);
         editor.setConfigurationId(EDITOR_CONFIGURATION_ID);
@@ -1548,7 +1559,8 @@ public class PlaygroundView extends Composite<VerticalLayout> {
 
     /*
      * Updates validation state display for policy and stores the validation state
-     * in context for later restoration after collision warnings.
+     * in context for later restoration
+     * after collision warnings.
      */
     private void updatePolicyValidationState(PolicyTabContext context, boolean hasErrors,
             io.sapl.vaadin.Issue[] issues) {
@@ -1569,10 +1581,10 @@ public class PlaygroundView extends Composite<VerticalLayout> {
 
     /*
      * Checks for and displays policy name collisions. Groups policies by document
-     * name and identifies duplicates.
-     * For tabs with collisions, shows a warning. For tabs without collisions,
-     * restores their stored validation state from the last Xtext/compile
-     * validation.
+     * name and identifies duplicates. For
+     * tabs with collisions, shows a warning. For tabs without collisions, restores
+     * their stored validation state from
+     * the last Xtext/compile validation.
      */
     private void checkForPolicyNameCollisions() {
         val documentNamesToTabs = groupTabsByDocumentName();
@@ -1625,8 +1637,9 @@ public class PlaygroundView extends Composite<VerticalLayout> {
     }
 
     /*
-     * Restores the stored validation state after collision cleared.
-     * Uses the validation issues saved from the last Xtext/compile validation.
+     * Restores the stored validation state after collision cleared. Uses the
+     * validation issues saved from the last
+     * Xtext/compile validation.
      */
     private void restoreStoredValidationState(PolicyTabContext context) {
         context.validationDisplay.setIssues(context.lastValidationIssues);

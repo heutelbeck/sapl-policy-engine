@@ -527,8 +527,8 @@ public class TraccarPolicyInformationPoint {
             ```
             """)
     public Flux<Value> geofenceGeometry(TextValue geofenceEntityId, Map<String, Value> variables) {
-        return traccarGeofence(geofenceEntityId, variables)
-                .map(value -> TraccarFunctionLibrary.traccarGeofenceToGeoJson((ObjectValue) value)).distinct();
+        return traccarGeofence(geofenceEntityId, variables).map(value -> value instanceof ErrorValue ? value
+                : TraccarFunctionLibrary.traccarGeofenceToGeoJson((ObjectValue) value)).distinct();
     }
 
     @Attribute(schema = GeoJSONSchemata.POLYGON, docs = """
@@ -568,8 +568,8 @@ public class TraccarPolicyInformationPoint {
             ```
             """)
     public Flux<Value> geofenceGeometry(TextValue geofenceEntityId, ObjectValue traccarConfig) {
-        return traccarGeofence(geofenceEntityId, traccarConfig)
-                .map(value -> TraccarFunctionLibrary.traccarGeofenceToGeoJson((ObjectValue) value)).distinct();
+        return traccarGeofence(geofenceEntityId, traccarConfig).map(value -> value instanceof ErrorValue ? value
+                : TraccarFunctionLibrary.traccarGeofenceToGeoJson((ObjectValue) value)).distinct();
     }
 
     @Attribute(schema = TraccarSchemata.POSITION_SCHEMA, docs = """
@@ -687,8 +687,8 @@ public class TraccarPolicyInformationPoint {
             ```
             """)
     public Flux<Value> position(TextValue deviceEntityId, Map<String, Value> variables) {
-        return traccarPosition(deviceEntityId, variables)
-                .map(value -> TraccarFunctionLibrary.traccarPositionToGeoJSON((ObjectValue) value)).distinct();
+        return traccarPosition(deviceEntityId, variables).map(value -> value instanceof ErrorValue ? value
+                : TraccarFunctionLibrary.traccarPositionToGeoJSON((ObjectValue) value)).distinct();
     }
 
     @Attribute(schema = GeoJSONSchemata.POINT, docs = """
@@ -718,8 +718,8 @@ public class TraccarPolicyInformationPoint {
             ```
             """)
     public Flux<Value> position(TextValue deviceEntityId, ObjectValue traccarConfig) {
-        return traccarPosition(deviceEntityId, traccarConfig)
-                .map(value -> TraccarFunctionLibrary.traccarPositionToGeoJSON((ObjectValue) value)).distinct();
+        return traccarPosition(deviceEntityId, traccarConfig).map(value -> value instanceof ErrorValue ? value
+                : TraccarFunctionLibrary.traccarPositionToGeoJSON((ObjectValue) value)).distinct();
     }
 
     private ObjectValue requestSettingsFromTraccarConfig(String path, ObjectValue traccarConfig) {

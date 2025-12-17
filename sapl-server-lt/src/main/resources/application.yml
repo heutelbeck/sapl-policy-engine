@@ -1,10 +1,12 @@
 spring:
   application.name: sapl-server-lt
   cache:
-    type: infinispan
-infinispan:
-  embedded:
-    config-xml: infinispan.xml
+    type: caffeine
+    caffeine:
+      spec: maximumSize=1000,expireAfterWrite=1h
+    cache-names:
+      - ApiKeyCache
+      - buckets
 bucket4j:
   enabled: false
   filters:
@@ -19,7 +21,7 @@ bucket4j:
             - capacity: 10000
               time: 1
               unit: seconds
-  cache-to-use: none # supported values: none, infinispan
+  cache-to-use: caffeine
 
 spring.rsocket.server:
   port: 7000
@@ -48,7 +50,7 @@ spring.rsocket.server:
     enabled-protocols:
       - TLSv1.3
       - TLSv1.2
-    protocol: TLSv1.3 
+    protocol: TLSv1.3
 server:
   port: 8443
   ssl:
@@ -90,5 +92,5 @@ io.sapl:
     allowApiKeyAuth: false
     allowOauth2Auth: false
 logging.level:
-  "[io.sapl]": INFO   
+  "[io.sapl]": INFO
   "[org.springframework]": INFO

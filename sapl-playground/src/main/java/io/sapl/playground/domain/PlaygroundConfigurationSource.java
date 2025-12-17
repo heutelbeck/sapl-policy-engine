@@ -44,10 +44,10 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 
 /**
- * UI-scoped configuration source for the playground PDP.
- * Combines shared brokers with UI-scoped policies, variables, and combining
- * algorithm.
- * Emits new configurations whenever any component changes.
+ * UI-scoped configuration source for the playground PDP. Combines shared
+ * brokers with UI-scoped policies, variables,
+ * and combining algorithm. Emits new configurations whenever any component
+ * changes.
  */
 public class PlaygroundConfigurationSource implements CompiledPDPConfigurationSource {
 
@@ -83,7 +83,8 @@ public class PlaygroundConfigurationSource implements CompiledPDPConfigurationSo
     /**
      * Updates the policy documents and emits a new configuration.
      *
-     * @param policySources list of SAPL policy source strings
+     * @param policySources
+     * list of SAPL policy source strings
      */
     public void setPolicies(List<String> policySources) {
         currentPolicySources.set(List.copyOf(policySources));
@@ -93,7 +94,8 @@ public class PlaygroundConfigurationSource implements CompiledPDPConfigurationSo
     /**
      * Updates the variables and emits a new configuration.
      *
-     * @param variables map of variable names to values
+     * @param variables
+     * map of variable names to values
      */
     public void setVariables(Map<String, Value> variables) {
         currentVariables.set(Map.copyOf(variables));
@@ -103,7 +105,8 @@ public class PlaygroundConfigurationSource implements CompiledPDPConfigurationSo
     /**
      * Updates the combining algorithm and emits a new configuration.
      *
-     * @param algorithm the combining algorithm
+     * @param algorithm
+     * the combining algorithm
      */
     public void setCombiningAlgorithm(CombiningAlgorithm algorithm) {
         currentAlgorithm.set(algorithm);
@@ -159,7 +162,9 @@ public class PlaygroundConfigurationSource implements CompiledPDPConfigurationSo
     /**
      * Attempts to compile a policy source and returns any compile errors.
      *
-     * @param source the SAPL policy source to compile
+     * @param source
+     * the SAPL policy source to compile
+     *
      * @return optional containing the exception if compilation failed, empty if
      * successful
      */

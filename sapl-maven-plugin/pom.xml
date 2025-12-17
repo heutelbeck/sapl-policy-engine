@@ -66,7 +66,7 @@
 		<!-- SAPL -->
 		<dependency>
 			<groupId>io.sapl</groupId>
-			<artifactId>sapl-pdp-antlr</artifactId>
+			<artifactId>sapl-pdp</artifactId>
 			<version>${project.version}</version>
 		</dependency>
 		<dependency>

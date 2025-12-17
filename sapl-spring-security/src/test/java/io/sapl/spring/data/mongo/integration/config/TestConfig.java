@@ -22,8 +22,8 @@ import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.data.mongodb.repository.config.EnableReactiveMongoRepositories;
 
 @TestConfiguration
-@EnableReactiveMongoRepositories(basePackages = "io.sapl.springdatamongoreactive.integration")
-@EntityScan(basePackages = "io.sapl.springdatamongoreactive.sapl.database")
+@EnableReactiveMongoRepositories(basePackages = "io.sapl.spring.data.mongo.integration")
+@EntityScan(basePackages = "io.sapl.spring.data.mongo.sapl.database")
 public class TestConfig {
 
 }
