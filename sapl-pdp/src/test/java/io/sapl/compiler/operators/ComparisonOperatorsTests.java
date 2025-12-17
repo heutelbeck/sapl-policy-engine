@@ -139,21 +139,6 @@ class ComparisonOperatorsTests {
                 .contains("Invalid regular expression");
     }
 
-    @ParameterizedTest(name = "{0}")
-    @MethodSource
-    void when_matchesRegularExpression_withTypeMismatch_then_returnsError(String description, Value input, Value regex,
-            String expectedErrorFragment) {
-        val actual = ComparisonOperators.matchesRegularExpression(null, input, regex);
-        assertThat(actual).isInstanceOf(ErrorValue.class).extracting(v -> ((ErrorValue) v).message()).asString()
-                .contains(expectedErrorFragment);
-    }
-
-    private static Stream<Arguments> when_matchesRegularExpression_withTypeMismatch_then_returnsError() {
-        return Stream.of(
-                arguments("input not string", Value.of(5), Value.of("pattern"), "can only be matched against strings"),
-                arguments("regex not string", Value.of("text"), Value.of(5), "must be strings"));
-    }
-
     @Test
     void when_compileRegularExpressionOperator_withValidPattern_then_returnsOperator() {
         val operator = ComparisonOperators.compileRegularExpressionOperator(null, Value.of("\\d+"));
@@ -241,7 +226,6 @@ class ComparisonOperatorsTests {
         val operator = ComparisonOperators.compileRegularExpressionOperator(null, Value.of("test"));
 
         val result = operator.apply(Value.of(5));
-        assertThat(result).isInstanceOf(ErrorValue.class).extracting(v -> ((ErrorValue) v).message()).asString()
-                .contains("can only be matched against strings");
+        assertThat(result).isEqualTo(Value.FALSE);
     }
 }

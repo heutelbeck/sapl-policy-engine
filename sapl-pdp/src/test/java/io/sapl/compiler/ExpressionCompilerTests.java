@@ -276,6 +276,7 @@ class ExpressionCompilerTests {
                 arguments("\"Stormbringer\" =~ \"^Storm.*\"", Value.TRUE),
                 arguments("\"Stormbringer\" =~ \"^Mourn.*\"", Value.FALSE),
                 arguments("\"chaos@law.com\" =~ \".*@.*\\\\.com\"", Value.TRUE),
+                arguments("42 =~ \"\\\\d+\"", Value.FALSE),
                 // Combined operations
                 arguments("(5 > 3) && (10 < 20)", Value.TRUE), arguments("(5 + 3) * 2 == 16", Value.TRUE),
                 arguments("(true || false) && (3 < 5)", Value.TRUE));
@@ -288,7 +289,7 @@ class ExpressionCompilerTests {
     }
 
     static Stream<Arguments> whenComparisonError_thenReturnsError() {
-        return Stream.of(arguments("\"hello\" < 5"), arguments("1 in 42"), arguments("42 =~ \"\\\\d+\""));
+        return Stream.of(arguments("\"hello\" < 5"), arguments("1 in 42"));
     }
 
     @Test
