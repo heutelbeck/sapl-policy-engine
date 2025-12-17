@@ -411,10 +411,19 @@ class ExpressionCompilerTests {
                 arguments("{ outer: { inner: \"secret\" } }.outer.inner", Value.of("secret")),
                 // Missing key returns undefined
                 arguments("{ name: \"Cthulhu\" }.missing", Value.UNDEFINED),
-                // Key on non-object returns undefined
-                arguments("[1, 2, 3].name", Value.UNDEFINED), arguments("\"text\".field", Value.UNDEFINED),
-                arguments("42.property", Value.UNDEFINED), arguments("\"Stormbringer\".weapon", Value.UNDEFINED),
-                arguments("true.realm", Value.UNDEFINED), arguments("[1, 2, 3].key", Value.UNDEFINED));
+                // Key on non-object returns undefined (scalars)
+                arguments("\"text\".field", Value.UNDEFINED), arguments("42.property", Value.UNDEFINED),
+                arguments("\"Stormbringer\".weapon", Value.UNDEFINED), arguments("true.realm", Value.UNDEFINED),
+                // Key on array of non-objects returns empty array (projection yields no
+                // results)
+                arguments("[1, 2, 3].name", Value.EMPTY_ARRAY), arguments("[1, 2, 3].key", Value.EMPTY_ARRAY),
+                // Key on array of objects projects across elements
+                arguments("[{a: 1}, {a: 2}, {a: 3}].a", Value.ofArray(Value.of(1), Value.of(2), Value.of(3))),
+                arguments("[{name: \"Elric\"}, {name: \"Moonglum\"}].name",
+                        Value.ofArray(Value.of("Elric"), Value.of("Moonglum"))),
+                // Mixed array - only objects with key contribute
+                arguments("[{a: 1}, 5, {a: 3}].a", Value.ofArray(Value.of(1), Value.of(3))),
+                arguments("[{a: 1}, {b: 2}, {a: 3}].a", Value.ofArray(Value.of(1), Value.of(3))));
     }
 
     @ParameterizedTest(name = "index access: {0}")
@@ -478,8 +487,8 @@ class ExpressionCompilerTests {
                 arguments("{ \"key\" : true }[(\"no_ke\"+\"y\")]", Value.UNDEFINED),
                 arguments("{ \"key\" : true }[(5+2)]", Value.UNDEFINED),
                 arguments("undefined[(1 + 1)]", Value.UNDEFINED),
-                // String key on array returns undefined
-                arguments("[0,1,2,3,4,5,6,7,8,9][(\"key\")]", Value.UNDEFINED),
+                // String key on array projects and returns empty array (no objects)
+                arguments("[0,1,2,3,4,5,6,7,8,9][(\"key\")]", Value.EMPTY_ARRAY),
                 // Errors
                 arguments("[1,2,3][(true)]", Value.error("placeholder")),
                 arguments("[1,2,3][(1+100)]", Value.error("placeholder")),
@@ -703,24 +712,19 @@ class ExpressionCompilerTests {
     }
 
     // ==========================================================================
-    // Known Issue: Filter by membership in nested array returns undefined
+    // Filter by membership in nested array (Brewer-Nash / Chinese Wall patterns)
     // Pattern: array[?(value in @.field)].projection
-    // Used in Brewer-Nash (Chinese Wall) policies
     // ==========================================================================
 
-    @ParameterizedTest(name = "KNOWN ISSUE - membership in nested array: {0}")
+    @ParameterizedTest(name = "filter by membership in nested array: {0}")
     @MethodSource
-    void whenFilterByMembershipInNestedArray_thenCurrentlyReturnsUndefined(String description, String expression,
-            Value expectedCorrectResult) {
-        // BUG: These expressions should return expectedCorrectResult but currently
-        // return undefined
+    void whenFilterByMembershipInNestedArray_thenProjectsCorrectly(String description, String expression,
+            Value expected) {
         val result = compileExpression(expression);
-        assertThat(result).isEqualTo(Value.UNDEFINED); // Current incorrect behavior
-        // TODO: When fixed, change assertion to:
-        // assertThat(result).isEqualTo(expectedCorrectResult);
+        assertThat(result).isEqualTo(expected);
     }
 
-    static Stream<Arguments> whenFilterByMembershipInNestedArray_thenCurrentlyReturnsUndefined() {
+    static Stream<Arguments> whenFilterByMembershipInNestedArray_thenProjectsCorrectly() {
         return Stream.of(
                 arguments("filter by membership - single match",
                         "[{\"class\": \"energy\", \"entities\": [\"OilCorp\", \"PetroEnergy\", \"GasGiant\"]}, "
@@ -739,17 +743,25 @@ class ExpressionCompilerTests {
                         Value.ofArray(Value.of("energy"), Value.of("banking"))));
     }
 
-
     @Test
-    void bntest() {
+    void whenKeyStepOnArrayOfObjects_thenProjectsKeyAcrossElements() {
         val compiled = compileExpression("""
                 [
                   {"class": "energy", "entities": ["OilCorp", "Shared"]},
                   {"class": "banking", "entities": ["GlobalBank", "Shared"]}
-                ]
+                ].class
                 """);
-        System.out.println("-> "+ compiled.getClass().getSimpleName());
+        assertThat(compiled).isEqualTo(Value.ofArray(Value.of("energy"), Value.of("banking")));
+
+        val compiled2 = compileExpression("""
+                [
+                  {"class": "energy", "entities": ["OilCorp", "Shared"]},
+                  {"class": "banking", "entities": ["GlobalBank", "Shared"]}
+                ][?("GlobalBank" in @.entities)].class
+                """);
+        assertThat(compiled2).isEqualTo(Value.ofArray(Value.of("banking")));
     }
+
     @ParameterizedTest(name = "condition error: {0}")
     @MethodSource
     void whenConditionError_thenReturnsErrorContaining(String expression, String expectedSubstring) {
@@ -1023,8 +1035,8 @@ class ExpressionCompilerTests {
                 arguments("undefined in [1, 2, 3]", Value.FALSE),
                 // Null in boolean contexts
                 arguments("null == null && true", Value.TRUE), arguments("(null == null) || false", Value.TRUE),
-                // Key/index on non-matching types
-                arguments("[0,1,2,3,4,5,6,7,8,9][(\"key\")]", Value.UNDEFINED),
+                // Key on array projects and returns empty array (no objects)
+                arguments("[0,1,2,3,4,5,6,7,8,9][(\"key\")]", Value.EMPTY_ARRAY),
                 // Functions with subscription
                 arguments("time.hourOf({\"time\": \"2021-11-08T13:00:00Z\"}.time)", Value.of(13)),
                 arguments("time.durationOfSeconds({\"duration\": 60}.duration)", Value.of(60000)),

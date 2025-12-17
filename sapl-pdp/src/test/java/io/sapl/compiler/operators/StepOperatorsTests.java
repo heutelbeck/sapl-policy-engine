@@ -69,10 +69,10 @@ class StepOperatorsTests {
     }
 
     @Test
-    void when_keyStepOnNonObject_then_returnsUndefined() {
-        // Key step on non-object returns undefined for robust policy evaluation
+    void when_keyStepOnNonObject_then_returnsEmptyArrayUndefined() {
+        // Key step on non-object returns empty array for robust policy evaluation
         val result = keyStep(null, NECRONOMICON_CHAPTERS, "forbidden");
-        assertThat(result).isEqualTo(Value.UNDEFINED);
+        assertThat(result).isEqualTo(Value.EMPTY_ARRAY);
     }
 
     // ========== indexStep Tests ==========

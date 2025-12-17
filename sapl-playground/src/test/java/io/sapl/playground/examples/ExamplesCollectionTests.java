@@ -26,17 +26,20 @@ import io.sapl.functions.libraries.ArrayFunctionLibrary;
 import io.sapl.functions.libraries.FilterFunctionLibrary;
 import io.sapl.functions.libraries.GraphFunctionLibrary;
 import io.sapl.functions.libraries.StandardFunctionLibrary;
+import io.sapl.functions.libraries.TemporalFunctionLibrary;
+import io.sapl.api.model.Value;
 import io.sapl.test.DecisionMatchers;
 import io.sapl.test.SaplTestFixture;
 import lombok.val;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
-import java.util.Set;
 import java.util.stream.Stream;
 
+import static io.sapl.test.Matchers.args;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 /**
@@ -46,8 +49,6 @@ import static org.junit.jupiter.params.provider.Arguments.arguments;
 class ExamplesCollectionTests {
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
-
-    private static final Set<String> TIME_DEPENDENT_EXAMPLES = Set.of("default", "business-hours");
 
     @ParameterizedTest(name = "{0}: {1}")
     @MethodSource("deterministicExamples")
@@ -104,56 +105,47 @@ class ExamplesCollectionTests {
                         Decision.PERMIT),
                 arguments("role-based-access-control", "RBAC", ExamplesCollection.ACCESS_CONTROL_RBAC, Decision.PERMIT),
                 arguments("hierarchical-role-based-access-control", "Hierarchical RBAC",
-                        ExamplesCollection.ACCESS_CONTROL_HIERARCHICAL_RBAC, Decision.PERMIT));
-    }
+                        ExamplesCollection.ACCESS_CONTROL_HIERARCHICAL_RBAC, Decision.PERMIT),
 
-    @ParameterizedTest(name = "{0}: {1}")
-    @MethodSource("knownFailingExamples")
-    @DisplayName("Known failing examples (compiler issues to investigate)")
-    void knownFailingExampleReturnsIndeterminate(String slug, String displayName, Example example,
-            Decision expectedDecision) throws Exception {
-        // These examples return INDETERMINATE with the new compiler.
-        // They use complex filter expressions like [?(resource.entity in @.entities)]
-        // that need investigation.
-        val subscription = parseSubscription(example.subscription());
-        val fixture      = SaplTestFixture.createIntegrationTest().withCombiningAlgorithm(example.combiningAlgorithm())
-                .withCoverageDisabled().withFunctionLibrary(StandardFunctionLibrary.class)
-                .withFunctionLibrary(ArrayFunctionLibrary.class).withFunctionLibrary(FilterFunctionLibrary.class)
-                .withFunctionLibrary(GraphFunctionLibrary.class).withFunctionLibrary(GeographicFunctionLibrary.class);
-
-        for (var policy : example.policies()) {
-            fixture.withPolicy(policy);
-        }
-
-        registerVariables(fixture, example.variables());
-
-        // Currently returns INDETERMINATE - verify this known failure
-        fixture.whenDecide(subscription).expectDecisionMatches(DecisionMatchers.isIndeterminate()).verify();
-    }
-
-    private static Stream<Arguments> knownFailingExamples() {
-        return Stream.of(
-                // Brewer-Nash examples use complex filter predicates that cause INDETERMINATE
+                // Brewer-Nash (Chinese Wall) examples - use key projection on arrays
                 arguments("brewer-nash-financial", "Brewer-Nash Financial",
                         ExamplesCollection.ACCESS_CONTROL_BREWER_NASH_FINANCIAL, Decision.DENY),
                 arguments("brewer-nash-consulting", "Brewer-Nash Consulting",
                         ExamplesCollection.ACCESS_CONTROL_BREWER_NASH_CONSULTING, Decision.DENY));
     }
 
-    @ParameterizedTest(name = "{0}: {1}")
-    @MethodSource("timeDependentExamples")
-    @DisplayName("Time-dependent examples are skipped (require time mocking)")
-    void timeDependentExamplesAreDocumented(String slug, String displayName, Example example) {
-        // Time-dependent examples require mocking of time attributes.
-        // This test documents which examples are time-dependent.
-        // The actual behavior depends on the current time when run without mocking.
-        org.junit.jupiter.api.Assumptions.assumeTrue(TIME_DEPENDENT_EXAMPLES.contains(slug),
-                "Example " + slug + " should be in TIME_DEPENDENT_EXAMPLES set");
+    // ==========================================================================
+    // Time-dependent examples (require mocked time attributes)
+    // ==========================================================================
+
+    @Test
+    @DisplayName("Default example: PERMIT during business hours (mocked time)")
+    void defaultExamplePermitsDuringBusinessHours() throws Exception {
+        val example      = ExamplesCollection.DEFAULT_SETTINGS;
+        val subscription = parseSubscription(example.subscription());
+        val fixture      = SaplTestFixture.createSingleTest().withCoverageDisabled()
+                .withFunctionLibrary(TemporalFunctionLibrary.class)
+                .givenEnvironmentAttribute("timeMock", "time.now", args(), Value.of("2025-01-06T10:00:00Z"))
+                .withPolicy(example.policies().getFirst());
+
+        registerVariables(fixture, example.variables());
+
+        fixture.whenDecide(subscription).expectDecisionMatches(DecisionMatchers.isPermit()).verify();
     }
 
-    private static Stream<Arguments> timeDependentExamples() {
-        return Stream.of(arguments("default", "Default Time-Based Access", ExamplesCollection.DEFAULT_SETTINGS),
-                arguments("business-hours", "Time-based policy", ExamplesCollection.DOCUMENTATION_BUSINESS_HOURS));
+    @Test
+    @DisplayName("Default example: NOT_APPLICABLE outside business hours (mocked time)")
+    void defaultExampleNotApplicableOutsideBusinessHours() throws Exception {
+        val example      = ExamplesCollection.DEFAULT_SETTINGS;
+        val subscription = parseSubscription(example.subscription());
+        val fixture      = SaplTestFixture.createSingleTest().withCoverageDisabled()
+                .withFunctionLibrary(TemporalFunctionLibrary.class)
+                .givenEnvironmentAttribute("timeMock", "time.now", args(), Value.of("2025-01-06T20:00:00Z"))
+                .withPolicy(example.policies().getFirst());
+
+        registerVariables(fixture, example.variables());
+
+        fixture.whenDecide(subscription).expectDecisionMatches(DecisionMatchers.isNotApplicable()).verify();
     }
 
     private AuthorizationSubscription parseSubscription(String subscriptionJson) throws Exception {

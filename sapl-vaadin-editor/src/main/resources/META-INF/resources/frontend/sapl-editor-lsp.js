@@ -983,46 +983,77 @@ class SaplEditorLsp extends LitElement {
 
             if (!result) return null;
 
-            // Determine 'from' position based on context
-            let from;
-            if (attrMatch) {
-                // Include the < or |< in replacement range
-                from = attrMatch.from;
-            } else if (dotMatch) {
-                // Start after the dot
-                from = dotMatch.from + 1;
-            } else {
-                // Use word match or cursor position
-                const generalWordMatch = context.matchBefore(/[\w.]*$/);
-                from = generalWordMatch ? generalWordMatch.from : context.pos;
-            }
-
             const items = Array.isArray(result) ? result : (result.items || []);
 
-            console.log('[SAPL] Completion result:', { from, itemCount: items.length, pos: context.pos });
+            // Determine default 'from' position based on context (used if no TextEdit)
+            let defaultFrom;
+            if (attrMatch) {
+                // Include the < or |< in replacement range
+                defaultFrom = attrMatch.from;
+            } else {
+                // Use general word match including dots for qualified names
+                const generalWordMatch = context.matchBefore(/[\w.]*$/);
+                defaultFrom = generalWordMatch ? generalWordMatch.from : context.pos;
+            }
+
+            console.log('[SAPL] Completion result:', { defaultFrom, itemCount: items.length, pos: context.pos });
 
             return {
-                from: from,
+                from: defaultFrom,
                 options: items.map(item => {
                     let insertText = item.insertText || item.label || '';
 
+                    // Check if LSP provided a TextEdit with specific range
+                    let applyText = insertText;
+                    let itemFrom = defaultFrom;
+                    let itemTo = context.pos;
+
+                    if (item.textEdit) {
+                        // Use TextEdit from LSP - it has the correct range and text
+                        const te = item.textEdit.left || item.textEdit;
+                        if (te && te.range) {
+                            itemFrom = this._positionToOffset(te.range.start);
+                            itemTo = this._positionToOffset(te.range.end);
+                            applyText = te.newText || insertText;
+                            console.log('[SAPL] TextEdit for', item.label, ':', { itemFrom, itemTo, applyText });
+                        }
+                    }
+
                     // Check if this is an LSP snippet (has insertTextFormat = 2 or contains ${)
-                    const isSnippet = item.insertTextFormat === 2 || /\$\{\d+:/.test(insertText);
+                    const isSnippet = item.insertTextFormat === 2 || /\$\{\d+:/.test(applyText);
 
                     if (isSnippet) {
                         // Convert LSP snippet syntax to CodeMirror snippet syntax
-                        const cmSnippet = this._convertLspSnippet(insertText);
+                        const cmSnippet = this._convertLspSnippet(applyText);
+                        // For snippets with custom range, wrap in apply function
+                        const applyFn = itemFrom !== defaultFrom
+                            ? (view) => {
+                                view.dispatch({
+                                    changes: { from: itemFrom, to: itemTo, insert: '' }
+                                });
+                                snippet(cmSnippet)(view, null, itemFrom, itemFrom);
+                            }
+                            : snippet(cmSnippet);
                         return {
                             label: item.label || '',
-                            apply: snippet(cmSnippet),
+                            apply: applyFn,
                             detail: item.detail,
                             info: this._renderDocumentation(item.documentation),
                             type: this._mapCompletionKind(item.kind)
                         };
                     } else {
+                        // For non-snippets with TextEdit, use apply function for precise control
+                        const hasCustomRange = item.textEdit != null;
                         return {
                             label: item.label || '',
-                            apply: insertText,
+                            apply: hasCustomRange
+                                ? (view) => {
+                                    view.dispatch({
+                                        changes: { from: itemFrom, to: itemTo, insert: applyText },
+                                        selection: { anchor: itemFrom + applyText.length }
+                                    });
+                                }
+                                : applyText,
                             detail: item.detail,
                             info: this._renderDocumentation(item.documentation),
                             type: this._mapCompletionKind(item.kind)

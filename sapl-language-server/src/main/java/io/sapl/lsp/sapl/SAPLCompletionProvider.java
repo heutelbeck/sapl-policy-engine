@@ -31,6 +31,8 @@ import org.eclipse.lsp4j.InsertTextFormat;
 import org.eclipse.lsp4j.MarkupContent;
 import org.eclipse.lsp4j.MarkupKind;
 import org.eclipse.lsp4j.Position;
+import org.eclipse.lsp4j.Range;
+import org.eclipse.lsp4j.TextEdit;
 
 import io.sapl.api.documentation.EntryType;
 import io.sapl.grammar.antlr.SAPLLexer;
@@ -734,10 +736,17 @@ public class SAPLCompletionProvider {
         var proposals       = VariablesProposalsGenerator.variableProposalsForContext(saplParseTree, cursorOffset,
                 config, inSchemaContext);
 
+        // Calculate the range for text edits (from start of identifier to cursor)
+        var editRange = calculateCompletionRange(document.getContent(), position);
+
         for (var proposal : proposals) {
             var item = new CompletionItem(proposal);
             item.setKind(CompletionItemKind.Variable);
-            item.setInsertText(proposal);
+
+            // Use TextEdit with proper range to avoid duplication when prefix is already
+            // typed
+            var textEdit = new TextEdit(editRange, proposal);
+            item.setTextEdit(org.eclipse.lsp4j.jsonrpc.messages.Either.forLeft(textEdit));
 
             // Distinguish between base variables and schema expansions
             if (proposal.contains(".") || proposal.contains("[")) {
@@ -752,6 +761,36 @@ public class SAPLCompletionProvider {
 
             items.add(item);
         }
+    }
+
+    /**
+     * Calculates the range for completion text edits.
+     * The range starts at the beginning of the identifier being typed (including
+     * dots for
+     * qualified names) and ends at the cursor position.
+     */
+    private Range calculateCompletionRange(String content, Position position) {
+        var lines = content.split("\n", -1);
+        if (position.getLine() >= lines.length) {
+            return new Range(position, position);
+        }
+
+        var line   = lines[position.getLine()];
+        var column = Math.min(position.getCharacter(), line.length());
+
+        // Scan backwards to find the start of the identifier (including dots)
+        var start = column;
+        while (start > 0) {
+            var ch = line.charAt(start - 1);
+            if (Character.isLetterOrDigit(ch) || ch == '_' || ch == '.') {
+                start--;
+            } else {
+                break;
+            }
+        }
+
+        var startPosition = new Position(position.getLine(), start);
+        return new Range(startPosition, position);
     }
 
     /**

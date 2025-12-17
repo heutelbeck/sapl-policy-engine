@@ -17,17 +17,23 @@
  */
 package io.sapl.lsp.sapl;
 
-import java.util.stream.Collectors;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.eclipse.lsp4j.CompletionItemKind.Variable;
 
+import java.util.List;
+
+import org.eclipse.lsp4j.CompletionItem;
 import org.eclipse.lsp4j.Position;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import io.sapl.lsp.configuration.ConfigurationManager;
-import io.sapl.lsp.configuration.LSPConfiguration;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * Tests for schema flow through value definitions.
  */
+@Slf4j
 class SchemaFlowDemoTests {
 
     private final SAPLCompletionProvider provider = new SAPLCompletionProvider();
@@ -43,19 +49,17 @@ class SchemaFlowDemoTests {
                   """;
         var position = new Position(5, 2);
 
-        System.out.println("=== Schema Flow Through var Assignment ===");
-        System.out.println("Document:\n" + document);
-        System.out.println("Question: Does 'user' get schema expansions from 'subject'?");
-        System.out.println("\nCompletions containing 'user':");
+        log.debug("=== Schema Flow Through var Assignment ===");
+        log.debug("Document:\n{}", document);
 
-        var completions = getCompletions(document, position);
-        completions.stream().filter(c -> c.getLabel().startsWith("user"))
-                .forEach(c -> System.out.println("  - " + c.getLabel() + " [" + c.getDetail() + "]"));
+        var completions     = getCompletions(document, position);
+        var userCompletions = completions.stream().filter(c -> c.getLabel().startsWith("user")).toList();
 
-        var hasUserExpansions = completions.stream().anyMatch(c -> c.getLabel().startsWith("user."));
-        System.out.println(
-                "\nResult: " + (hasUserExpansions ? "YES - Schema flows through!" : "NO - Schema does not flow"));
-        System.out.println();
+        log.debug("Completions containing 'user': {}",
+                userCompletions.stream().map(c -> c.getLabel() + " [" + c.getDetail() + "]").toList());
+
+        assertThat(completions).as("Schema should flow from 'subject' to 'user' variable")
+                .anyMatch(c -> c.getLabel().startsWith("user."));
     }
 
     @Test
@@ -69,20 +73,18 @@ class SchemaFlowDemoTests {
                   """;
         var position = new Position(4, 2);
 
-        System.out.println("=== Explicit Schema on var Definition ===");
-        System.out.println("Document:\n" + document);
-        System.out.println("Note: Grammar syntax is 'var x = expr schema {...}' (schema AFTER assignment)");
-        System.out.println("Question: Does explicit 'schema {...}' on var work?");
-        System.out.println("\nCompletions containing 'config':");
+        log.debug("=== Explicit Schema on var Definition ===");
+        log.debug("Document:\n{}", document);
+        log.debug("Note: Grammar syntax is 'var x = expr schema {{...}}' (schema AFTER assignment)");
 
-        var completions = getCompletions(document, position);
-        completions.stream().filter(c -> c.getLabel().startsWith("config"))
-                .forEach(c -> System.out.println("  - " + c.getLabel() + " [" + c.getDetail() + "]"));
+        var completions       = getCompletions(document, position);
+        var configCompletions = completions.stream().filter(c -> c.getLabel().startsWith("config")).toList();
 
-        var hasConfigExpansions = completions.stream().anyMatch(c -> c.getLabel().startsWith("config."));
-        System.out.println("\nResult: "
-                + (hasConfigExpansions ? "YES - Explicit schema works!" : "NO - Explicit schema not working"));
-        System.out.println();
+        log.debug("Completions containing 'config': {}",
+                configCompletions.stream().map(c -> c.getLabel() + " [" + c.getDetail() + "]").toList());
+
+        assertThat(completions).as("Explicit schema on var should provide property completions")
+                .anyMatch(c -> c.getLabel().startsWith("config."));
     }
 
     @Test
@@ -109,20 +111,18 @@ class SchemaFlowDemoTests {
                   """;
         var position = new Position(18, 2);
 
-        System.out.println("=== Nested Schema Flow ===");
-        System.out.println("Document:\n" + document);
-        System.out.println("Question: Does 'profile' get nested schema from 'user.profile'?");
-        System.out.println("\nCompletions containing 'profile':");
+        log.debug("=== Nested Schema Flow ===");
+        log.debug("Document:\n{}", document);
 
-        var completions = getCompletions(document, position);
-        completions.stream().filter(c -> c.getLabel().startsWith("profile"))
-                .forEach(c -> System.out.println("  - " + c.getLabel() + " [" + c.getDetail() + "]"));
+        var completions        = getCompletions(document, position);
+        var profileCompletions = completions.stream().filter(c -> c.getLabel().startsWith("profile")).toList();
 
-        var hasNestedExpansions = completions.stream().anyMatch(c -> c.getLabel().equals("profile.firstName")
-                || c.getLabel().equals("profile.lastName") || c.getLabel().equals("profile.email"));
-        System.out.println(
-                "\nResult: " + (hasNestedExpansions ? "YES - Nested schema flows!" : "NO - Nested schema not flowing"));
-        System.out.println();
+        log.debug("Completions containing 'profile': {}",
+                profileCompletions.stream().map(c -> c.getLabel() + " [" + c.getDetail() + "]").toList());
+
+        assertThat(completions).as("Nested schema should flow from 'user.profile' to 'profile' variable")
+                .anyMatch(c -> c.getLabel().equals("profile.firstName") || c.getLabel().equals("profile.lastName")
+                        || c.getLabel().equals("profile.email"));
     }
 
     @Test
@@ -138,19 +138,20 @@ class SchemaFlowDemoTests {
                   """;
         var position = new Position(7, 2);
 
-        System.out.println("=== Multiple var Chain ===");
-        System.out.println("Document:\n" + document);
-        System.out.println("Question: Does schema flow through chain: subject -> a -> b -> c?");
-        System.out.println("\nCompletions for each variable:");
+        log.debug("=== Multiple var Chain ===");
+        log.debug("Document:\n{}", document);
 
         var completions = getCompletions(document, position);
 
         for (var varName : new String[] { "a", "b", "c" }) {
             var expansions = completions.stream().filter(c -> c.getLabel().startsWith(varName + "."))
-                    .map(c -> c.getLabel()).collect(Collectors.toList());
-            System.out.println("  " + varName + ": " + (expansions.isEmpty() ? "(no expansions)" : expansions));
+                    .map(c -> c.getLabel()).toList();
+            log.debug("Variable '{}' expansions: {}", varName, expansions.isEmpty() ? "(none)" : expansions);
         }
-        System.out.println();
+
+        assertThat(completions).as("Schema should flow through chain: subject -> a -> b -> c")
+                .anyMatch(c -> c.getLabel().startsWith("a.")).anyMatch(c -> c.getLabel().startsWith("b."))
+                .anyMatch(c -> c.getLabel().startsWith("c."));
     }
 
     @Test
@@ -163,24 +164,97 @@ class SchemaFlowDemoTests {
                 policy "test"
                 permit
                 where
-                  """;
+                """;
         var position = new Position(7, 2);
 
-        System.out.println("=== All Subscription Elements with Schemas ===");
-        System.out.println("Document:\n" + document);
-        System.out.println("\nSchema expansions for each subscription element:");
+        log.debug("=== All Subscription Elements with Schemas ===");
+        log.debug("Document:\n{}", document);
 
         var completions = getCompletions(document, position);
 
         for (var element : new String[] { "subject", "action", "resource", "environment" }) {
             var expansions = completions.stream().filter(c -> c.getLabel().startsWith(element + "."))
-                    .map(c -> c.getLabel()).collect(Collectors.toList());
-            System.out.println("  " + element + ": " + expansions);
+                    .map(c -> c.getLabel()).toList();
+            log.debug("Element '{}' expansions: {}", element, expansions);
         }
-        System.out.println();
+
+        assertThat(completions).as("All subscription elements should have schema expansions")
+                .anyMatch(c -> c.getLabel().startsWith("subject.")).anyMatch(c -> c.getLabel().startsWith("action."))
+                .anyMatch(c -> c.getLabel().startsWith("resource."))
+                .anyMatch(c -> c.getLabel().startsWith("environment."));
     }
 
-    private java.util.List<org.eclipse.lsp4j.CompletionItem> getCompletions(String content, Position position) {
+    @Test
+    @DisplayName("Completion after dot should not duplicate prefix")
+    void completionAfterDotShouldNotDuplicatePrefix() {
+        var document = """
+                subject schema { "type": "object", "properties": { "userId": {} } }
+                policy "test"
+                permit
+                where
+                  subject.""";
+        // Position at end of "subject." (line 4, after the dot)
+        var position = new Position(4, 10);
+
+        var completions = getCompletions(document, position);
+
+        // Log all completions for debugging
+        log.debug("=== All completions at 'subject.' ===");
+        completions.forEach(c -> {
+            var te = c.getTextEdit();
+            if (te != null && te.isLeft()) {
+                var edit = te.getLeft();
+                log.debug("  [TextEdit] label='{}', range=({},{})-({},{}), newText='{}'", c.getLabel(),
+                        edit.getRange().getStart().getLine(), edit.getRange().getStart().getCharacter(),
+                        edit.getRange().getEnd().getLine(), edit.getRange().getEnd().getCharacter(), edit.getNewText());
+            } else {
+                log.debug("  [NO TextEdit] label='{}', insertText='{}'", c.getLabel(), c.getInsertText());
+            }
+        });
+
+        // Check for duplicates - same label should not appear multiple times
+        var subjectUserIdCompletions = completions.stream().filter(c -> c.getLabel().equals("subject.userId")).toList();
+        log.debug("Found {} completions with label 'subject.userId'", subjectUserIdCompletions.size());
+
+        assertThat(subjectUserIdCompletions).as("Should have exactly one subject.userId completion (no duplicates)")
+                .hasSize(1);
+
+        var subjectUserIdCompletion = subjectUserIdCompletions.getFirst();
+
+        assertThat(subjectUserIdCompletion).as("Should offer subject.userId completion").isNotNull();
+
+        var textEdit = subjectUserIdCompletion.getTextEdit();
+        assertThat(textEdit).as("Completion should use TextEdit").isNotNull();
+        assertThat(textEdit.isLeft()).as("TextEdit should be standard TextEdit").isTrue();
+
+        var edit = textEdit.getLeft();
+
+        // Verify TextEdit range
+        assertThat(edit.getRange().getStart().getCharacter()).as("Start at beginning of 'subject'").isEqualTo(2);
+        assertThat(edit.getRange().getEnd().getCharacter()).as("End at cursor position").isEqualTo(10);
+        assertThat(edit.getNewText()).as("NewText is full completion").isEqualTo("subject.userId");
+
+        // Verify applying TextEdit produces correct result
+        var lines     = document.split("\n", -1);
+        var line      = lines[4];
+        var afterEdit = line.substring(0, edit.getRange().getStart().getCharacter()) + edit.getNewText()
+                + line.substring(edit.getRange().getEnd().getCharacter());
+
+        log.debug("Before: '{}', After: '{}'", line, afterEdit);
+        assertThat(afterEdit).as("Result should be 'subject.userId' not 'subject.subject.userId'")
+                .isEqualTo("  subject.userId");
+
+        // Verify ALL variable completions with dots use TextEdit (not just insertText)
+        var schemaPathCompletions = completions.stream()
+                .filter(c -> c.getLabel().contains(".") && c.getKind() == Variable).toList();
+        log.debug("Schema path variable completions: {}", schemaPathCompletions.size());
+        for (var completion : schemaPathCompletions) {
+            assertThat(completion.getTextEdit())
+                    .as("Schema path completion '%s' should use TextEdit", completion.getLabel()).isNotNull();
+        }
+    }
+
+    private List<CompletionItem> getCompletions(String content, Position position) {
         var document = new SAPLParsedDocument("file:///test.sapl", content);
         // Default ConfigurationManager uses DefaultConfigurationProvider which returns
         // LSPConfiguration.minimal()

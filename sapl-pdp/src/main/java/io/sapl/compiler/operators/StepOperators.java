@@ -70,12 +70,26 @@ public class StepOperators {
     }
 
     /**
-     * Accesses an object property by key.
-     * Returns UNDEFINED if key not found or parent is not an object.
+     * Accesses an object property by key. When applied to an array, projects the
+     * key access across all elements, returning an array of results.
+     * Returns UNDEFINED if key not found or parent is not an object/array.
      */
     public static Value keyStep(ParserRuleContext astNode, Value parent, String key) {
         if (parent instanceof ErrorValue) {
             return parent;
+        }
+        if (parent instanceof ArrayValue arrayValue) {
+            val builder = ArrayValue.builder().withMetadata(arrayValue.metadata());
+            for (val element : arrayValue) {
+                val result = keyStep(astNode, element, key);
+                if (result instanceof ErrorValue) {
+                    return result;
+                }
+                if (!(result instanceof UndefinedValue)) {
+                    builder.add(result);
+                }
+            }
+            return builder.build();
         }
         if (!(parent instanceof ObjectValue objectValue)) {
             return Value.UNDEFINED.withMetadata(parent.metadata());
