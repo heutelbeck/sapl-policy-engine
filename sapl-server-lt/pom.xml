@@ -274,19 +274,25 @@
 					</archive>
 				</configuration>
 			</plugin>
-			<!-- Creates SBOM in SPDX format -->
+			<!-- Creates SBOM in CycloneDX format -->
 			<plugin>
-				<groupId>org.spdx</groupId>
-				<artifactId>spdx-maven-plugin</artifactId>
+				<groupId>org.cyclonedx</groupId>
+				<artifactId>cyclonedx-maven-plugin</artifactId>
 				<executions>
 					<execution>
-						<id>build-spdx</id>
-						<phase>package</phase>
+						<phase>generate-resources</phase>
 						<goals>
-							<goal>createSPDX</goal>
+							<goal>makeBom</goal>
 						</goals>
 					</execution>
 				</executions>
+				<configuration>
+					<projectType>application</projectType>
+					<outputDirectory>${project.build.outputDirectory}/META-INF/sbom</outputDirectory>
+					<outputName>application.cdx</outputName>
+					<outputFormat>json</outputFormat>
+					<skipNotDeployed>false</skipNotDeployed>
+				</configuration>
 			</plugin>
 		</plugins>
 	</build>

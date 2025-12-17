@@ -18,7 +18,6 @@
 package io.sapl.spring.data.mongo.queries;
 
 import lombok.Getter;
-import org.apache.commons.lang3.NotImplementedException;
 
 import java.util.Collections;
 import java.util.List;
@@ -76,7 +75,7 @@ public enum OperatorMongoDB {
                 return operator;
             }
         }
-        throw new NotImplementedException();
+        throw new UnsupportedOperationException("Unknown operator keyword: " + keyword);
     }
 
 }

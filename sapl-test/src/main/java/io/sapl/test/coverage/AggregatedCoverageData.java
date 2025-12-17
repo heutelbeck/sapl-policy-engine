@@ -17,6 +17,8 @@
  */
 package io.sapl.test.coverage;
 
+import io.sapl.api.coverage.BranchHit;
+import io.sapl.api.coverage.PolicyCoverageData;
 import io.sapl.api.pdp.Decision;
 import lombok.Getter;
 import lombok.val;

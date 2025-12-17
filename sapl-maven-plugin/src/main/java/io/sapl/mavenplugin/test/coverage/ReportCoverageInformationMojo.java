@@ -17,10 +17,10 @@
  */
 package io.sapl.mavenplugin.test.coverage;
 
+import io.sapl.api.coverage.PolicyCoverageData;
 import io.sapl.mavenplugin.test.coverage.report.html.HtmlLineCoverageReportGenerator;
 import io.sapl.test.coverage.AggregatedCoverageData;
 import io.sapl.test.coverage.CoverageReader;
-import io.sapl.test.coverage.PolicyCoverageData;
 import io.sapl.test.coverage.SonarQubeCoverageReportGenerator;
 import lombok.Setter;
 import lombok.val;

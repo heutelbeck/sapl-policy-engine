@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.test.coverage;
+package io.sapl.api.coverage;
 
 /**
  * Records branch coverage for a single condition statement in a policy.

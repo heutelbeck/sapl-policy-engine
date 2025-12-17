@@ -17,7 +17,6 @@
  */
 package io.sapl.spring.data.mongo.queries;
 
-import org.apache.commons.lang3.NotImplementedException;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -30,8 +29,8 @@ class OperatorMongoDBTests {
     final OperatorMongoDB operator = OperatorMongoDB.LESS_THAN_EQUAL;
 
     @Test
-    void when_keywordNotExist_then_throwNotImplementedException() {
-        assertThrows(NotImplementedException.class, () -> OperatorMongoDB.getOperatorByKeyword("notValid"));
+    void when_keywordNotExist_then_throwUnsupportedOperationException() {
+        assertThrows(UnsupportedOperationException.class, () -> OperatorMongoDB.getOperatorByKeyword("notValid"));
     }
 
     @Test

@@ -17,6 +17,7 @@
  */
 package io.sapl.test.coverage;
 
+import io.sapl.api.coverage.PolicyCoverageData;
 import io.sapl.api.model.ArrayValue;
 import io.sapl.api.model.BooleanValue;
 import io.sapl.api.model.NumberValue;

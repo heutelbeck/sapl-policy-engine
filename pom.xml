@@ -89,7 +89,6 @@
 		<docker-registry-url>ghcr.io/heutelbeck</docker-registry-url>
 
 		<!-- Dependencies -->
-		<guice.version>5.1.0</guice.version>
 		<junit.version>1.11.3</junit.version>
 		<jacoco.version>0.8.14</jacoco.version>
 		<vaadin.version>24.9.7</vaadin.version>
@@ -102,41 +101,47 @@
 		<springboot.version>3.5.8</springboot.version>
 		<classgraph.version>4.8.184</classgraph.version>
         <commons-io.version>2.21.0</commons-io.version>
-        <commons-lang.version>3.19.0</commons-lang.version>
         <reactor-netty.version>1.2.0</reactor-netty.version>
         <nimbus-jose-jwt.version>9.37.4</nimbus-jose-jwt.version>
+		<slf4j-test.version>3.0.3</slf4j-test.version>
 		<spotify.hamcrest.version>1.3.2</spotify.hamcrest.version>
-		<json-unit-assertj.version>4.1.0</json-unit-assertj.version>
 		<json-schema-validator.version>1.5.4</json-schema-validator.version>
 		<jetbrains-annotations.version>26.0.2-1</jetbrains-annotations.version>
 
 		<!-- Maven Plug-Ins -->
-		<sb-contrib.version>7.6.14</sb-contrib.version>
-		<spdx-maven-plugin.version>1.0.3</spdx-maven-plugin.version>
-        <maven-deploy-plugin.version>3.1.4</maven-deploy-plugin.version>
-        <maven-install-plugin.version>3.1.4</maven-install-plugin.version>
+		<sb-contrib.version>7.7.2</sb-contrib.version>
+		<maven-gpg-plugin.version>3.2.8</maven-gpg-plugin.version>
+		<maven-jar-plugin.version>3.5.0</maven-jar-plugin.version>
+		<maven-clean-plugin.version>3.5.0</maven-clean-plugin.version>
+		<maven-shade-plugin.version>3.6.1</maven-shade-plugin.version>
+		<maven-source-plugin.version>3.4.0</maven-source-plugin.version>
+		<maven-deploy-plugin.version>3.1.4</maven-deploy-plugin.version>
+		<maven-javadoc-plugin.version>3.12.0</maven-javadoc-plugin.version>
+		<maven-install-plugin.version>3.1.4</maven-install-plugin.version>
 		<license-maven-plugin.version>5.0.0</license-maven-plugin.version>
 		<sonar-maven-plugin.version>5.2.0.4988</sonar-maven-plugin.version>
-		<maven-failsafe-plugin.version>3.5.4</maven-failsafe-plugin.version>
 		<maven-surefire-plugin.version>3.5.4</maven-surefire-plugin.version>
+		<maven-failsafe-plugin.version>3.5.4</maven-failsafe-plugin.version>
 		<maven-compiler-plugin.version>3.14.1</maven-compiler-plugin.version>
-		<spotbugs-maven-plugin.version>4.9.8.1</spotbugs-maven-plugin.version>
-		<sonar.exclusions>**/gen/**/*</sonar.exclusions>
+		<formatter-maven-plugin.version>2.29.0</formatter-maven-plugin.version>
+		<maven-resources-plugin.version>3.4.0</maven-resources-plugin.version>
+		<spotbugs-maven-plugin.version>4.9.8.2</spotbugs-maven-plugin.version>
+		<cyclonedx-maven-plugin.version>2.9.1</cyclonedx-maven-plugin.version>
+		<maven-dependency-plugin.version>3.9.0</maven-dependency-plugin.version>
+		<build-helper-maven-plugin.version>3.6.1</build-helper-maven-plugin.version>
+		<central-publishing-maven-plugin.version>0.9.0</central-publishing-maven-plugin.version>
 
 		<!-- Base argLine for JDK21+ profiles -->
 		<argLine />
 		
 		<!-- Path to project/module with the license file -->
 		<main.basedir>${project.basedir}</main.basedir>
+
+		<sonar.exclusions>**/gen/**/*</sonar.exclusions>
 	</properties>
 
 	<dependencyManagement>
 		<dependencies>
-			<dependency>
-				<groupId>com.google.inject</groupId>
-				<artifactId>guice</artifactId>
-				<version>${guice.version}</version>
-			</dependency>
 			<!-- Testing Scope Dependencies -->
 			<dependency>
 				<groupId>com.spotify</groupId>
@@ -159,11 +164,6 @@
 				<version>${assertj.version}</version>
 				<type>pom</type>
 				<scope>import</scope>
-			</dependency>
-			<dependency>
-				<groupId>net.javacrumbs.json-unit</groupId>
-				<artifactId>json-unit-assertj</artifactId>
-				<version>${json-unit-assertj.version}</version>
 			</dependency>
 			<dependency>
 				<groupId>com.squareup.okhttp3</groupId>
@@ -203,7 +203,7 @@
             <dependency>
                 <groupId>com.github.valfirst</groupId>
                 <artifactId>slf4j-test</artifactId>
-                <version>3.0.3</version>
+                <version>${slf4j-test.version}</version>
             </dependency>
 			<dependency>
 				<groupId>io.github.classgraph</groupId>
@@ -256,15 +256,10 @@
 			</dependency>
 			<dependency>
 				<groupId>com.vladsch.flexmark</groupId>
-				<artifactId>flexmark-all</artifactId>
+				<artifactId>flexmark</artifactId>
 				<version>${flexmark.version}</version>
 			</dependency>
 			<!-- Utility Libraries -->
-			<dependency>
-                <groupId>org.apache.commons</groupId>
-                <artifactId>commons-lang3</artifactId>
-                <version>${commons-lang.version}</version>
-            </dependency>
             <dependency>
                 <groupId>commons-io</groupId>
                 <artifactId>commons-io</artifactId>
@@ -307,7 +302,7 @@
 				<plugin>
 					<groupId>org.codehaus.mojo</groupId>
 					<artifactId>build-helper-maven-plugin</artifactId>
-					<version>3.6.1</version>
+					<version>${build-helper-maven-plugin.version}</version>
 				</plugin>
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
@@ -322,15 +317,20 @@
 				<plugin>
 					<groupId>org.apache.maven.plugins</groupId>
 					<artifactId>maven-resources-plugin</artifactId>
-					<version>3.3.1</version>
+					<version>${maven-resources-plugin.version}</version>
                     <configuration>
                         <propertiesEncoding>UTF-8</propertiesEncoding>
                     </configuration>
 				</plugin>
 				<plugin>
 					<groupId>org.apache.maven.plugins</groupId>
+					<artifactId>maven-shade-plugin</artifactId>
+					<version>${maven-shade-plugin.version}</version>
+				</plugin>
+				<plugin>
+					<groupId>org.apache.maven.plugins</groupId>
 					<artifactId>maven-dependency-plugin</artifactId>
-					<version>3.9.0</version>
+					<version>${maven-dependency-plugin.version}</version>
 					<executions>
 				       <execution>
 				          <goals>
@@ -347,12 +347,12 @@
 				<plugin>
 					<groupId>org.apache.maven.plugins</groupId>
 					<artifactId>maven-jar-plugin</artifactId>
-					<version>3.4.2</version>
+					<version>${maven-jar-plugin.version}</version>
 				</plugin>
 				<plugin>
 					<groupId>org.apache.maven.plugins</groupId>
 					<artifactId>maven-clean-plugin</artifactId>
-					<version>3.5.0</version>
+					<version>${maven-clean-plugin.version}</version>
 					<configuration>
 						<filesets>
 							<fileset>
@@ -391,38 +391,14 @@
 					<version>${license-maven-plugin.version}</version>
 				</plugin>
 				<plugin>
-					<groupId>org.spdx</groupId>
-					<artifactId>spdx-maven-plugin</artifactId>
-					<version>${spdx-maven-plugin.version}</version>
-			        <configuration>
-				        <includeProvidedScope>false</includeProvidedScope>
-				        <includeTestScope>false</includeTestScope>
-				        <licenseOverwrites>
-	          				<licenseOverwrite>
-            						<target>declared</target>
-            						<groupId>jakarta.transaction</groupId>
-            						<artifactId>jakarta.transaction-api</artifactId>
-            						<licenseString>GPL-2.0-only WITH Classpath-exception-2.0</licenseString>
-          					</licenseOverwrite>
-        		  				<licenseOverwrite>
-	    		        				<target>declared</target>
-    		    		    				<groupId>jakarta.annotation</groupId>
-	    		        				<artifactId>jakarta.annotation-api</artifactId>
-            						<licenseString>GPL-2.0-only WITH Classpath-exception-2.0</licenseString>
-          					</licenseOverwrite>
-        		  				<licenseOverwrite>
-	    		        				<target>declared</target>
-    		    		    				<groupId>jakarta.servlet</groupId>
-	    		        				<artifactId>jakarta.servlet-api</artifactId>
-            						<licenseString>GPL-2.0-only WITH Classpath-exception-2.0</licenseString>
-          					</licenseOverwrite>          					
-			      		</licenseOverwrites>
-      				</configuration>
+					<groupId>org.cyclonedx</groupId>
+					<artifactId>cyclonedx-maven-plugin</artifactId>
+					<version>${cyclonedx-maven-plugin.version}</version>
 				</plugin>
 				<plugin>
 					<groupId>org.apache.maven.plugins</groupId>
 					<artifactId>maven-javadoc-plugin</artifactId>
-					<version>3.8.0</version>
+					<version>${maven-javadoc-plugin.version}</version>
 					<executions>
 						<execution>
 							<id>attach-javadocs</id>
@@ -463,7 +439,7 @@
 				<plugin>
 					<groupId>net.revelc.code.formatter</groupId>
 					<artifactId>formatter-maven-plugin</artifactId>
-					<version>2.29.0</version>
+					<version>${formatter-maven-plugin.version}</version>
 					<dependencies>
 						<dependency>
 							<groupId>io.sapl</groupId>
@@ -676,7 +652,7 @@
 	          <plugin>
 	            <groupId>org.sonatype.central</groupId>
 	            <artifactId>central-publishing-maven-plugin</artifactId>
-	            <version>0.8.0</version>
+	            <version>${central-publishing-maven-plugin.version}</version>
 	            <extensions>true</extensions>
 	            <configuration>
 	              <publishingServerId>central</publishingServerId>
@@ -687,7 +663,7 @@
 	          <plugin>
 	            <groupId>org.apache.maven.plugins</groupId>
 	            <artifactId>maven-source-plugin</artifactId>
-	            <version>3.3.1</version>
+	            <version>${maven-source-plugin.version}</version>
 	            <executions>
 	              <execution>
 	                <id>attach-sources</id>
@@ -700,7 +676,7 @@
 	          <plugin>
 	            <groupId>org.apache.maven.plugins</groupId>
 	            <artifactId>maven-javadoc-plugin</artifactId>
-	            <version>3.11.2</version>
+	            <version>${maven-javadoc-plugin.version}</version>
 	            <executions>
 	              <execution>
 	                <id>attach-javadocs</id>
@@ -713,7 +689,7 @@
 	          <plugin>
 	            <groupId>org.apache.maven.plugins</groupId>
 	            <artifactId>maven-gpg-plugin</artifactId>
-	            <version>3.2.7</version>
+	            <version>${maven-gpg-plugin.version}</version>
 	            <executions>
 	              <execution>
 	                <id>sign-artifacts</id>

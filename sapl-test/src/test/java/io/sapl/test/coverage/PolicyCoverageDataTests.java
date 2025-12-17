@@ -17,6 +17,10 @@
  */
 package io.sapl.test.coverage;
 
+import io.sapl.api.coverage.LineCoverageInfo;
+import io.sapl.api.coverage.LineCoverageStatus;
+import io.sapl.api.coverage.PolicyCoverageData;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 

@@ -68,7 +68,7 @@ import static io.sapl.api.shared.NameValidator.requireValidName;
  * the actual implementation
  *
  * @see AttributeBroker
- * @see io.sapl.api.pip.Attribute
+ * @see Attribute
  */
 public record AttributeFinderSpecification(
         @NonNull String namespace,

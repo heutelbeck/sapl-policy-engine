@@ -19,7 +19,6 @@ package io.sapl.spring.data.r2dbc.queries;
 
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.data.relational.core.mapping.Table;
 import reactor.core.publisher.Flux;
@@ -56,7 +55,8 @@ public class QueryManipulationExecutor {
         if (hasTableAnnotation) {
             return domainType.getAnnotation(Table.class).value();
         } else {
-            return StringUtils.capitalize(domainType.getSimpleName());
+            var name = domainType.getSimpleName();
+            return Character.toUpperCase(name.charAt(0)) + name.substring(1);
         }
     }
 }

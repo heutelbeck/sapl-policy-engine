@@ -19,7 +19,6 @@ package io.sapl.server.ce.model.setup;
 
 import io.sapl.server.ce.model.setup.condition.SetupNotFinishedCondition;
 import lombok.Getter;
-import org.apache.commons.lang3.ObjectUtils;
 import org.springframework.context.annotation.Conditional;
 import org.springframework.core.env.ConfigurableEnvironment;
 import org.springframework.core.env.MutablePropertySources;
@@ -112,7 +111,7 @@ public final class ApplicationConfigService {
     }
 
     private Object getAt(String path, Object defaultValue) {
-        return ObjectUtils.firstNonNull(this.getAt(path), defaultValue);
+        return Objects.requireNonNullElse(this.getAt(path), defaultValue);
     }
 
     private boolean getAtAsBoolean(String path, boolean defaultValue) {
@@ -196,7 +195,7 @@ public final class ApplicationConfigService {
                                     .filter(Objects::nonNull).collect(Collectors.toSet()));
                 }
             }
-            this.httpEndpoint.setKeyStoreType(ObjectUtils.firstNonNull(
+            this.httpEndpoint.setKeyStoreType(Objects.requireNonNullElse(
                     SupportedKeystoreTypes.getByName(this.getAt(httpEndpoint.sslKeyStoreTypePath, "").toString()),
                     SupportedKeystoreTypes.PKCS12));
             this.httpEndpoint
@@ -263,7 +262,7 @@ public final class ApplicationConfigService {
                 }
             }
 
-            this.rsocketEndpoint.setKeyStoreType(ObjectUtils.firstNonNull(
+            this.rsocketEndpoint.setKeyStoreType(Objects.requireNonNullElse(
                     SupportedKeystoreTypes.getByName(this.getAt(rsocketEndpoint.sslKeyStoreTypePath, "").toString()),
                     SupportedKeystoreTypes.PKCS12));
             this.rsocketEndpoint

@@ -39,7 +39,7 @@ import java.util.Set;
  * the set of attribute finder specifications provided by this PIP
  *
  * @see PolicyInformationPointImplementation
- * @see io.sapl.api.pip.PolicyInformationPoint
+ * @see PolicyInformationPoint
  */
 public record PolicyInformationPointSpecification(
         @NonNull String name,

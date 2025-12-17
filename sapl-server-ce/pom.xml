@@ -35,10 +35,6 @@
 
 	<properties>
 		<spring.profile.from.maven>default</spring.profile.from.maven>
-		<sonar.version>3.9.1.2184</sonar.version>
-		<jacoco.version>0.8.14</jacoco.version>
-		<spotbugs.version>4.9.8.1</spotbugs.version>
-		<sbcontrib.version>7.6.15</sbcontrib.version>
 		<maven.javadoc.skip>true</maven.javadoc.skip>
 		<main.basedir>${project.basedir}/../</main.basedir>
 	</properties>
@@ -167,13 +163,7 @@
 		</dependency>
         <dependency>
             <groupId>com.vladsch.flexmark</groupId>
-            <artifactId>flexmark-all</artifactId>
-            <exclusions>
-                <exclusion>
-                    <groupId>commons-logging</groupId>
-                    <artifactId>commons-logging</artifactId>
-                </exclusion>
-            </exclusions>            
+            <artifactId>flexmark</artifactId>
         </dependency>
 		<!-- DB Drivers -->
 		<dependency>
@@ -331,41 +321,25 @@
 					</filesets>
 				</configuration>
 			</plugin>
+			<!-- Creates SBOM in CycloneDX format -->
 			<plugin>
-				<groupId>org.sonarsource.scanner.maven</groupId>
-				<artifactId>sonar-maven-plugin</artifactId>
-				<version>${sonar.version}</version>
-			</plugin>
-			<plugin>
-				<groupId>org.apache.maven.plugins</groupId>
-				<artifactId>maven-javadoc-plugin</artifactId>
+				<groupId>org.cyclonedx</groupId>
+				<artifactId>cyclonedx-maven-plugin</artifactId>
 				<executions>
 					<execution>
-						<id>attach-javadocs</id>
+						<phase>generate-resources</phase>
 						<goals>
-							<goal>jar</goal>
+							<goal>makeBom</goal>
 						</goals>
 					</execution>
 				</executions>
 				<configuration>
-					<verbose>false</verbose>
-					<failOnWarnings>true</failOnWarnings>
-					<doclint>none</doclint>
+					<projectType>application</projectType>
+					<outputDirectory>${project.build.outputDirectory}/META-INF/sbom</outputDirectory>
+					<outputName>application.cdx</outputName>
+					<outputFormat>json</outputFormat>
+					<skipNotDeployed>false</skipNotDeployed>
 				</configuration>
-			</plugin>	
-			<!-- Creates SBOM in SPDX format -->
-			<plugin>
-				<groupId>org.spdx</groupId>
-				<artifactId>spdx-maven-plugin</artifactId>
-				<executions>
-					<execution>
-						<id>build-spdx</id>
-						<phase>package</phase>
-						<goals>
-							<goal>createSPDX</goal>
-						</goals>
-					</execution>
-				</executions>
 			</plugin>
 		</plugins>
 	</build>
@@ -445,62 +419,6 @@
 								<phase>compile</phase>
 							</execution>
 						</executions>
-					</plugin>
-				</plugins>
-			</build>
-		</profile>
-
-		<profile>
-			<id>coverage</id>
-			<build>
-				<plugins>
-					<plugin>
-						<groupId>org.jacoco</groupId>
-						<artifactId>jacoco-maven-plugin</artifactId>
-						<version>${jacoco.version}</version>
-						<executions>
-							<execution>
-								<id>prepare-agent</id>
-								<goals>
-									<goal>prepare-agent</goal>
-								</goals>
-							</execution>
-							<execution>
-								<id>report</id>
-								<goals>
-									<goal>report</goal>
-								</goals>
-								<configuration>
-									<formats>
-										<format>XML</format>
-									</formats>
-								</configuration>
-							</execution>
-						</executions>
-					</plugin>
-				</plugins>
-			</build>
-		</profile>
-		<profile>
-			<id>spotbugs</id>
-			<build>
-				<plugins>
-					<plugin>
-						<groupId>com.github.spotbugs</groupId>
-						<artifactId>spotbugs-maven-plugin</artifactId>
-						<version>${spotbugs.version}</version>
-						<configuration>
-							<excludeFilterFile>spotbugsExcludeFilter.xml</excludeFilterFile>
-							<!-- There are no test classes at the moment
-							<includeTests>true</includeTests> -->
-							<plugins>
-								<plugin>
-									<groupId>com.mebigfatguy.sb-contrib</groupId>
-									<artifactId>sb-contrib</artifactId>
-									<version>${sbcontrib.version}</version>
-								</plugin>
-							</plugins>
-						</configuration>
 					</plugin>
 				</plugins>
 			</build>

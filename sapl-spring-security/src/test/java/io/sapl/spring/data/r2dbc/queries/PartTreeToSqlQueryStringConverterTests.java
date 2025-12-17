@@ -20,7 +20,6 @@ package io.sapl.spring.data.r2dbc.queries;
 import io.sapl.spring.data.utils.Utilities;
 import io.sapl.spring.data.r2dbc.database.Person;
 import org.aopalliance.intercept.MethodInvocation;
-import org.apache.commons.lang3.tuple.Pair;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
@@ -36,6 +35,7 @@ import org.springframework.data.domain.Sort;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Modifier;
 import java.util.List;
+import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.stream.Stream;
 
@@ -68,7 +68,7 @@ class PartTreeToSqlQueryStringConverterTests {
     @SuppressWarnings("unchecked")
     @MethodSource("methodNameToSqlQuery")
     void when_sqlQueryCanBeDerivedFromMethodName_then_createSqlBaseQuery(String methodName, Object[] arguments,
-            String sqlQueryResult, List<Pair<Class<?>, Boolean>> utilityIsStringMocks) {
+            String sqlQueryResult, List<Map.Entry<Class<?>, Boolean>> utilityIsStringMocks) {
         // GIVEN
 
         // WHEN
@@ -76,7 +76,7 @@ class PartTreeToSqlQueryStringConverterTests {
         convertToSQLMock.when(() -> ConvertToSQL.prepareAndMergeSortObjects(any(Sort.class), any(Object[].class)))
                 .thenReturn("");
 
-        for (Pair<Class<?>, Boolean> utilityIsStringMock : utilityIsStringMocks) {
+        for (Map.Entry<Class<?>, Boolean> utilityIsStringMock : utilityIsStringMocks) {
             utilitiesMock.when(() -> Utilities.isString(eq(utilityIsStringMock.getKey())))
                     .thenReturn(utilityIsStringMock.getValue());
         }
@@ -168,33 +168,34 @@ class PartTreeToSqlQueryStringConverterTests {
 
     private static Stream<Arguments> methodNameToSqlQuery() {
 
-        return Stream.of(arguments("readByAgeIs", new Object[] { 30 }, "age = 30", List.of(Pair.of(int.class, false))),
-                arguments("getByAgeAfter", new Object[] { 30 }, "age > 30", List.of(Pair.of(int.class, false))),
+        return Stream.of(
+                arguments("readByAgeIs", new Object[] { 30 }, "age = 30", List.of(Map.entry(int.class, false))),
+                arguments("getByAgeAfter", new Object[] { 30 }, "age > 30", List.of(Map.entry(int.class, false))),
                 arguments("readByAgeIsLessThanEqual", new Object[] { 30 }, "age <= 30",
-                        List.of(Pair.of(int.class, false))),
+                        List.of(Map.entry(int.class, false))),
                 arguments("queryByAgeIsGreaterThanEqual", new Object[] { 30 }, "age >= 30",
-                        List.of(Pair.of(int.class, false))),
+                        List.of(Map.entry(int.class, false))),
                 arguments("findByFirstnameIsNot", new Object[] { "Aaron" }, "firstname <> 'Aaron'",
-                        List.of(Pair.of(String.class, true))),
+                        List.of(Map.entry(String.class, true))),
                 arguments("findByFirstnameExists", new Object[] { "Aaron" }, "firstname EXISTS 'Aaron'",
-                        List.of(Pair.of(String.class, true))),
+                        List.of(Map.entry(String.class, true))),
                 arguments("streamAllByFirstnameLike", new Object[] { "Aaron" }, "firstname LIKE 'Aaron'",
-                        List.of(Pair.of(String.class, true))),
+                        List.of(Map.entry(String.class, true))),
                 arguments("streamAllByAgeIn", new Object[] { List.of(20, 30, 40) }, "age IN (20, 30, 40)",
-                        List.of(Pair.of(int.class, false))),
+                        List.of(Map.entry(int.class, false))),
                 arguments("searchAllByFirstnameIsNotLike", new Object[] { "Aaron" }, "firstname NOT LIKE 'Aaron'",
-                        List.of(Pair.of(String.class, true))),
+                        List.of(Map.entry(String.class, true))),
                 arguments("findAllByFirstnameAndAgeBefore", new Object[] { '2', 30 }, "firstname = '2' AND age < 30",
-                        List.of(Pair.of(String.class, true), Pair.of(int.class, false))),
+                        List.of(Map.entry(String.class, true), Map.entry(int.class, false))),
                 arguments("findAllByAgeOrderByAgeAscFirstnameDesc", new Object[] { 30 },
-                        "age = 30 ORDER BY age ASC, firstname DESC", List.of(Pair.of(int.class, false))),
+                        "age = 30 ORDER BY age ASC, firstname DESC", List.of(Map.entry(int.class, false))),
                 arguments("queryByAgeIsGreaterThanEqualOrFirstnameIs", new Object[] { 30, "Aaron" },
                         "age >= 30 OR firstname = 'Aaron'",
-                        List.of(Pair.of(int.class, false), Pair.of(String.class, true))),
+                        List.of(Map.entry(int.class, false), Map.entry(String.class, true))),
                 arguments("streamAllByAgeBetweenAndFirstname", new Object[] { List.of(1, 30), "Aaron" },
                         "age BETWEEN (1, 30) AND firstname = 'Aaron'",
-                        List.of(Pair.of(int.class, false), Pair.of(String.class, true))),
+                        List.of(Map.entry(int.class, false), Map.entry(String.class, true))),
                 arguments("streamAllByFirstnameIsNotIn", new Object[] { List.of("Aaron", "Brian", "Cathrin") },
-                        "firstname NIN ('Aaron', 'Brian', 'Cathrin')", List.of(Pair.of(String.class, true))));
+                        "firstname NIN ('Aaron', 'Brian', 'Cathrin')", List.of(Map.entry(String.class, true))));
     }
 }

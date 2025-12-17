@@ -46,7 +46,7 @@ import reactor.core.publisher.Flux;
  * </ul>
  *
  * @see AttributeFinderInvocation
- * @see io.sapl.api.pip.Attribute
+ * @see Attribute
  */
 @FunctionalInterface
 public interface AttributeFinder {

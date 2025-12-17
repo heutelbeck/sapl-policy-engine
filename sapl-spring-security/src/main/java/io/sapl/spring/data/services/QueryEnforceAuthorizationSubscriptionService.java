@@ -25,7 +25,6 @@ import io.sapl.spring.method.metadata.QueryEnforce;
 import lombok.AllArgsConstructor;
 import lombok.SneakyThrows;
 import org.aopalliance.intercept.MethodInvocation;
-import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.BeanFactory;
 import org.springframework.beans.factory.NoSuchBeanDefinitionException;
 import org.springframework.context.expression.BeanFactoryResolver;
@@ -144,7 +143,8 @@ public class QueryEnforceAuthorizationSubscriptionService {
 
         if (referenceMethod(annotationValue)) {
             if (staticClasses.length == 0) {
-                final var methodName = StringUtils.substringBetween(annotationValue, "#", "(");
+                final var methodName = annotationValue.substring(annotationValue.indexOf('#') + 1,
+                        annotationValue.indexOf('('));
 
                 throw new ClassNotFoundException("No matching method with the name '" + methodName + "' found.");
             }
@@ -225,7 +225,8 @@ public class QueryEnforceAuthorizationSubscriptionService {
      */
     private Object getObjectByStaticClassWhenValueStartsWithHash(String annotationValue, Class<?>[] staticClasses,
             MethodInvocation methodInvocation) {
-        final var methodName = StringUtils.substringBetween(annotationValue, "#", "(");
+        final var methodName = annotationValue.substring(annotationValue.indexOf('#') + 1,
+                annotationValue.indexOf('('));
 
         return findMethodAndParseExpression(methodName, staticClasses, annotationValue, methodInvocation);
     }

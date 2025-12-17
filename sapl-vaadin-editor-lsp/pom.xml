@@ -95,13 +95,6 @@
             <scope>provided</scope>
         </dependency>
 
-        <!-- Coverage API for PolicyCoverageData visualization (optional) -->
-        <dependency>
-            <groupId>${project.groupId}</groupId>
-            <artifactId>sapl-test</artifactId>
-            <version>${project.version}</version>
-            <optional>true</optional>
-        </dependency>
 
         <!-- Marked - Markdown parser for documentation rendering -->
         <dependency>

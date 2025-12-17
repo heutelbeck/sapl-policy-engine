@@ -34,9 +34,9 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
+import io.sapl.api.coverage.PolicyCoverageData;
 import io.sapl.api.pdp.Decision;
 import io.sapl.test.coverage.CoverageWriter;
-import io.sapl.test.coverage.PolicyCoverageData;
 import io.sapl.test.coverage.TestCoverageRecord;
 
 class ReportCoverageInformationMojoTests {

@@ -17,7 +17,7 @@
  */
 package io.sapl.server.ce.model.setup;
 
-import com.google.common.net.InetAddresses;
+import io.netty.util.NetUtil;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -151,7 +151,17 @@ public class EndpointConfig {
     }
 
     public boolean isValidURI() {
-        return InetAddresses.isUriInetAddress(this.address) || "localhost".equals(this.address);
+        if ("localhost".equals(this.address)) {
+            return true;
+        }
+        if (NetUtil.isValidIpV4Address(this.address)) {
+            return true;
+        }
+        if (this.address.startsWith("[") && this.address.endsWith("]")) {
+            var ipv6 = this.address.substring(1, this.address.length() - 1);
+            return NetUtil.isValidIpV6Address(ipv6);
+        }
+        return NetUtil.isValidIpV6Address(this.address);
     }
 
     public boolean isValidPort() {

@@ -15,14 +15,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.test.coverage;
+package io.sapl.api.coverage;
 
 import lombok.Getter;
 import lombok.val;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * Collects coverage data for a single SAPL policy or policy set.
@@ -254,7 +257,7 @@ public class PolicyCoverageData {
     /**
      * Calculates the branch coverage percentage.
      * <p>
-     * Branch coverage = (covered branches / total branches) × 100
+     * Branch coverage = (covered branches / total branches) x 100
      * where each condition has 2 branches (true and false).
      * This calculation is independent of source code layout.
      *
@@ -299,8 +302,8 @@ public class PolicyCoverageData {
      *
      * @return set of 1-based line numbers
      */
-    public java.util.Set<Integer> getCoveredLines() {
-        val lines = new java.util.HashSet<Integer>();
+    public Set<Integer> getCoveredLines() {
+        val lines = new HashSet<Integer>();
         for (val hit : branchHitsByPosition.values()) {
             if (hit.isPartiallyCovered()) {
                 // Add all lines spanned by this condition
@@ -375,7 +378,7 @@ public class PolicyCoverageData {
         val targetStart = targetStartLine > 0 ? targetStartLine : 1;
         val targetEnd   = targetEndLine > 0 ? targetEndLine : targetStart;
 
-        val result = new java.util.ArrayList<LineCoverageInfo>(lineCount);
+        val result = new ArrayList<LineCoverageInfo>(lineCount);
         for (int i = 1; i <= lineCount; i++) {
             val counts = branchesByLine.get(i);
             if (counts != null) {

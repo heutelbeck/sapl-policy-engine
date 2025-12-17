@@ -17,7 +17,6 @@
  */
 package io.sapl.spring.data.r2dbc.queries;
 
-import org.apache.commons.lang3.NotImplementedException;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -28,8 +27,9 @@ class OperatorR2dbcTests {
     final OperatorR2dbc operator = OperatorR2dbc.LESS_THAN_EQUAL;
 
     @Test
-    void when_keywordNotExist_then_throwNotImplementedException() {
-        Assertions.assertThrows(NotImplementedException.class, () -> OperatorR2dbc.getOperatorByKeyword("notValid"));
+    void when_keywordNotExist_then_throwUnsupportedOperationException() {
+        Assertions.assertThrows(UnsupportedOperationException.class,
+                () -> OperatorR2dbc.getOperatorByKeyword("notValid"));
     }
 
     @Test

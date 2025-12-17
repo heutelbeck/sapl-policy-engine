@@ -23,7 +23,6 @@ import io.sapl.server.ce.model.setup.condition.SetupFinishedCondition;
 import io.sapl.server.ce.security.Roles;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
-import org.apache.commons.lang3.StringUtils;
 import org.springframework.cache.CacheManager;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.cache.caffeine.CaffeineCache;
@@ -73,7 +72,8 @@ public class ApiKeyService {
 
     public static String getApiKeyToken(HttpServletRequest request) {
         final var authorization = request.getHeader(HEADER);
-        if (StringUtils.isNotEmpty(authorization) && authorization.startsWith(HEADER_PREFIX + SAPL_TOKEN_PREFIX)) {
+        if (authorization != null && !authorization.isEmpty()
+                && authorization.startsWith(HEADER_PREFIX + SAPL_TOKEN_PREFIX)) {
             return authorization.substring(HEADER_PREFIX.length());
         }
         return null;

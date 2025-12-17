@@ -19,9 +19,9 @@ package io.sapl.mavenplugin.test.coverage.report.html;
 
 import io.sapl.mavenplugin.test.coverage.PathHelper;
 import io.sapl.mavenplugin.test.coverage.report.html.WebDependencyFactory.WebDependency;
-import io.sapl.test.coverage.LineCoverageInfo;
-import io.sapl.test.coverage.LineCoverageStatus;
-import io.sapl.test.coverage.PolicyCoverageData;
+import io.sapl.api.coverage.LineCoverageInfo;
+import io.sapl.api.coverage.LineCoverageStatus;
+import io.sapl.api.coverage.PolicyCoverageData;
 import lombok.Data;
 import lombok.val;
 import org.apache.maven.plugin.MojoExecutionException;

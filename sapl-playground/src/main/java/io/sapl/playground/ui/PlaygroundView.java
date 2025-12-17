@@ -20,7 +20,6 @@ package io.sapl.playground.ui;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.MissingNode;
-import com.google.common.collect.Maps;
 import com.vaadin.flow.component.*;
 import com.vaadin.flow.component.HasValue.ValueChangeEvent;
 import com.vaadin.flow.component.button.Button;
@@ -84,7 +83,6 @@ import io.sapl.vaadin.lsp.SaplEditorLspConfiguration;
 import io.sapl.vaadin.lsp.graph.JsonGraphVisualization;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
-import org.apache.commons.lang3.StringUtils;
 import reactor.core.Disposable;
 
 import java.io.Serial;
@@ -1346,7 +1344,7 @@ public class PlaygroundView extends Composite<VerticalLayout> {
     private Map<String, Value> parseVariablesFromJson(String variablesJson) {
         try {
             val variablesObject = mapper.readTree(variablesJson);
-            val variables       = Maps.<String, Value>newHashMapWithExpectedSize(variablesObject.size());
+            val variables       = HashMap.<String, Value>newHashMap(variablesObject.size());
 
             variablesObject.forEachEntry((name, value) -> {
                 if (!PlaygroundValidator.isValidVariableName(name)) {
@@ -2073,7 +2071,8 @@ public class PlaygroundView extends Composite<VerticalLayout> {
      * Formats algorithm name for display.
      */
     private static String formatAlgorithmName(CombiningAlgorithm algorithm) {
-        return StringUtils.capitalize(algorithm.toString().replace('_', ' ').toLowerCase());
+        var name = algorithm.toString().replace('_', ' ').toLowerCase();
+        return Character.toUpperCase(name.charAt(0)) + name.substring(1);
     }
 
     /*

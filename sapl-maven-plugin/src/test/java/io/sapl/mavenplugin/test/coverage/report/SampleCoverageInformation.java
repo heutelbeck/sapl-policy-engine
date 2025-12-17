@@ -17,7 +17,7 @@
  */
 package io.sapl.mavenplugin.test.coverage.report;
 
-import io.sapl.test.coverage.PolicyCoverageData;
+import io.sapl.api.coverage.PolicyCoverageData;
 import lombok.experimental.UtilityClass;
 
 import java.util.Collection;

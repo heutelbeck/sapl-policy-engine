@@ -17,6 +17,8 @@
  */
 package io.sapl.test.coverage;
 
+import io.sapl.api.coverage.BranchHit;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.params.provider.Arguments.arguments;

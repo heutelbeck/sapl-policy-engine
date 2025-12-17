@@ -22,12 +22,12 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import lombok.experimental.UtilityClass;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang3.tuple.Pair;
 
 import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 
 @Slf4j
 @UtilityClass
@@ -153,15 +153,15 @@ public class QuerySelectionUtils {
         return columns;
     }
 
-    private List<Pair<String, String>> transformationsToPair(Iterable<JsonNode> transformations) {
-        final var transformationsAsPairs = new ArrayList<Pair<String, String>>();
+    private List<Map.Entry<String, String>> transformationsToPair(Iterable<JsonNode> transformations) {
+        final var transformationsAsPairs = new ArrayList<Map.Entry<String, String>>();
 
         for (JsonNode jsonNode : transformations) {
             final var objectNode = (ObjectNode) jsonNode;
             final var key        = objectNode.fieldNames().next();
             final var value      = objectNode.get(key).asText();
 
-            transformationsAsPairs.add(Pair.of(key, value));
+            transformationsAsPairs.add(Map.entry(key, value));
         }
 
         return transformationsAsPairs;
@@ -179,8 +179,8 @@ public class QuerySelectionUtils {
         return finalFieldList;
     }
 
-    public static <K, V> Pair<K, V> findPairByKey(Iterable<Pair<K, V>> pairList, K key) {
-        for (Pair<K, V> pair : pairList) {
+    public static <K, V> Map.Entry<K, V> findPairByKey(Iterable<Map.Entry<K, V>> pairList, K key) {
+        for (Map.Entry<K, V> pair : pairList) {
             if (pair.getKey().equals(key)) {
                 return pair;
             }
