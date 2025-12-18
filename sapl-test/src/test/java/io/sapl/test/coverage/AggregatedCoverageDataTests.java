@@ -44,7 +44,7 @@ class AggregatedCoverageDataTests {
     @Test
     @DisplayName("merging single record")
     void whenMergeSingle_thenCountsMatch() {
-        val aggregated = new AggregatedCoverageData();
+        val aggregated     = new AggregatedCoverageData();
         val coverageRecord = new TestCoverageRecord("innsmouth-test");
         coverageRecord.recordDecision(Decision.PERMIT);
         coverageRecord.recordError();

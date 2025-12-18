@@ -56,18 +56,18 @@ public class AggregatedCoverageData {
     /**
      * Merges a test coverage record into this aggregated data.
      *
-     * @param record the test coverage record to merge
+     * @param coverageRecord the test coverage record to merge
      */
-    public void merge(TestCoverageRecord record) {
+    public void merge(TestCoverageRecord coverageRecord) {
         testCount++;
-        totalEvaluations += record.getEvaluationCount();
-        totalErrors      += record.getErrorCount();
+        totalEvaluations += coverageRecord.getEvaluationCount();
+        totalErrors      += coverageRecord.getErrorCount();
 
         for (val decision : Decision.values()) {
-            decisionCounts.merge(decision, record.getDecisionCount(decision), Integer::sum);
+            decisionCounts.merge(decision, coverageRecord.getDecisionCount(decision), Integer::sum);
         }
 
-        for (val coverage : record.getPolicyCoverageList()) {
+        for (val coverage : coverageRecord.getPolicyCoverageList()) {
             val key = uniqueKeyFor(coverage);
             policyCoverageByName.merge(key, clonePolicyCoverage(coverage), (existing, incoming) -> {
                 existing.merge(incoming);

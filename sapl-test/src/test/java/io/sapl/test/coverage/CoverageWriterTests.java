@@ -56,7 +56,7 @@ class CoverageWriterTests {
     @Test
     @DisplayName("writes record as NDJSON format")
     void whenWriteRecord_thenNdjsonFormat() throws IOException {
-        val writer = new CoverageWriter(tempDir);
+        val writer         = new CoverageWriter(tempDir);
         val coverageRecord = createSimpleRecord("arkham-ritual-test");
 
         writer.write(coverageRecord);
@@ -117,7 +117,7 @@ class CoverageWriterTests {
     @Test
     @DisplayName("serializes decision counts")
     void whenRecordHasDecisions_thenSerializesAll() throws IOException {
-        val writer = new CoverageWriter(tempDir);
+        val writer         = new CoverageWriter(tempDir);
         val coverageRecord = new TestCoverageRecord("test");
         coverageRecord.recordDecision(Decision.PERMIT);
         coverageRecord.recordDecision(Decision.PERMIT);
@@ -137,9 +137,9 @@ class CoverageWriterTests {
     @Test
     @DisplayName("serializes metrics")
     void whenRecordHasCoverage_thenSerializesMetrics() throws IOException {
-        val writer   = new CoverageWriter(tempDir);
+        val writer         = new CoverageWriter(tempDir);
         val coverageRecord = new TestCoverageRecord("test");
-        val coverage = new PolicyCoverageData("elder-policy", "", "policy");
+        val coverage       = new PolicyCoverageData("elder-policy", "", "policy");
         coverage.recordTargetHit(true);
         coverage.recordConditionHit(0, 3, true);
         coverage.recordConditionHit(0, 3, false);
@@ -158,9 +158,10 @@ class CoverageWriterTests {
     @Test
     @DisplayName("serializes policy coverage details")
     void whenRecordHasPolicyCoverage_thenSerializesDetails() throws IOException {
-        val writer   = new CoverageWriter(tempDir);
+        val writer         = new CoverageWriter(tempDir);
         val coverageRecord = new TestCoverageRecord("test");
-        val coverage = new PolicyCoverageData("necronomicon-policy", "policy \"necronomicon-policy\" permit", "policy");
+        val coverage       = new PolicyCoverageData("necronomicon-policy", "policy \"necronomicon-policy\" permit",
+                "policy");
         coverage.recordTargetHit(true);
         coverage.recordTargetHit(false);
         coverage.recordConditionHit(0, 5, true);
@@ -183,9 +184,9 @@ class CoverageWriterTests {
     @Test
     @DisplayName("serializes branch hits")
     void whenPolicyHasBranchHits_thenSerializesBranches() throws IOException {
-        val writer   = new CoverageWriter(tempDir);
+        val writer         = new CoverageWriter(tempDir);
         val coverageRecord = new TestCoverageRecord("test");
-        val coverage = new PolicyCoverageData("policy", "", "policy");
+        val coverage       = new PolicyCoverageData("policy", "", "policy");
         coverage.recordConditionHit(0, 3, true);
         coverage.recordConditionHit(0, 3, false);
         coverage.recordConditionHit(1, 7, true);
@@ -202,10 +203,10 @@ class CoverageWriterTests {
     @Test
     @DisplayName("includes line count when source available")
     void whenSourceAvailable_thenIncludesLineCount() throws IOException {
-        val writer   = new CoverageWriter(tempDir);
+        val writer         = new CoverageWriter(tempDir);
         val coverageRecord = new TestCoverageRecord("test");
-        val source   = "policy \"test\" permit\nwhere\n    true;";
-        val coverage = new PolicyCoverageData("test", source, "policy");
+        val source         = "policy \"test\" permit\nwhere\n    true;";
+        val coverage       = new PolicyCoverageData("test", source, "policy");
         coverageRecord.addPolicyCoverage(coverage);
 
         writer.write(coverageRecord);
@@ -272,9 +273,9 @@ class CoverageWriterTests {
     @Test
     @DisplayName("rounds branch coverage to two decimals")
     void whenBranchCoverageHasManyDecimals_thenRoundsToTwo() throws IOException {
-        val writer   = new CoverageWriter(tempDir);
+        val writer         = new CoverageWriter(tempDir);
         val coverageRecord = new TestCoverageRecord("test");
-        val coverage = new PolicyCoverageData("policy", "", "policy");
+        val coverage       = new PolicyCoverageData("policy", "", "policy");
         // 3 conditions: 2 fully covered, 1 partially = 5/6 branches = 83.333...%
         coverage.recordConditionHit(0, 3, true);
         coverage.recordConditionHit(0, 3, false);
@@ -294,7 +295,7 @@ class CoverageWriterTests {
     @Test
     @DisplayName("serializes timestamp as ISO string")
     void whenRecordHasTimestamp_thenSerializesAsIso() throws IOException {
-        val writer = new CoverageWriter(tempDir);
+        val writer         = new CoverageWriter(tempDir);
         val coverageRecord = createSimpleRecord("test");
 
         writer.write(coverageRecord);
@@ -308,9 +309,9 @@ class CoverageWriterTests {
     @Test
     @DisplayName("serializes file path when present")
     void whenPolicyHasFilePath_thenSerializesIt() throws IOException {
-        val writer   = new CoverageWriter(tempDir);
+        val writer         = new CoverageWriter(tempDir);
         val coverageRecord = new TestCoverageRecord("test");
-        val coverage = new PolicyCoverageData("elder-policy", "", "policy");
+        val coverage       = new PolicyCoverageData("elder-policy", "", "policy");
         coverage.setFilePath("policies/elder/access.sapl");
         coverageRecord.addPolicyCoverage(coverage);
 
@@ -325,9 +326,9 @@ class CoverageWriterTests {
     @Test
     @DisplayName("omits file path when null")
     void whenPolicyHasNoFilePath_thenOmitsIt() throws IOException {
-        val writer   = new CoverageWriter(tempDir);
+        val writer         = new CoverageWriter(tempDir);
         val coverageRecord = new TestCoverageRecord("test");
-        val coverage = new PolicyCoverageData("elder-policy", "", "policy");
+        val coverage       = new PolicyCoverageData("elder-policy", "", "policy");
         coverageRecord.addPolicyCoverage(coverage);
 
         writer.write(coverageRecord);
@@ -341,6 +342,6 @@ class CoverageWriterTests {
     private TestCoverageRecord createSimpleRecord(String testIdentifier) {
         val coverageRecord = new TestCoverageRecord(testIdentifier);
         coverageRecord.recordDecision(Decision.PERMIT);
-        return record;
+        return coverageRecord;
     }
 }

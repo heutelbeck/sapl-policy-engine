@@ -117,15 +117,15 @@ public class SonarQubeCoverageReportGenerator {
             if (line.isBlank()) {
                 continue;
             }
-            val record = MAPPER.readTree(line);
-            aggregatePoliciesFromRecord(record, aggregated);
+            val coverageRecord = MAPPER.readTree(line);
+            aggregatePoliciesFromRecord(coverageRecord, aggregated);
         }
 
         return aggregated;
     }
 
-    private void aggregatePoliciesFromRecord(JsonNode record, Map<String, PolicyCoverageData> aggregated) {
-        val policies = record.get("policies");
+    private void aggregatePoliciesFromRecord(JsonNode coverageRecord, Map<String, PolicyCoverageData> aggregated) {
+        val policies = coverageRecord.get("policies");
         if (policies == null || !policies.isArray()) {
             return;
         }

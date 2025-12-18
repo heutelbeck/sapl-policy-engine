@@ -63,7 +63,7 @@ class CoverageReaderTests {
         val reader = new CoverageReader(tempDir);
 
         val coverageRecord = new TestCoverageRecord("elder-ritual-test");
-        val policy = new PolicyCoverageData("elder-access-policy", null, "policy");
+        val policy         = new PolicyCoverageData("elder-access-policy", null, "policy");
         policy.setFilePath("policies/elder-access.sapl");
         policy.recordTargetHit(true);
         policy.recordTargetHit(true);
@@ -190,7 +190,7 @@ class CoverageReaderTests {
         val reader = new CoverageReader(tempDir);
 
         val coverageRecord = new TestCoverageRecord("multi-policy-test");
-        val policy1 = new PolicyCoverageData("miskatonic-access", null, "policy");
+        val policy1        = new PolicyCoverageData("miskatonic-access", null, "policy");
         policy1.setFilePath("policies/miskatonic.sapl");
         policy1.recordTargetHit(true);
         policy1.recordConditionHit(0, 3, true);
@@ -214,12 +214,12 @@ class CoverageReaderTests {
 
     private TestCoverageRecord createTestRecord(String identifier) {
         val coverageRecord = new TestCoverageRecord(identifier);
-        val policy = new PolicyCoverageData("test-policy", null, "policy");
+        val policy         = new PolicyCoverageData("test-policy", null, "policy");
         policy.recordTargetHit(true);
         policy.recordConditionHit(0, 3, true);
         coverageRecord.addPolicyCoverage(policy);
         coverageRecord.recordDecision(Decision.PERMIT);
         coverageRecord.recordDecision(Decision.DENY);
-        return record;
+        return coverageRecord;
     }
 }

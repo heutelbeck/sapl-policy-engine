@@ -85,8 +85,8 @@ public class CoverageReader {
      */
     public AggregatedCoverageData readAggregated() throws IOException {
         val aggregated = new AggregatedCoverageData();
-        for (val record : readAllRecords()) {
-            aggregated.merge(record);
+        for (val coverageRecord : readAllRecords()) {
+            aggregated.merge(coverageRecord);
         }
         return aggregated;
     }
@@ -113,49 +113,49 @@ public class CoverageReader {
      * Parses a single JSON line into a TestCoverageRecord.
      */
     private TestCoverageRecord parseRecord(String json) throws IOException {
-        val node   = MAPPER.readTree(json);
-        val testId = node.path("testIdentifier").asText("unnamed-test");
-        val record = new TestCoverageRecord(testId);
+        val node           = MAPPER.readTree(json);
+        val testId         = node.path("testIdentifier").asText("unnamed-test");
+        val coverageRecord = new TestCoverageRecord(testId);
 
-        parseDecisions(node, record);
-        parsePolicies(node, record);
+        parseDecisions(node, coverageRecord);
+        parsePolicies(node, coverageRecord);
 
-        return record;
+        return coverageRecord;
     }
 
     /**
      * Parses decision counts and records them.
      */
-    private void parseDecisions(JsonNode node, TestCoverageRecord record) {
+    private void parseDecisions(JsonNode node, TestCoverageRecord coverageRecord) {
         val decisions   = node.path("decisions");
         val evaluations = node.path("evaluationCount").asInt(0);
 
         for (val decision : Decision.values()) {
             val count = decisions.path(decision.name()).asInt(0);
             for (int i = 0; i < count; i++) {
-                record.recordDecision(decision);
+                coverageRecord.recordDecision(decision);
             }
         }
 
         // Adjust if evaluationCount differs from sum of decisions
-        val recordedEvaluations = record.getEvaluationCount();
+        val recordedEvaluations = coverageRecord.getEvaluationCount();
         if (evaluations > recordedEvaluations) {
             val diff = evaluations - recordedEvaluations;
             for (int i = 0; i < diff; i++) {
-                record.recordDecision(Decision.INDETERMINATE);
+                coverageRecord.recordDecision(Decision.INDETERMINATE);
             }
         }
 
         val errors = node.path("errorCount").asInt(0);
         for (int i = 0; i < errors; i++) {
-            record.recordError();
+            coverageRecord.recordError();
         }
     }
 
     /**
      * Parses policy coverage data.
      */
-    private void parsePolicies(JsonNode node, TestCoverageRecord record) {
+    private void parsePolicies(JsonNode node, TestCoverageRecord coverageRecord) {
         val policies = node.path("policies");
         if (!policies.isArray()) {
             return;
@@ -163,7 +163,7 @@ public class CoverageReader {
 
         for (val policy : policies) {
             val coverage = parsePolicyCoverage(policy);
-            record.addPolicyCoverage(coverage);
+            coverageRecord.addPolicyCoverage(coverage);
         }
     }
 

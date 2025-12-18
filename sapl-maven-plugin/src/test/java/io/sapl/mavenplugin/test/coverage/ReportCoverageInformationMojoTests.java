@@ -127,7 +127,7 @@ class ReportCoverageInformationMojoTests {
     }
 
     private void writeCoverageData(Path baseDir) throws IOException {
-        var writer = new CoverageWriter(baseDir);
+        var writer         = new CoverageWriter(baseDir);
         var coverageRecord = new TestCoverageRecord("elder-access-test");
 
         var policy = new PolicyCoverageData("elder-access-policy", "policy \"test\"\npermit", "policy");
