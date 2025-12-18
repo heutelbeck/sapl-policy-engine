@@ -30,6 +30,12 @@ import io.sapl.attributes.CachingAttributeBroker;
 import io.sapl.attributes.HeapAttributeStorage;
 import io.sapl.attributes.InMemoryAttributeRepository;
 import io.sapl.functions.DefaultFunctionBroker;
+import io.sapl.functions.libraries.ArrayFunctionLibrary;
+import io.sapl.functions.libraries.FilterFunctionLibrary;
+import io.sapl.functions.libraries.StandardFunctionLibrary;
+import io.sapl.functions.libraries.TemporalFunctionLibrary;
+import io.sapl.functions.libraries.GraphFunctionLibrary;
+import io.sapl.functions.libraries.StringFunctionLibrary;
 import io.sapl.pdp.PolicyDecisionPointBuilder;
 import io.sapl.pdp.configuration.PDPConfigurationLoader;
 import io.sapl.pdp.configuration.bundle.BundleParser;
@@ -96,6 +102,15 @@ import java.util.Map;
  * }</pre>
  */
 public class SaplTestFixture {
+
+    /**
+     * Collection of default function libraries that ship with SAPL.
+     * <p>
+     * These are the most commonly used libraries for policy evaluation.
+     */
+    public static final List<Class<?>> DEFAULT_FUNCTION_LIBRARIES = List.of(StandardFunctionLibrary.class,
+            TemporalFunctionLibrary.class, FilterFunctionLibrary.class, ArrayFunctionLibrary.class,
+            StringFunctionLibrary.class, GraphFunctionLibrary.class);
 
     private final boolean singleTestMode;
 
@@ -215,7 +230,8 @@ public class SaplTestFixture {
      * @throws IllegalStateException if the resource cannot be read
      */
     public SaplTestFixture withPolicyFromResource(@NonNull String resourcePath) {
-        try (InputStream is = getClass().getResourceAsStream(resourcePath)) {
+        try (InputStream is = Thread.currentThread().getContextClassLoader()
+                .getResourceAsStream(stripLeadingSlash(resourcePath))) {
             if (is == null) {
                 throw new IllegalStateException("Resource not found: " + resourcePath);
             }
@@ -333,7 +349,8 @@ public class SaplTestFixture {
         if (singleTestMode) {
             throw new IllegalStateException("withBundleFromResource not allowed in single test mode.");
         }
-        try (InputStream is = getClass().getResourceAsStream(resourcePath)) {
+        try (InputStream is = Thread.currentThread().getContextClassLoader()
+                .getResourceAsStream(stripLeadingSlash(resourcePath))) {
             if (is == null) {
                 throw new IllegalStateException("Bundle resource not found: " + resourcePath);
             }
@@ -375,7 +392,8 @@ public class SaplTestFixture {
         if (singleTestMode) {
             throw new IllegalStateException("withVerifiedBundleFromResource not allowed in single test mode.");
         }
-        try (InputStream is = getClass().getResourceAsStream(resourcePath)) {
+        try (InputStream is = Thread.currentThread().getContextClassLoader()
+                .getResourceAsStream(stripLeadingSlash(resourcePath))) {
             if (is == null) {
                 throw new IllegalStateException("Bundle resource not found: " + resourcePath);
             }
@@ -527,6 +545,25 @@ public class SaplTestFixture {
      */
     public SaplTestFixture withFunctionLibrary(@NonNull Class<?> libraryClass) {
         staticFunctionLibraries.add(libraryClass);
+        return this;
+    }
+
+    /**
+     * Registers the default function libraries that ship with SAPL.
+     * <p>
+     * This is a convenience method that loads the most commonly used function
+     * libraries:
+     * <ul>
+     * <li>{@link StandardFunctionLibrary} - standard utility functions</li>
+     * <li>{@link TemporalFunctionLibrary} - date/time functions</li>
+     * <li>{@link FilterFunctionLibrary} - filter and blacken functions</li>
+     * <li>{@link ArrayFunctionLibrary} - array manipulation functions</li>
+     * </ul>
+     *
+     * @return this fixture for chaining
+     */
+    public SaplTestFixture withDefaultFunctionLibraries() {
+        staticFunctionLibraries.addAll(DEFAULT_FUNCTION_LIBRARIES);
         return this;
     }
 
@@ -911,7 +948,8 @@ public class SaplTestFixture {
     }
 
     private PDPConfiguration loadPdpJsonFromResource(String resourcePath) {
-        try (InputStream is = getClass().getResourceAsStream(resourcePath)) {
+        try (InputStream is = Thread.currentThread().getContextClassLoader()
+                .getResourceAsStream(stripLeadingSlash(resourcePath))) {
             if (is == null) {
                 throw new IllegalStateException("Resource not found: " + resourcePath);
             }
@@ -953,6 +991,10 @@ public class SaplTestFixture {
             normalized = normalized.substring(0, normalized.length() - 1);
         }
         return normalized;
+    }
+
+    private String stripLeadingSlash(String path) {
+        return path.startsWith("/") ? path.substring(1) : path;
     }
 
     private String getRelativePath(String fullPath, String basePath) {
@@ -1075,7 +1117,7 @@ public class SaplTestFixture {
          * @return this result for chaining
          */
         public DecisionResult expectPermit() {
-            return expectDecisionMatches(DecisionMatchers.isPermit());
+            return expectDecisionMatches(Matchers.isPermit());
         }
 
         /**
@@ -1084,7 +1126,7 @@ public class SaplTestFixture {
          * @return this result for chaining
          */
         public DecisionResult expectDeny() {
-            return expectDecisionMatches(DecisionMatchers.isDeny());
+            return expectDecisionMatches(Matchers.isDeny());
         }
 
         /**
@@ -1093,7 +1135,7 @@ public class SaplTestFixture {
          * @return this result for chaining
          */
         public DecisionResult expectIndeterminate() {
-            return expectDecisionMatches(DecisionMatchers.isIndeterminate());
+            return expectDecisionMatches(Matchers.isIndeterminate());
         }
 
         /**
@@ -1102,7 +1144,7 @@ public class SaplTestFixture {
          * @return this result for chaining
          */
         public DecisionResult expectNotApplicable() {
-            return expectDecisionMatches(DecisionMatchers.isNotApplicable());
+            return expectDecisionMatches(Matchers.isNotApplicable());
         }
 
         /**

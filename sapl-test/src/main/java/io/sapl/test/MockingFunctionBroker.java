@@ -20,6 +20,9 @@ package io.sapl.test;
 import io.sapl.api.functions.FunctionBroker;
 import io.sapl.api.functions.FunctionInvocation;
 import io.sapl.api.model.Value;
+import io.sapl.test.verification.FunctionInvocationRecord;
+import io.sapl.test.verification.MockVerificationException;
+import io.sapl.test.verification.Times;
 import lombok.NonNull;
 
 import java.util.ArrayList;
@@ -29,7 +32,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 
@@ -53,7 +58,9 @@ import java.util.function.Supplier;
 public final class MockingFunctionBroker implements FunctionBroker {
 
     private FunctionBroker                        delegate;
-    private final Map<String, List<FunctionMock>> mocks = new HashMap<>();
+    private final Map<String, List<FunctionMock>> mocks           = new HashMap<>();
+    private final List<FunctionInvocationRecord>  invocations     = new CopyOnWriteArrayList<>();
+    private final AtomicLong                      sequenceCounter = new AtomicLong(0);
 
     /**
      * Creates a mocking broker with no delegate.
@@ -86,6 +93,7 @@ public final class MockingFunctionBroker implements FunctionBroker {
 
     @Override
     public Value evaluateFunction(FunctionInvocation invocation) {
+        recordInvocation(invocation);
         return findMostSpecificMatch(invocation).map(FunctionMock::getReturnValue).orElseGet(() -> {
             if (delegate == null) {
                 throw new IllegalStateException("No mock matched function '%s' and no delegate broker configured."
@@ -93,6 +101,12 @@ public final class MockingFunctionBroker implements FunctionBroker {
             }
             return delegate.evaluateFunction(invocation);
         });
+    }
+
+    private void recordInvocation(FunctionInvocation invocation) {
+        var record = new FunctionInvocationRecord(invocation.functionName(), invocation.arguments(),
+                sequenceCounter.getAndIncrement());
+        invocations.add(record);
     }
 
     @Override
@@ -183,10 +197,135 @@ public final class MockingFunctionBroker implements FunctionBroker {
     }
 
     /**
-     * Clears all registered mocks.
+     * Clears all registered mocks and recorded invocations.
      */
     public void clearAllMocks() {
         mocks.clear();
+        clearInvocations();
+    }
+
+    /**
+     * Clears recorded invocations without clearing mocks.
+     * <p>
+     * Useful when you want to verify invocations for a specific phase of testing
+     * while keeping mocks in place.
+     */
+    public void clearInvocations() {
+        invocations.clear();
+        sequenceCounter.set(0);
+    }
+
+    /**
+     * Returns all recorded invocations.
+     *
+     * @return unmodifiable list of invocation records
+     */
+    public List<FunctionInvocationRecord> getInvocations() {
+        return List.copyOf(invocations);
+    }
+
+    /**
+     * Returns recorded invocations for a specific function.
+     *
+     * @param functionName fully qualified function name
+     * @return unmodifiable list of invocation records for this function
+     */
+    public List<FunctionInvocationRecord> getInvocations(String functionName) {
+        return invocations.stream().filter(r -> r.functionName().equals(functionName)).toList();
+    }
+
+    /**
+     * Verifies that a function was invoked the expected number of times with
+     * arguments matching the given matchers.
+     * <p>
+     * Example:
+     *
+     * <pre>{@code
+     * broker.verify("time.dayOfWeek", args(any()), Times.once());
+     * broker.verify("counter.next", args(), Times.times(3));
+     * broker.verify("unused.function", args(), Times.never());
+     * }</pre>
+     *
+     * @param functionName fully qualified function name
+     * @param arguments argument matchers (use args() for arity matching)
+     * @param times expected invocation count
+     * @throws MockVerificationException if verification fails
+     * @throws IllegalArgumentException if arguments is not an ArgumentMatchers
+     * instance
+     */
+    public void verify(@NonNull String functionName, @NonNull SaplTestFixture.Parameters arguments,
+            @NonNull Times times) {
+        if (!(arguments instanceof ArgumentMatchers(List<ArgumentMatcher> matchers))) {
+            throw new IllegalArgumentException("Arguments must be created via args().");
+        }
+
+        var matchingCount = countMatchingInvocations(functionName, matchers);
+        if (!times.verify(matchingCount)) {
+            throw new MockVerificationException(buildVerificationMessage(functionName, matchers, times, matchingCount));
+        }
+    }
+
+    /**
+     * Verifies that a function was invoked at least once with arguments matching
+     * the given matchers. Equivalent to
+     * {@code verify(functionName, arguments, Times.atLeast(1))}.
+     *
+     * @param functionName fully qualified function name
+     * @param arguments argument matchers
+     * @throws MockVerificationException if function was never invoked with matching
+     * arguments
+     */
+    public void verifyCalled(@NonNull String functionName, @NonNull SaplTestFixture.Parameters arguments) {
+        verify(functionName, arguments, Times.atLeast(1));
+    }
+
+    /**
+     * Verifies that a function was never invoked with arguments matching the given
+     * matchers.
+     * Equivalent to {@code verify(functionName, arguments, Times.never())}.
+     *
+     * @param functionName fully qualified function name
+     * @param arguments argument matchers
+     * @throws MockVerificationException if function was invoked with matching
+     * arguments
+     */
+    public void verifyNeverCalled(@NonNull String functionName, @NonNull SaplTestFixture.Parameters arguments) {
+        verify(functionName, arguments, Times.never());
+    }
+
+    private int countMatchingInvocations(String functionName, List<ArgumentMatcher> matchers) {
+        return (int) invocations.stream().filter(r -> r.functionName().equals(functionName))
+                .filter(r -> matchesArguments(r.arguments(), matchers)).count();
+    }
+
+    private boolean matchesArguments(List<Value> arguments, List<ArgumentMatcher> matchers) {
+        if (arguments.size() != matchers.size()) {
+            return false;
+        }
+        for (int i = 0; i < arguments.size(); i++) {
+            if (!matchers.get(i).matches(arguments.get(i))) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private String buildVerificationMessage(String functionName, List<ArgumentMatcher> matchers, Times times,
+            int actualCount) {
+        var sb = new StringBuilder();
+        sb.append("Function verification failed for '%s'.\n".formatted(functionName));
+        sb.append(times.failureMessage(actualCount));
+
+        var functionInvocations = getInvocations(functionName);
+        if (functionInvocations.isEmpty()) {
+            sb.append("\nNo invocations of '%s' were recorded.".formatted(functionName));
+        } else {
+            sb.append("\nRecorded invocations of '%s':".formatted(functionName));
+            for (var inv : functionInvocations) {
+                sb.append("\n  - ").append(inv);
+            }
+        }
+        return sb.toString();
     }
 
     private void addMock(String functionName, FunctionMock mock) {

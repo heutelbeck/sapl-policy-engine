@@ -17,28 +17,21 @@
  */
 package io.sapl.test;
 
+import io.sapl.api.model.ArrayValue;
+import io.sapl.api.model.ObjectValue;
 import io.sapl.api.model.Value;
+import io.sapl.api.model.ValueMetadata;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
+import java.math.BigDecimal;
+import java.util.Map;
 import java.util.stream.Stream;
 
-import static io.sapl.test.Matchers.any;
-import static io.sapl.test.Matchers.anyArray;
-import static io.sapl.test.Matchers.anyBoolean;
-import static io.sapl.test.Matchers.anyNumber;
-import static io.sapl.test.Matchers.anyObject;
-import static io.sapl.test.Matchers.anyText;
-import static io.sapl.test.Matchers.args;
-import static io.sapl.test.Matchers.eq;
-import static io.sapl.test.Matchers.greaterThan;
-import static io.sapl.test.Matchers.lessThan;
-import static io.sapl.test.Matchers.matching;
-import static io.sapl.test.Matchers.textContaining;
-import static io.sapl.test.Matchers.textMatching;
+import static io.sapl.test.Matchers.*;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
@@ -312,6 +305,383 @@ class MatchersTests {
         var list     = matchers.matchers();
 
         assertThat(list).isUnmodifiable();
+    }
+
+    // ========== isNull() Tests ==========
+
+    @Test
+    void whenIsNull_thenMatchesNullValue() {
+        assertThat(isNull().matches(Value.NULL)).isTrue();
+    }
+
+    @Test
+    void whenIsNull_thenDoesNotMatchNonNullValues() {
+        assertThat(isNull().matches(Value.of("text"))).isFalse();
+        assertThat(isNull().matches(Value.of(0))).isFalse();
+        assertThat(isNull().matches(Value.TRUE)).isFalse();
+    }
+
+    // ========== Combinator Matchers Tests ==========
+
+    @Test
+    void whenNot_thenNegatesMatcher() {
+        var notText = not(anyText());
+
+        assertThat(notText.matches(Value.of("text"))).isFalse();
+        assertThat(notText.matches(Value.of(42))).isTrue();
+        assertThat(notText.matches(Value.TRUE)).isTrue();
+    }
+
+    @Test
+    void whenAllOf_thenRequiresAllMatchersToMatch() {
+        var matcher = allOf(anyNumber(), greaterThan(5), lessThan(10));
+
+        assertThat(matcher.matches(Value.of(7))).isTrue();
+        assertThat(matcher.matches(Value.of(5))).isFalse();
+        assertThat(matcher.matches(Value.of(10))).isFalse();
+        assertThat(matcher.matches(Value.of("7"))).isFalse();
+    }
+
+    @Test
+    void whenAnyOf_thenRequiresAtLeastOneMatcherToMatch() {
+        var matcher = anyOf(eq(Value.of("a")), eq(Value.of("b")), eq(Value.of("c")));
+
+        assertThat(matcher.matches(Value.of("a"))).isTrue();
+        assertThat(matcher.matches(Value.of("b"))).isTrue();
+        assertThat(matcher.matches(Value.of("c"))).isTrue();
+        assertThat(matcher.matches(Value.of("d"))).isFalse();
+    }
+
+    @Test
+    void whenAllOfWithEmptyMatchers_thenMatchesEverything() {
+        var matcher = allOf();
+        assertThat(matcher.matches(Value.of("anything"))).isTrue();
+    }
+
+    @Test
+    void whenAnyOfWithEmptyMatchers_thenMatchesNothing() {
+        var matcher = anyOf();
+        assertThat(matcher.matches(Value.of("anything"))).isFalse();
+    }
+
+    // ========== Additional Text Matchers Tests ==========
+
+    @Test
+    void whenTextContainingIgnoreCase_thenMatchesCaseInsensitive() {
+        var matcher = textContainingIgnoreCase("admin");
+
+        assertThat(matcher.matches(Value.of("admin"))).isTrue();
+        assertThat(matcher.matches(Value.of("ADMIN"))).isTrue();
+        assertThat(matcher.matches(Value.of("Super-Admin-User"))).isTrue();
+        assertThat(matcher.matches(Value.of("user"))).isFalse();
+    }
+
+    @Test
+    void whenTextStartingWith_thenMatchesPrefix() {
+        var matcher = textStartingWith("Hello");
+
+        assertThat(matcher.matches(Value.of("Hello World"))).isTrue();
+        assertThat(matcher.matches(Value.of("Hello"))).isTrue();
+        assertThat(matcher.matches(Value.of("hello World"))).isFalse();
+        assertThat(matcher.matches(Value.of("Say Hello"))).isFalse();
+    }
+
+    @Test
+    void whenTextStartingWithIgnoreCase_thenMatchesCaseInsensitive() {
+        var matcher = textStartingWithIgnoreCase("hello");
+
+        assertThat(matcher.matches(Value.of("Hello World"))).isTrue();
+        assertThat(matcher.matches(Value.of("HELLO"))).isTrue();
+        assertThat(matcher.matches(Value.of("hello"))).isTrue();
+        assertThat(matcher.matches(Value.of("Say Hello"))).isFalse();
+    }
+
+    @Test
+    void whenTextEndingWith_thenMatchesSuffix() {
+        var matcher = textEndingWith(".txt");
+
+        assertThat(matcher.matches(Value.of("file.txt"))).isTrue();
+        assertThat(matcher.matches(Value.of(".txt"))).isTrue();
+        assertThat(matcher.matches(Value.of("file.TXT"))).isFalse();
+        assertThat(matcher.matches(Value.of("file.txt.bak"))).isFalse();
+    }
+
+    @Test
+    void whenTextEndingWithIgnoreCase_thenMatchesCaseInsensitive() {
+        var matcher = textEndingWithIgnoreCase(".txt");
+
+        assertThat(matcher.matches(Value.of("file.txt"))).isTrue();
+        assertThat(matcher.matches(Value.of("file.TXT"))).isTrue();
+        assertThat(matcher.matches(Value.of("FILE.Txt"))).isTrue();
+    }
+
+    @Test
+    void whenTextEqualsIgnoreCase_thenMatchesCaseInsensitive() {
+        var matcher = textEqualsIgnoreCase("Hello");
+
+        assertThat(matcher.matches(Value.of("Hello"))).isTrue();
+        assertThat(matcher.matches(Value.of("hello"))).isTrue();
+        assertThat(matcher.matches(Value.of("HELLO"))).isTrue();
+        assertThat(matcher.matches(Value.of("Hello "))).isFalse();
+    }
+
+    @Test
+    void whenTextIsEmpty_thenMatchesEmptyString() {
+        assertThat(textIsEmpty().matches(Value.of(""))).isTrue();
+        assertThat(textIsEmpty().matches(Value.of(" "))).isFalse();
+        assertThat(textIsEmpty().matches(Value.of("text"))).isFalse();
+    }
+
+    @Test
+    void whenTextIsBlank_thenMatchesBlankStrings() {
+        assertThat(textIsBlank().matches(Value.of(""))).isTrue();
+        assertThat(textIsBlank().matches(Value.of(" "))).isTrue();
+        assertThat(textIsBlank().matches(Value.of("  \t\n  "))).isTrue();
+        assertThat(textIsBlank().matches(Value.of("text"))).isFalse();
+    }
+
+    @Test
+    void whenTextHasLength_thenMatchesExactLength() {
+        var matcher = textHasLength(5);
+
+        assertThat(matcher.matches(Value.of("hello"))).isTrue();
+        assertThat(matcher.matches(Value.of("12345"))).isTrue();
+        assertThat(matcher.matches(Value.of("hi"))).isFalse();
+        assertThat(matcher.matches(Value.of("toolong"))).isFalse();
+    }
+
+    @Test
+    void whenTextContainsInOrder_thenMatchesSubstringsInOrder() {
+        var matcher = textContainsInOrder("Hello", "World", "!");
+
+        assertThat(matcher.matches(Value.of("Hello World!"))).isTrue();
+        assertThat(matcher.matches(Value.of("Hello beautiful World!"))).isTrue();
+        assertThat(matcher.matches(Value.of("World Hello!"))).isFalse();
+        assertThat(matcher.matches(Value.of("Hello World"))).isFalse();
+    }
+
+    @Test
+    void whenTextEqualsCompressingWhitespace_thenNormalizesWhitespace() {
+        var matcher = textEqualsCompressingWhitespace("Hello World");
+
+        assertThat(matcher.matches(Value.of("Hello World"))).isTrue();
+        assertThat(matcher.matches(Value.of("  Hello   World  "))).isTrue();
+        assertThat(matcher.matches(Value.of("Hello\t\nWorld"))).isTrue();
+        assertThat(matcher.matches(Value.of("HelloWorld"))).isFalse();
+    }
+
+    // ========== Number Matchers Tests ==========
+
+    @Test
+    void whenNumberEqualToLong_thenMatchesExactValue() {
+        assertThat(numberEqualTo(42L).matches(Value.of(42))).isTrue();
+        assertThat(numberEqualTo(42L).matches(Value.of(43))).isFalse();
+    }
+
+    @Test
+    void whenNumberEqualToDouble_thenMatchesExactValue() {
+        assertThat(numberEqualTo(3.14).matches(Value.of(3.14))).isTrue();
+        assertThat(numberEqualTo(3.14).matches(Value.of(3.15))).isFalse();
+    }
+
+    @Test
+    void whenNumberEqualToBigDecimal_thenMatchesExactValue() {
+        assertThat(numberEqualTo(new BigDecimal("123.456")).matches(Value.of(123.456))).isTrue();
+    }
+
+    @Test
+    void whenGreaterThanDouble_thenMatchesLargerNumbers() {
+        assertThat(greaterThan(3.14).matches(Value.of(3.15))).isTrue();
+        assertThat(greaterThan(3.14).matches(Value.of(3.14))).isFalse();
+        assertThat(greaterThan(3.14).matches(Value.of(3.13))).isFalse();
+    }
+
+    @Test
+    void whenGreaterThanOrEqualTo_thenMatchesEqualOrLarger() {
+        assertThat(greaterThanOrEqualTo(10L).matches(Value.of(10))).isTrue();
+        assertThat(greaterThanOrEqualTo(10L).matches(Value.of(11))).isTrue();
+        assertThat(greaterThanOrEqualTo(10L).matches(Value.of(9))).isFalse();
+    }
+
+    @Test
+    void whenLessThanDouble_thenMatchesSmallerNumbers() {
+        assertThat(lessThan(3.14).matches(Value.of(3.13))).isTrue();
+        assertThat(lessThan(3.14).matches(Value.of(3.14))).isFalse();
+        assertThat(lessThan(3.14).matches(Value.of(3.15))).isFalse();
+    }
+
+    @Test
+    void whenLessThanOrEqualTo_thenMatchesEqualOrSmaller() {
+        assertThat(lessThanOrEqualTo(10L).matches(Value.of(10))).isTrue();
+        assertThat(lessThanOrEqualTo(10L).matches(Value.of(9))).isTrue();
+        assertThat(lessThanOrEqualTo(10L).matches(Value.of(11))).isFalse();
+    }
+
+    @Test
+    void whenBetweenLong_thenMatchesValuesInRange() {
+        var matcher = between(5L, 10L);
+
+        assertThat(matcher.matches(Value.of(5))).isTrue();
+        assertThat(matcher.matches(Value.of(7))).isTrue();
+        assertThat(matcher.matches(Value.of(10))).isTrue();
+        assertThat(matcher.matches(Value.of(4))).isFalse();
+        assertThat(matcher.matches(Value.of(11))).isFalse();
+    }
+
+    @Test
+    void whenBetweenDouble_thenMatchesValuesInRange() {
+        var matcher = between(0.0, 1.0);
+
+        assertThat(matcher.matches(Value.of(0.0))).isTrue();
+        assertThat(matcher.matches(Value.of(0.5))).isTrue();
+        assertThat(matcher.matches(Value.of(1.0))).isTrue();
+        assertThat(matcher.matches(Value.of(-0.1))).isFalse();
+        assertThat(matcher.matches(Value.of(1.1))).isFalse();
+    }
+
+    @Test
+    void whenCloseTo_thenMatchesWithinDelta() {
+        var matcher = closeTo(10.0, 0.1);
+
+        assertThat(matcher.matches(Value.of(10.0))).isTrue();
+        assertThat(matcher.matches(Value.of(10.05))).isTrue();
+        assertThat(matcher.matches(Value.of(9.95))).isTrue();
+        assertThat(matcher.matches(Value.of(10.2))).isFalse();
+        assertThat(matcher.matches(Value.of(9.8))).isFalse();
+    }
+
+    // ========== Boolean Matchers Tests ==========
+
+    @Test
+    void whenBooleanEqualTo_thenMatchesExactValue() {
+        assertThat(booleanEqualTo(true).matches(Value.TRUE)).isTrue();
+        assertThat(booleanEqualTo(true).matches(Value.FALSE)).isFalse();
+        assertThat(booleanEqualTo(false).matches(Value.FALSE)).isTrue();
+        assertThat(booleanEqualTo(false).matches(Value.TRUE)).isFalse();
+    }
+
+    @Test
+    void whenBooleanEqualTo_thenDoesNotMatchNonBooleans() {
+        assertThat(booleanEqualTo(true).matches(Value.of("true"))).isFalse();
+        assertThat(booleanEqualTo(true).matches(Value.of(1))).isFalse();
+    }
+
+    // ========== Object Matchers Tests ==========
+
+    @Test
+    void whenObjectContainingKey_thenMatchesObjectsWithKey() {
+        var obj = new ObjectValue(Map.of("name", Value.of("Alice"), "age", Value.of(30)), ValueMetadata.EMPTY);
+
+        assertThat(objectContainingKey("name").matches(obj)).isTrue();
+        assertThat(objectContainingKey("age").matches(obj)).isTrue();
+        assertThat(objectContainingKey("email").matches(obj)).isFalse();
+    }
+
+    @Test
+    void whenObjectContainingKey_thenDoesNotMatchNonObjects() {
+        assertThat(objectContainingKey("key").matches(Value.of("text"))).isFalse();
+        assertThat(objectContainingKey("key").matches(Value.of(42))).isFalse();
+    }
+
+    @Test
+    void whenObjectContainingKeyWithMatcher_thenMatchesKeyAndValue() {
+        var obj = new ObjectValue(Map.of("name", Value.of("Alice"), "age", Value.of(30)), ValueMetadata.EMPTY);
+
+        assertThat(objectContainingKey("name", eq(Value.of("Alice"))).matches(obj)).isTrue();
+        assertThat(objectContainingKey("name", eq(Value.of("Bob"))).matches(obj)).isFalse();
+        assertThat(objectContainingKey("age", greaterThan(25L)).matches(obj)).isTrue();
+        assertThat(objectContainingKey("age", greaterThan(35L)).matches(obj)).isFalse();
+    }
+
+    @Test
+    void whenObjectContainingKeys_thenMatchesObjectsWithAllKeys() {
+        var obj = new ObjectValue(Map.of("a", Value.of(1), "b", Value.of(2), "c", Value.of(3)), ValueMetadata.EMPTY);
+
+        assertThat(objectContainingKeys("a", "b").matches(obj)).isTrue();
+        assertThat(objectContainingKeys("a", "b", "c").matches(obj)).isTrue();
+        assertThat(objectContainingKeys("a", "d").matches(obj)).isFalse();
+    }
+
+    @Test
+    void whenObjectIsEmpty_thenMatchesEmptyObjects() {
+        var emptyObj = new ObjectValue(Map.of(), ValueMetadata.EMPTY);
+        var nonEmpty = new ObjectValue(Map.of("key", Value.of("value")), ValueMetadata.EMPTY);
+
+        assertThat(objectIsEmpty().matches(emptyObj)).isTrue();
+        assertThat(objectIsEmpty().matches(nonEmpty)).isFalse();
+    }
+
+    // ========== Array Matchers Tests ==========
+
+    @Test
+    void whenArrayContaining_thenMatchesArraysWithMatchingElement() {
+        var arr = ArrayValue.builder().add(Value.of(1)).add(Value.of(2)).add(Value.of(3)).build();
+
+        assertThat(arrayContaining(eq(Value.of(2))).matches(arr)).isTrue();
+        assertThat(arrayContaining(greaterThan(2L)).matches(arr)).isTrue();
+        assertThat(arrayContaining(eq(Value.of(5))).matches(arr)).isFalse();
+    }
+
+    @Test
+    void whenArrayContaining_thenDoesNotMatchNonArrays() {
+        assertThat(arrayContaining(any()).matches(Value.of("text"))).isFalse();
+        assertThat(arrayContaining(any()).matches(Value.of(42))).isFalse();
+    }
+
+    @Test
+    void whenArrayContainingAll_thenRequiresAllMatchersToFindDistinctElements() {
+        var arr = ArrayValue.builder().add(Value.of(1)).add(Value.of(2)).add(Value.of(3)).build();
+
+        assertThat(arrayContainingAll(eq(Value.of(1)), eq(Value.of(3))).matches(arr)).isTrue();
+        assertThat(arrayContainingAll(eq(Value.of(1)), eq(Value.of(1))).matches(arr)).isFalse(); // Only one "1"
+        assertThat(arrayContainingAll(eq(Value.of(1)), eq(Value.of(5))).matches(arr)).isFalse();
+    }
+
+    @Test
+    void whenArrayEveryItem_thenRequiresAllElementsToMatch() {
+        var numbers = ArrayValue.builder().add(Value.of(1)).add(Value.of(2)).add(Value.of(3)).build();
+        var mixed   = ArrayValue.builder().add(Value.of(1)).add(Value.of("two")).build();
+
+        assertThat(arrayEveryItem(anyNumber()).matches(numbers)).isTrue();
+        assertThat(arrayEveryItem(anyNumber()).matches(mixed)).isFalse();
+        assertThat(arrayEveryItem(greaterThan(0L)).matches(numbers)).isTrue();
+    }
+
+    @Test
+    void whenArrayContainsExactly_thenMatchesExactOrderAndContent() {
+        var arr = ArrayValue.builder().add(Value.of(1)).add(Value.of(2)).add(Value.of(3)).build();
+
+        assertThat(arrayContainsExactly(Value.of(1), Value.of(2), Value.of(3)).matches(arr)).isTrue();
+        assertThat(arrayContainsExactly(Value.of(3), Value.of(2), Value.of(1)).matches(arr)).isFalse();
+        assertThat(arrayContainsExactly(Value.of(1), Value.of(2)).matches(arr)).isFalse();
+    }
+
+    @Test
+    void whenArrayContainsExactlyInAnyOrder_thenMatchesContentRegardlessOfOrder() {
+        var arr = ArrayValue.builder().add(Value.of(1)).add(Value.of(2)).add(Value.of(3)).build();
+
+        assertThat(arrayContainsExactlyInAnyOrder(Value.of(1), Value.of(2), Value.of(3)).matches(arr)).isTrue();
+        assertThat(arrayContainsExactlyInAnyOrder(Value.of(3), Value.of(1), Value.of(2)).matches(arr)).isTrue();
+        assertThat(arrayContainsExactlyInAnyOrder(Value.of(1), Value.of(2)).matches(arr)).isFalse();
+        assertThat(arrayContainsExactlyInAnyOrder(Value.of(1), Value.of(2), Value.of(4)).matches(arr)).isFalse();
+    }
+
+    @Test
+    void whenArrayIsEmpty_thenMatchesEmptyArrays() {
+        var emptyArr = ArrayValue.builder().build();
+        var nonEmpty = ArrayValue.builder().add(Value.of(1)).build();
+
+        assertThat(arrayIsEmpty().matches(emptyArr)).isTrue();
+        assertThat(arrayIsEmpty().matches(nonEmpty)).isFalse();
+    }
+
+    @Test
+    void whenArrayHasSize_thenMatchesExactSize() {
+        var arr = ArrayValue.builder().add(Value.of(1)).add(Value.of(2)).add(Value.of(3)).build();
+
+        assertThat(arrayHasSize(3).matches(arr)).isTrue();
+        assertThat(arrayHasSize(2).matches(arr)).isFalse();
+        assertThat(arrayHasSize(4).matches(arr)).isFalse();
     }
 
     // ========== Test Data Providers ==========

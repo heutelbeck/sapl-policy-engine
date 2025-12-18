@@ -189,9 +189,9 @@ class SchemaFlowTests {
 
         var proposals = VariablesProposalsGenerator.variableProposalsForContext(sapl, cursorOffset, config, false);
 
-        assertThat(proposals).contains("user", "user.userId", "act", "act.verb");
+        assertThat(proposals).contains("user", "user.userId", "act", "act.verb")
         // Verify no cross-contamination
-        assertThat(proposals).doesNotContain("user.verb", "act.userId");
+                            .doesNotContain("user.verb", "act.userId");
     }
 
     @Test

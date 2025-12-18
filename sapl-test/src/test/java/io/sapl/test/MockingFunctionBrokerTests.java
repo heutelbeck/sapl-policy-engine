@@ -37,6 +37,10 @@ import static io.sapl.test.Matchers.anyText;
 import static io.sapl.test.Matchers.args;
 import static io.sapl.test.Matchers.eq;
 import static io.sapl.test.Matchers.matching;
+import static io.sapl.test.verification.Times.atLeast;
+import static io.sapl.test.verification.Times.atMost;
+import static io.sapl.test.verification.Times.once;
+import static io.sapl.test.verification.Times.times;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
@@ -44,6 +48,9 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+
+import io.sapl.test.verification.MockVerificationException;
+import io.sapl.test.verification.Times;
 
 class MockingFunctionBrokerTests {
 
@@ -467,6 +474,268 @@ class MockingFunctionBrokerTests {
         assertThat(broker.evaluateFunction(invocation("fn.counter"))).isEqualTo(Value.of(1));
         assertThat(broker.evaluateFunction(invocation("fn.counter"))).isEqualTo(Value.of(2));
         assertThat(broker.evaluateFunction(invocation("fn.alpha"))).isEqualTo(Value.of("alpha"));
+    }
+
+    // ========== Invocation Recording Tests ==========
+
+    @Test
+    void whenFunctionInvoked_thenRecordsInvocation() {
+        broker.mock(FUNCTION_NAME, args(), Value.of("result"));
+
+        broker.evaluateFunction(invocation(FUNCTION_NAME));
+
+        assertThat(broker.getInvocations()).hasSize(1);
+        assertThat(broker.getInvocations().getFirst().functionName()).isEqualTo(FUNCTION_NAME);
+    }
+
+    @Test
+    void whenMultipleInvocations_thenRecordsAll() {
+        broker.mock(FUNCTION_NAME, args(any()), Value.of("result"));
+
+        broker.evaluateFunction(invocation(FUNCTION_NAME, Value.of("a")));
+        broker.evaluateFunction(invocation(FUNCTION_NAME, Value.of("b")));
+        broker.evaluateFunction(invocation(FUNCTION_NAME, Value.of("c")));
+
+        assertThat(broker.getInvocations()).hasSize(3);
+    }
+
+    @Test
+    void whenInvocationRecorded_thenContainsArguments() {
+        broker.mock(FUNCTION_NAME, args(any(), any()), Value.of("result"));
+
+        broker.evaluateFunction(invocation(FUNCTION_NAME, Value.of("arg1"), Value.of("arg2")));
+
+        var recorded = broker.getInvocations().getFirst();
+        assertThat(recorded.arguments()).containsExactly(Value.of("arg1"), Value.of("arg2"));
+    }
+
+    @Test
+    void whenInvocationRecorded_thenHasSequenceNumber() {
+        broker.mock(FUNCTION_NAME, args(), Value.of("result"));
+        broker.mock(OTHER_FUNCTION, args(), Value.of("other"));
+
+        broker.evaluateFunction(invocation(FUNCTION_NAME));
+        broker.evaluateFunction(invocation(OTHER_FUNCTION));
+        broker.evaluateFunction(invocation(FUNCTION_NAME));
+
+        var invocations = broker.getInvocations();
+        assertThat(invocations.get(0).sequenceNumber()).isEqualTo(0);
+        assertThat(invocations.get(1).sequenceNumber()).isEqualTo(1);
+        assertThat(invocations.get(2).sequenceNumber()).isEqualTo(2);
+    }
+
+    @Test
+    void whenGetInvocationsForFunction_thenFiltersCorrectly() {
+        broker.mock(FUNCTION_NAME, args(), Value.of("result"));
+        broker.mock(OTHER_FUNCTION, args(), Value.of("other"));
+
+        broker.evaluateFunction(invocation(FUNCTION_NAME));
+        broker.evaluateFunction(invocation(OTHER_FUNCTION));
+        broker.evaluateFunction(invocation(FUNCTION_NAME));
+
+        assertThat(broker.getInvocations(FUNCTION_NAME)).hasSize(2);
+        assertThat(broker.getInvocations(OTHER_FUNCTION)).hasSize(1);
+    }
+
+    @Test
+    void whenClearInvocations_thenKeepsMocksButClearsRecords() {
+        broker.mock(FUNCTION_NAME, args(), Value.of("result"));
+
+        broker.evaluateFunction(invocation(FUNCTION_NAME));
+        assertThat(broker.getInvocations()).hasSize(1);
+
+        broker.clearInvocations();
+
+        assertThat(broker.getInvocations()).isEmpty();
+        assertThat(broker.hasMock(FUNCTION_NAME)).isTrue();
+        assertThat(broker.evaluateFunction(invocation(FUNCTION_NAME))).isEqualTo(Value.of("result"));
+    }
+
+    @Test
+    void whenClearAllMocks_thenClearsInvocationsToo() {
+        broker.mock(FUNCTION_NAME, args(), Value.of("result"));
+
+        broker.evaluateFunction(invocation(FUNCTION_NAME));
+
+        broker.clearAllMocks();
+
+        assertThat(broker.getInvocations()).isEmpty();
+    }
+
+    // ========== Verification Tests ==========
+
+    @Test
+    void whenVerifyOnce_thenPassesIfCalledOnce() {
+        broker.mock(FUNCTION_NAME, args(), Value.of("result"));
+
+        broker.evaluateFunction(invocation(FUNCTION_NAME));
+
+        broker.verify(FUNCTION_NAME, args(), once());
+    }
+
+    @Test
+    void whenVerifyOnce_thenFailsIfNeverCalled() {
+        broker.mock(FUNCTION_NAME, args(), Value.of("result"));
+
+        assertThatThrownBy(() -> broker.verify(FUNCTION_NAME, args(), once()))
+                .isInstanceOf(MockVerificationException.class).hasMessageContaining("exactly once")
+                .hasMessageContaining("invoked 0 time(s)");
+    }
+
+    @Test
+    void whenVerifyOnce_thenFailsIfCalledMultipleTimes() {
+        broker.mock(FUNCTION_NAME, args(), Value.of("result"));
+
+        broker.evaluateFunction(invocation(FUNCTION_NAME));
+        broker.evaluateFunction(invocation(FUNCTION_NAME));
+
+        assertThatThrownBy(() -> broker.verify(FUNCTION_NAME, args(), once()))
+                .isInstanceOf(MockVerificationException.class).hasMessageContaining("exactly once")
+                .hasMessageContaining("invoked 2 time(s)");
+    }
+
+    @Test
+    void whenVerifyNever_thenPassesIfNeverCalled() {
+        broker.mock(FUNCTION_NAME, args(), Value.of("result"));
+
+        broker.verify(FUNCTION_NAME, args(), Times.never());
+    }
+
+    @Test
+    void whenVerifyNever_thenFailsIfCalled() {
+        broker.mock(FUNCTION_NAME, args(), Value.of("result"));
+
+        broker.evaluateFunction(invocation(FUNCTION_NAME));
+
+        assertThatThrownBy(() -> broker.verify(FUNCTION_NAME, args(), Times.never()))
+                .isInstanceOf(MockVerificationException.class).hasMessageContaining("never")
+                .hasMessageContaining("invoked 1 time(s)");
+    }
+
+    @Test
+    void whenVerifyTimes_thenPassesIfCountMatches() {
+        broker.mock(FUNCTION_NAME, args(), Value.of("result"));
+
+        broker.evaluateFunction(invocation(FUNCTION_NAME));
+        broker.evaluateFunction(invocation(FUNCTION_NAME));
+        broker.evaluateFunction(invocation(FUNCTION_NAME));
+
+        broker.verify(FUNCTION_NAME, args(), times(3));
+    }
+
+    @Test
+    void whenVerifyAtLeast_thenPassesIfCountSufficient() {
+        broker.mock(FUNCTION_NAME, args(), Value.of("result"));
+
+        broker.evaluateFunction(invocation(FUNCTION_NAME));
+        broker.evaluateFunction(invocation(FUNCTION_NAME));
+        broker.evaluateFunction(invocation(FUNCTION_NAME));
+
+        broker.verify(FUNCTION_NAME, args(), atLeast(2));
+        broker.verify(FUNCTION_NAME, args(), atLeast(3));
+    }
+
+    @Test
+    void whenVerifyAtLeast_thenFailsIfCountInsufficient() {
+        broker.mock(FUNCTION_NAME, args(), Value.of("result"));
+
+        broker.evaluateFunction(invocation(FUNCTION_NAME));
+
+        assertThatThrownBy(() -> broker.verify(FUNCTION_NAME, args(), atLeast(2)))
+                .isInstanceOf(MockVerificationException.class);
+    }
+
+    @Test
+    void whenVerifyAtMost_thenPassesIfCountWithinLimit() {
+        broker.mock(FUNCTION_NAME, args(), Value.of("result"));
+
+        broker.evaluateFunction(invocation(FUNCTION_NAME));
+        broker.evaluateFunction(invocation(FUNCTION_NAME));
+
+        broker.verify(FUNCTION_NAME, args(), atMost(3));
+        broker.verify(FUNCTION_NAME, args(), atMost(2));
+    }
+
+    @Test
+    void whenVerifyAtMost_thenFailsIfCountExceedsLimit() {
+        broker.mock(FUNCTION_NAME, args(), Value.of("result"));
+
+        broker.evaluateFunction(invocation(FUNCTION_NAME));
+        broker.evaluateFunction(invocation(FUNCTION_NAME));
+        broker.evaluateFunction(invocation(FUNCTION_NAME));
+
+        assertThatThrownBy(() -> broker.verify(FUNCTION_NAME, args(), atMost(2)))
+                .isInstanceOf(MockVerificationException.class);
+    }
+
+    @Test
+    void whenVerifyWithArgumentMatchers_thenMatchesCorrectly() {
+        broker.mock(FUNCTION_NAME, args(any()), Value.of("result"));
+
+        broker.evaluateFunction(invocation(FUNCTION_NAME, Value.of("a")));
+        broker.evaluateFunction(invocation(FUNCTION_NAME, Value.of("b")));
+        broker.evaluateFunction(invocation(FUNCTION_NAME, Value.of("a")));
+
+        broker.verify(FUNCTION_NAME, args(eq(Value.of("a"))), times(2));
+        broker.verify(FUNCTION_NAME, args(eq(Value.of("b"))), once());
+        broker.verify(FUNCTION_NAME, args(any()), times(3));
+    }
+
+    @Test
+    void whenVerifyWithDifferentArities_thenMatchesCorrectly() {
+        broker.mock(FUNCTION_NAME, args(), Value.of("zero"));
+        broker.mock(FUNCTION_NAME, args(any()), Value.of("one"));
+
+        broker.evaluateFunction(invocation(FUNCTION_NAME));
+        broker.evaluateFunction(invocation(FUNCTION_NAME, Value.of("x")));
+        broker.evaluateFunction(invocation(FUNCTION_NAME, Value.of("y")));
+
+        broker.verify(FUNCTION_NAME, args(), once());
+        broker.verify(FUNCTION_NAME, args(any()), times(2));
+    }
+
+    @Test
+    void whenVerifyCalled_thenIsConvenienceForAtLeastOnce() {
+        broker.mock(FUNCTION_NAME, args(), Value.of("result"));
+
+        broker.evaluateFunction(invocation(FUNCTION_NAME));
+        broker.evaluateFunction(invocation(FUNCTION_NAME));
+
+        broker.verifyCalled(FUNCTION_NAME, args());
+    }
+
+    @Test
+    void whenVerifyNeverCalled_thenIsConvenienceForNever() {
+        broker.mock(FUNCTION_NAME, args(), Value.of("result"));
+
+        broker.verifyNeverCalled(FUNCTION_NAME, args());
+    }
+
+    @Test
+    void whenVerificationFails_thenMessageShowsRecordedInvocations() {
+        broker.mock(FUNCTION_NAME, args(any()), Value.of("result"));
+
+        broker.evaluateFunction(invocation(FUNCTION_NAME, Value.of("arg1")));
+        broker.evaluateFunction(invocation(FUNCTION_NAME, Value.of("arg2")));
+
+        assertThatThrownBy(() -> broker.verify(FUNCTION_NAME, args(eq(Value.of("other"))), once()))
+                .isInstanceOf(MockVerificationException.class).hasMessageContaining("Recorded invocations")
+                .hasMessageContaining(FUNCTION_NAME);
+    }
+
+    @Test
+    void whenVerificationFailsForUnknownFunction_thenMessageIndicatesNoInvocations() {
+        assertThatThrownBy(() -> broker.verify("unknown.function", args(), once()))
+                .isInstanceOf(MockVerificationException.class)
+                .hasMessageContaining("No invocations of 'unknown.function' were recorded");
+    }
+
+    @Test
+    void whenVerifyWithInvalidParameters_thenThrows() {
+        var invalidParams = new SaplTestFixture.Parameters() {};
+
+        assertThatThrownBy(() -> broker.verify(FUNCTION_NAME, invalidParams, once()))
+                .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("args()");
     }
 
     // ========== Helper Methods ==========

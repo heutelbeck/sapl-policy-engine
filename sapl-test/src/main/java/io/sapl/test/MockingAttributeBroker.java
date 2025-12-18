@@ -22,6 +22,9 @@ import io.sapl.api.attributes.AttributeFinderInvocation;
 import io.sapl.api.model.Value;
 import io.sapl.test.MockingFunctionBroker.ArgumentMatcher;
 import io.sapl.test.MockingFunctionBroker.ArgumentMatchers;
+import io.sapl.test.verification.AttributeInvocationRecord;
+import io.sapl.test.verification.MockVerificationException;
+import io.sapl.test.verification.Times;
 import lombok.NonNull;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Sinks;
@@ -32,6 +35,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * An AttributeBroker decorator that intercepts attribute lookups and returns
@@ -66,9 +71,11 @@ import java.util.Optional;
 public final class MockingAttributeBroker implements AttributeBroker {
 
     private AttributeBroker                        delegate;
-    private final Map<String, List<AttributeMock>> mocksByName = new HashMap<>();
-    private final Map<String, AttributeMock>       mocksById   = new HashMap<>();
-    private final Map<String, Sinks.Many<Value>>   sinks       = new HashMap<>();
+    private final Map<String, List<AttributeMock>> mocksByName     = new HashMap<>();
+    private final Map<String, AttributeMock>       mocksById       = new HashMap<>();
+    private final Map<String, Sinks.Many<Value>>   sinks           = new HashMap<>();
+    private final List<AttributeInvocationRecord>  invocations     = new CopyOnWriteArrayList<>();
+    private final AtomicLong                       sequenceCounter = new AtomicLong(0);
 
     /**
      * Creates a mocking broker with no delegate.
@@ -101,6 +108,7 @@ public final class MockingAttributeBroker implements AttributeBroker {
 
     @Override
     public Flux<Value> attributeStream(AttributeFinderInvocation invocation) {
+        recordInvocation(invocation);
         return findMostSpecificMatch(invocation).map(mock -> getStream(mock.mockId())).orElseGet(() -> {
             if (delegate == null) {
                 return Flux.error(
@@ -109,6 +117,12 @@ public final class MockingAttributeBroker implements AttributeBroker {
             }
             return delegate.attributeStream(invocation);
         });
+    }
+
+    private void recordInvocation(AttributeFinderInvocation invocation) {
+        var record = new AttributeInvocationRecord(invocation.attributeName(), invocation.entity(),
+                invocation.arguments(), sequenceCounter.getAndIncrement());
+        invocations.add(record);
     }
 
     @Override
@@ -257,7 +271,7 @@ public final class MockingAttributeBroker implements AttributeBroker {
     }
 
     /**
-     * Clears all registered mocks.
+     * Clears all registered mocks and recorded invocations.
      * <p>
      * After clearing, subsequent attribute lookups will delegate to the underlying
      * broker. Existing streams from previously registered mocks will no longer
@@ -267,6 +281,163 @@ public final class MockingAttributeBroker implements AttributeBroker {
         sinks.clear();
         mocksByName.clear();
         mocksById.clear();
+        clearInvocations();
+    }
+
+    /**
+     * Clears recorded invocations without clearing mocks.
+     * <p>
+     * Useful when you want to verify invocations for a specific phase of testing
+     * while keeping mocks in place.
+     */
+    public void clearInvocations() {
+        invocations.clear();
+        sequenceCounter.set(0);
+    }
+
+    /**
+     * Returns all recorded invocations.
+     *
+     * @return unmodifiable list of invocation records
+     */
+    public List<AttributeInvocationRecord> getInvocations() {
+        return List.copyOf(invocations);
+    }
+
+    /**
+     * Returns recorded invocations for a specific attribute.
+     *
+     * @param attributeName fully qualified attribute name
+     * @return unmodifiable list of invocation records for this attribute
+     */
+    public List<AttributeInvocationRecord> getInvocations(String attributeName) {
+        return invocations.stream().filter(r -> r.attributeName().equals(attributeName)).toList();
+    }
+
+    /**
+     * Verifies that an environment attribute was invoked the expected number of
+     * times
+     * with arguments matching the given matchers.
+     * <p>
+     * Example:
+     *
+     * <pre>{@code
+     * broker.verifyEnvironmentAttribute("time.now", args(), Times.once());
+     * broker.verifyEnvironmentAttribute("clock.ticker", args(), Times.times(5));
+     * }</pre>
+     *
+     * @param attributeName fully qualified attribute name
+     * @param arguments argument matchers (use args() for arity matching)
+     * @param times expected invocation count
+     * @throws MockVerificationException if verification fails
+     * @throws IllegalArgumentException if arguments is not an ArgumentMatchers
+     * instance
+     */
+    public void verifyEnvironmentAttribute(@NonNull String attributeName, @NonNull SaplTestFixture.Parameters arguments,
+            @NonNull Times times) {
+        if (!(arguments instanceof ArgumentMatchers(List<ArgumentMatcher> matchers))) {
+            throw new IllegalArgumentException("Arguments must be created via args().");
+        }
+
+        var matchingCount = countMatchingInvocations(attributeName, null, matchers, true);
+        if (!times.verify(matchingCount)) {
+            throw new MockVerificationException(
+                    buildVerificationMessage(attributeName, null, matchers, true, times, matchingCount));
+        }
+    }
+
+    /**
+     * Verifies that a regular attribute was invoked the expected number of times
+     * with entity and arguments matching the given matchers.
+     * <p>
+     * Example:
+     *
+     * <pre>{@code
+     * broker.verifyAttribute("user.role", eq(Value.of("alice")), args(), Times.once());
+     * }</pre>
+     *
+     * @param attributeName fully qualified attribute name
+     * @param entityMatcher matcher for the entity value
+     * @param arguments argument matchers (use args() for arity matching)
+     * @param times expected invocation count
+     * @throws MockVerificationException if verification fails
+     * @throws IllegalArgumentException if arguments is not an ArgumentMatchers
+     * instance
+     */
+    public void verifyAttribute(@NonNull String attributeName, @NonNull ArgumentMatcher entityMatcher,
+            @NonNull SaplTestFixture.Parameters arguments, @NonNull Times times) {
+        if (!(arguments instanceof ArgumentMatchers(List<ArgumentMatcher> matchers))) {
+            throw new IllegalArgumentException("Arguments must be created via args().");
+        }
+
+        var matchingCount = countMatchingInvocations(attributeName, entityMatcher, matchers, false);
+        if (!times.verify(matchingCount)) {
+            throw new MockVerificationException(
+                    buildVerificationMessage(attributeName, entityMatcher, matchers, false, times, matchingCount));
+        }
+    }
+
+    /**
+     * Verifies that an environment attribute was invoked at least once.
+     *
+     * @param attributeName fully qualified attribute name
+     * @param arguments argument matchers
+     * @throws MockVerificationException if attribute was never invoked
+     */
+    public void verifyEnvironmentAttributeCalled(@NonNull String attributeName,
+            @NonNull SaplTestFixture.Parameters arguments) {
+        verifyEnvironmentAttribute(attributeName, arguments, Times.atLeast(1));
+    }
+
+    /**
+     * Verifies that a regular attribute was invoked at least once.
+     *
+     * @param attributeName fully qualified attribute name
+     * @param entityMatcher matcher for the entity value
+     * @param arguments argument matchers
+     * @throws MockVerificationException if attribute was never invoked
+     */
+    public void verifyAttributeCalled(@NonNull String attributeName, @NonNull ArgumentMatcher entityMatcher,
+            @NonNull SaplTestFixture.Parameters arguments) {
+        verifyAttribute(attributeName, entityMatcher, arguments, Times.atLeast(1));
+    }
+
+    private int countMatchingInvocations(String attributeName, ArgumentMatcher entityMatcher,
+            List<ArgumentMatcher> argMatchers, boolean isEnvironmentAttribute) {
+        return (int) invocations.stream().filter(r -> r.attributeName().equals(attributeName))
+                .filter(r -> isEnvironmentAttribute ? r.isEnvironmentAttribute() : !r.isEnvironmentAttribute())
+                .filter(r -> isEnvironmentAttribute || entityMatcher == null || entityMatcher.matches(r.entity()))
+                .filter(r -> matchesArguments(r.arguments(), argMatchers)).count();
+    }
+
+    private boolean matchesArguments(List<Value> arguments, List<ArgumentMatcher> matchers) {
+        if (arguments.size() != matchers.size()) {
+            return false;
+        }
+        for (int i = 0; i < arguments.size(); i++) {
+            if (!matchers.get(i).matches(arguments.get(i))) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private String buildVerificationMessage(String attributeName, ArgumentMatcher entityMatcher,
+            List<ArgumentMatcher> argMatchers, boolean isEnvironmentAttribute, Times times, int actualCount) {
+        var sb = new StringBuilder();
+        sb.append("Attribute verification failed for '%s'.\n".formatted(attributeName));
+        sb.append(times.failureMessage(actualCount));
+
+        var attributeInvocations = getInvocations(attributeName);
+        if (attributeInvocations.isEmpty()) {
+            sb.append("\nNo invocations of '%s' were recorded.".formatted(attributeName));
+        } else {
+            sb.append("\nRecorded invocations of '%s':".formatted(attributeName));
+            for (var inv : attributeInvocations) {
+                sb.append("\n  - ").append(inv);
+            }
+        }
+        return sb.toString();
     }
 
     private void validateMockId(String mockId) {

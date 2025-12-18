@@ -36,10 +36,16 @@ import static io.sapl.test.Matchers.any;
 import static io.sapl.test.Matchers.anyText;
 import static io.sapl.test.Matchers.args;
 import static io.sapl.test.Matchers.eq;
+import static io.sapl.test.verification.Times.atLeast;
+import static io.sapl.test.verification.Times.once;
+import static io.sapl.test.verification.Times.times;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.when;
+
+import io.sapl.test.verification.MockVerificationException;
+import io.sapl.test.verification.Times;
 
 class MockingAttributeBrokerTests {
 
@@ -560,5 +566,269 @@ class MockingAttributeBrokerTests {
                 .then(() -> broker.emit("longRunning", Value.of("update1"))).expectNext(Value.of("update1"))
                 .then(() -> broker.emit("longRunning", Value.of("update2"))).expectNext(Value.of("update2"))
                 .thenCancel().verify();
+    }
+
+    // ========== Invocation Recording Tests ==========
+
+    @Test
+    void whenAttributeInvoked_thenRecordsInvocation() {
+        broker.mockEnvironmentAttribute("recordTest", "record.test", args(), Value.of("value"));
+
+        var invocation = envInvocation("record.test", List.of());
+        broker.attributeStream(invocation).blockFirst();
+
+        assertThat(broker.getInvocations()).hasSize(1);
+        assertThat(broker.getInvocations().getFirst().attributeName()).isEqualTo("record.test");
+    }
+
+    @Test
+    void whenMultipleAttributeInvocations_thenRecordsAll() {
+        broker.mockEnvironmentAttribute("multi1", "multi.test", args(), Value.of("v1"));
+
+        var invocation = envInvocation("multi.test", List.of());
+        broker.attributeStream(invocation).blockFirst();
+        broker.attributeStream(invocation).blockFirst();
+        broker.attributeStream(invocation).blockFirst();
+
+        assertThat(broker.getInvocations()).hasSize(3);
+    }
+
+    @Test
+    void whenAttributeInvocationRecorded_thenContainsArguments() {
+        broker.mockEnvironmentAttribute("argsRecord", "args.record", args(any(), any()), Value.of("result"));
+
+        var invocation = envInvocation("args.record", List.of(Value.of("arg1"), Value.of("arg2")));
+        broker.attributeStream(invocation).blockFirst();
+
+        var recorded = broker.getInvocations().getFirst();
+        assertThat(recorded.arguments()).containsExactly(Value.of("arg1"), Value.of("arg2"));
+    }
+
+    @Test
+    void whenEntityAttributeInvocationRecorded_thenContainsEntity() {
+        var entity = Value.of("testEntity");
+        broker.mockAttribute("entityRecord", "entity.record", eq(entity), args(), Value.of("result"));
+
+        var invocation = entityInvocation("entity.record", entity, List.of());
+        broker.attributeStream(invocation).blockFirst();
+
+        var recorded = broker.getInvocations().getFirst();
+        assertThat(recorded.entity()).isEqualTo(entity);
+        assertThat(recorded.isEnvironmentAttribute()).isFalse();
+    }
+
+    @Test
+    void whenEnvironmentAttributeInvocationRecorded_thenEntityIsNull() {
+        broker.mockEnvironmentAttribute("envRecord", "env.record", args(), Value.of("result"));
+
+        var invocation = envInvocation("env.record", List.of());
+        broker.attributeStream(invocation).blockFirst();
+
+        var recorded = broker.getInvocations().getFirst();
+        assertThat(recorded.entity()).isNull();
+        assertThat(recorded.isEnvironmentAttribute()).isTrue();
+    }
+
+    @Test
+    void whenInvocationRecorded_thenHasSequenceNumber() {
+        broker.mockEnvironmentAttribute("seq1", "seq.test1", args(), Value.of("v1"));
+        broker.mockEnvironmentAttribute("seq2", "seq.test2", args(), Value.of("v2"));
+
+        broker.attributeStream(envInvocation("seq.test1", List.of())).blockFirst();
+        broker.attributeStream(envInvocation("seq.test2", List.of())).blockFirst();
+        broker.attributeStream(envInvocation("seq.test1", List.of())).blockFirst();
+
+        var invocations = broker.getInvocations();
+        assertThat(invocations.get(0).sequenceNumber()).isEqualTo(0);
+        assertThat(invocations.get(1).sequenceNumber()).isEqualTo(1);
+        assertThat(invocations.get(2).sequenceNumber()).isEqualTo(2);
+    }
+
+    @Test
+    void whenGetInvocationsForAttribute_thenFiltersCorrectly() {
+        broker.mockEnvironmentAttribute("filter1", "filter.attr1", args(), Value.of("v1"));
+        broker.mockEnvironmentAttribute("filter2", "filter.attr2", args(), Value.of("v2"));
+
+        broker.attributeStream(envInvocation("filter.attr1", List.of())).blockFirst();
+        broker.attributeStream(envInvocation("filter.attr2", List.of())).blockFirst();
+        broker.attributeStream(envInvocation("filter.attr1", List.of())).blockFirst();
+
+        assertThat(broker.getInvocations("filter.attr1")).hasSize(2);
+        assertThat(broker.getInvocations("filter.attr2")).hasSize(1);
+    }
+
+    @Test
+    void whenClearInvocations_thenKeepsMocksButClearsRecords() {
+        broker.mockEnvironmentAttribute("clearInv", "clear.inv", args(), Value.of("result"));
+
+        broker.attributeStream(envInvocation("clear.inv", List.of())).blockFirst();
+        assertThat(broker.getInvocations()).hasSize(1);
+
+        broker.clearInvocations();
+
+        assertThat(broker.getInvocations()).isEmpty();
+        assertThat(broker.hasMock("clearInv")).isTrue();
+    }
+
+    @Test
+    void whenClearAllMocks_thenClearsInvocationsToo() {
+        broker.mockEnvironmentAttribute("clearAll", "clear.all", args(), Value.of("result"));
+
+        broker.attributeStream(envInvocation("clear.all", List.of())).blockFirst();
+
+        broker.clearAllMocks();
+
+        assertThat(broker.getInvocations()).isEmpty();
+    }
+
+    // ========== Verification Tests ==========
+
+    @Test
+    void whenVerifyEnvironmentAttributeOnce_thenPassesIfCalledOnce() {
+        broker.mockEnvironmentAttribute("verifyOnce", "verify.once", args(), Value.of("result"));
+
+        broker.attributeStream(envInvocation("verify.once", List.of())).blockFirst();
+
+        broker.verifyEnvironmentAttribute("verify.once", args(), once());
+    }
+
+    @Test
+    void whenVerifyEnvironmentAttributeOnce_thenFailsIfNeverCalled() {
+        broker.mockEnvironmentAttribute("verifyFail", "verify.fail", args(), Value.of("result"));
+
+        assertThatThrownBy(() -> broker.verifyEnvironmentAttribute("verify.fail", args(), once()))
+                .isInstanceOf(MockVerificationException.class).hasMessageContaining("exactly once")
+                .hasMessageContaining("invoked 0 time(s)");
+    }
+
+    @Test
+    void whenVerifyEnvironmentAttributeOnce_thenFailsIfCalledMultipleTimes() {
+        broker.mockEnvironmentAttribute("verifyMulti", "verify.multi", args(), Value.of("result"));
+
+        broker.attributeStream(envInvocation("verify.multi", List.of())).blockFirst();
+        broker.attributeStream(envInvocation("verify.multi", List.of())).blockFirst();
+
+        assertThatThrownBy(() -> broker.verifyEnvironmentAttribute("verify.multi", args(), once()))
+                .isInstanceOf(MockVerificationException.class).hasMessageContaining("exactly once")
+                .hasMessageContaining("invoked 2 time(s)");
+    }
+
+    @Test
+    void whenVerifyEnvironmentAttributeNever_thenPassesIfNeverCalled() {
+        broker.mockEnvironmentAttribute("verifyNever", "verify.never", args(), Value.of("result"));
+
+        broker.verifyEnvironmentAttribute("verify.never", args(), Times.never());
+    }
+
+    @Test
+    void whenVerifyEnvironmentAttributeNever_thenFailsIfCalled() {
+        broker.mockEnvironmentAttribute("verifyNeverFail", "verify.neverfail", args(), Value.of("result"));
+
+        broker.attributeStream(envInvocation("verify.neverfail", List.of())).blockFirst();
+
+        assertThatThrownBy(() -> broker.verifyEnvironmentAttribute("verify.neverfail", args(), Times.never()))
+                .isInstanceOf(MockVerificationException.class).hasMessageContaining("never")
+                .hasMessageContaining("invoked 1 time(s)");
+    }
+
+    @Test
+    void whenVerifyEnvironmentAttributeTimes_thenPassesIfCountMatches() {
+        broker.mockEnvironmentAttribute("verifyTimes", "verify.times", args(), Value.of("result"));
+
+        broker.attributeStream(envInvocation("verify.times", List.of())).blockFirst();
+        broker.attributeStream(envInvocation("verify.times", List.of())).blockFirst();
+        broker.attributeStream(envInvocation("verify.times", List.of())).blockFirst();
+
+        broker.verifyEnvironmentAttribute("verify.times", args(), times(3));
+    }
+
+    @Test
+    void whenVerifyEnvironmentAttributeWithArgs_thenMatchesCorrectly() {
+        broker.mockEnvironmentAttribute("verifyArgs", "verify.args", args(any()), Value.of("result"));
+
+        broker.attributeStream(envInvocation("verify.args", List.of(Value.of("a")))).blockFirst();
+        broker.attributeStream(envInvocation("verify.args", List.of(Value.of("b")))).blockFirst();
+        broker.attributeStream(envInvocation("verify.args", List.of(Value.of("a")))).blockFirst();
+
+        broker.verifyEnvironmentAttribute("verify.args", args(eq(Value.of("a"))), times(2));
+        broker.verifyEnvironmentAttribute("verify.args", args(eq(Value.of("b"))), once());
+        broker.verifyEnvironmentAttribute("verify.args", args(any()), times(3));
+    }
+
+    @Test
+    void whenVerifyRegularAttribute_thenMatchesEntityAndArgs() {
+        var entity = Value.of("user1");
+        broker.mockAttribute("verifyEntity", "verify.entity", eq(entity), args(), Value.of("result"));
+
+        broker.attributeStream(entityInvocation("verify.entity", entity, List.of())).blockFirst();
+        broker.attributeStream(entityInvocation("verify.entity", entity, List.of())).blockFirst();
+
+        broker.verifyAttribute("verify.entity", eq(entity), args(), times(2));
+    }
+
+    @Test
+    void whenVerifyRegularAttributeWithAny_thenMatchesAllEntities() {
+        broker.mockAttribute("verifyAnyEntity", "verify.anyentity", any(), args(), Value.of("result"));
+
+        broker.attributeStream(entityInvocation("verify.anyentity", Value.of("user1"), List.of())).blockFirst();
+        broker.attributeStream(entityInvocation("verify.anyentity", Value.of("user2"), List.of())).blockFirst();
+
+        broker.verifyAttribute("verify.anyentity", any(), args(), times(2));
+        broker.verifyAttribute("verify.anyentity", eq(Value.of("user1")), args(), once());
+    }
+
+    @Test
+    void whenVerifyEnvironmentAttributeCalled_thenIsConvenienceForAtLeastOnce() {
+        broker.mockEnvironmentAttribute("verifyCalled", "verify.called", args(), Value.of("result"));
+
+        broker.attributeStream(envInvocation("verify.called", List.of())).blockFirst();
+        broker.attributeStream(envInvocation("verify.called", List.of())).blockFirst();
+
+        broker.verifyEnvironmentAttributeCalled("verify.called", args());
+    }
+
+    @Test
+    void whenVerifyAttributeCalled_thenIsConvenienceForAtLeastOnce() {
+        var entity = Value.of("testUser");
+        broker.mockAttribute("verifyAttrCalled", "verify.attrcalled", eq(entity), args(), Value.of("result"));
+
+        broker.attributeStream(entityInvocation("verify.attrcalled", entity, List.of())).blockFirst();
+
+        broker.verifyAttributeCalled("verify.attrcalled", eq(entity), args());
+    }
+
+    @Test
+    void whenVerificationFails_thenMessageShowsRecordedInvocations() {
+        broker.mockEnvironmentAttribute("failMsg", "fail.msg", args(any()), Value.of("result"));
+
+        broker.attributeStream(envInvocation("fail.msg", List.of(Value.of("arg1")))).blockFirst();
+        broker.attributeStream(envInvocation("fail.msg", List.of(Value.of("arg2")))).blockFirst();
+
+        assertThatThrownBy(() -> broker.verifyEnvironmentAttribute("fail.msg", args(eq(Value.of("other"))), once()))
+                .isInstanceOf(MockVerificationException.class).hasMessageContaining("Recorded invocations")
+                .hasMessageContaining("fail.msg");
+    }
+
+    @Test
+    void whenVerificationFailsForUnknownAttribute_thenMessageIndicatesNoInvocations() {
+        assertThatThrownBy(() -> broker.verifyEnvironmentAttribute("unknown.attr", args(), once()))
+                .isInstanceOf(MockVerificationException.class)
+                .hasMessageContaining("No invocations of 'unknown.attr' were recorded");
+    }
+
+    @Test
+    void whenVerifyWithInvalidParameters_thenThrows() {
+        var invalidParams = new SaplTestFixture.Parameters() {};
+
+        assertThatThrownBy(() -> broker.verifyEnvironmentAttribute("test.attr", invalidParams, once()))
+                .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("args()");
+    }
+
+    @Test
+    void whenVerifyAttributeWithInvalidParameters_thenThrows() {
+        var invalidParams = new SaplTestFixture.Parameters() {};
+
+        assertThatThrownBy(() -> broker.verifyAttribute("test.attr", any(), invalidParams, once()))
+                .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("args()");
     }
 }

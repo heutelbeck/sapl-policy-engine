@@ -106,7 +106,7 @@ public class ConstraintEnforcementService {
         this.globalErrorMappingHandlerProviders = globalErrorMappingHandlerProviders;
         Collections.sort(this.globalErrorMappingHandlerProviders);
 
-        globalRunnableIndex = new HashMap<>();
+        globalRunnableIndex = new EnumMap<>(RunnableConstraintHandlerProvider.Signal.class);
         for (var provider : globalRunnableProviders)
             globalRunnableIndex.computeIfAbsent(provider.getSignal(), k -> new ArrayList<>()).add(provider);
     }

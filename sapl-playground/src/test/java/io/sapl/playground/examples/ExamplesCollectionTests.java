@@ -28,7 +28,6 @@ import io.sapl.functions.libraries.GraphFunctionLibrary;
 import io.sapl.functions.libraries.StandardFunctionLibrary;
 import io.sapl.functions.libraries.TemporalFunctionLibrary;
 import io.sapl.api.model.Value;
-import io.sapl.test.DecisionMatchers;
 import io.sapl.test.SaplTestFixture;
 import lombok.val;
 import org.junit.jupiter.api.DisplayName;
@@ -40,6 +39,9 @@ import org.junit.jupiter.params.provider.MethodSource;
 import java.util.stream.Stream;
 
 import static io.sapl.test.Matchers.args;
+import static io.sapl.test.Matchers.isDecision;
+import static io.sapl.test.Matchers.isNotApplicable;
+import static io.sapl.test.Matchers.isPermit;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 /**
@@ -67,7 +69,7 @@ class ExamplesCollectionTests {
 
         registerVariables(fixture, example.variables());
 
-        fixture.whenDecide(subscription).expectDecisionMatches(DecisionMatchers.isDecision(expectedDecision)).verify();
+        fixture.whenDecide(subscription).expectDecisionMatches(isDecision(expectedDecision)).verify();
     }
 
     private static Stream<Arguments> deterministicExamples() {
@@ -130,7 +132,7 @@ class ExamplesCollectionTests {
 
         registerVariables(fixture, example.variables());
 
-        fixture.whenDecide(subscription).expectDecisionMatches(DecisionMatchers.isPermit()).verify();
+        fixture.whenDecide(subscription).expectDecisionMatches(isPermit()).verify();
     }
 
     @Test
@@ -145,7 +147,7 @@ class ExamplesCollectionTests {
 
         registerVariables(fixture, example.variables());
 
-        fixture.whenDecide(subscription).expectDecisionMatches(DecisionMatchers.isNotApplicable()).verify();
+        fixture.whenDecide(subscription).expectDecisionMatches(isNotApplicable()).verify();
     }
 
     private AuthorizationSubscription parseSubscription(String subscriptionJson) throws Exception {

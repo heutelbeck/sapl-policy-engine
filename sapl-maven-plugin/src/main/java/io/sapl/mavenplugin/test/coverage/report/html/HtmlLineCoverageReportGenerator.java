@@ -17,11 +17,10 @@
  */
 package io.sapl.mavenplugin.test.coverage.report.html;
 
-import io.sapl.mavenplugin.test.coverage.PathHelper;
-import io.sapl.mavenplugin.test.coverage.report.html.WebDependencyFactory.WebDependency;
-import io.sapl.api.coverage.LineCoverageInfo;
 import io.sapl.api.coverage.LineCoverageStatus;
 import io.sapl.api.coverage.PolicyCoverageData;
+import io.sapl.mavenplugin.test.coverage.PathHelper;
+import io.sapl.mavenplugin.test.coverage.report.html.WebDependencyFactory.WebDependency;
 import lombok.Data;
 import lombok.val;
 import org.apache.maven.plugin.MojoExecutionException;
@@ -93,7 +92,6 @@ public class HtmlLineCoverageReportGenerator {
         val engine = prepareTemplateEngine();
 
         for (val policy : policies) {
-            val lines      = policy.getDocumentSource().lines().toList();
             val lineModels = createLineModels(policy);
 
             val context = new Context();

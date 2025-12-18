@@ -29,7 +29,7 @@ import lombok.experimental.UtilityClass;
  * Analyzes cursor context to determine what type of completions should be
  * offered. Used primarily to detect when the cursor is after a function call
  * or attribute access, enabling schema-based property completions.
- *
+ * <p/>
  * For example, when the cursor is at:
  * <ul>
  * <li>{@code time.now().} - detects FUNCTION context with
@@ -95,7 +95,6 @@ public class ContextAnalyzer {
         Token tokenAtCursor   = null;
         Token previousToken   = null;
         Token twoTokensBack   = null;
-        Token threeTokensBack = null;
 
         for (var token : tokens) {
             if (token.getType() == Token.EOF) {
@@ -106,7 +105,6 @@ public class ContextAnalyzer {
                 var tokenEndColumn = token.getCharPositionInLine() + token.getText().length();
 
                 if (tokenEndLine < line || (tokenEndLine == line && tokenEndColumn <= column)) {
-                    threeTokensBack = twoTokensBack;
                     twoTokensBack   = previousToken;
                     previousToken   = tokenAtCursor;
                     tokenAtCursor   = token;

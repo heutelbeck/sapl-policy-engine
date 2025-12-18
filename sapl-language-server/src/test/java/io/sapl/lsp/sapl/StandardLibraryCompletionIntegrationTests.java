@@ -179,10 +179,10 @@ class StandardLibraryCompletionIntegrationTests {
         var labels      = extractLabels(completions);
 
         // Should include time.* functions starting with 'b'
-        assertThat(labels).contains("time.before", "time.between");
+        assertThat(labels).contains("time.before", "time.between")
         // Should NOT include unrelated libraries
-        assertThat(labels).doesNotContain("bitwise.setBit");
-        assertThat(labels).doesNotContain("string.before");
+            .doesNotContain("bitwise.setBit")
+            .doesNotContain("string.before");
     }
 
     @Test

@@ -23,6 +23,7 @@ import io.sapl.api.pdp.Decision;
 import lombok.NonNull;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.StringJoiner;
 import java.util.function.Predicate;
@@ -30,7 +31,7 @@ import java.util.function.Predicate;
 /**
  * Matcher for AuthorizationDecision with fluent chainable API.
  * <p>
- * Create instances via static factory methods in {@link DecisionMatchers}:
+ * Create instances via static factory methods in {@link Matchers}:
  *
  * <pre>{@code
  * isPermit()
@@ -79,9 +80,7 @@ public final class DecisionMatcher implements Predicate<AuthorizationDecision> {
      * @return this matcher for chaining
      */
     public DecisionMatcher containsObligations(@NonNull Value... obligations) {
-        for (var obligation : obligations) {
-            expectedObligations.add(obligation);
-        }
+        expectedObligations.addAll(Arrays.asList(obligations));
         return this;
     }
 
@@ -116,9 +115,7 @@ public final class DecisionMatcher implements Predicate<AuthorizationDecision> {
      * @return this matcher for chaining
      */
     public DecisionMatcher containsAdvices(@NonNull Value... advices) {
-        for (var advice : advices) {
-            expectedAdvice.add(advice);
-        }
+        expectedAdvice.addAll(Arrays.asList(advices));
         return this;
     }
 

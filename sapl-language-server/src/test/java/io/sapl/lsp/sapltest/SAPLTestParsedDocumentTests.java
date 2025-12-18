@@ -19,6 +19,7 @@ package io.sapl.lsp.sapltest;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import org.antlr.v4.runtime.Token;
 import org.junit.jupiter.api.Test;
 
 class SAPLTestParsedDocumentTests {
@@ -106,7 +107,7 @@ class SAPLTestParsedDocumentTests {
         var tokens   = document.getTokens();
 
         assertThat(tokens).isNotEmpty();
-        assertThat(tokens.stream().map(t -> t.getText())).contains("requirement", "scenario", "when", "expect",
+        assertThat(tokens.stream().map(Token::getText)).contains("requirement", "scenario", "when", "expect",
                 "permit");
     }
 

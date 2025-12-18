@@ -1360,9 +1360,7 @@ public class ExpressionCompiler {
         if (!(operands[0] instanceof Value firstValue)) {
             return Error.at(context, ERROR_EXPECTED_VALUE_FOR_ARITHMETIC);
         }
-        val result = applyArithmeticChain(firstValue, Arrays.copyOfRange(operands, 1, operands.length), operators,
-                context);
-        return result;
+        return applyArithmeticChain(firstValue, Arrays.copyOfRange(operands, 1, operands.length), operators, context);
     }
 
     /**

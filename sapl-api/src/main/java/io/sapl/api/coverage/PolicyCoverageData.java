@@ -69,7 +69,7 @@ public class PolicyCoverageData {
      * even when multiple appear on the same line.
      */
     private static long positionKey(int startLine, int startChar) {
-        return (long) startLine * 100_000L + startChar;
+        return startLine * 100_000L + startChar;
     }
 
     /**

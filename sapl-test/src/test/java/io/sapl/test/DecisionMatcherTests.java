@@ -30,10 +30,11 @@ import org.junit.jupiter.params.provider.MethodSource;
 import java.util.List;
 import java.util.stream.Stream;
 
-import static io.sapl.test.DecisionMatchers.isDeny;
-import static io.sapl.test.DecisionMatchers.isIndeterminate;
-import static io.sapl.test.DecisionMatchers.isNotApplicable;
-import static io.sapl.test.DecisionMatchers.isPermit;
+import static io.sapl.test.Matchers.isDeny;
+import static io.sapl.test.Matchers.isIndeterminate;
+import static io.sapl.test.Matchers.isNotApplicable;
+import static io.sapl.test.Matchers.isPermit;
+import static io.sapl.test.Matchers.isDecision;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
@@ -42,7 +43,7 @@ class DecisionMatcherTests {
     @ParameterizedTest
     @EnumSource(Decision.class)
     void whenDecisionMatches_thenReturnsTrue(Decision decision) {
-        var matcher       = DecisionMatchers.isDecision(decision);
+        var matcher       = isDecision(decision);
         var authzDecision = new AuthorizationDecision(decision, List.of(), List.of(), Value.UNDEFINED);
 
         assertThat(matcher.test(authzDecision)).isTrue();
@@ -51,7 +52,7 @@ class DecisionMatcherTests {
     @ParameterizedTest
     @MethodSource("decisionMismatchCases")
     void whenDecisionDoesNotMatch_thenReturnsFalse(Decision expected, Decision actual) {
-        var matcher       = DecisionMatchers.isDecision(expected);
+        var matcher       = isDecision(expected);
         var authzDecision = new AuthorizationDecision(actual, List.of(), List.of(), Value.UNDEFINED);
 
         assertThat(matcher.test(authzDecision)).isFalse();

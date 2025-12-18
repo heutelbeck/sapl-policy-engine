@@ -33,11 +33,12 @@ import io.sapl.grammar.antlr.SAPLParser.SaplContext;
 import io.sapl.lsp.configuration.LSPConfiguration;
 import io.sapl.lsp.sapl.completion.ContextAnalyzer.ContextAnalysisResult;
 import lombok.experimental.UtilityClass;
+import org.antlr.v4.runtime.RuleContext;
 
 /**
  * Generates schema-based property proposals for function and attribute return
  * values.
- *
+ * <p/>
  * When the cursor is after a function call (e.g., `time.now().`), this class
  * looks up the return type schema of the function and generates property path
  * suggestions.
@@ -171,14 +172,14 @@ public class LibraryProposalsGenerator {
     /**
      * Resolves an import statement to determine if it provides an alias for the
      * given FQN.
-     *
+     * <p
      * Import forms:
      * - `import time` - makes all time.X functions available as X
      * - `import time.now` - makes time.now available as now
      * - `import time.now as currentTime` - makes time.now available as currentTime
      */
     private static Optional<String> resolveImport(ImportStatementContext importStmt, String fullyQualifiedName) {
-        var libSteps  = importStmt.libSteps.stream().map(id -> id.getText()).collect(Collectors.joining("."));
+        var libSteps  = importStmt.libSteps.stream().map(RuleContext::getText).collect(Collectors.joining("."));
         var libPrefix = libSteps + ".";
 
         var functionName = importStmt.functionName != null ? importStmt.functionName.getText() : null;

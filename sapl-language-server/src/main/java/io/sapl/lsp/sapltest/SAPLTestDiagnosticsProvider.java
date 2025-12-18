@@ -78,9 +78,8 @@ public class SAPLTestDiagnosticsProvider {
         var endChar   = startChar + (offendingSymbol != null ? offendingSymbol.length() : 1);
 
         var range      = new Range(new Position(startLine, startChar), new Position(endLine, endChar));
-        var diagnostic = new Diagnostic(range, message, severity, SOURCE);
 
-        return diagnostic;
+        return new Diagnostic(range, message, severity, SOURCE);
     }
 
 }

@@ -141,9 +141,9 @@ class SaplTestFixtureTests {
     @Test
     void whenAddingDuplicateVariable_thenThrowsException() {
         var fixture = SaplTestFixture.createSingleTest().givenVariable("testVar", Value.of("value1"));
-
-        assertThatThrownBy(() -> fixture.givenVariable("testVar", Value.of("value2")))
-                .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("already registered");
+        var value2  = Value.of("value2");
+        assertThatThrownBy(() -> fixture.givenVariable("testVar", value2)).isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("already registered");
     }
 
     @Test
