@@ -74,12 +74,7 @@ public class JsonGraphVisualization extends Component implements HasSize, HasSty
     private Dialog                 maximizeDialog;
     private JsonGraphVisualization maximizedVisualization;
     private String                 currentJsonData = "{}";
-    /**
-     * -- GETTER --
-     * Checks if value mode is enabled.
-     *
-     * @return true if value mode is enabled
-     */
+
     @Getter
     private boolean                valueMode       = false;
 
