@@ -76,7 +76,7 @@ public class JsonGraphVisualization extends Component implements HasSize, HasSty
     private String                 currentJsonData = "{}";
 
     @Getter
-    private boolean                valueMode       = false;
+    private boolean valueMode = false;
 
     /**
      * Creates a new JSON graph visualization component.

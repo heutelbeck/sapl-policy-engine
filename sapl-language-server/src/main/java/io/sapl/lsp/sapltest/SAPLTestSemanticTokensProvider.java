@@ -80,8 +80,8 @@ public class SAPLTestSemanticTokensProvider {
 
         // Structure keywords
         case SAPLTestLexer.REQUIREMENT, SAPLTestLexer.SCENARIO, SAPLTestLexer.GIVEN, SAPLTestLexer.WHEN,
-                SAPLTestLexer.THEN,
-                SAPLTestLexer.EXPECT                                                                                                              ->
+                SAPLTestLexer.THEN, SAPLTestLexer.EXPECT,
+                SAPLTestLexer.VERIFY                                                                                                                                    ->
             SAPLTestSemanticTokenTypes.KEYWORD;
 
         // Decision keywords (macro styling)
@@ -103,20 +103,13 @@ public class SAPLTestSemanticTokensProvider {
 
         // Mock and setup keywords
         case SAPLTestLexer.FUNCTION, SAPLTestLexer.ATTRIBUTE, SAPLTestLexer.MAPS, SAPLTestLexer.TO, SAPLTestLexer.EMITS,
-                SAPLTestLexer.STREAM, SAPLTestLexer.TIMING, SAPLTestLexer.OF, SAPLTestLexer.IS, SAPLTestLexer.CALLED,
-                SAPLTestLexer.VIRTUAL_TIME, SAPLTestLexer.ERROR, SAPLTestLexer.ONCE,
-                SAPLTestLexer.TIMES                                                                                                                                                                                                                                                                                     ->
+                SAPLTestLexer.STREAM, SAPLTestLexer.OF, SAPLTestLexer.IS, SAPLTestLexer.CALLED, SAPLTestLexer.ERROR,
+                SAPLTestLexer.ONCE,
+                SAPLTestLexer.TIMES                                                                                                                                                                                                                                   ->
             SAPLTestSemanticTokenTypes.KEYWORD;
 
-        // Import keywords
-        case SAPLTestLexer.PIP, SAPLTestLexer.STATIC_PIP, SAPLTestLexer.FUNCTION_LIBRARY,
-                SAPLTestLexer.STATIC_FUNCTION_LIBRARY                                                                           ->
-            SAPLTestSemanticTokenTypes.KEYWORD;
-
-        // PDP configuration keywords
-        case SAPLTestLexer.PDP, SAPLTestLexer.VARIABLES, SAPLTestLexer.COMBINING_ALGORITHM, SAPLTestLexer.CONFIGURATION,
-                SAPLTestLexer.POLICY, SAPLTestLexer.SET,
-                SAPLTestLexer.POLICIES                                                                                                                                                   ->
+        // Document and configuration keywords
+        case SAPLTestLexer.DOCUMENT, SAPLTestLexer.DOCUMENTS, SAPLTestLexer.VARIABLES ->
             SAPLTestSemanticTokenTypes.KEYWORD;
 
         // Matcher keywords
@@ -134,10 +127,8 @@ public class SAPLTestSemanticTokensProvider {
                 SAPLTestLexer.ORDER                                                                                                                                                                                                                                                                                                    ->
             SAPLTestSemanticTokenTypes.KEYWORD;
 
-        // Expectation step keywords
-        case SAPLTestLexer.NO_EVENT, SAPLTestLexer.FOR, SAPLTestLexer.WAIT, SAPLTestLexer.NEXT,
-                SAPLTestLexer.OBLIGATION, SAPLTestLexer.ADVICE,
-                SAPLTestLexer.OBLIGATIONS                                                                                                                                 ->
+        // Expectation keywords
+        case SAPLTestLexer.NEXT, SAPLTestLexer.OBLIGATION, SAPLTestLexer.ADVICE, SAPLTestLexer.OBLIGATIONS ->
             SAPLTestSemanticTokenTypes.KEYWORD;
 
         // Boolean and special literals

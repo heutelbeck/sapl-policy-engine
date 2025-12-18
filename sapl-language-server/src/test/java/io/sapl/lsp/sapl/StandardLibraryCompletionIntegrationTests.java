@@ -180,9 +180,8 @@ class StandardLibraryCompletionIntegrationTests {
 
         // Should include time.* functions starting with 'b'
         assertThat(labels).contains("time.before", "time.between")
-        // Should NOT include unrelated libraries
-            .doesNotContain("bitwise.setBit")
-            .doesNotContain("string.before");
+                // Should NOT include unrelated libraries
+                .doesNotContain("bitwise.setBit").doesNotContain("string.before");
     }
 
     @Test

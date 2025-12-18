@@ -36,7 +36,7 @@ class SaplTestRunnerTests {
                 requirement "basic test" {
                     scenario "scenario one"
                         given
-                            - policy "policy.sapl"
+                            - document "policy.sapl"
                         when subject "user" attempts action "read" on resource "data"
                         expect permit;
                 }

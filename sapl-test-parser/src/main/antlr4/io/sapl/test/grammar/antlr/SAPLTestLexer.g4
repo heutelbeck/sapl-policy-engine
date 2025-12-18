@@ -24,6 +24,7 @@ GIVEN       : 'given';
 WHEN        : 'when';
 THEN        : 'then';
 EXPECT      : 'expect';
+VERIFY      : 'verify';
 
 // Authorization keywords
 SUBJECT     : 'subject';
@@ -53,24 +54,13 @@ MAPS          : 'maps';
 TO            : 'to';
 EMITS         : 'emits';
 STREAM        : 'stream';
-TIMING        : 'timing';
 OF            : 'of';
 IS            : 'is';
 CALLED        : 'called';
-VIRTUAL_TIME  : 'virtual-time';
 ERROR         : 'error';
 
-// Import keywords
-PIP                     : 'pip';
-STATIC_PIP              : 'static-pip';
-FUNCTION_LIBRARY        : 'function-library';
-STATIC_FUNCTION_LIBRARY : 'static-function-library';
-
 // PDP configuration keywords
-PDP                  : 'pdp';
-VARIABLES            : 'variables';
-COMBINING_ALGORITHM  : 'combining-algorithm';
-CONFIGURATION        : 'configuration';
+VARIABLES : 'variables';
 
 // Combining algorithms
 DENY_OVERRIDES      : 'deny-overrides';
@@ -80,9 +70,8 @@ DENY_UNLESS_PERMIT  : 'deny-unless-permit';
 PERMIT_UNLESS_DENY  : 'permit-unless-deny';
 
 // Document keywords
-POLICY   : 'policy';
-SET      : 'set';
-POLICIES : 'policies';
+DOCUMENT  : 'document';
+DOCUMENTS : 'documents';
 
 // Matcher keywords - JSON types
 NULL_KEYWORD    : 'null';
@@ -115,12 +104,9 @@ LENGTH              : 'length';
 ORDER               : 'order';
 
 // Expect step keywords
-NO_EVENT : 'no-event';
-FOR      : 'for';
-WAIT     : 'wait';
-NEXT     : 'next';
-ONCE     : 'once';
-TIMES    : 'times';
+NEXT  : 'next';
+ONCE  : 'once';
+TIMES : 'times';
 
 // Boolean literals
 TRUE  : 'true';
@@ -140,6 +126,7 @@ COMMA    : ',';
 COLON    : ':';
 SEMI     : ';';
 DASH     : '-';
+DOT      : '.';
 LT       : '<';
 GT       : '>';
 AND      : 'and';

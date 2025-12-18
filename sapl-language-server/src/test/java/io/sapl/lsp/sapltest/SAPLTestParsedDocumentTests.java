@@ -64,8 +64,8 @@ class SAPLTestParsedDocumentTests {
         var content = """
                 requirement "Mock Test" {
                     given
-                        - function-library "io.sapl.TestLibrary"
-                        - function "test.func" maps to "value"
+                        - document "testPolicy"
+                        - function test.func() maps to "value"
                     scenario "with mocks"
                         when "user" attempts "read" on "doc"
                         expect permit;
@@ -107,8 +107,7 @@ class SAPLTestParsedDocumentTests {
         var tokens   = document.getTokens();
 
         assertThat(tokens).isNotEmpty();
-        assertThat(tokens.stream().map(Token::getText)).contains("requirement", "scenario", "when", "expect",
-                "permit");
+        assertThat(tokens.stream().map(Token::getText)).contains("requirement", "scenario", "when", "expect", "permit");
     }
 
     @Test
@@ -116,13 +115,14 @@ class SAPLTestParsedDocumentTests {
         var content = """
                 requirement "Stream Test" {
                     given
-                        - virtual-time
-                    scenario "virtual time"
+                        - document "testPolicy"
+                        - attribute "timeMock" <time.now> emits "initial"
+                    scenario "streaming test"
                         when "user" attempts "read" on "doc"
                         expect
                             - permit once
                         then
-                            - wait "PT1S"
+                            - attribute "timeMock" emits "changed"
                         expect
                             - deny once;
                 }

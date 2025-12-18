@@ -92,9 +92,9 @@ public class ContextAnalyzer {
         var column = position.getCharacter();
 
         // Find token at or before cursor
-        Token tokenAtCursor   = null;
-        Token previousToken   = null;
-        Token twoTokensBack   = null;
+        Token tokenAtCursor = null;
+        Token previousToken = null;
+        Token twoTokensBack = null;
 
         for (var token : tokens) {
             if (token.getType() == Token.EOF) {
@@ -105,9 +105,9 @@ public class ContextAnalyzer {
                 var tokenEndColumn = token.getCharPositionInLine() + token.getText().length();
 
                 if (tokenEndLine < line || (tokenEndLine == line && tokenEndColumn <= column)) {
-                    twoTokensBack   = previousToken;
-                    previousToken   = tokenAtCursor;
-                    tokenAtCursor   = token;
+                    twoTokensBack = previousToken;
+                    previousToken = tokenAtCursor;
+                    tokenAtCursor = token;
                 } else {
                     break;
                 }

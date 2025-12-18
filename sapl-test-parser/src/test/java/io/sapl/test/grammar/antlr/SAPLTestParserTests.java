@@ -35,8 +35,8 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
 /**
- * Comprehensive test suite for the ANTLR4 SAPLTest parser.
- * Tests cover all grammar rules and labeled alternatives.
+ * Comprehensive test suite for the ANTLR4 SAPLTest parser. Tests cover all
+ * grammar rules and labeled alternatives.
  */
 class SAPLTestParserTests {
 
@@ -80,34 +80,26 @@ class SAPLTestParserTests {
     // ========================================================================
 
     static Stream<Arguments> documentSpecifications() {
-        return Stream.of(arguments("single policy", """
+        return Stream.of(arguments("single document (unit test)", """
                 requirement "Test" {
                     given
-                        - policy "elder_policy"
+                        - document "elder_policy"
                     scenario "test"
                         when "cultist" attempts "summon" on "shoggoth"
                         expect permit;
                 }
-                """), arguments("document set", """
+                """), arguments("multiple documents (integration test)", """
                 requirement "Test" {
                     given
-                        - set "eldritch_policies"
+                        - documents "policy1", "policy2", "policy3"
                     scenario "test"
                         when "cultist" attempts "summon" on "shoggoth"
                         expect permit;
                 }
-                """), arguments("multiple policies", """
+                """), arguments("single document in documents syntax", """
                 requirement "Test" {
                     given
-                        - policies "policy1", "policy2", "policy3"
-                    scenario "test"
-                        when "cultist" attempts "summon" on "shoggoth"
-                        expect permit;
-                }
-                """), arguments("multiple policies with pdp config", """
-                requirement "Test" {
-                    given
-                        - policies "policy1", "policy2" with pdp configuration "pdp.json"
+                        - documents "single_policy"
                     scenario "test"
                         when "cultist" attempts "summon" on "shoggoth"
                         expect permit;
@@ -127,10 +119,10 @@ class SAPLTestParserTests {
     // ========================================================================
 
     static Stream<Arguments> pdpConfigurations() {
-        return Stream.of(arguments("pdp variables", """
+        return Stream.of(arguments("variables", """
                 requirement "Test" {
                     given
-                        - pdp variables { "maxTentacles": 8, "dimension": "outer" }
+                        - variables { "maxTentacles": 8, "dimension": "outer" }
                     scenario "test"
                         when "cultist" attempts "invoke" on "ritual"
                         expect permit;
@@ -138,7 +130,7 @@ class SAPLTestParserTests {
                 """), arguments("deny-overrides algorithm", """
                 requirement "Test" {
                     given
-                        - pdp combining-algorithm deny-overrides
+                        - deny-overrides
                     scenario "test"
                         when "cultist" attempts "invoke" on "ritual"
                         expect permit;
@@ -146,7 +138,7 @@ class SAPLTestParserTests {
                 """), arguments("permit-overrides algorithm", """
                 requirement "Test" {
                     given
-                        - pdp combining-algorithm permit-overrides
+                        - permit-overrides
                     scenario "test"
                         when "cultist" attempts "invoke" on "ritual"
                         expect permit;
@@ -154,7 +146,7 @@ class SAPLTestParserTests {
                 """), arguments("only-one-applicable algorithm", """
                 requirement "Test" {
                     given
-                        - pdp combining-algorithm only-one-applicable
+                        - only-one-applicable
                     scenario "test"
                         when "cultist" attempts "invoke" on "ritual"
                         expect permit;
@@ -162,7 +154,7 @@ class SAPLTestParserTests {
                 """), arguments("deny-unless-permit algorithm", """
                 requirement "Test" {
                     given
-                        - pdp combining-algorithm deny-unless-permit
+                        - deny-unless-permit
                     scenario "test"
                         when "cultist" attempts "invoke" on "ritual"
                         expect permit;
@@ -170,7 +162,7 @@ class SAPLTestParserTests {
                 """), arguments("permit-unless-deny algorithm", """
                 requirement "Test" {
                     given
-                        - pdp combining-algorithm permit-unless-deny
+                        - permit-unless-deny
                     scenario "test"
                         when "cultist" attempts "invoke" on "ritual"
                         expect permit;
@@ -194,77 +186,14 @@ class SAPLTestParserTests {
     }
 
     // ========================================================================
-    // CATEGORY 4: Import Statements
-    // ========================================================================
-
-    static Stream<Arguments> importStatements() {
-        return Stream.of(arguments("pip import", """
-                requirement "Test" {
-                    given
-                        - pip "io.sapl.pip.EldritchPip"
-                    scenario "test"
-                        when "cultist" attempts "query" on "cosmos"
-                        expect permit;
-                }
-                """), arguments("static pip import", """
-                requirement "Test" {
-                    given
-                        - static-pip "io.sapl.pip.StaticEldritchPip"
-                    scenario "test"
-                        when "cultist" attempts "query" on "cosmos"
-                        expect permit;
-                }
-                """), arguments("function library import", """
-                requirement "Test" {
-                    given
-                        - function-library "io.sapl.functions.CosmicFunctions"
-                    scenario "test"
-                        when "cultist" attempts "calculate" on "angles"
-                        expect permit;
-                }
-                """), arguments("static function library import", """
-                requirement "Test" {
-                    given
-                        - static-function-library "io.sapl.functions.StaticCosmicFunctions"
-                    scenario "test"
-                        when "cultist" attempts "calculate" on "angles"
-                        expect permit;
-                }
-                """));
-    }
-
-    @ParameterizedTest(name = "{0}")
-    @MethodSource("importStatements")
-    void whenParsingImportStatement_thenNoSyntaxErrors(String description, String document) {
-        var errors = parseAndCollectErrors(document);
-        assertThat(errors).as("Import '%s' should parse without errors", description).isEmpty();
-    }
-
-    // ========================================================================
-    // CATEGORY 5: Mock Definitions
+    // CATEGORY 4: Mock Definitions
     // ========================================================================
 
     static Stream<Arguments> mockDefinitions() {
-        return Stream.of(arguments("simple function mock", """
+        return Stream.of(arguments("simple function mock (no params)", """
                 requirement "Test" {
                     given
-                        - function "eldritch.summon" maps to true
-                    scenario "test"
-                        when "cultist" attempts "invoke" on "ritual"
-                        expect permit;
-                }
-                """), arguments("function mock with call count", """
-                requirement "Test" {
-                    given
-                        - function "eldritch.summon" maps to true is called once
-                    scenario "test"
-                        when "cultist" attempts "invoke" on "ritual"
-                        expect permit;
-                }
-                """), arguments("function mock with multiple call count", """
-                requirement "Test" {
-                    given
-                        - function "eldritch.summon" maps to true is called 5 times
+                        - function eldritch.summon() maps to true
                     scenario "test"
                         when "cultist" attempts "invoke" on "ritual"
                         expect permit;
@@ -272,7 +201,7 @@ class SAPLTestParserTests {
                 """), arguments("function mock with parameter matchers", """
                 requirement "Test" {
                     given
-                        - function "eldritch.summon" of (any, "specific", 42) maps to true
+                        - function eldritch.summon(any, "specific", 42) maps to true
                     scenario "test"
                         when "cultist" attempts "invoke" on "ritual"
                         expect permit;
@@ -280,7 +209,7 @@ class SAPLTestParserTests {
                 """), arguments("function mock with matching parameter", """
                 requirement "Test" {
                     given
-                        - function "eldritch.summon" of (matching text) maps to true
+                        - function eldritch.summon(matching text) maps to true
                     scenario "test"
                         when "cultist" attempts "invoke" on "ritual"
                         expect permit;
@@ -288,7 +217,7 @@ class SAPLTestParserTests {
                 """), arguments("function mock returning error", """
                 requirement "Test" {
                     given
-                        - function "eldritch.summon" maps to error
+                        - function eldritch.summon() maps to error
                     scenario "test"
                         when "cultist" attempts "invoke" on "ritual"
                         expect indeterminate;
@@ -296,65 +225,49 @@ class SAPLTestParserTests {
                 """), arguments("function mock returning error with message", """
                 requirement "Test" {
                     given
-                        - function "eldritch.summon" maps to error("The stars are not right")
+                        - function eldritch.summon() maps to error("The stars are not right")
                     scenario "test"
                         when "cultist" attempts "invoke" on "ritual"
                         expect indeterminate;
                 }
-                """), arguments("function stream mock", """
+                """), arguments("environment attribute mock (no entity)", """
                 requirement "Test" {
                     given
-                        - function "eldritch.visions" maps to stream true, false, true
-                    scenario "test"
-                        when "seer" attempts "divine" on "future"
-                        expect permit;
-                }
-                """), arguments("simple attribute mock", """
-                requirement "Test" {
-                    given
-                        - attribute "cosmos.alignment" emits "chaotic"
+                        - attribute "cosmosAlign" <cosmos.alignment> emits "chaotic"
                     scenario "test"
                         when "cultist" attempts "check" on "stars"
                         expect permit;
                 }
-                """), arguments("attribute mock with multiple values", """
+                """), arguments("environment attribute mock without initial value", """
                 requirement "Test" {
                     given
-                        - attribute "cosmos.phase" emits "waxing", "full", "waning"
+                        - attribute "phaseMock" <cosmos.phase>
                     scenario "test"
                         when "cultist" attempts "observe" on "moon"
                         expect permit;
                 }
-                """), arguments("attribute mock with timing", """
+                """), arguments("entity attribute mock with any matcher", """
                 requirement "Test" {
                     given
-                        - attribute "cosmos.alignment" emits "chaotic" with timing "PT1S"
+                        - attribute "alignMock" any.<cosmos.alignment> emits "chaotic"
                     scenario "test"
                         when "cultist" attempts "check" on "stars"
                         expect permit;
                 }
-                """), arguments("attribute mock with parent matcher", """
+                """), arguments("entity attribute mock with specific matcher", """
                 requirement "Test" {
                     given
-                        - attribute "cosmos.alignment" of <any> emits "chaotic"
+                        - attribute "alignMock" {"cosmos": true}.<cosmos.alignment> emits "chaotic"
                     scenario "test"
                         when "cultist" attempts "check" on "stars"
                         expect permit;
                 }
-                """), arguments("attribute mock with parent and parameter matchers", """
+                """), arguments("entity attribute mock with parameters", """
                 requirement "Test" {
                     given
-                        - attribute "cosmos.alignment" of <"cosmos"> (any, 42) emits "chaotic"
+                        - attribute "alignMock" any.<cosmos.alignment(any, 42)> emits "chaotic"
                     scenario "test"
                         when "cultist" attempts "check" on "stars"
-                        expect permit;
-                }
-                """), arguments("virtual time mock", """
-                requirement "Test" {
-                    given
-                        - virtual-time
-                    scenario "test"
-                        when "cultist" attempts "wait" on "alignment"
                         expect permit;
                 }
                 """));
@@ -811,10 +724,10 @@ class SAPLTestParserTests {
     }
 
     // ========================================================================
-    // CATEGORY 11: Repeated Expectations
+    // CATEGORY 11: Stream Expectations
     // ========================================================================
 
-    static Stream<Arguments> repeatedExpectations() {
+    static Stream<Arguments> streamExpectations() {
         return Stream.of(arguments("permit once", """
                 requirement "Test" {
                     scenario "test"
@@ -838,42 +751,6 @@ class SAPLTestParserTests {
                             - deny once
                             - indeterminate once;
                 }
-                """), arguments("with no-event duration", """
-                requirement "Test" {
-                    given
-                        - virtual-time
-                    scenario "test"
-                        when "cultist" attempts "wait" on "portal"
-                        expect
-                            - no-event for "PT5S";
-                }
-                """), arguments("expect and then blocks", """
-                requirement "Test" {
-                    given
-                        - virtual-time
-                        - attribute "cosmos.phase" emits "dark"
-                    scenario "test"
-                        when "cultist" attempts "observe" on "stars"
-                        expect
-                            - permit once
-                        then
-                            - attribute "cosmos.phase" emits "aligned"
-                        expect
-                            - deny once;
-                }
-                """), arguments("with wait adjustment", """
-                requirement "Test" {
-                    given
-                        - virtual-time
-                    scenario "test"
-                        when "cultist" attempts "wait" on "alignment"
-                        expect
-                            - permit once
-                        then
-                            - wait "PT10S"
-                        expect
-                            - deny once;
-                }
                 """), arguments("with next full decision", """
                 requirement "Test" {
                     scenario "test"
@@ -892,14 +769,160 @@ class SAPLTestParserTests {
     }
 
     @ParameterizedTest(name = "{0}")
-    @MethodSource("repeatedExpectations")
-    void whenParsingRepeatedExpectation_thenNoSyntaxErrors(String description, String document) {
+    @MethodSource("streamExpectations")
+    void whenParsingStreamExpectation_thenNoSyntaxErrors(String description, String document) {
         var errors = parseAndCollectErrors(document);
-        assertThat(errors).as("Repeated expectation '%s' should parse without errors", description).isEmpty();
+        assertThat(errors).as("Stream expectation '%s' should parse without errors", description).isEmpty();
     }
 
     // ========================================================================
-    // CATEGORY 12: Scenario-Level Given
+    // CATEGORY 12: Then Blocks with Attribute Emit
+    // ========================================================================
+
+    static Stream<Arguments> thenBlockExamples() {
+        return Stream.of(arguments("simple then-expect sequence", """
+                requirement "Test" {
+                    given
+                        - attribute "statusMock" <user.status> emits "active"
+                    scenario "status changes"
+                        when "user" attempts "access" on "resource"
+                        expect permit
+                        then
+                            - attribute "statusMock" emits "inactive"
+                        expect deny;
+                }
+                """), arguments("multiple then-expect sequences", """
+                requirement "Test" {
+                    given
+                        - attribute "phaseMock" any.<moon.phase> emits "new"
+                    scenario "moon cycle"
+                        when "werewolf" attempts "transform" on "self"
+                        expect deny
+                        then
+                            - attribute "phaseMock" emits "waxing"
+                        expect deny
+                        then
+                            - attribute "phaseMock" emits "full"
+                        expect permit;
+                }
+                """), arguments("then with multiple attribute emits", """
+                requirement "Test" {
+                    given
+                        - attribute "mockA" <pip.attrA> emits true
+                        - attribute "mockB" <pip.attrB> emits false
+                    scenario "multiple attrs"
+                        when "user" attempts "action" on "resource"
+                        expect deny
+                        then
+                            - attribute "mockA" emits false
+                            - attribute "mockB" emits true
+                        expect permit;
+                }
+                """), arguments("then with error value", """
+                requirement "Test" {
+                    given
+                        - attribute "errorMock" <pip.unstable> emits "stable"
+                    scenario "error scenario"
+                        when "user" attempts "action" on "resource"
+                        expect permit
+                        then
+                            - attribute "errorMock" emits error("connection lost")
+                        expect indeterminate;
+                }
+                """));
+    }
+
+    @ParameterizedTest(name = "{0}")
+    @MethodSource("thenBlockExamples")
+    void whenParsingThenBlock_thenNoSyntaxErrors(String description, String document) {
+        var errors = parseAndCollectErrors(document);
+        assertThat(errors).as("Then block '%s' should parse without errors", description).isEmpty();
+    }
+
+    // ========================================================================
+    // CATEGORY 13: Verify Block
+    // ========================================================================
+
+    static Stream<Arguments> verifyBlockExamples() {
+        return Stream.of(arguments("function verification (once)", """
+                requirement "Test" {
+                    given
+                        - function time.dayOfWeek() maps to "MONDAY"
+                    scenario "check day"
+                        when "user" attempts "access" on "resource"
+                        expect permit
+                        verify
+                            - function time.dayOfWeek() is called once;
+                }
+                """), arguments("function verification (N times)", """
+                requirement "Test" {
+                    given
+                        - function logger.log(any) maps to true
+                    scenario "logging"
+                        when "user" attempts "action" on "resource"
+                        expect permit
+                        verify
+                            - function logger.log(any) is called 3 times;
+                }
+                """), arguments("attribute verification (environment)", """
+                requirement "Test" {
+                    given
+                        - attribute "timeMock" <time.now> emits "2025-01-06"
+                    scenario "time check"
+                        when "user" attempts "access" on "resource"
+                        expect permit
+                        verify
+                            - attribute <time.now> is called once;
+                }
+                """), arguments("attribute verification (entity)", """
+                requirement "Test" {
+                    given
+                        - attribute "locMock" any.<user.location> emits "Berlin"
+                    scenario "location check"
+                        when "user" attempts "access" on "resource"
+                        expect permit
+                        verify
+                            - attribute any.<user.location> is called 2 times;
+                }
+                """), arguments("multiple verifications", """
+                requirement "Test" {
+                    given
+                        - function time.dayOfWeek() maps to "MONDAY"
+                        - function logger.log(any) maps to true
+                        - attribute "timeMock" <time.now> emits "2025-01-06"
+                    scenario "comprehensive"
+                        when "user" attempts "action" on "resource"
+                        expect permit
+                        verify
+                            - function time.dayOfWeek() is called once
+                            - function logger.log(any) is called 2 times
+                            - attribute <time.now> is called once;
+                }
+                """), arguments("verify with then blocks", """
+                requirement "Test" {
+                    given
+                        - attribute "statusMock" <user.status> emits "active"
+                    scenario "status changes"
+                        when "user" attempts "access" on "resource"
+                        expect permit
+                        then
+                            - attribute "statusMock" emits "inactive"
+                        expect deny
+                        verify
+                            - attribute <user.status> is called 2 times;
+                }
+                """));
+    }
+
+    @ParameterizedTest(name = "{0}")
+    @MethodSource("verifyBlockExamples")
+    void whenParsingVerifyBlock_thenNoSyntaxErrors(String description, String document) {
+        var errors = parseAndCollectErrors(document);
+        assertThat(errors).as("Verify block '%s' should parse without errors", description).isEmpty();
+    }
+
+    // ========================================================================
+    // CATEGORY 14: Scenario-Level Given
     // ========================================================================
 
     @Test
@@ -907,10 +930,10 @@ class SAPLTestParserTests {
         var document = """
                 requirement "Test" {
                     given
-                        - policy "base_policy"
+                        - document "base_policy"
                     scenario "with scenario given"
                         given
-                            - function "eldritch.check" maps to true
+                            - function eldritch.check() maps to true
                         when "cultist" attempts "enter" on "temple"
                         expect permit;
                 }
@@ -920,7 +943,7 @@ class SAPLTestParserTests {
     }
 
     // ========================================================================
-    // CATEGORY 13: Complex Combined Documents
+    // CATEGORY 15: Complex Combined Documents
     // ========================================================================
 
     @Test
@@ -928,26 +951,25 @@ class SAPLTestParserTests {
         var document = """
                 requirement "Miskatonic University Access Control" {
                     given
-                        - set "university_policies"
-                        - pdp variables { "institution": "Miskatonic", "founded": 1797 }
-                        - pdp combining-algorithm deny-overrides
+                        - documents "base_policy", "library_policy"
+                        - variables { "institution": "Miskatonic", "founded": 1797 }
+                        - deny-overrides
                         - environment { "location": "Arkham", "state": "Massachusetts" }
-                        - pip "io.sapl.pip.AcademicPip"
-                        - function-library "io.sapl.functions.LibraryFunctions"
-                        - function "library.checkAccess" maps to true is called once
-                        - attribute "student.status" emits "enrolled", "suspended", "graduated"
-                        - virtual-time
+                        - function library.checkAccess() maps to true
+                        - attribute "statusMock" <student.status> emits "enrolled"
 
                     scenario "student accesses restricted section"
                         given
-                            - function "library.hasPermission" of (any, "restricted") maps to true
+                            - function library.hasPermission(any, "restricted") maps to true
                         when subject { "name": "Herbert West", "role": "student", "department": "medicine" }
                             attempts action { "type": "read", "section": "restricted" }
                             on resource { "title": "Necronomicon", "location": "restricted_vault" }
                             in environment { "time": "night", "supervised": false }
                         expect decision is permit,
                             with obligation containing key "type" with value matching text "log",
-                            with advice;
+                            with advice
+                        verify
+                            - function library.checkAccess() is called once;
 
                     scenario "outsider denied access"
                         when subject { "name": "Unknown Visitor", "role": "visitor" }
@@ -958,21 +980,14 @@ class SAPLTestParserTests {
                         when "night_watchman" attempts "patrol" on "campus"
                         expect
                             - permit once
-                        then
-                            - wait "PT1H"
-                            - attribute "campus.status" emits "lockdown"
-                        expect
                             - deny once
-                        then
-                            - wait "PT30M"
-                        expect
                             - permit once;
                 }
 
                 requirement "R'lyeh Deep One Protocol" {
                     given
-                        - policy "deep_one_policy"
-                        - function "depth.check" maps to stream true, false, error("Too deep")
+                        - document "deep_one_policy"
+                        - function depth.check() maps to true
 
                     scenario "surface access"
                         when "diver" attempts "descend" on "outer_reef"
@@ -988,7 +1003,28 @@ class SAPLTestParserTests {
     }
 
     // ========================================================================
-    // CATEGORY 14: Invalid Syntax Tests
+    // CATEGORY 16: Optional Given Block
+    // ========================================================================
+
+    @Test
+    void whenParsingWithoutGivenBlock_thenNoSyntaxErrors() {
+        var document = """
+                requirement "Minimal Test" {
+                    scenario "uses all documents with default algorithm"
+                        when "user" attempts "read" on "resource"
+                        expect permit;
+
+                    scenario "another test"
+                        when "admin" attempts "delete" on "resource"
+                        expect deny;
+                }
+                """;
+        var errors   = parseAndCollectErrors(document);
+        assertThat(errors).isEmpty();
+    }
+
+    // ========================================================================
+    // CATEGORY 17: Invalid Syntax Tests
     // ========================================================================
 
     static Stream<Arguments> invalidSyntaxSnippets() {
@@ -1031,7 +1067,7 @@ class SAPLTestParserTests {
                         """), arguments("invalid combining algorithm", """
                         requirement "Test" {
                             given
-                                - pdp combining-algorithm invalid-algorithm
+                                - invalid-algorithm
                             scenario "test" when "a" attempts "b" on "c" expect permit;
                         }
                         """));

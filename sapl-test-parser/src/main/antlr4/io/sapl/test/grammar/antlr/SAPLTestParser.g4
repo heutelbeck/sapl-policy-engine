@@ -30,41 +30,55 @@ requirement
     ;
 
 scenario
-    : SCENARIO name=STRING given? whenStep expectation SEMI
+    : SCENARIO name=STRING given? whenStep expectOrThenExpect verifyBlock? SEMI
     ;
 
-// Given block
+// Expectation sequence: initial expect, then optional (then -> expect)*
+expectOrThenExpect
+    : expectation (thenExpect)*
+    ;
+
+thenExpect
+    : thenBlock expectation
+    ;
+
+thenBlock
+    : THEN (DASH thenStep)+
+    ;
+
+thenStep
+    : ATTRIBUTE mockId=STRING EMITS emittedValue=valueOrError    # attributeEmitStep
+    ;
+
+// Given block - completely optional
+// If omitted: uses all documents with config default algorithm
 given
-    : GIVEN
-      (DASH document)?
-      (DASH pdpVariables)?
-      (DASH pdpCombiningAlgorithm)?
-      (DASH environment)?
-      (DASH givenStep)*
+    : GIVEN givenItem+
     ;
 
-givenStep
-    : mockDefinition  # mockGivenStep
-    | importStatement # importGivenStep
+givenItem
+    : DASH documentSpecification  # documentGivenItem
+    | DASH combiningAlgorithm     # algorithmGivenItem
+    | DASH variablesDefinition    # variablesGivenItem
+    | DASH environment            # environmentGivenItem
+    | DASH mockDefinition         # mockGivenItem
     ;
 
 // Document specification
-document
-    : POLICY identifier=STRING                                                              # singleDocument
-    | SET identifier=STRING                                                                 # documentSet
-    | POLICIES identifiers+=STRING (COMMA identifiers+=STRING)+
-      (WITH PDP CONFIGURATION pdpConfigurationIdentifier=STRING)?                           # multipleDocuments
+// - document "X"             -> unit test (single document)
+// - documents "X", "Y"       -> integration test (explicit subset)
+// - (omitted)                -> integration test (all documents)
+documentSpecification
+    : DOCUMENT identifier=STRING                                    # singleDocument
+    | DOCUMENTS identifiers+=STRING (COMMA identifiers+=STRING)*    # multipleDocuments
     ;
 
-// PDP configuration
-pdpVariables
-    : PDP VARIABLES variables=jsonObject
-    ;
-
-pdpCombiningAlgorithm
-    : PDP COMBINING_ALGORITHM combiningAlgorithm
-    ;
-
+// Combining algorithm - simplified syntax
+// - deny-overrides
+// - permit-overrides
+// - only-one-applicable
+// - deny-unless-permit
+// - permit-unless-deny
 combiningAlgorithm
     : DENY_OVERRIDES      # denyOverridesAlgorithm
     | PERMIT_OVERRIDES    # permitOverridesAlgorithm
@@ -73,40 +87,52 @@ combiningAlgorithm
     | PERMIT_UNLESS_DENY  # permitUnlessDenyAlgorithm
     ;
 
+// Variables definition - local test variables override config variables
+variablesDefinition
+    : VARIABLES variables=objectValue
+    ;
+
 environment
-    : ENVIRONMENT env=jsonObject
-    ;
-
-// Import statements
-importStatement
-    : importType identifier=STRING
-    ;
-
-importType
-    : PIP                     # pipImport
-    | STATIC_PIP              # staticPipImport
-    | FUNCTION_LIBRARY        # functionLibraryImport
-    | STATIC_FUNCTION_LIBRARY # staticFunctionLibraryImport
+    : ENVIRONMENT env=objectValue
     ;
 
 // Mock definitions
+// - function time.dayOfWeek() maps to "MONDAY"
+// - function time.dayOfWeek(any) maps to "MONDAY"
+// - attribute "mockId" <pip.attr> emits value
 mockDefinition
-    : FUNCTION name=STRING (OF parameterMatchers=functionParameterMatchers)?
-      MAPS TO returnValue=valueOrError (IS CALLED timesCalled=numericAmount)?              # functionMock
-    | FUNCTION name=STRING MAPS TO STREAM returnValues+=valueOrError
-      (COMMA returnValues+=valueOrError)*                                                   # functionStreamMock
-    | ATTRIBUTE name=STRING EMITS returnValues+=valueOrError (COMMA returnValues+=valueOrError)*
-      (WITH TIMING timing=duration)?                                                        # attributeMock
-    | ATTRIBUTE name=STRING OF LT parentMatcher=valMatcher GT
-      parameterMatchers=attributeParameterMatchers? EMITS returnValue=valueOrError          # attributeWithParametersMock
-    | VIRTUAL_TIME                                                                          # virtualTimeMock
+    : FUNCTION functionFullName=functionName functionParameters?
+      MAPS TO returnValue=valueOrError                                               # functionMock
+    | ATTRIBUTE mockId=STRING attributeReference (EMITS initialValue=valueOrError)?  # attributeMock
     ;
 
-functionParameterMatchers
-    : LPAREN matchers+=valMatcher (COMMA matchers+=valMatcher)* RPAREN
+// Dotted identifier for function names (e.g., time.dayOfWeek, filter.blacken)
+functionName
+    : parts+=ID (DOT parts+=ID)*
     ;
 
-attributeParameterMatchers
+// Function parameters - matchers for arguments
+functionParameters
+    : LPAREN (matchers+=valMatcher (COMMA matchers+=valMatcher)*)? RPAREN
+    ;
+
+// Attribute reference following SAPL syntax
+// - <pip.attr>                   -> environment attribute (no entity, no params)
+// - <pip.attr("x")>              -> environment attribute with parameters
+// - any.<pip.attr>               -> attribute with any entity matcher
+// - {"id":1}.<pip.attr("x")>     -> attribute with specific entity and parameters
+attributeReference
+    : LT attributeFullName=attributeName attributeParameters? GT                         # environmentAttributeReference
+    | entityMatcher=valMatcher DOT LT attributeFullName=attributeName attributeParameters? GT  # entityAttributeReference
+    ;
+
+// Dotted identifier for attribute names (e.g., pip.attr, user.location)
+attributeName
+    : parts+=ID (DOT parts+=ID)*
+    ;
+
+// Parameters are only needed when there are matchers to specify
+attributeParameters
     : LPAREN matchers+=valMatcher (COMMA matchers+=valMatcher)* RPAREN
     ;
 
@@ -115,8 +141,19 @@ numericAmount
     | amount=NUMBER TIMES # multipleAmount
     ;
 
-duration
-    : value=STRING
+// Verify block - post-test assertions on call counts
+// - function time.dayOfWeek() is called once
+// - function logger.log(any) is called 3 times
+// - attribute <time.now> is called once
+// - attribute any.<user.location> is called 2 times
+verifyBlock
+    : VERIFY (DASH verifyStep)+
+    ;
+
+verifyStep
+    : FUNCTION functionFullName=functionName functionParameters?
+      IS CALLED timesCalled=numericAmount                            # functionVerification
+    | ATTRIBUTE attributeReference IS CALLED timesCalled=numericAmount  # attributeVerification
     ;
 
 // When step
@@ -125,50 +162,31 @@ whenStep
     ;
 
 authorizationSubscription
-    : SUBJECT? subject=jsonValue ATTEMPTS ACTION? action=jsonValue
-      ON RESOURCE? resource=jsonValue (IN ENVIRONMENT? env=jsonObject)?
+    : SUBJECT? subject=value ATTEMPTS ACTION? action=value
+      ON RESOURCE? resource=value (IN ENVIRONMENT? env=objectValue)?
     ;
 
 // Expectation
 expectation
-    : EXPECT authorizationDecision                                                          # singleExpectation
+    : EXPECT authorizationDecision                                                  # singleExpectation
     | EXPECT DECISION matchers+=authorizationDecisionMatcher
-      (COMMA matchers+=authorizationDecisionMatcher)*                                       # matcherExpectation
-    | expectOrAdjustBlock+                                                                  # repeatedExpectation
-    ;
-
-expectOrAdjustBlock
-    : expectBlock  # expectBlockElement
-    | adjustBlock  # adjustBlockElement
-    ;
-
-expectBlock
-    : EXPECT (DASH expectStep)+
-    ;
-
-adjustBlock
-    : THEN (DASH adjustStep)+
+      (COMMA matchers+=authorizationDecisionMatcher)*                               # matcherExpectation
+    | EXPECT (DASH expectStep)+                                                     # streamExpectation
     ;
 
 expectStep
-    : expectedDecision=authorizationDecisionType amount=numericAmount                       # nextDecisionStep
-    | expectedDecision=authorizationDecision                                                # nextWithDecisionStep
+    : expectedDecision=authorizationDecisionType amount=numericAmount               # nextDecisionStep
+    | expectedDecision=authorizationDecision                                        # nextWithDecisionStep
     | DECISION matchers+=authorizationDecisionMatcher
-      (COMMA matchers+=authorizationDecisionMatcher)*                                       # nextWithMatcherStep
-    | NO_EVENT FOR noEventDuration=duration                                                 # noEventStep
-    ;
-
-adjustStep
-    : ATTRIBUTE attribute=STRING EMITS returnValue=jsonValue                                # attributeAdjustmentStep
-    | WAIT waitDuration=duration                                                            # awaitStep
+      (COMMA matchers+=authorizationDecisionMatcher)*                               # nextWithMatcherStep
     ;
 
 // Authorization decision
 authorizationDecision
     : decision=authorizationDecisionType
-      (WITH OBLIGATIONS obligations+=jsonValue (COMMA obligations+=jsonValue)*)?
-      (WITH RESOURCE resource=jsonValue)?
-      (WITH ADVICE advice+=jsonValue (COMMA advice+=jsonValue)*)?
+      (WITH OBLIGATIONS obligations+=value (COMMA obligations+=value)*)?
+      (WITH RESOURCE resource=value)?
+      (WITH ADVICE advice+=value (COMMA advice+=value)*)?
     ;
 
 authorizationDecisionType
@@ -180,37 +198,37 @@ authorizationDecisionType
 
 // Authorization decision matchers
 authorizationDecisionMatcher
-    : ANY                                                                                   # anyDecisionMatcher
-    | IS decision=authorizationDecisionType                                                 # isDecisionMatcher
-    | WITH matcherType=(OBLIGATION | ADVICE) extendedMatcher=extendedObjectMatcher?         # hasObligationOrAdviceMatcher
-    | WITH RESOURCE defaultMatcher=defaultObjectMatcher?                                    # hasResourceMatcher
+    : ANY                                                                           # anyDecisionMatcher
+    | IS decision=authorizationDecisionType                                         # isDecisionMatcher
+    | WITH matcherType=(OBLIGATION | ADVICE) extendedMatcher=extendedObjectMatcher? # hasObligationOrAdviceMatcher
+    | WITH RESOURCE defaultMatcher=defaultObjectMatcher?                            # hasResourceMatcher
     ;
 
 // Value matchers
 valMatcher
-    : ANY                                                                                   # anyValMatcher
-    | jsonValue                                                                             # valueValMatcher
-    | MATCHING jsonNodeMatcher                                                              # matchingValMatcher
+    : ANY                                                                           # anyValMatcher
+    | value                                                                         # valueValMatcher
+    | MATCHING nodeMatcher                                                          # matchingValMatcher
     ;
 
 defaultObjectMatcher
-    : EQUALS equalTo=jsonValue                                                              # exactMatchObjectMatcher
-    | MATCHING jsonNodeMatcher                                                              # matchingObjectMatcher
+    : EQUALS equalTo=value                                                          # exactMatchObjectMatcher
+    | MATCHING nodeMatcher                                                          # matchingObjectMatcher
     ;
 
 extendedObjectMatcher
-    : defaultObjectMatcher                                                                  # defaultExtendedMatcher
-    | CONTAINING KEY key=STRING (WITH VALUE MATCHING matcher=jsonNodeMatcher)?              # keyValueObjectMatcher
+    : defaultObjectMatcher                                                          # defaultExtendedMatcher
+    | CONTAINING KEY key=STRING (WITH VALUE MATCHING matcher=nodeMatcher)?          # keyValueObjectMatcher
     ;
 
-// JSON node matchers
-jsonNodeMatcher
-    : NULL_KEYWORD                                                                          # nullMatcher
-    | TEXT stringOrStringMatcher?                                                           # textMatcher
-    | NUMBER_KEYWORD number=NUMBER?                                                         # numberMatcher
-    | BOOLEAN_KEYWORD booleanLiteral?                                                       # booleanMatcher
-    | ARRAY (WHERE jsonArrayMatcher)?                                                       # arrayMatcher
-    | OBJECT (WHERE jsonObjectMatcher)?                                                     # objectMatcher
+// Node matchers
+nodeMatcher
+    : NULL_KEYWORD                                                                  # nullMatcher
+    | TEXT stringOrStringMatcher?                                                   # textMatcher
+    | NUMBER_KEYWORD number=NUMBER?                                                 # numberMatcher
+    | BOOLEAN_KEYWORD booleanLiteral?                                               # booleanMatcher
+    | ARRAY (WHERE arrayMatcherBody)?                                               # arrayMatcher
+    | OBJECT (WHERE objectMatcherBody)?                                             # objectMatcher
     ;
 
 stringOrStringMatcher
@@ -219,46 +237,46 @@ stringOrStringMatcher
     ;
 
 stringMatcher
-    : NULL_KEYWORD                                                                          # stringIsNull
-    | BLANK                                                                                 # stringIsBlank
-    | EMPTY                                                                                 # stringIsEmpty
-    | NULL_OR_EMPTY                                                                         # stringIsNullOrEmpty
-    | NULL_OR_BLANK                                                                         # stringIsNullOrBlank
-    | EQUAL TO value=STRING WITH COMPRESSED WHITESPACE                                      # stringEqualCompressedWhitespace
-    | EQUAL TO value=STRING CASE_INSENSITIVE                                                # stringEqualIgnoringCase
-    | WITH REGEX regex=STRING                                                               # stringMatchesRegex
-    | STARTING WITH prefix=STRING caseInsensitive=CASE_INSENSITIVE?                         # stringStartsWith
-    | ENDING WITH postfix=STRING caseInsensitive=CASE_INSENSITIVE?                          # stringEndsWith
-    | CONTAINING text=STRING caseInsensitive=CASE_INSENSITIVE?                              # stringContains
-    | CONTAINING STREAM substrings+=STRING (COMMA substrings+=STRING)* IN ORDER             # stringContainsInOrder
-    | WITH LENGTH length=NUMBER                                                             # stringWithLength
+    : NULL_KEYWORD                                                                  # stringIsNull
+    | BLANK                                                                         # stringIsBlank
+    | EMPTY                                                                         # stringIsEmpty
+    | NULL_OR_EMPTY                                                                 # stringIsNullOrEmpty
+    | NULL_OR_BLANK                                                                 # stringIsNullOrBlank
+    | EQUAL TO matchValue=STRING WITH COMPRESSED WHITESPACE                         # stringEqualCompressedWhitespace
+    | EQUAL TO matchValue=STRING CASE_INSENSITIVE                                   # stringEqualIgnoringCase
+    | WITH REGEX regex=STRING                                                       # stringMatchesRegex
+    | STARTING WITH prefix=STRING caseInsensitive=CASE_INSENSITIVE?                 # stringStartsWith
+    | ENDING WITH postfix=STRING caseInsensitive=CASE_INSENSITIVE?                  # stringEndsWith
+    | CONTAINING text=STRING caseInsensitive=CASE_INSENSITIVE?                      # stringContains
+    | CONTAINING STREAM substrings+=STRING (COMMA substrings+=STRING)* IN ORDER     # stringContainsInOrder
+    | WITH LENGTH length=NUMBER                                                     # stringWithLength
     ;
 
-jsonArrayMatcher
-    : LBRACKET matchers+=jsonNodeMatcher (COMMA matchers+=jsonNodeMatcher)* RBRACKET
+arrayMatcherBody
+    : LBRACKET matchers+=nodeMatcher (COMMA matchers+=nodeMatcher)* RBRACKET
     ;
 
-jsonObjectMatcher
-    : LBRACE members+=jsonObjectMatcherPair (AND members+=jsonObjectMatcherPair)* RBRACE
+objectMatcherBody
+    : LBRACE members+=objectMatcherPair (AND members+=objectMatcherPair)* RBRACE
     ;
 
-jsonObjectMatcherPair
-    : key=STRING IS matcher=jsonNodeMatcher
+objectMatcherPair
+    : key=STRING IS matcher=nodeMatcher
     ;
 
-// JSON values (subset used in SAPLTest)
-jsonValue
-    : jsonObject      # objectValue
-    | jsonArray       # arrayValue
-    | numberLiteral   # numberValue
-    | stringLiteral   # stringValue
-    | booleanLiteral  # booleanValue
-    | nullLiteral     # nullValue
-    | undefinedLiteral # undefinedValue
+// Values (subset used in SAPLTest)
+value
+    : objectValue     # objectVal
+    | arrayValue      # arrayVal
+    | numberLiteral   # numberVal
+    | stringLiteral   # stringVal
+    | booleanLiteral  # booleanVal
+    | nullLiteral     # nullVal
+    | undefinedLiteral # undefinedVal
     ;
 
 valueOrError
-    : jsonValue       # regularValue
+    : value           # regularValue
     | errorValue      # errorVal
     ;
 
@@ -266,16 +284,16 @@ errorValue
     : ERROR (LPAREN message=STRING RPAREN)?
     ;
 
-jsonObject
+objectValue
     : LBRACE (pair (COMMA pair)*)? RBRACE
     ;
 
 pair
-    : key=STRING COLON value=jsonValue
+    : key=STRING COLON pairValue=value
     ;
 
-jsonArray
-    : LBRACKET (items+=jsonValue (COMMA items+=jsonValue)*)? RBRACKET
+arrayValue
+    : LBRACKET (items+=value (COMMA items+=value)*)? RBRACKET
     ;
 
 booleanLiteral

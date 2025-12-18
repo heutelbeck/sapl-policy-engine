@@ -31,7 +31,7 @@ class SaplTestParserTests {
                 requirement "basic access control" {
                     scenario "permit admin access"
                         given
-                            - policy "policies/admin.sapl"
+                            - document "policies/admin.sapl"
                         when subject "admin" attempts action "read" on resource "document"
                         expect permit;
                 }
@@ -53,7 +53,7 @@ class SaplTestParserTests {
                 requirement "multi-scenario test" {
                     scenario "scenario one"
                         given
-                            - policy "policy.sapl"
+                            - document "policy.sapl"
                         when subject "user" attempts action "read" on resource "data"
                         expect permit;
 
@@ -74,7 +74,7 @@ class SaplTestParserTests {
                 requirement "broken" {
                     scenario "missing when"
                         given
-                            - policy "test.sapl"
+                            - document "test.sapl"
                         expect permit;
                 }
                 """;
@@ -94,7 +94,7 @@ class SaplTestParserTests {
                 requirement "complex subscription" {
                     scenario "with environment"
                         given
-                            - policy "test.sapl"
+                            - document "test.sapl"
                         when subject {"name": "alice", "role": "admin"}
                             attempts action "read"
                             on resource {"id": 123, "type": "document"}
