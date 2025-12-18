@@ -89,35 +89,35 @@ public class Matchers {
      * Matches any text value.
      */
     public static ArgumentMatcher anyText() {
-        return matching(v -> v instanceof TextValue);
+        return matching(TextValue.class::isInstance);
     }
 
     /**
      * Matches any number value.
      */
     public static ArgumentMatcher anyNumber() {
-        return matching(v -> v instanceof NumberValue);
+        return matching(NumberValue.class::isInstance);
     }
 
     /**
      * Matches any boolean value.
      */
     public static ArgumentMatcher anyBoolean() {
-        return matching(v -> v instanceof BooleanValue);
+        return matching(BooleanValue.class::isInstance);
     }
 
     /**
      * Matches any object value.
      */
     public static ArgumentMatcher anyObject() {
-        return matching(v -> v instanceof ObjectValue);
+        return matching(ObjectValue.class::isInstance);
     }
 
     /**
      * Matches any array value.
      */
     public static ArgumentMatcher anyArray() {
-        return matching(v -> v instanceof ArrayValue);
+        return matching(ArrayValue.class::isInstance);
     }
 
     // ========== Text Matchers ==========

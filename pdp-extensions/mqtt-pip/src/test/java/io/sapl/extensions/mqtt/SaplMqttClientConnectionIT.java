@@ -104,7 +104,7 @@ class SaplMqttClientConnectionIT {
 
         // THEN
         StepVerifier.create(saplMqttMessageFlux).thenAwait(Duration.ofMillis(DELAY_MS))
-                .expectNextMatches(value -> value instanceof ErrorValue).thenCancel().verify();
+                .expectNextMatches(ErrorValue.class::isInstance).thenCancel().verify();
     }
 
     @Test
@@ -117,7 +117,7 @@ class SaplMqttClientConnectionIT {
 
         // THEN
         StepVerifier.create(saplMqttMessageFlux).thenAwait(Duration.ofMillis(DELAY_MS))
-                .expectNextMatches(value -> value instanceof ErrorValue).thenCancel().verify();
+                .expectNextMatches(ErrorValue.class::isInstance).thenCancel().verify();
     }
 
     @Test
