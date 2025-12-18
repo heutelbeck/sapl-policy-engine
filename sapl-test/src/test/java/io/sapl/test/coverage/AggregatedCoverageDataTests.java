@@ -45,11 +45,11 @@ class AggregatedCoverageDataTests {
     @DisplayName("merging single record")
     void whenMergeSingle_thenCountsMatch() {
         val aggregated = new AggregatedCoverageData();
-        val record     = new TestCoverageRecord("innsmouth-test");
-        record.recordDecision(Decision.PERMIT);
-        record.recordError();
+        val coverageRecord = new TestCoverageRecord("innsmouth-test");
+        coverageRecord.recordDecision(Decision.PERMIT);
+        coverageRecord.recordError();
 
-        aggregated.merge(record);
+        aggregated.merge(coverageRecord);
 
         assertThat(aggregated.getTestCount()).isOne();
         assertThat(aggregated.getTotalEvaluations()).isOne();
@@ -114,16 +114,16 @@ class AggregatedCoverageDataTests {
     void whenMergeDifferentPolicies_thenKeptSeparate() {
         val aggregated = new AggregatedCoverageData();
 
-        val record  = new TestCoverageRecord("multi-test");
-        val policy1 = new PolicyCoverageData("deep-ones-access", null, "policy");
+        val coverageRecord = new TestCoverageRecord("multi-test");
+        val policy1        = new PolicyCoverageData("deep-ones-access", null, "policy");
         policy1.recordTargetHit(true);
         val policy2 = new PolicyCoverageData("elder-things-access", null, "policy");
         policy2.recordTargetHit(false);
-        record.addPolicyCoverage(policy1);
-        record.addPolicyCoverage(policy2);
-        record.recordDecision(Decision.PERMIT);
+        coverageRecord.addPolicyCoverage(policy1);
+        coverageRecord.addPolicyCoverage(policy2);
+        coverageRecord.recordDecision(Decision.PERMIT);
 
-        aggregated.merge(record);
+        aggregated.merge(coverageRecord);
 
         assertThat(aggregated.getPolicyCount()).isEqualTo(2);
         assertThat(aggregated.getMatchedPolicyCount()).isOne();
@@ -134,16 +134,16 @@ class AggregatedCoverageDataTests {
     void whenMultipleBranches_thenCorrectCoverage() {
         val aggregated = new AggregatedCoverageData();
 
-        val record = new TestCoverageRecord("coverage-test");
-        val policy = new PolicyCoverageData("arcane-policy", null, "policy");
+        val coverageRecord = new TestCoverageRecord("coverage-test");
+        val policy         = new PolicyCoverageData("arcane-policy", null, "policy");
         policy.recordTargetHit(true);
         policy.recordConditionHit(0, 3, true);
         policy.recordConditionHit(0, 3, false);
         policy.recordConditionHit(1, 5, true);
-        record.addPolicyCoverage(policy);
-        record.recordDecision(Decision.PERMIT);
+        coverageRecord.addPolicyCoverage(policy);
+        coverageRecord.recordDecision(Decision.PERMIT);
 
-        aggregated.merge(record);
+        aggregated.merge(coverageRecord);
 
         assertThat(aggregated.getOverallBranchCoverage()).isEqualTo(75.0);
     }
@@ -153,14 +153,14 @@ class AggregatedCoverageDataTests {
     void whenFilePathSet_thenPreservedInAggregation() {
         val aggregated = new AggregatedCoverageData();
 
-        val record = new TestCoverageRecord("path-test");
-        val policy = new PolicyCoverageData("shoggoth-policy", null, "policy");
+        val coverageRecord = new TestCoverageRecord("path-test");
+        val policy         = new PolicyCoverageData("shoggoth-policy", null, "policy");
         policy.setFilePath("policies/shoggoth-access.sapl");
         policy.recordTargetHit(true);
-        record.addPolicyCoverage(policy);
-        record.recordDecision(Decision.PERMIT);
+        coverageRecord.addPolicyCoverage(policy);
+        coverageRecord.recordDecision(Decision.PERMIT);
 
-        aggregated.merge(record);
+        aggregated.merge(coverageRecord);
 
         val aggregatedPolicy = aggregated.getPolicyCoverageList().getFirst();
         assertThat(aggregatedPolicy.getFilePath()).isEqualTo("policies/shoggoth-access.sapl");

@@ -33,55 +33,55 @@ class TestCoverageRecordTests {
     @Test
     @DisplayName("initializes with provided test identifier")
     void whenCreatedWithIdentifier_thenHasIdentifier() {
-        val record = new TestCoverageRecord("ritual-summoning-test");
+        val coverageRecord = new TestCoverageRecord("ritual-summoning-test");
 
-        assertThat(record.getTestIdentifier()).isEqualTo("ritual-summoning-test");
-        assertThat(record.getTimestamp()).isNotNull();
-        assertThat(record.getEvaluationCount()).isZero();
-        assertThat(record.getErrorCount()).isZero();
-        assertThat(record.getPolicyCount()).isZero();
+        assertThat(coverageRecord.getTestIdentifier()).isEqualTo("ritual-summoning-test");
+        assertThat(coverageRecord.getTimestamp()).isNotNull();
+        assertThat(coverageRecord.getEvaluationCount()).isZero();
+        assertThat(coverageRecord.getErrorCount()).isZero();
+        assertThat(coverageRecord.getPolicyCount()).isZero();
     }
 
     @Test
     @DisplayName("uses default identifier when null provided")
     void whenCreatedWithNull_thenUsesDefault() {
-        val record = new TestCoverageRecord(null);
+        val coverageRecord = new TestCoverageRecord(null);
 
-        assertThat(record.getTestIdentifier()).isEqualTo("unnamed-test");
+        assertThat(coverageRecord.getTestIdentifier()).isEqualTo("unnamed-test");
     }
 
     @Test
     @DisplayName("records decision and increments evaluation count")
     void whenRecordDecision_thenCountsIncremented() {
-        val record = new TestCoverageRecord("test");
+        val coverageRecord = new TestCoverageRecord("test");
 
-        record.recordDecision(Decision.PERMIT);
-        record.recordDecision(Decision.PERMIT);
-        record.recordDecision(Decision.DENY);
+        coverageRecord.recordDecision(Decision.PERMIT);
+        coverageRecord.recordDecision(Decision.PERMIT);
+        coverageRecord.recordDecision(Decision.DENY);
 
-        assertThat(record.getEvaluationCount()).isEqualTo(3);
-        assertThat(record.getDecisionCount(Decision.PERMIT)).isEqualTo(2);
-        assertThat(record.getDecisionCount(Decision.DENY)).isOne();
-        assertThat(record.getDecisionCount(Decision.INDETERMINATE)).isZero();
-        assertThat(record.getDecisionCount(Decision.NOT_APPLICABLE)).isZero();
+        assertThat(coverageRecord.getEvaluationCount()).isEqualTo(3);
+        assertThat(coverageRecord.getDecisionCount(Decision.PERMIT)).isEqualTo(2);
+        assertThat(coverageRecord.getDecisionCount(Decision.DENY)).isOne();
+        assertThat(coverageRecord.getDecisionCount(Decision.INDETERMINATE)).isZero();
+        assertThat(coverageRecord.getDecisionCount(Decision.NOT_APPLICABLE)).isZero();
     }
 
     @Test
     @DisplayName("records errors separately from evaluations")
     void whenRecordError_thenErrorCountIncremented() {
-        val record = new TestCoverageRecord("test");
+        val coverageRecord = new TestCoverageRecord("test");
 
-        record.recordError();
-        record.recordError();
+        coverageRecord.recordError();
+        coverageRecord.recordError();
 
-        assertThat(record.getErrorCount()).isEqualTo(2);
-        assertThat(record.getEvaluationCount()).isZero();
+        assertThat(coverageRecord.getErrorCount()).isEqualTo(2);
+        assertThat(coverageRecord.getEvaluationCount()).isZero();
     }
 
     @Test
     @DisplayName("adds and merges policy coverage data")
     void whenAddPolicyCoverage_thenMergedByName() {
-        val record = new TestCoverageRecord("test");
+        val coverageRecord = new TestCoverageRecord("test");
 
         val coverage1 = new PolicyCoverageData("necronomicon-policy", "", "policy");
         coverage1.recordTargetHit(true);
@@ -92,23 +92,23 @@ class TestCoverageRecordTests {
         val coverage3 = new PolicyCoverageData("dagon-policy", "", "policy");
         coverage3.recordTargetHit(true);
 
-        record.addPolicyCoverage(coverage1);
-        record.addPolicyCoverage(coverage2);
-        record.addPolicyCoverage(coverage3);
+        coverageRecord.addPolicyCoverage(coverage1);
+        coverageRecord.addPolicyCoverage(coverage2);
+        coverageRecord.addPolicyCoverage(coverage3);
 
-        assertThat(record.getPolicyCount()).isEqualTo(2);
-        assertThat(record.getMatchedPolicyCount()).isEqualTo(2);
+        assertThat(coverageRecord.getPolicyCount()).isEqualTo(2);
+        assertThat(coverageRecord.getMatchedPolicyCount()).isEqualTo(2);
     }
 
     @Test
     @DisplayName("returns policy coverage as immutable list")
     void whenGetPolicyCoverageList_thenReturnsImmutableCopy() {
-        val record = new TestCoverageRecord("test");
+        val coverageRecord = new TestCoverageRecord("test");
 
         val coverage = new PolicyCoverageData("cthulhu-policy", "", "policy");
-        record.addPolicyCoverage(coverage);
+        coverageRecord.addPolicyCoverage(coverage);
 
-        val list = record.getPolicyCoverageList();
+        val list = coverageRecord.getPolicyCoverageList();
 
         assertThat(list).hasSize(1);
         assertThat(list.getFirst().getDocumentName()).isEqualTo("cthulhu-policy");
@@ -117,7 +117,7 @@ class TestCoverageRecordTests {
     @Test
     @DisplayName("counts matched policies correctly")
     void whenPoliciesHaveMixedTargetResults_thenCountsMatchedCorrectly() {
-        val record = new TestCoverageRecord("test");
+        val coverageRecord = new TestCoverageRecord("test");
 
         val matched = new PolicyCoverageData("matched-policy", "", "policy");
         matched.recordTargetHit(true);
@@ -125,17 +125,17 @@ class TestCoverageRecordTests {
         val unmatched = new PolicyCoverageData("unmatched-policy", "", "policy");
         unmatched.recordTargetHit(false);
 
-        record.addPolicyCoverage(matched);
-        record.addPolicyCoverage(unmatched);
+        coverageRecord.addPolicyCoverage(matched);
+        coverageRecord.addPolicyCoverage(unmatched);
 
-        assertThat(record.getPolicyCount()).isEqualTo(2);
-        assertThat(record.getMatchedPolicyCount()).isOne();
+        assertThat(coverageRecord.getPolicyCount()).isEqualTo(2);
+        assertThat(coverageRecord.getMatchedPolicyCount()).isOne();
     }
 
     @Test
     @DisplayName("calculates overall branch coverage across all policies")
     void whenMultiplePoliciesWithBranches_thenCalculatesOverallCoverage() {
-        val record = new TestCoverageRecord("test");
+        val coverageRecord = new TestCoverageRecord("test");
 
         val coverage1 = new PolicyCoverageData("policy1", "", "policy");
         coverage1.recordConditionHit(0, 3, true);
@@ -144,21 +144,21 @@ class TestCoverageRecordTests {
         val coverage2 = new PolicyCoverageData("policy2", "", "policy");
         coverage2.recordConditionHit(0, 5, true);
 
-        record.addPolicyCoverage(coverage1);
-        record.addPolicyCoverage(coverage2);
+        coverageRecord.addPolicyCoverage(coverage1);
+        coverageRecord.addPolicyCoverage(coverage2);
 
-        assertThat(record.getOverallBranchCoverage()).isEqualTo(75.0);
+        assertThat(coverageRecord.getOverallBranchCoverage()).isEqualTo(75.0);
     }
 
     @Test
     @DisplayName("returns zero overall branch coverage when no conditions")
     void whenNoPoliciesWithConditions_thenZeroCoverage() {
-        val record = new TestCoverageRecord("test");
+        val coverageRecord = new TestCoverageRecord("test");
 
         val coverage = new PolicyCoverageData("empty-policy", "", "policy");
-        record.addPolicyCoverage(coverage);
+        coverageRecord.addPolicyCoverage(coverage);
 
-        assertThat(record.getOverallBranchCoverage()).isZero();
+        assertThat(coverageRecord.getOverallBranchCoverage()).isZero();
     }
 
     @Test

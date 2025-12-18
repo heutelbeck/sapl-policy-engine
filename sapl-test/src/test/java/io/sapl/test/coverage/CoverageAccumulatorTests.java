@@ -81,10 +81,10 @@ class CoverageAccumulatorTests {
         accumulator.recordCoverage(trace, decision);
 
         assertThat(accumulator.hasCoverage()).isTrue();
-        val record = accumulator.getRecord();
-        assertThat(record.getEvaluationCount()).isOne();
-        assertThat(record.getPolicyCount()).isOne();
-        assertThat(record.getDecisionCount(Decision.PERMIT)).isOne();
+        val coverageRecord = accumulator.getRecord();
+        assertThat(coverageRecord.getEvaluationCount()).isOne();
+        assertThat(coverageRecord.getPolicyCount()).isOne();
+        assertThat(coverageRecord.getDecisionCount(Decision.PERMIT)).isOne();
     }
 
     @Test
@@ -114,11 +114,11 @@ class CoverageAccumulatorTests {
         accumulator.recordCoverage(buildTracedDecision("policy1", true, new ConditionData(0, true, 3)),
                 AuthorizationDecision.PERMIT);
 
-        val record = accumulator.getRecord();
-        assertThat(record.getEvaluationCount()).isEqualTo(3);
-        assertThat(record.getPolicyCount()).isEqualTo(2);
-        assertThat(record.getDecisionCount(Decision.PERMIT)).isEqualTo(2);
-        assertThat(record.getDecisionCount(Decision.DENY)).isOne();
+        val coverageRecord = accumulator.getRecord();
+        assertThat(coverageRecord.getEvaluationCount()).isEqualTo(3);
+        assertThat(coverageRecord.getPolicyCount()).isEqualTo(2);
+        assertThat(coverageRecord.getDecisionCount(Decision.PERMIT)).isEqualTo(2);
+        assertThat(coverageRecord.getDecisionCount(Decision.DENY)).isOne();
     }
 
     @Test
@@ -134,10 +134,10 @@ class CoverageAccumulatorTests {
         accumulator.recordCoverage(buildTracedDecision("shared-policy", true, new ConditionData(0, false, 3)),
                 AuthorizationDecision.PERMIT);
 
-        val record   = accumulator.getRecord();
-        val coverage = record.getPolicyCoverageList().getFirst();
+        val coverageRecord = accumulator.getRecord();
+        val coverage       = coverageRecord.getPolicyCoverageList().getFirst();
 
-        assertThat(record.getPolicyCount()).isOne();
+        assertThat(coverageRecord.getPolicyCount()).isOne();
         assertThat(coverage.getFullyCoveredConditionCount()).isOne();
         assertThat(coverage.getBranchCoveragePercent()).isEqualTo(100.0);
     }
@@ -150,9 +150,9 @@ class CoverageAccumulatorTests {
         accumulator.recordError();
         accumulator.recordError();
 
-        val record = accumulator.getRecord();
-        assertThat(record.getErrorCount()).isEqualTo(2);
-        assertThat(record.getEvaluationCount()).isZero();
+        val coverageRecord = accumulator.getRecord();
+        assertThat(coverageRecord.getErrorCount()).isEqualTo(2);
+        assertThat(coverageRecord.getEvaluationCount()).isZero();
     }
 
     @Test
@@ -177,10 +177,10 @@ class CoverageAccumulatorTests {
 
         accumulator.recordCoverage(emptyTrace, AuthorizationDecision.NOT_APPLICABLE);
 
-        val record = accumulator.getRecord();
-        assertThat(record.getEvaluationCount()).isOne();
-        assertThat(record.getPolicyCount()).isZero();
-        assertThat(record.getDecisionCount(Decision.NOT_APPLICABLE)).isOne();
+        val coverageRecord = accumulator.getRecord();
+        assertThat(coverageRecord.getEvaluationCount()).isOne();
+        assertThat(coverageRecord.getPolicyCount()).isZero();
+        assertThat(coverageRecord.getDecisionCount(Decision.NOT_APPLICABLE)).isOne();
     }
 
     @Test
@@ -193,11 +193,11 @@ class CoverageAccumulatorTests {
         accumulator.recordCoverage(buildEmptyTrace(), AuthorizationDecision.INDETERMINATE);
         accumulator.recordCoverage(buildEmptyTrace(), AuthorizationDecision.NOT_APPLICABLE);
 
-        val record = accumulator.getRecord();
-        assertThat(record.getDecisionCount(Decision.PERMIT)).isOne();
-        assertThat(record.getDecisionCount(Decision.DENY)).isOne();
-        assertThat(record.getDecisionCount(Decision.INDETERMINATE)).isOne();
-        assertThat(record.getDecisionCount(Decision.NOT_APPLICABLE)).isOne();
+        val coverageRecord = accumulator.getRecord();
+        assertThat(coverageRecord.getDecisionCount(Decision.PERMIT)).isOne();
+        assertThat(coverageRecord.getDecisionCount(Decision.DENY)).isOne();
+        assertThat(coverageRecord.getDecisionCount(Decision.INDETERMINATE)).isOne();
+        assertThat(coverageRecord.getDecisionCount(Decision.NOT_APPLICABLE)).isOne();
     }
 
     @Test

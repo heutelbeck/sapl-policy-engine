@@ -67,13 +67,13 @@ public class CoverageWriter {
      * Creates the output directory if it doesn't exist. Each record is written
      * as a single line of JSON to support concurrent appends.
      *
-     * @param record the coverage record to write
+     * @param coverageRecord the coverage record to write
      * @throws IOException if writing fails
      */
-    public void write(TestCoverageRecord record) throws IOException {
+    public void write(TestCoverageRecord coverageRecord) throws IOException {
         Files.createDirectories(outputDirectory);
 
-        val json = MAPPER.writeValueAsString(toSerializableMap(record));
+        val json = MAPPER.writeValueAsString(toSerializableMap(coverageRecord));
         val file = getCoverageFilePath();
 
         Files.writeString(file, json + System.lineSeparator(), StandardOpenOption.CREATE, StandardOpenOption.APPEND);
@@ -85,12 +85,12 @@ public class CoverageWriter {
      * Use this in contexts where IO errors should not fail the test.
      * Errors are logged to stderr.
      *
-     * @param record the coverage record to write
+     * @param coverageRecord the coverage record to write
      * @return true if write succeeded, false otherwise
      */
-    public boolean writeSilently(TestCoverageRecord record) {
+    public boolean writeSilently(TestCoverageRecord coverageRecord) {
         try {
-            write(record);
+            write(coverageRecord);
             return true;
         } catch (IOException e) {
             log.warn("Failed to write coverage data: {}", e.getMessage());
@@ -119,30 +119,30 @@ public class CoverageWriter {
     /**
      * Converts a TestCoverageRecord to a serializable map structure.
      */
-    private Map<String, Object> toSerializableMap(TestCoverageRecord record) {
+    private Map<String, Object> toSerializableMap(TestCoverageRecord coverageRecord) {
         val map = new LinkedHashMap<String, Object>();
-        map.put("testIdentifier", record.getTestIdentifier());
-        map.put("timestamp", record.getTimestamp().toString());
-        map.put("evaluationCount", record.getEvaluationCount());
-        map.put("errorCount", record.getErrorCount());
+        map.put("testIdentifier", coverageRecord.getTestIdentifier());
+        map.put("timestamp", coverageRecord.getTimestamp().toString());
+        map.put("evaluationCount", coverageRecord.getEvaluationCount());
+        map.put("errorCount", coverageRecord.getErrorCount());
 
         // Decision counts
         val decisions = new LinkedHashMap<String, Integer>();
         for (val decision : Decision.values()) {
-            decisions.put(decision.name(), record.getDecisionCount(decision));
+            decisions.put(decision.name(), coverageRecord.getDecisionCount(decision));
         }
         map.put("decisions", decisions);
 
         // Metrics
         val metrics = new LinkedHashMap<String, Object>();
-        metrics.put("policyCount", record.getPolicyCount());
-        metrics.put("matchedPolicyCount", record.getMatchedPolicyCount());
-        metrics.put("branchCoveragePercent", round(record.getOverallBranchCoverage(), 2));
+        metrics.put("policyCount", coverageRecord.getPolicyCount());
+        metrics.put("matchedPolicyCount", coverageRecord.getMatchedPolicyCount());
+        metrics.put("branchCoveragePercent", round(coverageRecord.getOverallBranchCoverage(), 2));
         map.put("metrics", metrics);
 
         // Policy coverage details
         val policies = new ArrayList<Map<String, Object>>();
-        for (val coverage : record.getPolicyCoverageList()) {
+        for (val coverage : coverageRecord.getPolicyCoverageList()) {
             policies.add(toSerializableMap(coverage));
         }
         map.put("policies", policies);

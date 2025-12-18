@@ -128,16 +128,16 @@ class ReportCoverageInformationMojoTests {
 
     private void writeCoverageData(Path baseDir) throws IOException {
         var writer = new CoverageWriter(baseDir);
-        var record = new TestCoverageRecord("elder-access-test");
+        var coverageRecord = new TestCoverageRecord("elder-access-test");
 
         var policy = new PolicyCoverageData("elder-access-policy", "policy \"test\"\npermit", "policy");
         policy.recordTargetHit(true);
         policy.recordConditionHit(0, 2, true);
         policy.recordConditionHit(0, 2, false);
-        record.addPolicyCoverage(policy);
-        record.recordDecision(Decision.PERMIT);
+        coverageRecord.addPolicyCoverage(policy);
+        coverageRecord.recordDecision(Decision.PERMIT);
 
-        writer.write(record);
+        writer.write(coverageRecord);
     }
 
     private static void setField(Object target, String fieldName, Object value) throws Exception {

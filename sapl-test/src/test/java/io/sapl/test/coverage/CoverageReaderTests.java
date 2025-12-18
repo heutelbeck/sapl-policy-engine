@@ -62,17 +62,17 @@ class CoverageReaderTests {
         val writer = new CoverageWriter(tempDir);
         val reader = new CoverageReader(tempDir);
 
-        val record = new TestCoverageRecord("elder-ritual-test");
+        val coverageRecord = new TestCoverageRecord("elder-ritual-test");
         val policy = new PolicyCoverageData("elder-access-policy", null, "policy");
         policy.setFilePath("policies/elder-access.sapl");
         policy.recordTargetHit(true);
         policy.recordTargetHit(true);
         policy.recordConditionHit(0, 5, true);
         policy.recordConditionHit(0, 5, false);
-        record.addPolicyCoverage(policy);
-        record.recordDecision(Decision.PERMIT);
+        coverageRecord.addPolicyCoverage(policy);
+        coverageRecord.recordDecision(Decision.PERMIT);
 
-        writer.write(record);
+        writer.write(coverageRecord);
         val records = reader.readAllRecords();
 
         assertThat(records).hasSize(1);
@@ -138,10 +138,10 @@ class CoverageReaderTests {
         val writer = new CoverageWriter(tempDir);
         val reader = new CoverageReader(tempDir);
 
-        val record = new TestCoverageRecord("error-test");
-        record.recordError();
-        record.recordError();
-        writer.write(record);
+        val coverageRecord = new TestCoverageRecord("error-test");
+        coverageRecord.recordError();
+        coverageRecord.recordError();
+        writer.write(coverageRecord);
 
         val read = reader.readAllRecords().getFirst();
 
@@ -154,13 +154,13 @@ class CoverageReaderTests {
         val writer = new CoverageWriter(tempDir);
         val reader = new CoverageReader(tempDir);
 
-        val record = new TestCoverageRecord("decision-test");
-        record.recordDecision(Decision.PERMIT);
-        record.recordDecision(Decision.PERMIT);
-        record.recordDecision(Decision.DENY);
-        record.recordDecision(Decision.INDETERMINATE);
-        record.recordDecision(Decision.NOT_APPLICABLE);
-        writer.write(record);
+        val coverageRecord = new TestCoverageRecord("decision-test");
+        coverageRecord.recordDecision(Decision.PERMIT);
+        coverageRecord.recordDecision(Decision.PERMIT);
+        coverageRecord.recordDecision(Decision.DENY);
+        coverageRecord.recordDecision(Decision.INDETERMINATE);
+        coverageRecord.recordDecision(Decision.NOT_APPLICABLE);
+        writer.write(coverageRecord);
 
         val read = reader.readAllRecords().getFirst();
 
@@ -189,7 +189,7 @@ class CoverageReaderTests {
         val writer = new CoverageWriter(tempDir);
         val reader = new CoverageReader(tempDir);
 
-        val record  = new TestCoverageRecord("multi-policy-test");
+        val coverageRecord = new TestCoverageRecord("multi-policy-test");
         val policy1 = new PolicyCoverageData("miskatonic-access", null, "policy");
         policy1.setFilePath("policies/miskatonic.sapl");
         policy1.recordTargetHit(true);
@@ -201,11 +201,11 @@ class CoverageReaderTests {
         policy2.recordTargetHit(false);
         policy2.recordConditionHit(0, 5, true);
 
-        record.addPolicyCoverage(policy1);
-        record.addPolicyCoverage(policy2);
-        record.recordDecision(Decision.PERMIT);
+        coverageRecord.addPolicyCoverage(policy1);
+        coverageRecord.addPolicyCoverage(policy2);
+        coverageRecord.recordDecision(Decision.PERMIT);
 
-        writer.write(record);
+        writer.write(coverageRecord);
         val read = reader.readAllRecords().getFirst();
 
         assertThat(read.getPolicyCoverageList()).hasSize(2);
@@ -213,13 +213,13 @@ class CoverageReaderTests {
     }
 
     private TestCoverageRecord createTestRecord(String identifier) {
-        val record = new TestCoverageRecord(identifier);
+        val coverageRecord = new TestCoverageRecord(identifier);
         val policy = new PolicyCoverageData("test-policy", null, "policy");
         policy.recordTargetHit(true);
         policy.recordConditionHit(0, 3, true);
-        record.addPolicyCoverage(policy);
-        record.recordDecision(Decision.PERMIT);
-        record.recordDecision(Decision.DENY);
+        coverageRecord.addPolicyCoverage(policy);
+        coverageRecord.recordDecision(Decision.PERMIT);
+        coverageRecord.recordDecision(Decision.DENY);
         return record;
     }
 }
