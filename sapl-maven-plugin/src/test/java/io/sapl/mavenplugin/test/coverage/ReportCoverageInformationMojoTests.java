@@ -114,7 +114,7 @@ class ReportCoverageInformationMojoTests {
     }
 
     @Test
-    void whenCoverageFileMissing_thenFails() throws Exception {
+    void whenCoverageFileMissing_thenFails() {
         assertThrows(MojoFailureException.class, mojo::execute);
         verify(log, atLeastOnce()).error(contains("Coverage file not found"));
     }

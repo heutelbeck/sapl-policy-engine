@@ -76,18 +76,16 @@ public class ReportingDecisionInterceptor implements TracedDecisionInterceptor {
     private void logTrace(TracedDecision tracedDecision) {
         val trace  = tracedDecision.originalTrace();
         val prefix = "New Decision (trace) : ";
-        multiLineLog(
-                prefix + (prettyPrint ? "\n" : "") + ReportTextRenderUtil.prettyPrintValue(trace, prettyPrint, mapper));
+        multiLineLog(prefix + (prettyPrint ? "\n" : "") + ReportTextRenderUtil.prettyPrintValue(trace, prettyPrint));
     }
 
     private void logJsonReport(ObjectValue report) {
         val prefix = "New Decision (report): ";
-        multiLineLog(prefix + (prettyPrint ? "\n" : "")
-                + ReportTextRenderUtil.prettyPrintValue(report, prettyPrint, mapper));
+        multiLineLog(prefix + (prettyPrint ? "\n" : "") + ReportTextRenderUtil.prettyPrintValue(report, prettyPrint));
     }
 
     private void logTextReport(ObjectValue report) {
-        multiLineLog(ReportTextRenderUtil.textReport(report, prettyPrint, mapper));
+        multiLineLog(ReportTextRenderUtil.textReport(report, prettyPrint));
     }
 
     private void multiLineLog(String message) {

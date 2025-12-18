@@ -17,6 +17,8 @@
  */
 package io.sapl.compiler;
 
+import static io.sapl.compiler.StringsUtil.unquoteString;
+
 import io.sapl.api.functions.FunctionBroker;
 import io.sapl.api.functions.FunctionInvocation;
 import io.sapl.api.model.*;
@@ -1299,59 +1301,6 @@ public class FilterCompiler {
 
     private int parseIndex(SignedNumberContext signedNumber) {
         return Integer.parseInt(signedNumber.getText());
-    }
-
-    private String unquoteString(String quoted) {
-        if (quoted == null || quoted.length() < 2) {
-            return quoted;
-        }
-        val inner     = quoted.substring(1, quoted.length() - 1);
-        val unescaped = new StringBuilder(inner.length());
-        for (int i = 0; i < inner.length(); i++) {
-            char c = inner.charAt(i);
-            if (c == '\\' && i + 1 < inner.length()) {
-                char next = inner.charAt(i + 1);
-                switch (next) {
-                case '"', '\\', '/' -> {
-                    unescaped.append(next);
-                    i++;
-                }
-                case 'b'            -> {
-                    unescaped.append('\b');
-                    i++;
-                }
-                case 'f'            -> {
-                    unescaped.append('\f');
-                    i++;
-                }
-                case 'n'            -> {
-                    unescaped.append('\n');
-                    i++;
-                }
-                case 'r'            -> {
-                    unescaped.append('\r');
-                    i++;
-                }
-                case 't'            -> {
-                    unescaped.append('\t');
-                    i++;
-                }
-                case 'u'            -> {
-                    if (i + 5 < inner.length()) {
-                        val hex = inner.substring(i + 2, i + 6);
-                        unescaped.append((char) Integer.parseInt(hex, 16));
-                        i += 5;
-                    } else {
-                        unescaped.append(c);
-                    }
-                }
-                default             -> unescaped.append(c);
-                }
-            } else {
-                unescaped.append(c);
-            }
-        }
-        return unescaped.toString();
     }
 
 }

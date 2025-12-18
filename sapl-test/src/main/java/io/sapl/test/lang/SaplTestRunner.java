@@ -17,6 +17,8 @@
  */
 package io.sapl.test.lang;
 
+import static io.sapl.compiler.StringsUtil.unquoteString;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -51,7 +53,7 @@ public class SaplTestRunner {
     }
 
     private static List<TestResult> runRequirement(RequirementContext requirement) {
-        var requirementName = stripQuotes(requirement.name.getText());
+        var requirementName = unquoteString(requirement.name.getText());
         var results         = new ArrayList<TestResult>();
 
         for (var scenario : requirement.scenario()) {
@@ -61,7 +63,7 @@ public class SaplTestRunner {
     }
 
     private static TestResult runScenario(String requirementName, ScenarioContext scenario) {
-        var scenarioName = stripQuotes(scenario.name.getText());
+        var scenarioName = unquoteString(scenario.name.getText());
         try {
             // TODO: Implement full scenario execution
             // For now, mark as pending implementation
@@ -70,22 +72,6 @@ public class SaplTestRunner {
         } catch (Exception exception) {
             return TestResult.error(requirementName, scenarioName, exception);
         }
-    }
-
-    /**
-     * Strips surrounding quotes from a string token.
-     *
-     * @param text the string token (e.g., "\"value\"")
-     * @return the unquoted string (e.g., "value")
-     */
-    public static String stripQuotes(String text) {
-        if (text == null || text.length() < 2) {
-            return text;
-        }
-        if ((text.startsWith("\"") && text.endsWith("\"")) || (text.startsWith("'") && text.endsWith("'"))) {
-            return text.substring(1, text.length() - 1);
-        }
-        return text;
     }
 
 }

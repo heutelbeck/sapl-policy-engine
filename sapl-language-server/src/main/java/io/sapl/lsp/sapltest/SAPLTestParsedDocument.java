@@ -39,7 +39,7 @@ import lombok.Getter;
  * Represents a parsed SAPLTest document with its AST and any parse errors.
  */
 @Getter
-public class SAPLTestParsedDocument implements ParsedDocument {
+public final class SAPLTestParsedDocument implements ParsedDocument {
 
     private final String                uri;
     private final String                content;

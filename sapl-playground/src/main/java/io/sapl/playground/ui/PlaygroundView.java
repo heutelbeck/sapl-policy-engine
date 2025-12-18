@@ -53,7 +53,6 @@ import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.data.selection.SelectionEvent;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
-
 import io.sapl.api.SaplVersion;
 import io.sapl.api.model.ObjectValue;
 import io.sapl.api.model.Value;
@@ -244,7 +243,6 @@ public class PlaygroundView extends Composite<VerticalLayout> {
     private static final String MESSAGE_CONTENT_TOO_LARGE         = "Content too large to copy to clipboard";
     private static final String MESSAGE_DOCUMENT_TOO_LARGE        = "Document too large";
     private static final String MESSAGE_ERROR_READING_DECISION    = "Error reading decision:\n";
-    private static final String MESSAGE_ERRORS_SUFFIX             = " error(s)";
     private static final String MESSAGE_EXAMPLE_LOAD_CONFIRMATION = "This will replace current policies, subscription, and variables.";
     private static final String MESSAGE_EXAMPLE_TOO_MANY_POLICIES = "Example has too many policies. Maximum: ";
     private static final String MESSAGE_EXCEEDS_MAX_SIZE          = " exceeds maximum size of ";
@@ -261,7 +259,6 @@ public class PlaygroundView extends Composite<VerticalLayout> {
     private static final String MESSAGE_STATE_TOO_MANY_POLICIES   = "State has too many policies. Maximum: ";
     private static final String MESSAGE_SUBSCRIPTION_ERROR        = "Subscription error: ";
     private static final String MESSAGE_SUFFIX_KB                 = "KB";
-    private static final String MESSAGE_SYNTAX_ERROR              = "Syntax error";
 
     private static final String POLICY_NAME_PREFIX  = "Policy ";
     private static final String POLICY_NAME_UNKNOWN = "unknown";
@@ -1042,11 +1039,10 @@ public class PlaygroundView extends Composite<VerticalLayout> {
      * Displays decision report information.
      */
     private void displayDecisionReport(TracedDecision tracedDecision) {
-        val trace  = tracedDecision.originalTrace();
         val report = ReportBuilderUtil.extractReport(tracedDecision);
 
         decisionJsonReportEditor.setDocument(ValueJsonMarshaller.toPrettyString(report));
-        reportTextArea.setValue(ReportTextRenderUtil.textReport(report, false, mapper));
+        reportTextArea.setValue(ReportTextRenderUtil.textReport(report, false));
     }
 
     /*
@@ -1076,15 +1072,11 @@ public class PlaygroundView extends Composite<VerticalLayout> {
         for (val document : documents) {
             if (document instanceof ObjectValue docObj) {
                 val docErrors = TracedPolicyDecision.getErrors(docObj);
-                for (val error : docErrors) {
-                    errors.add(error);
-                }
+                errors.addAll(docErrors);
             }
         }
         val retrievalErrors = TracedPdpDecision.getRetrievalErrors(trace);
-        for (val error : retrievalErrors) {
-            errors.add(error);
-        }
+        errors.addAll(retrievalErrors);
         return errors;
     }
 

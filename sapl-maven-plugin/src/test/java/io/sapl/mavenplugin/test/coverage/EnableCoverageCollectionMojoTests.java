@@ -61,7 +61,7 @@ class EnableCoverageCollectionMojoTests {
     }
 
     @Test
-    void whenCoverageEnabled_thenDeletesOutputDirectory() throws Exception {
+    void whenCoverageEnabled_thenDeletesOutputDirectory() {
         try (var pathHelperMock = mockStatic(PathHelper.class)) {
             pathHelperMock.when(() -> PathHelper.resolveBaseDir(any(), any(), any())).thenReturn(tempDir);
 
@@ -70,7 +70,7 @@ class EnableCoverageCollectionMojoTests {
     }
 
     @Test
-    void whenDeleteFails_thenThrowsMojoException() throws Exception {
+    void whenDeleteFails_thenThrowsMojoException() {
         try (var pathHelperMock = mockStatic(PathHelper.class)) {
             try (var fileUtilsMock = mockStatic(FileUtils.class)) {
                 pathHelperMock.when(() -> PathHelper.resolveBaseDir(any(), any(), any())).thenReturn(Paths.get("tmp"));

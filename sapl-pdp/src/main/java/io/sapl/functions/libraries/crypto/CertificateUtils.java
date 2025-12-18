@@ -91,7 +91,7 @@ public class CertificateUtils {
     }
 
     private static SubjectAlternativeName toSubjectAlternativeName(List<?> rawSan) {
-        val type  = (Integer) rawSan.get(0);
+        val type  = (Integer) rawSan.getFirst();
         val value = rawSan.get(1).toString();
         return new SubjectAlternativeName(type, value);
     }

@@ -63,7 +63,7 @@ class MethodSecurityExpressionEvaluatorTests {
 
             // GIVEN
             final var expressionEvaluator      = new MethodSecurityExpressionEvaluator(expressionHandlerProviderMock);
-            final var mockSpelExpressionParser = mockedConstructionSpelExpressionParser.constructed().get(0);
+            final var mockSpelExpressionParser = mockedConstructionSpelExpressionParser.constructed().getFirst();
 
             // WHEN
             when(securityContextMock.getAuthentication()).thenReturn(authenticationMock);
@@ -89,7 +89,7 @@ class MethodSecurityExpressionEvaluatorTests {
 
             // GIVEN
             final var expressionEvaluator      = new MethodSecurityExpressionEvaluator(expressionHandlerProviderMock);
-            final var mockSpelExpressionParser = mockedConstructionSpelExpressionParser.constructed().get(0);
+            final var mockSpelExpressionParser = mockedConstructionSpelExpressionParser.constructed().getFirst();
 
             // WHEN
             when(securityContextMock.getAuthentication()).thenReturn(authenticationMock);

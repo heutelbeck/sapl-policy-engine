@@ -27,7 +27,10 @@ import com.vaadin.flow.component.icon.VaadinIcon;
 
 import io.sapl.api.SaplVersion;
 import io.sapl.api.model.Value;
+import lombok.Getter;
 import lombok.val;
+
+import java.io.Serial;
 
 /**
  * Interactive JSON graph visualization component with maximize capability.
@@ -59,16 +62,25 @@ import lombok.val;
 @JsModule("./json-graph-component.ts")
 @NpmPackage(value = "d3", version = "7.9.0")
 public class JsonGraphVisualization extends Component implements HasSize, HasStyle {
+    @Serial
     private static final long serialVersionUID = SaplVersion.VERSION_UID;
 
     private static final String DIALOG_OPEN_ATTRIBUTE      = "dialog-open";
     private static final String HIDE_BUTTON_ATTRIBUTE      = "hide-maximize-button";
     private static final String INITIAL_TRANSFORM_PROPERTY = "initialTransform";
     private static final String VALUE_MODE_PROPERTY        = "valueMode";
+    public static final String  JSON_DATA                  = "jsonData";
 
     private Dialog                 maximizeDialog;
     private JsonGraphVisualization maximizedVisualization;
     private String                 currentJsonData = "{}";
+    /**
+     * -- GETTER --
+     * Checks if value mode is enabled.
+     *
+     * @return true if value mode is enabled
+     */
+    @Getter
     private boolean                valueMode       = false;
 
     /**
@@ -102,10 +114,10 @@ public class JsonGraphVisualization extends Component implements HasSize, HasSty
         }
 
         this.currentJsonData = jsonData;
-        getElement().setProperty("jsonData", jsonData);
+        getElement().setProperty(JSON_DATA, jsonData);
 
         if (maximizedVisualization != null) {
-            maximizedVisualization.getElement().setProperty("jsonData", jsonData);
+            maximizedVisualization.getElement().setProperty(JSON_DATA, jsonData);
         }
     }
 
@@ -133,21 +145,12 @@ public class JsonGraphVisualization extends Component implements HasSize, HasSty
     public void setValueData(Value value) {
         setValueMode(true);
         this.currentJsonData = ValueToGraphJsonMapper.toPrettyJsonString(value);
-        getElement().setProperty("jsonData", currentJsonData);
+        getElement().setProperty(JSON_DATA, currentJsonData);
 
         if (maximizedVisualization != null) {
             maximizedVisualization.setValueMode(true);
-            maximizedVisualization.getElement().setProperty("jsonData", currentJsonData);
+            maximizedVisualization.getElement().setProperty(JSON_DATA, currentJsonData);
         }
-    }
-
-    /**
-     * Checks if value mode is enabled.
-     *
-     * @return true if value mode is enabled
-     */
-    public boolean isValueMode() {
-        return valueMode;
     }
 
     /**

@@ -20,7 +20,6 @@ package io.sapl.mavenplugin.test.coverage.report;
 import io.sapl.api.coverage.PolicyCoverageData;
 import lombok.experimental.UtilityClass;
 
-import java.util.Collection;
 import java.util.List;
 
 /**
@@ -47,7 +46,7 @@ public class SampleCoverageInformation {
     /**
      * Returns sample coverage data for testing HTML report generation.
      */
-    public static Collection<PolicyCoverageData> policies() {
+    public static List<PolicyCoverageData> policies() {
         var policy = new PolicyCoverageData("policy_1.sapl", POLICY_SOURCE, "set");
 
         policy.recordTargetHit(true);

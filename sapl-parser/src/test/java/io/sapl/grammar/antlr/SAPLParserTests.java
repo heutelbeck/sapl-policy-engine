@@ -621,279 +621,113 @@ class SAPLParserTests {
     }
 
     // ========================================================================
-    // CATEGORY 10: Import Syntax Tests (from DefaultSAPLParserTests)
+    // CATEGORY 10: Language Feature Syntax Tests
+    // Consolidated tests for imports, operators, steps, filters, JSON, comments
     // ========================================================================
 
-    @Test
-    void whenParsingPolicyWithImport_thenNoSyntaxErrors() {
-        var policy = "import simple.append policy \"test\" permit";
-        var errors = parseAndCollectErrors(policy);
-        assertThat(errors).isEmpty();
+    static Stream<Arguments> languageFeatureSyntax() {
+        return Stream.of(
+                // --- Imports ---
+                arguments("simple import", "import simple.append policy \"test\" permit"),
+                arguments("import with alias", "import simple.append as concat policy \"test\" permit"),
+                arguments("multiple imports", "import simple.length import simple.append policy \"test\" permit"),
+                arguments("nested library imports", """
+                        import filter.blacken
+                        import filter.replace as rep
+                        import some.nested.library.function
+                        import very.deeply.nested.module.function as shortName
+                        policy "imports" permit
+                        """),
+
+                // --- Operators ---
+                arguments("all operators", """
+                        policy "operators" permit
+                        where
+                            true || false; true && false; true | false; true ^ false; true & false;
+                            1 == 1; 1 != 2; "test" =~ "t.*";
+                            1 < 2; 1 <= 2; 1 > 0; 1 >= 0; 1 in [1, 2, 3];
+                            1 + 2; 3 - 1; 2 * 3; 6 / 2; 7 % 3;
+                            !false; -1; +1;
+                        """),
+
+                // --- Combining Algorithms ---
+                arguments("deny-overrides algorithm", "set \"test\" deny-overrides policy \"p\" permit"),
+                arguments("permit-overrides algorithm", "set \"test\" permit-overrides policy \"p\" permit"),
+                arguments("first-applicable algorithm", "set \"test\" first-applicable policy \"p\" permit"),
+                arguments("only-one-applicable algorithm", "set \"test\" only-one-applicable policy \"p\" permit"),
+                arguments("deny-unless-permit algorithm", "set \"test\" deny-unless-permit policy \"p\" permit"),
+                arguments("permit-unless-deny algorithm", "set \"test\" permit-unless-deny policy \"p\" permit"),
+
+                // --- Steps and Path Expressions ---
+                arguments("all step types", """
+                        policy "steps" permit
+                        where
+                            subject.name; subject["name"]; subject.*; subject[0]; subject[-1];
+                            subject[0:10]; subject[0:10:2]; subject[:10]; subject[0:];
+                            subject[(expression)]; subject[?(@ > 5)];
+                            subject[0, 1, 2]; subject["a", "b", "c"];
+                            subject..name; subject..*; subject..[0]; subject..["escaped"];
+                        """), arguments("recursive descent", """
+                        policy "recursive descent" permit
+                        where
+                            "ROLE_ADMIN" in subject..authority;
+                            resource..customerName == "test";
+                        """),
+
+                // --- Filters and Subtemplates ---
+                arguments("simple filter", """
+                        policy "filters" permit transform resource |- blacken
+                        """), arguments("filter with arguments", """
+                        policy "filters with args" permit transform resource |- blacken(2, 0, "X")
+                        """), arguments("extended filters", """
+                        policy "extended filters" permit transform
+                            resource |- { @.field1 : blacken, each @.items : remove, @ : uppercase }
+                        """), arguments("each filter", """
+                        policy "each filter" permit transform resource |- each blacken
+                        """), arguments("subtemplate", """
+                        policy "subtemplate" permit transform resource :: { "filtered": @ }
+                        """),
+
+                // --- JSON Values ---
+                arguments("json values",
+                        """
+                                policy "json values" permit
+                                where
+                                    var obj = { "string": "value", "number": 42, "float": 3.14, "bool": true, "null": null, "undefined": undefined };
+                                    var arr = [1, 2, 3, "mixed", true, null];
+                                    var nested = { "array": [1, 2], "object": { "deep": "value" } };
+                                    var scientific = 1.5e10; var negativeExp = 1e-5; var negative = -42;
+                                    var emptyObj = {}; var emptyArr = [];
+                                """),
+                arguments("identifier as object key", """
+                        policy "identifier keys" permit where var obj = { key: "value", anotherKey: 42 };
+                        """),
+
+                // --- Comments ---
+                arguments("comments", """
+                        // Single line comment
+                        /* Multi-line comment */
+                        policy "comments" // inline comment
+                        permit /* block */ action == "test"
+                        """),
+
+                // --- Reserved Identifiers as Field Names ---
+                arguments("reserved identifiers as field names", """
+                        policy "reserved identifiers" permit
+                        where
+                            subject.subject; action.action; resource.resource; environment.environment;
+                        """));
     }
 
-    @Test
-    void whenParsingPolicyWithImportAlias_thenNoSyntaxErrors() {
-        var policy = "import simple.append as concat policy \"test\" permit";
+    @ParameterizedTest(name = "{0}")
+    @MethodSource("languageFeatureSyntax")
+    void whenParsingLanguageFeature_thenNoSyntaxErrors(String description, String policy) {
         var errors = parseAndCollectErrors(policy);
-        assertThat(errors).isEmpty();
-    }
-
-    @Test
-    void whenParsingPolicyWithMultipleImports_thenNoSyntaxErrors() {
-        var policy = "import simple.length import simple.append policy \"test\" permit";
-        var errors = parseAndCollectErrors(policy);
-        assertThat(errors).isEmpty();
-    }
-
-    @Test
-    void whenParsingImportsWithNestedLibraryPath_thenNoSyntaxErrors() {
-        var policy = """
-                import filter.blacken
-                import filter.replace as rep
-                import some.nested.library.function
-                import very.deeply.nested.module.function as shortName
-
-                policy "imports"
-                permit
-                """;
-        var errors = parseAndCollectErrors(policy);
-        assertThat(errors).isEmpty();
-    }
-
-    // ========================================================================
-    // CATEGORY 11: Operator Tests
-    // ========================================================================
-
-    @Test
-    void whenParsingAllOperators_thenNoSyntaxErrors() {
-        var policy = """
-                policy "operators"
-                permit
-                where
-                    true || false;
-                    true && false;
-                    true | false;
-                    true ^ false;
-                    true & false;
-                    1 == 1;
-                    1 != 2;
-                    "test" =~ "t.*";
-                    1 < 2;
-                    1 <= 2;
-                    1 > 0;
-                    1 >= 0;
-                    1 in [1, 2, 3];
-                    1 + 2;
-                    3 - 1;
-                    2 * 3;
-                    6 / 2;
-                    7 % 3;
-                    !false;
-                    -1;
-                    +1;
-                """;
-        var errors = parseAndCollectErrors(policy);
-        assertThat(errors).isEmpty();
-    }
-
-    @Test
-    void whenParsingAllCombiningAlgorithms_thenNoSyntaxErrors() {
-        var algorithms = List.of("deny-overrides", "permit-overrides", "first-applicable", "only-one-applicable",
-                "deny-unless-permit", "permit-unless-deny");
-
-        for (var algorithm : algorithms) {
-            var policy = "set \"test\" %s policy \"p\" permit".formatted(algorithm);
-            var errors = parseAndCollectErrors(policy);
-            assertThat(errors).as("Algorithm '%s' should parse without errors", algorithm).isEmpty();
-        }
-    }
-
-    // ========================================================================
-    // CATEGORY 12: Step and Path Expression Tests
-    // ========================================================================
-
-    @Test
-    void whenParsingAllStepTypes_thenNoSyntaxErrors() {
-        var policy = """
-                policy "steps"
-                permit
-                where
-                    subject.name;
-                    subject["name"];
-                    subject.*;
-                    subject[0];
-                    subject[-1];
-                    subject[0:10];
-                    subject[0:10:2];
-                    subject[:10];
-                    subject[0:];
-                    subject[(expression)];
-                    subject[?(@ > 5)];
-                    subject[0, 1, 2];
-                    subject["a", "b", "c"];
-                    subject..name;
-                    subject..*;
-                    subject..[0];
-                    subject..["escaped"];
-                """;
-        var errors = parseAndCollectErrors(policy);
-        assertThat(errors).isEmpty();
-    }
-
-    @Test
-    void whenParsingRecursiveDescendSteps_thenNoSyntaxErrors() {
-        var policy = """
-                policy "recursive descent"
-                permit
-                where
-                    "ROLE_ADMIN" in subject..authority;
-                    resource..customerName == "test";
-                """;
-        var errors = parseAndCollectErrors(policy);
-        assertThat(errors).isEmpty();
+        assertThat(errors).as("Language feature '%s' should parse without errors", description).isEmpty();
     }
 
     // ========================================================================
-    // CATEGORY 13: Filter and Subtemplate Tests
-    // ========================================================================
-
-    @Test
-    void whenParsingSimpleFilter_thenNoSyntaxErrors() {
-        var policy = """
-                policy "filters"
-                permit
-                transform
-                    resource |- blacken
-                """;
-        var errors = parseAndCollectErrors(policy);
-        assertThat(errors).isEmpty();
-    }
-
-    @Test
-    void whenParsingFilterWithArguments_thenNoSyntaxErrors() {
-        var policy = """
-                policy "filters with args"
-                permit
-                transform
-                    resource |- blacken(2, 0, "X")
-                """;
-        var errors = parseAndCollectErrors(policy);
-        assertThat(errors).isEmpty();
-    }
-
-    @Test
-    void whenParsingExtendedFilters_thenNoSyntaxErrors() {
-        var policy = """
-                policy "extended filters"
-                permit
-                transform
-                    resource |- {
-                        @.field1 : blacken,
-                        each @.items : remove,
-                        @ : uppercase
-                    }
-                """;
-        var errors = parseAndCollectErrors(policy);
-        assertThat(errors).isEmpty();
-    }
-
-    @Test
-    void whenParsingEachFilter_thenNoSyntaxErrors() {
-        var policy = """
-                policy "each filter"
-                permit
-                transform
-                    resource |- each blacken
-                """;
-        var errors = parseAndCollectErrors(policy);
-        assertThat(errors).isEmpty();
-    }
-
-    @Test
-    void whenParsingSubtemplate_thenNoSyntaxErrors() {
-        var policy = """
-                policy "subtemplate"
-                permit
-                transform
-                    resource :: { "filtered": @ }
-                """;
-        var errors = parseAndCollectErrors(policy);
-        assertThat(errors).isEmpty();
-    }
-
-    // ========================================================================
-    // CATEGORY 14: JSON Value Tests
-    // ========================================================================
-
-    @Test
-    void whenParsingJsonValues_thenNoSyntaxErrors() {
-        var policy = """
-                policy "json values"
-                permit
-                where
-                    var obj = { "string": "value", "number": 42, "float": 3.14, "bool": true, "null": null, "undefined": undefined };
-                    var arr = [1, 2, 3, "mixed", true, null];
-                    var nested = { "array": [1, 2], "object": { "deep": "value" } };
-                    var scientific = 1.5e10;
-                    var negativeExp = 1e-5;
-                    var negative = -42;
-                    var emptyObj = {};
-                    var emptyArr = [];
-                """;
-        var errors = parseAndCollectErrors(policy);
-        assertThat(errors).isEmpty();
-    }
-
-    @Test
-    void whenParsingIdentifierAsObjectKey_thenNoSyntaxErrors() {
-        var policy = """
-                policy "identifier keys"
-                permit
-                where
-                    var obj = { key: "value", anotherKey: 42 };
-                """;
-        var errors = parseAndCollectErrors(policy);
-        assertThat(errors).isEmpty();
-    }
-
-    // ========================================================================
-    // CATEGORY 15: Comment Tests
-    // ========================================================================
-
-    @Test
-    void whenParsingComments_thenNoSyntaxErrors() {
-        var policy = """
-                // Single line comment
-                /* Multi-line
-                   comment */
-                policy "comments" // inline comment
-                permit /* block */ action == "test"
-                """;
-        var errors = parseAndCollectErrors(policy);
-        assertThat(errors).isEmpty();
-    }
-
-    // ========================================================================
-    // CATEGORY 16: Reserved Identifier Tests
-    // ========================================================================
-
-    @Test
-    void whenParsingReservedIdentifiersAsFieldNames_thenNoSyntaxErrors() {
-        var policy = """
-                policy "reserved identifiers"
-                permit
-                where
-                    subject.subject;
-                    action.action;
-                    resource.resource;
-                    environment.environment;
-                """;
-        var errors = parseAndCollectErrors(policy);
-        assertThat(errors).isEmpty();
-    }
-
-    // ========================================================================
-    // CATEGORY 17: Invalid Syntax Tests (should produce errors)
+    // CATEGORY 11: Invalid Syntax Tests (should produce errors)
     // ========================================================================
 
     static Stream<Arguments> invalidSyntaxSnippets() {
@@ -939,7 +773,7 @@ class SAPLParserTests {
     }
 
     // ========================================================================
-    // CATEGORY 18: Reserved Words as Variable Names (from DefaultSAPLParserTests)
+    // CATEGORY 12: Reserved Words as Variable Names (from DefaultSAPLParserTests)
     // ========================================================================
 
     @ParameterizedTest
@@ -952,7 +786,7 @@ class SAPLParserTests {
     }
 
     // ========================================================================
-    // CATEGORY 19: Policies that are syntactically valid but semantically invalid
+    // CATEGORY 13: Syntactically Valid but Semantically Invalid Policies
     // These should parse without syntax errors (semantic validation is separate)
     // ========================================================================
 

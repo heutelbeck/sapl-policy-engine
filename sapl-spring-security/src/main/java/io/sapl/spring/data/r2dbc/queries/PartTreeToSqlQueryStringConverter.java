@@ -178,6 +178,6 @@ public class PartTreeToSqlQueryStringConverter {
         }
 
         return new SqlCondition(PropositionalConnectives.AND,
-                part.getProperty().toDotPath() + " " + operator.getSqlQueryBasedKeywords().get(0) + " " + argument);
+                part.getProperty().toDotPath() + " " + operator.getSqlQueryBasedKeywords().getFirst() + " " + argument);
     }
 }

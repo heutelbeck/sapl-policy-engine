@@ -76,7 +76,7 @@ class MatchersTests {
 
     @Test
     void whenAny_thenHasSpecificityZero() {
-        assertThat(any().specificity()).isEqualTo(0);
+        assertThat(any().specificity()).isZero();
     }
 
     // ========== eq() Tests ==========

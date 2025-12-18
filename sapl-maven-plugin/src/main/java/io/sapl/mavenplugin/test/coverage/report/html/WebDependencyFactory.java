@@ -27,7 +27,6 @@ import java.nio.file.FileSystem;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -41,49 +40,92 @@ import java.util.Map;
 @UtilityClass
 public class WebDependencyFactory {
 
-    private static final String WEBJAR_BASE = "META-INF/resources/webjars/";
+    // ==================== Resource Source Paths ====================
+    private static final String SOURCE_DEPENDENCY_RESOURCES = "dependency-resources/";
+    private static final String SOURCE_HTML_CSS             = "html/css/";
+    private static final String SOURCE_IMAGES               = "images/";
 
+    // ==================== Output Directory Paths ====================
+    private static final String TARGET_BASE     = "html/assets/";
+    private static final String TARGET_CSS      = TARGET_BASE + "lib/css/";
+    private static final String TARGET_IMAGES   = TARGET_BASE + SOURCE_IMAGES;
+    private static final String TARGET_JS       = TARGET_BASE + "lib/js";
+    private static final String TARGET_JS_ADDON = TARGET_JS + "/addon/mode/";
+
+    // ==================== WebJar Artifacts ====================
+    private static final String WEBJAR_BASE          = "META-INF/resources/webjars/";
+    private static final String WEBJAR_BOOTSTRAP     = "bootstrap";
+    private static final String WEBJAR_CODEMIRROR    = "codemirror";
+    private static final String WEBJAR_POPPERJS_CORE = "popperjs__core";
+    private static final String WEBJAR_REQUIREJS     = "requirejs";
+
+    // ==================== WebJar Subdirectory Paths ====================
+    private static final String WEBJAR_SUBDIR_ADDON_MODE = "addon/mode/";
+    private static final String WEBJAR_SUBDIR_CSS        = "css/";
+    private static final String WEBJAR_SUBDIR_DIST_UMD   = "dist/umd/";
+    private static final String WEBJAR_SUBDIR_JS         = "js/";
+    private static final String WEBJAR_SUBDIR_LIB        = "lib/";
+
+    // ==================== CSS File Names ====================
+    private static final String FILE_BOOTSTRAP_MIN_CSS = "bootstrap.min.css";
+    private static final String FILE_CODEMIRROR_CSS    = "codemirror.css";
+    private static final String FILE_MAIN_CSS          = "main.css";
+
+    // ==================== Image File Names ====================
+    private static final String FILE_FAVICON     = "favicon.png";
+    private static final String FILE_LOGO_HEADER = "logo-header.png";
+
+    // ==================== JavaScript File Names ====================
+    private static final String FILE_BOOTSTRAP_MIN_JS = "bootstrap.min.js";
+    private static final String FILE_CODEMIRROR_JS    = "codemirror.js";
+    private static final String FILE_POPPER_MIN_JS    = "popper.min.js";
+    private static final String FILE_REQUIRE_JS       = "require.js";
+    private static final String FILE_SAPL_MODE_JS     = "sapl-mode.js";
+    private static final String FILE_SIMPLE_JS        = "simple.js";
+
+    // ==================== Version Cache ====================
     private static final Map<String, String> WEBJAR_VERSIONS = new HashMap<>();
+
+    // ==================== Static Dependency List ====================
+    private static final List<WebDependency> WEB_DEPENDENCIES;
+
+    static {
+        val codemirrorBase = webjarPath(WEBJAR_CODEMIRROR);
+        val bootstrapBase  = webjarPath(WEBJAR_BOOTSTRAP);
+        val popperjsBase   = webjarPath(WEBJAR_POPPERJS_CORE) + WEBJAR_SUBDIR_DIST_UMD;
+        val requirejsBase  = webjarPath(WEBJAR_REQUIREJS);
+
+        WEB_DEPENDENCIES = List.of(
+                // JavaScript
+                new WebDependency("@popperjs", FILE_POPPER_MIN_JS, popperjsBase, TARGET_JS),
+                new WebDependency("bootstrap-js", FILE_BOOTSTRAP_MIN_JS, bootstrapBase + WEBJAR_SUBDIR_JS, TARGET_JS),
+                new WebDependency("codemirror-js", FILE_CODEMIRROR_JS, codemirrorBase + WEBJAR_SUBDIR_LIB, TARGET_JS),
+                new WebDependency(WEBJAR_REQUIREJS, FILE_REQUIRE_JS, requirejsBase, TARGET_JS),
+                new WebDependency("sapl-mode", FILE_SAPL_MODE_JS, SOURCE_DEPENDENCY_RESOURCES, TARGET_JS),
+                new WebDependency("simple-mode", FILE_SIMPLE_JS, codemirrorBase + WEBJAR_SUBDIR_ADDON_MODE,
+                        TARGET_JS_ADDON),
+
+                // CSS
+                new WebDependency("bootstrap-css", FILE_BOOTSTRAP_MIN_CSS, bootstrapBase + WEBJAR_SUBDIR_CSS,
+                        TARGET_CSS),
+                new WebDependency("codemirror-css", FILE_CODEMIRROR_CSS, codemirrorBase + WEBJAR_SUBDIR_LIB,
+                        TARGET_CSS),
+                new WebDependency("main-css", FILE_MAIN_CSS, SOURCE_HTML_CSS, TARGET_CSS),
+
+                // Images
+                new WebDependency("favicon", FILE_FAVICON, SOURCE_IMAGES, TARGET_IMAGES),
+                new WebDependency("logo-header", FILE_LOGO_HEADER, SOURCE_IMAGES, TARGET_IMAGES));
+    }
 
     /**
      * Returns the list of web dependencies needed for the HTML coverage report.
-     * WebJar versions are discovered at runtime from the classpath.
+     * WebJar versions are discovered at runtime from the classpath during class
+     * initialization.
      *
-     * @return list of web dependencies with resolved source paths
+     * @return immutable list of web dependencies with resolved source paths
      */
     public List<WebDependency> getWebDependencies() {
-        val dependencies = new ArrayList<WebDependency>();
-
-        val targetBase = "html/assets/";
-        val jsBase     = targetBase + "lib/js";
-        val cssBase    = targetBase + "lib/css/";
-        val images     = "images/";
-        val imageBase  = targetBase + images;
-
-        val codemirrorBase = webjarPath("codemirror");
-        val bootstrapBase  = webjarPath("bootstrap");
-        val popperjsBase   = webjarPath("popperjs__core") + "dist/umd/";
-        val requirejsBase  = webjarPath("requirejs");
-
-        // JS
-        dependencies.add(new WebDependency("sapl-mode", "sapl-mode.js", "dependency-resources/", jsBase));
-        dependencies.add(new WebDependency("codemirror", "codemirror.js", codemirrorBase + "lib/", jsBase));
-        dependencies.add(
-                new WebDependency("simple_mode", "simple.js", codemirrorBase + "addon/mode/", jsBase + "/addon/mode/"));
-        dependencies.add(new WebDependency("bootstrap", "bootstrap.min.js", bootstrapBase + "js/", jsBase));
-        dependencies.add(new WebDependency("@popperjs", "popper.min.js", popperjsBase, jsBase));
-        dependencies.add(new WebDependency("requirejs", "require.js", requirejsBase, jsBase));
-
-        // CSS
-        dependencies.add(new WebDependency("main.css", "main.css", "html/css/", cssBase));
-        dependencies.add(new WebDependency("bootstrap", "bootstrap.min.css", bootstrapBase + "css/", cssBase));
-        dependencies.add(new WebDependency("codemirror", "codemirror.css", codemirrorBase + "lib/", cssBase));
-
-        // images
-        dependencies.add(new WebDependency("logo-header", "logo-header.png", images, imageBase));
-        dependencies.add(new WebDependency("favicon", "favicon.png", images, imageBase));
-
-        return dependencies;
+        return WEB_DEPENDENCIES;
     }
 
     /**

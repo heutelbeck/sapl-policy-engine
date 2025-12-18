@@ -17,24 +17,22 @@
  */
 package io.sapl.lsp.sapl.completion;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.params.provider.Arguments.arguments;
-
-import java.util.HashMap;
-import java.util.Map;
-import java.util.stream.Stream;
-
+import io.sapl.api.model.ArrayValue;
+import io.sapl.api.model.ObjectValue;
+import io.sapl.api.model.Value;
+import io.sapl.grammar.antlr.SAPLParser.SaplContext;
+import io.sapl.lsp.configuration.LSPConfiguration;
+import io.sapl.lsp.sapl.TestParsing;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
-import io.sapl.api.model.ArrayValue;
-import io.sapl.api.model.ObjectValue;
-import io.sapl.api.model.Value;
-import io.sapl.grammar.antlr.SAPLParser.SaplContext;
-import io.sapl.lsp.sapl.TestParsing;
-import io.sapl.lsp.configuration.LSPConfiguration;
+import java.util.HashMap;
+import java.util.stream.Stream;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 class VariablesProposalsGeneratorTests {
 

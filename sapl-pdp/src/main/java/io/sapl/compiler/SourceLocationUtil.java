@@ -17,6 +17,8 @@
  */
 package io.sapl.compiler;
 
+import static io.sapl.compiler.StringsUtil.unquoteString;
+
 import io.sapl.api.model.SourceLocation;
 import io.sapl.grammar.antlr.SAPLParser.PolicyOnlyElementContext;
 import io.sapl.grammar.antlr.SAPLParser.PolicySetElementContext;
@@ -130,20 +132,7 @@ public class SourceLocationUtil {
         while (current.getParent() != null) {
             current = current.getParent();
         }
-        return current instanceof ParserRuleContext ctx ? ctx : null;
-    }
-
-    /**
-     * Removes surrounding quotes from a string literal.
-     */
-    private static String unquoteString(String quoted) {
-        if (quoted == null || quoted.length() < 2) {
-            return quoted;
-        }
-        if ((quoted.startsWith("\"") && quoted.endsWith("\"")) || (quoted.startsWith("'") && quoted.endsWith("'"))) {
-            return quoted.substring(1, quoted.length() - 1);
-        }
-        return quoted;
+        return (ParserRuleContext) current;
     }
 
 }

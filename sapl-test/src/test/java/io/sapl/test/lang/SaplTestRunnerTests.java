@@ -17,6 +17,7 @@
  */
 package io.sapl.test.lang;
 
+import static io.sapl.compiler.StringsUtil.unquoteString;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
@@ -70,16 +71,16 @@ class SaplTestRunnerTests {
         assertThat(results).hasSize(2);
     }
 
-    static Stream<Arguments> stripQuotesTestCases() {
+    static Stream<Arguments> unquoteStringTestCases() {
         return Stream.of(arguments("\"double quoted\"", "double quoted"), arguments("'single quoted'", "single quoted"),
                 arguments("no quotes", "no quotes"), arguments("\"\"", ""), arguments("''", ""), arguments(null, null),
                 arguments("x", "x"));
     }
 
     @ParameterizedTest
-    @MethodSource("stripQuotesTestCases")
-    void whenStripQuotes_thenRemovesSurroundingQuotes(String input, String expected) {
-        assertThat(SaplTestRunner.stripQuotes(input)).isEqualTo(expected);
+    @MethodSource("unquoteStringTestCases")
+    void whenUnquoteString(String input, String expected) {
+        assertThat(unquoteString(input)).isEqualTo(expected);
     }
 
     @Test

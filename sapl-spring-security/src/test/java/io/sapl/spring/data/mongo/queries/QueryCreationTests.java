@@ -39,7 +39,7 @@ import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
@@ -114,7 +114,7 @@ class QueryCreationTests {
         final var result = QueryCreation.manipulateQuery(conditions, selections, basicQuery, methodInvocationMock);
 
         // THEN
-        assertEquals(result.toString(), expected);
+        assertThat(result).hasToString(expected);
     }
 
     @Test
@@ -133,7 +133,7 @@ class QueryCreationTests {
         final var result = QueryCreation.createBaselineQuery(methodInvocationMock2);
 
         // THEN
-        assertEquals(result.toString(), expected);
+        assertThat(result).hasToString(expected);
     }
 
     @Test
@@ -152,7 +152,7 @@ class QueryCreationTests {
         final var result = QueryCreation.createBaselineQuery(methodInvocationMock2);
 
         // THEN
-        assertEquals(result.toString(), expected);
+        assertThat(result).hasToString(expected);
     }
 
     @Test
@@ -178,7 +178,7 @@ class QueryCreationTests {
                 TestUser.class, new Object[] { "Juni", PageRequest.of(0, 2) });
 
         // THEN
-        assertEquals(result.toString(), expected);
+        assertThat(result).hasToString(expected);
     }
 
     @Test
@@ -204,7 +204,7 @@ class QueryCreationTests {
                 TestUser.class, new Object[] { "Juni", Sort.by(Sort.Direction.ASC, "age") });
 
         // THEN
-        assertEquals(result.toString(), expected);
+        assertThat(result).hasToString(expected);
     }
 
 }

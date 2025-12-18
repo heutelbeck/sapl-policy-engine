@@ -39,7 +39,7 @@ class ReportTextRenderUtilTests {
     void whenTextReport_thenContainsDecision() {
         val report = createSimpleReport("PERMIT");
 
-        val text = ReportTextRenderUtil.textReport(report, false, MAPPER);
+        val text = ReportTextRenderUtil.textReport(report, false);
 
         assertThat(text).contains("Decision    :").contains("PERMIT");
     }
@@ -51,7 +51,7 @@ class ReportTextRenderUtilTests {
                 .put("resource", Value.of("elder-god")).build();
         val report       = createReportWithSubscription(subscription);
 
-        val text = ReportTextRenderUtil.textReport(report, false, MAPPER);
+        val text = ReportTextRenderUtil.textReport(report, false);
 
         assertThat(text).contains("Subscription:");
     }
@@ -64,7 +64,7 @@ class ReportTextRenderUtilTests {
                 .put(TraceFields.ADVICE, Value.EMPTY_ARRAY).put(TraceFields.TOTAL_DOCUMENTS, Value.of(5))
                 .put(TraceFields.DOCUMENTS, Value.EMPTY_ARRAY).build();
 
-        val text = ReportTextRenderUtil.textReport(report, false, MAPPER);
+        val text = ReportTextRenderUtil.textReport(report, false);
 
         assertThat(text).contains("Algorithm   : ").contains("deny-overrides");
     }
@@ -77,7 +77,7 @@ class ReportTextRenderUtilTests {
                 .put(TraceFields.OBLIGATIONS, Value.EMPTY_ARRAY).put(TraceFields.ADVICE, Value.EMPTY_ARRAY)
                 .put(TraceFields.TOTAL_DOCUMENTS, Value.of(10)).put(TraceFields.DOCUMENTS, documents).build();
 
-        val text = ReportTextRenderUtil.textReport(report, false, MAPPER);
+        val text = ReportTextRenderUtil.textReport(report, false);
 
         assertThat(text).contains("Documents   : 1 matching out of 10 total");
     }
@@ -92,7 +92,7 @@ class ReportTextRenderUtilTests {
                 .put(TraceFields.TOTAL_DOCUMENTS, Value.of(1)).put(TraceFields.DOCUMENTS, Value.EMPTY_ARRAY)
                 .put(TraceFields.MODIFICATIONS, modifications).build();
 
-        val text = ReportTextRenderUtil.textReport(report, false, MAPPER);
+        val text = ReportTextRenderUtil.textReport(report, false);
 
         assertThat(text).contains("Interceptor Modifications:").contains("Ritual interrupted by investigators")
                 .contains("Elder sign barrier activated");
@@ -107,7 +107,7 @@ class ReportTextRenderUtilTests {
                 .put(TraceFields.OBLIGATIONS, Value.EMPTY_ARRAY).put(TraceFields.ADVICE, Value.EMPTY_ARRAY)
                 .put(TraceFields.TOTAL_DOCUMENTS, Value.of(1)).put(TraceFields.DOCUMENTS, documents).build();
 
-        val text = ReportTextRenderUtil.textReport(report, false, MAPPER);
+        val text = ReportTextRenderUtil.textReport(report, false);
 
         assertThat(text).contains("=== Document Evaluation Results ===").contains("Policy: forbidden-knowledge-access")
                 .contains("Entitlement : permit").contains("Decision    : PERMIT");
@@ -123,7 +123,7 @@ class ReportTextRenderUtilTests {
                 .put(TraceFields.TOTAL_DOCUMENTS, Value.of(1)).put(TraceFields.DOCUMENTS, Value.EMPTY_ARRAY)
                 .put(TraceFields.RETRIEVAL_ERRORS, errors).build();
 
-        val text = ReportTextRenderUtil.textReport(report, false, MAPPER);
+        val text = ReportTextRenderUtil.textReport(report, false);
 
         assertThat(text).contains("Retrieval Errors:");
     }
@@ -133,8 +133,8 @@ class ReportTextRenderUtilTests {
     void whenPrettyPrint_thenJsonIsFormatted() {
         val value = ObjectValue.builder().put("key", Value.of("value")).build();
 
-        val pretty  = ReportTextRenderUtil.prettyPrintValue(value, true, MAPPER);
-        val compact = ReportTextRenderUtil.prettyPrintValue(value, false, MAPPER);
+        val pretty  = ReportTextRenderUtil.prettyPrintValue(value, true);
+        val compact = ReportTextRenderUtil.prettyPrintValue(value, false);
 
         assertThat(pretty).contains("\n");
         assertThat(compact).doesNotContain("\n");
@@ -147,7 +147,7 @@ class ReportTextRenderUtilTests {
                 .put(TraceFields.OBLIGATIONS, Value.EMPTY_ARRAY).put(TraceFields.ADVICE, Value.EMPTY_ARRAY)
                 .put(TraceFields.TOTAL_DOCUMENTS, Value.of(0)).put(TraceFields.DOCUMENTS, Value.EMPTY_ARRAY).build();
 
-        val text = ReportTextRenderUtil.textReport(report, false, MAPPER);
+        val text = ReportTextRenderUtil.textReport(report, false);
 
         assertThat(text).contains("No documents were evaluated.");
     }

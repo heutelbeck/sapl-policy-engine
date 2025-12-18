@@ -17,6 +17,8 @@
  */
 package io.sapl.compiler;
 
+import static io.sapl.compiler.StringsUtil.unquoteString;
+
 import io.sapl.api.model.*;
 import io.sapl.api.pdp.Decision;
 import io.sapl.api.pdp.internal.ConditionHit;
@@ -965,16 +967,6 @@ public class SaplCompiler {
         case EnvironmentIdContext ignored -> ReservedIdentifiers.ENVIRONMENT;
         default                           -> reservedId.getText().toLowerCase();
         };
-    }
-
-    private String unquoteString(String quoted) {
-        if (quoted == null || quoted.length() < 2) {
-            return quoted;
-        }
-        if ((quoted.startsWith("\"") && quoted.endsWith("\"")) || (quoted.startsWith("'") && quoted.endsWith("'"))) {
-            return quoted.substring(1, quoted.length() - 1);
-        }
-        return quoted;
     }
 
 }

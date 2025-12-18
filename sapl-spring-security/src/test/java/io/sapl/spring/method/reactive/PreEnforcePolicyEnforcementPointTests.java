@@ -17,13 +17,20 @@
  */
 package io.sapl.spring.method.reactive;
 
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.spy;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import io.sapl.api.model.NumberValue;
+import io.sapl.api.model.Value;
+import io.sapl.api.pdp.AuthorizationDecision;
+import io.sapl.api.pdp.Decision;
+import io.sapl.spring.constraints.ConstraintEnforcementService;
+import io.sapl.spring.constraints.api.*;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.reactivestreams.Subscription;
+import org.springframework.aop.framework.ReflectiveMethodInvocation;
+import org.springframework.security.access.AccessDeniedException;
+import reactor.core.publisher.Flux;
+import reactor.test.StepVerifier;
 
 import java.util.LinkedList;
 import java.util.List;
@@ -31,31 +38,8 @@ import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.UnaryOperator;
 
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.reactivestreams.Subscription;
-import org.springframework.aop.framework.ReflectiveMethodInvocation;
-import org.springframework.security.access.AccessDeniedException;
-
-import com.fasterxml.jackson.databind.ObjectMapper;
-
-import io.sapl.api.model.NumberValue;
-import io.sapl.api.model.TextValue;
-import io.sapl.api.model.Value;
-import io.sapl.api.pdp.AuthorizationDecision;
-import io.sapl.api.pdp.Decision;
-import io.sapl.spring.constraints.ConstraintEnforcementService;
-import io.sapl.spring.constraints.api.ConsumerConstraintHandlerProvider;
-import io.sapl.spring.constraints.api.ErrorHandlerProvider;
-import io.sapl.spring.constraints.api.ErrorMappingConstraintHandlerProvider;
-import io.sapl.spring.constraints.api.FilterPredicateConstraintHandlerProvider;
-import io.sapl.spring.constraints.api.MappingConstraintHandlerProvider;
-import io.sapl.spring.constraints.api.MethodInvocationConstraintHandlerProvider;
-import io.sapl.spring.constraints.api.RequestHandlerProvider;
-import io.sapl.spring.constraints.api.RunnableConstraintHandlerProvider;
-import io.sapl.spring.constraints.api.SubscriptionHandlerProvider;
-import reactor.core.publisher.Flux;
-import reactor.test.StepVerifier;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.*;
 
 class PreEnforcePolicyEnforcementPointTests {
 

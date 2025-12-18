@@ -26,8 +26,6 @@ import io.sapl.compiler.CompilationContext;
 import io.sapl.compiler.CompiledPolicy;
 import io.sapl.compiler.SaplCompiler;
 import io.sapl.compiler.SaplCompilerException;
-import io.sapl.parser.DefaultSAPLParser;
-import io.sapl.parser.SAPLParser;
 import io.sapl.pdp.CompiledPDPConfiguration;
 import io.sapl.pdp.CompiledPDPConfigurationSource;
 import io.sapl.prp.NaivePolicyRetrievalPoint;
@@ -51,8 +49,7 @@ import java.util.concurrent.atomic.AtomicReference;
  */
 public class PlaygroundConfigurationSource implements CompiledPDPConfigurationSource {
 
-    private static final String     PDP_ID = "playground";
-    private static final SAPLParser PARSER = new DefaultSAPLParser();
+    private static final String PDP_ID = "playground";
 
     private final FunctionBroker  functionBroker;
     private final AttributeBroker attributeBroker;

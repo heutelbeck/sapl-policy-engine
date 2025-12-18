@@ -43,6 +43,7 @@ public class ValidationStatusDisplay extends VerticalLayout {
     private static final String COLOR_GREEN  = "var(--lumo-success-color, green)";
     private static final String COLOR_RED    = "var(--lumo-error-color, red)";
     private static final String COLOR_ORANGE = "var(--lumo-warning-color, orange)";
+    public static final String  PADDING      = "padding";
 
     private final HorizontalLayout summaryRow;
     private final Icon             statusIcon;
@@ -68,7 +69,7 @@ public class ValidationStatusDisplay extends VerticalLayout {
         summaryRow.setPadding(false);
         summaryRow.setSpacing(true);
         summaryRow.setAlignItems(Alignment.CENTER);
-        summaryRow.getStyle().set("padding", "var(--lumo-space-xs) var(--lumo-space-s)").set("cursor", "pointer");
+        summaryRow.getStyle().set(PADDING, "var(--lumo-space-xs) var(--lumo-space-s)").set("cursor", "pointer");
 
         statusIcon = VaadinIcon.CHECK.create();
         statusIcon.setSize("16px");
@@ -86,7 +87,7 @@ public class ValidationStatusDisplay extends VerticalLayout {
         // Details panel (hidden by default)
         detailsPanel = new Div();
         detailsPanel.setWidthFull();
-        detailsPanel.getStyle().set("padding", "0 var(--lumo-space-s) var(--lumo-space-xs)")
+        detailsPanel.getStyle().set(PADDING, "0 var(--lumo-space-s) var(--lumo-space-xs)")
                 .set("border-top", "1px solid var(--lumo-contrast-10pct)").set("max-height", "150px")
                 .set("overflow-y", "auto");
         detailsPanel.setVisible(false);
@@ -191,7 +192,7 @@ public class ValidationStatusDisplay extends VerticalLayout {
 
         for (var issue : currentIssues) {
             var issueDiv = new Div();
-            issueDiv.getStyle().set("padding", "var(--lumo-space-xs) 0").set("border-bottom",
+            issueDiv.getStyle().set(PADDING, "var(--lumo-space-xs) 0").set("border-bottom",
                     "1px solid var(--lumo-contrast-5pct)");
 
             var icon = createIssueIcon(issue.getSeverity());

@@ -17,6 +17,8 @@
  */
 package io.sapl.test.junit;
 
+import static io.sapl.compiler.StringsUtil.unquoteString;
+
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -34,7 +36,6 @@ import io.sapl.test.grammar.antlr.SAPLTestParser.RequirementContext;
 import io.sapl.test.grammar.antlr.SAPLTestParser.SaplTestContext;
 import io.sapl.test.grammar.antlr.SAPLTestParser.ScenarioContext;
 import io.sapl.test.lang.SaplTestParser;
-import io.sapl.test.lang.SaplTestRunner;
 
 /**
  * JUnit 5 test adapter for executing SAPL test definitions.
@@ -114,13 +115,13 @@ public class JUnitTestAdapter {
     }
 
     private DynamicContainer buildRequirementContainer(RequirementContext requirement) {
-        var name      = SaplTestRunner.stripQuotes(requirement.name.getText());
+        var name      = unquoteString(requirement.name.getText());
         var scenarios = requirement.scenario().stream().map(this::buildScenarioTest);
         return DynamicContainer.dynamicContainer(name, scenarios);
     }
 
     private DynamicTest buildScenarioTest(ScenarioContext scenario) {
-        var name = SaplTestRunner.stripQuotes(scenario.name.getText());
+        var name = unquoteString(scenario.name.getText());
         // TODO: Actually execute the test via SaplTestRunner
         return DynamicTest.dynamicTest(name, () -> {
             // Hollow shell - just pass for now

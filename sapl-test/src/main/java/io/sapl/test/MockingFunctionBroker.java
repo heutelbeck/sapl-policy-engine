@@ -50,7 +50,7 @@ import java.util.function.Supplier;
  * Argument count must match exactly - a mock with 2 argument matchers will
  * never match an invocation with 1 or 3 arguments.
  */
-public class MockingFunctionBroker implements FunctionBroker {
+public final class MockingFunctionBroker implements FunctionBroker {
 
     private FunctionBroker                        delegate;
     private final Map<String, List<FunctionMock>> mocks = new HashMap<>();

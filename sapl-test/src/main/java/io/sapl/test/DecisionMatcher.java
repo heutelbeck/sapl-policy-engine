@@ -46,7 +46,7 @@ import java.util.function.Predicate;
  * specified values)</li>
  * </ul>
  */
-public class DecisionMatcher implements Predicate<AuthorizationDecision> {
+public final class DecisionMatcher implements Predicate<AuthorizationDecision> {
 
     private final Decision               expectedDecision;
     private final List<Value>            expectedObligations  = new ArrayList<>();

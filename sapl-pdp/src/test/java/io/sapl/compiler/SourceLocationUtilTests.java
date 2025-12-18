@@ -43,7 +43,7 @@ class SourceLocationUtilTests {
 
         assertThat(location).isNotNull();
         assertThat(location.line()).isEqualTo(1);
-        assertThat(location.start()).isEqualTo(0);
+        assertThat(location.start()).isZero();
         assertThat(location.documentSource()).isEqualTo(source);
     }
 

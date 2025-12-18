@@ -99,9 +99,10 @@ class QueryEnforceAuthorizationSubscriptionServiceTests {
                 final var service = new QueryEnforceAuthorizationSubscriptionService(beanFactoryMock,
                         securityExpressionService);
 
-                final var spelExpressionParserMock      = mockedConstructionSpelExpressionParser.constructed().get(0);
+                final var spelExpressionParserMock      = mockedConstructionSpelExpressionParser.constructed()
+                        .getFirst();
                 final var standardEvaluationContextMock = mockedConstructionStandardEvaluationContext.constructed()
-                        .get(0);
+                        .getFirst();
 
                 // WHEN
                 doNothing().when(standardEvaluationContextMock).registerFunction(anyString(), any(Method.class));
@@ -139,9 +140,10 @@ class QueryEnforceAuthorizationSubscriptionServiceTests {
                 final var service = new QueryEnforceAuthorizationSubscriptionService(beanFactoryMock,
                         securityExpressionService);
 
-                final var spelExpressionParserMock      = mockedConstructionSpelExpressionParser.constructed().get(0);
+                final var spelExpressionParserMock      = mockedConstructionSpelExpressionParser.constructed()
+                        .getFirst();
                 final var standardEvaluationContextMock = mockedConstructionStandardEvaluationContext.constructed()
-                        .get(0);
+                        .getFirst();
 
                 // WHEN
                 when(spelExpressionParserMock.parseExpression(anyString())).thenReturn(expressionMock);
@@ -184,9 +186,10 @@ class QueryEnforceAuthorizationSubscriptionServiceTests {
                 final var service = new QueryEnforceAuthorizationSubscriptionService(beanFactoryMock,
                         securityExpressionService);
 
-                final var spelExpressionParserMock      = mockedConstructionSpelExpressionParser.constructed().get(0);
+                final var spelExpressionParserMock      = mockedConstructionSpelExpressionParser.constructed()
+                        .getFirst();
                 final var standardEvaluationContextMock = mockedConstructionStandardEvaluationContext.constructed()
-                        .get(0);
+                        .getFirst();
 
                 // WHEN
                 doNothing().when(standardEvaluationContextMock).registerFunction(anyString(), any(Method.class));
@@ -225,9 +228,10 @@ class QueryEnforceAuthorizationSubscriptionServiceTests {
                 final var service = new QueryEnforceAuthorizationSubscriptionService(beanFactoryMock,
                         securityExpressionService);
 
-                final var spelExpressionParserMock      = mockedConstructionSpelExpressionParser.constructed().get(0);
+                final var spelExpressionParserMock      = mockedConstructionSpelExpressionParser.constructed()
+                        .getFirst();
                 final var standardEvaluationContextMock = mockedConstructionStandardEvaluationContext.constructed()
-                        .get(0);
+                        .getFirst();
 
                 // WHEN
                 doNothing().when(standardEvaluationContextMock).registerFunction(anyString(), any(Method.class));
@@ -262,9 +266,10 @@ class QueryEnforceAuthorizationSubscriptionServiceTests {
                 final var service = new QueryEnforceAuthorizationSubscriptionService(beanFactoryMock,
                         securityExpressionService);
 
-                final var spelExpressionParserMock      = mockedConstructionSpelExpressionParser.constructed().get(0);
+                final var spelExpressionParserMock      = mockedConstructionSpelExpressionParser.constructed()
+                        .getFirst();
                 final var standardEvaluationContextMock = mockedConstructionStandardEvaluationContext.constructed()
-                        .get(0);
+                        .getFirst();
 
                 // WHEN
                 doNothing().when(standardEvaluationContextMock).registerFunction(anyString(), any(Method.class));

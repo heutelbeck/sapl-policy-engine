@@ -46,6 +46,15 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class LspWebSocketEndpoint extends TextWebSocketHandler {
 
+    // ==================== LSP Protocol Constants ====================
+    private static final String LSP_CONTENT_LENGTH_HEADER = "content-length:";
+    private static final String LSP_HEADER_SEPARATOR      = "\r\n\r\n";
+    private static final String LSP_LINE_SEPARATOR        = "\r\n";
+
+    // ==================== Session Attribute Keys ====================
+    private static final String SESSION_KEY_CLIENT_TO_SERVER = "clientToServer";
+    private static final String SESSION_KEY_SERVER_INPUT     = "serverInput";
+
     private final ExecutorService executor = Executors.newCachedThreadPool();
 
     @Override
@@ -58,8 +67,8 @@ public class LspWebSocketEndpoint extends TextWebSocketHandler {
         var serverToClient = new WebSocketOutputStream(session);
 
         // Store streams in session for cleanup
-        session.getAttributes().put("clientToServer", clientToServer);
-        session.getAttributes().put("serverInput", serverInput);
+        session.getAttributes().put(SESSION_KEY_CLIENT_TO_SERVER, clientToServer);
+        session.getAttributes().put(SESSION_KEY_SERVER_INPUT, serverInput);
 
         // Create and start LSP server in background
         executor.submit(() -> startLspServer(session, serverInput, serverToClient));
@@ -67,7 +76,7 @@ public class LspWebSocketEndpoint extends TextWebSocketHandler {
 
     @Override
     protected void handleTextMessage(WebSocketSession session, @NonNull TextMessage message) throws Exception {
-        var clientToServer = (PipedOutputStream) session.getAttributes().get("clientToServer");
+        var clientToServer = (PipedOutputStream) session.getAttributes().get(SESSION_KEY_CLIENT_TO_SERVER);
         if (clientToServer == null) {
             log.warn("No LSP connection for session {}", session.getId());
             return;
@@ -91,7 +100,7 @@ public class LspWebSocketEndpoint extends TextWebSocketHandler {
 
         // Close pipes to shut down LSP server
         try {
-            var clientToServer = (PipedOutputStream) session.getAttributes().get("clientToServer");
+            var clientToServer = (PipedOutputStream) session.getAttributes().get(SESSION_KEY_CLIENT_TO_SERVER);
             if (clientToServer != null) {
                 clientToServer.close();
             }
@@ -100,7 +109,7 @@ public class LspWebSocketEndpoint extends TextWebSocketHandler {
         }
 
         try {
-            var serverInput = (PipedInputStream) session.getAttributes().get("serverInput");
+            var serverInput = (PipedInputStream) session.getAttributes().get(SESSION_KEY_SERVER_INPUT);
             if (serverInput != null) {
                 serverInput.close();
             }
@@ -143,7 +152,7 @@ public class LspWebSocketEndpoint extends TextWebSocketHandler {
 
     private byte[] formatLspMessage(String jsonContent) {
         var contentBytes = jsonContent.getBytes(StandardCharsets.UTF_8);
-        var header       = "Content-Length: " + contentBytes.length + "\r\n\r\n";
+        var header       = "Content-Length: " + contentBytes.length + LSP_HEADER_SEPARATOR;
         var headerBytes  = header.getBytes(StandardCharsets.UTF_8);
 
         var result = new byte[headerBytes.length + contentBytes.length];
@@ -160,7 +169,7 @@ public class LspWebSocketEndpoint extends TextWebSocketHandler {
      */
     private static class WebSocketOutputStream extends OutputStream {
 
-        private static final byte[] HEADER_SEPARATOR = "\r\n\r\n".getBytes(StandardCharsets.UTF_8);
+        private static final byte[] HEADER_SEPARATOR = LSP_HEADER_SEPARATOR.getBytes(StandardCharsets.UTF_8);
         private static final int    SEPARATOR_LENGTH = 4;
 
         private final WebSocketSession              session;
@@ -257,11 +266,11 @@ public class LspWebSocketEndpoint extends TextWebSocketHandler {
         }
 
         private static int parseContentLength(String header) {
-            for (var line : header.split("\r\n")) {
+            for (var line : header.split(LSP_LINE_SEPARATOR)) {
                 var trimmed = line.trim();
-                if (trimmed.toLowerCase().startsWith("content-length:")) {
+                if (trimmed.toLowerCase().startsWith(LSP_CONTENT_LENGTH_HEADER)) {
                     try {
-                        return Integer.parseInt(trimmed.substring(15).trim());
+                        return Integer.parseInt(trimmed.substring(LSP_CONTENT_LENGTH_HEADER.length()).trim());
                     } catch (NumberFormatException e) {
                         return -1;
                     }

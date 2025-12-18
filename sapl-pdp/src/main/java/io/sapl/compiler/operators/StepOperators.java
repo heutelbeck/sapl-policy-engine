@@ -45,7 +45,6 @@ public class StepOperators {
     private static final String RUNTIME_ERROR_MAX_RECURSION_DEPTH_INDEX     = "Maximum nesting depth exceeded during recursive index step.";
     private static final String RUNTIME_ERROR_MAX_RECURSION_DEPTH_KEY       = "Maximum nesting depth exceeded during recursive key step.";
     private static final String RUNTIME_ERROR_MAX_RECURSION_DEPTH_WILDCARD  = "Maximum nesting depth exceeded during recursive wildcard step.";
-    private static final String RUNTIME_ERROR_SLICING_REQUIRES_ARRAY        = "Cannot slice a non-array value. Expected an Array but got %s.";
     private static final String RUNTIME_ERROR_SLICING_STEP_ZERO             = "Step must not be zero.";
     private static final String RUNTIME_ERROR_WILDCARD_TYPE_MISMATCH        = "Wildcard steps '.*' can only be applied to arrays or objects but got %s.";
 

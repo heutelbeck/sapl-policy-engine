@@ -17,6 +17,8 @@
  */
 package io.sapl.lsp.sapl.completion;
 
+import static io.sapl.compiler.StringsUtil.unquoteString;
+
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -259,7 +261,7 @@ public class ExpressionSchemaResolver {
         } else if (head instanceof EscapedKeyDotStepContext escapedKeyStep) {
             // Navigate into property with escaped key: subject.'property name'
             var escapedText  = escapedKeyStep.escapedKeyStep().STRING().getText();
-            var propertyName = unquote(escapedText);
+            var propertyName = unquoteString(escapedText);
             newSchemas = navigateToProperty(baseSchemas, propertyName);
         } else if (head instanceof BracketStepContext) {
             // Navigate into array items: subject[0] or subject[]
@@ -319,17 +321,6 @@ public class ExpressionSchemaResolver {
             return items;
         }
         return null;
-    }
-
-    private String unquote(String quoted) {
-        if (quoted == null || quoted.length() < 2) {
-            return quoted;
-        }
-        // Remove surrounding quotes (single or double)
-        if ((quoted.startsWith("\"") && quoted.endsWith("\"")) || (quoted.startsWith("'") && quoted.endsWith("'"))) {
-            return quoted.substring(1, quoted.length() - 1);
-        }
-        return quoted;
     }
 
     private <T> List<T> tail(List<T> list) {

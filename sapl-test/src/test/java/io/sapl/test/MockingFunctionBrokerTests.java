@@ -432,7 +432,7 @@ class MockingFunctionBrokerTests {
 
     @Test
     void whenMatchersHaveCorrectSpecificity() {
-        assertThat(any().specificity()).isEqualTo(0);
+        assertThat(any().specificity()).isZero();
         assertThat(eq(Value.of("x")).specificity()).isEqualTo(2);
         assertThat(matching(v -> true).specificity()).isEqualTo(1);
         assertThat(anyText().specificity()).isEqualTo(1);

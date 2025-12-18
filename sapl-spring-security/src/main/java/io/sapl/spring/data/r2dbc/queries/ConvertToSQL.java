@@ -67,7 +67,7 @@ public class ConvertToSQL {
             return "";
         }
 
-        final var stringBuilder = new StringBuilder(conditions.get(0).getCondition());
+        final var stringBuilder = new StringBuilder(conditions.getFirst().getCondition());
 
         for (int i = 1; i < conditions.size(); i++) {
             stringBuilder.append(' ').append(conditions.get(i).getPropositionalConnectives()).append(' ')

@@ -100,7 +100,7 @@ public class QueryCreation {
             queryPartsEdited.add(editedPart);
         }
 
-        final var basicQuery = new BasicQuery(queryPartsEdited.get(0), queryPartsEdited.get(1));
+        final var basicQuery = new BasicQuery(queryPartsEdited.getFirst(), queryPartsEdited.get(1));
 
         if (queryPartsEdited.size() == 3) {
             basicQuery.setSortObject(Document.parse(queryPartsEdited.get(2)));

@@ -17,6 +17,8 @@
  */
 package io.sapl.parser;
 
+import static io.sapl.compiler.StringsUtil.unquoteString;
+
 import io.sapl.grammar.antlr.SAPLLexer;
 import io.sapl.grammar.antlr.SAPLParser.PolicyOnlyElementContext;
 import io.sapl.grammar.antlr.SAPLParser.PolicySetElementContext;
@@ -131,16 +133,6 @@ public class DefaultSAPLParser implements SAPLParser {
             unquoteString(ps.policySet().saplName.getText());
         case null, default                                                   -> null;
         };
-    }
-
-    private String unquoteString(String quoted) {
-        if (quoted == null || quoted.length() < 2) {
-            return quoted;
-        }
-        if ((quoted.startsWith("\"") && quoted.endsWith("\"")) || (quoted.startsWith("'") && quoted.endsWith("'"))) {
-            return quoted.substring(1, quoted.length() - 1);
-        }
-        return quoted;
     }
 
     private String buildErrorMessage(List<String> syntaxErrors, List<ValidationError> validationErrors) {

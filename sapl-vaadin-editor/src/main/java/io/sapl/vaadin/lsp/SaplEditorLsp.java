@@ -17,10 +17,6 @@
  */
 package io.sapl.vaadin.lsp;
 
-import java.io.Serial;
-import java.util.ArrayList;
-import java.util.List;
-
 import com.vaadin.flow.component.ClientCallable;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.HasSize;
@@ -29,20 +25,19 @@ import com.vaadin.flow.component.dependency.JsModule;
 import com.vaadin.flow.component.dependency.NpmPackage;
 import com.vaadin.flow.dom.Element;
 import com.vaadin.flow.dom.ElementConstants;
-
 import elemental.json.Json;
 import elemental.json.JsonArray;
 import elemental.json.JsonObject;
 import io.sapl.api.SaplVersion;
 import io.sapl.api.coverage.LineCoverageStatus;
 import io.sapl.api.coverage.PolicyCoverageData;
-import io.sapl.vaadin.DocumentChangedEvent;
-import io.sapl.vaadin.DocumentChangedListener;
-import io.sapl.vaadin.Issue;
-import io.sapl.vaadin.ValidationFinishedEvent;
-import io.sapl.vaadin.ValidationFinishedListener;
+import io.sapl.vaadin.*;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
+
+import java.io.Serial;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * SAPL editor using CodeMirror 6 with Language Server Protocol (LSP)
@@ -67,7 +62,6 @@ public class SaplEditorLsp extends Component implements HasSize {
     @Serial
     private static final long serialVersionUID = SaplVersion.VERSION_UID;
 
-    private static final String PROP_DOCUMENT             = "document";
     private static final String PROP_LANGUAGE             = "language";
     private static final String PROP_WS_URL               = "wsUrl";
     private static final String PROP_IS_DARK_THEME        = "isDarkTheme";

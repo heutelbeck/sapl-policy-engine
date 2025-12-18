@@ -133,11 +133,7 @@ public class CoverageExtractor {
             } else if (!coverage.wasTargetEvaluated()) {
                 // Set was evaluated but no inner policy matched
                 val decision = getTextValue(docObj, TraceFields.DECISION);
-                if (decision != null && !"NOT_APPLICABLE".equals(decision)) {
-                    coverage.recordTargetHit(true);
-                } else {
-                    coverage.recordTargetHit(false);
-                }
+                coverage.recordTargetHit(decision != null && !"NOT_APPLICABLE".equals(decision));
             }
         }
 
@@ -259,11 +255,11 @@ public class CoverageExtractor {
     public static boolean hasCoverageData(Value tracedPdpDecision) {
         val documents = TracedPdpDecision.getDocuments(tracedPdpDecision);
         for (val document : documents) {
-            if (document instanceof ObjectValue docObj) {
-                if (docObj.containsKey(TraceFields.CONDITIONS) || docObj.containsKey(TraceFields.TARGET_RESULT)) {
-                    return true;
-                }
+            if (document instanceof ObjectValue docObj
+                    && (docObj.containsKey(TraceFields.CONDITIONS) || docObj.containsKey(TraceFields.TARGET_RESULT))) {
+                return true;
             }
+
         }
         return false;
     }

@@ -43,10 +43,9 @@ public class ComparisonOperators {
     private static final String COMPILE_ERROR_REGEX_MUST_BE_STRING = "Compilation failed. Regular expressions must be strings, but got: %s.";
 
     // Runtime errors (used in Error.at() calls)
-    private static final String RUNTIME_ERROR_IN_OPERATOR_TYPE_MISMATCH   = "'in' operator supports value lookup in arrays or objects, as well as substring matching with two strings. But I got: %s in %s.";
-    private static final String RUNTIME_ERROR_REGEX_INVALID               = "Invalid regular expression: %s - %s.";
-    private static final String RUNTIME_ERROR_REGEX_MUST_BE_STRING        = "Regular expressions must be strings, but got: %s.";
-    private static final String RUNTIME_ERROR_REGEX_TARGET_MUST_BE_STRING = "Regular expressions can only be matched against strings, but got: %s.";
+    private static final String RUNTIME_ERROR_IN_OPERATOR_TYPE_MISMATCH = "'in' operator supports value lookup in arrays or objects, as well as substring matching with two strings. But I got: %s in %s.";
+    private static final String RUNTIME_ERROR_REGEX_INVALID             = "Invalid regular expression: %s - %s.";
+    private static final String RUNTIME_ERROR_REGEX_MUST_BE_STRING      = "Regular expressions must be strings, but got: %s.";
 
     /**
      * Tests two values for equality using Value.equals() semantics.
@@ -160,7 +159,7 @@ public class ComparisonOperators {
         }
         if (!(input instanceof TextValue inputText)) {
             // Non-text input simply doesn't match - return false instead of error
-            return BooleanValue.FALSE.withMetadata(metadata);
+            return Value.FALSE.withMetadata(metadata);
         }
         if (!(regex instanceof TextValue regexText)) {
             return Error.at(astNode, metadata, RUNTIME_ERROR_REGEX_MUST_BE_STRING, regex);
@@ -200,7 +199,7 @@ public class ComparisonOperators {
                 }
                 if (!(input instanceof TextValue inputText)) {
                     // Non-text input simply doesn't match - return false instead of error
-                    return BooleanValue.FALSE.withMetadata(metadata);
+                    return Value.FALSE.withMetadata(metadata);
                 }
                 return new BooleanValue(pattern.test(inputText.value()), metadata);
             };

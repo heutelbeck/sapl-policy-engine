@@ -34,7 +34,7 @@ import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.times;
@@ -136,7 +136,7 @@ class QueryCreationTests {
                 Person.class);
 
         // THEN
-        assertEquals(expected, actual);
+        assertThat(actual).isEqualTo(expected);
 
         querySelectionUtilsMock.verify(() -> QuerySelectionUtils.createSelectionPartForAnnotation(anyString(),
                 any(ArrayNode.class), any(ArrayNode.class), anyString(), eq(Person.class)), times(1));
@@ -156,7 +156,7 @@ class QueryCreationTests {
                 Person.class);
 
         // THEN
-        assertEquals(expected, actual);
+        assertThat(actual).isEqualTo(expected);
 
         querySelectionUtilsMock.verify(() -> QuerySelectionUtils.createSelectionPartForAnnotation(anyString(),
                 any(ArrayNode.class), any(ArrayNode.class), anyString(), eq(Person.class)), times(1));
@@ -176,7 +176,7 @@ class QueryCreationTests {
                 Person.class);
 
         // THEN
-        assertEquals(expected, actual);
+        assertThat(actual).isEqualTo(expected);
 
         querySelectionUtilsMock.verify(() -> QuerySelectionUtils.createSelectionPartForAnnotation(anyString(),
                 any(ArrayNode.class), any(ArrayNode.class), anyString(), eq(Person.class)), times(1));
@@ -196,7 +196,7 @@ class QueryCreationTests {
                 Person.class);
 
         // THEN
-        assertEquals(expected, actual);
+        assertThat(actual).isEqualTo(expected);
 
         querySelectionUtilsMock.verify(() -> QuerySelectionUtils.createSelectionPartForAnnotation(anyString(),
                 any(ArrayNode.class), any(ArrayNode.class), anyString(), eq(Person.class)), times(1));
@@ -219,7 +219,7 @@ class QueryCreationTests {
         final var actual = QueryCreation.createBaselineQuery(methodInvocationMock);
 
         // THEN
-        assertEquals(baseQuery + sortingPart, actual);
+        assertThat(actual).isEqualTo(baseQuery + sortingPart);
 
         queryAnnotationParameterResolverMock.verify(() -> QueryAnnotationParameterResolver
                 .resolveForRelationalDatabase(any(Method.class), any(Object[].class)), times(1));
@@ -243,7 +243,7 @@ class QueryCreationTests {
                 baseQuery);
 
         // THEN
-        assertEquals(expected, actual);
+        assertThat(actual).isEqualTo(expected);
 
         querySelectionUtilsMock.verify(() -> QuerySelectionUtils
                 .createSelectionPartForMethodNameQuery(any(ArrayNode.class), any(ArrayNode.class), eq(Person.class)),
@@ -266,7 +266,7 @@ class QueryCreationTests {
                 baseQuery);
 
         // THEN
-        assertEquals(expected, actual);
+        assertThat(actual).isEqualTo(expected);
 
         querySelectionUtilsMock.verify(() -> QuerySelectionUtils
                 .createSelectionPartForMethodNameQuery(any(ArrayNode.class), any(ArrayNode.class), eq(Person.class)),
@@ -289,7 +289,7 @@ class QueryCreationTests {
                 baseQuery);
 
         // THEN
-        assertEquals(expected, actual);
+        assertThat(actual).isEqualTo(expected);
 
         querySelectionUtilsMock.verify(() -> QuerySelectionUtils
                 .createSelectionPartForMethodNameQuery(any(ArrayNode.class), any(ArrayNode.class), eq(Person.class)),
@@ -312,7 +312,7 @@ class QueryCreationTests {
                 baseQuery);
 
         // THEN
-        assertEquals(expected, actual);
+        assertThat(actual).isEqualTo(expected);
 
         querySelectionUtilsMock.verify(() -> QuerySelectionUtils
                 .createSelectionPartForMethodNameQuery(any(ArrayNode.class), any(ArrayNode.class), eq(Person.class)),

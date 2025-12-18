@@ -39,7 +39,7 @@ import lombok.Getter;
  * Represents a parsed SAPL document with its AST and any parse errors.
  */
 @Getter
-public class SAPLParsedDocument implements ParsedDocument {
+public final class SAPLParsedDocument implements ParsedDocument {
 
     private final String                uri;
     private final String                content;
@@ -88,15 +88,6 @@ public class SAPLParsedDocument implements ParsedDocument {
 
     @Override
     public ParseTree getParseTree() {
-        return saplParseTree;
-    }
-
-    /**
-     * Gets the SAPL-specific parse tree.
-     *
-     * @return the SAPL parse tree
-     */
-    public SaplContext getSaplParseTree() {
         return saplParseTree;
     }
 

@@ -17,6 +17,7 @@
  */
 package io.sapl.test.lang;
 
+import static io.sapl.compiler.StringsUtil.unquoteString;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -40,10 +41,9 @@ class SaplTestParserTests {
 
         assertThat(result).isNotNull();
         assertThat(result.requirement()).hasSize(1);
-        assertThat(SaplTestRunner.stripQuotes(result.requirement().getFirst().name.getText()))
-                .isEqualTo("basic access control");
+        assertThat(unquoteString(result.requirement().getFirst().name.getText())).isEqualTo("basic access control");
         assertThat(result.requirement().getFirst().scenario()).hasSize(1);
-        assertThat(SaplTestRunner.stripQuotes(result.requirement().getFirst().scenario().getFirst().name.getText()))
+        assertThat(unquoteString(result.requirement().getFirst().scenario().getFirst().name.getText()))
                 .isEqualTo("permit admin access");
     }
 

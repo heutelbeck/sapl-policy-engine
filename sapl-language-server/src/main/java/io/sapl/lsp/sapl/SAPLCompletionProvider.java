@@ -148,10 +148,9 @@ public class SAPLCompletionProvider {
 
         case FUNCTION_CALL -> addFunctionCompletions(items, config);
 
-        case UNKNOWN -> {
+        case UNKNOWN ->
             // Fallback - provide expression completions only (safe default)
             addExpressionCompletions(items, document, position, config);
-        }
         }
 
         // Filter items by prefix for expression contexts only (not structural)
@@ -253,10 +252,7 @@ public class SAPLCompletionProvider {
             if (label != null && label.toLowerCase().startsWith(lowerPrefix)) {
                 return true;
             }
-            if (text != null && text.toLowerCase().startsWith(lowerPrefix)) {
-                return true;
-            }
-            return false;
+            return text != null && text.toLowerCase().startsWith(lowerPrefix);
         }).toList();
     }
 
@@ -419,9 +415,7 @@ public class SAPLCompletionProvider {
         // Typing after a dot following ) or > (e.g., `time.now().ye`)
         if (previousToken != null && previousToken.getType() == SAPLLexer.DOT && twoTokensBack != null) {
             var twoBackType = twoTokensBack.getType();
-            if (twoBackType == SAPLLexer.RPAREN || twoBackType == SAPLLexer.GT) {
-                return true;
-            }
+            return twoBackType == SAPLLexer.RPAREN || twoBackType == SAPLLexer.GT;
         }
 
         return false;
@@ -458,12 +452,8 @@ public class SAPLCompletionProvider {
         }
 
         // Typing after dot in import path (e.g., `import time.no`)
-        if (previousToken != null && previousToken.getType() == SAPLLexer.DOT
-                && hasImportTokenInHistory(tokens, position)) {
-            return true;
-        }
-
-        return false;
+        return previousToken != null && previousToken.getType() == SAPLLexer.DOT
+                && hasImportTokenInHistory(tokens, position);
     }
 
     /**
@@ -534,7 +524,8 @@ public class SAPLCompletionProvider {
             }
         }
 
-        // If no child matched but we're a rule context, check if position is within our
+        // If no child matched, but we're a rule context, check if position is within
+        // our
         // bounds
         if (deepestMatch == null && tree instanceof ParserRuleContext ruleContext) {
             var start = ruleContext.getStart();
@@ -556,10 +547,7 @@ public class SAPLCompletionProvider {
         if (line == start.getLine() && column < start.getCharPositionInLine()) {
             return false;
         }
-        if (line == stop.getLine() && column > stop.getCharPositionInLine() + stop.getText().length()) {
-            return false;
-        }
-        return true;
+        return line != stop.getLine() || column <= stop.getCharPositionInLine() + stop.getText().length();
     }
 
     /**
@@ -607,53 +595,56 @@ public class SAPLCompletionProvider {
             }
 
             // Function call context
-            if (current instanceof BasicFunctionContext) {
+            switch (current) {
+            case BasicFunctionContext basicFunctionContext -> {
                 return CompletionContext.FUNCTION_CALL;
             }
 
             // Inside any expression - only expression completions
-            if (current instanceof ExpressionContext) {
+            case ExpressionContext expressionContext -> {
                 return CompletionContext.EXPRESSION;
             }
 
             // Inside value definition (var x = ...) - expression context for the value
-            if (current instanceof ValueDefinitionContext) {
+            case ValueDefinitionContext valueDefinitionContext -> {
                 return CompletionContext.EXPRESSION;
             }
 
             // Inside a statement in policy body
-            if (current instanceof StatementContext) {
+            case StatementContext statementContext -> {
                 return CompletionContext.EXPRESSION;
             }
 
             // Policy body context - check if at start or after statement
-            if (current instanceof PolicyBodyContext) {
+            case PolicyBodyContext policyBodyContext -> {
                 return CompletionContext.POLICY_BODY_AFTER_STATEMENT;
             }
 
             // Policy context - determine where in the policy
-            if (current instanceof PolicyContext policyContext) {
+            case PolicyContext policyContext -> {
                 return analyzePolicyContext(policyContext, line, column);
             }
 
             // Policy set context
-            if (current instanceof PolicySetContext policySetContext) {
+            case PolicySetContext policySetContext -> {
                 return analyzePolicySetContext(policySetContext, line, column);
             }
 
             // Combining algorithm context
-            if (current instanceof CombiningAlgorithmContext) {
+            case CombiningAlgorithmContext combiningAlgorithmContext -> {
                 return CompletionContext.COMBINING_ALGORITHM;
             }
 
             // Import statement
-            if (current instanceof ImportStatementContext) {
+            case ImportStatementContext importStatementContext -> {
                 return CompletionContext.IMPORT_PATH;
             }
 
             // Top-level document
-            if (current instanceof SaplContext) {
+            case SaplContext saplContext -> {
                 return CompletionContext.AFTER_IMPORTS;
+            }
+            default                      -> { /* NO-OP */ }
             }
 
             current = current.getParent();
@@ -669,11 +660,11 @@ public class SAPLCompletionProvider {
         // Check if we're in the body
         if (policy.policyBody() != null) {
             var body = policy.policyBody();
-            if (body.getStart() != null && body.getStop() != null) {
-                if (isPositionWithinTokenRange(line, column, body.getStart(), body.getStop())) {
-                    return CompletionContext.POLICY_BODY_AFTER_STATEMENT;
-                }
+            if (body.getStart() != null && body.getStop() != null
+                    && isPositionWithinTokenRange(line, column, body.getStart(), body.getStop())) {
+                return CompletionContext.POLICY_BODY_AFTER_STATEMENT;
             }
+
         }
 
         // Check if after entitlement
@@ -775,11 +766,10 @@ public class SAPLCompletionProvider {
             return new Range(position, position);
         }
 
-        var line   = lines[position.getLine()];
-        var column = Math.min(position.getCharacter(), line.length());
+        var line = lines[position.getLine()];
 
         // Scan backwards to find the start of the identifier (including dots)
-        var start = column;
+        var start = Math.min(position.getCharacter(), line.length());
         while (start > 0) {
             var ch = line.charAt(start - 1);
             if (Character.isLetterOrDigit(ch) || ch == '_' || ch == '.') {

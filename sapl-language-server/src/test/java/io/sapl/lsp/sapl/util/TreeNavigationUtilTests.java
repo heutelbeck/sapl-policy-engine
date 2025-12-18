@@ -209,15 +209,6 @@ class TreeNavigationUtilTests {
     }
 
     @Test
-    void whenGoToFirstParent_fromSaplContext_thenReturnsSaplContext() {
-        var sapl = parse(SIMPLE_POLICY);
-
-        var result = TreeNavigationUtil.goToFirstParent(sapl, SaplContext.class);
-
-        assertThat(result).isSameAs(sapl);
-    }
-
-    @Test
     void whenGoToFirstParent_fromPolicy_thenFindsPolicyContext() {
         var sapl   = parse(SIMPLE_POLICY);
         var policy = getPolicy(sapl);

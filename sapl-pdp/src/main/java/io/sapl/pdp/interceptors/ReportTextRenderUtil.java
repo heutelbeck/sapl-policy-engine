@@ -17,17 +17,7 @@
  */
 package io.sapl.pdp.interceptors;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-
-import io.sapl.api.model.ArrayValue;
-import io.sapl.api.model.BooleanValue;
-import io.sapl.api.model.ErrorValue;
-import io.sapl.api.model.NullValue;
-import io.sapl.api.model.NumberValue;
-import io.sapl.api.model.ObjectValue;
-import io.sapl.api.model.TextValue;
-import io.sapl.api.model.UndefinedValue;
-import io.sapl.api.model.Value;
+import io.sapl.api.model.*;
 import io.sapl.api.pdp.internal.TraceFields;
 import lombok.experimental.UtilityClass;
 import lombok.val;
@@ -51,16 +41,13 @@ public class ReportTextRenderUtil {
      * the report ObjectValue from ReportBuilderUtil
      * @param prettyPrint
      * whether to pretty-print JSON values
-     * @param mapper
-     * the ObjectMapper for JSON formatting
-     *
      * @return the formatted text report
      */
-    public static String textReport(ObjectValue report, boolean prettyPrint, ObjectMapper mapper) {
+    public static String textReport(ObjectValue report, boolean prettyPrint) {
         val text = new StringBuilder("--- The PDP made a decision ---\n");
 
-        appendSubscription(text, report, prettyPrint, mapper);
-        appendDecision(text, report, prettyPrint, mapper);
+        appendSubscription(text, report, prettyPrint);
+        appendDecision(text, report, prettyPrint);
         appendTimestamp(text, report);
         appendAlgorithm(text, report);
         appendDocumentCounts(text, report);
@@ -71,17 +58,15 @@ public class ReportTextRenderUtil {
         return text.toString();
     }
 
-    private static void appendSubscription(StringBuilder text, ObjectValue report, boolean prettyPrint,
-            ObjectMapper mapper) {
+    private static void appendSubscription(StringBuilder text, ObjectValue report, boolean prettyPrint) {
         val subscription = report.get(TraceFields.SUBSCRIPTION);
         if (subscription != null) {
             text.append("Subscription: ").append(prettyPrint ? '\n' : "")
-                    .append(prettyPrintValue(subscription, prettyPrint, mapper)).append('\n');
+                    .append(prettyPrintValue(subscription, prettyPrint)).append('\n');
         }
     }
 
-    private static void appendDecision(StringBuilder text, ObjectValue report, boolean prettyPrint,
-            ObjectMapper mapper) {
+    private static void appendDecision(StringBuilder text, ObjectValue report, boolean prettyPrint) {
         val decision    = report.get(TraceFields.DECISION);
         val obligations = report.get(TraceFields.OBLIGATIONS);
         val advice      = report.get(TraceFields.ADVICE);
@@ -91,15 +76,15 @@ public class ReportTextRenderUtil {
 
         if (obligations instanceof ArrayValue arr && !arr.isEmpty()) {
             text.append("Obligations : ").append(prettyPrint ? '\n' : "")
-                    .append(prettyPrintValue(obligations, prettyPrint, mapper)).append('\n');
+                    .append(prettyPrintValue(obligations, prettyPrint)).append('\n');
         }
         if (advice instanceof ArrayValue arr && !arr.isEmpty()) {
-            text.append("Advice      : ").append(prettyPrint ? '\n' : "")
-                    .append(prettyPrintValue(advice, prettyPrint, mapper)).append('\n');
+            text.append("Advice      : ").append(prettyPrint ? '\n' : "").append(prettyPrintValue(advice, prettyPrint))
+                    .append('\n');
         }
         if (resource != null && !(resource instanceof io.sapl.api.model.UndefinedValue)) {
             text.append("Resource    : ").append(prettyPrint ? '\n' : "")
-                    .append(prettyPrintValue(resource, prettyPrint, mapper)).append('\n');
+                    .append(prettyPrintValue(resource, prettyPrint)).append('\n');
         }
     }
 
@@ -238,16 +223,13 @@ public class ReportTextRenderUtil {
      * the Value to format
      * @param prettyPrint
      * whether to apply pretty formatting with indentation
-     * @param mapper
-     * unused, kept for API compatibility
-     *
      * @return the formatted string representation
      */
-    public static String prettyPrintValue(Value value, boolean prettyPrint, ObjectMapper mapper) {
-        return prettyPrint ? formatValue(value, 0) : formatValueCompact(value);
+    public static String prettyPrintValue(Value value, boolean prettyPrint) {
+        return formatValue(value, 0, prettyPrint);
     }
 
-    private static String formatValue(Value value, int indent) {
+    private static String formatValue(Value value, int indent, boolean prettyPrint) {
         if (value == null) {
             return "null";
         }
@@ -258,24 +240,8 @@ public class ReportTextRenderUtil {
         case TextValue t      -> quoteString(t.value());
         case UndefinedValue u -> "undefined";
         case ErrorValue e     -> "error: " + e.message();
-        case ArrayValue a     -> formatArray(a, indent);
-        case ObjectValue o    -> formatObject(o, indent);
-        };
-    }
-
-    private static String formatValueCompact(Value value) {
-        if (value == null) {
-            return "null";
-        }
-        return switch (value) {
-        case NullValue n      -> "null";
-        case BooleanValue b   -> String.valueOf(b.value());
-        case NumberValue n    -> n.value().toPlainString();
-        case TextValue t      -> quoteString(t.value());
-        case UndefinedValue u -> "undefined";
-        case ErrorValue e     -> "error: " + e.message();
-        case ArrayValue a     -> formatArrayCompact(a);
-        case ObjectValue o    -> formatObjectCompact(o);
+        case ArrayValue a     -> formatArray(a, indent, prettyPrint);
+        case ObjectValue o    -> formatObject(o, indent, prettyPrint);
         };
     }
 
@@ -284,12 +250,22 @@ public class ReportTextRenderUtil {
                 .replace("\t", "\\t") + "\"";
     }
 
-    private static String formatArray(ArrayValue array, int indent) {
+    private static String formatArray(ArrayValue array, int indent, boolean prettyPrint) {
         if (array.isEmpty()) {
             return "[]";
         }
-        if (isSimpleArray(array)) {
-            return formatArrayCompact(array);
+        if (!prettyPrint || isSimpleArray(array)) {
+            var result = new StringBuilder("[");
+            var first  = true;
+            for (var item : array) {
+                if (!first) {
+                    result.append(", ");
+                }
+                result.append(formatValue(item, 0, false));
+                first = false;
+            }
+            result.append(']');
+            return result.toString();
         }
         var result      = new StringBuilder("[\n");
         var childIndent = indent + 1;
@@ -299,36 +275,32 @@ public class ReportTextRenderUtil {
             if (!first) {
                 result.append(",\n");
             }
-            result.append(padding).append(formatValue(item, childIndent));
+            result.append(padding).append(formatValue(item, childIndent, true));
             first = false;
         }
         result.append('\n').append("  ".repeat(indent)).append(']');
         return result.toString();
     }
 
-    private static String formatArrayCompact(ArrayValue array) {
-        if (array.isEmpty()) {
-            return "[]";
-        }
-        var result = new StringBuilder("[");
-        var first  = true;
-        for (var item : array) {
-            if (!first) {
-                result.append(", ");
-            }
-            result.append(formatValueCompact(item));
-            first = false;
-        }
-        result.append(']');
-        return result.toString();
-    }
-
-    private static String formatObject(ObjectValue object, int indent) {
+    private static String formatObject(ObjectValue object, int indent, boolean prettyPrint) {
         if (object.isSecret()) {
             return "<<SECRET>>";
         }
         if (object.isEmpty()) {
             return "{}";
+        }
+        if (!prettyPrint) {
+            var result = new StringBuilder("{");
+            var first  = true;
+            for (var entry : object.entrySet()) {
+                if (!first) {
+                    result.append(", ");
+                }
+                result.append(quoteString(entry.getKey())).append(": ").append(formatValue(entry.getValue(), 0, false));
+                first = false;
+            }
+            result.append('}');
+            return result.toString();
         }
         var result      = new StringBuilder("{\n");
         var childIndent = indent + 1;
@@ -339,30 +311,10 @@ public class ReportTextRenderUtil {
                 result.append(",\n");
             }
             result.append(padding).append(quoteString(entry.getKey())).append(": ")
-                    .append(formatValue(entry.getValue(), childIndent));
+                    .append(formatValue(entry.getValue(), childIndent, true));
             first = false;
         }
         result.append('\n').append("  ".repeat(indent)).append('}');
-        return result.toString();
-    }
-
-    private static String formatObjectCompact(ObjectValue object) {
-        if (object.isSecret()) {
-            return "<<SECRET>>";
-        }
-        if (object.isEmpty()) {
-            return "{}";
-        }
-        var result = new StringBuilder("{");
-        var first  = true;
-        for (var entry : object.entrySet()) {
-            if (!first) {
-                result.append(", ");
-            }
-            result.append(quoteString(entry.getKey())).append(": ").append(formatValueCompact(entry.getValue()));
-            first = false;
-        }
-        result.append('}');
         return result.toString();
     }
 

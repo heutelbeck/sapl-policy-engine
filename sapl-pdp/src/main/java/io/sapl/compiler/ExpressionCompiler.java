@@ -47,6 +47,7 @@ import static io.sapl.compiler.operators.ComparisonOperators.compileRegularExpre
 import static io.sapl.compiler.operators.ComparisonOperators.isContainedIn;
 import static io.sapl.compiler.operators.ComparisonOperators.matchesRegularExpression;
 import static io.sapl.compiler.operators.ComparisonOperators.notEquals;
+import static io.sapl.compiler.StringsUtil.unquoteString;
 import io.sapl.compiler.operators.ComparisonOperators;
 import static io.sapl.compiler.operators.NumberOperators.add;
 import static io.sapl.compiler.operators.NumberOperators.divide;
@@ -152,6 +153,46 @@ import java.util.List;
 @UtilityClass
 public class ExpressionCompiler {
 
+    // ==================== Arithmetic Operation Errors ====================
+    private static final String ERROR_EXPECTED_VALUE_FOR_ARITHMETIC = "Expected a value for arithmetic operation.";
+    private static final String ERROR_UNKNOWN_ARITHMETIC_OPERATOR   = "Unknown arithmetic operator: %s.";
+
+    // ==================== Boolean Operation Errors ====================
+    private static final String ERROR_BOOLEAN_OPERAND_REQUIRED   = "Boolean operation requires boolean operands, got: %s.";
+    private static final String ERROR_CONDITION_REQUIRES_BOOLEAN = "Condition step requires boolean result, got: %s.";
+    private static final String ERROR_EAGER_AND_REQUIRES_BOOLEAN = "Eager AND requires boolean operands, got: %s.";
+    private static final String ERROR_EAGER_OR_REQUIRES_BOOLEAN  = "Eager OR requires boolean operands, got: %s.";
+    private static final String ERROR_STREAM_IN_CONDITION        = "Stream expressions not supported in condition step.";
+    private static final String ERROR_XOR_REQUIRES_BOOLEAN       = "XOR requires boolean operands, got: %s.";
+
+    // ==================== Compilation Errors ====================
+    private static final String ERROR_MISSING_FUNCTION_DEFINITION = "Missing function definition.";
+    private static final String ERROR_MISSING_FUNCTION_IDENTIFIER = "Missing function identifier.";
+    private static final String ERROR_MISSING_IDENTIFIER          = "Missing identifier.";
+    private static final String ERROR_NO_FUNCTION_BROKER          = "No function broker available.";
+
+    // ==================== Index and Subscript Errors ====================
+    private static final String ERROR_INVALID_ARRAY_INDEX       = "Invalid array index: %s.";
+    private static final String ERROR_INVALID_RECURSIVE_INDEX   = "Invalid recursive index: %s.";
+    private static final String ERROR_STEP_NOT_IMPLEMENTED      = "Step type not yet implemented.";
+    private static final String ERROR_SUBSCRIPT_NOT_IMPLEMENTED = "Subscript type not yet implemented.";
+
+    // ==================== Operator Errors ====================
+    private static final String ERROR_UNKNOWN_COMPARISON_OPERATOR = "Unknown comparison operator: %s.";
+    private static final String ERROR_UNKNOWN_EQUALITY_OPERATOR   = "Unknown equality operator: %s.";
+
+    // ==================== Type Errors ====================
+    private static final String ERROR_UNEXPECTED_BASIC_EXPRESSION = "Unexpected basic expression type.";
+    private static final String ERROR_UNEXPECTED_UNARY_EXPRESSION = "Unexpected unary expression type.";
+    private static final String ERROR_UNEXPECTED_VALUE_TYPE       = "Unexpected value type.";
+
+    // ==================== Value Errors ====================
+    private static final String ERROR_EXPECTED_VALUE_FOR_FUNCTION = "Expected a value for function argument.";
+    private static final String ERROR_INVALID_BOOLEAN_LITERAL     = "Invalid boolean literal.";
+    private static final String ERROR_INVALID_NUMBER_FORMAT       = "Invalid number format: %s.";
+    private static final String ERROR_MISSING_NUMBER_TOKEN        = "Missing number token.";
+    private static final String ERROR_MISSING_STRING_TOKEN        = "Missing string token.";
+
     /**
      * Compiles a SAPL expression from the ANTLR parse tree into an optimized
      * executable form.
@@ -254,7 +295,7 @@ public class ExpressionCompiler {
         }
 
         // Binary equality/inequality: left op right
-        val left     = compileComparison(operands.get(0), context);
+        val left     = compileComparison(operands.getFirst(), context);
         val right    = compileComparison(operands.get(1), context);
         val operator = extractFirstOperatorSymbol(equality);
 
@@ -293,7 +334,7 @@ public class ExpressionCompiler {
         }
 
         // Binary comparison: left op right
-        val left     = compileAddition(operands.get(0), context);
+        val left     = compileAddition(operands.getFirst(), context);
         val right    = compileAddition(operands.get(1), context);
         val operator = extractFirstOperatorSymbol(comparison);
 
@@ -352,7 +393,7 @@ public class ExpressionCompiler {
         case NotExpressionContext c        -> compileNot(c, context);
         case UnaryMinusExpressionContext c -> compileUnaryMinus(c, context);
         case UnaryPlusExpressionContext c  -> compileUnaryPlus(c, context);
-        case null, default                 -> Error.at(unaryExpr, "Unexpected unary expression type.");
+        case null, default                 -> Error.at(unaryExpr, ERROR_UNEXPECTED_UNARY_EXPRESSION);
         };
     }
 
@@ -439,14 +480,14 @@ public class ExpressionCompiler {
         case EnvHeadAttributeBasicContext c -> compileWithSteps(
                 AttributeCompiler.compileHeadEnvironmentAttribute(c.basicEnvironmentHeadAttribute(), context),
                 c.basicEnvironmentHeadAttribute().step(), context);
-        case null, default                  -> Error.at(basic, "Unexpected basic expression type.");
+        case null, default                  -> Error.at(basic, ERROR_UNEXPECTED_BASIC_EXPRESSION);
         };
     }
 
     private CompiledExpression compileIdentifier(BasicIdentifierContext basicId, CompilationContext context) {
         val saplId = basicId.saplId();
         if (saplId == null) {
-            return Error.at(basicId, "Missing identifier.");
+            return Error.at(basicId, ERROR_MISSING_IDENTIFIER);
         }
 
         val variableName  = getIdentifierName(saplId);
@@ -463,12 +504,12 @@ public class ExpressionCompiler {
     private CompiledExpression compileFunction(FunctionBasicContext funcBasic, CompilationContext context) {
         val basicFunction = funcBasic.basicFunction();
         if (basicFunction == null) {
-            return Error.at(funcBasic, "Missing function definition.");
+            return Error.at(funcBasic, ERROR_MISSING_FUNCTION_DEFINITION);
         }
 
         val functionId = basicFunction.functionIdentifier();
         if (functionId == null) {
-            return Error.at(funcBasic, "Missing function identifier.");
+            return Error.at(funcBasic, ERROR_MISSING_FUNCTION_IDENTIFIER);
         }
 
         val rawFunctionName      = extractFunctionName(functionId);
@@ -501,7 +542,7 @@ public class ExpressionCompiler {
             FunctionBasicContext context, CompilationContext compContext) {
         val broker = compContext.getFunctionBroker();
         if (broker == null) {
-            return Error.at(context, "No function broker available.");
+            return Error.at(context, ERROR_NO_FUNCTION_BROKER);
         }
 
         return switch (compiledArgs.nature()) {
@@ -519,7 +560,7 @@ public class ExpressionCompiler {
                 return error;
             }
             if (!(arg instanceof Value value)) {
-                return Error.at(context, "Expected a value for function argument.");
+                return Error.at(context, ERROR_EXPECTED_VALUE_FOR_FUNCTION);
             }
             valueList.add(value);
         }
@@ -536,7 +577,7 @@ public class ExpressionCompiler {
                     return error;
                 }
                 if (!(evaluated instanceof Value value)) {
-                    return Error.at(context, "Expected a value for function argument.");
+                    return Error.at(context, ERROR_EXPECTED_VALUE_FOR_FUNCTION);
                 }
                 valueList.add(value);
             }
@@ -555,7 +596,7 @@ public class ExpressionCompiler {
                     return error;
                 }
                 if (!(value instanceof Value v)) {
-                    return Error.at(context, "Expected a value for function argument.");
+                    return Error.at(context, ERROR_EXPECTED_VALUE_FOR_FUNCTION);
                 }
                 valueList.add(v);
             }
@@ -598,7 +639,7 @@ public class ExpressionCompiler {
         case RecursiveKeyDotDotStepContext c      -> compileRecursiveKeyStep(base, c);
         case RecursiveWildcardDotDotStepContext c -> compileRecursiveWildcardStep(base, c);
         case RecursiveIndexDotDotStepContext c    -> compileRecursiveIndexStep(base, c);
-        case null, default                        -> Error.at(step, "Step type not yet implemented.");
+        case null, default                        -> Error.at(step, ERROR_STEP_NOT_IMPLEMENTED);
         };
     }
 
@@ -637,7 +678,7 @@ public class ExpressionCompiler {
         case ConditionSubscriptContext c      -> compileConditionStep(base, c, bracketStep, context);
         case IndexUnionSubscriptContext c     -> compileIndexUnionStep(base, c, bracketStep);
         case AttributeUnionSubscriptContext c -> compileAttributeUnionStep(base, c, bracketStep);
-        case null, default                    -> Error.at(bracketStep, "Subscript type not yet implemented.");
+        case null, default                    -> Error.at(bracketStep, ERROR_SUBSCRIPT_NOT_IMPLEMENTED);
         };
     }
 
@@ -659,7 +700,7 @@ public class ExpressionCompiler {
         try {
             index = new BigDecimal(indexText);
         } catch (NumberFormatException e) {
-            return Error.at(step, "Invalid array index: %s.", indexText);
+            return Error.at(step, ERROR_INVALID_ARRAY_INDEX, indexText);
         }
 
         return switch (base) {
@@ -834,7 +875,7 @@ public class ExpressionCompiler {
             if (conditionResult instanceof BooleanValue bool && bool.value()) {
                 builder.add(element);
             } else if (!(conditionResult instanceof BooleanValue)) {
-                return Error.at(step, metadata, "Condition step requires boolean result, got: %s.",
+                return Error.at(step, metadata, ERROR_CONDITION_REQUIRES_BOOLEAN,
                         conditionResult.getClass().getSimpleName());
             }
         }
@@ -861,7 +902,7 @@ public class ExpressionCompiler {
             if (conditionResult instanceof BooleanValue bool && bool.value()) {
                 builder.put(entry.getKey(), entryValue);
             } else if (!(conditionResult instanceof BooleanValue)) {
-                return Error.at(step, metadata, "Condition step requires boolean result, got: %s.",
+                return Error.at(step, metadata, ERROR_CONDITION_REQUIRES_BOOLEAN,
                         conditionResult.getClass().getSimpleName());
             }
             index++;
@@ -901,7 +942,7 @@ public class ExpressionCompiler {
         return switch (conditionExpr) {
         case Value value              -> value;
         case PureExpression pure      -> pure.evaluate(evalContext.withRelativeValue(element, location));
-        case StreamExpression ignored -> Value.error("Stream expressions not supported in condition step.");
+        case StreamExpression ignored -> Value.error(ERROR_STREAM_IN_CONDITION);
         };
     }
 
@@ -978,7 +1019,7 @@ public class ExpressionCompiler {
         try {
             index = new BigDecimal(indexText);
         } catch (NumberFormatException e) {
-            return Error.at(step, "Invalid recursive index: %s.", indexText);
+            return Error.at(step, ERROR_INVALID_RECURSIVE_INDEX, indexText);
         }
 
         return switch (base) {
@@ -1004,7 +1045,7 @@ public class ExpressionCompiler {
         case BooleanValueContext c         -> compileBoolean(c.booleanLiteral());
         case NullValueContext ignored      -> Value.NULL;
         case UndefinedValueContext ignored -> Value.UNDEFINED;
-        case null, default                 -> Error.at(value, "Unexpected value type.");
+        case null, default                 -> Error.at(value, ERROR_UNEXPECTED_VALUE_TYPE);
         };
     }
 
@@ -1012,19 +1053,19 @@ public class ExpressionCompiler {
         return switch (boolLiteral) {
         case TrueLiteralContext ignored  -> Value.TRUE;
         case FalseLiteralContext ignored -> Value.FALSE;
-        case null, default               -> Value.error("Invalid boolean literal.");
+        case null, default               -> Value.error(ERROR_INVALID_BOOLEAN_LITERAL);
         };
     }
 
     private Value compileNumber(NumberLiteralContext numLiteral) {
         val token = numLiteral.NUMBER();
         if (token == null) {
-            return Value.error("Missing number token.", SourceLocationUtil.fromContext(numLiteral));
+            return Value.error(ERROR_MISSING_NUMBER_TOKEN, SourceLocationUtil.fromContext(numLiteral));
         }
         try {
             return Value.of(new BigDecimal(token.getText()));
         } catch (NumberFormatException e) {
-            return Value.error("Invalid number format: %s.".formatted(token.getText()),
+            return Value.error(ERROR_INVALID_NUMBER_FORMAT.formatted(token.getText()),
                     SourceLocationUtil.fromContext(numLiteral));
         }
     }
@@ -1032,7 +1073,7 @@ public class ExpressionCompiler {
     private Value compileString(StringLiteralContext strLiteral) {
         val token = strLiteral.STRING();
         if (token == null) {
-            return Value.error("Missing string token.", SourceLocationUtil.fromContext(strLiteral));
+            return Value.error(ERROR_MISSING_STRING_TOKEN, SourceLocationUtil.fromContext(strLiteral));
         }
         return Value.of(unquoteString(token.getText()));
     }
@@ -1317,7 +1358,7 @@ public class ExpressionCompiler {
     private Value foldArithmeticConstants(CompiledExpression[] operands, String[] operators,
             ParserRuleContext context) {
         if (!(operands[0] instanceof Value firstValue)) {
-            return Error.at(context, "Expected a value for arithmetic operation.");
+            return Error.at(context, ERROR_EXPECTED_VALUE_FOR_ARITHMETIC);
         }
         val result = applyArithmeticChain(firstValue, Arrays.copyOfRange(operands, 1, operands.length), operators,
                 context);
@@ -1334,7 +1375,7 @@ public class ExpressionCompiler {
             val operand  = remainingOperands[i];
             val operator = operators[i];
             if (!(operand instanceof Value value)) {
-                return Error.at(context, "Expected a value for arithmetic operation.");
+                return Error.at(context, ERROR_EXPECTED_VALUE_FOR_ARITHMETIC);
             }
             result = applyArithmeticOperator(result, value, operator, context);
             if (result instanceof ErrorValue) {
@@ -1355,7 +1396,7 @@ public class ExpressionCompiler {
         case "*" -> multiply(context, left, right);
         case "/" -> divide(context, left, right);
         case "%" -> modulo(context, left, right);
-        default  -> Error.at(context, "Unknown arithmetic operator: %s.", operator);
+        default  -> Error.at(context, ERROR_UNKNOWN_ARITHMETIC_OPERATOR, operator);
         };
     }
 
@@ -1368,7 +1409,7 @@ public class ExpressionCompiler {
             // Evaluate first operand
             val first = operands[0] instanceof PureExpression pure ? pure.evaluate(ctx) : operands[0];
             if (!(first instanceof Value firstValue)) {
-                return Error.at(context, "Expected a value for arithmetic operation.");
+                return Error.at(context, ERROR_EXPECTED_VALUE_FOR_ARITHMETIC);
             }
 
             // Apply operations
@@ -1378,7 +1419,7 @@ public class ExpressionCompiler {
                 val operator  = operators[i - 1];
                 val evaluated = operand instanceof PureExpression pure ? pure.evaluate(ctx) : operand;
                 if (!(evaluated instanceof Value value)) {
-                    return Error.at(context, "Expected a value for arithmetic operation.");
+                    return Error.at(context, ERROR_EXPECTED_VALUE_FOR_ARITHMETIC);
                 }
                 result = applyArithmeticOperator(result, value, operator, context);
                 if (result instanceof ErrorValue) {
@@ -1404,11 +1445,11 @@ public class ExpressionCompiler {
      */
     private static Value combineArithmeticValues(Object[] values, String[] operators, ParserRuleContext context) {
         if (!(values[0] instanceof Value result)) {
-            return Error.at(context, "Expected a value for arithmetic operation.");
+            return Error.at(context, ERROR_EXPECTED_VALUE_FOR_ARITHMETIC);
         }
         for (int i = 1; i < values.length; i++) {
             if (!(values[i] instanceof Value value)) {
-                return Error.at(context, "Expected a value for arithmetic operation.");
+                return Error.at(context, ERROR_EXPECTED_VALUE_FOR_ARITHMETIC);
             }
             result = applyArithmeticOperatorStatic(result, value, operators[i - 1], context);
             if (result instanceof ErrorValue) {
@@ -1430,7 +1471,7 @@ public class ExpressionCompiler {
         case "*" -> multiply(context, left, right);
         case "/" -> divide(context, left, right);
         case "%" -> modulo(context, left, right);
-        default  -> Error.at(context, "Unknown arithmetic operator: %s.", operator);
+        default  -> Error.at(context, ERROR_UNKNOWN_ARITHMETIC_OPERATOR, operator);
         };
     }
 
@@ -1494,7 +1535,7 @@ public class ExpressionCompiler {
         case "==" -> ComparisonOperators.equals(context, left, right);
         case "!=" -> notEquals(context, left, right);
         case "=~" -> matchesRegularExpression(context, left, right);
-        default   -> Error.at(context, "Unknown equality operator: %s.", operator);
+        default   -> Error.at(context, ERROR_UNKNOWN_EQUALITY_OPERATOR, operator);
         };
     }
 
@@ -1509,7 +1550,7 @@ public class ExpressionCompiler {
         case ">"  -> greaterThan(context, left, right);
         case ">=" -> greaterThanOrEqual(context, left, right);
         case "in" -> isContainedIn(context, left, right);
-        default   -> Error.at(context, "Unknown comparison operator: %s.", operator);
+        default   -> Error.at(context, ERROR_UNKNOWN_COMPARISON_OPERATOR, operator);
         };
     }
 
@@ -1560,16 +1601,14 @@ public class ExpressionCompiler {
         var metadata = ValueMetadata.EMPTY;
         for (val operand : operands) {
             if (!(operand instanceof Value value)) {
-                return Error.at(context, metadata, "Boolean operation requires boolean operands, got: %s.",
-                        operand.getClass().getSimpleName());
+                return Error.at(context, metadata, ERROR_BOOLEAN_OPERAND_REQUIRED, operand.getClass().getSimpleName());
             }
             metadata = metadata.merge(value.metadata());
             if (value instanceof ErrorValue error) {
                 return error.withMetadata(metadata);
             }
             if (!(value instanceof BooleanValue bool)) {
-                return Error.at(context, metadata, "Boolean operation requires boolean operands, got: %s.",
-                        value.getClass().getSimpleName());
+                return Error.at(context, metadata, ERROR_BOOLEAN_OPERAND_REQUIRED, value.getClass().getSimpleName());
             }
             if (bool.value() == shortCircuitValue) {
                 return new BooleanValue(shortCircuitValue, metadata);
@@ -1636,8 +1675,8 @@ public class ExpressionCompiler {
 
             // Type check
             if (!(value instanceof BooleanValue bool)) {
-                return Flux.just(Error.at(context, metadata, "Boolean operation requires boolean operands, got: %s.",
-                        value.getClass().getSimpleName()));
+                return Flux.just(
+                        Error.at(context, metadata, ERROR_BOOLEAN_OPERAND_REQUIRED, value.getClass().getSimpleName()));
             }
 
             // Short-circuit: return immediately without subscribing to remaining operands
@@ -1709,8 +1748,7 @@ public class ExpressionCompiler {
                 return error.withMetadata(metadata);
             }
             if (!(value instanceof BooleanValue bool)) {
-                return Error.at(context, metadata, "Eager OR requires boolean operands, got: %s.",
-                        value.getClass().getSimpleName());
+                return Error.at(context, metadata, ERROR_EAGER_OR_REQUIRES_BOOLEAN, value.getClass().getSimpleName());
             }
             if (bool.value()) {
                 return new BooleanValue(true, metadata);
@@ -1727,8 +1765,7 @@ public class ExpressionCompiler {
                 return error.withMetadata(metadata);
             }
             if (!(value instanceof BooleanValue bool)) {
-                return Error.at(context, metadata, "Eager AND requires boolean operands, got: %s.",
-                        value.getClass().getSimpleName());
+                return Error.at(context, metadata, ERROR_EAGER_AND_REQUIRES_BOOLEAN, value.getClass().getSimpleName());
             }
             if (!bool.value()) {
                 return new BooleanValue(false, metadata);
@@ -1746,83 +1783,11 @@ public class ExpressionCompiler {
                 return error.withMetadata(metadata);
             }
             if (!(value instanceof BooleanValue bool)) {
-                return Error.at(context, metadata, "XOR requires boolean operands, got: %s.",
-                        value.getClass().getSimpleName());
+                return Error.at(context, metadata, ERROR_XOR_REQUIRES_BOOLEAN, value.getClass().getSimpleName());
             }
             result ^= bool.value();
         }
         return new BooleanValue(result, metadata);
-    }
-
-    // ═══════════════════════════════════════════════════════════════════════════
-    // String Utilities
-    // ═══════════════════════════════════════════════════════════════════════════
-
-    private String unquoteString(String quoted) {
-        if (quoted == null || quoted.length() < 2) {
-            return quoted;
-        }
-        val first = quoted.charAt(0);
-        val last  = quoted.charAt(quoted.length() - 1);
-        if ((first == '"' && last == '"') || (first == '\'' && last == '\'')) {
-            return unescapeString(quoted.substring(1, quoted.length() - 1));
-        }
-        return quoted;
-    }
-
-    private String unescapeString(String text) {
-        if (text == null || !text.contains("\\")) {
-            return text;
-        }
-        val builder = new StringBuilder(text.length());
-        for (int i = 0; i < text.length(); i++) {
-            char c = text.charAt(i);
-            if (c == '\\' && i + 1 < text.length()) {
-                char next = text.charAt(i + 1);
-                switch (next) {
-                case 'n'  -> {
-                    builder.append('\n');
-                    i++;
-                }
-                case 'r'  -> {
-                    builder.append('\r');
-                    i++;
-                }
-                case 't'  -> {
-                    builder.append('\t');
-                    i++;
-                }
-                case '\\' -> {
-                    builder.append('\\');
-                    i++;
-                }
-                case '"'  -> {
-                    builder.append('"');
-                    i++;
-                }
-                case '\'' -> {
-                    builder.append('\'');
-                    i++;
-                }
-                case 'u'  -> {
-                    if (i + 5 < text.length()) {
-                        try {
-                            builder.append((char) Integer.parseInt(text.substring(i + 2, i + 6), 16));
-                            i += 5;
-                        } catch (NumberFormatException ignored) {
-                            builder.append(c);
-                        }
-                    } else {
-                        builder.append(c);
-                    }
-                }
-                default   -> builder.append(c);
-                }
-            } else {
-                builder.append(c);
-            }
-        }
-        return builder.toString();
     }
 
     // ═══════════════════════════════════════════════════════════════════════════

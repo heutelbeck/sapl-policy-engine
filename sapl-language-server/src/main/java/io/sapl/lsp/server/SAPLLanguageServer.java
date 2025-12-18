@@ -84,7 +84,7 @@ public class SAPLLanguageServer implements LanguageServer, LanguageClientAware {
         // Services must be created in constructor for LSP4J method discovery.
         // They use a reference to this server to get the client lazily.
         this.textDocumentService = new SAPLTextDocumentService(this, documentManager, configurationManager);
-        this.workspaceService    = new SAPLWorkspaceService(configurationManager);
+        this.workspaceService    = new SAPLWorkspaceService();
     }
 
     @Override

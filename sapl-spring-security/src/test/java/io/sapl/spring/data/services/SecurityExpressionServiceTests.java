@@ -21,7 +21,7 @@ import org.aopalliance.intercept.MethodInvocation;
 import org.junit.jupiter.api.Test;
 import org.mockito.MockedConstruction;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
@@ -47,7 +47,7 @@ class SecurityExpressionServiceTests {
             final var result = expressionService.evaluateSpelMethods(expression, methodInvocationMock);
 
             // THEN
-            assertEquals(result, resultExpression);
+            assertThat(result).isEqualTo(resultExpression);
             verify(methodSecurityExpressionEvaluatorMock, times(1)).evaluate(eq(expressionPart),
                     any(MethodInvocation.class));
         }
@@ -77,7 +77,7 @@ class SecurityExpressionServiceTests {
             final var result = expressionService.evaluateSpelMethods(expression, methodInvocationMock);
 
             // THEN
-            assertEquals(result, resultExpression);
+            assertThat(result).isEqualTo(resultExpression);
             verify(methodSecurityExpressionEvaluatorMock, times(2)).evaluate(anyString(), any(MethodInvocation.class));
         }
     }
@@ -97,7 +97,7 @@ class SecurityExpressionServiceTests {
             final var result            = expressionService.evaluateSpelMethods(expression, methodInvocationMock);
 
             // THEN
-            assertEquals(result, resultExpression);
+            assertThat(result).isEqualTo(resultExpression);
             verify(methodSecurityExpressionEvaluatorMock, times(0)).evaluate(anyString(), any(MethodInvocation.class));
         }
     }
@@ -117,7 +117,7 @@ class SecurityExpressionServiceTests {
             final var result            = expressionService.evaluateSpelMethods(expression, methodInvocationMock);
 
             // THEN
-            assertEquals(result, resultExpression);
+            assertThat(result).isEqualTo(resultExpression);
             verify(methodSecurityExpressionEvaluatorMock, times(0)).evaluate(anyString(), any(MethodInvocation.class));
         }
     }
@@ -137,7 +137,7 @@ class SecurityExpressionServiceTests {
             final var result            = expressionService.evaluateSpelMethods(expression, methodInvocationMock);
 
             // THEN
-            assertEquals(result, resultExpression);
+            assertThat(result).isEqualTo(resultExpression);
             verify(methodSecurityExpressionEvaluatorMock, times(0)).evaluate(anyString(), any(MethodInvocation.class));
         }
     }
@@ -158,7 +158,7 @@ class SecurityExpressionServiceTests {
             final var expressionService                         = new SecurityExpressionService(
                     methodSecurityExpressionEvaluatorMock);
             final var customMethodSecurityExpressionHandlerMock = mockedConstructionStandardEvaluationContext
-                    .constructed().get(0);
+                    .constructed().getFirst();
 
             when(customMethodSecurityExpressionHandlerMock.evaluateExpression(expressionPart))
                     .thenReturn(returnValueOfExpressionPart);
@@ -166,7 +166,7 @@ class SecurityExpressionServiceTests {
             final var result = expressionService.evaluateSpelVariables(expression);
 
             // THEN
-            assertEquals(result, resultExpression);
+            assertThat(result).isEqualTo(resultExpression);
             verify(customMethodSecurityExpressionHandlerMock, times(1)).evaluateExpression(expressionPart);
         }
     }
@@ -189,7 +189,7 @@ class SecurityExpressionServiceTests {
             final var expressionService = new SecurityExpressionService(methodSecurityExpressionEvaluatorMock);
 
             final var customMethodSecurityExpressionHandlerMock = mockedConstructionStandardEvaluationContext
-                    .constructed().get(0);
+                    .constructed().getFirst();
 
             when(customMethodSecurityExpressionHandlerMock.evaluateExpression(expressionPart1))
                     .thenReturn(returnValueOfExpressionPart1);
@@ -199,7 +199,7 @@ class SecurityExpressionServiceTests {
             final var result = expressionService.evaluateSpelVariables(expression);
 
             // THEN
-            assertEquals(result, resultExpression);
+            assertThat(result).isEqualTo(resultExpression);
             verify(customMethodSecurityExpressionHandlerMock, times(2)).evaluateExpression(anyString());
         }
     }
@@ -218,10 +218,10 @@ class SecurityExpressionServiceTests {
             // WHEN
             final var result                                    = expressionService.evaluateSpelVariables(expression);
             final var customMethodSecurityExpressionHandlerMock = mockedConstructionStandardEvaluationContext
-                    .constructed().get(0);
+                    .constructed().getFirst();
 
             // THEN
-            assertEquals(result, resultExpression);
+            assertThat(result).isEqualTo(resultExpression);
             verify(customMethodSecurityExpressionHandlerMock, times(0)).evaluateExpression(anyString());
         }
     }
@@ -240,10 +240,10 @@ class SecurityExpressionServiceTests {
             // WHEN
             final var result                                    = expressionService.evaluateSpelVariables(expression);
             final var customMethodSecurityExpressionHandlerMock = mockedConstructionStandardEvaluationContext
-                    .constructed().get(0);
+                    .constructed().getFirst();
 
             // THEN
-            assertEquals(result, resultExpression);
+            assertThat(result).isEqualTo(resultExpression);
             verify(customMethodSecurityExpressionHandlerMock, times(0)).evaluateExpression(anyString());
         }
     }
@@ -262,10 +262,10 @@ class SecurityExpressionServiceTests {
             // WHEN
             final var result                                    = expressionService.evaluateSpelVariables(expression);
             final var customMethodSecurityExpressionHandlerMock = mockedConstructionStandardEvaluationContext
-                    .constructed().get(0);
+                    .constructed().getFirst();
 
             // THEN
-            assertEquals(result, resultExpression);
+            assertThat(result).isEqualTo(resultExpression);
             verify(customMethodSecurityExpressionHandlerMock, times(0)).evaluateExpression(anyString());
         }
     }

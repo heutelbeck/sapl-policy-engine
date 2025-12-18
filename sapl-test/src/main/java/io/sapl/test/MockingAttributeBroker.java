@@ -63,7 +63,7 @@ import java.util.Optional;
  * Mock matching uses most-specific-first semantics, same as
  * {@link MockingFunctionBroker}.
  */
-public class MockingAttributeBroker implements AttributeBroker {
+public final class MockingAttributeBroker implements AttributeBroker {
 
     private AttributeBroker                        delegate;
     private final Map<String, List<AttributeMock>> mocksByName = new HashMap<>();

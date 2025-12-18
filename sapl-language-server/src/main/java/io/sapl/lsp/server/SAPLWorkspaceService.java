@@ -17,29 +17,16 @@
  */
 package io.sapl.lsp.server;
 
+import lombok.extern.slf4j.Slf4j;
 import org.eclipse.lsp4j.DidChangeConfigurationParams;
 import org.eclipse.lsp4j.DidChangeWatchedFilesParams;
 import org.eclipse.lsp4j.services.WorkspaceService;
-
-import io.sapl.lsp.configuration.ConfigurationManager;
-import lombok.extern.slf4j.Slf4j;
 
 /**
  * Handles workspace operations for the Language Server.
  */
 @Slf4j
 public class SAPLWorkspaceService implements WorkspaceService {
-
-    private final ConfigurationManager configurationManager;
-
-    /**
-     * Creates a new workspace service.
-     *
-     * @param configurationManager the configuration manager
-     */
-    public SAPLWorkspaceService(ConfigurationManager configurationManager) {
-        this.configurationManager = configurationManager;
-    }
 
     @Override
     public void didChangeConfiguration(DidChangeConfigurationParams params) {

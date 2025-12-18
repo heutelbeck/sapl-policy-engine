@@ -50,9 +50,10 @@ class CustomMethodSecurityExpressionHandlerTests {
                 when(authenticationMock.getName()).thenReturn("TestUser");
                 SecurityContextHolder.setContext(securityContextMock);
 
-                final var mockSpelExpressionParser      = mockedConstructionSpelExpressionParser.constructed().get(0);
+                final var mockSpelExpressionParser      = mockedConstructionSpelExpressionParser.constructed()
+                        .getFirst();
                 final var mockStandardEvaluationContext = mockedConstructionStandardEvaluationContext.constructed()
-                        .get(0);
+                        .getFirst();
 
                 when(mockSpelExpressionParser.parseExpression(anyString())).thenReturn(expressionMock);
                 when(expressionMock.getValue(any(StandardEvaluationContext.class))).thenReturn("TestValue");
