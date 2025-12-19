@@ -18,12 +18,7 @@
 package io.sapl.test.coverage;
 
 import io.sapl.api.coverage.PolicyCoverageData;
-import io.sapl.api.model.ArrayValue;
-import io.sapl.api.model.BooleanValue;
-import io.sapl.api.model.NumberValue;
-import io.sapl.api.model.ObjectValue;
-import io.sapl.api.model.TextValue;
-import io.sapl.api.model.Value;
+import io.sapl.api.model.*;
 import io.sapl.api.pdp.internal.TraceFields;
 import io.sapl.api.pdp.internal.TracedDecision;
 import io.sapl.api.pdp.internal.TracedPdpDecision;

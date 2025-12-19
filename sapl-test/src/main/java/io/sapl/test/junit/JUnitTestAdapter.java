@@ -17,25 +17,24 @@
  */
 package io.sapl.test.junit;
 
-import static io.sapl.compiler.StringsUtil.unquoteString;
-
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.List;
-import java.util.Map;
-import java.util.stream.Stream;
-
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.DynamicContainer;
-import org.junit.jupiter.api.DynamicNode;
-import org.junit.jupiter.api.DynamicTest;
-import org.junit.jupiter.api.TestFactory;
-
+import io.sapl.api.pdp.CombiningAlgorithm;
 import io.sapl.test.grammar.antlr.SAPLTestParser.RequirementContext;
 import io.sapl.test.grammar.antlr.SAPLTestParser.SaplTestContext;
 import io.sapl.test.grammar.antlr.SAPLTestParser.ScenarioContext;
 import io.sapl.test.lang.SaplTestParser;
+import io.sapl.test.plain.*;
+import org.junit.jupiter.api.*;
+import org.opentest4j.AssertionFailedError;
+
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Stream;
+
+import static io.sapl.compiler.StringsUtil.unquoteString;
 
 /**
  * JUnit 5 test adapter for executing SAPL test definitions.
@@ -57,6 +56,9 @@ import io.sapl.test.lang.SaplTestParser;
  */
 public class JUnitTestAdapter {
 
+    private List<SaplDocument> policies;
+    private TestConfiguration  config;
+
     /**
      * JUnit 5 test factory that discovers and creates dynamic tests from
      * {@code .sapltest} files.
@@ -66,6 +68,12 @@ public class JUnitTestAdapter {
     @TestFactory
     @DisplayName("SAPLTest")
     public List<DynamicContainer> getTests() {
+        // Discover policies once for all tests
+        policies = discoverPolicies();
+
+        // Create base configuration (will be augmented per test file)
+        config = createConfiguration();
+
         return TestDiscoveryHelper.discoverTests().stream().map(this::createTestContainer).toList();
     }
 
@@ -88,14 +96,82 @@ public class JUnitTestAdapter {
         return Map.of();
     }
 
+    /**
+     * Override to specify a custom combining algorithm for integration tests.
+     * Default is DENY_OVERRIDES.
+     *
+     * @return the combining algorithm to use
+     */
+    protected CombiningAlgorithm getDefaultCombiningAlgorithm() {
+        return CombiningAlgorithm.DENY_OVERRIDES;
+    }
+
+    /**
+     * Override to specify custom policy directories to search.
+     * Default searches "policies" and "policiesIT" under src/main/resources.
+     *
+     * @return list of directory names under src/main/resources to search for
+     * policies
+     */
+    protected List<String> getPolicyDirectories() {
+        return List.of("policies", "policiesIT");
+    }
+
+    /**
+     * Discovers all SAPL policies from configured directories.
+     */
+    private List<SaplDocument> discoverPolicies() {
+        var allPolicies = new ArrayList<SaplDocument>();
+
+        for (var directory : getPolicyDirectories()) {
+            var found = PolicyDiscoveryHelper.discoverPolicies(directory);
+            allPolicies.addAll(found);
+        }
+
+        // Also check root for any policies
+        if (allPolicies.isEmpty()) {
+            allPolicies.addAll(PolicyDiscoveryHelper.discoverPolicies());
+        }
+
+        return allPolicies;
+    }
+
+    /**
+     * Creates the test configuration with discovered policies.
+     */
+    private TestConfiguration createConfiguration() {
+        var builder = TestConfiguration.builder().withSaplDocuments(policies)
+                .withDefaultAlgorithm(getDefaultCombiningAlgorithm());
+
+        // Add function libraries from registrations
+        var registrations = getFixtureRegistrations();
+        if (registrations.containsKey(ImportType.STATIC_FUNCTION_LIBRARY)) {
+            for (var entry : registrations.get(ImportType.STATIC_FUNCTION_LIBRARY).entrySet()) {
+                if (entry.getValue() instanceof Class<?> clazz) {
+                    builder.withFunctionLibrary(clazz);
+                }
+            }
+        }
+
+        // Add PIPs from registrations
+        if (registrations.containsKey(ImportType.PIP)) {
+            for (var entry : registrations.get(ImportType.PIP).entrySet()) {
+                builder.withPolicyInformationPoint(entry.getValue());
+            }
+        }
+
+        return builder.build();
+    }
+
     private DynamicContainer createTestContainer(String relativePath) {
         var filePath = Path.of(TestDiscoveryHelper.RESOURCES_ROOT, relativePath);
         var uri      = filePath.toUri();
 
         try {
-            var content  = Files.readString(filePath);
-            var saplTest = SaplTestParser.parse(content);
-            var tests    = buildDynamicTests(saplTest);
+            var content      = Files.readString(filePath);
+            var saplTest     = SaplTestParser.parse(content);
+            var testDocument = new SaplTestDocument(relativePath, relativePath, content);
+            var tests        = buildDynamicTests(saplTest, testDocument);
             return DynamicContainer.dynamicContainer(relativePath, uri, tests);
         } catch (IOException exception) {
             return DynamicContainer.dynamicContainer(relativePath, uri,
@@ -110,22 +186,40 @@ public class JUnitTestAdapter {
         }
     }
 
-    private Stream<DynamicNode> buildDynamicTests(SaplTestContext saplTest) {
-        return saplTest.requirement().stream().map(this::buildRequirementContainer);
+    private Stream<DynamicNode> buildDynamicTests(SaplTestContext saplTest, SaplTestDocument testDocument) {
+        return saplTest.requirement().stream().map(req -> buildRequirementContainer(req, testDocument));
     }
 
-    private DynamicContainer buildRequirementContainer(RequirementContext requirement) {
+    private DynamicContainer buildRequirementContainer(RequirementContext requirement, SaplTestDocument testDocument) {
         var name      = unquoteString(requirement.name.getText());
-        var scenarios = requirement.scenario().stream().map(this::buildScenarioTest);
+        var scenarios = requirement.scenario().stream().map(s -> buildScenarioTest(requirement, s, testDocument));
         return DynamicContainer.dynamicContainer(name, scenarios);
     }
 
-    private DynamicTest buildScenarioTest(ScenarioContext scenario) {
+    private DynamicTest buildScenarioTest(RequirementContext requirement, ScenarioContext scenario,
+            SaplTestDocument testDocument) {
         var name = unquoteString(scenario.name.getText());
-        // TODO: Actually execute the test via SaplTestRunner
-        return DynamicTest.dynamicTest(name, () -> {
-            // Hollow shell - just pass for now
-        });
+        return DynamicTest.dynamicTest(name, () -> executeScenario(requirement, scenario, testDocument));
     }
 
+    /**
+     * Executes a single scenario and throws on failure.
+     */
+    private void executeScenario(RequirementContext requirement, ScenarioContext scenario,
+            SaplTestDocument testDocument) {
+        var interpreter = new ScenarioInterpreter(config);
+        var result      = interpreter.execute(testDocument, requirement, scenario);
+
+        if (result.status() == TestStatus.FAILED) {
+            throw new AssertionFailedError(result.failureMessage());
+        } else if (result.status() == TestStatus.ERROR) {
+            if (result.failureCause() != null) {
+                throw new RuntimeException("Test execution error: " + result.failureCause().getMessage(),
+                        result.failureCause());
+            } else {
+                throw new RuntimeException("Test execution error: " + result.failureMessage());
+            }
+        }
+        // PASSED - test succeeds
+    }
 }

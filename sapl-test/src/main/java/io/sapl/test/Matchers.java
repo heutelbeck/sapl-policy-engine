@@ -17,13 +17,7 @@
  */
 package io.sapl.test;
 
-import io.sapl.api.model.ArrayValue;
-import io.sapl.api.model.BooleanValue;
-import io.sapl.api.model.NullValue;
-import io.sapl.api.model.NumberValue;
-import io.sapl.api.model.ObjectValue;
-import io.sapl.api.model.TextValue;
-import io.sapl.api.model.Value;
+import io.sapl.api.model.*;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.Decision;
 import io.sapl.test.MockingFunctionBroker.ArgumentMatcher;
@@ -33,6 +27,7 @@ import lombok.experimental.UtilityClass;
 
 import java.math.BigDecimal;
 import java.util.Arrays;
+import java.util.Objects;
 import java.util.function.Predicate;
 
 /**
@@ -676,7 +671,7 @@ public class Matchers {
      * @return a predicate that matches any non-null decision
      */
     public static Predicate<AuthorizationDecision> anyDecision() {
-        return decision -> decision != null;
+        return Objects::nonNull;
     }
 
     /**

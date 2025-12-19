@@ -17,25 +17,21 @@
  */
 package io.sapl.test.plain;
 
-import static io.sapl.compiler.StringsUtil.unquoteString;
-
-import java.time.Duration;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
 import io.sapl.test.coverage.TestCoverageRecord;
 import io.sapl.test.grammar.antlr.SAPLTestParser.RequirementContext;
 import io.sapl.test.grammar.antlr.SAPLTestParser.SaplTestContext;
-import io.sapl.test.grammar.antlr.SAPLTestParser.ScenarioContext;
 import io.sapl.test.lang.SaplTestException;
 import io.sapl.test.lang.SaplTestParser;
 import io.sapl.test.plain.TestEvent.ExecutionCompleted;
 import io.sapl.test.plain.TestEvent.ScenarioCompleted;
 import lombok.NonNull;
 import reactor.core.publisher.Flux;
-import reactor.core.publisher.Sinks;
+
+import java.time.Duration;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
  * Test adapter for programmatic execution of SAPL tests.
@@ -163,11 +159,11 @@ public class PlainTestAdapter {
 
     private List<ScenarioResult> executeRequirement(SaplTestDocument testDoc, RequirementContext requirement,
             TestConfiguration config) {
-        var results         = new ArrayList<ScenarioResult>();
-        var requirementName = unquoteString(requirement.name.getText());
+        var results     = new ArrayList<ScenarioResult>();
+        var interpreter = new ScenarioInterpreter(config);
 
         for (var scenario : requirement.scenario()) {
-            var result = executeScenario(testDoc, requirementName, scenario, config);
+            var result = interpreter.execute(testDoc, requirement, scenario);
             results.add(result);
 
             // Check fail-fast within requirement
@@ -177,21 +173,5 @@ public class PlainTestAdapter {
         }
 
         return results;
-    }
-
-    private ScenarioResult executeScenario(SaplTestDocument testDoc, String requirementName, ScenarioContext scenario,
-            TestConfiguration config) {
-        var scenarioName = unquoteString(scenario.name.getText());
-        var startTime    = System.nanoTime();
-
-        try {
-            // TODO: Implement actual scenario execution via interpreter
-            // For now, hollow shell - just return PASSED
-            var duration = Duration.ofNanos(System.nanoTime() - startTime);
-            return ScenarioResult.passed(testDoc.id(), requirementName, scenarioName, duration, null);
-        } catch (Exception e) {
-            var duration = Duration.ofNanos(System.nanoTime() - startTime);
-            return ScenarioResult.error(testDoc.id(), requirementName, scenarioName, duration, e, null);
-        }
     }
 }

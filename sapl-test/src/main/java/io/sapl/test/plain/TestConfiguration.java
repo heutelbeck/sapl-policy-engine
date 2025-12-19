@@ -17,15 +17,13 @@
  */
 package io.sapl.test.plain;
 
+import io.sapl.api.model.Value;
+import io.sapl.api.pdp.CombiningAlgorithm;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
-import org.jspecify.annotations.Nullable;
-
-import io.sapl.api.model.Value;
-import io.sapl.api.pdp.CombiningAlgorithm;
 
 /**
  * Complete configuration for test execution.

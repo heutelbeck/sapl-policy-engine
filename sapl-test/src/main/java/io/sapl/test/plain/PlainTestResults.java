@@ -17,10 +17,10 @@
  */
 package io.sapl.test.plain;
 
+import io.sapl.test.coverage.TestCoverageRecord;
+
 import java.util.List;
 import java.util.Map;
-
-import io.sapl.test.coverage.TestCoverageRecord;
 
 /**
  * Aggregated results from test execution.

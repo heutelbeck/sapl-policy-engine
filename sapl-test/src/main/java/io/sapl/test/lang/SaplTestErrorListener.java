@@ -17,12 +17,12 @@
  */
 package io.sapl.test.lang;
 
-import java.util.ArrayList;
-import java.util.List;
-
 import org.antlr.v4.runtime.BaseErrorListener;
 import org.antlr.v4.runtime.RecognitionException;
 import org.antlr.v4.runtime.Recognizer;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * ANTLR error listener that collects syntax errors during parsing.

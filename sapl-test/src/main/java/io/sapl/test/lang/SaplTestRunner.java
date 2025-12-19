@@ -17,12 +17,12 @@
  */
 package io.sapl.test.lang;
 
-import static io.sapl.compiler.StringsUtil.unquoteString;
+import io.sapl.test.grammar.antlr.SAPLTestParser.SaplTestContext;
 
 import java.util.ArrayList;
 import java.util.List;
 
-import io.sapl.test.grammar.antlr.SAPLTestParser.SaplTestContext;
+import static io.sapl.compiler.StringsUtil.unquoteString;
 
 /**
  * Runs SAPL test definitions and produces results.

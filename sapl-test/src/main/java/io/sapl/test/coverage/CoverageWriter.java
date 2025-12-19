@@ -17,15 +17,13 @@
  */
 package io.sapl.test.coverage;
 
-import io.sapl.api.coverage.BranchHit;
-import io.sapl.api.coverage.PolicyCoverageData;
-import lombok.extern.slf4j.Slf4j;
-
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import io.sapl.api.coverage.PolicyCoverageData;
 import io.sapl.api.pdp.Decision;
+import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 
 import java.io.IOException;
@@ -137,7 +135,7 @@ public class CoverageWriter {
         val metrics = new LinkedHashMap<String, Object>();
         metrics.put("policyCount", coverageRecord.getPolicyCount());
         metrics.put("matchedPolicyCount", coverageRecord.getMatchedPolicyCount());
-        metrics.put("branchCoveragePercent", round(coverageRecord.getOverallBranchCoverage(), 2));
+        metrics.put("branchCoveragePercent", round(coverageRecord.getOverallBranchCoverage()));
         map.put("metrics", metrics);
 
         // Policy coverage details
@@ -162,7 +160,7 @@ public class CoverageWriter {
         }
         map.put("targetTrueHits", coverage.getTargetTrueHits());
         map.put("targetFalseHits", coverage.getTargetFalseHits());
-        map.put("branchCoveragePercent", round(coverage.getBranchCoveragePercent(), 2));
+        map.put("branchCoveragePercent", round(coverage.getBranchCoveragePercent()));
         map.put("conditionCount", coverage.getConditionCount());
         map.put("fullyCoveredConditions", coverage.getFullyCoveredConditionCount());
 
@@ -192,8 +190,8 @@ public class CoverageWriter {
         return map;
     }
 
-    private static double round(double value, int decimals) {
-        val scale = Math.pow(10, decimals);
+    private static double round(double value) {
+        val scale = Math.pow(10, 2);
         return Math.round(value * scale) / scale;
     }
 

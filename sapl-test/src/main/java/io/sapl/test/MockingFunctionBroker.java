@@ -25,13 +25,7 @@ import io.sapl.test.verification.MockVerificationException;
 import io.sapl.test.verification.Times;
 import lombok.NonNull;
 
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
+import java.util.*;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
@@ -104,9 +98,9 @@ public final class MockingFunctionBroker implements FunctionBroker {
     }
 
     private void recordInvocation(FunctionInvocation invocation) {
-        var record = new FunctionInvocationRecord(invocation.functionName(), invocation.arguments(),
+        var invocationRecord = new FunctionInvocationRecord(invocation.functionName(), invocation.arguments(),
                 sequenceCounter.getAndIncrement());
-        invocations.add(record);
+        invocations.add(invocationRecord);
     }
 
     @Override
@@ -313,14 +307,14 @@ public final class MockingFunctionBroker implements FunctionBroker {
     private String buildVerificationMessage(String functionName, List<ArgumentMatcher> matchers, Times times,
             int actualCount) {
         var sb = new StringBuilder();
-        sb.append("Function verification failed for '%s'.\n".formatted(functionName));
+        sb.append("Function verification failed for '%s'.%n".formatted(functionName));
         sb.append(times.failureMessage(actualCount));
 
         var functionInvocations = getInvocations(functionName);
         if (functionInvocations.isEmpty()) {
-            sb.append("\nNo invocations of '%s' were recorded.".formatted(functionName));
+            sb.append("%nNo invocations of '%s' were recorded.".formatted(functionName));
         } else {
-            sb.append("\nRecorded invocations of '%s':".formatted(functionName));
+            sb.append("%nRecorded invocations of '%s':".formatted(functionName));
             for (var inv : functionInvocations) {
                 sb.append("\n  - ").append(inv);
             }

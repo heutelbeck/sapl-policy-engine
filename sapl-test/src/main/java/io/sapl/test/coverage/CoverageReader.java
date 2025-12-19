@@ -17,10 +17,9 @@
  */
 package io.sapl.test.coverage;
 
-import io.sapl.api.coverage.PolicyCoverageData;
-
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.sapl.api.coverage.PolicyCoverageData;
 import io.sapl.api.pdp.Decision;
 import lombok.val;
 

@@ -115,7 +115,7 @@ public sealed interface Times {
      *
      * @param min minimum count (must be >= 0)
      * @param max maximum count (must be >= min)
-     * @throws IllegalArgumentException if min is negative or max < min
+     * @throws IllegalArgumentException if min is negative or max &lt; min
      */
     static Times between(int min, int max) {
         if (min < 0) {

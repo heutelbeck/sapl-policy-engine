@@ -17,11 +17,10 @@
  */
 package io.sapl.test.plain;
 
-import java.time.Duration;
-
+import io.sapl.test.coverage.TestCoverageRecord;
 import org.jspecify.annotations.Nullable;
 
-import io.sapl.test.coverage.TestCoverageRecord;
+import java.time.Duration;
 
 /**
  * Result of a single scenario execution.

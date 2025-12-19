@@ -17,17 +17,12 @@
  */
 package io.sapl.test.coverage;
 
-import io.sapl.api.coverage.BranchHit;
 import io.sapl.api.coverage.PolicyCoverageData;
 import io.sapl.api.pdp.Decision;
 import lombok.Getter;
 import lombok.val;
 
-import java.util.ArrayList;
-import java.util.EnumMap;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * Aggregated coverage data from multiple test executions.

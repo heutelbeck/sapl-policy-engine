@@ -29,12 +29,7 @@ import lombok.NonNull;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Sinks;
 
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -120,9 +115,9 @@ public final class MockingAttributeBroker implements AttributeBroker {
     }
 
     private void recordInvocation(AttributeFinderInvocation invocation) {
-        var record = new AttributeInvocationRecord(invocation.attributeName(), invocation.entity(),
+        var invocationRecord = new AttributeInvocationRecord(invocation.attributeName(), invocation.entity(),
                 invocation.arguments(), sequenceCounter.getAndIncrement());
-        invocations.add(record);
+        invocations.add(invocationRecord);
     }
 
     @Override
@@ -405,7 +400,7 @@ public final class MockingAttributeBroker implements AttributeBroker {
     private int countMatchingInvocations(String attributeName, ArgumentMatcher entityMatcher,
             List<ArgumentMatcher> argMatchers, boolean isEnvironmentAttribute) {
         return (int) invocations.stream().filter(r -> r.attributeName().equals(attributeName))
-                .filter(r -> isEnvironmentAttribute ? r.isEnvironmentAttribute() : !r.isEnvironmentAttribute())
+                .filter(r -> isEnvironmentAttribute == r.isEnvironmentAttribute())
                 .filter(r -> isEnvironmentAttribute || entityMatcher == null || entityMatcher.matches(r.entity()))
                 .filter(r -> matchesArguments(r.arguments(), argMatchers)).count();
     }
@@ -425,14 +420,14 @@ public final class MockingAttributeBroker implements AttributeBroker {
     private String buildVerificationMessage(String attributeName, ArgumentMatcher entityMatcher,
             List<ArgumentMatcher> argMatchers, boolean isEnvironmentAttribute, Times times, int actualCount) {
         var sb = new StringBuilder();
-        sb.append("Attribute verification failed for '%s'.\n".formatted(attributeName));
+        sb.append("Attribute verification failed for '%s'.%n".formatted(attributeName));
         sb.append(times.failureMessage(actualCount));
 
         var attributeInvocations = getInvocations(attributeName);
         if (attributeInvocations.isEmpty()) {
-            sb.append("\nNo invocations of '%s' were recorded.".formatted(attributeName));
+            sb.append("%nNo invocations of '%s' were recorded.".formatted(attributeName));
         } else {
-            sb.append("\nRecorded invocations of '%s':".formatted(attributeName));
+            sb.append("%nRecorded invocations of '%s':".formatted(attributeName));
             for (var inv : attributeInvocations) {
                 sb.append("\n  - ").append(inv);
             }
@@ -496,11 +491,10 @@ public final class MockingAttributeBroker implements AttributeBroker {
             }
 
             // Environment attributes don't match entity
-            if (!isEnvironmentAttribute && entityMatcher != null) {
-                if (!entityMatcher.matches(entity)) {
+            if (!isEnvironmentAttribute && entityMatcher != null && !entityMatcher.matches(entity)) {
                     return false;
                 }
-            }
+
 
             // Check argument matchers
             for (int i = 0; i < arguments.size(); i++) {

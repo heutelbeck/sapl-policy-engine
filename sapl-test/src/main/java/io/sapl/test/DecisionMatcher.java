@@ -56,7 +56,12 @@ public final class DecisionMatcher implements Predicate<AuthorizationDecision> {
     private final List<Predicate<Value>> obligationPredicates = new ArrayList<>();
     private final List<Predicate<Value>> advicePredicates     = new ArrayList<>();
 
-    DecisionMatcher(@NonNull Decision decision) {
+    /**
+     * Creates a matcher for the given decision type.
+     *
+     * @param decision the expected decision type
+     */
+    public DecisionMatcher(@NonNull Decision decision) {
         this.expectedDecision = decision;
     }
 
@@ -153,17 +158,16 @@ public final class DecisionMatcher implements Predicate<AuthorizationDecision> {
         }
 
         // Check resource if specified
-        if (expectedResource != null) {
-            if (!expectedResource.equals(decision.resource())) {
+        if (expectedResource != null && !expectedResource.equals(decision.resource())) {
                 return false;
             }
-        }
+
 
         // Check all expected obligations are present
         if (!expectedObligations.isEmpty()) {
             var actualObligations = decision.obligations();
             for (var expected : expectedObligations) {
-                if (!containsValue(actualObligations, expected)) {
+                if (doesNotContainValue(actualObligations, expected)) {
                     return false;
                 }
             }
@@ -188,7 +192,7 @@ public final class DecisionMatcher implements Predicate<AuthorizationDecision> {
         if (!expectedAdvice.isEmpty()) {
             var actualAdvice = decision.advice();
             for (var expected : expectedAdvice) {
-                if (!containsValue(actualAdvice, expected)) {
+                if (doesNotContainValue(actualAdvice, expected)) {
                     return false;
                 }
             }
@@ -212,13 +216,13 @@ public final class DecisionMatcher implements Predicate<AuthorizationDecision> {
         return true;
     }
 
-    private boolean containsValue(List<Value> list, Value expected) {
+    private boolean doesNotContainValue(List<Value> list, Value expected) {
         for (var value : list) {
             if (expected.equals(value)) {
-                return true;
+                return false;
             }
         }
-        return false;
+        return true;
     }
 
     /**
@@ -263,20 +267,19 @@ public final class DecisionMatcher implements Predicate<AuthorizationDecision> {
             reasons.add("expected %s but was %s".formatted(expectedDecision, decision.decision()));
         }
 
-        if (expectedResource != null) {
-            if (!expectedResource.equals(decision.resource())) {
+        if (expectedResource != null && !expectedResource.equals(decision.resource())) {
                 reasons.add("expected resource %s but was %s".formatted(expectedResource, decision.resource()));
             }
-        }
+
 
         for (var expected : expectedObligations) {
-            if (!containsValue(decision.obligations(), expected)) {
+            if (doesNotContainValue(decision.obligations(), expected)) {
                 reasons.add("missing obligation %s".formatted(expected));
             }
         }
 
         for (var expected : expectedAdvice) {
-            if (!containsValue(decision.advice(), expected)) {
+            if (doesNotContainValue(decision.advice(), expected)) {
                 reasons.add("missing advice %s".formatted(expected));
             }
         }

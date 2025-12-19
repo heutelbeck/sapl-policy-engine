@@ -17,11 +17,9 @@
  */
 package io.sapl.test.coverage;
 
-import io.sapl.api.coverage.BranchHit;
-import io.sapl.api.coverage.PolicyCoverageData;
-
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.sapl.api.coverage.PolicyCoverageData;
 import lombok.val;
 
 import javax.xml.stream.XMLOutputFactory;
@@ -139,7 +137,7 @@ public class SonarQubeCoverageReportGenerator {
             val sourceHash = getIntOrZero(policy, "sourceHash");
             val uniqueKey  = documentName + "#" + sourceHash;
             val coverage   = aggregated.computeIfAbsent(uniqueKey, key -> {
-                               val documentType = getTextOrDefault(policy, "documentType", "policy");
+                               val documentType = getTextOrDefault(policy);
                                val filePath     = getTextOrNull(policy, "filePath");
                                val data         = new PolicyCoverageData(documentName, "", documentType);
                                data.setSourceHash(sourceHash);
@@ -276,9 +274,9 @@ public class SonarQubeCoverageReportGenerator {
         return value != null && value.isTextual() ? value.asText() : null;
     }
 
-    private static String getTextOrDefault(JsonNode node, String field, String defaultValue) {
-        val value = getTextOrNull(node, field);
-        return value != null ? value : defaultValue;
+    private static String getTextOrDefault(JsonNode node) {
+        val value = getTextOrNull(node, "documentType");
+        return value != null ? value : "policy";
     }
 
     private static int getIntOrZero(JsonNode node, String field) {

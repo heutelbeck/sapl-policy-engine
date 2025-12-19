@@ -30,19 +30,13 @@ import io.sapl.attributes.CachingAttributeBroker;
 import io.sapl.attributes.HeapAttributeStorage;
 import io.sapl.attributes.InMemoryAttributeRepository;
 import io.sapl.functions.DefaultFunctionBroker;
-import io.sapl.functions.libraries.ArrayFunctionLibrary;
-import io.sapl.functions.libraries.FilterFunctionLibrary;
-import io.sapl.functions.libraries.StandardFunctionLibrary;
-import io.sapl.functions.libraries.TemporalFunctionLibrary;
-import io.sapl.functions.libraries.GraphFunctionLibrary;
-import io.sapl.functions.libraries.StringFunctionLibrary;
+import io.sapl.functions.libraries.*;
 import io.sapl.pdp.PolicyDecisionPointBuilder;
 import io.sapl.pdp.configuration.PDPConfigurationLoader;
 import io.sapl.pdp.configuration.bundle.BundleParser;
 import io.sapl.pdp.configuration.bundle.BundleSecurityPolicy;
 import io.sapl.test.MockingFunctionBroker.ArgumentMatcher;
 import io.sapl.test.coverage.CoverageAccumulator;
-import io.sapl.test.coverage.CoverageExtractor;
 import io.sapl.test.coverage.CoverageWriter;
 import io.sapl.test.coverage.TestResult;
 import lombok.Getter;
@@ -807,14 +801,14 @@ public class SaplTestFixture {
         val stackTrace = Thread.currentThread().getStackTrace();
         for (val element : stackTrace) {
             val className = element.getClassName();
-            if (isTestClass(className) && !isInternalMethod(element.getMethodName())) {
+            if (isTestClass(className) && isNotAnInternalMethod(element.getMethodName())) {
                 return getSimpleClassName(className) + "::" + element.getMethodName();
             }
         }
         // Second pass: look for any non-internal class
         for (val element : stackTrace) {
             val className = element.getClassName();
-            if (!isInternalPackage(className) && !isInternalMethod(element.getMethodName())) {
+            if (!isInternalPackage(className) && isNotAnInternalMethod(element.getMethodName())) {
                 return getSimpleClassName(className) + "::" + element.getMethodName();
             }
         }
@@ -831,9 +825,9 @@ public class SaplTestFixture {
                 || className.startsWith("org.junit.") || className.startsWith("org.mockito.");
     }
 
-    private boolean isInternalMethod(String methodName) {
-        return "invoke".equals(methodName) || "invoke0".equals(methodName) || "invokeStatic".equals(methodName)
-                || "access$".equals(methodName.substring(0, Math.min(7, methodName.length())));
+    private boolean isNotAnInternalMethod(String methodName) {
+        return !"invoke".equals(methodName) && !"invoke0".equals(methodName) && !"invokeStatic".equals(methodName)
+                && !"access$".equals(methodName.substring(0, Math.min(7, methodName.length())));
     }
 
     private String getSimpleClassName(String fullClassName) {
@@ -1108,6 +1102,21 @@ public class SaplTestFixture {
          */
         public DecisionResult expectDecisionMatches(@NonNull DecisionMatcher matcher) {
             step = step.expectNextMatches(matcher);
+            return this;
+        }
+
+        /**
+         * Expects the next decision to match the given predicate.
+         * <p>
+         * This is a more flexible variant that accepts any predicate, useful for
+         * custom matching logic that doesn't fit the DecisionMatcher fluent API.
+         *
+         * @param predicate the predicate to match against decisions
+         * @return this result for chaining
+         */
+        public DecisionResult expectDecisionMatches(
+                @NonNull java.util.function.Predicate<AuthorizationDecision> predicate) {
+            step = step.expectNextMatches(predicate);
             return this;
         }
 
