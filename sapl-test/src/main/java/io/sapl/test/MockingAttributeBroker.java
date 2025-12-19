@@ -492,9 +492,8 @@ public final class MockingAttributeBroker implements AttributeBroker {
 
             // Environment attributes don't match entity
             if (!isEnvironmentAttribute && entityMatcher != null && !entityMatcher.matches(entity)) {
-                    return false;
-                }
-
+                return false;
+            }
 
             // Check argument matchers
             for (int i = 0; i < arguments.size(); i++) {

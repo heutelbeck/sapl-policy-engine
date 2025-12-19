@@ -20,6 +20,7 @@ package io.sapl.test.plain;
 import io.sapl.api.model.Value;
 import io.sapl.api.pdp.CombiningAlgorithm;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -43,7 +44,14 @@ public record TestConfiguration(
         Map<String, Value> pdpVariables,
         List<Class<?>> functionLibraries,
         List<Object> policyInformationPoints,
-        boolean failFast) {
+        boolean failFast,
+        Duration verificationTimeout) {
+
+    /**
+     * Default timeout for verification (1 second for faster feedback during
+     * development).
+     */
+    public static final Duration DEFAULT_VERIFICATION_TIMEOUT = Duration.ofSeconds(1);
 
     /**
      * Creates a new builder.
@@ -63,6 +71,7 @@ public record TestConfiguration(
         private final List<Class<?>>         functionLibraries       = new ArrayList<>();
         private final List<Object>           policyInformationPoints = new ArrayList<>();
         private boolean                      failFast                = false;
+        private Duration                     verificationTimeout     = DEFAULT_VERIFICATION_TIMEOUT;
 
         /**
          * Adds a SAPL document to test.
@@ -161,12 +170,24 @@ public record TestConfiguration(
         }
 
         /**
+         * Sets the timeout for test verification.
+         * Default is 5 seconds for faster feedback.
+         *
+         * @param timeout the verification timeout
+         * @return this builder for chaining
+         */
+        public Builder withVerificationTimeout(Duration timeout) {
+            this.verificationTimeout = timeout;
+            return this;
+        }
+
+        /**
          * Builds the configuration.
          */
         public TestConfiguration build() {
             return new TestConfiguration(List.copyOf(saplDocuments), List.copyOf(saplTestDocuments), defaultAlgorithm,
                     Map.copyOf(pdpVariables), List.copyOf(functionLibraries), List.copyOf(policyInformationPoints),
-                    failFast);
+                    failFast, verificationTimeout);
         }
     }
 }

@@ -32,7 +32,6 @@ import io.sapl.pdp.CompiledPDPConfigurationSource;
 import io.sapl.prp.NaivePolicyRetrievalPoint;
 import io.sapl.server.ce.model.pdpconfiguration.Variable;
 import io.sapl.server.ce.model.sapldocument.PolicyChangeListener;
-import io.sapl.server.ce.model.sapldocument.PublishedSaplDocument;
 import io.sapl.server.ce.model.sapldocument.PublishedSaplDocumentRepository;
 import io.sapl.server.ce.model.setup.condition.SetupFinishedCondition;
 import jakarta.annotation.PostConstruct;
@@ -158,7 +157,7 @@ public class CEConfigurationSource
     }
 
     private static Map<String, Value> variablesCollectionToMap(@NonNull Collection<Variable> variables) {
-        var variablesAsMap = new HashMap<String, Value>(variables.size());
+        var variablesAsMap = HashMap.<String, Value>newHashMap(variables.size());
         for (val variable : variables) {
             val value = ValueJsonMarshaller.json(variable.getJsonValue());
             if (value instanceof ErrorValue || value instanceof UndefinedValue) {

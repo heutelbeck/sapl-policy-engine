@@ -51,9 +51,9 @@ import org.springframework.context.annotation.Role;
  */
 @RequiredArgsConstructor
 @AutoConfiguration(before = PDPAutoConfiguration.class)
+@EnableConfigurationProperties(EmbeddedPDPProperties.class)
 @ConditionalOnClass(name = "io.sapl.pdp.PolicyDecisionPointBuilder")
 @ConditionalOnProperty(prefix = "io.sapl.pdp.embedded", name = "enabled", havingValue = "true")
-@EnableConfigurationProperties(EmbeddedPDPProperties.class)
 public class InterceptorAutoConfiguration {
 
     private final ObjectMapper          mapper;
@@ -68,9 +68,9 @@ public class InterceptorAutoConfiguration {
      * @return the reporting decision interceptor
      */
     @Bean
-    @ConditionalOnMissingBean(ReportingDecisionInterceptor.class)
-    @Conditional(ReportingEnabledCondition.class)
     @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
+    @Conditional(ReportingEnabledCondition.class)
+    @ConditionalOnMissingBean(ReportingDecisionInterceptor.class)
     TracedDecisionInterceptor reportingDecisionInterceptor() {
         return new ReportingDecisionInterceptor(mapper, properties.isPrettyPrintReports(), properties.isPrintTrace(),
                 properties.isPrintJsonReport(), properties.isPrintTextReport());

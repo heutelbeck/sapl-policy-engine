@@ -79,6 +79,10 @@ public class ScenarioInterpreter {
             // Create fixture based on test mode
             var fixture = isUnitTest ? SaplTestFixture.createSingleTest() : SaplTestFixture.createIntegrationTest();
 
+            // Load default function libraries so unmocked functions delegate to real
+            // implementations
+            fixture.withDefaultFunctionLibraries();
+
             // Configure coverage for test identification
             fixture.withTestIdentifier(requirementName + " > " + scenarioName);
 
@@ -104,13 +108,13 @@ public class ScenarioInterpreter {
             // Execute expectations (including then/expect sequences)
             executeExpectations(decisionResult, scenario.expectOrThenExpect());
 
-            // Execute verify block if present
+            // Verify and get result - this actually runs the reactive pipeline
+            var testResult = decisionResult.verify();
+
+            // Execute verify block AFTER evaluation completes (so invocations are recorded)
             if (scenario.verifyBlock() != null) {
                 executeVerifyBlock(fixture, scenario.verifyBlock());
             }
-
-            // Verify and get result
-            var testResult = decisionResult.verify();
 
             var duration = Duration.ofNanos(System.nanoTime() - startTime);
             if (testResult.passed()) {
@@ -184,27 +188,27 @@ public class ScenarioInterpreter {
     private void applyDocumentSelection(SaplTestFixture fixture, @Nullable DocumentSpecificationContext docSpec,
             boolean isUnitTest) {
         switch (docSpec) {
-            case null -> {
-                // Integration test with all documents from config
-                for (var doc : config.saplDocuments()) {
-                    fixture.withPolicy(doc.sourceCode());
-                }
-            }
-            case SingleDocumentContext single -> {
-                // Unit test with single document
-                var docName = unquoteString(single.identifier.getText());
-                var doc = findDocumentByName(docName);
+        case null                              -> {
+            // Integration test with all documents from config
+            for (var doc : config.saplDocuments()) {
                 fixture.withPolicy(doc.sourceCode());
             }
-            case MultipleDocumentsContext multiple -> {
-                // Integration test with explicit subset
-                for (var idToken : multiple.identifiers) {
-                    var docName = unquoteString(idToken.getText());
-                    var doc = findDocumentByName(docName);
-                    fixture.withPolicy(doc.sourceCode());
-                }
+        }
+        case SingleDocumentContext single      -> {
+            // Unit test with single document
+            var docName = unquoteString(single.identifier.getText());
+            var doc     = findDocumentByName(docName);
+            fixture.withPolicy(doc.sourceCode());
+        }
+        case MultipleDocumentsContext multiple -> {
+            // Integration test with explicit subset
+            for (var idToken : multiple.identifiers) {
+                var docName = unquoteString(idToken.getText());
+                var doc     = findDocumentByName(docName);
+                fixture.withPolicy(doc.sourceCode());
             }
-            default -> { /* NO-OP */ }
+        }
+        default                                -> { /* NO-OP */ }
         }
     }
 
@@ -429,9 +433,8 @@ public class ScenarioInterpreter {
 
         } else if (expectation instanceof MatcherExpectationContext matcherExp) {
             // expect decision any, is permit, with obligation ..., etc.
-            for (var matcherCtx : matcherExp.matchers) {
-                applyDecisionMatcherExpectation(decisionResult, matcherCtx);
-            }
+            // Combine all matchers into a single predicate that checks ONE decision
+            applyCombinedMatchers(decisionResult, matcherExp.matchers);
 
         } else if (expectation instanceof StreamExpectationContext streamExp) {
             // expect - permit once - deny 2 times - ...
@@ -461,9 +464,8 @@ public class ScenarioInterpreter {
 
         } else if (step instanceof NextWithMatcherStepContext nextMatcherStep) {
             // decision any, is permit, with obligation ...
-            for (var matcherCtx : nextMatcherStep.matchers) {
-                applyDecisionMatcherExpectation(decisionResult, matcherCtx);
-            }
+            // Combine all matchers into a single predicate that checks ONE decision
+            applyCombinedMatchers(decisionResult, nextMatcherStep.matchers);
         }
     }
 
@@ -522,44 +524,107 @@ public class ScenarioInterpreter {
     private void applyDecisionMatcherExpectation(SaplTestFixture.DecisionResult decisionResult,
             AuthorizationDecisionMatcherContext ctx) {
         switch (ctx) {
-            case AnyDecisionMatcherContext anyDecisionMatcherContext ->
-                // any - matches any decision, use predicate for flexibility
-                    decisionResult.expectDecisionMatches(Objects::nonNull);
-            case IsDecisionMatcherContext isCtx -> {
-                // is permit|deny|...
-                var decision = parseDecisionType(isCtx.decision);
-                var matcher = createBasicDecisionMatcher(decision);
-                decisionResult.expectDecisionMatches(matcher);
-            }
-            case HasObligationOrAdviceMatcherContext hasCtx ->
-                // with obligation|advice [equals|matching|containing key ...]
-                // Use predicate to check constraints regardless of decision type
-                    decisionResult.expectDecisionMatches(decision -> {
-                        if (decision == null) {
-                            return false;
-                        }
-                        // TODO: Apply extended matcher constraints from hasCtx.extendedMatcher
-                        return true; // For now, just check non-null
-                    });
-            case HasResourceMatcherContext resCtx -> {
-                // with resource [equals|matching]
-                if (resCtx.defaultMatcher != null) {
-                    if (resCtx.defaultMatcher instanceof ExactMatchObjectMatcherContext exactCtx) {
-                        var expected = ValueConverter.convert(exactCtx.equalTo);
-                        decisionResult.expectDecisionMatches(
-                                decision -> decision != null && expected.equals(decision.resource()));
-                    } else {
-                        // Matching case - just check resource is present for now
-                        decisionResult.expectDecisionMatches(Objects::nonNull);
-                    }
+        case AnyDecisionMatcherContext anyDecisionMatcherContext ->
+            // any - matches any decision, use predicate for flexibility
+            decisionResult.expectDecisionMatches(Objects::nonNull);
+        case IsDecisionMatcherContext isCtx             -> {
+            // is permit|deny|...
+            var decision = parseDecisionType(isCtx.decision);
+            var matcher  = createBasicDecisionMatcher(decision);
+            decisionResult.expectDecisionMatches(matcher);
+        }
+        case HasObligationOrAdviceMatcherContext hasCtx ->
+            // with obligation|advice [equals|matching|containing key ...]
+            // Use predicate to check constraints regardless of decision type
+            decisionResult.expectDecisionMatches(decision -> {
+                if (decision == null) {
+                    return false;
+                }
+                // TODO: Apply extended matcher constraints from hasCtx.extendedMatcher
+                return true; // For now, just check non-null
+            });
+        case HasResourceMatcherContext resCtx -> {
+            // with resource [equals|matching]
+            if (resCtx.defaultMatcher != null) {
+                if (resCtx.defaultMatcher instanceof ExactMatchObjectMatcherContext exactCtx) {
+                    var expected = ValueConverter.convert(exactCtx.equalTo);
+                    decisionResult.expectDecisionMatches(
+                            decision -> decision != null && expected.equals(decision.resource()));
                 } else {
-                    // Just "with resource" - check that resource is present
+                    // Matching case - just check resource is present for now
                     decisionResult.expectDecisionMatches(Objects::nonNull);
                 }
+            } else {
+                // Just "with resource" - check that resource is present
+                decisionResult.expectDecisionMatches(Objects::nonNull);
             }
-            default ->
-                    throw new IllegalArgumentException("Unknown decision matcher type: " + ctx.getClass().getSimpleName());
         }
+        default                               ->
+            throw new IllegalArgumentException("Unknown decision matcher type: " + ctx.getClass().getSimpleName());
+        }
+    }
+
+    /**
+     * Combines multiple matchers into a single expectation that checks ONE
+     * decision.
+     * This ensures that 'expect is permit, with obligation' checks a single
+     * decision
+     * for BOTH conditions, rather than expecting two separate decisions.
+     */
+    private void applyCombinedMatchers(SaplTestFixture.DecisionResult decisionResult,
+            java.util.List<AuthorizationDecisionMatcherContext> matchers) {
+        if (matchers.isEmpty()) {
+            return;
+        }
+        if (matchers.size() == 1) {
+            // Single matcher - use existing logic
+            applyDecisionMatcherExpectation(decisionResult, matchers.get(0));
+            return;
+        }
+        // Multiple matchers - combine into a single predicate
+        decisionResult.expectDecisionMatches(decision -> {
+            if (decision == null) {
+                return false;
+            }
+            for (var matcher : matchers) {
+                if (!matchesSingleMatcher(decision, matcher)) {
+                    return false;
+                }
+            }
+            return true;
+        });
+    }
+
+    /**
+     * Checks if a decision matches a single matcher context.
+     * Used by applyCombinedMatchers to evaluate each matcher independently.
+     */
+    private boolean matchesSingleMatcher(io.sapl.api.pdp.AuthorizationDecision decision,
+            AuthorizationDecisionMatcherContext ctx) {
+        return switch (ctx) {
+        case AnyDecisionMatcherContext __           -> true;
+        case IsDecisionMatcherContext isCtx         -> {
+            var expectedDecision = parseDecisionType(isCtx.decision);
+            yield decision.decision() == expectedDecision;
+        }
+        case HasObligationOrAdviceMatcherContext __ -> {
+            // TODO: Apply extended matcher constraints
+            // For now, just check that obligations/advice exist if required
+            yield true;
+        }
+        case HasResourceMatcherContext resCtx       -> {
+            if (resCtx.defaultMatcher != null) {
+                if (resCtx.defaultMatcher instanceof ExactMatchObjectMatcherContext exactCtx) {
+                    var expected = ValueConverter.convert(exactCtx.equalTo);
+                    yield expected.equals(decision.resource());
+                }
+            }
+            // Just check resource is present
+            yield true;
+        }
+        default                                     ->
+            throw new IllegalArgumentException("Unknown matcher type: " + ctx.getClass().getSimpleName());
+        };
     }
 
     /**

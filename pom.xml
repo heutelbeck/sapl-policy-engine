@@ -100,7 +100,8 @@
 		<flexmark.version>0.64.8</flexmark.version>
 		<springboot.version>3.5.8</springboot.version>
 		<classgraph.version>4.8.184</classgraph.version>
-        <commons-io.version>2.21.0</commons-io.version>
+		<commons-io.version>2.21.0</commons-io.version>
+		<commons-lang.version>3.20.0</commons-lang.version>
         <reactor-netty.version>1.2.0</reactor-netty.version>
         <nimbus-jose-jwt.version>9.37.4</nimbus-jose-jwt.version>
 		<slf4j-test.version>3.0.3</slf4j-test.version>
@@ -265,6 +266,11 @@
                 <artifactId>commons-io</artifactId>
                 <version>${commons-io.version}</version>
             </dependency>
+			<dependency>
+				<groupId>org.apache.commons</groupId>
+				<artifactId>commons-lang3</artifactId>
+				<version>${commons-lang.version}</version>
+			</dependency>
             <!-- JSON Web Token Support -->
             <dependency>
                 <groupId>com.nimbusds</groupId>

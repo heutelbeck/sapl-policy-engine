@@ -20,11 +20,14 @@ package io.sapl.server.ce.model.pdpconfiguration;
 import io.sapl.api.SaplVersion;
 import lombok.NonNull;
 
+import java.io.Serial;
+
 /**
  * Exception thrown if a provided JSON value is invalid.
  */
 public class InvalidJsonException extends Exception {
 
+    @Serial
     private static final long serialVersionUID = SaplVersion.VERSION_UID;
 
     public InvalidJsonException(@NonNull String invalidJson) {

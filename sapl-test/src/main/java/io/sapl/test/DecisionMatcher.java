@@ -159,9 +159,8 @@ public final class DecisionMatcher implements Predicate<AuthorizationDecision> {
 
         // Check resource if specified
         if (expectedResource != null && !expectedResource.equals(decision.resource())) {
-                return false;
-            }
-
+            return false;
+        }
 
         // Check all expected obligations are present
         if (!expectedObligations.isEmpty()) {
@@ -268,9 +267,8 @@ public final class DecisionMatcher implements Predicate<AuthorizationDecision> {
         }
 
         if (expectedResource != null && !expectedResource.equals(decision.resource())) {
-                reasons.add("expected resource %s but was %s".formatted(expectedResource, decision.resource()));
-            }
-
+            reasons.add("expected resource %s but was %s".formatted(expectedResource, decision.resource()));
+        }
 
         for (var expected : expectedObligations) {
             if (doesNotContainValue(decision.obligations(), expected)) {
