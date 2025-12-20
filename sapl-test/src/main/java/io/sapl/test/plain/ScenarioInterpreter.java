@@ -37,6 +37,7 @@ import java.util.stream.Collectors;
 
 import static io.sapl.compiler.StringsUtil.unquoteString;
 import static io.sapl.test.Matchers.*;
+import io.sapl.api.model.Value;
 
 /**
  * Interprets a parsed scenario and executes it using SaplTestFixture.
@@ -145,14 +146,14 @@ public class ScenarioInterpreter {
         // First, add requirement-level items
         if (requirementGiven != null) {
             for (var item : requirementGiven.givenItem()) {
-                result.addItem(item);
+                result.addItem(item, false);
             }
         }
 
         // Then, add/override with scenario-level items
         if (scenarioGiven != null) {
             for (var item : scenarioGiven.givenItem()) {
-                result.addItem(item);
+                result.addItem(item, true);
             }
         }
 
@@ -225,11 +226,18 @@ public class ScenarioInterpreter {
 
     /**
      * Applies combining algorithm to the fixture.
+     * Validates that unit tests do not specify a combining algorithm.
      */
     private void applyCombiningAlgorithm(SaplTestFixture fixture, MergedGiven given, boolean isUnitTest) {
         if (isUnitTest) {
             // Unit test: default is ONLY_ONE_APPLICABLE (handled by fixture)
-            // Ignore any algorithm specification for unit tests
+            // Specifying an algorithm in a unit test is a validation error
+            if (given.combiningAlgorithm != null) {
+                throw new TestValidationException(
+                        "Unit tests (using 'document' singular) cannot specify a combining algorithm. "
+                                + "Unit tests automatically use ONLY_ONE_APPLICABLE. "
+                                + "Use 'documents' (plural) for integration tests that need a specific algorithm.");
+            }
             return;
         }
 
@@ -298,11 +306,13 @@ public class ScenarioInterpreter {
             var returnValueOrError = ValueConverter.convertValueOrError(funcMock.returnValue);
 
             if (returnValueOrError.isError()) {
-                // TODO: Handle error return values - need fixture support
-                throw new UnsupportedOperationException("Error return values in function mocks not yet supported");
+                // Return error Value - causes policy evaluation to result in indeterminate
+                var errorMessage = returnValueOrError.errorMessage() != null ? returnValueOrError.errorMessage()
+                        : "Mock function error";
+                fixture.givenFunction(functionName, parameters, Value.error(errorMessage));
+            } else {
+                fixture.givenFunction(functionName, parameters, returnValueOrError.value());
             }
-
-            fixture.givenFunction(functionName, parameters, returnValueOrError.value());
         }
     }
 
@@ -340,10 +350,12 @@ public class ScenarioInterpreter {
                 if (attrMock.initialValue != null) {
                     var initialValue = ValueConverter.convertValueOrError(attrMock.initialValue);
                     if (initialValue.isError()) {
-                        throw new UnsupportedOperationException(
-                                "Error initial values in attribute mocks not yet supported");
+                        var errorMessage = initialValue.errorMessage() != null ? initialValue.errorMessage()
+                                : "Mock attribute error";
+                        fixture.givenEnvironmentAttribute(mockId, attributeName, parameters, Value.error(errorMessage));
+                    } else {
+                        fixture.givenEnvironmentAttribute(mockId, attributeName, parameters, initialValue.value());
                     }
-                    fixture.givenEnvironmentAttribute(mockId, attributeName, parameters, initialValue.value());
                 } else {
                     fixture.givenEnvironmentAttribute(mockId, attributeName, parameters);
                 }
@@ -356,10 +368,13 @@ public class ScenarioInterpreter {
                 if (attrMock.initialValue != null) {
                     var initialValue = ValueConverter.convertValueOrError(attrMock.initialValue);
                     if (initialValue.isError()) {
-                        throw new UnsupportedOperationException(
-                                "Error initial values in attribute mocks not yet supported");
+                        var errorMessage = initialValue.errorMessage() != null ? initialValue.errorMessage()
+                                : "Mock attribute error";
+                        fixture.givenAttribute(mockId, attributeName, entityMatcher, parameters,
+                                Value.error(errorMessage));
+                    } else {
+                        fixture.givenAttribute(mockId, attributeName, entityMatcher, parameters, initialValue.value());
                     }
-                    fixture.givenAttribute(mockId, attributeName, entityMatcher, parameters, initialValue.value());
                 } else {
                     fixture.givenAttribute(mockId, attributeName, entityMatcher, parameters);
                 }
@@ -478,9 +493,12 @@ public class ScenarioInterpreter {
                 var mockId       = unquoteString(emitStep.mockId.getText());
                 var valueOrError = ValueConverter.convertValueOrError(emitStep.emittedValue);
                 if (valueOrError.isError()) {
-                    throw new UnsupportedOperationException("Error emission in then blocks not yet supported");
+                    var errorMessage = valueOrError.errorMessage() != null ? valueOrError.errorMessage()
+                            : "Mock emit error";
+                    decisionResult.thenEmit(mockId, Value.error(errorMessage));
+                } else {
+                    decisionResult.thenEmit(mockId, valueOrError.value());
                 }
-                decisionResult.thenEmit(mockId, valueOrError.value());
             }
         }
     }
@@ -711,12 +729,16 @@ public class ScenarioInterpreter {
         List<FunctionMockContext>    functionMocks  = new ArrayList<>();
         List<AttributeMockContext>   attributeMocks = new ArrayList<>();
 
-        void addItem(GivenItemContext item) {
+        void addItem(GivenItemContext item, boolean isScenarioLevel) {
             if (item instanceof DocumentGivenItemContext docItem) {
-                // Scenario-level document spec overrides requirement-level
+                if (isScenarioLevel) {
+                    throw new TestValidationException(
+                            "Document specification ('document' or 'documents') must be in the requirement-level given block, "
+                                    + "not in the scenario-level given block. All scenarios in a requirement test the same document(s).");
+                }
                 this.documentSpecification = docItem.documentSpecification();
             } else if (item instanceof AlgorithmGivenItemContext algItem) {
-                // Scenario-level algorithm overrides requirement-level
+                // Scenario-level algorithm also adds to merged - validation happens later
                 this.combiningAlgorithm = algItem.combiningAlgorithm();
             } else if (item instanceof VariablesGivenItemContext varItem) {
                 // Scenario-level variables override requirement-level

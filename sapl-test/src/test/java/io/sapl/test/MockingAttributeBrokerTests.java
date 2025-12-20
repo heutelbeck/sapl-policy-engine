@@ -831,4 +831,106 @@ class MockingAttributeBrokerTests {
         assertThatThrownBy(() -> broker.verifyAttribute("test.attr", any(), invalidParams, once()))
                 .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("args()");
     }
+
+    // ========== Error Value Tests ==========
+
+    @Test
+    void whenEnvironmentAttributeWithErrorInitialValue_thenEmitsError() {
+        var errorValue = Value.error("PIP unavailable");
+        broker.mockEnvironmentAttribute("errorMock", "error.pip", args(), errorValue);
+
+        var invocation = envInvocation("error.pip", List.of());
+        var stream     = broker.attributeStream(invocation);
+
+        StepVerifier.create(stream.take(1)).expectNextMatches(v -> v instanceof io.sapl.api.model.ErrorValue)
+                .verifyComplete();
+    }
+
+    @Test
+    void whenRegularAttributeWithErrorInitialValue_thenEmitsError() {
+        var errorValue = Value.error("User service down");
+        broker.mockAttribute("errorAttr", "user.status", any(), args(), errorValue);
+
+        var invocation = entityInvocation("user.status", Value.of("testUser"), List.of());
+        var stream     = broker.attributeStream(invocation);
+
+        StepVerifier.create(stream.take(1)).expectNextMatches(v -> v instanceof io.sapl.api.model.ErrorValue)
+                .verifyComplete();
+    }
+
+    @Test
+    void whenEmitErrorValue_thenStreamReceivesError() {
+        broker.mockEnvironmentAttribute("streamError", "stream.error", args(), Value.of("initial"));
+
+        var invocation = envInvocation("stream.error", List.of());
+        var stream     = broker.attributeStream(invocation);
+
+        StepVerifier.create(stream.take(2)).expectNext(Value.of("initial"))
+                .then(() -> broker.emit("streamError", Value.error("Connection lost")))
+                .expectNextMatches(v -> v instanceof io.sapl.api.model.ErrorValue).verifyComplete();
+    }
+
+    @Test
+    void whenErrorThenRecovery_thenStreamReceivesBoth() {
+        broker.mockEnvironmentAttribute("recovery", "test.recovery", args());
+
+        var invocation = envInvocation("test.recovery", List.of());
+        var stream     = broker.attributeStream(invocation);
+
+        StepVerifier.create(stream.take(3)).then(() -> broker.emit("recovery", Value.of("ok")))
+                .expectNext(Value.of("ok")).then(() -> broker.emit("recovery", Value.error("failed")))
+                .expectNextMatches(v -> v instanceof io.sapl.api.model.ErrorValue)
+                .then(() -> broker.emit("recovery", Value.of("recovered"))).expectNext(Value.of("recovered"))
+                .verifyComplete();
+    }
+
+    // ========== Undefined Value Tests ==========
+
+    @Test
+    void whenEnvironmentAttributeWithUndefinedInitialValue_thenEmitsUndefined() {
+        broker.mockEnvironmentAttribute("undefinedMock", "test.undefined", args(), Value.UNDEFINED);
+
+        var invocation = envInvocation("test.undefined", List.of());
+        var stream     = broker.attributeStream(invocation);
+
+        StepVerifier.create(stream.take(1)).expectNextMatches(v -> v instanceof io.sapl.api.model.UndefinedValue)
+                .verifyComplete();
+    }
+
+    @Test
+    void whenRegularAttributeWithUndefinedInitialValue_thenEmitsUndefined() {
+        broker.mockAttribute("undefinedAttr", "user.missing", any(), args(), Value.UNDEFINED);
+
+        var invocation = entityInvocation("user.missing", Value.of("testUser"), List.of());
+        var stream     = broker.attributeStream(invocation);
+
+        StepVerifier.create(stream.take(1)).expectNextMatches(v -> v instanceof io.sapl.api.model.UndefinedValue)
+                .verifyComplete();
+    }
+
+    @Test
+    void whenEmitUndefinedValue_thenStreamReceivesUndefined() {
+        broker.mockEnvironmentAttribute("streamUndef", "stream.undefined", args(), Value.of("initial"));
+
+        var invocation = envInvocation("stream.undefined", List.of());
+        var stream     = broker.attributeStream(invocation);
+
+        StepVerifier.create(stream.take(2)).expectNext(Value.of("initial"))
+                .then(() -> broker.emit("streamUndef", Value.UNDEFINED))
+                .expectNextMatches(v -> v instanceof io.sapl.api.model.UndefinedValue).verifyComplete();
+    }
+
+    @Test
+    void whenUndefinedThenDefined_thenStreamReceivesBoth() {
+        broker.mockEnvironmentAttribute("undef2def", "test.transition", args());
+
+        var invocation = envInvocation("test.transition", List.of());
+        var stream     = broker.attributeStream(invocation);
+
+        StepVerifier.create(stream.take(2)).then(() -> broker.emit("undef2def", Value.UNDEFINED))
+                .expectNextMatches(v -> v instanceof io.sapl.api.model.UndefinedValue)
+                .then(() -> broker.emit("undef2def", Value.of("now defined"))).expectNext(Value.of("now defined"))
+                .verifyComplete();
+    }
+
 }

@@ -476,6 +476,51 @@ class MockingFunctionBrokerTests {
         assertThat(broker.evaluateFunction(invocation("fn.alpha"))).isEqualTo(Value.of("alpha"));
     }
 
+    // ========== Undefined Value Tests ==========
+
+    @Test
+    void whenMockWithUndefinedValue_thenReturnsUndefined() {
+        broker.mock(FUNCTION_NAME, args(), Value.UNDEFINED);
+
+        var result = broker.evaluateFunction(invocation(FUNCTION_NAME));
+
+        assertThat(result).isEqualTo(Value.UNDEFINED);
+        assertThat(result instanceof io.sapl.api.model.UndefinedValue).isTrue();
+    }
+
+    @Test
+    void whenMockWithUndefinedValueAndArgs_thenReturnsUndefined() {
+        broker.mock(FUNCTION_NAME, args(any()), Value.UNDEFINED);
+
+        var result = broker.evaluateFunction(invocation(FUNCTION_NAME, Value.of("test")));
+
+        assertThat(result).isEqualTo(Value.UNDEFINED);
+    }
+
+    @Test
+    void whenMockWithSequenceIncludingUndefined_thenReturnsSequenceCorrectly() {
+        var first     = Value.of("defined");
+        var undefined = Value.UNDEFINED;
+        var last      = Value.of("also defined");
+        broker.mock(FUNCTION_NAME, args(), first, undefined, last);
+
+        assertThat(broker.evaluateFunction(invocation(FUNCTION_NAME))).isEqualTo(first);
+        assertThat(broker.evaluateFunction(invocation(FUNCTION_NAME))).isEqualTo(Value.UNDEFINED);
+        assertThat(broker.evaluateFunction(invocation(FUNCTION_NAME))).isEqualTo(last);
+    }
+
+    @Test
+    void whenMockWithUndefinedAndExactMatcher_thenReturnsUndefinedOnMatch() {
+        var specificArg  = Value.of("missing_field");
+        var successValue = Value.of("found");
+
+        broker.mock(FUNCTION_NAME, args(eq(specificArg)), Value.UNDEFINED);
+        broker.mock(FUNCTION_NAME, args(any()), successValue);
+
+        assertThat(broker.evaluateFunction(invocation(FUNCTION_NAME, specificArg))).isEqualTo(Value.UNDEFINED);
+        assertThat(broker.evaluateFunction(invocation(FUNCTION_NAME, Value.of("valid_field")))).isEqualTo(successValue);
+    }
+
     // ========== Invocation Recording Tests ==========
 
     @Test

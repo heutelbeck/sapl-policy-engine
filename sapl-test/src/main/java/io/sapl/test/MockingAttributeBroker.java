@@ -106,9 +106,9 @@ public final class MockingAttributeBroker implements AttributeBroker {
         recordInvocation(invocation);
         return findMostSpecificMatch(invocation).map(mock -> getStream(mock.mockId())).orElseGet(() -> {
             if (delegate == null) {
-                return Flux.error(
-                        new IllegalStateException("No mock matched attribute '%s' and no delegate broker configured."
-                                .formatted(invocation.attributeName())));
+                // Return error Value - this causes policy evaluation to result in indeterminate
+                return Flux.just(Value.error("No mock matched attribute '%s' and no delegate broker configured."
+                        .formatted(invocation.attributeName())));
             }
             return delegate.attributeStream(invocation);
         });
