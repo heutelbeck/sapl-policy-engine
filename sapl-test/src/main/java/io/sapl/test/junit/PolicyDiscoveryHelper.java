@@ -20,6 +20,7 @@ package io.sapl.test.junit;
 import io.sapl.test.plain.SaplDocument;
 import org.apache.commons.io.FileUtils;
 
+import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -50,13 +51,17 @@ class PolicyDiscoveryHelper {
             return documents;
         }
 
-        var files = FileUtils.listFiles(directory, SAPL_FILE_EXTENSIONS, true);
+        var files       = FileUtils.listFiles(directory, SAPL_FILE_EXTENSIONS, true);
+        var resourceDir = FileUtils.getFile(RESOURCES_ROOT);
         for (var file : files) {
             try {
                 var relativePath = directory.toPath().relativize(file.toPath()).toString();
                 var name         = extractPolicyName(relativePath);
                 var sourceCode   = Files.readString(file.toPath(), StandardCharsets.UTF_8);
-                documents.add(new SaplDocument(name, name, sourceCode));
+                // Use full path relative to resources root for coverage reporting
+                var filePath = resourceDir.toPath().relativize(file.toPath()).toString().replace(File.separatorChar,
+                        '/');
+                documents.add(SaplDocument.of(name, sourceCode, filePath));
             } catch (IOException e) {
                 // Skip files that can't be read
             }
@@ -88,13 +93,17 @@ class PolicyDiscoveryHelper {
             return documents;
         }
 
-        var files = FileUtils.listFiles(directory, SAPL_FILE_EXTENSIONS, true);
+        var files       = FileUtils.listFiles(directory, SAPL_FILE_EXTENSIONS, true);
+        var resourceDir = FileUtils.getFile(RESOURCES_ROOT);
         for (var file : files) {
             try {
                 var relativePath = directory.toPath().relativize(file.toPath()).toString();
                 var name         = extractPolicyName(subdirectory, relativePath, useFilename);
                 var sourceCode   = Files.readString(file.toPath(), StandardCharsets.UTF_8);
-                documents.add(new SaplDocument(name, name, sourceCode));
+                // Use full path relative to resources root for coverage reporting
+                var filePath = resourceDir.toPath().relativize(file.toPath()).toString().replace(File.separatorChar,
+                        '/');
+                documents.add(SaplDocument.of(name, sourceCode, filePath));
             } catch (IOException e) {
                 // Skip files that can't be read
             }
@@ -117,7 +126,7 @@ class PolicyDiscoveryHelper {
             name = name.substring(0, name.length() - 5);
         }
         // Normalize path separators to forward slashes
-        return name.replace('\\', '/');
+        return name.replace(File.separatorChar, '/');
     }
 
     /**
@@ -140,7 +149,7 @@ class PolicyDiscoveryHelper {
             name = name.substring(0, name.length() - 5);
         }
         // Normalize path separators to forward slashes
-        name = name.replace('\\', '/');
+        name = name.replace(File.separatorChar, '/');
 
         if (useFilenameOnly) {
             // For "policies" directory, use just filename for unit tests

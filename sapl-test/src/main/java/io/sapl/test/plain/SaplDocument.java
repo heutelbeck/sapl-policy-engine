@@ -26,17 +26,31 @@ package io.sapl.test.plain;
  * @param id identifier for result mapping (e.g., database ID)
  * @param name unique name referenced in tests (must match grammar references)
  * @param sourceCode the SAPL source code
+ * @param filePath optional file path for coverage reporting (null for
+ * programmatic use)
  */
-public record SaplDocument(String id, String name, String sourceCode) {
+public record SaplDocument(String id, String name, String sourceCode, String filePath) {
 
     /**
-     * Creates a document with the same value for id and name.
+     * Creates a document with the same value for id and name, without file path.
      *
      * @param name the name (used as both id and name)
      * @param sourceCode the SAPL source code
      * @return a new SaplDocument
      */
     public static SaplDocument of(String name, String sourceCode) {
-        return new SaplDocument(name, name, sourceCode);
+        return new SaplDocument(name, name, sourceCode, null);
+    }
+
+    /**
+     * Creates a document with the same value for id and name, with file path.
+     *
+     * @param name the name (used as both id and name)
+     * @param sourceCode the SAPL source code
+     * @param filePath the file path for coverage reporting
+     * @return a new SaplDocument
+     */
+    public static SaplDocument of(String name, String sourceCode, String filePath) {
+        return new SaplDocument(name, name, sourceCode, filePath);
     }
 }

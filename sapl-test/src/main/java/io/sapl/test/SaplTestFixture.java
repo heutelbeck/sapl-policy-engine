@@ -193,6 +193,42 @@ public class SaplTestFixture {
     }
 
     /**
+     * Adds a policy document with its file path for coverage reporting.
+     * <p>
+     * The policy name is extracted from the SAPL source code and used to register
+     * the file path for coverage reports.
+     *
+     * @param policyDocument the SAPL policy source code
+     * @param filePath the file path for coverage reporting
+     * @return this fixture for chaining
+     */
+    public SaplTestFixture withPolicy(@NonNull String policyDocument, @NonNull String filePath) {
+        validatePolicyAddition();
+        policyDocuments.add(policyDocument);
+        var policyName = extractPolicyName(policyDocument);
+        if (policyName != null) {
+            policyFilePaths.put(policyName, filePath);
+        }
+        return this;
+    }
+
+    /**
+     * Registers a file path for a policy document for coverage reporting.
+     * <p>
+     * Use this after loading a policy with {@link #withPolicy(String)} when you
+     * want the coverage report to link to the source file. The policy name is
+     * extracted from the policy/policy set name in the SAPL source.
+     *
+     * @param policyName the name of the policy (from "policy name" or "set name")
+     * @param filePath the file path for coverage reporting
+     * @return this fixture for chaining
+     */
+    public SaplTestFixture withPolicyFilePath(@NonNull String policyName, @NonNull String filePath) {
+        policyFilePaths.put(policyName, filePath);
+        return this;
+    }
+
+    /**
      * Adds a policy document from a file path.
      *
      * @param filePath the path to the .sapl file

@@ -192,24 +192,37 @@ public class ScenarioInterpreter {
         case null                              -> {
             // Integration test with all documents from config
             for (var doc : config.saplDocuments()) {
-                fixture.withPolicy(doc.sourceCode());
+                addDocumentToFixture(fixture, doc);
             }
         }
         case SingleDocumentContext single      -> {
             // Unit test with single document
             var docName = unquoteString(single.identifier.getText());
             var doc     = findDocumentByName(docName);
-            fixture.withPolicy(doc.sourceCode());
+            addDocumentToFixture(fixture, doc);
         }
         case MultipleDocumentsContext multiple -> {
             // Integration test with explicit subset
             for (var idToken : multiple.identifiers) {
                 var docName = unquoteString(idToken.getText());
                 var doc     = findDocumentByName(docName);
-                fixture.withPolicy(doc.sourceCode());
+                addDocumentToFixture(fixture, doc);
             }
         }
         default                                -> { /* NO-OP */ }
+        }
+    }
+
+    /**
+     * Adds a document to the fixture and registers its file path for coverage
+     * reporting.
+     */
+    private void addDocumentToFixture(SaplTestFixture fixture, SaplDocument doc) {
+        if (doc.filePath() != null) {
+            // Use overloaded method that extracts policy name from source
+            fixture.withPolicy(doc.sourceCode(), doc.filePath());
+        } else {
+            fixture.withPolicy(doc.sourceCode());
         }
     }
 

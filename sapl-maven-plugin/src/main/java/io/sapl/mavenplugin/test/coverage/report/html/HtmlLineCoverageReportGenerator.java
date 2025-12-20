@@ -77,9 +77,9 @@ public class HtmlLineCoverageReportGenerator {
         val engine = prepareTemplateEngine();
 
         val context = new Context();
-        context.setVariable("policySetHitRatio", policySetHitRatio);
-        context.setVariable("policyHitRatio", policyHitRatio);
-        context.setVariable("policyConditionHitRatio", policyConditionHitRatio);
+        context.setVariable("policySetHitRatio", String.format("%.2f", policySetHitRatio));
+        context.setVariable("policyHitRatio", String.format("%.2f", policyHitRatio));
+        context.setVariable("policyConditionHitRatio", String.format("%.2f", policyConditionHitRatio));
         context.setVariable("documentFileNames", policies.stream().map(PolicyCoverageData::getDocumentName).toList());
 
         val html       = engine.process("report.html", context);
