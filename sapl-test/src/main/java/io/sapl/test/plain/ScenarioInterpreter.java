@@ -731,10 +731,17 @@ public class ScenarioInterpreter {
 
         void addItem(GivenItemContext item, boolean isScenarioLevel) {
             if (item instanceof DocumentGivenItemContext docItem) {
-                if (isScenarioLevel) {
+                // Only reject single document ('document') at scenario level - unit tests
+                // should
+                // have document at requirement level. Multiple documents ('documents') are
+                // allowed
+                // at scenario level for integration tests where different scenarios may test
+                // different document combinations.
+                if (isScenarioLevel && docItem.documentSpecification() instanceof SingleDocumentContext) {
                     throw new TestValidationException(
-                            "Document specification ('document' or 'documents') must be in the requirement-level given block, "
-                                    + "not in the scenario-level given block. All scenarios in a requirement test the same document(s).");
+                            "Document specification ('document') for unit tests must be in the requirement-level given block, "
+                                    + "not in the scenario-level given block. All scenarios in a requirement test the same document. "
+                                    + "For integration tests with different document combinations per scenario, use 'documents' instead.");
                 }
                 this.documentSpecification = docItem.documentSpecification();
             } else if (item instanceof AlgorithmGivenItemContext algItem) {
