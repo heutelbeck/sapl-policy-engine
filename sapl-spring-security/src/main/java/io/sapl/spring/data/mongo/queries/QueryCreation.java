@@ -90,7 +90,8 @@ public class QueryCreation {
         final var queryAnnotation = QueryAnnotationParameterResolver.resolveForMongoDB(invocation.getMethod(),
                 invocation.getArguments());
 
-        final var queryParts       = queryAnnotation.split("XXXXX");
+        // Use -1 limit to preserve trailing empty strings from split
+        final var queryParts       = queryAnnotation.split("XXXXX", -1);
         final var queryPartsEdited = new ArrayList<String>();
 
         for (String part : queryParts) {
@@ -100,9 +101,12 @@ public class QueryCreation {
             queryPartsEdited.add(editedPart);
         }
 
-        final var basicQuery = new BasicQuery(queryPartsEdited.getFirst(), queryPartsEdited.get(1));
+        final var queryDoc  = queryPartsEdited.getFirst();
+        final var fieldsDoc = queryPartsEdited.size() > 1 ? queryPartsEdited.get(1) : "";
 
-        if (queryPartsEdited.size() == 3) {
+        final var basicQuery = fieldsDoc.isEmpty() ? new BasicQuery(queryDoc) : new BasicQuery(queryDoc, fieldsDoc);
+
+        if (queryPartsEdited.size() >= 3 && !queryPartsEdited.get(2).isEmpty()) {
             basicQuery.setSortObject(Document.parse(queryPartsEdited.get(2)));
         }
 
