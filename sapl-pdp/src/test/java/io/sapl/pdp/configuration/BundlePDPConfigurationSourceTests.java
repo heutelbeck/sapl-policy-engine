@@ -357,7 +357,7 @@ class BundlePDPConfigurationSourceTests {
                 """, "policy.sapl", "policy \"valid\" permit true;");
 
         Files.writeString(tempDir.resolve("readme.txt"), "This should be ignored.");
-        Files.writeString(tempDir.resolve("config.json"), "{}");
+        Files.writeString(tempDir.resolve("security.json"), "{}");
         Files.writeString(tempDir.resolve("bundle.zip"), "Not a real zip");
 
         val configs = new CopyOnWriteArrayList<PDPConfiguration>();

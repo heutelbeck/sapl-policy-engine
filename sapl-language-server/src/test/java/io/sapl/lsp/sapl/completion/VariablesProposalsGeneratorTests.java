@@ -76,7 +76,7 @@ class VariablesProposalsGeneratorTests {
     @Test
     void whenInSchemaContext_thenReturnsOnlyEnvironmentVariables() {
         var sapl = parse(SIMPLE_POLICY);
-        // Create config with environment variables
+        // Create security with environment variables
         var variables = new HashMap<String, Value>();
         variables.put("appConfig", Value.of("test"));
         var config = new LSPConfiguration("", LSPConfiguration.minimal().documentationBundle(), variables, null, null);

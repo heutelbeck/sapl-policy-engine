@@ -57,12 +57,12 @@ class SchemaFlowIntegrationTests {
                 policy "test"
                 permit
                 where
-                  var config = {} schema { "type": "object", "properties": { "timeout": {}, "retries": {} } };
+                  var security = {} schema { "type": "object", "properties": { "timeout": {}, "retries": {} } };
                   """;
         var position    = new Position(4, 2);
         var completions = getCompletions(document, position);
 
-        assertThat(completionLabels(completions)).contains("config.timeout", "config.retries");
+        assertThat(completionLabels(completions)).contains("security.timeout", "security.retries");
     }
 
     @Test

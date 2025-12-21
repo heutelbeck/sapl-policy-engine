@@ -32,7 +32,7 @@ import java.util.Map;
  * Use the builder to construct a configuration:
  *
  * <pre>{@code
- * var config = TestConfiguration.builder().withSaplDocument(doc1).withSaplDocument(doc2).withSaplTestDocument(testDoc)
+ * var security = TestConfiguration.builder().withSaplDocument(doc1).withSaplDocument(doc2).withSaplTestDocument(testDoc)
  *         .withDefaultAlgorithm(CombiningAlgorithm.DENY_OVERRIDES).withFunctionLibrary(TemporalFunctionLibrary.class)
  *         .build();
  * }</pre>

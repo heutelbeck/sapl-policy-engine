@@ -59,7 +59,7 @@ class AttributeStreamRaceConditionTests {
     private static final Duration LONG_GRACE_PERIOD  = Duration.ofSeconds(10);
 
     private static AttributeFinderInvocation createInvocation() {
-        return new AttributeFinderInvocation("test-config", "test.attribute", List.of(), Map.of(),
+        return new AttributeFinderInvocation("test-security", "test.attribute", List.of(), Map.of(),
                 Duration.ofMillis(100), Duration.ofSeconds(1), Duration.ofMillis(10), 0, false);
     }
 

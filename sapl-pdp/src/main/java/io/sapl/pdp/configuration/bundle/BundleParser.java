@@ -108,11 +108,11 @@ import java.util.zip.ZipInputStream;
  * BundleSecurityPolicy policy = BundleSecurityPolicy.requireSignature(trustedKey);
  *
  * // Parse bundle with signature verification
- * PDPConfiguration config = BundleParser.parse(bundlePath, "production", "v1.0", policy);
+ * PDPConfiguration security = BundleParser.parse(bundlePath, "production", "v1.0", policy);
  *
  * // With expiration checking
  * BundleSecurityPolicy policy = BundleSecurityPolicy.builder(trustedKey).withExpirationCheck().build();
- * PDPConfiguration config = BundleParser.parse(bundleBytes, "production", "v1.0", policy);
+ * PDPConfiguration security = BundleParser.parse(bundleBytes, "production", "v1.0", policy);
  * }</pre>
  *
  * <h3>Development Only (Requires Explicit Risk Acceptance)</h3>
@@ -122,7 +122,7 @@ import java.util.zip.ZipInputStream;
  * BundleSecurityPolicy policy = BundleSecurityPolicy.builder().disableSignatureVerification()
  *         .acceptUnsignedBundleRisks().build();
  *
- * PDPConfiguration config = BundleParser.parse(bundlePath, "dev", "local", policy);
+ * PDPConfiguration security = BundleParser.parse(bundlePath, "dev", "local", policy);
  * }</pre>
  *
  * @see BundleBuilder

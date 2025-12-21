@@ -108,7 +108,7 @@ public class SetupView extends VerticalLayout {
         pGoodToKnow.setText(pGoodToKnow.getText()
                 + "- If a property is not available, the Setup Wizard will add it to the file with the highest priority.\n");
         pGoodToKnow.setText(pGoodToKnow.getText()
-                + "- If no application.yml file outside the classpath is found, the Setup Wizard will create one and all necessary folders located in <working-dir>/config/\n");
+                + "- If no application.yml file outside the classpath is found, the Setup Wizard will create one and all necessary folders located in <working-dir>/security/\n");
 
         final var hNotUseIt = new H2("If you don't want to use it");
         final var pNotUseIt = new Paragraph();

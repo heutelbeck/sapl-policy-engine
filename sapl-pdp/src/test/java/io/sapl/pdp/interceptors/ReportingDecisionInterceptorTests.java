@@ -144,7 +144,7 @@ class ReportingDecisionInterceptorTests {
     }
 
     private TracedDecision createTracedDecision(Decision decision) {
-        val trace = TracedPdpDecision.builder().pdpId("cthulhu-pdp").configurationId("test-config")
+        val trace = TracedPdpDecision.builder().pdpId("cthulhu-pdp").configurationId("test-security")
                 .subscriptionId("sub-001").subscription(AuthorizationSubscription.of("cultist", "summon", "elder-god"))
                 .timestamp(Instant.now().toString()).algorithm("deny-overrides").decision(decision).totalDocuments(1)
                 .build();

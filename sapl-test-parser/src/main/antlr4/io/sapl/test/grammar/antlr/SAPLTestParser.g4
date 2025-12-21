@@ -51,7 +51,7 @@ thenStep
     ;
 
 // Given block - completely optional
-// If omitted: uses all documents with config default algorithm
+// If omitted: uses all documents with security default algorithm
 given
     : GIVEN givenItem+
     ;
@@ -87,7 +87,7 @@ combiningAlgorithm
     | PERMIT_UNLESS_DENY  # permitUnlessDenyAlgorithm
     ;
 
-// Variables definition - local test variables override config variables
+// Variables definition - local test variables override security variables
 variablesDefinition
     : VARIABLES variables=objectValue
     ;

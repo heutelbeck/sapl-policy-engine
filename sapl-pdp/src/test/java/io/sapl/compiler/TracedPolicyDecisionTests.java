@@ -1048,7 +1048,7 @@ class TracedPolicyDecisionTests {
         @DisplayName("invocation includes configuration ID")
         void whenAttributeAccessed_thenConfigurationIdIsTraced() {
             val policy = """
-                    policy "config-id-check"
+                    policy "security-id-check"
                     permit where <miskatonic.starsAligned> == true;
                     """;
 
@@ -1059,7 +1059,7 @@ class TracedPolicyDecisionTests {
             val firstAttribute = (ObjectValue) getAttributes(traced).getFirst();
             val invocation     = (ObjectValue) firstAttribute.get(TraceFields.INVOCATION);
             assertThat(invocation).isNotNull().as("Configuration ID from evaluation context should be traced")
-                    .containsEntry(TraceFields.CONFIGURATION_ID, Value.of("test-config"));
+                    .containsEntry(TraceFields.CONFIGURATION_ID, Value.of("test-security"));
         }
 
         @Test
@@ -1212,7 +1212,7 @@ class TracedPolicyDecisionTests {
         }
 
         private EvaluationContext createEvaluationContextWithPip(Map<String, Value> variables) {
-            return EvaluationContext.of("test-pdp", "test-config", "test-sub", null, variables,
+            return EvaluationContext.of("test-pdp", "test-security", "test-sub", null, variables,
                     pipContext.getFunctionBroker(), pipContext.getAttributeBroker());
         }
     }
@@ -1409,7 +1409,7 @@ class TracedPolicyDecisionTests {
         }
 
         private EvaluationContext createEvaluationContext(Map<String, Value> variables) {
-            return EvaluationContext.of("test-pdp", "test-config", "test-sub", null, variables,
+            return EvaluationContext.of("test-pdp", "test-security", "test-sub", null, variables,
                     context.getFunctionBroker(), context.getAttributeBroker(),
                     () -> java.time.Instant.now().toString());
         }
@@ -1501,7 +1501,7 @@ class TracedPolicyDecisionTests {
     }
 
     private EvaluationContext createEvaluationContext(Map<String, Value> variables) {
-        return EvaluationContext.of("test-pdp", "test-config", "test-sub", null, variables, context.getFunctionBroker(),
+        return EvaluationContext.of("test-pdp", "test-security", "test-sub", null, variables, context.getFunctionBroker(),
                 context.getAttributeBroker());
     }
 

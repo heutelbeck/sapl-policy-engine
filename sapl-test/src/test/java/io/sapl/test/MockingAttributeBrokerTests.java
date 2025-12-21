@@ -49,7 +49,7 @@ import io.sapl.test.verification.Times;
 
 class MockingAttributeBrokerTests {
 
-    private static final String   TEST_CONFIG_ID  = "test-config";
+    private static final String   TEST_CONFIG_ID  = "test-security";
     private static final Duration DEFAULT_TIMEOUT = Duration.ofSeconds(10);
     private static final Duration DEFAULT_POLL    = Duration.ofSeconds(1);
     private static final Duration DEFAULT_BACKOFF = Duration.ofMillis(100);

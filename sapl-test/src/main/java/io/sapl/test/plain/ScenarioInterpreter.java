@@ -190,7 +190,7 @@ public class ScenarioInterpreter {
             boolean isUnitTest) {
         switch (docSpec) {
         case null                              -> {
-            // Integration test with all documents from config
+            // Integration test with all documents from security
             for (var doc : config.saplDocuments()) {
                 addDocumentToFixture(fixture, doc);
             }
@@ -254,12 +254,12 @@ public class ScenarioInterpreter {
             return;
         }
 
-        // Integration test: use specified or config default
+        // Integration test: use specified or security default
         if (given.combiningAlgorithm != null) {
             var algorithm = parseCombiningAlgorithm(given.combiningAlgorithm);
             fixture.withCombiningAlgorithm(algorithm);
         } else {
-            // Use config default
+            // Use security default
             fixture.withCombiningAlgorithm(config.defaultAlgorithm());
         }
     }
@@ -284,15 +284,15 @@ public class ScenarioInterpreter {
 
     /**
      * Applies variables to the fixture.
-     * Variables from config are base; test variables override.
+     * Variables from security are base; test variables override.
      */
     private void applyVariables(SaplTestFixture fixture, MergedGiven given) {
-        // First apply config-level variables
+        // First apply security-level variables
         for (var entry : config.pdpVariables().entrySet()) {
             fixture.givenVariable(entry.getKey(), entry.getValue());
         }
 
-        // Then apply test-level variables (these will override config variables)
+        // Then apply test-level variables (these will override security variables)
         if (given.variables != null) {
             var testVariables = ValueConverter.convertObjectToMap(given.variables.variables);
             for (var entry : testVariables.entrySet()) {

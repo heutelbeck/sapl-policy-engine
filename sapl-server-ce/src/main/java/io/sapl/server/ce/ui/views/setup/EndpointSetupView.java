@@ -156,7 +156,7 @@ public abstract class EndpointSetupView extends VerticalLayout {
 
         port.addValueChangeListener(e -> updateEndpointConfig());
 
-        keyStore.setPlaceholder("file:config/keystore.p12");
+        keyStore.setPlaceholder("file:security/keystore.p12");
         keyStore.setRequiredIndicatorVisible(true);
         keyStore.setValueChangeMode(ValueChangeMode.EAGER);
         keyStore.setValue(endpointConfig.getKeyStore());

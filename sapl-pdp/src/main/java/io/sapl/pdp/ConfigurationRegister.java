@@ -134,7 +134,7 @@ public class ConfigurationRegister implements CompiledPDPConfigurationSource {
      * @param pdpConfiguration
      * the configuration to load
      * @param keepOldConfigOnError
-     * if true, retains existing config on compilation errors
+     * if true, retains existing security on compilation errors
      *
      * @throws IllegalArgumentException
      * if compilation fails or document names collide

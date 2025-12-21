@@ -68,7 +68,7 @@ class TracedPdpDecisionTests {
     private static final boolean           DEBUG  = false;
 
     private static final String TEST_PDP_ID          = "arkham-pdp";
-    private static final String TEST_CONFIG_ID       = "necronomicon-config";
+    private static final String TEST_CONFIG_ID       = "necronomicon-security";
     private static final String TEST_SUBSCRIPTION_ID = "eldritch-request-001";
 
     private CompilationContext context;

@@ -96,7 +96,7 @@ public final class ApplicationConfigService {
             }
         }
         if (files.isEmpty()) {
-            files.add(new File(projectPath + File.separator + "config" + File.separator + "application.yml"));
+            files.add(new File(projectPath + File.separator + "security" + File.separator + "application.yml"));
         }
         return files;
     }
@@ -199,7 +199,7 @@ public final class ApplicationConfigService {
                     SupportedKeystoreTypes.getByName(this.getAt(httpEndpoint.sslKeyStoreTypePath, "").toString()),
                     SupportedKeystoreTypes.PKCS12));
             this.httpEndpoint
-                    .setKeyStore(this.getAt(httpEndpoint.sslKeyStorePath, "file:config/keystore.p12").toString());
+                    .setKeyStore(this.getAt(httpEndpoint.sslKeyStorePath, "file:security/keystore.p12").toString());
             this.httpEndpoint.setKeyPassword(this.getAt(httpEndpoint.sslKeyPasswordPath, "").toString());
             this.httpEndpoint.setKeyStorePassword(this.getAt(httpEndpoint.sslKeyStorePasswordPath, "").toString());
             this.httpEndpoint.setKeyAlias(this.getAt(httpEndpoint.sslKeyAliasPath, "").toString());
@@ -266,7 +266,7 @@ public final class ApplicationConfigService {
                     SupportedKeystoreTypes.getByName(this.getAt(rsocketEndpoint.sslKeyStoreTypePath, "").toString()),
                     SupportedKeystoreTypes.PKCS12));
             this.rsocketEndpoint
-                    .setKeyStore(this.getAt(rsocketEndpoint.sslKeyStorePath, "file:config/keystore.p12").toString());
+                    .setKeyStore(this.getAt(rsocketEndpoint.sslKeyStorePath, "file:security/keystore.p12").toString());
             this.rsocketEndpoint.setKeyPassword(this.getAt(rsocketEndpoint.sslKeyPasswordPath, "").toString());
             this.rsocketEndpoint
                     .setKeyStorePassword(this.getAt(rsocketEndpoint.sslKeyStorePasswordPath, "").toString());

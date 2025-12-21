@@ -195,7 +195,7 @@ public class ConfigUtility {
      * @param pipMqttClientConfig the pdp configuration
      * @param pipMqttClientConfigVal {@link Value} of the configuration in the
      * attribute finder
-     * @return Returns a json object containing the mqtt broker config. If no valid
+     * @return Returns a json object containing the mqtt broker security. If no valid
      * configuration was provided in the configurations than a
      * {@link NoSuchElementException} will be thrown.
      */
@@ -266,11 +266,11 @@ public class ConfigUtility {
 
     private static ObjectNode getDefaultBroker(ObjectNode mqttPipBrokerConfig, JsonNode pipMqttClientConfig,
             JsonNode brokerConfig) {
-        // get default broker config name
+        // get default broker security name
         String brokerConfigName = getConfigValueOrDefault(pipMqttClientConfig, ENVIRONMENT_DEFAULT_BROKER_CONFIG_NAME,
                 DEFAULT_BROKER_CONFIG_NAME);
 
-        // get default broker config
+        // get default broker security
         mqttPipBrokerConfig = getBrokerConfig(mqttPipBrokerConfig, brokerConfig, brokerConfigName);
         return mqttPipBrokerConfig;
     }

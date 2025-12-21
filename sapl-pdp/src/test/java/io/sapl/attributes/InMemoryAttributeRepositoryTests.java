@@ -746,10 +746,10 @@ class InMemoryAttributeRepositoryTests {
 
     private AttributeFinderInvocation createInvocation(Value entity, String attributeName, List<Value> arguments) {
         if (entity == null) {
-            return new AttributeFinderInvocation("test-config", attributeName, arguments, Map.of(),
+            return new AttributeFinderInvocation("test-security", attributeName, arguments, Map.of(),
                     Duration.ofSeconds(1), Duration.ofMillis(100), Duration.ofMillis(50), 3, false);
         }
-        return new AttributeFinderInvocation("test-config", attributeName, entity, arguments, Map.of(),
+        return new AttributeFinderInvocation("test-security", attributeName, entity, arguments, Map.of(),
                 Duration.ofSeconds(1), Duration.ofMillis(100), Duration.ofMillis(50), 3, false);
     }
 

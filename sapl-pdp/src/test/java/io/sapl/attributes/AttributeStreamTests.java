@@ -92,18 +92,18 @@ class AttributeStreamTests {
     private static final long COMPLEX_OPERATION_TIMEOUT = 1000L;
 
     private static AttributeFinderInvocation createInvocation() {
-        return new AttributeFinderInvocation("test-config", "test.attribute", List.of(), Map.of(),
+        return new AttributeFinderInvocation("test-security", "test.attribute", List.of(), Map.of(),
                 Duration.ofSeconds(1L), Duration.ofSeconds(1L), Duration.ofMillis(50L), 3L, false);
     }
 
     private static AttributeFinderInvocation createInvocation(Duration initialTimeout) {
-        return new AttributeFinderInvocation("test-config", "test.attribute", List.of(), Map.of(), initialTimeout,
+        return new AttributeFinderInvocation("test-security", "test.attribute", List.of(), Map.of(), initialTimeout,
                 Duration.ofSeconds(1L), Duration.ofMillis(50L), 3L, false);
     }
 
     private static AttributeFinderInvocation createInvocation(Duration initialTimeout, Duration pollInterval,
             Duration backoff, long retries) {
-        return new AttributeFinderInvocation("test-config", "test.attribute", List.of(), Map.of(), initialTimeout,
+        return new AttributeFinderInvocation("test-security", "test.attribute", List.of(), Map.of(), initialTimeout,
                 pollInterval, backoff, retries, false);
     }
 

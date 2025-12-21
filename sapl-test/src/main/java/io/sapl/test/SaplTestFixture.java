@@ -163,7 +163,7 @@ public class SaplTestFixture {
      * Integration test mode:
      * <ul>
      * <li>Multiple documents allowed</li>
-     * <li>Combining algorithm required (from config file, bundle, or explicit)</li>
+     * <li>Combining algorithm required (from security file, bundle, or explicit)</li>
      * <li>No policy is valid (tests empty PDP behavior)</li>
      * <li>Errors if no combining algorithm defined at whenDecide</li>
      * </ul>
@@ -789,7 +789,7 @@ public class SaplTestFixture {
         // Determine trace level based on coverage setting
         var traceLevel = coverageEnabled ? TraceLevel.COVERAGE : TraceLevel.STANDARD;
 
-        var configuration = new PDPConfiguration("default", "test-config-" + System.currentTimeMillis(),
+        var configuration = new PDPConfiguration("default", "test-security-" + System.currentTimeMillis(),
                 effectiveAlgorithm, traceLevel, effectivePolicies, effectiveVariables);
 
         // Build PDP with mocking brokers wrapping the real ones

@@ -57,7 +57,8 @@ public class R2dbcMethodInvocation implements MethodInvocation {
 
     @Override
     public Object getThis() {
-        return this;
+        // Return a simple object that can be serialized and used as target
+        return new Object();
     }
 
     @NonNull

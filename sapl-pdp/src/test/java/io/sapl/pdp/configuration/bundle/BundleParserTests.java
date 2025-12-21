@@ -145,7 +145,7 @@ class BundleParserTests {
     }
 
     static Stream<Arguments> pathTraversalAttempts() {
-        return Stream.of(arguments("../../../etc/passwd"), arguments("..\\..\\windows\\system32\\config"),
+        return Stream.of(arguments("../../../etc/passwd"), arguments("..\\..\\windows\\system32\\security"),
                 arguments("/etc/passwd"), arguments("\\windows\\system32"));
     }
 
@@ -257,8 +257,8 @@ class BundleParserTests {
             zos.write("This is a readme".getBytes(StandardCharsets.UTF_8));
             zos.closeEntry();
 
-            zos.putNextEntry(new ZipEntry("config.xml"));
-            zos.write("<config/>".getBytes(StandardCharsets.UTF_8));
+            zos.putNextEntry(new ZipEntry("security.xml"));
+            zos.write("<security/>".getBytes(StandardCharsets.UTF_8));
             zos.closeEntry();
         }
 

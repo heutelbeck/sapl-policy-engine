@@ -241,7 +241,7 @@ To maintain the [required configurations](#configuration), add them to the `appl
 In this example, the Docker container is executed and the local path `C:\sapl\ce` is connected as a volume under `/sapl/config`. Ports 8080, 8443, and 7000 are published. Port 8080 is required to access the Setup-Wizard, while ports 8443 and 7000 are commonly used for TLS and RSocket connections, respectively. The specific ports used may vary depending on your configuration.
 
 ```shell
-docker run -d --name sapl-server-ce -p 8080:8080 -p 8443:8443 -p 7000:7000 -v C:\sapl\ce:/sapl/config ghcr.io/heutelbeck/sapl-server-ce:4.0.0-SNAPSHOT
+docker run -d --name sapl-server-ce -p 8080:8080 -p 8443:8443 -p 7000:7000 -v C:\sapl\ce:/sapl/security ghcr.io/heutelbeck/sapl-server-ce:4.0.0-SNAPSHOT
 ```
 
 To access the application, open a browser and enter the URL and port specified in the `application.yml`. If no configuration is present, the Setup-Wizard will launch at <http://localhost:8080>. If you use the [example configuration](https://github.com/heutelbeck/sapl-server/blob/main/sapl-server-ce/config/application.yml), both the username and password are `demo`. Otherwise, the username and password correspond to the data configured in the `application.yml` or those configured via the Setup-Wizard.

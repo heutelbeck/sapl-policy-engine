@@ -19,7 +19,7 @@
 #
 # This configuration file is loaded by the SAPL Server LT, if run from source using 
 # the 'mvn spring-boot:run' command in your terminal from the sapl-server-lt folder.
-# In this situation, the server looks for configuration in the sub folder 'config'
+# In this situation, the server looks for configuration in the sub folder 'security'
 # relative to the folder from where it has been startet.
 #
 # This is a demo configuration. As it contains some specific credentials, it must 
@@ -211,7 +211,7 @@ server:
    address: localhost
    ssl:
       key-store-type: PKCS12
-      key-store: file:config/keystore.p12
+      key-store: file:security/keystore.p12
       key-store-password: changeme
       key-password: changeme
       key-alias: netty
@@ -225,7 +225,7 @@ spring.rsocket.server:
    address: localhost
    ssl:
       key-store-type: PKCS12
-      key-store: file:config/keystore.p12
+      key-store: file:security/keystore.p12
       key-store-password: changeme
       key-password: changeme
       key-alias: netty

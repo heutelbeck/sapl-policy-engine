@@ -25,7 +25,7 @@ import java.util.List;
 import static io.sapl.api.shared.NameValidator.requireValidName;
 
 /**
- * A function invocation with PDP config ID, function name, and arguments.
+ * A function invocation with PDP security ID, function name, and arguments.
  */
 public record FunctionInvocation(String functionName, List<Value> arguments) {
 

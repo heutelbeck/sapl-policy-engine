@@ -102,8 +102,8 @@ class SchemaFlowTests {
                 policy "test"
                 permit
                 where
-                  var config = {} schema { "type": "object", "properties": { "timeout": {} } };
-                  var copy = config;
+                  var security = {} schema { "type": "object", "properties": { "timeout": {} } };
+                  var copy = security;
                 """;
         var sapl         = parse(document);
         var cursorOffset = document.length();
@@ -111,7 +111,7 @@ class SchemaFlowTests {
 
         var proposals = VariablesProposalsGenerator.variableProposalsForContext(sapl, cursorOffset, config, false);
 
-        assertThat(proposals).contains("config", "config.timeout", "copy", "copy.timeout");
+        assertThat(proposals).contains("security", "security.timeout", "copy", "copy.timeout");
     }
 
     @Test

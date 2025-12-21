@@ -99,11 +99,11 @@ public class ErrorUtility {
     }
 
     /**
-     * Evaluates the {@link Throwable} whether the broker config hash has to be
+     * Evaluates the {@link Throwable} whether the broker security hash has to be
      * removed from the client cache or not.
      *
      * @param throwable the {@link Throwable} to evaluate
-     * @return returns true if the broker config hash has to be removed from the
+     * @return returns true if the broker security hash has to be removed from the
      * client cache
      */
     public static boolean isErrorRelevantToRemoveClientCache(Throwable throwable) {

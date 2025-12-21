@@ -383,7 +383,7 @@ public class AttributeCompiler {
     private record OptionsError(ErrorValue error) implements Options {}
 
     /**
-     * Resolved PIP invocation config. {@code configurationId} from
+     * Resolved PIP invocation security. {@code configurationId} from
      * EvaluationContext. {@code backoffMs} is exponential base. {@code retries} is
      * additional attempts (3 = 4 total).
      */

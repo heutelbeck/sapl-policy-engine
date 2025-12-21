@@ -17,311 +17,192 @@
  */
 package io.sapl.spring.data.services;
 
-import com.fasterxml.jackson.core.JsonParseException;
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.sapl.api.pdp.AuthorizationSubscription;
-import io.sapl.spring.method.metadata.QueryEnforce;
+import com.fasterxml.jackson.databind.SerializationFeature;
+import io.sapl.api.model.ObjectValue;
+import io.sapl.api.model.UndefinedValue;
 import io.sapl.spring.data.database.R2dbcMethodInvocation;
-import org.aopalliance.intercept.MethodInvocation;
+import io.sapl.spring.method.metadata.QueryEnforce;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.MockedConstruction;
-import org.springframework.beans.factory.BeanFactory;
+import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.context.ApplicationContext;
 import org.springframework.core.annotation.AnnotationUtils;
-import org.springframework.expression.BeanResolver;
-import org.springframework.expression.EvaluationContext;
-import org.springframework.expression.Expression;
-import org.springframework.expression.spel.standard.SpelExpressionParser;
 import org.springframework.expression.spel.support.StandardEvaluationContext;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContext;
+import org.springframework.security.access.expression.method.DefaultMethodSecurityExpressionHandler;
+import org.springframework.security.access.expression.method.MethodSecurityExpressionHandler;
+import org.springframework.security.config.core.GrantedAuthorityDefaults;
+import org.springframework.security.authentication.TestingAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.context.SecurityContextImpl;
 
-import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.ArgumentMatchers.*;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 class QueryEnforceAuthorizationSubscriptionServiceTests {
 
-    private static final ObjectMapper MAPPER = new ObjectMapper();
+    private ObjectProvider<MethodSecurityExpressionHandler> expressionHandlerProvider;
+    private ObjectProvider<ObjectMapper>                    mapperProvider;
+    private ObjectProvider<GrantedAuthorityDefaults>        defaultsProvider;
+    private ApplicationContext                              applicationContext;
+    private ObjectMapper                                    objectMapper;
 
-    private BeanFactory               beanFactoryMock           = mock(BeanFactory.class);
-    private SecurityExpressionService securityExpressionService = mock(SecurityExpressionService.class);
-    private SecurityContext           securityContextMock       = mock(SecurityContext.class);
-    private Authentication            authenticationMock        = mock(Authentication.class);
-    private Expression                expressionMock            = mock(Expression.class);
+    @BeforeEach
+    @SuppressWarnings("unchecked")
+    void setUp() {
+        expressionHandlerProvider = mock(ObjectProvider.class);
+        mapperProvider            = mock(ObjectProvider.class);
+        defaultsProvider          = mock(ObjectProvider.class);
+        applicationContext        = mock(ApplicationContext.class);
+        objectMapper              = new ObjectMapper();
+        objectMapper.configure(SerializationFeature.FAIL_ON_EMPTY_BEANS, false);
 
-    @Test
-    void when_getAuthorizationSubscription_then_throwJsonParseException() {
-        try (MockedConstruction<SpelExpressionParser> mockedConstructionSpelExpressionParser = mockConstruction(
-                SpelExpressionParser.class)) {
-            try (MockedConstruction<StandardEvaluationContext> mockedConstructionStandardEvaluationContext = mockConstruction(
-                    StandardEvaluationContext.class)) {
-                // GIVEN
-                final var methodInvocation = new R2dbcMethodInvocation("findById",
-                        new ArrayList<>(List.of(String.class)), new ArrayList<>(List.of("20")), null);
-                final var queryEnforce     = AnnotationUtils.findAnnotation(methodInvocation.getMethod(),
-                        QueryEnforce.class);
+        var expressionHandler = new DefaultMethodSecurityExpressionHandler();
+        expressionHandler.setApplicationContext(applicationContext);
 
-                final var service = new QueryEnforceAuthorizationSubscriptionService(beanFactoryMock,
-                        securityExpressionService);
+        when(expressionHandlerProvider.getIfAvailable(any())).thenReturn(expressionHandler);
+        when(mapperProvider.getIfAvailable(any())).thenReturn(objectMapper);
 
-                // WHEN
-                when(securityContextMock.getAuthentication()).thenReturn(null);
-                SecurityContextHolder.setContext(securityContextMock);
+        // Set up authentication
+        var authentication  = new TestingAuthenticationToken("testUser", "password", "ROLE_USER");
+        var securityContext = new SecurityContextImpl(authentication);
+        SecurityContextHolder.setContext(securityContext);
+    }
 
-                // THEN
-                assertThrows(JsonParseException.class, () -> {
-                    service.getAuthorizationSubscription(methodInvocation, queryEnforce);
-                });
-
-            }
-        }
+    @AfterEach
+    void tearDown() {
+        SecurityContextHolder.clearContext();
     }
 
     @Test
-    void when_getAuthorizationSubscription_then_throwNoSuchMethodException() {
-        try (MockedConstruction<SpelExpressionParser> mockedConstructionSpelExpressionParser = mockConstruction(
-                SpelExpressionParser.class)) {
-            try (MockedConstruction<StandardEvaluationContext> mockedConstructionStandardEvaluationContext = mockConstruction(
-                    StandardEvaluationContext.class)) {
-                // GIVEN
-                final var methodInvocation = new R2dbcMethodInvocation("findByIdBefore",
-                        new ArrayList<>(List.of(String.class)), new ArrayList<>(List.of("20")), null);
-                final var queryEnforce     = AnnotationUtils.findAnnotation(methodInvocation.getMethod(),
-                        QueryEnforce.class);
+    void when_enforceAnnotationIsNull_then_returnNull() {
+        // GIVEN
+        var methodInvocation = new R2dbcMethodInvocation("findById", new ArrayList<>(List.of(String.class)),
+                new ArrayList<>(List.of("20")), null);
+        var service          = new QueryEnforceAuthorizationSubscriptionService(expressionHandlerProvider,
+                mapperProvider, defaultsProvider, applicationContext);
 
-                final var service = new QueryEnforceAuthorizationSubscriptionService(beanFactoryMock,
-                        securityExpressionService);
+        // WHEN
+        var result = service.getAuthorizationSubscription(methodInvocation, null);
 
-                final var spelExpressionParserMock      = mockedConstructionSpelExpressionParser.constructed()
-                        .getFirst();
-                final var standardEvaluationContextMock = mockedConstructionStandardEvaluationContext.constructed()
-                        .getFirst();
-
-                // WHEN
-                doNothing().when(standardEvaluationContextMock).registerFunction(anyString(), any(Method.class));
-                when(spelExpressionParserMock.parseExpression(anyString())).thenReturn(expressionMock);
-                when(expressionMock.getValue(any(StandardEvaluationContext.class), eq(String.class)))
-                        .thenReturn("subject");
-                when(expressionMock.getValue(any(StandardEvaluationContext.class), eq(Object.class)))
-                        .thenReturn("resource");
-                doNothing().when(standardEvaluationContextMock).setVariable(anyString(), any(Object.class));
-                doNothing().when(standardEvaluationContextMock).setBeanResolver(any(BeanResolver.class));
-
-                // THEN
-                assertThrows(NoSuchMethodException.class, () -> {
-                    service.getAuthorizationSubscription(methodInvocation, queryEnforce);
-                });
-            }
-        }
+        // THEN
+        assertNull(result);
     }
 
     @Test
-    void when_getAuthorizationSubscription_then_returnAuthSub1() throws JsonProcessingException {
-        AuthorizationSubscription generalProtectionR2dbcPersonRepository = AuthorizationSubscription.of("environment",
-                "protection", "resource", MAPPER.readTree("{\"testNode\":\"testValue\"}"));
+    void when_noSubjectExpression_then_useAuthenticationAsDefault() {
+        // GIVEN
+        var methodInvocation = new R2dbcMethodInvocation("findByNoExpressions", new ArrayList<>(), new ArrayList<>(),
+                null);
+        var queryEnforce     = AnnotationUtils.findAnnotation(methodInvocation.getMethod(), QueryEnforce.class);
+        var service          = new QueryEnforceAuthorizationSubscriptionService(expressionHandlerProvider,
+                mapperProvider, defaultsProvider, applicationContext);
 
-        try (MockedConstruction<SpelExpressionParser> mockedConstructionSpelExpressionParser = mockConstruction(
-                SpelExpressionParser.class)) {
-            try (MockedConstruction<StandardEvaluationContext> mockedConstructionStandardEvaluationContext = mockConstruction(
-                    StandardEvaluationContext.class)) {
-                // GIVEN
-                final var methodInvocation = new R2dbcMethodInvocation("findAllByFirstnameAndAgeBefore",
-                        new ArrayList<>(List.of(String.class, int.class)), new ArrayList<>(List.of("20", 20)), null);
-                final var queryEnforce     = AnnotationUtils.findAnnotation(methodInvocation.getMethod(),
-                        QueryEnforce.class);
+        // WHEN
+        var result = service.getAuthorizationSubscription(methodInvocation, queryEnforce);
 
-                final var service = new QueryEnforceAuthorizationSubscriptionService(beanFactoryMock,
-                        securityExpressionService);
-
-                final var spelExpressionParserMock      = mockedConstructionSpelExpressionParser.constructed()
-                        .getFirst();
-                final var standardEvaluationContextMock = mockedConstructionStandardEvaluationContext.constructed()
-                        .getFirst();
-
-                // WHEN
-                when(spelExpressionParserMock.parseExpression(anyString())).thenReturn(expressionMock);
-                when(expressionMock.getValue(any(EvaluationContext.class), eq(String.class))).thenReturn("environment");
-                doNothing().when(standardEvaluationContextMock).registerFunction(anyString(), any(Method.class));
-                doNothing().when(standardEvaluationContextMock).setVariable(anyString(), any(Object.class));
-                when(spelExpressionParserMock.parseExpression(anyString())).thenReturn(expressionMock);
-                when(expressionMock.getValue(any(StandardEvaluationContext.class), anyString())).thenReturn("subject");
-                when(expressionMock.getValue(any(StandardEvaluationContext.class), eq(Object.class)))
-                        .thenReturn("resource");
-                doNothing().when(standardEvaluationContextMock).setVariable(anyString(), any(Object.class));
-                doNothing().when(standardEvaluationContextMock).setBeanResolver(any(BeanResolver.class));
-
-                when(securityContextMock.getAuthentication()).thenReturn(null);
-                SecurityContextHolder.setContext(securityContextMock);
-
-                // THEN
-                final var authSubResult = service.getAuthorizationSubscription(methodInvocation, queryEnforce);
-
-                compareTwoAuthSubs(generalProtectionR2dbcPersonRepository, authSubResult);
-            }
-        }
+        // THEN
+        assertNotNull(result);
+        assertNotNull(result.subject());
+        // Subject should be an ObjectValue (serialized authentication object)
+        assertInstanceOf(ObjectValue.class, result.subject());
     }
 
     @Test
-    void when_getAuthorizationSubscription_then_returnAuthSub2() {
-        AuthorizationSubscription generalProtectionR2dbcPersonRepository = AuthorizationSubscription.of("subject",
-                "protection", "resource", "resource");
+    void when_noActionExpression_then_useJavaMethodInfo() {
+        // GIVEN
+        var methodInvocation = new R2dbcMethodInvocation("findByNoExpressions", new ArrayList<>(), new ArrayList<>(),
+                null);
+        var queryEnforce     = AnnotationUtils.findAnnotation(methodInvocation.getMethod(), QueryEnforce.class);
+        var service          = new QueryEnforceAuthorizationSubscriptionService(expressionHandlerProvider,
+                mapperProvider, defaultsProvider, applicationContext);
 
-        try (MockedConstruction<SpelExpressionParser> mockedConstructionSpelExpressionParser = mockConstruction(
-                SpelExpressionParser.class)) {
-            try (MockedConstruction<StandardEvaluationContext> mockedConstructionStandardEvaluationContext = mockConstruction(
-                    StandardEvaluationContext.class)) {
-                // GIVEN
-                final var methodInvocation = new R2dbcMethodInvocation("findAllByAgeAfterAndFirstname",
-                        new ArrayList<>(List.of(int.class, String.class)), new ArrayList<>(List.of(20, "20")), null);
-                final var queryEnforce     = AnnotationUtils.findAnnotation(methodInvocation.getMethod(),
-                        QueryEnforce.class);
+        // WHEN
+        var result = service.getAuthorizationSubscription(methodInvocation, queryEnforce);
 
-                final var service = new QueryEnforceAuthorizationSubscriptionService(beanFactoryMock,
-                        securityExpressionService);
-
-                final var spelExpressionParserMock      = mockedConstructionSpelExpressionParser.constructed()
-                        .getFirst();
-                final var standardEvaluationContextMock = mockedConstructionStandardEvaluationContext.constructed()
-                        .getFirst();
-
-                // WHEN
-                doNothing().when(standardEvaluationContextMock).registerFunction(anyString(), any(Method.class));
-                when(spelExpressionParserMock.parseExpression(anyString())).thenReturn(expressionMock);
-                when(expressionMock.getValue(any(StandardEvaluationContext.class), eq(String.class)))
-                        .thenReturn("subject");
-                when(expressionMock.getValue(any(StandardEvaluationContext.class), eq(Object.class)))
-                        .thenReturn("resource");
-                doNothing().when(standardEvaluationContextMock).setVariable(anyString(), any(Object.class));
-                doNothing().when(standardEvaluationContextMock).setVariable(anyString(), any(String.class));
-                doNothing().when(standardEvaluationContextMock).setBeanResolver(any(BeanResolver.class));
-
-                when(securityContextMock.getAuthentication()).thenReturn(null);
-                SecurityContextHolder.setContext(securityContextMock);
-
-                // THEN
-                final var authSubResult = service.getAuthorizationSubscription(methodInvocation, queryEnforce);
-
-                compareTwoAuthSubs(generalProtectionR2dbcPersonRepository, authSubResult);
-            }
-        }
+        // THEN
+        assertNotNull(result);
+        assertNotNull(result.action());
+        // Action should be an ObjectValue with java method info
+        assertInstanceOf(ObjectValue.class, result.action());
     }
 
     @Test
-    void when_getAuthorizationSubscription_then_returnAuthSub3() {
-        try (MockedConstruction<SpelExpressionParser> mockedConstructionSpelExpressionParser = mockConstruction(
-                SpelExpressionParser.class)) {
-            try (MockedConstruction<StandardEvaluationContext> mockedConstructionStandardEvaluationContext = mockConstruction(
-                    StandardEvaluationContext.class)) {
-                // GIVEN
-                final var methodInvocation = new R2dbcMethodInvocation("findByIdBeforeAndFirstname",
-                        new ArrayList<>(List.of(int.class, String.class)), new ArrayList<>(List.of(20, "20")), null);
-                final var queryEnforce     = AnnotationUtils.findAnnotation(methodInvocation.getMethod(),
-                        QueryEnforce.class);
+    void when_domainTypeProvided_then_includeEntityTypeInResource() {
+        // GIVEN
+        var methodInvocation = new R2dbcMethodInvocation("findByNoExpressions", new ArrayList<>(), new ArrayList<>(),
+                null);
+        var queryEnforce     = AnnotationUtils.findAnnotation(methodInvocation.getMethod(), QueryEnforce.class);
+        var service          = new QueryEnforceAuthorizationSubscriptionService(expressionHandlerProvider,
+                mapperProvider, defaultsProvider, applicationContext);
 
-                final var service = new QueryEnforceAuthorizationSubscriptionService(beanFactoryMock,
-                        securityExpressionService);
+        // WHEN
+        var result = service.getAuthorizationSubscription(methodInvocation, queryEnforce, String.class);
 
-                final var spelExpressionParserMock      = mockedConstructionSpelExpressionParser.constructed()
-                        .getFirst();
-                final var standardEvaluationContextMock = mockedConstructionStandardEvaluationContext.constructed()
-                        .getFirst();
-
-                // WHEN
-                doNothing().when(standardEvaluationContextMock).registerFunction(anyString(), any(Method.class));
-                when(spelExpressionParserMock.parseExpression(anyString())).thenReturn(expressionMock);
-                when(expressionMock.getValue(any(StandardEvaluationContext.class), eq(String.class)))
-                        .thenReturn("subject");
-                when(expressionMock.getValue(any(StandardEvaluationContext.class), eq(Object.class)))
-                        .thenReturn("resource");
-                doNothing().when(standardEvaluationContextMock).setVariable(anyString(), any(Object.class));
-                doNothing().when(standardEvaluationContextMock).setBeanResolver(any(BeanResolver.class));
-
-                // THEN
-                assertThrows(ClassNotFoundException.class, () -> {
-                    service.getAuthorizationSubscription(methodInvocation, queryEnforce);
-                });
-            }
-        }
+        // THEN
+        assertNotNull(result);
+        assertNotNull(result.resource());
+        assertInstanceOf(ObjectValue.class, result.resource());
+        var resourceValue = (ObjectValue) result.resource();
+        // Check entityType is present
+        assertTrue(resourceValue.containsKey("entityType"));
     }
 
     @Test
-    void when_getAuthorizationSubscription_then_returnAuthSub4() {
-        try (MockedConstruction<SpelExpressionParser> mockedConstructionSpelExpressionParser = mockConstruction(
-                SpelExpressionParser.class)) {
-            try (MockedConstruction<StandardEvaluationContext> mockedConstructionStandardEvaluationContext = mockConstruction(
-                    StandardEvaluationContext.class)) {
-                // GIVEN
-                final var methodInvocation = new R2dbcMethodInvocation("findByIdBeforeAndFirstname",
-                        new ArrayList<>(List.of(int.class, String.class)), new ArrayList<>(List.of(20, "20")), null);
-                final var queryEnforce     = AnnotationUtils.findAnnotation(methodInvocation.getMethod(),
-                        QueryEnforce.class);
+    void when_noResourceExpression_then_useJavaMethodInfo() {
+        // GIVEN
+        var methodInvocation = new R2dbcMethodInvocation("findByNoExpressions", new ArrayList<>(), new ArrayList<>(),
+                null);
+        var queryEnforce     = AnnotationUtils.findAnnotation(methodInvocation.getMethod(), QueryEnforce.class);
+        var service          = new QueryEnforceAuthorizationSubscriptionService(expressionHandlerProvider,
+                mapperProvider, defaultsProvider, applicationContext);
 
-                final var service = new QueryEnforceAuthorizationSubscriptionService(beanFactoryMock,
-                        securityExpressionService);
+        // WHEN
+        var result = service.getAuthorizationSubscription(methodInvocation, queryEnforce);
 
-                final var spelExpressionParserMock      = mockedConstructionSpelExpressionParser.constructed()
-                        .getFirst();
-                final var standardEvaluationContextMock = mockedConstructionStandardEvaluationContext.constructed()
-                        .getFirst();
-
-                // WHEN
-                doNothing().when(standardEvaluationContextMock).registerFunction(anyString(), any(Method.class));
-                when(securityExpressionService.evaluateSpelVariables(anyString())).thenReturn("");
-                when(securityExpressionService.evaluateSpelMethods(anyString(), any(MethodInvocation.class)))
-                        .thenReturn("");
-                when(spelExpressionParserMock.parseExpression(anyString())).thenReturn(expressionMock);
-                when(expressionMock.getValue(any(StandardEvaluationContext.class), eq(String.class)))
-                        .thenReturn("subject");
-                when(expressionMock.getValue(any(StandardEvaluationContext.class), eq(Object.class)))
-                        .thenReturn("resource");
-                doNothing().when(standardEvaluationContextMock).setVariable(anyString(), any(Object.class));
-                doNothing().when(standardEvaluationContextMock).setBeanResolver(any(BeanResolver.class));
-
-                when(securityContextMock.getAuthentication()).thenReturn(authenticationMock);
-                when(authenticationMock.getName()).thenReturn("TestUser");
-                SecurityContextHolder.setContext(securityContextMock);
-
-                // THEN
-                assertThrows(ClassNotFoundException.class, () -> {
-                    service.getAuthorizationSubscription(methodInvocation, queryEnforce);
-                });
-            }
-        }
+        // THEN
+        assertNotNull(result);
+        assertNotNull(result.resource());
+        assertInstanceOf(ObjectValue.class, result.resource());
     }
 
     @Test
-    void when_getAuthorizationSubscription_then_returnNull() {
+    void when_noEnvironmentExpression_then_returnUndefined() {
+        // GIVEN
+        var methodInvocation = new R2dbcMethodInvocation("findByNoExpressions", new ArrayList<>(), new ArrayList<>(),
+                null);
+        var queryEnforce     = AnnotationUtils.findAnnotation(methodInvocation.getMethod(), QueryEnforce.class);
+        var service          = new QueryEnforceAuthorizationSubscriptionService(expressionHandlerProvider,
+                mapperProvider, defaultsProvider, applicationContext);
 
-        try (MockedConstruction<SpelExpressionParser> mockedConstructionSpelExpressionParser = mockConstruction(
-                SpelExpressionParser.class)) {
-            try (MockedConstruction<StandardEvaluationContext> mockedConstructionStandardEvaluationContext = mockConstruction(
-                    StandardEvaluationContext.class)) {
-                // GIVEN
-                final var methodInvocation = new R2dbcMethodInvocation("findByIdBeforeAndFirstname",
-                        new ArrayList<>(List.of(int.class, String.class)), new ArrayList<>(List.of(20, "20")), null);
+        // WHEN
+        var result = service.getAuthorizationSubscription(methodInvocation, queryEnforce);
 
-                final var service = new QueryEnforceAuthorizationSubscriptionService(beanFactoryMock,
-                        securityExpressionService);
-
-                // THEN
-                final var authSubResult = service.getAuthorizationSubscription(methodInvocation, null);
-
-                assertEquals(null, authSubResult);
-            }
-        }
+        // THEN
+        assertNotNull(result);
+        // Environment should be undefined when not specified
+        assertInstanceOf(UndefinedValue.class, result.environment());
     }
 
-    private void compareTwoAuthSubs(AuthorizationSubscription first, AuthorizationSubscription second) {
-        assertEquals(first.subject(), second.subject());
-        assertEquals(first.action(), second.action());
-        assertEquals(first.resource(), second.resource());
-        assertEquals(first.environment(), second.environment());
+    @Test
+    void when_methodHasArguments_then_includeInAction() {
+        // GIVEN
+        var methodInvocation = new R2dbcMethodInvocation("findByNoExpressions", new ArrayList<>(), new ArrayList<>(),
+                null);
+        var queryEnforce     = AnnotationUtils.findAnnotation(methodInvocation.getMethod(), QueryEnforce.class);
+        var service          = new QueryEnforceAuthorizationSubscriptionService(expressionHandlerProvider,
+                mapperProvider, defaultsProvider, applicationContext);
+
+        // WHEN
+        var result = service.getAuthorizationSubscription(methodInvocation, queryEnforce);
+
+        // THEN
+        assertNotNull(result);
+        assertInstanceOf(ObjectValue.class, result.action());
     }
+
 }

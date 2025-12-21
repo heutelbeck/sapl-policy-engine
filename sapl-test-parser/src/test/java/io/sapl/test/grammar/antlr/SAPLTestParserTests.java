@@ -182,7 +182,7 @@ class SAPLTestParserTests {
     @MethodSource("pdpConfigurations")
     void whenParsingPdpConfiguration_thenNoSyntaxErrors(String description, String document) {
         var errors = parseAndCollectErrors(document);
-        assertThat(errors).as("PDP config '%s' should parse without errors", description).isEmpty();
+        assertThat(errors).as("PDP security '%s' should parse without errors", description).isEmpty();
     }
 
     // ========================================================================

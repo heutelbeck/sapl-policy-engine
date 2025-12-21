@@ -76,7 +76,7 @@ This produces `target/sapl-language-server` (or `.exe` on Windows), approximatel
 If you encounter reflection errors at runtime, use the GraalVM tracing agent to capture required metadata:
 
 ```shell
-java -agentlib:native-image-agent=config-output-dir=native-config \
+java -agentlib:native-image-agent=security-output-dir=native-security \
      -jar target/sapl-language-server-antlr-4.0.0-SNAPSHOT-standalone.jar
 ```
 

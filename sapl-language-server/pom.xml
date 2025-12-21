@@ -276,7 +276,7 @@
 								<buildArg>-H:+ReportExceptionStackTraces</buildArg>
 								<buildArg>--enable-url-protocols=http,https</buildArg>
 								<buildArg>--install-exit-handlers</buildArg>
-								<!-- Unlock experimental options from json-schema-validator native config -->
+								<!-- Unlock experimental options from json-schema-validator native security -->
 								<buildArg>-H:+UnlockExperimentalVMOptions</buildArg>
 								<!-- Prepare for next GraalVM release -->
 								<buildArg>--strict-image-heap</buildArg>

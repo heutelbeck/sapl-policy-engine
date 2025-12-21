@@ -42,18 +42,18 @@ import java.util.Map;
  * Example usage:
  *
  * <pre>{@code
- * var config = TestConfiguration.builder().withSaplDocument(SaplDocument.of("myPolicy", policySource))
+ * var security = TestConfiguration.builder().withSaplDocument(SaplDocument.of("myPolicy", policySource))
  *         .withSaplTestDocument(SaplTestDocument.of("myTest", testSource))
  *         .withDefaultAlgorithm(CombiningAlgorithm.DENY_OVERRIDES).build();
  *
  * var adapter = new PlainTestAdapter();
  *
  * // Synchronous execution
- * var results = adapter.execute(config);
+ * var results = adapter.execute(security);
  * System.out.println("All passed: " + results.allPassed());
  *
  * // Reactive execution with progress events
- * adapter.executeReactive(config).subscribe(event -> {
+ * adapter.executeReactive(security).subscribe(event -> {
  *     if (event instanceof ScenarioCompleted sc) {
  *         System.out.println("Completed: " + sc.result().fullName());
  *     }

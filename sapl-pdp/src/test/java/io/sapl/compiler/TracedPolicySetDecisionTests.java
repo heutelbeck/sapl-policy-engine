@@ -1050,7 +1050,7 @@ class TracedPolicySetDecisionTests {
     }
 
     private EvaluationContext createEvaluationContext(Map<String, Value> variables) {
-        return EvaluationContext.of("test-pdp", "test-config", "test-sub", null, variables, context.getFunctionBroker(),
+        return EvaluationContext.of("test-pdp", "test-security", "test-sub", null, variables, context.getFunctionBroker(),
                 context.getAttributeBroker());
     }
 

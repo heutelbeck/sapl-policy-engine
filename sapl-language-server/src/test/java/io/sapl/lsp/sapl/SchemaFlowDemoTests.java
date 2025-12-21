@@ -69,7 +69,7 @@ class SchemaFlowDemoTests {
                 policy "test"
                 permit
                 where
-                  var config = {} schema { "type": "object", "properties": { "timeout": {}, "retries": {} } };
+                  var security = {} schema { "type": "object", "properties": { "timeout": {}, "retries": {} } };
                   """;
         var position = new Position(4, 2);
 
@@ -78,13 +78,13 @@ class SchemaFlowDemoTests {
         log.debug("Note: Grammar syntax is 'var x = expr schema {{...}}' (schema AFTER assignment)");
 
         var completions       = getCompletions(document, position);
-        var configCompletions = completions.stream().filter(c -> c.getLabel().startsWith("config")).toList();
+        var configCompletions = completions.stream().filter(c -> c.getLabel().startsWith("security")).toList();
 
-        log.debug("Completions containing 'config': {}",
+        log.debug("Completions containing 'security': {}",
                 configCompletions.stream().map(c -> c.getLabel() + " [" + c.getDetail() + "]").toList());
 
         assertThat(completions).as("Explicit schema on var should provide property completions")
-                .anyMatch(c -> c.getLabel().startsWith("config."));
+                .anyMatch(c -> c.getLabel().startsWith("security."));
     }
 
     @Test

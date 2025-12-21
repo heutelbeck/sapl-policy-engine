@@ -139,7 +139,7 @@ public class PdpBenchmark {
             var components            = PolicyDecisionPointBuilder.withoutDefaults().build();
             var configurationRegister = components.configurationRegister();
             var algorithm             = CombiningAlgorithm.valueOf(combiningAlgorithm);
-            var configuration         = new PDPConfiguration("default", "benchmark-config", algorithm,
+            var configuration         = new PDPConfiguration("default", "benchmark-security", algorithm,
                     TraceLevel.STANDARD, policies, Map.of());
             configurationRegister.loadConfiguration(configuration, false);
             pdp = (DynamicPolicyDecisionPoint) components.pdp();

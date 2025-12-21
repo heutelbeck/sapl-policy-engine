@@ -32,7 +32,7 @@ class AttributeFinderInvocationTests {
 
     private static final Duration           FIFTY_MILLISECONDS = Duration.ofMillis(50L);
     private static final Duration           ONE_SECOND         = Duration.ofSeconds(1L);
-    private static final String             CONFIG_ID          = "test-config";
+    private static final String             CONFIG_ID          = "test-security";
     private static final List<Value>        EMPTY_ARGS         = List.of();
     private static final Map<String, Value> EMPTY_VARS         = Map.of();
 

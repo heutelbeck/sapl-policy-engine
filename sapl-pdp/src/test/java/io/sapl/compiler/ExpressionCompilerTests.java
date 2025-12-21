@@ -880,9 +880,9 @@ class ExpressionCompilerTests {
 
     @Test
     void whenConditionUsesSubscriptionScopedVariable_thenReturnsPureExpression() {
-        val compiled = compileExpression("[1, 2, 3][?(@ > config.threshold)]");
+        val compiled = compileExpression("[1, 2, 3][?(@ > security.threshold)]");
         assertThat(compiled).isInstanceOf(PureExpression.class);
-        val subscriptionContext = new EvaluationContext(null, null, null, null, null, null).with("config",
+        val subscriptionContext = new EvaluationContext(null, null, null, null, null, null).with("security",
                 Value.ofObject(Map.of("threshold", Value.of(1))));
         val result              = ((PureExpression) compiled).evaluate(subscriptionContext);
         assertThat(result).isEqualTo(Value.ofArray(Value.of(2), Value.of(3)));

@@ -278,7 +278,7 @@ public class DynamicPolicyDecisionPoint implements TracedPolicyDecisionPoint {
     }
 
     private TracedDecision noConfigDecision(AuthorizationSubscription subscription, String subscriptionId) {
-        val trace = TracedPdpDecision.builder().pdpId("unknown").configurationId("no-config")
+        val trace = TracedPdpDecision.builder().pdpId("unknown").configurationId("no-security")
                 .subscriptionId(subscriptionId).subscription(subscription).timestamp("unknown").algorithm("none")
                 .decision(AuthorizationDecision.INDETERMINATE.decision()).build();
         return new TracedDecision(trace);

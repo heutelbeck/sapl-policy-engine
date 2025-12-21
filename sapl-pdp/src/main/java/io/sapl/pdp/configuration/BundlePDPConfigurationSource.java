@@ -100,7 +100,7 @@ import io.sapl.pdp.configuration.bundle.BundleSignatureException;
  * @Bean(destroyMethod = "dispose")
  * public BundlePDPConfigurationSource bundleSource(BundleSecurityPolicy policy) {
  *     return new BundlePDPConfigurationSource(Path.of("/bundles"), policy,
- *             config -> configRegister.loadConfiguration(config, false));
+ *             security -> configRegister.loadConfiguration(security, false));
  * }
  * }</pre>
  *

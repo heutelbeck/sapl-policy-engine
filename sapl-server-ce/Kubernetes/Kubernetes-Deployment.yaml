@@ -68,7 +68,7 @@ spec:
           resources: {}
           volumeMounts:
             - name: sapl-server-ce-pv-storage
-              mountPath: /sapl/config
+              mountPath: /sapl/security
           terminationMessagePath: /dev/termination-log
           terminationMessagePolicy: File
           imagePullPolicy: Always

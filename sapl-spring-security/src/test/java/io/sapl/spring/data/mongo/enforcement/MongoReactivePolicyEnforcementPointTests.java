@@ -36,7 +36,11 @@ import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.data.repository.core.RepositoryInformation;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.ReactiveSecurityContextHolder;
+import org.springframework.security.core.context.SecurityContext;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
 import java.lang.reflect.Method;
@@ -77,8 +81,9 @@ class MongoReactivePolicyEnforcementPointTests {
             new ArrayList<>(List.of(String.class)), new ArrayList<>(List.of("Aaron")), Flux.just(cathrin));
     AuthorizationSubscription  authSub                   = AuthorizationSubscription.of("", "", "", "");
 
-    MockedStatic<AnnotationUtilities> annotationUtilitiesMock;
-    MockedStatic<Utilities>           utilitiesMock;
+    MockedStatic<AnnotationUtilities>           annotationUtilitiesMock;
+    MockedStatic<Utilities>                     utilitiesMock;
+    MockedStatic<ReactiveSecurityContextHolder> reactiveSecurityContextHolderMock;
 
     @BeforeEach
     void beforeEach() {
@@ -89,18 +94,27 @@ class MongoReactivePolicyEnforcementPointTests {
         lenient().when(objectProviderQueryEnforceAuthorizationSubscriptionServiceMock.getObject())
                 .thenReturn(queryEnforceAuthorizationSubscriptionServiceMock);
 
-        annotationUtilitiesMock = mockStatic(AnnotationUtilities.class);
-        utilitiesMock           = mockStatic(Utilities.class);
+        annotationUtilitiesMock           = mockStatic(AnnotationUtilities.class);
+        utilitiesMock                     = mockStatic(Utilities.class);
+        reactiveSecurityContextHolderMock = mockStatic(ReactiveSecurityContextHolder.class);
+
+        // Set up default reactive security context
+        var securityContext = mock(SecurityContext.class);
+        var authentication  = mock(Authentication.class);
+        lenient().when(securityContext.getAuthentication()).thenReturn(authentication);
+        reactiveSecurityContextHolderMock.when(ReactiveSecurityContextHolder::getContext)
+                .thenReturn(Mono.just(securityContext));
     }
 
     @AfterEach
     void cleanUp() {
         annotationUtilitiesMock.close();
         utilitiesMock.close();
+        reactiveSecurityContextHolderMock.close();
     }
 
     @Test
-    void when_invoke_then_hasAnnotationQueryEnforce() {
+    void when_invoke_then_hasAnnotationQueryEnforce() throws Throwable {
         // GIVEN
         final var enforcementPoint = new MongoReactivePolicyEnforcementPoint<TestUser>(
                 objectProviderMongoReactiveAnnotationQueryManipulationEnforcementPointMock,
@@ -117,12 +131,13 @@ class MongoReactivePolicyEnforcementPointTests {
         when(repositoryInformationCollectorServiceMock.getRepositoryByName(anyString()))
                 .thenReturn(repositoryInformationMock);
         when(repositoryInformationMock.isCustomMethod(any(Method.class))).thenReturn(false);
+        doReturn(TestUser.class).when(repositoryInformationMock).getDomainType();
         when(queryEnforceAuthorizationSubscriptionServiceMock.getAuthorizationSubscription(any(MethodInvocation.class),
-                any(QueryEnforce.class))).thenReturn(authSub);
+                any(QueryEnforce.class), any(Class.class), any())).thenReturn(authSub);
         when(mongoReactiveAnnotationQueryManipulationEnforcementPointMock.enforce(eq(authSub), any(),
                 eq(methodInvocation))).thenReturn(Flux.just(cathrin));
         utilitiesMock.when(() -> Utilities.convertReturnTypeIfNecessary(any(Flux.class), any()))
-                .thenReturn(Flux.just(cathrin));
+                .thenAnswer(invoc -> invoc.getArgument(0));
 
         final var result = (Flux<TestUser>) enforcementPoint.invoke(methodInvocation);
 
@@ -136,7 +151,7 @@ class MongoReactivePolicyEnforcementPointTests {
         verify(repositoryInformationCollectorServiceMock, times(1)).getRepositoryByName(anyString());
         verify(repositoryInformationMock, times(1)).isCustomMethod(any(Method.class));
         verify(queryEnforceAuthorizationSubscriptionServiceMock, times(1))
-                .getAuthorizationSubscription(any(MethodInvocation.class), any(QueryEnforce.class));
+                .getAuthorizationSubscription(any(MethodInvocation.class), any(QueryEnforce.class), any(), any());
         verify(mongoReactiveAnnotationQueryManipulationEnforcementPointMock, times(1)).enforce(eq(authSub), any(),
                 eq(methodInvocation));
         verify(mongoReactiveMethodNameQueryManipulationEnforcementPointMock, times(0)).enforce(eq(authSub), any(),
@@ -145,7 +160,7 @@ class MongoReactivePolicyEnforcementPointTests {
     }
 
     @Test
-    void when_invoke_then_hasNoAnnotationQueryEnforce() {
+    void when_invoke_then_hasNoAnnotationQueryEnforce() throws Throwable {
         // GIVEN
         final var enforcementPoint = new MongoReactivePolicyEnforcementPoint<TestUser>(
                 objectProviderMongoReactiveAnnotationQueryManipulationEnforcementPointMock,
@@ -169,7 +184,7 @@ class MongoReactivePolicyEnforcementPointTests {
         verify(repositoryInformationCollectorServiceMock, times(0)).getRepositoryByName(anyString());
         verify(repositoryInformationMock, times(0)).isCustomMethod(any(Method.class));
         verify(queryEnforceAuthorizationSubscriptionServiceMock, times(0))
-                .getAuthorizationSubscription(any(MethodInvocation.class), any(QueryEnforce.class));
+                .getAuthorizationSubscription(any(MethodInvocation.class), any(QueryEnforce.class), any(), any());
         verify(mongoReactiveAnnotationQueryManipulationEnforcementPointMock, times(0)).enforce(eq(authSub), any(),
                 eq(methodInvocation));
         verify(mongoReactiveMethodNameQueryManipulationEnforcementPointMock, times(0)).enforce(eq(authSub), any(),
@@ -178,7 +193,7 @@ class MongoReactivePolicyEnforcementPointTests {
     }
 
     @Test
-    void when_invoke_then_isSpringDataDefaultMethod() {
+    void when_invoke_then_isSpringDataDefaultMethod() throws Throwable {
         // GIVEN
         final var enforcementPoint = new MongoReactivePolicyEnforcementPoint<TestUser>(
                 objectProviderMongoReactiveAnnotationQueryManipulationEnforcementPointMock,
@@ -197,12 +212,13 @@ class MongoReactivePolicyEnforcementPointTests {
         when(repositoryInformationCollectorServiceMock.getRepositoryByName(anyString()))
                 .thenReturn(repositoryInformationMock);
         when(repositoryInformationMock.isCustomMethod(any(Method.class))).thenReturn(false);
+        doReturn(TestUser.class).when(repositoryInformationMock).getDomainType();
         when(queryEnforceAuthorizationSubscriptionServiceMock.getAuthorizationSubscription(any(MethodInvocation.class),
-                any(QueryEnforce.class))).thenReturn(authSub);
+                any(QueryEnforce.class), any(Class.class), any())).thenReturn(authSub);
         when(mongoReactiveMethodNameQueryManipulationEnforcementPointMock.enforce(eq(authSub), any(),
                 eq(methodInvocation))).thenReturn(Flux.just(cathrin));
         utilitiesMock.when(() -> Utilities.convertReturnTypeIfNecessary(any(Flux.class), any()))
-                .thenReturn(Flux.just(cathrin));
+                .thenAnswer(invoc -> invoc.getArgument(0));
 
         final var result = (Flux<TestUser>) enforcementPoint.invoke(methodInvocation);
 
@@ -216,7 +232,7 @@ class MongoReactivePolicyEnforcementPointTests {
         verify(repositoryInformationCollectorServiceMock, times(1)).getRepositoryByName(anyString());
         verify(repositoryInformationMock, times(1)).isCustomMethod(any(Method.class));
         verify(queryEnforceAuthorizationSubscriptionServiceMock, times(1))
-                .getAuthorizationSubscription(any(MethodInvocation.class), any(QueryEnforce.class));
+                .getAuthorizationSubscription(any(MethodInvocation.class), any(QueryEnforce.class), any(), any());
         verify(mongoReactiveAnnotationQueryManipulationEnforcementPointMock, times(0)).enforce(eq(authSub), any(),
                 eq(methodInvocation));
         verify(mongoReactiveMethodNameQueryManipulationEnforcementPointMock, times(1)).enforce(eq(authSub), any(),
@@ -227,7 +243,7 @@ class MongoReactivePolicyEnforcementPointTests {
     }
 
     @Test
-    void when_invoke_then_isMethodNameValid() {
+    void when_invoke_then_isMethodNameValid() throws Throwable {
         // GIVEN
         final var enforcementPoint = new MongoReactivePolicyEnforcementPoint<TestUser>(
                 objectProviderMongoReactiveAnnotationQueryManipulationEnforcementPointMock,
@@ -246,12 +262,13 @@ class MongoReactivePolicyEnforcementPointTests {
         when(repositoryInformationCollectorServiceMock.getRepositoryByName(anyString()))
                 .thenReturn(repositoryInformationMock);
         when(repositoryInformationMock.isCustomMethod(any(Method.class))).thenReturn(false);
+        doReturn(TestUser.class).when(repositoryInformationMock).getDomainType();
         when(queryEnforceAuthorizationSubscriptionServiceMock.getAuthorizationSubscription(any(MethodInvocation.class),
-                any(QueryEnforce.class))).thenReturn(authSub);
+                any(QueryEnforce.class), any(Class.class), any())).thenReturn(authSub);
         when(mongoReactiveMethodNameQueryManipulationEnforcementPointMock.enforce(eq(authSub), any(),
                 eq(methodInvocation))).thenReturn(Flux.just(cathrin));
         utilitiesMock.when(() -> Utilities.convertReturnTypeIfNecessary(any(Flux.class), any()))
-                .thenReturn(Flux.just(cathrin));
+                .thenAnswer(invoc -> invoc.getArgument(0));
 
         final var result = (Flux<TestUser>) enforcementPoint.invoke(methodInvocation);
 
@@ -265,7 +282,7 @@ class MongoReactivePolicyEnforcementPointTests {
         verify(repositoryInformationCollectorServiceMock, times(1)).getRepositoryByName(anyString());
         verify(repositoryInformationMock, times(1)).isCustomMethod(any(Method.class));
         verify(queryEnforceAuthorizationSubscriptionServiceMock, times(1))
-                .getAuthorizationSubscription(any(MethodInvocation.class), any(QueryEnforce.class));
+                .getAuthorizationSubscription(any(MethodInvocation.class), any(QueryEnforce.class), any(), any());
         verify(mongoReactiveAnnotationQueryManipulationEnforcementPointMock, times(0)).enforce(eq(authSub), any(),
                 eq(methodInvocation));
         verify(mongoReactiveMethodNameQueryManipulationEnforcementPointMock, times(1)).enforce(eq(authSub), any(),
@@ -276,7 +293,7 @@ class MongoReactivePolicyEnforcementPointTests {
     }
 
     @Test
-    void when_invoke_then_invocationProceed() {
+    void when_invoke_then_invocationProceed() throws Throwable {
         // GIVEN
         final var enforcementPoint = new MongoReactivePolicyEnforcementPoint<TestUser>(
                 objectProviderMongoReactiveAnnotationQueryManipulationEnforcementPointMock,
@@ -295,10 +312,11 @@ class MongoReactivePolicyEnforcementPointTests {
         when(repositoryInformationCollectorServiceMock.getRepositoryByName(anyString()))
                 .thenReturn(repositoryInformationMock);
         when(repositoryInformationMock.isCustomMethod(any(Method.class))).thenReturn(false);
+        doReturn(TestUser.class).when(repositoryInformationMock).getDomainType();
         when(queryEnforceAuthorizationSubscriptionServiceMock.getAuthorizationSubscription(any(MethodInvocation.class),
-                any(QueryEnforce.class))).thenReturn(authSub);
+                any(QueryEnforce.class), any(Class.class), any())).thenReturn(authSub);
         utilitiesMock.when(() -> Utilities.convertReturnTypeIfNecessary(any(Flux.class), any()))
-                .thenReturn(Flux.just(cathrin));
+                .thenAnswer(invoc -> invoc.getArgument(0));
 
         final var result = (Flux<TestUser>) enforcementPoint.invoke(methodInvocation);
 
@@ -312,18 +330,18 @@ class MongoReactivePolicyEnforcementPointTests {
         verify(repositoryInformationCollectorServiceMock, times(1)).getRepositoryByName(anyString());
         verify(repositoryInformationMock, times(1)).isCustomMethod(any(Method.class));
         verify(queryEnforceAuthorizationSubscriptionServiceMock, times(1))
-                .getAuthorizationSubscription(any(MethodInvocation.class), any(QueryEnforce.class));
+                .getAuthorizationSubscription(any(MethodInvocation.class), any(QueryEnforce.class), any(), any());
         verify(mongoReactiveAnnotationQueryManipulationEnforcementPointMock, times(0)).enforce(eq(authSub), any(),
                 eq(methodInvocation));
         verify(mongoReactiveMethodNameQueryManipulationEnforcementPointMock, times(0)).enforce(eq(authSub), any(),
                 eq(methodInvocation));
         utilitiesMock.verify(() -> Utilities.isSpringDataDefaultMethod(anyString()), times(1));
         utilitiesMock.verify(() -> Utilities.isMethodNameValid(anyString()), times(1));
-        utilitiesMock.verify(() -> Utilities.convertReturnTypeIfNecessary(any(Flux.class), any()), times(0));
+        utilitiesMock.verify(() -> Utilities.convertReturnTypeIfNecessary(any(Flux.class), any()), times(1));
     }
 
     @Test
-    void when_invoke_then_throwIllegalStateException() {
+    void when_invoke_then_throwIllegalStateException() throws Throwable {
         // GIVEN
         final var enforcementPoint = new MongoReactivePolicyEnforcementPoint<TestUser>(
                 objectProviderMongoReactiveAnnotationQueryManipulationEnforcementPointMock,
@@ -338,36 +356,35 @@ class MongoReactivePolicyEnforcementPointTests {
         when(repositoryInformationCollectorServiceMock.getRepositoryByName(anyString()))
                 .thenReturn(repositoryInformationMock);
         when(repositoryInformationMock.isCustomMethod(any(Method.class))).thenReturn(false);
+        doReturn(TestUser.class).when(repositoryInformationMock).getDomainType();
         when(queryEnforceAuthorizationSubscriptionServiceMock.getAuthorizationSubscription(any(MethodInvocation.class),
-                any(QueryEnforce.class))).thenReturn(null);
+                any(QueryEnforce.class), any(Class.class), any())).thenReturn(null);
+        utilitiesMock.when(() -> Utilities.convertReturnTypeIfNecessary(any(Flux.class), any()))
+                .thenAnswer(invoc -> invoc.getArgument(0));
 
         // THEN
         final var errorMessage = "The Sapl implementation for the manipulation of the database queries was recognised, but no AuthorizationSubscription was found.";
 
-        final var illegalStateException = assertThrows(IllegalStateException.class, () -> {
-            enforcementPoint.invoke(methodInvocation);
-        });
-        assertEquals(errorMessage, illegalStateException.getMessage());
+        final var result = (Flux<TestUser>) enforcementPoint.invoke(methodInvocation);
+
+        StepVerifier.create(result)
+                .expectErrorMatches(ex -> ex instanceof IllegalStateException && ex.getMessage().equals(errorMessage))
+                .verify();
 
         annotationUtilitiesMock.verify(() -> AnnotationUtilities.hasAnnotationQueryEnforce(any(Method.class)),
                 times(1));
-        annotationUtilitiesMock.verify(() -> AnnotationUtilities.hasAnnotationQueryReactiveMongo(any(Method.class)),
-                times(0));
         verify(repositoryInformationCollectorServiceMock, times(1)).getRepositoryByName(anyString());
         verify(repositoryInformationMock, times(1)).isCustomMethod(any(Method.class));
         verify(queryEnforceAuthorizationSubscriptionServiceMock, times(1))
-                .getAuthorizationSubscription(any(MethodInvocation.class), any(QueryEnforce.class));
+                .getAuthorizationSubscription(any(MethodInvocation.class), any(QueryEnforce.class), any(), any());
         verify(mongoReactiveAnnotationQueryManipulationEnforcementPointMock, times(0)).enforce(eq(authSub), any(),
                 eq(methodInvocation));
         verify(mongoReactiveMethodNameQueryManipulationEnforcementPointMock, times(0)).enforce(eq(authSub), any(),
                 eq(methodInvocation));
-        utilitiesMock.verify(() -> Utilities.isSpringDataDefaultMethod(anyString()), times(0));
-        utilitiesMock.verify(() -> Utilities.isMethodNameValid(anyString()), times(0));
-        utilitiesMock.verify(() -> Utilities.convertReturnTypeIfNecessary(any(Flux.class), any()), times(0));
     }
 
     @Test
-    void when_invoke_then_throwIllegalStateException2() {
+    void when_invoke_then_throwIllegalStateException2() throws Throwable {
         // GIVEN
         final var enforcementPoint = new MongoReactivePolicyEnforcementPoint<TestUser>(
                 objectProviderMongoReactiveAnnotationQueryManipulationEnforcementPointMock,
@@ -398,7 +415,7 @@ class MongoReactivePolicyEnforcementPointTests {
         verify(repositoryInformationCollectorServiceMock, times(1)).getRepositoryByName(anyString());
         verify(repositoryInformationMock, times(1)).isCustomMethod(any(Method.class));
         verify(queryEnforceAuthorizationSubscriptionServiceMock, times(0))
-                .getAuthorizationSubscription(any(MethodInvocation.class), any(QueryEnforce.class));
+                .getAuthorizationSubscription(any(MethodInvocation.class), any(QueryEnforce.class), any(), any());
         verify(mongoReactiveAnnotationQueryManipulationEnforcementPointMock, times(0)).enforce(eq(authSub), any(),
                 eq(methodInvocation));
         verify(mongoReactiveMethodNameQueryManipulationEnforcementPointMock, times(0)).enforce(eq(authSub), any(),

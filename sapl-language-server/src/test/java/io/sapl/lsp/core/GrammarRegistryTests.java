@@ -180,7 +180,7 @@ class GrammarRegistryTests {
 
     @Test
     void whenGetGrammarForUriWithQueryAndFragment_thenIgnoresBothAndReturnsCorrectGrammar() {
-        var grammar = registry.getGrammarForUri("file:///policy.sapl?config=test#line=5");
+        var grammar = registry.getGrammarForUri("file:///policy.sapl?security=test#line=5");
         assertThat(grammar.getGrammarId()).isEqualTo("sapl");
     }
 

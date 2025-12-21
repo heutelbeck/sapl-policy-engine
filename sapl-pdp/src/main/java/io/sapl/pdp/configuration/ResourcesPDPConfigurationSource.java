@@ -110,7 +110,7 @@ import java.util.function.Consumer;
  * @Bean(destroyMethod = "dispose")
  * public ResourcesPDPConfigurationSource resourcesSource() {
  *     return new ResourcesPDPConfigurationSource("/policies",
- *             config -> configRegister.loadConfiguration(config, false));
+ *             security -> configRegister.loadConfiguration(security, false));
  * }
  * }</pre>
  */
@@ -143,7 +143,7 @@ public final class ResourcesPDPConfigurationSource implements PDPConfigurationSo
      * </p>
      *
      * @param resourcePath
-     * the classpath resource path (e.g., "/policies" or "/custom/config")
+     * the classpath resource path (e.g., "/policies" or "/custom/security")
      * @param callback
      * called for each configuration found in the resources
      */

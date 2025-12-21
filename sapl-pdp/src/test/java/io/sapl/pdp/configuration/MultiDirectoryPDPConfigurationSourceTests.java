@@ -567,7 +567,7 @@ class MultiDirectoryPDPConfigurationSourceTests {
         // includeRootFiles=true, but "default" subdirectory exists
         source = new MultiDirectoryPDPConfigurationSource(tempDir, true, configs::add);
 
-        // Only one "default" config should exist (from subdirectory, not root)
+        // Only one "default" security should exist (from subdirectory, not root)
         assertThat(configs).hasSize(1);
         assertThat(configs.getFirst().pdpId()).isEqualTo("default");
         // Should be PERMIT_OVERRIDES from the subdirectory, not DENY_OVERRIDES from

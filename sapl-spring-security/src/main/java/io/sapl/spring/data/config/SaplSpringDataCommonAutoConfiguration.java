@@ -17,15 +17,19 @@
  */
 package io.sapl.spring.data.config;
 
-import io.sapl.spring.data.services.*;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import io.sapl.spring.data.services.ConstraintQueryEnforcementService;
+import io.sapl.spring.data.services.QueryEnforceAuthorizationSubscriptionService;
+import io.sapl.spring.data.services.RepositoryInformationCollectorService;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.BeanFactory;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
+import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.data.repository.Repository;
 import org.springframework.security.access.expression.method.MethodSecurityExpressionHandler;
+import org.springframework.security.config.core.GrantedAuthorityDefaults;
 
 /**
  * Common autoconfiguration for SAPL Spring Data policy enforcement.
@@ -47,20 +51,12 @@ public class SaplSpringDataCommonAutoConfiguration {
     }
 
     @Bean
-    QueryEnforceAuthorizationSubscriptionService queryEnforceAnnotationService(BeanFactory beanFactory,
-            SecurityExpressionService securityExpressionService) {
-        return new QueryEnforceAuthorizationSubscriptionService(beanFactory, securityExpressionService);
-    }
-
-    @Bean
-    SecurityExpressionService securityExpressionService(MethodSecurityExpressionEvaluator securityExpressionEvaluator) {
-        return new SecurityExpressionService(securityExpressionEvaluator);
-    }
-
-    @Bean
-    MethodSecurityExpressionEvaluator securityExpressionEvaluator(
-            ObjectProvider<MethodSecurityExpressionHandler> securityExpressionHandler) {
-        return new MethodSecurityExpressionEvaluator(securityExpressionHandler);
+    QueryEnforceAuthorizationSubscriptionService queryEnforceAnnotationService(
+            ObjectProvider<MethodSecurityExpressionHandler> expressionHandlerProvider,
+            ObjectProvider<ObjectMapper> mapperProvider, ObjectProvider<GrantedAuthorityDefaults> defaultsProvider,
+            ApplicationContext context) {
+        return new QueryEnforceAuthorizationSubscriptionService(expressionHandlerProvider, mapperProvider,
+                defaultsProvider, context);
     }
 
     @Bean

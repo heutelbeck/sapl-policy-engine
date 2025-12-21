@@ -54,7 +54,7 @@ public class PDPConfigView extends VerticalLayout {
     @Serial
     private static final long serialVersionUID = SaplVersion.VERSION_UID;
 
-    public static final String ROUTE = "pdp-config";
+    public static final String ROUTE = "pdp-security";
 
     private transient CombiningAlgorithmService combiningAlgorithmService;
     private transient VariablesService          variablesService;

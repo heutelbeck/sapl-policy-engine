@@ -104,7 +104,7 @@ public class PdpTestHelper {
      * @return the PDP configuration
      */
     public static PDPConfiguration configuration(CombiningAlgorithm algorithm, String... policies) {
-        return new PDPConfiguration("default", "test-config-" + System.currentTimeMillis(), algorithm,
+        return new PDPConfiguration("default", "test-security-" + System.currentTimeMillis(), algorithm,
                 TraceLevel.STANDARD, List.of(policies), Map.of());
     }
 

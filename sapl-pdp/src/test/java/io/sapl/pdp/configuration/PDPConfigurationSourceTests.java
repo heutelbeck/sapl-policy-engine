@@ -97,7 +97,7 @@ class PDPConfigurationSourceTests {
 
     @ParameterizedTest
     @ValueSource(strings = { "valid-id", "valid_id", "valid.id", "ValidId", "VALID_ID", "valid123", "123valid", "a",
-            "A", "0", "my-pdp-config", "tenant_a.production", "v1.0.0-beta", "PDP-2024-01" })
+            "A", "0", "my-pdp-security", "tenant_a.production", "v1.0.0-beta", "PDP-2024-01" })
     void whenValidatePdpIdWithValidCharacters_thenSucceeds(String pdpId) {
         PDPConfigurationSource.validatePdpId(pdpId);
         // No exception thrown

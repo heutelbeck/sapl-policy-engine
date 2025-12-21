@@ -53,7 +53,7 @@ public class EditVariableView extends VerticalLayout implements HasUrlParameter<
     @Serial
     private static final long serialVersionUID = SaplVersion.VERSION_UID;
 
-    public static final String ROUTE = "pdp-config/edit-variable";
+    public static final String ROUTE = "pdp-security/edit-variable";
 
     private transient VariablesService variableService;
 

@@ -50,7 +50,7 @@ import java.util.regex.Pattern;
  * <pre>{@code
  * // Create source with callback to configuration register
  * var source = new DirectoryPDPConfigurationSource(Path.of("/policies"), "default",
- *         config -> register.loadConfiguration(config, true));
+ *         security -> register.loadConfiguration(security, true));
  *
  * // Source automatically loads initial configuration and watches for changes
  * // When done, dispose to stop file watching

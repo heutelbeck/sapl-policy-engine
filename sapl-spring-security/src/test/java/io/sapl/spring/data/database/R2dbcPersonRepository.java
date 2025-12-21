@@ -93,4 +93,7 @@ public interface R2dbcPersonRepository extends R2dbcRepository<Person, String> {
 
     @Query("SELECT * FROM person WHERE lastname LIKE CONCAT('%', (:lastnameContains), '%')")
     Flux<Person> concatValuesInQueryAnnotation(String lastnameContains);
+
+    @QueryEnforce
+    Flux<Person> findByNoExpressions();
 }

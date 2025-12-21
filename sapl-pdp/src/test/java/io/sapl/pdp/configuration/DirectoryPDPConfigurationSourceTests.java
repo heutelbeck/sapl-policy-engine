@@ -303,7 +303,7 @@ class DirectoryPDPConfigurationSourceTests {
     void whenSubdirectoryOrNonSaplFilesExist_thenTheyAreIgnored() throws IOException {
         createFile(tempDir.resolve("policy.sapl"), "policy \"test\" permit true;");
         createFile(tempDir.resolve("readme.txt"), "This should be ignored.");
-        createFile(tempDir.resolve("config.yaml"), "key: value");
+        createFile(tempDir.resolve("security.yaml"), "key: value");
 
         val subDir = tempDir.resolve("subdir");
         Files.createDirectory(subDir);

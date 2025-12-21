@@ -49,7 +49,7 @@ class ExplicitSchemaTests {
                 policy "test"
                 permit
                 where
-                  var config = {} schema { "type": "object", "properties": { "timeout": {}, "retries": {} } };
+                  var security = {} schema { "type": "object", "properties": { "timeout": {}, "retries": {} } };
                 """;
         var sapl         = parse(document);
         var cursorOffset = document.length();
@@ -57,7 +57,7 @@ class ExplicitSchemaTests {
 
         var proposals = VariablesProposalsGenerator.variableProposalsForContext(sapl, cursorOffset, config, false);
 
-        assertThat(proposals).contains("config", "config.timeout", "config.retries");
+        assertThat(proposals).contains("security", "security.timeout", "security.retries");
     }
 
     @Test
@@ -171,7 +171,7 @@ class ExplicitSchemaTests {
                 policy "test"
                 permit
                 where
-                  var config = {} schema serverConfigSchema;
+                  var security = {} schema serverConfigSchema;
                 """;
         var sapl         = parse(document);
         var cursorOffset = document.length();
@@ -183,7 +183,7 @@ class ExplicitSchemaTests {
 
         var proposals = VariablesProposalsGenerator.variableProposalsForContext(sapl, cursorOffset, config, false);
 
-        assertThat(proposals).contains("config", "config.host", "config.port");
+        assertThat(proposals).contains("security", "security.host", "security.port");
     }
 
     @Test
@@ -192,7 +192,7 @@ class ExplicitSchemaTests {
                 policy "test"
                 permit
                 where
-                  var config = {} schema nonExistentSchema;
+                  var security = {} schema nonExistentSchema;
                 """;
         var sapl         = parse(document);
         var cursorOffset = document.length();
@@ -200,7 +200,7 @@ class ExplicitSchemaTests {
 
         var proposals = VariablesProposalsGenerator.variableProposalsForContext(sapl, cursorOffset, config, false);
 
-        assertThat(proposals).contains("config");
+        assertThat(proposals).contains("security");
     }
 
     @Test
@@ -226,24 +226,24 @@ class ExplicitSchemaTests {
     static Stream<Arguments> schemaPropertyTypeTestCases() {
         return Stream.of(
                 arguments("string", "{ \"type\": \"object\", \"properties\": { \"name\": { \"type\": \"string\" } } }",
-                        "config.name"),
+                        "security.name"),
                 arguments("number", "{ \"type\": \"object\", \"properties\": { \"count\": { \"type\": \"number\" } } }",
-                        "config.count"),
+                        "security.count"),
                 arguments("boolean",
                         "{ \"type\": \"object\", \"properties\": { \"active\": { \"type\": \"boolean\" } } }",
-                        "config.active"),
+                        "security.active"),
                 arguments("object",
                         "{ \"type\": \"object\", \"properties\": { \"nested\": { \"type\": \"object\", \"properties\": { \"inner\": {} } } } }",
-                        "config.nested.inner"),
+                        "security.nested.inner"),
                 arguments("array",
                         "{ \"type\": \"object\", \"properties\": { \"items\": { \"type\": \"array\", \"items\": { \"type\": \"object\", \"properties\": { \"id\": {} } } } } }",
-                        "config.items[].id"));
+                        "security.items[].id"));
     }
 
     @ParameterizedTest(name = "whenSchemaHas{0}Property_thenExpansionOffered")
     @MethodSource("schemaPropertyTypeTestCases")
     void whenSchemaHasPropertyOfType_thenExpansionOffered(String typeName, String schema, String expectedExpansion) {
-        var document     = "policy \"test\" permit where var config = {} schema " + schema + ";";
+        var document     = "policy \"test\" permit where var security = {} schema " + schema + ";";
         var sapl         = parse(document);
         var cursorOffset = document.length();
         var config       = LSPConfiguration.minimal();

@@ -395,7 +395,7 @@ class SaplJacksonModuleTests {
         val json          = """
                 {
                     "pdpId": "innsmouth-pdp",
-                    "configurationId": "ritual-config",
+                    "configurationId": "ritual-security",
                     "combiningAlgorithm": "PERMIT_OVERRIDES",
                     "saplDocuments": ["policy deep-ones permit"],
                     "variables": {"depth": 100, "location": "reef"}
@@ -403,7 +403,7 @@ class SaplJacksonModuleTests {
         val configuration = mapper.readValue(json, PDPConfiguration.class);
 
         assertThat(configuration.pdpId()).isEqualTo("innsmouth-pdp");
-        assertThat(configuration.configurationId()).isEqualTo("ritual-config");
+        assertThat(configuration.configurationId()).isEqualTo("ritual-security");
         assertThat(configuration.combiningAlgorithm()).isEqualTo(CombiningAlgorithm.PERMIT_OVERRIDES);
         assertThat(configuration.saplDocuments()).containsExactly("policy deep-ones permit");
         assertThat(configuration.variables()).containsEntry("depth", Value.of(100)).containsEntry("location",
@@ -412,7 +412,7 @@ class SaplJacksonModuleTests {
 
     @Test
     void when_roundTrippingPDPConfiguration_then_configurationPreserved() throws JsonProcessingException {
-        val original = new PDPConfiguration("dunwich-pdp", "elder-config", CombiningAlgorithm.ONLY_ONE_APPLICABLE,
+        val original = new PDPConfiguration("dunwich-pdp", "elder-security", CombiningAlgorithm.ONLY_ONE_APPLICABLE,
                 TraceLevel.STANDARD,
                 List.of("policy whateley-access permit where action == \"read\"",
                         "policy stone-circles deny where subject.sanity < 50"),
@@ -430,7 +430,7 @@ class SaplJacksonModuleTests {
         val json          = """
                 {
                     "pdpId": "test-pdp",
-                    "configurationId": "test-config",
+                    "configurationId": "test-security",
                     "combiningAlgorithm": "deny-unless-permit",
                     "saplDocuments": [],
                     "variables": {}
@@ -446,7 +446,7 @@ class SaplJacksonModuleTests {
         val json          = """
                 {
                     "pdpId": "complex-pdp",
-                    "configurationId": "complex-config",
+                    "configurationId": "complex-security",
                     "combiningAlgorithm": "PERMIT_UNLESS_DENY",
                     "saplDocuments": [],
                     "variables": {
@@ -469,7 +469,7 @@ class SaplJacksonModuleTests {
     void when_deserializingPDPConfigurationWithoutPdpId_then_throwsException() {
         val json = """
                 {
-                    "configurationId": "test-config",
+                    "configurationId": "test-security",
                     "combiningAlgorithm": "DENY_OVERRIDES",
                     "saplDocuments": [],
                     "variables": {}
@@ -495,7 +495,7 @@ class SaplJacksonModuleTests {
         val json = """
                 {
                     "pdpId": "test-pdp",
-                    "configurationId": "test-config",
+                    "configurationId": "test-security",
                     "saplDocuments": [],
                     "variables": {}
                 }""";
@@ -509,7 +509,7 @@ class SaplJacksonModuleTests {
         val json          = """
                 {
                     "pdpId": "empty-pdp",
-                    "configurationId": "empty-config",
+                    "configurationId": "empty-security",
                     "combiningAlgorithm": "DENY_OVERRIDES"
                 }""";
         val configuration = mapper.readValue(json, PDPConfiguration.class);

@@ -184,7 +184,7 @@ class ObjectValueTests {
         @Test
         @DisplayName("Builder withMetadata() merges attribute trace")
         void when_withMetadataCalled_then_mergesAttributeTrace() {
-            var invocation      = new io.sapl.api.attributes.AttributeFinderInvocation("test-config", "test.attr",
+            var invocation      = new io.sapl.api.attributes.AttributeFinderInvocation("test-security", "test.attr",
                     java.util.List.of(), java.util.Map.of(), java.time.Duration.ofSeconds(5),
                     java.time.Duration.ofSeconds(1), java.time.Duration.ofMillis(100), 3, false);
             var attributeRecord = new io.sapl.api.pdp.internal.AttributeRecord(invocation, Value.of("result"),
@@ -212,12 +212,12 @@ class ObjectValueTests {
         @Test
         @DisplayName("Builder withMetadata() combines with value metadata")
         void when_withMetadataAndValueMetadata_then_bothMerged() {
-            var invocation1      = new io.sapl.api.attributes.AttributeFinderInvocation("test-config", "test.attr1",
+            var invocation1      = new io.sapl.api.attributes.AttributeFinderInvocation("test-security", "test.attr1",
                     java.util.List.of(), java.util.Map.of(), java.time.Duration.ofSeconds(5),
                     java.time.Duration.ofSeconds(1), java.time.Duration.ofMillis(100), 3, false);
             var attributeRecord1 = new io.sapl.api.pdp.internal.AttributeRecord(invocation1, Value.of("result1"),
                     java.time.Instant.now(), null);
-            var invocation2      = new io.sapl.api.attributes.AttributeFinderInvocation("test-config", "test.attr2",
+            var invocation2      = new io.sapl.api.attributes.AttributeFinderInvocation("test-security", "test.attr2",
                     java.util.List.of(), java.util.Map.of(), java.time.Duration.ofSeconds(5),
                     java.time.Duration.ofSeconds(1), java.time.Duration.ofMillis(100), 3, false);
             var attributeRecord2 = new io.sapl.api.pdp.internal.AttributeRecord(invocation2, Value.of("result2"),

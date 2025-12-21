@@ -38,7 +38,7 @@ class AttributeFinderSpecificationTests {
     private static final AttributeFinder DUMMY_FINDER = inv -> null;
 
     private static AttributeFinderInvocation createInvocation(String name, boolean isEnvAttr, int numArgs) {
-        return new AttributeFinderInvocation("test-config", name, isEnvAttr ? null : Value.of("entity"),
+        return new AttributeFinderInvocation("test-security", name, isEnvAttr ? null : Value.of("entity"),
                 List.<Value>of(Value.of("arg")).subList(0, Math.min(1, numArgs)), // 0 or 1 args
                 Map.of(), Duration.ofSeconds(1), Duration.ofSeconds(30), Duration.ofSeconds(1), 0, false);
     }
@@ -145,7 +145,7 @@ class AttributeFinderSpecificationTests {
     void when_matches_varArgsWithEnoughArguments_then_varArgsMatch() {
         var spec       = new AttributeFinderSpecification("test", "attr", false,
                 List.<Class<? extends Value>>of(TextValue.class), TextValue.class, DUMMY_FINDER);
-        var invocation = new AttributeFinderInvocation("test-config", "test.attr", Value.of("entity"),
+        var invocation = new AttributeFinderInvocation("test-security", "test.attr", Value.of("entity"),
                 List.<Value>of(Value.of("arg1"), Value.of("arg2")), Map.of(), Duration.ofSeconds(1),
                 Duration.ofSeconds(30), Duration.ofSeconds(1), 0, false);
 

@@ -81,7 +81,7 @@ server:
   ssl:
     enabled: true
     key-store-type: PKCS12
-    key-store: file:config/keystore.p12
+    key-store: file:security/keystore.p12
     key-store-password: changeme
     key-password: changeme
     key-alias: netty
@@ -102,7 +102,7 @@ spring.rsocket.server:
   ssl:
     enabled: true
     key-store-type: PKCS12
-    key-store: file:config/keystore.p12
+    key-store: file:security/keystore.p12
     key-store-password: changeme
     key-password: changeme
     key-alias: netty

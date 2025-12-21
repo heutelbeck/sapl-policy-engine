@@ -35,15 +35,15 @@ import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 class ValueMetadataTests {
 
-    static final AttributeFinderInvocation SUBJECT_ROLE_INVOCATION = new AttributeFinderInvocation("test-config",
+    static final AttributeFinderInvocation SUBJECT_ROLE_INVOCATION = new AttributeFinderInvocation("test-security",
             "subject.role", List.of(), Map.of(), Duration.ofSeconds(5), Duration.ofSeconds(1), Duration.ofMillis(100),
             3, false);
 
-    static final AttributeFinderInvocation RESOURCE_OWNER_INVOCATION = new AttributeFinderInvocation("test-config",
+    static final AttributeFinderInvocation RESOURCE_OWNER_INVOCATION = new AttributeFinderInvocation("test-security",
             "resource.owner", List.of(), Map.of(), Duration.ofSeconds(5), Duration.ofSeconds(1), Duration.ofMillis(100),
             3, false);
 
-    static final AttributeFinderInvocation ENVIRONMENT_TIME_INVOCATION = new AttributeFinderInvocation("test-config",
+    static final AttributeFinderInvocation ENVIRONMENT_TIME_INVOCATION = new AttributeFinderInvocation("test-security",
             "environment.time", List.of(), Map.of(), Duration.ofSeconds(5), Duration.ofSeconds(1),
             Duration.ofMillis(100), 3, false);
 

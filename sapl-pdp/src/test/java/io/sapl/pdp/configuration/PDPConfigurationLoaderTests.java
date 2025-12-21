@@ -161,7 +161,7 @@ class PDPConfigurationLoaderTests {
     void whenLoadingWithMixedFiles_thenOnlyLoadsSaplFiles() throws IOException {
         Files.writeString(tempDir.resolve("valid.sapl"), "policy \"valid\" permit");
         Files.writeString(tempDir.resolve("readme.md"), "# Documentation");
-        Files.writeString(tempDir.resolve("config.json"), "{}");
+        Files.writeString(tempDir.resolve("security.json"), "{}");
         Files.writeString(tempDir.resolve("pdp.json"), "{}");
 
         val config = PDPConfigurationLoader.loadFromDirectory(tempDir, "test-pdp");

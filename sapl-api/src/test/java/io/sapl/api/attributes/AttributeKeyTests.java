@@ -33,7 +33,7 @@ class AttributeKeyTests {
 
     @Test
     void when_of_createsKeyFromInvocation_then_extractsCorrectComponents() {
-        var invocation = new AttributeFinderInvocation("test-config", "test.attr", Value.of("user123"),
+        var invocation = new AttributeFinderInvocation("test-security", "test.attr", Value.of("user123"),
                 List.of(Value.of("arg1"), Value.of("arg2")), Map.of(), Duration.ofSeconds(1), Duration.ofSeconds(30),
                 Duration.ofSeconds(1), 0, false);
 
@@ -48,7 +48,7 @@ class AttributeKeyTests {
 
     @Test
     void when_of_environmentAttribute_then_entityIsNull() {
-        var invocation = new AttributeFinderInvocation("test-config", "time.now", List.of(), Map.of(),
+        var invocation = new AttributeFinderInvocation("test-security", "time.now", List.of(), Map.of(),
                 Duration.ofSeconds(1), Duration.ofSeconds(30), Duration.ofSeconds(1), 0, false);
 
         var key = AttributeKey.of(invocation);

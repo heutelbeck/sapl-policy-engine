@@ -89,7 +89,7 @@ import io.sapl.api.pdp.PDPConfiguration;
  * @Bean(destroyMethod = "dispose")
  * public DirectoryPDPConfigurationSource directorySource() {
  *     return new DirectoryPDPConfigurationSource(Path.of("/policies"),
- *             config -> configRegister.loadConfiguration(config, false));
+ *             security -> configRegister.loadConfiguration(security, false));
  * }
  * }</pre>
  */

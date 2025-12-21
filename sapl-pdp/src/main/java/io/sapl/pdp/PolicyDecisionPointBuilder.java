@@ -109,7 +109,7 @@ import java.util.function.Function;
  *         &#64;Bean(destroyMethod = "dispose")
  *         public PDPConfigurationSource policySource(ConfigurationRegister register) {
  *             return new DirectoryPDPConfigurationSource(Path.of("/policies"),
- *                     config -> register.loadConfiguration(config, true));
+ *                     security -> register.loadConfiguration(security, true));
  *         }
  *     }
  * }
@@ -797,7 +797,7 @@ public class PolicyDecisionPointBuilder {
      * @return this builder
      */
     public PolicyDecisionPointBuilder withPolicies(CombiningAlgorithm algorithm, String... policyDocuments) {
-        val configuration = new PDPConfiguration("default", "config-" + System.currentTimeMillis(), algorithm,
+        val configuration = new PDPConfiguration("default", "security-" + System.currentTimeMillis(), algorithm,
                 TraceLevel.STANDARD, List.of(policyDocuments), Map.of());
         return withConfiguration(configuration);
     }

@@ -397,7 +397,7 @@ public final class AttributeStream {
                     return newPipStream.subscribe(value -> {}, error -> {}, () -> {});
                 });
             } else {
-                log.debug("Storing PIP config for {}, will subscribe on first subscriber", this);
+                log.debug("Storing PIP security for {}, will subscribe on first subscriber", this);
             }
         }
     }

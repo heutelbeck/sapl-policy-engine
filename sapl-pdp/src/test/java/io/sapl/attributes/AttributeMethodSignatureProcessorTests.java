@@ -231,13 +231,13 @@ class AttributeMethodSignatureProcessorTests {
     }
 
     private AttributeFinderInvocation createInvocation(String attributeName, Value... args) {
-        return new AttributeFinderInvocation("test-config", NAMESPACE + "." + attributeName, Value.UNDEFINED,
+        return new AttributeFinderInvocation("test-security", NAMESPACE + "." + attributeName, Value.UNDEFINED,
                 List.of(args), Map.of(), Duration.ofSeconds(1), Duration.ofSeconds(1), Duration.ofMillis(100), 3,
                 false);
     }
 
     private EvaluationContext createEvaluationContext(Map<String, Value> variables) {
-        return EvaluationContext.of("id", "test-config", "test-subscription", null, variables, null, null);
+        return EvaluationContext.of("id", "test-security", "test-subscription", null, variables, null, null);
     }
 
     static class TestPIP {

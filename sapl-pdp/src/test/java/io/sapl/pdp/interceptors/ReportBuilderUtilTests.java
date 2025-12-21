@@ -65,7 +65,7 @@ class ReportBuilderUtilTests {
     @DisplayName("extracts obligations from trace")
     void whenExtractReport_thenObligationsAreExtracted() {
         val obligation = Value.of("log_access");
-        val trace      = TracedPdpDecision.builder().pdpId("cthulhu-pdp").configurationId("test-config")
+        val trace      = TracedPdpDecision.builder().pdpId("cthulhu-pdp").configurationId("test-security")
                 .subscriptionId("sub-001").subscription(AuthorizationSubscription.of("cultist", "summon", "elder-god"))
                 .timestamp(Instant.now().toString()).algorithm("deny-overrides").decision(Decision.PERMIT)
                 .totalDocuments(1).obligations(List.of(obligation)).build();
@@ -98,7 +98,7 @@ class ReportBuilderUtilTests {
         val policyTrace = TracedPolicyDecision.builder().name("forbidden-knowledge-access").entitlement("permit")
                 .decision(Decision.PERMIT).build();
 
-        val trace = TracedPdpDecision.builder().pdpId("cthulhu-pdp").configurationId("test-config")
+        val trace = TracedPdpDecision.builder().pdpId("cthulhu-pdp").configurationId("test-security")
                 .subscriptionId("sub-001").subscription(AuthorizationSubscription.of("cultist", "read", "necronomicon"))
                 .timestamp(Instant.now().toString()).algorithm("deny-overrides").decision(Decision.PERMIT)
                 .totalDocuments(1).addDocument(policyTrace).build();
@@ -125,7 +125,7 @@ class ReportBuilderUtilTests {
     @Test
     @DisplayName("handles empty trace gracefully")
     void whenTraceIsMinimal_thenReportIsStillGenerated() {
-        val trace = TracedPdpDecision.builder().pdpId("minimal-pdp").configurationId("test-config")
+        val trace = TracedPdpDecision.builder().pdpId("minimal-pdp").configurationId("test-security")
                 .subscriptionId("sub-001").subscription(AuthorizationSubscription.of("user", "action", "resource"))
                 .timestamp(Instant.now().toString()).algorithm("deny-overrides").decision(Decision.INDETERMINATE)
                 .totalDocuments(0).build();
@@ -137,7 +137,7 @@ class ReportBuilderUtilTests {
     }
 
     private Value createSimplePermitTrace() {
-        return TracedPdpDecision.builder().pdpId("cthulhu-pdp").configurationId("test-config").subscriptionId("sub-001")
+        return TracedPdpDecision.builder().pdpId("cthulhu-pdp").configurationId("test-security").subscriptionId("sub-001")
                 .subscription(AuthorizationSubscription.of("cultist", "summon", "elder-god"))
                 .timestamp(Instant.now().toString()).algorithm("deny-overrides").decision(Decision.PERMIT)
                 .totalDocuments(1).build();
