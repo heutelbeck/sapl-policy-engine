@@ -949,13 +949,11 @@ public class SaplCompiler {
         }
 
         return new PureExpression(ctx -> {
-            val externalSchemas = ctx.get(ENV_SCHEMAS);
-            if (!(externalSchemas instanceof ArrayValue)) {
-                return Value.TRUE;
-            }
+            val externalSchemas          = ctx.get(ENV_SCHEMAS);
+            val actualExternalSchemas    = (externalSchemas instanceof ArrayValue av) ? av : Value.EMPTY_ARRAY;
             val subscriptionElementValue = ctx.get(subscriptionElement);
             return SchemaValidationLibrary.isCompliantWithExternalSchemas(subscriptionElementValue, schemaObjectValue,
-                    externalSchemas);
+                    actualExternalSchemas);
         }, true);
     }
 

@@ -137,8 +137,8 @@ class ReportBuilderUtilTests {
     }
 
     private Value createSimplePermitTrace() {
-        return TracedPdpDecision.builder().pdpId("cthulhu-pdp").configurationId("test-security").subscriptionId("sub-001")
-                .subscription(AuthorizationSubscription.of("cultist", "summon", "elder-god"))
+        return TracedPdpDecision.builder().pdpId("cthulhu-pdp").configurationId("test-security")
+                .subscriptionId("sub-001").subscription(AuthorizationSubscription.of("cultist", "summon", "elder-god"))
                 .timestamp(Instant.now().toString()).algorithm("deny-overrides").decision(Decision.PERMIT)
                 .totalDocuments(1).build();
     }
