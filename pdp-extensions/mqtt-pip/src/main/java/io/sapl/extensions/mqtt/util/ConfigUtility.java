@@ -195,7 +195,8 @@ public class ConfigUtility {
      * @param pipMqttClientConfig the pdp configuration
      * @param pipMqttClientConfigVal {@link Value} of the configuration in the
      * attribute finder
-     * @return Returns a json object containing the mqtt broker security. If no valid
+     * @return Returns a json object containing the mqtt broker security. If no
+     * valid
      * configuration was provided in the configurations than a
      * {@link NoSuchElementException} will be thrown.
      */

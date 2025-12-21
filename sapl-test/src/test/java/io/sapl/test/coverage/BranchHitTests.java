@@ -118,10 +118,30 @@ class BranchHitTests {
     }
 
     @Test
-    @DisplayName("total branch count is always 2")
-    void whenGetTotalBranchCount_thenAlwaysTwo() {
+    @DisplayName("total branch count is 2 for conditions")
+    void whenGetTotalBranchCountForCondition_thenTwo() {
         assertThat(new BranchHit(0, 1, 0, 0).totalBranchCount()).isEqualTo(2);
         assertThat(new BranchHit(0, 1, 5, 3).totalBranchCount()).isEqualTo(2);
+    }
+
+    @Test
+    @DisplayName("total branch count is 1 for target expressions")
+    void whenGetTotalBranchCountForTarget_thenOne() {
+        // Negative statementId (except special constants) = target expression
+        assertThat(new BranchHit(-1, 1, 0, 0).totalBranchCount()).isEqualTo(1);
+        assertThat(new BranchHit(-5, 1, 1, 0).totalBranchCount()).isEqualTo(1);
+    }
+
+    @Test
+    @DisplayName("total branch count is 1 for single-branch policy outcome")
+    void whenGetTotalBranchCountForSingleBranchPolicy_thenOne() {
+        assertThat(new BranchHit(BranchHit.POLICY_SINGLE_BRANCH_ID, 1, 0, 0).totalBranchCount()).isEqualTo(1);
+    }
+
+    @Test
+    @DisplayName("total branch count is 2 for two-branch policy outcome")
+    void whenGetTotalBranchCountForTwoBranchPolicy_thenTwo() {
+        assertThat(new BranchHit(BranchHit.POLICY_TWO_BRANCH_ID, 1, 0, 0).totalBranchCount()).isEqualTo(2);
     }
 
     @Test
@@ -140,5 +160,104 @@ class BranchHitTests {
 
         assertThat(base).isNotEqualTo(new BranchHit(1, 7, 3, 4)).isNotEqualTo(new BranchHit(2, 8, 3, 4))
                 .isNotEqualTo(new BranchHit(2, 7, 2, 4)).isNotEqualTo(new BranchHit(2, 7, 3, 5));
+    }
+
+    // ========== Policy Outcome Tests ==========
+
+    @Test
+    @DisplayName("forPolicyOutcome creates single-branch hit for policy without conditions")
+    void whenForPolicyOutcomeWithoutConditions_thenSingleBranch() {
+        val hit = BranchHit.forPolicyOutcome(1, 3, 0, 10, true, false);
+
+        assertThat(hit.statementId()).isEqualTo(BranchHit.POLICY_SINGLE_BRANCH_ID);
+        assertThat(hit.startLine()).isEqualTo(1);
+        assertThat(hit.endLine()).isEqualTo(3);
+        assertThat(hit.startChar()).isZero();
+        assertThat(hit.endChar()).isEqualTo(10);
+        assertThat(hit.trueHits()).isOne();
+        assertThat(hit.falseHits()).isZero();
+        assertThat(hit.isPolicyOutcome()).isTrue();
+        assertThat(hit.isSingleBranch()).isTrue();
+        assertThat(hit.totalBranchCount()).isEqualTo(1);
+    }
+
+    @Test
+    @DisplayName("forPolicyOutcome creates two-branch hit for policy with conditions")
+    void whenForPolicyOutcomeWithConditions_thenTwoBranch() {
+        val hit = BranchHit.forPolicyOutcome(1, 5, 0, 20, false, true);
+
+        assertThat(hit.statementId()).isEqualTo(BranchHit.POLICY_TWO_BRANCH_ID);
+        assertThat(hit.trueHits()).isZero();
+        assertThat(hit.falseHits()).isOne();
+        assertThat(hit.isPolicyOutcome()).isTrue();
+        assertThat(hit.isSingleBranch()).isFalse();
+        assertThat(hit.totalBranchCount()).isEqualTo(2);
+    }
+
+    @Test
+    @DisplayName("isPolicyOutcome returns true only for policy outcome IDs")
+    void whenCheckingIsPolicyOutcome_thenCorrectResult() {
+        assertThat(new BranchHit(BranchHit.POLICY_SINGLE_BRANCH_ID, 1, 0, 0).isPolicyOutcome()).isTrue();
+        assertThat(new BranchHit(BranchHit.POLICY_TWO_BRANCH_ID, 1, 0, 0).isPolicyOutcome()).isTrue();
+        assertThat(new BranchHit(0, 1, 0, 0).isPolicyOutcome()).isFalse();
+        assertThat(new BranchHit(-1, 1, 0, 0).isPolicyOutcome()).isFalse();
+    }
+
+    @Test
+    @DisplayName("isTargetExpression returns true for negative IDs except policy constants")
+    void whenCheckingIsTargetExpression_thenCorrectResult() {
+        assertThat(new BranchHit(-1, 1, 0, 0).isTargetExpression()).isTrue();
+        assertThat(new BranchHit(-100, 1, 0, 0).isTargetExpression()).isTrue();
+        assertThat(new BranchHit(0, 1, 0, 0).isTargetExpression()).isFalse();
+        assertThat(new BranchHit(5, 1, 0, 0).isTargetExpression()).isFalse();
+        // Policy outcome constants are NOT target expressions
+        assertThat(new BranchHit(BranchHit.POLICY_SINGLE_BRANCH_ID, 1, 0, 0).isTargetExpression()).isFalse();
+        assertThat(new BranchHit(BranchHit.POLICY_TWO_BRANCH_ID, 1, 0, 0).isTargetExpression()).isFalse();
+    }
+
+    @Test
+    @DisplayName("isSingleBranch returns true for targets and single-branch policies")
+    void whenCheckingIsSingleBranch_thenCorrectResult() {
+        // Target expressions are single-branch
+        assertThat(new BranchHit(-1, 1, 0, 0).isSingleBranch()).isTrue();
+        assertThat(new BranchHit(-50, 1, 0, 0).isSingleBranch()).isTrue();
+        // Single-branch policy outcome is single-branch
+        assertThat(new BranchHit(BranchHit.POLICY_SINGLE_BRANCH_ID, 1, 0, 0).isSingleBranch()).isTrue();
+        // Conditions and two-branch policies are NOT single-branch
+        assertThat(new BranchHit(0, 1, 0, 0).isSingleBranch()).isFalse();
+        assertThat(new BranchHit(5, 1, 0, 0).isSingleBranch()).isFalse();
+        assertThat(new BranchHit(BranchHit.POLICY_TWO_BRANCH_ID, 1, 0, 0).isSingleBranch()).isFalse();
+    }
+
+    @Test
+    @DisplayName("coveredBranchCount respects single-branch semantics")
+    void whenGettingCoveredBranchCountForSingleBranch_thenMaxOne() {
+        // Single-branch: only trueHits matters, returns 0 or 1
+        assertThat(new BranchHit(-1, 1, 0, 0).coveredBranchCount()).isZero();
+        assertThat(new BranchHit(-1, 1, 1, 0).coveredBranchCount()).isEqualTo(1);
+        assertThat(new BranchHit(-1, 1, 5, 0).coveredBranchCount()).isEqualTo(1);
+        // Even with falseHits, single-branch only counts trueHits
+        assertThat(new BranchHit(-1, 1, 0, 5).coveredBranchCount()).isZero();
+        assertThat(new BranchHit(-1, 1, 1, 5).coveredBranchCount()).isEqualTo(1);
+    }
+
+    @Test
+    @DisplayName("isFullyCoveredSemantic respects branch type")
+    void whenCheckingIsFullyCoveredSemantic_thenUsesCorrectSemantics() {
+        // Two-branch condition: needs both true and false
+        assertThat(new BranchHit(0, 1, 1, 0).isFullyCoveredSemantic()).isFalse();
+        assertThat(new BranchHit(0, 1, 0, 1).isFullyCoveredSemantic()).isFalse();
+        assertThat(new BranchHit(0, 1, 1, 1).isFullyCoveredSemantic()).isTrue();
+
+        // Single-branch target: only needs trueHits
+        assertThat(new BranchHit(-1, 1, 0, 0).isFullyCoveredSemantic()).isFalse();
+        assertThat(new BranchHit(-1, 1, 1, 0).isFullyCoveredSemantic()).isTrue();
+
+        // Single-branch policy: only needs trueHits
+        assertThat(new BranchHit(BranchHit.POLICY_SINGLE_BRANCH_ID, 1, 1, 0).isFullyCoveredSemantic()).isTrue();
+
+        // Two-branch policy: needs both
+        assertThat(new BranchHit(BranchHit.POLICY_TWO_BRANCH_ID, 1, 1, 0).isFullyCoveredSemantic()).isFalse();
+        assertThat(new BranchHit(BranchHit.POLICY_TWO_BRANCH_ID, 1, 1, 1).isFullyCoveredSemantic()).isTrue();
     }
 }

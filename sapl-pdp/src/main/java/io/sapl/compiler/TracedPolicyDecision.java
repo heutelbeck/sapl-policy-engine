@@ -129,6 +129,8 @@ public class TracedPolicyDecision {
         private List<Value>    conditions  = new ArrayList<>();
         private Boolean        targetResult;
         private SourceLocation targetLocation;
+        private SourceLocation policyLocation;
+        private Boolean        hasConditions;
 
         /**
          * Sets the policy name.
@@ -353,6 +355,40 @@ public class TracedPolicyDecision {
         }
 
         /**
+         * Sets the policy declaration source location for coverage tracking (COVERAGE
+         * trace level only).
+         *
+         * @param location
+         * the source location of the policy declaration (policy "name" permit/deny)
+         *
+         * @return this builder
+         */
+        public Builder policyLocation(SourceLocation location) {
+            this.policyLocation = location;
+            return this;
+        }
+
+        /**
+         * Sets whether this policy has where-clause conditions for coverage tracking
+         * (COVERAGE trace level only).
+         * <p>
+         * This determines branch semantics: policies without conditions are
+         * single-branch
+         * (just need to be hit), while policies with conditions are two-branch (need
+         * both
+         * entitlement-returned and NOT_APPLICABLE outcomes for full coverage).
+         *
+         * @param hasConditions
+         * true if the policy has where-clause conditions
+         *
+         * @return this builder
+         */
+        public Builder hasConditions(boolean hasConditions) {
+            this.hasConditions = hasConditions;
+            return this;
+        }
+
+        /**
          * Extracts decision components from a raw decision Value and populates this
          * builder.
          * <p>
@@ -429,6 +465,15 @@ public class TracedPolicyDecision {
                         .put(TraceFields.TARGET_END_LINE, Value.of(targetLocation.endLine()))
                         .put(TraceFields.TARGET_START_CHAR, Value.of(targetLocation.start()))
                         .put(TraceFields.TARGET_END_CHAR, Value.of(targetLocation.end()));
+            }
+            if (policyLocation != null) {
+                builder.put(TraceFields.POLICY_START_LINE, Value.of(policyLocation.line()))
+                        .put(TraceFields.POLICY_END_LINE, Value.of(policyLocation.endLine()))
+                        .put(TraceFields.POLICY_START_CHAR, Value.of(policyLocation.start()))
+                        .put(TraceFields.POLICY_END_CHAR, Value.of(policyLocation.end()));
+            }
+            if (hasConditions != null) {
+                builder.put(TraceFields.HAS_CONDITIONS, Value.of(hasConditions));
             }
 
             return builder.build();

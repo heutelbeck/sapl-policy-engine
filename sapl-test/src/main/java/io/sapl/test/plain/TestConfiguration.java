@@ -32,9 +32,9 @@ import java.util.Map;
  * Use the builder to construct a configuration:
  *
  * <pre>{@code
- * var security = TestConfiguration.builder().withSaplDocument(doc1).withSaplDocument(doc2).withSaplTestDocument(testDoc)
- *         .withDefaultAlgorithm(CombiningAlgorithm.DENY_OVERRIDES).withFunctionLibrary(TemporalFunctionLibrary.class)
- *         .build();
+ * var security = TestConfiguration.builder().withSaplDocument(doc1).withSaplDocument(doc2)
+ *         .withSaplTestDocument(testDoc).withDefaultAlgorithm(CombiningAlgorithm.DENY_OVERRIDES)
+ *         .withFunctionLibrary(TemporalFunctionLibrary.class).build();
  * }</pre>
  */
 public record TestConfiguration(

@@ -112,6 +112,9 @@ public class CoverageExtractor {
             }
         }
 
+        // Extract policy outcome for policy-level coverage tracking
+        extractPolicyOutcome(docObj, coverage);
+
         // For policy sets, merge coverage from nested policies into this set
         if (TraceFields.TYPE_SET.equals(type)) {
             var anyInnerPolicyMatched = false;
@@ -183,7 +186,45 @@ public class CoverageExtractor {
             }
         }
 
+        // Extract policy outcome for nested policy
+        extractPolicyOutcome(policyObj, setCoverage);
+
         return targetMatched;
+    }
+
+    /**
+     * Extracts policy-level outcome for coverage tracking.
+     * <p>
+     * Determines whether the policy returned its entitlement (PERMIT/DENY) or
+     * NOT_APPLICABLE, and records this for branch coverage. Policies without
+     * conditions are single-branch (just need to be hit), while policies with
+     * conditions are two-branch (need both outcomes for full coverage).
+     *
+     * @param policyObj the policy trace object
+     * @param coverage the coverage data to update
+     */
+    private static void extractPolicyOutcome(ObjectValue policyObj, PolicyCoverageData coverage) {
+        val policyStartLine = getIntValue(policyObj, TraceFields.POLICY_START_LINE);
+        if (policyStartLine <= 0) {
+            return; // No policy location data (coverage not enabled or constant-folded)
+        }
+
+        val policyEndLine   = getIntValue(policyObj, TraceFields.POLICY_END_LINE);
+        val policyStartChar = getIntValue(policyObj, TraceFields.POLICY_START_CHAR);
+        val policyEndChar   = getIntValue(policyObj, TraceFields.POLICY_END_CHAR);
+
+        val hasConditionsValue = policyObj.get(TraceFields.HAS_CONDITIONS);
+        val hasConditions      = hasConditionsValue instanceof BooleanValue bv && bv.value();
+
+        val decision    = getTextValue(policyObj, TraceFields.DECISION);
+        val entitlement = getTextValue(policyObj, TraceFields.ENTITLEMENT);
+
+        // entitlementReturned: true if decision equals entitlement (PERMIT or DENY)
+        // false if decision is NOT_APPLICABLE (conditions failed)
+        val entitlementReturned = decision != null && decision.equals(entitlement);
+
+        coverage.recordPolicyOutcome(policyStartLine, policyEndLine > 0 ? policyEndLine : policyStartLine,
+                policyStartChar, policyEndChar, entitlementReturned, hasConditions);
     }
 
     private static void extractConditionHit(Value condition, PolicyCoverageData coverage) {

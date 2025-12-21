@@ -175,7 +175,11 @@ public class CoverageWriter {
             branchMap.put("endChar", hit.endChar());
             branchMap.put("trueHits", hit.trueHits());
             branchMap.put("falseHits", hit.falseHits());
-            branchMap.put("fullyCovered", hit.isFullyCovered());
+            branchMap.put("fullyCovered", hit.isFullyCoveredSemantic());
+            branchMap.put("isSingleBranch", hit.isSingleBranch());
+            branchMap.put("isPolicyOutcome", hit.isPolicyOutcome());
+            branchMap.put("totalBranchCount", hit.totalBranchCount());
+            branchMap.put("coveredBranchCount", hit.coveredBranchCount());
             branches.add(branchMap);
         }
         map.put("branches", branches);

@@ -162,15 +162,21 @@ public class SonarQubeCoverageReportGenerator {
             if (branches != null && branches.isArray()) {
                 for (val branch : branches) {
                     val statementId = getIntOrZero(branch, "statementId");
-                    val line        = getIntOrZero(branch, "line");
                     val trueHits    = getIntOrZero(branch, "trueHits");
                     val falseHits   = getIntOrZero(branch, "falseHits");
 
+                    // Support both new format (startLine/endLine) and legacy (line)
+                    val startLine = branch.has("startLine") ? getIntOrZero(branch, "startLine")
+                            : getIntOrZero(branch, "line");
+                    val endLine   = branch.has("endLine") ? getIntOrZero(branch, "endLine") : startLine;
+                    val startChar = getIntOrZero(branch, "startChar");
+                    val endChar   = getIntOrZero(branch, "endChar");
+
                     for (var i = 0; i < trueHits; i++) {
-                        coverage.recordConditionHit(statementId, line, true);
+                        coverage.recordConditionHit(statementId, startLine, endLine, startChar, endChar, true);
                     }
                     for (var i = 0; i < falseHits; i++) {
-                        coverage.recordConditionHit(statementId, line, false);
+                        coverage.recordConditionHit(statementId, startLine, endLine, startChar, endChar, false);
                     }
                 }
             }

@@ -184,7 +184,10 @@ public class AggregatedCoverageData {
 
     /**
      * Calculates condition/branch hit ratio.
-     * A condition is fully covered when both true and false branches are hit.
+     * <p>
+     * Uses semantic coverage: single-branch items (targets, policies without
+     * conditions) are fully covered when hit once, while two-branch items
+     * (where-clause conditions, policies with conditions) need both branches hit.
      *
      * @return ratio (0.0 to 100.0), or 100.0 if no conditions
      */
@@ -194,7 +197,7 @@ public class AggregatedCoverageData {
         for (val coverage : policyCoverageByName.values()) {
             for (val hit : coverage.getBranchHits()) {
                 totalConditions++;
-                if (hit.isFullyCovered()) {
+                if (hit.isFullyCoveredSemantic()) {
                     coveredConditions++;
                 }
             }

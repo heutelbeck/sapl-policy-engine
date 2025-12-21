@@ -150,6 +150,32 @@ public class PolicyCoverageData {
     }
 
     /**
+     * Records a policy outcome for coverage tracking.
+     * <p>
+     * This tracks whether a policy returned its declared entitlement (PERMIT/DENY)
+     * or returned NOT_APPLICABLE due to condition failures.
+     * <p>
+     * For policies without conditions (single-branch), only
+     * {@code entitlementReturned=true} is meaningful.
+     * For policies with conditions (two-branch), both outcomes should be tested.
+     *
+     * @param startLine the 1-based start line of the policy declaration
+     * @param endLine the 1-based end line of the policy declaration
+     * @param startChar character offset within start line (0-based)
+     * @param endChar character offset within end line (0-based)
+     * @param entitlementReturned true if policy returned its entitlement, false if
+     * NOT_APPLICABLE
+     * @param hasConditions true if policy has where-clause conditions (two-branch)
+     */
+    public void recordPolicyOutcome(int startLine, int endLine, int startChar, int endChar, boolean entitlementReturned,
+            boolean hasConditions) {
+        val key    = positionKey(startLine, startChar);
+        val newHit = BranchHit.forPolicyOutcome(startLine, endLine, startChar, endChar, entitlementReturned,
+                hasConditions);
+        branchHitsByPosition.merge(key, newHit, BranchHit::mergeHitCounts);
+    }
+
+    /**
      * Merges another PolicyCoverageData into this one.
      * <p>
      * Combines target hits and branch hits. Both must represent the same document.
@@ -349,25 +375,17 @@ public class PolicyCoverageData {
         }
 
         // Aggregate branch counts per line from all statements
-        // Target expressions (negative statementId) have single-branch semantics
-        // Conditions (non-negative statementId) have two-branch semantics
+        // BranchHit.coveredBranchCount() and totalBranchCount() handle
+        // single-branch vs two-branch semantics based on statementId
         val branchesByLine = new HashMap<Integer, int[]>();
         for (val hit : branchHitsByPosition.values()) {
-            val isTarget = hit.statementId() < 0;
             for (int line = hit.startLine(); line <= hit.endLine(); line++) {
                 branchesByLine.compute(line, (l, counts) -> {
                     if (counts == null) {
                         counts = new int[2];
                     }
-                    if (isTarget) {
-                        // Target: single-branch - "hit" means fully covered
-                        counts[0] += hit.isPartiallyCovered() ? 1 : 0;
-                        counts[1] += 1;
-                    } else {
-                        // Condition: two-branch - true and false
-                        counts[0] += hit.coveredBranchCount();
-                        counts[1] += hit.totalBranchCount();
-                    }
+                    counts[0] += hit.coveredBranchCount();
+                    counts[1] += hit.totalBranchCount();
                     return counts;
                 });
             }

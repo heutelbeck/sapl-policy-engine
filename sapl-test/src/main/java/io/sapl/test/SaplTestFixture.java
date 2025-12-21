@@ -163,7 +163,8 @@ public class SaplTestFixture {
      * Integration test mode:
      * <ul>
      * <li>Multiple documents allowed</li>
-     * <li>Combining algorithm required (from security file, bundle, or explicit)</li>
+     * <li>Combining algorithm required (from security file, bundle, or
+     * explicit)</li>
      * <li>No policy is valid (tests empty PDP behavior)</li>
      * <li>Errors if no combining algorithm defined at whenDecide</li>
      * </ul>

@@ -124,4 +124,11 @@ public class TraceFields {
     public static final String TARGET_END_LINE   = "targetEndLine";
     public static final String TARGET_START_CHAR = "targetStartChar";
     public static final String TARGET_END_CHAR   = "targetEndChar";
+
+    // Policy declaration position fields (for policy-level coverage)
+    public static final String POLICY_START_LINE = "policyStartLine";
+    public static final String POLICY_END_LINE   = "policyEndLine";
+    public static final String POLICY_START_CHAR = "policyStartChar";
+    public static final String POLICY_END_CHAR   = "policyEndChar";
+    public static final String HAS_CONDITIONS    = "hasConditions";
 }

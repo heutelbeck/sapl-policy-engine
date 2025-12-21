@@ -26,6 +26,16 @@ package io.sapl.api.coverage;
  * Position data (startLine, endLine, startChar, endChar) enables precise
  * highlighting of multi-line expressions and multiple conditions on the same
  * line.
+ * <p>
+ * Special statementId conventions:
+ * <ul>
+ * <li>Non-negative: where-clause condition (0-based index)</li>
+ * <li>Negative (except special constants): target expression</li>
+ * <li>{@link #POLICY_SINGLE_BRANCH_ID}: policy outcome, single branch (no
+ * conditions)</li>
+ * <li>{@link #POLICY_TWO_BRANCH_ID}: policy outcome, two branches (has
+ * conditions)</li>
+ * </ul>
  *
  * @param statementId the 0-based index of the statement in the policy body
  * @param startLine the 1-based source line where this condition starts
@@ -43,6 +53,20 @@ public record BranchHit(
         int endChar,
         int trueHits,
         int falseHits) {
+
+    /**
+     * StatementId for policy outcome tracking when policy has no conditions.
+     * Single-branch: policy either returns entitlement or is not applicable
+     * (target didn't match).
+     */
+    public static final int POLICY_SINGLE_BRANCH_ID = Integer.MIN_VALUE;
+
+    /**
+     * StatementId for policy outcome tracking when policy has conditions.
+     * Two-branch: policy can return entitlement (conditions pass) or
+     * NOT_APPLICABLE (conditions fail).
+     */
+    public static final int POLICY_TWO_BRANCH_ID = Integer.MIN_VALUE + 1;
 
     /**
      * Backwards-compatible constructor for legacy code that only has line number.
@@ -94,6 +118,32 @@ public record BranchHit(
             boolean result) {
         return result ? new BranchHit(statementId, startLine, endLine, startChar, endChar, 1, 0)
                 : new BranchHit(statementId, startLine, endLine, startChar, endChar, 0, 1);
+    }
+
+    /**
+     * Creates a BranchHit for policy outcome tracking.
+     * <p>
+     * For policies without conditions (single-branch), only
+     * {@code entitlementReturned=true} is meaningful since NOT_APPLICABLE only
+     * happens when the target doesn't match.
+     * <p>
+     * For policies with conditions (two-branch), both outcomes are possible:
+     * entitlement returned (conditions pass) or NOT_APPLICABLE (conditions fail).
+     *
+     * @param startLine the 1-based start line of the policy declaration
+     * @param endLine the 1-based end line of the policy declaration
+     * @param startChar character offset within start line (0-based)
+     * @param endChar character offset within end line (0-based)
+     * @param entitlementReturned true if policy returned its entitlement, false if
+     * NOT_APPLICABLE
+     * @param hasConditions true if policy has where-clause conditions (two-branch)
+     * @return a new BranchHit for policy outcome tracking
+     */
+    public static BranchHit forPolicyOutcome(int startLine, int endLine, int startChar, int endChar,
+            boolean entitlementReturned, boolean hasConditions) {
+        int id = hasConditions ? POLICY_TWO_BRANCH_ID : POLICY_SINGLE_BRANCH_ID;
+        return entitlementReturned ? new BranchHit(id, startLine, endLine, startChar, endChar, 1, 0)
+                : new BranchHit(id, startLine, endLine, startChar, endChar, 0, 1);
     }
 
     /**
@@ -171,11 +221,17 @@ public record BranchHit(
     }
 
     /**
-     * Returns the number of branches covered (0, 1, or 2).
+     * Returns the number of branches covered.
+     * <p>
+     * For single-branch items, returns 0 or 1.
+     * For two-branch items, returns 0, 1, or 2.
      *
      * @return count of covered branches
      */
     public int coveredBranchCount() {
+        if (isSingleBranch()) {
+            return trueHits > 0 ? 1 : 0;
+        }
         var count = 0;
         if (trueHits > 0) {
             count++;
@@ -187,11 +243,61 @@ public record BranchHit(
     }
 
     /**
-     * Total branches for this condition (always 2: true and false).
+     * Total branches for this item.
+     * <p>
+     * Returns 1 for single-branch items (targets, policies without conditions).
+     * Returns 2 for two-branch items (where-clause conditions, policies with
+     * conditions).
      *
-     * @return 2
+     * @return 1 for single-branch, 2 for two-branch
      */
     public int totalBranchCount() {
-        return 2;
+        return isSingleBranch() ? 1 : 2;
+    }
+
+    /**
+     * Checks if this is a policy outcome tracking entry.
+     *
+     * @return true if this tracks policy-level outcomes
+     */
+    public boolean isPolicyOutcome() {
+        return statementId == POLICY_SINGLE_BRANCH_ID || statementId == POLICY_TWO_BRANCH_ID;
+    }
+
+    /**
+     * Checks if this is a target expression entry.
+     * <p>
+     * Target expressions use negative statementIds (except the special policy
+     * outcome constants).
+     *
+     * @return true if this tracks a target expression
+     */
+    public boolean isTargetExpression() {
+        return statementId < 0 && !isPolicyOutcome();
+    }
+
+    /**
+     * Checks if this is a single-branch item.
+     * <p>
+     * Single-branch items only need one hit (trueHits &gt; 0) to be fully covered.
+     * This includes target expressions and policies without conditions.
+     *
+     * @return true if this is single-branch
+     */
+    public boolean isSingleBranch() {
+        return statementId == POLICY_SINGLE_BRANCH_ID || isTargetExpression();
+    }
+
+    /**
+     * Checks if this item is fully covered, accounting for single vs two-branch
+     * semantics.
+     * <p>
+     * Single-branch items are fully covered when trueHits &gt; 0.
+     * Two-branch items require both trueHits &gt; 0 and falseHits &gt; 0.
+     *
+     * @return true if fully covered according to branch semantics
+     */
+    public boolean isFullyCoveredSemantic() {
+        return isSingleBranch() ? trueHits > 0 : (trueHits > 0 && falseHits > 0);
     }
 }

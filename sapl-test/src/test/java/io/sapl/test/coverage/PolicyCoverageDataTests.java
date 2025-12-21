@@ -17,6 +17,7 @@
  */
 package io.sapl.test.coverage;
 
+import io.sapl.api.coverage.BranchHit;
 import io.sapl.api.coverage.LineCoverageInfo;
 import io.sapl.api.coverage.LineCoverageStatus;
 import io.sapl.api.coverage.PolicyCoverageData;
@@ -276,5 +277,130 @@ class PolicyCoverageDataTests {
         assertThat(line5Info.coveredBranches()).isEqualTo(3);
         assertThat(line5Info.totalBranches()).isEqualTo(4);
         assertThat(line5Info.status()).isEqualTo(LineCoverageStatus.PARTIALLY_COVERED);
+    }
+
+    // ========== Policy Outcome Tests ==========
+
+    @Test
+    @DisplayName("records single-branch policy outcome for policy without conditions")
+    void whenRecordPolicyOutcomeWithoutConditions_thenSingleBranch() {
+        val coverage = new PolicyCoverageData("simple-permit", "policy \"test\" permit", "policy");
+
+        coverage.recordPolicyOutcome(1, 1, 0, 20, true, false);
+
+        val hits = coverage.getBranchHits();
+        assertThat(hits).hasSize(1);
+
+        val hit = hits.get(0);
+        assertThat(hit.statementId()).isEqualTo(BranchHit.POLICY_SINGLE_BRANCH_ID);
+        assertThat(hit.isSingleBranch()).isTrue();
+        assertThat(hit.trueHits()).isOne();
+        assertThat(hit.falseHits()).isZero();
+        assertThat(hit.totalBranchCount()).isEqualTo(1);
+        assertThat(hit.coveredBranchCount()).isEqualTo(1);
+    }
+
+    @Test
+    @DisplayName("records two-branch policy outcome for policy with conditions")
+    void whenRecordPolicyOutcomeWithConditions_thenTwoBranch() {
+        val coverage = new PolicyCoverageData("conditional-permit", "policy \"test\" permit where x > 0;", "policy");
+
+        coverage.recordPolicyOutcome(1, 1, 0, 30, true, true);
+
+        val hits = coverage.getBranchHits();
+        assertThat(hits).hasSize(1);
+
+        val hit = hits.get(0);
+        assertThat(hit.statementId()).isEqualTo(BranchHit.POLICY_TWO_BRANCH_ID);
+        assertThat(hit.isSingleBranch()).isFalse();
+        assertThat(hit.trueHits()).isOne();
+        assertThat(hit.falseHits()).isZero();
+        assertThat(hit.totalBranchCount()).isEqualTo(2);
+        assertThat(hit.coveredBranchCount()).isEqualTo(1);
+    }
+
+    @Test
+    @DisplayName("merges policy outcome hits for same policy")
+    void whenRecordMultiplePolicyOutcomes_thenMerged() {
+        val coverage = new PolicyCoverageData("test-policy", "policy \"test\" permit where x > 0;", "policy");
+
+        // First evaluation: entitlement returned
+        coverage.recordPolicyOutcome(1, 1, 0, 30, true, true);
+        // Second evaluation: NOT_APPLICABLE
+        coverage.recordPolicyOutcome(1, 1, 0, 30, false, true);
+
+        val hits = coverage.getBranchHits();
+        assertThat(hits).hasSize(1);
+
+        val hit = hits.get(0);
+        assertThat(hit.trueHits()).isOne();
+        assertThat(hit.falseHits()).isOne();
+        assertThat(hit.isFullyCovered()).isTrue();
+        assertThat(hit.coveredBranchCount()).isEqualTo(2);
+    }
+
+    @Test
+    @DisplayName("single-branch policy is fully covered with one true hit")
+    void whenSingleBranchPolicyHitOnce_thenFullyCovered() {
+        val source   = "policy \"permit-all\" permit";
+        val coverage = new PolicyCoverageData("permit-all", source, "policy");
+
+        coverage.recordPolicyOutcome(1, 1, 0, 25, true, false);
+
+        // 100% coverage: 1 branch covered of 1 total
+        assertThat(coverage.getBranchCoveragePercent()).isEqualTo(100.0);
+    }
+
+    @Test
+    @DisplayName("two-branch policy needs both outcomes for full coverage")
+    void whenTwoBranchPolicyOnlyOneOutcome_thenPartiallyCovered() {
+        val source   = "policy \"conditional\" permit where x;";
+        val coverage = new PolicyCoverageData("conditional", source, "policy");
+
+        coverage.recordPolicyOutcome(1, 1, 0, 35, true, true);
+
+        // 50% coverage: 1 branch covered of 2 total
+        assertThat(coverage.getBranchCoveragePercent()).isEqualTo(50.0);
+
+        // Add NOT_APPLICABLE outcome
+        coverage.recordPolicyOutcome(1, 1, 0, 35, false, true);
+
+        // 100% coverage: 2 branches covered of 2 total
+        assertThat(coverage.getBranchCoveragePercent()).isEqualTo(100.0);
+    }
+
+    @Test
+    @DisplayName("line coverage includes policy outcome with correct branch semantics")
+    void whenLineCoverageWithPolicyOutcome_thenCorrectBranchCounts() {
+        val source   = "line1\nline2";
+        val coverage = new PolicyCoverageData("test", source, "policy");
+
+        // Single-branch policy on line 1
+        coverage.recordPolicyOutcome(1, 1, 0, 10, true, false);
+
+        val lineCoverage = coverage.getLineCoverage();
+        val line1Info    = lineCoverage.get(0);
+
+        // Single-branch: 1/1 = fully covered
+        assertThat(line1Info.coveredBranches()).isEqualTo(1);
+        assertThat(line1Info.totalBranches()).isEqualTo(1);
+        assertThat(line1Info.status()).isEqualTo(LineCoverageStatus.FULLY_COVERED);
+    }
+
+    @Test
+    @DisplayName("target expression uses single-branch semantics")
+    void whenTargetExpressionHit_thenSingleBranchSemantics() {
+        val source   = "line1\nline2";
+        val coverage = new PolicyCoverageData("test", source, "policy");
+
+        // Target on line 1 (uses negative statementId)
+        coverage.recordTargetHit(true, 1, 1);
+
+        val lineCoverage = coverage.getLineCoverage();
+        val line1Info    = lineCoverage.get(0);
+
+        // Target is single-branch: hit = 1/1 covered
+        assertThat(line1Info.coveredBranches()).isEqualTo(1);
+        assertThat(line1Info.totalBranches()).isEqualTo(1);
     }
 }
