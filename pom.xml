@@ -554,7 +554,7 @@
 
 		<!-- Integration modules -->
 		<module>sapl-pdp-remote</module>
-		<module>sapl-spring-security</module>
+		<module>sapl-spring-boot-starter</module>
 
 		<!-- IDE and tooling -->
 		<module>sapl-language-server</module>

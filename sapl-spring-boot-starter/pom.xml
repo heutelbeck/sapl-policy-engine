@@ -28,11 +28,11 @@
 		<version>4.0.0-SNAPSHOT</version>
 	</parent>
 
-	<artifactId>sapl-spring-security</artifactId>
+	<artifactId>sapl-spring-boot-starter</artifactId>
 
 	<packaging>jar</packaging>
 
-	<name>SAPL Spring Security Integration</name>
+	<name>SAPL Spring Boot Starter</name>
 
 	<properties>
 		<main.basedir>${project.basedir}/../</main.basedir>
