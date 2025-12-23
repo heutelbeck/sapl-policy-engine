@@ -29,16 +29,16 @@ import reactor.core.publisher.Flux;
 @Repository
 public interface UserIntegrationTestsRepository extends ReactiveCrudRepository<TestUser, ObjectId> {
 
-    @QueryEnforce(action = "findAll", subject = "{\"age\": @customBean.getAge()}")
+    @QueryEnforce(action = "'findAll'", subject = "{'age': @customBean.getAge()}")
     Flux<TestUser> findAll();
 
-    @QueryEnforce(action = "findAllByAgeAfter", resource = "{\"age\": #age}")
+    @QueryEnforce(action = "'findAllByAgeAfter'", resource = "{'age': #age}")
     Flux<TestUser> findAllByAgeAfter(Integer age, Pageable page);
 
-    @QueryEnforce(action = "fetchingByQueryMethod", subject = "{\"age\": @customBean.getAge()}")
+    @QueryEnforce(action = "'fetchingByQueryMethod'", subject = "{'age': @customBean.getAge()}")
     @Query(value = "{'firstname': {'$regex': ?0}}", fields = "{'firstname': 0}", sort = "{'firstname': 1}")
     Flux<TestUser> fetchingByQueryMethod(String lastnameContains, Pageable pageable);
 
-    @QueryEnforce(action = "denyTest")
+    @QueryEnforce(action = "'denyTest'")
     Flux<TestUser> findAllByAgeBefore(Integer age);
 }
