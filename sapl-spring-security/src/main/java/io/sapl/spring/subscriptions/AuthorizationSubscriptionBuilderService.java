@@ -70,7 +70,9 @@ public class AuthorizationSubscriptionBuilderService {
     private static final Authentication ANONYMOUS = new AnonymousAuthenticationToken("key", "anonymous",
             AuthorityUtils.createAuthorityList("ROLE_ANONYMOUS"));
 
-    private static final SpelExpressionParser PARSER = new SpelExpressionParser();
+    private static final SpelExpressionParser PARSER            = new SpelExpressionParser();
+    public static final String                AUTHENTICATION    = "authentication";
+    public static final String                METHOD_INVOCATION = "methodInvocation";
 
     private final ObjectProvider<MethodSecurityExpressionHandler> expressionHandlerProvider;
     private final ObjectProvider<ObjectMapper>                    mapperProvider;
@@ -139,8 +141,8 @@ public class AuthorizationSubscriptionBuilderService {
     public AuthorizationSubscription constructAuthorizationSubscription(Authentication authentication,
             MethodInvocation methodInvocation, SaplAttribute attribute) {
         var evaluationCtx = expressionHandler().createEvaluationContext(authentication, methodInvocation);
-        evaluationCtx.setVariable("authentication", authentication);
-        evaluationCtx.setVariable("methodInvocation", methodInvocation);
+        evaluationCtx.setVariable(AUTHENTICATION, authentication);
+        evaluationCtx.setVariable(METHOD_INVOCATION, methodInvocation);
         return constructServletAuthorizationSubscription(authentication, methodInvocation, attribute, evaluationCtx);
     }
 
@@ -152,8 +154,8 @@ public class AuthorizationSubscriptionBuilderService {
             MethodInvocation methodInvocation, SaplAttribute attribute, Object returnObject) {
         var evaluationCtx = expressionHandler().createEvaluationContext(authentication, methodInvocation);
         expressionHandler().setReturnObject(returnObject, evaluationCtx);
-        evaluationCtx.setVariable("authentication", authentication);
-        evaluationCtx.setVariable("methodInvocation", methodInvocation);
+        evaluationCtx.setVariable(AUTHENTICATION, authentication);
+        evaluationCtx.setVariable(METHOD_INVOCATION, methodInvocation);
         return constructServletAuthorizationSubscription(authentication, methodInvocation, attribute, evaluationCtx);
     }
 
@@ -205,6 +207,8 @@ public class AuthorizationSubscriptionBuilderService {
 
         return authentication.map(authn -> {
             var evaluationCtx = expressionHandler().createEvaluationContext(authn, methodInvocation);
+            evaluationCtx.setVariable(AUTHENTICATION, authn);
+            evaluationCtx.setVariable(METHOD_INVOCATION, methodInvocation);
             returnedObject.ifPresent(returnObject -> expressionHandler().setReturnObject(returnObject, evaluationCtx));
             return constructAuthorizationSubscription(authn, evaluationCtx, attribute.subjectExpression(),
                     attribute.actionExpression(), attribute.resourceExpression(), attribute.environmentExpression(),
@@ -240,12 +244,12 @@ public class AuthorizationSubscriptionBuilderService {
 
     private EvaluationContext createQueryEnforceEvaluationContext(Authentication authentication,
             MethodInvocation methodInvocation) {
-        var evaluationCtx = new StandardEvaluationContext();
+        var evaluationCtx = new StandardEvaluationContext(methodInvocation);
         if (applicationContext != null) {
             evaluationCtx.setBeanResolver(new BeanFactoryResolver(applicationContext));
         }
-        evaluationCtx.setVariable("authentication", authentication);
-        evaluationCtx.setVariable("methodInvocation", methodInvocation);
+        evaluationCtx.setVariable(AUTHENTICATION, authentication);
+        evaluationCtx.setVariable(METHOD_INVOCATION, methodInvocation);
 
         var params = methodInvocation.getMethod().getParameters();
         var args   = methodInvocation.getArguments();
