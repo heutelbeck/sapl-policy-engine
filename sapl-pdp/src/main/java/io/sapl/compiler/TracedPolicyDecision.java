@@ -77,10 +77,12 @@ public class TracedPolicyDecision {
      *
      * @return a minimal ObjectValue trace
      */
-    public static Value createNoMatchTrace(String policyName) {
+    public static Value createNoMatchTrace(String policyName, String entitlement) {
         return ObjectValue.builder().put(TraceFields.NAME, Value.of(policyName))
-                .put(TraceFields.TYPE, Value.of(TraceFields.TYPE_POLICY)).put(TraceFields.TARGET_MATCH, Value.FALSE)
-                .build();
+                .put(TraceFields.TYPE, Value.of(TraceFields.TYPE_POLICY))
+                .put(TraceFields.ENTITLEMENT, Value.of(entitlement))
+                .put(TraceFields.DECISION, Value.of(Decision.NOT_APPLICABLE.name()))
+                .put(TraceFields.TARGET_MATCH, Value.FALSE).build();
     }
 
     /**
@@ -97,10 +99,13 @@ public class TracedPolicyDecision {
      *
      * @return an ObjectValue trace with position data for coverage
      */
-    public static Value createNoMatchCoverageTrace(String policyName, SourceLocation targetLocation) {
+    public static Value createNoMatchCoverageTrace(String policyName, String entitlement,
+            SourceLocation targetLocation) {
         val builder = ObjectValue.builder().put(TraceFields.NAME, Value.of(policyName))
-                .put(TraceFields.TYPE, Value.of(TraceFields.TYPE_POLICY)).put(TraceFields.TARGET_MATCH, Value.FALSE)
-                .put(TraceFields.TARGET_RESULT, Value.FALSE);
+                .put(TraceFields.TYPE, Value.of(TraceFields.TYPE_POLICY))
+                .put(TraceFields.ENTITLEMENT, Value.of(entitlement))
+                .put(TraceFields.DECISION, Value.of(Decision.NOT_APPLICABLE.name()))
+                .put(TraceFields.TARGET_MATCH, Value.FALSE).put(TraceFields.TARGET_RESULT, Value.FALSE);
         if (targetLocation != null) {
             builder.put(TraceFields.TARGET_START_LINE, Value.of(targetLocation.line()))
                     .put(TraceFields.TARGET_END_LINE, Value.of(targetLocation.endLine()))

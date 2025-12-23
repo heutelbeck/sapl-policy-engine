@@ -52,6 +52,7 @@ import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.spring.method.metadata.QueryEnforce;
 import io.sapl.spring.method.metadata.SaplAttribute;
 import jakarta.servlet.http.HttpServletRequest;
+import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Mono;
 import reactor.util.context.ContextView;
 
@@ -63,6 +64,7 @@ import reactor.util.context.ContextView;
  * method-level security ({@link SaplAttribute}) and data repository security
  * ({@link QueryEnforce}) annotations.
  */
+@Slf4j
 public class AuthorizationSubscriptionBuilderService {
 
     private static final JsonNodeFactory JSON = JsonNodeFactory.instance;
@@ -198,7 +200,9 @@ public class AuthorizationSubscriptionBuilderService {
     private Mono<? extends AuthorizationSubscription> constructAuthorizationSubscriptionFromContextView(
             MethodInvocation methodInvocation, SaplAttribute attribute, ContextView contextView,
             Optional<Object> returnedObject) {
-        Optional<ServerWebExchange>     serverWebExchange = contextView.getOrEmpty(ServerWebExchange.class);
+        Optional<ServerWebExchange> serverWebExchange = contextView.getOrEmpty(ServerWebExchange.class);
+        log.debug("Building authorization subscription for method {}: ServerWebExchange present = {}",
+                methodInvocation.getMethod().getName(), serverWebExchange.isPresent());
         Optional<ServerHttpRequest>     serverHttpRequest = serverWebExchange.map(ServerWebExchange::getRequest);
         Optional<Mono<SecurityContext>> securityContext   = contextView.getOrEmpty(SecurityContext.class);
         Mono<Authentication>            authentication    = securityContext

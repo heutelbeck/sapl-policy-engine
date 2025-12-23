@@ -99,8 +99,8 @@ public class RecoverableFluxes {
 
     private static <T> Flux<T> doRecover(Flux<T> source, Consumer<AccessDeniedException> onDenied,
             Supplier<T> replacement) {
-        return Flux.create(sink -> {
-            Disposable subscription = source.doOnNext(sink::next)
+        return Flux.deferContextual(contextView -> Flux.create(sink -> {
+            Disposable subscription = source.contextWrite(contextView).doOnNext(sink::next)
                     .onErrorContinue(AccessDeniedException.class, (error, value) -> {
                         if (onDenied != null) {
                             onDenied.accept((AccessDeniedException) error);
@@ -110,7 +110,7 @@ public class RecoverableFluxes {
                         }
                     }).doOnComplete(sink::complete).doOnError(sink::error).subscribe();
             sink.onDispose(subscription);
-        });
+        }));
     }
 
 }

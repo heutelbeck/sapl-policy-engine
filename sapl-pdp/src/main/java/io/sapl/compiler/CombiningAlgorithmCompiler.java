@@ -292,7 +292,8 @@ public class CombiningAlgorithmCompiler {
             // When coverage is enabled, targetLocation is non-null - return coverage trace
             // When coverage is disabled, targetLocation is null - return UNDEFINED (zero
             // overhead)
-            policy.targetLocation() != null ? createNoMatchCoverageTrace(policy.name(), policy.targetLocation())
+            policy.targetLocation() != null
+                    ? createNoMatchCoverageTrace(policy.name(), policy.entitlement(), policy.targetLocation())
                     : Value.UNDEFINED;
         };
     }
@@ -571,8 +572,8 @@ public class CombiningAlgorithmCompiler {
             if (matchResult instanceof MatchResult.NoMatch) {
                 // Use coverage trace when coverage is enabled (targetLocation non-null)
                 evaluatedTraces.add(policy.targetLocation() != null
-                        ? createNoMatchCoverageTrace(policy.name(), policy.targetLocation())
-                        : createNoMatchTrace(policy.name()));
+                        ? createNoMatchCoverageTrace(policy.name(), policy.entitlement(), policy.targetLocation())
+                        : createNoMatchTrace(policy.name(), policy.entitlement()));
                 continue;
             }
 
@@ -602,8 +603,8 @@ public class CombiningAlgorithmCompiler {
             val fallbackStateFlux = stateFlux;
             // Use coverage trace when coverage is enabled (targetLocation non-null)
             val noMatchTrace = policy.targetLocation() != null
-                    ? createNoMatchCoverageTrace(policy.name(), policy.targetLocation())
-                    : createNoMatchTrace(policy.name());
+                    ? createNoMatchCoverageTrace(policy.name(), policy.entitlement(), policy.targetLocation())
+                    : createNoMatchTrace(policy.name(), policy.entitlement());
 
             stateFlux = CompiledExpressionUtil.compiledExpressionToFlux(policy.matchExpression())
                     .switchMap(matches -> evaluatePolicyMatch(matches, policy, fallbackStateFlux, noMatchTrace));
