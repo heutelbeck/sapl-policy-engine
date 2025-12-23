@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
 
-    Copyright (C) 2017-2025 Dominic Heutelbeck (dominic@heutelbeck.com)
+    Copyright (C) 2017-2026 Dominic Heutelbeck (dominic@heutelbeck.com)
 
     SPDX-License-Identifier: Apache-2.0
 
@@ -63,7 +63,7 @@
 		<name>Dominic Heutelbeck</name>
 		<url>https://heutelbeck.com</url>
 	</organization>
-	<inceptionYear>2017-2025</inceptionYear>
+	<inceptionYear>2017-2026</inceptionYear>
 	<licenses>
 		<license>
 			<name>Apache 2.0</name>
