@@ -24,7 +24,7 @@ import io.sapl.spring.method.blocking.PolicyEnforcementPointAroundMethodIntercep
 import io.sapl.spring.method.blocking.PostEnforcePolicyEnforcementPoint;
 import io.sapl.spring.method.blocking.PreEnforcePolicyEnforcementPoint;
 import io.sapl.spring.method.metadata.SaplAttributeRegistry;
-import io.sapl.spring.subscriptions.WebAuthorizationSubscriptionBuilderService;
+import io.sapl.spring.subscriptions.AuthorizationSubscriptionBuilderService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.aop.Advisor;
 import org.springframework.beans.factory.ObjectProvider;
@@ -44,12 +44,12 @@ class SaplMethodSecurityConfiguration {
 
     @Bean
     @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
-    WebAuthorizationSubscriptionBuilderService authorizationSubscriptionBuilderService(
+    AuthorizationSubscriptionBuilderService authorizationSubscriptionBuilderService(
             ObjectProvider<MethodSecurityExpressionHandler> expressionHandlerProvider,
             ObjectProvider<ObjectMapper> mapperProvider, ObjectProvider<GrantedAuthorityDefaults> defaultsProvider,
             ApplicationContext context) {
-        return new WebAuthorizationSubscriptionBuilderService(expressionHandlerProvider, mapperProvider,
-                defaultsProvider, context);
+        return new AuthorizationSubscriptionBuilderService(expressionHandlerProvider, mapperProvider, defaultsProvider,
+                context);
     }
 
     @Bean
@@ -57,7 +57,7 @@ class SaplMethodSecurityConfiguration {
     Advisor preEnforcePolicyEnforcementPoint(ObjectProvider<PolicyDecisionPoint> policyDecisionPointProvider,
             ObjectProvider<SaplAttributeRegistry> attributeRegistryProvider,
             ObjectProvider<ConstraintEnforcementService> constraintEnforcementServiceProvider,
-            ObjectProvider<WebAuthorizationSubscriptionBuilderService> subscriptionBuilderProvider) {
+            ObjectProvider<AuthorizationSubscriptionBuilderService> subscriptionBuilderProvider) {
 
         log.debug("Deploy @PreEnforce Policy Enforcement Point");
         final var policyEnforcementPoint = new PreEnforcePolicyEnforcementPoint(policyDecisionPointProvider,
@@ -70,7 +70,7 @@ class SaplMethodSecurityConfiguration {
     Advisor postEnforcePolicyEnforcementPoint(ObjectProvider<PolicyDecisionPoint> policyDecisionPointProvider,
             ObjectProvider<SaplAttributeRegistry> attributeRegistryProvider,
             ObjectProvider<ConstraintEnforcementService> constraintEnforcementServiceProvider,
-            ObjectProvider<WebAuthorizationSubscriptionBuilderService> subscriptionBuilderProvider) {
+            ObjectProvider<AuthorizationSubscriptionBuilderService> subscriptionBuilderProvider) {
 
         log.debug("Deploy @PostEnforce Policy Enforcement Point");
         final var policyEnforcementPoint = new PostEnforcePolicyEnforcementPoint(policyDecisionPointProvider,

@@ -19,12 +19,13 @@ package io.sapl.spring.data.config;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.sapl.spring.data.services.ConstraintQueryEnforcementService;
-import io.sapl.spring.data.services.QueryEnforceAuthorizationSubscriptionService;
 import io.sapl.spring.data.services.RepositoryInformationCollectorService;
+import io.sapl.spring.subscriptions.AuthorizationSubscriptionBuilderService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.data.repository.Repository;
@@ -51,12 +52,13 @@ public class SaplSpringDataCommonAutoConfiguration {
     }
 
     @Bean
-    QueryEnforceAuthorizationSubscriptionService queryEnforceAnnotationService(
+    @ConditionalOnMissingBean
+    AuthorizationSubscriptionBuilderService authorizationSubscriptionBuilderService(
             ObjectProvider<MethodSecurityExpressionHandler> expressionHandlerProvider,
             ObjectProvider<ObjectMapper> mapperProvider, ObjectProvider<GrantedAuthorityDefaults> defaultsProvider,
             ApplicationContext context) {
-        return new QueryEnforceAuthorizationSubscriptionService(expressionHandlerProvider, mapperProvider,
-                defaultsProvider, context);
+        return new AuthorizationSubscriptionBuilderService(expressionHandlerProvider, mapperProvider, defaultsProvider,
+                context);
     }
 
     @Bean

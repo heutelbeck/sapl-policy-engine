@@ -18,8 +18,8 @@
 package io.sapl.spring.data.config;
 
 import io.sapl.spring.data.services.ConstraintQueryEnforcementService;
-import io.sapl.spring.data.services.QueryEnforceAuthorizationSubscriptionService;
 import io.sapl.spring.data.services.RepositoryInformationCollectorService;
+import io.sapl.spring.subscriptions.AuthorizationSubscriptionBuilderService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -33,7 +33,7 @@ class SaplSpringDataCommonAutoConfigurationTests {
     ConstraintQueryEnforcementService constraintQueryEnforcementService;
 
     @Autowired
-    QueryEnforceAuthorizationSubscriptionService queryEnforceAnnotationService;
+    AuthorizationSubscriptionBuilderService authorizationSubscriptionBuilderService;
 
     @Autowired
     RepositoryInformationCollectorService repositoryInformationCollectorService;
@@ -46,7 +46,7 @@ class SaplSpringDataCommonAutoConfigurationTests {
 
         // THEN
         assertNotNull(constraintQueryEnforcementService);
-        assertNotNull(queryEnforceAnnotationService);
+        assertNotNull(authorizationSubscriptionBuilderService);
         assertNotNull(repositoryInformationCollectorService);
     }
 

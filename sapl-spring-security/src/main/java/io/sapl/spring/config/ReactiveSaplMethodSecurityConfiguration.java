@@ -25,7 +25,7 @@ import io.sapl.spring.method.metadata.SaplAttributeRegistry;
 import io.sapl.spring.method.reactive.PostEnforcePolicyEnforcementPoint;
 import io.sapl.spring.method.reactive.PreEnforcePolicyEnforcementPoint;
 import io.sapl.spring.method.reactive.ReactiveSaplMethodInterceptor;
-import io.sapl.spring.subscriptions.WebfluxAuthorizationSubscriptionBuilderService;
+import io.sapl.spring.subscriptions.AuthorizationSubscriptionBuilderService;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -67,7 +67,7 @@ public final class ReactiveSaplMethodSecurityConfiguration {
     @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
     Advisor reactiveSaplMethodSecurityPolicyEnforcementPoint(SaplAttributeRegistry source,
             MethodSecurityExpressionHandler expressionHandler,
-            WebfluxAuthorizationSubscriptionBuilderService authorizationSubscriptionBuilderService,
+            AuthorizationSubscriptionBuilderService authorizationSubscriptionBuilderService,
             PreEnforcePolicyEnforcementPoint preEnforcePolicyEnforcementPoint,
             PostEnforcePolicyEnforcementPoint postEnforcePolicyEnforcementPoint) {
 
@@ -82,7 +82,7 @@ public final class ReactiveSaplMethodSecurityConfiguration {
     @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
     ReactiveSaplMethodInterceptor securityMethodInterceptor(SaplAttributeRegistry source,
             MethodSecurityExpressionHandler handler,
-            WebfluxAuthorizationSubscriptionBuilderService authorizationSubscriptionBuilderService,
+            AuthorizationSubscriptionBuilderService authorizationSubscriptionBuilderService,
             PreEnforcePolicyEnforcementPoint preEnforcePolicyEnforcementPoint,
             PostEnforcePolicyEnforcementPoint postEnforcePolicyEnforcementPoint) {
         return new ReactiveSaplMethodInterceptor(source, handler, pdp, constraintHandlerService, mapper,
@@ -101,15 +101,15 @@ public final class ReactiveSaplMethodSecurityConfiguration {
     @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
     PostEnforcePolicyEnforcementPoint postEnforcePolicyEnforcementPoint(PolicyDecisionPoint pdp,
             ConstraintEnforcementService constraintHandlerService,
-            WebfluxAuthorizationSubscriptionBuilderService subscriptionBuilder) {
+            AuthorizationSubscriptionBuilderService subscriptionBuilder) {
         return new PostEnforcePolicyEnforcementPoint(pdp, constraintHandlerService, subscriptionBuilder);
     }
 
     @Bean
     @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
-    WebfluxAuthorizationSubscriptionBuilderService authorizationSubscriptionBuilderService(
+    AuthorizationSubscriptionBuilderService authorizationSubscriptionBuilderService(
             MethodSecurityExpressionHandler methodSecurityHandler) {
-        return new WebfluxAuthorizationSubscriptionBuilderService(methodSecurityHandler, mapper);
+        return new AuthorizationSubscriptionBuilderService(methodSecurityHandler, mapper);
     }
 
     @Bean

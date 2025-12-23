@@ -18,9 +18,9 @@
 package io.sapl.spring.data.r2dbc.enforcement;
 
 import io.sapl.spring.method.metadata.QueryEnforce;
-import io.sapl.spring.data.services.QueryEnforceAuthorizationSubscriptionService;
 import io.sapl.spring.data.services.RepositoryInformationCollectorService;
 import io.sapl.spring.data.utils.Utilities;
+import io.sapl.spring.subscriptions.AuthorizationSubscriptionBuilderService;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -28,9 +28,6 @@ import org.aopalliance.intercept.MethodInterceptor;
 import org.aopalliance.intercept.MethodInvocation;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.core.annotation.AnnotationUtils;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.ReactiveSecurityContextHolder;
-import org.springframework.security.core.context.SecurityContextHolder;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -42,7 +39,7 @@ import static io.sapl.spring.data.utils.Utilities.convertReturnTypeIfNecessary;
 
 /**
  * This service is the gathering point of all SaplEnforcementPoints for the
- * MongoDb database type. A {@link MethodInterceptor} is needed to manipulate
+ * R2DBC database type. A {@link MethodInterceptor} is needed to manipulate
  * the database method query. At the beginning the corresponding
  * {@link io.sapl.api.pdp.AuthorizationSubscription} is searched for and built
  * together if necessary. Afterward between 4 scenarios is differentiated and
@@ -67,7 +64,7 @@ public class R2dbcPolicyEnforcementPoint<T> implements MethodInterceptor {
 
     private final ObjectProvider<R2dbcAnnotationQueryManipulationEnforcementPoint<T>> r2dbcAnnotationQueryManipulationEnforcementPointProvider;
     private final ObjectProvider<R2dbcMethodNameQueryManipulationEnforcementPoint<T>> r2dbcMethodNameQueryManipulationEnforcementPointProvider;
-    private final ObjectProvider<QueryEnforceAuthorizationSubscriptionService>        queryEnforceAnnotationService;
+    private final ObjectProvider<AuthorizationSubscriptionBuilderService>             subscriptionBuilderProvider;
     private final RepositoryInformationCollectorService                               repositoryInformationCollectorService;
 
     @SuppressWarnings("unchecked")
@@ -97,47 +94,37 @@ public class R2dbcPolicyEnforcementPoint<T> implements MethodInterceptor {
         final var returnClassOfMethod = Objects.requireNonNull(repositoryMethod).getReturnType();
         final var queryEnforce        = AnnotationUtils.findAnnotation(repositoryMethod, QueryEnforce.class);
 
-        // Use ReactiveSecurityContextHolder for proper reactive security context
-        // Fall back to SecurityContextHolder for blocking contexts and test scenarios
-        Mono<Authentication> authMono = ReactiveSecurityContextHolder.getContext().map(ctx -> ctx.getAuthentication())
-                .switchIfEmpty(Mono.fromCallable(() -> SecurityContextHolder.getContext().getAuthentication()));
+        // Use the reactive subscription builder to get the authorization subscription
+        Flux<T> resultFlux = subscriptionBuilderProvider.getObject()
+                .reactiveConstructAuthorizationSubscription(invocation, queryEnforce, domainType)
+                .flatMapMany(authSub -> {
+                    // Introduce RelationalAtQueryImplementation if method has @Query-Annotation.
+                    if (hasAnnotationQueryR2dbc(repositoryMethod)) {
+                        return r2dbcAnnotationQueryManipulationEnforcementPointProvider.getObject().enforce(authSub,
+                                domainType, invocation);
+                    }
 
-        Flux<T> resultFlux = authMono.flatMapMany(authentication -> {
-            var authSub = queryEnforceAnnotationService.getObject().getAuthorizationSubscription(invocation,
-                    queryEnforce, domainType, authentication);
+                    // Introduce MethodBasedImplementation if the query can be derived from the
+                    // name of the method.
+                    if (Utilities.isSpringDataDefaultMethod(invocation.getMethod().getName())
+                            || Utilities.isMethodNameValid(invocation.getMethod().getName())) {
+                        return r2dbcMethodNameQueryManipulationEnforcementPointProvider.getObject().enforce(authSub,
+                                domainType, invocation);
+                    }
 
-            if (authSub == null) {
-                return Flux.error(new IllegalStateException(
-                        "The Sapl implementation for the manipulation of the database queries was recognised, but no AuthorizationSubscription was found."));
-            }
-
-            // Introduce RelationalAtQueryImplementation if method has @Query-Annotation.
-            if (hasAnnotationQueryR2dbc(repositoryMethod)) {
-                return r2dbcAnnotationQueryManipulationEnforcementPointProvider.getObject().enforce(authSub, domainType,
-                        invocation);
-            }
-
-            // Introduce MethodBasedImplementation if the query can be derived from the
-            // name of the method.
-            if (Utilities.isSpringDataDefaultMethod(invocation.getMethod().getName())
-                    || Utilities.isMethodNameValid(invocation.getMethod().getName())) {
-                return r2dbcMethodNameQueryManipulationEnforcementPointProvider.getObject().enforce(authSub, domainType,
-                        invocation);
-            }
-
-            // Fallback - proceed without enforcement
-            try {
-                Object result = invocation.proceed();
-                if (result instanceof Flux) {
-                    return (Flux<T>) result;
-                } else if (result instanceof Mono) {
-                    return ((Mono<T>) result).flux();
-                }
-                return Flux.just((T) result);
-            } catch (Throwable e) {
-                return Flux.error(e);
-            }
-        });
+                    // Fallback - proceed without enforcement
+                    try {
+                        Object result = invocation.proceed();
+                        if (result instanceof Flux) {
+                            return (Flux<T>) result;
+                        } else if (result instanceof Mono) {
+                            return ((Mono<T>) result).flux();
+                        }
+                        return Flux.just((T) result);
+                    } catch (Throwable e) {
+                        return Flux.error(e);
+                    }
+                });
 
         return convertReturnTypeIfNecessary(resultFlux, returnClassOfMethod);
     }

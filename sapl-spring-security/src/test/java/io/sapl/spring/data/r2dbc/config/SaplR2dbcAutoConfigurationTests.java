@@ -20,7 +20,7 @@ package io.sapl.spring.data.r2dbc.config;
 import io.sapl.api.pdp.PolicyDecisionPoint;
 import io.sapl.spring.constraints.ConstraintEnforcementService;
 import io.sapl.spring.data.services.ConstraintQueryEnforcementService;
-import io.sapl.spring.data.services.QueryEnforceAuthorizationSubscriptionService;
+import io.sapl.spring.subscriptions.AuthorizationSubscriptionBuilderService;
 import io.sapl.spring.data.services.RepositoryInformationCollectorService;
 import io.sapl.spring.data.r2dbc.database.Person;
 import io.sapl.spring.data.r2dbc.enforcement.R2dbcAnnotationQueryManipulationEnforcementPoint;
@@ -45,7 +45,7 @@ class SaplR2dbcAutoConfigurationTests {
     ObjectProvider<BeanFactory> beanFactoryMock;
 
     @MockitoBean
-    ObjectProvider<QueryEnforceAuthorizationSubscriptionService> queryEnforceAuthorizationSubscriptionServiceMock;
+    ObjectProvider<AuthorizationSubscriptionBuilderService> authorizationSubscriptionBuilderServiceMock;
 
     @MockitoBean
     ObjectProvider<PolicyDecisionPoint> pdpProviderMock;

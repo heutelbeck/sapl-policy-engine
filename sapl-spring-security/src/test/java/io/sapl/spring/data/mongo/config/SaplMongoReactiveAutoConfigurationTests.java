@@ -20,7 +20,7 @@ package io.sapl.spring.data.mongo.config;
 import io.sapl.api.pdp.PolicyDecisionPoint;
 import io.sapl.spring.constraints.ConstraintEnforcementService;
 import io.sapl.spring.data.services.ConstraintQueryEnforcementService;
-import io.sapl.spring.data.services.QueryEnforceAuthorizationSubscriptionService;
+import io.sapl.spring.subscriptions.AuthorizationSubscriptionBuilderService;
 import io.sapl.spring.data.services.RepositoryInformationCollectorService;
 import io.sapl.spring.data.mongo.enforcement.MongoReactiveAnnotationQueryManipulationEnforcementPoint;
 import io.sapl.spring.data.mongo.enforcement.MongoReactiveMethodNameQueryManipulationEnforcementPoint;
@@ -45,7 +45,7 @@ class SaplMongoReactiveAutoConfigurationTests {
     ObjectProvider<BeanFactory> beanFactoryMock;
 
     @MockitoBean
-    ObjectProvider<QueryEnforceAuthorizationSubscriptionService> queryEnforceAuthorizationSubscriptionServiceMock;
+    ObjectProvider<AuthorizationSubscriptionBuilderService> authorizationSubscriptionBuilderServiceMock;
 
     @MockitoBean
     ObjectProvider<PolicyDecisionPoint> pdpProviderMock;

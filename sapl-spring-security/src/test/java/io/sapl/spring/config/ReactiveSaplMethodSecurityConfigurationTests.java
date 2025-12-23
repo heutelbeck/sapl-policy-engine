@@ -43,7 +43,7 @@ import io.sapl.spring.method.reactive.ReactiveSaplMethodInterceptor;
 import io.sapl.spring.serialization.HttpServletRequestSerializer;
 import io.sapl.spring.serialization.MethodInvocationSerializer;
 import io.sapl.spring.serialization.ServerHttpRequestSerializer;
-import io.sapl.spring.subscriptions.WebfluxAuthorizationSubscriptionBuilderService;
+import io.sapl.spring.subscriptions.AuthorizationSubscriptionBuilderService;
 import jakarta.servlet.http.HttpServletRequest;
 
 class ReactiveSaplMethodSecurityConfigurationTests {
@@ -57,7 +57,7 @@ class ReactiveSaplMethodSecurityConfigurationTests {
                     assertThat(context).hasNotFailed();
                     assertThat(context).hasSingleBean(SaplAttributeRegistry.class);
                     assertThat(context).hasSingleBean(ReactiveSaplMethodInterceptor.class);
-                    assertThat(context).hasSingleBean(WebfluxAuthorizationSubscriptionBuilderService.class);
+                    assertThat(context).hasSingleBean(AuthorizationSubscriptionBuilderService.class);
                     assertThat(context).hasSingleBean(MethodSecurityExpressionHandler.class);
                 });
     }
@@ -72,7 +72,7 @@ class ReactiveSaplMethodSecurityConfigurationTests {
                     assertThat(context).hasNotFailed();
                     assertThat(context).hasSingleBean(SaplAttributeRegistry.class);
                     assertThat(context).hasSingleBean(ReactiveSaplMethodInterceptor.class);
-                    assertThat(context).hasSingleBean(WebfluxAuthorizationSubscriptionBuilderService.class);
+                    assertThat(context).hasSingleBean(AuthorizationSubscriptionBuilderService.class);
                     assertThat(context).hasSingleBean(MethodSecurityExpressionHandler.class);
                 });
     }
@@ -94,7 +94,7 @@ class ReactiveSaplMethodSecurityConfigurationTests {
                     final var invocation = MethodInvocationUtils.createFromClass(new TestClass(), TestClass.class, "publicVoid",
                             null, null);
                     final var attribute = attribute(null, null, null, null, Object.class);
-                    final var actual = context.getBean(WebfluxAuthorizationSubscriptionBuilderService.class)
+                    final var actual = context.getBean(AuthorizationSubscriptionBuilderService.class)
                             .reactiveConstructAuthorizationSubscription(invocation, attribute);
                     assertNotNull(actual);
                 });

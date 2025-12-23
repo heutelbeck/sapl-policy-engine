@@ -24,7 +24,7 @@ import io.sapl.spring.constraints.BlockingConstraintHandlerBundle;
 import io.sapl.spring.constraints.ConstraintEnforcementService;
 import io.sapl.spring.method.metadata.PostEnforce;
 import io.sapl.spring.method.metadata.SaplAttributeRegistry;
-import io.sapl.spring.subscriptions.WebAuthorizationSubscriptionBuilderService;
+import io.sapl.spring.subscriptions.AuthorizationSubscriptionBuilderService;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import org.aopalliance.intercept.MethodInterceptor;
@@ -49,10 +49,10 @@ public class PostEnforcePolicyEnforcementPoint implements MethodInterceptor {
     private final Supplier<Authentication> authentication = getAuthentication(
             SecurityContextHolder.getContextHolderStrategy());
 
-    private final ObjectProvider<PolicyDecisionPoint>                        policyDecisionPointProvider;
-    private final ObjectProvider<SaplAttributeRegistry>                      attributeRegistryProvider;
-    private final ObjectProvider<ConstraintEnforcementService>               constraintEnforcementServiceProvider;
-    private final ObjectProvider<WebAuthorizationSubscriptionBuilderService> subscriptionBuilderProvider;
+    private final ObjectProvider<PolicyDecisionPoint>                     policyDecisionPointProvider;
+    private final ObjectProvider<SaplAttributeRegistry>                   attributeRegistryProvider;
+    private final ObjectProvider<ConstraintEnforcementService>            constraintEnforcementServiceProvider;
+    private final ObjectProvider<AuthorizationSubscriptionBuilderService> subscriptionBuilderProvider;
 
     @Override
     @SuppressWarnings("unchecked")

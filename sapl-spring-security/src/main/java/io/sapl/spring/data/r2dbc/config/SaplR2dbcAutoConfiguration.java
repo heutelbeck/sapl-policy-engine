@@ -20,7 +20,6 @@ package io.sapl.spring.data.r2dbc.config;
 import io.sapl.api.pdp.PolicyDecisionPoint;
 import io.sapl.spring.constraints.ConstraintEnforcementService;
 import io.sapl.spring.data.services.ConstraintQueryEnforcementService;
-import io.sapl.spring.data.services.QueryEnforceAuthorizationSubscriptionService;
 import io.sapl.spring.data.services.RepositoryInformationCollectorService;
 import io.sapl.spring.data.r2dbc.enforcement.R2dbcAnnotationQueryManipulationEnforcementPoint;
 import io.sapl.spring.data.r2dbc.enforcement.R2dbcMethodNameQueryManipulationEnforcementPoint;
@@ -30,6 +29,7 @@ import io.sapl.spring.data.r2dbc.proxy.R2dbcRepositoryFactoryCustomizer;
 import io.sapl.spring.data.r2dbc.proxy.R2dbcRepositoryProxyPostProcessor;
 import io.sapl.spring.data.r2dbc.queries.QueryManipulationExecutor;
 import io.sapl.spring.data.r2dbc.queries.SqlQueryExecutor;
+import io.sapl.spring.subscriptions.AuthorizationSubscriptionBuilderService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.BeanFactory;
 import org.springframework.beans.factory.ObjectProvider;
@@ -53,13 +53,13 @@ public class SaplR2dbcAutoConfiguration<T> {
 
     @Bean
     R2dbcPolicyEnforcementPoint<T> r2dbcPolicyEnforcementPoint(
-            ObjectProvider<QueryEnforceAuthorizationSubscriptionService> queryEnforceAnnotationService,
+            ObjectProvider<AuthorizationSubscriptionBuilderService> subscriptionBuilderProvider,
             ObjectProvider<R2dbcAnnotationQueryManipulationEnforcementPoint<T>> r2dbcAnnotationQueryManipulationEnforcementPointProvider,
             ObjectProvider<R2dbcMethodNameQueryManipulationEnforcementPoint<T>> r2dbcMethodNameQueryManipulationEnforcementPointProvider,
             RepositoryInformationCollectorService repositoryInformationCollectorService) {
         log.debug("# Instantiate R2dbcPolicyEnforcementPoint...");
         return new R2dbcPolicyEnforcementPoint<>(r2dbcAnnotationQueryManipulationEnforcementPointProvider,
-                r2dbcMethodNameQueryManipulationEnforcementPointProvider, queryEnforceAnnotationService,
+                r2dbcMethodNameQueryManipulationEnforcementPointProvider, subscriptionBuilderProvider,
                 repositoryInformationCollectorService);
     }
 

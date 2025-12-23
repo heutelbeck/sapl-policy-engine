@@ -22,7 +22,7 @@ import io.sapl.api.pdp.Decision;
 import io.sapl.api.pdp.PolicyDecisionPoint;
 import io.sapl.spring.constraints.ConstraintEnforcementService;
 import io.sapl.spring.method.metadata.SaplAttribute;
-import io.sapl.spring.subscriptions.WebfluxAuthorizationSubscriptionBuilderService;
+import io.sapl.spring.subscriptions.AuthorizationSubscriptionBuilderService;
 import lombok.RequiredArgsConstructor;
 import org.aopalliance.intercept.MethodInvocation;
 import org.springframework.security.access.AccessDeniedException;
@@ -36,7 +36,7 @@ public class PostEnforcePolicyEnforcementPoint {
 
     private final ConstraintEnforcementService constraintHandlerService;
 
-    private final WebfluxAuthorizationSubscriptionBuilderService subscriptionBuilder;
+    private final AuthorizationSubscriptionBuilderService subscriptionBuilder;
 
     @SuppressWarnings({ "unchecked", "rawtypes" })
     public Mono<Object> postEnforceOneDecisionOnResourceAccessPoint(Mono<?> resourceAccessPoint,

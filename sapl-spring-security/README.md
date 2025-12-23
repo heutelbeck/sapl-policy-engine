@@ -1,18 +1,96 @@
-# SAPL Spring Security Integration
+# SAPL Spring Security
 
-This package provides a deep integration with Spring Security. It provides a number of infrastructure Beans to establish Policy Enforcement Points within an application, using a declarative aspect-oriented programming style.
+This library adds attribute-based access control to Spring applications. You write authorization rules as external policy files, and SAPL enforces them at runtime without code changes or redeployment.
 
-It also enables the use of so-called constraints and the implementation of suitable side effects.
+## Do You Need This?
 
-## Features
+Before diving in, let's be honest about when SAPL makes sense and when it doesn't.
 
-Spring Security is a framework that provides [authentication](https://docs.spring.io/spring-security/reference/features/authentication/index.html), [authorization](https://docs.spring.io/spring-security/reference/features/authorization/index.html), and [protection against common attacks](https://docs.spring.io/spring-security/reference/features/exploits/index.html). With first-class support for securing [imperative](https://docs.spring.io/spring-security/reference/servlet/index.html) and [reactive](https://docs.spring.io/spring-security/reference/reactive/index.html) applications, it is the de facto standard for securing Spring-based applications. SAPL Spring Security Integration focuses on authorization. Authorization determines who is allowed to access a particular resource. Spring Security provides defence in depth by allowing for request and method-based authorization.
+### The Limits of Roles and Scopes
 
-## Getting the SAPL Spring Security Extension
+Most applications start with role-based access control. Users have roles like `ADMIN`, `MANAGER`, `USER`. Methods check roles with `@PreAuthorize("hasRole('ADMIN')")`. This works until it doesn't.
 
-### Usage with Maven
+Consider a document management system. At first, "admins can edit, users can view" is enough. Then requirements arrive: users should edit documents they created. Now you need `@PreAuthorize("hasRole('ADMIN') or #document.createdBy == authentication.name")`. Then: managers can edit documents from their department. The expression grows. Then: during audit periods, nobody can edit financial documents. Now you're checking dates and document categories in SpEL expressions that span multiple lines.
 
-To ensure consistent versions for all SAPL dependencies required, SAPL provides a 'Bill Of Materials' (BOM) module. This way, you do not need to declare the `<version>` of each SAPL dependency.
+JWT scopes have similar limits. A token might grant `documents:write`, but that says nothing about which documents, under what circumstances, or with what restrictions. The scope is a static capability assigned at login. It can't adapt to context that emerges during the session.
+
+Role-based and scope-based systems answer "what can this user do in general?" SAPL answers "can this specific user do this specific action on this specific resource right now given everything we know?"
+
+### When Attributes Matter
+
+Attribute-based access control (ABAC) makes decisions using attributes of the subject, the resource, the action, and the environment. This handles scenarios that roles cannot express.
+
+**Ownership and delegation.** A user can edit their own profile. A user can view reports they created or that were shared with them. A manager can approve expenses from their direct reports but not from other departments. These rules reference relationships between the user and the resource that don't fit into static roles.
+
+**Temporal constraints.** Trading systems that block transactions outside market hours. HR systems that restrict access to compensation data during review periods. Medical records that allow emergency access but log it for review. Time isn't a role.
+
+**Environmental context.** Allowing access only from corporate networks. Requiring step-up authentication for sensitive operations. Reducing permissions when a risk score exceeds a threshold. These conditions exist outside both the user and the resource.
+
+**Resource classification.** Documents marked confidential require different handling than public documents. The same user might have full access to one and read-only access to another based on metadata, not on who the user is.
+
+### Information Flow Control
+
+Some domains have formal security models that go beyond "can user X access resource Y."
+
+**Bell-LaPadula** enforces "no read up, no write down." A user with SECRET clearance can read SECRET and CONFIDENTIAL documents but not TOP SECRET. They can write to SECRET and TOP SECRET but not CONFIDENTIAL. This prevents information from flowing from high classification to low classification. Implementing this with roles means creating a role for every clearance level and manually encoding the read/write asymmetry. With SAPL, you write the actual rule: permit read if subject.clearance >= resource.classification.
+
+**Brewer-Nash (Chinese Wall)** prevents conflicts of interest. An analyst who has accessed data from Bank A cannot later access data from Bank B if they're competitors. The constraint isn't about who the user is, but about what they've already seen in this session. This requires tracking access history and making dynamic decisions. Roles can't express "permit unless you've previously accessed a conflicting dataset."
+
+**Need-to-know** restricts access to the minimum necessary for a task. A claims processor can see claims assigned to them, not all claims. A developer can access logs for services they maintain, not all services. The "need" comes from the current work context, not from a permanent role assignment.
+
+### Multi-Tenancy
+
+Multi-tenant systems serve multiple customers from shared infrastructure. Each tenant expects isolation, but they also expect customization.
+
+The baseline is data isolation: tenant A never sees tenant B's data. This is often handled at the query level. But tenants also want their own authorization rules. One tenant requires manager approval for orders over $10,000. Another requires dual approval for any external transfer. A third has no approval workflow at all.
+
+Encoding every tenant's rules in your codebase doesn't scale. You'd redeploy for every tenant onboarding and every rule change. With externalized policies, each tenant's rules live in their own policy set. The application code stays constant. Tenant-specific logic stays in tenant-specific configuration.
+
+### Process and Workflow
+
+Authorization often depends on where you are in a business process.
+
+A purchase order in DRAFT state can be edited by the creator. Once SUBMITTED, only the approver can act on it. Once APPROVED, it's read-only except for finance. Once PAID, it's archived and only auditors can access it.
+
+Each state transition changes who can do what. The permissions aren't attached to users or even to the document type. They're attached to the document's current state and the user's role in the workflow.
+
+Modeling this with roles means creating roles like `PO_CREATOR`, `PO_APPROVER`, `PO_FINANCE`, `PO_AUDITOR` and then writing complex expressions that check both role and document state. With ABAC, the policy directly expresses the business rule: permit edit where resource.state == "DRAFT" and subject.id == resource.creatorId.
+
+### Streaming and Long-Lived Sessions
+
+Traditional request/response authorization checks once per request. But what about WebSocket connections that stay open for hours? What about Server-Sent Events streaming market data?
+
+A user connects to a real-time dashboard. At connection time, they're authorized. An hour later, their account is suspended. Should they keep receiving data? With request-per-check models, the suspension takes effect on their next request. With streaming, there is no next request.
+
+SAPL's reactive annotations (`@EnforceTillDenied`, `@EnforceDropWhileDenied`, `@EnforceRecoverableIfDenied`) subscribe to authorization decisions. When the decision changes from permit to deny, the stream responds immediately. The PDP continuously evaluates the policy as attributes change, and the PEP enforces the current decision on the live stream.
+
+This also handles permission escalation and de-escalation. A support agent is granted temporary elevated access to debug an issue. The access has a time limit. When time expires, the policy decision changes, and active streams are affected without the agent taking any action.
+
+### Beyond Permit/Deny
+
+Sometimes the answer isn't yes or no. It's "yes, but."
+
+A user can view customer records, but social security numbers must be masked. A user can export data, but the export must be logged to the audit system. A user can access the API, but rate-limited to 100 requests per hour.
+
+These are obligations and advice attached to a permit decision. The policy doesn't just decide access. It specifies conditions and side effects. The enforcement point is responsible for executing them.
+
+This keeps business logic in policy. The application doesn't need code paths for "if user is external, mask SSN." The policy says what to mask. The constraint handler does the masking. If the masking rules change, you update the policy. The application code doesn't change.
+
+### When You Don't Need This
+
+With all that said, SAPL adds complexity. A policy language is another thing to learn. A PDP is another component to operate.
+
+If your authorization needs are simple and stable, stick with Spring Security's built-in annotations. "Users can read, admins can write" doesn't need ABAC. If you're building a prototype or internal tool with a handful of users, the overhead isn't justified.
+
+SAPL pays off when authorization is a source of ongoing complexity. When you're frequently changing rules. When you're encoding business logic in security annotations. When you're copy-pasting role checks and adding special cases. When different deployments need different rules. That's when externalizing policy from code starts to make sense.
+
+If that sounds like your situation, let's get started.
+
+## Quick Start
+
+Here's a complete example to show how the pieces fit together.
+
+**1. Add the BOM and repository to your pom.xml:**
 
 ```xml
 <dependencyManagement>
@@ -20,578 +98,493 @@ To ensure consistent versions for all SAPL dependencies required, SAPL provides 
         <dependency>
             <groupId>io.sapl</groupId>
             <artifactId>sapl-bom</artifactId>
-            <version>3.0.0</version>
+            <version>4.0.0-SNAPSHOT</version>
             <type>pom</type>
             <scope>import</scope>
         </dependency>
     </dependencies>
 </dependencyManagement>
-```
 
-Add the snapshot repository if you are using a SNAPSHOT version of SAPL. Otherwise, you can omit it.
-
-```xml
 <repositories>
-		<repository>
-			<name>Central Portal Snapshots</name>
-			<id>central-portal-snapshots</id>
-			<url>https://central.sonatype.com/repository/maven-snapshots/</url>
-			<releases>
-				<enabled>false</enabled>
-			</releases>
-			<snapshots>
-				<enabled>true</enabled>
-			</snapshots>
-		</repository>
+    <repository>
+        <id>central-portal-snapshots</id>
+        <url>https://central.sonatype.com/repository/maven-snapshots/</url>
+        <snapshots><enabled>true</enabled></snapshots>
+    </repository>
 </repositories>
 ```
 
-You can add the SAPL Spring Security integration to your application by adding the following dependency.
-
-```xml
-<dependencies>
-    <!-- ... other dependency elements ... -->
-    <dependency>
-        <groupId>io.sapl</groupId>
-        <artifactId>sapl-spring-security</artifactId>
-    </dependency>
-</dependencies>
-```
-
-In addition, one of the two Policy Decision Point (PDP) implementations has to be selected. You can embed the PDP in your application or use a dedicated remote PDP Server, e.g., sapl-server-lt.
-
-```xml
-<dependencies>
-    <!-- ... other dependency elements ... -->
-    <!-- choose only one -->
-    <dependency>
-        <groupId>io.sapl</groupId>
-        <artifactId>sapl-spring-pdp-embedded</artifactId>
-    </dependency>
-
-    <dependency>
-        <groupId>io.sapl</groupId>
-        <artifactId>sapl-spring-pdp-remote</artifactId>
-    </dependency>
-</dependencies>
-```
-
-## Project Modules and Dependencies
-
-We recommend that you review the `pom.xml` files to understand third-party dependencies and versions, even if you are not using Maven.
-
-### sapl-pdp-api
+**2. Add the dependencies:**
 
 ```xml
 <dependency>
-    <groupId>${project.groupId}</groupId>
-    <artifactId>sapl-pdp-api</artifactId>
-    <version>${project.version}</version>
+    <groupId>io.sapl</groupId>
+    <artifactId>sapl-spring-security</artifactId>
 </dependency>
-```
-
-This module contains the raw PDP API, which is used by developers attempting to implement their Policy Enforcement Points (PEPs) or SAPL framework integration libraries.
-
-### spring-boot-autoconfigure
-
-```xml
 <dependency>
-    <groupId>org.springframework.boot</groupId>
-    <artifactId>spring-boot-autoconfigure</artifactId>
+    <groupId>io.sapl</groupId>
+    <artifactId>sapl-pdp</artifactId>
 </dependency>
 ```
 
-This module automatically configures your Spring application based on the added jar dependencies.
+**3. Configure the embedded PDP** in `application.properties`:
 
-### spring-security-config
-
-```xml
-<dependency>
-    <groupId>org.springframework.security</groupId>
-    <artifactId>spring-security-config</artifactId>
-</dependency>
+```properties
+io.sapl.pdp.embedded.enabled=true
+io.sapl.pdp.embedded.pdp-config-type=RESOURCES
+io.sapl.pdp.embedded.policies-path=/policies
 ```
 
-This module contains the security namespace parsing code and Java configuration code. You need it if you use the Spring Security XML namespace for configuration or Spring Security’s Java Configuration support. The main package is `org.springframework.security.config`. None of the classes are intended for direct use in an application.
+This tells SAPL to run a PDP inside your application and load policies from `src/main/resources/policies/`.
 
-| Dependency           | Version | Description                                                                   |
-|----------------------|---------|-------------------------------------------------------------------------------|
-| spring-security-core |         |                                                                               |
-| spring-security-web  |         | Required if you are using any web-related namespace configuration (optional). |
-| spring-security-ldap |         | Required if you are using the LDAP namespace options (optional).              |
-| aspectjweaver        | 1\.6.10 | Required if using the protect-pointcut namespace syntax (optional).           |
-
-### spring-security-web
-
-```xml
-<dependency>
-    <groupId>org.springframework.security</groupId>
-    <artifactId>spring-security-web</artifactId>
-</dependency>
-```
-
-This module contains filters and related web security infrastructure code. It contains anything with a servlet API dependency. You need it if you require Spring Security web authentication services and URL-based access control. The main package is `org.springframework.security.web`.
-
-| Dependency           | Version | Description                                                                     |
-|----------------------|---------|---------------------------------------------------------------------------------|
-| spring-security-core |         |                                                                                 |
-| spring-security-web  |         | Required for clients that use HTTP remoting support.                            |
-| spring-jdbc          |         | Required for a JDBC-based persistent remember-me token repository (optional).   |
-| spring-tx            |         | Required by remember-me persistent token repository implementations (optional). |
-
-### jackson-datatype-jsr310
-
-```xml
-<dependency>
-    <groupId>com.fasterxml.jackson.datatype</groupId>
-    <artifactId>jackson-datatype-jsr310</artifactId>
-</dependency>
-```
-
-### jakarta.servlet-api
-
-```xml
-<dependency>
-    <groupId>jakarta.servlet</groupId>
-    <artifactId>jakarta.servlet-api</artifactId>
-    <scope>provided</scope>
-</dependency>
-```
-
-### json-path
-
-```xml
-<dependency>
-    <groupId>com.jayway.jsonpath</groupId>
-    <artifactId>json-path</artifactId>
-</dependency>
-```
-
-JSON (JavaScript Object Notation) is a text-based, language-independent format that is easily understandable by humans and machines. JsonPath expressions always refer to a JSON structure in the same way as XPath expression are used in combination with an XML document. The "root member object" in JsonPath is always referred to as $ regardless if it is an object or array.
-
-### guava
-
-```xml
-<dependency>
-    <groupId>com.google.guava</groupId>
-    <artifactId>guava</artifactId>
-</dependency>
-```
-
-Guava is a suite of core and expanded libraries that include utility classes, Google's collections, I/O classes, and much more.
-
-### lombok
-
-```xml
-<dependency>
-    <groupId>org.projectlombok</groupId>
-    <artifactId>lombok</artifactId>
-    <scope>provided</scope>
-</dependency>
-```
-
-Lombok is a Java library that provides annotations to simplify Java development by automating boilerplate code generation. Key features include the automatic generation of getters, setters, equals, hashCode, and toString methods, as well as a facility for automatic resource management. It aims to reduce the amount of manual coding, thereby streamlining the codebase and reducing the potential for errors. Lombok is implemented to eliminate some boilerplate code.
-
-### slf4j-api
-
-```xml
-<dependency>
-    <groupId>org.slf4j</groupId>
-    <artifactId>slf4j-api</artifactId>
-</dependency>
-```
-
-This module contains the API for SLF4J (The Simple Logging Facade for Java), which serves as a simple facade or abstraction for various logging frameworks. It allows the end user to plug in the desired logging framework at deployment time.
-
-## Servlet Applications
-
-### Dependencies
-
-The following additional dependency is required for servlet applications:
-
-```xml
-<dependency>
-    <groupId>org.springframework.boot</groupId>
-    <artifactId>spring-boot-starter-web</artifactId>
-</dependency>
-```
-
-This creates a servlet-based environment. This ensures that the numerous autoconfiguration classes provided for servlet applications are loaded automatically.
-
-### Authenticating the application
-
-You can access the application at localhost:8080/, which will redirect the browser to the default login page. You can provide the default username  `user` with the randomly generated password logged to the console. The browser is then taken to the initially requested page.
-
-To log out you can visit [localhost:8080/logout](http://localhost:8080/logout) and then confirming you wish to log out.
-
-### Authorization
-
-By default, SAPL Spring Security’s authorization will require all requests to be authenticated.
-The explicit configuration for servlet applications looks like:
+**4. Enable SAPL method security:**
 
 ```java
 @Configuration
 @EnableWebSecurity
-public class SecurityConfiguration {
-	...
+@EnableSaplMethodSecurity  // for blocking applications
+// or @EnableReactiveSaplMethodSecurity for WebFlux
+public class SecurityConfig {
+}
+```
 
-    @Bean
-    SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-        return http.authorizeHttpRequests(requests -> requests.anyRequest().authenticated())
-                   .httpBasic(Customizer.withDefaults())
-        	       .formLogin(Customizer.withDefaults())
-                   .build();
+**5. Annotate a method:**
+
+```java
+@PreEnforce(subject = "authentication.name", action = "'read'", resource = "#id")
+public Book findById(Long id) {
+    return bookRepository.findById(id);
+}
+```
+
+**6. Write a policy** (in `src/main/resources/policies/books.sapl`):
+
+```
+policy "users can read their own books"
+permit action == "read"
+where
+    subject == resource.ownerId;
+```
+
+When someone calls `findById(42)`, SAPL checks if the authenticated user owns book 42. If yes, the method runs. If no, an `AccessDeniedException` is thrown.
+
+That's the basic pattern: annotation tells SAPL what to check, policy decides the outcome.
+
+## Method Security
+
+Method security is where most applications start with SAPL. You annotate methods, and SAPL intercepts calls to enforce policies. This assumes you have `spring-boot-starter-web` (for servlet) or `spring-boot-starter-webflux` (for reactive) in your dependencies.
+
+### Blocking Applications
+
+For traditional Spring MVC applications, enable method security and use `@PreEnforce` or `@PostEnforce`:
+
+```java
+@Configuration
+@EnableSaplMethodSecurity
+public class SecurityConfig {
+}
+```
+
+**@PreEnforce** checks authorization before the method runs:
+
+```java
+@PreEnforce
+public void deleteBook(Long id) {
+    bookRepository.deleteById(id);
+}
+```
+
+If the policy returns `DENY`, the method never executes.
+
+**@PostEnforce** checks authorization after the method runs, with access to the return value:
+
+```java
+@PostEnforce(resource = "returnObject")
+public Book findById(Long id) {
+    return bookRepository.findById(id);
+}
+```
+
+This is useful when the decision depends on the returned data, or when you want the policy to transform the result. Note that the return object is serialized to JSON for the authorization subscription. Ensure your domain classes are Jackson-serializable, either through standard conventions or by adding Jackson annotations.
+
+### Reactive Applications
+
+For WebFlux applications, use the reactive variant:
+
+```java
+@Configuration
+@EnableReactiveSaplMethodSecurity
+public class SecurityConfig {
+}
+```
+
+The same `@PreEnforce` and `@PostEnforce` annotations work, but they integrate with the reactive pipeline instead of blocking. For reactive methods, `@PostEnforce` only works with `Mono<>`, not `Flux<>`. The resource value must be a single object, not a stream.
+
+Reactive applications also get three additional annotations for long-lived streams:
+
+**@EnforceTillDenied** permits the stream until a deny decision arrives, then terminates it:
+
+```java
+@EnforceTillDenied
+public Flux<StockPrice> streamPrices() {
+    return priceService.stream();
+}
+```
+
+**@EnforceDropWhileDenied** silently drops events during denied periods, but keeps the stream alive:
+
+```java
+@EnforceDropWhileDenied
+public Flux<Message> streamMessages() {
+    return messageService.stream();
+}
+```
+
+**@EnforceRecoverableIfDenied** sends an error during denied periods, letting subscribers decide whether to continue:
+
+```java
+@EnforceRecoverableIfDenied
+public Flux<Event> streamEvents() {
+    return eventService.stream();
+}
+```
+
+Use `@EnforceTillDenied` when denial should end the connection. Use `@EnforceDropWhileDenied` when the client shouldn't know events were skipped. Use `@EnforceRecoverableIfDenied` when the client needs to handle access changes gracefully.
+
+One detail worth noting: enforcement begins when a subscriber subscribes to the returned Publisher, not when the method returns. If nobody subscribes, no authorization check happens.
+
+### Building the Authorization Subscription
+
+Every authorization check sends a subscription to the PDP with four components: subject (who is making the request), action (what they're trying to do), resource (what they're trying to access), and environment (contextual information like time or IP address).
+
+By default, SAPL collects everything it can find, which creates verbose subscriptions. In practice, you'll want to be explicit:
+
+```java
+@PreEnforce(
+    subject = "authentication.principal",
+    action = "'delete'",
+    resource = "#book"
+)
+public void deleteBook(Book book) { ... }
+```
+
+The values are Spring Expression Language (SpEL) expressions. You have access to `authentication` (the Spring Security Authentication object), `#paramName` (method parameters by name), `@beanName` (Spring beans), and `returnObject` (the method's return value, only in @PostEnforce).
+
+Some examples:
+
+```java
+// Use the username as subject
+subject = "authentication.name"
+
+// Use a literal string as action
+action = "'create-report'"
+
+// Use a method parameter as resource
+resource = "#orderId"
+
+// Call a bean method
+subject = "@userService.getCurrentUserProfile()"
+
+// Build a custom object
+resource = "{ 'type': 'book', 'id': #id }"
+```
+
+### Combining Annotations
+
+You can use both `@PreEnforce` and `@PostEnforce` on the same method. Both must permit for the result to be returned:
+
+```java
+@PreEnforce(action = "'read'")
+@PostEnforce(resource = "returnObject")
+public Document getDocument(Long id) { ... }
+```
+
+However, some combinations are not allowed. You cannot mix SAPL annotations with Spring Security annotations like `@PreAuthorize`. You also cannot use `@EnforceTillDenied`, `@EnforceDropWhileDenied`, or `@EnforceRecoverableIfDenied` together with `@PreEnforce` or `@PostEnforce`.
+
+## HTTP Request Security
+
+Beyond method security, you can apply SAPL to the HTTP layer. This protects endpoints based on request attributes before any controller code runs.
+
+For servlet applications:
+
+```java
+@Bean
+SecurityFilterChain filterChain(HttpSecurity http, SaplAuthorizationManager sapl) throws Exception {
+    return http
+        .authorizeHttpRequests(auth -> auth.anyRequest().access(sapl))
+        .build();
+}
+```
+
+For reactive applications:
+
+```java
+@Bean
+SecurityWebFilterChain filterChain(ServerHttpSecurity http, ReactiveSaplAuthorizationManager sapl) {
+    return http
+        .authorizeExchange(exchange -> exchange.anyExchange().access(sapl))
+        .build();
+}
+```
+
+The authorization manager constructs subscriptions from the HTTP request. Your policies can then check paths, headers, query parameters, and other request attributes.
+
+This is useful for coarse-grained rules like "only employees can access /internal/*" without annotating every controller method.
+
+## Constraints
+
+So far we've talked about permit/deny decisions. But SAPL can do more. A decision can include constraints that the PEP must enforce.
+
+There are three types. **Obligations** are mandatory. If the PEP cannot fulfill an obligation, it must deny access even if the decision was permit. Use obligations for things that must happen for the access to be valid. **Advice** is optional. The PEP should try to fulfill it, but failure doesn't block access. Use advice for nice-to-have actions like logging. **Resource transformation** replaces the returned data with a modified version from the policy. Use this to filter or redact sensitive fields.
+
+A policy with constraints looks like this:
+
+```
+policy "permit with logging"
+permit action == "read-salary"
+obligation {
+    "type": "logAccess",
+    "message": "Salary data accessed"
+}
+advice {
+    "type": "notify",
+    "channel": "audit"
+}
+```
+
+### Built-in Constraint Handlers
+
+SAPL Spring Security includes handlers for common scenarios.
+
+**ContentFilteringProvider** filters properties within returned objects. You can blacken (replace with XXX), delete, or replace specific JSON paths:
+
+```
+obligation {
+    "type": "filterJsonContent",
+    "actions": [
+        { "type": "blacken", "path": "$.ssn" },
+        { "type": "delete", "path": "$.salary" }
+    ]
+}
+```
+
+**ContentFilterPredicateProvider** filters items from collections based on conditions. This is useful for age-gating or classification-based filtering:
+
+```
+policy "filter content by age"
+permit action == "list books"
+obligation {
+    "type": "jsonContentFilterPredicate",
+    "conditions": [
+        {
+            "path": "$.ageRating",
+            "type": "<=",
+            "value": timeBetween(subject.birthday, dateOf(|<now>), "years")
+        }
+    ]
+}
+```
+
+This example uses SAPL's built-in `timeBetween` and `dateOf` functions to calculate the user's age and filter out books with age ratings above that age.
+
+The **r2dbcQueryManipulation** and **mongoQueryManipulation** modify database queries to filter results at the data layer. These are documented separately in [README_R2DBC.md](README_R2DBC.md) and [README_MONGO.md](README_MONGO.md).
+
+### Writing Custom Handlers
+
+When built-in handlers aren't enough, you write your own. A constraint handler is a Spring bean that implements a provider interface.
+
+Here's a complete example that logs access attempts:
+
+```java
+@Component
+public class LogAccessHandler implements RunnableConstraintHandlerProvider {
+
+    private static final Logger log = LoggerFactory.getLogger(LogAccessHandler.class);
+
+    @Override
+    public boolean isResponsible(JsonNode constraint) {
+        return constraint != null
+            && constraint.has("type")
+            && "logAccess".equals(constraint.get("type").asText());
+    }
+
+    @Override
+    public Signal getSignal() {
+        return Signal.ON_DECISION;
+    }
+
+    @Override
+    public Runnable getHandler(JsonNode constraint) {
+        String message = constraint.has("message")
+            ? constraint.get("message").asText()
+            : "Access logged";
+        return () -> log.info(message);
     }
 }
 ```
 
-#### Authorization Architecture
+The `isResponsible` method checks if this handler should process a given constraint. The constraint is just a JSON object, so you define your own schema. The convention is to use a `type` field, but that's not required.
 
-The SAPL Spring Security integration provides its custom `SaplAuthorizationManager` for the HTTP filter chain.
-Its `check` method looks as follows:
+The `getSignal` method specifies when to run: `ON_DECISION`, `ON_EACH`, `ON_ERROR`, etc.
 
-```java
-AuthorizationDecision check(Supplier<Authentication> authenticationSupplier, RequestAuthorizationContext requestAuthorizationContext) {
-    ...
-}
-```
+The `getHandler` method returns the actual logic to execute.
 
-A PDP makes a final `AuthorizationDecision` based on an `AuthorizationSubscription` generated from the transferred values and any constraints.
+Spring auto-discovers handlers as beans. Just annotate with `@Component` and implement the right interface.
 
-#### Authorize HttpServletRequests
+The available provider interfaces cover different scenarios:
 
-The SAPL Spring Security Integration makes it possible to extend the modelling at the request level in the following way:
+- `RunnableConstraintHandlerProvider` - run code at a specific signal
+- `ConsumerConstraintHandlerProvider` - process objects flowing through the stream
+- `MethodInvocationConstraintHandlerProvider` - modify method arguments before invocation
+- `FilterPredicateConstraintHandlerProvider` - filter collections based on predicates
+- `ErrorHandlerProvider` - handle or transform exceptions
+- `SubscriptionHandlerProvider` - hook into reactive stream subscription signals
+- `RequestHandlerProvider` - act on the AuthorizationDecision itself
 
-```java
-@Bean
-SecurityFilterChain filterChain(HttpSecurity http, SaplAuthorizationManager saplAuthzManager) throws Exception {
-    // @formatter:off
-    return http.authorizeHttpRequests(requests -> requests.anyRequest().access(saplAuthzManager))
-               .build();
-    // @formatter:on
-}
-```
+Pick the interface that matches what you need to do.
 
-This instructs the `SaplAuthorizationManager` to check the HTTP request.
-Suitable authorization policies can now be formulated, but only based on the information in the HTTP request.
+## Query Manipulation
 
-#### Method Security
+For applications using Spring Data, SAPL can modify database queries to filter results based on policies. Instead of fetching all data and filtering in memory, the filter conditions are pushed into the query itself.
 
-In addition, SAPL supports modelling at the method level.
+This works with reactive MongoDB and R2DBC. You annotate repository methods with `@QueryEnforce`, and policies return query manipulation obligations.
 
-You can activate blocking method security in your application by annotating any `@Configuration` class with `@EnableSaplMethodSecurity`.
+Example repository:
 
 ```java
-@Configuration
-@EnableWebSecurity
-@EnableSaplMethodSecurity
-public class SecurityConfiguration {
-	...
-}
-```
+@Repository
+public interface BookRepository extends ReactiveCrudRepository<Book, Long> {
 
-This makes it possible to use the annotations `@PreEnforce` and `@PostEnforce` to add policy enforcement points to methods and classes. These annotations can be extended with parameters to create a custom authorization subscription using the Spring Expression Language (SpEL).
-
-##### @PreEnforce
-
-The `@PreEnforce` annotation places a PEP before the method execution.
-
-```java
-public interface BookRepository {
-	
-	@PreEnforce
-	Iterable<Book> findAll();
-
-}
-```
-
-This ensures the method is only executed if the PDP makes a `PERMIT` decision based on the authorization subscription.
-
-If no custom authorization subscription is defined, the PEP gathers as much information as possible to describe the three required objects (subject, action, resource) for an authorization subscription. This is mainly unnecessary and contains a lot of redundant information.
-
-A custom authorization subscription could look like this:
-
-```java
-public interface BookRepository {
-	
-	@PreEnforce(subject = "authentication.getPrincipal()", action = "'list books'")
-	Iterable<Book> findAll();
-
-}
-```
-
-The parameter `subject = "authentication.getPrincipal()"` extracts the principal object from the authentication object and uses it as the subject object in the subscription.
-
-The parameter `action = "'list books'"` sets the action object in the subscription to the string constant `list books`.
-
-##### @PostEnforce
-
-The `@PostEnforce` annotation places a PEP after the method execution.
-
-This annotation is typically used if the return object of a protected method is required to make the decision or if the return object can be modified via a transformation statement in a policy.
-
-```java
-public interface BookRepository {
-	
-	@PostEnforce(subject = "authentication.getPrincipal()", action = "'read book'", resource = "returnObject")
-	Optional<Book> findById(Long id);
-
-}
-```
-
-The parameter `resource = "returnObject"` tells the PEP to set the resource object in the subscription to the method invocation result.
-
-###### Multiple Annotations Are Computed In Series
-
-SAPL supports combining `@PreEnforce` and `@PostEnforce`  on a single method. Both annotations must return `PERMIT` for the method's consumer to receive the invocation result.
-
-###### Repeated Annotations Are Not Supported
-
-It is not possible to use the same annotation twice on the same method, e.g. you cannot place `@PreEnforce` twice.
-
-## Reactive Applications
-
-### Dependencies
-
-The following additional dependency is required for reactive applications:
-
-```xml
-<dependency>
-    <groupId>org.springframework.boot</groupId>
-    <artifactId>spring-boot-starter-webflux</artifactId>
-</dependency>
-```
-
-This creates a Webflux-based environment. This ensures that the numerous autoconfiguration classes for reactive applications are automatically loaded.
-
-### Authenticating the application
-
-You can access the application at localhost:8080/, which will redirect the browser to the default login page. You can provide the default username `user` with the randomly generated password logged to the console. The browser is then taken to the initially requested page.
-
-To log out, you can visit [localhost:8080/logout](http://localhost:8080/logout) and confirm that you wish to log out.
-
-### Authorization
-
-By default, SAPL Spring Security’s authorization will require all requests to be authenticated. The explicit configuration for reactive applications looks like this:
-
-```java
-@Configuration
-@EnableWebFluxSecurity
-public class SecurityConfiguration {
-	// ...
-    @Bean
-	SecurityWebFilterChain springSecurityFilterChain(ServerHttpSecurity http) {
-		return http.authorizeExchange(exchange -> exchange.anyExchange().authenticated())
-				   .formLogin(withDefaults())
-				   .httpBasic(withDefaults())
-				   .build();
-	}
-}
-```
-
-#### Authorization Architecture
-
-The SAPL Spring Security integration also provides its custom `ReactiveSaplAuthorizationManager` for the reactive Spring Security web filter chain.
-Its `check` method looks as follows:
-
-```java
-Mono<org.springframework.security.authorization.AuthorizationDecision> check(Mono<Authentication> authentication, AuthorizationContext context) {
-    ...
-}
-```
-
-A PDP makes a final `AuthorizationDecision` based on an `AuthorizationSubscription`, generated from the `Authentication` and the `AuthorizationContext`, and any constraints.
-
-#### Authorize ServerHttpRequest
-
-The SAPL Spring Security Integration makes it possible to extend the modeling at the request level in the following way:
-
-```java
-@Bean
-SecurityWebFilterChain springSecurityFilterChain(ServerHttpSecurity http, ReactiveSaplAuthorizationManager saplAuthzManager) {
-    return http.authorizeExchange(exchange -> exchange.anyExchange().access(saplAuthzManager))
-               .formLogin(withDefaults())
-               .httpBasic(withDefaults())
-               .build();
-}
-```
-
-This instructs the `ReactiveSaplAuthorizationManager` to check the HTTP request. Suitable authorization policies can now be formulated, but only based on the information in the HTTP request.
-
-#### Reactive Method Security
-
-You can activate reactive method security in your application by annotating any `@Configuration` class with `@EnableReactiveSaplMethodSecurity`.
-
-```java
-@Configuration
-@EnableWebFluxSecurity
-@EnableReactiveSaplMethodSecurity
-public class SecurityConfiguration {
-	...
-}
-```
-
-This makes it possible to use the annotations `@PreEnforce`, `@PostEnforce`, `@EnforceTillDenied`, `@EnforceDropWhileDenied` and `@EnforceRecoverableIfDenied` to add reactive policy enforcement points to methods and classes. These annotations can be extended with parameters to create a custom authorization subscription using the Spring Expression Language (SpEL).
-
-**Note:** A reactive policy enforcement point is only applicable to methods returning a `Publisher<>`, i.e. a `Mono<>` or a `Flux<>`.
-
-##### @PreEnforce
-
-The `@PreEnforce` annotation wraps the `Mono<>` or `Flux<>` returned by the method with a Policy Enforcement Point.
-
-```java
-public interface BookRepository {
-
-    @PreEnforce
+    @QueryEnforce(action = "findAll", subject = "{\"userId\": #{principal.id}}")
     Flux<Book> findAll();
 }
 ```
 
-Before allowing the subscriber to access the original `Publisher<>`, the PEP constructs an `AuthorizationSubscription` and sends it to the PDP deployed in the infrastructure. The PEP consumes exactly one decision and then cancels its subscription to the PDP.
+Example policy:
 
-Suppose the decision contained constraints, i.e., obligations or advice. In that case, the PEP hooks the execution of the constraint handling into the matching signal handlers of the reactive stream, e.g., onSubscription, onNext, onError, etc.
-
-This means that constraints contained within the one decision made by the PDP are enforced continuously throughout the reactive stream's lifetime. For example, a constrained hook into the onNext signal path will be triggered on every data item published on the stream.
-
-If you want to be able to react to changing decisions throughout the lifetime of the reactive data stream, you should use one of the `@Enforce...` annotations instead.
-
-##### @PostEnforce
-
-The `@PostEnforce` annotation is typically used if the return object of a protected method is required to make the decision or if the return object can be modified via a transformation statement in a policy.
-
-```java
-public interface BookRepository {
-
-    @PostEnforce(resource = "returnObject")
-    Mono<Book> findById(Long id);
+```
+policy "filter by department"
+permit action == "findAll"
+obligation {
+    "type": "r2dbcQueryManipulation",
+    "conditions": ["department_id = " + subject.departmentId]
 }
 ```
 
-As an `AuthorizationSubscription` has to be constructed, supplying the resource to be modified, and this value has to be well-defined. This annotation is only applicable to methods returning a `Mono<>`.
+The query gets a WHERE clause appended, so users only see data they're allowed to see.
 
-Adding the SpEL expression `resource="returnObject"` to the annotation has the effect of telling the PEP to set the return object of the `Mono<>` as the resource value of the `AuthorizationSubscription` to the PDP.
+For complete documentation, see [MongoDB Query Manipulation](README_MONGO.md) and [R2DBC Query Manipulation](README_R2DBC.md).
 
-Please note that in the `AuthorizationSubscription` the object has to be marshalled to JSON. For this to work, one has to ensure that the default Jackson `ObjectMapper`, in the application context, knows to do this for the given type. Thus, it may be necessary to deploy matching custom serializers or to annotate the class with the matching Jackson annotations.
+## Configuration
 
-##### @EnforceTillDenied
+SAPL Spring Security is configured through `application.properties` or `application.yml`. The properties control which PDP to use and how it behaves.
 
-The `@EnforceTillDenied` annotation wraps the `Flux<>` in a PEP.
+### Embedded PDP
 
-The basic concept of the `@EnforceTillDenied` PEP is to grant access to the `Flux<>` upon an initial `PERMIT` decision until a non-`PERMIT` decision is received.
+The embedded PDP runs inside your application. Policies are loaded from bundled resources or a filesystem directory.
 
-After the initial `PERMIT`, the PEP subscribes to the original `Flux<>`. While accessing the `Flux<>`, all constraints are enforced.
+```properties
+# Enable the embedded PDP (required)
+io.sapl.pdp.embedded.enabled=true
 
-Upon receiving a new `PERMIT` decision with different constraints, the constraint handling is updated accordingly.
+# Where to load policies from: RESOURCES or FILESYSTEM
+io.sapl.pdp.embedded.pdp-config-type=RESOURCES
 
-Upon receiving a non-`PERMIT` decision, the final constraints are enforced and an `AccessDeniedException` terminates the `Flux<>`.
+# Path to policies (in resources or filesystem)
+io.sapl.pdp.embedded.policies-path=/policies
 
-##### @EnforceDropWhileDenied
-
-The `@EnforceDropWhileDenied` annotation wraps the `Flux<>` in a PEP.
-
-The basic concept of the `@EnforceDropWhileDenied` PEP is to grant access to the `FLux<>` upon an initial `PERMIT` decision until the client cancels the subscription or the original `Flux<>` completes. However, whenever a non-`PERMIT` decision is received, all messages are dropped from the `Flux<>` until a new `PERMIT` decision is received.
-
-The subscriber will be unaware that events are dropped from the stream.
-
-After the initial `PERMIT`, the PEP subscribes to the original `Flux<>`. While accessing the `Flux<>`, all constraints are enforced.
-
-Upon receiving a new `PERMIT` decision with different constraints, the constraint handling is updated accordingly.
-
-Upon receiving a non-`PERMIT` decision, the constraints are enforced, and messages are dropped without sending an `AccessDeniedException` downstream. Access is granted again as soon as a new `PERMIT` decision is received.
-
-##### @EnforceRecoverableIfDenied
-
-The `@EnforceRecoverableIfDenied` annotation wraps the `Flux<>` in a PEP.
-
-The basic concept of `@EnforceRecoverableIfDenied` is almost the same as `@EnforceDropWhileDenied` with a small difference
-
-The subscriber will be made aware of the fact that events are dropped from the stream by sending `AccessDeniedExceptions` on a non-`PERMIT` decision.
-
-The subscriber can then decide to stay subscribed via `.onErrorContinue()`. Without `.onErrorContinue()` this behaves similarly to `@EnforceTillDenied`. With `.onErrorContinue()` this behaves similarly to `@EnforceDropWhileDenied`. However, the subscriber can explicitly handle the event that access is denied and can choose to stay subscribed.
-
-##### Access Control On Subscription
-
-The access control only starts when a subscriber subscribes to the wrapped `Publisher<>`, not at the construction time of the `Publisher<>`.
-
-##### Multiple Annotations Are Computed In Series
-
-SAPL Spring Security supports multiple method security annotations, but only with restrictions. For reactive applications, only the annotations `@PreEnforce` and `@PostEnforce` can be used in combination with a method. Additionally, the publisher must be of type Mono<>. For an invocation to be authorized, both annotation inspections need to pass authorization.
-
-The following combinations are **NOT** supported:
-
-###### SAPL And Spring Annotations
-
-It is not possible to annotate a method with both at least one SAPL annotation (@PreEnforce, @PostEnforce, @Enforce...) and at least one Spring method security annotation (@PreAuthorize, @PostAuthorize, @PreFilter, @PostFilter).
-
-###### @Pre-/@PostEnforce And @Enforce...
-
-It is not possible to annotate a method with at least one of `@PreEnforce` or `@PostEnforce` and one of `@EnforceTillDenied`, `@EnforceDropWhileDenied` or `@EnforceRecoverableIfDenied`.
-
-###### More Than One Enforce...
-
-It is not possible to annotate a method with more than one of `@EnforceTillDenied`, `@EnforceDropWhileDenied` or `@EnforceRecoverableIfDenied`.
-
-##### Repeated Annotations Are Not Supported
-
-It is not possible to use the same annotation twice on the same method, e.g. you cannot place `@PreEnforce` twice.
-
-## Constraint Handler
-
-#### Constraints
-
-In SAPL, decisions can include additional requirements for the PEP to enforce beyond simply granting or denying access. SAPL decisions can include constraints, which are additional actions the PEP must perform to grant access. If a constraint is optional, it is called *advice*. If the constraint is mandatory, it is called an *obligation*.
-
-- *Obligation*, i.e., a mandatory condition that the PEP must fulfil. If this is not possible, access must be denied.
-- *Advice*, i.e., an optional condition that the PEP should fulfil. If it fails to do so, access is still granted if the original  decision was `permit`.
-- *Transformation* is a special case of an obligation that expresses that the PEP must replace the accessed resource with the resource object supplied in the authorization decision.
-
-```python
-policy "filter content in collection"
-permit action == "list books"
-obligation
-	{
-		"type" : "jsonContentFilterPredicate",
-		"conditions" : [
-	                   {
-			       						"path" : "$.ageRating",
-                       "type" : "<=",
-                       "value" : timeBetween(subject.birthday, dateOf(|<now>), "years")
-                     }
-                  ]
-	}
+# Path to pdp.json configuration (combining algorithm, variables)
+io.sapl.pdp.embedded.config-path=/policies
 ```
 
-#### Handling Constraints
+The full list of embedded PDP properties:
 
-Upon receiving a decision from the PDP containing a constraint, the PEP will check all registered `ConstraintHandler` beans and ask them if they can handle a given constraint defined by the policy. Generally, there is no specific scheme for constraints. Any JSON object may be an appropriate constraint. Its contents solely depend on the domain modelling decisions of the application and policy author. Therefore `ConstraintHandler` must implement the `isResponsible` method of `Responsible` and filter the constraints accordingly.
+| Property | Default | Description |
+|----------|---------|-------------|
+| `io.sapl.pdp.embedded.enabled` | `true` | Enable or disable the embedded PDP |
+| `io.sapl.pdp.embedded.pdp-config-type` | `RESOURCES` | `RESOURCES` loads from classpath, `FILESYSTEM` loads from disk and watches for changes |
+| `io.sapl.pdp.embedded.policies-path` | `/policies` | Directory containing `.sapl` policy files |
+| `io.sapl.pdp.embedded.config-path` | `/policies` | Directory containing `pdp.json` configuration |
+| `io.sapl.pdp.embedded.index` | `NAIVE` | Index algorithm: `NAIVE` for small policy sets, `CANONICAL` for large ones |
+| `io.sapl.pdp.embedded.print-trace` | `false` | Log full JSON evaluation trace (verbose, for debugging) |
+| `io.sapl.pdp.embedded.print-json-report` | `false` | Log JSON decision report |
+| `io.sapl.pdp.embedded.print-text-report` | `false` | Log human-readable decision report |
+| `io.sapl.pdp.embedded.pretty-print-reports` | `false` | Format JSON in reports |
 
-```java
-@Override
-public boolean isResponsible(JsonNode constraint) {
-	return constraint != null && constraint.has("type") && 					 "filterBooksByAge".equals(constraint.findValue("type").asText()) && constraint.has("age") && constraint.get("age").isInt();
-}
+For development, `RESOURCES` is convenient because policies are bundled in the JAR. For production with dynamic policy updates, use `FILESYSTEM` and point to a directory that can be updated without redeployment.
+
+### Remote PDP
+
+The remote PDP connects to an external PDP server (like sapl-server-lt). Use this when policies are managed centrally or when multiple applications share the same policies.
+
+```properties
+# Enable the remote PDP
+io.sapl.pdp.remote.enabled=true
+
+# Connection type: http or rsocket
+io.sapl.pdp.remote.type=rsocket
+
+# For HTTP
+io.sapl.pdp.remote.host=https://pdp.example.org:8443
+
+# For RSocket
+io.sapl.pdp.remote.rsocket-host=pdp.example.org
+io.sapl.pdp.remote.rsocket-port=7000
+
+# Authentication (choose one)
+# Basic auth:
+io.sapl.pdp.remote.key=myapp
+io.sapl.pdp.remote.secret=secret123
+
+# Or API key:
+io.sapl.pdp.remote.api-key=your-api-key
 ```
 
-The SAPL Spring integration offers different hooks in the execution path where applications can add constraint handlers. Depending  on the annotation and if the underlying method returns a value  synchronously or uses reactive datatypes like `Flux<>` or `Mono<>`. 
+The full list of remote PDP properties:
 
-For each of these hooks, the constraint handlers can influence the execution differently. E.g., for `@PreEnforce`  the constraint handler may attempt to change the arguments handed over to the method. The different hooks map to interfaces a service bean can implement to provide the capability of enforcing different types of constraints.
+| Property | Default | Description |
+|----------|---------|-------------|
+| `io.sapl.pdp.remote.enabled` | `false` | Enable or disable the remote PDP |
+| `io.sapl.pdp.remote.type` | `rsocket` | Connection type: `http` or `rsocket` |
+| `io.sapl.pdp.remote.host` | | HTTP URL of the PDP server |
+| `io.sapl.pdp.remote.rsocket-host` | | Hostname for RSocket connection |
+| `io.sapl.pdp.remote.rsocket-port` | `7000` | Port for RSocket connection |
+| `io.sapl.pdp.remote.key` | | Username for basic authentication |
+| `io.sapl.pdp.remote.secret` | | Password for basic authentication |
+| `io.sapl.pdp.remote.api-key` | | API key for token authentication |
+| `io.sapl.pdp.remote.ignore-certificates` | `false` | Skip TLS certificate validation (not for production) |
 
-#### Custom Constraint Handlers
+You must configure exactly one authentication method: either `key` and `secret` together, or `api-key` alone.
 
-The `ConstraintEnforcementService` manages all executable constraint handlers and furnishes constraint handler bundles (such as `BlockingConstraintHandlerBundle` and `ReactiveConstraintHandlerBundle`) to the PEP whenever the PDP issues a new decision. These bundles consolidate all constraint handlers pertinent to a particular decision.
+## Common Questions
 
-A custom constraint handler can be integrated by implementing the respective constraint handler interface. The spring policy enforcement points automatically discover and register spring components/beans implementing the interface.
+**How does this differ from @PreAuthorize?**
 
-Suitable interfaces are provided for each specific use case.
+Spring's `@PreAuthorize` evaluates a SpEL expression at runtime. The logic is in your Java code. SAPL evaluates external policy files. The logic is separate from your code. This matters when policies change frequently, when non-developers need to review rules, or when the same policies apply across multiple applications.
 
-- The `FilterPredicateConstraintHandlerProvider` enables the modifcation of Predicates based on the prevailing constraints. The default constraint handler providers offer a reference implemention.
-- The `RunnableConstraintHandlerProvider` enables the implementation of an action upon the execution of a Runnable. Among other potential applications, this feature is particularly useful for tasks such as logging access to specific resources.
-- The `ErrorHandlerProvider` provides a hook into Throwables that may be thrown at runtime, allowing for logging or modifcation of attributes of the Throwable.
-- The `MethodInvocationConstraintHandlerProvider` allows the integration of supplementary behavior into method invocations. This includes the modifcation, addition, and removal of method arguments based on the prevailing constraints.
-- The `ConsumerConstraintHandlerProvider` enables the implementation of an action upon the consumption of a Consumer of a given type.
-- The `SubscriptionHandlerProvider` operates similar to the `ConsumerConstraintHandlerProvider` but specifically where the consumed type is a Subscription. It provides a hook into the subscription to a reactive stream.
-- The `RequestHandlerProvider` enables the implementation of an action based on the decision of a PDP, specifically on the AuthorizationDecision.
+**What's the performance impact?**
 
-Two handlers are implemented by default.
-- ContentFilteringProvider, enables selective filtering of specific properties within an object
-- ContentFilterPredicateProvider, enables selective filtering of specific conditions within a Predicate
+Each authorization check calls the PDP. With an embedded PDP, this is an in-memory call, typically sub-millisecond. With a remote PDP, there's network latency. The PDP caches policy evaluation, so repeated similar requests are fast. For most applications, the overhead is negligible compared to database or network I/O.
+
+**Can I use SAPL alongside @PreAuthorize?**
+
+On different methods, yes. On the same method, no. SAPL annotations and Spring Security annotations cannot be combined on a single method.
+
+**What happens if the PDP is unavailable?**
+
+With an embedded PDP, this isn't an issue since it's part of your application. With a remote PDP, you configure the behavior: deny by default, permit by default, or use cached decisions. The safe default is deny.
+
+**Where do policy files go?**
+
+By default, `src/main/resources/policies/`. The embedded PDP loads from this path when `pdp-config-type=RESOURCES`. If you use `FILESYSTEM`, specify an absolute path and the PDP will watch for changes.
+
+## Next Steps
+
+The best way to learn is to try it. Start with method security on one or two endpoints. Write simple permit/deny policies. Once that works, try adding obligations to see how constraints work.
+
+For more details:
+
+- [SAPL Documentation](https://sapl.io/docs) - policy language reference
+- [sapl-demos](https://github.com/heutelbeck/sapl-demos) - example applications
+- [README_MONGO.md](README_MONGO.md) - MongoDB query manipulation
+- [README_R2DBC.md](README_R2DBC.md) - R2DBC query manipulation

@@ -22,7 +22,7 @@ import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.PolicyDecisionPoint;
 import io.sapl.spring.constraints.ConstraintEnforcementService;
 import io.sapl.spring.method.metadata.*;
-import io.sapl.spring.subscriptions.WebfluxAuthorizationSubscriptionBuilderService;
+import io.sapl.spring.subscriptions.AuthorizationSubscriptionBuilderService;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import org.aopalliance.intercept.MethodInterceptor;
@@ -58,7 +58,7 @@ public final class ReactiveSaplMethodInterceptor implements MethodInterceptor {
     private final ObjectMapper mapper;
 
     @NonNull
-    private final WebfluxAuthorizationSubscriptionBuilderService subscriptionBuilder;
+    private final AuthorizationSubscriptionBuilderService subscriptionBuilder;
 
     @NonNull
     private final PreEnforcePolicyEnforcementPoint preEnforcePolicyEnforcementPoint;

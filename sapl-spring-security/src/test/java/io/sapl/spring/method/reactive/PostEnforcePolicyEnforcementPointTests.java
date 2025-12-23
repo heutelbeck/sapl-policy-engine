@@ -32,7 +32,7 @@ import io.sapl.spring.method.metadata.SaplAttribute;
 import io.sapl.spring.serialization.HttpServletRequestSerializer;
 import io.sapl.spring.serialization.MethodInvocationSerializer;
 import io.sapl.spring.serialization.ServerHttpRequestSerializer;
-import io.sapl.spring.subscriptions.WebfluxAuthorizationSubscriptionBuilderService;
+import io.sapl.spring.subscriptions.AuthorizationSubscriptionBuilderService;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.Getter;
 import org.aopalliance.intercept.MethodInvocation;
@@ -60,7 +60,7 @@ import static org.mockito.Mockito.*;
 
 class PostEnforcePolicyEnforcementPointTests {
 
-    private WebfluxAuthorizationSubscriptionBuilderService subscriptionBuilderService;
+    private AuthorizationSubscriptionBuilderService subscriptionBuilderService;
 
     private MethodInvocation invocation;
 
@@ -98,7 +98,7 @@ class PostEnforcePolicyEnforcementPointTests {
         module.addSerializer(HttpServletRequest.class, new HttpServletRequestSerializer());
         module.addSerializer(ServerHttpRequest.class, new ServerHttpRequestSerializer());
         mapper.registerModule(module);
-        subscriptionBuilderService = new WebfluxAuthorizationSubscriptionBuilderService(
+        subscriptionBuilderService = new AuthorizationSubscriptionBuilderService(
                 new DefaultMethodSecurityExpressionHandler(), mapper);
         final var testClass = new TestClass();
         resourceAccessPoint = testClass.publicInteger();

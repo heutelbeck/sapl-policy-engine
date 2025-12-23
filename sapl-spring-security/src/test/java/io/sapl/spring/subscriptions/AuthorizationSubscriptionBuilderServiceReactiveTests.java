@@ -72,12 +72,12 @@ import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 import reactor.util.context.Context;
 
-class WebfluxAuthorizationSubscriptionBuilderServiceTests {
+class AuthorizationSubscriptionBuilderServiceReactiveTests {
 
-    private Authentication                                 authentication;
-    private WebfluxAuthorizationSubscriptionBuilderService defaultWebfluxBuilderUnderTest;
-    private MethodInvocation                               invocation;
-    private ObjectMapper                                   mapper;
+    private Authentication                          authentication;
+    private AuthorizationSubscriptionBuilderService defaultWebfluxBuilderUnderTest;
+    private MethodInvocation                        invocation;
+    private ObjectMapper                            mapper;
 
     @BeforeEach
     @SuppressWarnings("unchecked")
@@ -91,7 +91,7 @@ class WebfluxAuthorizationSubscriptionBuilderServiceTests {
         val user = new User("the username", "the password", true, true, true, true,
                 AuthorityUtils.createAuthorityList("ROLE_USER"));
         authentication                 = new UsernamePasswordAuthenticationToken(user, "the credentials");
-        defaultWebfluxBuilderUnderTest = new WebfluxAuthorizationSubscriptionBuilderService(
+        defaultWebfluxBuilderUnderTest = new AuthorizationSubscriptionBuilderService(
                 new DefaultMethodSecurityExpressionHandler(), mapper);
         val mockExpressionHandlerProvider = mock(ObjectProvider.class);
         when(mockExpressionHandlerProvider.getIfAvailable(any()))
@@ -169,8 +169,7 @@ class WebfluxAuthorizationSubscriptionBuilderServiceTests {
             }
             return mapper.valueToTree(x);
         });
-        val sut = new WebfluxAuthorizationSubscriptionBuilderService(new DefaultMethodSecurityExpressionHandler(),
-                failMapper);
+        val sut = new AuthorizationSubscriptionBuilderService(new DefaultMethodSecurityExpressionHandler(), failMapper);
 
         val serverWebExchange   = MockServerWebExchange.from(MockServerHttpRequest.get("/foo/bar"));
         val securityContext     = new MockSecurityContext(authentication);

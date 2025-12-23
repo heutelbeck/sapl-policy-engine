@@ -77,12 +77,12 @@ import io.sapl.spring.serialization.ServerHttpRequestSerializer;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.val;
 
-class WebAuthorizationSubscriptionBuilderServiceTests {
+class AuthorizationSubscriptionBuilderServiceServletTests {
 
-    private Authentication                             authentication;
-    private WebAuthorizationSubscriptionBuilderService defaultWebBuilderUnderTest;
-    private MethodInvocation                           invocation;
-    private ObjectMapper                               mapper;
+    private Authentication                          authentication;
+    private AuthorizationSubscriptionBuilderService defaultWebBuilderUnderTest;
+    private MethodInvocation                        invocation;
+    private ObjectMapper                            mapper;
 
     @BeforeEach
     @SuppressWarnings("unchecked")
@@ -103,7 +103,7 @@ class WebAuthorizationSubscriptionBuilderServiceTests {
         when(mockMapperProvider.getIfAvailable(any())).thenReturn(mapper);
         val mockDefaultsProvider = mock(ObjectProvider.class);
         val mockContext          = mock(ApplicationContext.class);
-        defaultWebBuilderUnderTest = new WebAuthorizationSubscriptionBuilderService(mockExpressionHandlerProvider,
+        defaultWebBuilderUnderTest = new AuthorizationSubscriptionBuilderService(mockExpressionHandlerProvider,
                 mockMapperProvider, mockDefaultsProvider, mockContext);
         invocation                 = MethodInvocationUtils.createFromClass(new TestClass(), TestClass.class,
                 "publicVoid", null, null);
@@ -168,8 +168,8 @@ class WebAuthorizationSubscriptionBuilderServiceTests {
         val emptyExpressionHandlerProvider = new Provider<MethodSecurityExpressionHandler>();
         val defaults                       = mock(GrantedAuthorityDefaults.class);
         val defaultsProvider               = new Provider<>(defaults);
-        val webBuilderUnderTest            = new WebAuthorizationSubscriptionBuilderService(
-                emptyExpressionHandlerProvider, mockMapperProvider, defaultsProvider, mockContext);
+        val webBuilderUnderTest            = new AuthorizationSubscriptionBuilderService(emptyExpressionHandlerProvider,
+                mockMapperProvider, defaultsProvider, mockContext);
         val attribute                      = attribute("'a subject'", "'an action'", "'a resource'", "'an environment'",
                 Object.class);
         webBuilderUnderTest.constructAuthorizationSubscription(authentication, invocation, attribute);
@@ -201,7 +201,7 @@ class WebAuthorizationSubscriptionBuilderServiceTests {
         when(mockMapperProvider.getIfAvailable(any())).thenReturn(mockMapper);
         val mockDefaultsProvider = mock(ObjectProvider.class);
         val mockContext          = mock(ApplicationContext.class);
-        val webBuilderUnderTest  = new WebAuthorizationSubscriptionBuilderService(mockExpressionHandlerProvider,
+        val webBuilderUnderTest  = new AuthorizationSubscriptionBuilderService(mockExpressionHandlerProvider,
                 mockMapperProvider, mockDefaultsProvider, mockContext);
 
         assertThrows(IllegalArgumentException.class,

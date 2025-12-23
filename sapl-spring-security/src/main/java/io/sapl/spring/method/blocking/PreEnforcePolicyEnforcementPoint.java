@@ -24,7 +24,7 @@ import io.sapl.spring.constraints.ConstraintEnforcementService;
 import io.sapl.spring.method.metadata.PreEnforce;
 import io.sapl.spring.method.metadata.SaplAttribute;
 import io.sapl.spring.method.metadata.SaplAttributeRegistry;
-import io.sapl.spring.subscriptions.WebAuthorizationSubscriptionBuilderService;
+import io.sapl.spring.subscriptions.AuthorizationSubscriptionBuilderService;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import org.aopalliance.intercept.MethodInterceptor;
@@ -54,10 +54,10 @@ public final class PreEnforcePolicyEnforcementPoint implements MethodInterceptor
     private final Supplier<Authentication> authenticationSupplier = getAuthentication(
             SecurityContextHolder.getContextHolderStrategy());
 
-    private final ObjectProvider<PolicyDecisionPoint>                        policyDecisionPointProvider;
-    private final ObjectProvider<SaplAttributeRegistry>                      attributeRegistryProvider;
-    private final ObjectProvider<ConstraintEnforcementService>               constraintEnforcementServiceProvider;
-    private final ObjectProvider<WebAuthorizationSubscriptionBuilderService> subscriptionBuilderProvider;
+    private final ObjectProvider<PolicyDecisionPoint>                     policyDecisionPointProvider;
+    private final ObjectProvider<SaplAttributeRegistry>                   attributeRegistryProvider;
+    private final ObjectProvider<ConstraintEnforcementService>            constraintEnforcementServiceProvider;
+    private final ObjectProvider<AuthorizationSubscriptionBuilderService> subscriptionBuilderProvider;
 
     @Override
     public Object invoke(@NonNull MethodInvocation methodInvocation) throws Throwable {

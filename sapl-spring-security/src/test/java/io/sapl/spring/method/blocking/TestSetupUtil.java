@@ -33,7 +33,7 @@ import com.fasterxml.jackson.databind.module.SimpleModule;
 import io.sapl.spring.serialization.HttpServletRequestSerializer;
 import io.sapl.spring.serialization.MethodInvocationSerializer;
 import io.sapl.spring.serialization.ServerHttpRequestSerializer;
-import io.sapl.spring.subscriptions.WebAuthorizationSubscriptionBuilderService;
+import io.sapl.spring.subscriptions.AuthorizationSubscriptionBuilderService;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.experimental.UtilityClass;
 
@@ -51,7 +51,7 @@ public class TestSetupUtil {
     }
 
     @SuppressWarnings("unchecked")
-    public static WebAuthorizationSubscriptionBuilderService subscriptionBuilderService() {
+    public static AuthorizationSubscriptionBuilderService subscriptionBuilderService() {
         final var mapper                        = objectMapperWithSerializers();
         final var mockExpressionHandlerProvider = mock(ObjectProvider.class);
         when(mockExpressionHandlerProvider.getIfAvailable(any()))
@@ -60,7 +60,7 @@ public class TestSetupUtil {
         when(mockMapperProvider.getIfAvailable(any())).thenReturn(mapper);
         final var mockDefaultsProvider = mock(ObjectProvider.class);
         final var mockContext          = mock(ApplicationContext.class);
-        return new WebAuthorizationSubscriptionBuilderService(mockExpressionHandlerProvider, mockMapperProvider,
+        return new AuthorizationSubscriptionBuilderService(mockExpressionHandlerProvider, mockMapperProvider,
                 mockDefaultsProvider, mockContext);
     }
 }
