@@ -18,9 +18,15 @@
 package io.sapl.lsp.core;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.params.provider.Arguments.arguments;
+
+import java.util.stream.Stream;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import io.sapl.lsp.sapl.SAPLGrammarSupport;
 import io.sapl.lsp.sapltest.SAPLTestGrammarSupport;
@@ -38,28 +44,32 @@ class GrammarRegistryTests {
         registry.register(new SAPLTestGrammarSupport());
     }
 
-    @Test
-    void whenGetGrammarForSaplUri_thenReturnsSaplGrammar() {
-        var grammar = registry.getGrammarForUri("file:///test.sapl");
-        assertThat(grammar.getGrammarId()).isEqualTo("sapl");
+    static Stream<Arguments> grammarForUriCases() {
+        return Stream.of(arguments("SAPL file extension", "file:///test.sapl", "sapl"),
+                arguments("SAPLTEST file extension", "file:///test.sapltest", "sapltest"),
+                arguments("unknown extension returns default", "file:///test.txt", "sapl"),
+                arguments("uppercase extension matches case-insensitive", "file:///test.SAPLTEST", "sapltest"),
+                arguments("null URI returns default", null, "sapl"),
+                arguments("URI without extension returns default", "file:///noextension", "sapl"),
+                arguments("Windows-style SAPL URI", "file:///C:/project/policies/test.sapl", "sapl"),
+                arguments("Windows-style SAPLTEST URI", "file:///C:/project/tests/test.sapltest", "sapltest"),
+                arguments("Unix-style SAPL URI", "file:///home/user/project/policy.sapl", "sapl"),
+                arguments("Unix-style SAPLTEST URI", "file:///home/user/project/test.sapltest", "sapltest"),
+                arguments("deep nested path",
+                        "file:///project/src/test/resources/integration/policySetLoading.sapltest", "sapltest"),
+                arguments("URI with query string - SAPL", "file:///policy.sapl?configurationId=default", "sapl"),
+                arguments("URI with query string - SAPLTEST", "file:///test.sapltest?configurationId=production",
+                        "sapltest"),
+                arguments("URI with fragment - SAPL", "file:///policy.sapl#line=10", "sapl"),
+                arguments("URI with fragment - SAPLTEST", "file:///test.sapltest#section", "sapltest"),
+                arguments("URI with query and fragment", "file:///policy.sapl?security=test#line=5", "sapl"));
     }
 
-    @Test
-    void whenGetGrammarForSapltestUri_thenReturnsSaplTestGrammar() {
-        var grammar = registry.getGrammarForUri("file:///test.sapltest");
-        assertThat(grammar.getGrammarId()).isEqualTo("sapltest");
-    }
-
-    @Test
-    void whenGetGrammarForUnknownExtension_thenReturnsDefaultGrammar() {
-        var grammar = registry.getGrammarForUri("file:///test.txt");
-        assertThat(grammar.getGrammarId()).isEqualTo("sapl");
-    }
-
-    @Test
-    void whenGetGrammarForUriWithUppercaseExtension_thenMatchesCaseInsensitive() {
-        var grammar = registry.getGrammarForUri("file:///test.SAPLTEST");
-        assertThat(grammar.getGrammarId()).isEqualTo("sapltest");
+    @ParameterizedTest(name = "{0}")
+    @MethodSource("grammarForUriCases")
+    void whenGetGrammarForUri_thenReturnsExpectedGrammar(String description, String uri, String expectedGrammarId) {
+        var grammar = registry.getGrammarForUri(uri);
+        assertThat(grammar.getGrammarId()).isEqualTo(expectedGrammarId);
     }
 
     @Test
@@ -81,67 +91,28 @@ class GrammarRegistryTests {
         assertThat(legend.getTokenTypes()).isNotEmpty();
     }
 
-    @Test
-    void whenGetGrammarById_thenReturnsGrammar() {
-        var saplGrammar = registry.getGrammarById("sapl");
-        assertThat(saplGrammar).isPresent();
-        assertThat(saplGrammar.get().getGrammarId()).isEqualTo("sapl");
-
-        var saplTestGrammar = registry.getGrammarById("sapltest");
-        assertThat(saplTestGrammar).isPresent();
-        assertThat(saplTestGrammar.get().getGrammarId()).isEqualTo("sapltest");
+    static Stream<Arguments> grammarByIdCases() {
+        return Stream.of(arguments("SAPL grammar by ID", "sapl", true),
+                arguments("SAPLTEST grammar by ID", "sapltest", true),
+                arguments("unknown grammar ID returns empty", "unknown", false));
     }
 
-    @Test
-    void whenGetGrammarByUnknownId_thenReturnsEmpty() {
-        var grammar = registry.getGrammarById("unknown");
-        assertThat(grammar).isEmpty();
+    @ParameterizedTest(name = "{0}")
+    @MethodSource("grammarByIdCases")
+    void whenGetGrammarById_thenReturnsExpectedResult(String description, String grammarId, boolean shouldBePresent) {
+        var grammar = registry.getGrammarById(grammarId);
+        if (shouldBePresent) {
+            assertThat(grammar).isPresent();
+            assertThat(grammar.get().getGrammarId()).isEqualTo(grammarId);
+        } else {
+            assertThat(grammar).isEmpty();
+        }
     }
 
     @Test
     void whenGetAllGrammars_thenReturnsBothGrammars() {
         var grammars = registry.getAllGrammars();
         assertThat(grammars).hasSize(2);
-    }
-
-    @Test
-    void whenGetGrammarForNullUri_thenReturnsDefaultGrammar() {
-        var grammar = registry.getGrammarForUri(null);
-        assertThat(grammar.getGrammarId()).isEqualTo("sapl");
-    }
-
-    @Test
-    void whenGetGrammarForUriWithoutExtension_thenReturnsDefaultGrammar() {
-        var grammar = registry.getGrammarForUri("file:///noextension");
-        assertThat(grammar.getGrammarId()).isEqualTo("sapl");
-    }
-
-    @Test
-    void whenGetGrammarForWindowsStyleUri_thenReturnsCorrectGrammar() {
-        // Windows-style file URI pattern
-        var saplGrammar = registry.getGrammarForUri("file:///C:/project/policies/test.sapl");
-        assertThat(saplGrammar.getGrammarId()).isEqualTo("sapl");
-
-        var saplTestGrammar = registry.getGrammarForUri("file:///C:/project/tests/test.sapltest");
-        assertThat(saplTestGrammar.getGrammarId()).isEqualTo("sapltest");
-    }
-
-    @Test
-    void whenGetGrammarForUnixStyleUri_thenReturnsCorrectGrammar() {
-        // Unix-style file URI pattern
-        var saplGrammar = registry.getGrammarForUri("file:///home/user/project/policy.sapl");
-        assertThat(saplGrammar.getGrammarId()).isEqualTo("sapl");
-
-        var saplTestGrammar = registry.getGrammarForUri("file:///home/user/project/test.sapltest");
-        assertThat(saplTestGrammar.getGrammarId()).isEqualTo("sapltest");
-    }
-
-    @Test
-    void whenGetGrammarForDeepNestedUri_thenReturnsSaplTestGrammar() {
-        // Deep nested path pattern (typical for test resources)
-        var grammar = registry
-                .getGrammarForUri("file:///project/src/test/resources/integration/policySetLoading.sapltest");
-        assertThat(grammar.getGrammarId()).isEqualTo("sapltest");
     }
 
     @Test
@@ -158,30 +129,6 @@ class GrammarRegistryTests {
 
         var saplTestGrammar = registry.getGrammarForUri(sapltestUri.toString());
         assertThat(saplTestGrammar.getGrammarId()).isEqualTo("sapltest");
-    }
-
-    @Test
-    void whenGetGrammarForUriWithQueryString_thenIgnoresQueryAndReturnsCorrectGrammar() {
-        var saplGrammar = registry.getGrammarForUri("file:///policy.sapl?configurationId=default");
-        assertThat(saplGrammar.getGrammarId()).isEqualTo("sapl");
-
-        var saplTestGrammar = registry.getGrammarForUri("file:///test.sapltest?configurationId=production");
-        assertThat(saplTestGrammar.getGrammarId()).isEqualTo("sapltest");
-    }
-
-    @Test
-    void whenGetGrammarForUriWithFragment_thenIgnoresFragmentAndReturnsCorrectGrammar() {
-        var saplGrammar = registry.getGrammarForUri("file:///policy.sapl#line=10");
-        assertThat(saplGrammar.getGrammarId()).isEqualTo("sapl");
-
-        var saplTestGrammar = registry.getGrammarForUri("file:///test.sapltest#section");
-        assertThat(saplTestGrammar.getGrammarId()).isEqualTo("sapltest");
-    }
-
-    @Test
-    void whenGetGrammarForUriWithQueryAndFragment_thenIgnoresBothAndReturnsCorrectGrammar() {
-        var grammar = registry.getGrammarForUri("file:///policy.sapl?security=test#line=5");
-        assertThat(grammar.getGrammarId()).isEqualTo("sapl");
     }
 
 }

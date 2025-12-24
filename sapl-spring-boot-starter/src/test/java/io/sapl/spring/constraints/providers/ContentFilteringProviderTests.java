@@ -24,12 +24,18 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import static org.junit.jupiter.params.provider.Arguments.arguments;
+
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Stream;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.reactivestreams.Publisher;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -58,57 +64,21 @@ class ContentFilteringProviderTests {
         assertThat(sut.getSupportedType(), is(Object.class));
     }
 
-    @Test
-    void when_constraintIsNull_then_notResponsible() {
+    static Stream<Arguments> isResponsibleCases() throws JsonProcessingException {
+        return Stream.of(arguments("null constraint", null, false),
+                arguments("non-object constraint", toValue("123"), false),
+                arguments("no type field", toValue("{ }"), false),
+                arguments("non-textual type", toValue("{\"type\": 123}"), false),
+                arguments("wrong type value", toValue("{\"type\": \"unrelatedType\"}"), false),
+                arguments("correct type", toValue("{\"type\": \"filterJsonContent\"}"), true));
+    }
+
+    @ParameterizedTest(name = "{0}")
+    @MethodSource("isResponsibleCases")
+    void whenCheckingResponsibility_thenReturnsExpectedResult(String description, Value constraint,
+            boolean expectedResult) {
         final var sut = new ContentFilteringProvider(MAPPER);
-        assertThat(sut.isResponsible(null), is(false));
-    }
-
-    @Test
-    void when_constraintNonObject_then_notResponsible() throws JsonProcessingException {
-        final var sut        = new ContentFilteringProvider(MAPPER);
-        final var constraint = toValue("123");
-        assertThat(sut.isResponsible(constraint), is(false));
-    }
-
-    @Test
-    void when_constraintNoType_then_notResponsible() throws JsonProcessingException {
-        final var sut        = new ContentFilteringProvider(MAPPER);
-        final var constraint = toValue("{ }");
-        assertThat(sut.isResponsible(constraint), is(false));
-    }
-
-    @Test
-    void when_constraintTypeNonTextual_then_notResponsible() throws JsonProcessingException {
-        final var sut        = new ContentFilteringProvider(MAPPER);
-        final var constraint = toValue("""
-                {
-                	"type" : 123
-                }
-                """);
-        assertThat(sut.isResponsible(constraint), is(false));
-    }
-
-    @Test
-    void when_constraintWrongType_then_notResponsible() throws JsonProcessingException {
-        final var sut        = new ContentFilteringProvider(MAPPER);
-        final var constraint = toValue("""
-                {
-                	"type" : "unrelatedType"
-                }
-                """);
-        assertThat(sut.isResponsible(constraint), is(false));
-    }
-
-    @Test
-    void when_constraintTypeCorrect_then_isResponsible() throws JsonProcessingException {
-        final var sut        = new ContentFilteringProvider(MAPPER);
-        final var constraint = toValue("""
-                {
-                	"type" : "filterJsonContent"
-                }
-                """);
-        assertThat(sut.isResponsible(constraint), is(true));
+        assertThat(sut.isResponsible(constraint), is(expectedResult));
     }
 
     @Test
@@ -128,248 +98,53 @@ class ContentFilteringProviderTests {
         assertThat(handler.apply(original), is(original));
     }
 
-    @Test
-    void when_noActionType_then_Error() throws JsonProcessingException {
+    static Stream<Arguments> actionValidationErrorCases() {
+        return Stream.of(
+                arguments("no action type", "{\"type\": \"filterJsonContent\", \"actions\": [{\"path\": \"$.key1\"}]}"),
+                arguments("no action path", "{\"type\": \"filterJsonContent\", \"actions\": [{\"type\": \"delete\"}]}"),
+                arguments("action not an object", "{\"type\": \"filterJsonContent\", \"actions\": [123]}"),
+                arguments("actions not an array", "{\"type\": \"filterJsonContent\", \"actions\": 123}"),
+                arguments("action path not textual",
+                        "{\"type\": \"filterJsonContent\", \"actions\": [{\"type\": \"delete\", \"path\": 123}]}"),
+                arguments("action type not textual",
+                        "{\"type\": \"filterJsonContent\", \"actions\": [{\"type\": 123, \"path\": \"$.key1\"}]}"),
+                arguments("unknown action type",
+                        "{\"type\": \"filterJsonContent\", \"actions\": [{\"type\": \"unknown action\", \"path\": \"$.key1\"}]}"));
+    }
+
+    @ParameterizedTest(name = "{0}")
+    @MethodSource("actionValidationErrorCases")
+    void whenMalformedAction_thenThrowsError(String description, String constraintJson) throws JsonProcessingException {
         final var sut        = new ContentFilteringProvider(MAPPER);
-        final var constraint = toValue("""
-                {
-                	"type"    : "filterJsonContent",
-                	"actions" : [ { "path" : "$.key1"} ]
-                }
-                """);
+        final var constraint = toValue(constraintJson);
         final var handler    = sut.getHandler(constraint);
-        final var original   = MAPPER.readTree("""
-                {
-                	"key1" : "value1",
-                	"key2" : "value2"
-                }
-                """);
+        final var original   = MAPPER.readTree("{\"key1\": \"value1\", \"key2\": \"value2\"}");
         assertThrows(AccessConstraintViolationException.class, () -> handler.apply(original));
     }
 
-    @Test
-    void when_noActionPath_then_Error() throws JsonProcessingException {
-        final var sut        = new ContentFilteringProvider(MAPPER);
-        final var constraint = toValue("""
-                {
-                	"type"    : "filterJsonContent",
-                  	"actions" : [ { "type" : "delete" } ]
-                }
-                """);
-        final var handler    = sut.getHandler(constraint);
-        final var original   = MAPPER.readTree("""
-                {
-                	"key1" : "value1",
-                	"key2" : "value2"
-                }
-                """);
-        assertThrows(AccessConstraintViolationException.class, () -> handler.apply(original));
+    static Stream<Arguments> blackenValidationErrorCases() {
+        return Stream.of(arguments("non-textual replacement",
+                "{\"type\": \"filterJsonContent\", \"actions\": [{\"type\": \"blacken\", \"path\": \"$.key1\", \"replacement\": 123}]}",
+                "{\"key1\": \"value1\", \"key2\": \"value2\"}"),
+                arguments("targets non-textual node",
+                        "{\"type\": \"filterJsonContent\", \"actions\": [{\"type\": \"blacken\", \"path\": \"$.key1\"}]}",
+                        "{\"key1\": 123, \"key2\": \"value2\"}"),
+                arguments("discloseRight non-integer",
+                        "{\"type\": \"filterJsonContent\", \"actions\": [{\"type\": \"blacken\", \"path\": \"$.key1\", \"replacement\": \"X\", \"discloseRight\": null, \"discloseLeft\": 1}]}",
+                        "{\"key1\": \"value1\", \"key2\": \"value2\"}"),
+                arguments("discloseLeft non-integer",
+                        "{\"type\": \"filterJsonContent\", \"actions\": [{\"type\": \"blacken\", \"path\": \"$.key1\", \"replacement\": \"X\", \"discloseRight\": 1, \"discloseLeft\": \"wrongType\"}]}",
+                        "{\"key1\": \"value1\", \"key2\": \"value2\"}"));
     }
 
-    @Test
-    void when_actionNotAnObject_then_Error() throws JsonProcessingException {
+    @ParameterizedTest(name = "blacken error: {0}")
+    @MethodSource("blackenValidationErrorCases")
+    void whenBlackenMalformed_thenThrowsError(String description, String constraintJson, String originalJson)
+            throws JsonProcessingException {
         final var sut        = new ContentFilteringProvider(MAPPER);
-        final var constraint = toValue("""
-                {
-                	"type" : "filterJsonContent",
-                	"actions" : [ 123 ]
-                }
-                """);
+        final var constraint = toValue(constraintJson);
         final var handler    = sut.getHandler(constraint);
-        final var original   = MAPPER.readTree("""
-                {
-                	"key1" : "value1",
-                	"key2" : "value2"
-                }
-                """);
-        assertThrows(AccessConstraintViolationException.class, () -> handler.apply(original));
-    }
-
-    @Test
-    void when_actionsNotAnArray_then_Error() throws JsonProcessingException {
-        final var sut        = new ContentFilteringProvider(MAPPER);
-        final var constraint = toValue("""
-                {
-                	"type"    : "filterJsonContent",
-                	"actions" : 123
-                }
-                """);
-        final var handler    = sut.getHandler(constraint);
-        final var original   = MAPPER.readTree("""
-                {
-                	"key1" : "value1",
-                	"key2" : "value2"
-                }
-                """);
-        assertThrows(AccessConstraintViolationException.class, () -> handler.apply(original));
-    }
-
-    @Test
-    void when_actionPathNotTextual_then_Error() throws JsonProcessingException {
-        final var sut        = new ContentFilteringProvider(MAPPER);
-        final var constraint = toValue("""
-                {
-                	"type"    : "filterJsonContent",
-                	"actions" : [ {
-                					"type" : "delete",
-                					"path" : 123
-                				  } ]
-                }
-                """);
-        final var handler    = sut.getHandler(constraint);
-        final var original   = MAPPER.readTree("""
-                {
-                	"key1" : "value1",
-                	"key2" : "value2"
-                }
-                """);
-        assertThrows(AccessConstraintViolationException.class, () -> handler.apply(original));
-    }
-
-    @Test
-    void when_actionTypeNotTextual_then_Error() throws JsonProcessingException {
-        final var sut        = new ContentFilteringProvider(MAPPER);
-        final var constraint = toValue("""
-                {
-                	"type"    : "filterJsonContent",
-                	"actions" : [ {
-                					"type" : 123,
-                					"path" : "$.key1"
-                				  } ]
-                }
-                """);
-        final var handler    = sut.getHandler(constraint);
-        final var original   = MAPPER.readTree("""
-                {
-                	"key1" : "value1",
-                	"key2" : "value2"
-                }
-                """);
-        assertThrows(AccessConstraintViolationException.class, () -> handler.apply(original));
-    }
-
-    @Test
-    void when_unknownAction_then_Error() throws JsonProcessingException {
-        final var sut        = new ContentFilteringProvider(MAPPER);
-        final var constraint = toValue("""
-                {
-                	"type"    : "filterJsonContent",
-                	"actions" : [ {
-                					"type" : "unknown action",
-                					"path" : "$.key1"
-                				  } ]
-                }
-                """);
-        final var handler    = sut.getHandler(constraint);
-        final var original   = MAPPER.readTree("""
-                {
-                	"key1" : "value1",
-                	"key2" : "value2"
-                }
-                """);
-        assertThrows(AccessConstraintViolationException.class, () -> handler.apply(original));
-    }
-
-    @Test
-    void when_blackenHasNonTextualReplacement_then_Error() throws JsonProcessingException {
-        final var sut        = new ContentFilteringProvider(MAPPER);
-        final var constraint = toValue("""
-                {
-                	"type"    : "filterJsonContent",
-                	"actions" : [
-                		{
-                			"type"        : "blacken",
-                			"path"        : "$.key1",
-                			"replacement" : 123
-                		}
-                	]
-                }
-                """);
-        final var handler    = sut.getHandler(constraint);
-        final var original   = MAPPER.readTree("""
-                {
-                	"key1" : "value1",
-                	"key2" : "value2"
-                }
-                """);
-        assertThrows(AccessConstraintViolationException.class, () -> handler.apply(original));
-    }
-
-    @Test
-    void when_blackenTargetsNonTextualNode_then_Error() throws JsonProcessingException {
-        final var sut        = new ContentFilteringProvider(MAPPER);
-        final var constraint = toValue("""
-                {
-                	"type"    : "filterJsonContent",
-                	"actions" : [
-                		{
-                			"type" : "blacken",
-                			"path" : "$.key1"
-                		}
-                	]
-                }
-                """);
-        final var handler    = sut.getHandler(constraint);
-        final var original   = MAPPER.readTree("""
-                {
-                	"key1" : 123,
-                	"key2" : "value2"
-                }
-                """);
-        assertThrows(AccessConstraintViolationException.class, () -> handler.apply(original));
-    }
-
-    @Test
-    void when_blackenDiscloseRightNonInteger_then_Error() throws JsonProcessingException {
-        final var sut        = new ContentFilteringProvider(MAPPER);
-        final var constraint = toValue("""
-                {
-                	"type"    : "filterJsonContent",
-                	"actions" : [
-                		{
-                			"type"          : "blacken",
-                			"path"          : "$.key1",
-                			"replacement"   : "X",
-                			"discloseRight" : null,
-                			"discloseLeft"  : 1
-                		}
-                	]
-                }
-                """);
-        final var handler    = sut.getHandler(constraint);
-        final var original   = MAPPER.readTree("""
-                {
-                	"key1" : "value1",
-                	"key2" : "value2"
-                }
-                """);
-        assertThrows(AccessConstraintViolationException.class, () -> handler.apply(original));
-    }
-
-    @Test
-    void when_blackenDiscloseLeftNonInteger_then_Error() throws JsonProcessingException {
-        final var sut        = new ContentFilteringProvider(MAPPER);
-        final var constraint = toValue("""
-                {
-                	"type"    : "filterJsonContent",
-                	"actions" : [
-                		{
-                			"type"          : "blacken",
-                			"path"          : "$.key1",
-                			"replacement"   : "X",
-                			"discloseRight" : 1,
-                			"discloseLeft"  : "wrongType"
-                		}
-                	]
-                }
-                """);
-        final var handler    = sut.getHandler(constraint);
-        final var original   = MAPPER.readTree("""
-                {
-                	"key1" : "value1",
-                	"key2" : "value2"
-                }
-                """);
+        final var original   = MAPPER.readTree(originalJson);
         assertThrows(AccessConstraintViolationException.class, () -> handler.apply(original));
     }
 

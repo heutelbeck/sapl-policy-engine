@@ -17,18 +17,22 @@
  */
 package io.sapl.parser;
 
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.ValueSource;
-
-import java.io.IOException;
-import java.io.InputStream;
-
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.params.provider.Arguments.arguments;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.stream.Stream;
+
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.ValueSource;
 
 class DefaultSAPLParserTests {
 
@@ -114,69 +118,31 @@ class DefaultSAPLParserTests {
         assertThat(document.name()).isEqualTo("test");
     }
 
-    @Test
-    void whenParsingPolicyWithWhereClause_thenParsesSuccessfully() {
-        var policyDefinition = "policy \"test\" permit where true;";
-        assertDoesNotThrow(() -> INTERPRETER.parse(policyDefinition));
+    static Stream<Arguments> validPolicyDefinitions() {
+        return Stream.of(arguments("policy with where clause", "policy \"test\" permit where true;"),
+                arguments("policy with transform", "policy \"test\" permit transform null"),
+                arguments("policy with obligation", "policy \"test\" permit obligation null"),
+                arguments("policy with advice", "policy \"test\" permit advice null"),
+                arguments("policy with import", "import simple.append policy \"test\" permit"),
+                arguments("policy with import alias", "import simple.append as concat policy \"test\" permit"),
+                arguments("policy with multiple imports",
+                        "import simple.length import simple.append policy \"test\" permit"),
+                arguments("policy with complex expression", """
+                        policy "complex"
+                        permit resource.type == "document"
+                        where
+                            var owner = resource.owner;
+                            subject.id == owner;
+                        """),
+                arguments("policy with attribute finder",
+                        "policy \"test\" permit where \"test\".<pip.attribute> == \"test\";"),
+                arguments("policy with environment attribute",
+                        "policy \"test\" permit where <time.now> != undefined;"));
     }
 
-    @Test
-    void whenParsingPolicyWithTransform_thenParsesSuccessfully() {
-        var policyDefinition = "policy \"test\" permit transform null";
-        assertDoesNotThrow(() -> INTERPRETER.parse(policyDefinition));
-    }
-
-    @Test
-    void whenParsingPolicyWithObligation_thenParsesSuccessfully() {
-        var policyDefinition = "policy \"test\" permit obligation null";
-        assertDoesNotThrow(() -> INTERPRETER.parse(policyDefinition));
-    }
-
-    @Test
-    void whenParsingPolicyWithAdvice_thenParsesSuccessfully() {
-        var policyDefinition = "policy \"test\" permit advice null";
-        assertDoesNotThrow(() -> INTERPRETER.parse(policyDefinition));
-    }
-
-    @Test
-    void whenParsingPolicyWithImport_thenParsesSuccessfully() {
-        var policyDefinition = "import simple.append policy \"test\" permit";
-        assertDoesNotThrow(() -> INTERPRETER.parse(policyDefinition));
-    }
-
-    @Test
-    void whenParsingPolicyWithImportAlias_thenParsesSuccessfully() {
-        var policyDefinition = "import simple.append as concat policy \"test\" permit";
-        assertDoesNotThrow(() -> INTERPRETER.parse(policyDefinition));
-    }
-
-    @Test
-    void whenParsingPolicyWithMultipleImports_thenParsesSuccessfully() {
-        var policyDefinition = "import simple.length import simple.append policy \"test\" permit";
-        assertDoesNotThrow(() -> INTERPRETER.parse(policyDefinition));
-    }
-
-    @Test
-    void whenParsingComplexExpression_thenParsesSuccessfully() {
-        var policyDefinition = """
-                policy "complex"
-                permit resource.type == "document"
-                where
-                    var owner = resource.owner;
-                    subject.id == owner;
-                """;
-        assertDoesNotThrow(() -> INTERPRETER.parse(policyDefinition));
-    }
-
-    @Test
-    void whenParsingPolicyWithAttributeFinder_thenParsesSuccessfully() {
-        var policyDefinition = "policy \"test\" permit where \"test\".<pip.attribute> == \"test\";";
-        assertDoesNotThrow(() -> INTERPRETER.parse(policyDefinition));
-    }
-
-    @Test
-    void whenParsingPolicyWithEnvironmentAttribute_thenParsesSuccessfully() {
-        var policyDefinition = "policy \"test\" permit where <time.now> != undefined;";
+    @ParameterizedTest(name = "{0}")
+    @MethodSource("validPolicyDefinitions")
+    void whenParsingValidPolicyVariant_thenParsesSuccessfully(String description, String policyDefinition) {
         assertDoesNotThrow(() -> INTERPRETER.parse(policyDefinition));
     }
 
