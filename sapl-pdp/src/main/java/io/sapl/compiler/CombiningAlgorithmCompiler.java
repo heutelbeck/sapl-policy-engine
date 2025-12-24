@@ -58,6 +58,8 @@ import java.util.List;
 public class CombiningAlgorithmCompiler {
 
     private static final String TARGET_EXPRESSION_TYPE_ERROR = "Target expression must return Boolean, but was: %s.";
+    public static final String  ONLY_ONE_APPLICABLE_LABEL    = "only-one-applicable";
+    public static final String  FIRST_APPLICABLE_LABEL       = "first-applicable";
 
     // ========== Traced Decision Accumulator ==========
 
@@ -353,49 +355,43 @@ public class CombiningAlgorithmCompiler {
     /**
      * Compiles deny-unless-permit algorithm for a policy set.
      */
-    public static CompiledExpression denyUnlessPermit(String setName, String algorithm,
-            List<CompiledPolicy> compiledPolicies) {
-        return genericSetCombining(setName, algorithm, compiledPolicies, DENY_UNLESS_PERMIT);
+    public static CompiledExpression denyUnlessPermit(String setName, List<CompiledPolicy> compiledPolicies) {
+        return genericSetCombining(setName, "deny-unless-permit", compiledPolicies, DENY_UNLESS_PERMIT);
     }
 
     /**
      * Compiles deny-overrides algorithm for a policy set.
      */
-    public static CompiledExpression denyOverrides(String setName, String algorithm,
-            List<CompiledPolicy> compiledPolicies) {
-        return genericSetCombining(setName, algorithm, compiledPolicies, DENY_OVERRIDES);
+    public static CompiledExpression denyOverrides(String setName, List<CompiledPolicy> compiledPolicies) {
+        return genericSetCombining(setName, "deny-overrides", compiledPolicies, DENY_OVERRIDES);
     }
 
     /**
      * Compiles permit-overrides algorithm for a policy set.
      */
-    public static CompiledExpression permitOverrides(String setName, String algorithm,
-            List<CompiledPolicy> compiledPolicies) {
-        return genericSetCombining(setName, algorithm, compiledPolicies, PERMIT_OVERRIDES);
+    public static CompiledExpression permitOverrides(String setName, List<CompiledPolicy> compiledPolicies) {
+        return genericSetCombining(setName, "permit-overrides", compiledPolicies, PERMIT_OVERRIDES);
     }
 
     /**
      * Compiles permit-unless-deny algorithm for a policy set.
      */
-    public static CompiledExpression permitUnlessDeny(String setName, String algorithm,
-            List<CompiledPolicy> compiledPolicies) {
-        return genericSetCombining(setName, algorithm, compiledPolicies, PERMIT_UNLESS_DENY);
+    public static CompiledExpression permitUnlessDeny(String setName, List<CompiledPolicy> compiledPolicies) {
+        return genericSetCombining(setName, "permit-unless-deny", compiledPolicies, PERMIT_UNLESS_DENY);
     }
 
     /**
      * Compiles only-one-applicable algorithm for a policy set.
      */
-    public static CompiledExpression onlyOneApplicable(String setName, String algorithm,
-            List<CompiledPolicy> compiledPolicies) {
-        return onlyOneApplicableSet(setName, algorithm, compiledPolicies);
+    public static CompiledExpression onlyOneApplicable(String setName, List<CompiledPolicy> compiledPolicies) {
+        return onlyOneApplicableSet(setName, compiledPolicies);
     }
 
     /**
      * Compiles first-applicable algorithm for a policy set.
      */
-    public static CompiledExpression firstApplicable(String setName, String algorithm,
-            List<CompiledPolicy> compiledPolicies) {
-        return firstApplicableSet(setName, algorithm, compiledPolicies);
+    public static CompiledExpression firstApplicable(String setName, List<CompiledPolicy> compiledPolicies) {
+        return firstApplicableSet(setName, compiledPolicies);
     }
 
     private static CompiledExpression genericSetCombining(String setName, String algorithm,
@@ -446,22 +442,20 @@ public class CombiningAlgorithmCompiler {
 
     // ========== Only-One-Applicable (Set Level) ==========
 
-    private static CompiledExpression onlyOneApplicableSet(String setName, String algorithm,
-            List<CompiledPolicy> compiledPolicies) {
+    private static CompiledExpression onlyOneApplicableSet(String setName, List<CompiledPolicy> compiledPolicies) {
 
         if (compiledPolicies.isEmpty()) {
-            return buildEmptySetDecision(setName, algorithm, Decision.NOT_APPLICABLE);
+            return buildEmptySetDecision(setName, ONLY_ONE_APPLICABLE_LABEL, Decision.NOT_APPLICABLE);
         }
 
         if (allPureOrConstant(compiledPolicies)) {
-            return new PureExpression(
-                    ctx -> evaluateOnlyOneApplicableSetPure(setName, algorithm, compiledPolicies, ctx), true);
+            return new PureExpression(ctx -> evaluateOnlyOneApplicableSetPure(setName, compiledPolicies, ctx), true);
         }
-        return new StreamExpression(buildOnlyOneApplicableSetStream(setName, algorithm, compiledPolicies));
+        return new StreamExpression(buildOnlyOneApplicableSetStream(setName, compiledPolicies));
     }
 
-    private static Value evaluateOnlyOneApplicableSetPure(String setName, String algorithm,
-            List<CompiledPolicy> compiledPolicies, EvaluationContext ctx) {
+    private static Value evaluateOnlyOneApplicableSetPure(String setName, List<CompiledPolicy> compiledPolicies,
+            EvaluationContext ctx) {
 
         val evaluatedTraces  = new ArrayList<Value>();
         val applicableTraces = new ArrayList<Value>();
@@ -482,12 +476,11 @@ public class CombiningAlgorithmCompiler {
             }
         }
 
-        return buildOnlyOneApplicableResult(setName, algorithm, evaluatedTraces, applicableTraces, hasIndeterminate,
+        return buildOnlyOneApplicableResult(setName, evaluatedTraces, applicableTraces, hasIndeterminate,
                 compiledPolicies.size());
     }
 
-    private static Flux<Value> buildOnlyOneApplicableSetStream(String setName, String algorithm,
-            List<CompiledPolicy> compiledPolicies) {
+    private static Flux<Value> buildOnlyOneApplicableSetStream(String setName, List<CompiledPolicy> compiledPolicies) {
 
         val policyFluxes  = compiledPolicies.stream()
                 .map(policy -> createTracedPolicyFlux(policy).defaultIfEmpty(Value.UNDEFINED)).toList();
@@ -513,48 +506,46 @@ public class CombiningAlgorithmCompiler {
                 }
             }
 
-            return buildOnlyOneApplicableResult(setName, algorithm, evaluatedTraces, applicableTraces, hasIndeterminate,
+            return buildOnlyOneApplicableResult(setName, evaluatedTraces, applicableTraces, hasIndeterminate,
                     totalPolicies);
         });
     }
 
-    private static Value buildOnlyOneApplicableResult(String setName, String algorithm, List<Value> evaluatedTraces,
+    private static Value buildOnlyOneApplicableResult(String setName, List<Value> evaluatedTraces,
             List<Value> applicableTraces, boolean hasIndeterminate, int totalPolicies) {
 
         if (hasIndeterminate || applicableTraces.size() > 1) {
-            return TracedPolicySetDecision.builder().name(setName).algorithm(algorithm).decision(Decision.INDETERMINATE)
-                    .totalPolicies(totalPolicies).policies(evaluatedTraces).build();
+            return TracedPolicySetDecision.builder().name(setName).algorithm(ONLY_ONE_APPLICABLE_LABEL)
+                    .decision(Decision.INDETERMINATE).totalPolicies(totalPolicies).policies(evaluatedTraces).build();
         }
 
         if (applicableTraces.size() == 1) {
             val traced = applicableTraces.getFirst();
-            return TracedPolicySetDecision.builder().name(setName).algorithm(algorithm).decision(getDecision(traced))
-                    .totalPolicies(totalPolicies).obligations(getObligations(traced)).advice(getAdvice(traced))
-                    .resource(getResource(traced)).policies(evaluatedTraces).build();
+            return TracedPolicySetDecision.builder().name(setName).algorithm(ONLY_ONE_APPLICABLE_LABEL)
+                    .decision(getDecision(traced)).totalPolicies(totalPolicies).obligations(getObligations(traced))
+                    .advice(getAdvice(traced)).resource(getResource(traced)).policies(evaluatedTraces).build();
         }
 
-        return TracedPolicySetDecision.builder().name(setName).algorithm(algorithm).decision(Decision.NOT_APPLICABLE)
-                .totalPolicies(totalPolicies).policies(evaluatedTraces).build();
+        return TracedPolicySetDecision.builder().name(setName).algorithm(ONLY_ONE_APPLICABLE_LABEL)
+                .decision(Decision.NOT_APPLICABLE).totalPolicies(totalPolicies).policies(evaluatedTraces).build();
     }
 
     // ========== First-Applicable (Set Level) ==========
 
-    private static CompiledExpression firstApplicableSet(String setName, String algorithm,
-            List<CompiledPolicy> compiledPolicies) {
+    private static CompiledExpression firstApplicableSet(String setName, List<CompiledPolicy> compiledPolicies) {
 
         if (compiledPolicies.isEmpty()) {
-            return buildEmptySetDecision(setName, algorithm, Decision.NOT_APPLICABLE);
+            return buildEmptySetDecision(setName, FIRST_APPLICABLE_LABEL, Decision.NOT_APPLICABLE);
         }
 
         if (allPureOrConstant(compiledPolicies)) {
-            return new PureExpression(ctx -> evaluateFirstApplicableSetPure(setName, algorithm, compiledPolicies, ctx),
-                    true);
+            return new PureExpression(ctx -> evaluateFirstApplicableSetPure(setName, compiledPolicies, ctx), true);
         }
-        return new StreamExpression(buildFirstApplicableSetStream(setName, algorithm, compiledPolicies));
+        return new StreamExpression(buildFirstApplicableSetStream(setName, compiledPolicies));
     }
 
-    private static Value evaluateFirstApplicableSetPure(String setName, String algorithm,
-            List<CompiledPolicy> compiledPolicies, EvaluationContext ctx) {
+    private static Value evaluateFirstApplicableSetPure(String setName, List<CompiledPolicy> compiledPolicies,
+            EvaluationContext ctx) {
 
         val evaluatedTraces = new ArrayList<Value>();
         val totalPolicies   = compiledPolicies.size();
@@ -564,7 +555,7 @@ public class CombiningAlgorithmCompiler {
 
             if (matchResult instanceof MatchResult.Error(ErrorValue error)) {
                 evaluatedTraces.add(createIndeterminateTrace(policy.name(), policy.entitlement(), error));
-                return TracedPolicySetDecision.builder().name(setName).algorithm(algorithm)
+                return TracedPolicySetDecision.builder().name(setName).algorithm(FIRST_APPLICABLE_LABEL)
                         .decision(Decision.INDETERMINATE).totalPolicies(totalPolicies).policies(evaluatedTraces)
                         .build();
             }
@@ -582,18 +573,17 @@ public class CombiningAlgorithmCompiler {
             evaluatedTraces.add(traced);
 
             if (decision != Decision.NOT_APPLICABLE) {
-                return TracedPolicySetDecision.builder().name(setName).algorithm(algorithm).decision(decision)
-                        .totalPolicies(totalPolicies).obligations(getObligations(traced)).advice(getAdvice(traced))
-                        .resource(getResource(traced)).policies(evaluatedTraces).build();
+                return TracedPolicySetDecision.builder().name(setName).algorithm(FIRST_APPLICABLE_LABEL)
+                        .decision(decision).totalPolicies(totalPolicies).obligations(getObligations(traced))
+                        .advice(getAdvice(traced)).resource(getResource(traced)).policies(evaluatedTraces).build();
             }
         }
 
-        return TracedPolicySetDecision.builder().name(setName).algorithm(algorithm).decision(Decision.NOT_APPLICABLE)
-                .totalPolicies(totalPolicies).policies(evaluatedTraces).build();
+        return TracedPolicySetDecision.builder().name(setName).algorithm(FIRST_APPLICABLE_LABEL)
+                .decision(Decision.NOT_APPLICABLE).totalPolicies(totalPolicies).policies(evaluatedTraces).build();
     }
 
-    private static Flux<Value> buildFirstApplicableSetStream(String setName, String algorithm,
-            List<CompiledPolicy> compiledPolicies) {
+    private static Flux<Value> buildFirstApplicableSetStream(String setName, List<CompiledPolicy> compiledPolicies) {
 
         var stateFlux     = Flux.just(FirstApplicableState.notApplicable());
         val totalPolicies = compiledPolicies.size();
@@ -610,7 +600,7 @@ public class CombiningAlgorithmCompiler {
                     .switchMap(matches -> evaluatePolicyMatch(matches, policy, fallbackStateFlux, noMatchTrace));
         }
 
-        return stateFlux.map(state -> buildFirstApplicableSetResult(setName, algorithm, totalPolicies, state));
+        return stateFlux.map(state -> buildFirstApplicableSetResult(setName, totalPolicies, state));
     }
 
     private static Flux<FirstApplicableState> evaluatePolicyMatch(Value matches, CompiledPolicy policy,
@@ -636,11 +626,10 @@ public class CombiningAlgorithmCompiler {
         });
     }
 
-    private static Value buildFirstApplicableSetResult(String setName, String algorithm, int totalPolicies,
-            FirstApplicableState state) {
-        return TracedPolicySetDecision.builder().name(setName).algorithm(algorithm).decision(state.decision())
-                .totalPolicies(totalPolicies).obligations(state.obligations()).advice(state.advice())
-                .resource(state.resource()).policies(state.traces()).build();
+    private static Value buildFirstApplicableSetResult(String setName, int totalPolicies, FirstApplicableState state) {
+        return TracedPolicySetDecision.builder().name(setName).algorithm(FIRST_APPLICABLE_LABEL)
+                .decision(state.decision()).totalPolicies(totalPolicies).obligations(state.obligations())
+                .advice(state.advice()).resource(state.resource()).policies(state.traces()).build();
     }
 
     private record FirstApplicableState(

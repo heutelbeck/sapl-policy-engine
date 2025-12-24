@@ -492,12 +492,12 @@ class TracedPolicySetDecisionTests {
             printDecision("minimal no-match trace", traced);
 
             val policies      = getPolicies(traced);
-            val noMatchPolicy = (ObjectValue) policies.get(0);
+            val noMatchPolicy = (ObjectValue) policies.getFirst();
 
             assertThat(noMatchPolicy).containsEntry(TraceFields.NAME, Value.of("no-match"))
                     .containsEntry(TraceFields.TYPE, Value.of(TraceFields.TYPE_POLICY))
-                    .containsEntry(TraceFields.TARGET_MATCH, Value.FALSE).doesNotContainKey(TraceFields.DECISION)
-                    .doesNotContainKey(TraceFields.ENTITLEMENT).doesNotContainKey(TraceFields.OBLIGATIONS)
+                    .containsEntry(TraceFields.TARGET_MATCH, Value.FALSE).containsKey(TraceFields.DECISION)
+                    .containsKey(TraceFields.ENTITLEMENT).doesNotContainKey(TraceFields.OBLIGATIONS)
                     .doesNotContainKey(TraceFields.ADVICE);
         }
     }
@@ -806,7 +806,7 @@ class TracedPolicySetDecisionTests {
         void whenEmptyPolicySet_thenProducesValue() {
             // Value path is only taken when policy list is empty - combining algorithms
             // return constant result directly without runtime evaluation
-            val emptySet = CombiningAlgorithmCompiler.denyOverrides("empty-archive", "deny-overrides", List.of());
+            val emptySet = CombiningAlgorithmCompiler.denyOverrides("empty-archive", List.of());
 
             assertThat(emptySet).isInstanceOf(Value.class);
 

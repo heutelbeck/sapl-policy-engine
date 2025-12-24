@@ -120,7 +120,8 @@ class ConfigUtilityTests {
                 .set(ENVIRONMENT_BROKER_CONFIG, JSON.nullNode());
 
         // THEN
-        assertThatThrownBy(() -> ConfigUtility.getMqttBrokerConfig(mqttPipConfig, Value.of("reference")))
+        val reference = Value.of("reference");
+        assertThatThrownBy(() -> ConfigUtility.getMqttBrokerConfig(mqttPipConfig, reference))
                 .isExactlyInstanceOf(NoSuchElementException.class);
     }
 
@@ -134,7 +135,8 @@ class ConfigUtilityTests {
                         .put(ENVIRONMENT_CLIENT_ID, "mqttPipDefault"));
 
         // THEN
-        assertThatThrownBy(() -> ConfigUtility.getMqttBrokerConfig(mqttPipConfig, Value.of("reference")))
+        val reference = Value.of("reference");
+        assertThatThrownBy(() -> ConfigUtility.getMqttBrokerConfig(mqttPipConfig, reference))
                 .isExactlyInstanceOf(NoSuchElementException.class);
     }
 
@@ -146,7 +148,8 @@ class ConfigUtilityTests {
                         .put(ENVIRONMENT_BROKER_PORT, 1883).put(ENVIRONMENT_CLIENT_ID, "mqttPipDefault"));
 
         // THEN
-        assertThatThrownBy(() -> ConfigUtility.getMqttBrokerConfig(mqttPipConfig, Value.of("reference")))
+        val reference = Value.of("reference");
+        assertThatThrownBy(() -> ConfigUtility.getMqttBrokerConfig(mqttPipConfig, reference))
                 .isExactlyInstanceOf(NoSuchElementException.class);
     }
 

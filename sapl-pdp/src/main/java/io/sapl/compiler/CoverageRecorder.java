@@ -22,6 +22,7 @@ import io.sapl.api.pdp.internal.ConditionHit;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 /**
  * Collects condition hits during policy evaluation for coverage tracking.
@@ -36,7 +37,7 @@ import java.util.List;
  */
 public class CoverageRecorder {
 
-    private final List<ConditionHit> hits = new ArrayList<>();
+    private final List<ConditionHit> hits = new CopyOnWriteArrayList<>();
 
     /**
      * Records a condition hit with full position data.

@@ -128,6 +128,7 @@ public class SaplCompiler {
      * @throws SaplCompilerException
      * if the document contains invalid constructs
      */
+    // OK
     public CompiledPolicy compileDocument(SaplContext document, CompilationContext context) {
         context.resetForNextDocument();
         addAllImports(document.importStatement(), context);
@@ -141,6 +142,7 @@ public class SaplCompiler {
         };
     }
 
+    // OK
     private void addAllImports(List<ImportStatementContext> imports, CompilationContext context) {
         if (imports == null) {
             return;
@@ -154,6 +156,7 @@ public class SaplCompiler {
         }
     }
 
+    // OK
     private String buildFullyQualifiedName(ImportStatementContext importStmt) {
         val builder = new StringBuilder();
         for (val step : importStmt.libSteps) {
@@ -173,12 +176,11 @@ public class SaplCompiler {
         val entitlement        = decisionOf(policy.entitlement()).name();
         val matchExpression    = compileMatchExpression(policy.targetExpression, schemaCheckingExpression, policy,
                 context);
-        val targetLocation     = context.isCoverageEnabled() && policy.targetExpression != null
+        val targetLocation     = policy.targetExpression != null
                 ? SourceLocationUtil.fromContext(policy.targetExpression)
                 : null;
-        val policyLocation     = context.isCoverageEnabled() ? SourceLocationUtil.fromToken(policy.saplName, policy)
-                : null;
-        val hasConditions      = policy.policyBody() != null && !policy.policyBody().statement().isEmpty();
+        val policyLocation     = SourceLocationUtil.fromToken(policy.saplName, policy);
+        val hasConditions      = policy.policyBody() == null || policy.policyBody().statement().isEmpty();
         val decisionExpression = compileDecisionExpression(policy, context, targetLocation, policyLocation,
                 hasConditions);
         return new CompiledPolicy(name, entitlement, matchExpression, decisionExpression, targetLocation);
@@ -186,7 +188,8 @@ public class SaplCompiler {
 
     private CompiledExpression compileMatchExpression(ExpressionContext targetExpression,
             CompiledExpression schemaCheckingExpression, ParserRuleContext astNode, CompilationContext context) {
-        val compiledTargetExpression = compileLazyAnd(targetExpression, schemaCheckingExpression, astNode, context);
+        val compiledTargetExpression = compileImplicitTargetExpressionLazyAnd(targetExpression,
+                schemaCheckingExpression, astNode, context);
         assertExpressionSuitableForTarget(astNode, compiledTargetExpression);
         return switch (compiledTargetExpression) {
         case PureExpression pureExpression -> compileTargetExpressionToMatchExpression(astNode, pureExpression);
@@ -199,10 +202,9 @@ public class SaplCompiler {
     /**
      * Compiles a lazy AND of schema checking with target expression.
      * Schema checking is evaluated first (left operand) to validate inputs before
-     * evaluating the target expression (right operand). This matches the Xtext
-     * semantics where schema validation happens before target evaluation.
+     * evaluating the target expression (right operand).
      */
-    static CompiledExpression compileLazyAnd(ExpressionContext targetExpression,
+    static CompiledExpression compileImplicitTargetExpressionLazyAnd(ExpressionContext targetExpression,
             CompiledExpression schemaCheckingExpression, ParserRuleContext astNode, CompilationContext context) {
         val compiledTarget = ExpressionCompiler.compileExpression(targetExpression, context);
         if (compiledTarget == null) {
@@ -211,10 +213,6 @@ public class SaplCompiler {
         if (schemaCheckingExpression instanceof Value schemaValue && Value.TRUE.equals(schemaValue)) {
             return compiledTarget;
         }
-        // Combine schema check (left, evaluated first) with target (right, evaluated if
-        // schema is true)
-        // This ensures schema validation happens before target evaluation, matching
-        // Xtext semantics
         return combineLazyAnd(astNode, schemaCheckingExpression, compiledTarget);
     }
 
@@ -772,9 +770,9 @@ public class SaplCompiler {
             }, pureExpr.isSubscriptionScoped());
         }
 
-        if (expression instanceof StreamExpression streamExpr) {
+        if (expression instanceof StreamExpression(Flux<Value> stream)) {
             // For streaming expressions, record hits when each value is emitted
-            return new StreamExpression(streamExpr.stream().doOnNext(result -> {
+            return new StreamExpression(stream.doOnNext(result -> {
                 if (result instanceof BooleanValue bv) {
                     recorder.recordHit(statementId, bv.value(), location);
                 }
@@ -891,40 +889,29 @@ public class SaplCompiler {
         return new CompiledPolicy(name, null, matchExpression, decisionExpression, targetLocation);
     }
 
+    // OK
     private static CompiledExpression compilePolicySetPolicies(String setName,
             CombiningAlgorithmContext combiningAlgorithm, List<PolicyContext> policies, CompilationContext context) {
         val compiledPolicies = policies.stream().map(p -> compilePolicy(p, Value.TRUE, context)).toList();
-        val algorithmName    = toSaplSyntax(combiningAlgorithm);
         return switch (combiningAlgorithm) {
         case DenyOverridesAlgorithmContext ignored     ->
-            CombiningAlgorithmCompiler.denyOverrides(setName, algorithmName, compiledPolicies);
+            CombiningAlgorithmCompiler.denyOverrides(setName, compiledPolicies);
         case DenyUnlessPermitAlgorithmContext ignored  ->
-            CombiningAlgorithmCompiler.denyUnlessPermit(setName, algorithmName, compiledPolicies);
+            CombiningAlgorithmCompiler.denyUnlessPermit(setName, compiledPolicies);
         case OnlyOneApplicableAlgorithmContext ignored ->
-            CombiningAlgorithmCompiler.onlyOneApplicable(setName, algorithmName, compiledPolicies);
+            CombiningAlgorithmCompiler.onlyOneApplicable(setName, compiledPolicies);
         case FirstApplicableAlgorithmContext ignored   ->
-            CombiningAlgorithmCompiler.firstApplicable(setName, algorithmName, compiledPolicies);
+            CombiningAlgorithmCompiler.firstApplicable(setName, compiledPolicies);
         case PermitUnlessDenyAlgorithmContext ignored  ->
-            CombiningAlgorithmCompiler.permitUnlessDeny(setName, algorithmName, compiledPolicies);
+            CombiningAlgorithmCompiler.permitUnlessDeny(setName, compiledPolicies);
         case PermitOverridesAlgorithmContext ignored   ->
-            CombiningAlgorithmCompiler.permitOverrides(setName, algorithmName, compiledPolicies);
+            CombiningAlgorithmCompiler.permitOverrides(setName, compiledPolicies);
         default                                        -> throw new SaplCompilerException(
-                "Unexpected combining algorithm: " + combiningAlgorithm.getClass().getSimpleName(), combiningAlgorithm);
+                "Unexpected combining algorithm: %s.".formatted(combiningAlgorithm.getClass().getSimpleName()));
         };
     }
 
-    private static String toSaplSyntax(CombiningAlgorithmContext algorithm) {
-        return switch (algorithm) {
-        case DenyOverridesAlgorithmContext ignored     -> "deny-overrides";
-        case PermitOverridesAlgorithmContext ignored   -> "permit-overrides";
-        case FirstApplicableAlgorithmContext ignored   -> "first-applicable";
-        case OnlyOneApplicableAlgorithmContext ignored -> "only-one-applicable";
-        case DenyUnlessPermitAlgorithmContext ignored  -> "deny-unless-permit";
-        case PermitUnlessDenyAlgorithmContext ignored  -> "permit-unless-deny";
-        default                                        -> algorithm.getText().toLowerCase().replace('_', '-');
-        };
-    }
-
+    // OK
     private CompiledExpression compileSchemas(List<SchemaStatementContext> schemas, CompilationContext context) {
         if (schemas == null || schemas.isEmpty()) {
             return Value.TRUE;
@@ -938,16 +925,19 @@ public class SaplCompiler {
             }
             val schemaValidation = compileSchema(schema, context);
             if (schemaValidationExpression == null) {
+                // This is the first one no need to AND it.
                 schemaValidationExpression = schemaValidation;
             } else {
-                val finalSchemaValidationExpression = schemaValidationExpression;
+                val auxiliaryFinalSchemaValidationExpression = schemaValidationExpression;
+                // Small optimization potential: one could make this a lazy AND
                 schemaValidationExpression = new PureExpression(ctx -> BooleanOperators.and(schema,
-                        finalSchemaValidationExpression.evaluate(ctx), schemaValidation.evaluate(ctx)), true);
+                        auxiliaryFinalSchemaValidationExpression.evaluate(ctx), schemaValidation.evaluate(ctx)), true);
             }
         }
         return schemaValidationExpression == null ? Value.TRUE : schemaValidationExpression;
     }
 
+    // OK
     private PureExpression compileSchema(SchemaStatementContext schema, CompilationContext context) {
         val schemaValue = ExpressionCompiler.compileExpression(schema.schemaExpression, context);
         if (!(schemaValue instanceof ObjectValue schemaObjectValue)) {
@@ -968,6 +958,7 @@ public class SaplCompiler {
         }, true);
     }
 
+    // OK
     private String getSubscriptionElementName(ReservedIdContext reservedId) {
         return switch (reservedId) {
         case SubjectIdContext ignored     -> ReservedIdentifiers.SUBJECT;

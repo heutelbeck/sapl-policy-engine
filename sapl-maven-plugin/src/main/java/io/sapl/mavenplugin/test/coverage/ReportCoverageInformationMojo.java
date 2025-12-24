@@ -345,7 +345,6 @@ public class ReportCoverageInformationMojo extends AbstractMojo {
         if (policySetOk && policyOk && conditionOk && branchOk) {
             getLog().info("All coverage criteria passed.");
             getLog().info("");
-            getLog().info("");
         } else {
             throw new MojoFailureException("One or more SAPL coverage thresholds not met. See build log for details.");
         }

@@ -321,31 +321,28 @@ class MockingAttributeBrokerTests {
 
     @Test
     void whenEmitToNonExistentMockId_thenThrows() {
-        var value = Value.of("value");
-        assertThatThrownBy(() -> broker.emit("nonexistent", value)).isInstanceOf(IllegalStateException.class)
+        assertThatThrownBy(() -> broker.emit("nonexistent", Value.of("value")))
+                .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("No mock registered with id 'nonexistent'");
     }
 
     @Test
     void whenMockIdIsNull_thenThrows() {
-        var argsParam = args();
-        assertThatThrownBy(() -> broker.mockEnvironmentAttribute(null, "test.attr", argsParam))
+        assertThatThrownBy(() -> broker.mockEnvironmentAttribute(null, "test.attr", args()))
                 .isInstanceOf(NullPointerException.class).hasMessageContaining("mockId");
     }
 
     @Test
     void whenMockIdIsBlank_thenThrows() {
-        var argsParam = args();
-        assertThatThrownBy(() -> broker.mockEnvironmentAttribute("  ", "test.attr", argsParam))
+        assertThatThrownBy(() -> broker.mockEnvironmentAttribute("  ", "test.attr", args()))
                 .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("MockId must not be blank");
     }
 
     @Test
     void whenDuplicateMockId_thenThrows() {
         broker.mockEnvironmentAttribute("duplicateId", "first.attr", args());
-        var argsParam = args();
 
-        assertThatThrownBy(() -> broker.mockEnvironmentAttribute("duplicateId", "second.attr", argsParam))
+        assertThatThrownBy(() -> broker.mockEnvironmentAttribute("duplicateId", "second.attr", args()))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("'duplicateId' is already registered");
     }
@@ -361,9 +358,8 @@ class MockingAttributeBrokerTests {
     @Test
     void whenRegularAttributeWithInvalidArguments_thenThrows() {
         var invalidParams = new SaplTestFixture.Parameters() {};
-        var anyMatcher    = any();
 
-        assertThatThrownBy(() -> broker.mockAttribute("test", "test.attr", anyMatcher, invalidParams))
+        assertThatThrownBy(() -> broker.mockAttribute("test", "test.attr", any(), invalidParams))
                 .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("args()");
     }
 
@@ -699,10 +695,8 @@ class MockingAttributeBrokerTests {
     @Test
     void whenVerifyEnvironmentAttributeOnce_thenFailsIfNeverCalled() {
         broker.mockEnvironmentAttribute("verifyFail", "verify.fail", args(), Value.of("result"));
-        var argsParam  = args();
-        var onceVerify = once();
 
-        assertThatThrownBy(() -> broker.verifyEnvironmentAttribute("verify.fail", argsParam, onceVerify))
+        assertThatThrownBy(() -> broker.verifyEnvironmentAttribute("verify.fail", args(), once()))
                 .isInstanceOf(MockVerificationException.class).hasMessageContaining("exactly once")
                 .hasMessageContaining("invoked 0 time(s)");
     }
@@ -713,10 +707,8 @@ class MockingAttributeBrokerTests {
 
         broker.attributeStream(envInvocation("verify.multi", List.of())).blockFirst();
         broker.attributeStream(envInvocation("verify.multi", List.of())).blockFirst();
-        var argsParam  = args();
-        var onceVerify = once();
 
-        assertThatThrownBy(() -> broker.verifyEnvironmentAttribute("verify.multi", argsParam, onceVerify))
+        assertThatThrownBy(() -> broker.verifyEnvironmentAttribute("verify.multi", args(), once()))
                 .isInstanceOf(MockVerificationException.class).hasMessageContaining("exactly once")
                 .hasMessageContaining("invoked 2 time(s)");
     }
@@ -733,10 +725,8 @@ class MockingAttributeBrokerTests {
         broker.mockEnvironmentAttribute("verifyNeverFail", "verify.neverfail", args(), Value.of("result"));
 
         broker.attributeStream(envInvocation("verify.neverfail", List.of())).blockFirst();
-        var argsParam   = args();
-        var neverVerify = Times.never();
 
-        assertThatThrownBy(() -> broker.verifyEnvironmentAttribute("verify.neverfail", argsParam, neverVerify))
+        assertThatThrownBy(() -> broker.verifyEnvironmentAttribute("verify.neverfail", args(), Times.never()))
                 .isInstanceOf(MockVerificationException.class).hasMessageContaining("never")
                 .hasMessageContaining("invoked 1 time(s)");
     }
@@ -813,20 +803,15 @@ class MockingAttributeBrokerTests {
 
         broker.attributeStream(envInvocation("fail.msg", List.of(Value.of("arg1")))).blockFirst();
         broker.attributeStream(envInvocation("fail.msg", List.of(Value.of("arg2")))).blockFirst();
-        var otherValue = Value.of("other");
-        var argsParam  = args(eq(otherValue));
-        var onceVerify = once();
 
-        assertThatThrownBy(() -> broker.verifyEnvironmentAttribute("fail.msg", argsParam, onceVerify))
+        assertThatThrownBy(() -> broker.verifyEnvironmentAttribute("fail.msg", args(eq(Value.of("other"))), once()))
                 .isInstanceOf(MockVerificationException.class).hasMessageContaining("Recorded invocations")
                 .hasMessageContaining("fail.msg");
     }
 
     @Test
     void whenVerificationFailsForUnknownAttribute_thenMessageIndicatesNoInvocations() {
-        var argsParam  = args();
-        var onceVerify = once();
-        assertThatThrownBy(() -> broker.verifyEnvironmentAttribute("unknown.attr", argsParam, onceVerify))
+        assertThatThrownBy(() -> broker.verifyEnvironmentAttribute("unknown.attr", args(), once()))
                 .isInstanceOf(MockVerificationException.class)
                 .hasMessageContaining("No invocations of 'unknown.attr' were recorded");
     }
@@ -834,19 +819,16 @@ class MockingAttributeBrokerTests {
     @Test
     void whenVerifyWithInvalidParameters_thenThrows() {
         var invalidParams = new SaplTestFixture.Parameters() {};
-        var onceVerify    = once();
 
-        assertThatThrownBy(() -> broker.verifyEnvironmentAttribute("test.attr", invalidParams, onceVerify))
+        assertThatThrownBy(() -> broker.verifyEnvironmentAttribute("test.attr", invalidParams, once()))
                 .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("args()");
     }
 
     @Test
     void whenVerifyAttributeWithInvalidParameters_thenThrows() {
         var invalidParams = new SaplTestFixture.Parameters() {};
-        var anyMatcher    = any();
-        var onceVerify    = once();
 
-        assertThatThrownBy(() -> broker.verifyAttribute("test.attr", anyMatcher, invalidParams, onceVerify))
+        assertThatThrownBy(() -> broker.verifyAttribute("test.attr", any(), invalidParams, once()))
                 .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("args()");
     }
 

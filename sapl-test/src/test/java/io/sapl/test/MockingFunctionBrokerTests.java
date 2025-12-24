@@ -148,7 +148,8 @@ class MockingFunctionBrokerTests {
 
     @Test
     void whenMockWithNoReturnValues_thenThrowsException() {
-        assertThatThrownBy(() -> broker.mock(FUNCTION_NAME, args())).isInstanceOf(IllegalArgumentException.class)
+        var argsParam = args();
+        assertThatThrownBy(() -> broker.mock(FUNCTION_NAME, argsParam)).isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("At least one return value");
     }
 
@@ -400,8 +401,9 @@ class MockingFunctionBrokerTests {
     @Test
     void whenMockWithInvalidParameters_thenThrowsException() {
         var invalidParameters = new SaplTestFixture.Parameters() {};
+        var value             = Value.of("value");
 
-        assertThatThrownBy(() -> broker.mock(FUNCTION_NAME, invalidParameters, Value.of("value")))
+        assertThatThrownBy(() -> broker.mock(FUNCTION_NAME, invalidParameters, value))
                 .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("args()");
     }
 
@@ -621,8 +623,10 @@ class MockingFunctionBrokerTests {
     @Test
     void whenVerifyOnce_thenFailsIfNeverCalled() {
         broker.mock(FUNCTION_NAME, args(), Value.of("result"));
+        var argsParam  = args();
+        var onceVerify = once();
 
-        assertThatThrownBy(() -> broker.verify(FUNCTION_NAME, args(), once()))
+        assertThatThrownBy(() -> broker.verify(FUNCTION_NAME, argsParam, onceVerify))
                 .isInstanceOf(MockVerificationException.class).hasMessageContaining("exactly once")
                 .hasMessageContaining("invoked 0 time(s)");
     }
@@ -633,8 +637,10 @@ class MockingFunctionBrokerTests {
 
         broker.evaluateFunction(invocation(FUNCTION_NAME));
         broker.evaluateFunction(invocation(FUNCTION_NAME));
+        var argsParam  = args();
+        var onceVerify = once();
 
-        assertThatThrownBy(() -> broker.verify(FUNCTION_NAME, args(), once()))
+        assertThatThrownBy(() -> broker.verify(FUNCTION_NAME, argsParam, onceVerify))
                 .isInstanceOf(MockVerificationException.class).hasMessageContaining("exactly once")
                 .hasMessageContaining("invoked 2 time(s)");
     }
@@ -651,8 +657,10 @@ class MockingFunctionBrokerTests {
         broker.mock(FUNCTION_NAME, args(), Value.of("result"));
 
         broker.evaluateFunction(invocation(FUNCTION_NAME));
+        var argsParam   = args();
+        var neverVerify = Times.never();
 
-        assertThatThrownBy(() -> broker.verify(FUNCTION_NAME, args(), Times.never()))
+        assertThatThrownBy(() -> broker.verify(FUNCTION_NAME, argsParam, neverVerify))
                 .isInstanceOf(MockVerificationException.class).hasMessageContaining("never")
                 .hasMessageContaining("invoked 1 time(s)");
     }
@@ -685,8 +693,10 @@ class MockingFunctionBrokerTests {
         broker.mock(FUNCTION_NAME, args(), Value.of("result"));
 
         broker.evaluateFunction(invocation(FUNCTION_NAME));
+        var argsParam     = args();
+        var atLeastVerify = atLeast(2);
 
-        assertThatThrownBy(() -> broker.verify(FUNCTION_NAME, args(), atLeast(2)))
+        assertThatThrownBy(() -> broker.verify(FUNCTION_NAME, argsParam, atLeastVerify))
                 .isInstanceOf(MockVerificationException.class);
     }
 
@@ -708,8 +718,10 @@ class MockingFunctionBrokerTests {
         broker.evaluateFunction(invocation(FUNCTION_NAME));
         broker.evaluateFunction(invocation(FUNCTION_NAME));
         broker.evaluateFunction(invocation(FUNCTION_NAME));
+        var argsParam    = args();
+        var atMostVerify = atMost(2);
 
-        assertThatThrownBy(() -> broker.verify(FUNCTION_NAME, args(), atMost(2)))
+        assertThatThrownBy(() -> broker.verify(FUNCTION_NAME, argsParam, atMostVerify))
                 .isInstanceOf(MockVerificationException.class);
     }
 
@@ -762,15 +774,20 @@ class MockingFunctionBrokerTests {
 
         broker.evaluateFunction(invocation(FUNCTION_NAME, Value.of("arg1")));
         broker.evaluateFunction(invocation(FUNCTION_NAME, Value.of("arg2")));
+        var otherValue = Value.of("other");
+        var argsParam  = args(eq(otherValue));
+        var onceVerify = once();
 
-        assertThatThrownBy(() -> broker.verify(FUNCTION_NAME, args(eq(Value.of("other"))), once()))
+        assertThatThrownBy(() -> broker.verify(FUNCTION_NAME, argsParam, onceVerify))
                 .isInstanceOf(MockVerificationException.class).hasMessageContaining("Recorded invocations")
                 .hasMessageContaining(FUNCTION_NAME);
     }
 
     @Test
     void whenVerificationFailsForUnknownFunction_thenMessageIndicatesNoInvocations() {
-        assertThatThrownBy(() -> broker.verify("unknown.function", args(), once()))
+        var argsParam  = args();
+        var onceVerify = once();
+        assertThatThrownBy(() -> broker.verify("unknown.function", argsParam, onceVerify))
                 .isInstanceOf(MockVerificationException.class)
                 .hasMessageContaining("No invocations of 'unknown.function' were recorded");
     }
@@ -778,8 +795,9 @@ class MockingFunctionBrokerTests {
     @Test
     void whenVerifyWithInvalidParameters_thenThrows() {
         var invalidParams = new SaplTestFixture.Parameters() {};
+        var onceVerify    = once();
 
-        assertThatThrownBy(() -> broker.verify(FUNCTION_NAME, invalidParams, once()))
+        assertThatThrownBy(() -> broker.verify(FUNCTION_NAME, invalidParams, onceVerify))
                 .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("args()");
     }
 

@@ -480,8 +480,8 @@ class MatchersTests {
 
     @Test
     void whenNumberEqualToDouble_thenMatchesExactValue() {
-        assertThat(numberEqualTo(3.14).matches(Value.of(3.14))).isTrue();
-        assertThat(numberEqualTo(3.14).matches(Value.of(3.15))).isFalse();
+        assertThat(numberEqualTo(3.41).matches(Value.of(3.41))).isTrue();
+        assertThat(numberEqualTo(3.41).matches(Value.of(3.15))).isFalse();
     }
 
     @Test
@@ -491,9 +491,9 @@ class MatchersTests {
 
     @Test
     void whenGreaterThanDouble_thenMatchesLargerNumbers() {
-        assertThat(greaterThan(3.14).matches(Value.of(3.15))).isTrue();
-        assertThat(greaterThan(3.14).matches(Value.of(3.14))).isFalse();
-        assertThat(greaterThan(3.14).matches(Value.of(3.13))).isFalse();
+        assertThat(greaterThan(3.1).matches(Value.of(3.15))).isTrue();
+        assertThat(greaterThan(3.41).matches(Value.of(3.41))).isFalse();
+        assertThat(greaterThan(3.41).matches(Value.of(3.13))).isFalse();
     }
 
     @Test
@@ -505,9 +505,9 @@ class MatchersTests {
 
     @Test
     void whenLessThanDouble_thenMatchesSmallerNumbers() {
-        assertThat(lessThan(3.14).matches(Value.of(3.13))).isTrue();
-        assertThat(lessThan(3.14).matches(Value.of(3.14))).isFalse();
-        assertThat(lessThan(3.14).matches(Value.of(3.15))).isFalse();
+        assertThat(lessThan(3.41).matches(Value.of(3.13))).isTrue();
+        assertThat(lessThan(3.41).matches(Value.of(3.41))).isFalse();
+        assertThat(lessThan(3.41).matches(Value.of(3.42))).isFalse();
     }
 
     @Test
@@ -687,13 +687,13 @@ class MatchersTests {
     // ========== Test Data Providers ==========
 
     static Stream<Value> allValueTypes() {
-        return Stream.of(Value.of("text"), Value.of(42), Value.of(3.14), Value.TRUE, Value.FALSE, Value.NULL,
+        return Stream.of(Value.of("text"), Value.of(42), Value.of(3.41), Value.TRUE, Value.FALSE, Value.NULL,
                 Value.UNDEFINED);
     }
 
     static Stream<Arguments> equalValuePairs() {
         return Stream.of(arguments(Value.of("hello"), Value.of("hello")), arguments(Value.of(42), Value.of(42)),
-                arguments(Value.of(3.14), Value.of(3.14)), arguments(Value.TRUE, Value.TRUE),
+                arguments(Value.of(3.41), Value.of(3.41)), arguments(Value.TRUE, Value.TRUE),
                 arguments(Value.FALSE, Value.FALSE), arguments(Value.NULL, Value.NULL));
     }
 

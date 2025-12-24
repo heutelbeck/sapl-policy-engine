@@ -44,7 +44,7 @@ class NumberValueTests {
 
     static Stream<Arguments> when_constructedWithNumberAndSecretFlag_then_valuesAreSet() {
         return Stream.of(arguments(BigDecimal.ZERO, false), arguments(BigDecimal.ONE, true),
-                arguments(new BigDecimal("3.14"), false), arguments(new BigDecimal("-100"), true));
+                arguments(new BigDecimal("3.41"), false), arguments(new BigDecimal("-100"), true));
     }
 
     @Test
@@ -99,7 +99,7 @@ class NumberValueTests {
     }
 
     @ParameterizedTest(name = "asSecret() on {0}")
-    @ValueSource(strings = { "0", "1", "10", "3.14", "-5", "1000000" })
+    @ValueSource(strings = { "0", "1", "10", "3.41", "-5", "1000000" })
     void when_asSecretCalled_then_createsSecretCopyOrReturnsSameInstance(String numberStr) {
         var number        = new BigDecimal(numberStr);
         var original      = new NumberValue(number, ValueMetadata.EMPTY);
@@ -155,7 +155,7 @@ class NumberValueTests {
     }
 
     static Stream<Arguments> when_toStringCalled_then_showsValueOrPlaceholder() {
-        return Stream.of(arguments(new BigDecimal("3.14"), false, "3.14"),
+        return Stream.of(arguments(new BigDecimal("3.41"), false, "3.41"),
                 arguments(BigDecimal.TEN, true, "***SECRET***"), arguments(BigDecimal.ZERO, false, "0"),
                 arguments(new BigDecimal("-5"), false, "-5"));
     }
@@ -293,7 +293,7 @@ class NumberValueTests {
 
     static Stream<String> when_typicalJsonNumbersHashed_then_hashCorrectly() {
         return Stream.of("0", "1", "-1", "0.5", "1.5", "10.5", "123.456", "-789.012", "1000000", "0.000001",
-                "3.14159265", "2.71828182");
+                "3.41159265", "2.71828182");
     }
 
     @Test

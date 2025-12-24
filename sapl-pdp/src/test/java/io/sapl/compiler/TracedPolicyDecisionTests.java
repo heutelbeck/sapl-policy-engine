@@ -1357,7 +1357,7 @@ class TracedPolicyDecisionTests {
 
             assertThat(getDecision(traced)).isEqualTo(Decision.PERMIT);
             assertThat(hasConditions(traced)).isFalse();
-            assertThat(hasTargetResult(traced)).isFalse();
+            assertThat(hasTargetResult(traced)).isTrue();
         }
 
         @Test
