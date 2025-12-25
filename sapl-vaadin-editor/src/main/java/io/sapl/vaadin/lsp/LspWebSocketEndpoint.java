@@ -17,15 +17,8 @@
  */
 package io.sapl.vaadin.lsp;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.io.PipedInputStream;
-import java.io.PipedOutputStream;
-import java.nio.charset.StandardCharsets;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-
+import io.sapl.lsp.server.SAPLLanguageServer;
+import lombok.extern.slf4j.Slf4j;
 import org.eclipse.lsp4j.jsonrpc.Launcher;
 import org.eclipse.lsp4j.launch.LSPLauncher;
 import org.eclipse.lsp4j.services.LanguageClient;
@@ -36,8 +29,10 @@ import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
 import org.springframework.web.socket.handler.TextWebSocketHandler;
 
-import io.sapl.lsp.server.SAPLLanguageServer;
-import lombok.extern.slf4j.Slf4j;
+import java.io.*;
+import java.nio.charset.StandardCharsets;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 /**
  * WebSocket endpoint that bridges the browser to an embedded SAPL Language
@@ -162,6 +157,9 @@ public class LspWebSocketEndpoint extends TextWebSocketHandler implements Dispos
             launcher.startListening().get();
 
             log.info("LSP server stopped for session {}", session.getId());
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            log.debug("LSP server interrupted for session {}", session.getId());
         } catch (Exception e) {
             if (!session.isOpen()) {
                 log.debug("LSP server stopped (session closed)");
@@ -223,7 +221,7 @@ public class LspWebSocketEndpoint extends TextWebSocketHandler implements Dispos
             processBuffer();
         }
 
-        private void processBuffer() throws IOException {
+        private void processBuffer() {
             while (buffer.size() > 0) {
                 var data = buffer.toByteArray();
 
@@ -241,7 +239,7 @@ public class LspWebSocketEndpoint extends TextWebSocketHandler implements Dispos
             }
         }
 
-        private boolean parseHeaderIfNeeded(byte[] data) throws IOException {
+        private boolean parseHeaderIfNeeded(byte[] data) {
             if (expectedLength >= 0) {
                 return true;
             }
