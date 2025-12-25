@@ -197,7 +197,7 @@ public class AuthorizationSubscriptionBuilderService {
                 attribute, contextView, Optional.ofNullable(returnedObject)));
     }
 
-    private Mono<? extends AuthorizationSubscription> constructAuthorizationSubscriptionFromContextView(
+    private Mono<AuthorizationSubscription> constructAuthorizationSubscriptionFromContextView(
             MethodInvocation methodInvocation, SaplAttribute attribute, ContextView contextView,
             Optional<Object> returnedObject) {
         Optional<ServerWebExchange> serverWebExchange = contextView.getOrEmpty(ServerWebExchange.class);

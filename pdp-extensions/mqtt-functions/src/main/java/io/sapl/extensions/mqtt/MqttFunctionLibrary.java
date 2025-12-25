@@ -77,13 +77,11 @@ public class MqttFunctionLibrary {
         }
         var mqttTopicFilter = MqttTopicFilter.of(wildcardText.value());
 
-        if (topics instanceof ArrayValue arrayTopics) {
-            return isMatchingAllTopicsInArray(mqttTopicFilter, arrayTopics);
-        } else if (topics instanceof TextValue textTopic) {
-            return isMatchingSingleTopic(mqttTopicFilter, textTopic);
-        } else {
-            return Value.error(TOPICS_MUST_BE_TEXT_OR_ARRAY);
-        }
+        return switch (topics) {
+        case ArrayValue arrayTopics -> isMatchingAllTopicsInArray(mqttTopicFilter, arrayTopics);
+        case TextValue textTopic    -> isMatchingSingleTopic(mqttTopicFilter, textTopic);
+        default                     -> Value.error(TOPICS_MUST_BE_TEXT_OR_ARRAY);
+        };
     }
 
     /**
@@ -122,13 +120,11 @@ public class MqttFunctionLibrary {
         }
         var mqttTopicFilter = MqttTopicFilter.of(wildcardText.value());
 
-        if (topics instanceof ArrayValue arrayTopics) {
-            return isMatchingAtLeastOneTopicInArray(mqttTopicFilter, arrayTopics);
-        } else if (topics instanceof TextValue textTopic) {
-            return isMatchingSingleTopic(mqttTopicFilter, textTopic);
-        } else {
-            return Value.error(TOPICS_MUST_BE_TEXT_OR_ARRAY);
-        }
+        return switch (topics) {
+        case ArrayValue arrayTopics -> isMatchingAtLeastOneTopicInArray(mqttTopicFilter, arrayTopics);
+        case TextValue textTopic    -> isMatchingSingleTopic(mqttTopicFilter, textTopic);
+        default                     -> Value.error(TOPICS_MUST_BE_TEXT_OR_ARRAY);
+        };
     }
 
     private static Value isMatchingSingleTopic(MqttTopicFilter mqttTopicFilter, TextValue topic) {

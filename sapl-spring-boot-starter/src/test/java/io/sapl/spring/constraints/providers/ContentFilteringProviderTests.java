@@ -423,184 +423,106 @@ class ContentFilteringProviderTests {
         assertThrows(AccessConstraintViolationException.class, () -> handler.apply(original));
     }
 
-    @Test
-    void when_malformedConditionNotObject_then_AccessConstraintViolationException() throws JsonProcessingException {
-        final var sut        = new ContentFilteringProvider(MAPPER);
-        final var constraint = toValue("""
+    static Stream<Arguments> malformedConstraintCases() {
+        return Stream.of(arguments("condition not object", """
                 {
                 	"type"    : "filterJsonContent",
-                	"actions" : [
-                		{
-                			"type" : "delete",
-                			"path" : "$.key3"
-                		}
-                	],
+                	"actions" : [{ "type" : "delete", "path" : "$.key3" }],
                 	"conditions" : [ 1 ]
                 }
-                """);
-        assertThrows(AccessConstraintViolationException.class, () -> sut.getHandler(constraint));
-    }
-
-    @Test
-    void when_malformedConditionNoPath_then_AccessConstraintViolationException() throws JsonProcessingException {
-        final var sut        = new ContentFilteringProvider(MAPPER);
-        final var constraint = toValue("""
+                """), arguments("condition no path", """
                 {
                 	"type"    : "filterJsonContent",
-                	"actions" : [
-                		{
-                			"type" : "delete",
-                			"path" : "$.key3"
-                		}
-                	],
+                	"actions" : [{ "type" : "delete", "path" : "$.key3" }],
                 	"conditions" : [ {} ]
                 }
-                """);
-        assertThrows(AccessConstraintViolationException.class, () -> sut.getHandler(constraint));
-    }
-
-    @Test
-    void when_malformedConditionGEQNotANumber_then_AccessConstraintViolationException() throws JsonProcessingException {
-        final var sut        = new ContentFilteringProvider(MAPPER);
-        final var constraint = toValue("""
+                """), arguments("condition >= not a number", """
                 {
                 	"type"    : "filterJsonContent",
-                	"actions" : [
-                		{
-                			"type" : "delete",
-                			"path" : "$.key3"
-                		}
-                	],
-                	"conditions" : [
-                		{
-                			"path"  : "$.key1",
-                			"type"  : ">=",
-                			"value" : "not a number"
-                		}
-                	]
+                	"actions" : [{ "type" : "delete", "path" : "$.key3" }],
+                	"conditions" : [{ "path" : "$.key1", "type" : ">=", "value" : "not a number" }]
                 }
-                """);
-        assertThrows(AccessConstraintViolationException.class, () -> sut.getHandler(constraint));
-    }
-
-    @Test
-    void when_malformedConditionLeqNotANumber_then_AccessConstraintViolationException() throws JsonProcessingException {
-        final var sut        = new ContentFilteringProvider(MAPPER);
-        final var constraint = toValue("""
+                """), arguments("condition <= not a number", """
                 {
                 	"type"    : "filterJsonContent",
-                	"actions" : [
-                		{
-                			"type" : "delete",
-                			"path" : "$.key3"
-                		}
-                	],
-                	"conditions" : [
-                		{
-                			"path"  : "$.key1",
-                			"type"  : "<=",
-                			"value" : "not a number"
-                		}
-                	]
+                	"actions" : [{ "type" : "delete", "path" : "$.key3" }],
+                	"conditions" : [{ "path" : "$.key1", "type" : "<=", "value" : "not a number" }]
                 }
-                """);
-        assertThrows(AccessConstraintViolationException.class, () -> sut.getHandler(constraint));
-    }
-
-    @Test
-    void when_malformedConditionLtNotANumber_then_AccessConstraintViolationException() throws JsonProcessingException {
-        final var sut        = new ContentFilteringProvider(MAPPER);
-        final var constraint = toValue("""
+                """), arguments("condition < not a number", """
                 {
                 	"type"    : "filterJsonContent",
-                	"actions" : [
-                		{
-                			"type" : "delete",
-                			"path" : "$.key3"
-                		}
-                	],
-                	"conditions" : [
-                		{
-                			"path"  : "$.key1",
-                			"type"  : "<",
-                			"value" : "not a number"
-                		}
-                	]
+                	"actions" : [{ "type" : "delete", "path" : "$.key3" }],
+                	"conditions" : [{ "path" : "$.key1", "type" : "<", "value" : "not a number" }]
                 }
-                """);
-        assertThrows(AccessConstraintViolationException.class, () -> sut.getHandler(constraint));
-    }
-
-    @Test
-    void when_malformedConditionGtNotANumber_then_AccessConstraintViolationException() throws JsonProcessingException {
-        final var sut        = new ContentFilteringProvider(MAPPER);
-        final var constraint = toValue("""
+                """), arguments("condition > not a number", """
                 {
                 	"type"    : "filterJsonContent",
-                	"actions" : [
-                		{
-                			"type" : "delete",
-                			"path" : "$.key3"
-                		}
-                	],
-                	"conditions" : [
-                		{
-                			"path"  : "$.key1",
-                			"type"  : ">",
-                			"value" : "not a number"
-                		}
-                	]
+                	"actions" : [{ "type" : "delete", "path" : "$.key3" }],
+                	"conditions" : [{ "path" : "$.key1", "type" : ">", "value" : "not a number" }]
                 }
-                """);
-        assertThrows(AccessConstraintViolationException.class, () -> sut.getHandler(constraint));
+                """), arguments("condition == not number or text", """
+                {
+                	"type"    : "filterJsonContent",
+                	"actions" : [{ "type" : "delete", "path" : "$.key3" }],
+                	"conditions" : [{ "path" : "$.key1", "type" : "==", "value" : [] }]
+                }
+                """), arguments("condition regex not text", """
+                {
+                	"type"    : "filterJsonContent",
+                	"actions" : [{ "type" : "delete", "path" : "$.key3" }],
+                	"conditions" : [{ "path" : "$.key1", "type" : "=~", "value" : [] }]
+                }
+                """), arguments("condition type non-textual", """
+                {
+                	"type"    : "filterJsonContent",
+                	"actions" : [{ "type" : "delete", "path" : "$.key3" }],
+                	"conditions" : [{ "path" : "$.key1", "type" : 12, "value" : "abc" }]
+                }
+                """), arguments("constraint non-object", "123"), arguments("conditions not array", """
+                {
+                	"type"    : "filterJsonContent",
+                	"actions" : [{ "type" : "delete", "path" : "$.key3" }],
+                	"conditions" : 123
+                }
+                """), arguments("condition type unknown", """
+                {
+                	"type"    : "filterJsonContent",
+                	"actions" : [{ "type" : "delete", "path" : "$.key3" }],
+                	"conditions" : [{ "path" : "$.key1", "type" : "something unknown", "value" : "abc" }]
+                }
+                """), arguments("condition value missing", """
+                {
+                	"type"    : "filterJsonContent",
+                	"actions" : [{ "type" : "delete", "path" : "$.key3" }],
+                	"conditions" : [{ "path" : "$.key1", "type" : "==" }]
+                }
+                """), arguments("condition path value missing", """
+                {
+                	"type"    : "filterJsonContent",
+                	"actions" : [{ "type" : "delete", "path" : "$.key3" }],
+                	"conditions" : [{ "type" : "==", "value" : "abc" }]
+                }
+                """), arguments("condition type missing", """
+                {
+                	"type"    : "filterJsonContent",
+                	"actions" : [{ "type" : "delete", "path" : "$.key3" }],
+                	"conditions" : [{ "path" : "$.key", "value" : "abc" }]
+                }
+                """), arguments("condition path non-textual", """
+                {
+                	"type"    : "filterJsonContent",
+                	"actions" : [{ "type" : "delete", "path" : "$.key3" }],
+                	"conditions" : [{ "type" : "==", "path" : 123, "value" : "abc" }]
+                }
+                """));
     }
 
-    @Test
-    void when_malformedConditionEqNotNumberOrText_then_AccessConstraintViolationException()
+    @ParameterizedTest(name = "malformed constraint: {0}")
+    @MethodSource("malformedConstraintCases")
+    void whenMalformedConstraint_thenGetHandlerThrowsException(String description, String constraintJson)
             throws JsonProcessingException {
         final var sut        = new ContentFilteringProvider(MAPPER);
-        final var constraint = toValue("""
-                {
-                	"type"    : "filterJsonContent",
-                	"actions" : [
-                		{
-                			"type" : "delete",
-                			"path" : "$.key3"
-                		}
-                	],
-                	"conditions" : [
-                		{
-                			"path"  : "$.key1",
-                			"type"  : "==",
-                			"value" : []
-                		}
-                	]
-                }
-                """);
-        assertThrows(AccessConstraintViolationException.class, () -> sut.getHandler(constraint));
-    }
-
-    @Test
-    void when_malformedConditionRegexNotText_then_AccessConstraintViolationException() throws JsonProcessingException {
-        final var sut        = new ContentFilteringProvider(MAPPER);
-        final var constraint = toValue("""
-                {
-                	"type"    : "filterJsonContent",
-                	"actions" : [
-                		{
-                			"type" : "delete",
-                			"path" : "$.key3"
-                		}
-                	],
-                	"conditions" : [
-                		{
-                			"path"  : "$.key1",
-                			"type"  : "=~",
-                			"value" : []
-                		}
-                	]
-                }
-                """);
+        final var constraint = toValue(constraintJson);
         assertThrows(AccessConstraintViolationException.class, () -> sut.getHandler(constraint));
     }
 
@@ -608,57 +530,6 @@ class ContentFilteringProviderTests {
     void when_constraintNull_then_AccessConstraintViolationException() {
         final var sut = new ContentFilteringProvider(MAPPER);
         assertThrows(AccessConstraintViolationException.class, () -> sut.getHandler(null));
-    }
-
-    @Test
-    void when_malformedConditionTypeNonTextual_then_AccessConstraintViolationException()
-            throws JsonProcessingException {
-        final var sut        = new ContentFilteringProvider(MAPPER);
-        final var constraint = toValue("""
-                {
-                	"type"    : "filterJsonContent",
-                	"actions" : [
-                		{
-                			"type" : "delete",
-                			"path" : "$.key3"
-                		}
-                	],
-                	"conditions" : [
-                		{
-                			"path"  : "$.key1",
-                			"type"  : 12,
-                			"value" : "abc"
-                		}
-                	]
-                }
-                """);
-        assertThrows(AccessConstraintViolationException.class, () -> sut.getHandler(constraint));
-    }
-
-    @Test
-    void when_malformedConstraintNonObject_then_AccessConstraintViolationException() throws JsonProcessingException {
-        final var sut        = new ContentFilteringProvider(MAPPER);
-        final var constraint = toValue("123");
-        assertThrows(AccessConstraintViolationException.class, () -> sut.getHandler(constraint));
-    }
-
-    @Test
-    void when_malformedConstraintConditionsNotArray_then_AccessConstraintViolationException()
-            throws JsonProcessingException {
-        final var sut        = new ContentFilteringProvider(MAPPER);
-        final var constraint = toValue("""
-                {
-                	"type"    : "filterJsonContent",
-                	"actions" : [
-                		{
-                			"type" : "delete",
-                			"path" : "$.key3"
-                		}
-                	],
-                	"conditions" : 123
-                }
-                """);
-        assertThrows(AccessConstraintViolationException.class, () -> sut.getHandler(constraint));
     }
 
     @Test
@@ -691,125 +562,6 @@ class ContentFilteringProviderTests {
                 """);
 
         assertThat(handler.apply(original), is(expected));
-    }
-
-    @Test
-    void when_malformedConditionTypeUnknown_then_AccessConstraintViolationException() throws JsonProcessingException {
-        final var sut        = new ContentFilteringProvider(MAPPER);
-        final var constraint = toValue("""
-                {
-                	"type"    : "filterJsonContent",
-                	"actions" : [
-                		{
-                			"type" : "delete",
-                			"path" : "$.key3"
-                		}
-                	],
-                	"conditions" : [
-                		{
-                			"path"  : "$.key1",
-                			"type"  : "something unknown",
-                			"value" : "abc"
-                		}
-                	]
-                }
-                """);
-        assertThrows(AccessConstraintViolationException.class, () -> sut.getHandler(constraint));
-    }
-
-    @Test
-    void when_malformedConditionValueMissing_then_AccessConstraintViolationException() throws JsonProcessingException {
-        final var sut        = new ContentFilteringProvider(MAPPER);
-        final var constraint = toValue("""
-                {
-                	"type"    : "filterJsonContent",
-                	"actions" : [
-                		{
-                			"type" : "delete",
-                			"path" : "$.key3"
-                		}
-                	],
-                	"conditions" : [
-                		{
-                			"path"  : "$.key1",
-                			"type"  : "=="
-                		}
-                	]
-                }
-                """);
-        assertThrows(AccessConstraintViolationException.class, () -> sut.getHandler(constraint));
-    }
-
-    @Test
-    void when_malformedConditionPathValueMissing_then_AccessConstraintViolationException()
-            throws JsonProcessingException {
-        final var sut        = new ContentFilteringProvider(MAPPER);
-        final var constraint = toValue("""
-                {
-                	"type"    : "filterJsonContent",
-                	"actions" : [
-                		{
-                			"type" : "delete",
-                			"path" : "$.key3"
-                		}
-                	],
-                	"conditions" : [
-                		{
-                			"type"  : "==",
-                			"value" : "abc"
-                		}
-                	]
-                }
-                """);
-        assertThrows(AccessConstraintViolationException.class, () -> sut.getHandler(constraint));
-    }
-
-    @Test
-    void when_malformedConditionTypeMissing_then_AccessConstraintViolationException() throws JsonProcessingException {
-        final var sut        = new ContentFilteringProvider(MAPPER);
-        final var constraint = toValue("""
-                {
-                	"type"    : "filterJsonContent",
-                	"actions" : [
-                		{
-                			"type" : "delete",
-                			"path" : "$.key3"
-                		}
-                	],
-                	"conditions" : [
-                		{
-                			"path"  : "$.key",
-                			"value" : "abc"
-                		}
-                	]
-                }
-                """);
-        assertThrows(AccessConstraintViolationException.class, () -> sut.getHandler(constraint));
-    }
-
-    @Test
-    void when_malformedConditionPathNonTextual_then_AccessConstraintViolationException()
-            throws JsonProcessingException {
-        final var sut        = new ContentFilteringProvider(MAPPER);
-        final var constraint = toValue("""
-                {
-                	"type"    : "filterJsonContent",
-                	"actions" : [
-                		{
-                			"type" : "delete",
-                			"path" : "$.key3"
-                		}
-                	],
-                	"conditions" : [
-                		{
-                			"type"  : "==",
-                			"path"  : 123,
-                			"value" : "abc"
-                		}
-                	]
-                }
-                """);
-        assertThrows(AccessConstraintViolationException.class, () -> sut.getHandler(constraint));
     }
 
     @Test

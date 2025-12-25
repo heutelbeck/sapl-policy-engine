@@ -20,11 +20,14 @@ package io.sapl.server.ce.model.pdpconfiguration;
 import io.sapl.api.SaplVersion;
 import lombok.NonNull;
 
+import java.io.Serial;
+
 /**
  * {@link Exception} for a duplicated name of a {@link Variable}.
  */
 public class DuplicatedVariableNameException extends Exception {
 
+    @Serial
     private static final long serialVersionUID = SaplVersion.VERSION_UID;
 
     public DuplicatedVariableNameException(@NonNull String duplicatedName) {

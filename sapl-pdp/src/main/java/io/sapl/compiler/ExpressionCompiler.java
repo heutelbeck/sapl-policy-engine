@@ -925,8 +925,7 @@ public class ExpressionCompiler {
         if (conditionResult instanceof BooleanValue bool) {
             return bool.value() ? scalar.withMetadata(metadata) : Value.UNDEFINED.withMetadata(metadata);
         }
-        return Error.at(step, metadata, "Condition step requires boolean result, got: %s.",
-                conditionResult.getClass().getSimpleName());
+        return Error.at(step, metadata, ERROR_CONDITION_REQUIRES_BOOLEAN, conditionResult.getClass().getSimpleName());
     }
 
     // ───────────────────────────────────────────────────────────────────────────
@@ -1135,7 +1134,7 @@ public class ExpressionCompiler {
             attributes.put(key, compiled);
         }
 
-        val nature = isStream ? Nature.STREAM : isPure ? Nature.PURE : Nature.VALUE;
+        val nature = Nature.from(isStream, isPure);
         return new CompiledObjectAttributes(nature, isSubscriptionScoped, attributes);
     }
 
@@ -1240,7 +1239,7 @@ public class ExpressionCompiler {
             compiled[i] = arg;
         }
 
-        val nature = isStream ? Nature.STREAM : isPure ? Nature.PURE : Nature.VALUE;
+        val nature = Nature.from(isStream, isPure);
         return new CompiledArguments(nature, isSubscriptionScoped, compiled);
     }
 

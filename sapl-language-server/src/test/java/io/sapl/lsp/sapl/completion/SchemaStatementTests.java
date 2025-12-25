@@ -141,10 +141,9 @@ class SchemaStatementTests {
         assertThat(proposals).contains("subject", "subject.name", "subject.role");
     }
 
-    @Test
-    void whenSchemaStatementHasArrayProperty_thenArrayNotationOffered() {
-        var document     = """
-                subject schema {
+    static Stream<Arguments> schemaFeatureTestCases() {
+        return Stream.of(arguments("array property provides array notation", """
+                {
                   "type": "object",
                   "properties": {
                     "roles": {
@@ -153,7 +152,31 @@ class SchemaStatementTests {
                     }
                   }
                 }
-                policy "test"
+                """, new String[] { "subject", "subject.roles", "subject.roles[]" }),
+                arguments("allOf combination merges all properties", """
+                        {
+                          "allOf": [
+                            { "type": "object", "properties": { "id": {} } },
+                            { "type": "object", "properties": { "name": {} } }
+                          ]
+                        }
+                        """, new String[] { "subject", "subject.id", "subject.name" }),
+                arguments("anyOf combination offers all properties", """
+                        {
+                          "anyOf": [
+                            { "type": "object", "properties": { "email": {} } },
+                            { "type": "object", "properties": { "phone": {} } }
+                          ]
+                        }
+                        """, new String[] { "subject", "subject.email", "subject.phone" }));
+    }
+
+    @ParameterizedTest(name = "{0}")
+    @MethodSource("schemaFeatureTestCases")
+    void whenSchemaStatementHasFeature_thenExpansionsOffered(String description, String schemaJson,
+            String[] expectedProposals) {
+        var document     = "subject schema " + schemaJson + """
+                 policy "test"
                 permit
                 """;
         var sapl         = parse(document);
@@ -162,7 +185,7 @@ class SchemaStatementTests {
 
         var proposals = VariablesProposalsGenerator.variableProposalsForContext(sapl, cursorOffset, config, false);
 
-        assertThat(proposals).contains("subject", "subject.roles", "subject.roles[]");
+        assertThat(proposals).contains(expectedProposals);
     }
 
     @Test
@@ -195,48 +218,6 @@ class SchemaStatementTests {
 
         assertThat(proposals).contains("subject", "subject.address", "subject.address.street", "subject.address.city",
                 "subject.address.zip");
-    }
-
-    @Test
-    void whenSchemaStatementHasAllOfCombination_thenAllPropertiesOffered() {
-        var document     = """
-                subject schema {
-                  "allOf": [
-                    { "type": "object", "properties": { "id": {} } },
-                    { "type": "object", "properties": { "name": {} } }
-                  ]
-                }
-                policy "test"
-                permit
-                """;
-        var sapl         = parse(document);
-        var cursorOffset = document.length();
-        var config       = LSPConfiguration.minimal();
-
-        var proposals = VariablesProposalsGenerator.variableProposalsForContext(sapl, cursorOffset, config, false);
-
-        assertThat(proposals).contains("subject", "subject.id", "subject.name");
-    }
-
-    @Test
-    void whenSchemaStatementHasAnyOfCombination_thenAllPropertiesOffered() {
-        var document     = """
-                subject schema {
-                  "anyOf": [
-                    { "type": "object", "properties": { "email": {} } },
-                    { "type": "object", "properties": { "phone": {} } }
-                  ]
-                }
-                policy "test"
-                permit
-                """;
-        var sapl         = parse(document);
-        var cursorOffset = document.length();
-        var config       = LSPConfiguration.minimal();
-
-        var proposals = VariablesProposalsGenerator.variableProposalsForContext(sapl, cursorOffset, config, false);
-
-        assertThat(proposals).contains("subject", "subject.email", "subject.phone");
     }
 
     @Test

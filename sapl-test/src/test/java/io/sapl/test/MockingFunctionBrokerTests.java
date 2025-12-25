@@ -21,6 +21,8 @@ import io.sapl.api.functions.FunctionBroker;
 import io.sapl.api.functions.FunctionInvocation;
 import io.sapl.api.model.TextValue;
 import io.sapl.api.model.Value;
+import io.sapl.test.verification.MockVerificationException;
+import io.sapl.test.verification.Times;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -31,26 +33,18 @@ import org.mockito.ArgumentMatchers;
 import java.util.List;
 import java.util.stream.Stream;
 
+import static io.sapl.test.Matchers.*;
 import static io.sapl.test.Matchers.any;
-import static io.sapl.test.Matchers.anyNumber;
-import static io.sapl.test.Matchers.anyText;
-import static io.sapl.test.Matchers.args;
 import static io.sapl.test.Matchers.eq;
-import static io.sapl.test.Matchers.matching;
+import static io.sapl.test.verification.Times.*;
 import static io.sapl.test.verification.Times.atLeast;
 import static io.sapl.test.verification.Times.atMost;
-import static io.sapl.test.verification.Times.once;
 import static io.sapl.test.verification.Times.times;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
-import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.*;
 import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-
-import io.sapl.test.verification.MockVerificationException;
-import io.sapl.test.verification.Times;
 
 class MockingFunctionBrokerTests {
 
@@ -487,7 +481,6 @@ class MockingFunctionBrokerTests {
         var result = broker.evaluateFunction(invocation(FUNCTION_NAME));
 
         assertThat(result).isEqualTo(Value.UNDEFINED);
-        assertThat(result instanceof io.sapl.api.model.UndefinedValue).isTrue();
     }
 
     @Test
@@ -566,7 +559,7 @@ class MockingFunctionBrokerTests {
         broker.evaluateFunction(invocation(FUNCTION_NAME));
 
         var invocations = broker.getInvocations();
-        assertThat(invocations.get(0).sequenceNumber()).isEqualTo(0);
+        assertThat(invocations.get(0).sequenceNumber()).isZero();
         assertThat(invocations.get(1).sequenceNumber()).isEqualTo(1);
         assertThat(invocations.get(2).sequenceNumber()).isEqualTo(2);
     }

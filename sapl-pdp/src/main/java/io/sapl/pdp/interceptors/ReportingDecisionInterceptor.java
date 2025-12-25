@@ -17,8 +17,6 @@
  */
 package io.sapl.pdp.interceptors;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-
 import io.sapl.api.model.ObjectValue;
 import io.sapl.api.pdp.internal.TracedDecision;
 import io.sapl.api.pdp.internal.TracedDecisionInterceptor;
@@ -44,11 +42,10 @@ import lombok.val;
 @RequiredArgsConstructor
 public class ReportingDecisionInterceptor implements TracedDecisionInterceptor {
 
-    private final ObjectMapper mapper;
-    private final boolean      prettyPrint;
-    private final boolean      printTrace;
-    private final boolean      printJsonReport;
-    private final boolean      printTextReport;
+    private final boolean prettyPrint;
+    private final boolean printTrace;
+    private final boolean printJsonReport;
+    private final boolean printTextReport;
 
     @Override
     public Integer getPriority() {

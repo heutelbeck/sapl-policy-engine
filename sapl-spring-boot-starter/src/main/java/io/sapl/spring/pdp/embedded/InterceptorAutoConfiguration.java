@@ -17,7 +17,6 @@
  */
 package io.sapl.spring.pdp.embedded;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.sapl.api.pdp.internal.TracedDecisionInterceptor;
 import io.sapl.pdp.interceptors.ReportingDecisionInterceptor;
 import lombok.RequiredArgsConstructor;
@@ -56,7 +55,6 @@ import org.springframework.context.annotation.Role;
 @ConditionalOnProperty(prefix = "io.sapl.pdp.embedded", name = "enabled", havingValue = "true")
 public class InterceptorAutoConfiguration {
 
-    private final ObjectMapper          mapper;
     private final EmbeddedPDPProperties properties;
 
     /**
@@ -72,7 +70,7 @@ public class InterceptorAutoConfiguration {
     @Conditional(ReportingEnabledCondition.class)
     @ConditionalOnMissingBean(ReportingDecisionInterceptor.class)
     TracedDecisionInterceptor reportingDecisionInterceptor() {
-        return new ReportingDecisionInterceptor(mapper, properties.isPrettyPrintReports(), properties.isPrintTrace(),
+        return new ReportingDecisionInterceptor(properties.isPrettyPrintReports(), properties.isPrintTrace(),
                 properties.isPrintJsonReport(), properties.isPrintTextReport());
     }
 

@@ -62,9 +62,10 @@ public class StringsUtil {
                 result.append(c);
                 continue;
             }
-            char next = text.charAt(++i);
-            if (ESCAPE_CHARS.containsKey(next)) {
-                result.append(ESCAPE_CHARS.get(next));
+            char next    = text.charAt(++i);
+            var  escaped = ESCAPE_CHARS.get(next);
+            if (escaped != null) {
+                result.append(escaped);
             } else if (next == 'u' && i + 4 < text.length()) {
                 try {
                     result.append((char) Integer.parseInt(text.substring(i + 1, i + 5), 16));

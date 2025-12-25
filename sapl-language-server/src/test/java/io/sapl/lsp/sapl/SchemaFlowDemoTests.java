@@ -121,8 +121,8 @@ class SchemaFlowDemoTests {
                 profileCompletions.stream().map(c -> c.getLabel() + " [" + c.getDetail() + "]").toList());
 
         assertThat(completions).as("Nested schema should flow from 'user.profile' to 'profile' variable")
-                .anyMatch(c -> c.getLabel().equals("profile.firstName") || c.getLabel().equals("profile.lastName")
-                        || c.getLabel().equals("profile.email"));
+                .anyMatch(c -> "profile.firstName".equals(c.getLabel()) || "profile.lastName".equals(c.getLabel())
+                        || "profile.email".equals(c.getLabel()));
     }
 
     @Test
@@ -213,7 +213,7 @@ class SchemaFlowDemoTests {
         });
 
         // Check for duplicates - same label should not appear multiple times
-        var subjectUserIdCompletions = completions.stream().filter(c -> c.getLabel().equals("subject.userId")).toList();
+        var subjectUserIdCompletions = completions.stream().filter(c -> "subject.userId".equals(c.getLabel())).toList();
         log.debug("Found {} completions with label 'subject.userId'", subjectUserIdCompletions.size());
 
         assertThat(subjectUserIdCompletions).as("Should have exactly one subject.userId completion (no duplicates)")

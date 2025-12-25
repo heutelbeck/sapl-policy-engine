@@ -20,7 +20,6 @@ package io.sapl.compiler;
 import io.sapl.api.model.SourceLocation;
 import io.sapl.api.pdp.internal.ConditionHit;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 

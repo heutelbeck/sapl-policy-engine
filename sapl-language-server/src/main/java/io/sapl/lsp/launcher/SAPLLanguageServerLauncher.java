@@ -19,6 +19,7 @@ package io.sapl.lsp.launcher;
 
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
@@ -74,14 +75,15 @@ public class SAPLLanguageServerLauncher {
     }
 
     /**
-     * Starts the language server listening on a socket.
-     * Useful for debugging and testing.
+     * Starts the language server listening on a socket bound to localhost only.
+     * Useful for debugging and testing. Only accepts connections from the local
+     * machine.
      *
      * @param port the port to listen on
      */
     public static void startSocketServer(int port) throws Exception {
         log.info("Starting SAPL Language Server on port {}", port);
-        try (var serverSocket = new ServerSocket(port)) {
+        try (var serverSocket = new ServerSocket(port, 50, InetAddress.getLoopbackAddress())) {
             log.info("Waiting for client connection on port {}...", port);
             while (true) {
                 var socket = serverSocket.accept();
@@ -91,6 +93,9 @@ public class SAPLLanguageServerLauncher {
                 executor.submit(() -> {
                     try {
                         startServer(socket.getInputStream(), socket.getOutputStream());
+                    } catch (InterruptedException e) {
+                        log.debug("Language server interrupted");
+                        Thread.currentThread().interrupt();
                     } catch (Exception e) {
                         log.error("Error in language server", e);
                     }

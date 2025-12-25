@@ -18,9 +18,13 @@
 package io.sapl.vaadin;
 
 import elemental.json.JsonObject;
+import io.sapl.api.SaplVersion;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+
+import java.io.Serial;
+import java.io.Serializable;
 
 /**
  * Describes a code issue identified by the validation process in the editor.
@@ -28,7 +32,10 @@ import lombok.NoArgsConstructor;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class Issue {
+public class Issue implements Serializable {
+
+    @Serial
+    private static final long serialVersionUID = SaplVersion.VERSION_UID;
 
     private static final String DESCRIPTION_KEY  = "description";
     private static final String SEVERITY_KEY     = "severity";

@@ -34,7 +34,9 @@ import org.eclipse.lsp4j.Position;
 import org.eclipse.lsp4j.Range;
 import org.eclipse.lsp4j.TextEdit;
 
+import io.sapl.api.documentation.EntryDocumentation;
 import io.sapl.api.documentation.EntryType;
+import io.sapl.api.documentation.LibraryDocumentation;
 import io.sapl.grammar.antlr.SAPLLexer;
 import io.sapl.grammar.antlr.SAPLParser.BasicEnvironmentAttributeContext;
 import io.sapl.grammar.antlr.SAPLParser.BasicEnvironmentHeadAttributeContext;
@@ -352,17 +354,18 @@ public class SAPLCompletionProvider {
         Token twoTokensBack = null;
 
         for (var token : tokens) {
-            if (token.getType() == Token.EOF) {
+            var isEndOfFile   = token.getType() == Token.EOF;
+            var isHiddenToken = token.getChannel() == Token.HIDDEN_CHANNEL;
+            var isPastCursor  = token.getLine() > line
+                    || (token.getLine() == line && token.getCharPositionInLine() > column);
+
+            if (isEndOfFile || isPastCursor) {
                 break;
             }
-            if (token.getChannel() != Token.HIDDEN_CHANNEL) {
-                if (token.getLine() < line || (token.getLine() == line && token.getCharPositionInLine() <= column)) {
-                    twoTokensBack = previousToken;
-                    previousToken = tokenAtCursor;
-                    tokenAtCursor = token;
-                } else {
-                    break;
-                }
+            if (!isHiddenToken) {
+                twoTokensBack = previousToken;
+                previousToken = tokenAtCursor;
+                tokenAtCursor = token;
             }
         }
 
@@ -530,24 +533,21 @@ public class SAPLCompletionProvider {
         if (deepestMatch == null && tree instanceof ParserRuleContext ruleContext) {
             var start = ruleContext.getStart();
             var stop  = ruleContext.getStop();
-            if (start != null && stop != null) {
-                if (isPositionWithinTokenRange(line, column, start, stop)) {
-                    return tree;
-                }
+            if (start != null && stop != null && isPositionWithinTokenRange(line, column, start, stop)) {
+                return tree;
             }
+
         }
 
         return deepestMatch;
     }
 
     private boolean isPositionWithinTokenRange(int line, int column, Token start, Token stop) {
-        if (line < start.getLine() || line > stop.getLine()) {
-            return false;
-        }
-        if (line == start.getLine() && column < start.getCharPositionInLine()) {
-            return false;
-        }
-        return line != stop.getLine() || column <= stop.getCharPositionInLine() + stop.getText().length();
+        var isAfterStart = line > start.getLine()
+                || (line == start.getLine() && column >= start.getCharPositionInLine());
+        var isBeforeEnd  = line < stop.getLine()
+                || (line == stop.getLine() && column <= stop.getCharPositionInLine() + stop.getText().length());
+        return isAfterStart && isBeforeEnd;
     }
 
     /**
@@ -556,30 +556,28 @@ public class SAPLCompletionProvider {
      * This helps detect when we're inside an import statement path.
      */
     private boolean hasImportTokenInHistory(List<Token> tokens, Position position) {
-        var line = position.getLine() + 1;
-        var col  = position.getCharacter();
+        var line        = position.getLine() + 1;
+        var column      = position.getCharacter();
+        var foundImport = false;
 
-        // Scan tokens on the same line before cursor for IMPORT token
-        // But stop if we encounter structural keywords (set, policy, permit, etc.)
-        // which indicate we've moved past the import statement
         for (var token : tokens) {
-            if (token.getType() == Token.EOF) {
-                break;
-            }
-            if (token.getLine() > line || (token.getLine() == line && token.getCharPositionInLine() >= col)) {
+            var isPastCursor        = token.getLine() > line
+                    || (token.getLine() == line && token.getCharPositionInLine() >= column);
+            var isStructuralKeyword = isStructuralKeyword(token.getType());
+
+            if (token.getType() == Token.EOF || isPastCursor || isStructuralKeyword) {
                 break;
             }
             if (token.getType() == SAPLLexer.IMPORT) {
-                return true;
-            }
-            // If we encounter structural keywords, we're past imports
-            if (token.getType() == SAPLLexer.SET || token.getType() == SAPLLexer.POLICY
-                    || token.getType() == SAPLLexer.PERMIT || token.getType() == SAPLLexer.DENY
-                    || token.getType() == SAPLLexer.WHERE) {
-                return false;
+                foundImport = true;
             }
         }
-        return false;
+        return foundImport;
+    }
+
+    private boolean isStructuralKeyword(int tokenType) {
+        return tokenType == SAPLLexer.SET || tokenType == SAPLLexer.POLICY || tokenType == SAPLLexer.PERMIT
+                || tokenType == SAPLLexer.DENY || tokenType == SAPLLexer.WHERE;
     }
 
     /**
@@ -896,34 +894,40 @@ public class SAPLCompletionProvider {
 
         for (var pip : bundle.policyInformationPoints()) {
             for (var entry : pip.entries()) {
-                var isEnvironment = entry.type() == EntryType.ENVIRONMENT_ATTRIBUTE;
-                if (environmentOnly && !isEnvironment) {
+                if (!isMatchingAttributeType(entry.type(), environmentOnly)) {
                     continue;
                 }
-                if (!environmentOnly && entry.type() != EntryType.ATTRIBUTE) {
-                    continue;
-                }
-
-                var plainTemplate = entry.codeTemplate(pip.name());
-                var snippet       = SnippetConverter.toSnippet(entry, pip.name());
-                // Label includes <> to match user typing pattern (e.g., <time.now>)
-                var label = "<" + pip.name() + "." + entry.name() + ">";
-                var item  = new CompletionItem(label);
-                item.setKind(CompletionItemKind.Property);
-                item.setDetail(plainTemplate);
-                item.setInsertText(snippet);
-                item.setInsertTextFormat(InsertTextFormat.Snippet);
-
-                if (entry.documentation() != null) {
-                    var doc = new MarkupContent();
-                    doc.setKind(MarkupKind.MARKDOWN);
-                    doc.setValue(entry.documentation());
-                    item.setDocumentation(doc);
-                }
-
-                items.add(item);
+                items.add(createAttributeCompletionItem(pip, entry));
             }
         }
+    }
+
+    private boolean isMatchingAttributeType(EntryType entryType, boolean environmentOnly) {
+        if (environmentOnly) {
+            return entryType == EntryType.ENVIRONMENT_ATTRIBUTE;
+        }
+        return entryType == EntryType.ATTRIBUTE;
+    }
+
+    private CompletionItem createAttributeCompletionItem(LibraryDocumentation pip, EntryDocumentation entry) {
+        var plainTemplate = entry.codeTemplate(pip.name());
+        var snippet       = SnippetConverter.toSnippet(entry, pip.name());
+        var label         = "<" + pip.name() + "." + entry.name() + ">";
+
+        var item = new CompletionItem(label);
+        item.setKind(CompletionItemKind.Property);
+        item.setDetail(plainTemplate);
+        item.setInsertText(snippet);
+        item.setInsertTextFormat(InsertTextFormat.Snippet);
+
+        if (entry.documentation() != null) {
+            var doc = new MarkupContent();
+            doc.setKind(MarkupKind.MARKDOWN);
+            doc.setValue(entry.documentation());
+            item.setDocumentation(doc);
+        }
+
+        return item;
     }
 
     /**

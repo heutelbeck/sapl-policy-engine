@@ -232,47 +232,53 @@ public class ContextAnalyzer {
             return new AttributeResult("", ProposalType.INDETERMINATE);
         }
 
-        // Look backward for LT or PIPE_LT
-        var type    = ProposalType.ATTRIBUTE;
-        var ltIndex = -1;
-
-        for (var i = gtIndex - 1; i >= 0; i--) {
-            var token = tokens.get(i);
-            if (token.getChannel() != Token.HIDDEN_CHANNEL) {
-                if (token.getType() == SAPLLexer.LT) {
-                    ltIndex = i;
-                    type    = ProposalType.ATTRIBUTE;
-                    break;
-                }
-                if (token.getType() == SAPLLexer.PIPE_LT) {
-                    ltIndex = i;
-                    type    = ProposalType.ENVIRONMENT_ATTRIBUTE;
-                    break;
-                }
-            }
-        }
-
-        if (ltIndex < 0) {
+        var bracketInfo = findOpeningBracket(tokens, gtIndex);
+        if (bracketInfo.index < 0) {
             return new AttributeResult("", ProposalType.INDETERMINATE);
         }
 
-        // Collect attribute name between LT and GT
-        var nameBuilder = new StringBuilder();
-        for (var i = ltIndex + 1; i < gtIndex; i++) {
+        var attributeName = collectAttributeName(tokens, bracketInfo.index, gtIndex);
+        return new AttributeResult(attributeName, bracketInfo.type);
+    }
+
+    private record BracketInfo(int index, ProposalType type) {}
+
+    private static BracketInfo findOpeningBracket(List<Token> tokens, int gtIndex) {
+        for (var i = gtIndex - 1; i >= 0; i--) {
             var token = tokens.get(i);
-            if (token.getChannel() != Token.HIDDEN_CHANNEL) {
-                var tokenType = token.getType();
-                // Attribute name can be: ID (DOT ID)* optionally with (args)
-                if (tokenType == SAPLLexer.ID || tokenType == SAPLLexer.DOT) {
-                    nameBuilder.append(token.getText());
-                } else if (tokenType == SAPLLexer.LPAREN) {
-                    // Stop at arguments
-                    break;
-                }
+            if (token.getChannel() == Token.HIDDEN_CHANNEL) {
+                continue;
+            }
+            var isLt     = token.getType() == SAPLLexer.LT;
+            var isPipeLt = token.getType() == SAPLLexer.PIPE_LT;
+            if (isLt || isPipeLt) {
+                var type = isPipeLt ? ProposalType.ENVIRONMENT_ATTRIBUTE : ProposalType.ATTRIBUTE;
+                return new BracketInfo(i, type);
             }
         }
+        return new BracketInfo(-1, ProposalType.INDETERMINATE);
+    }
 
-        return new AttributeResult(nameBuilder.toString(), type);
+    private static String collectAttributeName(List<Token> tokens, int ltIndex, int gtIndex) {
+        var nameBuilder = new StringBuilder();
+        for (var i = ltIndex + 1; i < gtIndex; i++) {
+            var token      = tokens.get(i);
+            var isHidden   = token.getChannel() == Token.HIDDEN_CHANNEL;
+            var tokenType  = token.getType();
+            var isNamePart = tokenType == SAPLLexer.ID || tokenType == SAPLLexer.DOT;
+            var isArgStart = tokenType == SAPLLexer.LPAREN;
+
+            if (isHidden) {
+                continue;
+            }
+            if (isArgStart) {
+                break;
+            }
+            if (isNamePart) {
+                nameBuilder.append(token.getText());
+            }
+        }
+        return nameBuilder.toString();
     }
 
     /**

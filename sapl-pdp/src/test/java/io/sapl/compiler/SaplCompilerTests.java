@@ -113,37 +113,36 @@ class SaplCompilerTests {
     }
 
     // ==========================================================================
-    // Target Expression Validation Tests
+    // Compilation Error Tests (parameterized)
     // ==========================================================================
 
-    @Test
-    void whenTargetAlwaysFalse_thenThrowsCompilationError() {
-        val source = """
-                policy "the gate is closed"
-                permit false
-                """;
-        assertThatThrownBy(() -> SaplCompiler.compile(source, context)).isInstanceOf(SaplCompilerException.class)
-                .hasMessageContaining("always evaluates to false");
+    static Stream<Arguments> compilationErrorCases() {
+        return Stream.of(arguments("target always false", "policy \"p\" permit false", "always evaluates to false"),
+                arguments("target always error", "policy \"p\" permit 10/0 == 1", "error"),
+                arguments("target always non-boolean", "policy \"p\" permit \"not a boolean\"", "non-Boolean"),
+                arguments("duplicate variable in body", "policy \"p\" permit where var x = 1; var x = 2;",
+                        "already defined"),
+                arguments("body always non-boolean", "policy \"p\" permit where \"a string\";", "non-Boolean"),
+                arguments("obligation always error", "policy \"p\" permit obligation 10/0",
+                        "Constraint always evaluates to error"),
+                arguments("duplicate global variable in set",
+                        "set \"s\" first-applicable var x = 1; var x = 2; policy \"p\" permit", "already defined"),
+                arguments("schema not object value", "subject enforced schema \"not an object\" policy \"p\" permit",
+                        "must evaluate to ObjectValue"),
+                arguments("policy set with constant false target",
+                        "set \"s\" first-applicable for false policy \"p\" permit", "always evaluates to false"),
+                arguments("policy set variable evaluates to error",
+                        "set \"s\" first-applicable var x = 10/0; policy \"p\" permit", "error"),
+                arguments("transformation always error", "policy \"p\" permit transform 10/0",
+                        "Transformation always evaluates to error"),
+                arguments("invalid syntax", "policy \"broken syntax permit", "parse"));
     }
 
-    @Test
-    void whenTargetAlwaysError_thenThrowsCompilationError() {
-        val source = """
-                policy "madness awaits"
-                permit 10/0 == 1
-                """;
+    @ParameterizedTest(name = "{0}")
+    @MethodSource("compilationErrorCases")
+    void whenInvalidPolicy_thenThrowsCompilationError(String description, String source, String expectedSubstring) {
         assertThatThrownBy(() -> SaplCompiler.compile(source, context)).isInstanceOf(SaplCompilerException.class)
-                .hasMessageContaining("error");
-    }
-
-    @Test
-    void whenTargetAlwaysNonBoolean_thenThrowsCompilationError() {
-        val source = """
-                policy "eldritch geometry"
-                permit "not a boolean"
-                """;
-        assertThatThrownBy(() -> SaplCompiler.compile(source, context)).isInstanceOf(SaplCompilerException.class)
-                .hasMessageContaining("non-Boolean");
+                .hasMessageContaining(expectedSubstring);
     }
 
     // ==========================================================================
@@ -189,31 +188,6 @@ class SaplCompilerTests {
         assertThat(compiled).isNotNull();
     }
 
-    @Test
-    void whenDuplicateVariableInBody_thenThrowsCompilationError() {
-        val source = """
-                policy "reality distortion"
-                permit
-                where
-                    var dimension = "R'lyeh";
-                    var dimension = "Yuggoth";
-                """;
-        assertThatThrownBy(() -> SaplCompiler.compile(source, context)).isInstanceOf(SaplCompilerException.class)
-                .hasMessageContaining("already defined");
-    }
-
-    @Test
-    void whenBodyAlwaysNonBoolean_thenThrowsCompilationError() {
-        val source = """
-                policy "non-euclidean logic"
-                permit
-                where
-                    "a string is not boolean";
-                """;
-        assertThatThrownBy(() -> SaplCompiler.compile(source, context)).isInstanceOf(SaplCompilerException.class)
-                .hasMessageContaining("non-Boolean");
-    }
-
     // ==========================================================================
     // Constraints Tests (obligations, advice, transformation)
     // ==========================================================================
@@ -249,17 +223,6 @@ class SaplCompilerTests {
                 """;
         val compiled = SaplCompiler.compile(source, context);
         assertThat(compiled).isNotNull();
-    }
-
-    @Test
-    void whenObligationAlwaysError_thenThrowsCompilationError() {
-        val source = """
-                policy "impossible obligation"
-                permit
-                obligation 10/0
-                """;
-        assertThatThrownBy(() -> SaplCompiler.compile(source, context)).isInstanceOf(SaplCompilerException.class)
-                .hasMessageContaining("Constraint always evaluates to error");
     }
 
     // ==========================================================================
@@ -304,20 +267,6 @@ class SaplCompilerTests {
         assertThat(compiled).isNotNull();
     }
 
-    @Test
-    void whenPolicySetWithDuplicateGlobalVariable_thenThrowsCompilationError() {
-        val source = """
-                set "dimensional anomalies"
-                first-applicable
-                var coordinates = { "x": 0, "y": 0 };
-                var coordinates = { "x": 1, "y": 1 };
-                policy "placeholder"
-                permit
-                """;
-        assertThatThrownBy(() -> SaplCompiler.compile(source, context)).isInstanceOf(SaplCompilerException.class)
-                .hasMessageContaining("already defined");
-    }
-
     // ==========================================================================
     // Import Tests
     // ==========================================================================
@@ -347,51 +296,25 @@ class SaplCompilerTests {
     }
 
     // ==========================================================================
-    // Decision Generation Tests
+    // Decision Generation Tests (parameterized)
     // ==========================================================================
 
-    @Test
-    void whenPermitPolicyWithConstantBody_thenGeneratesPermitDecision() {
-        val source   = """
-                policy "always permit"
-                permit
-                """;
-        val compiled = SaplCompiler.compile(source, context);
-        val decision = evaluateDecision(compiled);
-
-        assertThat(decision).isInstanceOf(ObjectValue.class);
-        val decisionObj = (ObjectValue) decision;
-        assertThat(decisionObj.get("decision")).isEqualTo(Value.of("PERMIT"));
+    static Stream<Arguments> decisionGenerationCases() {
+        return Stream.of(arguments("permit policy generates PERMIT", "policy \"p\" permit", "PERMIT"),
+                arguments("deny policy generates DENY", "policy \"p\" deny", "DENY"),
+                arguments("policy with false body generates NOT_APPLICABLE", "policy \"p\" permit where false;",
+                        "NOT_APPLICABLE"));
     }
 
-    @Test
-    void whenDenyPolicyWithConstantBody_thenGeneratesDenyDecision() {
-        val source   = """
-                policy "always deny"
-                deny
-                """;
+    @ParameterizedTest(name = "{0}")
+    @MethodSource("decisionGenerationCases")
+    void whenPolicyEvaluated_thenGeneratesExpectedDecision(String description, String source, String expectedDecision) {
         val compiled = SaplCompiler.compile(source, context);
         val decision = evaluateDecision(compiled);
 
         assertThat(decision).isInstanceOf(ObjectValue.class);
         val decisionObj = (ObjectValue) decision;
-        assertThat(decisionObj.get("decision")).isEqualTo(Value.of("DENY"));
-    }
-
-    @Test
-    void whenPolicyBodyFalse_thenGeneratesNotApplicable() {
-        val source   = """
-                policy "conditional access"
-                permit
-                where
-                    false;
-                """;
-        val compiled = SaplCompiler.compile(source, context);
-        val decision = evaluateDecision(compiled);
-
-        assertThat(decision).isInstanceOf(ObjectValue.class);
-        val decisionObj = (ObjectValue) decision;
-        assertThat(decisionObj.get("decision")).isEqualTo(Value.of("NOT_APPLICABLE"));
+        assertThat(decisionObj.get("decision")).isEqualTo(Value.of(expectedDecision));
     }
 
     // ==========================================================================
@@ -465,17 +388,6 @@ class SaplCompilerTests {
         assertThat(compiled.matchExpression()).isEqualTo(Value.TRUE);
     }
 
-    @Test
-    void whenSchemaNotObjectValue_thenThrowsCompilationError() {
-        val source = """
-                subject enforced schema "not an object"
-                policy "invalid schema type"
-                permit
-                """;
-        assertThatThrownBy(() -> SaplCompiler.compile(source, context)).isInstanceOf(SaplCompilerException.class)
-                .hasMessageContaining("must evaluate to ObjectValue");
-    }
-
     // ==========================================================================
     // Policy Set with Target Expression Tests
     // ==========================================================================
@@ -493,51 +405,6 @@ class SaplCompilerTests {
         assertThat(compiled).isNotNull();
         assertThat(compiled.name()).isEqualTo("cult operations center");
         assertThat(compiled.matchExpression()).isInstanceOf(PureExpression.class);
-    }
-
-    @Test
-    void whenPolicySetWithConstantFalseTarget_thenThrowsCompilationError() {
-        val source = """
-                set "forbidden rituals"
-                first-applicable
-                for false
-                policy "placeholder"
-                permit
-                """;
-        assertThatThrownBy(() -> SaplCompiler.compile(source, context)).isInstanceOf(SaplCompilerException.class)
-                .hasMessageContaining("always evaluates to false");
-    }
-
-    // ==========================================================================
-    // Variable Definition Error Tests
-    // ==========================================================================
-
-    @Test
-    void whenPolicySetVariableEvaluatesToError_thenThrowsCompilationError() {
-        val source = """
-                set "dimensional instability"
-                first-applicable
-                var unstable = 10/0;
-                policy "placeholder"
-                permit
-                """;
-        assertThatThrownBy(() -> SaplCompiler.compile(source, context)).isInstanceOf(SaplCompilerException.class)
-                .hasMessageContaining("error");
-    }
-
-    // ==========================================================================
-    // Transformation Error Tests
-    // ==========================================================================
-
-    @Test
-    void whenTransformationAlwaysError_thenThrowsCompilationError() {
-        val source = """
-                policy "cursed transformation"
-                permit
-                transform 10/0
-                """;
-        assertThatThrownBy(() -> SaplCompiler.compile(source, context)).isInstanceOf(SaplCompilerException.class)
-                .hasMessageContaining("Transformation always evaluates to error");
     }
 
     // ==========================================================================
@@ -562,31 +429,18 @@ class SaplCompilerTests {
     }
 
     // ==========================================================================
-    // Parse Error Handling Tests
+    // Entitlement Conversion Tests (parameterized)
     // ==========================================================================
 
-    @Test
-    void whenInvalidSyntax_thenThrowsCompilationError() {
-        val source = """
-                policy "broken syntax
-                permit
-                """;
-        assertThatThrownBy(() -> SaplCompiler.compile(source, context)).isInstanceOf(SaplCompilerException.class)
-                .hasMessageContaining("parse");
+    static Stream<Arguments> entitlementConversionCases() {
+        return Stream.of(arguments("permit converts to PERMIT", "permit", Decision.PERMIT),
+                arguments("deny converts to DENY", "deny", Decision.DENY));
     }
 
-    // ==========================================================================
-    // Entitlement Conversion Tests
-    // ==========================================================================
-
-    @Test
-    void whenPermitEntitlement_thenConvertsToPermitDecision() {
-        assertThat(SaplCompiler.decisionOf(parseEntitlement("permit"))).isEqualTo(Decision.PERMIT);
-    }
-
-    @Test
-    void whenDenyEntitlement_thenConvertsToDenyDecision() {
-        assertThat(SaplCompiler.decisionOf(parseEntitlement("deny"))).isEqualTo(Decision.DENY);
+    @ParameterizedTest(name = "{0}")
+    @MethodSource("entitlementConversionCases")
+    void whenEntitlement_thenConvertsToExpectedDecision(String description, String entitlement, Decision expected) {
+        assertThat(SaplCompiler.decisionOf(parseEntitlement(entitlement))).isEqualTo(expected);
     }
 
     // ==========================================================================

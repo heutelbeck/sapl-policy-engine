@@ -742,11 +742,6 @@ public class SaplCompiler {
         return compiledBody;
     }
 
-    private static int getLineNumber(ParserRuleContext astNode) {
-        val location = SourceLocationUtil.fromContext(astNode);
-        return location != null ? location.line() : 0;
-    }
-
     private static CompiledExpression wrapWithCoverageRecording(CompiledExpression expression, int statementId,
             SourceLocation location, CoverageRecorder recorder) {
         if (expression instanceof Value value) {

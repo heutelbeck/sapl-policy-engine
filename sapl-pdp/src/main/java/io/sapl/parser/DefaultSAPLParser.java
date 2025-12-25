@@ -17,8 +17,6 @@
  */
 package io.sapl.parser;
 
-import static io.sapl.compiler.StringsUtil.unquoteString;
-
 import io.sapl.grammar.antlr.SAPLLexer;
 import io.sapl.grammar.antlr.SAPLParser.PolicyOnlyElementContext;
 import io.sapl.grammar.antlr.SAPLParser.PolicySetElementContext;
@@ -26,11 +24,7 @@ import io.sapl.grammar.antlr.SAPLParser.SaplContext;
 import io.sapl.grammar.antlr.validation.SAPLValidator;
 import io.sapl.grammar.antlr.validation.ValidationError;
 import lombok.val;
-import org.antlr.v4.runtime.BaseErrorListener;
-import org.antlr.v4.runtime.CharStreams;
-import org.antlr.v4.runtime.CommonTokenStream;
-import org.antlr.v4.runtime.RecognitionException;
-import org.antlr.v4.runtime.Recognizer;
+import org.antlr.v4.runtime.*;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -38,6 +32,8 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
+
+import static io.sapl.compiler.StringsUtil.unquoteString;
 
 /**
  * Default implementation of SAPLParser using ANTLR4.
@@ -142,7 +138,7 @@ public class DefaultSAPLParser implements SAPLParser {
 
         val messages = new ArrayList<String>();
         messages.addAll(syntaxErrors);
-        messages.addAll(validationErrors.stream().map(ValidationError::toString).collect(Collectors.toList()));
+        messages.addAll(validationErrors.stream().map(ValidationError::toString).toList());
 
         return String.join("; ", messages);
     }
@@ -150,9 +146,6 @@ public class DefaultSAPLParser implements SAPLParser {
     private String readInputStream(InputStream inputStream) {
         try {
             val bytes = inputStream.readAllBytes();
-            if (bytes == null) {
-                throw new SaplParserException("Failed to read input stream: null bytes");
-            }
             return new String(bytes, StandardCharsets.UTF_8);
         } catch (IOException | NullPointerException exception) {
             throw new SaplParserException("Failed to read input stream", exception);

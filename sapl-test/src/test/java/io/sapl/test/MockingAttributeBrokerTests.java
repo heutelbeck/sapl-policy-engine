@@ -20,6 +20,8 @@ package io.sapl.test;
 import io.sapl.api.attributes.AttributeBroker;
 import io.sapl.api.attributes.AttributeFinderInvocation;
 import io.sapl.api.model.Value;
+import io.sapl.test.verification.MockVerificationException;
+import io.sapl.test.verification.Times;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
@@ -32,20 +34,13 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
-import static io.sapl.test.Matchers.any;
-import static io.sapl.test.Matchers.anyText;
-import static io.sapl.test.Matchers.args;
-import static io.sapl.test.Matchers.eq;
-import static io.sapl.test.verification.Times.atLeast;
+import static io.sapl.test.Matchers.*;
 import static io.sapl.test.verification.Times.once;
 import static io.sapl.test.verification.Times.times;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.when;
-
-import io.sapl.test.verification.MockVerificationException;
-import io.sapl.test.verification.Times;
 
 class MockingAttributeBrokerTests {
 
@@ -643,7 +638,7 @@ class MockingAttributeBrokerTests {
         broker.attributeStream(envInvocation("seq.test1", List.of())).blockFirst();
 
         var invocations = broker.getInvocations();
-        assertThat(invocations.get(0).sequenceNumber()).isEqualTo(0);
+        assertThat(invocations.get(0).sequenceNumber()).isZero();
         assertThat(invocations.get(1).sequenceNumber()).isEqualTo(1);
         assertThat(invocations.get(2).sequenceNumber()).isEqualTo(2);
     }

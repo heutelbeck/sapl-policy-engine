@@ -183,6 +183,9 @@ jobs:
             **/target/classes
             **/target/test-classes
             .git
+            !.git/config
+            !.git/credentials
+            !.git/**/config
             **/target/site/jacoco/jacoco.xml
             **/target/spotbugsXml.xml
             pr_data.txt

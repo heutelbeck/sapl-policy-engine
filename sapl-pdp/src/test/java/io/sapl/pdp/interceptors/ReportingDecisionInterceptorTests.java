@@ -17,8 +17,6 @@
  */
 package io.sapl.pdp.interceptors;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.Decision;
@@ -36,12 +34,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 @DisplayName("ReportingDecisionInterceptor")
 class ReportingDecisionInterceptorTests {
 
-    private static final ObjectMapper MAPPER = new ObjectMapper();
-
     @Test
     @DisplayName("returns highest priority to execute last")
     void whenGetPriority_thenReturnsMaxValue() {
-        val interceptor = new ReportingDecisionInterceptor(MAPPER, false, false, false, false);
+        val interceptor = new ReportingDecisionInterceptor(false, false, false, false);
 
         assertThat(interceptor.getPriority()).isEqualTo(Integer.MAX_VALUE);
     }
@@ -49,7 +45,7 @@ class ReportingDecisionInterceptorTests {
     @Test
     @DisplayName("passes through traced decision unchanged when all logging disabled")
     void whenApplyWithAllLoggingDisabled_thenTracedDecisionIsPassedThrough() {
-        val interceptor    = new ReportingDecisionInterceptor(MAPPER, false, false, false, false);
+        val interceptor    = new ReportingDecisionInterceptor(false, false, false, false);
         val tracedDecision = createTracedDecision(Decision.PERMIT);
 
         val result = interceptor.apply(tracedDecision);
@@ -60,7 +56,7 @@ class ReportingDecisionInterceptorTests {
     @Test
     @DisplayName("passes through traced decision unchanged when trace logging enabled")
     void whenApplyWithTraceLogging_thenTracedDecisionIsPassedThrough() {
-        val interceptor    = new ReportingDecisionInterceptor(MAPPER, false, true, false, false);
+        val interceptor    = new ReportingDecisionInterceptor(false, true, false, false);
         val tracedDecision = createTracedDecision(Decision.PERMIT);
 
         val result = interceptor.apply(tracedDecision);
@@ -71,7 +67,7 @@ class ReportingDecisionInterceptorTests {
     @Test
     @DisplayName("passes through traced decision unchanged when JSON report enabled")
     void whenApplyWithJsonReport_thenTracedDecisionIsPassedThrough() {
-        val interceptor    = new ReportingDecisionInterceptor(MAPPER, false, false, true, false);
+        val interceptor    = new ReportingDecisionInterceptor(false, false, true, false);
         val tracedDecision = createTracedDecision(Decision.DENY);
 
         val result = interceptor.apply(tracedDecision);
@@ -82,7 +78,7 @@ class ReportingDecisionInterceptorTests {
     @Test
     @DisplayName("passes through traced decision unchanged when text report enabled")
     void whenApplyWithTextReport_thenTracedDecisionIsPassedThrough() {
-        val interceptor    = new ReportingDecisionInterceptor(MAPPER, false, false, false, true);
+        val interceptor    = new ReportingDecisionInterceptor(false, false, false, true);
         val tracedDecision = createTracedDecision(Decision.INDETERMINATE);
 
         val result = interceptor.apply(tracedDecision);
@@ -93,7 +89,7 @@ class ReportingDecisionInterceptorTests {
     @Test
     @DisplayName("passes through traced decision unchanged when all logging enabled")
     void whenApplyWithAllLoggingEnabled_thenTracedDecisionIsPassedThrough() {
-        val interceptor    = new ReportingDecisionInterceptor(MAPPER, true, true, true, true);
+        val interceptor    = new ReportingDecisionInterceptor(true, true, true, true);
         val tracedDecision = createTracedDecision(Decision.PERMIT);
 
         val result = interceptor.apply(tracedDecision);
@@ -104,7 +100,7 @@ class ReportingDecisionInterceptorTests {
     @Test
     @DisplayName("implements TracedDecisionInterceptor interface")
     void whenCreated_thenImplementsInterface() {
-        val interceptor = new ReportingDecisionInterceptor(MAPPER, false, false, false, false);
+        val interceptor = new ReportingDecisionInterceptor(false, false, false, false);
 
         assertThat(interceptor).isInstanceOf(TracedDecisionInterceptor.class);
     }
@@ -112,7 +108,7 @@ class ReportingDecisionInterceptorTests {
     @Test
     @DisplayName("handles modified traced decision")
     void whenApplyWithModifiedDecision_thenNoException() {
-        val interceptor    = new ReportingDecisionInterceptor(MAPPER, false, false, false, true);
+        val interceptor    = new ReportingDecisionInterceptor(false, false, false, true);
         val tracedDecision = createTracedDecision(Decision.PERMIT).modified(AuthorizationDecision.DENY,
                 "The stars are not right");
 
@@ -125,7 +121,7 @@ class ReportingDecisionInterceptorTests {
     @Test
     @DisplayName("has correct comparison ordering based on priority")
     void whenComparedWithOtherInterceptor_thenOrderedByPriority() {
-        val reportingInterceptor     = new ReportingDecisionInterceptor(MAPPER, false, false, false, false);
+        val reportingInterceptor     = new ReportingDecisionInterceptor(false, false, false, false);
         val lowerPriorityInterceptor = new TracedDecisionInterceptor() {
                                          @Override
                                          public TracedDecision apply(TracedDecision tracedDecision) {

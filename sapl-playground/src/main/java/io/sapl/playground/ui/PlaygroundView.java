@@ -1103,7 +1103,7 @@ public class PlaygroundView extends Composite<VerticalLayout> {
 
         val reportBuilder = new StringBuilder();
         for (var error : errors) {
-            reportBuilder.append("- ").append(error).append("\n");
+            reportBuilder.append("- ").append(error).append('\n');
         }
         return reportBuilder.toString();
     }

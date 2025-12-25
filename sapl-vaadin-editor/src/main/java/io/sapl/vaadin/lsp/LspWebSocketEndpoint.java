@@ -30,6 +30,7 @@ import org.eclipse.lsp4j.jsonrpc.Launcher;
 import org.eclipse.lsp4j.launch.LSPLauncher;
 import org.eclipse.lsp4j.services.LanguageClient;
 import org.jspecify.annotations.NonNull;
+import org.springframework.beans.factory.DisposableBean;
 import org.springframework.web.socket.CloseStatus;
 import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
@@ -44,7 +45,7 @@ import lombok.extern.slf4j.Slf4j;
  * Each WebSocket connection gets its own LSP server instance.
  */
 @Slf4j
-public class LspWebSocketEndpoint extends TextWebSocketHandler {
+public class LspWebSocketEndpoint extends TextWebSocketHandler implements DisposableBean {
 
     // ==================== LSP Protocol Constants ====================
     private static final String LSP_CONTENT_LENGTH_HEADER = "content-length:";
@@ -58,20 +59,44 @@ public class LspWebSocketEndpoint extends TextWebSocketHandler {
     private final ExecutorService executor = Executors.newCachedThreadPool();
 
     @Override
+    public void destroy() {
+        executor.shutdownNow();
+    }
+
+    private static void closeQuietly(java.io.Closeable closeable) {
+        if (closeable != null) {
+            try {
+                closeable.close();
+            } catch (IOException e) {
+                // Ignore
+            }
+        }
+    }
+
+    @Override
     public void afterConnectionEstablished(WebSocketSession session) throws Exception {
         log.info("LSP WebSocket connection established: {}", session.getId());
 
-        // Create pipes for LSP communication
-        var clientToServer = new PipedOutputStream();
-        var serverInput    = new PipedInputStream(clientToServer);
-        var serverToClient = new WebSocketOutputStream(session);
+        PipedOutputStream clientToServer = null;
+        PipedInputStream  serverInput    = null;
+        try {
+            // Create pipes for LSP communication
+            clientToServer = new PipedOutputStream();
+            serverInput    = new PipedInputStream(clientToServer);
+            var serverToClient = new WebSocketOutputStream(session);
 
-        // Store streams in session for cleanup
-        session.getAttributes().put(SESSION_KEY_CLIENT_TO_SERVER, clientToServer);
-        session.getAttributes().put(SESSION_KEY_SERVER_INPUT, serverInput);
+            // Store streams in session for cleanup
+            session.getAttributes().put(SESSION_KEY_CLIENT_TO_SERVER, clientToServer);
+            session.getAttributes().put(SESSION_KEY_SERVER_INPUT, serverInput);
 
-        // Create and start LSP server in background
-        executor.submit(() -> startLspServer(session, serverInput, serverToClient));
+            // Create and start LSP server in background
+            var finalServerInput = serverInput;
+            executor.submit(() -> startLspServer(session, finalServerInput, serverToClient));
+        } catch (Exception e) {
+            closeQuietly(serverInput);
+            closeQuietly(clientToServer);
+            throw e;
+        }
     }
 
     @Override
@@ -254,15 +279,21 @@ public class LspWebSocketEndpoint extends TextWebSocketHandler {
         }
 
         private static int indexOf(byte[] data, byte[] pattern) {
-            outer: for (int i = 0; i <= data.length - pattern.length; i++) {
-                for (int j = 0; j < pattern.length; j++) {
-                    if (data[i + j] != pattern[j]) {
-                        continue outer;
-                    }
+            for (int i = 0; i <= data.length - pattern.length; i++) {
+                if (matchesAt(data, pattern, i)) {
+                    return i;
                 }
-                return i;
             }
             return -1;
+        }
+
+        private static boolean matchesAt(byte[] data, byte[] pattern, int offset) {
+            for (int j = 0; j < pattern.length; j++) {
+                if (data[offset + j] != pattern[j]) {
+                    return false;
+                }
+            }
+            return true;
         }
 
         private static int parseContentLength(String header) {

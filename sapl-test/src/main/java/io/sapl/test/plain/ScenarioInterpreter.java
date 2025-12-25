@@ -567,13 +567,9 @@ public class ScenarioInterpreter {
         case HasObligationOrAdviceMatcherContext hasCtx ->
             // with obligation|advice [equals|matching|containing key ...]
             // Use predicate to check constraints regardless of decision type
-            decisionResult.expectDecisionMatches(decision -> {
-                if (decision == null) {
-                    return false;
-                }
-                // TODO: Apply extended matcher constraints from hasCtx.extendedMatcher
-                return true; // For now, just check non-null
-            });
+            // TODO: Apply extended matcher constraints from hasCtx.extendedMatcher
+            // For now, just check non-null
+            decisionResult.expectDecisionMatches(Objects::nonNull);
         case HasResourceMatcherContext resCtx -> {
             // with resource [equals|matching]
             if (resCtx.defaultMatcher != null) {
@@ -633,27 +629,26 @@ public class ScenarioInterpreter {
     private boolean matchesSingleMatcher(io.sapl.api.pdp.AuthorizationDecision decision,
             AuthorizationDecisionMatcherContext ctx) {
         return switch (ctx) {
-        case AnyDecisionMatcherContext __           -> true;
-        case IsDecisionMatcherContext isCtx         -> {
+        case AnyDecisionMatcherContext ignored           -> true;
+        case IsDecisionMatcherContext isCtx              -> {
             var expectedDecision = parseDecisionType(isCtx.decision);
             yield decision.decision() == expectedDecision;
         }
-        case HasObligationOrAdviceMatcherContext __ -> {
+        case HasObligationOrAdviceMatcherContext ignored -> {
             // TODO: Apply extended matcher constraints
             // For now, just check that obligations/advice exist if required
             yield true;
         }
-        case HasResourceMatcherContext resCtx       -> {
-            if (resCtx.defaultMatcher != null) {
-                if (resCtx.defaultMatcher instanceof ExactMatchObjectMatcherContext exactCtx) {
-                    var expected = ValueConverter.convert(exactCtx.equalTo);
-                    yield expected.equals(decision.resource());
-                }
+        case HasResourceMatcherContext resCtx            -> {
+            if (resCtx.defaultMatcher instanceof ExactMatchObjectMatcherContext exactCtx) {
+                var expected = ValueConverter.convert(exactCtx.equalTo);
+                yield expected.equals(decision.resource());
             }
+
             // Just check resource is present
             yield true;
         }
-        default                                     ->
+        default                                          ->
             throw new IllegalArgumentException("Unknown matcher type: " + ctx.getClass().getSimpleName());
         };
     }

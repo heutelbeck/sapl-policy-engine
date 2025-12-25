@@ -17,8 +17,6 @@
  */
 package io.sapl.pdp.interceptors;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-
 import io.sapl.api.model.ArrayValue;
 import io.sapl.api.model.ObjectValue;
 import io.sapl.api.model.Value;
@@ -31,8 +29,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 @DisplayName("ReportTextRenderUtil")
 class ReportTextRenderUtilTests {
-
-    private static final ObjectMapper MAPPER = new ObjectMapper();
 
     @Test
     @DisplayName("renders decision in text report")

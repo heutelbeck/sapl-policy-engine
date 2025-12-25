@@ -31,5 +31,23 @@ enum Nature {
     /** Requires evaluation context but produces a single value synchronously. */
     PURE,
     /** Requires reactive subscription. Produces zero or more values over time. */
-    STREAM
+    STREAM;
+
+    /**
+     * Determines the nature from boolean flags.
+     * Stream takes precedence over pure, which takes precedence over value.
+     *
+     * @param isStream true if any component is a stream
+     * @param isPure true if any component is a pure expression
+     * @return the appropriate Nature
+     */
+    static Nature from(boolean isStream, boolean isPure) {
+        if (isStream) {
+            return STREAM;
+        }
+        if (isPure) {
+            return PURE;
+        }
+        return VALUE;
+    }
 }
