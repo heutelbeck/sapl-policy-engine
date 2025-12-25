@@ -17,6 +17,7 @@
  */
 package io.sapl.test.plain;
 
+import io.sapl.api.model.NullValue;
 import io.sapl.api.model.ObjectValue;
 import io.sapl.api.model.TextValue;
 import io.sapl.test.MockingFunctionBroker.ArgumentMatcher;
@@ -58,7 +59,7 @@ class MatcherConverter {
      * @return list of ArgumentMatchers
      */
     static List<ArgumentMatcher> convertAll(List<ValMatcherContext> matchers) {
-        List<ArgumentMatcher> result = new ArrayList<>();
+        List<ArgumentMatcher> result = new ArrayList<>(matchers.size());
         for (var matcher : matchers) {
             result.add(convert(matcher));
         }
@@ -82,33 +83,27 @@ class MatcherConverter {
     }
 
     private static ArgumentMatcher convertTextMatcher(TextMatcherContext ctx) {
-        var stringOrMatcher = ctx.stringOrStringMatcher();
-        if (stringOrMatcher == null) {
-            // Just "text" - matches any text
-            return anyText();
-        }
-        if (stringOrMatcher instanceof PlainStringMatcherContext plain) {
-            // text "expected"
+        return switch (ctx.stringOrStringMatcher()) {
+        case null                                -> anyText();
+        case PlainStringMatcherContext plain     -> {
             var expected = unquoteString(plain.text.getText());
-            return matching(v -> v instanceof TextValue t && t.value().equals(expected));
+            yield matching(v -> v instanceof TextValue t && t.value().equals(expected));
         }
-        if (stringOrMatcher instanceof ComplexStringMatcherContext complex) {
-            return convertStringMatcher(complex.stringMatcher());
-        }
-        throw new IllegalArgumentException(
-                "Unknown stringOrStringMatcher type: " + stringOrMatcher.getClass().getSimpleName());
+        case ComplexStringMatcherContext complex -> convertStringMatcher(complex.stringMatcher());
+        default                                  -> throw new IllegalArgumentException(
+                "Unknown stringOrStringMatcher type: " + ctx.stringOrStringMatcher().getClass().getSimpleName());
+        };
     }
 
     private static ArgumentMatcher convertStringMatcher(StringMatcherContext ctx) {
         return switch (ctx) {
-        case StringIsNullContext ignored                    ->
-            matching(v -> v instanceof TextValue t && t.value() == null);
+        case StringIsNullContext ignored                    -> isNull();
         case StringIsBlankContext ignored                   -> textIsBlank();
         case StringIsEmptyContext ignored                   -> textIsEmpty();
         case StringIsNullOrEmptyContext ignored             ->
-            matching(v -> v instanceof TextValue t && (t.value() == null || t.value().isEmpty()));
+            matching(v -> v instanceof NullValue || (v instanceof TextValue t && t.value().isEmpty()));
         case StringIsNullOrBlankContext ignored             ->
-            matching(v -> v instanceof TextValue t && (t.value() == null || t.value().isBlank()));
+            matching(v -> v instanceof NullValue || (v instanceof TextValue t && t.value().isBlank()));
         case StringEqualCompressedWhitespaceContext compCtx -> {
             var expected = unquoteString(compCtx.matchValue.getText());
             yield textEqualsCompressingWhitespace(expected);

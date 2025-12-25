@@ -144,9 +144,10 @@ public class JUnitTestAdapter {
                 .withDefaultAlgorithm(getDefaultCombiningAlgorithm());
 
         // Add function libraries from registrations
-        var registrations = getFixtureRegistrations();
-        if (registrations.containsKey(ImportType.STATIC_FUNCTION_LIBRARY)) {
-            for (var entry : registrations.get(ImportType.STATIC_FUNCTION_LIBRARY).entrySet()) {
+        var registrations     = getFixtureRegistrations();
+        var functionLibraries = registrations.get(ImportType.STATIC_FUNCTION_LIBRARY);
+        if (functionLibraries != null) {
+            for (var entry : functionLibraries.entrySet()) {
                 if (entry.getValue() instanceof Class<?> clazz) {
                     builder.withFunctionLibrary(clazz);
                 }
@@ -154,8 +155,9 @@ public class JUnitTestAdapter {
         }
 
         // Add PIPs from registrations
-        if (registrations.containsKey(ImportType.PIP)) {
-            for (var entry : registrations.get(ImportType.PIP).entrySet()) {
+        var pips = registrations.get(ImportType.PIP);
+        if (pips != null) {
+            for (var entry : pips.entrySet()) {
                 builder.withPolicyInformationPoint(entry.getValue());
             }
         }
@@ -214,10 +216,10 @@ public class JUnitTestAdapter {
             throw new AssertionFailedError(result.failureMessage());
         } else if (result.status() == TestStatus.ERROR) {
             if (result.failureCause() != null) {
-                throw new RuntimeException("Test execution error: " + result.failureCause().getMessage(),
+                throw new AssertionFailedError("Test execution error: " + result.failureCause().getMessage(),
                         result.failureCause());
             } else {
-                throw new RuntimeException("Test execution error: " + result.failureMessage());
+                throw new AssertionFailedError("Test execution error: " + result.failureMessage());
             }
         }
         // PASSED - test succeeds

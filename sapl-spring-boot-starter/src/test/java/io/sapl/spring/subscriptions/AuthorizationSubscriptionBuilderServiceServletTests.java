@@ -128,9 +128,9 @@ class AuthorizationSubscriptionBuilderServiceServletTests {
 
     private static class Provider<T> implements ObjectProvider<T> {
 
-        T o = null;
+        T o;
 
-        public Provider() {
+        Provider() {
         }
 
         public Provider(T o) {

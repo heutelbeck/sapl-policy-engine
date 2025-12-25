@@ -268,18 +268,15 @@ public class ScenarioInterpreter {
      * Parses a combining algorithm from grammar context.
      */
     private CombiningAlgorithm parseCombiningAlgorithm(CombiningAlgorithmContext ctx) {
-        if (ctx instanceof DenyOverridesAlgorithmContext) {
-            return CombiningAlgorithm.DENY_OVERRIDES;
-        } else if (ctx instanceof PermitOverridesAlgorithmContext) {
-            return CombiningAlgorithm.PERMIT_OVERRIDES;
-        } else if (ctx instanceof OnlyOneApplicableAlgorithmContext) {
-            return CombiningAlgorithm.ONLY_ONE_APPLICABLE;
-        } else if (ctx instanceof DenyUnlessPermitAlgorithmContext) {
-            return CombiningAlgorithm.DENY_UNLESS_PERMIT;
-        } else if (ctx instanceof PermitUnlessDenyAlgorithmContext) {
-            return CombiningAlgorithm.PERMIT_UNLESS_DENY;
-        }
-        throw new IllegalArgumentException("Unknown combining algorithm: " + ctx.getText());
+        return switch (ctx) {
+        case DenyOverridesAlgorithmContext ignored     -> CombiningAlgorithm.DENY_OVERRIDES;
+        case PermitOverridesAlgorithmContext ignored   -> CombiningAlgorithm.PERMIT_OVERRIDES;
+        case OnlyOneApplicableAlgorithmContext ignored -> CombiningAlgorithm.ONLY_ONE_APPLICABLE;
+        case DenyUnlessPermitAlgorithmContext ignored  -> CombiningAlgorithm.DENY_UNLESS_PERMIT;
+        case PermitUnlessDenyAlgorithmContext ignored  -> CombiningAlgorithm.PERMIT_UNLESS_DENY;
+        default                                        ->
+            throw new IllegalArgumentException("Unknown combining algorithm: " + ctx.getText());
+        };
     }
 
     /**
@@ -356,43 +353,50 @@ public class ScenarioInterpreter {
             var attrRef = attrMock.attributeReference();
 
             if (attrRef instanceof EnvironmentAttributeReferenceContext envAttr) {
-                // Environment attribute: <pip.attr> or <pip.attr("param")>
-                var attributeName = buildAttributeName(envAttr.attributeFullName);
-                var parameters    = buildAttributeParameters(envAttr.attributeParameters());
-
-                if (attrMock.initialValue != null) {
-                    var initialValue = ValueConverter.convertValueOrError(attrMock.initialValue);
-                    if (initialValue.isError()) {
-                        var errorMessage = initialValue.errorMessage() != null ? initialValue.errorMessage()
-                                : "Mock attribute error";
-                        fixture.givenEnvironmentAttribute(mockId, attributeName, parameters, Value.error(errorMessage));
-                    } else {
-                        fixture.givenEnvironmentAttribute(mockId, attributeName, parameters, initialValue.value());
-                    }
-                } else {
-                    fixture.givenEnvironmentAttribute(mockId, attributeName, parameters);
-                }
+                applyEnvironmentAttributeMock(fixture, mockId, envAttr, attrMock.initialValue);
             } else if (attrRef instanceof EntityAttributeReferenceContext entityAttr) {
-                // Entity attribute: any.<pip.attr> or {"id":1}.<pip.attr("param")>
-                var attributeName = buildAttributeName(entityAttr.attributeFullName);
-                var entityMatcher = MatcherConverter.convert(entityAttr.entityMatcher);
-                var parameters    = buildAttributeParameters(entityAttr.attributeParameters());
-
-                if (attrMock.initialValue != null) {
-                    var initialValue = ValueConverter.convertValueOrError(attrMock.initialValue);
-                    if (initialValue.isError()) {
-                        var errorMessage = initialValue.errorMessage() != null ? initialValue.errorMessage()
-                                : "Mock attribute error";
-                        fixture.givenAttribute(mockId, attributeName, entityMatcher, parameters,
-                                Value.error(errorMessage));
-                    } else {
-                        fixture.givenAttribute(mockId, attributeName, entityMatcher, parameters, initialValue.value());
-                    }
-                } else {
-                    fixture.givenAttribute(mockId, attributeName, entityMatcher, parameters);
-                }
+                applyEntityAttributeMock(fixture, mockId, entityAttr, attrMock.initialValue);
             }
         }
+    }
+
+    private void applyEnvironmentAttributeMock(SaplTestFixture fixture, String mockId,
+            EnvironmentAttributeReferenceContext envAttr, @Nullable ValueOrErrorContext initialValueCtx) {
+        var attributeName = buildAttributeName(envAttr.attributeFullName);
+        var parameters    = buildAttributeParameters(envAttr.attributeParameters());
+
+        if (initialValueCtx == null) {
+            fixture.givenEnvironmentAttribute(mockId, attributeName, parameters);
+            return;
+        }
+
+        var initialValue = resolveInitialValue(initialValueCtx);
+        fixture.givenEnvironmentAttribute(mockId, attributeName, parameters, initialValue);
+    }
+
+    private void applyEntityAttributeMock(SaplTestFixture fixture, String mockId,
+            EntityAttributeReferenceContext entityAttr, @Nullable ValueOrErrorContext initialValueCtx) {
+        var attributeName = buildAttributeName(entityAttr.attributeFullName);
+        var entityMatcher = MatcherConverter.convert(entityAttr.entityMatcher);
+        var parameters    = buildAttributeParameters(entityAttr.attributeParameters());
+
+        if (initialValueCtx == null) {
+            fixture.givenAttribute(mockId, attributeName, entityMatcher, parameters);
+            return;
+        }
+
+        var initialValue = resolveInitialValue(initialValueCtx);
+        fixture.givenAttribute(mockId, attributeName, entityMatcher, parameters, initialValue);
+    }
+
+    private Value resolveInitialValue(ValueOrErrorContext ctx) {
+        var valueOrError = ValueConverter.convertValueOrError(ctx);
+        if (valueOrError.isError()) {
+            var errorMessage = valueOrError.errorMessage() != null ? valueOrError.errorMessage()
+                    : "Mock attribute error";
+            return Value.error(errorMessage);
+        }
+        return valueOrError.value();
     }
 
     /**
@@ -453,22 +457,23 @@ public class ScenarioInterpreter {
      * Executes a single expectation.
      */
     private void executeExpectation(SaplTestFixture.DecisionResult decisionResult, ExpectationContext expectation) {
-        if (expectation instanceof SingleExpectationContext single) {
+        switch (expectation) {
+        case SingleExpectationContext single      -> {
             // expect permit|deny|... [with obligations ...] [with resource ...] [with
             // advice ...]
             var matcher = buildDecisionMatcher(single.authorizationDecision());
             decisionResult.expectDecisionMatches(matcher);
-
-        } else if (expectation instanceof MatcherExpectationContext matcherExp) {
+        }
+        case MatcherExpectationContext matcherExp ->
             // expect decision any, is permit, with obligation ..., etc.
-            // Combine all matchers into a single predicate that checks ONE decision
             applyCombinedMatchers(decisionResult, matcherExp.matchers);
-
-        } else if (expectation instanceof StreamExpectationContext streamExp) {
+        case StreamExpectationContext streamExp -> {
             // expect - permit once - deny 2 times - ...
             for (var expectStep : streamExp.expectStep()) {
                 executeExpectStep(decisionResult, expectStep);
             }
+        }
+        default                                 -> { /* NO-OP */ }
         }
     }
 
@@ -476,7 +481,8 @@ public class ScenarioInterpreter {
      * Executes a single expect step in stream expectations.
      */
     private void executeExpectStep(SaplTestFixture.DecisionResult decisionResult, ExpectStepContext step) {
-        if (step instanceof NextDecisionStepContext nextStep) {
+        switch (step) {
+        case NextDecisionStepContext nextStep           -> {
             // permit once, deny 2 times
             var decision = parseDecisionType(nextStep.expectedDecision);
             var times    = parseNumericAmount(nextStep.amount);
@@ -484,16 +490,16 @@ public class ScenarioInterpreter {
             for (int i = 0; i < times; i++) {
                 decisionResult.expectDecisionMatches(matcher);
             }
-
-        } else if (step instanceof NextWithDecisionStepContext nextWithStep) {
+        }
+        case NextWithDecisionStepContext nextWithStep   -> {
             // permit with obligation {...}
             var matcher = buildDecisionMatcher(nextWithStep.expectedDecision);
             decisionResult.expectDecisionMatches(matcher);
-
-        } else if (step instanceof NextWithMatcherStepContext nextMatcherStep) {
+        }
+        case NextWithMatcherStepContext nextMatcherStep ->
             // decision any, is permit, with obligation ...
-            // Combine all matchers into a single predicate that checks ONE decision
             applyCombinedMatchers(decisionResult, nextMatcherStep.matchers);
+        default -> { /* NO-OP */ }
         }
     }
 
@@ -669,28 +675,26 @@ public class ScenarioInterpreter {
      * Parses a decision type from grammar context.
      */
     private Decision parseDecisionType(AuthorizationDecisionTypeContext ctx) {
-        if (ctx instanceof PermitDecisionContext) {
-            return Decision.PERMIT;
-        } else if (ctx instanceof DenyDecisionContext) {
-            return Decision.DENY;
-        } else if (ctx instanceof IndeterminateDecisionContext) {
-            return Decision.INDETERMINATE;
-        } else if (ctx instanceof NotApplicableDecisionContext) {
-            return Decision.NOT_APPLICABLE;
-        }
-        throw new IllegalArgumentException("Unknown decision type: " + ctx.getText());
+        return switch (ctx) {
+        case PermitDecisionContext ignored        -> Decision.PERMIT;
+        case DenyDecisionContext ignored          -> Decision.DENY;
+        case IndeterminateDecisionContext ignored -> Decision.INDETERMINATE;
+        case NotApplicableDecisionContext ignored -> Decision.NOT_APPLICABLE;
+        default                                   ->
+            throw new IllegalArgumentException("Unknown decision type: " + ctx.getText());
+        };
     }
 
     /**
      * Parses a numeric amount from grammar context.
      */
     private int parseNumericAmount(NumericAmountContext ctx) {
-        if (ctx instanceof OnceAmountContext) {
-            return 1;
-        } else if (ctx instanceof MultipleAmountContext multiple) {
-            return Integer.parseInt(multiple.amount.getText());
-        }
-        throw new IllegalArgumentException("Unknown amount type: " + ctx.getText());
+        return switch (ctx) {
+        case OnceAmountContext ignored      -> 1;
+        case MultipleAmountContext multiple -> Integer.parseInt(multiple.amount.getText());
+        default                             ->
+            throw new IllegalArgumentException("Unknown amount type: " + ctx.getText());
+        };
     }
 
     /**
@@ -698,18 +702,17 @@ public class ScenarioInterpreter {
      */
     private void executeVerifyBlock(SaplTestFixture fixture, VerifyBlockContext verifyBlock) {
         for (var verifyStep : verifyBlock.verifyStep()) {
-            if (verifyStep instanceof FunctionVerificationContext funcVerify) {
+            switch (verifyStep) {
+            case FunctionVerificationContext funcVerify -> {
                 var functionName = buildFunctionName(funcVerify.functionFullName);
                 var parameters   = buildFunctionParameters(funcVerify.functionParameters());
                 var times        = buildTimes(funcVerify.timesCalled);
                 fixture.getMockingFunctionBroker().verify(functionName, parameters, times);
-
-            } else if (verifyStep instanceof AttributeVerificationContext attrVerify) {
-                var attrRef = attrVerify.attributeReference();
-                var times   = buildTimes(attrVerify.timesCalled);
-
+            }
+            case AttributeVerificationContext ignored   -> {
                 // TODO: Implement attribute verification in MockingAttributeBroker
-                // For now, just skip attribute verification
+            }
+            default                                     -> { /* NO-OP */ }
             }
         }
     }
@@ -732,19 +735,17 @@ public class ScenarioInterpreter {
         CombiningAlgorithmContext    combiningAlgorithm;
         @Nullable
         VariablesDefinitionContext   variables;
-        @Nullable
-        EnvironmentContext           environment;
         List<FunctionMockContext>    functionMocks  = new ArrayList<>();
         List<AttributeMockContext>   attributeMocks = new ArrayList<>();
 
         void addItem(GivenItemContext item, boolean isScenarioLevel) {
-            if (item instanceof DocumentGivenItemContext docItem) {
+            switch (item) {
+            case DocumentGivenItemContext docItem  -> {
                 // Only reject single document ('document') at scenario level - unit tests
-                // should
-                // have document at requirement level. Multiple documents ('documents') are
-                // allowed
-                // at scenario level for integration tests where different scenarios may test
-                // different document combinations.
+                // should have
+                // document at requirement level. Multiple documents ('documents') are allowed
+                // at
+                // scenario level for integration tests with different document combinations.
                 if (isScenarioLevel && docItem.documentSpecification() instanceof SingleDocumentContext) {
                     throw new TestValidationException(
                             "Document specification ('document') for unit tests must be in the requirement-level given block, "
@@ -752,23 +753,19 @@ public class ScenarioInterpreter {
                                     + "For integration tests with different document combinations per scenario, use 'documents' instead.");
                 }
                 this.documentSpecification = docItem.documentSpecification();
-            } else if (item instanceof AlgorithmGivenItemContext algItem) {
-                // Scenario-level algorithm also adds to merged - validation happens later
-                this.combiningAlgorithm = algItem.combiningAlgorithm();
-            } else if (item instanceof VariablesGivenItemContext varItem) {
-                // Scenario-level variables override requirement-level
-                this.variables = varItem.variablesDefinition();
-            } else if (item instanceof EnvironmentGivenItemContext envItem) {
-                // Scenario-level environment overrides requirement-level
-                this.environment = envItem.environment();
-            } else if (item instanceof MockGivenItemContext mockItem) {
-                // Mocks are additive (both levels combined)
-                var mockDef = mockItem.mockDefinition();
-                if (mockDef instanceof FunctionMockContext funcMock) {
-                    functionMocks.add(funcMock);
-                } else if (mockDef instanceof AttributeMockContext attrMock) {
-                    attributeMocks.add(attrMock);
-                }
+            }
+            case AlgorithmGivenItemContext algItem -> this.combiningAlgorithm = algItem.combiningAlgorithm();
+            case VariablesGivenItemContext varItem -> this.variables = varItem.variablesDefinition();
+            case MockGivenItemContext mockItem     -> addMock(mockItem.mockDefinition());
+            default                                -> { /* NO-OP */ }
+            }
+        }
+
+        private void addMock(MockDefinitionContext mockDef) {
+            switch (mockDef) {
+            case FunctionMockContext funcMock  -> functionMocks.add(funcMock);
+            case AttributeMockContext attrMock -> attributeMocks.add(attrMock);
+            default                            -> { /* NO-OP */ }
             }
         }
     }

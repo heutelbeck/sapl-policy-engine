@@ -30,7 +30,7 @@
 
     <artifactId>sapl-vaadin-editor</artifactId>
 
-    <name>SAPL Vaadin Code Editors (LSP)</name>
+    <name>SAPL Vaadin Code Editors</name>
 
     <description>SAPL Editor Components for Vaadin using CodeMirror 6 and Language Server Protocol</description>
 

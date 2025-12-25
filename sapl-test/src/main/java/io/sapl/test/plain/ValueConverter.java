@@ -74,8 +74,9 @@ class ValueConverter {
      * Converts an object value context to a SAPL Value.
      */
     static Value convertObject(ObjectValueContext ctx) {
-        Map<String, Value> map = new LinkedHashMap<>();
-        for (var pair : ctx.pair()) {
+        var                pairs = ctx.pair();
+        Map<String, Value> map   = new LinkedHashMap<>(pairs.size());
+        for (var pair : pairs) {
             var key   = unquoteString(pair.key.getText());
             var value = convert(pair.pairValue);
             map.put(key, value);
@@ -87,8 +88,9 @@ class ValueConverter {
      * Converts an object value context to a Map.
      */
     static Map<String, Value> convertObjectToMap(ObjectValueContext ctx) {
-        Map<String, Value> map = new LinkedHashMap<>();
-        for (var pair : ctx.pair()) {
+        var                pairs = ctx.pair();
+        Map<String, Value> map   = new LinkedHashMap<>(pairs.size());
+        for (var pair : pairs) {
             var key   = unquoteString(pair.key.getText());
             var value = convert(pair.pairValue);
             map.put(key, value);
@@ -100,7 +102,7 @@ class ValueConverter {
      * Converts an array value context to a SAPL Value.
      */
     static Value convertArray(ArrayValueContext ctx) {
-        List<Value> items = new ArrayList<>();
+        List<Value> items = new ArrayList<>(ctx.items.size());
         for (var item : ctx.items) {
             items.add(convert(item));
         }
