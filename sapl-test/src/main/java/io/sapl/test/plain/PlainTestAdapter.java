@@ -70,11 +70,10 @@ public class PlainTestAdapter {
      */
     public PlainTestResults execute(@NonNull TestConfiguration config) {
         var lastEvent = executeReactive(config).blockLast();
-        if (lastEvent instanceof ExecutionCompleted completed) {
-            return completed.results();
-        }
-        // Should not happen, but return empty results if it does
-        return PlainTestResults.from(List.of(), Map.of());
+        return switch (lastEvent) {
+        case ExecutionCompleted(var results) -> results;
+        case null, default                   -> PlainTestResults.from(List.of(), Map.of());
+        };
     }
 
     /**

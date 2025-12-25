@@ -298,23 +298,27 @@ public class ReportCoverageInformationMojo extends AbstractMojo {
      */
     private void populatePolicySources(java.util.Collection<PolicyCoverageData> policies, Path projectBaseDir) {
         for (val policy : policies) {
-            if (policy.getDocumentSource() != null && !policy.getDocumentSource().isEmpty()) {
-                continue;
-            }
+            populatePolicySource(policy, projectBaseDir);
+        }
+    }
 
-            val filePath = policy.getFilePath();
-            if (filePath == null || filePath.isEmpty()) {
-                getLog().debug("No file path for policy: " + policy.getDocumentName());
-                continue;
-            }
+    private void populatePolicySource(PolicyCoverageData policy, Path projectBaseDir) {
+        if (policy.getDocumentSource() != null && !policy.getDocumentSource().isEmpty()) {
+            return;
+        }
 
-            val source = tryReadPolicySource(projectBaseDir, filePath);
-            if (source != null) {
-                policy.setDocumentSource(source);
-                getLog().debug("Loaded source for: " + policy.getDocumentName());
-            } else {
-                getLog().debug("Source file not found for: " + policy.getDocumentName());
-            }
+        val filePath = policy.getFilePath();
+        if (filePath == null || filePath.isEmpty()) {
+            getLog().debug("No file path for policy: " + policy.getDocumentName());
+            return;
+        }
+
+        val source = tryReadPolicySource(projectBaseDir, filePath);
+        if (source != null) {
+            policy.setDocumentSource(source);
+            getLog().debug("Loaded source for: " + policy.getDocumentName());
+        } else {
+            getLog().debug("Source file not found for: " + policy.getDocumentName());
         }
     }
 

@@ -94,8 +94,11 @@ public class SonarQubeCoverageReportGenerator {
      * @throws IOException if reading or writing fails
      */
     public void generateToFile(Path outputPath) throws IOException {
-        val xml = generate();
-        Files.createDirectories(outputPath.getParent());
+        val xml    = generate();
+        val parent = outputPath.getParent();
+        if (parent != null) {
+            Files.createDirectories(parent);
+        }
         Files.writeString(outputPath, xml);
     }
 
@@ -129,57 +132,74 @@ public class SonarQubeCoverageReportGenerator {
         }
 
         for (val policy : policies) {
-            val documentName = getTextOrNull(policy, "documentName");
-            if (documentName == null) {
-                continue;
-            }
+            aggregatePolicy(policy, aggregated);
+        }
+    }
 
-            val sourceHash = getIntOrZero(policy, "sourceHash");
-            val uniqueKey  = documentName + "#" + sourceHash;
-            val coverage   = aggregated.computeIfAbsent(uniqueKey, key -> {
-                               val documentType = getTextOrDefault(policy);
-                               val filePath     = getTextOrNull(policy, "filePath");
-                               val data         = new PolicyCoverageData(documentName, "", documentType);
-                               data.setSourceHash(sourceHash);
-                               if (filePath != null) {
-                                   data.setFilePath(filePath);
-                               }
-                               return data;
-                           });
+    private void aggregatePolicy(JsonNode policy, Map<String, PolicyCoverageData> aggregated) {
+        val documentName = getTextOrNull(policy, "documentName");
+        if (documentName == null) {
+            return;
+        }
 
-            // Aggregate target hits
-            val targetTrueHits  = getIntOrZero(policy, "targetTrueHits");
-            val targetFalseHits = getIntOrZero(policy, "targetFalseHits");
-            for (var i = 0; i < targetTrueHits; i++) {
-                coverage.recordTargetHit(true);
-            }
-            for (var i = 0; i < targetFalseHits; i++) {
-                coverage.recordTargetHit(false);
-            }
+        val sourceHash = getIntOrZero(policy, "sourceHash");
+        val uniqueKey  = documentName + "#" + sourceHash;
+        val coverage   = aggregated.computeIfAbsent(uniqueKey,
+                key -> createPolicyCoverageData(policy, documentName, sourceHash));
 
-            // Aggregate branch hits
-            val branches = policy.get("branches");
-            if (branches != null && branches.isArray()) {
-                for (val branch : branches) {
-                    val statementId = getIntOrZero(branch, "statementId");
-                    val trueHits    = getIntOrZero(branch, "trueHits");
-                    val falseHits   = getIntOrZero(branch, "falseHits");
+        aggregateTargetHits(policy, coverage);
+        aggregateBranchHits(policy, coverage);
+    }
 
-                    // Support both new format (startLine/endLine) and legacy (line)
-                    val startLine = branch.has("startLine") ? getIntOrZero(branch, "startLine")
-                            : getIntOrZero(branch, "line");
-                    val endLine   = branch.has("endLine") ? getIntOrZero(branch, "endLine") : startLine;
-                    val startChar = getIntOrZero(branch, "startChar");
-                    val endChar   = getIntOrZero(branch, "endChar");
+    private PolicyCoverageData createPolicyCoverageData(JsonNode policy, String documentName, int sourceHash) {
+        val documentType = getTextOrDefault(policy);
+        val filePath     = getTextOrNull(policy, "filePath");
+        val data         = new PolicyCoverageData(documentName, "", documentType);
+        data.setSourceHash(sourceHash);
+        if (filePath != null) {
+            data.setFilePath(filePath);
+        }
+        return data;
+    }
 
-                    for (var i = 0; i < trueHits; i++) {
-                        coverage.recordConditionHit(statementId, startLine, endLine, startChar, endChar, true);
-                    }
-                    for (var i = 0; i < falseHits; i++) {
-                        coverage.recordConditionHit(statementId, startLine, endLine, startChar, endChar, false);
-                    }
-                }
-            }
+    private void aggregateTargetHits(JsonNode policy, PolicyCoverageData coverage) {
+        val targetTrueHits  = getIntOrZero(policy, "targetTrueHits");
+        val targetFalseHits = getIntOrZero(policy, "targetFalseHits");
+        for (var i = 0; i < targetTrueHits; i++) {
+            coverage.recordTargetHit(true);
+        }
+        for (var i = 0; i < targetFalseHits; i++) {
+            coverage.recordTargetHit(false);
+        }
+    }
+
+    private void aggregateBranchHits(JsonNode policy, PolicyCoverageData coverage) {
+        val branches = policy.get("branches");
+        if (branches == null || !branches.isArray()) {
+            return;
+        }
+
+        for (val branch : branches) {
+            aggregateBranch(branch, coverage);
+        }
+    }
+
+    private void aggregateBranch(JsonNode branch, PolicyCoverageData coverage) {
+        val statementId = getIntOrZero(branch, "statementId");
+        val trueHits    = getIntOrZero(branch, "trueHits");
+        val falseHits   = getIntOrZero(branch, "falseHits");
+
+        // Support both new format (startLine/endLine) and legacy (line)
+        val startLine = branch.has("startLine") ? getIntOrZero(branch, "startLine") : getIntOrZero(branch, "line");
+        val endLine   = branch.has("endLine") ? getIntOrZero(branch, "endLine") : startLine;
+        val startChar = getIntOrZero(branch, "startChar");
+        val endChar   = getIntOrZero(branch, "endChar");
+
+        for (var i = 0; i < trueHits; i++) {
+            coverage.recordConditionHit(statementId, startLine, endLine, startChar, endChar, true);
+        }
+        for (var i = 0; i < falseHits; i++) {
+            coverage.recordConditionHit(statementId, startLine, endLine, startChar, endChar, false);
         }
     }
 

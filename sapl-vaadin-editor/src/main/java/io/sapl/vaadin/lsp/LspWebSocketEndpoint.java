@@ -227,55 +227,68 @@ public class LspWebSocketEndpoint extends TextWebSocketHandler implements Dispos
             while (buffer.size() > 0) {
                 var data = buffer.toByteArray();
 
-                // Look for header separator
-                if (expectedLength < 0) {
-                    headerEndIndex = indexOf(data, HEADER_SEPARATOR);
-                    if (headerEndIndex < 0) {
-                        return; // Need more data
-                    }
-
-                    var header = new String(data, 0, headerEndIndex, StandardCharsets.UTF_8);
-                    expectedLength = parseContentLength(header);
-
-                    if (expectedLength < 0) {
-                        // Invalid header - discard up to separator and try again
-                        log.debug("Discarding invalid LSP header data");
-                        buffer.reset();
-                        buffer.write(data, headerEndIndex + SEPARATOR_LENGTH,
-                                data.length - headerEndIndex - SEPARATOR_LENGTH);
-                        headerEndIndex = -1;
-                        continue;
-                    }
+                if (!parseHeaderIfNeeded(data)) {
+                    return;
                 }
 
-                // Check if we have the full body
                 var bodyStart = headerEndIndex + SEPARATOR_LENGTH;
                 if (data.length < bodyStart + expectedLength) {
                     return; // Need more data
                 }
 
-                // Extract and send the JSON content
-                var jsonContent = new String(data, bodyStart, expectedLength, StandardCharsets.UTF_8);
-
-                if (session.isOpen()) {
-                    try {
-                        session.sendMessage(new TextMessage(jsonContent));
-                    } catch (IOException e) {
-                        log.error("Failed to send LSP response to WebSocket", e);
-                    }
-                } else {
-                    log.debug("Session closed, dropping LSP response");
-                }
-
-                // Remove processed message from buffer
-                var remaining = data.length - bodyStart - expectedLength;
-                buffer.reset();
-                if (remaining > 0) {
-                    buffer.write(data, bodyStart + expectedLength, remaining);
-                }
-                expectedLength = -1;
-                headerEndIndex = -1;
+                sendMessage(data, bodyStart);
+                removeProcessedMessage(data, bodyStart);
             }
+        }
+
+        private boolean parseHeaderIfNeeded(byte[] data) throws IOException {
+            if (expectedLength >= 0) {
+                return true;
+            }
+
+            headerEndIndex = indexOf(data, HEADER_SEPARATOR);
+            if (headerEndIndex < 0) {
+                return false;
+            }
+
+            var header = new String(data, 0, headerEndIndex, StandardCharsets.UTF_8);
+            expectedLength = parseContentLength(header);
+
+            if (expectedLength < 0) {
+                discardInvalidHeader(data);
+                return false;
+            }
+            return true;
+        }
+
+        private void discardInvalidHeader(byte[] data) throws IOException {
+            log.debug("Discarding invalid LSP header data");
+            buffer.reset();
+            buffer.write(data, headerEndIndex + SEPARATOR_LENGTH, data.length - headerEndIndex - SEPARATOR_LENGTH);
+            headerEndIndex = -1;
+        }
+
+        private void sendMessage(byte[] data, int bodyStart) {
+            var jsonContent = new String(data, bodyStart, expectedLength, StandardCharsets.UTF_8);
+            if (session.isOpen()) {
+                try {
+                    session.sendMessage(new TextMessage(jsonContent));
+                } catch (IOException e) {
+                    log.error("Failed to send LSP response to WebSocket", e);
+                }
+            } else {
+                log.debug("Session closed, dropping LSP response");
+            }
+        }
+
+        private void removeProcessedMessage(byte[] data, int bodyStart) throws IOException {
+            var remaining = data.length - bodyStart - expectedLength;
+            buffer.reset();
+            if (remaining > 0) {
+                buffer.write(data, bodyStart + expectedLength, remaining);
+            }
+            expectedLength = -1;
+            headerEndIndex = -1;
         }
 
         private static int indexOf(byte[] data, byte[] pattern) {

@@ -86,56 +86,63 @@ public class CoverageExtractor {
         val type         = getTextValue(docObj, TraceFields.TYPE);
         val source       = policySources.getOrDefault(name, "");
         val documentType = TraceFields.TYPE_SET.equals(type) ? "set" : "policy";
+        val coverage     = new PolicyCoverageData(name, source, documentType);
 
-        val coverage = new PolicyCoverageData(name, source, documentType);
+        extractTargetCoverage(docObj, coverage);
+        extractConditionsCoverage(docObj, coverage);
+        extractPolicyOutcome(docObj, coverage);
 
-        // Extract target result and position for policies
+        if (TraceFields.TYPE_SET.equals(type)) {
+            extractPolicySetCoverage(docObj, coverage);
+        }
+
+        return coverage;
+    }
+
+    private static void extractTargetCoverage(ObjectValue docObj, PolicyCoverageData coverage) {
         val targetStartLine = getIntValue(docObj, TraceFields.TARGET_START_LINE);
         val targetEndLine   = getIntValue(docObj, TraceFields.TARGET_END_LINE);
 
         val targetResult = docObj.get(TraceFields.TARGET_RESULT);
         if (targetResult instanceof BooleanValue targetBool) {
             coverage.recordTargetHit(targetBool.value(), targetStartLine, targetEndLine);
-        } else {
-            // Check target_match field (used for non-matching traces)
-            val targetMatch = docObj.get(TraceFields.TARGET_MATCH);
-            if (targetMatch instanceof BooleanValue matchBool) {
-                coverage.recordTargetHit(matchBool.value(), targetStartLine, targetEndLine);
-            }
+            return;
         }
 
-        // Extract condition hits from this document
+        val targetMatch = docObj.get(TraceFields.TARGET_MATCH);
+        if (targetMatch instanceof BooleanValue matchBool) {
+            coverage.recordTargetHit(matchBool.value(), targetStartLine, targetEndLine);
+        }
+    }
+
+    private static void extractConditionsCoverage(ObjectValue docObj, PolicyCoverageData coverage) {
         val conditions = docObj.get(TraceFields.CONDITIONS);
         if (conditions instanceof ArrayValue conditionsArray) {
             for (val condition : conditionsArray) {
                 extractConditionHit(condition, coverage);
             }
         }
+    }
 
-        // Extract policy outcome for policy-level coverage tracking
-        extractPolicyOutcome(docObj, coverage);
-
-        // For policy sets, merge coverage from nested policies into this set
-        if (TraceFields.TYPE_SET.equals(type)) {
-            var anyInnerPolicyMatched = false;
-            val policies              = docObj.get(TraceFields.POLICIES);
-            if (policies instanceof ArrayValue policiesArray) {
-                for (val nestedPolicy : policiesArray) {
-                    anyInnerPolicyMatched |= extractNestedPolicyCoverage(nestedPolicy, coverage);
-                }
-            }
-            // Policy sets don't have explicit targets - they're "hit" if any inner policy
-            // matched
-            if (!coverage.wasTargetEvaluated() && anyInnerPolicyMatched) {
-                coverage.recordTargetHit(true);
-            } else if (!coverage.wasTargetEvaluated()) {
-                // Set was evaluated but no inner policy matched
-                val decision = getTextValue(docObj, TraceFields.DECISION);
-                coverage.recordTargetHit(decision != null && !"NOT_APPLICABLE".equals(decision));
+    private static void extractPolicySetCoverage(ObjectValue docObj, PolicyCoverageData coverage) {
+        var anyInnerPolicyMatched = false;
+        val policies              = docObj.get(TraceFields.POLICIES);
+        if (policies instanceof ArrayValue policiesArray) {
+            for (val nestedPolicy : policiesArray) {
+                anyInnerPolicyMatched |= extractNestedPolicyCoverage(nestedPolicy, coverage);
             }
         }
 
-        return coverage;
+        if (coverage.wasTargetEvaluated()) {
+            return;
+        }
+
+        if (anyInnerPolicyMatched) {
+            coverage.recordTargetHit(true);
+        } else {
+            val decision = getTextValue(docObj, TraceFields.DECISION);
+            coverage.recordTargetHit(decision != null && !"NOT_APPLICABLE".equals(decision));
+        }
     }
 
     /**

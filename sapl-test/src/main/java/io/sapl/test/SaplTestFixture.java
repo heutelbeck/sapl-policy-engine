@@ -32,6 +32,7 @@ import io.sapl.attributes.InMemoryAttributeRepository;
 import io.sapl.functions.DefaultFunctionBroker;
 import io.sapl.functions.libraries.*;
 import io.sapl.pdp.PolicyDecisionPointBuilder;
+import io.sapl.pdp.PolicyDecisionPointBuilder.PDPComponents;
 import io.sapl.pdp.configuration.PDPConfigurationLoader;
 import io.sapl.pdp.configuration.bundle.BundleParser;
 import io.sapl.pdp.configuration.bundle.BundleSecurityPolicy;
@@ -746,78 +747,91 @@ public class SaplTestFixture {
         var effectiveClock  = clock != null ? clock : Clock.systemUTC();
         var pdpBuilder      = PolicyDecisionPointBuilder.withoutDefaults(effectiveMapper, effectiveClock);
 
-        // Build function broker delegate with registered libraries
+        configureFunctionBroker();
+        configureAttributeBroker(effectiveClock);
+        pdpBuilder.withPolicyInformationPoints(policyInformationPoints);
+
+        var effectivePolicies = resolvePolicies();
+        var components        = buildPdpComponents(pdpBuilder, effectivePolicies);
+        var coverageContext   = createCoverageContext(effectivePolicies);
+
+        return createDecisionResult(subscription, components, coverageContext);
+    }
+
+    private void configureFunctionBroker() {
         var functionBrokerDelegate = customFunctionBroker;
-        if (functionBrokerDelegate == null
-                && (!staticFunctionLibraries.isEmpty() || !instantiatedFunctionLibraries.isEmpty())) {
-            var defaultBroker = new DefaultFunctionBroker();
-            for (var libraryClass : staticFunctionLibraries) {
-                defaultBroker.loadStaticFunctionLibrary(libraryClass);
-            }
-            for (var libraryInstance : instantiatedFunctionLibraries) {
-                defaultBroker.loadInstantiatedFunctionLibrary(libraryInstance);
-            }
-            functionBrokerDelegate = defaultBroker;
+        if (functionBrokerDelegate == null && hasFunctionLibraries()) {
+            functionBrokerDelegate = buildDefaultFunctionBroker();
         }
         if (functionBrokerDelegate != null) {
             mockingFunctionBroker.setDelegate(functionBrokerDelegate);
         }
+    }
 
-        // Set up attribute broker with mocking wrapper
+    private boolean hasFunctionLibraries() {
+        return !staticFunctionLibraries.isEmpty() || !instantiatedFunctionLibraries.isEmpty();
+    }
+
+    private DefaultFunctionBroker buildDefaultFunctionBroker() {
+        var defaultBroker = new DefaultFunctionBroker();
+        for (var libraryClass : staticFunctionLibraries) {
+            defaultBroker.loadStaticFunctionLibrary(libraryClass);
+        }
+        for (var libraryInstance : instantiatedFunctionLibraries) {
+            defaultBroker.loadInstantiatedFunctionLibrary(libraryInstance);
+        }
+        return defaultBroker;
+    }
+
+    private void configureAttributeBroker(Clock effectiveClock) {
         if (customAttributeBroker != null) {
             mockingAttributeBroker.setDelegate(customAttributeBroker);
         } else if (!policyInformationPoints.isEmpty()) {
-            // Build an attribute broker from registered PIPs to use as delegate
-            var effectivePipClock   = clock != null ? clock : Clock.systemUTC();
-            var storage             = new HeapAttributeStorage();
-            var attributeRepository = new InMemoryAttributeRepository(effectivePipClock, storage);
-            var attributeBroker     = new CachingAttributeBroker(attributeRepository);
-            for (var pip : policyInformationPoints) {
-                attributeBroker.loadPolicyInformationPointLibrary(pip);
-            }
-            mockingAttributeBroker.setDelegate(attributeBroker);
+            mockingAttributeBroker.setDelegate(buildAttributeBrokerFromPips(effectiveClock));
         }
+    }
 
-        // Register PIPs on the builder (kept for potential direct access, though
-        // delegate handles them now)
-        pdpBuilder.withPolicyInformationPoints(policyInformationPoints);
+    private CachingAttributeBroker buildAttributeBrokerFromPips(Clock effectiveClock) {
+        var storage             = new HeapAttributeStorage();
+        var attributeRepository = new InMemoryAttributeRepository(effectiveClock, storage);
+        var attributeBroker     = new CachingAttributeBroker(attributeRepository);
+        for (var pip : policyInformationPoints) {
+            attributeBroker.loadPolicyInformationPointLibrary(pip);
+        }
+        return attributeBroker;
+    }
 
-        // Build the configuration
+    private PDPComponents buildPdpComponents(PolicyDecisionPointBuilder pdpBuilder, List<String> effectivePolicies) {
         var effectiveAlgorithm = resolveAlgorithm();
         var effectiveVariables = resolveVariables();
-        var effectivePolicies  = resolvePolicies();
-
-        // Determine trace level based on coverage setting
-        var traceLevel = coverageEnabled ? TraceLevel.COVERAGE : TraceLevel.STANDARD;
-
-        var configuration = new PDPConfiguration("default", "test-security-" + System.currentTimeMillis(),
+        var traceLevel         = coverageEnabled ? TraceLevel.COVERAGE : TraceLevel.STANDARD;
+        var configuration      = new PDPConfiguration("default", "test-security-" + System.currentTimeMillis(),
                 effectiveAlgorithm, traceLevel, effectivePolicies, effectiveVariables);
 
-        // Build PDP with mocking brokers wrapping the real ones
-        var components = pdpBuilder.withFunctionBroker(mockingFunctionBroker)
-                .withAttributeBroker(mockingAttributeBroker).withConfiguration(configuration).build();
+        return pdpBuilder.withFunctionBroker(mockingFunctionBroker).withAttributeBroker(mockingAttributeBroker)
+                .withConfiguration(configuration).build();
+    }
 
-        // Set up coverage collection if enabled
-        CoverageAccumulator coverageAccumulator = null;
-        CoverageWriter      coverageWriter      = null;
-        if (coverageEnabled) {
-            val effectiveTestId = testIdentifier != null ? testIdentifier : generateTestIdentifier();
-            coverageAccumulator = new CoverageAccumulator(effectiveTestId);
-
-            // Register policy sources for HTML report generation
-            val policySources = buildPolicySourceMap(effectivePolicies);
-            coverageAccumulator.registerPolicySources(policySources);
-
-            // Register file paths for SonarQube coverage
-            coverageAccumulator.registerPolicyFilePaths(policyFilePaths);
-
-            // Create coverage writer
-            val outputPath = coverageOutputPath != null ? coverageOutputPath : Path.of("target", "sapl-coverage");
-            coverageWriter = new CoverageWriter(outputPath);
+    private CoverageContext createCoverageContext(List<String> effectivePolicies) {
+        if (!coverageEnabled) {
+            return new CoverageContext(null, null);
         }
 
-        // Subscribe and get the decision flux
-        // Use decideTraced when coverage enabled to access trace information
+        val effectiveTestId     = testIdentifier != null ? testIdentifier : generateTestIdentifier();
+        var coverageAccumulator = new CoverageAccumulator(effectiveTestId);
+        coverageAccumulator.registerPolicySources(buildPolicySourceMap(effectivePolicies));
+        coverageAccumulator.registerPolicyFilePaths(policyFilePaths);
+
+        val outputPath     = coverageOutputPath != null ? coverageOutputPath : Path.of("target", "sapl-coverage");
+        var coverageWriter = new CoverageWriter(outputPath);
+
+        return new CoverageContext(coverageAccumulator, coverageWriter);
+    }
+
+    private record CoverageContext(CoverageAccumulator accumulator, CoverageWriter writer) {}
+
+    private DecisionResult createDecisionResult(AuthorizationSubscription subscription, PDPComponents components,
+            CoverageContext coverageContext) {
         Flux<AuthorizationDecision> decisionFlux;
         Flux<TracedDecision>        tracedFlux = null;
 
@@ -828,8 +842,8 @@ public class SaplTestFixture {
             decisionFlux = components.pdp().decide(subscription);
         }
 
-        return new DecisionResult(decisionFlux, tracedFlux, mockingAttributeBroker, components, coverageAccumulator,
-                coverageWriter, coverageFileWriteEnabled);
+        return new DecisionResult(decisionFlux, tracedFlux, mockingAttributeBroker, components,
+                coverageContext.accumulator(), coverageContext.writer(), coverageFileWriteEnabled);
     }
 
     private String generateTestIdentifier() {

@@ -80,6 +80,8 @@ public class ContextAnalyzer {
         }
     }
 
+    private record TokenContext(Token current, Token previous, Token twoBack) {}
+
     /**
      * Analyzes the cursor context to determine what type of completions to offer.
      *
@@ -91,32 +93,14 @@ public class ContextAnalyzer {
         var line   = position.getLine() + 1; // Tokens use 1-based lines
         var column = position.getCharacter();
 
-        // Find token at or before cursor
-        Token tokenAtCursor = null;
-        Token previousToken = null;
-        Token twoTokensBack = null;
-
-        for (var token : tokens) {
-            if (token.getType() == Token.EOF) {
-                break;
-            }
-            if (token.getChannel() != Token.HIDDEN_CHANNEL) {
-                var tokenEndLine   = token.getLine();
-                var tokenEndColumn = token.getCharPositionInLine() + token.getText().length();
-
-                if (tokenEndLine < line || (tokenEndLine == line && tokenEndColumn <= column)) {
-                    twoTokensBack = previousToken;
-                    previousToken = tokenAtCursor;
-                    tokenAtCursor = token;
-                } else {
-                    break;
-                }
-            }
-        }
-
-        if (tokenAtCursor == null) {
+        var tokenContext = findTokensAtCursor(tokens, line, column);
+        if (tokenContext.current == null) {
             return ContextAnalysisResult.indeterminate("");
         }
+
+        var tokenAtCursor = tokenContext.current;
+        var previousToken = tokenContext.previous;
+        var twoTokensBack = tokenContext.twoBack;
 
         // Build context prefix from current typing position
         var ctxPrefix = buildCtxPrefix(tokenAtCursor, line, column);
@@ -195,21 +179,7 @@ public class ContextAnalyzer {
         }
 
         // Find matching LPAREN
-        var parenDepth  = 1;
-        var lparenIndex = -1;
-        for (var i = rparenIndex - 1; i >= 0 && parenDepth > 0; i--) {
-            var token = tokens.get(i);
-            if (token.getChannel() != Token.HIDDEN_CHANNEL) {
-                if (token.getType() == SAPLLexer.RPAREN) {
-                    parenDepth++;
-                } else if (token.getType() == SAPLLexer.LPAREN) {
-                    parenDepth--;
-                    if (parenDepth == 0) {
-                        lparenIndex = i;
-                    }
-                }
-            }
-        }
+        var lparenIndex = findMatchingLparen(tokens, rparenIndex);
 
         if (lparenIndex < 0) {
             return "";
@@ -339,6 +309,55 @@ public class ContextAnalyzer {
             }
         }
         return -1;
+    }
+
+    /**
+     * Finds the matching LPAREN for an RPAREN, handling nesting.
+     */
+    private static int findMatchingLparen(List<Token> tokens, int rparenIndex) {
+        var parenDepth = 1;
+        for (var i = rparenIndex - 1; i >= 0; i--) {
+            var token = tokens.get(i);
+            if (token.getChannel() == Token.HIDDEN_CHANNEL) {
+                continue;
+            }
+            if (token.getType() == SAPLLexer.RPAREN) {
+                parenDepth++;
+            } else if (token.getType() == SAPLLexer.LPAREN) {
+                parenDepth--;
+                if (parenDepth == 0) {
+                    return i;
+                }
+            }
+        }
+        return -1;
+    }
+
+    /**
+     * Finds up to three tokens at or before the cursor position.
+     */
+    private static TokenContext findTokensAtCursor(List<Token> tokens, int line, int column) {
+        Token tokenAtCursor = null;
+        Token previousToken = null;
+        Token twoTokensBack = null;
+
+        for (var token : tokens) {
+            if (token.getType() == Token.EOF || !isTokenBeforeOrAtCursor(token, line, column)) {
+                break;
+            }
+            if (token.getChannel() != Token.HIDDEN_CHANNEL) {
+                twoTokensBack = previousToken;
+                previousToken = tokenAtCursor;
+                tokenAtCursor = token;
+            }
+        }
+        return new TokenContext(tokenAtCursor, previousToken, twoTokensBack);
+    }
+
+    private static boolean isTokenBeforeOrAtCursor(Token token, int line, int column) {
+        var tokenEndLine   = token.getLine();
+        var tokenEndColumn = token.getCharPositionInLine() + token.getText().length();
+        return tokenEndLine < line || (tokenEndLine == line && tokenEndColumn <= column);
     }
 
     /**

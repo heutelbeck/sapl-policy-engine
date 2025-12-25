@@ -374,43 +374,44 @@ public class PolicyCoverageData {
             return List.of();
         }
 
-        // Aggregate branch counts per line from all statements
-        // BranchHit.coveredBranchCount() and totalBranchCount() handle
-        // single-branch vs two-branch semantics based on statementId
+        val branchesByLine = aggregateBranchCountsByLine();
+        val targetStart    = targetStartLine > 0 ? targetStartLine : 1;
+        val targetEnd      = targetEndLine > 0 ? targetEndLine : targetStart;
+
+        val result = new ArrayList<LineCoverageInfo>(lineCount);
+        for (int i = 1; i <= lineCount; i++) {
+            result.add(createLineCoverageInfo(i, branchesByLine.get(i), targetStart, targetEnd));
+        }
+        return result;
+    }
+
+    private Map<Integer, int[]> aggregateBranchCountsByLine() {
         val branchesByLine = new HashMap<Integer, int[]>();
         for (val hit : branchHitsByPosition.values()) {
             for (int line = hit.startLine(); line <= hit.endLine(); line++) {
                 branchesByLine.compute(line, (l, counts) -> {
-                    if (counts == null) {
-                        counts = new int[2];
-                    }
-                    counts[0] += hit.coveredBranchCount();
-                    counts[1] += hit.totalBranchCount();
-                    return counts;
+                    val result = counts != null ? counts : new int[2];
+                    result[0] += hit.coveredBranchCount();
+                    result[1] += hit.totalBranchCount();
+                    return result;
                 });
             }
         }
+        return branchesByLine;
+    }
 
-        // Determine target expression line range for fallback (when not in
-        // branchHitsByPosition)
-        val targetStart = targetStartLine > 0 ? targetStartLine : 1;
-        val targetEnd   = targetEndLine > 0 ? targetEndLine : targetStart;
-
-        val result = new ArrayList<LineCoverageInfo>(lineCount);
-        for (int i = 1; i <= lineCount; i++) {
-            val counts = branchesByLine.get(i);
-            if (counts != null) {
-                result.add(LineCoverageInfo.withBranches(i, counts[0], counts[1]));
-            } else if (i >= targetStart && i <= targetEnd && wasTargetMatched()) {
-                // Target expression line - hit (single-branch: 1/1)
-                result.add(LineCoverageInfo.withBranches(i, 1, 1));
-            } else if (i >= targetStart && i <= targetEnd && wasTargetEvaluated()) {
-                // Target expression line - evaluated but not matched (0/1)
-                result.add(LineCoverageInfo.withBranches(i, 0, 1));
-            } else {
-                result.add(LineCoverageInfo.irrelevant(i));
+    private LineCoverageInfo createLineCoverageInfo(int line, int[] counts, int targetStart, int targetEnd) {
+        if (counts != null) {
+            return LineCoverageInfo.withBranches(line, counts[0], counts[1]);
+        }
+        if (line >= targetStart && line <= targetEnd) {
+            if (wasTargetMatched()) {
+                return LineCoverageInfo.withBranches(line, 1, 1);
+            }
+            if (wasTargetEvaluated()) {
+                return LineCoverageInfo.withBranches(line, 0, 1);
             }
         }
-        return result;
+        return LineCoverageInfo.irrelevant(line);
     }
 }

@@ -1621,7 +1621,7 @@ public class ExpressionCompiler {
             for (val operand : operands) {
                 val evaluated = operand instanceof PureExpression pure ? pure.evaluate(ctx) : operand;
                 if (!(evaluated instanceof Value value)) {
-                    return Error.at(context, metadata, "Boolean operation requires boolean operands, got: %s.",
+                    return Error.at(context, metadata, ERROR_BOOLEAN_OPERAND_REQUIRED,
                             evaluated.getClass().getSimpleName());
                 }
                 metadata = metadata.merge(value.metadata());
@@ -1629,7 +1629,7 @@ public class ExpressionCompiler {
                     return error.withMetadata(metadata);
                 }
                 if (!(value instanceof BooleanValue bool)) {
-                    return Error.at(context, metadata, "Boolean operation requires boolean operands, got: %s.",
+                    return Error.at(context, metadata, ERROR_BOOLEAN_OPERAND_REQUIRED,
                             value.getClass().getSimpleName());
                 }
                 if (bool.value() == shortCircuitValue) {
