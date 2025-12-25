@@ -44,7 +44,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.when;
 
-import io.sapl.test.verification.MockVerificationException;
+import io.sapl.test.verification.MockVerificationError;
 import io.sapl.test.verification.Times;
 
 class MockingAttributeBrokerTests {

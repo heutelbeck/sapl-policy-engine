@@ -21,7 +21,7 @@ import io.sapl.api.functions.FunctionBroker;
 import io.sapl.api.functions.FunctionInvocation;
 import io.sapl.api.model.TextValue;
 import io.sapl.api.model.Value;
-import io.sapl.test.verification.MockVerificationException;
+import io.sapl.test.verification.MockVerificationError;
 import io.sapl.test.verification.Times;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -620,7 +620,7 @@ class MockingFunctionBrokerTests {
         var onceVerify = once();
 
         assertThatThrownBy(() -> broker.verify(FUNCTION_NAME, argsParam, onceVerify))
-                .isInstanceOf(MockVerificationException.class).hasMessageContaining("exactly once")
+                .isInstanceOf(MockVerificationError.class).hasMessageContaining("exactly once")
                 .hasMessageContaining("invoked 0 time(s)");
     }
 
@@ -634,7 +634,7 @@ class MockingFunctionBrokerTests {
         var onceVerify = once();
 
         assertThatThrownBy(() -> broker.verify(FUNCTION_NAME, argsParam, onceVerify))
-                .isInstanceOf(MockVerificationException.class).hasMessageContaining("exactly once")
+                .isInstanceOf(MockVerificationError.class).hasMessageContaining("exactly once")
                 .hasMessageContaining("invoked 2 time(s)");
     }
 
@@ -654,7 +654,7 @@ class MockingFunctionBrokerTests {
         var neverVerify = Times.never();
 
         assertThatThrownBy(() -> broker.verify(FUNCTION_NAME, argsParam, neverVerify))
-                .isInstanceOf(MockVerificationException.class).hasMessageContaining("never")
+                .isInstanceOf(MockVerificationError.class).hasMessageContaining("never")
                 .hasMessageContaining("invoked 1 time(s)");
     }
 
@@ -690,7 +690,7 @@ class MockingFunctionBrokerTests {
         var atLeastVerify = atLeast(2);
 
         assertThatThrownBy(() -> broker.verify(FUNCTION_NAME, argsParam, atLeastVerify))
-                .isInstanceOf(MockVerificationException.class);
+                .isInstanceOf(MockVerificationError.class);
     }
 
     @Test
@@ -715,7 +715,7 @@ class MockingFunctionBrokerTests {
         var atMostVerify = atMost(2);
 
         assertThatThrownBy(() -> broker.verify(FUNCTION_NAME, argsParam, atMostVerify))
-                .isInstanceOf(MockVerificationException.class);
+                .isInstanceOf(MockVerificationError.class);
     }
 
     @Test
@@ -772,7 +772,7 @@ class MockingFunctionBrokerTests {
         var onceVerify = once();
 
         assertThatThrownBy(() -> broker.verify(FUNCTION_NAME, argsParam, onceVerify))
-                .isInstanceOf(MockVerificationException.class).hasMessageContaining("Recorded invocations")
+                .isInstanceOf(MockVerificationError.class).hasMessageContaining("Recorded invocations")
                 .hasMessageContaining(FUNCTION_NAME);
     }
 
@@ -781,7 +781,7 @@ class MockingFunctionBrokerTests {
         var argsParam  = args();
         var onceVerify = once();
         assertThatThrownBy(() -> broker.verify("unknown.function", argsParam, onceVerify))
-                .isInstanceOf(MockVerificationException.class)
+                .isInstanceOf(MockVerificationError.class)
                 .hasMessageContaining("No invocations of 'unknown.function' were recorded");
     }
 

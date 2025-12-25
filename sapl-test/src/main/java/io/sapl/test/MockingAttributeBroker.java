@@ -23,7 +23,7 @@ import io.sapl.api.model.Value;
 import io.sapl.test.MockingFunctionBroker.ArgumentMatcher;
 import io.sapl.test.MockingFunctionBroker.ArgumentMatchers;
 import io.sapl.test.verification.AttributeInvocationRecord;
-import io.sapl.test.verification.MockVerificationException;
+import io.sapl.test.verification.MockVerificationError;
 import io.sapl.test.verification.Times;
 import lombok.NonNull;
 import reactor.core.publisher.Flux;
@@ -324,7 +324,7 @@ public final class MockingAttributeBroker implements AttributeBroker {
      * @param attributeName fully qualified attribute name
      * @param arguments argument matchers (use args() for arity matching)
      * @param times expected invocation count
-     * @throws MockVerificationException if verification fails
+     * @throws MockVerificationError if verification fails
      * @throws IllegalArgumentException if arguments is not an ArgumentMatchers
      * instance
      */
@@ -336,7 +336,7 @@ public final class MockingAttributeBroker implements AttributeBroker {
 
         var matchingCount = countMatchingInvocations(attributeName, null, matchers, true);
         if (!times.verify(matchingCount)) {
-            throw new MockVerificationException(
+            throw new MockVerificationError(
                     buildVerificationMessage(attributeName, null, matchers, true, times, matchingCount));
         }
     }
@@ -355,7 +355,7 @@ public final class MockingAttributeBroker implements AttributeBroker {
      * @param entityMatcher matcher for the entity value
      * @param arguments argument matchers (use args() for arity matching)
      * @param times expected invocation count
-     * @throws MockVerificationException if verification fails
+     * @throws MockVerificationError if verification fails
      * @throws IllegalArgumentException if arguments is not an ArgumentMatchers
      * instance
      */
@@ -367,7 +367,7 @@ public final class MockingAttributeBroker implements AttributeBroker {
 
         var matchingCount = countMatchingInvocations(attributeName, entityMatcher, matchers, false);
         if (!times.verify(matchingCount)) {
-            throw new MockVerificationException(
+            throw new MockVerificationError(
                     buildVerificationMessage(attributeName, entityMatcher, matchers, false, times, matchingCount));
         }
     }
@@ -377,7 +377,7 @@ public final class MockingAttributeBroker implements AttributeBroker {
      *
      * @param attributeName fully qualified attribute name
      * @param arguments argument matchers
-     * @throws MockVerificationException if attribute was never invoked
+     * @throws MockVerificationError if attribute was never invoked
      */
     public void verifyEnvironmentAttributeCalled(@NonNull String attributeName,
             @NonNull SaplTestFixture.Parameters arguments) {
@@ -390,7 +390,7 @@ public final class MockingAttributeBroker implements AttributeBroker {
      * @param attributeName fully qualified attribute name
      * @param entityMatcher matcher for the entity value
      * @param arguments argument matchers
-     * @throws MockVerificationException if attribute was never invoked
+     * @throws MockVerificationError if attribute was never invoked
      */
     public void verifyAttributeCalled(@NonNull String attributeName, @NonNull ArgumentMatcher entityMatcher,
             @NonNull SaplTestFixture.Parameters arguments) {

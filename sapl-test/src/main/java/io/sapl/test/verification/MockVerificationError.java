@@ -17,19 +17,24 @@
  */
 package io.sapl.test.verification;
 
+import io.sapl.api.SaplVersion;
+
+import java.io.Serial;
+
 /**
  * Exception thrown when mock invocation verification fails.
  */
-public class MockVerificationException extends AssertionError {
+public class MockVerificationError extends AssertionError {
 
-    private static final long serialVersionUID = 1L;
+    @Serial
+    private static final long serialVersionUID = SaplVersion.VERSION_UID;
 
     /**
      * Creates a new verification exception.
      *
      * @param message the failure message
      */
-    public MockVerificationException(String message) {
+    public MockVerificationError(String message) {
         super(message);
     }
 }

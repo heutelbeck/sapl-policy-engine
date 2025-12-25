@@ -21,7 +21,7 @@ import io.sapl.api.functions.FunctionBroker;
 import io.sapl.api.functions.FunctionInvocation;
 import io.sapl.api.model.Value;
 import io.sapl.test.verification.FunctionInvocationRecord;
-import io.sapl.test.verification.MockVerificationException;
+import io.sapl.test.verification.MockVerificationError;
 import io.sapl.test.verification.Times;
 import lombok.NonNull;
 
@@ -243,7 +243,7 @@ public final class MockingFunctionBroker implements FunctionBroker {
      * @param functionName fully qualified function name
      * @param arguments argument matchers (use args() for arity matching)
      * @param times expected invocation count
-     * @throws MockVerificationException if verification fails
+     * @throws MockVerificationError if verification fails
      * @throws IllegalArgumentException if arguments is not an ArgumentMatchers
      * instance
      */
@@ -255,7 +255,7 @@ public final class MockingFunctionBroker implements FunctionBroker {
 
         var matchingCount = countMatchingInvocations(functionName, matchers);
         if (!times.verify(matchingCount)) {
-            throw new MockVerificationException(buildVerificationMessage(functionName, matchers, times, matchingCount));
+            throw new MockVerificationError(buildVerificationMessage(functionName, matchers, times, matchingCount));
         }
     }
 
@@ -266,7 +266,7 @@ public final class MockingFunctionBroker implements FunctionBroker {
      *
      * @param functionName fully qualified function name
      * @param arguments argument matchers
-     * @throws MockVerificationException if function was never invoked with matching
+     * @throws MockVerificationError if function was never invoked with matching
      * arguments
      */
     public void verifyCalled(@NonNull String functionName, @NonNull SaplTestFixture.Parameters arguments) {
@@ -280,7 +280,7 @@ public final class MockingFunctionBroker implements FunctionBroker {
      *
      * @param functionName fully qualified function name
      * @param arguments argument matchers
-     * @throws MockVerificationException if function was invoked with matching
+     * @throws MockVerificationError if function was invoked with matching
      * arguments
      */
     public void verifyNeverCalled(@NonNull String functionName, @NonNull SaplTestFixture.Parameters arguments) {

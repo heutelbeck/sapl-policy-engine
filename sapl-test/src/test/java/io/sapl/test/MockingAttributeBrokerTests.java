@@ -20,7 +20,7 @@ package io.sapl.test;
 import io.sapl.api.attributes.AttributeBroker;
 import io.sapl.api.attributes.AttributeFinderInvocation;
 import io.sapl.api.model.Value;
-import io.sapl.test.verification.MockVerificationException;
+import io.sapl.test.verification.MockVerificationError;
 import io.sapl.test.verification.Times;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -698,7 +698,7 @@ class MockingAttributeBrokerTests {
         var onceVerify = once();
 
         assertThatThrownBy(() -> broker.verifyEnvironmentAttribute("verify.fail", argsParam, onceVerify))
-                .isInstanceOf(MockVerificationException.class).hasMessageContaining("exactly once")
+                .isInstanceOf(MockVerificationError.class).hasMessageContaining("exactly once")
                 .hasMessageContaining("invoked 0 time(s)");
     }
 
@@ -712,7 +712,7 @@ class MockingAttributeBrokerTests {
         var onceVerify = once();
 
         assertThatThrownBy(() -> broker.verifyEnvironmentAttribute("verify.multi", argsParam, onceVerify))
-                .isInstanceOf(MockVerificationException.class).hasMessageContaining("exactly once")
+                .isInstanceOf(MockVerificationError.class).hasMessageContaining("exactly once")
                 .hasMessageContaining("invoked 2 time(s)");
     }
 
@@ -732,7 +732,7 @@ class MockingAttributeBrokerTests {
         var neverVerify = Times.never();
 
         assertThatThrownBy(() -> broker.verifyEnvironmentAttribute("verify.neverfail", argsParam, neverVerify))
-                .isInstanceOf(MockVerificationException.class).hasMessageContaining("never")
+                .isInstanceOf(MockVerificationError.class).hasMessageContaining("never")
                 .hasMessageContaining("invoked 1 time(s)");
     }
 
@@ -813,7 +813,7 @@ class MockingAttributeBrokerTests {
         var onceVerify = once();
 
         assertThatThrownBy(() -> broker.verifyEnvironmentAttribute("fail.msg", argsParam, onceVerify))
-                .isInstanceOf(MockVerificationException.class).hasMessageContaining("Recorded invocations")
+                .isInstanceOf(MockVerificationError.class).hasMessageContaining("Recorded invocations")
                 .hasMessageContaining("fail.msg");
     }
 
@@ -822,7 +822,7 @@ class MockingAttributeBrokerTests {
         var argsParam  = args();
         var onceVerify = once();
         assertThatThrownBy(() -> broker.verifyEnvironmentAttribute("unknown.attr", argsParam, onceVerify))
-                .isInstanceOf(MockVerificationException.class)
+                .isInstanceOf(MockVerificationError.class)
                 .hasMessageContaining("No invocations of 'unknown.attr' were recorded");
     }
 
