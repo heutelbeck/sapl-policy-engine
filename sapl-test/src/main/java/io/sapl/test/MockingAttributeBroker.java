@@ -252,7 +252,8 @@ public final class MockingAttributeBroker implements AttributeBroker {
      * @return true if at least one mock exists for this attribute
      */
     public boolean hasMockForAttribute(String attributeName) {
-        return mocksByName.containsKey(attributeName) && !mocksByName.get(attributeName).isEmpty();
+        var mockList = mocksByName.get(attributeName);
+        return mockList != null && !mockList.isEmpty();
     }
 
     /**

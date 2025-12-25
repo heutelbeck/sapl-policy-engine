@@ -25,7 +25,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.sapl.api.attributes.AttributeBroker;
 import io.sapl.api.documentation.DocumentationBundle;
+import io.sapl.api.documentation.EntryDocumentation;
 import io.sapl.api.documentation.EntryType;
+import io.sapl.api.documentation.LibraryDocumentation;
 import io.sapl.api.functions.FunctionBroker;
 import io.sapl.api.model.Value;
 
@@ -101,19 +103,30 @@ public record LSPConfiguration(
     public Map<String, JsonNode> getAttributeSchemas() {
         var schemas = new HashMap<String, JsonNode>();
         for (var pip : documentationBundle.policyInformationPoints()) {
-            for (var entry : pip.entries()) {
-                if (entry.type() == EntryType.ATTRIBUTE || entry.type() == EntryType.ENVIRONMENT_ATTRIBUTE) {
-                    var schemaString = entry.schema();
-                    if (schemaString != null && !schemaString.isBlank()) {
-                        var jsonSchema = parseSchema(schemaString);
-                        if (jsonSchema != null) {
-                            schemas.put(entry.codeTemplate(pip.name()), jsonSchema);
-                        }
-                    }
-                }
-            }
+            addAttributeSchemasFromPip(schemas, pip);
         }
         return schemas;
+    }
+
+    private void addAttributeSchemasFromPip(Map<String, JsonNode> schemas, LibraryDocumentation pip) {
+        for (var entry : pip.entries()) {
+            if (isAttributeEntry(entry)) {
+                addSchemaIfPresent(schemas, entry.schema(), entry.codeTemplate(pip.name()));
+            }
+        }
+    }
+
+    private boolean isAttributeEntry(EntryDocumentation entry) {
+        return entry.type() == EntryType.ATTRIBUTE || entry.type() == EntryType.ENVIRONMENT_ATTRIBUTE;
+    }
+
+    private void addSchemaIfPresent(Map<String, JsonNode> schemas, String schemaString, String codeTemplate) {
+        if (schemaString != null && !schemaString.isBlank()) {
+            var jsonSchema = parseSchema(schemaString);
+            if (jsonSchema != null) {
+                schemas.put(codeTemplate, jsonSchema);
+            }
+        }
     }
 
     private JsonNode parseSchema(String schemaString) {

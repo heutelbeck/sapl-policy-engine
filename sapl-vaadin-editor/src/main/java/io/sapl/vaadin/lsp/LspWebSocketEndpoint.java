@@ -261,7 +261,7 @@ public class LspWebSocketEndpoint extends TextWebSocketHandler implements Dispos
             return true;
         }
 
-        private void discardInvalidHeader(byte[] data) throws IOException {
+        private void discardInvalidHeader(byte[] data) {
             log.debug("Discarding invalid LSP header data");
             buffer.reset();
             buffer.write(data, headerEndIndex + SEPARATOR_LENGTH, data.length - headerEndIndex - SEPARATOR_LENGTH);
@@ -281,7 +281,7 @@ public class LspWebSocketEndpoint extends TextWebSocketHandler implements Dispos
             }
         }
 
-        private void removeProcessedMessage(byte[] data, int bodyStart) throws IOException {
+        private void removeProcessedMessage(byte[] data, int bodyStart) {
             var remaining = data.length - bodyStart - expectedLength;
             buffer.reset();
             if (remaining > 0) {

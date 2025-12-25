@@ -148,71 +148,52 @@ public final class DecisionMatcher implements Predicate<AuthorizationDecision> {
 
     @Override
     public boolean test(AuthorizationDecision decision) {
-        if (decision == null) {
+        if (decision == null || decision.decision() != expectedDecision) {
             return false;
         }
-
-        // Check decision type
-        if (decision.decision() != expectedDecision) {
-            return false;
-        }
-
-        // Check resource if specified
         if (expectedResource != null && !expectedResource.equals(decision.resource())) {
             return false;
         }
+        return matchesObligations(decision) && matchesAdvice(decision);
+    }
 
-        // Check all expected obligations are present
-        if (!expectedObligations.isEmpty()) {
-            var actualObligations = decision.obligations();
-            for (var expected : expectedObligations) {
-                if (doesNotContainValue(actualObligations, expected)) {
-                    return false;
-                }
+    private boolean matchesObligations(AuthorizationDecision decision) {
+        var actualObligations = decision.obligations();
+        for (var expected : expectedObligations) {
+            if (doesNotContainValue(actualObligations, expected)) {
+                return false;
             }
         }
-
-        // Check obligation predicates
         for (var predicate : obligationPredicates) {
-            var     actualObligations = decision.obligations();
-            boolean found             = false;
-            for (var obligation : actualObligations) {
-                if (predicate.test(obligation)) {
-                    found = true;
-                    break;
-                }
-            }
-            if (!found) {
+            if (!anyValueMatchesPredicate(actualObligations, predicate)) {
                 return false;
             }
         }
-
-        // Check all expected advice are present
-        if (!expectedAdvice.isEmpty()) {
-            var actualAdvice = decision.advice();
-            for (var expected : expectedAdvice) {
-                if (doesNotContainValue(actualAdvice, expected)) {
-                    return false;
-                }
-            }
-        }
-
-        // Check advice predicates
-        for (var predicate : advicePredicates) {
-            var     actualAdvice = decision.advice();
-            boolean found        = false;
-            for (var advice : actualAdvice) {
-                if (predicate.test(advice)) {
-                    found = true;
-                    break;
-                }
-            }
-            if (!found) {
-                return false;
-            }
-        }
-
         return true;
+    }
+
+    private boolean matchesAdvice(AuthorizationDecision decision) {
+        var actualAdvice = decision.advice();
+        for (var expected : expectedAdvice) {
+            if (doesNotContainValue(actualAdvice, expected)) {
+                return false;
+            }
+        }
+        for (var predicate : advicePredicates) {
+            if (!anyValueMatchesPredicate(actualAdvice, predicate)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private boolean anyValueMatchesPredicate(List<Value> values, Predicate<Value> predicate) {
+        for (var value : values) {
+            if (predicate.test(value)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private boolean doesNotContainValue(List<Value> list, Value expected) {

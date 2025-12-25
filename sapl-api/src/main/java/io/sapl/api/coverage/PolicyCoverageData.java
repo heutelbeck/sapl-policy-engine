@@ -37,6 +37,9 @@ import java.util.Set;
 @Getter
 public class PolicyCoverageData {
 
+    private static final int IDX_COVERED = 0;
+    private static final int IDX_TOTAL   = 1;
+
     private final String               documentName;
     private String                     documentSource;
     private final String               documentType;
@@ -391,8 +394,8 @@ public class PolicyCoverageData {
             for (int line = hit.startLine(); line <= hit.endLine(); line++) {
                 branchesByLine.compute(line, (l, counts) -> {
                     val result = counts != null ? counts : new int[2];
-                    result[0] += hit.coveredBranchCount();
-                    result[1] += hit.totalBranchCount();
+                    result[IDX_COVERED] += hit.coveredBranchCount();
+                    result[IDX_TOTAL]   += hit.totalBranchCount();
                     return result;
                 });
             }
@@ -402,7 +405,7 @@ public class PolicyCoverageData {
 
     private LineCoverageInfo createLineCoverageInfo(int line, int[] counts, int targetStart, int targetEnd) {
         if (counts != null) {
-            return LineCoverageInfo.withBranches(line, counts[0], counts[1]);
+            return LineCoverageInfo.withBranches(line, counts[IDX_COVERED], counts[IDX_TOTAL]);
         }
         if (line >= targetStart && line <= targetEnd) {
             if (wasTargetMatched()) {

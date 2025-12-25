@@ -101,56 +101,64 @@ public class ContextAnalyzer {
         var tokenAtCursor = tokenContext.current;
         var previousToken = tokenContext.previous;
         var twoTokensBack = tokenContext.twoBack;
+        var ctxPrefix     = buildCtxPrefix(tokenAtCursor, line, column);
 
-        // Build context prefix from current typing position
-        var ctxPrefix = buildCtxPrefix(tokenAtCursor, line, column);
+        var result = tryMatchDotAfterCallOrAttribute(tokens, tokenAtCursor, previousToken, ctxPrefix);
+        if (result != null) {
+            return result;
+        }
 
-        // Check for function call: look for closing paren followed by dot
-        if (tokenAtCursor.getType() == SAPLLexer.DOT && previousToken != null
-                && previousToken.getType() == SAPLLexer.RPAREN) {
-            // Cursor at `function().` - look for function name
-            var functionName = extractFunctionNameBeforeParen(tokens, previousToken);
+        if (tokenAtCursor.getType() == SAPLLexer.DOT) {
+            return ContextAnalysisResult.variableOrFunction("", "");
+        }
+
+        result = tryMatchTypingAfterDot(tokens, previousToken, twoTokensBack, ctxPrefix);
+        if (result != null) {
+            return result;
+        }
+
+        var prefix = buildFullPrefix(tokenAtCursor, previousToken, twoTokensBack);
+        return ContextAnalysisResult.variableOrFunction(prefix, ctxPrefix);
+    }
+
+    private static ContextAnalysisResult tryMatchDotAfterCallOrAttribute(List<Token> tokens, Token current,
+            Token previous, String ctxPrefix) {
+        if (current.getType() != SAPLLexer.DOT || previous == null) {
+            return null;
+        }
+        if (previous.getType() == SAPLLexer.RPAREN) {
+            var functionName = extractFunctionNameBeforeParen(tokens, previous);
             if (!functionName.isEmpty()) {
                 return new ContextAnalysisResult("", ctxPrefix, functionName, ProposalType.FUNCTION);
             }
         }
-
-        // Check for attribute step: look for closing angle bracket followed by dot
-        if (tokenAtCursor.getType() == SAPLLexer.DOT && previousToken != null
-                && previousToken.getType() == SAPLLexer.GT) {
-            // Cursor at `.<attr>.` - look for attribute name
-            var result = extractAttributeNameBeforeGT(tokens, previousToken);
-            if (!result.name().isEmpty()) {
-                return new ContextAnalysisResult("", ctxPrefix, result.name(), result.type());
+        if (previous.getType() == SAPLLexer.GT) {
+            var attrResult = extractAttributeNameBeforeGT(tokens, previous);
+            if (!attrResult.name().isEmpty()) {
+                return new ContextAnalysisResult("", ctxPrefix, attrResult.name(), attrResult.type());
             }
         }
+        return null;
+    }
 
-        // Check if we're at a dot after an identifier (partial expression)
-        if (tokenAtCursor.getType() == SAPLLexer.DOT) {
-            // Just after a dot - could be property access or function/attribute start
-            return ContextAnalysisResult.variableOrFunction("", "");
+    private static ContextAnalysisResult tryMatchTypingAfterDot(List<Token> tokens, Token previous, Token twoBack,
+            String ctxPrefix) {
+        if (previous == null || previous.getType() != SAPLLexer.DOT || twoBack == null) {
+            return null;
         }
-
-        // Check if typing after a dot (identifier after dot)
-        if (previousToken != null && previousToken.getType() == SAPLLexer.DOT) {
-            // Typing after dot - check what's before the dot
-            if (twoTokensBack != null && twoTokensBack.getType() == SAPLLexer.RPAREN) {
-                var functionName = extractFunctionNameBeforeParen(tokens, twoTokensBack);
-                if (!functionName.isEmpty()) {
-                    return new ContextAnalysisResult("", ctxPrefix, functionName, ProposalType.FUNCTION);
-                }
-            }
-            if (twoTokensBack != null && twoTokensBack.getType() == SAPLLexer.GT) {
-                var result = extractAttributeNameBeforeGT(tokens, twoTokensBack);
-                if (!result.name().isEmpty()) {
-                    return new ContextAnalysisResult("", ctxPrefix, result.name(), result.type());
-                }
+        if (twoBack.getType() == SAPLLexer.RPAREN) {
+            var functionName = extractFunctionNameBeforeParen(tokens, twoBack);
+            if (!functionName.isEmpty()) {
+                return new ContextAnalysisResult("", ctxPrefix, functionName, ProposalType.FUNCTION);
             }
         }
-
-        // Default to variable/function name context
-        var prefix = buildFullPrefix(tokenAtCursor, previousToken, twoTokensBack);
-        return ContextAnalysisResult.variableOrFunction(prefix, ctxPrefix);
+        if (twoBack.getType() == SAPLLexer.GT) {
+            var attrResult = extractAttributeNameBeforeGT(tokens, twoBack);
+            if (!attrResult.name().isEmpty()) {
+                return new ContextAnalysisResult("", ctxPrefix, attrResult.name(), attrResult.type());
+            }
+        }
+        return null;
     }
 
     /**

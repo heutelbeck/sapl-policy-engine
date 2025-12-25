@@ -397,16 +397,21 @@ public class ExpressionSchemaResolver {
 
     private List<JsonNode> lookupSchemasOfMatchingValueDefinitionsInPolicyBody(String identifier, SaplContext sapl,
             int cursorOffset, LSPConfiguration config) {
-        var schemas = new ArrayList<JsonNode>();
+        var schemas      = new ArrayList<JsonNode>();
+        var policyBodies = collectPolicyBodies(sapl);
 
-        // Find policy bodies in all policies (in a policy set or single policy)
+        for (var policyBody : policyBodies) {
+            schemas.addAll(findMatchingValueDefinitionsInBody(identifier, policyBody, sapl, cursorOffset, config));
+        }
+        return schemas;
+    }
+
+    private List<PolicyBodyContext> collectPolicyBodies(SaplContext sapl) {
+        var policyBodies  = new ArrayList<PolicyBodyContext>();
         var policyElement = sapl.policyElement();
         if (policyElement == null) {
-            return schemas;
+            return policyBodies;
         }
-
-        List<PolicyBodyContext> policyBodies = new ArrayList<>();
-
         if (policyElement instanceof io.sapl.grammar.antlr.SAPLParser.PolicyOnlyElementContext policyOnlyElement) {
             var policy = policyOnlyElement.policy();
             if (policy.policyBody() != null) {
@@ -419,18 +424,20 @@ public class ExpressionSchemaResolver {
                 }
             }
         }
+        return policyBodies;
+    }
 
-        for (var policyBody : policyBodies) {
-            for (var statement : policyBody.statement()) {
-                if (statement instanceof ValueDefinitionStatementContext valueDefStatement) {
-                    var valueDefinition = valueDefStatement.valueDefinition();
-                    if (nameMatchesAndIsInScope(identifier, valueDefinition, cursorOffset)) {
-                        schemas.addAll(inferValueDefinitionSchemas(valueDefinition, sapl, cursorOffset, config));
-                    }
+    private List<JsonNode> findMatchingValueDefinitionsInBody(String identifier, PolicyBodyContext policyBody,
+            SaplContext sapl, int cursorOffset, LSPConfiguration config) {
+        var schemas = new ArrayList<JsonNode>();
+        for (var statement : policyBody.statement()) {
+            if (statement instanceof ValueDefinitionStatementContext valueDefStatement) {
+                var valueDefinition = valueDefStatement.valueDefinition();
+                if (nameMatchesAndIsInScope(identifier, valueDefinition, cursorOffset)) {
+                    schemas.addAll(inferValueDefinitionSchemas(valueDefinition, sapl, cursorOffset, config));
                 }
             }
         }
-
         return schemas;
     }
 

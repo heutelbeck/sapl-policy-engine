@@ -134,15 +134,21 @@ public class VariablesProposalsGenerator {
      */
     private static List<String> createPolicyBodyInScopeVariableProposals(SaplContext sapl, int cursorOffset,
             LSPConfiguration config) {
-        var proposals = new ArrayList<String>();
+        var proposals    = new ArrayList<String>();
+        var policyBodies = collectPolicyBodies(sapl);
 
+        for (var policyBody : policyBodies) {
+            proposals.addAll(extractProposalsFromPolicyBody(policyBody, sapl, cursorOffset, config));
+        }
+        return proposals;
+    }
+
+    private static List<PolicyBodyContext> collectPolicyBodies(SaplContext sapl) {
+        var policyBodies  = new ArrayList<PolicyBodyContext>();
         var policyElement = sapl.policyElement();
         if (policyElement == null) {
-            return proposals;
+            return policyBodies;
         }
-
-        List<PolicyBodyContext> policyBodies = new ArrayList<>();
-
         if (policyElement instanceof PolicyOnlyElementContext policyOnlyElement) {
             var policy = policyOnlyElement.policy();
             if (policy.policyBody() != null) {
@@ -155,21 +161,21 @@ public class VariablesProposalsGenerator {
                 }
             }
         }
+        return policyBodies;
+    }
 
-        for (var policyBody : policyBodies) {
-            for (var statement : policyBody.statement()) {
-                var statementOffset = TreeNavigationUtil.offsetOf(statement);
-                if (statementOffset >= cursorOffset) {
-                    break;
-                }
-                if (statement instanceof ValueDefinitionStatementContext valueDefStatement) {
-                    var valueDefinition = valueDefStatement.valueDefinition();
-                    proposals.addAll(createValueDefinitionProposalsWithSchemaExtensions(valueDefinition, sapl,
-                            cursorOffset, config));
-                }
+    private static List<String> extractProposalsFromPolicyBody(PolicyBodyContext policyBody, SaplContext sapl,
+            int cursorOffset, LSPConfiguration config) {
+        var proposals = new ArrayList<String>();
+        for (var statement : policyBody.statement()) {
+            if (TreeNavigationUtil.offsetOf(statement) >= cursorOffset) {
+                break;
+            }
+            if (statement instanceof ValueDefinitionStatementContext valueDefStatement) {
+                proposals.addAll(createValueDefinitionProposalsWithSchemaExtensions(valueDefStatement.valueDefinition(),
+                        sapl, cursorOffset, config));
             }
         }
-
         return proposals;
     }
 

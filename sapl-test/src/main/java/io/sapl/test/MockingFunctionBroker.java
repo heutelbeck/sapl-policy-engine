@@ -187,7 +187,8 @@ public final class MockingFunctionBroker implements FunctionBroker {
      * @return true if at least one mock exists
      */
     public boolean hasMock(String functionName) {
-        return mocks.containsKey(functionName) && !mocks.get(functionName).isEmpty();
+        var mockList = mocks.get(functionName);
+        return mockList != null && !mockList.isEmpty();
     }
 
     /**

@@ -106,9 +106,15 @@ public class ValidationStatusDisplay extends VerticalLayout {
     public void setIssues(List<Issue> issues) {
         this.currentIssues = issues != null ? new ArrayList<>(issues) : new ArrayList<>();
 
-        var errorCount = currentIssues.stream().filter(issue -> IssueSeverity.ERROR == issue.getSeverity()).count();
-
-        var warningCount = currentIssues.stream().filter(issue -> IssueSeverity.WARNING == issue.getSeverity()).count();
+        long errorCount   = 0;
+        long warningCount = 0;
+        for (var issue : currentIssues) {
+            if (IssueSeverity.ERROR == issue.getSeverity()) {
+                errorCount++;
+            } else if (IssueSeverity.WARNING == issue.getSeverity()) {
+                warningCount++;
+            }
+        }
 
         if (errorCount > 0) {
             showErrors(errorCount, warningCount);

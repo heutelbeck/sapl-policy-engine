@@ -267,7 +267,7 @@ public class SaplTestFixture {
             if (is == null) {
                 throw new IllegalStateException("Resource not found: " + resourcePath);
             }
-            var content    = new String(is.readAllBytes());
+            var content    = new String(is.readAllBytes(), java.nio.charset.StandardCharsets.UTF_8);
             var policyName = extractPolicyName(content);
             if (policyName != null) {
                 // Convert resource path to a reasonable file path for SonarQube

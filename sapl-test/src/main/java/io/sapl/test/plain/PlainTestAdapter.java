@@ -96,30 +96,26 @@ public class PlainTestAdapter {
             for (var testDoc : config.saplTestDocuments()) {
                 var docResults = executeTestDocument(testDoc, config);
                 results.addAll(docResults);
+                emitResults(sink, docResults);
 
-                // Check fail-fast
-                if (config.failFast()) {
-                    var hasFailure = docResults.stream().anyMatch(r -> r.status() != TestStatus.PASSED);
-                    if (hasFailure) {
-                        // Emit completed events for what we have
-                        for (var result : docResults) {
-                            sink.next(new ScenarioCompleted(result));
-                        }
-                        break;
-                    }
-                }
-
-                // Emit events for each result
-                for (var result : docResults) {
-                    sink.next(new ScenarioCompleted(result));
+                if (shouldStopOnFailure(config, docResults)) {
+                    break;
                 }
             }
 
-            // Emit final results
-            var finalResults = PlainTestResults.from(results, coverage);
-            sink.next(new ExecutionCompleted(finalResults));
+            sink.next(new ExecutionCompleted(PlainTestResults.from(results, coverage)));
             sink.complete();
         });
+    }
+
+    private void emitResults(reactor.core.publisher.FluxSink<TestEvent> sink, List<ScenarioResult> results) {
+        for (var result : results) {
+            sink.next(new ScenarioCompleted(result));
+        }
+    }
+
+    private boolean shouldStopOnFailure(TestConfiguration config, List<ScenarioResult> results) {
+        return config.failFast() && results.stream().anyMatch(r -> r.status() != TestStatus.PASSED);
     }
 
     private List<ScenarioResult> executeTestDocument(SaplTestDocument testDoc, TestConfiguration config) {
