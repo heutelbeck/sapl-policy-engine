@@ -573,6 +573,9 @@
 
 		<!-- BOM (after all artifacts it references) -->
 		<module>sapl-bom</module>
+
+		<!-- Benchmarking Tool -->
+		<module>sapl-benchmark</module>
 	</modules>
 
 	<profiles>

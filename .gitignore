@@ -16,6 +16,7 @@ events/
 **/VAADIN/widgetsets/
 **/VAADIN/themes/**/addons.scss
 **/VAADIN/themes/**/styles.css
+sapl-benchmark/results/**
 generated/
 WebContent/
 .vaadin-designer2

@@ -1,0 +1,64 @@
+# ---------------------------
+# Connectivity setup
+# ---------------------------
+target: docker # docker or remote
+docker:
+  pdp_image: "ghcr.io/heutelbeck/sapl-server-lt:3.0.0-SNAPSHOT"
+  use_ssl: true
+
+remote:
+  base_url: https://localhost:8443
+  rsocket_host: localhost
+  rsocket_port: 7000
+  use_ssl: true
+
+
+# ---------------------------
+# Subscription
+# ---------------------------
+subscription: >
+  {"subject": "Willi", "action": "eat", "resource": "apple"}
+
+
+# ---------------------------
+# Benchmark scope
+# ---------------------------
+benchmark_pdp:
+  embedded: true
+  http: true
+  rsocket: true
+
+decision_method:
+  decide_once: false
+  decide_subscribe: true
+
+
+# ---------------------------
+# Authentication
+# ---------------------------
+noauth:
+  enabled: true
+
+basic:
+  enabled: false
+  client_key: yg2X3rKqTT
+  client_secret: FZdvjLKSu*Q'7+4!'zXIC694,a3sY9Sm
+
+apikey:
+  enabled: false
+  api_key: sapl_JC69csjFH1_yjh1CX63Pw6xBkm0PxZBsj2mbFx1m52A
+
+oauth2:
+  enabled: false
+
+
+# ---------------------------
+execution:
+  forks: 1
+  fail_on_error: true
+  jvm_args: ["-Xms1G", "-Xmx1G"]
+  threads: [1]
+  warmup_seconds: 1
+  warmup_iterations: 1
+  measure_seconds: 1
+  measure_iterations: 1

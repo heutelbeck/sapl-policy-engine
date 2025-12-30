@@ -1,0 +1,70 @@
+# ---------------------------
+# Connectivity setup
+# ---------------------------
+target: docker # docker or remote
+docker:
+  pdp_image: "ghcr.io/heutelbeck/sapl-server-lt:3.0.0-SNAPSHOT"
+  use_ssl: true
+
+remote:
+  base_url: https://localhost:8443
+  rsocket_host: localhost
+  rsocket_port: 7000
+  use_ssl: true
+
+# ---------------------------
+# Subscription
+# ---------------------------
+subscription: >
+  {"subject": "Willi", "action": "eat", "resource": "apple"}
+
+
+# ---------------------------
+# Benchmark scope
+# ---------------------------
+benchmark_pdp:
+  embedded: true
+  http: true
+  rsocket: true
+
+decision_method:
+  decide_once: false
+  decide_subscribe: true
+
+
+# ---------------------------
+# Authentication
+# ---------------------------
+noauth:
+  enabled: false
+
+basic:
+  enabled: false
+  client_key: yg2X3rKqTT
+  client_secret: FZdvjLKSu*Q'7+4!'zXIC694,a3sY9Sm
+
+apikey:
+  enabled: false
+  api_key: sapl_JC69csjFH1_yjh1CX63Pw6xBkm0PxZBsj2mbFx1m52A
+
+oauth2:
+  enabled: true
+  client_id: WXcUf7kvlW89Q
+  client_secret: aBqen8Py4NCgzeTc
+  scope: sapl
+  # mock_oauth2_server: true required "auth-host" hosts entry pointing to the docker host (127.0.0.1 auth-host)
+  mock_server: true
+  mock_image: "ghcr.io/navikt/mock-oauth2-server:2.1.5"
+
+# ------------------------------
+# Benchmark execution parameters
+# ------------------------------
+execution:
+  forks: 1
+  jvm_args: [ "-Xms1G", "-Xmx1G" ]
+  fail_on_error: true
+  threads: [1,4,8]
+  warmup_seconds: 10
+  warmup_iterations: 1
+  measure_seconds: 10
+  measure_iterations: 2

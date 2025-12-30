@@ -1,0 +1,6 @@
+policy "simple_policy2"
+permit
+    action == "requests"
+where
+    resource == "information";
+    resource.<echo.delayed> == resource;
