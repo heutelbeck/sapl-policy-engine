@@ -322,6 +322,7 @@
 				<artifactId>cyclonedx-maven-plugin</artifactId>
 				<executions>
 					<execution>
+					 	<?m2e ignore?>
 						<phase>generate-resources</phase>
 						<goals>
 							<goal>makeBom</goal>

@@ -115,10 +115,10 @@ public record AuthorizationSubscription(
 
     private static Value toValue(Object object, ObjectMapper mapper) {
         return switch (object) {
-            case null -> Value.UNDEFINED;
-            case Value value -> value;
-            case JsonNode jsonNode -> ValueJsonMarshaller.fromJsonNode(jsonNode);
-            default -> ValueJsonMarshaller.fromJsonNode(mapper.valueToTree(object));
+        case null              -> Value.UNDEFINED;
+        case Value value       -> value;
+        case JsonNode jsonNode -> ValueJsonMarshaller.fromJsonNode(jsonNode);
+        default                -> ValueJsonMarshaller.fromJsonNode(mapper.valueToTree(object));
         };
     }
 }
