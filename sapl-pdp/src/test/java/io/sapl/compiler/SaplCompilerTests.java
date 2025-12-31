@@ -17,7 +17,25 @@
  */
 package io.sapl.compiler;
 
-import io.sapl.api.model.*;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.junit.jupiter.params.provider.Arguments.arguments;
+
+import java.time.Clock;
+import java.time.Duration;
+import java.util.stream.Stream;
+
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
+
+import io.sapl.api.model.EvaluationContext;
+import io.sapl.api.model.ObjectValue;
+import io.sapl.api.model.PureExpression;
+import io.sapl.api.model.StreamExpression;
+import io.sapl.api.model.Value;
 import io.sapl.api.pdp.Decision;
 import io.sapl.api.pdp.TraceLevel;
 import io.sapl.attributes.CachingAttributeBroker;
@@ -29,21 +47,6 @@ import io.sapl.functions.libraries.StringFunctionLibrary;
 import io.sapl.parser.DefaultSAPLParser;
 import io.sapl.parser.SAPLParser;
 import lombok.val;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.Arguments;
-import org.junit.jupiter.params.provider.MethodSource;
-import reactor.test.StepVerifier;
-
-import java.math.BigDecimal;
-import java.time.Clock;
-import java.time.Duration;
-import java.util.stream.Stream;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 class SaplCompilerTests {
 

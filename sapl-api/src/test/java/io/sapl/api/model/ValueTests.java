@@ -335,7 +335,7 @@ class ValueTests {
         @Test
         @DisplayName("ofArray(list) creates ArrayValue")
         void when_ofArrayList_then_createsArrayValue() {
-            var list   = List.<Value>of(Value.<Value>of("a"), Value.of("b"));
+            var list   = List.<Value>of(Value.of("a"), Value.of("b"));
             var result = Value.ofArray(list);
 
             assertThat(result).isInstanceOf(ArrayValue.class);

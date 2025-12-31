@@ -17,6 +17,10 @@
  */
 package io.sapl.test.plain;
 
+import java.io.Serial;
+
+import io.sapl.api.SaplVersion;
+
 /**
  * Exception thrown when a test definition contains invalid configuration.
  * <p>
@@ -28,6 +32,9 @@ package io.sapl.test.plain;
  * </ul>
  */
 public class TestValidationException extends RuntimeException {
+
+    @Serial
+    private static final long serialVersionUID = SaplVersion.VERSION_UID;
 
     /**
      * Creates a new validation exception with the specified message.

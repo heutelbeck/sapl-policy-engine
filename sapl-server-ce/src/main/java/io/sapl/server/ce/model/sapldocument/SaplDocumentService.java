@@ -17,23 +17,25 @@
  */
 package io.sapl.server.ce.model.sapldocument;
 
-import io.sapl.parser.DefaultSAPLParser;
-import io.sapl.parser.Document;
-import io.sapl.parser.DocumentType;
-import io.sapl.parser.SAPLParser;
-import io.sapl.server.ce.model.setup.condition.SetupFinishedCondition;
-import lombok.NonNull;
-import lombok.extern.slf4j.Slf4j;
+import java.time.Instant;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
+import java.time.format.FormatStyle;
+import java.util.Collection;
+import java.util.List;
+import java.util.Locale;
+import java.util.Optional;
+
 import org.springframework.context.annotation.Conditional;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.Instant;
-import java.time.ZoneId;
-import java.time.format.DateTimeFormatter;
-import java.time.format.FormatStyle;
-import java.util.*;
+import io.sapl.parser.DefaultSAPLParser;
+import io.sapl.parser.SAPLParser;
+import io.sapl.server.ce.model.setup.condition.SetupFinishedCondition;
+import lombok.NonNull;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * Service for reading and managing {@link SaplDocument} instances.

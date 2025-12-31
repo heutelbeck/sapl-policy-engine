@@ -48,7 +48,6 @@ import io.sapl.grammar.antlr.SAPLParser.PolicyBodyContext;
 import io.sapl.grammar.antlr.SAPLParser.PolicyContext;
 import io.sapl.grammar.antlr.SAPLParser.PolicySetContext;
 import io.sapl.grammar.antlr.SAPLParser.SaplContext;
-import io.sapl.grammar.antlr.SAPLParser.SchemaStatementContext;
 import io.sapl.grammar.antlr.SAPLParser.StatementContext;
 import io.sapl.grammar.antlr.SAPLParser.ValueDefinitionContext;
 import io.sapl.lsp.configuration.ConfigurationManager;

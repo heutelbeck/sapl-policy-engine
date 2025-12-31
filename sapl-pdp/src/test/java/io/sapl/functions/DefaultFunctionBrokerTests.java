@@ -83,6 +83,7 @@ class DefaultFunctionBrokerTests {
     @Test
     void when_loadLibraryWithoutAnnotation_then_throwsException() {
         class NotAnnotated {
+            @SuppressWarnings("unused")
             public Value someMethod() {
                 return Value.of("Nyarlathotep");
             }

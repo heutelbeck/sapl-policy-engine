@@ -45,8 +45,6 @@ public class Issue implements Serializable {
     private static final String LENGTH_KEY       = "length";
     private static final String START_LINE_KEY   = "startLine";
     private static final String START_COLUMN_KEY = "startColumn";
-    private static final String END_LINE_KEY     = "endLine";
-    private static final String END_COLUMN_KEY   = "endColumn";
 
     private String        description;
     private IssueSeverity severity;

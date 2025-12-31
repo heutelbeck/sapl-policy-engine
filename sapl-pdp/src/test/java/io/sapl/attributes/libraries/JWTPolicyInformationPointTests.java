@@ -110,6 +110,7 @@ class JWTPolicyInformationPointTests {
         val broker     = new CachingAttributeBroker(repository);
 
         class NotAnnotated {
+            @SuppressWarnings("unused")
             public Value someAttribute() {
                 return Value.of("test");
             }

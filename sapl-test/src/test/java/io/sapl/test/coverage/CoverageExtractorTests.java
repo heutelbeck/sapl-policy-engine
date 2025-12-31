@@ -17,8 +17,6 @@
  */
 package io.sapl.test.coverage;
 
-import io.sapl.api.coverage.PolicyCoverageData;
-
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.HashMap;

@@ -335,6 +335,7 @@ class ObjectValueTests {
         }
 
         @Test
+        @SuppressWarnings("unlikely-arg-type")
         @DisplayName("get(non-String) returns ErrorValue")
         void when_getNonString_then_returnsErrorValue() {
             var obj    = new ObjectValue(Map.of("key", Value.of(1)), ValueMetadata.EMPTY);
@@ -469,6 +470,7 @@ class ObjectValueTests {
         }
 
         @Test
+        @SuppressWarnings("unlikely-arg-type")
         @DisplayName("containsKey() returns false for non-String key")
         void when_containsKeyWithNonString_then_returnsFalse() {
             var obj = new ObjectValue(Map.of("key", Value.of(1)), ValueMetadata.EMPTY);
@@ -948,6 +950,7 @@ class ObjectValueTests {
         }
 
         @Test
+        @SuppressWarnings("unlikely-arg-type")
         @DisplayName("containsKey(non-String) returns false instead of throwing")
         void when_containsKeyWithNonString_then_returnsFalse() {
             var obj = new ObjectValue(Map.of("key", Value.of(1)), ValueMetadata.EMPTY);
@@ -1025,7 +1028,8 @@ class ObjectValueTests {
             var empty = new ObjectValue(Map.of(), ValueMetadata.EMPTY);
 
             assertThat(empty.keySet()).isEmpty();
-            for (String key : empty.keySet()) {
+            for (@SuppressWarnings("unused")
+            String key : empty.keySet()) {
                 fail("Should not iterate over empty keySet");
             }
         }
@@ -1036,7 +1040,8 @@ class ObjectValueTests {
             var empty = new ObjectValue(Map.of(), ValueMetadata.EMPTY);
 
             assertThat(empty.values()).isEmpty();
-            for (Value value : empty.values()) {
+            for (@SuppressWarnings("unused")
+            Value value : empty.values()) {
                 fail("Should not iterate over empty values");
             }
         }
@@ -1047,7 +1052,8 @@ class ObjectValueTests {
             var empty = new ObjectValue(Map.of(), ValueMetadata.EMPTY);
 
             assertThat(empty.entrySet()).isEmpty();
-            for (var entry : empty.entrySet()) {
+            for (@SuppressWarnings("unused")
+            var entry : empty.entrySet()) {
                 fail("Should not iterate over empty entrySet");
             }
         }
