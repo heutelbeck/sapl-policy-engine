@@ -540,6 +540,7 @@
 		<!-- Language modules (in dependency order) -->
 		<module>sapl-parser</module>
 		<module>sapl-pdp</module>
+		<module>sapl-pdp-ast</module>
 
 		<!-- PDP extensions (depend on sapl-api) -->
 		<module>pdp-extensions/geo-functions</module>
