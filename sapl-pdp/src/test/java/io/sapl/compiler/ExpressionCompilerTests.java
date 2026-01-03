@@ -199,7 +199,7 @@ class ExpressionCompilerTests {
                 arguments("1 + 2 + 3 + 4", Value.of(10)), arguments("10 - 3 + 2", Value.of(9)),
                 arguments("2 * 3 * 4", Value.of(24)), arguments("24 / 4 * 2", Value.of(12)),
                 arguments("5+5-3", Value.of(7)),
-                // Unary operators
+                // Unary operator
                 arguments("-5", Value.of(-5)), arguments("+42", Value.of(42)), arguments("--1", Value.of(1)),
                 arguments("-(10 - 3)", Value.of(-7)), arguments("+(5 + 5)", Value.of(10)),
                 // Various spacing patterns
@@ -1014,7 +1014,7 @@ class ExpressionCompilerTests {
                                         ObjectValue.builder().put("name", Value.of("Elric"))
                                                 .put("domain", Value.of("Chaos")).build())
                                 .build()),
-                // Lazy operators with subscription
+                // Lazy operator with subscription
                 arguments("(subject == \"Elric\") || (action == \"summon\")", Value.TRUE),
                 arguments("(subject == \"Moonglum\") || (action == \"slay\")", Value.TRUE),
                 arguments("(subject == \"Yyrkoon\") || (action == \"summon\")", Value.FALSE),

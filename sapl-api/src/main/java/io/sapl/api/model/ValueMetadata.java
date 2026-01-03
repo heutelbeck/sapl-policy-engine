@@ -33,8 +33,8 @@ import java.util.List;
  * value is secret (should not be logged)
  * and which attribute invocations contributed to producing this value.
  * <p>
- * Metadata propagates through operators analogous to how secrets propagate:
- * binary operators merge metadata from both
+ * Metadata propagates through operator analogous to how secrets propagate:
+ * binary operator merge metadata from both
  * operands, containers aggregate metadata from all elements then propagate the
  * merged result back to elements.
  * <p>

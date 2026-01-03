@@ -60,7 +60,7 @@ import static org.junit.jupiter.params.provider.Arguments.arguments;
 /**
  * Tests for metadata propagation through expression evaluation. Validates that
  * ValueMetadata (secret flags and attribute traces) correctly propagates
- * through operators, functions, attribute finders, containers, and filters.
+ * through operator, functions, attribute finders, containers, and filters.
  */
 @DisplayName("Metadata Propagation")
 class MetadataPropagationTests {
@@ -201,7 +201,7 @@ class MetadataPropagationTests {
 
     @ParameterizedTest(name = "{0} with secret operand produces secret result")
     @CsvSource({ "addition,   'value + 1'", "comparison, 'value == 42'", "boolean,    'value && true'" })
-    @DisplayName("operators propagate secret flag")
+    @DisplayName("operator propagate secret flag")
     void when_operatorWithSecretOperand_then_resultIsSecret(String operator, String expression) {
         val secretValue = Value.of(42).withMetadata(ValueMetadata.SECRET_EMPTY);
         val result      = evaluateWithVariable(expression, "value", secretValue);
@@ -216,7 +216,7 @@ class MetadataPropagationTests {
     @ParameterizedTest(name = "{0} preserves operand metadata")
     @CsvSource({ "boolean NOT,  '!<meta.truth [{\"fresh\": true}]>'",
             "unary minus,  '-<meta.number [{\"fresh\": true}]>'" })
-    @DisplayName("unary operators preserve operand metadata")
+    @DisplayName("unary operator preserve operand metadata")
     void when_unaryOperatorOnAttribute_then_metadataPreserved(String operator, String expression) {
         val result = evaluate(expression);
 
@@ -273,7 +273,7 @@ class MetadataPropagationTests {
             "recursive key,    '<meta.tome [{\"fresh\": true}]>..title',        1",
             "wildcard,         '<meta.tome [{\"fresh\": true}]>.*',             1",
             "array slicing,    '<meta.artifacts [{\"fresh\": true}]>[0:2]',     1" })
-    @DisplayName("step operators preserve parent metadata")
+    @DisplayName("step operator preserve parent metadata")
     void when_stepOperatorOnAttributeResult_then_metadataPreserved(String stepType, String expression,
             int expectedTraceSize) {
         val result = evaluate(expression);
@@ -283,7 +283,7 @@ class MetadataPropagationTests {
 
     @ParameterizedTest(name = "{0} step on secret container produces secret result")
     @MethodSource("secretStepTestCases")
-    @DisplayName("step operators propagate secret flag from parent")
+    @DisplayName("step operator propagate secret flag from parent")
     void when_stepOnSecretContainer_then_resultIsSecret(String stepType, String expression, Value secretContainer) {
         val result = evaluateWithVariable(expression, "container", secretContainer);
 

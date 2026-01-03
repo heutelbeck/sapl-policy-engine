@@ -71,7 +71,7 @@ class SAPLValidatorTests {
                         policy "test"
                         permit subject == "admin" & (action == "read" || action == "write")
                         """, SAPLValidator.VALIDATION_ERROR_LAZY_OR_NOT_ALLOWED_IN_TARGET),
-                arguments("multiple lazy operators in target", """
+                arguments("multiple lazy operator in target", """
                         policy "test"
                         permit subject == "admin" && action == "read" || resource == "public"
                         """, SAPLValidator.VALIDATION_ERROR_LAZY_OR_NOT_ALLOWED_IN_TARGET));
@@ -97,7 +97,7 @@ class SAPLValidatorTests {
                 """;
 
         var errors = validatePolicy(policy);
-        assertThat(errors).as("Lazy operators are allowed in policy body").isEmpty();
+        assertThat(errors).as("Lazy operator are allowed in policy body").isEmpty();
     }
 
     @Test
@@ -108,7 +108,7 @@ class SAPLValidatorTests {
                 """;
 
         var errors = validatePolicy(policy);
-        assertThat(errors).as("Eager operators are allowed in target").isEmpty();
+        assertThat(errors).as("Eager operator are allowed in target").isEmpty();
     }
 
     // ========================================================================
@@ -262,10 +262,10 @@ class SAPLValidatorTests {
     static Stream<Arguments> validPolicies() {
         return Stream.of(arguments("simple permit policy", """
                 policy "test" permit
-                """), arguments("policy with eager operators in target", """
+                """), arguments("policy with eager operator in target", """
                 policy "test"
                 permit subject == "admin" & action == "read" | resource == "public"
-                """), arguments("policy with lazy operators in body", """
+                """), arguments("policy with lazy operator in body", """
                 policy "test"
                 permit
                 where

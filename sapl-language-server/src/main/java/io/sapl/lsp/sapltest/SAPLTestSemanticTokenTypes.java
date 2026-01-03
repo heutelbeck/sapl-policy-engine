@@ -122,7 +122,7 @@ public final class SAPLTestSemanticTokenTypes {
     public static final Set<String> LITERALS = Set.of("true", "false", "undefined");
 
     /**
-     * Punctuation operators.
+     * Punctuation operator.
      */
     public static final Set<String> OPERATORS = Set.of("{", "}", "[", "]", "(", ")", ",", ":", ";", "-", "<", ">",
             "and");

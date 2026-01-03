@@ -485,6 +485,118 @@ class FilterCompilerTests {
     }
 
     // ========================================================================
+    // Import Resolution Tests
+    // ========================================================================
+
+    @Test
+    void whenImportedFilterFunctionUsedInExtendedFilter_thenResolvesCorrectly() {
+        // This tests the pattern from sapl-demo-mvc-app
+        // patient_repository_policyset.sapl:
+        // import filter.remove
+        // resource |- { @.field : remove }
+        val policyDocument = """
+                import filter.remove
+
+                policy "test import resolution"
+                permit
+                transform
+                    resource |- {
+                        @.secret : remove,
+                        @.password : remove
+                    }
+                """;
+
+        val result = evaluateTransformWithPolicy(policyDocument, Value.ofObject(
+                Map.of("secret", Value.of("hidden"), "password", Value.of("hunter2"), "public", Value.of("visible"))));
+
+        assertThat(result).isEqualTo(Value.ofObject(Map.of("public", Value.of("visible"))));
+    }
+
+    @Test
+    void whenImportedFilterFunctionUsedInSimpleFilter_thenResolvesCorrectly() {
+        val policyDocument = """
+                import filter.blacken
+
+                policy "test import resolution"
+                permit
+                transform
+                    resource |- blacken
+                """;
+
+        val result = evaluateTransformWithPolicy(policyDocument, Value.of("secret"));
+
+        assertThat(result).isEqualTo(Value.of("XXXXXX"));
+    }
+
+    @Test
+    void whenImportedFunctionWithAliasUsed_thenResolvesCorrectly() {
+        val policyDocument = """
+                import filter.remove as hide
+
+                policy "test import with alias"
+                permit
+                transform
+                    resource |- { @.secret : hide }
+                """;
+
+        val result = evaluateTransformWithPolicy(policyDocument,
+                Value.ofObject(Map.of("secret", Value.of("hidden"), "public", Value.of("visible"))));
+
+        assertThat(result).isEqualTo(Value.ofObject(Map.of("public", Value.of("visible"))));
+    }
+
+    @Test
+    void whenUnresolvedFunctionUsed_thenReturnsErrorInField() {
+        val policyDocument = """
+                policy "test unresolved function"
+                permit
+                transform
+                    resource |- { @.field : unknownFunction }
+                """;
+
+        val result = evaluateTransformWithPolicy(policyDocument, Value.ofObject(Map.of("field", Value.of("value"))));
+
+        // The result is an object with the field containing an error
+        assertThat(result).isInstanceOf(ObjectValue.class);
+        val objResult  = (ObjectValue) result;
+        val fieldValue = objResult.get("field");
+        assertThat(fieldValue).isInstanceOf(ErrorValue.class);
+        assertThat(((ErrorValue) fieldValue).message()).containsIgnoringCase("invalid function name");
+    }
+
+    private Value evaluateTransformWithPolicy(String policyDocument, Value resource) {
+        val charStream     = CharStreams.fromString(policyDocument);
+        val lexer          = new SAPLLexer(charStream);
+        val tokenStream    = new CommonTokenStream(lexer);
+        val parser         = new SAPLParser(tokenStream);
+        val sapl           = parser.sapl();
+        val compiledPolicy = SaplCompiler.compileDocument(sapl, contextWithFunctions);
+
+        // Get the transform expression from the compiled policy
+        val decision = compiledPolicy.decisionExpression();
+        if (decision instanceof ErrorValue error) {
+            return error;
+        }
+        if (decision instanceof Value value) {
+            return value;
+        }
+        if (decision instanceof PureExpression pure) {
+            // Create context with resource via AuthorizationSubscription
+            val subscription = new io.sapl.api.pdp.AuthorizationSubscription(Value.UNDEFINED, Value.UNDEFINED, resource,
+                    Value.UNDEFINED);
+            val evalCtx      = new EvaluationContext(null, null, null, subscription,
+                    contextWithFunctions.getFunctionBroker(), null);
+            val result       = pure.evaluate(evalCtx);
+            // The result is an ObjectValue with decision metadata - extract the resource
+            if (result instanceof ObjectValue obj && obj.containsKey("resource")) {
+                return obj.get("resource");
+            }
+            return result;
+        }
+        return Value.error("Unexpected decision expression type");
+    }
+
+    // ========================================================================
     // Helper Methods
     // ========================================================================
 

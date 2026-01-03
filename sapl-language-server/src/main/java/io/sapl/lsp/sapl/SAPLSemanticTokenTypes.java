@@ -74,7 +74,7 @@ public final class SAPLSemanticTokenTypes {
     public static final Set<String> SUBSCRIPTION_ELEMENTS = Set.of("subject", "action", "resource", "environment");
 
     /**
-     * SAPL operators.
+     * SAPL operator.
      */
     public static final Set<String> OPERATORS = Set.of("||", "&&", "|", "^", "&", "==", "!=", "=~", "<", "<=", ">",
             ">=", "+", "-", "*", "/", "%", "!", "|-", "::", "@", ".", "..", ":", ",", "|<", "#");

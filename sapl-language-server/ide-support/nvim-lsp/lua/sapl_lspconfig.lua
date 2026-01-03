@@ -44,5 +44,5 @@ end
 -- Activate the server.
 -- The SAPL LSP provides comprehensive semantic tokens for syntax highlighting
 -- for both .sapl and .sapltest files. No separate syntax file needed - the LSP
--- handles keywords, operators, strings, numbers, comments, and semantic elements.
+-- handles keywords, operator, strings, numbers, comments, and semantic elements.
 lspconfig.sapl.setup({})

@@ -46,6 +46,22 @@ import java.util.function.Predicate;
 class FilterApplicationStrategy {
 
     private static final String RUNTIME_ERROR_UNEXPECTED_NON_VALUE_CONSTANT_ARGS = "Unexpected non-value result with constant arguments.";
+    private static final String RUNTIME_ERROR_INVALID_FUNCTION_NAME              = "Invalid function name '%s'. Check that the function is imported correctly.";
+
+    /**
+     * Safely creates a FunctionInvocation and evaluates it, returning an error if
+     * the
+     * function name is invalid.
+     */
+    private static Value safeEvaluateFunction(String functionIdentifier, java.util.List<Value> arguments,
+            io.sapl.api.functions.FunctionBroker broker) {
+        try {
+            val invocation = new FunctionInvocation(functionIdentifier, arguments);
+            return broker.evaluateFunction(invocation);
+        } catch (IllegalArgumentException e) {
+            return Error.create(RUNTIME_ERROR_INVALID_FUNCTION_NAME.formatted(functionIdentifier));
+        }
+    }
 
     /**
      * Applies a filter function to a single value.
@@ -157,8 +173,7 @@ class FilterApplicationStrategy {
             return error;
         }
 
-        val invocation = new FunctionInvocation(functionIdentifier, valueArguments);
-        return context.getFunctionBroker().evaluateFunction(invocation);
+        return safeEvaluateFunction(functionIdentifier, valueArguments, context.getFunctionBroker());
     }
 
     /**
@@ -204,8 +219,7 @@ class FilterApplicationStrategy {
             String functionIdentifier, CompiledArguments arguments) {
         return new PureExpression(ctx -> {
             val valueArguments = FilterArgumentEvaluator.evaluatePureArguments(astNode, arguments, targetValue, ctx);
-            val invocation     = new FunctionInvocation(functionIdentifier, valueArguments);
-            return ctx.functionBroker().evaluateFunction(invocation);
+            return safeEvaluateFunction(functionIdentifier, valueArguments, ctx.functionBroker());
         }, arguments.isSubscriptionScoped());
     }
 
@@ -219,8 +233,7 @@ class FilterApplicationStrategy {
         return new PureExpression(ctx -> FilterCollectionRebuilder.rebuildArray(arrayValue, indexMatcher, i -> {
             val valueArguments = FilterArgumentEvaluator.evaluatePureArguments(astNode, arguments, arrayValue.get(i),
                     ctx);
-            val invocation     = new FunctionInvocation(functionIdentifier, valueArguments);
-            return ctx.functionBroker().evaluateFunction(invocation);
+            return safeEvaluateFunction(functionIdentifier, valueArguments, ctx.functionBroker());
         }), arguments.isSubscriptionScoped());
     }
 
@@ -234,8 +247,7 @@ class FilterApplicationStrategy {
         return new PureExpression(ctx -> FilterCollectionRebuilder.rebuildObject(objectValue, keyMatcher, key -> {
             val valueArguments = FilterArgumentEvaluator.evaluatePureArguments(astNode, arguments, objectValue.get(key),
                     ctx);
-            val invocation     = new FunctionInvocation(functionIdentifier, valueArguments);
-            return ctx.functionBroker().evaluateFunction(invocation);
+            return safeEvaluateFunction(functionIdentifier, valueArguments, ctx.functionBroker());
         }), arguments.isSubscriptionScoped());
     }
 
@@ -253,9 +265,8 @@ class FilterApplicationStrategy {
         val argumentFlux = FilterArgumentEvaluator.combineStreamArguments(arguments, targetValue);
 
         val stream = argumentFlux.flatMap(valueArgs -> Flux.deferContextual(ctx -> {
-            val invocation        = new FunctionInvocation(functionIdentifier, valueArgs);
             val evaluationContext = ctx.get(EvaluationContext.class);
-            return Flux.just(evaluationContext.functionBroker().evaluateFunction(invocation));
+            return Flux.just(safeEvaluateFunction(functionIdentifier, valueArgs, evaluationContext.functionBroker()));
         }));
 
         return new StreamExpression(stream);
@@ -278,8 +289,7 @@ class FilterApplicationStrategy {
                     valueArguments.add(arrayValue.get(i));
                     valueArguments.addAll(argValues.subList(1, argValues.size()));
 
-                    val invocation = new FunctionInvocation(functionIdentifier, valueArguments);
-                    return context.getFunctionBroker().evaluateFunction(invocation);
+                    return safeEvaluateFunction(functionIdentifier, valueArguments, context.getFunctionBroker());
                 }));
 
         return new StreamExpression(stream);
@@ -302,8 +312,7 @@ class FilterApplicationStrategy {
                     valueArguments.add(objectValue.get(key));
                     valueArguments.addAll(argValues.subList(1, argValues.size()));
 
-                    val invocation = new FunctionInvocation(functionIdentifier, valueArguments);
-                    return context.getFunctionBroker().evaluateFunction(invocation);
+                    return safeEvaluateFunction(functionIdentifier, valueArguments, context.getFunctionBroker());
                 }));
 
         return new StreamExpression(stream);

@@ -186,6 +186,7 @@ public class ExpressionCompiler {
 
     // ==================== Value Errors ====================
     private static final String ERROR_EXPECTED_VALUE_FOR_FUNCTION = "Expected a value for function argument.";
+    private static final String ERROR_INVALID_FUNCTION_NAME       = "Invalid function name '%s'. Check that the function is imported correctly.";
     private static final String ERROR_INVALID_BOOLEAN_LITERAL     = "Invalid boolean literal.";
     private static final String ERROR_INVALID_NUMBER_FORMAT       = "Invalid number format: %s.";
     private static final String ERROR_MISSING_NUMBER_TOKEN        = "Missing number token.";
@@ -354,7 +355,7 @@ public class ExpressionCompiler {
             compiled[i] = compileMultiplication(operands.get(i), context);
         }
 
-        // Extract operators (+, -) from child nodes
+        // Extract operator (+, -) from child nodes
         val operators = extractOperatorSymbols(addition);
 
         return compileArithmeticChain(compiled, operators, addition);
@@ -375,7 +376,7 @@ public class ExpressionCompiler {
             compiled[i] = compileUnaryExpression(operands.get(i), context);
         }
 
-        // Extract operators (*, /, %) from child nodes
+        // Extract operator (*, /, %) from child nodes
         val operators = extractOperatorSymbols(multiplication);
 
         return compileArithmeticChain(compiled, operators, multiplication);
@@ -562,7 +563,16 @@ public class ExpressionCompiler {
             }
             valueList.add(value);
         }
-        return broker.evaluateFunction(new FunctionInvocation(functionName, valueList));
+        return safeEvaluateFunction(functionName, valueList, broker);
+    }
+
+    private static Value safeEvaluateFunction(String functionName, java.util.List<Value> arguments,
+            io.sapl.api.functions.FunctionBroker broker) {
+        try {
+            return broker.evaluateFunction(new FunctionInvocation(functionName, arguments));
+        } catch (IllegalArgumentException e) {
+            return Error.create(ERROR_INVALID_FUNCTION_NAME.formatted(functionName));
+        }
     }
 
     private CompiledExpression compilePureFunctionCall(String functionName, CompiledArguments compiledArgs,
@@ -579,7 +589,7 @@ public class ExpressionCompiler {
                 }
                 valueList.add(value);
             }
-            return broker.evaluateFunction(new FunctionInvocation(functionName, valueList));
+            return safeEvaluateFunction(functionName, valueList, broker);
         }, compiledArgs.isSubscriptionScoped());
     }
 
@@ -598,7 +608,7 @@ public class ExpressionCompiler {
                 }
                 valueList.add(v);
             }
-            return broker.evaluateFunction(new FunctionInvocation(functionName, valueList));
+            return safeEvaluateFunction(functionName, valueList, broker);
         }));
     }
 
@@ -1302,7 +1312,7 @@ public class ExpressionCompiler {
 
     /**
      * Extracts operator symbols from child terminal nodes of a parser rule context.
-     * In ANTLR, operators appear as terminal nodes between operand contexts.
+     * In ANTLR, operator appear as terminal nodes between operand contexts.
      */
     private String[] extractOperatorSymbols(ParserRuleContext context) {
         val operators = new ArrayList<String>();
@@ -1436,7 +1446,7 @@ public class ExpressionCompiler {
     }
 
     /**
-     * Combines values from multiple streams using arithmetic operators.
+     * Combines values from multiple streams using arithmetic operator.
      */
     private static Value combineArithmeticValues(Object[] values, String[] operators, ParserRuleContext context) {
         if (!(values[0] instanceof Value result)) {
@@ -1522,7 +1532,7 @@ public class ExpressionCompiler {
     }
 
     /**
-     * Applies equality operators: ==, !=, =~
+     * Applies equality operator: ==, !=, =~
      * Uses ComparisonOperators which properly merge metadata from both operands.
      */
     private static Value applyEqualityOperator(Value left, Value right, String operator, ParserRuleContext context) {
@@ -1535,7 +1545,7 @@ public class ExpressionCompiler {
     }
 
     /**
-     * Applies comparison operators: <, <=, >, >=, in
+     * Applies comparison operator: <, <=, >, >=, in
      * Uses NumberOperators and ComparisonOperators which properly merge metadata.
      */
     private static Value applyComparisonOperator(Value left, Value right, String operator, ParserRuleContext context) {

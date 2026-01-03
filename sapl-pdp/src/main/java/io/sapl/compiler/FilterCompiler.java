@@ -83,6 +83,31 @@ public class FilterCompiler {
     private static final String RUNTIME_ERROR_UNEXPECTED_NON_VALUE_RECURSIVE_INDEX       = "Unexpected non-value result in recursive index filter.";
     private static final String RUNTIME_ERROR_UNEXPECTED_NON_VALUE_RECURSIVE_KEY         = "Unexpected non-value result in recursive key filter.";
     private static final String RUNTIME_ERROR_WILDCARD_REQUIRES_ARRAY_OR_OBJECT          = "Cannot apply wildcard step to non-array/non-object value.";
+    private static final String RUNTIME_ERROR_INVALID_FUNCTION_NAME                      = "Invalid function name '%s'. Function names must be fully qualified (e.g., 'library.function'). Check that the function is imported correctly.";
+
+    /**
+     * Pre-compiled filter statement containing the resolved function name and
+     * compiled arguments. Resolving at compile time avoids closure capture bugs
+     * where the CompilationContext imports list may be cleared before runtime.
+     */
+    private record CompiledFilterStatement(
+            FilterStatementContext statement,
+            String functionIdentifier,
+            CompiledArguments arguments) {}
+
+    /**
+     * Safely creates a FunctionInvocation and evaluates it, returning an error if
+     * the
+     * function name is invalid.
+     */
+    private static Value safeEvaluateFunction(String functionIdentifier, List<Value> arguments, FunctionBroker broker) {
+        try {
+            val invocation = new FunctionInvocation(functionIdentifier, arguments);
+            return broker.evaluateFunction(invocation);
+        } catch (IllegalArgumentException e) {
+            return Error.create(RUNTIME_ERROR_INVALID_FUNCTION_NAME.formatted(functionIdentifier));
+        }
+    }
 
     /**
      * Compiles a filter expression (|- operator).
@@ -129,7 +154,8 @@ public class FilterCompiler {
             }
 
             if (filter.each != null) {
-                return applyFilterFunctionToEachArrayElement(value, filter, finalArguments, context);
+                return applyFilterFunctionToEachArrayElement(value, filter, functionIdentifier, finalArguments,
+                        context);
             }
 
             return applyFilterFunctionToValue(filter, value, functionIdentifier, finalArguments, context);
@@ -219,12 +245,10 @@ public class FilterCompiler {
      * Applies a filter function to each element of an array value.
      */
     private CompiledExpression applyFilterFunctionToEachArrayElement(Value parentValue, FilterSimpleContext filter,
-            CompiledArguments arguments, CompilationContext context) {
+            String functionIdentifier, CompiledArguments arguments, CompilationContext context) {
         if (!(parentValue instanceof ArrayValue arrayValue)) {
             return Error.at(filter, parentValue.metadata(), RUNTIME_ERROR_EACH_REQUIRES_ARRAY);
         }
-
-        val functionIdentifier = resolveFilterFunctionName(filter.functionIdentifier(), context);
 
         return switch (arguments.nature()) {
         case VALUE  -> {
@@ -279,8 +303,10 @@ public class FilterCompiler {
             valueArguments.add(element);
             valueArguments.addAll(resolvedArguments);
 
-            val invocation = new FunctionInvocation(functionIdentifier, valueArguments);
-            val result     = functionBroker.evaluateFunction(invocation);
+            val result = safeEvaluateFunction(functionIdentifier, valueArguments, functionBroker);
+            if (result instanceof ErrorValue) {
+                return result;
+            }
 
             if (!(result instanceof UndefinedValue)) {
                 builder.add(result);
@@ -295,12 +321,17 @@ public class FilterCompiler {
      */
     private CompiledExpression compileExtendedFilter(CompiledExpression parent, FilterExtendedContext filter,
             CompilationContext context) {
+        // Pre-compile all filter statements at compile time to capture resolved
+        // function names
+        val compiledStatements = filter.filterStatement().stream()
+                .map(stmt -> compileFilterStatementData(stmt, context)).toList();
+
         UnaryOperator<CompiledExpression> filterOp = parentExpr -> {
             if (!(parentExpr instanceof Value currentValue)) {
                 return Error.at(filter, ValueMetadata.EMPTY, RUNTIME_ERROR_EXTENDED_FILTER_REQUIRES_VALUE);
             }
-            for (val statement : filter.filterStatement()) {
-                currentValue = applyFilterStatement(currentValue, statement, context);
+            for (val compiled : compiledStatements) {
+                currentValue = applyCompiledFilterStatement(currentValue, compiled, context);
                 if (currentValue instanceof ErrorValue) {
                     return currentValue;
                 }
@@ -310,10 +341,18 @@ public class FilterCompiler {
         return wrapFilterOperation(filter, parent, filterOp);
     }
 
-    private Value applyFilterStatement(Value currentValue, FilterStatementContext statement,
+    private CompiledFilterStatement compileFilterStatementData(FilterStatementContext statement,
             CompilationContext context) {
         val arguments          = compileFilterArguments(statement.arguments(), context);
         val functionIdentifier = resolveFilterFunctionName(statement.functionIdentifier(), context);
+        return new CompiledFilterStatement(statement, functionIdentifier, arguments);
+    }
+
+    private Value applyCompiledFilterStatement(Value currentValue, CompiledFilterStatement compiled,
+            CompilationContext context) {
+        val statement          = compiled.statement();
+        val functionIdentifier = compiled.functionIdentifier();
+        val arguments          = compiled.arguments();
 
         if (statement.each != null) {
             return applyEachFilterStatement(statement, currentValue, statement.target, functionIdentifier, arguments,
@@ -567,8 +606,10 @@ public class FilterCompiler {
             valueArguments.add(fieldValue);
             valueArguments.addAll(resolvedArguments);
 
-            val invocation   = new FunctionInvocation(functionIdentifier, valueArguments);
-            val filterResult = functionBroker.evaluateFunction(invocation);
+            val filterResult = safeEvaluateFunction(functionIdentifier, valueArguments, functionBroker);
+            if (filterResult instanceof ErrorValue) {
+                return filterResult;
+            }
 
             builder.add(rebuildObjectWithFilteredField(elementObj, key, filterResult));
         }

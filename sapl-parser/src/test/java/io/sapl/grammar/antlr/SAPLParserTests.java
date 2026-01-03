@@ -617,7 +617,7 @@ class SAPLParserTests {
 
     // ========================================================================
     // CATEGORY 10: Language Feature Syntax Tests
-    // Consolidated tests for imports, operators, steps, filters, JSON, comments
+    // Consolidated tests for imports, operator, steps, filters, JSON, comments
     // ========================================================================
 
     static Stream<Arguments> languageFeatureSyntax() {
@@ -635,8 +635,8 @@ class SAPLParserTests {
                         """),
 
                 // --- Operators ---
-                arguments("all operators", """
-                        policy "operators" permit
+                arguments("all operator", """
+                        policy "operator" permit
                         where
                             true || false; true && false; true | false; true ^ false; true & false;
                             1 == 1; 1 != 2; "test" =~ "t.*";
@@ -787,7 +787,7 @@ class SAPLParserTests {
 
     static Stream<Arguments> syntacticallyValidButSemanticallyInvalidPolicies() {
         return Stream.of(
-                // Lazy operators in target (semantic error, not syntax)
+                // Lazy operator in target (semantic error, not syntax)
                 arguments("lazy AND in target", "policy \"test\" permit a == b && c == d"),
                 arguments("lazy OR in target", "policy \"test\" permit a == b || c == d"),
                 // Attribute finders in target (semantic error, not syntax)

@@ -28,7 +28,7 @@ import lombok.extern.slf4j.Slf4j;
  * This class enforces a <b>secure-by-default</b> approach to bundle loading.
  * Signature verification is mandatory unless
  * explicitly disabled with explicit risk acceptance. This two-factor opt-out
- * ensures operators understand the security
+ * ensures operator understand the security
  * implications of loading unsigned bundles.
  * </p>
  * <h2>Security Model</h2>
