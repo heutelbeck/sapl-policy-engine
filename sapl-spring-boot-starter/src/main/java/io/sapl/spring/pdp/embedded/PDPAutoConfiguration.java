@@ -65,7 +65,7 @@ import java.util.List;
 @Slf4j
 @AutoConfiguration
 @ConditionalOnClass(name = "io.sapl.pdp.PolicyDecisionPointBuilder")
-@ConditionalOnProperty(prefix = "io.sapl.pdp.embedded", name = "enabled", havingValue = "true")
+@ConditionalOnProperty(prefix = "io.sapl.pdp.embedded", name = "enabled", havingValue = "true", matchIfMissing = true)
 @EnableConfigurationProperties(EmbeddedPDPProperties.class)
 public class PDPAutoConfiguration {
 
