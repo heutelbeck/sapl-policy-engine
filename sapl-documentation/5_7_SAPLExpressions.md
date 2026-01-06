@@ -279,7 +279,12 @@ Structure of `object`
 The basic access syntax is quite similar to accessing an object’s attributes in JavaScript or Java:
 
 - **Attributes of an object** can be accessed by their key (**key step**) using the *dot notation* (`resource.key`) or the *bracket notation* (`resource["key"]`,`resource['key']`). Both expressions return the value of the specified attribute. For using the dot notation, the specified key must be an [identifier](#identifiers). Otherwise, the bracket notation with a string between square brackets is necessary, e.g., if the key contains whitespace characters (`resource['another key']`).
-- **Indices of an array** may be accessed by putting the index between square brackets (**index step**, `array[3]`). The index can be a negative number `-n`, which evaluates to the `n`\-th element from the end of the array, starting with -1 as the last element’s index. `array[-2]` would return the second last element of the array `array`.
+- **Indices of an array** may be accessed by putting the index between square brackets (**index step**, `array[3]`). The index can be a negative number `-n`, which evaluates to the `n`\-th element from the end of the array, starting with -1 as the last element's index. `array[-2]` would return the second last element of the array `array`.
+
+**Handling missing data:**
+
+- **Missing keys:** When a key step accesses an attribute that doesn't exist in an object, the result is `undefined`. This allows policies to gracefully handle optional attributes using conditional logic or the Elvis operator.
+- **Out-of-bounds indices:** When an index step accesses an array index that doesn't exist (either beyond the array length or more negative than the array allows), an error is returned. Unlike missing object keys, out-of-bounds array access is treated as a programming error since array lengths are typically known or should be checked beforehand.
 
 Multiple selection steps can be **chained**. The steps are evaluated from left to right. Each step is applied to the result returned from the previous step.
 
@@ -293,7 +298,7 @@ SAPL supports querying for specific parts of a JSON structure. Except for an **e
 
 #### Expression Step `[(Expression)]`
 
-An expression step returns the value of an attribute with a key or an array item with an index specified by an expression. `Expression` must evaluate to a string or a number. If `Expression` evaluates to a string, the selection can only be applied to an object. If `Expression` evaluates to a number, the selection can only be applied to an array.
+An expression step returns the value of an attribute with a key or an array item with an index specified by an expression. `Expression` must evaluate to a string or a number. If `Expression` evaluates to a string, the selection can only be applied to an object. If `Expression` evaluates to a number, the selection can only be applied to an array. When an expression evaluates to a non-integer number (e.g., `3.7`), the value is truncated toward zero to produce an integer index (e.g., `3`).
 
 
 > The expression step can be used to refer to custom variables (`object.array[(anIndex+2)]`) or apply custom functions (`object.array[(max_value(object.array))]`.
@@ -319,6 +324,9 @@ A wildcard step can be applied to an object or an array. When applied to an obje
 Looks for the specified key or array index in the current object or array and, recursively, in its children (i.e., the values of its attributes or its items). The recursive descent step can be applied to both an object and an array. It returns an array containing all attribute values or array items found. If the specified key is an asterisk (`..` **or** `[]`, wildcard), all attribute values and array items in the whole structure are returned.
 
 As attributes of an object are not sorted, the order of items in the result array may vary.
+
+{: .info }
+**Depth limit:** To prevent runaway recursion on deeply nested structures, recursive descent is limited to a maximum depth of 500 levels. If this limit is exceeded, an error is returned.
 
 
 > Applied to an `object`
@@ -351,32 +359,31 @@ As attributes have no order, the sorting of the result array of a condition step
 
 The slice contains the items with indices between `Start` and `Stop`, with `Start` being inclusive and `Stop` being exclusive. `Step` describes the distance between the elements to be included in the slice, i.e., with a `Step` of 2, only each second element would be included (with `Start` as the first element's index). All parts except the first colon are optional. `Step` defaults to 1.
 
-**Default values:** `Start` defaults to 0 and `Stop` defaults to the length of the array, regardless of the sign of `Step`. A `Step` of 0 leads to an error.
+**Default values:** When `Step` is positive (or omitted), `Start` defaults to `0` and `Stop` defaults to the array length. When `Step` is negative, `Start` defaults to the last index and `Stop` defaults to before the first element—allowing the slice to traverse the array in reverse. A `Step` of `0` results in an error.
 
-**Negative indices:** Both `Start` and `Stop` support negative indices, which count from the end of the array. For example, an index of -1 refers to the last element, -2 to the second-to-last, and so on.
+**Negative indices:** Both `Start` and `Stop` support negative indices, which count from the end of the array. For example, `-1` refers to the last element, `-2` to the second-to-last, and so on. These indices are converted to their positive equivalents before slicing.
 
-**SAPL slicing semantics:** Unlike Python-style slicing, negative step values in SAPL do not reverse the iteration direction. Instead, array indices are always iterated forward (0 to length-1), and the step value affects the selection pattern:
+**How slicing works:** The `Step` value determines both the direction and stride of iteration:
 
-- **Positive step:** An element at index `i` is selected if `(i - Start) % Step == 0`
-- **Negative step:** An element at index `i` is selected if `(Stop - i) % Step == 0`
+- **Positive step:** Iteration proceeds forward from `Start` toward `Stop`, selecting every `Step`-th element
+- **Negative step:** Iteration proceeds backward from `Start` toward `Stop`, selecting every `|Step|`-th element
 
-The range constraint `Start <= i < Stop` always applies (assuming `Start < Stop`).
+If the direction of `Step` is inconsistent with the range (e.g., trying to go forward when `Start > Stop`, or backward when `Start < Stop`), the result is an empty array.
 
+{: .warning }
+**Changed in SAPL 4.0:** In SAPL 3.x, negative step values did not reverse iteration direction. Starting with SAPL 4.0, a negative step now iterates backward through the array. For example, `[::-1]` previously returned elements in their original order, but now returns the array reversed. Review any policies using negative step values when upgrading.
 
-> Applied to the array `[1, 2, 3, 4, 5]`, the selection step `[-2:]` returns the array `[4, 5]` (the last two elements).
-
-
-**Examples of SAPL slicing behavior:**
+**Examples:**
 
 > Applied to `[0, 1, 2, 3, 4, 5, 6, 7, 8, 9]`:
-> - `[1:4:1]` returns `[1, 2, 3]` (standard forward slice)
-> - `[::3]` returns `[0, 3, 6, 9]` (every third element starting from 0)
-> - `[::-1]` returns `[0, 1, 2, 3, 4, 5, 6, 7, 8, 9]` (all elements, since all satisfy `(10-i) % -1 == 0`)
-> - `[::-3]` returns `[1, 4, 7]` (elements where `(10-i) % -3 == 0`)
-> - `[1:5:-1]` returns `[1, 2, 3, 4]` (range 1-5, elements where `(5-i) % -1 == 0`)
-
-
-> If Start and Stop are to be left empty, the two colons must be separated by a whitespace to avoid confusion with the sub-template operator. So write `[: :-2]` instead of `[::-2]`.
+> - `[1:4]` returns `[1, 2, 3]` (elements from index 1 up to, but not including, index 4)
+> - `[::3]` returns `[0, 3, 6, 9]` (every third element, starting from the beginning)
+> - `[::-1]` returns `[9, 8, 7, 6, 5, 4, 3, 2, 1, 0]` (all elements in reverse order)
+> - `[::-3]` returns `[9, 6, 3, 0]` (every third element, in reverse)
+> - `[5:2:-1]` returns `[5, 4, 3]` (from index 5 down to, but not including, index 2)
+> - `[1:5:-1]` returns `[]` (empty—cannot go backward from 1 to 5)
+> - `[-3:]` returns `[7, 8, 9]` (the last three elements)
+> - `[:-3]` returns `[0, 1, 2, 3, 4, 5, 6]` (all but the last three elements)
 
 
 #### Index Union `[index1, index2, …​]`

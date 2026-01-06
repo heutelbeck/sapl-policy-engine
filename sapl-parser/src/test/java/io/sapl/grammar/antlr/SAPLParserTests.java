@@ -722,7 +722,76 @@ class SAPLParserTests {
     }
 
     // ========================================================================
-    // CATEGORY 11: Invalid Syntax Tests (should produce errors)
+    // CATEGORY 11: Array Slicing with :: Token Disambiguation
+    // Verifies that [::-1] parses correctly without whitespace (using SUBTEMPLATE
+    // token)
+    // ========================================================================
+
+    static Stream<Arguments> arraySlicingWithDoubleColon() {
+        return Stream.of(
+                // Core test: :: without whitespace should parse as slice, not subtemplate
+                arguments("slice with negative step [::-1]", """
+                        policy "test" permit where var x = array[::-1];
+                        """), arguments("slice with negative step [::-2]", """
+                        policy "test" permit where var x = array[::-2];
+                        """), arguments("slice with positive step [::1]", """
+                        policy "test" permit where var x = array[::1];
+                        """), arguments("slice with positive step [::3]", """
+                        policy "test" permit where var x = array[::3];
+                        """), arguments("slice with empty step [::]", """
+                        policy "test" permit where var x = array[::];
+                        """),
+
+                // With start index
+                arguments("slice with start and negative step [1::-1]", """
+                        policy "test" permit where var x = array[1::-1];
+                        """), arguments("slice with start and positive step [2::2]", """
+                        policy "test" permit where var x = array[2::2];
+                        """),
+
+                // Negative indices combined with :: token
+                arguments("slice with negative start and step [-1::-1]", """
+                        policy "test" permit where var x = array[-1::-1];
+                        """), arguments("slice with negative start [-3::]", """
+                        policy "test" permit where var x = array[-3::];
+                        """),
+
+                // Equivalent forms with whitespace (uses COLON COLON instead of SUBTEMPLATE)
+                arguments("slice with whitespace [: :-1]", """
+                        policy "test" permit where var x = array[: :-1];
+                        """), arguments("slice with whitespace [: :2]", """
+                        policy "test" permit where var x = array[: :2];
+                        """),
+
+                // Full slice syntax (all three parts)
+                arguments("full slice [1:5:2]", """
+                        policy "test" permit where var x = array[1:5:2];
+                        """), arguments("full slice with negatives [-5:-1:1]", """
+                        policy "test" permit where var x = array[-5:-1:1];
+                        """),
+
+                // In transform context (where :: subtemplate would also be valid)
+                arguments("slice in transform [::-1]", """
+                        policy "test" permit transform resource.items[::-1]
+                        """), arguments("slice then subtemplate [::-1] :: @", """
+                        policy "test" permit transform resource.items[::-1] :: { "value": @ }
+                        """),
+
+                // Multiple slices chained
+                arguments("chained slices [::2][::-1]", """
+                        policy "test" permit where var x = array[::2][::-1];
+                        """));
+    }
+
+    @ParameterizedTest(name = "{0}")
+    @MethodSource("arraySlicingWithDoubleColon")
+    void whenParsingArraySlicingWithDoubleColon_thenNoSyntaxErrors(String description, String policy) {
+        var errors = parseAndCollectErrors(policy);
+        assertThat(errors).as("Array slicing '%s' should parse without errors", description).isEmpty();
+    }
+
+    // ========================================================================
+    // CATEGORY 12: Invalid Syntax Tests (should produce errors)
     // ========================================================================
 
     static Stream<Arguments> invalidSyntaxSnippets() {
@@ -768,7 +837,7 @@ class SAPLParserTests {
     }
 
     // ========================================================================
-    // CATEGORY 12: Reserved Words as Variable Names (from DefaultSAPLParserTests)
+    // CATEGORY 13: Reserved Words as Variable Names (from DefaultSAPLParserTests)
     // ========================================================================
 
     @ParameterizedTest
@@ -781,7 +850,7 @@ class SAPLParserTests {
     }
 
     // ========================================================================
-    // CATEGORY 13: Syntactically Valid but Semantically Invalid Policies
+    // CATEGORY 14: Syntactically Valid but Semantically Invalid Policies
     // These should parse without syntax errors (semantic validation is separate)
     // ========================================================================
 

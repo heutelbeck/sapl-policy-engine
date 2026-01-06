@@ -38,7 +38,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Compiles N-ary lazy boolean operators: Conjunction ({@code &&}) and Disjunction ({@code ||}).
+ * Compiles N-ary lazy boolean operators: Conjunction ({@code &&}) and
+ * Disjunction ({@code ||}).
  * <p>
  * These operators short-circuit:
  * <ul>

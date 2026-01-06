@@ -20,8 +20,10 @@ package io.sapl.ast;
 /**
  * Binary operator ordered by precedence (lowest to highest).
  * <p>
- * Note: SAPL is side-effect free, so eager operators ({@code &}, {@code |}) are treated as
- * aliases for their lazy counterparts ({@code &&}, {@code ||}) during AST transformation.
+ * Note: SAPL is side-effect free, so eager operators ({@code &}, {@code |}) are
+ * treated as
+ * aliases for their lazy counterparts ({@code &&}, {@code ||}) during AST
+ * transformation.
  * Only XOR ({@code ^}) remains as a distinct eager operator.
  */
 public enum BinaryOperatorType {
