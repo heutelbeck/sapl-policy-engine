@@ -27,7 +27,7 @@ import reactor.core.publisher.Flux;
 import java.util.ArrayList;
 
 /**
- * Compiler for lazy (short-circuit) boolean operators: AND (&&) and OR (||).
+ * Compiler for lazy (short-circuit) boolean operators: AND ({@code &&}) and OR ({@code ||}).
  * <p>
  * Unlike eager operators, lazy operators may skip evaluation of the right
  * operand:

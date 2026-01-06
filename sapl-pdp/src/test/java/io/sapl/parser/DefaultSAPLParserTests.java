@@ -45,9 +45,10 @@ class DefaultSAPLParserTests {
     }
 
     @Test
-    void whenLazyBooleanOperatorsInTarget_thenValidationFails() {
+    void whenLazyBooleanOperatorsInTarget_thenParsesSuccessfully() {
+        // && and || are now aliases for & and | - allowed in targets
         var policyDocument = "policy \"test\" permit true && false";
-        assertThatThrownBy(() -> INTERPRETER.parse(policyDocument)).isInstanceOf(SaplParserException.class);
+        assertDoesNotThrow(() -> INTERPRETER.parse(policyDocument));
     }
 
     @Test

@@ -38,9 +38,9 @@ where // (3)
 This statement declares the policy with the name `"compartmentalize read access by department"`. Policy names should describe what the policy does, not who it applies to. This is supposed to clearly communicate scope and intent of the policy from a business perspective to all involved stakeholders. Further it must be unique to make decisions attributable to individual policies. The JSON values of the authorization subscription object are bound to the variables `subject`, `action`, `resource`, and `environment` that are directly accessible in the policy.
 
 **(2)**
-This is the target expression. It filters by resource type and action using the eager evaluation operator `&`. The target expression enables fast policy selection: the PDP uses it to quickly identify which policies might apply to a given authorization subscription. Only if the target expression evaluates to `true` does the PDP evaluate the `where` clause.
+This is the target expression. It filters by resource type and action. The target expression enables fast policy selection: the PDP uses it to quickly identify which policies might apply to a given authorization subscription. Only if the target expression evaluates to `true` does the PDP evaluate the `where` clause.
 
-> **Note:** Target expressions are optimized for fast policy lookup. To maintain performance, they must use eager Boolean operators (`&`, `|` instead of `&&`, `||`) and cannot access external attributes via the `<>` operator (see [Accessing Attributes](../1_5_AccessingAttributes/)). This enables the PDP to quickly identify relevant policies from large policy stores.
+> **Note:** Target expressions are optimized for fast policy lookup. To maintain performance, they cannot access external attributes via the `<>` operator (see [Accessing Attributes](../1_5_AccessingAttributes/)). This enables the PDP to quickly identify relevant policies from large policy stores. Both `&`/`|` and `&&`/`||` operators work identically in target expressions.
 
 **(3)**
 This statement starts the `where` clause (policy body) consisting of a list of statements. Each statement must evaluate to a Boolean value (`true` or `false`). If a statement evaluates to any other type or produces an error, the entire policy evaluation fails. The policy body evaluates to `true` if and only if **all** statements evaluate to `true`. When the policy body evaluates to `true`, the policy applies and emits its entitlement, in this case `permit`.
@@ -75,7 +75,7 @@ When multiple policies apply (some permit, some deny), a **combining algorithm**
 ### Key Concepts
 
 **Target Expression vs. Body:**
-- The **target expression** (after `permit`/`deny`) is used for fast policy indexing and pre-filtering. It should contain conditions that can be evaluated quickly - typically checks on resource type and action. The eager evaluation operator `&` must be used here instead of the lazy `&&`.
+- The **target expression** (after `permit`/`deny`) is used for fast policy indexing and pre-filtering. It should contain conditions that can be evaluated quickly - typically checks on resource type and action. Attribute finders (`<>` operator) cannot be used in target expressions.
 - The **body** (after `where`) contains detailed conditions. This is where you include complex logic, cross-entity attribute comparisons, and external attribute lookups (PIPs). The body is only evaluated if the target expression matches.
 
 **Entitlement:**

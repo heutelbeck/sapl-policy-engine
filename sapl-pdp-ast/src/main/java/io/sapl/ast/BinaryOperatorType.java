@@ -19,15 +19,16 @@ package io.sapl.ast;
 
 /**
  * Binary operator ordered by precedence (lowest to highest).
+ * <p>
+ * Note: SAPL is side-effect free, so eager operators ({@code &}, {@code |}) are treated as
+ * aliases for their lazy counterparts ({@code &&}, {@code ||}) during AST transformation.
+ * Only XOR ({@code ^}) remains as a distinct eager operator.
  */
 public enum BinaryOperatorType {
-    // Logical lazy (short-circuit) - the common case
+    // Logical (all use cost-stratified short-circuit evaluation)
     OR,
     AND,
-    // Logical eager (evaluate both sides)
-    EAGER_OR,
     XOR,
-    EAGER_AND,
     // Equality
     EQ,
     NE,
@@ -47,19 +48,19 @@ public enum BinaryOperatorType {
     // Subtemplate
     SUBTEMPLATE;
 
-    /** @return true for lazy (short-circuit) logical operator (OR, AND) */
+    /** @return true for short-circuit logical operator (OR, AND) */
     public boolean isLazy() {
         return this == OR || this == AND;
     }
 
-    /** @return true for eager logical operator (EAGER_OR, XOR, EAGER_AND) */
-    public boolean isEager() {
-        return this == EAGER_OR || this == XOR || this == EAGER_AND;
+    /** @return true for XOR (the only non-short-circuit logical operator) */
+    public boolean isXor() {
+        return this == XOR;
     }
 
-    /** @return true for any logical operator (lazy or eager) */
+    /** @return true for any logical operator */
     public boolean isLogical() {
-        return isLazy() || isEager();
+        return this == OR || this == AND || this == XOR;
     }
 
     /** @return true for arithmetic operator */

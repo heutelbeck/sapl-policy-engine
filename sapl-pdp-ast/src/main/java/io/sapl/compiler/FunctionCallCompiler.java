@@ -37,10 +37,10 @@ import java.util.List;
  * <p>
  * The compiler optimizes based on argument types:
  * <ul>
- * <li>No arguments → simple NoArgsFunction record</li>
- * <li>All Value arguments → constant fold at compile time</li>
- * <li>All Value/PureOperator arguments → returns PureOperator</li>
- * <li>Any StreamOperator argument → returns StreamOperator</li>
+ * <li>No arguments: simple NoArgsFunction record</li>
+ * <li>All Value arguments: constant fold at compile time</li>
+ * <li>All Value/PureOperator arguments: returns PureOperator</li>
+ * <li>Any StreamOperator argument: returns StreamOperator</li>
  * </ul>
  */
 @UtilityClass

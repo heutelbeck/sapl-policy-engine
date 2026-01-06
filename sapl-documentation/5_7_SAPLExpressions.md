@@ -177,11 +177,12 @@ Assuming `exp1` and `exp2` are expressions evaluating to `true` or `false`, the 
 
 - `!exp1` (negation), precedence **4**
 - `exp1 && exp2` or `exp1 & exp2` (logical AND), precedence **2**
+- `exp1 ^ exp2` (logical XOR), precedence **2**
 - `exp1 || exp2` or `exp1 | exp2` (logical OR), precedence **1**
 
-The difference between `&&` and `&` (or `||` and `|`) is that for `&&` lazy evaluation is used while `&` causes eager evaluation. Using `&&`, if the left side evaluates to `false` and the right side would cause an error, the result of the operator is `false`. The right side is not evaluated. The same applies for `||` if the left side evaluates to `true`. In this case, the operator evaluates to `true`, even if the right side would cause an error - the right side is ignored if the result can already be determined. This is different for `&` and `|` which always evaluate both sides first (eager evaluation). Whenever there is an error, the expression does not return a result. In a target expression, only the eager evaluation expressions `&` and `|` can be used.
+The `&` operator is an alias for `&&`, and `|` is an alias for `||`. Both forms produce identical behavior. The XOR operator (`^`) always evaluates both operands since both are needed to determine the result.
 
-The operators are already listed in descending order of their **precedence**, i.e., `!` has the highest precedence followed by `&&`/`&` and `||`/`|`. The order of evaluation can be changed by using parentheses.
+The operators are already listed in descending order of their **precedence**, i.e., `!` has the highest precedence followed by `&&`/`&`/`^` and `||`/`|`. The order of evaluation can be changed by using parentheses.
 
 `&&` and `||` are left-associative, i.e., in case an expression contains multiple operators the leftmost operator is evaluated first. `!` is non-associative, i.e., `!!true` must be replaced by `!(!true)`.
 

@@ -98,10 +98,6 @@ public class ImportResolver {
         throw new SaplCompilerException(ERROR_UNRESOLVED_REFERENCE.formatted(parts.getFirst()), location);
     }
 
-    // ═══════════════════════════════════════════════════════════════════
-    // POLICY ELEMENTS
-    // ═══════════════════════════════════════════════════════════════════
-
     private PolicyElement resolveElement(PolicyElement element, Map<String, List<String>> importMap) {
         return switch (element) {
         case Policy p     -> resolvePolicy(p, importMap);
@@ -124,10 +120,6 @@ public class ImportResolver {
                 ps.policies().stream().map(p -> resolvePolicy(p, importMap)).toList(), ps.location());
     }
 
-    // ═══════════════════════════════════════════════════════════════════
-    // STATEMENTS
-    // ═══════════════════════════════════════════════════════════════════
-
     private Statement resolveStatement(Statement stmt, Map<String, List<String>> importMap) {
         return switch (stmt) {
         case VarDef v    -> resolveVarDef(v, importMap);
@@ -139,10 +131,6 @@ public class ImportResolver {
         return new VarDef(v.name(), resolveExpr(v.value(), importMap),
                 v.schemas().stream().map(e -> resolveExpr(e, importMap)).toList(), v.location());
     }
-
-    // ═══════════════════════════════════════════════════════════════════
-    // EXPRESSIONS
-    // ═══════════════════════════════════════════════════════════════════
 
     private Expression resolveExpr(Expression expr, Map<String, List<String>> importMap) {
         return switch (expr) {
@@ -174,20 +162,12 @@ public class ImportResolver {
             new Sum(s.operands().stream().map(o -> resolveExpr(o, importMap)).toList(), s.location());
         case Product p               ->
             new Product(p.operands().stream().map(o -> resolveExpr(o, importMap)).toList(), p.location());
-        case EagerConjunction ec     ->
-            new EagerConjunction(ec.operands().stream().map(o -> resolveExpr(o, importMap)).toList(), ec.location());
-        case EagerDisjunction ed     ->
-            new EagerDisjunction(ed.operands().stream().map(o -> resolveExpr(o, importMap)).toList(), ed.location());
         case ExclusiveDisjunction xd -> new ExclusiveDisjunction(
                 xd.operands().stream().map(o -> resolveExpr(o, importMap)).toList(), xd.location());
         // Steps - each has a base expression to recurse into
         case Step step -> resolveStep(step, importMap);
         };
     }
-
-    // ═══════════════════════════════════════════════════════════════════
-    // STEPS
-    // ═══════════════════════════════════════════════════════════════════
 
     private Step resolveStep(Step step, Map<String, List<String>> importMap) {
         return switch (step) {
@@ -215,10 +195,6 @@ public class ImportResolver {
             new AttributeUnionStep(resolveExpr(aus.base(), importMap), aus.attributes(), aus.location());
         };
     }
-
-    // ═══════════════════════════════════════════════════════════════════
-    // FILTER OPERATIONS
-    // ═══════════════════════════════════════════════════════════════════
 
     private FilterOperation resolveFilterOperation(FilterOperation fo, Map<String, List<String>> importMap) {
         return new FilterOperation(resolveExpr(fo.base(), importMap),

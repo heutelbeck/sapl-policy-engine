@@ -47,10 +47,6 @@ public class AstTransformer extends SAPLParserBaseVisitor<AstNode> {
     private static final String ERROR_UNKNOWN_PAIR_KEY_TYPE        = "Unknown pair key type.";
     private static final String ERROR_UNKNOWN_SUBSCRIPTION_ELEMENT = "Unknown subscription element.";
 
-    // ═══════════════════════════════════════════════════════════════════
-    // DOCUMENT STRUCTURE
-    // ═══════════════════════════════════════════════════════════════════
-
     @Override
     public SaplDocument visitSapl(SaplContext ctx) {
         var imports = ctx.importStatement().stream().map(this::visitImportStatement).toList();
@@ -74,10 +70,6 @@ public class AstTransformer extends SAPLParserBaseVisitor<AstNode> {
         var schema   = expr(ctx.schemaExpression);
         return new SchemaStatement(element, enforced, schema, fromContext(ctx));
     }
-
-    // ═══════════════════════════════════════════════════════════════════
-    // POLICY ELEMENTS
-    // ═══════════════════════════════════════════════════════════════════
 
     @Override
     public AstNode visitPolicySetElement(PolicySetElementContext ctx) {
@@ -113,10 +105,6 @@ public class AstTransformer extends SAPLParserBaseVisitor<AstNode> {
         return new Policy(name, entitlement, target, body, obligations, advice, transformation, fromContext(ctx));
     }
 
-    // ═══════════════════════════════════════════════════════════════════
-    // STATEMENTS
-    // ═══════════════════════════════════════════════════════════════════
-
     @Override
     public AstNode visitValueDefinitionStatement(ValueDefinitionStatementContext ctx) {
         return visit(ctx.valueDefinition());
@@ -134,10 +122,6 @@ public class AstTransformer extends SAPLParserBaseVisitor<AstNode> {
         var schemas = ctx.schemaVarExpression.stream().map(this::expr).toList();
         return new VarDef(name, value, schemas, fromContext(ctx));
     }
-
-    // ═══════════════════════════════════════════════════════════════════
-    // EXPRESSIONS - Binary operator (flattened from grammar precedence)
-    // ═══════════════════════════════════════════════════════════════════
 
     @Override
     public AstNode visitLazyOr(LazyOrContext ctx) {
@@ -167,15 +151,17 @@ public class AstTransformer extends SAPLParserBaseVisitor<AstNode> {
 
     @Override
     public AstNode visitEagerOr(EagerOrContext ctx) {
+        // Eager OR (|) is treated as alias for lazy OR (||) since SAPL is side-effect
+        // free
         var operands = ctx.exclusiveOr();
         if (operands.size() == 1) {
             return visit(operands.getFirst());
         }
         var exprs = operands.stream().map(this::expr).toList();
         if (exprs.size() == 2) {
-            return new BinaryOperator(BinaryOperatorType.EAGER_OR, exprs.get(0), exprs.get(1), fromContext(ctx));
+            return new BinaryOperator(BinaryOperatorType.OR, exprs.get(0), exprs.get(1), fromContext(ctx));
         }
-        return new EagerDisjunction(exprs, fromContext(ctx));
+        return new Disjunction(exprs, fromContext(ctx));
     }
 
     @Override
@@ -193,15 +179,17 @@ public class AstTransformer extends SAPLParserBaseVisitor<AstNode> {
 
     @Override
     public AstNode visitEagerAnd(EagerAndContext ctx) {
+        // Eager AND (&) is treated as alias for lazy AND (&&) since SAPL is side-effect
+        // free
         var operands = ctx.equality();
         if (operands.size() == 1) {
             return visit(operands.getFirst());
         }
         var exprs = operands.stream().map(this::expr).toList();
         if (exprs.size() == 2) {
-            return new BinaryOperator(BinaryOperatorType.EAGER_AND, exprs.get(0), exprs.get(1), fromContext(ctx));
+            return new BinaryOperator(BinaryOperatorType.AND, exprs.get(0), exprs.get(1), fromContext(ctx));
         }
-        return new EagerConjunction(exprs, fromContext(ctx));
+        return new Conjunction(exprs, fromContext(ctx));
     }
 
     @Override
@@ -299,10 +287,6 @@ public class AstTransformer extends SAPLParserBaseVisitor<AstNode> {
         return BinaryOperatorType.MOD;
     }
 
-    // ═══════════════════════════════════════════════════════════════════
-    // EXPRESSIONS - Unary
-    // ═══════════════════════════════════════════════════════════════════
-
     @Override
     public AstNode visitNotExpression(NotExpressionContext ctx) {
         var operand = expr(ctx.unaryExpression());
@@ -325,10 +309,6 @@ public class AstTransformer extends SAPLParserBaseVisitor<AstNode> {
     public AstNode visitBasicExpr(BasicExprContext ctx) {
         return visit(ctx.basicExpression());
     }
-
-    // ═══════════════════════════════════════════════════════════════════
-    // EXPRESSIONS - Basic with optional filter/subtemplate
-    // ═══════════════════════════════════════════════════════════════════
 
     @Override
     public AstNode visitBasicExpression(BasicExpressionContext ctx) {
@@ -372,10 +352,6 @@ public class AstTransformer extends SAPLParserBaseVisitor<AstNode> {
         }
         return result;
     }
-
-    // ═══════════════════════════════════════════════════════════════════
-    // EXPRESSIONS - Basic types
-    // ═══════════════════════════════════════════════════════════════════
 
     @Override
     public AstNode visitGroupBasic(GroupBasicContext ctx) {
@@ -436,10 +412,6 @@ public class AstTransformer extends SAPLParserBaseVisitor<AstNode> {
         return buildAttributeAccess(attrCtx.functionIdentifier(), attrCtx.arguments(), attrCtx.attributeFinderOptions,
                 true, attrCtx.step(), ctx);
     }
-
-    // ═══════════════════════════════════════════════════════════════════
-    // VALUES (Literals)
-    // ═══════════════════════════════════════════════════════════════════
 
     @Override
     public AstNode visitObjectValue(ObjectValueContext ctx) {
@@ -521,10 +493,6 @@ public class AstTransformer extends SAPLParserBaseVisitor<AstNode> {
         return new Literal(Value.UNDEFINED, fromContext(ctx));
     }
 
-    // ═══════════════════════════════════════════════════════════════════
-    // FILTER PATH ELEMENTS
-    // ═══════════════════════════════════════════════════════════════════
-
     private FilterPath buildFilterPath(BasicRelativeContext ctx) {
         var elements = ctx.step().stream().map(this::buildPathElement).toList();
         return new FilterPath(elements, fromContext(ctx));
@@ -582,10 +550,6 @@ public class AstTransformer extends SAPLParserBaseVisitor<AstNode> {
         default                              -> throw new SaplCompilerException("Unknown recursive key step type", loc);
         };
     }
-
-    // ═══════════════════════════════════════════════════════════════════
-    // HELPER METHODS
-    // ═══════════════════════════════════════════════════════════════════
 
     private Expression expr(ParserRuleContext ctx) {
         return (Expression) visit(ctx);

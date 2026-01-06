@@ -17,9 +17,14 @@
  */
 package io.sapl.util;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
+import io.sapl.api.model.ArrayValue;
 import io.sapl.api.model.CompiledExpression;
+import io.sapl.api.model.ErrorValue;
 import io.sapl.api.model.EvaluationContext;
 import io.sapl.api.model.PureOperator;
+import io.sapl.api.model.StreamOperator;
 import io.sapl.api.model.Value;
 import io.sapl.ast.Expression;
 import io.sapl.compiler.CompilationContext;
@@ -154,6 +159,77 @@ public class ExpressionTestUtil {
             builder.put((String) keysAndValues[i], (Value) keysAndValues[i + 1]);
         }
         return builder.build();
+    }
+
+    /**
+     * Builds an ArrayValue from values.
+     * Usage: array(Value.of(1), Value.of(2), Value.of(3))
+     */
+    public static ArrayValue array(Value... values) {
+        var builder = ArrayValue.builder();
+        for (var v : values) {
+            builder.add(v);
+        }
+        return builder.build();
+    }
+
+    /**
+     * Asserts that expression compiles to a Value equal to expected.
+     */
+    public static void assertCompilesTo(String source, Value expected) {
+        var compiled = compileExpression(source);
+        assertThat(compiled).isInstanceOf(Value.class);
+        assertThat(compiled).isEqualTo(expected);
+    }
+
+    /**
+     * Asserts that expression compiles to a PureOperator that evaluates to
+     * expected.
+     */
+    public static void assertPureEvaluatesTo(String source, Map<String, Value> variables, Value expected) {
+        var compiled = compileExpression(source);
+        assertThat(compiled).isInstanceOf(PureOperator.class);
+        var ctx    = withVariables(variables);
+        var result = ((PureOperator) compiled).evaluate(ctx);
+        assertThat(result).isEqualTo(expected);
+    }
+
+    /**
+     * Asserts that expression compiles to an error containing the given message.
+     */
+    public static void assertCompilesToError(String source, String errorMessageContains) {
+        var compiled = compileExpression(source);
+        assertThat(compiled).isInstanceOf(ErrorValue.class);
+        assertThat(((ErrorValue) compiled).message()).contains(errorMessageContains);
+    }
+
+    /**
+     * Asserts that expression compiles to a PureOperator that evaluates to an
+     * error.
+     */
+    public static void assertPureEvaluatesToError(String source, Map<String, Value> variables) {
+        var compiled = compileExpression(source);
+        assertThat(compiled).isInstanceOf(PureOperator.class);
+        var ctx    = withVariables(variables);
+        var result = ((PureOperator) compiled).evaluate(ctx);
+        assertThat(result).isInstanceOf(ErrorValue.class);
+    }
+
+    /**
+     * Asserts that expression compiles to a specific type.
+     */
+    public static void assertCompilesTo(String source, Class<? extends CompiledExpression> expectedType) {
+        var compiled = compileExpression(source);
+        assertThat(compiled).isInstanceOf(expectedType);
+    }
+
+    /**
+     * Asserts expression compiles to PureOperator with specified dependency status.
+     */
+    public static void assertPureDependsOnSubscription(String source, boolean expected) {
+        var compiled = compileExpression(source);
+        assertThat(compiled).isInstanceOf(PureOperator.class);
+        assertThat(((PureOperator) compiled).isDependingOnSubscription()).isEqualTo(expected);
     }
 
 }

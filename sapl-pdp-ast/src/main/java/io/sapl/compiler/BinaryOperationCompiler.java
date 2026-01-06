@@ -51,8 +51,7 @@ public class BinaryOperationCompiler {
             Map.entry(EQ, ComparisonOperators::equals), Map.entry(NE, ComparisonOperators::notEquals),
             // Membership
             Map.entry(IN, ComparisonOperators::isContainedIn),
-            // Eager boolean
-            Map.entry(EAGER_AND, BooleanOperators::and), Map.entry(EAGER_OR, BooleanOperators::or),
+            // XOR (the only non-short-circuit boolean operator)
             Map.entry(XOR, BooleanOperators::xor));
 
     public CompiledExpression compile(BinaryOperator binaryOperation, CompilationContext ctx) {

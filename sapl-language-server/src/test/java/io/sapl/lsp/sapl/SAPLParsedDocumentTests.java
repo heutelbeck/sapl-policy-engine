@@ -51,7 +51,8 @@ class SAPLParsedDocumentTests {
     }
 
     @Test
-    void whenLazyOperatorInTarget_thenCapturesValidationError() {
+    void whenLazyOperatorInTarget_thenParsesSuccessfully() {
+        // Both & and && (| and ||) are now treated identically - no validation error
         var content = """
                 policy "test"
                 permit subject == "admin" || action == "read"
@@ -59,8 +60,7 @@ class SAPLParsedDocumentTests {
 
         var document = new SAPLParsedDocument("test.sapl", content);
 
-        assertThat(document.getValidationErrors()).isNotEmpty();
-        assertThat(document.getValidationErrors().getFirst().message()).contains("Lazy OR");
+        assertThat(document.hasErrors()).isFalse();
     }
 
     @Test

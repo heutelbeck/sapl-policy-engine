@@ -41,63 +41,21 @@ import io.sapl.grammar.antlr.validation.ValidationError;
 class SAPLValidatorTests {
 
     // ========================================================================
-    // CATEGORY 1: Lazy Operators in Target Expression Tests
+    // CATEGORY 1: Boolean Operators in Target Expression Tests
+    // Note: Both & and && (| and ||) are now treated identically.
+    // The only restriction in targets is: no attribute finders.
     // ========================================================================
 
-    static Stream<Arguments> lazyOperatorsInTarget() {
-        return Stream.of(arguments("lazy AND in policy target", """
-                policy "test"
-                permit subject == "admin" && action == "read"
-                """, SAPLValidator.VALIDATION_ERROR_LAZY_AND_NOT_ALLOWED_IN_TARGET),
-                arguments("lazy OR in policy target", """
-                        policy "test"
-                        permit subject == "admin" || subject == "superuser"
-                        """, SAPLValidator.VALIDATION_ERROR_LAZY_OR_NOT_ALLOWED_IN_TARGET),
-                arguments("lazy AND in policy set target", """
-                        set "test" deny-overrides
-                        for subject == "admin" && action == "read"
-                        policy "p" permit
-                        """, SAPLValidator.VALIDATION_ERROR_LAZY_AND_NOT_ALLOWED_IN_TARGET),
-                arguments("lazy OR in policy set target", """
-                        set "test" deny-overrides
-                        for subject == "admin" || subject == "superuser"
-                        policy "p" permit
-                        """, SAPLValidator.VALIDATION_ERROR_LAZY_OR_NOT_ALLOWED_IN_TARGET),
-                arguments("nested lazy AND in target", """
-                        policy "test"
-                        permit (subject == "admin" && action == "read") | resource == "public"
-                        """, SAPLValidator.VALIDATION_ERROR_LAZY_AND_NOT_ALLOWED_IN_TARGET),
-                arguments("nested lazy OR in target", """
-                        policy "test"
-                        permit subject == "admin" & (action == "read" || action == "write")
-                        """, SAPLValidator.VALIDATION_ERROR_LAZY_OR_NOT_ALLOWED_IN_TARGET),
-                arguments("multiple lazy operator in target", """
-                        policy "test"
-                        permit subject == "admin" && action == "read" || resource == "public"
-                        """, SAPLValidator.VALIDATION_ERROR_LAZY_OR_NOT_ALLOWED_IN_TARGET));
-    }
-
-    @ParameterizedTest(name = "{0}")
-    @MethodSource("lazyOperatorsInTarget")
-    void whenLazyOperatorInTarget_thenValidationError(String description, String policy, String expectedMessage) {
-        var errors = validatePolicy(policy);
-
-        assertThat(errors).as("Should detect lazy operator in target: %s", description).isNotEmpty()
-                .anyMatch(e -> e.message().contains(expectedMessage.substring(0, 20)));
-    }
-
     @Test
-    void whenLazyOperatorsInPolicyBody_thenNoValidationError() {
+    void whenLazyOperatorsInTarget_thenNoValidationError() {
+        // && and || are now allowed in target expressions (aliases for & and |)
         var policy = """
                 policy "test"
-                permit
-                where
-                    subject == "admin" && action == "read";
-                    subject == "admin" || subject == "superuser";
+                permit subject == "admin" && action == "read" || resource == "public"
                 """;
 
         var errors = validatePolicy(policy);
-        assertThat(errors).as("Lazy operator are allowed in policy body").isEmpty();
+        assertThat(errors).as("&& and || are now allowed in target").isEmpty();
     }
 
     @Test
@@ -108,7 +66,19 @@ class SAPLValidatorTests {
                 """;
 
         var errors = validatePolicy(policy);
-        assertThat(errors).as("Eager operator are allowed in target").isEmpty();
+        assertThat(errors).as("& and | are allowed in target").isEmpty();
+    }
+
+    @Test
+    void whenMixedOperatorsInTarget_thenNoValidationError() {
+        // Both forms work identically
+        var policy = """
+                policy "test"
+                permit subject == "admin" && action == "read" | resource == "public"
+                """;
+
+        var errors = validatePolicy(policy);
+        assertThat(errors).as("Mixed && and | are allowed in target").isEmpty();
     }
 
     // ========================================================================
@@ -324,20 +294,21 @@ class SAPLValidatorTests {
     // ========================================================================
 
     @Test
-    void whenMultipleValidationErrorsInSamePolicy_thenAllAreReported() {
+    void whenMultipleAttributesInTarget_thenAllAreReported() {
         var policy = """
                 policy "test"
-                permit subject == "admin" && <time.now> != undefined
+                permit <time.now> != undefined && subject.<pip.profile> == "admin"
                 """;
 
         var errors = validatePolicy(policy);
 
-        // Should detect both: lazy AND and attribute finder in target
+        // Should detect both attribute finders in target
         assertThat(errors).as("Should report all validation errors").hasSize(2);
     }
 
     @Test
-    void whenLazyOperatorDeeplyNestedInTarget_thenValidationError() {
+    void whenLazyOperatorDeeplyNestedInTarget_thenNoValidationError() {
+        // && is now allowed in target (alias for &)
         var policy = """
                 policy "test"
                 permit (((subject == "admin" && action == "read")))
@@ -345,7 +316,7 @@ class SAPLValidatorTests {
 
         var errors = validatePolicy(policy);
 
-        assertThat(errors).isNotEmpty().anyMatch(e -> e.message().contains("Lazy AND"));
+        assertThat(errors).as("&& is allowed in target").isEmpty();
     }
 
     @Test
@@ -361,7 +332,8 @@ class SAPLValidatorTests {
     }
 
     @Test
-    void whenValidationErrorInNestedPolicyOfSet_thenErrorIsReported() {
+    void whenLazyOperatorInNestedPolicyOfSet_thenNoValidationError() {
+        // && is now allowed in target (alias for &)
         var policy = """
                 set "test" deny-overrides
                 policy "p1" permit
@@ -370,7 +342,7 @@ class SAPLValidatorTests {
 
         var errors = validatePolicy(policy);
 
-        assertThat(errors).isNotEmpty().anyMatch(e -> e.message().contains("Lazy AND"));
+        assertThat(errors).as("&& is allowed in nested policy target").isEmpty();
     }
 
     @Test
@@ -393,7 +365,7 @@ class SAPLValidatorTests {
     void whenValidationError_thenErrorContainsLineAndColumn() {
         var policy = """
                 policy "test"
-                permit subject == "admin" && action == "read"
+                permit <time.now> != undefined
                 """;
 
         var errors = validatePolicy(policy);
@@ -409,7 +381,7 @@ class SAPLValidatorTests {
     void whenValidationError_thenToStringFormatsCorrectly() {
         var policy = """
                 policy "test"
-                permit subject == "admin" && action == "read"
+                permit <time.now> != undefined
                 """;
 
         var errors = validatePolicy(policy);

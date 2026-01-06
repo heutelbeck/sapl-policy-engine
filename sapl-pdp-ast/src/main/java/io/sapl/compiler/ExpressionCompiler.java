@@ -50,8 +50,6 @@ public class ExpressionCompiler {
         case ObjectExpression o      -> compileObjectExpression(o, ctx);
         case Conjunction c           -> compileConjunction(c, ctx);
         case Disjunction d           -> compileDisjunction(d, ctx);
-        case EagerConjunction ec     -> compileEagerConjunction(ec, ctx);
-        case EagerDisjunction ed     -> compileEagerDisjunction(ed, ctx);
         case ExclusiveDisjunction xd -> compileExclusiveDisjunction(xd, ctx);
         case Sum s                   -> compileSum(s, ctx);
         case Product p               -> compileProduct(p, ctx);
@@ -123,31 +121,23 @@ public class ExpressionCompiler {
     }
 
     private CompiledExpression compileConjunction(Conjunction c, CompilationContext ctx) {
-        return unimplemented("Conjunction");
+        return LazyNaryBooleanCompiler.compileConjunction(c, ctx);
     }
 
     private CompiledExpression compileDisjunction(Disjunction d, CompilationContext ctx) {
-        return unimplemented("Disjunction");
-    }
-
-    private CompiledExpression compileEagerConjunction(EagerConjunction ec, CompilationContext ctx) {
-        return unimplemented("EagerConjunction");
-    }
-
-    private CompiledExpression compileEagerDisjunction(EagerDisjunction ed, CompilationContext ctx) {
-        return unimplemented("EagerDisjunction");
+        return LazyNaryBooleanCompiler.compileDisjunction(d, ctx);
     }
 
     private CompiledExpression compileExclusiveDisjunction(ExclusiveDisjunction xd, CompilationContext ctx) {
-        return unimplemented("ExclusiveDisjunction");
+        return NaryOperatorCompiler.compileXor(xd, ctx);
     }
 
     private CompiledExpression compileSum(Sum s, CompilationContext ctx) {
-        return unimplemented("Sum");
+        return NaryOperatorCompiler.compileSum(s, ctx);
     }
 
     private CompiledExpression compileProduct(Product p, CompilationContext ctx) {
-        return unimplemented("Product");
+        return NaryOperatorCompiler.compileProduct(p, ctx);
     }
 
     private CompiledExpression compileKeyStep(KeyStep ks, CompilationContext ctx) {

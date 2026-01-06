@@ -28,8 +28,6 @@ import io.sapl.grammar.antlr.SAPLParser.AttributeFinderStepContext;
 import io.sapl.grammar.antlr.SAPLParser.BasicEnvironmentAttributeContext;
 import io.sapl.grammar.antlr.SAPLParser.BasicEnvironmentHeadAttributeContext;
 import io.sapl.grammar.antlr.SAPLParser.HeadAttributeFinderStepContext;
-import io.sapl.grammar.antlr.SAPLParser.LazyAndContext;
-import io.sapl.grammar.antlr.SAPLParser.LazyOrContext;
 import io.sapl.grammar.antlr.SAPLParser.PolicyContext;
 import io.sapl.grammar.antlr.SAPLParser.PolicyOnlyElementContext;
 import io.sapl.grammar.antlr.SAPLParser.PolicySetContext;
@@ -45,8 +43,6 @@ import io.sapl.grammar.antlr.SAPLParserBaseListener;
  */
 public class SAPLValidator {
 
-    public static final String VALIDATION_ERROR_LAZY_AND_NOT_ALLOWED_IN_TARGET  = "Lazy AND (&&) is not allowed in target expressions. Use eager AND (&) instead.";
-    public static final String VALIDATION_ERROR_LAZY_OR_NOT_ALLOWED_IN_TARGET   = "Lazy OR (||) is not allowed in target expressions. Use eager OR (|) instead.";
     public static final String VALIDATION_ERROR_ATTRIBUTE_NOT_ALLOWED_IN_TARGET = "Attribute access is forbidden in target expressions.";
     public static final String VALIDATION_ERROR_ATTRIBUTE_NOT_ALLOWED_IN_SCHEMA = "Attribute access is forbidden in schema expressions.";
 
@@ -109,30 +105,7 @@ public class SAPLValidator {
     }
 
     private void validateTargetExpression(ParserRuleContext expression, Consumer<ValidationError> errorConsumer) {
-        validateNoLazyOperators(expression, errorConsumer);
         validateNoAttributes(expression, VALIDATION_ERROR_ATTRIBUTE_NOT_ALLOWED_IN_TARGET, errorConsumer);
-    }
-
-    private void validateNoLazyOperators(ParserRuleContext expression, Consumer<ValidationError> errorConsumer) {
-        ParseTreeWalker.DEFAULT.walk(new SAPLParserBaseListener() {
-            @Override
-            public void enterLazyOr(LazyOrContext context) {
-                var orTokens = context.OR();
-                if (!orTokens.isEmpty()) {
-                    errorConsumer.accept(ValidationError.fromToken(VALIDATION_ERROR_LAZY_OR_NOT_ALLOWED_IN_TARGET,
-                            orTokens.getFirst().getSymbol()));
-                }
-            }
-
-            @Override
-            public void enterLazyAnd(LazyAndContext context) {
-                var andTokens = context.AND();
-                if (!andTokens.isEmpty()) {
-                    errorConsumer.accept(ValidationError.fromToken(VALIDATION_ERROR_LAZY_AND_NOT_ALLOWED_IN_TARGET,
-                            andTokens.getFirst().getSymbol()));
-                }
-            }
-        }, expression);
     }
 
     private void validateNoAttributes(ParserRuleContext expression, String errorMessage,

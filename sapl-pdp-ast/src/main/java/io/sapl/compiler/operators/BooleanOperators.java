@@ -26,6 +26,10 @@ import lombok.experimental.UtilityClass;
 /**
  * Boolean operations for SAPL expression evaluation.
  * <p>
+ * Note: AND and OR use cost-stratified short-circuit evaluation via
+ * {@link io.sapl.compiler.LazyBooleanOperationCompiler} and are not in this
+ * class.
+ * <p>
  * All operations return {@link ErrorValue} for type mismatches rather than
  * throwing exceptions. Error values propagate through operations.
  */
@@ -44,27 +48,10 @@ public class BooleanOperators {
     }
 
     /**
-     * Eager logical AND - evaluates both operands.
-     */
-    public static Value and(Value a, Value b, SourceLocation location) {
-        if (a instanceof BooleanValue(var va) && b instanceof BooleanValue(var vb)) {
-            return va && vb ? Value.TRUE : Value.FALSE;
-        }
-        return Value.errorAt(location, ERROR_TYPE_MISMATCH, !(a instanceof BooleanValue) ? a : b);
-    }
-
-    /**
-     * Eager logical OR - evaluates both operands.
-     */
-    public static Value or(Value a, Value b, SourceLocation location) {
-        if (a instanceof BooleanValue(var va) && b instanceof BooleanValue(var vb)) {
-            return va || vb ? Value.TRUE : Value.FALSE;
-        }
-        return Value.errorAt(location, ERROR_TYPE_MISMATCH, !(a instanceof BooleanValue) ? a : b);
-    }
-
-    /**
      * Logical XOR (exclusive or).
+     * <p>
+     * XOR is the only non-short-circuit boolean operator since both operands
+     * must always be evaluated to determine the result.
      */
     public static Value xor(Value a, Value b, SourceLocation location) {
         if (a instanceof BooleanValue(var va) && b instanceof BooleanValue(var vb)) {

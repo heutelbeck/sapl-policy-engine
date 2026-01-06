@@ -35,11 +35,11 @@ import reactor.core.publisher.Flux;
  * <p>
  * Examples:
  * <ul>
- * <li>{@code [1, 2, 3] :: @ * 2} → {@code [2, 4, 6]}</li>
- * <li>{@code [a, b, c] :: #} → {@code [0, 1, 2]}</li>
- * <li>{@code [10, 20] :: @ + #} → {@code [10, 21]}</li>
- * <li>{@code {"x": 1, "y": 2} :: #} → {@code ["x", "y"]}</li>
- * <li>{@code 5 :: @ * 2} → {@code 10}</li>
+ * <li>{@code [1, 2, 3] :: @ * 2} results in {@code [2, 4, 6]}</li>
+ * <li>{@code [a, b, c] :: #} results in {@code [0, 1, 2]}</li>
+ * <li>{@code [10, 20] :: @ + #} results in {@code [10, 21]}</li>
+ * <li>{@code {"x": 1, "y": 2} :: #} results in {@code ["x", "y"]}</li>
+ * <li>{@code 5 :: @ * 2} results in {@code 10}</li>
  * </ul>
  */
 public class SubtemplateCompiler {

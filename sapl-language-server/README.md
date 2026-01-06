@@ -376,7 +376,6 @@ server.connect(languageClient);
 **SAPL files:**
 - Syntax error detection (ANTLR parse errors)
 - Semantic validation:
-  - Lazy operators (`||`, `&&`) forbidden in target expressions
   - Attribute access forbidden in target/schema expressions
 
 **SAPLTest files:**
