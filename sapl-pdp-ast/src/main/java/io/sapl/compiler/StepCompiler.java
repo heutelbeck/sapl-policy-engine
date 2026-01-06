@@ -18,12 +18,13 @@
 package io.sapl.compiler;
 
 import io.sapl.api.model.*;
-import io.sapl.api.pdp.internal.AttributeRecord;
 import io.sapl.ast.*;
 import lombok.experimental.UtilityClass;
+import lombok.val;
 import reactor.core.publisher.Flux;
 
-import java.util.ArrayList;
+import java.math.BigDecimal;
+import java.util.HashSet;
 import java.util.List;
 
 /**
@@ -47,28 +48,29 @@ public class StepCompiler {
     private static final String ERROR_WILDCARD_ON_INVALID    = "Cannot apply wildcard step to %s.";
     private static final String ERROR_INDEX_UNION_ON_INVALID = "Cannot apply index union to %s.";
     private static final String ERROR_ATTR_UNION_ON_INVALID  = "Cannot apply attribute union to %s.";
+    private static final String ERROR_SLICE_ON_NON_ARRAY     = "Cannot apply slice to %s.";
+    private static final String ERROR_SLICE_STEP_ZERO        = "Slice step cannot be zero.";
+    private static final String ERROR_EXPR_STEP_INVALID_TYPE = "Expression step requires number or string, got %s.";
+    private static final String ERROR_CONDITION_ON_INVALID   = "Cannot apply condition step to %s.";
 
     public CompiledExpression compile(Step step, CompilationContext ctx) {
         return switch (step) {
-        case KeyStep ks            -> compileKeyStep(ks, ctx);
-        case IndexStep is          -> compileIndexStep(is, ctx);
-        case WildcardStep ws       -> compileWildcardStep(ws, ctx);
-        case IndexUnionStep ius    -> compileIndexUnionStep(ius, ctx);
-        case AttributeUnionStep as -> compileAttributeUnionStep(as, ctx);
-        // TODO: Remaining steps
-        case SliceStep ss              -> unimplemented("SliceStep");
-        case ExpressionStep es         -> unimplemented("ExpressionStep");
-        case ConditionStep cs          -> unimplemented("ConditionStep");
-        case RecursiveKeyStep rks      -> unimplemented("RecursiveKeyStep");
-        case RecursiveIndexStep ris    -> unimplemented("RecursiveIndexStep");
-        case RecursiveWildcardStep rws -> unimplemented("RecursiveWildcardStep");
+        case KeyStep ks                -> compileKeyStep(ks, ctx);
+        case IndexStep is              -> compileIndexStep(is, ctx);
+        case WildcardStep ws           -> compileWildcardStep(ws, ctx);
+        case IndexUnionStep ius        -> compileIndexUnionStep(ius, ctx);
+        case AttributeUnionStep as     -> compileAttributeUnionStep(as, ctx);
+        case SliceStep ss              -> compileSliceStep(ss, ctx);
+        case ExpressionStep es         -> compileExpressionStep(es, ctx);
+        case ConditionStep cs          -> compileConditionStep(cs, ctx);
+        case RecursiveKeyStep rks      -> compileRecursiveKeyStep(rks, ctx);
+        case RecursiveIndexStep ris    -> compileRecursiveIndexStep(ris, ctx);
+        case RecursiveWildcardStep rws -> compileRecursiveWildcardStep(rws, ctx);
         case AttributeStep as          -> AttributeCompiler.compileAttributeStep(as, ctx);
         };
     }
 
-    private static Value unimplemented(String type) {
-        return Value.error("UNIMPLEMENTED: %s.", type);
-    }
+    // ==================== KeyStep ====================
 
     private CompiledExpression compileKeyStep(KeyStep step, CompilationContext ctx) {
         var base = ExpressionCompiler.compile(step.base(), ctx);
@@ -80,19 +82,6 @@ public class StepCompiler {
         case Value v          -> applyKeyStep(v, key, loc);
         case PureOperator p   -> new KeyStepPure(p, key, loc);
         case StreamOperator s -> new KeyStepStream(s, key, loc);
-        };
-    }
-
-    public CompiledExpression compileIndexStep(IndexStep step, CompilationContext ctx) {
-        var base  = ExpressionCompiler.compile(step.base(), ctx);
-        var index = step.index();
-        var loc   = step.location();
-
-        return switch (base) {
-        case ErrorValue e     -> e;
-        case Value v          -> applyIndexStep(v, index, loc);
-        case PureOperator p   -> new IndexStepPure(p, index, loc);
-        case StreamOperator s -> new IndexStepStream(s, index, loc);
         };
     }
 
@@ -121,20 +110,6 @@ public class StepCompiler {
         return builder.build();
     }
 
-    static Value applyIndexStep(Value base, int index, SourceLocation loc) {
-        return switch (base) {
-        case ErrorValue e   -> e;
-        case ArrayValue arr -> {
-            int normalizedIndex = index >= 0 ? index : arr.size() + index;
-            if (normalizedIndex < 0 || normalizedIndex >= arr.size()) {
-                yield Value.errorAt(loc, ERROR_INDEX_OUT_OF_BOUNDS, index, arr.size());
-            }
-            yield arr.get(normalizedIndex);
-        }
-        default             -> Value.errorAt(loc, ERROR_INDEX_ON_NON_ARRAY, base.getClass().getSimpleName());
-        };
-    }
-
     record KeyStepPure(PureOperator base, String key, SourceLocation location) implements PureOperator {
         @Override
         public Value evaluate(EvaluationContext ctx) {
@@ -153,6 +128,35 @@ public class StepCompiler {
             return base.stream()
                     .map(tv -> new TracedValue(applyKeyStep(tv.value(), key, location), tv.contributingAttributes()));
         }
+    }
+
+    // ==================== IndexStep ====================
+
+    public CompiledExpression compileIndexStep(IndexStep step, CompilationContext ctx) {
+        var base  = ExpressionCompiler.compile(step.base(), ctx);
+        var index = step.index();
+        var loc   = step.location();
+
+        return switch (base) {
+        case ErrorValue e     -> e;
+        case Value v          -> applyIndexStep(v, index, loc);
+        case PureOperator p   -> new IndexStepPure(p, index, loc);
+        case StreamOperator s -> new IndexStepStream(s, index, loc);
+        };
+    }
+
+    static Value applyIndexStep(Value base, int index, SourceLocation loc) {
+        return switch (base) {
+        case ErrorValue e   -> e;
+        case ArrayValue arr -> {
+            int normalizedIndex = index >= 0 ? index : arr.size() + index;
+            if (normalizedIndex < 0 || normalizedIndex >= arr.size()) {
+                yield Value.errorAt(loc, ERROR_INDEX_OUT_OF_BOUNDS, index, arr.size());
+            }
+            yield arr.get(normalizedIndex);
+        }
+        default             -> Value.errorAt(loc, ERROR_INDEX_ON_NON_ARRAY, base.getClass().getSimpleName());
+        };
     }
 
     record IndexStepPure(PureOperator base, int index, SourceLocation location) implements PureOperator {
@@ -174,6 +178,8 @@ public class StepCompiler {
                     tv -> new TracedValue(applyIndexStep(tv.value(), index, location), tv.contributingAttributes()));
         }
     }
+
+    // ==================== WildcardStep ====================
 
     public CompiledExpression compileWildcardStep(WildcardStep step, CompilationContext ctx) {
         var base = ExpressionCompiler.compile(step.base(), ctx);
@@ -216,6 +222,8 @@ public class StepCompiler {
         }
     }
 
+    // ==================== IndexUnionStep ====================
+
     public CompiledExpression compileIndexUnionStep(IndexUnionStep step, CompilationContext ctx) {
         var base    = ExpressionCompiler.compile(step.base(), ctx);
         var indices = step.indices();
@@ -235,7 +243,7 @@ public class StepCompiler {
         case ArrayValue arr -> {
             var builder = ArrayValue.builder();
             var size    = arr.size();
-            var seen    = new java.util.HashSet<Integer>();
+            var seen    = new HashSet<Integer>();
             for (int i = 0; i < size; i++) {
                 for (var index : indices) {
                     int normalized = index >= 0 ? index : size + index;
@@ -272,6 +280,8 @@ public class StepCompiler {
         }
     }
 
+    // ==================== AttributeUnionStep ====================
+
     public CompiledExpression compileAttributeUnionStep(AttributeUnionStep step, CompilationContext ctx) {
         var base       = ExpressionCompiler.compile(step.base(), ctx);
         var attributes = step.attributes();
@@ -290,7 +300,7 @@ public class StepCompiler {
         case ErrorValue e    -> e;
         case ObjectValue obj -> {
             var builder = ArrayValue.builder();
-            var seen    = new java.util.HashSet<String>();
+            var seen    = new HashSet<String>();
             for (var attr : attributes) {
                 if (seen.add(attr) && obj.containsKey(attr)) {
                     builder.add(obj.get(attr));
@@ -321,6 +331,543 @@ public class StepCompiler {
         public Flux<TracedValue> stream() {
             return base.stream().map(tv -> new TracedValue(applyAttributeUnionStep(tv.value(), attributes, location),
                     tv.contributingAttributes()));
+        }
+    }
+
+    // ==================== SliceStep ====================
+
+    public CompiledExpression compileSliceStep(SliceStep step, CompilationContext ctx) {
+        var base = ExpressionCompiler.compile(step.base(), ctx);
+        var from = step.from();
+        var to   = step.to();
+        var s    = step.step();
+        var loc  = step.location();
+
+        // Validate step at compile time
+        if (s != null && s == 0) {
+            return Value.errorAt(loc, ERROR_SLICE_STEP_ZERO);
+        }
+
+        return switch (base) {
+        case ErrorValue e      -> e;
+        case Value v           -> applySliceStep(v, from, to, s, loc);
+        case PureOperator p    -> new SliceStepPure(p, from, to, s, loc);
+        case StreamOperator st -> new SliceStepStream(st, from, to, s, loc);
+        };
+    }
+
+    static Value applySliceStep(Value base, Integer from, Integer to, Integer step, SourceLocation loc) {
+        if (base instanceof ErrorValue e) {
+            return e;
+        }
+        if (!(base instanceof ArrayValue arr)) {
+            return Value.errorAt(loc, ERROR_SLICE_ON_NON_ARRAY, base.getClass().getSimpleName());
+        }
+
+        int size    = arr.size();
+        int stepVal = step != null ? step : 1;
+        int fromVal = normalizeSliceIndex(from, size, stepVal > 0 ? 0 : size - 1);
+        int toVal   = normalizeSliceIndex(to, size, stepVal > 0 ? size : -size - 1);
+
+        var builder = ArrayValue.builder();
+        if (stepVal > 0) {
+            for (int i = fromVal; i < toVal && i < size; i += stepVal) {
+                if (i >= 0) {
+                    builder.add(arr.get(i));
+                }
+            }
+        } else {
+            for (int i = fromVal; i > toVal && i >= 0; i += stepVal) {
+                if (i < size) {
+                    builder.add(arr.get(i));
+                }
+            }
+        }
+        return builder.build();
+    }
+
+    private static int normalizeSliceIndex(Integer index, int size, int defaultVal) {
+        if (index == null) {
+            return defaultVal;
+        }
+        if (index < 0) {
+            return Math.max(0, size + index);
+        }
+        return Math.min(index, size);
+    }
+
+    record SliceStepPure(PureOperator base, Integer from, Integer to, Integer step, SourceLocation location)
+            implements PureOperator {
+        @Override
+        public Value evaluate(EvaluationContext ctx) {
+            return applySliceStep(base.evaluate(ctx), from, to, step, location);
+        }
+
+        @Override
+        public boolean isDependingOnSubscription() {
+            return base.isDependingOnSubscription();
+        }
+    }
+
+    record SliceStepStream(StreamOperator base, Integer from, Integer to, Integer step, SourceLocation location)
+            implements StreamOperator {
+        @Override
+        public Flux<TracedValue> stream() {
+            return base.stream().map(tv -> new TracedValue(applySliceStep(tv.value(), from, to, step, location),
+                    tv.contributingAttributes()));
+        }
+    }
+
+    // ==================== ExpressionStep ====================
+
+    public CompiledExpression compileExpressionStep(ExpressionStep step, CompilationContext ctx) {
+        var base = ExpressionCompiler.compile(step.base(), ctx);
+        var expr = ExpressionCompiler.compile(step.expression(), ctx);
+        var loc  = step.location();
+
+        if (base instanceof ErrorValue e)
+            return e;
+        if (expr instanceof ErrorValue e)
+            return e;
+
+        // If expression is streaming, result is streaming
+        if (expr instanceof StreamOperator) {
+            return Value.error("Expression step with streaming expression not yet supported");
+        }
+
+        return switch (base) {
+        case Value baseVal             -> switch (expr) {
+                                   case Value exprVal              -> applyExpressionStep(baseVal, exprVal, loc);
+                                   case PureOperator exprOp        ->
+                                       new ExpressionStepPure(baseVal, null, exprOp, loc);
+                                   case StreamOperator ignored     -> throw new IllegalStateException("Handled above");
+                                   };
+        case PureOperator baseOp       -> switch (expr) {
+                                   case Value exprVal              ->
+                                       new ExpressionStepPure(null, baseOp, exprVal, loc);
+                                   case PureOperator exprOp        -> new ExpressionStepPurePure(baseOp, exprOp, loc);
+                                   case StreamOperator ignored     -> throw new IllegalStateException("Handled above");
+                                   };
+        case StreamOperator baseStream -> switch (expr) {
+                                   case Value exprVal              ->
+                                       new ExpressionStepStream(baseStream, exprVal, loc);
+                                   case PureOperator exprOp        ->
+                                       new ExpressionStepStreamPure(baseStream, exprOp, loc);
+                                   case StreamOperator ignored     -> throw new IllegalStateException("Handled above");
+                                   };
+        };
+    }
+
+    static Value applyExpressionStep(Value base, Value expr, SourceLocation loc) {
+        if (base instanceof ErrorValue e)
+            return e;
+        if (expr instanceof ErrorValue e)
+            return e;
+
+        return switch (expr) {
+        case NumberValue(BigDecimal num) -> {
+            int index = num.intValue();
+            yield applyIndexStep(base, index, loc);
+        }
+        case TextValue(String text)      -> applyKeyStep(base, text, loc);
+        default                          ->
+            Value.errorAt(loc, ERROR_EXPR_STEP_INVALID_TYPE, expr.getClass().getSimpleName());
+        };
+    }
+
+    record ExpressionStepPure(Value baseValue, PureOperator baseOp, CompiledExpression expr, SourceLocation location)
+            implements PureOperator {
+        @Override
+        public Value evaluate(EvaluationContext ctx) {
+            var base    = baseValue != null ? baseValue : baseOp.evaluate(ctx);
+            var exprVal = expr instanceof Value v ? v : ((PureOperator) expr).evaluate(ctx);
+            return applyExpressionStep(base, exprVal, location);
+        }
+
+        @Override
+        public boolean isDependingOnSubscription() {
+            boolean baseDep = baseOp != null && baseOp.isDependingOnSubscription();
+            boolean exprDep = expr instanceof PureOperator po && po.isDependingOnSubscription();
+            return baseDep || exprDep;
+        }
+    }
+
+    record ExpressionStepPurePure(PureOperator base, PureOperator expr, SourceLocation location)
+            implements PureOperator {
+        @Override
+        public Value evaluate(EvaluationContext ctx) {
+            return applyExpressionStep(base.evaluate(ctx), expr.evaluate(ctx), location);
+        }
+
+        @Override
+        public boolean isDependingOnSubscription() {
+            return base.isDependingOnSubscription() || expr.isDependingOnSubscription();
+        }
+    }
+
+    record ExpressionStepStream(StreamOperator base, Value expr, SourceLocation location) implements StreamOperator {
+        @Override
+        public Flux<TracedValue> stream() {
+            return base.stream().map(tv -> new TracedValue(applyExpressionStep(tv.value(), expr, location),
+                    tv.contributingAttributes()));
+        }
+    }
+
+    record ExpressionStepStreamPure(StreamOperator base, PureOperator expr, SourceLocation location)
+            implements StreamOperator {
+        @Override
+        public Flux<TracedValue> stream() {
+            return Flux.deferContextual(reactorCtx -> {
+                var ctx     = reactorCtx.get(EvaluationContext.class);
+                var exprVal = expr.evaluate(ctx);
+                return base.stream().map(tv -> new TracedValue(applyExpressionStep(tv.value(), exprVal, location),
+                        tv.contributingAttributes()));
+            });
+        }
+    }
+
+    // ==================== ConditionStep ====================
+
+    public CompiledExpression compileConditionStep(ConditionStep step, CompilationContext compilationCtx) {
+        var base      = ExpressionCompiler.compile(step.base(), compilationCtx);
+        var condition = ExpressionCompiler.compile(step.condition(), compilationCtx);
+        var loc       = step.location();
+
+        if (base instanceof ErrorValue e)
+            return e;
+        if (condition instanceof ErrorValue e)
+            return e;
+
+        // If condition is streaming, result is streaming
+        if (condition instanceof StreamOperator) {
+            return Value.error("Condition step with streaming condition not yet supported");
+        }
+
+        return switch (base) {
+        case Value baseVal             -> switch (condition) {
+                                   case Value condVal              ->
+                                       applyConditionStep(baseVal, condVal, null, null, loc);
+                                   case PureOperator condOp        -> {
+                                       if (!condOp.isDependingOnSubscription()) {
+                                           // Constant fold: condition only uses @ and #, can evaluate at compile time
+                                           yield applyConditionStepAtCompileTime(baseVal, condOp, loc, compilationCtx);
+                                       }
+                                       // Condition depends on subscription, must defer to runtime
+                                       yield new ConditionStepConstBasePure(baseVal, condOp, loc);
+                                   }
+                                   case StreamOperator ignored     -> throw new IllegalStateException("Handled above");
+                                   };
+        case PureOperator baseOp       -> switch (condition) {
+                                   case Value condVal              ->
+                                       new ConditionStepPureConstCond(baseOp, condVal, loc);
+                                   case PureOperator condOp        -> new ConditionStepPurePure(baseOp, condOp, loc);
+                                   case StreamOperator ignored     -> throw new IllegalStateException("Handled above");
+                                   };
+        case StreamOperator baseStream -> switch (condition) {
+                                   case Value condVal              ->
+                                       new ConditionStepStreamConstCond(baseStream, condVal, loc);
+                                   case PureOperator condOp        ->
+                                       new ConditionStepStreamPure(baseStream, condOp, loc);
+                                   case StreamOperator ignored     -> throw new IllegalStateException("Handled above");
+                                   };
+        };
+    }
+
+    private static Value applyConditionStepAtCompileTime(Value base, PureOperator condition, SourceLocation loc,
+            CompilationContext compilationCtx) {
+        // Create context with function broker for compile-time evaluation
+        val baseCtx = new EvaluationContext(null, null, null, null, compilationCtx.getFunctionBroker(),
+                compilationCtx.getAttributeBroker());
+        return applyConditionStep(base, null, condition, baseCtx, loc);
+    }
+
+    static Value applyConditionStep(Value base, Value constantCond, PureOperator condOp, EvaluationContext ctx,
+            SourceLocation loc) {
+        if (base instanceof ErrorValue e)
+            return e;
+
+        return switch (base) {
+        case ArrayValue arr  -> {
+            var builder = ArrayValue.builder();
+            for (int i = 0; i < arr.size(); i++) {
+                var element = arr.get(i);
+                var elemCtx = ctx != null ? ctx.withRelativeValue(element, Value.of(i)) : null;
+                var result  = constantCond != null ? constantCond
+                        : (condOp != null ? condOp.evaluate(elemCtx) : Value.FALSE);
+                if (result instanceof BooleanValue(boolean val) && val) {
+                    builder.add(element);
+                } else if (result instanceof ErrorValue) {
+                    yield result;
+                }
+            }
+            yield builder.build();
+        }
+        case ObjectValue obj -> {
+            var builder = ArrayValue.builder();
+            for (var entry : obj.entrySet()) {
+                var element = entry.getValue();
+                var elemCtx = ctx != null ? ctx.withRelativeValue(element, Value.of(entry.getKey())) : null;
+                var result  = constantCond != null ? constantCond
+                        : (condOp != null ? condOp.evaluate(elemCtx) : Value.FALSE);
+                if (result instanceof BooleanValue(boolean val) && val) {
+                    builder.add(element);
+                } else if (result instanceof ErrorValue) {
+                    yield result;
+                }
+            }
+            yield builder.build();
+        }
+        default              -> Value.errorAt(loc, ERROR_CONDITION_ON_INVALID, base.getClass().getSimpleName());
+        };
+    }
+
+    record ConditionStepConstBasePure(Value base, PureOperator condition, SourceLocation location)
+            implements PureOperator {
+        @Override
+        public Value evaluate(EvaluationContext ctx) {
+            return applyConditionStep(base, null, condition, ctx, location);
+        }
+
+        @Override
+        public boolean isDependingOnSubscription() {
+            return condition.isDependingOnSubscription();
+        }
+    }
+
+    record ConditionStepPureConstCond(PureOperator base, Value condition, SourceLocation location)
+            implements PureOperator {
+        @Override
+        public Value evaluate(EvaluationContext ctx) {
+            return applyConditionStep(base.evaluate(ctx), condition, null, ctx, location);
+        }
+
+        @Override
+        public boolean isDependingOnSubscription() {
+            return base.isDependingOnSubscription();
+        }
+    }
+
+    record ConditionStepPurePure(PureOperator base, PureOperator condition, SourceLocation location)
+            implements PureOperator {
+        @Override
+        public Value evaluate(EvaluationContext ctx) {
+            return applyConditionStep(base.evaluate(ctx), null, condition, ctx, location);
+        }
+
+        @Override
+        public boolean isDependingOnSubscription() {
+            return base.isDependingOnSubscription() || condition.isDependingOnSubscription();
+        }
+    }
+
+    record ConditionStepStreamConstCond(StreamOperator base, Value condition, SourceLocation location)
+            implements StreamOperator {
+        @Override
+        public Flux<TracedValue> stream() {
+            return Flux.deferContextual(reactorCtx -> {
+                var ctx = reactorCtx.get(EvaluationContext.class);
+                return base.stream()
+                        .map(tv -> new TracedValue(applyConditionStep(tv.value(), condition, null, ctx, location),
+                                tv.contributingAttributes()));
+            });
+        }
+    }
+
+    record ConditionStepStreamPure(StreamOperator base, PureOperator condition, SourceLocation location)
+            implements StreamOperator {
+        @Override
+        public Flux<TracedValue> stream() {
+            return Flux.deferContextual(reactorCtx -> {
+                var ctx = reactorCtx.get(EvaluationContext.class);
+                return base.stream()
+                        .map(tv -> new TracedValue(applyConditionStep(tv.value(), null, condition, ctx, location),
+                                tv.contributingAttributes()));
+            });
+        }
+    }
+
+    // ==================== RecursiveKeyStep ====================
+
+    public CompiledExpression compileRecursiveKeyStep(RecursiveKeyStep step, CompilationContext ctx) {
+        var base = ExpressionCompiler.compile(step.base(), ctx);
+        var key  = step.key();
+        var loc  = step.location();
+
+        return switch (base) {
+        case ErrorValue e     -> e;
+        case Value v          -> applyRecursiveKeyStep(v, key);
+        case PureOperator p   -> new RecursiveKeyStepPure(p, key, loc);
+        case StreamOperator s -> new RecursiveKeyStepStream(s, key, loc);
+        };
+    }
+
+    static Value applyRecursiveKeyStep(Value base, String key) {
+        if (base instanceof ErrorValue e)
+            return e;
+        var builder = ArrayValue.builder();
+        collectRecursiveKey(base, key, builder);
+        return builder.build();
+    }
+
+    private static void collectRecursiveKey(Value value, String key, ArrayValue.Builder builder) {
+        switch (value) {
+        case ObjectValue obj -> {
+            if (obj.containsKey(key)) {
+                builder.add(obj.get(key));
+            }
+            for (var v : obj.values()) {
+                collectRecursiveKey(v, key, builder);
+            }
+        }
+        case ArrayValue arr  -> {
+            for (var element : arr) {
+                collectRecursiveKey(element, key, builder);
+            }
+        }
+        default              -> { /* scalars have no children */ }
+        }
+    }
+
+    record RecursiveKeyStepPure(PureOperator base, String key, SourceLocation location) implements PureOperator {
+        @Override
+        public Value evaluate(EvaluationContext ctx) {
+            return applyRecursiveKeyStep(base.evaluate(ctx), key);
+        }
+
+        @Override
+        public boolean isDependingOnSubscription() {
+            return base.isDependingOnSubscription();
+        }
+    }
+
+    record RecursiveKeyStepStream(StreamOperator base, String key, SourceLocation location) implements StreamOperator {
+        @Override
+        public Flux<TracedValue> stream() {
+            return base.stream()
+                    .map(tv -> new TracedValue(applyRecursiveKeyStep(tv.value(), key), tv.contributingAttributes()));
+        }
+    }
+
+    // ==================== RecursiveIndexStep ====================
+
+    public CompiledExpression compileRecursiveIndexStep(RecursiveIndexStep step, CompilationContext ctx) {
+        var base  = ExpressionCompiler.compile(step.base(), ctx);
+        var index = step.index();
+        var loc   = step.location();
+
+        return switch (base) {
+        case ErrorValue e     -> e;
+        case Value v          -> applyRecursiveIndexStep(v, index);
+        case PureOperator p   -> new RecursiveIndexStepPure(p, index, loc);
+        case StreamOperator s -> new RecursiveIndexStepStream(s, index, loc);
+        };
+    }
+
+    static Value applyRecursiveIndexStep(Value base, int index) {
+        if (base instanceof ErrorValue e)
+            return e;
+        var builder = ArrayValue.builder();
+        collectRecursiveIndex(base, index, builder);
+        return builder.build();
+    }
+
+    private static void collectRecursiveIndex(Value value, int index, ArrayValue.Builder builder) {
+        switch (value) {
+        case ArrayValue arr  -> {
+            int normalizedIndex = index >= 0 ? index : arr.size() + index;
+            if (normalizedIndex >= 0 && normalizedIndex < arr.size()) {
+                builder.add(arr.get(normalizedIndex));
+            }
+            for (var element : arr) {
+                collectRecursiveIndex(element, index, builder);
+            }
+        }
+        case ObjectValue obj -> {
+            for (var v : obj.values()) {
+                collectRecursiveIndex(v, index, builder);
+            }
+        }
+        default              -> { /* scalars have no children */ }
+        }
+    }
+
+    record RecursiveIndexStepPure(PureOperator base, int index, SourceLocation location) implements PureOperator {
+        @Override
+        public Value evaluate(EvaluationContext ctx) {
+            return applyRecursiveIndexStep(base.evaluate(ctx), index);
+        }
+
+        @Override
+        public boolean isDependingOnSubscription() {
+            return base.isDependingOnSubscription();
+        }
+    }
+
+    record RecursiveIndexStepStream(StreamOperator base, int index, SourceLocation location) implements StreamOperator {
+        @Override
+        public Flux<TracedValue> stream() {
+            return base.stream().map(
+                    tv -> new TracedValue(applyRecursiveIndexStep(tv.value(), index), tv.contributingAttributes()));
+        }
+    }
+
+    // ==================== RecursiveWildcardStep ====================
+
+    public CompiledExpression compileRecursiveWildcardStep(RecursiveWildcardStep step, CompilationContext ctx) {
+        var base = ExpressionCompiler.compile(step.base(), ctx);
+        var loc  = step.location();
+
+        return switch (base) {
+        case ErrorValue e     -> e;
+        case Value v          -> applyRecursiveWildcardStep(v);
+        case PureOperator p   -> new RecursiveWildcardStepPure(p, loc);
+        case StreamOperator s -> new RecursiveWildcardStepStream(s, loc);
+        };
+    }
+
+    static Value applyRecursiveWildcardStep(Value base) {
+        if (base instanceof ErrorValue e)
+            return e;
+        var builder = ArrayValue.builder();
+        collectRecursiveWildcard(base, builder);
+        return builder.build();
+    }
+
+    private static void collectRecursiveWildcard(Value value, ArrayValue.Builder builder) {
+        switch (value) {
+        case ArrayValue arr  -> {
+            for (var element : arr) {
+                builder.add(element);
+                collectRecursiveWildcard(element, builder);
+            }
+        }
+        case ObjectValue obj -> {
+            for (var v : obj.values()) {
+                builder.add(v);
+                collectRecursiveWildcard(v, builder);
+            }
+        }
+        default              -> { /* scalars have no children */ }
+        }
+    }
+
+    record RecursiveWildcardStepPure(PureOperator base, SourceLocation location) implements PureOperator {
+        @Override
+        public Value evaluate(EvaluationContext ctx) {
+            return applyRecursiveWildcardStep(base.evaluate(ctx));
+        }
+
+        @Override
+        public boolean isDependingOnSubscription() {
+            return base.isDependingOnSubscription();
+        }
+    }
+
+    record RecursiveWildcardStepStream(StreamOperator base, SourceLocation location) implements StreamOperator {
+        @Override
+        public Flux<TracedValue> stream() {
+            return base.stream()
+                    .map(tv -> new TracedValue(applyRecursiveWildcardStep(tv.value()), tv.contributingAttributes()));
         }
     }
 

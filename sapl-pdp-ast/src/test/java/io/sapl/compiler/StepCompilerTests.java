@@ -629,4 +629,477 @@ class StepCompilerTests {
             assertThat(((ErrorValue) result).message()).isEqualTo("test error");
         }
     }
+
+    @Nested
+    @DisplayName("SliceStep")
+    class SliceStepTests {
+
+        @Nested
+        @DisplayName("on Value (compile-time)")
+        class OnValue {
+
+            @Test
+            @DisplayName("[1:3] returns slice from index 1 to 3")
+            void basicSlice() {
+                assertCompilesTo("[10, 20, 30, 40, 50][1:3]", array(Value.of(20), Value.of(30)));
+            }
+
+            @Test
+            @DisplayName("[:] returns all elements")
+            void sliceAll() {
+                assertCompilesTo("[1, 2, 3][:]", array(Value.of(1), Value.of(2), Value.of(3)));
+            }
+
+            @Test
+            @DisplayName("[2:] returns from index 2 to end")
+            void sliceFromIndex() {
+                assertCompilesTo("[10, 20, 30, 40, 50][2:]", array(Value.of(30), Value.of(40), Value.of(50)));
+            }
+
+            @Test
+            @DisplayName("[:3] returns from start to index 3")
+            void sliceToIndex() {
+                assertCompilesTo("[10, 20, 30, 40, 50][:3]", array(Value.of(10), Value.of(20), Value.of(30)));
+            }
+
+            @Test
+            @DisplayName("[-3:] negative from index")
+            void negativeFromIndex() {
+                assertCompilesTo("[10, 20, 30, 40, 50][-3:]", array(Value.of(30), Value.of(40), Value.of(50)));
+            }
+
+            @Test
+            @DisplayName("[:-2] negative to index")
+            void negativeToIndex() {
+                assertCompilesTo("[10, 20, 30, 40, 50][:-2]", array(Value.of(10), Value.of(20), Value.of(30)));
+            }
+
+            @Test
+            @DisplayName("[::2] with step 2")
+            void withStep() {
+                assertCompilesTo("[10, 20, 30, 40, 50][::2]", array(Value.of(10), Value.of(30), Value.of(50)));
+            }
+
+            @Test
+            @DisplayName("[1:5:2] with from, to and step")
+            void withFromToStep() {
+                assertCompilesTo("[10, 20, 30, 40, 50][1:5:2]", array(Value.of(20), Value.of(40)));
+            }
+
+            @Test
+            @DisplayName("[::-1] reverses array")
+            void reverseArray() {
+                assertCompilesTo("[1, 2, 3][::-1]", array(Value.of(3), Value.of(2), Value.of(1)));
+            }
+
+            @Test
+            @DisplayName("[3:1] returns empty when from >= to")
+            void emptyWhenFromGteToIndex() {
+                assertCompilesTo("[1, 2, 3, 4, 5][3:1]", Value.EMPTY_ARRAY);
+            }
+
+            @Test
+            @DisplayName("[][1:3] on empty array returns empty")
+            void emptyArraySlice() {
+                assertCompilesTo("[][1:3]", Value.EMPTY_ARRAY);
+            }
+
+            @Test
+            @DisplayName("[::0] step zero returns error")
+            void stepZeroReturnsError() {
+                var result = compileExpression("[1, 2, 3][::0]");
+                assertThat(result).isInstanceOf(ErrorValue.class);
+                assertThat(((ErrorValue) result).message()).contains("zero");
+            }
+
+            @Test
+            @DisplayName("slice on non-array returns error")
+            void sliceOnNonArrayReturnsError() {
+                var result = compileExpression("{\"a\": 1}[1:3]");
+                assertThat(result).isInstanceOf(ErrorValue.class);
+                assertThat(((ErrorValue) result).message()).contains("Cannot apply slice");
+            }
+        }
+
+        @Nested
+        @DisplayName("on PureOperator (runtime)")
+        class OnPure {
+
+            @Test
+            @DisplayName("variable[1:3] compiles to PureOperator")
+            void variableSliceCompilesToPure() {
+                assertCompilesTo("items[1:3]", PureOperator.class);
+            }
+
+            @Test
+            @DisplayName("variable[1:3] evaluates correctly")
+            void variableSliceEvaluatesCorrectly() {
+                var items = array(Value.of(10), Value.of(20), Value.of(30), Value.of(40));
+                assertPureEvaluatesTo("items[1:3]", Map.of("items", items), array(Value.of(20), Value.of(30)));
+            }
+        }
+    }
+
+    @Nested
+    @DisplayName("ExpressionStep")
+    class ExpressionStepTests {
+
+        @Nested
+        @DisplayName("on Value (compile-time)")
+        class OnValue {
+
+            @Test
+            @DisplayName("[(0)] dynamic index access")
+            void dynamicIndexAccess() {
+                assertCompilesTo("[10, 20, 30][(0)]", Value.of(10));
+            }
+
+            @Test
+            @DisplayName("[(1+1)] calculated index")
+            void calculatedIndex() {
+                assertCompilesTo("[10, 20, 30][(1+1)]", Value.of(30));
+            }
+
+            @Test
+            @DisplayName("[(-1)] negative dynamic index")
+            void negativeDynamicIndex() {
+                assertCompilesTo("[10, 20, 30][(-1)]", Value.of(30));
+            }
+
+            @Test
+            @DisplayName("[(\"a\")] dynamic key access")
+            void dynamicKeyAccess() {
+                assertCompilesTo("{\"a\": 1, \"b\": 2}[(\"a\")]", Value.of(1));
+            }
+
+            @Test
+            @DisplayName("[(\"a\" + \"b\")] calculated key")
+            void calculatedKey() {
+                assertCompilesTo("{\"ab\": 42}[(\"a\" + \"b\")]", Value.of(42));
+            }
+
+            @Test
+            @DisplayName("[(\"missing\")] missing key returns undefined")
+            void missingKeyReturnsUndefined() {
+                assertCompilesTo("{\"a\": 1}[(\"missing\")]", Value.UNDEFINED);
+            }
+
+            @Test
+            @DisplayName("[(true)] invalid type returns error")
+            void invalidTypeReturnsError() {
+                var result = compileExpression("[1, 2, 3][(true)]");
+                assertThat(result).isInstanceOf(ErrorValue.class);
+                assertThat(((ErrorValue) result).message()).contains("number or string");
+            }
+
+            @Test
+            @DisplayName("array projection with dynamic key")
+            void arrayProjectionWithDynamicKey() {
+                assertCompilesTo("[{\"x\": 1}, {\"x\": 2}][(\"x\")]", array(Value.of(1), Value.of(2)));
+            }
+        }
+
+        @Nested
+        @DisplayName("on PureOperator (runtime)")
+        class OnPure {
+
+            @Test
+            @DisplayName("variable[(0)] compiles to PureOperator")
+            void variableExpressionStepCompilesToPure() {
+                assertCompilesTo("items[(0)]", PureOperator.class);
+            }
+
+            @Test
+            @DisplayName("variable[(index)] evaluates correctly")
+            void variableExpressionStepEvaluatesCorrectly() {
+                var items = array(Value.of("a"), Value.of("b"), Value.of("c"));
+                assertPureEvaluatesTo("items[(1)]", Map.of("items", items), Value.of("b"));
+            }
+        }
+    }
+
+    @Nested
+    @DisplayName("ConditionStep")
+    class ConditionStepTests {
+
+        @Nested
+        @DisplayName("on Value (compile-time folding)")
+        class OnValue {
+
+            @Test
+            @DisplayName("[?(@ > 3)] filters greater than")
+            void filterGreaterThan() {
+                assertCompilesTo("[1, 2, 3, 4, 5][?(@ > 3)]", array(Value.of(4), Value.of(5)));
+            }
+
+            @Test
+            @DisplayName("[?(@ < 3)] filters less than")
+            void filterLessThan() {
+                assertCompilesTo("[1, 2, 3, 4, 5][?(@ < 3)]", array(Value.of(1), Value.of(2)));
+            }
+
+            @Test
+            @DisplayName("[?(@ == 2)] filters equals")
+            void filterEquals() {
+                assertCompilesTo("[1, 2, 3, 2, 1][?(@ == 2)]", array(Value.of(2), Value.of(2)));
+            }
+
+            @Test
+            @DisplayName("[?(# > 2)] filters by index")
+            void filterByIndex() {
+                assertCompilesTo("[10, 20, 30, 40, 50][?(# > 2)]", array(Value.of(40), Value.of(50)));
+            }
+
+            @Test
+            @DisplayName("[?(true)] keeps all elements")
+            void filterAllTrue() {
+                assertCompilesTo("[1, 2, 3][?(true)]", array(Value.of(1), Value.of(2), Value.of(3)));
+            }
+
+            @Test
+            @DisplayName("[?(false)] removes all elements")
+            void filterAllFalse() {
+                assertCompilesTo("[1, 2, 3][?(false)]", Value.EMPTY_ARRAY);
+            }
+
+            @Test
+            @DisplayName("[][?(@ > 0)] on empty array returns empty")
+            void emptyArrayFilter() {
+                assertCompilesTo("[][?(@ > 0)]", Value.EMPTY_ARRAY);
+            }
+
+            @Test
+            @DisplayName("object filtering returns values as array")
+            void objectFiltering() {
+                var result = compileExpression("{\"a\": 1, \"b\": 2, \"c\": 3}[?(@ > 1)]");
+                assertThat(result).isInstanceOf(ArrayValue.class);
+                assertThat((ArrayValue) result).containsExactlyInAnyOrder(Value.of(2), Value.of(3));
+            }
+
+            @Test
+            @DisplayName("condition step on scalar returns error")
+            void conditionOnScalarReturnsError() {
+                var result = compileExpression("42[?(@ > 0)]");
+                assertThat(result).isInstanceOf(ErrorValue.class);
+                assertThat(((ErrorValue) result).message()).contains("Cannot apply condition");
+            }
+
+            @Test
+            @DisplayName("constant base with pure condition folds to Value")
+            void constantBasePureConditionFoldsToValue() {
+                var result = compileExpression("[1, 2, 3, 4, 5][?(@ > 3)]");
+                assertThat(result).isInstanceOf(ArrayValue.class);
+                assertThat(result).isEqualTo(array(Value.of(4), Value.of(5)));
+            }
+
+            @Test
+            @DisplayName("[?(@ > 1 && @ < 5)] compound condition")
+            void compoundCondition() {
+                assertCompilesTo("[1, 2, 3, 4, 5][?(@ > 1 && @ < 5)]", array(Value.of(2), Value.of(3), Value.of(4)));
+            }
+        }
+
+        @Nested
+        @DisplayName("on PureOperator (runtime)")
+        class OnPure {
+
+            @Test
+            @DisplayName("variable[?(@ > 0)] compiles to PureOperator")
+            void variableConditionCompilesToPure() {
+                assertCompilesTo("items[?(@ > 0)]", PureOperator.class);
+            }
+
+            @Test
+            @DisplayName("variable[?(@ > 2)] evaluates correctly")
+            void variableConditionEvaluatesCorrectly() {
+                var items = array(Value.of(1), Value.of(2), Value.of(3), Value.of(4));
+                assertPureEvaluatesTo("items[?(@ > 2)]", Map.of("items", items), array(Value.of(3), Value.of(4)));
+            }
+        }
+    }
+
+    @Nested
+    @DisplayName("RecursiveKeyStep")
+    class RecursiveKeyStepTests {
+
+        @Nested
+        @DisplayName("on Value (compile-time)")
+        class OnValue {
+
+            @Test
+            @DisplayName("..key finds key in simple object")
+            void simpleObject() {
+                assertCompilesTo("{\"a\": 1, \"b\": 2}..a", array(Value.of(1)));
+            }
+
+            @Test
+            @DisplayName("..key finds key in nested objects")
+            void nestedObjects() {
+                var result = compileExpression("{\"a\": {\"a\": 1}}..a");
+                assertThat(result).isInstanceOf(ArrayValue.class);
+                var arr = (ArrayValue) result;
+                assertThat(arr).hasSize(2);
+            }
+
+            @Test
+            @DisplayName("..key finds key in array of objects")
+            void arrayOfObjects() {
+                assertCompilesTo("[{\"x\": 1}, {\"x\": 2}]..x", array(Value.of(1), Value.of(2)));
+            }
+
+            @Test
+            @DisplayName("..key returns empty when key not found")
+            void keyNotFound() {
+                assertCompilesTo("{\"a\": 1}..b", Value.EMPTY_ARRAY);
+            }
+
+            @Test
+            @DisplayName("..key in deep nesting")
+            void deepNesting() {
+                assertCompilesTo("{\"x\": {\"y\": {\"z\": 42}}}..z", array(Value.of(42)));
+            }
+        }
+
+        @Nested
+        @DisplayName("on PureOperator (runtime)")
+        class OnPure {
+
+            @Test
+            @DisplayName("variable..key compiles to PureOperator")
+            void variableRecursiveKeyCompilesToPure() {
+                assertCompilesTo("data..name", PureOperator.class);
+            }
+
+            @Test
+            @DisplayName("variable..key evaluates correctly")
+            void variableRecursiveKeyEvaluatesCorrectly() {
+                var data = obj("items", array(obj("name", Value.of("a")), obj("name", Value.of("b"))));
+                assertPureEvaluatesTo("data..name", Map.of("data", data), array(Value.of("a"), Value.of("b")));
+            }
+        }
+    }
+
+    @Nested
+    @DisplayName("RecursiveIndexStep")
+    class RecursiveIndexStepTests {
+
+        @Nested
+        @DisplayName("on Value (compile-time)")
+        class OnValue {
+
+            @Test
+            @DisplayName("..[0] finds first element in arrays")
+            void findsFirstElement() {
+                assertCompilesTo("[10, 20, 30]..[0]", array(Value.of(10)));
+            }
+
+            @Test
+            @DisplayName("..[0] finds first element in nested arrays")
+            void nestedArrays() {
+                var result = compileExpression("[[1, 2], [3, 4]]..[0]");
+                assertThat(result).isInstanceOf(ArrayValue.class);
+                var arr = (ArrayValue) result;
+                // Should find: [1,2] (first of outer), 1 (first of [1,2]), 3 (first of [3,4])
+                assertThat(arr).hasSize(3);
+            }
+
+            @Test
+            @DisplayName("..[-1] with negative index")
+            void negativeIndex() {
+                assertCompilesTo("[10, 20, 30]..[-1]", array(Value.of(30)));
+            }
+
+            @Test
+            @DisplayName("..[0] in object containing arrays")
+            void objectWithArrays() {
+                assertCompilesTo("{\"a\": [1, 2], \"b\": [3, 4]}..[0]", array(Value.of(1), Value.of(3)));
+            }
+
+            @Test
+            @DisplayName("..[0] on empty array returns empty")
+            void emptyArray() {
+                assertCompilesTo("[]..[0]", Value.EMPTY_ARRAY);
+            }
+
+            @Test
+            @DisplayName("..[5] out of bounds returns empty")
+            void outOfBounds() {
+                assertCompilesTo("[1, 2]..[5]", Value.EMPTY_ARRAY);
+            }
+        }
+
+        @Nested
+        @DisplayName("on PureOperator (runtime)")
+        class OnPure {
+
+            @Test
+            @DisplayName("variable..[0] compiles to PureOperator")
+            void variableRecursiveIndexCompilesToPure() {
+                assertCompilesTo("data..[0]", PureOperator.class);
+            }
+
+            @Test
+            @DisplayName("variable..[0] evaluates correctly")
+            void variableRecursiveIndexEvaluatesCorrectly() {
+                var data = array(Value.of(10), Value.of(20));
+                assertPureEvaluatesTo("data..[0]", Map.of("data", data), array(Value.of(10)));
+            }
+        }
+    }
+
+    @Nested
+    @DisplayName("RecursiveWildcardStep")
+    class RecursiveWildcardStepTests {
+
+        @Nested
+        @DisplayName("on Value (compile-time)")
+        class OnValue {
+
+            @Test
+            @DisplayName("[1, 2, 3]..* collects all elements")
+            void flatArray() {
+                assertCompilesTo("[1, 2, 3]..*", array(Value.of(1), Value.of(2), Value.of(3)));
+            }
+
+            @Test
+            @DisplayName("{}..* on empty object returns empty")
+            void emptyObject() {
+                assertCompilesTo("{}..*", Value.EMPTY_ARRAY);
+            }
+
+            @Test
+            @DisplayName("[]..* on empty array returns empty")
+            void emptyArray() {
+                assertCompilesTo("[]..*", Value.EMPTY_ARRAY);
+            }
+
+            @Test
+            @DisplayName("nested structure collects all values recursively")
+            void nestedStructure() {
+                var result = compileExpression("{\"a\": 1, \"b\": {\"c\": 2}}..*");
+                assertThat(result).isInstanceOf(ArrayValue.class);
+                // Should collect: 1, {c:2}, 2
+                var arr = (ArrayValue) result;
+                assertThat(arr).hasSize(3);
+            }
+        }
+
+        @Nested
+        @DisplayName("on PureOperator (runtime)")
+        class OnPure {
+
+            @Test
+            @DisplayName("variable..* compiles to PureOperator")
+            void variableRecursiveWildcardCompilesToPure() {
+                assertCompilesTo("data..*", PureOperator.class);
+            }
+
+            @Test
+            @DisplayName("variable..* evaluates correctly")
+            void variableRecursiveWildcardEvaluatesCorrectly() {
+                var data = array(Value.of(1), Value.of(2));
+                assertPureEvaluatesTo("data..*", Map.of("data", data), array(Value.of(1), Value.of(2)));
+            }
+        }
+    }
 }
