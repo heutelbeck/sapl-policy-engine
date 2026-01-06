@@ -655,10 +655,13 @@ The `#` symbol provides access to the current index (for arrays) or key (for obj
 evaluates to `[0, 1, 2]` (the indices).
 
 ```sapl
-[10, 20, 30] :: @ + #
+[10, 20, 30] :: (@ + #)
 ```
 
 evaluates to `[10, 21, 32]` (each value plus its index).
+
+{: .warning }
+**Operator precedence:** The `::` operator binds tighter than arithmetic and comparison operators. This means `[1, 2, 3] :: @ * 2` parses as `([1, 2, 3] :: @) * 2`, not `[1, 2, 3] :: (@ * 2)`. Always use parentheses around complex template expressions: `[1, 2, 3] :: (@ * 2)`, `array :: (@ > 5)`, etc.
 
 **Example: Object transformation**
 

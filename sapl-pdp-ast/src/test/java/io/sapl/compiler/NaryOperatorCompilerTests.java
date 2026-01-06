@@ -30,7 +30,6 @@ import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
 
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -402,7 +401,6 @@ class NaryOperatorCompilerTests {
     }
 
     @Nested
-    @Disabled("KeyStep not yet implemented - tests use property access syntax subject.x")
     class KeyStepDependentTests {
 
         @Test

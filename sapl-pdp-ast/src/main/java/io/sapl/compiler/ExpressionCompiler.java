@@ -17,192 +17,89 @@
  */
 package io.sapl.compiler;
 
-import io.sapl.api.model.CompiledExpression;
-import io.sapl.api.model.StreamOperator;
-import io.sapl.api.model.TracedValue;
-import io.sapl.api.model.Value;
+import io.sapl.api.model.*;
 import io.sapl.ast.*;
-import io.sapl.compiler.operators.IdentifierOperator;
-import io.sapl.compiler.operators.RelativeLocationOperator;
-import io.sapl.compiler.operators.RelativeValueOperator;
 import lombok.experimental.UtilityClass;
 import lombok.val;
-import reactor.core.publisher.Flux;
-
-import java.util.List;
 
 @UtilityClass
 public class ExpressionCompiler {
 
-    public CompiledExpression compile(Expression expression, CompilationContext ctx) {
-        return switch (expression) {
-        case Literal l           -> l.value();
-        case Identifier id       -> compileIdentifier(id, ctx);
-        case Parenthesized p     -> compile(p.expression(), ctx);
-        case RelativeReference r -> compileRelativeReference(r, ctx);
-
-        // Operations
-        case BinaryOperator b -> compileBinaryOperation(b, ctx);
-        case UnaryOperator u  -> compileUnaryOperation(u, ctx);
-
-        // N-ary operations
-        case ArrayExpression a       -> compileArrayExpression(a, ctx);
-        case ObjectExpression o      -> compileObjectExpression(o, ctx);
-        case Conjunction c           -> compileConjunction(c, ctx);
-        case Disjunction d           -> compileDisjunction(d, ctx);
-        case ExclusiveDisjunction xd -> compileExclusiveDisjunction(xd, ctx);
-        case Sum s                   -> compileSum(s, ctx);
-        case Product p               -> compileProduct(p, ctx);
-
-        // Steps
-        case KeyStep ks                -> compileKeyStep(ks, ctx);
-        case IndexStep is              -> compileIndexStep(is, ctx);
-        case WildcardStep ws           -> compileWildcardStep(ws, ctx);
-        case SliceStep ss              -> compileSliceStep(ss, ctx);
-        case ExpressionStep es         -> compileExpressionStep(es, ctx);
-        case ConditionStep cs          -> compileConditionStep(cs, ctx);
-        case RecursiveKeyStep rks      -> compileRecursiveKeyStep(rks, ctx);
-        case RecursiveIndexStep ris    -> compileRecursiveIndexStep(ris, ctx);
-        case RecursiveWildcardStep rws -> compileRecursiveWildcardStep(rws, ctx);
-        case IndexUnionStep ius        -> compileIndexUnionStep(ius, ctx);
-        case AttributeUnionStep aus    -> compileAttributeUnionStep(aus, ctx);
-
-        // Functions and Filters
-        case FunctionCall fc    -> compileFunctionCall(fc, ctx);
-        case FilterOperation fo -> compileFilterOperation(fo, ctx);
-
-        // Attributes (STREAM)
-        case EnvironmentAttribute ea -> compileEnvironmentAttribute(ea, ctx);
-        case AttributeStep as        -> compileAttributeStep(as, ctx);
-        };
-    }
-
-    private static CompiledExpression compileIdentifier(Identifier id, CompilationContext ctx) {
-        val name          = id.name();
-        val localVariable = ctx.getVariable(name);
-        if (localVariable != null) {
-            return localVariable;
-        }
-        return new IdentifierOperator(name, id.location(), true);
-    }
-
-    private CompiledExpression compileRelativeReference(RelativeReference r, CompilationContext ctx) {
-        return switch (r.type()) {
-        case VALUE    -> new RelativeValueOperator(r.location());
-        case LOCATION -> new RelativeLocationOperator(r.location());
-        };
-    }
-
     private static final BinaryOperationCompiler BINARY_COMPILER = new BinaryOperationCompiler();
     private static final UnaryOperatorCompiler   UNARY_COMPILER  = new UnaryOperatorCompiler();
 
-    private CompiledExpression compileBinaryOperation(BinaryOperator b, CompilationContext ctx) {
-        return BINARY_COMPILER.compile(b, ctx);
-    }
+    public CompiledExpression compile(Expression expression, CompilationContext ctx) {
+        return switch (expression) {
+        case Literal l       -> l.value();
+        case Parenthesized p -> compile(p.expression(), ctx);
 
-    private CompiledExpression compileUnaryOperation(UnaryOperator u, CompilationContext ctx) {
-        return UNARY_COMPILER.compile(u, ctx);
-    }
+        case Identifier id -> {
+            val localVariable = ctx.getVariable(id.name());
+            yield localVariable != null ? localVariable : new IdentifierOp(id.name(), id.location());
+        }
 
-    private CompiledExpression compileArrayExpression(ArrayExpression a, CompilationContext ctx) {
-        return ArrayCompiler.compile(a, ctx);
-    }
+        case RelativeReference r -> switch (r.type()) {
+                             case VALUE        -> new RelativeValueOp(r.location());
+                             case LOCATION     -> new RelativeLocationOp(r.location());
+                             };
 
-    private CompiledExpression compileObjectExpression(ObjectExpression o, CompilationContext ctx) {
-        return ObjectCompiler.compile(o, ctx);
-    }
+        // Operations
+        case BinaryOperator b -> BINARY_COMPILER.compile(b, ctx);
+        case UnaryOperator u  -> UNARY_COMPILER.compile(u, ctx);
 
-    private CompiledExpression compileFunctionCall(FunctionCall fc, CompilationContext ctx) {
-        return FunctionCallCompiler.compile(fc, ctx);
-    }
+        // N-ary operations
+        case ArrayExpression a       -> ArrayCompiler.compile(a, ctx);
+        case ObjectExpression o      -> ObjectCompiler.compile(o, ctx);
+        case Conjunction c           -> LazyNaryBooleanCompiler.compileConjunction(c, ctx);
+        case Disjunction d           -> LazyNaryBooleanCompiler.compileDisjunction(d, ctx);
+        case ExclusiveDisjunction xd -> NaryOperatorCompiler.compileXor(xd, ctx);
+        case Sum s                   -> NaryOperatorCompiler.compileSum(s, ctx);
+        case Product p               -> NaryOperatorCompiler.compileProduct(p, ctx);
 
-    private CompiledExpression compileFilterOperation(FilterOperation fo, CompilationContext ctx) {
-        return unimplemented("FilterOperation");
-    }
+        // Attributes and Steps
+        case EnvironmentAttribute ea -> AttributeCompiler.compileEnvironmentAttribute(ea, ctx);
+        case Step s                  -> StepCompiler.compile(s, ctx);
 
-    private CompiledExpression compileConjunction(Conjunction c, CompilationContext ctx) {
-        return LazyNaryBooleanCompiler.compileConjunction(c, ctx);
-    }
-
-    private CompiledExpression compileDisjunction(Disjunction d, CompilationContext ctx) {
-        return LazyNaryBooleanCompiler.compileDisjunction(d, ctx);
-    }
-
-    private CompiledExpression compileExclusiveDisjunction(ExclusiveDisjunction xd, CompilationContext ctx) {
-        return NaryOperatorCompiler.compileXor(xd, ctx);
-    }
-
-    private CompiledExpression compileSum(Sum s, CompilationContext ctx) {
-        return NaryOperatorCompiler.compileSum(s, ctx);
-    }
-
-    private CompiledExpression compileProduct(Product p, CompilationContext ctx) {
-        return NaryOperatorCompiler.compileProduct(p, ctx);
-    }
-
-    private CompiledExpression compileKeyStep(KeyStep ks, CompilationContext ctx) {
-        return unimplemented("KeyStep");
-    }
-
-    private CompiledExpression compileIndexStep(IndexStep is, CompilationContext ctx) {
-        return unimplemented("IndexStep");
-    }
-
-    private CompiledExpression compileWildcardStep(WildcardStep ws, CompilationContext ctx) {
-        return unimplemented("WildcardStep");
-    }
-
-    private CompiledExpression compileSliceStep(SliceStep ss, CompilationContext ctx) {
-        return unimplemented("SliceStep");
-    }
-
-    private CompiledExpression compileExpressionStep(ExpressionStep es, CompilationContext ctx) {
-        return unimplemented("ExpressionStep");
-    }
-
-    private CompiledExpression compileConditionStep(ConditionStep cs, CompilationContext ctx) {
-        return unimplemented("ConditionStep");
-    }
-
-    private CompiledExpression compileRecursiveKeyStep(RecursiveKeyStep rks, CompilationContext ctx) {
-        return unimplemented("RecursiveKeyStep");
-    }
-
-    private CompiledExpression compileRecursiveIndexStep(RecursiveIndexStep ris, CompilationContext ctx) {
-        return unimplemented("RecursiveIndexStep");
-    }
-
-    private CompiledExpression compileRecursiveWildcardStep(RecursiveWildcardStep rws, CompilationContext ctx) {
-        return unimplemented("RecursiveWildcardStep");
-    }
-
-    private CompiledExpression compileIndexUnionStep(IndexUnionStep ius, CompilationContext ctx) {
-        return unimplemented("IndexUnionStep");
-    }
-
-    private CompiledExpression compileAttributeUnionStep(AttributeUnionStep aus, CompilationContext ctx) {
-        return unimplemented("AttributeUnionStep");
-    }
-
-    private StreamOperator compileEnvironmentAttribute(EnvironmentAttribute ea, CompilationContext ctx) {
-        return AttributeCompiler.compileEnvironmentAttribute(ea, ctx);
-    }
-
-    private StreamOperator compileAttributeStep(AttributeStep as, CompilationContext ctx) {
-        return AttributeCompiler.compileAttributeStep(as, ctx);
-    }
-
-    private Value unimplemented(String type) {
-        return Value.error("UNIMPLEMENTED: %s", type);
-    }
-
-    private StreamOperator unimplementedStream(String type) {
-        return new StreamOperator() {
-            @Override
-            public Flux<TracedValue> stream() {
-                return Flux.just(new TracedValue(Value.error("UNIMPLEMENTED: %s", type), List.of()));
-            }
+        // Functions and Filters
+        case FunctionCall fc    -> FunctionCallCompiler.compile(fc, ctx);
+        case FilterOperation fo -> Value.error("UNIMPLEMENTED: FilterOperation");
         };
+    }
+
+    record IdentifierOp(String name, SourceLocation location) implements PureOperator {
+        @Override
+        public Value evaluate(EvaluationContext ctx) {
+            return ctx.get(name);
+        }
+
+        @Override
+        public boolean isDependingOnSubscription() {
+            return true;
+        }
+    }
+
+    record RelativeValueOp(SourceLocation location) implements PureOperator {
+        @Override
+        public Value evaluate(EvaluationContext ctx) {
+            return ctx.relativeValue();
+        }
+
+        @Override
+        public boolean isDependingOnSubscription() {
+            return false;
+        }
+    }
+
+    record RelativeLocationOp(SourceLocation location) implements PureOperator {
+        @Override
+        public Value evaluate(EvaluationContext ctx) {
+            return ctx.relativeLocation();
+        }
+
+        @Override
+        public boolean isDependingOnSubscription() {
+            return false;
+        }
     }
 
 }

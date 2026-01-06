@@ -26,20 +26,23 @@ import reactor.core.publisher.Flux;
  * Compiler for SAPL subtemplate expressions (:: operator).
  * <p>
  * Subtemplates apply a template expression to values, with implicit
- * array/object
- * mapping. The template can reference:
+ * array/object mapping. The template can reference:
  * <ul>
  * <li>{@code @} - the current element value</li>
  * <li>{@code #} - the current index (for arrays) or key (for objects)</li>
  * </ul>
  * <p>
+ * <b>Operator Precedence:</b> The {@code ::} operator binds tighter than
+ * arithmetic and comparison operators. Complex template expressions require
+ * parentheses: {@code array :: (@ * 2)}, not {@code array :: @ * 2}.
+ * <p>
  * Examples:
  * <ul>
- * <li>{@code [1, 2, 3] :: @ * 2} results in {@code [2, 4, 6]}</li>
+ * <li>{@code [1, 2, 3] :: (@ * 2)} results in {@code [2, 4, 6]}</li>
  * <li>{@code [a, b, c] :: #} results in {@code [0, 1, 2]}</li>
- * <li>{@code [10, 20] :: @ + #} results in {@code [10, 21]}</li>
+ * <li>{@code [10, 20] :: (@ + #)} results in {@code [10, 21]}</li>
  * <li>{@code {"x": 1, "y": 2} :: #} results in {@code ["x", "y"]}</li>
- * <li>{@code 5 :: @ * 2} results in {@code 10}</li>
+ * <li>{@code 5 :: (@ * 2)} results in {@code 10}</li>
  * </ul>
  */
 public class SubtemplateCompiler {

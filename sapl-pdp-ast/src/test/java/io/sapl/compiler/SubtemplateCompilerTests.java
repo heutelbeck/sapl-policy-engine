@@ -22,7 +22,6 @@ import io.sapl.ast.BinaryOperator;
 import io.sapl.ast.BinaryOperatorType;
 import io.sapl.ast.Literal;
 import lombok.val;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -355,7 +354,6 @@ class SubtemplateCompilerTests {
     // compilers are fully implemented. Enable once Sum/Product are working.
     // =========================================================================
 
-    @Disabled("Requires arithmetic expression support (@ * 2)")
     @MethodSource
     @ParameterizedTest(name = "{0}")
     void when_subtemplateWithArithmetic_then_returnsExpected(String description, String expression, Value expected) {
@@ -364,25 +362,27 @@ class SubtemplateCompilerTests {
     }
 
     private static Stream<Arguments> when_subtemplateWithArithmetic_then_returnsExpected() {
+        // NOTE: Parentheses required! The :: operator binds tighter than arithmetic,
+        // so "[1,2,3] :: @ * 2" parses as "([1,2,3] :: @) * 2", not "[1,2,3] :: (@ *
+        // 2)"
         return Stream.of(
                 // Array element arithmetic
-                arguments("array multiply each", "[1, 2, 3] :: @ * 2",
+                arguments("array multiply each", "[1, 2, 3] :: (@ * 2)",
                         Value.ofArray(Value.of(2), Value.of(4), Value.of(6))),
-                arguments("array add constant", "[1, 2, 3] :: @ + 10",
+                arguments("array add constant", "[1, 2, 3] :: (@ + 10)",
                         Value.ofArray(Value.of(11), Value.of(12), Value.of(13))),
 
                 // Combined @ and # arithmetic
-                arguments("value plus index", "[10, 20, 30] :: @ + #",
+                arguments("value plus index", "[10, 20, 30] :: (@ + #)",
                         Value.ofArray(Value.of(10), Value.of(21), Value.of(32))),
-                arguments("index times ten", "[5, 5, 5] :: # * 10",
+                arguments("index times ten", "[5, 5, 5] :: (# * 10)",
                         Value.ofArray(Value.of(0), Value.of(10), Value.of(20))),
 
                 // Scalar with arithmetic
-                arguments("scalar multiply", "5 :: @ * 3", Value.of(15)),
-                arguments("scalar with index", "100 :: @ + #", Value.of(100)));
+                arguments("scalar multiply", "5 :: (@ * 3)", Value.of(15)),
+                arguments("scalar with index", "100 :: (@ + #)", Value.of(100)));
     }
 
-    @Disabled("Requires object access expression support (@.field)")
     @MethodSource
     @ParameterizedTest(name = "{0}")
     void when_subtemplateWithObjectAccess_then_returnsExpected(String description, String expression, Value expected) {
@@ -401,7 +401,6 @@ class SubtemplateCompilerTests {
                         Value.ofArray(Value.of(1), Value.of(2))));
     }
 
-    @Disabled("Requires nested subtemplate support")
     @MethodSource
     @ParameterizedTest(name = "{0}")
     void when_nestedSubtemplate_then_returnsExpected(String description, String expression, Value expected) {
@@ -410,13 +409,11 @@ class SubtemplateCompilerTests {
     }
 
     private static Stream<Arguments> when_nestedSubtemplate_then_returnsExpected() {
-        return Stream.of(
-                // Nested subtemplate (flatten then transform)
-                arguments("nested array transform", "[[1, 2], [3, 4]] :: (@ :: @ * 2)", Value
-                        .ofArray(Value.ofArray(Value.of(2), Value.of(4)), Value.ofArray(Value.of(6), Value.of(8)))));
+        // Nested subtemplates: outer :: operates on arrays, inner :: on elements
+        return Stream.of(arguments("nested array transform", "[[1, 2], [3, 4]] :: (@ :: (@ * 2))",
+                Value.ofArray(Value.ofArray(Value.of(2), Value.of(4)), Value.ofArray(Value.of(6), Value.of(8)))));
     }
 
-    @Disabled("Requires boolean expression support in templates")
     @MethodSource
     @ParameterizedTest(name = "{0}")
     void when_subtemplateWithBooleanExpressions_then_returnsExpected(String description, String expression,
@@ -426,13 +423,15 @@ class SubtemplateCompilerTests {
     }
 
     private static Stream<Arguments> when_subtemplateWithBooleanExpressions_then_returnsExpected() {
+        // NOTE: Parentheses required for comparison/logical ops (same precedence rule
+        // as arithmetic)
         return Stream.of(
                 // Boolean comparison on each element
-                arguments("compare each to threshold", "[1, 5, 10] :: @ > 3",
+                arguments("compare each to threshold", "[1, 5, 10] :: (@ > 3)",
                         Value.ofArray(Value.FALSE, Value.TRUE, Value.TRUE)),
 
                 // Index-based filtering logic
-                arguments("even index check", "[10, 20, 30, 40] :: # == 0 || # == 2",
+                arguments("even index check", "[10, 20, 30, 40] :: (# == 0 || # == 2)",
                         Value.ofArray(Value.TRUE, Value.FALSE, Value.TRUE, Value.FALSE)));
     }
 
