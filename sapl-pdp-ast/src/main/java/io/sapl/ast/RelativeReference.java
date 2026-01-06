@@ -30,11 +30,4 @@ import lombok.NonNull;
  * @param type the relative reference type
  * @param location source location
  */
-public record RelativeReference(@NonNull RelativeType type, @NonNull SourceLocation location) implements Expression {
-
-    @Override
-    public Nature nature() {
-        return Nature.PURE_STATIC;
-    }
-
-}
+public record RelativeReference(@NonNull RelativeType type, @NonNull SourceLocation location) implements Expression {}

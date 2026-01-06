@@ -15,13 +15,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.parser;
+package io.sapl.compiler.ast;
 
 import io.sapl.api.model.Value;
 import io.sapl.ast.*;
 import io.sapl.compiler.SaplCompilerException;
-
-import static io.sapl.ast.Nature.*;
 import io.sapl.grammar.antlr.SAPLParser;
 import io.sapl.grammar.antlr.SAPLParser.*;
 import io.sapl.grammar.antlr.SAPLParserBaseVisitor;
@@ -31,8 +29,8 @@ import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 
-import static io.sapl.parser.SourceLocationUtil.fromContext;
-import static io.sapl.parser.StringsUtil.unquoteString;
+import static io.sapl.compiler.util.SourceLocationUtil.fromContext;
+import static io.sapl.compiler.util.StringsUtil.unquoteString;
 
 /**
  * Transforms ANTLR parse tree contexts into AST nodes.
@@ -146,12 +144,11 @@ public class AstTransformer extends SAPLParserBaseVisitor<AstNode> {
         if (operands.size() == 1) {
             return visit(operands.getFirst());
         }
-        var exprs  = operands.stream().map(this::expr).toList();
-        var nature = combineNatures(exprs);
+        var exprs = operands.stream().map(this::expr).toList();
         if (exprs.size() == 2) {
-            return new BinaryOperation(BinaryOperator.OR, exprs.get(0), exprs.get(1), nature, fromContext(ctx));
+            return new BinaryOperator(BinaryOperatorType.OR, exprs.get(0), exprs.get(1), fromContext(ctx));
         }
-        return new Disjunction(exprs, nature, fromContext(ctx));
+        return new Disjunction(exprs, fromContext(ctx));
     }
 
     @Override
@@ -160,12 +157,11 @@ public class AstTransformer extends SAPLParserBaseVisitor<AstNode> {
         if (operands.size() == 1) {
             return visit(operands.getFirst());
         }
-        var exprs  = operands.stream().map(this::expr).toList();
-        var nature = combineNatures(exprs);
+        var exprs = operands.stream().map(this::expr).toList();
         if (exprs.size() == 2) {
-            return new BinaryOperation(BinaryOperator.AND, exprs.get(0), exprs.get(1), nature, fromContext(ctx));
+            return new BinaryOperator(BinaryOperatorType.AND, exprs.get(0), exprs.get(1), fromContext(ctx));
         }
-        return new Conjunction(exprs, nature, fromContext(ctx));
+        return new Conjunction(exprs, fromContext(ctx));
     }
 
     @Override
@@ -174,12 +170,11 @@ public class AstTransformer extends SAPLParserBaseVisitor<AstNode> {
         if (operands.size() == 1) {
             return visit(operands.getFirst());
         }
-        var exprs  = operands.stream().map(this::expr).toList();
-        var nature = combineNatures(exprs);
+        var exprs = operands.stream().map(this::expr).toList();
         if (exprs.size() == 2) {
-            return new BinaryOperation(BinaryOperator.EAGER_OR, exprs.get(0), exprs.get(1), nature, fromContext(ctx));
+            return new BinaryOperator(BinaryOperatorType.EAGER_OR, exprs.get(0), exprs.get(1), fromContext(ctx));
         }
-        return new EagerDisjunction(exprs, nature, fromContext(ctx));
+        return new EagerDisjunction(exprs, fromContext(ctx));
     }
 
     @Override
@@ -188,12 +183,11 @@ public class AstTransformer extends SAPLParserBaseVisitor<AstNode> {
         if (operands.size() == 1) {
             return visit(operands.getFirst());
         }
-        var exprs  = operands.stream().map(this::expr).toList();
-        var nature = combineNatures(exprs);
+        var exprs = operands.stream().map(this::expr).toList();
         if (exprs.size() == 2) {
-            return new BinaryOperation(BinaryOperator.XOR, exprs.get(0), exprs.get(1), nature, fromContext(ctx));
+            return new BinaryOperator(BinaryOperatorType.XOR, exprs.get(0), exprs.get(1), fromContext(ctx));
         }
-        return new ExclusiveDisjunction(exprs, nature, fromContext(ctx));
+        return new ExclusiveDisjunction(exprs, fromContext(ctx));
     }
 
     @Override
@@ -202,12 +196,11 @@ public class AstTransformer extends SAPLParserBaseVisitor<AstNode> {
         if (operands.size() == 1) {
             return visit(operands.getFirst());
         }
-        var exprs  = operands.stream().map(this::expr).toList();
-        var nature = combineNatures(exprs);
+        var exprs = operands.stream().map(this::expr).toList();
         if (exprs.size() == 2) {
-            return new BinaryOperation(BinaryOperator.EAGER_AND, exprs.get(0), exprs.get(1), nature, fromContext(ctx));
+            return new BinaryOperator(BinaryOperatorType.EAGER_AND, exprs.get(0), exprs.get(1), fromContext(ctx));
         }
-        return new EagerConjunction(exprs, nature, fromContext(ctx));
+        return new EagerConjunction(exprs, fromContext(ctx));
     }
 
     @Override
@@ -216,19 +209,18 @@ public class AstTransformer extends SAPLParserBaseVisitor<AstNode> {
         if (operands.size() == 1) {
             return visit(operands.getFirst());
         }
-        var left   = expr(operands.getFirst());
-        var right  = expr(operands.get(1));
-        var op     = toEqualityOp(ctx);
-        var nature = combineNatures(left, right);
-        return new BinaryOperation(op, left, right, nature, fromContext(ctx));
+        var left  = expr(operands.getFirst());
+        var right = expr(operands.get(1));
+        var op    = toEqualityOp(ctx);
+        return new BinaryOperator(op, left, right, fromContext(ctx));
     }
 
-    private BinaryOperator toEqualityOp(EqualityContext ctx) {
+    private BinaryOperatorType toEqualityOp(EqualityContext ctx) {
         if (ctx.EQ() != null)
-            return BinaryOperator.EQ;
+            return BinaryOperatorType.EQ;
         if (ctx.NEQ() != null)
-            return BinaryOperator.NE;
-        return BinaryOperator.REGEX;
+            return BinaryOperatorType.NE;
+        return BinaryOperatorType.REGEX;
     }
 
     @Override
@@ -237,23 +229,22 @@ public class AstTransformer extends SAPLParserBaseVisitor<AstNode> {
         if (operands.size() == 1) {
             return visit(operands.getFirst());
         }
-        var left   = expr(operands.getFirst());
-        var right  = expr(operands.get(1));
-        var op     = toComparisonOp(ctx);
-        var nature = combineNatures(left, right);
-        return new BinaryOperation(op, left, right, nature, fromContext(ctx));
+        var left  = expr(operands.getFirst());
+        var right = expr(operands.get(1));
+        var op    = toComparisonOp(ctx);
+        return new BinaryOperator(op, left, right, fromContext(ctx));
     }
 
-    private BinaryOperator toComparisonOp(ComparisonContext ctx) {
+    private BinaryOperatorType toComparisonOp(ComparisonContext ctx) {
         if (ctx.LT() != null)
-            return BinaryOperator.LT;
+            return BinaryOperatorType.LT;
         if (ctx.LE() != null)
-            return BinaryOperator.LE;
+            return BinaryOperatorType.LE;
         if (ctx.GT() != null)
-            return BinaryOperator.GT;
+            return BinaryOperatorType.GT;
         if (ctx.GE() != null)
-            return BinaryOperator.GE;
-        return BinaryOperator.IN;
+            return BinaryOperatorType.GE;
+        return BinaryOperatorType.IN;
     }
 
     @Override
@@ -262,19 +253,18 @@ public class AstTransformer extends SAPLParserBaseVisitor<AstNode> {
         if (operands.size() == 1) {
             return visit(operands.getFirst());
         }
-        var operators = new ArrayList<BinaryOperator>();
+        var operators = new ArrayList<BinaryOperatorType>();
         for (int i = 0; i < ctx.getChildCount(); i++) {
             var child = ctx.getChild(i);
             if (child instanceof org.antlr.v4.runtime.tree.TerminalNode terminal) {
-                operators.add(
-                        terminal.getSymbol().getType() == SAPLParser.PLUS ? BinaryOperator.ADD : BinaryOperator.SUB);
+                operators.add(terminal.getSymbol().getType() == SAPLParser.PLUS ? BinaryOperatorType.ADD
+                        : BinaryOperatorType.SUB);
             }
         }
         // Only use Sum for homogeneous addition chains (all +)
-        if (operands.size() >= 3 && operators.stream().allMatch(op -> op == BinaryOperator.ADD)) {
-            var exprs  = operands.stream().map(this::expr).toList();
-            var nature = combineNatures(exprs);
-            return new Sum(exprs, nature, fromContext(ctx));
+        if (operands.size() >= 3 && operators.stream().allMatch(op -> op == BinaryOperatorType.ADD)) {
+            var exprs = operands.stream().map(this::expr).toList();
+            return new Sum(exprs, fromContext(ctx));
         }
         return buildLeftAssociativeBinaryWithOps(operands, operators, ctx);
     }
@@ -285,7 +275,7 @@ public class AstTransformer extends SAPLParserBaseVisitor<AstNode> {
         if (operands.size() == 1) {
             return visit(operands.getFirst());
         }
-        var operators = new ArrayList<BinaryOperator>();
+        var operators = new ArrayList<BinaryOperatorType>();
         for (int i = 0; i < ctx.getChildCount(); i++) {
             var child = ctx.getChild(i);
             if (child instanceof org.antlr.v4.runtime.tree.TerminalNode terminal) {
@@ -293,20 +283,19 @@ public class AstTransformer extends SAPLParserBaseVisitor<AstNode> {
             }
         }
         // Only use Product for homogeneous multiplication chains (all *)
-        if (operands.size() >= 3 && operators.stream().allMatch(op -> op == BinaryOperator.MUL)) {
-            var exprs  = operands.stream().map(this::expr).toList();
-            var nature = combineNatures(exprs);
-            return new Product(exprs, nature, fromContext(ctx));
+        if (operands.size() >= 3 && operators.stream().allMatch(op -> op == BinaryOperatorType.MUL)) {
+            var exprs = operands.stream().map(this::expr).toList();
+            return new Product(exprs, fromContext(ctx));
         }
         return buildLeftAssociativeBinaryWithOps(operands, operators, ctx);
     }
 
-    private BinaryOperator toMultiplicationOp(int tokenType) {
+    private BinaryOperatorType toMultiplicationOp(int tokenType) {
         if (tokenType == SAPLParser.STAR)
-            return BinaryOperator.MUL;
+            return BinaryOperatorType.MUL;
         if (tokenType == SAPLParser.SLASH)
-            return BinaryOperator.DIV;
-        return BinaryOperator.MOD;
+            return BinaryOperatorType.DIV;
+        return BinaryOperatorType.MOD;
     }
 
     // ═══════════════════════════════════════════════════════════════════
@@ -316,19 +305,19 @@ public class AstTransformer extends SAPLParserBaseVisitor<AstNode> {
     @Override
     public AstNode visitNotExpression(NotExpressionContext ctx) {
         var operand = expr(ctx.unaryExpression());
-        return new UnaryOperation(UnaryOperator.NOT, operand, operand.nature(), fromContext(ctx));
+        return new UnaryOperator(UnaryOperatorType.NOT, operand, fromContext(ctx));
     }
 
     @Override
     public AstNode visitUnaryMinusExpression(UnaryMinusExpressionContext ctx) {
         var operand = expr(ctx.unaryExpression());
-        return new UnaryOperation(UnaryOperator.NEGATE, operand, operand.nature(), fromContext(ctx));
+        return new UnaryOperator(UnaryOperatorType.NEGATE, operand, fromContext(ctx));
     }
 
     @Override
     public AstNode visitUnaryPlusExpression(UnaryPlusExpressionContext ctx) {
         var operand = expr(ctx.unaryExpression());
-        return new UnaryOperation(UnaryOperator.PLUS, operand, operand.nature(), fromContext(ctx));
+        return new UnaryOperator(UnaryOperatorType.PLUS, operand, fromContext(ctx));
     }
 
     @Override
@@ -348,8 +337,7 @@ public class AstTransformer extends SAPLParserBaseVisitor<AstNode> {
         }
         if (ctx.basicExpression() != null) {
             var template = (Expression) visit(ctx.basicExpression());
-            var nature   = combineNatures(base, template);
-            return new BinaryOperation(BinaryOperator.SUBTEMPLATE, base, template, nature, fromContext(ctx));
+            return new BinaryOperator(BinaryOperatorType.SUBTEMPLATE, base, template, fromContext(ctx));
         }
         return base;
     }
@@ -368,8 +356,7 @@ public class AstTransformer extends SAPLParserBaseVisitor<AstNode> {
         var function  = toQualifiedName(ctx.functionIdentifier());
         var arguments = ctx.arguments() != null ? ctx.arguments().args.stream().map(this::expr).toList()
                 : List.<Expression>of();
-        var nature    = combineNatures(base).combine(combineNatures(arguments));
-        return new FilterOperation(base, null, function, arguments, each, nature, fromContext(fullCtx));
+        return new FilterOperation(base, null, function, arguments, each, fromContext(fullCtx));
     }
 
     private Expression buildExtendedFilter(Expression base, FilterExtendedContext ctx, ParserRuleContext fullCtx) {
@@ -380,8 +367,7 @@ public class AstTransformer extends SAPLParserBaseVisitor<AstNode> {
             var function  = toQualifiedName(stmtCtx.functionIdentifier());
             var arguments = stmtCtx.arguments() != null ? stmtCtx.arguments().args.stream().map(this::expr).toList()
                     : List.<Expression>of();
-            var nature    = result.nature().combine(combineNatures(arguments));
-            result = new FilterOperation(result, target, function, arguments, each, nature, fromContext(stmtCtx));
+            result = new FilterOperation(result, target, function, arguments, each, fromContext(stmtCtx));
         }
         return result;
     }
@@ -410,19 +396,15 @@ public class AstTransformer extends SAPLParserBaseVisitor<AstNode> {
         var funcCtx   = ctx.basicFunction();
         var name      = toQualifiedName(funcCtx.functionIdentifier());
         var arguments = funcCtx.arguments().args.stream().map(this::expr).toList();
-        // Use STREAM as conservative default - could be attribute finder or pure
-        // function.
-        // Folding pass can refine to PURE_STATIC for known pure functions.
-        var base = new FunctionCall(name, arguments, STREAM, fromContext(ctx));
+        var base      = new FunctionCall(name, arguments, fromContext(ctx));
         return wrapWithSteps(base, funcCtx.step());
     }
 
     @Override
     public AstNode visitIdentifierBasic(IdentifierBasicContext ctx) {
-        var idCtx  = ctx.basicIdentifier();
-        var name   = idText(idCtx.saplId());
-        var nature = identifierNature(name);
-        var base   = new Identifier(name, nature, fromContext(ctx));
+        var idCtx = ctx.basicIdentifier();
+        var name  = idText(idCtx.saplId());
+        var base  = new Identifier(name, fromContext(ctx));
         return wrapWithSteps(base, idCtx.step());
     }
 
@@ -497,15 +479,13 @@ public class AstTransformer extends SAPLParserBaseVisitor<AstNode> {
     public AstNode visitObject(ObjectContext ctx) {
         var entries = ctx.pair().stream()
                 .map(p -> new ObjectEntry(pairKeyText(p.pairKey()), expr(p.pairValue), fromContext(p))).toList();
-        var nature  = entries.stream().map(e -> e.value().nature()).reduce(VALUE, (a, b) -> a.combine(b));
-        return new ObjectExpression(entries, nature, fromContext(ctx));
+        return new ObjectExpression(entries, fromContext(ctx));
     }
 
     @Override
     public AstNode visitArray(ArrayContext ctx) {
         var elements = ctx.items.stream().map(this::expr).toList();
-        var nature   = combineNatures(elements);
-        return new ArrayExpression(elements, nature, fromContext(ctx));
+        return new ArrayExpression(elements, fromContext(ctx));
     }
 
     @Override
@@ -666,12 +646,11 @@ public class AstTransformer extends SAPLParserBaseVisitor<AstNode> {
     }
 
     private <T extends ParserRuleContext> Expression buildLeftAssociativeBinaryWithOps(List<T> operands,
-            List<BinaryOperator> operators, ParserRuleContext ctx) {
+            List<BinaryOperatorType> operators, ParserRuleContext ctx) {
         var result = expr(operands.getFirst());
         for (int i = 1; i < operands.size(); i++) {
-            var right  = expr(operands.get(i));
-            var nature = combineNatures(result, right);
-            result = new BinaryOperation(operators.get(i - 1), result, right, nature, fromContext(ctx));
+            var right = expr(operands.get(i));
+            result = new BinaryOperator(operators.get(i - 1), result, right, fromContext(ctx));
         }
         return result;
     }
@@ -761,32 +740,6 @@ public class AstTransformer extends SAPLParserBaseVisitor<AstNode> {
         var arguments = argsCtx != null ? argsCtx.args.stream().map(this::expr).toList() : List.<Expression>of();
         var options   = optionsCtx != null ? expr(optionsCtx) : null;
         return new AttributeStep(base, name, arguments, options, head, fromContext(ctx));
-    }
-
-    // ═══════════════════════════════════════════════════════════════════
-    // NATURE COMPUTATION
-    // ═══════════════════════════════════════════════════════════════════
-
-    private static Nature combineNatures(List<Expression> expressions) {
-        return expressions.stream().map(Expression::nature).reduce(VALUE, (a, b) -> a.combine(b));
-    }
-
-    private static Nature combineNatures(Expression... expressions) {
-        var result = VALUE;
-        for (var expression : expressions) {
-            result = result.combine(expression.nature());
-        }
-        return result;
-    }
-
-    private static Nature identifierNature(String name) {
-        // No shadowing allowed, so subscription element names are always PURE_DYNAMIC.
-        // Variables use STREAM as conservative default; folding pass will refine
-        // based on the variable's bound expression nature.
-        return switch (name) {
-        case "subject", "action", "resource", "environment" -> PURE_DYNAMIC;
-        default                                             -> STREAM;
-        };
     }
 
 }

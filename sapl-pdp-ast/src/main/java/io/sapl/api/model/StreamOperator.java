@@ -17,6 +17,8 @@
  */
 package io.sapl.api.model;
 
-public sealed interface ExpressionResult permits StreamExpressionResult, Value {
+import reactor.core.publisher.Flux;
 
+public non-sealed interface StreamOperator extends CompiledExpression {
+    Flux<TracedValue> stream();
 }

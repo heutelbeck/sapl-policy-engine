@@ -22,13 +22,8 @@ import lombok.NonNull;
 
 /**
  * Variable or subscription element reference.
- * <p>
- * Nature is typically PURE_DYNAMIC for subscription elements (subject, action,
- * resource, environment) or depends on what variable is bound to.
  *
  * @param name the identifier name
- * @param nature the expression nature
  * @param location source location
  */
-public record Identifier(@NonNull String name, @NonNull Nature nature, @NonNull SourceLocation location)
-        implements Expression {}
+public record Identifier(@NonNull String name, @NonNull SourceLocation location) implements Expression {}

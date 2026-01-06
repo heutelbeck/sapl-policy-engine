@@ -26,13 +26,10 @@ import lombok.NonNull;
  * Array literal expression: {@code [expr1, expr2, ...]}
  *
  * @param elements array elements, empty list for empty array
- * @param nature the expression nature (combined from elements)
  * @param location source location
  */
-public record ArrayExpression(
-        @NonNull List<Expression> elements,
-        @NonNull Nature nature,
-        @NonNull SourceLocation location) implements Expression {
+public record ArrayExpression(@NonNull List<Expression> elements, @NonNull SourceLocation location)
+        implements Expression {
 
     public ArrayExpression {
         elements = List.copyOf(elements);

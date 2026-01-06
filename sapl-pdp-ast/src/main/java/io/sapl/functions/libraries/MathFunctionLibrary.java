@@ -52,7 +52,7 @@ public class MathFunctionLibrary {
     private static final String ERROR_BOUND_MUST_BE_POSITIVE = "Bound must be positive.";
     private static final String ERROR_LOG_REQUIRES_POSITIVE  = "Logarithm requires a positive value.";
     private static final String ERROR_MIN_GREATER_THAN_MAX   = "Minimum must be less than or equal to maximum.";
-    private static final String ERROR_POWER_RESULTED_IN_NAN  = "Power operation resulted in NaN (e.g., negative base with fractional exponent).";
+    private static final String ERROR_POWER_RESULTED_IN_NAN  = "Power op resulted in NaN (e.g., negative base with fractional exponent).";
     private static final String ERROR_SEED_MUST_BE_INTEGER   = "Seed must be an integer.";
     private static final String ERROR_SQRT_NEGATIVE          = "Cannot calculate square root of a negative number.";
 

@@ -17,11 +17,17 @@
  */
 package io.sapl.ast;
 
+import io.sapl.api.model.SourceLocation;
+import lombok.NonNull;
+
 /**
- * Unary operator.
+ * Unary op.
+ *
+ * @param op the unary operator
+ * @param operand the operand expression
+ * @param location source location
  */
-public enum UnaryOperator {
-    NOT,
-    NEGATE,
-    PLUS
-}
+public record UnaryOperator(
+        @NonNull UnaryOperatorType op,
+        @NonNull Expression operand,
+        @NonNull SourceLocation location) implements Expression {}

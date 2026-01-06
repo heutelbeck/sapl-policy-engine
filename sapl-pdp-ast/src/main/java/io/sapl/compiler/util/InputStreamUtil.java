@@ -15,13 +15,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.parser;
+package io.sapl.compiler.util;
 
+import io.sapl.compiler.SaplCompilerException;
 import lombok.NoArgsConstructor;
 import lombok.experimental.UtilityClass;
 import org.apache.commons.io.ByteOrderMark;
 import org.apache.commons.io.input.BOMInputStream;
 import org.apache.commons.io.input.ReaderInputStream;
+import org.jspecify.annotations.NonNull;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -30,7 +32,7 @@ import java.io.Reader;
 import java.nio.charset.StandardCharsets;
 
 @UtilityClass
-public class InputStreamHelper {
+public class InputStreamUtil {
 
     private static final String PARSING_ERRORS = "Parsing errors: %s";
 
@@ -96,7 +98,7 @@ public class InputStreamHelper {
         }
 
         @Override
-        public int read(byte[] b, int off, int len) throws IOException {
+        public int read(byte @NonNull [] b, int off, int len) throws IOException {
             final var numberOfBytesRead = source.read(b, off, len);
             if (numberOfBytesRead == EOF) {
                 return EOF;
@@ -111,7 +113,7 @@ public class InputStreamHelper {
             buffer.addByte(b);
             if (buffer.illegalCharacterDetected()) {
                 final String message = "Illegal bidirectional unicode control characters were recognised in the input stream. This is indicative of a potential trojan source attack.";
-                throw new SaplParserException(PARSING_ERRORS.formatted(message));
+                throw new SaplCompilerException(PARSING_ERRORS.formatted(message));
             }
         }
 
@@ -119,8 +121,8 @@ public class InputStreamHelper {
         private static class ByteSequenceValidationBuffer {
             static final int BUFFER_SIZE = 3;
 
-            private int[] buffer       = new int[BUFFER_SIZE];
-            private int   currentIndex = 0;
+            private final int[] buffer       = new int[BUFFER_SIZE];
+            private int         currentIndex = 0;
 
             public void addByte(int b) {
                 buffer[currentIndex] = b;

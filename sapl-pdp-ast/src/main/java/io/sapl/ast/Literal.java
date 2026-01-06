@@ -27,11 +27,4 @@ import lombok.NonNull;
  * @param value the literal value
  * @param location source location
  */
-public record Literal(@NonNull Value value, @NonNull SourceLocation location) implements Expression {
-
-    @Override
-    public Nature nature() {
-        return Nature.VALUE;
-    }
-
-}
+public record Literal(@NonNull Value value, @NonNull SourceLocation location) implements Expression {}

@@ -26,13 +26,10 @@ import lombok.NonNull;
  * Object literal expression: {@code {key1: expr1, key2: expr2, ...}}
  *
  * @param entries object entries, empty list for empty object
- * @param nature the expression nature (combined from entry values)
  * @param location source location
  */
-public record ObjectExpression(
-        @NonNull List<ObjectEntry> entries,
-        @NonNull Nature nature,
-        @NonNull SourceLocation location) implements Expression {
+public record ObjectExpression(@NonNull List<ObjectEntry> entries, @NonNull SourceLocation location)
+        implements Expression {
 
     public ObjectExpression {
         entries = List.copyOf(entries);

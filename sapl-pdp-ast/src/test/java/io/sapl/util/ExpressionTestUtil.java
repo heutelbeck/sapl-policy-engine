@@ -17,18 +17,20 @@
  */
 package io.sapl.util;
 
+import io.sapl.api.model.CompiledExpression;
 import io.sapl.api.model.EvaluationContext;
-import io.sapl.api.model.ExpressionResult;
+import io.sapl.api.model.PureOperator;
 import io.sapl.api.model.Value;
 import io.sapl.ast.Expression;
-import io.sapl.compiler.ExpressionEvaluator;
-import io.sapl.parser.AstTransformer;
+import io.sapl.compiler.CompilationContext;
+import io.sapl.compiler.ExpressionCompiler;
+import io.sapl.compiler.ast.AstTransformer;
 import lombok.experimental.UtilityClass;
 
 import java.util.Map;
 
 /**
- * Test utilities for parsing and evaluating SAPL expressions.
+ * Test utilities for parsing, compiling and evaluating SAPL expressions.
  */
 @UtilityClass
 public class ExpressionTestUtil {
@@ -48,32 +50,84 @@ public class ExpressionTestUtil {
     }
 
     /**
-     * Evaluates a SAPL expression string with an empty context.
+     * Compiles a SAPL expression string with an empty compilation context.
+     * Use this for testing compile-time behavior.
      *
      * @param source the expression source code
-     * @return the evaluation result
+     * @return the compiled expression (Value, PureOperator, or StreamOperator)
      */
-    public static ExpressionResult evaluateExpression(String source) {
-        return evaluateExpression(source, emptyContext());
+    public static CompiledExpression compileExpression(String source) {
+        return compileExpression(source, emptyCompilationContext());
     }
 
     /**
-     * Evaluates a SAPL expression string with the given context.
+     * Compiles a SAPL expression string with the given compilation context.
      *
      * @param source the expression source code
-     * @param ctx the evaluation context
-     * @return the evaluation result
+     * @param ctx the compilation context (brokers, imports)
+     * @return the compiled expression
      */
-    public static ExpressionResult evaluateExpression(String source, EvaluationContext ctx) {
+    public static CompiledExpression compileExpression(String source, CompilationContext ctx) {
         var expression = parseExpression(source);
-        return ExpressionEvaluator.evaluate(expression, ctx);
+        return ExpressionCompiler.compile(expression, ctx);
+    }
+
+    /**
+     * Compiles and evaluates a SAPL expression string with an empty context.
+     * For literals, returns the Value directly.
+     * For pure expressions, evaluates with an empty EvaluationContext.
+     *
+     * @param source the expression source code
+     * @return the compiled/evaluated result
+     */
+    public static CompiledExpression evaluateExpression(String source) {
+        var compiled = compileExpression(source);
+        return switch (compiled) {
+        case Value v         -> v;
+        case PureOperator op -> op.evaluate(emptyEvaluationContext());
+        default              -> compiled; // StreamOperator returned as-is
+        };
+    }
+
+    /**
+     * Compiles and evaluates a SAPL expression with the given evaluation context.
+     * For pure expressions, evaluates with the provided context.
+     * For streams, returns the StreamOperator for further testing.
+     *
+     * @param source the expression source code
+     * @param ctx the evaluation context (variables, subscription, broker)
+     * @return the compiled/evaluated result
+     */
+    public static CompiledExpression evaluateExpression(String source, EvaluationContext ctx) {
+        var compiled = compileExpression(source, compilationContextFrom(ctx));
+        return switch (compiled) {
+        case Value v         -> v;
+        case PureOperator op -> op.evaluate(ctx);
+        default              -> compiled; // StreamOperator returned as-is
+        };
+    }
+
+    /**
+     * Creates an empty compilation context for testing.
+     * No brokers, no imports.
+     */
+    public static CompilationContext emptyCompilationContext() {
+        return new CompilationContext(null, null);
+    }
+
+    /**
+     * Creates a compilation context from an evaluation context.
+     * Extracts the broker for compile-time attribute resolution.
+     */
+    public static CompilationContext compilationContextFrom(EvaluationContext evalCtx) {
+        return new CompilationContext(evalCtx.functionBroker(), evalCtx.attributeBroker());
     }
 
     /**
      * Creates an empty evaluation context for testing.
      * No variables, no brokers.
      */
-    public static EvaluationContext emptyContext() {
+    public static EvaluationContext emptyEvaluationContext() {
         return new EvaluationContext(null, null, null, null, Map.of(), null, null, () -> "test-timestamp");
     }
 
@@ -85,6 +139,21 @@ public class ExpressionTestUtil {
      */
     public static EvaluationContext withVariables(Map<String, Value> variables) {
         return new EvaluationContext(null, null, null, null, variables, null, null, () -> "test-timestamp");
+    }
+
+    /**
+     * Builds an ObjectValue from key-value pairs.
+     * Usage: obj("a", Value.of(1), "b", Value.of(2))
+     *
+     * @param keysAndValues alternating keys (String) and values (Value)
+     * @return the ObjectValue
+     */
+    public static Value obj(Object... keysAndValues) {
+        var builder = io.sapl.api.model.ObjectValue.builder();
+        for (int i = 0; i < keysAndValues.length; i += 2) {
+            builder.put((String) keysAndValues[i], (Value) keysAndValues[i + 1]);
+        }
+        return builder.build();
     }
 
 }

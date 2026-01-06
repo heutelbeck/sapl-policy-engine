@@ -15,8 +15,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.api.model;
+package io.sapl.compiler.model;
 
-import reactor.core.publisher.Flux;
+import io.sapl.api.model.SourceLocation;
+import io.sapl.api.model.Value;
 
-public record StreamExpressionResult(Flux<TracedValue> stream) implements ExpressionResult {}
+/**
+ * Sealed binary op interface.
+ * <p>
+ * JIT optimization: Because this is sealed with limited implementations,
+ * the JVM can use a type-check + jump table instead of indirect dispatch.
+ * This achieves near-VIRTUAL_INLINED performance without record explosion.
+ */
+@FunctionalInterface
+public interface BinaryOperation {
+    Value apply(Value left, Value right, SourceLocation location);
+}

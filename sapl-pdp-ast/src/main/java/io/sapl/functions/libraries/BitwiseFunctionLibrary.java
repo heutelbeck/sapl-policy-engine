@@ -180,7 +180,7 @@ public class BitwiseFunctionLibrary {
     }
 
     /**
-     * Performs bitwise AND operation.
+     * Performs bitwise AND op.
      *
      * @param left
      * first operand
@@ -221,7 +221,7 @@ public class BitwiseFunctionLibrary {
     }
 
     /**
-     * Performs bitwise OR operation.
+     * Performs bitwise OR op.
      *
      * @param left
      * first operand
@@ -261,7 +261,7 @@ public class BitwiseFunctionLibrary {
     }
 
     /**
-     * Performs bitwise XOR operation.
+     * Performs bitwise XOR op.
      *
      * @param left
      * first operand
@@ -301,7 +301,7 @@ public class BitwiseFunctionLibrary {
     }
 
     /**
-     * Performs bitwise NOT operation.
+     * Performs bitwise NOT op.
      *
      * @param value
      * operand
@@ -562,7 +562,7 @@ public class BitwiseFunctionLibrary {
     }
 
     /**
-     * Shifts bits left by the specified number of positions.
+     * Shifts bits lp by the specified number of positions.
      *
      * @param value
      * value to shift
@@ -608,7 +608,7 @@ public class BitwiseFunctionLibrary {
     }
 
     /**
-     * Shifts bits right by the specified number of positions with sign extension.
+     * Shifts bits rp by the specified number of positions with sign extension.
      *
      * @param value
      * value to shift
@@ -655,7 +655,7 @@ public class BitwiseFunctionLibrary {
     }
 
     /**
-     * Shifts bits right by the specified number of positions with zero extension.
+     * Shifts bits rp by the specified number of positions with zero extension.
      *
      * @param value
      * value to shift
@@ -701,7 +701,7 @@ public class BitwiseFunctionLibrary {
     }
 
     /**
-     * Rotates bits left by the specified number of positions.
+     * Rotates bits lp by the specified number of positions.
      *
      * @param value
      * value to rotate
@@ -747,7 +747,7 @@ public class BitwiseFunctionLibrary {
     }
 
     /**
-     * Rotates bits right by the specified number of positions.
+     * Rotates bits rp by the specified number of positions.
      *
      * @param value
      * value to rotate

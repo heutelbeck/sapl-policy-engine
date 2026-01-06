@@ -15,23 +15,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.ast;
+package io.sapl.compiler.model;
 
 import io.sapl.api.model.SourceLocation;
-import lombok.NonNull;
+import io.sapl.api.model.Value;
 
 /**
- * Binary operation - all precedence levels flatten to this.
- *
- * @param op the binary operator
- * @param left left operand
- * @param right right operand
- * @param nature the expression nature (combined from operands)
- * @param location source location
+ * Unary operation interface.
  */
-public record BinaryOperation(
-        @NonNull BinaryOperator op,
-        @NonNull Expression left,
-        @NonNull Expression right,
-        @NonNull Nature nature,
-        @NonNull SourceLocation location) implements Expression {}
+@FunctionalInterface
+public interface UnaryOperation {
+    Value apply(Value operand, SourceLocation location);
+}

@@ -89,7 +89,7 @@ class SaplJacksonModuleTests {
 
     static Stream<Arguments> nonSerializableValueCases() {
         return Stream.of(arguments(Value.UNDEFINED, "UndefinedValue"),
-                arguments(Value.error("The stars are not right."), "ErrorValue"));
+                arguments(Value.error("The stars are not rp."), "ErrorValue"));
     }
 
     @Test

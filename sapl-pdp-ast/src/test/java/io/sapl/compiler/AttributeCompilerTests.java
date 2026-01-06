@@ -1,0 +1,276 @@
+/*
+ * Copyright (C) 2017-2026 Dominic Heutelbeck (dominic@heutelbeck.com)
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package io.sapl.compiler;
+
+import io.sapl.api.attributes.AttributeBroker;
+import io.sapl.api.attributes.AttributeFinderInvocation;
+import io.sapl.api.model.*;
+import org.junit.jupiter.api.Test;
+import reactor.core.publisher.Flux;
+import reactor.test.StepVerifier;
+
+import java.util.List;
+import java.util.Map;
+
+import static io.sapl.util.ExpressionTestUtil.evaluateExpression;
+import static org.assertj.core.api.Assertions.assertThat;
+
+class AttributeCompilerTests {
+
+    // ========== Environment Attributes ==========
+
+    @Test
+    void when_environmentAttribute_withBroker_then_returnsStreamWithTrace() {
+        var broker = testBroker("test.attr", Value.of("result"));
+        var ctx    = contextWithBroker(broker);
+        var result = evaluateExpression("<test.attr>", ctx);
+
+        assertThat(result).isInstanceOf(StreamOperator.class);
+        var stream = ((StreamOperator) result).stream().contextWrite(c -> c.put(EvaluationContext.class, ctx));
+        StepVerifier.create(stream).assertNext(tv -> {
+            assertThat(tv.value()).isEqualTo(Value.of("result"));
+            assertThat(tv.contributingAttributes()).hasSize(1);
+            var record = tv.contributingAttributes().getFirst();
+            assertThat(record.invocation().attributeName()).isEqualTo("test.attr");
+            assertThat(record.attributeValue()).isEqualTo(Value.of("result"));
+            assertThat(record.retrievedAt()).isNotNull();
+        }).verifyComplete();
+    }
+
+    @Test
+    void when_environmentAttribute_withoutBroker_then_returnsErrorWithTrace() {
+        var ctx    = contextWithoutBroker();
+        var result = evaluateExpression("<test.attr>", ctx);
+
+        assertThat(result).isInstanceOf(StreamOperator.class);
+        var stream = ((StreamOperator) result).stream().contextWrite(c -> c.put(EvaluationContext.class, ctx));
+        StepVerifier.create(stream).assertNext(tv -> {
+            assertThat(tv.value()).isInstanceOf(ErrorValue.class);
+            // When broker is not configured, there's no invocation to record
+            assertThat(tv.contributingAttributes()).isEmpty();
+        }).verifyComplete();
+    }
+
+    @Test
+    void when_environmentAttribute_withArguments_then_passesArguments() {
+        var capturedInvocation = new AttributeFinderInvocation[1];
+        var broker             = capturingBroker(capturedInvocation, Value.of("ok"));
+        var ctx                = contextWithBroker(broker);
+        var result             = evaluateExpression("<test.attr(1, \"arg\")>", ctx);
+
+        var stream = ((StreamOperator) result).stream().contextWrite(c -> c.put(EvaluationContext.class, ctx));
+        StepVerifier.create(stream).expectNextCount(1).verifyComplete();
+
+        assertThat(capturedInvocation[0]).isNotNull();
+        assertThat(capturedInvocation[0].arguments()).containsExactly(Value.of(1), Value.of("arg"));
+    }
+
+    @Test
+    void when_headEnvironmentAttribute_then_takesOnlyFirst() {
+        var broker = multiValueBroker("test.attr", Value.of(1), Value.of(2), Value.of(3));
+        var ctx    = contextWithBroker(broker);
+        var result = evaluateExpression("|<test.attr>", ctx);
+
+        var stream = ((StreamOperator) result).stream().contextWrite(c -> c.put(EvaluationContext.class, ctx));
+        StepVerifier.create(stream).assertNext(tv -> assertThat(tv.value()).isEqualTo(Value.of(1))).verifyComplete();
+    }
+
+    @Test
+    void when_environmentAttribute_withOptions_then_passesOptions() {
+        var capturedInvocation = new AttributeFinderInvocation[1];
+        var broker             = capturingBroker(capturedInvocation, Value.of("ok"));
+        var ctx                = contextWithBroker(broker);
+        var result             = evaluateExpression("<test.attr[{initialTimeOutMs: 5000, fresh: true}]>", ctx);
+
+        var stream = ((StreamOperator) result).stream().contextWrite(c -> c.put(EvaluationContext.class, ctx));
+        StepVerifier.create(stream).expectNextCount(1).verifyComplete();
+
+        assertThat(capturedInvocation[0]).isNotNull();
+        assertThat(capturedInvocation[0].initialTimeOut().toMillis()).isEqualTo(5000);
+        assertThat(capturedInvocation[0].fresh()).isTrue();
+    }
+
+    // ========== Stream Arguments ==========
+
+    @Test
+    void when_environmentAttribute_withStreamArgument_then_combinesLatest() {
+        var capturedInvocations = new java.util.ArrayList<AttributeFinderInvocation>();
+        var broker              = new AttributeBroker() {
+                                    @Override
+                                    public Flux<Value> attributeStream(AttributeFinderInvocation invocation) {
+                                        capturedInvocations.add(invocation);
+                                        if (invocation.attributeName().equals("inner.attr"))
+                                            return Flux.just(Value.of("arg1"), Value.of("arg2"));
+                                        if (invocation.attributeName().equals("outer.attr")) {
+                                            var arg = ((io.sapl.api.model.TextValue) invocation.arguments().getFirst())
+                                                    .value();
+                                            return Flux.just(Value.of("result-" + arg));
+                                        }
+                                        return Flux.just(Value.error("Unknown"));
+                                    }
+
+                                    @Override
+                                    public List<Class<?>> getRegisteredLibraries() {
+                                        return List.of();
+                                    }
+                                };
+        var ctx                 = contextWithBroker(broker);
+        var result              = evaluateExpression("<outer.attr(<inner.attr>)>", ctx);
+
+        var stream = ((StreamOperator) result).stream().contextWrite(c -> c.put(EvaluationContext.class, ctx));
+        StepVerifier.create(stream).assertNext(tv -> {
+            // First emission from inner produces first call to outer
+            assertThat(tv.value()).isEqualTo(Value.of("result-arg1"));
+            // Should have records from both inner and outer attribute
+            assertThat(tv.contributingAttributes()).hasSize(2);
+        }).assertNext(tv -> {
+            // Second emission from inner produces second call to outer
+            assertThat(tv.value()).isEqualTo(Value.of("result-arg2"));
+            assertThat(tv.contributingAttributes()).hasSize(2);
+        }).verifyComplete();
+    }
+
+    @Test
+    void when_environmentAttribute_withMixedArguments_then_combinesCorrectly() {
+        var capturedInvocations = new java.util.ArrayList<AttributeFinderInvocation>();
+        var broker              = new AttributeBroker() {
+                                    @Override
+                                    public Flux<Value> attributeStream(AttributeFinderInvocation invocation) {
+                                        capturedInvocations.add(invocation);
+                                        if (invocation.attributeName().equals("stream.attr"))
+                                            return Flux.just(Value.of(10), Value.of(20));
+                                        if (invocation.attributeName().equals("test.attr"))
+                                            return Flux.just(Value.of("ok"));
+                                        return Flux.just(Value.error("Unknown"));
+                                    }
+
+                                    @Override
+                                    public List<Class<?>> getRegisteredLibraries() {
+                                        return List.of();
+                                    }
+                                };
+        var ctx                 = contextWithBroker(broker);
+        var result              = evaluateExpression("<test.attr(\"fixed\", <stream.attr>)>", ctx);
+
+        var stream = ((StreamOperator) result).stream().contextWrite(c -> c.put(EvaluationContext.class, ctx));
+        StepVerifier.create(stream).assertNext(tv -> {
+            // Verify mixed arguments: pure "fixed" and stream value 10
+            var outerInvocation = capturedInvocations.stream().filter(i -> i.attributeName().equals("test.attr"))
+                    .findFirst().orElseThrow();
+            assertThat(outerInvocation.arguments()).containsExactly(Value.of("fixed"), Value.of(10));
+        }).assertNext(tv -> {
+            // Second stream value
+            var outerInvocations = capturedInvocations.stream().filter(i -> i.attributeName().equals("test.attr"))
+                    .toList();
+            assertThat(outerInvocations.get(1).arguments()).containsExactly(Value.of("fixed"), Value.of(20));
+        }).verifyComplete();
+    }
+
+    // ========== Attribute Steps ==========
+
+    @Test
+    void when_attributeStep_withEntity_then_passesEntity() {
+        var capturedInvocation = new AttributeFinderInvocation[1];
+        var broker             = capturingBroker(capturedInvocation, Value.of("role"));
+        var ctx                = contextWithBrokerAndSubject(broker, Value.of("alice"));
+        var result             = evaluateExpression("subject.<user.role>", ctx);
+
+        var stream = ((StreamOperator) result).stream().contextWrite(c -> c.put(EvaluationContext.class, ctx));
+        StepVerifier.create(stream).expectNextCount(1).verifyComplete();
+
+        assertThat(capturedInvocation[0]).isNotNull();
+        assertThat(capturedInvocation[0].entity()).isEqualTo(Value.of("alice"));
+        assertThat(capturedInvocation[0].attributeName()).isEqualTo("user.role");
+    }
+
+    @Test
+    void when_attributeStep_withUndefinedEntity_then_returnsError() {
+        var broker = testBroker("user.role", Value.of("admin"));
+        var ctx    = contextWithBroker(broker);
+        var result = evaluateExpression("undefined.<user.role>", ctx);
+
+        var stream = ((StreamOperator) result).stream().contextWrite(c -> c.put(EvaluationContext.class, ctx));
+        StepVerifier.create(stream).assertNext(tv -> {
+            assertThat(tv.value()).isInstanceOf(ErrorValue.class);
+            assertThat(((ErrorValue) tv.value()).message()).contains("Undefined");
+        }).verifyComplete();
+    }
+
+    // ========== Helper Methods ==========
+
+    private static AttributeBroker testBroker(String expectedName, Value returnValue) {
+        return new AttributeBroker() {
+            @Override
+            public Flux<Value> attributeStream(AttributeFinderInvocation invocation) {
+                if (invocation.attributeName().equals(expectedName))
+                    return Flux.just(returnValue);
+                return Flux.just(Value.error("Unknown attribute: " + invocation.attributeName()));
+            }
+
+            @Override
+            public List<Class<?>> getRegisteredLibraries() {
+                return List.of();
+            }
+        };
+    }
+
+    private static AttributeBroker capturingBroker(AttributeFinderInvocation[] capture, Value returnValue) {
+        return new AttributeBroker() {
+            @Override
+            public Flux<Value> attributeStream(AttributeFinderInvocation invocation) {
+                capture[0] = invocation;
+                return Flux.just(returnValue);
+            }
+
+            @Override
+            public List<Class<?>> getRegisteredLibraries() {
+                return List.of();
+            }
+        };
+    }
+
+    private static AttributeBroker multiValueBroker(String expectedName, Value... values) {
+        return new AttributeBroker() {
+            @Override
+            public Flux<Value> attributeStream(AttributeFinderInvocation invocation) {
+                if (invocation.attributeName().equals(expectedName))
+                    return Flux.fromArray(values);
+                return Flux.just(Value.error("Unknown attribute"));
+            }
+
+            @Override
+            public List<Class<?>> getRegisteredLibraries() {
+                return List.of();
+            }
+        };
+    }
+
+    private static EvaluationContext contextWithBroker(AttributeBroker broker) {
+        return new EvaluationContext("pdp", "config", "sub", null, Map.of(), null, broker, () -> "now");
+    }
+
+    private static EvaluationContext contextWithBrokerAndSubject(AttributeBroker broker, Value subject) {
+        return new EvaluationContext("pdp", "config", "sub", null, Map.of("subject", subject), null, broker,
+                () -> "now");
+    }
+
+    private static EvaluationContext contextWithoutBroker() {
+        return new EvaluationContext("pdp", "config", "sub", null, Map.of(), null, null, () -> "now");
+    }
+
+}

@@ -17,63 +17,14 @@
  */
 package io.sapl.ast;
 
+import io.sapl.api.model.SourceLocation;
+import lombok.NonNull;
+
 /**
- * Binary operator ordered by precedence (lowest to highest).
+ * Binary op with operator enum.
  */
-public enum BinaryOperator {
-    // Logical lazy (short-circuit) - the common case
-    OR,
-    AND,
-    // Logical eager (evaluate both sides)
-    EAGER_OR,
-    XOR,
-    EAGER_AND,
-    // Equality
-    EQ,
-    NE,
-    REGEX,
-    // Comparison
-    LT,
-    LE,
-    GT,
-    GE,
-    IN,
-    // Arithmetic
-    ADD,
-    SUB,
-    MUL,
-    DIV,
-    MOD,
-    // Subtemplate
-    SUBTEMPLATE;
-
-    /** @return true for lazy (short-circuit) logical operator (OR, AND) */
-    public boolean isLazy() {
-        return this == OR || this == AND;
-    }
-
-    /** @return true for eager logical operator (EAGER_OR, XOR, EAGER_AND) */
-    public boolean isEager() {
-        return this == EAGER_OR || this == XOR || this == EAGER_AND;
-    }
-
-    /** @return true for any logical operator (lazy or eager) */
-    public boolean isLogical() {
-        return isLazy() || isEager();
-    }
-
-    /** @return true for arithmetic operator */
-    public boolean isArithmetic() {
-        return this == ADD || this == SUB || this == MUL || this == DIV || this == MOD;
-    }
-
-    /** @return true for comparison operator */
-    public boolean isComparison() {
-        return this == LT || this == LE || this == GT || this == GE || this == IN;
-    }
-
-    /** @return true for equality operator */
-    public boolean isEquality() {
-        return this == EQ || this == NE || this == REGEX;
-    }
-}
+public record BinaryOperator(
+        @NonNull BinaryOperatorType op,
+        @NonNull Expression left,
+        @NonNull Expression right,
+        @NonNull SourceLocation location) implements Expression {}

@@ -28,18 +28,15 @@ import java.util.List;
  * All operands are always evaluated.
  *
  * @param operands list of operands (at least 3)
- * @param nature the expression nature (combined from operands)
  * @param location source location spanning all operands
  */
-public record ExclusiveDisjunction(
-        @NonNull List<Expression> operands,
-        @NonNull Nature nature,
-        @NonNull SourceLocation location) implements Expression {
+public record ExclusiveDisjunction(@NonNull List<Expression> operands, @NonNull SourceLocation location)
+        implements Expression {
 
     public ExclusiveDisjunction {
         if (operands.size() < 3) {
             throw new SaplCompilerException(
-                    "ExclusiveDisjunction requires at least 3 operands, use BinaryOperation for 2", location);
+                    "ExclusiveDisjunction requires at least 3 operands, use BinaryOperator for 2", location);
         }
         operands = List.copyOf(operands);
     }

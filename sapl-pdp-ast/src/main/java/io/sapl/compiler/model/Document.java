@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.parser;
+package io.sapl.compiler.model;
 
 import io.sapl.ast.SaplDocument;
 import io.sapl.grammar.antlr.SAPLParser.PolicyOnlyElementContext;

@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.parser;
+package io.sapl.compiler.util;
 
 import io.sapl.api.model.SourceLocation;
 import io.sapl.grammar.antlr.SAPLParser.PolicyOnlyElementContext;
@@ -27,7 +27,7 @@ import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.Token;
 import org.antlr.v4.runtime.tree.ParseTree;
 
-import static io.sapl.parser.StringsUtil.unquoteString;
+import static io.sapl.compiler.util.StringsUtil.unquoteString;
 
 /**
  * Utility class for extracting source location information from ANTLR parse

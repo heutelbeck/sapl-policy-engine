@@ -19,11 +19,12 @@ package io.sapl.compiler;
 
 import java.io.Serial;
 
+import io.sapl.ast.AstNode;
 import org.antlr.v4.runtime.ParserRuleContext;
 
 import io.sapl.api.SaplVersion;
 import io.sapl.api.model.SourceLocation;
-import io.sapl.parser.SourceLocationUtil;
+import io.sapl.compiler.util.SourceLocationUtil;
 import lombok.Getter;
 
 /**
@@ -74,8 +75,18 @@ public class SaplCompilerException extends RuntimeException {
         this.location = SourceLocationUtil.fromContext(context);
     }
 
+    public SaplCompilerException(String message, AstNode context) {
+        super(message);
+        this.location = context.location();
+    }
+
     public SaplCompilerException(String message, Throwable cause, ParserRuleContext context) {
         super(message, cause);
         this.location = SourceLocationUtil.fromContext(context);
+    }
+
+    public SaplCompilerException(String message, Throwable cause, AstNode context) {
+        super(message, cause);
+        this.location = context.location();
     }
 }

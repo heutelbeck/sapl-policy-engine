@@ -46,9 +46,4 @@ public record EnvironmentAttribute(
         arguments = List.copyOf(arguments);
     }
 
-    @Override
-    public Nature nature() {
-        return Nature.STREAM;
-    }
-
 }

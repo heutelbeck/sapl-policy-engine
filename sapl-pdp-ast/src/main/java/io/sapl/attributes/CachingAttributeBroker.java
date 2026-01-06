@@ -416,7 +416,7 @@ public class CachingAttributeBroker implements AttributeBroker {
      */
     public boolean unloadPolicyInformationPointLibrary(String libraryName) {
 
-        // Remove from library registry (atomic ConcurrentHashMap operation)
+        // Remove from library registry (atomic ConcurrentHashMap op)
         List<String> pipNames = libraryToPipNamesMap.remove(libraryName);
 
         if (pipNames == null) {

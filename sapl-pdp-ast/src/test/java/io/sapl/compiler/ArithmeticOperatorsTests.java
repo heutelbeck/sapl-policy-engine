@@ -20,6 +20,7 @@ package io.sapl.compiler;
 import io.sapl.api.model.ErrorValue;
 import io.sapl.api.model.NumberValue;
 import io.sapl.api.model.Value;
+import io.sapl.compiler.operators.ArithmeticOperators;
 import lombok.val;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -34,12 +35,10 @@ import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 class ArithmeticOperatorsTests {
 
-    // ========== Addition ==========
-
     @MethodSource
     @ParameterizedTest(name = "{0}")
     void when_add_withNumbers_then_returnsSum(String description, Value a, Value b, Value expected) {
-        val actual = ArithmeticOperators.add(null, a, b);
+        val actual = ArithmeticOperators.add(a, b, null);
         assertThat(actual).isEqualTo(expected);
     }
 
@@ -55,69 +54,45 @@ class ArithmeticOperatorsTests {
 
     @Test
     void when_add_withStrings_then_concatenates() {
-        val actual = ArithmeticOperators.add(null, Value.of("hello"), Value.of("world"));
+        val actual = ArithmeticOperators.add(Value.of("hello"), Value.of("world"), null);
         assertThat(actual).isEqualTo(Value.of("helloworld"));
     }
 
     @Test
     void when_add_withEmptyStrings_then_concatenates() {
-        val actual = ArithmeticOperators.add(null, Value.of(""), Value.of(""));
+        val actual = ArithmeticOperators.add(Value.of(""), Value.of(""), null);
         assertThat(actual).isEqualTo(Value.of(""));
     }
 
     @Test
     void when_add_withStringAndNumber_then_concatenatesUsingToString() {
-        val actual = ArithmeticOperators.add(null, Value.of("value:"), Value.of(5));
+        val actual = ArithmeticOperators.add(Value.of("value:"), Value.of(5), null);
         assertThat(actual).isEqualTo(Value.of("value:5"));
     }
 
     @Test
     void when_add_withStringAndBoolean_then_concatenatesUsingToString() {
-        val actual = ArithmeticOperators.add(null, Value.of("flag:"), Value.of(true));
+        val actual = ArithmeticOperators.add(Value.of("flag:"), Value.of(true), null);
         assertThat(actual).isEqualTo(Value.of("flag:true"));
     }
 
     @Test
     void when_add_withNumberAndNonNumber_then_returnsError() {
-        val actual = ArithmeticOperators.add(null, Value.of(5), Value.of("text"));
+        val actual = ArithmeticOperators.add(Value.of(5), Value.of("text"), null);
         assertThat(actual).isInstanceOf(ErrorValue.class);
-        assertThat(((ErrorValue) actual).message()).contains("Numeric operation requires number values");
+        assertThat(((ErrorValue) actual).message()).contains("Numeric op requires number values");
     }
 
     @Test
     void when_add_withBooleanAndNumber_then_returnsError() {
-        val actual = ArithmeticOperators.add(null, Value.of(true), Value.of(5));
+        val actual = ArithmeticOperators.add(Value.of(true), Value.of(5), null);
         assertThat(actual).isInstanceOf(ErrorValue.class);
     }
-
-    @Test
-    void when_add_withLeftError_then_returnsLeftError() {
-        val error  = Value.error("left error");
-        val actual = ArithmeticOperators.add(null, error, Value.of(5));
-        assertThat(actual).isSameAs(error);
-    }
-
-    @Test
-    void when_add_withRightError_then_returnsRightError() {
-        val error  = Value.error("right error");
-        val actual = ArithmeticOperators.add(null, Value.of(5), error);
-        assertThat(actual).isSameAs(error);
-    }
-
-    @Test
-    void when_add_withBothErrors_then_returnsLeftError() {
-        val leftError  = Value.error("left error");
-        val rightError = Value.error("right error");
-        val actual     = ArithmeticOperators.add(null, leftError, rightError);
-        assertThat(actual).isSameAs(leftError);
-    }
-
-    // ========== Subtraction ==========
 
     @MethodSource
     @ParameterizedTest(name = "{0}")
     void when_subtract_then_returnsDifference(String description, Value a, Value b, Value expected) {
-        val actual = ArithmeticOperators.subtract(null, a, b);
+        val actual = ArithmeticOperators.subtract(a, b, null);
         assertThat(actual).isEqualTo(expected);
     }
 
@@ -134,30 +109,14 @@ class ArithmeticOperatorsTests {
 
     @Test
     void when_subtract_withNonNumber_then_returnsError() {
-        val actual = ArithmeticOperators.subtract(null, Value.of(5), Value.of("text"));
+        val actual = ArithmeticOperators.subtract(Value.of(5), Value.of("text"), null);
         assertThat(actual).isInstanceOf(ErrorValue.class);
     }
-
-    @Test
-    void when_subtract_withLeftError_then_returnsLeftError() {
-        val error  = Value.error("error");
-        val actual = ArithmeticOperators.subtract(null, error, Value.of(5));
-        assertThat(actual).isSameAs(error);
-    }
-
-    @Test
-    void when_subtract_withRightError_then_returnsRightError() {
-        val error  = Value.error("error");
-        val actual = ArithmeticOperators.subtract(null, Value.of(5), error);
-        assertThat(actual).isSameAs(error);
-    }
-
-    // ========== Multiplication ==========
 
     @MethodSource
     @ParameterizedTest(name = "{0}")
     void when_multiply_then_returnsProduct(String description, Value a, Value b, Value expected) {
-        val actual = ArithmeticOperators.multiply(null, a, b);
+        val actual = ArithmeticOperators.multiply(a, b, null);
         assertThat(actual).isEqualTo(expected);
     }
 
@@ -174,30 +133,14 @@ class ArithmeticOperatorsTests {
 
     @Test
     void when_multiply_withNonNumber_then_returnsError() {
-        val actual = ArithmeticOperators.multiply(null, Value.of(5), Value.of("text"));
+        val actual = ArithmeticOperators.multiply(Value.of(5), Value.of("text"), null);
         assertThat(actual).isInstanceOf(ErrorValue.class);
     }
-
-    @Test
-    void when_multiply_withLeftError_then_returnsLeftError() {
-        val error  = Value.error("error");
-        val actual = ArithmeticOperators.multiply(null, error, Value.of(5));
-        assertThat(actual).isSameAs(error);
-    }
-
-    @Test
-    void when_multiply_withRightError_then_returnsRightError() {
-        val error  = Value.error("error");
-        val actual = ArithmeticOperators.multiply(null, Value.of(5), error);
-        assertThat(actual).isSameAs(error);
-    }
-
-    // ========== Division ==========
 
     @MethodSource
     @ParameterizedTest(name = "{0}")
     void when_divide_then_returnsQuotient(String description, Value a, Value b, Value expected) {
-        val actual = ArithmeticOperators.divide(null, a, b);
+        val actual = ArithmeticOperators.divide(a, b, null);
         assertThat(actual).isEqualTo(expected);
     }
 
@@ -212,7 +155,7 @@ class ArithmeticOperatorsTests {
 
     @Test
     void when_divide_byZero_then_returnsError() {
-        val actual = ArithmeticOperators.divide(null, Value.of(5), Value.of(0));
+        val actual = ArithmeticOperators.divide(Value.of(5), Value.of(0), null);
         assertThat(actual).isInstanceOf(ErrorValue.class);
         assertThat(((ErrorValue) actual).message()).contains("Division by zero");
     }
@@ -221,7 +164,7 @@ class ArithmeticOperatorsTests {
     void when_divide_nonTerminating_then_returnsResultWithPrecision() {
         // ArithmeticOperators uses MathContext.DECIMAL128 (34 digits precision)
         // so non-terminating decimals produce a result, not an error
-        val actual = ArithmeticOperators.divide(null, Value.of(10), Value.of(3));
+        val actual = ArithmeticOperators.divide(Value.of(10), Value.of(3), null);
         assertThat(actual).isInstanceOf(NumberValue.class);
         val result = ((NumberValue) actual).value();
         // 10/3 ≈ 3.333...
@@ -230,7 +173,7 @@ class ArithmeticOperatorsTests {
 
     @Test
     void when_divide_oneThird_then_returnsApproximation() {
-        val actual = ArithmeticOperators.divide(null, Value.of(1), Value.of(3));
+        val actual = ArithmeticOperators.divide(Value.of(1), Value.of(3), null);
         assertThat(actual).isInstanceOf(NumberValue.class);
         val result = ((NumberValue) actual).value();
         // Verify precision - should have 34 significant digits
@@ -239,31 +182,16 @@ class ArithmeticOperatorsTests {
 
     @Test
     void when_divide_withNonNumber_then_returnsError() {
-        val actual = ArithmeticOperators.divide(null, Value.of(5), Value.of("text"));
+        val actual = ArithmeticOperators.divide(Value.of(5), Value.of("text"), null);
         assertThat(actual).isInstanceOf(ErrorValue.class);
     }
 
-    @Test
-    void when_divide_withLeftError_then_returnsLeftError() {
-        val error  = Value.error("error");
-        val actual = ArithmeticOperators.divide(null, error, Value.of(5));
-        assertThat(actual).isSameAs(error);
-    }
-
-    @Test
-    void when_divide_withRightError_then_returnsRightError() {
-        val error  = Value.error("error");
-        val actual = ArithmeticOperators.divide(null, Value.of(5), error);
-        assertThat(actual).isSameAs(error);
-    }
-
-    // ========== Modulo ==========
     // Uses Euclidean semantics: result is non-negative when divisor is positive
 
     @MethodSource
     @ParameterizedTest(name = "{0}")
     void when_modulo_then_returnsRemainder(String description, Value dividend, Value divisor, Value expected) {
-        val actual = ArithmeticOperators.modulo(null, dividend, divisor);
+        val actual = ArithmeticOperators.modulo(dividend, divisor, null);
         assertThat(actual).isEqualTo(expected);
     }
 
@@ -283,90 +211,65 @@ class ArithmeticOperatorsTests {
 
     @Test
     void when_modulo_byZero_then_returnsError() {
-        val actual = ArithmeticOperators.modulo(null, Value.of(5), Value.of(0));
+        val actual = ArithmeticOperators.modulo(Value.of(5), Value.of(0), null);
         assertThat(actual).isInstanceOf(ErrorValue.class);
         assertThat(((ErrorValue) actual).message()).contains("Division by zero");
     }
 
     @Test
     void when_modulo_withNonNumber_then_returnsError() {
-        val actual = ArithmeticOperators.modulo(null, Value.of(5), Value.of("text"));
+        val actual = ArithmeticOperators.modulo(Value.of(5), Value.of("text"), null);
         assertThat(actual).isInstanceOf(ErrorValue.class);
     }
 
     @Test
-    void when_modulo_withLeftError_then_returnsLeftError() {
-        val error  = Value.error("error");
-        val actual = ArithmeticOperators.modulo(null, error, Value.of(5));
-        assertThat(actual).isSameAs(error);
-    }
-
-    @Test
-    void when_modulo_withRightError_then_returnsRightError() {
-        val error  = Value.error("error");
-        val actual = ArithmeticOperators.modulo(null, Value.of(5), error);
-        assertThat(actual).isSameAs(error);
-    }
-
-    @Test
     void when_modulo_withDecimals_then_computesCorrectly() {
-        val actual = ArithmeticOperators.modulo(null, Value.of(5.5), Value.of(2.0));
+        val actual = ArithmeticOperators.modulo(Value.of(5.5), Value.of(2.0), null);
         assertThat(actual).isInstanceOf(NumberValue.class);
         val result = ((NumberValue) actual).value();
         assertThat(result.compareTo(new BigDecimal("1.5"))).isZero();
     }
 
-    // ========== Unary Plus ==========
-
     @Test
     void when_unaryPlus_withPositiveNumber_then_returnsUnchanged() {
-        val actual = ArithmeticOperators.unaryPlus(null, Value.of(5));
+        val actual = ArithmeticOperators.unaryPlus(Value.of(5), null);
         assertThat(actual).isEqualTo(Value.of(5));
     }
 
     @Test
     void when_unaryPlus_withNegativeNumber_then_returnsUnchanged() {
-        val actual = ArithmeticOperators.unaryPlus(null, Value.of(-5));
+        val actual = ArithmeticOperators.unaryPlus(Value.of(-5), null);
         assertThat(actual).isEqualTo(Value.of(-5));
     }
 
     @Test
     void when_unaryPlus_withZero_then_returnsZero() {
-        val actual = ArithmeticOperators.unaryPlus(null, Value.of(0));
+        val actual = ArithmeticOperators.unaryPlus(Value.of(0), null);
         assertThat(actual).isEqualTo(Value.of(0));
     }
 
     @Test
     void when_unaryPlus_withDecimal_then_returnsUnchanged() {
-        val actual = ArithmeticOperators.unaryPlus(null, Value.of(5.64));
+        val actual = ArithmeticOperators.unaryPlus(Value.of(5.64), null);
         assertThat(actual).isEqualTo(Value.of(5.64));
     }
 
     @Test
     void when_unaryPlus_withNonNumber_then_returnsError() {
-        val actual = ArithmeticOperators.unaryPlus(null, Value.of("text"));
+        val actual = ArithmeticOperators.unaryPlus(Value.of("text"), null);
         assertThat(actual).isInstanceOf(ErrorValue.class);
     }
 
     @Test
     void when_unaryPlus_withBoolean_then_returnsError() {
-        val actual = ArithmeticOperators.unaryPlus(null, Value.of(true));
+        val actual = ArithmeticOperators.unaryPlus(Value.of(true), null);
         assertThat(actual).isInstanceOf(ErrorValue.class);
     }
-
-    @Test
-    void when_unaryPlus_withError_then_returnsError() {
-        val error  = Value.error("error");
-        val actual = ArithmeticOperators.unaryPlus(null, error);
-        assertThat(actual).isSameAs(error);
-    }
-
-    // ========== Unary Minus ==========
 
     @MethodSource
     @ParameterizedTest(name = "{0}")
     void when_unaryMinus_then_returnsNegated(String description, Value input, Value expected) {
-        val actual = ArithmeticOperators.unaryMinus(null, input);
+        val actual = ArithmeticOperators.unaryMinus(input, null);
         assertThat(actual).isEqualTo(expected);
     }
 
@@ -380,29 +283,20 @@ class ArithmeticOperatorsTests {
 
     @Test
     void when_unaryMinus_withNonNumber_then_returnsError() {
-        val actual = ArithmeticOperators.unaryMinus(null, Value.of("text"));
+        val actual = ArithmeticOperators.unaryMinus(Value.of("text"), null);
         assertThat(actual).isInstanceOf(ErrorValue.class);
     }
 
     @Test
     void when_unaryMinus_withBoolean_then_returnsError() {
-        val actual = ArithmeticOperators.unaryMinus(null, Value.of(false));
+        val actual = ArithmeticOperators.unaryMinus(Value.of(false), null);
         assertThat(actual).isInstanceOf(ErrorValue.class);
     }
-
-    @Test
-    void when_unaryMinus_withError_then_returnsError() {
-        val error  = Value.error("error");
-        val actual = ArithmeticOperators.unaryMinus(null, error);
-        assertThat(actual).isSameAs(error);
-    }
-
-    // ========== Less Than ==========
 
     @MethodSource
     @ParameterizedTest(name = "{0}")
     void when_lessThan_then_returnsComparison(String description, Value a, Value b, boolean expected) {
-        val actual = ArithmeticOperators.lessThan(null, a, b);
+        val actual = ArithmeticOperators.lessThan(a, b, null);
         assertThat(actual).isEqualTo(Value.of(expected));
     }
 
@@ -419,30 +313,14 @@ class ArithmeticOperatorsTests {
 
     @Test
     void when_lessThan_withNonNumber_then_returnsError() {
-        val actual = ArithmeticOperators.lessThan(null, Value.of(5), Value.of("text"));
+        val actual = ArithmeticOperators.lessThan(Value.of(5), Value.of("text"), null);
         assertThat(actual).isInstanceOf(ErrorValue.class);
     }
-
-    @Test
-    void when_lessThan_withLeftError_then_returnsLeftError() {
-        val error  = Value.error("error");
-        val actual = ArithmeticOperators.lessThan(null, error, Value.of(5));
-        assertThat(actual).isSameAs(error);
-    }
-
-    @Test
-    void when_lessThan_withRightError_then_returnsRightError() {
-        val error  = Value.error("error");
-        val actual = ArithmeticOperators.lessThan(null, Value.of(5), error);
-        assertThat(actual).isSameAs(error);
-    }
-
-    // ========== Less Than or Equal ==========
 
     @MethodSource
     @ParameterizedTest(name = "{0}")
     void when_lessThanOrEqual_then_returnsComparison(String description, Value a, Value b, boolean expected) {
-        val actual = ArithmeticOperators.lessThanOrEqual(null, a, b);
+        val actual = ArithmeticOperators.lessThanOrEqual(a, b, null);
         assertThat(actual).isEqualTo(Value.of(expected));
     }
 
@@ -457,23 +335,14 @@ class ArithmeticOperatorsTests {
 
     @Test
     void when_lessThanOrEqual_withNonNumber_then_returnsError() {
-        val actual = ArithmeticOperators.lessThanOrEqual(null, Value.of(5), Value.of("text"));
+        val actual = ArithmeticOperators.lessThanOrEqual(Value.of(5), Value.of("text"), null);
         assertThat(actual).isInstanceOf(ErrorValue.class);
     }
-
-    @Test
-    void when_lessThanOrEqual_withLeftError_then_returnsLeftError() {
-        val error  = Value.error("error");
-        val actual = ArithmeticOperators.lessThanOrEqual(null, error, Value.of(5));
-        assertThat(actual).isSameAs(error);
-    }
-
-    // ========== Greater Than ==========
 
     @MethodSource
     @ParameterizedTest(name = "{0}")
     void when_greaterThan_then_returnsComparison(String description, Value a, Value b, boolean expected) {
-        val actual = ArithmeticOperators.greaterThan(null, a, b);
+        val actual = ArithmeticOperators.greaterThan(a, b, null);
         assertThat(actual).isEqualTo(Value.of(expected));
     }
 
@@ -488,30 +357,14 @@ class ArithmeticOperatorsTests {
 
     @Test
     void when_greaterThan_withNonNumber_then_returnsError() {
-        val actual = ArithmeticOperators.greaterThan(null, Value.of(5), Value.of("text"));
+        val actual = ArithmeticOperators.greaterThan(Value.of(5), Value.of("text"), null);
         assertThat(actual).isInstanceOf(ErrorValue.class);
     }
-
-    @Test
-    void when_greaterThan_withLeftError_then_returnsLeftError() {
-        val error  = Value.error("error");
-        val actual = ArithmeticOperators.greaterThan(null, error, Value.of(5));
-        assertThat(actual).isSameAs(error);
-    }
-
-    @Test
-    void when_greaterThan_withRightError_then_returnsRightError() {
-        val error  = Value.error("error");
-        val actual = ArithmeticOperators.greaterThan(null, Value.of(5), error);
-        assertThat(actual).isSameAs(error);
-    }
-
-    // ========== Greater Than or Equal ==========
 
     @MethodSource
     @ParameterizedTest(name = "{0}")
     void when_greaterThanOrEqual_then_returnsComparison(String description, Value a, Value b, boolean expected) {
-        val actual = ArithmeticOperators.greaterThanOrEqual(null, a, b);
+        val actual = ArithmeticOperators.greaterThanOrEqual(a, b, null);
         assertThat(actual).isEqualTo(Value.of(expected));
     }
 
@@ -526,67 +379,49 @@ class ArithmeticOperatorsTests {
 
     @Test
     void when_greaterThanOrEqual_withNonNumber_then_returnsError() {
-        val actual = ArithmeticOperators.greaterThanOrEqual(null, Value.of(5), Value.of("text"));
+        val actual = ArithmeticOperators.greaterThanOrEqual(Value.of(5), Value.of("text"), null);
         assertThat(actual).isInstanceOf(ErrorValue.class);
     }
 
     @Test
-    void when_greaterThanOrEqual_withLeftError_then_returnsLeftError() {
-        val error  = Value.error("error");
-        val actual = ArithmeticOperators.greaterThanOrEqual(null, error, Value.of(5));
-        assertThat(actual).isSameAs(error);
-    }
-
-    @Test
-    void when_greaterThanOrEqual_withRightError_then_returnsRightError() {
-        val error  = Value.error("error");
-        val actual = ArithmeticOperators.greaterThanOrEqual(null, Value.of(5), error);
-        assertThat(actual).isSameAs(error);
-    }
-
-    // ========== Null and Undefined handling ==========
-
-    @Test
     void when_add_withNull_then_returnsError() {
-        val actual = ArithmeticOperators.add(null, Value.of(5), Value.NULL);
+        val actual = ArithmeticOperators.add(Value.of(5), Value.NULL, null);
         assertThat(actual).isInstanceOf(ErrorValue.class);
     }
 
     @Test
     void when_add_withUndefined_then_returnsError() {
-        val actual = ArithmeticOperators.add(null, Value.of(5), Value.UNDEFINED);
+        val actual = ArithmeticOperators.add(Value.of(5), Value.UNDEFINED, null);
         assertThat(actual).isInstanceOf(ErrorValue.class);
     }
 
     @Test
     void when_lessThan_withNull_then_returnsError() {
-        val actual = ArithmeticOperators.lessThan(null, Value.of(5), Value.NULL);
+        val actual = ArithmeticOperators.lessThan(Value.of(5), Value.NULL, null);
         assertThat(actual).isInstanceOf(ErrorValue.class);
     }
 
     @Test
     void when_unaryMinus_withNull_then_returnsError() {
-        val actual = ArithmeticOperators.unaryMinus(null, Value.NULL);
+        val actual = ArithmeticOperators.unaryMinus(Value.NULL, null);
         assertThat(actual).isInstanceOf(ErrorValue.class);
     }
 
-    // ========== Array and Object handling ==========
-
     @Test
     void when_add_withArray_then_returnsError() {
-        val actual = ArithmeticOperators.add(null, Value.of(5), Value.ofArray(Value.of(1), Value.of(2)));
+        val actual = ArithmeticOperators.add(Value.of(5), Value.ofArray(Value.of(1), Value.of(2)), null);
         assertThat(actual).isInstanceOf(ErrorValue.class);
     }
 
     @Test
     void when_add_withObject_then_returnsError() {
-        val actual = ArithmeticOperators.add(null, Value.of(5), Value.EMPTY_OBJECT);
+        val actual = ArithmeticOperators.add(Value.of(5), Value.EMPTY_OBJECT, null);
         assertThat(actual).isInstanceOf(ErrorValue.class);
     }
 
     @Test
     void when_multiply_withArray_then_returnsError() {
-        val actual = ArithmeticOperators.multiply(null, Value.EMPTY_ARRAY, Value.of(5));
+        val actual = ArithmeticOperators.multiply(Value.EMPTY_ARRAY, Value.of(5), null);
         assertThat(actual).isInstanceOf(ErrorValue.class);
     }
 }

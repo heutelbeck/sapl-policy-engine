@@ -15,7 +15,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.parser;
+package io.sapl.compiler;
+
+import io.sapl.compiler.model.DocumentType;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.ValueSource;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -23,16 +34,6 @@ import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
-
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.stream.Stream;
-
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.Arguments;
-import org.junit.jupiter.params.provider.MethodSource;
-import org.junit.jupiter.params.provider.ValueSource;
 
 class SAPLCompilerTests {
 
@@ -47,20 +48,20 @@ class SAPLCompilerTests {
     @Test
     void whenLazyBooleanOperatorsInTarget_thenValidationFails() {
         var policyDocument = "policy \"test\" permit true && false";
-        assertThatThrownBy(() -> INTERPRETER.parse(policyDocument)).isInstanceOf(SaplParserException.class);
+        assertThatThrownBy(() -> INTERPRETER.parse(policyDocument)).isInstanceOf(SaplCompilerException.class);
     }
 
     @Test
     void whenBrokenInputStream_thenThrowsException() throws IOException {
         var brokenInputStream = mock(InputStream.class);
         when(brokenInputStream.read()).thenThrow(new IOException("Simulated IO error"));
-        assertThatThrownBy(() -> INTERPRETER.parse(brokenInputStream)).isInstanceOf(SaplParserException.class);
+        assertThatThrownBy(() -> INTERPRETER.parse(brokenInputStream)).isInstanceOf(SaplCompilerException.class);
     }
 
     @Test
     void whenInvalidSyntax_thenThrowsException() {
         var policyDocument = "xyz";
-        assertThatThrownBy(() -> INTERPRETER.parse(policyDocument)).isInstanceOf(SaplParserException.class);
+        assertThatThrownBy(() -> INTERPRETER.parse(policyDocument)).isInstanceOf(SaplCompilerException.class);
     }
 
     @Test
@@ -106,7 +107,7 @@ class SAPLCompilerTests {
             "policy \"p\" permit where var subject = {};", "policy \"p\" permit where var action = {};",
             "policy \"p\" permit where var resource = {};", "policy \"p\" permit where var environment = {};" })
     void whenInvalidPolicyDefinitions_thenParsingThrowsException(String policyDefinition) {
-        assertThatThrownBy(() -> INTERPRETER.parse(policyDefinition)).isInstanceOf(SaplParserException.class);
+        assertThatThrownBy(() -> INTERPRETER.parse(policyDefinition)).isInstanceOf(SaplCompilerException.class);
     }
 
     @Test

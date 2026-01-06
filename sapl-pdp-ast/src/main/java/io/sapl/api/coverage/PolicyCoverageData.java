@@ -335,14 +335,14 @@ public class PolicyCoverageData {
         val lines = new HashSet<Integer>();
         for (val hit : branchHitsByPosition.values()) {
             if (hit.isPartiallyCovered()) {
-                // Add all lines spanned by this condition
+                // BinaryOperationCompiler all lines spanned by this condition
                 for (int line = hit.startLine(); line <= hit.endLine(); line++) {
                     lines.add(line);
                 }
             }
         }
         if (wasTargetMatched()) {
-            // Add all lines covered by the target expression
+            // BinaryOperationCompiler all lines covered by the target expression
             val startLine = targetStartLine > 0 ? targetStartLine : 1;
             val endLine   = targetEndLine > 0 ? targetEndLine : startLine;
             for (int line = startLine; line <= endLine; line++) {

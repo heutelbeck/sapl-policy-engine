@@ -28,15 +28,13 @@ import java.util.List;
  * Enables pure-first evaluation and error absorption optimizations.
  *
  * @param operands list of operands (at least 3)
- * @param nature the expression nature (combined from operands)
  * @param location source location spanning all operands
  */
-public record Disjunction(@NonNull List<Expression> operands, @NonNull Nature nature, @NonNull SourceLocation location)
-        implements Expression {
+public record Disjunction(@NonNull List<Expression> operands, @NonNull SourceLocation location) implements Expression {
 
     public Disjunction {
         if (operands.size() < 3) {
-            throw new SaplCompilerException("Disjunction requires at least 3 operands, use BinaryOperation for 2",
+            throw new SaplCompilerException("Disjunction requires at least 3 operands, use BinaryOperator for 2",
                     location);
         }
         operands = List.copyOf(operands);

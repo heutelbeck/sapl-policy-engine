@@ -21,15 +21,7 @@ package io.sapl.ast;
  * Base interface for all expression AST nodes.
  */
 public sealed interface Expression extends AstNode
-        permits Literal, Identifier, BinaryOperation, UnaryOperation, FunctionCall, EnvironmentAttribute,
+        permits Literal, Identifier, BinaryOperator, UnaryOperator, FunctionCall, EnvironmentAttribute,
         RelativeReference, Parenthesized, FilterOperation, ArrayExpression, ObjectExpression, Step, Conjunction,
         Disjunction, Sum, Product, EagerConjunction, EagerDisjunction, ExclusiveDisjunction {
-
-    /**
-     * Returns the nature of this expression, indicating how it should be evaluated.
-     *
-     * @return the expression's nature
-     */
-    Nature nature();
-
 }

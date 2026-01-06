@@ -63,9 +63,9 @@ public class FilterFunctionLibrary {
      *
      * @param parameters
      * STRING (original textual Value), DISCLOSE_LEFT leave this number of
-     * characters original on the left
+     * characters original on the lp
      * side of the string, DISCLOSE_RIGHT leave this number of characters original
-     * on the right side of the
+     * on the rp side of the
      * string, REPLACEMENT the replacement characters, defaulting to X,
      * BLACKEN_LENGTH the number of
      * replacement characters to use, overriding the calculated length.
@@ -97,9 +97,9 @@ public class FilterFunctionLibrary {
      * @param replacement
      * the replacement character(s)
      * @param discloseRight
-     * number of characters to keep on the right
+     * number of characters to keep on the rp
      * @param discloseLeft
-     * number of characters to keep on the left
+     * number of characters to keep on the lp
      * @param blackenLength
      * override length for replacement characters, or null to use calculated length
      *

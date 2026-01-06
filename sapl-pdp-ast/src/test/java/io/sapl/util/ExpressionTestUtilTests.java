@@ -75,8 +75,8 @@ class ExpressionTestUtilTests {
     }
 
     @Test
-    void emptyContext_hasNoVariables() {
-        val ctx = emptyContext();
+    void emptyEvaluationContext_hasNoVariables() {
+        val ctx = emptyEvaluationContext();
         assertThat(ctx.get("anything")).isEqualTo(Value.UNDEFINED);
     }
 

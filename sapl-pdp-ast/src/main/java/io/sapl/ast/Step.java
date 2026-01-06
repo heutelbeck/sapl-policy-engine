@@ -31,14 +31,4 @@ public sealed interface Step extends Expression
     /** @return the base expression this step is applied to */
     Expression base();
 
-    /**
-     * Default nature for steps is the base expression's nature.
-     * Steps with expressions (ExpressionStep, ConditionStep) or attribute finders
-     * (AttributeStep) override this.
-     */
-    @Override
-    default Nature nature() {
-        return base().nature();
-    }
-
 }

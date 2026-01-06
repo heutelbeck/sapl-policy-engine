@@ -28,17 +28,14 @@ import java.util.List;
  * Unlike lazy disjunction, all operands are always evaluated.
  *
  * @param operands list of operands (at least 3)
- * @param nature the expression nature (combined from operands)
  * @param location source location spanning all operands
  */
-public record EagerDisjunction(
-        @NonNull List<Expression> operands,
-        @NonNull Nature nature,
-        @NonNull SourceLocation location) implements Expression {
+public record EagerDisjunction(@NonNull List<Expression> operands, @NonNull SourceLocation location)
+        implements Expression {
 
     public EagerDisjunction {
         if (operands.size() < 3) {
-            throw new SaplCompilerException("EagerDisjunction requires at least 3 operands, use BinaryOperation for 2",
+            throw new SaplCompilerException("EagerDisjunction requires at least 3 operands, use BinaryOperator for 2",
                     location);
         }
         operands = List.copyOf(operands);

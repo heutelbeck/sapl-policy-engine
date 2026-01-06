@@ -353,7 +353,7 @@ public final class AttributeStream {
     /**
      * Hot-swaps the PIP connection to a new AttributeFinder.
      * <p>
-     * Thread-safe operation that:
+     * Thread-safe op that:
      * <ul>
      * <li>Resets disconnection state</li>
      * <li>Stores the new PIP configuration for subscription</li>

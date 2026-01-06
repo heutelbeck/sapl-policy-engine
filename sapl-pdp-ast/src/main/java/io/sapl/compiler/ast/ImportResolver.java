@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.parser;
+package io.sapl.compiler.ast;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -148,39 +148,38 @@ public class ImportResolver {
         return switch (expr) {
         case Literal l               -> l;
         case Identifier id           -> id; // No steps to resolve in new AST
-        case BinaryOperation b       -> new BinaryOperation(b.op(), resolveExpr(b.left(), importMap),
-                resolveExpr(b.right(), importMap), b.nature(), b.location());
-        case UnaryOperation u        ->
-            new UnaryOperation(u.op(), resolveExpr(u.operand(), importMap), u.nature(), u.location());
+        case BinaryOperator b        -> new BinaryOperator(b.op(), resolveExpr(b.left(), importMap),
+                resolveExpr(b.right(), importMap), b.location());
+        case UnaryOperator u         -> new UnaryOperator(u.op(), resolveExpr(u.operand(), importMap), u.location());
         case FunctionCall fc         -> new FunctionCall(resolve(fc.name(), importMap, fc.location()),
-                fc.arguments().stream().map(a -> resolveExpr(a, importMap)).toList(), fc.nature(), fc.location());
+                fc.arguments().stream().map(a -> resolveExpr(a, importMap)).toList(), fc.location());
         case EnvironmentAttribute aa -> new EnvironmentAttribute(resolve(aa.name(), importMap, aa.location()),
                 aa.arguments().stream().map(a -> resolveExpr(a, importMap)).toList(),
                 aa.options() != null ? resolveExpr(aa.options(), importMap) : null, aa.head(), aa.location());
         case RelativeReference r     -> r; // No nested expressions
         case Parenthesized g         -> new Parenthesized(resolveExpr(g.expression(), importMap), g.location());
         case FilterOperation fo      -> resolveFilterOperation(fo, importMap);
-        case ArrayExpression ae      -> new ArrayExpression(
-                ae.elements().stream().map(e -> resolveExpr(e, importMap)).toList(), ae.nature(), ae.location());
+        case ArrayExpression ae      ->
+            new ArrayExpression(ae.elements().stream().map(e -> resolveExpr(e, importMap)).toList(), ae.location());
         case ObjectExpression oe     -> new ObjectExpression(
                 oe.entries().stream()
                         .map(e -> new ObjectEntry(e.key(), resolveExpr(e.value(), importMap), e.location())).toList(),
-                oe.nature(), oe.location());
+                oe.location());
         // N-ary operations
-        case Conjunction c           -> new Conjunction(
-                c.operands().stream().map(o -> resolveExpr(o, importMap)).toList(), c.nature(), c.location());
-        case Disjunction d           -> new Disjunction(
-                d.operands().stream().map(o -> resolveExpr(o, importMap)).toList(), d.nature(), d.location());
+        case Conjunction c           ->
+            new Conjunction(c.operands().stream().map(o -> resolveExpr(o, importMap)).toList(), c.location());
+        case Disjunction d           ->
+            new Disjunction(d.operands().stream().map(o -> resolveExpr(o, importMap)).toList(), d.location());
         case Sum s                   ->
-            new Sum(s.operands().stream().map(o -> resolveExpr(o, importMap)).toList(), s.nature(), s.location());
+            new Sum(s.operands().stream().map(o -> resolveExpr(o, importMap)).toList(), s.location());
         case Product p               ->
-            new Product(p.operands().stream().map(o -> resolveExpr(o, importMap)).toList(), p.nature(), p.location());
-        case EagerConjunction ec     -> new EagerConjunction(
-                ec.operands().stream().map(o -> resolveExpr(o, importMap)).toList(), ec.nature(), ec.location());
-        case EagerDisjunction ed     -> new EagerDisjunction(
-                ed.operands().stream().map(o -> resolveExpr(o, importMap)).toList(), ed.nature(), ed.location());
+            new Product(p.operands().stream().map(o -> resolveExpr(o, importMap)).toList(), p.location());
+        case EagerConjunction ec     ->
+            new EagerConjunction(ec.operands().stream().map(o -> resolveExpr(o, importMap)).toList(), ec.location());
+        case EagerDisjunction ed     ->
+            new EagerDisjunction(ed.operands().stream().map(o -> resolveExpr(o, importMap)).toList(), ed.location());
         case ExclusiveDisjunction xd -> new ExclusiveDisjunction(
-                xd.operands().stream().map(o -> resolveExpr(o, importMap)).toList(), xd.nature(), xd.location());
+                xd.operands().stream().map(o -> resolveExpr(o, importMap)).toList(), xd.location());
         // Steps - each has a base expression to recurse into
         case Step step -> resolveStep(step, importMap);
         };
@@ -225,8 +224,7 @@ public class ImportResolver {
         return new FilterOperation(resolveExpr(fo.base(), importMap),
                 fo.target() != null ? resolveFilterPath(fo.target(), importMap) : null,
                 resolve(fo.function(), importMap, fo.location()),
-                fo.arguments().stream().map(a -> resolveExpr(a, importMap)).toList(), fo.each(), fo.nature(),
-                fo.location());
+                fo.arguments().stream().map(a -> resolveExpr(a, importMap)).toList(), fo.each(), fo.location());
     }
 
     private FilterPath resolveFilterPath(FilterPath path, Map<String, List<String>> importMap) {

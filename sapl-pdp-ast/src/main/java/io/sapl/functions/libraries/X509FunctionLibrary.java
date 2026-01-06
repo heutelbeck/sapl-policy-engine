@@ -551,19 +551,19 @@ public class X509FunctionLibrary {
     /* Helper Methods */
 
     /**
-     * Executes an operation on a parsed certificate with automatic error handling.
+     * Executes an op on a parsed certificate with automatic error handling.
      * Parses the certificate string and
-     * applies the operation, catching any exceptions and converting them to
+     * applies the op, catching any exceptions and converting them to
      * Val.error responses.
      *
      * @param certificateString
      * the certificate string in PEM or DER format
      * @param operation
-     * the operation to perform on the certificate
+     * the op to perform on the certificate
      * @param errorPrefix
      * the prefix for error messages
      *
-     * @return the result of the operation or a Val.error
+     * @return the result of the op or a Val.error
      */
     private static Value withCertificate(String certificateString,
             java.util.function.Function<X509Certificate, Value> operation, String errorPrefix) {

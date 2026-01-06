@@ -19,9 +19,9 @@ package io.sapl.compiler;
 
 import io.sapl.api.attributes.AttributeBroker;
 import io.sapl.api.functions.FunctionBroker;
-import io.sapl.api.model.ExpressionResult;
+import io.sapl.api.model.CompiledExpression;
 import io.sapl.api.pdp.TraceLevel;
-import io.sapl.parser.Document;
+import io.sapl.compiler.model.Document;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
@@ -73,14 +73,14 @@ public class CompilationContext {
         }
     }
 
-    Document                              document;
-    String                                documentSource;
-    final FunctionBroker                  functionBroker;
-    final AttributeBroker                 attributeBroker;
-    final TraceLevel                      traceLevel;
-    List<ImportInfo>                      imports                  = new ArrayList<>();
-    private Map<String, ExpressionResult> documentVariablesInScope = new HashMap<>();
-    private Set<String>                   localVariableNames       = new HashSet<>();
+    Document                                document;
+    String                                  documentSource;
+    final FunctionBroker                    functionBroker;
+    final AttributeBroker                   attributeBroker;
+    final TraceLevel                        traceLevel;
+    List<ImportInfo>                        imports                  = new ArrayList<>();
+    private Map<String, CompiledExpression> documentVariablesInScope = new HashMap<>();
+    private Set<String>                     localVariableNames       = new HashSet<>();
 
     /**
      * Creates a compilation context with the specified trace level.
@@ -123,7 +123,7 @@ public class CompilationContext {
      * @param value the compiled expression for the variable value
      * @return true if added, false if variable already exists
      */
-    public boolean addGlobalPolicySetVariable(String variableName, ExpressionResult value) {
+    public boolean addGlobalPolicySetVariable(String variableName, CompiledExpression value) {
         if (documentVariablesInScope.containsKey(variableName)) {
             return false;
         }
@@ -139,7 +139,7 @@ public class CompilationContext {
      * @param value the compiled expression for the variable value
      * @return true if added, false if variable already exists
      */
-    public boolean addLocalPolicyVariable(String variableName, ExpressionResult value) {
+    public boolean addLocalPolicyVariable(String variableName, CompiledExpression value) {
         if (documentVariablesInScope.containsKey(variableName)) {
             return false;
         }
@@ -175,7 +175,7 @@ public class CompilationContext {
      * @param variableName the variable name
      * @return the compiled expression, or null if not found
      */
-    public ExpressionResult getVariable(String variableName) {
+    public CompiledExpression getVariable(String variableName) {
         return documentVariablesInScope.get(variableName);
     }
 

@@ -19,7 +19,7 @@ package io.sapl.api.model;
 
 import io.sapl.api.SaplVersion;
 import io.sapl.ast.AstNode;
-import io.sapl.parser.SourceLocationUtil;
+import io.sapl.compiler.util.SourceLocationUtil;
 import lombok.NonNull;
 import org.antlr.v4.runtime.ParserRuleContext;
 
@@ -87,7 +87,7 @@ import java.util.Map;
  * @see UndefinedValue
  * @see NullValue
  */
-public sealed interface Value extends Serializable, ExpressionResult
+public sealed interface Value extends Serializable, CompiledExpression
         permits UndefinedValue, ErrorValue, NullValue, BooleanValue, NumberValue, TextValue, ArrayValue, ObjectValue {
 
     @Serial

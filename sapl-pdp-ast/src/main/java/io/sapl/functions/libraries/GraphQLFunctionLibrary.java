@@ -71,7 +71,7 @@ public class GraphQLFunctionLibrary {
             gql.valid                   // boolean - query validity
             gql.fields                  // array - all field names
             gql.depth                   // integer - maximum nesting depth
-            gql.operation               // string - operation type (query/mutation/subscription)
+            gql.op               // string - op type (query/mutation/subscription)
             gql.complexity              // integer - complexity score
 
             // Security metrics
@@ -84,7 +84,7 @@ public class GraphQLFunctionLibrary {
             gql.security.directivesPerField      // number - average directives per field
 
             // AST details
-            gql.ast.operationName       // string - operation name
+            gql.ast.operationName       // string - op name
             gql.ast.types               // array - types used
             gql.ast.variables           // object - variable definitions
             gql.ast.arguments           // object - field arguments
@@ -181,7 +181,7 @@ public class GraphQLFunctionLibrary {
             permit action == "execute"
             where
               var gql = graphql.validateQuery(resource.query, resource."schema");
-              gql.operation != "mutation" || subject.role == "admin";
+              gql.op != "mutation" || subject.role == "admin";
             ```
 
             ### Batching Attack Prevention
@@ -216,7 +216,7 @@ public class GraphQLFunctionLibrary {
             Invalid queries set `valid` to false with errors in `errors` array. Check `valid` before using other metrics.
             """;
 
-    // GraphQL operation types
+    // GraphQL op types
     private static final String OPERATION_QUERY        = "query";
     private static final String OPERATION_MUTATION     = "mutation";
     private static final String OPERATION_SUBSCRIPTION = "subscription";
@@ -245,14 +245,14 @@ public class GraphQLFunctionLibrary {
     private static final float   CACHE_LOAD_FACTOR     = 0.75f;
     private static final boolean CACHE_ACCESS_ORDER    = true;
 
-    private static final String ERROR_NO_OPERATION_FOUND  = "No operation definition found.";
+    private static final String ERROR_NO_OPERATION_FOUND  = "No op definition found.";
     private static final String ERROR_QUERY_PARSE_FAILED  = "Failed to parse GraphQL query";
     private static final String ERROR_SCHEMA_PARSE_FAILED = "Schema parsing failed";
     private static final String ERROR_SCHEMA_TOO_LARGE    = "Schema exceeds maximum size of %d bytes.";
 
     // JSON field names - common fields
     private static final String FIELD_VALID       = "valid";
-    private static final String FIELD_OPERATION   = "operation";
+    private static final String FIELD_OPERATION   = "op";
     private static final String FIELD_FIELDS      = "fields";
     private static final String FIELD_FIELD_COUNT = "fieldCount";
     private static final String FIELD_DEPTH       = "depth";
@@ -300,7 +300,7 @@ public class GraphQLFunctionLibrary {
               "type": "object",
               "properties": {
                 "valid": {"type": "boolean"},
-                "operation": {"type": "string", "enum": ["query", "mutation", "subscription"]},
+                "op": {"type": "string", "enum": ["query", "mutation", "subscription"]},
                 "fields": {"type": "array", "items": {"type": "string"}},
                 "fieldCount": {"type": "integer", "minimum": 0},
                 "depth": {"type": "integer", "minimum": 0, "maximum": 100},
@@ -572,7 +572,7 @@ public class GraphQLFunctionLibrary {
         val astNode    = ObjectValue.builder();
         val typesArray = ArrayValue.builder();
 
-        // Add regular types
+        // BinaryOperationCompiler regular types
         typeDefinitionRegistry.types().values().forEach(typeDef -> {
             val typeNode = ObjectValue.builder();
             typeNode.put(FIELD_KIND, Value.of(typeDef.getClass().getSimpleName()));
@@ -580,7 +580,7 @@ public class GraphQLFunctionLibrary {
             typesArray.add(typeNode.build());
         });
 
-        // Add scalar types
+        // BinaryOperationCompiler scalar types
         typeDefinitionRegistry.scalars().values().forEach(scalarDef -> {
             val typeNode = ObjectValue.builder();
             typeNode.put(FIELD_KIND, Value.of(scalarDef.getClass().getSimpleName()));
@@ -602,15 +602,15 @@ public class GraphQLFunctionLibrary {
     }
 
     /**
-     * Extracts the operation definition from a parsed document.
+     * Extracts the op definition from a parsed document.
      *
      * @param document
      * the parsed GraphQL document
      *
-     * @return the operation definition
+     * @return the op definition
      *
      * @throws IllegalArgumentException
-     * if no operation definition is found
+     * if no op definition is found
      */
     private static OperationDefinition extractOperation(Document document) {
         return (OperationDefinition) document.getDefinitions().stream().filter(OperationDefinition.class::isInstance)
@@ -623,7 +623,7 @@ public class GraphQLFunctionLibrary {
      * @param document
      * the parsed document
      * @param operation
-     * the operation definition
+     * the op definition
      *
      * @return QueryMetrics containing all collected metrics
      */
@@ -965,11 +965,11 @@ public class GraphQLFunctionLibrary {
     }
 
     /**
-     * Extracts variable definitions from an operation. Only includes variables that
+     * Extracts variable definitions from an op. Only includes variables that
      * have default values specified.
      *
      * @param operation
-     * the operation definition
+     * the op definition
      *
      * @return ObjectValue containing variable definitions with their default values
      */
@@ -1052,7 +1052,7 @@ public class GraphQLFunctionLibrary {
      * @param exception
      * the exception that occurred
      * @param context
-     * the context describing what operation failed
+     * the context describing what op failed
      *
      * @return Value containing error result
      */

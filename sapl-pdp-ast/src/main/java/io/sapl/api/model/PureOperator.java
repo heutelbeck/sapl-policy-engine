@@ -15,26 +15,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.parser;
+package io.sapl.api.model;
 
-import io.sapl.api.SaplVersion;
-import lombok.experimental.StandardException;
+import reactor.core.publisher.Mono;
 
-import java.io.Serial;
+public non-sealed interface PureOperator extends CompiledExpression {
+    Value evaluate(EvaluationContext ctx);
 
-/**
- * Exception thrown when SAPL policy parsing fails.
- * <p>
- * This exception is raised during:
- * <ul>
- * <li>Syntax errors in SAPL policy documents</li>
- * <li>Invalid document structure or semantic violations</li>
- * <li>Detection of potential security issues like trojan source attacks</li>
- * <li>Character encoding problems in policy input streams</li>
- * </ul>
- */
-@StandardException
-public class SaplParserException extends RuntimeException {
-    @Serial
-    private static final long serialVersionUID = SaplVersion.VERSION_UID;
+    SourceLocation location();
+
+    boolean isDependingOnSubscription();
 }

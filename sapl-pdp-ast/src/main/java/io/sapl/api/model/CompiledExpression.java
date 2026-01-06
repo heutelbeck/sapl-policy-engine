@@ -15,10 +15,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.parser;
+package io.sapl.api.model;
 
-public enum DocumentType {
-    POLICY,
-    POLICY_SET,
-    INVALID
+public sealed interface CompiledExpression permits Value, PureOperator, StreamOperator {
+
 }

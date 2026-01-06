@@ -44,9 +44,4 @@ public record AttributeStep(
         arguments = List.copyOf(arguments);
     }
 
-    @Override
-    public Nature nature() {
-        return Nature.STREAM;
-    }
-
 }

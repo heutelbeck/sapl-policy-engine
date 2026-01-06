@@ -28,15 +28,13 @@ import java.util.List;
  * Enables constant folding across non-constant expressions.
  *
  * @param operands list of operands (at least 3)
- * @param nature the expression nature (combined from operands)
  * @param location source location spanning all operands
  */
-public record Sum(@NonNull List<Expression> operands, @NonNull Nature nature, @NonNull SourceLocation location)
-        implements Expression {
+public record Sum(@NonNull List<Expression> operands, @NonNull SourceLocation location) implements Expression {
 
     public Sum {
         if (operands.size() < 3) {
-            throw new SaplCompilerException("Sum requires at least 3 operands, use BinaryOperation for 2", location);
+            throw new SaplCompilerException("Sum requires at least 3 operands, use BinaryOperator for 2", location);
         }
         operands = List.copyOf(operands);
     }

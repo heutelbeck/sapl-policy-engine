@@ -27,13 +27,11 @@ import lombok.NonNull;
  *
  * @param name qualified function name
  * @param arguments function arguments, empty list if none
- * @param nature the expression nature (combined from arguments)
  * @param location source location
  */
 public record FunctionCall(
         @NonNull QualifiedName name,
         @NonNull List<Expression> arguments,
-        @NonNull Nature nature,
         @NonNull SourceLocation location) implements Expression {
 
     public FunctionCall {

@@ -26,11 +26,4 @@ import lombok.NonNull;
  * @param expression the grouped expression
  * @param location source location
  */
-public record Parenthesized(@NonNull Expression expression, @NonNull SourceLocation location) implements Expression {
-
-    @Override
-    public Nature nature() {
-        return expression.nature();
-    }
-
-}
+public record Parenthesized(@NonNull Expression expression, @NonNull SourceLocation location) implements Expression {}

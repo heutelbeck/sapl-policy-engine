@@ -30,9 +30,4 @@ import lombok.NonNull;
 public record ConditionStep(@NonNull Expression base, @NonNull Expression condition, @NonNull SourceLocation location)
         implements Step {
 
-    @Override
-    public Nature nature() {
-        return base.nature().combine(condition.nature());
-    }
-
 }

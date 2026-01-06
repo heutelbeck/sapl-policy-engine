@@ -186,7 +186,7 @@ class AttributeStreamRaceConditionTests {
     }
 
     /**
-     * Tests disconnect racing with connect operation.
+     * Tests disconnect racing with connect op.
      * <p>
      * Two threads race: one connects a slow-starting PIP (delayed emission),
      * another disconnects immediately. The
@@ -222,7 +222,7 @@ class AttributeStreamRaceConditionTests {
             latch.countDown();
             try {
                 latch.await();
-                // Intentional delay to create race timing window with connect operation
+                // Intentional delay to create race timing window with connect op
                 Thread.sleep(10);
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
@@ -307,7 +307,7 @@ class AttributeStreamRaceConditionTests {
     }
 
     /**
-     * Tests connect racing with another connect operation.
+     * Tests connect racing with another connect op.
      * <p>
      * Two threads connect different PIPs simultaneously. Each PIP emits
      * continuously. The implementation should

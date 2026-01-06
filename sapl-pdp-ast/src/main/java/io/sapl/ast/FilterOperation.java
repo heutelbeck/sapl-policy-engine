@@ -23,7 +23,7 @@ import lombok.NonNull;
 import java.util.List;
 
 /**
- * Unified filter operation representing both simple and extended filters.
+ * Unified filter op representing both simple and extended filters.
  * <p>
  * Simple filter: {@code base |- func(args)} or {@code base |- each func(args)}
  * <p>
@@ -38,7 +38,6 @@ import java.util.List;
  * @param arguments function arguments (value being filtered is passed as first
  * arg)
  * @param each true if filter applies to each element of target array
- * @param nature the expression nature (combined from base and arguments)
  * @param location source location
  */
 public record FilterOperation(
@@ -47,7 +46,6 @@ public record FilterOperation(
         @NonNull QualifiedName function,
         @NonNull List<Expression> arguments,
         boolean each,
-        @NonNull Nature nature,
         @NonNull SourceLocation location) implements Expression {
 
     public FilterOperation {

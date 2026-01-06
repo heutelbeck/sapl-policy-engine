@@ -19,7 +19,7 @@ package io.sapl.compiler;
 
 import io.sapl.api.model.EvaluationContext;
 import io.sapl.api.model.ErrorValue;
-import io.sapl.api.model.ExpressionResult;
+import io.sapl.api.model.CompiledExpression;
 import io.sapl.api.model.Value;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import lombok.val;
@@ -29,21 +29,22 @@ import org.junit.jupiter.params.provider.MethodSource;
 
 import java.util.stream.Stream;
 
-import static io.sapl.util.ExpressionTestUtil.evaluateExpression;
+import static io.sapl.util.ExpressionTestUtil.*;
+import io.sapl.api.model.PureOperator;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
-class ExpressionEvaluatorTests {
+class ExpressionCompilerTests {
 
     @MethodSource
     @ParameterizedTest(name = "{0}")
-    void when_evaluateExpression_then_returnsExpectedValue(String description, String expression,
-            ExpressionResult expected) {
+    void when_compileExpression_then_returnsExpectedValue(String description, String expression,
+            CompiledExpression expected) {
         val actual = evaluateExpression(expression);
         assertThat(actual).isEqualTo(expected);
     }
 
-    private static Stream<Arguments> when_evaluateExpression_then_returnsExpectedValue() {
+    private static Stream<Arguments> when_compileExpression_then_returnsExpectedValue() {
         return Stream.of(
                 // Literals
                 arguments("integer", "42", Value.of(42)), arguments("decimal", "2.5", Value.of(2.5)),
@@ -63,14 +64,14 @@ class ExpressionEvaluatorTests {
 
     @MethodSource
     @ParameterizedTest(name = "{0}")
-    void when_evaluateSubscriptionElement_then_returnsSubscriptionValue(String description, String expression,
-            ExpressionResult expected) {
+    void when_compileSubscriptionElement_then_returnsSubscriptionValue(String description, String expression,
+            CompiledExpression expected) {
         val ctx    = subscriptionContext();
         val actual = evaluateExpression(expression, ctx);
         assertThat(actual).isEqualTo(expected);
     }
 
-    private static Stream<Arguments> when_evaluateSubscriptionElement_then_returnsSubscriptionValue() {
+    private static Stream<Arguments> when_compileSubscriptionElement_then_returnsSubscriptionValue() {
         return Stream.of(arguments("subject", "subject", Value.of("alice")),
                 arguments("action", "action", Value.of("read")),
                 arguments("resource", "resource", Value.of("document")),
@@ -87,7 +88,7 @@ class ExpressionEvaluatorTests {
 
     @MethodSource
     @ParameterizedTest(name = "{0}")
-    void when_evaluateUnaryOperation_then_returnsResult(String description, String expression, Object expected) {
+    void when_compileUnaryOperation_then_returnsResult(String description, String expression, Object expected) {
         val actual = evaluateExpression(expression);
         if (expected instanceof Class<?> c)
             assertThat(actual).isInstanceOf(c);
@@ -95,7 +96,7 @@ class ExpressionEvaluatorTests {
             assertThat(actual).isEqualTo(expected);
     }
 
-    private static Stream<Arguments> when_evaluateUnaryOperation_then_returnsResult() {
+    private static Stream<Arguments> when_compileUnaryOperation_then_returnsResult() {
         return Stream.of(
                 // Logical NOT
                 arguments("not true", "!true", Value.FALSE), arguments("not false", "!false", Value.TRUE),
@@ -119,7 +120,7 @@ class ExpressionEvaluatorTests {
 
     @MethodSource
     @ParameterizedTest(name = "{0}")
-    void when_evaluateArrayExpression_then_returnsResult(String description, String expression, Object expected) {
+    void when_compileArrayExpression_then_returnsResult(String description, String expression, Object expected) {
         val actual = evaluateExpression(expression);
         if (expected instanceof Class<?> c)
             assertThat(actual).isInstanceOf(c);
@@ -127,7 +128,7 @@ class ExpressionEvaluatorTests {
             assertThat(actual).isEqualTo(expected);
     }
 
-    private static Stream<Arguments> when_evaluateArrayExpression_then_returnsResult() {
+    private static Stream<Arguments> when_compileArrayExpression_then_returnsResult() {
         return Stream.of(
                 // Empty and simple
                 arguments("empty array", "[]", Value.EMPTY_ARRAY),
@@ -153,7 +154,7 @@ class ExpressionEvaluatorTests {
 
     @MethodSource
     @ParameterizedTest(name = "{0}")
-    void when_evaluateObjectExpression_then_returnsResult(String description, String expression, Object expected) {
+    void when_compileObjectExpression_then_returnsResult(String description, String expression, Object expected) {
         val actual = evaluateExpression(expression);
         if (expected instanceof Class<?> c)
             assertThat(actual).isInstanceOf(c);
@@ -161,7 +162,7 @@ class ExpressionEvaluatorTests {
             assertThat(actual).isEqualTo(expected);
     }
 
-    private static Stream<Arguments> when_evaluateObjectExpression_then_returnsResult() {
+    private static Stream<Arguments> when_compileObjectExpression_then_returnsResult() {
         return Stream.of(
                 // Empty and simple
                 arguments("empty object", "{}", Value.EMPTY_OBJECT),
@@ -183,12 +184,86 @@ class ExpressionEvaluatorTests {
                 arguments("error propagates", "{a: 1, b: !5, c: 2}", ErrorValue.class));
     }
 
-    private static Value obj(Object... keysAndValues) {
-        var builder = io.sapl.api.model.ObjectValue.builder();
-        for (int i = 0; i < keysAndValues.length; i += 2) {
-            builder.put((String) keysAndValues[i], (Value) keysAndValues[i + 1]);
-        }
-        return builder.build();
+    // ========== Constant Folding Tests ==========
+
+    @MethodSource("constantFoldingCases")
+    @ParameterizedTest(name = "constant folding: {0}")
+    void when_allLiterals_then_constantFoldsToValue(String description, String expression, Value expected) {
+        val compiled = compileExpression(expression);
+        assertThat(compiled).as("should constant-fold to Value, not PureOperator").isInstanceOf(Value.class)
+                .isEqualTo(expected);
+    }
+
+    private static Stream<Arguments> constantFoldingCases() {
+        return Stream.of(
+                // Arrays
+                arguments("empty array", "[]", Value.EMPTY_ARRAY),
+                arguments("single literal", "[1]", Value.ofArray(Value.of(1))),
+                arguments("multiple literals", "[1, 2, 3]", Value.ofArray(Value.of(1), Value.of(2), Value.of(3))),
+                arguments("mixed literal types", "[1, \"a\", true, null]",
+                        Value.ofArray(Value.of(1), Value.of("a"), Value.TRUE, Value.NULL)),
+                arguments("nested literal arrays", "[[1, 2], [3, 4]]",
+                        Value.ofArray(Value.ofArray(Value.of(1), Value.of(2)),
+                                Value.ofArray(Value.of(3), Value.of(4)))),
+                arguments("array with undefined dropped", "[1, undefined, 2]", Value.ofArray(Value.of(1), Value.of(2))),
+                // Objects
+                arguments("empty object", "{}", Value.EMPTY_OBJECT),
+                arguments("single property", "{a: 1}", obj("a", Value.of(1))),
+                arguments("multiple properties", "{a: 1, b: 2, c: 3}",
+                        obj("a", Value.of(1), "b", Value.of(2), "c", Value.of(3))),
+                arguments("mixed value types", "{n: 1, s: \"x\", b: true, nil: null}",
+                        obj("n", Value.of(1), "s", Value.of("x"), "b", Value.TRUE, "nil", Value.NULL)),
+                arguments("nested literal objects", "{outer: {inner: 1}}", obj("outer", obj("inner", Value.of(1)))),
+                arguments("object with undefined dropped", "{a: 1, b: undefined, c: 2}",
+                        obj("a", Value.of(1), "c", Value.of(2))),
+                // Mixed nesting
+                arguments("object with array value", "{arr: [1, 2]}",
+                        obj("arr", Value.ofArray(Value.of(1), Value.of(2)))),
+                arguments("array with object element", "[{a: 1}, {b: 2}]",
+                        Value.ofArray(obj("a", Value.of(1)), obj("b", Value.of(2)))));
+    }
+
+    // ========== Pure Operator Tests (with variable references) ==========
+
+    @MethodSource("pureOperatorCases")
+    @ParameterizedTest(name = "pure operator: {0}")
+    void when_containsVariableReference_then_returnsPureOperatorWithCorrectValue(String description, String expression,
+            Value varValue, Value expected) {
+        val compiled = compileExpression(expression);
+        assertThat(compiled).as("should be PureOperator when containing variable reference")
+                .isInstanceOf(PureOperator.class);
+
+        val ctx    = withVariables(java.util.Map.of("x", varValue));
+        val result = ((PureOperator) compiled).evaluate(ctx);
+        assertThat(result).isEqualTo(expected);
+    }
+
+    private static Stream<Arguments> pureOperatorCases() {
+        return Stream.of(
+                // Arrays with variable
+                arguments("array with single var", "[x]", Value.of(42), Value.ofArray(Value.of(42))),
+                arguments("array with var and literal", "[1, x, 3]", Value.of(2),
+                        Value.ofArray(Value.of(1), Value.of(2), Value.of(3))),
+                arguments("array with undefined var dropped", "[1, x, 3]", Value.UNDEFINED,
+                        Value.ofArray(Value.of(1), Value.of(3))),
+                arguments("array with var at start", "[x, 2, 3]", Value.of(1),
+                        Value.ofArray(Value.of(1), Value.of(2), Value.of(3))),
+                arguments("array with var at end", "[1, 2, x]", Value.of(3),
+                        Value.ofArray(Value.of(1), Value.of(2), Value.of(3))),
+                // Objects with variable
+                arguments("object with single var value", "{a: x}", Value.of(42), obj("a", Value.of(42))),
+                arguments("object with var and literal", "{a: 1, b: x, c: 3}", Value.of(2),
+                        obj("a", Value.of(1), "b", Value.of(2), "c", Value.of(3))),
+                arguments("object with undefined var dropped", "{a: 1, b: x, c: 3}", Value.UNDEFINED,
+                        obj("a", Value.of(1), "c", Value.of(3))),
+                // Nested with variable
+                arguments("nested array with var", "[[x, 2], [3, 4]]", Value.of(1),
+                        Value.ofArray(Value.ofArray(Value.of(1), Value.of(2)),
+                                Value.ofArray(Value.of(3), Value.of(4)))),
+                arguments("nested object with var", "{outer: {inner: x}}", Value.of(99),
+                        obj("outer", obj("inner", Value.of(99)))),
+                arguments("object with array containing var", "{arr: [x, 2]}", Value.of(1),
+                        obj("arr", Value.ofArray(Value.of(1), Value.of(2)))));
     }
 
 }
