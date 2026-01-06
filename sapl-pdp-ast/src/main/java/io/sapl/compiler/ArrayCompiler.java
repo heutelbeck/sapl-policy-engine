@@ -18,6 +18,7 @@
 package io.sapl.compiler;
 
 import io.sapl.api.model.*;
+import io.sapl.api.pdp.internal.AttributeRecord;
 import io.sapl.ast.ArrayExpression;
 import lombok.experimental.UtilityClass;
 import lombok.val;
@@ -178,32 +179,38 @@ public class ArrayCompiler {
 
         @Override
         public Flux<TracedValue> stream() {
-            return streamOp.stream().map(tracedValue -> {
+            return streamOp.stream().switchMap(tracedValue -> {
                 var streamVal = tracedValue.value();
                 if (streamVal instanceof ErrorValue) {
-                    return tracedValue;
+                    return Flux.just(tracedValue);
                 }
 
-                val elements = new Value[totalElements];
+                return Flux.deferContextual(ctx -> {
+                    var evalCtx  = ctx.get(EvaluationContext.class);
+                    val elements = new Value[totalElements];
 
-                for (int i = 0; i < valueIndices.length; i++) {
-                    elements[valueIndices[i]] = values[i];
-                }
-
-                // Pure operators evaluated without context - will be fixed when needed
-                for (int i = 0; i < pureIndices.length; i++) {
-                    elements[pureIndices[i]] = Value.UNDEFINED;
-                }
-
-                elements[streamIndex] = streamVal;
-
-                val builder = ArrayValue.builder();
-                for (var element : elements) {
-                    if (element != null && !(element instanceof UndefinedValue)) {
-                        builder.add(element);
+                    for (int i = 0; i < valueIndices.length; i++) {
+                        elements[valueIndices[i]] = values[i];
                     }
-                }
-                return new TracedValue(builder.build(), tracedValue.contributingAttributes());
+
+                    for (int i = 0; i < pureIndices.length; i++) {
+                        var value = pureOperators[i].evaluate(evalCtx);
+                        if (value instanceof ErrorValue) {
+                            return Flux.just(new TracedValue(value, tracedValue.contributingAttributes()));
+                        }
+                        elements[pureIndices[i]] = value;
+                    }
+
+                    elements[streamIndex] = streamVal;
+
+                    val builder = ArrayValue.builder();
+                    for (var element : elements) {
+                        if (element != null && !(element instanceof UndefinedValue)) {
+                            builder.add(element);
+                        }
+                    }
+                    return Flux.just(new TracedValue(builder.build(), tracedValue.contributingAttributes()));
+                });
             });
         }
     }
@@ -228,46 +235,52 @@ public class ArrayCompiler {
             }
 
             return Flux.combineLatest(fluxList, arr -> {
-                val combinedTraces = new ArrayList<io.sapl.api.pdp.internal.AttributeRecord>();
+                val combinedTraces = new ArrayList<AttributeRecord>();
                 val streamValues   = new TracedValue[arr.length];
                 for (int i = 0; i < arr.length; i++) {
                     streamValues[i] = (TracedValue) arr[i];
                     combinedTraces.addAll(streamValues[i].contributingAttributes());
                 }
                 return new CombinedStreams(streamValues, combinedTraces);
-            }).map(combined -> {
+            }).switchMap(combined -> {
                 for (var tv : combined.values) {
                     if (tv.value() instanceof ErrorValue) {
-                        return new TracedValue(tv.value(), combined.traces);
+                        return Flux.just(new TracedValue(tv.value(), combined.traces));
                     }
                 }
 
-                val elements = new Value[totalElements];
+                return Flux.deferContextual(ctx -> {
+                    var evalCtx  = ctx.get(EvaluationContext.class);
+                    val elements = new Value[totalElements];
 
-                for (int i = 0; i < valueIndices.length; i++) {
-                    elements[valueIndices[i]] = values[i];
-                }
-
-                // Pure operators evaluated without context - will be fixed when needed
-                for (int i = 0; i < pureIndices.length; i++) {
-                    elements[pureIndices[i]] = Value.UNDEFINED;
-                }
-
-                for (int i = 0; i < streamIndices.length; i++) {
-                    elements[streamIndices[i]] = combined.values[i].value();
-                }
-
-                val builder = ArrayValue.builder();
-                for (var element : elements) {
-                    if (element != null && !(element instanceof UndefinedValue)) {
-                        builder.add(element);
+                    for (int i = 0; i < valueIndices.length; i++) {
+                        elements[valueIndices[i]] = values[i];
                     }
-                }
-                return new TracedValue(builder.build(), combined.traces);
+
+                    for (int i = 0; i < pureIndices.length; i++) {
+                        var value = pureOperators[i].evaluate(evalCtx);
+                        if (value instanceof ErrorValue) {
+                            return Flux.just(new TracedValue(value, combined.traces));
+                        }
+                        elements[pureIndices[i]] = value;
+                    }
+
+                    for (int i = 0; i < streamIndices.length; i++) {
+                        elements[streamIndices[i]] = combined.values[i].value();
+                    }
+
+                    val builder = ArrayValue.builder();
+                    for (var element : elements) {
+                        if (element != null && !(element instanceof UndefinedValue)) {
+                            builder.add(element);
+                        }
+                    }
+                    return Flux.just(new TracedValue(builder.build(), combined.traces));
+                });
             });
         }
 
-        private record CombinedStreams(TracedValue[] values, List<io.sapl.api.pdp.internal.AttributeRecord> traces) {}
+        private record CombinedStreams(TracedValue[] values, List<AttributeRecord> traces) {}
     }
 
 }

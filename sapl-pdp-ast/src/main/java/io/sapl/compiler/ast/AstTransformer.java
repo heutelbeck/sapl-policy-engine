@@ -17,6 +17,7 @@
  */
 package io.sapl.compiler.ast;
 
+import io.sapl.api.model.SourceLocation;
 import io.sapl.api.model.Value;
 import io.sapl.ast.*;
 import io.sapl.compiler.SaplCompilerException;
@@ -574,7 +575,7 @@ public class AstTransformer extends SAPLParserBaseVisitor<AstNode> {
         };
     }
 
-    private RecursiveKeyPath buildRecursiveKeyPath(RecursiveKeyStepContext ctx, io.sapl.api.model.SourceLocation loc) {
+    private RecursiveKeyPath buildRecursiveKeyPath(RecursiveKeyStepContext ctx, SourceLocation loc) {
         return switch (ctx) {
         case RecursiveIdKeyStepContext c     -> new RecursiveKeyPath(idText(c.saplId()), loc);
         case RecursiveStringKeyStepContext c -> new RecursiveKeyPath(unquoteString(c.STRING().getText()), loc);
@@ -725,8 +726,7 @@ public class AstTransformer extends SAPLParserBaseVisitor<AstNode> {
         };
     }
 
-    private RecursiveKeyStep buildRecursiveKeyStep(Expression base, RecursiveKeyStepContext ctx,
-            io.sapl.api.model.SourceLocation loc) {
+    private RecursiveKeyStep buildRecursiveKeyStep(Expression base, RecursiveKeyStepContext ctx, SourceLocation loc) {
         return switch (ctx) {
         case RecursiveIdKeyStepContext c     -> new RecursiveKeyStep(base, idText(c.saplId()), loc);
         case RecursiveStringKeyStepContext c -> new RecursiveKeyStep(base, unquoteString(c.STRING().getText()), loc);

@@ -18,6 +18,7 @@
 package io.sapl.compiler;
 
 import io.sapl.api.model.*;
+import io.sapl.api.pdp.internal.AttributeRecord;
 import io.sapl.ast.ObjectExpression;
 import lombok.experimental.UtilityClass;
 import lombok.val;
@@ -188,33 +189,39 @@ public class ObjectCompiler {
 
         @Override
         public Flux<TracedValue> stream() {
-            return streamOp.stream().map(tracedValue -> {
+            return streamOp.stream().switchMap(tracedValue -> {
                 var streamVal = tracedValue.value();
                 if (streamVal instanceof ErrorValue) {
-                    return tracedValue;
+                    return Flux.just(tracedValue);
                 }
 
-                val entryValues = new Value[totalEntries];
+                return Flux.deferContextual(ctx -> {
+                    var evalCtx     = ctx.get(EvaluationContext.class);
+                    val entryValues = new Value[totalEntries];
 
-                for (int i = 0; i < valueIndices.length; i++) {
-                    entryValues[valueIndices[i]] = values[i];
-                }
-
-                // Pure operators evaluated without context - will be fixed when needed
-                for (int i = 0; i < pureIndices.length; i++) {
-                    entryValues[pureIndices[i]] = Value.UNDEFINED;
-                }
-
-                entryValues[streamIndex] = streamVal;
-
-                val builder = ObjectValue.builder();
-                for (int i = 0; i < totalEntries; i++) {
-                    val v = entryValues[i];
-                    if (v != null && !(v instanceof UndefinedValue)) {
-                        builder.put(keys[i], v);
+                    for (int i = 0; i < valueIndices.length; i++) {
+                        entryValues[valueIndices[i]] = values[i];
                     }
-                }
-                return new TracedValue(builder.build(), tracedValue.contributingAttributes());
+
+                    for (int i = 0; i < pureIndices.length; i++) {
+                        var value = pureOperators[i].evaluate(evalCtx);
+                        if (value instanceof ErrorValue) {
+                            return Flux.just(new TracedValue(value, tracedValue.contributingAttributes()));
+                        }
+                        entryValues[pureIndices[i]] = value;
+                    }
+
+                    entryValues[streamIndex] = streamVal;
+
+                    val builder = ObjectValue.builder();
+                    for (int i = 0; i < totalEntries; i++) {
+                        val v = entryValues[i];
+                        if (v != null && !(v instanceof UndefinedValue)) {
+                            builder.put(keys[i], v);
+                        }
+                    }
+                    return Flux.just(new TracedValue(builder.build(), tracedValue.contributingAttributes()));
+                });
             });
         }
     }
@@ -240,47 +247,53 @@ public class ObjectCompiler {
             }
 
             return Flux.combineLatest(fluxList, arr -> {
-                val combinedTraces = new ArrayList<io.sapl.api.pdp.internal.AttributeRecord>();
+                val combinedTraces = new ArrayList<AttributeRecord>();
                 val streamValues   = new TracedValue[arr.length];
                 for (int i = 0; i < arr.length; i++) {
                     streamValues[i] = (TracedValue) arr[i];
                     combinedTraces.addAll(streamValues[i].contributingAttributes());
                 }
                 return new CombinedStreams(streamValues, combinedTraces);
-            }).map(combined -> {
+            }).switchMap(combined -> {
                 for (var tv : combined.values) {
                     if (tv.value() instanceof ErrorValue) {
-                        return new TracedValue(tv.value(), combined.traces);
+                        return Flux.just(new TracedValue(tv.value(), combined.traces));
                     }
                 }
 
-                val entryValues = new Value[totalEntries];
+                return Flux.deferContextual(ctx -> {
+                    var evalCtx     = ctx.get(EvaluationContext.class);
+                    val entryValues = new Value[totalEntries];
 
-                for (int i = 0; i < valueIndices.length; i++) {
-                    entryValues[valueIndices[i]] = values[i];
-                }
-
-                // Pure operators evaluated without context - will be fixed when needed
-                for (int i = 0; i < pureIndices.length; i++) {
-                    entryValues[pureIndices[i]] = Value.UNDEFINED;
-                }
-
-                for (int i = 0; i < streamIndices.length; i++) {
-                    entryValues[streamIndices[i]] = combined.values[i].value();
-                }
-
-                val builder = ObjectValue.builder();
-                for (int i = 0; i < totalEntries; i++) {
-                    val v = entryValues[i];
-                    if (v != null && !(v instanceof UndefinedValue)) {
-                        builder.put(keys[i], v);
+                    for (int i = 0; i < valueIndices.length; i++) {
+                        entryValues[valueIndices[i]] = values[i];
                     }
-                }
-                return new TracedValue(builder.build(), combined.traces);
+
+                    for (int i = 0; i < pureIndices.length; i++) {
+                        var value = pureOperators[i].evaluate(evalCtx);
+                        if (value instanceof ErrorValue) {
+                            return Flux.just(new TracedValue(value, combined.traces));
+                        }
+                        entryValues[pureIndices[i]] = value;
+                    }
+
+                    for (int i = 0; i < streamIndices.length; i++) {
+                        entryValues[streamIndices[i]] = combined.values[i].value();
+                    }
+
+                    val builder = ObjectValue.builder();
+                    for (int i = 0; i < totalEntries; i++) {
+                        val v = entryValues[i];
+                        if (v != null && !(v instanceof UndefinedValue)) {
+                            builder.put(keys[i], v);
+                        }
+                    }
+                    return Flux.just(new TracedValue(builder.build(), combined.traces));
+                });
             });
         }
 
-        private record CombinedStreams(TracedValue[] values, List<io.sapl.api.pdp.internal.AttributeRecord> traces) {}
+        private record CombinedStreams(TracedValue[] values, List<AttributeRecord> traces) {}
     }
 
 }

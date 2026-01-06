@@ -39,7 +39,7 @@ A **basic expression** is either a
 - **Value Expression**: a value explicitly defined in the corresponding JSON notation (e.g., `"a value"`)
 - **Identifier Expression**: the name of a variable or of an authorization subscription attribute (`subject`, `resource`, `action`, or `environment`)
 - **Function Expression**: a function call (e.g., `simple.get_minimum(resource.array)`)
-- **Relative Expression**: `@`, which refers to a certain value depending on the context
+- **Relative Expression**: `@` or `#`, which refer to context-dependent values (current element and its position)
 - **Grouped Expression**: any expression enclosed in parentheses, e.g., `(1 + 1)`
 
 Each of these basic expressions can contain one or more **selection steps** (e.g., `subject.name`, which is the identifier expression `subject` followed by the selection step `.name` selecting the value of the `name` attribute). Additionally, a basic expression can contain a **filter component** (`|- Filter`) which will be applied to the evaluation result. If the expression evaluates to an array, instead of applying a filter, each item can be transformed using a **subtemplate component** (`:: Subtemplate`).
@@ -80,7 +80,7 @@ It evaluates to the variable or the attribute’s value.
 
 A basic function expression consists of a function name and any number of arguments between parentheses which are separated by commas. The arguments must be expressions, e.g.
 
-```java
+```sapl
 library.a_function(subject.name, (environment.day_of_week + 1))
 ```
 
@@ -94,14 +94,19 @@ When evaluating a function expression, the expressions representing the function
 
 ### Relative Expressions
 
-The basic relative expression is the `@` symbol.
+SAPL provides two relative expressions: `@` (relative value) and `#` (relative location).
 
-It can be used in various contexts. Those contexts are characterized by an implicit loop with `@` dynamically evaluating to the current element. Assuming the variable `array` contains an array with multiple numbers, the expression `array[?(@ > 10)]` can be used to return any element greater than 10. In this context, `@` evaluates to the array item for which the condition is currently checked.
+These can be used in contexts characterized by an implicit loop, where they dynamically evaluate based on the current iteration:
 
-The contexts in which `@` can be used are:
+- **`@` (relative value)**: References the current element's value
+- **`#` (relative location)**: References the current element's position - an index (number) for arrays, or a key (string) for objects
 
-- Expressions within a condition step (`@` evaluates to the array item or attribute value for which the condition expression is currently evaluated)
-- Subtemplate (`@` evaluates to the array item which is currently going to be replaced by the subtemplate)
+Assuming the variable `array` contains an array with multiple numbers, the expression `array[?(@ > 10)]` can be used to return any element greater than 10. In this context, `@` evaluates to the array item for which the condition is currently checked, and `#` evaluates to its index.
+
+The contexts in which `@` and `#` can be used are:
+
+- Expressions within a condition step (`@` evaluates to the array item or attribute value, `#` evaluates to the index or key)
+- Subtemplate (`@` evaluates to the current element, `#` evaluates to its index or key)
 - Arguments of a filter function if `each` is used (`@` evaluates to the array item to which the filter function is going to be applied)
 
 ## Operators
@@ -178,7 +183,7 @@ The difference between `&&` and `&` (or `||` and `|`) is that for `&&` lazy eval
 
 The operators are already listed in descending order of their **precedence**, i.e., `!` has the highest precedence followed by `&&`/`&` and `||`/`|`. The order of evaluation can be changed by using parentheses.
 
-`&&` and `||` are left-associative, i.e., in case an expression contains multiple operators the leftmost operator is evaluated first. `!` is non-associative, i.e., `!!true` must be replaced by `!(!true))`.
+`&&` and `||` are left-associative, i.e., in case an expression contains multiple operators the leftmost operator is evaluated first. `!` is non-associative, i.e., `!!true` must be replaced by `!(!true)`.
 
 ### String Concatenation
 
@@ -221,7 +226,7 @@ Structure of `object`
 | `object..key`  <br>`object..['key']`  <br>`object..["key"]` | `[ "value1", "value2", "value3" ]`                                                                                                     | **Recursive descent step** looking for an attribute                                                                                             |
 | `object..[0]`                                               | `[ { "key" : "value2" }, 1 ]`                                                                                                          | **Recursive descent step** looking for an array index                                                                                           |
 | `object.array2[(3+1)]`                                      | `5`                                                                                                                                    | **Expression step** that evaluates to number (index) - can also evaluate to an attribute name                                                   |
-| `object.array2[?(@>2)]`                                     | `[ 3, 4, 5 ]`                                                                                                                          | **Condition step** that evaluates to true/false, `@` is a reference to the currently examined item - can also be applied to an object           |
+| `object.array2[?(@>2)]`                                     | `[ 3, 4, 5 ]`                                                                                                                          | **Condition step** that evaluates to true/false, `@` references the current item, `#` its index/key - can also be applied to an object           |
 | `object.array2[2,3]`                                        | `[ 3 , 4 ]`                                                                                                                            | **Union step** for more than one array index                                                                                                    |
 | `object["key","array2"]`                                    | `[ "value1", [ 1, 2, 3, 4, 5 ] ]`                                                                                                      | **Union step** for more than one attribute                                                                                                      |
 
@@ -264,7 +269,7 @@ A wildcard step can be applied to an object or an array. When applied to an obje
 >   "key2":"value2"
 > }
 >```
-> the selection step `.*` or `[*]` returns the following array: `["value1", "value2"]` (possibly with a different sorting of the items). Applied to an array `[1, 2, 3]`, the selection step `.` **or** `[]` returns the original array `[1, 2, 3]`.
+> the selection step `.*` or `[*]` returns the following array: `["value1", "value2"]` (possibly with a different sorting of the items). Applied to an array `[1, 2, 3]`, the selection step `.*` **or** `[*]` returns the original array `[1, 2, 3]`.
 
 
 #### Recursive Descent Step `..key`, `..["key"]`, `..[1]`, `..*` or `..[*]`
@@ -292,7 +297,7 @@ As attributes of an object are not sorted, the order of items in the result arra
 
 #### Condition `[?(Condition)]`
 
-Condition steps return an array containing all attribute values or array items for which `Condition` evaluates to `true`. It can be applied to both an object (then it checks each attribute value) and an array (then it checks each item). `Condition` must be an expression in which [relative expressions](#basic-relative) starting with `@` can be used. `@` evaluates to the current attribute value or array item for which the condition is evaluated and can be followed by further selection steps.
+Condition steps return an array containing all attribute values or array items for which `Condition` evaluates to `true`. It can be applied to both an object (then it checks each attribute value) and an array (then it checks each item). `Condition` must be an expression in which [relative expressions](#relative-expressions) `@` and `#` can be used. `@` evaluates to the current attribute value or array item, and `#` to its key or index. Both can be followed by further selection steps.
 
 As attributes have no order, the sorting of the result array of a condition step applied to an object is not specified.
 
@@ -546,15 +551,18 @@ The subtemplate syntax is:
 Value :: Expression
 ```
 
-The `Expression` represents the replacement template. Within this expression, basic relative expressions (starting with `@`) can be used to access attributes of the current value. The `@` symbol references the value being transformed.
+The `Expression` represents the replacement template. Within this expression, the relative expressions `@` and `#` can be used:
+
+- **`@` (relative value)**: References the current element being transformed
+- **`#` (relative location)**: References the current position - index for arrays, key for objects
 
 **Subtemplate behavior:**
 
-- **Non-empty arrays:** The template is mapped over each array element. For each item of the array, `Expression` is evaluated with `@` referencing that item, and the item is replaced by the result. The result is an array of the same length with transformed elements.
+- **Arrays:** The template is mapped over each array element. For each item, `Expression` is evaluated with `@` referencing that item and `#` referencing its index (0, 1, 2, ...). The result is an array of the same length with transformed elements. Empty arrays remain empty.
 
-- **Empty arrays:** An empty array remains an empty array. The template is not evaluated.
+- **Objects:** The template is mapped over each object value. For each entry, `Expression` is evaluated with `@` referencing the value and `#` referencing the key (as a string). The result is an **array** containing the transformed values. Empty objects return an empty array.
 
-- **Non-array values:** The template is applied directly to the value, with `@` referencing that value. The result is the evaluation of the template expression.
+- **Scalar values:** The template is applied directly to the value, with `@` referencing that value and `#` set to `0`. The result is the evaluation of the template expression.
 
 - **Error and undefined values:** Error and undefined values are propagated without applying the template.
 
@@ -587,7 +595,57 @@ would evaluate to:
 ]
 ```
 
-**Example: Non-array transformation**
+**Example: Using `#` for index access**
+
+The `#` symbol provides access to the current index (for arrays) or key (for objects):
+
+```sapl
+[10, 20, 30] :: #
+```
+
+evaluates to `[0, 1, 2]` (the indices).
+
+```sapl
+[10, 20, 30] :: @ + #
+```
+
+evaluates to `[10, 21, 32]` (each value plus its index).
+
+**Example: Object transformation**
+
+When a subtemplate is applied to an object, it iterates over the object's values and returns an **array**:
+
+Given the variable `scores` contains:
+
+```json
+{
+    "alice" : 95,
+    "bob" : 87,
+    "carol" : 92
+}
+```
+
+The expression `scores :: @` returns `[95, 87, 92]` (an array of values).
+
+The expression `scores :: #` returns `["alice", "bob", "carol"]` (an array of keys).
+
+The expression:
+
+```sapl
+scores :: { "player" : #, "score" : @ }
+```
+
+returns an array of objects:
+
+```json
+[
+    { "player" : "alice", "score" : 95 },
+    { "player" : "bob", "score" : 87 },
+    { "player" : "carol", "score" : 92 }
+]
+```
+
+**Example: Scalar transformation**
 
 Given the variable `user` contains the following object:
 
@@ -616,3 +674,5 @@ would evaluate to:
     "displayName" : "Alice"
 }
 ```
+
+Note: In this case, the entire `user` object is treated as a scalar (not iterated), so `@` references the whole object and `#` equals `0`.

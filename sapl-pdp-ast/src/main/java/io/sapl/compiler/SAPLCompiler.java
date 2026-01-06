@@ -22,6 +22,7 @@ import io.sapl.compiler.ast.AstTransformer;
 import io.sapl.compiler.ast.ImportResolver;
 import io.sapl.compiler.model.Document;
 import io.sapl.grammar.antlr.SAPLLexer;
+import io.sapl.grammar.antlr.SAPLParser;
 import io.sapl.grammar.antlr.SAPLParser.PolicyOnlyElementContext;
 import io.sapl.grammar.antlr.SAPLParser.PolicySetElementContext;
 import io.sapl.grammar.antlr.SAPLParser.SaplContext;
@@ -106,7 +107,7 @@ public class SAPLCompiler {
         val charStream  = CharStreams.fromString(input);
         val lexer       = new SAPLLexer(charStream);
         val tokenStream = new CommonTokenStream(lexer);
-        val parser      = new io.sapl.grammar.antlr.SAPLParser(tokenStream);
+        val parser      = new SAPLParser(tokenStream);
 
         val syntaxErrors = new ArrayList<String>();
 

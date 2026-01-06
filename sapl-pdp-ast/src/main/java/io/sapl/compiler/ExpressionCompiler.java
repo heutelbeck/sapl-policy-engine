@@ -115,7 +115,7 @@ public class ExpressionCompiler {
     }
 
     private CompiledExpression compileFunctionCall(FunctionCall fc, CompilationContext ctx) {
-        return unimplemented("FunctionCall");
+        return FunctionCallCompiler.compile(fc, ctx);
     }
 
     private CompiledExpression compileFilterOperation(FilterOperation fo, CompilationContext ctx) {
