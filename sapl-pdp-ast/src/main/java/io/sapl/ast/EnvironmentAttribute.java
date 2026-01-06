@@ -32,7 +32,8 @@ import lombok.NonNull;
  * @param name qualified attribute name
  * @param arguments attribute arguments, empty list if none
  * @param options attribute finder options expression, or null if none
- * @param head true for head attribute finder ({@code |<}), false for normal ({@code <})
+ * @param head true for head attribute finder ({@code |<}), false for normal
+ * ({@code <})
  * @param location source location
  */
 public record EnvironmentAttribute(

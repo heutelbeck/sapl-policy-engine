@@ -47,33 +47,30 @@ public class BooleanOperators {
      * Eager logical AND - evaluates both operands.
      */
     public static Value and(Value a, Value b, SourceLocation location) {
-        if (!(a instanceof BooleanValue(boolean va)))
-            return Value.errorAt(location, ERROR_TYPE_MISMATCH, a);
-        if (!(b instanceof BooleanValue(boolean vb)))
-            return Value.errorAt(location, ERROR_TYPE_MISMATCH, b);
-        return va && vb ? Value.TRUE : Value.FALSE;
+        if (a instanceof BooleanValue(var va) && b instanceof BooleanValue(var vb)) {
+            return va && vb ? Value.TRUE : Value.FALSE;
+        }
+        return Value.errorAt(location, ERROR_TYPE_MISMATCH, !(a instanceof BooleanValue) ? a : b);
     }
 
     /**
      * Eager logical OR - evaluates both operands.
      */
     public static Value or(Value a, Value b, SourceLocation location) {
-        if (!(a instanceof BooleanValue(boolean va)))
-            return Value.errorAt(location, ERROR_TYPE_MISMATCH, a);
-        if (!(b instanceof BooleanValue(boolean vb)))
-            return Value.errorAt(location, ERROR_TYPE_MISMATCH, b);
-        return va || vb ? Value.TRUE : Value.FALSE;
+        if (a instanceof BooleanValue(var va) && b instanceof BooleanValue(var vb)) {
+            return va || vb ? Value.TRUE : Value.FALSE;
+        }
+        return Value.errorAt(location, ERROR_TYPE_MISMATCH, !(a instanceof BooleanValue) ? a : b);
     }
 
     /**
      * Logical XOR (exclusive or).
      */
     public static Value xor(Value a, Value b, SourceLocation location) {
-        if (!(a instanceof BooleanValue(boolean va)))
-            return Value.errorAt(location, ERROR_TYPE_MISMATCH, a);
-        if (!(b instanceof BooleanValue(boolean vb)))
-            return Value.errorAt(location, ERROR_TYPE_MISMATCH, b);
-        return va ^ vb ? Value.TRUE : Value.FALSE;
+        if (a instanceof BooleanValue(var va) && b instanceof BooleanValue(var vb)) {
+            return va ^ vb ? Value.TRUE : Value.FALSE;
+        }
+        return Value.errorAt(location, ERROR_TYPE_MISMATCH, !(a instanceof BooleanValue) ? a : b);
     }
 
 }

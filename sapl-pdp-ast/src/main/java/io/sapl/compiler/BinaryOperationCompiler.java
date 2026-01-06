@@ -35,8 +35,9 @@ import java.util.Map;
 
 public class BinaryOperationCompiler {
 
-    private final RegexCompiler       regexCompiler       = new RegexCompiler();
-    private final SubtemplateCompiler subtemplateCompiler = new SubtemplateCompiler();
+    private final RegexCompiler                regexCompiler       = new RegexCompiler();
+    private final SubtemplateCompiler          subtemplateCompiler = new SubtemplateCompiler();
+    private final LazyBooleanOperationCompiler lazyBooleanCompiler = new LazyBooleanOperationCompiler();
 
     static final Map<BinaryOperatorType, BinaryOperation> BINARY_OPERATIONS = Map.ofEntries(
             // Arithmetic
@@ -63,6 +64,11 @@ public class BinaryOperationCompiler {
         // Special handling for SUBTEMPLATE (::) operator
         if (binaryOperation.op() == SUBTEMPLATE) {
             return subtemplateCompiler.compile(binaryOperation, ctx);
+        }
+
+        // Special handling for lazy boolean operators (short-circuit)
+        if (binaryOperation.op().isLazy()) {
+            return lazyBooleanCompiler.compile(binaryOperation, ctx);
         }
 
         val op = BINARY_OPERATIONS.get(binaryOperation.op());

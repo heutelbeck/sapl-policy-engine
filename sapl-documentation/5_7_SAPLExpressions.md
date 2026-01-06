@@ -185,6 +185,47 @@ The operators are already listed in descending order of their **precedence**, i.
 
 `&&` and `||` are left-associative, i.e., in case an expression contains multiple operators the leftmost operator is evaluated first. `!` is non-associative, i.e., `!!true` must be replaced by `!(!true)`.
 
+#### Cost-Stratified Short-Circuit Evaluation
+
+For the lazy operators `&&` and `||`, SAPL uses **cost-stratified short-circuit evaluation**. Rather than strictly evaluating left-to-right, SAPL organizes operands into cost strata (layers) and evaluates cheaper strata first. This optimization can skip evaluating expensive parts of an expression entirely when the result is already determined by a cheaper operand.
+
+This reordering is safe because SAPL expressions are **side-effect free**. Functions and attribute finders in SAPL only compute and return values - they do not modify state. This guarantees that changing evaluation order does not change observable behavior, only performance.
+
+SAPL categorizes expressions into three strata based on their evaluation cost:
+
+1. **Constants** (e.g., `true`, `false`, `1 + 2`) - Evaluated at compile time
+2. **Subscription fields and environment variables** (e.g., `subject.isActive`, `resource.type`, `action.method`, `environment.context`) - Evaluated at runtime. This includes the four authorization subscription fields (`subject`, `resource`, `action`, `environment`) and any environment variables configured at the PDP level.
+3. **Attribute finders** (e.g., `<pip.sensor>`, `subject.<geo.location>`) - Require asynchronous subscription to external data sources
+
+When combining expressions with `&&` or `||`, SAPL evaluates cheaper strata first. If a cheaper operand determines the result, more expensive operands are never evaluated. When both operands belong to the same stratum, standard left-to-right evaluation applies.
+
+**Example: Constant short-circuits subscription access**
+
+```sapl
+subject.isActive && false
+```
+
+Since `false` is a constant that determines the AND result, `subject.isActive` is **never evaluated**. This is equivalent to just `false`.
+
+**Example: Subscription access short-circuits attribute finder**
+
+```sapl
+subject.isAdmin || <pip.externalAuthCheck>
+```
+
+If `subject.isAdmin` is `true`, the attribute finder `<pip.externalAuthCheck>` is **never subscribed to**. The external system is never contacted.
+
+**Example: Operand position does not matter**
+
+```sapl
+<pip.sensor> && false
+```
+
+Even though `<pip.sensor>` appears on the left, the constant `false` is evaluated first. The attribute stream is **never subscribed to**. This may be surprising if you expect strict left-to-right evaluation as in imperative programming languages.
+
+{: .info }
+**Why this matters for attribute finders:** Attribute finders subscribe to external data sources. Skipping their evaluation when unnecessary avoids unnecessary network calls, reduces latency, and prevents side effects from unused subscriptions. This is particularly valuable when combining quick checks with expensive external lookups.
+
 ### String Concatenation
 
 The operator `+` concatenates two strings, e.g., `"Hello" + " World!"` evaluates to `"Hello World!"`.
