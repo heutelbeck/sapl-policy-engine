@@ -43,7 +43,9 @@ public class BarChart {
     private final JFreeChart                        chart;
     private final DefaultStatisticalCategoryDataset dataset;
 
-    public BarChart(String title, DefaultStatisticalCategoryDataset dataset, String valueAxisLabel,
+    public BarChart(String title,
+            DefaultStatisticalCategoryDataset dataset,
+            String valueAxisLabel,
             String labelFormat) {
         this.dataset = dataset;
         // format axis

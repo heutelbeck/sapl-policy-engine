@@ -44,7 +44,7 @@ import lombok.experimental.StandardException;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-public class ReportGenerator {
+public final class ReportGenerator {
     static String              chartField = "chart";
     private final List<String> resultFiles;
     private final String       benchmarkFolder;
@@ -216,7 +216,7 @@ public class ReportGenerator {
 
     private Map<String, Map<String, Object>> getThroughputContext() throws IOException {
         var resultMap = HashMap.<String, Map<String, Object>>newHashMap(0);
-        var baseData = HashMap.<String, List<ReportSectionData>>newHashMap(0);
+        var baseData  = HashMap.<String, List<ReportSectionData>>newHashMap(0);
         log.info("collecting throughput data ...");
 
         for (String fileName : getResultFilesFiles()) {

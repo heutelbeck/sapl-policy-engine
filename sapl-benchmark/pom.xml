@@ -39,6 +39,7 @@
 		<jinjava.version>2.8.1</jinjava.version>
 		<jfreechart.version>1.5.4</jfreechart.version>
 		<bouncycastle.version>1.83</bouncycastle.version>
+		<main.basedir>${project.basedir}/../</main.basedir>
 	</properties>
 
 	<dependencies>

@@ -243,7 +243,7 @@ public class BenchmarkConfiguration {
     // - Benchmark execution settings
     // ---------------------------
     @Getter
-    public Integer        forks                 = 2;
+    private Integer       forks                 = 2;
     @Getter
     private List<String>  jvmArgs               = new ArrayList<>();
     @Getter
@@ -262,10 +262,8 @@ public class BenchmarkConfiguration {
     @JsonProperty("execution")
     public void setExecution(Map<String, JsonNode> map) throws JsonProcessingException {
         this.forks                 = map.remove("forks").intValue();
-        this.jvmArgs               = mapper.readValue(map.remove("jvm_args").toString(), new TypeReference<>() {
-                                   });
-        this.threadList            = mapper.readValue(map.remove("threads").toString(), new TypeReference<>() {
-                                   });
+        this.jvmArgs               = mapper.readValue(map.remove("jvm_args").toString(), new TypeReference<>() {});
+        this.threadList            = mapper.readValue(map.remove("threads").toString(), new TypeReference<>() {});
         this.failOnError           = map.remove("fail_on_error").booleanValue();
         this.warmupSeconds         = map.remove("warmup_seconds").intValue();
         this.warmupIterations      = map.remove("warmup_iterations").intValue();

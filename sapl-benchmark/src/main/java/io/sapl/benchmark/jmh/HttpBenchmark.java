@@ -57,12 +57,11 @@ public class HttpBenchmark {
 
     private RemoteHttpPolicyDecisionPoint.RemoteHttpPolicyDecisionPointBuilder getBaseBuilder() throws SSLException {
         return RemotePolicyDecisionPoint.builder().http().baseUrl(context.getHttpBaseUrl())
-                .withHttpClient(HttpClient.create(
-                        ConnectionProvider.builder("custom")
-                                // size connection pool depending on threads
-                                .maxConnections((int) (Collections.max(context.getThreadList()) * 1.5))
-                                .build()
-                ).responseTimeout(Duration.ofSeconds(10))).withUnsecureSSL()
+                .withHttpClient(HttpClient.create(ConnectionProvider.builder("custom")
+                        // size connection pool depending on threads
+                        .maxConnections((int) (Collections.max(context.getThreadList()) * 1.5)).build())
+                        .responseTimeout(Duration.ofSeconds(10)))
+                .withUnsecureSSL()
                 // set SO_LINGER to 0 so that the http sockets are closed immediately ->
                 // TIME_WAIT
                 .option(ChannelOption.SO_LINGER, 0);

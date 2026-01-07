@@ -138,7 +138,8 @@ public class SaplBenchmark {
      */
     private void logEstimatedDuration() {
         try (PrintStream printStream = new PrintStream(new ByteArrayOutputStream(), true, StandardCharsets.UTF_8)) {
-            final var tmpOutput                  = OutputFormatFactory.createFormatInstance(printStream, VerboseMode.SILENT);
+            final var tmpOutput                  = OutputFormatFactory.createFormatInstance(printStream,
+                    VerboseMode.SILENT);
             final var matchedBenchmarkList       = BenchmarkList.defaultList()
                     .find(tmpOutput, List.of(config.getBenchmarkPattern()), List.of()).stream().toList();
             final var estimatedDurationInSeconds = (
@@ -163,7 +164,8 @@ public class SaplBenchmark {
      * and output are written to corresponding files in the benchmarkFolder.
      */
     private void executeJmHBenchmarks() throws RunnerException {
-        final var context       = BenchmarkExecutionContext.fromBenchmarkConfiguration(config, pdpContainer, oauth2Container);
+        final var context       = BenchmarkExecutionContext.fromBenchmarkConfiguration(config, pdpContainer,
+                oauth2Container);
         final var timeFormatter = new SimpleDateFormat("HH:mm:ss");
         log.info("Benchmark started at " + timeFormatter.format(new Date()));
         logEstimatedDuration();
@@ -172,7 +174,7 @@ public class SaplBenchmark {
         final var benchmarkBuilder = new OptionsBuilder().include(config.getBenchmarkPattern())
                 .param("contextJsonString", context.toJsonString()).jvmArgs(config.getJvmArgs().toArray(new String[0]))
                 .shouldFailOnError(config.isFailOnError()).mode(Mode.Throughput).timeUnit(TimeUnit.SECONDS)
-                .resultFormat(ResultFormatType.JSON).shouldDoGC(true).syncIterations(true).forks(config.forks)
+                .resultFormat(ResultFormatType.JSON).shouldDoGC(true).syncIterations(true).forks(config.getForks())
                 .warmupIterations(config.getWarmupIterations()).warmupTime(TimeValue.seconds(config.getWarmupSeconds()))
                 .measurementIterations(config.getMeasurementIterations())
                 .measurementTime(TimeValue.seconds(config.getMeasurementSeconds()));

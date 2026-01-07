@@ -26,12 +26,11 @@ import io.sapl.api.pdp.Decision;
 import io.sapl.api.pdp.PolicyDecisionPoint;
 import io.sapl.benchmark.BenchmarkExecutionContext;
 import io.sapl.benchmark.util.BenchmarkException;
+import lombok.experimental.UtilityClass;
 import reactor.core.publisher.Mono;
 
+@UtilityClass
 public class Helper {
-    private Helper() {
-        throw new IllegalStateException("Utility class");
-    }
 
     /**
      * Send AuthorizationSubscription to PDP and ensure that Decision equals Permit

@@ -38,19 +38,19 @@ import lombok.extern.slf4j.Slf4j;
 public class EmbeddedBenchmark {
 
     @Param({ "{}" })
-    String                            contextJsonString;
-    private PolicyDecisionPoint       pdp;
-    private BenchmarkExecutionContext context;
+    String                                           contextJsonString;
+    private PolicyDecisionPoint                      pdp;
+    private BenchmarkExecutionContext                context;
     private PolicyDecisionPointBuilder.PDPComponents components;
 
     @Setup(Level.Trial)
     public void setup() {
         context = BenchmarkExecutionContext.fromString(contextJsonString);
         log.info("Initializing PDP and starting benchmark ...");
-        components = PolicyDecisionPointBuilder.withDefaults().withResourcesSource().withPolicyInformationPoint(new EchoPIP()).build();
-        pdp = components.pdp();
+        components = PolicyDecisionPointBuilder.withDefaults().withResourcesSource()
+                .withPolicyInformationPoint(new EchoPIP()).build();
+        pdp        = components.pdp();
     }
-
 
     @TearDown(Level.Trial)
     public void tearDown() {
