@@ -17,6 +17,8 @@
  */
 package io.sapl.compiler;
 
+import io.sapl.api.attributes.AttributeBroker;
+import io.sapl.api.attributes.AttributeFinderInvocation;
 import io.sapl.api.model.EvaluationContext;
 import io.sapl.api.model.ErrorValue;
 import io.sapl.api.model.CompiledExpression;
@@ -34,8 +36,10 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
+import reactor.core.publisher.Flux;
 
 import java.math.BigDecimal;
+import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
 
@@ -49,17 +53,30 @@ class ExpressionCompilerTests {
     private static CompilationContext contextWithFunctions;
     private static EvaluationContext  evaluationContextWithFunctions;
 
+    private static final AttributeBroker DEFAULT_ATTRIBUTE_BROKER = new AttributeBroker() {
+        @Override
+        public Flux<Value> attributeStream(AttributeFinderInvocation invocation) {
+            return Flux.just(Value.error("No attribute finder registered for: " + invocation.attributeName()));
+        }
+
+        @Override
+        public List<Class<?>> getRegisteredLibraries() {
+            return List.of();
+        }
+    };
+
+    private static DefaultFunctionBroker functionBroker;
+
     @BeforeAll
     static void setupFunctionBroker() {
-        val broker = new DefaultFunctionBroker();
-        broker.loadStaticFunctionLibrary(StandardFunctionLibrary.class);
-        broker.loadStaticFunctionLibrary(StringFunctionLibrary.class);
-        broker.loadStaticFunctionLibrary(TemporalFunctionLibrary.class);
-        contextWithFunctions           = new CompilationContext(broker, null);
-        evaluationContextWithFunctions = new EvaluationContext(null, null, null, null, broker, null);
+        functionBroker = new DefaultFunctionBroker();
+        functionBroker.loadStaticFunctionLibrary(StandardFunctionLibrary.class);
+        functionBroker.loadStaticFunctionLibrary(StringFunctionLibrary.class);
+        functionBroker.loadStaticFunctionLibrary(TemporalFunctionLibrary.class);
+        contextWithFunctions           = new CompilationContext(functionBroker, DEFAULT_ATTRIBUTE_BROKER);
+        evaluationContextWithFunctions = new EvaluationContext(null, null, null, null, functionBroker,
+                DEFAULT_ATTRIBUTE_BROKER);
     }
-
-    // ========== Escaped String Literals ==========
 
     @Nested
     @DisplayName("Escaped String Literals")
@@ -82,8 +99,6 @@ class ExpressionCompilerTests {
                     arguments("multiple unicode", "\"\\u0048\\u0065\\u006c\\u006c\\u006f\"", Value.of("Hello")));
         }
     }
-
-    // ========== Arithmetic Integration Tests ==========
 
     @Nested
     @DisplayName("Arithmetic Integration")
@@ -140,8 +155,6 @@ class ExpressionCompilerTests {
         }
     }
 
-    // ========== Boolean Short-Circuit Tests ==========
-
     @Nested
     @DisplayName("Boolean Short-Circuit")
     class BooleanShortCircuit {
@@ -190,8 +203,6 @@ class ExpressionCompilerTests {
                     arguments("negated comparison", "!(3 > 5) && (1 == 1)", Value.TRUE));
         }
     }
-
-    // ========== Comparison and Containment Tests ==========
 
     @Nested
     @DisplayName("Comparison and Containment")
@@ -243,9 +254,6 @@ class ExpressionCompilerTests {
         }
     }
 
-    // ========== Filter by Membership Pattern (Brewer-Nash / Chinese Wall)
-    // ==========
-
     @Nested
     @DisplayName("Filter by Membership Pattern")
     class FilterByMembership {
@@ -282,8 +290,6 @@ class ExpressionCompilerTests {
             assertThat(compiled).isEqualTo(Value.ofArray(Value.of("energy"), Value.of("banking")));
         }
     }
-
-    // ========== Temporal Function Tests ==========
 
     @Nested
     @DisplayName("Temporal Functions")
@@ -343,8 +349,6 @@ class ExpressionCompilerTests {
         }
     }
 
-    // ========== Function Integration Tests ==========
-
     @Nested
     @DisplayName("Function Integration")
     class FunctionIntegration {
@@ -374,8 +378,6 @@ class ExpressionCompilerTests {
             assertThat(compiled).isInstanceOf(Value.class).isEqualTo(Value.ofArray(Value.of("ab"), Value.of("abc")));
         }
     }
-
-    // ========== Nested Relative Value Tests ==========
 
     @Nested
     @DisplayName("Nested Relative Values")
@@ -425,8 +427,6 @@ class ExpressionCompilerTests {
         }
     }
 
-    // ========== Eager Boolean Operators (aliased to lazy) ==========
-
     @Nested
     @DisplayName("Eager Boolean Operators")
     class EagerBooleanOperators {
@@ -454,8 +454,6 @@ class ExpressionCompilerTests {
                     arguments("mixed lazy and eager 4", "(false && false) | true", Value.TRUE));
         }
     }
-
-    // ========== Key Projection on Arrays ==========
 
     @Nested
     @DisplayName("Key Projection on Arrays")
@@ -486,8 +484,6 @@ class ExpressionCompilerTests {
         }
     }
 
-    // ========== Undefined Equality Comparisons ==========
-
     @Nested
     @DisplayName("Undefined Equality Comparisons")
     class UndefinedEquality {
@@ -511,8 +507,6 @@ class ExpressionCompilerTests {
         }
     }
 
-    // ========== Condition Step Error Cases ==========
-
     @Nested
     @DisplayName("Condition Step Error Cases")
     class ConditionStepErrors {
@@ -532,8 +526,6 @@ class ExpressionCompilerTests {
                     arguments("arithmetic condition on object", "{\"a\": 1, \"b\": 2}[?(@ + 5)]"));
         }
     }
-
-    // ========== Original Tests Below ==========
 
     @MethodSource
     @ParameterizedTest(name = "{0}")
@@ -559,8 +551,6 @@ class ExpressionCompilerTests {
                 arguments("deeply nested", "(((false)))", Value.FALSE));
     }
 
-    // ========== Subscription Elements ==========
-
     @MethodSource
     @ParameterizedTest(name = "{0}")
     void when_compileSubscriptionElement_then_returnsSubscriptionValue(String description, String expression,
@@ -580,10 +570,8 @@ class ExpressionCompilerTests {
     private static EvaluationContext subscriptionContext() {
         val subscription = new AuthorizationSubscription(Value.of("alice"), Value.of("read"), Value.of("document"),
                 Value.of("production"));
-        return new EvaluationContext(null, null, null, subscription, null, null);
+        return new EvaluationContext(null, null, null, subscription, functionBroker, DEFAULT_ATTRIBUTE_BROKER);
     }
-
-    // ========== Unary Operations ==========
 
     @MethodSource
     @ParameterizedTest(name = "{0}")
@@ -614,8 +602,6 @@ class ExpressionCompilerTests {
                 arguments("plus string", "+\"text\"", ErrorValue.class),
                 arguments("plus null", "+null", ErrorValue.class));
     }
-
-    // ========== Array Expressions ==========
 
     @MethodSource
     @ParameterizedTest(name = "{0}")
@@ -649,8 +635,6 @@ class ExpressionCompilerTests {
                 arguments("error propagates", "[1, !5, 2]", ErrorValue.class));
     }
 
-    // ========== Object Expressions ==========
-
     @MethodSource
     @ParameterizedTest(name = "{0}")
     void when_compileObjectExpression_then_returnsResult(String description, String expression, Object expected) {
@@ -682,8 +666,6 @@ class ExpressionCompilerTests {
                 // Error propagation
                 arguments("error propagates", "{a: 1, b: !5, c: 2}", ErrorValue.class));
     }
-
-    // ========== Constant Folding Tests ==========
 
     @MethodSource("constantFoldingCases")
     @ParameterizedTest(name = "constant folding: {0}")
@@ -721,8 +703,6 @@ class ExpressionCompilerTests {
                 arguments("array with object element", "[{a: 1}, {b: 2}]",
                         Value.ofArray(obj("a", Value.of(1)), obj("b", Value.of(2)))));
     }
-
-    // ========== Pure Operator Tests (with variable references) ==========
 
     @MethodSource("pureOperatorCases")
     @ParameterizedTest(name = "pure operator: {0}")

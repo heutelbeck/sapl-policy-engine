@@ -334,10 +334,11 @@ public class AstTransformer extends SAPLParserBaseVisitor<AstNode> {
 
     private Expression buildSimpleFilter(Expression base, FilterSimpleContext ctx, ParserRuleContext fullCtx) {
         var each      = ctx.each != null;
-        var function  = toQualifiedName(ctx.functionIdentifier());
+        var name      = toQualifiedName(ctx.functionIdentifier());
         var arguments = ctx.arguments() != null ? ctx.arguments().args.stream().map(this::expr).toList()
                 : List.<Expression>of();
-        return new FilterOperation(base, null, function, arguments, each, fromContext(fullCtx));
+        var location  = fromContext(fullCtx);
+        return new SimpleFilter(base, name, arguments, each, location);
     }
 
     private Expression buildExtendedFilter(Expression base, FilterExtendedContext ctx, ParserRuleContext fullCtx) {
@@ -345,10 +346,16 @@ public class AstTransformer extends SAPLParserBaseVisitor<AstNode> {
         for (FilterStatementContext stmtCtx : ctx.filterStatement()) {
             var each      = stmtCtx.each != null;
             var target    = stmtCtx.target != null ? buildFilterPath(stmtCtx.target) : null;
-            var function  = toQualifiedName(stmtCtx.functionIdentifier());
+            var name      = toQualifiedName(stmtCtx.functionIdentifier());
             var arguments = stmtCtx.arguments() != null ? stmtCtx.arguments().args.stream().map(this::expr).toList()
                     : List.<Expression>of();
-            result = new FilterOperation(result, target, function, arguments, each, fromContext(stmtCtx));
+            var location  = fromContext(stmtCtx);
+
+            if (target == null || target.isWholeValue()) {
+                result = new SimpleFilter(result, name, arguments, each, location);
+            } else {
+                result = new ExtendedFilter(result, target, name, arguments, each, location);
+            }
         }
         return result;
     }

@@ -15,22 +15,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.api.model;
+package io.sapl.compiler.operators;
 
-import io.sapl.api.pdp.internal.AttributeRecord;
-import lombok.val;
+import io.sapl.api.model.StreamOperator;
+import io.sapl.api.model.TracedValue;
+import reactor.core.publisher.Flux;
 
-import java.util.ArrayList;
-import java.util.List;
-
-public record TracedValue(Value value, List<AttributeRecord> contributingAttributes) {
-    public static TracedValue of(Value value) {
-        return new TracedValue(value, List.of());
-    }
-
-    public TracedValue with(List<AttributeRecord> additionalAttributes) {
-        val contributions = new ArrayList<AttributeRecord>(additionalAttributes);
-        contributions.addAll(contributingAttributes);
-        return new TracedValue(value, contributions);
-    }
-}
+public record SimpleStreamOperator(Flux<TracedValue> stream) implements StreamOperator {}

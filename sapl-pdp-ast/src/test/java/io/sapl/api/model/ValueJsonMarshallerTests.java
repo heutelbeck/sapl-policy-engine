@@ -52,9 +52,7 @@ class ValueJsonMarshallerTests {
     private static final int    SANITY_THRESHOLD    = 42;
     private static final int    HORROR_LEVEL_MAX    = 100;
 
-    // ============================================================
     // Round-trip Conversion Tests - Primitives
-    // ============================================================
 
     @ParameterizedTest(name = "round-trip null: {0}")
     @MethodSource("nullValues")
@@ -142,9 +140,7 @@ class ValueJsonMarshallerTests {
                 arguments("max", Double.MAX_VALUE), arguments("e", Math.E), arguments("pi", Math.PI));
     }
 
-    // ============================================================
     // Round-trip Conversion Tests - Collections
-    // ============================================================
 
     @ParameterizedTest(name = "round-trip empty: {0}")
     @MethodSource("emptyCollections")
@@ -245,9 +241,7 @@ class ValueJsonMarshallerTests {
         assertThat(result).isEqualTo(original);
     }
 
-    // ============================================================
     // Error Handling Tests
-    // ============================================================
 
     @Test
     @DisplayName("toJsonNode with null rejects null")
@@ -323,9 +317,7 @@ class ValueJsonMarshallerTests {
                 arguments("pojo", FACTORY.pojoNode(new Object())));
     }
 
-    // ============================================================
     // JSON Compatibility Tests
-    // ============================================================
 
     @ParameterizedTest(name = "isJsonCompatible true for: {0}")
     @MethodSource("jsonCompatibleValues")
@@ -377,9 +369,7 @@ class ValueJsonMarshallerTests {
         assertThatCode(() -> ValueJsonMarshaller.isJsonCompatible(null)).doesNotThrowAnyException();
     }
 
-    // ============================================================
     // Depth Protection Tests
-    // ============================================================
 
     @ParameterizedTest(name = "toJsonNode rejects excessive depth: {0}")
     @MethodSource("excessivelyDeepValueStructures")
@@ -427,9 +417,7 @@ class ValueJsonMarshallerTests {
         assertThat(result).isNotInstanceOf(ErrorValue.class);
     }
 
-    // ============================================================
     // ofJson Tests
-    // ============================================================
 
     @ParameterizedTest(name = "ofJson parses: {0}")
     @MethodSource("validJsonStrings")
@@ -485,9 +473,7 @@ class ValueJsonMarshallerTests {
         assertThat(((ErrorValue) result).message()).contains("Unknown JsonNode type: MISSING");
     }
 
-    // ============================================================
     // toJsonString Tests
-    // ============================================================
 
     @ParameterizedTest(name = "toJsonString serializes: {0}")
     @MethodSource("valuesToJsonStrings")
@@ -531,9 +517,7 @@ class ValueJsonMarshallerTests {
                 .hasMessageContaining("ErrorValue").hasMessageContaining("Eldritch horror");
     }
 
-    // ============================================================
     // Edge Cases
-    // ============================================================
 
     @ParameterizedTest(name = "round-trip edge case: {0}")
     @MethodSource("edgeCaseStructures")
@@ -577,9 +561,7 @@ class ValueJsonMarshallerTests {
                         Value.ofObject(Map.of("entity", Value.NULL, "location", Value.NULL, "status", Value.NULL))));
     }
 
-    // ============================================================
     // Helper Methods for Creating Deep Structures
-    // ============================================================
 
     private static Value createDeeplyNestedArray(int depth) {
         Value current = Value.of(SANITY_THRESHOLD);
@@ -638,9 +620,7 @@ class ValueJsonMarshallerTests {
                 .ofObject(Map.of("subject", current, "action", Value.of("exploit"), "resource", Value.of("system")));
     }
 
-    // ============================================================
     // Pretty Printing Tests
-    // ============================================================
 
     @ParameterizedTest(name = "toPrettyString primitive: {0}")
     @MethodSource("primitivePrettyStringCases")

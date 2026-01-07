@@ -41,8 +41,6 @@ import static io.sapl.compiler.AttributeOptionsCompiler.*;
 @UtilityClass
 public class AttributeCompiler {
 
-    private static final String ERROR_BROKER_NOT_CONFIGURED = "AttributeBroker not configured in evaluation context.";
-
     public static StreamOperator compileEnvironmentAttribute(EnvironmentAttribute attr, CompilationContext ctx) {
         return compileAttribute(null, attr.name().full(), attr.arguments(), attr.options(), attr.head(),
                 attr.location(), ctx);
@@ -477,15 +475,10 @@ public class AttributeCompiler {
             SourceLocation location) {
         return Flux.deferContextual(ctx -> {
             var evalCtx = ctx.get(EvaluationContext.class);
-            var broker  = evalCtx.attributeBroker();
-            if (broker == null) {
-                return Flux.just(errorTracedValue(Value.error(ERROR_BROKER_NOT_CONFIGURED)));
-            }
-
-            var stream = broker.attributeStream(invocation).map(value -> {
-                var attributeRecord = new AttributeRecord(invocation, value, Instant.now(), location);
-                return new TracedValue(value, List.of(attributeRecord));
-            });
+            var stream  = evalCtx.attributeBroker().attributeStream(invocation).map(value -> {
+                            var attributeRecord = new AttributeRecord(invocation, value, Instant.now(), location);
+                            return new TracedValue(value, List.of(attributeRecord));
+                        });
 
             if (head) {
                 stream = stream.take(1);

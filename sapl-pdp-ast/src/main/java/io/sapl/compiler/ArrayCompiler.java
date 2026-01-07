@@ -50,11 +50,18 @@ public class ArrayCompiler {
             compiled.add(result);
         }
 
-        return buildOptimizedOperator(compiled, expr.location());
+        return buildFromCompiled(compiled, expr.location());
     }
 
-    private static CompiledExpression buildOptimizedOperator(List<CompiledExpression> compiled,
-            SourceLocation location) {
+    /**
+     * Builds an optimized array operator from pre-compiled elements.
+     * Used by ArrayExpression compilation and "each" filter compilation.
+     *
+     * @param compiled the compiled elements (Value/PureOperator/StreamOperator)
+     * @param location source location for error reporting
+     * @return appropriate CompiledExpression based on element types
+     */
+    static CompiledExpression buildFromCompiled(List<CompiledExpression> compiled, SourceLocation location) {
         val streamIndices = new ArrayList<Integer>();
         val streams       = new ArrayList<StreamOperator>();
         val pureIndices   = new ArrayList<Integer>();
@@ -110,7 +117,7 @@ public class ArrayCompiler {
         return builder.build();
     }
 
-    private static int[] toIntArray(List<Integer> list) {
+    static int[] toIntArray(List<Integer> list) {
         int[] arr = new int[list.size()];
         for (int i = 0; i < list.size(); i++) {
             arr[i] = list.get(i);

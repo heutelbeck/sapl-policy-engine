@@ -20,6 +20,7 @@ package io.sapl.compiler;
 import io.sapl.api.attributes.AttributeBroker;
 import io.sapl.api.attributes.AttributeFinderInvocation;
 import io.sapl.api.model.*;
+import io.sapl.functions.DefaultFunctionBroker;
 import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Flux;
 import reactor.test.StepVerifier;
@@ -31,8 +32,6 @@ import static io.sapl.util.ExpressionTestUtil.evaluateExpression;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class AttributeCompilerTests {
-
-    // ========== Environment Attributes ==========
 
     @Test
     void when_environmentAttribute_withBroker_then_returnsStreamWithTrace() {
@@ -53,7 +52,8 @@ class AttributeCompilerTests {
     }
 
     @Test
-    void when_environmentAttribute_withoutBroker_then_returnsErrorWithTrace() {
+    void when_environmentAttribute_withErrorBroker_then_returnsErrorWithTrace() {
+        // When using a broker that returns errors, the error is returned with a trace
         var ctx    = contextWithoutBroker();
         var result = evaluateExpression("<test.attr>", ctx);
 
@@ -61,8 +61,9 @@ class AttributeCompilerTests {
         var stream = ((StreamOperator) result).stream().contextWrite(c -> c.put(EvaluationContext.class, ctx));
         StepVerifier.create(stream).assertNext(tv -> {
             assertThat(tv.value()).isInstanceOf(ErrorValue.class);
-            // When broker is not configured, there's no invocation to record
-            assertThat(tv.contributingAttributes()).isEmpty();
+            assertThat(((ErrorValue) tv.value()).message()).contains("No attribute finder registered for");
+            // Trace is recorded even for errors
+            assertThat(tv.contributingAttributes()).hasSize(1);
         }).verifyComplete();
     }
 
@@ -104,8 +105,6 @@ class AttributeCompilerTests {
         assertThat(capturedInvocation[0].initialTimeOut().toMillis()).isEqualTo(5000);
         assertThat(capturedInvocation[0].fresh()).isTrue();
     }
-
-    // ========== Stream Arguments ==========
 
     @Test
     void when_environmentAttribute_withStreamArgument_then_combinesLatest() {
@@ -181,8 +180,6 @@ class AttributeCompilerTests {
         }).verifyComplete();
     }
 
-    // ========== Attribute Steps ==========
-
     @Test
     void when_attributeStep_withEntity_then_passesEntity() {
         var capturedInvocation = new AttributeFinderInvocation[1];
@@ -210,8 +207,6 @@ class AttributeCompilerTests {
             assertThat(((ErrorValue) tv.value()).message()).contains("Undefined");
         }).verifyComplete();
     }
-
-    // ========== Helper Methods ==========
 
     private static AttributeBroker testBroker(String expectedName, Value returnValue) {
         return new AttributeBroker() {
@@ -260,17 +255,33 @@ class AttributeCompilerTests {
         };
     }
 
-    private static EvaluationContext contextWithBroker(AttributeBroker broker) {
-        return new EvaluationContext("pdp", "config", "sub", null, Map.of(), null, broker, () -> "now");
-    }
+    private static final DefaultFunctionBroker DEFAULT_FUNCTION_BROKER = new DefaultFunctionBroker();
 
-    private static EvaluationContext contextWithBrokerAndSubject(AttributeBroker broker, Value subject) {
-        return new EvaluationContext("pdp", "config", "sub", null, Map.of("subject", subject), null, broker,
+    private static final AttributeBroker ERROR_ATTRIBUTE_BROKER = new AttributeBroker() {
+        @Override
+        public Flux<Value> attributeStream(AttributeFinderInvocation invocation) {
+            return Flux.just(Value.error("No attribute finder registered for: " + invocation.attributeName()));
+        }
+
+        @Override
+        public List<Class<?>> getRegisteredLibraries() {
+            return List.of();
+        }
+    };
+
+    private static EvaluationContext contextWithBroker(AttributeBroker broker) {
+        return new EvaluationContext("pdp", "config", "sub", null, Map.of(), DEFAULT_FUNCTION_BROKER, broker,
                 () -> "now");
     }
 
+    private static EvaluationContext contextWithBrokerAndSubject(AttributeBroker broker, Value subject) {
+        return new EvaluationContext("pdp", "config", "sub", null, Map.of("subject", subject), DEFAULT_FUNCTION_BROKER,
+                broker, () -> "now");
+    }
+
     private static EvaluationContext contextWithoutBroker() {
-        return new EvaluationContext("pdp", "config", "sub", null, Map.of(), null, null, () -> "now");
+        return new EvaluationContext("pdp", "config", "sub", null, Map.of(), DEFAULT_FUNCTION_BROKER,
+                ERROR_ATTRIBUTE_BROKER, () -> "now");
     }
 
 }

@@ -36,8 +36,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 class FunctionCallCompilerTests {
 
-    // ========== Constant Folding (All Value arguments) ==========
-
     @Test
     void when_functionCall_withAllLiteralArgs_then_constantFoldsAtCompileTime() {
         var broker = testBroker("test.fn", args -> Value.of(args.size()));
@@ -70,17 +68,6 @@ class FunctionCallCompilerTests {
         assertThat(captured[0].functionName()).isEqualTo("test.fn");
         assertThat(captured[0].arguments()).containsExactly(Value.of("hello"), Value.of(42), Value.TRUE);
     }
-
-    @Test
-    void when_functionCall_withoutBroker_then_returnsError() {
-        var ctx    = new CompilationContext(null, null);
-        var result = compileExpression("test.fn()", ctx);
-
-        assertThat(result).isInstanceOf(ErrorValue.class);
-        assertThat(((ErrorValue) result).message()).contains("not configured");
-    }
-
-    // ========== Pure Operator (Value + Pure arguments) ==========
 
     @Test
     void when_functionCall_withPureArg_then_returnsPureOperator() {
@@ -123,8 +110,6 @@ class FunctionCallCompilerTests {
         assertThat(result).isInstanceOf(ErrorValue.class);
         assertThat(((ErrorValue) result).message()).contains("function error");
     }
-
-    // ========== Stream Operator (Stream arguments) ==========
 
     @Test
     void when_functionCall_withStreamArg_then_returnsStreamOperator() {
@@ -176,8 +161,6 @@ class FunctionCallCompilerTests {
             assertThat(((ErrorValue) tv.value()).message()).contains("stream error");
         }).verifyComplete();
     }
-
-    // ========== Multiple Stream Arguments ==========
 
     @Test
     void when_functionCall_withMultipleStreamArgs_then_combinesLatest() {
@@ -243,8 +226,6 @@ class FunctionCallCompilerTests {
         }).verifyComplete();
     }
 
-    // ========== Undefined Handling ==========
-
     @Test
     void when_functionCall_withUndefinedArg_then_filtersOutUndefined() {
         var captured = new ArrayList<FunctionInvocation>();
@@ -256,8 +237,6 @@ class FunctionCallCompilerTests {
         assertThat(result).isEqualTo(Value.of(2));
         assertThat(captured.get(0).arguments()).containsExactly(Value.of(1), Value.of(3));
     }
-
-    // ========== isDependingOnSubscription ==========
 
     @Test
     void when_allPureFunction_withVariableArg_then_dependsOnSubscription() {
@@ -285,8 +264,6 @@ class FunctionCallCompilerTests {
         assertThat(result).isInstanceOf(Value.class);
         assertThat(result).isEqualTo(Value.of("result"));
     }
-
-    // ========== Trace Merging ==========
 
     @Test
     void when_functionCall_withMultipleStreams_then_mergesAllContributingAttributes() {
@@ -334,8 +311,6 @@ class FunctionCallCompilerTests {
             assertThat(tv.contributingAttributes().getFirst().invocation().attributeName()).isEqualTo("test.attr");
         }).verifyComplete();
     }
-
-    // ========== Helper Methods ==========
 
     /**
      * Creates a batching function broker that supports multiple function
@@ -423,12 +398,25 @@ class FunctionCallCompilerTests {
         };
     }
 
+    private static final AttributeBroker DEFAULT_ATTRIBUTE_BROKER = new AttributeBroker() {
+        @Override
+        public Flux<Value> attributeStream(AttributeFinderInvocation invocation) {
+            return Flux.just(Value.error("No attribute finder registered for: " + invocation.attributeName()));
+        }
+
+        @Override
+        public List<Class<?>> getRegisteredLibraries() {
+            return List.of();
+        }
+    };
+
     private static CompilationContext compilationContextWithBroker(FunctionBroker broker) {
-        return new CompilationContext(broker, null);
+        return new CompilationContext(broker, DEFAULT_ATTRIBUTE_BROKER);
     }
 
     private static EvaluationContext contextWithBroker(FunctionBroker broker, Map<String, Value> variables) {
-        return new EvaluationContext("pdp", "config", "sub", null, variables, broker, null, () -> "now");
+        return new EvaluationContext("pdp", "config", "sub", null, variables, broker, DEFAULT_ATTRIBUTE_BROKER,
+                () -> "now");
     }
 
     private static EvaluationContext contextWithBrokers(FunctionBroker fnBroker, AttributeBroker attrBroker,

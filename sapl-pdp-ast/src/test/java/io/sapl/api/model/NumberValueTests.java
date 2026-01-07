@@ -184,9 +184,7 @@ class NumberValueTests {
         assertThat(Value.TEN).isInstanceOf(NumberValue.class);
     }
 
-    // ============================================================================
     // HASH CONTRACT AND EDGE CASES
-    // ============================================================================
 
     @ParameterizedTest(name = "Zero with scale {0} hashes identically")
     @MethodSource

@@ -52,7 +52,7 @@ public class SimpleFunctionLibrary {
         };
     }
 
-    @Function(name = "double", docs = "Doubles a number")
+    @Function(name = "doubleValue", docs = "Doubles a number")
     public static Value doubleValue(Value input) {
         if (!(input instanceof NumberValue number)) {
             return Value.error("double requires number input");
@@ -66,5 +66,21 @@ public class SimpleFunctionLibrary {
             return Value.error("negate requires boolean input");
         }
         return Value.of(!bool.value());
+    }
+
+    @Function(docs = "Adds a value to a number")
+    public static Value addValue(Value input, Value addend) {
+        if (!(input instanceof NumberValue num)) {
+            return Value.error("addValue requires number input");
+        }
+        if (!(addend instanceof NumberValue addendNum)) {
+            return Value.error("addValue requires number addend");
+        }
+        return Value.of(num.value().add(addendNum.value()));
+    }
+
+    @Function(docs = "Returns the input unchanged")
+    public static Value identity(Value input) {
+        return input;
     }
 }

@@ -20,6 +20,7 @@ package io.sapl.compiler;
 import io.sapl.api.functions.FunctionInvocation;
 import io.sapl.api.model.*;
 import io.sapl.api.pdp.internal.AttributeRecord;
+import io.sapl.ast.Expression;
 import io.sapl.ast.FunctionCall;
 import lombok.experimental.UtilityClass;
 import lombok.val;
@@ -46,16 +47,15 @@ import java.util.List;
 @UtilityClass
 public class FunctionCallCompiler {
 
-    private static final String ERROR_BROKER_NOT_CONFIGURED = "FunctionBroker not configured.";
-
     public static CompiledExpression compile(FunctionCall call, CompilationContext ctx) {
-        val functionName = call.name().full();
-        val location     = call.location();
-        val arguments    = call.arguments();
+        return compile(call.name().full(), call.arguments(), call.location(), ctx);
+    }
 
+    public static CompiledExpression compile(String functionName, List<Expression> arguments, SourceLocation location,
+            CompilationContext ctx) {
         // Zero arguments - use simple record
         if (arguments.isEmpty()) {
-            return compileNoArgs(functionName, location, ctx);
+            return compileNoArgs(functionName, ctx);
         }
 
         // Compile all arguments
@@ -98,57 +98,40 @@ public class FunctionCallCompiler {
 
         // All values - constant fold at compile time
         if (streamCount == 0 && pureOperators.isEmpty()) {
-            return evaluateConstant(functionName, values, location, ctx);
+            return evaluateConstant(functionName, values, ctx);
         }
 
         // No streams - return PureOperator
         if (streamCount == 0) {
-            return new AllPureFunction(functionName, toIntArray(valueIndices), values.toArray(Value[]::new),
-                    toIntArray(pureIndices), pureOperators.toArray(PureOperator[]::new), totalArgs, location);
+            return new AllPureFunction(functionName, ArrayCompiler.toIntArray(valueIndices),
+                    values.toArray(Value[]::new), ArrayCompiler.toIntArray(pureIndices),
+                    pureOperators.toArray(PureOperator[]::new), totalArgs, location);
         }
 
         // Single stream
         if (streamCount == 1) {
-            return new SingleStreamFunction(functionName, toIntArray(valueIndices), values.toArray(Value[]::new),
-                    toIntArray(pureIndices), pureOperators.toArray(PureOperator[]::new), streamIndices.get(0),
-                    streams.get(0), totalArgs, location);
+            return new SingleStreamFunction(functionName, ArrayCompiler.toIntArray(valueIndices),
+                    values.toArray(Value[]::new), ArrayCompiler.toIntArray(pureIndices),
+                    pureOperators.toArray(PureOperator[]::new), streamIndices.getFirst(), streams.getFirst(), totalArgs,
+                    location);
         }
 
         // Multiple streams
-        return new MultiStreamFunction(functionName, toIntArray(valueIndices), values.toArray(Value[]::new),
-                toIntArray(pureIndices), pureOperators.toArray(PureOperator[]::new), toIntArray(streamIndices),
+        return new MultiStreamFunction(functionName, ArrayCompiler.toIntArray(valueIndices),
+                values.toArray(Value[]::new), ArrayCompiler.toIntArray(pureIndices),
+                pureOperators.toArray(PureOperator[]::new), ArrayCompiler.toIntArray(streamIndices),
                 streams.toArray(StreamOperator[]::new), totalArgs, location);
     }
 
-    private static CompiledExpression compileNoArgs(String functionName, SourceLocation location,
-            CompilationContext ctx) {
-        val broker = ctx.getFunctionBroker();
-        if (broker == null) {
-            // No broker at compile time - fail (consistent with all-values case)
-            return Value.errorAt(location, ERROR_BROKER_NOT_CONFIGURED);
-        }
-        // Constant fold at compile time
+    private static CompiledExpression compileNoArgs(String functionName, CompilationContext ctx) {
         val invocation = new FunctionInvocation(functionName, List.of());
-        return broker.evaluateFunction(invocation);
+        return ctx.getFunctionBroker().evaluateFunction(invocation);
     }
 
-    private static Value evaluateConstant(String functionName, List<Value> values, SourceLocation location,
-            CompilationContext ctx) {
-        val broker = ctx.getFunctionBroker();
-        if (broker == null) {
-            return Value.errorAt(location, ERROR_BROKER_NOT_CONFIGURED);
-        }
+    private static Value evaluateConstant(String functionName, List<Value> values, CompilationContext ctx) {
         val args       = values.stream().filter(v -> !(v instanceof UndefinedValue)).toList();
         val invocation = new FunctionInvocation(functionName, args);
-        return broker.evaluateFunction(invocation);
-    }
-
-    private static int[] toIntArray(List<Integer> list) {
-        int[] arr = new int[list.size()];
-        for (int i = 0; i < list.size(); i++) {
-            arr[i] = list.get(i);
-        }
-        return arr;
+        return ctx.getFunctionBroker().evaluateFunction(invocation);
     }
 
     @SuppressWarnings("unchecked")
@@ -156,12 +139,8 @@ public class FunctionCallCompiler {
         if (argsOrError instanceof ErrorValue err) {
             return err;
         }
-        val broker = ctx.functionBroker();
-        if (broker == null) {
-            return Value.error(ERROR_BROKER_NOT_CONFIGURED);
-        }
         val invocation = new FunctionInvocation(functionName, (List<Value>) argsOrError);
-        return broker.evaluateFunction(invocation);
+        return ctx.functionBroker().evaluateFunction(invocation);
     }
 
     private static Object buildArgumentArray(int[] valueIndices, Value[] values, int[] pureIndices,
@@ -244,11 +223,7 @@ public class FunctionCallCompiler {
 
         @Override
         public Value evaluate(EvaluationContext ctx) {
-            var broker = ctx.functionBroker();
-            if (broker == null) {
-                return Value.error(ERROR_BROKER_NOT_CONFIGURED);
-            }
-            return broker.evaluateFunction(new FunctionInvocation(functionName, List.of()));
+            return ctx.functionBroker().evaluateFunction(new FunctionInvocation(functionName, List.of()));
         }
 
         @Override

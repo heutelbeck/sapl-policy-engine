@@ -348,11 +348,9 @@ class SubtemplateCompilerTests {
         assertThat(result).isEqualTo(Value.ofArray(Value.of(10), Value.of(20)));
     }
 
-    // =========================================================================
     // DISABLED TESTS - Require arithmetic/complex expression support
     // These tests demonstrate the EXPECTED behavior once all expression
     // compilers are fully implemented. Enable once Sum/Product are working.
-    // =========================================================================
 
     @MethodSource
     @ParameterizedTest(name = "{0}")

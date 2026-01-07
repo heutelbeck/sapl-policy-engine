@@ -75,8 +75,6 @@ public class StepCompiler {
         };
     }
 
-    // ==================== KeyStep ====================
-
     private CompiledExpression compileKeyStep(KeyStep step, CompilationContext ctx) {
         var base = ExpressionCompiler.compile(step.base(), ctx);
         var key  = step.key();
@@ -135,8 +133,6 @@ public class StepCompiler {
         }
     }
 
-    // ==================== IndexStep ====================
-
     public CompiledExpression compileIndexStep(IndexStep step, CompilationContext ctx) {
         var base  = ExpressionCompiler.compile(step.base(), ctx);
         var index = step.index();
@@ -184,8 +180,6 @@ public class StepCompiler {
         }
     }
 
-    // ==================== WildcardStep ====================
-
     public CompiledExpression compileWildcardStep(WildcardStep step, CompilationContext ctx) {
         var base = ExpressionCompiler.compile(step.base(), ctx);
         var loc  = step.location();
@@ -226,8 +220,6 @@ public class StepCompiler {
                     .map(tv -> new TracedValue(applyWildcardStep(tv.value(), location), tv.contributingAttributes()));
         }
     }
-
-    // ==================== IndexUnionStep ====================
 
     public CompiledExpression compileIndexUnionStep(IndexUnionStep step, CompilationContext ctx) {
         var base    = ExpressionCompiler.compile(step.base(), ctx);
@@ -294,8 +286,6 @@ public class StepCompiler {
         }
     }
 
-    // ==================== AttributeUnionStep ====================
-
     public CompiledExpression compileAttributeUnionStep(AttributeUnionStep step, CompilationContext ctx) {
         var base       = ExpressionCompiler.compile(step.base(), ctx);
         var attributes = step.attributes();
@@ -347,8 +337,6 @@ public class StepCompiler {
                     tv.contributingAttributes()));
         }
     }
-
-    // ==================== SliceStep ====================
 
     public CompiledExpression compileSliceStep(SliceStep step, CompilationContext ctx) {
         var base = ExpressionCompiler.compile(step.base(), ctx);
@@ -431,8 +419,6 @@ public class StepCompiler {
                     tv.contributingAttributes()));
         }
     }
-
-    // ==================== ExpressionStep ====================
 
     public CompiledExpression compileExpressionStep(ExpressionStep step, CompilationContext ctx) {
         var base = ExpressionCompiler.compile(step.base(), ctx);
@@ -539,8 +525,6 @@ public class StepCompiler {
             });
         }
     }
-
-    // ==================== ConditionStep ====================
 
     public CompiledExpression compileConditionStep(ConditionStep step, CompilationContext compilationCtx) {
         var base      = ExpressionCompiler.compile(step.base(), compilationCtx);
@@ -706,8 +690,6 @@ public class StepCompiler {
         }
     }
 
-    // ==================== RecursiveKeyStep ====================
-
     public CompiledExpression compileRecursiveKeyStep(RecursiveKeyStep step, CompilationContext ctx) {
         var base = ExpressionCompiler.compile(step.base(), ctx);
         var key  = step.key();
@@ -778,8 +760,6 @@ public class StepCompiler {
                     tv.contributingAttributes()));
         }
     }
-
-    // ==================== RecursiveIndexStep ====================
 
     public CompiledExpression compileRecursiveIndexStep(RecursiveIndexStep step, CompilationContext ctx) {
         var base  = ExpressionCompiler.compile(step.base(), ctx);
@@ -852,8 +832,6 @@ public class StepCompiler {
                     tv.contributingAttributes()));
         }
     }
-
-    // ==================== RecursiveWildcardStep ====================
 
     public CompiledExpression compileRecursiveWildcardStep(RecursiveWildcardStep step, CompilationContext ctx) {
         var base = ExpressionCompiler.compile(step.base(), ctx);

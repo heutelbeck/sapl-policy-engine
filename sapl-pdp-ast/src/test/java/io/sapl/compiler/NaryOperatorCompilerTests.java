@@ -39,7 +39,6 @@ import io.sapl.api.attributes.AttributeBroker;
 import io.sapl.api.attributes.AttributeFinderInvocation;
 import io.sapl.api.model.ArrayValue;
 import io.sapl.api.model.CompiledExpression;
-import io.sapl.compiler.CompilationContext;
 import io.sapl.api.model.ErrorValue;
 import io.sapl.api.model.EvaluationContext;
 import io.sapl.api.model.NumberValue;
@@ -47,6 +46,7 @@ import io.sapl.api.model.ObjectValue;
 import io.sapl.api.model.PureOperator;
 import io.sapl.api.model.StreamOperator;
 import io.sapl.api.model.Value;
+import io.sapl.functions.DefaultFunctionBroker;
 import reactor.core.publisher.Flux;
 import reactor.test.StepVerifier;
 
@@ -525,13 +525,28 @@ class NaryOperatorCompilerTests {
         }
     }
 
+    private static final DefaultFunctionBroker DEFAULT_FUNCTION_BROKER = new DefaultFunctionBroker();
+
+    private static final AttributeBroker DEFAULT_ATTRIBUTE_BROKER = new AttributeBroker() {
+        @Override
+        public Flux<Value> attributeStream(AttributeFinderInvocation invocation) {
+            return Flux.just(Value.error("No attribute finder registered for: " + invocation.attributeName()));
+        }
+
+        @Override
+        public List<Class<?>> getRegisteredLibraries() {
+            return List.of();
+        }
+    };
+
     private static EvaluationContext evalContextWithVariable(String name, Value value) {
-        return new EvaluationContext("pdp", "config", "sub", null, Map.of(name, value), null, null,
-                () -> "test-timestamp");
+        return new EvaluationContext("pdp", "config", "sub", null, Map.of(name, value), DEFAULT_FUNCTION_BROKER,
+                DEFAULT_ATTRIBUTE_BROKER, () -> "test-timestamp");
     }
 
     private static EvaluationContext evalContextWithVariables(Map<String, Value> variables) {
-        return new EvaluationContext("pdp", "config", "sub", null, variables, null, null, () -> "test-timestamp");
+        return new EvaluationContext("pdp", "config", "sub", null, variables, DEFAULT_FUNCTION_BROKER,
+                DEFAULT_ATTRIBUTE_BROKER, () -> "test-timestamp");
     }
 
     private static CompiledExpression evaluateWithContext(String source, EvaluationContext ctx) {
@@ -544,18 +559,20 @@ class NaryOperatorCompilerTests {
     }
 
     private static CompiledExpression compileExpressionWithBroker(String source, AttributeBroker broker) {
-        var compilationCtx = new CompilationContext(null, broker);
+        var compilationCtx = new CompilationContext(DEFAULT_FUNCTION_BROKER, broker);
         var expression     = io.sapl.util.ExpressionTestUtil.parseExpression(source);
         return ExpressionCompiler.compile(expression, compilationCtx);
     }
 
     private static EvaluationContext contextWithBroker(AttributeBroker broker) {
-        return new EvaluationContext("pdp", "config", "sub", null, Map.of(), null, broker, () -> "test-timestamp");
+        return new EvaluationContext("pdp", "config", "sub", null, Map.of(), DEFAULT_FUNCTION_BROKER, broker,
+                () -> "test-timestamp");
     }
 
     private static EvaluationContext contextWithBrokerAndVariables(AttributeBroker broker,
             Map<String, Value> variables) {
-        return new EvaluationContext("pdp", "config", "sub", null, variables, null, broker, () -> "test-timestamp");
+        return new EvaluationContext("pdp", "config", "sub", null, variables, DEFAULT_FUNCTION_BROKER, broker,
+                () -> "test-timestamp");
     }
 
     private static AttributeBroker testBroker(String expectedName, Value result) {

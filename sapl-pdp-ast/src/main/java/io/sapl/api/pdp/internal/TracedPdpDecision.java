@@ -386,8 +386,6 @@ public class TracedPdpDecision {
         }
     }
 
-    // ========== Accessor Methods ==========
-
     /**
      * Extracts the decision from a traced PDP decision.
      *

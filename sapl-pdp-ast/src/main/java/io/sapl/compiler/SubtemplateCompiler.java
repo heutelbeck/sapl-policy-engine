@@ -163,7 +163,7 @@ public class SubtemplateCompiler {
             return builder.build();
         }
 
-        // Scalar: apply template with @ = value, # = 0
+        // Scalar: apply template once with @ = parent, # = 0
         val ctx = baseCtx.withRelativeValue(parent, Value.of(0));
         return template.evaluate(ctx);
     }
@@ -199,7 +199,7 @@ public class SubtemplateCompiler {
             }
             return builder.build();
         }
-        // Scalar
+        // Scalar: apply template once
         return template;
     }
 
@@ -245,7 +245,7 @@ public class SubtemplateCompiler {
             }
             return builder.build();
         }
-        // Scalar: apply template with @ = value, # = 0
+        // Scalar: apply template once with @ = parent, # = 0
         val elemCtx = ctx.withRelativeValue(parent, Value.of(0));
         return template.evaluate(elemCtx);
     }

@@ -17,6 +17,8 @@
  */
 package io.sapl.compiler;
 
+import static io.sapl.compiler.ArrayCompiler.toIntArray;
+
 import io.sapl.api.model.*;
 import io.sapl.api.pdp.internal.AttributeRecord;
 import io.sapl.ast.ObjectExpression;
@@ -55,10 +57,24 @@ public class ObjectCompiler {
             compiled.add(result);
         }
 
-        return buildOptimizedOperator(keys, compiled, expr.location());
+        return buildFromCompiled(keys, compiled, expr.location());
     }
 
-    private static CompiledExpression buildOptimizedOperator(String[] keys, List<CompiledExpression> compiled,
+    /**
+     * Builds an optimized object operator from pre-compiled values.
+     * Used by ObjectExpression compilation and "each" filter compilation.
+     *
+     * @param keys the keys for each entry
+     * @param compiled the compiled values (Value/PureOperator/StreamOperator)
+     * @param location source location for error reporting
+     * @return appropriate CompiledExpression based on value types
+     */
+    static CompiledExpression buildFromCompiled(List<String> keys, List<CompiledExpression> compiled,
+            SourceLocation location) {
+        return buildFromCompiled(keys.toArray(String[]::new), compiled, location);
+    }
+
+    private static CompiledExpression buildFromCompiled(String[] keys, List<CompiledExpression> compiled,
             SourceLocation location) {
         val streamIndices = new ArrayList<Integer>();
         val streams       = new ArrayList<StreamOperator>();
@@ -115,14 +131,6 @@ public class ObjectCompiler {
             }
         }
         return builder.build();
-    }
-
-    private static int[] toIntArray(List<Integer> list) {
-        int[] arr = new int[list.size()];
-        for (int i = 0; i < list.size(); i++) {
-            arr[i] = list.get(i);
-        }
-        return arr;
     }
 
     /**

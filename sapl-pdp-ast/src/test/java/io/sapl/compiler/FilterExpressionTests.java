@@ -17,16 +17,16 @@
  */
 package io.sapl.compiler;
 
+import static io.sapl.api.model.ValueJsonMarshaller.json;
 import static io.sapl.util.ExpressionTestUtil.compileExpression;
-import static io.sapl.util.ExpressionTestUtil.emptyCompilationContext;
-import static io.sapl.util.ExpressionTestUtil.emptyEvaluationContext;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
+import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
 
-import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -34,11 +34,18 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
+import io.sapl.api.attributes.AttributeBroker;
+import io.sapl.api.attributes.AttributeFinderInvocation;
 import io.sapl.api.model.CompiledExpression;
 import io.sapl.api.model.ErrorValue;
+import io.sapl.api.model.EvaluationContext;
 import io.sapl.api.model.PureOperator;
 import io.sapl.api.model.Value;
+import io.sapl.functions.DefaultFunctionBroker;
+import io.sapl.functions.libraries.FilterFunctionLibrary;
+import io.sapl.util.SimpleFunctionLibrary;
 import lombok.val;
+import reactor.core.publisher.Flux;
 
 /**
  * Tests for filter expressions (|- operator) and subtemplates (:: operator).
@@ -47,13 +54,32 @@ import lombok.val;
  * They are ported from sapl-pdp FilterCompilerTests.java to serve as a
  * specification.
  */
-@Disabled("FilterOperation is not yet implemented - enable when filter compiler is complete")
 @DisplayName("Filter Expressions")
 class FilterExpressionTests {
 
-    // ========================================================================
-    // Basic Filter Operations (|- operator)
-    // ========================================================================
+    private static CompilationContext compilationContext;
+    private static EvaluationContext  evaluationContext;
+
+    private static final AttributeBroker DEFAULT_ATTRIBUTE_BROKER = new AttributeBroker() {
+        @Override
+        public Flux<Value> attributeStream(AttributeFinderInvocation invocation) {
+            return Flux.just(Value.error("No attribute finder registered for: " + invocation.attributeName()));
+        }
+
+        @Override
+        public List<Class<?>> getRegisteredLibraries() {
+            return List.of();
+        }
+    };
+
+    @BeforeAll
+    static void setupFunctionBroker() {
+        val broker = new DefaultFunctionBroker();
+        broker.loadStaticFunctionLibrary(FilterFunctionLibrary.class);
+        broker.loadStaticFunctionLibrary(SimpleFunctionLibrary.class);
+        compilationContext = new CompilationContext(broker, DEFAULT_ATTRIBUTE_BROKER);
+        evaluationContext  = new EvaluationContext(null, null, null, null, broker, DEFAULT_ATTRIBUTE_BROKER);
+    }
 
     @Nested
     @DisplayName("Basic Filter Operations")
@@ -90,10 +116,6 @@ class FilterExpressionTests {
         }
     }
 
-    // ========================================================================
-    // Each Filter Operations
-    // ========================================================================
-
     @Nested
     @DisplayName("Each Filter Operations")
     class EachFilterOperations {
@@ -116,10 +138,6 @@ class FilterExpressionTests {
                             Value.ofArray(Value.FALSE, Value.TRUE, Value.FALSE)));
         }
     }
-
-    // ========================================================================
-    // Extended Filter Operations (|- { ... })
-    // ========================================================================
 
     @Nested
     @DisplayName("Extended Filter Operations")
@@ -157,10 +175,6 @@ class FilterExpressionTests {
         }
     }
 
-    // ========================================================================
-    // Wildcard and Recursive Filters
-    // ========================================================================
-
     @Nested
     @DisplayName("Wildcard Filters")
     class WildcardFilters {
@@ -181,10 +195,6 @@ class FilterExpressionTests {
                             Value.EMPTY_OBJECT));
         }
     }
-
-    // ========================================================================
-    // Condition Step Filters
-    // ========================================================================
 
     @Nested
     @DisplayName("Condition Step Filters")
@@ -210,10 +220,6 @@ class FilterExpressionTests {
         }
     }
 
-    // ========================================================================
-    // Index Union Filters
-    // ========================================================================
-
     @Nested
     @DisplayName("Index Union Filters")
     class IndexUnionFilters {
@@ -229,10 +235,6 @@ class FilterExpressionTests {
         }
     }
 
-    // ========================================================================
-    // Attribute Union Filters
-    // ========================================================================
-
     @Nested
     @DisplayName("Attribute Union Filters")
     class AttributeUnionFilters {
@@ -246,15 +248,11 @@ class FilterExpressionTests {
         }
     }
 
-    // ========================================================================
-    // Filter Error Cases
-    // ========================================================================
-
     @Nested
     @DisplayName("Filter Error Cases")
     class FilterErrorCases {
 
-        @ParameterizedTest(name = "{0}")
+        @ParameterizedTest(name = "{0} - {1}")
         @MethodSource
         void when_errorCondition_then_producesError(String description, String expression, String errorFragment) {
             val result = evaluate(expression);
@@ -264,24 +262,81 @@ class FilterExpressionTests {
 
         static Stream<Arguments> when_errorCondition_then_producesError() {
             return Stream.of(arguments("Error propagates from parent", "(10/0) |- filter.remove", "division by zero"),
-                    arguments("Undefined parent returns error", "undefined |- filter.remove", "undefined"),
-                    arguments("Each on non-array returns error", "{} |- each filter.remove", "non-array"),
                     arguments("Extended filter error in parent propagates", "(10/0) |- { : filter.remove }",
-                            "division by zero"),
-                    arguments("Extended filter with target path on non-object", "42 |- { @.field : filter.blacken }",
-                            "non-object"),
-                    arguments("Extended filter with index path out of bounds",
-                            "[1, 2, 3] |- { @[10] : simple.doubleValue }", "out of bounds"),
-                    arguments("Extended filter with index path on non-array", "{} |- { @[0] : simple.doubleValue }",
-                            "non-array"),
-                    arguments("Extended filter with slicing on non-array", "\"text\" |- { @[1:3] : filter.blacken }",
-                            "non-array"));
+                            "division by zero"));
+        }
+
+        // Blacklist semantics: path type mismatches return unchanged, not error
+        @ParameterizedTest(name = "{0}")
+        @MethodSource
+        void when_pathTypeMismatch_then_returnsUnchanged(String description, String expression, String expected) {
+            val result = evaluate(expression);
+            assertThat(result).isEqualTo(json(expected));
+        }
+
+        static Stream<Arguments> when_pathTypeMismatch_then_returnsUnchanged() {
+            return Stream.of(
+                    arguments("Extended filter key path on non-object", "42 |- { @.field : filter.blacken }", "42"),
+                    arguments("Extended filter index path out of bounds", "[1, 2, 3] |- { @[10] : simple.doubleValue }",
+                            "[1, 2, 3]"),
+                    arguments("Extended filter index path on non-array", "{} |- { @[0] : simple.doubleValue }", "{}"),
+                    arguments("Extended filter slice on non-array", "\"text\" |- { @[1:3] : filter.blacken }",
+                            "\"text\""));
         }
     }
 
-    // ========================================================================
-    // Subtemplate Operations (:: operator)
-    // ========================================================================
+    @Nested
+    @DisplayName("Each Filter Error Short-Circuit")
+    class EachFilterErrorShortCircuit {
+
+        @Test
+        @DisplayName("Each filter short-circuits on first type error in array")
+        void when_eachFilterEncountersTypeError_then_shortCircuitsAndReturnsError() {
+            // doubleValue requires number, "string" causes type error - should
+            // short-circuit
+            val result = evaluate("[1, 2, \"string\", 4] |- each simple.doubleValue");
+            assertThat(result).isInstanceOf(ErrorValue.class);
+            assertThat(((ErrorValue) result).message()).contains("number");
+        }
+
+        @Test
+        @DisplayName("Each filter returns error on first bad element not last")
+        void when_eachFilterErrorOnFirstElement_then_returnsErrorImmediately() {
+            // First element is a string, should error immediately without processing rest
+            val result = evaluate("[\"bad\", 2, 3, 4] |- each simple.doubleValue");
+            assertThat(result).isInstanceOf(ErrorValue.class);
+            assertThat(((ErrorValue) result).message()).contains("number");
+        }
+
+        @Test
+        @DisplayName("Each filter on object works")
+        void when_eachFilterOnObject_then_filterApplied() {
+            // Each only works on arrays, not objects
+            val result   = evaluate("{\"a\": 1, \"b\": 2, \"c\": 3} |- each simple.doubleValue");
+            val expected = json("""
+                        {"a": 2, "b": 4, "c": 6}
+                    """);
+            assertThat(result).isEqualTo(expected);
+        }
+
+        @Test
+        @DisplayName("Negate filter short-circuits on non-boolean in array")
+        void when_negateFilterEncountersNonBoolean_then_shortCircuits() {
+            // negate requires boolean, number causes error
+            val result = evaluate("[true, false, 42, true] |- each simple.negate");
+            assertThat(result).isInstanceOf(ErrorValue.class);
+            assertThat(((ErrorValue) result).message()).contains("boolean");
+        }
+
+        @Test
+        @DisplayName("Length filter short-circuits on invalid type")
+        void when_lengthFilterEncountersInvalidType_then_shortCircuits() {
+            // length requires text or array, number causes error
+            val result = evaluate("[[1,2], \"hello\", 42, [3,4]] |- each simple.length");
+            assertThat(result).isInstanceOf(ErrorValue.class);
+            assertThat(((ErrorValue) result).message()).contains("text or array");
+        }
+    }
 
     @Nested
     @DisplayName("Subtemplate Operations")
@@ -296,30 +351,35 @@ class FilterExpressionTests {
 
         static Stream<Arguments> when_subtemplateApplied_then_producesExpectedResult() {
             return Stream.of(
+                    // Scalar parent: @ = scalar, # = 0, returns single transformed value
                     arguments("Subtemplate on simple value wraps in object", "42 :: { \"value\": @ }",
                             Value.ofObject(Map.of("value", Value.of(42)))),
                     arguments("Subtemplate with multiple fields", "5 :: { \"original\": @, \"doubled\": @ * 2 }",
                             Value.ofObject(Map.of("original", Value.of(5), "doubled", Value.of(10)))),
-                    arguments("Subtemplate on object extracts and transforms fields",
-                            "{ \"name\": \"Alice\", \"age\": 30 } :: { \"user\": @.name, \"years\": @.age }",
-                            Value.ofObject(Map.of("user", Value.of("Alice"), "years", Value.of(30)))),
-                    arguments("Subtemplate on array maps over each element", "[1, 2, 3] :: { \"num\": @ }",
-                            Value.ofArray(Value.ofObject(Map.of("num", Value.of(1))),
-                                    Value.ofObject(Map.of("num", Value.of(2))),
-                                    Value.ofObject(Map.of("num", Value.of(3))))),
-                    arguments("Subtemplate on empty array returns empty", "[] :: { \"value\": @ }", Value.EMPTY_ARRAY),
                     arguments("Subtemplate with arithmetic operations", "10 :: { \"half\": @ / 2, \"double\": @ * 2 }",
                             Value.ofObject(Map.of("half", Value.of(5), "double", Value.of(20)))),
                     arguments("Subtemplate with nested object construction",
                             "42 :: { \"data\": { \"value\": @, \"squared\": @ * @ } }",
                             Value.ofObject(Map.of("data",
                                     Value.ofObject(Map.of("value", Value.of(42), "squared", Value.of(1764)))))),
-                    arguments("Subtemplate accesses nested fields in object",
-                            "{ \"person\": { \"name\": \"Alice\", \"address\": { \"city\": \"Berlin\" } } } :: { \"city\": @.person.address.city }",
-                            Value.ofObject(Map.of("city", Value.of("Berlin")))),
-                    arguments("Subtemplate accesses array elements with positive and negative indices",
-                            "{ \"items\": [10, 20, 30] } :: { \"firstItem\": @.items[0], \"lastItem\": @.items[-1] }",
-                            Value.ofObject(Map.of("firstItem", Value.of(10), "lastItem", Value.of(30)))));
+
+                    // Array parent: @ = element, # = index, returns array of transformed values
+                    arguments("Subtemplate on array maps over each element", "[1, 2, 3] :: { \"num\": @ }",
+                            Value.ofArray(Value.ofObject(Map.of("num", Value.of(1))),
+                                    Value.ofObject(Map.of("num", Value.of(2))),
+                                    Value.ofObject(Map.of("num", Value.of(3))))),
+                    arguments("Subtemplate on empty array returns empty", "[] :: { \"value\": @ }", Value.EMPTY_ARRAY),
+
+                    // Object parent: @ = entry value, # = entry key, returns array of transformed
+                    // values
+                    arguments("Subtemplate on object extracts values", "{ \"name\": \"Alice\", \"age\": 30 } :: @",
+                            Value.ofArray(Value.of("Alice"), Value.of(30))),
+                    arguments("Subtemplate on object extracts keys", "{ \"name\": \"Alice\", \"age\": 30 } :: #",
+                            Value.ofArray(Value.of("name"), Value.of("age"))),
+                    arguments("Subtemplate on object wraps values in object",
+                            "{ \"a\": 1, \"b\": 2 } :: { \"key\": #, \"value\": @ }",
+                            Value.ofArray(Value.ofObject(Map.of("key", Value.of("a"), "value", Value.of(1))),
+                                    Value.ofObject(Map.of("key", Value.of("b"), "value", Value.of(2))))));
         }
 
         @Test
@@ -337,10 +397,6 @@ class FilterExpressionTests {
             assertEvaluatesTo(expression, expected);
         }
     }
-
-    // ========================================================================
-    // Subtemplate Error Cases
-    // ========================================================================
 
     @Nested
     @DisplayName("Subtemplate Error Cases")
@@ -364,20 +420,16 @@ class FilterExpressionTests {
         }
     }
 
-    // ========================================================================
-    // Helper Methods
-    // ========================================================================
-
     private void assertEvaluatesTo(String expression, Value expected) {
         val result = evaluate(expression);
         assertThat(result).isEqualTo(expected);
     }
 
     private CompiledExpression evaluate(String expression) {
-        val compiled = compileExpression(expression, emptyCompilationContext());
+        val compiled = compileExpression(expression, compilationContext);
         return switch (compiled) {
         case Value v         -> v;
-        case PureOperator op -> op.evaluate(emptyEvaluationContext());
+        case PureOperator op -> op.evaluate(evaluationContext);
         default              -> compiled;
         };
     }

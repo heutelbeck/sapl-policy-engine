@@ -17,6 +17,7 @@
  */
 package io.sapl.attributes;
 
+import io.sapl.api.attributes.AttributeBroker;
 import io.sapl.api.attributes.AttributeFinderInvocation;
 import io.sapl.api.model.ErrorValue;
 import io.sapl.api.model.EvaluationContext;
@@ -24,6 +25,7 @@ import io.sapl.api.model.NumberValue;
 import io.sapl.api.model.Value;
 import io.sapl.api.attributes.Attribute;
 import io.sapl.api.attributes.EnvironmentAttribute;
+import io.sapl.functions.DefaultFunctionBroker;
 import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -230,6 +232,20 @@ class AttributeMethodSignatureProcessorTests {
                 .verifyComplete();
     }
 
+    private static final DefaultFunctionBroker DEFAULT_FUNCTION_BROKER = new DefaultFunctionBroker();
+
+    private static final AttributeBroker DEFAULT_ATTRIBUTE_BROKER = new AttributeBroker() {
+        @Override
+        public Flux<Value> attributeStream(AttributeFinderInvocation invocation) {
+            return Flux.just(Value.error("No attribute finder registered for: " + invocation.attributeName()));
+        }
+
+        @Override
+        public List<Class<?>> getRegisteredLibraries() {
+            return List.of();
+        }
+    };
+
     private AttributeFinderInvocation createInvocation(String attributeName, Value... args) {
         return new AttributeFinderInvocation("test-security", NAMESPACE + "." + attributeName, Value.UNDEFINED,
                 List.of(args), Map.of(), Duration.ofSeconds(1), Duration.ofSeconds(1), Duration.ofMillis(100), 3,
@@ -237,7 +253,8 @@ class AttributeMethodSignatureProcessorTests {
     }
 
     private EvaluationContext createEvaluationContext(Map<String, Value> variables) {
-        return EvaluationContext.of("id", "test-security", "test-subscription", null, variables, null, null);
+        return EvaluationContext.of("id", "test-security", "test-subscription", null, variables,
+                DEFAULT_FUNCTION_BROKER, DEFAULT_ATTRIBUTE_BROKER);
     }
 
     static class TestPIP {

@@ -19,6 +19,13 @@ package io.sapl.util;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.util.List;
+import java.util.Map;
+
+import io.sapl.api.attributes.AttributeBroker;
+import io.sapl.api.attributes.AttributeFinderInvocation;
+import io.sapl.api.functions.Function;
+import io.sapl.api.functions.FunctionLibrary;
 import io.sapl.api.model.ArrayValue;
 import io.sapl.api.model.CompiledExpression;
 import io.sapl.api.model.ErrorValue;
@@ -30,9 +37,9 @@ import io.sapl.ast.Expression;
 import io.sapl.compiler.CompilationContext;
 import io.sapl.compiler.ExpressionCompiler;
 import io.sapl.compiler.ast.AstTransformer;
+import io.sapl.functions.DefaultFunctionBroker;
 import lombok.experimental.UtilityClass;
-
-import java.util.Map;
+import reactor.core.publisher.Flux;
 
 /**
  * Test utilities for parsing, compiling and evaluating SAPL expressions.
@@ -113,11 +120,63 @@ public class ExpressionTestUtil {
     }
 
     /**
+     * Mock function library for testing extended filters.
+     * Returns "***" for any input, mimicking the marker behavior.
+     */
+    @FunctionLibrary(name = "mock", description = "Mock functions for testing")
+    public static class MockFunctionLibrary {
+        private static final Value MARKER = Value.of("***");
+
+        @Function
+        public static Value func() {
+            return MARKER;
+        }
+
+        @Function
+        public static Value func(Value arg) {
+            return MARKER;
+        }
+
+        @Function
+        public static Value func(Value arg1, Value arg2) {
+            return MARKER;
+        }
+
+        @Function
+        public static Value func(Value arg1, Value arg2, Value arg3) {
+            return MARKER;
+        }
+    }
+
+    /** Default function broker for tests - includes mock function library */
+    private static final DefaultFunctionBroker DEFAULT_FUNCTION_BROKER;
+
+    static {
+        DEFAULT_FUNCTION_BROKER = new DefaultFunctionBroker();
+        DEFAULT_FUNCTION_BROKER.loadStaticFunctionLibrary(MockFunctionLibrary.class);
+    }
+
+    /**
+     * Default attribute broker for tests - returns error for any attribute lookup
+     */
+    private static final AttributeBroker DEFAULT_ATTRIBUTE_BROKER = new AttributeBroker() {
+        @Override
+        public Flux<Value> attributeStream(AttributeFinderInvocation invocation) {
+            return Flux.just(Value.error("No attribute finder registered for: " + invocation.attributeName()));
+        }
+
+        @Override
+        public List<Class<?>> getRegisteredLibraries() {
+            return List.of();
+        }
+    };
+
+    /**
      * Creates an empty compilation context for testing.
-     * No brokers, no imports.
+     * Uses default brokers that return errors for unknown functions/attributes.
      */
     public static CompilationContext emptyCompilationContext() {
-        return new CompilationContext(null, null);
+        return new CompilationContext(DEFAULT_FUNCTION_BROKER, DEFAULT_ATTRIBUTE_BROKER);
     }
 
     /**
@@ -130,20 +189,23 @@ public class ExpressionTestUtil {
 
     /**
      * Creates an empty evaluation context for testing.
-     * No variables, no brokers.
+     * Uses default brokers that return errors for unknown functions/attributes.
      */
     public static EvaluationContext emptyEvaluationContext() {
-        return new EvaluationContext(null, null, null, null, Map.of(), null, null, () -> "test-timestamp");
+        return new EvaluationContext(null, null, null, null, Map.of(), DEFAULT_FUNCTION_BROKER,
+                DEFAULT_ATTRIBUTE_BROKER, () -> "test-timestamp");
     }
 
     /**
      * Creates an evaluation context with the given variables.
+     * Uses default brokers that return errors for unknown functions/attributes.
      *
      * @param variables the variables to include
      * @return the evaluation context
      */
     public static EvaluationContext withVariables(Map<String, Value> variables) {
-        return new EvaluationContext(null, null, null, null, variables, null, null, () -> "test-timestamp");
+        return new EvaluationContext(null, null, null, null, variables, DEFAULT_FUNCTION_BROKER,
+                DEFAULT_ATTRIBUTE_BROKER, () -> "test-timestamp");
     }
 
     /**

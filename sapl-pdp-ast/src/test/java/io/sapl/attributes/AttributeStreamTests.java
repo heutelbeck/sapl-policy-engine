@@ -107,9 +107,7 @@ class AttributeStreamTests {
                 pollInterval, backoff, retries, false);
     }
 
-    // ========================================================================
     // Basic Functionality Tests
-    // ========================================================================
 
     /**
      * Validates that the invocation configuration is accessible via getter.
@@ -169,9 +167,7 @@ class AttributeStreamTests {
                 .verifyComplete();
     }
 
-    // ========================================================================
     // Multicast and Caching Tests
-    // ========================================================================
 
     /**
      * Tests multicast semantics where multiple subscribers receive the same values
@@ -218,9 +214,7 @@ class AttributeStreamTests {
         assertThat(secondValue).isEqualTo(Value.of("cached"));
     }
 
-    // ========================================================================
     // Grace Period and Cleanup Tests
-    // ========================================================================
 
     /**
      * Tests that cleanup is deferred by the grace period after the last subscriber
@@ -284,9 +278,7 @@ class AttributeStreamTests {
                 .atMost(GRACE_PERIOD_TIMEOUT, MILLISECONDS).until(() -> cleanupCalled.get() == 1);
     }
 
-    // ========================================================================
     // PIP Connection and Disconnection Tests
-    // ========================================================================
 
     /**
      * Tests that disconnection publishes an error value and stops further
@@ -412,9 +404,7 @@ class AttributeStreamTests {
         assertThat(valuesAfterPip2).noneMatch(v -> v instanceof TextValue tv && tv.value().startsWith("pip1"));
     }
 
-    // ========================================================================
     // Race Condition Prevention Tests
-    // ========================================================================
 
     /**
      * Tests that disconnection properly prevents late-arriving values from a
@@ -500,9 +490,7 @@ class AttributeStreamTests {
         assertThat(errors.getFirst().message()).contains("PIP disconnected");
     }
 
-    // ========================================================================
     // Timeout Behavior Tests
-    // ========================================================================
 
     /**
      * Tests initial timeout handling when a PIP is slow to emit its first value.
@@ -552,9 +540,7 @@ class AttributeStreamTests {
         StepVerifier.create(stream.getStream().take(1)).expectNext(Value.of("fast")).verifyComplete();
     }
 
-    // ========================================================================
     // Polling Behavior Tests
-    // ========================================================================
 
     /**
      * Tests the polling mechanism for attributes that complete early but require
@@ -581,9 +567,7 @@ class AttributeStreamTests {
                 .expectNext(Value.of(2)).expectNext(Value.of(3)).verifyComplete();
     }
 
-    // ========================================================================
     // Retry Behavior Tests
-    // ========================================================================
 
     /**
      * Tests the retry mechanism with exponential backoff for transient PIP
@@ -628,9 +612,7 @@ class AttributeStreamTests {
         assertThat(attempts.get()).isEqualTo((int) retries + 1);
     }
 
-    // ========================================================================
     // Empty Flux Handling Tests
-    // ========================================================================
 
     /**
      * Tests handling of PIPs that emit no values (empty Flux).
@@ -655,9 +637,7 @@ class AttributeStreamTests {
         StepVerifier.create(stream.getStream().take(1)).expectNext(Value.UNDEFINED).verifyComplete();
     }
 
-    // ========================================================================
     // Error Handling Tests
-    // ========================================================================
 
     /**
      * Tests error propagation when a PIP fails immediately with retries disabled.
@@ -689,9 +669,7 @@ class AttributeStreamTests {
                 .verifyComplete();
     }
 
-    // ========================================================================
     // Complex Scenario Tests
-    // ========================================================================
 
     /**
      * Tests PIP hot-swapping under high-frequency emission load.

@@ -146,7 +146,8 @@ public class ImportResolver {
                 aa.options() != null ? resolveExpr(aa.options(), importMap) : null, aa.head(), aa.location());
         case RelativeReference r     -> r; // No nested expressions
         case Parenthesized g         -> new Parenthesized(resolveExpr(g.expression(), importMap), g.location());
-        case FilterOperation fo      -> resolveFilterOperation(fo, importMap);
+        case SimpleFilter sf         -> resolveSimpleFilter(sf, importMap);
+        case ExtendedFilter ef       -> resolveExtendedFilter(ef, importMap);
         case ArrayExpression ae      ->
             new ArrayExpression(ae.elements().stream().map(e -> resolveExpr(e, importMap)).toList(), ae.location());
         case ObjectExpression oe     -> new ObjectExpression(
@@ -196,11 +197,19 @@ public class ImportResolver {
         };
     }
 
-    private FilterOperation resolveFilterOperation(FilterOperation fo, Map<String, List<String>> importMap) {
-        return new FilterOperation(resolveExpr(fo.base(), importMap),
-                fo.target() != null ? resolveFilterPath(fo.target(), importMap) : null,
-                resolve(fo.function(), importMap, fo.location()),
-                fo.arguments().stream().map(a -> resolveExpr(a, importMap)).toList(), fo.each(), fo.location());
+    private SimpleFilter resolveSimpleFilter(SimpleFilter sf, Map<String, List<String>> importMap) {
+        var resolvedBase = resolveExpr(sf.base(), importMap);
+        var resolvedName = resolve(sf.name(), importMap, sf.location());
+        var resolvedArgs = sf.arguments().stream().map(a -> resolveExpr(a, importMap)).toList();
+        return new SimpleFilter(resolvedBase, resolvedName, resolvedArgs, sf.each(), sf.location());
+    }
+
+    private ExtendedFilter resolveExtendedFilter(ExtendedFilter ef, Map<String, List<String>> importMap) {
+        var resolvedBase   = resolveExpr(ef.base(), importMap);
+        var resolvedTarget = resolveFilterPath(ef.target(), importMap);
+        var resolvedName   = resolve(ef.name(), importMap, ef.location());
+        var resolvedArgs   = ef.arguments().stream().map(a -> resolveExpr(a, importMap)).toList();
+        return new ExtendedFilter(resolvedBase, resolvedTarget, resolvedName, resolvedArgs, ef.each(), ef.location());
     }
 
     private FilterPath resolveFilterPath(FilterPath path, Map<String, List<String>> importMap) {

@@ -20,6 +20,7 @@ package io.sapl.compiler;
 import io.sapl.api.attributes.AttributeBroker;
 import io.sapl.api.attributes.AttributeFinderInvocation;
 import io.sapl.api.model.*;
+import io.sapl.functions.DefaultFunctionBroker;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Flux;
@@ -303,8 +304,11 @@ class LazyBooleanOperationCompilerTests {
         };
     }
 
+    private static final DefaultFunctionBroker DEFAULT_FUNCTION_BROKER = new DefaultFunctionBroker();
+
     private static EvaluationContext evalContext(AttributeBroker broker) {
-        return new EvaluationContext("pdp", "config", "sub", null, Map.of(), null, broker, () -> "now");
+        return new EvaluationContext("pdp", "config", "sub", null, Map.of(), DEFAULT_FUNCTION_BROKER, broker,
+                () -> "now");
     }
 
 }

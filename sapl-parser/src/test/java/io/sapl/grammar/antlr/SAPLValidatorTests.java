@@ -40,11 +40,10 @@ import io.sapl.grammar.antlr.validation.ValidationError;
  */
 class SAPLValidatorTests {
 
-    // ========================================================================
-    // CATEGORY 1: Boolean Operators in Target Expression Tests
+    // Boolean Operators in Target Expression Tests
     // Note: Both & and && (| and ||) are now treated identically.
     // The only restriction in targets is: no attribute finders.
-    // ========================================================================
+    // Was illegal in 3.0
 
     @Test
     void whenLazyOperatorsInTarget_thenNoValidationError() {
@@ -64,7 +63,6 @@ class SAPLValidatorTests {
                 policy "test"
                 permit subject == "admin" & action == "read" | resource == "public"
                 """;
-
         var errors = validatePolicy(policy);
         assertThat(errors).as("& and | are allowed in target").isEmpty();
     }
@@ -76,14 +74,11 @@ class SAPLValidatorTests {
                 policy "test"
                 permit subject == "admin" && action == "read" | resource == "public"
                 """;
-
         var errors = validatePolicy(policy);
         assertThat(errors).as("Mixed && and | are allowed in target").isEmpty();
     }
 
-    // ========================================================================
-    // CATEGORY 2: Attribute Finders in Target Expression Tests
-    // ========================================================================
+    // Attribute Finders in Target Expression Tests
 
     static Stream<Arguments> attributesInTarget() {
         return Stream.of(arguments("environment attribute in policy target", """
@@ -139,9 +134,7 @@ class SAPLValidatorTests {
         assertThat(errors).as("Attributes are allowed in policy body").isEmpty();
     }
 
-    // ========================================================================
-    // CATEGORY 3: Attribute Finders in Schema Expression Tests
-    // ========================================================================
+    // Attribute Finders in Schema Expression Tests
 
     static Stream<Arguments> attributesInSchema() {
         return Stream.of(arguments("environment attribute in schema", """
@@ -186,14 +179,11 @@ class SAPLValidatorTests {
         assertThat(errors).as("Static schema expressions are valid").isEmpty();
     }
 
-    // ========================================================================
-    // CATEGORY 4: Variable Name Tests
+    // Variable Name Tests
     // Note: Reserved words as variable names (subject, action, resource,
-    // environment)
-    // are caught at SYNTAX level (see
+    // environment) are caught at SYNTAX level (see
     // SAPLParserTests.whenUsingReservedWordAsVariableName)
     // because the grammar uses ID token which doesn't match reserved word tokens.
-    // ========================================================================
 
     @Test
     void whenNormalVariableName_thenNoValidationError() {
@@ -225,9 +215,7 @@ class SAPLValidatorTests {
         assertThat(errors).as("Reserved words as field names should be allowed").isEmpty();
     }
 
-    // ========================================================================
-    // CATEGORY 5: Valid Policy Tests (no validation errors expected)
-    // ========================================================================
+    // Valid Policy Tests (no validation errors expected)
 
     static Stream<Arguments> validPolicies() {
         return Stream.of(arguments("simple permit policy", """
@@ -289,9 +277,7 @@ class SAPLValidatorTests {
         assertThat(errors).as("Valid policy '%s' should have no validation errors", description).isEmpty();
     }
 
-    // ========================================================================
-    // CATEGORY 6: Edge Cases and Complex Scenarios
-    // ========================================================================
+    // Edge Cases
 
     @Test
     void whenMultipleAttributesInTarget_thenAllAreReported() {
@@ -357,9 +343,7 @@ class SAPLValidatorTests {
         assertThat(errors).isNotEmpty().anyMatch(e -> e.message().contains("Attribute access is forbidden in target"));
     }
 
-    // ========================================================================
-    // CATEGORY 7: Validation Error Details Tests
-    // ========================================================================
+    // Validation Error Details Tests
 
     @Test
     void whenValidationError_thenErrorContainsLineAndColumn() {
@@ -390,10 +374,6 @@ class SAPLValidatorTests {
         var errorString = errors.getFirst().toString();
         assertThat(errorString).matches("line \\d+:\\d+ .*");
     }
-
-    // ========================================================================
-    // Helper Methods
-    // ========================================================================
 
     private List<ValidationError> validatePolicy(String input) {
         var charStream  = CharStreams.fromString(input);

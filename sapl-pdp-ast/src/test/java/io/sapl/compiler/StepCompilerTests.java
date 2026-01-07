@@ -748,6 +748,77 @@ class StepCompilerTests {
                 assertThat(result).isInstanceOf(ErrorValue.class);
                 assertThat(((ErrorValue) result).message()).contains("Cannot apply slice");
             }
+
+            // Mixed positive/negative indices
+            @Test
+            @DisplayName("[-3:5] negative start with positive end")
+            void negativeStartPositiveEnd() {
+                // [-3:5] on [10,20,30,40,50]: -3 resolves to index 2, so [30,40,50]
+                assertCompilesTo("[10, 20, 30, 40, 50][-3:5]", array(Value.of(30), Value.of(40), Value.of(50)));
+            }
+
+            @Test
+            @DisplayName("[1:-2] positive start with negative end")
+            void positiveStartNegativeEnd() {
+                // [1:-2] on [10,20,30,40,50]: from 1 to -2 (index 3), so [20,30]
+                assertCompilesTo("[10, 20, 30, 40, 50][1:-2]", array(Value.of(20), Value.of(30)));
+            }
+
+            @Test
+            @DisplayName("[-5:-2] both negative indices")
+            void bothNegativeIndices() {
+                // [-5:-2] on [10,20,30,40,50]: from 0 to 3, so [10,20,30]
+                assertCompilesTo("[10, 20, 30, 40, 50][-5:-2]", array(Value.of(10), Value.of(20), Value.of(30)));
+            }
+
+            // Negative step with explicit bounds
+            @Test
+            @DisplayName("[4:1:-1] reverse with explicit bounds")
+            void reverseWithExplicitBounds() {
+                // [4:1:-1] on [10,20,30,40,50]: from 4 down to (not including) 1, so [50,40,30]
+                assertCompilesTo("[10, 20, 30, 40, 50][4:1:-1]", array(Value.of(50), Value.of(40), Value.of(30)));
+            }
+
+            @Test
+            @DisplayName("[3::-1] reverse from specific index to start")
+            void reverseFromIndexToStart() {
+                // [3::-1] on [10,20,30,40,50]: from 3 down to 0 inclusive, so [40,30,20,10]
+                assertCompilesTo("[10, 20, 30, 40, 50][3::-1]",
+                        array(Value.of(40), Value.of(30), Value.of(20), Value.of(10)));
+            }
+
+            @Test
+            @DisplayName("[-1::-1] reverse from last element")
+            void reverseFromLastElement() {
+                // Same as [::-1]
+                assertCompilesTo("[1, 2, 3][-1::-1]", array(Value.of(3), Value.of(2), Value.of(1)));
+            }
+
+            // Out-of-bounds indices
+            @Test
+            @DisplayName("[10:] start beyond array length returns empty")
+            void startBeyondLength() {
+                assertCompilesTo("[1, 2, 3][10:]", Value.EMPTY_ARRAY);
+            }
+
+            @Test
+            @DisplayName("[:10] end beyond array length returns all")
+            void endBeyondLength() {
+                assertCompilesTo("[1, 2, 3][:10]", array(Value.of(1), Value.of(2), Value.of(3)));
+            }
+
+            @Test
+            @DisplayName("[-10:] negative start beyond length returns all")
+            void negativeStartBeyondLength() {
+                assertCompilesTo("[1, 2, 3][-10:]", array(Value.of(1), Value.of(2), Value.of(3)));
+            }
+
+            // Edge case: start equals end
+            @Test
+            @DisplayName("[1:1] start equals end returns empty")
+            void startEqualsEnd() {
+                assertCompilesTo("[1, 2, 3, 4, 5][1:1]", Value.EMPTY_ARRAY);
+            }
         }
 
         @Nested

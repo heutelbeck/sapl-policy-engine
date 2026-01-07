@@ -61,8 +61,9 @@ public class ExpressionCompiler {
         case Step s                  -> StepCompiler.compile(s, ctx);
 
         // Functions and Filters
-        case FunctionCall fc    -> FunctionCallCompiler.compile(fc, ctx);
-        case FilterOperation fo -> Value.error("UNIMPLEMENTED: FilterOperation");
+        case FunctionCall fc   -> FunctionCallCompiler.compile(fc, ctx);
+        case SimpleFilter sf   -> FilterCompiler.compileSimple(sf, ctx);
+        case ExtendedFilter ef -> ExtendedFilterCompiler.compile(ef, ctx);
         };
     }
 
@@ -78,7 +79,7 @@ public class ExpressionCompiler {
         }
     }
 
-    record RelativeValueOp(SourceLocation location) implements PureOperator {
+    public record RelativeValueOp(SourceLocation location) implements PureOperator {
         @Override
         public Value evaluate(EvaluationContext ctx) {
             return ctx.relativeValue();

@@ -253,8 +253,6 @@ public class TracedPolicySetDecision {
         }
     }
 
-    // ========== Accessor Methods ==========
-
     /**
      * Extracts the policy set name from a traced set decision.
      *

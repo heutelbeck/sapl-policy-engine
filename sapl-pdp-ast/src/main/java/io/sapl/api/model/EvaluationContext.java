@@ -48,8 +48,8 @@ public record EvaluationContext(
         String subscriptionId,
         AuthorizationSubscription authorizationSubscription,
         @NonNull Map<String, Value> variables,
-        FunctionBroker functionBroker,
-        AttributeBroker attributeBroker,
+        @NonNull FunctionBroker functionBroker,
+        @NonNull AttributeBroker attributeBroker,
         @NonNull Supplier<String> timestampSupplier) {
 
     private static final Supplier<String> DEFAULT_TIMESTAMP_SUPPLIER = () -> Instant.now().toString();
