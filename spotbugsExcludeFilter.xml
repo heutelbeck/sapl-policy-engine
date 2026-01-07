@@ -29,6 +29,14 @@
 			<Source name="~.*gen.*"/>
 		</Or>
 	</Match>
+	<!-- ANTLR-generated parser and lexer classes -->
+	<Match>
+		<Or>
+			<Class name="~.*\.antlr\..*Lexer"/>
+			<Class name="~.*\.antlr\..*Parser"/>
+			<Class name="~.*\.antlr\..*Parser\$.*"/>
+		</Or>
+	</Match>
 	<!-- The following rules are excluded from the spotbugs analysis. -->
 	<Match>
 		<Or>
@@ -96,6 +104,10 @@
             <Bug pattern="OCP_OVERLY_CONCRETE_PARAMETER" />
             <Bug pattern="EXS_EXCEPTION_SOFTENING_NO_CONSTRAINTS" />
             <Bug pattern="PDP_POORLY_DEFINED_PARAMETER" />
+            <!-- Pattern matching with unused binding variables (e.g., case Foo(var x, var ignored)) -->
+            <Bug pattern="DLS_DEAD_LOCAL_STORE" />
+            <!-- Lombok @Delegate generates methods with arg0, arg1 parameter names -->
+            <Bug pattern="IMC_IMMATURE_CLASS_IDE_GENERATED_PARAMETER_NAMES" />
 		</Or>
 	</Match>
 </FindBugsFilter>
