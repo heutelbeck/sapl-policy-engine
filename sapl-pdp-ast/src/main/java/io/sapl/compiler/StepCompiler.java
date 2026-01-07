@@ -43,15 +43,20 @@ import java.util.List;
 @UtilityClass
 public class StepCompiler {
 
-    private static final String ERROR_INDEX_OUT_OF_BOUNDS    = "Array index out of bounds: %d (size: %d).";
-    private static final String ERROR_INDEX_ON_NON_ARRAY     = "Cannot apply index step to %s.";
-    private static final String ERROR_WILDCARD_ON_INVALID    = "Cannot apply wildcard step to %s.";
-    private static final String ERROR_INDEX_UNION_ON_INVALID = "Cannot apply index union to %s.";
-    private static final String ERROR_ATTR_UNION_ON_INVALID  = "Cannot apply attribute union to %s.";
-    private static final String ERROR_SLICE_ON_NON_ARRAY     = "Cannot apply slice to %s.";
-    private static final String ERROR_SLICE_STEP_ZERO        = "Slice step cannot be zero.";
-    private static final String ERROR_EXPR_STEP_INVALID_TYPE = "Expression step requires number or string, got %s.";
-    private static final String ERROR_CONDITION_ON_INVALID   = "Cannot apply condition step to %s.";
+    private static final int    MAX_RECURSION_DEPTH                = 500;
+    private static final String ERROR_INDEX_OUT_OF_BOUNDS          = "Array index out of bounds: %d (size: %d).";
+    private static final String ERROR_INDEX_ON_NON_ARRAY           = "Cannot apply index step to %s.";
+    private static final String ERROR_WILDCARD_ON_INVALID          = "Cannot apply wildcard step to %s.";
+    private static final String ERROR_INDEX_UNION_ON_INVALID       = "Cannot apply index union to %s.";
+    private static final String ERROR_ATTR_UNION_ON_INVALID        = "Cannot apply attribute union to %s.";
+    private static final String ERROR_SLICE_ON_NON_ARRAY           = "Cannot apply slice to %s.";
+    private static final String ERROR_SLICE_STEP_ZERO              = "Slice step cannot be zero.";
+    private static final String ERROR_EXPR_STEP_INVALID_TYPE       = "Expression step requires number or string, got %s.";
+    private static final String ERROR_CONDITION_ON_INVALID         = "Cannot apply condition step to %s.";
+    private static final String ERROR_CONDITION_NON_BOOLEAN        = "Condition must evaluate to boolean, got %s.";
+    private static final String ERROR_MAX_RECURSION_DEPTH_KEY      = "Maximum nesting depth exceeded during recursive key step.";
+    private static final String ERROR_MAX_RECURSION_DEPTH_INDEX    = "Maximum nesting depth exceeded during recursive index step.";
+    private static final String ERROR_MAX_RECURSION_DEPTH_WILDCARD = "Maximum nesting depth exceeded during recursive wildcard step.";
 
     public CompiledExpression compile(Step step, CompilationContext ctx) {
         return switch (step) {
@@ -241,15 +246,24 @@ public class StepCompiler {
         return switch (base) {
         case ErrorValue e   -> e;
         case ArrayValue arr -> {
-            var builder = ArrayValue.builder();
-            var size    = arr.size();
-            var seen    = new HashSet<Integer>();
+            var size = arr.size();
+            // Normalize indices and skip out-of-bounds (silently ignored per sapl-lang
+            // behavior)
+            var normalizedIndices = new java.util.ArrayList<Integer>();
+            var seen              = new HashSet<Integer>();
+            for (var index : indices) {
+                int normalized = index >= 0 ? index : size + index;
+                // Skip out-of-bounds indices silently
+                if (normalized >= 0 && normalized < size && seen.add(normalized)) {
+                    normalizedIndices.add(normalized);
+                }
+            }
+            // Collect values in array order (preserving original array order)
+            var builder       = ArrayValue.builder();
+            var normalizedSet = new HashSet<>(normalizedIndices);
             for (int i = 0; i < size; i++) {
-                for (var index : indices) {
-                    int normalized = index >= 0 ? index : size + index;
-                    if (normalized == i && normalized >= 0 && normalized < size && seen.add(normalized)) {
-                        builder.add(arr.get(normalized));
-                    }
+                if (normalizedSet.contains(i)) {
+                    builder.add(arr.get(i));
                 }
             }
             yield builder.build();
@@ -594,10 +608,13 @@ public class StepCompiler {
                 var elemCtx = ctx != null ? ctx.withRelativeValue(element, Value.of(i)) : null;
                 var result  = constantCond != null ? constantCond
                         : (condOp != null ? condOp.evaluate(elemCtx) : Value.FALSE);
-                if (result instanceof BooleanValue(boolean val) && val) {
-                    builder.add(element);
+                if (result instanceof BooleanValue(boolean val)) {
+                    if (val)
+                        builder.add(element);
                 } else if (result instanceof ErrorValue) {
                     yield result;
+                } else {
+                    yield Value.errorAt(loc, ERROR_CONDITION_NON_BOOLEAN, result.getClass().getSimpleName());
                 }
             }
             yield builder.build();
@@ -609,10 +626,13 @@ public class StepCompiler {
                 var elemCtx = ctx != null ? ctx.withRelativeValue(element, Value.of(entry.getKey())) : null;
                 var result  = constantCond != null ? constantCond
                         : (condOp != null ? condOp.evaluate(elemCtx) : Value.FALSE);
-                if (result instanceof BooleanValue(boolean val) && val) {
-                    builder.add(element);
+                if (result instanceof BooleanValue(boolean val)) {
+                    if (val)
+                        builder.add(element);
                 } else if (result instanceof ErrorValue) {
                     yield result;
+                } else {
+                    yield Value.errorAt(loc, ERROR_CONDITION_NON_BOOLEAN, result.getClass().getSimpleName());
                 }
             }
             yield builder.build();
@@ -695,43 +715,54 @@ public class StepCompiler {
 
         return switch (base) {
         case ErrorValue e     -> e;
-        case Value v          -> applyRecursiveKeyStep(v, key);
+        case Value v          -> applyRecursiveKeyStep(v, key, loc);
         case PureOperator p   -> new RecursiveKeyStepPure(p, key, loc);
         case StreamOperator s -> new RecursiveKeyStepStream(s, key, loc);
         };
     }
 
-    static Value applyRecursiveKeyStep(Value base, String key) {
+    static Value applyRecursiveKeyStep(Value base, String key, SourceLocation loc) {
         if (base instanceof ErrorValue e)
             return e;
         var builder = ArrayValue.builder();
-        collectRecursiveKey(base, key, builder);
+        var result  = collectRecursiveKey(base, key, builder, 0);
+        if (result != null) {
+            return Value.errorAt(loc, ERROR_MAX_RECURSION_DEPTH_KEY);
+        }
         return builder.build();
     }
 
-    private static void collectRecursiveKey(Value value, String key, ArrayValue.Builder builder) {
+    private static ErrorValue collectRecursiveKey(Value value, String key, ArrayValue.Builder builder, int depth) {
+        if (depth > MAX_RECURSION_DEPTH) {
+            return Value.error(ERROR_MAX_RECURSION_DEPTH_KEY);
+        }
         switch (value) {
         case ObjectValue obj -> {
             if (obj.containsKey(key)) {
                 builder.add(obj.get(key));
             }
             for (var v : obj.values()) {
-                collectRecursiveKey(v, key, builder);
+                var error = collectRecursiveKey(v, key, builder, depth + 1);
+                if (error != null)
+                    return error;
             }
         }
         case ArrayValue arr  -> {
             for (var element : arr) {
-                collectRecursiveKey(element, key, builder);
+                var error = collectRecursiveKey(element, key, builder, depth + 1);
+                if (error != null)
+                    return error;
             }
         }
         default              -> { /* scalars have no children */ }
         }
+        return null;
     }
 
     record RecursiveKeyStepPure(PureOperator base, String key, SourceLocation location) implements PureOperator {
         @Override
         public Value evaluate(EvaluationContext ctx) {
-            return applyRecursiveKeyStep(base.evaluate(ctx), key);
+            return applyRecursiveKeyStep(base.evaluate(ctx), key, location);
         }
 
         @Override
@@ -743,8 +774,8 @@ public class StepCompiler {
     record RecursiveKeyStepStream(StreamOperator base, String key, SourceLocation location) implements StreamOperator {
         @Override
         public Flux<TracedValue> stream() {
-            return base.stream()
-                    .map(tv -> new TracedValue(applyRecursiveKeyStep(tv.value(), key), tv.contributingAttributes()));
+            return base.stream().map(tv -> new TracedValue(applyRecursiveKeyStep(tv.value(), key, location),
+                    tv.contributingAttributes()));
         }
     }
 
@@ -757,21 +788,27 @@ public class StepCompiler {
 
         return switch (base) {
         case ErrorValue e     -> e;
-        case Value v          -> applyRecursiveIndexStep(v, index);
+        case Value v          -> applyRecursiveIndexStep(v, index, loc);
         case PureOperator p   -> new RecursiveIndexStepPure(p, index, loc);
         case StreamOperator s -> new RecursiveIndexStepStream(s, index, loc);
         };
     }
 
-    static Value applyRecursiveIndexStep(Value base, int index) {
+    static Value applyRecursiveIndexStep(Value base, int index, SourceLocation loc) {
         if (base instanceof ErrorValue e)
             return e;
         var builder = ArrayValue.builder();
-        collectRecursiveIndex(base, index, builder);
+        var result  = collectRecursiveIndex(base, index, builder, 0);
+        if (result != null) {
+            return Value.errorAt(loc, ERROR_MAX_RECURSION_DEPTH_INDEX);
+        }
         return builder.build();
     }
 
-    private static void collectRecursiveIndex(Value value, int index, ArrayValue.Builder builder) {
+    private static ErrorValue collectRecursiveIndex(Value value, int index, ArrayValue.Builder builder, int depth) {
+        if (depth > MAX_RECURSION_DEPTH) {
+            return Value.error(ERROR_MAX_RECURSION_DEPTH_INDEX);
+        }
         switch (value) {
         case ArrayValue arr  -> {
             int normalizedIndex = index >= 0 ? index : arr.size() + index;
@@ -779,22 +816,27 @@ public class StepCompiler {
                 builder.add(arr.get(normalizedIndex));
             }
             for (var element : arr) {
-                collectRecursiveIndex(element, index, builder);
+                var error = collectRecursiveIndex(element, index, builder, depth + 1);
+                if (error != null)
+                    return error;
             }
         }
         case ObjectValue obj -> {
             for (var v : obj.values()) {
-                collectRecursiveIndex(v, index, builder);
+                var error = collectRecursiveIndex(v, index, builder, depth + 1);
+                if (error != null)
+                    return error;
             }
         }
         default              -> { /* scalars have no children */ }
         }
+        return null;
     }
 
     record RecursiveIndexStepPure(PureOperator base, int index, SourceLocation location) implements PureOperator {
         @Override
         public Value evaluate(EvaluationContext ctx) {
-            return applyRecursiveIndexStep(base.evaluate(ctx), index);
+            return applyRecursiveIndexStep(base.evaluate(ctx), index, location);
         }
 
         @Override
@@ -806,8 +848,8 @@ public class StepCompiler {
     record RecursiveIndexStepStream(StreamOperator base, int index, SourceLocation location) implements StreamOperator {
         @Override
         public Flux<TracedValue> stream() {
-            return base.stream().map(
-                    tv -> new TracedValue(applyRecursiveIndexStep(tv.value(), index), tv.contributingAttributes()));
+            return base.stream().map(tv -> new TracedValue(applyRecursiveIndexStep(tv.value(), index, location),
+                    tv.contributingAttributes()));
         }
     }
 
@@ -819,42 +861,53 @@ public class StepCompiler {
 
         return switch (base) {
         case ErrorValue e     -> e;
-        case Value v          -> applyRecursiveWildcardStep(v);
+        case Value v          -> applyRecursiveWildcardStep(v, loc);
         case PureOperator p   -> new RecursiveWildcardStepPure(p, loc);
         case StreamOperator s -> new RecursiveWildcardStepStream(s, loc);
         };
     }
 
-    static Value applyRecursiveWildcardStep(Value base) {
+    static Value applyRecursiveWildcardStep(Value base, SourceLocation loc) {
         if (base instanceof ErrorValue e)
             return e;
         var builder = ArrayValue.builder();
-        collectRecursiveWildcard(base, builder);
+        var result  = collectRecursiveWildcard(base, builder, 0);
+        if (result != null) {
+            return Value.errorAt(loc, ERROR_MAX_RECURSION_DEPTH_WILDCARD);
+        }
         return builder.build();
     }
 
-    private static void collectRecursiveWildcard(Value value, ArrayValue.Builder builder) {
+    private static ErrorValue collectRecursiveWildcard(Value value, ArrayValue.Builder builder, int depth) {
+        if (depth > MAX_RECURSION_DEPTH) {
+            return Value.error(ERROR_MAX_RECURSION_DEPTH_WILDCARD);
+        }
         switch (value) {
         case ArrayValue arr  -> {
             for (var element : arr) {
                 builder.add(element);
-                collectRecursiveWildcard(element, builder);
+                var error = collectRecursiveWildcard(element, builder, depth + 1);
+                if (error != null)
+                    return error;
             }
         }
         case ObjectValue obj -> {
             for (var v : obj.values()) {
                 builder.add(v);
-                collectRecursiveWildcard(v, builder);
+                var error = collectRecursiveWildcard(v, builder, depth + 1);
+                if (error != null)
+                    return error;
             }
         }
         default              -> { /* scalars have no children */ }
         }
+        return null;
     }
 
     record RecursiveWildcardStepPure(PureOperator base, SourceLocation location) implements PureOperator {
         @Override
         public Value evaluate(EvaluationContext ctx) {
-            return applyRecursiveWildcardStep(base.evaluate(ctx));
+            return applyRecursiveWildcardStep(base.evaluate(ctx), location);
         }
 
         @Override
@@ -866,8 +919,8 @@ public class StepCompiler {
     record RecursiveWildcardStepStream(StreamOperator base, SourceLocation location) implements StreamOperator {
         @Override
         public Flux<TracedValue> stream() {
-            return base.stream()
-                    .map(tv -> new TracedValue(applyRecursiveWildcardStep(tv.value()), tv.contributingAttributes()));
+            return base.stream().map(tv -> new TracedValue(applyRecursiveWildcardStep(tv.value(), location),
+                    tv.contributingAttributes()));
         }
     }
 

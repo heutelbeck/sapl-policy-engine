@@ -188,17 +188,23 @@ The operators are already listed in descending order of their **precedence**, i.
 
 #### Cost-Stratified Short-Circuit Evaluation
 
-For the lazy operators `&&` and `||`, SAPL uses **cost-stratified short-circuit evaluation**. Rather than strictly evaluating left-to-right, SAPL organizes operands into cost strata (layers) and evaluates cheaper strata first. This optimization can skip evaluating expensive parts of an expression entirely when the result is already determined by a cheaper operand.
-
-This reordering is safe because SAPL expressions are **side-effect free**. Functions and attribute finders in SAPL only compute and return values - they do not modify state. This guarantees that changing evaluation order does not change observable behavior, only performance.
+For the lazy operators `&&` and `||`, SAPL uses **cost-stratified short-circuit evaluation**. SAPL organizes operands into cost strata (layers) and evaluates cheaper strata first. This optimization can skip evaluating expensive parts of an expression entirely when the result is already determined by a cheaper operand.
 
 SAPL categorizes expressions into three strata based on their evaluation cost:
 
 1. **Constants** (e.g., `true`, `false`, `1 + 2`) - Evaluated at compile time
-2. **Subscription fields and environment variables** (e.g., `subject.isActive`, `resource.type`, `action.method`, `environment.context`) - Evaluated at runtime. This includes the four authorization subscription fields (`subject`, `resource`, `action`, `environment`) and any environment variables configured at the PDP level.
-3. **Attribute finders** (e.g., `<pip.sensor>`, `subject.<geo.location>`) - Require asynchronous subscription to external data sources
+2. **Pure expressions** (e.g., `subject.isActive`, `resource.type`) - Evaluated at runtime without external subscriptions. This includes the four authorization subscription fields (`subject`, `resource`, `action`, `environment`) and any environment variables configured at the PDP level.
+3. **Streaming expressions** (e.g., `<pip.sensor>`, `subject.<geo.location>`) - Require asynchronous subscription to external data sources
 
-When combining expressions with `&&` or `||`, SAPL evaluates cheaper strata first. If a cheaper operand determines the result, more expensive operands are never evaluated. When both operands belong to the same stratum, standard left-to-right evaluation applies.
+**Evaluation Rules:**
+
+1. **Cross-strata ordering:** Lower (cheaper) strata are always evaluated before higher (more expensive) strata, regardless of operand position in the source.
+
+2. **Within-strata ordering:** Within the same stratum, operands are evaluated strictly left-to-right as they appear in the source.
+
+3. **Short-circuit behavior:** When a short-circuit value is found (`false` for `&&`, `true` for `||`), evaluation stops and remaining operands are not evaluated.
+
+4. **Error propagation:** When an error occurs during evaluation, it propagates immediately. Lower strata errors propagate even if higher strata operands appear earlier in the source.
 
 **Example: Constant short-circuits subscription access**
 
@@ -206,7 +212,7 @@ When combining expressions with `&&` or `||`, SAPL evaluates cheaper strata firs
 subject.isActive && false
 ```
 
-Since `false` is a constant that determines the AND result, `subject.isActive` is **never evaluated**. This is equivalent to just `false`.
+Since `false` is a constant (lower stratum) that determines the AND result, `subject.isActive` (higher stratum) is **never evaluated**. This is equivalent to just `false`.
 
 **Example: Subscription access short-circuits attribute finder**
 
@@ -216,7 +222,7 @@ subject.isAdmin || <pip.externalAuthCheck>
 
 If `subject.isAdmin` is `true`, the attribute finder `<pip.externalAuthCheck>` is **never subscribed to**. The external system is never contacted.
 
-**Example: Operand position does not matter**
+**Example: Operand position does not matter for cross-strata**
 
 ```sapl
 <pip.sensor> && false
@@ -224,8 +230,33 @@ If `subject.isAdmin` is `true`, the attribute finder `<pip.externalAuthCheck>` i
 
 Even though `<pip.sensor>` appears on the left, the constant `false` is evaluated first. The attribute stream is **never subscribed to**. This may be surprising if you expect strict left-to-right evaluation as in imperative programming languages.
 
+**Example: Left-to-right within same stratum**
+
+```sapl
+true || (1/0 > 0)
+```
+
+Both operands are constants (same stratum). Left-to-right order applies: `true` is evaluated first and short-circuits. The division by zero is **never evaluated**, so no error occurs.
+
+```sapl
+(1/0 > 0) || true
+```
+
+Again both are constants, but now the error-producing expression comes first. The division by zero **is evaluated** and produces an error, even though `true` would have short-circuited if reached.
+
+**Example: Lower strata errors propagate**
+
+```sapl
+subject.isActive || (1/0 > 0)
+```
+
+Here `subject.isActive` is a pure expression (higher stratum) and `1/0 > 0` is a constant (lower stratum). Constants are evaluated first, so the division by zero **produces an error** before `subject.isActive` is ever checked - even though `subject.isActive` appears first in the source. The pure expression cannot "rescue" the constant error.
+
 {: .info }
 **Why this matters for attribute finders:** Attribute finders subscribe to external data sources. Skipping their evaluation when unnecessary avoids unnecessary network calls, reduces latency, and prevents side effects from unused subscriptions. This is particularly valuable when combining quick checks with expensive external lookups.
+
+{: .warning }
+**Compile-time errors:** Constant expressions that produce errors (like `1/0`) are evaluated at compile time. These errors propagate regardless of whether a higher-stratum operand (appearing earlier in the source) might have short-circuited at runtime. To avoid this, ensure constant sub-expressions do not contain errors, or guard them with conditional logic.
 
 ### String Concatenation
 

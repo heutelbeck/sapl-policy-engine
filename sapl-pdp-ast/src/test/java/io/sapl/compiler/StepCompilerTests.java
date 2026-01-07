@@ -237,6 +237,7 @@ class StepCompilerTests {
             void numberIndexReturnsError() {
                 var result = compileExpression("42[0]");
                 assertThat(result).isInstanceOf(ErrorValue.class);
+                assertThat(((ErrorValue) result).message()).contains("Cannot apply index step");
             }
 
             @Test
@@ -244,6 +245,7 @@ class StepCompilerTests {
             void stringIndexReturnsError() {
                 var result = compileExpression("\"hello\"[0]");
                 assertThat(result).isInstanceOf(ErrorValue.class);
+                assertThat(((ErrorValue) result).message()).contains("Cannot apply index step");
             }
 
             @Test
@@ -251,6 +253,15 @@ class StepCompilerTests {
             void nullIndexReturnsError() {
                 var result = compileExpression("null[0]");
                 assertThat(result).isInstanceOf(ErrorValue.class);
+                assertThat(((ErrorValue) result).message()).contains("Cannot apply index step");
+            }
+
+            @Test
+            @DisplayName("boolean[0] returns error")
+            void booleanIndexReturnsError() {
+                var result = compileExpression("true[0]");
+                assertThat(result).isInstanceOf(ErrorValue.class);
+                assertThat(((ErrorValue) result).message()).contains("Cannot apply index step");
             }
         }
 
@@ -435,15 +446,24 @@ class StepCompilerTests {
             }
 
             @Test
-            @DisplayName("[100, 0] ignores out of bounds")
-            void ignoresOutOfBounds() {
+            @DisplayName("[100, 0] with out of bounds ignores invalid index")
+            void outOfBoundsIgnoresInvalidIndex() {
+                // Out-of-bounds indices are silently ignored (sapl-lang behavior)
                 assertCompilesTo("[10, 20, 30][100, 0]", array(Value.of(10)));
             }
 
             @Test
             @DisplayName("[100, -100] with all out of bounds returns empty")
             void allOutOfBoundsReturnsEmpty() {
+                // All indices out of bounds, result is empty array
                 assertCompilesTo("[10, 20, 30][100, -100]", Value.EMPTY_ARRAY);
+            }
+
+            @Test
+            @DisplayName("[-100, 0] with negative out of bounds ignores invalid")
+            void negativeOutOfBoundsIgnoresInvalid() {
+                // Out-of-bounds negative index is silently ignored
+                assertCompilesTo("[10, 20, 30][-100, 0]", array(Value.of(10)));
             }
 
             @Test
@@ -716,6 +736,15 @@ class StepCompilerTests {
             @DisplayName("slice on non-array returns error")
             void sliceOnNonArrayReturnsError() {
                 var result = compileExpression("{\"a\": 1}[1:3]");
+                assertThat(result).isInstanceOf(ErrorValue.class);
+                assertThat(((ErrorValue) result).message()).contains("Cannot apply slice");
+            }
+
+            @ParameterizedTest
+            @ValueSource(strings = { "42[1:3]", "\"hello\"[1:3]", "true[1:3]", "null[1:3]" })
+            @DisplayName("slice on non-array types returns error")
+            void sliceOnNonArrayTypesReturnsError(String expr) {
+                var result = compileExpression(expr);
                 assertThat(result).isInstanceOf(ErrorValue.class);
                 assertThat(((ErrorValue) result).message()).contains("Cannot apply slice");
             }

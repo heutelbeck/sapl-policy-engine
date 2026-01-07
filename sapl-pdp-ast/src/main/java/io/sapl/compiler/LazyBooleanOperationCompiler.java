@@ -47,18 +47,34 @@ public class LazyBooleanOperationCompiler {
     public CompiledExpression compile(BinaryOperator expr, CompilationContext ctx) {
         val op       = expr.op();
         val location = expr.location();
+        val isAnd    = op == BinaryOperatorType.AND;
 
         val left = ExpressionCompiler.compile(expr.left(), ctx);
         if (left instanceof ErrorValue) {
             return left;
         }
 
+        // Check if left (Value) short-circuits - if so, return early WITHOUT compiling
+        // right
+        // This ensures that lower-stratum short-circuit swallows higher-stratum errors
+        // (LTR within stratum)
+        if (left instanceof Value leftValue) {
+            if (leftValue instanceof BooleanValue(var b)) {
+                boolean shortCircuits = isAnd ? !b : b; // false for AND, true for OR
+                if (shortCircuits) {
+                    return b ? Value.TRUE : Value.FALSE;
+                }
+                // Not short-circuiting, fall through to compile right
+            } else {
+                // Non-boolean Value - type error
+                return Value.errorAt(location, ERROR_TYPE_MISMATCH, leftValue.getClass().getSimpleName());
+            }
+        }
+
         val right = ExpressionCompiler.compile(expr.right(), ctx);
         if (right instanceof ErrorValue) {
             return right;
         }
-
-        val isAnd = op == BinaryOperatorType.AND;
 
         return switch (left) {
         case Value lv          -> switch (right) {
