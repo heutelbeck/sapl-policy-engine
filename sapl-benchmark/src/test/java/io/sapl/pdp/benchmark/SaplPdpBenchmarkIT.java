@@ -33,7 +33,7 @@ import io.sapl.benchmark.BenchmarkCommand;
 import picocli.CommandLine;
 
 class SaplPdpBenchmarkIT {
-    private static final String TMP_REPORT_PATH = "results/tmp_benchmark_test";
+    private static final String TMP_REPORT_PATH = "target/results/tmp_benchmark_test";
 
     @BeforeAll
     static void createEmptyBenchmarkResultFolder() throws IOException {

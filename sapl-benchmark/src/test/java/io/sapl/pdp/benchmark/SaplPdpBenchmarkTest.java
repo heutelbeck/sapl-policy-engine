@@ -41,7 +41,7 @@ import io.sapl.benchmark.jmh.RsocketBenchmark;
 import io.sapl.benchmark.util.BenchmarkException;
 
 class SaplPdpBenchmarkTest {
-    private static final String TMP_REPORT_PATH = "tmp_benchmark_test";
+    private static final String TMP_REPORT_PATH = "target/tmp_benchmark_test";
 
     @BeforeAll
     static void createEmptyBenchmarkFolder() throws IOException {
