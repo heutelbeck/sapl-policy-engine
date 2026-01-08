@@ -17,8 +17,6 @@
  */
 package io.sapl.compiler;
 
-import static io.sapl.ast.BinaryOperatorType.*;
-
 import io.sapl.api.model.*;
 import io.sapl.ast.BinaryOperator;
 import io.sapl.ast.BinaryOperatorType;
@@ -32,6 +30,8 @@ import reactor.core.publisher.Flux;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+
+import static io.sapl.ast.BinaryOperatorType.*;
 
 public class BinaryOperationCompiler {
 

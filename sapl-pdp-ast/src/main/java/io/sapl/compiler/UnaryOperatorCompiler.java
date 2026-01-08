@@ -17,8 +17,6 @@
  */
 package io.sapl.compiler;
 
-import static io.sapl.ast.UnaryOperatorType.*;
-
 import io.sapl.api.model.*;
 import io.sapl.ast.UnaryOperator;
 import io.sapl.ast.UnaryOperatorType;
@@ -28,8 +26,9 @@ import io.sapl.compiler.operators.BooleanOperators;
 import lombok.val;
 import reactor.core.publisher.Flux;
 
-import java.util.List;
 import java.util.Map;
+
+import static io.sapl.ast.UnaryOperatorType.*;
 
 public class UnaryOperatorCompiler {
 

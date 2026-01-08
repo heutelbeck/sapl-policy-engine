@@ -17,9 +17,9 @@
  */
 package io.sapl.compiler.util;
 
-import java.util.Map;
-
 import lombok.experimental.UtilityClass;
+
+import java.util.Map;
 
 /**
  * Utility class for SAPL string literal processing.

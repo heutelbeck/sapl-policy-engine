@@ -17,11 +17,11 @@
  */
 package io.sapl.ast;
 
-import java.util.List;
-
 import io.sapl.api.model.SourceLocation;
 import io.sapl.compiler.SaplCompilerException;
 import lombok.NonNull;
+
+import java.util.List;
 
 /**
  * A policy set containing multiple policies.

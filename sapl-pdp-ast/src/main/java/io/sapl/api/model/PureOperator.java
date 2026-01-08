@@ -17,8 +17,6 @@
  */
 package io.sapl.api.model;
 
-import reactor.core.publisher.Mono;
-
 public non-sealed interface PureOperator extends CompiledExpression {
     Value evaluate(EvaluationContext ctx);
 

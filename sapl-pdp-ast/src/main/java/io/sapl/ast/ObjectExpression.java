@@ -17,10 +17,10 @@
  */
 package io.sapl.ast;
 
-import java.util.List;
-
 import io.sapl.api.model.SourceLocation;
 import lombok.NonNull;
+
+import java.util.List;
 
 /**
  * Object literal expression: {@code {key1: expr1, key2: expr2, ...}}

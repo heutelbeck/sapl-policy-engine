@@ -17,14 +17,17 @@
  */
 package io.sapl.compiler;
 
-import java.util.ArrayList;
-
 import io.sapl.api.model.*;
-import io.sapl.ast.*;
+import io.sapl.ast.Expression;
+import io.sapl.ast.RelativeReference;
+import io.sapl.ast.RelativeType;
+import io.sapl.ast.SimpleFilter;
 import io.sapl.compiler.operators.SimpleStreamOperator;
 import lombok.experimental.UtilityClass;
 import lombok.val;
 import reactor.core.publisher.Flux;
+
+import java.util.ArrayList;
 
 @UtilityClass
 public class FilterCompiler {
