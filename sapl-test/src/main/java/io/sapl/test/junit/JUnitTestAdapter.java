@@ -27,6 +27,7 @@ import org.junit.jupiter.api.*;
 import org.opentest4j.AssertionFailedError;
 
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -178,7 +179,7 @@ public class JUnitTestAdapter {
         } catch (IOException exception) {
             return DynamicContainer.dynamicContainer(relativePath, uri,
                     Stream.of(DynamicTest.dynamicTest("Parse Error", () -> {
-                        throw new RuntimeException("Failed to read test file: " + relativePath, exception);
+                        throw new UncheckedIOException("Failed to read test file: " + relativePath, exception);
                     })));
         } catch (Exception exception) {
             return DynamicContainer.dynamicContainer(relativePath, uri,

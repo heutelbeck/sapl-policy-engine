@@ -45,8 +45,7 @@ public class ValidationStatusDisplay extends VerticalLayout {
     private static final String COLOR_ORANGE = "var(--lumo-warning-color, orange)";
     public static final String  PADDING      = "padding";
 
-    private final HorizontalLayout summaryRow;
-    private final Icon             statusIcon;
+    private final Icon statusIcon;
     private final Span             summaryText;
     private final Span             expandIndicator;
     private final Div              detailsPanel;
@@ -64,7 +63,7 @@ public class ValidationStatusDisplay extends VerticalLayout {
                 .set("font-family", "var(--lumo-font-family)").set("font-size", "var(--lumo-font-size-s)");
 
         // Summary row
-        summaryRow = new HorizontalLayout();
+        var summaryRow = new HorizontalLayout();
         summaryRow.setWidthFull();
         summaryRow.setPadding(false);
         summaryRow.setSpacing(true);

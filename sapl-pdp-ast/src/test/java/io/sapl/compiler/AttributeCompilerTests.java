@@ -46,10 +46,10 @@ class AttributeCompilerTests {
         StepVerifier.create(stream).assertNext(tv -> {
             assertThat(tv.value()).isEqualTo(Value.of("result"));
             assertThat(tv.contributingAttributes()).hasSize(1);
-            var record = tv.contributingAttributes().getFirst();
-            assertThat(record.invocation().attributeName()).isEqualTo("test.attr");
-            assertThat(record.attributeValue()).isEqualTo(Value.of("result"));
-            assertThat(record.retrievedAt()).isNotNull();
+            var attributeRecord = tv.contributingAttributes().getFirst();
+            assertThat(attributeRecord.invocation().attributeName()).isEqualTo("test.attr");
+            assertThat(attributeRecord.attributeValue()).isEqualTo(Value.of("result"));
+            assertThat(attributeRecord.retrievedAt()).isNotNull();
         }).verifyComplete();
     }
 
@@ -111,28 +111,25 @@ class AttributeCompilerTests {
 
     @Test
     void when_environmentAttribute_withStreamArgument_then_combinesLatest() {
-        var capturedInvocations = new java.util.ArrayList<AttributeFinderInvocation>();
-        var broker              = new AttributeBroker() {
-                                    @Override
-                                    public Flux<Value> attributeStream(AttributeFinderInvocation invocation) {
-                                        capturedInvocations.add(invocation);
-                                        if ("inner.attr".equals(invocation.attributeName()))
-                                            return Flux.just(Value.of("arg1"), Value.of("arg2"));
-                                        if ("outer.attr".equals(invocation.attributeName())) {
-                                            var arg = ((io.sapl.api.model.TextValue) invocation.arguments().getFirst())
-                                                    .value();
-                                            return Flux.just(Value.of("result-" + arg));
-                                        }
-                                        return Flux.just(Value.error("Unknown"));
-                                    }
+        var broker = new AttributeBroker() {
+                       @Override
+                       public Flux<Value> attributeStream(AttributeFinderInvocation invocation) {
+                           if ("inner.attr".equals(invocation.attributeName()))
+                               return Flux.just(Value.of("arg1"), Value.of("arg2"));
+                           if ("outer.attr".equals(invocation.attributeName())) {
+                               var arg = ((io.sapl.api.model.TextValue) invocation.arguments().getFirst()).value();
+                               return Flux.just(Value.of("result-" + arg));
+                           }
+                           return Flux.just(Value.error("Unknown"));
+                       }
 
-                                    @Override
-                                    public List<Class<?>> getRegisteredLibraries() {
-                                        return List.of();
-                                    }
-                                };
-        var ctx                 = evaluationContext(broker);
-        var result              = evaluateExpression("<outer.attr(<inner.attr>)>", ctx);
+                       @Override
+                       public List<Class<?>> getRegisteredLibraries() {
+                           return List.of();
+                       }
+                   };
+        var ctx    = evaluationContext(broker);
+        var result = evaluateExpression("<outer.attr(<inner.attr>)>", ctx);
 
         var stream = ((StreamOperator) result).stream().contextWrite(c -> c.put(EvaluationContext.class, ctx));
         StepVerifier.create(stream).assertNext(tv -> {

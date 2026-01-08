@@ -119,12 +119,10 @@ class TextValueTests {
     @Test
     @DisplayName("Pattern matching extracts value correctly")
     void when_patternMatchingUsed_then_extractsValueCorrectly() {
-        Value username = Value.of("admin");
+        var username = Value.of("admin");
 
         assertThat(username).isInstanceOf(TextValue.class);
-        if (username instanceof TextValue(String name)) {
-            assertThat(name).isEqualTo("admin");
-        }
+        assertThat(username.value()).isEqualTo("admin");
     }
 
     @Test

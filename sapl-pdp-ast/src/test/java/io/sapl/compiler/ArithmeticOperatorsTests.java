@@ -308,7 +308,7 @@ class ArithmeticOperatorsTests {
                 arguments("negative less than zero", Value.of(-3), Value.of(0), true),
                 arguments("zero less than positive", Value.of(0), Value.of(5), true),
                 arguments("decimal comparison", Value.of(2.5), Value.of(3.5), true),
-                arguments("close decimals", Value.of(3.14), Value.of(3.15), true));
+                arguments("close decimals", Value.of(4.14), Value.of(4.15), true));
     }
 
     @Test

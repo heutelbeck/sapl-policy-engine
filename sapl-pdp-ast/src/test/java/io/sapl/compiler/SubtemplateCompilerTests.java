@@ -121,45 +121,31 @@ class SubtemplateCompilerTests {
     }
     // @formatter:on
 
-    @Test
-    void when_subtemplateWithUndefined_then_propagatesUndefined() {
-        val compiler = new SubtemplateCompiler();
-        val ctx      = new CompilationContext(null, null, null);
-
-        val leftExpr  = new Literal(Value.UNDEFINED, TEST_LOCATION);
-        val rightExpr = new Literal(Value.of(1), TEST_LOCATION);
+    @MethodSource
+    @ParameterizedTest(name = "{0}")
+    void when_subtemplateWithSpecialValues_then_propagatesCorrectly(String description, Value left, Value right,
+            Class<?> expectedType, Value expectedValue) {
+        val compiler  = new SubtemplateCompiler();
+        val ctx       = new CompilationContext(null, null, null);
+        val leftExpr  = new Literal(left, TEST_LOCATION);
+        val rightExpr = new Literal(right, TEST_LOCATION);
         val binaryOp  = new BinaryOperator(BinaryOperatorType.SUBTEMPLATE, leftExpr, rightExpr, TEST_LOCATION);
 
         val result = compiler.compile(binaryOp, ctx);
-        assertThat(result).isEqualTo(Value.UNDEFINED);
+        assertThat(result).isInstanceOf(expectedType);
+        if (expectedValue != null) {
+            assertThat(result).isEqualTo(expectedValue);
+        }
     }
 
-    @Test
-    void when_subtemplateWithError_then_propagatesError() {
-        val compiler = new SubtemplateCompiler();
-        val ctx      = new CompilationContext(null, null, null);
-
-        val error     = Value.error("test error");
-        val leftExpr  = new Literal(error, TEST_LOCATION);
-        val rightExpr = new Literal(Value.of(1), TEST_LOCATION);
-        val binaryOp  = new BinaryOperator(BinaryOperatorType.SUBTEMPLATE, leftExpr, rightExpr, TEST_LOCATION);
-
-        val result = compiler.compile(binaryOp, ctx);
-        assertThat(result).isInstanceOf(ErrorValue.class);
-    }
-
-    @Test
-    void when_subtemplateTemplateIsError_then_propagatesError() {
-        val compiler = new SubtemplateCompiler();
-        val ctx      = new CompilationContext(null, null, null);
-
-        val error     = Value.error("template error");
-        val leftExpr  = new Literal(Value.of(5), TEST_LOCATION);
-        val rightExpr = new Literal(error, TEST_LOCATION);
-        val binaryOp  = new BinaryOperator(BinaryOperatorType.SUBTEMPLATE, leftExpr, rightExpr, TEST_LOCATION);
-
-        val result = compiler.compile(binaryOp, ctx);
-        assertThat(result).isInstanceOf(ErrorValue.class);
+    private static Stream<Arguments> when_subtemplateWithSpecialValues_then_propagatesCorrectly() {
+        return Stream.of(
+                arguments("undefined parent propagates undefined", Value.UNDEFINED, Value.of(1), Value.class,
+                        Value.UNDEFINED),
+                arguments("error parent propagates error", Value.error("test error"), Value.of(1), ErrorValue.class,
+                        null),
+                arguments("error template propagates error", Value.of(5), Value.error("template error"),
+                        ErrorValue.class, null));
     }
 
     @MethodSource
@@ -252,25 +238,22 @@ class SubtemplateCompilerTests {
         assertThat(op.isDependingOnSubscription()).isTrue();
     }
 
-    @Test
-    void when_subtemplatePurePure_isDependingOnSubscription_then_combinesParentAndTemplate() {
-        val parentDepends      = new TestPureOperator(ctx -> Value.of(5), true);
-        val templateDepends    = new TestPureOperator(EvaluationContext::relativeValue, true);
-        val parentNotDepends   = new TestPureOperator(ctx -> Value.of(5), false);
-        val templateNotDepends = new TestPureOperator(EvaluationContext::relativeValue, false);
+    @MethodSource
+    @ParameterizedTest(name = "parent={0}, template={1} -> {2}")
+    void when_subtemplatePurePure_isDependingOnSubscription_then_combinesParentAndTemplate(boolean parentDepends,
+            boolean templateDepends, boolean expected) {
+        val parent   = new TestPureOperator(ctx -> Value.of(5), parentDepends);
+        val template = new TestPureOperator(EvaluationContext::relativeValue, templateDepends);
+        val op       = new SubtemplateCompiler.SubtemplatePurePure(parent, template, TEST_LOCATION);
 
-        // Both depend
-        assertThat(new SubtemplateCompiler.SubtemplatePurePure(parentDepends, templateDepends, TEST_LOCATION)
-                .isDependingOnSubscription()).isTrue();
-        // Only parent depends
-        assertThat(new SubtemplateCompiler.SubtemplatePurePure(parentDepends, templateNotDepends, TEST_LOCATION)
-                .isDependingOnSubscription()).isTrue();
-        // Only template depends
-        assertThat(new SubtemplateCompiler.SubtemplatePurePure(parentNotDepends, templateDepends, TEST_LOCATION)
-                .isDependingOnSubscription()).isTrue();
-        // Neither depends
-        assertThat(new SubtemplateCompiler.SubtemplatePurePure(parentNotDepends, templateNotDepends, TEST_LOCATION)
-                .isDependingOnSubscription()).isFalse();
+        assertThat(op.isDependingOnSubscription()).isEqualTo(expected);
+    }
+
+    private static Stream<Arguments> when_subtemplatePurePure_isDependingOnSubscription_then_combinesParentAndTemplate() {
+        return Stream.of(arguments(true, true, true),    // Both depend -> true
+                arguments(true, false, true),   // Only parent depends -> true
+                arguments(false, true, true),   // Only template depends -> true
+                arguments(false, false, false)); // Neither depends -> false
     }
 
     @Test

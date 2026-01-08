@@ -82,7 +82,7 @@ public class SubtemplateCompiler {
         case PureOperator tp        -> {
             if (!tp.isDependingOnSubscription()) {
                 // Constant fold: template only uses @ and #, can evaluate at compile time
-                yield applyTemplateToValueAtCompileTime(parent, tp, loc, ctx);
+                yield applyTemplateToValueAtCompileTime(parent, tp, ctx);
             }
             // Template depends on subscription, must defer to runtime
             yield new SubtemplateValuePure(parent, tp, loc);
@@ -125,7 +125,7 @@ public class SubtemplateCompiler {
     }
 
     private static CompiledExpression applyTemplateToValueAtCompileTime(Value parent, PureOperator template,
-            SourceLocation loc, CompilationContext compilationCtx) {
+            CompilationContext compilationCtx) {
         // Create context with function broker for compile-time evaluation
         val baseCtx = new EvaluationContext(null, null, null, null, compilationCtx.getFunctionBroker(),
                 compilationCtx.getAttributeBroker());
