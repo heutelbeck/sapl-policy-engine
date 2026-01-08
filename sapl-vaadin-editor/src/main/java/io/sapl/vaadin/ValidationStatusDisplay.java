@@ -46,9 +46,9 @@ public class ValidationStatusDisplay extends VerticalLayout {
     public static final String  PADDING      = "padding";
 
     private final Icon statusIcon;
-    private final Span             summaryText;
-    private final Span             expandIndicator;
-    private final Div              detailsPanel;
+    private final Span summaryText;
+    private final Span expandIndicator;
+    private final Div  detailsPanel;
 
     @Getter
     private boolean expanded = false;

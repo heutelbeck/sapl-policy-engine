@@ -39,6 +39,8 @@ import static io.sapl.compiler.AttributeOptionsCompiler.*;
 @UtilityClass
 public class AttributeCompiler {
 
+    private static final String ERROR_UNDEFINED_ENTITY_IN_ATTRIBUTE_ACCESS = "Undefined entity in attribute access";
+
     public static StreamOperator compileEnvironmentAttribute(EnvironmentAttribute attr, CompilationContext ctx) {
         return compileAttribute(null, attr.name().full(), attr.arguments(), attr.options(), attr.head(),
                 attr.location(), ctx);
@@ -183,7 +185,7 @@ public class AttributeCompiler {
                     }
                 }
                 if (entity instanceof UndefinedValue) {
-                    return Flux.just(errorTracedValue(Value.error("Undefined entity in attribute access")));
+                    return Flux.just(errorTracedValue(Value.error(ERROR_UNDEFINED_ENTITY_IN_ATTRIBUTE_ACCESS)));
                 }
 
                 var optionsValue = evaluateOptions(options, evalCtx);
@@ -222,7 +224,7 @@ public class AttributeCompiler {
                     return Flux.just(tracedEntity);
                 }
                 if (entityVal instanceof UndefinedValue) {
-                    return Flux.just(errorTracedValue(Value.error("Undefined entity in attribute access")));
+                    return Flux.just(errorTracedValue(Value.error(ERROR_UNDEFINED_ENTITY_IN_ATTRIBUTE_ACCESS)));
                 }
 
                 return Flux.deferContextual(ctx -> {

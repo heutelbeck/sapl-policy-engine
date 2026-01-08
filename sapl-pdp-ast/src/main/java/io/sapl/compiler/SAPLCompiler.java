@@ -19,7 +19,6 @@ package io.sapl.compiler;
 
 import io.sapl.ast.SaplDocument;
 import io.sapl.compiler.ast.AstTransformer;
-import io.sapl.compiler.ast.ImportResolver;
 import io.sapl.compiler.model.Document;
 import io.sapl.grammar.antlr.SAPLLexer;
 import io.sapl.grammar.antlr.SAPLParser;
@@ -47,18 +46,22 @@ import static io.sapl.compiler.util.StringsUtil.unquoteString;
  */
 public class SAPLCompiler {
 
+    private static final String ERROR_FAILED_TO_READ_INPUT_STREAM = "Failed to read input stream";
+    private static final String ERROR_SYNTAX                      = "Syntax errors: %s";
+    private static final String ERROR_VALIDATION                  = "Validation errors: %s";
+
     private final SAPLValidator  validator      = new SAPLValidator();
     private final AstTransformer astTransformer = new AstTransformer();
 
     public SaplContext parse(String saplDefinition) {
         val result = parseWithErrors(saplDefinition);
         if (!result.syntaxErrors().isEmpty()) {
-            throw new SaplCompilerException("Syntax errors: " + String.join("; ", result.syntaxErrors()));
+            throw new SaplCompilerException(ERROR_SYNTAX.formatted(String.join("; ", result.syntaxErrors())));
         }
         val validationErrors = validator.validate(result.parseTree());
         if (!validationErrors.isEmpty()) {
-            throw new SaplCompilerException("Validation errors: "
-                    + validationErrors.stream().map(ValidationError::toString).collect(Collectors.joining("; ")));
+            throw new SaplCompilerException(ERROR_VALIDATION.formatted(
+                    validationErrors.stream().map(ValidationError::toString).collect(Collectors.joining("; "))));
         }
         return result.parseTree();
     }
@@ -87,7 +90,7 @@ public class SAPLCompiler {
         Exception    astException = null;
         if (result.syntaxErrors().isEmpty() && validationErrors.isEmpty()) {
             try {
-                ast = ImportResolver.resolve((astTransformer.visitSapl(result.parseTree())));
+                ast = astTransformer.visitSapl(result.parseTree());
             } catch (SaplCompilerException e) {
                 astException = e;
             }
@@ -162,7 +165,7 @@ public class SAPLCompiler {
             val bytes = inputStream.readAllBytes();
             return new String(bytes, StandardCharsets.UTF_8);
         } catch (IOException | NullPointerException exception) {
-            throw new SaplCompilerException("Failed to read input stream", exception);
+            throw new SaplCompilerException(ERROR_FAILED_TO_READ_INPUT_STREAM, exception);
         }
     }
 

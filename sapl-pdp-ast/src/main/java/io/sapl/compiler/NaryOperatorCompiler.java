@@ -52,6 +52,8 @@ import java.util.List;
 @UtilityClass
 public class NaryOperatorCompiler {
 
+    private static final String ERROR_EMPTY_NARY_EXPRESSION = "Empty N-ary expression.";
+
     public CompiledExpression compileXor(ExclusiveDisjunction xd, CompilationContext ctx) {
         return compile(xd.operands(), ctx, xd.location(), BooleanOperators::xor);
     }
@@ -90,7 +92,7 @@ public class NaryOperatorCompiler {
         // Determine return type based on remaining strata
         if (pures.isEmpty() && streams.isEmpty()) {
             // All values - return folded result
-            return valueResult != null ? valueResult : Value.error("Empty N-ary expression.");
+            return valueResult != null ? valueResult : Value.error(ERROR_EMPTY_NARY_EXPRESSION);
         }
 
         if (streams.isEmpty()) {

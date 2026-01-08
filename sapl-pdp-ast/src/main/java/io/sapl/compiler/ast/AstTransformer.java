@@ -28,7 +28,9 @@ import org.antlr.v4.runtime.ParserRuleContext;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import static io.sapl.compiler.util.SourceLocationUtil.fromContext;
 import static io.sapl.compiler.util.StringsUtil.unquoteString;
@@ -42,17 +44,49 @@ import static io.sapl.compiler.util.StringsUtil.unquoteString;
  */
 public class AstTransformer extends SAPLParserBaseVisitor<AstNode> {
 
+    private static final String ERROR_ATTRIBUTE_IN_FILTER_TARGET   = "Attribute finder steps not allowed in filter targets";
+    private static final String ERROR_IMPORT_CONFLICT              = "Import conflict: '%s' already imported as '%s' from '%s'.";
+    private static final String ERROR_INVALID_QUALIFIED_NAME       = "Invalid qualified name '%s': too many segments (max: library.function).";
     private static final String ERROR_UNKNOWN_COMBINING_ALGORITHM  = "Unknown combining algorithm.";
     private static final String ERROR_UNKNOWN_ENTITLEMENT          = "Unknown entitlement.";
+    private static final String ERROR_UNKNOWN_FILTER_TYPE          = "Unknown filter type: %s";
     private static final String ERROR_UNKNOWN_PAIR_KEY_TYPE        = "Unknown pair key type.";
+    private static final String ERROR_UNKNOWN_PATH_ELEMENT         = "Unknown step type in filter path: %s";
+    private static final String ERROR_UNKNOWN_PATH_SUBSCRIPT       = "Unknown subscript type in filter path: %s";
+    private static final String ERROR_UNKNOWN_RECURSIVE_KEY_STEP   = "Unknown recursive key step type";
+    private static final String ERROR_UNKNOWN_STEP_TYPE            = "Unknown step type: %s";
     private static final String ERROR_UNKNOWN_SUBSCRIPTION_ELEMENT = "Unknown subscription element.";
+    private static final String ERROR_UNKNOWN_SUBSCRIPT_TYPE       = "Unknown subscript type: %s";
+    private static final String ERROR_UNRESOLVED_REFERENCE         = "Unresolved reference '%s': not imported and not fully qualified.";
+
+    private Map<String, List<String>> importMap;
 
     @Override
     public SaplDocument visitSapl(SaplContext ctx) {
         var imports = ctx.importStatement().stream().map(this::visitImportStatement).toList();
+        this.importMap = buildImportMap(imports);
         var schemas = ctx.schemaStatement().stream().map(this::visitSchemaStatement).toList();
         var element = (PolicyElement) visit(ctx.policyElement());
         return new SaplDocument(imports, schemas, element, fromContext(ctx));
+    }
+
+    private Map<String, List<String>> buildImportMap(List<Import> imports) {
+        var map        = new HashMap<String, List<String>>();
+        var importedBy = new HashMap<String, Import>();
+        for (var imp : imports) {
+            var shortName = imp.effectiveName();
+            var existing  = importedBy.get(shortName);
+            if (existing != null) {
+                throw new SaplCompilerException(
+                        ERROR_IMPORT_CONFLICT.formatted(shortName, existing.fullName(), imp.fullName()),
+                        imp.location());
+            }
+            var fullPath = new ArrayList<>(imp.libraryPath());
+            fullPath.add(imp.functionName());
+            map.put(shortName, fullPath);
+            importedBy.put(shortName, imp);
+        }
+        return map;
     }
 
     @Override
@@ -328,7 +362,7 @@ public class AstTransformer extends SAPLParserBaseVisitor<AstNode> {
         case FilterSimpleContext simple   -> buildSimpleFilter(base, simple, ctx);
         case FilterExtendedContext extend -> buildExtendedFilter(base, extend);
         default                           -> throw new SaplCompilerException(
-                "Unknown filter type: " + filterCtx.getClass().getSimpleName(), fromContext(ctx));
+                ERROR_UNKNOWN_FILTER_TYPE.formatted(filterCtx.getClass().getSimpleName()), fromContext(ctx));
         };
     }
 
@@ -518,11 +552,11 @@ public class AstTransformer extends SAPLParserBaseVisitor<AstNode> {
             new RecursiveIndexPath(parseSignedNumber(c.recursiveIndexStep().signedNumber()), loc);
         case BracketStepContext c                 -> buildSubscriptPath(c.subscript());
         case AttributeFinderDotStepContext c      ->
-            throw new SaplCompilerException("Attribute finder steps not allowed in filter targets", loc);
+            throw new SaplCompilerException(ERROR_ATTRIBUTE_IN_FILTER_TARGET, loc);
         case HeadAttributeFinderDotStepContext c  ->
-            throw new SaplCompilerException("Attribute finder steps not allowed in filter targets", loc);
+            throw new SaplCompilerException(ERROR_ATTRIBUTE_IN_FILTER_TARGET, loc);
         default                                   ->
-            throw new SaplCompilerException("Unknown step type in filter path: " + ctx.getClass().getSimpleName(), loc);
+            throw new SaplCompilerException(ERROR_UNKNOWN_PATH_ELEMENT.formatted(ctx.getClass().getSimpleName()), loc);
         };
     }
 
@@ -546,7 +580,7 @@ public class AstTransformer extends SAPLParserBaseVisitor<AstNode> {
         case AttributeUnionSubscriptContext c -> new AttributeUnionPath(
                 c.attributeUnionStep().attributes.stream().map(t -> unquoteString(t.getText())).toList(), loc);
         default                               -> throw new SaplCompilerException(
-                "Unknown subscript type in filter path: " + ctx.getClass().getSimpleName(), loc);
+                ERROR_UNKNOWN_PATH_SUBSCRIPT.formatted(ctx.getClass().getSimpleName()), loc);
         };
     }
 
@@ -554,7 +588,7 @@ public class AstTransformer extends SAPLParserBaseVisitor<AstNode> {
         return switch (ctx) {
         case RecursiveIdKeyStepContext c     -> new RecursiveKeyPath(idText(c.saplId()), loc);
         case RecursiveStringKeyStepContext c -> new RecursiveKeyPath(unquoteString(c.STRING().getText()), loc);
-        default                              -> throw new SaplCompilerException("Unknown recursive key step type", loc);
+        default                              -> throw new SaplCompilerException(ERROR_UNKNOWN_RECURSIVE_KEY_STEP, loc);
         };
     }
 
@@ -581,7 +615,19 @@ public class AstTransformer extends SAPLParserBaseVisitor<AstNode> {
 
     private QualifiedName toQualifiedName(FunctionIdentifierContext ctx) {
         var parts = ctx.idFragment.stream().map(this::idText).toList();
-        return new QualifiedName(parts);
+        var loc   = fromContext(ctx);
+        if (parts.size() > 2) {
+            throw new SaplCompilerException(ERROR_INVALID_QUALIFIED_NAME.formatted(String.join(".", parts)), loc);
+        }
+        if (parts.size() == 2) {
+            return new QualifiedName(parts);
+        }
+        // Single-part name: resolve via imports
+        var resolved = importMap.get(parts.getFirst());
+        if (resolved != null) {
+            return new QualifiedName(resolved);
+        }
+        throw new SaplCompilerException(ERROR_UNRESOLVED_REFERENCE.formatted(parts.getFirst()), loc);
     }
 
     private SubscriptionElement toSubscriptionElement(ReservedIdContext ctx) {
@@ -667,7 +713,7 @@ public class AstTransformer extends SAPLParserBaseVisitor<AstNode> {
             new RecursiveIndexStep(base, parseSignedNumber(c.recursiveIndexStep().signedNumber()), loc);
         case BracketStepContext c                 -> buildSubscriptStep(base, c.subscript());
         default                                   ->
-            throw new SaplCompilerException("Unknown step type: " + ctx.getClass().getSimpleName(), loc);
+            throw new SaplCompilerException(ERROR_UNKNOWN_STEP_TYPE.formatted(ctx.getClass().getSimpleName()), loc);
         };
     }
 
@@ -692,8 +738,8 @@ public class AstTransformer extends SAPLParserBaseVisitor<AstNode> {
             new IndexUnionStep(base, c.indexUnionStep().indices.stream().map(this::parseSignedNumber).toList(), loc);
         case AttributeUnionSubscriptContext c -> new AttributeUnionStep(base,
                 c.attributeUnionStep().attributes.stream().map(t -> unquoteString(t.getText())).toList(), loc);
-        default                               ->
-            throw new SaplCompilerException("Unknown subscript type: " + ctx.getClass().getSimpleName(), loc);
+        default                               -> throw new SaplCompilerException(
+                ERROR_UNKNOWN_SUBSCRIPT_TYPE.formatted(ctx.getClass().getSimpleName()), loc);
         };
     }
 
@@ -701,7 +747,7 @@ public class AstTransformer extends SAPLParserBaseVisitor<AstNode> {
         return switch (ctx) {
         case RecursiveIdKeyStepContext c     -> new RecursiveKeyStep(base, idText(c.saplId()), loc);
         case RecursiveStringKeyStepContext c -> new RecursiveKeyStep(base, unquoteString(c.STRING().getText()), loc);
-        default                              -> throw new SaplCompilerException("Unknown recursive key step type", loc);
+        default                              -> throw new SaplCompilerException(ERROR_UNKNOWN_RECURSIVE_KEY_STEP, loc);
         };
     }
 

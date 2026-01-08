@@ -41,83 +41,76 @@ class SubtemplateCompilerTests {
 
     @MethodSource
     @ParameterizedTest(name = "{0}")
-    void when_subtemplateWithLiterals_then_returnsExpected(String description, String expression, Value expected) {
+    void when_subtemplateExpression_then_returnsExpected(String description, String expression, Value expected) {
         val result = evaluateExpression(expression);
         assertThat(result).isEqualTo(expected);
     }
 
     // @formatter:off
-    private static Stream<Arguments> when_subtemplateWithLiterals_then_returnsExpected() {
+    private static Stream<Arguments> when_subtemplateExpression_then_returnsExpected() {
         return Stream.of(
+            // === Literals ===
             // Array with @ (relative value) - basic identity
             arguments("array with identity template", "[1, 2, 3] :: @",
                 Value.ofArray(Value.of(1), Value.of(2), Value.of(3))),
-
-            // Array with # (relative location/index) - NEW FEATURE
+            // Array with # (relative location/index)
             arguments("array with index only", "[10, 20, 30] :: #",
                 Value.ofArray(Value.of(0), Value.of(1), Value.of(2))),
-
             // Empty array
             arguments("empty array with @ returns empty", "[] :: @", Value.EMPTY_ARRAY),
             arguments("empty array with # returns empty", "[] :: #", Value.EMPTY_ARRAY),
-
             // Scalar (non-array) values
             arguments("scalar with @ identity", "5 :: @", Value.of(5)),
             arguments("scalar with # (should be 0)", "5 :: #", Value.of(0)),
-            arguments("scalar string with @",
-                """
-                "hello" :: @
-                """,
-                Value.of("hello")),
-
+            arguments("scalar string with @", "\"hello\" :: @", Value.of("hello")),
             // Constant template (ignores @)
             arguments("constant template on array", "[1, 2, 3] :: 99",
                 Value.ofArray(Value.of(99), Value.of(99), Value.of(99))),
             arguments("constant template on scalar", "5 :: 99", Value.of(99)),
-
             // String operations
-            arguments("string array identity",
-                """
-                ["a", "b"] :: @
-                """,
+            arguments("string array identity", "[\"a\", \"b\"] :: @",
                 Value.ofArray(Value.of("a"), Value.of("b"))),
-
             // Null handling
             arguments("null template result", "[1, 2] :: null", Value.ofArray(Value.NULL, Value.NULL)),
-
             // Nested arrays
             arguments("nested array identity", "[[1, 2], [3, 4]] :: @",
-                Value.ofArray(Value.ofArray(Value.of(1), Value.of(2)), Value.ofArray(Value.of(3), Value.of(4)))));
-    }
-    // @formatter:on
+                Value.ofArray(Value.ofArray(Value.of(1), Value.of(2)), Value.ofArray(Value.of(3), Value.of(4)))),
 
-    @MethodSource
-    @ParameterizedTest(name = "{0}")
-    void when_subtemplateWithObjects_then_returnsExpected(String description, String expression, Value expected) {
-        val result = evaluateExpression(expression);
-        assertThat(result).isEqualTo(expected);
-    }
+            // === Objects ===
+            arguments("object with value identity", "{\"a\": 1, \"b\": 2} :: @",
+                Value.ofArray(Value.of(1), Value.of(2))),
+            arguments("object with key only", "{\"foo\": 1, \"bar\": 2} :: #",
+                Value.ofArray(Value.of("foo"), Value.of("bar"))),
+            arguments("empty object returns empty array", "{} :: @", Value.EMPTY_ARRAY),
+            arguments("empty object with key", "{} :: #", Value.EMPTY_ARRAY),
 
-    // @formatter:off
-    private static Stream<Arguments> when_subtemplateWithObjects_then_returnsExpected() {
-        return Stream.of(
-            // Object iteration returns array of transformed values
-            arguments("object with value identity",
-                """
-                {"a": 1, "b": 2} :: @
-                """,
+            // === Arithmetic ===
+            arguments("array multiply each", "[1, 2, 3] :: (@ * 2)",
+                Value.ofArray(Value.of(2), Value.of(4), Value.of(6))),
+            arguments("array add constant", "[1, 2, 3] :: (@ + 10)",
+                Value.ofArray(Value.of(11), Value.of(12), Value.of(13))),
+            arguments("value plus index", "[10, 20, 30] :: (@ + #)",
+                Value.ofArray(Value.of(10), Value.of(21), Value.of(32))),
+            arguments("index times ten", "[5, 5, 5] :: (# * 10)",
+                Value.ofArray(Value.of(0), Value.of(10), Value.of(20))),
+            arguments("scalar multiply", "5 :: (@ * 3)", Value.of(15)),
+            arguments("scalar with index", "100 :: (@ + #)", Value.of(100)),
+
+            // === Object Access ===
+            arguments("extract field from array of objects", "[{\"x\": 1}, {\"x\": 2}, {\"x\": 3}] :: @.x",
+                Value.ofArray(Value.of(1), Value.of(2), Value.of(3))),
+            arguments("nested field access", "[{\"a\": {\"b\": 1}}, {\"a\": {\"b\": 2}}] :: @.a.b",
                 Value.ofArray(Value.of(1), Value.of(2))),
 
-            // Object with # (key as string) - NEW FEATURE
-            arguments("object with key only",
-                """
-                {"foo": 1, "bar": 2} :: #
-                """,
-                Value.ofArray(Value.of("foo"), Value.of("bar"))),
+            // === Nested Subtemplate ===
+            arguments("nested array transform", "[[1, 2], [3, 4]] :: (@ :: (@ * 2))",
+                Value.ofArray(Value.ofArray(Value.of(2), Value.of(4)), Value.ofArray(Value.of(6), Value.of(8)))),
 
-            // Empty object
-            arguments("empty object returns empty array", "{} :: @", Value.EMPTY_ARRAY),
-            arguments("empty object with key", "{} :: #", Value.EMPTY_ARRAY));
+            // === Boolean Expressions ===
+            arguments("compare each to threshold", "[1, 5, 10] :: (@ > 3)",
+                Value.ofArray(Value.FALSE, Value.TRUE, Value.TRUE)),
+            arguments("even index check", "[10, 20, 30, 40] :: (# == 0 || # == 2)",
+                Value.ofArray(Value.TRUE, Value.FALSE, Value.TRUE, Value.FALSE)));
     }
     // @formatter:on
 
@@ -296,99 +289,6 @@ class SubtemplateCompilerTests {
         val result = op.evaluate(emptyEvaluationContext());
 
         assertThat(result).isEqualTo(Value.ofArray(Value.of(10), Value.of(20)));
-    }
-
-    // DISABLED TESTS - Require arithmetic/complex expression support
-    // These tests demonstrate the EXPECTED behavior once all expression
-    // compilers are fully implemented. Enable once Sum/Product are working.
-
-    @MethodSource
-    @ParameterizedTest(name = "{0}")
-    void when_subtemplateWithArithmetic_then_returnsExpected(String description, String expression, Value expected) {
-        val result = evaluateExpression(expression);
-        assertThat(result).isEqualTo(expected);
-    }
-
-    private static Stream<Arguments> when_subtemplateWithArithmetic_then_returnsExpected() {
-        // NOTE: Parentheses required! The :: operator binds tighter than arithmetic,
-        // so "[1,2,3] :: @ * 2" parses as "([1,2,3] :: @) * 2", not "[1,2,3] :: (@ *
-        // 2)"
-        return Stream.of(
-                // Array element arithmetic
-                arguments("array multiply each", "[1, 2, 3] :: (@ * 2)",
-                        Value.ofArray(Value.of(2), Value.of(4), Value.of(6))),
-                arguments("array add constant", "[1, 2, 3] :: (@ + 10)",
-                        Value.ofArray(Value.of(11), Value.of(12), Value.of(13))),
-
-                // Combined @ and # arithmetic
-                arguments("value plus index", "[10, 20, 30] :: (@ + #)",
-                        Value.ofArray(Value.of(10), Value.of(21), Value.of(32))),
-                arguments("index times ten", "[5, 5, 5] :: (# * 10)",
-                        Value.ofArray(Value.of(0), Value.of(10), Value.of(20))),
-
-                // Scalar with arithmetic
-                arguments("scalar multiply", "5 :: (@ * 3)", Value.of(15)),
-                arguments("scalar with index", "100 :: (@ + #)", Value.of(100)));
-    }
-
-    @MethodSource
-    @ParameterizedTest(name = "{0}")
-    void when_subtemplateWithObjectAccess_then_returnsExpected(String description, String expression, Value expected) {
-        val result = evaluateExpression(expression);
-        assertThat(result).isEqualTo(expected);
-    }
-
-    // @formatter:off
-    private static Stream<Arguments> when_subtemplateWithObjectAccess_then_returnsExpected() {
-        return Stream.of(
-            // Object field projection
-            arguments("extract field from array of objects",
-                """
-                [{"x": 1}, {"x": 2}, {"x": 3}] :: @.x
-                """,
-                Value.ofArray(Value.of(1), Value.of(2), Value.of(3))),
-
-            // Nested access
-            arguments("nested field access",
-                """
-                [{"a": {"b": 1}}, {"a": {"b": 2}}] :: @.a.b
-                """,
-                Value.ofArray(Value.of(1), Value.of(2))));
-    }
-    // @formatter:on
-
-    @MethodSource
-    @ParameterizedTest(name = "{0}")
-    void when_nestedSubtemplate_then_returnsExpected(String description, String expression, Value expected) {
-        val result = evaluateExpression(expression);
-        assertThat(result).isEqualTo(expected);
-    }
-
-    private static Stream<Arguments> when_nestedSubtemplate_then_returnsExpected() {
-        // Nested subtemplates: outer :: operates on arrays, inner :: on elements
-        return Stream.of(arguments("nested array transform", "[[1, 2], [3, 4]] :: (@ :: (@ * 2))",
-                Value.ofArray(Value.ofArray(Value.of(2), Value.of(4)), Value.ofArray(Value.of(6), Value.of(8)))));
-    }
-
-    @MethodSource
-    @ParameterizedTest(name = "{0}")
-    void when_subtemplateWithBooleanExpressions_then_returnsExpected(String description, String expression,
-            Value expected) {
-        val result = evaluateExpression(expression);
-        assertThat(result).isEqualTo(expected);
-    }
-
-    private static Stream<Arguments> when_subtemplateWithBooleanExpressions_then_returnsExpected() {
-        // NOTE: Parentheses required for comparison/logical ops (same precedence rule
-        // as arithmetic)
-        return Stream.of(
-                // Boolean comparison on each element
-                arguments("compare each to threshold", "[1, 5, 10] :: (@ > 3)",
-                        Value.ofArray(Value.FALSE, Value.TRUE, Value.TRUE)),
-
-                // Index-based filtering logic
-                arguments("even index check", "[10, 20, 30, 40] :: (# == 0 || # == 2)",
-                        Value.ofArray(Value.TRUE, Value.FALSE, Value.TRUE, Value.FALSE)));
     }
 
 }

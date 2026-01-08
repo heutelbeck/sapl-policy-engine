@@ -35,6 +35,8 @@ import static io.sapl.ast.BinaryOperatorType.*;
 
 public class BinaryOperationCompiler {
 
+    private static final String ERROR_UNIMPLEMENTED_BINARY_OPERATOR = "Unimplemented binary operator: %s";
+
     private final RegexCompiler                regexCompiler       = new RegexCompiler();
     private final SubtemplateCompiler          subtemplateCompiler = new SubtemplateCompiler();
     private final LazyBooleanOperationCompiler lazyBooleanCompiler = new LazyBooleanOperationCompiler();
@@ -73,7 +75,8 @@ public class BinaryOperationCompiler {
 
         val op = BINARY_OPERATIONS.get(binaryOperation.op());
         if (op == null) {
-            throw new SaplCompilerException("Unimplemented binary operator: " + binaryOperation.op(), binaryOperation);
+            throw new SaplCompilerException(ERROR_UNIMPLEMENTED_BINARY_OPERATOR.formatted(binaryOperation.op()),
+                    binaryOperation);
         }
         val left = ExpressionCompiler.compile(binaryOperation.left(), ctx);
         if (left instanceof ErrorValue) {

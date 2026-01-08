@@ -32,13 +32,15 @@ import static io.sapl.ast.UnaryOperatorType.*;
 
 public class UnaryOperatorCompiler {
 
+    private static final String ERROR_UNIMPLEMENTED_UNARY_OPERATOR = "Unimplemented unary operator: %s";
+
     static final Map<UnaryOperatorType, UnaryOperation> UNARY_OPERATIONS = Map.of(NOT, BooleanOperators::not, NEGATE,
             ArithmeticOperators::unaryMinus, PLUS, ArithmeticOperators::unaryPlus);
 
     public CompiledExpression compile(UnaryOperator unaryOp, CompilationContext ctx) {
         val op = UNARY_OPERATIONS.get(unaryOp.op());
         if (op == null) {
-            throw new SaplCompilerException("Unimplemented unary operator: " + unaryOp.op(), unaryOp);
+            throw new SaplCompilerException(ERROR_UNIMPLEMENTED_UNARY_OPERATOR.formatted(unaryOp.op()), unaryOp);
         }
         val operand = ExpressionCompiler.compile(unaryOp.operand(), ctx);
         if (operand instanceof ErrorValue) {
