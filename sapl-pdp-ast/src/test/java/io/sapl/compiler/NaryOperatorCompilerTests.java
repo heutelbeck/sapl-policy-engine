@@ -17,37 +17,20 @@
  */
 package io.sapl.compiler;
 
-import static io.sapl.api.model.Value.of;
-import static io.sapl.util.ExpressionTestUtil.assertCompilesTo;
-import static io.sapl.util.ExpressionTestUtil.assertCompilesToError;
-import static io.sapl.util.ExpressionTestUtil.assertPureEvaluatesTo;
-import static io.sapl.util.ExpressionTestUtil.assertPureEvaluatesToError;
-import static io.sapl.util.ExpressionTestUtil.compileExpression;
-import static io.sapl.util.ExpressionTestUtil.evaluateExpression;
-import static io.sapl.util.TestBrokers.attributeBroker;
-import static io.sapl.util.TestBrokers.compilationContext;
-import static io.sapl.util.TestBrokers.errorAttributeBroker;
-import static io.sapl.util.TestBrokers.evaluationContext;
-import static io.sapl.util.TestBrokers.multiAttributeBroker;
-import static org.assertj.core.api.Assertions.assertThat;
-
-import java.math.BigDecimal;
-import java.util.Map;
-
+import io.sapl.api.model.*;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
-
-import io.sapl.api.model.ArrayValue;
-import io.sapl.api.model.ErrorValue;
-import io.sapl.api.model.EvaluationContext;
-import io.sapl.api.model.NumberValue;
-import io.sapl.api.model.ObjectValue;
-import io.sapl.api.model.PureOperator;
-import io.sapl.api.model.StreamOperator;
-import io.sapl.api.model.Value;
 import reactor.test.StepVerifier;
+
+import java.math.BigDecimal;
+import java.util.Map;
+
+import static io.sapl.api.model.Value.of;
+import static io.sapl.util.ExpressionTestUtil.*;
+import static io.sapl.util.TestBrokers.*;
+import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * Tests for N-ary operator compilation: XOR (^), Sum (+), Product (*).
@@ -70,8 +53,7 @@ class NaryOperatorCompilerTests {
                 "false ^ false ^ true, true", "false ^ false ^ false, false" })
         void when_allValues_then_foldAtCompileTime(String expr, boolean expected) {
             var compiled = compileExpression(expr);
-            assertThat(compiled).isInstanceOf(Value.class);
-            assertThat(compiled).isEqualTo(expected ? Value.TRUE : Value.FALSE);
+            assertThat(compiled).isInstanceOf(Value.class).isEqualTo(expected ? Value.TRUE : Value.FALSE);
         }
 
         @Test

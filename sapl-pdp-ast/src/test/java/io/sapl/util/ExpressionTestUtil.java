@@ -17,25 +17,11 @@
  */
 package io.sapl.util;
 
-import static org.assertj.core.api.Assertions.assertThat;
-
-import java.util.List;
-import java.util.Map;
-import java.util.function.Consumer;
-
 import io.sapl.api.attributes.AttributeBroker;
 import io.sapl.api.attributes.AttributeFinderInvocation;
 import io.sapl.api.functions.Function;
 import io.sapl.api.functions.FunctionLibrary;
-import io.sapl.api.model.ArrayValue;
-import io.sapl.api.model.CompiledExpression;
-import io.sapl.api.model.ErrorValue;
-import io.sapl.api.model.EvaluationContext;
-import io.sapl.api.model.PureOperator;
-import io.sapl.api.model.SourceLocation;
-import io.sapl.api.model.StreamOperator;
-import io.sapl.api.model.TracedValue;
-import io.sapl.api.model.Value;
+import io.sapl.api.model.*;
 import io.sapl.ast.Expression;
 import io.sapl.compiler.CompilationContext;
 import io.sapl.compiler.ExpressionCompiler;
@@ -44,6 +30,12 @@ import io.sapl.functions.DefaultFunctionBroker;
 import lombok.experimental.UtilityClass;
 import reactor.core.publisher.Flux;
 import reactor.test.StepVerifier;
+
+import java.util.List;
+import java.util.Map;
+import java.util.function.Consumer;
+
+import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * Test utilities for parsing, compiling and evaluating SAPL expressions.
@@ -316,8 +308,6 @@ public class ExpressionTestUtil {
         assertThat(((PureOperator) compiled).isDependingOnSubscription()).isEqualTo(expected);
     }
 
-    // ========== Error Assertion Helpers ==========
-
     /**
      * Asserts that the result is an ErrorValue.
      *
@@ -352,8 +342,6 @@ public class ExpressionTestUtil {
         assertThat(result).isInstanceOf(ErrorValue.class);
         return ((ErrorValue) result).message();
     }
-
-    // ========== Stream Verification Helpers ==========
 
     /**
      * Verifies a StreamOperator's emissions using StepVerifier.
@@ -415,7 +403,122 @@ public class ExpressionTestUtil {
         });
     }
 
-    // ========== Test PureOperator Helper ==========
+    /**
+     * Stratum levels for compiled expressions. Used to classify and verify the
+     * compile-time vs runtime nature of expressions.
+     * <ul>
+     * <li>VALUE: Compile-time constant (strata 1)</li>
+     * <li>PURE_NON_SUB: Runtime, not depending on subscription (strata 2)</li>
+     * <li>PURE_SUB: Runtime, depending on subscription (strata 3)</li>
+     * <li>STREAM: Reactive StreamOperator (strata 4)</li>
+     * </ul>
+     */
+    public enum Stratum {
+        VALUE(1),
+        PURE_NON_SUB(2),
+        PURE_SUB(3),
+        STREAM(4);
+
+        public final int level;
+
+        Stratum(int level) {
+            this.level = level;
+        }
+    }
+
+    /**
+     * Determines the stratum of a compiled expression.
+     *
+     * @param compiled the compiled expression
+     * @return the stratum, or null if error
+     */
+    public static Stratum getStratum(CompiledExpression compiled) {
+        if (compiled instanceof ErrorValue) {
+            return null;
+        }
+        if (compiled instanceof Value) {
+            return Stratum.VALUE;
+        }
+        if (compiled instanceof PureOperator p) {
+            return p.isDependingOnSubscription() ? Stratum.PURE_SUB : Stratum.PURE_NON_SUB;
+        }
+        if (compiled instanceof StreamOperator) {
+            return Stratum.STREAM;
+        }
+        return null;
+    }
+
+    /**
+     * Asserts that a compiled expression matches the expected stratum.
+     *
+     * @param compiled the compiled expression
+     * @param expected the expected stratum
+     */
+    public static void assertStratum(CompiledExpression compiled, Stratum expected) {
+        switch (expected) {
+        case VALUE        -> assertThat(compiled).isInstanceOf(Value.class);
+        case PURE_NON_SUB -> {
+            assertThat(compiled).isInstanceOf(PureOperator.class);
+            assertThat(((PureOperator) compiled).isDependingOnSubscription()).isFalse();
+        }
+        case PURE_SUB     -> {
+            assertThat(compiled).isInstanceOf(PureOperator.class);
+            assertThat(((PureOperator) compiled).isDependingOnSubscription()).isTrue();
+        }
+        case STREAM       -> assertThat(compiled).isInstanceOf(StreamOperator.class);
+        }
+    }
+
+    /**
+     * Computes the expected output stratum based on input strata.
+     * <ul>
+     * <li>All 1 or 2 -> 1 (constant folded)</li>
+     * <li>Any 3, no 4 -> 3</li>
+     * <li>Any 4 -> 4</li>
+     * </ul>
+     */
+    public static Stratum expectedStratum(Stratum... inputs) {
+        int maxLevel = 1;
+        for (var s : inputs) {
+            if (s.level > maxLevel) {
+                maxLevel = s.level;
+            }
+        }
+        if (maxLevel <= 2) {
+            return Stratum.VALUE; // Constant folded
+        }
+        return maxLevel == 3 ? Stratum.PURE_SUB : Stratum.STREAM;
+    }
+
+    /**
+     * Creates a compilation context with specified function libraries loaded.
+     *
+     * @param libraries the function library classes to load
+     * @return the compilation context
+     */
+    public static CompilationContext compilationContextWithFunctions(Class<?>... libraries) {
+        var broker = new DefaultFunctionBroker();
+        for (var lib : libraries) {
+            broker.loadStaticFunctionLibrary(lib);
+        }
+        return new CompilationContext(broker, DEFAULT_ATTRIBUTE_BROKER);
+    }
+
+    /**
+     * Creates a compilation context with function libraries and attribute broker.
+     *
+     * @param attrBroker the attribute broker
+     * @param libraries the function library classes to load
+     * @return the compilation context
+     */
+    public static CompilationContext compilationContextWithFunctions(AttributeBroker attrBroker,
+            Class<?>... libraries) {
+        var broker = new DefaultFunctionBroker();
+        for (var lib : libraries) {
+            broker.loadStaticFunctionLibrary(lib);
+        }
+        return new CompilationContext(broker, attrBroker);
+    }
 
     /**
      * A test implementation of PureOperator for use in unit tests.

@@ -17,23 +17,20 @@
  */
 package io.sapl.compiler;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.params.provider.Arguments.arguments;
-
-import java.util.stream.Stream;
-
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.Arguments;
-import org.junit.jupiter.params.provider.MethodSource;
-
 import io.sapl.api.model.ErrorValue;
 import io.sapl.api.model.Value;
 import io.sapl.compiler.operators.BooleanOperators;
 import lombok.val;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
+
+import java.util.stream.Stream;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 class BooleanOperatorsTests {
-
-    // ========== NOT operator tests ==========
 
     @MethodSource
     @ParameterizedTest(name = "{0}")
@@ -65,8 +62,6 @@ class BooleanOperatorsTests {
 
     // Note: AND and OR tests are in LazyBooleanOperationCompilerTests
     // because they use cost-stratified short-circuit evaluation
-
-    // ========== XOR operator tests ==========
 
     @MethodSource
     @ParameterizedTest(name = "{0}")

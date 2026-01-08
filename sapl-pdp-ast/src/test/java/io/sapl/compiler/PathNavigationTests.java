@@ -17,19 +17,18 @@
  */
 package io.sapl.compiler;
 
+import io.sapl.api.model.Value;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
+
+import java.util.stream.Stream;
+
 import static io.sapl.api.model.ValueJsonMarshaller.json;
 import static io.sapl.util.ExpressionTestUtil.assertIsErrorContaining;
 import static io.sapl.util.ExpressionTestUtil.evaluateExpression;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
-
-import java.util.stream.Stream;
-
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.Arguments;
-import org.junit.jupiter.params.provider.MethodSource;
-
-import io.sapl.api.model.Value;
 
 /**
  * Tests for path navigation algorithm in ExtendedFilterCompiler.

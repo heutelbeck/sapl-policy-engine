@@ -17,25 +17,25 @@
  */
 package io.sapl.compiler;
 
-import static io.sapl.util.ExpressionTestUtil.*;
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.params.provider.Arguments.arguments;
-
-import java.util.stream.Stream;
-
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.Arguments;
-import org.junit.jupiter.params.provider.MethodSource;
-
 import io.sapl.api.model.ArrayValue;
 import io.sapl.api.model.ErrorValue;
+import io.sapl.api.model.EvaluationContext;
 import io.sapl.api.model.NumberValue;
 import io.sapl.api.model.Value;
 import io.sapl.ast.BinaryOperator;
 import io.sapl.ast.BinaryOperatorType;
 import io.sapl.ast.Literal;
 import lombok.val;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
+
+import java.util.stream.Stream;
+
+import static io.sapl.util.ExpressionTestUtil.*;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 class SubtemplateCompilerTests {
 
@@ -162,137 +162,83 @@ class SubtemplateCompilerTests {
         assertThat(result).isInstanceOf(ErrorValue.class);
     }
 
-    @Test
-    void when_applyPureTemplate_withArray_then_setsIndexCorrectly() {
-        val array    = Value.ofArray(Value.of(10), Value.of(20), Value.of(30));
-        val ctx      = emptyEvaluationContext();
-        val template = new TestPureOperator(evalCtx -> evalCtx.relativeLocation());
-
-        val result = SubtemplateCompiler.applyPureTemplate(array, template, ctx);
-        assertThat(result).isEqualTo(Value.ofArray(Value.of(0), Value.of(1), Value.of(2)));
+    @MethodSource
+    @ParameterizedTest(name = "{0}")
+    void when_applyPureTemplate_then_returnsExpected(String description, Value parent, TestPureOperator template,
+            Value expected) {
+        val result = SubtemplateCompiler.applyPureTemplate(parent, template, emptyEvaluationContext());
+        if (expected instanceof ErrorValue) {
+            assertThat(result).isInstanceOf(ErrorValue.class);
+        } else {
+            assertThat(result).isEqualTo(expected);
+        }
     }
 
-    @Test
-    void when_applyPureTemplate_withArray_then_setsValueCorrectly() {
-        val array    = Value.ofArray(Value.of(10), Value.of(20), Value.of(30));
-        val ctx      = emptyEvaluationContext();
-        val template = new TestPureOperator(evalCtx -> evalCtx.relativeValue());
+    private static final TestPureOperator LOCATION_TEMPLATE = new TestPureOperator(EvaluationContext::relativeLocation);
+    private static final TestPureOperator VALUE_TEMPLATE    = new TestPureOperator(EvaluationContext::relativeValue);
+    private static final TestPureOperator ERROR_TEMPLATE    = new TestPureOperator(
+            ctx -> Value.error("template error"));
 
-        val result = SubtemplateCompiler.applyPureTemplate(array, template, ctx);
-        assertThat(result).isEqualTo(Value.ofArray(Value.of(10), Value.of(20), Value.of(30)));
+    private static Stream<Arguments> when_applyPureTemplate_then_returnsExpected() {
+        val array  = Value.ofArray(Value.of(10), Value.of(20), Value.of(30));
+        val scalar = Value.of(42);
+        val error  = Value.error("parent error");
+
+        return Stream.of(
+                arguments("array with location template returns indices", array, LOCATION_TEMPLATE,
+                        Value.ofArray(Value.of(0), Value.of(1), Value.of(2))),
+                arguments("array with value template returns values", array, VALUE_TEMPLATE, array),
+                arguments("scalar with location template returns zero", scalar, LOCATION_TEMPLATE, Value.of(0)),
+                arguments("undefined parent returns undefined", Value.UNDEFINED, VALUE_TEMPLATE, Value.UNDEFINED),
+                arguments("error parent returns error", error, VALUE_TEMPLATE, error),
+                arguments("template returns error propagates", Value.ofArray(Value.of(1), Value.of(2)), ERROR_TEMPLATE,
+                        Value.error("template error")));
     }
 
     @Test
     void when_applyPureTemplate_withObject_then_setsKeyCorrectly() {
         val obj      = obj("alpha", Value.of(1), "beta", Value.of(2));
-        val ctx      = emptyEvaluationContext();
-        val template = new TestPureOperator(evalCtx -> evalCtx.relativeLocation());
+        val template = new TestPureOperator(EvaluationContext::relativeLocation);
 
-        val result = SubtemplateCompiler.applyPureTemplate(obj, template, ctx);
-        // Should contain the keys as values
+        val result = SubtemplateCompiler.applyPureTemplate(obj, template, emptyEvaluationContext());
         assertThat(result).isInstanceOf(ArrayValue.class);
-        val arr = (ArrayValue) result;
-        assertThat(arr.size()).isEqualTo(2);
-        // Keys: "alpha" and "beta" (order may vary based on ObjectValue implementation)
+        assertThat((ArrayValue) result).hasSize(2);
     }
 
-    @Test
-    void when_applyPureTemplate_withScalar_then_setsIndexToZero() {
-        val scalar   = Value.of(42);
-        val ctx      = emptyEvaluationContext();
-        val template = new TestPureOperator(evalCtx -> evalCtx.relativeLocation());
-
-        val result = SubtemplateCompiler.applyPureTemplate(scalar, template, ctx);
-        assertThat(result).isEqualTo(Value.of(0));
+    @MethodSource
+    @ParameterizedTest(name = "{0}")
+    void when_applyConstantTemplate_then_returnsExpected(String description, Value parent, Value template,
+            Value expected) {
+        val result = SubtemplateCompiler.applyConstantTemplate(parent, template);
+        if (expected instanceof ErrorValue) {
+            assertThat(result).isInstanceOf(ErrorValue.class);
+        } else {
+            assertThat(result).isEqualTo(expected);
+        }
     }
 
-    @Test
-    void when_applyPureTemplate_withUndefinedParent_then_returnsUndefined() {
-        val ctx      = emptyEvaluationContext();
-        val template = new TestPureOperator(evalCtx -> evalCtx.relativeValue());
-
-        val result = SubtemplateCompiler.applyPureTemplate(Value.UNDEFINED, template, ctx);
-        assertThat(result).isEqualTo(Value.UNDEFINED);
-    }
-
-    @Test
-    void when_applyPureTemplate_withErrorParent_then_returnsError() {
-        val error    = Value.error("parent error");
-        val ctx      = emptyEvaluationContext();
-        val template = new TestPureOperator(evalCtx -> evalCtx.relativeValue());
-
-        val result = SubtemplateCompiler.applyPureTemplate(error, template, ctx);
-        assertThat(result).isInstanceOf(ErrorValue.class);
-    }
-
-    @Test
-    void when_applyPureTemplate_templateReturnsError_then_propagatesError() {
-        val array = Value.ofArray(Value.of(1), Value.of(2));
-        val ctx   = emptyEvaluationContext();
-
-        // Template that always returns error
-        val template = new TestPureOperator(evalCtx -> Value.error("template error"));
-
-        val result = SubtemplateCompiler.applyPureTemplate(array, template, ctx);
-        assertThat(result).isInstanceOf(ErrorValue.class);
-    }
-
-    @Test
-    void when_applyConstantTemplate_withArray_then_replicatesTemplate() {
-        val array    = Value.ofArray(Value.of(10), Value.of(20), Value.of(30));
-        val template = Value.of(99);
-
-        val result = SubtemplateCompiler.applyConstantTemplate(array, template);
-        assertThat(result).isEqualTo(Value.ofArray(Value.of(99), Value.of(99), Value.of(99)));
-    }
-
-    @Test
-    void when_applyConstantTemplate_withObject_then_replicatesTemplate() {
-        val obj      = obj("a", Value.of(1), "b", Value.of(2));
-        val template = Value.of("constant");
-
-        val result = SubtemplateCompiler.applyConstantTemplate(obj, template);
-        assertThat(result).isEqualTo(Value.ofArray(Value.of("constant"), Value.of("constant")));
-    }
-
-    @Test
-    void when_applyConstantTemplate_withScalar_then_returnsTemplate() {
-        val scalar   = Value.of(42);
-        val template = Value.of("replaced");
-
-        val result = SubtemplateCompiler.applyConstantTemplate(scalar, template);
-        assertThat(result).isEqualTo(Value.of("replaced"));
-    }
-
-    @Test
-    void when_applyConstantTemplate_withUndefinedParent_then_returnsUndefined() {
-        val result = SubtemplateCompiler.applyConstantTemplate(Value.UNDEFINED, Value.of(99));
-        assertThat(result).isEqualTo(Value.UNDEFINED);
-    }
-
-    @Test
-    void when_applyConstantTemplate_withErrorParent_then_returnsError() {
+    private static Stream<Arguments> when_applyConstantTemplate_then_returnsExpected() {
+        val array  = Value.ofArray(Value.of(10), Value.of(20), Value.of(30));
+        val obj    = obj("a", Value.of(1), "b", Value.of(2));
         val error  = Value.error("parent error");
-        val result = SubtemplateCompiler.applyConstantTemplate(error, Value.of(99));
-        assertThat(result).isInstanceOf(ErrorValue.class);
-    }
+        val tmpl99 = Value.of(99);
 
-    @Test
-    void when_applyConstantTemplate_withEmptyArray_then_returnsEmptyArray() {
-        val result = SubtemplateCompiler.applyConstantTemplate(Value.EMPTY_ARRAY, Value.of(99));
-        assertThat(result).isEqualTo(Value.EMPTY_ARRAY);
-    }
-
-    @Test
-    void when_applyConstantTemplate_withEmptyObject_then_returnsEmptyArray() {
-        val result = SubtemplateCompiler.applyConstantTemplate(Value.EMPTY_OBJECT, Value.of(99));
-        assertThat(result).isEqualTo(Value.EMPTY_ARRAY);
+        return Stream.of(
+                arguments("array replicates template", array, tmpl99,
+                        Value.ofArray(Value.of(99), Value.of(99), Value.of(99))),
+                arguments("object replicates template", obj, Value.of("constant"),
+                        Value.ofArray(Value.of("constant"), Value.of("constant"))),
+                arguments("scalar returns template", Value.of(42), Value.of("replaced"), Value.of("replaced")),
+                arguments("undefined parent returns undefined", Value.UNDEFINED, tmpl99, Value.UNDEFINED),
+                arguments("error parent returns error", error, tmpl99, error),
+                arguments("empty array returns empty", Value.EMPTY_ARRAY, tmpl99, Value.EMPTY_ARRAY),
+                arguments("empty object returns empty", Value.EMPTY_OBJECT, tmpl99, Value.EMPTY_ARRAY));
     }
 
     @Test
     void when_subtemplateValuePure_isDependingOnSubscription_then_delegatesToTemplate() {
         val parent   = Value.of(5);
-        val template = new TestPureOperator(ctx -> ctx.relativeValue(), true);
+        val template = new TestPureOperator(EvaluationContext::relativeValue, true);
 
         val op = new SubtemplateCompiler.SubtemplateValuePure(parent, template, TEST_LOCATION);
         assertThat(op.isDependingOnSubscription()).isTrue();
@@ -309,9 +255,9 @@ class SubtemplateCompilerTests {
     @Test
     void when_subtemplatePurePure_isDependingOnSubscription_then_combinesParentAndTemplate() {
         val parentDepends      = new TestPureOperator(ctx -> Value.of(5), true);
-        val templateDepends    = new TestPureOperator(ctx -> ctx.relativeValue(), true);
+        val templateDepends    = new TestPureOperator(EvaluationContext::relativeValue, true);
         val parentNotDepends   = new TestPureOperator(ctx -> Value.of(5), false);
-        val templateNotDepends = new TestPureOperator(ctx -> ctx.relativeValue(), false);
+        val templateNotDepends = new TestPureOperator(EvaluationContext::relativeValue, false);
 
         // Both depend
         assertThat(new SubtemplateCompiler.SubtemplatePurePure(parentDepends, templateDepends, TEST_LOCATION)
@@ -344,7 +290,8 @@ class SubtemplateCompilerTests {
 
     @Test
     void when_subtemplatePureValue_evaluate_then_appliesConstantTemplate() {
-        val parent = new TestPureOperator(ctx -> Value.ofArray(Value.of(1), Value.of(2), Value.of(3)));
+        val arrayValue = Value.ofArray(Value.of(1), Value.of(2), Value.of(3));
+        val parent     = new TestPureOperator(ctx -> arrayValue);
 
         val op     = new SubtemplateCompiler.SubtemplatePureValue(parent, Value.of(99), TEST_LOCATION);
         val result = op.evaluate(emptyEvaluationContext());
@@ -354,7 +301,8 @@ class SubtemplateCompilerTests {
 
     @Test
     void when_subtemplatePurePure_evaluate_then_appliesTemplateWithContext() {
-        val parent = new TestPureOperator(ctx -> Value.ofArray(Value.of(5), Value.of(10)));
+        val arrayValue = Value.ofArray(Value.of(5), Value.of(10));
+        val parent     = new TestPureOperator(ctx -> arrayValue);
 
         val template = new TestPureOperator(ctx -> {
             val value = (NumberValue) ctx.relativeValue();

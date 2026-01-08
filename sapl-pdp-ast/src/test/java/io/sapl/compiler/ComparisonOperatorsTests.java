@@ -17,24 +17,21 @@
  */
 package io.sapl.compiler;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.params.provider.Arguments.arguments;
-
-import java.util.stream.Stream;
-
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.Arguments;
-import org.junit.jupiter.params.provider.MethodSource;
-
 import io.sapl.api.model.ErrorValue;
 import io.sapl.api.model.ObjectValue;
 import io.sapl.api.model.Value;
 import io.sapl.compiler.operators.ComparisonOperators;
 import lombok.val;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
+
+import java.util.stream.Stream;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 class ComparisonOperatorsTests {
-
-    // ========== Equals Tests ==========
 
     @MethodSource
     @ParameterizedTest(name = "{0}")
@@ -79,8 +76,6 @@ class ComparisonOperatorsTests {
     }
     // @formatter:on
 
-    // ========== Not Equals Tests ==========
-
     @MethodSource
     @ParameterizedTest(name = "{0}")
     void when_notEquals_then_returnsExpected(String description, Value a, Value b, Value expected) {
@@ -104,8 +99,6 @@ class ComparisonOperatorsTests {
             arguments("null vs undefined", Value.NULL, Value.UNDEFINED, Value.TRUE));
     }
     // @formatter:on
-
-    // ========== isContainedIn Tests (returns TRUE/FALSE) ==========
 
     @MethodSource
     @ParameterizedTest(name = "{0}")
@@ -150,8 +143,6 @@ class ComparisonOperatorsTests {
                 arguments("empty string in string", Value.of(""), Value.of("hello"), Value.TRUE),
                 arguments("no substring match", Value.of("xyz"), Value.of("hello"), Value.FALSE));
     }
-
-    // ========== isContainedIn Tests (returns Error) ==========
 
     @MethodSource
     @ParameterizedTest(name = "{0}")

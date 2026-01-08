@@ -17,10 +17,6 @@
  */
 package io.sapl.util;
 
-import java.util.List;
-import java.util.Map;
-import java.util.function.Function;
-
 import io.sapl.api.attributes.AttributeBroker;
 import io.sapl.api.attributes.AttributeFinderInvocation;
 import io.sapl.api.functions.FunctionBroker;
@@ -32,14 +28,16 @@ import io.sapl.functions.DefaultFunctionBroker;
 import lombok.experimental.UtilityClass;
 import reactor.core.publisher.Flux;
 
+import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
+
 /**
  * Shared test utilities for creating broker mocks and evaluation contexts.
  * Centralizes common patterns used across compiler test classes.
  */
 @UtilityClass
 public class TestBrokers {
-
-    // ========== Default Brokers ==========
 
     /**
      * Default function broker with no registered functions.
@@ -61,8 +59,6 @@ public class TestBrokers {
             return List.of();
         }
     };
-
-    // ========== FunctionBroker Factories ==========
 
     /**
      * Creates a function broker that responds to a single function name.
@@ -155,8 +151,6 @@ public class TestBrokers {
             }
         };
     }
-
-    // ========== AttributeBroker Factories ==========
 
     /**
      * Creates an attribute broker that responds to a single attribute name.
@@ -343,8 +337,6 @@ public class TestBrokers {
             }
         };
     }
-
-    // ========== Context Factories ==========
 
     /**
      * Creates a compilation context with the given attribute broker.

@@ -17,14 +17,14 @@
  */
 package io.sapl.attributes;
 
+import io.sapl.api.attributes.Attribute;
 import io.sapl.api.attributes.AttributeBroker;
 import io.sapl.api.attributes.AttributeFinderInvocation;
+import io.sapl.api.attributes.EnvironmentAttribute;
 import io.sapl.api.model.ErrorValue;
 import io.sapl.api.model.EvaluationContext;
 import io.sapl.api.model.NumberValue;
 import io.sapl.api.model.Value;
-import io.sapl.api.attributes.Attribute;
-import io.sapl.api.attributes.EnvironmentAttribute;
 import io.sapl.functions.DefaultFunctionBroker;
 import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Flux;

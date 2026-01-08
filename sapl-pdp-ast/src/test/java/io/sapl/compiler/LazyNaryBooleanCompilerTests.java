@@ -17,34 +17,20 @@
  */
 package io.sapl.compiler;
 
-import static io.sapl.api.model.Value.of;
-import static io.sapl.util.ExpressionTestUtil.assertCompilesTo;
-import static io.sapl.util.ExpressionTestUtil.assertCompilesToError;
-import static io.sapl.util.ExpressionTestUtil.assertPureEvaluatesTo;
-import static io.sapl.util.ExpressionTestUtil.assertPureEvaluatesToError;
-import static io.sapl.util.ExpressionTestUtil.compileExpression;
-import static io.sapl.util.ExpressionTestUtil.evaluateExpression;
-import static io.sapl.util.TestBrokers.attributeBroker;
-import static io.sapl.util.TestBrokers.errorAttributeBroker;
-import static io.sapl.util.TestBrokers.evaluationContext;
-import static io.sapl.util.TestBrokers.multiAttributeBroker;
-import static io.sapl.util.TestBrokers.sequenceBroker;
-import static org.assertj.core.api.Assertions.assertThat;
-
-import java.util.List;
-import java.util.Map;
-
+import io.sapl.api.model.*;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
-
-import io.sapl.api.model.ErrorValue;
-import io.sapl.api.model.EvaluationContext;
-import io.sapl.api.model.PureOperator;
-import io.sapl.api.model.StreamOperator;
-import io.sapl.api.model.Value;
 import reactor.test.StepVerifier;
+
+import java.util.List;
+import java.util.Map;
+
+import static io.sapl.api.model.Value.of;
+import static io.sapl.util.ExpressionTestUtil.*;
+import static io.sapl.util.TestBrokers.*;
+import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * Tests for N-ary lazy boolean operator compilation: Conjunction (&&) and
@@ -71,8 +57,7 @@ class LazyNaryBooleanCompilerTests {
                 "false && false && true, false", "false && false && false, false", })
         void when_allValues_then_foldAtCompileTime(String expr, boolean expected) {
             var compiled = compileExpression(expr);
-            assertThat(compiled).isInstanceOf(Value.class);
-            assertThat(compiled).isEqualTo(expected ? Value.TRUE : Value.FALSE);
+            assertThat(compiled).isInstanceOf(Value.class).isEqualTo(expected ? Value.TRUE : Value.FALSE);
         }
 
         @Test
@@ -144,8 +129,7 @@ class LazyNaryBooleanCompilerTests {
                 "false || false || true, true", "false || false || false, false", })
         void when_allValues_then_foldAtCompileTime(String expr, boolean expected) {
             var compiled = compileExpression(expr);
-            assertThat(compiled).isInstanceOf(Value.class);
-            assertThat(compiled).isEqualTo(expected ? Value.TRUE : Value.FALSE);
+            assertThat(compiled).isInstanceOf(Value.class).isEqualTo(expected ? Value.TRUE : Value.FALSE);
         }
 
         @Test
@@ -212,27 +196,17 @@ class LazyNaryBooleanCompilerTests {
     @Nested
     class StrataTests {
 
-        @Test
-        void when_allValuesConjunction_then_returnsValue() {
-            var compiled = compileExpression("true && true && true");
+        @ParameterizedTest(name = "{0}")
+        @CsvSource({ "conjunction,true && true && true", "disjunction,false || false || false" })
+        void when_allValues_then_returnsValue(String description, String expr) {
+            var compiled = compileExpression(expr);
             assertThat(compiled).isInstanceOf(Value.class);
         }
 
-        @Test
-        void when_allValuesDisjunction_then_returnsValue() {
-            var compiled = compileExpression("false || false || false");
-            assertThat(compiled).isInstanceOf(Value.class);
-        }
-
-        @Test
-        void when_valuesAndPuresConjunction_then_returnsPureOperator() {
-            var compiled = compileExpression("true && x && true");
-            assertThat(compiled).isInstanceOf(PureOperator.class);
-        }
-
-        @Test
-        void when_valuesAndPuresDisjunction_then_returnsPureOperator() {
-            var compiled = compileExpression("false || x || false");
+        @ParameterizedTest(name = "{0}")
+        @CsvSource({ "conjunction,true && x && true", "disjunction,false || x || false" })
+        void when_valuesAndPures_then_returnsPureOperator(String description, String expr) {
+            var compiled = compileExpression(expr);
             assertThat(compiled).isInstanceOf(PureOperator.class);
         }
 
@@ -304,15 +278,15 @@ class LazyNaryBooleanCompilerTests {
         void when_puresDependOnSubscription_then_resultDependsOnSubscription() {
             // Identifiers depend on subscription by default
             var compiled = compileExpression("true && x && true");
-            assertThat(compiled).isInstanceOf(PureOperator.class);
-            assertThat(((PureOperator) compiled).isDependingOnSubscription()).isTrue();
+            assertThat(compiled).isInstanceOf(PureOperator.class)
+                    .extracting(c -> ((PureOperator) c).isDependingOnSubscription()).isEqualTo(true);
         }
 
         @Test
         void when_multiplePures_anyDepends_then_resultDepends() {
             var compiled = compileExpression("a && b && c");
-            assertThat(compiled).isInstanceOf(PureOperator.class);
-            assertThat(((PureOperator) compiled).isDependingOnSubscription()).isTrue();
+            assertThat(compiled).isInstanceOf(PureOperator.class)
+                    .extracting(c -> ((PureOperator) c).isDependingOnSubscription()).isEqualTo(true);
         }
     }
 
@@ -430,10 +404,10 @@ class LazyNaryBooleanCompilerTests {
             var compiled = compileExpression("true && <test.attr> && true", broker);
 
             var stream = ((StreamOperator) compiled).stream().contextWrite(c -> c.put(EvaluationContext.class, ctx));
-            StepVerifier.create(stream).assertNext(tv -> {
-                assertThat(tv.value()).isInstanceOf(ErrorValue.class);
-                assertThat(((ErrorValue) tv.value()).message()).contains("Stream error");
-            }).verifyComplete();
+            StepVerifier.create(stream)
+                    .assertNext(tv -> assertThat(tv.value()).isInstanceOf(ErrorValue.class)
+                            .extracting(v -> ((ErrorValue) v).message()).asString().contains("Stream error"))
+                    .verifyComplete();
         }
 
         @Test
@@ -443,10 +417,10 @@ class LazyNaryBooleanCompilerTests {
             var compiled = compileExpression("false || <test.attr> || false", broker);
 
             var stream = ((StreamOperator) compiled).stream().contextWrite(c -> c.put(EvaluationContext.class, ctx));
-            StepVerifier.create(stream).assertNext(tv -> {
-                assertThat(tv.value()).isInstanceOf(ErrorValue.class);
-                assertThat(((ErrorValue) tv.value()).message()).contains("Stream error");
-            }).verifyComplete();
+            StepVerifier.create(stream)
+                    .assertNext(tv -> assertThat(tv.value()).isInstanceOf(ErrorValue.class)
+                            .extracting(v -> ((ErrorValue) v).message()).asString().contains("Stream error"))
+                    .verifyComplete();
         }
 
         @Test
@@ -640,10 +614,9 @@ class LazyNaryBooleanCompilerTests {
 
             var stream = ((StreamOperator) compiled).stream().contextWrite(c -> c.put(EvaluationContext.class, ctx));
             StepVerifier.create(stream).assertNext(tv -> assertThat(tv.value()).isEqualTo(Value.TRUE))
-                    .assertNext(tv -> {
-                        assertThat(tv.value()).isInstanceOf(ErrorValue.class);
-                        assertThat(((ErrorValue) tv.value()).message()).contains("mid-stream failure");
-                    }).assertNext(tv -> assertThat(tv.value()).isEqualTo(Value.TRUE)).verifyComplete();
+                    .assertNext(tv -> assertThat(tv.value()).isInstanceOf(ErrorValue.class)
+                            .extracting(v -> ((ErrorValue) v).message()).asString().contains("mid-stream failure"))
+                    .assertNext(tv -> assertThat(tv.value()).isEqualTo(Value.TRUE)).verifyComplete();
         }
 
         @Test
@@ -656,10 +629,9 @@ class LazyNaryBooleanCompilerTests {
 
             var stream = ((StreamOperator) compiled).stream().contextWrite(c -> c.put(EvaluationContext.class, ctx));
             StepVerifier.create(stream).assertNext(tv -> assertThat(tv.value()).isEqualTo(Value.TRUE))
-                    .assertNext(tv -> {
-                        assertThat(tv.value()).isInstanceOf(ErrorValue.class);
-                        assertThat(((ErrorValue) tv.value()).message()).contains("BOOLEAN");
-                    }).assertNext(tv -> assertThat(tv.value()).isEqualTo(Value.TRUE)).verifyComplete();
+                    .assertNext(tv -> assertThat(tv.value()).isInstanceOf(ErrorValue.class)
+                            .extracting(v -> ((ErrorValue) v).message()).asString().contains("BOOLEAN"))
+                    .assertNext(tv -> assertThat(tv.value()).isEqualTo(Value.TRUE)).verifyComplete();
         }
 
         @Test
@@ -753,36 +725,24 @@ class LazyNaryBooleanCompilerTests {
     @Nested
     class ErrorPropagationTests {
 
-        @Test
-        void conjunction_errorInPure_propagates() {
+        @ParameterizedTest(name = "{0}")
+        @CsvSource({ "conjunction,true && broken && true", "disjunction,false || broken || false" })
+        void errorInPure_propagates(String description, String expr) {
             var ctx    = evaluationContext(Map.of("broken", Value.error("broken variable")));
-            var result = evaluateExpression("true && broken && true", ctx);
-            assertThat(result).isInstanceOf(ErrorValue.class);
-            assertThat(((ErrorValue) result).message()).contains("broken");
+            var result = evaluateExpression(expr, ctx);
+            assertThat(result).isInstanceOf(ErrorValue.class).extracting(v -> ((ErrorValue) v).message()).asString()
+                    .contains("broken");
         }
 
-        @Test
-        void disjunction_errorInPure_propagates() {
-            var ctx    = evaluationContext(Map.of("broken", Value.error("broken variable")));
-            var result = evaluateExpression("false || broken || false", ctx);
-            assertThat(result).isInstanceOf(ErrorValue.class);
-            assertThat(((ErrorValue) result).message()).contains("broken");
-        }
-
-        @Test
-        void conjunction_errorAfterShortCircuit_notReached() {
+        @ParameterizedTest(name = "{0}")
+        @CsvSource({ "conjunction,false,first && second,false", "disjunction,true,first || second,true" })
+        void errorAfterShortCircuit_notReached(String description, boolean shortCircuitValue, String expr,
+                boolean expected) {
             // Should short-circuit before reaching the error
-            var ctx    = evaluationContext(Map.of("first", Value.FALSE, "second", Value.error("should not see")));
-            var result = evaluateExpression("first && second", ctx);
-            assertThat(result).isEqualTo(Value.FALSE);
-        }
-
-        @Test
-        void disjunction_errorAfterShortCircuit_notReached() {
-            // Should short-circuit before reaching the error
-            var ctx    = evaluationContext(Map.of("first", Value.TRUE, "second", Value.error("should not see")));
-            var result = evaluateExpression("first || second", ctx);
-            assertThat(result).isEqualTo(Value.TRUE);
+            var first  = shortCircuitValue ? Value.TRUE : Value.FALSE;
+            var ctx    = evaluationContext(Map.of("first", first, "second", Value.error("should not see")));
+            var result = evaluateExpression(expr, ctx);
+            assertThat(result).isEqualTo(expected ? Value.TRUE : Value.FALSE);
         }
     }
 

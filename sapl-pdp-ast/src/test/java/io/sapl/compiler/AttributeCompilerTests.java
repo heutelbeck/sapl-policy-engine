@@ -17,22 +17,21 @@
  */
 package io.sapl.compiler;
 
-import static io.sapl.util.ExpressionTestUtil.evaluateExpression;
-import static io.sapl.util.TestBrokers.*;
-import static org.assertj.core.api.Assertions.assertThat;
-
-import java.util.List;
-
-import org.junit.jupiter.api.Test;
-
 import io.sapl.api.attributes.AttributeBroker;
 import io.sapl.api.attributes.AttributeFinderInvocation;
 import io.sapl.api.model.ErrorValue;
 import io.sapl.api.model.EvaluationContext;
 import io.sapl.api.model.StreamOperator;
 import io.sapl.api.model.Value;
+import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Flux;
 import reactor.test.StepVerifier;
+
+import java.util.List;
+
+import static io.sapl.util.ExpressionTestUtil.evaluateExpression;
+import static io.sapl.util.TestBrokers.*;
+import static org.assertj.core.api.Assertions.assertThat;
 
 class AttributeCompilerTests {
 

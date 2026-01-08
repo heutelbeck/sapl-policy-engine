@@ -100,71 +100,89 @@ public class ImportResolver {
 
     private PolicyElement resolveElement(PolicyElement element, Map<String, List<String>> importMap) {
         return switch (element) {
-        case Policy p     -> resolvePolicy(p, importMap);
-        case PolicySet ps -> resolvePolicySet(ps, importMap);
+        case Policy(var name, var entitlement, var target, var body, var obligations, var advice, var transformation, var location) ->
+            new Policy(name, entitlement, target != null ? resolveExpr(target, importMap) : null,
+                    body.stream().map(s -> resolveStatement(s, importMap)).toList(),
+                    obligations.stream().map(e -> resolveExpr(e, importMap)).toList(),
+                    advice.stream().map(e -> resolveExpr(e, importMap)).toList(),
+                    transformation != null ? resolveExpr(transformation, importMap) : null, location);
+        case PolicySet(var name, var algorithm, var target, var variables, var policies, var location)                              ->
+            new PolicySet(name, algorithm, target != null ? resolveExpr(target, importMap) : null,
+                    variables.stream().map(v -> resolveVarDef(v, importMap)).toList(),
+                    policies.stream().map(p -> resolvePolicy(p, importMap)).toList(), location);
         };
     }
 
-    private Policy resolvePolicy(Policy p, Map<String, List<String>> importMap) {
-        return new Policy(p.name(), p.entitlement(), p.target() != null ? resolveExpr(p.target(), importMap) : null,
-                p.body().stream().map(s -> resolveStatement(s, importMap)).toList(),
-                p.obligations().stream().map(e -> resolveExpr(e, importMap)).toList(),
-                p.advice().stream().map(e -> resolveExpr(e, importMap)).toList(),
-                p.transformation() != null ? resolveExpr(p.transformation(), importMap) : null, p.location());
-    }
-
-    private PolicySet resolvePolicySet(PolicySet ps, Map<String, List<String>> importMap) {
-        return new PolicySet(ps.name(), ps.algorithm(),
-                ps.target() != null ? resolveExpr(ps.target(), importMap) : null,
-                ps.variables().stream().map(v -> resolveVarDef(v, importMap)).toList(),
-                ps.policies().stream().map(p -> resolvePolicy(p, importMap)).toList(), ps.location());
+    private Policy resolvePolicy(Policy policy, Map<String, List<String>> importMap) {
+        return switch (policy) {
+        case Policy(var name, var entitlement, var target, var body, var obligations, var advice, var transformation, var location) ->
+            new Policy(name, entitlement, target != null ? resolveExpr(target, importMap) : null,
+                    body.stream().map(s -> resolveStatement(s, importMap)).toList(),
+                    obligations.stream().map(e -> resolveExpr(e, importMap)).toList(),
+                    advice.stream().map(e -> resolveExpr(e, importMap)).toList(),
+                    transformation != null ? resolveExpr(transformation, importMap) : null, location);
+        };
     }
 
     private Statement resolveStatement(Statement stmt, Map<String, List<String>> importMap) {
         return switch (stmt) {
-        case VarDef v    -> resolveVarDef(v, importMap);
-        case Condition c -> new Condition(resolveExpr(c.expression(), importMap), c.location());
+        case VarDef v                                -> resolveVarDef(v, importMap);
+        case Condition(var expression, var location) -> new Condition(resolveExpr(expression, importMap), location);
         };
     }
 
-    private VarDef resolveVarDef(VarDef v, Map<String, List<String>> importMap) {
-        return new VarDef(v.name(), resolveExpr(v.value(), importMap),
-                v.schemas().stream().map(e -> resolveExpr(e, importMap)).toList(), v.location());
+    private VarDef resolveVarDef(VarDef varDef, Map<String, List<String>> importMap) {
+        return switch (varDef) {
+        case VarDef(var name, var value, var schemas, var location) -> new VarDef(name, resolveExpr(value, importMap),
+                schemas.stream().map(e -> resolveExpr(e, importMap)).toList(), location);
+        };
     }
 
     private Expression resolveExpr(Expression expr, Map<String, List<String>> importMap) {
         return switch (expr) {
-        case Literal l               -> l;
-        case Identifier id           -> id; // No steps to resolve in new AST
-        case BinaryOperator b        -> new BinaryOperator(b.op(), resolveExpr(b.left(), importMap),
-                resolveExpr(b.right(), importMap), b.location());
-        case UnaryOperator u         -> new UnaryOperator(u.op(), resolveExpr(u.operand(), importMap), u.location());
-        case FunctionCall fc         -> new FunctionCall(resolve(fc.name(), importMap, fc.location()),
-                fc.arguments().stream().map(a -> resolveExpr(a, importMap)).toList(), fc.location());
-        case EnvironmentAttribute aa -> new EnvironmentAttribute(resolve(aa.name(), importMap, aa.location()),
-                aa.arguments().stream().map(a -> resolveExpr(a, importMap)).toList(),
-                aa.options() != null ? resolveExpr(aa.options(), importMap) : null, aa.head(), aa.location());
-        case RelativeReference r     -> r; // No nested expressions
-        case Parenthesized g         -> new Parenthesized(resolveExpr(g.expression(), importMap), g.location());
-        case SimpleFilter sf         -> resolveSimpleFilter(sf, importMap);
-        case ExtendedFilter ef       -> resolveExtendedFilter(ef, importMap);
-        case ArrayExpression ae      ->
-            new ArrayExpression(ae.elements().stream().map(e -> resolveExpr(e, importMap)).toList(), ae.location());
-        case ObjectExpression oe     -> new ObjectExpression(
-                oe.entries().stream()
-                        .map(e -> new ObjectEntry(e.key(), resolveExpr(e.value(), importMap), e.location())).toList(),
-                oe.location());
+        case Literal l                                                                             -> l;
+        case Identifier id                                                                         -> id; // No steps to
+                                                                                                          // resolve in
+                                                                                                          // new AST
+        case RelativeReference r                                                                   -> r; // No nested
+                                                                                                         // expressions
+        case BinaryOperator(var op, var left, var right, var location)                             ->
+            new BinaryOperator(op, resolveExpr(left, importMap), resolveExpr(right, importMap), location);
+        case UnaryOperator(var op, var operand, var location)                                      ->
+            new UnaryOperator(op, resolveExpr(operand, importMap), location);
+        case FunctionCall(var name, var arguments, var location)                                   ->
+            new FunctionCall(resolve(name, importMap, location),
+                    arguments.stream().map(a -> resolveExpr(a, importMap)).toList(), location);
+        case EnvironmentAttribute(var name, var arguments, var options, var head, var location)    ->
+            new EnvironmentAttribute(resolve(name, importMap, location),
+                    arguments.stream().map(a -> resolveExpr(a, importMap)).toList(),
+                    options != null ? resolveExpr(options, importMap) : null, head, location);
+        case Parenthesized(var expression, var location)                                           ->
+            new Parenthesized(resolveExpr(expression, importMap), location);
+        case SimpleFilter(var base, var name, var arguments, var each, var location)               ->
+            new SimpleFilter(resolveExpr(base, importMap), resolve(name, importMap, location),
+                    arguments.stream().map(a -> resolveExpr(a, importMap)).toList(), each, location);
+        case ExtendedFilter(var base, var target, var name, var arguments, var each, var location) ->
+            new ExtendedFilter(resolveExpr(base, importMap), resolveFilterPath(target, importMap),
+                    resolve(name, importMap, location), arguments.stream().map(a -> resolveExpr(a, importMap)).toList(),
+                    each, location);
+        case ArrayExpression(var elements, var location)                                           ->
+            new ArrayExpression(elements.stream().map(e -> resolveExpr(e, importMap)).toList(), location);
+        case ObjectExpression(var entries, var location)                                           ->
+            new ObjectExpression(entries.stream()
+                    .map(e -> new ObjectEntry(e.key(), resolveExpr(e.value(), importMap), e.location())).toList(),
+                    location);
         // N-ary operations
-        case Conjunction c           ->
-            new Conjunction(c.operands().stream().map(o -> resolveExpr(o, importMap)).toList(), c.location());
-        case Disjunction d           ->
-            new Disjunction(d.operands().stream().map(o -> resolveExpr(o, importMap)).toList(), d.location());
-        case Sum s                   ->
-            new Sum(s.operands().stream().map(o -> resolveExpr(o, importMap)).toList(), s.location());
-        case Product p               ->
-            new Product(p.operands().stream().map(o -> resolveExpr(o, importMap)).toList(), p.location());
-        case ExclusiveDisjunction xd -> new ExclusiveDisjunction(
-                xd.operands().stream().map(o -> resolveExpr(o, importMap)).toList(), xd.location());
+        case Conjunction(var operands, var location)          ->
+            new Conjunction(operands.stream().map(o -> resolveExpr(o, importMap)).toList(), location);
+        case Disjunction(var operands, var location)          ->
+            new Disjunction(operands.stream().map(o -> resolveExpr(o, importMap)).toList(), location);
+        case Sum(var operands, var location)                  ->
+            new Sum(operands.stream().map(o -> resolveExpr(o, importMap)).toList(), location);
+        case Product(var operands, var location)              ->
+            new Product(operands.stream().map(o -> resolveExpr(o, importMap)).toList(), location);
+        case ExclusiveDisjunction(var operands, var location) ->
+            new ExclusiveDisjunction(operands.stream().map(o -> resolveExpr(o, importMap)).toList(), location);
         // Steps - each has a base expression to recurse into
         case Step step -> resolveStep(step, importMap);
         };
@@ -172,57 +190,51 @@ public class ImportResolver {
 
     private Step resolveStep(Step step, Map<String, List<String>> importMap) {
         return switch (step) {
-        case KeyStep ks                -> new KeyStep(resolveExpr(ks.base(), importMap), ks.key(), ks.location());
-        case IndexStep is              -> new IndexStep(resolveExpr(is.base(), importMap), is.index(), is.location());
-        case WildcardStep ws           -> new WildcardStep(resolveExpr(ws.base(), importMap), ws.location());
-        case SliceStep ss              ->
-            new SliceStep(resolveExpr(ss.base(), importMap), ss.from(), ss.to(), ss.step(), ss.location());
-        case ExpressionStep es         -> new ExpressionStep(resolveExpr(es.base(), importMap),
-                resolveExpr(es.expression(), importMap), es.location());
-        case ConditionStep cs          ->
-            new ConditionStep(resolveExpr(cs.base(), importMap), resolveExpr(cs.condition(), importMap), cs.location());
-        case RecursiveKeyStep rks      ->
-            new RecursiveKeyStep(resolveExpr(rks.base(), importMap), rks.key(), rks.location());
-        case RecursiveWildcardStep rws -> new RecursiveWildcardStep(resolveExpr(rws.base(), importMap), rws.location());
-        case RecursiveIndexStep ris    ->
-            new RecursiveIndexStep(resolveExpr(ris.base(), importMap), ris.index(), ris.location());
-        case AttributeStep afs         ->
-            new AttributeStep(resolveExpr(afs.base(), importMap), resolve(afs.name(), importMap, afs.location()),
-                    afs.arguments().stream().map(a -> resolveExpr(a, importMap)).toList(),
-                    afs.options() != null ? resolveExpr(afs.options(), importMap) : null, afs.head(), afs.location());
-        case IndexUnionStep ius        ->
-            new IndexUnionStep(resolveExpr(ius.base(), importMap), ius.indices(), ius.location());
-        case AttributeUnionStep aus    ->
-            new AttributeUnionStep(resolveExpr(aus.base(), importMap), aus.attributes(), aus.location());
+        case KeyStep(var base, var key, var location)                                              ->
+            new KeyStep(resolveExpr(base, importMap), key, location);
+        case IndexStep(var base, var index, var location)                                          ->
+            new IndexStep(resolveExpr(base, importMap), index, location);
+        case WildcardStep(var base, var location)                                                  ->
+            new WildcardStep(resolveExpr(base, importMap), location);
+        case SliceStep(var base, var from, var to, var stepVal, var location)                      ->
+            new SliceStep(resolveExpr(base, importMap), from, to, stepVal, location);
+        case ExpressionStep(var base, var expression, var location)                                ->
+            new ExpressionStep(resolveExpr(base, importMap), resolveExpr(expression, importMap), location);
+        case ConditionStep(var base, var condition, var location)                                  ->
+            new ConditionStep(resolveExpr(base, importMap), resolveExpr(condition, importMap), location);
+        case RecursiveKeyStep(var base, var key, var location)                                     ->
+            new RecursiveKeyStep(resolveExpr(base, importMap), key, location);
+        case RecursiveWildcardStep(var base, var location)                                         ->
+            new RecursiveWildcardStep(resolveExpr(base, importMap), location);
+        case RecursiveIndexStep(var base, var index, var location)                                 ->
+            new RecursiveIndexStep(resolveExpr(base, importMap), index, location);
+        case AttributeStep(var base, var name, var arguments, var options, var head, var location) ->
+            new AttributeStep(resolveExpr(base, importMap), resolve(name, importMap, location),
+                    arguments.stream().map(a -> resolveExpr(a, importMap)).toList(),
+                    options != null ? resolveExpr(options, importMap) : null, head, location);
+        case IndexUnionStep(var base, var indices, var location)                                   ->
+            new IndexUnionStep(resolveExpr(base, importMap), indices, location);
+        case AttributeUnionStep(var base, var attributes, var location)                            ->
+            new AttributeUnionStep(resolveExpr(base, importMap), attributes, location);
         };
     }
 
-    private SimpleFilter resolveSimpleFilter(SimpleFilter sf, Map<String, List<String>> importMap) {
-        var resolvedBase = resolveExpr(sf.base(), importMap);
-        var resolvedName = resolve(sf.name(), importMap, sf.location());
-        var resolvedArgs = sf.arguments().stream().map(a -> resolveExpr(a, importMap)).toList();
-        return new SimpleFilter(resolvedBase, resolvedName, resolvedArgs, sf.each(), sf.location());
-    }
-
-    private ExtendedFilter resolveExtendedFilter(ExtendedFilter ef, Map<String, List<String>> importMap) {
-        var resolvedBase   = resolveExpr(ef.base(), importMap);
-        var resolvedTarget = resolveFilterPath(ef.target(), importMap);
-        var resolvedName   = resolve(ef.name(), importMap, ef.location());
-        var resolvedArgs   = ef.arguments().stream().map(a -> resolveExpr(a, importMap)).toList();
-        return new ExtendedFilter(resolvedBase, resolvedTarget, resolvedName, resolvedArgs, ef.each(), ef.location());
-    }
-
     private FilterPath resolveFilterPath(FilterPath path, Map<String, List<String>> importMap) {
-        return new FilterPath(path.elements().stream().map(e -> resolvePathElement(e, importMap)).toList(),
-                path.location());
+        return switch (path) {
+        case FilterPath(var elements, var location) ->
+            new FilterPath(elements.stream().map(e -> resolvePathElement(e, importMap)).toList(), location);
+        };
     }
 
     private PathElement resolvePathElement(PathElement element, Map<String, List<String>> importMap) {
         // Most path elements don't contain expressions that need resolution
         return switch (element) {
-        case ExpressionPath ep -> new ExpressionPath(resolveExpr(ep.expression(), importMap), ep.location());
-        case ConditionPath cp  -> new ConditionPath(resolveExpr(cp.condition(), importMap), cp.location());
-        default                -> element; // KeyPath, IndexPath, WildcardPath, etc. have no expressions
+        case ExpressionPath(var expression, var location) ->
+            new ExpressionPath(resolveExpr(expression, importMap), location);
+        case ConditionPath(var condition, var location)   ->
+            new ConditionPath(resolveExpr(condition, importMap), location);
+        default                                           -> element; // KeyPath, IndexPath, WildcardPath, etc. have no
+                                                                      // expressions
         };
     }
 }

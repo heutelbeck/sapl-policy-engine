@@ -17,15 +17,11 @@
  */
 package io.sapl.compiler;
 
-import static io.sapl.api.model.ValueJsonMarshaller.json;
-import static io.sapl.util.ExpressionTestUtil.compileExpression;
-import static io.sapl.util.TestBrokers.ERROR_ATTRIBUTE_BROKER;
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.params.provider.Arguments.arguments;
-
-import java.util.Map;
-import java.util.stream.Stream;
-
+import io.sapl.api.model.*;
+import io.sapl.functions.DefaultFunctionBroker;
+import io.sapl.functions.libraries.FilterFunctionLibrary;
+import io.sapl.util.SimpleFunctionLibrary;
+import lombok.val;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -34,15 +30,14 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
-import io.sapl.api.model.CompiledExpression;
-import io.sapl.api.model.ErrorValue;
-import io.sapl.api.model.EvaluationContext;
-import io.sapl.api.model.PureOperator;
-import io.sapl.api.model.Value;
-import io.sapl.functions.DefaultFunctionBroker;
-import io.sapl.functions.libraries.FilterFunctionLibrary;
-import io.sapl.util.SimpleFunctionLibrary;
-import lombok.val;
+import java.util.Map;
+import java.util.stream.Stream;
+
+import static io.sapl.api.model.ValueJsonMarshaller.json;
+import static io.sapl.util.ExpressionTestUtil.compileExpression;
+import static io.sapl.util.TestBrokers.ERROR_ATTRIBUTE_BROKER;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 /**
  * Tests for filter expressions (|- operator) and subtemplates (:: operator).

@@ -17,13 +17,14 @@
  */
 package io.sapl.compiler;
 
-import static io.sapl.util.ExpressionTestUtil.compileExpression;
-import static io.sapl.util.TestBrokers.attributeBroker;
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-
-import java.util.stream.Stream;
-
+import io.sapl.api.attributes.AttributeBroker;
+import io.sapl.api.model.PureOperator;
+import io.sapl.api.model.Value;
+import io.sapl.functions.DefaultFunctionBroker;
+import io.sapl.functions.libraries.FilterFunctionLibrary;
+import io.sapl.util.ExpressionTestUtil.Stratum;
+import io.sapl.util.SimpleFunctionLibrary;
+import lombok.val;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -31,18 +32,15 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
-
-import io.sapl.api.attributes.AttributeBroker;
-import io.sapl.api.model.CompiledExpression;
-import io.sapl.api.model.ErrorValue;
-import io.sapl.api.model.PureOperator;
-import io.sapl.api.model.StreamOperator;
-import io.sapl.api.model.Value;
-import io.sapl.functions.DefaultFunctionBroker;
-import io.sapl.functions.libraries.FilterFunctionLibrary;
-import io.sapl.util.SimpleFunctionLibrary;
-import lombok.val;
 import reactor.core.publisher.Flux;
+
+import java.util.stream.Stream;
+
+import static io.sapl.util.ExpressionTestUtil.assertStratum;
+import static io.sapl.util.ExpressionTestUtil.compileExpression;
+import static io.sapl.util.TestBrokers.attributeBroker;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /**
  * Comprehensive test matrix for filter expression nature/strata inference.
@@ -107,79 +105,6 @@ class FilterNatureInferenceTests {
         functionBroker.loadStaticFunctionLibrary(SimpleFunctionLibrary.class);
         compilationContext = new CompilationContext(functionBroker, MOCK_ATTRIBUTE_BROKER);
     }
-
-    /**
-     * Strata enumeration for test clarity.
-     */
-    enum Stratum {
-        VALUE(1),
-        PURE_NON_SUB(2),
-        PURE_SUB(3),
-        STREAM(4);
-
-        final int level;
-
-        Stratum(int level) {
-            this.level = level;
-        }
-    }
-
-    /**
-     * Determines the expected output stratum based on input strata.
-     * <ul>
-     * <li>All 1 or 2 -> 1 (constant folded)</li>
-     * <li>Any 3, no 4 -> 3</li>
-     * <li>Any 4 -> 4</li>
-     * </ul>
-     */
-    static Stratum expectedOutput(Stratum base, Stratum pathExpr, Stratum funcArg) {
-        int maxLevel = Math.max(Math.max(base.level, pathExpr.level), funcArg.level);
-        if (maxLevel <= 2) {
-            return Stratum.VALUE; // Constant folded
-        }
-        return maxLevel == 3 ? Stratum.PURE_SUB : Stratum.STREAM;
-    }
-
-    /**
-     * Asserts that a compiled expression matches the expected stratum.
-     */
-    static void assertStratum(CompiledExpression compiled, Stratum expected) {
-        switch (expected) {
-        case VALUE        -> assertThat(compiled).isInstanceOf(Value.class);
-        case PURE_NON_SUB -> {
-            assertThat(compiled).isInstanceOf(PureOperator.class);
-            assertThat(((PureOperator) compiled).isDependingOnSubscription()).isFalse();
-        }
-        case PURE_SUB     -> {
-            assertThat(compiled).isInstanceOf(PureOperator.class);
-            assertThat(((PureOperator) compiled).isDependingOnSubscription()).isTrue();
-        }
-        case STREAM       -> assertThat(compiled).isInstanceOf(StreamOperator.class);
-        }
-    }
-
-    /**
-     * Compiles expression and returns stratum, or null if error.
-     */
-    static Stratum getStratum(CompiledExpression compiled) {
-        if (compiled instanceof ErrorValue) {
-            return null;
-        }
-        if (compiled instanceof Value) {
-            return Stratum.VALUE;
-        }
-        if (compiled instanceof PureOperator p) {
-            return p.isDependingOnSubscription() ? Stratum.PURE_SUB : Stratum.PURE_NON_SUB;
-        }
-        if (compiled instanceof StreamOperator) {
-            return Stratum.STREAM;
-        }
-        return null;
-    }
-
-    // =========================================================================
-    // SIMPLE FILTER TESTS: BASE |- func(ARG)
-    // =========================================================================
 
     @Nested
     @DisplayName("Simple Filter: base |- func(arg)")
@@ -264,10 +189,6 @@ class FilterNatureInferenceTests {
             assertStratum(compiled, Stratum.STREAM);
         }
     }
-
-    // =========================================================================
-    // EXTENDED FILTER TESTS: BASE |- { @[(PATH_EXPR)] : func(ARG) }
-    // =========================================================================
 
     /**
      * Tests for extended filters with expression paths.
@@ -401,10 +322,6 @@ class FilterNatureInferenceTests {
         }
     }
 
-    // =========================================================================
-    // EACH FILTER TESTS: BASE |- each func(ARG)
-    // =========================================================================
-
     @Nested
     @DisplayName("Each Filter: base |- each func(arg)")
     class EachFilterTests {
@@ -453,10 +370,6 @@ class FilterNatureInferenceTests {
             assertStratum(compiled, Stratum.STREAM);
         }
     }
-
-    // =========================================================================
-    // STRATA VERIFICATION TESTS
-    // =========================================================================
 
     @Nested
     @DisplayName("Strata Verification")

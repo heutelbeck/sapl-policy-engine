@@ -17,21 +17,20 @@
  */
 package io.sapl.compiler;
 
+import io.sapl.api.model.*;
+import io.sapl.ast.Literal;
+import lombok.val;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Test;
+
+import java.util.Map;
+
 import static io.sapl.compiler.AttributeOptionsCompiler.*;
 import static io.sapl.util.TestBrokers.DEFAULT_FUNCTION_BROKER;
 import static io.sapl.util.TestBrokers.ERROR_ATTRIBUTE_BROKER;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.*;
-
-import java.util.Map;
-
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Nested;
-import org.junit.jupiter.api.Test;
-
-import io.sapl.api.model.*;
-import io.sapl.ast.Literal;
-import lombok.val;
 
 class AttributeOptionsCompilerTests {
 

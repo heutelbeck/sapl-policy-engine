@@ -17,11 +17,11 @@
  */
 package io.sapl.util;
 
+import io.sapl.compiler.SAPLCompiler;
 import io.sapl.grammar.antlr.SAPLParser.ConditionStatementContext;
 import io.sapl.grammar.antlr.SAPLParser.ExpressionContext;
 import io.sapl.grammar.antlr.SAPLParser.PolicyOnlyElementContext;
 import io.sapl.grammar.antlr.SAPLParser.StatementContext;
-import io.sapl.compiler.SAPLCompiler;
 import lombok.experimental.UtilityClass;
 import lombok.val;
 

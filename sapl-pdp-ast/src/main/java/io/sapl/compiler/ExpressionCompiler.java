@@ -30,18 +30,21 @@ public class ExpressionCompiler {
 
     public CompiledExpression compile(Expression expression, CompilationContext ctx) {
         return switch (expression) {
-        case Literal l       -> l.value();
-        case Parenthesized p -> compile(p.expression(), ctx);
+        case Literal(var value, var loc1)       -> value;
+        case Parenthesized(var inner, var loc2) -> compile(inner, ctx);
 
-        case Identifier id -> {
-            val localVariable = ctx.getVariable(id.name());
-            yield localVariable != null ? localVariable : new IdentifierOp(id.name(), id.location());
+        case Identifier(var name, var location) -> {
+            val localVariable = ctx.getVariable(name);
+            if (localVariable != null) {
+                yield localVariable;
+            }
+            yield new IdentifierOp(name, location);
         }
 
-        case RelativeReference r -> switch (r.type()) {
-                             case VALUE        -> new RelativeValueOp(r.location());
-                             case LOCATION     -> new RelativeLocationOp(r.location());
-                             };
+        case RelativeReference(var type, var location) -> switch (type) {
+                                                   case VALUE        -> new RelativeValueOp(location);
+                                                   case LOCATION     -> new RelativeLocationOp(location);
+                                                   };
 
         // Operations
         case BinaryOperator b -> BINARY_COMPILER.compile(b, ctx);

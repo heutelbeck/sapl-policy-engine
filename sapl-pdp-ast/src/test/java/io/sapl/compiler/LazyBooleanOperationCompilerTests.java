@@ -17,29 +17,24 @@
  */
 package io.sapl.compiler;
 
-import static io.sapl.util.ExpressionTestUtil.compileExpression;
-import static io.sapl.util.ExpressionTestUtil.evaluateExpression;
-import static io.sapl.util.TestBrokers.attributeBroker;
-import static io.sapl.util.TestBrokers.compilationContext;
-import static io.sapl.util.TestBrokers.evaluationContext;
-import static io.sapl.util.TestBrokers.sequenceBroker;
-import static io.sapl.util.TestBrokers.trackingBroker;
-import static org.assertj.core.api.Assertions.assertThat;
+import io.sapl.api.model.ErrorValue;
+import io.sapl.api.model.EvaluationContext;
+import io.sapl.api.model.StreamOperator;
+import io.sapl.api.model.Value;
+import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
+import reactor.test.StepVerifier;
 
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import org.junit.jupiter.api.Nested;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.CsvSource;
-
-import io.sapl.api.model.ErrorValue;
-import io.sapl.api.model.EvaluationContext;
-import io.sapl.api.model.StreamOperator;
-import io.sapl.api.model.Value;
-import reactor.test.StepVerifier;
+import static io.sapl.util.ExpressionTestUtil.compileExpression;
+import static io.sapl.util.ExpressionTestUtil.evaluateExpression;
+import static io.sapl.util.TestBrokers.*;
+import static org.assertj.core.api.Assertions.assertThat;
 
 class LazyBooleanOperationCompilerTests {
 

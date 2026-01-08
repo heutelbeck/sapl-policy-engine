@@ -17,25 +17,18 @@
  */
 package io.sapl.compiler;
 
-import static io.sapl.util.ExpressionTestUtil.compileExpression;
-import static io.sapl.util.ExpressionTestUtil.evaluateExpression;
-import static io.sapl.util.TestBrokers.*;
-import static org.assertj.core.api.Assertions.assertThat;
+import io.sapl.api.functions.FunctionInvocation;
+import io.sapl.api.model.*;
+import org.junit.jupiter.api.Test;
+import reactor.test.StepVerifier;
 
 import java.util.ArrayList;
 import java.util.Map;
 
-import org.junit.jupiter.api.Test;
-
-import io.sapl.api.functions.FunctionInvocation;
-import io.sapl.api.model.ErrorValue;
-import io.sapl.api.model.EvaluationContext;
-import io.sapl.api.model.NumberValue;
-import io.sapl.api.model.PureOperator;
-import io.sapl.api.model.StreamOperator;
-import io.sapl.api.model.TextValue;
-import io.sapl.api.model.Value;
-import reactor.test.StepVerifier;
+import static io.sapl.util.ExpressionTestUtil.compileExpression;
+import static io.sapl.util.ExpressionTestUtil.evaluateExpression;
+import static io.sapl.util.TestBrokers.*;
+import static org.assertj.core.api.Assertions.assertThat;
 
 class FunctionCallCompilerTests {
 
