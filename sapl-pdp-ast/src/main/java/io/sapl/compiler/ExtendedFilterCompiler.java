@@ -75,15 +75,17 @@ public class ExtendedFilterCompiler {
                                         .of(ERROR_STREAM_OPERATORS_NOT_ALLOWED_IN_FILTER_FUNCTION_ARGUMENTS);
                             };
         case PureOperator pob   -> switch (compiledFilter) {
-                            case Value vf               -> new ExtendedFilterPureValue(pob, vf, path, pathAnalysis);
-                            case PureOperator pof       -> new ExtendedFilterPurePure(pob, pof, path, pathAnalysis);
-                            case StreamOperator ignored -> SimpleStreamOperator
+                            case Value vf                   -> new ExtendedFilterPureValue(pob, vf, path, pathAnalysis);
+                            case PureOperator pof           -> new ExtendedFilterPurePure(pob, pof, path, pathAnalysis);
+                            case StreamOperator ignored     -> SimpleStreamOperator
                                     .of(ERROR_STREAM_OPERATORS_NOT_ALLOWED_IN_FILTER_FUNCTION_ARGUMENTS);
                             };
         case StreamOperator sob -> switch (compiledFilter) {
-                            case Value vf               -> new ExtendedFilterStreamValue(sob, vf, path, pathAnalysis);
-                            case PureOperator pof       -> new ExtendedFilterStreamPure(sob, pof, path, pathAnalysis);
-                            case StreamOperator ignored -> SimpleStreamOperator
+                            case Value vf                   ->
+                                new ExtendedFilterStreamValue(sob, vf, path, pathAnalysis);
+                            case PureOperator pof           ->
+                                new ExtendedFilterStreamPure(sob, pof, path, pathAnalysis);
+                            case StreamOperator ignored     -> SimpleStreamOperator
                                     .of(ERROR_STREAM_OPERATORS_NOT_ALLOWED_IN_FILTER_FUNCTION_ARGUMENTS);
                             };
         };
@@ -220,21 +222,22 @@ public class ExtendedFilterCompiler {
         val head = path.getFirst();
         val tail = path.subList(1, path.size());
         return switch (head) {
-        case KeyPath kp                -> navigateKey(current, kp.key(), terminal, tail, pathAnalysis, evalCtx);
-        case IndexPath ip              -> navigateIndex(current, ip.index(), terminal, tail, pathAnalysis, evalCtx);
-        case WildcardPath ignored      -> navigateWildcard(current, terminal, tail, pathAnalysis, evalCtx);
-        case AttributeUnionPath aup    ->
+        case KeyPath kp                    -> navigateKey(current, kp.key(), terminal, tail, pathAnalysis, evalCtx);
+        case IndexPath ip                  -> navigateIndex(current, ip.index(), terminal, tail, pathAnalysis, evalCtx);
+        case WildcardPath ignored          -> navigateWildcard(current, terminal, tail, pathAnalysis, evalCtx);
+        case AttributeUnionPath aup        ->
             navigateAttributeUnion(current, aup.keys(), terminal, tail, pathAnalysis, evalCtx);
-        case IndexUnionPath iup        ->
+        case IndexUnionPath iup            ->
             navigateIndexUnion(current, iup.indices(), terminal, tail, pathAnalysis, evalCtx);
-        case SlicePath sp              -> navigateSlice(current, sp, terminal, tail, pathAnalysis, evalCtx);
-        case RecursiveKeyPath rkp      ->
+        case SlicePath sp                  -> navigateSlice(current, sp, terminal, tail, pathAnalysis, evalCtx);
+        case RecursiveKeyPath rkp          ->
             navigateRecursiveKey(current, rkp.key(), terminal, tail, pathAnalysis, evalCtx, 0);
-        case RecursiveIndexPath rip    ->
+        case RecursiveIndexPath rip        ->
             navigateRecursiveIndex(current, rip.index(), terminal, tail, pathAnalysis, evalCtx, 0);
-        case RecursiveWildcardPath ignored -> navigateRecursiveWildcard(current, terminal, tail, pathAnalysis, evalCtx, 0);
-        case ExpressionPath ep         -> navigateExpression(current, ep, terminal, tail, pathAnalysis, evalCtx);
-        case ConditionPath cp          -> navigateCondition(current, cp, terminal, tail, pathAnalysis, evalCtx);
+        case RecursiveWildcardPath ignored ->
+            navigateRecursiveWildcard(current, terminal, tail, pathAnalysis, evalCtx, 0);
+        case ExpressionPath ep             -> navigateExpression(current, ep, terminal, tail, pathAnalysis, evalCtx);
+        case ConditionPath cp              -> navigateCondition(current, cp, terminal, tail, pathAnalysis, evalCtx);
         };
     }
 
@@ -724,8 +727,7 @@ public class ExtendedFilterCompiler {
     record PathAnalysis(
             Map<PathElement, CompiledExpression> compiledElements,
             boolean isDependingOnSubscription,
-            SourceLocation filterLocation) {
-    }
+            SourceLocation filterLocation) {}
 
     private static PathAnalysis analyzePath(List<PathElement> path, SourceLocation filterLocation,
             CompilationContext ctx) {
