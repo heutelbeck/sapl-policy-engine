@@ -39,8 +39,7 @@ class UndefinedValueTests {
         var undefined1 = new UndefinedValue();
         var undefined2 = new UndefinedValue();
 
-        assertThat(undefined1).isEqualTo(undefined2).hasSameHashCodeAs(undefined2);
-        assertThat(undefined1).isEqualTo(Value.UNDEFINED);
+        assertThat(undefined1).isEqualTo(undefined2).hasSameHashCodeAs(undefined2).isEqualTo(Value.UNDEFINED);
     }
 
     @Test

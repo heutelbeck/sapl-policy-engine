@@ -82,13 +82,13 @@ public class StepCompiler {
 
         return switch (base) {
         case ErrorValue e     -> e;
-        case Value v          -> applyKeyStep(v, key, loc);
+        case Value v          -> applyKeyStep(v, key);
         case PureOperator p   -> new KeyStepPure(p, key, loc);
         case StreamOperator s -> new KeyStepStream(s, key, loc);
         };
     }
 
-    static Value applyKeyStep(Value base, String key, SourceLocation loc) {
+    static Value applyKeyStep(Value base, String key) {
         return switch (base) {
         case ErrorValue e    -> e;
         case ObjectValue obj -> {
@@ -116,7 +116,7 @@ public class StepCompiler {
     record KeyStepPure(PureOperator base, String key, SourceLocation location) implements PureOperator {
         @Override
         public Value evaluate(EvaluationContext ctx) {
-            return applyKeyStep(base.evaluate(ctx), key, location);
+            return applyKeyStep(base.evaluate(ctx), key);
         }
 
         @Override
@@ -128,8 +128,7 @@ public class StepCompiler {
     record KeyStepStream(StreamOperator base, String key, SourceLocation location) implements StreamOperator {
         @Override
         public Flux<TracedValue> stream() {
-            return base.stream()
-                    .map(tv -> new TracedValue(applyKeyStep(tv.value(), key, location), tv.contributingAttributes()));
+            return base.stream().map(tv -> new TracedValue(applyKeyStep(tv.value(), key), tv.contributingAttributes()));
         }
     }
 
@@ -469,7 +468,7 @@ public class StepCompiler {
             int index = num.intValue();
             yield applyIndexStep(base, index, loc);
         }
-        case TextValue(String text)      -> applyKeyStep(base, text, loc);
+        case TextValue(String text)      -> applyKeyStep(base, text);
         default                          ->
             Value.errorAt(loc, ERROR_EXPR_STEP_INVALID_TYPE, expr.getClass().getSimpleName());
         };

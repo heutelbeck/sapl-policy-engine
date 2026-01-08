@@ -62,8 +62,8 @@ class AttributeCompilerTests {
         assertThat(result).isInstanceOf(StreamOperator.class);
         var stream = ((StreamOperator) result).stream().contextWrite(c -> c.put(EvaluationContext.class, ctx));
         StepVerifier.create(stream).assertNext(tv -> {
-            assertThat(tv.value()).isInstanceOf(ErrorValue.class);
-            assertThat(((ErrorValue) tv.value()).message()).contains("No attribute finder registered for");
+            assertThat(tv.value()).isInstanceOf(ErrorValue.class).extracting(v -> ((ErrorValue) v).message()).asString()
+                    .contains("No attribute finder registered for");
             // Trace is recorded even for errors
             assertThat(tv.contributingAttributes()).hasSize(1);
         }).verifyComplete();
@@ -79,8 +79,8 @@ class AttributeCompilerTests {
         var stream = ((StreamOperator) result).stream().contextWrite(c -> c.put(EvaluationContext.class, ctx));
         StepVerifier.create(stream).expectNextCount(1).verifyComplete();
 
-        assertThat(capturedInvocation[0]).isNotNull();
-        assertThat(capturedInvocation[0].arguments()).containsExactly(Value.of(1), Value.of("arg"));
+        assertThat(capturedInvocation[0]).isNotNull().extracting(AttributeFinderInvocation::arguments)
+                .isEqualTo(java.util.List.of(Value.of(1), Value.of("arg")));
     }
 
     @Test
@@ -103,9 +103,10 @@ class AttributeCompilerTests {
         var stream = ((StreamOperator) result).stream().contextWrite(c -> c.put(EvaluationContext.class, ctx));
         StepVerifier.create(stream).expectNextCount(1).verifyComplete();
 
-        assertThat(capturedInvocation[0]).isNotNull();
-        assertThat(capturedInvocation[0].initialTimeOut().toMillis()).isEqualTo(5000);
-        assertThat(capturedInvocation[0].fresh()).isTrue();
+        assertThat(capturedInvocation[0]).isNotNull().satisfies(invocation -> {
+            assertThat(invocation.initialTimeOut().toMillis()).isEqualTo(5000);
+            assertThat(invocation.fresh()).isTrue();
+        });
     }
 
     @Test
@@ -115,9 +116,9 @@ class AttributeCompilerTests {
                                     @Override
                                     public Flux<Value> attributeStream(AttributeFinderInvocation invocation) {
                                         capturedInvocations.add(invocation);
-                                        if (invocation.attributeName().equals("inner.attr"))
+                                        if ("inner.attr".equals(invocation.attributeName()))
                                             return Flux.just(Value.of("arg1"), Value.of("arg2"));
-                                        if (invocation.attributeName().equals("outer.attr")) {
+                                        if ("outer.attr".equals(invocation.attributeName())) {
                                             var arg = ((io.sapl.api.model.TextValue) invocation.arguments().getFirst())
                                                     .value();
                                             return Flux.just(Value.of("result-" + arg));
@@ -153,9 +154,9 @@ class AttributeCompilerTests {
                                     @Override
                                     public Flux<Value> attributeStream(AttributeFinderInvocation invocation) {
                                         capturedInvocations.add(invocation);
-                                        if (invocation.attributeName().equals("stream.attr"))
+                                        if ("stream.attr".equals(invocation.attributeName()))
                                             return Flux.just(Value.of(10), Value.of(20));
-                                        if (invocation.attributeName().equals("test.attr"))
+                                        if ("test.attr".equals(invocation.attributeName()))
                                             return Flux.just(Value.of("ok"));
                                         return Flux.just(Value.error("Unknown"));
                                     }
@@ -171,12 +172,12 @@ class AttributeCompilerTests {
         var stream = ((StreamOperator) result).stream().contextWrite(c -> c.put(EvaluationContext.class, ctx));
         StepVerifier.create(stream).assertNext(tv -> {
             // Verify mixed arguments: pure "fixed" and stream value 10
-            var outerInvocation = capturedInvocations.stream().filter(i -> i.attributeName().equals("test.attr"))
+            var outerInvocation = capturedInvocations.stream().filter(i -> "test.attr".equals(i.attributeName()))
                     .findFirst().orElseThrow();
             assertThat(outerInvocation.arguments()).containsExactly(Value.of("fixed"), Value.of(10));
         }).assertNext(tv -> {
             // Second stream value
-            var outerInvocations = capturedInvocations.stream().filter(i -> i.attributeName().equals("test.attr"))
+            var outerInvocations = capturedInvocations.stream().filter(i -> "test.attr".equals(i.attributeName()))
                     .toList();
             assertThat(outerInvocations.get(1).arguments()).containsExactly(Value.of("fixed"), Value.of(20));
         }).verifyComplete();
@@ -192,9 +193,10 @@ class AttributeCompilerTests {
         var stream = ((StreamOperator) result).stream().contextWrite(c -> c.put(EvaluationContext.class, ctx));
         StepVerifier.create(stream).expectNextCount(1).verifyComplete();
 
-        assertThat(capturedInvocation[0]).isNotNull();
-        assertThat(capturedInvocation[0].entity()).isEqualTo(Value.of("alice"));
-        assertThat(capturedInvocation[0].attributeName()).isEqualTo("user.role");
+        assertThat(capturedInvocation[0]).isNotNull().satisfies(invocation -> {
+            assertThat(invocation.entity()).isEqualTo(Value.of("alice"));
+            assertThat(invocation.attributeName()).isEqualTo("user.role");
+        });
     }
 
     @Test
@@ -204,10 +206,8 @@ class AttributeCompilerTests {
         var result = evaluateExpression("undefined.<user.role>", ctx);
 
         var stream = ((StreamOperator) result).stream().contextWrite(c -> c.put(EvaluationContext.class, ctx));
-        StepVerifier.create(stream).assertNext(tv -> {
-            assertThat(tv.value()).isInstanceOf(ErrorValue.class);
-            assertThat(((ErrorValue) tv.value()).message()).contains("Undefined");
-        }).verifyComplete();
+        StepVerifier.create(stream).assertNext(tv -> assertThat(tv.value()).isInstanceOf(ErrorValue.class)
+                .extracting(v -> ((ErrorValue) v).message()).asString().contains("Undefined")).verifyComplete();
     }
 
 }

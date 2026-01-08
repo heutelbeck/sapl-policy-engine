@@ -45,7 +45,6 @@ import static org.junit.jupiter.params.provider.Arguments.arguments;
 class ExpressionCompilerTests {
 
     private static CompilationContext contextWithFunctions;
-    private static EvaluationContext  evaluationContextWithFunctions;
 
     private static final AttributeBroker DEFAULT_ATTRIBUTE_BROKER = new AttributeBroker() {
         @Override
@@ -67,9 +66,7 @@ class ExpressionCompilerTests {
         functionBroker.loadStaticFunctionLibrary(StandardFunctionLibrary.class);
         functionBroker.loadStaticFunctionLibrary(StringFunctionLibrary.class);
         functionBroker.loadStaticFunctionLibrary(TemporalFunctionLibrary.class);
-        contextWithFunctions           = new CompilationContext(functionBroker, DEFAULT_ATTRIBUTE_BROKER);
-        evaluationContextWithFunctions = new EvaluationContext(null, null, null, null, functionBroker,
-                DEFAULT_ATTRIBUTE_BROKER);
+        contextWithFunctions = new CompilationContext(functionBroker, DEFAULT_ATTRIBUTE_BROKER);
     }
 
     @Nested
@@ -814,7 +811,7 @@ class ExpressionCompilerTests {
 
     @MethodSource
     @ParameterizedTest(name = "{0}")
-    void when_compileUnaryOperation_then_returnsResult(String description, String expression, Object expected) {
+    void when_compileLiteralExpression_then_returnsResult(String description, String expression, Object expected) {
         val actual = evaluateExpression(expression);
         if (expected instanceof Class<?> c)
             assertThat(actual).isInstanceOf(c);
@@ -823,7 +820,7 @@ class ExpressionCompilerTests {
     }
 
     // @formatter:off
-    private static Stream<Arguments> when_compileUnaryOperation_then_returnsResult() {
+    private static Stream<Arguments> when_compileLiteralExpression_then_returnsResult() {
         return Stream.of(
             // Logical NOT
             arguments("not true", "!true", Value.FALSE),
@@ -858,82 +855,50 @@ class ExpressionCompilerTests {
                 +"text"
                 """,
                 ErrorValue.class),
-            arguments("plus null", "+null", ErrorValue.class));
-    }
-    // @formatter:on
-
-    @MethodSource
-    @ParameterizedTest(name = "{0}")
-    void when_compileArrayExpression_then_returnsResult(String description, String expression, Object expected) {
-        val actual = evaluateExpression(expression);
-        if (expected instanceof Class<?> c)
-            assertThat(actual).isInstanceOf(c);
-        else
-            assertThat(actual).isEqualTo(expected);
-    }
-
-    // @formatter:off
-    private static Stream<Arguments> when_compileArrayExpression_then_returnsResult() {
-        return Stream.of(
-            // Empty and simple
+            arguments("plus null", "+null", ErrorValue.class),
+            // Arrays - Empty and simple
             arguments("empty array", "[]", Value.EMPTY_ARRAY),
             arguments("single element", "[1]", Value.ofArray(Value.of(1))),
             arguments("two elements", "[1, 2]", Value.ofArray(Value.of(1), Value.of(2))),
             arguments("three elements", "[1, 2, 3]", Value.ofArray(Value.of(1), Value.of(2), Value.of(3))),
-            // Mixed types
+            // Arrays - Mixed types
             arguments("mixed types",
                 """
                 [1, "a", true]
                 """,
                 Value.ofArray(Value.of(1), Value.of("a"), Value.TRUE)),
-            // Nested
+            // Arrays - Nested
             arguments("nested array", "[[1, 2], [3, 4]]",
                 Value.ofArray(Value.ofArray(Value.of(1), Value.of(2)),
                         Value.ofArray(Value.of(3), Value.of(4)))),
-            // Undefined handling
+            // Arrays - Undefined handling
             arguments("undefined dropped", "[1, undefined, 2]", Value.ofArray(Value.of(1), Value.of(2))),
             arguments("all undefined", "[undefined, undefined]", Value.EMPTY_ARRAY),
-            // Expressions as elements
+            // Arrays - Expressions as elements
             arguments("expression elements", "[!false, -5]", Value.ofArray(Value.TRUE, Value.of(-5))),
-            // Error propagation
-            arguments("error propagates", "[1, !5, 2]", ErrorValue.class));
-    }
-    // @formatter:on
-
-    @MethodSource
-    @ParameterizedTest(name = "{0}")
-    void when_compileObjectExpression_then_returnsResult(String description, String expression, Object expected) {
-        val actual = evaluateExpression(expression);
-        if (expected instanceof Class<?> c)
-            assertThat(actual).isInstanceOf(c);
-        else
-            assertThat(actual).isEqualTo(expected);
-    }
-
-    // @formatter:off
-    private static Stream<Arguments> when_compileObjectExpression_then_returnsResult() {
-        return Stream.of(
-            // Empty and simple
+            // Arrays - Error propagation
+            arguments("array error propagates", "[1, !5, 2]", ErrorValue.class),
+            // Objects - Empty and simple
             arguments("empty object", "{}", Value.EMPTY_OBJECT),
             arguments("single property", "{a: 1}", obj("a", Value.of(1))),
             arguments("two properties", "{a: 1, b: 2}", obj("a", Value.of(1), "b", Value.of(2))),
-            // Mixed value types
+            // Objects - Mixed value types
             arguments("mixed value types",
                 """
                 {n: 1, s: "x", b: true}
                 """,
                 obj("n", Value.of(1), "s", Value.of("x"), "b", Value.TRUE)),
-            // Nested
+            // Objects - Nested
             arguments("nested object", "{outer: {inner: 1}}", obj("outer", obj("inner", Value.of(1)))),
             arguments("object with array", "{arr: [1, 2]}", obj("arr", Value.ofArray(Value.of(1), Value.of(2)))),
-            // Undefined handling
+            // Objects - Undefined handling
             arguments("undefined value dropped", "{a: 1, b: undefined, c: 2}",
                 obj("a", Value.of(1), "c", Value.of(2))),
             arguments("all undefined values", "{a: undefined, b: undefined}", Value.EMPTY_OBJECT),
-            // Expressions as values
+            // Objects - Expressions as values
             arguments("expression values", "{neg: -5, not: !false}", obj("neg", Value.of(-5), "not", Value.TRUE)),
-            // Error propagation
-            arguments("error propagates", "{a: 1, b: !5, c: 2}", ErrorValue.class));
+            // Objects - Error propagation
+            arguments("object error propagates", "{a: 1, b: !5, c: 2}", ErrorValue.class));
     }
     // @formatter:on
 

@@ -39,8 +39,7 @@ class FunctionCallCompilerTests {
         var result = compileExpression("test.fn(1, 2, 3)", ctx);
 
         // Should be constant folded to a Value at compile time
-        assertThat(result).isInstanceOf(Value.class);
-        assertThat(result).isEqualTo(Value.of(3));
+        assertThat(result).isInstanceOf(Value.class).isEqualTo(Value.of(3));
     }
 
     @Test
@@ -49,8 +48,7 @@ class FunctionCallCompilerTests {
         var ctx    = compilationContext(broker);
         var result = compileExpression("test.fn()", ctx);
 
-        assertThat(result).isInstanceOf(Value.class);
-        assertThat(result).isEqualTo(Value.of("no-args"));
+        assertThat(result).isInstanceOf(Value.class).isEqualTo(Value.of("no-args"));
     }
 
     @Test
@@ -60,9 +58,10 @@ class FunctionCallCompilerTests {
         var ctx      = compilationContext(broker);
         compileExpression("test.fn(\"hello\", 42, true)", ctx);
 
-        assertThat(captured[0]).isNotNull();
-        assertThat(captured[0].functionName()).isEqualTo("test.fn");
-        assertThat(captured[0].arguments()).containsExactly(Value.of("hello"), Value.of(42), Value.TRUE);
+        assertThat(captured[0]).isNotNull().satisfies(invocation -> {
+            assertThat(invocation.functionName()).isEqualTo("test.fn");
+            assertThat(invocation.arguments()).containsExactly(Value.of("hello"), Value.of(42), Value.TRUE);
+        });
     }
 
     @Test
@@ -83,8 +82,8 @@ class FunctionCallCompilerTests {
         var result   = evaluateExpression("test.fn(\"static\", x, 42)", evalCtx);
 
         assertThat(result).isEqualTo(Value.of("result"));
-        assertThat(captured).hasSize(1);
-        assertThat(captured.get(0).arguments()).containsExactly(Value.of("static"), Value.of("dynamic"), Value.of(42));
+        assertThat(captured).hasSize(1).first().extracting(FunctionInvocation::arguments)
+                .isEqualTo(java.util.List.of(Value.of("static"), Value.of("dynamic"), Value.of(42)));
     }
 
     @Test
@@ -93,8 +92,8 @@ class FunctionCallCompilerTests {
         var evalCtx = evaluationContext(broker, Map.of("x", Value.error("pure error")));
         var result  = evaluateExpression("test.fn(x)", evalCtx);
 
-        assertThat(result).isInstanceOf(ErrorValue.class);
-        assertThat(((ErrorValue) result).message()).contains("pure error");
+        assertThat(result).isInstanceOf(ErrorValue.class).extracting(v -> ((ErrorValue) v).message()).asString()
+                .contains("pure error");
     }
 
     @Test
@@ -103,8 +102,8 @@ class FunctionCallCompilerTests {
         var evalCtx = evaluationContext(broker, Map.of());
         var result  = evaluateExpression("test.fn()", evalCtx);
 
-        assertThat(result).isInstanceOf(ErrorValue.class);
-        assertThat(((ErrorValue) result).message()).contains("function error");
+        assertThat(result).isInstanceOf(ErrorValue.class).extracting(v -> ((ErrorValue) v).message()).asString()
+                .contains("function error");
     }
 
     @Test
@@ -152,10 +151,10 @@ class FunctionCallCompilerTests {
 
         assertThat(result).isInstanceOf(StreamOperator.class);
         var stream = ((StreamOperator) result).stream().contextWrite(c -> c.put(EvaluationContext.class, evalCtx));
-        StepVerifier.create(stream).assertNext(tv -> {
-            assertThat(tv.value()).isInstanceOf(ErrorValue.class);
-            assertThat(((ErrorValue) tv.value()).message()).contains("stream error");
-        }).verifyComplete();
+        StepVerifier.create(stream)
+                .assertNext(tv -> assertThat(tv.value()).isInstanceOf(ErrorValue.class)
+                        .extracting(v -> ((ErrorValue) v).message()).asString().contains("stream error"))
+                .verifyComplete();
     }
 
     @Test
@@ -186,10 +185,10 @@ class FunctionCallCompilerTests {
 
         assertThat(result).isInstanceOf(StreamOperator.class);
         var stream = ((StreamOperator) result).stream().contextWrite(c -> c.put(EvaluationContext.class, evalCtx));
-        StepVerifier.create(stream).assertNext(tv -> {
-            assertThat(tv.value()).isInstanceOf(ErrorValue.class);
-            assertThat(((ErrorValue) tv.value()).message()).contains("bad stream");
-        }).verifyComplete();
+        StepVerifier.create(stream)
+                .assertNext(tv -> assertThat(tv.value()).isInstanceOf(ErrorValue.class)
+                        .extracting(v -> ((ErrorValue) v).message()).asString().contains("bad stream"))
+                .verifyComplete();
     }
 
     @Test
@@ -201,7 +200,8 @@ class FunctionCallCompilerTests {
 
         // Undefined should be filtered out, leaving 2 arguments
         assertThat(result).isEqualTo(Value.of(2));
-        assertThat(captured.get(0).arguments()).containsExactly(Value.of(1), Value.of(3));
+        assertThat(captured).hasSize(1).first().extracting(FunctionInvocation::arguments)
+                .isEqualTo(java.util.List.of(Value.of(1), Value.of(3)));
     }
 
     @Test
@@ -211,8 +211,8 @@ class FunctionCallCompilerTests {
         var result = compileExpression("test.fn(x)", ctx);
 
         // Variable reference may be a subscription element, so depends on subscription
-        assertThat(result).isInstanceOf(PureOperator.class);
-        assertThat(((PureOperator) result).isDependingOnSubscription()).isTrue();
+        assertThat(result).isInstanceOf(PureOperator.class)
+                .extracting(r -> ((PureOperator) r).isDependingOnSubscription()).isEqualTo(true);
     }
 
     @Test
@@ -227,8 +227,7 @@ class FunctionCallCompilerTests {
         var result = compileExpression("test.fn()", ctx);
 
         // Constant folded to Value at compile time
-        assertThat(result).isInstanceOf(Value.class);
-        assertThat(result).isEqualTo(Value.of("result"));
+        assertThat(result).isInstanceOf(Value.class).isEqualTo(Value.of("result"));
     }
 
     @Test
@@ -242,9 +241,8 @@ class FunctionCallCompilerTests {
         var stream = ((StreamOperator) result).stream().contextWrite(c -> c.put(EvaluationContext.class, evalCtx));
         StepVerifier.create(stream).assertNext(tv -> {
             // Should have traces from both a.attr and b.attr
-            assertThat(tv.contributingAttributes()).hasSize(2);
-            var attrNames = tv.contributingAttributes().stream().map(r -> r.invocation().attributeName()).toList();
-            assertThat(attrNames).containsExactlyInAnyOrder("a.attr", "b.attr");
+            assertThat(tv.contributingAttributes()).hasSize(2).extracting(r -> r.invocation().attributeName())
+                    .containsExactlyInAnyOrder("a.attr", "b.attr");
         }).verifyComplete();
     }
 
@@ -257,10 +255,8 @@ class FunctionCallCompilerTests {
 
         assertThat(result).isInstanceOf(StreamOperator.class);
         var stream = ((StreamOperator) result).stream().contextWrite(c -> c.put(EvaluationContext.class, evalCtx));
-        StepVerifier.create(stream).assertNext(tv -> {
-            assertThat(tv.contributingAttributes()).hasSize(1);
-            assertThat(tv.contributingAttributes().getFirst().invocation().attributeName()).isEqualTo("test.attr");
-        }).verifyComplete();
+        StepVerifier.create(stream).assertNext(tv -> assertThat(tv.contributingAttributes()).hasSize(1).first()
+                .extracting(r -> r.invocation().attributeName()).isEqualTo("test.attr")).verifyComplete();
     }
 
 }

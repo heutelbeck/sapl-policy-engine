@@ -726,7 +726,7 @@ class StepCompilerTests {
         }
 
         static Stream<Arguments> stepOnError_propagatesError() {
-            return Stream.of(arguments("key step", StepCompiler.applyKeyStep(ERROR, "key", null)),
+            return Stream.of(arguments("key step", StepCompiler.applyKeyStep(ERROR, "key")),
                     arguments("index step", StepCompiler.applyIndexStep(ERROR, 0, null)),
                     arguments("wildcard step", StepCompiler.applyWildcardStep(ERROR, null)),
                     arguments("index union step", StepCompiler.applyIndexUnionStep(ERROR, List.of(0, 1), null)),

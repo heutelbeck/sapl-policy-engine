@@ -39,8 +39,7 @@ class NullValueTests {
         var null1 = new NullValue();
         var null2 = new NullValue();
 
-        assertThat(null1).isEqualTo(null2).hasSameHashCodeAs(null2);
-        assertThat(null1).isEqualTo(Value.NULL);
+        assertThat(null1).isEqualTo(null2).hasSameHashCodeAs(null2).isEqualTo(Value.NULL);
     }
 
     @Test
