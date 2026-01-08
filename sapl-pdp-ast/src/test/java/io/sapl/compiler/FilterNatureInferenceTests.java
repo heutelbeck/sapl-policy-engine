@@ -19,6 +19,7 @@ package io.sapl.compiler;
 
 import static io.sapl.util.ExpressionTestUtil.compileExpression;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.List;
 import java.util.stream.Stream;
@@ -376,13 +377,12 @@ class FilterNatureInferenceTests {
         }
 
         @Test
-        @DisplayName("Stream in path expression -> StreamOperator")
-        void streamInPathExpr_producesStreamOp() {
-            // Stream in path is now correctly detected at compile time
-            val compiled = compileExpression("[1, 2, 3] |- { @[(subject.<test.index>)] : simple.identity }",
-                    compilationContext);
-            // Returns StreamOperator because path contains stream
-            assertThat(compiled).isInstanceOf(StreamOperator.class);
+        @DisplayName("Stream in path expression -> throws compile-time exception")
+        void streamInPathExpr_throwsCompileException() {
+            // Stream in path is disallowed at compile time
+            assertThatThrownBy(() -> compileExpression("[1, 2, 3] |- { @[(subject.<test.index>)] : simple.identity }",
+                    compilationContext)).isInstanceOf(SaplCompilerException.class)
+                    .hasMessageContaining("Stream operators not allowed in filter path");
         }
 
         @Test

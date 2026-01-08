@@ -17,8 +17,13 @@
  */
 package io.sapl.compiler.operators;
 
+import io.sapl.api.model.ErrorValue;
 import io.sapl.api.model.StreamOperator;
 import io.sapl.api.model.TracedValue;
 import reactor.core.publisher.Flux;
 
-public record SimpleStreamOperator(Flux<TracedValue> stream) implements StreamOperator {}
+public record SimpleStreamOperator(Flux<TracedValue> stream) implements StreamOperator {
+    public static StreamOperator of(ErrorValue error) {
+        return new SimpleStreamOperator(Flux.<TracedValue>just(TracedValue.of(error)));
+    }
+}
