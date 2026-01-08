@@ -17,27 +17,26 @@
  */
 package io.sapl.compiler;
 
-import io.sapl.api.model.ErrorValue;
-import io.sapl.api.model.SourceLocation;
-import io.sapl.api.model.Value;
-import io.sapl.ast.BinaryOperator;
-import io.sapl.ast.BinaryOperatorType;
-import io.sapl.ast.Literal;
-import lombok.val;
+import static io.sapl.util.ExpressionTestUtil.TEST_LOCATION;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.junit.jupiter.params.provider.Arguments.arguments;
+
+import java.util.stream.Stream;
+
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
-import java.util.stream.Stream;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.junit.jupiter.params.provider.Arguments.arguments;
+import io.sapl.api.model.ErrorValue;
+import io.sapl.api.model.Value;
+import io.sapl.ast.BinaryOperator;
+import io.sapl.ast.BinaryOperatorType;
+import io.sapl.ast.Literal;
+import lombok.val;
 
 class RegexCompilerTests {
-
-    private static final SourceLocation TEST_LOC = new SourceLocation("test", "", 0, 0, 1, 1, 1, 1);
 
     @MethodSource
     @ParameterizedTest(name = "{0}")
@@ -118,9 +117,9 @@ class RegexCompilerTests {
         val ctx      = new CompilationContext(null, null, null);
 
         // Create a BinaryOperator with an invalid regex pattern
-        val leftExpr  = new Literal(Value.of("hello"), TEST_LOC);
-        val rightExpr = new Literal(Value.of("[invalid"), TEST_LOC);
-        val binaryOp  = new BinaryOperator(BinaryOperatorType.REGEX, leftExpr, rightExpr, TEST_LOC);
+        val leftExpr  = new Literal(Value.of("hello"), TEST_LOCATION);
+        val rightExpr = new Literal(Value.of("[invalid"), TEST_LOCATION);
+        val binaryOp  = new BinaryOperator(BinaryOperatorType.REGEX, leftExpr, rightExpr, TEST_LOCATION);
 
         assertThatThrownBy(() -> compiler.compile(binaryOp, ctx)).isInstanceOf(SaplCompilerException.class)
                 .hasMessageContaining("Invalid regular expression");
@@ -132,9 +131,9 @@ class RegexCompilerTests {
         val ctx      = new CompilationContext(null, null, null);
 
         // Both input and pattern are literals - should return a Value directly
-        val leftExpr  = new Literal(Value.of("hello"), TEST_LOC);
-        val rightExpr = new Literal(Value.of("hello"), TEST_LOC);
-        val binaryOp  = new BinaryOperator(BinaryOperatorType.REGEX, leftExpr, rightExpr, TEST_LOC);
+        val leftExpr  = new Literal(Value.of("hello"), TEST_LOCATION);
+        val rightExpr = new Literal(Value.of("hello"), TEST_LOCATION);
+        val binaryOp  = new BinaryOperator(BinaryOperatorType.REGEX, leftExpr, rightExpr, TEST_LOCATION);
 
         val result = compiler.compile(binaryOp, ctx);
         assertThat(result).isEqualTo(Value.TRUE);
@@ -145,9 +144,9 @@ class RegexCompilerTests {
         val compiler = new RegexCompiler();
         val ctx      = new CompilationContext(null, null, null);
 
-        val leftExpr  = new Literal(Value.of("hello"), TEST_LOC);
-        val rightExpr = new Literal(Value.of("world"), TEST_LOC);
-        val binaryOp  = new BinaryOperator(BinaryOperatorType.REGEX, leftExpr, rightExpr, TEST_LOC);
+        val leftExpr  = new Literal(Value.of("hello"), TEST_LOCATION);
+        val rightExpr = new Literal(Value.of("world"), TEST_LOCATION);
+        val binaryOp  = new BinaryOperator(BinaryOperatorType.REGEX, leftExpr, rightExpr, TEST_LOCATION);
 
         val result = compiler.compile(binaryOp, ctx);
         assertThat(result).isEqualTo(Value.FALSE);

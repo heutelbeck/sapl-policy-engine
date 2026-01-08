@@ -17,29 +17,36 @@
  */
 package io.sapl.compiler;
 
-import io.sapl.api.attributes.AttributeBroker;
-import io.sapl.api.attributes.AttributeFinderInvocation;
-import io.sapl.api.functions.FunctionBroker;
-import io.sapl.api.functions.FunctionInvocation;
-import io.sapl.api.model.*;
-import org.junit.jupiter.api.Test;
-import reactor.core.publisher.Flux;
-import reactor.test.StepVerifier;
+import static io.sapl.util.ExpressionTestUtil.compileExpression;
+import static io.sapl.util.ExpressionTestUtil.evaluateExpression;
+import static io.sapl.util.TestBrokers.*;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-import static io.sapl.util.ExpressionTestUtil.compileExpression;
-import static io.sapl.util.ExpressionTestUtil.evaluateExpression;
-import static org.assertj.core.api.Assertions.assertThat;
+import org.junit.jupiter.api.Test;
+
+import io.sapl.api.attributes.AttributeBroker;
+import io.sapl.api.attributes.AttributeFinderInvocation;
+import io.sapl.api.functions.FunctionInvocation;
+import io.sapl.api.model.ErrorValue;
+import io.sapl.api.model.EvaluationContext;
+import io.sapl.api.model.NumberValue;
+import io.sapl.api.model.PureOperator;
+import io.sapl.api.model.StreamOperator;
+import io.sapl.api.model.TextValue;
+import io.sapl.api.model.Value;
+import reactor.core.publisher.Flux;
+import reactor.test.StepVerifier;
 
 class FunctionCallCompilerTests {
 
     @Test
     void when_functionCall_withAllLiteralArgs_then_constantFoldsAtCompileTime() {
-        var broker = testBroker("test.fn", args -> Value.of(args.size()));
-        var ctx    = compilationContextWithBroker(broker);
+        var broker = functionBroker("test.fn", args -> Value.of(args.size()));
+        var ctx    = compilationContext(broker);
         var result = compileExpression("test.fn(1, 2, 3)", ctx);
 
         // Should be constant folded to a Value at compile time
@@ -49,8 +56,8 @@ class FunctionCallCompilerTests {
 
     @Test
     void when_functionCall_withNoArgs_then_constantFolds() {
-        var broker = testBroker("test.fn", args -> Value.of("no-args"));
-        var ctx    = compilationContextWithBroker(broker);
+        var broker = functionBroker("test.fn", args -> Value.of("no-args"));
+        var ctx    = compilationContext(broker);
         var result = compileExpression("test.fn()", ctx);
 
         assertThat(result).isInstanceOf(Value.class);
@@ -60,8 +67,8 @@ class FunctionCallCompilerTests {
     @Test
     void when_functionCall_withLiteralArgs_then_passesArgumentsCorrectly() {
         var captured = new FunctionInvocation[1];
-        var broker   = capturingBroker(captured, Value.of("ok"));
-        var ctx      = compilationContextWithBroker(broker);
+        var broker   = capturingFunctionBroker(captured, Value.of("ok"));
+        var ctx      = compilationContext(broker);
         compileExpression("test.fn(\"hello\", 42, true)", ctx);
 
         assertThat(captured[0]).isNotNull();
@@ -71,8 +78,8 @@ class FunctionCallCompilerTests {
 
     @Test
     void when_functionCall_withPureArg_then_returnsPureOperator() {
-        var broker  = testBroker("test.fn", args -> args.getFirst());
-        var evalCtx = contextWithBroker(broker, Map.of("x", Value.of(100)));
+        var broker  = functionBroker("test.fn", args -> args.getFirst());
+        var evalCtx = evaluationContext(broker, Map.of("x", Value.of(100)));
         var result  = evaluateExpression("test.fn(x)", evalCtx);
 
         // Expression depends on variable, should be PureOperator evaluated at runtime
@@ -82,8 +89,8 @@ class FunctionCallCompilerTests {
     @Test
     void when_functionCall_withMixedValueAndPure_then_returnsPureOperator() {
         var captured = new ArrayList<FunctionInvocation>();
-        var broker   = capturingBroker(captured, args -> Value.of("result"));
-        var evalCtx  = contextWithBroker(broker, Map.of("x", Value.of("dynamic")));
+        var broker   = capturingFunctionBroker(captured, args -> Value.of("result"));
+        var evalCtx  = evaluationContext(broker, Map.of("x", Value.of("dynamic")));
         var result   = evaluateExpression("test.fn(\"static\", x, 42)", evalCtx);
 
         assertThat(result).isEqualTo(Value.of("result"));
@@ -93,8 +100,8 @@ class FunctionCallCompilerTests {
 
     @Test
     void when_functionCall_withPureArg_andErrorFromPure_then_propagatesError() {
-        var broker  = testBroker("test.fn", args -> Value.of("should not reach"));
-        var evalCtx = contextWithBroker(broker, Map.of("x", Value.error("pure error")));
+        var broker  = functionBroker("test.fn", args -> Value.of("should not reach"));
+        var evalCtx = evaluationContext(broker, Map.of("x", Value.error("pure error")));
         var result  = evaluateExpression("test.fn(x)", evalCtx);
 
         assertThat(result).isInstanceOf(ErrorValue.class);
@@ -103,8 +110,8 @@ class FunctionCallCompilerTests {
 
     @Test
     void when_functionCall_returnsError_then_propagatesError() {
-        var broker  = testBroker("test.fn", args -> Value.error("function error"));
-        var evalCtx = contextWithBroker(broker, Map.of());
+        var broker  = functionBroker("test.fn", args -> Value.error("function error"));
+        var evalCtx = evaluationContext(broker, Map.of());
         var result  = evaluateExpression("test.fn()", evalCtx);
 
         assertThat(result).isInstanceOf(ErrorValue.class);
@@ -114,11 +121,11 @@ class FunctionCallCompilerTests {
     @Test
     void when_functionCall_withStreamArg_then_returnsStreamOperator() {
         var attrBroker = attributeBroker("stream.attr", Value.of(1), Value.of(2), Value.of(3));
-        var fnBroker   = testBroker("test.fn", args -> {
+        var fnBroker   = functionBroker("test.fn", args -> {
                            var num = ((NumberValue) args.getFirst()).value().intValue();
                            return Value.of(num * 10);
                        });
-        var evalCtx    = contextWithBrokers(fnBroker, attrBroker, Map.of());
+        var evalCtx    = evaluationContext(fnBroker, attrBroker, Map.of());
         var result     = evaluateExpression("test.fn(<stream.attr>)", evalCtx);
 
         assertThat(result).isInstanceOf(StreamOperator.class);
@@ -132,8 +139,8 @@ class FunctionCallCompilerTests {
     void when_functionCall_withMixedStaticAndStreamArgs_then_combinesCorrectly() {
         var attrBroker = attributeBroker("num.attr", Value.of(5), Value.of(10));
         var captured   = new ArrayList<FunctionInvocation>();
-        var fnBroker   = capturingBroker(captured, args -> Value.of("ok"));
-        var evalCtx    = contextWithBrokers(fnBroker, attrBroker, Map.of());
+        var fnBroker   = capturingFunctionBroker(captured, args -> Value.of("ok"));
+        var evalCtx    = evaluationContext(fnBroker, attrBroker, Map.of());
         var result     = evaluateExpression("test.fn(\"prefix\", <num.attr>, \"suffix\")", evalCtx);
 
         assertThat(result).isInstanceOf(StreamOperator.class);
@@ -150,8 +157,8 @@ class FunctionCallCompilerTests {
     @Test
     void when_functionCall_withStreamArgError_then_propagatesError() {
         var attrBroker = attributeBroker("err.attr", Value.error("stream error"));
-        var fnBroker   = testBroker("test.fn", args -> Value.of("should not reach"));
-        var evalCtx    = contextWithBrokers(fnBroker, attrBroker, Map.of());
+        var fnBroker   = functionBroker("test.fn", args -> Value.of("should not reach"));
+        var evalCtx    = evaluationContext(fnBroker, attrBroker, Map.of());
         var result     = evaluateExpression("test.fn(<err.attr>)", evalCtx);
 
         assertThat(result).isInstanceOf(StreamOperator.class);
@@ -181,12 +188,12 @@ class FunctionCallCompilerTests {
         };
 
         var captured = new ArrayList<FunctionInvocation>();
-        var fnBroker = capturingBroker(captured, args -> {
+        var fnBroker = capturingFunctionBroker(captured, args -> {
                          var a = ((TextValue) args.get(0)).value();
                          var b = ((TextValue) args.get(1)).value();
                          return Value.of(a + "-" + b);
                      });
-        var evalCtx  = contextWithBrokers(fnBroker, attrBroker, Map.of());
+        var evalCtx  = evaluationContext(fnBroker, attrBroker, Map.of());
         var result   = evaluateExpression("test.fn(<a.attr>, <b.attr>)", evalCtx);
 
         assertThat(result).isInstanceOf(StreamOperator.class);
@@ -214,8 +221,8 @@ class FunctionCallCompilerTests {
             }
         };
 
-        var fnBroker = testBroker("test.fn", args -> Value.of("should not reach"));
-        var evalCtx  = contextWithBrokers(fnBroker, attrBroker, Map.of());
+        var fnBroker = functionBroker("test.fn", args -> Value.of("should not reach"));
+        var evalCtx  = evaluationContext(fnBroker, attrBroker, Map.of());
         var result   = evaluateExpression("test.fn(<ok.attr>, <err.attr>)", evalCtx);
 
         assertThat(result).isInstanceOf(StreamOperator.class);
@@ -229,8 +236,8 @@ class FunctionCallCompilerTests {
     @Test
     void when_functionCall_withUndefinedArg_then_filtersOutUndefined() {
         var captured = new ArrayList<FunctionInvocation>();
-        var broker   = capturingBroker(captured, args -> Value.of(args.size()));
-        var evalCtx  = contextWithBroker(broker, Map.of("x", Value.UNDEFINED));
+        var broker   = capturingFunctionBroker(captured, args -> Value.of(args.size()));
+        var evalCtx  = evaluationContext(broker, Map.of("x", Value.UNDEFINED));
         var result   = evaluateExpression("test.fn(1, x, 3)", evalCtx);
 
         // Undefined should be filtered out, leaving 2 arguments
@@ -240,8 +247,8 @@ class FunctionCallCompilerTests {
 
     @Test
     void when_allPureFunction_withVariableArg_then_dependsOnSubscription() {
-        var broker = testBroker("test.fn", args -> Value.of("ok"));
-        var ctx    = compilationContextWithBroker(broker);
+        var broker = functionBroker("test.fn", args -> Value.of("ok"));
+        var ctx    = compilationContext(broker);
         var result = compileExpression("test.fn(x)", ctx);
 
         // Variable reference may be a subscription element, so depends on subscription
@@ -256,8 +263,8 @@ class FunctionCallCompilerTests {
         // ErrorValue.
         // So we test AllPureFunction with only literal args indirectly via the constant
         // folding.
-        var broker = testBroker("test.fn", args -> Value.of("result"));
-        var ctx    = compilationContextWithBroker(broker);
+        var broker = functionBroker("test.fn", args -> Value.of("result"));
+        var ctx    = compilationContext(broker);
         var result = compileExpression("test.fn()", ctx);
 
         // Constant folded to Value at compile time
@@ -283,8 +290,8 @@ class FunctionCallCompilerTests {
             }
         };
 
-        var fnBroker = testBroker("test.fn", args -> Value.of("result"));
-        var evalCtx  = contextWithBrokers(fnBroker, attrBroker, Map.of());
+        var fnBroker = functionBroker("test.fn", args -> Value.of("result"));
+        var evalCtx  = evaluationContext(fnBroker, attrBroker, Map.of());
         var result   = evaluateExpression("test.fn(<a.attr>, <b.attr>)", evalCtx);
 
         assertThat(result).isInstanceOf(StreamOperator.class);
@@ -300,8 +307,8 @@ class FunctionCallCompilerTests {
     @Test
     void when_functionCall_withSingleStream_then_preservesContributingAttributes() {
         var attrBroker = attributeBroker("test.attr", Value.of("value"));
-        var fnBroker   = testBroker("test.fn", args -> Value.of("result"));
-        var evalCtx    = contextWithBrokers(fnBroker, attrBroker, Map.of());
+        var fnBroker   = functionBroker("test.fn", args -> Value.of("result"));
+        var evalCtx    = evaluationContext(fnBroker, attrBroker, Map.of());
         var result     = evaluateExpression("test.fn(<test.attr>)", evalCtx);
 
         assertThat(result).isInstanceOf(StreamOperator.class);
@@ -310,118 +317,6 @@ class FunctionCallCompilerTests {
             assertThat(tv.contributingAttributes()).hasSize(1);
             assertThat(tv.contributingAttributes().getFirst().invocation().attributeName()).isEqualTo("test.attr");
         }).verifyComplete();
-    }
-
-    /**
-     * Creates a batching function broker that supports multiple function
-     * registrations.
-     */
-    private static FunctionBroker batchingBroker(
-            Map<String, java.util.function.Function<List<Value>, Value>> functions) {
-        return new FunctionBroker() {
-            @Override
-            public Value evaluateFunction(FunctionInvocation invocation) {
-                var fn = functions.get(invocation.functionName());
-                if (fn == null) {
-                    return Value.error("Unknown function: " + invocation.functionName());
-                }
-                return fn.apply(invocation.arguments());
-            }
-
-            @Override
-            public List<Class<?>> getRegisteredLibraries() {
-                return List.of();
-            }
-        };
-    }
-
-    private static FunctionBroker testBroker(String expectedName, java.util.function.Function<List<Value>, Value> fn) {
-        return new FunctionBroker() {
-            @Override
-            public Value evaluateFunction(FunctionInvocation invocation) {
-                if (invocation.functionName().equals(expectedName))
-                    return fn.apply(invocation.arguments());
-                return Value.error("Unknown function: " + invocation.functionName());
-            }
-
-            @Override
-            public List<Class<?>> getRegisteredLibraries() {
-                return List.of();
-            }
-        };
-    }
-
-    private static FunctionBroker capturingBroker(FunctionInvocation[] capture, Value returnValue) {
-        return new FunctionBroker() {
-            @Override
-            public Value evaluateFunction(FunctionInvocation invocation) {
-                capture[0] = invocation;
-                return returnValue;
-            }
-
-            @Override
-            public List<Class<?>> getRegisteredLibraries() {
-                return List.of();
-            }
-        };
-    }
-
-    private static FunctionBroker capturingBroker(List<FunctionInvocation> capture,
-            java.util.function.Function<List<Value>, Value> fn) {
-        return new FunctionBroker() {
-            @Override
-            public Value evaluateFunction(FunctionInvocation invocation) {
-                capture.add(invocation);
-                return fn.apply(invocation.arguments());
-            }
-
-            @Override
-            public List<Class<?>> getRegisteredLibraries() {
-                return List.of();
-            }
-        };
-    }
-
-    private static AttributeBroker attributeBroker(String expectedName, Value... values) {
-        return new AttributeBroker() {
-            @Override
-            public Flux<Value> attributeStream(AttributeFinderInvocation invocation) {
-                if (invocation.attributeName().equals(expectedName))
-                    return Flux.fromArray(values);
-                return Flux.just(Value.error("Unknown attribute: " + invocation.attributeName()));
-            }
-
-            @Override
-            public List<Class<?>> getRegisteredLibraries() {
-                return List.of();
-            }
-        };
-    }
-
-    private static final AttributeBroker DEFAULT_ATTRIBUTE_BROKER = new AttributeBroker() {
-        @Override
-        public Flux<Value> attributeStream(AttributeFinderInvocation invocation) {
-            return Flux.just(Value.error("No attribute finder registered for: " + invocation.attributeName()));
-        }
-
-        @Override
-        public List<Class<?>> getRegisteredLibraries() {
-            return List.of();
-        }
-    };
-
-    private static CompilationContext compilationContextWithBroker(FunctionBroker broker) {
-        return new CompilationContext(broker, DEFAULT_ATTRIBUTE_BROKER);
-    }
-
-    private static EvaluationContext contextWithBroker(FunctionBroker broker, Map<String, Value> variables) {
-        return new EvaluationContext("pdp", "config", "sub", null, variables, broker, DEFAULT_ATTRIBUTE_BROKER,
-                () -> "now");
-    }
-
-    private static EvaluationContext contextWithBrokers(FunctionBroker fnBroker, AttributeBroker attrBroker,
-            Map<String, Value> variables) {
-        return new EvaluationContext("pdp", "config", "sub", null, variables, fnBroker, attrBroker, () -> "now");
     }
 
 }

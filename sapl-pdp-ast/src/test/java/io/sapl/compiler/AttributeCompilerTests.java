@@ -17,26 +17,29 @@
  */
 package io.sapl.compiler;
 
-import io.sapl.api.attributes.AttributeBroker;
-import io.sapl.api.attributes.AttributeFinderInvocation;
-import io.sapl.api.model.*;
-import io.sapl.functions.DefaultFunctionBroker;
-import org.junit.jupiter.api.Test;
-import reactor.core.publisher.Flux;
-import reactor.test.StepVerifier;
+import static io.sapl.util.ExpressionTestUtil.evaluateExpression;
+import static io.sapl.util.TestBrokers.*;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.List;
-import java.util.Map;
 
-import static io.sapl.util.ExpressionTestUtil.evaluateExpression;
-import static org.assertj.core.api.Assertions.assertThat;
+import org.junit.jupiter.api.Test;
+
+import io.sapl.api.attributes.AttributeBroker;
+import io.sapl.api.attributes.AttributeFinderInvocation;
+import io.sapl.api.model.ErrorValue;
+import io.sapl.api.model.EvaluationContext;
+import io.sapl.api.model.StreamOperator;
+import io.sapl.api.model.Value;
+import reactor.core.publisher.Flux;
+import reactor.test.StepVerifier;
 
 class AttributeCompilerTests {
 
     @Test
     void when_environmentAttribute_withBroker_then_returnsStreamWithTrace() {
-        var broker = testBroker("test.attr", Value.of("result"));
-        var ctx    = contextWithBroker(broker);
+        var broker = attributeBroker("test.attr", Value.of("result"));
+        var ctx    = evaluationContext(broker);
         var result = evaluateExpression("<test.attr>", ctx);
 
         assertThat(result).isInstanceOf(StreamOperator.class);
@@ -54,7 +57,7 @@ class AttributeCompilerTests {
     @Test
     void when_environmentAttribute_withErrorBroker_then_returnsErrorWithTrace() {
         // When using a broker that returns errors, the error is returned with a trace
-        var ctx    = contextWithoutBroker();
+        var ctx    = evaluationContext(ERROR_ATTRIBUTE_BROKER);
         var result = evaluateExpression("<test.attr>", ctx);
 
         assertThat(result).isInstanceOf(StreamOperator.class);
@@ -70,8 +73,8 @@ class AttributeCompilerTests {
     @Test
     void when_environmentAttribute_withArguments_then_passesArguments() {
         var capturedInvocation = new AttributeFinderInvocation[1];
-        var broker             = capturingBroker(capturedInvocation, Value.of("ok"));
-        var ctx                = contextWithBroker(broker);
+        var broker             = capturingAttributeBroker(capturedInvocation, Value.of("ok"));
+        var ctx                = evaluationContext(broker);
         var result             = evaluateExpression("<test.attr(1, \"arg\")>", ctx);
 
         var stream = ((StreamOperator) result).stream().contextWrite(c -> c.put(EvaluationContext.class, ctx));
@@ -83,8 +86,8 @@ class AttributeCompilerTests {
 
     @Test
     void when_headEnvironmentAttribute_then_takesOnlyFirst() {
-        var broker = multiValueBroker("test.attr", Value.of(1), Value.of(2), Value.of(3));
-        var ctx    = contextWithBroker(broker);
+        var broker = attributeBroker("test.attr", Value.of(1), Value.of(2), Value.of(3));
+        var ctx    = evaluationContext(broker);
         var result = evaluateExpression("|<test.attr>", ctx);
 
         var stream = ((StreamOperator) result).stream().contextWrite(c -> c.put(EvaluationContext.class, ctx));
@@ -94,8 +97,8 @@ class AttributeCompilerTests {
     @Test
     void when_environmentAttribute_withOptions_then_passesOptions() {
         var capturedInvocation = new AttributeFinderInvocation[1];
-        var broker             = capturingBroker(capturedInvocation, Value.of("ok"));
-        var ctx                = contextWithBroker(broker);
+        var broker             = capturingAttributeBroker(capturedInvocation, Value.of("ok"));
+        var ctx                = evaluationContext(broker);
         var result             = evaluateExpression("<test.attr[{initialTimeOutMs: 5000, fresh: true}]>", ctx);
 
         var stream = ((StreamOperator) result).stream().contextWrite(c -> c.put(EvaluationContext.class, ctx));
@@ -128,7 +131,7 @@ class AttributeCompilerTests {
                                         return List.of();
                                     }
                                 };
-        var ctx                 = contextWithBroker(broker);
+        var ctx                 = evaluationContext(broker);
         var result              = evaluateExpression("<outer.attr(<inner.attr>)>", ctx);
 
         var stream = ((StreamOperator) result).stream().contextWrite(c -> c.put(EvaluationContext.class, ctx));
@@ -163,7 +166,7 @@ class AttributeCompilerTests {
                                         return List.of();
                                     }
                                 };
-        var ctx                 = contextWithBroker(broker);
+        var ctx                 = evaluationContext(broker);
         var result              = evaluateExpression("<test.attr(\"fixed\", <stream.attr>)>", ctx);
 
         var stream = ((StreamOperator) result).stream().contextWrite(c -> c.put(EvaluationContext.class, ctx));
@@ -183,8 +186,8 @@ class AttributeCompilerTests {
     @Test
     void when_attributeStep_withEntity_then_passesEntity() {
         var capturedInvocation = new AttributeFinderInvocation[1];
-        var broker             = capturingBroker(capturedInvocation, Value.of("role"));
-        var ctx                = contextWithBrokerAndSubject(broker, Value.of("alice"));
+        var broker             = capturingAttributeBroker(capturedInvocation, Value.of("role"));
+        var ctx                = evaluationContext(broker, Value.of("alice"));
         var result             = evaluateExpression("subject.<user.role>", ctx);
 
         var stream = ((StreamOperator) result).stream().contextWrite(c -> c.put(EvaluationContext.class, ctx));
@@ -197,8 +200,8 @@ class AttributeCompilerTests {
 
     @Test
     void when_attributeStep_withUndefinedEntity_then_returnsError() {
-        var broker = testBroker("user.role", Value.of("admin"));
-        var ctx    = contextWithBroker(broker);
+        var broker = attributeBroker("user.role", Value.of("admin"));
+        var ctx    = evaluationContext(broker);
         var result = evaluateExpression("undefined.<user.role>", ctx);
 
         var stream = ((StreamOperator) result).stream().contextWrite(c -> c.put(EvaluationContext.class, ctx));
@@ -206,82 +209,6 @@ class AttributeCompilerTests {
             assertThat(tv.value()).isInstanceOf(ErrorValue.class);
             assertThat(((ErrorValue) tv.value()).message()).contains("Undefined");
         }).verifyComplete();
-    }
-
-    private static AttributeBroker testBroker(String expectedName, Value returnValue) {
-        return new AttributeBroker() {
-            @Override
-            public Flux<Value> attributeStream(AttributeFinderInvocation invocation) {
-                if (invocation.attributeName().equals(expectedName))
-                    return Flux.just(returnValue);
-                return Flux.just(Value.error("Unknown attribute: " + invocation.attributeName()));
-            }
-
-            @Override
-            public List<Class<?>> getRegisteredLibraries() {
-                return List.of();
-            }
-        };
-    }
-
-    private static AttributeBroker capturingBroker(AttributeFinderInvocation[] capture, Value returnValue) {
-        return new AttributeBroker() {
-            @Override
-            public Flux<Value> attributeStream(AttributeFinderInvocation invocation) {
-                capture[0] = invocation;
-                return Flux.just(returnValue);
-            }
-
-            @Override
-            public List<Class<?>> getRegisteredLibraries() {
-                return List.of();
-            }
-        };
-    }
-
-    private static AttributeBroker multiValueBroker(String expectedName, Value... values) {
-        return new AttributeBroker() {
-            @Override
-            public Flux<Value> attributeStream(AttributeFinderInvocation invocation) {
-                if (invocation.attributeName().equals(expectedName))
-                    return Flux.fromArray(values);
-                return Flux.just(Value.error("Unknown attribute"));
-            }
-
-            @Override
-            public List<Class<?>> getRegisteredLibraries() {
-                return List.of();
-            }
-        };
-    }
-
-    private static final DefaultFunctionBroker DEFAULT_FUNCTION_BROKER = new DefaultFunctionBroker();
-
-    private static final AttributeBroker ERROR_ATTRIBUTE_BROKER = new AttributeBroker() {
-        @Override
-        public Flux<Value> attributeStream(AttributeFinderInvocation invocation) {
-            return Flux.just(Value.error("No attribute finder registered for: " + invocation.attributeName()));
-        }
-
-        @Override
-        public List<Class<?>> getRegisteredLibraries() {
-            return List.of();
-        }
-    };
-
-    private static EvaluationContext contextWithBroker(AttributeBroker broker) {
-        return new EvaluationContext("pdp", "config", "sub", null, Map.of(), DEFAULT_FUNCTION_BROKER, broker,
-                () -> "now");
-    }
-
-    private static EvaluationContext contextWithBrokerAndSubject(AttributeBroker broker, Value subject) {
-        return new EvaluationContext("pdp", "config", "sub", null, Map.of("subject", subject), DEFAULT_FUNCTION_BROKER,
-                broker, () -> "now");
-    }
-
-    private static EvaluationContext contextWithoutBroker() {
-        return new EvaluationContext("pdp", "config", "sub", null, Map.of(), DEFAULT_FUNCTION_BROKER,
-                ERROR_ATTRIBUTE_BROKER, () -> "now");
     }
 
 }

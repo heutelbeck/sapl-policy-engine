@@ -17,26 +17,27 @@
  */
 package io.sapl.compiler;
 
-import io.sapl.api.model.*;
-import io.sapl.ast.BinaryOperator;
-import io.sapl.ast.BinaryOperatorType;
-import io.sapl.ast.Literal;
-import lombok.val;
+import static io.sapl.util.ExpressionTestUtil.*;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.params.provider.Arguments.arguments;
+
+import java.util.stream.Stream;
+
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
-import java.util.Map;
-import java.util.stream.Stream;
-
-import static io.sapl.util.ExpressionTestUtil.*;
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.params.provider.Arguments.arguments;
+import io.sapl.api.model.ArrayValue;
+import io.sapl.api.model.ErrorValue;
+import io.sapl.api.model.NumberValue;
+import io.sapl.api.model.Value;
+import io.sapl.ast.BinaryOperator;
+import io.sapl.ast.BinaryOperatorType;
+import io.sapl.ast.Literal;
+import lombok.val;
 
 class SubtemplateCompilerTests {
-
-    private static final SourceLocation TEST_LOC = new SourceLocation("test", "", 0, 0, 1, 1, 1, 1);
 
     @MethodSource
     @ParameterizedTest(name = "{0}")
@@ -107,9 +108,9 @@ class SubtemplateCompilerTests {
         val compiler = new SubtemplateCompiler();
         val ctx      = new CompilationContext(null, null, null);
 
-        val leftExpr  = new Literal(Value.UNDEFINED, TEST_LOC);
-        val rightExpr = new Literal(Value.of(1), TEST_LOC);
-        val binaryOp  = new BinaryOperator(BinaryOperatorType.SUBTEMPLATE, leftExpr, rightExpr, TEST_LOC);
+        val leftExpr  = new Literal(Value.UNDEFINED, TEST_LOCATION);
+        val rightExpr = new Literal(Value.of(1), TEST_LOCATION);
+        val binaryOp  = new BinaryOperator(BinaryOperatorType.SUBTEMPLATE, leftExpr, rightExpr, TEST_LOCATION);
 
         val result = compiler.compile(binaryOp, ctx);
         assertThat(result).isEqualTo(Value.UNDEFINED);
@@ -121,9 +122,9 @@ class SubtemplateCompilerTests {
         val ctx      = new CompilationContext(null, null, null);
 
         val error     = Value.error("test error");
-        val leftExpr  = new Literal(error, TEST_LOC);
-        val rightExpr = new Literal(Value.of(1), TEST_LOC);
-        val binaryOp  = new BinaryOperator(BinaryOperatorType.SUBTEMPLATE, leftExpr, rightExpr, TEST_LOC);
+        val leftExpr  = new Literal(error, TEST_LOCATION);
+        val rightExpr = new Literal(Value.of(1), TEST_LOCATION);
+        val binaryOp  = new BinaryOperator(BinaryOperatorType.SUBTEMPLATE, leftExpr, rightExpr, TEST_LOCATION);
 
         val result = compiler.compile(binaryOp, ctx);
         assertThat(result).isInstanceOf(ErrorValue.class);
@@ -135,9 +136,9 @@ class SubtemplateCompilerTests {
         val ctx      = new CompilationContext(null, null, null);
 
         val error     = Value.error("template error");
-        val leftExpr  = new Literal(Value.of(5), TEST_LOC);
-        val rightExpr = new Literal(error, TEST_LOC);
-        val binaryOp  = new BinaryOperator(BinaryOperatorType.SUBTEMPLATE, leftExpr, rightExpr, TEST_LOC);
+        val leftExpr  = new Literal(Value.of(5), TEST_LOCATION);
+        val rightExpr = new Literal(error, TEST_LOCATION);
+        val binaryOp  = new BinaryOperator(BinaryOperatorType.SUBTEMPLATE, leftExpr, rightExpr, TEST_LOCATION);
 
         val result = compiler.compile(binaryOp, ctx);
         assertThat(result).isInstanceOf(ErrorValue.class);
@@ -275,7 +276,7 @@ class SubtemplateCompilerTests {
         val parent   = Value.of(5);
         val template = new TestPureOperator(ctx -> ctx.relativeValue(), true);
 
-        val op = new SubtemplateCompiler.SubtemplateValuePure(parent, template, TEST_LOC);
+        val op = new SubtemplateCompiler.SubtemplateValuePure(parent, template, TEST_LOCATION);
         assertThat(op.isDependingOnSubscription()).isTrue();
     }
 
@@ -283,7 +284,7 @@ class SubtemplateCompilerTests {
     void when_subtemplatePureValue_isDependingOnSubscription_then_delegatesToParent() {
         val parent = new TestPureOperator(ctx -> Value.of(5), true);
 
-        val op = new SubtemplateCompiler.SubtemplatePureValue(parent, Value.of(1), TEST_LOC);
+        val op = new SubtemplateCompiler.SubtemplatePureValue(parent, Value.of(1), TEST_LOCATION);
         assertThat(op.isDependingOnSubscription()).isTrue();
     }
 
@@ -295,16 +296,16 @@ class SubtemplateCompilerTests {
         val templateNotDepends = new TestPureOperator(ctx -> ctx.relativeValue(), false);
 
         // Both depend
-        assertThat(new SubtemplateCompiler.SubtemplatePurePure(parentDepends, templateDepends, TEST_LOC)
+        assertThat(new SubtemplateCompiler.SubtemplatePurePure(parentDepends, templateDepends, TEST_LOCATION)
                 .isDependingOnSubscription()).isTrue();
         // Only parent depends
-        assertThat(new SubtemplateCompiler.SubtemplatePurePure(parentDepends, templateNotDepends, TEST_LOC)
+        assertThat(new SubtemplateCompiler.SubtemplatePurePure(parentDepends, templateNotDepends, TEST_LOCATION)
                 .isDependingOnSubscription()).isTrue();
         // Only template depends
-        assertThat(new SubtemplateCompiler.SubtemplatePurePure(parentNotDepends, templateDepends, TEST_LOC)
+        assertThat(new SubtemplateCompiler.SubtemplatePurePure(parentNotDepends, templateDepends, TEST_LOCATION)
                 .isDependingOnSubscription()).isTrue();
         // Neither depends
-        assertThat(new SubtemplateCompiler.SubtemplatePurePure(parentNotDepends, templateNotDepends, TEST_LOC)
+        assertThat(new SubtemplateCompiler.SubtemplatePurePure(parentNotDepends, templateNotDepends, TEST_LOCATION)
                 .isDependingOnSubscription()).isFalse();
     }
 
@@ -317,7 +318,7 @@ class SubtemplateCompilerTests {
                          return Value.of(value.value().intValue() + index.value().intValue());
                      });
 
-        val op     = new SubtemplateCompiler.SubtemplateValuePure(parent, template, TEST_LOC);
+        val op     = new SubtemplateCompiler.SubtemplateValuePure(parent, template, TEST_LOCATION);
         val result = op.evaluate(emptyEvaluationContext());
 
         assertThat(result).isEqualTo(Value.ofArray(Value.of(10), Value.of(21)));
@@ -327,7 +328,7 @@ class SubtemplateCompilerTests {
     void when_subtemplatePureValue_evaluate_then_appliesConstantTemplate() {
         val parent = new TestPureOperator(ctx -> Value.ofArray(Value.of(1), Value.of(2), Value.of(3)));
 
-        val op     = new SubtemplateCompiler.SubtemplatePureValue(parent, Value.of(99), TEST_LOC);
+        val op     = new SubtemplateCompiler.SubtemplatePureValue(parent, Value.of(99), TEST_LOCATION);
         val result = op.evaluate(emptyEvaluationContext());
 
         assertThat(result).isEqualTo(Value.ofArray(Value.of(99), Value.of(99), Value.of(99)));
@@ -342,7 +343,7 @@ class SubtemplateCompilerTests {
             return Value.of(value.value().intValue() * 2);
         });
 
-        val op     = new SubtemplateCompiler.SubtemplatePurePure(parent, template, TEST_LOC);
+        val op     = new SubtemplateCompiler.SubtemplatePurePure(parent, template, TEST_LOCATION);
         val result = op.evaluate(emptyEvaluationContext());
 
         assertThat(result).isEqualTo(Value.ofArray(Value.of(10), Value.of(20)));
@@ -431,26 +432,6 @@ class SubtemplateCompilerTests {
                 // Index-based filtering logic
                 arguments("even index check", "[10, 20, 30, 40] :: (# == 0 || # == 2)",
                         Value.ofArray(Value.TRUE, Value.FALSE, Value.TRUE, Value.FALSE)));
-    }
-
-    // Helper class for testing that implements PureOperator properly
-    private record TestPureOperator(
-            java.util.function.Function<EvaluationContext, Value> evaluator,
-            boolean isDependingOnSubscription) implements PureOperator {
-
-        TestPureOperator(java.util.function.Function<EvaluationContext, Value> evaluator) {
-            this(evaluator, false);
-        }
-
-        @Override
-        public Value evaluate(EvaluationContext ctx) {
-            return evaluator.apply(ctx);
-        }
-
-        @Override
-        public SourceLocation location() {
-            return TEST_LOC;
-        }
     }
 
 }

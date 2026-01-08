@@ -90,24 +90,24 @@ public class ArrayCompiler {
         int totalElements = compiled.size();
 
         switch (streamCount) {
-            case 0 -> {
-                if (pureOperators.isEmpty()) {
-                    // All values - build array directly, dropping undefined
-                    return buildArrayFromValues(values);
-                }
-                return new AllPureArray(toIntArray(valueIndices), values.toArray(Value[]::new), toIntArray(pureIndices),
-                        pureOperators.toArray(PureOperator[]::new), totalElements, location);
+        case 0  -> {
+            if (pureOperators.isEmpty()) {
+                // All values - build array directly, dropping undefined
+                return buildArrayFromValues(values);
             }
-            case 1 -> {
-                return new SingleStreamArray(toIntArray(valueIndices), values.toArray(Value[]::new),
-                        toIntArray(pureIndices), pureOperators.toArray(PureOperator[]::new), streamIndices.getFirst(),
-                        streams.getFirst(), totalElements);
-            }
-            default -> {
-                return new MultiStreamArray(toIntArray(valueIndices), values.toArray(Value[]::new), toIntArray(pureIndices),
-                        pureOperators.toArray(PureOperator[]::new), toIntArray(streamIndices),
-                        streams.toArray(StreamOperator[]::new), totalElements);
-            }
+            return new AllPureArray(toIntArray(valueIndices), values.toArray(Value[]::new), toIntArray(pureIndices),
+                    pureOperators.toArray(PureOperator[]::new), totalElements, location);
+        }
+        case 1  -> {
+            return new SingleStreamArray(toIntArray(valueIndices), values.toArray(Value[]::new),
+                    toIntArray(pureIndices), pureOperators.toArray(PureOperator[]::new), streamIndices.getFirst(),
+                    streams.getFirst(), totalElements);
+        }
+        default -> {
+            return new MultiStreamArray(toIntArray(valueIndices), values.toArray(Value[]::new), toIntArray(pureIndices),
+                    pureOperators.toArray(PureOperator[]::new), toIntArray(streamIndices),
+                    streams.toArray(StreamOperator[]::new), totalElements);
+        }
         }
     }
 

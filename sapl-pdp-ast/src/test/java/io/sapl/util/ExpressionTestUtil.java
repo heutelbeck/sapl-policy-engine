@@ -21,6 +21,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.List;
 import java.util.Map;
+import java.util.function.Consumer;
 
 import io.sapl.api.attributes.AttributeBroker;
 import io.sapl.api.attributes.AttributeFinderInvocation;
@@ -31,7 +32,9 @@ import io.sapl.api.model.CompiledExpression;
 import io.sapl.api.model.ErrorValue;
 import io.sapl.api.model.EvaluationContext;
 import io.sapl.api.model.PureOperator;
+import io.sapl.api.model.SourceLocation;
 import io.sapl.api.model.StreamOperator;
+import io.sapl.api.model.TracedValue;
 import io.sapl.api.model.Value;
 import io.sapl.ast.Expression;
 import io.sapl.compiler.CompilationContext;
@@ -40,12 +43,18 @@ import io.sapl.compiler.ast.AstTransformer;
 import io.sapl.functions.DefaultFunctionBroker;
 import lombok.experimental.UtilityClass;
 import reactor.core.publisher.Flux;
+import reactor.test.StepVerifier;
 
 /**
  * Test utilities for parsing, compiling and evaluating SAPL expressions.
  */
 @UtilityClass
 public class ExpressionTestUtil {
+
+    /**
+     * Standard test source location for AST nodes in tests.
+     */
+    public static final SourceLocation TEST_LOCATION = new SourceLocation("test", "", 0, 0, 1, 1, 1, 1);
 
     private static final AstTransformer TRANSFORMER = new AstTransformer();
 
@@ -292,6 +301,136 @@ public class ExpressionTestUtil {
         var compiled = compileExpression(source);
         assertThat(compiled).isInstanceOf(PureOperator.class);
         assertThat(((PureOperator) compiled).isDependingOnSubscription()).isEqualTo(expected);
+    }
+
+    // ========== Error Assertion Helpers ==========
+
+    /**
+     * Asserts that the result is an ErrorValue.
+     *
+     * @param result the compiled expression result
+     */
+    public static void assertIsError(CompiledExpression result) {
+        assertThat(result).isInstanceOf(ErrorValue.class);
+    }
+
+    /**
+     * Asserts that the result is an ErrorValue containing all specified message
+     * fragments (case-insensitive).
+     *
+     * @param result the compiled expression result
+     * @param fragments the message fragments to check for
+     */
+    public static void assertIsErrorContaining(CompiledExpression result, String... fragments) {
+        assertThat(result).isInstanceOf(ErrorValue.class);
+        var message = ((ErrorValue) result).message().toLowerCase();
+        for (var fragment : fragments) {
+            assertThat(message).contains(fragment.toLowerCase());
+        }
+    }
+
+    /**
+     * Returns the error message from an ErrorValue result.
+     *
+     * @param result the compiled expression result (must be ErrorValue)
+     * @return the error message
+     */
+    public static String errorMessage(CompiledExpression result) {
+        assertThat(result).isInstanceOf(ErrorValue.class);
+        return ((ErrorValue) result).message();
+    }
+
+    // ========== Stream Verification Helpers ==========
+
+    /**
+     * Verifies a StreamOperator's emissions using StepVerifier.
+     *
+     * @param op the stream operator
+     * @param ctx the evaluation context
+     * @param assertions consumers that assert on each TracedValue emission
+     */
+    @SafeVarargs
+    public static void verifyStream(StreamOperator op, EvaluationContext ctx, Consumer<TracedValue>... assertions) {
+        var                            stream   = op.stream().contextWrite(c -> c.put(EvaluationContext.class, ctx));
+        StepVerifier.Step<TracedValue> verifier = StepVerifier.create(stream);
+        for (var assertion : assertions) {
+            verifier = verifier.assertNext(assertion);
+        }
+        verifier.verifyComplete();
+    }
+
+    /**
+     * Verifies a StreamOperator emits a single value matching the expected.
+     *
+     * @param op the stream operator
+     * @param ctx the evaluation context
+     * @param expected the expected value
+     */
+    public static void verifyStreamEmits(StreamOperator op, EvaluationContext ctx, Value expected) {
+        verifyStream(op, ctx, tv -> assertThat(tv.value()).isEqualTo(expected));
+    }
+
+    /**
+     * Verifies a StreamOperator emits values matching the expected sequence.
+     *
+     * @param op the stream operator
+     * @param ctx the evaluation context
+     * @param expected the expected values in order
+     */
+    public static void verifyStreamEmits(StreamOperator op, EvaluationContext ctx, Value... expected) {
+        @SuppressWarnings("unchecked")
+        Consumer<TracedValue>[] assertions = new Consumer[expected.length];
+        for (int i = 0; i < expected.length; i++) {
+            final var exp = expected[i];
+            assertions[i] = tv -> assertThat(tv.value()).isEqualTo(exp);
+        }
+        verifyStream(op, ctx, assertions);
+    }
+
+    /**
+     * Verifies a StreamOperator emits a single error containing the message
+     * fragment.
+     *
+     * @param op the stream operator
+     * @param ctx the evaluation context
+     * @param messageFragment the expected error message fragment
+     */
+    public static void verifyStreamEmitsError(StreamOperator op, EvaluationContext ctx, String messageFragment) {
+        verifyStream(op, ctx, tv -> {
+            assertThat(tv.value()).isInstanceOf(ErrorValue.class);
+            assertThat(((ErrorValue) tv.value()).message()).contains(messageFragment);
+        });
+    }
+
+    // ========== Test PureOperator Helper ==========
+
+    /**
+     * A test implementation of PureOperator for use in unit tests.
+     * Allows creating custom evaluation logic with configurable subscription
+     * dependency.
+     */
+    public record TestPureOperator(
+            java.util.function.Function<EvaluationContext, Value> evaluator,
+            boolean isDependingOnSubscription) implements PureOperator {
+
+        /**
+         * Creates a TestPureOperator that does not depend on subscription.
+         *
+         * @param evaluator the evaluation function
+         */
+        public TestPureOperator(java.util.function.Function<EvaluationContext, Value> evaluator) {
+            this(evaluator, false);
+        }
+
+        @Override
+        public Value evaluate(EvaluationContext ctx) {
+            return evaluator.apply(ctx);
+        }
+
+        @Override
+        public SourceLocation location() {
+            return TEST_LOCATION;
+        }
     }
 
 }

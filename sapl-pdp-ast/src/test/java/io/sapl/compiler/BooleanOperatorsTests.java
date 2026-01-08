@@ -17,65 +17,56 @@
  */
 package io.sapl.compiler;
 
-import io.sapl.api.model.ErrorValue;
-import io.sapl.api.model.Value;
-import io.sapl.compiler.operators.BooleanOperators;
-import lombok.val;
-import org.junit.jupiter.api.Test;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.params.provider.Arguments.arguments;
+
+import java.util.stream.Stream;
+
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
-import java.util.stream.Stream;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.params.provider.Arguments.arguments;
+import io.sapl.api.model.ErrorValue;
+import io.sapl.api.model.Value;
+import io.sapl.compiler.operators.BooleanOperators;
+import lombok.val;
 
 class BooleanOperatorsTests {
 
-    @Test
-    void when_not_withTrue_then_returnsFalse() {
-        val actual = BooleanOperators.not(Value.TRUE, null);
-        assertThat(actual).isEqualTo(Value.FALSE);
+    // ========== NOT operator tests ==========
+
+    @MethodSource
+    @ParameterizedTest(name = "{0}")
+    void when_not_withBoolean_then_returnsExpected(String description, Value input, Value expected) {
+        val actual = BooleanOperators.not(input, null);
+        assertThat(actual).isEqualTo(expected);
     }
 
-    @Test
-    void when_not_withFalse_then_returnsTrue() {
-        val actual = BooleanOperators.not(Value.FALSE, null);
-        assertThat(actual).isEqualTo(Value.TRUE);
+    private static Stream<Arguments> when_not_withBoolean_then_returnsExpected() {
+        return Stream.of(arguments("not true", Value.TRUE, Value.FALSE),
+                arguments("not false", Value.FALSE, Value.TRUE));
     }
 
-    @Test
-    void when_not_withNonBoolean_then_returnsError() {
-        val actual = BooleanOperators.not(Value.of(5), null);
+    @MethodSource
+    @ParameterizedTest(name = "{0}")
+    void when_not_withNonBoolean_then_returnsError(String description, Value input) {
+        val actual = BooleanOperators.not(input, null);
         assertThat(actual).isInstanceOf(ErrorValue.class);
         assertThat(((ErrorValue) actual).message()).contains("Logical op requires boolean value");
     }
 
-    @Test
-    void when_not_withString_then_returnsError() {
-        val actual = BooleanOperators.not(Value.of("text"), null);
-        assertThat(actual).isInstanceOf(ErrorValue.class);
-    }
-
-    @Test
-    void when_not_withNull_then_returnsError() {
-        val actual = BooleanOperators.not(Value.NULL, null);
-        assertThat(actual).isInstanceOf(ErrorValue.class);
-    }
-
-    @Test
-    void when_not_withError_then_returnsTypeMismatchError() {
-        // Error propagation happens in compiler, not in operators
-        // Operators only do type checking - ErrorValue is not a BooleanValue
-        val error  = Value.error("original error");
-        val actual = BooleanOperators.not(error, null);
-        assertThat(actual).isInstanceOf(ErrorValue.class);
-        assertThat(((ErrorValue) actual).message()).contains("Logical op requires boolean value");
+    private static Stream<Arguments> when_not_withNonBoolean_then_returnsError() {
+        return Stream.of(arguments("not number", Value.of(5)), arguments("not string", Value.of("text")),
+                arguments("not null", Value.NULL),
+                // Error propagation happens in compiler, not in operators
+                // Operators only do type checking - ErrorValue is not a BooleanValue
+                arguments("not error", Value.error("original error")));
     }
 
     // Note: AND and OR tests are in LazyBooleanOperationCompilerTests
     // because they use cost-stratified short-circuit evaluation
+
+    // ========== XOR operator tests ==========
 
     @MethodSource
     @ParameterizedTest(name = "{0}")
@@ -91,24 +82,17 @@ class BooleanOperatorsTests {
                 arguments("false XOR false", Value.FALSE, Value.FALSE, Value.FALSE));
     }
 
-    @Test
-    void when_xor_withLeftNonBoolean_then_returnsError() {
-        val actual = BooleanOperators.xor(Value.of(5), Value.TRUE, null);
+    @MethodSource
+    @ParameterizedTest(name = "{0}")
+    void when_xor_withNonBoolean_then_returnsError(String description, Value a, Value b) {
+        val actual = BooleanOperators.xor(a, b, null);
         assertThat(actual).isInstanceOf(ErrorValue.class);
-        assertThat(((ErrorValue) actual).message()).contains("Logical op requires boolean value");
     }
 
-    @Test
-    void when_xor_withRightNonBoolean_then_returnsError() {
-        val actual = BooleanOperators.xor(Value.TRUE, Value.of("text"), null);
-        assertThat(actual).isInstanceOf(ErrorValue.class);
-        assertThat(((ErrorValue) actual).message()).contains("Logical op requires boolean value");
-    }
-
-    @Test
-    void when_xor_withNull_then_returnsError() {
-        val actual = BooleanOperators.xor(Value.NULL, Value.FALSE, null);
-        assertThat(actual).isInstanceOf(ErrorValue.class);
+    private static Stream<Arguments> when_xor_withNonBoolean_then_returnsError() {
+        return Stream.of(arguments("left is number", Value.of(5), Value.TRUE),
+                arguments("right is string", Value.TRUE, Value.of("text")),
+                arguments("left is null", Value.NULL, Value.FALSE));
     }
 
 }

@@ -18,12 +18,17 @@
 package io.sapl.compiler;
 
 import static io.sapl.api.model.ValueJsonMarshaller.json;
+import static io.sapl.util.ExpressionTestUtil.assertIsErrorContaining;
 import static io.sapl.util.ExpressionTestUtil.evaluateExpression;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.params.provider.Arguments.arguments;
 
-import org.junit.jupiter.api.Test;
+import java.util.stream.Stream;
 
-import io.sapl.api.model.ErrorValue;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
+
 import io.sapl.api.model.Value;
 
 /**
@@ -33,1740 +38,386 @@ import io.sapl.api.model.Value;
  */
 class PathNavigationTests {
 
-    // Note: Empty path (@) is converted to SimpleFilter by parser, not
-    // ExtendedFilter.
-    // ExtendedFilter tests start with paths that have at least one element.
-
-    // === KeyPath (@.key): navigate into object field ===
-
-    @Test
-    void keyPath_replacesDirectField() {
-        var result   = evaluateExpression("""
-                {"a": 1, "b": 2} |- { @.a : mock.func }
-                """);
-        var expected = json("""
-                {"a": "***", "b": 2}
-                """);
-
-        assertThat(result).isEqualTo(expected);
-    }
-
-    @Test
-    void keyPath_replacesNestedField() {
-        var result   = evaluateExpression("""
-                {"outer": {"inner": "secret"}, "other": "visible"} |- { @.outer.inner : mock.func }
-                """);
-        var expected = json("""
-                {"outer": {"inner": "***"}, "other": "visible"}
-                """);
-
-        assertThat(result).isEqualTo(expected);
-    }
-
-    @Test
-    void keyPath_preservesFieldOrder() {
-        var result   = evaluateExpression("""
-                {"first": 1, "second": 2, "third": 3} |- { @.second : mock.func }
-                """);
-        var expected = json("""
-                {"first": 1, "second": "***", "third": 3}
-                """);
-
-        assertThat(result).isEqualTo(expected);
-    }
-
-    // === Blacklist semantics: type mismatches return unchanged ===
-
-    @Test
-    void keyPath_onNonObject_returnsUnchanged() {
-        var result   = evaluateExpression("""
-                "not an object" |- { @.a : mock.func }
-                """);
-        var expected = Value.of("not an object");
-
-        assertThat(result).isEqualTo(expected);
-    }
-
-    @Test
-    void keyPath_missingKey_returnsUnchanged() {
-        var result   = evaluateExpression("""
-                {"a": 1} |- { @.nonexistent : mock.func }
-                """);
-        var expected = json("""
-                {"a": 1}
-                """);
-
-        assertThat(result).isEqualTo(expected);
-    }
-
-    @Test
-    void keyPath_nestedMissingKey_returnsUnchanged() {
-        var result   = evaluateExpression("""
-                {"outer": {"a": 1}} |- { @.outer.nonexistent : mock.func }
-                """);
-        var expected = json("""
-                {"outer": {"a": 1}}
-                """);
-
-        assertThat(result).isEqualTo(expected);
-    }
-
-    // === IndexPath (@[n]): navigate into array element ===
-
-    @Test
-    void indexPath_replacesFirstElement() {
-        var result   = evaluateExpression("""
-                [1, 2, 3] |- { @[0] : mock.func }
-                """);
-        var expected = json("""
-                ["***", 2, 3]
-                """);
-
-        assertThat(result).isEqualTo(expected);
-    }
-
-    @Test
-    void indexPath_replacesMiddleElement() {
-        var result   = evaluateExpression("""
-                [1, 2, 3] |- { @[1] : mock.func }
-                """);
-        var expected = json("""
-                [1, "***", 3]
-                """);
-
-        assertThat(result).isEqualTo(expected);
-    }
-
-    @Test
-    void indexPath_replacesLastElement() {
-        var result   = evaluateExpression("""
-                [1, 2, 3] |- { @[2] : mock.func }
-                """);
-        var expected = json("""
-                [1, 2, "***"]
-                """);
-
-        assertThat(result).isEqualTo(expected);
-    }
-
-    @Test
-    void indexPath_negativeIndex_fromEnd() {
-        var result   = evaluateExpression("""
-                [1, 2, 3] |- { @[-1] : mock.func }
-                """);
-        var expected = json("""
-                [1, 2, "***"]
-                """);
-
-        assertThat(result).isEqualTo(expected);
-    }
-
-    @Test
-    void indexPath_negativeIndex_secondFromEnd() {
-        var result   = evaluateExpression("""
-                [1, 2, 3, 4] |- { @[-2] : mock.func }
-                """);
-        var expected = json("""
-                [1, 2, "***", 4]
-                """);
-
-        assertThat(result).isEqualTo(expected);
-    }
-
-    // === IndexPath blacklist semantics ===
-
-    @Test
-    void indexPath_onNonArray_returnsUnchanged() {
-        var result   = evaluateExpression("""
-                {"a": 1} |- { @[0] : mock.func }
-                """);
-        var expected = json("""
-                {"a": 1}
-                """);
-
-        assertThat(result).isEqualTo(expected);
-    }
-
-    @Test
-    void indexPath_outOfBounds_returnsUnchanged() {
-        var result   = evaluateExpression("""
-                [1, 2, 3] |- { @[10] : mock.func }
-                """);
-        var expected = json("""
-                [1, 2, 3]
-                """);
-
-        assertThat(result).isEqualTo(expected);
-    }
-
-    @Test
-    void indexPath_negativeOutOfBounds_returnsUnchanged() {
-        var result   = evaluateExpression("""
-                [1, 2, 3] |- { @[-10] : mock.func }
-                """);
-        var expected = json("""
-                [1, 2, 3]
-                """);
-
-        assertThat(result).isEqualTo(expected);
-    }
-
-    // === Combined paths: KeyPath + IndexPath ===
-
-    @Test
-    void keyThenIndex_replacesNestedArrayElement() {
-        var result   = evaluateExpression("""
-                {"items": [1, 2, 3]} |- { @.items[1] : mock.func }
-                """);
-        var expected = json("""
-                {"items": [1, "***", 3]}
-                """);
-
-        assertThat(result).isEqualTo(expected);
-    }
-
-    @Test
-    void indexThenKey_replacesObjectInArray() {
-        var result   = evaluateExpression("""
-                [{"name": "alice"}, {"name": "bob"}] |- { @[1].name : mock.func }
-                """);
-        var expected = json("""
-                [{"name": "alice"}, {"name": "***"}]
-                """);
-
-        assertThat(result).isEqualTo(expected);
-    }
-
-    @Test
-    void deepNesting_keyIndexKeyIndex() {
-        var result   = evaluateExpression("""
-                {"data": [{"values": [10, 20, 30]}]} |- { @.data[0].values[1] : mock.func }
-                """);
-        var expected = json("""
-                {"data": [{"values": [10, "***", 30]}]}
-                """);
-
-        assertThat(result).isEqualTo(expected);
-    }
-
-    @Test
-    void combined_missingIntermediateKey_returnsUnchanged() {
-        var result   = evaluateExpression("""
-                {"other": [1, 2]} |- { @.items[0] : mock.func }
-                """);
-        var expected = json("""
-                {"other": [1, 2]}
-                """);
-
-        assertThat(result).isEqualTo(expected);
-    }
-
-    @Test
-    void combined_intermediateNotArray_returnsUnchanged() {
-        var result   = evaluateExpression("""
-                {"items": "not an array"} |- { @.items[0] : mock.func }
-                """);
-        var expected = json("""
-                {"items": "not an array"}
-                """);
-
-        assertThat(result).isEqualTo(expected);
-    }
-
-    // === WildcardPath (@[*] / @.*): mark all children ===
-
-    @Test
-    void wildcardPath_marksAllArrayElements() {
-        var result   = evaluateExpression("""
-                [1, 2, 3] |- { @[*] : mock.func }
-                """);
-        var expected = json("""
-                ["***", "***", "***"]
-                """);
-
-        assertThat(result).isEqualTo(expected);
-    }
-
-    @Test
-    void wildcardPath_marksAllObjectValues() {
-        var result   = evaluateExpression("""
-                {"a": 1, "b": 2} |- { @.* : mock.func }
-                """);
-        var expected = json("""
-                {"a": "***", "b": "***"}
-                """);
-
-        assertThat(result).isEqualTo(expected);
-    }
-
-    @Test
-    void wildcardPath_emptyArray_returnsEmptyArray() {
-        var result   = evaluateExpression("""
-                [] |- { @[*] : mock.func }
-                """);
-        var expected = json("[]");
-
-        assertThat(result).isEqualTo(expected);
-    }
-
-    @Test
-    void wildcardPath_emptyObject_returnsEmptyObject() {
-        var result   = evaluateExpression("""
-                {} |- { @.* : mock.func }
-                """);
-        var expected = json("{}");
-
-        assertThat(result).isEqualTo(expected);
-    }
-
-    // === WildcardPath blacklist semantics ===
-
-    @Test
-    void wildcardPath_onScalar_returnsUnchanged() {
-        var result   = evaluateExpression("""
-                42 |- { @[*] : mock.func }
-                """);
-        var expected = Value.of(42);
-
-        assertThat(result).isEqualTo(expected);
-    }
-
-    @Test
-    void wildcardPath_onString_returnsUnchanged() {
-        var result   = evaluateExpression("""
-                "hello" |- { @.* : mock.func }
-                """);
-        var expected = Value.of("hello");
-
-        assertThat(result).isEqualTo(expected);
-    }
-
-    // === WildcardPath + nested paths ===
-
-    @Test
-    void wildcardThenKey_marksFieldInAllObjects() {
-        var result   = evaluateExpression("""
-                [{"name": "alice"}, {"name": "bob"}] |- { @[*].name : mock.func }
-                """);
-        var expected = json("""
-                [{"name": "***"}, {"name": "***"}]
-                """);
-
-        assertThat(result).isEqualTo(expected);
-    }
-
-    @Test
-    void keyThenWildcard_marksAllInNestedArray() {
-        var result   = evaluateExpression("""
-                {"items": [1, 2, 3]} |- { @.items[*] : mock.func }
-                """);
-        var expected = json("""
-                {"items": ["***", "***", "***"]}
-                """);
-
-        assertThat(result).isEqualTo(expected);
-    }
-
-    @Test
-    void wildcardThenIndex_marksElementInAllArrays() {
-        var result   = evaluateExpression("""
-                [[1, 2], [3, 4], [5, 6]] |- { @[*][0] : mock.func }
-                """);
-        var expected = json("""
-                [["***", 2], ["***", 4], ["***", 6]]
-                """);
-
-        assertThat(result).isEqualTo(expected);
-    }
-
-    @Test
-    void wildcardThenKey_blacklistSkipsMissingKeys() {
-        var result   = evaluateExpression("""
-                [{"name": "alice"}, {"other": "bob"}] |- { @[*].name : mock.func }
-                """);
-        var expected = json("""
-                [{"name": "***"}, {"other": "bob"}]
-                """);
-
-        assertThat(result).isEqualTo(expected);
-    }
-
-    @Test
-    void wildcardThenWildcard_marksNestedArrays() {
-        var result   = evaluateExpression("""
-                [[1, 2], [3, 4]] |- { @[*][*] : mock.func }
-                """);
-        var expected = json("""
-                [["***", "***"], ["***", "***"]]
-                """);
-
-        assertThat(result).isEqualTo(expected);
-    }
-
-    // === AttributeUnionPath (@["a","b"]): mark multiple keys ===
-
-    @Test
-    void attributeUnion_marksTwoKeys() {
-        var result   = evaluateExpression("""
-                {"a": 1, "b": 2, "c": 3} |- { @["a","b"] : mock.func }
-                """);
-        var expected = json("""
-                {"a": "***", "b": "***", "c": 3}
-                """);
-
-        assertThat(result).isEqualTo(expected);
-    }
-
-    @Test
-    void attributeUnion_marksThreeKeys() {
-        var result   = evaluateExpression("""
-                {"a": 1, "b": 2, "c": 3, "d": 4} |- { @["a","c","d"] : mock.func }
-                """);
-        var expected = json("""
-                {"a": "***", "b": 2, "c": "***", "d": "***"}
-                """);
-
-        assertThat(result).isEqualTo(expected);
-    }
-
-    @Test
-    void attributeUnion_singleKey_sameAsKeyPath() {
-        var result   = evaluateExpression("""
-                {"a": 1, "b": 2} |- { @["a"] : mock.func }
-                """);
-        var expected = json("""
-                {"a": "***", "b": 2}
-                """);
-
-        assertThat(result).isEqualTo(expected);
-    }
-
-    @Test
-    void attributeUnion_blacklistSkipsMissingKeys() {
-        var result   = evaluateExpression("""
-                {"a": 1, "c": 3} |- { @["a","b","c"] : mock.func }
-                """);
-        var expected = json("""
-                {"a": "***", "c": "***"}
-                """);
-
-        assertThat(result).isEqualTo(expected);
-    }
-
-    @Test
-    void attributeUnion_allMissing_returnsUnchanged() {
-        var result   = evaluateExpression("""
-                {"x": 1} |- { @["a","b"] : mock.func }
-                """);
-        var expected = json("""
-                {"x": 1}
-                """);
-
-        assertThat(result).isEqualTo(expected);
-    }
-
-    // === IndexUnionPath (@[1,3]): mark multiple indices ===
-
-    @Test
-    void indexUnion_marksTwoIndices() {
-        var result   = evaluateExpression("""
-                [0, 1, 2, 3, 4] |- { @[1,3] : mock.func }
-                """);
-        var expected = json("""
-                [0, "***", 2, "***", 4]
-                """);
-
-        assertThat(result).isEqualTo(expected);
-    }
-
-    @Test
-    void indexUnion_marksThreeIndices() {
-        var result   = evaluateExpression("""
-                [0, 1, 2, 3, 4] |- { @[0,2,4] : mock.func }
-                """);
-        var expected = json("""
-                ["***", 1, "***", 3, "***"]
-                """);
-
-        assertThat(result).isEqualTo(expected);
-    }
-
-    @Test
-    void indexUnion_singleIndex_sameAsIndexPath() {
-        var result   = evaluateExpression("""
-                [1, 2, 3] |- { @[1] : mock.func }
-                """);
-        var expected = json("""
-                [1, "***", 3]
-                """);
-
-        assertThat(result).isEqualTo(expected);
-    }
-
-    @Test
-    void indexUnion_withOutOfBounds_appliesValidIndices() {
-        // Out-of-bounds index 5 is skipped, valid indices 0 and 2 get transformed
-        var result   = evaluateExpression("""
-                [0, 1, 2] |- { @[0,5,2] : mock.func }
-                """);
-        var expected = json("""
-                ["***", 1, "***"]
-                """);
-
-        assertThat(result).isEqualTo(expected);
-    }
-
-    @Test
-    void indexUnion_allOutOfBounds_returnsUnchanged() {
-        var result   = evaluateExpression("""
-                [0, 1, 2] |- { @[10,20] : mock.func }
-                """);
-        var expected = json("""
-                [0, 1, 2]
-                """);
-
-        assertThat(result).isEqualTo(expected);
-    }
-
-    // === Union + nested path combinations ===
-
-    @Test
-    void attributeUnionThenKey_marksNestedInMultiple() {
-        var result   = evaluateExpression("""
-                {"a": {"x": 1}, "b": {"x": 2}, "c": {"x": 3}} |- { @["a","c"].x : mock.func }
-                """);
-        var expected = json("""
-                {"a": {"x": "***"}, "b": {"x": 2}, "c": {"x": "***"}}
-                """);
-
-        assertThat(result).isEqualTo(expected);
-    }
-
-    @Test
-    void indexUnionThenKey_marksNestedInMultiple() {
-        var result   = evaluateExpression("""
-                [{"n": 1}, {"n": 2}, {"n": 3}] |- { @[0,2].n : mock.func }
-                """);
-        var expected = json("""
-                [{"n": "***"}, {"n": 2}, {"n": "***"}]
-                """);
-
-        assertThat(result).isEqualTo(expected);
-    }
-
-    @Test
-    void keyThenAttributeUnion_marksMultipleInNested() {
-        var result   = evaluateExpression("""
-                {"data": {"a": 1, "b": 2, "c": 3}} |- { @.data["a","c"] : mock.func }
-                """);
-        var expected = json("""
-                {"data": {"a": "***", "b": 2, "c": "***"}}
-                """);
-
-        assertThat(result).isEqualTo(expected);
-    }
-
-    @Test
-    void keyThenIndexUnion_marksMultipleInNestedArray() {
-        var result   = evaluateExpression("""
-                {"items": [0, 1, 2, 3]} |- { @.items[0,2] : mock.func }
-                """);
-        var expected = json("""
-                {"items": ["***", 1, "***", 3]}
-                """);
-
-        assertThat(result).isEqualTo(expected);
-    }
-
-    @Test
-    void wildcardThenAttributeUnion_marksMultipleKeysInAll() {
-        var result   = evaluateExpression("""
-                [{"a": 1, "b": 2}, {"a": 3, "b": 4}] |- { @[*]["a","b"] : mock.func }
-                """);
-        var expected = json("""
-                [{"a": "***", "b": "***"}, {"a": "***", "b": "***"}]
-                """);
-
-        assertThat(result).isEqualTo(expected);
-    }
-
-    // === SlicePath (@[start:end:step]): mark indices from slice ===
-
-    @Test
-    void slicePath_basicRange_marksSlice() {
-        var result   = evaluateExpression("""
-                [0, 1, 2, 3, 4] |- { @[1:3] : mock.func }
-                """);
-        var expected = json("""
-                [0, "***", "***", 3, 4]
-                """);
-
-        assertThat(result).isEqualTo(expected);
-    }
-
-    @Test
-    void slicePath_allElements_marksAll() {
-        var result   = evaluateExpression("""
-                [1, 2, 3] |- { @[:] : mock.func }
-                """);
-        var expected = json("""
-                ["***", "***", "***"]
-                """);
-
-        assertThat(result).isEqualTo(expected);
-    }
-
-    @Test
-    void slicePath_fromIndex_marksFromIndexToEnd() {
-        var result   = evaluateExpression("""
-                [0, 1, 2, 3, 4] |- { @[2:] : mock.func }
-                """);
-        var expected = json("""
-                [0, 1, "***", "***", "***"]
-                """);
-
-        assertThat(result).isEqualTo(expected);
-    }
-
-    @Test
-    void slicePath_toIndex_marksFromStartToIndex() {
-        var result   = evaluateExpression("""
-                [0, 1, 2, 3, 4] |- { @[:3] : mock.func }
-                """);
-        var expected = json("""
-                ["***", "***", "***", 3, 4]
-                """);
-
-        assertThat(result).isEqualTo(expected);
-    }
-
-    @Test
-    void slicePath_negativeStart_marksLastN() {
-        var result   = evaluateExpression("""
-                [0, 1, 2, 3, 4] |- { @[-3:] : mock.func }
-                """);
-        var expected = json("""
-                [0, 1, "***", "***", "***"]
-                """);
-
-        assertThat(result).isEqualTo(expected);
-    }
-
-    @Test
-    void slicePath_negativeEnd_marksExceptLastN() {
-        var result   = evaluateExpression("""
-                [0, 1, 2, 3, 4] |- { @[:-2] : mock.func }
-                """);
-        var expected = json("""
-                ["***", "***", "***", 3, 4]
-                """);
-
-        assertThat(result).isEqualTo(expected);
-    }
-
-    @Test
-    void slicePath_withStep_marksEveryNth() {
-        var result   = evaluateExpression("""
-                [0, 1, 2, 3, 4, 5] |- { @[::2] : mock.func }
-                """);
-        var expected = json("""
-                ["***", 1, "***", 3, "***", 5]
-                """);
-
-        assertThat(result).isEqualTo(expected);
-    }
-
-    @Test
-    void slicePath_fromToStep_marksRangeWithStep() {
-        var result   = evaluateExpression("""
-                [0, 1, 2, 3, 4, 5] |- { @[1:5:2] : mock.func }
-                """);
-        var expected = json("""
-                [0, "***", 2, "***", 4, 5]
-                """);
-
-        assertThat(result).isEqualTo(expected);
-    }
-
-    // === SlicePath with negative step (no reversal, just index selection) ===
-
-    @Test
-    void slicePath_negativeStep_marksAllSameAsPositive() {
-        // [::-1] selects all indices (same set as [:])
-        var result   = evaluateExpression("""
-                [1, 2, 3] |- { @[::-1] : mock.func }
-                """);
-        var expected = json("""
-                ["***", "***", "***"]
-                """);
-
-        assertThat(result).isEqualTo(expected);
-    }
-
-    @Test
-    void slicePath_negativeStepWithBounds_marksSelectedIndices() {
-        // [4:1:-1] selects indices 4, 3, 2 (same set as [2:5])
-        var result   = evaluateExpression("""
-                [0, 1, 2, 3, 4] |- { @[4:1:-1] : mock.func }
-                """);
-        var expected = json("""
-                [0, 1, "***", "***", "***"]
-                """);
-
-        assertThat(result).isEqualTo(expected);
-    }
-
-    @Test
-    void slicePath_negativeStepFromIndex_marksDownToStart() {
-        // [3::-1] selects indices 3, 2, 1, 0
-        var result   = evaluateExpression("""
-                [0, 1, 2, 3, 4] |- { @[3::-1] : mock.func }
-                """);
-        var expected = json("""
-                ["***", "***", "***", "***", 4]
-                """);
-
-        assertThat(result).isEqualTo(expected);
-    }
-
-    // === SlicePath blacklist semantics ===
-
-    @Test
-    void slicePath_onNonArray_returnsUnchanged() {
-        var result   = evaluateExpression("""
-                {"a": 1} |- { @[1:3] : mock.func }
-                """);
-        var expected = json("""
-                {"a": 1}
-                """);
-
-        assertThat(result).isEqualTo(expected);
-    }
-
-    @Test
-    void slicePath_emptyRange_returnsUnchanged() {
-        var result   = evaluateExpression("""
-                [0, 1, 2, 3, 4] |- { @[3:1] : mock.func }
-                """);
-        var expected = json("""
-                [0, 1, 2, 3, 4]
-                """);
-
-        assertThat(result).isEqualTo(expected);
-    }
-
-    @Test
-    void slicePath_stepZero_returnsUnchanged() {
-        // Step zero = empty set of indices
-        var result   = evaluateExpression("""
-                [1, 2, 3] |- { @[::0] : mock.func }
-                """);
-        var expected = json("""
-                [1, 2, 3]
-                """);
-
-        assertThat(result).isEqualTo(expected);
-    }
-
-    @Test
-    void slicePath_outOfBoundsStart_returnsUnchanged() {
-        var result   = evaluateExpression("""
-                [1, 2, 3] |- { @[10:] : mock.func }
-                """);
-        var expected = json("""
-                [1, 2, 3]
-                """);
-
-        assertThat(result).isEqualTo(expected);
-    }
-
-    // === SlicePath + nested path combinations ===
-
-    @Test
-    void sliceThenKey_marksFieldInSlicedObjects() {
-        var result   = evaluateExpression("""
-                [{"n": 0}, {"n": 1}, {"n": 2}, {"n": 3}] |- { @[1:3].n : mock.func }
-                """);
-        var expected = json("""
-                [{"n": 0}, {"n": "***"}, {"n": "***"}, {"n": 3}]
-                """);
-
-        assertThat(result).isEqualTo(expected);
-    }
-
-    @Test
-    void keyThenSlice_marksSliceInNestedArray() {
-        var result   = evaluateExpression("""
-                {"items": [0, 1, 2, 3, 4]} |- { @.items[1:4] : mock.func }
-                """);
-        var expected = json("""
-                {"items": [0, "***", "***", "***", 4]}
-                """);
-
-        assertThat(result).isEqualTo(expected);
-    }
-
-    @Test
-    void sliceThenSlice_marksNestedSlice() {
-        var result   = evaluateExpression("""
-                [[0, 1, 2], [3, 4, 5], [6, 7, 8]] |- { @[0:2][1:] : mock.func }
-                """);
-        var expected = json("""
-                [[0, "***", "***"], [3, "***", "***"], [6, 7, 8]]
-                """);
-
-        assertThat(result).isEqualTo(expected);
-    }
-
-    @Test
-    void wildcardThenSlice_marksSliceInAllArrays() {
-        var result   = evaluateExpression("""
-                [[0, 1, 2], [3, 4, 5]] |- { @[*][0:2] : mock.func }
-                """);
-        var expected = json("""
-                [["***", "***", 2], ["***", "***", 5]]
-                """);
-
-        assertThat(result).isEqualTo(expected);
-    }
-
-    @Test
-    void sliceThenWildcard_marksAllInSlicedArrays() {
-        var result   = evaluateExpression("""
-                [[0, 1], [2, 3], [4, 5]] |- { @[0:2][*] : mock.func }
-                """);
-        var expected = json("""
-                [["***", "***"], ["***", "***"], [4, 5]]
-                """);
-
-        assertThat(result).isEqualTo(expected);
-    }
-
-    // === ExpressionPath (@[(expr)]): dynamic key/index from expression ===
-
-    @Test
-    void expressionPath_literalIndex_redactsSensitiveItem() {
-        // Redact the second medical record (index 1)
-        var result   = evaluateExpression("""
-                {"patient": "John", "records": ["checkup", "surgery", "followup"]}
-                |- { @.records[(1)] : mock.func }
-                """);
-        var expected = json("""
-                {"patient": "John", "records": ["checkup", "***", "followup"]}
-                """);
-
-        assertThat(result).isEqualTo(expected);
-    }
-
-    @Test
-    void expressionPath_literalKey_redactsSensitiveField() {
-        // Redact SSN by computed field name
-        var result   = evaluateExpression("""
-                {"name": "Alice", "ssn": "123-45-6789", "email": "alice@example.com"}
-                |- { @[("ssn")] : mock.func }
-                """);
-        var expected = json("""
-                {"name": "Alice", "ssn": "***", "email": "alice@example.com"}
-                """);
-
-        assertThat(result).isEqualTo(expected);
-    }
-
-    @Test
-    void expressionPath_computedIndex_redactsCalculatedPosition() {
-        // Redact the last item (length-1 = index 2)
-        var result   = evaluateExpression("""
-                {"tasks": ["public", "internal", "confidential"]} |- { @.tasks[(1+1)] : mock.func }
-                """);
-        var expected = json("""
-                {"tasks": ["public", "internal", "***"]}
-                """);
-
-        assertThat(result).isEqualTo(expected);
-    }
-
-    @Test
-    void expressionPath_negativeIndex_redactsFromEnd() {
-        // Redact the most recent log entry (last item)
-        var result   = evaluateExpression("""
-                {"logs": ["login", "view", "download", "logout"]} |- { @.logs[(-1)] : mock.func }
-                """);
-        var expected = json("""
-                {"logs": ["login", "view", "download", "***"]}
-                """);
-
-        assertThat(result).isEqualTo(expected);
-    }
-
-    // === ExpressionPath with dynamic @ binding (root context) ===
-
-    @Test
-    void expressionPath_atFromRoot_redactsConfiguredField() {
-        // Config specifies which field to redact; @ refers to root
-        var result   = evaluateExpression("""
-                {
-                    "redactField": "salary",
-                    "employee": {"name": "Bob", "salary": 75000, "department": "Engineering"}
-                } |- { @.employee[(@.redactField)] : mock.func }
-                """);
-        var expected = json("""
-                {
-                    "redactField": "salary",
-                    "employee": {"name": "Bob", "salary": "***", "department": "Engineering"}
-                }
-                """);
-
-        assertThat(result).isEqualTo(expected);
-    }
-
-    @Test
-    void expressionPath_atFromRoot_redactsAtConfiguredIndex() {
-        // Config specifies which priority level to redact
-        var result   = evaluateExpression("""
-                {
-                    "sensitiveLevel": 2,
-                    "priorities": ["low", "medium", "high", "critical"]
-                } |- { @.priorities[(@.sensitiveLevel)] : mock.func }
-                """);
-        var expected = json("""
-                {
-                    "sensitiveLevel": 2,
-                    "priorities": ["low", "medium", "***", "critical"]
-                }
-                """);
-
-        assertThat(result).isEqualTo(expected);
-    }
-
-    // === ExpressionPath with dynamic @ binding (after wildcard) ===
-
-    @Test
-    void expressionPath_atAfterWildcard_redactsPerUserSensitiveField() {
-        // Each user specifies which of their own fields is sensitive
-        var result   = evaluateExpression("""
-                [
-                    {"name": "Alice", "sensitiveField": "phone", "phone": "555-1234", "email": "a@x.com"},
-                    {"name": "Bob", "sensitiveField": "email", "phone": "555-5678", "email": "b@x.com"}
-                ] |- { @[*][(@.sensitiveField)] : mock.func }
-                """);
-        var expected = json("""
-                [
-                    {"name": "Alice", "sensitiveField": "phone", "phone": "***", "email": "a@x.com"},
-                    {"name": "Bob", "sensitiveField": "email", "phone": "555-5678", "email": "***"}
-                ]
-                """);
-
-        assertThat(result).isEqualTo(expected);
-    }
-
-    @Test
-    void expressionPath_atAfterWildcard_redactsAtUserSpecifiedIndex() {
-        // Each record specifies which of its values to redact
-        var result   = evaluateExpression("""
-                [
-                    {"redactIndex": 0, "values": ["secret", "public", "public"]},
-                    {"redactIndex": 2, "values": ["public", "public", "secret"]}
-                ] |- { @[*].values[(@.redactIndex)] : mock.func }
-                """);
-        var expected = json("""
-                [
-                    {"redactIndex": 0, "values": ["***", "public", "public"]},
-                    {"redactIndex": 2, "values": ["public", "public", "***"]}
-                ]
-                """);
-
-        assertThat(result).isEqualTo(expected);
-    }
-
-    // === ExpressionPath with # (position in iteration) ===
-
-    @Test
-    void expressionPath_hashBinding_redactsMatchingPosition() {
-        // Redact element at position matching the iteration index
-        // First array: redact index 0, second array: redact index 1
-        var result   = evaluateExpression("""
-                [
-                    ["a0", "a1", "a2"],
-                    ["b0", "b1", "b2"]
-                ] |- { @[*][(#)] : mock.func }
-                """);
-        var expected = json("""
-                [
-                    ["***", "a1", "a2"],
-                    ["b0", "***", "b2"]
-                ]
-                """);
-
-        assertThat(result).isEqualTo(expected);
-    }
-
-    @Test
-    void expressionPath_hashWithComputation_redactsComputedFromPosition() {
-        // Redact element at (iteration index + 1) mod 3
-        var result   = evaluateExpression("""
-                [
-                    ["x", "y", "z"],
-                    ["x", "y", "z"],
-                    ["x", "y", "z"]
-                ] |- { @[*][((# + 1) % 3)] : mock.func }
-                """);
-        var expected = json("""
-                [
-                    ["x", "***", "z"],
-                    ["x", "y", "***"],
-                    ["***", "y", "z"]
-                ]
-                """);
-
-        assertThat(result).isEqualTo(expected);
-    }
-
-    // === ExpressionPath blacklist semantics ===
-
-    @Test
-    void expressionPath_invalidExprType_returnsUnchanged() {
-        // Expression evaluates to boolean - invalid for key/index, return unchanged
-        var result   = evaluateExpression("""
-                {"data": [1, 2, 3]} |- { @.data[(true)] : mock.func }
-                """);
-        var expected = json("""
-                {"data": [1, 2, 3]}
-                """);
-
-        assertThat(result).isEqualTo(expected);
-    }
-
-    @Test
-    void expressionPath_outOfBounds_returnsUnchanged() {
-        var result   = evaluateExpression("""
-                {"items": ["a", "b", "c"]} |- { @.items[(99)] : mock.func }
-                """);
-        var expected = json("""
-                {"items": ["a", "b", "c"]}
-                """);
-
-        assertThat(result).isEqualTo(expected);
-    }
-
-    @Test
-    void expressionPath_missingKey_returnsUnchanged() {
-        var result   = evaluateExpression("""
-                {"name": "test"} |- { @[("nonexistent")] : mock.func }
-                """);
-        var expected = json("""
-                {"name": "test"}
-                """);
-
-        assertThat(result).isEqualTo(expected);
-    }
-
-    // === ExpressionPath + nested path combinations ===
-
-    @Test
-    void expressionPathThenKey_redactsNestedSensitiveField() {
-        // Select first user by index, then redact their password
-        var result   = evaluateExpression("""
-                {"users": [
-                    {"username": "admin", "password": "secret123"},
-                    {"username": "guest", "password": "guest456"}
-                ]} |- { @.users[(0)].password : mock.func }
-                """);
-        var expected = json("""
-                {"users": [
-                    {"username": "admin", "password": "***"},
-                    {"username": "guest", "password": "guest456"}
-                ]}
-                """);
-
-        assertThat(result).isEqualTo(expected);
-    }
-
-    @Test
-    void wildcardThenExpressionPath_redactsSecondColumnInAllRows() {
-        // Redact column 1 in each row of a table
-        var result   = evaluateExpression("""
-                {"table": [
-                    ["Name", "SSN", "Department"],
-                    ["Alice", "111-22-3333", "Sales"],
-                    ["Bob", "444-55-6666", "Engineering"]
-                ]} |- { @.table[*][(1)] : mock.func }
-                """);
-        var expected = json("""
-                {"table": [
-                    ["Name", "***", "Department"],
-                    ["Alice", "***", "Sales"],
-                    ["Bob", "***", "Engineering"]
-                ]}
-                """);
-
-        assertThat(result).isEqualTo(expected);
-    }
-
-    // === ConditionPath (@[?(cond)]): filter elements by condition ===
-
-    @Test
-    void conditionPath_literalTrue_redactsAllElements() {
-        // Condition always true - redacts all (like wildcard)
-        var result   = evaluateExpression("""
-                [1, 2, 3] |- { @[?(true)] : mock.func }
-                """);
-        var expected = json("""
-                ["***", "***", "***"]
-                """);
-
-        assertThat(result).isEqualTo(expected);
-    }
-
-    @Test
-    void conditionPath_literalFalse_redactsNone() {
-        // Condition always false - redacts none
-        var result   = evaluateExpression("""
-                [1, 2, 3] |- { @[?(false)] : mock.func }
-                """);
-        var expected = json("""
-                [1, 2, 3]
-                """);
-
-        assertThat(result).isEqualTo(expected);
-    }
-
-    @Test
-    void conditionPath_objectLiteralTrue_redactsAllValues() {
-        var result   = evaluateExpression("""
-                {"a": 1, "b": 2} |- { @[?(true)] : mock.func }
-                """);
-        var expected = json("""
-                {"a": "***", "b": "***"}
-                """);
-
-        assertThat(result).isEqualTo(expected);
-    }
-
-    // === ConditionPath with @ (current element access) ===
-
-    @Test
-    void conditionPath_atComparison_redactsHighValueItems() {
-        // Redact prices over 100
-        var result   = evaluateExpression("""
-                {"products": [
-                    {"name": "Basic", "price": 50},
-                    {"name": "Premium", "price": 150},
-                    {"name": "Standard", "price": 80}
-                ]} |- { @.products[?(@.price > 100)] : mock.func }
-                """);
-        var expected = json("""
-                {"products": [
-                    {"name": "Basic", "price": 50},
-                    "***",
-                    {"name": "Standard", "price": 80}
-                ]}
-                """);
-
-        assertThat(result).isEqualTo(expected);
-    }
-
-    @Test
-    void conditionPath_atEquality_redactsSensitiveRole() {
-        // Redact users with admin role
-        var result   = evaluateExpression("""
-                [
-                    {"user": "alice", "role": "admin", "token": "abc123"},
-                    {"user": "bob", "role": "user", "token": "xyz789"},
-                    {"user": "charlie", "role": "admin", "token": "def456"}
-                ] |- { @[?(@.role == "admin")] : mock.func }
-                """);
-        var expected = json("""
-                [
-                    "***",
-                    {"user": "bob", "role": "user", "token": "xyz789"},
-                    "***"
-                ]
-                """);
-
-        assertThat(result).isEqualTo(expected);
-    }
-
-    @Test
-    void conditionPath_atNestedThenKey_redactsFieldInMatchingOnly() {
-        // Redact SSN only for minors (age < 18)
-        var result   = evaluateExpression("""
-                [
-                    {"name": "Alice", "age": 25, "ssn": "111-22-3333"},
-                    {"name": "Bobby", "age": 12, "ssn": "444-55-6666"},
-                    {"name": "Carol", "age": 30, "ssn": "777-88-9999"}
-                ] |- { @[?(@.age < 18)].ssn : mock.func }
-                """);
-        var expected = json("""
-                [
-                    {"name": "Alice", "age": 25, "ssn": "111-22-3333"},
-                    {"name": "Bobby", "age": 12, "ssn": "***"},
-                    {"name": "Carol", "age": 30, "ssn": "777-88-9999"}
-                ]
-                """);
-
-        assertThat(result).isEqualTo(expected);
-    }
-
-    // === ConditionPath with # (position/key access) ===
-
-    @Test
-    void conditionPath_hashComparison_redactsEvenIndices() {
-        // Redact elements at even indices
-        var result   = evaluateExpression("""
-                ["a", "b", "c", "d", "e"] |- { @[?(# % 2 == 0)] : mock.func }
-                """);
-        var expected = json("""
-                ["***", "b", "***", "d", "***"]
-                """);
-
-        assertThat(result).isEqualTo(expected);
-    }
-
-    @Test
-    void conditionPath_hashRange_redactsMiddleElements() {
-        // Redact elements at indices 1 to 3
-        var result   = evaluateExpression("""
-                [0, 1, 2, 3, 4] |- { @[?(# > 0 && # < 4)] : mock.func }
-                """);
-        var expected = json("""
-                [0, "***", "***", "***", 4]
-                """);
-
-        assertThat(result).isEqualTo(expected);
-    }
-
-    @Test
-    void conditionPath_objectHashEquality_redactsSpecificKey() {
-        // Redact value where key is "password"
-        var result   = evaluateExpression("""
-                {"username": "admin", "password": "secret", "email": "admin@example.com"}
-                |- { @[?(# == "password")] : mock.func }
-                """);
-        var expected = json("""
-                {"username": "admin", "password": "***", "email": "admin@example.com"}
-                """);
-
-        assertThat(result).isEqualTo(expected);
-    }
-
-    // === ConditionPath blacklist semantics ===
-
-    @Test
-    void conditionPath_onScalar_returnsUnchanged() {
-        var result   = evaluateExpression("""
-                42 |- { @[?(true)] : mock.func }
-                """);
-        var expected = Value.of(42);
-
-        assertThat(result).isEqualTo(expected);
-    }
-
-    @Test
-    void conditionPath_nonBooleanCondition_treatsAsFalse() {
-        // Condition evaluates to number - treated as false
-        var result   = evaluateExpression("""
-                [1, 2, 3] |- { @[?(123)] : mock.func }
-                """);
-        var expected = json("""
-                [1, 2, 3]
-                """);
-
-        assertThat(result).isEqualTo(expected);
-    }
-
-    // === ConditionPath + nested path combinations ===
-
-    @Test
-    void wildcardThenConditionPath_redactsMatchingInEachArray() {
-        // For each inner array, redact elements > 5
-        var result   = evaluateExpression("""
-                [[1, 10, 3], [8, 2, 9]] |- { @[*][?(@ > 5)] : mock.func }
-                """);
-        var expected = json("""
-                [[1, "***", 3], ["***", 2, "***"]]
-                """);
-
-        assertThat(result).isEqualTo(expected);
-    }
-
-    @Test
-    void conditionPathThenWildcard_redactsAllFieldsInMatchingObjects() {
-        // For objects with status "classified", redact all fields
-        var result   = evaluateExpression("""
-                [
-                    {"status": "public", "data": {"a": 1}},
-                    {"status": "classified", "data": {"b": 2}},
-                    {"status": "public", "data": {"c": 3}}
-                ] |- { @[?(@.status == "classified")].* : mock.func }
-                """);
-        var expected = json("""
-                [
-                    {"status": "public", "data": {"a": 1}},
-                    {"status": "***", "data": "***"},
-                    {"status": "public", "data": {"c": 3}}
-                ]
-                """);
-
-        assertThat(result).isEqualTo(expected);
-    }
-
-    @Test
-    void conditionPathThenIndex_redactsSpecificIndexInMatchingArrays() {
-        // For arrays where first element > 3, redact index 1
-        var result   = evaluateExpression("""
-                [
-                    [1, 2, 3, 4],
-                    [5, 6, 7, 8],
-                    [2, 8, 9, 10]
-                ] |- { @[?(@[0] > 3)][1] : mock.func }
-                """);
-        var expected = json("""
-                [
-                    [1, 2, 3, 4],
-                    [5, "***", 7, 8],
-                    [2, 8, 9, 10]
-                ]
-                """);
-
-        assertThat(result).isEqualTo(expected);
-    }
-
-    @Test
-    void keyThenConditionPath_redactsMatchingInNestedArray() {
-        // In orders, redact items costing over 50
-        var result   = evaluateExpression("""
-                {"orders": [
-                    {"item": "Widget", "cost": 25},
-                    {"item": "Gadget", "cost": 75},
-                    {"item": "Doodad", "cost": 40}
-                ]} |- { @.orders[?(@.cost > 50)] : mock.func }
-                """);
-        var expected = json("""
-                {"orders": [
-                    {"item": "Widget", "cost": 25},
-                    "***",
-                    {"item": "Doodad", "cost": 40}
-                ]}
-                """);
-
-        assertThat(result).isEqualTo(expected);
-    }
-
-    // === Path blacklist semantics: out-of-bounds index in path returns unchanged
-    // ===
-
-    @Test
-    void indexPath_outOfBoundsInPath_returnsUnchanged() {
-        // Index 10 doesn't exist - blacklist semantics returns unchanged
-        var result   = evaluateExpression("""
-                [1, 2, 3] |- { @[10] : mock.func }
-                """);
-        var expected = json("""
-                [1, 2, 3]
-                """);
-
-        assertThat(result).isEqualTo(expected);
-    }
-
-    @Test
-    void indexPath_negativeOutOfBoundsInPath_returnsUnchanged() {
-        // Index -10 doesn't exist - blacklist semantics returns unchanged
-        var result   = evaluateExpression("""
-                [1, 2, 3] |- { @[-10] : mock.func }
-                """);
-        var expected = json("""
-                [1, 2, 3]
-                """);
-
-        assertThat(result).isEqualTo(expected);
-    }
-
-    @Test
-    void nestedIndexPath_outOfBoundsInPath_returnsUnchanged() {
-        // @.items[5] - index 5 doesn't exist in 3-element array, return unchanged
-        var result   = evaluateExpression("""
-                {"items": [1, 2, 3]} |- { @.items[5] : mock.func }
-                """);
-        var expected = json("""
-                {"items": [1, 2, 3]}
-                """);
-
-        assertThat(result).isEqualTo(expected);
-    }
-
-    @Test
-    void wildcardThenIndexPath_outOfBoundsInSomeArrays_appliesWhereValid() {
-        // Some inner arrays don't have index 2 - blacklist semantics applies where
-        // valid
-        var result   = evaluateExpression("""
-                [[1, 2, 3], [4, 5], [6, 7, 8, 9]] |- { @[*][2] : mock.func }
-                """);
-        var expected = json("""
-                [[1, 2, "***"], [4, 5], [6, 7, "***", 9]]
-                """);
-
-        assertThat(result).isEqualTo(expected);
-    }
-
-    @Test
-    void deepPath_intermediateOutOfBounds_returnsUnchanged() {
-        // @[5].name - index 5 doesn't exist, return unchanged
-        var result   = evaluateExpression("""
-                [{"name": "a"}, {"name": "b"}] |- { @[5].name : mock.func }
-                """);
-        var expected = json("""
-                [{"name": "a"}, {"name": "b"}]
-                """);
-
-        assertThat(result).isEqualTo(expected);
-    }
-
-    // === RecursiveKeyPath (@..key): find and mark all occurrences of key ===
-
-    @Test
-    void recursiveKeyPath_singleMatch_marksIt() {
-        var result   = evaluateExpression("""
-                {"a": {"b": 1}} |- { @..b : mock.func }
-                """);
-        var expected = json("""
-                {"a": {"b": "***"}}
-                """);
-
-        assertThat(result).isEqualTo(expected);
-    }
-
-    @Test
-    void recursiveKeyPath_multipleParallelMatches_marksAll() {
-        var result   = evaluateExpression("""
-                {"a": {"password": "secret1"}, "b": {"password": "secret2"}}
-                |- { @..password : mock.func }
-                """);
-        var expected = json("""
-                {"a": {"password": "***"}, "b": {"password": "***"}}
-                """);
-
-        assertThat(result).isEqualTo(expected);
-    }
-
-    @Test
-    void recursiveKeyPath_nestedMatch_outerConsumesInner() {
-        // Outer "b" match consumes the nested "b"
-        var result   = evaluateExpression("""
-                {"b": {"b": 1}} |- { @..b : mock.func }
-                """);
-        var expected = json("""
-                {"b": "***"}
-                """);
-
-        assertThat(result).isEqualTo(expected);
-    }
-
-    @Test
-    void recursiveKeyPath_inArray_findsInAllElements() {
-        var result   = evaluateExpression("""
-                [{"x": 1}, {"x": 2}, {"y": 3}] |- { @..x : mock.func }
-                """);
-        var expected = json("""
-                [{"x": "***"}, {"x": "***"}, {"y": 3}]
-                """);
-
-        assertThat(result).isEqualTo(expected);
-    }
-
-    @Test
-    void recursiveKeyPath_deepNesting_findsAtAllDepths() {
-        var result   = evaluateExpression("""
-                {"a": {"b": {"c": {"target": 1}}, "target": 2}, "target": 3}
-                |- { @..target : mock.func }
-                """);
-        var expected = json("""
-                {"a": {"b": {"c": {"target": "***"}}, "target": "***"}, "target": "***"}
-                """);
-
-        assertThat(result).isEqualTo(expected);
-    }
-
-    @Test
-    void recursiveKeyPath_withTailPath_navigatesFurther() {
-        var result   = evaluateExpression("""
-                {"user": {"info": {"name": "Alice"}}, "admin": {"info": {"name": "Bob"}}}
-                |- { @..info.name : mock.func }
-                """);
-        var expected = json("""
-                {"user": {"info": {"name": "***"}}, "admin": {"info": {"name": "***"}}}
-                """);
-
-        assertThat(result).isEqualTo(expected);
-    }
-
-    @Test
-    void recursiveKeyPath_noMatches_returnsUnchanged() {
-        var result   = evaluateExpression("""
-                {"a": 1, "b": 2} |- { @..nonexistent : mock.func }
-                """);
-        var expected = json("""
-                {"a": 1, "b": 2}
-                """);
-
-        assertThat(result).isEqualTo(expected);
-    }
-
-    @Test
-    void recursiveKeyPath_onScalar_returnsUnchanged() {
-        var result   = evaluateExpression("""
-                42 |- { @..key : mock.func }
-                """);
-        var expected = Value.of(42);
-
-        assertThat(result).isEqualTo(expected);
-    }
-
-    // === RecursiveIndexPath (@..[n]): find and mark all arrays at index n ===
-
-    @Test
-    void recursiveIndexPath_singleArray_marksIndex() {
-        var result   = evaluateExpression("""
-                {"items": [1, 2, 3]} |- { @..[1] : mock.func }
-                """);
-        var expected = json("""
-                {"items": [1, "***", 3]}
-                """);
-
-        assertThat(result).isEqualTo(expected);
-    }
-
-    @Test
-    void recursiveIndexPath_multipleArrays_marksInAll() {
-        var result   = evaluateExpression("""
-                {"a": [1, 2], "b": [3, 4]} |- { @..[0] : mock.func }
-                """);
-        var expected = json("""
-                {"a": ["***", 2], "b": ["***", 4]}
-                """);
-
-        assertThat(result).isEqualTo(expected);
-    }
-
-    @Test
-    void recursiveIndexPath_nestedArrays_marksAtAllLevels() {
-        var result = evaluateExpression("""
-                [[1, 2], [3, 4]] |- { @..[0] : mock.func }
-                """);
-        // Root array: mark index 0 → [1,2] becomes "***"
-        // BUT we don't recurse INTO [1,2] because it was matched
-        // Index 1 is [3,4], recurse into it: mark index 0 → "***"
-        var expected = json("""
-                ["***", ["***", 4]]
-                """);
-
-        assertThat(result).isEqualTo(expected);
-    }
-
-    @Test
-    void recursiveIndexPath_negativeIndex_marksFromEnd() {
-        var result   = evaluateExpression("""
-                {"data": [1, 2, 3], "more": [4, 5]} |- { @..[-1] : mock.func }
-                """);
-        var expected = json("""
-                {"data": [1, 2, "***"], "more": [4, "***"]}
-                """);
-
-        assertThat(result).isEqualTo(expected);
-    }
-
-    @Test
-    void recursiveIndexPath_withTailPath_navigatesFurther() {
-        var result   = evaluateExpression("""
-                {"rows": [{"name": "a"}, {"name": "b"}]} |- { @..[0].name : mock.func }
-                """);
-        var expected = json("""
-                {"rows": [{"name": "***"}, {"name": "b"}]}
-                """);
-
-        assertThat(result).isEqualTo(expected);
-    }
-
-    @Test
-    void recursiveIndexPath_outOfBounds_skipped() {
-        var result   = evaluateExpression("""
-                {"items": [1, 2]} |- { @..[5] : mock.func }
-                """);
-        var expected = json("""
-                {"items": [1, 2]}
-                """);
-
-        assertThat(result).isEqualTo(expected);
-    }
-
-    // === RecursiveWildcardPath (@..*): mark all values at all depths ===
-
-    @Test
-    void recursiveWildcardPath_flatObject_marksAllValues() {
-        var result   = evaluateExpression("""
-                {"a": 1, "b": 2} |- { @..* : mock.func }
-                """);
-        var expected = json("""
-                {"a": "***", "b": "***"}
-                """);
-
-        assertThat(result).isEqualTo(expected);
-    }
-
-    @Test
-    void recursiveWildcardPath_flatArray_marksAllElements() {
-        var result   = evaluateExpression("""
-                [1, 2, 3] |- { @..* : mock.func }
-                """);
-        var expected = json("""
-                ["***", "***", "***"]
-                """);
-
-        assertThat(result).isEqualTo(expected);
-    }
-
-    @Test
-    void recursiveWildcardPath_nested_depthFirstProcessing() {
-        // Depth-first: inner values processed before containers
-        // Inner 1 becomes "***", then {"b": "***"} becomes "***"
-        var result   = evaluateExpression("""
-                {"a": {"b": 1}} |- { @..* : mock.func }
-                """);
-        var expected = json("""
-                {"a": "***"}
-                """);
-
-        assertThat(result).isEqualTo(expected);
-    }
-
-    @Test
-    void recursiveWildcardPath_withTailPath_appliesAtAllLevels() {
-        // At each object at each depth that has key 'x', apply filter to value at 'x'
-        // Using @..x to recursively find and modify all 'x' keys
-        var result   = evaluateExpression("""
-                {"a": {"x": 1}, "b": {"x": 2, "c": {"x": 3}}} |- { @..x : mock.func }
-                """);
-        var expected = json("""
-                {"a": {"x": "***"}, "b": {"x": "***", "c": {"x": "***"}}}
-                """);
-
-        assertThat(result).isEqualTo(expected);
-    }
-
-    @Test
-    void recursiveWildcardPath_onScalar_returnsUnchanged() {
-        var result   = evaluateExpression("""
-                "hello" |- { @..* : mock.func }
-                """);
-        var expected = Value.of("hello");
-
-        assertThat(result).isEqualTo(expected);
-    }
-
-    @Test
-    void recursiveWildcardPath_emptyContainers_returnEmpty() {
-        var result   = evaluateExpression("""
-                {"empty": {}, "also": []} |- { @..* : mock.func }
-                """);
-        var expected = json("""
-                {"empty": "***", "also": "***"}
-                """);
-
-        assertThat(result).isEqualTo(expected);
-    }
-
-    // === Error short-circuit tests for ExtendedFilter ===
-
-    @Test
-    void conditionPath_errorInCondition_bubblesUpImmediately() {
-        // Division by zero in condition should return error, not continue processing
-        var result = evaluateExpression("""
-                [1, 2, 3, 4, 5] |- { @[?(1/0 == 1)] : mock.func }
-                """);
-
-        assertThat(result).isInstanceOf(ErrorValue.class);
-        assertThat(((ErrorValue) result).message()).contains("Division by zero");
-    }
-
-    @Test
-    void conditionPath_errorOnSecondElement_shortCircuits() {
-        // First element (5): 10/5 = 2, ok
-        // Second element (0): 10/0 = error, should short-circuit
-        var result = evaluateExpression("""
-                [5, 0, 3] |- { @[?(10/@ > 0)] : mock.func }
-                """);
-
-        assertThat(result).isInstanceOf(ErrorValue.class);
-        assertThat(((ErrorValue) result).message()).contains("Division by zero");
-    }
-
-    @Test
-    void conditionPath_errorOnThirdElement_shortCircuits() {
-        // First two elements pass, third causes error
-        var result = evaluateExpression("""
-                [1, 2, 0] |- { @[?(10 / @ > 0)] : mock.func }
-                """);
-
-        assertThat(result).isInstanceOf(ErrorValue.class);
-        assertThat(((ErrorValue) result).message()).contains("Division by zero");
-    }
-
-    @Test
-    void conditionPath_objectError_bubblesUp() {
-        // Error on value check in object iteration
-        var result = evaluateExpression("""
-                {"a": 1, "b": 0, "c": 3} |- { @[?(10 / @ > 0)] : mock.func }
-                """);
-
-        assertThat(result).isInstanceOf(ErrorValue.class);
-        assertThat(((ErrorValue) result).message()).contains("Division by zero");
-    }
-
-    @Test
-    void expressionPath_errorInExpression_bubblesUp() {
-        // Division by zero in expression path should return error
-        var result = evaluateExpression("""
-                {"items": [1, 2, 3]} |- { @.items[(1/0)] : mock.func }
-                """);
-
-        assertThat(result).isInstanceOf(ErrorValue.class);
-        assertThat(((ErrorValue) result).message()).contains("Division by zero");
-    }
-
-    @Test
-    void recursiveKeyPath_errorInNestedPath_shortCircuits() {
-        // Recursive key finds "items" arrays, then condition path filters elements
-        // First items array [5, 2]: 10/5=2, 10/2=5, ok
-        // Second items array [3, 0]: 10/3=ok, 10/0=error, should short-circuit
-        var result = evaluateExpression("""
-                {"a": {"items": [5, 2]}, "b": {"items": [3, 0]}} |- { @..items[?(10/@ > 0)] : mock.func }
-                """);
-
-        assertThat(result).isInstanceOf(ErrorValue.class);
-        assertThat(((ErrorValue) result).message()).contains("Division by zero");
-    }
-
-    @Test
-    void recursiveWildcard_errorInTailPath_shortCircuits() {
-        // Recursive wildcard finds all values depth-first
-        // For each array found, condition path [?(10/@ > 0)] is applied to its elements
-        // Inner array [2, 0] contains 0, causing division by zero error
-        var result = evaluateExpression("""
-                {"data": [[5, 2], [3, 0]]} |- { @..*[?(10/@ > 0)] : mock.func }
-                """);
-
-        assertThat(result).isInstanceOf(ErrorValue.class);
-        assertThat(((ErrorValue) result).message()).contains("Division by zero");
-    }
-
-    @Test
-    void wildcardThenCondition_errorInDeepArray_shortCircuits() {
-        // Error occurs deep in nested structure
-        var result = evaluateExpression("""
-                [[1, 2], [3, 0], [5, 6]] |- { @[*][?(10/@ > 0)] : mock.func }
-                """);
-
-        assertThat(result).isInstanceOf(ErrorValue.class);
-        assertThat(((ErrorValue) result).message()).contains("Division by zero");
+    @MethodSource
+    @ParameterizedTest(name = "{0}")
+    void when_pathNavigation_then_returnsExpected(String description, String expression, Value expected) {
+        var result = evaluateExpression(expression);
+        assertThat(result).isEqualTo(expected);
+    }
+
+    private static Stream<Arguments> when_pathNavigation_then_returnsExpected() {
+        return Stream.of(
+                // === KeyPath (@.key): navigate into object field ===
+                arguments("keyPath_replacesDirectField", "{\"a\": 1, \"b\": 2} |- { @.a : mock.func }",
+                        json("{\"a\": \"***\", \"b\": 2}")),
+                arguments("keyPath_replacesNestedField",
+                        "{\"outer\": {\"inner\": \"secret\"}, \"other\": \"visible\"} |- { @.outer.inner : mock.func }",
+                        json("{\"outer\": {\"inner\": \"***\"}, \"other\": \"visible\"}")),
+                arguments("keyPath_preservesFieldOrder",
+                        "{\"first\": 1, \"second\": 2, \"third\": 3} |- { @.second : mock.func }",
+                        json("{\"first\": 1, \"second\": \"***\", \"third\": 3}")),
+
+                // === Blacklist semantics: type mismatches return unchanged ===
+                arguments("keyPath_onNonObject_returnsUnchanged", "\"not an object\" |- { @.a : mock.func }",
+                        Value.of("not an object")),
+                arguments("keyPath_missingKey_returnsUnchanged", "{\"a\": 1} |- { @.nonexistent : mock.func }",
+                        json("{\"a\": 1}")),
+                arguments("keyPath_nestedMissingKey_returnsUnchanged",
+                        "{\"outer\": {\"a\": 1}} |- { @.outer.nonexistent : mock.func }",
+                        json("{\"outer\": {\"a\": 1}}")),
+
+                // === IndexPath (@[n]): navigate into array element ===
+                arguments("indexPath_replacesFirstElement", "[1, 2, 3] |- { @[0] : mock.func }",
+                        json("[\"***\", 2, 3]")),
+                arguments("indexPath_replacesMiddleElement", "[1, 2, 3] |- { @[1] : mock.func }",
+                        json("[1, \"***\", 3]")),
+                arguments("indexPath_replacesLastElement", "[1, 2, 3] |- { @[2] : mock.func }",
+                        json("[1, 2, \"***\"]")),
+                arguments("indexPath_negativeIndex_fromEnd", "[1, 2, 3] |- { @[-1] : mock.func }",
+                        json("[1, 2, \"***\"]")),
+                arguments("indexPath_negativeIndex_secondFromEnd", "[1, 2, 3, 4] |- { @[-2] : mock.func }",
+                        json("[1, 2, \"***\", 4]")),
+
+                // === IndexPath blacklist semantics ===
+                arguments("indexPath_onNonArray_returnsUnchanged", "{\"a\": 1} |- { @[0] : mock.func }",
+                        json("{\"a\": 1}")),
+                arguments("indexPath_outOfBounds_returnsUnchanged", "[1, 2, 3] |- { @[10] : mock.func }",
+                        json("[1, 2, 3]")),
+                arguments("indexPath_negativeOutOfBounds_returnsUnchanged", "[1, 2, 3] |- { @[-10] : mock.func }",
+                        json("[1, 2, 3]")),
+
+                // === Combined paths: KeyPath + IndexPath ===
+                arguments("keyThenIndex_replacesNestedArrayElement",
+                        "{\"items\": [1, 2, 3]} |- { @.items[1] : mock.func }", json("{\"items\": [1, \"***\", 3]}")),
+                arguments("indexThenKey_replacesObjectInArray",
+                        "[{\"name\": \"alice\"}, {\"name\": \"bob\"}] |- { @[1].name : mock.func }",
+                        json("[{\"name\": \"alice\"}, {\"name\": \"***\"}]")),
+                arguments("deepNesting_keyIndexKeyIndex",
+                        "{\"data\": [{\"values\": [10, 20, 30]}]} |- { @.data[0].values[1] : mock.func }",
+                        json("{\"data\": [{\"values\": [10, \"***\", 30]}]}")),
+                arguments("combined_missingIntermediateKey_returnsUnchanged",
+                        "{\"other\": [1, 2]} |- { @.items[0] : mock.func }", json("{\"other\": [1, 2]}")),
+                arguments("combined_intermediateNotArray_returnsUnchanged",
+                        "{\"items\": \"not an array\"} |- { @.items[0] : mock.func }",
+                        json("{\"items\": \"not an array\"}")),
+
+                // === WildcardPath (@[*] / @.*): mark all children ===
+                arguments("wildcardPath_marksAllArrayElements", "[1, 2, 3] |- { @[*] : mock.func }",
+                        json("[\"***\", \"***\", \"***\"]")),
+                arguments("wildcardPath_marksAllObjectValues", "{\"a\": 1, \"b\": 2} |- { @.* : mock.func }",
+                        json("{\"a\": \"***\", \"b\": \"***\"}")),
+                arguments("wildcardPath_emptyArray_returnsEmptyArray", "[] |- { @[*] : mock.func }", json("[]")),
+                arguments("wildcardPath_emptyObject_returnsEmptyObject", "{} |- { @.* : mock.func }", json("{}")),
+
+                // === WildcardPath blacklist semantics ===
+                arguments("wildcardPath_onScalar_returnsUnchanged", "42 |- { @[*] : mock.func }", Value.of(42)),
+                arguments("wildcardPath_onString_returnsUnchanged", "\"hello\" |- { @.* : mock.func }",
+                        Value.of("hello")),
+
+                // === WildcardPath + nested paths ===
+                arguments("wildcardThenKey_marksFieldInAllObjects",
+                        "[{\"name\": \"alice\"}, {\"name\": \"bob\"}] |- { @[*].name : mock.func }",
+                        json("[{\"name\": \"***\"}, {\"name\": \"***\"}]")),
+                arguments("keyThenWildcard_marksAllInNestedArray",
+                        "{\"items\": [1, 2, 3]} |- { @.items[*] : mock.func }",
+                        json("{\"items\": [\"***\", \"***\", \"***\"]}")),
+                arguments("wildcardThenIndex_marksElementInAllArrays",
+                        "[[1, 2], [3, 4], [5, 6]] |- { @[*][0] : mock.func }",
+                        json("[[\"***\", 2], [\"***\", 4], [\"***\", 6]]")),
+                arguments("wildcardThenKey_blacklistSkipsMissingKeys",
+                        "[{\"name\": \"alice\"}, {\"other\": \"bob\"}, {\"name\": \"carol\"}] |- { @[*].name : mock.func }",
+                        json("[{\"name\": \"***\"}, {\"other\": \"bob\"}, {\"name\": \"***\"}]")),
+                arguments("wildcardThenWildcard_marksNestedArrays", "[[1, 2], [3, 4]] |- { @[*][*] : mock.func }",
+                        json("[[\"***\", \"***\"], [\"***\", \"***\"]]")),
+
+                // === AttributeUnionPath (@["a","b"]): mark multiple keys ===
+                arguments("attributeUnion_marksTwoKeys",
+                        "{\"a\": 1, \"b\": 2, \"c\": 3} |- { @[\"a\",\"c\"] : mock.func }",
+                        json("{\"a\": \"***\", \"b\": 2, \"c\": \"***\"}")),
+                arguments("attributeUnion_marksThreeKeys",
+                        "{\"x\": 1, \"y\": 2, \"z\": 3, \"w\": 4} |- { @[\"x\",\"y\",\"z\"] : mock.func }",
+                        json("{\"x\": \"***\", \"y\": \"***\", \"z\": \"***\", \"w\": 4}")),
+                arguments("attributeUnion_singleKey_sameAsKeyPath", "{\"a\": 1, \"b\": 2} |- { @[\"a\"] : mock.func }",
+                        json("{\"a\": \"***\", \"b\": 2}")),
+                arguments("attributeUnion_blacklistSkipsMissingKeys",
+                        "{\"a\": 1, \"c\": 3} |- { @[\"a\",\"b\",\"c\"] : mock.func }",
+                        json("{\"a\": \"***\", \"c\": \"***\"}")),
+                arguments("attributeUnion_allMissing_returnsUnchanged",
+                        "{\"x\": 1} |- { @[\"a\",\"b\",\"c\"] : mock.func }", json("{\"x\": 1}")),
+
+                // === IndexUnionPath (@[0,2]): mark multiple indices ===
+                arguments("indexUnion_marksTwoIndices", "[1, 2, 3, 4, 5] |- { @[0,2] : mock.func }",
+                        json("[\"***\", 2, \"***\", 4, 5]")),
+                arguments("indexUnion_marksThreeIndices", "[1, 2, 3, 4, 5] |- { @[0,2,4] : mock.func }",
+                        json("[\"***\", 2, \"***\", 4, \"***\"]")),
+                arguments("indexUnion_singleIndex_sameAsIndexPath", "[1, 2, 3] |- { @[1] : mock.func }",
+                        json("[1, \"***\", 3]")),
+                arguments("indexUnion_withOutOfBounds_appliesValidIndices", "[1, 2, 3] |- { @[0,10,2] : mock.func }",
+                        json("[\"***\", 2, \"***\"]")),
+                arguments("indexUnion_allOutOfBounds_returnsUnchanged", "[1, 2, 3] |- { @[10,20,30] : mock.func }",
+                        json("[1, 2, 3]")),
+
+                // === Union + nested paths ===
+                arguments("attributeUnionThenKey_marksNestedInMultiple",
+                        "{\"user\": {\"name\": \"alice\"}, \"admin\": {\"name\": \"bob\"}} |- { @[\"user\",\"admin\"].name : mock.func }",
+                        json("{\"user\": {\"name\": \"***\"}, \"admin\": {\"name\": \"***\"}}")),
+                arguments("indexUnionThenKey_marksNestedInMultiple",
+                        "[{\"name\": \"alice\"}, {\"name\": \"bob\"}, {\"name\": \"carol\"}] |- { @[0,2].name : mock.func }",
+                        json("[{\"name\": \"***\"}, {\"name\": \"bob\"}, {\"name\": \"***\"}]")),
+                arguments("keyThenAttributeUnion_marksMultipleInNested",
+                        "{\"data\": {\"a\": 1, \"b\": 2, \"c\": 3}} |- { @.data[\"a\",\"c\"] : mock.func }",
+                        json("{\"data\": {\"a\": \"***\", \"b\": 2, \"c\": \"***\"}}")),
+                arguments("keyThenIndexUnion_marksMultipleInNestedArray",
+                        "{\"items\": [1, 2, 3, 4]} |- { @.items[0,3] : mock.func }",
+                        json("{\"items\": [\"***\", 2, 3, \"***\"]}")),
+                arguments("wildcardThenAttributeUnion_marksMultipleKeysInAll",
+                        "[{\"a\": 1, \"b\": 2, \"c\": 3}, {\"a\": 4, \"b\": 5, \"c\": 6}] |- { @[*][\"a\",\"c\"] : mock.func }",
+                        json("[{\"a\": \"***\", \"b\": 2, \"c\": \"***\"}, {\"a\": \"***\", \"b\": 5, \"c\": \"***\"}]")),
+
+                // === SlicePath (@[start:end:step]): mark array slices ===
+                arguments("slicePath_basicRange_marksSlice", "[1, 2, 3, 4, 5] |- { @[1:4] : mock.func }",
+                        json("[1, \"***\", \"***\", \"***\", 5]")),
+                arguments("slicePath_allElements_marksAll", "[1, 2, 3] |- { @[:] : mock.func }",
+                        json("[\"***\", \"***\", \"***\"]")),
+                arguments("slicePath_fromIndex_marksFromIndexToEnd", "[1, 2, 3, 4, 5] |- { @[2:] : mock.func }",
+                        json("[1, 2, \"***\", \"***\", \"***\"]")),
+                arguments("slicePath_toIndex_marksFromStartToIndex", "[1, 2, 3, 4, 5] |- { @[:3] : mock.func }",
+                        json("[\"***\", \"***\", \"***\", 4, 5]")),
+                arguments("slicePath_negativeStart_marksLastN", "[1, 2, 3, 4, 5] |- { @[-2:] : mock.func }",
+                        json("[1, 2, 3, \"***\", \"***\"]")),
+                arguments("slicePath_negativeEnd_marksExceptLastN", "[1, 2, 3, 4, 5] |- { @[:-2] : mock.func }",
+                        json("[\"***\", \"***\", \"***\", 4, 5]")),
+                arguments("slicePath_withStep_marksEveryNth", "[1, 2, 3, 4, 5, 6] |- { @[::2] : mock.func }",
+                        json("[\"***\", 2, \"***\", 4, \"***\", 6]")),
+                arguments("slicePath_fromToStep_marksRangeWithStep",
+                        "[1, 2, 3, 4, 5, 6, 7, 8] |- { @[1:7:2] : mock.func }",
+                        json("[1, \"***\", 3, \"***\", 5, \"***\", 7, 8]")),
+                arguments("slicePath_negativeStep_marksAllSameAsPositive", "[1, 2, 3, 4, 5] |- { @[::-1] : mock.func }",
+                        json("[\"***\", \"***\", \"***\", \"***\", \"***\"]")),
+                arguments("slicePath_negativeStepWithBounds_marksSelectedIndices",
+                        "[1, 2, 3, 4, 5] |- { @[4:1:-1] : mock.func }", json("[1, 2, \"***\", \"***\", \"***\"]")),
+                arguments("slicePath_negativeStepFromIndex_marksDownToStart",
+                        "[1, 2, 3, 4, 5] |- { @[3::-1] : mock.func }", json("[\"***\", \"***\", \"***\", \"***\", 5]")),
+
+                // === SlicePath blacklist semantics ===
+                arguments("slicePath_onNonArray_returnsUnchanged", "{\"a\": 1} |- { @[1:3] : mock.func }",
+                        json("{\"a\": 1}")),
+                arguments("slicePath_emptyRange_returnsUnchanged", "[1, 2, 3] |- { @[2:2] : mock.func }",
+                        json("[1, 2, 3]")),
+                arguments("slicePath_stepZero_returnsUnchanged", "[1, 2, 3] |- { @[::0] : mock.func }",
+                        json("[1, 2, 3]")),
+                arguments("slicePath_outOfBoundsStart_returnsUnchanged", "[1, 2, 3] |- { @[10:20] : mock.func }",
+                        json("[1, 2, 3]")),
+
+                // === SlicePath + nested paths ===
+                arguments("sliceThenKey_marksFieldInSlicedObjects",
+                        "[{\"x\": 1}, {\"x\": 2}, {\"x\": 3}, {\"x\": 4}] |- { @[1:3].x : mock.func }",
+                        json("[{\"x\": 1}, {\"x\": \"***\"}, {\"x\": \"***\"}, {\"x\": 4}]")),
+                arguments("keyThenSlice_marksSliceInNestedArray",
+                        "{\"data\": [1, 2, 3, 4, 5]} |- { @.data[1:4] : mock.func }",
+                        json("{\"data\": [1, \"***\", \"***\", \"***\", 5]}")),
+                arguments("sliceThenSlice_marksNestedSlice",
+                        "[[1, 2, 3], [4, 5, 6], [7, 8, 9]] |- { @[0:2][1:] : mock.func }",
+                        json("[[1, \"***\", \"***\"], [4, \"***\", \"***\"], [7, 8, 9]]")),
+                arguments("wildcardThenSlice_marksSliceInAllArrays",
+                        "[[1, 2, 3, 4], [5, 6, 7, 8]] |- { @[*][1:3] : mock.func }",
+                        json("[[1, \"***\", \"***\", 4], [5, \"***\", \"***\", 8]]")),
+                arguments("sliceThenWildcard_marksAllInSlicedArrays",
+                        "[[1, 2], [3, 4], [5, 6]] |- { @[0:2][*] : mock.func }",
+                        json("[[\"***\", \"***\"], [\"***\", \"***\"], [5, 6]]")),
+
+                // === ExpressionPath (@[(expr)]): dynamic index/key navigation ===
+                arguments("expressionPath_literalIndex_redactsSensitiveItem",
+                        "[\"public\", \"secret\", \"public\"] |- { @[(1)] : mock.func }",
+                        json("[\"public\", \"***\", \"public\"]")),
+                arguments("expressionPath_literalKey_redactsSensitiveField",
+                        "{\"username\": \"alice\", \"password\": \"secret123\"} |- { @[(\"password\")] : mock.func }",
+                        json("{\"username\": \"alice\", \"password\": \"***\"}")),
+                arguments("expressionPath_computedIndex_redactsCalculatedPosition",
+                        "[\"a\", \"b\", \"c\", \"d\"] |- { @[(1+1)] : mock.func }",
+                        json("[\"a\", \"b\", \"***\", \"d\"]")),
+                arguments("expressionPath_negativeIndex_redactsFromEnd",
+                        "[\"first\", \"middle\", \"last\"] |- { @[(-1)] : mock.func }",
+                        json("[\"first\", \"middle\", \"***\"]")),
+                arguments("expressionPath_atFromRoot_redactsConfiguredField",
+                        "{\"config\": {\"sensitiveField\": \"password\"}, \"data\": {\"password\": \"secret\", \"name\": \"test\"}} |- { @.data[(@.config.sensitiveField)] : mock.func }",
+                        json("{\"config\": {\"sensitiveField\": \"password\"}, \"data\": {\"password\": \"***\", \"name\": \"test\"}}")),
+                arguments("expressionPath_atFromRoot_redactsAtConfiguredIndex",
+                        "{\"config\": {\"sensitiveIndex\": 1}, \"items\": [\"public\", \"secret\", \"public\"]} |- { @.items[(@.config.sensitiveIndex)] : mock.func }",
+                        json("{\"config\": {\"sensitiveIndex\": 1}, \"items\": [\"public\", \"***\", \"public\"]}")),
+                arguments("expressionPath_atAfterWildcard_redactsPerUserSensitiveField",
+                        "[{\"sensitiveField\": \"ssn\", \"ssn\": \"123\", \"name\": \"alice\"}, {\"sensitiveField\": \"phone\", \"phone\": \"555\", \"name\": \"bob\"}] |- { @[*][(@.sensitiveField)] : mock.func }",
+                        json("[{\"sensitiveField\": \"ssn\", \"ssn\": \"***\", \"name\": \"alice\"}, {\"sensitiveField\": \"phone\", \"phone\": \"***\", \"name\": \"bob\"}]")),
+                arguments("expressionPath_atAfterWildcard_redactsAtUserSpecifiedIndex",
+                        "[{\"redactIndex\": 0, \"items\": [\"secret\", \"public\"]}, {\"redactIndex\": 1, \"items\": [\"public\", \"secret\"]}] |- { @[*].items[(@.redactIndex)] : mock.func }",
+                        json("[{\"redactIndex\": 0, \"items\": [\"***\", \"public\"]}, {\"redactIndex\": 1, \"items\": [\"public\", \"***\"]}]")),
+                arguments("expressionPath_hashBinding_redactsMatchingPosition",
+                        "[[\"a\", \"b\", \"c\"], [\"d\", \"e\", \"f\"], [\"g\", \"h\", \"i\"]] |- { @[*][(#)] : mock.func }",
+                        json("[[\"***\", \"b\", \"c\"], [\"d\", \"***\", \"f\"], [\"g\", \"h\", \"***\"]]")),
+                arguments("expressionPath_hashWithComputation_redactsComputedFromPosition",
+                        "[[\"a\", \"b\", \"c\"], [\"d\", \"e\", \"f\"]] |- { @[*][(# * 2)] : mock.func }",
+                        json("[[\"***\", \"b\", \"c\"], [\"d\", \"e\", \"***\"]]")),
+
+                // === ExpressionPath blacklist semantics ===
+                arguments("expressionPath_invalidExprType_returnsUnchanged", "[1, 2, 3] |- { @[(true)] : mock.func }",
+                        json("[1, 2, 3]")),
+                arguments("expressionPath_outOfBounds_returnsUnchanged", "[1, 2, 3] |- { @[(10)] : mock.func }",
+                        json("[1, 2, 3]")),
+                arguments("expressionPath_missingKey_returnsUnchanged",
+                        "{\"a\": 1} |- { @[(\"nonexistent\")] : mock.func }", json("{\"a\": 1}")),
+
+                // === ExpressionPath + nested paths ===
+                arguments("expressionPathThenKey_redactsNestedSensitiveField",
+                        "{\"sensitiveKey\": \"user2\", \"user1\": {\"data\": \"public\"}, \"user2\": {\"data\": \"secret\"}} |- { @[(@.sensitiveKey)].data : mock.func }",
+                        json("{\"sensitiveKey\": \"user2\", \"user1\": {\"data\": \"public\"}, \"user2\": {\"data\": \"***\"}}")),
+                arguments("wildcardThenExpressionPath_redactsSecondColumnInAllRows",
+                        "[[1, 2, 3], [4, 5, 6], [7, 8, 9]] |- { @[*][(1)] : mock.func }",
+                        json("[[1, \"***\", 3], [4, \"***\", 6], [7, \"***\", 9]]")),
+
+                // === ConditionPath (@[?(cond)]): filter elements by condition ===
+                arguments("conditionPath_literalTrue_redactsAllElements", "[1, 2, 3, 4] |- { @[?(true)] : mock.func }",
+                        json("[\"***\", \"***\", \"***\", \"***\"]")),
+                arguments("conditionPath_literalFalse_redactsNone", "[1, 2, 3, 4] |- { @[?(false)] : mock.func }",
+                        json("[1, 2, 3, 4]")),
+                arguments("conditionPath_objectLiteralTrue_redactsAllValues",
+                        "{\"a\": 1, \"b\": 2, \"c\": 3} |- { @[?(true)] : mock.func }",
+                        json("{\"a\": \"***\", \"b\": \"***\", \"c\": \"***\"}")),
+                arguments("conditionPath_atComparison_redactsHighValueItems",
+                        "[{\"value\": 10}, {\"value\": 100}, {\"value\": 50}, {\"value\": 200}] |- { @[?(@ .value > 50)] : mock.func }",
+                        json("[{\"value\": 10}, \"***\", {\"value\": 50}, \"***\"]")),
+                arguments("conditionPath_atEquality_redactsSensitiveRole",
+                        "[{\"role\": \"user\", \"data\": \"x\"}, {\"role\": \"admin\", \"data\": \"y\"}, {\"role\": \"user\", \"data\": \"z\"}] |- { @[?(@.role == \"admin\")] : mock.func }",
+                        json("[{\"role\": \"user\", \"data\": \"x\"}, \"***\", {\"role\": \"user\", \"data\": \"z\"}]")),
+                arguments("conditionPath_atNestedThenKey_redactsFieldInMatchingOnly",
+                        "[{\"type\": \"secret\", \"data\": {\"info\": \"hidden\"}}, {\"type\": \"public\", \"data\": {\"info\": \"visible\"}}] |- { @[?(@.type == \"secret\")].data.info : mock.func }",
+                        json("[{\"type\": \"secret\", \"data\": {\"info\": \"***\"}}, {\"type\": \"public\", \"data\": {\"info\": \"visible\"}}]")),
+                arguments("conditionPath_hashComparison_redactsEvenIndices",
+                        "[\"a\", \"b\", \"c\", \"d\", \"e\"] |- { @[?(# % 2 == 0)] : mock.func }",
+                        json("[\"***\", \"b\", \"***\", \"d\", \"***\"]")),
+                arguments("conditionPath_hashRange_redactsMiddleElements",
+                        "[1, 2, 3, 4, 5] |- { @[?(# > 0 && # < 4)] : mock.func }",
+                        json("[1, \"***\", \"***\", \"***\", 5]")),
+                arguments("conditionPath_objectHashEquality_redactsSpecificKey",
+                        "{\"first\": 1, \"second\": 2, \"third\": 3} |- { @[?(# == \"second\")] : mock.func }",
+                        json("{\"first\": 1, \"second\": \"***\", \"third\": 3}")),
+
+                // === ConditionPath blacklist semantics ===
+                arguments("conditionPath_onScalar_returnsUnchanged", "42 |- { @[?(true)] : mock.func }", Value.of(42)),
+                arguments("conditionPath_nonBooleanCondition_treatsAsFalse",
+                        "[1, 2, 3] |- { @[?(\"not a boolean\")] : mock.func }", json("[1, 2, 3]")),
+
+                // === ConditionPath + nested paths ===
+                arguments("wildcardThenConditionPath_redactsMatchingInEachArray",
+                        "[[1, 5, 2], [10, 3, 8]] |- { @[*][?(@ > 4)] : mock.func }",
+                        json("[[1, \"***\", 2], [\"***\", 3, \"***\"]]")),
+                arguments("conditionPathThenWildcard_redactsAllFieldsInMatchingObjects",
+                        "[{\"active\": true, \"a\": 1, \"b\": 2}, {\"active\": false, \"a\": 3, \"b\": 4}] |- { @[?(@.active == true)].* : mock.func }",
+                        json("[{\"active\": \"***\", \"a\": \"***\", \"b\": \"***\"}, {\"active\": false, \"a\": 3, \"b\": 4}]")),
+                arguments("conditionPathThenIndex_redactsSpecificIndexInMatchingArrays",
+                        "[[1, 2, 3], [10, 20, 30], [4, 5, 6]] |- { @[?(@[0] > 5)][1] : mock.func }",
+                        json("[[1, 2, 3], [10, \"***\", 30], [4, 5, 6]]")),
+                arguments("keyThenConditionPath_redactsMatchingInNestedArray",
+                        "{\"items\": [{\"keep\": false, \"v\": 1}, {\"keep\": true, \"v\": 2}, {\"keep\": false, \"v\": 3}]} |- { @.items[?(@.keep == true)] : mock.func }",
+                        json("{\"items\": [{\"keep\": false, \"v\": 1}, \"***\", {\"keep\": false, \"v\": 3}]}")),
+
+                // === Additional IndexPath edge cases ===
+                arguments("indexPath_outOfBoundsInPath_returnsUnchanged",
+                        "{\"arr\": [1, 2, 3]} |- { @.arr[10].field : mock.func }", json("{\"arr\": [1, 2, 3]}")),
+                arguments("indexPath_negativeOutOfBoundsInPath_returnsUnchanged",
+                        "{\"arr\": [1, 2, 3]} |- { @.arr[-10].field : mock.func }", json("{\"arr\": [1, 2, 3]}")),
+                arguments("nestedIndexPath_outOfBoundsInPath_returnsUnchanged",
+                        "[[1, 2], [3, 4]] |- { @[0][10].field : mock.func }", json("[[1, 2], [3, 4]]")),
+                arguments("wildcardThenIndexPath_outOfBoundsInSomeArrays_appliesWhereValid",
+                        "[[1, 2, 3], [4], [5, 6]] |- { @[*][1] : mock.func }",
+                        json("[[1, \"***\", 3], [4], [5, \"***\"]]")),
+                arguments("deepPath_intermediateOutOfBounds_returnsUnchanged",
+                        "{\"data\": [[1, 2]]} |- { @.data[0][10][0] : mock.func }", json("{\"data\": [[1, 2]]}")),
+
+                // === RecursiveKeyPath (@..key): find key at any depth ===
+                arguments("recursiveKeyPath_singleMatch_marksIt",
+                        "{\"a\": {\"b\": {\"target\": \"found\"}}} |- { @..target : mock.func }",
+                        json("{\"a\": {\"b\": {\"target\": \"***\"}}}")),
+                arguments("recursiveKeyPath_multipleParallelMatches_marksAll",
+                        "{\"x\": {\"target\": 1}, \"y\": {\"target\": 2}} |- { @..target : mock.func }",
+                        json("{\"x\": {\"target\": \"***\"}, \"y\": {\"target\": \"***\"}}")),
+                arguments("recursiveKeyPath_nestedMatch_outerConsumesInner",
+                        "{\"target\": {\"target\": \"inner\"}} |- { @..target : mock.func }",
+                        json("{\"target\": \"***\"}")),
+                arguments("recursiveKeyPath_inArray_findsInAllElements",
+                        "[{\"target\": 1}, {\"other\": 2}, {\"target\": 3}] |- { @..target : mock.func }",
+                        json("[{\"target\": \"***\"}, {\"other\": 2}, {\"target\": \"***\"}]")),
+                arguments("recursiveKeyPath_deepNesting_findsAtAllDepths",
+                        "{\"a\": {\"b\": {\"c\": {\"target\": \"deep\"}}}} |- { @..target : mock.func }",
+                        json("{\"a\": {\"b\": {\"c\": {\"target\": \"***\"}}}}")),
+                arguments("recursiveKeyPath_withTailPath_navigatesFurther",
+                        "{\"items\": [{\"data\": {\"value\": 1}}, {\"data\": {\"value\": 2}}]} |- { @..data.value : mock.func }",
+                        json("{\"items\": [{\"data\": {\"value\": \"***\"}}, {\"data\": {\"value\": \"***\"}}]}")),
+                arguments("recursiveKeyPath_noMatches_returnsUnchanged",
+                        "{\"a\": 1, \"b\": 2} |- { @..nonexistent : mock.func }", json("{\"a\": 1, \"b\": 2}")),
+                arguments("recursiveKeyPath_onScalar_returnsUnchanged", "42 |- { @..key : mock.func }", Value.of(42)),
+
+                // === RecursiveIndexPath (@..[n]): find index at any depth ===
+                arguments("recursiveIndexPath_singleArray_marksIndex", "[1, 2, 3] |- { @..[1] : mock.func }",
+                        json("[1, \"***\", 3]")),
+                arguments("recursiveIndexPath_multipleArrays_marksInAll",
+                        "{\"a\": [1, 2], \"b\": [3, 4]} |- { @..[0] : mock.func }",
+                        json("{\"a\": [\"***\", 2], \"b\": [\"***\", 4]}")),
+                arguments("recursiveIndexPath_nestedArrays_marksAtAllLevels",
+                        "[[1, 2], [3, 4]] |- { @..[0] : mock.func }", json("[\"***\", [\"***\", 4]]")),
+                arguments("recursiveIndexPath_negativeIndex_marksFromEnd",
+                        "{\"arr1\": [1, 2, 3], \"arr2\": [4, 5]} |- { @..[-1] : mock.func }",
+                        json("{\"arr1\": [1, 2, \"***\"], \"arr2\": [4, \"***\"]}")),
+                arguments("recursiveIndexPath_withTailPath_navigatesFurther",
+                        "{\"rows\": [{\"name\": \"a\"}, {\"name\": \"b\"}]} |- { @..[0].name : mock.func }",
+                        json("{\"rows\": [{\"name\": \"***\"}, {\"name\": \"b\"}]}")),
+                arguments("recursiveIndexPath_outOfBounds_skipped",
+                        "{\"short\": [1], \"long\": [1, 2, 3]} |- { @..[2] : mock.func }",
+                        json("{\"short\": [1], \"long\": [1, 2, \"***\"]}")),
+
+                // === RecursiveWildcardPath (@..*): descend into all nested values ===
+                arguments("recursiveWildcardPath_flatObject_marksAllValues",
+                        "{\"a\": 1, \"b\": 2} |- { @..* : mock.func }", json("{\"a\": \"***\", \"b\": \"***\"}")),
+                arguments("recursiveWildcardPath_flatArray_marksAllElements", "[1, 2, 3] |- { @..* : mock.func }",
+                        json("[\"***\", \"***\", \"***\"]")),
+                arguments("recursiveWildcardPath_nested_depthFirstProcessing",
+                        "{\"a\": {\"b\": 1}} |- { @..* : mock.func }", json("{\"a\": \"***\"}")),
+                arguments("recursiveWildcardPath_withTailPath_appliesAtAllLevels",
+                        "{\"x\": {\"val\": 1}, \"y\": {\"val\": 2}} |- { @..*.val : mock.func }",
+                        json("{\"x\": {\"val\": \"***\"}, \"y\": {\"val\": \"***\"}}")),
+                arguments("recursiveWildcardPath_onScalar_returnsUnchanged", "42 |- { @..* : mock.func }",
+                        Value.of(42)),
+                arguments("recursiveWildcardPath_emptyContainers_returnEmpty",
+                        "{\"arr\": [], \"obj\": {}} |- { @..* : mock.func }",
+                        json("{\"arr\": \"***\", \"obj\": \"***\"}")));
+    }
+
+    @MethodSource
+    @ParameterizedTest(name = "{0}")
+    void when_pathNavigation_withError_then_returnsError(String description, String expression, String errorSubstring) {
+        var result = evaluateExpression(expression);
+        assertIsErrorContaining(result, errorSubstring);
+    }
+
+    private static Stream<Arguments> when_pathNavigation_withError_then_returnsError() {
+        return Stream.of(
+                // === Error short-circuit tests for ExtendedFilter ===
+                arguments("conditionPath_errorInCondition_bubblesUpImmediately",
+                        "[1, 2, 3, 4, 5] |- { @[?(1/0 == 1)] : mock.func }", "Division by zero"),
+                arguments("conditionPath_errorOnSecondElement_shortCircuits",
+                        "[5, 0, 3] |- { @[?(10/@ > 0)] : mock.func }", "Division by zero"),
+                arguments("conditionPath_errorOnThirdElement_shortCircuits",
+                        "[1, 2, 0] |- { @[?(10 / @ > 0)] : mock.func }", "Division by zero"),
+                arguments("conditionPath_objectError_bubblesUp",
+                        "{\"a\": 1, \"b\": 0, \"c\": 3} |- { @[?(10 / @ > 0)] : mock.func }", "Division by zero"),
+                arguments("expressionPath_errorInExpression_bubblesUp",
+                        "{\"items\": [1, 2, 3]} |- { @.items[(1/0)] : mock.func }", "Division by zero"),
+                arguments("recursiveKeyPath_errorInNestedPath_shortCircuits",
+                        "{\"a\": {\"items\": [5, 2]}, \"b\": {\"items\": [3, 0]}} |- { @..items[?(10/@ > 0)] : mock.func }",
+                        "Division by zero"),
+                arguments("recursiveWildcard_errorInTailPath_shortCircuits",
+                        "{\"data\": [[5, 2], [3, 0]]} |- { @..*[?(10/@ > 0)] : mock.func }", "Division by zero"),
+                arguments("wildcardThenCondition_errorInDeepArray_shortCircuits",
+                        "[[1, 2], [3, 0], [5, 6]] |- { @[*][?(10/@ > 0)] : mock.func }", "Division by zero"));
     }
 
 }
