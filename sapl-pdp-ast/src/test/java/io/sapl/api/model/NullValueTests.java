@@ -70,6 +70,6 @@ class NullValueTests {
         var null1 = new NullValue();
         var null2 = new NullValue();
 
-        assertThat(null1.hashCode()).isEqualTo(null2.hashCode());
+        assertThat(null1).hasSameHashCodeAs(null2);
     }
 }
