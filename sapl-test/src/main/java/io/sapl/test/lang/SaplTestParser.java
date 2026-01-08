@@ -29,14 +29,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 
-/**
- * Parser for SAPL test files (.sapltest).
- * <p>
- * Parses test definitions into an ANTLR parse tree that can be executed by
- * {@link SaplTestRunner}.
- * Includes protection against trojan source attacks via bidirectional Unicode
- * character detection.
- */
 @UtilityClass
 public class SaplTestParser {
 
