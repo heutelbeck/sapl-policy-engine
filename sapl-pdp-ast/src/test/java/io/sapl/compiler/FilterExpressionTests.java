@@ -77,16 +77,25 @@ class FilterExpressionTests {
             assertEvaluatesTo(expression, expected);
         }
 
+        // @formatter:off
         static Stream<Arguments> when_basicFilterApplied_then_producesExpectedResult() {
             return Stream.of(
-                    // NOTE: These require filter.blacken function - will fail without it
-                    arguments("Blacken filter on string", "\"secret\" |- filter.blacken", Value.of("XXXXXX")),
-                    arguments("Blacken filter on longer string", "\"password\" |- filter.blacken",
-                            Value.of("XXXXXXXX")),
-                    // Simple value transforms
-                    arguments("Filter on number works", "42 |- simple.doubleValue", Value.of(84)),
-                    arguments("Filter on boolean works", "true |- simple.negate", Value.FALSE));
+                // NOTE: These require filter.blacken function - will fail without it
+                arguments("Blacken filter on string",
+                    """
+                    "secret" |- filter.blacken
+                    """,
+                    Value.of("XXXXXX")),
+                arguments("Blacken filter on longer string",
+                    """
+                    "password" |- filter.blacken
+                    """,
+                    Value.of("XXXXXXXX")),
+                // Simple value transforms
+                arguments("Filter on number works", "42 |- simple.doubleValue", Value.of(84)),
+                arguments("Filter on boolean works", "true |- simple.negate", Value.FALSE));
         }
+        // @formatter:on
 
         @Test
         @DisplayName("filter.remove on object returns undefined")
@@ -135,29 +144,43 @@ class FilterExpressionTests {
             assertEvaluatesTo(expression, expected);
         }
 
+        // @formatter:off
         static Stream<Arguments> when_extendedFilterApplied_then_producesExpectedResult() {
             return Stream.of(
-                    arguments("Extended filter with single statement", "\"test\" |- { : filter.blacken }",
-                            Value.of("XXXX")),
-                    arguments("Extended filter with multiple statements",
-                            "5 |- { : simple.doubleValue, : simple.doubleValue }", Value.of(20)),
-                    arguments("Extended filter replace value", "\"old\" |- { : filter.replace(\"new\") }",
-                            Value.of("new")),
-                    arguments("Extended filter with target path filters field",
-                            "{ \"name\": \"secret\" } |- { @.name : filter.blacken }",
-                            Value.ofObject(Map.of("name", Value.of("XXXXXX")))),
-                    arguments("Extended filter with target path removes field",
-                            "{ \"name\": \"test\", \"age\": 42 } |- { @.name : filter.remove }",
-                            Value.ofObject(Map.of("age", Value.of(42)))),
-                    arguments("Extended filter with index path transforms element",
-                            "[1, 2, 3] |- { @[1] : simple.doubleValue }",
-                            Value.ofArray(Value.of(1), Value.of(4), Value.of(3))),
-                    arguments("Extended filter with index path removes element",
-                            "[1, 2, 3] |- { @[1] : filter.remove }", Value.ofArray(Value.of(1), Value.of(3))),
-                    arguments("Extended filter with slicing transforms range",
-                            "[1, 2, 3, 4, 5] |- { @[1:3] : simple.doubleValue }",
-                            Value.ofArray(Value.of(1), Value.of(4), Value.of(6), Value.of(4), Value.of(5))));
+                arguments("Extended filter with single statement",
+                    """
+                    "test" |- { : filter.blacken }
+                    """,
+                    Value.of("XXXX")),
+                arguments("Extended filter with multiple statements",
+                    "5 |- { : simple.doubleValue, : simple.doubleValue }",
+                    Value.of(20)),
+                arguments("Extended filter replace value",
+                    """
+                    "old" |- { : filter.replace("new") }
+                    """,
+                    Value.of("new")),
+                arguments("Extended filter with target path filters field",
+                    """
+                    { "name": "secret" } |- { @.name : filter.blacken }
+                    """,
+                    Value.ofObject(Map.of("name", Value.of("XXXXXX")))),
+                arguments("Extended filter with target path removes field",
+                    """
+                    { "name": "test", "age": 42 } |- { @.name : filter.remove }
+                    """,
+                    Value.ofObject(Map.of("age", Value.of(42)))),
+                arguments("Extended filter with index path transforms element",
+                    "[1, 2, 3] |- { @[1] : simple.doubleValue }",
+                    Value.ofArray(Value.of(1), Value.of(4), Value.of(3))),
+                arguments("Extended filter with index path removes element",
+                    "[1, 2, 3] |- { @[1] : filter.remove }",
+                    Value.ofArray(Value.of(1), Value.of(3))),
+                arguments("Extended filter with slicing transforms range",
+                    "[1, 2, 3, 4, 5] |- { @[1:3] : simple.doubleValue }",
+                    Value.ofArray(Value.of(1), Value.of(4), Value.of(6), Value.of(4), Value.of(5))));
         }
+        // @formatter:on
     }
 
     @Nested
@@ -171,14 +194,21 @@ class FilterExpressionTests {
             assertEvaluatesTo(expression, expected);
         }
 
+        // @formatter:off
         static Stream<Arguments> when_wildcardFilterApplied_then_producesExpectedResult() {
             return Stream.of(
-                    arguments("Wildcard filter on object applies to all fields",
-                            "{ \"a\": 10, \"b\": 20 } |- { @.* : simple.doubleValue }",
-                            Value.ofObject(Map.of("a", Value.of(20), "b", Value.of(40)))),
-                    arguments("Wildcard filter removes all fields", "{ \"a\": 1, \"b\": 2 } |- { @.* : filter.remove }",
-                            Value.EMPTY_OBJECT));
+                arguments("Wildcard filter on object applies to all fields",
+                    """
+                    { "a": 10, "b": 20 } |- { @.* : simple.doubleValue }
+                    """,
+                    Value.ofObject(Map.of("a", Value.of(20), "b", Value.of(40)))),
+                arguments("Wildcard filter removes all fields",
+                    """
+                    { "a": 1, "b": 2 } |- { @.* : filter.remove }
+                    """,
+                    Value.EMPTY_OBJECT));
         }
+        // @formatter:on
     }
 
     @Nested
@@ -212,7 +242,9 @@ class FilterExpressionTests {
         @Test
         @DisplayName("Index union removes array elements at union indices")
         void when_indexUnionFilterApplied_then_removesCorrectElements() {
-            val expression = "[ [0,1,2,3], [1,1,2,3], [2,1,2,3], [3,1,2,3], [4,1,2,3] ] |- { @[1,3] : filter.remove }";
+            val expression = """
+                    [ [0,1,2,3], [1,1,2,3], [2,1,2,3], [3,1,2,3], [4,1,2,3] ] |- { @[1,3] : filter.remove }
+                    """;
             val expected   = Value.ofArray(Value.ofArray(Value.of(0), Value.of(1), Value.of(2), Value.of(3)),
                     Value.ofArray(Value.of(2), Value.of(1), Value.of(2), Value.of(3)),
                     Value.ofArray(Value.of(4), Value.of(1), Value.of(2), Value.of(3)));
@@ -227,7 +259,9 @@ class FilterExpressionTests {
         @Test
         @DisplayName("Attribute union removes fields in union")
         void when_attributeUnionFilterApplied_then_removesCorrectFields() {
-            val expression = "{ \"a\" : 1, \"b\" : 2, \"c\" : 3, \"d\" : 4 } |- { @[\"b\" , \"d\"] : filter.remove }";
+            val expression = """
+                    { "a" : 1, "b" : 2, "c" : 3, "d" : 4 } |- { @["b" , "d"] : filter.remove }
+                    """;
             val expected   = Value.ofObject(Map.of("a", Value.of(1), "c", Value.of(3)));
             assertEvaluatesTo(expression, expected);
         }
@@ -259,15 +293,27 @@ class FilterExpressionTests {
             assertThat(result).isEqualTo(json(expected));
         }
 
+        // @formatter:off
         static Stream<Arguments> when_pathTypeMismatch_then_returnsUnchanged() {
             return Stream.of(
-                    arguments("Extended filter key path on non-object", "42 |- { @.field : filter.blacken }", "42"),
-                    arguments("Extended filter index path out of bounds", "[1, 2, 3] |- { @[10] : simple.doubleValue }",
-                            "[1, 2, 3]"),
-                    arguments("Extended filter index path on non-array", "{} |- { @[0] : simple.doubleValue }", "{}"),
-                    arguments("Extended filter slice on non-array", "\"text\" |- { @[1:3] : filter.blacken }",
-                            "\"text\""));
+                arguments("Extended filter key path on non-object",
+                    "42 |- { @.field : filter.blacken }",
+                    "42"),
+                arguments("Extended filter index path out of bounds",
+                    "[1, 2, 3] |- { @[10] : simple.doubleValue }",
+                    "[1, 2, 3]"),
+                arguments("Extended filter index path on non-array",
+                    "{} |- { @[0] : simple.doubleValue }",
+                    "{}"),
+                arguments("Extended filter slice on non-array",
+                    """
+                    "text" |- { @[1:3] : filter.blacken }
+                    """,
+                    """
+                    "text"
+                    """));
         }
+        // @formatter:on
     }
 
     @Nested
@@ -279,7 +325,9 @@ class FilterExpressionTests {
         void when_eachFilterEncountersTypeError_then_shortCircuitsAndReturnsError() {
             // doubleValue requires number, "string" causes type error - should
             // short-circuit
-            val result = evaluate("[1, 2, \"string\", 4] |- each simple.doubleValue");
+            val result = evaluate("""
+                    [1, 2, "string", 4] |- each simple.doubleValue
+                    """);
             assertThat(result).isInstanceOf(ErrorValue.class);
             assertThat(((ErrorValue) result).message()).contains("number");
         }
@@ -288,7 +336,9 @@ class FilterExpressionTests {
         @DisplayName("Each filter returns error on first bad element not last")
         void when_eachFilterErrorOnFirstElement_then_returnsErrorImmediately() {
             // First element is a string, should error immediately without processing rest
-            val result = evaluate("[\"bad\", 2, 3, 4] |- each simple.doubleValue");
+            val result = evaluate("""
+                    ["bad", 2, 3, 4] |- each simple.doubleValue
+                    """);
             assertThat(result).isInstanceOf(ErrorValue.class);
             assertThat(((ErrorValue) result).message()).contains("number");
         }
@@ -297,9 +347,11 @@ class FilterExpressionTests {
         @DisplayName("Each filter on object works")
         void when_eachFilterOnObject_then_filterApplied() {
             // Each only works on arrays, not objects
-            val result   = evaluate("{\"a\": 1, \"b\": 2, \"c\": 3} |- each simple.doubleValue");
+            val result   = evaluate("""
+                    {"a": 1, "b": 2, "c": 3} |- each simple.doubleValue
+                    """);
             val expected = json("""
-                        {"a": 2, "b": 4, "c": 6}
+                    {"a": 2, "b": 4, "c": 6}
                     """);
             assertThat(result).isEqualTo(expected);
         }
@@ -334,49 +386,81 @@ class FilterExpressionTests {
             assertEvaluatesTo(expression, expected);
         }
 
+        // @formatter:off
         static Stream<Arguments> when_subtemplateApplied_then_producesExpectedResult() {
             return Stream.of(
-                    // Scalar parent: @ = scalar, # = 0, returns single transformed value
-                    arguments("Subtemplate on simple value wraps in object", "42 :: { \"value\": @ }",
-                            Value.ofObject(Map.of("value", Value.of(42)))),
-                    arguments("Subtemplate with multiple fields", "5 :: { \"original\": @, \"doubled\": @ * 2 }",
-                            Value.ofObject(Map.of("original", Value.of(5), "doubled", Value.of(10)))),
-                    arguments("Subtemplate with arithmetic operations", "10 :: { \"half\": @ / 2, \"double\": @ * 2 }",
-                            Value.ofObject(Map.of("half", Value.of(5), "double", Value.of(20)))),
-                    arguments("Subtemplate with nested object construction",
-                            "42 :: { \"data\": { \"value\": @, \"squared\": @ * @ } }",
-                            Value.ofObject(Map.of("data",
-                                    Value.ofObject(Map.of("value", Value.of(42), "squared", Value.of(1764)))))),
+                // Scalar parent: @ = scalar, # = 0, returns single transformed value
+                arguments("Subtemplate on simple value wraps in object",
+                    """
+                    42 :: { "value": @ }
+                    """,
+                    Value.ofObject(Map.of("value", Value.of(42)))),
+                arguments("Subtemplate with multiple fields",
+                    """
+                    5 :: { "original": @, "doubled": @ * 2 }
+                    """,
+                    Value.ofObject(Map.of("original", Value.of(5), "doubled", Value.of(10)))),
+                arguments("Subtemplate with arithmetic operations",
+                    """
+                    10 :: { "half": @ / 2, "double": @ * 2 }
+                    """,
+                    Value.ofObject(Map.of("half", Value.of(5), "double", Value.of(20)))),
+                arguments("Subtemplate with nested object construction",
+                    """
+                    42 :: { "data": { "value": @, "squared": @ * @ } }
+                    """,
+                    Value.ofObject(Map.of("data",
+                            Value.ofObject(Map.of("value", Value.of(42), "squared", Value.of(1764)))))),
 
-                    // Array parent: @ = element, # = index, returns array of transformed values
-                    arguments("Subtemplate on array maps over each element", "[1, 2, 3] :: { \"num\": @ }",
-                            Value.ofArray(Value.ofObject(Map.of("num", Value.of(1))),
-                                    Value.ofObject(Map.of("num", Value.of(2))),
-                                    Value.ofObject(Map.of("num", Value.of(3))))),
-                    arguments("Subtemplate on empty array returns empty", "[] :: { \"value\": @ }", Value.EMPTY_ARRAY),
+                // Array parent: @ = element, # = index, returns array of transformed values
+                arguments("Subtemplate on array maps over each element",
+                    """
+                    [1, 2, 3] :: { "num": @ }
+                    """,
+                    Value.ofArray(Value.ofObject(Map.of("num", Value.of(1))),
+                            Value.ofObject(Map.of("num", Value.of(2))),
+                            Value.ofObject(Map.of("num", Value.of(3))))),
+                arguments("Subtemplate on empty array returns empty",
+                    """
+                    [] :: { "value": @ }
+                    """,
+                    Value.EMPTY_ARRAY),
 
-                    // Object parent: @ = entry value, # = entry key, returns array of transformed
-                    // values
-                    arguments("Subtemplate on object extracts values", "{ \"name\": \"Alice\", \"age\": 30 } :: @",
-                            Value.ofArray(Value.of("Alice"), Value.of(30))),
-                    arguments("Subtemplate on object extracts keys", "{ \"name\": \"Alice\", \"age\": 30 } :: #",
-                            Value.ofArray(Value.of("name"), Value.of("age"))),
-                    arguments("Subtemplate on object wraps values in object",
-                            "{ \"a\": 1, \"b\": 2 } :: { \"key\": #, \"value\": @ }",
-                            Value.ofArray(Value.ofObject(Map.of("key", Value.of("a"), "value", Value.of(1))),
-                                    Value.ofObject(Map.of("key", Value.of("b"), "value", Value.of(2))))));
+                // Object parent: @ = entry value, # = entry key, returns array of transformed values
+                arguments("Subtemplate on object extracts values",
+                    """
+                    { "name": "Alice", "age": 30 } :: @
+                    """,
+                    Value.ofArray(Value.of("Alice"), Value.of(30))),
+                arguments("Subtemplate on object extracts keys",
+                    """
+                    { "name": "Alice", "age": 30 } :: #
+                    """,
+                    Value.ofArray(Value.of("name"), Value.of("age"))),
+                arguments("Subtemplate on object wraps values in object",
+                    """
+                    { "a": 1, "b": 2 } :: { "key": #, "value": @ }
+                    """,
+                    Value.ofArray(Value.ofObject(Map.of("key", Value.of("a"), "value", Value.of(1))),
+                            Value.ofObject(Map.of("key", Value.of("b"), "value", Value.of(2))))));
         }
+        // @formatter:on
 
         @Test
         @DisplayName("Subtemplate on undefined returns undefined")
         void when_subtemplateOnUndefined_then_returnsUndefined() {
-            assertEvaluatesTo("undefined :: { \"name\": \"foo\" }", Value.UNDEFINED);
+            assertEvaluatesTo("""
+                    undefined :: { "name": "foo" }
+                    """, Value.UNDEFINED);
         }
 
         @Test
         @DisplayName("Subtemplate on filtered array maps over filtered elements")
         void when_subtemplateOnFilteredArray_then_mapsOverFilteredElements() {
-            val expression = "[ { \"key1\": 1, \"key2\": 2 }, { \"key1\": 3, \"key2\": 4 }, { \"key1\": 5, \"key2\": 6 } ][?(@.key1 > 2)] :: { \"key20\": @.key2 }";
+            val expression = """
+                    [ { "key1": 1, "key2": 2 }, { "key1": 3, "key2": 4 }, { "key1": 5, "key2": 6 } ]
+                    [?(@.key1 > 2)] :: { "key20": @.key2 }
+                    """;
             val expected   = Value.ofArray(Value.ofObject(Map.of("key20", Value.of(4))),
                     Value.ofObject(Map.of("key20", Value.of(6))));
             assertEvaluatesTo(expression, expected);
@@ -396,13 +480,21 @@ class FilterExpressionTests {
             assertThat(((ErrorValue) result).message().toLowerCase()).contains(expectedErrorMsg.toLowerCase());
         }
 
+        // @formatter:off
         static Stream<Arguments> when_subtemplateWithError_then_producesError() {
             return Stream.of(
-                    arguments("Subtemplate error propagates from parent", "(10/0) :: { \"value\": @ }",
-                            "division by zero"),
-                    arguments("Subtemplate propagates division by zero error", "(10/0) :: { \"name\": \"foo\" }",
-                            "division by zero"));
+                arguments("Subtemplate error propagates from parent",
+                    """
+                    (10/0) :: { "value": @ }
+                    """,
+                    "division by zero"),
+                arguments("Subtemplate propagates division by zero error",
+                    """
+                    (10/0) :: { "name": "foo" }
+                    """,
+                    "division by zero"));
         }
+        // @formatter:on
     }
 
     private void assertEvaluatesTo(String expression, Value expected) {

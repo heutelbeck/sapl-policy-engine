@@ -46,40 +46,50 @@ class SubtemplateCompilerTests {
         assertThat(result).isEqualTo(expected);
     }
 
+    // @formatter:off
     private static Stream<Arguments> when_subtemplateWithLiterals_then_returnsExpected() {
         return Stream.of(
-                // Array with @ (relative value) - basic identity
-                arguments("array with identity template", "[1, 2, 3] :: @",
-                        Value.ofArray(Value.of(1), Value.of(2), Value.of(3))),
+            // Array with @ (relative value) - basic identity
+            arguments("array with identity template", "[1, 2, 3] :: @",
+                Value.ofArray(Value.of(1), Value.of(2), Value.of(3))),
 
-                // Array with # (relative location/index) - NEW FEATURE
-                arguments("array with index only", "[10, 20, 30] :: #",
-                        Value.ofArray(Value.of(0), Value.of(1), Value.of(2))),
+            // Array with # (relative location/index) - NEW FEATURE
+            arguments("array with index only", "[10, 20, 30] :: #",
+                Value.ofArray(Value.of(0), Value.of(1), Value.of(2))),
 
-                // Empty array
-                arguments("empty array with @ returns empty", "[] :: @", Value.EMPTY_ARRAY),
-                arguments("empty array with # returns empty", "[] :: #", Value.EMPTY_ARRAY),
+            // Empty array
+            arguments("empty array with @ returns empty", "[] :: @", Value.EMPTY_ARRAY),
+            arguments("empty array with # returns empty", "[] :: #", Value.EMPTY_ARRAY),
 
-                // Scalar (non-array) values
-                arguments("scalar with @ identity", "5 :: @", Value.of(5)),
-                arguments("scalar with # (should be 0)", "5 :: #", Value.of(0)),
-                arguments("scalar string with @", "\"hello\" :: @", Value.of("hello")),
+            // Scalar (non-array) values
+            arguments("scalar with @ identity", "5 :: @", Value.of(5)),
+            arguments("scalar with # (should be 0)", "5 :: #", Value.of(0)),
+            arguments("scalar string with @",
+                """
+                "hello" :: @
+                """,
+                Value.of("hello")),
 
-                // Constant template (ignores @)
-                arguments("constant template on array", "[1, 2, 3] :: 99",
-                        Value.ofArray(Value.of(99), Value.of(99), Value.of(99))),
-                arguments("constant template on scalar", "5 :: 99", Value.of(99)),
+            // Constant template (ignores @)
+            arguments("constant template on array", "[1, 2, 3] :: 99",
+                Value.ofArray(Value.of(99), Value.of(99), Value.of(99))),
+            arguments("constant template on scalar", "5 :: 99", Value.of(99)),
 
-                // String operations
-                arguments("string array identity", "[\"a\", \"b\"] :: @", Value.ofArray(Value.of("a"), Value.of("b"))),
+            // String operations
+            arguments("string array identity",
+                """
+                ["a", "b"] :: @
+                """,
+                Value.ofArray(Value.of("a"), Value.of("b"))),
 
-                // Null handling
-                arguments("null template result", "[1, 2] :: null", Value.ofArray(Value.NULL, Value.NULL)),
+            // Null handling
+            arguments("null template result", "[1, 2] :: null", Value.ofArray(Value.NULL, Value.NULL)),
 
-                // Nested arrays
-                arguments("nested array identity", "[[1, 2], [3, 4]] :: @", Value
-                        .ofArray(Value.ofArray(Value.of(1), Value.of(2)), Value.ofArray(Value.of(3), Value.of(4)))));
+            // Nested arrays
+            arguments("nested array identity", "[[1, 2], [3, 4]] :: @",
+                Value.ofArray(Value.ofArray(Value.of(1), Value.of(2)), Value.ofArray(Value.of(3), Value.of(4)))));
     }
+    // @formatter:on
 
     @MethodSource
     @ParameterizedTest(name = "{0}")
@@ -88,20 +98,28 @@ class SubtemplateCompilerTests {
         assertThat(result).isEqualTo(expected);
     }
 
+    // @formatter:off
     private static Stream<Arguments> when_subtemplateWithObjects_then_returnsExpected() {
         return Stream.of(
-                // Object iteration returns array of transformed values
-                arguments("object with value identity", "{\"a\": 1, \"b\": 2} :: @",
-                        Value.ofArray(Value.of(1), Value.of(2))),
+            // Object iteration returns array of transformed values
+            arguments("object with value identity",
+                """
+                {"a": 1, "b": 2} :: @
+                """,
+                Value.ofArray(Value.of(1), Value.of(2))),
 
-                // Object with # (key as string) - NEW FEATURE
-                arguments("object with key only", "{\"foo\": 1, \"bar\": 2} :: #",
-                        Value.ofArray(Value.of("foo"), Value.of("bar"))),
+            // Object with # (key as string) - NEW FEATURE
+            arguments("object with key only",
+                """
+                {"foo": 1, "bar": 2} :: #
+                """,
+                Value.ofArray(Value.of("foo"), Value.of("bar"))),
 
-                // Empty object
-                arguments("empty object returns empty array", "{} :: @", Value.EMPTY_ARRAY),
-                arguments("empty object with key", "{} :: #", Value.EMPTY_ARRAY));
+            // Empty object
+            arguments("empty object returns empty array", "{} :: @", Value.EMPTY_ARRAY),
+            arguments("empty object with key", "{} :: #", Value.EMPTY_ARRAY));
     }
+    // @formatter:on
 
     @Test
     void when_subtemplateWithUndefined_then_propagatesUndefined() {
@@ -389,16 +407,24 @@ class SubtemplateCompilerTests {
         assertThat(result).isEqualTo(expected);
     }
 
+    // @formatter:off
     private static Stream<Arguments> when_subtemplateWithObjectAccess_then_returnsExpected() {
         return Stream.of(
-                // Object field projection
-                arguments("extract field from array of objects", "[{\"x\": 1}, {\"x\": 2}, {\"x\": 3}] :: @.x",
-                        Value.ofArray(Value.of(1), Value.of(2), Value.of(3))),
+            // Object field projection
+            arguments("extract field from array of objects",
+                """
+                [{"x": 1}, {"x": 2}, {"x": 3}] :: @.x
+                """,
+                Value.ofArray(Value.of(1), Value.of(2), Value.of(3))),
 
-                // Nested access
-                arguments("nested field access", "[{\"a\": {\"b\": 1}}, {\"a\": {\"b\": 2}}] :: @.a.b",
-                        Value.ofArray(Value.of(1), Value.of(2))));
+            // Nested access
+            arguments("nested field access",
+                """
+                [{"a": {"b": 1}}, {"a": {"b": 2}}] :: @.a.b
+                """,
+                Value.ofArray(Value.of(1), Value.of(2))));
     }
+    // @formatter:on
 
     @MethodSource
     @ParameterizedTest(name = "{0}")

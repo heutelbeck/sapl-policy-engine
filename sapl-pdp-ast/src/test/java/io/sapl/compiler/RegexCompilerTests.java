@@ -47,23 +47,25 @@ class RegexCompilerTests {
         assertThat(actual).isEqualTo(expected);
     }
 
+    // @formatter:off
     private static Stream<Arguments> when_matchRegexPrecompiled_then_returnsExpected() {
         return Stream.of(
-                // Exact match
-                arguments("exact match", "hello", "hello", Value.TRUE),
-                arguments("no match", "hello", "world", Value.FALSE),
-                // Regex patterns
-                arguments("starts with", "hello world", "hello.*", Value.TRUE),
-                arguments("ends with", "hello world", ".*world", Value.TRUE),
-                arguments("contains", "hello world", ".*lo wo.*", Value.TRUE),
-                arguments("character class", "abc123", "[a-z]+[0-9]+", Value.TRUE),
-                arguments("digit pattern", "12345", "\\d+", Value.TRUE),
-                arguments("word boundary", "hello", "\\w+", Value.TRUE),
-                // Empty cases
-                arguments("empty pattern matches empty", "", "", Value.TRUE),
-                arguments("empty pattern matches all", "hello", ".*", Value.TRUE),
-                arguments("non-empty pattern vs empty input", "", "hello", Value.FALSE));
+            // Exact match
+            arguments("exact match", "hello", "hello", Value.TRUE),
+            arguments("no match", "hello", "world", Value.FALSE),
+            // Regex patterns
+            arguments("starts with", "hello world", "hello.*", Value.TRUE),
+            arguments("ends with", "hello world", ".*world", Value.TRUE),
+            arguments("contains", "hello world", ".*lo wo.*", Value.TRUE),
+            arguments("character class", "abc123", "[a-z]+[0-9]+", Value.TRUE),
+            arguments("digit pattern", "12345", "\\d+", Value.TRUE),
+            arguments("word boundary", "hello", "\\w+", Value.TRUE),
+            // Empty cases
+            arguments("empty pattern matches empty", "", "", Value.TRUE),
+            arguments("empty pattern matches all", "hello", ".*", Value.TRUE),
+            arguments("non-empty pattern vs empty input", "", "hello", Value.FALSE));
     }
+    // @formatter:on
 
     @Test
     void when_matchRegexPrecompiled_withNonTextValue_then_returnsFalse() {

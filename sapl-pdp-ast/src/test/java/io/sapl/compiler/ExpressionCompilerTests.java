@@ -88,16 +88,51 @@ class ExpressionCompilerTests {
             assertCompilesTo(expression, expected);
         }
 
+        // @formatter:off
         static Stream<Arguments> when_escapedString_then_parsesCorrectly() {
-            return Stream.of(arguments("newline", "\"line1\\nline2\"", Value.of("line1\nline2")),
-                    arguments("tab", "\"col1\\tcol2\"", Value.of("col1\tcol2")),
-                    arguments("carriage return", "\"line1\\rline2\"", Value.of("line1\rline2")),
-                    arguments("backslash", "\"path\\\\file\"", Value.of("path\\file")),
-                    arguments("double quote", "\"say \\\"hello\\\"\"", Value.of("say \"hello\"")),
-                    arguments("mixed escapes", "\"line1\\nline2\\ttab\"", Value.of("line1\nline2\ttab")),
-                    arguments("unicode escape", "\"\\u0041\"", Value.of("A")),
-                    arguments("multiple unicode", "\"\\u0048\\u0065\\u006c\\u006c\\u006f\"", Value.of("Hello")));
+            return Stream.of(
+                arguments("newline",
+                    """
+                    "line1\\nline2"
+                    """,
+                    Value.of("line1\nline2")),
+                arguments("tab",
+                    """
+                    "col1\\tcol2"
+                    """,
+                    Value.of("col1\tcol2")),
+                arguments("carriage return",
+                    """
+                    "line1\\rline2"
+                    """,
+                    Value.of("line1\rline2")),
+                arguments("backslash",
+                    """
+                    "path\\\\file"
+                    """,
+                    Value.of("path\\file")),
+                arguments("double quote",
+                    """
+                    "say \\"hello\\""
+                    """,
+                    Value.of("say \"hello\"")),
+                arguments("mixed escapes",
+                    """
+                    "line1\\nline2\\ttab"
+                    """,
+                    Value.of("line1\nline2\ttab")),
+                arguments("unicode escape",
+                    """
+                    "\\u0041"
+                    """,
+                    Value.of("A")),
+                arguments("multiple unicode",
+                    """
+                    "\\u0048\\u0065\\u006c\\u006c\\u006f"
+                    """,
+                    Value.of("Hello")));
         }
+        // @formatter:on
     }
 
     @Nested
@@ -110,36 +145,56 @@ class ExpressionCompilerTests {
             assertCompilesTo(expression, expected);
         }
 
+        // @formatter:off
         static Stream<Arguments> when_arithmeticExpression_then_evaluatesCorrectly() {
             return Stream.of(
-                    // Precedence
-                    arguments("mult before add", "2 + 3 * 4", Value.of(14)),
-                    arguments("div before sub", "20 - 12 / 4", Value.of(17)),
-                    arguments("parens override", "(2 + 3) * 4", Value.of(20)),
-                    arguments("complex precedence", "100 / (2 + 3) * 2", Value.of(40)),
-                    // Chained operations
-                    arguments("chained add", "1 + 2 + 3 + 4", Value.of(10)),
-                    arguments("chained sub", "20 - 5 - 3 - 2", Value.of(10)),
-                    arguments("chained mult", "2 * 3 * 4", Value.of(24)),
-                    arguments("chained div", "120 / 2 / 3 / 4", Value.of(5)),
-                    arguments("mixed chain", "10 - 3 + 2", Value.of(9)),
-                    // Unary in expressions
-                    arguments("unary minus in add", "5 + -3", Value.of(2)),
-                    arguments("unary plus", "+42", Value.of(42)), arguments("double negative", "--5", Value.of(5)),
-                    arguments("negate expression", "-(10 - 3)", Value.of(-7)),
-                    // Spacing variations
-                    arguments("no spaces", "1+2*3", Value.of(7)), arguments("unary no space", "1+-1", Value.of(0)),
-                    arguments("unary with space", "1 + -1", Value.of(0)),
-                    // Decimal operations
-                    arguments("decimal add", "1.5 + 2.5", Value.of(4.0)),
-                    arguments("decimal mult", "2.5 * 4", Value.of(10.0)),
-                    arguments("decimal in expr", "(1+2)*3.0", Value.of(9.0)),
-                    // String concatenation
-                    arguments("string concat", "\"hello\" + \"world\"", Value.of("helloworld")),
-                    arguments("string + number", "\"count: \" + 42", Value.of("count: 42")),
-                    arguments("string + boolean", "\"flag: \" + true", Value.of("flag: true")),
-                    arguments("string + null", "\"value: \" + null", Value.of("value: null")));
+                // Precedence
+                arguments("mult before add", "2 + 3 * 4", Value.of(14)),
+                arguments("div before sub", "20 - 12 / 4", Value.of(17)),
+                arguments("parens override", "(2 + 3) * 4", Value.of(20)),
+                arguments("complex precedence", "100 / (2 + 3) * 2", Value.of(40)),
+                // Chained operations
+                arguments("chained add", "1 + 2 + 3 + 4", Value.of(10)),
+                arguments("chained sub", "20 - 5 - 3 - 2", Value.of(10)),
+                arguments("chained mult", "2 * 3 * 4", Value.of(24)),
+                arguments("chained div", "120 / 2 / 3 / 4", Value.of(5)),
+                arguments("mixed chain", "10 - 3 + 2", Value.of(9)),
+                // Unary in expressions
+                arguments("unary minus in add", "5 + -3", Value.of(2)),
+                arguments("unary plus", "+42", Value.of(42)),
+                arguments("double negative", "--5", Value.of(5)),
+                arguments("negate expression", "-(10 - 3)", Value.of(-7)),
+                // Spacing variations
+                arguments("no spaces", "1+2*3", Value.of(7)),
+                arguments("unary no space", "1+-1", Value.of(0)),
+                arguments("unary with space", "1 + -1", Value.of(0)),
+                // Decimal operations
+                arguments("decimal add", "1.5 + 2.5", Value.of(4.0)),
+                arguments("decimal mult", "2.5 * 4", Value.of(10.0)),
+                arguments("decimal in expr", "(1+2)*3.0", Value.of(9.0)),
+                // String concatenation
+                arguments("string concat",
+                    """
+                    "hello" + "world"
+                    """,
+                    Value.of("helloworld")),
+                arguments("string + number",
+                    """
+                    "count: " + 42
+                    """,
+                    Value.of("count: 42")),
+                arguments("string + boolean",
+                    """
+                    "flag: " + true
+                    """,
+                    Value.of("flag: true")),
+                arguments("string + null",
+                    """
+                    "value: " + null
+                    """,
+                    Value.of("value: null")));
         }
+        // @formatter:on
 
         @MethodSource
         @ParameterizedTest(name = "{0}")
@@ -148,11 +203,26 @@ class ExpressionCompilerTests {
             assertThat(result).isInstanceOf(ErrorValue.class);
         }
 
+        // @formatter:off
         static Stream<Arguments> when_arithmeticError_then_returnsError() {
-            return Stream.of(arguments("div by zero", "10 / 0"), arguments("mod by zero", "10 % 0"),
-                    arguments("complex div zero", "42 / (5 - 5)"), arguments("string subtract", "\"hello\" - 5"),
-                    arguments("string multiply", "\"hello\" * 2"), arguments("negate string", "-\"text\""));
+            return Stream.of(
+                arguments("div by zero", "10 / 0"),
+                arguments("mod by zero", "10 % 0"),
+                arguments("complex div zero", "42 / (5 - 5)"),
+                arguments("string subtract",
+                    """
+                    "hello" - 5
+                    """),
+                arguments("string multiply",
+                    """
+                    "hello" * 2
+                    """),
+                arguments("negate string",
+                    """
+                    -"text"
+                    """));
         }
+        // @formatter:on
     }
 
     @Nested
@@ -214,23 +284,53 @@ class ExpressionCompilerTests {
             assertCompilesTo(expression, expected);
         }
 
+        // @formatter:off
         static Stream<Arguments> when_inOperator_then_evaluatesCorrectly() {
             return Stream.of(
-                    // Array containment
-                    arguments("in array found", "3 in [1, 2, 3, 4]", Value.TRUE),
-                    arguments("in array not found", "5 in [1, 2, 3, 4]", Value.FALSE),
-                    arguments("string in array", "\"read\" in [\"read\", \"write\"]", Value.TRUE),
-                    arguments("null in array", "null in [null, 1, 2]", Value.TRUE),
-                    arguments("boolean in array", "true in [true, false]", Value.TRUE),
-                    // Object VALUE containment (not keys!)
-                    arguments("value in object found", "\"Innsmouth\" in {name: \"Innsmouth\", pop: 1000}", Value.TRUE),
-                    arguments("number in object", "1000 in {name: \"Innsmouth\", pop: 1000}", Value.TRUE),
-                    arguments("key not in object values", "\"name\" in {name: \"value\"}", Value.FALSE),
-                    // Substring in string
-                    arguments("substring found", "\"ell\" in \"hello\"", Value.TRUE),
-                    arguments("substring not found", "\"xyz\" in \"hello\"", Value.FALSE),
-                    arguments("empty substring", "\"\" in \"hello\"", Value.TRUE));
+                // Array containment
+                arguments("in array found", "3 in [1, 2, 3, 4]", Value.TRUE),
+                arguments("in array not found", "5 in [1, 2, 3, 4]", Value.FALSE),
+                arguments("string in array",
+                    """
+                    "read" in ["read", "write"]
+                    """,
+                    Value.TRUE),
+                arguments("null in array", "null in [null, 1, 2]", Value.TRUE),
+                arguments("boolean in array", "true in [true, false]", Value.TRUE),
+                // Object VALUE containment (not keys!)
+                arguments("value in object found",
+                    """
+                    "Innsmouth" in {name: "Innsmouth", pop: 1000}
+                    """,
+                    Value.TRUE),
+                arguments("number in object",
+                    """
+                    1000 in {name: "Innsmouth", pop: 1000}
+                    """,
+                    Value.TRUE),
+                arguments("key not in object values",
+                    """
+                    "name" in {name: "value"}
+                    """,
+                    Value.FALSE),
+                // Substring in string
+                arguments("substring found",
+                    """
+                    "ell" in "hello"
+                    """,
+                    Value.TRUE),
+                arguments("substring not found",
+                    """
+                    "xyz" in "hello"
+                    """,
+                    Value.FALSE),
+                arguments("empty substring",
+                    """
+                    "" in "hello"
+                    """,
+                    Value.TRUE));
         }
+        // @formatter:on
 
         @MethodSource
         @ParameterizedTest(name = "{0}")
@@ -238,19 +338,48 @@ class ExpressionCompilerTests {
             assertCompilesTo(expression, expected);
         }
 
+        // @formatter:off
         static Stream<Arguments> when_regexMatch_then_evaluatesCorrectly() {
-            return Stream.of(arguments("simple regex", "\"hello\" =~ \"hel.*\"", Value.TRUE),
-                    arguments("anchor regex", "\"hello\" =~ \"^h.*o$\"", Value.TRUE),
-                    arguments("no match", "\"hello\" =~ \"world\"", Value.FALSE),
-                    arguments("prefix match", "\"Stormbringer\" =~ \"^Storm.*\"", Value.TRUE),
-                    arguments("email pattern", "\"test@example.com\" =~ \".*@.*\\\\.com\"", Value.TRUE),
-                    arguments("digit pattern", "\"abc123\" =~ \".*\\\\d+\"", Value.TRUE));
+            return Stream.of(
+                arguments("simple regex",
+                    """
+                    "hello" =~ "hel.*"
+                    """,
+                    Value.TRUE),
+                arguments("anchor regex",
+                    """
+                    "hello" =~ "^h.*o$"
+                    """,
+                    Value.TRUE),
+                arguments("no match",
+                    """
+                    "hello" =~ "world"
+                    """,
+                    Value.FALSE),
+                arguments("prefix match",
+                    """
+                    "Stormbringer" =~ "^Storm.*"
+                    """,
+                    Value.TRUE),
+                arguments("email pattern",
+                    """
+                    "test@example.com" =~ ".*@.*\\\\.com"
+                    """,
+                    Value.TRUE),
+                arguments("digit pattern",
+                    """
+                    "abc123" =~ ".*\\\\d+"
+                    """,
+                    Value.TRUE));
         }
+        // @formatter:on
 
         @Test
         @DisplayName("regex on non-string returns false")
         void when_regexOnNonString_then_returnsFalse() {
-            assertCompilesTo("42 =~ \"\\\\d+\"", Value.FALSE);
+            assertCompilesTo("""
+                    42 =~ "\\\\d+"
+                    """, Value.FALSE);
         }
     }
 
@@ -264,29 +393,39 @@ class ExpressionCompilerTests {
             assertCompilesTo(expression, expected);
         }
 
+        // @formatter:off
         static Stream<Arguments> when_filterByMembership_then_filtersCorrectly() {
             return Stream.of(
-                    arguments("single match",
-                            "[{\"class\": \"energy\", \"entities\": [\"OilCorp\", \"GasGiant\"]}, "
-                                    + "{\"class\": \"banking\", \"entities\": [\"GlobalBank\"]}]"
-                                    + "[?(\"OilCorp\" in @.entities)].class",
-                            Value.ofArray(Value.of("energy"))),
-                    arguments("no match",
-                            "[{\"class\": \"energy\", \"entities\": [\"OilCorp\"]}, "
-                                    + "{\"class\": \"banking\", \"entities\": [\"GlobalBank\"]}]"
-                                    + "[?(\"Unknown\" in @.entities)].class",
-                            Value.EMPTY_ARRAY),
-                    arguments("multiple matches",
-                            "[{\"class\": \"energy\", \"entities\": [\"Shared\"]}, "
-                                    + "{\"class\": \"banking\", \"entities\": [\"Shared\"]}]"
-                                    + "[?(\"Shared\" in @.entities)].class",
-                            Value.ofArray(Value.of("energy"), Value.of("banking"))));
+                arguments("single match",
+                    """
+                    [{"class": "energy", "entities": ["OilCorp", "GasGiant"]},
+                     {"class": "banking", "entities": ["GlobalBank"]}]
+                    [?("OilCorp" in @.entities)].class
+                    """,
+                    Value.ofArray(Value.of("energy"))),
+                arguments("no match",
+                    """
+                    [{"class": "energy", "entities": ["OilCorp"]},
+                     {"class": "banking", "entities": ["GlobalBank"]}]
+                    [?("Unknown" in @.entities)].class
+                    """,
+                    Value.EMPTY_ARRAY),
+                arguments("multiple matches",
+                    """
+                    [{"class": "energy", "entities": ["Shared"]},
+                     {"class": "banking", "entities": ["Shared"]}]
+                    [?("Shared" in @.entities)].class
+                    """,
+                    Value.ofArray(Value.of("energy"), Value.of("banking"))));
         }
+        // @formatter:on
 
         @Test
         @DisplayName("key step on array of objects projects key across elements")
         void when_keyStepOnArrayOfObjects_then_projects() {
-            val compiled = compileExpression("[{\"class\": \"energy\"}, {\"class\": \"banking\"}].class");
+            val compiled = compileExpression("""
+                    [{"class": "energy"}, {"class": "banking"}].class
+                    """);
             assertThat(compiled).isEqualTo(Value.ofArray(Value.of("energy"), Value.of("banking")));
         }
     }
@@ -302,51 +441,115 @@ class ExpressionCompilerTests {
             assertThat(compiled).isInstanceOf(Value.class).isEqualTo(expected);
         }
 
+        // @formatter:off
         static Stream<Arguments> when_temporalFunction_then_constantFolds() {
             return Stream.of(
-                    // Duration conversions
-                    arguments("seconds to ms", "time.durationOfSeconds(60)", Value.of(60000)),
-                    arguments("minutes to ms", "time.durationOfMinutes(5)", Value.of(300000)),
-                    arguments("hours to ms", "time.durationOfHours(2)", Value.of(7200000)),
-                    arguments("days to ms", "time.durationOfDays(1)", Value.of(86400000)),
-                    // Epoch conversions
-                    arguments("epoch second", "time.ofEpochSecond(0)", Value.of("1970-01-01T00:00:00Z")),
-                    arguments("epoch milli", "time.ofEpochMilli(0)", Value.of("1970-01-01T00:00:00Z")),
-                    // Date/time extraction
-                    arguments("hour extraction", "time.hourOf(\"2021-11-08T13:17:23Z\")", Value.of(13)),
-                    arguments("minute extraction", "time.minuteOf(\"2021-11-08T13:17:23Z\")", Value.of(17)),
-                    arguments("second extraction", "time.secondOf(\"2021-11-08T13:00:23Z\")", Value.of(23)),
-                    arguments("day of year", "time.dayOfYear(\"2021-11-08T13:00:00Z\")", Value.of(312)),
-                    arguments("week of year", "time.weekOfYear(\"2021-11-08T13:00:00Z\")", Value.of(45)),
-                    // Date arithmetic
-                    arguments("plus days", "time.plusDays(\"2021-11-08T13:00:00Z\", 5)",
-                            Value.of("2021-11-13T13:00:00Z")),
-                    arguments("minus days", "time.minusDays(\"2021-11-08T13:00:00Z\", 5)",
-                            Value.of("2021-11-03T13:00:00Z")),
-                    arguments("plus seconds", "time.plusSeconds(\"2021-11-08T13:00:00Z\", 10)",
-                            Value.of("2021-11-08T13:00:10Z")),
-                    // Date comparisons
-                    arguments("before", "time.before(\"2021-11-08T13:00:00Z\", \"2021-11-08T13:00:01Z\")", Value.TRUE),
-                    arguments("after", "time.after(\"2021-11-08T13:00:01Z\", \"2021-11-08T13:00:00Z\")", Value.TRUE),
-                    arguments("between",
-                            "time.between(\"2021-11-08T13:00:00Z\", \"2021-11-07T13:00:00Z\", \"2021-11-09T13:00:00Z\")",
-                            Value.TRUE),
-                    // Temporal bounds
-                    arguments("start of day", "time.startOfDay(\"2021-11-08T13:45:30Z\")",
-                            Value.of("2021-11-08T00:00:00Z")),
-                    arguments("start of month", "time.startOfMonth(\"2021-11-08T13:45:30Z\")",
-                            Value.of("2021-11-01T00:00:00Z")),
-                    arguments("start of year", "time.startOfYear(\"2021-11-08T13:45:30Z\")",
-                            Value.of("2021-01-01T00:00:00Z")),
-                    // Validation
-                    arguments("valid UTC", "time.validUTC(\"2021-11-08T13:00:00Z\")", Value.TRUE),
-                    arguments("invalid UTC", "time.validUTC(\"invalid\")", Value.FALSE),
-                    // Nested temporal
-                    arguments("nested temporal", "time.hourOf(time.plusDays(\"2021-11-08T13:00:00Z\", 1))",
-                            Value.of(13)),
-                    arguments("duration from hour", "time.durationOfMinutes(time.hourOf(\"2021-11-08T02:00:00Z\"))",
-                            Value.of(120000)));
+                // Duration conversions
+                arguments("seconds to ms", "time.durationOfSeconds(60)", Value.of(60000)),
+                arguments("minutes to ms", "time.durationOfMinutes(5)", Value.of(300000)),
+                arguments("hours to ms", "time.durationOfHours(2)", Value.of(7200000)),
+                arguments("days to ms", "time.durationOfDays(1)", Value.of(86400000)),
+                // Epoch conversions
+                arguments("epoch second", "time.ofEpochSecond(0)", Value.of("1970-01-01T00:00:00Z")),
+                arguments("epoch milli", "time.ofEpochMilli(0)", Value.of("1970-01-01T00:00:00Z")),
+                // Date/time extraction
+                arguments("hour extraction",
+                    """
+                    time.hourOf("2021-11-08T13:17:23Z")
+                    """,
+                    Value.of(13)),
+                arguments("minute extraction",
+                    """
+                    time.minuteOf("2021-11-08T13:17:23Z")
+                    """,
+                    Value.of(17)),
+                arguments("second extraction",
+                    """
+                    time.secondOf("2021-11-08T13:00:23Z")
+                    """,
+                    Value.of(23)),
+                arguments("day of year",
+                    """
+                    time.dayOfYear("2021-11-08T13:00:00Z")
+                    """,
+                    Value.of(312)),
+                arguments("week of year",
+                    """
+                    time.weekOfYear("2021-11-08T13:00:00Z")
+                    """,
+                    Value.of(45)),
+                // Date arithmetic
+                arguments("plus days",
+                    """
+                    time.plusDays("2021-11-08T13:00:00Z", 5)
+                    """,
+                    Value.of("2021-11-13T13:00:00Z")),
+                arguments("minus days",
+                    """
+                    time.minusDays("2021-11-08T13:00:00Z", 5)
+                    """,
+                    Value.of("2021-11-03T13:00:00Z")),
+                arguments("plus seconds",
+                    """
+                    time.plusSeconds("2021-11-08T13:00:00Z", 10)
+                    """,
+                    Value.of("2021-11-08T13:00:10Z")),
+                // Date comparisons
+                arguments("before",
+                    """
+                    time.before("2021-11-08T13:00:00Z", "2021-11-08T13:00:01Z")
+                    """,
+                    Value.TRUE),
+                arguments("after",
+                    """
+                    time.after("2021-11-08T13:00:01Z", "2021-11-08T13:00:00Z")
+                    """,
+                    Value.TRUE),
+                arguments("between",
+                    """
+                    time.between("2021-11-08T13:00:00Z", "2021-11-07T13:00:00Z", "2021-11-09T13:00:00Z")
+                    """,
+                    Value.TRUE),
+                // Temporal bounds
+                arguments("start of day",
+                    """
+                    time.startOfDay("2021-11-08T13:45:30Z")
+                    """,
+                    Value.of("2021-11-08T00:00:00Z")),
+                arguments("start of month",
+                    """
+                    time.startOfMonth("2021-11-08T13:45:30Z")
+                    """,
+                    Value.of("2021-11-01T00:00:00Z")),
+                arguments("start of year",
+                    """
+                    time.startOfYear("2021-11-08T13:45:30Z")
+                    """,
+                    Value.of("2021-01-01T00:00:00Z")),
+                // Validation
+                arguments("valid UTC",
+                    """
+                    time.validUTC("2021-11-08T13:00:00Z")
+                    """,
+                    Value.TRUE),
+                arguments("invalid UTC",
+                    """
+                    time.validUTC("invalid")
+                    """,
+                    Value.FALSE),
+                // Nested temporal
+                arguments("nested temporal",
+                    """
+                    time.hourOf(time.plusDays("2021-11-08T13:00:00Z", 1))
+                    """,
+                    Value.of(13)),
+                arguments("duration from hour",
+                    """
+                    time.durationOfMinutes(time.hourOf("2021-11-08T02:00:00Z"))
+                    """,
+                    Value.of(120000)));
         }
+        // @formatter:on
     }
 
     @Nested
@@ -360,21 +563,45 @@ class ExpressionCompilerTests {
             assertThat(compiled).isEqualTo(expected);
         }
 
+        // @formatter:off
         static Stream<Arguments> when_functionCall_then_evaluatesCorrectly() {
-            return Stream.of(arguments("string length", "standard.length(\"hello\")", Value.of(5)),
-                    arguments("array length", "standard.length([1, 2, 3])", Value.of(3)),
-                    arguments("object length", "standard.length({a: 1, b: 2})", Value.of(2)),
-                    arguments("string concat", "string.concat(\"hello\", \"world\")", Value.of("helloworld")),
-                    arguments("nested function", "standard.length(string.concat(\"ab\", \"cde\"))", Value.of(5)),
-                    arguments("function in arithmetic", "standard.length(\"test\") + 10", Value.of(14)),
-                    arguments("function in comparison", "standard.length(\"hello\") > 3", Value.TRUE));
+            return Stream.of(
+                arguments("string length",
+                    """
+                    standard.length("hello")
+                    """,
+                    Value.of(5)),
+                arguments("array length", "standard.length([1, 2, 3])", Value.of(3)),
+                arguments("object length", "standard.length({a: 1, b: 2})", Value.of(2)),
+                arguments("string concat",
+                    """
+                    string.concat("hello", "world")
+                    """,
+                    Value.of("helloworld")),
+                arguments("nested function",
+                    """
+                    standard.length(string.concat("ab", "cde"))
+                    """,
+                    Value.of(5)),
+                arguments("function in arithmetic",
+                    """
+                    standard.length("test") + 10
+                    """,
+                    Value.of(14)),
+                arguments("function in comparison",
+                    """
+                    standard.length("hello") > 3
+                    """,
+                    Value.TRUE));
         }
+        // @formatter:on
 
         @Test
         @DisplayName("function in condition step constant folds")
         void when_functionInCondition_then_constantFolds() {
-            val compiled = compileExpression("[\"a\", \"ab\", \"abc\"][?(standard.length(@) > 1)]",
-                    contextWithFunctions);
+            val compiled = compileExpression("""
+                    ["a", "ab", "abc"][?(standard.length(@) > 1)]
+                    """, contextWithFunctions);
             assertThat(compiled).isInstanceOf(Value.class).isEqualTo(Value.ofArray(Value.of("ab"), Value.of("abc")));
         }
     }
@@ -535,21 +762,39 @@ class ExpressionCompilerTests {
         assertThat(actual).isEqualTo(expected);
     }
 
+    // @formatter:off
     private static Stream<Arguments> when_compileExpression_then_returnsExpectedValue() {
         return Stream.of(
-                // Literals
-                arguments("integer", "42", Value.of(42)), arguments("decimal", "2.5", Value.of(2.5)),
-                arguments("zero", "0", Value.of(0)), arguments("string", "\"hello\"", Value.of("hello")),
-                arguments("empty string", "\"\"", Value.of("")), arguments("true", "true", Value.TRUE),
-                arguments("false", "false", Value.FALSE), arguments("null", "null", Value.NULL),
-                arguments("undefined", "undefined", Value.UNDEFINED),
-                // Parenthesized
-                arguments("parenthesized integer", "(42)", Value.of(42)),
-                arguments("parenthesized string", "(\"test\")", Value.of("test")),
-                arguments("parenthesized boolean", "(true)", Value.TRUE),
-                arguments("nested parentheses", "((42))", Value.of(42)),
-                arguments("deeply nested", "(((false)))", Value.FALSE));
+            // Literals
+            arguments("integer", "42", Value.of(42)),
+            arguments("decimal", "2.5", Value.of(2.5)),
+            arguments("zero", "0", Value.of(0)),
+            arguments("string",
+                """
+                "hello"
+                """,
+                Value.of("hello")),
+            arguments("empty string",
+                """
+                ""
+                """,
+                Value.of("")),
+            arguments("true", "true", Value.TRUE),
+            arguments("false", "false", Value.FALSE),
+            arguments("null", "null", Value.NULL),
+            arguments("undefined", "undefined", Value.UNDEFINED),
+            // Parenthesized
+            arguments("parenthesized integer", "(42)", Value.of(42)),
+            arguments("parenthesized string",
+                """
+                ("test")
+                """,
+                Value.of("test")),
+            arguments("parenthesized boolean", "(true)", Value.TRUE),
+            arguments("nested parentheses", "((42))", Value.of(42)),
+            arguments("deeply nested", "(((false)))", Value.FALSE));
     }
+    // @formatter:on
 
     @MethodSource
     @ParameterizedTest(name = "{0}")
@@ -583,25 +828,45 @@ class ExpressionCompilerTests {
             assertThat(actual).isEqualTo(expected);
     }
 
+    // @formatter:off
     private static Stream<Arguments> when_compileUnaryOperation_then_returnsResult() {
         return Stream.of(
-                // Logical NOT
-                arguments("not true", "!true", Value.FALSE), arguments("not false", "!false", Value.TRUE),
-                arguments("double negation", "!!true", Value.TRUE), arguments("not integer", "!5", ErrorValue.class),
-                arguments("not string", "!\"text\"", ErrorValue.class),
-                arguments("not null", "!null", ErrorValue.class),
-                // Unary minus
-                arguments("negate positive", "-5", Value.of(-5)), arguments("negate negative", "-(-5)", Value.of(5)),
-                arguments("negate zero", "-0", Value.of(0)), arguments("negate decimal", "-2.5", Value.of(-2.5)),
-                arguments("negate boolean", "-true", ErrorValue.class),
-                arguments("negate string", "-\"text\"", ErrorValue.class),
-                arguments("negate null", "-null", ErrorValue.class),
-                // Unary plus
-                arguments("plus positive", "+5", Value.of(5)), arguments("plus negative", "+(-5)", Value.of(-5)),
-                arguments("plus zero", "+0", Value.of(0)), arguments("plus boolean", "+true", ErrorValue.class),
-                arguments("plus string", "+\"text\"", ErrorValue.class),
-                arguments("plus null", "+null", ErrorValue.class));
+            // Logical NOT
+            arguments("not true", "!true", Value.FALSE),
+            arguments("not false", "!false", Value.TRUE),
+            arguments("double negation", "!!true", Value.TRUE),
+            arguments("not integer", "!5", ErrorValue.class),
+            arguments("not string",
+                """
+                !"text"
+                """,
+                ErrorValue.class),
+            arguments("not null", "!null", ErrorValue.class),
+            // Unary minus
+            arguments("negate positive", "-5", Value.of(-5)),
+            arguments("negate negative", "-(-5)", Value.of(5)),
+            arguments("negate zero", "-0", Value.of(0)),
+            arguments("negate decimal", "-2.5", Value.of(-2.5)),
+            arguments("negate boolean", "-true", ErrorValue.class),
+            arguments("negate string",
+                """
+                -"text"
+                """,
+                ErrorValue.class),
+            arguments("negate null", "-null", ErrorValue.class),
+            // Unary plus
+            arguments("plus positive", "+5", Value.of(5)),
+            arguments("plus negative", "+(-5)", Value.of(-5)),
+            arguments("plus zero", "+0", Value.of(0)),
+            arguments("plus boolean", "+true", ErrorValue.class),
+            arguments("plus string",
+                """
+                +"text"
+                """,
+                ErrorValue.class),
+            arguments("plus null", "+null", ErrorValue.class));
     }
+    // @formatter:on
 
     @MethodSource
     @ParameterizedTest(name = "{0}")
@@ -613,27 +878,33 @@ class ExpressionCompilerTests {
             assertThat(actual).isEqualTo(expected);
     }
 
+    // @formatter:off
     private static Stream<Arguments> when_compileArrayExpression_then_returnsResult() {
         return Stream.of(
-                // Empty and simple
-                arguments("empty array", "[]", Value.EMPTY_ARRAY),
-                arguments("single element", "[1]", Value.ofArray(Value.of(1))),
-                arguments("two elements", "[1, 2]", Value.ofArray(Value.of(1), Value.of(2))),
-                arguments("three elements", "[1, 2, 3]", Value.ofArray(Value.of(1), Value.of(2), Value.of(3))),
-                // Mixed types
-                arguments("mixed types", "[1, \"a\", true]", Value.ofArray(Value.of(1), Value.of("a"), Value.TRUE)),
-                // Nested
-                arguments("nested array", "[[1, 2], [3, 4]]",
-                        Value.ofArray(Value.ofArray(Value.of(1), Value.of(2)),
-                                Value.ofArray(Value.of(3), Value.of(4)))),
-                // Undefined handling
-                arguments("undefined dropped", "[1, undefined, 2]", Value.ofArray(Value.of(1), Value.of(2))),
-                arguments("all undefined", "[undefined, undefined]", Value.EMPTY_ARRAY),
-                // Expressions as elements
-                arguments("expression elements", "[!false, -5]", Value.ofArray(Value.TRUE, Value.of(-5))),
-                // Error propagation
-                arguments("error propagates", "[1, !5, 2]", ErrorValue.class));
+            // Empty and simple
+            arguments("empty array", "[]", Value.EMPTY_ARRAY),
+            arguments("single element", "[1]", Value.ofArray(Value.of(1))),
+            arguments("two elements", "[1, 2]", Value.ofArray(Value.of(1), Value.of(2))),
+            arguments("three elements", "[1, 2, 3]", Value.ofArray(Value.of(1), Value.of(2), Value.of(3))),
+            // Mixed types
+            arguments("mixed types",
+                """
+                [1, "a", true]
+                """,
+                Value.ofArray(Value.of(1), Value.of("a"), Value.TRUE)),
+            // Nested
+            arguments("nested array", "[[1, 2], [3, 4]]",
+                Value.ofArray(Value.ofArray(Value.of(1), Value.of(2)),
+                        Value.ofArray(Value.of(3), Value.of(4)))),
+            // Undefined handling
+            arguments("undefined dropped", "[1, undefined, 2]", Value.ofArray(Value.of(1), Value.of(2))),
+            arguments("all undefined", "[undefined, undefined]", Value.EMPTY_ARRAY),
+            // Expressions as elements
+            arguments("expression elements", "[!false, -5]", Value.ofArray(Value.TRUE, Value.of(-5))),
+            // Error propagation
+            arguments("error propagates", "[1, !5, 2]", ErrorValue.class));
     }
+    // @formatter:on
 
     @MethodSource
     @ParameterizedTest(name = "{0}")
@@ -645,27 +916,32 @@ class ExpressionCompilerTests {
             assertThat(actual).isEqualTo(expected);
     }
 
+    // @formatter:off
     private static Stream<Arguments> when_compileObjectExpression_then_returnsResult() {
         return Stream.of(
-                // Empty and simple
-                arguments("empty object", "{}", Value.EMPTY_OBJECT),
-                arguments("single property", "{a: 1}", obj("a", Value.of(1))),
-                arguments("two properties", "{a: 1, b: 2}", obj("a", Value.of(1), "b", Value.of(2))),
-                // Mixed value types
-                arguments("mixed value types", "{n: 1, s: \"x\", b: true}",
-                        obj("n", Value.of(1), "s", Value.of("x"), "b", Value.TRUE)),
-                // Nested
-                arguments("nested object", "{outer: {inner: 1}}", obj("outer", obj("inner", Value.of(1)))),
-                arguments("object with array", "{arr: [1, 2]}", obj("arr", Value.ofArray(Value.of(1), Value.of(2)))),
-                // Undefined handling
-                arguments("undefined value dropped", "{a: 1, b: undefined, c: 2}",
-                        obj("a", Value.of(1), "c", Value.of(2))),
-                arguments("all undefined values", "{a: undefined, b: undefined}", Value.EMPTY_OBJECT),
-                // Expressions as values
-                arguments("expression values", "{neg: -5, not: !false}", obj("neg", Value.of(-5), "not", Value.TRUE)),
-                // Error propagation
-                arguments("error propagates", "{a: 1, b: !5, c: 2}", ErrorValue.class));
+            // Empty and simple
+            arguments("empty object", "{}", Value.EMPTY_OBJECT),
+            arguments("single property", "{a: 1}", obj("a", Value.of(1))),
+            arguments("two properties", "{a: 1, b: 2}", obj("a", Value.of(1), "b", Value.of(2))),
+            // Mixed value types
+            arguments("mixed value types",
+                """
+                {n: 1, s: "x", b: true}
+                """,
+                obj("n", Value.of(1), "s", Value.of("x"), "b", Value.TRUE)),
+            // Nested
+            arguments("nested object", "{outer: {inner: 1}}", obj("outer", obj("inner", Value.of(1)))),
+            arguments("object with array", "{arr: [1, 2]}", obj("arr", Value.ofArray(Value.of(1), Value.of(2)))),
+            // Undefined handling
+            arguments("undefined value dropped", "{a: 1, b: undefined, c: 2}",
+                obj("a", Value.of(1), "c", Value.of(2))),
+            arguments("all undefined values", "{a: undefined, b: undefined}", Value.EMPTY_OBJECT),
+            // Expressions as values
+            arguments("expression values", "{neg: -5, not: !false}", obj("neg", Value.of(-5), "not", Value.TRUE)),
+            // Error propagation
+            arguments("error propagates", "{a: 1, b: !5, c: 2}", ErrorValue.class));
     }
+    // @formatter:on
 
     @MethodSource("constantFoldingCases")
     @ParameterizedTest(name = "constant folding: {0}")
@@ -675,34 +951,42 @@ class ExpressionCompilerTests {
                 .isEqualTo(expected);
     }
 
+    // @formatter:off
     private static Stream<Arguments> constantFoldingCases() {
         return Stream.of(
-                // Arrays
-                arguments("empty array", "[]", Value.EMPTY_ARRAY),
-                arguments("single literal", "[1]", Value.ofArray(Value.of(1))),
-                arguments("multiple literals", "[1, 2, 3]", Value.ofArray(Value.of(1), Value.of(2), Value.of(3))),
-                arguments("mixed literal types", "[1, \"a\", true, null]",
-                        Value.ofArray(Value.of(1), Value.of("a"), Value.TRUE, Value.NULL)),
-                arguments("nested literal arrays", "[[1, 2], [3, 4]]",
-                        Value.ofArray(Value.ofArray(Value.of(1), Value.of(2)),
-                                Value.ofArray(Value.of(3), Value.of(4)))),
-                arguments("array with undefined dropped", "[1, undefined, 2]", Value.ofArray(Value.of(1), Value.of(2))),
-                // Objects
-                arguments("empty object", "{}", Value.EMPTY_OBJECT),
-                arguments("single property", "{a: 1}", obj("a", Value.of(1))),
-                arguments("multiple properties", "{a: 1, b: 2, c: 3}",
-                        obj("a", Value.of(1), "b", Value.of(2), "c", Value.of(3))),
-                arguments("mixed value types", "{n: 1, s: \"x\", b: true, nil: null}",
-                        obj("n", Value.of(1), "s", Value.of("x"), "b", Value.TRUE, "nil", Value.NULL)),
-                arguments("nested literal objects", "{outer: {inner: 1}}", obj("outer", obj("inner", Value.of(1)))),
-                arguments("object with undefined dropped", "{a: 1, b: undefined, c: 2}",
-                        obj("a", Value.of(1), "c", Value.of(2))),
-                // Mixed nesting
-                arguments("object with array value", "{arr: [1, 2]}",
-                        obj("arr", Value.ofArray(Value.of(1), Value.of(2)))),
-                arguments("array with object element", "[{a: 1}, {b: 2}]",
-                        Value.ofArray(obj("a", Value.of(1)), obj("b", Value.of(2)))));
+            // Arrays
+            arguments("empty array", "[]", Value.EMPTY_ARRAY),
+            arguments("single literal", "[1]", Value.ofArray(Value.of(1))),
+            arguments("multiple literals", "[1, 2, 3]", Value.ofArray(Value.of(1), Value.of(2), Value.of(3))),
+            arguments("mixed literal types",
+                """
+                [1, "a", true, null]
+                """,
+                Value.ofArray(Value.of(1), Value.of("a"), Value.TRUE, Value.NULL)),
+            arguments("nested literal arrays", "[[1, 2], [3, 4]]",
+                Value.ofArray(Value.ofArray(Value.of(1), Value.of(2)),
+                        Value.ofArray(Value.of(3), Value.of(4)))),
+            arguments("array with undefined dropped", "[1, undefined, 2]", Value.ofArray(Value.of(1), Value.of(2))),
+            // Objects
+            arguments("empty object", "{}", Value.EMPTY_OBJECT),
+            arguments("single property", "{a: 1}", obj("a", Value.of(1))),
+            arguments("multiple properties", "{a: 1, b: 2, c: 3}",
+                obj("a", Value.of(1), "b", Value.of(2), "c", Value.of(3))),
+            arguments("mixed value types",
+                """
+                {n: 1, s: "x", b: true, nil: null}
+                """,
+                obj("n", Value.of(1), "s", Value.of("x"), "b", Value.TRUE, "nil", Value.NULL)),
+            arguments("nested literal objects", "{outer: {inner: 1}}", obj("outer", obj("inner", Value.of(1)))),
+            arguments("object with undefined dropped", "{a: 1, b: undefined, c: 2}",
+                obj("a", Value.of(1), "c", Value.of(2))),
+            // Mixed nesting
+            arguments("object with array value", "{arr: [1, 2]}",
+                obj("arr", Value.ofArray(Value.of(1), Value.of(2)))),
+            arguments("array with object element", "[{a: 1}, {b: 2}]",
+                Value.ofArray(obj("a", Value.of(1)), obj("b", Value.of(2)))));
     }
+    // @formatter:on
 
     @MethodSource("pureOperatorCases")
     @ParameterizedTest(name = "pure operator: {0}")

@@ -43,6 +43,7 @@ class ComparisonOperatorsTests {
         assertThat(actual).isEqualTo(expected);
     }
 
+    // @formatter:off
     private static Stream<Arguments> when_equals_then_returnsExpected() {
         // Complex values for composite tests
         val arr123 = Value.ofArray(Value.of(1), Value.of(2), Value.of(3));
@@ -51,31 +52,32 @@ class ComparisonOperatorsTests {
         val objA   = ObjectValue.builder().put("a", Value.of(1)).build();
 
         return Stream.of(
-                // Same values
-                arguments("same integers", Value.of(5), Value.of(5), Value.TRUE),
-                arguments("same strings", Value.of("hello"), Value.of("hello"), Value.TRUE),
-                arguments("same booleans", Value.TRUE, Value.TRUE, Value.TRUE),
-                arguments("same null", Value.NULL, Value.NULL, Value.TRUE),
-                arguments("same decimals", Value.of(2.5), Value.of(2.5), Value.TRUE),
-                arguments("same empty array", Value.EMPTY_ARRAY, Value.EMPTY_ARRAY, Value.TRUE),
-                arguments("same empty object", Value.EMPTY_OBJECT, Value.EMPTY_OBJECT, Value.TRUE),
-                // Arrays with content
-                arguments("equal arrays", arr123, Value.ofArray(Value.of(1), Value.of(2), Value.of(3)), Value.TRUE),
-                arguments("different length arrays", arr123, arr12, Value.FALSE),
-                // Objects with content
-                arguments("equal objects", objAB,
-                        ObjectValue.builder().put("a", Value.of(1)).put("b", Value.of(2)).build(), Value.TRUE),
-                arguments("different objects", objAB, objA, Value.FALSE),
-                // Different values
-                arguments("different integers", Value.of(5), Value.of(10), Value.FALSE),
-                arguments("different strings", Value.of("hello"), Value.of("world"), Value.FALSE),
-                arguments("different booleans", Value.TRUE, Value.FALSE, Value.FALSE),
-                arguments("integer vs decimal", Value.of(5), Value.of(5.0), Value.TRUE),
-                // Different types
-                arguments("integer vs string", Value.of(5), Value.of("5"), Value.FALSE),
-                arguments("boolean vs string", Value.TRUE, Value.of("true"), Value.FALSE),
-                arguments("null vs undefined", Value.NULL, Value.UNDEFINED, Value.FALSE));
+            // Same values
+            arguments("same integers", Value.of(5), Value.of(5), Value.TRUE),
+            arguments("same strings", Value.of("hello"), Value.of("hello"), Value.TRUE),
+            arguments("same booleans", Value.TRUE, Value.TRUE, Value.TRUE),
+            arguments("same null", Value.NULL, Value.NULL, Value.TRUE),
+            arguments("same decimals", Value.of(2.5), Value.of(2.5), Value.TRUE),
+            arguments("same empty array", Value.EMPTY_ARRAY, Value.EMPTY_ARRAY, Value.TRUE),
+            arguments("same empty object", Value.EMPTY_OBJECT, Value.EMPTY_OBJECT, Value.TRUE),
+            // Arrays with content
+            arguments("equal arrays", arr123, Value.ofArray(Value.of(1), Value.of(2), Value.of(3)), Value.TRUE),
+            arguments("different length arrays", arr123, arr12, Value.FALSE),
+            // Objects with content
+            arguments("equal objects", objAB,
+                ObjectValue.builder().put("a", Value.of(1)).put("b", Value.of(2)).build(), Value.TRUE),
+            arguments("different objects", objAB, objA, Value.FALSE),
+            // Different values
+            arguments("different integers", Value.of(5), Value.of(10), Value.FALSE),
+            arguments("different strings", Value.of("hello"), Value.of("world"), Value.FALSE),
+            arguments("different booleans", Value.TRUE, Value.FALSE, Value.FALSE),
+            arguments("integer vs decimal", Value.of(5), Value.of(5.0), Value.TRUE),
+            // Different types
+            arguments("integer vs string", Value.of(5), Value.of("5"), Value.FALSE),
+            arguments("boolean vs string", Value.TRUE, Value.of("true"), Value.FALSE),
+            arguments("null vs undefined", Value.NULL, Value.UNDEFINED, Value.FALSE));
     }
+    // @formatter:on
 
     // ========== Not Equals Tests ==========
 
@@ -86,20 +88,22 @@ class ComparisonOperatorsTests {
         assertThat(actual).isEqualTo(expected);
     }
 
+    // @formatter:off
     private static Stream<Arguments> when_notEquals_then_returnsExpected() {
         return Stream.of(
-                // Same values - should return FALSE
-                arguments("same integers", Value.of(5), Value.of(5), Value.FALSE),
-                arguments("same strings", Value.of("hello"), Value.of("hello"), Value.FALSE),
-                arguments("same booleans", Value.TRUE, Value.TRUE, Value.FALSE),
-                // Different values - should return TRUE
-                arguments("different integers", Value.of(5), Value.of(10), Value.TRUE),
-                arguments("different strings", Value.of("hello"), Value.of("world"), Value.TRUE),
-                arguments("different booleans", Value.TRUE, Value.FALSE, Value.TRUE),
-                // Different types - should return TRUE
-                arguments("integer vs string", Value.of(5), Value.of("5"), Value.TRUE),
-                arguments("null vs undefined", Value.NULL, Value.UNDEFINED, Value.TRUE));
+            // Same values - should return FALSE
+            arguments("same integers", Value.of(5), Value.of(5), Value.FALSE),
+            arguments("same strings", Value.of("hello"), Value.of("hello"), Value.FALSE),
+            arguments("same booleans", Value.TRUE, Value.TRUE, Value.FALSE),
+            // Different values - should return TRUE
+            arguments("different integers", Value.of(5), Value.of(10), Value.TRUE),
+            arguments("different strings", Value.of("hello"), Value.of("world"), Value.TRUE),
+            arguments("different booleans", Value.TRUE, Value.FALSE, Value.TRUE),
+            // Different types - should return TRUE
+            arguments("integer vs string", Value.of(5), Value.of("5"), Value.TRUE),
+            arguments("null vs undefined", Value.NULL, Value.UNDEFINED, Value.TRUE));
     }
+    // @formatter:on
 
     // ========== isContainedIn Tests (returns TRUE/FALSE) ==========
 
