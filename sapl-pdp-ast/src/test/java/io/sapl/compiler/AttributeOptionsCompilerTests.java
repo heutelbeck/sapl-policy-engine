@@ -17,23 +17,21 @@
  */
 package io.sapl.compiler;
 
-import io.sapl.api.model.*;
-import io.sapl.api.attributes.AttributeBroker;
-import io.sapl.api.attributes.AttributeFinderInvocation;
-import io.sapl.ast.Literal;
-import io.sapl.functions.DefaultFunctionBroker;
+import static io.sapl.compiler.AttributeOptionsCompiler.*;
+import static io.sapl.util.TestBrokers.DEFAULT_FUNCTION_BROKER;
+import static io.sapl.util.TestBrokers.ERROR_ATTRIBUTE_BROKER;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.*;
 
-import java.util.List;
 import java.util.Map;
-import lombok.val;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import reactor.core.publisher.Flux;
 
-import static io.sapl.compiler.AttributeOptionsCompiler.*;
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.*;
+import io.sapl.api.model.*;
+import io.sapl.ast.Literal;
+import lombok.val;
 
 class AttributeOptionsCompilerTests {
 
@@ -147,20 +145,6 @@ class AttributeOptionsCompilerTests {
     @Nested
     class OptionsEvaluateTests {
 
-        private static final DefaultFunctionBroker DEFAULT_FUNCTION_BROKER = new DefaultFunctionBroker();
-
-        private static final AttributeBroker DEFAULT_ATTRIBUTE_BROKER = new AttributeBroker() {
-            @Override
-            public Flux<Value> attributeStream(AttributeFinderInvocation invocation) {
-                return Flux.just(Value.error("No attribute finder registered for: " + invocation.attributeName()));
-            }
-
-            @Override
-            public List<Class<?>> getRegisteredLibraries() {
-                return List.of();
-            }
-        };
-
         // Helper to create real EvaluationContext with specific attribute finder
         // options
         private EvaluationContext evalContextWith(Value attributeFinderOptions) {
@@ -168,7 +152,7 @@ class AttributeOptionsCompilerTests {
                     ? Map.of(OPTION_FIELD_ATTRIBUTE_FINDER_OPTIONS, attributeFinderOptions)
                     : Map.of();
             return new EvaluationContext(null, null, null, null, variables, DEFAULT_FUNCTION_BROKER,
-                    DEFAULT_ATTRIBUTE_BROKER, () -> "test");
+                    ERROR_ATTRIBUTE_BROKER, () -> "test");
         }
 
         @Test

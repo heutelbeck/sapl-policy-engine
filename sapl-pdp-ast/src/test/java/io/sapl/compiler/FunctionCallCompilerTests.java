@@ -23,13 +23,10 @@ import static io.sapl.util.TestBrokers.*;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.ArrayList;
-import java.util.List;
 import java.util.Map;
 
 import org.junit.jupiter.api.Test;
 
-import io.sapl.api.attributes.AttributeBroker;
-import io.sapl.api.attributes.AttributeFinderInvocation;
 import io.sapl.api.functions.FunctionInvocation;
 import io.sapl.api.model.ErrorValue;
 import io.sapl.api.model.EvaluationContext;
@@ -38,7 +35,6 @@ import io.sapl.api.model.PureOperator;
 import io.sapl.api.model.StreamOperator;
 import io.sapl.api.model.TextValue;
 import io.sapl.api.model.Value;
-import reactor.core.publisher.Flux;
 import reactor.test.StepVerifier;
 
 class FunctionCallCompilerTests {
@@ -171,30 +167,15 @@ class FunctionCallCompilerTests {
 
     @Test
     void when_functionCall_withMultipleStreamArgs_then_combinesLatest() {
-        var attrBroker = new AttributeBroker() {
-            @Override
-            public Flux<Value> attributeStream(AttributeFinderInvocation invocation) {
-                if (invocation.attributeName().equals("a.attr"))
-                    return Flux.just(Value.of("A1"));
-                if (invocation.attributeName().equals("b.attr"))
-                    return Flux.just(Value.of("B1"));
-                return Flux.just(Value.error("Unknown"));
-            }
-
-            @Override
-            public List<Class<?>> getRegisteredLibraries() {
-                return List.of();
-            }
-        };
-
-        var captured = new ArrayList<FunctionInvocation>();
-        var fnBroker = capturingFunctionBroker(captured, args -> {
-                         var a = ((TextValue) args.get(0)).value();
-                         var b = ((TextValue) args.get(1)).value();
-                         return Value.of(a + "-" + b);
-                     });
-        var evalCtx  = evaluationContext(fnBroker, attrBroker, Map.of());
-        var result   = evaluateExpression("test.fn(<a.attr>, <b.attr>)", evalCtx);
+        var attrBroker = multiAttributeBroker(Map.of("a.attr", Value.of("A1"), "b.attr", Value.of("B1")));
+        var captured   = new ArrayList<FunctionInvocation>();
+        var fnBroker   = capturingFunctionBroker(captured, args -> {
+                           var a = ((TextValue) args.get(0)).value();
+                           var b = ((TextValue) args.get(1)).value();
+                           return Value.of(a + "-" + b);
+                       });
+        var evalCtx    = evaluationContext(fnBroker, attrBroker, Map.of());
+        var result     = evaluateExpression("test.fn(<a.attr>, <b.attr>)", evalCtx);
 
         assertThat(result).isInstanceOf(StreamOperator.class);
         var stream = ((StreamOperator) result).stream().contextWrite(c -> c.put(EvaluationContext.class, evalCtx));
@@ -205,25 +186,10 @@ class FunctionCallCompilerTests {
 
     @Test
     void when_functionCall_withMultipleStreams_andOneError_then_propagatesError() {
-        var attrBroker = new AttributeBroker() {
-            @Override
-            public Flux<Value> attributeStream(AttributeFinderInvocation invocation) {
-                if (invocation.attributeName().equals("ok.attr"))
-                    return Flux.just(Value.of("ok"));
-                if (invocation.attributeName().equals("err.attr"))
-                    return Flux.just(Value.error("bad stream"));
-                return Flux.just(Value.error("Unknown"));
-            }
-
-            @Override
-            public List<Class<?>> getRegisteredLibraries() {
-                return List.of();
-            }
-        };
-
-        var fnBroker = functionBroker("test.fn", args -> Value.of("should not reach"));
-        var evalCtx  = evaluationContext(fnBroker, attrBroker, Map.of());
-        var result   = evaluateExpression("test.fn(<ok.attr>, <err.attr>)", evalCtx);
+        var attrBroker = multiAttributeBroker(Map.of("ok.attr", Value.of("ok"), "err.attr", Value.error("bad stream")));
+        var fnBroker   = functionBroker("test.fn", args -> Value.of("should not reach"));
+        var evalCtx    = evaluationContext(fnBroker, attrBroker, Map.of());
+        var result     = evaluateExpression("test.fn(<ok.attr>, <err.attr>)", evalCtx);
 
         assertThat(result).isInstanceOf(StreamOperator.class);
         var stream = ((StreamOperator) result).stream().contextWrite(c -> c.put(EvaluationContext.class, evalCtx));
@@ -274,25 +240,10 @@ class FunctionCallCompilerTests {
 
     @Test
     void when_functionCall_withMultipleStreams_then_mergesAllContributingAttributes() {
-        var attrBroker = new AttributeBroker() {
-            @Override
-            public Flux<Value> attributeStream(AttributeFinderInvocation invocation) {
-                if (invocation.attributeName().equals("a.attr"))
-                    return Flux.just(Value.of("A"));
-                if (invocation.attributeName().equals("b.attr"))
-                    return Flux.just(Value.of("B"));
-                return Flux.just(Value.error("Unknown"));
-            }
-
-            @Override
-            public List<Class<?>> getRegisteredLibraries() {
-                return List.of();
-            }
-        };
-
-        var fnBroker = functionBroker("test.fn", args -> Value.of("result"));
-        var evalCtx  = evaluationContext(fnBroker, attrBroker, Map.of());
-        var result   = evaluateExpression("test.fn(<a.attr>, <b.attr>)", evalCtx);
+        var attrBroker = multiAttributeBroker(Map.of("a.attr", Value.of("A"), "b.attr", Value.of("B")));
+        var fnBroker   = functionBroker("test.fn", args -> Value.of("result"));
+        var evalCtx    = evaluationContext(fnBroker, attrBroker, Map.of());
+        var result     = evaluateExpression("test.fn(<a.attr>, <b.attr>)", evalCtx);
 
         assertThat(result).isInstanceOf(StreamOperator.class);
         var stream = ((StreamOperator) result).stream().contextWrite(c -> c.put(EvaluationContext.class, evalCtx));

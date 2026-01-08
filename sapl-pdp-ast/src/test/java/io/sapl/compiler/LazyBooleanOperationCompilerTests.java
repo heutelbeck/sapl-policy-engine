@@ -17,50 +17,40 @@
  */
 package io.sapl.compiler;
 
-import io.sapl.api.attributes.AttributeBroker;
-import io.sapl.api.attributes.AttributeFinderInvocation;
-import io.sapl.api.model.*;
-import io.sapl.functions.DefaultFunctionBroker;
-import org.junit.jupiter.api.Nested;
-import org.junit.jupiter.api.Test;
-import reactor.core.publisher.Flux;
-import reactor.test.StepVerifier;
+import static io.sapl.util.ExpressionTestUtil.compileExpression;
+import static io.sapl.util.ExpressionTestUtil.evaluateExpression;
+import static io.sapl.util.TestBrokers.attributeBroker;
+import static io.sapl.util.TestBrokers.compilationContext;
+import static io.sapl.util.TestBrokers.evaluationContext;
+import static io.sapl.util.TestBrokers.sequenceBroker;
+import static io.sapl.util.TestBrokers.trackingBroker;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import static io.sapl.util.ExpressionTestUtil.compileExpression;
-import static io.sapl.util.ExpressionTestUtil.evaluateExpression;
-import static org.assertj.core.api.Assertions.assertThat;
+import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
+
+import io.sapl.api.model.ErrorValue;
+import io.sapl.api.model.EvaluationContext;
+import io.sapl.api.model.StreamOperator;
+import io.sapl.api.model.Value;
+import reactor.test.StepVerifier;
 
 class LazyBooleanOperationCompilerTests {
 
     @Nested
     class AndConstantFolding {
 
-        @Test
-        void when_trueAndTrue_then_true() {
-            var result = evaluateExpression("true && true");
-            assertThat(result).isEqualTo(Value.TRUE);
-        }
-
-        @Test
-        void when_trueAndFalse_then_false() {
-            var result = evaluateExpression("true && false");
-            assertThat(result).isEqualTo(Value.FALSE);
-        }
-
-        @Test
-        void when_falseAndTrue_then_false() {
-            var result = evaluateExpression("false && true");
-            assertThat(result).isEqualTo(Value.FALSE);
-        }
-
-        @Test
-        void when_falseAndFalse_then_false() {
-            var result = evaluateExpression("false && false");
-            assertThat(result).isEqualTo(Value.FALSE);
+        @ParameterizedTest(name = "{0} && {1} = {2}")
+        @CsvSource({ "true,  true,  true", "true,  false, false", "false, true,  false", "false, false, false" })
+        void truthTable(boolean left, boolean right, boolean expected) {
+            var result = evaluateExpression(left + " && " + right);
+            assertThat(result).isEqualTo(expected ? Value.TRUE : Value.FALSE);
         }
 
         @Test
@@ -74,28 +64,11 @@ class LazyBooleanOperationCompilerTests {
     @Nested
     class OrConstantFolding {
 
-        @Test
-        void when_trueOrTrue_then_true() {
-            var result = evaluateExpression("true || true");
-            assertThat(result).isEqualTo(Value.TRUE);
-        }
-
-        @Test
-        void when_trueOrFalse_then_true() {
-            var result = evaluateExpression("true || false");
-            assertThat(result).isEqualTo(Value.TRUE);
-        }
-
-        @Test
-        void when_falseOrTrue_then_true() {
-            var result = evaluateExpression("false || true");
-            assertThat(result).isEqualTo(Value.TRUE);
-        }
-
-        @Test
-        void when_falseOrFalse_then_false() {
-            var result = evaluateExpression("false || false");
-            assertThat(result).isEqualTo(Value.FALSE);
+        @ParameterizedTest(name = "{0} || {1} = {2}")
+        @CsvSource({ "true,  true,  true", "true,  false, true", "false, true,  true", "false, false, false" })
+        void truthTable(boolean left, boolean right, boolean expected) {
+            var result = evaluateExpression(left + " || " + right);
+            assertThat(result).isEqualTo(expected ? Value.TRUE : Value.FALSE);
         }
 
         @Test
@@ -109,72 +82,25 @@ class LazyBooleanOperationCompilerTests {
     @Nested
     class TypeErrors {
 
-        @Test
-        void when_leftIsNotBoolean_then_error() {
-            var result = evaluateExpression("1 && true");
+        @ParameterizedTest(name = "{0}")
+        @CsvSource({ "1 && true,        Expected BOOLEAN", "true && 1,        Expected BOOLEAN",
+                "\"text\" || false, Expected BOOLEAN", "false || \"text\", Expected BOOLEAN" })
+        void when_nonBoolean_then_error(String expr, String expectedError) {
+            var result = evaluateExpression(expr);
             assertThat(result).isInstanceOf(ErrorValue.class);
-            assertThat(((ErrorValue) result).message()).contains("Expected BOOLEAN");
-        }
-
-        @Test
-        void when_rightIsNotBoolean_then_error() {
-            var result = evaluateExpression("true && 1");
-            assertThat(result).isInstanceOf(ErrorValue.class);
-            assertThat(((ErrorValue) result).message()).contains("Expected BOOLEAN");
-        }
-
-        @Test
-        void when_leftIsNotBooleanOr_then_error() {
-            var result = evaluateExpression("\"text\" || false");
-            assertThat(result).isInstanceOf(ErrorValue.class);
-        }
-
-        @Test
-        void when_rightIsNotBooleanOr_then_error() {
-            var result = evaluateExpression("false || \"text\"");
-            assertThat(result).isInstanceOf(ErrorValue.class);
+            assertThat(((ErrorValue) result).message()).contains(expectedError);
         }
     }
 
     @Nested
     class PureOperators {
 
-        @Test
-        void when_andWithPureOperands_thatConstantFold_then_returnsValue() {
-            // When all operands can be evaluated at compile time, result is constant-folded
-            var compiled = compileExpression("(1 == 1) && true");
-            assertThat(compiled).isEqualTo(Value.TRUE);
-        }
-
-        @Test
-        void when_orWithPureOperands_thatConstantFold_then_returnsValue() {
-            // When all operands can be evaluated at compile time, result is constant-folded
-            var compiled = compileExpression("false || (2 > 1)");
-            assertThat(compiled).isEqualTo(Value.TRUE);
-        }
-
-        @Test
-        void when_purePureAnd_then_evaluatesCorrectly() {
-            var result = evaluateExpression("(1 == 1) && (2 == 2)");
-            assertThat(result).isEqualTo(Value.TRUE);
-        }
-
-        @Test
-        void when_purePureAndShortCircuit_then_shortCircuits() {
-            var result = evaluateExpression("(1 != 1) && (2 == 2)");
-            assertThat(result).isEqualTo(Value.FALSE);
-        }
-
-        @Test
-        void when_purePureOr_then_evaluatesCorrectly() {
-            var result = evaluateExpression("(1 != 1) || (2 == 2)");
-            assertThat(result).isEqualTo(Value.TRUE);
-        }
-
-        @Test
-        void when_purePureOrShortCircuit_then_shortCircuits() {
-            var result = evaluateExpression("(1 == 1) || (2 != 2)");
-            assertThat(result).isEqualTo(Value.TRUE);
+        @ParameterizedTest(name = "{0} = {1}")
+        @CsvSource({ "(1 == 1) && true,   true", "false || (2 > 1),   true", "(1 == 1) && (2 == 2), true",
+                "(1 != 1) && (2 == 2), false", "(1 != 1) || (2 == 2), true", "(1 == 1) || (2 != 2), true" })
+        void when_pureOperands_then_evaluatesCorrectly(String expr, boolean expected) {
+            var result = evaluateExpression(expr);
+            assertThat(result).isEqualTo(expected ? Value.TRUE : Value.FALSE);
         }
     }
 
@@ -184,8 +110,8 @@ class LazyBooleanOperationCompilerTests {
         @Test
         void when_andWithStreamOnRight_andLeftFalse_then_shortCircuitsAtCompileTime() {
             var subscribed = new AtomicBoolean(false);
-            var broker     = trackingBroker(subscribed);
-            var ctx        = new CompilationContext(null, broker);
+            var broker     = trackingBroker(subscribed, Value.TRUE);
+            var ctx        = compilationContext(broker);
 
             var compiled = compileExpression("false && <test.attr>", ctx);
 
@@ -197,8 +123,8 @@ class LazyBooleanOperationCompilerTests {
         @Test
         void when_orWithStreamOnRight_andLeftTrue_then_shortCircuitsAtCompileTime() {
             var subscribed = new AtomicBoolean(false);
-            var broker     = trackingBroker(subscribed);
-            var ctx        = new CompilationContext(null, broker);
+            var broker     = trackingBroker(subscribed, Value.TRUE);
+            var ctx        = compilationContext(broker);
 
             var compiled = compileExpression("true || <test.attr>", ctx);
 
@@ -209,13 +135,13 @@ class LazyBooleanOperationCompilerTests {
 
         @Test
         void when_andWithStreamOnRight_andLeftTrue_then_returnsStream() {
-            var broker   = simpleBroker(Value.TRUE);
-            var ctx      = new CompilationContext(null, broker);
+            var broker   = attributeBroker("test.attr", Value.TRUE);
+            var ctx      = compilationContext(broker);
             var compiled = compileExpression("true && <test.attr>", ctx);
 
             assertThat(compiled).isInstanceOf(StreamOperator.class);
 
-            var evalCtx = evalContext(broker);
+            var evalCtx = evaluationContext(broker);
             var stream  = ((StreamOperator) compiled).stream();
             StepVerifier.create(stream.contextWrite(c -> c.put(EvaluationContext.class, evalCtx)))
                     .assertNext(tv -> assertThat(tv.value()).isEqualTo(Value.TRUE)).verifyComplete();
@@ -223,13 +149,13 @@ class LazyBooleanOperationCompilerTests {
 
         @Test
         void when_orWithStreamOnRight_andLeftFalse_then_returnsStream() {
-            var broker   = simpleBroker(Value.TRUE);
-            var ctx      = new CompilationContext(null, broker);
+            var broker   = attributeBroker("test.attr", Value.TRUE);
+            var ctx      = compilationContext(broker);
             var compiled = compileExpression("false || <test.attr>", ctx);
 
             assertThat(compiled).isInstanceOf(StreamOperator.class);
 
-            var evalCtx = evalContext(broker);
+            var evalCtx = evaluationContext(broker);
             var stream  = ((StreamOperator) compiled).stream();
             StepVerifier.create(stream.contextWrite(c -> c.put(EvaluationContext.class, evalCtx)))
                     .assertNext(tv -> assertThat(tv.value()).isEqualTo(Value.TRUE)).verifyComplete();
@@ -237,14 +163,15 @@ class LazyBooleanOperationCompilerTests {
 
         @Test
         void when_streamAndStream_leftEmitsFalse_then_shortCircuitsRight() {
-            var broker = emittingBroker();
-            var ctx    = new CompilationContext(null, broker);
+            var broker = sequenceBroker(Map.of("test.left", List.of(Value.FALSE, Value.TRUE, Value.FALSE), "test.right",
+                    List.of(Value.TRUE)));
+            var ctx    = compilationContext(broker);
 
             var compiled = compileExpression("<test.left> && <test.right>", ctx);
 
             assertThat(compiled).isInstanceOf(StreamOperator.class);
 
-            var evalCtx = evalContext(broker);
+            var evalCtx = evaluationContext(broker);
             var stream  = ((StreamOperator) compiled).stream();
 
             // left emits: false, true, false
@@ -256,59 +183,6 @@ class LazyBooleanOperationCompilerTests {
                     .assertNext(tv -> assertThat(tv.value()).isEqualTo(Value.FALSE)) // false short-circuits
                     .verifyComplete();
         }
-    }
-
-    private static AttributeBroker trackingBroker(AtomicBoolean subscribed) {
-        return new AttributeBroker() {
-            @Override
-            public Flux<Value> attributeStream(AttributeFinderInvocation invocation) {
-                subscribed.set(true);
-                return Flux.just(Value.TRUE);
-            }
-
-            @Override
-            public List<Class<?>> getRegisteredLibraries() {
-                return List.of();
-            }
-        };
-    }
-
-    private static AttributeBroker simpleBroker(Value value) {
-        return new AttributeBroker() {
-            @Override
-            public Flux<Value> attributeStream(AttributeFinderInvocation invocation) {
-                return Flux.just(value);
-            }
-
-            @Override
-            public List<Class<?>> getRegisteredLibraries() {
-                return List.of();
-            }
-        };
-    }
-
-    private static AttributeBroker emittingBroker() {
-        return new AttributeBroker() {
-            @Override
-            public Flux<Value> attributeStream(AttributeFinderInvocation invocation) {
-                if (invocation.attributeName().contains("left")) {
-                    return Flux.just(Value.FALSE, Value.TRUE, Value.FALSE);
-                }
-                return Flux.just(Value.TRUE);
-            }
-
-            @Override
-            public List<Class<?>> getRegisteredLibraries() {
-                return List.of();
-            }
-        };
-    }
-
-    private static final DefaultFunctionBroker DEFAULT_FUNCTION_BROKER = new DefaultFunctionBroker();
-
-    private static EvaluationContext evalContext(AttributeBroker broker) {
-        return new EvaluationContext("pdp", "config", "sub", null, Map.of(), DEFAULT_FUNCTION_BROKER, broker,
-                () -> "now");
     }
 
 }

@@ -18,10 +18,10 @@
 package io.sapl.compiler;
 
 import static io.sapl.util.ExpressionTestUtil.compileExpression;
+import static io.sapl.util.TestBrokers.attributeBroker;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import java.util.List;
 import java.util.stream.Stream;
 
 import org.junit.jupiter.api.BeforeAll;
@@ -33,7 +33,6 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
 import io.sapl.api.attributes.AttributeBroker;
-import io.sapl.api.attributes.AttributeFinderInvocation;
 import io.sapl.api.model.CompiledExpression;
 import io.sapl.api.model.ErrorValue;
 import io.sapl.api.model.PureOperator;
@@ -93,21 +92,13 @@ class FilterNatureInferenceTests {
     /**
      * Mock attribute broker that returns streams for test.* attributes.
      */
-    private static final AttributeBroker MOCK_ATTRIBUTE_BROKER = new AttributeBroker() {
-        @Override
-        public Flux<Value> attributeStream(AttributeFinderInvocation invocation) {
-            // Return a simple flux for any test.* attribute
-            if (invocation.attributeName().startsWith("test.")) {
-                return Flux.just(Value.of(42)); // Returns a number for testing
-            }
-            return Flux.just(Value.error("Unknown attribute: " + invocation.attributeName()));
+    private static final AttributeBroker MOCK_ATTRIBUTE_BROKER = attributeBroker(invocation -> {
+        // Return a simple flux for any test.* attribute
+        if (invocation.attributeName().startsWith("test.")) {
+            return Flux.just(Value.of(42)); // Returns a number for testing
         }
-
-        @Override
-        public List<Class<?>> getRegisteredLibraries() {
-            return List.of();
-        }
-    };
+        return Flux.just(Value.error("Unknown attribute: " + invocation.attributeName()));
+    });
 
     @BeforeAll
     static void setup() {

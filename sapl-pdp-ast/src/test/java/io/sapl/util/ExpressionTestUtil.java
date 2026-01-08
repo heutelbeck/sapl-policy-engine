@@ -94,6 +94,19 @@ public class ExpressionTestUtil {
     }
 
     /**
+     * Compiles a SAPL expression string with a custom attribute broker.
+     * Uses default function broker.
+     *
+     * @param source the expression source code
+     * @param attrBroker the attribute broker
+     * @return the compiled expression
+     */
+    public static CompiledExpression compileExpression(String source, AttributeBroker attrBroker) {
+        var ctx = new CompilationContext(DEFAULT_FUNCTION_BROKER, attrBroker);
+        return compileExpression(source, ctx);
+    }
+
+    /**
      * Compiles and evaluates a SAPL expression string with an empty context.
      * For literals, returns the Value directly.
      * For pure expressions, evaluates with an empty EvaluationContext.

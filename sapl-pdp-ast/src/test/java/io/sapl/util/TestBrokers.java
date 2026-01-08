@@ -247,7 +247,114 @@ public class TestBrokers {
         };
     }
 
+    /**
+     * Creates an attribute broker that returns an error for a specific attribute.
+     *
+     * @param expectedName the attribute name to respond to
+     * @param errorMessage the error message to return
+     * @return an attribute broker that returns an error
+     */
+    public static AttributeBroker errorAttributeBroker(String expectedName, String errorMessage) {
+        return new AttributeBroker() {
+            @Override
+            public Flux<Value> attributeStream(AttributeFinderInvocation invocation) {
+                if (invocation.attributeName().equals(expectedName)) {
+                    return Flux.just(Value.error(errorMessage));
+                }
+                return Flux.just(Value.error("Unknown attribute: " + invocation.attributeName()));
+            }
+
+            @Override
+            public List<Class<?>> getRegisteredLibraries() {
+                return List.of();
+            }
+        };
+    }
+
+    /**
+     * Creates an attribute broker that emits multiple values in sequence for
+     * multiple attributes.
+     *
+     * @param attributeSequences map of attribute names to value sequences
+     * @return an attribute broker
+     */
+    public static AttributeBroker sequenceBroker(Map<String, List<Value>> attributeSequences) {
+        return new AttributeBroker() {
+            @Override
+            public Flux<Value> attributeStream(AttributeFinderInvocation invocation) {
+                var values = attributeSequences.get(invocation.attributeName());
+                if (values != null)
+                    return Flux.fromIterable(values);
+                return Flux.just(Value.error("Unknown attribute: " + invocation.attributeName()));
+            }
+
+            @Override
+            public List<Class<?>> getRegisteredLibraries() {
+                return List.of();
+            }
+        };
+    }
+
+    /**
+     * Creates an attribute broker that tracks whether it was subscribed to.
+     * Useful for testing short-circuit behavior.
+     *
+     * @param subscribed AtomicBoolean that will be set to true when subscribed
+     * @param returnValue the value to return when subscribed
+     * @return an attribute broker
+     */
+    public static AttributeBroker trackingBroker(java.util.concurrent.atomic.AtomicBoolean subscribed,
+            Value returnValue) {
+        return new AttributeBroker() {
+            @Override
+            public Flux<Value> attributeStream(AttributeFinderInvocation invocation) {
+                subscribed.set(true);
+                return Flux.just(returnValue);
+            }
+
+            @Override
+            public List<Class<?>> getRegisteredLibraries() {
+                return List.of();
+            }
+        };
+    }
+
+    /**
+     * Creates an attribute broker that returns a single value for multiple
+     * attribute names. Each attribute returns just its mapped value (single
+     * emission).
+     *
+     * @param attributeValues map of attribute names to single values
+     * @return an attribute broker
+     */
+    public static AttributeBroker multiAttributeBroker(Map<String, Value> attributeValues) {
+        return new AttributeBroker() {
+            @Override
+            public Flux<Value> attributeStream(AttributeFinderInvocation invocation) {
+                var value = attributeValues.get(invocation.attributeName());
+                if (value != null)
+                    return Flux.just(value);
+                return Flux.just(Value.error("Unknown attribute: " + invocation.attributeName()));
+            }
+
+            @Override
+            public List<Class<?>> getRegisteredLibraries() {
+                return List.of();
+            }
+        };
+    }
+
     // ========== Context Factories ==========
+
+    /**
+     * Creates a compilation context with the given attribute broker.
+     *
+     * @param attrBroker the attribute broker
+     * @return a compilation context
+     */
+    public static CompilationContext compilationContext(AttributeBroker attrBroker) {
+        return new CompilationContext(DEFAULT_FUNCTION_BROKER, attrBroker);
+    }
 
     /**
      * Creates a compilation context with the given function broker.
@@ -328,6 +435,29 @@ public class TestBrokers {
      */
     public static EvaluationContext evaluationContext(FunctionBroker fnBroker, AttributeBroker attrBroker) {
         return evaluationContext(fnBroker, attrBroker, Map.of());
+    }
+
+    /**
+     * Creates an evaluation context with attribute broker and variables.
+     *
+     * @param attrBroker the attribute broker
+     * @param variables the variables to include
+     * @return an evaluation context
+     */
+    public static EvaluationContext evaluationContext(AttributeBroker attrBroker, Map<String, Value> variables) {
+        return new EvaluationContext("pdp", "config", "sub", null, variables, DEFAULT_FUNCTION_BROKER, attrBroker,
+                () -> "test-timestamp");
+    }
+
+    /**
+     * Creates an evaluation context with only variables (using default brokers).
+     *
+     * @param variables the variables to include
+     * @return an evaluation context
+     */
+    public static EvaluationContext evaluationContext(Map<String, Value> variables) {
+        return new EvaluationContext("pdp", "config", "sub", null, variables, DEFAULT_FUNCTION_BROKER,
+                ERROR_ATTRIBUTE_BROKER, () -> "test-timestamp");
     }
 
 }
