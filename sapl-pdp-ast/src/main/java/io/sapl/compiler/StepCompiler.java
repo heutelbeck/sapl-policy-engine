@@ -589,8 +589,7 @@ public class StepCompiler {
             for (int i = 0; i < arr.size(); i++) {
                 var element = arr.get(i);
                 var elemCtx = ctx != null ? ctx.withRelativeValue(element, Value.of(i)) : null;
-                var result  = constantCond != null ? constantCond
-                        : (condOp != null ? condOp.evaluate(elemCtx) : Value.FALSE);
+                var result  = evaluateCondition(constantCond, condOp, elemCtx);
                 if (result instanceof BooleanValue(boolean val)) {
                     if (val)
                         builder.add(element);
@@ -607,8 +606,7 @@ public class StepCompiler {
             for (var entry : obj.entrySet()) {
                 var element = entry.getValue();
                 var elemCtx = ctx != null ? ctx.withRelativeValue(element, Value.of(entry.getKey())) : null;
-                var result  = constantCond != null ? constantCond
-                        : (condOp != null ? condOp.evaluate(elemCtx) : Value.FALSE);
+                var result  = evaluateCondition(constantCond, condOp, elemCtx);
                 if (result instanceof BooleanValue(boolean val)) {
                     if (val)
                         builder.add(element);
@@ -622,6 +620,16 @@ public class StepCompiler {
         }
         default              -> Value.errorAt(loc, ERROR_CONDITION_ON_INVALID, base.getClass().getSimpleName());
         };
+    }
+
+    private static Value evaluateCondition(Value constantCond, PureOperator condOp, EvaluationContext elemCtx) {
+        if (constantCond != null) {
+            return constantCond;
+        }
+        if (condOp != null) {
+            return condOp.evaluate(elemCtx);
+        }
+        return Value.FALSE;
     }
 
     record ConditionStepConstBasePure(Value base, PureOperator condition, SourceLocation location)

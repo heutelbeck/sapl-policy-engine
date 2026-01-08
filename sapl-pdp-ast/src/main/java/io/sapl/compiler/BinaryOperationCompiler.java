@@ -48,7 +48,8 @@ public class BinaryOperationCompiler {
             Map.entry(LT, ArithmeticOperators::lessThan), Map.entry(LE, ArithmeticOperators::lessThanOrEqual),
             Map.entry(GT, ArithmeticOperators::greaterThan), Map.entry(GE, ArithmeticOperators::greaterThanOrEqual),
             // Equality
-            Map.entry(EQ, ComparisonOperators::equals), Map.entry(NE, ComparisonOperators::notEquals),
+            Map.entry(EQ, (a, b, location) -> ComparisonOperators.equals(a, b)),
+            Map.entry(NE, (a, b, location) -> ComparisonOperators.notEquals(a, b)),
             // Membership
             Map.entry(IN, ComparisonOperators::isContainedIn),
             // XOR (the only non-short-circuit boolean operator)

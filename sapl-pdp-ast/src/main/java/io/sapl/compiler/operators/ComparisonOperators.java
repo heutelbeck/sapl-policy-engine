@@ -35,14 +35,14 @@ public class ComparisonOperators {
     /**
      * Tests two values for equality using Value.equals() semantics.
      */
-    public static Value equals(Value a, Value b, SourceLocation location) {
+    public static Value equals(Value a, Value b) {
         return a.equals(b) ? Value.TRUE : Value.FALSE;
     }
 
     /**
      * Tests two values for inequality.
      */
-    public static Value notEquals(Value a, Value b, SourceLocation location) {
+    public static Value notEquals(Value a, Value b) {
         return !a.equals(b) ? Value.TRUE : Value.FALSE;
     }
 
@@ -58,13 +58,13 @@ public class ComparisonOperators {
      */
     public static Value isContainedIn(Value needle, Value haystack, SourceLocation location) {
         return switch (haystack) {
-        case ArrayValue array                                                   ->
+        case ArrayValue array                                                      ->
             array.contains(needle) ? Value.TRUE : Value.FALSE;
-        case ObjectValue object                                                 ->
+        case ObjectValue object                                                    ->
             object.containsValue(needle) ? Value.TRUE : Value.FALSE;
-        case TextValue textHaystack when needle instanceof TextValue textNeedle ->
-            textHaystack.value().contains(textNeedle.value()) ? Value.TRUE : Value.FALSE;
-        default                                                                 ->
+        case TextValue textHaystack when needle instanceof TextValue(String value) ->
+            textHaystack.value().contains(value) ? Value.TRUE : Value.FALSE;
+        default                                                                    ->
             Value.errorAt(location, ERROR_IN_TYPE_MISMATCH, needle, haystack);
         };
     }

@@ -189,16 +189,18 @@ class ArrayValueTests {
             var iter  = array.listIterator();
             iter.next();
 
-            assertThatThrownBy(() -> iter.set(Value.of(99))).isInstanceOf(UnsupportedOperationException.class);
+            var newValue = Value.of(99);
+            assertThatThrownBy(() -> iter.set(newValue)).isInstanceOf(UnsupportedOperationException.class);
         }
 
         @Test
         @DisplayName("listIterator().add() throws UnsupportedOperationException")
         void when_listIteratorAdd_then_throwsUnsupportedOperationException() {
-            var array = ArrayValue.builder().add(Value.of(1)).add(Value.of(2)).build();
-            var iter  = array.listIterator();
+            var array    = ArrayValue.builder().add(Value.of(1)).add(Value.of(2)).build();
+            var iter     = array.listIterator();
+            var newValue = Value.of(99);
 
-            assertThatThrownBy(() -> iter.add(Value.of(99))).isInstanceOf(UnsupportedOperationException.class);
+            assertThatThrownBy(() -> iter.add(newValue)).isInstanceOf(UnsupportedOperationException.class);
         }
     }
 
@@ -262,7 +264,7 @@ class ArrayValueTests {
         @Test
         @DisplayName("toString() for empty array shows []")
         void when_toStringOnEmpty_then_showsBrackets() {
-            assertThat(Value.EMPTY_ARRAY.toString()).isEqualTo("[]");
+            assertThat(Value.EMPTY_ARRAY).hasToString("[]");
         }
 
         @Test

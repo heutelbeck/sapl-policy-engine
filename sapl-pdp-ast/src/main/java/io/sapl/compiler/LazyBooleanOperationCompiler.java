@@ -97,7 +97,8 @@ public class LazyBooleanOperationCompiler {
 
     private CompiledExpression compileValueValue(Value v1, Value v2, boolean isAnd, SourceLocation location) {
         if (v1 instanceof BooleanValue(var b1) && v2 instanceof BooleanValue(var b2)) {
-            return (isAnd ? (b1 && b2) : (b1 || b2)) ? Value.TRUE : Value.FALSE;
+            var result = isAnd ? (b1 && b2) : (b1 || b2);
+            return result ? Value.TRUE : Value.FALSE;
         }
         if (v1 instanceof ErrorValue) {
             return v1;

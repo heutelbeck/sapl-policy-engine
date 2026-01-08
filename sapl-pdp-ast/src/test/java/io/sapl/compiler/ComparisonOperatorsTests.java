@@ -36,7 +36,7 @@ class ComparisonOperatorsTests {
     @MethodSource
     @ParameterizedTest(name = "{0}")
     void when_equals_then_returnsExpected(String description, Value a, Value b, Value expected) {
-        val actual = ComparisonOperators.equals(a, b, null);
+        val actual = ComparisonOperators.equals(a, b);
         assertThat(actual).isEqualTo(expected);
     }
 
@@ -79,7 +79,7 @@ class ComparisonOperatorsTests {
     @MethodSource
     @ParameterizedTest(name = "{0}")
     void when_notEquals_then_returnsExpected(String description, Value a, Value b, Value expected) {
-        val actual = ComparisonOperators.notEquals(a, b, null);
+        val actual = ComparisonOperators.notEquals(a, b);
         assertThat(actual).isEqualTo(expected);
     }
 

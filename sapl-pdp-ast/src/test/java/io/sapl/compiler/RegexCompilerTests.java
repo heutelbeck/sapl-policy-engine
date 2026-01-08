@@ -42,7 +42,7 @@ class RegexCompilerTests {
     void when_matchRegexPrecompiled_then_returnsExpected(String description, String input, String pattern,
             Value expected) {
         val matcher = java.util.regex.Pattern.compile(pattern).asMatchPredicate();
-        val actual  = RegexCompiler.matchRegex(Value.of(input), matcher, null);
+        val actual  = RegexCompiler.matchRegex(Value.of(input), matcher);
         assertThat(actual).isEqualTo(expected);
     }
 
@@ -70,11 +70,11 @@ class RegexCompilerTests {
     void when_matchRegexPrecompiled_withNonTextValue_then_returnsFalse() {
         val matcher = java.util.regex.Pattern.compile(".*").asMatchPredicate();
 
-        assertThat(RegexCompiler.matchRegex(Value.of(5), matcher, null)).isEqualTo(Value.FALSE);
-        assertThat(RegexCompiler.matchRegex(Value.TRUE, matcher, null)).isEqualTo(Value.FALSE);
-        assertThat(RegexCompiler.matchRegex(Value.NULL, matcher, null)).isEqualTo(Value.FALSE);
-        assertThat(RegexCompiler.matchRegex(Value.EMPTY_ARRAY, matcher, null)).isEqualTo(Value.FALSE);
-        assertThat(RegexCompiler.matchRegex(Value.EMPTY_OBJECT, matcher, null)).isEqualTo(Value.FALSE);
+        assertThat(RegexCompiler.matchRegex(Value.of(5), matcher)).isEqualTo(Value.FALSE);
+        assertThat(RegexCompiler.matchRegex(Value.TRUE, matcher)).isEqualTo(Value.FALSE);
+        assertThat(RegexCompiler.matchRegex(Value.NULL, matcher)).isEqualTo(Value.FALSE);
+        assertThat(RegexCompiler.matchRegex(Value.EMPTY_ARRAY, matcher)).isEqualTo(Value.FALSE);
+        assertThat(RegexCompiler.matchRegex(Value.EMPTY_OBJECT, matcher)).isEqualTo(Value.FALSE);
     }
 
     @MethodSource
@@ -158,8 +158,8 @@ class RegexCompilerTests {
         val emailPattern = "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$";
         val matcher      = java.util.regex.Pattern.compile(emailPattern).asMatchPredicate();
 
-        assertThat(RegexCompiler.matchRegex(Value.of("user@example.com"), matcher, null)).isEqualTo(Value.TRUE);
-        assertThat(RegexCompiler.matchRegex(Value.of("invalid-email"), matcher, null)).isEqualTo(Value.FALSE);
+        assertThat(RegexCompiler.matchRegex(Value.of("user@example.com"), matcher)).isEqualTo(Value.TRUE);
+        assertThat(RegexCompiler.matchRegex(Value.of("invalid-email"), matcher)).isEqualTo(Value.FALSE);
     }
 
     @Test
@@ -167,8 +167,8 @@ class RegexCompilerTests {
         val ipPattern = "^((25[0-5]|(2[0-4]|1\\d|[1-9]|)\\d)\\.?\\b){4}$";
         val matcher   = java.util.regex.Pattern.compile(ipPattern).asMatchPredicate();
 
-        assertThat(RegexCompiler.matchRegex(Value.of("192.168.1.1"), matcher, null)).isEqualTo(Value.TRUE);
-        assertThat(RegexCompiler.matchRegex(Value.of("256.1.1.1"), matcher, null)).isEqualTo(Value.FALSE);
+        assertThat(RegexCompiler.matchRegex(Value.of("192.168.1.1"), matcher)).isEqualTo(Value.TRUE);
+        assertThat(RegexCompiler.matchRegex(Value.of("256.1.1.1"), matcher)).isEqualTo(Value.FALSE);
     }
 
     @Test
@@ -176,8 +176,8 @@ class RegexCompilerTests {
         val unicodePattern = "^[\\p{L}]+$"; // Unicode letters only
         val matcher        = java.util.regex.Pattern.compile(unicodePattern).asMatchPredicate();
 
-        assertThat(RegexCompiler.matchRegex(Value.of("Ümläütß"), matcher, null)).isEqualTo(Value.TRUE);
-        assertThat(RegexCompiler.matchRegex(Value.of("hello123"), matcher, null)).isEqualTo(Value.FALSE);
+        assertThat(RegexCompiler.matchRegex(Value.of("Ümläütß"), matcher)).isEqualTo(Value.TRUE);
+        assertThat(RegexCompiler.matchRegex(Value.of("hello123"), matcher)).isEqualTo(Value.FALSE);
     }
 
     @Test
@@ -185,8 +185,8 @@ class RegexCompilerTests {
         val pattern = java.util.regex.Pattern.compile("hello", java.util.regex.Pattern.CASE_INSENSITIVE)
                 .asMatchPredicate();
 
-        assertThat(RegexCompiler.matchRegex(Value.of("HELLO"), pattern, null)).isEqualTo(Value.TRUE);
-        assertThat(RegexCompiler.matchRegex(Value.of("HeLLo"), pattern, null)).isEqualTo(Value.TRUE);
+        assertThat(RegexCompiler.matchRegex(Value.of("HELLO"), pattern)).isEqualTo(Value.TRUE);
+        assertThat(RegexCompiler.matchRegex(Value.of("HeLLo"), pattern)).isEqualTo(Value.TRUE);
     }
 
 }

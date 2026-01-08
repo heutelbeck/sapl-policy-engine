@@ -225,6 +225,10 @@ public class ReactiveWebClient {
             return defaultValue;
         }
         final var value = requestSettings.get(fieldName);
+        if (value == null) {
+            throw new IllegalArgumentException(
+                    fieldName + " must be a number in HTTP requestSpecification, but was: null");
+        }
         if (value instanceof NumberValue num) {
             return num.value().longValue();
         }

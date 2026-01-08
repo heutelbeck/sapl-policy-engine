@@ -54,16 +54,16 @@ public class RegexCompiler {
         }
 
         // Pre-compile regex when pattern is a literal string
-        if (right instanceof TextValue patternText) {
+        if (right instanceof TextValue(String value)) {
             Predicate<String> matcher;
             try {
-                matcher = Pattern.compile(patternText.value()).asMatchPredicate();
+                matcher = Pattern.compile(value).asMatchPredicate();
             } catch (PatternSyntaxException e) {
-                throw new SaplCompilerException(ERROR_REGEX_INVALID.formatted(patternText.value(), e.getMessage()), e,
+                throw new SaplCompilerException(ERROR_REGEX_INVALID.formatted(value, e.getMessage()), e,
                         binaryOperation);
             }
             return switch (left) {
-            case Value lv         -> matchRegex(lv, matcher, loc);
+            case Value lv         -> matchRegex(lv, matcher);
             case PureOperator lp  -> new RegexPrecompiledPure(lp, matcher, loc);
             case StreamOperator s -> new RegexPrecompiledStream(s, matcher, loc);
             };
@@ -93,24 +93,24 @@ public class RegexCompiler {
         };
     }
 
-    static Value matchRegex(Value input, Predicate<String> matcher, SourceLocation loc) {
-        if (!(input instanceof TextValue text)) {
+    static Value matchRegex(Value input, Predicate<String> matcher) {
+        if (!(input instanceof TextValue(String value))) {
             return Value.FALSE; // Non-text doesn't match
         }
-        return matcher.test(text.value()) ? Value.TRUE : Value.FALSE;
+        return matcher.test(value) ? Value.TRUE : Value.FALSE;
     }
 
     static Value matchRegex(Value input, Value pattern, SourceLocation loc) {
-        if (!(pattern instanceof TextValue patternText)) {
+        if (!(pattern instanceof TextValue(String patternText))) {
             return Value.errorAt(loc, ERROR_REGEX_MUST_BE_STRING, pattern);
         }
-        if (!(input instanceof TextValue inputText)) {
+        if (!(input instanceof TextValue(String inputText))) {
             return Value.FALSE; // Non-text doesn't match
         }
         try {
-            return Pattern.matches(patternText.value(), inputText.value()) ? Value.TRUE : Value.FALSE;
+            return Pattern.matches(patternText, inputText) ? Value.TRUE : Value.FALSE;
         } catch (PatternSyntaxException e) {
-            return Value.errorAt(loc, ERROR_REGEX_INVALID, patternText.value(), e.getMessage());
+            return Value.errorAt(loc, ERROR_REGEX_INVALID, patternText, e.getMessage());
         }
     }
 
@@ -122,7 +122,7 @@ public class RegexCompiler {
             if (v instanceof ErrorValue) {
                 return v;
             }
-            return matchRegex(v, matcher, location);
+            return matchRegex(v, matcher);
         }
 
         @Override
@@ -140,7 +140,7 @@ public class RegexCompiler {
                 if (v instanceof ErrorValue) {
                     return tv;
                 }
-                return new TracedValue(matchRegex(v, matcher, location), tv.contributingAttributes());
+                return new TracedValue(matchRegex(v, matcher), tv.contributingAttributes());
             });
         }
     }

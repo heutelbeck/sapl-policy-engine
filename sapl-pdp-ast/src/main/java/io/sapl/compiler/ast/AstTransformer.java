@@ -326,7 +326,7 @@ public class AstTransformer extends SAPLParserBaseVisitor<AstNode> {
     private Expression buildFilterExpression(Expression base, FilterComponentContext filterCtx, ParserRuleContext ctx) {
         return switch (filterCtx) {
         case FilterSimpleContext simple   -> buildSimpleFilter(base, simple, ctx);
-        case FilterExtendedContext extend -> buildExtendedFilter(base, extend, ctx);
+        case FilterExtendedContext extend -> buildExtendedFilter(base, extend);
         default                           -> throw new SaplCompilerException(
                 "Unknown filter type: " + filterCtx.getClass().getSimpleName(), fromContext(ctx));
         };
@@ -341,7 +341,7 @@ public class AstTransformer extends SAPLParserBaseVisitor<AstNode> {
         return new SimpleFilter(base, name, arguments, each, location);
     }
 
-    private Expression buildExtendedFilter(Expression base, FilterExtendedContext ctx, ParserRuleContext fullCtx) {
+    private Expression buildExtendedFilter(Expression base, FilterExtendedContext ctx) {
         Expression result = base;
         for (FilterStatementContext stmtCtx : ctx.filterStatement()) {
             var each      = stmtCtx.each != null;

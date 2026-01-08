@@ -30,6 +30,8 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import static org.junit.jupiter.params.provider.Arguments.arguments;
+
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import reactor.core.publisher.Flux;
@@ -110,83 +112,33 @@ class FilterNatureInferenceTests {
     @DisplayName("Simple Filter: base |- func(arg)")
     class SimpleFilterTests {
 
-        // Base expressions for each stratum
-        // Note: Strata 2 (Pure-non-sub) not naturally available at top level
-        static final String BASE_VALUE    = "42";
-        static final String BASE_PURE_SUB = "subject.value";
-        static final String BASE_STREAM   = "subject.<test.number>";
-
-        // Function argument expressions for each stratum
-        static final String ARG_VALUE        = "1";
-        static final String ARG_PURE_NON_SUB = "@"; // @ is available in function context? No, not in simple filter
-        static final String ARG_PURE_SUB     = "subject.multiplier";
-        static final String ARG_STREAM       = "subject.<test.multiplier>";
-
-        @Test
-        @DisplayName("Value base + Value arg -> Value (constant folded)")
-        void base_value_arg_value() {
-            val compiled = compileExpression("42 |- simple.doubleValue", compilationContext);
-            assertStratum(compiled, Stratum.VALUE);
+        @ParameterizedTest(name = "base={0}, arg={2} -> {4}")
+        @MethodSource("simpleFilterCombinations")
+        void simpleFilter_strataMatrix(String baseExpr, Stratum baseStratum, String argExpr, Stratum argStratum,
+                Stratum expectedStratum) {
+            var expression = argStratum == Stratum.VALUE ? baseExpr + " |- simple.doubleValue"
+                    : baseExpr + " |- simple.addValue(" + argExpr + ")";
+            val compiled   = compileExpression(expression, compilationContext);
+            assertStratum(compiled, expectedStratum);
         }
 
-        @Test
-        @DisplayName("Value base + Pure-sub arg -> Pure-sub")
-        void base_value_arg_pureSub() {
-            // simple.addValue(base, arg) - if arg is subject.x, result is Pure-sub
-            val compiled = compileExpression("42 |- simple.addValue(subject.offset)", compilationContext);
-            assertStratum(compiled, Stratum.PURE_SUB);
-        }
-
-        @Test
-        @DisplayName("Value base + Stream arg -> Stream")
-        void base_value_arg_stream() {
-            val compiled = compileExpression("42 |- simple.addValue(subject.<test.offset>)", compilationContext);
-            assertStratum(compiled, Stratum.STREAM);
-        }
-
-        @Test
-        @DisplayName("Pure-sub base + Value arg -> Pure-sub")
-        void base_pureSub_arg_value() {
-            val compiled = compileExpression("subject.value |- simple.doubleValue", compilationContext);
-            assertStratum(compiled, Stratum.PURE_SUB);
-        }
-
-        @Test
-        @DisplayName("Pure-sub base + Pure-sub arg -> Pure-sub")
-        void base_pureSub_arg_pureSub() {
-            val compiled = compileExpression("subject.value |- simple.addValue(subject.offset)", compilationContext);
-            assertStratum(compiled, Stratum.PURE_SUB);
-        }
-
-        @Test
-        @DisplayName("Pure-sub base + Stream arg -> Stream")
-        void base_pureSub_arg_stream() {
-            val compiled = compileExpression("subject.value |- simple.addValue(subject.<test.offset>)",
-                    compilationContext);
-            assertStratum(compiled, Stratum.STREAM);
-        }
-
-        @Test
-        @DisplayName("Stream base + Value arg -> Stream")
-        void base_stream_arg_value() {
-            val compiled = compileExpression("subject.<test.value> |- simple.doubleValue", compilationContext);
-            assertStratum(compiled, Stratum.STREAM);
-        }
-
-        @Test
-        @DisplayName("Stream base + Pure-sub arg -> Stream")
-        void base_stream_arg_pureSub() {
-            val compiled = compileExpression("subject.<test.value> |- simple.addValue(subject.offset)",
-                    compilationContext);
-            assertStratum(compiled, Stratum.STREAM);
-        }
-
-        @Test
-        @DisplayName("Stream base + Stream arg -> Stream")
-        void base_stream_arg_stream() {
-            val compiled = compileExpression("subject.<test.value> |- simple.addValue(subject.<test.offset>)",
-                    compilationContext);
-            assertStratum(compiled, Stratum.STREAM);
+        static Stream<Arguments> simpleFilterCombinations() {
+            return Stream.of(
+                    // Value base
+                    arguments("42", Stratum.VALUE, "", Stratum.VALUE, Stratum.VALUE),
+                    arguments("42", Stratum.VALUE, "subject.offset", Stratum.PURE_SUB, Stratum.PURE_SUB),
+                    arguments("42", Stratum.VALUE, "subject.<test.offset>", Stratum.STREAM, Stratum.STREAM),
+                    // Pure-sub base
+                    arguments("subject.value", Stratum.PURE_SUB, "", Stratum.VALUE, Stratum.PURE_SUB),
+                    arguments("subject.value", Stratum.PURE_SUB, "subject.offset", Stratum.PURE_SUB, Stratum.PURE_SUB),
+                    arguments("subject.value", Stratum.PURE_SUB, "subject.<test.offset>", Stratum.STREAM,
+                            Stratum.STREAM),
+                    // Stream base
+                    arguments("subject.<test.value>", Stratum.STREAM, "", Stratum.VALUE, Stratum.STREAM),
+                    arguments("subject.<test.value>", Stratum.STREAM, "subject.offset", Stratum.PURE_SUB,
+                            Stratum.STREAM),
+                    arguments("subject.<test.value>", Stratum.STREAM, "subject.<test.offset>", Stratum.STREAM,
+                            Stratum.STREAM));
         }
     }
 
@@ -258,7 +210,7 @@ class FilterNatureInferenceTests {
             // - Otherwise -> PURE_NON_SUB or PURE_SUB based on path+args (not base!)
             val currentExpected = computeCurrentBehavior(baseStratum, pathExprStratum, funcArgStratum);
 
-            return Arguments.of(base[0], baseStratum, pathExpr[0], pathExprStratum, funcArg[0], funcArgStratum,
+            return arguments(base[0], baseStratum, pathExpr[0], pathExprStratum, funcArg[0], funcArgStratum,
                     currentExpected);
         }
 
@@ -326,48 +278,28 @@ class FilterNatureInferenceTests {
     @DisplayName("Each Filter: base |- each func(arg)")
     class EachFilterTests {
 
-        @Test
-        @DisplayName("Value base + Value arg -> Value (constant folded)")
-        void base_value_arg_value() {
-            val compiled = compileExpression("[1, 2, 3] |- each simple.doubleValue", compilationContext);
-            assertStratum(compiled, Stratum.VALUE);
+        @ParameterizedTest(name = "base={0}, arg={2} -> {4}")
+        @MethodSource("eachFilterCombinations")
+        void eachFilter_strataMatrix(String baseExpr, Stratum baseStratum, String argExpr, Stratum argStratum,
+                Stratum expectedStratum) {
+            var expression = argStratum == Stratum.VALUE ? baseExpr + " |- each simple.doubleValue"
+                    : baseExpr + " |- each simple.addValue(" + argExpr + ")";
+            val compiled   = compileExpression(expression, compilationContext);
+            assertStratum(compiled, expectedStratum);
         }
 
-        @Test
-        @DisplayName("Value base + Pure-sub arg -> Pure-sub")
-        void base_value_arg_pureSub() {
-            val compiled = compileExpression("[1, 2, 3] |- each simple.addValue(subject.offset)", compilationContext);
-            assertStratum(compiled, Stratum.PURE_SUB);
-        }
-
-        @Test
-        @DisplayName("Value base + Stream arg -> Stream")
-        void base_value_arg_stream() {
-            val compiled = compileExpression("[1, 2, 3] |- each simple.addValue(subject.<test.offset>)",
-                    compilationContext);
-            assertStratum(compiled, Stratum.STREAM);
-        }
-
-        @Test
-        @DisplayName("Pure-sub base + Value arg -> Pure-sub")
-        void base_pureSub_arg_value() {
-            val compiled = compileExpression("subject.items |- each simple.doubleValue", compilationContext);
-            assertStratum(compiled, Stratum.PURE_SUB);
-        }
-
-        @Test
-        @DisplayName("Stream base + Value arg -> Stream")
-        void base_stream_arg_value() {
-            val compiled = compileExpression("subject.<test.items> |- each simple.doubleValue", compilationContext);
-            assertStratum(compiled, Stratum.STREAM);
-        }
-
-        @Test
-        @DisplayName("Stream base + Stream arg -> Stream")
-        void base_stream_arg_stream() {
-            val compiled = compileExpression("subject.<test.items> |- each simple.addValue(subject.<test.offset>)",
-                    compilationContext);
-            assertStratum(compiled, Stratum.STREAM);
+        static Stream<Arguments> eachFilterCombinations() {
+            return Stream.of(
+                    // Value base
+                    arguments("[1, 2, 3]", Stratum.VALUE, "", Stratum.VALUE, Stratum.VALUE),
+                    arguments("[1, 2, 3]", Stratum.VALUE, "subject.offset", Stratum.PURE_SUB, Stratum.PURE_SUB),
+                    arguments("[1, 2, 3]", Stratum.VALUE, "subject.<test.offset>", Stratum.STREAM, Stratum.STREAM),
+                    // Pure-sub base
+                    arguments("subject.items", Stratum.PURE_SUB, "", Stratum.VALUE, Stratum.PURE_SUB),
+                    // Stream base
+                    arguments("subject.<test.items>", Stratum.STREAM, "", Stratum.VALUE, Stratum.STREAM),
+                    arguments("subject.<test.items>", Stratum.STREAM, "subject.<test.offset>", Stratum.STREAM,
+                            Stratum.STREAM));
         }
     }
 
@@ -375,53 +307,21 @@ class FilterNatureInferenceTests {
     @DisplayName("Strata Verification")
     class StrataVerificationTests {
 
-        @Test
-        @DisplayName("Literal is Value (strata 1)")
-        void literal_isValue() {
-            val compiled = compileExpression("42", compilationContext);
-            assertStratum(compiled, Stratum.VALUE);
+        @ParameterizedTest(name = "{0} -> {2}")
+        @MethodSource("strataVerificationCases")
+        void expression_hasExpectedStratum(String description, String expression, Stratum expectedStratum) {
+            val compiled = compileExpression(expression, compilationContext);
+            assertStratum(compiled, expectedStratum);
         }
 
-        @Test
-        @DisplayName("Identifier is Pure-sub (strata 3)")
-        void identifier_isPureSub() {
-            val compiled = compileExpression("subject", compilationContext);
-            assertStratum(compiled, Stratum.PURE_SUB);
-        }
-
-        @Test
-        @DisplayName("Identifier field access is Pure-sub (strata 3)")
-        void identifierField_isPureSub() {
-            val compiled = compileExpression("subject.name", compilationContext);
-            assertStratum(compiled, Stratum.PURE_SUB);
-        }
-
-        @Test
-        @DisplayName("Attribute access is Stream (strata 4)")
-        void attributeAccess_isStream() {
-            val compiled = compileExpression("subject.<test.attr>", compilationContext);
-            assertStratum(compiled, Stratum.STREAM);
-        }
-
-        @Test
-        @DisplayName("Function with all Value args -> Value (constant folded)")
-        void functionAllValueArgs_isValue() {
-            val compiled = compileExpression("simple.doubleValue(21)", compilationContext);
-            assertStratum(compiled, Stratum.VALUE);
-        }
-
-        @Test
-        @DisplayName("Function with Pure-sub arg -> Pure-sub")
-        void functionPureSubArg_isPureSub() {
-            val compiled = compileExpression("simple.doubleValue(subject.value)", compilationContext);
-            assertStratum(compiled, Stratum.PURE_SUB);
-        }
-
-        @Test
-        @DisplayName("Function with Stream arg -> Stream")
-        void functionStreamArg_isStream() {
-            val compiled = compileExpression("simple.doubleValue(subject.<test.value>)", compilationContext);
-            assertStratum(compiled, Stratum.STREAM);
+        static Stream<Arguments> strataVerificationCases() {
+            return Stream.of(arguments("Literal", "42", Stratum.VALUE),
+                    arguments("Identifier", "subject", Stratum.PURE_SUB),
+                    arguments("Identifier field access", "subject.name", Stratum.PURE_SUB),
+                    arguments("Attribute access", "subject.<test.attr>", Stratum.STREAM),
+                    arguments("Function with Value args", "simple.doubleValue(21)", Stratum.VALUE),
+                    arguments("Function with Pure-sub arg", "simple.doubleValue(subject.value)", Stratum.PURE_SUB),
+                    arguments("Function with Stream arg", "simple.doubleValue(subject.<test.value>)", Stratum.STREAM));
         }
     }
 }
