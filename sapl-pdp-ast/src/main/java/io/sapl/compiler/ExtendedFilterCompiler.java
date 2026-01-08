@@ -17,6 +17,7 @@
  */
 package io.sapl.compiler;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -34,6 +35,7 @@ public class ExtendedFilterCompiler {
 
     private static final int   MAX_RECURSION_DEPTH              = 500;
     public static final String MAXIMUM_RECURSION_DEPTH_EXCEEDED = "Maximum recursion depth exceeded";
+    public static final ErrorValue UNIMPLEMENTED = Value.error("unimplemented");
 
     public static CompiledExpression compile(ExtendedFilter ef, CompilationContext ctx) {
         val compiledBase = ExpressionCompiler.compile(ef.base(), ctx);
@@ -59,23 +61,23 @@ public class ExtendedFilterCompiler {
                             case Value vf when canFoldPath                                                 ->
                                 evaluateValueValue(vb, vf, path, pathAnalysis, location, ctx);
                             case Value vf                                                                  ->
-                                Value.error("unimplemented"); // Value × Value with sub-dep path
+                                UNIMPLEMENTED; // Value × Value with sub-dep path
                             case PureOperator pof when !pof.isDependingOnSubscription() && canFoldPath     ->
                                 evaluateValuePureFold(vb, pof, path, pathAnalysis, location, ctx);
                             case PureOperator pof                                                          ->
                                 new ExtendedFilterValuePure(vb, pof, path, pathAnalysis, location);
                             case StreamOperator sof                                                        ->
-                                Value.error("unimplemented");
+                                UNIMPLEMENTED;
                             };
         case PureOperator pob   -> switch (compiledFilter) {
-                            case Value vf               -> Value.error("unimplemented");
-                            case PureOperator pof       -> Value.error("unimplemented");
-                            case StreamOperator sof     -> Value.error("unimplemented");
+                            case Value vf               -> UNIMPLEMENTED;
+                            case PureOperator pof       -> UNIMPLEMENTED;
+                            case StreamOperator sof     -> UNIMPLEMENTED;
                             };
         case StreamOperator sob -> switch (compiledFilter) {
-                            case Value vf               -> Value.error("unimplemented");
-                            case PureOperator pof       -> Value.error("unimplemented");
-                            case StreamOperator sof     -> Value.error("unimplemented");
+                            case Value vf               -> UNIMPLEMENTED;
+                            case PureOperator pof       -> UNIMPLEMENTED;
+                            case StreamOperator sof     -> UNIMPLEMENTED;
                             };
         };
     }
@@ -457,24 +459,26 @@ public class ExtendedFilterCompiler {
 
     private static Value consumeExpression(Value current, ExpressionPath ep, UnaryOperator<Value> terminal,
             List<PathElement> tail, PathAnalysis pathAnalysis, SourceLocation location, EvaluationContext evalCtx) {
-        val compiled   = pathAnalysis.compiledElements().get(ep);
-        val indexValue = switch (compiled) {
-                       case Value v           -> v;
-                       case PureOperator po   -> po.evaluate(evalCtx);
-                       case StreamOperator so ->
-                           throw new IllegalStateException("StreamOperator in path should have been rejected");
-                       };
+        val compiled = pathAnalysis.compiledElements().get(ep);
+        Value indexValue;
+        switch (compiled) {
+            case Value v -> indexValue = v;
+            case PureOperator po -> indexValue = po.evaluate(evalCtx);
+            default -> {
+                return Value.errorAt(ep.location(), "StreamOperator in path expression not supported");
+            }
+        }
         if (indexValue instanceof ErrorValue) {
             return indexValue;
         }
         if (indexValue instanceof UndefinedValue) {
             return current;
         }
-        if (indexValue instanceof NumberValue nv) {
-            return consumeIndex(current, nv.value().intValue(), terminal, tail, pathAnalysis, location, evalCtx);
+        if (indexValue instanceof NumberValue(BigDecimal number)) {
+            return consumeIndex(current, number.intValue(), terminal, tail, pathAnalysis, location, evalCtx);
         }
-        if (indexValue instanceof TextValue tv) {
-            return consumeKey(current, tv.value(), terminal, tail, pathAnalysis, location, evalCtx);
+        if (indexValue instanceof TextValue(String text)) {
+            return consumeKey(current, text, terminal, tail, pathAnalysis, location, evalCtx);
         }
         return current;
     }
@@ -490,7 +494,7 @@ public class ExtendedFilterCompiler {
                 if (condResult instanceof ErrorValue) {
                     return condResult;
                 }
-                if (condResult instanceof BooleanValue bv && bv.value()) {
+                if (condResult instanceof BooleanValue(boolean value) && value) {
                     val result = navigateAndApply(element, terminal, tail, pathAnalysis, location, localCtx);
                     if (result instanceof ErrorValue) {
                         return result;
@@ -512,7 +516,7 @@ public class ExtendedFilterCompiler {
                 if (condResult instanceof ErrorValue) {
                     return condResult;
                 }
-                if (condResult instanceof BooleanValue bv && bv.value()) {
+                if (condResult instanceof BooleanValue(boolean value) && value) {
                     val result = navigateAndApply(entry.getValue(), terminal, tail, pathAnalysis, location, localCtx);
                     if (result instanceof ErrorValue) {
                         return result;
@@ -532,9 +536,9 @@ public class ExtendedFilterCompiler {
     private static Value evaluateCondition(ConditionPath cp, PathAnalysis pathAnalysis, EvaluationContext evalCtx) {
         val compiled = pathAnalysis.compiledElements().get(cp);
         return switch (compiled) {
-        case Value v           -> v;
-        case PureOperator po   -> po.evaluate(evalCtx);
-        case StreamOperator so -> throw new IllegalStateException("StreamOperator in path should have been rejected");
+            case Value v -> v;
+            case PureOperator po -> po.evaluate(evalCtx);
+            default -> Value.errorAt(cp.location(), "StreamOperator in path condition not supported");
         };
     }
 
