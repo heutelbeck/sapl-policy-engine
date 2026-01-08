@@ -17,10 +17,10 @@
  */
 package io.sapl.ast;
 
-import java.util.List;
-
 import io.sapl.api.model.SourceLocation;
 import lombok.NonNull;
+
+import java.util.List;
 
 /**
  * Simple filter operation: {@code base |- func(args)} or

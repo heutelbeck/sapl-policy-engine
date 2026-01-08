@@ -17,8 +17,6 @@
  */
 package io.sapl.compiler;
 
-import static io.sapl.compiler.ArrayCompiler.toIntArray;
-
 import io.sapl.api.model.*;
 import io.sapl.api.pdp.internal.AttributeRecord;
 import io.sapl.ast.ObjectExpression;
@@ -28,6 +26,8 @@ import reactor.core.publisher.Flux;
 
 import java.util.ArrayList;
 import java.util.List;
+
+import static io.sapl.compiler.ArrayCompiler.toIntArray;
 
 /**
  * Compiles object literal expressions using the PRECOMPILED pattern.

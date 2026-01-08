@@ -18,7 +18,6 @@
 package io.sapl.compiler;
 
 import io.sapl.api.model.*;
-import io.sapl.ast.AttributeStep;
 import io.sapl.ast.Expression;
 import lombok.experimental.UtilityClass;
 import lombok.val;

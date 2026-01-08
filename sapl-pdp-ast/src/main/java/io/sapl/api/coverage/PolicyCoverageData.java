@@ -20,12 +20,7 @@ package io.sapl.api.coverage;
 import lombok.Getter;
 import lombok.val;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 /**
  * Collects coverage data for a single SAPL policy or policy set.

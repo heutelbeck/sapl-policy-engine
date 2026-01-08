@@ -17,18 +17,8 @@
  */
 package io.sapl.compiler;
 
-import java.util.ArrayList;
-import java.util.List;
-
+import io.sapl.api.model.*;
 import io.sapl.api.pdp.internal.AttributeRecord;
-import io.sapl.api.model.ErrorValue;
-import io.sapl.api.model.EvaluationContext;
-import io.sapl.api.model.CompiledExpression;
-import io.sapl.api.model.PureOperator;
-import io.sapl.api.model.SourceLocation;
-import io.sapl.api.model.StreamOperator;
-import io.sapl.api.model.TracedValue;
-import io.sapl.api.model.Value;
 import io.sapl.ast.ExclusiveDisjunction;
 import io.sapl.ast.Expression;
 import io.sapl.ast.Product;
@@ -39,6 +29,9 @@ import io.sapl.compiler.operators.BooleanOperators;
 import lombok.experimental.UtilityClass;
 import lombok.val;
 import reactor.core.publisher.Flux;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Compiles N-ary operators: ExclusiveDisjunction (XOR), Sum, Product.

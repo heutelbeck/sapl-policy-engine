@@ -17,15 +17,7 @@
  */
 package io.sapl.compiler;
 
-import io.sapl.api.model.BooleanValue;
-import io.sapl.api.model.CompiledExpression;
-import io.sapl.api.model.ErrorValue;
-import io.sapl.api.model.EvaluationContext;
-import io.sapl.api.model.PureOperator;
-import io.sapl.api.model.SourceLocation;
-import io.sapl.api.model.StreamOperator;
-import io.sapl.api.model.TracedValue;
-import io.sapl.api.model.Value;
+import io.sapl.api.model.*;
 import io.sapl.api.pdp.internal.AttributeRecord;
 import io.sapl.ast.Conjunction;
 import io.sapl.ast.Disjunction;

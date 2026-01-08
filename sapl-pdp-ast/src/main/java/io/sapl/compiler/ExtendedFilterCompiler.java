@@ -17,21 +17,17 @@
  */
 package io.sapl.compiler;
 
-import java.math.BigDecimal;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.function.BiFunction;
-import java.util.function.UnaryOperator;
-
 import io.sapl.api.model.*;
 import io.sapl.ast.*;
 import io.sapl.compiler.operators.SimpleStreamOperator;
 import lombok.experimental.UtilityClass;
 import lombok.val;
 import reactor.core.publisher.Flux;
+
+import java.math.BigDecimal;
+import java.util.*;
+import java.util.function.BiFunction;
+import java.util.function.UnaryOperator;
 
 @UtilityClass
 public class ExtendedFilterCompiler {

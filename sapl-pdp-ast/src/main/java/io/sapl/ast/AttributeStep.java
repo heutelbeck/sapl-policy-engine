@@ -17,10 +17,10 @@
  */
 package io.sapl.ast;
 
-import java.util.List;
-
 import io.sapl.api.model.SourceLocation;
 import lombok.NonNull;
+
+import java.util.List;
 
 /**
  * Attribute finder step: {@code base.<name>} or {@code base.|<name>}

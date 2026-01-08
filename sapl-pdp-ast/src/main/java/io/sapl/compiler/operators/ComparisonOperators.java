@@ -17,11 +17,7 @@
  */
 package io.sapl.compiler.operators;
 
-import io.sapl.api.model.ArrayValue;
-import io.sapl.api.model.ObjectValue;
-import io.sapl.api.model.SourceLocation;
-import io.sapl.api.model.TextValue;
-import io.sapl.api.model.Value;
+import io.sapl.api.model.*;
 import lombok.experimental.UtilityClass;
 
 /**

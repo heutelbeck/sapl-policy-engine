@@ -17,15 +17,14 @@
  */
 package io.sapl.compiler;
 
-import java.io.Serial;
-
-import io.sapl.ast.AstNode;
-import org.antlr.v4.runtime.ParserRuleContext;
-
 import io.sapl.api.SaplVersion;
 import io.sapl.api.model.SourceLocation;
+import io.sapl.ast.AstNode;
 import io.sapl.compiler.util.SourceLocationUtil;
 import lombok.Getter;
+import org.antlr.v4.runtime.ParserRuleContext;
+
+import java.io.Serial;
 
 /**
  * Thrown when SAPL compilation fails due to invalid policy structure or

@@ -17,11 +17,11 @@
  */
 package io.sapl.ast;
 
-import java.io.Serializable;
-import java.util.List;
-
 import io.sapl.compiler.SaplCompilerException;
 import lombok.NonNull;
+
+import java.io.Serializable;
+import java.util.List;
 
 /**
  * Qualified name for functions and attributes: {@code foo.bar.baz}

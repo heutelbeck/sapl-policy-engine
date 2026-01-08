@@ -17,9 +17,9 @@
  */
 package io.sapl.ast;
 
-import java.io.Serializable;
-
 import io.sapl.api.model.SourceLocation;
+
+import java.io.Serializable;
 
 /**
  * Base interface for all AST nodes. Provides source location for error

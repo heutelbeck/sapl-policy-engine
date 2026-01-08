@@ -17,15 +17,15 @@
  */
 package io.sapl.compiler.ast;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
 import io.sapl.api.model.SourceLocation;
 import io.sapl.ast.*;
 import io.sapl.compiler.SaplCompilerException;
 import lombok.experimental.UtilityClass;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
  * Resolves import references in the AST, transforming short names to fully

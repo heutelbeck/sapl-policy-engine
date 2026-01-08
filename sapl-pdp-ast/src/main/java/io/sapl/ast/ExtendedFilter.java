@@ -17,10 +17,10 @@
  */
 package io.sapl.ast;
 
-import java.util.List;
-
 import io.sapl.api.model.SourceLocation;
 import lombok.NonNull;
+
+import java.util.List;
 
 /**
  * Extended filter with path navigation: {@code base |- { @.path : func(args)
