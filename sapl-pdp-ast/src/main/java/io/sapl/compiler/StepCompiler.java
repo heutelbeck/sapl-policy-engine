@@ -26,6 +26,7 @@ import reactor.core.publisher.Flux;
 import java.math.BigDecimal;
 import java.util.HashSet;
 import java.util.List;
+import java.util.function.IntFunction;
 
 /**
  * Compiles navigation steps using cost-stratified evaluation.
@@ -586,42 +587,34 @@ public class StepCompiler {
             return e;
 
         return switch (base) {
-        case ArrayValue arr  -> {
-            var builder = ArrayValue.builder();
-            for (int i = 0; i < arr.size(); i++) {
-                var element = arr.get(i);
-                var elemCtx = ctx != null ? ctx.withRelativeValue(element, Value.of(i)) : null;
-                var result  = evaluateCondition(constantCond, condOp, elemCtx);
-                if (result instanceof BooleanValue(boolean val)) {
-                    if (val)
-                        builder.add(element);
-                } else if (result instanceof ErrorValue) {
-                    yield result;
-                } else {
-                    yield Value.errorAt(loc, ERROR_CONDITION_NON_BOOLEAN, result.getClass().getSimpleName());
-                }
-            }
-            yield builder.build();
-        }
+        case ArrayValue arr  ->
+            filterElements(arr.size(), i -> arr.get(i), i -> Value.of(i), constantCond, condOp, ctx, loc);
         case ObjectValue obj -> {
-            var builder = ArrayValue.builder();
-            for (var entry : obj.entrySet()) {
-                var element = entry.getValue();
-                var elemCtx = ctx != null ? ctx.withRelativeValue(element, Value.of(entry.getKey())) : null;
-                var result  = evaluateCondition(constantCond, condOp, elemCtx);
-                if (result instanceof BooleanValue(boolean val)) {
-                    if (val)
-                        builder.add(element);
-                } else if (result instanceof ErrorValue) {
-                    yield result;
-                } else {
-                    yield Value.errorAt(loc, ERROR_CONDITION_NON_BOOLEAN, result.getClass().getSimpleName());
-                }
-            }
-            yield builder.build();
+            var entries = obj.entrySet().stream().toList();
+            yield filterElements(entries.size(), i -> entries.get(i).getValue(), i -> Value.of(entries.get(i).getKey()),
+                    constantCond, condOp, ctx, loc);
         }
         default              -> Value.errorAt(loc, ERROR_CONDITION_ON_INVALID, base.getClass().getSimpleName());
         };
+    }
+
+    private static Value filterElements(int size, IntFunction<Value> elementAt, IntFunction<Value> keyAt,
+            Value constantCond, PureOperator condOp, EvaluationContext ctx, SourceLocation loc) {
+        var builder = ArrayValue.builder();
+        for (int i = 0; i < size; i++) {
+            var element = elementAt.apply(i);
+            var elemCtx = ctx != null ? ctx.withRelativeValue(element, keyAt.apply(i)) : null;
+            var result  = evaluateCondition(constantCond, condOp, elemCtx);
+            if (result instanceof BooleanValue(boolean val)) {
+                if (val)
+                    builder.add(element);
+            } else if (result instanceof ErrorValue) {
+                return result;
+            } else {
+                return Value.errorAt(loc, ERROR_CONDITION_NON_BOOLEAN, result.getClass().getSimpleName());
+            }
+        }
+        return builder.build();
     }
 
     private static Value evaluateCondition(Value constantCond, PureOperator condOp, EvaluationContext elemCtx) {

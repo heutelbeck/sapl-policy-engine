@@ -27,7 +27,7 @@ import reactor.core.publisher.Flux;
 import java.util.ArrayList;
 import java.util.List;
 
-import static io.sapl.compiler.ArrayCompiler.toIntArray;
+import static io.sapl.compiler.ArrayCompiler.CategorizedExpressions;
 
 /**
  * Compiles object literal expressions using the PRECOMPILED pattern.
@@ -76,56 +76,28 @@ public class ObjectCompiler {
 
     private static CompiledExpression buildFromCompiled(String[] keys, List<CompiledExpression> compiled,
             SourceLocation location) {
-        val streamIndices = new ArrayList<Integer>();
-        val streams       = new ArrayList<StreamOperator>();
-        val pureIndices   = new ArrayList<Integer>();
-        val pureOperators = new ArrayList<PureOperator>();
-        val valueIndices  = new ArrayList<Integer>();
-        val values        = new ArrayList<Value>();
+        val cat = CategorizedExpressions.categorize(compiled);
 
-        for (int i = 0; i < compiled.size(); i++) {
-            switch (compiled.get(i)) {
-            case Value v          -> {
-                valueIndices.add(i);
-                values.add(v);
-            }
-            case PureOperator p   -> {
-                pureIndices.add(i);
-                pureOperators.add(p);
-            }
-            case StreamOperator s -> {
-                streamIndices.add(i);
-                streams.add(s);
-            }
-            }
+        if (cat.hasOnlyValues()) {
+            return buildObjectFromValues(keys, cat.valueIndices(), cat.values());
         }
-
-        int streamCount  = streams.size();
-        int totalEntries = compiled.size();
-
-        if (streamCount == 0) {
-            if (pureOperators.isEmpty()) {
-                // All values - build object directly, dropping undefined
-                return buildObjectFromValues(keys, valueIndices, values);
-            }
-            return new AllPureObject(keys, toIntArray(valueIndices), values.toArray(Value[]::new),
-                    toIntArray(pureIndices), pureOperators.toArray(PureOperator[]::new), totalEntries, location);
-        } else if (streamCount == 1) {
-            return new SingleStreamObject(keys, toIntArray(valueIndices), values.toArray(Value[]::new),
-                    toIntArray(pureIndices), pureOperators.toArray(PureOperator[]::new), streamIndices.get(0),
-                    streams.get(0), totalEntries);
-        } else {
-            return new MultiStreamObject(keys, toIntArray(valueIndices), values.toArray(Value[]::new),
-                    toIntArray(pureIndices), pureOperators.toArray(PureOperator[]::new), toIntArray(streamIndices),
-                    streams.toArray(StreamOperator[]::new), totalEntries);
+        if (cat.streamCount() == 0) {
+            return new AllPureObject(keys, cat.valueIndices(), cat.values(), cat.pureIndices(), cat.pureOperators(),
+                    cat.totalCount(), location);
         }
+        if (cat.hasSingleStream()) {
+            return new SingleStreamObject(keys, cat.valueIndices(), cat.values(), cat.pureIndices(),
+                    cat.pureOperators(), cat.streamIndices()[0], cat.streams()[0], cat.totalCount());
+        }
+        return new MultiStreamObject(keys, cat.valueIndices(), cat.values(), cat.pureIndices(), cat.pureOperators(),
+                cat.streamIndices(), cat.streams(), cat.totalCount());
     }
 
-    private static ObjectValue buildObjectFromValues(String[] keys, List<Integer> valueIndices, List<Value> values) {
+    private static ObjectValue buildObjectFromValues(String[] keys, int[] valueIndices, Value[] values) {
         val builder = ObjectValue.builder();
-        for (int i = 0; i < valueIndices.size(); i++) {
-            val idx = valueIndices.get(i);
-            val v   = values.get(i);
+        for (int i = 0; i < valueIndices.length; i++) {
+            val idx = valueIndices[i];
+            val v   = values[i];
             if (!(v instanceof UndefinedValue)) {
                 builder.put(keys[idx], v);
             }

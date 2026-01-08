@@ -129,43 +129,7 @@ public class SubtemplateCompiler {
         // Create context with function broker for compile-time evaluation
         val baseCtx = new EvaluationContext(null, null, null, null, compilationCtx.getFunctionBroker(),
                 compilationCtx.getAttributeBroker());
-
-        if (parent instanceof ArrayValue arr) {
-            if (arr.isEmpty()) {
-                return arr;
-            }
-            val builder = ArrayValue.builder();
-            for (int i = 0; i < arr.size(); i++) {
-                val element = arr.get(i);
-                val ctx     = baseCtx.withRelativeValue(element, Value.of(i));
-                val result  = template.evaluate(ctx);
-                if (result instanceof ErrorValue) {
-                    return result;
-                }
-                builder.add(result);
-            }
-            return builder.build();
-        }
-
-        if (parent instanceof ObjectValue obj) {
-            if (obj.isEmpty()) {
-                return Value.EMPTY_ARRAY;
-            }
-            val builder = ArrayValue.builder();
-            for (val entry : obj.entrySet()) {
-                val ctx    = baseCtx.withRelativeValue(entry.getValue(), Value.of(entry.getKey()));
-                val result = template.evaluate(ctx);
-                if (result instanceof ErrorValue) {
-                    return result;
-                }
-                builder.add(result);
-            }
-            return builder.build();
-        }
-
-        // Scalar: apply template once with @ = parent, # = 0
-        val ctx = baseCtx.withRelativeValue(parent, Value.of(0));
-        return template.evaluate(ctx);
+        return applyPureTemplate(parent, template, baseCtx);
     }
 
     /**

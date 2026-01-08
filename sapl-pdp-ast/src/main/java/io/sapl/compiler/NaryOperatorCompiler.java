@@ -129,6 +129,56 @@ public class NaryOperatorCompiler {
     }
 
     /**
+     * Evaluates pure operators and folds them with an initial value using the given
+     * operation.
+     *
+     * @return the folded result (may be null if initial is null and pures is
+     * empty),
+     * or ErrorValue if evaluation fails
+     */
+    private static Value evaluateAndFoldPures(Value initial, List<PureOperator> pures, BinaryOperation op,
+            SourceLocation location, EvaluationContext ctx) {
+        Value result = initial;
+        for (var pure : pures) {
+            var pv = pure.evaluate(ctx);
+            if (pv instanceof ErrorValue) {
+                return pv;
+            }
+            result = result == null ? pv : op.apply(result, pv, location);
+            if (result instanceof ErrorValue) {
+                return result;
+            }
+        }
+        return result;
+    }
+
+    /**
+     * Folds stream values with an initial value, collecting attributes along the
+     * way.
+     *
+     * @return TracedValue with folded result and accumulated attributes
+     */
+    private static TracedValue foldStreamValues(Value initial, Object[] emittedValues, BinaryOperation op,
+            SourceLocation location) {
+        var   attributes = new ArrayList<AttributeRecord>();
+        Value result     = initial;
+
+        for (var obj : emittedValues) {
+            var tv = (TracedValue) obj;
+            attributes.addAll(tv.contributingAttributes());
+            var v = tv.value();
+            if (v instanceof ErrorValue) {
+                return new TracedValue(v, attributes);
+            }
+            result = result == null ? v : op.apply(result, v, location);
+            if (result instanceof ErrorValue) {
+                return new TracedValue(result, attributes);
+            }
+        }
+        return new TracedValue(result, attributes);
+    }
+
+    /**
      * N-ary operation with only Value and Pure operands (no streams).
      * <p>
      * At runtime: evaluates all pures, folding with the pre-computed valueResult.
@@ -143,18 +193,7 @@ public class NaryOperatorCompiler {
 
         @Override
         public Value evaluate(EvaluationContext ctx) {
-            Value result = valueResult;
-            for (var pure : pures) {
-                var pv = pure.evaluate(ctx);
-                if (pv instanceof ErrorValue) {
-                    return pv; // Propagate error
-                }
-                result = result == null ? pv : op.apply(result, pv, location);
-                if (result instanceof ErrorValue) {
-                    return result; // Type mismatch
-                }
-            }
-            return result;
+            return evaluateAndFoldPures(valueResult, pures, op, location, ctx);
         }
     }
 
@@ -180,40 +219,17 @@ public class NaryOperatorCompiler {
                 val evalCtx = ctx.get(EvaluationContext.class);
 
                 // Evaluate pures first (before subscribing to streams)
-                Value preCombined = valueResult;
-                for (var pure : pures) {
-                    var pv = pure.evaluate(evalCtx);
-                    if (pv instanceof ErrorValue) {
-                        return Flux.just(new TracedValue(pv, List.of()));
-                    }
-                    preCombined = preCombined == null ? pv : op.apply(preCombined, pv, location);
-                    if (preCombined instanceof ErrorValue) {
-                        return Flux.just(new TracedValue(preCombined, List.of()));
-                    }
+                var preCombined = evaluateAndFoldPures(valueResult, pures, op, location, evalCtx);
+                if (preCombined instanceof ErrorValue) {
+                    return Flux.just(new TracedValue(preCombined, List.of()));
                 }
 
                 // Subscribe to all streams with combineLatest
                 var streamFluxes     = streams.stream().map(StreamOperator::stream).toList();
                 val finalPreCombined = preCombined;
 
-                return Flux.combineLatest(streamFluxes, emittedValues -> {
-                    var   attributes = new ArrayList<AttributeRecord>();
-                    Value result     = finalPreCombined;
-
-                    for (var obj : emittedValues) {
-                        var tv = (TracedValue) obj;
-                        attributes.addAll(tv.contributingAttributes());
-                        var v = tv.value();
-                        if (v instanceof ErrorValue) {
-                            return new TracedValue(v, attributes);
-                        }
-                        result = result == null ? v : op.apply(result, v, location);
-                        if (result instanceof ErrorValue) {
-                            return new TracedValue(result, attributes);
-                        }
-                    }
-                    return new TracedValue(result, attributes);
-                });
+                return Flux.combineLatest(streamFluxes,
+                        emittedValues -> foldStreamValues(finalPreCombined, emittedValues, op, location));
             });
         }
     }

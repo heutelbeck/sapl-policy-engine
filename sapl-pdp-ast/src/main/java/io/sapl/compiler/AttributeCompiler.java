@@ -91,72 +91,44 @@ public class AttributeCompiler {
         boolean entityIsPure   = entity instanceof PureOperator;
         Value   entityValue    = entity instanceof Value v ? v : null;
 
-        val streamIndices = new ArrayList<Integer>();
-        val streams       = new ArrayList<StreamOperator>();
-        val pureIndices   = new ArrayList<Integer>();
-        val pureOperators = new ArrayList<PureOperator>();
-        val valueIndices  = new ArrayList<Integer>();
-        val values        = new ArrayList<Value>();
-
-        for (int i = 0; i < arguments.size(); i++) {
-            switch (arguments.get(i)) {
-            case Value v          -> {
-                valueIndices.add(i);
-                values.add(v);
-            }
-            case PureOperator p   -> {
-                pureIndices.add(i);
-                pureOperators.add(p);
-            }
-            case StreamOperator s -> {
-                streamIndices.add(i);
-                streams.add(s);
-            }
-            }
-        }
-
-        int totalArgs   = arguments.size();
-        int streamCount = streams.size() + (entityIsStream ? 1 : 0);
+        val cat         = ArrayCompiler.CategorizedExpressions.categorize(arguments);
+        int streamCount = cat.streamCount() + (entityIsStream ? 1 : 0);
 
         if (streamCount == 0) {
             return new AllPureAttribute(attributeName, entityValue, entityIsPure ? (PureOperator) entity : null,
-                    toIntArray(valueIndices), values.toArray(Value[]::new), toIntArray(pureIndices),
-                    pureOperators.toArray(PureOperator[]::new), totalArgs, options, head, location);
-        } else if (streamCount == 1) {
-            if (entityIsStream) {
-                return new EntityStreamAttribute(attributeName, (StreamOperator) entity, toIntArray(valueIndices),
-                        values.toArray(Value[]::new), toIntArray(pureIndices),
-                        pureOperators.toArray(PureOperator[]::new), totalArgs, options, head, location);
-            } else {
-                return new SingleStreamAttribute(attributeName, entityValue,
-                        entityIsPure ? (PureOperator) entity : null, toIntArray(valueIndices),
-                        values.toArray(Value[]::new), toIntArray(pureIndices),
-                        pureOperators.toArray(PureOperator[]::new), streamIndices.get(0), streams.get(0), totalArgs,
-                        options, head, location);
-            }
-        } else {
-            val allStreams       = new ArrayList<StreamOperator>(streamCount);
-            val allStreamIndices = new ArrayList<Integer>(streamCount);
-            if (entityIsStream) {
-                allStreams.add((StreamOperator) entity);
-                allStreamIndices.add(-1);
-            }
-            allStreams.addAll(streams);
-            allStreamIndices.addAll(streamIndices);
-
-            return new MultiStreamAttribute(attributeName, entityValue, entityIsPure ? (PureOperator) entity : null,
-                    toIntArray(valueIndices), values.toArray(Value[]::new), toIntArray(pureIndices),
-                    pureOperators.toArray(PureOperator[]::new), toIntArray(allStreamIndices),
-                    allStreams.toArray(StreamOperator[]::new), totalArgs, options, head, location);
+                    cat.valueIndices(), cat.values(), cat.pureIndices(), cat.pureOperators(), cat.totalCount(), options,
+                    head, location);
         }
+        if (streamCount == 1 && entityIsStream) {
+            return new EntityStreamAttribute(attributeName, (StreamOperator) entity, cat.valueIndices(), cat.values(),
+                    cat.pureIndices(), cat.pureOperators(), cat.totalCount(), options, head, location);
+        }
+        if (streamCount == 1) {
+            return new SingleStreamAttribute(attributeName, entityValue, entityIsPure ? (PureOperator) entity : null,
+                    cat.valueIndices(), cat.values(), cat.pureIndices(), cat.pureOperators(), cat.streamIndices()[0],
+                    cat.streams()[0], cat.totalCount(), options, head, location);
+        }
+        return buildMultiStreamAttribute(entity, entityIsStream, entityIsPure, entityValue, cat, attributeName, options,
+                head, location);
     }
 
-    private static int[] toIntArray(List<Integer> list) {
-        int[] arr = new int[list.size()];
-        for (int i = 0; i < list.size(); i++) {
-            arr[i] = list.get(i);
+    private static MultiStreamAttribute buildMultiStreamAttribute(CompiledExpression entity, boolean entityIsStream,
+            boolean entityIsPure, Value entityValue, ArrayCompiler.CategorizedExpressions cat, String attributeName,
+            CompiledExpression options, boolean head, SourceLocation location) {
+        int   entityOffset     = entityIsStream ? 1 : 0;
+        int[] allStreamIndices = new int[cat.streamCount() + entityOffset];
+        var   allStreams       = new StreamOperator[cat.streamCount() + entityOffset];
+
+        if (entityIsStream) {
+            allStreamIndices[0] = -1;
+            allStreams[0]       = (StreamOperator) entity;
         }
-        return arr;
+        System.arraycopy(cat.streamIndices(), 0, allStreamIndices, entityOffset, cat.streamCount());
+        System.arraycopy(cat.streams(), 0, allStreams, entityOffset, cat.streamCount());
+
+        return new MultiStreamAttribute(attributeName, entityValue, entityIsPure ? (PureOperator) entity : null,
+                cat.valueIndices(), cat.values(), cat.pureIndices(), cat.pureOperators(), allStreamIndices, allStreams,
+                cat.totalCount(), options, head, location);
     }
 
     public record AllPureAttribute(

@@ -62,53 +62,21 @@ public class ArrayCompiler {
      * @return appropriate CompiledExpression based on element types
      */
     static CompiledExpression buildFromCompiled(List<CompiledExpression> compiled, SourceLocation location) {
-        val streamIndices = new ArrayList<Integer>();
-        val streams       = new ArrayList<StreamOperator>();
-        val pureIndices   = new ArrayList<Integer>();
-        val pureOperators = new ArrayList<PureOperator>();
-        val valueIndices  = new ArrayList<Integer>();
-        val values        = new ArrayList<Value>();
+        val cat = CategorizedExpressions.categorize(compiled);
 
-        for (int i = 0; i < compiled.size(); i++) {
-            switch (compiled.get(i)) {
-            case Value v          -> {
-                valueIndices.add(i);
-                values.add(v);
-            }
-            case PureOperator p   -> {
-                pureIndices.add(i);
-                pureOperators.add(p);
-            }
-            case StreamOperator s -> {
-                streamIndices.add(i);
-                streams.add(s);
-            }
-            }
+        if (cat.hasOnlyValues()) {
+            return buildArrayFromValues(List.of(cat.values()));
         }
-
-        int streamCount   = streams.size();
-        int totalElements = compiled.size();
-
-        switch (streamCount) {
-        case 0  -> {
-            if (pureOperators.isEmpty()) {
-                // All values - build array directly, dropping undefined
-                return buildArrayFromValues(values);
-            }
-            return new AllPureArray(toIntArray(valueIndices), values.toArray(Value[]::new), toIntArray(pureIndices),
-                    pureOperators.toArray(PureOperator[]::new), totalElements, location);
+        if (cat.streamCount() == 0) {
+            return new AllPureArray(cat.valueIndices(), cat.values(), cat.pureIndices(), cat.pureOperators(),
+                    cat.totalCount(), location);
         }
-        case 1  -> {
-            return new SingleStreamArray(toIntArray(valueIndices), values.toArray(Value[]::new),
-                    toIntArray(pureIndices), pureOperators.toArray(PureOperator[]::new), streamIndices.getFirst(),
-                    streams.getFirst(), totalElements);
+        if (cat.hasSingleStream()) {
+            return new SingleStreamArray(cat.valueIndices(), cat.values(), cat.pureIndices(), cat.pureOperators(),
+                    cat.streamIndices()[0], cat.streams()[0], cat.totalCount());
         }
-        default -> {
-            return new MultiStreamArray(toIntArray(valueIndices), values.toArray(Value[]::new), toIntArray(pureIndices),
-                    pureOperators.toArray(PureOperator[]::new), toIntArray(streamIndices),
-                    streams.toArray(StreamOperator[]::new), totalElements);
-        }
-        }
+        return new MultiStreamArray(cat.valueIndices(), cat.values(), cat.pureIndices(), cat.pureOperators(),
+                cat.streamIndices(), cat.streams(), cat.totalCount());
     }
 
     private static ArrayValue buildArrayFromValues(List<Value> values) {
@@ -127,6 +95,63 @@ public class ArrayCompiler {
             arr[i] = list.get(i);
         }
         return arr;
+    }
+
+    /**
+     * Categorizes compiled expressions into Value, PureOperator, and StreamOperator
+     * strata.
+     * Used by ArrayCompiler, ObjectCompiler, and AttributeCompiler.
+     */
+    record CategorizedExpressions(
+            int[] valueIndices,
+            Value[] values,
+            int[] pureIndices,
+            PureOperator[] pureOperators,
+            int[] streamIndices,
+            StreamOperator[] streams,
+            int totalCount) {
+
+        static CategorizedExpressions categorize(List<CompiledExpression> compiled) {
+            val streamIndices = new ArrayList<Integer>();
+            val streams       = new ArrayList<StreamOperator>();
+            val pureIndices   = new ArrayList<Integer>();
+            val pureOperators = new ArrayList<PureOperator>();
+            val valueIndices  = new ArrayList<Integer>();
+            val values        = new ArrayList<Value>();
+
+            for (int i = 0; i < compiled.size(); i++) {
+                switch (compiled.get(i)) {
+                case Value v          -> {
+                    valueIndices.add(i);
+                    values.add(v);
+                }
+                case PureOperator p   -> {
+                    pureIndices.add(i);
+                    pureOperators.add(p);
+                }
+                case StreamOperator s -> {
+                    streamIndices.add(i);
+                    streams.add(s);
+                }
+                }
+            }
+
+            return new CategorizedExpressions(toIntArray(valueIndices), values.toArray(Value[]::new),
+                    toIntArray(pureIndices), pureOperators.toArray(PureOperator[]::new), toIntArray(streamIndices),
+                    streams.toArray(StreamOperator[]::new), compiled.size());
+        }
+
+        int streamCount() {
+            return streams.length;
+        }
+
+        boolean hasOnlyValues() {
+            return pureOperators.length == 0 && streams.length == 0;
+        }
+
+        boolean hasSingleStream() {
+            return streams.length == 1;
+        }
     }
 
     /**
