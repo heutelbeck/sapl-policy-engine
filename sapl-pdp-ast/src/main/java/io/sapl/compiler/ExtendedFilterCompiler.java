@@ -23,6 +23,8 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.function.BiFunction;
 import java.util.function.UnaryOperator;
 
 import io.sapl.api.model.*;
@@ -33,9 +35,9 @@ import lombok.val;
 @UtilityClass
 public class ExtendedFilterCompiler {
 
-    private static final int   MAX_RECURSION_DEPTH              = 500;
-    public static final String MAXIMUM_RECURSION_DEPTH_EXCEEDED = "Maximum recursion depth exceeded";
-    public static final ErrorValue UNIMPLEMENTED = Value.error("unimplemented");
+    private static final int       MAX_RECURSION_DEPTH              = 500;
+    public static final String     MAXIMUM_RECURSION_DEPTH_EXCEEDED = "Maximum recursion depth exceeded";
+    public static final ErrorValue UNIMPLEMENTED                    = Value.error("unimplemented");
 
     public static CompiledExpression compile(ExtendedFilter ef, CompilationContext ctx) {
         val compiledBase = ExpressionCompiler.compile(ef.base(), ctx);
@@ -53,40 +55,52 @@ public class ExtendedFilterCompiler {
         val path         = ef.target().elements();
         val location     = ef.location();
         val pathAnalysis = analyzePath(path, ctx);
-
-        val canFoldPath = !pathAnalysis.isDependingOnSubscription();
+        val canFoldPath  = !pathAnalysis.isDependingOnSubscription();
 
         return switch (compiledBase) {
-        case Value vb           -> switch (compiledFilter) {
-                            case Value vf when canFoldPath                                                 ->
-                                evaluateValueValue(vb, vf, path, pathAnalysis, location, ctx);
-                            case Value vf                                                                  ->
-                                UNIMPLEMENTED; // Value × Value with sub-dep path
-                            case PureOperator pof when !pof.isDependingOnSubscription() && canFoldPath     ->
-                                evaluateValuePureFold(vb, pof, path, pathAnalysis, location, ctx);
-                            case PureOperator pof                                                          ->
-                                new ExtendedFilterValuePure(vb, pof, path, pathAnalysis, location);
-                            case StreamOperator sof                                                        ->
-                                UNIMPLEMENTED;
-                            };
-        case PureOperator pob   -> switch (compiledFilter) {
-                            case Value vf               -> UNIMPLEMENTED;
-                            case PureOperator pof       -> UNIMPLEMENTED;
-                            case StreamOperator sof     -> UNIMPLEMENTED;
-                            };
-        case StreamOperator sob -> switch (compiledFilter) {
-                            case Value vf               -> UNIMPLEMENTED;
-                            case PureOperator pof       -> UNIMPLEMENTED;
-                            case StreamOperator sof     -> UNIMPLEMENTED;
-                            };
+        case Value vb           -> compileValueBase(vb, compiledFilter, canFoldPath, path, pathAnalysis, location, ctx);
+        case PureOperator pob   -> compilePureBase(compiledFilter);
+        case StreamOperator sob -> compileStreamBase(compiledFilter);
         };
+    }
+
+    private static CompiledExpression compileValueBase(Value base, CompiledExpression filter, boolean canFoldPath,
+            List<PathElement> path, PathAnalysis pathAnalysis, SourceLocation location, CompilationContext ctx) {
+        return switch (filter) {
+        case Value vf when canFoldPath                                             ->
+            evaluateValueValue(base, vf, path, pathAnalysis, location, ctx);
+        case Value vf                                                              -> UNIMPLEMENTED;
+        case PureOperator pof when !pof.isDependingOnSubscription() && canFoldPath ->
+            evaluateValuePureFold(base, pof, path, pathAnalysis, location, ctx);
+        case PureOperator pof                                                      ->
+            new ExtendedFilterValuePure(base, pof, path, pathAnalysis, location);
+        case StreamOperator sof                                                    -> UNIMPLEMENTED;
+        };
+    }
+
+    private static CompiledExpression compilePureBase(CompiledExpression filter) {
+        return UNIMPLEMENTED;
+    }
+
+    private static CompiledExpression compileStreamBase(CompiledExpression filter) {
+        return UNIMPLEMENTED;
     }
 
     private static Value evaluateValueValue(Value base, Value filter, List<PathElement> path, PathAnalysis pathAnalysis,
             SourceLocation location, CompilationContext ctx) {
-        val evalCtx = new EvaluationContext(null, null, null, null, ctx.getFunctionBroker(), ctx.getAttributeBroker())
-                .withRelativeValue(base);
+        val evalCtx = createFoldingContext(ctx).withRelativeValue(base);
         return navigateAndApply(base, current -> filter, path, pathAnalysis, location, evalCtx);
+    }
+
+    private static CompiledExpression evaluateValuePureFold(Value base, PureOperator filter, List<PathElement> path,
+            PathAnalysis pathAnalysis, SourceLocation location, CompilationContext ctx) {
+        val evalCtx = createFoldingContext(ctx).withRelativeValue(base);
+        return navigateAndApply(base, current -> filter.evaluate(evalCtx.withRelativeValue(current)), path,
+                pathAnalysis, location, evalCtx);
+    }
+
+    private static EvaluationContext createFoldingContext(CompilationContext ctx) {
+        return new EvaluationContext(null, null, null, null, ctx.getFunctionBroker(), ctx.getAttributeBroker());
     }
 
     record ExtendedFilterValuePure(
@@ -108,14 +122,6 @@ public class ExtendedFilterCompiler {
         }
     }
 
-    private static CompiledExpression evaluateValuePureFold(Value base, PureOperator filter, List<PathElement> path,
-            PathAnalysis pathAnalysis, SourceLocation location, CompilationContext ctx) {
-        val evalCtx = new EvaluationContext(null, null, null, null, ctx.getFunctionBroker(), ctx.getAttributeBroker())
-                .withRelativeValue(base);
-        return navigateAndApply(base, current -> filter.evaluate(evalCtx.withRelativeValue(current)), path,
-                pathAnalysis, location, evalCtx);
-    }
-
     private static Value navigateAndApply(Value current, UnaryOperator<Value> terminal, List<PathElement> path,
             PathAnalysis pathAnalysis, SourceLocation location, EvaluationContext evalCtx) {
         if (current instanceof ErrorValue) {
@@ -128,29 +134,29 @@ public class ExtendedFilterCompiler {
         val tail = path.subList(1, path.size());
         return switch (head) {
         case KeyPath kp                ->
-            consumeKey(current, kp.key(), terminal, tail, pathAnalysis, location, evalCtx);
+            navigateKey(current, kp.key(), terminal, tail, pathAnalysis, location, evalCtx);
         case IndexPath ip              ->
-            consumeIndex(current, ip.index(), terminal, tail, pathAnalysis, location, evalCtx);
-        case WildcardPath wp           -> consumeWildcard(current, terminal, tail, pathAnalysis, location, evalCtx);
+            navigateIndex(current, ip.index(), terminal, tail, pathAnalysis, location, evalCtx);
+        case WildcardPath wp           -> navigateWildcard(current, terminal, tail, pathAnalysis, location, evalCtx);
         case AttributeUnionPath aup    ->
-            consumeAttributeUnion(current, aup.keys(), terminal, tail, pathAnalysis, location, evalCtx);
+            navigateAttributeUnion(current, aup.keys(), terminal, tail, pathAnalysis, location, evalCtx);
         case IndexUnionPath iup        ->
-            consumeIndexUnion(current, iup.indices(), terminal, tail, pathAnalysis, location, evalCtx);
-        case SlicePath sp              -> consumeSlice(current, sp, terminal, tail, pathAnalysis, location, evalCtx);
+            navigateIndexUnion(current, iup.indices(), terminal, tail, pathAnalysis, location, evalCtx);
+        case SlicePath sp              -> navigateSlice(current, sp, terminal, tail, pathAnalysis, location, evalCtx);
         case RecursiveKeyPath rkp      ->
-            consumeRecursiveKey(current, rkp.key(), terminal, tail, pathAnalysis, location, evalCtx, 0);
+            navigateRecursiveKey(current, rkp.key(), terminal, tail, pathAnalysis, location, evalCtx, 0);
         case RecursiveIndexPath rip    ->
-            consumeRecursiveIndex(current, rip.index(), terminal, tail, pathAnalysis, location, evalCtx, 0);
+            navigateRecursiveIndex(current, rip.index(), terminal, tail, pathAnalysis, location, evalCtx, 0);
         case RecursiveWildcardPath rwp ->
-            consumeRecursiveWildcard(current, terminal, tail, pathAnalysis, location, evalCtx, 0);
+            navigateRecursiveWildcard(current, terminal, tail, pathAnalysis, location, evalCtx, 0);
         case ExpressionPath ep         ->
-            consumeExpression(current, ep, terminal, tail, pathAnalysis, location, evalCtx);
+            navigateExpression(current, ep, terminal, tail, pathAnalysis, location, evalCtx);
         case ConditionPath cp          ->
-            consumeCondition(current, cp, terminal, tail, pathAnalysis, location, evalCtx);
+            navigateCondition(current, cp, terminal, tail, pathAnalysis, location, evalCtx);
         };
     }
 
-    private static Value consumeKey(Value current, String key, UnaryOperator<Value> terminal, List<PathElement> tail,
+    private static Value navigateKey(Value current, String key, UnaryOperator<Value> terminal, List<PathElement> tail,
             PathAnalysis pathAnalysis, SourceLocation location, EvaluationContext evalCtx) {
         if (!(current instanceof ObjectValue obj)) {
             return current;
@@ -160,79 +166,319 @@ public class ExtendedFilterCompiler {
             return current;
         }
         val result = navigateAndApply(child, terminal, tail, pathAnalysis, location, evalCtx);
-        if (result instanceof ErrorValue) {
-            return result;
-        }
-        if (result instanceof UndefinedValue) {
-            return rebuildObjectWithout(obj, key);
-        }
-        return rebuildObjectWith(obj, key, result);
+        return replaceObjectKey(obj, key, result);
     }
 
-    private static Value consumeIndex(Value current, int index, UnaryOperator<Value> terminal, List<PathElement> tail,
+    private static Value navigateIndex(Value current, int index, UnaryOperator<Value> terminal, List<PathElement> tail,
             PathAnalysis pathAnalysis, SourceLocation location, EvaluationContext evalCtx) {
         if (!(current instanceof ArrayValue arr)) {
             return current;
         }
-        int actualIndex = index >= 0 ? index : arr.size() + index;
+        int actualIndex = normalizeArrayIndex(index, arr.size());
         if (actualIndex < 0 || actualIndex >= arr.size()) {
             return current;
         }
         val result = navigateAndApply(arr.get(actualIndex), terminal, tail, pathAnalysis, location, evalCtx);
-        if (result instanceof ErrorValue) {
-            return result;
-        }
-        if (result instanceof UndefinedValue) {
-            return rebuildArrayWithout(arr, actualIndex);
-        }
-        return rebuildArrayWith(arr, actualIndex, result);
+        return replaceArrayIndex(arr, actualIndex, result);
     }
 
-    private static Value consumeWildcard(Value current, UnaryOperator<Value> terminal, List<PathElement> tail,
+    private static Value navigateWildcard(Value current, UnaryOperator<Value> terminal, List<PathElement> tail,
             PathAnalysis pathAnalysis, SourceLocation location, EvaluationContext evalCtx) {
         if (current instanceof ArrayValue arr) {
-            val builder = ArrayValue.builder();
-            for (int i = 0; i < arr.size(); i++) {
-                val element  = arr.get(i);
+            return transformAllArrayElements(arr, evalCtx,
+                    (element, ctx) -> navigateAndApply(element, terminal, tail, pathAnalysis, location, ctx));
+        }
+        if (current instanceof ObjectValue obj) {
+            return transformAllObjectEntries(obj, evalCtx,
+                    (value, ctx) -> navigateAndApply(value, terminal, tail, pathAnalysis, location, ctx));
+        }
+        return current;
+    }
+
+    private static Value navigateAttributeUnion(Value current, List<String> keys, UnaryOperator<Value> terminal,
+            List<PathElement> tail, PathAnalysis pathAnalysis, SourceLocation location, EvaluationContext evalCtx) {
+        if (!(current instanceof ObjectValue obj)) {
+            return current;
+        }
+        return transformSelectedObjectEntries(obj, new HashSet<>(keys), evalCtx,
+                (value, ctx) -> navigateAndApply(value, terminal, tail, pathAnalysis, location, ctx));
+    }
+
+    private static Value navigateIndexUnion(Value current, List<Integer> indices, UnaryOperator<Value> terminal,
+            List<PathElement> tail, PathAnalysis pathAnalysis, SourceLocation location, EvaluationContext evalCtx) {
+        if (!(current instanceof ArrayValue arr)) {
+            return current;
+        }
+        val indexSet = normalizeIndexSet(indices, arr.size());
+        return transformSelectedArrayElements(arr, indexSet, evalCtx,
+                (element, ctx) -> navigateAndApply(element, terminal, tail, pathAnalysis, location, ctx));
+    }
+
+    private static Value navigateSlice(Value current, SlicePath slice, UnaryOperator<Value> terminal,
+            List<PathElement> tail, PathAnalysis pathAnalysis, SourceLocation location, EvaluationContext evalCtx) {
+        if (!(current instanceof ArrayValue arr)) {
+            return current;
+        }
+        val indexSet = computeSliceIndexSet(arr.size(), slice.from(), slice.to(), slice.step());
+        if (indexSet.isEmpty()) {
+            return current;
+        }
+        return transformSelectedArrayElements(arr, indexSet, evalCtx,
+                (element, ctx) -> navigateAndApply(element, terminal, tail, pathAnalysis, location, ctx));
+    }
+
+    private static Value navigateExpression(Value current, ExpressionPath ep, UnaryOperator<Value> terminal,
+            List<PathElement> tail, PathAnalysis pathAnalysis, SourceLocation location, EvaluationContext evalCtx) {
+        val indexValue = evaluatePathExpression(ep, pathAnalysis, evalCtx);
+        if (indexValue instanceof ErrorValue || indexValue instanceof UndefinedValue) {
+            return indexValue instanceof ErrorValue ? indexValue : current;
+        }
+        if (indexValue instanceof NumberValue(BigDecimal number)) {
+            return navigateIndex(current, number.intValue(), terminal, tail, pathAnalysis, location, evalCtx);
+        }
+        if (indexValue instanceof TextValue(String text)) {
+            return navigateKey(current, text, terminal, tail, pathAnalysis, location, evalCtx);
+        }
+        return current;
+    }
+
+    private static Value navigateCondition(Value current, ConditionPath cp, UnaryOperator<Value> terminal,
+            List<PathElement> tail, PathAnalysis pathAnalysis, SourceLocation location, EvaluationContext evalCtx) {
+        if (current instanceof ArrayValue arr) {
+            return filterArrayByCondition(arr, cp, pathAnalysis, evalCtx,
+                    (element, ctx) -> navigateAndApply(element, terminal, tail, pathAnalysis, location, ctx));
+        }
+        if (current instanceof ObjectValue obj) {
+            return filterObjectByCondition(obj, cp, pathAnalysis, evalCtx,
+                    (value, ctx) -> navigateAndApply(value, terminal, tail, pathAnalysis, location, ctx));
+        }
+        return current;
+    }
+
+    private static Value navigateRecursiveKey(Value current, String key, UnaryOperator<Value> terminal,
+            List<PathElement> tail, PathAnalysis pathAnalysis, SourceLocation location, EvaluationContext evalCtx,
+            int depth) {
+        if (depth > MAX_RECURSION_DEPTH) {
+            return Value.errorAt(location, MAXIMUM_RECURSION_DEPTH_EXCEEDED);
+        }
+        if (current instanceof ObjectValue obj) {
+            return recursiveKeyInObject(obj, key, terminal, tail, pathAnalysis, location, evalCtx, depth);
+        }
+        if (current instanceof ArrayValue arr) {
+            return recursiveKeyInArray(arr, key, terminal, tail, pathAnalysis, location, evalCtx, depth);
+        }
+        return current;
+    }
+
+    private static Value recursiveKeyInObject(ObjectValue obj, String key, UnaryOperator<Value> terminal,
+            List<PathElement> tail, PathAnalysis pathAnalysis, SourceLocation location, EvaluationContext evalCtx,
+            int depth) {
+        val builder = ObjectValue.builder();
+        for (val entry : obj.entrySet()) {
+            Value result;
+            if (entry.getKey().equals(key)) {
+                result = navigateAndApply(entry.getValue(), terminal, tail, pathAnalysis, location, evalCtx);
+            } else {
+                result = navigateRecursiveKey(entry.getValue(), key, terminal, tail, pathAnalysis, location, evalCtx,
+                        depth + 1);
+            }
+            if (result instanceof ErrorValue) {
+                return result;
+            }
+            if (!(result instanceof UndefinedValue)) {
+                builder.put(entry.getKey(), result);
+            }
+        }
+        return builder.build();
+    }
+
+    private static Value recursiveKeyInArray(ArrayValue arr, String key, UnaryOperator<Value> terminal,
+            List<PathElement> tail, PathAnalysis pathAnalysis, SourceLocation location, EvaluationContext evalCtx,
+            int depth) {
+        val builder = ArrayValue.builder();
+        for (val element : arr) {
+            val result = navigateRecursiveKey(element, key, terminal, tail, pathAnalysis, location, evalCtx, depth + 1);
+            if (result instanceof ErrorValue) {
+                return result;
+            }
+            if (!(result instanceof UndefinedValue)) {
+                builder.add(result);
+            }
+        }
+        return builder.build();
+    }
+
+    private static Value navigateRecursiveIndex(Value current, int index, UnaryOperator<Value> terminal,
+            List<PathElement> tail, PathAnalysis pathAnalysis, SourceLocation location, EvaluationContext evalCtx,
+            int depth) {
+        if (depth > MAX_RECURSION_DEPTH) {
+            return Value.errorAt(location, MAXIMUM_RECURSION_DEPTH_EXCEEDED);
+        }
+        if (current instanceof ArrayValue arr) {
+            return recursiveIndexInArray(arr, index, terminal, tail, pathAnalysis, location, evalCtx, depth);
+        }
+        if (current instanceof ObjectValue obj) {
+            return recursiveIndexInObject(obj, index, terminal, tail, pathAnalysis, location, evalCtx, depth);
+        }
+        return current;
+    }
+
+    private static Value recursiveIndexInArray(ArrayValue arr, int index, UnaryOperator<Value> terminal,
+            List<PathElement> tail, PathAnalysis pathAnalysis, SourceLocation location, EvaluationContext evalCtx,
+            int depth) {
+        int actualIndex = normalizeArrayIndex(index, arr.size());
+        val builder     = ArrayValue.builder();
+        for (int i = 0; i < arr.size(); i++) {
+            Value result;
+            if (i == actualIndex) {
+                result = navigateAndApply(arr.get(i), terminal, tail, pathAnalysis, location, evalCtx);
+            } else {
+                result = navigateRecursiveIndex(arr.get(i), index, terminal, tail, pathAnalysis, location, evalCtx,
+                        depth + 1);
+            }
+            if (result instanceof ErrorValue) {
+                return result;
+            }
+            if (!(result instanceof UndefinedValue)) {
+                builder.add(result);
+            }
+        }
+        return builder.build();
+    }
+
+    private static Value recursiveIndexInObject(ObjectValue obj, int index, UnaryOperator<Value> terminal,
+            List<PathElement> tail, PathAnalysis pathAnalysis, SourceLocation location, EvaluationContext evalCtx,
+            int depth) {
+        val builder = ObjectValue.builder();
+        for (val entry : obj.entrySet()) {
+            val result = navigateRecursiveIndex(entry.getValue(), index, terminal, tail, pathAnalysis, location,
+                    evalCtx, depth + 1);
+            if (result instanceof ErrorValue) {
+                return result;
+            }
+            if (!(result instanceof UndefinedValue)) {
+                builder.put(entry.getKey(), result);
+            }
+        }
+        return builder.build();
+    }
+
+    private static Value navigateRecursiveWildcard(Value current, UnaryOperator<Value> terminal, List<PathElement> tail,
+            PathAnalysis pathAnalysis, SourceLocation location, EvaluationContext evalCtx, int depth) {
+        if (depth > MAX_RECURSION_DEPTH) {
+            return Value.errorAt(location, MAXIMUM_RECURSION_DEPTH_EXCEEDED);
+        }
+        if (current instanceof ArrayValue arr) {
+            return recursiveWildcardInArray(arr, terminal, tail, pathAnalysis, location, evalCtx, depth);
+        }
+        if (current instanceof ObjectValue obj) {
+            return recursiveWildcardInObject(obj, terminal, tail, pathAnalysis, location, evalCtx, depth);
+        }
+        return current;
+    }
+
+    private static Value recursiveWildcardInArray(ArrayValue arr, UnaryOperator<Value> terminal, List<PathElement> tail,
+            PathAnalysis pathAnalysis, SourceLocation location, EvaluationContext evalCtx, int depth) {
+        val builder = ArrayValue.builder();
+        for (val element : arr) {
+            val recursed = navigateRecursiveWildcard(element, terminal, tail, pathAnalysis, location, evalCtx,
+                    depth + 1);
+            if (recursed instanceof ErrorValue) {
+                return recursed;
+            }
+            val result = navigateAndApply(recursed, terminal, tail, pathAnalysis, location, evalCtx);
+            if (result instanceof ErrorValue) {
+                return result;
+            }
+            if (!(result instanceof UndefinedValue)) {
+                builder.add(result);
+            }
+        }
+        return builder.build();
+    }
+
+    private static Value recursiveWildcardInObject(ObjectValue obj, UnaryOperator<Value> terminal,
+            List<PathElement> tail, PathAnalysis pathAnalysis, SourceLocation location, EvaluationContext evalCtx,
+            int depth) {
+        val builder = ObjectValue.builder();
+        for (val entry : obj.entrySet()) {
+            val recursed = navigateRecursiveWildcard(entry.getValue(), terminal, tail, pathAnalysis, location, evalCtx,
+                    depth + 1);
+            if (recursed instanceof ErrorValue) {
+                return recursed;
+            }
+            val result = navigateAndApply(recursed, terminal, tail, pathAnalysis, location, evalCtx);
+            if (result instanceof ErrorValue) {
+                return result;
+            }
+            if (!(result instanceof UndefinedValue)) {
+                builder.put(entry.getKey(), result);
+            }
+        }
+        return builder.build();
+    }
+
+    private static Value transformAllArrayElements(ArrayValue arr, EvaluationContext evalCtx,
+            BiFunction<Value, EvaluationContext, Value> transform) {
+        val builder = ArrayValue.builder();
+        for (int i = 0; i < arr.size(); i++) {
+            val element  = arr.get(i);
+            val localCtx = evalCtx.withRelativeValue(element, Value.of(i));
+            val result   = transform.apply(element, localCtx);
+            if (result instanceof ErrorValue) {
+                return result;
+            }
+            if (!(result instanceof UndefinedValue)) {
+                builder.add(result);
+            }
+        }
+        return builder.build();
+    }
+
+    private static Value transformAllObjectEntries(ObjectValue obj, EvaluationContext evalCtx,
+            BiFunction<Value, EvaluationContext, Value> transform) {
+        val builder = ObjectValue.builder();
+        for (val entry : obj.entrySet()) {
+            val localCtx = evalCtx.withRelativeValue(entry.getValue(), Value.of(entry.getKey()));
+            val result   = transform.apply(entry.getValue(), localCtx);
+            if (result instanceof ErrorValue) {
+                return result;
+            }
+            if (!(result instanceof UndefinedValue)) {
+                builder.put(entry.getKey(), result);
+            }
+        }
+        return builder.build();
+    }
+
+    private static Value transformSelectedArrayElements(ArrayValue arr, Set<Integer> selectedIndices,
+            EvaluationContext evalCtx, BiFunction<Value, EvaluationContext, Value> transform) {
+        val builder = ArrayValue.builder();
+        for (int i = 0; i < arr.size(); i++) {
+            val element = arr.get(i);
+            if (selectedIndices.contains(i)) {
                 val localCtx = evalCtx.withRelativeValue(element, Value.of(i));
-                val result   = navigateAndApply(element, terminal, tail, pathAnalysis, location, localCtx);
+                val result   = transform.apply(element, localCtx);
                 if (result instanceof ErrorValue) {
                     return result;
                 }
                 if (!(result instanceof UndefinedValue)) {
                     builder.add(result);
                 }
+            } else {
+                builder.add(element);
             }
-            return builder.build();
         }
-        if (current instanceof ObjectValue obj) {
-            val builder = ObjectValue.builder();
-            for (val entry : obj.entrySet()) {
-                val localCtx = evalCtx.withRelativeValue(entry.getValue(), Value.of(entry.getKey()));
-                val result   = navigateAndApply(entry.getValue(), terminal, tail, pathAnalysis, location, localCtx);
-                if (result instanceof ErrorValue) {
-                    return result;
-                }
-                if (!(result instanceof UndefinedValue)) {
-                    builder.put(entry.getKey(), result);
-                }
-            }
-            return builder.build();
-        }
-        return current;
+        return builder.build();
     }
 
-    private static Value consumeAttributeUnion(Value current, List<String> keys, UnaryOperator<Value> terminal,
-            List<PathElement> tail, PathAnalysis pathAnalysis, SourceLocation location, EvaluationContext evalCtx) {
-        if (!(current instanceof ObjectValue obj)) {
-            return current;
-        }
-        val keySet  = new HashSet<>(keys);
+    private static Value transformSelectedObjectEntries(ObjectValue obj, Set<String> selectedKeys,
+            EvaluationContext evalCtx, BiFunction<Value, EvaluationContext, Value> transform) {
         val builder = ObjectValue.builder();
         for (val entry : obj.entrySet()) {
-            if (keySet.contains(entry.getKey())) {
+            if (selectedKeys.contains(entry.getKey())) {
                 val localCtx = evalCtx.withRelativeValue(entry.getValue(), Value.of(entry.getKey()));
-                val result   = navigateAndApply(entry.getValue(), terminal, tail, pathAnalysis, location, localCtx);
+                val result   = transform.apply(entry.getValue(), localCtx);
                 if (result instanceof ErrorValue) {
                     return result;
                 }
@@ -246,24 +492,18 @@ public class ExtendedFilterCompiler {
         return builder.build();
     }
 
-    private static Value consumeIndexUnion(Value current, List<Integer> indices, UnaryOperator<Value> terminal,
-            List<PathElement> tail, PathAnalysis pathAnalysis, SourceLocation location, EvaluationContext evalCtx) {
-        if (!(current instanceof ArrayValue arr)) {
-            return current;
-        }
-        val indexSet = new HashSet<Integer>();
-        for (val idx : indices) {
-            int actual = idx >= 0 ? idx : arr.size() + idx;
-            if (actual >= 0 && actual < arr.size()) {
-                indexSet.add(actual);
-            }
-        }
+    private static Value filterArrayByCondition(ArrayValue arr, ConditionPath cp, PathAnalysis pathAnalysis,
+            EvaluationContext evalCtx, BiFunction<Value, EvaluationContext, Value> transform) {
         val builder = ArrayValue.builder();
         for (int i = 0; i < arr.size(); i++) {
-            val element = arr.get(i);
-            if (indexSet.contains(i)) {
-                val localCtx = evalCtx.withRelativeValue(element, Value.of(i));
-                val result   = navigateAndApply(element, terminal, tail, pathAnalysis, location, localCtx);
+            val element    = arr.get(i);
+            val localCtx   = evalCtx.withRelativeValue(element, Value.of(i));
+            val condResult = evaluatePathCondition(cp, pathAnalysis, localCtx);
+            if (condResult instanceof ErrorValue) {
+                return condResult;
+            }
+            if (condResult instanceof BooleanValue(boolean matches) && matches) {
+                val result = transform.apply(element, localCtx);
                 if (result instanceof ErrorValue) {
                     return result;
                 }
@@ -277,269 +517,71 @@ public class ExtendedFilterCompiler {
         return builder.build();
     }
 
-    private static Value consumeSlice(Value current, SlicePath slice, UnaryOperator<Value> terminal,
-            List<PathElement> tail, PathAnalysis pathAnalysis, SourceLocation location, EvaluationContext evalCtx) {
-        if (!(current instanceof ArrayValue arr)) {
-            return current;
-        }
-        val indices = computeSliceIndices(arr.size(), slice.from(), slice.to(), slice.step());
-        if (indices.isEmpty()) {
-            return current;
-        }
-        val indexSet = new HashSet<>(indices);
-        val builder  = ArrayValue.builder();
-        for (int i = 0; i < arr.size(); i++) {
-            val element = arr.get(i);
-            if (indexSet.contains(i)) {
-                val localCtx = evalCtx.withRelativeValue(element, Value.of(i));
-                val result   = navigateAndApply(element, terminal, tail, pathAnalysis, location, localCtx);
+    private static Value filterObjectByCondition(ObjectValue obj, ConditionPath cp, PathAnalysis pathAnalysis,
+            EvaluationContext evalCtx, BiFunction<Value, EvaluationContext, Value> transform) {
+        val builder = ObjectValue.builder();
+        for (val entry : obj.entrySet()) {
+            val localCtx   = evalCtx.withRelativeValue(entry.getValue(), Value.of(entry.getKey()));
+            val condResult = evaluatePathCondition(cp, pathAnalysis, localCtx);
+            if (condResult instanceof ErrorValue) {
+                return condResult;
+            }
+            if (condResult instanceof BooleanValue(boolean matches) && matches) {
+                val result = transform.apply(entry.getValue(), localCtx);
                 if (result instanceof ErrorValue) {
                     return result;
                 }
                 if (!(result instanceof UndefinedValue)) {
-                    builder.add(result);
-                }
-            } else {
-                builder.add(element);
-            }
-        }
-        return builder.build();
-    }
-
-    private static List<Integer> computeSliceIndices(int size, Integer from, Integer to, Integer step) {
-        int stepVal = step != null ? step : 1;
-        if (stepVal == 0) {
-            return List.of();
-        }
-        int fromVal = normalizeSliceIndex(from, size, stepVal > 0 ? 0 : size - 1);
-        int toVal   = normalizeSliceIndex(to, size, stepVal > 0 ? size : -size - 1);
-        val indices = new ArrayList<Integer>();
-        if (stepVal > 0) {
-            for (int i = fromVal; i < toVal && i < size; i += stepVal) {
-                if (i >= 0)
-                    indices.add(i);
-            }
-        } else {
-            for (int i = fromVal; i > toVal && i >= 0; i += stepVal) {
-                if (i < size)
-                    indices.add(i);
-            }
-        }
-        return indices;
-    }
-
-    private static int normalizeSliceIndex(Integer index, int size, int defaultVal) {
-        if (index == null)
-            return defaultVal;
-        if (index < 0)
-            return Math.max(0, size + index);
-        return Math.min(index, size);
-    }
-
-    private static Value consumeRecursiveKey(Value current, String key, UnaryOperator<Value> terminal,
-            List<PathElement> tail, PathAnalysis pathAnalysis, SourceLocation location, EvaluationContext evalCtx,
-            int depth) {
-        if (depth > MAX_RECURSION_DEPTH) {
-            return Value.errorAt(location, MAXIMUM_RECURSION_DEPTH_EXCEEDED);
-        }
-        if (current instanceof ObjectValue obj) {
-            val builder = ObjectValue.builder();
-            for (val entry : obj.entrySet()) {
-                if (entry.getKey().equals(key)) {
-                    val result = navigateAndApply(entry.getValue(), terminal, tail, pathAnalysis, location, evalCtx);
-                    if (result instanceof ErrorValue)
-                        return result;
-                    if (!(result instanceof UndefinedValue))
-                        builder.put(entry.getKey(), result);
-                } else {
-                    val recursed = consumeRecursiveKey(entry.getValue(), key, terminal, tail, pathAnalysis, location,
-                            evalCtx, depth + 1);
-                    if (recursed instanceof ErrorValue)
-                        return recursed;
-                    if (!(recursed instanceof UndefinedValue))
-                        builder.put(entry.getKey(), recursed);
-                }
-            }
-            return builder.build();
-        }
-        if (current instanceof ArrayValue arr) {
-            val builder = ArrayValue.builder();
-            for (val element : arr) {
-                val recursed = consumeRecursiveKey(element, key, terminal, tail, pathAnalysis, location, evalCtx,
-                        depth + 1);
-                if (recursed instanceof ErrorValue)
-                    return recursed;
-                if (!(recursed instanceof UndefinedValue))
-                    builder.add(recursed);
-            }
-            return builder.build();
-        }
-        return current;
-    }
-
-    private static Value consumeRecursiveIndex(Value current, int index, UnaryOperator<Value> terminal,
-            List<PathElement> tail, PathAnalysis pathAnalysis, SourceLocation location, EvaluationContext evalCtx,
-            int depth) {
-        if (depth > MAX_RECURSION_DEPTH) {
-            return Value.errorAt(location, MAXIMUM_RECURSION_DEPTH_EXCEEDED);
-        }
-        if (current instanceof ArrayValue arr) {
-            int actualIndex = index >= 0 ? index : arr.size() + index;
-            val builder     = ArrayValue.builder();
-            for (int i = 0; i < arr.size(); i++) {
-                if (i == actualIndex) {
-                    val result = navigateAndApply(arr.get(i), terminal, tail, pathAnalysis, location, evalCtx);
-                    if (result instanceof ErrorValue)
-                        return result;
-                    if (!(result instanceof UndefinedValue))
-                        builder.add(result);
-                } else {
-                    val recursed = consumeRecursiveIndex(arr.get(i), index, terminal, tail, pathAnalysis, location,
-                            evalCtx, depth + 1);
-                    if (recursed instanceof ErrorValue)
-                        return recursed;
-                    if (!(recursed instanceof UndefinedValue))
-                        builder.add(recursed);
-                }
-            }
-            return builder.build();
-        }
-        if (current instanceof ObjectValue obj) {
-            val builder = ObjectValue.builder();
-            for (val entry : obj.entrySet()) {
-                val recursed = consumeRecursiveIndex(entry.getValue(), index, terminal, tail, pathAnalysis, location,
-                        evalCtx, depth + 1);
-                if (recursed instanceof ErrorValue)
-                    return recursed;
-                if (!(recursed instanceof UndefinedValue))
-                    builder.put(entry.getKey(), recursed);
-            }
-            return builder.build();
-        }
-        return current;
-    }
-
-    private static Value consumeRecursiveWildcard(Value current, UnaryOperator<Value> terminal, List<PathElement> tail,
-            PathAnalysis pathAnalysis, SourceLocation location, EvaluationContext evalCtx, int depth) {
-        if (depth > MAX_RECURSION_DEPTH) {
-            return Value.errorAt(location, MAXIMUM_RECURSION_DEPTH_EXCEEDED);
-        }
-        if (current instanceof ArrayValue arr) {
-            val builder = ArrayValue.builder();
-            for (val element : arr) {
-                val recursed = consumeRecursiveWildcard(element, terminal, tail, pathAnalysis, location, evalCtx,
-                        depth + 1);
-                if (recursed instanceof ErrorValue)
-                    return recursed;
-                val result = navigateAndApply(recursed, terminal, tail, pathAnalysis, location, evalCtx);
-                if (result instanceof ErrorValue)
-                    return result;
-                if (!(result instanceof UndefinedValue))
-                    builder.add(result);
-            }
-            return builder.build();
-        }
-        if (current instanceof ObjectValue obj) {
-            val builder = ObjectValue.builder();
-            for (val entry : obj.entrySet()) {
-                val recursed = consumeRecursiveWildcard(entry.getValue(), terminal, tail, pathAnalysis, location,
-                        evalCtx, depth + 1);
-                if (recursed instanceof ErrorValue)
-                    return recursed;
-                val result = navigateAndApply(recursed, terminal, tail, pathAnalysis, location, evalCtx);
-                if (result instanceof ErrorValue)
-                    return result;
-                if (!(result instanceof UndefinedValue))
                     builder.put(entry.getKey(), result);
+                }
+            } else {
+                builder.put(entry.getKey(), entry.getValue());
             }
-            return builder.build();
         }
-        return current;
+        return builder.build();
     }
 
-    private static Value consumeExpression(Value current, ExpressionPath ep, UnaryOperator<Value> terminal,
-            List<PathElement> tail, PathAnalysis pathAnalysis, SourceLocation location, EvaluationContext evalCtx) {
+    private static Value evaluatePathExpression(ExpressionPath ep, PathAnalysis pathAnalysis,
+            EvaluationContext evalCtx) {
         val compiled = pathAnalysis.compiledElements().get(ep);
-        Value indexValue;
-        switch (compiled) {
-            case Value v -> indexValue = v;
-            case PureOperator po -> indexValue = po.evaluate(evalCtx);
-            default -> {
-                return Value.errorAt(ep.location(), "StreamOperator in path expression not supported");
-            }
+        if (compiled instanceof Value v) {
+            return v;
         }
-        if (indexValue instanceof ErrorValue) {
-            return indexValue;
+        if (compiled instanceof PureOperator po) {
+            return po.evaluate(evalCtx);
         }
-        if (indexValue instanceof UndefinedValue) {
-            return current;
-        }
-        if (indexValue instanceof NumberValue(BigDecimal number)) {
-            return consumeIndex(current, number.intValue(), terminal, tail, pathAnalysis, location, evalCtx);
-        }
-        if (indexValue instanceof TextValue(String text)) {
-            return consumeKey(current, text, terminal, tail, pathAnalysis, location, evalCtx);
-        }
-        return current;
+        return Value.errorAt(ep.location(), "StreamOperator in path expression not supported");
     }
 
-    private static Value consumeCondition(Value current, ConditionPath cp, UnaryOperator<Value> terminal,
-            List<PathElement> tail, PathAnalysis pathAnalysis, SourceLocation location, EvaluationContext evalCtx) {
-        if (current instanceof ArrayValue arr) {
-            val builder = ArrayValue.builder();
-            for (int i = 0; i < arr.size(); i++) {
-                val element    = arr.get(i);
-                val localCtx   = evalCtx.withRelativeValue(element, Value.of(i));
-                val condResult = evaluateCondition(cp, pathAnalysis, localCtx);
-                if (condResult instanceof ErrorValue) {
-                    return condResult;
-                }
-                if (condResult instanceof BooleanValue(boolean value) && value) {
-                    val result = navigateAndApply(element, terminal, tail, pathAnalysis, location, localCtx);
-                    if (result instanceof ErrorValue) {
-                        return result;
-                    }
-                    if (!(result instanceof UndefinedValue)) {
-                        builder.add(result);
-                    }
-                } else {
-                    builder.add(element);
-                }
-            }
-            return builder.build();
-        }
-        if (current instanceof ObjectValue obj) {
-            val builder = ObjectValue.builder();
-            for (val entry : obj.entrySet()) {
-                val localCtx   = evalCtx.withRelativeValue(entry.getValue(), Value.of(entry.getKey()));
-                val condResult = evaluateCondition(cp, pathAnalysis, localCtx);
-                if (condResult instanceof ErrorValue) {
-                    return condResult;
-                }
-                if (condResult instanceof BooleanValue(boolean value) && value) {
-                    val result = navigateAndApply(entry.getValue(), terminal, tail, pathAnalysis, location, localCtx);
-                    if (result instanceof ErrorValue) {
-                        return result;
-                    }
-                    if (!(result instanceof UndefinedValue)) {
-                        builder.put(entry.getKey(), result);
-                    }
-                } else {
-                    builder.put(entry.getKey(), entry.getValue());
-                }
-            }
-            return builder.build();
-        }
-        return current;
-    }
-
-    private static Value evaluateCondition(ConditionPath cp, PathAnalysis pathAnalysis, EvaluationContext evalCtx) {
+    private static Value evaluatePathCondition(ConditionPath cp, PathAnalysis pathAnalysis, EvaluationContext evalCtx) {
         val compiled = pathAnalysis.compiledElements().get(cp);
-        return switch (compiled) {
-            case Value v -> v;
-            case PureOperator po -> po.evaluate(evalCtx);
-            default -> Value.errorAt(cp.location(), "StreamOperator in path condition not supported");
-        };
+        if (compiled instanceof Value v) {
+            return v;
+        }
+        if (compiled instanceof PureOperator po) {
+            return po.evaluate(evalCtx);
+        }
+        return Value.errorAt(cp.location(), "StreamOperator in path condition not supported");
+    }
+
+    private static Value replaceObjectKey(ObjectValue obj, String key, Value result) {
+        if (result instanceof ErrorValue) {
+            return result;
+        }
+        if (result instanceof UndefinedValue) {
+            return rebuildObjectWithout(obj, key);
+        }
+        return rebuildObjectWith(obj, key, result);
+    }
+
+    private static Value replaceArrayIndex(ArrayValue arr, int index, Value result) {
+        if (result instanceof ErrorValue) {
+            return result;
+        }
+        if (result instanceof UndefinedValue) {
+            return rebuildArrayWithout(arr, index);
+        }
+        return rebuildArrayWith(arr, index, result);
     }
 
     private static ObjectValue rebuildObjectWith(ObjectValue original, String key, Value newValue) {
@@ -553,8 +595,9 @@ public class ExtendedFilterCompiler {
     private static ObjectValue rebuildObjectWithout(ObjectValue original, String key) {
         val builder = ObjectValue.builder();
         for (val entry : original.entrySet()) {
-            if (!entry.getKey().equals(key))
+            if (!entry.getKey().equals(key)) {
                 builder.put(entry.getKey(), entry.getValue());
+            }
         }
         return builder.build();
     }
@@ -570,10 +613,60 @@ public class ExtendedFilterCompiler {
     private static ArrayValue rebuildArrayWithout(ArrayValue original, int index) {
         val builder = ArrayValue.builder();
         for (int i = 0; i < original.size(); i++) {
-            if (i != index)
+            if (i != index) {
                 builder.add(original.get(i));
+            }
         }
         return builder.build();
+    }
+
+    private static int normalizeArrayIndex(int index, int size) {
+        return index >= 0 ? index : size + index;
+    }
+
+    private static Set<Integer> normalizeIndexSet(List<Integer> indices, int size) {
+        val indexSet = new HashSet<Integer>();
+        for (val idx : indices) {
+            int actual = normalizeArrayIndex(idx, size);
+            if (actual >= 0 && actual < size) {
+                indexSet.add(actual);
+            }
+        }
+        return indexSet;
+    }
+
+    private static Set<Integer> computeSliceIndexSet(int size, Integer from, Integer to, Integer step) {
+        int stepVal = step != null ? step : 1;
+        if (stepVal == 0) {
+            return Set.of();
+        }
+        int fromVal  = normalizeSliceBound(from, size, stepVal > 0 ? 0 : size - 1);
+        int toVal    = normalizeSliceBound(to, size, stepVal > 0 ? size : -size - 1);
+        val indexSet = new HashSet<Integer>();
+        if (stepVal > 0) {
+            for (int i = fromVal; i < toVal && i < size; i += stepVal) {
+                if (i >= 0) {
+                    indexSet.add(i);
+                }
+            }
+        } else {
+            for (int i = fromVal; i > toVal && i >= 0; i += stepVal) {
+                if (i < size) {
+                    indexSet.add(i);
+                }
+            }
+        }
+        return indexSet;
+    }
+
+    private static int normalizeSliceBound(Integer bound, int size, int defaultVal) {
+        if (bound == null) {
+            return defaultVal;
+        }
+        if (bound < 0) {
+            return Math.max(0, size + bound);
+        }
+        return Math.min(bound, size);
     }
 
     record PathAnalysis(Map<PathElement, CompiledExpression> compiledElements, boolean isDependingOnSubscription) {
@@ -583,8 +676,8 @@ public class ExtendedFilterCompiler {
     }
 
     private static PathAnalysis analyzePath(List<PathElement> path, CompilationContext ctx) {
-        val compiled             = new HashMap<PathElement, CompiledExpression>();
-        var dependsOnSubcription = false;
+        val compiled              = new HashMap<PathElement, CompiledExpression>();
+        var dependsOnSubscription = false;
         for (val element : path) {
             switch (element) {
             case ExpressionPath ep -> {
@@ -594,7 +687,7 @@ public class ExtendedFilterCompiler {
                             ep.location());
                 }
                 if (expr instanceof PureOperator po && po.isDependingOnSubscription()) {
-                    dependsOnSubcription = true;
+                    dependsOnSubscription = true;
                 }
                 compiled.put(ep, expr);
             }
@@ -605,14 +698,14 @@ public class ExtendedFilterCompiler {
                             cp.location());
                 }
                 if (cond instanceof PureOperator po && po.isDependingOnSubscription()) {
-                    dependsOnSubcription = true;
+                    dependsOnSubscription = true;
                 }
                 compiled.put(cp, cond);
             }
             default                -> { /* static element, nothing to compile */ }
             }
         }
-        return new PathAnalysis(compiled, dependsOnSubcription);
+        return new PathAnalysis(compiled, dependsOnSubscription);
     }
 
 }
