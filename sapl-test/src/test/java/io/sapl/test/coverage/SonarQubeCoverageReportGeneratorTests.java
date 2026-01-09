@@ -127,8 +127,8 @@ class SonarQubeCoverageReportGeneratorTests {
     void whenTargetHits_thenLine1CoverageReflectsHits(int trueHits, int falseHits, boolean covered) throws IOException {
         writeCoverageNdjson(String.format(
                 """
-                        {"testIdentifier":"test-1","policies":[{"documentName":"test","documentType":"policy","filePath":"test.sapl","targetTrueHits":%d,"targetFalseHits":%d}]}
-                        """,
+                {"testIdentifier":"test-1","policies":[{"documentName":"test","documentType":"policy","filePath":"test.sapl","targetTrueHits":%d,"targetFalseHits":%d}]}
+                """,
                 trueHits, falseHits));
 
         val generator = new SonarQubeCoverageReportGenerator(tempDir);

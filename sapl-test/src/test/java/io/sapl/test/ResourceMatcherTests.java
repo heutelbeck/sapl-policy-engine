@@ -137,7 +137,7 @@ class ResourceMatcherTests {
         for (var result : results.scenarioResults()) {
             if (result.status() != TestStatus.PASSED) {
                 sb.append("  - ").append(result.requirementName()).append(" > ").append(result.scenarioName())
-                        .append(": ").append(result.failureMessage()).append("\n");
+                        .append(": ").append(result.failureMessage()).append('\n');
             }
         }
         return sb.toString();

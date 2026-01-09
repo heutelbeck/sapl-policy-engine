@@ -18,11 +18,7 @@
 package io.sapl.test;
 
 import io.sapl.api.pdp.CombiningAlgorithm;
-import io.sapl.test.plain.PlainTestAdapter;
-import io.sapl.test.plain.SaplDocument;
-import io.sapl.test.plain.SaplTestDocument;
-import io.sapl.test.plain.TestConfiguration;
-import io.sapl.test.plain.TestStatus;
+import io.sapl.test.plain.*;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -114,7 +110,7 @@ class DecisionMatcherHelperTests {
         assertThat(result.status()).isEqualTo(TestStatus.FAILED);
     }
 
-    private io.sapl.test.plain.ScenarioResult runSingleScenario(String scenarioName, String requirementName) {
+    private ScenarioResult runSingleScenario(String scenarioName, String requirementName) {
         var policy = loadResource(POLICY_PATH);
         var tests  = loadResource(NEGATIVE_TESTS_PATH);
 
@@ -136,7 +132,7 @@ class DecisionMatcherHelperTests {
         for (var result : results.scenarioResults()) {
             if (result.status() != TestStatus.PASSED) {
                 sb.append("  - ").append(result.requirementName()).append(" > ").append(result.scenarioName())
-                        .append(": ").append(result.failureMessage()).append("\n");
+                        .append(": ").append(result.failureMessage()).append('\n');
             }
         }
         return sb.toString();
